@@ -52,10 +52,12 @@ all: $(OUTPATH)
 	@echo Build complete.
 
 bindings:
+	luajit ./tool/genffi.lua include $(PROJECT) ./script
 
 clean:
 	rm -f $(OUTPATH)
 	rm -rf $(OBJPATH)
+	rm -rf log
 
 install: $(OUTPATH)
 	luajit ./tool/genffi.lua include $(PROJECT) ./script
@@ -63,7 +65,7 @@ install: $(OUTPATH)
 	sudo ldconfig
 
 run:
-	./bin/luajit ./script/app/HelloWorld.lua
+	@./bin/luajit ./script/app/HelloWorld.lua
 
 $(OUTPATH): $(OBJECTS)
 	@echo [LINK] $(OUTPATH)
