@@ -106,6 +106,37 @@ elseif (LINUX)
   target_include_directories (phx PUBLIC "${BULLET_INCLUDE_DIR}")
   target_include_directories (phx PUBLIC "${FREETYPE_INCLUDE_DIRS}")
 
+elseif (MACOS)
+
+#  # register an external shared library
+#  function (add_extlib name lib)
+#    add_library (${name} SHARED IMPORTED GLOBAL)
+#    set_property (TARGET ${name} PROPERTY IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/ext/lib/${PLATARCH}/${lib}.dylib")
+#  endfunction ()
+#
+#  # link target to an external library; also add a post-build step to
+#  # copy the library DLL into the bin folder
+#  function (target_link_extlib target lib)
+#    target_link_libraries (${target} ${lib})
+#    add_custom_command (TARGET ${target} POST_BUILD
+#            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#            $<TARGET_FILE:${lib}> $<TARGET_FILE_DIR:${target}>
+#            )
+#  endfunction ()
+#
+#  add_extlib (glew glew32.lib glew32.dll)
+#  add_extlib (lz4 liblz4.lib liblz4.dll)
+#  add_extlib (lua51 lua51.lib lua51.dll)
+#  add_extlib (sdl2 SDL2.lib SDL2.dll)
+#
+#  if (ARCH EQUAL "32")
+#    add_extlib (fmod fmodL_vc.lib fmodL.dll)
+#    add_extlib (fmodstudio fmodstudioL_vc.lib fmodstudioL.dll)
+#  else ()
+#    add_extlib (fmod fmodL64_vc.lib fmodL64.dll)
+#    add_extlib (fmodstudio fmodstudioL64_vc.lib fmodstudioL64.dll)
+#  endif ()
+
 endif ()
 
 # ------------------------------------------------------------------------------
@@ -143,5 +174,13 @@ elseif (LINUX)
   # For some reason, linking libfmodL.so causes the linker to require libfmodL.so.10, so make it happy using
   # a symlink.
   add_custom_command (TARGET phx POST_BUILD COMMAND ln -sf libfmodL.so $<TARGET_FILE_DIR:phx>/libfmodL.so.10)
+
+elseif (MACOS)
+
+  find_library(OPENGL_LIBRARY OpenGL)
+  target_link_libraries (phx PRIVATE
+    dl
+    ${OPENGL_LIBRARY}
+    fmod fmodstudio)
 
 endif ()

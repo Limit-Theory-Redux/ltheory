@@ -670,13 +670,13 @@ else
     local dirent_def
     if OS == 'OSX' or OS == 'BSD' then
         dirent_def = [[
-            /* _DARWIN_FEATURE_64_BIT_INODE is NOT defined here? */
             struct dirent {
-                uint32_t d_ino;
-                uint16_t d_reclen;
-                uint8_t  d_type;
-                uint8_t  d_namlen;
-                char d_name[256];
+                uint64_t  d_ino;
+                uint64_t  d_seekoff;
+                uint16_t  d_reclen;
+                uint16_t  d_namlen;
+                uint8_t   d_type;
+                char      d_name[1024];
             };
         ]]
     else

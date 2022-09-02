@@ -4,19 +4,31 @@ if (WIN32)
 elseif (UNIX AND NOT APPLE)
   set (PLATFORM "linux")
   set (LINUX TRUE)
+elseif (APPLE)
+  set (PLATFORM "macos")
+  set (MACOS TRUE)
 else ()
   message (FATAL_ERROR "Unsupported Platform")
 endif ()
 
+string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} system_processor)
 if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "4")
   set (ARCH "32")
 elseif ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
   set (ARCH "64")
 else ()
-  message (FATAL_ERROR "Unsupported CPU Architecture")
+  message (FATAL_ERROR "Unsupported CPU pointer size ${CMAKE_SIZEOF_VOID_P} (either 32 or 64 bit supported)")
 endif ()
 
-set (PLATARCH "${PLATFORM}${ARCH}")
+if ("${system_processor}" MATCHES "(x86)|(amd64)")
+  set (ARCH_X86 TRUE)
+elseif ("${system_processor}" STREQUAL "arm64")
+  set (ARCH_ARM TRUE)
+else ()
+  message (FATAL_ERROR "Unsupported CPU Architecture: ${system_processor}")
+endif()
+
+set (PLATARCH  "${PLATFORM}${ARCH}")
 
 set(default_build_type RelWithDebInfo)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -54,7 +66,7 @@ function (phx_configure_target_properties target)
     target_compile_options (${target} PRIVATE "/GS-")        # No Buffer Security Checks
     target_compile_options (${target} PRIVATE "/GR-")        # No RTTI
     target_compile_options (${target} PRIVATE "/arch:SSE2")  # Assume SSE2+
-  elseif (LINUX)
+  elseif (LINUX OR MACOS)
     target_compile_definitions (${target} PRIVATE UNIX=1)
 
     target_compile_options (${target} PRIVATE "-Wall")            # All error checking
