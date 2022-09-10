@@ -5,7 +5,7 @@
 #include "Box3.h"
 #include "Vec2.h"
 
-/* TODO : This API is a bit hapazard with respect to using floats or vectors. */
+/* TODO : This API is a bit haphazard with respect to using floats or vectors. */
 
 /* --- Shared API ----------------------------------------------------------- */
 
@@ -46,5 +46,10 @@ PHX_API void  Draw_Poly3         (Vec3f const* points, int count);
 PHX_API void  Draw_Quad3         (Vec3f const* p1, Vec3f const* p2, Vec3f const* p3, Vec3f const* p4);
 PHX_API void  Draw_Sphere        (Vec3f const* p, float r);
 PHX_API void  Draw_Tri3          (Vec3f const* p1, Vec3f const* p2, Vec3f const* p3);
+
+/* --- Internal API ----------------------------------------------------------- */
+
+PRIVATE bool  Draw_Init          ();
+PRIVATE void  Draw_Free          ();
 
 #endif

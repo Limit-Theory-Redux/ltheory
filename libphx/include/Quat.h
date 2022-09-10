@@ -6,7 +6,7 @@
 /* --- API NOTES ---------------------------------------------------------------
  *
  *   Unlike matrices, Quats are PRE-multiplicative with respect to vectors.
- *   Hence, Quat_Mul(A, B) procudes a quaternion that rotates first by A, THEN
+ *   Hence, Quat_Mul(A, B) produces a quaternion that rotates first by A, THEN
  *   by B.
  *
  * -------------------------------------------------------------------------- */

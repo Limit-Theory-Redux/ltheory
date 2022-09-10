@@ -16,19 +16,20 @@ static int vpIndex = -1;
 static VP vp[MAX_STACK_DEPTH];
 
 static void Viewport_Set (VP const* self) {
-  GLCALL(glViewport(self->x, self->y, self->sx, self->sy))
-  GLCALL(glMatrixMode(GL_PROJECTION))
-  GLCALL(glLoadIdentity())
-
-  /* GL's window coordinates and texture coordinates have opposite vertical
-   * orientation. Automatically compensate via the projection matrix. */
-  if (self->isWindow) {
-    GLCALL(glTranslatef(-1.0, 1.0, 0.0))
-    GLCALL(glScalef(2.0f / self->sx, -2.0f / self->sy, 1.0f))
-  } else {
-    GLCALL(glTranslatef(-1.0, -1.0, 0.0))
-    GLCALL(glScalef(2.0f / self->sx,  2.0f / self->sy, 1.0f))
-  }
+//  bgfx::setViewRect(0, self->x, self->y, self->sx, self->sy);
+//  GLCALL(glViewport(self->x, self->y, self->sx, self->sy))
+//  GLCALL(glMatrixMode(GL_PROJECTION))
+//  GLCALL(glLoadIdentity())
+//
+//  /* GL's window coordinates and texture coordinates have opposite vertical
+//   * orientation. Automatically compensate via the projection matrix. */
+//  if (self->isWindow) {
+//    GLCALL(glTranslatef(-1.0, 1.0, 0.0))
+//    GLCALL(glScalef(2.0f / self->sx, -2.0f / self->sy, 1.0f))
+//  } else {
+//    GLCALL(glTranslatef(-1.0, -1.0, 0.0))
+//    GLCALL(glScalef(2.0f / self->sx,  2.0f / self->sy, 1.0f))
+//  }
 }
 
 float Viewport_GetAspect () {

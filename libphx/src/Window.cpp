@@ -5,41 +5,70 @@
 #include "Viewport.h"
 #include "Window.h"
 #include "WindowMode.h"
+#include "Draw.h"
 
 struct Window {
   SDL_Window* handle;
-  SDL_GLContext context;
   WindowMode mode;
+  RendererState rs;
 };
+
+static Window* currentWindow = nullptr;
 
 Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode) {
   Window* self = MemNew(Window);
-  mode |= SDL_WINDOW_OPENGL;
   self->handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
-  self->context = SDL_GL_CreateContext(self->handle);
+
+  SDL_SysWMinfo wmi;
+  SDL_VERSION(&wmi.version);
+  if (!SDL_GetWindowWMInfo(self->handle, &wmi)) {
+    Fatal("Failed to create OpenGL immediateContext for window");
+  }
+
+  // Initialize renderer.
+  Diligent::SwapChainDesc swapChainDesc;
+
+  Diligent::EngineGLCreateInfo engineCI;
+  engineCI.Window.pNSView = wmi.info.cocoa.window;
+
+  // TODO: Initialize other renderers.
+  auto factory = Diligent::GetEngineFactoryOpenGL();
+  factory->CreateDeviceAndSwapChainGL(
+      engineCI,
+      &self->rs.device,
+      &self->rs.immediateContext,
+      swapChainDesc,
+      &self->rs.swapChain);
+
   self->mode = mode;
-  if (!self->context)
-    Fatal("Failed to create OpenGL context for window");
   OpenGL_Init();
+  Draw_Init();
   return self;
 }
 
 void Window_Free (Window* self) {
-  SDL_GL_DeleteContext(self->context);
+  Draw_Free();
+
+  self->rs.swapChain.Release();
+  self->rs.immediateContext.Release();
+  self->rs.device.Release();
+
   SDL_DestroyWindow(self->handle);
   MemFree(self);
 }
 
 void Window_BeginDraw (Window* self) {
+  currentWindow = self;
+
   Vec2i size;
-  SDL_GL_MakeCurrent(self->handle, self->context);
   Window_GetSize(self, &size);
   Viewport_Push(0, 0, size.x, size.y, true);
 }
 
 void Window_EndDraw (Window* self) {
   Viewport_Pop();
-  SDL_GL_SwapWindow(self->handle);
+
+  currentWindow = nullptr;
 }
 
 void Window_GetSize (Window* self, Vec2i* out) {
@@ -88,4 +117,12 @@ void Window_Hide (Window* self) {
 
 void Window_Show (Window* self) {
   SDL_ShowWindow(self->handle);
+}
+
+RendererState* Window_GetRS (Window* self) {
+  return &self->rs;
+}
+
+RendererState* Window_GetCurrentRS () {
+  return currentWindow != nullptr ? &currentWindow->rs : nullptr;
 }

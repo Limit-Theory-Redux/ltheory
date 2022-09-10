@@ -75,6 +75,26 @@ if (bullet_ADDED)
   target_include_directories(BulletDynamics PUBLIC ${bullet_SOURCE_DIR}/src)
 endif ()
 
+if(MACOS)
+  set(DILIGENT_NO_VULKAN ON)
+else()
+  set(DILIGENT_NO_VULKAN OFF)
+endif()
+CPMAddPackage(
+  NAME DiligentCore
+  URL https://github.com/DiligentGraphics/DiligentCore/releases/download/v2.5.3/DiligentCore_v2.5.3.zip
+  VERSION 2.5.3
+  OPTIONS
+  "DILIGENT_INSTALL_CORE OFF"
+  "DILIGENT_INSTALL_PDB OFF"
+  "DILIGENT_NO_FORMAT_VALIDATION ON"
+  "DILIGENT_NO_VULKAN ${DILIGENT_NO_VULKAN}"
+  "DILIGENT_NO_METAL ON" # Metal is only supported with a pro license of Diligent.
+)
+if(DiligentCore_ADDED)
+  target_include_directories(Diligent-Common PUBLIC ${DiligentCore_SOURCE_DIR})
+endif()
+
 CPMAddPackage(
   NAME fmod
   URL https://github.com/Limit-Theory-Redux/ltheory/releases/download/v0.0.1-pre/fmod-2.02.08.zip

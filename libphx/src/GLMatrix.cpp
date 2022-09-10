@@ -1,25 +1,85 @@
 #include "GLMatrix.h"
 #include "Matrix.h"
+#include "MatrixDef.h"
 #include "OpenGL.h"
 #include "PhxMath.h"
 #include "Vec3.h"
+#include "Matrix.h"
+#include "ArrayList.h"
 
 /* NOTE : LoadMatrix expects column-major memory layout, but we use row-major,
  *        hence the need for transpositions when taking a Matrix*. */
 
+// OpenGL 2.1 style matrix stack emulation.
+enum class GLMatrixMode {
+    ModelView,
+    Projection
+};
+
+struct GLMatrixStack {
+    ArrayList(Matrix*, modelview);
+    ArrayList(Matrix*, projection);
+
+    GLMatrixMode mode;
+
+    size_t count() const {
+      switch (mode) {
+        case GLMatrixMode::ModelView:
+          return ArrayList_GetSize(modelview);
+        case GLMatrixMode::Projection:
+          return ArrayList_GetSize(projection);
+      }
+    }
+
+    void push() {
+      Matrix* m = Matrix_Clone(*top());
+      switch (mode) {
+        case GLMatrixMode::ModelView:
+          ArrayList_Append(modelview, m);
+        case GLMatrixMode::Projection:
+          ArrayList_Append(projection, m);
+      }
+    }
+
+    void pop() {
+      switch (mode) {
+        case GLMatrixMode::ModelView:
+          ArrayList_RemoveLast(modelview);
+        case GLMatrixMode::Projection:
+          ArrayList_RemoveLast(projection);
+      }
+    }
+
+    Matrix** top() const {
+      switch (mode) {
+        case GLMatrixMode::ModelView:
+          return ArrayList_GetLastPtr(modelview);
+        case GLMatrixMode::Projection:
+          return ArrayList_GetLastPtr(projection);
+      }
+    }
+
+    // Ownership of 'm' is transferred to this GLMatrixStack.
+    void load(Matrix* m) {
+      Matrix** current = top();
+      Matrix_Free(*current);
+      *current = m;
+    }
+
+    // Ownership of 'm' is not transferred.
+    void mult(Matrix const* m) {
+      load(Matrix_Product(m, *top()));
+    }
+};
+
+static GLMatrixStack stack;
+
 void GLMatrix_Clear () {
-  GLCALL(glLoadIdentity())
+  stack.load(Matrix_Identity());
 }
 
-void GLMatrix_Load (Matrix* matrix) {
-  float* m = (float*)matrix;
-  float transpose[] = {
-    m[ 0], m[ 4], m[ 8], m[12],
-    m[ 1], m[ 5], m[ 9], m[13],
-    m[ 2], m[ 6], m[10], m[14],
-    m[ 3], m[ 7], m[11], m[15],
-  };
-  GLCALL(glLoadMatrixf(transpose))
+void GLMatrix_Load (Matrix const* matrix) {
+  stack.load(Matrix_Transpose(matrix));
 }
 
 void GLMatrix_LookAt (Vec3d const* eye, Vec3d const* at, Vec3d const* up) {
@@ -28,34 +88,33 @@ void GLMatrix_LookAt (Vec3d const* eye, Vec3d const* at, Vec3d const* up) {
   Vec3d y = Vec3d_Cross(x, z);
 
   /* TODO : Yet another sign flip. Sigh. */
-  double m[16] = {
-    x.x, y.x, -z.x, 0,
-    x.y, y.y, -z.y, 0,
-    x.z, y.z, -z.z, 0,
-    0,     0,    0, 1,
+  double mArray[16] = {
+      x.x, y.x, -z.x, 0,
+      x.y, y.y, -z.y, 0,
+      x.z, y.z, -z.z, 0,
+      0, 0, 0, 1,
   };
+  Matrix m;
+  for (int i = 0; i < 16; ++i) {
+    m.m[i] = (float)mArray[i];
+  }
 
-  GLCALL(glMultMatrixd(m))
-  GLCALL(glTranslated(-eye->x, -eye->y, -eye->z))
+  stack.mult(&m);
+  GLMatrix_Translate(-eye->x, -eye->y, -eye->z);
 }
 
 void GLMatrix_ModeP () {
-  GLCALL(glMatrixMode(GL_PROJECTION))
+  stack.mode = GLMatrixMode::Projection;
 }
 
 void GLMatrix_ModeWV () {
-  GLCALL(glMatrixMode(GL_MODELVIEW))
+  stack.mode = GLMatrixMode::ModelView;
 }
 
-void GLMatrix_Mult (Matrix* matrix) {
-  float* m = (float*)matrix;
-  float transpose[] = {
-    m[ 0], m[ 4], m[ 8], m[12],
-    m[ 1], m[ 5], m[ 9], m[13],
-    m[ 2], m[ 6], m[10], m[14],
-    m[ 3], m[ 7], m[11], m[15],
-  };
-  GLCALL(glMultMatrixf((float*)transpose))
+void GLMatrix_Mult (Matrix const* matrix) {
+  Matrix* transposed = Matrix_Transpose(matrix);
+  stack.mult(transposed);
+  Matrix_Free(transposed);
 }
 
 void GLMatrix_Perspective (double fovy, double aspect, double z0, double z1) {
@@ -64,63 +123,58 @@ void GLMatrix_Perspective (double fovy, double aspect, double z0, double z1) {
   double dz = z1 - z0;
   double nf = -2.0 * (z0 * z1) / dz;
 
-  double m[16] = {
-    cot / aspect,   0,               0,    0,
-    0,            cot,               0,    0,
-    0,              0, -(z0 + z1) / dz, -1.0,
-    0,              0,              nf,    0,
-  };
-
-  GLCALL(glMultMatrixd(m))
+  Matrix m = {{
+    float(cot / aspect),   0,               0,    0,
+    0,            float(cot),               0,    0,
+    0,              0, float(-(z0 + z1) / dz), -1.0,
+    0,              0,              float(nf),    0,
+  }};
+  stack.mult(&m);
 }
 
 void GLMatrix_Pop () {
-  GLCALL(glPopMatrix())
+  stack.pop();
 }
 
 void GLMatrix_Push () {
-  GLCALL(glPushMatrix())
+  stack.push();
 }
 
 void GLMatrix_PushClear () {
-  GLCALL(glPushMatrix())
-  GLCALL(glLoadIdentity())
+  stack.push();
+  stack.load(Matrix_Identity());
 }
 
 Matrix* GLMatrix_Get () {
-  GLint matrixMode;
-  GLCALL(glGetIntegerv(GL_MATRIX_MODE, &matrixMode));
-
-  switch (matrixMode) {
-    case GL_MODELVIEW:  matrixMode = GL_MODELVIEW_MATRIX;  break;
-    case GL_PROJECTION: matrixMode = GL_PROJECTION_MATRIX; break;
-
-    case GL_COLOR:
-    case GL_TEXTURE:
-    default: return 0;
-  }
-
-  Matrix* matrix = Matrix_Identity();
-  GLCALL(glGetFloatv(matrixMode, (float*) matrix));
-  return matrix;
+  return *stack.top();
 }
 
 void GLMatrix_RotateX (double angle) {
-  GLCALL(glRotated(angle, 1, 0, 0))
+  Matrix* rotateX = Matrix_RotationX((float)angle);
+  stack.mult(rotateX);
+  Matrix_Free(rotateX);
 }
 
 void GLMatrix_RotateY (double angle) {
-  GLCALL(glRotated(angle, 0, 1, 0))
+  Matrix* rotateY = Matrix_RotationY((float)angle);
+  stack.mult(rotateY);
+  Matrix_Free(rotateY);
 }
 
 void GLMatrix_RotateZ (double angle) {
-  GLCALL(glRotated(angle, 0, 0, 1))
+  Matrix* rotateZ = Matrix_RotationZ((float)angle);
+  stack.mult(rotateZ);
+  Matrix_Free(rotateZ);
 }
 
 void GLMatrix_Scale (double x, double y, double z) {
-  GLCALL(glScaled(x, y, z))
+  Matrix* scale = Matrix_Scaling((float)x, (float)y, (float)z);
+  stack.mult(scale);
+  Matrix_Free(scale);
 }
 
 void GLMatrix_Translate (double x, double y, double z) {
-  GLCALL(glTranslated(x, y, z))
+  Matrix* translate = Matrix_Translation((float)x, (float)y, (float)z);
+  stack.mult(translate);
+  Matrix_Free(translate);
 }

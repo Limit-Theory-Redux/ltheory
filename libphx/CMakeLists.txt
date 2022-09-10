@@ -35,6 +35,8 @@ target_link_libraries (phx PUBLIC
   BulletCollision
   BulletDynamics
   LinearMath
+  Diligent-Common
+  Diligent-GraphicsEngineOpenGL-static
   fmod
   freetype
   glew_s

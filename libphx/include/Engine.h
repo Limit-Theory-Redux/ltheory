@@ -14,7 +14,7 @@
  *
  * -------------------------------------------------------------------------- */
 
-PHX_API void   Engine_Init          (int glVersionMajor, int glVersionMinor);
+PHX_API void   Engine_Init          ();
 PHX_API void   Engine_Free          ();
 
 PHX_API void   Engine_Abort         ();

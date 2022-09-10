@@ -36,11 +36,9 @@ const uint32 subsystems =
 static cstr versionString = __DATE__ " " __TIME__;
 static TimeStamp initTime = 0;
 
-void Engine_Init (int glVersionMajor, int glVersionMinor) {
+void Engine_Init () {
   static bool firstTime = true;
   Signal_Init();
-
-  printf("Engine_Init: Requesting GL %d.%d\n", glVersionMajor, glVersionMinor);
 
   if (firstTime) {
     firstTime = false;
@@ -67,18 +65,6 @@ void Engine_Init (int glVersionMajor, int glVersionMinor) {
 
   if (SDL_InitSubSystem(subsystems) != 0)
     Fatal("Engine_Init: Failed to initialize SDL's subsystems");
-
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, glVersionMajor);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, glVersionMinor);
-  SDL_GL_SetAttribute(
-    SDL_GL_CONTEXT_PROFILE_MASK,
-    SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
-  SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
-  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
   Keyboard_Init();
   Metric_Reset();

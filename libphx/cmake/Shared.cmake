@@ -76,13 +76,13 @@ function (phx_configure_target_properties target)
     target_compile_definitions (${target} PRIVATE UNIX=1)
 
     target_compile_options (${target} PRIVATE "-Wall")            # All error checking
-    target_compile_options (${target} PRIVATE "-fno-exceptions")  # No exception handling
+#    target_compile_options (${target} PRIVATE "-fno-exceptions")  # No exception handling
     target_compile_options (${target} PRIVATE "-ffast-math")      # No strict FP
     target_compile_options (${target} PRIVATE "-fpic")            # PIC since this is shared
 
     target_compile_options (${target} PRIVATE "-Wno-unused-variable")
     target_compile_options (${target} PRIVATE "-Wno-unknown-pragmas")
-
-    target_compile_options (${target} PRIVATE "-std=c++11")
   endif ()
+
+  target_compile_features(${target} PUBLIC cxx_std_14)
 endfunction ()
