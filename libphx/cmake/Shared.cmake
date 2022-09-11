@@ -85,4 +85,12 @@ function (phx_configure_target_properties target)
   endif ()
 
   target_compile_features(${target} PUBLIC cxx_std_14)
+
+  if(WINDOWS)
+    target_compile_definitions(${target} PUBLIC PLATFORM_WIN32=1)
+  elseif(MACOS)
+    target_compile_definitions(${target} PUBLIC PLATFORM_MACOS=1)
+  elseif(LINUX)
+    target_compile_definitions(${target} PUBLIC PLATFORM_LINUX=1)
+  endif ()
 endfunction ()

@@ -6,6 +6,7 @@
 #include "Window.h"
 #include "WindowMode.h"
 #include "Draw.h"
+#include "WindowNative.h"
 
 struct Window {
   SDL_Window* handle;
@@ -19,18 +20,16 @@ Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode
   Window* self = MemNew(Window);
   self->handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
 
-  SDL_SysWMinfo wmi;
-  SDL_VERSION(&wmi.version);
-  if (!SDL_GetWindowWMInfo(self->handle, &wmi)) {
-    Fatal("Failed to create OpenGL immediateContext for window");
+  Diligent::NativeWindow nativeWindow;
+  if (!PopulateNativeWindow(self->handle, nativeWindow)) {
+      Fatal("Failed to create OpenGL immediateContext for window");
   }
 
   // Initialize renderer.
   Diligent::SwapChainDesc swapChainDesc;
 
   Diligent::EngineGLCreateInfo engineCI;
-  engineCI.Window.pNSView = wmi.info.cocoa.window;
-
+  engineCI.Window = nativeWindow;
   // TODO: Initialize other renderers.
   auto factory = Diligent::GetEngineFactoryOpenGL();
   factory->CreateDeviceAndSwapChainGL(
