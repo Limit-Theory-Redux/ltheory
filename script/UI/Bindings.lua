@@ -1,4 +1,4 @@
-local Control = require('WIP.Control')
+local Control = require('Systems.Controls.Control')
 
 return {
   Select    = Control.Or(

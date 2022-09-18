@@ -3,21 +3,18 @@ package.path = package.path .. ';./script/?.lua'
 package.path = package.path .. ';./script/?.ext.lua'
 package.path = package.path .. ';./script/?.ffi.lua'
 
-require('env.env')
+require('Init')
 
-Env.Call(function ()
-  require('phx.phx')
-  local app = __app__ or Config.app or 'ltheory'
+Core.Call(function ()
+  local app = __app__ or 'ltheory'
   GlobalRestrict.On()
 
-  dofile('./script/Config.App.lua')
-  if io.exists ('./script/Config.Local.lua') then dofile('./script/Config.Local.lua') end
+  dofile('./script/Config/App.lua')
+  if io.exists ('./script/Config/Local.lua') then dofile('./script/Config/Local.lua') end
 
-  Namespace.LoadInline('Util')
-  Namespace.Load      ('UI')
-  Namespace.Load      ('WIP')
-  Namespace.Load      ('Gen')
-  Namespace.LoadInline('Game')
+  Namespace.Load('UI')
+  Namespace.LoadInline('Entity')
+  Namespace.LoadInline('Systems')
 
   jit.opt.start(
     format('maxtrace=%d',   Config.jit.tune.maxTrace),
@@ -36,6 +33,10 @@ Env.Call(function ()
     format('maxmcode=%d',   Config.jit.tune.maxMCode)
   )
 
-  require('App.' .. app):run()
+  local logG = io.open("_g.log", "w+")
+  io.output(logG)
+  io.write(Inspect(_G))
+  io.close(logG)
+  --require('States.App.' .. app):run()
   GlobalRestrict.Off()
 end)
