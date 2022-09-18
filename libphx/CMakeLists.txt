@@ -12,11 +12,20 @@ add_library (phx SHARED ${SOURCES} ${HEADERS})
 phx_configure_output_dir (phx)
 phx_configure_target_properties (phx)
 
+# Grab dependencies
+include (FetchContent)
+FetchContent_Declare (
+  ext
+  URL https://github.com/Limit-Theory-Redux/ltheory/releases/download/v0.0.1-pre/ext.zip
+)
+message ("Ensuring that dependencies are up to date...")
+FetchContent_MakeAvailable (ext)
+
 target_compile_definitions (phx PRIVATE LIBPHX_BUILDING=1)
 target_include_directories (phx PUBLIC "include")
-target_include_directories (phx PUBLIC "ext/include")
-target_include_directories (phx PUBLIC "ext/include/bullet")
-target_link_directories (phx PUBLIC "ext/lib/${PLATARCH}")
+target_include_directories (phx PUBLIC "${ext_SOURCE_DIR}/include")
+target_include_directories (phx PUBLIC "${ext_SOURCE_DIR}/include/bullet")
+target_link_directories (phx PUBLIC "${ext_SOURCE_DIR}/lib/${PLATARCH}")
 
 set_target_properties (phx PROPERTIES
   PREFIX "lib"
@@ -32,8 +41,8 @@ if (WINDOWS)
   # register an external shared library
   function (add_extlib name lib dll)
     add_library (${name} SHARED IMPORTED GLOBAL)
-    set_property (TARGET ${name} PROPERTY IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/ext/lib/${PLATARCH}/${lib}")
-    set_property (TARGET ${name} PROPERTY IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/ext/lib/${PLATARCH}/${dll}")
+    set_property (TARGET ${name} PROPERTY IMPORTED_IMPLIB "${ext_SOURCE_DIR}/lib/${PLATARCH}/${lib}")
+    set_property (TARGET ${name} PROPERTY IMPORTED_LOCATION "${ext_SOURCE_DIR}/lib/${PLATARCH}/${dll}")
   endfunction ()
 
   # link target to an external library; also add a post-build step to
