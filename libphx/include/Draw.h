@@ -49,7 +49,7 @@ PHX_API void  Draw_Tri3          (Vec3f const* p1, Vec3f const* p2, Vec3f const*
 
 /* --- Internal API ----------------------------------------------------------- */
 
-PRIVATE bool  Draw_Init          ();
+PRIVATE bool  Draw_Init          (Window* w);
 PRIVATE void  Draw_Free          ();
 
 #endif

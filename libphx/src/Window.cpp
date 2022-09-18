@@ -10,6 +10,7 @@
 
 struct Window {
   SDL_Window* handle;
+  SDL_GLContext context;
   WindowMode mode;
   RendererState rs;
 };
@@ -17,8 +18,23 @@ struct Window {
 static Window* currentWindow = nullptr;
 
 Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode) {
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+  SDL_GL_SetAttribute(
+      SDL_GL_CONTEXT_PROFILE_MASK,
+      SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
   Window* self = MemNew(Window);
+  mode |= SDL_WINDOW_OPENGL;
   self->handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
+  self->context = SDL_GL_CreateContext(self->handle);
+  SDL_GL_MakeCurrent(self->handle, self->context);
 
   Diligent::NativeWindow nativeWindow;
   if (!PopulateNativeWindow(self->handle, nativeWindow)) {
@@ -41,7 +57,7 @@ Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode
 
   self->mode = mode;
   OpenGL_Init();
-  Draw_Init();
+  Draw_Init(self);
   return self;
 }
 
@@ -52,6 +68,7 @@ void Window_Free (Window* self) {
   self->rs.immediateContext.Release();
   self->rs.device.Release();
 
+  SDL_GL_DeleteContext(self->context);
   SDL_DestroyWindow(self->handle);
   MemFree(self);
 }
@@ -60,12 +77,14 @@ void Window_BeginDraw (Window* self) {
   currentWindow = self;
 
   Vec2i size;
+  SDL_GL_MakeCurrent(self->handle, self->context);
   Window_GetSize(self, &size);
   Viewport_Push(0, 0, size.x, size.y, true);
 }
 
 void Window_EndDraw (Window* self) {
   Viewport_Pop();
+  SDL_GL_SwapWindow(self->handle);
 
   currentWindow = nullptr;
 }

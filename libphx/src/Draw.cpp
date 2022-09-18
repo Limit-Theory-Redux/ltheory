@@ -29,8 +29,8 @@ enum class PrimitiveType {
 #define IMMEDIATE_DRAW_SET_BUFFER_SIZE 8192
 class ImmediateDrawSet {
 public:
-  void createResources() {
-    RendererState* rs = Window_GetCurrentRS();
+  void createResources(Window* w) {
+    RendererState* rs = Window_GetRS(w);
 
     Diligent::BufferDesc bd;
     bd.Usage = Diligent::USAGE_DYNAMIC;
@@ -565,8 +565,8 @@ void Draw_Tri3 (Vec3f const* v1, Vec3f const* v2, Vec3f const* v3) {
   ids.end();
 }
 
-bool Draw_Init() {
-  ids.createResources();
+bool Draw_Init(Window* w) {
+  ids.createResources(w);
   return true;
 }
 

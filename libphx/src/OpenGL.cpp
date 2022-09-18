@@ -7,31 +7,31 @@ void OpenGL_Init () {
   static bool init = false;
   if (!init) {
     init = true;
-    glewInit();
+//    glewInit();
   }
 
-  GLCALL(glDisable(GL_MULTISAMPLE))
-  GLCALL(glDisable(GL_CULL_FACE));
-  GLCALL(glCullFace(GL_BACK))
-
-  GLCALL(glPixelStorei(GL_PACK_ALIGNMENT, 1))
-  GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1))
-  GLCALL(glDepthFunc(GL_LEQUAL))
-
-  GLCALL(glEnable(GL_BLEND))
-  GLCALL(glBlendFunc(GL_ONE, GL_ZERO))
-
-  GLCALL(glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS))
-  GLCALL(glDisable(GL_POINT_SMOOTH))
-  GLCALL(glDisable(GL_LINE_SMOOTH))
-  GLCALL(glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST))
-  GLCALL(glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST))
-  GLCALL(glLineWidth(2))
-
-  GLCALL(glMatrixMode(GL_PROJECTION))
-  GLCALL(glLoadIdentity())
-  GLCALL(glMatrixMode(GL_MODELVIEW))
-  GLCALL(glLoadIdentity())
+//  GLCALL(glDisable(GL_MULTISAMPLE))
+//  GLCALL(glDisable(GL_CULL_FACE));
+//  GLCALL(glCullFace(GL_BACK))
+//
+//  GLCALL(glPixelStorei(GL_PACK_ALIGNMENT, 1))
+//  GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1))
+//  GLCALL(glDepthFunc(GL_LEQUAL))
+//
+//  GLCALL(glEnable(GL_BLEND))
+//  GLCALL(glBlendFunc(GL_ONE, GL_ZERO))
+//
+//  GLCALL(glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS))
+//  GLCALL(glDisable(GL_POINT_SMOOTH))
+//  GLCALL(glDisable(GL_LINE_SMOOTH))
+//  GLCALL(glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST))
+//  GLCALL(glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST))
+//  GLCALL(glLineWidth(2))
+//
+//  GLCALL(glMatrixMode(GL_PROJECTION))
+//  GLCALL(glLoadIdentity())
+//  GLCALL(glMatrixMode(GL_MODELVIEW))
+//  GLCALL(glLoadIdentity())
 
   // GLCALL(glDepthRange(-1, 1))
 

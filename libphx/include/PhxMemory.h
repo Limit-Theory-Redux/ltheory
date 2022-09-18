@@ -3,8 +3,10 @@
 
 #include "Common.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
+#include <new>
+#include <utility>
 
 inline void*  MemAlloc      (size_t size);
 inline void*  MemAllocZero  (size_t size);
@@ -15,10 +17,24 @@ inline void*  MemRealloc    (void* ptr, size_t newSize);
 inline void   MemSet        (void* dst, int value, size_t size);
 inline void   MemZero       (void* dst, size_t size);
 
-#define MemNew(x)             ((x*)MemAlloc(sizeof(x)))
-#define MemNewZero(x)         ((x*)MemAllocZero(sizeof(x)))
-#define MemNewArray(x, s)     ((x*)MemAlloc(sizeof(x) * (s)))
-#define MemNewArrayZero(x, s) ((x*)MemAllocZero(sizeof(x) * (s)))
+template <typename T, typename... Args>
+T* MemNewImpl(Args&& ...args) {
+  return new (MemAlloc(sizeof(T))) T(std::forward<Args>(args)...);
+}
+
+template <typename T>
+T* MemNewArrayImpl(size_t s) {
+  T* memory = (T*)MemAlloc(sizeof(T) * s);
+  for (size_t i = 0; i < s; ++i) {
+    new (memory + i) T();
+  }
+  return memory;
+}
+
+#define MemNew(T, ...)        (MemNewImpl<T>(__VA_ARGS__))
+#define MemNewZero(T)         ((T*)MemAllocZero(sizeof(T)))
+#define MemNewArray(T, s)     (MemNewArrayImpl<T>(s))
+#define MemNewArrayZero(T, s) ((T*)MemAllocZero(sizeof(T) * (s)))
 
 /* Exported versions for applications that need to ensure usage of the same
  * memory allocator as libphx. */
@@ -47,8 +63,15 @@ inline void MemMove (void* dst, void const* src, size_t size) {
   memmove(dst, src, size);
 }
 
-inline void MemFree (void const* ptr) {
+template <typename T>
+inline void MemFree (T* ptr) {
+  ptr->~T();
   free((void*)ptr);
+}
+
+template <>
+inline void MemFree<void> (void* ptr) {
+  free(ptr);
 }
 
 inline void* MemRealloc (void* ptr, size_t newSize) {
