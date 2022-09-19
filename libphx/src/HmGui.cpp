@@ -315,11 +315,16 @@ bool HmGui_Checkbox (cstr label, bool value) {
 
 float HmGui_Slider (float lower, float upper, float value) {
   HmGui_BeginGroupStack();
-  HmGui_Rect(0, 2, 0.5f, 0.5f, 0.5f, 1.0f);
-  HmGui_SetAlign(0.5f, 0.5f);
-  HmGui_SetStretch(1, 0);
+  if (HmGui_GroupHasFocus(FocusType_Mouse) && Input_GetDown(Button_Mouse_Left))
+  {
+    value = self.focusPos.x;
+  }
+  HmGui_Rect(0, 0, 0.5f, 0.5f, 0.5f, 1.0f);
+  HmGui_SetAlign(0.0f, 0.5f);
+  value = Math_ClampSafe(value, lower, upper);
+  HmGui_SetStretch(value, 1);
   HmGui_EndGroup();
-  return 0.0f;
+  return value;
 }
 
 /* -------------------------------------------------------------------------- */
