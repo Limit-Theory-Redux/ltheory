@@ -246,6 +246,7 @@ static void HmGui_CheckFocus (HmGuiGroup* g) {
           self.focusPos.y <= g->pos.y + g->size.y)
       {
         self.focus[i] = g->hash;
+        self.focusPos = Vec2f_Create((self.focusPos.x - g->pos.x) / g->size.x, (self.focusPos.y - g->pos.y) / g->size.y);
       }
     }
   }
