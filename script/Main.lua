@@ -13,8 +13,8 @@ Core.Call(function ()
   if io.exists ('./script/Config/Local.lua') then dofile('./script/Config/Local.lua') end
 
   Namespace.Load('UI')
-  Namespace.Load('GameObjects')
   Namespace.LoadInline('Systems')
+  Namespace.LoadInline('GameObjects')
 
   jit.opt.start(
     format('maxtrace=%d',   Config.jit.tune.maxTrace),

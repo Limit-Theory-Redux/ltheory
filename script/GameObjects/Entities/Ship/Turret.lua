@@ -1,6 +1,6 @@
 local Entity = require('GameObjects.Entity')
-local Components = requireAll('GameObjects.Components')
 local Material = require('GameObjects.Material')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 -- TODO : Constraints
 
@@ -108,6 +108,7 @@ function Turret:fire ()
 end
 
 function Turret:render (state)
+  Log.Warning("In Turret Render")
   if state.mode == BlendMode.Additive then
     shader:start()
     Shader.ISetFloat3(varCache.color, 1.0, 1.3, 2.0)

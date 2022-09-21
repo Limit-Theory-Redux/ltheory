@@ -67,6 +67,7 @@ function ThrustController:update (e, dt)
 
   -- TODO : This is terrible
   for thruster in e:iterSocketsByType(SocketType.Thruster) do
+    Log.Warning(Inspect(thruster))
     thruster.activationT = self.forward
     thruster.boostT = boost
   end

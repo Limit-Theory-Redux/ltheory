@@ -1,5 +1,6 @@
 local Entity = require('GameObjects.Entity')
 local Material = require('GameObjects.Material')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local mesh
 local meshJet

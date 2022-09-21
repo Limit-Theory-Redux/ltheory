@@ -46,6 +46,7 @@ end
 
 function Entity:plug (child)
   assert(self.sockets)
+  
   local type = child:getSocketType()
   for i, socket in ipairs(self.sockets) do
     if socket.type == type and socket.child == nil then

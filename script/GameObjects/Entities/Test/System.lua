@@ -202,6 +202,7 @@ function System:spawnShip ()
   ship:setInventoryCapacity(kInventory)
   ship:setPos(self.rng:getDir3():scale(kSystemScale * (1.0 + self.rng:getExp())))
   self:addChild(ship)
+  
 
   if true then
     while true do
@@ -219,7 +220,10 @@ function System:spawnShip ()
       if not ship:plug(turret) then break end
     end
   end
+
   return ship
+  
+  
 end
 
 function System:spawnStation ()
