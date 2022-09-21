@@ -39,7 +39,7 @@ local printCounts         = false
 local print_ = print
 local print = function (...) if printCounts then print_(...) end end
 
-local Entities = requireAll('Entity.Entities')
+local Entities = requireAll('GameObjects.Entities')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 
 local LTheory = require('States.Application')

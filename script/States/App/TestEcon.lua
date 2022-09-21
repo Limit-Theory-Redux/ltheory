@@ -1,5 +1,5 @@
-local Entities = requireAll('Entity.Entities')
-local Actions = requireAll('Entity.Actions')
+local Entities = requireAll('GameObjects.Entities')
+local Actions = requireAll('GameObjects.Actions')
 
 local TestEcon = require('States.Application')
 local rng = RNG.Create(10)
@@ -10,7 +10,7 @@ local kStations = 2
 local kFields = 5
 local kFieldSize = 200
 
-require('Entity.Entities.Test.Content')
+--require('GameObjects.Entities.Test.Content')
 
 function TestEcon:getWindowMode ()
   return Bit.Or32(WindowMode.Shown, WindowMode.Resizable)

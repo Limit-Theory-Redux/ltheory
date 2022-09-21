@@ -1,4 +1,4 @@
-local Actions = requireAll('Entity.Actions')
+local Actions = requireAll('GameObjects.Actions')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 
 local DockControl = {}

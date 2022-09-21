@@ -1,5 +1,7 @@
-local Entities = requireAll('Entity.Entities')
+local Player = require('GameObjects.Entities.Player')
+local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
+local Actions = requireAll('GameObjects.Actions')
 
 local LTheory = require('States.Application')
 local rng = RNG.FromTime()
@@ -15,7 +17,7 @@ function LTheory:generate ()
   printf('Seed: %s', self.seed)
 
   if self.system then self.system:delete() end
-  self.system = Entities.Test.System(self.seed)
+  self.system = System(self.seed)
 
   local ship
   do -- Player Ship
@@ -64,7 +66,7 @@ function LTheory:generate ()
 end
 
 function LTheory:onInit ()
-  self.player = Entities.Player()
+  self.player = Player()
   self:generate()
 
   DebugControl.ltheory = self

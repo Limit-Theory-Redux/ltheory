@@ -13,7 +13,7 @@ Core.Call(function ()
   if io.exists ('./script/Config/Local.lua') then dofile('./script/Config/Local.lua') end
 
   Namespace.Load('UI')
-  Namespace.LoadInline('Entity')
+  Namespace.Load('GameObjects')
   Namespace.LoadInline('Systems')
 
   jit.opt.start(

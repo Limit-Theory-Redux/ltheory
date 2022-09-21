@@ -4,7 +4,6 @@
   (e.g. hasHealth, isShip, etc) and lists are only updated when the active
   system changes or objects are added to or removed from the active system.
 ----------------------------------------------------------------------------]]--
-local Event = require('Core.Event.Event')
 
 local TrackingList = {}
 TrackingList.__index = TrackingList

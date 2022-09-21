@@ -23,7 +23,7 @@ end
 
 ---- Will be the global variable to access all functions and classes within Core/
 Core = {}
-Renderer = {}
+Render = {}
 Config = {}
 
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
@@ -43,8 +43,8 @@ Core.Struct = requireAll('Core.Structures')
 Core.Util = requireAll('Core.Util')
 Core.Util.Namespace.Inline(Core.Util, 'Core.Util')
 Namespace.Inline(Core.Struct, 'Core.Struct')
-Core.Event = requireAll('Core.Event')
-Namespace.Inline(Core.Event, 'Core.Event')
+Core.Events = requireAll('Systems.Events')
+Namespace.Inline(Core.Events, 'Systems.Events')
 
 
 ---- Load in FFI
@@ -121,8 +121,8 @@ for i = 1, #Core.FFI.Lib.Structs do
 end
 
 ---- Load Renderer into Global Space
-Renderer = requireAll('Renderer')
-Namespace.Inline(Renderer, 'Renderer')
+Render = requireAll('Render')
+Namespace.Inline(Render, 'Render')
 
 -- Call Function for Running main with errorHandler
 function Core.Call(fn)

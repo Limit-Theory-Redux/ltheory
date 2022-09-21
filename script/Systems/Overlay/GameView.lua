@@ -1,3 +1,4 @@
+local Material = require('GameObjects.Material')
 local GameView = {}
 GameView.__index  = GameView
 setmetatable(GameView, UI.Container)
