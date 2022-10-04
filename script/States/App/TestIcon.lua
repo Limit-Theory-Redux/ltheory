@@ -1,4 +1,5 @@
 local Test = require('States.Application')
+local Icon = require('UI.Icon')
 local rng = RNG.FromTime()
 local icon
 
