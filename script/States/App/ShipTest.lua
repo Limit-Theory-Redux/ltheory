@@ -9,8 +9,8 @@ local rng = RNG.FromTime()
 function ShipTest:generate ()
   self.seed = rng:get64()
   if true then
-     self.seed = 7035008865122330386ULL
-    -- self.seed = 15054808765102574876ULL
+    -- self.seed = 7035008865122330386ULL
+     self.seed = 15054808765102574876ULL
     -- self.seed = 1777258448479734603ULL
     -- self.seed = 5023726954312599969ULL
   end

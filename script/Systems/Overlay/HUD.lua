@@ -2,6 +2,7 @@ local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 local Disposition = require('GameObjects.Components.NPC.Dispositions')
 local Entity = require('GameObjects.Entity')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local HUD = {}
 HUD.__index = HUD

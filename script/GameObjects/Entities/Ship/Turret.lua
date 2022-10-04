@@ -61,7 +61,7 @@ end
 function Turret:aimAt (pos)
   local look = pos - self:getPos()
   local up   = self:getParent():getUp()
-  -- self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
+   self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
   self.aim = Quat.FromLookUp(look, up)
   -- TODO : Isn't this already normalized?
   self.aim:iNormalize()
@@ -108,7 +108,6 @@ function Turret:fire ()
 end
 
 function Turret:render (state)
-  Log.Warning("In Turret Render")
   if state.mode == BlendMode.Additive then
     shader:start()
     Shader.ISetFloat3(varCache.color, 1.0, 1.3, 2.0)
