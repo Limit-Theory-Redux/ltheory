@@ -31,6 +31,7 @@ function Entity:addSockets ()
 end
 
 function Entity:getSockets ()
+  Log.Warning(Inspect(self.sockets))
   assert(self.sockets)
   return self.sockets
 end
