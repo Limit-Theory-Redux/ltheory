@@ -1,7 +1,10 @@
+-- TODO: Using requireAll locally like this is not recommended. 
+-- Implemntation of requireEach needs to happen.
 local Entities = requireAll('GameObjects.Entities')
 local Actions = requireAll('GameObjects.Actions')
-
+local Item = require('Systems.Economy.Item')
 local TestEcon = require('States.Application')
+local SystemMap = require('Systems.CommandView.SystemMap')
 local rng = RNG.Create(10)
 
 local kAssets = 5
@@ -22,7 +25,7 @@ end
 
 function TestEcon:onInit ()
   self.canvas = UI.Canvas()
-  self.system = Entities.System(rng:get64())
+  self.system = Entities.Test.System(rng:get64())
   self.tradeAI = Entities.Player()
   self.tradeAI:addItem(Item.Credit, 1e10)
   self.tradeShip = Entity()
