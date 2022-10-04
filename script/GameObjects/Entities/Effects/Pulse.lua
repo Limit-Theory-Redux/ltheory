@@ -132,8 +132,6 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
       -- get parent rigid body
       while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
       local hitEnt = Entity.fromRigidBody(hit)
-      Log.Warning(Inspect(hit))
-      Log.Warning(Inspect(hitEnt, {depth = 2}))
       local source = Deref(self.source)
       -- TODO: This hitEnt nil check fixes a bug in PhysicsTest.lua For some reason these two objects do not return anything fromRigidBody for the first few seconds. 
       -- WHILE this is a good check to do sense we cannot confirm that the hit will have a rigidbody. This is a hotfix for a weird error.
