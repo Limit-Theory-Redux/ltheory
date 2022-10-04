@@ -39,8 +39,15 @@ local printCounts         = false
 local print_ = print
 local print = function (...) if printCounts then print_(...) end end
 
+-- This requireAll seems to be against normal conventions. 
+-- TODO: Potentially instead of requireAll Entities Only Require each entity needed. Otherwise we might need a way to require specific entities into a file in a more seemless way.
+-- Could theoretically have a function does like. 
+-- local Entites = RequireEach('GameObjects.Entites', [(System, Test.System), (Asteroid, Objects.Asteroid)]). Then we can call them by Entities.Objects.Asteroid and Entities.System
+-- Might be Faulty logic but should be investigated.  
 local Entities = requireAll('GameObjects.Entities')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
+local MasterControl = require('Systems.Controls.Controls.MasterControl')
+local GameView = require('Systems.Overlay.GameView')
 
 local LTheory = require('States.Application')
 local rng = RNG.FromTime()
@@ -54,7 +61,7 @@ function LTheory:generate ()
   printf('Seed: %s', self.seed)
 
   if self.system then self.system:delete() end
-  self.system = Entities.System(self.seed)
+  self.system = Entities.Test.System(self.seed)
 
   local ship
   do -- Player Ship
@@ -67,19 +74,19 @@ function LTheory:generate ()
     self.player:setControlling(ship)
 
     if compoundTest then
-      self.asteroid1 = Entities.Asteroid(1234, 5)
+      self.asteroid1 = Entities.Objects.Asteroid(1234, 5)
       self.asteroid1:setPos(Vec3f(-10, 0, 10))
       self.system:addChild(self.asteroid1)
       self.asteroid1.pos = Vec3f(1, 0, 0)
 
-      self.asteroid2 = Entities.Asteroid(1234, 5)
+      self.asteroid2 = Entities.Objects.Asteroid(1234, 5)
       self.asteroid2:setPos(Vec3f(10, 0, 10))
       self.system:addChild(self.asteroid2)
       self.asteroid2.pos = Vec3f(-1, 0, 0)
     end
 
     if collisionTest then
-      local asteroid = Entities.Asteroid(1234, 20)
+      local asteroid = Entities.Objects.Asteroid(1234, 20)
       asteroid:setPos(Vec3f(20, 0, -100))
       self.system:addChild(asteroid)
       local ship = self.system:spawnShip()
@@ -92,13 +99,13 @@ function LTheory:generate ()
       ship:setPos(Vec3f(0, 40, -100))
       ship:setRot(rot)
       if boundingTest then
-        ship:attach(Entities.Asteroid(1234, 5), Vec3f( 10, 0, 0), Quat.Identity())
-        ship:attach(Entities.Asteroid(1234, 5), Vec3f(-10, 0, 0), Quat.Identity())
+        ship:attach(Entities.Objects.Asteroid(1234, 5), Vec3f( 10, 0, 0), Quat.Identity())
+        ship:attach(Entities.Objects.Asteroid(1234, 5), Vec3f(-10, 0, 0), Quat.Identity())
       end
     end
 
     if scaleTest then
-      local asteroid = Entities.Asteroid(1234, 10000)
+      local asteroid = Entities.Objects.Asteroid(1234, 10000)
       asteroid:setPos(Vec3f(0, 0, 10500))
       self.system:addChild(asteroid)
     end
@@ -122,11 +129,11 @@ function LTheory:onInit ()
   self:generate()
 
   DebugControl.ltheory = self
-  self.gameView = GUI.GameView(self.player)
+  self.gameView = GameView(self.player)
   self.canvas = UI.Canvas()
   self.canvas
     :add(self.gameView
-      :add(Controls.MasterControl(self.gameView, self.player)))
+      :add(MasterControl(self.gameView, self.player)))
 end
 
 function LTheory:onInput ()

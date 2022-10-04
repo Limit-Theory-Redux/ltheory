@@ -8,7 +8,7 @@ local function explode (self, source)
   for i = 1, 8 do
     local p = self:getPos() + rng:getSphere():scale(8.0 * self:getScale() * rng:getExp() ^ (1.0 / 3.0))
     local v = self:getVelocity()
-    local e = Entities.Explosion(p, v, min(0.0, 0.5 - rng:getExp()))
+    local e = Entities.Effects.Explosion(p, v, min(0.0, 0.5 - rng:getExp()))
     root:addChild(e)
   end
 
