@@ -28,7 +28,7 @@ int main (int argc, char* argv[]) {
   Lua_SetNumber(lua, "__checklevel__", CHECK_LEVEL);
   if (argc >= 2)
     Lua_SetStr(lua, "__app__", argv[1]);
-  Lua_DoFile(lua, "./script/Main.lua");
+  Lua_DoFile(lua, "./script/Main");
   Lua_Free(lua);
   Engine_Free();
   return 0;
