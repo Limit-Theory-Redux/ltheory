@@ -9,11 +9,15 @@ add_executable (lt "src/Main.cpp")
 phx_configure_output_dir (lt)
 phx_configure_target_properties (lt)
 
-target_compile_definitions (lt PRIVATE DEBUG=0)
+target_compile_definitions (lt PRIVATE DEBUG=$<CONFIG:DEBUG>)
 target_link_libraries (lt phx)
 
 set_target_properties (lt PROPERTIES
   OUTPUT_NAME_DEBUG "lt${ARCH}d"
-  OUTPUT_NAME_RELEASE "lt${ARCH}r"
+  OUTPUT_NAME_RELEASE "lt${ARCH}"
   OUTPUT_NAME_RELWITHDEBINFO "lt${ARCH}"
-  OUTPUT_NAME_MINSIZEREL "lt${ARCH}rm")
+  OUTPUT_NAME_MINSIZEREL "lt${ARCH}")
+
+if (WIN32)
+  set_property(TARGET lt PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endif ()

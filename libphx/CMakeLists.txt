@@ -30,9 +30,9 @@ target_link_directories (phx PUBLIC "${ext_SOURCE_DIR}/lib/${PLATARCH}")
 set_target_properties (phx PROPERTIES
   PREFIX "lib"
   OUTPUT_NAME_DEBUG "phx${ARCH}d"
-  OUTPUT_NAME_RELEASE "phx${ARCH}r"
+  OUTPUT_NAME_RELEASE "phx${ARCH}"
   OUTPUT_NAME_RELWITHDEBINFO "phx${ARCH}"
-  OUTPUT_NAME_MINSIZEREL "phx${ARCH}rm")
+  OUTPUT_NAME_MINSIZEREL "phx${ARCH}")
 
 # ------------------------------------------------------------------------------
 
