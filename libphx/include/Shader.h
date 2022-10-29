@@ -18,7 +18,6 @@ PHX_API ShaderState*  Shader_ToShaderState  (Shader*);
 PHX_API void          Shader_Start          (Shader*);
 PHX_API void          Shader_Stop           (Shader*);
 
-PHX_API uint          Shader_GetHandle      (Shader*);
 PHX_API int           Shader_GetVariable    (Shader*, cstr);
 PHX_API bool          Shader_HasVariable    (Shader*, cstr);
 
@@ -29,6 +28,9 @@ PHX_API void          Shader_SetFloat2      (cstr, float, float);
 PHX_API void          Shader_SetFloat3      (cstr, float, float, float);
 PHX_API void          Shader_SetFloat4      (cstr, float, float, float, float);
 PHX_API void          Shader_SetInt         (cstr, int);
+PHX_API void          Shader_SetInt2        (cstr, int, int);
+PHX_API void          Shader_SetInt3        (cstr, int, int, int);
+PHX_API void          Shader_SetInt4        (cstr, int, int, int, int);
 PHX_API void          Shader_SetMatrix      (cstr, Matrix*);
 PHX_API void          Shader_SetMatrixT     (cstr, Matrix*);
 PHX_API void          Shader_SetTex1D       (cstr, Tex1D*);
@@ -41,6 +43,9 @@ PHX_API void          Shader_ISetFloat2     (int, float, float);
 PHX_API void          Shader_ISetFloat3     (int, float, float, float);
 PHX_API void          Shader_ISetFloat4     (int, float, float, float, float);
 PHX_API void          Shader_ISetInt        (int, int);
+PHX_API void          Shader_ISetInt2       (int, int, int);
+PHX_API void          Shader_ISetInt3       (int, int, int, int);
+PHX_API void          Shader_ISetInt4       (int, int, int, int, int);
 PHX_API void          Shader_ISetMatrix     (int, Matrix*);
 PHX_API void          Shader_ISetMatrixT    (int, Matrix*);
 PHX_API void          Shader_ISetTex1D      (int, Tex1D*);

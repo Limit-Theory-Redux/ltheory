@@ -3,9 +3,9 @@
 
 #include "Common.h"
 
-#include "Graphics/GraphicsEngineOpenGL/interface/EngineFactoryOpenGL.h"
-#include "Graphics/GraphicsEngine/interface/GraphicsTypes.h"
-#include "Common/interface/RefCntAutoPtr.hpp"
+#include "EngineFactoryOpenGL.h"
+#include "GraphicsTypes.h"
+#include "RefCntAutoPtr.hpp"
 
 PHX_API Window*  Window_Create            (cstr title, WindowPos x, WindowPos y, int sx, int sy, WindowMode mode);
 PHX_API void     Window_Free              (Window*);

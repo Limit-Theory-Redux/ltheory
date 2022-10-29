@@ -4,7 +4,7 @@
 #include "Window.h"
 #include "Vec4.h"
 
-#include "Graphics/GraphicsTools/interface/MapHelper.hpp"
+#include "MapHelper.hpp"
 #include <vector>
 
 #define MAX_STACK_DEPTH 16

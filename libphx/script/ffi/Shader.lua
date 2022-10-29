@@ -12,7 +12,6 @@ do -- C Definitions
     ShaderState* Shader_ToShaderState (Shader*);
     void         Shader_Start         (Shader*);
     void         Shader_Stop          (Shader*);
-    uint         Shader_GetHandle     (Shader*);
     int          Shader_GetVariable   (Shader*, cstr);
     bool         Shader_HasVariable   (Shader*, cstr);
     void         Shader_ClearCache    ();
@@ -50,7 +49,6 @@ do -- Global Symbol Table
     ToShaderState = libphx.Shader_ToShaderState,
     Start         = libphx.Shader_Start,
     Stop          = libphx.Shader_Stop,
-    GetHandle     = libphx.Shader_GetHandle,
     GetVariable   = libphx.Shader_GetVariable,
     HasVariable   = libphx.Shader_HasVariable,
     ClearCache    = libphx.Shader_ClearCache,
@@ -92,7 +90,6 @@ do -- Metatype for class instances
       toShaderState = libphx.Shader_ToShaderState,
       start         = libphx.Shader_Start,
       stop          = libphx.Shader_Stop,
-      getHandle     = libphx.Shader_GetHandle,
       getVariable   = libphx.Shader_GetVariable,
       hasVariable   = libphx.Shader_HasVariable,
     },

@@ -1,7 +1,6 @@
 #include "ArrayList.h"
 #include "Matrix.h"
 #include "PhxMemory.h"
-#include "OpenGL.h"
 #include "RefCounted.h"
 #include "Shader.h"
 #include "ShaderState.h"
@@ -164,24 +163,24 @@ void ShaderState_Start (ShaderState* self) {
   ArrayList_ForEach(self->elems, Elem, e) {
     switch (e->type) {
       case ElemType_Float:
-        glUniform1f(e->index, e->data.asFloat);
+        Shader_ISetFloat(e->index, e->data.asFloat);
         break;
 
       case ElemType_Float2:
-        glUniform2f(e->index,
+        Shader_ISetFloat2(e->index,
           e->data.asFloat2.x,
           e->data.asFloat2.y);
         break;
 
       case ElemType_Float3:
-        glUniform3f(e->index,
+        Shader_ISetFloat3(e->index,
           e->data.asFloat3.x,
           e->data.asFloat3.y,
           e->data.asFloat3.z);
         break;
 
       case ElemType_Float4:
-        glUniform4f(e->index,
+        Shader_ISetFloat4(e->index,
           e->data.asFloat4.x,
           e->data.asFloat4.y,
           e->data.asFloat4.z,
@@ -189,7 +188,7 @@ void ShaderState_Start (ShaderState* self) {
         break;
 
       case ElemType_Int:
-        glUniform1i(e->index, e->data.asInt);
+        Shader_ISetInt(e->index, e->data.asInt);
         break;
 
       case ElemType_Matrix:

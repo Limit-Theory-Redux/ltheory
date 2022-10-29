@@ -72,7 +72,7 @@ void Resource_Init () {
   Resource_AddPath(ResourceType_Mesh,    "../shared/res/mesh/%s.obj");
   Resource_AddPath(ResourceType_Other,   "../shared/res/%s");
   Resource_AddPath(ResourceType_Script,  "../shared/res/script/%s.lua");
-  Resource_AddPath(ResourceType_Shader,  "../shared/res/shader/%s.glsl");
+  Resource_AddPath(ResourceType_Shader,  "../shared/res/shader/%s");
   Resource_AddPath(ResourceType_Sound,   "../shared/res/sound/%s.mp3");
   Resource_AddPath(ResourceType_Sound,   "../shared/res/sound/%s.ogg");
   Resource_AddPath(ResourceType_Sound,   "../shared/res/sound/%s.ogx");
@@ -90,7 +90,7 @@ void Resource_Init () {
   Resource_AddPath(ResourceType_Mesh,    "./res/mesh/%s.obj");
   Resource_AddPath(ResourceType_Other,   "./res/%s");
   Resource_AddPath(ResourceType_Script,  "./res/script/%s.lua");
-  Resource_AddPath(ResourceType_Shader,  "./res/shader/%s.glsl");
+  Resource_AddPath(ResourceType_Shader,  "./res/shader/%s");
   Resource_AddPath(ResourceType_Sound,   "./res/sound/%s.mp3");
   Resource_AddPath(ResourceType_Sound,   "./res/sound/%s.ogg");
   Resource_AddPath(ResourceType_Sound,   "./res/sound/%s.ogx");
@@ -107,7 +107,7 @@ void Resource_Init () {
   Resource_AddPath(ResourceType_Mesh,    "%s.obj");
   Resource_AddPath(ResourceType_Other,   "%s");
   Resource_AddPath(ResourceType_Script,  "%s.lua");
-  Resource_AddPath(ResourceType_Shader,  "%s.glsl");
+  Resource_AddPath(ResourceType_Shader,  "%s");
   Resource_AddPath(ResourceType_Sound,   "%s.mp3");
   Resource_AddPath(ResourceType_Sound,   "%s.ogg");
   Resource_AddPath(ResourceType_Sound,   "%s.ogx");

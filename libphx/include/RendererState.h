@@ -6,9 +6,9 @@
 // TODO:
 // TODO: This current window is updated when we start a new frame for a particular Window.
 
-#include "DiligentCore/Graphics/GraphicsEngineOpenGL/interface/EngineFactoryOpenGL.h"
-#include "DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypes.h"
-#include "DiligentCore/Common/interface/RefCntAutoPtr.hpp"
+#include "Graphics/GraphicsEngineOpenGL/interface/EngineFactoryOpenGL.h"
+#include "Graphics/GraphicsEngine/interface/GraphicsTypes.h"
+#include "Common/interface/RefCntAutoPtr.hpp"
 
 struct RendererState {
     Diligent::RefCntAutoPtr<Diligent::IRenderDevice> device;
