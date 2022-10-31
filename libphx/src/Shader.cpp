@@ -80,15 +80,18 @@ static int GetUniformIndex (Shader* self, cstr name, bool mustSucceed = false) {
 //  return index;
 }
 
-static Diligent::IShader* CreateShader (cstr src, uint32_t type) {
+static Diligent::IShader* CreateShader (cstr name, cstr src, uint32_t type) {
   Diligent::IShader* result = nullptr;
   Diligent::ShaderCreateInfo ShaderCI;
   ShaderCI.Desc.ShaderType = static_cast<Diligent::SHADER_TYPE>(type);
   ShaderCI.EntryPoint = "main";
-  ShaderCI.Desc.Name = "unknown";
+  ShaderCI.Desc.Name = name;
   ShaderCI.Source = src;
   ShaderCI.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_GLSL;
   Window_GetCurrentRS()->device->CreateShader(ShaderCI, &result);
+  if (result == nullptr) {
+    Fatal("Failed to create shader %s", name);
+  }
   return result;
 
 //  uint self = glCreateShader(type);
@@ -175,9 +178,10 @@ static cstr GLSL_Load (cstr name, Shader* self) {
   cstr resName = StrAdd(name, ".glsl");
   cstr rawCode = Resource_LoadCstr(ResourceType_Shader, resName);
   cstr code = StrReplace(rawCode, "\r\n", "\n");
+  cstr preprocessedCode = GLSL_Preprocess(code, self);
   StrFree(rawCode);
   StrFree(resName);
-  return code;
+  return preprocessedCode;
 //  if (!cache)
 //    cache = StrMap_Create(16);
 //  void* cached = StrMap_Get(cache, name);
@@ -195,46 +199,46 @@ static cstr GLSL_Load (cstr name, Shader* self) {
 }
 
 static cstr GLSL_Preprocess (cstr code, Shader* self) {
-//  const int lenInclude = StrLen("#include");
-//  cstr begin;
-//
-//  /* Parse Includes. */
-//  while ((begin = StrFind(code, "#include")) != 0) {
-//    cstr end = StrFind(begin, "\n");
-//    cstr name = StrSubStr(begin + lenInclude + 1, end);
-//    cstr path = StrAdd(includePath, name);
-//    cstr prev = code;
-//    code = StrSub(code, begin, end, GLSL_Load(path, self));
-//    StrFree(prev);
-//    StrFree(path);
-//    StrFree(name);
-//  }
-//
-//  /* Parse automatic ShaderVar stack bindings. */
-//  while ((begin = StrFind(code, "#autovar")) != 0) {
-//    cstr end = StrFind(begin, "\n");
-//    cstr line = StrSubStr(begin, end);
-//    char varType[32] = { 0 };
-//    char varName[32] = { 0 };
-//
-//    if (sscanf(line, "#autovar %31s %31s", varType, varName) == 2) {
-//      ShaderVar var = { 0 };
-//      var.type = ShaderVarType_FromStr(varType);
-//      if (var.type == ShaderVarType_None)
-//        Fatal("GLSL_Preprocess: Unknown shader variable type <%s> "
-//              "in directive:\n  %s", varType, line);
-//      var.name = StrDup(varName);
-//      var.index = -1;
-//      ArrayList_Append(self->vars, var);
-//    } else {
-//      Fatal("GLSL_Preprocess: Failed to parse directive:\n  %s", line);
-//    }
-//
-//    cstr prev = code;
-//    code = StrSub(code, begin, end, "");
-//    StrFree(prev);
-//    StrFree(line);
-//  }
+  const int lenInclude = StrLen("#include");
+  cstr begin;
+
+  /* Parse Includes. */
+  while ((begin = StrFind(code, "#include")) != 0) {
+    cstr end = StrFind(begin, "\n");
+    cstr name = StrSubStr(begin + lenInclude + 1, end);
+    cstr path = StrAdd(includePath, name);
+    cstr prev = code;
+    code = StrSub(code, begin, end, GLSL_Load(path, self));
+    StrFree(prev);
+    StrFree(path);
+    StrFree(name);
+  }
+
+  /* Parse automatic ShaderVar stack bindings. */
+  while ((begin = StrFind(code, "#autovar")) != 0) {
+    cstr end = StrFind(begin, "\n");
+    cstr line = StrSubStr(begin, end);
+    char varType[32] = { 0 };
+    char varName[32] = { 0 };
+
+    if (sscanf(line, "#autovar %31s %31s", varType, varName) == 2) {
+      ShaderVar var = { 0 };
+      var.type = ShaderVarType_FromStr(varType);
+      if (var.type == ShaderVarType_None)
+        Fatal("GLSL_Preprocess: Unknown shader variable type <%s> "
+              "in directive:\n  %s", varType, line);
+      var.name = StrDup(varName);
+      var.index = -1;
+      ArrayList_Append(self->vars, var);
+    } else {
+      Fatal("GLSL_Preprocess: Failed to parse directive:\n  %s", line);
+    }
+
+    cstr prev = code;
+    code = StrSub(code, begin, end, "");
+    StrFree(prev);
+    StrFree(line);
+  }
   return code;
 }
 
@@ -256,8 +260,8 @@ Shader* Shader_Create (cstr vs, cstr fs) {
   ArrayList_Init(self->vars);
   vs = GLSL_Preprocess(StrReplace(vs, "\r\n", "\n"), self);
   fs = GLSL_Preprocess(StrReplace(fs, "\r\n", "\n"), self);
-  self->vs = CreateShader(vs, Diligent::SHADER_TYPE_VERTEX);
-  self->ps = CreateShader(fs, Diligent::SHADER_TYPE_PIXEL);
+  self->vs = CreateShader(StrFormat("[anonymous vs @ %p]", self), vs, Diligent::SHADER_TYPE_VERTEX);
+  self->ps = CreateShader(StrFormat("[anonymous ps @ %p]", self), fs, Diligent::SHADER_TYPE_PIXEL);
 //  self->program = CreatePSO(self->vs, self->ps);
   self->texIndex = 1;
   self->name = StrFormat("[anonymous shader @ %p]", self);
@@ -273,8 +277,8 @@ Shader* Shader_Load (cstr vName, cstr fName) {
   ArrayList_Init(self->vars);
   cstr vs = GLSL_Load(vName, self);
   cstr ps = GLSL_Load(fName, self);
-  self->vs = CreateShader(vs, Diligent::SHADER_TYPE_VERTEX);
-  self->ps = CreateShader(ps, Diligent::SHADER_TYPE_PIXEL);
+  self->vs = CreateShader(vName, vs, Diligent::SHADER_TYPE_VERTEX);
+  self->ps = CreateShader(fName, ps, Diligent::SHADER_TYPE_PIXEL);
 //  self->program = CreateGLProgram(self->vs, self->ps);
   self->texIndex = 1;
   self->name = StrFormat("[vs: %s , ps: %s]", vName, fName);

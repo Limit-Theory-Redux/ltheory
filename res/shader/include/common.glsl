@@ -1,15 +1,17 @@
-#extension GL_EXT_gpu_shader4 : enable
+//#extension GL_EXT_gpu_shader4 : enable
 
 /* TODO : The only thing we actually require is textureLod / textureCubeLod ?
           This seems to be supported on some drivers even when gpu_shader4 is
           not available. Determine precisely how to check for this feature! We
           absolutely want to use it if the driver supports it. */
 
+/*
 #ifdef GL_EXT_gpu_shader4
 #define HIGHQ
 #else
 #define LOWQ
 #endif
+*/
 
 /* TODO : As per above, I am forcing HIGHQ for the moment until we have a way
           to check precisely. */

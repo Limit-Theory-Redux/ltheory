@@ -18,6 +18,11 @@ struct Window {
 static Window* currentWindow = nullptr;
 
 Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode) {
+  if (currentWindow) {
+    Fatal("Only one window is currently supported.\n");
+    exit(1);
+  }
+
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
   SDL_GL_SetAttribute(
@@ -31,6 +36,7 @@ Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
   Window* self = MemNew(Window);
+  currentWindow = self;
   mode |= SDL_WINDOW_OPENGL;
   self->handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
   self->context = SDL_GL_CreateContext(self->handle);
@@ -74,8 +80,6 @@ void Window_Free (Window* self) {
 }
 
 void Window_BeginDraw (Window* self) {
-  currentWindow = self;
-
   Vec2i size;
   SDL_GL_MakeCurrent(self->handle, self->context);
   Window_GetSize(self, &size);
@@ -85,8 +89,6 @@ void Window_BeginDraw (Window* self) {
 void Window_EndDraw (Window* self) {
   Viewport_Pop();
   SDL_GL_SwapWindow(self->handle);
-
-  currentWindow = nullptr;
 }
 
 void Window_GetSize (Window* self, Vec2i* out) {
