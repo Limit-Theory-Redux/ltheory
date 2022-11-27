@@ -1,9 +1,9 @@
-#include filter
-#include color
-#include math
-#include gamma
-#include noise
-#include bezier
+#include "filter.glsl"
+#include "color.glsl"
+#include "math.glsl"
+#include "gamma.glsl"
+#include "noise.glsl"
+#include "bezier.glsl"
 
 uniform int hdrOut;
 

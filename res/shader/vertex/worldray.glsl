@@ -1,4 +1,4 @@
-#include vertex
+#include "vertex.glsl"
 
 #autovar mat4 mView
 #autovar mat4 mProj

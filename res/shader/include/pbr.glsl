@@ -1,7 +1,7 @@
 #ifndef include_pbr
 #define include_pbr
 
-#include random
+#include "random.glsl"
 
 /* (Approximate) GGX microsurface distribution sample in NTB frame.
    w : GGX width (1.0 = maximally diffuse) */

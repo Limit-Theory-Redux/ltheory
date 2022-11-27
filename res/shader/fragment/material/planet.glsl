@@ -1,9 +1,9 @@
-#include fragment
-#include deferred
-#include math
-#include color
-#include noise
-#include scattering2
+#include "fragment.glsl"
+#include "deferred.glsl"
+#include "math.glsl"
+#include "color.glsl"
+#include "noise.glsl"
+#include "scattering2.glsl"
 
 #autovar vec3 eye
 #autovar vec3 starDir

@@ -1,5 +1,5 @@
-#include fragment
-#include math
+#include "fragment.glsl"
+#include "math.glsl"
 
 uniform vec2 size;
 uniform vec4 color;

@@ -1,4 +1,4 @@
-#include fragment
+#include "fragment.glsl"
 
 uniform vec2 p1;
 uniform vec2 p2;

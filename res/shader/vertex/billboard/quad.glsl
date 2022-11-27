@@ -1,5 +1,5 @@
-#include vertex
-#include math
+#include "vertex.glsl"
+#include "math.glsl"
 
 #autovar vec3 eye
 #autovar mat4 mView

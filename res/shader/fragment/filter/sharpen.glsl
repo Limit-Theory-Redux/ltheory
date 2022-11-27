@@ -1,4 +1,4 @@
-#include fragment
+#include "fragment.glsl"
 
 uniform float strength;
 uniform sampler2D src;

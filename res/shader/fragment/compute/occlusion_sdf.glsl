@@ -1,5 +1,5 @@
-#include math
-#include noise
+#include "math.glsl"
+#include "noise.glsl"
 
 varying vec2 uv;
 

@@ -1,6 +1,6 @@
-#include fragment
-#include texturing
-#include math
+#include "fragment.glsl"
+#include "texturing.glsl"
+#include "math.glsl"
 
 uniform sampler2D src;
 

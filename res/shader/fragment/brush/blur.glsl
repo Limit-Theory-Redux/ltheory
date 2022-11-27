@@ -1,5 +1,5 @@
-#include brush
-#include noise
+#include "brush.glsl"
+#include "noise.glsl"
 
 #define SAMPLES 16
 

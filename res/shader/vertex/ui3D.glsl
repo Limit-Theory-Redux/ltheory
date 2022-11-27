@@ -1,4 +1,4 @@
-#include vertex
+#include "vertex.glsl"
 
 uniform vec4 viewport;
 

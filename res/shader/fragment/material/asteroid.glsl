@@ -1,10 +1,10 @@
-#include fragment
-#include deferred
-#include gamma
-#include fdm
-#include color
-#include math
-#include fog
+#include "fragment.glsl"
+#include "deferred.glsl"
+#include "gamma.glsl"
+#include "fdm.glsl"
+#include "color.glsl"
+#include "math.glsl"
+#include "fog.glsl"
 
 #autovar vec3 eye
 #autovar samplerCube envMap

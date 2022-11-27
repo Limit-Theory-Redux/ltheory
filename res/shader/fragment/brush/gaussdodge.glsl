@@ -1,4 +1,4 @@
-#include brush
+#include "brush.glsl"
 void main() {
   BRUSH_BEGIN
   float a = brushAlpha * exp(-pow(r, brushHardness));

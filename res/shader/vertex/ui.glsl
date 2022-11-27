@@ -1,4 +1,4 @@
-#include vertex
+#include "vertex.glsl"
 
 void main() {
   uv = gl_MultiTexCoord0.xy;

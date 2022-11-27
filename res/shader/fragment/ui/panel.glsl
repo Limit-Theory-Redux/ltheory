@@ -1,5 +1,5 @@
-#include fragment
-#include math
+#include "fragment.glsl"
+#include "math.glsl"
 
 uniform float padding;
 uniform vec2 size;

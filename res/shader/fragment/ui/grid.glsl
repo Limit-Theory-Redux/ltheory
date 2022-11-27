@@ -1,4 +1,4 @@
-#include fragment
+#include "fragment.glsl"
 
 uniform vec4 color;
 uniform vec2 size;

@@ -1,8 +1,8 @@
 #ifndef include_lighting
 #define include_lighting
 
-#include color
-#include math
+#include "color.glsl"
+#include "math.glsl"
 
 uniform samplerCube envMap;
 uniform samplerCube envMapLF;

@@ -1,6 +1,6 @@
-#include fragment
-#include color
-#include math
+#include "fragment.glsl"
+#include "color.glsl"
+#include "math.glsl"
 
 #autovar samplerCube envMap
 #autovar samplerCube irMap

@@ -1,7 +1,7 @@
 #ifndef include_raytrace
 #define include_raytrace
 
-#include random
+#include "random.glsl"
 
 vec3 getCameraRay (vec3 look, vec3 up, vec2 uv, float aspect, float fovyDeg) {
   uv = 2.0 * uv - 1.0;

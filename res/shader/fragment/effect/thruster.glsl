@@ -1,7 +1,7 @@
-#include fragment
-#include gamma
-#include math
-#include noise
+#include "fragment.glsl"
+#include "gamma.glsl"
+#include "math.glsl"
+#include "noise.glsl"
 
 uniform float alpha;
 uniform float time;

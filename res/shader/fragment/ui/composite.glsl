@@ -1,8 +1,8 @@
-#include fragment
-#include color
-#include gamma
-#include math
-#include noise
+#include "fragment.glsl"
+#include "color.glsl"
+#include "gamma.glsl"
+#include "math.glsl"
+#include "noise.glsl"
 
 uniform sampler2D srcBottom;
 uniform sampler2D srcTop;

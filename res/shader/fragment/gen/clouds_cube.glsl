@@ -1,8 +1,8 @@
-#include fragment
-#include color
-#include math
-#include noise
-#include texcube
+#include "fragment.glsl"
+#include "color.glsl"
+#include "math.glsl"
+#include "noise.glsl"
+#include "texcube.glsl"
 
 void main() {
   vec3 dir = cubeMapDir(uv);

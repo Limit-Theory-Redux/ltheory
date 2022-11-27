@@ -1,4 +1,4 @@
-#include fragment
+#include "fragment.glsl"
 
 uniform float radius;
 uniform vec2 size;

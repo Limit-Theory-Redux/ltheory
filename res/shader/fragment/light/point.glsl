@@ -1,7 +1,7 @@
-#include fragment
-#include deferred
-#include math
-#include pbr
+#include "fragment.glsl"
+#include "deferred.glsl"
+#include "math.glsl"
+#include "pbr.glsl"
 
 #autovar vec3 eye
 

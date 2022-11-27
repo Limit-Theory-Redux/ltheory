@@ -1,6 +1,6 @@
-#include fragment
-#include math
-#include noise
+#include "fragment.glsl"
+#include "math.glsl"
+#include "noise.glsl"
 
 uniform float age;
 uniform float seed;

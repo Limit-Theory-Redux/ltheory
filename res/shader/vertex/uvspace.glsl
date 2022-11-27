@@ -1,4 +1,4 @@
-#include vertex
+#include "vertex.glsl"
 
 void main() {
   VS_BEGIN

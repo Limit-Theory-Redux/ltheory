@@ -1,7 +1,7 @@
-#include filter
-#include math
-#include color
-#include noise
+#include "filter.glsl"
+#include "math.glsl"
+#include "color.glsl"
+#include "noise.glsl"
 
 uniform float strength;
 

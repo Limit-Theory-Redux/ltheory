@@ -1,9 +1,9 @@
-#include fragment
-#include color
-#include math
-#include noise
-#include texcube
-#include quat
+#include "fragment.glsl"
+#include "color.glsl"
+#include "math.glsl"
+#include "noise.glsl"
+#include "texcube.glsl"
+#include "quat.glsl"
 
 uniform float density;
 uniform float seed;

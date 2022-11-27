@@ -1,4 +1,4 @@
-#include common
+#include "common.glsl"
 
 attribute vec3 vertex_position;
 attribute vec3 vertex_normal;

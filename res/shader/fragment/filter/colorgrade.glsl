@@ -1,6 +1,6 @@
-#include fragment
-#include color
-#include math
+#include "fragment.glsl"
+#include "color.glsl"
+#include "math.glsl"
 
 uniform sampler2D src;
 uniform sampler1D curve1;

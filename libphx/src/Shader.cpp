@@ -67,7 +67,7 @@ struct Shader {
 static Shader* current = 0;
 static StrMap* cache = 0;
 
-static cstr GLSL_Load(cstr path, Shader*);
+static cstr GLSL_Load(cstr path, Shader*, bool);
 static cstr GLSL_Preprocess(cstr code, Shader*);
 
 static int GetUniformIndex (Shader* self, cstr name, bool mustSucceed = false) {
@@ -174,8 +174,8 @@ static Diligent::IShader* CreateShader (cstr name, cstr src, uint32_t type) {
 
 /* BUG : Cache does not contain information about custom preprocessor
  *       directives, hence cached shaders with custom directives do not work */
-static cstr GLSL_Load (cstr name, Shader* self) {
-  cstr resName = StrAdd(name, ".glsl");
+static cstr GLSL_Load (cstr name, Shader* self, bool addExtension = true) {
+  cstr resName = addExtension ? StrAdd(name, ".glsl") : StrDup(name);
   cstr rawCode = Resource_LoadCstr(ResourceType_Shader, resName);
   cstr code = StrReplace(rawCode, "\r\n", "\n");
   cstr preprocessedCode = GLSL_Preprocess(code, self);
@@ -204,11 +204,12 @@ static cstr GLSL_Preprocess (cstr code, Shader* self) {
 
   /* Parse Includes. */
   while ((begin = StrFind(code, "#include")) != 0) {
-    cstr end = StrFind(begin, "\n");
-    cstr name = StrSubStr(begin + lenInclude + 1, end);
+    cstr nameStart = StrFind(begin, "\"");
+    cstr nameEnd = StrFind(nameStart + 1, "\"");
+    cstr name = StrSubStr(nameStart + 1, nameEnd);
     cstr path = StrAdd(includePath, name);
     cstr prev = code;
-    code = StrSub(code, begin, end, GLSL_Load(path, self));
+    code = StrSub(code, begin, nameEnd + 1, GLSL_Load(path, self, false));
     StrFree(prev);
     StrFree(path);
     StrFree(name);

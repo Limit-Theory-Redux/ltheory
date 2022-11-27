@@ -1,4 +1,4 @@
-#include filter
+#include "filter.glsl"
 
 uniform int radius;
 uniform float sigma;

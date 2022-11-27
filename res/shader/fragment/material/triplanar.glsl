@@ -1,8 +1,8 @@
 #extension GL_ARB_shader_texture_lod : require
 
-#include fragment
-#include gamma
-#include texturing
+#include "fragment.glsl"
+#include "gamma.glsl"
+#include "texturing.glsl"
 
 uniform vec3 eye;
 uniform sampler2D texDiffuse;

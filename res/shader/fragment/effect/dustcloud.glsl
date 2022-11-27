@@ -1,8 +1,8 @@
-#include fragment
-#include gamma
-#include math
-#include noise
-#include color
+#include "fragment.glsl"
+#include "gamma.glsl"
+#include "math.glsl"
+#include "noise.glsl"
+#include "color.glsl"
 
 #autovar samplerCube irMap
 uniform sampler2D texDust;

@@ -1,10 +1,10 @@
 /* --- Here Lies Magic <3 --------------------------------------------------- */
 
-#include fragment
-#include color
-#include math
-#include noise
-#include texcube
+#include "fragment.glsl"
+#include "color.glsl"
+#include "math.glsl"
+#include "noise.glsl"
+#include "texcube.glsl"
 
 #define ENABLE_HORIZON 0
 

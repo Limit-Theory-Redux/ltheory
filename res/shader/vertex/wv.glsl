@@ -1,4 +1,4 @@
-#include vertex
+#include "vertex.glsl"
 
 uniform mat4 mWorldView;
 

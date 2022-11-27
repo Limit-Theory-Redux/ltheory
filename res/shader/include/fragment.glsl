@@ -1,4 +1,4 @@
-#include common
+#include "common.glsl"
 
 varying vec2 uv;
 varying vec3 pos;

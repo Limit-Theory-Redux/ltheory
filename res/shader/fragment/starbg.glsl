@@ -1,8 +1,8 @@
-#include fragment
-#include deferred
-#include gamma
-#include color
-#include math
+#include "fragment.glsl"
+#include "deferred.glsl"
+#include "gamma.glsl"
+#include "color.glsl"
+#include "math.glsl"
 
 void main() {
   float r = length(uv);

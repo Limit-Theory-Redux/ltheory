@@ -1,7 +1,7 @@
 #ifndef include_fdm
 #define include_fdm
 
-#include texturing
+#include "texturing.glsl"
 
 const float kDefaultMaxFreq = 1.0;
 

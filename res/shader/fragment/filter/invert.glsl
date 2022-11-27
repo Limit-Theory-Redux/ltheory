@@ -1,4 +1,4 @@
-#include fragment
+#include "fragment.glsl"
 
 uniform sampler2D src;
 

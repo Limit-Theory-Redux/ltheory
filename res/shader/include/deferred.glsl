@@ -1,4 +1,4 @@
-#include math
+#include "math.glsl"
 
 const float Material_SIZE       = 4.0;
 

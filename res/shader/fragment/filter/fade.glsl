@@ -1,6 +1,6 @@
-#include filter
-#include math
-#include color
+#include "filter.glsl"
+#include "math.glsl"
+#include "color.glsl"
 
 uniform float amount;
 

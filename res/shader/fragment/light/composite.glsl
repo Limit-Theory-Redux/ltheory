@@ -1,6 +1,6 @@
-#include fragment
-#include deferred
-#include gamma
+#include "fragment.glsl"
+#include "deferred.glsl"
+#include "gamma.glsl"
 
 #autovar samplerCube irMap
 #autovar samplerCube envMap

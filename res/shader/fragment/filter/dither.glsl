@@ -1,6 +1,6 @@
-#include filter
-#include math
-#include noise
+#include "filter.glsl"
+#include "math.glsl"
+#include "noise.glsl"
 
 void main() {
   vec3 c = texture2D(src, uv).xyz;

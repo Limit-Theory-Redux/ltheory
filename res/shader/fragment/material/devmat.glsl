@@ -1,8 +1,8 @@
-#include fragment
-#include color
-#include deferred
-#include gamma
-#include math
+#include "fragment.glsl"
+#include "color.glsl"
+#include "deferred.glsl"
+#include "gamma.glsl"
+#include "math.glsl"
 
 void main() {
   vec3 N = normalize(vertNormal);

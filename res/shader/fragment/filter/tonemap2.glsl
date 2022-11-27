@@ -1,4 +1,4 @@
-#include filter
+#include "filter.glsl"
 
 const float K = 1.50;
 const float P = 1.25;

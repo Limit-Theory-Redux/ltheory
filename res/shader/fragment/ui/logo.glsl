@@ -1,6 +1,6 @@
-#include fragment
-#include noise
-#include color
+#include "fragment.glsl"
+#include "noise.glsl"
+#include "color.glsl"
 
 uniform sampler2D src;
 uniform vec2 size;

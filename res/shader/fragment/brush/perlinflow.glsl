@@ -1,5 +1,5 @@
-#include brush
-#include noise
+#include "brush.glsl"
+#include "noise.glsl"
 
 void main() {
   BRUSH_BEGIN

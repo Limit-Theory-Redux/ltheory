@@ -1,10 +1,10 @@
-#include fragment
-#include deferred
-#include gamma
-#include texturing
-#include color
-#include math
-#include fog
+#include "fragment.glsl"
+#include "deferred.glsl"
+#include "gamma.glsl"
+#include "texturing.glsl"
+#include "color.glsl"
+#include "math.glsl"
+#include "fog.glsl"
 
 #autovar samplerCube irMap
 #autovar samplerCube envMap

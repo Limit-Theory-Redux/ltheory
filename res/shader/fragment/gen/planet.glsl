@@ -1,7 +1,7 @@
-#include fragment
-#include math
-#include noise
-#include texcube
+#include "fragment.glsl"
+#include "math.glsl"
+#include "noise.glsl"
+#include "texcube.glsl"
 
 uniform float seed;
 uniform float freq;

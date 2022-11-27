@@ -1,5 +1,5 @@
-#include fragment
-#include math
+#include "fragment.glsl"
+#include "math.glsl"
 
 uniform vec3 axis;
 uniform vec3 color;
