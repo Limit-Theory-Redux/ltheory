@@ -1,0 +1,28 @@
+name: Build
+
+on: [pull_request]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build-windows:
+    name: Build Limit Theory Redux
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: Create Build Environment
+        run: python configure.py
+
+      - name: Build
+        run: python configure.py build
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory
+          path: ${{github.workspace}}/bin/*
