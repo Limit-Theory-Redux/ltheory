@@ -6,23 +6,24 @@ This repository is the game (not engine) code for the second generation of LT's 
 
 ![LT Screenshot](./res/tex2d/screenshot.png)
 
-# Prerequisites
+
+# Getting Started with Ltheory
+## Prerequisites
 
 To build Limit Theory, you'll need a few standard developer tools. All of them are available to download for free.
 
 - Python: https://www.python.org/downloads/
 - Git: https://git-scm.com/downloads
 - Git LFS: https://git-lfs.github.com/
+
+Below only required for Manually Compiling LT:
 - Visual Studio Community: https://visualstudio.microsoft.com/vs/
 - CMake: https://cmake.org/download/
 
-# Building
-
-With the above prerequisites installed, open a **Git Bash terminal**.
-
 ## Checking out the Repository
+First open a **Git Bash terminal**
 
-First, use `cd` to change directories to the place where you want to download LT.
+Then, use `cd` to change directories to the place where you want to download LT.
 - `cd ~/Desktop/<path where you want to put the LT source>`
 
 Before doing any other `git` commands, make sure LFS is installed:
@@ -32,9 +33,51 @@ You should see `Git LFS initialized` or a similar message. **Important**: if you
 
 Now, you can download the repository:
 
-- `git clone --recursive https://github.com/JoshParnell/ltheory.git ltheory`
+- `git clone https://github.com/Limit-Theory-Redux/ltheory.git`
 
-## Compiling
+## Compiling (Option 1: Precompiled Bin)
+
+You'll need need to download a precompiled bin folder.
+1. Go to https://github.com/Limit-Theory-Redux/ltheory/actions/runs/3620791750
+2. Under "Artifacts" Click on "ltheory" and download.
+3. Navigate to the top level of the repository. (`~/Desktop/ltheory`)
+4. Create a new folder named `bin` if it does not exist.
+5. Extract ltheory.zip into `bin`
+6. Your Bin folder should now look like this:
+
+<details>
+<summary> Example contents of `bin\` </summary>
+
+```
+fmodL64.dll
+fmodstudioL64.dll
+glew32.dll
+liblz4.dll
+libphx64.dll
+libphx64.pdb
+libphx64d.dll
+libphx64d.pdb
+lt64.exe
+lt64.exp
+lt64.lib
+lt64.pdb
+lt64d.exe
+lt64d.exp
+lt64d.lib
+lt64d.pdb
+lua51.dll
+phx64.exp
+phx64.lib
+phx64d.exp
+phx64d.lib
+SDL2.dll
+```
+
+</details>
+
+## Compiling (Option 2: Manually)
+
+[CMake](https://cmake.org/download/) and [Visual Studio Community](https://visualstudio.microsoft.com/vs/) are Required for this Option.
 
 Once you have the repository, the build process proceeds in two steps (as with other CMake builds): generating the build files, and then building. There is a Python script `configure.py` at the top level of the repository to help you do this easily.
 
@@ -58,23 +101,54 @@ To run the default script ('LTheory'), or
 
 - `python configure.py run <script_name_without_extension>`
 
-to run a specific script. All top-level scripts are in the `script/App` directory.
+to run a specific script. All top-level scripts are in the `script/States/App` directory.
 
 # Example of the Entire Process
 
-An example of the entire sequence of commands to run LT, starting from nothing (but having the prerequisites installed):
+## With Precompiled Bin
+An example of the entire process to run LT, starting from nothing except the prerequisites. 
+Using a Precompiled Bin
+
+<details>
+<summary> Example Full Run </summary>
+
+Open Git Bash.
+```
+cd ~/Desktop
+git lfs install
+git clone https://github.com/Limit-Theory-Redux/ltheory.git
+cd ltheory
+mkdir bin
+```
+- Download ltheory from https://github.com/Limit-Theory-Redux/ltheory/actions/runs/3620791750
+- Extract contents of ltheory.zip into `~/Desktop/ltheory/bin`
+Now go back into Git Bash.
+```
+cd ~/Desktop/ltheory
+python configure.py run
+```
+
+</details>
+
+## With Manual Compilation
+An example of the entire process to run LT, starting from nothing except every prerequisite (including Visual Studio Community and CMake):
+
+<details>
+<summary> Example Full Run </summary>
 
 Open Git Bash. Each line below is one command, some of which will take a while to complete:
 
 ```
 cd ~/Desktop
 git lfs install
-git clone --recursive https://github.com/JoshParnell/ltheory.git ltheory
+git clone https://github.com/Limit-Theory-Redux/ltheory.git
 cd ltheory
 python configure.py
 python configure.py build
 python configure.py run
 ```
+
+</details>
 
 # Debugging in Visual Studio
 
