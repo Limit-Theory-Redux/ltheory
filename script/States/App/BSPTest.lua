@@ -1,3 +1,4 @@
+-- All instances of math.random() used to be rand(). rand() is not defined anywhere. This is a hotfix, I do not know if a better random function should be used instead. --
 local BSPTest = require('States.Application')
 
 local alphaModes = { 0.7, 0.065 }
@@ -424,7 +425,7 @@ function BSPTest:onDraw ()
       if Input.GetPressed(Button.Keyboard.PageUp)   then mul = mul + 1 end
       --RAY_INTERSECTION_EPSILON = mul * PLANE_THICKNESS_EPSILON
 
-      local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or rand())
+      local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or math.random())
       for i = 0, 200 do
         local p0 = Vec3f()
         rng:getDir3(p0)
@@ -470,7 +471,7 @@ function BSPTest:onDraw ()
         sphereProf.leaves = 0
         sphereProf.triangles = 0
 
-        local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or rand())
+        local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or math.random())
         local sphere = ffi.new('Sphere')
         local p = rng:getVec3(-1.25, 1.25)
         sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
@@ -492,7 +493,7 @@ function BSPTest:onDraw ()
       Draw.Color(1.0, 1.0, 1.0, 0.1)
       obj.mesh:draw()
 
-      local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or rand())
+      local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or math.random())
       local sphere = ffi.new('Sphere')
       local p = rng:getVec3(-1.25, 1.25)
       sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
@@ -532,7 +533,7 @@ function BSPTest:onDraw ()
 
       BSPDebug.DrawNodeSplit(bsp.bsp, bsp.curNode)
 
-      local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or rand())
+      local rng = RNG.Create(bsp.seed ~= 0 and bsp.seed or math.random())
       local sphere = ffi.new('Sphere')
       local p = rng:getVec3(-1.25, 1.25)
       sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
