@@ -475,7 +475,7 @@ function BSPTest:onDraw ()
         local p = rng:getVec3(-1.25, 1.25)
         sphere.px, sphere.py, sphere.pz = p.x, p.y, p.z
         sphere.r = rng:getUniformRange(0.05, 0.30)
-        bsp.bsp:getIntersectSphereTriangles(sphere, sphereProf)
+        BSPDebug.GetIntersectSphereTriangles(bsp.bsp, sphere, sphereProf)
         rng:free()
       end
 
