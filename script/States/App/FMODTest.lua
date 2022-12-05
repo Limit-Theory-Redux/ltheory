@@ -1,3 +1,4 @@
+-- DOES NOT WORK USES DEPRICATED WAY OF GETTING KEY
 local Bindings = require('States.ApplicationBindings')
 
 local FMODTest = require('States.Application')
