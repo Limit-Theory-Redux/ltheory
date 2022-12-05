@@ -32,5 +32,5 @@ void main() {
   total = 1.0 - total;
   total *= total;
 
-  gl_FragColor.x = total;
+  fragColor.x = total;
 }

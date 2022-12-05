@@ -8,6 +8,7 @@
 # IDEs
 /.vs/
 /.idea/
+/.vscode/
 /cmake-build-*/
 
 ## OS Junk files

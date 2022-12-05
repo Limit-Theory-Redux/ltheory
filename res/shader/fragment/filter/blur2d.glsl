@@ -15,5 +15,5 @@ void main() {
     tw += w;
   }
 
-  gl_FragColor = c / tw;
+  fragColor = c / tw;
 }

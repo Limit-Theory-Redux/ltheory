@@ -31,5 +31,5 @@ void main() {
   c = mix(c, dark, f2 * kDark);
   // c = mix(c, c2, 0.9999);
 
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
 }

@@ -174,5 +174,5 @@ void main () {
   vec2 uvp = 2.0 * (uv * res + vec2(dx, dy)) / res  - 1.0;
   Ray ray = { eye, normalize(1.5 * look + uvp.x * right + uvp.y * up), -1 };
   vec4 c = gather(ray, offset);
-  gl_FragColor = c;
+  fragColor = c;
 }

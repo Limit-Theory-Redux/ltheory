@@ -25,5 +25,5 @@ void main() {
   vec3 dark = sqrt(c1 * c2);
   c = mix(c, dark, 0.1);
   c += 0.25 * strength * mix(normalum(c2), normalum(vec3(0.1, 0.3, 1.0)), 0.4) * pow(lum(c2), 1.5);
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
 }

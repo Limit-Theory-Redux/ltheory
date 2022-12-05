@@ -21,5 +21,5 @@ void main() {
   alpha *= saturate(exp(-pow(0.2 * max(0.0, d), 0.75)) - k);
 
   vec3 c = 2.0 * color.xyz;
-  gl_FragColor = alpha * color.w * vec4(c, 1.0);
+  fragColor = alpha * color.w * vec4(c, 1.0);
 }

@@ -15,6 +15,6 @@ void main() {
   float d = acos(dot(dir, normalize(vec3(1, 1, 0))));
   c += exp(-24.0 * d * d) * vec3(1.0, 0.5, 0.1);
 
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
   gl_FragDepth = 1.0;
 }

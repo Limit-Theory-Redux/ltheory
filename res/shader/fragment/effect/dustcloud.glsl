@@ -18,6 +18,6 @@ void main() {
   a *= 0.75;
   a = saturate(a);
   a *= a;
-  gl_FragColor = vec4(linear(c), a);
+  fragColor = vec4(linear(c), a);
   FRAGMENT_CORRECT_DEPTH;
 }

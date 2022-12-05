@@ -36,6 +36,7 @@ target_link_libraries (phx PUBLIC
   BulletDynamics
   LinearMath
   Diligent-Common
+  Diligent-GraphicsTools
   Diligent-GraphicsEngineOpenGL-static
   fmod
   freetype

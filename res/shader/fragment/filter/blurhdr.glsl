@@ -26,5 +26,5 @@ void main() {
     tw += w0 + w1;
   }
 
-  gl_FragColor = vec4(total / tw, tw);
+  fragColor = vec4(total / tw, tw);
 }

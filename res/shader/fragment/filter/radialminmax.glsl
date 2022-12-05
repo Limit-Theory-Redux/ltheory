@@ -38,5 +38,5 @@ void main() {
     }
   }}
 
-  gl_FragColor = vec4(mode == 0 ? cMin : cMax);
+  fragColor = vec4(mode == 0 ? cMin : cMax);
 }

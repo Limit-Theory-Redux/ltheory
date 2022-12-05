@@ -16,6 +16,7 @@ static int vpIndex = -1;
 static VP vp[MAX_STACK_DEPTH];
 
 static void Viewport_Set (VP const* self) {
+  Warn("Viewport_Set unimplemented");
 //  bgfx::setViewRect(0, self->x, self->y, self->sx, self->sy);
 //  GLCALL(glViewport(self->x, self->y, self->sx, self->sy))
 //  GLCALL(glMatrixMode(GL_PROJECTION))

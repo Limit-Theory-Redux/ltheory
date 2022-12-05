@@ -21,5 +21,5 @@ void main() {
     1.0 - uv.y);
   c = c / lum(c);
   c *= sqrt(c);
-  gl_FragColor = vec4(c * alpha, 1.0);
+  fragColor = vec4(c * alpha, 1.0);
 }

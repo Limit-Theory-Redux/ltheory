@@ -12,5 +12,5 @@ void main() {
   float avg = (c1.x + c1.y + c1.z) / 3.0;
   c2 *= exp(-8.0 * pow(avg, 0.75));
   vec3 c = c1 + c2;
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
 }

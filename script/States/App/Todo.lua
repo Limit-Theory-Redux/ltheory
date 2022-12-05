@@ -49,7 +49,7 @@ local todo = Todo("Limit Theory")
   :add(Todo("User Interface"))
 
 function Test:onInit ()
-  self.bg = Tex2D.Load('./screenshot/wp2.png')
+  self.bg = Tex2D.Load('screenshot')
   self.renderer = Renderer()
 end
 

@@ -5,8 +5,8 @@
 #autovar mat4 mViewInv
 #autovar mat4 mProjInv
 
-varying vec3 worldOrigin;
-varying vec3 worldDir;
+out vec3 worldOrigin;
+out vec3 worldDir;
 
 void main () {
   vec4 p1 = mViewInv * vec4(0.0, 0.0, 0.0, 1.0);

@@ -24,5 +24,5 @@ void main() {
   float a = 1.0;
   a *= 1.0 - exp(-6.0 * abs(1.0 - abs(2.0 * uv.y - 1.0)));
 
-  gl_FragColor = vec4(c.xyz, a * alpha);
+  fragColor = vec4(c.xyz, a * alpha);
 }

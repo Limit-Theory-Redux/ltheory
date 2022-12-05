@@ -33,5 +33,5 @@ void main() {
     }
   }
 
-  gl_FragColor.x = exp(-2.0 * sqrt(total));
+  fragColor.x = exp(-2.0 * sqrt(total));
 }

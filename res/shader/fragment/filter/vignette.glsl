@@ -11,5 +11,5 @@ void main() {
   a *= 1.0 - strength * exp(-hardness * uvp.y);
   vec4 c = texture2D(src, uv);
   c.xyz *= a;
-  gl_FragColor = c;
+  fragColor = c;
 }

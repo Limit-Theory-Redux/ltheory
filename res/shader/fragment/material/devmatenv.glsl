@@ -33,6 +33,6 @@ void main() {
   float f = 0.2;
 
   c = max(c, vec3(0.0, 0.0, 0.0));
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
   FRAGMENT_CORRECT_DEPTH;
 }

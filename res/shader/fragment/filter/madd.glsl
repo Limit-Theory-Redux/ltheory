@@ -5,5 +5,5 @@ uniform vec4 add;
 uniform vec4 mult;
 
 void main() {
-  gl_FragColor = mult * texture2D(src, uv) + add;
+  fragColor = mult * texture2D(src, uv) + add;
 }

@@ -21,6 +21,6 @@ void main() {
   c += exp(-24.0 * d * d) * vec3(1.0, 0.5, 0.1);
   // c = texture2D(texDiffuse, uvSphere).xyz;
   c = textureCube(texEnv, dir * vec3(1, 1, 1)).xyz;
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
   gl_FragDepth = 1.0;
 }

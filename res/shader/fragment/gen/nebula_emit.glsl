@@ -55,5 +55,5 @@ void main() {
   // mult += 0.5 * emit;
   mult *= scatter;
   radiance.xyz += mult * (1.0 - exp(-exp(0.2 * color) * color));
-  gl_FragColor = radiance;
+  fragColor = radiance;
 }

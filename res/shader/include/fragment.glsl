@@ -1,11 +1,13 @@
-#include "common.glsl"
+//#include "common.glsl"
 
-varying vec2 uv;
-varying vec3 pos;
-varying vec3 normal;
-varying vec3 vertNormal;
-varying vec3 vertPos;
-varying float flogz;
+in vec2 uv;
+in vec3 pos;
+in vec3 normal;
+in vec3 vertNormal;
+in vec3 vertPos;
+in float flogz;
+
+out vec4 fragColor;
 
 uniform vec3 eye;
 uniform mat4 mWorldIT;

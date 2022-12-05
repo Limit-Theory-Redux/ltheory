@@ -18,6 +18,6 @@ void main() {
   float a = exp(-max(0.0, depth / (1.0e6) - 1.0) / 0.01);
   a = 1.0;
   vec4 c = a * vec4(atmo.xyz, atmo.w);
-  gl_FragColor = c;
+  fragColor = c;
   FRAGMENT_CORRECT_DEPTH;
 }

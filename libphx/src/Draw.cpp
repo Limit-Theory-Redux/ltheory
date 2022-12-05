@@ -1,11 +1,9 @@
 #include "Draw.h"
 #include "Metric.h"
-#include "OpenGL.h"
 #include "Window.h"
 #include "Vec4.h"
 
-#include "MapHelper.hpp"
-#include <vector>
+#include "RendererInternal.h"
 
 #define MAX_STACK_DEPTH 16
 
@@ -14,204 +12,7 @@ static int alphaIndex = -1;
 static Vec4f color = { 1, 1, 1, 1 };
 static Vec4f drawColor = { 1, 1, 1, 1 };
 
-enum class PrimitiveType {
-  Points,
-  Lines,
-  Triangles,
-  Polygon,
-  Quads
-};
-
-// A class which constructs dynamic vertex / index buffers like the OpenGL immediate mode API.
-//
-// Inspired by raylib:
-// https://github.com/raysan5/raylib/blob/master/src/rlgl.h#L1277
-#define IMMEDIATE_DRAW_SET_BUFFER_SIZE 8192
-class ImmediateDrawSet {
-public:
-  void createResources(Window* w) {
-    RendererState* rs = Window_GetRS(w);
-
-    Diligent::BufferDesc bd;
-    bd.Usage = Diligent::USAGE_DYNAMIC;
-    bd.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
-    bd.BindFlags = Diligent::BIND_VERTEX_BUFFER;
-
-    // Positions.
-    bd.Size = sizeof(Vec3f) * IMMEDIATE_DRAW_SET_BUFFER_SIZE;
-    rs->device->CreateBuffer(bd, nullptr, &positionsVB);
-    // Normals.
-    bd.Size = sizeof(Vec3f) * IMMEDIATE_DRAW_SET_BUFFER_SIZE;
-    rs->device->CreateBuffer(bd, nullptr, &normalsVB);
-    // Texcoords.
-    bd.Size = sizeof(Vec2f) * IMMEDIATE_DRAW_SET_BUFFER_SIZE;
-    rs->device->CreateBuffer(bd, nullptr, &texcoordsVB);
-    // Colors.
-    bd.Size = sizeof(Vec4f) * IMMEDIATE_DRAW_SET_BUFFER_SIZE;
-    rs->device->CreateBuffer(bd, nullptr, &colorsVB);
-  }
-
-  void free() {
-    colorsVB.Release();
-    texcoordsVB.Release();
-    normalsVB.Release();
-    positionsVB.Release();
-  }
-
-  void lineWidth(float width) {
-    // TODO
-  }
-
-  void pointSize(float size) {
-    // TODO
-  }
-
-  void begin(PrimitiveType type) {
-    primitive = type;
-
-    includedNormals = false;
-    includedTexcoords = false;
-    includedColors = false;
-    nextNormal = Vec3f_Create(0.0f, 0.0f, 0.0f);
-    nextTexcoord = Vec2f_Create(0.0f, 0.0f);
-    nextColor = Vec4f_Create(0.0f, 0.0f, 0.0f, 0.0f);
-  }
-
-  void end() {
-    flushAndDraw();
-  }
-
-  void color(float r, float g, float b, float a) {
-    includedColors = true;
-    nextColor = Vec4f_Create(r, g, b, a);
-  }
-
-  void texCoord(Vec2f tc) {
-    includedTexcoords = true;
-    nextTexcoord = tc;
-  }
-
-  void normal(Vec3f n) {
-    includedNormals = true;
-    nextNormal = n;
-  }
-
-  void vertex3(Vec3f p) {
-    // IDEA: We have a "current batch" which gets filled from here. One array for each vertex attribute.
-    // Then when the batch hits the limit of the VB (8192 vertices?) or end() is called, a draw call is made by uploading
-    // the data to the dynamic vertex buffers (one buffer for positions, one for normals, etc). We only bind the relevant
-    // buffers when drawing.
-    positions.push_back(p);
-    normals.push_back(nextNormal);
-    texcoords.push_back(nextTexcoord);
-    colors.push_back(nextColor);
-
-    if (positions.size() > 8192) {
-      flushAndDraw();
-    }
-  }
-
-  void vertex2(Vec2f p) {
-    // TODO: What z value should go here?
-    vertex3(Vec3f{UNPACK2(p), 0.0f});
-  }
-
-private:
-  PrimitiveType primitive = PrimitiveType::Triangles;
-
-  std::vector<Vec3f> positions;
-  std::vector<Vec3f> normals;
-  std::vector<Vec2f> texcoords;
-  std::vector<Vec4f> colors;
-  bool includedNormals;
-  bool includedTexcoords;
-  bool includedColors;
-  Vec3f nextNormal;
-  Vec2f nextTexcoord;
-  Vec4f nextColor;
-
-  Diligent::RefCntAutoPtr<Diligent::IBuffer> positionsVB;
-  Diligent::RefCntAutoPtr<Diligent::IBuffer> normalsVB;
-  Diligent::RefCntAutoPtr<Diligent::IBuffer> texcoordsVB;
-  Diligent::RefCntAutoPtr<Diligent::IBuffer> colorsVB;
-
-  void flushAndDraw() {
-    RendererState* rs = Window_GetCurrentRS();
-
-    // Update vertex buffers.
-    /* position always included */ {
-      Diligent::MapHelper<Vec3f> positionsMapped(rs->immediateContext, positionsVB, Diligent::MAP_WRITE,
-                                                 Diligent::MAP_FLAG_DISCARD);
-      memcpy((Vec3f*)positionsMapped, positions.data(), sizeof(Vec3f) * positions.size());
-    }
-    if (includedNormals) {
-      Diligent::MapHelper<Vec3f> normalsMapped(rs->immediateContext, normalsVB, Diligent::MAP_WRITE,
-                                                 Diligent::MAP_FLAG_DISCARD);
-      memcpy((Vec3f*)normalsMapped, normals.data(), sizeof(Vec3f) * normals.size());
-    }
-    if (includedTexcoords) {
-      Diligent::MapHelper<Vec2f> texcoordsMapped(rs->immediateContext, texcoordsVB, Diligent::MAP_WRITE,
-                                                 Diligent::MAP_FLAG_DISCARD);
-      memcpy((Vec2f*)texcoordsMapped, texcoords.data(), sizeof(Vec2f) * texcoords.size());
-    }
-    if (includedColors) {
-      Diligent::MapHelper<Vec4f> colorsMapped(rs->immediateContext, colorsVB, Diligent::MAP_WRITE,
-                                                 Diligent::MAP_FLAG_DISCARD);
-      memcpy((Vec4f*)colorsMapped, colors.data(), sizeof(Vec4f) * colors.size());
-    }
-
-    // Bind vertex buffers.
-    std::vector<Diligent::IBuffer*> vbuffers;
-    vbuffers.push_back(positionsVB);
-    rs->immediateContext->SetVertexBuffers(0, vbuffers.size(), vbuffers.data(), nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION, Diligent::SET_VERTEX_BUFFERS_FLAG_RESET);
-
-    // Issue draw call.
-    Diligent::DrawAttribs attribs;
-    attribs.NumVertices = positions.size();
-    attribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
-    rs->immediateContext->Draw(attribs);
-
-    // Create data for next draw call.
-    positions.clear();
-    normals.clear();
-    texcoords.clear();
-    colors.clear();
-  }
-};
-
 static ImmediateDrawSet ids;
-
-//static bgfx::ProgramHandle programPOnly;
-//static bgfx::ProgramHandle programPAndTC;
-//
-//
-//struct Vertex_P {
-//  Vec3f p;
-//
-//  static const bgfx::VertexLayout& layout() {
-//    static bgfx::VertexLayout layout = []() -> bgfx::VertexLayout {
-//        bgfx::VertexLayout layout;
-//        layout.add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float, false, false);
-//        return layout;
-//    }();
-//    return layout;
-//  }
-//};
-//
-//struct Vertex_P_TC {
-//  Vec3f p;
-//  Vec2f tc;
-//
-//  static const bgfx::VertexLayout& layout() {
-//    static bgfx::VertexLayout layout = []() -> bgfx::VertexLayout {
-//        bgfx::VertexLayout layout;
-//        layout.add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float, false, false);
-//        layout.add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float, false, false);
-//        return layout;
-//    }();
-//    return layout;
-//  }
-//};
 
 void Draw_PushAlpha (float a) {
   if (alphaIndex + 1 >= MAX_STACK_DEPTH)
@@ -310,34 +111,20 @@ void Draw_Box3 (Box3f const* self) {
   ids.vertex3(Vec3f_Create(self->upper.x, self->lower.y, self->upper.z));
   ids.vertex3(Vec3f_Create(self->lower.x, self->lower.y, self->upper.z));
 
-//  /* Write indices */
-//  uint16_t* indices = (uint16_t*)tib.data;
-//  for (int i = 0; i < 6; ++i) {
-//    /* for each quad */
-//    uint16_t firstVertex = i * 4;
-//    *indices++ = firstVertex;
-//    *indices++ = firstVertex + 1;
-//    *indices++ = firstVertex + 2;
-//    *indices++ = firstVertex;
-//    *indices++ = firstVertex + 2;
-//    *indices++ = firstVertex + 3;
-//  }
-
   ids.end();
 }
 
 void Draw_Clear (float r, float g, float b, float a) {
-//  auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-//  if (status != GL_FRAMEBUFFER_COMPLETE) {
-//    Warn("Framebuffer is incomplete, skipping clear: %d", status);
-//  } else {
-//    GLCALL(glClearColor(r, g, b, a))
-//    GLCALL(glClear(GL_COLOR_BUFFER_BIT))
-//  }
+  const float rgba[] = {r, g, b, a};
+  RendererState* rs = Window_GetCurrentRS();
+  auto* rtv = rs->swapChain->GetCurrentBackBufferRTV();
+  rs->immediateContext->ClearRenderTarget(rtv, rgba, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 }
 
 void Draw_ClearDepth (float d) {
-//  bgfx::setViewClear(0, BGFX_CLEAR_DEPTH, 0, d, 0);
+  RendererState* rs = Window_GetCurrentRS();
+  auto* dsv = rs->swapChain->GetDepthBufferDSV();
+  rs->immediateContext->ClearDepthStencil(dsv, Diligent::CLEAR_DEPTH_FLAG, d, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 }
 
 void Draw_Color (float r, float g, float b, float a) {
@@ -453,6 +240,7 @@ void Draw_Rect (float x1, float y1, float xs, float ys) {
 }
 
 void Draw_SmoothLines (bool enabled) {
+  Warn("Draw_SmoothLines %s unimplemented", enabled ? "true" : "false");
 //  if (enabled) {
 //    GLCALL(glEnable(GL_LINE_SMOOTH))
 //    GLCALL(glHint(GL_LINE_SMOOTH_HINT, GL_NICEST))
@@ -463,6 +251,7 @@ void Draw_SmoothLines (bool enabled) {
 }
 
 void Draw_SmoothPoints (bool enabled) {
+  Warn("Draw_SmoothPoints %s unimplemented", enabled ? "true" : "false");
 //  if (enabled) {
 //    GLCALL(glEnable(GL_POINT_SMOOTH))
 //    GLCALL(glHint(GL_POINT_SMOOTH_HINT, GL_NICEST))

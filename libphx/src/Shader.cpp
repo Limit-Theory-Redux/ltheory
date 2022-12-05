@@ -20,10 +20,11 @@
 #include "Vec4.h"
 #include "Window.h"
 
-#include "ShaderResourceBindingBase.hpp"
+//#include "ShaderResourceBindingBase.hpp"
 
 #include <unordered_map>
 #include <string>
+#include <vector>
 
 /* TODO : Implement custom directives to mimic layout functionality from GL3+. */
 /* TODO : Use glShaderSource's array functionality to implement include files
@@ -92,6 +93,9 @@ static Diligent::IShader* CreateShader (cstr name, cstr src, uint32_t type) {
   if (result == nullptr) {
     Fatal("Failed to create shader %s", name);
   }
+//  Diligent::ShaderResourceDesc desc;
+////  desc.Type
+//  result->GetResourceDesc(0, desc);
   return result;
 
 //  uint self = glCreateShader(type);
@@ -199,7 +203,6 @@ static cstr GLSL_Load (cstr name, Shader* self, bool addExtension = true) {
 }
 
 static cstr GLSL_Preprocess (cstr code, Shader* self) {
-  const int lenInclude = StrLen("#include");
   cstr begin;
 
   /* Parse Includes. */

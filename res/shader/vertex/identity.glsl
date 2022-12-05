@@ -1,8 +1,9 @@
-varying vec2 uv;
-varying vec3 pos;
+layout (location = 0) in vec4 vertex_position;
+layout (location = 2) in vec2 vertex_uv;
+
+out vec2 uv;
 
 void main() {
-  uv = gl_MultiTexCoord0.xy;
-  pos = gl_Vertex.xyz;
-  gl_Position = gl_Vertex;
+  uv = vertex_uv;
+  gl_Position = vertex_position;
 }

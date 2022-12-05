@@ -14,5 +14,5 @@ void main() {
   float alpha = 0.0;
   alpha += 0.6 * exp(-0.5 * max(0.0, dist));
   alpha += 0.4 * exp(-pow(0.3 * max(0.0, dist), 0.75));
-  gl_FragColor = alpha * color.w * vec4(2.0 * color.xyz, 1.0);
+  fragColor = alpha * color.w * vec4(2.0 * color.xyz, 1.0);
 }

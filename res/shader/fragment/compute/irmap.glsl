@@ -1,4 +1,4 @@
-varying vec2 uv;
+in vec2 uv;
 
 uniform vec3 cubeLook;
 uniform vec3 cubeUp;
@@ -17,6 +17,8 @@ uniform samplerCube src;
 uniform sampler2D sampleBuffer;
 uniform float angle;
 uniform int samples;
+
+out vec4 fragColor;
 
 void main() {
   vec3 N = cubeMapDir(uv);
@@ -41,6 +43,6 @@ void main() {
     tw += w;
   }
 
-  gl_FragColor = c / tw;
-  gl_FragColor.w = 1;
+  fragColor = c / tw;
+  fragColor.w = 1;
 }

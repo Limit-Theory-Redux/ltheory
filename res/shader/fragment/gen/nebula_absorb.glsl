@@ -44,5 +44,5 @@ void main() {
   float od = magic(dir);
   radiance.xyz *= exp(-od / normalize(0.0001 + radiance.xyz));
   radiance.w += od;
-  gl_FragColor = radiance;
+  fragColor = radiance;
 }

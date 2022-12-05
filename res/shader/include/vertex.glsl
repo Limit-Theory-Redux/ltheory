@@ -1,16 +1,16 @@
-#include "common.glsl"
+//#include "common.glsl"
 
-attribute vec3 vertex_position;
-attribute vec3 vertex_normal;
-attribute vec2 vertex_uv;
-attribute vec3 vertex_color;
+layout (location = 0) in vec3 vertex_position;
+layout (location = 1) in vec3 vertex_normal;
+layout (location = 2) in vec2 vertex_uv;
+layout (location = 3) in vec3 vertex_color;
 
-varying vec2 uv;
-varying vec3 pos;
-varying vec3 normal;
-varying vec3 vertNormal;
-varying vec3 vertPos;
-varying float flogz;
+out vec2 uv;
+out vec3 pos;
+out vec3 normal;
+out vec3 vertNormal;
+out vec3 vertPos;
+out float flogz;
 
 uniform vec3 eye;
 uniform mat4 mWorld;

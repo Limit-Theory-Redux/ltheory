@@ -11,7 +11,7 @@
 #include "Triangle.h"
 #include "Vertex.h"
 
-#include <float.h>
+#include <cfloat>
 
 struct Computed {
   Box3f bound;

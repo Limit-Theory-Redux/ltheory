@@ -17,5 +17,5 @@ void main() {
   float a = (d < 0.0) ? innerAlpha : alpha;
   vec3 c = vec3(0.01);
   a *= exp(-pow2(0.015 * max(0.0, d)));
-  gl_FragColor = vec4(c, a);
+  fragColor = vec4(c, a);
 }

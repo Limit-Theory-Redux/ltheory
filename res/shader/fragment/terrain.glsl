@@ -22,5 +22,5 @@ void main() {
   c = sqrt(c * texture2D(texDiffuse, 4.0 * uv).xyz);
   c *= 0.5;
 
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
 }

@@ -9,5 +9,5 @@ void main() {
   vec3 mask = texture2D(srcBlur, uv).xyz;
   vec3 hp = c - mask;
   c += strength * hp;
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
 }

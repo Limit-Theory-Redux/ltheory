@@ -34,6 +34,6 @@ void main() {
 
   vec3 env = textureCubeLod(envMap, R, mix(4.0, 0.0, spec)).xyz;
   c *= env;
-  gl_FragColor = vec4(c, 1.0);
+  fragColor = vec4(c, 1.0);
   FRAGMENT_CORRECT_DEPTH;
 }
