@@ -186,8 +186,8 @@ Shader* Shader_Create (cstr vs, cstr fs) {
   Shader* self = MemNew(Shader);
   RefCounted_Init(self);
   ArrayList_Init(self->vars);
-  vs = GLSL_Preprocess(StrDup(vs), self);
-  fs = GLSL_Preprocess(StrDup(fs), self);
+  vs = GLSL_Preprocess(StrReplace(vs, "\r\n", "\n"), self);
+  fs = GLSL_Preprocess(StrReplace(fs, "\r\n", "\n"), self);
   self->vs = CreateGLShader(vs, GL_VERTEX_SHADER);
   self->fs = CreateGLShader(fs, GL_FRAGMENT_SHADER);
   self->program = CreateGLProgram(self->vs, self->fs);
