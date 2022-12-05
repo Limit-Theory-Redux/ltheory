@@ -3,6 +3,7 @@
 /obj/
 /log/
 /screenshot/
+/out/
 
 # IDEs
 /.vs/
