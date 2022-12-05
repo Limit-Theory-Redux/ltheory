@@ -75,3 +75,11 @@ python configure.py
 python configure.py build
 python configure.py run
 ```
+
+# Debugging in Visual Studio
+
+First, make sure that the CMake project is configured by running the steps above up to `python configure.py`.
+
+Next, open the Visual Studio solution by navigating to `build/LTheory.sln` and opening it. Once the project has loaded, right click the `lt` project in the Solution Explorer, then select "Set as Startup Project".
+
+To select a Lua script to run, right click the `lt` project, then select Properties, then Debugging, then change the value in "Command Line Arguments" to the desired Lua script. Leave this blank to launch the default Lua script (`LTheory`).

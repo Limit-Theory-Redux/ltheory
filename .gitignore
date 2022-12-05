@@ -1,5 +1,44 @@
-bin/
-build/
-obj/
-log/
-screenshot/
+/bin/
+/build/
+/obj/
+/log/
+/screenshot/
+
+# IDEs
+/.vs/
+/.idea/
+/cmake-build-*/
+
+## OS Junk files
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+.apdisk
+*.icloud
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
