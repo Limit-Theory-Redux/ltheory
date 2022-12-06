@@ -6,13 +6,14 @@ if __checklevel__ == nil then __checklevel__ = 0     end
 if __embedded__   == nil then __embedded__   = false end
 
 --[[
-    Import both libphx ffi and jit into global library.
+    Import both libphx ffi, jit and lfs into global library.
 ]]
 ffi = require('ffi')
 jit = require('jit')
+lfs = require('ffi.lfs_ffi')
 
 --[[
-    Importing all math functions (presumabely from ffi and jit? Need Confirmation)
+    Importing all math functions (presumably from ffi and jit? Need Confirmation)
     into Global Table.
 ]]
 for k, v in pairs(math) do
