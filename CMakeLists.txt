@@ -1,6 +1,5 @@
 cmake_minimum_required (VERSION 3.0.2)
 project (LTheory)
-set (CMAKE_BUILD_TYPE Release)
 include (libphx/script/build/Shared.cmake)
 
 add_subdirectory (libphx)

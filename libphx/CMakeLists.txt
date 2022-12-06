@@ -1,7 +1,9 @@
 cmake_minimum_required (VERSION 3.0.2)
 project (LibPHX)
-set (CMAKE_BUILD_TYPE Release)
 include (script/build/Shared.cmake)
+
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH "\$ORIGIN")
 
 # ------------------------------------------------------------------------------
 
@@ -70,7 +72,39 @@ if (WINDOWS)
 
 elseif (LINUX)
 
-  # TODO
+  # register an external shared library
+  function (add_extlib name lib)
+    add_library (${name} SHARED IMPORTED GLOBAL)
+    set_property (TARGET ${name} PROPERTY IMPORTED_LOCATION "${ext_SOURCE_DIR}/lib/${PLATARCH}/${lib}")
+  endfunction ()
+
+  # link target to an external library; also add a post-build step to
+  # copy the library shared object into the bin folder
+  function (target_link_extlib target lib)
+    target_link_libraries (${target} ${lib})
+    add_custom_command (TARGET ${target} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      $<TARGET_FILE:${lib}> $<TARGET_FILE_DIR:${target}>
+    )
+  endfunction ()
+
+  add_extlib (fmod libfmodL.so)
+  add_extlib (fmodstudio libfmodstudioL.so)
+
+  # As we're using system installed libraries, strip away the includes we don't need.
+  # This is a hack until we use proper dependency management in the future.
+  if (NOT ${ext_SOURCE_DIR} STREQUAL "")
+    execute_process(COMMAND rm -rf
+      ${ext_SOURCE_DIR}/include/bullet
+      ${ext_SOURCE_DIR}/include/freetype
+      ${ext_SOURCE_DIR}/include/lz4
+      ${ext_SOURCE_DIR}/include/sdl)
+  endif ()
+
+  find_package(Bullet REQUIRED)
+  find_package(Freetype REQUIRED)
+  target_include_directories (phx PUBLIC "${BULLET_INCLUDE_DIR}")
+  target_include_directories (phx PUBLIC "${FREETYPE_INCLUDE_DIRS}")
 
 endif ()
 
@@ -101,10 +135,13 @@ elseif (LINUX)
     freetype
     luajit-5.1
     lz4
-    fmod fmodstudio
     BulletCollision BulletDynamics)
 
-  # Add ext/lib/{$PLATARCH} to runtime library search path
-  target_link_options (phx PRIVATE "-Wl,-rpath,../ext/lib/${PLATARCH}")
+  target_link_extlib (phx fmod)
+  target_link_extlib (phx fmodstudio)
+
+  # For some reason, linking libfmodL.so causes the linker to require libfmodL.so.10, so make it happy using
+  # a symlink.
+  add_custom_command (TARGET phx POST_BUILD COMMAND ln -sf libfmodL.so $<TARGET_FILE_DIR:phx>/libfmodL.so.10)
 
 endif ()
