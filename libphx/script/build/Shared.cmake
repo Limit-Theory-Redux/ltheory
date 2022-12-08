@@ -66,7 +66,6 @@ function (phx_configure_target_properties target)
     target_compile_options (${target} PRIVATE "-Wno-unknown-pragmas")
 
     # Aggressive optimization, assuming SSE4+
-    target_compile_options (${target} PRIVATE "-O3")
     target_compile_options (${target} PRIVATE "-msse")
     target_compile_options (${target} PRIVATE "-msse2")
     target_compile_options (${target} PRIVATE "-msse3")

@@ -20,7 +20,7 @@ To build Limit Theory, you'll need a few standard developer tools. All of them a
 
 If you're using Ubuntu, you will also need to install a few developer libraries. This one-liner will install all required dependencies:
 
-- `sudo apt-get -y install python git git-lfs cmake libluajit-5.1-dev libglew-dev libsdl2-dev liblz4-dev libfreetype-dev libbullet-dev`
+- `sudo apt-get -y install python3 git git-lfs cmake libluajit-5.1-dev libglew-dev libsdl2-dev liblz4-dev libfreetype-dev libbullet-dev`
 
 On some versions of Ubuntu, you may also need to install this if you get missing `python` errors:
 
