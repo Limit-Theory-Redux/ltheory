@@ -6,7 +6,7 @@ package.path = package.path .. ';./script/?.ffi.lua'
 require('Init')
 
 Core.Call(function ()
-  local app = __app__ or 'ltheory'
+  local app = __app__ or 'LTheory'
   GlobalRestrict.On()
 
   dofile('./script/Config/App.lua')

@@ -18,6 +18,13 @@ endif ()
 
 set (PLATARCH "${PLATFORM}${ARCH}")
 
+set(default_build_type RelWithDebInfo)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING "Choose the type of build." FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
 function (phx_configure_output_dir target)
   set_target_properties (${target} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
@@ -58,15 +65,6 @@ function (phx_configure_target_properties target)
     target_compile_options (${target} PRIVATE "-Wno-unused-variable")
     target_compile_options (${target} PRIVATE "-Wno-unknown-pragmas")
 
-    # Aggressive optimization, assuming SSE4+
-    target_compile_options (${target} PRIVATE "-O3")
-    target_compile_options (${target} PRIVATE "-msse")
-    target_compile_options (${target} PRIVATE "-msse2")
-    target_compile_options (${target} PRIVATE "-msse3")
-    target_compile_options (${target} PRIVATE "-msse4")
-
-    # :(
     target_compile_options (${target} PRIVATE "-std=c++11")
-
   endif ()
 endfunction ()
