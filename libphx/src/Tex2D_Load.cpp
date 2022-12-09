@@ -6,7 +6,7 @@
 #pragma warning(disable:4244)
 //https://github.com/nothings/stb/issues/334
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include "stb_image.h"
 #pragma warning(pop)
 
 uchar* Tex2D_LoadRaw (cstr path, int* sx, int* sy, int* components) {

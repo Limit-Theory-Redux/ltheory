@@ -7,7 +7,7 @@
 #include "SoundDesc.h"
 #include "SoundDef.h"
 #include "Vec3.h"
-#include "fmod/fmod.h"
+#include "fmod.h"
 
 static void Sound_SetState(Sound*, SoundState);
 
@@ -206,7 +206,7 @@ void Sound_Set3DPos (Sound* self, Vec3f const* pos, Vec3f const* vel) {
   Sound_EnsureState(self);
   Assert(sizeof(*pos) == sizeof(FMOD_VECTOR));
   FMODCALL(FMOD_Channel_Set3DAttributes(
-    self->handle, (FMOD_VECTOR*) pos, (FMOD_VECTOR*) vel, 0
+    self->handle, (FMOD_VECTOR*) pos, (FMOD_VECTOR*) vel
   ));
 }
 

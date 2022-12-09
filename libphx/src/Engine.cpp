@@ -40,6 +40,8 @@ void Engine_Init (int glVersionMajor, int glVersionMinor) {
   static bool firstTime = true;
   Signal_Init();
 
+  printf("Engine_Init: Requesting GL %d.%d\n", glVersionMajor, glVersionMinor);
+
   if (firstTime) {
     firstTime = false;
     /* Check SDL version compatibility. */ {

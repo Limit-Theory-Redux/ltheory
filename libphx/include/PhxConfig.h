@@ -4,7 +4,7 @@
 /* GLCHECK inserts a GL driver error query after every OpenGL call that can
  * set an error. Extremely slow but extremely effective at verifying correctness
  * of GL API usage. */
-#define ENABLE_GLCHECK 0
+#define ENABLE_GLCHECK 1
 
 /* The internal profiler has near-zero overhead, but turning it off can still
  * be useful to periodically ensure that frames are not causing overhead. */
