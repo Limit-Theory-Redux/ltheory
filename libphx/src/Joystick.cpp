@@ -2,7 +2,7 @@
 #include "PhxMath.h"
 #include "PhxMemory.h"
 #include "PhxString.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "TimeStamp.h"
 
 /* TODO : Use a linked-list instead of a freelist. This is lazy. */

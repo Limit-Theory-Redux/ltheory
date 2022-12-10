@@ -9,7 +9,7 @@
 #include "PhxSignal.h"
 #include "Profiler.h"
 #include "Resource.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "ShaderVar.h"
 #include "TimeStamp.h"
 

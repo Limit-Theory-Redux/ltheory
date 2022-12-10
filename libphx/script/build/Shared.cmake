@@ -28,7 +28,7 @@ else ()
   message (FATAL_ERROR "Unsupported CPU Architecture: ${system_processor}")
 endif()
 
-set (PLATARCH  "${PLATFORM}${ARCH}")
+set (PLATARCH "${PLATFORM}${ARCH}")
 
 set(default_build_type RelWithDebInfo)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -67,6 +67,13 @@ function (phx_configure_target_properties target)
     target_compile_options (${target} PRIVATE "/GR-")        # No RTTI
     target_compile_options (${target} PRIVATE "/arch:SSE2")  # Assume SSE2+
   elseif (LINUX OR MACOS)
+    set_property(TARGET ${target} PROPERTY BUILD_WITH_INSTALL_RPATH ON)
+    if(LINUX)
+      set_property(TARGET ${target} PROPERTY INSTALL_RPATH "\$ORIGIN")
+    else()
+      set_property(TARGET ${target} PROPERTY INSTALL_RPATH "@executable_path")
+    endif()
+
     target_compile_definitions (${target} PRIVATE UNIX=1)
 
     target_compile_options (${target} PRIVATE "-Wall")            # All error checking

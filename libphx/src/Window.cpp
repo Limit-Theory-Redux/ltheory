@@ -1,6 +1,6 @@
 #include "PhxMemory.h"
 #include "OpenGL.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "Vec2.h"
 #include "Viewport.h"
 #include "Window.h"

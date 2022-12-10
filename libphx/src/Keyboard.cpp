@@ -1,6 +1,6 @@
 #include "Keyboard.h"
 #include "PhxMemory.h"
-#include "SDL.h"
+#include "SDLext.h"
 
 static uint64 lastAction;
 static uchar* stateLast;
