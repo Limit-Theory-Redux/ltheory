@@ -1,3 +1,6 @@
+cmake_policy(SET CMP0068 NEW)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 if (WIN32)
   set (PLATFORM "win")
   set (WINDOWS TRUE)

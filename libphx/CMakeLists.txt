@@ -2,11 +2,6 @@ cmake_minimum_required (VERSION 3.0.2)
 project (LibPHX)
 include (script/build/Shared.cmake)
 
-#set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-#set(CMAKE_INSTALL_RPATH "\$ORIGIN")
-#set(CMAKE_POLICY_DEFAULT_CMP0068 NEW)
-cmake_policy(SET CMP0068 NEW)
-
 # ------------------------------------------------------------------------------
 
 file (GLOB HEADERS "include/*.h")

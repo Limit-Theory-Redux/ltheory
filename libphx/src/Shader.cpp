@@ -24,7 +24,7 @@
  *        elegantly. */
 
 static cstr includePath = "include/";
-static cstr versionString = "#version 120\n";
+static cstr versionString = "#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n";
 
 struct ShaderVar {
   ShaderVarType type;

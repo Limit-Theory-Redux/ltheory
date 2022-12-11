@@ -81,19 +81,19 @@ if (fmod_ADDED)
   target_include_directories(fmod INTERFACE "${fmod_SOURCE_DIR}/include")
   if (WIN32)
     set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-      "${fmod_SOURCE_DIR}/lib/win/x86$<$<STREQUAL:${ARCH},64>:_64>/fmod.dll")
+      "${fmod_SOURCE_DIR}/lib/win/x86_64/fmod.dll")
     set_property(TARGET fmod PROPERTY IMPORTED_IMPLIB
-      "${fmod_SOURCE_DIR}/lib/win/x86$<$<STREQUAL:${ARCH},64>:_64>/fmod_vc.lib")
+      "${fmod_SOURCE_DIR}/lib/win/x86_64/fmod_vc.lib")
   elseif (APPLE)
     set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
       "${fmod_SOURCE_DIR}/lib/macos/libfmod.dylib")
   else ()
     if (ARCH_X86)
       set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-        "${fmod_SOURCE_DIR}/lib/linux/x86$<$<STREQUAL:${ARCH},64>:_64>/libfmod.so")
+        "${fmod_SOURCE_DIR}/lib/linux/x86_64/libfmod.so.13")
     else ()
       set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-        "${fmod_SOURCE_DIR}/lib/linux/arm<$<STREQUAL:${ARCH},64>:64>/libfmod.so")
+        "${fmod_SOURCE_DIR}/lib/linux/arm64/libfmod.so.13")
     endif ()
   endif ()
 endif ()
@@ -153,7 +153,7 @@ if (luajit_ADDED)
     )
   else ()
     add_custom_command(
-      COMMAND make MACOSX_DEPLOYMENT_TARGET=${osx_sdk_version} amalg
+      COMMAND make CFLAGS=-fPIC amalg
       COMMAND make PREFIX=${luajit_BINARY_DIR} install
       WORKING_DIRECTORY ${luajit_SOURCE_DIR}
       OUTPUT ${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
@@ -192,6 +192,7 @@ CPMAddPackage(
   "SDL_TEST OFF"
   "SDL2_DISABLE_INSTALL ON"
   "SDL2_DISABLE_UNINSTALL ON"
+  "SDL_STATIC_PIC ON"
 )
 if (sdl_ADDED)
   target_include_directories(SDL2-static PUBLIC
