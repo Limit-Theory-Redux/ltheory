@@ -202,14 +202,14 @@ void RigidBody_Attach (RigidBody* parent, RigidBody* child, Vec3f* pos, Quat* ro
 
   //Convert parent to a compound
   if (!RigidBody_IsParent(parent)) {
-    btRigidBody*    pBody  = parent->handle;
-    CollisionShape* pShape = CollisionShape_GetCached(parent->iShape);
-    btTransform     pTrans = btTransform::getIdentity();
-
     CollisionShape shapeDef = {};
     shapeDef.scale = 1.0f;
     shapeDef.type  = CollisionShapeType_Compound;
     CollisionShape* cmpShape = CollisionShape_Create(shapeDef);
+
+    btRigidBody*    pBody  = parent->handle;
+    CollisionShape* pShape = CollisionShape_GetCached(parent->iShape);
+    btTransform     pTrans = btTransform::getIdentity();
 
     cmpShape->compound.handle->addChildShape(pTrans, pShape->base.handle);
     pBody->setCollisionShape(cmpShape->compound.handle);

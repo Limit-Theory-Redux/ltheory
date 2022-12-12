@@ -250,9 +250,9 @@ void Lua_Backtrace () {
   Lua* self = activeInstance;
   if (!self) return;
 
-
   /* NOTE : This is inefficient, but meh it's happening during a crash... */
-  ArrayList(cstr, stack); ArrayList_Init(stack);
+  ArrayList(cstr, stack);
+  ArrayList_Init(stack);
   for (int iStack = 0; true; iStack++) {
     lua_Debug ar = {};
     int result = lua_getstack(self, iStack, &ar);
@@ -276,8 +276,8 @@ void Lua_Backtrace () {
       if (!funcName)                 funcName = "<null>";
 
       cstr stackFrame = (line > 0)
-        ? StrFormat("  %s(%i): %s", fileName, line, funcName)
-        : StrFormat("  %s: %s", fileName, funcName);
+        ? StrFormat("  #%i %s at %s:%i", iStack, funcName, fileName, line)
+        : StrFormat("  #%i %s at %s", iStack, funcName, fileName);
       ArrayList_Append(stack, stackFrame);
     }
 

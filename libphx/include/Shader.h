@@ -22,6 +22,7 @@ PHX_API uint          Shader_GetHandle      (Shader*);
 PHX_API int           Shader_GetVariable    (Shader*, cstr);
 PHX_API bool          Shader_HasVariable    (Shader*, cstr);
 
+PHX_API void          Shader_ResetTexIndex  ();
 PHX_API void          Shader_ClearCache     ();
 PHX_API void          Shader_SetFloat       (cstr, float);
 PHX_API void          Shader_SetFloat2      (cstr, float, float);

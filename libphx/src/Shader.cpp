@@ -335,6 +335,10 @@ bool Shader_HasVariable (Shader* self, cstr name) {
 
 /* --- Variable Binding ----------------------------------------------------- */
 
+void Shader_ResetTexIndex () {
+  current->texIndex = 1;
+}
+
 void Shader_SetFloat (cstr name, float value) {
   GLCALL(glUniform1f(GetUniformIndex(current, name), value))
 }
