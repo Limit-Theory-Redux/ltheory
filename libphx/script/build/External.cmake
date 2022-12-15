@@ -42,11 +42,18 @@ endif()
 # ------------------------------------------------------------------------------
 # Define dependencies
 
+if(UNIX AND NOT APPLE)
+  set(OpenGL_GL_PREFERENCE GLVND)
+endif()
+# variable_watch(CMAKE_REQUIRED_QUIET)
+set(CMAKE_REQUIRED_QUIET ON)
+set(X11_FIND_QUIETLY ON)
+
 CPMAddPackage(
   NAME bullet
   URL https://github.com/bulletphysics/bullet3/archive/refs/tags/3.24.tar.gz
   VERSION 3.24
-  PATCH_COMMAND patch -i ${CMAKE_CURRENT_SOURCE_DIR}/script/build/bullet.diff
+  PATCH_COMMAND patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/script/build/bullet.diff
   OPTIONS
   "BUILD_BULLET2_DEMOS OFF"
   "BUILD_BULLET3 OFF"
@@ -102,6 +109,7 @@ CPMAddPackage(
   GIT_REPOSITORY https://github.com/freetype/freetype.git
   GIT_TAG VER-2-10-0
   VERSION 2.10.0
+  PATCH_COMMAND patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/script/build/freetype.diff
 )
 
 CPMAddPackage(
@@ -185,6 +193,7 @@ CPMAddPackage(
   GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
   GIT_TAG release-2.26.1
   VERSION 2.26.1
+  PATCH_COMMAND patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/script/build/sdl.diff
   OPTIONS
   "SDL_SHARED OFF"
   "SDL_STATIC ON"
