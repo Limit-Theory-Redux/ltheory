@@ -7,50 +7,52 @@ on:
       - main
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: RelWithDebInfo
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
-    name: Build Windows
+    name: Build
     runs-on: windows-2019
-
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-
       - name: Create Build Environment
         run: python configure.py
-
       - name: Build
         run: python configure.py build
-
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
           name: ltheory-bin-win32
           path: ${{github.workspace}}/bin/*
 
-  build-ubuntu-2004:
-    name: Build Ubuntu 20.04
+  build-ubuntu:
+    name: Build
     runs-on: ubuntu-20.04
-
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: 'recursive'
-
       - name: Install dependencies
         run: sudo apt-get install -y libluajit-5.1-dev libglew-dev libsdl2-dev liblz4-dev libfreetype-dev libbullet-dev
-
       - name: Create Build Environment
         run: python configure.py
-
       - name: Build
         run: python configure.py build
-
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
           name: ltheory-bin-ubuntu2004
           path: ${{github.workspace}}/bin/*
+
+  release:
+    name: Create release and upload artifacts
+    needs:
+      - build-windows
+      - build-ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - name: Inspect directory after downloading artifacts
+        run: ls -alFR
