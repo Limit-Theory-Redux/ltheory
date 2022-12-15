@@ -46,7 +46,8 @@ jobs:
           path: ${{github.workspace}}/bin/*
 
   release:
-    name: Create release and upload artifacts
+    name: Update 'latest' release
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - build-windows
       - build-ubuntu
@@ -58,7 +59,7 @@ jobs:
         run: ls -alFR
       - name: Zip artifacts
         run: for dir in $(ls); do cd $dir && zip ../$dir.zip ./* -r && cd ..; done
-      - name: Get latest release
+      - name: Get latest release ID
         uses: octokit/request-action@v2.x
         id: get_latest_release
         with:
@@ -72,18 +73,20 @@ jobs:
           release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Update latest tag
+      - name: Update 'latest' tag
         uses: octokit/request-action@v2.x
         with:
           route: PATCH /repos/Limit-Theory-Redux/ltheory/git/refs/tags/latest
           sha: ${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Release
+      - name: Create release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          name: "Latest build"
+          body: "Build log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           tag_name: latest
           prerelease: true
           files: ./*.zip
