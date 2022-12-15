@@ -1,0 +1,53 @@
+name: Build Binaries
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build-windows:
+    name: Build LTR binaries on Windows
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: Create Build Environment
+        run: python configure.py
+
+      - name: Build
+        run: python configure.py build
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory-bin-win32
+          path: ${{github.workspace}}/bin/*
+
+  build-ubuntu-2004:
+    name: Build LTR binaries on Ubuntu 20.04
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: Create Build Environment
+        run: python configure.py
+
+      - name: Build
+        run: python configure.py build
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory-bin-ubuntu2004
+          path: ${{github.workspace}}/bin/*
