@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build-windows:
-    name: Build
+    name: Build Windows
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
@@ -29,7 +29,7 @@ jobs:
           path: ${{github.workspace}}/bin/*
 
   build-ubuntu:
-    name: Build
+    name: Build Ubuntu 20.04
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -65,12 +65,11 @@ jobs:
           route: GET /repos/Limit-Theory-Redux/ltheory/releases/tags/latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: "echo latest release: ${{ steps.get_latest_release.outputs.data }}"
       - name: Delete latest release
         uses: octokit/request-action@v2.x
         with:
           route: DELETE /repos/Limit-Theory-Redux/ltheory/releases/{release_id}
-          release_id: ${{ steps.get_latest_release.outputs.data }}
+          release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Update latest tag
