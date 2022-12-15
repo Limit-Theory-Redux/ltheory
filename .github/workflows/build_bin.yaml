@@ -58,9 +58,12 @@ jobs:
         run: ls -alFR
       - name: Zip artifacts
         run: for dir in $(ls); do echo zip $dir.zip ./$dir/* -r; done
+      - name: Update tag
+        run: git tag latest && git push origin latest -f
       - name: Release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tag_name: latest
           files: ./*.zip
