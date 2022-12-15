@@ -79,8 +79,6 @@ jobs:
           sha: ${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Update tag
-        run: git tag latest && git push origin latest -f
       - name: Release
         uses: softprops/action-gh-release@v1
         env:
