@@ -47,7 +47,7 @@ jobs:
 
   release:
     name: Update 'latest' release
-#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs:
       - build-windows
       - build-ubuntu
