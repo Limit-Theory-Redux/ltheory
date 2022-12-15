@@ -73,10 +73,17 @@ jobs:
           release_id: ${{ fromJson(steps.get_latest_release.outputs.data).id }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Update 'latest' tag
+      - name: Delete 'latest' tag
         uses: octokit/request-action@v2.x
         with:
-          route: PATCH /repos/Limit-Theory-Redux/ltheory/git/refs/tags/latest
+          route: DELETE /repos/Limit-Theory-Redux/ltheory/git/refs/tags/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Re-create 'latest' tag with the current SHA
+        uses: octokit/request-action@v2.x
+        with:
+          route: POST /repos/Limit-Theory-Redux/ltheory/git/refs
+          ref: refs/tags/latest
           sha: ${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
