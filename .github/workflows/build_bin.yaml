@@ -57,7 +57,7 @@ jobs:
       - name: Inspect directory after downloading artifacts
         run: ls -alFR
       - name: Zip artifacts
-        run: for dir in $(ls); do echo zip $dir.zip ./$dir/* -r; done
+        run: for dir in $(ls); do cd $dir && zip ../$dir.zip ./* -r && cd ..; done
       - name: Get latest release
         uses: octokit/request-action@v2.x
         id: get_latest_release
