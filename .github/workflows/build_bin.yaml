@@ -53,6 +53,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
       - name: Inspect directory after downloading artifacts
         run: ls -alFR
+      - name: Zip artifacts
+        run: for dir in $(ls); do echo zip $dir.zip ./$dir/* -r; done
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: *.zip
