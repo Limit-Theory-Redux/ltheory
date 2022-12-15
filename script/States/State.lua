@@ -8,8 +8,8 @@ State Variables
 StateType = {
     TEST        = 0, -- Currently in a Test State
     MENU        = 1, -- General Menu State. I.E. Main Menu, Overlay Menu, etc.
-    FLIGHT      = 2, -- Player is Flying in Space
-    COMMAND     = 3, -- Player is in Command View
+    SPACE       = 2, -- In Space. I.E. Generate Asteroids, Ships, ...
+    COMMAND     = 3, -- Command View
 }
 
 -- Core Variables
@@ -52,4 +52,30 @@ onFixedUpdate   ()                          return nil
     -- Called Every x Frames. Used for Updates that are not time sensitive.
 onDraw          ()                          return nil
     -- Called Every Frame. Render State Scene.
+onResize        (int resolutionX, int resolutionY)  return nil
+    --? Unsure if even necessary. Josh never fully implemented it.
 ]]--
+
+-- Virtual Functions --
+
+self.StateType = {
+    TEST        = 0, -- Currently in a Test State
+    MENU        = 1, -- General Menu State. I.E. Main Menu, Overlay Menu, etc.
+    SPACE       = 2, -- In Space. I.E. Generate Asteroids, Ships, ...
+    COMMAND     = 3, -- Command View
+}
+
+function State:onInit           ()                          end
+function State:onInitialized    ()                          end
+function State:onExit           ()                          end
+function State:onEnable         ()                          end
+function State:onDisable        ()                          end
+function State:toggleControls   (controls)                  end
+function State:onInput          ()                          end
+function State:onUpdate         (deltaTime)                 end
+function State:onLateUpdate     (deltaTime)                 end
+function State:onFixedUpdate    ()                          end
+function State:onDraw           ()                          end
+function State:onResize         (resolutionX, resolutionY)  end
+
+return State
