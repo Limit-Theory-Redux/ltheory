@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 3.0.2)
 project (LibPHX)
 include (script/build/Shared.cmake)
 
+cmake_policy(SET CMP0068 NEW)
+
 # ------------------------------------------------------------------------------
 
 file (GLOB HEADERS "include/*.h")

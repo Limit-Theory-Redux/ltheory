@@ -45,7 +45,6 @@ endif()
 if(UNIX AND NOT APPLE)
   set(OpenGL_GL_PREFERENCE GLVND)
 endif()
-# variable_watch(CMAKE_REQUIRED_QUIET)
 set(CMAKE_REQUIRED_QUIET ON)
 set(X11_FIND_QUIETLY ON)
 
@@ -106,10 +105,13 @@ endif ()
 
 CPMAddPackage(
   NAME freetype
-  GIT_REPOSITORY https://github.com/freetype/freetype.git
-  GIT_TAG VER-2-10-0
-  VERSION 2.10.0
-  PATCH_COMMAND patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/script/build/freetype.diff
+  URL https://github.com/freetype/freetype/archive/refs/tags/VER-2-12-1.tar.gz
+  VERSION 2.12.1
+  OPTIONS
+  "FT_DISABLE_HARFBUZZ ON"
+  "FT_DISABLE_PNG ON"
+  "FT_DISABLE_BZIP2 ON"
+  "FT_DISABLE_BROTLI ON"
 )
 
 CPMAddPackage(
@@ -145,23 +147,27 @@ if (luajit_ADDED)
     )
   elseif (APPLE)
     # Extract the SDK version from the macOS SDK sysroot. The SDK name will be of the form MacOSX00.0.sdk.
-    get_filename_component(osx_sdk_name ${CMAKE_OSX_SYSROOT} NAME)
-    string(SUBSTRING ${osx_sdk_name} 6 -1 osx_sdk_version_with_prefix)
-    string(LENGTH ${osx_sdk_version_with_prefix} osx_sdk_substr_len)
-    MATH(EXPR osx_sdk_substr_len "${osx_sdk_substr_len}-4")
-    string(SUBSTRING ${osx_sdk_version_with_prefix} 0 ${osx_sdk_substr_len} osx_sdk_version)
-
+    if("${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+      get_filename_component(osx_sdk_name ${CMAKE_OSX_SYSROOT} NAME)
+      string(SUBSTRING ${osx_sdk_name} 6 -1 osx_sdk_version_with_prefix)
+      string(LENGTH ${osx_sdk_version_with_prefix} osx_sdk_substr_len)
+      math(EXPR osx_sdk_substr_len "${osx_sdk_substr_len}-4")
+      string(SUBSTRING ${osx_sdk_version_with_prefix} 0 ${osx_sdk_substr_len} osx_sdk_version)
+    else()
+      set(osx_sdk_version ${CMAKE_OSX_DEPLOYMENT_TARGET})
+    endif()
+    message("Passing MACOSX_DEPLOYMENT_TARGET=${osx_sdk_version}")
     add_custom_command(
-      COMMAND make MACOSX_DEPLOYMENT_TARGET=${osx_sdk_version} amalg
-      COMMAND make PREFIX=${luajit_BINARY_DIR} install
+      COMMAND make amalg MACOSX_DEPLOYMENT_TARGET=${osx_sdk_version} BUILDMODE=static
+      COMMAND make install PREFIX=${luajit_BINARY_DIR}
       WORKING_DIRECTORY ${luajit_SOURCE_DIR}
       OUTPUT ${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
       DEPENDS ${LUAJIT_SRCS} ${LUAJIT_HDRS}
     )
   else ()
     add_custom_command(
-      COMMAND make CFLAGS=-fPIC amalg
-      COMMAND make PREFIX=${luajit_BINARY_DIR} install
+      COMMAND make amalg CFLAGS=-fPIC BUILDMODE=static
+      COMMAND make install PREFIX=${luajit_BINARY_DIR}
       WORKING_DIRECTORY ${luajit_SOURCE_DIR}
       OUTPUT ${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
       DEPENDS ${LUAJIT_SRCS} ${LUAJIT_HDRS}
@@ -178,8 +184,7 @@ endif ()
 
 CPMAddPackage(
   NAME lz4
-  GIT_REPOSITORY https://github.com/lz4/lz4.git
-  GIT_TAG v1.9.4
+  URL https://github.com/lz4/lz4/archive/refs/tags/v1.9.4.tar.gz
   VERSION 1.9.4
   SOURCE_SUBDIR build/cmake
   OPTIONS
@@ -190,8 +195,7 @@ CPMAddPackage(
 
 CPMAddPackage(
   NAME sdl
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-  GIT_TAG release-2.26.1
+  URL https://github.com/libsdl-org/SDL/releases/download/release-2.26.1/SDL2-2.26.1.tar.gz
   VERSION 2.26.1
   PATCH_COMMAND patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/script/build/sdl.diff
   OPTIONS

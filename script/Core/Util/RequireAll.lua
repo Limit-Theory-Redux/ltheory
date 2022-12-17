@@ -34,8 +34,12 @@ function requireAll (path)
 
   for i = 1, #files do
     local fileName = files[i]
-    fileName = fileName:gsub('%..*$', '')
-    results[fileName] = require(path..'.'..fileName)
+    if fileName:sub(-4) == ".lua" then
+      fileName = fileName:gsub('%..*$', '')
+      if fileName:len() > 0 then
+        results[fileName] = require(path..'.'..fileName)
+      end
+    end
   end
 
   requireAllCache[path] = results

@@ -722,8 +722,6 @@ else
         if dir.closed ~= false then error("closed directory") end
 
         local entry = lib.readdir(dir._dentry)
---         print(dir)
---         print("entry " .. ffi_str(entry.d_name))
         if entry ~= nil then
             return ffi_str(entry.d_name)
         else
