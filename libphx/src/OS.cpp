@@ -1,5 +1,5 @@
 #include "OS.h"
-#include "SDL.h"
+#include "SDLext.h"
 
 cstr OS_GetClipboard () {
   return SDL_GetClipboardText();

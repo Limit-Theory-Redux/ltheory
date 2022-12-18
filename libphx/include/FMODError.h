@@ -2,8 +2,8 @@
 #define PHX_FMODError
 
 #include "Common.h"
-#include "fmod/fmod.h"
-#include "fmod/fmod_errors.h"
+#include "fmod.h"
+#include "fmod_errors.h"
 
 #define FMODERROR_X                                                            \
   X(FMOD_OK)                                                                   \

@@ -9,7 +9,7 @@
 #include "PhxSignal.h"
 #include "Profiler.h"
 #include "Resource.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "ShaderVar.h"
 #include "TimeStamp.h"
 
@@ -39,6 +39,8 @@ static TimeStamp initTime = 0;
 void Engine_Init (int glVersionMajor, int glVersionMinor) {
   static bool firstTime = true;
   Signal_Init();
+
+  printf("Engine_Init: Requesting GL %d.%d\n", glVersionMajor, glVersionMinor);
 
   if (firstTime) {
     firstTime = false;

@@ -1,5 +1,5 @@
 #include "Key.h"
-#include "SDL.h"
+#include "SDLext.h"
 
 const Key Key_A           = SDL_SCANCODE_A;
 const Key Key_B           = SDL_SCANCODE_B;

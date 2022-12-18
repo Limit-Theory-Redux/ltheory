@@ -191,6 +191,7 @@ void Font_DrawShaded (Font* self, cstr text, float x, float y) {
       float y0 = (float)(y + glyph->y0);
       float x1 = (float)(x + glyph->x1);
       float y1 = (float)(y + glyph->y1);
+      Shader_ResetTexIndex();
       Shader_SetTex2D("glyph", glyph->tex);
       Tex2D_DrawEx(glyph->tex, x0, y0, x1, y1, 0, 0, 1, 1);
       x += glyph->advance;

@@ -1,5 +1,5 @@
 #include "HatDir.h"
-#include "SDL.h"
+#include "SDLext.h"
 
 const HatDir HatDir_Centered  = SDL_HAT_CENTERED;
 const HatDir HatDir_Up        = SDL_HAT_UP;

@@ -9,7 +9,9 @@
   12  13  14  15      30  31  32  33  */
 
 struct Matrix {
-  float m[16];
+  // We need to ensure that the storage is aligned on a 16-byte boundary,
+  // which is a requirement if we use this with SSE instructions.
+  alignas(16) float m[16];
 };
 
 #endif

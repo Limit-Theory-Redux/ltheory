@@ -35,6 +35,7 @@ local function errno()
 end
 
 local OS = ffi.os
+local ARCH = ffi.arch
 -- sys/syslimits.h
 local MAXPATH
 local MAXPATH_UNC = 32760
@@ -669,16 +670,28 @@ else
 
     local dirent_def
     if OS == 'OSX' or OS == 'BSD' then
-        dirent_def = [[
-            /* _DARWIN_FEATURE_64_BIT_INODE is NOT defined here? */
-            struct dirent {
-                uint32_t d_ino;
-                uint16_t d_reclen;
-                uint8_t  d_type;
-                uint8_t  d_namlen;
-                char d_name[256];
-            };
-        ]]
+        if ARCH == 'arm' then
+            dirent_def = [[
+                struct dirent {
+                    uint64_t  d_ino;
+                    uint64_t  d_seekoff;
+                    uint16_t  d_reclen;
+                    uint16_t  d_namlen;
+                    uint8_t   d_type;
+                    char      d_name[1024];
+                };
+            ]]
+        else
+            dirent_def = [[
+                struct dirent {
+                    uint32_t d_ino;
+                    uint16_t d_reclen;
+                    uint8_t  d_type;
+                    uint8_t  d_namlen;
+                    char d_name[256];
+                };
+            ]]
+        end
     else
         dirent_def = [[
             struct dirent {
@@ -912,7 +925,6 @@ if OS == 'Linux' then
     ffi.cdef([[
         long syscall(int number, ...);
     ]])
-    local ARCH = ffi.arch
     -- Taken from justincormack/ljsyscall
     local stat_syscall_num
     local lstat_syscall_num

@@ -1,5 +1,5 @@
 #include "MouseButton.h"
-#include "SDL.h"
+#include "SDLext.h"
 
 const MouseButton MouseButton_Left   = SDL_BUTTON_LEFT;
 const MouseButton MouseButton_Middle = SDL_BUTTON_MIDDLE;

@@ -39,17 +39,14 @@ void BoxMesh_Free (BoxMesh* self) {
 }
 
 void BoxMesh_Add (BoxMesh* self,
-  float px, float py, float pz,
-  float sx, float sy, float sz,
-  float rx, float ry, float rz,
-  float bx, float by, float bz)
+  Vec3f const* p, Vec3f const* s, Vec3f const* r, Vec3f const* b)
 {
   ArrayList_Grow(self->elem);
   Box* box = self->elem_data + (self->elem_size++);
-  box->p = Vec3f_Create(px, py, pz);
-  box->s = Vec3f_Create(sx, sy, sz);
-  box->r = Vec3f_Create(rx, ry, rz);
-  box->b = Vec3f_Create(bx, by, bz);
+  box->p = *p;//Vec3f_Create(px, py, pz);
+  box->s = *s;//Vec3f_Create(sx, sy, sz);
+  box->r = *r;//Vec3f_Create(rx, ry, rz);
+  box->b = *b;//Vec3f_Create(bx, by, bz);
 }
 
 Mesh* BoxMesh_GetMesh (BoxMesh* self, int res) {

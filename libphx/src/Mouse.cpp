@@ -1,5 +1,5 @@
 #include "Mouse.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "Vec2.h"
 
 int lastX;

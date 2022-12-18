@@ -1,4 +1,4 @@
-#include "SDL.h"
+#include "SDLext.h"
 #include "TimeStamp.h"
 
 TimeStamp TimeStamp_Get () {

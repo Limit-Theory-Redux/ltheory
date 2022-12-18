@@ -1,5 +1,5 @@
 #include "GamepadAxis.h"
-#include "SDL.h"
+#include "SDLext.h"
 
 const GamepadAxis GamepadAxis_BEGIN    = SDL_CONTROLLER_AXIS_LEFTX;
 const GamepadAxis GamepadAxis_LeftX    = SDL_CONTROLLER_AXIS_LEFTX;

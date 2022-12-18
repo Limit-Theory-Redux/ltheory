@@ -1,4 +1,4 @@
-#include "SDL.h"
+#include "SDLext.h"
 #include "WindowPos.h"
 
 const WindowPos WindowPos_Centered = SDL_WINDOWPOS_CENTERED;

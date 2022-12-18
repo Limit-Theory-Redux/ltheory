@@ -4,7 +4,7 @@
 #include "LinkedList.h"
 #include "PhxMath.h"
 #include "PhxMemory.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "TimeStamp.h"
 
 struct Gamepad {

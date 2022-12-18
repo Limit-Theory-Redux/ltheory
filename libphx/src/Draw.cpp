@@ -109,8 +109,13 @@ void Draw_Box3 (Box3f const* self) {
 }
 
 void Draw_Clear (float r, float g, float b, float a) {
-  GLCALL(glClearColor(r, g, b, a))
-  GLCALL(glClear(GL_COLOR_BUFFER_BIT))
+  auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+  if (status != GL_FRAMEBUFFER_COMPLETE) {
+    Warn("Framebuffer is incomplete, skipping clear: %d", status);
+  } else {
+    GLCALL(glClearColor(r, g, b, a))
+    GLCALL(glClear(GL_COLOR_BUFFER_BIT))
+  }
 }
 
 void Draw_ClearDepth (float d) {
