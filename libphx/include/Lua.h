@@ -3,7 +3,7 @@
 #define __FFI_IGNORE__
 
 #include "Common.h"
-#include "luajit-2.1/lua.hpp"
+#include <lua.hpp>
 
 typedef lua_State Lua;
 typedef int (*LuaFn)(Lua*);

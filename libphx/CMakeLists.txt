@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.0.2)
 project (LibPHX)
-include (script/build/Shared.cmake)
+include (cmake/Shared.cmake)
 
 cmake_policy(SET CMP0068 NEW)
 
@@ -18,14 +18,18 @@ target_include_directories (phx PUBLIC "include")
 
 set_target_properties (phx PROPERTIES
   PREFIX "lib"
-  OUTPUT_NAME_DEBUG "phx${ARCH}d"
+  OUTPUT_NAME_DEBUG "phx${ARCH}"
   OUTPUT_NAME_RELEASE "phx${ARCH}"
   OUTPUT_NAME_RELWITHDEBINFO "phx${ARCH}"
-  OUTPUT_NAME_MINSIZEREL "phx${ARCH}")
+  OUTPUT_NAME_MINSIZEREL "phx${ARCH}"
+  DEBUG_POSTFIX "d"
+  RELEASE_POSTFIX ""
+  RELWITHDEBINFO_POSTFIX ""
+  MINSIZEREL_POSTFIX "")
 
 # ------------------------------------------------------------------------------
 
-include (script/build/External.cmake)
+include (cmake/External.cmake)
 
 target_link_libraries (phx PUBLIC
   BulletCollision
@@ -39,6 +43,10 @@ target_link_libraries (phx PUBLIC
   SDL2-static
   SDL2main
   stb)
+
+if (WIN32)
+  target_link_libraries(phx PRIVATE windirent winmm.lib Ws2_32.lib)
+endif()
 
 if (UNIX)
   target_link_libraries(phx PUBLIC dl)

@@ -52,7 +52,7 @@ CPMAddPackage(
   NAME bullet
   URL https://github.com/bulletphysics/bullet3/archive/refs/tags/3.24.tar.gz
   VERSION 3.24
-  PATCH_COMMAND patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/script/build/bullet.diff
+  PATCH_COMMAND ${PATCH_TOOL} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/bullet.diff
   OPTIONS
   "BUILD_BULLET2_DEMOS OFF"
   "BUILD_BULLET3 OFF"
@@ -176,8 +176,7 @@ if (luajit_ADDED)
 
   add_library (luajit INTERFACE
     "${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  file (MAKE_DIRECTORY "${luajit_BINARY_DIR}/include")
-  target_include_directories (luajit INTERFACE "${luajit_BINARY_DIR}/include")
+  target_include_directories (luajit INTERFACE "${luajit_SOURCE_DIR}/src")
   set_property (TARGET luajit PROPERTY INTERFACE_LINK_LIBRARIES
     "${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
 endif ()
@@ -197,7 +196,7 @@ CPMAddPackage(
   NAME sdl
   URL https://github.com/libsdl-org/SDL/releases/download/release-2.26.1/SDL2-2.26.1.tar.gz
   VERSION 2.26.1
-  PATCH_COMMAND patch -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/script/build/sdl.diff
+  PATCH_COMMAND ${PATCH_TOOL} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sdl.diff
   OPTIONS
   "SDL_SHARED OFF"
   "SDL_STATIC ON"
@@ -221,4 +220,17 @@ CPMAddPackage(
 if (stb_ADDED)
   add_library(stb INTERFACE)
   target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
+endif()
+
+if(WIN32)
+  CPMAddPackage(
+    NAME windirent
+    URL https://github.com/tronkko/dirent/archive/328e7fca1497f1d990d8b55b3cec39c869e3a6a8.tar.gz
+    VERSION 328e7fca1497f1d990d8b55b3cec39c869e3a6a8
+    DOWNLOAD_ONLY TRUE
+  )
+  if (windirent_ADDED)
+    add_library(windirent INTERFACE)
+    target_include_directories(windirent INTERFACE ${windirent_SOURCE_DIR}/include)
+  endif()
 endif()

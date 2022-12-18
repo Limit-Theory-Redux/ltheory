@@ -42,15 +42,13 @@ endif()
 function (phx_configure_output_dir target)
   set_target_properties (${target} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
   foreach (config ${CMAKE_CONFIGURATION_TYPES})
     string (TOUPPER ${config} config)
     set_target_properties (${target} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY_${config} "${CMAKE_SOURCE_DIR}/bin"
-      LIBRARY_OUTPUT_DIRECTORY_${config} "${CMAKE_SOURCE_DIR}/bin"
-      ARCHIVE_OUTPUT_DIRECTORY_${config} "${CMAKE_SOURCE_DIR}/bin")
+      LIBRARY_OUTPUT_DIRECTORY_${config} "${CMAKE_SOURCE_DIR}/bin")
   endforeach (config)
 endfunction ()
 
@@ -67,7 +65,6 @@ function (phx_configure_target_properties target)
     target_compile_options (${target} PRIVATE "/GL")         # Whole Program Optimization
     target_compile_options (${target} PRIVATE "/GS-")        # No Buffer Security Checks
     target_compile_options (${target} PRIVATE "/GR-")        # No RTTI
-    target_compile_options (${target} PRIVATE "/arch:SSE2")  # Assume SSE2+
   elseif (LINUX OR MACOS)
     set_property(TARGET ${target} PROPERTY BUILD_WITH_INSTALL_RPATH ON)
     if(LINUX)

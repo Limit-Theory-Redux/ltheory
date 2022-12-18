@@ -8,7 +8,7 @@
 #if WINDOWS
   #include <windows.h>
   #include <direct.h>
-  #include "windirent.h"
+  #include <dirent.h>
   #define ChangeDir _chdir
   #define GetCWD _getcwd
   #define RemoveDir _rmdir

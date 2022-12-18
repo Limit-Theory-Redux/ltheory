@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.0.2)
 project (LTheory)
-include (libphx/script/build/Shared.cmake)
+include (libphx/cmake/Shared.cmake)
 
 add_subdirectory (libphx)
 
