@@ -7,7 +7,7 @@ This repository is the game (not engine) code for the second generation of LT's 
 ![LT Screenshot](./res/tex2d/screenshot.png)
 
 
-# Getting Started with Ltheory
+# Getting Started
 ## Prerequisites
 
 To build Limit Theory, you'll need a few standard developer tools. All of them are available to download for free.
