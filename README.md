@@ -16,7 +16,7 @@ To build Limit Theory, you'll need a few standard developer tools. All of them a
 - Git: https://git-scm.com/downloads
 - Git LFS: https://git-lfs.github.com/
 
-Below only required for Manually Compiling LT:
+If you would like to compile and install the libphx engine, you will also need:
 - Visual Studio Community: https://visualstudio.microsoft.com/vs/
 - CMake: https://cmake.org/download/
 
