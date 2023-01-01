@@ -2,7 +2,7 @@
 #define PHX_Button
 
 #include "Common.h"
-#include "SDL.h"
+#include "SDLext.h"
 
 PHX_API const Button Button_Null;
 PHX_API const Button Button_First;

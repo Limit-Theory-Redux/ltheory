@@ -1,5 +1,5 @@
 #include "PhxMemory.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "ThreadPool.h"
 
 struct ThreadData {

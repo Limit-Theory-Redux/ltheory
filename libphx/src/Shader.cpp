@@ -24,7 +24,7 @@
  *        elegantly. */
 
 static cstr includePath = "include/";
-static cstr versionString = "#version 130\n";
+static cstr versionString = "#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n";
 
 struct ShaderVar {
   ShaderVarType type;
@@ -334,6 +334,10 @@ bool Shader_HasVariable (Shader* self, cstr name) {
 }
 
 /* --- Variable Binding ----------------------------------------------------- */
+
+void Shader_ResetTexIndex () {
+  current->texIndex = 1;
+}
 
 void Shader_SetFloat (cstr name, float value) {
   GLCALL(glUniform1f(GetUniformIndex(current, name), value))

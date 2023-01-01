@@ -9,7 +9,7 @@
 #include "PhxSignal.h"
 #include "Profiler.h"
 #include "Resource.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "ShaderVar.h"
 #include "TimeStamp.h"
 
@@ -40,6 +40,8 @@ void Engine_Init (int glVersionMajor, int glVersionMinor) {
   static bool firstTime = true;
   Signal_Init();
 
+  printf("Engine_Init: Requesting GL %d.%d\n", glVersionMajor, glVersionMinor);
+
   if (firstTime) {
     firstTime = false;
     /* Check SDL version compatibility. */ {
@@ -47,11 +49,9 @@ void Engine_Init (int glVersionMajor, int glVersionMinor) {
       SDL_version linked;
       SDL_VERSION(&compiled);
       SDL_GetVersion(&linked);
-      if (compiled.major != linked.major ||
-          compiled.minor != linked.minor ||
-          compiled.patch != linked.patch)
+      if (compiled.major != linked.major)
       {
-        puts("Engine_Init: Detected SDL version mismatch:");
+        puts("Engine_Init: Detected SDL major version mismatch:");
         printf("  Version (Compiled) : %d.%d.%d\n", compiled.major, compiled.minor, compiled.patch);
         printf("  Version (Linked)   : %d.%d.%d\n", linked.major, linked.minor, linked.patch);
         Fatal("Engine_Init: Terminating.");

@@ -9,7 +9,7 @@
 #include "PhxMath.h"
 #include "Profiler.h"
 #include "Resource.h"
-#include "SDL.h"
+#include "SDLext.h"
 #include "State.h"
 #include "Vec2.h"
 

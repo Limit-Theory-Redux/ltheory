@@ -7,7 +7,7 @@
 #include "SoundDef.h"
 #include "StrMap.h"
 #include "Vec3.h"
-#include "fmod/fmod.h"
+#include "fmod.h"
 
 #define AUDIO_CHANNELS 1024
 #define SOUNDPOOL_BLOCK_SIZE 128
@@ -40,7 +40,7 @@ void Audio_Init () {
     }
 
   /* Initialize FMOD. */ {
-    FMODCALL(FMOD_System_Create(&self.handle));
+    FMODCALL(FMOD_System_Create(&self.handle, FMOD_VERSION));
 
     uint version;
     FMODCALL(FMOD_System_GetVersion(self.handle, &version));

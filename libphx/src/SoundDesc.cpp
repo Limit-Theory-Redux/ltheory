@@ -7,7 +7,7 @@
 #include "SoundDesc.h"
 #include "SoundDef.h"
 #include "PhxString.h"
-#include "fmod/fmod.h"
+#include "fmod.h"
 
 void SoundDesc_FinishLoad (SoundDesc* self, cstr func) {
   bool warned = false;

@@ -90,6 +90,7 @@ TexCube* TexCube_GenIRMap (TexCube* self, int sampleCount) {
     float angle = (float)level / (float)(levels - 1);
     angle = angle * angle;
 
+    Shader_ResetTexIndex();
     Shader_SetFloat("angle", angle);
     Shader_SetTexCube("src", self);
     Shader_SetTex2D("sampleBuffer", sampleTex);

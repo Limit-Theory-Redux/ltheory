@@ -1,5 +1,5 @@
 #include "GamepadButton.h"
-#include "SDL.h"
+#include "SDLext.h"
 
 const GamepadButton GamepadButton_BEGIN   = SDL_CONTROLLER_BUTTON_A;
 const GamepadButton GamepadButton_A       = SDL_CONTROLLER_BUTTON_A;

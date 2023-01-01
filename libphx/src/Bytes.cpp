@@ -2,7 +2,7 @@
 #include "File.h"
 #include "PhxMemory.h"
 #include "PhxString.h"
-#include "lz4/lz4.h"
+#include <lz4.h>
 
 #include <stdio.h>
 

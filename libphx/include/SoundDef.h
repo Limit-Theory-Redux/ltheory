@@ -3,7 +3,7 @@
 
 #include "Common.h"
 #include "RefCounted.h"
-#include "fmod/fmod.h"
+#include "fmod.h"
 
 struct SoundDesc {
   RefCounted;

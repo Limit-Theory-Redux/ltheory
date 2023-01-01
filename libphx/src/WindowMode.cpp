@@ -1,4 +1,4 @@
-#include "SDL.h"
+#include "SDLext.h"
 #include "WindowMode.h"
 
 const WindowMode WindowMode_AlwaysOnTop = SDL_WINDOW_ALWAYS_ON_TOP;
