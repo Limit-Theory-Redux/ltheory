@@ -21,13 +21,13 @@ function ShipTest:generate ()
 
   local ship
   do -- Player Ship
-    ship = self.system:spawnShip()
-    ship:setPos(Config.gen.origin)
-    ship:setFriction(0)
-    ship:setSleepThreshold(0, 0)
-    ship:setOwner(self.player)
+    --ship = self.system:spawnShip()
+    --ship:setPos(Config.gen.origin)
+    --ship:setFriction(0)
+    --ship:setSleepThreshold(0, 0)
+    --ship:setOwner(self.player)
     --self.system:addChild(ship)
-    self.player:setControlling(ship)
+   -- self.player:setControlling(ship)
   end
 end
 
@@ -48,7 +48,7 @@ function ShipTest:onInput ()
 end
 
 function ShipTest:onUpdate (dt)
-  self.player:getRoot():update(dt)
+  --self.player:getRoot():update(dt)
   self.canvas:update(dt)
 end
 

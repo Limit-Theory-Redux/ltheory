@@ -7,7 +7,7 @@ local self = {
     ToggleFullscreen = Control.Key(Button.Keyboard.F11),
     Screenshot       = Control.Key(Button.Keyboard.F12),
     TimeAccel        = Control.Key(Button.Keyboard.H),
-    Exit             = function () return Control.And(Control.Ctrl, Control.Key(Button.Keyboard.Escape)),
+    Exit             = function () return Control.And(Control.Ctrl, Control.Key(Button.Keyboard.Escape)) end,
     ScoreNebulaBad   = Control.Key(Button.Keyboard.Minus),
     ScoreNebulaGood  = Control.Key(Button.Keyboard.Equals),
 }

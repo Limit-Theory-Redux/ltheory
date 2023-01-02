@@ -1,4 +1,4 @@
-local Bindings = require('States.ApplicationBindings')
+local Bindings = require('Systems.Controls.Bindings.UniversalBindings')
 
 local Application = class(function (self) end)
 
@@ -88,7 +88,7 @@ function Application:run ()
     do
       Profiler.SetValue('gcmem', GC.GetMemory())
       Profiler.Begin('App.onInput')
-
+      --[[
        -- TODO : Remove this once bindings are fixed
       if Input.GetKeyboardCtrl() and Input.GetPressed(Button.Keyboard.W) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end
@@ -124,6 +124,7 @@ function Application:run ()
       if Input.GetPressed(Bindings.ToggleWireframe) then
         Settings.set('render.wireframe', not Settings.get('render.wireframe'))
       end
+      --]]
 
       self:onInput()
       Profiler.End()
