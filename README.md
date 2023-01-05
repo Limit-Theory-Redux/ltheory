@@ -70,7 +70,7 @@ Next, we will need to get the engine ready to run Lua applications. There are tw
 ### Option 1: Using precompiled binaries
 
 1. Download the latest binary release by going to the `latest` release on GitHub, and downloading the right `bin` package for your platform: https://github.com/Limit-Theory-Redux/ltheory/releases/tag/latest
-   * Windows users should download `ltheory-bin-win32.zip`, we recommend other users to skip to [Compiling libphx manually](#option-2--compiling-libphx-manually).
+   * Windows users should download `ltheory-bin-win32.zip`, we recommend other users to skip to [Compiling libphx manually](#option-2-compiling-libphx-manually).
 2. Navigate to the directory of the checked-out repository (e.g. `~/Desktop/ltheory` if you cloned to the desktop).
 3. Create a new folder named `bin` if it does not exist already.
 4. Extract the contents of the zip file downloaded in step 1 into `bin`. The `bin` directory should now contain a number of libraries and executable files, including `lt64`.
