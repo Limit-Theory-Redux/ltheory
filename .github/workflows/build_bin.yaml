@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Create Build Environment
-        run: cmake -B build .
+        run: cmake -B build
       - name: Build
         run: cmake --build ./build --config RelWithDebInfo
       - name: Upload binary
@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Create Build Environment
-        run: cmake -B build .
+        run: cmake -B build
       - name: Build
         run: cmake --build ./build --config RelWithDebInfo
       - name: Upload binary
@@ -49,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Create Build Environment
-        run: cmake -B build .
+        run: cmake -B build
       - name: Build
         run: cmake --build ./build --config RelWithDebInfo
       - name: Upload binary
