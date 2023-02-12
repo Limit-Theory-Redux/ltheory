@@ -9,40 +9,40 @@
 #include <string.h>
 #include <ctype.h>
 
-inline char*   StrAlloc     (size_t len);
-inline void    StrFree      (cstr s);
-inline cstr    StrAdd       (cstr a, cstr b);
-inline cstr    StrAdd3      (cstr a, cstr b, cstr c);
-inline cstr    StrAdd4      (cstr a, cstr b, cstr c, cstr d);
-inline cstr    StrAppend    (cstr a, cstr b);
-inline bool    StrBegins    (cstr s, cstr prefix);
-inline int     StrCount     (cstr s, cstr sub);
-inline bool    StrContains  (cstr s, cstr sub);
-inline void    StrCpy       (cstr dst, cstr src);
-inline cstr    StrDup       (cstr s);
-inline bool    StrEqual     (cstr a, cstr b);
-inline cstr    StrFind      (cstr s, cstr sub);
-inline cstr    StrFormat    (cstr fmt, ...);
-inline size_t  StrLen       (cstr s);
-inline cstr    StrLower     (cstr s);
-inline bool    StrMatch     (cstr s, cstr pattern);
-inline cstr    StrReplace   (cstr s, cstr search, cstr replace);
-inline int     StrSplit     (cstr s, cstr delim, cstr** out);
-inline cstr    StrSub       (cstr s, cstr begin, cstr end, cstr replace);
-inline cstr    StrSubStr    (cstr begin, cstr end);
-inline cstr    StrUpper     (cstr s);
+static inline char*   StrAlloc     (size_t len);
+static inline void    StrFree      (cstr s);
+static inline cstr    StrAdd       (cstr a, cstr b);
+static inline cstr    StrAdd3      (cstr a, cstr b, cstr c);
+static inline cstr    StrAdd4      (cstr a, cstr b, cstr c, cstr d);
+static inline cstr    StrAppend    (cstr a, cstr b);
+static inline bool    StrBegins    (cstr s, cstr prefix);
+static inline int     StrCount     (cstr s, cstr sub);
+static inline bool    StrContains  (cstr s, cstr sub);
+static inline void    StrCpy       (cstr dst, cstr src);
+static inline cstr    StrDup       (cstr s);
+static inline bool    StrEqual     (cstr a, cstr b);
+static inline cstr    StrFind      (cstr s, cstr sub);
+static inline cstr    StrFormat    (cstr fmt, ...);
+static inline size_t  StrLen       (cstr s);
+static inline cstr    StrLower     (cstr s);
+static inline bool    StrMatch     (cstr s, cstr pattern);
+static inline cstr    StrReplace   (cstr s, cstr search, cstr replace);
+static inline int     StrSplit     (cstr s, cstr delim, cstr** out);
+static inline cstr    StrSub       (cstr s, cstr begin, cstr end, cstr replace);
+static inline cstr    StrSubStr    (cstr begin, cstr end);
+static inline cstr    StrUpper     (cstr s);
 
 /* -------------------------------------------------------------------------- */
 
-inline char* StrAlloc (size_t len) {
+static inline char* StrAlloc (size_t len) {
   return (char*)malloc(len);
 }
 
-inline void StrFree (cstr s) {
+static inline void StrFree (cstr s) {
   free((void*)s);
 }
 
-inline cstr StrAdd (cstr a, cstr b) {
+static inline cstr StrAdd (cstr a, cstr b) {
   char* buf = StrAlloc(StrLen(a) + StrLen(b) + 1);
   char* cur = buf;
   while (*a) *cur++ = *a++;
@@ -51,7 +51,7 @@ inline cstr StrAdd (cstr a, cstr b) {
   return buf;
 }
 
-inline cstr StrAdd3 (cstr a, cstr b, cstr c) {
+static inline cstr StrAdd3 (cstr a, cstr b, cstr c) {
   char* buf = StrAlloc(StrLen(a) + StrLen(b) + StrLen(c) + 1);
   char* cur = buf;
   while (*a) *cur++ = *a++;
@@ -61,7 +61,7 @@ inline cstr StrAdd3 (cstr a, cstr b, cstr c) {
   return buf;
 }
 
-inline cstr StrAdd4 (cstr a, cstr b, cstr c, cstr d) {
+static inline cstr StrAdd4 (cstr a, cstr b, cstr c, cstr d) {
   char* buf = StrAlloc(StrLen(a) + StrLen(b) + StrLen(c) + StrLen(d) + 1);
   char* cur = buf;
   while (*a) *cur++ = *a++;
@@ -73,13 +73,13 @@ inline cstr StrAdd4 (cstr a, cstr b, cstr c, cstr d) {
 }
 
 /* NOTE: Consumes a. */
-inline cstr StrAppend (cstr a, cstr b) {
+static inline cstr StrAppend (cstr a, cstr b) {
   cstr c = StrAdd(a, b);
   StrFree(a);
   return c;
 }
 
-inline bool StrBegins (cstr s, cstr prefix) {
+static inline bool StrBegins (cstr s, cstr prefix) {
   for (; ; s++, prefix++)
     if (!*prefix)
       return true;
@@ -87,25 +87,25 @@ inline bool StrBegins (cstr s, cstr prefix) {
       return false;
 }
 
-inline int StrCount (cstr s, cstr sub) {
+static inline int StrCount (cstr s, cstr sub) {
   size_t n = StrLen(sub);
   int count;
   for (count = 0; (s = strstr(s, sub)); ++count) s += n;
   return count;
 }
 
-inline bool StrContains (cstr s, cstr sub) {
+static inline bool StrContains (cstr s, cstr sub) {
   return strstr(s, sub) != 0;
 }
 
-inline void StrCpy (cstr pDst, cstr src) {
+static inline void StrCpy (cstr pDst, cstr src) {
   char* dst = (char*)pDst;
   while (*src)
     *dst++ = *src++;
   *dst = 0;
 }
 
-inline cstr StrDup (cstr s) {
+static inline cstr StrDup (cstr s) {
   if (!s) return 0;
   size_t len = StrLen(s) + 1;
   char* buf = StrAlloc(len);
@@ -113,15 +113,15 @@ inline cstr StrDup (cstr s) {
   return buf;
 }
 
-inline bool StrEqual (cstr a, cstr b) {
+static inline bool StrEqual (cstr a, cstr b) {
   return strcmp(a, b) == 0;
 }
 
-inline cstr StrFind (cstr s, cstr sub) {
+static inline cstr StrFind (cstr s, cstr sub) {
   return strstr(s, sub);
 }
 
-inline cstr StrFormat (cstr fmt, ...) {
+static inline cstr StrFormat (cstr fmt, ...) {
   va_list args;
   va_start(args, fmt);
   size_t len = vsnprintf(0, 0, fmt, args) + 1;
@@ -133,7 +133,7 @@ inline cstr StrFormat (cstr fmt, ...) {
   return buf;
 }
 
-inline size_t StrLen (cstr s) {
+static inline size_t StrLen (cstr s) {
   if (!s) return 0;
   cstr begin = s;
   while (*s)
@@ -141,7 +141,7 @@ inline size_t StrLen (cstr s) {
   return s - begin;
 }
 
-inline cstr StrLower (cstr ps) {
+static inline cstr StrLower (cstr ps) {
   char* s = (char*)ps;
   for (size_t i = 0, n = StrLen(s); i < n; ++i)
     if (isupper(s[i]))
@@ -149,7 +149,7 @@ inline cstr StrLower (cstr ps) {
   return s;
 }
 
-inline bool StrMatch (cstr s, cstr p) {
+static inline bool StrMatch (cstr s, cstr p) {
   /* NOTE: An empty p will only match an empty string.
    *       Wildcards can match zero characters.
    *       Wildcards are non-greedy, but will grow as necessary.
@@ -182,7 +182,7 @@ inline bool StrMatch (cstr s, cstr p) {
   return !*p;
 }
 
-inline cstr StrReplace (cstr s, cstr search, cstr replace) {
+static inline cstr StrReplace (cstr s, cstr search, cstr replace) {
   char *result, *ins, *tmp;
   size_t len_search, len_replace, len_front, count;
 
@@ -208,7 +208,7 @@ inline cstr StrReplace (cstr s, cstr search, cstr replace) {
   return result;
 }
 
-inline int StrSplit (cstr s, cstr delim, cstr** out) {
+static inline int StrSplit (cstr s, cstr delim, cstr** out) {
   size_t len_orig = StrLen(s);
   int count = StrCount(s, delim);
   if (count == 0)
@@ -233,7 +233,7 @@ inline int StrSplit (cstr s, cstr delim, cstr** out) {
   return count + 1;
 }
 
-inline cstr StrSub (cstr s, cstr begin, cstr end, cstr replace) {
+static inline cstr StrSub (cstr s, cstr begin, cstr end, cstr replace) {
   size_t len = StrLen(s) + StrLen(replace) + begin - end;
   char* result = StrAlloc(len + 1);
   char* pResult = result;
@@ -247,7 +247,7 @@ inline cstr StrSub (cstr s, cstr begin, cstr end, cstr replace) {
   return result;
 }
 
-inline cstr StrSubStr (cstr begin, cstr end) {
+static inline cstr StrSubStr (cstr begin, cstr end) {
   size_t len = (end - begin);
   char* result = StrAlloc(len + 1);
   char* pResult = result;
@@ -257,7 +257,7 @@ inline cstr StrSubStr (cstr begin, cstr end) {
   return result;
 }
 
-inline cstr StrUpper (cstr ps) {
+static inline cstr StrUpper (cstr ps) {
   char* s = (char*)ps;
   for (size_t i = 0, n = StrLen(s); i < n; ++i)
     if (islower(s[i]))

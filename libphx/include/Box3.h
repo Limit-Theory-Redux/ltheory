@@ -53,15 +53,15 @@ Box3_Extents(Box3d, Vec3d)
 Box3_HalfExtents(Box3f, Vec3f)
 Box3_HalfExtents(Box3d, Vec3d)
 
-#define Box3_Intersection(T) inline T T##_Intersection(T a, T b) { \
+#define Box3_Intersection(T, prefix) inline T T##_Intersection(T a, T b) { \
   T self = { \
-    { Max(a.lower.x, b.lower.x), Max(a.lower.y, b.lower.y), Max(a.lower.z, b.lower.z) }, \
-    { Min(a.upper.x, b.upper.x), Min(a.upper.y, b.upper.y), Min(a.upper.z, b.upper.z) }, \
+    { Max##prefix(a.lower.x, b.lower.x), Max##prefix(a.lower.y, b.lower.y), Max##prefix(a.lower.z, b.lower.z) }, \
+    { Min##prefix(a.upper.x, b.upper.x), Min##prefix(a.upper.y, b.upper.y), Min##prefix(a.upper.z, b.upper.z) }, \
   }; return self; }
 
-Box3_Intersection(Box3i)
-Box3_Intersection(Box3f)
-Box3_Intersection(Box3d)
+Box3_Intersection(Box3i, i)
+Box3_Intersection(Box3f, f)
+Box3_Intersection(Box3d,)
 
 #define Box3_IntersectsBox(T) inline bool T##_IntersectsBox(T a, T b) { \
   if (a.lower.x > b.upper.x || a.upper.x < b.lower.x) return false; \
@@ -101,15 +101,15 @@ Box3_Surface(Box3i, int)
 Box3_Surface(Box3f, float)
 Box3_Surface(Box3d, double)
 
-#define Box3_Union(T) inline T T##_Union(T a, T b) { \
+#define Box3_Union(T, prefix) inline T T##_Union(T a, T b) { \
   T self = { \
-    { Min(a.lower.x, b.lower.x), Min(a.lower.y, b.lower.y), Min(a.lower.z, b.lower.z) }, \
-    { Max(a.upper.x, b.upper.x), Max(a.upper.y, b.upper.y), Max(a.upper.z, b.upper.z) }, \
+    { Min##prefix(a.lower.x, b.lower.x), Min##prefix(a.lower.y, b.lower.y), Min##prefix(a.lower.z, b.lower.z) }, \
+    { Max##prefix(a.upper.x, b.upper.x), Max##prefix(a.upper.y, b.upper.y), Max##prefix(a.upper.z, b.upper.z) }, \
   }; return self; }
 
-Box3_Union(Box3i)
-Box3_Union(Box3f)
-Box3_Union(Box3d)
+Box3_Union(Box3i, i)
+Box3_Union(Box3f, f)
+Box3_Union(Box3d,)
 
 #define Box3_Volume(T, sub) inline sub T##_Volume(T self) { \
   return (self.upper.x - self.lower.x) * \

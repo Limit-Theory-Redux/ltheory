@@ -7,7 +7,7 @@ cmake_policy(SET CMP0068 NEW)
 # ------------------------------------------------------------------------------
 
 file (GLOB HEADERS "include/*.h")
-file (GLOB SOURCES "src/*.cpp")
+file (GLOB SOURCES "src/*.cpp" "src/*.c")
 
 add_library (phx SHARED ${SOURCES} ${HEADERS})
 phx_configure_output_dir (phx)

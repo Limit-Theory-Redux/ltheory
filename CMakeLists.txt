@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 3.0.2)
 project (LTheory)
 include (libphx/cmake/Shared.cmake)
 
+set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_C_STANDARD 99)
+
 add_subdirectory (libphx)
 
 add_executable (lt "src/Main.cpp")

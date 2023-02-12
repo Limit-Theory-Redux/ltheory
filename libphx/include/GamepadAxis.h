@@ -14,6 +14,6 @@ PHX_API const GamepadAxis GamepadAxis_RightY;
 PHX_API const GamepadAxis GamepadAxis_LTrigger;
 PHX_API const GamepadAxis GamepadAxis_RTrigger;
 PHX_API const GamepadAxis GamepadAxis_END;
-const GamepadAxis GamepadAxis_SIZE = 6;
+#define GamepadAxis_SIZE 6
 
 #endif

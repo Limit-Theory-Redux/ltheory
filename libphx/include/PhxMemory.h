@@ -6,15 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-inline void*  MemAlloc      (size_t size);
-inline void*  MemAllocZero  (size_t size);
-inline void   MemCpy        (void* dst, void const* src, size_t size);
-inline void   MemMove       (void* dst, void const* src, size_t size);
-inline void   MemFree       (void const* ptr);
-inline void*  MemRealloc    (void* ptr, size_t newSize);
-inline void   MemSet        (void* dst, int value, size_t size);
-inline void   MemZero       (void* dst, size_t size);
-
 #define MemNew(x)             ((x*)MemAlloc(sizeof(x)))
 #define MemNewZero(x)         ((x*)MemAllocZero(sizeof(x)))
 #define MemNewArray(x, s)     ((x*)MemAlloc(sizeof(x) * (s)))
@@ -31,35 +22,35 @@ PHX_API void*  Memory_Realloc  (void* ptr, size_t newSize);
 
 /* -------------------------------------------------------------------------- */
 
-inline void* MemAlloc (size_t size) {
+static inline void* MemAlloc (size_t size) {
   return malloc(size);
 }
 
-inline void* MemAllocZero (size_t size) {
+static inline void* MemAllocZero (size_t size) {
   return calloc(1, size);
 }
 
-inline void MemCpy (void* dst, void const* src, size_t size) {
+static inline void MemCpy (void* dst, void const* src, size_t size) {
   memcpy(dst, src, size);
 }
 
-inline void MemMove (void* dst, void const* src, size_t size) {
+static inline void MemMove (void* dst, void const* src, size_t size) {
   memmove(dst, src, size);
 }
 
-inline void MemFree (void const* ptr) {
+static inline void MemFree (void const* ptr) {
   free((void*)ptr);
 }
 
-inline void* MemRealloc (void* ptr, size_t newSize) {
+static inline void* MemRealloc (void* ptr, size_t newSize) {
   return realloc(ptr, newSize);
 }
 
-inline void MemSet (void* dst, int value, size_t size) {
+static inline void MemSet (void* dst, int value, size_t size) {
   memset(dst, value, size);
 }
 
-inline void MemZero (void* dst, size_t size) {
+static inline void MemZero (void* dst, size_t size) {
   memset(dst, 0, size);
 }
 

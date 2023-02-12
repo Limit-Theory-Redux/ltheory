@@ -23,6 +23,6 @@ PHX_API const GamepadButton GamepadButton_Down;
 PHX_API const GamepadButton GamepadButton_Left;
 PHX_API const GamepadButton GamepadButton_Right;
 PHX_API const GamepadButton GamepadButton_END;
-const GamepadButton GamepadButton_SIZE = 15;
+#define GamepadButton_SIZE 15
 
 #endif

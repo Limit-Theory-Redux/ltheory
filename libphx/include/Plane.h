@@ -8,14 +8,14 @@ struct Plane {
   float d;
 };
 
-const PointClassification PointClassification_InFront  = 1;
-const PointClassification PointClassification_Behind   = 2;
-const PointClassification PointClassification_Coplanar = 3;
+#define PointClassification_InFront  1
+#define PointClassification_Behind   2
+#define PointClassification_Coplanar 3
 
-const PolygonClassification PolygonClassification_InFront    = 1;
-const PolygonClassification PolygonClassification_Behind     = 2;
-const PolygonClassification PolygonClassification_Coplanar   = 3;
-const PolygonClassification PolygonClassification_Straddling = 4;
+#define PolygonClassification_InFront    1
+#define PolygonClassification_Behind     2
+#define PolygonClassification_Coplanar   3
+#define PolygonClassification_Straddling 4
 
 PHX_API PointClassification    Plane_ClassifyPoint    (Plane*, Vec3f*);
 PHX_API PolygonClassification  Plane_ClassifyPolygon  (Plane*, Polygon*);

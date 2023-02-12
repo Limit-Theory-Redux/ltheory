@@ -81,19 +81,19 @@ Vec2_IDivs(Vec2i, int) Vec2_IDivs(Vec2d, double) Vec2_IDivs(Vec2f, float)
 Vec2_IMuls(Vec2i, int) Vec2_IMuls(Vec2d, double) Vec2_IMuls(Vec2f, float)
 Vec2_ISubs(Vec2i, int) Vec2_ISubs(Vec2d, double) Vec2_ISubs(Vec2f, float)
 
-#define Vec2_Abs(T) inline T T##_Abs(T v) { \
-  T self = { Abs(v.x), Abs(v.y) }; return self; }
+#define Vec2_Abs(T, prefix) inline T T##_Abs(T v) { \
+  T self = { Abs##prefix(v.x), Abs##prefix(v.y) }; return self; }
 
-Vec2_Abs(Vec2i)
-Vec2_Abs(Vec2f)
-Vec2_Abs(Vec2d)
+Vec2_Abs(Vec2i, i)
+Vec2_Abs(Vec2f, f)
+Vec2_Abs(Vec2d,)
 
-#define Vec2_IAbs(T) inline void T##_Abs(T* v) { \
-  v->x = Abs(v->x); v->y = Abs(v->y); }
+#define Vec2_IAbs(T, prefix) inline void T##_IAbs(T* v) { \
+  v->x = Abs##prefix(v->x); v->y = Abs##prefix(v->y); }
 
-Vec2_IAbs(Vec2i)
-Vec2_IAbs(Vec2f)
-Vec2_IAbs(Vec2d)
+Vec2_IAbs(Vec2i, i)
+Vec2_IAbs(Vec2f, f)
+Vec2_IAbs(Vec2d,)
 
 #define Vec2_Equal(T) inline bool T##_Equal(T a, T b) { \
   bool self = a.x == b.x && a.y == b.y; \
@@ -103,11 +103,11 @@ Vec2_Equal(Vec2i)
 Vec2_Equal(Vec2f)
 Vec2_Equal(Vec2d)
 
-#define Vec2_Length(T, sub) inline sub T##_Length(T v) { \
-  return Sqrt(v.x * v.x + v.y * v.y); }
+#define Vec2_Length(T, sub, prefix) inline sub T##_Length(T v) { \
+  return Sqrt##prefix(v.x * v.x + v.y * v.y); }
 
-Vec2_Length(Vec2f, float)
-Vec2_Length(Vec2d, double)
+Vec2_Length(Vec2f, float, f)
+Vec2_Length(Vec2d, double,)
 
 #define Vec2_LengthSquared(T, sub) inline sub T##_LengthSquared(T v) { \
   return v.x * v.x + v.y * v.y; }
@@ -129,16 +129,16 @@ Vec2_Dot(Vec2i, int)
 Vec2_Dot(Vec2f, float)
 Vec2_Dot(Vec2d, double)
 
-#define Vec2_Validate(T, sub) inline Error T##_Validate(T v) { \
+#define Vec2_Validate(T, sub, prefix) inline Error T##_Validate(T v) { \
   Error e = Error_None; \
-  e |= Float_Validate(v.x); \
-  e |= Float_Validate(v.y); \
+  e |= Float_Validate##prefix(v.x); \
+  e |= Float_Validate##prefix(v.y); \
   return e; }
 
-Vec2_Validate(Vec2f, float)
-Vec2_Validate(Vec2d, double)
+Vec2_Validate(Vec2f, float, f)
+Vec2_Validate(Vec2d, double,)
 
-#define Vec2_ToString(T, sub, fmt) inline cstr T##_ToString(T* v) { \
+#define Vec2_ToString(T, sub, fmt) static inline cstr T##_ToString(T* v) { \
   static char buffer[512]; \
   snprintf(buffer, (size_t) Array_GetSize(buffer), \
     "(" fmt ", " fmt ")", v->x, v->y); \

@@ -82,7 +82,5 @@ function (phx_configure_target_properties target)
 
     target_compile_options (${target} PRIVATE "-Wno-unused-variable")
     target_compile_options (${target} PRIVATE "-Wno-unknown-pragmas")
-
-    target_compile_options (${target} PRIVATE "-std=c++11")
   endif ()
 endfunction ()

@@ -2,6 +2,9 @@
 #define PHX_Int
 
 #include <stdint.h>
+#ifndef __cplusplus
+#include <stdbool.h>
+#endif
 
 #ifndef INT8_MIN
   #define INT8_MIN    (-0x7f - 1)

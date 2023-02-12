@@ -26,30 +26,30 @@
  *
  * -------------------------------------------------------------------------- */
 
-const Error Error_None         = 0x00000000;
+#define Error_None         0x00000000
 
-const Error Error_Null         = 0x00000001;
-const Error Error_Invalid      = 0x00000002;
-const Error Error_Overflow     = 0x00000004;
-const Error Error_Underflow    = 0x00000008;
-const Error Error_Empty        = 0x00000010;
-const Error Error_NaN          = 0x00000020;
-const Error Error_Degenerate   = 0x00000040;
-const Error Error_BadCount     = 0x00000080;
+#define Error_Null         0x00000001
+#define Error_Invalid      0x00000002
+#define Error_Overflow     0x00000004
+#define Error_Underflow    0x00000008
+#define Error_Empty        0x00000010
+#define Error_NaN          0x00000020
+#define Error_Degenerate   0x00000040
+#define Error_BadCount     0x00000080
 
-const Error Error_Input        = 0x00000100;
-const Error Error_Intermediate = 0x00000200;
-const Error Error_Output       = 0x00000400;
+#define Error_Input        0x00000100
+#define Error_Intermediate 0x00000200
+#define Error_Output       0x00000400
 
-const Error Error_Stack        = 0x00010000;
-const Error Error_Heap         = 0x00020000;
-const Error Error_Buffer       = 0x00040000;
-const Error Error_Path         = 0x00080000;
-const Error Error_Index        = 0x00100000;
-const Error Error_Vertex       = 0x00200000;
-const Error Error_VertPos      = 0x00400000;
-const Error Error_VertNorm     = 0x00800000;
-const Error Error_VertUV       = 0x01000000;
+#define Error_Stack        0x00010000
+#define Error_Heap         0x00020000
+#define Error_Buffer       0x00040000
+#define Error_Path         0x00080000
+#define Error_Index        0x00100000
+#define Error_Vertex       0x00200000
+#define Error_VertPos      0x00400000
+#define Error_VertNorm     0x00800000
+#define Error_VertUV       0x01000000
 
 PHX_API void  Error_Print  (Error);
 

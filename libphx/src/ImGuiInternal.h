@@ -5,17 +5,20 @@ const int FocusType_Keyboard = 1;
 const int FocusType_Scroll   = 2;
 const int FocusType_SIZE     = 3;
 
+typedef struct ImGuiClipRect ImGuiClipRect;
 struct ImGuiClipRect {
   ImGuiClipRect* prev;
   Vec2f p1;
   Vec2f p2;
 };
 
+typedef struct ImGuiCursor ImGuiCursor;
 struct ImGuiCursor {
   ImGuiCursor* prev;
   Vec2f pos;
 };
 
+typedef struct ImGuiLine ImGuiLine;
 struct ImGuiLine {
   ImGuiLine* next;
   Vec4f color;
@@ -23,6 +26,7 @@ struct ImGuiLine {
   Vec2f p2;
 };
 
+typedef struct ImGuiPanel ImGuiPanel;
 struct ImGuiPanel {
   ImGuiPanel* next;
   Vec4f color;
@@ -32,6 +36,7 @@ struct ImGuiPanel {
   float bevel;
 };
 
+typedef struct ImGuiRect ImGuiRect;
 struct ImGuiRect {
   ImGuiRect* next;
   Vec4f color;
@@ -40,6 +45,7 @@ struct ImGuiRect {
   bool outline;
 };
 
+typedef struct ImGuiTex2D ImGuiTex2D;
 struct ImGuiTex2D {
   ImGuiTex2D* next;
   Tex2D* tex;
@@ -47,6 +53,7 @@ struct ImGuiTex2D {
   Vec2f size;
 };
 
+typedef struct ImGuiText ImGuiText;
 struct ImGuiText {
   ImGuiText* next;
   Font* font;
@@ -55,12 +62,14 @@ struct ImGuiText {
   cstr text;
 };
 
+typedef struct ImGuiData ImGuiData;
 struct ImGuiData {
   Vec2f size;
   Vec2f offset;
   float scroll;
 };
 
+typedef struct ImGuiWidget ImGuiWidget;
 struct ImGuiWidget {
   ImGuiWidget* prev;
   uint64 hash;
@@ -69,6 +78,7 @@ struct ImGuiWidget {
   Vec2f size;
 };
 
+typedef struct ImGuiStyle ImGuiStyle;
 struct ImGuiStyle {
   ImGuiStyle* prev;
   Font* font;
@@ -84,6 +94,7 @@ struct ImGuiStyle {
   Vec4f textColorFocus;
 };
 
+typedef struct ImGuiLayer ImGuiLayer;
 struct ImGuiLayer {
   ImGuiLayer* parent;
   ImGuiLayer* next;
@@ -102,6 +113,7 @@ struct ImGuiLayer {
   ImGuiLine* lineList;
 };
 
+typedef struct ImGuiLayout ImGuiLayout;
 struct ImGuiLayout {
   ImGuiLayout* prev;
   Vec2f lower;
@@ -112,6 +124,7 @@ struct ImGuiLayout {
   bool horizontal;
 };
 
+typedef struct ImGui ImGui;
 struct ImGui {
   ImGuiLayer* layer;
   ImGuiLayer* layerLast;
@@ -149,9 +162,9 @@ struct ImGui {
 /* -------------------------------------------------------------------------- */
 
 inline static void EmitLine (
-  Vec4f const& color,
-  Vec2f const& p1,
-  Vec2f const& p2)
+  Vec4f color,
+  Vec2f p1,
+  Vec2f p2)
 {
   ImGuiLine* e = (ImGuiLine*)MemPool_Alloc(self.linePool);
   e->color = color;
@@ -162,11 +175,11 @@ inline static void EmitLine (
 }
 
 inline static void EmitPanel (
-  Vec4f const& color,
-  Vec2f const& pos,
-  Vec2f const& size,
-  float innerAlpha = 1.0f,
-  float bevel = 4.0f)
+  Vec4f color,
+  Vec2f pos,
+  Vec2f size,
+  float innerAlpha, /*= 1.0f*/
+  float bevel /*= 4.0f*/)
 {
   ImGuiPanel* e = (ImGuiPanel*)MemPool_Alloc(self.panelPool);
   e->color = color;
@@ -179,10 +192,10 @@ inline static void EmitPanel (
 }
 
 inline static void EmitRect (
-  Vec4f const& color,
-  Vec2f const& pos,
-  Vec2f const& size,
-  bool outline = false)
+  Vec4f color,
+  Vec2f pos,
+  Vec2f size,
+  bool outline)
 {
   ImGuiRect* e = (ImGuiRect*)MemPool_Alloc(self.rectPool);
   e->color = color;
@@ -195,8 +208,8 @@ inline static void EmitRect (
 
 inline static void EmitTex2D (
   Tex2D* tex,
-  Vec2f const& pos,
-  Vec2f const& size)
+  Vec2f pos,
+  Vec2f size)
 {
   ImGuiTex2D* e = (ImGuiTex2D*)MemPool_Alloc(self.tex2DPool);
   e->tex = tex;
@@ -208,8 +221,8 @@ inline static void EmitTex2D (
 
 inline static void EmitText (
   Font* font,
-  Vec4f const& color,
-  Vec2f const& pos,
+  Vec4f color,
+  Vec2f pos,
   cstr text)
 {
   ImGuiText* e = (ImGuiText*)MemPool_Alloc(self.textPool);
@@ -321,18 +334,18 @@ inline static uint64 HashPeekNext () {
   return Hash_FNV64_Incremental(self.widget->hash, &index, sizeof(index));
 }
 
-inline static void TransformPos (float& x, float& y) {
-  if (x < 0.0f) x = self.layout->upper.x + x;
-  if (y < 0.0f) y = self.layout->upper.y + y;
+inline static void TransformPos (float* x, float* y) {
+  if (*x < 0.0f) *x = self.layout->upper.x + *x;
+  if (*y < 0.0f) *y = self.layout->upper.y + *y;
 }
 
-inline static void TransformSize (float& sx, float& sy) {
-  if (sx <= 0.0f) sx = (self.layout->upper.x - self.cursor.x) + sx;
-  if (sy <= 0.0f) sy = (self.layout->upper.y - self.cursor.y) + sy;
+inline static void TransformSize (float* sx, float* sy) {
+  if (*sx <= 0.0f) *sx = (self.layout->upper.x - self.cursor.x) + *sx;
+  if (*sy <= 0.0f) *sy = (self.layout->upper.y - self.cursor.y) + *sy;
 }
 
 inline static Vec2f GetNextSize (Vec2f s) {
-  TransformSize(s.x, s.y);
+  TransformSize(&s.x, &s.y);
   return s;
 }
 
@@ -350,7 +363,7 @@ inline static void Spacing () {
 }
 
 static void ImGui_PushLayout (float sx, float sy, bool horizontal) {
-  TransformSize(sx, sy);
+  TransformSize(&sx, &sy);
   ImGuiLayout* layout = (ImGuiLayout*)MemPool_Alloc(self.layoutPool);
   layout->prev = self.layout;
   layout->lower = self.cursor;
@@ -369,7 +382,7 @@ static void ImGui_PopLayout () {
   MemPool_Dealloc(self.layoutPool, layout);
 }
 
-inline static void ImGui_Pad (float mx = 1.0f, float my = 1.0f) {
+inline static void ImGui_Pad (float mx, float my) {
   float px = mx * self.style->padding.x;
   float py = my * self.style->padding.y;
   self.cursor.x += px;
@@ -382,7 +395,7 @@ inline static void ImGui_Pad (float mx = 1.0f, float my = 1.0f) {
   self.layout->size.y -= 2.0f * py;
 }
 
-static void ImGui_Unpad (float mx = 1.0f, float my = 1.0f) {
+static void ImGui_Unpad (float mx, float my) {
   float px = mx * self.style->padding.x;
   float py = my * self.style->padding.y;
   self.layout->lower.x -= px;
@@ -399,7 +412,7 @@ static void ImGui_Unpad (float mx = 1.0f, float my = 1.0f) {
 
 static void ImGui_BeginWidget (float sx, float sy) {
   Spacing();
-  TransformSize(sx, sy);
+  TransformSize(&sx, &sy);
   ImGuiWidget* widget = (ImGuiWidget*)MemPool_Alloc(self.widgetPool);
 
   widget->prev = self.widget;

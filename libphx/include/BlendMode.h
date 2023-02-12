@@ -3,10 +3,10 @@
 
 #include "Common.h"
 
-const BlendMode BlendMode_Additive     = 0;
-const BlendMode BlendMode_Alpha        = 1;
-const BlendMode BlendMode_Disabled     = 2;
-const BlendMode BlendMode_PreMultAlpha = 3;
+#define BlendMode_Additive     0
+#define BlendMode_Alpha        1
+#define BlendMode_Disabled     2
+#define BlendMode_PreMultAlpha 3
 
 PHX_API void  BlendMode_Pop               ();
 PHX_API void  BlendMode_Push              (BlendMode);

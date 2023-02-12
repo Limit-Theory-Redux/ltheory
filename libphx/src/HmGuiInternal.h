@@ -6,11 +6,19 @@ static void HmGui_InitWidget (HmGuiWidget* e, uint32 type) {
   if (e->parent) {
     e->parent->children++;
     e->hash = Hash_FNV64_Incremental(
-      e->parent->hash,
+      e->parent->widget.hash,
       &e->parent->children,
       sizeof(e->parent->children));
-    (e->next ? e->next->prev : e->parent->tail) = e;
-    (e->prev ? e->prev->next : e->parent->head) = e;
+    if (e->next) {
+      e->next->prev = e;
+    } else {
+      e->parent->tail = e;
+    }
+    if (e->prev) {
+      e->prev->next = e;
+    } else {
+      e->parent->head = e;
+    }
   } else {
     e->hash = Hash_FNV64_Init();
   }
@@ -27,7 +35,7 @@ static void HmGui_InitWidget (HmGuiWidget* e, uint32 type) {
 
 static void HmGui_BeginGroup (uint32 layout) {
   HmGuiGroup* e = MemNew(HmGuiGroup);
-  HmGui_InitWidget(e, Widget_Group);
+  HmGui_InitWidget(&e->widget, Widget_Group);
   e->head = 0;
   e->tail = 0;
   e->layout = layout;
@@ -47,13 +55,13 @@ static void HmGui_BeginGroup (uint32 layout) {
 
   switch (layout) {
     case Layout_Stack:
-      e->stretch = Vec2f_Create(1, 1);
+      e->widget.stretch = Vec2f_Create(1, 1);
       break;
     case Layout_Vertical:
-      e->stretch = Vec2f_Create(1, 0);
+      e->widget.stretch = Vec2f_Create(1, 0);
       break;
     case Layout_Horizontal:
-      e->stretch = Vec2f_Create(0, 1);
+      e->widget.stretch = Vec2f_Create(0, 1);
       break;
   }
 }
@@ -80,13 +88,13 @@ static void HmGui_FreeGroup (HmGuiGroup* g) {
 /* -------------------------------------------------------------------------- */
 
 static HmGuiData* HmGui_GetData (HmGuiGroup* g) {
-  HmGuiData* data = (HmGuiData*)HashMap_GetRaw(self.data, g->hash);
+  HmGuiData* data = (HmGuiData*)HashMap_GetRaw(self.data, g->widget.hash);
   if (!data) {
     data = MemNew(HmGuiData);
     data->offset = Vec2f_Create(0, 0);
     data->minSize = Vec2f_Create(0, 0);
     data->size = Vec2f_Create(0, 0);
-    HashMap_SetRaw(self.data, g->hash, data);
+    HashMap_SetRaw(self.data, g->widget.hash, data);
   }
   return data;
 }
@@ -96,8 +104,8 @@ static HmGuiData* HmGui_GetData (HmGuiGroup* g) {
 static void HmGui_PushClipRect (HmGuiGroup* g) {
   HmGuiClipRect* rect = MemNew(HmGuiClipRect);
   rect->prev = self.clipRect;
-  rect->lower = g->pos;
-  rect->upper = Vec2f_Add(g->pos, g->size);
+  rect->lower = g->widget.pos;
+  rect->upper = Vec2f_Add(g->widget.pos, g->widget.size);
   if (rect->prev) {
     rect->lower.x = Max(rect->lower.x, rect->prev->lower.x);
     rect->lower.y = Max(rect->lower.y, rect->prev->lower.y);
@@ -120,37 +128,37 @@ static void HmGui_ComputeSize (HmGuiGroup* g) {
     if (e->type == Widget_Group)
       HmGui_ComputeSize((HmGuiGroup*)e);
 
-  g->minSize = Vec2f_Create(0, 0);
+  g->widget.minSize = Vec2f_Create(0, 0);
 
   for (HmGuiWidget* e = g->head; e; e = e->next) {
     switch (g->layout) {
       case Layout_Stack:
-        g->minSize.x = Max(g->minSize.x, e->minSize.x);
-        g->minSize.y = Max(g->minSize.y, e->minSize.y);
+        g->widget.minSize.x = Max(g->widget.minSize.x, e->minSize.x);
+        g->widget.minSize.y = Max(g->widget.minSize.y, e->minSize.y);
         break;
       case Layout_Vertical:
-        g->minSize.x  = Max(g->minSize.x, e->minSize.x);
-        g->minSize.y += e->minSize.y;
-        if (e != g->head) g->minSize.y += g->spacing;
+        g->widget.minSize.x  = Max(g->widget.minSize.x, e->minSize.x);
+        g->widget.minSize.y += e->minSize.y;
+        if (e != g->head) g->widget.minSize.y += g->spacing;
         break;
       case Layout_Horizontal:
-        g->minSize.x += e->minSize.x;
-        g->minSize.y  = Max(g->minSize.y, e->minSize.y);
-        if (e != g->head) g->minSize.x += g->spacing;
+        g->widget.minSize.x += e->minSize.x;
+        g->widget.minSize.y  = Max(g->widget.minSize.y, e->minSize.y);
+        if (e != g->head) g->widget.minSize.x += g->spacing;
         break;
     }
   }
 
-  g->minSize.x += g->paddingLower.x + g->paddingUpper.x;
-  g->minSize.y += g->paddingLower.y + g->paddingUpper.y;
+  g->widget.minSize.x += g->paddingLower.x + g->paddingUpper.x;
+  g->widget.minSize.y += g->paddingLower.y + g->paddingUpper.y;
 
   if (g->storeSize) {
     HmGuiData* data = HmGui_GetData(g);
-    data->minSize = g->minSize;
+    data->minSize = g->widget.minSize;
   }
 
-  g->minSize.x = Min(g->minSize.x, g->maxSize.x);
-  g->minSize.y = Min(g->minSize.y, g->maxSize.y);
+  g->widget.minSize.x = Min(g->widget.minSize.x, g->maxSize.x);
+  g->widget.minSize.y = Min(g->widget.minSize.y, g->maxSize.y);
 }
 
 static void HmGui_LayoutWidget (HmGuiWidget* e, Vec2f pos, float sx, float sy) {
@@ -163,8 +171,8 @@ static void HmGui_LayoutWidget (HmGuiWidget* e, Vec2f pos, float sx, float sy) {
 }
 
 static void HmGui_LayoutGroup (HmGuiGroup* g) {
-  Vec2f pos = g->pos;
-  Vec2f size = g->size;
+  Vec2f pos = g->widget.pos;
+  Vec2f size = g->widget.size;
   float extra = 0;
   float totalStretch = 0;
 
@@ -175,11 +183,11 @@ static void HmGui_LayoutGroup (HmGuiGroup* g) {
 
   if (g->expand) {
     if (g->layout == Layout_Vertical) {
-      extra = g->size.y - g->minSize.y;
+      extra = g->widget.size.y - g->widget.minSize.y;
       for (HmGuiWidget* e = g->head; e; e = e->next)
         totalStretch += e->stretch.y;
     } else if (g->layout == Layout_Horizontal) {
-      extra = g->size.x - g->minSize.x;
+      extra = g->widget.size.x - g->widget.minSize.x;
       for (HmGuiWidget* e = g->head; e; e = e->next)
         totalStretch += e->stretch.x;
     }
@@ -218,16 +226,16 @@ static void HmGui_LayoutGroup (HmGuiGroup* g) {
 
   if (g->storeSize) {
     HmGuiData* data = HmGui_GetData(g);
-    data->size = g->size;
+    data->size = g->widget.size;
   }
 }
 
 inline static bool IsClipped (HmGuiGroup* g, Vec2f p) {
   return
-    p.x < g->pos.x ||
-    p.y < g->pos.y ||
-    g->pos.x + g->size.x < p.x ||
-    g->pos.y + g->size.y < p.y;
+    p.x < g->widget.pos.x ||
+    p.y < g->widget.pos.y ||
+    g->widget.pos.x + g->widget.size.x < p.x ||
+    g->widget.pos.y + g->widget.size.y < p.y;
 }
 
 static void HmGui_CheckFocus (HmGuiGroup* g) {
@@ -240,12 +248,12 @@ static void HmGui_CheckFocus (HmGuiGroup* g) {
 
   for (int i = 0; i < FocusType_SIZE; ++i) {
     if (self.focus[i] == 0 && g->focusable[i]) {
-      if (g->pos.x <= self.focusPos.x &&
-          g->pos.y <= self.focusPos.y &&
-          self.focusPos.x <= g->pos.x + g->size.x &&
-          self.focusPos.y <= g->pos.y + g->size.y)
+      if (g->widget.pos.x <= self.focusPos.x &&
+          g->widget.pos.y <= self.focusPos.y &&
+          self.focusPos.x <= g->widget.pos.x + g->widget.size.x &&
+          self.focusPos.y <= g->widget.pos.y + g->widget.size.y)
       {
-        self.focus[i] = g->hash;
+        self.focus[i] = g->widget.hash;
       }
     }
   }
@@ -259,24 +267,24 @@ static void HmGui_DrawText (HmGuiText* e) {
   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
 #endif
 
-  UIRenderer_Text(e->font, e->text, e->pos.x, e->pos.y + e->minSize.y, UNPACK4(e->color));
+  UIRenderer_Text(e->font, e->text, e->widget.pos.x, e->widget.pos.y + e->widget.minSize.y, UNPACK4(e->color));
 }
 
 static void HmGui_DrawRect (HmGuiRect* e) {
-  UIRenderer_Rect(e->pos.x, e->pos.y, e->size.x, e->size.y, UNPACK4(e->color), false);
+  UIRenderer_Rect(e->widget.pos.x, e->widget.pos.y, e->widget.size.x, e->widget.size.y, UNPACK4(e->color), false);
 }
 
 static void HmGui_DrawImage (HmGuiImage* e) {
-  UIRenderer_Image(e->image, e->pos.x, e->pos.y, e->size.x, e->size.y);
+  UIRenderer_Image(e->image, e->widget.pos.x, e->widget.pos.y, e->widget.size.x, e->widget.size.y);
 }
 
 static void HmGui_DrawGroup (HmGuiGroup* g) {
 #if HMGUI_DRAW_GROUP_FRAMES
   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
-  Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
+  Draw_Border(2.0f, g->widget.pos.x, g->widget.pos.y, g->widget.size.x, g->widget.size.y);
 #endif
 
-  UIRenderer_BeginLayer(g->pos.x, g->pos.y, g->size.x, g->size.y, g->clip);
+  UIRenderer_BeginLayer(g->widget.pos.x, g->widget.pos.y, g->widget.size.x, g->widget.size.y, g->clip);
 
   for (HmGuiWidget* e = g->tail; e; e = e->prev) {
     switch (e->type) {
@@ -288,26 +296,26 @@ static void HmGui_DrawGroup (HmGuiGroup* g) {
   }
 
   if (g->focusable[FocusType_Mouse]) {
-    bool focus = self.focus[FocusType_Mouse] == g->hash;
+    bool focus = self.focus[FocusType_Mouse] == g->widget.hash;
     if (g->focusStyle == FocusStyle_None) {
-      UIRenderer_Panel(g->pos.x, g->pos.y, g->size.x, g->size.y, 0.1f, 0.12f, 0.13f, 1.0f, 8.0f, g->frameOpacity);
+      UIRenderer_Panel(g->widget.pos.x, g->widget.pos.y, g->widget.size.x, g->widget.size.y, 0.1f, 0.12f, 0.13f, 1.0f, 8.0f, g->frameOpacity);
     }
 
     else if (g->focusStyle == FocusStyle_Fill) {
       if (focus)
-        UIRenderer_Panel(g->pos.x, g->pos.y, g->size.x, g->size.y, 0.1f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f);
+        UIRenderer_Panel(g->widget.pos.x, g->widget.pos.y, g->widget.size.x, g->widget.size.y, 0.1f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f);
       else
-        UIRenderer_Panel(g->pos.x, g->pos.y, g->size.x, g->size.y, 0.15f, 0.15f, 0.15f, 0.8f, 0.0f, g->frameOpacity);
+        UIRenderer_Panel(g->widget.pos.x, g->widget.pos.y, g->widget.size.x, g->widget.size.y, 0.15f, 0.15f, 0.15f, 0.8f, 0.0f, g->frameOpacity);
     }
 
     else if (g->focusStyle == FocusStyle_Outline) {
       if (focus) {
-        UIRenderer_Rect(g->pos.x, g->pos.y, g->size.x, g->size.y, 0.1f, 0.5f, 1.0f, 1.0f, true);
+        UIRenderer_Rect(g->widget.pos.x, g->widget.pos.y, g->widget.size.x, g->widget.size.y, 0.1f, 0.5f, 1.0f, 1.0f, true);
       }
     }
 
     else if (g->focusStyle == FocusStyle_Underline) {
-      UIRenderer_Rect(g->pos.x, g->pos.y, g->size.x, g->size.y, 0.3f, 0.3f, 0.3f, focus ? 0.5f : g->frameOpacity, false);
+      UIRenderer_Rect(g->widget.pos.x, g->widget.pos.y, g->widget.size.x, g->widget.size.y, 0.3f, 0.3f, 0.3f, focus ? 0.5f : g->frameOpacity, false);
     }
   }
 

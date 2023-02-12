@@ -4,6 +4,8 @@
 #include "PhxConfig.h"
 #include "PhxInt.h"
 
+#include <string.h>
+
 #ifdef _WIN32
   #ifndef WINDOWS
     #define WINDOWS 1
@@ -20,11 +22,17 @@
   #endif
 #endif
 
+#ifdef __cplusplus
+#define EXTERN_C extern "C"
+#else
+#define EXTERN_C
+#endif
+
 #if WINDOWS
   #if LIBPHX_BUILDING
-    #define PHX_API           extern "C" __declspec(dllexport)
+    #define PHX_API           EXTERN_C __declspec(dllexport)
   #else
-    #define PHX_API           extern "C" __declspec(dllimport)
+    #define PHX_API           EXTERN_C __declspec(dllimport)
   #endif
 
   #define DEBUG_BREAK         __debugbreak()
@@ -38,8 +46,8 @@
 #else
 
   #define DEBUG_BREAK         __builtin_trap()
-  #define PHX_API             extern "C" __attribute__((visibility("default")))
-  #define PRIVATE             __attribute__((visibility("hidden")))
+  #define PHX_API             EXTERN_C __attribute__((visibility("default")))
+  #define PRIVATE             EXTERN_C __attribute__((visibility("hidden")))
   #define ALIGN_OF(x)         __alignof__(x)
   #define FORCE_INLINE        inline static __attribute__((always_inline))
   #define NO_ALIAS            __restrict__
@@ -122,6 +130,47 @@
   OPAQUE_T Trigger;
   OPAQUE_T Window;
 
+  typedef struct BoxMesh BoxMesh;
+  typedef struct BoxTree BoxTree;
+  typedef struct BSP BSP;
+  typedef struct Bytes Bytes;
+  typedef struct Directory Directory;
+  typedef struct File File;
+  typedef struct Font Font;
+  typedef struct HashGrid HashGrid;
+  typedef struct HashGridElem HashGridElem;
+  typedef struct HashMap HashMap;
+  typedef struct InputBinding InputBinding;
+  typedef struct KDTree KDTree;
+  typedef struct LodMesh LodMesh;
+  typedef struct MemPool MemPool;
+  typedef struct MemStack MemStack;
+  typedef struct Mesh Mesh;
+  typedef struct MidiDevice MidiDevice;
+  typedef struct Octree Octree;
+  typedef struct Physics Physics;
+  typedef struct RigidBody RigidBody;
+  typedef struct RmGui RmGui;
+  typedef struct RNG RNG;
+  typedef struct SDF SDF;
+  typedef struct Shader Shader;
+  typedef struct ShaderState ShaderState;
+  typedef struct Socket Socket;
+  typedef struct Sound Sound;
+  typedef struct SoundDesc SoundDesc;
+  typedef struct StrBuffer StrBuffer;
+  typedef struct StrMap StrMap;
+  typedef struct StrMapIter StrMapIter;
+  typedef struct Tex1D Tex1D;
+  typedef struct Tex2D Tex2D;
+  typedef struct Tex3D Tex3D;
+  typedef struct TexCube TexCube;
+  typedef struct Thread Thread;
+  typedef struct ThreadPool ThreadPool;
+  typedef struct Timer Timer;
+  typedef struct Trigger Trigger;
+  typedef struct Window Window;
+
 /* --- Transparent Structs -------------------------------------------------- */
 
   STRUCT_T Box3i;
@@ -155,6 +204,37 @@
   STRUCT_T Vec4f;
   STRUCT_T Vertex;
 
+  typedef struct Box3i Box3i;
+  typedef struct Box3d Box3d;
+  typedef struct Box3f Box3f;
+  typedef struct BSPNodeRef BSPNodeRef;
+  typedef struct Collision Collision;
+  typedef struct Device Device;
+  typedef struct IntersectSphereProfiling IntersectSphereProfiling;
+  typedef struct InputEvent InputEvent;
+  typedef struct LineSegment LineSegment;
+  typedef struct Matrix Matrix;
+  typedef struct Plane Plane;
+  typedef struct Polygon Polygon;
+  typedef struct Quat Quat;
+  typedef struct Ray Ray;
+  typedef struct RayCastResult RayCastResult;
+  typedef struct ShapeCastResult ShapeCastResult;
+  typedef struct Sphere Sphere;
+  typedef struct Time Time;
+  typedef struct Triangle Triangle;
+  typedef struct TriangleTest TriangleTest;
+  typedef struct Vec2i Vec2i;
+  typedef struct Vec2d Vec2d;
+  typedef struct Vec2f Vec2f;
+  typedef struct Vec3i Vec3i;
+  typedef struct Vec3d Vec3d;
+  typedef struct Vec3f Vec3f;
+  typedef struct Vec4i Vec4i;
+  typedef struct Vec4d Vec4d;
+  typedef struct Vec4f Vec4f;
+  typedef struct Vertex Vertex;
+
 /* --- Enums ---------------------------------------------------------------- */
 
   ENUM_T typedef int32  BlendMode;
@@ -185,8 +265,8 @@
 
 /* --- Deprecated ----------------------------------------------------------- */
 
-  struct Gamepad;
-  struct Joystick;
+  typedef struct Gamepad Gamepad;
+  typedef struct Joystick Joystick;
   typedef int32 GamepadAxis;
   typedef int32 GamepadButton;
   typedef int32 HatDir;
@@ -271,12 +351,12 @@ inline void _Expect(bool condition, cstr expression) {
 
 #define NYI Fatal("NYI @ %s: %d", __FILE__, __LINE__);
 
-template <class T>
-inline static void Swap(T& a, T& b) {
-  T temp = a;
-  a = b;
-  b = temp;
-}
+#define Swap(x,y) do \
+   { unsigned char swap_temp[sizeof(x) == sizeof(y) ? (signed)sizeof(x) : -1]; \
+     memcpy(swap_temp,&y,sizeof(x)); \
+     memcpy(&y,&x,       sizeof(x)); \
+     memcpy(&x,swap_temp,sizeof(x)); \
+    } while(0)
 
 #endif
 

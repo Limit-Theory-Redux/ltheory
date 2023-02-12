@@ -13,7 +13,7 @@ PHX_API const ResourceType ResourceType_Tex1D;
 PHX_API const ResourceType ResourceType_Tex2D;
 PHX_API const ResourceType ResourceType_Tex3D;
 PHX_API const ResourceType ResourceType_TexCube;
-const ResourceType ResourceType_COUNT = 0xA;
+#define ResourceType_COUNT 0xA
 
 PHX_API cstr  ResourceType_ToString  (ResourceType);
 

@@ -4,8 +4,8 @@
 #include "Common.h"
 #include "GL/glew.h"
 
-void  OpenGL_Init       ();
-void  OpenGL_CheckError (cstr file, int line);
+PRIVATE void  OpenGL_Init       ();
+PRIVATE void  OpenGL_CheckError (cstr file, int line);
 
 /* WARNING - Calling glGetError between glBegin / glEnd IS ITSELF an error.
  *           Hence, only the glEnd call of an immediate-mode draw sequence

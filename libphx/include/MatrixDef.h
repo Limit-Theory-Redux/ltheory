@@ -8,10 +8,16 @@
    8   9  10  11      20  21  22  23
   12  13  14  15      30  31  32  33  */
 
+#ifdef __cplusplus
+#define ALIGNAS_16 alignas(16)
+#else
+#define ALIGNAS_16
+#endif
+
 struct Matrix {
   // We need to ensure that the storage is aligned on a 16-byte boundary,
   // which is a requirement if we use this with SSE instructions.
-  alignas(16) float m[16];
+  ALIGNAS_16 float m[16];
 };
 
 #endif

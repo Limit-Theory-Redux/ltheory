@@ -1,7 +1,7 @@
 #include "Directory.h"
 #include "Engine.h"
 #include "File.h"
-#include "Lua.h"
+#include "LuaApi.h"
 #include "PhxString.h"
 
 #if WINDOWS

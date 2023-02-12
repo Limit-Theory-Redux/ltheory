@@ -41,15 +41,15 @@
  *
  * -------------------------------------------------------------------------- */
 
-const Metric Metric_None       = 0x0;
-const Metric Metric_DrawCalls  = 0x1;
-const Metric Metric_Immediate  = 0x2;
-const Metric Metric_PolysDrawn = 0x3;
-const Metric Metric_TrisDrawn  = 0x4;
-const Metric Metric_VertsDrawn = 0x5;
-const Metric Metric_Flush      = 0x6;
-const Metric Metric_FBOSwap    = 0x7;
-const Metric Metric_SIZE       = 0x7;
+#define Metric_None       0x0
+#define Metric_DrawCalls  0x1
+#define Metric_Immediate  0x2
+#define Metric_PolysDrawn 0x3
+#define Metric_TrisDrawn  0x4
+#define Metric_VertsDrawn 0x5
+#define Metric_Flush      0x6
+#define Metric_FBOSwap    0x7
+#define Metric_SIZE       0x7
 
 PHX_API int32  Metric_Get         (Metric);
 PHX_API cstr   Metric_GetName     (Metric);

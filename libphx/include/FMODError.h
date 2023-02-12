@@ -90,7 +90,7 @@
   X(FMOD_ERR_TOOMANYSAMPLES)                                                   \
   X(FMOD_RESULT_FORCEINT)
 
-inline cstr FMODError_ToString (FMOD_RESULT self) {
+static inline cstr FMODError_ToString (FMOD_RESULT self) {
   switch (self) {
 #define X(x) case x: return #x;
     FMODERROR_X
@@ -99,7 +99,7 @@ inline cstr FMODError_ToString (FMOD_RESULT self) {
   return "Unknown Error";
 }
 
-inline void FMOD_CheckError (FMOD_RESULT result, cstr file, int line, cstr func) {
+static inline void FMOD_CheckError (FMOD_RESULT result, cstr file, int line, cstr func) {
   if (result != FMOD_OK) {
     Fatal("%s: %s\n%s\n  [%s @ Line %d]",
       func, FMODError_ToString(result), FMOD_ErrorString(result), file, line

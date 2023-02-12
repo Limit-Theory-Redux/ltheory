@@ -23,19 +23,19 @@ Vec4_Create(Vec4i, int)
 Vec4_Create(Vec4d, double)
 Vec4_Create(Vec4f, float)
 
-#define Vec4_Abs(T) inline T T##_Abs(T v) { \
-  T self = { Abs(v.x), Abs(v.y), Abs(v.z), Abs(v.w) }; return self; }
+#define Vec4_Abs(T, prefix) inline T T##_Abs(T v) { \
+  T self = { Abs##prefix(v.x), Abs##prefix(v.y), Abs##prefix(v.z), Abs##prefix(v.w) }; return self; }
 
-Vec4_Abs(Vec4i)
-Vec4_Abs(Vec4f)
-Vec4_Abs(Vec4d)
+Vec4_Abs(Vec4i, i)
+Vec4_Abs(Vec4f, f)
+Vec4_Abs(Vec4d,)
 
-#define Vec4_IAbs(T) inline void T##_Abs(T* v) { \
-  v->x = Abs(v->x); v->y = Abs(v->y); v->z = Abs(v->z); v->w = Abs(v->w); }
+#define Vec4_IAbs(T, prefix) inline void T##_IAbs(T* v) { \
+  v->x = Abs##prefix(v->x); v->y = Abs##prefix(v->y); v->z = Abs##prefix(v->z); v->w = Abs##prefix(v->w); }
 
-Vec4_IAbs(Vec4i)
-Vec4_IAbs(Vec4f)
-Vec4_IAbs(Vec4d)
+Vec4_IAbs(Vec4i, i)
+Vec4_IAbs(Vec4f, f)
+Vec4_IAbs(Vec4d,)
 
 #define Vec4_Equal(T) inline bool T##_Equal(T a, T b) { \
   return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w; }
@@ -74,18 +74,18 @@ Vec4_ZW(Vec4d, Vec2d)
 Vec4_XY(Vec4f, Vec2f)
 Vec4_ZW(Vec4f, Vec2f)
 
-#define Vec4_Validate(T, sub) inline Error T##_Validate(T v) { \
+#define Vec4_Validate(T, sub, prefix) inline Error T##_Validate(T v) { \
   Error e = Error_None; \
-  e |= Float_Validate(v.x); \
-  e |= Float_Validate(v.y); \
-  e |= Float_Validate(v.z); \
-  e |= Float_Validate(v.w); \
+  e |= Float_Validate##prefix(v.x); \
+  e |= Float_Validate##prefix(v.y); \
+  e |= Float_Validate##prefix(v.z); \
+  e |= Float_Validate##prefix(v.w); \
   return e; }
 
-Vec4_Validate(Vec4f, float)
-Vec4_Validate(Vec4d, double)
+Vec4_Validate(Vec4f, float, f)
+Vec4_Validate(Vec4d, double,)
 
-#define Vec4_ToString(T, sub, fmt) inline cstr T##_ToString(T* v) { \
+#define Vec4_ToString(T, sub, fmt) static inline cstr T##_ToString(T* v) { \
   static char buffer[512]; \
   snprintf(buffer, (size_t) Array_GetSize(buffer), \
     "(" fmt ", " fmt ", " fmt ", " fmt ")", v->x, v->y, v->z, v->w); \

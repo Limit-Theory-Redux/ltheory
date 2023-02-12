@@ -8,14 +8,14 @@
 #include <float.h>
 #include <math.h>
 
-inline Error  Float_Validate            (float x);
+inline Error  Float_Validatef           (float x);
 inline Error  Float_Validate            (double x);
-inline bool   Float_ApproximatelyEqual  (float x, float y);
+inline bool   Float_ApproximatelyEqualf (float x, float y);
 inline bool   Float_ApproximatelyEqual  (double x, double y);
 
 /* -------------------------------------------------------------------------- */
 
-inline Error Float_Validate (float x) {
+inline Error Float_Validatef (float x) {
   int classification = fpclassify(x);
   switch (classification) {
     case FP_INFINITE:  return Error_Overflow;
@@ -49,8 +49,8 @@ inline Error Float_Validate (double x) {
   return Error_None;
 }
 
-inline bool Float_ApproximatelyEqual (float x, float y) {
-  return Abs(x - y) < 1e-3f;
+inline bool Float_ApproximatelyEqualf (float x, float y) {
+  return Absf(x - y) < 1e-3f;
 }
 
 inline bool Float_ApproximatelyEqual (double x, double y) {

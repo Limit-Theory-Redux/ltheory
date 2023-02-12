@@ -13,12 +13,12 @@ struct SoundDesc {
 };
 
 typedef uint8 SoundState;
-const SoundState SoundState_Null     = 0;
-const SoundState SoundState_Loading  = 1;
-const SoundState SoundState_Paused   = 2;
-const SoundState SoundState_Playing  = 3;
-const SoundState SoundState_Finished = 4;
-const SoundState SoundState_Freed    = 5;
+#define SoundState_Null     0
+#define SoundState_Loading  1
+#define SoundState_Paused   2
+#define SoundState_Playing  3
+#define SoundState_Finished 4
+#define SoundState_Freed    5
 
 struct Sound {
   SoundDesc*    desc;

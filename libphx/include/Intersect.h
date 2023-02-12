@@ -12,10 +12,10 @@
  * -------------------------------------------------------------------------- */
 
 /* NOTE : See Intersect.cpp for information on choosing these epsilons. */
-const float PLANE_THICKNESS_EPSILON     = 1e-4;
-const float POINT_INTERSECTION_EPSILON  = (2.0f*PLANE_THICKNESS_EPSILON);
-const float RAY_INTERSECTION_EPSILON    = (8.0f*PLANE_THICKNESS_EPSILON);
-const float SPHERE_INTERSECTION_EPSILON = (2.0f*PLANE_THICKNESS_EPSILON);
+#define PLANE_THICKNESS_EPSILON     1e-4
+#define POINT_INTERSECTION_EPSILON  (2.0f*PLANE_THICKNESS_EPSILON)
+#define RAY_INTERSECTION_EPSILON    (8.0f*PLANE_THICKNESS_EPSILON)
+#define SPHERE_INTERSECTION_EPSILON (2.0f*PLANE_THICKNESS_EPSILON)
 
 PHX_API bool  Intersect_PointBox                   (Matrix* t1, Matrix* t2);
 PHX_API bool  Intersect_PointTriangle_Barycentric  (Vec3f const*, Triangle const*);
