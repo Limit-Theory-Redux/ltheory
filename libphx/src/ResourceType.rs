@@ -1,0 +1,42 @@
+use ::libc;
+pub type int32_t = libc::c_int;
+pub type cstr = *const libc::c_char;
+pub type int32 = int32_t;
+pub type ResourceType = int32;
+#[no_mangle]
+pub static mut ResourceType_Font: ResourceType = 0 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_Mesh: ResourceType = 0x1 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_Other: ResourceType = 0x2 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_Script: ResourceType = 0x3 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_Shader: ResourceType = 0x4 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_Sound: ResourceType = 0x5 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_Tex1D: ResourceType = 0x6 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_Tex2D: ResourceType = 0x7 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_Tex3D: ResourceType = 0x8 as libc::c_int;
+#[no_mangle]
+pub static mut ResourceType_TexCube: ResourceType = 0x9 as libc::c_int;
+#[no_mangle]
+pub unsafe extern "C" fn ResourceType_ToString(mut self_0: ResourceType) -> cstr {
+    match self_0 {
+        0 => return b"Font\0" as *const u8 as *const libc::c_char,
+        1 => return b"Mesh\0" as *const u8 as *const libc::c_char,
+        2 => return b"Other\0" as *const u8 as *const libc::c_char,
+        3 => return b"Script\0" as *const u8 as *const libc::c_char,
+        4 => return b"Shader\0" as *const u8 as *const libc::c_char,
+        5 => return b"Sound\0" as *const u8 as *const libc::c_char,
+        6 => return b"Tex1D\0" as *const u8 as *const libc::c_char,
+        7 => return b"Tex2D\0" as *const u8 as *const libc::c_char,
+        8 => return b"Tex3D\0" as *const u8 as *const libc::c_char,
+        9 => return b"TexCube\0" as *const u8 as *const libc::c_char,
+        _ => {}
+    }
+    return 0 as cstr;
+}

@@ -7,7 +7,7 @@ set (CMAKE_C_STANDARD 99)
 
 add_subdirectory (libphx)
 
-add_executable (lt "src/Main.cpp")
+add_executable (lt "original/src/Main.c")
 phx_configure_output_dir (lt)
 phx_configure_target_properties (lt)
 
