@@ -255,10 +255,7 @@ pub static mut GamepadButton_Left: GamepadButton = 0;
 pub static mut GamepadButton_Right: GamepadButton = 0;
 #[no_mangle]
 pub static mut GamepadButton_END: GamepadButton = 0;
-#[inline]
-unsafe extern "C" fn MemAllocZero(mut size: size_t) -> *mut libc::c_void {
-    return calloc(1 as libc::c_int as libc::c_ulong, size);
-}
+
 
 static mut gamepadList: *mut Gamepad = 0 as *const Gamepad as *mut Gamepad;
 unsafe extern "C" fn Gamepad_UpdateState(mut self_0: *mut Gamepad) {
@@ -296,7 +293,7 @@ pub unsafe extern "C" fn Gamepad_Open(mut index: libc::c_int) -> *mut Gamepad {
         return 0 as *mut Gamepad;
     }
     let mut self_0: *mut Gamepad = MemAllocZero(
-        ::core::mem::size_of::<Gamepad>() as libc::c_ulong,
+        ::core::mem::size_of::<Gamepad>() as usize,
     ) as *mut Gamepad;
     (*self_0).handle = handle;
     (*self_0).lastActive = TimeStamp_Get();

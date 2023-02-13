@@ -210,7 +210,7 @@ pub unsafe extern "C" fn Tex3D_Create(
         );
     }
     let mut self_0: *mut Tex3D = MemAlloc(
-        ::core::mem::size_of::<Tex3D>() as libc::c_ulong,
+        ::core::mem::size_of::<Tex3D>() as usize,
     ) as *mut Tex3D;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
     (*self_0).size = Vec3i_Create(sx, sy, sz);

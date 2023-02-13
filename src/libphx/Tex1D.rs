@@ -170,7 +170,7 @@ pub unsafe extern "C" fn Tex1D_Create(
         );
     }
     let mut self_0: *mut Tex1D = MemAlloc(
-        ::core::mem::size_of::<Tex1D>() as libc::c_ulong,
+        ::core::mem::size_of::<Tex1D>() as usize,
     ) as *mut Tex1D;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
     (*self_0).size = size;

@@ -611,21 +611,18 @@ unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
     }
     return s.offset_from(begin) as libc::c_long as size_t;
 }
-static mut self_0: HmGui = {
-    let mut init = HmGui {
-        group: 0 as *const HmGuiGroup as *mut HmGuiGroup,
-        root: 0 as *const HmGuiGroup as *mut HmGuiGroup,
-        last: 0 as *const HmGuiWidget as *mut HmGuiWidget,
-        style: 0 as *const HmGuiStyle as *mut HmGuiStyle,
-        clipRect: 0 as *const HmGuiClipRect as *mut HmGuiClipRect,
-        data: 0 as *const HashMap as *mut HashMap,
-        focus: [0; 2],
-        focusPos: Vec2f { x: 0., y: 0. },
-        activate: false,
-    };
-    init
+static mut self_0: HmGui = HmGui {
+    group: 0 as *const HmGuiGroup as *mut HmGuiGroup,
+    root: 0 as *const HmGuiGroup as *mut HmGuiGroup,
+    last: 0 as *const HmGuiWidget as *mut HmGuiWidget,
+    style: 0 as *const HmGuiStyle as *mut HmGuiStyle,
+    clipRect: 0 as *const HmGuiClipRect as *mut HmGuiClipRect,
+    data: 0 as *const HashMap as *mut HashMap,
+    focus: [0; 2],
+    focusPos: Vec2f { x: 0., y: 0. },
+    activate: false,
 };
-static mut init: bool = 0 as libc::c_int != 0;
+static mut init_hmgui: bool = 0 as libc::c_int != 0;
 unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: uint32) {
     (*e).parent = self_0.group;
     (*e).next = 0 as *mut HmGuiWidget;
@@ -641,7 +638,7 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: uint3
             .hash = Hash_FNV64_Incremental(
             (*(*e).parent).widget.hash,
             &mut (*(*e).parent).children as *mut uint32 as *const libc::c_void,
-            ::core::mem::size_of::<uint32>() as libc::c_ulong as libc::c_int,
+            ::core::mem::size_of::<uint32>() as usize as libc::c_int,
         );
         if !((*e).next).is_null() {
             (*(*e).next).prev = e;
@@ -686,7 +683,7 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: uint3
 }
 unsafe extern "C" fn HmGui_BeginGroup(mut layout: uint32) {
     let mut e: *mut HmGuiGroup = MemAlloc(
-        ::core::mem::size_of::<HmGuiGroup>() as libc::c_ulong,
+        ::core::mem::size_of::<HmGuiGroup>() as usize,
     ) as *mut HmGuiGroup;
     HmGui_InitWidget(&mut (*e).widget, 0 as libc::c_int as uint32);
     (*e).head = 0 as *mut HmGuiWidget;
@@ -1132,8 +1129,8 @@ unsafe extern "C" fn HmGui_DrawGroup(mut g: *mut HmGuiGroup) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Begin(mut sx: libc::c_float, mut sy: libc::c_float) {
-    if !init {
-        init = 1 as libc::c_int != 0;
+    if !init_hmgui {
+        init_hmgui = 1 as libc::c_int != 0;
         self_0.group = 0 as *mut HmGuiGroup;
         self_0.root = 0 as *mut HmGuiGroup;
         self_0
@@ -1438,7 +1435,7 @@ pub unsafe extern "C" fn HmGui_Slider(
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Image(mut image: *mut Tex2D) {
     let mut e: *mut HmGuiImage = MemAlloc(
-        ::core::mem::size_of::<HmGuiImage>() as libc::c_ulong,
+        ::core::mem::size_of::<HmGuiImage>() as usize,
     ) as *mut HmGuiImage;
     HmGui_InitWidget(&mut (*e).widget, 3 as libc::c_int as uint32);
     (*e).image = image;
@@ -1459,7 +1456,7 @@ pub unsafe extern "C" fn HmGui_Rect(
     mut a: libc::c_float,
 ) {
     let mut e: *mut HmGuiRect = MemAlloc(
-        ::core::mem::size_of::<HmGuiRect>() as libc::c_ulong,
+        ::core::mem::size_of::<HmGuiRect>() as usize,
     ) as *mut HmGuiRect;
     HmGui_InitWidget(&mut (*e).widget, 2 as libc::c_int as uint32);
     (*e).color = Vec4f_Create(r, g, b, a);
@@ -1496,7 +1493,7 @@ pub unsafe extern "C" fn HmGui_TextEx(
     mut a: libc::c_float,
 ) {
     let mut e: *mut HmGuiText = MemAlloc(
-        ::core::mem::size_of::<HmGuiText>() as libc::c_ulong,
+        ::core::mem::size_of::<HmGuiText>() as usize,
     ) as *mut HmGuiText;
     HmGui_InitWidget(&mut (*e).widget, 1 as libc::c_int as uint32);
     (*e).font = font;
@@ -1558,7 +1555,7 @@ pub unsafe extern "C" fn HmGui_GroupHasFocus(mut type_0: libc::c_int) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushStyle() {
     let mut style: *mut HmGuiStyle = MemAlloc(
-        ::core::mem::size_of::<HmGuiStyle>() as libc::c_ulong,
+        ::core::mem::size_of::<HmGuiStyle>() as usize,
     ) as *mut HmGuiStyle;
     *style = *self_0.style;
     (*style).prev = self_0.style;

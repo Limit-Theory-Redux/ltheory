@@ -100,7 +100,7 @@ unsafe extern "C" fn Resource_Resolve(
     while !elem.is_null() {
         let mut res: libc::c_int = snprintf(
             buffer.as_mut_ptr(),
-            ::core::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong,
+            ::core::mem::size_of::<[libc::c_char; 256]>(),
             (*elem).format,
             name,
         );
@@ -131,7 +131,7 @@ unsafe extern "C" fn Resource_Resolve(
 #[no_mangle]
 pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: cstr) {
     let mut self_0: *mut PathElem = MemAlloc(
-        ::core::mem::size_of::<PathElem>() as libc::c_ulong,
+        ::core::mem::size_of::<PathElem>() as usize,
     ) as *mut PathElem;
     (*self_0).format = StrDup(format);
     (*self_0).next = paths[type_0 as usize];

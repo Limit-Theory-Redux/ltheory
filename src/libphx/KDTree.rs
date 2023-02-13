@@ -142,14 +142,7 @@ unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
     };
     return self_0;
 }
-#[inline]
-unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memcpy(dst, src, size);
-}
+
 
 #[no_mangle]
 pub static mut kMaxLeafSize: libc::c_int = 64 as libc::c_int;
@@ -189,7 +182,7 @@ unsafe extern "C" fn Partition(
     mut dim: libc::c_int,
 ) -> *mut KDTree {
     let mut self_0: *mut KDTree = MemAlloc(
-        ::core::mem::size_of::<KDTree>() as libc::c_ulong,
+        ::core::mem::size_of::<KDTree>() as usize,
     ) as *mut KDTree;
     if boxCount <= kMaxLeafSize {
         (*self_0).box_0 = *boxes.offset(0 as libc::c_int as isize);
@@ -204,7 +197,7 @@ unsafe extern "C" fn Partition(
         let mut i_0: libc::c_int = 0 as libc::c_int;
         while i_0 < boxCount {
             let mut node: *mut Node = MemAlloc(
-                ::core::mem::size_of::<Node>() as libc::c_ulong,
+                ::core::mem::size_of::<Node>() as usize,
             ) as *mut Node;
             (*node).box_0 = *boxes.offset(i_0 as isize);
             (*node).next = (*self_0).elems;
@@ -218,7 +211,7 @@ unsafe extern "C" fn Partition(
         qsort(
             boxes as *mut libc::c_void,
             boxCount as size_t,
-            ::core::mem::size_of::<Box3f>() as libc::c_ulong,
+            ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerX
                     as unsafe extern "C" fn(
@@ -232,7 +225,7 @@ unsafe extern "C" fn Partition(
         qsort(
             boxes as *mut libc::c_void,
             boxCount as size_t,
-            ::core::mem::size_of::<Box3f>() as libc::c_ulong,
+            ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerY
                     as unsafe extern "C" fn(
@@ -246,7 +239,7 @@ unsafe extern "C" fn Partition(
         qsort(
             boxes as *mut libc::c_void,
             boxCount as size_t,
-            ::core::mem::size_of::<Box3f>() as libc::c_ulong,
+            ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerZ
                     as unsafe extern "C" fn(
@@ -269,14 +262,12 @@ unsafe extern "C" fn Partition(
     MemCpy(
         boxesBack as *mut libc::c_void,
         boxes as *const libc::c_void,
-        (boxCountBack as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<Box3f>()),
+        (boxCountBack as usize).wrapping_mul(::core::mem::size_of::<Box3f>()),
     );
     MemCpy(
         boxesFront as *mut libc::c_void,
         boxes.offset(boxCountBack as isize) as *const libc::c_void,
-        (boxCountFront as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<Box3f>()),
+        (boxCountFront as usize).wrapping_mul(::core::mem::size_of::<Box3f>()),
     );
     (*self_0)
         .back = Partition(
@@ -345,7 +336,7 @@ pub unsafe extern "C" fn KDTree_Free(mut self_0: *mut KDTree) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_GetMemory(mut self_0: *mut KDTree) -> libc::c_int {
-    let mut memory: libc::c_int = ::core::mem::size_of::<KDTree>() as libc::c_ulong
+    let mut memory: libc::c_int = ::core::mem::size_of::<KDTree>() as usize
         as libc::c_int;
     if !((*self_0).back).is_null() {
         memory += KDTree_GetMemory((*self_0).back);

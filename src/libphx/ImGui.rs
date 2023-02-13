@@ -272,14 +272,7 @@ pub struct ImGuiData {
     pub scroll: libc::c_float,
 }
 
-#[inline]
-unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memcpy(dst, src, size);
-}
+
 #[no_mangle]
 pub static mut Button_Last: Button = 0;
 #[no_mangle]
@@ -837,7 +830,7 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
 }
 unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2f, mut size: Vec2f) {
     let mut rect: *mut ImGuiClipRect = MemAlloc(
-        ::core::mem::size_of::<ImGuiClipRect>() as libc::c_ulong,
+        ::core::mem::size_of::<ImGuiClipRect>() as usize,
     ) as *mut ImGuiClipRect;
     let mut prev: *mut ImGuiClipRect = self_0.clipRect;
     (*rect).prev = prev;
@@ -891,7 +884,7 @@ unsafe extern "C" fn HashGet() -> uint64 {
     return Hash_FNV64_Incremental(
         (*self_0.widget).hash,
         &mut (*self_0.widget).index as *mut uint32 as *const libc::c_void,
-        ::core::mem::size_of::<uint32>() as libc::c_ulong as libc::c_int,
+        ::core::mem::size_of::<uint32>() as usize as libc::c_int,
     );
 }
 #[inline]
@@ -906,7 +899,7 @@ unsafe extern "C" fn HashPeekNext() -> uint64 {
     return Hash_FNV64_Incremental(
         (*self_0.widget).hash,
         &mut index as *mut uint32 as *const libc::c_void,
-        ::core::mem::size_of::<uint32>() as libc::c_ulong as libc::c_int,
+        ::core::mem::size_of::<uint32>() as usize as libc::c_int,
     );
 }
 #[inline]
@@ -1012,7 +1005,7 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: libc::c_float, mut sy: libc::c_fl
             .hash = Hash_FNV64_Incremental(
             (*self_0.widget).hash,
             &mut (*self_0.widget).index as *mut uint32 as *const libc::c_void,
-            ::core::mem::size_of::<uint32>() as libc::c_ulong as libc::c_int,
+            ::core::mem::size_of::<uint32>() as usize as libc::c_int,
         );
     } else {
         (*widget).hash = Hash_FNV64_Init();
@@ -1082,7 +1075,7 @@ unsafe extern "C" fn ImGuiLayer_Free(mut self_1: *mut ImGuiLayer) {
 }
 unsafe extern "C" fn ImGui_PushLayer(mut clip: bool) -> *mut ImGuiLayer {
     let mut layer: *mut ImGuiLayer = MemAlloc(
-        ::core::mem::size_of::<ImGuiLayer>() as libc::c_ulong,
+        ::core::mem::size_of::<ImGuiLayer>() as usize,
     ) as *mut ImGuiLayer;
     (*layer).parent = self_0.layer;
     (*layer).children = 0 as *mut ImGuiLayer;
@@ -1273,12 +1266,12 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
         ClipRect_Pop();
     }
 }
-static mut init: bool = 0 as libc::c_int != 0;
+static mut init_imgui: bool = 0 as libc::c_int != 0;
 unsafe extern "C" fn ImGui_Init() {
-    if init {
+    if init_imgui {
         return;
     }
-    init = 1 as libc::c_int != 0;
+    init_imgui = 1 as libc::c_int != 0;
     self_0.layer = 0 as *mut ImGuiLayer;
     self_0.layerLast = 0 as *mut ImGuiLayer;
     self_0.style = 0 as *mut ImGuiStyle;
@@ -1289,43 +1282,43 @@ unsafe extern "C" fn ImGui_Init() {
         .data = HashMap_Create(0 as libc::c_int as uint32, 128 as libc::c_int as uint32);
     self_0
         .layoutPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiLayout>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiLayout>() as usize as uint32,
     );
     self_0
         .widgetPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiWidget>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiWidget>() as usize as uint32,
     );
     self_0
         .stylePool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiStyle>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiStyle>() as usize as uint32,
     );
     self_0
         .clipRectPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiClipRect>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiClipRect>() as usize as uint32,
     );
     self_0
         .cursorPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiCursor>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiCursor>() as usize as uint32,
     );
     self_0
         .tex2DPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiTex2D>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiTex2D>() as usize as uint32,
     );
     self_0
         .panelPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiPanel>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiPanel>() as usize as uint32,
     );
     self_0
         .rectPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiRect>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiRect>() as usize as uint32,
     );
     self_0
         .textPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiText>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiText>() as usize as uint32,
     );
     self_0
         .linePool = MemPool_CreateAuto(
-        ::core::mem::size_of::<ImGuiLine>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<ImGuiLine>() as usize as uint32,
     );
 }
 #[no_mangle]
@@ -1639,7 +1632,7 @@ pub unsafe extern "C" fn ImGui_PushStyle() {
     MemCpy(
         style as *mut libc::c_void,
         self_0.style as *const libc::c_void,
-        ::core::mem::size_of::<ImGuiStyle>() as libc::c_ulong,
+        ::core::mem::size_of::<ImGuiStyle>() as usize,
     );
     (*style).prev = self_0.style;
     self_0.style = style;

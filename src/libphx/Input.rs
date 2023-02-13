@@ -997,14 +997,7 @@ unsafe extern "C" fn MemSet(
 }
 
 
-#[inline]
-unsafe extern "C" fn MemMove(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memmove(dst, src, size);
-}
+
 #[no_mangle]
 pub static mut Button_Null: Button = 0;
 #[no_mangle]
@@ -1443,13 +1436,12 @@ unsafe extern "C" fn Input_EnsureDeviceState(mut device: Device) -> *mut DeviceS
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize: size_t = ::core::mem::size_of::<DeviceState>()
-                as libc::c_ulong;
+            let mut elemSize: usize = ::core::mem::size_of::<DeviceState>();
             let mut pData: *mut *mut libc::c_void = &mut (*deviceList).devices_data
                 as *mut *mut DeviceState as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 (*deviceList).devices_data as *mut libc::c_void,
-                ((*deviceList).devices_capacity as usize).wrapping_mul(elemSize),
+                ((*deviceList).devices_capacity as usize).wrapping_mul(elemSize as usize),
             );
         }
         let fresh0 = (*deviceList).devices_size;
@@ -1562,12 +1554,12 @@ unsafe extern "C" fn Input_AppendEvent(mut event: InputEvent) {
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<InputEvent>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut self_0.events_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
         *pData = MemRealloc(
             self_0.events_data as *mut libc::c_void,
-            (self_0.events_capacity as usize).wrapping_mul(elemSize),
+            (self_0.events_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh1 = self_0.events_size;
@@ -1587,12 +1579,12 @@ unsafe extern "C" fn Input_InjectEvent(mut event: InputEvent) {
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<InputEvent>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut self_0.injectedEvents_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
         *pData = MemRealloc(
             self_0.injectedEvents_data as *mut libc::c_void,
-            (self_0.injectedEvents_capacity as usize).wrapping_mul(elemSize),
+            (self_0.injectedEvents_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh2 = self_0.injectedEvents_size;
@@ -1616,13 +1608,12 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize: size_t = ::core::mem::size_of::<InputEvent>()
-                as libc::c_ulong;
+            let mut elemSize: usize = ::core::mem::size_of::<InputEvent>();
             let mut pData: *mut *mut libc::c_void = &mut self_0.downButtons_data
                 as *mut *mut InputEvent as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 self_0.downButtons_data as *mut libc::c_void,
-                (self_0.downButtons_capacity as usize).wrapping_mul(elemSize),
+                (self_0.downButtons_capacity as usize).wrapping_mul(elemSize as usize),
             );
         }
         let fresh3 = self_0.downButtons_size;
@@ -1645,14 +1636,12 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
                     let mut next: *mut libc::c_void = (self_0.downButtons_data)
                         .offset(i as isize)
                         .offset(1 as libc::c_int as isize) as *mut libc::c_void;
-                    let mut elemSize_0: size_t = ::core::mem::size_of::<InputEvent>()
-                        as libc::c_ulong;
+                    let mut elemSize_0: usize = ::core::mem::size_of::<InputEvent>();
                     MemMove(
                         curr,
                         next,
                         ((self_0.downButtons_size - 1 as libc::c_int - i)
-                            as libc::c_ulong)
-                            .wrapping_mul(elemSize_0),
+                            as usize).wrapping_mul(elemSize_0),
                     );
                 }
                 self_0.downButtons_size -= 1;
@@ -1670,13 +1659,12 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize_1: size_t = ::core::mem::size_of::<InputEvent>()
-                as libc::c_ulong;
+            let mut elemSize_1: usize = ::core::mem::size_of::<InputEvent>();
             let mut pData_0: *mut *mut libc::c_void = &mut self_0.autoRelease_data
                 as *mut *mut InputEvent as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
                 self_0.autoRelease_data as *mut libc::c_void,
-                (self_0.autoRelease_capacity as usize).wrapping_mul(elemSize_1),
+                (self_0.autoRelease_capacity as usize).wrapping_mul(elemSize_1 as usize),
             );
         }
         let fresh4 = self_0.autoRelease_size;
@@ -1708,51 +1696,48 @@ pub unsafe extern "C" fn Input_Init() {
     }
     if (self_0.events_capacity < 16 as libc::c_int) as libc::c_int as libc::c_long != 0 {
         self_0.events_capacity = 16 as libc::c_int;
-        let mut elemSize: size_t = ::core::mem::size_of::<InputEvent>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut self_0.events_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
         *pData = MemRealloc(
             self_0.events_data as *mut libc::c_void,
-            (self_0.events_capacity as usize).wrapping_mul(elemSize),
+            (self_0.events_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     if (self_0.downButtons_capacity < 16 as libc::c_int) as libc::c_int as libc::c_long
         != 0
     {
         self_0.downButtons_capacity = 16 as libc::c_int;
-        let mut elemSize_0: size_t = ::core::mem::size_of::<InputEvent>()
-            as libc::c_ulong;
+        let mut elemSize_0: usize = ::core::mem::size_of::<InputEvent>();
         let mut pData_0: *mut *mut libc::c_void = &mut self_0.downButtons_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
             self_0.downButtons_data as *mut libc::c_void,
-            (self_0.downButtons_capacity as usize).wrapping_mul(elemSize_0),
+            (self_0.downButtons_capacity as usize).wrapping_mul(elemSize_0 as usize),
         );
     }
     if (self_0.autoRelease_capacity < 16 as libc::c_int) as libc::c_int as libc::c_long
         != 0
     {
         self_0.autoRelease_capacity = 16 as libc::c_int;
-        let mut elemSize_1: size_t = ::core::mem::size_of::<InputEvent>()
-            as libc::c_ulong;
+        let mut elemSize_1: usize = ::core::mem::size_of::<InputEvent>();
         let mut pData_1: *mut *mut libc::c_void = &mut self_0.autoRelease_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
         *pData_1 = MemRealloc(
             self_0.autoRelease_data as *mut libc::c_void,
-            (self_0.autoRelease_capacity as usize).wrapping_mul(elemSize_1),
+            (self_0.autoRelease_capacity as usize).wrapping_mul(elemSize_1 as usize),
         );
     }
     if (self_0.injectedEvents_capacity < 16 as libc::c_int) as libc::c_int
         as libc::c_long != 0
     {
         self_0.injectedEvents_capacity = 16 as libc::c_int;
-        let mut elemSize_2: size_t = ::core::mem::size_of::<InputEvent>()
-            as libc::c_ulong;
+        let mut elemSize_2: usize = ::core::mem::size_of::<InputEvent>();
         let mut pData_2: *mut *mut libc::c_void = &mut self_0.injectedEvents_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
         *pData_2 = MemRealloc(
             self_0.injectedEvents_data as *mut libc::c_void,
-            (self_0.injectedEvents_capacity as usize).wrapping_mul(elemSize_2),
+            (self_0.injectedEvents_capacity as usize).wrapping_mul(elemSize_2 as usize),
         );
     }
     let mut device_0: Device = {
@@ -1797,7 +1782,7 @@ pub unsafe extern "C" fn Input_Update() {
             MemSet(
                 ((*deviceState).transitions).as_mut_ptr() as *mut libc::c_void,
                 0 as libc::c_int,
-                ::core::mem::size_of::<[int32; 512]>() as libc::c_ulong,
+                ::core::mem::size_of::<[int32; 512]>(),
             );
             deviceState = deviceState.offset(1);
         }
@@ -2591,12 +2576,11 @@ pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool 
         let mut next: *mut libc::c_void = (self_0.events_data)
             .offset(0 as libc::c_int as isize)
             .offset(1 as libc::c_int as isize) as *mut libc::c_void;
-        let mut elemSize: size_t = ::core::mem::size_of::<InputEvent>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         MemMove(
             curr,
             next,
-            ((self_0.events_size - 1 as libc::c_int - 0 as libc::c_int) as libc::c_ulong)
-                .wrapping_mul(elemSize),
+            ((self_0.events_size - 1 as libc::c_int - 0 as libc::c_int) as usize).wrapping_mul(elemSize),
         );
     }
     self_0.events_size -= 1;

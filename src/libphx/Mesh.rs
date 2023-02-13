@@ -160,14 +160,7 @@ pub type PFNGLGENBUFFERSPROC = Option::<
 pub type GLfloat = libc::c_float;
 
 
-#[inline]
-unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memcpy(dst, src, size);
-}
+
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
     return sqrt(t as libc::c_double) as libc::c_float;
@@ -444,24 +437,24 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
         != 0
     {
         (*self_0).index_capacity = (*other).index_size;
-        let mut elemSize: size_t = ::core::mem::size_of::<int32>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<int32>();
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).index_data
             as *mut *mut int32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).index_data as *mut libc::c_void,
-            ((*self_0).index_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).index_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     if ((*self_0).vertex_capacity < (*other).vertex_size) as libc::c_int as libc::c_long
         != 0
     {
         (*self_0).vertex_capacity = (*other).vertex_size;
-        let mut elemSize_0: size_t = ::core::mem::size_of::<Vertex>() as libc::c_ulong;
+        let mut elemSize_0: usize = ::core::mem::size_of::<Vertex>() as usize;
         let mut pData_0: *mut *mut libc::c_void = &mut (*self_0).vertex_data
             as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
             (*self_0).vertex_data as *mut libc::c_void,
-            ((*self_0).vertex_capacity as usize).wrapping_mul(elemSize_0),
+            ((*self_0).vertex_capacity as usize).wrapping_mul(elemSize_0 as usize),
         );
     }
     (*self_0).index_size = (*other).index_size;
@@ -518,15 +511,12 @@ pub unsafe extern "C" fn Mesh_Free(mut self_0: *mut Mesh) {
 pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     let mut vertexCount: int32 = Mesh_GetVertexCount(mesh);
     let mut indexCount: int32 = Mesh_GetIndexCount(mesh);
-    let mut size: uint32 = (2 as libc::c_int as libc::c_ulong)
-        .wrapping_mul(::core::mem::size_of::<int32>())
+    let mut size: uint32 = (2 as libc::c_int as usize).wrapping_mul(::core::mem::size_of::<int32>())
         .wrapping_add(
-            (vertexCount as libc::c_ulong)
-                .wrapping_mul(::core::mem::size_of::<Vertex>()),
+            (vertexCount as usize).wrapping_mul(::core::mem::size_of::<Vertex>()),
         )
         .wrapping_add(
-            (indexCount as libc::c_ulong)
-                .wrapping_mul(::core::mem::size_of::<int32>()),
+            (indexCount as usize).wrapping_mul(::core::mem::size_of::<int32>()),
         ) as uint32;
     let mut self_0: *mut Bytes = Bytes_Create(size);
     Bytes_WriteI32(self_0, vertexCount);
@@ -534,14 +524,12 @@ pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     Bytes_Write(
         self_0,
         (*mesh).vertex_data as *const libc::c_void,
-        (vertexCount as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<Vertex>()) as uint32,
+        (vertexCount as usize).wrapping_mul(::core::mem::size_of::<Vertex>()) as uint32,
     );
     Bytes_Write(
         self_0,
         (*mesh).index_data as *const libc::c_void,
-        (indexCount as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<int32>()) as uint32,
+        (indexCount as usize).wrapping_mul(::core::mem::size_of::<int32>()) as uint32,
     );
     return self_0;
 }
@@ -555,14 +543,12 @@ pub unsafe extern "C" fn Mesh_FromBytes(mut buf: *mut Bytes) -> *mut Mesh {
     Bytes_Read(
         buf,
         (*self_0).vertex_data as *mut libc::c_void,
-        (vertexCount as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<Vertex>()) as uint32,
+        (vertexCount as usize).wrapping_mul(::core::mem::size_of::<Vertex>()) as uint32,
     );
     Bytes_Read(
         buf,
         (*self_0).index_data as *mut libc::c_void,
-        (indexCount as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<int32>()) as uint32,
+        (indexCount as usize).wrapping_mul(::core::mem::size_of::<int32>()) as uint32,
     );
     (*self_0).vertex_size = vertexCount;
     (*self_0).index_size = indexCount;
@@ -586,12 +572,12 @@ pub unsafe extern "C" fn Mesh_AddIndex(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<int32>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<int32>();
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).index_data
             as *mut *mut int32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).index_data as *mut libc::c_void,
-            ((*self_0).index_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).index_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh0 = (*self_0).index_size;
@@ -656,12 +642,12 @@ pub unsafe extern "C" fn Mesh_AddVertex(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Vertex>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Vertex>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).vertex_data
             as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).vertex_data as *mut libc::c_void,
-            ((*self_0).vertex_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).vertex_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh1 = (*self_0).vertex_size;
@@ -686,12 +672,12 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Vertex>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Vertex>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).vertex_data
             as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).vertex_data as *mut libc::c_void,
-            ((*self_0).vertex_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).vertex_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh2 = (*self_0).vertex_size;
@@ -727,8 +713,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
                 "non-null function pointer",
             )(
             0x8892 as libc::c_int as GLenum,
-            ((*self_0).vertex_size as libc::c_ulong)
-                .wrapping_mul(::core::mem::size_of::<Vertex>())
+            ((*self_0).vertex_size as usize).wrapping_mul(::core::mem::size_of::<Vertex>())
                 as GLsizeiptr,
             (*self_0).vertex_data as *const libc::c_void,
             0x88e4 as libc::c_int as GLenum,
@@ -738,8 +723,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
                 "non-null function pointer",
             )(
             0x8893 as libc::c_int as GLenum,
-            ((*self_0).index_size as libc::c_ulong)
-                .wrapping_mul(::core::mem::size_of::<libc::c_int>())
+            ((*self_0).index_size as usize).wrapping_mul(::core::mem::size_of::<libc::c_int>())
                 as GLsizeiptr,
             (*self_0).index_data as *const libc::c_void,
             0x88e4 as libc::c_int as GLenum,
@@ -768,7 +752,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         3 as libc::c_int,
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
-        ::core::mem::size_of::<Vertex>() as libc::c_ulong as GLsizei,
+        ::core::mem::size_of::<Vertex>() as usize as GLsizei,
         &mut (*(0 as *mut Vertex)).p as *mut Vec3f as size_t as *const libc::c_void,
     );
     __glewVertexAttribPointer
@@ -779,7 +763,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         3 as libc::c_int,
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
-        ::core::mem::size_of::<Vertex>() as libc::c_ulong as GLsizei,
+        ::core::mem::size_of::<Vertex>() as usize as GLsizei,
         &mut (*(0 as *mut Vertex)).n as *mut Vec3f as size_t as *const libc::c_void,
     );
     __glewVertexAttribPointer
@@ -790,7 +774,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         2 as libc::c_int,
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
-        ::core::mem::size_of::<Vertex>() as libc::c_ulong as GLsizei,
+        ::core::mem::size_of::<Vertex>() as usize as GLsizei,
         &mut (*(0 as *mut Vertex)).uv as *mut Vec2f as size_t as *const libc::c_void,
     );
 }
@@ -953,12 +937,12 @@ pub unsafe extern "C" fn Mesh_ReserveIndexData(
 ) {
     if ((*self_0).index_capacity < capacity) as libc::c_int as libc::c_long != 0 {
         (*self_0).index_capacity = capacity;
-        let mut elemSize: size_t = ::core::mem::size_of::<int32>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<int32>();
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).index_data
             as *mut *mut int32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).index_data as *mut libc::c_void,
-            ((*self_0).index_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).index_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
 }
@@ -969,12 +953,12 @@ pub unsafe extern "C" fn Mesh_ReserveVertexData(
 ) {
     if ((*self_0).vertex_capacity < capacity) as libc::c_int as libc::c_long != 0 {
         (*self_0).vertex_capacity = capacity;
-        let mut elemSize: size_t = ::core::mem::size_of::<Vertex>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Vertex>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).vertex_data
             as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).vertex_data as *mut libc::c_void,
-            ((*self_0).vertex_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).vertex_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
 }
@@ -994,20 +978,20 @@ pub unsafe extern "C" fn Mesh_Invert(mut self_0: *mut Mesh) -> *mut Mesh {
             swap_temp.as_mut_ptr() as *mut libc::c_void,
             &mut *((*self_0).index_data).offset((i + 2 as libc::c_int) as isize)
                 as *mut int32 as *const libc::c_void,
-            ::core::mem::size_of::<int32>() as libc::c_ulong,
+            ::core::mem::size_of::<int32>() as usize,
         );
         memcpy(
             &mut *((*self_0).index_data).offset((i + 2 as libc::c_int) as isize)
                 as *mut int32 as *mut libc::c_void,
             &mut *((*self_0).index_data).offset((i + 1 as libc::c_int) as isize)
                 as *mut int32 as *const libc::c_void,
-            ::core::mem::size_of::<int32>() as libc::c_ulong,
+            ::core::mem::size_of::<int32>() as usize,
         );
         memcpy(
             &mut *((*self_0).index_data).offset((i + 1 as libc::c_int) as isize)
                 as *mut int32 as *mut libc::c_void,
             swap_temp.as_mut_ptr() as *const libc::c_void,
-            ::core::mem::size_of::<int32>() as libc::c_ulong,
+            ::core::mem::size_of::<int32>() as usize,
         );
         i += 3 as libc::c_int;
     }
@@ -1218,13 +1202,12 @@ pub unsafe extern "C" fn Mesh_SplitNormals(
                         } else {
                             1 as libc::c_int
                         };
-                        let mut elemSize: size_t = ::core::mem::size_of::<Vertex>()
-                            as libc::c_ulong;
+                        let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
                         let mut pData: *mut *mut libc::c_void = &mut (*self_0)
                             .vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
                         *pData = MemRealloc(
                             (*self_0).vertex_data as *mut libc::c_void,
-                            ((*self_0).vertex_capacity as libc::c_ulong)
+                            ((*self_0).vertex_capacity as usize)
                                 .wrapping_mul(elemSize),
                         );
                     }

@@ -233,8 +233,7 @@ pub unsafe extern "C" fn Engine_Abort() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetBits() -> libc::c_int {
-    return (8 as libc::c_int as libc::c_ulong)
-        .wrapping_mul(::core::mem::size_of::<*mut libc::c_void>())
+    return (8 as libc::c_int as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>())
         as libc::c_int;
 }
 #[no_mangle]

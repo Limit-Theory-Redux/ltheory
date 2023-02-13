@@ -801,10 +801,6 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
         _ => return b"Unknown error.\0" as *const u8 as *const libc::c_char,
     };
 }
-#[inline]
-unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
-    memset(dst, 0 as libc::c_int, size);
-}
 #[no_mangle]
 pub static mut ResourceType_Font: ResourceType = 0;
 #[no_mangle]
@@ -1046,7 +1042,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut self_0: *mut SoundDesc) {
         StrFree(path);
         MemZero(
             self_0 as *mut libc::c_void,
-            ::core::mem::size_of::<SoundDesc>() as libc::c_ulong,
+            ::core::mem::size_of::<SoundDesc>() as usize,
         );
     }
 }

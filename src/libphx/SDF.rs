@@ -82,10 +82,6 @@ pub static mut DataFormat_U16: DataFormat = 0;
 pub static mut DataFormat_I8: DataFormat = 0;
 #[no_mangle]
 pub static mut DataFormat_U8: DataFormat = 0;
-#[inline]
-unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
-    memset(dst, 0 as libc::c_int, size);
-}
 
 #[no_mangle]
 pub static mut PixelFormat_Red: PixelFormat = 0;
@@ -255,9 +251,7 @@ pub unsafe extern "C" fn SDF_Create(
     MemZero(
         (*self_0).data as *mut libc::c_void,
         (::core::mem::size_of::<Cell>())
-            .wrapping_mul(sx as libc::c_ulong)
-            .wrapping_mul(sy as libc::c_ulong)
-            .wrapping_mul(sz as libc::c_ulong),
+            .wrapping_mul(sx as usize).wrapping_mul(sy as usize).wrapping_mul(sz as libc::c_ulong),
     );
     return self_0;
 }

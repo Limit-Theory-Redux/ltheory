@@ -727,12 +727,12 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize: size_t = ::core::mem::size_of::<cstr>() as libc::c_ulong;
+            let mut elemSize: usize = ::core::mem::size_of::<cstr>() as usize;
             let mut pData: *mut *mut libc::c_void = &mut stack_data as *mut *mut cstr
                 as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 stack_data as *mut libc::c_void,
-                (stack_capacity as usize).wrapping_mul(elemSize),
+                (stack_capacity as usize).wrapping_mul(elemSize as usize),
             );
         }
         let fresh4 = stack_size;
@@ -752,13 +752,12 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     } else {
                         1 as libc::c_int
                     };
-                    let mut elemSize_0: size_t = ::core::mem::size_of::<cstr>()
-                        as libc::c_ulong;
+                    let mut elemSize_0: usize = ::core::mem::size_of::<cstr>();
                     let mut pData_0: *mut *mut libc::c_void = &mut stack_data
                         as *mut *mut cstr as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
                         stack_data as *mut libc::c_void,
-                        (stack_capacity as usize).wrapping_mul(elemSize_0),
+                        (stack_capacity as usize).wrapping_mul(elemSize_0 as usize),
                     );
                 }
                 let fresh6 = stack_size;
@@ -775,13 +774,12 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_1: size_t = ::core::mem::size_of::<cstr>()
-                    as libc::c_ulong;
+                let mut elemSize_1: usize = ::core::mem::size_of::<cstr>();
                 let mut pData_1: *mut *mut libc::c_void = &mut stack_data
                     as *mut *mut cstr as *mut *mut libc::c_void;
                 *pData_1 = MemRealloc(
                     stack_data as *mut libc::c_void,
-                    (stack_capacity as usize).wrapping_mul(elemSize_1),
+                    (stack_capacity as usize).wrapping_mul(elemSize_1 as usize),
                 );
             }
             let fresh8 = stack_size;
@@ -805,13 +803,12 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     } else {
                         1 as libc::c_int
                     };
-                    let mut elemSize_2: size_t = ::core::mem::size_of::<cstr>()
-                        as libc::c_ulong;
+                    let mut elemSize_2: usize = ::core::mem::size_of::<cstr>();
                     let mut pData_2: *mut *mut libc::c_void = &mut stack_data
                         as *mut *mut cstr as *mut *mut libc::c_void;
                     *pData_2 = MemRealloc(
                         stack_data as *mut libc::c_void,
-                        (stack_capacity as usize).wrapping_mul(elemSize_2),
+                        (stack_capacity as usize).wrapping_mul(elemSize_2 as usize),
                     );
                 }
                 let fresh10 = stack_size;
@@ -826,13 +823,12 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_3: size_t = ::core::mem::size_of::<cstr>()
-                    as libc::c_ulong;
+                let mut elemSize_3: usize = ::core::mem::size_of::<cstr>();
                 let mut pData_3: *mut *mut libc::c_void = &mut stack_data
                     as *mut *mut cstr as *mut *mut libc::c_void;
                 *pData_3 = MemRealloc(
                     stack_data as *mut libc::c_void,
-                    (stack_capacity as usize).wrapping_mul(elemSize_3),
+                    (stack_capacity as usize).wrapping_mul(elemSize_3 as usize),
                 );
             }
             let fresh12 = stack_size;
@@ -850,13 +846,12 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_4: size_t = ::core::mem::size_of::<cstr>()
-                    as libc::c_ulong;
+                let mut elemSize_4: usize = ::core::mem::size_of::<cstr>();
                 let mut pData_4: *mut *mut libc::c_void = &mut stack_data
                     as *mut *mut cstr as *mut *mut libc::c_void;
                 *pData_4 = MemRealloc(
                     stack_data as *mut libc::c_void,
-                    (stack_capacity as usize).wrapping_mul(elemSize_4),
+                    (stack_capacity as usize).wrapping_mul(elemSize_4 as usize),
                 );
             }
             let fresh14 = stack_size;

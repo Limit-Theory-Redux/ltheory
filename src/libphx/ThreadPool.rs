@@ -45,7 +45,7 @@ unsafe extern "C" fn ThreadPool_Dispatch(mut data: *mut libc::c_void) -> libc::c
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Create(mut threads: libc::c_int) -> *mut ThreadPool {
     let mut self_0: *mut ThreadPool = MemAlloc(
-        ::core::mem::size_of::<ThreadPool>() as libc::c_ulong,
+        ::core::mem::size_of::<ThreadPool>() as usize,
     ) as *mut ThreadPool;
     (*self_0).threads = threads;
     (*self_0)

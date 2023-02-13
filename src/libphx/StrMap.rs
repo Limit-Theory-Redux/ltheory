@@ -44,10 +44,7 @@ pub struct StrMapIter {
     pub slot: uint32,
 }
 
-#[inline]
-unsafe extern "C" fn MemAllocZero(mut size: size_t) -> *mut libc::c_void {
-    return calloc(1 as libc::c_int as libc::c_ulong, size);
-}
+
 #[inline]
 unsafe extern "C" fn StrFree(mut s: cstr) {
     free(s as *mut libc::c_void);
@@ -137,7 +134,7 @@ unsafe extern "C" fn StrMap_Grow(mut self_0: *mut StrMap) {
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Create(mut capacity: uint32) -> *mut StrMap {
     let mut self_0: *mut StrMap = MemAllocZero(
-        ::core::mem::size_of::<StrMap>() as libc::c_ulong,
+        ::core::mem::size_of::<StrMap>() as usize,
     ) as *mut StrMap;
     (*self_0).capacity = capacity;
     (*self_0)
@@ -312,7 +309,7 @@ pub unsafe extern "C" fn StrMap_Dump(mut self_0: *mut StrMap) {
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Iterate(mut self_0: *mut StrMap) -> *mut StrMapIter {
     let mut it: *mut StrMapIter = MemAlloc(
-        ::core::mem::size_of::<StrMapIter>() as libc::c_ulong,
+        ::core::mem::size_of::<StrMapIter>() as usize,
     ) as *mut StrMapIter;
     (*it).map = self_0;
     (*it).slot = 0 as libc::c_int as uint32;

@@ -61,14 +61,7 @@ pub struct VarStack {
     pub data: *mut libc::c_void,
 }
 
-#[inline]
-unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memcpy(dst, src, size);
-}
+
 static mut varMap: *mut StrMap = 0 as *const StrMap as *mut StrMap;
 #[inline]
 unsafe extern "C" fn ShaderVar_GetStack(

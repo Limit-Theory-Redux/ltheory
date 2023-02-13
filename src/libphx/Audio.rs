@@ -750,7 +750,7 @@ pub unsafe extern "C" fn Audio_Init() {
     self_0.descMap = StrMap_Create(128 as libc::c_int as uint32);
     self_0
         .soundPool = MemPool_Create(
-        ::core::mem::size_of::<Sound>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<Sound>() as usize as uint32,
         128 as libc::c_int as uint32,
     );
 }
@@ -913,8 +913,7 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize: size_t = ::core::mem::size_of::<*mut Sound>()
-                as libc::c_ulong;
+            let mut elemSize: usize = ::core::mem::size_of::<*mut Sound>();
             let mut pData: *mut *mut libc::c_void = &mut self_0.freeingSounds_data
                 as *mut *mut *mut Sound as *mut *mut libc::c_void;
             *pData = MemRealloc(
@@ -936,8 +935,7 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize_0: size_t = ::core::mem::size_of::<*mut Sound>()
-                as libc::c_ulong;
+            let mut elemSize_0: usize = ::core::mem::size_of::<*mut Sound>();
             let mut pData_0: *mut *mut libc::c_void = &mut self_0.playingSounds_data
                 as *mut *mut *mut Sound as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(

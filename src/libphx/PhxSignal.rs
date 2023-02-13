@@ -169,7 +169,7 @@ pub unsafe extern "C" fn Signal_Free() {
 #[no_mangle]
 pub unsafe extern "C" fn Signal_AddHandler(mut sig: Signal, mut fn_0: SignalHandler) {
     let mut e: *mut HandlerElem = MemAlloc(
-        ::core::mem::size_of::<HandlerElem>() as libc::c_ulong,
+        ::core::mem::size_of::<HandlerElem>() as usize,
     ) as *mut HandlerElem;
     (*e).next = handlerTable[sig as usize];
     (*e).fn_0 = fn_0;

@@ -29,7 +29,7 @@ pub struct LodMeshEntry {
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
     let mut self_0: *mut LodMesh = MemAlloc(
-        ::core::mem::size_of::<LodMesh>() as libc::c_ulong,
+        ::core::mem::size_of::<LodMesh>() as usize,
     ) as *mut LodMesh;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
     (*self_0).head = 0 as *mut LodMeshEntry;
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn LodMesh_Add(
     mut dMax: libc::c_float,
 ) {
     let mut e: *mut LodMeshEntry = MemAlloc(
-        ::core::mem::size_of::<LodMeshEntry>() as libc::c_ulong,
+        ::core::mem::size_of::<LodMeshEntry>() as usize,
     ) as *mut LodMeshEntry;
     (*e).mesh = mesh;
     (*e).dMin = dMin * dMin;

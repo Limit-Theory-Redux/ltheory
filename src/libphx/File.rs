@@ -281,7 +281,7 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: cstr) -> cstr {
     let mut buffer: *mut libc::c_char = MemAlloc(
         (::core::mem::size_of::<libc::c_char>())
             .wrapping_mul(
-                (size as size_t).wrapping_add(1 as libc::c_int as libc::c_ulong),
+                (size as usize).wrapping_add(1 as usize),
             ),
     ) as *mut libc::c_char;
     let mut result: size_t = fread(
@@ -352,7 +352,7 @@ pub unsafe extern "C" fn File_ReadI64(mut self_0: *mut File) -> int64 {
     let mut value: int64 = 0;
     fread(
         &mut value as *mut int64 as *mut libc::c_void,
-        ::core::mem::size_of::<int64>() as libc::c_ulong,
+        ::core::mem::size_of::<int64>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -362,7 +362,7 @@ pub unsafe extern "C" fn File_ReadI64(mut self_0: *mut File) -> int64 {
 pub unsafe extern "C" fn File_WriteU64(mut self_0: *mut File, mut value: uint64) {
     fwrite(
         &mut value as *mut uint64 as *const libc::c_void,
-        ::core::mem::size_of::<uint64>() as libc::c_ulong,
+        ::core::mem::size_of::<uint64>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -371,7 +371,7 @@ pub unsafe extern "C" fn File_WriteU64(mut self_0: *mut File, mut value: uint64)
 pub unsafe extern "C" fn File_WriteI8(mut self_0: *mut File, mut value: int8) {
     fwrite(
         &mut value as *mut int8 as *const libc::c_void,
-        ::core::mem::size_of::<int8>() as libc::c_ulong,
+        ::core::mem::size_of::<int8>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -380,7 +380,7 @@ pub unsafe extern "C" fn File_WriteI8(mut self_0: *mut File, mut value: int8) {
 pub unsafe extern "C" fn File_WriteU32(mut self_0: *mut File, mut value: uint32) {
     fwrite(
         &mut value as *mut uint32 as *const libc::c_void,
-        ::core::mem::size_of::<uint32>() as libc::c_ulong,
+        ::core::mem::size_of::<uint32>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -389,7 +389,7 @@ pub unsafe extern "C" fn File_WriteU32(mut self_0: *mut File, mut value: uint32)
 pub unsafe extern "C" fn File_WriteI16(mut self_0: *mut File, mut value: int16) {
     fwrite(
         &mut value as *mut int16 as *const libc::c_void,
-        ::core::mem::size_of::<int16>() as libc::c_ulong,
+        ::core::mem::size_of::<int16>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -399,7 +399,7 @@ pub unsafe extern "C" fn File_ReadU64(mut self_0: *mut File) -> uint64 {
     let mut value: uint64 = 0;
     fread(
         &mut value as *mut uint64 as *mut libc::c_void,
-        ::core::mem::size_of::<uint64>() as libc::c_ulong,
+        ::core::mem::size_of::<uint64>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -410,7 +410,7 @@ pub unsafe extern "C" fn File_ReadI32(mut self_0: *mut File) -> int32 {
     let mut value: int32 = 0;
     fread(
         &mut value as *mut int32 as *mut libc::c_void,
-        ::core::mem::size_of::<int32>() as libc::c_ulong,
+        ::core::mem::size_of::<int32>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -421,7 +421,7 @@ pub unsafe extern "C" fn File_ReadU32(mut self_0: *mut File) -> uint32 {
     let mut value: uint32 = 0;
     fread(
         &mut value as *mut uint32 as *mut libc::c_void,
-        ::core::mem::size_of::<uint32>() as libc::c_ulong,
+        ::core::mem::size_of::<uint32>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -431,7 +431,7 @@ pub unsafe extern "C" fn File_ReadU32(mut self_0: *mut File) -> uint32 {
 pub unsafe extern "C" fn File_WriteU16(mut self_0: *mut File, mut value: uint16) {
     fwrite(
         &mut value as *mut uint16 as *const libc::c_void,
-        ::core::mem::size_of::<uint16>() as libc::c_ulong,
+        ::core::mem::size_of::<uint16>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -441,7 +441,7 @@ pub unsafe extern "C" fn File_ReadU8(mut self_0: *mut File) -> uint8 {
     let mut value: uint8 = 0;
     fread(
         &mut value as *mut uint8 as *mut libc::c_void,
-        ::core::mem::size_of::<uint8>() as libc::c_ulong,
+        ::core::mem::size_of::<uint8>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -452,7 +452,7 @@ pub unsafe extern "C" fn File_ReadU16(mut self_0: *mut File) -> uint16 {
     let mut value: uint16 = 0;
     fread(
         &mut value as *mut uint16 as *mut libc::c_void,
-        ::core::mem::size_of::<uint16>() as libc::c_ulong,
+        ::core::mem::size_of::<uint16>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -463,7 +463,7 @@ pub unsafe extern "C" fn File_ReadI16(mut self_0: *mut File) -> int16 {
     let mut value: int16 = 0;
     fread(
         &mut value as *mut int16 as *mut libc::c_void,
-        ::core::mem::size_of::<int16>() as libc::c_ulong,
+        ::core::mem::size_of::<int16>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -474,7 +474,7 @@ pub unsafe extern "C" fn File_ReadF32(mut self_0: *mut File) -> libc::c_float {
     let mut value: libc::c_float = 0.;
     fread(
         &mut value as *mut libc::c_float as *mut libc::c_void,
-        ::core::mem::size_of::<libc::c_float>() as libc::c_ulong,
+        ::core::mem::size_of::<libc::c_float>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -485,7 +485,7 @@ pub unsafe extern "C" fn File_ReadF64(mut self_0: *mut File) -> libc::c_double {
     let mut value: libc::c_double = 0.;
     fread(
         &mut value as *mut libc::c_double as *mut libc::c_void,
-        ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
+        ::core::mem::size_of::<libc::c_double>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn File_ReadF64(mut self_0: *mut File) -> libc::c_double {
 pub unsafe extern "C" fn File_WriteU8(mut self_0: *mut File, mut value: uint8) {
     fwrite(
         &mut value as *mut uint8 as *const libc::c_void,
-        ::core::mem::size_of::<uint8>() as libc::c_ulong,
+        ::core::mem::size_of::<uint8>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -504,7 +504,7 @@ pub unsafe extern "C" fn File_WriteU8(mut self_0: *mut File, mut value: uint8) {
 pub unsafe extern "C" fn File_WriteI32(mut self_0: *mut File, mut value: int32) {
     fwrite(
         &mut value as *mut int32 as *const libc::c_void,
-        ::core::mem::size_of::<int32>() as libc::c_ulong,
+        ::core::mem::size_of::<int32>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -513,7 +513,7 @@ pub unsafe extern "C" fn File_WriteI32(mut self_0: *mut File, mut value: int32) 
 pub unsafe extern "C" fn File_WriteI64(mut self_0: *mut File, mut value: int64) {
     fwrite(
         &mut value as *mut int64 as *const libc::c_void,
-        ::core::mem::size_of::<int64>() as libc::c_ulong,
+        ::core::mem::size_of::<int64>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -522,7 +522,7 @@ pub unsafe extern "C" fn File_WriteI64(mut self_0: *mut File, mut value: int64) 
 pub unsafe extern "C" fn File_WriteF32(mut self_0: *mut File, mut value: libc::c_float) {
     fwrite(
         &mut value as *mut libc::c_float as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_float>() as libc::c_ulong,
+        ::core::mem::size_of::<libc::c_float>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -534,7 +534,7 @@ pub unsafe extern "C" fn File_WriteF64(
 ) {
     fwrite(
         &mut value as *mut libc::c_double as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
+        ::core::mem::size_of::<libc::c_double>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );
@@ -544,7 +544,7 @@ pub unsafe extern "C" fn File_ReadI8(mut self_0: *mut File) -> int8 {
     let mut value: int8 = 0;
     fread(
         &mut value as *mut int8 as *mut libc::c_void,
-        ::core::mem::size_of::<int8>() as libc::c_ulong,
+        ::core::mem::size_of::<int8>() as size_t,
         1 as libc::c_int as libc::c_ulong,
         (*self_0).handle,
     );

@@ -588,10 +588,8 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
     glEnd();
     Metric_AddDrawImm(
         res.wrapping_sub(2 as libc::c_int as libc::c_ulong) as int32,
-        (2 as libc::c_int as libc::c_ulong)
-            .wrapping_mul(res.wrapping_sub(2 as libc::c_int as libc::c_ulong)) as int32,
-        (4 as libc::c_int as libc::c_ulong)
-            .wrapping_mul(res.wrapping_sub(2 as libc::c_int as libc::c_ulong)) as int32,
+        (2 as libc::c_int as usize).wrapping_mul(res.wrapping_sub(2 as libc::c_int as libc::c_ulong) as usize) as int32,
+        (4 as libc::c_int as usize).wrapping_mul(res.wrapping_sub(2 as libc::c_int as libc::c_ulong) as usize) as int32,
     );
     glBegin(0x7 as libc::c_int as GLenum);
     let mut lastPhi: libc::c_float = 1.0f32 / fRes * 3.14159265f32;

@@ -55,14 +55,7 @@ pub struct Bytes {
     pub cursor: uint32,
     pub data: libc::c_char,
 }
-#[inline]
-unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memcpy(dst, src, size);
-}
+
 
 #[inline]
 unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
@@ -244,7 +237,7 @@ pub unsafe extern "C" fn Bytes_Read(
         data,
         (&mut (*self_0).data as *mut libc::c_char).offset((*self_0).cursor as isize)
             as *const libc::c_void,
-        len as size_t,
+        len as usize,
     );
     (*self_0)
         .cursor = ((*self_0).cursor as libc::c_uint).wrapping_add(len) as uint32
@@ -260,7 +253,7 @@ pub unsafe extern "C" fn Bytes_Write(
         (&mut (*self_0).data as *mut libc::c_char).offset((*self_0).cursor as isize)
             as *mut libc::c_void,
         data,
-        len as size_t,
+        len as usize,
     );
     (*self_0)
         .cursor = ((*self_0).cursor as libc::c_uint).wrapping_add(len) as uint32
@@ -273,7 +266,7 @@ pub unsafe extern "C" fn Bytes_WriteStr(mut self_0: *mut Bytes, mut data: cstr) 
         (&mut (*self_0).data as *mut libc::c_char).offset((*self_0).cursor as isize)
             as *mut libc::c_void,
         data as *const libc::c_void,
-        len,
+        len as usize,
     );
     (*self_0)
         .cursor = ((*self_0).cursor as libc::c_uint).wrapping_add(len as uint32)

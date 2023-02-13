@@ -192,7 +192,7 @@ static mut self_0: Profiler = Profiler {
 static mut profiling: bool = 0 as libc::c_int != 0;
 unsafe extern "C" fn Scope_Create(mut name: cstr) -> *mut Scope {
     let mut scope: *mut Scope = MemAlloc(
-        ::core::mem::size_of::<Scope>() as libc::c_ulong,
+        ::core::mem::size_of::<Scope>() as usize,
     ) as *mut Scope;
     (*scope).name = StrDup(name);
     (*scope).last = 0 as libc::c_int as TimeStamp;
@@ -212,12 +212,12 @@ unsafe extern "C" fn Scope_Create(mut name: cstr) -> *mut Scope {
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<*mut Scope>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<*mut Scope>();
         let mut pData: *mut *mut libc::c_void = &mut self_0.scopeList_data
             as *mut *mut *mut Scope as *mut *mut libc::c_void;
         *pData = MemRealloc(
             self_0.scopeList_data as *mut libc::c_void,
-            (self_0.scopeList_capacity as usize).wrapping_mul(elemSize),
+            (self_0.scopeList_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh0 = self_0.scopeList_size;
@@ -272,12 +272,12 @@ pub unsafe extern "C" fn Profiler_Enable() {
         != 0
     {
         self_0.scopeList_capacity = 1024 as libc::c_int;
-        let mut elemSize: size_t = ::core::mem::size_of::<*mut Scope>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<*mut Scope>();
         let mut pData: *mut *mut libc::c_void = &mut self_0.scopeList_data
             as *mut *mut *mut Scope as *mut *mut libc::c_void;
         *pData = MemRealloc(
             self_0.scopeList_data as *mut libc::c_void,
-            (self_0.scopeList_capacity as usize).wrapping_mul(elemSize),
+            (self_0.scopeList_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     self_0.stackIndex = -(1 as libc::c_int);
@@ -307,7 +307,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     qsort(
         self_0.scopeList_data as *mut libc::c_void,
         self_0.scopeList_size as size_t,
-        ::core::mem::size_of::<*mut Scope>() as libc::c_ulong,
+        ::core::mem::size_of::<*mut Scope>(),
         Some(
             SortScopes
                 as unsafe extern "C" fn(

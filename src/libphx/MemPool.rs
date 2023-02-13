@@ -29,10 +29,6 @@ pub struct MemPool {
 }
 
 
-#[inline]
-unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
-    memset(dst, 0 as libc::c_int, size);
-}
 unsafe extern "C" fn MemPool_Grow(mut self_0: *mut MemPool) {
     let fresh0 = (*self_0).blockCount;
     (*self_0).blockCount = ((*self_0).blockCount).wrapping_add(1);
@@ -43,8 +39,7 @@ unsafe extern "C" fn MemPool_Grow(mut self_0: *mut MemPool) {
     (*self_0)
         .blocks = MemRealloc(
         (*self_0).blocks as *mut libc::c_void,
-        ((*self_0).blockCount as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()),
+        ((*self_0).blockCount as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()),
     ) as *mut *mut libc::c_void;
     let mut newBlock: *mut libc::c_void = MemAlloc(
         ((*self_0).cellSize).wrapping_mul((*self_0).blockSize) as size_t,
@@ -68,7 +63,7 @@ pub unsafe extern "C" fn MemPool_Create(
     mut blockSize: uint32,
 ) -> *mut MemPool {
     let mut self_0: *mut MemPool = MemAlloc(
-        ::core::mem::size_of::<MemPool>() as libc::c_ulong,
+        ::core::mem::size_of::<MemPool>() as usize,
     ) as *mut MemPool;
     (*self_0).size = 0 as libc::c_int as uint32;
     (*self_0).capacity = 0 as libc::c_int as uint32;

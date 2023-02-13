@@ -167,7 +167,7 @@ pub unsafe extern "C" fn ShaderState_Create(
     mut shader: *mut Shader,
 ) -> *mut ShaderState {
     let mut self_0: *mut ShaderState = MemAlloc(
-        ::core::mem::size_of::<ShaderState>() as libc::c_ulong,
+        ::core::mem::size_of::<ShaderState>() as usize,
     ) as *mut ShaderState;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
     (*self_0).elems_capacity = 0 as libc::c_int;
@@ -249,12 +249,12 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh0 = (*self_0).elems_size;
@@ -286,12 +286,12 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh1 = (*self_0).elems_size;
@@ -324,12 +324,12 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh2 = (*self_0).elems_size;
@@ -363,12 +363,12 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh3 = (*self_0).elems_size;
@@ -399,12 +399,12 @@ pub unsafe extern "C" fn ShaderState_SetInt(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh4 = (*self_0).elems_size;
@@ -435,12 +435,12 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh5 = (*self_0).elems_size;
@@ -472,12 +472,12 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh6 = (*self_0).elems_size;
@@ -509,12 +509,12 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh7 = (*self_0).elems_size;
@@ -546,12 +546,12 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh8 = (*self_0).elems_size;
@@ -583,12 +583,12 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Elem>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize),
+            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     let fresh9 = (*self_0).elems_size;

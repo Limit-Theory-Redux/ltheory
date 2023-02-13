@@ -51,18 +51,8 @@ unsafe extern "C" fn MemSet(
 }
 
 
-#[inline]
-unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memcpy(dst, src, size);
-}
-#[inline]
-unsafe extern "C" fn MemAllocZero(mut size: size_t) -> *mut libc::c_void {
-    return calloc(1 as libc::c_int as libc::c_ulong, size);
-}
+
+
 #[inline]
 unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
     if s.is_null() {
@@ -106,7 +96,7 @@ unsafe extern "C" fn StrBuffer_AppendData(
     MemCpy(
         ((*self_0).data).offset((*self_0).size as isize) as *mut libc::c_void,
         data,
-        len as size_t,
+        len as usize,
     );
     (*self_0)
         .size = ((*self_0).size as libc::c_uint).wrapping_add(len) as uint32 as uint32;
@@ -114,7 +104,7 @@ unsafe extern "C" fn StrBuffer_AppendData(
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_Create(mut capacity: uint32) -> *mut StrBuffer {
     let mut self_0: *mut StrBuffer = MemAlloc(
-        ::core::mem::size_of::<StrBuffer>() as libc::c_ulong,
+        ::core::mem::size_of::<StrBuffer>() as usize,
     ) as *mut StrBuffer;
     (*self_0)
         .data = MemAllocZero(
@@ -131,7 +121,7 @@ pub unsafe extern "C" fn StrBuffer_FromStr(
     let mut len: uint32 = StrLen(s) as uint32;
     let mut self_0: *mut StrBuffer = StrBuffer_Create(len);
     (*self_0).size = len;
-    MemCpy((*self_0).data as *mut libc::c_void, s as *const libc::c_void, len as size_t);
+    MemCpy((*self_0).data as *mut libc::c_void, s as *const libc::c_void, len as usize);
     return self_0;
 }
 #[no_mangle]

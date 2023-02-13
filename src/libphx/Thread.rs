@@ -37,7 +37,7 @@ pub unsafe extern "C" fn Thread_Create(
     mut data: *mut libc::c_void,
 ) -> *mut Thread {
     let mut self_0: *mut Thread = MemAlloc(
-        ::core::mem::size_of::<Thread>() as libc::c_ulong,
+        ::core::mem::size_of::<Thread>() as usize,
     ) as *mut Thread;
     (*self_0).handle = SDL_CreateThread(fn_0, name, data);
     if ((*self_0).handle).is_null() {

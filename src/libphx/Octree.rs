@@ -224,18 +224,14 @@ unsafe extern "C" fn Vec3f_Min(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
     return self_0;
 }
 
-#[inline]
-unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
-    memset(dst, 0 as libc::c_int, size);
-}
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Create(mut box_0: Box3f) -> *mut Octree {
     let mut self_0: *mut Octree = MemAlloc(
-        ::core::mem::size_of::<Octree>() as libc::c_ulong,
+        ::core::mem::size_of::<Octree>() as usize,
     ) as *mut Octree;
     MemZero(
         self_0 as *mut libc::c_void,
-        ::core::mem::size_of::<Octree>() as libc::c_ulong,
+        ::core::mem::size_of::<Octree>() as usize,
     );
     (*self_0).box_0 = box_0;
     return self_0;
@@ -333,7 +329,7 @@ pub unsafe extern "C" fn Octree_GetMaxLoad(mut self_0: *mut Octree) -> libc::c_i
 }
 #[no_mangle]
 pub unsafe extern "C" fn Octree_GetMemory(mut self_0: *mut Octree) -> libc::c_int {
-    let mut memory: libc::c_int = ::core::mem::size_of::<Octree>() as libc::c_ulong
+    let mut memory: libc::c_int = ::core::mem::size_of::<Octree>() as usize
         as libc::c_int;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 8 as libc::c_int {

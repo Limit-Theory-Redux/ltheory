@@ -268,7 +268,7 @@ pub unsafe extern "C" fn Tex2D_Create(
         );
     }
     let mut self_0: *mut Tex2D = MemAlloc(
-        ::core::mem::size_of::<Tex2D>() as libc::c_ulong,
+        ::core::mem::size_of::<Tex2D>() as usize,
     ) as *mut Tex2D;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
     (*self_0).size = Vec2i_Create(sx, sy);
@@ -324,20 +324,20 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
                 swap_temp.as_mut_ptr() as *mut libc::c_void,
                 &mut *buf.offset((size.x * (size.y - y - 1 as libc::c_int) + x) as isize)
                     as *mut uint32 as *const libc::c_void,
-                ::core::mem::size_of::<uint32>() as libc::c_ulong,
+                ::core::mem::size_of::<uint32>() as usize,
             );
             memcpy(
                 &mut *buf.offset((size.x * (size.y - y - 1 as libc::c_int) + x) as isize)
                     as *mut uint32 as *mut libc::c_void,
                 &mut *buf.offset((size.x * y + x) as isize) as *mut uint32
                     as *const libc::c_void,
-                ::core::mem::size_of::<uint32>() as libc::c_ulong,
+                ::core::mem::size_of::<uint32>() as usize,
             );
             memcpy(
                 &mut *buf.offset((size.x * y + x) as isize) as *mut uint32
                     as *mut libc::c_void,
                 swap_temp.as_mut_ptr() as *const libc::c_void,
-                ::core::mem::size_of::<uint32>() as libc::c_ulong,
+                ::core::mem::size_of::<uint32>() as usize,
             );
             x += 1;
         }

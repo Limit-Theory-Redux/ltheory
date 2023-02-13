@@ -488,10 +488,6 @@ unsafe extern "C" fn Vec4f_Create(
     return self_0;
 }
 
-#[inline]
-unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
-    memset(dst, 0 as libc::c_int, size);
-}
 #[no_mangle]
 pub static mut ResourceType_Font: ResourceType = 0;
 #[no_mangle]
@@ -607,7 +603,7 @@ unsafe extern "C" fn Font_GetGlyph(
     (*g).advance = ((*(*face).glyph).advance.x >> 6 as libc::c_int) as libc::c_int;
     let mut buffer: *mut Vec4f = MemAlloc(
         (::core::mem::size_of::<Vec4f>())
-            .wrapping_mul(((*g).sx * (*g).sy) as libc::c_ulong),
+            .wrapping_mul(((*g).sx * (*g).sy) as usize),
     ) as *mut Vec4f;
     let mut pBuffer: *mut Vec4f = buffer;
     let mut dy: uint = 0 as libc::c_int as uint;
@@ -682,11 +678,11 @@ pub unsafe extern "C" fn Font_Load(mut name: cstr, mut size: libc::c_int) -> *mu
     FT_Set_Pixel_Sizes((*self_0).handle, 0 as libc::c_int as FT_UInt, size as FT_UInt);
     MemZero(
         ((*self_0).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
-        ::core::mem::size_of::<[*mut Glyph; 256]>() as libc::c_ulong,
+        ::core::mem::size_of::<[*mut Glyph; 256]>(),
     );
     (*self_0)
         .glyphs = HashMap_Create(
-        ::core::mem::size_of::<uint32>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<uint32>() as usize as uint32,
         16 as libc::c_int as uint32,
     );
     return self_0;

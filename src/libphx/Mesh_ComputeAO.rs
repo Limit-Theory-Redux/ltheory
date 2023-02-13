@@ -190,10 +190,6 @@ unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
     return sqrt(t);
 }
 
-#[inline]
-unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
-    memset(dst, 0 as libc::c_int, size);
-}
 #[no_mangle]
 pub static mut PixelFormat_Red: PixelFormat = 0;
 #[no_mangle]

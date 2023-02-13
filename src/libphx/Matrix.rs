@@ -173,7 +173,7 @@ unsafe extern "C" fn Vec3f_Normalize(mut v: Vec3f) -> Vec3f {
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Clone(mut self_0: *const Matrix) -> *mut Matrix {
     let mut clone: *mut Matrix = MemAlloc(
-        ::core::mem::size_of::<Matrix>() as libc::c_ulong,
+        ::core::mem::size_of::<Matrix>() as usize,
     ) as *mut Matrix;
     *clone = *self_0;
     return clone;

@@ -213,7 +213,7 @@ unsafe extern "C" fn Node_Create(
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Create() -> *mut BoxTree {
     let mut self_0: *mut BoxTree = MemAlloc(
-        ::core::mem::size_of::<BoxTree>() as libc::c_ulong,
+        ::core::mem::size_of::<BoxTree>() as usize,
     ) as *mut BoxTree;
     (*self_0).root = 0 as *mut Node;
     return self_0;
@@ -363,7 +363,7 @@ pub unsafe extern "C" fn BoxTree_Add(
     Node_Merge((*self_0).root, Node_Create(box_0, data), &mut (*self_0).root);
 }
 unsafe extern "C" fn Node_GetMemory(mut self_0: *mut Node) -> libc::c_int {
-    let mut memory: libc::c_int = ::core::mem::size_of::<Node>() as libc::c_ulong
+    let mut memory: libc::c_int = ::core::mem::size_of::<Node>() as usize
         as libc::c_int;
     if !((*self_0).sub[0 as libc::c_int as usize]).is_null() {
         memory += Node_GetMemory((*self_0).sub[0 as libc::c_int as usize]);
@@ -375,7 +375,7 @@ unsafe extern "C" fn Node_GetMemory(mut self_0: *mut Node) -> libc::c_int {
 }
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_GetMemory(mut self_0: *mut BoxTree) -> libc::c_int {
-    let mut memory: libc::c_int = ::core::mem::size_of::<BoxTree>() as libc::c_ulong
+    let mut memory: libc::c_int = ::core::mem::size_of::<BoxTree>() as usize
         as libc::c_int;
     if !((*self_0).root).is_null() {
         memory += Node_GetMemory((*self_0).root);

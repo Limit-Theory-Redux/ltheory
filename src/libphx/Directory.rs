@@ -70,7 +70,7 @@ pub unsafe extern "C" fn Directory_Open(mut path: cstr) -> *mut Directory {
         return 0 as *mut Directory;
     }
     let mut self_0: *mut Directory = MemAlloc(
-        ::core::mem::size_of::<Directory>() as libc::c_ulong,
+        ::core::mem::size_of::<Directory>() as usize,
     ) as *mut Directory;
     (*self_0).handle = dir;
     return self_0;
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> cstr {
     static mut buffer: [libc::c_char; 1024] = [0; 1024];
     if !(getcwd(
         buffer.as_mut_ptr(),
-        ::core::mem::size_of::<[libc::c_char; 1024]>() as libc::c_ulong,
+        ::core::mem::size_of::<[libc::c_char; 1024]>() as size_t,
     ))
         .is_null()
     {

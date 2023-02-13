@@ -208,10 +208,7 @@ pub type PFNGLUNIFORMMATRIX4FVPROC = Option::<
 >;
 pub type PFNGLUSEPROGRAMPROC = Option::<unsafe extern "C" fn(GLuint) -> ()>;
 pub type va_list = __builtin_va_list;
-#[inline]
-unsafe extern "C" fn MemAllocZero(mut size: size_t) -> *mut libc::c_void {
-    return calloc(1 as libc::c_int as libc::c_ulong, size);
-}
+
 
 
 #[no_mangle]
@@ -683,13 +680,12 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: cstr, mut self_0: *mut Shader) ->
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize: size_t = ::core::mem::size_of::<ShaderVar>()
-                    as libc::c_ulong;
+                let mut elemSize: usize = ::core::mem::size_of::<ShaderVar>();
                 let mut pData: *mut *mut libc::c_void = &mut (*self_0).vars_data
                     as *mut *mut ShaderVar as *mut *mut libc::c_void;
                 *pData = MemRealloc(
                     (*self_0).vars_data as *mut libc::c_void,
-                    ((*self_0).vars_capacity as usize).wrapping_mul(elemSize),
+                    ((*self_0).vars_capacity as usize).wrapping_mul(elemSize as usize),
                 );
             }
             let fresh13 = (*self_0).vars_size;
@@ -730,7 +726,7 @@ unsafe extern "C" fn Shader_BindVariables(mut self_0: *mut Shader) {
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Create(mut vs: cstr, mut fs: cstr) -> *mut Shader {
     let mut self_0: *mut Shader = MemAlloc(
-        ::core::mem::size_of::<Shader>() as libc::c_ulong,
+        ::core::mem::size_of::<Shader>() as usize,
     ) as *mut Shader;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
     (*self_0).vars_capacity = 0 as libc::c_int;
@@ -769,7 +765,7 @@ pub unsafe extern "C" fn Shader_Create(mut vs: cstr, mut fs: cstr) -> *mut Shade
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Load(mut vName: cstr, mut fName: cstr) -> *mut Shader {
     let mut self_0: *mut Shader = MemAlloc(
-        ::core::mem::size_of::<Shader>() as libc::c_ulong,
+        ::core::mem::size_of::<Shader>() as usize,
     ) as *mut Shader;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
     (*self_0).vars_capacity = 0 as libc::c_int;

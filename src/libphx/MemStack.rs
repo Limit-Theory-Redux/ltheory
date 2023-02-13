@@ -21,11 +21,11 @@ pub struct MemStack {
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Create(mut capacity: uint32) -> *mut MemStack {
     let mut self_0: *mut MemStack = MemAlloc(
-        ::core::mem::size_of::<MemStack>() as libc::c_ulong,
+        ::core::mem::size_of::<MemStack>() as usize,
     ) as *mut MemStack;
     (*self_0).size = 0 as libc::c_int as uint32;
     (*self_0).capacity = capacity;
-    (*self_0).data = MemAlloc(capacity as size_t);
+    (*self_0).data = MemAlloc(capacity as usize);
     return self_0;
 }
 #[no_mangle]

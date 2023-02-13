@@ -210,8 +210,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     };
     let mut df: DataFormat = DataFormat_Float;
     let mut buffer: *mut libc::c_void = MemAlloc(
-        ((size * size) as libc::c_ulong)
-            .wrapping_mul(::core::mem::size_of::<libc::c_float>())
+        ((size * size) as usize).wrapping_mul(::core::mem::size_of::<libc::c_float>())
             .wrapping_mul(components as libc::c_ulong),
     );
     let mut i: libc::c_int = 0 as libc::c_int;

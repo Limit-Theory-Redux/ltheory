@@ -197,23 +197,23 @@ unsafe extern "C" fn UIRenderer_Init() {
     self_0.layer = 0 as *mut UIRendererLayer;
     self_0
         .layerPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererLayer>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<UIRendererLayer>() as usize as uint32,
     );
     self_0
         .imagePool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererImage>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<UIRendererImage>() as usize as uint32,
     );
     self_0
         .panelPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererPanel>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<UIRendererPanel>() as usize as uint32,
     );
     self_0
         .rectPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererRect>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<UIRendererRect>() as usize as uint32,
     );
     self_0
         .textPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererText>() as libc::c_ulong as uint32,
+        ::core::mem::size_of::<UIRendererText>() as usize as uint32,
     );
 }
 #[no_mangle]

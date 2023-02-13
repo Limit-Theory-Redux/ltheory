@@ -271,14 +271,7 @@ pub const SDL_SCANCODE_B: C2RustUnnamed = 5;
 pub const SDL_SCANCODE_A: C2RustUnnamed = 4;
 pub const SDL_SCANCODE_UNKNOWN: C2RustUnnamed = 0;
 
-#[inline]
-unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memcpy(dst, src, size);
-}
+
 static mut lastAction: uint64 = 0;
 static mut stateLast: *mut uchar = 0 as *const uchar as *mut uchar;
 static mut stateCurr: *mut uchar = 0 as *const uchar as *mut uchar;

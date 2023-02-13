@@ -453,7 +453,7 @@ pub unsafe extern "C" fn TexCube_Create(
         );
     }
     let mut self_0: *mut TexCube = MemAlloc(
-        ::core::mem::size_of::<TexCube>() as libc::c_ulong,
+        ::core::mem::size_of::<TexCube>() as usize,
     ) as *mut TexCube;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
     glGenTextures(1 as libc::c_int, &mut (*self_0).handle);
@@ -567,7 +567,7 @@ pub unsafe extern "C" fn TexCube_Free(mut self_0: *mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(mut path: cstr) -> *mut TexCube {
     let mut self_0: *mut TexCube = MemAlloc(
-        ::core::mem::size_of::<TexCube>() as libc::c_ulong,
+        ::core::mem::size_of::<TexCube>() as usize,
     ) as *mut TexCube;
     glGenTextures(1 as libc::c_int, &mut (*self_0).handle);
     glBindTexture(0x8513 as libc::c_int as GLenum, (*self_0).handle);

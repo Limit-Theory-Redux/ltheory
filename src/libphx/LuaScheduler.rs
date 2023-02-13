@@ -114,13 +114,12 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> libc::c_int {
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize: size_t = ::core::mem::size_of::<SchedulerElem>()
-                as libc::c_ulong;
+            let mut elemSize: usize = ::core::mem::size_of::<SchedulerElem>();
             let mut pData: *mut *mut libc::c_void = &mut self_0.addQueue_data
                 as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 self_0.addQueue_data as *mut libc::c_void,
-                (self_0.addQueue_capacity as usize).wrapping_mul(elemSize),
+                (self_0.addQueue_capacity as usize).wrapping_mul(elemSize as usize),
             );
         }
         let fresh0 = self_0.addQueue_size;
@@ -136,13 +135,12 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> libc::c_int {
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize_0: size_t = ::core::mem::size_of::<SchedulerElem>()
-                as libc::c_ulong;
+            let mut elemSize_0: usize = ::core::mem::size_of::<SchedulerElem>();
             let mut pData_0: *mut *mut libc::c_void = &mut self_0.elems_data
                 as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
                 self_0.elems_data as *mut libc::c_void,
-                (self_0.elems_capacity as usize).wrapping_mul(elemSize_0),
+                (self_0.elems_capacity as usize).wrapping_mul(elemSize_0 as usize),
             );
         }
         let fresh1 = self_0.elems_size;
@@ -167,7 +165,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> libc::c_int {
     qsort(
         self_0.elems_data as *mut libc::c_void,
         self_0.elems_size as size_t,
-        ::core::mem::size_of::<SchedulerElem>() as libc::c_ulong,
+        ::core::mem::size_of::<SchedulerElem>() as usize,
         Some(
             SortByWake
                 as unsafe extern "C" fn(
@@ -217,13 +215,12 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> libc::c_int {
             } else {
                 1 as libc::c_int
             };
-            let mut elemSize: size_t = ::core::mem::size_of::<SchedulerElem>()
-                as libc::c_ulong;
+            let mut elemSize: usize = ::core::mem::size_of::<SchedulerElem>();
             let mut pData: *mut *mut libc::c_void = &mut self_0.elems_data
                 as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 self_0.elems_data as *mut libc::c_void,
-                (self_0.elems_capacity as usize).wrapping_mul(elemSize),
+                (self_0.elems_capacity as usize).wrapping_mul(elemSize as usize),
             );
         }
         let fresh2 = self_0.elems_size;

@@ -48,12 +48,12 @@ pub unsafe extern "C" fn HashMap_Create(
     }
     capacity = ((1 as libc::c_int) << logCapacity) as uint32;
     let mut self_0: *mut HashMap = MemAlloc(
-        ::core::mem::size_of::<HashMap>() as libc::c_ulong,
+        ::core::mem::size_of::<HashMap>() as usize,
     ) as *mut HashMap;
     (*self_0)
         .elems = MemAllocZero(
         (::core::mem::size_of::<Node>())
-            .wrapping_mul(capacity as libc::c_ulong),
+            .wrapping_mul(capacity as usize),
     ) as *mut Node;
     (*self_0).size = 0 as libc::c_int as uint32;
     (*self_0).capacity = capacity;

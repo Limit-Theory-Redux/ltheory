@@ -26,7 +26,7 @@ pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
         frequency = SDL_GetPerformanceFrequency() as libc::c_double;
     }
     let mut self_0: *mut Timer = MemAlloc(
-        ::core::mem::size_of::<Timer>() as libc::c_ulong,
+        ::core::mem::size_of::<Timer>() as usize,
     ) as *mut Timer;
     (*self_0).value = SDL_GetPerformanceCounter();
     return self_0;

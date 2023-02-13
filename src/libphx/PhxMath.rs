@@ -95,17 +95,17 @@ pub unsafe extern "C" fn Math_ClampSafe(
         memcpy(
             swap_temp.as_mut_ptr() as *mut libc::c_void,
             &mut b as *mut libc::c_double as *const libc::c_void,
-            ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
+            ::core::mem::size_of::<libc::c_double>(),
         );
         memcpy(
             &mut b as *mut libc::c_double as *mut libc::c_void,
             &mut a as *mut libc::c_double as *const libc::c_void,
-            ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
+            ::core::mem::size_of::<libc::c_double>(),
         );
         memcpy(
             &mut a as *mut libc::c_double as *mut libc::c_void,
             swap_temp.as_mut_ptr() as *const libc::c_void,
-            ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
+            ::core::mem::size_of::<libc::c_double>(),
         );
     }
     return if x < a { a } else if x > b { b } else { x };

@@ -47,7 +47,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
                     start.offset(len as isize),
                     ((::core::mem::size_of::<[libc::c_char; 512]>())
                         .wrapping_div(
-                            ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
+                            ::core::mem::size_of::<libc::c_char>(),
                         ) as libc::c_int - len) as libc::c_ulong,
                     b"%s%s\0" as *const u8 as *const libc::c_char,
                     sep,
@@ -64,7 +64,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
                 start.offset(len as isize),
                 ((::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(
-                        ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
+                        ::core::mem::size_of::<libc::c_char>(),
                     ) as libc::c_int - len) as libc::c_ulong,
                 b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
                 sep,

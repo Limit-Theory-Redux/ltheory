@@ -13,10 +13,6 @@ pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type Metric = int32;
-#[inline]
-unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
-    memset(dst, 0 as libc::c_int, size);
-}
 static mut valueCurr: [int32; 8] = [0 as libc::c_int, 0, 0, 0, 0, 0, 0, 0];
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Get(mut self_0: Metric) -> int32 {
@@ -70,6 +66,6 @@ pub unsafe extern "C" fn Metric_Mod(mut self_0: Metric, mut delta: int32) {
 pub unsafe extern "C" fn Metric_Reset() {
     MemZero(
         valueCurr.as_mut_ptr() as *mut libc::c_void,
-        ::core::mem::size_of::<[int32; 8]>() as libc::c_ulong,
+        ::core::mem::size_of::<[int32; 8]>(),
     );
 }

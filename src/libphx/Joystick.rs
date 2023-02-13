@@ -78,10 +78,6 @@ unsafe extern "C" fn Abs(mut t: libc::c_double) -> libc::c_double {
 }
 
 #[inline]
-unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
-    memset(dst, 0 as libc::c_int, size);
-}
-#[inline]
 unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
     return malloc(len) as *mut libc::c_char;
 }
@@ -220,7 +216,7 @@ pub unsafe extern "C" fn Joystick_GetCount() -> libc::c_int {
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_Open(mut index: libc::c_int) -> *mut Joystick {
     let mut self_0: *mut Joystick = MemAlloc(
-        ::core::mem::size_of::<Joystick>() as libc::c_ulong,
+        ::core::mem::size_of::<Joystick>() as usize,
     ) as *mut Joystick;
     if kOpen == kMaxOpen {
         Fatal(

@@ -29,3 +29,26 @@ pub unsafe extern "C" fn MemRealloc(
 ) -> *mut libc::c_void {
     return realloc(ptr, newSize as libc::c_ulong);
 }
+
+#[inline]
+pub unsafe extern "C" fn MemCpy(
+    mut dst: *mut libc::c_void,
+    mut src: *const libc::c_void,
+    mut size: libc::size_t,
+) {
+    libc::memcpy(dst, src, size as libc::size_t);
+}
+
+#[inline]
+pub unsafe extern "C" fn MemMove(
+    mut dst: *mut libc::c_void,
+    mut src: *const libc::c_void,
+    mut size: usize,
+) {
+    libc::memmove(dst, src, size as libc::size_t);
+}
+
+#[inline]
+pub unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: usize) {
+    libc::memset(dst, 0 as libc::c_int, size);
+}

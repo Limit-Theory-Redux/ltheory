@@ -359,7 +359,7 @@ static mut kFaceV: [Vec3f; 6] = [
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
     let mut self_0: *mut BoxMesh = MemAlloc(
-        ::core::mem::size_of::<BoxMesh>() as libc::c_ulong,
+        ::core::mem::size_of::<BoxMesh>() as usize,
     ) as *mut BoxMesh;
     (*self_0).elem_capacity = 0 as libc::c_int;
     (*self_0).elem_size = 0 as libc::c_int;
@@ -388,7 +388,7 @@ pub unsafe extern "C" fn BoxMesh_Add(
         } else {
             1 as libc::c_int
         };
-        let mut elemSize: size_t = ::core::mem::size_of::<Box_0>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Box_0>();
         let mut pData: *mut *mut libc::c_void = &mut (*self_0).elem_data
             as *mut *mut Box_0 as *mut *mut libc::c_void;
         *pData = MemRealloc(

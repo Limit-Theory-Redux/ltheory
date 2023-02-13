@@ -76,14 +76,7 @@ pub struct VertexIndices {
 }
 
 
-#[inline]
-unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: size_t,
-) {
-    memcpy(dst, src, size);
-}
+
 #[inline]
 unsafe extern "C" fn StrEqual(mut a: cstr, mut b: cstr) -> bool {
     return strcmp(a, b) == 0 as libc::c_int;
@@ -117,7 +110,7 @@ unsafe extern "C" fn Obj_Fatal(mut message: cstr, mut s: *mut ParseState) {
     MemCpy(
         line as *mut libc::c_void,
         (*s).lineStart as *const libc::c_void,
-        len as size_t,
+        len as usize,
     );
     *line.offset(len as isize) = 0 as libc::c_int as libc::c_char;
     Fatal(
@@ -279,36 +272,36 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
         as libc::c_int as libc::c_long != 0
     {
         positions_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
-        let mut elemSize: size_t = ::core::mem::size_of::<Vec3f>() as libc::c_ulong;
+        let mut elemSize: usize = ::core::mem::size_of::<Vec3f>();
         let mut pData: *mut *mut libc::c_void = &mut positions_data as *mut *mut Vec3f
             as *mut *mut libc::c_void;
         *pData = MemRealloc(
             positions_data as *mut libc::c_void,
-            (positions_capacity as usize).wrapping_mul(elemSize),
+            (positions_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     if (uvs_capacity < (0.008f32 * bytesSize as libc::c_float) as int32) as libc::c_int
         as libc::c_long != 0
     {
         uvs_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
-        let mut elemSize_0: size_t = ::core::mem::size_of::<Vec2f>() as libc::c_ulong;
+        let mut elemSize_0: usize = ::core::mem::size_of::<Vec2f>();
         let mut pData_0: *mut *mut libc::c_void = &mut uvs_data as *mut *mut Vec2f
             as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
             uvs_data as *mut libc::c_void,
-            (uvs_capacity as usize).wrapping_mul(elemSize_0),
+            (uvs_capacity as usize).wrapping_mul(elemSize_0 as usize),
         );
     }
     if (normals_capacity < (0.008f32 * bytesSize as libc::c_float) as int32)
         as libc::c_int as libc::c_long != 0
     {
         normals_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
-        let mut elemSize_1: size_t = ::core::mem::size_of::<Vec3f>() as libc::c_ulong;
+        let mut elemSize_1: usize = ::core::mem::size_of::<Vec3f>();
         let mut pData_1: *mut *mut libc::c_void = &mut normals_data as *mut *mut Vec3f
             as *mut *mut libc::c_void;
         *pData_1 = MemRealloc(
             normals_data as *mut libc::c_void,
-            (normals_capacity as usize).wrapping_mul(elemSize_1),
+            (normals_capacity as usize).wrapping_mul(elemSize_1 as usize),
         );
     }
     Mesh_ReserveIndexData(mesh, (0.050f32 * bytesSize as libc::c_float) as int32);
@@ -356,13 +349,12 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_2: size_t = ::core::mem::size_of::<Vec3f>()
-                    as libc::c_ulong;
+                let mut elemSize_2: usize = ::core::mem::size_of::<Vec3f>();
                 let mut pData_2: *mut *mut libc::c_void = &mut positions_data
                     as *mut *mut Vec3f as *mut *mut libc::c_void;
                 *pData_2 = MemRealloc(
                     positions_data as *mut libc::c_void,
-                    (positions_capacity as usize).wrapping_mul(elemSize_2),
+                    (positions_capacity as usize).wrapping_mul(elemSize_2 as usize),
                 );
             }
             let fresh1 = positions_size;
@@ -395,13 +387,12 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_3: size_t = ::core::mem::size_of::<Vec2f>()
-                    as libc::c_ulong;
+                let mut elemSize_3: usize = ::core::mem::size_of::<Vec2f>();
                 let mut pData_3: *mut *mut libc::c_void = &mut uvs_data
                     as *mut *mut Vec2f as *mut *mut libc::c_void;
                 *pData_3 = MemRealloc(
                     uvs_data as *mut libc::c_void,
-                    (uvs_capacity as usize).wrapping_mul(elemSize_3),
+                    (uvs_capacity as usize).wrapping_mul(elemSize_3 as usize),
                 );
             }
             let fresh2 = uvs_size;
@@ -435,13 +426,12 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_4: size_t = ::core::mem::size_of::<Vec3f>()
-                    as libc::c_ulong;
+                let mut elemSize_4: usize = ::core::mem::size_of::<Vec3f>();
                 let mut pData_4: *mut *mut libc::c_void = &mut normals_data
                     as *mut *mut Vec3f as *mut *mut libc::c_void;
                 *pData_4 = MemRealloc(
                     normals_data as *mut libc::c_void,
-                    (normals_capacity as usize).wrapping_mul(elemSize_4),
+                    (normals_capacity as usize).wrapping_mul(elemSize_4 as usize),
                 );
             }
             let fresh3 = normals_size;
