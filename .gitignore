@@ -4,9 +4,11 @@
 /log/
 /screenshot/
 /out/
+/target/
 
 # IDEs
 /.vs/
+/.vscode/
 /.idea/
 /cmake-build-*/
 

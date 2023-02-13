@@ -1,0 +1,1218 @@
+use ::libc;
+use super::internal::Memory::*;
+extern "C" {
+    pub type File;
+    pub type FMOD_SOUND;
+    pub type FMOD_SYSTEM;
+    pub type FMOD_SOUNDGROUP;
+    fn Audio_DeallocSoundDesc(_: *mut SoundDesc);
+    fn Audio_AllocSoundDesc(name: cstr) -> *mut SoundDesc;
+    fn memcpy(
+        _: *mut libc::c_void,
+        _: *const libc::c_void,
+        _: libc::c_ulong,
+    ) -> *mut libc::c_void;
+    fn memset(
+        _: *mut libc::c_void,
+        _: libc::c_int,
+        _: libc::c_ulong,
+    ) -> *mut libc::c_void;
+    fn Audio_GetHandle() -> *mut libc::c_void;
+    fn Fatal(_: cstr, _: ...);
+    fn Warn(_: cstr, _: ...);
+    fn File_Create(path: cstr) -> *mut File;
+    fn File_Close(_: *mut File);
+    fn File_Write(_: *mut File, data: *const libc::c_void, len: uint32);
+    fn File_WriteI16(_: *mut File, _: int16);
+    fn File_WriteI32(_: *mut File, _: int32);
+    fn FMOD_System_CreateSound(
+        system: *mut FMOD_SYSTEM,
+        name_or_data: *const libc::c_char,
+        mode: FMOD_MODE,
+        exinfo: *mut FMOD_CREATESOUNDEXINFO,
+        sound: *mut *mut FMOD_SOUND,
+    ) -> FMOD_RESULT;
+    fn FMOD_Sound_Release(sound: *mut FMOD_SOUND) -> FMOD_RESULT;
+    fn FMOD_Sound_Lock(
+        sound: *mut FMOD_SOUND,
+        offset: libc::c_uint,
+        length: libc::c_uint,
+        ptr1: *mut *mut libc::c_void,
+        ptr2: *mut *mut libc::c_void,
+        len1: *mut libc::c_uint,
+        len2: *mut libc::c_uint,
+    ) -> FMOD_RESULT;
+    fn FMOD_Sound_Unlock(
+        sound: *mut FMOD_SOUND,
+        ptr1: *mut libc::c_void,
+        ptr2: *mut libc::c_void,
+        len1: libc::c_uint,
+        len2: libc::c_uint,
+    ) -> FMOD_RESULT;
+    fn FMOD_Sound_GetDefaults(
+        sound: *mut FMOD_SOUND,
+        frequency: *mut libc::c_float,
+        priority: *mut libc::c_int,
+    ) -> FMOD_RESULT;
+    fn FMOD_Sound_GetLength(
+        sound: *mut FMOD_SOUND,
+        length: *mut libc::c_uint,
+        lengthtype: FMOD_TIMEUNIT,
+    ) -> FMOD_RESULT;
+    fn FMOD_Sound_GetFormat(
+        sound: *mut FMOD_SOUND,
+        type_0: *mut FMOD_SOUND_TYPE,
+        format: *mut FMOD_SOUND_FORMAT,
+        channels: *mut libc::c_int,
+        bits: *mut libc::c_int,
+    ) -> FMOD_RESULT;
+    fn FMOD_Sound_GetOpenState(
+        sound: *mut FMOD_SOUND,
+        openstate: *mut FMOD_OPENSTATE,
+        percentbuffered: *mut libc::c_uint,
+        starving: *mut FMOD_BOOL,
+        diskbusy: *mut FMOD_BOOL,
+    ) -> FMOD_RESULT;
+    fn FMOD_Sound_SetUserData(
+        sound: *mut FMOD_SOUND,
+        userdata: *mut libc::c_void,
+    ) -> FMOD_RESULT;
+    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
+    fn free(_: *mut libc::c_void);
+    fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
+}
+pub type int16_t = libc::c_short;
+pub type int32_t = libc::c_int;
+pub type uint32_t = libc::c_uint;
+pub type __darwin_size_t = libc::c_ulong;
+pub type size_t = __darwin_size_t;
+pub type cstr = *const libc::c_char;
+pub type int16 = int16_t;
+pub type int32 = int32_t;
+pub type uint32 = uint32_t;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct SoundDesc {
+    pub _refCount: uint32,
+    pub handle: *mut FMOD_SOUND,
+    pub name: cstr,
+    pub path: cstr,
+}
+pub type ResourceType = int32;
+pub type FMOD_BOOL = libc::c_int;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct FMOD_ASYNCREADINFO {
+    pub handle: *mut libc::c_void,
+    pub offset: libc::c_uint,
+    pub sizebytes: libc::c_uint,
+    pub priority: libc::c_int,
+    pub userdata: *mut libc::c_void,
+    pub buffer: *mut libc::c_void,
+    pub bytesread: libc::c_uint,
+    pub done: FMOD_FILE_ASYNCDONE_FUNC,
+}
+pub type FMOD_FILE_ASYNCDONE_FUNC = Option::<
+    unsafe extern "C" fn(*mut FMOD_ASYNCREADINFO, FMOD_RESULT) -> (),
+>;
+pub type FMOD_RESULT = libc::c_uint;
+pub const FMOD_RESULT_FORCEINT: FMOD_RESULT = 65536;
+pub const FMOD_ERR_TOOMANYSAMPLES: FMOD_RESULT = 81;
+pub const FMOD_ERR_RECORD_DISCONNECTED: FMOD_RESULT = 80;
+pub const FMOD_ERR_NOT_LOCKED: FMOD_RESULT = 79;
+pub const FMOD_ERR_ALREADY_LOCKED: FMOD_RESULT = 78;
+pub const FMOD_ERR_INVALID_STRING: FMOD_RESULT = 77;
+pub const FMOD_ERR_STUDIO_NOT_LOADED: FMOD_RESULT = 76;
+pub const FMOD_ERR_STUDIO_UNINITIALIZED: FMOD_RESULT = 75;
+pub const FMOD_ERR_EVENT_NOTFOUND: FMOD_RESULT = 74;
+pub const FMOD_ERR_EVENT_LIVEUPDATE_TIMEOUT: FMOD_RESULT = 73;
+pub const FMOD_ERR_EVENT_LIVEUPDATE_MISMATCH: FMOD_RESULT = 72;
+pub const FMOD_ERR_EVENT_LIVEUPDATE_BUSY: FMOD_RESULT = 71;
+pub const FMOD_ERR_EVENT_ALREADY_LOADED: FMOD_RESULT = 70;
+pub const FMOD_ERR_VERSION: FMOD_RESULT = 69;
+pub const FMOD_ERR_UNSUPPORTED: FMOD_RESULT = 68;
+pub const FMOD_ERR_UNINITIALIZED: FMOD_RESULT = 67;
+pub const FMOD_ERR_UNIMPLEMENTED: FMOD_RESULT = 66;
+pub const FMOD_ERR_TRUNCATED: FMOD_RESULT = 65;
+pub const FMOD_ERR_TOOMANYCHANNELS: FMOD_RESULT = 64;
+pub const FMOD_ERR_TAGNOTFOUND: FMOD_RESULT = 63;
+pub const FMOD_ERR_SUBSOUND_CANTMOVE: FMOD_RESULT = 62;
+pub const FMOD_ERR_SUBSOUND_ALLOCATED: FMOD_RESULT = 61;
+pub const FMOD_ERR_SUBSOUNDS: FMOD_RESULT = 60;
+pub const FMOD_ERR_REVERB_INSTANCE: FMOD_RESULT = 59;
+pub const FMOD_ERR_REVERB_CHANNELGROUP: FMOD_RESULT = 58;
+pub const FMOD_ERR_RECORD: FMOD_RESULT = 57;
+pub const FMOD_ERR_PLUGIN_VERSION: FMOD_RESULT = 56;
+pub const FMOD_ERR_PLUGIN_RESOURCE: FMOD_RESULT = 55;
+pub const FMOD_ERR_PLUGIN_MISSING: FMOD_RESULT = 54;
+pub const FMOD_ERR_PLUGIN: FMOD_RESULT = 53;
+pub const FMOD_ERR_OUTPUT_NODRIVERS: FMOD_RESULT = 52;
+pub const FMOD_ERR_OUTPUT_INIT: FMOD_RESULT = 51;
+pub const FMOD_ERR_OUTPUT_FORMAT: FMOD_RESULT = 50;
+pub const FMOD_ERR_OUTPUT_DRIVERCALL: FMOD_RESULT = 49;
+pub const FMOD_ERR_OUTPUT_CREATEBUFFER: FMOD_RESULT = 48;
+pub const FMOD_ERR_OUTPUT_ALLOCATED: FMOD_RESULT = 47;
+pub const FMOD_ERR_NOTREADY: FMOD_RESULT = 46;
+pub const FMOD_ERR_NET_WOULD_BLOCK: FMOD_RESULT = 45;
+pub const FMOD_ERR_NET_URL: FMOD_RESULT = 44;
+pub const FMOD_ERR_NET_SOCKET_ERROR: FMOD_RESULT = 43;
+pub const FMOD_ERR_NET_CONNECT: FMOD_RESULT = 42;
+pub const FMOD_ERR_NEEDSHARDWARE: FMOD_RESULT = 41;
+pub const FMOD_ERR_NEEDS3D: FMOD_RESULT = 40;
+pub const FMOD_ERR_MEMORY_CANTPOINT: FMOD_RESULT = 39;
+pub const FMOD_ERR_MEMORY: FMOD_RESULT = 38;
+pub const FMOD_ERR_MAXAUDIBLE: FMOD_RESULT = 37;
+pub const FMOD_ERR_INVALID_VECTOR: FMOD_RESULT = 36;
+pub const FMOD_ERR_INVALID_THREAD: FMOD_RESULT = 35;
+pub const FMOD_ERR_INVALID_SYNCPOINT: FMOD_RESULT = 34;
+pub const FMOD_ERR_INVALID_SPEAKER: FMOD_RESULT = 33;
+pub const FMOD_ERR_INVALID_POSITION: FMOD_RESULT = 32;
+pub const FMOD_ERR_INVALID_PARAM: FMOD_RESULT = 31;
+pub const FMOD_ERR_INVALID_HANDLE: FMOD_RESULT = 30;
+pub const FMOD_ERR_INVALID_FLOAT: FMOD_RESULT = 29;
+pub const FMOD_ERR_INTERNAL: FMOD_RESULT = 28;
+pub const FMOD_ERR_INITIALIZED: FMOD_RESULT = 27;
+pub const FMOD_ERR_INITIALIZATION: FMOD_RESULT = 26;
+pub const FMOD_ERR_HTTP_TIMEOUT: FMOD_RESULT = 25;
+pub const FMOD_ERR_HTTP_SERVER_ERROR: FMOD_RESULT = 24;
+pub const FMOD_ERR_HTTP_PROXY_AUTH: FMOD_RESULT = 23;
+pub const FMOD_ERR_HTTP_ACCESS: FMOD_RESULT = 22;
+pub const FMOD_ERR_HTTP: FMOD_RESULT = 21;
+pub const FMOD_ERR_HEADER_MISMATCH: FMOD_RESULT = 20;
+pub const FMOD_ERR_FORMAT: FMOD_RESULT = 19;
+pub const FMOD_ERR_FILE_NOTFOUND: FMOD_RESULT = 18;
+pub const FMOD_ERR_FILE_ENDOFDATA: FMOD_RESULT = 17;
+pub const FMOD_ERR_FILE_EOF: FMOD_RESULT = 16;
+pub const FMOD_ERR_FILE_DISKEJECTED: FMOD_RESULT = 15;
+pub const FMOD_ERR_FILE_COULDNOTSEEK: FMOD_RESULT = 14;
+pub const FMOD_ERR_FILE_BAD: FMOD_RESULT = 13;
+pub const FMOD_ERR_DSP_TYPE: FMOD_RESULT = 12;
+pub const FMOD_ERR_DSP_SILENCE: FMOD_RESULT = 11;
+pub const FMOD_ERR_DSP_RESERVED: FMOD_RESULT = 10;
+pub const FMOD_ERR_DSP_NOTFOUND: FMOD_RESULT = 9;
+pub const FMOD_ERR_DSP_INUSE: FMOD_RESULT = 8;
+pub const FMOD_ERR_DSP_FORMAT: FMOD_RESULT = 7;
+pub const FMOD_ERR_DSP_DONTPROCESS: FMOD_RESULT = 6;
+pub const FMOD_ERR_DSP_CONNECTION: FMOD_RESULT = 5;
+pub const FMOD_ERR_DMA: FMOD_RESULT = 4;
+pub const FMOD_ERR_CHANNEL_STOLEN: FMOD_RESULT = 3;
+pub const FMOD_ERR_CHANNEL_ALLOC: FMOD_RESULT = 2;
+pub const FMOD_ERR_BADCOMMAND: FMOD_RESULT = 1;
+pub const FMOD_OK: FMOD_RESULT = 0;
+pub type FMOD_TIMEUNIT = libc::c_uint;
+pub type FMOD_MODE = libc::c_uint;
+pub type FMOD_CHANNELORDER = libc::c_uint;
+pub const FMOD_CHANNELORDER_FORCEINT: FMOD_CHANNELORDER = 65536;
+pub const FMOD_CHANNELORDER_MAX: FMOD_CHANNELORDER = 6;
+pub const FMOD_CHANNELORDER_ALSA: FMOD_CHANNELORDER = 5;
+pub const FMOD_CHANNELORDER_ALLSTEREO: FMOD_CHANNELORDER = 4;
+pub const FMOD_CHANNELORDER_ALLMONO: FMOD_CHANNELORDER = 3;
+pub const FMOD_CHANNELORDER_PROTOOLS: FMOD_CHANNELORDER = 2;
+pub const FMOD_CHANNELORDER_WAVEFORMAT: FMOD_CHANNELORDER = 1;
+pub const FMOD_CHANNELORDER_DEFAULT: FMOD_CHANNELORDER = 0;
+pub type FMOD_SOUND_TYPE = libc::c_uint;
+pub const FMOD_SOUND_TYPE_FORCEINT: FMOD_SOUND_TYPE = 65536;
+pub const FMOD_SOUND_TYPE_MAX: FMOD_SOUND_TYPE = 25;
+pub const FMOD_SOUND_TYPE_OPUS: FMOD_SOUND_TYPE = 24;
+pub const FMOD_SOUND_TYPE_FADPCM: FMOD_SOUND_TYPE = 23;
+pub const FMOD_SOUND_TYPE_MEDIACODEC: FMOD_SOUND_TYPE = 22;
+pub const FMOD_SOUND_TYPE_MEDIA_FOUNDATION: FMOD_SOUND_TYPE = 21;
+pub const FMOD_SOUND_TYPE_VORBIS: FMOD_SOUND_TYPE = 20;
+pub const FMOD_SOUND_TYPE_AT9: FMOD_SOUND_TYPE = 19;
+pub const FMOD_SOUND_TYPE_AUDIOQUEUE: FMOD_SOUND_TYPE = 18;
+pub const FMOD_SOUND_TYPE_XMA: FMOD_SOUND_TYPE = 17;
+pub const FMOD_SOUND_TYPE_XM: FMOD_SOUND_TYPE = 16;
+pub const FMOD_SOUND_TYPE_WAV: FMOD_SOUND_TYPE = 15;
+pub const FMOD_SOUND_TYPE_USER: FMOD_SOUND_TYPE = 14;
+pub const FMOD_SOUND_TYPE_S3M: FMOD_SOUND_TYPE = 13;
+pub const FMOD_SOUND_TYPE_RAW: FMOD_SOUND_TYPE = 12;
+pub const FMOD_SOUND_TYPE_PLAYLIST: FMOD_SOUND_TYPE = 11;
+pub const FMOD_SOUND_TYPE_OGGVORBIS: FMOD_SOUND_TYPE = 10;
+pub const FMOD_SOUND_TYPE_MPEG: FMOD_SOUND_TYPE = 9;
+pub const FMOD_SOUND_TYPE_MOD: FMOD_SOUND_TYPE = 8;
+pub const FMOD_SOUND_TYPE_MIDI: FMOD_SOUND_TYPE = 7;
+pub const FMOD_SOUND_TYPE_IT: FMOD_SOUND_TYPE = 6;
+pub const FMOD_SOUND_TYPE_FSB: FMOD_SOUND_TYPE = 5;
+pub const FMOD_SOUND_TYPE_FLAC: FMOD_SOUND_TYPE = 4;
+pub const FMOD_SOUND_TYPE_DLS: FMOD_SOUND_TYPE = 3;
+pub const FMOD_SOUND_TYPE_ASF: FMOD_SOUND_TYPE = 2;
+pub const FMOD_SOUND_TYPE_AIFF: FMOD_SOUND_TYPE = 1;
+pub const FMOD_SOUND_TYPE_UNKNOWN: FMOD_SOUND_TYPE = 0;
+pub type FMOD_SOUND_FORMAT = libc::c_uint;
+pub const FMOD_SOUND_FORMAT_FORCEINT: FMOD_SOUND_FORMAT = 65536;
+pub const FMOD_SOUND_FORMAT_MAX: FMOD_SOUND_FORMAT = 7;
+pub const FMOD_SOUND_FORMAT_BITSTREAM: FMOD_SOUND_FORMAT = 6;
+pub const FMOD_SOUND_FORMAT_PCMFLOAT: FMOD_SOUND_FORMAT = 5;
+pub const FMOD_SOUND_FORMAT_PCM32: FMOD_SOUND_FORMAT = 4;
+pub const FMOD_SOUND_FORMAT_PCM24: FMOD_SOUND_FORMAT = 3;
+pub const FMOD_SOUND_FORMAT_PCM16: FMOD_SOUND_FORMAT = 2;
+pub const FMOD_SOUND_FORMAT_PCM8: FMOD_SOUND_FORMAT = 1;
+pub const FMOD_SOUND_FORMAT_NONE: FMOD_SOUND_FORMAT = 0;
+pub type FMOD_OPENSTATE = libc::c_uint;
+pub const FMOD_OPENSTATE_FORCEINT: FMOD_OPENSTATE = 65536;
+pub const FMOD_OPENSTATE_MAX: FMOD_OPENSTATE = 8;
+pub const FMOD_OPENSTATE_SETPOSITION: FMOD_OPENSTATE = 7;
+pub const FMOD_OPENSTATE_PLAYING: FMOD_OPENSTATE = 6;
+pub const FMOD_OPENSTATE_SEEKING: FMOD_OPENSTATE = 5;
+pub const FMOD_OPENSTATE_BUFFERING: FMOD_OPENSTATE = 4;
+pub const FMOD_OPENSTATE_CONNECTING: FMOD_OPENSTATE = 3;
+pub const FMOD_OPENSTATE_ERROR: FMOD_OPENSTATE = 2;
+pub const FMOD_OPENSTATE_LOADING: FMOD_OPENSTATE = 1;
+pub const FMOD_OPENSTATE_READY: FMOD_OPENSTATE = 0;
+pub type FMOD_SOUND_NONBLOCK_CALLBACK = Option::<
+    unsafe extern "C" fn(*mut FMOD_SOUND, FMOD_RESULT) -> FMOD_RESULT,
+>;
+pub type FMOD_SOUND_PCMREAD_CALLBACK = Option::<
+    unsafe extern "C" fn(*mut FMOD_SOUND, *mut libc::c_void, libc::c_uint) -> FMOD_RESULT,
+>;
+pub type FMOD_SOUND_PCMSETPOS_CALLBACK = Option::<
+    unsafe extern "C" fn(
+        *mut FMOD_SOUND,
+        libc::c_int,
+        libc::c_uint,
+        FMOD_TIMEUNIT,
+    ) -> FMOD_RESULT,
+>;
+pub type FMOD_FILE_OPEN_CALLBACK = Option::<
+    unsafe extern "C" fn(
+        *const libc::c_char,
+        *mut libc::c_uint,
+        *mut *mut libc::c_void,
+        *mut libc::c_void,
+    ) -> FMOD_RESULT,
+>;
+pub type FMOD_FILE_CLOSE_CALLBACK = Option::<
+    unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> FMOD_RESULT,
+>;
+pub type FMOD_FILE_READ_CALLBACK = Option::<
+    unsafe extern "C" fn(
+        *mut libc::c_void,
+        *mut libc::c_void,
+        libc::c_uint,
+        *mut libc::c_uint,
+        *mut libc::c_void,
+    ) -> FMOD_RESULT,
+>;
+pub type FMOD_FILE_SEEK_CALLBACK = Option::<
+    unsafe extern "C" fn(
+        *mut libc::c_void,
+        libc::c_uint,
+        *mut libc::c_void,
+    ) -> FMOD_RESULT,
+>;
+pub type FMOD_FILE_ASYNCREAD_CALLBACK = Option::<
+    unsafe extern "C" fn(*mut FMOD_ASYNCREADINFO, *mut libc::c_void) -> FMOD_RESULT,
+>;
+pub type FMOD_FILE_ASYNCCANCEL_CALLBACK = Option::<
+    unsafe extern "C" fn(*mut FMOD_ASYNCREADINFO, *mut libc::c_void) -> FMOD_RESULT,
+>;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct FMOD_GUID {
+    pub Data1: libc::c_uint,
+    pub Data2: libc::c_ushort,
+    pub Data3: libc::c_ushort,
+    pub Data4: [libc::c_uchar; 8],
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct FMOD_CREATESOUNDEXINFO {
+    pub cbsize: libc::c_int,
+    pub length: libc::c_uint,
+    pub fileoffset: libc::c_uint,
+    pub numchannels: libc::c_int,
+    pub defaultfrequency: libc::c_int,
+    pub format: FMOD_SOUND_FORMAT,
+    pub decodebuffersize: libc::c_uint,
+    pub initialsubsound: libc::c_int,
+    pub numsubsounds: libc::c_int,
+    pub inclusionlist: *mut libc::c_int,
+    pub inclusionlistnum: libc::c_int,
+    pub pcmreadcallback: FMOD_SOUND_PCMREAD_CALLBACK,
+    pub pcmsetposcallback: FMOD_SOUND_PCMSETPOS_CALLBACK,
+    pub nonblockcallback: FMOD_SOUND_NONBLOCK_CALLBACK,
+    pub dlsname: *const libc::c_char,
+    pub encryptionkey: *const libc::c_char,
+    pub maxpolyphony: libc::c_int,
+    pub userdata: *mut libc::c_void,
+    pub suggestedsoundtype: FMOD_SOUND_TYPE,
+    pub fileuseropen: FMOD_FILE_OPEN_CALLBACK,
+    pub fileuserclose: FMOD_FILE_CLOSE_CALLBACK,
+    pub fileuserread: FMOD_FILE_READ_CALLBACK,
+    pub fileuserseek: FMOD_FILE_SEEK_CALLBACK,
+    pub fileuserasyncread: FMOD_FILE_ASYNCREAD_CALLBACK,
+    pub fileuserasynccancel: FMOD_FILE_ASYNCCANCEL_CALLBACK,
+    pub fileuserdata: *mut libc::c_void,
+    pub filebuffersize: libc::c_int,
+    pub channelorder: FMOD_CHANNELORDER,
+    pub initialsoundgroup: *mut FMOD_SOUNDGROUP,
+    pub initialseekposition: libc::c_uint,
+    pub initialseekpostype: FMOD_TIMEUNIT,
+    pub ignoresetfilesystem: libc::c_int,
+    pub audioqueuepolicy: libc::c_uint,
+    pub minmidigranularity: libc::c_uint,
+    pub nonblockthreadid: libc::c_int,
+    pub fsbguid: *mut FMOD_GUID,
+}
+#[inline]
+unsafe extern "C" fn FMOD_CheckError(
+    mut result: FMOD_RESULT,
+    mut file: cstr,
+    mut line: libc::c_int,
+    mut func: cstr,
+) {
+    if result as libc::c_uint != FMOD_OK as libc::c_int as libc::c_uint {
+        Fatal(
+            b"%s: %s\n%s\n  [%s @ Line %d]\0" as *const u8 as *const libc::c_char,
+            func,
+            FMODError_ToString(result),
+            FMOD_ErrorString(result),
+            file,
+            line,
+        );
+    }
+}
+#[inline]
+unsafe extern "C" fn FMODError_ToString(mut self_0: FMOD_RESULT) -> cstr {
+    match self_0 as libc::c_uint {
+        0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
+        1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
+        2 => return b"FMOD_ERR_CHANNEL_ALLOC\0" as *const u8 as *const libc::c_char,
+        3 => return b"FMOD_ERR_CHANNEL_STOLEN\0" as *const u8 as *const libc::c_char,
+        4 => return b"FMOD_ERR_DMA\0" as *const u8 as *const libc::c_char,
+        5 => return b"FMOD_ERR_DSP_CONNECTION\0" as *const u8 as *const libc::c_char,
+        6 => return b"FMOD_ERR_DSP_DONTPROCESS\0" as *const u8 as *const libc::c_char,
+        7 => return b"FMOD_ERR_DSP_FORMAT\0" as *const u8 as *const libc::c_char,
+        8 => return b"FMOD_ERR_DSP_INUSE\0" as *const u8 as *const libc::c_char,
+        9 => return b"FMOD_ERR_DSP_NOTFOUND\0" as *const u8 as *const libc::c_char,
+        10 => return b"FMOD_ERR_DSP_RESERVED\0" as *const u8 as *const libc::c_char,
+        11 => return b"FMOD_ERR_DSP_SILENCE\0" as *const u8 as *const libc::c_char,
+        12 => return b"FMOD_ERR_DSP_TYPE\0" as *const u8 as *const libc::c_char,
+        13 => return b"FMOD_ERR_FILE_BAD\0" as *const u8 as *const libc::c_char,
+        14 => return b"FMOD_ERR_FILE_COULDNOTSEEK\0" as *const u8 as *const libc::c_char,
+        15 => return b"FMOD_ERR_FILE_DISKEJECTED\0" as *const u8 as *const libc::c_char,
+        16 => return b"FMOD_ERR_FILE_EOF\0" as *const u8 as *const libc::c_char,
+        17 => return b"FMOD_ERR_FILE_ENDOFDATA\0" as *const u8 as *const libc::c_char,
+        18 => return b"FMOD_ERR_FILE_NOTFOUND\0" as *const u8 as *const libc::c_char,
+        19 => return b"FMOD_ERR_FORMAT\0" as *const u8 as *const libc::c_char,
+        20 => return b"FMOD_ERR_HEADER_MISMATCH\0" as *const u8 as *const libc::c_char,
+        21 => return b"FMOD_ERR_HTTP\0" as *const u8 as *const libc::c_char,
+        22 => return b"FMOD_ERR_HTTP_ACCESS\0" as *const u8 as *const libc::c_char,
+        23 => return b"FMOD_ERR_HTTP_PROXY_AUTH\0" as *const u8 as *const libc::c_char,
+        24 => return b"FMOD_ERR_HTTP_SERVER_ERROR\0" as *const u8 as *const libc::c_char,
+        25 => return b"FMOD_ERR_HTTP_TIMEOUT\0" as *const u8 as *const libc::c_char,
+        26 => return b"FMOD_ERR_INITIALIZATION\0" as *const u8 as *const libc::c_char,
+        27 => return b"FMOD_ERR_INITIALIZED\0" as *const u8 as *const libc::c_char,
+        28 => return b"FMOD_ERR_INTERNAL\0" as *const u8 as *const libc::c_char,
+        29 => return b"FMOD_ERR_INVALID_FLOAT\0" as *const u8 as *const libc::c_char,
+        30 => return b"FMOD_ERR_INVALID_HANDLE\0" as *const u8 as *const libc::c_char,
+        31 => return b"FMOD_ERR_INVALID_PARAM\0" as *const u8 as *const libc::c_char,
+        32 => return b"FMOD_ERR_INVALID_POSITION\0" as *const u8 as *const libc::c_char,
+        33 => return b"FMOD_ERR_INVALID_SPEAKER\0" as *const u8 as *const libc::c_char,
+        34 => return b"FMOD_ERR_INVALID_SYNCPOINT\0" as *const u8 as *const libc::c_char,
+        35 => return b"FMOD_ERR_INVALID_THREAD\0" as *const u8 as *const libc::c_char,
+        36 => return b"FMOD_ERR_INVALID_VECTOR\0" as *const u8 as *const libc::c_char,
+        37 => return b"FMOD_ERR_MAXAUDIBLE\0" as *const u8 as *const libc::c_char,
+        38 => return b"FMOD_ERR_MEMORY\0" as *const u8 as *const libc::c_char,
+        39 => return b"FMOD_ERR_MEMORY_CANTPOINT\0" as *const u8 as *const libc::c_char,
+        40 => return b"FMOD_ERR_NEEDS3D\0" as *const u8 as *const libc::c_char,
+        41 => return b"FMOD_ERR_NEEDSHARDWARE\0" as *const u8 as *const libc::c_char,
+        42 => return b"FMOD_ERR_NET_CONNECT\0" as *const u8 as *const libc::c_char,
+        43 => return b"FMOD_ERR_NET_SOCKET_ERROR\0" as *const u8 as *const libc::c_char,
+        44 => return b"FMOD_ERR_NET_URL\0" as *const u8 as *const libc::c_char,
+        45 => return b"FMOD_ERR_NET_WOULD_BLOCK\0" as *const u8 as *const libc::c_char,
+        46 => return b"FMOD_ERR_NOTREADY\0" as *const u8 as *const libc::c_char,
+        47 => return b"FMOD_ERR_OUTPUT_ALLOCATED\0" as *const u8 as *const libc::c_char,
+        48 => {
+            return b"FMOD_ERR_OUTPUT_CREATEBUFFER\0" as *const u8 as *const libc::c_char;
+        }
+        49 => return b"FMOD_ERR_OUTPUT_DRIVERCALL\0" as *const u8 as *const libc::c_char,
+        50 => return b"FMOD_ERR_OUTPUT_FORMAT\0" as *const u8 as *const libc::c_char,
+        51 => return b"FMOD_ERR_OUTPUT_INIT\0" as *const u8 as *const libc::c_char,
+        52 => return b"FMOD_ERR_OUTPUT_NODRIVERS\0" as *const u8 as *const libc::c_char,
+        53 => return b"FMOD_ERR_PLUGIN\0" as *const u8 as *const libc::c_char,
+        54 => return b"FMOD_ERR_PLUGIN_MISSING\0" as *const u8 as *const libc::c_char,
+        55 => return b"FMOD_ERR_PLUGIN_RESOURCE\0" as *const u8 as *const libc::c_char,
+        56 => return b"FMOD_ERR_PLUGIN_VERSION\0" as *const u8 as *const libc::c_char,
+        57 => return b"FMOD_ERR_RECORD\0" as *const u8 as *const libc::c_char,
+        58 => {
+            return b"FMOD_ERR_REVERB_CHANNELGROUP\0" as *const u8 as *const libc::c_char;
+        }
+        59 => return b"FMOD_ERR_REVERB_INSTANCE\0" as *const u8 as *const libc::c_char,
+        60 => return b"FMOD_ERR_SUBSOUNDS\0" as *const u8 as *const libc::c_char,
+        61 => return b"FMOD_ERR_SUBSOUND_ALLOCATED\0" as *const u8 as *const libc::c_char,
+        62 => return b"FMOD_ERR_SUBSOUND_CANTMOVE\0" as *const u8 as *const libc::c_char,
+        63 => return b"FMOD_ERR_TAGNOTFOUND\0" as *const u8 as *const libc::c_char,
+        64 => return b"FMOD_ERR_TOOMANYCHANNELS\0" as *const u8 as *const libc::c_char,
+        65 => return b"FMOD_ERR_TRUNCATED\0" as *const u8 as *const libc::c_char,
+        66 => return b"FMOD_ERR_UNIMPLEMENTED\0" as *const u8 as *const libc::c_char,
+        67 => return b"FMOD_ERR_UNINITIALIZED\0" as *const u8 as *const libc::c_char,
+        68 => return b"FMOD_ERR_UNSUPPORTED\0" as *const u8 as *const libc::c_char,
+        69 => return b"FMOD_ERR_VERSION\0" as *const u8 as *const libc::c_char,
+        70 => {
+            return b"FMOD_ERR_EVENT_ALREADY_LOADED\0" as *const u8 as *const libc::c_char;
+        }
+        71 => {
+            return b"FMOD_ERR_EVENT_LIVEUPDATE_BUSY\0" as *const u8
+                as *const libc::c_char;
+        }
+        72 => {
+            return b"FMOD_ERR_EVENT_LIVEUPDATE_MISMATCH\0" as *const u8
+                as *const libc::c_char;
+        }
+        73 => {
+            return b"FMOD_ERR_EVENT_LIVEUPDATE_TIMEOUT\0" as *const u8
+                as *const libc::c_char;
+        }
+        74 => return b"FMOD_ERR_EVENT_NOTFOUND\0" as *const u8 as *const libc::c_char,
+        75 => {
+            return b"FMOD_ERR_STUDIO_UNINITIALIZED\0" as *const u8 as *const libc::c_char;
+        }
+        76 => return b"FMOD_ERR_STUDIO_NOT_LOADED\0" as *const u8 as *const libc::c_char,
+        77 => return b"FMOD_ERR_INVALID_STRING\0" as *const u8 as *const libc::c_char,
+        78 => return b"FMOD_ERR_ALREADY_LOCKED\0" as *const u8 as *const libc::c_char,
+        79 => return b"FMOD_ERR_NOT_LOCKED\0" as *const u8 as *const libc::c_char,
+        80 => {
+            return b"FMOD_ERR_RECORD_DISCONNECTED\0" as *const u8 as *const libc::c_char;
+        }
+        81 => return b"FMOD_ERR_TOOMANYSAMPLES\0" as *const u8 as *const libc::c_char,
+        65536 => return b"FMOD_RESULT_FORCEINT\0" as *const u8 as *const libc::c_char,
+        _ => {}
+    }
+    return b"Unknown Error\0" as *const u8 as *const libc::c_char;
+}
+unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
+    match errcode as libc::c_uint {
+        0 => return b"No errors.\0" as *const u8 as *const libc::c_char,
+        1 => {
+            return b"Tried to call a function on a data type that does not allow this type of functionality (ie calling Sound::lock on a streaming sound).\0"
+                as *const u8 as *const libc::c_char;
+        }
+        2 => {
+            return b"Error trying to allocate a channel.\0" as *const u8
+                as *const libc::c_char;
+        }
+        3 => {
+            return b"The specified channel has been reused to play another sound.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        4 => {
+            return b"DMA Failure.  See debug output for more information.\0" as *const u8
+                as *const libc::c_char;
+        }
+        5 => {
+            return b"DSP connection error.  Connection possibly caused a cyclic dependency or connected dsps with incompatible buffer counts.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        6 => {
+            return b"DSP return code from a DSP process query callback.  Tells mixer not to call the process callback and therefore not consume CPU.  Use this to optimize the DSP graph.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        7 => {
+            return b"DSP Format error.  A DSP unit may have attempted to connect to this network with the wrong format, or a matrix may have been set with the wrong size if the target unit has a specified channel map.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        8 => {
+            return b"DSP is already in the mixer's DSP network. It must be removed before being reinserted or released.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        9 => {
+            return b"DSP connection error.  Couldn't find the DSP unit specified.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        10 => {
+            return b"DSP operation error.  Cannot perform operation on this DSP as it is reserved by the system.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        11 => {
+            return b"DSP return code from a DSP process query callback.  Tells mixer silence would be produced from read, so go idle and not consume CPU.  Use this to optimize the DSP graph.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        12 => {
+            return b"DSP operation cannot be performed on a DSP of this type.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        13 => return b"Error loading file.\0" as *const u8 as *const libc::c_char,
+        14 => {
+            return b"Couldn't perform seek operation.  This is a limitation of the medium (ie netstreams) or the file format.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        15 => {
+            return b"Media was ejected while reading.\0" as *const u8
+                as *const libc::c_char;
+        }
+        16 => {
+            return b"End of file unexpectedly reached while trying to read essential data (truncated?).\0"
+                as *const u8 as *const libc::c_char;
+        }
+        17 => {
+            return b"End of current chunk reached while trying to read data.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        18 => return b"File not found.\0" as *const u8 as *const libc::c_char,
+        19 => {
+            return b"Unsupported file or audio format.\0" as *const u8
+                as *const libc::c_char;
+        }
+        20 => {
+            return b"There is a version mismatch between the FMOD header and either the FMOD Studio library or the FMOD Low Level library.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        21 => {
+            return b"A HTTP error occurred. This is a catch-all for HTTP errors not listed elsewhere.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        22 => {
+            return b"The specified resource requires authentication or is forbidden.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        23 => {
+            return b"Proxy authentication is required to access the specified resource.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        24 => {
+            return b"A HTTP server error occurred.\0" as *const u8 as *const libc::c_char;
+        }
+        25 => return b"The HTTP request timed out.\0" as *const u8 as *const libc::c_char,
+        26 => {
+            return b"FMOD was not initialized correctly to support this function.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        27 => {
+            return b"Cannot call this command after System::init.\0" as *const u8
+                as *const libc::c_char;
+        }
+        28 => {
+            return b"An error occurred that wasn't supposed to.  Contact support.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        29 => {
+            return b"Value passed in was a NaN, Inf or denormalized float.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        30 => {
+            return b"An invalid object handle was used.\0" as *const u8
+                as *const libc::c_char;
+        }
+        31 => {
+            return b"An invalid parameter was passed to this function.\0" as *const u8
+                as *const libc::c_char;
+        }
+        32 => {
+            return b"An invalid seek position was passed to this function.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        33 => {
+            return b"An invalid speaker was passed to this function based on the current speaker mode.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        34 => {
+            return b"The syncpoint did not come from this sound handle.\0" as *const u8
+                as *const libc::c_char;
+        }
+        35 => {
+            return b"Tried to call a function on a thread that is not supported.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        36 => {
+            return b"The vectors passed in are not unit length, or perpendicular.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        37 => {
+            return b"Reached maximum audible playback count for this sound's soundgroup.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        38 => {
+            return b"Not enough memory or resources.\0" as *const u8
+                as *const libc::c_char;
+        }
+        39 => {
+            return b"Can't use FMOD_OPENMEMORY_POINT on non PCM source data, or non mp3/xma/adpcm data if FMOD_CREATECOMPRESSEDSAMPLE was used.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        40 => {
+            return b"Tried to call a command on a 2d sound when the command was meant for 3d sound.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        41 => {
+            return b"Tried to use a feature that requires hardware support.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        42 => {
+            return b"Couldn't connect to the specified host.\0" as *const u8
+                as *const libc::c_char;
+        }
+        43 => {
+            return b"A socket error occurred.  This is a catch-all for socket-related errors not listed elsewhere.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        44 => {
+            return b"The specified URL couldn't be resolved.\0" as *const u8
+                as *const libc::c_char;
+        }
+        45 => {
+            return b"Operation on a non-blocking socket could not complete immediately.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        46 => {
+            return b"Operation could not be performed because specified sound/DSP connection is not ready.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        47 => {
+            return b"Error initializing output device, but more specifically, the output device is already in use and cannot be reused.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        48 => {
+            return b"Error creating hardware sound buffer.\0" as *const u8
+                as *const libc::c_char;
+        }
+        49 => {
+            return b"A call to a standard soundcard driver failed, which could possibly mean a bug in the driver or resources were missing or exhausted.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        50 => {
+            return b"Soundcard does not support the specified format.\0" as *const u8
+                as *const libc::c_char;
+        }
+        51 => {
+            return b"Error initializing output device.\0" as *const u8
+                as *const libc::c_char;
+        }
+        52 => {
+            return b"The output device has no drivers installed.  If pre-init, FMOD_OUTPUT_NOSOUND is selected as the output mode.  If post-init, the function just fails.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        53 => {
+            return b"An unspecified error has been returned from a plugin.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        54 => {
+            return b"A requested output, dsp unit type or codec was not available.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        55 => {
+            return b"A resource that the plugin requires cannot be allocated or found. (ie the DLS file for MIDI playback)\0"
+                as *const u8 as *const libc::c_char;
+        }
+        56 => {
+            return b"A plugin was built with an unsupported SDK version.\0" as *const u8
+                as *const libc::c_char;
+        }
+        57 => {
+            return b"An error occurred trying to initialize the recording device.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        58 => {
+            return b"Reverb properties cannot be set on this channel because a parent channelgroup owns the reverb connection.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        59 => {
+            return b"Specified instance in FMOD_REVERB_PROPERTIES couldn't be set. Most likely because it is an invalid instance number or the reverb doesn't exist.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        60 => {
+            return b"The error occurred because the sound referenced contains subsounds when it shouldn't have, or it doesn't contain subsounds when it should have.  The operation may also not be able to be performed on a parent sound.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        61 => {
+            return b"This subsound is already being used by another sound, you cannot have more than one parent to a sound.  Null out the other parent's entry first.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        62 => {
+            return b"Shared subsounds cannot be replaced or moved from their parent stream, such as when the parent stream is an FSB file.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        63 => {
+            return b"The specified tag could not be found or there are no tags.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        64 => {
+            return b"The sound created exceeds the allowable input channel count.  This can be increased using the 'maxinputchannels' parameter in System::setSoftwareFormat.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        65 => {
+            return b"The retrieved string is too long to fit in the supplied buffer and has been truncated.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        66 => {
+            return b"Something in FMOD hasn't been implemented when it should be! contact support!\0"
+                as *const u8 as *const libc::c_char;
+        }
+        67 => {
+            return b"This command failed because System::init or System::setDriver was not called.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        68 => {
+            return b"A command issued was not supported by this object.  Possibly a plugin without certain callbacks specified.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        69 => {
+            return b"The version number of this file format is not supported.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        70 => {
+            return b"The specified bank has already been loaded.\0" as *const u8
+                as *const libc::c_char;
+        }
+        71 => {
+            return b"The live update connection failed due to the game already being connected.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        72 => {
+            return b"The live update connection failed due to the game data being out of sync with the tool.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        73 => {
+            return b"The live update connection timed out.\0" as *const u8
+                as *const libc::c_char;
+        }
+        74 => {
+            return b"The requested event, parameter, bus or vca could not be found.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        75 => {
+            return b"The Studio::System object is not yet initialized.\0" as *const u8
+                as *const libc::c_char;
+        }
+        76 => {
+            return b"The specified resource is not loaded, so it can't be unloaded.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        77 => {
+            return b"An invalid string was passed to this function.\0" as *const u8
+                as *const libc::c_char;
+        }
+        78 => {
+            return b"The specified resource is already locked.\0" as *const u8
+                as *const libc::c_char;
+        }
+        79 => {
+            return b"The specified resource is not locked, so it can't be unlocked.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        80 => {
+            return b"The specified recording driver has been disconnected.\0"
+                as *const u8 as *const libc::c_char;
+        }
+        81 => {
+            return b"The length provided exceeds the allowable limit.\0" as *const u8
+                as *const libc::c_char;
+        }
+        _ => return b"Unknown error.\0" as *const u8 as *const libc::c_char,
+    };
+}
+#[inline]
+unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: size_t) {
+    memset(dst, 0 as libc::c_int, size);
+}
+#[no_mangle]
+pub static mut ResourceType_Font: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_Tex3D: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_Mesh: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_Other: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_Script: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_Shader: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_Sound: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_Tex1D: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_Tex2D: ResourceType = 0;
+#[no_mangle]
+pub static mut ResourceType_TexCube: ResourceType = 0;
+#[inline]
+unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
+    return malloc(len) as *mut libc::c_char;
+}
+#[inline]
+unsafe extern "C" fn StrFree(mut s: cstr) {
+    free(s as *mut libc::c_void);
+}
+#[inline]
+unsafe extern "C" fn StrAdd(mut a: cstr, mut b: cstr) -> cstr {
+    let mut buf: *mut libc::c_char = StrAlloc(
+        (StrLen(a))
+            .wrapping_add(StrLen(b))
+            .wrapping_add(1 as libc::c_int as libc::c_ulong),
+    );
+    let mut cur: *mut libc::c_char = buf;
+    while *a != 0 {
+        let fresh0 = a;
+        a = a.offset(1);
+        let fresh1 = cur;
+        cur = cur.offset(1);
+        *fresh1 = *fresh0;
+    }
+    while *b != 0 {
+        let fresh2 = b;
+        b = b.offset(1);
+        let fresh3 = cur;
+        cur = cur.offset(1);
+        *fresh3 = *fresh2;
+    }
+    *cur = 0 as libc::c_int as libc::c_char;
+    return buf as cstr;
+}
+#[inline]
+unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
+    if s.is_null() {
+        return 0 as libc::c_int as size_t;
+    }
+    let mut begin: cstr = s;
+    while *s != 0 {
+        s = s.offset(1);
+    }
+    return s.offset_from(begin) as libc::c_long as size_t;
+}
+#[inline]
+unsafe extern "C" fn StrDup(mut s: cstr) -> cstr {
+    if s.is_null() {
+        return 0 as cstr;
+    }
+    let mut len: size_t = (StrLen(s)).wrapping_add(1 as libc::c_int as libc::c_ulong);
+    let mut buf: *mut libc::c_char = StrAlloc(len);
+    memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
+    return buf as cstr;
+}
+#[no_mangle]
+pub unsafe extern "C" fn SoundDesc_FinishLoad(
+    mut self_0: *mut SoundDesc,
+    mut func: cstr,
+) {
+    let mut warned: bool = 0 as libc::c_int != 0;
+    let mut openState: FMOD_OPENSTATE = FMOD_OPENSTATE_READY;
+    loop {
+        FMOD_CheckError(
+            FMOD_Sound_GetOpenState(
+                (*self_0).handle,
+                &mut openState,
+                0 as *mut libc::c_uint,
+                0 as *mut FMOD_BOOL,
+                0 as *mut FMOD_BOOL,
+            ),
+            b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+                as *const libc::c_char,
+            16 as libc::c_int,
+            (*::core::mem::transmute::<
+                &[u8; 21],
+                &[libc::c_char; 21],
+            >(b"SoundDesc_FinishLoad\0"))
+                .as_ptr(),
+        );
+        if openState as libc::c_uint
+            == FMOD_OPENSTATE_ERROR as libc::c_int as libc::c_uint
+        {
+            Fatal(
+                b"%s: Background file load has failed.\n  Path: %s\0" as *const u8
+                    as *const libc::c_char,
+                func,
+                (*self_0).path,
+            );
+        }
+        if openState as libc::c_uint
+            == FMOD_OPENSTATE_READY as libc::c_int as libc::c_uint
+            || openState as libc::c_uint
+                == FMOD_OPENSTATE_PLAYING as libc::c_int as libc::c_uint
+        {
+            break;
+        }
+        if !warned {
+            warned = 1 as libc::c_int != 0;
+            Warn(
+                b"%s: Background file load hasn't finished. Blocking the main thread.\n  Path: %s\0"
+                    as *const u8 as *const libc::c_char,
+                func,
+                (*self_0).path,
+            );
+        }
+    };
+}
+#[no_mangle]
+pub unsafe extern "C" fn SoundDesc_Load(
+    mut name: cstr,
+    mut immediate: bool,
+    mut isLooped: bool,
+    mut is3D: bool,
+) -> *mut SoundDesc {
+    let mut mapKey: cstr = StrAdd(
+        if isLooped as libc::c_int != 0 {
+            b"LOOPED:\0" as *const u8 as *const libc::c_char
+        } else {
+            b"UNLOOPED:\0" as *const u8 as *const libc::c_char
+        },
+        name,
+    );
+    let mut self_0: *mut SoundDesc = Audio_AllocSoundDesc(mapKey);
+    StrFree(mapKey);
+    if ((*self_0).name).is_null() {
+        let mut path: cstr = Resource_GetPath(ResourceType_Sound, name);
+        let mut mode: FMOD_MODE = 0 as libc::c_int as FMOD_MODE;
+        mode |= 0x100 as libc::c_int as libc::c_uint;
+        mode |= 0x2000000 as libc::c_int as libc::c_uint;
+        mode |= 0x4000 as libc::c_int as libc::c_uint;
+        mode
+            |= (if isLooped as libc::c_int != 0 {
+                0x2 as libc::c_int
+            } else {
+                0x1 as libc::c_int
+            }) as libc::c_uint;
+        mode
+            |= (if is3D as libc::c_int != 0 {
+                0x10 as libc::c_int | 0x80000 as libc::c_int
+            } else {
+                0x8 as libc::c_int
+            }) as libc::c_uint;
+        if !immediate {
+            mode |= 0x10000 as libc::c_int as libc::c_uint;
+        }
+        FMOD_CheckError(
+            FMOD_System_CreateSound(
+                Audio_GetHandle() as *mut FMOD_SYSTEM,
+                path,
+                mode,
+                0 as *mut FMOD_CREATESOUNDEXINFO,
+                &mut (*self_0).handle,
+            ),
+            b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+                as *const libc::c_char,
+            48 as libc::c_int,
+            (*::core::mem::transmute::<
+                &[u8; 15],
+                &[libc::c_char; 15],
+            >(b"SoundDesc_Load\0"))
+                .as_ptr(),
+        );
+        FMOD_CheckError(
+            FMOD_Sound_SetUserData((*self_0).handle, self_0 as *mut libc::c_void),
+            b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+                as *const libc::c_char,
+            49 as libc::c_int,
+            (*::core::mem::transmute::<
+                &[u8; 15],
+                &[libc::c_char; 15],
+            >(b"SoundDesc_Load\0"))
+                .as_ptr(),
+        );
+        (*self_0).name = StrDup(name);
+        (*self_0).path = StrDup(path);
+        (*self_0)._refCount = 1 as libc::c_int as uint32;
+    } else {
+        (*self_0)._refCount = ((*self_0)._refCount).wrapping_add(1);
+        if immediate {
+            SoundDesc_FinishLoad(
+                self_0,
+                (*::core::mem::transmute::<
+                    &[u8; 15],
+                    &[libc::c_char; 15],
+                >(b"SoundDesc_Load\0"))
+                    .as_ptr(),
+            );
+        }
+    }
+    return self_0;
+}
+#[no_mangle]
+pub unsafe extern "C" fn SoundDesc_Acquire(mut self_0: *mut SoundDesc) {
+    (*self_0)._refCount = ((*self_0)._refCount).wrapping_add(1);
+}
+#[no_mangle]
+pub unsafe extern "C" fn SoundDesc_Free(mut self_0: *mut SoundDesc) {
+    if !self_0.is_null()
+        && {
+            (*self_0)._refCount = ((*self_0)._refCount).wrapping_sub(1);
+            (*self_0)._refCount <= 0 as libc::c_int as libc::c_uint
+        }
+    {
+        let mut name: cstr = (*self_0).name;
+        let mut path: cstr = (*self_0).path;
+        FMOD_CheckError(
+            FMOD_Sound_Release((*self_0).handle),
+            b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+                as *const libc::c_char,
+            72 as libc::c_int,
+            (*::core::mem::transmute::<
+                &[u8; 15],
+                &[libc::c_char; 15],
+            >(b"SoundDesc_Free\0"))
+                .as_ptr(),
+        );
+        Audio_DeallocSoundDesc(self_0);
+        StrFree(name);
+        StrFree(path);
+        MemZero(
+            self_0 as *mut libc::c_void,
+            ::core::mem::size_of::<SoundDesc>() as libc::c_ulong,
+        );
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn SoundDesc_GetDuration(
+    mut self_0: *mut SoundDesc,
+) -> libc::c_float {
+    SoundDesc_FinishLoad(
+        self_0,
+        (*::core::mem::transmute::<
+            &[u8; 22],
+            &[libc::c_char; 22],
+        >(b"SoundDesc_GetDuration\0"))
+            .as_ptr(),
+    );
+    let mut duration: uint32 = 0;
+    FMOD_CheckError(
+        FMOD_Sound_GetLength(
+            (*self_0).handle,
+            &mut duration,
+            0x1 as libc::c_int as FMOD_TIMEUNIT,
+        ),
+        b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+            as *const libc::c_char,
+        85 as libc::c_int,
+        (*::core::mem::transmute::<
+            &[u8; 22],
+            &[libc::c_char; 22],
+        >(b"SoundDesc_GetDuration\0"))
+            .as_ptr(),
+    );
+    return duration as libc::c_float / 1000.0f32;
+}
+#[no_mangle]
+pub unsafe extern "C" fn SoundDesc_GetName(mut self_0: *mut SoundDesc) -> cstr {
+    return (*self_0).name;
+}
+#[no_mangle]
+pub unsafe extern "C" fn SoundDesc_GetPath(mut self_0: *mut SoundDesc) -> cstr {
+    return (*self_0).path;
+}
+#[no_mangle]
+pub unsafe extern "C" fn SoundDesc_ToFile(mut self_0: *mut SoundDesc, mut name: cstr) {
+    SoundDesc_FinishLoad(
+        self_0,
+        (*::core::mem::transmute::<
+            &[u8; 17],
+            &[libc::c_char; 17],
+        >(b"SoundDesc_ToFile\0"))
+            .as_ptr(),
+    );
+    let mut length: uint32 = 0;
+    let mut channels: int32 = 0;
+    let mut bitsPerSample: int32 = 0;
+    FMOD_CheckError(
+        FMOD_Sound_GetLength(
+            (*self_0).handle,
+            &mut length,
+            0x8 as libc::c_int as FMOD_TIMEUNIT,
+        ),
+        b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+            as *const libc::c_char,
+        128 as libc::c_int,
+        (*::core::mem::transmute::<
+            &[u8; 17],
+            &[libc::c_char; 17],
+        >(b"SoundDesc_ToFile\0"))
+            .as_ptr(),
+    );
+    FMOD_CheckError(
+        FMOD_Sound_GetFormat(
+            (*self_0).handle,
+            0 as *mut FMOD_SOUND_TYPE,
+            0 as *mut FMOD_SOUND_FORMAT,
+            &mut channels,
+            &mut bitsPerSample,
+        ),
+        b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+            as *const libc::c_char,
+        129 as libc::c_int,
+        (*::core::mem::transmute::<
+            &[u8; 17],
+            &[libc::c_char; 17],
+        >(b"SoundDesc_ToFile\0"))
+            .as_ptr(),
+    );
+    let mut bytesPerSample: int32 = bitsPerSample / 8 as libc::c_int;
+    let mut sampleRate: libc::c_float = 0.;
+    FMOD_Sound_GetDefaults((*self_0).handle, &mut sampleRate, 0 as *mut libc::c_int);
+    let mut ptr1: *mut libc::c_void = 0 as *mut libc::c_void;
+    let mut len1: uint32 = 0;
+    let mut ptr2: *mut libc::c_void = 0 as *mut libc::c_void;
+    let mut len2: uint32 = 0;
+    FMOD_CheckError(
+        FMOD_Sound_Lock(
+            (*self_0).handle,
+            0 as libc::c_int as libc::c_uint,
+            length,
+            &mut ptr1,
+            &mut ptr2,
+            &mut len1,
+            &mut len2,
+        ),
+        b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+            as *const libc::c_char,
+        137 as libc::c_int,
+        (*::core::mem::transmute::<
+            &[u8; 17],
+            &[libc::c_char; 17],
+        >(b"SoundDesc_ToFile\0"))
+            .as_ptr(),
+    );
+    let mut file: *mut File = File_Create(name);
+    if file.is_null() {
+        Fatal(
+            b"SoundDesc_ToFile: Failed to create file.\nPath: %s\0" as *const u8
+                as *const libc::c_char,
+            name,
+        );
+    }
+    File_Write(
+        file,
+        b"RIFF\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        4 as libc::c_int as uint32,
+    );
+    File_WriteI32(
+        file,
+        (36 as libc::c_int as libc::c_uint).wrapping_add(length) as int32,
+    );
+    File_Write(
+        file,
+        b"WAVE\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        4 as libc::c_int as uint32,
+    );
+    File_Write(
+        file,
+        b"fmt \0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        4 as libc::c_int as uint32,
+    );
+    File_WriteI32(file, 16 as libc::c_int);
+    File_WriteI16(file, 1 as libc::c_int as int16);
+    File_WriteI16(file, channels as int16);
+    File_WriteI32(file, sampleRate as int32);
+    File_WriteI32(
+        file,
+        ((bytesPerSample * channels) as libc::c_float * sampleRate) as int32,
+    );
+    File_WriteI16(file, (bytesPerSample * channels) as int16);
+    File_WriteI16(file, bitsPerSample as int16);
+    File_Write(
+        file,
+        b"data\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        4 as libc::c_int as uint32,
+    );
+    File_WriteI32(file, length as int32);
+    File_Write(file, ptr1, length);
+    File_Close(file);
+    FMOD_CheckError(
+        FMOD_Sound_Unlock((*self_0).handle, ptr1, ptr2, len1, len2),
+        b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
+            as *const libc::c_char,
+        163 as libc::c_int,
+        (*::core::mem::transmute::<
+            &[u8; 17],
+            &[libc::c_char; 17],
+        >(b"SoundDesc_ToFile\0"))
+            .as_ptr(),
+    );
+}

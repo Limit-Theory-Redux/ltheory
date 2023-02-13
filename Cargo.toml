@@ -1,21 +1,27 @@
 [workspace]
 members = [
 ]
+
 [package]
-name = "c2rust_out"
-authors = ["C2Rust"]
+name = "LimitTheoryRedux"
+authors = ["LTR Team"]
 version = "0.0.0"
 publish = false
 edition = "2021"
 autobins = false
 
 [lib]
-name = "c2rust_out"
-path = "c2rust-lib.rs"
+name = "libphx"
+path = "src/libphx.rs"
 crate-type = ["staticlib", "rlib"]
+
 [[bin]]
 path = "src/Main.rs"
 name = "Main"
+
 [dependencies]
-f128= "0.2"
-libc= "0.2"
+libc = "0.2"
+stb = "0.3.2"
+
+[build-dependencies]
+cmake = "0.1"

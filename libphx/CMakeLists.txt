@@ -6,15 +6,15 @@ cmake_policy(SET CMP0068 NEW)
 
 # ------------------------------------------------------------------------------
 
-file (GLOB HEADERS "include/*.h")
-file (GLOB SOURCES "src/*.cpp" "src/*.c")
+file (GLOB HEADERS "../original/libphx/include/*.h")
+file (GLOB SOURCES "../original/libphx/src/*.cpp" "../original/libphx/src/*.c")
 
 add_library (phx SHARED ${SOURCES} ${HEADERS})
 phx_configure_output_dir (phx)
 phx_configure_target_properties (phx)
 
 target_compile_definitions (phx PRIVATE LIBPHX_BUILDING=1)
-target_include_directories (phx PUBLIC "include")
+target_include_directories (phx PUBLIC "../original/libphx/include")
 
 set_target_properties (phx PROPERTIES
   PREFIX "lib"
