@@ -1,17 +1,15 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn cos(_: libc::c_double) -> libc::c_double;
     fn sin(_: libc::c_double) -> libc::c_double;
     fn tan(_: libc::c_double) -> libc::c_double;
     fn fabs(_: libc::c_double) -> libc::c_double;
     fn sqrt(_: libc::c_double) -> libc::c_double;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
@@ -20,8 +18,6 @@ extern "C" {
     fn Quat_GetAxisZ(_: *const Quat, _: *mut Vec3f);
     fn Quat_FromBasis(x: *const Vec3f, y: *const Vec3f, z: *const Vec3f, _: *mut Quat);
 }
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -1407,7 +1403,7 @@ pub unsafe extern "C" fn Matrix_ToString(mut self_0: *const Matrix) -> cstr {
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as size_t,
+            as libc::c_int as libc::size_t,
         b"[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\0"
             as *const u8 as *const libc::c_char,
         *m.offset(0 as libc::c_int as isize) as libc::c_double,

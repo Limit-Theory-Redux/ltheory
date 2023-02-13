@@ -1,12 +1,12 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 use std::ffi::VaListImpl;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type __sFILEX;
     fn vsnprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: __builtin_va_list,
     ) -> libc::c_int;
@@ -14,15 +14,11 @@ extern "C" {
     static mut __stdoutp: *mut FILE;
     fn fflush(_: *mut FILE) -> libc::c_int;
     fn fprintf(_: *mut FILE, _: *const libc::c_char, _: ...) -> libc::c_int;
-    fn free(_: *mut libc::c_void);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn abort() -> !;
 }
 pub type __builtin_va_list = *mut libc::c_char;
 pub type __int64_t = libc::c_longlong;
-pub type __darwin_size_t = libc::c_ulong;
 pub type __darwin_off_t = __int64_t;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type va_list = __builtin_va_list;
 pub type FILE = __sFILE;
@@ -83,7 +79,7 @@ pub unsafe extern "C" fn Fatal(mut format: cstr, mut args: ...) {
     args_0 = &args as *const VaListImpl as va_list;
     let mut len: libc::c_int = vsnprintf(
         0 as *mut libc::c_char,
-        0 as libc::c_int as libc::c_ulong,
+        0 as libc::size_t,
         format,
         args_0,
     ) + 1 as libc::c_int;
@@ -92,7 +88,7 @@ pub unsafe extern "C" fn Fatal(mut format: cstr, mut args: ...) {
             .wrapping_mul(len as usize),
     ) as *mut libc::c_char;
     args_0 = &args as *const VaListImpl as va_list;
-    vsnprintf(message, len as libc::c_ulong, format, args_0);
+    vsnprintf(message, len as usize, format, args_0);
     Fatal_Output(message as cstr);
 }
 
@@ -102,7 +98,7 @@ pub unsafe extern "C" fn Warn(mut format: cstr, mut args: ...) {
     args_0 = &args as *const VaListImpl as va_list;
     let mut len: libc::c_int = vsnprintf(
         0 as *mut libc::c_char,
-        0 as libc::c_int as libc::c_ulong,
+        0 as libc::size_t,
         format,
         args_0,
     ) + 1 as libc::c_int;
@@ -111,8 +107,8 @@ pub unsafe extern "C" fn Warn(mut format: cstr, mut args: ...) {
             .wrapping_mul(len as usize),
     ) as *mut libc::c_char;
     args_0 = &args as *const VaListImpl as va_list;
-    vsnprintf(message, len as libc::c_ulong, format, args_0);
+    vsnprintf(message, len as usize, format, args_0);
     fprintf(__stdoutp, b"%s\n\0" as *const u8 as *const libc::c_char, message);
     fflush(__stdoutp);
-    free(message as *mut libc::c_void);
+    libc::free(message as *mut libc::c_void);
 }

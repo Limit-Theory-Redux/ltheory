@@ -1,5 +1,8 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::PhxSignal::*;
+use crate::ResourceType::*;
+
 extern "C" {
     fn Directory_Create(path: cstr) -> bool;
     fn Fatal(_: cstr, _: ...);
@@ -90,38 +93,7 @@ pub type Signal = libc::c_int;
 pub type C2RustUnnamed = libc::c_uint;
 pub const SDL_GL_CONTEXT_PROFILE_ES: C2RustUnnamed = 4;
 pub const SDL_GL_CONTEXT_PROFILE_CORE: C2RustUnnamed = 1;
-#[no_mangle]
-pub static mut Signal_Int: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Ill: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Fpe: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Segv: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Term: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Abrt: Signal = 0;
-#[no_mangle]
-pub static mut ResourceType_Font: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Mesh: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Other: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Script: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Shader: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Sound: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex1D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex2D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex3D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_TexCube: ResourceType = 0;
+
 #[no_mangle]
 pub static mut subsystems: uint32 = 0x4000 as libc::c_uint | 0x20 as libc::c_uint
     | 0x1 as libc::c_uint | 0x1000 as libc::c_uint | 0x200 as libc::c_uint
@@ -246,7 +218,7 @@ pub unsafe extern "C" fn Engine_GetVersion() -> cstr {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_IsInitialized() -> bool {
-    return initTime != 0 as libc::c_int as libc::c_ulonglong;
+    return initTime != 0 as libc::c_ulonglong;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Terminate() {

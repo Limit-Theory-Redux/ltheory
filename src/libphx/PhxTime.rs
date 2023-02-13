@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn gmtime(_: *const time_t) -> *mut tm;
     fn localtime(_: *const time_t) -> *mut tm;

@@ -5,6 +5,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
+#![allow(unused_imports)]
 #![feature(c_variadic)]
 #![feature(extern_types)]
 #![feature(thread_local)]
@@ -12,10 +13,9 @@
 extern crate stb;
 extern crate libc;
 
-pub mod libphx {
-    pub mod internal {
-        pub mod Memory;
-    }
+pub mod internal {
+    pub mod Memory;
+}
 pub mod Audio;
 pub mod BSP;
 pub mod Bit;
@@ -122,4 +122,3 @@ pub mod Viewport;
 pub mod Window;
 pub mod WindowMode;
 pub mod WindowPos;
-} // mod libphx

@@ -1,11 +1,7 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type MemPool;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn floor(_: libc::c_double) -> libc::c_double;
     fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: uint64) -> uint64;
     fn MemPool_Create(cellSize: uint32, blockSize: uint32) -> *mut MemPool;
@@ -19,8 +15,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;

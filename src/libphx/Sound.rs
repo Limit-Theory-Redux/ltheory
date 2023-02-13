@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type FMOD_CHANNEL;
     pub type FMOD_SOUND;

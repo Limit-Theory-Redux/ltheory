@@ -1,11 +1,11 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::GamepadAxis::*;
+use crate::GamepadButton::*;
 extern "C" {
     pub type _SDL_GameController;
     pub type __sFILEX;
     pub type _SDL_Joystick;
-    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn SDL_GameControllerGetAttached(
         gamecontroller: *mut SDL_GameController,
     ) -> SDL_bool;
@@ -45,9 +45,7 @@ pub type uint8_t = libc::c_uchar;
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
 pub type __int64_t = libc::c_longlong;
-pub type __darwin_size_t = libc::c_ulong;
 pub type __darwin_off_t = __int64_t;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint64 = uint64_t;
@@ -114,15 +112,15 @@ pub struct SDL_RWops {
         unsafe extern "C" fn(*mut SDL_RWops, Sint64, libc::c_int) -> Sint64,
     >,
     pub read: Option::<
-        unsafe extern "C" fn(*mut SDL_RWops, *mut libc::c_void, size_t, size_t) -> size_t,
+        unsafe extern "C" fn(*mut SDL_RWops, *mut libc::c_void, libc::size_t, libc::size_t) -> libc::size_t,
     >,
     pub write: Option::<
         unsafe extern "C" fn(
             *mut SDL_RWops,
             *const libc::c_void,
-            size_t,
-            size_t,
-        ) -> size_t,
+            libc::size_t,
+            libc::size_t,
+        ) -> libc::size_t,
     >,
     pub close: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> libc::c_int>,
     pub type_0: Uint32,
@@ -205,56 +203,6 @@ pub type Sint64 = int64_t;
 pub type SDL_JoystickID = Sint32;
 pub type Sint32 = int32_t;
 pub type SDL_Joystick = _SDL_Joystick;
-#[no_mangle]
-pub static mut GamepadAxis_BEGIN: GamepadAxis = 0;
-#[no_mangle]
-pub static mut GamepadAxis_LeftX: GamepadAxis = 0;
-#[no_mangle]
-pub static mut GamepadAxis_LeftY: GamepadAxis = 0;
-#[no_mangle]
-pub static mut GamepadAxis_RightX: GamepadAxis = 0;
-#[no_mangle]
-pub static mut GamepadAxis_RightY: GamepadAxis = 0;
-#[no_mangle]
-pub static mut GamepadAxis_LTrigger: GamepadAxis = 0;
-#[no_mangle]
-pub static mut GamepadAxis_RTrigger: GamepadAxis = 0;
-#[no_mangle]
-pub static mut GamepadAxis_END: GamepadAxis = 0;
-#[no_mangle]
-pub static mut GamepadButton_BEGIN: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_A: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_B: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_X: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_Y: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_Back: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_Guide: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_Start: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_LStick: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_RStick: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_LBumper: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_RBumper: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_Up: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_Down: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_Left: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_Right: GamepadButton = 0;
-#[no_mangle]
-pub static mut GamepadButton_END: GamepadButton = 0;
 
 
 static mut gamepadList: *mut Gamepad = 0 as *const Gamepad as *mut Gamepad;

@@ -1,10 +1,8 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Mesh;
     pub type Matrix;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Draw_Color(
         r: libc::c_float,
         g: libc::c_float,
@@ -32,8 +30,6 @@ extern "C" {
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
 }
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BoxTree {

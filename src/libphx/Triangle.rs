@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
     fn __fpclassifyd(_: libc::c_double) -> libc::c_int;

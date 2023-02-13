@@ -1,28 +1,22 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::ResourceType::*;
+
 extern "C" {
     pub type Bytes;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
     fn File_Exists(path: cstr) -> bool;
     fn File_ReadBytes(path: cstr) -> *mut Bytes;
     fn File_ReadCstr(path: cstr) -> cstr;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn ResourceType_ToString(_: ResourceType) -> cstr;
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
 }
 pub type int32_t = libc::c_int;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type ResourceType = int32;
@@ -32,51 +26,7 @@ pub struct PathElem {
     pub format: cstr,
     pub next: *mut PathElem,
 }
-#[no_mangle]
-pub static mut ResourceType_Script: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Mesh: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Other: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Font: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Shader: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Sound: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex1D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex2D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex3D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_TexCube: ResourceType = 0;
-#[inline]
-unsafe extern "C" fn StrDup(mut s: cstr) -> cstr {
-    if s.is_null() {
-        return 0 as cstr;
-    }
-    let mut len: size_t = (StrLen(s)).wrapping_add(1 as libc::c_int as libc::c_ulong);
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[inline]
-unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
-    return malloc(len) as *mut libc::c_char;
-}
+
 static mut paths: [*mut PathElem; 10] = [
     0 as *const PathElem as *mut PathElem,
     0 as *const PathElem as *mut PathElem,

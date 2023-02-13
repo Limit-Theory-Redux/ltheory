@@ -1,9 +1,7 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: uint64) -> uint64;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn cos(_: libc::c_double) -> libc::c_double;
     fn sin(_: libc::c_double) -> libc::c_double;
     fn log(_: libc::c_double) -> libc::c_double;
@@ -15,8 +13,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
@@ -116,17 +112,6 @@ unsafe extern "C" fn Random_Xoroshiro128(
     *state0 = rotl(s0, 55 as libc::c_int) ^ s1 ^ s1 << 14 as libc::c_int;
     *state1 = rotl(s1, 36 as libc::c_int);
     return result;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
 }
 #[inline]
 unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {

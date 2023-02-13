@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Shader;
     pub type TexCube;
@@ -8,9 +8,6 @@ extern "C" {
     pub type Tex1D;
     pub type Matrix;
     fn Fatal(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     static mut __glewUniform1f: PFNGLUNIFORM1FPROC;
     static mut __glewUniform1i: PFNGLUNIFORM1IPROC;
     static mut __glewUniform2f: PFNGLUNIFORM2FPROC;
@@ -38,8 +35,6 @@ extern "C" {
 }
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;

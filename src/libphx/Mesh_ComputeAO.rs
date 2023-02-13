@@ -1,20 +1,17 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::DataFormat::*;
+use crate::PixelFormat::*;
+use crate::TexFormat::*;
+
 extern "C" {
     pub type Mesh;
     pub type Shader;
     pub type Tex2D;
     pub type Tex3D;
-    fn memset(
-        _: *mut libc::c_void,
-        _: libc::c_int,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn fabs(_: libc::c_double) -> libc::c_double;
     fn sqrt(_: libc::c_double) -> libc::c_double;
     fn ceil(_: libc::c_double) -> libc::c_double;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Draw_Rect(
         x: libc::c_float,
         y: libc::c_float,
@@ -47,8 +44,6 @@ extern "C" {
     );
 }
 pub type int32_t = libc::c_int;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 #[derive(Copy, Clone)]
@@ -82,20 +77,6 @@ pub struct Vertex {
 pub type DataFormat = int32;
 pub type PixelFormat = int32;
 pub type TexFormat = int32;
-#[no_mangle]
-pub static mut DataFormat_Float: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U8: DataFormat = 0;
 #[inline]
 unsafe extern "C" fn Vec3f_Create(
     mut x: libc::c_float,
@@ -190,52 +171,6 @@ unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
     return sqrt(t);
 }
 
-#[no_mangle]
-pub static mut PixelFormat_Red: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RG: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGB: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGR: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGBA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGRA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_Depth_Component: PixelFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGB8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth24: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth32F: TexFormat = 0;
 #[inline]
 unsafe extern "C" fn Vec4f_Create(
     mut x: libc::c_float,
@@ -270,21 +205,21 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
     ) as libc::c_int;
     let mut pointBuffer: *mut Vec4f = MemAlloc(
         (::core::mem::size_of::<Vec4f>())
-            .wrapping_mul(bufSize as libc::c_ulong),
+            .wrapping_mul(bufSize as usize),
     ) as *mut Vec4f;
     let mut normalBuffer: *mut Vec4f = MemAlloc(
         (::core::mem::size_of::<Vec4f>())
-            .wrapping_mul(bufSize as libc::c_ulong),
+            .wrapping_mul(bufSize as usize),
     ) as *mut Vec4f;
     MemZero(
         pointBuffer as *mut libc::c_void,
         (::core::mem::size_of::<Vec4f>())
-            .wrapping_mul(bufSize as libc::c_ulong),
+            .wrapping_mul(bufSize as usize),
     );
     MemZero(
         normalBuffer as *mut libc::c_void,
         (::core::mem::size_of::<Vec4f>())
-            .wrapping_mul(bufSize as libc::c_ulong),
+            .wrapping_mul(bufSize as usize),
     );
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < indexCount {
@@ -345,12 +280,12 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
     MemZero(
         pointBuffer as *mut libc::c_void,
         (::core::mem::size_of::<Vec4f>())
-            .wrapping_mul(bufSize as libc::c_ulong),
+            .wrapping_mul(bufSize as usize),
     );
     MemZero(
         normalBuffer as *mut libc::c_void,
         (::core::mem::size_of::<Vec4f>())
-            .wrapping_mul(bufSize as libc::c_ulong),
+            .wrapping_mul(bufSize as usize),
     );
     let mut i_0: libc::c_int = 0 as libc::c_int;
     while i_0 < vertexCount {
@@ -419,7 +354,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
     RenderState_PopAll();
     let mut result: *mut libc::c_float = MemAlloc(
         (::core::mem::size_of::<libc::c_float>())
-            .wrapping_mul((vDim * vDim) as libc::c_ulong),
+            .wrapping_mul((vDim * vDim) as usize),
     ) as *mut libc::c_float;
     Tex2D_GetData(
         texOutput,
@@ -452,7 +387,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
     let mut pointBuffer: *mut Vec3f = MemAlloc(
         (::core::mem::size_of::<Vec3f>())
-            .wrapping_mul((vDim * vDim) as libc::c_ulong),
+            .wrapping_mul((vDim * vDim) as usize),
     ) as *mut Vec3f;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < vertexCount {
@@ -490,7 +425,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     RenderState_PopAll();
     let mut result: *mut libc::c_float = MemAlloc(
         (::core::mem::size_of::<libc::c_float>())
-            .wrapping_mul((vDim * vDim) as libc::c_ulong),
+            .wrapping_mul((vDim * vDim) as usize),
     ) as *mut libc::c_float;
     Tex2D_GetData(
         texOutput,

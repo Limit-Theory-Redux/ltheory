@@ -1,15 +1,10 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::DataFormat::*;
+use crate::PixelFormat::*;
 extern "C" {
     pub type Mesh;
     pub type Tex3D;
-    fn memset(
-        _: *mut libc::c_void,
-        _: libc::c_int,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Mesh_Create() -> *mut Mesh;
     fn Mesh_AddQuad(
         _: *mut Mesh,
@@ -36,8 +31,6 @@ extern "C" {
 }
 pub type int32_t = libc::c_int;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type int32 = int32_t;
 pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
@@ -66,37 +59,6 @@ pub struct Vec3i {
     pub y: libc::c_int,
     pub z: libc::c_int,
 }
-pub type DataFormat = int32;
-pub type PixelFormat = int32;
-#[no_mangle]
-pub static mut DataFormat_Float: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U8: DataFormat = 0;
-
-#[no_mangle]
-pub static mut PixelFormat_Red: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RG: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGB: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGR: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGBA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGRA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_Depth_Component: PixelFormat = 0;
 #[inline]
 unsafe extern "C" fn Vec3f_Muls(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
     let mut self_0: Vec3f = {
@@ -246,12 +208,12 @@ pub unsafe extern "C" fn SDF_Create(
     (*self_0)
         .data = MemAlloc(
         (::core::mem::size_of::<Cell>())
-            .wrapping_mul((sx * sy * sz) as libc::c_ulong),
+            .wrapping_mul((sx * sy * sz) as usize),
     ) as *mut Cell;
     MemZero(
         (*self_0).data as *mut libc::c_void,
         (::core::mem::size_of::<Cell>())
-            .wrapping_mul(sx as usize).wrapping_mul(sy as usize).wrapping_mul(sz as libc::c_ulong),
+            .wrapping_mul(sx as usize).wrapping_mul(sy as usize).wrapping_mul(sz as usize),
     );
     return self_0;
 }
@@ -264,7 +226,7 @@ pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
         .data = MemAlloc(
         (::core::mem::size_of::<Cell>())
             .wrapping_mul(
-                ((*self_0).size.x * (*self_0).size.y * (*self_0).size.z) as libc::c_ulong,
+                ((*self_0).size.x * (*self_0).size.y * (*self_0).size.z) as usize,
             ),
     ) as *mut Cell;
     Tex3D_GetData(
@@ -317,7 +279,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut self_0: *mut SDF) -> *mut Mesh {
     };
     let mut indices: *mut libc::c_int = MemAlloc(
         (::core::mem::size_of::<libc::c_int>())
-            .wrapping_mul((cells.x * cells.y * cells.z) as libc::c_ulong),
+            .wrapping_mul((cells.x * cells.y * cells.z) as usize),
     ) as *mut libc::c_int;
     let vp: [Vec3f; 8] = [
         {

@@ -1,17 +1,9 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Mesh;
     fn Fatal(_: cstr, _: ...);
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn strtof(_: *const libc::c_char, _: *mut *mut libc::c_char) -> libc::c_float;
     fn strtol(
         _: *const libc::c_char,
@@ -35,8 +27,6 @@ extern "C" {
     fn __error() -> *mut libc::c_int;
 }
 pub type int32_t = libc::c_int;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 #[derive(Copy, Clone)]
@@ -78,21 +68,6 @@ pub struct VertexIndices {
 
 
 #[inline]
-unsafe extern "C" fn StrEqual(mut a: cstr, mut b: cstr) -> bool {
-    return strcmp(a, b) == 0 as libc::c_int;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[inline]
 unsafe extern "C" fn Vec3f_Equal(mut a: Vec3f, mut b: Vec3f) -> bool {
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
@@ -105,7 +80,7 @@ unsafe extern "C" fn Obj_Fatal(mut message: cstr, mut s: *mut ParseState) {
         ch = ch.offset(1);
         len += 1 as libc::c_int;
     }
-    let mut line: *mut libc::c_char = MemAlloc((len + 1 as libc::c_int) as size_t)
+    let mut line: *mut libc::c_char = MemAlloc((len + 1 as libc::c_int) as libc::size_t)
         as *mut libc::c_char;
     MemCpy(
         line as *mut libc::c_void,

@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 pub type int32_t = libc::c_int;
 pub type int32 = int32_t;
 pub type HatDir = int32;

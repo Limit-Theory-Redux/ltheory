@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Matrix;
     fn fabs(_: libc::c_double) -> libc::c_double;
@@ -366,10 +366,10 @@ pub unsafe extern "C" fn Intersect_RectRectFast(
     mut b: *const Vec4f,
 ) -> bool {
     let mut result: bool = 1 as libc::c_int != 0;
-    result = (result as libc::c_int & ((*a).x < (*b).x + (*b).z) as libc::c_int) as bool;
-    result = (result as libc::c_int & ((*b).x < (*a).x + (*a).z) as libc::c_int) as bool;
-    result = (result as libc::c_int & ((*a).y < (*b).y + (*b).w) as libc::c_int) as bool;
-    result = (result as libc::c_int & ((*b).y < (*a).y + (*a).w) as libc::c_int) as bool;
+    result = (result as libc::c_int & ((*a).x < (*b).x + (*b).z) as libc::c_int) != 0;
+    result = (result as libc::c_int & ((*b).x < (*a).x + (*a).z) as libc::c_int) != 0;
+    result = (result as libc::c_int & ((*a).y < (*b).y + (*b).w) as libc::c_int) != 0;
+    result = (result as libc::c_int & ((*b).y < (*a).y + (*a).w) as libc::c_int) != 0;
     return result;
 }
 #[inline]

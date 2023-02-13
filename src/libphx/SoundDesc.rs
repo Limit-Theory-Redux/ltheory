@@ -1,5 +1,7 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::ResourceType::*;
+
 extern "C" {
     pub type File;
     pub type FMOD_SOUND;
@@ -7,16 +9,6 @@ extern "C" {
     pub type FMOD_SOUNDGROUP;
     fn Audio_DeallocSoundDesc(_: *mut SoundDesc);
     fn Audio_AllocSoundDesc(name: cstr) -> *mut SoundDesc;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
-    fn memset(
-        _: *mut libc::c_void,
-        _: libc::c_int,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Audio_GetHandle() -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
@@ -77,15 +69,11 @@ extern "C" {
         sound: *mut FMOD_SOUND,
         userdata: *mut libc::c_void,
     ) -> FMOD_RESULT;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
 }
 pub type int16_t = libc::c_short;
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int16 = int16_t;
 pub type int32 = int32_t;
@@ -801,80 +789,7 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
         _ => return b"Unknown error.\0" as *const u8 as *const libc::c_char,
     };
 }
-#[no_mangle]
-pub static mut ResourceType_Font: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex3D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Mesh: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Other: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Script: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Shader: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Sound: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex1D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex2D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_TexCube: ResourceType = 0;
-#[inline]
-unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
-    return malloc(len) as *mut libc::c_char;
-}
-#[inline]
-unsafe extern "C" fn StrFree(mut s: cstr) {
-    free(s as *mut libc::c_void);
-}
-#[inline]
-unsafe extern "C" fn StrAdd(mut a: cstr, mut b: cstr) -> cstr {
-    let mut buf: *mut libc::c_char = StrAlloc(
-        (StrLen(a))
-            .wrapping_add(StrLen(b))
-            .wrapping_add(1 as libc::c_int as libc::c_ulong),
-    );
-    let mut cur: *mut libc::c_char = buf;
-    while *a != 0 {
-        let fresh0 = a;
-        a = a.offset(1);
-        let fresh1 = cur;
-        cur = cur.offset(1);
-        *fresh1 = *fresh0;
-    }
-    while *b != 0 {
-        let fresh2 = b;
-        b = b.offset(1);
-        let fresh3 = cur;
-        cur = cur.offset(1);
-        *fresh3 = *fresh2;
-    }
-    *cur = 0 as libc::c_int as libc::c_char;
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[inline]
-unsafe extern "C" fn StrDup(mut s: cstr) -> cstr {
-    if s.is_null() {
-        return 0 as cstr;
-    }
-    let mut len: size_t = (StrLen(s)).wrapping_add(1 as libc::c_int as libc::c_ulong);
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
-    return buf as cstr;
-}
+
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_FinishLoad(
     mut self_0: *mut SoundDesc,

@@ -1,14 +1,10 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn SDL_GetPerformanceCounter() -> Uint64;
     fn SDL_GetPerformanceFrequency() -> Uint64;
 }
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]

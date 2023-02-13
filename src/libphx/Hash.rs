@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 pub type int8_t = libc::c_schar;
 pub type uint8_t = libc::c_uchar;
 pub type uint32_t = libc::c_uint;
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn Hash_XX64(
         let limit: *const uint8 = end.offset(-(32 as libc::c_int as isize));
         let mut v1: uint64 = seed.wrapping_add(PRIME64_1).wrapping_add(PRIME64_2);
         let mut v2: uint64 = seed.wrapping_add(PRIME64_2);
-        let mut v3: uint64 = seed.wrapping_add(0 as libc::c_int as libc::c_ulonglong);
+        let mut v3: uint64 = seed.wrapping_add(0 as libc::c_ulonglong);
         let mut v4: uint64 = seed.wrapping_sub(PRIME64_1);
         loop {
             v1 = XXH64_round(v1, *(p as *const uint64));

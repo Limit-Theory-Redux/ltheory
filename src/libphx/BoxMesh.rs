@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 
 
 extern "C" {
@@ -44,8 +44,6 @@ extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
 }
 pub type int32_t = libc::c_int;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type int32 = int32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]

@@ -12,7 +12,7 @@ autobins = false
 
 [lib]
 name = "libphx"
-path = "src/libphx.rs"
+path = "src/libphx/mod.rs"
 crate-type = ["staticlib", "rlib"]
 
 [[bin]]

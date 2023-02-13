@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
     fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
@@ -12,14 +12,12 @@ extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
 }
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
@@ -595,7 +593,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> cstr {
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as size_t,
+            as libc::c_int as libc::size_t,
         b"(%.4f, %.4f, %.4f, %.4f)\0" as *const u8 as *const libc::c_char,
         (*q).x as libc::c_double,
         (*q).y as libc::c_double,

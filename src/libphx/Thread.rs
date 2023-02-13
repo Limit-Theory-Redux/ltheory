@@ -1,9 +1,7 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type SDL_Thread;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Fatal(_: cstr, _: ...);
     fn SDL_Delay(ms: Uint32);
     fn SDL_CreateThread(
@@ -15,8 +13,6 @@ extern "C" {
     fn SDL_DetachThread(thread: *mut SDL_Thread);
 }
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]

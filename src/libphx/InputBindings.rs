@@ -1,9 +1,9 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::State::*;
+
 extern "C" {
     pub type lua_State;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn Input_GetNextEvent(_: *mut InputEvent) -> bool;
     fn pow(_: libc::c_double, _: libc::c_double) -> libc::c_double;
     fn sqrt(_: libc::c_double) -> libc::c_double;
@@ -12,8 +12,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
 pub type __darwin_ptrdiff_t = libc::c_long;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
@@ -153,16 +151,7 @@ unsafe extern "C" fn Vec2f_Equal(mut a: Vec2f, mut b: Vec2f) -> bool {
     let mut self_1: bool = a.x == b.x && a.y == b.y;
     return self_1;
 }
-#[no_mangle]
-pub static mut State_Null: State = 0;
-#[no_mangle]
-pub static mut State_Changed: State = 0;
-#[no_mangle]
-pub static mut State_Pressed: State = 0;
-#[no_mangle]
-pub static mut State_Down: State = 0;
-#[no_mangle]
-pub static mut State_Released: State = 0;
+
 static mut BindCount: libc::c_int = 4 as libc::c_int;
 static mut self_0: InputBindings = {
     let mut init = InputBindings {

@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Matrix;
     fn tan(_: libc::c_double) -> libc::c_double;

@@ -1,13 +1,8 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Mesh;
     pub type Matrix;
-    fn memset(
-        _: *mut libc::c_void,
-        _: libc::c_int,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Draw_Box3(box_0: *const Box3f);
     fn Draw_Color(
         r: libc::c_float,
@@ -15,8 +10,6 @@ extern "C" {
         b: libc::c_float,
         a: libc::c_float,
     );
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Matrix_Free(_: *mut Matrix);
     fn Matrix_Inverse(_: *const Matrix) -> *mut Matrix;
     fn Matrix_MulDir(
@@ -40,8 +33,6 @@ extern "C" {
 }
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint32 = uint32_t;
 pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
@@ -340,7 +331,7 @@ pub unsafe extern "C" fn Octree_GetMemory(mut self_0: *mut Octree) -> libc::c_in
     }
     let mut elem: *mut Node = (*self_0).elems;
     while !elem.is_null() {
-        memory = (memory as libc::c_ulong)
+        memory = (memory as usize)
             .wrapping_add(::core::mem::size_of::<Node>()) as libc::c_int
             as libc::c_int;
         elem = (*elem).next;

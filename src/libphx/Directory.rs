@@ -1,23 +1,20 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type _telldir;
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn File_IsDir(path: cstr) -> bool;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn closedir(_: *mut DIR) -> libc::c_int;
     fn opendir(_: *const libc::c_char) -> *mut DIR;
     fn readdir(_: *mut DIR) -> *mut dirent;
     fn chdir(_: *const libc::c_char) -> libc::c_int;
-    fn getcwd(_: *mut libc::c_char, _: size_t) -> *mut libc::c_char;
+    fn getcwd(_: *mut libc::c_char, _: libc::size_t) -> *mut libc::c_char;
     fn rmdir(_: *const libc::c_char) -> libc::c_int;
     fn mkdir(_: *const libc::c_char, _: mode_t) -> libc::c_int;
 }
 pub type __uint8_t = libc::c_uchar;
 pub type __uint16_t = libc::c_ushort;
 pub type __uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
 pub type __darwin_mode_t = __uint16_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -26,7 +23,6 @@ pub struct _opaque_pthread_mutex_t {
     pub __opaque: [libc::c_char; 56],
 }
 pub type __darwin_pthread_mutex_t = _opaque_pthread_mutex_t;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -59,10 +55,6 @@ pub struct dirent {
 }
 pub type mode_t = __darwin_mode_t;
 
-#[inline]
-unsafe extern "C" fn StrEqual(mut a: cstr, mut b: cstr) -> bool {
-    return strcmp(a, b) == 0 as libc::c_int;
-}
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Open(mut path: cstr) -> *mut Directory {
     let mut dir: *mut DIR = opendir(path);
@@ -115,7 +107,7 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> cstr {
     static mut buffer: [libc::c_char; 1024] = [0; 1024];
     if !(getcwd(
         buffer.as_mut_ptr(),
-        ::core::mem::size_of::<[libc::c_char; 1024]>() as size_t,
+        ::core::mem::size_of::<[libc::c_char; 1024]>() as libc::size_t,
     ))
         .is_null()
     {

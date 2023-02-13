@@ -1,20 +1,18 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::DataFormat::*;
+use crate::PixelFormat::*;
+use crate::ResourceType::*;
+use crate::TexFormat::*;
+
 extern "C" {
     pub type Bytes;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
     fn Bytes_Create(len: uint32) -> *mut Bytes;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Rewind(_: *mut Bytes);
     fn DataFormat_GetSize(_: DataFormat) -> libc::c_int;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Draw_Clear(
         r: libc::c_float,
         g: libc::c_float,
@@ -108,8 +106,6 @@ extern "C" {
 }
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint = libc::c_uint;
 pub type uchar = libc::c_uchar;
 pub type cstr = *const libc::c_char;
@@ -143,20 +139,6 @@ pub type GLsizei = libc::c_int;
 pub type GLfloat = libc::c_float;
 pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
-#[no_mangle]
-pub static mut DataFormat_U8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_Float: DataFormat = 0;
 #[inline]
 unsafe extern "C" fn Vec2i_Create(mut x: libc::c_int, mut y: libc::c_int) -> Vec2i {
     let mut self_0: Vec2i = {
@@ -166,72 +148,6 @@ unsafe extern "C" fn Vec2i_Create(mut x: libc::c_int, mut y: libc::c_int) -> Vec
     return self_0;
 }
 
-#[no_mangle]
-pub static mut PixelFormat_Red: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RG: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGB: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGR: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGBA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGRA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_Depth_Component: PixelFormat = 0;
-#[no_mangle]
-pub static mut ResourceType_Font: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Mesh: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Other: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Script: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex3D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_TexCube: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Shader: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Sound: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex1D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex2D: ResourceType = 0;
-#[no_mangle]
-pub static mut TexFormat_R8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGB8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth24: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth32F: TexFormat = 0;
 #[inline]
 unsafe extern "C" fn Tex2D_Init() {
     glTexParameteri(
@@ -303,7 +219,7 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     let mut self_0: *mut Tex2D = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
     let mut buf: *mut uint32 = MemAlloc(
         (::core::mem::size_of::<uint32>())
-            .wrapping_mul((size.x * size.y) as libc::c_ulong),
+            .wrapping_mul((size.x * size.y) as usize),
     ) as *mut uint32;
     Metric_Inc(0x6 as libc::c_int);
     glReadPixels(
@@ -320,20 +236,20 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
         let mut x: libc::c_int = 0 as libc::c_int;
         while x < size.x {
             let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
-            memcpy(
+            MemCpy(
                 swap_temp.as_mut_ptr() as *mut libc::c_void,
                 &mut *buf.offset((size.x * (size.y - y - 1 as libc::c_int) + x) as isize)
                     as *mut uint32 as *const libc::c_void,
                 ::core::mem::size_of::<uint32>() as usize,
             );
-            memcpy(
+            MemCpy(
                 &mut *buf.offset((size.x * (size.y - y - 1 as libc::c_int) + x) as isize)
                     as *mut uint32 as *mut libc::c_void,
                 &mut *buf.offset((size.x * y + x) as isize) as *mut uint32
                     as *const libc::c_void,
                 ::core::mem::size_of::<uint32>() as usize,
             );
-            memcpy(
+            MemCpy(
                 &mut *buf.offset((size.x * y + x) as isize) as *mut uint32
                     as *mut libc::c_void,
                 swap_temp.as_mut_ptr() as *const libc::c_void,
@@ -716,7 +632,7 @@ pub unsafe extern "C" fn Tex2D_Save(mut self_0: *mut Tex2D, mut path: cstr) {
     Metric_Inc(0x6 as libc::c_int);
     glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
     let mut buffer: *mut uchar = MemAlloc(
-        (4 as libc::c_int * (*self_0).size.x * (*self_0).size.y) as size_t,
+        (4 as libc::c_int * (*self_0).size.x * (*self_0).size.y) as libc::size_t,
     ) as *mut uchar;
     glGetTexImage(
         0xde1 as libc::c_int as GLenum,

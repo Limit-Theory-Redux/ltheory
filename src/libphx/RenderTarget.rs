@@ -1,5 +1,7 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::TexFormat::*;
+
 extern "C" {
     pub type Tex2D;
     pub type Tex3D;
@@ -79,38 +81,7 @@ pub struct FBO {
     pub sy: libc::c_int,
     pub depth: bool,
 }
-#[no_mangle]
-pub static mut TexFormat_R8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGB8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth24: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth32F: TexFormat = 0;
+
 static mut fboIndex: libc::c_int = -(1 as libc::c_int);
 static mut fboStack: [FBO; 16] = [FBO {
     handle: 0,

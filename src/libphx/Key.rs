@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 pub type uchar = libc::c_uchar;
 pub type Key = uchar;
 pub const SDL_SCANCODE_A: C2RustUnnamed = 4;

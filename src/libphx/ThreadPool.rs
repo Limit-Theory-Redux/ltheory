@@ -1,10 +1,8 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type SDL_Thread;
     fn Fatal(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn SDL_CreateThread(
         fn_0: SDL_ThreadFunction,
         name: *const libc::c_char,
@@ -12,8 +10,6 @@ extern "C" {
     ) -> *mut SDL_Thread;
     fn SDL_WaitThread(thread: *mut SDL_Thread, status: *mut libc::c_int);
 }
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -50,7 +46,7 @@ pub unsafe extern "C" fn ThreadPool_Create(mut threads: libc::c_int) -> *mut Thr
     (*self_0).threads = threads;
     (*self_0)
         .thread = MemAlloc(
-        ::core::mem::size_of::<ThreadData>().wrapping_mul(threads) as usize,
+        ::core::mem::size_of::<ThreadData>().wrapping_mul(threads as usize),
     ) as *mut ThreadData;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < threads {

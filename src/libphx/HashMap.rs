@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 
 extern "C" {
     fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: uint64) -> uint64;
@@ -7,8 +7,6 @@ extern "C" {
 
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint32 = uint32_t;
 pub type uint64 = uint64_t;
 

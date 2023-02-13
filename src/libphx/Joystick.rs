@@ -1,21 +1,9 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type _SDL_Joystick;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
-    fn memset(
-        _: *mut libc::c_void,
-        _: libc::c_int,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn fabs(_: libc::c_double) -> libc::c_double;
-    fn free(_: *mut libc::c_void);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn SDL_JoystickGetGUID(joystick: *mut SDL_Joystick) -> SDL_JoystickGUID;
     fn SDL_JoystickClose(joystick: *mut SDL_Joystick);
     fn SDL_NumJoysticks() -> libc::c_int;
@@ -42,8 +30,6 @@ pub type int16_t = libc::c_short;
 pub type int32_t = libc::c_int;
 pub type uint8_t = libc::c_uchar;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint64 = uint64_t;
@@ -77,31 +63,7 @@ unsafe extern "C" fn Abs(mut t: libc::c_double) -> libc::c_double {
     return fabs(t);
 }
 
-#[inline]
-unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
-    return malloc(len) as *mut libc::c_char;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[inline]
-unsafe extern "C" fn StrDup(mut s: cstr) -> cstr {
-    if s.is_null() {
-        return 0 as cstr;
-    }
-    let mut len: size_t = (StrLen(s)).wrapping_add(1 as libc::c_int as libc::c_ulong);
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
-    return buf as cstr;
-}
+
 static mut kMaxOpen: libc::c_int = 64 as libc::c_int;
 static mut kOpen: libc::c_int = 0 as libc::c_int;
 static mut freeList: [*mut Joystick; 64] = [
@@ -243,22 +205,22 @@ pub unsafe extern "C" fn Joystick_Open(mut index: libc::c_int) -> *mut Joystick 
     (*self_0)
         .buttonStates = MemAlloc(
         (::core::mem::size_of::<bool>())
-            .wrapping_mul((*self_0).buttons as libc::c_ulong),
+            .wrapping_mul((*self_0).buttons as usize),
     ) as *mut bool;
     (*self_0)
         .axisAlive = MemAlloc(
         (::core::mem::size_of::<bool>())
-            .wrapping_mul((*self_0).axes as libc::c_ulong),
+            .wrapping_mul((*self_0).axes as usize),
     ) as *mut bool;
     MemZero(
         (*self_0).axisAlive as *mut libc::c_void,
         (::core::mem::size_of::<bool>())
-            .wrapping_mul((*self_0).axes as libc::c_ulong),
+            .wrapping_mul((*self_0).axes as usize),
     );
     (*self_0)
         .axisStates = MemAlloc(
         (::core::mem::size_of::<libc::c_double>())
-            .wrapping_mul((*self_0).axes as libc::c_ulong),
+            .wrapping_mul((*self_0).axes as usize),
     ) as *mut libc::c_double;
     (*self_0).lastUsed = TimeStamp_Get();
     Joystick_UpdateSingle(self_0);

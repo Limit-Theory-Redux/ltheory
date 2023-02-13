@@ -1,12 +1,11 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type lua_State;
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn qsort(
         __base: *mut libc::c_void,
-        __nel: size_t,
-        __width: size_t,
+        __nel: libc::size_t,
+        __width: libc::size_t,
         __compar: Option::<
             unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> libc::c_int,
         >,
@@ -34,8 +33,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type uint64_t = libc::c_ulonglong;
 pub type __darwin_ptrdiff_t = libc::c_long;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint64 = uint64_t;
@@ -164,7 +161,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> libc::c_int {
     self_0.locked = 1 as libc::c_int != 0;
     qsort(
         self_0.elems_data as *mut libc::c_void,
-        self_0.elems_size as size_t,
+        self_0.elems_size as libc::size_t,
         ::core::mem::size_of::<SchedulerElem>() as usize,
         Some(
             SortByWake

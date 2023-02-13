@@ -1,19 +1,9 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
-    fn memset(
-        _: *mut libc::c_void,
-        _: libc::c_int,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
 }
 pub type uint16_t = libc::c_ushort;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint16 = uint16_t;
 pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
@@ -42,7 +32,7 @@ unsafe extern "C" fn MemPool_Grow(mut self_0: *mut MemPool) {
         ((*self_0).blockCount as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()),
     ) as *mut *mut libc::c_void;
     let mut newBlock: *mut libc::c_void = MemAlloc(
-        ((*self_0).cellSize).wrapping_mul((*self_0).blockSize) as size_t,
+        ((*self_0).cellSize).wrapping_mul((*self_0).blockSize) as libc::size_t,
     );
     let ref mut fresh1 = *((*self_0).blocks).offset(newBlockIndex as isize);
     *fresh1 = newBlock;
@@ -98,7 +88,7 @@ pub unsafe extern "C" fn MemPool_Alloc(mut self_0: *mut MemPool) -> *mut libc::c
     let mut freeCell: *mut libc::c_void = (*self_0).freeList;
     (*self_0).freeList = *(freeCell as *mut *mut libc::c_void);
     (*self_0).size = ((*self_0).size).wrapping_add(1);
-    MemZero(freeCell, (*self_0).cellSize as size_t);
+    MemZero(freeCell, (*self_0).cellSize as libc::size_t);
     return freeCell;
 }
 #[no_mangle]

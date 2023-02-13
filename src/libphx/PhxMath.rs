@@ -1,11 +1,6 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn exp(_: libc::c_double) -> libc::c_double;
     fn fabs(_: libc::c_double) -> libc::c_double;
     fn pow(_: libc::c_double, _: libc::c_double) -> libc::c_double;
@@ -92,17 +87,17 @@ pub unsafe extern "C" fn Math_ClampSafe(
 ) -> libc::c_double {
     if b < a {
         let mut swap_temp: [libc::c_uchar; 8] = [0; 8];
-        memcpy(
+        MemCpy(
             swap_temp.as_mut_ptr() as *mut libc::c_void,
             &mut b as *mut libc::c_double as *const libc::c_void,
             ::core::mem::size_of::<libc::c_double>(),
         );
-        memcpy(
+        MemCpy(
             &mut b as *mut libc::c_double as *mut libc::c_void,
             &mut a as *mut libc::c_double as *const libc::c_void,
             ::core::mem::size_of::<libc::c_double>(),
         );
-        memcpy(
+        MemCpy(
             &mut a as *mut libc::c_double as *mut libc::c_void,
             swap_temp.as_mut_ptr() as *const libc::c_void,
             ::core::mem::size_of::<libc::c_double>(),

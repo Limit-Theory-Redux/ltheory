@@ -1,24 +1,14 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: uint64) -> uint64;
     fn Fatal(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     fn puts(_: *const libc::c_char) -> libc::c_int;
 }
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type uint32 = uint32_t;
 pub type uint64 = uint64_t;
@@ -45,39 +35,8 @@ pub struct StrMapIter {
 }
 
 
-#[inline]
-unsafe extern "C" fn StrFree(mut s: cstr) {
-    free(s as *mut libc::c_void);
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[inline]
-unsafe extern "C" fn StrEqual(mut a: cstr, mut b: cstr) -> bool {
-    return strcmp(a, b) == 0 as libc::c_int;
-}
-#[inline]
-unsafe extern "C" fn StrDup(mut s: cstr) -> cstr {
-    if s.is_null() {
-        return 0 as cstr;
-    }
-    let mut len: size_t = (StrLen(s)).wrapping_add(1 as libc::c_int as libc::c_ulong);
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
-    return malloc(len) as *mut libc::c_char;
-}
+
+
 #[inline]
 unsafe extern "C" fn Hash(mut key: cstr) -> uint64 {
     return Hash_XX64(
@@ -109,7 +68,7 @@ unsafe extern "C" fn StrMap_Grow(mut self_0: *mut StrMap) {
     newMap
         .data = MemAllocZero(
         (::core::mem::size_of::<Node>())
-            .wrapping_mul(newMap.capacity as libc::c_ulong),
+            .wrapping_mul(newMap.capacity as usize),
     ) as *mut Node;
     let mut i: uint32 = 0 as libc::c_int as uint32;
     while i < (*self_0).capacity {
@@ -140,7 +99,7 @@ pub unsafe extern "C" fn StrMap_Create(mut capacity: uint32) -> *mut StrMap {
     (*self_0)
         .data = MemAllocZero(
         (::core::mem::size_of::<Node>())
-            .wrapping_mul(capacity as libc::c_ulong),
+            .wrapping_mul(capacity as usize),
     ) as *mut Node;
     return self_0;
 }

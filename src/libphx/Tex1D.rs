@@ -1,5 +1,8 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::DataFormat::*;
+use crate::PixelFormat::*;
+use crate::TexFormat::*;
 extern "C" {
     pub type Bytes;
     fn Bytes_Create(len: uint32) -> *mut Bytes;
@@ -7,8 +10,6 @@ extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn Bytes_Rewind(_: *mut Bytes);
     fn DataFormat_GetSize(_: DataFormat) -> libc::c_int;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLuint);
     fn glDeleteTextures(n: GLsizei, textures: *const GLuint);
@@ -53,8 +54,6 @@ extern "C" {
 }
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
@@ -79,67 +78,6 @@ pub type GLsizei = libc::c_int;
 pub type GLfloat = libc::c_float;
 pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
-#[no_mangle]
-pub static mut DataFormat_U8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_Float: DataFormat = 0;
-
-#[no_mangle]
-pub static mut PixelFormat_Red: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RG: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGB: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGR: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGBA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGRA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_Depth_Component: PixelFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGB8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth24: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth32F: TexFormat = 0;
 #[inline]
 unsafe extern "C" fn Tex1D_Init() {
     glTexParameteri(

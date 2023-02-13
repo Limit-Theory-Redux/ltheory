@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 
 extern "C" {
     fn RenderState_PushBlendMode(_: BlendMode);

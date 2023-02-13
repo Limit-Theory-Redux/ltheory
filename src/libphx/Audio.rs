@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type MemPool;
     pub type FMOD_CHANNEL;
@@ -7,9 +7,6 @@ extern "C" {
     pub type StrMap;
     pub type FMOD_SYSTEM;
     fn Fatal(_: cstr, _: ...);
-    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn FMOD_Debug_Initialize(
         flags: FMOD_DEBUG_FLAGS,
         mode: FMOD_DEBUG_MODE,
@@ -64,8 +61,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type uint8_t = libc::c_uchar;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;

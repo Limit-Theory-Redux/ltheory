@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type StrMap;
     pub type Tex1D;
@@ -7,14 +7,7 @@ extern "C" {
     pub type Tex3D;
     pub type TexCube;
     pub type Matrix;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn ShaderVarType_GetName(_: ShaderVarType) -> cstr;
     fn ShaderVarType_GetSize(_: ShaderVarType) -> libc::c_int;
     fn StrMap_Create(initCapacity: uint32) -> *mut StrMap;
@@ -24,8 +17,6 @@ extern "C" {
 }
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
@@ -79,7 +70,7 @@ unsafe extern "C" fn ShaderVar_GetStack(
         (*self_0).size = 0 as libc::c_int;
         (*self_0).capacity = 4 as libc::c_int;
         (*self_0).elemSize = ShaderVarType_GetSize(type_0);
-        (*self_0).data = MemAlloc(((*self_0).capacity * (*self_0).elemSize) as size_t);
+        (*self_0).data = MemAlloc(((*self_0).capacity * (*self_0).elemSize) as libc::size_t);
         StrMap_Set(varMap, var, self_0 as *mut libc::c_void);
     }
     if type_0 != 0 && (*self_0).type_0 != type_0 {
@@ -105,14 +96,14 @@ unsafe extern "C" fn ShaderVar_Push(
         (*self_0)
             .data = MemRealloc(
             (*self_0).data,
-            ((*self_0).capacity * (*self_0).elemSize) as size_t,
+            ((*self_0).capacity * (*self_0).elemSize) as libc::size_t,
         );
     }
     MemCpy(
         ((*self_0).data as *mut libc::c_char)
             .offset(((*self_0).size * (*self_0).elemSize) as isize) as *mut libc::c_void,
         value,
-        (*self_0).elemSize as size_t,
+        (*self_0).elemSize as libc::size_t,
     );
     (*self_0).size += 1;
 }

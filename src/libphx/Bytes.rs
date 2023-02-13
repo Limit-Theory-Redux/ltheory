@@ -1,19 +1,12 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type File;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
     fn File_Create(path: cstr) -> *mut File;
     fn File_Close(_: *mut File);
     fn File_ReadBytes(path: cstr) -> *mut Bytes;
     fn File_Write(_: *mut File, data: *const libc::c_void, len: uint32);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn putchar(_: libc::c_int) -> libc::c_int;
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     fn LZ4_versionNumber() -> libc::c_int;
@@ -37,8 +30,6 @@ pub type uint8_t = libc::c_uchar;
 pub type uint16_t = libc::c_ushort;
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int8 = int8_t;
 pub type int16 = int16_t;
@@ -57,17 +48,6 @@ pub struct Bytes {
 }
 
 
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
 unsafe extern "C" fn Bytes_CheckLZ4Version() {
     let mut vLink: libc::c_int = LZ4_versionNumber()
         / (100 as libc::c_int * 100 as libc::c_int);
@@ -261,7 +241,7 @@ pub unsafe extern "C" fn Bytes_Write(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_WriteStr(mut self_0: *mut Bytes, mut data: cstr) {
-    let mut len: size_t = StrLen(data);
+    let mut len: libc::size_t = StrLen(data);
     MemCpy(
         (&mut (*self_0).data as *mut libc::c_char).offset((*self_0).cursor as isize)
             as *mut libc::c_void,

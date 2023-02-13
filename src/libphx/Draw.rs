@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
@@ -27,8 +27,6 @@ extern "C" {
     static mut __glewCheckFramebufferStatus: PFNGLCHECKFRAMEBUFFERSTATUSPROC;
 }
 pub type int32_t = libc::c_int;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 #[derive(Copy, Clone)]
@@ -554,16 +552,16 @@ unsafe extern "C" fn Spherical(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) {
-    let res: size_t = 7 as libc::c_int as size_t;
+    let res: libc::size_t = 7 as libc::c_int as libc::size_t;
     let fRes: libc::c_float = res as libc::c_float;
     Metric_AddDrawImm(
         res as int32,
         res as int32,
-        res.wrapping_mul(3 as libc::c_int as libc::c_ulong) as int32,
+        res.wrapping_mul(3 as libc::size_t) as int32,
     );
     glBegin(0x4 as libc::c_int as GLenum);
     let mut lastTheta: libc::c_float = res
-        .wrapping_sub(1 as libc::c_int as libc::c_ulong) as libc::c_float / fRes
+        .wrapping_sub(1 as libc::size_t) as libc::c_float / fRes
         * 6.28318531f32;
     let mut phi: libc::c_float = 1.0f32 / fRes * 3.14159265f32;
     let mut tc: Vec3f = Vec3f_Add(
@@ -574,7 +572,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
             0 as libc::c_int as libc::c_float,
         ),
     );
-    let mut iTheta: size_t = 0 as libc::c_int as size_t;
+    let mut iTheta: libc::size_t = 0 as libc::c_int as libc::size_t;
     while iTheta < res {
         let mut theta: libc::c_float = iTheta as libc::c_float / fRes * 6.28318531f32;
         let mut br: Vec3f = Vec3f_Add(*p, Spherical(r, lastTheta, phi));
@@ -587,19 +585,19 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
     }
     glEnd();
     Metric_AddDrawImm(
-        res.wrapping_sub(2 as libc::c_int as libc::c_ulong) as int32,
-        (2 as libc::c_int as usize).wrapping_mul(res.wrapping_sub(2 as libc::c_int as libc::c_ulong) as usize) as int32,
-        (4 as libc::c_int as usize).wrapping_mul(res.wrapping_sub(2 as libc::c_int as libc::c_ulong) as usize) as int32,
+        res.wrapping_sub(2 as libc::size_t) as int32,
+        (2 as libc::c_int as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
+        (4 as libc::c_int as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
     );
     glBegin(0x7 as libc::c_int as GLenum);
     let mut lastPhi: libc::c_float = 1.0f32 / fRes * 3.14159265f32;
     let mut lastTheta_0: libc::c_float = res
-        .wrapping_sub(1 as libc::c_int as libc::c_ulong) as libc::c_float / fRes
+        .wrapping_sub(1 as libc::size_t) as libc::c_float / fRes
         * 6.28318531f32;
-    let mut iPhi: size_t = 2 as libc::c_int as size_t;
+    let mut iPhi: libc::size_t = 2 as libc::c_int as libc::size_t;
     while iPhi < res {
         let mut phi_0: libc::c_float = iPhi as libc::c_float / fRes * 3.14159265f32;
-        let mut iTheta_0: size_t = 0 as libc::c_int as size_t;
+        let mut iTheta_0: libc::size_t = 0 as libc::c_int as libc::size_t;
         while iTheta_0 < res {
             let mut theta_0: libc::c_float = iTheta_0 as libc::c_float / fRes
                 * 6.28318531f32;
@@ -621,19 +619,19 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
     Metric_AddDrawImm(
         res as int32,
         res as int32,
-        res.wrapping_mul(3 as libc::c_int as libc::c_ulong) as int32,
+        res.wrapping_mul(3 as libc::size_t) as int32,
     );
     glBegin(0x4 as libc::c_int as GLenum);
     let mut lastTheta_1: libc::c_float = res
-        .wrapping_sub(1 as libc::c_int as libc::c_ulong) as libc::c_float / fRes
+        .wrapping_sub(1 as libc::size_t) as libc::c_float / fRes
         * 6.28318531f32;
-    let mut phi_1: libc::c_float = res.wrapping_sub(1 as libc::c_int as libc::c_ulong)
+    let mut phi_1: libc::c_float = res.wrapping_sub(1 as libc::size_t)
         as libc::c_float / fRes * 3.14159265f32;
     let mut bc: Vec3f = Vec3f_Add(
         *p,
         Spherical(r, 0 as libc::c_int as libc::c_float, 3.14159265f32),
     );
-    let mut iTheta_1: size_t = 0 as libc::c_int as size_t;
+    let mut iTheta_1: libc::size_t = 0 as libc::c_int as libc::size_t;
     while iTheta_1 < res {
         let mut theta_1: libc::c_float = iTheta_1 as libc::c_float / fRes
             * 6.28318531f32;

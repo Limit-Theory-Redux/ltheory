@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
@@ -7,11 +7,8 @@ extern "C" {
         _: libc::c_int,
         _: Option::<unsafe extern "C" fn(libc::c_int) -> ()>,
     ) -> Option::<unsafe extern "C" fn(libc::c_int) -> ()>;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn raise(_: libc::c_int) -> libc::c_int;
 }
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type Signal = libc::c_int;
 pub type SignalHandler = Option::<unsafe extern "C" fn(Signal) -> ()>;

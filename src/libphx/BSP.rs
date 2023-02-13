@@ -1,13 +1,10 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Mesh;
     pub type RNG;
     fn fabs(_: libc::c_double) -> libc::c_double;
     fn sqrt(_: libc::c_double) -> libc::c_double;
-    fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
     fn Mesh_GetIndexCount(_: *mut Mesh) -> libc::c_int;
@@ -67,8 +64,6 @@ pub type uint8_t = libc::c_uchar;
 pub type uint16_t = libc::c_ushort;
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint8 = uint8_t;

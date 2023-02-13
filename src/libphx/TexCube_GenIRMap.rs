@@ -1,5 +1,11 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::CubeFace::*;
+use crate::DataFormat::*;
+use crate::PixelFormat::*;
+use crate::TexFormat::*;
+use crate::TexFilter::*;
+
 extern "C" {
     pub type RNG;
     pub type Shader;
@@ -8,8 +14,6 @@ extern "C" {
     fn CubeFace_Get(index: libc::c_int) -> CubeFace;
     fn atan2(_: libc::c_double, _: libc::c_double) -> libc::c_double;
     fn sqrt(_: libc::c_double) -> libc::c_double;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Draw_Rect(
         x: libc::c_float,
         y: libc::c_float,
@@ -64,8 +68,6 @@ extern "C" {
     fn TexFormat_Components(_: TexFormat) -> libc::c_int;
 }
 pub type int32_t = libc::c_int;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 #[derive(Copy, Clone)]
@@ -86,32 +88,6 @@ pub type DataFormat = int32;
 pub type PixelFormat = int32;
 pub type TexFilter = int32;
 pub type TexFormat = int32;
-#[no_mangle]
-pub static mut CubeFace_NZ: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_PZ: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_NY: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_PY: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_NX: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_PX: CubeFace = 0;
-#[no_mangle]
-pub static mut DataFormat_U8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_Float: DataFormat = 0;
 #[inline]
 unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {
     let mut self_0: Vec2f = {
@@ -133,64 +109,6 @@ unsafe extern "C" fn Atan2(
 }
 
 #[no_mangle]
-pub static mut PixelFormat_Red: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RG: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGB: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGR: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGBA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGRA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_Depth_Component: PixelFormat = 0;
-#[no_mangle]
-pub static mut TexFilter_Point: TexFilter = 0;
-#[no_mangle]
-pub static mut TexFilter_PointMipPoint: TexFilter = 0;
-#[no_mangle]
-pub static mut TexFilter_PointMipLinear: TexFilter = 0;
-#[no_mangle]
-pub static mut TexFilter_Linear: TexFilter = 0;
-#[no_mangle]
-pub static mut TexFilter_LinearMipPoint: TexFilter = 0;
-#[no_mangle]
-pub static mut TexFilter_LinearMipLinear: TexFilter = 0;
-#[no_mangle]
-pub static mut TexFormat_R8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGB8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth24: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth32F: TexFormat = 0;
-#[no_mangle]
 pub unsafe extern "C" fn TexCube_GenIRMap(
     mut self_0: *mut TexCube,
     mut sampleCount: libc::c_int,
@@ -211,7 +129,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     let mut df: DataFormat = DataFormat_Float;
     let mut buffer: *mut libc::c_void = MemAlloc(
         ((size * size) as usize).wrapping_mul(::core::mem::size_of::<libc::c_float>())
-            .wrapping_mul(components as libc::c_ulong),
+            .wrapping_mul(components as usize),
     );
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 6 as libc::c_int {
@@ -353,7 +271,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         ggxWidth *= ggxWidth;
         let mut sampleBuffer: *mut Vec2f = MemAlloc(
             (::core::mem::size_of::<Vec2f>())
-                .wrapping_mul(sampleCount as libc::c_ulong),
+                .wrapping_mul(sampleCount as usize),
         ) as *mut Vec2f;
         let mut sampleTex: *mut Tex2D = Tex2D_Create(
             sampleCount,

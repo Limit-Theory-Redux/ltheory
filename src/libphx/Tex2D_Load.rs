@@ -1,18 +1,12 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 use std::fs::File;
 use std::ffi::CStr;
 use ::stb::image::{stbi_load_from_reader, Channels};
 
 extern "C" {
     pub type __sFILEX;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
 }
 
 pub type cstr = *const libc::c_char;
@@ -35,8 +29,8 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                     *sy = info.height as libc::c_int;
                     *components = info.components as libc::c_int;
 
-                    let mut memory: *mut uchar = malloc(data.size() as libc::c_ulong) as *mut uchar;
-                    memcpy(memory as *mut libc::c_void, data.as_slice().as_ptr() as *mut libc::c_void, data.size() as libc::c_ulong);
+                    let mut memory: *mut uchar = MemAlloc(data.size()) as *mut uchar;
+                    MemCpy(memory as *mut libc::c_void, data.as_slice().as_ptr() as *mut libc::c_void, data.size());
                     memory
                 }
                 None => {

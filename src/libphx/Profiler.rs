@@ -1,21 +1,15 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::PhxSignal::*;
+
 extern "C" {
     pub type HashMap;
     pub type __sFILEX;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn qsort(
         __base: *mut libc::c_void,
-        __nel: size_t,
-        __width: size_t,
+        __nel: libc::size_t,
+        __width: libc::size_t,
         __compar: Option::<
             unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> libc::c_int,
         >,
@@ -39,9 +33,7 @@ pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
 pub type __int64_t = libc::c_longlong;
-pub type __darwin_size_t = libc::c_ulong;
 pub type __darwin_off_t = __int64_t;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
@@ -139,47 +131,7 @@ unsafe extern "C" fn Min(
 unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
     return sqrt(t);
 }
-#[no_mangle]
-pub static mut Signal_Int: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Ill: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Fpe: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Segv: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Term: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Abrt: Signal = 0;
-#[inline]
-unsafe extern "C" fn StrDup(mut s: cstr) -> cstr {
-    if s.is_null() {
-        return 0 as cstr;
-    }
-    let mut len: size_t = (StrLen(s)).wrapping_add(1 as libc::c_int as libc::c_ulong);
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[inline]
-unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
-    return malloc(len) as *mut libc::c_char;
-}
-#[inline]
-unsafe extern "C" fn StrFree(mut s: cstr) {
-    free(s as *mut libc::c_void);
-}
+
 static mut self_0: Profiler = Profiler {
     map: 0 as *const HashMap as *mut HashMap,
     stackIndex: 0,
@@ -245,13 +197,13 @@ unsafe extern "C" fn SortScopes(
     };
 }
 unsafe extern "C" fn Profiler_GetScope(mut name: cstr) -> *mut Scope {
-    let mut scope: *mut Scope = HashMap_GetRaw(self_0.map, name as size_t as uint64)
+    let mut scope: *mut Scope = HashMap_GetRaw(self_0.map, name as libc::size_t as uint64)
         as *mut Scope;
     if !scope.is_null() {
         return scope;
     }
     scope = Scope_Create(name);
-    HashMap_SetRaw(self_0.map, name as size_t as uint64, scope as *mut libc::c_void);
+    HashMap_SetRaw(self_0.map, name as libc::size_t as uint64, scope as *mut libc::c_void);
     return scope;
 }
 unsafe extern "C" fn Profiler_SignalHandler(mut s: Signal) {
@@ -306,7 +258,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     }
     qsort(
         self_0.scopeList_data as *mut libc::c_void,
-        self_0.scopeList_size as size_t,
+        self_0.scopeList_size as libc::size_t,
         ::core::mem::size_of::<*mut Scope>(),
         Some(
             SortScopes

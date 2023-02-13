@@ -1,13 +1,8 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Bytes;
     fn Bytes_GetSize(_: *mut Bytes) -> uint32;
-    fn memset(
-        _: *mut libc::c_void,
-        _: libc::c_int,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn strstr(_: *const libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
@@ -19,38 +14,36 @@ extern "C" {
         _: *mut *mut libc::c_char,
         _: libc::c_int,
     ) -> libc::c_long;
-    fn free(_: *mut libc::c_void);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn vsnprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: __builtin_va_list,
     ) -> libc::c_int;
     fn __error() -> *mut libc::c_int;
     fn fcntl(_: libc::c_int, _: libc::c_int, _: ...) -> libc::c_int;
     fn close(_: libc::c_int) -> libc::c_int;
-    fn read(_: libc::c_int, _: *mut libc::c_void, _: size_t) -> ssize_t;
-    fn write(__fd: libc::c_int, __buf: *const libc::c_void, __nbyte: size_t) -> ssize_t;
+    fn read(_: libc::c_int, _: *mut libc::c_void, _: libc::size_t) -> libc::ssize_t;
+    fn write(__fd: libc::c_int, __buf: *const libc::c_void, __nbyte: libc::size_t) -> libc::ssize_t;
     fn accept(_: libc::c_int, _: *mut sockaddr, _: *mut socklen_t) -> libc::c_int;
     fn bind(_: libc::c_int, _: *const sockaddr, _: socklen_t) -> libc::c_int;
     fn listen(_: libc::c_int, _: libc::c_int) -> libc::c_int;
     fn recvfrom(
         _: libc::c_int,
         _: *mut libc::c_void,
-        _: size_t,
+        _: libc::size_t,
         _: libc::c_int,
         _: *mut sockaddr,
         _: *mut socklen_t,
-    ) -> ssize_t;
+    ) -> libc::ssize_t;
     fn sendto(
         _: libc::c_int,
         _: *const libc::c_void,
-        _: size_t,
+        _: libc::size_t,
         _: libc::c_int,
         _: *const sockaddr,
         _: socklen_t,
-    ) -> ssize_t;
+    ) -> libc::ssize_t;
     fn setsockopt(
         _: libc::c_int,
         _: libc::c_int,
@@ -69,12 +62,8 @@ pub type uint32_t = libc::c_uint;
 pub type __uint8_t = libc::c_uchar;
 pub type __uint16_t = libc::c_ushort;
 pub type __uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
 pub type __darwin_socklen_t = __uint32_t;
-pub type __darwin_ssize_t = libc::c_long;
 pub type u_int32_t = libc::c_uint;
-pub type size_t = __darwin_size_t;
-pub type ssize_t = __darwin_ssize_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint16 = uint16_t;
@@ -133,49 +122,17 @@ pub static mut SocketType_None: SocketType = 0 as libc::c_int;
 pub static mut SocketType_UDP: SocketType = 0x1 as libc::c_int;
 #[no_mangle]
 pub static mut SocketType_TCP: SocketType = 0x2 as libc::c_int;
-#[inline]
-unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
-    return malloc(len) as *mut libc::c_char;
-}
-#[inline]
-unsafe extern "C" fn StrFree(mut s: cstr) {
-    free(s as *mut libc::c_void);
-}
+
+
 #[inline]
 unsafe extern "C" fn StrFind(mut s: cstr, mut sub: cstr) -> cstr {
     return strstr(s, sub) as cstr;
 }
 #[inline]
-unsafe extern "C" fn StrFormat(mut fmt: cstr, mut args: ...) -> cstr {
-    let mut args_0: va_list = 0 as *mut libc::c_char;
-    args_0 = &args as *const VaListImpl as va_list;
-    let mut len: size_t = (vsnprintf(
-        0 as *mut libc::c_char,
-        0 as libc::c_int as libc::c_ulong,
-        fmt,
-        args_0,
-    ) + 1 as libc::c_int) as size_t;
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    args_0 = &args as *const VaListImpl as va_list;
-    vsnprintf(buf, len, fmt, args_0);
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[inline]
 unsafe extern "C" fn StrSubStr(mut begin: cstr, mut end: cstr) -> cstr {
-    let mut len: size_t = end.offset_from(begin) as libc::c_long as size_t;
+    let mut len: libc::size_t = end.offset_from(begin) as libc::c_long as libc::size_t;
     let mut result: *mut libc::c_char = StrAlloc(
-        len.wrapping_add(1 as libc::c_int as libc::c_ulong),
+        len.wrapping_add(1 as libc::size_t),
     );
     let mut pResult: *mut libc::c_char = result;
     while begin != end {
@@ -306,7 +263,7 @@ pub unsafe extern "C" fn Socket_Bind(mut self_0: *mut Socket, mut port: libc::c_
         sin_addr: in_addr { s_addr: 0 },
         sin_zero: [0; 8],
     };
-    memset(
+    MemSet(
         &mut addr as *mut sockaddr_in as *mut libc::c_void,
         0 as libc::c_int,
         ::core::mem::size_of::<sockaddr_in>() as usize,
@@ -408,7 +365,7 @@ pub unsafe extern "C" fn Socket_ReadBytes(mut self_0: *mut Socket) -> *mut Bytes
 pub unsafe extern "C" fn Socket_ReceiveFrom(
     mut self_0: *mut Socket,
     mut data: *mut libc::c_void,
-    mut len: size_t,
+    mut len: libc::size_t,
 ) -> libc::c_int {
     MemZero(data, len);
     let mut addrSize: socklen_t = 0;
@@ -484,7 +441,7 @@ pub unsafe extern "C" fn Socket_SetAddress(mut self_0: *mut Socket, mut addr: cs
 pub unsafe extern "C" fn Socket_SendTo(
     mut self_0: *mut Socket,
     mut data: *const libc::c_void,
-    mut len: size_t,
+    mut len: libc::size_t,
 ) -> libc::c_int {
     let mut bytes: libc::c_int = sendto(
         (*self_0).sock,

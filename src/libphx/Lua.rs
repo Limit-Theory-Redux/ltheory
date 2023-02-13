@@ -1,18 +1,13 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::ResourceType::*;
+use crate::PhxSignal::*;
+
 extern "C" {
     pub type lua_State;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn lua_close(L: *mut lua_State);
     fn lua_newthread(L: *mut lua_State) -> *mut lua_State;
     fn lua_gettop(L: *mut lua_State) -> libc::c_int;
@@ -24,7 +19,7 @@ extern "C" {
     fn lua_tolstring(
         L: *mut lua_State,
         idx: libc::c_int,
-        len: *mut size_t,
+        len: *mut libc::size_t,
     ) -> *const libc::c_char;
     fn lua_touserdata(L: *mut lua_State, idx: libc::c_int) -> *mut libc::c_void;
     fn lua_topointer(L: *mut lua_State, idx: libc::c_int) -> *const libc::c_void;
@@ -75,7 +70,7 @@ extern "C" {
     fn luaL_loadstring(L: *mut lua_State, s: *const libc::c_char) -> libc::c_int;
     fn vsnprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: __builtin_va_list,
     ) -> libc::c_int;
@@ -100,8 +95,6 @@ extern "C" {
 pub type __builtin_va_list = *mut libc::c_char;
 pub type int32_t = libc::c_int;
 pub type __darwin_ptrdiff_t = libc::c_long;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type ResourceType = int32;
@@ -110,6 +103,7 @@ pub type ptrdiff_t = __darwin_ptrdiff_t;
 pub type lua_CFunction = Option::<unsafe extern "C" fn(*mut lua_State) -> libc::c_int>;
 pub type lua_Number = libc::c_double;
 pub type lua_Integer = ptrdiff_t;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct lua_Debug {
@@ -133,111 +127,6 @@ pub type Signal = libc::c_int;
 pub type SignalHandler = Option::<unsafe extern "C" fn(Signal) -> ()>;
 
 
-#[no_mangle]
-pub static mut Signal_Int: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Ill: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Fpe: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Segv: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Term: Signal = 0;
-#[no_mangle]
-pub static mut Signal_Abrt: Signal = 0;
-#[inline]
-unsafe extern "C" fn StrEqual(mut a: cstr, mut b: cstr) -> bool {
-    return strcmp(a, b) == 0 as libc::c_int;
-}
-#[inline]
-unsafe extern "C" fn StrFormat(mut fmt: cstr, mut args: ...) -> cstr {
-    let mut args_0: va_list = 0 as *mut libc::c_char;
-    args_0 = &args as *const VaListImpl as va_list;
-    let mut len: size_t = (vsnprintf(
-        0 as *mut libc::c_char,
-        0 as libc::c_int as libc::c_ulong,
-        fmt,
-        args_0,
-    ) + 1 as libc::c_int) as size_t;
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    args_0 = &args as *const VaListImpl as va_list;
-    vsnprintf(buf, len, fmt, args_0);
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrDup(mut s: cstr) -> cstr {
-    if s.is_null() {
-        return 0 as cstr;
-    }
-    let mut len: size_t = (StrLen(s)).wrapping_add(1 as libc::c_int as libc::c_ulong);
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrFree(mut s: cstr) {
-    free(s as *mut libc::c_void);
-}
-#[inline]
-unsafe extern "C" fn StrAdd(mut a: cstr, mut b: cstr) -> cstr {
-    let mut buf: *mut libc::c_char = StrAlloc(
-        (StrLen(a))
-            .wrapping_add(StrLen(b))
-            .wrapping_add(1 as libc::c_int as libc::c_ulong),
-    );
-    let mut cur: *mut libc::c_char = buf;
-    while *a != 0 {
-        let fresh0 = a;
-        a = a.offset(1);
-        let fresh1 = cur;
-        cur = cur.offset(1);
-        *fresh1 = *fresh0;
-    }
-    while *b != 0 {
-        let fresh2 = b;
-        b = b.offset(1);
-        let fresh3 = cur;
-        cur = cur.offset(1);
-        *fresh3 = *fresh2;
-    }
-    *cur = 0 as libc::c_int as libc::c_char;
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[inline]
-unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
-    return malloc(len) as *mut libc::c_char;
-}
-#[no_mangle]
-pub static mut ResourceType_Font: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Mesh: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Other: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Script: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Shader: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Sound: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex1D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_TexCube: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex2D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex3D: ResourceType = 0;
 #[no_mangle]
 pub static mut kErrorHandler: cstr = b"function __error_handler__ (e)  return debug.traceback(e, 1)end\0"
     as *const u8 as *const libc::c_char;
@@ -301,7 +190,7 @@ unsafe extern "C" fn Lua_PCall(
             let mut error: cstr = lua_tolstring(
                 self_0,
                 -(1 as libc::c_int),
-                0 as *mut size_t,
+                0 as *mut libc::size_t,
             );
             Fatal(
                 b"Lua_PCall: Lua returned error message: %s\0" as *const u8
@@ -383,7 +272,7 @@ pub unsafe extern "C" fn Lua_LoadFile(mut self_0: *mut Lua, mut name: cstr) {
             b"Lua_LoadFile: failed to load <%s>:\n%s\0" as *const u8
                 as *const libc::c_char,
             path,
-            lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut size_t),
+            lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut libc::size_t),
         );
     }
 }
@@ -393,7 +282,7 @@ pub unsafe extern "C" fn Lua_LoadString(mut self_0: *mut Lua, mut code: cstr) {
         Fatal(
             b"Lua_LoadString: failed to load string:\n%s\0" as *const u8
                 as *const libc::c_char,
-            lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut size_t),
+            lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut libc::size_t),
         );
     }
 }
@@ -538,7 +427,7 @@ unsafe extern "C" fn Lua_ToString(mut self_0: *mut Lua, mut name: cstr) -> cstr 
         b"__tostring\0" as *const u8 as *const libc::c_char,
     ) != 0
     {
-        strValue = StrDup(lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut size_t));
+        strValue = StrDup(lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut libc::size_t));
         lua_settop(self_0, -(1 as libc::c_int) - 1 as libc::c_int);
     } else {
         let mut current_block_14: u64;
@@ -555,11 +444,11 @@ unsafe extern "C" fn Lua_ToString(mut self_0: *mut Lua, mut name: cstr) -> cstr 
                 current_block_14 = 11584701595673473500;
             }
             3 => {
-                strValue = lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut size_t);
+                strValue = lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut libc::size_t);
                 current_block_14 = 11584701595673473500;
             }
             4 => {
-                strValue = lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut size_t);
+                strValue = lua_tolstring(self_0, -(1 as libc::c_int), 0 as *mut libc::size_t);
                 current_block_14 = 11584701595673473500;
             }
             2 => {

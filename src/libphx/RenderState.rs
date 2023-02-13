@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);

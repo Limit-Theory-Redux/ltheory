@@ -1,18 +1,16 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
 }
 pub type int32_t = libc::c_int;
 pub type uint8_t = libc::c_uchar;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint8 = uint8_t;
@@ -1118,7 +1116,7 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> cstr {
                 (::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(
                         ::core::mem::size_of::<libc::c_char>() as usize,
-                    ) as libc::c_int as size_t,
+                    ) as libc::c_int as libc::size_t,
                 b"Unknown (%i)\0" as *const u8 as *const libc::c_char,
                 button,
             );

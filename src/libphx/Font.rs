@@ -1,5 +1,10 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::DataFormat::*;
+use crate::PixelFormat::*;
+use crate::TexFormat::*;
+use crate::ResourceType::*;
+
 extern "C" {
     pub type Tex2D;
     pub type HashMap;
@@ -9,11 +14,6 @@ extern "C" {
     pub type FT_Slot_InternalRec_;
     pub type FT_SubGlyphRec_;
     pub type FT_LibraryRec_;
-    fn memset(
-        _: *mut libc::c_void,
-        _: libc::c_int,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
     fn Draw_Color(
         r: libc::c_float,
@@ -23,8 +23,6 @@ extern "C" {
     );
     fn pow(_: libc::c_double, _: libc::c_double) -> libc::c_double;
     fn floor(_: libc::c_double) -> libc::c_double;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn HashMap_Create(keySize: uint32, capacity: uint32) -> *mut HashMap;
     fn HashMap_Get(_: *mut HashMap, key: *const libc::c_void) -> *mut libc::c_void;
     fn HashMap_Set(_: *mut HashMap, key: *const libc::c_void, value: *mut libc::c_void);
@@ -82,8 +80,6 @@ extern "C" {
 }
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint = libc::c_uint;
 pub type uchar = libc::c_uchar;
 pub type cstr = *const libc::c_char;
@@ -422,20 +418,6 @@ pub const FT_KERNING_DEFAULT: FT_Kerning_Mode_ = 0;
 pub type FT_Kerning_Mode_ = libc::c_uint;
 pub const FT_KERNING_UNSCALED: FT_Kerning_Mode_ = 2;
 pub const FT_KERNING_UNFITTED: FT_Kerning_Mode_ = 1;
-#[no_mangle]
-pub static mut DataFormat_U8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_Float: DataFormat = 0;
 #[inline]
 unsafe extern "C" fn Floor(mut t: libc::c_double) -> libc::c_double {
     return floor(t);
@@ -488,72 +470,6 @@ unsafe extern "C" fn Vec4f_Create(
     return self_0;
 }
 
-#[no_mangle]
-pub static mut ResourceType_Font: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Mesh: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Other: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Script: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Shader: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Sound: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex1D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex2D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex3D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_TexCube: ResourceType = 0;
-#[no_mangle]
-pub static mut PixelFormat_Red: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RG: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGB: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGR: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGBA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGRA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_Depth_Component: PixelFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGB8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth24: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth32F: TexFormat = 0;
 #[no_mangle]
 pub static mut kGamma: libc::c_float = 1.8f32;
 #[no_mangle]

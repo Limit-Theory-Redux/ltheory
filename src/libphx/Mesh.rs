@@ -1,18 +1,12 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::ResourceType::*;
+
 extern "C" {
     pub type Bytes;
     pub type SDF;
     pub type Matrix;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
     fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
     fn sqrt(_: libc::c_double) -> libc::c_double;
@@ -63,8 +57,6 @@ pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
 pub type __darwin_ptrdiff_t = libc::c_long;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
@@ -339,26 +331,7 @@ unsafe extern "C" fn Vec3f_Cross(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
 unsafe extern "C" fn Vec3f_Dot(mut a: Vec3f, mut b: Vec3f) -> libc::c_float {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
-#[no_mangle]
-pub static mut ResourceType_Font: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Mesh: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Other: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Script: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Shader: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Sound: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex1D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex2D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_Tex3D: ResourceType = 0;
-#[no_mangle]
-pub static mut ResourceType_TexCube: ResourceType = 0;
+
 #[inline]
 unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {
     let mut self_0: Vec2f = {
@@ -463,13 +436,13 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
         (*self_0).index_data as *mut libc::c_void,
         (*other).index_data as *const libc::c_void,
         (::core::mem::size_of::<libc::c_int>())
-            .wrapping_mul((*other).index_size as libc::c_ulong),
+            .wrapping_mul((*other).index_size as usize),
     );
     MemCpy(
         (*self_0).vertex_data as *mut libc::c_void,
         (*other).vertex_data as *const libc::c_void,
         (::core::mem::size_of::<Vertex>())
-            .wrapping_mul((*other).vertex_size as libc::c_ulong),
+            .wrapping_mul((*other).vertex_size as usize),
     );
     return self_0;
 }
@@ -753,7 +726,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
         ::core::mem::size_of::<Vertex>() as usize as GLsizei,
-        &mut (*(0 as *mut Vertex)).p as *mut Vec3f as size_t as *const libc::c_void,
+        &mut (*(0 as *mut Vertex)).p as *mut Vec3f as libc::size_t as *const libc::c_void,
     );
     __glewVertexAttribPointer
         .expect(
@@ -764,7 +737,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
         ::core::mem::size_of::<Vertex>() as usize as GLsizei,
-        &mut (*(0 as *mut Vertex)).n as *mut Vec3f as size_t as *const libc::c_void,
+        &mut (*(0 as *mut Vertex)).n as *mut Vec3f as libc::size_t as *const libc::c_void,
     );
     __glewVertexAttribPointer
         .expect(
@@ -775,7 +748,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
         ::core::mem::size_of::<Vertex>() as usize as GLsizei,
-        &mut (*(0 as *mut Vertex)).uv as *mut Vec2f as size_t as *const libc::c_void,
+        &mut (*(0 as *mut Vertex)).uv as *mut Vec2f as libc::size_t as *const libc::c_void,
     );
 }
 #[no_mangle]
@@ -974,20 +947,20 @@ pub unsafe extern "C" fn Mesh_Invert(mut self_0: *mut Mesh) -> *mut Mesh {
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < (*self_0).index_size {
         let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
-        memcpy(
+        libc::memcpy(
             swap_temp.as_mut_ptr() as *mut libc::c_void,
             &mut *((*self_0).index_data).offset((i + 2 as libc::c_int) as isize)
                 as *mut int32 as *const libc::c_void,
             ::core::mem::size_of::<int32>() as usize,
         );
-        memcpy(
+        libc::memcpy(
             &mut *((*self_0).index_data).offset((i + 2 as libc::c_int) as isize)
                 as *mut int32 as *mut libc::c_void,
             &mut *((*self_0).index_data).offset((i + 1 as libc::c_int) as isize)
                 as *mut int32 as *const libc::c_void,
             ::core::mem::size_of::<int32>() as usize,
         );
-        memcpy(
+        libc::memcpy(
             &mut *((*self_0).index_data).offset((i + 1 as libc::c_int) as isize)
                 as *mut int32 as *mut libc::c_void,
             swap_temp.as_mut_ptr() as *const libc::c_void,

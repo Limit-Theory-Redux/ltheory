@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Tex1D;
     pub type Tex2D;
@@ -54,10 +54,6 @@ pub struct Vec4f {
     pub w: libc::c_float,
 }
 pub type ShaderVarType = int32;
-#[inline]
-unsafe extern "C" fn StrEqual(mut a: cstr, mut b: cstr) -> bool {
-    return strcmp(a, b) == 0 as libc::c_int;
-}
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: cstr) -> ShaderVarType {
     let mut i: ShaderVarType = 0x1 as libc::c_int;

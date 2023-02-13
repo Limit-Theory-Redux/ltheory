@@ -1,16 +1,14 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
     fn Ray_ToLineSegment(_: *const Ray, _: *mut LineSegment);
 }
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -40,7 +38,7 @@ unsafe extern "C" fn Vec3f_ToString(mut v: *mut Vec3f) -> cstr {
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as size_t,
+            as libc::c_int as libc::size_t,
         b"(%.4f, %.4f, %.4f)\0" as *const u8 as *const libc::c_char,
         (*v).x as libc::c_double,
         (*v).y as libc::c_double,
@@ -84,7 +82,7 @@ pub unsafe extern "C" fn LineSegment_ToString(mut self_0: *mut LineSegment) -> c
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as size_t,
+            as libc::c_int as libc::size_t,
         b"p0:%s p1:%s\0" as *const u8 as *const libc::c_char,
         Vec3f_ToString(&mut (*self_0).p0),
         Vec3f_ToString(&mut (*self_0).p1),

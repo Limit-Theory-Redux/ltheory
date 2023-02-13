@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn SDL_GetPerformanceFrequency() -> Uint64;
     fn SDL_GetPerformanceCounter() -> Uint64;
@@ -28,7 +28,7 @@ pub unsafe extern "C" fn TimeStamp_GetElapsed(mut then: TimeStamp) -> libc::c_do
 #[no_mangle]
 pub unsafe extern "C" fn TimeStamp_GetElapsedMs(mut then: TimeStamp) -> libc::c_double {
     let mut freq: libc::c_double = SDL_GetPerformanceFrequency() as libc::c_double;
-    return (1000 as libc::c_int as libc::c_ulonglong)
+    return (1000 as libc::c_ulonglong)
         .wrapping_mul((SDL_GetPerformanceCounter()).wrapping_sub(then)) as libc::c_double
         / freq;
 }

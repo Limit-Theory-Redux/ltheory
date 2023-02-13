@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn SDL_GetClipboardText() -> *mut libc::c_char;

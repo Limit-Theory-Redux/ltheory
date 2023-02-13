@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 pub type WindowPos = libc::c_int;
 #[no_mangle]
 pub static mut WindowPos_Centered: WindowPos = (0x2fff0000 as libc::c_uint

@@ -1,11 +1,10 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
     fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
     fn sqrt(_: libc::c_double) -> libc::c_double;
     fn Fatal(_: cstr, _: ...);
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     fn Intersect_LineSegmentPlane(
         _: *const LineSegment,
         _: *const Plane,
@@ -16,8 +15,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type uint8_t = libc::c_uchar;
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint8 = uint8_t;

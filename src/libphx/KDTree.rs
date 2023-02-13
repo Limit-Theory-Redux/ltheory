@@ -1,19 +1,12 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     pub type Mesh;
     pub type Matrix;
-    fn memcpy(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn qsort(
         __base: *mut libc::c_void,
-        __nel: size_t,
-        __width: size_t,
+        __nel: libc::size_t,
+        __width: libc::size_t,
         __compar: Option::<
             unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> libc::c_int,
         >,
@@ -30,8 +23,6 @@ extern "C" {
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
 }
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -210,7 +201,7 @@ unsafe extern "C" fn Partition(
     if dim == 0 as libc::c_int {
         qsort(
             boxes as *mut libc::c_void,
-            boxCount as size_t,
+            boxCount as libc::size_t,
             ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerX
@@ -224,7 +215,7 @@ unsafe extern "C" fn Partition(
     if dim == 1 as libc::c_int {
         qsort(
             boxes as *mut libc::c_void,
-            boxCount as size_t,
+            boxCount as libc::size_t,
             ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerY
@@ -238,7 +229,7 @@ unsafe extern "C" fn Partition(
     if dim == 2 as libc::c_int {
         qsort(
             boxes as *mut libc::c_void,
-            boxCount as size_t,
+            boxCount as libc::size_t,
             ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerZ
@@ -253,11 +244,11 @@ unsafe extern "C" fn Partition(
     let mut boxCountFront: libc::c_int = boxCount - boxCountBack;
     let mut boxesBack: *mut Box3f = MemAlloc(
         (::core::mem::size_of::<Box3f>())
-            .wrapping_mul(boxCountBack as libc::c_ulong),
+            .wrapping_mul(boxCountBack as usize),
     ) as *mut Box3f;
     let mut boxesFront: *mut Box3f = MemAlloc(
         (::core::mem::size_of::<Box3f>())
-            .wrapping_mul(boxCountFront as libc::c_ulong),
+            .wrapping_mul(boxCountFront as usize),
     ) as *mut Box3f;
     MemCpy(
         boxesBack as *mut libc::c_void,
@@ -295,7 +286,7 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
     let boxCount: libc::c_int = indexCount / 3 as libc::c_int;
     let mut boxes: *mut Box3f = MemAlloc(
         (::core::mem::size_of::<Box3f>())
-            .wrapping_mul(boxCount as libc::c_ulong),
+            .wrapping_mul(boxCount as usize),
     ) as *mut Box3f;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < indexCount {
@@ -346,7 +337,7 @@ pub unsafe extern "C" fn KDTree_GetMemory(mut self_0: *mut KDTree) -> libc::c_in
     }
     let mut elem: *mut Node = (*self_0).elems;
     while !elem.is_null() {
-        memory = (memory as libc::c_ulong)
+        memory = (memory as usize)
             .wrapping_add(::core::mem::size_of::<Node>()) as libc::c_int
             as libc::c_int;
         elem = (*elem).next;

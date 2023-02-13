@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 pub type uint32_t = libc::c_uint;
 pub type C2RustUnnamed = libc::c_uint;
 pub const SDL_WINDOW_INPUT_GRABBED: C2RustUnnamed = 256;

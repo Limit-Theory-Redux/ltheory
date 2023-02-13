@@ -1,5 +1,9 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::CubeFace::*;
+use crate::DataFormat::*;
+use crate::PixelFormat::*;
+use crate::TexFormat::*;
 extern "C" {
     pub type Bytes;
     pub type ShaderState;
@@ -16,8 +20,6 @@ extern "C" {
     fn ClipRect_Pop();
     fn DataFormat_GetSize(_: DataFormat) -> libc::c_int;
     fn floor(_: libc::c_double) -> libc::c_double;
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn Draw_Rect(
         x: libc::c_float,
         y: libc::c_float,
@@ -90,8 +92,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type uint = libc::c_uint;
 pub type uchar = libc::c_uchar;
 pub type cstr = *const libc::c_char;
@@ -131,32 +131,6 @@ pub struct Face {
     pub look: Vec3f,
     pub up: Vec3f,
 }
-#[no_mangle]
-pub static mut CubeFace_PX: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_NX: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_PY: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_NY: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_PZ: CubeFace = 0;
-#[no_mangle]
-pub static mut CubeFace_NZ: CubeFace = 0;
-#[no_mangle]
-pub static mut DataFormat_U8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I8: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I16: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_U32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_I32: DataFormat = 0;
-#[no_mangle]
-pub static mut DataFormat_Float: DataFormat = 0;
 #[inline]
 unsafe extern "C" fn Floor(mut t: libc::c_double) -> libc::c_double {
     return floor(t);
@@ -176,100 +150,6 @@ unsafe extern "C" fn Min(
     return if a < b { a } else { b };
 }
 
-#[no_mangle]
-pub static mut PixelFormat_Red: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RG: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGB: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGR: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_RGBA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_BGRA: PixelFormat = 0;
-#[no_mangle]
-pub static mut PixelFormat_Depth_Component: PixelFormat = 0;
-#[inline]
-unsafe extern "C" fn StrAlloc(mut len: size_t) -> *mut libc::c_char {
-    return malloc(len) as *mut libc::c_char;
-}
-#[inline]
-unsafe extern "C" fn StrAdd3(mut a: cstr, mut b: cstr, mut c: cstr) -> cstr {
-    let mut buf: *mut libc::c_char = StrAlloc(
-        (StrLen(a))
-            .wrapping_add(StrLen(b))
-            .wrapping_add(StrLen(c))
-            .wrapping_add(1 as libc::c_int as libc::c_ulong),
-    );
-    let mut cur: *mut libc::c_char = buf;
-    while *a != 0 {
-        let fresh0 = a;
-        a = a.offset(1);
-        let fresh1 = cur;
-        cur = cur.offset(1);
-        *fresh1 = *fresh0;
-    }
-    while *b != 0 {
-        let fresh2 = b;
-        b = b.offset(1);
-        let fresh3 = cur;
-        cur = cur.offset(1);
-        *fresh3 = *fresh2;
-    }
-    while *c != 0 {
-        let fresh4 = c;
-        c = c.offset(1);
-        let fresh5 = cur;
-        cur = cur.offset(1);
-        *fresh5 = *fresh4;
-    }
-    *cur = 0 as libc::c_int as libc::c_char;
-    return buf as cstr;
-}
-#[inline]
-unsafe extern "C" fn StrLen(mut s: cstr) -> size_t {
-    if s.is_null() {
-        return 0 as libc::c_int as size_t;
-    }
-    let mut begin: cstr = s;
-    while *s != 0 {
-        s = s.offset(1);
-    }
-    return s.offset_from(begin) as libc::c_long as size_t;
-}
-#[no_mangle]
-pub static mut TexFormat_R8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_R32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RG32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGB8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA8: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA16F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_RGBA32F: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth16: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth24: TexFormat = 0;
-#[no_mangle]
-pub static mut TexFormat_Depth32F: TexFormat = 0;
 static mut kFaces: [Face; 6] = [
     {
         let mut init = Face {
@@ -858,7 +738,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
     glBindTexture(0x8513 as libc::c_int as GLenum, (*self_0).handle);
     let mut buffer: *mut uchar = MemAlloc(
         (::core::mem::size_of::<uchar>())
-            .wrapping_mul((4 as libc::c_int * size * size) as libc::c_ulong),
+            .wrapping_mul((4 as libc::c_int * size * size) as usize),
     ) as *mut uchar;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 6 as libc::c_int {

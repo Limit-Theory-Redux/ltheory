@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 
 pub type uint32_t = libc::c_uint;
 pub type uint64_t = libc::c_ulonglong;

@@ -1,9 +1,9 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::c_ulong,
+        _: libc::size_t,
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
@@ -48,7 +48,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
                     ((::core::mem::size_of::<[libc::c_char; 512]>())
                         .wrapping_div(
                             ::core::mem::size_of::<libc::c_char>(),
-                        ) as libc::c_int - len) as libc::c_ulong,
+                        ) as libc::c_int - len) as usize,
                     b"%s%s\0" as *const u8 as *const libc::c_char,
                     sep,
                     names[i as usize],
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
                 ((::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(
                         ::core::mem::size_of::<libc::c_char>(),
-                    ) as libc::c_int - len) as libc::c_ulong,
+                    ) as libc::c_int - len) as usize,
                 b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
                 sep,
                 modifier,

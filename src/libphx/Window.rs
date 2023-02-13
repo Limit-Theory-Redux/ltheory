@@ -1,10 +1,10 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
+use crate::WindowMode::*;
+
 extern "C" {
     pub type SDL_Window;
     fn Fatal(_: cstr, _: ...);
-    fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
-    fn free(_: *mut libc::c_void);
     fn OpenGL_Init();
     fn SDL_CreateWindow(
         title: *const libc::c_char,
@@ -50,8 +50,6 @@ extern "C" {
     );
 }
 pub type uint32_t = libc::c_uint;
-pub type __darwin_size_t = libc::c_ulong;
-pub type size_t = __darwin_size_t;
 pub type cstr = *const libc::c_char;
 pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
@@ -97,22 +95,6 @@ pub const SDL_WINDOW_SHOWN: C2RustUnnamed = 4;
 pub const SDL_WINDOW_OPENGL: C2RustUnnamed = 2;
 pub const SDL_WINDOW_FULLSCREEN: C2RustUnnamed = 1;
 
-#[no_mangle]
-pub static mut WindowMode_AlwaysOnTop: WindowMode = 0;
-#[no_mangle]
-pub static mut WindowMode_Borderless: WindowMode = 0;
-#[no_mangle]
-pub static mut WindowMode_Fullscreen: WindowMode = 0;
-#[no_mangle]
-pub static mut WindowMode_Hidden: WindowMode = 0;
-#[no_mangle]
-pub static mut WindowMode_Maximized: WindowMode = 0;
-#[no_mangle]
-pub static mut WindowMode_Minimized: WindowMode = 0;
-#[no_mangle]
-pub static mut WindowMode_Resizable: WindowMode = 0;
-#[no_mangle]
-pub static mut WindowMode_Shown: WindowMode = 0;
 #[no_mangle]
 pub unsafe extern "C" fn Window_Create(
     mut title: cstr,

@@ -1,5 +1,5 @@
 use ::libc;
-use super::internal::Memory::*;
+use crate::internal::Memory::*;
 extern "C" {
     fn glLoadIdentity();
     fn glMatrixMode(mode: GLenum);
