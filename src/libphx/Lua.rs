@@ -192,6 +192,7 @@ unsafe extern "C" fn Lua_PCall(
                 -(1 as libc::c_int),
                 0 as *mut libc::size_t,
             );
+            println!("{}", std::ffi::CStr::from_ptr(error).to_str().unwrap());
             Fatal(
                 b"Lua_PCall: Lua returned error message: %s\0" as *const u8
                     as *const libc::c_char,

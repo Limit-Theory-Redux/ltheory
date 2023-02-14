@@ -31,6 +31,20 @@ set_target_properties (phx PROPERTIES
 
 include (cmake/External.cmake)
 
+if(NOT TARGET libphx-external)
+  add_custom_target(libphx-external)
+  add_dependencies(libphx-external BulletCollision
+    BulletDynamics
+    LinearMath
+    fmod
+    freetype
+    glew_s
+    luajit
+    lz4_static
+    SDL2-static
+    SDL2main)
+endif()
+
 target_link_libraries (phx PUBLIC
   BulletCollision
   BulletDynamics

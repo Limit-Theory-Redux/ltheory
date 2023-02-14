@@ -12,6 +12,7 @@
 
 extern crate stb;
 extern crate libc;
+extern crate sdl2_sys;
 
 pub mod internal {
     pub mod Memory;

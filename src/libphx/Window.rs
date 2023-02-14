@@ -1,6 +1,7 @@
 use ::libc;
 use crate::internal::Memory::*;
 use crate::WindowMode::*;
+use sdl2_sys::*;
 
 extern "C" {
     pub type SDL_Window;

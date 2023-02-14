@@ -102,6 +102,9 @@ pub unsafe extern "C" fn Warn(mut format: cstr, mut args: ...) {
         format,
         args_0,
     ) + 1 as libc::c_int;
+    println!("{:?}", std::ffi::CStr::from_ptr(format));
+    println!("{:?}", std::ffi::CStr::from_ptr(args_0));
+    println!("{:?}", len);
     let mut message: *mut libc::c_char = MemAlloc(
         (::core::mem::size_of::<libc::c_char>())
             .wrapping_mul(len as usize),

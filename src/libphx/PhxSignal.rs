@@ -100,6 +100,7 @@ static mut handlerTable: [*mut HandlerElem; 32] = [
     0 as *const HandlerElem as *mut HandlerElem,
 ];
 unsafe extern "C" fn Signal_Handler(mut sig: Signal) {
+    println!("{}", sig);
     Warn(
         b"Signal_Handler: Caught %s\0" as *const u8 as *const libc::c_char,
         Signal_ToString(sig),

@@ -3,8 +3,8 @@ members = [
 ]
 
 [package]
-name = "LimitTheoryRedux"
-authors = ["LTR Team"]
+name = "ltheory"
+authors = ["Limit Theory Redux Team"]
 version = "0.0.0"
 publish = false
 edition = "2021"
@@ -13,7 +13,7 @@ autobins = false
 [lib]
 name = "libphx"
 path = "src/libphx/mod.rs"
-crate-type = ["staticlib", "rlib"]
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 path = "src/Main.rs"
@@ -22,6 +22,7 @@ name = "Main"
 [dependencies]
 libc = "0.2"
 stb = "0.3.2"
+sdl2-sys = { version = "0.35.2", features = ["bundled", "static-link"] }
 
 [build-dependencies]
 cmake = "0.1"
