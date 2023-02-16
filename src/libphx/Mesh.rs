@@ -1,6 +1,7 @@
 use ::libc;
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
+use memoffset::{offset_of, span_of};
 
 extern "C" {
     pub type Bytes;
@@ -726,7 +727,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
         ::core::mem::size_of::<Vertex>() as usize as GLsizei,
-        &mut (*(0 as *mut Vertex)).p as *mut Vec3f as libc::size_t as *const libc::c_void,
+        offset_of!(Vertex, p) as *const libc::c_void,
     );
     __glewVertexAttribPointer
         .expect(
@@ -737,7 +738,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
         ::core::mem::size_of::<Vertex>() as usize as GLsizei,
-        &mut (*(0 as *mut Vertex)).n as *mut Vec3f as libc::size_t as *const libc::c_void,
+        offset_of!(Vertex, n) as *const libc::c_void,
     );
     __glewVertexAttribPointer
         .expect(
@@ -748,7 +749,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut self_0: *mut Mesh) {
         0x1406 as libc::c_int as GLenum,
         0 as libc::c_int as GLboolean,
         ::core::mem::size_of::<Vertex>() as usize as GLsizei,
-        &mut (*(0 as *mut Vertex)).uv as *mut Vec2f as libc::size_t as *const libc::c_void,
+        offset_of!(Vertex, uv) as *const libc::c_void,
     );
 }
 #[no_mangle]

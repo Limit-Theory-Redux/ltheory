@@ -11,8 +11,9 @@
 #![feature(thread_local)]
 
 extern crate stb;
-extern crate libc;
+extern crate libc; 
 extern crate sdl2_sys;
+extern crate memoffset;
 
 pub mod internal {
     pub mod Memory;
