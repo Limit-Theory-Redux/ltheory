@@ -6,7 +6,8 @@ local Ship = requireAll('GameObjects.Entities.Ship')
 local Effects = requireAll('GameObjects.Entities.Effects')
 local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
---require('GameObjects.Entities.Test.Content')
+local Dust = require('GameObjects.Entities.Effects.Dust')
+local Nebula = require('GameObjects.Entities.Objects.Nebula')
 
 local System = subclass(Entity, function (self, seed)
   self:addChildren()
@@ -24,8 +25,8 @@ local System = subclass(Entity, function (self, seed)
   self.physics = Physics.Create():managed()
   local starAngle = self.rng:getDir2()
   self.starDir = Vec3f(starAngle.x, 0, starAngle.y)
-  self.nebula = Objects.Nebula(self.rng:get64(), self.starDir)
-  self.dust = Effects.Dust()
+  self.nebula = Nebula(self.rng:get64(), self.starDir)
+  self.dust = Dust()
 
   self.players = {}
   self.zones = {}
@@ -82,8 +83,6 @@ function System:update (dt)
 end
 
 -- Helpers For Testing ---------------------------------------------------------
-
-
 
 local kInventory = 100
 local kStartCredits = 1000000
@@ -156,7 +155,8 @@ end
 
 function System:spawnAsteroidField (count, oreCount)
   local rng = self.rng
-  local zone = Zone(format('%s Field', genName(rng)))
+  local AFieldName = System:getCoolName(rng)
+  local zone = Zone(format('Asteroid Field \'%s\'', AFieldName))
   zone.pos = rng:getDir3():scale(0.0 * kSystemScale * (1 + rng:getExp()))
 
   for i = 1, count do
@@ -181,7 +181,13 @@ function System:spawnAsteroidField (count, oreCount)
     zone:add(asteroid)
     self:addChild(asteroid)
   end
+
   self:addZone(zone)
+
+print("Added " .. zone:getName())
+
+  Config.game.currentZone = zone
+  return zone
 end
 
 function System:spawnPlanet ()
@@ -191,7 +197,15 @@ function System:spawnPlanet ()
   local scale = 1e5 * rng:getErlang(2)
   planet:setPos(pos)
   planet:setScale(scale)
+  local planetName = System:getCoolName(self.rng)
+  planet:setName(format('Planet \'%s\'', planetName))
+
   self:addChild(planet)
+
+print("Added " .. planet:getName())
+
+  Config.game.currentPlanet = planet
+  return planet
 end
 
 function System:spawnShip ()
@@ -202,7 +216,6 @@ function System:spawnShip ()
   ship:setInventoryCapacity(kInventory)
   ship:setPos(self.rng:getDir3():scale(kSystemScale * (1.0 + self.rng:getExp())))
   self:addChild(ship)
-  
 
   if true then
     while true do
@@ -221,9 +234,21 @@ function System:spawnShip ()
     end
   end
 
+  Config.game.currentShip = ship
   return ship
-  
-  
+end
+
+function System:spawnBackground ()
+  -- Flat: for a star system background only (no ship), spawn an invisible ship
+  --       (because System.lua needs a thing with mass, scale, drag, and thrust
+  --       in order to rotate around a camera viewpoint)
+  if not self.shipType then
+    self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
+  end
+  local background = self.shipType:instantiate()
+  self:addChild(background)
+
+  return background
 end
 
 function System:spawnStation ()
@@ -238,11 +263,26 @@ function System:spawnStation ()
   local prod = self.rng:choose(Production.All())
   station:addFactory()
   station:addProduction(prod)
-  station:setName(format('%s %s',
-    genName(self.rng),
-    prod:getName()))
+  local stationName = System:getCoolName(self.rng)
+  station:setName(format('%s \'%s\'',
+    prod:getName(),
+    stationName))
   self:addChild(station)
+
+print("Added " .. station:getName())
+
+  Config.game.currentStation = station
   return station
+end
+
+function System:getCoolName (rngv)
+  -- Create an object name that, if the first name is short, adds a second name for presumed uniqueness
+  local name  = genName(rngv)
+  local name2 = genName(rngv)
+  if name:len() < 7 and rngv:getInt(0, 100) < (40 + ((7 - name:len()) * 20)) then
+    name = name .. " " .. name2
+  end
+  return name
 end
 
 return System

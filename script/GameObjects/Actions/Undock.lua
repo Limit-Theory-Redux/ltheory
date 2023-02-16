@@ -13,6 +13,7 @@ end
 function Undock:onUpdateActive (e, dt)
   if e:getParent():hasDockable() then
     e:getParent():removeDocked(e)
+    print("Undocked from " .. Config.game.currentStation:getName())
   end
   e:popAction()
 end

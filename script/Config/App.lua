@@ -33,7 +33,7 @@ Config.gen = {
   nStations  = 0,
   nNPCs      = 0,
   nNPCsNew   = 0,
-  nPlanets   = 1,
+  nPlanets   = 0,
   nBeltSize  = function (rng) return 0 end, -- Asteroids per planetary belt
   nThrusters = 1,
   nTurrets   = 2,
@@ -50,6 +50,13 @@ Config.gen = {
 }
 
 Config.game = {
+  gameMode = 0,
+
+  currentShip = nil,
+  currentStation = nil,
+  currentPlanet = nil,
+  currentZone = nil,
+
   boostCost = 10,
   rateOfFire = 10,
 
@@ -90,10 +97,25 @@ Config.render = {
 }
 
 Config.ui = {
+  defaultControl = 'Ship', -- enable flight mode as default so that LTheory.lua still works
+
   showTrackers     = true,
-  defaultControl   = 'Ship',
   controlBarHeight = 48
 }
+
+function Config.setGameMode(gm)
+  Config.game.gameMode = gm
+
+  if Config.game.gameMode == 1 then
+    Config.ui.defaultControl = 'Background' -- enable game startup mode
+  else
+    Config.ui.defaultControl = 'Ship' -- enable flight mode
+  end
+end
+
+function Config.getGameMode()
+  return Config.game.gameMode
+end
 
 Config.ui.color = {
   accent            = Color(1.00, 0.00, 0.30, 1.0),

@@ -21,16 +21,24 @@ local self = {
       Control.GamepadButton(Button.Gamepad.RBumper),
       Control.GamepadButton(Button.Gamepad.LBumper))),
 
+--  Yaw = Control.Or(
+--    Control.And(
+--      Control.MouseX(),
+--      Control.Key(Button.Keyboard.Space)),
+--    Control.GamepadAxis(Button.Gamepad.RStickX)),
+
   Yaw = Control.Or(
-    Control.And(
-      Control.MouseX(),
-      Control.Key(Button.Keyboard.Space)),
+    Control.MouseX(),
     Control.GamepadAxis(Button.Gamepad.RStickX)),
 
+--  Pitch = Control.Or(
+--    Control.And(
+--      Control.MouseY(),
+--      Control.Key(Button.Keyboard.Space)),
+--    Control.GamepadAxis(Button.Gamepad.RStickY):invert()),
+
   Pitch = Control.Or(
-    Control.And(
-      Control.MouseY(),
-      Control.Key(Button.Keyboard.Space)),
+    Control.MouseY(),
     Control.GamepadAxis(Button.Gamepad.RStickY):invert()),
 
   Boost = Control.Or(
@@ -54,6 +62,11 @@ local self = {
   Dock = Control.Or(
     Control.Key(Button.Keyboard.F),
     Control.GamepadButton(Button.Gamepad.Y))
+    :delta(),
+
+  Undock = Control.Or( -- add separate control for undocking from station
+    Control.Key(Button.Keyboard.J),
+    Control.GamepadButton(Button.Gamepad.A))
     :delta(),
 
   SquadAttackTarget = Control.GamepadButton(Button.Gamepad.Up):delta(),
