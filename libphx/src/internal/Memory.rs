@@ -1,16 +1,4 @@
 use libc;
-use std::ffi::VaListImpl;
-
-extern "C" {
-    fn vsnprintf(
-        _: *mut libc::c_char,
-        _: libc::size_t,
-        _: *const libc::c_char,
-        _: __builtin_va_list,
-    ) -> libc::c_int;
-}
-pub type __builtin_va_list = *mut libc::c_char;
-pub type va_list = __builtin_va_list;
 
 #[inline]
 pub unsafe extern "C" fn MemAlloc(mut size: libc::size_t) -> *mut libc::c_void {
@@ -107,18 +95,12 @@ pub unsafe extern "C" fn StrEqual(mut a: *const libc::c_char, mut b: *const libc
 
 #[inline]
 pub unsafe extern "C" fn StrFormat(mut fmt: *const libc::c_char, mut args: ...) -> *const libc::c_char {
-    let mut args_0: va_list = 0 as *mut libc::c_char;
-    args_0 = &args as *const VaListImpl as va_list;
-    let mut len: libc::size_t = (vsnprintf(
-        0 as *mut libc::c_char,
-        0 as libc::size_t,
-        fmt,
-        args_0,
-    ) + 1 as libc::c_int) as libc::size_t;
-    let mut buf: *mut libc::c_char = StrAlloc(len);
-    args_0 = &args as *const VaListImpl as va_list;
-    vsnprintf(buf, len, fmt, args_0);
-    return buf as *const libc::c_char;
+    let mut s = String::new();
+    let _ = printf_compat::format(fmt, args.as_va_list(), printf_compat::output::fmt_write(&mut s));
+    let mut mem = libc::malloc(s.len() + 1) as *mut libc::c_char;
+    libc::memcpy(mem as *mut libc::c_void, s.as_bytes().as_ptr() as *const libc::c_void, s.len());
+    *mem.add(s.len()) = 0;
+    mem
 }
 
 #[inline]

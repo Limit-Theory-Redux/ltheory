@@ -14,6 +14,7 @@ extern crate stb;
 extern crate libc; 
 extern crate sdl2_sys;
 extern crate memoffset;
+extern crate printf_compat;
 
 pub mod internal {
     pub mod Memory;

@@ -106,8 +106,6 @@ pub unsafe extern "C" fn Engine_Init(
     mut glVersionMajor: libc::c_int,
     mut glVersionMinor: libc::c_int,
 ) {
-    crate::IncludeCpp();
-
     static mut firstTime: bool = 1 as libc::c_int != 0;
     Signal_Init();
     printf(

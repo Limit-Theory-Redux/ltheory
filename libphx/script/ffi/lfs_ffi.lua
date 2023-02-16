@@ -670,7 +670,7 @@ else
 
     local dirent_def
     if OS == 'OSX' or OS == 'BSD' then
-        if ARCH ~= 'arm' then
+        if false then-- if ARCH ~= 'arm' then
             dirent_def = [[
                 struct dirent {
                     uint64_t  d_ino;

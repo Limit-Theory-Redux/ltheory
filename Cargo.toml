@@ -10,21 +10,11 @@ publish = false
 edition = "2021"
 autobins = false
 
-[lib]
-name = "phx"
-path = "src/libphx/mod.rs"
-crate-type = ["cdylib", "rlib"]
-
 [[bin]]
 path = "src/Main.rs"
-name = "Main"
+name = "ltr"
 
 [dependencies]
 libc = "0.2"
-stb = "0.3.2"
-sdl2-sys = { version = "0.35.2", features = ["bundled", "static-link"] }
-memoffset = "0.8"
+phx = { path = "libphx" }
 
-[build-dependencies]
-cmake = "0.1"
-cc = { version = "1.0", features = ["parallel"] }

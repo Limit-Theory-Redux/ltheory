@@ -403,7 +403,7 @@ end
 do -- Load Library
   local debug = __debug__ and 'd' or ''
   local arch = jit.arch == 'x86' and '32' or '64'
-  local path = string.format('libphx%s%s', arch, debug)
+  local path = string.format('/Users/dga/Work/ltheory/bin/libphx64.dylib', arch, debug)
   libphx.lib = ffi.load(path, false)
   assert(libphx.lib, 'Failed to load %s', path)
 end
