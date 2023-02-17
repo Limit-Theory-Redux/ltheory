@@ -5,7 +5,8 @@ local Application = class(function (self) end)
 -- Virtual ---------------------------------------------------------------------
 
 function Application:getDefaultSize ()
-  return 1600, 900
+--  return 1600, 900
+  return Config.render.startingHorz, Config.render.startingVert
 end
 
 function Application:getTitle () return
@@ -91,6 +92,7 @@ function Application:run ()
 
        -- TODO : Remove this once bindings are fixed
       if Input.GetKeyboardCtrl() and Input.GetPressed(Button.Keyboard.W) then self:quit() end
+      if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end
 
       if Input.GetPressed(Bindings.ProfilerToggle) then
@@ -123,6 +125,10 @@ function Application:run ()
 
       if Input.GetPressed(Bindings.ToggleWireframe) then
         Settings.set('render.wireframe', not Settings.get('render.wireframe'))
+      end
+
+      if Input.GetPressed(Bindings.ToggleMetrics) then
+        Config.debug.metrics = not Config.debug.metrics
       end
 
       self:onInput()

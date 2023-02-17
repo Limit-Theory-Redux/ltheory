@@ -8,7 +8,7 @@ local HUD = {}
 HUD.__index = HUD
 setmetatable(HUD, UI.Panel)
 
-HUD.name      = 'HUD'
+HUD.name = 'HUD'
 HUD.focusable = true
 HUD:setPadUniform(8)
 

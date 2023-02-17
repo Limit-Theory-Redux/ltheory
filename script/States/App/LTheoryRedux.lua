@@ -2,19 +2,18 @@
 local Player = require('GameObjects.Entities.Player')
 local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
+local Bindings = require('States.ApplicationBindings')
 local Actions = requireAll('GameObjects.Actions')
 
 local LTheoryRedux = require('States.Application')
 
 --** LOCAL VARIABLES **--
-local currentVersion = "v0.002"
-
 local newSeed = 0ULL
 local newShip = nil
 local rng = RNG.FromTime()
 local menuMode = 0 -- initially show game logo
 local scalefactor = 0.0
-local bNewUniverse = false
+local bNewSSystem = false
 local bFlightModePaused = false
 local bSeedDialogDisplayed = false
 local bBackgroundMode = false
@@ -30,10 +29,13 @@ local guiElements = {
       { nil, 13415752391947803947ULL, false },
       { nil, 18346913580697132292ULL, false },
       { nil, 8788869510796381519ULL,  false },
+      { nil, 8668067427585514558ULL,  false },
+      { nil, 3806448947569663889ULL,  false },
       { nil, 12118942710891801364ULL, false }
     }
   }
 }
+
 
 --** MAIN CODE **--
 function LTheoryRedux:onInit ()
@@ -64,7 +66,7 @@ function LTheoryRedux:onUpdate (dt)
   self.canvas:update(dt)
 
   -- Add basic Game Control menu
-  if Input.GetPressed(Button.Keyboard.Escape) then
+  if Input.GetPressed(Bindings.Escape) then
     bBackgroundMode = false
     if Config.getGameMode() == 1 then
       menuMode = 1 -- show Main Menu
@@ -99,8 +101,13 @@ function LTheoryRedux:onUpdate (dt)
     end
   HmGui.End()
 
-  if bNewUniverse then
-    bNewUniverse = false
+  -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
+  if Input.GetPressed(Bindings.NewBackground) and menuMode == 1 then
+    bNewSSystem = true
+  end
+
+  if bNewSSystem then
+    bNewSSystem = false
     if newSeed ~= 0ULL then
       self.seed = newSeed
       newSeed = 0ULL
@@ -114,10 +121,10 @@ end
 function LTheoryRedux:generate ()
   Config.setGameMode(1) -- start off in Startup Mode
 
-  LTheoryRedux:seedUniverse(0) -- use random seed for new background star system, and stay in "display game logo" startup mode
+  LTheoryRedux:seedStarsystem(0) -- use random seed for new background star system, and stay in "display game logo" startup mode
 end
 
-function LTheoryRedux:seedUniverse (changeMenuMode)
+function LTheoryRedux:seedStarsystem (changeMenuMode)
   self.seed = rng:get64()
 
   LTheoryRedux:createStarSystem()
@@ -132,6 +139,8 @@ printf("Spawning new star system using seed = %s", self.seed)
 
   do
     if Config.getGameMode() == 1 then
+      -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
+      --   a space station, and an invisible rotating ship
       newShip = self.system:spawnBackground() -- spawn an invisible ship
 
       for i = 1, 1 do
@@ -148,10 +157,12 @@ printf("Spawning new star system using seed = %s", self.seed)
 
       LTheoryRedux:insertShip(newShip)
     else
+      -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
+      --   a space station, a visible pilotable ship, and 100 "escort" ships
       newShip = self.system:spawnShip()
 
-      -- World generation temporarily copied from background generation
-      -- until actual world generation is written
+      -- Star system generation is temporarily copied from background generation
+      -- until actual star system generation is written
       for i = 1, 1 do
         self.system:spawnStation()
       end
@@ -166,7 +177,7 @@ printf("Spawning new star system using seed = %s", self.seed)
 
       LTheoryRedux:insertShip(newShip)
 
-      -- player escorts
+      -- escort ships
       local ships = {}
       for i = 1, 100 do
         local escort = self.system:spawnShip()
@@ -236,7 +247,7 @@ function LTheoryRedux:showMainMenu ()
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.77, 0.77, 0.77, 1.0)
     HmGui.SetAlign(0.18, 0.13)
 
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), currentVersion, 0.77, 0.77, 0.77, 1.0)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.game.currentVersion, 0.77, 0.77, 0.77, 1.0)
     HmGui.SetAlign(0.01, 0.97)
 
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.77, 0.77, 0.77, 1.0)
@@ -312,7 +323,7 @@ function LTheoryRedux:showFlightDialogInner ()
     if HmGui.Button("Exit to Main Menu") then
       bFlightModePaused = false
       Config.setGameMode(1) -- switch to Startup Mode
-      LTheoryRedux:seedUniverse(1) -- use random seed for new background star system and display it in Main Menu mode
+      LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Exit Game") then
@@ -362,11 +373,12 @@ function LTheoryRedux:showSeedDialogInner ()
     HmGui.SetSpacing(16)
 
     HmGui.BeginGroupX()
+      local bptr = nil
       HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
       HmGui.PushFont(Cache.Font('Exo2Bold', 18))
       if HmGui.Button("Cancel") then
         bSeedDialogDisplayed = false
-        bNewUniverse = false
+        bNewSSystem = false
         menuMode = Config.getGameMode()
       end
       HmGui.SetSpacing(16)
@@ -376,7 +388,7 @@ function LTheoryRedux:showSeedDialogInner ()
         for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
           guiElements[1]["elems"][i][3] = false
         end
-        bNewUniverse = true
+        bNewSSystem = true
         Config.setGameMode(2) -- switch to Flight Mode
         menuMode = 2
       end
@@ -386,7 +398,7 @@ function LTheoryRedux:showSeedDialogInner ()
         for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
           guiElements[1]["elems"][i][3] = false
         end
-        bNewUniverse = true
+        bNewSSystem = true
         Config.setGameMode(2) -- switch to Flight Mode
         menuMode = 2
       end
