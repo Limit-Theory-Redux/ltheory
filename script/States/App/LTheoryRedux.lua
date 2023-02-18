@@ -4,19 +4,25 @@ local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Bindings = require('States.ApplicationBindings')
 local Actions = requireAll('GameObjects.Actions')
+local Item = require('Systems.Economy.Item')
 
 local LTheoryRedux = require('States.Application')
 
 --** LOCAL VARIABLES **--
 local newSeed = 0ULL
 local newShip = nil
-local rng = RNG.FromTime()
 local menuMode = 0 -- initially show game logo
 local scalefactor = 0.0
 local bNewSSystem = false
 local bFlightModePaused = false
 local bSeedDialogDisplayed = false
 local bBackgroundMode = false
+local bShowSystemMap = false
+local bSMapAdded = false
+local smap = nil
+
+local rng = RNG.FromTime()
+
 
 local guiElements = {
   {
@@ -31,6 +37,7 @@ local guiElements = {
       { nil, 8788869510796381519ULL,  false },
       { nil, 8668067427585514558ULL,  false },
       { nil, 3806448947569663889ULL,  false },
+      { nil, 2509601882259751919ULL,  false },
       { nil, 12118942710891801364ULL, false }
     }
   }
@@ -57,7 +64,24 @@ function LTheoryRedux:onInput ()
 end
 
 function LTheoryRedux:onDraw ()
+  -- Check to see whether to draw the System Map or the game world onto the canvas
+  if bShowSystemMap then
+    if not bSMapAdded then
+      self.canvas:remove(self.gameView)
+      self.canvas:add(smap)
+      bSMapAdded = true
+    end
+  else
+    if smap ~= nil then
+      self.canvas:remove(smap)
+      self.canvas:add(self.gameView)
+      bSMapAdded = false
+      smap = nil
+    end
+  end
+
   self.canvas:draw(self.resX, self.resY)
+
   HmGui.Draw() -- draw controls
 end
 
@@ -83,6 +107,15 @@ function LTheoryRedux:onUpdate (dt)
     end
   end
 
+  -- If player pressed the "System Map" key in Flight Mode, toggle the system map's visibility
+  if Input.GetPressed(Bindings.SystemMap) and menuMode == 2 then
+    bShowSystemMap = not bShowSystemMap
+    if smap == nil then
+      smap = Systems.CommandView.SystemMap(self.system)
+    end
+  end
+
+  -- Canvas overlays
   HmGui.Begin(self.resX, self.resY)
     if menuMode == 0 then
       LTheoryRedux:showGameLogo()
@@ -121,7 +154,8 @@ end
 function LTheoryRedux:generate ()
   Config.setGameMode(1) -- start off in Startup Mode
 
-  LTheoryRedux:seedStarsystem(0) -- use random seed for new background star system, and stay in "display game logo" startup mode
+  -- Use random seed for new background star system, and stay in "display game logo" startup mode
+  LTheoryRedux:seedStarsystem(0)
 end
 
 function LTheoryRedux:seedStarsystem (changeMenuMode)
@@ -134,6 +168,7 @@ end
 
 function LTheoryRedux:createStarSystem ()
   if self.system then self.system:delete() end
+print("------------------------")
 printf("Spawning new star system using seed = %s", self.seed)
   self.system = System(self.seed)
 
@@ -142,65 +177,78 @@ printf("Spawning new star system using seed = %s", self.seed)
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, and an invisible rotating ship
       newShip = self.system:spawnBackground() -- spawn an invisible ship
+      LTheoryRedux:insertShip(newShip)
 
-      for i = 1, 1 do
-        self.system:spawnStation()
-      end
-
-      for i = 1, 1 do
-        self.system:spawnAsteroidField(500, 10)
-      end
-
+      -- Add a planet
       for i = 1, 1 do
         self.system:spawnPlanet()
       end
 
-      LTheoryRedux:insertShip(newShip)
+      -- Add a space station
+      for i = 1, 1 do
+        self.system:spawnStation()
+      end
+
+      -- Add an asteroid field
+      for i = 1, 1 do
+        self.system:spawnAsteroidField(500, 10)
+      end
     else
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, a visible pilotable ship, and 100 "escort" ships
+      local asteroidCount = 500
+      local escortCount   = 100
+      local aField = nil
+
+      -- Add the player's ship
       newShip = self.system:spawnShip()
+      newShip:setName("NSS 'Titonicus'")
+      Config.game.currentShip = newShip
+      LTheoryRedux:insertShip(newShip)
+      print("Added our ship, the " .. newShip:getName())
 
-      -- Star system generation is temporarily copied from background generation
-      -- until actual star system generation is written
-      for i = 1, 1 do
-        self.system:spawnStation()
-      end
-
-      for i = 1, 1 do
-        self.system:spawnAsteroidField(500, 10)
-      end
-
+      -- Add a planet
       for i = 1, 1 do
         self.system:spawnPlanet()
       end
 
-      LTheoryRedux:insertShip(newShip)
+      -- Add a space station
+      for i = 1, 1 do
+        self.system:spawnStation()
+      end
 
-      -- escort ships
+      -- Add an asteroid field
+      for i = 1, 1 do
+        aField = self.system:spawnAsteroidField(asteroidCount, 10)
+      end
+      printf("Added %s asteroids to %s", asteroidCount, aField:getName())
+
+      -- Add escort ships
       local ships = {}
-      for i = 1, 100 do
+      for i = 1, escortCount do
         local escort = self.system:spawnShip()
         local offset = rng:getSphere():scale(100)
         escort:setPos(newShip:getPos() + offset)
         escort:setOwner(self.player)
+        escort:addItem(Item.Credit, Config.game.eStartCredits)
         escort:pushAction(Actions.Escort(newShip, offset))
+        --escort:pushAction(Actions.Think()) -- (generates an error currently)
         insert(ships, escort)
       end
 
-      for i = 1, #ships do
-        local j = rng:getInt(1, #ships)
-        if i ~= j then
-          -- ships[i]:pushAction(Actions.Attack(ships[j]))
-        end
-      end
+      -- Make escort ships chase each other!
+--      for i = 1, #ships do
+--        local j = rng:getInt(1, #ships)
+--        if i ~= j then
+--          ships[i]:pushAction(Actions.Attack(ships[j]))
+--        end
+--      end
 
-      for i = 1, 0 do
-        self.system:spawnAI(100)
-      end
+      printf("Added %s escort ships", escortCount)
     end
   end
 
+  -- Insert the game view into the application canvas to make it visible
   self.gameView = Systems.Overlay.GameView(self.player)
   self.canvas = UI.Canvas()
   self.canvas
@@ -353,11 +401,11 @@ function LTheoryRedux:showSeedDialogInner ()
 
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
     for i = 1, #guiElements[1]["elems"] do
-      -- Create the new checkbox
+      -- Create the new checkbox and save a reference to its current state (T/F)
       guiElements[1]["elems"][i][3] = HmGui.Checkbox(tostring(guiElements[1]["elems"][i][2]), guiElements[1]["elems"][i][3])
       if guiElements[1]["elems"][i][3] then
         -- Checkbox was selected
-        -- Reset all other checkboxes (so these work like radio buttons, where only one can be active)
+        -- Reset all other checkboxes (so that these checkboxes will work like radio buttons, where only one can be active)
         for j = 1, #guiElements[1]["elems"] do
           if j ~= i then
             guiElements[1]["elems"][j][3] = false
@@ -373,7 +421,6 @@ function LTheoryRedux:showSeedDialogInner ()
     HmGui.SetSpacing(16)
 
     HmGui.BeginGroupX()
-      local bptr = nil
       HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
       HmGui.PushFont(Cache.Font('Exo2Bold', 18))
       if HmGui.Button("Cancel") then

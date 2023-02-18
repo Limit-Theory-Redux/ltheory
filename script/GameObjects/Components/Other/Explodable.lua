@@ -13,14 +13,32 @@ local function explode (self, source)
   end
 
   self:clearActions()
+
+  self.explodable = false
+--printf("%s exploded! self.explodable = %s, hasExplo = %s, isExplo = %s",
+--self:getName(), self.explodable, self:hasExplodable(), self:isExplodable())
 end
 
 function Entity:addExplodable ()
   assert(not self.explodable)
   self.explodable = true
+--printf("Explodable: %s: self.explodable = %s, self:hasExplodable() = %s",
+--self:getName(), self.explodable, self:hasExplodable())
   self:register(Event.Destroyed, explode)
 end
 
 function Entity:hasExplodable ()
-  return self.explodable ~= nil
+  if self == nil or self.explodable == nil then
+    return false
+  else
+    return true
+  end
+end
+
+function Entity:isExplodable ()
+  if self == nil or self.explodable == nil then
+    return false
+  else
+    return self.explodable
+  end
 end

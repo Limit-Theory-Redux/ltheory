@@ -84,8 +84,6 @@ end
 
 -- Helpers For Testing ---------------------------------------------------------
 
-local kInventory = 100
-local kStartCredits = 1000000
 local kSystemScale = 10000
 
 local cons = Distribution()
@@ -131,6 +129,7 @@ vowels:add('ee',  1.2)
 vowels:add('oo',  0.7)
 
 local function genName (rng)
+  -- Word generator
   local name = {}
   for i = 1, rng:getInt(2, 5) do
     insert(name, cons:sample(rng))
@@ -141,25 +140,41 @@ local function genName (rng)
   return name
 end
 
+function System:getCoolName (rngv)
+  -- Create an object name that, if the first name is short, adds a second name for presumed uniqueness
+  local name  = genName(rngv)
+  local name2 = genName(rngv)
+  if name:len() < 7 and rngv:getInt(0, 100) < (40 + ((7 - name:len()) * 20)) then
+    name = name .. " " .. name2
+  end
+  return name
+end
+
 function System:spawnAI (shipCount)
+  -- Spawn a number of independent AI-controlled ships
   local player = Player()
   for i = 1, shipCount do
     local ship = self:spawnShip()
     ship:setOwner(player)
   end
-  player:addItem(Item.Credit, kStartCredits)
+  player:addItem(Item.Credit, Config.game.eStartCredits)
   player:pushAction(Actions.Think())
   insert(self.players, player)
   return player
 end
 
 function System:spawnAsteroidField (count, oreCount)
+  -- Spawn a new asteroid field (a zone containing individual asteroids)
   local rng = self.rng
+
+  -- Give the asteroid field (actually a zone) a name
   local AFieldName = System:getCoolName(rng)
   local zone = Zone(format('Asteroid Field \'%s\'', AFieldName))
+
   zone.pos = rng:getDir3():scale(0.0 * kSystemScale * (1 + rng:getExp()))
 
   for i = 1, count do
+    -- Spawn a new asteroid
     local pos
     if i == 1 then
       pos = zone.pos
@@ -178,6 +193,19 @@ function System:spawnAsteroidField (count, oreCount)
       asteroid:addYield(rng:choose(Item.T1), 1.0)
     end
 
+    -- Give the individual asteroid a name
+    local asteroidName = System:getCoolName(self.rng)
+    local namernd = rng:getInt(0, 100)
+    if namernd < 60 then
+      asteroidName = asteroidName .. " " .. tostring(rng:getInt(11, 99))
+    elseif namernd < 85 then
+      asteroidName = asteroidName .. " " .. tostring(rng:getInt(101, 999))
+    else
+      asteroidName = asteroidName .. " " .. tostring(rng:getInt(1001, 9999))
+    end
+    asteroid:setName(format('Asteroid \'%s\'', asteroidName))
+    --print("Added " .. asteroid:getName())
+
     zone:add(asteroid)
     self:addChild(asteroid)
   end
@@ -191,12 +219,27 @@ print("Added " .. zone:getName())
 end
 
 function System:spawnPlanet ()
+  -- Spawn a new planet
   local rng = self.rng
   local planet = Objects.Planet(rng:get64())
   local pos = rng:getDir3():scale(kSystemScale * (1.0 + rng:getExp()))
   local scale = 1e5 * rng:getErlang(2)
   planet:setPos(pos)
   planet:setScale(scale)
+
+  -- Planets have significant market capacity
+--  planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- temporary!
+  planet:addMarket()
+  planet:addTrader()
+
+  -- Planets have significant manufacturing capacity
+  local prod = self.rng:choose(Production.All())
+  planet:addFactory()
+  -- Adding production to a planet yields an error; apparently Josh didn't think planets could have production facilities
+  --   ...which isn't wrong. Really, it's _colonies_ on planets that should have production facility children.
+  planet:addProduction(prod)
+
+  -- Give the planet a name
   local planetName = System:getCoolName(self.rng)
   planet:setName(format('Planet \'%s\'', planetName))
 
@@ -209,11 +252,17 @@ print("Added " .. planet:getName())
 end
 
 function System:spawnShip ()
+  -- Spawn a new ship
   if not self.shipType then
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
   end
   local ship = self.shipType:instantiate()
-  ship:setInventoryCapacity(kInventory)
+
+  -- Give the ship a name
+  local shipName = System:getCoolName(self.rng)
+  ship:setName(format('HSS \'%s\'', shipName))
+
+  ship:setInventoryCapacity(Config.game.eInventory)
   ship:setPos(self.rng:getDir3():scale(kSystemScale * (1.0 + self.rng:getExp())))
   self:addChild(ship)
 
@@ -234,7 +283,8 @@ function System:spawnShip ()
     end
   end
 
-  Config.game.currentShip = ship
+  --print("Added Ship " .. ship:getName())
+
   return ship
 end
 
@@ -252,37 +302,34 @@ function System:spawnBackground ()
 end
 
 function System:spawnStation ()
+  -- Spawn a new space station
   local station = Objects.Station(self.rng:get31())
   local p = self.rng:getDisc():scale(kSystemScale)
   station:setPos(Vec3f(p.x, 0, p.y))
   station:setScale(100)
-  -- station:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0))
+
+  -- Stations have market capacity
+  --  station:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0))
   station:addMarket()
   station:addTrader()
 
+  -- Stations have manufacturing capacity
   local prod = self.rng:choose(Production.All())
   station:addFactory()
   station:addProduction(prod)
+
+  -- Give the station a name
   local stationName = System:getCoolName(self.rng)
   station:setName(format('%s \'%s\'',
     prod:getName(),
     stationName))
+
   self:addChild(station)
 
 print("Added " .. station:getName())
 
   Config.game.currentStation = station
   return station
-end
-
-function System:getCoolName (rngv)
-  -- Create an object name that, if the first name is short, adds a second name for presumed uniqueness
-  local name  = genName(rngv)
-  local name2 = genName(rngv)
-  if name:len() < 7 and rngv:getInt(0, 100) < (40 + ((7 - name:len()) * 20)) then
-    name = name .. " " .. name2
-  end
-  return name
 end
 
 return System

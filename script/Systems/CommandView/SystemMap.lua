@@ -33,36 +33,49 @@ function SystemMap:onDraw (state)
 
   BlendMode.PushAlpha()
   Draw.SmoothPoints(true)
+--printf("------------------------------")
   for _, e in self.system:iterChildren() do
-    local p = e:getPos()
-    local x = p.x - dx
-    local y = p.z - dy
-    x = self.x + x * self.zoom + hx
-    y = self.y + y * self.zoom + hy
-    Draw.PointSize(2.0)
-    if e:hasActions() then
-      Draw.Color(1.0, 0.0, 0.4, 1)
-    else
-      Draw.Color(0.3, 0.3, 0.3, 1)
-    end
-    Draw.Point(x, y)
+    -- Check to make sure this isn't a ship that has exploded
+    if e.body ~= nil then
+      local p = e:getPos()
+      local x = p.x - dx
+      local y = p.z - dy
+      x = self.x + x * self.zoom + hx
+      y = self.y + y * self.zoom + hy
+      Draw.PointSize(2.0)
 
-    if e:hasFlows() then
-      UI.DrawEx.Ring(x, y, self.zoom * e:getScale(), { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
-    end
+      if e:hasActions() then
+--printf("Action: %s", e:getName())
+        if Config.game.currentShip == e then
+          Draw.Color(0.2, 1.0, 0.3, 1)
+        else
+          Draw.Color(1.0, 0.0, 0.4, 1)
+        end
+      else
+        Draw.Color(0.4, 0.4, 0.4, 1)
+      end
+      Draw.Point(x, y)
 
-    if e:hasYield() then
-      UI.DrawEx.Ring(x, y, self.zoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 })
-    end
+      if e:hasFlows() then
+--printf("Flow: %s", e:getName())
+        UI.DrawEx.Ring(x, y, self.zoom * e:getScale(), { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
+      end
 
-    if self.focus == e then
-      UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 })
-    end
+      if e:hasYield() then
+--printf("Yield: %s", e:getName())
+        UI.DrawEx.Ring(x, y, self.zoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 })
+      end
 
-    local d = Vec2f(x, y):distanceSquared(mp)
-    if d < bestDist then
-      bestDist = d
-      best = e
+      if self.focus == e then
+--printf("Focus: %s", e:getName())
+        UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 })
+      end
+
+      local d = Vec2f(x, y):distanceSquared(mp)
+      if d < bestDist then
+        bestDist = d
+        best = e
+      end
     end
   end
   Draw.Color(1, 1, 1, 1)

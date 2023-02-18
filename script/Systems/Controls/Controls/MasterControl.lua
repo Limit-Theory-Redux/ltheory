@@ -131,7 +131,7 @@ function MasterControl:activateControl (controlDef)
   self.activeControlDef = controlDef
 
   if self.activeControlDef then
-    print("activeControlDef = " .. controlDef.name)
+--    print("activeControlDef = " .. controlDef.name)
 
     self.activeControlDef.panel:enable()
 
@@ -139,8 +139,8 @@ function MasterControl:activateControl (controlDef)
     if state then
       state:setFocus(self.activeControlDef.iconButton)
     end
-  else
-    print("activeControlDef = [nil]")
+--  else
+--    print("activeControlDef = [nil]")
   end
 end
 

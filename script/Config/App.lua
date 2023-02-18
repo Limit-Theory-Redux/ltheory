@@ -50,7 +50,7 @@ Config.gen = {
 }
 
 Config.game = {
-  currentVersion = "v0.002",
+  currentVersion = "v0.003",
 
   gameMode = 0,
 
@@ -58,6 +58,11 @@ Config.game = {
   currentStation = nil,
   currentPlanet = nil,
   currentZone = nil,
+
+  pStartCredits = 10000,
+  eStartCredits = 100000,
+
+  eInventory = 100,
 
   boostCost = 10,
   rateOfFire = 10,
