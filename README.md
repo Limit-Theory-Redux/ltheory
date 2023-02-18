@@ -17,7 +17,6 @@ To build Limit Theory, you'll need a few standard developer tools. All of them a
 Install the following tools:
 - Python: https://www.python.org/downloads/
 - Git: https://git-scm.com/downloads
-- Git LFS: https://git-lfs.github.com/
 
 If you would like to made changes to the libphx engine, you will also need:
 - Visual Studio Community: https://visualstudio.microsoft.com/vs/
@@ -25,7 +24,7 @@ If you would like to made changes to the libphx engine, you will also need:
 
 ### macOS
 
-Users on macOS will need to install Python, Git, Git LFS, CMake and Xcode.
+Users on macOS will need to install Python, Git, CMake and Xcode.
 
 First, install Xcode using the Mac App store: https://apps.apple.com/us/app/xcode/id497799835
 
@@ -33,15 +32,15 @@ To install the remaining dependencies, we recommend first installing the Homebre
 
 Once Homebrew is installed, open a **Terminal** window and run the following one-liner:
 
-- `brew install python3 git git-lfs cmake`
+- `brew install python3 git cmake`
 
 ### Linux
 
-You should install Python 3, Git, Git LFS and a C++ toolchain using your distro's package manager.
+You should install Python 3, Git and a C++ toolchain using your distro's package manager.
 
 For example, if using Ubuntu 22.04, open a terminal and install the following packages:
 
-- `sudo apt install -y python3 python-is-python3 git git-lfs build-essential cmake`
+- `sudo apt install -y python3 python-is-python3 git build-essential cmake`
 
 # Setting up
 
@@ -52,12 +51,6 @@ With the above prerequisites installed, let's get the `libphx` engine set up and
 Use `cd` to change directories to the place where you want to download LTR.
 
 - `cd <path where you want to put the LTR source>` (for example: `~/Desktop` for the desktop)
-
-Before running any other `git` commands, make sure LFS is installed:
-
-- `git lfs install`
-
-You should see `Git LFS initialized` or a similar message. **Important**: if you forget to install and initialize Git LFS, most of the resources will probably be broken, and the whole process will likely fail in strange and mysterious ways. This is a common gotcha with projects that use LFS. See the [Troubleshooting](#troubleshooting) section below for how to resolve this.
 
 Now, you can download the repository:
 
@@ -108,16 +101,6 @@ To launch a specific script, add its name to the end:
 All top-level scripts are in the `script/States/App` directory.
 
 # Troubleshooting
-
-## Unable to load resources such as `Failed to load image from './res/tex2d/metal/01_d.jpg'`
-
-This usually happens if you've cloned the repository without downloading the games' resource files via Git LFS. Open a terminal and run:
-
-- `git lfs fetch`
-
-then:
-
-- `git lfs checkout`
 
 ## Debugging in Visual Studio
 
