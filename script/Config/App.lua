@@ -1,4 +1,4 @@
-Config.app = 'LTheory'
+Config.app = 'LTheoryRedux'
 
 Config.debug = {
   metrics         = true,
@@ -33,7 +33,7 @@ Config.gen = {
   nStations  = 0,
   nNPCs      = 0,
   nNPCsNew   = 0,
-  nPlanets   = 1,
+  nPlanets   = 0,
   nBeltSize  = function (rng) return 0 end, -- Asteroids per planetary belt
   nThrusters = 1,
   nTurrets   = 2,
@@ -50,6 +50,20 @@ Config.gen = {
 }
 
 Config.game = {
+  currentVersion = "v0.003",
+
+  gameMode = 0,
+
+  currentShip = nil,
+  currentStation = nil,
+  currentPlanet = nil,
+  currentZone = nil,
+
+  pStartCredits = 10000,
+  eStartCredits = 100000,
+
+  eInventory = 100,
+
   boostCost = 10,
   rateOfFire = 10,
 
@@ -85,25 +99,44 @@ Config.game = {
 }
 
 Config.render = {
-  fullscreen = false,
-  vsync      = true,
+  startingHorz = 1600,
+  startingVert =  900,
+  fullscreen   = false,
+  vsync        = true,
 }
 
 Config.ui = {
+  defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
-  defaultControl   = 'Ship',
   controlBarHeight = 48
 }
+
+function Config.setGameMode(gm)
+  Config.game.gameMode = gm
+
+  if Config.game.gameMode == 1 then
+    Config.ui.defaultControl = 'Background' -- enable game startup mode
+  else
+    Config.ui.defaultControl = 'Ship' -- enable flight mode
+  end
+end
+
+function Config.getGameMode()
+  return Config.game.gameMode
+end
 
 Config.ui.color = {
   accent            = Color(1.00, 0.00, 0.30, 1.0),
   focused           = Color(1.00, 0.00, 0.30, 1.0),
   active            = Color(0.70, 0.00, 0.21, 1.0),
   background        = Color(0.15, 0.15, 0.15, 1.0),
+  backgroundInvert  = Color(0.85, 0.85, 0.85, 1.0),
   border            = Color(0.12, 0.12, 0.12, 1.0),
   fill              = Color(0.60, 0.60, 0.60, 1.0),
   textNormal        = Color(0.75, 0.75, 0.75, 1.0),
   textNormalFocused = Color(0.00, 0.00, 0.00, 1.0),
+  textInvert        = Color(0.25, 0.25, 0.25, 1.0),
+  textInvertFocused = Color(0.00, 0.00, 0.00, 1.0),
   textTitle         = Color(0.60, 0.60, 0.60, 1.0),
   debugRect         = Color(0.50, 1.00, 0.50, 0.05),
   selection         = Color(1.00, 0.50, 0.10, 1.0),

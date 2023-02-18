@@ -1,9 +1,10 @@
-local ShipFighter = require('Systems.Gen.ShipFighter')
-local ShipCapital = require('Systems.Gen.ShipCapital')
+local ShipFighter   = require('Systems.Gen.ShipFighter')
+local ShipCapital   = require('Systems.Gen.ShipCapital')
+local ShipInvisible = require('Systems.Gen.ShipInvisible')
 
 local Ship = {}
 
--- TODO : These function names are confusing as hell. require('Systems.Gen.ShipFighter') ~= Gen.ShipFighter
+-- TODO : These function names are confusing as hell. require('Gen.ShipFighter') ~= Gen.ShipFighter
 
 function Ship.ShipFighter(seed, res)
   local rng = RNG.Create(seed)
@@ -27,6 +28,14 @@ end
 function Ship.ShipCapital(seed, res)
   local rng = RNG.Create(seed)
   return ShipCapital.Sausage(rng)
+end
+
+function Ship.ShipInvisible(seed, res)
+  local rng = RNG.Create(seed)
+  Profiler.Begin('Gen.ShipInvisible.Standard')
+  local result = ShipInvisible.Standard(rng)
+  Profiler.End()
+  return result
 end
 
 return Ship

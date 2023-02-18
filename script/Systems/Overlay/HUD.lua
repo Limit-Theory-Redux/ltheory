@@ -8,7 +8,7 @@ local HUD = {}
 HUD.__index = HUD
 setmetatable(HUD, UI.Panel)
 
-HUD.name      = 'HUD'
+HUD.name = 'HUD'
 HUD.focusable = true
 HUD:setPadUniform(8)
 
@@ -16,6 +16,11 @@ function HUD:onEnable ()
   -- TODO : Wtf does this do? Who wrote this?? WHY.
   local pCamera = self.gameView.camera
   local camera = self.gameView.camera
+
+  -- Lock camera back to player ship when HUD is enabled!
+  -- (e.g., changing from "Dock" control -> "Ship" control in MasterControl.lua)
+  self.gameView:setOrbit(false)
+
   camera:warp()
   camera:lerpFrom(pCamera.pos, pCamera.rot)
 end
@@ -163,7 +168,7 @@ function HUD:drawDockPrompt (a)
   local x, y, sx, sy = self:getRectGlobal()
   UI.DrawEx.TextAdditive(
     'NovaMono',
-    'Press ??? to Dock',
+    'Press F to Dock',
     16,
     x, y, sx, sy,
     1, 1, 1, self.dockPromptAlpha * a,

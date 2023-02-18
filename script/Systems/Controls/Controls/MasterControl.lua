@@ -3,11 +3,12 @@
   as the HUD/ShipControl, CommandControl, ResearchControl, ConstructionControl,
   etc.
 ----------------------------------------------------------------------------]]--
-local Bindings       = require('Systems.Controls.Bindings.MasterBindings')
-local CommandControl = require('Systems.Controls.Controls.CommandControl')
-local DebugControl   = require('Systems.Controls.Controls.DebugControl')
-local DockControl    = require('Systems.Controls.Controls.DockControl')
-local HUD            = require('Systems.Overlay.HUD')
+local BackgroundControl = require('Systems.Controls.Controls.BackgroundControl')
+local CommandControl    = require('Systems.Controls.Controls.CommandControl')
+local DebugControl      = require('Systems.Controls.Controls.DebugControl')
+local DockControl       = require('Systems.Controls.Controls.DockControl')
+local Bindings          = require('Systems.Controls.Bindings.MasterBindings')
+local HUD               = require('Systems.Overlay.HUD')
 
 local MasterControl = {}
 MasterControl.__index = MasterControl
@@ -23,12 +24,23 @@ end
 local ControlSets = {
   -- Undocked
   {
+    -- Note: the order of controls matters. When switching away from a non-Ship control,
+    --       the first control in the list will be the new control to be selected. This
+    --       matters when undocking as we need to return to the Ship control for the HUD
+    --       to be activated. That's currently where the code lives for switching the
+    --       active game view back to the ship (and returning the ship to flight mode).
     predicate = function (self) return not self.player:getControlling():getCurrentAction() end,
     container = nil,
     controls  = List(
       {
         name       = 'Ship',
         ctor       = HUD,
+        panel      = nil,
+        iconButton = nil,
+      },
+      {
+        name       = 'Background',
+        ctor       = BackgroundControl,
         panel      = nil,
         iconButton = nil,
       },
@@ -117,13 +129,18 @@ function MasterControl:activateControl (controlDef)
     self.activeControlDef.panel:disable()
   end
   self.activeControlDef = controlDef
+
   if self.activeControlDef then
+--    print("activeControlDef = " .. controlDef.name)
+
     self.activeControlDef.panel:enable()
 
     local state = self:getState()
     if state then
       state:setFocus(self.activeControlDef.iconButton)
     end
+--  else
+--    print("activeControlDef = [nil]")
   end
 end
 

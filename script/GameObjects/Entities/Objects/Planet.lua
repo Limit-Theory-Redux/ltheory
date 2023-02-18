@@ -17,6 +17,14 @@ local Planet = subclass(Entity, function (self, seed)
   self:addRigidBody(true, mesh)
   self:setMass(1000)
 
+  -- Enable market/production on planets
+  -- TODO: Replace with 0 - N colonies, each of which has its own distinct
+  --       market/production/research capabilities
+  self:addChildren()
+  self:addActions()
+  self:addFlows()
+  self:addInventory(10000)
+
   self.mesh = mesh
   self.meshAtmo = Gen.Primitive.IcoSphere(5):managed()
   self.meshAtmo:computeNormals()
