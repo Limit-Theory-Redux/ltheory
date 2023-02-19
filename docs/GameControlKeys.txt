@@ -2,6 +2,7 @@ Tab    -- toggle star system tactical map on/off
 F10    -- toggle profiler on, then toggle off and display stats
 F11    -- toggle between fullscreen and windowed
 F12    -- take a screenshot (*.png) and save it to ./screenshot folder
+A      -- autopilot: in the system map, click on a target, then press this key to fly there
 H      -- speed up time processing (currently 10x, defined in /script/Config/App.lua)
 M      -- toggle the realtime metrics overlay on/off
 B      -- when in startup mode (not flight mode), generate a new background star system

@@ -5,6 +5,8 @@ Config.debug = {
   window          = true, -- Debug window visible by default at launch?
   windowSection   = nil,  -- Set to the name of a debug window section to
                           -- collapse all others by default
+  instantJobs     = true,
+
   timeAccelFactor = 10,
 }
 
@@ -59,6 +61,9 @@ Config.game = {
   currentPlanet = nil,
   currentZone = nil,
 
+  mapSystemPos  = Vec2f(0, 0),
+  mapSystemZoom = 0.01,
+
   pStartCredits = 10000,
   eStartCredits = 100000,
 
@@ -79,9 +84,12 @@ Config.game = {
   shipEnergyRecharge     = 10,
   shipHealth             = 100,
   shipHealthRegen        = 2,
+  shipDocked             = false,
+
   stationScale           = 20,
 
   playerDamageResistance = 1.0,
+  playerMoving           = false,
 
   enemies                = 0,
   friendlies             = 0,
@@ -98,19 +106,6 @@ Config.game = {
   dockRange              = 50,
 }
 
-Config.render = {
-  startingHorz = 1600,
-  startingVert =  900,
-  fullscreen   = false,
-  vsync        = true,
-}
-
-Config.ui = {
-  defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
-  showTrackers     = true,
-  controlBarHeight = 48
-}
-
 function Config.setGameMode(gm)
   Config.game.gameMode = gm
 
@@ -124,6 +119,19 @@ end
 function Config.getGameMode()
   return Config.game.gameMode
 end
+
+Config.render = {
+  startingHorz = 1600,
+  startingVert =  900,
+  fullscreen   = false,
+  vsync        = true,
+}
+
+Config.ui = {
+  defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
+  showTrackers     = true,
+  controlBarHeight = 48
+}
 
 Config.ui.color = {
   accent            = Color(1.00, 0.00, 0.30, 1.0),

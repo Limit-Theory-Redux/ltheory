@@ -19,6 +19,8 @@ function DockControl:onEnable ()
   self.camera:setRelative(true)
   self.camera:warp()
   self.camera:lerpFrom(pCamera.pos, pCamera.rot)
+
+  Config.game.shipDocked = true
   print("Docked at " .. Config.game.currentStation:getName())
 end
 
