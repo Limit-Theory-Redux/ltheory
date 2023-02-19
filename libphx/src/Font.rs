@@ -1,4 +1,5 @@
 use ::libc;
+use glam::{IVec2, IVec4};
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
@@ -384,20 +385,8 @@ pub struct FT_Bitmap_Size_ {
 }
 pub type FT_String = libc::c_char;
 pub type FT_Long = libc::c_long;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-    pub z: libc::c_int,
-    pub w: libc::c_int,
-}
+
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -443,19 +432,7 @@ unsafe extern "C" fn Min(
 ) -> libc::c_double {
     return if a < b { a } else { b };
 }
-#[inline]
-unsafe extern "C" fn Vec4i_Create(
-    mut x: libc::c_int,
-    mut y: libc::c_int,
-    mut z: libc::c_int,
-    mut w: libc::c_int,
-) -> Vec4i {
-    let mut self_0: Vec4i = {
-        let mut init = Vec4i { x: x, y: y, z: z, w: w };
-        init
-    };
-    return self_0;
-}
+
 #[inline]
 unsafe extern "C" fn Vec4f_Create(
     mut x: libc::c_float,
@@ -743,7 +720,7 @@ pub unsafe extern "C" fn Font_GetLineHeight(mut self_0: *mut Font) -> libc::c_in
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize(
     mut self_0: *mut Font,
-    mut out: *mut Vec4i,
+    mut out: *mut IVec4,
     mut text: cstr,
 ) {
     Profiler_Begin(
@@ -752,26 +729,14 @@ pub unsafe extern "C" fn Font_GetSize(
     );
     let mut x: libc::c_int = 0 as libc::c_int;
     let mut y: libc::c_int = 0 as libc::c_int;
-    let mut lower: Vec2i = {
-        let mut init = Vec2i {
-            x: 2147483647 as libc::c_int,
-            y: 2147483647 as libc::c_int,
-        };
-        init
-    };
-    let mut upper: Vec2i = {
-        let mut init = Vec2i {
-            x: -(2147483647 as libc::c_int) - 1 as libc::c_int,
-            y: -(2147483647 as libc::c_int) - 1 as libc::c_int,
-        };
-        init
-    };
+    let mut lower = IVec2::new(i32::MAX, i32::MAX);
+    let mut upper = IVec2::new(i32::MIN, i32::MIN);
     let mut glyphLast: libc::c_int = 0 as libc::c_int;
     let fresh5 = text;
     text = text.offset(1);
     let mut codepoint: uint32 = *fresh5 as uint32;
     if codepoint == 0 {
-        *out = Vec4i_Create(
+        *out = IVec4::new(
             0 as libc::c_int,
             0 as libc::c_int,
             0 as libc::c_int,
@@ -806,13 +771,13 @@ pub unsafe extern "C" fn Font_GetSize(
         text = text.offset(1);
         codepoint = *fresh6 as uint32;
     }
-    *out = Vec4i_Create(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
+    *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
     Profiler_End();
 }
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize2(
     mut self_0: *mut Font,
-    mut out: *mut Vec2i,
+    mut out: *mut IVec2,
     mut text: cstr,
 ) {
     Profiler_Begin(

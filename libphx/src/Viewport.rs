@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
 extern "C" {
     fn glLoadIdentity();
@@ -9,12 +10,7 @@ extern "C" {
     fn Fatal(_: cstr, _: ...);
 }
 pub type cstr = *const libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 pub type GLenum = libc::c_uint;
 pub type GLint = libc::c_int;
 pub type GLsizei = libc::c_int;
@@ -68,7 +64,7 @@ pub unsafe extern "C" fn Viewport_GetAspect() -> libc::c_float {
         / vp[vpIndex as usize].sy as libc::c_float;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Viewport_GetSize(mut out: *mut Vec2i) {
+pub unsafe extern "C" fn Viewport_GetSize(mut out: *mut IVec2) {
     if vpIndex < 0 as libc::c_int {
         Fatal(
             b"Viewport_GetSize: Viewport stack is empty\0" as *const u8

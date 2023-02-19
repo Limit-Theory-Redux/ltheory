@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
 use crate::Button::*;
 use crate::Modifier::*;
@@ -94,12 +95,7 @@ pub struct InputEvent {
 }
 pub type State = int32;
 pub type Button = int32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 pub type Modifier = int32;
 pub type ResourceType = int32;
 pub type fpos_t = __darwin_off_t;
@@ -968,7 +964,7 @@ pub struct Input {
     pub activeDevice: Device,
     pub lastTimestamp: uint32,
     pub lastEventTimestamp: uint32,
-    pub lastMousePosition: Vec2i,
+    pub lastMousePosition: IVec2,
     pub autoHideMouse: bool,
     pub deviceLists: [DeviceList; 4],
     pub events_size: int32,
@@ -1009,7 +1005,7 @@ static mut self_0: Input = {
         },
         lastTimestamp: 0,
         lastEventTimestamp: 0,
-        lastMousePosition: Vec2i { x: 0, y: 0 },
+        lastMousePosition: IVec2 { x: 0, y: 0 },
         autoHideMouse: false,
         deviceLists: [DeviceList {
             devices_size: 0,
@@ -1930,7 +1926,7 @@ pub unsafe extern "C" fn Input_GetDeviceIdleTime(
     return Input_GetDeviceIdleTimeImpl(*device);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetMouseDelta(mut delta: *mut Vec2i) {
+pub unsafe extern "C" fn Input_GetMouseDelta(mut delta: *mut IVec2) {
     (*delta)
         .x = Input_GetValue(Button_Mouse_X) as libc::c_int - self_0.lastMousePosition.x;
     (*delta)
@@ -1948,7 +1944,7 @@ pub unsafe extern "C" fn Input_GetMouseIdleTime() -> libc::c_float {
     return Input_GetDeviceIdleTimeImpl(device);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetMousePosition(mut position: *mut Vec2i) {
+pub unsafe extern "C" fn Input_GetMousePosition(mut position: *mut IVec2) {
     let mut device: Device = {
         let mut init = Device {
             type_0: DeviceType_Mouse,
@@ -1960,7 +1956,7 @@ pub unsafe extern "C" fn Input_GetMousePosition(mut position: *mut Vec2i) {
     (*position).y = Input_GetDeviceValueImpl(device, Button_Mouse_Y) as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetMouseScroll(mut scroll: *mut Vec2i) {
+pub unsafe extern "C" fn Input_GetMouseScroll(mut scroll: *mut IVec2) {
     let mut device: Device = {
         let mut init = Device {
             type_0: DeviceType_Mouse,
@@ -1972,7 +1968,7 @@ pub unsafe extern "C" fn Input_GetMouseScroll(mut scroll: *mut Vec2i) {
     (*scroll).y = Input_GetDeviceValueImpl(device, Button_Mouse_ScrollY) as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_SetMousePosition(mut position: *mut Vec2i) {
+pub unsafe extern "C" fn Input_SetMousePosition(mut position: *mut IVec2) {
     SDL_WarpMouseInWindow(0 as *mut SDL_Window, (*position).x, (*position).y);
 }
 #[no_mangle]
@@ -1988,7 +1984,7 @@ pub unsafe extern "C" fn Input_SetMouseVisibleAuto() {
     Input_SetActiveDevice(self_0.activeDevice);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_SetMouseScroll(mut scroll: *mut Vec2i) {
+pub unsafe extern "C" fn Input_SetMouseScroll(mut scroll: *mut IVec2) {
     let mut timestamp: uint32 = SDL_GetTicks();
     let mut device: Device = {
         let mut init = Device {

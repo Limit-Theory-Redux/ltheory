@@ -1,4 +1,5 @@
 use ::libc;
+use glam::DVec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type Matrix;
@@ -18,58 +19,12 @@ extern "C" {
     fn glScaled(x: GLdouble, y: GLdouble, z: GLdouble);
     fn glTranslated(x: GLdouble, y: GLdouble, z: GLdouble);
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3d {
-    pub x: libc::c_double,
-    pub y: libc::c_double,
-    pub z: libc::c_double,
-}
+
 pub type GLdouble = libc::c_double;
 pub type GLfloat = libc::c_float;
 pub type GLenum = libc::c_uint;
 pub type GLint = libc::c_int;
-#[inline]
-unsafe extern "C" fn Vec3d_Normalize(mut v: Vec3d) -> Vec3d {
-    let mut l: libc::c_double = Vec3d_Length(v);
-    let mut self_0: Vec3d = {
-        let mut init = Vec3d {
-            x: v.x / l,
-            y: v.y / l,
-            z: v.z / l,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3d_Length(mut v: Vec3d) -> libc::c_double {
-    return Sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-#[inline]
-unsafe extern "C" fn Vec3d_Cross(mut a: Vec3d, mut b: Vec3d) -> Vec3d {
-    let mut self_0: Vec3d = {
-        let mut init = Vec3d {
-            x: b.z * a.y - b.y * a.z,
-            y: b.x * a.z - b.z * a.x,
-            z: b.y * a.x - b.x * a.y,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3d_Sub(mut a: Vec3d, mut b: Vec3d) -> Vec3d {
-    let mut self_0: Vec3d = {
-        let mut init = Vec3d {
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        };
-        init
-    };
-    return self_0;
-}
+
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
     return sqrt(t);
@@ -107,13 +62,13 @@ pub unsafe extern "C" fn GLMatrix_Load(mut matrix: *mut Matrix) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_LookAt(
-    mut eye: *const Vec3d,
-    mut at: *const Vec3d,
-    mut up: *const Vec3d,
+    mut eye: *const DVec3,
+    mut at: *const DVec3,
+    mut up: *const DVec3,
 ) {
-    let mut z: Vec3d = Vec3d_Normalize(Vec3d_Sub(*at, *eye));
-    let mut x: Vec3d = Vec3d_Normalize(Vec3d_Cross(z, Vec3d_Normalize(*up)));
-    let mut y: Vec3d = Vec3d_Cross(x, z);
+    let mut z = (*at - *eye).normalize();
+    let mut x = DVec3::cross(z, (*up).normalize()).normalize();
+    let mut y = DVec3::cross(x, z);
     let mut m: [libc::c_double; 16] = [
         x.x,
         y.x,

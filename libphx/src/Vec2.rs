@@ -16,14 +16,14 @@
 // #define Vec2_Abs(T, prefix) inline T T##_Abs(T v) { \
 //   T self = { Abs##prefix(v.x), Abs##prefix(v.y) }; return self; }
 //
-// Vec2_Abs(Vec2i, i)
+// Vec2_Abs(IVec2, i)
 // Vec2_Abs(Vec2f, f)
 // Vec2_Abs(Vec2d,)
 //
 // #define Vec2_IAbs(T, prefix) inline void T##_IAbs(T* v) { \
 //   v->x = Abs##prefix(v->x); v->y = Abs##prefix(v->y); }
 //
-// Vec2_IAbs(Vec2i, i)
+// Vec2_IAbs(IVec2, i)
 // Vec2_IAbs(Vec2f, f)
 // Vec2_IAbs(Vec2d,)
 //
@@ -31,7 +31,7 @@
 //   bool self = a.x == b.x && a.y == b.y; \
 //   return self; }
 //
-// Vec2_Equal(Vec2i)
+// Vec2_Equal(IVec2)
 // Vec2_Equal(Vec2f)
 // Vec2_Equal(Vec2d)
 //
@@ -57,7 +57,7 @@
 // #define Vec2_Dot(T, sub) inline sub T##_Dot(T a, T b) { \
 //   return a.x * b.x + a.y * b.y; }
 //
-// Vec2_Dot(Vec2i, int)
+// Vec2_Dot(IVec2, int)
 // Vec2_Dot(Vec2f, float)
 // Vec2_Dot(Vec2d, double)
 //

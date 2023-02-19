@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
 use crate::Button::*;
 extern "C" {
@@ -6,7 +7,7 @@ extern "C" {
     pub type HashMap;
     pub type Tex2D;
     fn Font_Load(name: cstr, size: libc::c_int) -> *mut Font;
-    fn Font_GetSize2(_: *mut Font, out: *mut Vec2i, text: cstr);
+    fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: cstr);
     fn Hash_FNV64_Init() -> uint64;
     fn Hash_FNV64_Incremental(
         _: uint64,
@@ -18,9 +19,9 @@ extern "C" {
     fn HashMap_SetRaw(_: *mut HashMap, keyHash: uint64, value: *mut libc::c_void);
     fn Input_GetPressed(_: Button) -> bool;
     fn Input_GetDown(_: Button) -> bool;
-    fn Input_GetMouseDelta(_: *mut Vec2i);
-    fn Input_GetMousePosition(_: *mut Vec2i);
-    fn Input_GetMouseScroll(_: *mut Vec2i);
+    fn Input_GetMouseDelta(_: *mut IVec2);
+    fn Input_GetMousePosition(_: *mut IVec2);
+    fn Input_GetMouseScroll(_: *mut IVec2);
     fn Profiler_Begin(_: cstr);
     fn Profiler_End();
     fn RenderState_PushBlendMode(_: BlendMode);
@@ -84,12 +85,7 @@ pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
 pub type uint64 = uint64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec2f {
@@ -837,7 +833,7 @@ pub unsafe extern "C" fn HmGui_End() {
         self_0.focus[i as usize] = 0 as libc::c_int as uint64;
         i += 1;
     }
-    let mut mouse: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);
     self_0.focusPos = Vec2f_Create(mouse.x as libc::c_float, mouse.y as libc::c_float);
     HmGui_CheckFocus(self_0.root);
@@ -902,7 +898,7 @@ pub unsafe extern "C" fn HmGui_BeginScroll(mut maxSize: libc::c_float) {
 pub unsafe extern "C" fn HmGui_EndScroll() {
     let mut data: *mut HmGuiData = HmGui_GetData(self_0.group);
     if HmGui_GroupHasFocus(1 as libc::c_int) {
-        let mut scroll: Vec2i = Vec2i { x: 0, y: 0 };
+        let mut scroll: IVec2 = IVec2 { x: 0, y: 0 };
         Input_GetMouseScroll(&mut scroll);
         (*data).offset.y -= 10.0f32 * scroll.y as libc::c_float;
     }
@@ -959,7 +955,7 @@ pub unsafe extern "C" fn HmGui_BeginWindow(mut title: cstr) {
     let mut data: *mut HmGuiData = HmGui_GetData(self_0.group);
     if HmGui_GroupHasFocus(0 as libc::c_int) {
         if Input_GetDown(Button_Mouse_Left) {
-            let mut md: Vec2i = Vec2i { x: 0, y: 0 };
+            let mut md: IVec2 = IVec2 { x: 0, y: 0 };
             Input_GetMouseDelta(&mut md);
             (*data).offset.x += md.x as libc::c_float;
             (*data).offset.y += md.y as libc::c_float;
@@ -1140,7 +1136,7 @@ pub unsafe extern "C" fn HmGui_TextEx(
     (*e).font = font;
     (*e).text = StrDup(text);
     (*e).color = Vec4f_Create(r, g, b, a);
-    let mut size: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*e).font, &mut size, (*e).text);
     (*e).widget.minSize = Vec2f_Create(size.x as libc::c_float, size.y as libc::c_float);
     HmGui_SetAlign(0.0f32, 1.0f32);

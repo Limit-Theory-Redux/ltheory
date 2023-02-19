@@ -1,19 +1,16 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
+
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn glDisable(cap: GLenum);
     fn glEnable(cap: GLenum);
     fn glScissor(x: GLint, y: GLint, width: GLsizei, height: GLsizei);
-    fn Viewport_GetSize(out: *mut Vec2i);
+    fn Viewport_GetSize(out: *mut IVec2);
 }
 pub type cstr = *const libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ClipRect {
@@ -83,7 +80,7 @@ unsafe extern "C" fn TransformRect(
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Activate(mut self_0: *mut ClipRect) {
     if !self_0.is_null() && (*self_0).enabled as libc::c_int != 0 {
-        let mut vpSize: Vec2i = Vec2i { x: 0, y: 0 };
+        let mut vpSize: IVec2 = IVec2 { x: 0, y: 0 };
         Viewport_GetSize(&mut vpSize);
         glEnable(0xc11 as libc::c_int as GLenum);
         let mut x: libc::c_float = (*self_0).x;

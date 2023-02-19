@@ -1,4 +1,5 @@
 use ::libc;
+use glam::DVec3;
 use crate::internal::Memory::*;
 extern "C" {
     // fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
@@ -50,13 +51,7 @@ pub struct Polygon {
 pub struct Triangle {
     pub vertices: [Vec3f; 3],
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3d {
-    pub x: libc::c_double,
-    pub y: libc::c_double,
-    pub z: libc::c_double,
-}
+
 pub type Error = uint32;
 pub type PointClassification = uint8;
 #[inline]
@@ -68,7 +63,7 @@ unsafe extern "C" fn Vec3f_Validate(mut v: Vec3f) -> Error {
     return e;
 }
 #[inline]
-unsafe extern "C" fn Vec3d_ToVec3f(mut a: Vec3d) -> Vec3f {
+unsafe extern "C" fn DVec3_ToVec3f(mut a: DVec3) -> Vec3f {
     let mut self_0: Vec3f = {
         let mut init = Vec3f {
             x: a.x as libc::c_float,
@@ -80,9 +75,9 @@ unsafe extern "C" fn Vec3d_ToVec3f(mut a: Vec3d) -> Vec3f {
     return self_0;
 }
 #[inline]
-unsafe extern "C" fn Vec3f_ToVec3d(mut a: Vec3f) -> Vec3d {
-    let mut self_0: Vec3d = {
-        let mut init = Vec3d {
+unsafe extern "C" fn Vec3f_ToDVec3(mut a: Vec3f) -> DVec3 {
+    let mut self_0: DVec3 = {
+        let mut init = DVec3 {
             x: a.x as libc::c_double,
             y: a.y as libc::c_double,
             z: a.z as libc::c_double,
@@ -91,30 +86,10 @@ unsafe extern "C" fn Vec3f_ToVec3d(mut a: Vec3f) -> Vec3d {
     };
     return self_0;
 }
-#[inline]
-unsafe extern "C" fn Vec3d_Normalize(mut v: Vec3d) -> Vec3d {
-    let mut l: libc::c_double = Vec3d_Length(v);
-    let mut self_0: Vec3d = {
-        let mut init = Vec3d {
-            x: v.x / l,
-            y: v.y / l,
-            z: v.z / l,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3d_Length(mut v: Vec3d) -> libc::c_double {
-    return Sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-}
+
 #[inline]
 unsafe extern "C" fn Vec3f_Length(mut v: Vec3f) -> libc::c_float {
     return Sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-#[inline]
-unsafe extern "C" fn Vec3d_Dot(mut a: Vec3d, mut b: Vec3d) -> libc::c_double {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 #[inline]
 unsafe extern "C" fn Vec3f_Dot(mut a: Vec3f, mut b: Vec3f) -> libc::c_float {
@@ -130,18 +105,7 @@ unsafe extern "C" fn Vec3f_IDivs(mut a: *mut Vec3f, mut b: libc::c_float) {
     (*a).y /= b;
     (*a).z /= b;
 }
-#[inline]
-unsafe extern "C" fn Vec3d_Divs(mut a: Vec3d, mut b: libc::c_double) -> Vec3d {
-    let mut self_0: Vec3d = {
-        let mut init = Vec3d {
-            x: a.x / b,
-            y: a.y / b,
-            z: a.z / b,
-        };
-        init
-    };
-    return self_0;
-}
+
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
     return sqrt(t as libc::c_double) as libc::c_float;
@@ -177,18 +141,7 @@ unsafe extern "C" fn Float_Validatef(mut x: libc::c_float) -> Error {
     }
     return 0 as libc::c_int as Error;
 }
-#[inline]
-unsafe extern "C" fn Vec3d_Add(mut a: Vec3d, mut b: Vec3d) -> Vec3d {
-    let mut self_0: Vec3d = {
-        let mut init = Vec3d {
-            x: a.x + b.x,
-            y: a.y + b.y,
-            z: a.z + b.z,
-        };
-        init
-    };
-    return self_0;
-}
+
 #[inline]
 unsafe extern "C" fn Vec3f_Sub(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
     let mut self_0: Vec3f = {
@@ -215,37 +168,30 @@ pub unsafe extern "C" fn Polygon_ToPlane(
 ) {
     let mut v: *mut Vec3f = (*polygon).vertices_data;
     let mut vLen: int32 = (*polygon).vertices_size;
-    let mut n: Vec3d = {
-        let mut init = Vec3d {
+    let mut n: DVec3 = {
+        let mut init = DVec3 {
             x: 0 as libc::c_int as libc::c_double,
             y: 0.,
             z: 0.,
         };
         init
     };
-    let mut centroid: Vec3d = {
-        let mut init = Vec3d {
-            x: 0 as libc::c_int as libc::c_double,
-            y: 0.,
-            z: 0.,
-        };
-        init
-    };
-    let mut vCur: Vec3d = Vec3f_ToVec3d(*v.offset((vLen - 1 as libc::c_int) as isize));
+    let mut centroid = DVec3::ZERO;
+    let mut vCur: DVec3 = Vec3f_ToDVec3(*v.offset((vLen - 1) as isize));
     let mut i: int32 = 0 as libc::c_int;
     while i < vLen {
-        let mut vPrev: Vec3d = vCur;
-        vCur = Vec3f_ToVec3d(*v.offset(i as isize));
+        let mut vPrev: DVec3 = vCur;
+        vCur = Vec3f_ToDVec3(*v.offset(i as isize));
         n.x += (vPrev.y - vCur.y) * (vPrev.z + vCur.z);
         n.y += (vPrev.z - vCur.z) * (vPrev.x + vCur.x);
         n.z += (vPrev.x - vCur.x) * (vPrev.y + vCur.y);
-        centroid = Vec3d_Add(centroid, vCur);
+        centroid += vCur;
         i += 1;
     }
-    n = Vec3d_Normalize(n);
-    centroid = Vec3d_Divs(centroid, vLen as libc::c_double);
-    (*out).n = Vec3d_ToVec3f(n);
-    (*out).d = Vec3d_Dot(centroid, n) as libc::c_float;
+    n = n.normalize();
+    centroid /= vLen as f64;
+    (*out).n = DVec3_ToVec3f(n);
+    (*out).d = DVec3::dot(centroid, n) as f32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ToPlaneFast(

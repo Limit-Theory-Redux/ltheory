@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec3;
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
@@ -52,17 +53,11 @@ pub type uint32 = uint32_t;
 pub struct Tex3D {
     pub _refCount: uint32,
     pub handle: uint,
-    pub size: Vec3i,
+    pub size: IVec3,
     pub format: TexFormat,
 }
 pub type TexFormat = int32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-    pub z: libc::c_int,
-}
+
 pub type DataFormat = int32;
 pub type PixelFormat = int32;
 pub type TexFilter = int32;
@@ -88,18 +83,7 @@ pub type PFNGLTEXIMAGE3DPROC = Option::<
 >;
 pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
-#[inline]
-unsafe extern "C" fn Vec3i_Create(
-    mut x: libc::c_int,
-    mut y: libc::c_int,
-    mut z: libc::c_int,
-) -> Vec3i {
-    let mut self_0: Vec3i = {
-        let mut init = Vec3i { x: x, y: y, z: z };
-        init
-    };
-    return self_0;
-}
+
 #[inline]
 unsafe extern "C" fn Tex3D_Init() {
     glTexParameteri(
@@ -151,7 +135,7 @@ pub unsafe extern "C" fn Tex3D_Create(
         ::core::mem::size_of::<Tex3D>() as usize,
     ) as *mut Tex3D;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
-    (*self_0).size = Vec3i_Create(sx, sy, sz);
+    (*self_0).size = IVec3::new(sx, sy, sz);
     (*self_0).format = format;
     glGenTextures(1 as libc::c_int, &mut (*self_0).handle);
     __glewActiveTexture
@@ -280,13 +264,13 @@ pub unsafe extern "C" fn Tex3D_GetHandle(mut self_0: *mut Tex3D) -> uint {
     return (*self_0).handle;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetSize(mut self_0: *mut Tex3D, mut out: *mut Vec3i) {
+pub unsafe extern "C" fn Tex3D_GetSize(mut self_0: *mut Tex3D, mut out: *mut IVec3) {
     *out = (*self_0).size;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_GetSizeLevel(
     mut self_0: *mut Tex3D,
-    mut out: *mut Vec3i,
+    mut out: *mut IVec3,
     mut level: libc::c_int,
 ) {
     *out = (*self_0).size;

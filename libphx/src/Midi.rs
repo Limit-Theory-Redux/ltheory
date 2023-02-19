@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
@@ -8,14 +9,9 @@ pub type cstr = *const libc::c_char;
 #[repr(C)]
 pub struct MidiDevice {
     pub cursor: libc::c_int,
-    pub buffer: [Vec2i; 512],
+    pub buffer: [IVec2; 512],
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_GetCount() -> libc::c_int {
     return 0 as libc::c_int;
@@ -35,7 +31,7 @@ pub unsafe extern "C" fn MidiDevice_HasMessage(mut self_0: *mut MidiDevice) -> b
     return (*self_0).cursor > 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_PopMessage(mut self_0: *mut MidiDevice) -> Vec2i {
+pub unsafe extern "C" fn MidiDevice_PopMessage(mut self_0: *mut MidiDevice) -> IVec2 {
     if (*self_0).cursor <= 0 as libc::c_int {
         Fatal(
             b"MidiDevice_PopMessage: device has no messages\0" as *const u8

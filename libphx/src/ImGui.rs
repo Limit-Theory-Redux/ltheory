@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
 use crate::Button::*;
 extern "C" {
@@ -47,7 +48,7 @@ extern "C" {
         a: libc::c_float,
     );
     fn Font_GetLineHeight(_: *mut Font) -> libc::c_int;
-    fn Font_GetSize2(_: *mut Font, out: *mut Vec2i, text: cstr);
+    fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: cstr);
     fn Hash_FNV64_Init() -> uint64;
     fn Hash_FNV64_Incremental(
         _: uint64,
@@ -59,9 +60,9 @@ extern "C" {
     fn HashMap_SetRaw(_: *mut HashMap, keyHash: uint64, value: *mut libc::c_void);
     fn Input_GetPressed(_: Button) -> bool;
     fn Input_GetDown(_: Button) -> bool;
-    fn Input_GetMouseDelta(_: *mut Vec2i);
-    fn Input_GetMousePosition(_: *mut Vec2i);
-    fn Input_GetMouseScroll(_: *mut Vec2i);
+    fn Input_GetMouseDelta(_: *mut IVec2);
+    fn Input_GetMousePosition(_: *mut IVec2);
+    fn Input_GetMouseScroll(_: *mut IVec2);
     fn MemPool_CreateAuto(elemSize: uint32) -> *mut MemPool;
     fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
     fn MemPool_Clear(_: *mut MemPool);
@@ -87,7 +88,7 @@ extern "C" {
         sx: libc::c_float,
         sy: libc::c_float,
     );
-    fn Tex2D_GetSize(_: *mut Tex2D, out: *mut Vec2i);
+    fn Tex2D_GetSize(_: *mut Tex2D, out: *mut IVec2);
 }
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
@@ -96,12 +97,7 @@ pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
 pub type uint64 = uint64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec2f {
@@ -1004,7 +1000,7 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: libc::c_float, mut sy: libc::c_floa
     ImGui_BeginWidget(sx, sy);
     self_0.layer = 0 as *mut ImGuiLayer;
     ImGui_PushLayer(1 as libc::c_int != 0);
-    let mut mouse: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);
     self_0.mouse.x = mouse.x as libc::c_float;
     self_0.mouse.y = mouse.y as libc::c_float;
@@ -1168,7 +1164,7 @@ pub unsafe extern "C" fn ImGui_EndWindow() {
     self_0.cursor.y -= (*data).offset.y;
     if ImGui_FocusLast(FocusType_Mouse) {
         if Input_GetDown(Button_Mouse_Left) {
-            let mut delta: Vec2i = Vec2i { x: 0, y: 0 };
+            let mut delta: IVec2 = IVec2 { x: 0, y: 0 };
             Input_GetMouseDelta(&mut delta);
             (*data).offset.x += delta.x as libc::c_float;
             (*data).offset.y += delta.y as libc::c_float;
@@ -1248,7 +1244,7 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
         4.0f32,
     );
     if ImGui_FocusLast(FocusType_Scroll) {
-        let mut scroll_0: Vec2i = Vec2i { x: 0, y: 0 };
+        let mut scroll_0: IVec2 = IVec2 { x: 0, y: 0 };
         Input_GetMouseScroll(&mut scroll_0);
         (*data).scroll -= 10.0f32 * scroll_0.y as libc::c_float;
     }
@@ -1359,7 +1355,7 @@ pub unsafe extern "C" fn ImGui_ButtonEx(
         if focus as libc::c_int != 0 { 1.0f32 } else { 0.5f32 },
         4.0f32,
     );
-    let mut bound: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut bound: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*self_0.style).font, &mut bound, label);
     let mut labelPos: Vec2f = Vec2f_Create(
         (*self_0.widget).pos.x
@@ -1455,7 +1451,7 @@ pub unsafe extern "C" fn ImGui_Divider() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Selectable(mut label: cstr) -> bool {
-    let mut bound: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut bound: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*self_0.style).font, &mut bound, label);
     ImGui_BeginWidget(
         if (*self_0.layout).horizontal as libc::c_int != 0 {
@@ -1497,7 +1493,7 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: cstr) -> bool {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Tex2D(mut tex: *mut Tex2D) {
-    let mut size: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Tex2D_GetSize(tex, &mut size);
     let mut sizef: Vec2f = Vec2f_Create(
         size.x as libc::c_float,
@@ -1537,7 +1533,7 @@ pub unsafe extern "C" fn ImGui_TextEx(
     mut b: libc::c_float,
     mut a: libc::c_float,
 ) {
-    let mut bound: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut bound: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*self_0.style).font, &mut bound, text);
     ImGui_BeginWidget(
         bound.x as libc::c_float,

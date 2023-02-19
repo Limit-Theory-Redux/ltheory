@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
 use crate::WindowMode::*;
 use sdl2_sys::*;
@@ -62,12 +63,7 @@ pub struct Window {
 }
 pub type WindowMode = uint32;
 pub type SDL_GLContext = *mut libc::c_void;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 pub type WindowPos = libc::c_int;
 pub type Uint32 = uint32_t;
 pub type C2RustUnnamed = libc::c_uint;
@@ -129,7 +125,7 @@ pub unsafe extern "C" fn Window_Free(mut self_0: *mut Window) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Window_BeginDraw(mut self_0: *mut Window) {
-    let mut size: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut size: IVec2 = IVec2::new(0, 0);
     SDL_GL_MakeCurrent((*self_0).handle, (*self_0).context);
     Window_GetSize(self_0, &mut size);
     Viewport_Push(
@@ -146,13 +142,13 @@ pub unsafe extern "C" fn Window_EndDraw(mut self_0: *mut Window) {
     SDL_GL_SwapWindow((*self_0).handle);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Window_GetSize(mut self_0: *mut Window, mut out: *mut Vec2i) {
+pub unsafe extern "C" fn Window_GetSize(mut self_0: *mut Window, mut out: *mut IVec2) {
     SDL_GetWindowSize((*self_0).handle, &mut (*out).x, &mut (*out).y);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Window_GetPosition(
     mut self_0: *mut Window,
-    mut out: *mut Vec2i,
+    mut out: *mut IVec2,
 ) {
     SDL_GetWindowPosition((*self_0).handle, &mut (*out).x, &mut (*out).y);
 }

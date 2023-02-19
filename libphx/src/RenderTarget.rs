@@ -1,4 +1,5 @@
 use ::libc;
+use glam::{IVec2, IVec3};
 use crate::internal::Memory::*;
 use crate::TexFormat::*;
 
@@ -18,9 +19,9 @@ extern "C" {
     fn Profiler_End();
     fn Tex2D_GetFormat(_: *mut Tex2D) -> TexFormat;
     fn Tex2D_GetHandle(_: *mut Tex2D) -> uint;
-    fn Tex2D_GetSizeLevel(_: *mut Tex2D, out: *mut Vec2i, level: libc::c_int);
+    fn Tex2D_GetSizeLevel(_: *mut Tex2D, out: *mut IVec2, level: libc::c_int);
     fn Tex3D_GetHandle(_: *mut Tex3D) -> uint;
-    fn Tex3D_GetSizeLevel(_: *mut Tex3D, out: *mut Vec3i, level: libc::c_int);
+    fn Tex3D_GetSizeLevel(_: *mut Tex3D, out: *mut IVec3, level: libc::c_int);
     fn TexCube_GetHandle(_: *mut TexCube) -> uint;
     fn TexFormat_IsColor(_: TexFormat) -> bool;
     fn Viewport_Pop();
@@ -36,19 +37,8 @@ pub type int32_t = libc::c_int;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-    pub z: libc::c_int,
-}
+
+
 pub type CubeFace = int32;
 pub type Metric = int32;
 pub type TexFormat = int32;
@@ -329,7 +319,7 @@ pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(
     mut self_0: *mut Tex2D,
     mut level: libc::c_int,
 ) {
-    let mut size: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Tex2D_GetSizeLevel(self_0, &mut size, level);
     RenderTarget_Push(size.x, size.y);
     RenderTarget_BindTex2DLevel(self_0, level);
@@ -347,7 +337,7 @@ pub unsafe extern "C" fn RenderTarget_PushTex3DLevel(
     mut layer: libc::c_int,
     mut level: libc::c_int,
 ) {
-    let mut size: Vec3i = Vec3i { x: 0, y: 0, z: 0 };
+    let mut size: IVec3 = IVec3 { x: 0, y: 0, z: 0 };
     Tex3D_GetSizeLevel(self_0, &mut size, level);
     RenderTarget_Push(size.x, size.y);
     RenderTarget_BindTex3DLevel(self_0, layer, level);

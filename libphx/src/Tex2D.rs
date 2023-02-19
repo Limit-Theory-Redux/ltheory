@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
@@ -89,7 +90,7 @@ extern "C" {
     fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
     fn TexFormat_IsColor(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
-    fn Viewport_GetSize(out: *mut Vec2i);
+    fn Viewport_GetSize(out: *mut IVec2);
     fn Tex2D_LoadRaw(
         path: cstr,
         sx: *mut libc::c_int,
@@ -116,16 +117,11 @@ pub type uint32 = uint32_t;
 pub struct Tex2D {
     pub _refCount: uint32,
     pub handle: uint,
-    pub size: Vec2i,
+    pub size: IVec2,
     pub format: TexFormat,
 }
 pub type TexFormat = int32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 pub type DataFormat = int32;
 pub type Metric = int32;
 pub type PixelFormat = int32;
@@ -139,14 +135,6 @@ pub type GLsizei = libc::c_int;
 pub type GLfloat = libc::c_float;
 pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
-#[inline]
-unsafe extern "C" fn Vec2i_Create(mut x: libc::c_int, mut y: libc::c_int) -> Vec2i {
-    let mut self_0: Vec2i = {
-        let mut init = Vec2i { x: x, y: y };
-        init
-    };
-    return self_0;
-}
 
 #[inline]
 unsafe extern "C" fn Tex2D_Init() {
@@ -187,7 +175,7 @@ pub unsafe extern "C" fn Tex2D_Create(
         ::core::mem::size_of::<Tex2D>() as usize,
     ) as *mut Tex2D;
     (*self_0)._refCount = 1 as libc::c_int as uint32;
-    (*self_0).size = Vec2i_Create(sx, sy);
+    (*self_0).size = IVec2::new(sx, sy);
     (*self_0).format = format;
     glGenTextures(1 as libc::c_int, &mut (*self_0).handle);
     __glewActiveTexture
@@ -214,7 +202,7 @@ pub unsafe extern "C" fn Tex2D_Create(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
-    let mut size: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut size);
     let mut self_0: *mut Tex2D = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
     let mut buf: *mut uint32 = MemAlloc(
@@ -438,13 +426,13 @@ pub unsafe extern "C" fn Tex2D_GetHandle(mut self_0: *mut Tex2D) -> uint {
     return (*self_0).handle;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetSize(mut self_0: *mut Tex2D, mut out: *mut Vec2i) {
+pub unsafe extern "C" fn Tex2D_GetSize(mut self_0: *mut Tex2D, mut out: *mut IVec2) {
     *out = (*self_0).size;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_GetSizeLevel(
     mut self_0: *mut Tex2D,
-    mut out: *mut Vec2i,
+    mut out: *mut IVec2,
     mut level: libc::c_int,
 ) {
     *out = (*self_0).size;

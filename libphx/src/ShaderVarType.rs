@@ -1,4 +1,5 @@
 use ::libc;
+use glam::{IVec2, IVec3, IVec4};
 use crate::internal::Memory::*;
 extern "C" {
     pub type Tex1D;
@@ -11,25 +12,14 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec2f {
     pub x: libc::c_float,
     pub y: libc::c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-    pub z: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec3f {
@@ -37,14 +27,7 @@ pub struct Vec3f {
     pub y: libc::c_float,
     pub z: libc::c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-    pub z: libc::c_int,
-    pub w: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -118,9 +101,9 @@ pub unsafe extern "C" fn ShaderVarType_GetSize(
         3 => return ::core::mem::size_of::<Vec3f>() as libc::c_ulong as libc::c_int,
         4 => return ::core::mem::size_of::<Vec4f>() as libc::c_ulong as libc::c_int,
         5 => return ::core::mem::size_of::<libc::c_int>() as libc::c_ulong as libc::c_int,
-        6 => return ::core::mem::size_of::<Vec2i>() as libc::c_ulong as libc::c_int,
-        7 => return ::core::mem::size_of::<Vec3i>() as libc::c_ulong as libc::c_int,
-        8 => return ::core::mem::size_of::<Vec4i>() as libc::c_ulong as libc::c_int,
+        6 => return ::core::mem::size_of::<IVec2>() as libc::c_ulong as libc::c_int,
+        7 => return ::core::mem::size_of::<IVec3>() as libc::c_ulong as libc::c_int,
+        8 => return ::core::mem::size_of::<IVec4>() as libc::c_ulong as libc::c_int,
         9 => return ::core::mem::size_of::<*mut Matrix>() as libc::c_ulong as libc::c_int,
         10 => return ::core::mem::size_of::<*mut Tex1D>() as libc::c_ulong as libc::c_int,
         11 => return ::core::mem::size_of::<*mut Tex2D>() as libc::c_ulong as libc::c_int,

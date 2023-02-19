@@ -1,4 +1,5 @@
 use ::libc;
+use glam::{IVec2, IVec3, IVec4};
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
 
@@ -90,25 +91,14 @@ pub struct ShaderVar {
     pub index: libc::c_int,
 }
 pub type ShaderVarType = int32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec2f {
     pub x: libc::c_float,
     pub y: libc::c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-    pub z: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec3f {
@@ -116,14 +106,7 @@ pub struct Vec3f {
     pub y: libc::c_float,
     pub z: libc::c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-    pub z: libc::c_int,
-    pub w: libc::c_int,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -648,21 +631,21 @@ pub unsafe extern "C" fn Shader_Start(mut self_0: *mut Shader) {
                         .expect("non-null function pointer")((*var).index, value_3);
                 }
                 6 => {
-                    let mut value_4: Vec2i = *(pValue as *mut Vec2i);
+                    let mut value_4: IVec2 = *(pValue as *mut IVec2);
                     __glewUniform2i
                         .expect(
                             "non-null function pointer",
                         )((*var).index, value_4.x, value_4.y);
                 }
                 7 => {
-                    let mut value_5: Vec3i = *(pValue as *mut Vec3i);
+                    let mut value_5: IVec3 = *(pValue as *mut IVec3);
                     __glewUniform3i
                         .expect(
                             "non-null function pointer",
                         )((*var).index, value_5.x, value_5.y, value_5.z);
                 }
                 8 => {
-                    let mut value_6: Vec4i = *(pValue as *mut Vec4i);
+                    let mut value_6: IVec4 = *(pValue as *mut IVec4);
                     __glewUniform4i
                         .expect(
                             "non-null function pointer",

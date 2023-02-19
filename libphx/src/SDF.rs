@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec3;
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
@@ -26,7 +27,7 @@ extern "C" {
     );
     fn Mesh_GetVertexCount(_: *mut Mesh) -> libc::c_int;
     fn Tex3D_GetData(_: *mut Tex3D, _: *mut libc::c_void, _: PixelFormat, _: DataFormat);
-    fn Tex3D_GetSize(_: *mut Tex3D, out: *mut Vec3i);
+    fn Tex3D_GetSize(_: *mut Tex3D, out: *mut IVec3);
     fn sqrt(_: libc::c_double) -> libc::c_double;
 }
 pub type int32_t = libc::c_int;
@@ -36,7 +37,7 @@ pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDF {
-    pub size: Vec3i,
+    pub size: IVec3,
     pub data: *mut Cell,
 }
 #[derive(Copy, Clone)]
@@ -52,13 +53,7 @@ pub struct Vec3f {
     pub y: libc::c_float,
     pub z: libc::c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-    pub z: libc::c_int,
-}
+
 #[inline]
 unsafe extern "C" fn Vec3f_Muls(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
     let mut self_0: Vec3f = {
@@ -71,18 +66,7 @@ unsafe extern "C" fn Vec3f_Muls(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
     };
     return self_0;
 }
-#[inline]
-unsafe extern "C" fn Vec3i_Create(
-    mut x: libc::c_int,
-    mut y: libc::c_int,
-    mut z: libc::c_int,
-) -> Vec3i {
-    let mut self_0: Vec3i = {
-        let mut init = Vec3i { x: x, y: y, z: z };
-        init
-    };
-    return self_0;
-}
+
 #[inline]
 unsafe extern "C" fn Vec3f_IAdd(mut a: *mut Vec3f, mut b: Vec3f) {
     (*a).x += b.x;
@@ -187,15 +171,7 @@ unsafe extern "C" fn Vec3f_Div(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
     };
     return self_0;
 }
-#[inline]
-unsafe extern "C" fn Vec3i_Dots(
-    mut a: Vec3i,
-    mut x: libc::c_int,
-    mut y: libc::c_int,
-    mut z: libc::c_int,
-) -> libc::c_int {
-    return a.x * x + a.y * y + a.z * z;
-}
+
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Create(
     mut sx: libc::c_int,
@@ -204,7 +180,7 @@ pub unsafe extern "C" fn SDF_Create(
 ) -> *mut SDF {
     let mut self_0: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>())
         as *mut SDF;
-    (*self_0).size = Vec3i_Create(sx, sy, sz);
+    (*self_0).size = IVec3::new(sx, sy, sz);
     (*self_0)
         .data = MemAlloc(
         (::core::mem::size_of::<Cell>())
@@ -245,8 +221,8 @@ pub unsafe extern "C" fn SDF_Free(mut self_0: *mut SDF) {
 #[no_mangle]
 pub unsafe extern "C" fn SDF_ToMesh(mut self_0: *mut SDF) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
-    let cells: Vec3i = {
-        let mut init = Vec3i {
+    let cells: IVec3 = {
+        let mut init = IVec3 {
             x: (*self_0).size.x - 1 as libc::c_int,
             y: (*self_0).size.y - 1 as libc::c_int,
             z: (*self_0).size.z - 1 as libc::c_int,
@@ -261,16 +237,16 @@ pub unsafe extern "C" fn SDF_ToMesh(mut self_0: *mut SDF) -> *mut Mesh {
         };
         init
     };
-    let stride: Vec3i = {
-        let mut init = Vec3i {
+    let stride: IVec3 = {
+        let mut init = IVec3 {
             x: 1 as libc::c_int,
             y: (*self_0).size.x,
             z: (*self_0).size.x * (*self_0).size.y,
         };
         init
     };
-    let cellStride: Vec3i = {
-        let mut init = Vec3i {
+    let cellStride: IVec3 = {
+        let mut init = IVec3 {
             x: 1 as libc::c_int,
             y: cells.x,
             z: cells.x * cells.y,
@@ -371,13 +347,13 @@ pub unsafe extern "C" fn SDF_ToMesh(mut self_0: *mut SDF) -> *mut Mesh {
             while x < cells.x {
                 let mut x0: libc::c_float = x as libc::c_float
                     / cells.x as libc::c_float;
-                let mut cell: Vec3i = {
-                    let mut init = Vec3i { x: x, y: y, z: z };
+                let mut cell: IVec3 = {
+                    let mut init = IVec3 { x: x, y: y, z: z };
                     init
                 };
-                let mut cellIndex: libc::c_int = Vec3i_Dots(cellStride, x, y, z);
+                let cellIndex = IVec3::dot(cellStride, IVec3::new(x, y, z));
                 let mut base: *const Cell = ((*self_0).data)
-                    .offset(Vec3i_Dots(stride, x, y, z) as isize);
+                    .offset(IVec3::dot(stride, IVec3::new(x, y, z)) as isize);
                 let mut v: [*const Cell; 8] = [
                     base,
                     base.offset(stride.x as isize),
@@ -588,8 +564,8 @@ pub unsafe extern "C" fn SDF_Clear(mut self_0: *mut SDF, mut value: libc::c_floa
 }
 #[no_mangle]
 pub unsafe extern "C" fn SDF_ComputeNormals(mut self_0: *mut SDF) {
-    let stride: Vec3i = {
-        let mut init = Vec3i {
+    let stride: IVec3 = {
+        let mut init = IVec3 {
             x: 1 as libc::c_int,
             y: (*self_0).size.x,
             z: (*self_0).size.x * (*self_0).size.y,

@@ -1,4 +1,5 @@
 use ::libc;
+use glam::IVec2;
 use crate::internal::Memory::*;
 extern "C" {
     pub type SDL_Window;
@@ -15,12 +16,7 @@ pub type uint64_t = libc::c_ulonglong;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
 pub type uint64 = uint64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
+
 pub type MouseButton = int32;
 pub type Uint32 = uint32_t;
 pub type Uint64 = uint64_t;
@@ -56,7 +52,7 @@ pub unsafe extern "C" fn Mouse_Update() {
     scrollAmount = 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mouse_GetDelta(mut out: *mut Vec2i) {
+pub unsafe extern "C" fn Mouse_GetDelta(mut out: *mut IVec2) {
     SDL_GetMouseState(&mut (*out).x, &mut (*out).y);
     (*out).x -= lastX;
     (*out).y -= lastY;
@@ -68,11 +64,11 @@ pub unsafe extern "C" fn Mouse_GetIdleTime() -> libc::c_double {
         / SDL_GetPerformanceFrequency() as libc::c_double;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mouse_GetPosition(mut out: *mut Vec2i) {
+pub unsafe extern "C" fn Mouse_GetPosition(mut out: *mut IVec2) {
     SDL_GetMouseState(&mut (*out).x, &mut (*out).y);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mouse_GetPositionGlobal(mut out: *mut Vec2i) {
+pub unsafe extern "C" fn Mouse_GetPositionGlobal(mut out: *mut IVec2) {
     SDL_GetGlobalMouseState(&mut (*out).x, &mut (*out).y);
 }
 #[no_mangle]
