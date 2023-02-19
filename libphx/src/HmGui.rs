@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use glam::{IVec2, Vec2};
 use crate::internal::Memory::*;
 use crate::Button::*;
@@ -679,8 +680,8 @@ unsafe extern "C" fn HmGui_DrawGroup(mut g: *mut HmGuiGroup) {
         }
         e = (*e).prev;
     }
-    if (*g).focusable[0 as libc::c_int as usize] {
-        let mut focus: bool = self_0.focus[0 as libc::c_int as usize]
+    if (*g).focusable[0] {
+        let mut focus: bool = self_0.focus[0]
             == (*g).widget.hash;
         if (*g).focusStyle == 0 as libc::c_int as libc::c_uint {
             UIRenderer_Panel(

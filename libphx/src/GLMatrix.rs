@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use glam::DVec3;
 use crate::internal::Memory::*;
 extern "C" {
@@ -41,22 +42,22 @@ pub unsafe extern "C" fn GLMatrix_Clear() {
 pub unsafe extern "C" fn GLMatrix_Load(mut matrix: *mut Matrix) {
     let mut m: *mut libc::c_float = matrix as *mut libc::c_float;
     let mut transpose: [libc::c_float; 16] = [
-        *m.offset(0 as libc::c_int as isize),
-        *m.offset(4 as libc::c_int as isize),
-        *m.offset(8 as libc::c_int as isize),
-        *m.offset(12 as libc::c_int as isize),
-        *m.offset(1 as libc::c_int as isize),
-        *m.offset(5 as libc::c_int as isize),
-        *m.offset(9 as libc::c_int as isize),
-        *m.offset(13 as libc::c_int as isize),
-        *m.offset(2 as libc::c_int as isize),
-        *m.offset(6 as libc::c_int as isize),
-        *m.offset(10 as libc::c_int as isize),
-        *m.offset(14 as libc::c_int as isize),
-        *m.offset(3 as libc::c_int as isize),
-        *m.offset(7 as libc::c_int as isize),
-        *m.offset(11 as libc::c_int as isize),
-        *m.offset(15 as libc::c_int as isize),
+        *m.offset(0),
+        *m.offset(4),
+        *m.offset(8),
+        *m.offset(12),
+        *m.offset(1),
+        *m.offset(5),
+        *m.offset(9),
+        *m.offset(13),
+        *m.offset(2),
+        *m.offset(6),
+        *m.offset(10),
+        *m.offset(14),
+        *m.offset(3),
+        *m.offset(7),
+        *m.offset(11),
+        *m.offset(15),
     ];
     glLoadMatrixf(transpose.as_mut_ptr());
 }
@@ -102,22 +103,22 @@ pub unsafe extern "C" fn GLMatrix_ModeWV() {
 pub unsafe extern "C" fn GLMatrix_Mult(mut matrix: *mut Matrix) {
     let mut m: *mut libc::c_float = matrix as *mut libc::c_float;
     let mut transpose: [libc::c_float; 16] = [
-        *m.offset(0 as libc::c_int as isize),
-        *m.offset(4 as libc::c_int as isize),
-        *m.offset(8 as libc::c_int as isize),
-        *m.offset(12 as libc::c_int as isize),
-        *m.offset(1 as libc::c_int as isize),
-        *m.offset(5 as libc::c_int as isize),
-        *m.offset(9 as libc::c_int as isize),
-        *m.offset(13 as libc::c_int as isize),
-        *m.offset(2 as libc::c_int as isize),
-        *m.offset(6 as libc::c_int as isize),
-        *m.offset(10 as libc::c_int as isize),
-        *m.offset(14 as libc::c_int as isize),
-        *m.offset(3 as libc::c_int as isize),
-        *m.offset(7 as libc::c_int as isize),
-        *m.offset(11 as libc::c_int as isize),
-        *m.offset(15 as libc::c_int as isize),
+        *m.offset(0),
+        *m.offset(4),
+        *m.offset(8),
+        *m.offset(12),
+        *m.offset(1),
+        *m.offset(5),
+        *m.offset(9),
+        *m.offset(13),
+        *m.offset(2),
+        *m.offset(6),
+        *m.offset(10),
+        *m.offset(14),
+        *m.offset(3),
+        *m.offset(7),
+        *m.offset(11),
+        *m.offset(15),
     ];
     glMultMatrixf(transpose.as_mut_ptr());
 }

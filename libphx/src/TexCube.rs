@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::CubeFace::*;
 use crate::DataFormat::*;
@@ -107,13 +108,6 @@ pub struct TexCube {
     pub format: TexFormat,
 }
 pub type TexFormat = int32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
 pub type CubeFace = int32;
 pub type DataFormat = int32;
 pub type PixelFormat = int32;
@@ -128,8 +122,8 @@ pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 #[repr(C)]
 pub struct Face {
     pub face: CubeFace,
-    pub look: Vec3f,
-    pub up: Vec3f,
+    pub look: Vec3,
+    pub up: Vec3,
 }
 #[inline]
 unsafe extern "C" fn Floor(mut t: libc::c_double) -> libc::c_double {
@@ -155,7 +149,7 @@ static mut kFaces: [Face; 6] = [
         let mut init = Face {
             face: 0x8515 as libc::c_int,
             look: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 1 as libc::c_int as libc::c_float,
                     y: 0 as libc::c_int as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,
@@ -163,7 +157,7 @@ static mut kFaces: [Face; 6] = [
                 init
             },
             up: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 1 as libc::c_int as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,
@@ -177,7 +171,7 @@ static mut kFaces: [Face; 6] = [
         let mut init = Face {
             face: 0x8516 as libc::c_int,
             look: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: -(1 as libc::c_int) as libc::c_float,
                     y: 0 as libc::c_int as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,
@@ -185,7 +179,7 @@ static mut kFaces: [Face; 6] = [
                 init
             },
             up: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 1 as libc::c_int as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,
@@ -199,7 +193,7 @@ static mut kFaces: [Face; 6] = [
         let mut init = Face {
             face: 0x8517 as libc::c_int,
             look: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 1 as libc::c_int as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,
@@ -207,7 +201,7 @@ static mut kFaces: [Face; 6] = [
                 init
             },
             up: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 0 as libc::c_int as libc::c_float,
                     z: -(1 as libc::c_int) as libc::c_float,
@@ -221,7 +215,7 @@ static mut kFaces: [Face; 6] = [
         let mut init = Face {
             face: 0x8518 as libc::c_int,
             look: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: -(1 as libc::c_int) as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,
@@ -229,7 +223,7 @@ static mut kFaces: [Face; 6] = [
                 init
             },
             up: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 0 as libc::c_int as libc::c_float,
                     z: 1 as libc::c_int as libc::c_float,
@@ -243,7 +237,7 @@ static mut kFaces: [Face; 6] = [
         let mut init = Face {
             face: 0x8519 as libc::c_int,
             look: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 0 as libc::c_int as libc::c_float,
                     z: 1 as libc::c_int as libc::c_float,
@@ -251,7 +245,7 @@ static mut kFaces: [Face; 6] = [
                 init
             },
             up: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 1 as libc::c_int as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,
@@ -265,7 +259,7 @@ static mut kFaces: [Face; 6] = [
         let mut init = Face {
             face: 0x851a as libc::c_int,
             look: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 0 as libc::c_int as libc::c_float,
                     z: -(1 as libc::c_int) as libc::c_float,
@@ -273,7 +267,7 @@ static mut kFaces: [Face; 6] = [
                 init
             },
             up: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 1 as libc::c_int as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,

@@ -1,5 +1,6 @@
 use ::libc;
 use libc::c_int;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
 use memoffset::{offset_of, span_of};
@@ -10,8 +11,6 @@ extern "C" {
     pub type SDF;
     pub type Matrix;
     fn Fatal(_: cstr, _: ...);
-    // fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
-    // fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
     fn sqrt(_: libc::c_double) -> libc::c_double;
     fn Bytes_Create(len: uint32) -> *mut Bytes;
     fn Bytes_Free(_: *mut Bytes);
@@ -30,7 +29,7 @@ extern "C" {
     ) -> *mut Matrix;
     fn Matrix_MulPoint(
         _: *const Matrix,
-        out: *mut Vec3f,
+        out: *mut Vec3,
         x: libc::c_float,
         y: libc::c_float,
         z: libc::c_float,
@@ -85,18 +84,11 @@ pub struct Mesh {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vertex {
-    pub p: Vec3f,
-    pub n: Vec3f,
+    pub p: Vec3,
+    pub n: Vec3,
     pub uv: Vec2,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Computed {
@@ -106,15 +98,14 @@ pub struct Computed {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {
-    pub lower: Vec3f,
-    pub upper: Vec3f,
+    pub lower: Vec3,
+    pub upper: Vec3,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Triangle {
-    pub vertices: [Vec3f; 3],
+    pub vertices: [Vec3; 3],
 }
-pub type Error = uint32;
 pub type ResourceType = int32;
 pub type GLuint = libc::c_uint;
 pub type PFNGLDELETEBUFFERSPROC = Option::<
@@ -174,37 +165,11 @@ unsafe extern "C" fn Minf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c
 unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
     return sqrt(t);
 }
+
 #[inline]
-unsafe extern "C" fn Float_Validatef(mut x: libc::c_float) -> Error {
-    let mut classification: libc::c_int = if ::core::mem::size_of::<libc::c_float>()
-        as libc::c_ulong == ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
-    {
-        f32::classify(x) as c_int
-    } else if ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
-        == ::core::mem::size_of::<libc::c_double>() as libc::c_ulong
-    {
-        f64::classify(x as libc::c_double) as c_int
-    } else {3
-    };
-    match classification {
-        2 => return 0x4 as libc::c_int as Error,
-        5 => {}
-        1 => return 0x20 as libc::c_int as Error,
-        3 | 4 => return 0 as libc::c_int as Error,
-        _ => {
-            Fatal(
-                b"Float_Validate: Unhandled case: %i\0" as *const u8
-                    as *const libc::c_char,
-                classification,
-            );
-        }
-    }
-    return 0 as libc::c_int as Error;
-}
-#[inline]
-unsafe extern "C" fn Box3f_Center(mut self_0: Box3f) -> Vec3f {
-    let mut center: Vec3f = {
-        let mut init = Vec3f {
+unsafe extern "C" fn Box3f_Center(mut self_0: Box3f) -> Vec3 {
+    let mut center: Vec3 = {
+        let mut init = Vec3 {
             x: (self_0.lower.x + self_0.upper.x) / 2 as libc::c_int as libc::c_float,
             y: (self_0.lower.y + self_0.upper.y) / 2 as libc::c_int as libc::c_float,
             z: (self_0.lower.z + self_0.upper.z) / 2 as libc::c_int as libc::c_float,
@@ -214,120 +179,9 @@ unsafe extern "C" fn Box3f_Center(mut self_0: Box3f) -> Vec3f {
     return center;
 }
 #[inline]
-unsafe extern "C" fn Box3f_Add(mut self_0: *mut Box3f, mut point: Vec3f) {
-    (*self_0).lower = Vec3f_Min((*self_0).lower, point);
-    (*self_0).upper = Vec3f_Max((*self_0).upper, point);
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Validate(mut v: Vec3f) -> Error {
-    let mut e: Error = 0 as libc::c_int as Error;
-    e |= Float_Validatef(v.x);
-    e |= Float_Validatef(v.y);
-    e |= Float_Validatef(v.z);
-    return e;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Normalize(mut v: Vec3f) -> Vec3f {
-    let mut l: libc::c_float = Vec3f_Length(v);
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: v.x / l,
-            y: v.y / l,
-            z: v.z / l,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Min(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Minf(a.x, b.x),
-            y: Minf(a.y, b.y),
-            z: Minf(a.z, b.z),
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Max(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Maxf(a.x, b.x),
-            y: Maxf(a.y, b.y),
-            z: Maxf(a.z, b.z),
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_LengthSquared(mut v: Vec3f) -> libc::c_float {
-    return v.x * v.x + v.y * v.y + v.z * v.z;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Length(mut v: Vec3f) -> libc::c_float {
-    return Sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f { x: x, y: y, z: z };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Add(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x + b.x,
-            y: a.y + b.y,
-            z: a.z + b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Sub(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_IAdd(mut a: *mut Vec3f, mut b: Vec3f) {
-    (*a).x += b.x;
-    (*a).y += b.y;
-    (*a).z += b.z;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Cross(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: b.z * a.y - b.y * a.z,
-            y: b.x * a.z - b.z * a.x,
-            z: b.y * a.x - b.x * a.y,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Dot(mut a: Vec3f, mut b: Vec3f) -> libc::c_float {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+unsafe extern "C" fn Box3f_Add(mut self_0: *mut Box3f, mut point: Vec3) {
+    (*self_0).lower = Vec3::min((*self_0).lower, point);
+    (*self_0).upper = Vec3::max((*self_0).upper, point);
 }
 
 #[inline]
@@ -344,11 +198,11 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut self_0: *mut Mesh) {
     (*self_0)
         .info
         .bound
-        .lower = Vec3f_Create(3.40282347e+38f32, 3.40282347e+38f32, 3.40282347e+38f32);
+        .lower = Vec3::new(3.40282347e+38f32, 3.40282347e+38f32, 3.40282347e+38f32);
     (*self_0)
         .info
         .bound
-        .upper = Vec3f_Create(
+        .upper = Vec3::new(
         -3.40282347e+38f32,
         -3.40282347e+38f32,
         -3.40282347e+38f32,
@@ -360,7 +214,7 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut self_0: *mut Mesh) {
         Box3f_Add(&mut (*self_0).info.bound, (*v).p);
         v = v.offset(1);
     }
-    let mut center: Vec3f = Box3f_Center((*self_0).info.bound);
+    let mut center: Vec3 = Box3f_Center((*self_0).info.bound);
     let mut r2: libc::c_double = 0.0f64;
     let mut v_0: *mut Vertex = (*self_0).vertex_data;
     let mut __iterend_0: *mut Vertex = ((*self_0).vertex_data)
@@ -474,7 +328,7 @@ pub unsafe extern "C" fn Mesh_Free(mut self_0: *mut Mesh) {
 pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     let mut vertexCount: int32 = Mesh_GetVertexCount(mesh);
     let mut indexCount: int32 = Mesh_GetIndexCount(mesh);
-    let mut size: uint32 = (2 as libc::c_int as usize).wrapping_mul(::core::mem::size_of::<int32>())
+    let mut size: uint32 = (2 as usize).wrapping_mul(::core::mem::size_of::<int32>())
         .wrapping_add(
             (vertexCount as usize).wrapping_mul(::core::mem::size_of::<Vertex>()),
         )
@@ -616,8 +470,8 @@ pub unsafe extern "C" fn Mesh_AddVertex(
     let fresh1 = (*self_0).vertex_size;
     (*self_0).vertex_size = (*self_0).vertex_size + 1;
     let mut newVertex: *mut Vertex = ((*self_0).vertex_data).offset(fresh1 as isize);
-    (*newVertex).p = Vec3f_Create(px, py, pz);
-    (*newVertex).n = Vec3f_Create(nx, ny, nz);
+    (*newVertex).p = Vec3::new(px, py, pz);
+    (*newVertex).n = Vec3::new(nx, ny, nz);
     (*newVertex).uv = Vec2::new(u, v);
     (*self_0).version = ((*self_0).version).wrapping_add(1);
 }
@@ -804,7 +658,7 @@ pub unsafe extern "C" fn Mesh_GetBound(mut self_0: *mut Mesh, mut out: *mut Box3
     *out = (*self_0).info.bound;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_GetCenter(mut self_0: *mut Mesh, mut out: *mut Vec3f) {
+pub unsafe extern "C" fn Mesh_GetCenter(mut self_0: *mut Mesh, mut out: *mut Vec3) {
     Mesh_UpdateInfo(self_0);
     *out = Box3f_Center((*self_0).info.bound);
 }
@@ -843,14 +697,14 @@ pub unsafe extern "C" fn Mesh_Validate(mut self_0: *mut Mesh) -> Error {
         let mut i1: int32 = *indexData.offset((i + 1 as libc::c_int) as isize);
         let mut i2: int32 = *indexData.offset((i + 2 as libc::c_int) as isize);
         let mut triangle: Triangle = Triangle {
-            vertices: [Vec3f { x: 0., y: 0., z: 0. }; 3],
+            vertices: [Vec3 { x: 0., y: 0., z: 0. }; 3],
         };
         triangle
-            .vertices[0 as libc::c_int as usize] = (*vertexData.offset(i0 as isize)).p;
+            .vertices[0] = (*vertexData.offset(i0 as isize)).p;
         triangle
-            .vertices[1 as libc::c_int as usize] = (*vertexData.offset(i1 as isize)).p;
+            .vertices[1] = (*vertexData.offset(i1 as isize)).p;
         triangle
-            .vertices[2 as libc::c_int as usize] = (*vertexData.offset(i2 as isize)).p;
+            .vertices[2] = (*vertexData.offset(i2 as isize)).p;
         let mut e: Error = Triangle_Validate(&mut triangle);
         if e != 0 as libc::c_int as libc::c_uint {
             return 0x400000 as libc::c_int as libc::c_uint | e;
@@ -862,11 +716,11 @@ pub unsafe extern "C" fn Mesh_Validate(mut self_0: *mut Mesh) -> Error {
         .offset((*self_0).vertex_size as isize);
     while v < __iterend {
         let mut e_0: Error = 0;
-        e_0 = Vec3f_Validate((*v).p);
+        e_0 = Vec3_Validate((*v).p);
         if e_0 != 0 as libc::c_int as libc::c_uint {
             return 0x400000 as libc::c_int as libc::c_uint | e_0;
         }
-        e_0 = Vec3f_Validate((*v).n);
+        e_0 = Vec3_Validate((*v).n);
         if e_0 != 0 as libc::c_int as libc::c_uint {
             return 0x800000 as libc::c_int as libc::c_uint | e_0;
         }
@@ -927,7 +781,7 @@ pub unsafe extern "C" fn Mesh_ReserveVertexData(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Center(mut self_0: *mut Mesh) -> *mut Mesh {
-    let mut c: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut c = Vec3::ZERO;
     Mesh_GetCenter(self_0, &mut c);
     Mesh_Translate(self_0, -c.x, -c.y, -c.z);
     return self_0;
@@ -1089,19 +943,19 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(mut self_0: *mut Mesh) {
             .offset(
                 *((*self_0).index_data).offset((i + 2 as libc::c_int) as isize) as isize,
             );
-        let mut e1: Vec3f = Vec3f_Sub((*v2).p, (*v1).p);
-        let mut e2: Vec3f = Vec3f_Sub((*v3).p, (*v2).p);
-        let mut en: Vec3f = Vec3f_Cross(e1, e2);
-        (*v1).n = Vec3f_Add((*v1).n, en);
-        (*v2).n = Vec3f_Add((*v2).n, en);
-        (*v3).n = Vec3f_Add((*v3).n, en);
+        let mut e1: Vec3 = (*v2).p - (*v1).p;
+        let mut e2: Vec3 = (*v3).p - (*v2).p;
+        let mut en: Vec3 = Vec3::cross(e1, e2);
+        (*v1).n = (*v1).n + en;
+        (*v2).n = (*v2).n + en;
+        (*v3).n = (*v3).n + en;
         i += 3 as libc::c_int;
     }
     let mut v_0: *mut Vertex = (*self_0).vertex_data;
     let mut __iterend_0: *mut Vertex = ((*self_0).vertex_data)
         .offset((*self_0).vertex_size as isize);
     while v_0 < __iterend_0 {
-        (*v_0).n = Vec3f_Normalize((*v_0).n);
+        (*v_0).n = (*v_0).n.normalize();
         v_0 = v_0.offset(1);
     }
     (*self_0).version = ((*self_0).version).wrapping_add(1);
@@ -1116,7 +970,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(
         .offset((*self_0).vertex_size as isize);
     while v < __iterend {
         (*v)
-            .n = Vec3f_Create(
+            .n = Vec3::new(
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
@@ -1126,34 +980,28 @@ pub unsafe extern "C" fn Mesh_SplitNormals(
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < (*self_0).index_size {
         let mut index: [*mut int32; 3] = [
-            ((*self_0).index_data).offset(i as isize).offset(0 as libc::c_int as isize),
-            ((*self_0).index_data).offset(i as isize).offset(1 as libc::c_int as isize),
-            ((*self_0).index_data).offset(i as isize).offset(2 as libc::c_int as isize),
+            ((*self_0).index_data).offset(i as isize).offset(0),
+            ((*self_0).index_data).offset(i as isize).offset(1),
+            ((*self_0).index_data).offset(i as isize).offset(2),
         ];
         let mut v_0: [*mut Vertex; 3] = [
-            ((*self_0).vertex_data).offset(*index[0 as libc::c_int as usize] as isize),
-            ((*self_0).vertex_data).offset(*index[1 as libc::c_int as usize] as isize),
-            ((*self_0).vertex_data).offset(*index[2 as libc::c_int as usize] as isize),
+            ((*self_0).vertex_data).offset(*index[0] as isize),
+            ((*self_0).vertex_data).offset(*index[1] as isize),
+            ((*self_0).vertex_data).offset(*index[2] as isize),
         ];
-        let mut face: Vec3f = Vec3f_Cross(
-            Vec3f_Sub(
-                (*v_0[1 as libc::c_int as usize]).p,
-                (*v_0[0 as libc::c_int as usize]).p,
-            ),
-            Vec3f_Sub(
-                (*v_0[2 as libc::c_int as usize]).p,
-                (*v_0[0 as libc::c_int as usize]).p,
-            ),
+        let mut face: Vec3 = Vec3::cross(
+            (*v_0[1]).p - (*v_0[0]).p,
+            (*v_0[2]).p - (*v_0[0]).p,
         );
         let mut j: libc::c_int = 0 as libc::c_int;
         while j < 3 as libc::c_int {
-            let mut cn: *mut Vec3f = &mut (*((*self_0).vertex_data)
+            let mut cn: *mut Vec3 = &mut (*((*self_0).vertex_data)
                 .offset(**index.as_mut_ptr().offset(j as isize) as isize))
                 .n;
-            if Vec3f_LengthSquared(*cn) > 0.0f32 {
-                let mut cDot: libc::c_float = Vec3f_Dot(
-                    Vec3f_Normalize(face),
-                    Vec3f_Normalize(*cn),
+            if (*cn).length_squared() > 0.0f32 {
+                let mut cDot: libc::c_float = Vec3::dot(
+                    face.normalize(),
+                    (*cn).normalize(),
                 );
                 if cDot < minDot {
                     if ((*self_0).vertex_capacity == (*self_0).vertex_size)
@@ -1182,10 +1030,10 @@ pub unsafe extern "C" fn Mesh_SplitNormals(
                     (*nv).n = face;
                     *index[j as usize] = (*self_0).vertex_size - 1 as libc::c_int;
                 } else {
-                    Vec3f_IAdd(cn, face);
+                    (*cn) += face;
                 }
             } else {
-                Vec3f_IAdd(cn, face);
+                (*cn) += face;
             }
             j += 1;
         }
@@ -1195,7 +1043,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(
     let mut __iterend_0: *mut Vertex = ((*self_0).vertex_data)
         .offset((*self_0).vertex_size as isize);
     while v_1 < __iterend_0 {
-        (*v_1).n = Vec3f_Normalize((*v_1).n);
+        (*v_1).n = (*v_1).n.normalize();
         v_1 = v_1.offset(1);
     }
 }

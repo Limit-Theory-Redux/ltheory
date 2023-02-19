@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
@@ -47,13 +48,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -66,83 +60,14 @@ pub struct Vec4f {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vertex {
-    pub p: Vec3f,
-    pub n: Vec3f,
+    pub p: Vec3,
+    pub n: Vec3,
     pub uv: Vec2,
 }
 pub type DataFormat = int32;
 pub type PixelFormat = int32;
 pub type TexFormat = int32;
-#[inline]
-unsafe extern "C" fn Vec3f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f { x: x, y: y, z: z };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Add(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x + b.x,
-            y: a.y + b.y,
-            z: a.z + b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Sub(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Divs(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x / b,
-            y: a.y / b,
-            z: a.z / b,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_IDivs(mut a: *mut Vec3f, mut b: libc::c_float) {
-    (*a).x /= b;
-    (*a).y /= b;
-    (*a).z /= b;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Cross(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: b.z * a.y - b.y * a.z,
-            y: b.x * a.z - b.z * a.x,
-            z: b.y * a.x - b.x * a.y,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Length(mut v: Vec3f) -> libc::c_float {
-    return Sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
+
 #[inline]
 unsafe extern "C" fn Abs(mut t: libc::c_double) -> libc::c_double {
     return fabs(t);
@@ -225,25 +150,22 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
             .offset(*indexData.offset((i + 1 as libc::c_int) as isize) as isize);
         let mut v3: *const Vertex = vertexData
             .offset(*indexData.offset((i + 2 as libc::c_int) as isize) as isize);
-        let mut normal: Vec3f = Vec3f_Cross(
-            Vec3f_Sub((*v3).p, (*v1).p),
-            Vec3f_Sub((*v2).p, (*v1).p),
+        let mut normal: Vec3 = Vec3::cross(
+            (*v3).p - (*v1).p,
+            (*v2).p - (*v1).p,
         );
-        let mut length: libc::c_float = Vec3f_Length(normal);
+        let mut length: libc::c_float = normal.length();
         let mut area: libc::c_float = 0.5f32 * length / 3.14159265f32;
         if Abs(length as libc::c_double) > 1e-6f64 {
-            Vec3f_IDivs(&mut normal, length);
+            normal /= length;
         } else {
-            normal = Vec3f_Create(
-                1 as libc::c_int as libc::c_float,
-                0 as libc::c_int as libc::c_float,
-                0 as libc::c_int as libc::c_float,
+            normal = Vec3::new(
+                1.0f32,
+                0.0f32,
+                0.0f32,
             );
         }
-        let mut center: Vec3f = Vec3f_Divs(
-            Vec3f_Add((*v1).p, Vec3f_Add((*v2).p, (*v3).p)),
-            3.0f32,
-        );
+        let mut center: Vec3 = ((*v1).p + (*v2).p + (*v3).p) / 3.0f32;
         *pointBuffer
             .offset(
                 (i / 3 as libc::c_int) as isize,
@@ -381,10 +303,10 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     let mut vDim: libc::c_int = Ceil(Sqrt(vertexCount as libc::c_double)) as libc::c_int;
     let mut texPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
-    let mut pointBuffer: *mut Vec3f = MemAlloc(
-        (::core::mem::size_of::<Vec3f>())
+    let mut pointBuffer: *mut Vec3 = MemAlloc(
+        (::core::mem::size_of::<Vec3>())
             .wrapping_mul((vDim * vDim) as usize),
-    ) as *mut Vec3f;
+    ) as *mut Vec3;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < vertexCount {
         *pointBuffer.offset(i as isize) = (*vertexData.offset(i as isize)).p;

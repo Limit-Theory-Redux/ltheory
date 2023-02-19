@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 pub type WindowPos = libc::c_int;
 #[no_mangle]

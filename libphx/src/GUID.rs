@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 pub type uint64_t = libc::c_ulonglong;
 pub type uint64 = uint64_t;

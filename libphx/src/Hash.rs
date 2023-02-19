@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 pub type int8_t = libc::c_schar;
 pub type uint8_t = libc::c_uchar;
@@ -133,7 +134,7 @@ pub unsafe extern "C" fn Hash_Murmur3(
     match len & 3 as libc::c_int {
         3 => {
             k1_0
-                ^= ((*tail.offset(2 as libc::c_int as isize) as libc::c_int)
+                ^= ((*tail.offset(2) as libc::c_int)
                     << 16 as libc::c_int) as libc::c_uint;
             current_block_14 = 1337185109221498832;
         }
@@ -150,7 +151,7 @@ pub unsafe extern "C" fn Hash_Murmur3(
     match current_block_14 {
         1337185109221498832 => {
             k1_0
-                ^= ((*tail.offset(1 as libc::c_int as isize) as libc::c_int)
+                ^= ((*tail.offset(1) as libc::c_int)
                     << 8 as libc::c_int) as libc::c_uint;
             current_block_14 = 15333892231877469626;
         }
@@ -158,7 +159,7 @@ pub unsafe extern "C" fn Hash_Murmur3(
     }
     match current_block_14 {
         15333892231877469626 => {
-            k1_0 ^= *tail.offset(0 as libc::c_int as isize) as libc::c_uint;
+            k1_0 ^= *tail.offset(0) as libc::c_uint;
             k1_0 = (k1_0 as libc::c_uint).wrapping_mul(c1) as uint32 as uint32;
             k1_0 = rotl32(k1_0, 15 as libc::c_int as int8);
             k1_0 = (k1_0 as libc::c_uint).wrapping_mul(c2) as uint32 as uint32;
@@ -198,20 +199,20 @@ pub unsafe extern "C" fn Hash_XX64(
     let mut end: *const uint8 = p.offset(len as isize);
     let mut hash: uint64 = 0;
     if len >= 32 as libc::c_int {
-        let limit: *const uint8 = end.offset(-(32 as libc::c_int as isize));
+        let limit: *const uint8 = end.offset(-(32));
         let mut v1: uint64 = seed.wrapping_add(PRIME64_1).wrapping_add(PRIME64_2);
         let mut v2: uint64 = seed.wrapping_add(PRIME64_2);
         let mut v3: uint64 = seed.wrapping_add(0 as libc::c_ulonglong);
         let mut v4: uint64 = seed.wrapping_sub(PRIME64_1);
         loop {
             v1 = XXH64_round(v1, *(p as *const uint64));
-            p = p.offset(8 as libc::c_int as isize);
+            p = p.offset(8);
             v2 = XXH64_round(v2, *(p as *const uint64));
-            p = p.offset(8 as libc::c_int as isize);
+            p = p.offset(8);
             v3 = XXH64_round(v3, *(p as *const uint64));
-            p = p.offset(8 as libc::c_int as isize);
+            p = p.offset(8);
             v4 = XXH64_round(v4, *(p as *const uint64));
-            p = p.offset(8 as libc::c_int as isize);
+            p = p.offset(8);
             if !(p <= limit) {
                 break;
             }
@@ -234,22 +235,22 @@ pub unsafe extern "C" fn Hash_XX64(
         hash = seed.wrapping_add(PRIME64_5);
     }
     hash = (hash as libc::c_ulonglong).wrapping_add(len as uint64) as uint64 as uint64;
-    while p.offset(8 as libc::c_int as isize) <= end {
+    while p.offset(8) <= end {
         let k1: uint64 = XXH64_round(0 as libc::c_int as uint64, *(p as *const uint64));
         hash ^= k1;
         hash = (hash << 27 as libc::c_int
             | hash >> 64 as libc::c_int - 27 as libc::c_int)
             .wrapping_mul(PRIME64_1)
             .wrapping_add(PRIME64_4);
-        p = p.offset(8 as libc::c_int as isize);
+        p = p.offset(8);
     }
-    if p.offset(4 as libc::c_int as isize) <= end {
+    if p.offset(4) <= end {
         hash ^= (*(p as *mut uint32) as uint64).wrapping_mul(PRIME64_1);
         hash = (hash << 23 as libc::c_int
             | hash >> 64 as libc::c_int - 23 as libc::c_int)
             .wrapping_mul(PRIME64_2)
             .wrapping_add(PRIME64_3);
-        p = p.offset(4 as libc::c_int as isize);
+        p = p.offset(4);
     }
     while p < end {
         hash ^= (*p as libc::c_ulonglong).wrapping_mul(PRIME64_5);

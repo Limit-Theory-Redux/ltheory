@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
 
@@ -44,22 +45,15 @@ pub struct Node {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {
-    pub lower: Vec3f,
-    pub upper: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub lower: Vec3,
+    pub upper: Vec3,
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vertex {
-    pub p: Vec3f,
-    pub n: Vec3f,
+    pub p: Vec3,
+    pub n: Vec3,
     pub uv: Vec2,
 }
 #[inline]
@@ -71,31 +65,7 @@ unsafe extern "C" fn Minf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c
     return if a < b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Vec3f_Max(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Maxf(a.x, b.x),
-            y: Maxf(a.y, b.y),
-            z: Maxf(a.z, b.z),
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Min(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Minf(a.x, b.x),
-            y: Minf(a.y, b.y),
-            z: Minf(a.z, b.z),
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Box3f_Create(mut lower: Vec3f, mut upper: Vec3f) -> Box3f {
+unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
     let mut result: Box3f = {
         let mut init = Box3f {
             lower: lower,
@@ -110,7 +80,7 @@ unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
     let mut self_0: Box3f = {
         let mut init = Box3f {
             lower: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: Minf(a.lower.x, b.lower.x),
                     y: Minf(a.lower.y, b.lower.y),
                     z: Minf(a.lower.z, b.lower.z),
@@ -118,7 +88,7 @@ unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
                 init
             },
             upper: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: Maxf(a.upper.x, b.upper.x),
                     y: Maxf(a.upper.y, b.upper.y),
                     z: Maxf(a.upper.z, b.upper.z),
@@ -173,7 +143,7 @@ unsafe extern "C" fn Partition(
         ::core::mem::size_of::<KDTree>() as usize,
     ) as *mut KDTree;
     if boxCount <= kMaxLeafSize {
-        (*self_0).box_0 = *boxes.offset(0 as libc::c_int as isize);
+        (*self_0).box_0 = *boxes.offset(0);
         (*self_0).back = 0 as *mut KDTree;
         (*self_0).front = 0 as *mut KDTree;
         (*self_0).elems = 0 as *mut Node;
@@ -297,8 +267,8 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
             .offset(
                 (i / 3 as libc::c_int) as isize,
             ) = Box3f_Create(
-            Vec3f_Min((*v0).p, Vec3f_Min((*v1).p, (*v2).p)),
-            Vec3f_Max((*v0).p, Vec3f_Max((*v1).p, (*v2).p)),
+            Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
+            Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
         i += 3 as libc::c_int;
     }
@@ -345,8 +315,8 @@ pub unsafe extern "C" fn KDTree_GetMemory(mut self_0: *mut KDTree) -> libc::c_in
 pub unsafe extern "C" fn KDTree_IntersectRay(
     mut self_0: *mut KDTree,
     mut m: *mut Matrix,
-    mut a: *const Vec3f,
-    mut b: *const Vec3f,
+    mut a: *const Vec3,
+    mut b: *const Vec3,
 ) -> bool {
     return 0 as libc::c_int != 0;
 }

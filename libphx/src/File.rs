@@ -1,5 +1,6 @@
 use std::fs;
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type Bytes;

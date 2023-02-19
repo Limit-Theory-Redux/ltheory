@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type MemPool;
@@ -72,16 +73,9 @@ pub struct Sound {
     pub desc: *mut SoundDesc,
     pub handle: *mut FMOD_CHANNEL,
     pub state: SoundState,
-    pub autoPos: *const Vec3f,
-    pub autoVel: *const Vec3f,
+    pub autoPos: *const Vec3,
+    pub autoVel: *const Vec3,
     pub freeOnFinish: bool,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
 }
 pub type SoundState = uint8;
 #[derive(Copy, Clone)]
@@ -104,10 +98,10 @@ pub struct Audio {
     pub freeingSounds_size: int32,
     pub freeingSounds_capacity: int32,
     pub freeingSounds_data: *mut *mut Sound,
-    pub autoPos: *const Vec3f,
-    pub autoVel: *const Vec3f,
-    pub autoFwd: *const Vec3f,
-    pub autoUp: *const Vec3f,
+    pub autoPos: *const Vec3,
+    pub autoVel: *const Vec3,
+    pub autoFwd: *const Vec3,
+    pub autoUp: *const Vec3,
 }
 pub type FMOD_RESULT = libc::c_uint;
 pub const FMOD_RESULT_FORCEINT: FMOD_RESULT = 65536;
@@ -674,10 +668,10 @@ static mut self_0: Audio = Audio {
     freeingSounds_size: 0,
     freeingSounds_capacity: 0,
     freeingSounds_data: 0 as *const *mut Sound as *mut *mut Sound,
-    autoPos: 0 as *const Vec3f,
-    autoVel: 0 as *const Vec3f,
-    autoFwd: 0 as *const Vec3f,
-    autoUp: 0 as *const Vec3f,
+    autoPos: 0 as *const Vec3,
+    autoVel: 0 as *const Vec3,
+    autoFwd: 0 as *const Vec3,
+    autoUp: 0 as *const Vec3,
 };
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Init() {
@@ -766,10 +760,10 @@ pub unsafe extern "C" fn Audio_Free() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AttachListenerPos(
-    mut pos: *const Vec3f,
-    mut vel: *const Vec3f,
-    mut fwd: *const Vec3f,
-    mut up: *const Vec3f,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
+    mut fwd: *const Vec3,
+    mut up: *const Vec3,
 ) {
     // self_0.autoPos = pos;
     // self_0.autoVel = vel;
@@ -797,10 +791,10 @@ pub unsafe extern "C" fn Audio_Set3DSettings(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Audio_SetListenerPos(
-    mut pos: *const Vec3f,
-    mut vel: *const Vec3f,
-    mut fwd: *const Vec3f,
-    mut up: *const Vec3f,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
+    mut fwd: *const Vec3,
+    mut up: *const Vec3,
 ) {
     // FMOD_CheckError(
     //     FMOD_System_Set3DListenerAttributes(

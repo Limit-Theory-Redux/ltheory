@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type MemPool;
@@ -51,15 +52,8 @@ pub struct HashGridElem {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {
-    pub lower: Vec3f,
-    pub upper: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub lower: Vec3,
+    pub upper: Vec3,
 }
 
 
@@ -155,12 +149,12 @@ unsafe extern "C" fn HashGrid_AddElem(
     mut elem: *mut HashGridElem,
 ) {
     (*self_0).version = ((*self_0).version).wrapping_add(1);
-    let mut x: int32 = (*elem).lower[0 as libc::c_int as usize];
-    while x <= (*elem).upper[0 as libc::c_int as usize] {
-        let mut y: int32 = (*elem).lower[1 as libc::c_int as usize];
-        while y <= (*elem).upper[1 as libc::c_int as usize] {
-            let mut z: int32 = (*elem).lower[2 as libc::c_int as usize];
-            while z <= (*elem).upper[2 as libc::c_int as usize] {
+    let mut x: int32 = (*elem).lower[0];
+    while x <= (*elem).upper[0] {
+        let mut y: int32 = (*elem).lower[1];
+        while y <= (*elem).upper[1] {
+            let mut z: int32 = (*elem).lower[2];
+            while z <= (*elem).upper[2] {
                 let mut cell: *mut HashGridCell = HashGrid_GetCell(self_0, x, y, z);
                 if (*cell).version != (*self_0).version {
                     (*cell).version = (*self_0).version;
@@ -201,12 +195,12 @@ unsafe extern "C" fn HashGrid_RemoveElem(
     mut elem: *mut HashGridElem,
 ) {
     (*self_0).version = ((*self_0).version).wrapping_add(1);
-    let mut x: int32 = (*elem).lower[0 as libc::c_int as usize];
-    while x <= (*elem).upper[0 as libc::c_int as usize] {
-        let mut y: int32 = (*elem).lower[1 as libc::c_int as usize];
-        while y <= (*elem).upper[1 as libc::c_int as usize] {
-            let mut z: int32 = (*elem).lower[2 as libc::c_int as usize];
-            while z <= (*elem).upper[2 as libc::c_int as usize] {
+    let mut x: int32 = (*elem).lower[0];
+    while x <= (*elem).upper[0] {
+        let mut y: int32 = (*elem).lower[1];
+        while y <= (*elem).upper[1] {
+            let mut z: int32 = (*elem).lower[2];
+            while z <= (*elem).upper[2] {
                 let mut cell: *mut HashGridCell = HashGrid_GetCell(self_0, x, y, z);
                 if (*cell).version != (*self_0).version {
                     (*cell).version = (*self_0).version;
@@ -250,17 +244,17 @@ pub unsafe extern "C" fn HashGrid_Add(
         as *mut HashGridElem;
     (*elem).object = object;
     (*elem)
-        .lower[0 as libc::c_int as usize] = HashGrid_ToLocal(self_0, (*box_0).lower.x);
+        .lower[0] = HashGrid_ToLocal(self_0, (*box_0).lower.x);
     (*elem)
-        .lower[1 as libc::c_int as usize] = HashGrid_ToLocal(self_0, (*box_0).lower.y);
+        .lower[1] = HashGrid_ToLocal(self_0, (*box_0).lower.y);
     (*elem)
-        .lower[2 as libc::c_int as usize] = HashGrid_ToLocal(self_0, (*box_0).lower.z);
+        .lower[2] = HashGrid_ToLocal(self_0, (*box_0).lower.z);
     (*elem)
-        .upper[0 as libc::c_int as usize] = HashGrid_ToLocal(self_0, (*box_0).upper.x);
+        .upper[0] = HashGrid_ToLocal(self_0, (*box_0).upper.x);
     (*elem)
-        .upper[1 as libc::c_int as usize] = HashGrid_ToLocal(self_0, (*box_0).upper.y);
+        .upper[1] = HashGrid_ToLocal(self_0, (*box_0).upper.y);
     (*elem)
-        .upper[2 as libc::c_int as usize] = HashGrid_ToLocal(self_0, (*box_0).upper.z);
+        .upper[2] = HashGrid_ToLocal(self_0, (*box_0).upper.z);
     HashGrid_AddElem(self_0, elem);
     return elem;
 }
@@ -304,48 +298,48 @@ pub unsafe extern "C" fn HashGrid_Update(
         HashGrid_ToLocal(self_0, (*box_0).upper.y),
         HashGrid_ToLocal(self_0, (*box_0).upper.z),
     ];
-    if lower[0 as libc::c_int as usize] == (*elem).lower[0 as libc::c_int as usize]
-        && upper[0 as libc::c_int as usize] == (*elem).upper[0 as libc::c_int as usize]
-        && lower[1 as libc::c_int as usize] == (*elem).lower[1 as libc::c_int as usize]
-        && upper[1 as libc::c_int as usize] == (*elem).upper[1 as libc::c_int as usize]
-        && lower[2 as libc::c_int as usize] == (*elem).lower[2 as libc::c_int as usize]
-        && upper[2 as libc::c_int as usize] == (*elem).upper[2 as libc::c_int as usize]
+    if lower[0] == (*elem).lower[0]
+        && upper[0] == (*elem).upper[0]
+        && lower[1] == (*elem).lower[1]
+        && upper[1] == (*elem).upper[1]
+        && lower[2] == (*elem).lower[2]
+        && upper[2] == (*elem).upper[2]
     {
         Profiler_End();
         return;
     }
     let mut lowerUnion: [int32; 3] = [
-        Mini(lower[0 as libc::c_int as usize], (*elem).lower[0 as libc::c_int as usize]),
-        Mini(lower[1 as libc::c_int as usize], (*elem).lower[1 as libc::c_int as usize]),
-        Mini(lower[2 as libc::c_int as usize], (*elem).lower[2 as libc::c_int as usize]),
+        Mini(lower[0], (*elem).lower[0]),
+        Mini(lower[1], (*elem).lower[1]),
+        Mini(lower[2], (*elem).lower[2]),
     ];
     let mut upperUnion: [int32; 3] = [
-        Maxi(upper[0 as libc::c_int as usize], (*elem).upper[0 as libc::c_int as usize]),
-        Maxi(upper[1 as libc::c_int as usize], (*elem).upper[1 as libc::c_int as usize]),
-        Maxi(upper[2 as libc::c_int as usize], (*elem).upper[2 as libc::c_int as usize]),
+        Maxi(upper[0], (*elem).upper[0]),
+        Maxi(upper[1], (*elem).upper[1]),
+        Maxi(upper[2], (*elem).upper[2]),
     ];
     (*self_0).version = ((*self_0).version).wrapping_add(1);
     let mut vRemove: uint64 = (*self_0).version;
     (*self_0).version = ((*self_0).version).wrapping_add(1);
     let mut vAdd: uint64 = (*self_0).version;
-    let mut x: int32 = lowerUnion[0 as libc::c_int as usize];
-    while x <= upperUnion[0 as libc::c_int as usize] {
-        let mut y: int32 = lowerUnion[1 as libc::c_int as usize];
-        while y <= upperUnion[1 as libc::c_int as usize] {
-            let mut z: int32 = lowerUnion[2 as libc::c_int as usize];
-            while z <= upperUnion[2 as libc::c_int as usize] {
-                let mut inPrev: bool = (*elem).lower[0 as libc::c_int as usize] <= x
-                    && (*elem).lower[1 as libc::c_int as usize] <= y
-                    && (*elem).lower[2 as libc::c_int as usize] <= z
-                    && x <= (*elem).upper[0 as libc::c_int as usize]
-                    && y <= (*elem).upper[1 as libc::c_int as usize]
-                    && z <= (*elem).upper[2 as libc::c_int as usize];
-                let mut inCurr: bool = lower[0 as libc::c_int as usize] <= x
-                    && lower[1 as libc::c_int as usize] <= y
-                    && lower[2 as libc::c_int as usize] <= z
-                    && x <= upper[0 as libc::c_int as usize]
-                    && y <= upper[1 as libc::c_int as usize]
-                    && z <= upper[2 as libc::c_int as usize];
+    let mut x: int32 = lowerUnion[0];
+    while x <= upperUnion[0] {
+        let mut y: int32 = lowerUnion[1];
+        while y <= upperUnion[1] {
+            let mut z: int32 = lowerUnion[2];
+            while z <= upperUnion[2] {
+                let mut inPrev: bool = (*elem).lower[0] <= x
+                    && (*elem).lower[1] <= y
+                    && (*elem).lower[2] <= z
+                    && x <= (*elem).upper[0]
+                    && y <= (*elem).upper[1]
+                    && z <= (*elem).upper[2];
+                let mut inCurr: bool = lower[0] <= x
+                    && lower[1] <= y
+                    && lower[2] <= z
+                    && x <= upper[0]
+                    && y <= upper[1]
+                    && z <= upper[2];
                 if !(inPrev as libc::c_int != 0 && inCurr as libc::c_int != 0) {
                     let mut cell: *mut HashGridCell = HashGrid_GetCell(self_0, x, y, z);
                     if !((*cell).version == vAdd) {
@@ -422,12 +416,12 @@ pub unsafe extern "C" fn HashGrid_Update(
         }
         x += 1;
     }
-    (*elem).lower[0 as libc::c_int as usize] = lower[0 as libc::c_int as usize];
-    (*elem).lower[1 as libc::c_int as usize] = lower[1 as libc::c_int as usize];
-    (*elem).lower[2 as libc::c_int as usize] = lower[2 as libc::c_int as usize];
-    (*elem).upper[0 as libc::c_int as usize] = upper[0 as libc::c_int as usize];
-    (*elem).upper[1 as libc::c_int as usize] = upper[1 as libc::c_int as usize];
-    (*elem).upper[2 as libc::c_int as usize] = upper[2 as libc::c_int as usize];
+    (*elem).lower[0] = lower[0];
+    (*elem).lower[1] = lower[1];
+    (*elem).lower[2] = lower[2];
+    (*elem).upper[0] = upper[0];
+    (*elem).upper[1] = upper[1];
+    (*elem).upper[2] = upper[2];
     Profiler_End();
 }
 #[no_mangle]
@@ -453,12 +447,12 @@ pub unsafe extern "C" fn HashGrid_QueryBox(
         HashGrid_ToLocal(self_0, (*box_0).upper.y),
         HashGrid_ToLocal(self_0, (*box_0).upper.z),
     ];
-    let mut x: int32 = lower[0 as libc::c_int as usize];
-    while x <= upper[0 as libc::c_int as usize] {
-        let mut y: int32 = lower[1 as libc::c_int as usize];
-        while y <= upper[1 as libc::c_int as usize] {
-            let mut z: int32 = lower[2 as libc::c_int as usize];
-            while z <= upper[2 as libc::c_int as usize] {
+    let mut x: int32 = lower[0];
+    while x <= upper[0] {
+        let mut y: int32 = lower[1];
+        while y <= upper[1] {
+            let mut z: int32 = lower[2];
+            while z <= upper[2] {
                 let mut cell: *mut HashGridCell = HashGrid_GetCell(self_0, x, y, z);
                 if (*cell).version != (*self_0).version {
                     (*cell).version = (*self_0).version;
@@ -509,7 +503,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_QueryPoint(
     mut self_0: *mut HashGrid,
-    mut p: *const Vec3f,
+    mut p: *const Vec3,
 ) -> libc::c_int {
     (*self_0).results_size = 0 as libc::c_int;
     let mut cell: *mut HashGridCell = HashGrid_GetCell(

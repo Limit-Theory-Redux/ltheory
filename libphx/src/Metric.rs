@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
 }
@@ -31,10 +32,10 @@ pub unsafe extern "C" fn Metric_AddDraw(
     mut tris: int32,
     mut verts: int32,
 ) {
-    valueCurr[0x1 as libc::c_int as usize] += 1 as libc::c_int;
-    valueCurr[0x3 as libc::c_int as usize] += polys;
-    valueCurr[0x4 as libc::c_int as usize] += tris;
-    valueCurr[0x5 as libc::c_int as usize] += verts;
+    valueCurr[0x1] += 1 as libc::c_int;
+    valueCurr[0x3] += polys;
+    valueCurr[0x4] += tris;
+    valueCurr[0x5] += verts;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_AddDrawImm(
@@ -42,10 +43,10 @@ pub unsafe extern "C" fn Metric_AddDrawImm(
     mut tris: int32,
     mut verts: int32,
 ) {
-    valueCurr[0x2 as libc::c_int as usize] += 1 as libc::c_int;
-    valueCurr[0x3 as libc::c_int as usize] += polys;
-    valueCurr[0x4 as libc::c_int as usize] += tris;
-    valueCurr[0x5 as libc::c_int as usize] += verts;
+    valueCurr[0x2] += 1 as libc::c_int;
+    valueCurr[0x3] += polys;
+    valueCurr[0x4] += tris;
+    valueCurr[0x5] += verts;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Inc(mut self_0: Metric) {

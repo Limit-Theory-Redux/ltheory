@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
 extern "C" {
@@ -33,13 +34,6 @@ pub struct Quat {
     pub w: libc::c_float,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -111,22 +105,10 @@ unsafe extern "C" fn Random_Xoroshiro128(
 }
 
 #[inline]
-unsafe extern "C" fn Vec3f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f { x: x, y: y, z: z };
-        init
-    };
-    return self_0;
-}
-#[inline]
 unsafe extern "C" fn RNG_Next64(mut self_0: *mut RNG) -> uint64 {
     return Random_Xoroshiro128(
-        &mut *((*self_0).state).as_mut_ptr().offset(0 as libc::c_int as isize),
-        &mut *((*self_0).state).as_mut_ptr().offset(1 as libc::c_int as isize),
+        &mut *((*self_0).state).as_mut_ptr().offset(0),
+        &mut *((*self_0).state).as_mut_ptr().offset(1),
     );
 }
 #[inline]
@@ -142,8 +124,8 @@ unsafe extern "C" fn RNG_Init(mut self_0: *mut RNG) {
         seed = Random_SplitMix64(&mut seed);
         i += 1;
     }
-    (*self_0).state[0 as libc::c_int as usize] = Random_SplitMix64(&mut seed);
-    (*self_0).state[1 as libc::c_int as usize] = Random_SplitMix64(&mut seed);
+    (*self_0).state[0] = Random_SplitMix64(&mut seed);
+    (*self_0).state[1] = Random_SplitMix64(&mut seed);
     let mut i_0: libc::c_int = 0 as libc::c_int;
     while i_0 < 64 as libc::c_int {
         RNG_Next64(self_0);
@@ -282,8 +264,8 @@ pub unsafe extern "C" fn RNG_GetAxis2(mut self_0: *mut RNG, mut out: *mut Vec2) 
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetAxis3(mut self_0: *mut RNG, mut out: *mut Vec3f) {
-    *out = Vec3f_Create(0.0f32, 0.0f32, 0.0f32);
+pub unsafe extern "C" fn RNG_GetAxis3(mut self_0: *mut RNG, mut out: *mut Vec3) {
+    *out = Vec3::ZERO;
     let mut axis: libc::c_int = RNG_GetInt(self_0, 0 as libc::c_int, 5 as libc::c_int);
     match axis {
         0 => {
@@ -319,7 +301,7 @@ pub unsafe extern "C" fn RNG_GetDir2(mut self_0: *mut RNG, mut out: *mut Vec2) {
     *out = Vec2::new(Cos(angle) as libc::c_float, Sin(angle) as libc::c_float);
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetDir3(mut self_0: *mut RNG, mut out: *mut Vec3f) {
+pub unsafe extern "C" fn RNG_GetDir3(mut self_0: *mut RNG, mut out: *mut Vec3) {
     loop {
         let mut x: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
         let mut y: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
@@ -351,7 +333,7 @@ pub unsafe extern "C" fn RNG_GetSign(mut self_0: *mut RNG) -> libc::c_double {
     return if RNG_GetUniform(self_0) > 0.5f64 { 1.0f64 } else { -1.0f64 };
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetSphere(mut self_0: *mut RNG, mut out: *mut Vec3f) {
+pub unsafe extern "C" fn RNG_GetSphere(mut self_0: *mut RNG, mut out: *mut Vec3) {
     loop {
         let mut x: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
         let mut y: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
@@ -377,7 +359,7 @@ pub unsafe extern "C" fn RNG_GetVec2(
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetVec3(
     mut self_0: *mut RNG,
-    mut out: *mut Vec3f,
+    mut out: *mut Vec3,
     mut lower: libc::c_double,
     mut upper: libc::c_double,
 ) {

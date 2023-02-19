@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::PhxSignal::*;
 use crate::ResourceType::*;
@@ -205,7 +206,7 @@ pub unsafe extern "C" fn Engine_Abort() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetBits() -> libc::c_int {
-    return (8 as libc::c_int as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>())
+    return (8 as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>())
         as libc::c_int;
 }
 #[no_mangle]

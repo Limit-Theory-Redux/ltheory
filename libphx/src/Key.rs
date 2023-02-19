@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 pub type uchar = libc::c_uchar;
 pub type Key = uchar;

@@ -1,4 +1,7 @@
 use libc;
+use glam::Vec3;
+
+pub type Error = u32;
 
 #[inline]
 pub unsafe extern "C" fn MemAlloc(mut size: libc::size_t) -> *mut libc::c_void {
@@ -278,4 +281,42 @@ pub unsafe extern "C" fn StrAdd3(mut a: *const libc::c_char, mut b: *const libc:
     }
     *cur = 0 as libc::c_int as libc::c_char;
     return buf as *const libc::c_char;
+}
+
+#[inline]
+pub unsafe extern "C" fn Float_Validatef(mut x: libc::c_float) -> Error {
+    let mut classification: libc::c_int = if ::core::mem::size_of::<libc::c_float>()
+        as libc::c_ulong == ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
+    {
+        f32::classify(x) as c_int
+    } else if ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
+        == ::core::mem::size_of::<libc::c_double>() as libc::c_ulong
+    {
+        f64::classify(x as libc::c_double) as c_int
+    } else {
+        3
+    };
+    match classification {
+        2 => return 0x4 as libc::c_int as Error,
+        5 => {}
+        1 => return 0x20 as libc::c_int as Error,
+        3 | 4 => return 0 as libc::c_int as Error,
+        _ => {
+            crate::Common::Fatal(
+                b"Float_Validate: Unhandled case: %i\0" as *const u8
+                    as *const libc::c_char,
+                classification,
+            );
+        }
+    }
+    return 0 as libc::c_int as Error;
+}
+
+#[inline]
+pub unsafe extern "C" fn Vec3_Validate(mut v: Vec3) -> Error {
+    let mut e: Error = 0 as libc::c_int as Error;
+    e |= Float_Validatef(v.x);
+    e |= Float_Validatef(v.y);
+    e |= Float_Validatef(v.z);
+    return e;
 }

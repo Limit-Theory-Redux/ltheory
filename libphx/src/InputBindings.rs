@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::State::*;
 use glam::Vec2;
@@ -383,7 +384,7 @@ pub unsafe extern "C" fn InputBindings_Update() {
     while Input_GetNextEvent(&mut event) {
         let mut binding: *mut InputBinding = (self_0.activeBindings_data)
             .offset(self_0.activeBindings_size as isize)
-            .offset(-(1 as libc::c_int as isize));
+            .offset(-(1));
         let mut __iterbegin: *mut InputBinding = self_0.activeBindings_data;
         while binding >= __iterbegin {
             let mut iBtn: libc::c_int = 0 as libc::c_int;

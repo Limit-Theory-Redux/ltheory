@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     fn cos(_: libc::c_double) -> libc::c_double;
@@ -13,24 +14,17 @@ extern "C" {
         _: *const libc::c_char,
         _: ...
     ) -> libc::c_int;
-    fn Quat_GetAxisX(_: *const Quat, _: *mut Vec3f);
-    fn Quat_GetAxisY(_: *const Quat, _: *mut Vec3f);
-    fn Quat_GetAxisZ(_: *const Quat, _: *mut Vec3f);
-    fn Quat_FromBasis(x: *const Vec3f, y: *const Vec3f, z: *const Vec3f, _: *mut Quat);
+    fn Quat_GetAxisX(_: *const Quat, _: *mut Vec3);
+    fn Quat_GetAxisY(_: *const Quat, _: *mut Vec3);
+    fn Quat_GetAxisZ(_: *const Quat, _: *mut Vec3);
+    fn Quat_FromBasis(x: *const Vec3, y: *const Vec3, z: *const Vec3, _: *mut Quat);
 }
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {
-    pub lower: Vec3f,
-    pub upper: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub lower: Vec3,
+    pub upper: Vec3,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -88,83 +82,6 @@ unsafe extern "C" fn Float_ApproximatelyEqual(
 ) -> bool {
     return Abs(x - y) < 1e-3f64;
 }
-#[inline]
-unsafe extern "C" fn Vec3f_Sub(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Muls(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x * b,
-            y: a.y * b,
-            z: a.z * b,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Cross(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: b.z * a.y - b.y * a.z,
-            y: b.x * a.z - b.z * a.x,
-            z: b.y * a.x - b.x * a.y,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Length(mut v: Vec3f) -> libc::c_float {
-    return Sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Max(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Maxf(a.x, b.x),
-            y: Maxf(a.y, b.y),
-            z: Maxf(a.z, b.z),
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Min(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Minf(a.x, b.x),
-            y: Minf(a.y, b.y),
-            z: Minf(a.z, b.z),
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Normalize(mut v: Vec3f) -> Vec3f {
-    let mut l: libc::c_float = Vec3f_Length(v);
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: v.x / l,
-            y: v.y / l,
-            z: v.z / l,
-        };
-        init
-    };
-    return self_0;
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Clone(mut self_0: *const Matrix) -> *mut Matrix {
@@ -184,300 +101,300 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
     *dst
         .offset(
             0 as libc::c_int as isize,
-        ) = *src.offset(5 as libc::c_int as isize)
-        * *src.offset(10 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(5 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(9 as libc::c_int as isize) * *src.offset(6 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(9 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(13 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        - *src.offset(13 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize);
+        ) = *src.offset(5)
+        * *src.offset(10)
+        * *src.offset(15)
+        - *src.offset(5)
+            * *src.offset(11)
+            * *src.offset(14)
+        - *src.offset(9) * *src.offset(6)
+            * *src.offset(15)
+        + *src.offset(9) * *src.offset(7)
+            * *src.offset(14)
+        + *src.offset(13)
+            * *src.offset(6)
+            * *src.offset(11)
+        - *src.offset(13)
+            * *src.offset(7)
+            * *src.offset(10);
     *dst
         .offset(
             4 as libc::c_int as isize,
-        ) = -*src.offset(4 as libc::c_int as isize)
-        * *src.offset(10 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(4 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(6 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize);
+        ) = -*src.offset(4)
+        * *src.offset(10)
+        * *src.offset(15)
+        + *src.offset(4)
+            * *src.offset(11)
+            * *src.offset(14)
+        + *src.offset(8) * *src.offset(6)
+            * *src.offset(15)
+        - *src.offset(8) * *src.offset(7)
+            * *src.offset(14)
+        - *src.offset(12)
+            * *src.offset(6)
+            * *src.offset(11)
+        + *src.offset(12)
+            * *src.offset(7)
+            * *src.offset(10);
     *dst
         .offset(
             8 as libc::c_int as isize,
-        ) = *src.offset(4 as libc::c_int as isize)
-        * *src.offset(9 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(4 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(5 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(5 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(9 as libc::c_int as isize);
+        ) = *src.offset(4)
+        * *src.offset(9)
+        * *src.offset(15)
+        - *src.offset(4)
+            * *src.offset(11)
+            * *src.offset(13)
+        - *src.offset(8) * *src.offset(5)
+            * *src.offset(15)
+        + *src.offset(8) * *src.offset(7)
+            * *src.offset(13)
+        + *src.offset(12)
+            * *src.offset(5)
+            * *src.offset(11)
+        - *src.offset(12)
+            * *src.offset(7)
+            * *src.offset(9);
     *dst
         .offset(
             12 as libc::c_int as isize,
-        ) = -*src.offset(4 as libc::c_int as isize)
-        * *src.offset(9 as libc::c_int as isize)
-        * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(4 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(5 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(6 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(5 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize)
-            * *src.offset(9 as libc::c_int as isize);
+        ) = -*src.offset(4)
+        * *src.offset(9)
+        * *src.offset(14)
+        + *src.offset(4)
+            * *src.offset(10)
+            * *src.offset(13)
+        + *src.offset(8) * *src.offset(5)
+            * *src.offset(14)
+        - *src.offset(8) * *src.offset(6)
+            * *src.offset(13)
+        - *src.offset(12)
+            * *src.offset(5)
+            * *src.offset(10)
+        + *src.offset(12)
+            * *src.offset(6)
+            * *src.offset(9);
     *dst
         .offset(
             1 as libc::c_int as isize,
-        ) = -*src.offset(1 as libc::c_int as isize)
-        * *src.offset(10 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(1 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(9 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(9 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(13 as libc::c_int as isize)
-            * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        + *src.offset(13 as libc::c_int as isize)
-            * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize);
+        ) = -*src.offset(1)
+        * *src.offset(10)
+        * *src.offset(15)
+        + *src.offset(1)
+            * *src.offset(11)
+            * *src.offset(14)
+        + *src.offset(9) * *src.offset(2)
+            * *src.offset(15)
+        - *src.offset(9) * *src.offset(3)
+            * *src.offset(14)
+        - *src.offset(13)
+            * *src.offset(2)
+            * *src.offset(11)
+        + *src.offset(13)
+            * *src.offset(3)
+            * *src.offset(10);
     *dst
         .offset(
             5 as libc::c_int as isize,
-        ) = *src.offset(0 as libc::c_int as isize)
-        * *src.offset(10 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(0 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize);
+        ) = *src.offset(0)
+        * *src.offset(10)
+        * *src.offset(15)
+        - *src.offset(0)
+            * *src.offset(11)
+            * *src.offset(14)
+        - *src.offset(8) * *src.offset(2)
+            * *src.offset(15)
+        + *src.offset(8) * *src.offset(3)
+            * *src.offset(14)
+        + *src.offset(12)
+            * *src.offset(2)
+            * *src.offset(11)
+        - *src.offset(12)
+            * *src.offset(3)
+            * *src.offset(10);
     *dst
         .offset(
             9 as libc::c_int as isize,
-        ) = -*src.offset(0 as libc::c_int as isize)
-        * *src.offset(9 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(0 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(9 as libc::c_int as isize);
+        ) = -*src.offset(0)
+        * *src.offset(9)
+        * *src.offset(15)
+        + *src.offset(0)
+            * *src.offset(11)
+            * *src.offset(13)
+        + *src.offset(8) * *src.offset(1)
+            * *src.offset(15)
+        - *src.offset(8) * *src.offset(3)
+            * *src.offset(13)
+        - *src.offset(12)
+            * *src.offset(1)
+            * *src.offset(11)
+        + *src.offset(12)
+            * *src.offset(3)
+            * *src.offset(9);
     *dst
         .offset(
             13 as libc::c_int as isize,
-        ) = *src.offset(0 as libc::c_int as isize)
-        * *src.offset(9 as libc::c_int as isize)
-        * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(0 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(9 as libc::c_int as isize);
+        ) = *src.offset(0)
+        * *src.offset(9)
+        * *src.offset(14)
+        - *src.offset(0)
+            * *src.offset(10)
+            * *src.offset(13)
+        - *src.offset(8) * *src.offset(1)
+            * *src.offset(14)
+        + *src.offset(8) * *src.offset(2)
+            * *src.offset(13)
+        + *src.offset(12)
+            * *src.offset(1)
+            * *src.offset(10)
+        - *src.offset(12)
+            * *src.offset(2)
+            * *src.offset(9);
     *dst
         .offset(
             2 as libc::c_int as isize,
-        ) = *src.offset(1 as libc::c_int as isize)
-        * *src.offset(6 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(1 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(5 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(5 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(13 as libc::c_int as isize)
-            * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-        - *src.offset(13 as libc::c_int as isize)
-            * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize);
+        ) = *src.offset(1)
+        * *src.offset(6)
+        * *src.offset(15)
+        - *src.offset(1) * *src.offset(7)
+            * *src.offset(14)
+        - *src.offset(5) * *src.offset(2)
+            * *src.offset(15)
+        + *src.offset(5) * *src.offset(3)
+            * *src.offset(14)
+        + *src.offset(13)
+            * *src.offset(2)
+            * *src.offset(7)
+        - *src.offset(13)
+            * *src.offset(3)
+            * *src.offset(6);
     *dst
         .offset(
             6 as libc::c_int as isize,
-        ) = -*src.offset(0 as libc::c_int as isize)
-        * *src.offset(6 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(0 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(4 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(4 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize);
+        ) = -*src.offset(0)
+        * *src.offset(6)
+        * *src.offset(15)
+        + *src.offset(0) * *src.offset(7)
+            * *src.offset(14)
+        + *src.offset(4) * *src.offset(2)
+            * *src.offset(15)
+        - *src.offset(4) * *src.offset(3)
+            * *src.offset(14)
+        - *src.offset(12)
+            * *src.offset(2)
+            * *src.offset(7)
+        + *src.offset(12)
+            * *src.offset(3)
+            * *src.offset(6);
     *dst
         .offset(
             10 as libc::c_int as isize,
-        ) = *src.offset(0 as libc::c_int as isize)
-        * *src.offset(5 as libc::c_int as isize)
-        * *src.offset(15 as libc::c_int as isize)
-        - *src.offset(0 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        - *src.offset(4 as libc::c_int as isize) * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(15 as libc::c_int as isize)
-        + *src.offset(4 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(5 as libc::c_int as isize);
+        ) = *src.offset(0)
+        * *src.offset(5)
+        * *src.offset(15)
+        - *src.offset(0) * *src.offset(7)
+            * *src.offset(13)
+        - *src.offset(4) * *src.offset(1)
+            * *src.offset(15)
+        + *src.offset(4) * *src.offset(3)
+            * *src.offset(13)
+        + *src.offset(12)
+            * *src.offset(1)
+            * *src.offset(7)
+        - *src.offset(12)
+            * *src.offset(3)
+            * *src.offset(5);
     *dst
         .offset(
             14 as libc::c_int as isize,
-        ) = -*src.offset(0 as libc::c_int as isize)
-        * *src.offset(5 as libc::c_int as isize)
-        * *src.offset(14 as libc::c_int as isize)
-        + *src.offset(0 as libc::c_int as isize) * *src.offset(6 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        + *src.offset(4 as libc::c_int as isize) * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(14 as libc::c_int as isize)
-        - *src.offset(4 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(13 as libc::c_int as isize)
-        - *src.offset(12 as libc::c_int as isize)
-            * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize)
-        + *src.offset(12 as libc::c_int as isize)
-            * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(5 as libc::c_int as isize);
+        ) = -*src.offset(0)
+        * *src.offset(5)
+        * *src.offset(14)
+        + *src.offset(0) * *src.offset(6)
+            * *src.offset(13)
+        + *src.offset(4) * *src.offset(1)
+            * *src.offset(14)
+        - *src.offset(4) * *src.offset(2)
+            * *src.offset(13)
+        - *src.offset(12)
+            * *src.offset(1)
+            * *src.offset(6)
+        + *src.offset(12)
+            * *src.offset(2)
+            * *src.offset(5);
     *dst
         .offset(
             3 as libc::c_int as isize,
-        ) = -*src.offset(1 as libc::c_int as isize)
-        * *src.offset(6 as libc::c_int as isize)
-        * *src.offset(11 as libc::c_int as isize)
-        + *src.offset(1 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-        + *src.offset(5 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        - *src.offset(5 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-        - *src.offset(9 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-        + *src.offset(9 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize);
+        ) = -*src.offset(1)
+        * *src.offset(6)
+        * *src.offset(11)
+        + *src.offset(1) * *src.offset(7)
+            * *src.offset(10)
+        + *src.offset(5) * *src.offset(2)
+            * *src.offset(11)
+        - *src.offset(5) * *src.offset(3)
+            * *src.offset(10)
+        - *src.offset(9) * *src.offset(2)
+            * *src.offset(7)
+        + *src.offset(9) * *src.offset(3)
+            * *src.offset(6);
     *dst
         .offset(
             7 as libc::c_int as isize,
-        ) = *src.offset(0 as libc::c_int as isize)
-        * *src.offset(6 as libc::c_int as isize)
-        * *src.offset(11 as libc::c_int as isize)
-        - *src.offset(0 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-        - *src.offset(4 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        + *src.offset(4 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize);
+        ) = *src.offset(0)
+        * *src.offset(6)
+        * *src.offset(11)
+        - *src.offset(0) * *src.offset(7)
+            * *src.offset(10)
+        - *src.offset(4) * *src.offset(2)
+            * *src.offset(11)
+        + *src.offset(4) * *src.offset(3)
+            * *src.offset(10)
+        + *src.offset(8) * *src.offset(2)
+            * *src.offset(7)
+        - *src.offset(8) * *src.offset(3)
+            * *src.offset(6);
     *dst
         .offset(
             11 as libc::c_int as isize,
-        ) = -*src.offset(0 as libc::c_int as isize)
-        * *src.offset(5 as libc::c_int as isize)
-        * *src.offset(11 as libc::c_int as isize)
-        + *src.offset(0 as libc::c_int as isize) * *src.offset(7 as libc::c_int as isize)
-            * *src.offset(9 as libc::c_int as isize)
-        + *src.offset(4 as libc::c_int as isize) * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(11 as libc::c_int as isize)
-        - *src.offset(4 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(9 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(7 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(3 as libc::c_int as isize)
-            * *src.offset(5 as libc::c_int as isize);
+        ) = -*src.offset(0)
+        * *src.offset(5)
+        * *src.offset(11)
+        + *src.offset(0) * *src.offset(7)
+            * *src.offset(9)
+        + *src.offset(4) * *src.offset(1)
+            * *src.offset(11)
+        - *src.offset(4) * *src.offset(3)
+            * *src.offset(9)
+        - *src.offset(8) * *src.offset(1)
+            * *src.offset(7)
+        + *src.offset(8) * *src.offset(3)
+            * *src.offset(5);
     *dst
         .offset(
             15 as libc::c_int as isize,
-        ) = *src.offset(0 as libc::c_int as isize)
-        * *src.offset(5 as libc::c_int as isize)
-        * *src.offset(10 as libc::c_int as isize)
-        - *src.offset(0 as libc::c_int as isize) * *src.offset(6 as libc::c_int as isize)
-            * *src.offset(9 as libc::c_int as isize)
-        - *src.offset(4 as libc::c_int as isize) * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(10 as libc::c_int as isize)
-        + *src.offset(4 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(9 as libc::c_int as isize)
-        + *src.offset(8 as libc::c_int as isize) * *src.offset(1 as libc::c_int as isize)
-            * *src.offset(6 as libc::c_int as isize)
-        - *src.offset(8 as libc::c_int as isize) * *src.offset(2 as libc::c_int as isize)
-            * *src.offset(5 as libc::c_int as isize);
+        ) = *src.offset(0)
+        * *src.offset(5)
+        * *src.offset(10)
+        - *src.offset(0) * *src.offset(6)
+            * *src.offset(9)
+        - *src.offset(4) * *src.offset(1)
+            * *src.offset(10)
+        + *src.offset(4) * *src.offset(2)
+            * *src.offset(9)
+        + *src.offset(8) * *src.offset(1)
+            * *src.offset(6)
+        - *src.offset(8) * *src.offset(2)
+            * *src.offset(5);
     let mut det: libc::c_float = 1.0f32
-        / (*src.offset(0 as libc::c_int as isize)
-            * *dst.offset(0 as libc::c_int as isize)
-            + *src.offset(1 as libc::c_int as isize)
-                * *dst.offset(4 as libc::c_int as isize)
-            + *src.offset(2 as libc::c_int as isize)
-                * *dst.offset(8 as libc::c_int as isize)
-            + *src.offset(3 as libc::c_int as isize)
-                * *dst.offset(12 as libc::c_int as isize));
+        / (*src.offset(0)
+            * *dst.offset(0)
+            + *src.offset(1)
+                * *dst.offset(4)
+            + *src.offset(2)
+                * *dst.offset(8)
+            + *src.offset(3)
+                * *dst.offset(12));
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 16 as libc::c_int {
         *dst.offset(i as isize) *= det;
@@ -487,22 +404,22 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
 unsafe extern "C" fn Matrix_IOTranspose(mut in_0: *const Matrix, mut out: *mut Matrix) {
     let mut src: *const libc::c_float = in_0 as *const libc::c_float;
     let mut dst: *mut libc::c_float = out as *mut libc::c_float;
-    *dst.offset(0 as libc::c_int as isize) = *src.offset(0 as libc::c_int as isize);
-    *dst.offset(1 as libc::c_int as isize) = *src.offset(4 as libc::c_int as isize);
-    *dst.offset(2 as libc::c_int as isize) = *src.offset(8 as libc::c_int as isize);
-    *dst.offset(3 as libc::c_int as isize) = *src.offset(12 as libc::c_int as isize);
-    *dst.offset(4 as libc::c_int as isize) = *src.offset(1 as libc::c_int as isize);
-    *dst.offset(5 as libc::c_int as isize) = *src.offset(5 as libc::c_int as isize);
-    *dst.offset(6 as libc::c_int as isize) = *src.offset(9 as libc::c_int as isize);
-    *dst.offset(7 as libc::c_int as isize) = *src.offset(13 as libc::c_int as isize);
-    *dst.offset(8 as libc::c_int as isize) = *src.offset(2 as libc::c_int as isize);
-    *dst.offset(9 as libc::c_int as isize) = *src.offset(6 as libc::c_int as isize);
-    *dst.offset(10 as libc::c_int as isize) = *src.offset(10 as libc::c_int as isize);
-    *dst.offset(11 as libc::c_int as isize) = *src.offset(14 as libc::c_int as isize);
-    *dst.offset(12 as libc::c_int as isize) = *src.offset(3 as libc::c_int as isize);
-    *dst.offset(13 as libc::c_int as isize) = *src.offset(7 as libc::c_int as isize);
-    *dst.offset(14 as libc::c_int as isize) = *src.offset(11 as libc::c_int as isize);
-    *dst.offset(15 as libc::c_int as isize) = *src.offset(15 as libc::c_int as isize);
+    *dst.offset(0) = *src.offset(0);
+    *dst.offset(1) = *src.offset(4);
+    *dst.offset(2) = *src.offset(8);
+    *dst.offset(3) = *src.offset(12);
+    *dst.offset(4) = *src.offset(1);
+    *dst.offset(5) = *src.offset(5);
+    *dst.offset(6) = *src.offset(9);
+    *dst.offset(7) = *src.offset(13);
+    *dst.offset(8) = *src.offset(2);
+    *dst.offset(9) = *src.offset(6);
+    *dst.offset(10) = *src.offset(10);
+    *dst.offset(11) = *src.offset(14);
+    *dst.offset(12) = *src.offset(3);
+    *dst.offset(13) = *src.offset(7);
+    *dst.offset(14) = *src.offset(11);
+    *dst.offset(15) = *src.offset(15);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Equal(
@@ -582,15 +499,15 @@ pub unsafe extern "C" fn Matrix_IScale(
     mut scale: libc::c_float,
 ) {
     let mut m: *mut libc::c_float = ((*self_0).m).as_mut_ptr();
-    *m.offset(0 as libc::c_int as isize) *= scale;
-    *m.offset(1 as libc::c_int as isize) *= scale;
-    *m.offset(2 as libc::c_int as isize) *= scale;
-    *m.offset(4 as libc::c_int as isize) *= scale;
-    *m.offset(5 as libc::c_int as isize) *= scale;
-    *m.offset(6 as libc::c_int as isize) *= scale;
-    *m.offset(8 as libc::c_int as isize) *= scale;
-    *m.offset(9 as libc::c_int as isize) *= scale;
-    *m.offset(10 as libc::c_int as isize) *= scale;
+    *m.offset(0) *= scale;
+    *m.offset(1) *= scale;
+    *m.offset(2) *= scale;
+    *m.offset(4) *= scale;
+    *m.offset(5) *= scale;
+    *m.offset(6) *= scale;
+    *m.offset(8) *= scale;
+    *m.offset(9) *= scale;
+    *m.offset(10) *= scale;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_ITranspose(mut self_0: *mut Matrix) {
@@ -627,13 +544,13 @@ pub unsafe extern "C" fn Matrix_Identity() -> *mut Matrix {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_LookAt(
-    mut pos: *const Vec3f,
-    mut at: *const Vec3f,
-    mut up: *const Vec3f,
+    mut pos: *const Vec3,
+    mut at: *const Vec3,
+    mut up: *const Vec3,
 ) -> *mut Matrix {
-    let mut z: Vec3f = Vec3f_Normalize(Vec3f_Sub(*pos, *at));
-    let mut x: Vec3f = Vec3f_Normalize(Vec3f_Cross(*up, z));
-    let mut y: Vec3f = Vec3f_Cross(z, x);
+    let mut z: Vec3 = (*pos - *at).normalize();
+    let mut x: Vec3 = Vec3::cross(*up, z).normalize();
+    let mut y: Vec3 = Vec3::cross(z, x);
     let mut result: Matrix = {
         let mut init = Matrix {
             m: [
@@ -661,13 +578,13 @@ pub unsafe extern "C" fn Matrix_LookAt(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_LookUp(
-    mut pos: *const Vec3f,
-    mut look: *const Vec3f,
-    mut up: *const Vec3f,
+    mut pos: *const Vec3,
+    mut look: *const Vec3,
+    mut up: *const Vec3,
 ) -> *mut Matrix {
-    let mut z: Vec3f = Vec3f_Normalize(Vec3f_Muls(*look, -1.0f32));
-    let mut x: Vec3f = Vec3f_Normalize(Vec3f_Cross(*up, z));
-    let mut y: Vec3f = Vec3f_Cross(z, x);
+    let mut z: Vec3 = (*look * -1.0f32).normalize();
+    let mut x: Vec3 = Vec3::cross(*up, z).normalize();
+    let mut y: Vec3 = Vec3::cross(z, x);
     let mut result: Matrix = {
         let mut init = Matrix {
             m: [
@@ -972,9 +889,9 @@ pub unsafe extern "C" fn Matrix_MulBox(
     mut out: *mut Box3f,
     mut in_0: *const Box3f,
 ) {
-    let corners: [Vec3f; 8] = [
+    let corners: [Vec3; 8] = [
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: (*in_0).lower.x,
                 y: (*in_0).lower.y,
                 z: (*in_0).lower.z,
@@ -982,7 +899,7 @@ pub unsafe extern "C" fn Matrix_MulBox(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: (*in_0).upper.x,
                 y: (*in_0).lower.y,
                 z: (*in_0).lower.z,
@@ -990,7 +907,7 @@ pub unsafe extern "C" fn Matrix_MulBox(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: (*in_0).lower.x,
                 y: (*in_0).upper.y,
                 z: (*in_0).lower.z,
@@ -998,7 +915,7 @@ pub unsafe extern "C" fn Matrix_MulBox(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: (*in_0).upper.x,
                 y: (*in_0).upper.y,
                 z: (*in_0).lower.z,
@@ -1006,7 +923,7 @@ pub unsafe extern "C" fn Matrix_MulBox(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: (*in_0).lower.x,
                 y: (*in_0).lower.y,
                 z: (*in_0).upper.z,
@@ -1014,7 +931,7 @@ pub unsafe extern "C" fn Matrix_MulBox(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: (*in_0).upper.x,
                 y: (*in_0).lower.y,
                 z: (*in_0).upper.z,
@@ -1022,7 +939,7 @@ pub unsafe extern "C" fn Matrix_MulBox(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: (*in_0).lower.x,
                 y: (*in_0).upper.y,
                 z: (*in_0).upper.z,
@@ -1030,7 +947,7 @@ pub unsafe extern "C" fn Matrix_MulBox(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: (*in_0).upper.x,
                 y: (*in_0).upper.y,
                 z: (*in_0).upper.z,
@@ -1038,13 +955,13 @@ pub unsafe extern "C" fn Matrix_MulBox(
             init
         },
     ];
-    let mut result: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut result = Vec3::ZERO;
     Matrix_MulPoint(
         self_0,
         &mut result,
-        corners[0 as libc::c_int as usize].x,
-        corners[0 as libc::c_int as usize].y,
-        corners[0 as libc::c_int as usize].z,
+        corners[0].x,
+        corners[0].y,
+        corners[0].z,
     );
     (*out).lower = result;
     (*out).upper = result;
@@ -1057,57 +974,57 @@ pub unsafe extern "C" fn Matrix_MulBox(
             corners[i as usize].y,
             corners[i as usize].z,
         );
-        (*out).lower = Vec3f_Min((*out).lower, result);
-        (*out).upper = Vec3f_Max((*out).upper, result);
+        (*out).lower = Vec3::min((*out).lower, result);
+        (*out).upper = Vec3::max((*out).upper, result);
         i += 1;
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_MulDir(
     mut self_0: *const Matrix,
-    mut out: *mut Vec3f,
+    mut out: *mut Vec3,
     mut x: libc::c_float,
     mut y: libc::c_float,
     mut z: libc::c_float,
 ) {
     let mut m: *const libc::c_float = ((*self_0).m).as_ptr();
     (*out)
-        .x = *m.offset(0 as libc::c_int as isize) * x
-        + *m.offset(1 as libc::c_int as isize) * y
-        + *m.offset(2 as libc::c_int as isize) * z;
+        .x = *m.offset(0) * x
+        + *m.offset(1) * y
+        + *m.offset(2) * z;
     (*out)
-        .y = *m.offset(4 as libc::c_int as isize) * x
-        + *m.offset(5 as libc::c_int as isize) * y
-        + *m.offset(6 as libc::c_int as isize) * z;
+        .y = *m.offset(4) * x
+        + *m.offset(5) * y
+        + *m.offset(6) * z;
     (*out)
-        .z = *m.offset(8 as libc::c_int as isize) * x
-        + *m.offset(9 as libc::c_int as isize) * y
-        + *m.offset(10 as libc::c_int as isize) * z;
+        .z = *m.offset(8) * x
+        + *m.offset(9) * y
+        + *m.offset(10) * z;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_MulPoint(
     mut self_0: *const Matrix,
-    mut out: *mut Vec3f,
+    mut out: *mut Vec3,
     mut x: libc::c_float,
     mut y: libc::c_float,
     mut z: libc::c_float,
 ) {
     let mut m: *const libc::c_float = ((*self_0).m).as_ptr();
     (*out)
-        .x = *m.offset(0 as libc::c_int as isize) * x
-        + *m.offset(1 as libc::c_int as isize) * y
-        + *m.offset(2 as libc::c_int as isize) * z
-        + *m.offset(3 as libc::c_int as isize);
+        .x = *m.offset(0) * x
+        + *m.offset(1) * y
+        + *m.offset(2) * z
+        + *m.offset(3);
     (*out)
-        .y = *m.offset(4 as libc::c_int as isize) * x
-        + *m.offset(5 as libc::c_int as isize) * y
-        + *m.offset(6 as libc::c_int as isize) * z
-        + *m.offset(7 as libc::c_int as isize);
+        .y = *m.offset(4) * x
+        + *m.offset(5) * y
+        + *m.offset(6) * z
+        + *m.offset(7);
     (*out)
-        .z = *m.offset(8 as libc::c_int as isize) * x
-        + *m.offset(9 as libc::c_int as isize) * y
-        + *m.offset(10 as libc::c_int as isize) * z
-        + *m.offset(11 as libc::c_int as isize);
+        .z = *m.offset(8) * x
+        + *m.offset(9) * y
+        + *m.offset(10) * z
+        + *m.offset(11);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_MulVec(
@@ -1120,55 +1037,55 @@ pub unsafe extern "C" fn Matrix_MulVec(
 ) {
     let mut m: *const libc::c_float = ((*self_0).m).as_ptr();
     (*out)
-        .x = *m.offset(0 as libc::c_int as isize) * x
-        + *m.offset(1 as libc::c_int as isize) * y
-        + *m.offset(2 as libc::c_int as isize) * z
-        + *m.offset(3 as libc::c_int as isize) * w;
+        .x = *m.offset(0) * x
+        + *m.offset(1) * y
+        + *m.offset(2) * z
+        + *m.offset(3) * w;
     (*out)
-        .y = *m.offset(4 as libc::c_int as isize) * x
-        + *m.offset(5 as libc::c_int as isize) * y
-        + *m.offset(6 as libc::c_int as isize) * z
-        + *m.offset(7 as libc::c_int as isize) * w;
+        .y = *m.offset(4) * x
+        + *m.offset(5) * y
+        + *m.offset(6) * z
+        + *m.offset(7) * w;
     (*out)
-        .z = *m.offset(8 as libc::c_int as isize) * x
-        + *m.offset(9 as libc::c_int as isize) * y
-        + *m.offset(10 as libc::c_int as isize) * z
-        + *m.offset(11 as libc::c_int as isize) * w;
+        .z = *m.offset(8) * x
+        + *m.offset(9) * y
+        + *m.offset(10) * z
+        + *m.offset(11) * w;
     (*out)
-        .w = *m.offset(12 as libc::c_int as isize) * x
-        + *m.offset(13 as libc::c_int as isize) * y
-        + *m.offset(14 as libc::c_int as isize) * z
-        + *m.offset(15 as libc::c_int as isize) * w;
+        .w = *m.offset(12) * x
+        + *m.offset(13) * y
+        + *m.offset(14) * z
+        + *m.offset(15) * w;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_GetForward(
     mut self_0: *const Matrix,
-    mut out: *mut Vec3f,
+    mut out: *mut Vec3,
 ) {
-    (*out).x = -(*self_0).m[2 as libc::c_int as usize];
-    (*out).y = -(*self_0).m[6 as libc::c_int as usize];
-    (*out).z = -(*self_0).m[10 as libc::c_int as usize];
+    (*out).x = -(*self_0).m[2];
+    (*out).y = -(*self_0).m[6];
+    (*out).z = -(*self_0).m[10];
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_GetRight(
     mut self_0: *const Matrix,
-    mut out: *mut Vec3f,
+    mut out: *mut Vec3,
 ) {
-    (*out).x = (*self_0).m[0 as libc::c_int as usize];
-    (*out).y = (*self_0).m[4 as libc::c_int as usize];
-    (*out).z = (*self_0).m[8 as libc::c_int as usize];
+    (*out).x = (*self_0).m[0];
+    (*out).y = (*self_0).m[4];
+    (*out).z = (*self_0).m[8];
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetUp(mut self_0: *const Matrix, mut out: *mut Vec3f) {
-    (*out).x = (*self_0).m[1 as libc::c_int as usize];
-    (*out).y = (*self_0).m[5 as libc::c_int as usize];
-    (*out).z = (*self_0).m[9 as libc::c_int as usize];
+pub unsafe extern "C" fn Matrix_GetUp(mut self_0: *const Matrix, mut out: *mut Vec3) {
+    (*out).x = (*self_0).m[1];
+    (*out).y = (*self_0).m[5];
+    (*out).z = (*self_0).m[9];
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetPos(mut self_0: *const Matrix, mut out: *mut Vec3f) {
-    (*out).x = (*self_0).m[3 as libc::c_int as usize];
-    (*out).y = (*self_0).m[7 as libc::c_int as usize];
-    (*out).z = (*self_0).m[11 as libc::c_int as usize];
+pub unsafe extern "C" fn Matrix_GetPos(mut self_0: *const Matrix, mut out: *mut Vec3) {
+    (*out).x = (*self_0).m[3];
+    (*out).y = (*self_0).m[7];
+    (*out).z = (*self_0).m[11];
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_GetRow(
@@ -1183,9 +1100,9 @@ pub unsafe extern "C" fn Matrix_GetRow(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_FromBasis(
-    mut x: *const Vec3f,
-    mut y: *const Vec3f,
-    mut z: *const Vec3f,
+    mut x: *const Vec3,
+    mut y: *const Vec3,
+    mut z: *const Vec3,
 ) -> *mut Matrix {
     let mut result: Matrix = {
         let mut init = Matrix {
@@ -1214,14 +1131,14 @@ pub unsafe extern "C" fn Matrix_FromBasis(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_FromPosRot(
-    mut pos: *const Vec3f,
+    mut pos: *const Vec3,
     mut rot: *const Quat,
 ) -> *mut Matrix {
-    let mut x: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut x = Vec3::ZERO;
     Quat_GetAxisX(rot, &mut x);
-    let mut y: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut y = Vec3::ZERO;
     Quat_GetAxisY(rot, &mut y);
-    let mut z: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut z = Vec3::ZERO;
     Quat_GetAxisZ(rot, &mut z);
     let mut result: Matrix = {
         let mut init = Matrix {
@@ -1250,15 +1167,15 @@ pub unsafe extern "C" fn Matrix_FromPosRot(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_FromPosRotScale(
-    mut pos: *const Vec3f,
+    mut pos: *const Vec3,
     mut rot: *const Quat,
     mut scale: libc::c_float,
 ) -> *mut Matrix {
-    let mut x: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut x = Vec3::ZERO;
     Quat_GetAxisX(rot, &mut x);
-    let mut y: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut y = Vec3::ZERO;
     Quat_GetAxisY(rot, &mut y);
-    let mut z: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut z = Vec3::ZERO;
     Quat_GetAxisZ(rot, &mut z);
     let mut result: Matrix = {
         let mut init = Matrix {
@@ -1287,10 +1204,10 @@ pub unsafe extern "C" fn Matrix_FromPosRotScale(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_FromPosBasis(
-    mut pos: *const Vec3f,
-    mut x: *const Vec3f,
-    mut y: *const Vec3f,
-    mut z: *const Vec3f,
+    mut pos: *const Vec3,
+    mut x: *const Vec3,
+    mut y: *const Vec3,
+    mut z: *const Vec3,
 ) -> *mut Matrix {
     let mut result: Matrix = {
         let mut init = Matrix {
@@ -1319,11 +1236,11 @@ pub unsafe extern "C" fn Matrix_FromPosBasis(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_FromQuat(mut q: *const Quat) -> *mut Matrix {
-    let mut x: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut x = Vec3::ZERO;
     Quat_GetAxisX(q, &mut x);
-    let mut y: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut y = Vec3::ZERO;
     Quat_GetAxisY(q, &mut y);
-    let mut z: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut z = Vec3::ZERO;
     Quat_GetAxisZ(q, &mut z);
     let mut result: Matrix = {
         let mut init = Matrix {
@@ -1353,27 +1270,27 @@ pub unsafe extern "C" fn Matrix_FromQuat(mut q: *const Quat) -> *mut Matrix {
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_ToQuat(mut self_0: *const Matrix, mut q: *mut Quat) {
     let mut m: *const libc::c_float = self_0 as *const libc::c_float;
-    let mut x: Vec3f = {
-        let mut init = Vec3f {
-            x: *m.offset(0 as libc::c_int as isize),
-            y: *m.offset(4 as libc::c_int as isize),
-            z: *m.offset(8 as libc::c_int as isize),
+    let mut x: Vec3 = {
+        let mut init = Vec3 {
+            x: *m.offset(0),
+            y: *m.offset(4),
+            z: *m.offset(8),
         };
         init
     };
-    let mut y: Vec3f = {
-        let mut init = Vec3f {
-            x: *m.offset(1 as libc::c_int as isize),
-            y: *m.offset(5 as libc::c_int as isize),
-            z: *m.offset(9 as libc::c_int as isize),
+    let mut y: Vec3 = {
+        let mut init = Vec3 {
+            x: *m.offset(1),
+            y: *m.offset(5),
+            z: *m.offset(9),
         };
         init
     };
-    let mut z: Vec3f = {
-        let mut init = Vec3f {
-            x: *m.offset(2 as libc::c_int as isize),
-            y: *m.offset(6 as libc::c_int as isize),
-            z: *m.offset(10 as libc::c_int as isize),
+    let mut z: Vec3 = {
+        let mut init = Vec3 {
+            x: *m.offset(2),
+            y: *m.offset(6),
+            z: *m.offset(10),
         };
         init
     };
@@ -1406,22 +1323,22 @@ pub unsafe extern "C" fn Matrix_ToString(mut self_0: *const Matrix) -> cstr {
             as libc::c_int as libc::size_t,
         b"[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\0"
             as *const u8 as *const libc::c_char,
-        *m.offset(0 as libc::c_int as isize) as libc::c_double,
-        *m.offset(1 as libc::c_int as isize) as libc::c_double,
-        *m.offset(2 as libc::c_int as isize) as libc::c_double,
-        *m.offset(3 as libc::c_int as isize) as libc::c_double,
-        *m.offset(4 as libc::c_int as isize) as libc::c_double,
-        *m.offset(5 as libc::c_int as isize) as libc::c_double,
-        *m.offset(6 as libc::c_int as isize) as libc::c_double,
-        *m.offset(7 as libc::c_int as isize) as libc::c_double,
-        *m.offset(8 as libc::c_int as isize) as libc::c_double,
-        *m.offset(9 as libc::c_int as isize) as libc::c_double,
-        *m.offset(10 as libc::c_int as isize) as libc::c_double,
-        *m.offset(11 as libc::c_int as isize) as libc::c_double,
-        *m.offset(12 as libc::c_int as isize) as libc::c_double,
-        *m.offset(13 as libc::c_int as isize) as libc::c_double,
-        *m.offset(14 as libc::c_int as isize) as libc::c_double,
-        *m.offset(15 as libc::c_int as isize) as libc::c_double,
+        *m.offset(0) as libc::c_double,
+        *m.offset(1) as libc::c_double,
+        *m.offset(2) as libc::c_double,
+        *m.offset(3) as libc::c_double,
+        *m.offset(4) as libc::c_double,
+        *m.offset(5) as libc::c_double,
+        *m.offset(6) as libc::c_double,
+        *m.offset(7) as libc::c_double,
+        *m.offset(8) as libc::c_double,
+        *m.offset(9) as libc::c_double,
+        *m.offset(10) as libc::c_double,
+        *m.offset(11) as libc::c_double,
+        *m.offset(12) as libc::c_double,
+        *m.offset(13) as libc::c_double,
+        *m.offset(14) as libc::c_double,
+        *m.offset(15) as libc::c_double,
     );
     return buffer.as_mut_ptr() as cstr;
 }

@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     fn snprintf(
@@ -13,50 +14,16 @@ pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LineSegment {
-    pub p0: Vec3f,
-    pub p1: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub p0: Vec3,
+    pub p1: Vec3,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Ray {
-    pub p: Vec3f,
-    pub dir: Vec3f,
+    pub p: Vec3,
+    pub dir: Vec3,
     pub tMin: libc::c_float,
     pub tMax: libc::c_float,
-}
-#[inline]
-unsafe extern "C" fn Vec3f_ToString(mut v: *mut Vec3f) -> cstr {
-    static mut buffer: [libc::c_char; 512] = [0; 512];
-    snprintf(
-        buffer.as_mut_ptr(),
-        (::core::mem::size_of::<[libc::c_char; 512]>())
-            .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as libc::size_t,
-        b"(%.4f, %.4f, %.4f)\0" as *const u8 as *const libc::c_char,
-        (*v).x as libc::c_double,
-        (*v).y as libc::c_double,
-        (*v).z as libc::c_double,
-    );
-    return buffer.as_mut_ptr() as cstr;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Sub(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        };
-        init
-    };
-    return self_0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn LineSegment_ToRay(
@@ -64,7 +31,7 @@ pub unsafe extern "C" fn LineSegment_ToRay(
     mut out: *mut Ray,
 ) {
     (*out).p = (*self_0).p0;
-    (*out).dir = Vec3f_Sub((*self_0).p1, (*self_0).p0);
+    (*out).dir = (*self_0).p1 - (*self_0).p0;
     (*out).tMin = 0.0f32;
     (*out).tMax = 1.0f32;
 }
@@ -84,8 +51,8 @@ pub unsafe extern "C" fn LineSegment_ToString(mut self_0: *mut LineSegment) -> c
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
             as libc::c_int as libc::size_t,
         b"p0:%s p1:%s\0" as *const u8 as *const libc::c_char,
-        Vec3f_ToString(&mut (*self_0).p0),
-        Vec3f_ToString(&mut (*self_0).p1),
+        (*self_0).p0.to_string().as_mut_ptr(),
+        (*self_0).p1.to_string().as_mut_ptr(),
     );
     return buffer.as_mut_ptr() as cstr;
 }

@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type FMOD_CHANNEL;
@@ -90,16 +91,9 @@ pub struct Sound {
     pub desc: *mut SoundDesc,
     pub handle: *mut FMOD_CHANNEL,
     pub state: SoundState,
-    pub autoPos: *const Vec3f,
-    pub autoVel: *const Vec3f,
+    pub autoPos: *const Vec3,
+    pub autoVel: *const Vec3,
     pub freeOnFinish: bool,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
 }
 pub type SoundState = uint8;
 #[derive(Copy, Clone)]
@@ -766,8 +760,8 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut self_0: *mut Sound, mut func: cs
         // );
         Sound_SetState(self_0, 2 as libc::c_int as SoundState);
         if Sound_Get3D(self_0) {
-            let mut zero: Vec3f = {
-                let mut init = Vec3f {
+            let mut zero: Vec3 = {
+                let mut init = Vec3 {
                     x: 0 as libc::c_int as libc::c_float,
                     y: 0 as libc::c_int as libc::c_float,
                     z: 0 as libc::c_int as libc::c_float,
@@ -1068,8 +1062,8 @@ pub unsafe extern "C" fn Sound_IsPlaying(mut self_0: *mut Sound) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Attach3DPos(
     mut self_0: *mut Sound,
-    mut pos: *const Vec3f,
-    mut vel: *const Vec3f,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
 ) {
     Sound_Set3DPos(self_0, pos, vel);
     (*self_0).autoPos = pos;
@@ -1103,8 +1097,8 @@ pub unsafe extern "C" fn Sound_Set3DLevel(
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Set3DPos(
     mut self_0: *mut Sound,
-    mut pos: *const Vec3f,
-    mut vel: *const Vec3f,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
 ) {
     Sound_EnsureStateImpl(
         self_0,
@@ -1231,8 +1225,8 @@ pub unsafe extern "C" fn Sound_LoadPlayAttached(
     mut name: cstr,
     mut isLooped: bool,
     mut is3D: bool,
-    mut pos: *const Vec3f,
-    mut vel: *const Vec3f,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
 ) -> *mut Sound {
     let mut self_0: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_Attach3DPos(self_0, pos, vel);
@@ -1254,8 +1248,8 @@ pub unsafe extern "C" fn Sound_LoadPlayFreeAttached(
     mut name: cstr,
     mut isLooped: bool,
     mut is3D: bool,
-    mut pos: *const Vec3f,
-    mut vel: *const Vec3f,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
 ) {
     let mut self_0: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_Attach3DPos(self_0, pos, vel);
@@ -1271,8 +1265,8 @@ pub unsafe extern "C" fn Sound_ClonePlay(mut self_0: *mut Sound) -> *mut Sound {
 #[no_mangle]
 pub unsafe extern "C" fn Sound_ClonePlayAttached(
     mut self_0: *mut Sound,
-    mut pos: *const Vec3f,
-    mut vel: *const Vec3f,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
 ) -> *mut Sound {
     let mut clone: *mut Sound = Sound_Clone(self_0);
     Sound_Attach3DPos(clone, pos, vel);
@@ -1288,8 +1282,8 @@ pub unsafe extern "C" fn Sound_ClonePlayFree(mut self_0: *mut Sound) {
 #[no_mangle]
 pub unsafe extern "C" fn Sound_ClonePlayFreeAttached(
     mut self_0: *mut Sound,
-    mut pos: *const Vec3f,
-    mut vel: *const Vec3f,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
 ) {
     let mut clone: *mut Sound = Sound_Clone(self_0);
     Sound_Attach3DPos(clone, pos, vel);

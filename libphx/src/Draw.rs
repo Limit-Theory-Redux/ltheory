@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
 
@@ -35,15 +36,8 @@ pub type int32 = int32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {
-    pub lower: Vec3f,
-    pub upper: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub lower: Vec3,
+    pub upper: Vec3,
 }
 
 #[derive(Copy, Clone)]
@@ -80,79 +74,10 @@ unsafe extern "C" fn Sin(mut t: libc::c_double) -> libc::c_double {
     return sin(t);
 }
 #[inline]
-unsafe extern "C" fn Vec3f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f { x: x, y: y, z: z };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Add(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x + b.x,
-            y: a.y + b.y,
-            z: a.z + b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Muls(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x * b,
-            y: a.y * b,
-            z: a.z * b,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Cross(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: b.z * a.y - b.y * a.z,
-            y: b.x * a.z - b.z * a.x,
-            z: b.y * a.x - b.x * a.y,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Dot(mut a: Vec3f, mut b: Vec3f) -> libc::c_float {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Length(mut v: Vec3f) -> libc::c_float {
-    return Sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Normalize(mut v: Vec3f) -> Vec3f {
-    let mut l: libc::c_float = Vec3f_Length(v);
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: v.x / l,
-            y: v.y / l,
-            z: v.z / l,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Reject(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut d: libc::c_float = Vec3f_Dot(a, b);
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
+unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
+    let mut d: libc::c_float = Vec3::dot(a, b);
+    let mut self_0: Vec3 = {
+        let mut init = Vec3 {
             x: a.x - d * b.x,
             y: a.y - d * b.y,
             z: a.z - d * b.z,
@@ -221,16 +146,16 @@ pub unsafe extern "C" fn Draw_PopAlpha() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Axes(
-    mut pos: *const Vec3f,
-    mut x: *const Vec3f,
-    mut y: *const Vec3f,
-    mut z: *const Vec3f,
+    mut pos: *const Vec3,
+    mut x: *const Vec3,
+    mut y: *const Vec3,
+    mut z: *const Vec3,
     mut scale: libc::c_float,
     mut _alpha: libc::c_float,
 ) {
-    let mut left: Vec3f = Vec3f_Add(*pos, Vec3f_Muls(*x, scale));
-    let mut up: Vec3f = Vec3f_Add(*pos, Vec3f_Muls(*y, scale));
-    let mut forward: Vec3f = Vec3f_Add(*pos, Vec3f_Muls(*z, scale));
+    let mut left: Vec3 = *pos + (*x) * scale;
+    let mut up: Vec3 = *pos + (*y) * scale;
+    let mut forward: Vec3 = *pos + (*z) * scale;
     glBegin(0x1 as libc::c_int as GLenum);
     glColor4f(1 as libc::c_int as GLfloat, 0.25f32, 0.25f32, _alpha);
     glVertex3f((*pos).x, (*pos).y, (*pos).z);
@@ -354,7 +279,7 @@ pub unsafe extern "C" fn Draw_Line(
     glEnd();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Line3(mut p1: *const Vec3f, mut p2: *const Vec3f) {
+pub unsafe extern "C" fn Draw_Line3(mut p1: *const Vec3, mut p2: *const Vec3) {
     glBegin(0x1 as libc::c_int as GLenum);
     glVertex3f((*p1).x, (*p1).y, (*p1).z);
     glVertex3f((*p2).x, (*p2).y, (*p2).z);
@@ -366,41 +291,29 @@ pub unsafe extern "C" fn Draw_LineWidth(mut width: libc::c_float) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Plane(
-    mut p: *const Vec3f,
-    mut n: *const Vec3f,
+    mut p: *const Vec3,
+    mut n: *const Vec3,
     mut scale: libc::c_float,
 ) {
-    let mut e1: Vec3f = if Abs((*n).x as libc::c_double) < 0.7f32 as libc::c_double {
-        Vec3f_Create(
+    let mut e1: Vec3 = if Abs((*n).x as libc::c_double) < 0.7f32 as libc::c_double {
+        Vec3::new(
             1 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
         )
     } else {
-        Vec3f_Create(
+        Vec3::new(
             0 as libc::c_int as libc::c_float,
             1 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
         )
     };
-    e1 = Vec3f_Normalize(Vec3f_Reject(e1, *n));
-    let mut e2: Vec3f = Vec3f_Cross(*n, e1);
-    let mut p0: Vec3f = Vec3f_Add(
-        *p,
-        Vec3f_Add(Vec3f_Muls(e1, -scale), Vec3f_Muls(e2, -scale)),
-    );
-    let mut p1: Vec3f = Vec3f_Add(
-        *p,
-        Vec3f_Add(Vec3f_Muls(e1, scale), Vec3f_Muls(e2, -scale)),
-    );
-    let mut p2: Vec3f = Vec3f_Add(
-        *p,
-        Vec3f_Add(Vec3f_Muls(e1, scale), Vec3f_Muls(e2, scale)),
-    );
-    let mut p3: Vec3f = Vec3f_Add(
-        *p,
-        Vec3f_Add(Vec3f_Muls(e1, -scale), Vec3f_Muls(e2, scale)),
-    );
+    e1 = Vec3_Reject(e1, *n).normalize();
+    let mut e2: Vec3 = Vec3::cross(*n, e1);
+    let mut p0: Vec3 = *p + (e1 * -scale) + (e2 * -scale);
+    let mut p1: Vec3 = *p + (e1 * scale) + (e2 * -scale);
+    let mut p2: Vec3 = *p + (e1 * scale) + (e2 * scale);
+    let mut p3: Vec3 = *p + (e1 * -scale) + (e2 * scale);
     Metric_AddDrawImm(1 as libc::c_int, 2 as libc::c_int, 4 as libc::c_int);
     glBegin(0x7 as libc::c_int as GLenum);
     glVertex3f(p0.x, p0.y, p0.z);
@@ -441,7 +354,7 @@ pub unsafe extern "C" fn Draw_Poly(mut points: *const Vec2, mut count: libc::c_i
     glEnd();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Poly3(mut points: *const Vec3f, mut count: libc::c_int) {
+pub unsafe extern "C" fn Draw_Poly3(mut points: *const Vec3, mut count: libc::c_int) {
     Metric_AddDrawImm(1 as libc::c_int, count - 2 as libc::c_int, count);
     glBegin(0x9 as libc::c_int as GLenum);
     let mut i: libc::c_int = 0 as libc::c_int;
@@ -476,10 +389,10 @@ pub unsafe extern "C" fn Draw_Quad(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Quad3(
-    mut p1: *const Vec3f,
-    mut p2: *const Vec3f,
-    mut p3: *const Vec3f,
-    mut p4: *const Vec3f,
+    mut p1: *const Vec3,
+    mut p2: *const Vec3,
+    mut p3: *const Vec3,
+    mut p4: *const Vec3,
 ) {
     Metric_AddDrawImm(1 as libc::c_int, 2 as libc::c_int, 4 as libc::c_int);
     glBegin(0x7 as libc::c_int as GLenum);
@@ -539,8 +452,8 @@ unsafe extern "C" fn Spherical(
     mut r: libc::c_float,
     mut yaw: libc::c_float,
     mut pitch: libc::c_float,
-) -> Vec3f {
-    return Vec3f_Create(
+) -> Vec3 {
+    return Vec3::new(
         (r as libc::c_double * Sin(pitch as libc::c_double) * Cos(yaw as libc::c_double))
             as libc::c_float,
         (r as libc::c_double * Cos(pitch as libc::c_double)) as libc::c_float,
@@ -549,7 +462,7 @@ unsafe extern "C" fn Spherical(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) {
+pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: libc::c_float) {
     let res: libc::size_t = 7 as libc::c_int as libc::size_t;
     let fRes: libc::c_float = res as libc::c_float;
     Metric_AddDrawImm(
@@ -562,19 +475,17 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
         .wrapping_sub(1 as libc::size_t) as libc::c_float / fRes
         * 6.28318531f32;
     let mut phi: libc::c_float = 1.0f32 / fRes * 3.14159265f32;
-    let mut tc: Vec3f = Vec3f_Add(
-        *p,
-        Spherical(
-            r,
-            0 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
-        ),
+    let mut tc: Vec3 = *p + 
+    Spherical(
+        r,
+        0 as libc::c_int as libc::c_float,
+        0 as libc::c_int as libc::c_float,
     );
     let mut iTheta: libc::size_t = 0 as libc::c_int as libc::size_t;
     while iTheta < res {
         let mut theta: libc::c_float = iTheta as libc::c_float / fRes * 6.28318531f32;
-        let mut br: Vec3f = Vec3f_Add(*p, Spherical(r, lastTheta, phi));
-        let mut bl: Vec3f = Vec3f_Add(*p, Spherical(r, theta, phi));
+        let mut br: Vec3 = *p + Spherical(r, lastTheta, phi);
+        let mut bl: Vec3 = *p + Spherical(r, theta, phi);
         glVertex3f(br.x, br.y, br.z);
         glVertex3f(tc.x, tc.y, tc.z);
         glVertex3f(bl.x, bl.y, bl.z);
@@ -584,8 +495,8 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
     glEnd();
     Metric_AddDrawImm(
         res.wrapping_sub(2 as libc::size_t) as int32,
-        (2 as libc::c_int as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
-        (4 as libc::c_int as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
+        (2 as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
+        (4 as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
     );
     glBegin(0x7 as libc::c_int as GLenum);
     let mut lastPhi: libc::c_float = 1.0f32 / fRes * 3.14159265f32;
@@ -599,10 +510,10 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
         while iTheta_0 < res {
             let mut theta_0: libc::c_float = iTheta_0 as libc::c_float / fRes
                 * 6.28318531f32;
-            let mut br_0: Vec3f = Vec3f_Add(*p, Spherical(r, lastTheta_0, phi_0));
-            let mut tr: Vec3f = Vec3f_Add(*p, Spherical(r, lastTheta_0, lastPhi));
-            let mut tl: Vec3f = Vec3f_Add(*p, Spherical(r, theta_0, lastPhi));
-            let mut bl_0: Vec3f = Vec3f_Add(*p, Spherical(r, theta_0, phi_0));
+            let mut br_0: Vec3 = *p + Spherical(r, lastTheta_0, phi_0);
+            let mut tr: Vec3 = *p + Spherical(r, lastTheta_0, lastPhi);
+            let mut tl: Vec3 = *p + Spherical(r, theta_0, lastPhi);
+            let mut bl_0: Vec3 = *p + Spherical(r, theta_0, phi_0);
             glVertex3f(br_0.x, br_0.y, br_0.z);
             glVertex3f(tr.x, tr.y, tr.z);
             glVertex3f(tl.x, tl.y, tl.z);
@@ -625,16 +536,14 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
         * 6.28318531f32;
     let mut phi_1: libc::c_float = res.wrapping_sub(1 as libc::size_t)
         as libc::c_float / fRes * 3.14159265f32;
-    let mut bc: Vec3f = Vec3f_Add(
-        *p,
-        Spherical(r, 0 as libc::c_int as libc::c_float, 3.14159265f32),
-    );
+    let mut bc: Vec3 = *p +
+        Spherical(r, 0 as libc::c_int as libc::c_float, 3.14159265f32);
     let mut iTheta_1: libc::size_t = 0 as libc::c_int as libc::size_t;
     while iTheta_1 < res {
         let mut theta_1: libc::c_float = iTheta_1 as libc::c_float / fRes
             * 6.28318531f32;
-        let mut tr_0: Vec3f = Vec3f_Add(*p, Spherical(r, lastTheta_1, phi_1));
-        let mut tl_0: Vec3f = Vec3f_Add(*p, Spherical(r, theta_1, phi_1));
+        let mut tr_0: Vec3 = *p + Spherical(r, lastTheta_1, phi_1);
+        let mut tl_0: Vec3 = *p + Spherical(r, theta_1, phi_1);
         glVertex3f(tr_0.x, tr_0.y, tr_0.z);
         glVertex3f(tl_0.x, tl_0.y, tl_0.z);
         glVertex3f(bc.x, bc.y, bc.z);
@@ -661,9 +570,9 @@ pub unsafe extern "C" fn Draw_Tri(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Tri3(
-    mut v1: *const Vec3f,
-    mut v2: *const Vec3f,
-    mut v3: *const Vec3f,
+    mut v1: *const Vec3,
+    mut v2: *const Vec3,
+    mut v3: *const Vec3,
 ) {
     Metric_AddDrawImm(1 as libc::c_int, 1 as libc::c_int, 3 as libc::c_int);
     glBegin(0x4 as libc::c_int as GLenum);

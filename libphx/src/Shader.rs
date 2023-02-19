@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use glam::{IVec2, IVec3, IVec4, Vec2};
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
@@ -94,13 +95,6 @@ pub type ShaderVarType = int32;
 
 
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -314,7 +308,7 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: cstr, mut self_0: *mut Shader) ->
         }
         let mut end: cstr = StrFind(begin, b"\n\0" as *const u8 as *const libc::c_char);
         let mut name: cstr = StrSubStr(
-            begin.offset(lenInclude as isize).offset(1 as libc::c_int as isize),
+            begin.offset(lenInclude as isize).offset(1),
             end,
         );
         let mut path: cstr = StrAdd(includePath, name);
@@ -607,7 +601,7 @@ pub unsafe extern "C" fn Shader_Start(mut self_0: *mut Shader) {
                         )((*var).index, value_0.x, value_0.y);
                 }
                 3 => {
-                    let mut value_1: Vec3f = *(pValue as *mut Vec3f);
+                    let mut value_1: Vec3 = *(pValue as *mut Vec3);
                     __glewUniform3f
                         .expect(
                             "non-null function pointer",

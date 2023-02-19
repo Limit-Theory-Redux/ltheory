@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use std::ffi::VaListImpl;
 use crate::internal::Memory::*;
 extern "C" {

@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use glam::DVec3;
 use crate::internal::Memory::*;
 extern "C" {
@@ -9,9 +10,9 @@ extern "C" {
     fn Intersect_LineSegmentPlane(
         _: *const LineSegment,
         _: *const Plane,
-        pHit: *mut Vec3f,
+        pHit: *mut Vec3,
     ) -> bool;
-    fn Plane_ClassifyPoint(_: *mut Plane, _: *mut Vec3f) -> PointClassification;
+    fn Plane_ClassifyPoint(_: *mut Plane, _: *mut Vec3) -> PointClassification;
 }
 pub type int32_t = libc::c_int;
 pub type uint8_t = libc::c_uchar;
@@ -23,20 +24,13 @@ pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LineSegment {
-    pub p0: Vec3f,
-    pub p1: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub p0: Vec3,
+    pub p1: Vec3,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Plane {
-    pub n: Vec3f,
+    pub n: Vec3,
     pub d: libc::c_float,
 }
 #[derive(Copy, Clone)]
@@ -44,67 +38,16 @@ pub struct Plane {
 pub struct Polygon {
     pub vertices_size: int32,
     pub vertices_capacity: int32,
-    pub vertices_data: *mut Vec3f,
+    pub vertices_data: *mut Vec3,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Triangle {
-    pub vertices: [Vec3f; 3],
+    pub vertices: [Vec3; 3],
 }
 
 pub type Error = uint32;
 pub type PointClassification = uint8;
-#[inline]
-unsafe extern "C" fn Vec3f_Validate(mut v: Vec3f) -> Error {
-    let mut e: Error = 0 as libc::c_int as Error;
-    e |= Float_Validatef(v.x);
-    e |= Float_Validatef(v.y);
-    e |= Float_Validatef(v.z);
-    return e;
-}
-#[inline]
-unsafe extern "C" fn DVec3_ToVec3f(mut a: DVec3) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x as libc::c_float,
-            y: a.y as libc::c_float,
-            z: a.z as libc::c_float,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_ToDVec3(mut a: Vec3f) -> DVec3 {
-    let mut self_0: DVec3 = {
-        let mut init = DVec3 {
-            x: a.x as libc::c_double,
-            y: a.y as libc::c_double,
-            z: a.z as libc::c_double,
-        };
-        init
-    };
-    return self_0;
-}
-
-#[inline]
-unsafe extern "C" fn Vec3f_Length(mut v: Vec3f) -> libc::c_float {
-    return Sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Dot(mut a: Vec3f, mut b: Vec3f) -> libc::c_float {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Equal(mut a: Vec3f, mut b: Vec3f) -> bool {
-    return a.x == b.x && a.y == b.y && a.z == b.z;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_IDivs(mut a: *mut Vec3f, mut b: libc::c_float) {
-    (*a).x /= b;
-    (*a).y /= b;
-    (*a).z /= b;
-}
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
@@ -114,59 +57,13 @@ unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
 unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
     return sqrt(t);
 }
-#[inline]
-unsafe extern "C" fn Float_Validatef(mut x: libc::c_float) -> Error {
-    let mut classification: libc::c_int = if ::core::mem::size_of::<libc::c_float>()
-        as libc::c_ulong == ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
-    {
-        f32::classify(x) as libc::c_int
-    } else if ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
-        == ::core::mem::size_of::<libc::c_double>() as libc::c_ulong
-    {
-        f64::classify(x as libc::c_double) as libc::c_int
-    } else {3
-    };
-    match classification {
-        2 => return 0x4 as libc::c_int as Error,
-        5 => {}
-        1 => return 0x20 as libc::c_int as Error,
-        3 | 4 => return 0 as libc::c_int as Error,
-        _ => {
-            Fatal(
-                b"Float_Validate: Unhandled case: %i\0" as *const u8
-                    as *const libc::c_char,
-                classification,
-            );
-        }
-    }
-    return 0 as libc::c_int as Error;
-}
-
-#[inline]
-unsafe extern "C" fn Vec3f_Sub(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_IAdd(mut a: *mut Vec3f, mut b: Vec3f) {
-    (*a).x += b.x;
-    (*a).y += b.y;
-    (*a).z += b.z;
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ToPlane(
     mut polygon: *mut Polygon,
     mut out: *mut Plane,
 ) {
-    let mut v: *mut Vec3f = (*polygon).vertices_data;
+    let mut v: *mut Vec3 = (*polygon).vertices_data;
     let mut vLen: int32 = (*polygon).vertices_size;
     let mut n: DVec3 = {
         let mut init = DVec3 {
@@ -177,11 +74,13 @@ pub unsafe extern "C" fn Polygon_ToPlane(
         init
     };
     let mut centroid = DVec3::ZERO;
-    let mut vCur: DVec3 = Vec3f_ToDVec3(*v.offset((vLen - 1) as isize));
+    let vCurAsF32 = *v.offset((vLen - 1) as isize);
+    let mut vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
     let mut i: int32 = 0 as libc::c_int;
     while i < vLen {
-        let mut vPrev: DVec3 = vCur;
-        vCur = Vec3f_ToDVec3(*v.offset(i as isize));
+        let vPrev: DVec3 = vCur;
+        let vCurAsF32 = *v.offset(i as isize);
+        vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
         n.x += (vPrev.y - vCur.y) * (vPrev.z + vCur.z);
         n.y += (vPrev.z - vCur.z) * (vPrev.x + vCur.x);
         n.z += (vPrev.x - vCur.x) * (vPrev.y + vCur.y);
@@ -190,7 +89,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(
     }
     n = n.normalize();
     centroid /= vLen as f64;
-    (*out).n = DVec3_ToVec3f(n);
+    (*out).n = Vec3::new(n.x as f32, n.y as f32, n.z as f32);
     (*out).d = DVec3::dot(centroid, n) as f32;
 }
 #[no_mangle]
@@ -198,10 +97,10 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(
     mut polygon: *mut Polygon,
     mut out: *mut Plane,
 ) {
-    let mut v: *mut Vec3f = ((*polygon).vertices_data).offset(0 as libc::c_int as isize);
+    let mut v: *mut Vec3 = ((*polygon).vertices_data).offset(0);
     let mut vLen: int32 = (*polygon).vertices_size;
-    let mut n: Vec3f = {
-        let mut init = Vec3f {
+    let mut n: Vec3 = {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 0.,
             z: 0.,
@@ -224,7 +123,7 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(
         j += 1;
     }
     (*out).n = n;
-    (*out).d = Vec3f_Dot(*v.offset(0 as libc::c_int as isize), n);
+    (*out).d = Vec3::dot(*v.offset(0), n);
 }
 #[inline]
 unsafe extern "C" fn Polygon_SplitImpl(
@@ -233,19 +132,19 @@ unsafe extern "C" fn Polygon_SplitImpl(
     mut back: *mut Polygon,
     mut front: *mut Polygon,
 ) {
-    let mut a: Vec3f = *((*polygon).vertices_data)
+    let mut a: Vec3 = *((*polygon).vertices_data)
         .offset(((*polygon).vertices_size - 1 as libc::c_int) as isize);
     let mut aSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut a);
     let mut j: int32 = 0 as libc::c_int;
     while j < (*polygon).vertices_size {
-        let mut b: Vec3f = *((*polygon).vertices_data).offset(j as isize);
+        let mut b: Vec3 = *((*polygon).vertices_data).offset(j as isize);
         let mut bSide: PointClassification = Plane_ClassifyPoint(
             &mut splitPlane,
             &mut b,
         );
         if bSide as libc::c_int == 1 as libc::c_int {
             if aSide as libc::c_int == 2 as libc::c_int {
-                let mut i: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+                let mut i = Vec3::ZERO;
                 let mut lineSegment: LineSegment = {
                     let mut init = LineSegment { p0: b, p1: a };
                     init
@@ -264,9 +163,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1 as libc::c_int
                     };
-                    let mut elemSize: usize = ::core::mem::size_of::<Vec3f>();
+                    let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData: *mut *mut libc::c_void = &mut (*front).vertices_data
-                        as *mut *mut Vec3f as *mut *mut libc::c_void;
+                        as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData = MemRealloc(
                         (*front).vertices_data as *mut libc::c_void,
                         ((*front).vertices_capacity as usize)
@@ -285,9 +184,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1 as libc::c_int
                     };
-                    let mut elemSize_0: usize = ::core::mem::size_of::<Vec3f>();
+                    let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_0: *mut *mut libc::c_void = &mut (*back).vertices_data
-                        as *mut *mut Vec3f as *mut *mut libc::c_void;
+                        as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
                         (*back).vertices_data as *mut libc::c_void,
                         ((*back).vertices_capacity as usize)
@@ -307,9 +206,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_1: usize = ::core::mem::size_of::<Vec3f>();
+                let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_1: *mut *mut libc::c_void = &mut (*front).vertices_data
-                    as *mut *mut Vec3f as *mut *mut libc::c_void;
+                    as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_1 = MemRealloc(
                     (*front).vertices_data as *mut libc::c_void,
                     ((*front).vertices_capacity as usize)
@@ -321,7 +220,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
             *((*front).vertices_data).offset(fresh2 as isize) = b;
         } else if bSide as libc::c_int == 2 as libc::c_int {
             if aSide as libc::c_int == 1 as libc::c_int {
-                let mut i_0: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+                let mut i_0 = Vec3::ZERO;
                 let mut lineSegment_0: LineSegment = {
                     let mut init = LineSegment { p0: a, p1: b };
                     init
@@ -340,9 +239,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1 as libc::c_int
                     };
-                    let mut elemSize_2: usize = ::core::mem::size_of::<Vec3f>();
+                    let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_2: *mut *mut libc::c_void = &mut (*front).vertices_data
-                        as *mut *mut Vec3f as *mut *mut libc::c_void;
+                        as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_2 = MemRealloc(
                         (*front).vertices_data as *mut libc::c_void,
                         ((*front).vertices_capacity as usize)
@@ -361,9 +260,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1 as libc::c_int
                     };
-                    let mut elemSize_3: usize = ::core::mem::size_of::<Vec3f>();
+                    let mut elemSize_3: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_3: *mut *mut libc::c_void = &mut (*back).vertices_data
-                        as *mut *mut Vec3f as *mut *mut libc::c_void;
+                        as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_3 = MemRealloc(
                         (*back).vertices_data as *mut libc::c_void,
                         ((*back).vertices_capacity as usize)
@@ -383,9 +282,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1 as libc::c_int
                     };
-                    let mut elemSize_4: usize = ::core::mem::size_of::<Vec3f>();
+                    let mut elemSize_4: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_4: *mut *mut libc::c_void = &mut (*back).vertices_data
-                        as *mut *mut Vec3f as *mut *mut libc::c_void;
+                        as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_4 = MemRealloc(
                         (*back).vertices_data as *mut libc::c_void,
                         ((*back).vertices_capacity as usize)
@@ -405,9 +304,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_5: usize = ::core::mem::size_of::<Vec3f>();
+                let mut elemSize_5: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_5: *mut *mut libc::c_void = &mut (*back).vertices_data
-                    as *mut *mut Vec3f as *mut *mut libc::c_void;
+                    as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_5 = MemRealloc(
                     (*back).vertices_data as *mut libc::c_void,
                     ((*back).vertices_capacity as usize).wrapping_mul(elemSize_5 as usize),
@@ -427,9 +326,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1 as libc::c_int
                     };
-                    let mut elemSize_6: usize = ::core::mem::size_of::<Vec3f>();
+                    let mut elemSize_6: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_6: *mut *mut libc::c_void = &mut (*back).vertices_data
-                        as *mut *mut Vec3f as *mut *mut libc::c_void;
+                        as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_6 = MemRealloc(
                         (*back).vertices_data as *mut libc::c_void,
                         ((*back).vertices_capacity as usize)
@@ -449,9 +348,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_7: usize = ::core::mem::size_of::<Vec3f>();
+                let mut elemSize_7: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_7: *mut *mut libc::c_void = &mut (*front).vertices_data
-                    as *mut *mut Vec3f as *mut *mut libc::c_void;
+                    as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_7 = MemRealloc(
                     (*front).vertices_data as *mut libc::c_void,
                     ((*front).vertices_capacity as usize)
@@ -483,19 +382,19 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
             as libc::c_int
     {
         let mut polygonPart: *mut Polygon = polygons[i as usize];
-        let mut v: *mut Vec3f = (*polygonPart).vertices_data;
+        let mut v: *mut Vec3 = (*polygonPart).vertices_data;
         let mut vLen: int32 = (*polygonPart).vertices_size;
-        let mut vCur: Vec3f = *v.offset((vLen - 1 as libc::c_int) as isize);
+        let mut vCur: Vec3 = *v.offset((vLen - 1 as libc::c_int) as isize);
         let mut l: int32 = 0 as libc::c_int;
         while l < vLen {
-            let mut vPrev: Vec3f = vCur;
+            let mut vPrev: Vec3 = vCur;
             vCur = *v.offset(l as isize);
-            let mut edgeLen: libc::c_float = Vec3f_Length(Vec3f_Sub(vCur, vPrev));
+            let mut edgeLen: libc::c_float = vCur.distance(vPrev);
             if (edgeLen as libc::c_double) < 0.75f32 as libc::c_double * 1e-4f64 {
                 (*back).vertices_size = 0 as libc::c_int;
                 (*front).vertices_size = 0 as libc::c_int;
-                let mut vertex: *mut Vec3f = (*polygon).vertices_data;
-                let mut __iterend: *mut Vec3f = ((*polygon).vertices_data)
+                let mut vertex: *mut Vec3 = (*polygon).vertices_data;
+                let mut __iterend: *mut Vec3 = ((*polygon).vertices_data)
                     .offset((*polygon).vertices_size as isize);
                 while vertex < __iterend {
                     if ((*back).vertices_capacity == (*back).vertices_size)
@@ -507,9 +406,9 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                         } else {
                             1 as libc::c_int
                         };
-                        let mut elemSize: usize = ::core::mem::size_of::<Vec3f>();
+                        let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
                         let mut pData: *mut *mut libc::c_void = &mut (*back)
-                            .vertices_data as *mut *mut Vec3f as *mut *mut libc::c_void;
+                            .vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                         *pData = MemRealloc(
                             (*back).vertices_data as *mut libc::c_void,
                             ((*back).vertices_capacity as usize)
@@ -528,9 +427,9 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                         } else {
                             1 as libc::c_int
                         };
-                        let mut elemSize_0: usize = ::core::mem::size_of::<Vec3f>();
+                        let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
                         let mut pData_0: *mut *mut libc::c_void = &mut (*front)
-                            .vertices_data as *mut *mut Vec3f as *mut *mut libc::c_void;
+                            .vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                         *pData_0 = MemRealloc(
                             (*front).vertices_data as *mut libc::c_void,
                             ((*front).vertices_capacity as usize)
@@ -561,24 +460,17 @@ pub unsafe extern "C" fn Polygon_Split(
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_GetCentroid(
     mut polygon: *mut Polygon,
-    mut out: *mut Vec3f,
+    mut out: *mut Vec3,
 ) {
-    let mut centroid: Vec3f = {
-        let mut init = Vec3f {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 0.,
-            z: 0.,
-        };
-        init
-    };
-    let mut v: *mut Vec3f = (*polygon).vertices_data;
-    let mut __iterend: *mut Vec3f = ((*polygon).vertices_data)
+    let mut centroid = Vec3::ZERO;
+    let mut v: *mut Vec3 = (*polygon).vertices_data;
+    let mut __iterend: *mut Vec3 = ((*polygon).vertices_data)
         .offset((*polygon).vertices_size as isize);
     while v < __iterend {
-        Vec3f_IAdd(&mut centroid, *v);
+        centroid -= *v;
         v = v.offset(1);
     }
-    Vec3f_IDivs(&mut centroid, (*polygon).vertices_size as libc::c_float);
+    centroid /= (*polygon).vertices_size as libc::c_float;
     *out = centroid;
 }
 #[no_mangle]
@@ -588,7 +480,7 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
     mut triangles_size: *mut int32,
     mut triangles_data: *mut *mut Triangle,
 ) {
-    let mut v: *mut Vec3f = (*polygon).vertices_data;
+    let mut v: *mut Vec3 = (*polygon).vertices_data;
     let mut vLen: int32 = (*polygon).vertices_size;
     let mut i: int32 = 1 as libc::c_int;
     while i < vLen - 1 as libc::c_int {
@@ -608,8 +500,8 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
             .offset(*triangles_size as isize);
         *triangles_size += 1;
         (*triangle)
-            .vertices[0 as libc::c_int as usize] = *v.offset(0 as libc::c_int as isize);
-        (*triangle).vertices[1 as libc::c_int as usize] = *v.offset(i as isize);
+            .vertices[0] = *v.offset(0);
+        (*triangle).vertices[1] = *v.offset(i as isize);
         (*triangle)
             .vertices[2 as libc::c_int
             as usize] = *v.offset((i + 1 as libc::c_int) as isize);
@@ -618,25 +510,25 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
-    let mut v: *mut Vec3f = (*polygon).vertices_data;
+    let mut v: *mut Vec3 = (*polygon).vertices_data;
     let mut vLen: int32 = (*polygon).vertices_size;
-    let mut vCur: Vec3f = *v.offset((vLen - 1 as libc::c_int) as isize);
+    let mut vCur: Vec3 = *v.offset((vLen - 1 as libc::c_int) as isize);
     let mut i: int32 = 0 as libc::c_int;
     while i < vLen {
-        let mut vPrev: Vec3f = vCur;
+        let mut vPrev: Vec3 = vCur;
         vCur = *v.offset(i as isize);
-        let mut e: Error = Vec3f_Validate(vCur);
+        let mut e: Error = Vec3_Validate(vCur);
         if e != 0 as libc::c_int as libc::c_uint {
             return 0x400000 as libc::c_int as libc::c_uint | e;
         }
         let mut j: int32 = i + 1 as libc::c_int;
         while j < vLen {
-            if Vec3f_Equal(vCur, *v.offset(j as isize)) {
+            if vCur == *v.offset(j as isize) {
                 return (0x400000 as libc::c_int | 0x40 as libc::c_int) as Error;
             }
             j += 1;
         }
-        let mut edgeLen: libc::c_float = Vec3f_Length(Vec3f_Sub(vCur, vPrev));
+        let mut edgeLen = vCur.distance(vPrev);
         if (edgeLen as libc::c_double) < 0.75f32 as libc::c_double * 1e-4f64 {
             return (0x400000 as libc::c_int | 0x8 as libc::c_int) as Error;
         }

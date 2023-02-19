@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use glam::{IVec2, Vec2, Vec4};
 use crate::internal::Memory::*;
 

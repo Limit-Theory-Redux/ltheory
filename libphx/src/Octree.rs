@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
 
@@ -16,14 +17,14 @@ extern "C" {
     fn Matrix_Inverse(_: *const Matrix) -> *mut Matrix;
     fn Matrix_MulDir(
         _: *const Matrix,
-        out: *mut Vec3f,
+        out: *mut Vec3,
         x: libc::c_float,
         y: libc::c_float,
         z: libc::c_float,
     );
     fn Matrix_MulPoint(
         _: *const Matrix,
-        out: *mut Vec3f,
+        out: *mut Vec3,
         x: libc::c_float,
         y: libc::c_float,
         z: libc::c_float,
@@ -54,29 +55,22 @@ pub struct Node {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {
-    pub lower: Vec3f,
-    pub upper: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub lower: Vec3,
+    pub upper: Vec3,
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vertex {
-    pub p: Vec3f,
-    pub n: Vec3f,
+    pub p: Vec3,
+    pub n: Vec3,
     pub uv: Vec2,
 }
 #[inline]
 unsafe extern "C" fn Box3f_IntersectsRay(
     mut self_0: Box3f,
-    mut ro: Vec3f,
-    mut rdi: Vec3f,
+    mut ro: Vec3,
+    mut rdi: Vec3,
 ) -> bool {
     let mut t1: libc::c_double = (rdi.x * (self_0.lower.x - ro.x)) as libc::c_double;
     let mut t2: libc::c_double = (rdi.x * (self_0.upper.x - ro.x)) as libc::c_double;
@@ -110,7 +104,7 @@ unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
     let mut self_0: Box3f = {
         let mut init = Box3f {
             lower: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: Maxf(a.lower.x, b.lower.x),
                     y: Maxf(a.lower.y, b.lower.y),
                     z: Maxf(a.lower.z, b.lower.z),
@@ -118,7 +112,7 @@ unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
                 init
             },
             upper: {
-                let mut init = Vec3f {
+                let mut init = Vec3 {
                     x: Minf(a.upper.x, b.upper.x),
                     y: Minf(a.upper.y, b.upper.y),
                     z: Minf(a.upper.z, b.upper.z),
@@ -131,9 +125,9 @@ unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
     return self_0;
 }
 #[inline]
-unsafe extern "C" fn Box3f_Center(mut self_0: Box3f) -> Vec3f {
-    let mut center: Vec3f = {
-        let mut init = Vec3f {
+unsafe extern "C" fn Box3f_Center(mut self_0: Box3f) -> Vec3 {
+    let mut center: Vec3 = {
+        let mut init = Vec3 {
             x: (self_0.lower.x + self_0.upper.x) / 2 as libc::c_int as libc::c_float,
             y: (self_0.lower.y + self_0.upper.y) / 2 as libc::c_int as libc::c_float,
             z: (self_0.lower.z + self_0.upper.z) / 2 as libc::c_int as libc::c_float,
@@ -143,7 +137,7 @@ unsafe extern "C" fn Box3f_Center(mut self_0: Box3f) -> Vec3f {
     return center;
 }
 #[inline]
-unsafe extern "C" fn Box3f_Create(mut lower: Vec3f, mut upper: Vec3f) -> Box3f {
+unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
     let mut result: Box3f = {
         let mut init = Box3f {
             lower: lower,
@@ -152,18 +146,6 @@ unsafe extern "C" fn Box3f_Create(mut lower: Vec3f, mut upper: Vec3f) -> Box3f {
         init
     };
     return result;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Rcp(mut a: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: (1.0f64 / a.x as libc::c_double) as libc::c_float,
-            y: (1.0f64 / a.y as libc::c_double) as libc::c_float,
-            z: (1.0f64 / a.z as libc::c_double) as libc::c_float,
-        };
-        init
-    };
-    return self_0;
 }
 #[inline]
 unsafe extern "C" fn Maxf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
@@ -186,30 +168,6 @@ unsafe extern "C" fn Min(
     mut b: libc::c_double,
 ) -> libc::c_double {
     return if a < b { a } else { b };
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Max(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Maxf(a.x, b.x),
-            y: Maxf(a.y, b.y),
-            z: Maxf(a.z, b.z),
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Min(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Minf(a.x, b.x),
-            y: Minf(a.y, b.y),
-            z: Minf(a.z, b.z),
-        };
-        init
-    };
-    return self_0;
 }
 
 #[no_mangle]
@@ -244,8 +202,8 @@ pub unsafe extern "C" fn Octree_Free(mut self_0: *mut Octree) {
 #[no_mangle]
 pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
     let mut meshBox: Box3f = Box3f {
-        lower: Vec3f { x: 0., y: 0., z: 0. },
-        upper: Vec3f { x: 0., y: 0., z: 0. },
+        lower: Vec3 { x: 0., y: 0., z: 0. },
+        upper: Vec3 { x: 0., y: 0., z: 0. },
     };
     Mesh_GetBound(mesh, &mut meshBox);
     let mut self_0: *mut Octree = Octree_Create(meshBox);
@@ -261,8 +219,8 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
         let mut v2: *const Vertex = vertexData
             .offset(*indexData.offset((i + 2 as libc::c_int) as isize) as isize);
         let mut box_0: Box3f = Box3f_Create(
-            Vec3f_Min((*v0).p, Vec3f_Min((*v1).p, (*v2).p)),
-            Vec3f_Max((*v0).p, Vec3f_Max((*v1).p, (*v2).p)),
+            Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
+            Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
         Octree_Add(self_0, box_0, (i / 3 as libc::c_int) as uint32);
         i += 3 as libc::c_int;
@@ -337,8 +295,8 @@ pub unsafe extern "C" fn Octree_GetMemory(mut self_0: *mut Octree) -> libc::c_in
 }
 unsafe extern "C" fn Octree_IntersectRayImpl(
     mut self_0: *mut Octree,
-    mut o: Vec3f,
-    mut di: Vec3f,
+    mut o: Vec3,
+    mut di: Vec3,
 ) -> bool {
     if !Box3f_IntersectsRay((*self_0).box_0, o, di) {
         return 0 as libc::c_int != 0;
@@ -365,16 +323,16 @@ unsafe extern "C" fn Octree_IntersectRayImpl(
 pub unsafe extern "C" fn Octree_IntersectRay(
     mut self_0: *mut Octree,
     mut matrix: *mut Matrix,
-    mut ro: *const Vec3f,
-    mut rd: *const Vec3f,
+    mut ro: *const Vec3,
+    mut rd: *const Vec3,
 ) -> bool {
     let mut inv: *mut Matrix = Matrix_Inverse(matrix);
-    let mut invRo: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut invRo = Vec3::ZERO;
     Matrix_MulPoint(inv, &mut invRo, (*ro).x, (*ro).y, (*ro).z);
-    let mut invRd: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+    let mut invRd = Vec3::ZERO;
     Matrix_MulDir(inv, &mut invRd, (*rd).x, (*rd).y, (*rd).z);
     Matrix_Free(inv);
-    return Octree_IntersectRayImpl(self_0, invRo, Vec3f_Rcp(invRd));
+    return Octree_IntersectRayImpl(self_0, invRo, invRd.recip());
 }
 unsafe extern "C" fn Octree_Insert(
     mut self_0: *mut Octree,
@@ -394,14 +352,14 @@ unsafe extern "C" fn Octree_AddDepth(
     mut id: uint32,
     mut depth: libc::c_int,
 ) {
-    let L: *const Vec3f = &mut (*self_0).box_0.lower;
-    let U: *const Vec3f = &mut (*self_0).box_0.upper;
-    let C: Vec3f = Box3f_Center((*self_0).box_0);
+    let L: *const Vec3 = &mut (*self_0).box_0.lower;
+    let U: *const Vec3 = &mut (*self_0).box_0.upper;
+    let C: Vec3 = Box3f_Center((*self_0).box_0);
     let childBound: [Box3f; 8] = [
         {
             let mut init = Box3f {
                 lower: {
-                    let mut init = Vec3f {
+                    let mut init = Vec3 {
                         x: (*L).x,
                         y: (*L).y,
                         z: (*L).z,
@@ -409,7 +367,7 @@ unsafe extern "C" fn Octree_AddDepth(
                     init
                 },
                 upper: {
-                    let mut init = Vec3f { x: C.x, y: C.y, z: C.z };
+                    let mut init = Vec3 { x: C.x, y: C.y, z: C.z };
                     init
                 },
             };
@@ -418,7 +376,7 @@ unsafe extern "C" fn Octree_AddDepth(
         {
             let mut init = Box3f {
                 lower: {
-                    let mut init = Vec3f {
+                    let mut init = Vec3 {
                         x: C.x,
                         y: (*L).y,
                         z: (*L).z,
@@ -426,7 +384,7 @@ unsafe extern "C" fn Octree_AddDepth(
                     init
                 },
                 upper: {
-                    let mut init = Vec3f { x: (*U).x, y: C.y, z: C.z };
+                    let mut init = Vec3 { x: (*U).x, y: C.y, z: C.z };
                     init
                 },
             };
@@ -435,7 +393,7 @@ unsafe extern "C" fn Octree_AddDepth(
         {
             let mut init = Box3f {
                 lower: {
-                    let mut init = Vec3f {
+                    let mut init = Vec3 {
                         x: (*L).x,
                         y: C.y,
                         z: (*L).z,
@@ -443,7 +401,7 @@ unsafe extern "C" fn Octree_AddDepth(
                     init
                 },
                 upper: {
-                    let mut init = Vec3f { x: C.x, y: (*U).y, z: C.z };
+                    let mut init = Vec3 { x: C.x, y: (*U).y, z: C.z };
                     init
                 },
             };
@@ -452,11 +410,11 @@ unsafe extern "C" fn Octree_AddDepth(
         {
             let mut init = Box3f {
                 lower: {
-                    let mut init = Vec3f { x: C.x, y: C.y, z: (*L).z };
+                    let mut init = Vec3 { x: C.x, y: C.y, z: (*L).z };
                     init
                 },
                 upper: {
-                    let mut init = Vec3f {
+                    let mut init = Vec3 {
                         x: (*U).x,
                         y: (*U).y,
                         z: C.z,
@@ -469,7 +427,7 @@ unsafe extern "C" fn Octree_AddDepth(
         {
             let mut init = Box3f {
                 lower: {
-                    let mut init = Vec3f {
+                    let mut init = Vec3 {
                         x: (*L).x,
                         y: (*L).y,
                         z: C.z,
@@ -477,7 +435,7 @@ unsafe extern "C" fn Octree_AddDepth(
                     init
                 },
                 upper: {
-                    let mut init = Vec3f { x: C.x, y: C.y, z: (*U).z };
+                    let mut init = Vec3 { x: C.x, y: C.y, z: (*U).z };
                     init
                 },
             };
@@ -486,11 +444,11 @@ unsafe extern "C" fn Octree_AddDepth(
         {
             let mut init = Box3f {
                 lower: {
-                    let mut init = Vec3f { x: C.x, y: (*L).y, z: C.z };
+                    let mut init = Vec3 { x: C.x, y: (*L).y, z: C.z };
                     init
                 },
                 upper: {
-                    let mut init = Vec3f {
+                    let mut init = Vec3 {
                         x: (*U).x,
                         y: C.y,
                         z: (*U).z,
@@ -503,11 +461,11 @@ unsafe extern "C" fn Octree_AddDepth(
         {
             let mut init = Box3f {
                 lower: {
-                    let mut init = Vec3f { x: (*L).x, y: C.y, z: C.z };
+                    let mut init = Vec3 { x: (*L).x, y: C.y, z: C.z };
                     init
                 },
                 upper: {
-                    let mut init = Vec3f {
+                    let mut init = Vec3 {
                         x: C.x,
                         y: (*U).y,
                         z: (*U).z,
@@ -520,11 +478,11 @@ unsafe extern "C" fn Octree_AddDepth(
         {
             let mut init = Box3f {
                 lower: {
-                    let mut init = Vec3f { x: C.x, y: C.y, z: C.z };
+                    let mut init = Vec3 { x: C.x, y: C.y, z: C.z };
                     init
                 },
                 upper: {
-                    let mut init = Vec3f {
+                    let mut init = Vec3 {
                         x: (*U).x,
                         y: (*U).y,
                         z: (*U).z,

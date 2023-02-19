@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type Bytes;
@@ -411,7 +412,7 @@ pub unsafe extern "C" fn Socket_SetAddress(mut self_0: *mut Socket, mut addr: cs
     }
     let mut ip: cstr = StrSubStr(addr, colon);
     let mut port: cstr = StrSubStr(
-        colon.offset(1 as libc::c_int as isize),
+        colon.offset(1),
         addr.offset(strlen(addr) as isize),
     );
     (*self_0).addrSend.sin_family = 2 as libc::c_int as sa_family_t;

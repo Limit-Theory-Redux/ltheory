@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::CubeFace::*;
 use crate::DataFormat::*;
@@ -71,13 +72,6 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
 
 pub type CubeFace = int32;
 pub type DataFormat = int32;
@@ -142,9 +136,9 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         CubeFace_PZ,
         CubeFace_NZ,
     ];
-    let look: [Vec3f; 6] = [
+    let look: [Vec3; 6] = [
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 1 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -152,7 +146,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: -(1 as libc::c_int) as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -160,7 +154,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 1 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -168,7 +162,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: -(1 as libc::c_int) as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -176,7 +170,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 1 as libc::c_int as libc::c_float,
@@ -184,7 +178,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: -(1 as libc::c_int) as libc::c_float,
@@ -192,9 +186,9 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
     ];
-    let up: [Vec3f; 6] = [
+    let up: [Vec3; 6] = [
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 1 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -202,7 +196,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 1 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -210,7 +204,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: -(1 as libc::c_int) as libc::c_float,
@@ -218,7 +212,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 1 as libc::c_int as libc::c_float,
@@ -226,7 +220,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 1 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -234,7 +228,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 1 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -301,8 +295,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         let mut i_2: libc::c_int = 0 as libc::c_int;
         while i_2 < 6 as libc::c_int {
             let mut thisFace: CubeFace = face[i_2 as usize];
-            let mut thisLook: Vec3f = look[i_2 as usize];
-            let mut thisUp: Vec3f = up[i_2 as usize];
+            let mut thisLook: Vec3 = look[i_2 as usize];
+            let mut thisUp: Vec3 = up[i_2 as usize];
             RenderTarget_Push(size, size);
             RenderTarget_BindTexCubeLevel(result, thisFace, level);
             Shader_SetFloat3(

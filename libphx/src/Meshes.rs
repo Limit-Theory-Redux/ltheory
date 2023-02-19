@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
 
@@ -30,70 +31,10 @@ extern "C" {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
 pub struct Vertex {
-    pub p: Vec3f,
-    pub n: Vec3f,
+    pub p: Vec3,
+    pub n: Vec3,
     pub uv: Vec2,
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Normalize(mut v: Vec3f) -> Vec3f {
-    let mut l: libc::c_float = Vec3f_Length(v);
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: v.x / l,
-            y: v.y / l,
-            z: v.z / l,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Length(mut v: Vec3f) -> libc::c_float {
-    return Sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Cross(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: b.z * a.y - b.y * a.z,
-            y: b.x * a.z - b.z * a.x,
-            z: b.y * a.x - b.x * a.y,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Add(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x + b.x,
-            y: a.y + b.y,
-            z: a.z + b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Muls(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x * b,
-            y: a.y * b,
-            z: a.z * b,
-        };
-        init
-    };
-    return self_0;
 }
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
@@ -102,13 +43,13 @@ unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
 #[inline]
 unsafe extern "C" fn Mesh_AddPlane(
     mut self_0: *mut Mesh,
-    mut origin: Vec3f,
-    mut du: Vec3f,
-    mut dv: Vec3f,
+    mut origin: Vec3,
+    mut du: Vec3,
+    mut dv: Vec3,
     mut resU: libc::c_int,
     mut resV: libc::c_int,
 ) {
-    let mut n: Vec3f = Vec3f_Normalize(Vec3f_Cross(du, dv));
+    let mut n: Vec3 = Vec3::cross(du, dv).normalize();
     let mut iu: libc::c_int = 0 as libc::c_int;
     while iu < resU {
         let mut u: libc::c_float = iu as libc::c_float
@@ -117,10 +58,7 @@ unsafe extern "C" fn Mesh_AddPlane(
         while iv < resV {
             let mut v: libc::c_float = iv as libc::c_float
                 / (resV - 1 as libc::c_int) as libc::c_float;
-            let mut p: Vec3f = Vec3f_Add(
-                origin,
-                Vec3f_Add(Vec3f_Muls(du, u), Vec3f_Muls(dv, v)),
-            );
+            let mut p: Vec3 = origin + du * u + dv * v;
             if iu != 0 && iv != 0 {
                 let mut vc: libc::c_int = Mesh_GetVertexCount(self_0);
                 Mesh_AddQuad(
@@ -139,9 +77,9 @@ unsafe extern "C" fn Mesh_AddPlane(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
-    let origin: [Vec3f; 6] = [
+    let origin: [Vec3; 6] = [
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: -(1 as libc::c_int) as libc::c_float,
                 y: -(1 as libc::c_int) as libc::c_float,
                 z: 1 as libc::c_int as libc::c_float,
@@ -149,7 +87,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: -(1 as libc::c_int) as libc::c_float,
                 y: -(1 as libc::c_int) as libc::c_float,
                 z: -(1 as libc::c_int) as libc::c_float,
@@ -157,7 +95,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 1 as libc::c_int as libc::c_float,
                 y: -(1 as libc::c_int) as libc::c_float,
                 z: -(1 as libc::c_int) as libc::c_float,
@@ -165,7 +103,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: -(1 as libc::c_int) as libc::c_float,
                 y: -(1 as libc::c_int) as libc::c_float,
                 z: -(1 as libc::c_int) as libc::c_float,
@@ -173,7 +111,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: -(1 as libc::c_int) as libc::c_float,
                 y: 1 as libc::c_int as libc::c_float,
                 z: -(1 as libc::c_int) as libc::c_float,
@@ -181,7 +119,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: -(1 as libc::c_int) as libc::c_float,
                 y: -(1 as libc::c_int) as libc::c_float,
                 z: -(1 as libc::c_int) as libc::c_float,
@@ -189,9 +127,9 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
     ];
-    let du: [Vec3f; 6] = [
+    let du: [Vec3; 6] = [
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 2 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -199,7 +137,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 2 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -207,7 +145,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 2 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -215,7 +153,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 2 as libc::c_int as libc::c_float,
@@ -223,7 +161,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 2 as libc::c_int as libc::c_float,
@@ -231,7 +169,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 2 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -239,9 +177,9 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
     ];
-    let dv: [Vec3f; 6] = [
+    let dv: [Vec3; 6] = [
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 2 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -249,7 +187,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 2 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -257,7 +195,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 2 as libc::c_int as libc::c_float,
@@ -265,7 +203,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 2 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -273,7 +211,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 2 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 0 as libc::c_int as libc::c_float,
@@ -281,7 +219,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
             init
         },
         {
-            let mut init = Vec3f {
+            let mut init = Vec3 {
                 x: 0 as libc::c_int as libc::c_float,
                 y: 0 as libc::c_int as libc::c_float,
                 z: 2 as libc::c_int as libc::c_float,
@@ -312,16 +250,16 @@ pub unsafe extern "C" fn Mesh_BoxSphere(mut res: libc::c_int) -> *mut Mesh {
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < vertexCount {
         let mut vertex: *mut Vertex = vertexData.offset(i as isize);
-        (*vertex).p = Vec3f_Normalize((*vertex).p);
+        (*vertex).p = (*vertex).p.normalize();
         i += 1;
     }
     return self_0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Plane(
-    mut origin: Vec3f,
-    mut du: Vec3f,
-    mut dv: Vec3f,
+    mut origin: Vec3,
+    mut du: Vec3,
+    mut dv: Vec3,
     mut resU: libc::c_int,
     mut resV: libc::c_int,
 ) -> *mut Mesh {

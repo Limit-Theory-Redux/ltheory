@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;

@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type Plane;
@@ -14,7 +15,7 @@ extern "C" {
         tHit: *mut libc::c_float,
     ) -> bool;
     fn LineSegment_ToRay(_: *const LineSegment, _: *mut Ray);
-    fn Intersect_RayPlane(_: *const Ray, _: *const Plane, pHit: *mut Vec3f) -> bool;
+    fn Intersect_RayPlane(_: *const Ray, _: *const Plane, pHit: *mut Vec3) -> bool;
     fn Intersect_RayTriangle_Barycentric(
         _: *const Ray,
         _: *const Triangle,
@@ -25,61 +26,30 @@ extern "C" {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LineSegment {
-    pub p0: Vec3f,
-    pub p1: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub p0: Vec3,
+    pub p1: Vec3,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Ray {
-    pub p: Vec3f,
-    pub dir: Vec3f,
+    pub p: Vec3,
+    pub dir: Vec3,
     pub tMin: libc::c_float,
     pub tMax: libc::c_float,
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Add(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x + b.x,
-            y: a.y + b.y,
-            z: a.z + b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Muls(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x * b,
-            y: a.y * b,
-            z: a.z * b,
-        };
-        init
-    };
-    return self_0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_GetPoint(
     mut self_0: *const Ray,
     mut t: libc::c_float,
-    mut out: *mut Vec3f,
+    mut out: *mut Vec3,
 ) {
-    *out = Vec3f_Add((*self_0).p, Vec3f_Muls((*self_0).dir, t));
+    *out = (*self_0).p + ((*self_0).dir * t);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectPlane(
     mut self_0: *const Ray,
     mut plane: *const Plane,
-    mut pHit: *mut Vec3f,
+    mut pHit: *mut Vec3,
 ) -> bool {
     return Intersect_RayPlane(self_0, plane, pHit);
 }

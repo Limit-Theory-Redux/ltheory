@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use glam::IVec2;
 use crate::internal::Memory::*;
 use crate::Button::*;
@@ -1248,10 +1249,10 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
                 if i != self_0.downButtons_size - 1 as libc::c_int {
                     let mut curr: *mut libc::c_void = (self_0.downButtons_data)
                         .offset(i as isize)
-                        .offset(0 as libc::c_int as isize) as *mut libc::c_void;
+                        .offset(0) as *mut libc::c_void;
                     let mut next: *mut libc::c_void = (self_0.downButtons_data)
                         .offset(i as isize)
-                        .offset(1 as libc::c_int as isize) as *mut libc::c_void;
+                        .offset(1) as *mut libc::c_void;
                     let mut elemSize_0: usize = ::core::mem::size_of::<InputEvent>();
                     MemMove(
                         curr,
@@ -2184,14 +2185,14 @@ pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool 
         >(b"Input_GetNextEvent\0"))
             .as_ptr(),
     );
-    *event = *(self_0.events_data).offset(0 as libc::c_int as isize);
+    *event = *(self_0.events_data).offset(0);
     if 0 as libc::c_int != self_0.events_size - 1 as libc::c_int {
         let mut curr: *mut libc::c_void = (self_0.events_data)
-            .offset(0 as libc::c_int as isize)
-            .offset(0 as libc::c_int as isize) as *mut libc::c_void;
+            .offset(0)
+            .offset(0) as *mut libc::c_void;
         let mut next: *mut libc::c_void = (self_0.events_data)
-            .offset(0 as libc::c_int as isize)
-            .offset(1 as libc::c_int as isize) as *mut libc::c_void;
+            .offset(0)
+            .offset(1) as *mut libc::c_void;
         let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         MemMove(
             curr,

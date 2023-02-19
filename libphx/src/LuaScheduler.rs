@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type lua_State;
@@ -181,7 +182,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> libc::c_int {
     while self_0.elems_size != 0 {
         let mut elem: *mut SchedulerElem = (self_0.elems_data)
             .offset(self_0.elems_size as isize)
-            .offset(-(1 as libc::c_int as isize));
+            .offset(-(1));
         if self_0.now < (*elem).tWake {
             break;
         }

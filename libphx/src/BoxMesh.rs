@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 
 
@@ -14,7 +15,7 @@ extern "C" {
     ) -> *mut Matrix;
     fn Matrix_MulPoint(
         _: *const Matrix,
-        out: *mut Vec3f,
+        out: *mut Vec3,
         x: libc::c_float,
         y: libc::c_float,
         z: libc::c_float,
@@ -55,132 +56,16 @@ pub struct BoxMesh {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box_0 {
-    pub p: Vec3f,
-    pub s: Vec3f,
-    pub r: Vec3f,
-    pub b: Vec3f,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub p: Vec3,
+    pub s: Vec3,
+    pub r: Vec3,
+    pub b: Vec3,
 }
 
 
-#[inline]
-unsafe extern "C" fn Vec3f_Mul(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x * b.x,
-            y: a.y * b.y,
-            z: a.z * b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Add(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x + b.x,
-            y: a.y + b.y,
-            z: a.z + b.z,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Muls(mut a: Vec3f, mut b: libc::c_float) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x * b,
-            y: a.y * b,
-            z: a.z * b,
-        };
-        init
-    };
-    return self_0;
-}
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
     return sqrt(t as libc::c_double) as libc::c_float;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f { x: x, y: y, z: z };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Length(mut v: Vec3f) -> libc::c_float {
-    return Sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Normalize(mut v: Vec3f) -> Vec3f {
-    let mut l: libc::c_float = Vec3f_Length(v);
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: v.x / l,
-            y: v.y / l,
-            z: v.z / l,
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Clamp(
-    mut v: Vec3f,
-    mut lower: Vec3f,
-    mut upper: Vec3f,
-) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: Clampf(v.x, lower.x, upper.x),
-            y: Clampf(v.y, lower.y, upper.y),
-            z: Clampf(v.z, lower.z, upper.z),
-        };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_SNormalize(mut v: Vec3f) -> Vec3f {
-    let mut l: libc::c_float = Vec3f_Length(v);
-    if l > 0 as libc::c_int as libc::c_float {
-        let mut self_0: Vec3f = {
-            let mut init = Vec3f {
-                x: v.x / l,
-                y: v.y / l,
-                z: v.z / l,
-            };
-            init
-        };
-        return self_0;
-    }
-    return v;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Sub(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        };
-        init
-    };
-    return self_0;
 }
 #[inline]
 unsafe extern "C" fn Clampf(
@@ -192,21 +77,9 @@ unsafe extern "C" fn Clampf(
     t = if t < lower { lower } else { t };
     return t;
 }
-#[inline]
-unsafe extern "C" fn Vec3f_Cross(mut a: Vec3f, mut b: Vec3f) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f {
-            x: b.z * a.y - b.y * a.z,
-            y: b.x * a.z - b.z * a.x,
-            z: b.y * a.x - b.x * a.y,
-        };
-        init
-    };
-    return self_0;
-}
-static mut kFaceOrigin: [Vec3f; 6] = [
+static mut kFaceOrigin: [Vec3; 6] = [
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: -(1 as libc::c_int) as libc::c_float,
             y: -(1 as libc::c_int) as libc::c_float,
             z: 1 as libc::c_int as libc::c_float,
@@ -214,7 +87,7 @@ static mut kFaceOrigin: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: -(1 as libc::c_int) as libc::c_float,
             y: -(1 as libc::c_int) as libc::c_float,
             z: -(1 as libc::c_int) as libc::c_float,
@@ -222,7 +95,7 @@ static mut kFaceOrigin: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 1 as libc::c_int as libc::c_float,
             y: -(1 as libc::c_int) as libc::c_float,
             z: -(1 as libc::c_int) as libc::c_float,
@@ -230,7 +103,7 @@ static mut kFaceOrigin: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: -(1 as libc::c_int) as libc::c_float,
             y: -(1 as libc::c_int) as libc::c_float,
             z: -(1 as libc::c_int) as libc::c_float,
@@ -238,7 +111,7 @@ static mut kFaceOrigin: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: -(1 as libc::c_int) as libc::c_float,
             y: 1 as libc::c_int as libc::c_float,
             z: -(1 as libc::c_int) as libc::c_float,
@@ -246,7 +119,7 @@ static mut kFaceOrigin: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: -(1 as libc::c_int) as libc::c_float,
             y: -(1 as libc::c_int) as libc::c_float,
             z: -(1 as libc::c_int) as libc::c_float,
@@ -254,9 +127,9 @@ static mut kFaceOrigin: [Vec3f; 6] = [
         init
     },
 ];
-static mut kFaceU: [Vec3f; 6] = [
+static mut kFaceU: [Vec3; 6] = [
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 2 as libc::c_int as libc::c_float,
             y: 0 as libc::c_int as libc::c_float,
             z: 0 as libc::c_int as libc::c_float,
@@ -264,7 +137,7 @@ static mut kFaceU: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 2 as libc::c_int as libc::c_float,
             z: 0 as libc::c_int as libc::c_float,
@@ -272,7 +145,7 @@ static mut kFaceU: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 2 as libc::c_int as libc::c_float,
             z: 0 as libc::c_int as libc::c_float,
@@ -280,7 +153,7 @@ static mut kFaceU: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 0 as libc::c_int as libc::c_float,
             z: 2 as libc::c_int as libc::c_float,
@@ -288,7 +161,7 @@ static mut kFaceU: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 0 as libc::c_int as libc::c_float,
             z: 2 as libc::c_int as libc::c_float,
@@ -296,7 +169,7 @@ static mut kFaceU: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 2 as libc::c_int as libc::c_float,
             y: 0 as libc::c_int as libc::c_float,
             z: 0 as libc::c_int as libc::c_float,
@@ -304,9 +177,9 @@ static mut kFaceU: [Vec3f; 6] = [
         init
     },
 ];
-static mut kFaceV: [Vec3f; 6] = [
+static mut kFaceV: [Vec3; 6] = [
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 2 as libc::c_int as libc::c_float,
             z: 0 as libc::c_int as libc::c_float,
@@ -314,7 +187,7 @@ static mut kFaceV: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 2 as libc::c_int as libc::c_float,
             y: 0 as libc::c_int as libc::c_float,
             z: 0 as libc::c_int as libc::c_float,
@@ -322,7 +195,7 @@ static mut kFaceV: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 0 as libc::c_int as libc::c_float,
             z: 2 as libc::c_int as libc::c_float,
@@ -330,7 +203,7 @@ static mut kFaceV: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 2 as libc::c_int as libc::c_float,
             z: 0 as libc::c_int as libc::c_float,
@@ -338,7 +211,7 @@ static mut kFaceV: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 2 as libc::c_int as libc::c_float,
             y: 0 as libc::c_int as libc::c_float,
             z: 0 as libc::c_int as libc::c_float,
@@ -346,7 +219,7 @@ static mut kFaceV: [Vec3f; 6] = [
         init
     },
     {
-        let mut init = Vec3f {
+        let mut init = Vec3 {
             x: 0 as libc::c_int as libc::c_float,
             y: 0 as libc::c_int as libc::c_float,
             z: 2 as libc::c_int as libc::c_float,
@@ -372,10 +245,10 @@ pub unsafe extern "C" fn BoxMesh_Free(mut self_0: *mut BoxMesh) {
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Add(
     mut self_0: *mut BoxMesh,
-    mut p: *const Vec3f,
-    mut s: *const Vec3f,
-    mut r: *const Vec3f,
-    mut b: *const Vec3f,
+    mut p: *const Vec3,
+    mut s: *const Vec3,
+    mut r: *const Vec3,
+    mut b: *const Vec3,
 ) {
     if ((*self_0).elem_capacity == (*self_0).elem_size) as libc::c_int as libc::c_long
         != 0
@@ -416,12 +289,12 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < (*self_0).elem_size {
         let mut box_0: *mut Box_0 = ((*self_0).elem_data).offset(i as isize);
-        let mut lower: Vec3f = Vec3f_Create(
+        let mut lower: Vec3 = Vec3::new(
             (*box_0).b.x - 1.0f32,
             (*box_0).b.y - 1.0f32,
             (*box_0).b.z - 1.0f32,
         );
-        let mut upper: Vec3f = Vec3f_Create(
+        let mut upper: Vec3 = Vec3::new(
             1.0f32 - (*box_0).b.x,
             1.0f32 - (*box_0).b.y,
             1.0f32 - (*box_0).b.z,
@@ -433,10 +306,10 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(
         );
         let mut face: libc::c_int = 0 as libc::c_int;
         while face < 6 as libc::c_int {
-            let mut o: Vec3f = kFaceOrigin[face as usize];
-            let mut du: Vec3f = kFaceU[face as usize];
-            let mut dv: Vec3f = kFaceV[face as usize];
-            let mut n: Vec3f = Vec3f_Normalize(Vec3f_Cross(du, dv));
+            let mut o: Vec3 = kFaceOrigin[face as usize];
+            let mut du: Vec3 = kFaceU[face as usize];
+            let mut dv: Vec3 = kFaceV[face as usize];
+            let mut n: Vec3 = Vec3::cross(du, dv).normalize();
             let mut iu: libc::c_int = 0 as libc::c_int;
             while iu < res {
                 let mut u: libc::c_float = iu as libc::c_float
@@ -445,20 +318,14 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(
                 while iv < res {
                     let mut v: libc::c_float = iv as libc::c_float
                         / (res - 1 as libc::c_int) as libc::c_float;
-                    let mut p: Vec3f = Vec3f_Add(
-                        o,
-                        Vec3f_Add(Vec3f_Muls(du, u), Vec3f_Muls(dv, v)),
-                    );
-                    let mut clamped: Vec3f = Vec3f_Clamp(p, lower, upper);
-                    let mut proj: Vec3f = Vec3f_Sub(p, clamped);
-                    p = Vec3f_Add(
-                        clamped,
-                        Vec3f_Mul(Vec3f_SNormalize(proj), (*box_0).b),
-                    );
-                    p = Vec3f_Mul(p, (*box_0).s);
-                    let mut rp: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+                    let mut p: Vec3 = o + (du * u) + (dv * v);
+                    let mut clamped: Vec3 = Vec3::clamp(p, lower, upper);
+                    let mut proj: Vec3 = p - clamped;
+                    p = clamped + (proj.normalize() * (*box_0).b);
+                    p *= (*box_0).s;
+                    let mut rp = Vec3::ZERO;
                     Matrix_MulPoint(rot, &mut rp, p.x, p.y, p.z);
-                    p = Vec3f_Add(rp, (*box_0).p);
+                    p = rp + (*box_0).p;
                     if iu != 0 && iv != 0 {
                         let mut off: libc::c_int = Mesh_GetVertexCount(mesh);
                         Mesh_AddQuad(

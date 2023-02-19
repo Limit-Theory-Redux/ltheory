@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
 use crate::PhxSignal::*;
@@ -579,12 +580,12 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         let mut funcName: cstr = ar.name;
         let mut fileName: cstr = ar.source;
         let mut line: int32 = ar.currentline;
-        if *fileName.offset(0 as libc::c_int as isize) as libc::c_int != '@' as i32 {
+        if *fileName.offset(0) as libc::c_int != '@' as i32 {
             fileName = b"<string>\0" as *const u8 as *const libc::c_char;
             line = -(1 as libc::c_int);
         }
-        if *fileName.offset(0 as libc::c_int as isize) as libc::c_int == '@' as i32 {
-            fileName = fileName.offset(1 as libc::c_int as isize);
+        if *fileName.offset(0) as libc::c_int == '@' as i32 {
+            fileName = fileName.offset(1);
         }
         if StrEqual(ar.what, b"C\0" as *const u8 as *const libc::c_char) {
             fileName = b"<native>\0" as *const u8 as *const libc::c_char;

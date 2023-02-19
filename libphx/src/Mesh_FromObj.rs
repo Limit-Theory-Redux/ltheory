@@ -1,4 +1,5 @@
 use ::libc;
+use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
 
@@ -34,16 +35,9 @@ pub type int32 = int32_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
 pub struct Vertex {
-    pub p: Vec3f,
-    pub n: Vec3f,
+    pub p: Vec3,
+    pub n: Vec3,
     pub uv: Vec2,
 }
 #[derive(Copy, Clone)]
@@ -62,12 +56,6 @@ pub struct VertexIndices {
     pub iUV: int32,
 }
 
-
-
-#[inline]
-unsafe extern "C" fn Vec3f_Equal(mut a: Vec3f, mut b: Vec3f) -> bool {
-    return a.x == b.x && a.y == b.y && a.z == b.z;
-}
 unsafe extern "C" fn Obj_Fatal(mut message: cstr, mut s: *mut ParseState) {
     let mut len: int32 = 0 as libc::c_int;
     let mut ch: *const libc::c_char = (*s).lineStart;
@@ -224,10 +212,10 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
     let mut faceCount: int32 = 0 as libc::c_int;
     let mut positions_size: int32 = 0;
     let mut positions_capacity: int32 = 0;
-    let mut positions_data: *mut Vec3f = 0 as *mut Vec3f;
+    let mut positions_data: *mut Vec3 = 0 as *mut Vec3;
     positions_capacity = 0 as libc::c_int;
     positions_size = 0 as libc::c_int;
-    positions_data = 0 as *mut Vec3f;
+    positions_data = 0 as *mut Vec3;
     let mut uvs_size: int32 = 0;
     let mut uvs_capacity: int32 = 0;
     let mut uvs_data: *mut Vec2 = 0 as *mut Vec2;
@@ -236,16 +224,16 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
     uvs_data = 0 as *mut Vec2;
     let mut normals_size: int32 = 0;
     let mut normals_capacity: int32 = 0;
-    let mut normals_data: *mut Vec3f = 0 as *mut Vec3f;
+    let mut normals_data: *mut Vec3 = 0 as *mut Vec3;
     normals_capacity = 0 as libc::c_int;
     normals_size = 0 as libc::c_int;
-    normals_data = 0 as *mut Vec3f;
+    normals_data = 0 as *mut Vec3;
     if (positions_capacity < (0.008f32 * bytesSize as libc::c_float) as int32)
         as libc::c_int as libc::c_long != 0
     {
         positions_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
-        let mut elemSize: usize = ::core::mem::size_of::<Vec3f>();
-        let mut pData: *mut *mut libc::c_void = &mut positions_data as *mut *mut Vec3f
+        let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
+        let mut pData: *mut *mut libc::c_void = &mut positions_data as *mut *mut Vec3
             as *mut *mut libc::c_void;
         *pData = MemRealloc(
             positions_data as *mut libc::c_void,
@@ -268,8 +256,8 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
         as libc::c_int as libc::c_long != 0
     {
         normals_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
-        let mut elemSize_1: usize = ::core::mem::size_of::<Vec3f>();
-        let mut pData_1: *mut *mut libc::c_void = &mut normals_data as *mut *mut Vec3f
+        let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
+        let mut pData_1: *mut *mut libc::c_void = &mut normals_data as *mut *mut Vec3
             as *mut *mut libc::c_void;
         *pData_1 = MemRealloc(
             normals_data as *mut libc::c_void,
@@ -303,7 +291,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     &mut s,
                 );
             }
-            let mut p: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+            let mut p = Vec3::ZERO;
             if !(ConsumeFloat(&mut p.x, &mut s) as libc::c_int != 0
                 && ConsumeFloat(&mut p.y, &mut s) as libc::c_int != 0
                 && ConsumeFloat(&mut p.z, &mut s) as libc::c_int != 0)
@@ -321,9 +309,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_2: usize = ::core::mem::size_of::<Vec3f>();
+                let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_2: *mut *mut libc::c_void = &mut positions_data
-                    as *mut *mut Vec3f as *mut *mut libc::c_void;
+                    as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_2 = MemRealloc(
                     positions_data as *mut libc::c_void,
                     (positions_capacity as usize).wrapping_mul(elemSize_2 as usize),
@@ -381,7 +369,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     &mut s,
                 );
             }
-            let mut n: Vec3f = Vec3f { x: 0., y: 0., z: 0. };
+            let mut n = Vec3::ZERO;
             if !(ConsumeFloat(&mut n.x, &mut s) as libc::c_int != 0
                 && ConsumeFloat(&mut n.y, &mut s) as libc::c_int != 0
                 && ConsumeFloat(&mut n.z, &mut s) as libc::c_int != 0)
@@ -398,9 +386,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_4: usize = ::core::mem::size_of::<Vec3f>();
+                let mut elemSize_4: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_4: *mut *mut libc::c_void = &mut normals_data
-                    as *mut *mut Vec3f as *mut *mut libc::c_void;
+                    as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_4 = MemRealloc(
                     normals_data as *mut libc::c_void,
                     (normals_capacity as usize).wrapping_mul(elemSize_4 as usize),
@@ -474,8 +462,8 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     .offset(i as isize) as *mut VertexIndices;
                 let mut vertex: Vertex = {
                     let mut init = Vertex {
-                        p: Vec3f { x: 0., y: 0., z: 0. },
-                        n: Vec3f { x: 0., y: 0., z: 0. },
+                        p: Vec3 { x: 0., y: 0., z: 0. },
+                        n: Vec3 { x: 0., y: 0., z: 0. },
                         uv: Vec2::ZERO,
                     };
                     init
@@ -543,13 +531,13 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             while i_0 < vertexIndicesCount {
                 let mut j: int32 = i_0 + 1 as libc::c_int;
                 while j < vertexIndicesCount {
-                    let mut p1: Vec3f = (*vertices
+                    let mut p1: Vec3 = (*vertices
                         .offset((verticesLen - vertexIndicesCount + i_0) as isize))
                         .p;
-                    let mut p2: Vec3f = (*vertices
+                    let mut p2: Vec3 = (*vertices
                         .offset((verticesLen - vertexIndicesCount + j) as isize))
                         .p;
-                    if Vec3f_Equal(p1, p2) {
+                    if p1 == p2 {
                         Obj_Fatal(
                             b".obj data contains a degenerate polygon.\0" as *const u8
                                 as *const libc::c_char,
