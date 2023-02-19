@@ -1,5 +1,5 @@
 use ::libc;
-use glam::{IVec2, IVec3, IVec4};
+use glam::{IVec2, IVec3, IVec4, Vec2};
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
 
@@ -92,12 +92,7 @@ pub struct ShaderVar {
 }
 pub type ShaderVarType = int32;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -605,7 +600,7 @@ pub unsafe extern "C" fn Shader_Start(mut self_0: *mut Shader) {
                         .expect("non-null function pointer")((*var).index, value);
                 }
                 2 => {
-                    let mut value_0: Vec2f = *(pValue as *mut Vec2f);
+                    let mut value_0 = *(pValue as *mut Vec2);
                     __glewUniform2f
                         .expect(
                             "non-null function pointer",

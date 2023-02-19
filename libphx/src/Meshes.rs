@@ -1,5 +1,7 @@
 use ::libc;
 use crate::internal::Memory::*;
+use glam::Vec2;
+
 extern "C" {
     pub type Mesh;
     fn Mesh_Create() -> *mut Mesh;
@@ -25,12 +27,7 @@ extern "C" {
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
     fn sqrt(_: libc::c_double) -> libc::c_double;
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec3f {
@@ -43,7 +40,7 @@ pub struct Vec3f {
 pub struct Vertex {
     pub p: Vec3f,
     pub n: Vec3f,
-    pub uv: Vec2f,
+    pub uv: Vec2,
 }
 #[inline]
 unsafe extern "C" fn Vec3f_Normalize(mut v: Vec3f) -> Vec3f {

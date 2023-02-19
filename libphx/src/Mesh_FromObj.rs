@@ -1,5 +1,7 @@
 use ::libc;
 use crate::internal::Memory::*;
+use glam::Vec2;
+
 extern "C" {
     pub type Mesh;
     fn Fatal(_: cstr, _: ...);
@@ -29,12 +31,7 @@ extern "C" {
 pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec3f {
@@ -47,7 +44,7 @@ pub struct Vec3f {
 pub struct Vertex {
     pub p: Vec3f,
     pub n: Vec3f,
-    pub uv: Vec2f,
+    pub uv: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -233,10 +230,10 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
     positions_data = 0 as *mut Vec3f;
     let mut uvs_size: int32 = 0;
     let mut uvs_capacity: int32 = 0;
-    let mut uvs_data: *mut Vec2f = 0 as *mut Vec2f;
+    let mut uvs_data: *mut Vec2 = 0 as *mut Vec2;
     uvs_capacity = 0 as libc::c_int;
     uvs_size = 0 as libc::c_int;
-    uvs_data = 0 as *mut Vec2f;
+    uvs_data = 0 as *mut Vec2;
     let mut normals_size: int32 = 0;
     let mut normals_capacity: int32 = 0;
     let mut normals_data: *mut Vec3f = 0 as *mut Vec3f;
@@ -259,8 +256,8 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
         as libc::c_long != 0
     {
         uvs_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
-        let mut elemSize_0: usize = ::core::mem::size_of::<Vec2f>();
-        let mut pData_0: *mut *mut libc::c_void = &mut uvs_data as *mut *mut Vec2f
+        let mut elemSize_0: usize = ::core::mem::size_of::<Vec2>();
+        let mut pData_0: *mut *mut libc::c_void = &mut uvs_data as *mut *mut Vec2
             as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
             uvs_data as *mut libc::c_void,
@@ -346,7 +343,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     &mut s,
                 );
             }
-            let mut uv: Vec2f = Vec2f { x: 0., y: 0. };
+            let mut uv = Vec2::ZERO;
             if !(ConsumeFloat(&mut uv.x, &mut s) as libc::c_int != 0
                 && ConsumeFloat(&mut uv.y, &mut s) as libc::c_int != 0)
             {
@@ -362,9 +359,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 } else {
                     1 as libc::c_int
                 };
-                let mut elemSize_3: usize = ::core::mem::size_of::<Vec2f>();
+                let mut elemSize_3: usize = ::core::mem::size_of::<Vec2>();
                 let mut pData_3: *mut *mut libc::c_void = &mut uvs_data
-                    as *mut *mut Vec2f as *mut *mut libc::c_void;
+                    as *mut *mut Vec2 as *mut *mut libc::c_void;
                 *pData_3 = MemRealloc(
                     uvs_data as *mut libc::c_void,
                     (uvs_capacity as usize).wrapping_mul(elemSize_3 as usize),
@@ -479,7 +476,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     let mut init = Vertex {
                         p: Vec3f { x: 0., y: 0., z: 0. },
                         n: Vec3f { x: 0., y: 0., z: 0. },
-                        uv: Vec2f { x: 0., y: 0. },
+                        uv: Vec2::ZERO,
                     };
                     init
                 };

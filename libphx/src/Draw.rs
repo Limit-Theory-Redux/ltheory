@@ -1,5 +1,7 @@
 use ::libc;
 use crate::internal::Memory::*;
+use glam::Vec2;
+
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
@@ -26,6 +28,7 @@ extern "C" {
     fn glVertex3f(x: GLfloat, y: GLfloat, z: GLfloat);
     static mut __glewCheckFramebufferStatus: PFNGLCHECKFRAMEBUFFERSTATUSPROC;
 }
+
 pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
@@ -42,12 +45,7 @@ pub struct Vec3f {
     pub y: libc::c_float,
     pub z: libc::c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -432,7 +430,7 @@ pub unsafe extern "C" fn Draw_PointSize(mut size: libc::c_float) {
     glPointSize(size);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Poly(mut points: *const Vec2f, mut count: libc::c_int) {
+pub unsafe extern "C" fn Draw_Poly(mut points: *const Vec2, mut count: libc::c_int) {
     Metric_AddDrawImm(1 as libc::c_int, count - 2 as libc::c_int, count);
     glBegin(0x9 as libc::c_int as GLenum);
     let mut i: libc::c_int = 0 as libc::c_int;
@@ -459,10 +457,10 @@ pub unsafe extern "C" fn Draw_Poly3(mut points: *const Vec3f, mut count: libc::c
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Quad(
-    mut p1: *const Vec2f,
-    mut p2: *const Vec2f,
-    mut p3: *const Vec2f,
-    mut p4: *const Vec2f,
+    mut p1: *const Vec2,
+    mut p2: *const Vec2,
+    mut p3: *const Vec2,
+    mut p4: *const Vec2,
 ) {
     Metric_AddDrawImm(1 as libc::c_int, 2 as libc::c_int, 4 as libc::c_int);
     glBegin(0x7 as libc::c_int as GLenum);
@@ -647,9 +645,9 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3f, mut r: libc::c_float) 
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Tri(
-    mut v1: *const Vec2f,
-    mut v2: *const Vec2f,
-    mut v3: *const Vec2f,
+    mut v1: *const Vec2,
+    mut v2: *const Vec2,
+    mut v3: *const Vec2,
 ) {
     Metric_AddDrawImm(1 as libc::c_int, 1 as libc::c_int, 3 as libc::c_int);
     glBegin(0x4 as libc::c_int as GLenum);

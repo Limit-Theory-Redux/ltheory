@@ -1,7 +1,8 @@
 use ::libc;
-use glam::IVec2;
+use glam::{IVec2, Vec2};
 use crate::internal::Memory::*;
 use crate::Button::*;
+
 extern "C" {
     pub type Font;
     pub type HashMap;
@@ -98,12 +99,7 @@ pub type int32 = int32_t;
 pub type uint32 = uint32_t;
 pub type uint64 = uint64_t;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -125,12 +121,12 @@ pub struct ImGui {
     pub style: *mut ImGuiStyle,
     pub clipRect: *mut ImGuiClipRect,
     pub cursorStack: *mut ImGuiCursor,
-    pub cursor: Vec2f,
-    pub mouse: Vec2f,
+    pub cursor: Vec2,
+    pub mouse: Vec2,
     pub focus: [uint64; 3],
     pub dragging: uint64,
     pub activate: bool,
-    pub forceSize: Vec2f,
+    pub forceSize: Vec2,
     pub data: *mut HashMap,
     pub layoutPool: *mut MemPool,
     pub widgetPool: *mut MemPool,
@@ -147,14 +143,14 @@ pub struct ImGui {
 #[repr(C)]
 pub struct ImGuiCursor {
     pub prev: *mut ImGuiCursor,
-    pub pos: Vec2f,
+    pub pos: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ImGuiClipRect {
     pub prev: *mut ImGuiClipRect,
-    pub p1: Vec2f,
-    pub p2: Vec2f,
+    pub p1: Vec2,
+    pub p2: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -162,9 +158,9 @@ pub struct ImGuiStyle {
     pub prev: *mut ImGuiStyle,
     pub font: *mut Font,
     pub fontSubheading: *mut Font,
-    pub spacing: Vec2f,
-    pub padding: Vec2f,
-    pub scrollBarSize: Vec2f,
+    pub spacing: Vec2,
+    pub padding: Vec2,
+    pub scrollBarSize: Vec2,
     pub buttonColor: Vec4f,
     pub buttonColorFocus: Vec4f,
     pub frameColor: Vec4f,
@@ -177,17 +173,17 @@ pub struct ImGuiWidget {
     pub prev: *mut ImGuiWidget,
     pub hash: uint64,
     pub index: uint32,
-    pub pos: Vec2f,
-    pub size: Vec2f,
+    pub pos: Vec2,
+    pub size: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ImGuiLayout {
     pub prev: *mut ImGuiLayout,
-    pub lower: Vec2f,
-    pub upper: Vec2f,
-    pub size: Vec2f,
-    pub spacing: Vec2f,
+    pub lower: Vec2,
+    pub upper: Vec2,
+    pub size: Vec2,
+    pub spacing: Vec2,
     pub styleVars: libc::c_int,
     pub horizontal: bool,
 }
@@ -197,8 +193,8 @@ pub struct ImGuiLayer {
     pub parent: *mut ImGuiLayer,
     pub next: *mut ImGuiLayer,
     pub children: *mut ImGuiLayer,
-    pub pos: Vec2f,
-    pub size: Vec2f,
+    pub pos: Vec2,
+    pub size: Vec2,
     pub hash: uint64,
     pub index: uint32,
     pub clip: bool,
@@ -213,8 +209,8 @@ pub struct ImGuiLayer {
 pub struct ImGuiLine {
     pub next: *mut ImGuiLine,
     pub color: Vec4f,
-    pub p1: Vec2f,
-    pub p2: Vec2f,
+    pub p1: Vec2,
+    pub p2: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -222,7 +218,7 @@ pub struct ImGuiText {
     pub next: *mut ImGuiText,
     pub font: *mut Font,
     pub color: Vec4f,
-    pub pos: Vec2f,
+    pub pos: Vec2,
     pub text: cstr,
 }
 #[derive(Copy, Clone)]
@@ -230,8 +226,8 @@ pub struct ImGuiText {
 pub struct ImGuiPanel {
     pub next: *mut ImGuiPanel,
     pub color: Vec4f,
-    pub pos: Vec2f,
-    pub size: Vec2f,
+    pub pos: Vec2,
+    pub size: Vec2,
     pub innerAlpha: libc::c_float,
     pub bevel: libc::c_float,
 }
@@ -240,8 +236,8 @@ pub struct ImGuiPanel {
 pub struct ImGuiRect {
     pub next: *mut ImGuiRect,
     pub color: Vec4f,
-    pub pos: Vec2f,
-    pub size: Vec2f,
+    pub pos: Vec2,
+    pub size: Vec2,
     pub outline: bool,
 }
 #[derive(Copy, Clone)]
@@ -249,36 +245,18 @@ pub struct ImGuiRect {
 pub struct ImGuiTex2D {
     pub next: *mut ImGuiTex2D,
     pub tex: *mut Tex2D,
-    pub pos: Vec2f,
-    pub size: Vec2f,
+    pub pos: Vec2,
+    pub size: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ImGuiData {
-    pub size: Vec2f,
-    pub offset: Vec2f,
+    pub size: Vec2,
+    pub offset: Vec2,
     pub scroll: libc::c_float,
 }
 
-#[inline]
-unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {
-    let mut self_1: Vec2f = {
-        let mut init = Vec2f { x: x, y: y };
-        init
-    };
-    return self_1;
-}
-#[inline]
-unsafe extern "C" fn Vec2f_Add(mut a: Vec2f, mut b: Vec2f) -> Vec2f {
-    let mut self_1: Vec2f = {
-        let mut init = Vec2f {
-            x: a.x + b.x,
-            y: a.y + b.y,
-        };
-        init
-    };
-    return self_1;
-}
+
 #[inline]
 unsafe extern "C" fn Clamp(
     mut t: libc::c_double,
@@ -334,12 +312,12 @@ static mut self_0: ImGui = ImGui {
     style: 0 as *const ImGuiStyle as *mut ImGuiStyle,
     clipRect: 0 as *const ImGuiClipRect as *mut ImGuiClipRect,
     cursorStack: 0 as *const ImGuiCursor as *mut ImGuiCursor,
-    cursor: Vec2f { x: 0., y: 0. },
-    mouse: Vec2f { x: 0., y: 0. },
+    cursor: Vec2::ZERO,
+    mouse: Vec2::ZERO,
     focus: [0; 3],
     dragging: 0,
     activate: false,
-    forceSize: Vec2f { x: 0., y: 0. },
+    forceSize: Vec2::ZERO,
     data: 0 as *const HashMap as *mut HashMap,
     layoutPool: 0 as *const MemPool as *mut MemPool,
     widgetPool: 0 as *const MemPool as *mut MemPool,
@@ -353,7 +331,7 @@ static mut self_0: ImGui = ImGui {
     linePool: 0 as *const MemPool as *mut MemPool,
 };
 #[inline]
-unsafe extern "C" fn EmitLine(mut color: Vec4f, mut p1: Vec2f, mut p2: Vec2f) {
+unsafe extern "C" fn EmitLine(mut color: Vec4f, mut p1: Vec2, mut p2: Vec2) {
     let mut e: *mut ImGuiLine = MemPool_Alloc(self_0.linePool) as *mut ImGuiLine;
     (*e).color = color;
     (*e).p1 = p1;
@@ -364,8 +342,8 @@ unsafe extern "C" fn EmitLine(mut color: Vec4f, mut p1: Vec2f, mut p2: Vec2f) {
 #[inline]
 unsafe extern "C" fn EmitPanel(
     mut color: Vec4f,
-    mut pos: Vec2f,
-    mut size: Vec2f,
+    mut pos: Vec2,
+    mut size: Vec2,
     mut innerAlpha: libc::c_float,
     mut bevel: libc::c_float,
 ) {
@@ -381,8 +359,8 @@ unsafe extern "C" fn EmitPanel(
 #[inline]
 unsafe extern "C" fn EmitRect(
     mut color: Vec4f,
-    mut pos: Vec2f,
-    mut size: Vec2f,
+    mut pos: Vec2,
+    mut size: Vec2,
     mut outline: bool,
 ) {
     let mut e: *mut ImGuiRect = MemPool_Alloc(self_0.rectPool) as *mut ImGuiRect;
@@ -394,7 +372,7 @@ unsafe extern "C" fn EmitRect(
     (*self_0.layer).rectList = e;
 }
 #[inline]
-unsafe extern "C" fn EmitTex2D(mut tex: *mut Tex2D, mut pos: Vec2f, mut size: Vec2f) {
+unsafe extern "C" fn EmitTex2D(mut tex: *mut Tex2D, mut pos: Vec2, mut size: Vec2) {
     let mut e: *mut ImGuiTex2D = MemPool_Alloc(self_0.tex2DPool) as *mut ImGuiTex2D;
     (*e).tex = tex;
     (*e).pos = pos;
@@ -406,7 +384,7 @@ unsafe extern "C" fn EmitTex2D(mut tex: *mut Tex2D, mut pos: Vec2f, mut size: Ve
 unsafe extern "C" fn EmitText(
     mut font: *mut Font,
     mut color: Vec4f,
-    mut pos: Vec2f,
+    mut pos: Vec2,
     mut text: cstr,
 ) {
     let mut e: *mut ImGuiText = MemPool_Alloc(self_0.textPool) as *mut ImGuiText;
@@ -424,12 +402,12 @@ unsafe extern "C" fn GetData(mut hash: uint64) -> *mut ImGuiData {
         data = MemAlloc(::core::mem::size_of::<ImGuiData>())
             as *mut ImGuiData;
         (*data)
-            .size = Vec2f_Create(
+            .size = Vec2::new(
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
         );
         (*data)
-            .offset = Vec2f_Create(
+            .offset = Vec2::new(
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
         );
@@ -455,9 +433,9 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
     (*style).prev = self_0.style;
     (*style).font = font;
     (*style).fontSubheading = fontSubheading;
-    (*style).spacing = Vec2f_Create(8.0f32, 8.0f32);
-    (*style).padding = Vec2f_Create(8.0f32, 8.0f32);
-    (*style).scrollBarSize = Vec2f_Create(4.0f32, 4.0f32);
+    (*style).spacing = Vec2::new(8.0f32, 8.0f32);
+    (*style).padding = Vec2::new(8.0f32, 8.0f32);
+    (*style).scrollBarSize = Vec2::new(4.0f32, 4.0f32);
     (*style).buttonColor = Vec4f_Create(0.1f32, 0.12f32, 0.15f32, 1.0f32);
     (*style).buttonColorFocus = Vec4f_Create(0.1f32, 0.6f32, 1.0f32, 1.0f32);
     (*style).frameColor = Vec4f_Create(0.1f32, 0.12f32, 0.15f32, 0.95f32);
@@ -465,14 +443,14 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
     (*style).textColorFocus = Vec4f_Create(0.1f32, 0.1f32, 0.1f32, 1.0f32);
     self_0.style = style;
 }
-unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2f, mut size: Vec2f) {
+unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2, mut size: Vec2) {
     let mut rect: *mut ImGuiClipRect = MemAlloc(
         ::core::mem::size_of::<ImGuiClipRect>() as usize,
     ) as *mut ImGuiClipRect;
     let mut prev: *mut ImGuiClipRect = self_0.clipRect;
     (*rect).prev = prev;
     (*rect).p1 = pos;
-    (*rect).p2 = Vec2f_Add(pos, size);
+    (*rect).p2 = pos + size;
     if !prev.is_null() {
         (*rect)
             .p1
@@ -499,7 +477,7 @@ unsafe extern "C" fn ImGui_PopClipRect() {
     MemFree(rect as *const libc::c_void);
 }
 #[inline]
-unsafe extern "C" fn IsClipped(mut p: Vec2f) -> bool {
+unsafe extern "C" fn IsClipped(mut p: Vec2) -> bool {
     if (self_0.clipRect).is_null() {
         return 0 as libc::c_int != 0;
     }
@@ -507,7 +485,7 @@ unsafe extern "C" fn IsClipped(mut p: Vec2f) -> bool {
         || (*self_0.clipRect).p2.x < p.x || (*self_0.clipRect).p2.y < p.y;
 }
 #[inline]
-unsafe extern "C" fn Advance(mut size: Vec2f) {
+unsafe extern "C" fn Advance(mut size: Vec2) {
     if (*self_0.layout).horizontal {
         self_0.cursor.x += size.x;
         (*self_0.layout).spacing.x = (*self_0.style).spacing.x;
@@ -562,9 +540,9 @@ unsafe extern "C" fn TransformSize(
 }
 #[inline]
 unsafe extern "C" fn RectContains(
-    mut pos: Vec2f,
-    mut size: Vec2f,
-    mut p: Vec2f,
+    mut pos: Vec2,
+    mut size: Vec2,
+    mut p: Vec2,
 ) -> bool {
     return pos.x <= p.x && p.x <= pos.x + size.x && pos.y <= p.y
         && p.y <= pos.y + size.y;
@@ -586,8 +564,8 @@ unsafe extern "C" fn ImGui_PushLayout(
         as *mut ImGuiLayout;
     (*layout).prev = self_0.layout;
     (*layout).lower = self_0.cursor;
-    (*layout).upper = Vec2f_Create(self_0.cursor.x + sx, self_0.cursor.y + sy);
-    (*layout).size = Vec2f_Create(sx, sy);
+    (*layout).upper = Vec2::new(self_0.cursor.x + sx, self_0.cursor.y + sy);
+    (*layout).size = Vec2::new(sx, sy);
     (*layout).styleVars = 0 as libc::c_int;
     (*layout).horizontal = horizontal;
     self_0.layout = layout;
@@ -634,8 +612,8 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: libc::c_float, mut sy: libc::c_fl
         as *mut ImGuiWidget;
     (*widget).prev = self_0.widget;
     (*widget).index = 0 as libc::c_int as uint32;
-    (*widget).pos = Vec2f_Create(self_0.cursor.x, self_0.cursor.y);
-    (*widget).size = Vec2f_Create(sx, sy);
+    (*widget).pos = Vec2::new(self_0.cursor.x, self_0.cursor.y);
+    (*widget).size = Vec2::new(sx, sy);
     if !(self_0.widget).is_null() {
         (*self_0.widget).index = ((*self_0.widget).index).wrapping_add(1);
         (*widget)
@@ -684,8 +662,8 @@ unsafe extern "C" fn ImGui_FocusLast(mut focusType: libc::c_int) -> bool {
 unsafe extern "C" fn TryFocusRect(
     mut hash: uint64,
     mut focusType: libc::c_int,
-    mut pos: Vec2f,
-    mut size: Vec2f,
+    mut pos: Vec2,
+    mut size: Vec2,
 ) -> bool {
     if self_0.focus[focusType as usize] == 0 as libc::c_ulonglong {
         if !IsClipped(self_0.mouse)
@@ -973,7 +951,7 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: libc::c_float, mut sy: libc::c_floa
         self_0.focus[FocusType_Mouse as usize] = self_0.dragging;
     }
     self_0
-        .cursor = Vec2f_Create(
+        .cursor = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
@@ -1006,7 +984,7 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: libc::c_float, mut sy: libc::c_floa
     self_0.mouse.y = mouse.y as libc::c_float;
     self_0.activate = Input_GetPressed(Button_Mouse_Left);
     self_0
-        .forceSize = Vec2f_Create(
+        .forceSize = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
@@ -1076,9 +1054,9 @@ pub unsafe extern "C" fn ImGui_PopCursor() {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_SetCursor(mut cx: libc::c_float, mut cy: libc::c_float) {
     TransformPos(&mut cx, &mut cy);
-    self_0.cursor = Vec2f_Create(cx, cy);
+    self_0.cursor = Vec2::new(cx, cy);
     (*self_0.layout)
-        .spacing = Vec2f_Create(
+        .spacing = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
@@ -1192,11 +1170,11 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
     let mut scroll: libc::c_float = (*data).scroll;
     let mut virtualSize: libc::c_float = self_0.cursor.y - (*layout).lower.y;
     let mut scrollMax: libc::c_float = virtualSize - (*layout).size.y;
-    let mut scrollPos: Vec2f = Vec2f_Create(
+    let mut scrollPos = Vec2::new(
         (*layout).lower.x + (*layout).size.x,
         (*layout).lower.y,
     );
-    let mut scrollSize: Vec2f = Vec2f_Create(
+    let mut scrollSize = Vec2::new(
         (*self_0.style).scrollBarSize.x,
         (*layout).size.y,
     );
@@ -1211,8 +1189,8 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
         ) as libc::c_float;
         let mut handleOffset: libc::c_float = ((*layout).size.y - handleSizeY)
             * (scroll / scrollMax);
-        let mut handlePos: Vec2f = Vec2f_Create(scrollPos.x, scrollPos.y + handleOffset);
-        let mut handleSize: Vec2f = Vec2f_Create(
+        let mut handlePos = Vec2::new(scrollPos.x, scrollPos.y + handleOffset);
+        let mut handleSize = Vec2::new(
             (*self_0.style).scrollBarSize.x,
             handleSizeY,
         );
@@ -1285,7 +1263,7 @@ pub unsafe extern "C" fn ImGui_PushStylePadding(
     mut py: libc::c_float,
 ) {
     ImGui_PushStyle();
-    (*self_0.style).padding = Vec2f_Create(px, py);
+    (*self_0.style).padding = Vec2::new(px, py);
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PushStyleSpacing(
@@ -1293,7 +1271,7 @@ pub unsafe extern "C" fn ImGui_PushStyleSpacing(
     mut y: libc::c_float,
 ) {
     ImGui_PushStyle();
-    (*self_0.style).spacing = Vec2f_Create(x, y);
+    (*self_0.style).spacing = Vec2::new(x, y);
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PushStyleTextColor(
@@ -1357,13 +1335,13 @@ pub unsafe extern "C" fn ImGui_ButtonEx(
     );
     let mut bound: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*self_0.style).font, &mut bound, label);
-    let mut labelPos: Vec2f = Vec2f_Create(
+    let mut labelPos = Vec2::new(
         (*self_0.widget).pos.x
             + 0.5f32 * ((*self_0.widget).size.x - bound.x as libc::c_float),
         (*self_0.widget).pos.y
             + 0.5f32 * ((*self_0.widget).size.y - bound.y as libc::c_float),
     );
-    let mut labelSize: Vec2f = Vec2f_Create(
+    let mut labelSize = Vec2::new(
         bound.x as libc::c_float,
         bound.y as libc::c_float,
     );
@@ -1374,7 +1352,7 @@ pub unsafe extern "C" fn ImGui_ButtonEx(
         } else {
             (*self_0.style).textColor
         },
-        Vec2f_Create(labelPos.x, labelPos.y + bound.y as libc::c_float),
+        Vec2::new(labelPos.x, labelPos.y + bound.y as libc::c_float),
         label,
     );
     ImGui_EndWidget();
@@ -1401,11 +1379,11 @@ pub unsafe extern "C" fn ImGui_Checkbox(mut value: bool) -> bool {
         } else {
             (*self_0.style).buttonColor
         },
-        Vec2f_Create(
+        Vec2::new(
             (*self_0.widget).pos.x + 2 as libc::c_int as libc::c_float,
             (*self_0.widget).pos.y + 2 as libc::c_int as libc::c_float,
         ),
-        Vec2f_Create(
+        Vec2::new(
             (*self_0.widget).size.x - 4 as libc::c_int as libc::c_float,
             (*self_0.widget).size.y - 4 as libc::c_int as libc::c_float,
         ),
@@ -1432,7 +1410,7 @@ pub unsafe extern "C" fn ImGui_Divider() {
     EmitLine(
         (*self_0.style).buttonColorFocus,
         (*self_0.widget).pos,
-        Vec2f_Create(
+        Vec2::new(
             (*self_0.widget).pos.x
                 + (if (*self_0.layout).horizontal as libc::c_int != 0 {
                     0 as libc::c_int as libc::c_float
@@ -1481,7 +1459,7 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: cstr) -> bool {
         } else {
             (*self_0.style).textColor
         },
-        Vec2f_Create(
+        Vec2::new(
             (*self_0.widget).pos.x + 2.0f32,
             (*self_0.widget).pos.y + bound.y as libc::c_float
                 + 0.5f32 * ((*self_0.widget).size.y - bound.y as libc::c_float),
@@ -1495,7 +1473,7 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: cstr) -> bool {
 pub unsafe extern "C" fn ImGui_Tex2D(mut tex: *mut Tex2D) {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Tex2D_GetSize(tex, &mut size);
-    let mut sizef: Vec2f = Vec2f_Create(
+    let mut sizef = Vec2::new(
         size.x as libc::c_float,
         size.y as libc::c_float,
     );
@@ -1546,7 +1524,7 @@ pub unsafe extern "C" fn ImGui_TextEx(
     EmitText(
         font,
         Vec4f_Create(r, g, b, a),
-        Vec2f_Create(
+        Vec2::new(
             (*self_0.widget).pos.x,
             (*self_0.widget).pos.y + bound.y as libc::c_float
                 + 0.5f32 * ((*self_0.widget).size.y - bound.y as libc::c_float),

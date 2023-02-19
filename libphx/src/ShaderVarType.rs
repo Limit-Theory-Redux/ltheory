@@ -1,5 +1,5 @@
 use ::libc;
-use glam::{IVec2, IVec3, IVec4};
+use glam::{IVec2, IVec3, IVec4, Vec2};
 use crate::internal::Memory::*;
 extern "C" {
     pub type Tex1D;
@@ -13,12 +13,7 @@ pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -97,7 +92,7 @@ pub unsafe extern "C" fn ShaderVarType_GetSize(
             return ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
                 as libc::c_int;
         }
-        2 => return ::core::mem::size_of::<Vec2f>() as libc::c_ulong as libc::c_int,
+        2 => return ::core::mem::size_of::<Vec2>() as libc::c_ulong as libc::c_int,
         3 => return ::core::mem::size_of::<Vec3f>() as libc::c_ulong as libc::c_int,
         4 => return ::core::mem::size_of::<Vec4f>() as libc::c_ulong as libc::c_int,
         5 => return ::core::mem::size_of::<libc::c_int>() as libc::c_ulong as libc::c_int,

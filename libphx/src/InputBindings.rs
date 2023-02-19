@@ -1,6 +1,7 @@
 use ::libc;
 use crate::internal::Memory::*;
 use crate::State::*;
+use glam::Vec2;
 
 extern "C" {
     pub type lua_State;
@@ -34,18 +35,13 @@ pub struct InputBinding {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct AggregateAxis2D {
-    pub value: Vec2f,
+    pub value: Vec2,
     pub onChanged: LuaRef,
 }
 pub type LuaRef = lua_Integer;
 pub type lua_Integer = ptrdiff_t;
 pub type ptrdiff_t = __darwin_ptrdiff_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct AggregateAxis {
@@ -137,20 +133,6 @@ pub static mut InputBindings_DefaultExponent: libc::c_float = 0.;
 pub static mut InputBindings_DefaultReleaseThreshold: libc::c_float = 0.;
 #[no_mangle]
 pub static mut InputBindings_DefaultPressThreshold: libc::c_float = 0.;
-#[inline]
-unsafe extern "C" fn Vec2f_Length(mut v: Vec2f) -> libc::c_float {
-    return Sqrtf(v.x * v.x + v.y * v.y);
-}
-#[inline]
-unsafe extern "C" fn Vec2f_IMuls(mut a: *mut Vec2f, mut b: libc::c_float) {
-    (*a).x *= b;
-    (*a).y *= b;
-}
-#[inline]
-unsafe extern "C" fn Vec2f_Equal(mut a: Vec2f, mut b: Vec2f) -> bool {
-    let mut self_1: bool = a.x == b.x && a.y == b.y;
-    return self_1;
-}
 
 static mut BindCount: libc::c_int = 4 as libc::c_int;
 static mut self_0: InputBindings = {
@@ -205,8 +187,8 @@ unsafe extern "C" fn InputBindings_RaiseCallback(
 }
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBinding) {
-    let mut value: Vec2f = {
-        let mut init = Vec2f { x: 0., y: 0. };
+    let mut value = {
+        let mut init = Vec2::ZERO;
         init
     };
     let mut axisValues: [*mut libc::c_float; 2] = [&mut value.x, &mut value.y];
@@ -243,12 +225,12 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
         ) as libc::c_float;
         iAxis += 1;
     }
-    let mut len: libc::c_float = Vec2f_Length(value);
+    let mut len: libc::c_float = value.length();
     if len > 1.0f32 {
-        Vec2f_IMuls(&mut value, 1.0f32 / len);
+        value /= 1.0f32 / len;
     }
     let mut axis2D: *mut AggregateAxis2D = &mut (*binding).axis2D;
-    if !Vec2f_Equal(value, (*axis2D).value) {
+    if value != (*axis2D).value {
         (*axis2D).value = value;
         InputBindings_RaiseCallback(
             b"Changed\0" as *const u8 as *const libc::c_char,
@@ -474,7 +456,7 @@ pub unsafe extern "C" fn InputBinding_GetValue(
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetVecValue(
     mut binding: *mut InputBinding,
-) -> Vec2f {
+) -> Vec2 {
     return (*binding).axis2D.value;
 }
 #[no_mangle]

@@ -1,5 +1,7 @@
 use ::libc;
 use crate::internal::Memory::*;
+use glam::Vec2;
+
 extern "C" {
     pub type Mesh;
     pub type Matrix;
@@ -55,18 +57,13 @@ pub struct Vec3f {
     pub y: libc::c_float,
     pub z: libc::c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vertex {
     pub p: Vec3f,
     pub n: Vec3f,
-    pub uv: Vec2f,
+    pub uv: Vec2,
 }
 #[inline]
 unsafe extern "C" fn Maxf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {

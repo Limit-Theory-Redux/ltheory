@@ -17,14 +17,14 @@
 //   T self = { Abs##prefix(v.x), Abs##prefix(v.y) }; return self; }
 //
 // Vec2_Abs(IVec2, i)
-// Vec2_Abs(Vec2f, f)
+// Vec2_Abs(Vec2, f)
 // Vec2_Abs(Vec2d,)
 //
 // #define Vec2_IAbs(T, prefix) inline void T##_IAbs(T* v) { \
 //   v->x = Abs##prefix(v->x); v->y = Abs##prefix(v->y); }
 //
 // Vec2_IAbs(IVec2, i)
-// Vec2_IAbs(Vec2f, f)
+// Vec2_IAbs(Vec2, f)
 // Vec2_IAbs(Vec2d,)
 //
 // #define Vec2_Equal(T) inline bool T##_Equal(T a, T b) { \
@@ -32,33 +32,33 @@
 //   return self; }
 //
 // Vec2_Equal(IVec2)
-// Vec2_Equal(Vec2f)
+// Vec2_Equal(Vec2)
 // Vec2_Equal(Vec2d)
 //
 // #define Vec2_Length(T, sub, prefix) inline sub T##_Length(T v) { \
 //   return Sqrt##prefix(v.x * v.x + v.y * v.y); }
 //
-// Vec2_Length(Vec2f, float, f)
+// Vec2_Length(Vec2, float, f)
 // Vec2_Length(Vec2d, double,)
 //
 // #define Vec2_LengthSquared(T, sub) inline sub T##_LengthSquared(T v) { \
 //   return v.x * v.x + v.y * v.y; }
 //
-// Vec2_LengthSquared(Vec2f, float)
+// Vec2_LengthSquared(Vec2, float)
 // Vec2_LengthSquared(Vec2d, double)
 //
 // #define Vec2_Normalize(T, sub) inline T T##_Normalize(T v) { \
 //   sub l = T##_Length(v); \
 //   T self = { v.x / l, v.y / l }; return self; }
 //
-// Vec2_Normalize(Vec2f, float)
+// Vec2_Normalize(Vec2, float)
 // Vec2_Normalize(Vec2d, double)
 //
 // #define Vec2_Dot(T, sub) inline sub T##_Dot(T a, T b) { \
 //   return a.x * b.x + a.y * b.y; }
 //
 // Vec2_Dot(IVec2, int)
-// Vec2_Dot(Vec2f, float)
+// Vec2_Dot(Vec2, float)
 // Vec2_Dot(Vec2d, double)
 //
 // #define Vec2_Validate(T, sub, prefix) inline Error T##_Validate(T v) { \
@@ -67,7 +67,7 @@
 //   e |= Float_Validate##prefix(v.y); \
 //   return e; }
 //
-// Vec2_Validate(Vec2f, float, f)
+// Vec2_Validate(Vec2, float, f)
 // Vec2_Validate(Vec2d, double,)
 //
 // #define Vec2_ToString(T, sub, fmt) static inline cstr T##_ToString(T* v) { \

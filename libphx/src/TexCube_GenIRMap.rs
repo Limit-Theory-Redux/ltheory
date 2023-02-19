@@ -5,6 +5,7 @@ use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::TexFormat::*;
 use crate::TexFilter::*;
+use glam::Vec2;
 
 extern "C" {
     pub type RNG;
@@ -77,25 +78,12 @@ pub struct Vec3f {
     pub y: libc::c_float,
     pub z: libc::c_float,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 pub type CubeFace = int32;
 pub type DataFormat = int32;
 pub type PixelFormat = int32;
 pub type TexFilter = int32;
 pub type TexFormat = int32;
-#[inline]
-unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {
-    let mut self_0: Vec2f = {
-        let mut init = Vec2f { x: x, y: y };
-        init
-    };
-    return self_0;
-}
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
     return sqrt(t);
@@ -269,10 +257,10 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         let mut ggxWidth: libc::c_double = level as libc::c_double
             / levels as libc::c_double;
         ggxWidth *= ggxWidth;
-        let mut sampleBuffer: *mut Vec2f = MemAlloc(
-            (::core::mem::size_of::<Vec2f>())
+        let mut sampleBuffer: *mut Vec2 = MemAlloc(
+            (::core::mem::size_of::<Vec2>())
                 .wrapping_mul(sampleCount as usize),
-        ) as *mut Vec2f;
+        ) as *mut Vec2;
         let mut sampleTex: *mut Tex2D = Tex2D_Create(
             sampleCount,
             1 as libc::c_int,
@@ -290,7 +278,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             *sampleBuffer
                 .offset(
                     i_1 as isize,
-                ) = Vec2f_Create(pitch as libc::c_float, yaw as libc::c_float);
+                ) = Vec2::new(pitch as libc::c_float, yaw as libc::c_float);
             i_1 += 1;
         }
         Tex2D_SetData(

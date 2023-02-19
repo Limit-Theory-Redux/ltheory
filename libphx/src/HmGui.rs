@@ -1,7 +1,8 @@
 use ::libc;
-use glam::IVec2;
+use glam::{IVec2, Vec2};
 use crate::internal::Memory::*;
 use crate::Button::*;
+
 extern "C" {
     pub type Font;
     pub type HashMap;
@@ -86,12 +87,7 @@ pub type int32 = int32_t;
 pub type uint32 = uint32_t;
 pub type uint64 = uint64_t;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -111,11 +107,11 @@ pub struct HmGuiGroup {
     pub layout: uint32,
     pub children: uint32,
     pub focusStyle: uint32,
-    pub paddingLower: Vec2f,
-    pub paddingUpper: Vec2f,
-    pub offset: Vec2f,
-    pub maxSize: Vec2f,
-    pub totalStretch: Vec2f,
+    pub paddingLower: Vec2,
+    pub paddingUpper: Vec2,
+    pub offset: Vec2,
+    pub maxSize: Vec2,
+    pub totalStretch: Vec2,
     pub spacing: libc::c_float,
     pub frameOpacity: libc::c_float,
     pub clip: bool,
@@ -131,11 +127,11 @@ pub struct HmGuiWidget {
     pub prev: *mut HmGuiWidget,
     pub hash: uint64,
     pub type_0: uint32,
-    pub pos: Vec2f,
-    pub size: Vec2f,
-    pub minSize: Vec2f,
-    pub align: Vec2f,
-    pub stretch: Vec2f,
+    pub pos: Vec2,
+    pub size: Vec2,
+    pub minSize: Vec2,
+    pub align: Vec2,
+    pub stretch: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -147,15 +143,15 @@ pub struct HmGui {
     pub clipRect: *mut HmGuiClipRect,
     pub data: *mut HashMap,
     pub focus: [uint64; 2],
-    pub focusPos: Vec2f,
+    pub focusPos: Vec2,
     pub activate: bool,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HmGuiClipRect {
     pub prev: *mut HmGuiClipRect,
-    pub lower: Vec2f,
-    pub upper: Vec2f,
+    pub lower: Vec2,
+    pub upper: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -178,9 +174,9 @@ pub struct HmGuiText {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HmGuiData {
-    pub offset: Vec2f,
-    pub minSize: Vec2f,
-    pub size: Vec2f,
+    pub offset: Vec2,
+    pub minSize: Vec2,
+    pub size: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -194,14 +190,7 @@ pub struct HmGuiRect {
     pub widget: HmGuiWidget,
     pub color: Vec4f,
 }
-#[inline]
-unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {
-    let mut self_1: Vec2f = {
-        let mut init = Vec2f { x: x, y: y };
-        init
-    };
-    return self_1;
-}
+
 #[inline]
 unsafe extern "C" fn Clamp(
     mut t: libc::c_double,
@@ -256,7 +245,7 @@ static mut self_0: HmGui = HmGui {
     clipRect: 0 as *const HmGuiClipRect as *mut HmGuiClipRect,
     data: 0 as *const HashMap as *mut HashMap,
     focus: [0; 2],
-    focusPos: Vec2f { x: 0., y: 0. },
+    focusPos: Vec2::ZERO,
     activate: false,
 };
 static mut init_hmgui: bool = 0 as libc::c_int != 0;
@@ -292,27 +281,27 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: uint3
     }
     (*e).type_0 = type_0;
     (*e)
-        .pos = Vec2f_Create(
+        .pos = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
     (*e)
-        .size = Vec2f_Create(
+        .size = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
     (*e)
-        .minSize = Vec2f_Create(
+        .minSize = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
     (*e)
-        .align = Vec2f_Create(
+        .align = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
     (*e)
-        .stretch = Vec2f_Create(
+        .stretch = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
@@ -329,21 +318,21 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: uint32) {
     (*e).children = 0 as libc::c_int as uint32;
     (*e).focusStyle = 0 as libc::c_int as uint32;
     (*e)
-        .paddingLower = Vec2f_Create(
+        .paddingLower = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
     (*e)
-        .paddingUpper = Vec2f_Create(
+        .paddingUpper = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
     (*e)
-        .offset = Vec2f_Create(
+        .offset = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
-    (*e).maxSize = Vec2f_Create(1e30f32, 1e30f32);
+    (*e).maxSize = Vec2::new(1e30f32, 1e30f32);
     (*e).spacing = (*self_0.style).spacing;
     (*e).frameOpacity = 0.0f32;
     (*e).clip = 0 as libc::c_int != 0;
@@ -359,7 +348,7 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: uint32) {
         1 => {
             (*e)
                 .widget
-                .stretch = Vec2f_Create(
+                .stretch = Vec2::new(
                 1 as libc::c_int as libc::c_float,
                 1 as libc::c_int as libc::c_float,
             );
@@ -367,7 +356,7 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: uint32) {
         2 => {
             (*e)
                 .widget
-                .stretch = Vec2f_Create(
+                .stretch = Vec2::new(
                 1 as libc::c_int as libc::c_float,
                 0 as libc::c_int as libc::c_float,
             );
@@ -375,7 +364,7 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: uint32) {
         3 => {
             (*e)
                 .widget
-                .stretch = Vec2f_Create(
+                .stretch = Vec2::new(
                 0 as libc::c_int as libc::c_float,
                 1 as libc::c_int as libc::c_float,
             );
@@ -413,17 +402,17 @@ unsafe extern "C" fn HmGui_GetData(mut g: *mut HmGuiGroup) -> *mut HmGuiData {
         data = MemAlloc(::core::mem::size_of::<HmGuiData>())
             as *mut HmGuiData;
         (*data)
-            .offset = Vec2f_Create(
+            .offset = Vec2::new(
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
         );
         (*data)
-            .minSize = Vec2f_Create(
+            .minSize = Vec2::new(
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
         );
         (*data)
-            .size = Vec2f_Create(
+            .size = Vec2::new(
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
         );
@@ -441,7 +430,7 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
     }
     (*g)
         .widget
-        .minSize = Vec2f_Create(
+        .minSize = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
@@ -517,7 +506,7 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
 }
 unsafe extern "C" fn HmGui_LayoutWidget(
     mut e: *mut HmGuiWidget,
-    mut pos: Vec2f,
+    mut pos: Vec2,
     mut sx: libc::c_float,
     mut sy: libc::c_float,
 ) {
@@ -529,8 +518,8 @@ unsafe extern "C" fn HmGui_LayoutWidget(
     (*e).pos.y += (*e).align.y * (sy - (*e).size.y);
 }
 unsafe extern "C" fn HmGui_LayoutGroup(mut g: *mut HmGuiGroup) {
-    let mut pos: Vec2f = (*g).widget.pos;
-    let mut size: Vec2f = (*g).widget.size;
+    let mut pos = (*g).widget.pos;
+    let mut size = (*g).widget.size;
     let mut extra: libc::c_float = 0 as libc::c_int as libc::c_float;
     let mut totalStretch: libc::c_float = 0 as libc::c_int as libc::c_float;
     pos.x += (*g).paddingLower.x + (*g).offset.x;
@@ -596,7 +585,7 @@ unsafe extern "C" fn HmGui_LayoutGroup(mut g: *mut HmGuiGroup) {
     }
 }
 #[inline]
-unsafe extern "C" fn IsClipped(mut g: *mut HmGuiGroup, mut p: Vec2f) -> bool {
+unsafe extern "C" fn IsClipped(mut g: *mut HmGuiGroup, mut p: Vec2) -> bool {
     return p.x < (*g).widget.pos.x || p.y < (*g).widget.pos.y
         || (*g).widget.pos.x + (*g).widget.size.x < p.x
         || (*g).widget.pos.y + (*g).widget.size.y < p.y;
@@ -812,11 +801,11 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: libc::c_float, mut sy: libc::c_floa
     (*self_0.group).clip = 1 as libc::c_int != 0;
     (*self_0.group)
         .widget
-        .pos = Vec2f_Create(
+        .pos = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
-    (*self_0.group).widget.size = Vec2f_Create(sx, sy);
+    (*self_0.group).widget.size = Vec2::new(sx, sy);
     self_0.root = self_0.group;
 }
 #[no_mangle]
@@ -835,7 +824,7 @@ pub unsafe extern "C" fn HmGui_End() {
     }
     let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);
-    self_0.focusPos = Vec2f_Create(mouse.x as libc::c_float, mouse.y as libc::c_float);
+    self_0.focusPos = Vec2::new(mouse.x as libc::c_float, mouse.y as libc::c_float);
     HmGui_CheckFocus(self_0.root);
     Profiler_End();
 }
@@ -1078,7 +1067,7 @@ pub unsafe extern "C" fn HmGui_Image(mut image: *mut Tex2D) {
     (*e).image = image;
     (*e)
         .widget
-        .stretch = Vec2f_Create(
+        .stretch = Vec2::new(
         1 as libc::c_int as libc::c_float,
         1 as libc::c_int as libc::c_float,
     );
@@ -1097,7 +1086,7 @@ pub unsafe extern "C" fn HmGui_Rect(
     ) as *mut HmGuiRect;
     HmGui_InitWidget(&mut (*e).widget, 2 as libc::c_int as uint32);
     (*e).color = Vec4f_Create(r, g, b, a);
-    (*e).widget.minSize = Vec2f_Create(sx, sy);
+    (*e).widget.minSize = Vec2::new(sx, sy);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Text(mut text: cstr) {
@@ -1138,17 +1127,17 @@ pub unsafe extern "C" fn HmGui_TextEx(
     (*e).color = Vec4f_Create(r, g, b, a);
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*e).font, &mut size, (*e).text);
-    (*e).widget.minSize = Vec2f_Create(size.x as libc::c_float, size.y as libc::c_float);
+    (*e).widget.minSize = Vec2::new(size.x as libc::c_float, size.y as libc::c_float);
     HmGui_SetAlign(0.0f32, 1.0f32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetAlign(mut ax: libc::c_float, mut ay: libc::c_float) {
-    (*self_0.last).align = Vec2f_Create(ax, ay);
+    (*self_0.last).align = Vec2::new(ax, ay);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPadding(mut px: libc::c_float, mut py: libc::c_float) {
-    (*self_0.group).paddingLower = Vec2f_Create(px, py);
-    (*self_0.group).paddingUpper = Vec2f_Create(px, py);
+    (*self_0.group).paddingLower = Vec2::new(px, py);
+    (*self_0.group).paddingUpper = Vec2::new(px, py);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPaddingEx(
@@ -1157,8 +1146,8 @@ pub unsafe extern "C" fn HmGui_SetPaddingEx(
     mut right: libc::c_float,
     mut bottom: libc::c_float,
 ) {
-    (*self_0.group).paddingLower = Vec2f_Create(left, top);
-    (*self_0.group).paddingUpper = Vec2f_Create(right, bottom);
+    (*self_0.group).paddingLower = Vec2::new(left, top);
+    (*self_0.group).paddingUpper = Vec2::new(right, bottom);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPaddingLeft(mut padding: libc::c_float) {
@@ -1182,7 +1171,7 @@ pub unsafe extern "C" fn HmGui_SetSpacing(mut spacing: libc::c_float) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetStretch(mut x: libc::c_float, mut y: libc::c_float) {
-    (*self_0.last).stretch = Vec2f_Create(x, y);
+    (*self_0.last).stretch = Vec2::new(x, y);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_GroupHasFocus(mut type_0: libc::c_int) -> bool {

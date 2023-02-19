@@ -1,5 +1,6 @@
 use ::libc;
 use crate::internal::Memory::*;
+use glam::Vec2;
 extern "C" {
     pub type StrMap;
     pub type Tex1D;
@@ -20,12 +21,7 @@ pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec3f {
@@ -152,14 +148,11 @@ pub unsafe extern "C" fn ShaderVar_PushFloat2(
     mut x: libc::c_float,
     mut y: libc::c_float,
 ) {
-    let mut value: Vec2f = {
-        let mut init = Vec2f { x: x, y: y };
-        init
-    };
+    let mut value = Vec2::new(x, y);
     ShaderVar_Push(
         name,
         0x2 as libc::c_int,
-        &mut value as *mut Vec2f as *const libc::c_void,
+        &mut value as *mut Vec2 as *const libc::c_void,
     );
 }
 #[no_mangle]

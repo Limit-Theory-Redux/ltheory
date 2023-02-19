@@ -3,6 +3,7 @@ use libc::c_int;
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
 use memoffset::{offset_of, span_of};
+use glam::Vec2;
 
 extern "C" {
     pub type Bytes;
@@ -86,14 +87,9 @@ pub struct Mesh {
 pub struct Vertex {
     pub p: Vec3f,
     pub n: Vec3f,
-    pub uv: Vec2f,
+    pub uv: Vec2,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec3f {
@@ -335,15 +331,7 @@ unsafe extern "C" fn Vec3f_Dot(mut a: Vec3f, mut b: Vec3f) -> libc::c_float {
 }
 
 #[inline]
-unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {
-    let mut self_0: Vec2f = {
-        let mut init = Vec2f { x: x, y: y };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec2f_Validate(mut v: Vec2f) -> Error {
+unsafe extern "C" fn Vec2_Validate(mut v: Vec2) -> Error {
     let mut e: Error = 0 as libc::c_int as Error;
     e |= Float_Validatef(v.x);
     e |= Float_Validatef(v.y);
@@ -630,7 +618,7 @@ pub unsafe extern "C" fn Mesh_AddVertex(
     let mut newVertex: *mut Vertex = ((*self_0).vertex_data).offset(fresh1 as isize);
     (*newVertex).p = Vec3f_Create(px, py, pz);
     (*newVertex).n = Vec3f_Create(nx, ny, nz);
-    (*newVertex).uv = Vec2f_Create(u, v);
+    (*newVertex).uv = Vec2::new(u, v);
     (*self_0).version = ((*self_0).version).wrapping_add(1);
 }
 #[no_mangle]
@@ -882,7 +870,7 @@ pub unsafe extern "C" fn Mesh_Validate(mut self_0: *mut Mesh) -> Error {
         if e_0 != 0 as libc::c_int as libc::c_uint {
             return 0x800000 as libc::c_int as libc::c_uint | e_0;
         }
-        e_0 = Vec2f_Validate((*v).uv);
+        e_0 = Vec2_Validate((*v).uv);
         if e_0 != 0 as libc::c_int as libc::c_uint {
             return 0x1000000 as libc::c_int as libc::c_uint | e_0;
         }
