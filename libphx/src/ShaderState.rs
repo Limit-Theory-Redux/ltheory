@@ -1,5 +1,7 @@
 use ::libc;
 use crate::internal::Memory::*;
+use glam::{Vec2, Vec3, Vec4};
+
 extern "C" {
     pub type Shader;
     pub type TexCube;
@@ -58,36 +60,15 @@ pub struct Elem {
 #[repr(C)]
 pub union C2RustUnnamed {
     pub asFloat: libc::c_float,
-    pub asFloat2: Vec2f,
-    pub asFloat3: Vec3f,
-    pub asFloat4: Vec4f,
+    pub asFloat2: Vec2,
+    pub asFloat3: Vec3,
+    pub asFloat4: Vec4,
     pub asInt: libc::c_int,
     pub asMatrix: *mut Matrix,
     pub asTex1D: *mut Tex1D,
     pub asTex2D: *mut Tex2D,
     pub asTex3D: *mut Tex3D,
     pub asTexCube: *mut TexCube,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec3f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
 }
 pub type GLint = libc::c_int;
 pub type GLfloat = libc::c_float;
@@ -103,40 +84,6 @@ pub type PFNGLUNIFORM4FPROC = Option::<
     unsafe extern "C" fn(GLint, GLfloat, GLfloat, GLfloat, GLfloat) -> (),
 >;
 
-
-#[inline]
-unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {
-    let mut self_0: Vec2f = {
-        let mut init = Vec2f { x: x, y: y };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec3f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-) -> Vec3f {
-    let mut self_0: Vec3f = {
-        let mut init = Vec3f { x: x, y: y, z: z };
-        init
-    };
-    return self_0;
-}
-#[inline]
-unsafe extern "C" fn Vec4f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
-) -> Vec4f {
-    let mut self_0: Vec4f = {
-        let mut init = Vec4f { x: x, y: y, z: z, w: w };
-        init
-    };
-    return self_0;
-}
 #[no_mangle]
 pub static mut ElemType_Float: uint32 = 1 as libc::c_int as uint32;
 #[no_mangle]
@@ -271,7 +218,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
         };
         init
     };
-    elem.data.asFloat2 = Vec2f_Create(x, y);
+    elem.data.asFloat2 = Vec2::new(x, y);
     if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
         != 0
     {
@@ -309,7 +256,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
         };
         init
     };
-    elem.data.asFloat3 = Vec3f_Create(x, y, z);
+    elem.data.asFloat3 = Vec3::new(x, y, z);
     if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
         != 0
     {
@@ -348,7 +295,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
         };
         init
     };
-    elem.data.asFloat4 = Vec4f_Create(x, y, z, w);
+    elem.data.asFloat4 = Vec4::new(x, y, z, w);
     if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
         != 0
     {

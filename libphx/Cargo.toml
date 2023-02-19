@@ -13,6 +13,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 libc = "0.2"
+glam = "0.22.0"
 stb = "0.3.2"
 sdl2-sys = { version = "0.35.2", features = ["bundled", "static-link"] }
 memoffset = "0.8"

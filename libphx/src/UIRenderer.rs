@@ -1,5 +1,7 @@
 use ::libc;
+use glam::{IVec2, Vec2, Vec4};
 use crate::internal::Memory::*;
+
 extern "C" {
     pub type Font;
     pub type MemPool;
@@ -65,33 +67,14 @@ extern "C" {
         sx: libc::c_float,
         sy: libc::c_float,
     );
-    fn Viewport_GetSize(out: *mut Vec2i);
+    fn Viewport_GetSize(out: *mut IVec2);
 }
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
 pub type int32 = int32_t;
 pub type uint32 = uint32_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2i {
-    pub x: libc::c_int,
-    pub y: libc::c_int,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec2f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
-}
+
 pub type BlendMode = int32;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -103,8 +86,8 @@ pub struct UIRendererLayer {
     pub panelList: *mut UIRendererPanel,
     pub rectList: *mut UIRendererRect,
     pub textList: *mut UIRendererText,
-    pub pos: Vec2f,
-    pub size: Vec2f,
+    pub pos: Vec2,
+    pub size: Vec2,
     pub clip: bool,
 }
 #[derive(Copy, Clone)]
@@ -113,35 +96,35 @@ pub struct UIRendererText {
     pub next: *mut UIRendererText,
     pub font: *mut Font,
     pub text: cstr,
-    pub pos: Vec2f,
-    pub color: Vec4f,
+    pub pos: Vec2,
+    pub color: Vec4,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererRect {
     pub next: *mut UIRendererRect,
-    pub pos: Vec2f,
-    pub size: Vec2f,
-    pub color: Vec4f,
+    pub pos: Vec2,
+    pub size: Vec2,
+    pub color: Vec4,
     pub outline: bool,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererPanel {
     pub next: *mut UIRendererPanel,
-    pub pos: Vec2f,
-    pub size: Vec2f,
-    pub color: Vec4f,
-    pub bevel: libc::c_float,
-    pub innerAlpha: libc::c_float,
+    pub pos: Vec2,
+    pub size: Vec2,
+    pub color: Vec4,
+    pub bevel: f32,
+    pub innerAlpha: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererImage {
     pub next: *mut UIRendererImage,
     pub image: *mut Tex2D,
-    pub pos: Vec2f,
-    pub size: Vec2f,
+    pub pos: Vec2,
+    pub size: Vec2,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -154,27 +137,7 @@ pub struct UIRenderer {
     pub rectPool: *mut MemPool,
     pub textPool: *mut MemPool,
 }
-#[inline]
-unsafe extern "C" fn Vec2f_Create(mut x: libc::c_float, mut y: libc::c_float) -> Vec2f {
-    let mut self_1: Vec2f = {
-        let mut init = Vec2f { x: x, y: y };
-        init
-    };
-    return self_1;
-}
-#[inline]
-unsafe extern "C" fn Vec4f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
-) -> Vec4f {
-    let mut self_1: Vec4f = {
-        let mut init = Vec4f { x: x, y: y, z: z, w: w };
-        init
-    };
-    return self_1;
-}
+
 static mut self_0: UIRenderer = {
     let mut init = UIRenderer {
         root: 0 as *const UIRendererLayer as *mut UIRendererLayer,
@@ -226,13 +189,13 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
     MemPool_Clear(self_0.panelPool);
     MemPool_Clear(self_0.rectPool);
     MemPool_Clear(self_0.textPool);
-    let mut vp: Vec2i = Vec2i { x: 0, y: 0 };
+    let mut vp: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut vp);
     UIRenderer_BeginLayer(
-        0 as libc::c_int as libc::c_float,
-        0 as libc::c_int as libc::c_float,
-        vp.x as libc::c_float,
-        vp.y as libc::c_float,
+        0 as libc::c_int as f32,
+        0 as libc::c_int as f32,
+        vp.x as f32,
+        vp.y as f32,
         1 as libc::c_int != 0,
     );
     self_0.root = self_0.layer;
@@ -258,15 +221,15 @@ unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
                 b"fragment/ui/panel\0" as *const u8 as *const libc::c_char,
             );
         }
-        let pad: libc::c_float = 64.0f32;
+        let pad: f32 = 64.0f32;
         Shader_Start(shader);
         Shader_SetFloat(b"padding\0" as *const u8 as *const libc::c_char, pad);
         let mut e: *const UIRendererPanel = (*self_1).panelList;
         while !e.is_null() {
-            let mut x: libc::c_float = (*e).pos.x - pad;
-            let mut y: libc::c_float = (*e).pos.y - pad;
-            let mut sx: libc::c_float = (*e).size.x + 2.0f32 * pad;
-            let mut sy: libc::c_float = (*e).size.y + 2.0f32 * pad;
+            let mut x: f32 = (*e).pos.x - pad;
+            let mut y: f32 = (*e).pos.y - pad;
+            let mut sx: f32 = (*e).size.x + 2.0f32 * pad;
+            let mut sy: f32 = (*e).size.y + 2.0f32 * pad;
             Shader_SetFloat(
                 b"innerAlpha\0" as *const u8 as *const libc::c_char,
                 (*e).innerAlpha,
@@ -343,10 +306,10 @@ pub unsafe extern "C" fn UIRenderer_Draw() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_BeginLayer(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut sx: f32,
+    mut sy: f32,
     mut clip: bool,
 ) {
     let mut layer: *mut UIRendererLayer = MemPool_Alloc(self_0.layerPool)
@@ -354,8 +317,8 @@ pub unsafe extern "C" fn UIRenderer_BeginLayer(
     (*layer).parent = self_0.layer;
     (*layer).next = 0 as *mut UIRendererLayer;
     (*layer).children = 0 as *mut UIRendererLayer;
-    (*layer).pos = Vec2f_Create(x, y);
-    (*layer).size = Vec2f_Create(sx, sy);
+    (*layer).pos = Vec2::new(x, y);
+    (*layer).size = Vec2::new(sx, sy);
     (*layer).clip = clip;
     (*layer).imageList = 0 as *mut UIRendererImage;
     (*layer).panelList = 0 as *mut UIRendererPanel;
@@ -374,60 +337,60 @@ pub unsafe extern "C" fn UIRenderer_EndLayer() {
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Image(
     mut image: *mut Tex2D,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut sx: f32,
+    mut sy: f32,
 ) {
     let mut e: *mut UIRendererImage = MemPool_Alloc(self_0.imagePool)
         as *mut UIRendererImage;
     (*e).next = (*self_0.layer).imageList;
     (*e).image = image;
-    (*e).pos = Vec2f_Create(x, y);
-    (*e).size = Vec2f_Create(sx, sy);
+    (*e).pos = Vec2::new(x, y);
+    (*e).size = Vec2::new(sx, sy);
     (*self_0.layer).imageList = e;
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Panel(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
-    mut bevel: libc::c_float,
-    mut innerAlpha: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut sx: f32,
+    mut sy: f32,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
+    mut bevel: f32,
+    mut innerAlpha: f32,
 ) {
     let mut e: *mut UIRendererPanel = MemPool_Alloc(self_0.panelPool)
         as *mut UIRendererPanel;
     (*e).next = (*self_0.layer).panelList;
-    (*e).pos = Vec2f_Create(x, y);
-    (*e).size = Vec2f_Create(sx, sy);
-    (*e).color = Vec4f_Create(r, g, b, a);
+    (*e).pos = Vec2::new(x, y);
+    (*e).size = Vec2::new(sx, sy);
+    (*e).color = Vec4::new(r, g, b, a);
     (*e).bevel = bevel;
     (*e).innerAlpha = innerAlpha;
     (*self_0.layer).panelList = e;
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Rect(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut sx: f32,
+    mut sy: f32,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
     mut outline: bool,
 ) {
     let mut e: *mut UIRendererRect = MemPool_Alloc(self_0.rectPool)
         as *mut UIRendererRect;
     (*e).next = (*self_0.layer).rectList;
-    (*e).pos = Vec2f_Create(x, y);
-    (*e).size = Vec2f_Create(sx, sy);
-    (*e).color = Vec4f_Create(r, g, b, a);
+    (*e).pos = Vec2::new(x, y);
+    (*e).size = Vec2::new(sx, sy);
+    (*e).color = Vec4::new(r, g, b, a);
     (*e).outline = outline;
     (*self_0.layer).rectList = e;
 }
@@ -435,19 +398,19 @@ pub unsafe extern "C" fn UIRenderer_Rect(
 pub unsafe extern "C" fn UIRenderer_Text(
     mut font: *mut Font,
     mut text: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     let mut e: *mut UIRendererText = MemPool_Alloc(self_0.textPool)
         as *mut UIRendererText;
     (*e).next = (*self_0.layer).textList;
     (*e).font = font;
     (*e).text = text;
-    (*e).pos = Vec2f_Create(x, y);
-    (*e).color = Vec4f_Create(r, g, b, a);
+    (*e).pos = Vec2::new(x, y);
+    (*e).color = Vec4::new(r, g, b, a);
     (*self_0.layer).textList = e;
 }

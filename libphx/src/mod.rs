@@ -13,6 +13,7 @@
 extern crate stb;
 extern crate libc; 
 extern crate sdl2_sys;
+extern crate glam;
 extern crate memoffset;
 extern crate printf_compat;
 extern crate rodio;
