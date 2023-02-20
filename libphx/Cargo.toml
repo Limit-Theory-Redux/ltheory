@@ -17,6 +17,7 @@ stb = "0.3.2"
 sdl2-sys = { version = "0.35.2", features = ["bundled", "static-link"] }
 memoffset = "0.8"
 printf-compat = "0.1.1"
+rodio = "0.17.0"
 
 [build-dependencies]
 cmake = "0.1"

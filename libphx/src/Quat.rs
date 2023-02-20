@@ -1,8 +1,8 @@
 use ::libc;
 use crate::internal::Memory::*;
 extern "C" {
-    fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
-    fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
+    // fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
+    // fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
     fn acos(_: libc::c_double) -> libc::c_double;
     fn asin(_: libc::c_double) -> libc::c_double;
     fn cos(_: libc::c_double) -> libc::c_double;
@@ -75,11 +75,11 @@ unsafe extern "C" fn Float_Validate(mut x: libc::c_double) -> Error {
     let mut classification: libc::c_int = if ::core::mem::size_of::<libc::c_double>()
         as libc::c_ulong == ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
     {
-        __fpclassifyf(x as libc::c_float)
+        f32::classify(x as libc::c_float) as libc::c_int
     } else if ::core::mem::size_of::<libc::c_double>() as libc::c_ulong
         == ::core::mem::size_of::<libc::c_double>() as libc::c_ulong
     {
-        __fpclassifyd(x)
+        f64::classify(x) as libc::c_int
     } else {3
     };
     match classification {

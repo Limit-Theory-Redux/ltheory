@@ -20,7 +20,7 @@ extern "C" {
         _: *const libc::c_char,
         _: __builtin_va_list,
     ) -> libc::c_int;
-    fn __error() -> *mut libc::c_int;
+    fn error() -> *mut libc::c_int;
     fn fcntl(_: libc::c_int, _: libc::c_int, _: ...) -> libc::c_int;
     fn close(_: libc::c_int) -> libc::c_int;
     fn read(_: libc::c_int, _: *mut libc::c_void, _: libc::size_t) -> libc::ssize_t;
@@ -320,7 +320,7 @@ pub unsafe extern "C" fn Socket_Read(mut self_0: *mut Socket) -> cstr {
         ::core::mem::size_of::<[libc::c_char; 2048]>() as libc::c_ulong as libc::c_int,
     );
     if bytes == -(1 as libc::c_int) {
-        if *__error() == 35 as libc::c_int {
+        if *error() == 35 as libc::c_int {
             return 0 as cstr;
         }
         Fatal(
@@ -342,7 +342,7 @@ pub unsafe extern "C" fn Socket_ReadBytes(mut self_0: *mut Socket) -> *mut Bytes
         ::core::mem::size_of::<[libc::c_char; 2048]>() as libc::c_ulong as libc::c_int,
     );
     if bytes == -(1 as libc::c_int) {
-        if *__error() == 35 as libc::c_int {
+        if *error() == 35 as libc::c_int {
             return 0 as *mut Bytes;
         }
         Fatal(
@@ -378,7 +378,7 @@ pub unsafe extern "C" fn Socket_ReceiveFrom(
         &mut addrSize,
     ) as libc::c_int;
     if bytes == -(1 as libc::c_int) {
-        if *__error() == 35 as libc::c_int {
+        if *error() == 35 as libc::c_int {
             return 0 as libc::c_int;
         }
         return -(1 as libc::c_int);

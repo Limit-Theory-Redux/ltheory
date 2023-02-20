@@ -76,34 +76,6 @@ if (Bullet_ADDED)
 endif ()
 
 CPMAddPackage(
-  NAME FMOD
-  URL https://github.com/Limit-Theory-Redux/ltheory/releases/download/v0.0.1-pre/fmod-2.02.08.zip
-  VERSION 2.02.08
-  DOWNLOAD_ONLY TRUE
-)
-if (FMOD_ADDED)
-  add_library(fmod SHARED IMPORTED)
-  target_include_directories(fmod INTERFACE "${FMOD_SOURCE_DIR}/include")
-  if (WIN32)
-    set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-      "${FMOD_SOURCE_DIR}/lib/win/x86_64/fmod.dll")
-    set_property(TARGET fmod PROPERTY IMPORTED_IMPLIB
-      "${FMOD_SOURCE_DIR}/lib/win/x86_64/fmod_vc.lib")
-  elseif (APPLE)
-    set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-      "${FMOD_SOURCE_DIR}/lib/macos/libfmod.dylib")
-  else ()
-    if (ARCH_X86)
-      set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-        "${FMOD_SOURCE_DIR}/lib/linux/x86_64/libfmod.so.13")
-    else ()
-      set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-        "${FMOD_SOURCE_DIR}/lib/linux/arm64/libfmod.so.13")
-    endif ()
-  endif ()
-endif ()
-
-CPMAddPackage(
   NAME FreeType
   URL https://github.com/freetype/freetype/archive/refs/tags/VER-2-12-1.tar.gz
   VERSION 2.12.1

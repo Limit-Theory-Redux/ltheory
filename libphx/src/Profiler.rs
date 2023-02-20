@@ -21,7 +21,7 @@ extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
     fn Signal_AddHandlerAll(_: SignalHandler);
     fn Signal_RemoveHandlerAll(_: SignalHandler);
-    static mut __stdoutp: *mut FILE;
+    static mut stdout: *mut FILE;
     fn fflush(_: *mut FILE) -> libc::c_int;
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     fn puts(_: *const libc::c_char) -> libc::c_int;
@@ -307,7 +307,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         b"-----------------------------------------------------\0" as *const u8
             as *const libc::c_char,
     );
-    fflush(__stdoutp);
+    fflush(stdout);
     let mut i_1: libc::c_int = 0 as libc::c_int;
     while i_1 < self_0.scopeList_size {
         Scope_Free(*(self_0.scopeList_data).offset(i_1 as isize));
@@ -411,5 +411,5 @@ pub unsafe extern "C" fn Profiler_Backtrace() {
         );
         i += 1;
     }
-    fflush(__stdoutp);
+    fflush(stdout);
 }

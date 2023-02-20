@@ -1,3 +1,4 @@
+use std::fs::metadata;
 use ::libc;
 use crate::internal::Memory::*;
 extern "C" {
@@ -67,35 +68,9 @@ pub unsafe extern "C" fn File_Exists(mut path: cstr) -> bool {
     return 0 as libc::c_int != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_IsDir(mut path: cstr) -> bool {
-    let mut s: libc::stat = libc::stat {
-        st_dev: 0,
-        st_mode: 0,
-        st_nlink: 0,
-        st_ino: 0,
-        st_uid: 0,
-        st_gid: 0,
-        st_rdev: 0,
-        st_size: 0,
-        st_blocks: 0,
-        st_blksize: 0,
-        st_flags: 0,
-        st_gen: 0,
-        st_lspare: 0,
-        st_qspare: [0; 2],
-        st_atime: 0,
-        st_atime_nsec: 0,
-        st_mtime: 0,
-        st_mtime_nsec: 0,
-        st_ctime: 0,
-        st_ctime_nsec: 0,
-        st_birthtime: 0,
-        st_birthtime_nsec: 0,
-    };
-    if libc::stat(path, &mut s) == 0 {
-        return s.st_mode & libc::S_IFDIR != 0;
-    }
-    return false;
+pub unsafe extern "C" fn File_IsDir(path: &String) -> bool {
+    let meta = metadata(path).unwrap();
+    return meta.is_dir();
 }
 unsafe extern "C" fn File_OpenMode(mut path: cstr, mut mode: cstr) -> *mut File {
     let mut handle: *mut libc::FILE = libc::fopen(path, mode);

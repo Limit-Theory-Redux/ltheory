@@ -36,7 +36,7 @@ if(NOT TARGET libphx-external)
   add_dependencies(libphx-external BulletCollision
     BulletDynamics
     LinearMath
-    fmod
+#    fmod
     freetype
     glew_s
     luajit
@@ -49,7 +49,8 @@ target_link_libraries (phx PUBLIC
   BulletCollision
   BulletDynamics
   LinearMath
-  fmod
+  rodio
+#  fmod
   freetype
   glew_s
   luajit
@@ -77,6 +78,11 @@ function (copy_library_to_bin target lib)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     $<TARGET_FILE:${lib}> $<TARGET_FILE_DIR:${target}>
     )
+  add_custom_command(TARGET ${target} POST_BUILD
+          COMMAND echo "TARGETS: $<TARGET_FILE:${lib}> to $<TARGET_FILE_DIR:${target}>")
+
+  add_custom_command(TARGET ${target} PRE_BUILD COMMAND echo this is a test)
+  message(STATUS "Copy from target ${target} to ${lib}")
 endfunction ()
 
-copy_library_to_bin(phx fmod)
+#copy_library_to_bin(phx fmod)
