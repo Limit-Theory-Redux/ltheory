@@ -38,7 +38,7 @@ local guiElements = {
       { nil, 8668067427585514558ULL,  false },
       { nil, 3806448947569663889ULL,  false },
       { nil, 2509601882259751919ULL,  false },
-      { nil, 12118942710891801364ULL, false }
+      { nil, 7450823138892184048ULL, false }
     }
   }
 }
@@ -112,6 +112,13 @@ function LTheoryRedux:onUpdate (dt)
     bShowSystemMap = not bShowSystemMap
     if smap == nil then
       smap = Systems.CommandView.SystemMap(self.system)
+    end
+  end
+
+  -- Disengage autopilot (require a 1-second delay, otherwise keypress turns autopilot on then off instantly)
+  if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
+    if Config.game.playerMoving then
+      Config.game.playerMoving = false
     end
   end
 
@@ -202,7 +209,7 @@ printf("Spawning new star system using seed = %s", self.seed)
 
       -- Add the player's ship
       newShip = self.system:spawnShip()
-      newShip:setName("NSS 'Titonicus'")
+      newShip:setName("Ship 'NSS Titonicus'")
       Config.game.currentShip = newShip
       LTheoryRedux:insertShip(newShip)
       print("Added our ship, the " .. newShip:getName())
@@ -222,6 +229,7 @@ printf("Spawning new star system using seed = %s", self.seed)
         aField = self.system:spawnAsteroidField(asteroidCount, 10)
       end
       printf("Added %s asteroids to %s", asteroidCount, aField:getName())
+      --printf("Object type is '%s'", Config.objectInfo[1]["elems"][aField:getType()][2])
 
       -- Add escort ships
       local ships = {}

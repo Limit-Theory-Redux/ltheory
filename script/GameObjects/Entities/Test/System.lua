@@ -169,7 +169,8 @@ function System:spawnAsteroidField (count, oreCount)
 
   -- Give the asteroid field (actually a zone) a name
   local AFieldName = System:getCoolName(rng)
-  local zone = Zone(format('Asteroid Field \'%s\'', AFieldName))
+  local zone = Zone(format('Zone - Asteroid Field \'%s\'', AFieldName))
+  zone.type = Config:getObjectType("Zone")
 
   zone.pos = rng:getDir3():scale(0.0 * kSystemScale * (1 + rng:getExp()))
 
@@ -185,6 +186,8 @@ function System:spawnAsteroidField (count, oreCount)
 
     local scale = 7 * (1 + rng:getExp() ^ 2)
     local asteroid = Objects.Asteroid(rng:get31(), scale)
+    asteroid.type = Config:getObjectType("Asteroid")
+
     asteroid:setPos(pos)
     asteroid:setScale(scale)
     asteroid:setRot(rng:getQuat())
@@ -203,14 +206,15 @@ function System:spawnAsteroidField (count, oreCount)
     else
       asteroidName = asteroidName .. " " .. tostring(rng:getInt(1001, 9999))
     end
-    asteroid:setName(format('Asteroid \'%s\'', asteroidName))
+    asteroid:setName(format("Asteroid '%s'", asteroidName))
     --print("Added " .. asteroid:getName())
 
     zone:add(asteroid)
-    self:addChild(asteroid)
+    self:addChild(asteroid) -- adding each asteroid to both the system and an owning zone (itself not a child of system)
   end
 
   self:addZone(zone)
+--  self:addChild(zone)
 
 print("Added " .. zone:getName())
 
@@ -222,6 +226,8 @@ function System:spawnPlanet ()
   -- Spawn a new planet
   local rng = self.rng
   local planet = Objects.Planet(rng:get64())
+  planet.type = Config:getObjectType("Planet")
+
   local pos = rng:getDir3():scale(kSystemScale * (1.0 + rng:getExp()))
   local scale = 1e5 * rng:getErlang(2)
   planet:setPos(pos)
@@ -241,7 +247,7 @@ function System:spawnPlanet ()
 
   -- Give the planet a name
   local planetName = System:getCoolName(self.rng)
-  planet:setName(format('Planet \'%s\'', planetName))
+  planet:setName(format("Planet '%s'", planetName))
 
   self:addChild(planet)
 
@@ -257,10 +263,11 @@ function System:spawnShip ()
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
   end
   local ship = self.shipType:instantiate()
+  ship.type = Config:getObjectType("Ship")
 
   -- Give the ship a name
   local shipName = System:getCoolName(self.rng)
-  ship:setName(format('HSS \'%s\'', shipName))
+  ship:setName(format("Ship 'HSS %s", shipName))
 
   ship:setInventoryCapacity(Config.game.eInventory)
   ship:setPos(self.rng:getDir3():scale(kSystemScale * (1.0 + self.rng:getExp())))
@@ -296,6 +303,8 @@ function System:spawnBackground ()
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
   end
   local background = self.shipType:instantiate()
+  background.type = Config:getObjectType("Ship")
+
   self:addChild(background)
 
   return background
@@ -304,6 +313,8 @@ end
 function System:spawnStation ()
   -- Spawn a new space station
   local station = Objects.Station(self.rng:get31())
+  station.type = Config:getObjectType("Station")
+
   local p = self.rng:getDisc():scale(kSystemScale)
   station:setPos(Vec3f(p.x, 0, p.y))
   station:setScale(100)
@@ -320,7 +331,7 @@ function System:spawnStation ()
 
   -- Give the station a name
   local stationName = System:getCoolName(self.rng)
-  station:setName(format('%s \'%s\'',
+  station:setName(format("Station - %s '%s'",
     prod:getName(),
     stationName))
 

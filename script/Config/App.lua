@@ -90,6 +90,7 @@ Config.game = {
 
   playerDamageResistance = 1.0,
   playerMoving           = false,
+  autonavTimestamp       = nil,
 
   enemies                = 0,
   friendlies             = 0,
@@ -102,6 +103,13 @@ Config.game = {
 
   aiUsesBoost            = true,
   aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
+
+  autonavRanges          = {  200,  -- Unknown
+                              100,  -- Ship
+                              200,  -- Asteroid
+                             1000,  -- Station
+                             2000,  -- Zone
+                            50000}, -- Planet
 
   dockRange              = 50,
 }
@@ -159,3 +167,86 @@ Config.ui.font = {
   title      = Cache.Font('Exo2Bold', 10),
   titleSize  = 10,
 }
+
+Config.objectInfo = {
+  {
+    ID = "object_types",
+    name = "Object Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Ship"},
+      { 3, "Asteroid"},
+      { 4, "Station"},
+      { 5, "Zone"},
+      { 6, "Planet"},
+    }
+  },
+  {
+    ID = "planet_types",
+    name = "Planet Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Brown Dwarf"},
+      { 3, "Gas giant"},
+      { 4, "Rocky"},
+    }
+  },
+  {
+    ID = "planet_subtypes_size",
+    name = "Planet Subtypes - Size",
+    elems = {
+      { 1, "(none)"},
+      { 2, "Unknown"},
+      { 3, "Large"},
+      { 4, "Small"},
+    }
+  },
+  {
+    ID = "planet_subtypes_atm",
+    name = "Planet Subtypes - Atmosphere",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "None (vacuum)"},
+      { 3, "Thin"},
+      { 4, "Thin, tainted"},
+      { 5, "Thin, exotic"},
+      { 6, "Normal"},
+      { 7, "Normal, tainted"},
+      { 8, "Dense"},
+      { 9, "Dense, tainted"},
+      {10, "Dense, exotic"},
+    }
+  },
+  {
+    ID = "planet_subtypes_hyd",
+    name = "Planet Subtypes - Hydrosphere",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "None (vacuum)"},
+      { 3, "Desert (1% - 9% water)"},
+      { 4, "Dry (10% - 29% water)"},
+      { 5, "Wet (30% - 69% water)"},
+      { 6, "Water (70% - 89% water)"},
+      { 7, "Ocean (90% - 100% water)"},
+    }
+  },
+}
+
+function Config:getObjectType(objname)
+  local objtype = 1
+
+  -- Scan object types table for match against provided object's type
+  -- Return number of object type if found
+  for i = 1, #Config.objectInfo[1]["elems"] do
+    if string.match(objname, Config.objectInfo[1]["elems"][i][2]) then
+      objtype = Config.objectInfo[1]["elems"][i][1]
+      break
+    end
+  end
+
+  return objtype
+end
+
+function Config.getCurrentTimestamp()
+  return os.time(os.date("!*t"))
+end

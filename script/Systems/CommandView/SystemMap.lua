@@ -38,6 +38,7 @@ function SystemMap:onDraw (state)
   for _, e in self.system:iterChildren() do
     -- Check to make sure this isn't a ship that has exploded
     if e.body ~= nil then
+--printf("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
       local p = e:getPos()
       local x = p.x - dx
       local y = p.z - dy
@@ -77,6 +78,17 @@ function SystemMap:onDraw (state)
         bestDist = d
         best = e
       end
+    else
+--printf("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+      local p = e:getPos()
+      local x = p.x - dx
+      local y = p.z - dy
+      x = self.x + x * Config.game.mapSystemZoom + hx
+      y = self.y + y * Config.game.mapSystemZoom + hy
+      Draw.PointSize(2.0)
+      Draw.Color(1.0, 1.0, 1.0, 1)
+      Draw.Point(x, y)
+      --UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 })
     end
   end
   Draw.Color(1, 1, 1, 1)
@@ -111,11 +123,17 @@ function SystemMap:onInput (state)
   Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(10.0 * kZoomSpeed * state.dt * (
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
 
-  if Input.GetPressed(Bindings.MoveTo) and not Config.game.shipDocked and
-     self.focus ~= nil and self.focus ~= Config.game.currentShip then
-    -- Move undocked player ship to area of selected target
-    Config.game.playerMoving = true
-    Config.game.currentShip:pushAction(Actions.MoveTo(self.focus, 500))         --moving to planet?--
+  if Input.GetPressed(Bindings.MoveTo) then
+    if not Config.game.shipDocked and self.focus ~= nil and self.focus ~= Config.game.currentShip then
+      if Config.game.currentShip:getCurrentAction() == nil or not string.find(Config.game.currentShip:getCurrentAction():getName(),"MoveTo") then
+        -- Move undocked player ship to area of selected target
+        Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+        local autodistance = Config.game.autonavRanges[self.focus:getType()]
+        Config.game.currentShip:pushAction(Actions.MoveTo(self.focus, autodistance))
+        Config.game.autonavTimestamp = Config.getCurrentTimestamp()
+        printf("-> %s at time %s, range = %s", Config.game.currentShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance)
+      end
+    end
   end
 end
 
