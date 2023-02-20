@@ -7,15 +7,15 @@ struct Cache {
   ArrayList(CollisionShape, shapes);
 } static cache;
 
-CollisionShape* CollisionShape_GetCached (int index) {
+CollisionShape* _cppCollisionShape_GetCached (int index) {
   return ArrayList_GetPtr(cache.shapes, index);
 }
 
-CollisionShape* CollisionShape_Create (CollisionShape shape) {
+CollisionShape* _cppCollisionShape_Create (CollisionShape shape) {
   Assert(shape.scale > 0);
   switch (shape.type) {
     default:
-      Fatal("CollisionShape_CreateShape: Unhandled case for CollisionShapeType %i.", shape.type);
+      Fatal("_cppCollisionShape_CreateShape: Unhandled case for CollisionShapeType %i.", shape.type);
       break;
 
     case CollisionShapeType_Sphere: {
@@ -88,19 +88,19 @@ CollisionShape* CollisionShape_Create (CollisionShape shape) {
   return ArrayList_GetLastPtr(cache.shapes);
 }
 
-void CollisionShape_Free (CollisionShape*) {
+void _cppCollisionShape_Free (CollisionShape*) {
   /* TODO: Actually free shapes. */
 }
 
-CollisionShape* CollisionShape_CreateBox (Vec3f* halfExtents) {
+CollisionShape* _cppCollisionShape_CreateBox (Vec3f* halfExtents) {
   CollisionShape shapeDef = {};
   shapeDef.scale           = 1.0f;
   shapeDef.type            = CollisionShapeType_Box;
   shapeDef.box.halfExtents = *halfExtents;
-  return CollisionShape_Create(shapeDef);
+  return _cppCollisionShape_Create(shapeDef);
 }
 
-CollisionShape* CollisionShape_CreateBoxFromMesh (Mesh* mesh) {
+CollisionShape* _cppCollisionShape_CreateBoxFromMesh (Mesh* mesh) {
   Box3f bounds = {}; Mesh_GetBound(mesh, &bounds);
 
   CollisionShape shapeDef = {};
@@ -109,29 +109,29 @@ CollisionShape* CollisionShape_CreateBoxFromMesh (Mesh* mesh) {
   shapeDef.box.halfExtents.x = Max(Abs(bounds.upper.x), Abs(bounds.lower.x));
   shapeDef.box.halfExtents.y = Max(Abs(bounds.upper.y), Abs(bounds.lower.y));
   shapeDef.box.halfExtents.z = Max(Abs(bounds.upper.z), Abs(bounds.lower.z));
-  return CollisionShape_Create(shapeDef);
+  return _cppCollisionShape_Create(shapeDef);
 }
 
-CollisionShape* CollisionShape_CreateSphere (float radius) {
+CollisionShape* _cppCollisionShape_CreateSphere (float radius) {
   CollisionShape shapeDef = {};
   shapeDef.scale         = 1.0f;
   shapeDef.type          = CollisionShapeType_Sphere;
   shapeDef.sphere.radius = radius;
-  return CollisionShape_Create(shapeDef);
+  return _cppCollisionShape_Create(shapeDef);
 }
 
-CollisionShape* CollisionShape_CreateSphereFromMesh (Mesh* mesh) {
+CollisionShape* _cppCollisionShape_CreateSphereFromMesh (Mesh* mesh) {
   CollisionShape shapeDef = {};
   shapeDef.scale         = 1.0f;
   shapeDef.type          = CollisionShapeType_Sphere;
   shapeDef.sphere.radius = Mesh_GetRadius(mesh);
-  return CollisionShape_Create(shapeDef);
+  return _cppCollisionShape_Create(shapeDef);
 }
 
-CollisionShape* CollisionShape_CreateHullFromMesh (Mesh* mesh) {
+CollisionShape* _cppCollisionShape_CreateHullFromMesh (Mesh* mesh) {
   CollisionShape shapeDef = {};
   shapeDef.scale     = 1.0f;
   shapeDef.type      = CollisionShapeType_Hull;
   shapeDef.hull.mesh = mesh;
-  return CollisionShape_Create(shapeDef);
+  return _cppCollisionShape_Create(shapeDef);
 }

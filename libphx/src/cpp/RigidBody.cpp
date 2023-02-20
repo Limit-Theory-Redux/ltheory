@@ -8,19 +8,19 @@
 
 /* --- Helper Functions ----------------------------------------------------- */
 
-bool RigidBody_IsChild (RigidBody* self) {
+bool _cppRigidBody_IsChild (RigidBody* self) {
   return self->parent != 0 && self->parent != self;
 }
 
-bool RigidBody_IsCompound (RigidBody* self) {
+bool _cppRigidBody_IsCompound (RigidBody* self) {
   return self->parent != 0;
 }
 
-bool RigidBody_IsParent (RigidBody* self) {
+bool _cppRigidBody_IsParent (RigidBody* self) {
   return self->parent != 0 && self->parent == self;
 }
 
-inline static void RigidBody_SetFlag (RigidBody* self, int flag, bool enable) {
+inline static void _cppRigidBody_SetFlag (RigidBody* self, int flag, bool enable) {
   btRigidBody* rigidBody = self->handle;
 
   int flags = rigidBody->getCollisionFlags();
@@ -28,22 +28,22 @@ inline static void RigidBody_SetFlag (RigidBody* self, int flag, bool enable) {
   rigidBody->setCollisionFlags(flags);
 }
 
-RigidBody* RigidBody_GetPart (RigidBody* self, int iCompound) {
-  Assert(RigidBody_IsCompound(self));
+RigidBody* _cppRigidBody_GetPart (RigidBody* self, int iCompound) {
+  Assert(_cppRigidBody_IsCompound(self));
   self = self->parent;
   while (self->iCompound != iCompound) self = self->next;
   return self;
 }
 
-btTransform RigidBody_GetWorldTransform (RigidBody* self) {
+btTransform _cppRigidBody_GetWorldTransform (RigidBody* self) {
   btTransform transform;
 
-  if (!RigidBody_IsChild(self)) {
+  if (!_cppRigidBody_IsChild(self)) {
     btRigidBody* rigidBody = self->handle;
     transform = rigidBody->getWorldTransform();
   } else {
     btRigidBody*    rigidBody = self->parent->handle;
-    CollisionShape* cmpShape  = CollisionShape_GetCached(self->iCompoundShape);
+    CollisionShape* cmpShape  = _cppCollisionShape_GetCached(self->iCompoundShape);
     transform = rigidBody->getWorldTransform();
     transform *= cmpShape->compound.handle->getChildTransform(self->iCompound);
   }
@@ -51,7 +51,7 @@ btTransform RigidBody_GetWorldTransform (RigidBody* self) {
   return transform;
 }
 
-inline static void RigidBody_RecalculateInertia (RigidBody* self) {
+inline static void _cppRigidBody_RecalculateInertia (RigidBody* self) {
   /* NOTE : We use the parent's shape to calculate inertia. Compound shapes
             calculate inertia from the bounding box, not the actual shapes, so
             if we e.g. attach something to a ship using a sphere collision shape
@@ -64,7 +64,7 @@ inline static void RigidBody_RecalculateInertia (RigidBody* self) {
             much value to the game, so we aren't going to bother. */
 
   btRigidBody*    rigidBody = self->handle;
-  CollisionShape* shape     = CollisionShape_GetCached(self->iShape);
+  CollisionShape* shape     = _cppCollisionShape_GetCached(self->iShape);
 
   btVector3 inertia(0, 0, 0);
   shape->base.handle->calculateLocalInertia(self->mass, inertia);
@@ -84,7 +84,7 @@ inline static void RigidBody_RecalculateInertia (RigidBody* self) {
   rigidBody->updateInertiaTensor();
 }
 
-inline static RigidBody* RigidBody_Create (CollisionShape* shape) {
+inline static RigidBody* _cppRigidBody_Create (CollisionShape* shape) {
   /* NOTE : We only create compounds through attaching. */
   Assert(shape->type != CollisionShapeType_Compound);
 
@@ -111,104 +111,104 @@ inline static RigidBody* RigidBody_Create (CollisionShape* shape) {
 
 /* --- Implementation ------------------------------------------------------- */
 
-RigidBody* RigidBody_CreateBox () {
+RigidBody* _cppRigidBody_CreateBox () {
   Vec3f halfExtents = { 1, 1, 1 };
-  CollisionShape* shape = CollisionShape_CreateBox(&halfExtents);
-  return RigidBody_Create(shape);
+  CollisionShape* shape = _cppCollisionShape_CreateBox(&halfExtents);
+  return _cppRigidBody_Create(shape);
 }
 
-RigidBody* RigidBody_CreateBoxFromMesh (Mesh* mesh) {
-  CollisionShape* shape = CollisionShape_CreateBoxFromMesh(mesh);
-  return RigidBody_Create(shape);
+RigidBody* _cppRigidBody_CreateBoxFromMesh (Mesh* mesh) {
+  CollisionShape* shape = _cppCollisionShape_CreateBoxFromMesh(mesh);
+  return _cppRigidBody_Create(shape);
 }
 
-RigidBody* RigidBody_CreateSphere () {
-  CollisionShape* shape = CollisionShape_CreateSphere(1);
-  return RigidBody_Create(shape);
+RigidBody* _cppRigidBody_CreateSphere () {
+  CollisionShape* shape = _cppCollisionShape_CreateSphere(1);
+  return _cppRigidBody_Create(shape);
 }
 
-RigidBody* RigidBody_CreateSphereFromMesh (Mesh* mesh) {
-  CollisionShape* shape = CollisionShape_CreateSphereFromMesh(mesh);
-  return RigidBody_Create(shape);
+RigidBody* _cppRigidBody_CreateSphereFromMesh (Mesh* mesh) {
+  CollisionShape* shape = _cppCollisionShape_CreateSphereFromMesh(mesh);
+  return _cppRigidBody_Create(shape);
 }
 
-RigidBody* RigidBody_CreateHullFromMesh (Mesh* mesh) {
-  CollisionShape* shape = CollisionShape_CreateHullFromMesh(mesh);
-  return RigidBody_Create(shape);
+RigidBody* _cppRigidBody_CreateHullFromMesh (Mesh* mesh) {
+  CollisionShape* shape = _cppCollisionShape_CreateHullFromMesh(mesh);
+  return _cppRigidBody_Create(shape);
 }
 
-inline static void RigidBody_FreeImpl (RigidBody* self) {
+inline static void _cppRigidBody_FreeImpl (RigidBody* self) {
   Trigger* trigger = self->triggers;
   while (trigger) {
     Trigger* toFree = trigger;
     trigger = trigger->next;
-    Trigger_Free(toFree);
+    _cppTrigger_Free(toFree);
   }
 
-  CollisionShape* shape = CollisionShape_GetCached(self->iShape);
-  CollisionShape_Free(shape);
+  CollisionShape* shape = _cppCollisionShape_GetCached(self->iShape);
+  _cppCollisionShape_Free(shape);
   delete self->handle;
   MemFree(self);
 }
 
-void RigidBody_Free (RigidBody* self) {
-  if (RigidBody_IsChild(self))
-    Fatal("RigidBody_Free: Not supported on children.");
+void _cppRigidBody_Free (RigidBody* self) {
+  if (_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_Free: Not supported on children.");
   if (self->physics)
-    Fatal("RigidBody_Free: Object is still present in Physics.");
+    Fatal("_cppRigidBody_Free: Object is still present in Physics.");
 
-  if (RigidBody_IsParent(self)) {
+  if (_cppRigidBody_IsParent(self)) {
     RigidBody* child = self->next;
     while (child) {
       RigidBody* toFree = child;
       child = child->next;
-      RigidBody_FreeImpl(toFree);
+      _cppRigidBody_FreeImpl(toFree);
     }
 
-    CollisionShape* shape = CollisionShape_GetCached(self->iCompoundShape);
-    CollisionShape_Free(shape);
+    CollisionShape* shape = _cppCollisionShape_GetCached(self->iCompoundShape);
+    _cppCollisionShape_Free(shape);
   }
 
-  RigidBody_FreeImpl(self);
+  _cppRigidBody_FreeImpl(self);
 }
 
-void RigidBody_ApplyForce (RigidBody* self, Vec3f* force) {
-  if (RigidBody_IsChild(self))
-    Fatal("RigidBody_ApplyForce: Not supported on children.");
+void _cppRigidBody_ApplyForce (RigidBody* self, Vec3f* force) {
+  if (_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_ApplyForce: Not supported on children.");
 
   btRigidBody* rigidBody = self->handle;
   rigidBody->applyCentralForce(Vec3f_ToBullet(force));
   rigidBody->activate();
 }
 
-void RigidBody_ApplyTorque (RigidBody* self, Vec3f* torque) {
-  if (RigidBody_IsChild(self))
-    Fatal("RigidBody_ApplyTorque: Not supported on children.");
+void _cppRigidBody_ApplyTorque (RigidBody* self, Vec3f* torque) {
+  if (_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_ApplyTorque: Not supported on children.");
 
   btRigidBody* rigidBody = self->handle;
   rigidBody->applyTorque(Vec3f_ToBullet(torque));
   rigidBody->activate();
 }
 
-void RigidBody_Attach (RigidBody* parent, RigidBody* child, Vec3f* pos, Quat* rot) {
-  if (RigidBody_IsChild(parent))
-    Fatal("RigidBody_Attach: Recursive attachment is not supported. Parent is already attached to something.");
-  if (RigidBody_IsCompound(child))
-    Fatal("RigidBody_Attach: Child is already part of a compound.");
+void _cppRigidBody_Attach (RigidBody* parent, RigidBody* child, Vec3f* pos, Quat* rot) {
+  if (_cppRigidBody_IsChild(parent))
+    Fatal("_cppRigidBody_Attach: Recursive attachment is not supported. Parent is already attached to something.");
+  if (_cppRigidBody_IsCompound(child))
+    Fatal("_cppRigidBody_Attach: Child is already part of a compound.");
   if (parent == child)
-    Fatal("RigidBody_Attach: Cannot attach object to itself.");
+    Fatal("_cppRigidBody_Attach: Cannot attach object to itself.");
   if (child->physics)
-    Fatal("RigidBody_Attach: Child has not been removed from physics.");
+    Fatal("_cppRigidBody_Attach: Child has not been removed from physics.");
 
   //Convert parent to a compound
-  if (!RigidBody_IsParent(parent)) {
+  if (!_cppRigidBody_IsParent(parent)) {
     CollisionShape shapeDef = {};
     shapeDef.scale = 1.0f;
     shapeDef.type  = CollisionShapeType_Compound;
-    CollisionShape* cmpShape = CollisionShape_Create(shapeDef);
+    CollisionShape* cmpShape = _cppCollisionShape_Create(shapeDef);
 
     btRigidBody*    pBody  = parent->handle;
-    CollisionShape* pShape = CollisionShape_GetCached(parent->iShape);
+    CollisionShape* pShape = _cppCollisionShape_GetCached(parent->iShape);
     btTransform     pTrans = btTransform::getIdentity();
 
     cmpShape->compound.handle->addChildShape(pTrans, pShape->base.handle);
@@ -216,13 +216,13 @@ void RigidBody_Attach (RigidBody* parent, RigidBody* child, Vec3f* pos, Quat* ro
     parent->iCompound      = 0;
     parent->iCompoundShape = cmpShape->iShape;
     parent->parent         = parent;
-    Physics_FlushCachedRigidBodyData(parent->physics, parent);
+    _cppPhysics_FlushCachedRigidBodyData(parent->physics, parent);
   }
 
   /* NOTE : Position is relative to the unscaled parent. */
-  CollisionShape* pShape   = CollisionShape_GetCached(parent->iShape);
-  CollisionShape* cmpShape = CollisionShape_GetCached(parent->iCompoundShape);
-  CollisionShape* cShape   = CollisionShape_GetCached(child->iShape);
+  CollisionShape* pShape   = _cppCollisionShape_GetCached(parent->iShape);
+  CollisionShape* cmpShape = _cppCollisionShape_GetCached(parent->iCompoundShape);
+  CollisionShape* cShape   = _cppCollisionShape_GetCached(child->iShape);
   btTransform     cTrans   = btTransform(Quat_ToBullet(rot), Vec3f_ToBullet(pos) * pShape->scale);
 
   //Insert child into the compound list
@@ -236,11 +236,11 @@ void RigidBody_Attach (RigidBody* parent, RigidBody* child, Vec3f* pos, Quat* ro
   child->iCompoundShape = cmpShape->iShape;
 }
 
-void RigidBody_Detach (RigidBody* parent, RigidBody* child) {
+void _cppRigidBody_Detach (RigidBody* parent, RigidBody* child) {
   if (child->parent != parent)
-    Fatal("RigidBody_Detach: Child is not attached to parent.");
+    Fatal("_cppRigidBody_Detach: Child is not attached to parent.");
   if (child == parent)
-    Fatal("RigidBody_Detach: Cannot detach object from itself.");
+    Fatal("_cppRigidBody_Detach: Cannot detach object from itself.");
 
   btRigidBody*     pBody       = parent->handle;
   btRigidBody*     cBody       = child->handle;
@@ -273,37 +273,37 @@ void RigidBody_Detach (RigidBody* parent, RigidBody* child) {
 
   //Convert parent to single object
   if (parent->next == 0) {
-    CollisionShape* pShape = CollisionShape_GetCached(parent->iShape);
+    CollisionShape* pShape = _cppCollisionShape_GetCached(parent->iShape);
 
     compound->removeChildShapeByIndex(parent->iCompound);
     pBody->setCollisionShape(pShape->base.handle);
     parent->iCompound      = -1;
     parent->iCompoundShape = -1;
     parent->parent         = 0;
-    Physics_FlushCachedRigidBodyData(parent->physics, parent);
+    _cppPhysics_FlushCachedRigidBodyData(parent->physics, parent);
   } else {
     compound->recalculateLocalAabb();
   }
 }
 
 /* TODO: Should scale be inverted? */
-Matrix* RigidBody_GetToLocalMatrix (RigidBody* self) {
-  float       scale     = RigidBody_GetScale(self);
-  btTransform transform = RigidBody_GetWorldTransform(self).inverse();
+Matrix* _cppRigidBody_GetToLocalMatrix (RigidBody* self) {
+  float       scale     = _cppRigidBody_GetScale(self);
+  btTransform transform = _cppRigidBody_GetWorldTransform(self).inverse();
   Matrix_FromTransform(&transform, &self->mat, scale);
   return &self->mat;
 }
 
-Matrix* RigidBody_GetToWorldMatrix (RigidBody* self) {
-  float       scale     = RigidBody_GetScale(self);
-  btTransform transform = RigidBody_GetWorldTransform(self);
+Matrix* _cppRigidBody_GetToWorldMatrix (RigidBody* self) {
+  float       scale     = _cppRigidBody_GetScale(self);
+  btTransform transform = _cppRigidBody_GetWorldTransform(self);
   Matrix_FromTransform(&transform, &self->mat, scale);
   return &self->mat;
 }
 
-void RigidBody_SetCollidable (RigidBody* self, bool collidable) {
+void _cppRigidBody_SetCollidable (RigidBody* self, bool collidable) {
   typedef btCollisionObject::CollisionFlags Flags;
-  RigidBody_SetFlag(self, Flags::CF_NO_CONTACT_RESPONSE, !collidable);
+  _cppRigidBody_SetFlag(self, Flags::CF_NO_CONTACT_RESPONSE, !collidable);
 
   if (self->physics) {
     btRigidBody*       rigidBody = self->handle;
@@ -313,7 +313,7 @@ void RigidBody_SetCollidable (RigidBody* self, bool collidable) {
   }
 }
 
-void RigidBody_SetCollisionGroup (RigidBody* self, int group) {
+void _cppRigidBody_SetCollisionGroup (RigidBody* self, int group) {
   btRigidBody* rigidBody = self->handle;
   self->collisionGroup = group;
 
@@ -327,7 +327,7 @@ void RigidBody_SetCollisionGroup (RigidBody* self, int group) {
   }
 }
 
-void RigidBody_SetCollisionMask (RigidBody* self, int mask) {
+void _cppRigidBody_SetCollisionMask (RigidBody* self, int mask) {
   btRigidBody* rigidBody = self->handle;
   self->collisionMask = mask;
 
@@ -337,49 +337,49 @@ void RigidBody_SetCollisionMask (RigidBody* self, int mask) {
   }
 }
 
-void RigidBody_SetDrag (RigidBody* self, float linear, float angular) {
+void _cppRigidBody_SetDrag (RigidBody* self, float linear, float angular) {
   btRigidBody* rigidBody = self->handle;
   rigidBody->setDamping(linear, angular);
 }
 
-void RigidBody_SetFriction (RigidBody* self, float friction) {
+void _cppRigidBody_SetFriction (RigidBody* self, float friction) {
   btRigidBody* rigidBody = self->handle;
   rigidBody->setFriction(friction);
 }
 
-void RigidBody_SetKinematic (RigidBody* self, bool kinematic) {
+void _cppRigidBody_SetKinematic (RigidBody* self, bool kinematic) {
   typedef btCollisionObject::CollisionFlags Flags;
-  RigidBody_SetFlag(self, Flags::CF_KINEMATIC_OBJECT, kinematic);
+  _cppRigidBody_SetFlag(self, Flags::CF_KINEMATIC_OBJECT, kinematic);
 }
 
-float RigidBody_GetMass (RigidBody* self) {
+float _cppRigidBody_GetMass (RigidBody* self) {
   return self->mass;
 }
 
-void RigidBody_SetMass (RigidBody* self, float mass) {
+void _cppRigidBody_SetMass (RigidBody* self, float mass) {
   self->mass = mass;
-  RigidBody_RecalculateInertia(self);
+  _cppRigidBody_RecalculateInertia(self);
 }
 
-void RigidBody_GetPos (RigidBody* self, Vec3f* pos) {
-  btTransform transform = RigidBody_GetWorldTransform(self);
+void _cppRigidBody_GetPos (RigidBody* self, Vec3f* pos) {
+  btTransform transform = _cppRigidBody_GetWorldTransform(self);
   *pos = Vec3f_FromBullet(transform.getOrigin());
 }
 
-void RigidBody_GetPosLocal (RigidBody* self, Vec3f* pos) {
-  if (!RigidBody_IsChild(self))
-    Fatal("RigidBody_GetPosLocal: Only allowed on children.");
+void _cppRigidBody_GetPosLocal (RigidBody* self, Vec3f* pos) {
+  if (!_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_GetPosLocal: Only allowed on children.");
 
-  float            pScale   = RigidBody_GetScale(self->parent);
-  CollisionShape*  cmpShape = CollisionShape_GetCached(self->iCompoundShape);
+  float            pScale   = _cppRigidBody_GetScale(self->parent);
+  CollisionShape*  cmpShape = _cppCollisionShape_GetCached(self->iCompoundShape);
   btCompoundShape* compound = cmpShape->compound.handle;
   btTransform& transform = compound->getChildTransform(self->iCompound);
   *pos = Vec3f_FromBullet((1.0f / pScale) * transform.getOrigin());
 }
 
-void RigidBody_SetPos (RigidBody* self, Vec3f* pos) {
-  if (RigidBody_IsChild(self))
-    Fatal("RigidBody_SetPos: Not allowed on children.");
+void _cppRigidBody_SetPos (RigidBody* self, Vec3f* pos) {
+  if (_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_SetPos: Not allowed on children.");
 
   btRigidBody* rigidBody = self->handle;
   btTransform  transform = rigidBody->getWorldTransform();
@@ -387,21 +387,21 @@ void RigidBody_SetPos (RigidBody* self, Vec3f* pos) {
   rigidBody->setWorldTransform(transform);
 }
 
-void RigidBody_SetPosLocal (RigidBody* self, Vec3f* pos) {
-  if (!RigidBody_IsChild(self))
-    Fatal("RigidBody_SetPosLocal: Only allowed on children.");
+void _cppRigidBody_SetPosLocal (RigidBody* self, Vec3f* pos) {
+  if (!_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_SetPosLocal: Only allowed on children.");
 
-  float            pScale   = RigidBody_GetScale(self->parent);
-  CollisionShape*  cmpShape = CollisionShape_GetCached(self->iCompoundShape);
+  float            pScale   = _cppRigidBody_GetScale(self->parent);
+  CollisionShape*  cmpShape = _cppCollisionShape_GetCached(self->iCompoundShape);
   btCompoundShape* compound = cmpShape->compound.handle;
   btTransform transform = compound->getChildTransform(self->iCompound);
   transform.setOrigin(pScale * Vec3f_ToBullet(pos));
   compound->updateChildTransform(self->iCompound, transform);
 }
 
-void RigidBody_GetBoundingBox (RigidBody* self, Box3f* box) {
-  CollisionShape* shape     = CollisionShape_GetCached(self->iShape);
-  btTransform     transform = RigidBody_GetWorldTransform(self);
+void _cppRigidBody_GetBoundingBox (RigidBody* self, Box3f* box) {
+  CollisionShape* shape     = _cppCollisionShape_GetCached(self->iShape);
+  btTransform     transform = _cppRigidBody_GetWorldTransform(self);
 
   btVector3 min, max;
   shape->base.handle->getAabb(transform, min, max);
@@ -409,12 +409,12 @@ void RigidBody_GetBoundingBox (RigidBody* self, Box3f* box) {
   box->upper = Vec3f_FromBullet(max);
 }
 
-void RigidBody_GetBoundingBoxCompound (RigidBody* self, Box3f* box) {
-  if (!RigidBody_IsParent(self))
-    Fatal("RigidBody_GetBoundingBoxCompound: Only enabled for parents.");
+void _cppRigidBody_GetBoundingBoxCompound (RigidBody* self, Box3f* box) {
+  if (!_cppRigidBody_IsParent(self))
+    Fatal("_cppRigidBody_GetBoundingBoxCompound: Only enabled for parents.");
 
-  CollisionShape* cmpShape  = CollisionShape_GetCached(self->iCompoundShape);
-  btTransform     transform = RigidBody_GetWorldTransform(self);
+  CollisionShape* cmpShape  = _cppCollisionShape_GetCached(self->iCompoundShape);
+  btTransform     transform = _cppRigidBody_GetWorldTransform(self);
 
   btVector3 min, max;
   cmpShape->base.handle->getAabb(transform, min, max);
@@ -422,8 +422,8 @@ void RigidBody_GetBoundingBoxCompound (RigidBody* self, Box3f* box) {
   box->upper = Vec3f_FromBullet(max);
 }
 
-void RigidBody_GetBoundingBoxLocal (RigidBody* self, Box3f* box) {
-  CollisionShape* shape     = CollisionShape_GetCached(self->iShape);
+void _cppRigidBody_GetBoundingBoxLocal (RigidBody* self, Box3f* box) {
+  CollisionShape* shape     = _cppCollisionShape_GetCached(self->iShape);
   btTransform     transform = btTransform::getIdentity();
 
   btVector3 min, max;
@@ -432,11 +432,11 @@ void RigidBody_GetBoundingBoxLocal (RigidBody* self, Box3f* box) {
   box->upper = Vec3f_FromBullet(max);
 }
 
-void RigidBody_GetBoundingBoxLocalCompound (RigidBody* self, Box3f* box) {
-  if (!RigidBody_IsParent(self))
-    Fatal("RigidBody_GetBoundingBoxLocalCompound: Only enabled for parents.");
+void _cppRigidBody_GetBoundingBoxLocalCompound (RigidBody* self, Box3f* box) {
+  if (!_cppRigidBody_IsParent(self))
+    Fatal("_cppRigidBody_GetBoundingBoxLocalCompound: Only enabled for parents.");
 
-  CollisionShape* cmpShape  = CollisionShape_GetCached(self->iCompoundShape);
+  CollisionShape* cmpShape  = _cppCollisionShape_GetCached(self->iCompoundShape);
   btTransform     transform = btTransform::getIdentity();
 
   btVector3 min, max;
@@ -445,8 +445,8 @@ void RigidBody_GetBoundingBoxLocalCompound (RigidBody* self, Box3f* box) {
   box->upper = Vec3f_FromBullet(max);
 }
 
-float RigidBody_GetBoundingRadius (RigidBody* self) {
-  CollisionShape* shape = CollisionShape_GetCached(self->iShape);
+float _cppRigidBody_GetBoundingRadius (RigidBody* self) {
+  CollisionShape* shape = _cppCollisionShape_GetCached(self->iShape);
 
   float radius = 0;
   switch (shape->type) {
@@ -469,11 +469,11 @@ float RigidBody_GetBoundingRadius (RigidBody* self) {
   return radius;
 }
 
-float RigidBody_GetBoundingRadiusCompound (RigidBody* self) {
-  if (!RigidBody_IsParent(self))
-    Fatal("RigidBody_GetBoundingBoxCompound: Only enabled for parents.");
+float _cppRigidBody_GetBoundingRadiusCompound (RigidBody* self) {
+  if (!_cppRigidBody_IsParent(self))
+    Fatal("_cppRigidBody_GetBoundingBoxCompound: Only enabled for parents.");
 
-  CollisionShape* cmpShape = CollisionShape_GetCached(self->iCompoundShape);
+  CollisionShape* cmpShape = _cppCollisionShape_GetCached(self->iCompoundShape);
   float radius;
   btVector3 center;
   cmpShape->base.handle->getBoundingSphere(center, radius);
@@ -481,33 +481,33 @@ float RigidBody_GetBoundingRadiusCompound (RigidBody* self) {
   return radius;
 }
 
-RigidBody* RigidBody_GetParentBody (RigidBody* self) {
+RigidBody* _cppRigidBody_GetParentBody (RigidBody* self) {
   return self->parent == self ? 0 : self->parent;
 }
 
-void RigidBody_SetRestitution (RigidBody* self, float restitution) {
+void _cppRigidBody_SetRestitution (RigidBody* self, float restitution) {
   btRigidBody* rigidBody = self->handle;
   rigidBody->setRestitution(restitution);
 }
 
-void RigidBody_GetRot (RigidBody* self, Quat* rot) {
-  btTransform transform = RigidBody_GetWorldTransform(self);
+void _cppRigidBody_GetRot (RigidBody* self, Quat* rot) {
+  btTransform transform = _cppRigidBody_GetWorldTransform(self);
   *rot = Quat_FromBullet(transform.getRotation());
 }
 
-void RigidBody_GetRotLocal (RigidBody* self, Quat* rot) {
-  if (!RigidBody_IsChild(self))
-    Fatal("RigidBody_GetRotLocal: Only allowed on children.");
+void _cppRigidBody_GetRotLocal (RigidBody* self, Quat* rot) {
+  if (!_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_GetRotLocal: Only allowed on children.");
 
-  CollisionShape*  cmpShape = CollisionShape_GetCached(self->iCompoundShape);
+  CollisionShape*  cmpShape = _cppCollisionShape_GetCached(self->iCompoundShape);
   btCompoundShape* compound = cmpShape->compound.handle;
   btTransform& transform = compound->getChildTransform(self->iCompound);
   *rot = Quat_FromBullet(transform.getRotation());
 }
 
-void RigidBody_SetRot (RigidBody* self, Quat* rot) {
-  if (RigidBody_IsChild(self))
-    Fatal("RigidBody_SetRot: Not allowed on children.");
+void _cppRigidBody_SetRot (RigidBody* self, Quat* rot) {
+  if (_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_SetRot: Not allowed on children.");
 
   btRigidBody* rigidBody = self->handle;
   btTransform  transform = rigidBody->getWorldTransform();
@@ -515,24 +515,24 @@ void RigidBody_SetRot (RigidBody* self, Quat* rot) {
   rigidBody->setWorldTransform(transform);
 }
 
-void RigidBody_SetRotLocal (RigidBody* self, Quat* rot) {
-  if (!RigidBody_IsChild(self))
-    Fatal("RigidBody_SetRotLocal: Only allowed on children.");
+void _cppRigidBody_SetRotLocal (RigidBody* self, Quat* rot) {
+  if (!_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_SetRotLocal: Only allowed on children.");
 
-  CollisionShape*  cmpShape = CollisionShape_GetCached(self->iCompoundShape);
+  CollisionShape*  cmpShape = _cppCollisionShape_GetCached(self->iCompoundShape);
   btCompoundShape* compound = cmpShape->compound.handle;
   btTransform transform = compound->getChildTransform(self->iCompound);
   transform.setRotation(Quat_ToBullet(rot));
   compound->updateChildTransform(self->iCompound, transform);
 }
 
-float RigidBody_GetScale (RigidBody* self) {
+float _cppRigidBody_GetScale (RigidBody* self) {
   /* NOTE : Only uniform scale is supported. */
-  CollisionShape* shape = CollisionShape_GetCached(self->iShape);
+  CollisionShape* shape = _cppCollisionShape_GetCached(self->iShape);
   return shape->scale;
 }
 
-void RigidBody_SetScale (RigidBody* self, float scale) {
+void _cppRigidBody_SetScale (RigidBody* self, float scale) {
   /* NOTE : Only uniform scale is supported. */
 
   /* NOTE : Since scale is not inherited and the Bullet API for scaling a
@@ -544,22 +544,22 @@ void RigidBody_SetScale (RigidBody* self, float scale) {
 
   btRigidBody* rigidBody = self->handle;
 
-  CollisionShape shapeDef = *CollisionShape_GetCached(self->iShape);
+  CollisionShape shapeDef = *_cppCollisionShape_GetCached(self->iShape);
   float scaleRatio = scale / shapeDef.scale;
   shapeDef.scale = scale;
-  CollisionShape* shape = CollisionShape_Create(shapeDef);
+  CollisionShape* shape = _cppCollisionShape_Create(shapeDef);
 
-  if (!RigidBody_IsCompound(self)) {
+  if (!_cppRigidBody_IsCompound(self)) {
     rigidBody->setCollisionShape(shape->base.handle);
     self->iShape = shape->iShape;
-    RigidBody_RecalculateInertia(self);
+    _cppRigidBody_RecalculateInertia(self);
 
   } else {
-    CollisionShape*  cmpShape = CollisionShape_GetCached(self->iCompoundShape);
+    CollisionShape*  cmpShape = _cppCollisionShape_GetCached(self->iCompoundShape);
     btCompoundShape* compound = cmpShape->compound.handle;
 
     //Children keep the same relative position
-    if (RigidBody_IsParent(self)) {
+    if (_cppRigidBody_IsParent(self)) {
       RigidBody* child = self->next;
       while (child) {
         btTransform& cTrans = compound->getChildTransform(child->iCompound);
@@ -587,36 +587,36 @@ void RigidBody_SetScale (RigidBody* self, float scale) {
              new scalle is smaller than our old scale the AABB won't shrink as
              expected. Thus, we need to force a full recalculate. */
     compound->recalculateLocalAabb();
-    if (RigidBody_IsParent(self))
-      RigidBody_RecalculateInertia(self);
+    if (_cppRigidBody_IsParent(self))
+      _cppRigidBody_RecalculateInertia(self);
   }
 }
 
-void RigidBody_SetSleepThreshold (RigidBody* self, float linear, float angular) {
+void _cppRigidBody_SetSleepThreshold (RigidBody* self, float linear, float angular) {
   btRigidBody* rigidBody = self->handle;
   rigidBody->setSleepingThresholds(linear, angular);
 }
 
-float RigidBody_GetSpeed (RigidBody* self) {
-  if (RigidBody_IsChild(self))
-    Fatal("RigidBody_GetSpeed: Not supported on children.");
+float _cppRigidBody_GetSpeed (RigidBody* self) {
+  if (_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_GetSpeed: Not supported on children.");
 
   btRigidBody* rigidBody = self->handle;
   float speed = rigidBody->getLinearVelocity().length();
   return speed;
 }
 
-void RigidBody_GetVelocity (RigidBody* self, Vec3f* velocity) {
-  if (RigidBody_IsChild(self))
-    Fatal("RigidBody_GetVelocity: Not supported on children.");
+void _cppRigidBody_GetVelocity (RigidBody* self, Vec3f* velocity) {
+  if (_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_GetVelocity: Not supported on children.");
 
   btRigidBody* rigidBody = self->handle;
   *velocity = Vec3f_FromBullet(rigidBody->getLinearVelocity());
 }
 
-void RigidBody_GetVelocityA (RigidBody* self, Vec3f* velocityA) {
-  if (RigidBody_IsChild(self))
-    Fatal("RigidBody_GetVelocityA: Not supported on children.");
+void _cppRigidBody_GetVelocityA (RigidBody* self, Vec3f* velocityA) {
+  if (_cppRigidBody_IsChild(self))
+    Fatal("_cppRigidBody_GetVelocityA: Not supported on children.");
 
   btRigidBody* rigidBody = self->handle;
   *velocityA = Vec3f_FromBullet(rigidBody->getAngularVelocity());

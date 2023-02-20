@@ -23,7 +23,7 @@ struct Physics {
   ArrayList(Trigger*,                  triggers);
 };
 
-Physics* Physics_Create () {
+Physics* _cppPhysics_Create () {
   Physics* self = MemNewZero(Physics);
 
   /* NOTE : btSequentialImpulseConstraintSolver is Projected Gauss Seidel
@@ -52,7 +52,7 @@ Physics* Physics_Create () {
   return self;
 }
 
-void Physics_Free (Physics* self) {
+void _cppPhysics_Free (Physics* self) {
   /* NOTE: Collision objects have a world index and broadphase proxy that need
            to be cleared so actually have to remove them all. */
 
@@ -91,12 +91,12 @@ void Physics_Free (Physics* self) {
   MemFree(self);
 }
 
-void Physics_AddRigidBody (Physics* self, RigidBody* rigidBody) {
+void _cppPhysics_AddRigidBody (Physics* self, RigidBody* rigidBody) {
   /* TODO: I'd rather fatal here, but RigidBody.lua adds indiscriminately. */
-  if (RigidBody_IsChild(rigidBody)) return;
+  if (_cppRigidBody_IsChild(rigidBody)) return;
 
   if (rigidBody->physics)
-    Fatal("Physics_Add: Object is already added to physics.");
+    Fatal("_cppPhysics_Add: Object is already added to physics.");
 
   typedef btCollisionObject::CollisionFlags Flags;
   int flags = rigidBody->handle->getCollisionFlags();
@@ -110,21 +110,21 @@ void Physics_AddRigidBody (Physics* self, RigidBody* rigidBody) {
   while (child) {
     Trigger* trigger = child->triggers;
     while (trigger) {
-      Physics_AddTrigger(self, trigger);
+      _cppPhysics_AddTrigger(self, trigger);
       trigger = trigger->next;
     }
     child = child->next;
   }
 }
 
-void Physics_RemoveRigidBody (Physics* self, RigidBody* rigidBody) {
+void _cppPhysics_RemoveRigidBody (Physics* self, RigidBody* rigidBody) {
   /* TODO: I'd rather fatal here, but RigidBody.lua removes indiscriminately. */
-  if (RigidBody_IsChild(rigidBody)) return;
+  if (_cppRigidBody_IsChild(rigidBody)) return;
 
   if (!rigidBody->physics)
-    Fatal("Physics_Remove: Object is not added to physics.");
+    Fatal("_cppPhysics_Remove: Object is not added to physics.");
   if (rigidBody->physics != self)
-    Fatal("Physics_Remove: Object is not added to this physics world.");
+    Fatal("_cppPhysics_Remove: Object is not added to this physics world.");
 
   rigidBody->physics = 0;
   self->dynamicsWorld->removeRigidBody(rigidBody->handle);
@@ -133,34 +133,34 @@ void Physics_RemoveRigidBody (Physics* self, RigidBody* rigidBody) {
   while (child) {
     Trigger* trigger = child->triggers;
     while (trigger) {
-      Physics_RemoveTrigger(self, trigger);
+      _cppPhysics_RemoveTrigger(self, trigger);
       trigger = trigger->next;
     }
     child = child->next;
   }
 }
 
-void Physics_AddTrigger (Physics* self, Trigger* trigger) {
+void _cppPhysics_AddTrigger (Physics* self, Trigger* trigger) {
   if (trigger->physics)
-    Fatal("Physics_AddTrigger: Object is already added to physics.");
+    Fatal("_cppPhysics_AddTrigger: Object is already added to physics.");
 
   ArrayList_Append(self->triggers, trigger);
   trigger->physics = self;
   self->dynamicsWorld->addCollisionObject(trigger->handle, trigger->collisionGroup, trigger->collisionMask);
 }
 
-void Physics_RemoveTrigger (Physics* self, Trigger* trigger) {
+void _cppPhysics_RemoveTrigger (Physics* self, Trigger* trigger) {
   if (!trigger->physics)
-    Fatal("Physics_RemoveTrigger: Object is not added to physics.");
+    Fatal("_cppPhysics_RemoveTrigger: Object is not added to physics.");
   if (trigger->physics != self)
-    Fatal("Physics_RemoveTrigger: Object is not added to this physics world.");
+    Fatal("_cppPhysics_RemoveTrigger: Object is not added to this physics world.");
 
   ArrayList_RemoveFast(self->triggers, trigger);
   trigger->physics = 0;
   self->dynamicsWorld->removeCollisionObject(trigger->handle);
 }
 
-bool Physics_GetNextCollision (Physics* self, Collision* it) {
+bool _cppPhysics_GetNextCollision (Physics* self, Collision* it) {
   int collisionCount = self->dispatcher->getNumManifolds();
   while (it->index < collisionCount) {
     btPersistentManifold* manifold = self->dispatcher->getManifoldByIndexInternal(it->index++);
@@ -170,8 +170,8 @@ bool Physics_GetNextCollision (Physics* self, Collision* it) {
       it->count++;
       it->body0 = (RigidBody*) manifold->getBody0()->getUserPointer();
       it->body1 = (RigidBody*) manifold->getBody1()->getUserPointer();
-      if (RigidBody_IsCompound(it->body0)) it->body0 = RigidBody_GetPart(it->body0, point.m_index0);
-      if (RigidBody_IsCompound(it->body1)) it->body1 = RigidBody_GetPart(it->body1, point.m_index1);
+      if (_cppRigidBody_IsCompound(it->body0)) it->body0 = _cppRigidBody_GetPart(it->body0, point.m_index0);
+      if (_cppRigidBody_IsCompound(it->body1)) it->body1 = _cppRigidBody_GetPart(it->body1, point.m_index1);
       return true;
     }
   }
@@ -180,15 +180,15 @@ bool Physics_GetNextCollision (Physics* self, Collision* it) {
   return false;
 }
 
-void Physics_Update (Physics* self, float dt) {
+void _cppPhysics_Update (Physics* self, float dt) {
   for (int i = 0; i < ArrayList_GetSize(self->triggers); i++) {
     Trigger* trigger = ArrayList_Get(self->triggers, i);
-    Trigger_Update(trigger);
+    _cppTrigger_Update(trigger);
   }
   self->dynamicsWorld->stepSimulation(dt, 0);
 }
 
-void Physics_RayCast (Physics* self, Ray* ray, RayCastResult* result) {
+void _cppPhysics_RayCast (Physics* self, Ray* ray, RayCastResult* result) {
   typedef btTriangleRaycastCallback::EFlags Flags;
 
   Vec3f from; Ray_GetPoint(ray, ray->tMin, &from);
@@ -206,7 +206,7 @@ void Physics_RayCast (Physics* self, Ray* ray, RayCastResult* result) {
   self->dynamicsWorld->rayTest(btFrom, btTo, callback);
 }
 
-inline static void Physics_ShapeCast (Physics* self, btConvexShape* shape, Vec3f* pos, Quat* rot, ShapeCastResult* result) {
+inline static void _cppPhysics_ShapeCast (Physics* self, btConvexShape* shape, Vec3f* pos, Quat* rot, ShapeCastResult* result) {
   btTransform btPos = btTransform(Quat_ToBullet(rot), Vec3f_ToBullet(pos));
   *result = {};
 
@@ -222,18 +222,18 @@ inline static void Physics_ShapeCast (Physics* self, btConvexShape* shape, Vec3f
   self->dynamicsWorld->contactTest(proxy, callback);
 }
 
-void Physics_SphereCast (Physics* self, Sphere* sphere, ShapeCastResult* result) {
+void _cppPhysics_SphereCast (Physics* self, Sphere* sphere, ShapeCastResult* result) {
   btSphereShape btSphere = btSphereShape(sphere->r);
   Quat rot; Quat_Identity(&rot);
-  Physics_ShapeCast(self, &btSphere, &sphere->p, &rot, result);
+  _cppPhysics_ShapeCast(self, &btSphere, &sphere->p, &rot, result);
 }
 
-void Physics_BoxCast (Physics* self, Vec3f* pos, Quat* rot, Vec3f* halfExtents, ShapeCastResult* result) {
+void _cppPhysics_BoxCast (Physics* self, Vec3f* pos, Quat* rot, Vec3f* halfExtents, ShapeCastResult* result) {
   btBoxShape btBox = btBoxShape(Vec3f_ToBullet(halfExtents));
-  Physics_ShapeCast(self, &btBox, pos, rot, result);
+  _cppPhysics_ShapeCast(self, &btBox, pos, rot, result);
 }
 
-inline static bool Physics_ShapeOverlap (Physics* self, btConvexShape* shape, Vec3f* pos, Quat* rot) {
+inline static bool _cppPhysics_ShapeOverlap (Physics* self, btConvexShape* shape, Vec3f* pos, Quat* rot) {
   btTransform btPos = btTransform(Quat_ToBullet(rot), Vec3f_ToBullet(pos));
 
   btCollisionObject* proxy = new btCollisionObject();
@@ -248,18 +248,18 @@ inline static bool Physics_ShapeOverlap (Physics* self, btConvexShape* shape, Ve
   return callback.foundHit;
 }
 
-bool Physics_SphereOverlap (Physics* self, Sphere* sphere) {
+bool _cppPhysics_SphereOverlap (Physics* self, Sphere* sphere) {
   btSphereShape btSphere = btSphereShape(sphere->r);
   Quat rot; Quat_Identity(&rot);
-  return Physics_ShapeOverlap(self, &btSphere, &sphere->p, &rot);
+  return _cppPhysics_ShapeOverlap(self, &btSphere, &sphere->p, &rot);
 }
 
-bool Physics_BoxOverlap (Physics* self, Vec3f* pos, Quat* rot, Vec3f* halfExtents) {
+bool _cppPhysics_BoxOverlap (Physics* self, Vec3f* pos, Quat* rot, Vec3f* halfExtents) {
   btBoxShape btBox = btBoxShape(Vec3f_ToBullet(halfExtents));
-  return Physics_ShapeOverlap(self, &btBox, pos, rot);
+  return _cppPhysics_ShapeOverlap(self, &btBox, pos, rot);
 }
 
-void Physics_PrintProfiling (Physics* self) {
+void _cppPhysics_PrintProfiling (Physics* self) {
   if (!self->dynamicsWorld) return;
 
   int numActive = 0;
@@ -276,7 +276,7 @@ void Physics_PrintProfiling (Physics* self) {
 #endif
 }
 
-void Physics_DrawBoundingBoxesLocal (Physics* self) {
+void _cppPhysics_DrawBoundingBoxesLocal (Physics* self) {
   RenderState_PushWireframe(true);
   btCollisionObjectArray& collisionObjects = self->dynamicsWorld->getCollisionObjectArray();
   for (int i = 0; i < collisionObjects.size(); i++) {
@@ -287,10 +287,10 @@ void Physics_DrawBoundingBoxesLocal (Physics* self) {
     if (type == PhysicsType_RigidBody) {
       RigidBody* rigidBody = (RigidBody*) userPointer;
 
-      if (RigidBody_IsParent(rigidBody)) {
-        Box3f box; RigidBody_GetBoundingBoxLocalCompound(rigidBody, &box);
-        Vec3f pos; RigidBody_GetPos(rigidBody, &pos);
-        Quat  rot; RigidBody_GetRot(rigidBody, &rot);
+      if (_cppRigidBody_IsParent(rigidBody)) {
+        Box3f box; _cppRigidBody_GetBoundingBoxLocalCompound(rigidBody, &box);
+        Vec3f pos; _cppRigidBody_GetPos(rigidBody, &pos);
+        Quat  rot; _cppRigidBody_GetRot(rigidBody, &rot);
         Matrix* mat = Matrix_FromPosRot(&pos, &rot);
         Shader_SetMatrix("mWorld", mat);
         Draw_Box3(&box);
@@ -298,9 +298,9 @@ void Physics_DrawBoundingBoxesLocal (Physics* self) {
       }
 
       while (rigidBody) {
-        Box3f box; RigidBody_GetBoundingBoxLocal(rigidBody, &box);
-        Vec3f pos; RigidBody_GetPos(rigidBody, &pos);
-        Quat  rot; RigidBody_GetRot(rigidBody, &rot);
+        Box3f box; _cppRigidBody_GetBoundingBoxLocal(rigidBody, &box);
+        Vec3f pos; _cppRigidBody_GetPos(rigidBody, &pos);
+        Quat  rot; _cppRigidBody_GetRot(rigidBody, &rot);
         Matrix* mat = Matrix_FromPosRot(&pos, &rot);
         Shader_SetMatrix("mWorld", mat);
         Draw_Box3(&box);
@@ -312,7 +312,7 @@ void Physics_DrawBoundingBoxesLocal (Physics* self) {
   RenderState_PopWireframe();
 }
 
-void Physics_DrawBoundingBoxesWorld (Physics* self) {
+void _cppPhysics_DrawBoundingBoxesWorld (Physics* self) {
   RenderState_PushWireframe(true);
   btCollisionObjectArray& collisionObjects = self->dynamicsWorld->getCollisionObjectArray();
   for (int i = 0; i < collisionObjects.size(); i++) {
@@ -323,13 +323,13 @@ void Physics_DrawBoundingBoxesWorld (Physics* self) {
     if (type == PhysicsType_RigidBody) {
       RigidBody* rigidBody = (RigidBody*) userPointer;
 
-      if (RigidBody_IsParent(rigidBody)) {
-        Box3f box; RigidBody_GetBoundingBoxCompound(rigidBody, &box);
+      if (_cppRigidBody_IsParent(rigidBody)) {
+        Box3f box; _cppRigidBody_GetBoundingBoxCompound(rigidBody, &box);
         Draw_Box3(&box);
       }
 
       while (rigidBody) {
-        Box3f box; RigidBody_GetBoundingBox(rigidBody, &box);
+        Box3f box; _cppRigidBody_GetBoundingBox(rigidBody, &box);
         Draw_Box3(&box);
         rigidBody = rigidBody->next;
       }
@@ -338,7 +338,7 @@ void Physics_DrawBoundingBoxesWorld (Physics* self) {
   RenderState_PopWireframe();
 }
 
-void Physics_DrawTriggers (Physics* self) {
+void _cppPhysics_DrawTriggers (Physics* self) {
   RenderState_PushWireframe(true);
   btCollisionObjectArray& collisionObjects = self->dynamicsWorld->getCollisionObjectArray();
   for (int i = 0; i < collisionObjects.size(); i++) {
@@ -349,14 +349,14 @@ void Physics_DrawTriggers (Physics* self) {
     if (type == PhysicsType_Trigger) {
       Trigger* trigger = (Trigger*) userPointer;
 
-      Box3f box; Trigger_GetBoundingBox(trigger, &box);
+      Box3f box; _cppTrigger_GetBoundingBox(trigger, &box);
       Draw_Box3(&box);
     }
   }
   RenderState_PopWireframe();
 }
 
-void Physics_DrawWireframes (Physics* self) {
+void _cppPhysics_DrawWireframes (Physics* self) {
   self->debugDrawer->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
 
   btCollisionObjectArray& collisionObjects = self->dynamicsWorld->getCollisionObjectArray();
@@ -370,10 +370,10 @@ void Physics_DrawWireframes (Physics* self) {
 
       while (rigidBody) {
         /* TODO: Do better. */
-        btTransform RigidBody_GetWorldTransform (RigidBody*);
+        btTransform _cppRigidBody_GetWorldTransform (RigidBody*);
 
-        btTransform       transform = RigidBody_GetWorldTransform(rigidBody);
-        CollisionShape*   shape     = CollisionShape_GetCached(rigidBody->iShape);
+        btTransform       transform = _cppRigidBody_GetWorldTransform(rigidBody);
+        CollisionShape*   shape     = _cppCollisionShape_GetCached(rigidBody->iShape);
         if (shape->type == CollisionShapeType_Hull) {
           /* HACK: Drawing a btUniformScalingShape does nothing. The underlying
                    hull has a scale of 1. So we draw the hull directly and hack
@@ -392,7 +392,7 @@ void Physics_DrawWireframes (Physics* self) {
   }
 }
 
-void Physics_FlushCachedRigidBodyData (Physics* self, RigidBody* rigidBody) {
+void _cppPhysics_FlushCachedRigidBodyData (Physics* self, RigidBody* rigidBody) {
   /* NOTE: Broadphase implementations have a 'pair cache' internally. Each pair
            contains data for the two objects that are touching, plus an
            indicator for which collision algorithm should be used. The algorithm

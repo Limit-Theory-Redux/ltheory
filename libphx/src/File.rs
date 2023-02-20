@@ -1,4 +1,4 @@
-use std::fs::metadata;
+use std::fs;
 use ::libc;
 use crate::internal::Memory::*;
 extern "C" {
@@ -68,8 +68,8 @@ pub unsafe extern "C" fn File_Exists(mut path: cstr) -> bool {
     return 0 as libc::c_int != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_IsDir(path: &String) -> bool {
-    let meta = metadata(path).unwrap();
+pub unsafe extern "C" fn File_IsDir(path: cstr) -> bool {
+    let meta = fs::metadata(std::ffi::CStr::from_ptr(path).to_str().unwrap()).unwrap();
     return meta.is_dir();
 }
 unsafe extern "C" fn File_OpenMode(mut path: cstr, mut mode: cstr) -> *mut File {

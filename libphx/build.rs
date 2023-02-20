@@ -29,7 +29,7 @@ fn main() {
         .build_target("libphx-external")
         .build();
     // let package_path = dst.join("build").join("_deps");
-    println!("DESTINATION: {}", dst.display());
+    // println!("DESTINATION: {}", dst.display());
 
     link_kind("native", "luajit", &package_path, &["luajit-src", "src"]);
     // println!("cargo:rustc-link-search=native={}", package_path.join("luajit-src").join("src").display());
@@ -57,54 +57,34 @@ fn main() {
     if cfg!(target_os = "macos") {
         println!("cargo:rustc-link-lib=framework={}", "CoreHaptics");
         println!("cargo:rustc-link-lib=framework={}", "OpenGL");
-    }
-    else if cfg!(target_os = "linux")
-    {
+    } else if cfg!(target_os = "linux") {
         println!("cargo:rustc-link-lib={}", "GLX");
         println!("cargo:rustc-link-lib={}", "OpenGL");
     }
 
-
-    println!("cargo:rustc-link-arg=-Wl,--verbose");
-
     // Build C++ files which haven't been ported over.
     cc::Build::new()
         .cpp(true)
-        .file("src/CollisionShape.cpp")
-        .file("src/Physics.cpp")
-        .file("src/RigidBody.cpp")
-        .file("src/Trigger.cpp")
+        .file("src/cpp/CollisionShape.cpp")
+        .file("src/cpp/Physics.cpp")
+        .file("src/cpp/RigidBody.cpp")
+        .file("src/cpp/Trigger.cpp")
         .flag("-std=c++11")
         .warnings(false)
         .link_lib_modifier("+whole-archive,-bundle")
-        .include("../original/libphx/include")
+        .include("src/cpp/include")
         .include(package_path.join("bullet-src").join("src"))
         .compile("phx-cc");
-
-    if cfg!(target_os = "macos")
-    {
-        println!("cargo:rustc-link-arg=-Wl,-exported_symbol");
-        println!("cargo:rustc-link-arg=-Wl,_CollisionShape_*");
-        println!("cargo:rustc-link-arg=-Wl,-exported_symbol");
-        println!("cargo:rustc-link-arg=-Wl,_Physics_*");
-        println!("cargo:rustc-link-arg=-Wl,-exported_symbol");
-        println!("cargo:rustc-link-arg=-Wl,_RigidBody_*");
-        println!("cargo:rustc-link-arg=-Wl,-exported_symbol");
-        println!("cargo:rustc-link-arg=-Wl,_Trigger_*");
-    }
 
     if cfg!(target_os = "macos") {
         println!("cargo:rustc-link-arg=-Wl,-keep_dwarf_unwind");
         println!("cargo:rustc-link-arg=-Wl,-no_compact_unwind");
     }
 
-    println!("cargo:rustc-link-arg=-Wl,-rpath");
-    println!("cargo:rustc-link-arg=-Wl,.");
-
-    println!("cargo:rustc-link-search=native={}", package_path.join("bullet-build").join("src").join("BulletCollision").display());
-    println!("cargo:rustc-link-lib={}", "BulletCollision");
     println!("cargo:rustc-link-search=native={}", package_path.join("bullet-build").join("src").join("BulletDynamics").display());
     println!("cargo:rustc-link-lib={}", "BulletDynamics");
+    println!("cargo:rustc-link-search=native={}", package_path.join("bullet-build").join("src").join("BulletCollision").display());
+    println!("cargo:rustc-link-lib={}", "BulletCollision");
     println!("cargo:rustc-link-search=native={}", package_path.join("bullet-build").join("src").join("LinearMath").display());
     println!("cargo:rustc-link-lib={}", "LinearMath");
     // panic!();
