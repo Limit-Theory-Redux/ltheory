@@ -1,10 +1,14 @@
 Config.app = 'LTheoryRedux'
 
+Config.version = "v0.004"
+
 Config.debug = {
   metrics         = true,
   window          = true, -- Debug window visible by default at launch?
   windowSection   = nil,  -- Set to the name of a debug window section to
                           -- collapse all others by default
+  instantJobs     = true,
+
   timeAccelFactor = 10,
 }
 
@@ -50,14 +54,15 @@ Config.gen = {
 }
 
 Config.game = {
-  currentVersion = "v0.003",
-
   gameMode = 0,
 
   currentShip = nil,
   currentStation = nil,
   currentPlanet = nil,
   currentZone = nil,
+
+  mapSystemPos  = Vec2f(0, 0),
+  mapSystemZoom = 0.01,
 
   pStartCredits = 10000,
   eStartCredits = 100000,
@@ -79,9 +84,13 @@ Config.game = {
   shipEnergyRecharge     = 10,
   shipHealth             = 100,
   shipHealthRegen        = 2,
+  shipDocked             = false,
+
   stationScale           = 20,
 
   playerDamageResistance = 1.0,
+  playerMoving           = false,
+  autonavTimestamp       = nil,
 
   enemies                = 0,
   friendlies             = 0,
@@ -95,20 +104,14 @@ Config.game = {
   aiUsesBoost            = true,
   aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
 
+  autonavRanges          = {  200,  -- Unknown
+                              100,  -- Ship
+                              200,  -- Asteroid
+                             1000,  -- Station
+                             2000,  -- Zone
+                            50000}, -- Planet
+
   dockRange              = 50,
-}
-
-Config.render = {
-  startingHorz = 1600,
-  startingVert =  900,
-  fullscreen   = false,
-  vsync        = true,
-}
-
-Config.ui = {
-  defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
-  showTrackers     = true,
-  controlBarHeight = 48
 }
 
 function Config.setGameMode(gm)
@@ -124,6 +127,19 @@ end
 function Config.getGameMode()
   return Config.game.gameMode
 end
+
+Config.render = {
+  startingHorz = 1600,
+  startingVert =  900,
+  fullscreen   = false,
+  vsync        = true,
+}
+
+Config.ui = {
+  defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
+  showTrackers     = true,
+  controlBarHeight = 48
+}
 
 Config.ui.color = {
   accent            = Color(1.00, 0.00, 0.30, 1.0),
@@ -151,3 +167,174 @@ Config.ui.font = {
   title      = Cache.Font('Exo2Bold', 10),
   titleSize  = 10,
 }
+
+Config.objectInfo = {
+  {
+    ID = "object_types",
+    name = "Object Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Ship"},
+      { 3, "Asteroid"},
+      { 4, "Station"},
+      { 5, "Zone"},
+      { 6, "Planet"},
+    }
+  },
+  {
+    ID = "planet_types",
+    name = "Planet Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Brown Dwarf"},
+      { 3, "Gas giant"},
+      { 4, "Rocky"},
+    }
+  },
+  {
+    ID = "planet_subtypes_size",
+    name = "Planet Subtypes - Size",
+    elems = {
+      { 1, "(none)"},
+      { 2, "Unknown"},
+      { 3, "Large"},
+      { 4, "Small"},
+    }
+  },
+  {
+    ID = "planet_subtypes_atm",
+    name = "Planet Subtypes - Atmosphere",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "None (vacuum)"},
+      { 3, "Thin"},
+      { 4, "Thin, tainted"},
+      { 5, "Thin, exotic"},
+      { 6, "Normal"},
+      { 7, "Normal, tainted"},
+      { 8, "Dense"},
+      { 9, "Dense, tainted"},
+      {10, "Dense, exotic"},
+    }
+  },
+  {
+    ID = "planet_subtypes_hyd",
+    name = "Planet Subtypes - Hydrosphere",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "None (vacuum)"},
+      { 3, "Desert (1% - 9% water)"},
+      { 4, "Dry (10% - 29% water)"},
+      { 5, "Wet (30% - 69% water)"},
+      { 6, "Water (70% - 89% water)"},
+      { 7, "Ocean (90% - 100% water)"},
+    }
+  },
+  {
+    ID = "zone_subtypes",
+    name = "Zone Subtypes",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Asteroid Field"},
+      { 3, "Political Extent"},
+      { 4, "Military Extent"},
+      { 5, "Economic Extent"},
+      { 6, "Cultural Extent"},
+    }
+  },
+  {
+    ID = "ship_types",
+    name = "Ship Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Fighter"},
+      { 3, "Corvette"},
+      { 4, "Frigate"},
+      { 5, "Monitor"},
+      { 6, "Destroyer"},
+      { 7, "Cruiser"},
+      { 8, "Battleship"},
+      { 9, "Battlecruiser"},
+      {10, "Carrier"},
+      {11, "Yacht"},
+      {12, "Liner"},
+      {13, "Scout"},
+      {14, "Laboratory"},
+      {15, "Merchanter"},
+      {16, "Miner"},
+      {17, "Tanker"},
+      {18, "Transport"},
+      {19, "Ferry"},
+      {20, "Tug"},
+    }
+  },
+  {
+    ID = "station_types",
+    name = "Station Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Solar Energy Array"},
+      { 3, "Nuclear Reactor"},
+    }
+  },
+  {
+    ID = "1_subtypes",
+    name = "1 Subtypes",
+    elems = {
+      { 1, "Unknown"},
+      { 2, ""},
+      { 3, ""},
+      { 4, ""},
+      { 5, ""},
+      { 6, ""},
+    }
+  },
+}
+
+function Config:getObjectTypeByName(objIDname, objtypename)
+  -- For a given kind of object (by ID), find the index of the object type provided
+  local objIDnum = Config:getObjectTypeIndex(objIDname)
+
+  return Config:getObjectTypeByIDVal(objIDnum, objtypename)
+end
+
+function Config:getObjectTypeIndex(objIDname)
+  -- For a given kind of object (by ID name), find the index of the object type provided
+  local objIDnum = 0 -- default is "not found"
+
+  -- Find index number of given object ID in the object types table
+  for i = 1, #Config.objectInfo do
+    if string.match(objIDname, Config.objectInfo[i].ID) then
+      objIDnum = i
+      break
+    end
+  end
+
+  return objIDnum
+end
+
+function Config:getObjectTypeByIDVal(objIDnum, objtypename)
+  -- For a given kind of object (by ID number), find the index of the object type provided
+  local objtype = 1 -- default is "Unknown"
+
+  if objIDnum > 0 then
+    -- Scan object types table for match against provided object's type
+    -- Return number of object type if found
+    for i = 1, #Config.objectInfo[objIDnum]["elems"] do
+      if string.match(objtypename, Config.objectInfo[objIDnum]["elems"][i][2]) then
+        objtype = Config.objectInfo[objIDnum]["elems"][i][1]
+        break
+      end
+    end
+  end
+
+  return objtype
+end
+
+function Config:getObjectInfo(objIDname, objtypenum)
+  return Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][2]
+end
+
+function Config.getCurrentTimestamp()
+  return os.time(os.date("!*t"))
+end

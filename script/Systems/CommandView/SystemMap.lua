@@ -1,4 +1,5 @@
 local DebugContext = require('Systems.CommandView.DebugContext')
+local Bindings = require('States.ApplicationBindings')
 
 local SystemMap = {}
 SystemMap.__index  = SystemMap
@@ -18,7 +19,7 @@ function SystemMap:onDraw (state)
 
   Draw.Color(0, 1, 0, 1)
   local hx, hy = sx / 2, sy / 2
-  local dx, dy = self.pos.x + hx, self.pos.y + hy
+  local dx, dy = Config.game.mapSystemPos.x + hx, Config.game.mapSystemPos.y + hy
 
   local c = {
     r = 0.1,
@@ -37,11 +38,12 @@ function SystemMap:onDraw (state)
   for _, e in self.system:iterChildren() do
     -- Check to make sure this isn't a ship that has exploded
     if e.body ~= nil then
+--printf("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
       local p = e:getPos()
       local x = p.x - dx
       local y = p.z - dy
-      x = self.x + x * self.zoom + hx
-      y = self.y + y * self.zoom + hy
+      x = self.x + x * Config.game.mapSystemZoom + hx
+      y = self.y + y * Config.game.mapSystemZoom + hy
       Draw.PointSize(2.0)
 
       if e:hasActions() then
@@ -58,12 +60,12 @@ function SystemMap:onDraw (state)
 
       if e:hasFlows() then
 --printf("Flow: %s", e:getName())
-        UI.DrawEx.Ring(x, y, self.zoom * e:getScale(), { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
+        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
       end
 
       if e:hasYield() then
 --printf("Yield: %s", e:getName())
-        UI.DrawEx.Ring(x, y, self.zoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 })
+        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 })
       end
 
       if self.focus == e then
@@ -76,6 +78,18 @@ function SystemMap:onDraw (state)
         bestDist = d
         best = e
       end
+--    else
+--      -- Non-object entities (e.g., zones)
+--printf("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+--      local p = e:getPos()
+--      local x = p.x - dx
+--      local y = p.z - dy
+--      x = self.x + x * Config.game.mapSystemZoom + hx
+--      y = self.y + y * Config.game.mapSystemZoom + hy
+--      Draw.PointSize(2.0)
+--      Draw.Color(1.0, 1.0, 1.0, 1)
+--      Draw.Point(x, y)
+--      --UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 })
     end
   end
   Draw.Color(1, 1, 1, 1)
@@ -102,21 +116,47 @@ function SystemMap:onDraw (state)
 end
 
 function SystemMap:onInput (state)
-  self.zoom = self.zoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-  self.pos.x = self.pos.x + (kPanSpeed * state.dt / self.zoom) * (
+  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
+  Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (kPanSpeed * state.dt / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-  self.pos.y = self.pos.y + (kPanSpeed * state.dt / self.zoom) * (
+  Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (kPanSpeed * state.dt / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
-  self.zoom = self.zoom * exp(10.0 * kZoomSpeed * state.dt * (
+  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(10.0 * kZoomSpeed * state.dt * (
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+
+  if Input.GetPressed(Bindings.MoveTo) then
+    if not Config.game.shipDocked and self.focus ~= nil and self.focus ~= Config.game.currentShip then
+      if Config.game.currentShip:getCurrentAction() == nil or not string.find(Config.game.currentShip:getCurrentAction():getName(),"MoveTo") then
+        -- Move undocked player ship to area of selected target
+        Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+        local autodistance = Config.game.autonavRanges[self.focus:getType()]
+        Config.game.currentShip:pushAction(Actions.MoveTo(self.focus, autodistance))
+        Config.game.autonavTimestamp = Config.getCurrentTimestamp()
+        printf("-> %s at time %s, range = %s", Config.game.currentShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance)
+      end
+    end
+  end
 end
 
 function SystemMap.Create (system)
   local self = setmetatable(UI.Window('System Map', false), SystemMap)
   self:setStretch(1, 1)
   self.system = system
-  self.pos = Vec2f(0, 0)
-  self.zoom = 0.1
+  if Config.game.currentShip ~= nil then
+    if Config.game.mapSystemPos == nil then
+      -- Initialize system map starting position only if not already initialized
+      Config.game.mapSystemPos = Config.game.currentShip:getPos()
+      -- Adjust map centering with magic numbers to center on current position of player's ship
+      Config.game.mapSystemPos.x = Config.game.mapSystemPos.x - 803
+      Config.game.mapSystemPos.y = Config.game.mapSystemPos.y - 449
+    end
+  else
+    Config.game.mapSystemPos = Vec2f(0, 0)
+  end
+  if Config.game.mapSystemZoom == nil then
+    -- Initialize system map zoom level only if not already initialized
+    Config.game.mapSystemZoom = 0.01
+  end
   return self
 end
 

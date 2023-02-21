@@ -169,7 +169,9 @@ function System:spawnAsteroidField (count, oreCount)
 
   -- Give the asteroid field (actually a zone) a name
   local AFieldName = System:getCoolName(rng)
-  local zone = Zone(format('Asteroid Field \'%s\'', AFieldName))
+  local zone = Zone(AFieldName)
+  zone:setType(Config:getObjectTypeByName("object_types", "Zone"))
+  zone:setSubType(Config:getObjectTypeByName("zone_subtypes", "Asteroid Field"))
 
   zone.pos = rng:getDir3():scale(0.0 * kSystemScale * (1 + rng:getExp()))
 
@@ -185,6 +187,8 @@ function System:spawnAsteroidField (count, oreCount)
 
     local scale = 7 * (1 + rng:getExp() ^ 2)
     local asteroid = Objects.Asteroid(rng:get31(), scale)
+    asteroid:setType(Config:getObjectTypeByName("object_types", "Asteroid"))
+
     asteroid:setPos(pos)
     asteroid:setScale(scale)
     asteroid:setRot(rng:getQuat())
@@ -203,16 +207,18 @@ function System:spawnAsteroidField (count, oreCount)
     else
       asteroidName = asteroidName .. " " .. tostring(rng:getInt(1001, 9999))
     end
-    asteroid:setName(format('Asteroid \'%s\'', asteroidName))
-    --print("Added " .. asteroid:getName())
+    asteroid:setName(format("%s", asteroidName))
+--printf("Added %s '%s'", Config.objectInfo[1]["elems"][asteroid:getType()][2], asteroid:getName())
 
     zone:add(asteroid)
-    self:addChild(asteroid)
+    self:addChild(asteroid) -- adding each asteroid to both the system and an owning zone (itself not a child of system)
   end
 
   self:addZone(zone)
 
-print("Added " .. zone:getName())
+local typeName = Config:getObjectInfo("object_types", zone:getType())
+local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())
+printf("Added %s - %s '%s'", typeName, subtypeName, zone:getName())
 
   Config.game.currentZone = zone
   return zone
@@ -222,6 +228,9 @@ function System:spawnPlanet ()
   -- Spawn a new planet
   local rng = self.rng
   local planet = Objects.Planet(rng:get64())
+  planet:setType(Config:getObjectTypeByName("object_types", "Planet"))
+  planet:setSubType(Config:getObjectTypeByName("planet_types", "Rocky"))
+
   local pos = rng:getDir3():scale(kSystemScale * (1.0 + rng:getExp()))
   local scale = 1e5 * rng:getErlang(2)
   planet:setPos(pos)
@@ -241,11 +250,13 @@ function System:spawnPlanet ()
 
   -- Give the planet a name
   local planetName = System:getCoolName(self.rng)
-  planet:setName(format('Planet \'%s\'', planetName))
+  planet:setName(format("%s", planetName))
 
   self:addChild(planet)
 
-print("Added " .. planet:getName())
+local typeName = Config:getObjectInfo("object_types", planet:getType())
+local subtypeName = Config:getObjectInfo("planet_types", planet:getSubType())
+printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
 
   Config.game.currentPlanet = planet
   return planet
@@ -257,10 +268,12 @@ function System:spawnShip ()
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
   end
   local ship = self.shipType:instantiate()
+  ship:setType(Config:getObjectTypeByName("object_types", "Ship"))
+  ship:setSubType(Config:getObjectTypeByName("ship_types", "Fighter"))
 
   -- Give the ship a name
   local shipName = System:getCoolName(self.rng)
-  ship:setName(format('HSS \'%s\'', shipName))
+  ship:setName(format("HSS %s", shipName))
 
   ship:setInventoryCapacity(Config.game.eInventory)
   ship:setPos(self.rng:getDir3():scale(kSystemScale * (1.0 + self.rng:getExp())))
@@ -283,7 +296,9 @@ function System:spawnShip ()
     end
   end
 
-  --print("Added Ship " .. ship:getName())
+--local typeName = Config:getObjectInfo("object_types", ship:getType())
+--local subtypeName = Config:getObjectInfo("ship_types", ship:getSubType())
+--printf("Added %s (%s) '%s'", typeName, subtypeName, ship:getName())
 
   return ship
 end
@@ -296,6 +311,7 @@ function System:spawnBackground ()
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
   end
   local background = self.shipType:instantiate()
+
   self:addChild(background)
 
   return background
@@ -304,6 +320,8 @@ end
 function System:spawnStation ()
   -- Spawn a new space station
   local station = Objects.Station(self.rng:get31())
+  station:setType(Config:getObjectTypeByName("object_types", "Station"))
+
   local p = self.rng:getDisc():scale(kSystemScale)
   station:setPos(Vec3f(p.x, 0, p.y))
   station:setScale(100)
@@ -317,16 +335,16 @@ function System:spawnStation ()
   local prod = self.rng:choose(Production.All())
   station:addFactory()
   station:addProduction(prod)
+  station:setSubType(Config:getObjectTypeByName("station_types", prod:getName()))
 
   -- Give the station a name
-  local stationName = System:getCoolName(self.rng)
-  station:setName(format('%s \'%s\'',
-    prod:getName(),
-    stationName))
+  station:setName(System:getCoolName(self.rng))
 
   self:addChild(station)
 
-print("Added " .. station:getName())
+local typeName = Config:getObjectInfo("object_types", station:getType())
+local subtypeName = Config:getObjectInfo("station_types", station:getSubType())
+printf("Added %s (%s) '%s'", typeName, subtypeName, station:getName())
 
   Config.game.currentStation = station
   return station

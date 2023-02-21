@@ -9,6 +9,7 @@ local Item = require('Systems.Economy.Item')
 local LTheoryRedux = require('States.Application')
 
 --** LOCAL VARIABLES **--
+local newSound = nil
 local newSeed = 0ULL
 local newShip = nil
 local menuMode = 0 -- initially show game logo
@@ -38,7 +39,7 @@ local guiElements = {
       { nil, 8668067427585514558ULL,  false },
       { nil, 3806448947569663889ULL,  false },
       { nil, 2509601882259751919ULL,  false },
-      { nil, 12118942710891801364ULL, false }
+      { nil, 7450823138892184048ULL, false }
     }
   }
 }
@@ -46,8 +47,7 @@ local guiElements = {
 
 --** MAIN CODE **--
 function LTheoryRedux:onInit ()
-  self.logo   = Tex2D.Load('./res/images/LTR_logo1d.png') -- load the LTR logo
-  self.mmback = Tex2D.Load('./res/images/LTR-MM-background.png') -- load the Main Menu background
+  self.logo = Tex2D.Load("./res/images/LTR_logo1d.png") -- load the LTR logo
 
   DebugControl.ltheory = self
 
@@ -57,6 +57,14 @@ function LTheoryRedux:onInit ()
   -- Audio initialization moved here from GameView.lua
   Audio.Init()
   Audio.Set3DSettings(0.0, 10, 2);
+
+  -- Music courtesy of MesoTronik
+  newSound = Sound.Load("./res/sound/system/ambiance/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg", true, false)
+  Sound.SetVolume(newSound, 0.0)
+  Sound.Play(newSound)
+  for i = 1, 100 do
+    Sound.SetVolume(newSound, i)
+  end
 end
 
 function LTheoryRedux:onInput ()
@@ -112,6 +120,13 @@ function LTheoryRedux:onUpdate (dt)
     bShowSystemMap = not bShowSystemMap
     if smap == nil then
       smap = Systems.CommandView.SystemMap(self.system)
+    end
+  end
+
+  -- Disengage autopilot (require a 1-second delay, otherwise keypress turns autopilot on then off instantly)
+  if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
+    if Config.game.playerMoving then
+      Config.game.playerMoving = false
     end
   end
 
@@ -202,10 +217,10 @@ printf("Spawning new star system using seed = %s", self.seed)
 
       -- Add the player's ship
       newShip = self.system:spawnShip()
-      newShip:setName("NSS 'Titonicus'")
+      newShip:setName("NSS Titonicus")
       Config.game.currentShip = newShip
       LTheoryRedux:insertShip(newShip)
-      print("Added our ship, the " .. newShip:getName())
+      printf("Added our ship, the '%s'", newShip:getName())
 
       -- Add a planet
       for i = 1, 1 do
@@ -222,6 +237,7 @@ printf("Spawning new star system using seed = %s", self.seed)
         aField = self.system:spawnAsteroidField(asteroidCount, 10)
       end
       printf("Added %s asteroids to %s", asteroidCount, aField:getName())
+      --printf("Object type is '%s'", Config.objectInfo[1]["elems"][aField:getType()][2])
 
       -- Add escort ships
       local ships = {}
@@ -284,35 +300,39 @@ function LTheoryRedux:showMainMenu ()
   local scalefactorMenuY = 549   / self.resY
 
   HmGui.BeginGroupStack()
-    HmGui.Image(self.mmback) -- draw the Main Menu image background on top of the canvas
-    HmGui.SetStretch(0.3, 1.0) -- scale menu image background (width, height)
-    HmGui.SetAlign(0.0, 0.0)
-  HmGui.EndGroup()
-
-  HmGui.BeginGroupStack()
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 72 * scalefactor), 'LIMIT THEORY', 0.77, 0.77, 0.77, 1.0)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 72 * scalefactor), 'LIMIT THEORY', 0.2, 0.2, 0.2, 1.0)
+    HmGui.SetAlign(0.031, 0.042)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 72 * scalefactor), 'LIMIT THEORY', 0.9, 0.9, 0.9, 1.0)
     HmGui.SetAlign(0.03, 0.04)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.77, 0.77, 0.77, 1.0)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.2, 0.2, 0.2, 1.0)
+    HmGui.SetAlign(0.181, 0.132)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.9, 0.9, 0.9, 1.0)
     HmGui.SetAlign(0.18, 0.13)
 
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.game.currentVersion, 0.77, 0.77, 0.77, 1.0)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.version, 0.2, 0.2, 0.2, 1.0)
+    HmGui.SetAlign(0.011, 0.971)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.version, 0.9, 0.9, 0.9, 1.0)
     HmGui.SetAlign(0.01, 0.97)
 
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.77, 0.77, 0.77, 1.0)
-    HmGui.SetAlign(0.21, 0.97)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.2, 0.2, 0.2, 1.0)
+    HmGui.SetAlign(0.161, 0.971)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.9, 0.9, 0.9, 1.0)
+    HmGui.SetAlign(0.16, 0.97)
 
     self:showMainMenuInner()
 
-    HmGui.SetStretch(0.194, 0.6) -- 0.245, 0.6
-    HmGui.SetAlign(0.0065, 0.72) -- 0.0065, 0.74
+    HmGui.SetStretch(0.194, 0.6)
+    HmGui.SetAlign(0.0065, 0.72)
   HmGui.EndGroup()
 end
 
 function LTheoryRedux:showMainMenuInner ()
   -- Add Main Menu items
+  local scalefactor = (self.resX / 25) / 72
+
   HmGui.BeginGroupY()
-    HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-    HmGui.PushFont(Cache.Font('RajdhaniSemiBold', 32))
+    HmGui.PushTextColor(0.9, 0.9, 0.9, 1.0)
+    HmGui.PushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
     if HmGui.Button("NEW GAME") then
       LTheoryRedux:showSeedDialog()
       menuMode = 2
@@ -329,7 +349,7 @@ function LTheoryRedux:showMainMenuInner ()
       bBackgroundMode = true
     end
     if HmGui.Button("EXIT GAME") then
-      LTheoryRedux:quit()
+      LTheoryRedux:exitGame()
     end
     HmGui.PopStyle(2)
   HmGui.EndGroup()
@@ -375,7 +395,7 @@ function LTheoryRedux:showFlightDialogInner ()
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Exit Game") then
-      LTheoryRedux:quit()
+      LTheoryRedux:exitGame()
     end
     HmGui.PopStyle(2)
   HmGui.EndGroup()
@@ -454,6 +474,15 @@ function LTheoryRedux:showSeedDialogInner ()
     HmGui.SetAlign(0.5, 0.5)
     HmGui.PopStyle(2)
   HmGui.EndGroup()
+end
+
+function LTheoryRedux:exitGame ()
+  -- Shut down game and exit
+  for i = 1, 100 do
+    Sound.SetVolume(newSound, 100.0 - i)
+  end
+
+  LTheoryRedux:quit()
 end
 
 --** SUPPORT FUNCTIONS **--
