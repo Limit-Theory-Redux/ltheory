@@ -27,7 +27,6 @@ extern "C" {
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
     fn Mesh_ReserveIndexData(_: *mut Mesh, capacity: libc::c_int);
     fn Mesh_ReserveVertexData(_: *mut Mesh, capacity: libc::c_int);
-    fn error() -> *mut libc::c_int;
 }
 pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
@@ -149,7 +148,7 @@ unsafe extern "C" fn ConsumeFloat(
 ) -> bool {
     let mut afterFloat: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut f: libc::c_float = strtof((*s).cursor, &mut afterFloat);
-    if *error() == 34 as libc::c_int {
+    if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as libc::c_int {
         Obj_Fatal(
             b"Parsed float in .obj data is out of range.\0" as *const u8
                 as *const libc::c_char,
@@ -166,7 +165,7 @@ unsafe extern "C" fn ConsumeFloat(
 unsafe extern "C" fn ConsumeInt(mut value: *mut int32, mut s: *mut ParseState) -> bool {
     let mut afterInt: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut i: int32 = strtol((*s).cursor, &mut afterInt, 10 as libc::c_int) as int32;
-    if *error() == 34 as libc::c_int {
+    if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as libc::c_int {
         Obj_Fatal(
             b"Parsed int in .obj data is out of range.\0" as *const u8
                 as *const libc::c_char,
