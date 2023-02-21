@@ -1,11 +1,11 @@
-use ::libc;
-use glam::Vec3;
-use glam::IVec2;
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::ResourceType::*;
 use crate::TexFormat::*;
+use glam::IVec2;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     pub type Bytes;
@@ -15,12 +15,7 @@ extern "C" {
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Rewind(_: *mut Bytes);
     fn DataFormat_GetSize(_: DataFormat) -> i32;
-    fn Draw_Clear(
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-    );
+    fn Draw_Clear(r: f32, g: f32, b: f32, a: f32);
     fn Metric_Inc(_: Metric);
     fn Metric_AddDrawImm(polys: i32, tris: i32, verts: i32);
     fn glBegin(mode: GLenum);
@@ -92,19 +87,8 @@ extern "C" {
     fn TexFormat_IsColor(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
     fn Viewport_GetSize(out: *mut IVec2);
-    fn Tex2D_LoadRaw(
-        path: cstr,
-        sx: *mut i32,
-        sy: *mut i32,
-        components: *mut i32,
-    ) -> *mut uchar;
-    fn Tex2D_Save_Png(
-        path: cstr,
-        sx: i32,
-        sy: i32,
-        components: i32,
-        data: *mut uchar,
-    ) -> bool;
+    fn Tex2D_LoadRaw(path: cstr, sx: *mut i32, sy: *mut i32, components: *mut i32) -> *mut uchar;
+    fn Tex2D_Save_Png(path: cstr, sx: i32, sy: i32, components: i32, data: *mut uchar) -> bool;
 }
 pub type uint = u32;
 pub type uchar = libc::c_uchar;
@@ -130,8 +114,8 @@ pub type GLuint = u32;
 pub type GLint = i32;
 pub type GLsizei = i32;
 pub type GLfloat = f32;
-pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
-pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
+pub type PFNGLACTIVETEXTUREPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
+pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
 
 #[inline]
 unsafe extern "C" fn Tex2D_Init() {
@@ -164,19 +148,15 @@ pub unsafe extern "C" fn Tex2D_Create(
 ) -> *mut Tex2D {
     if !TexFormat_IsValid(format) {
         Fatal(
-            b"Tex2D_Create: Invalid texture format requested\0" as *const u8
-                as *const libc::c_char,
+            b"Tex2D_Create: Invalid texture format requested\0" as *const u8 as *const libc::c_char,
         );
     }
-    let mut this: *mut Tex2D = MemAlloc(
-        ::core::mem::size_of::<Tex2D>() as usize,
-    ) as *mut Tex2D;
+    let mut this: *mut Tex2D = MemAlloc(::core::mem::size_of::<Tex2D>() as usize) as *mut Tex2D;
     (*this)._refCount = 1 as i32 as u32;
     (*this).size = IVec2::new(sx, sy);
     (*this).format = format;
     glGenTextures(1 as i32, &mut (*this).handle);
-    __glewActiveTexture
-        .expect("non-null function pointer")(0x84c0 as i32 as GLenum);
+    __glewActiveTexture.expect("non-null function pointer")(0x84c0 as i32 as GLenum);
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
     glTexImage2D(
         0xde1 as i32 as GLenum,
@@ -202,10 +182,9 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut size);
     let mut this: *mut Tex2D = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
-    let mut buf: *mut u32 = MemAlloc(
-        (::core::mem::size_of::<u32>())
-            .wrapping_mul((size.x * size.y) as usize),
-    ) as *mut u32;
+    let mut buf: *mut u32 =
+        MemAlloc((::core::mem::size_of::<u32>()).wrapping_mul((size.x * size.y) as usize))
+            as *mut u32;
     Metric_Inc(0x6 as i32);
     glReadPixels(
         0 as i32,
@@ -223,20 +202,18 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
             let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
             MemCpy(
                 swap_temp.as_mut_ptr() as *mut libc::c_void,
-                &mut *buf.offset((size.x * (size.y - y - 1 as i32) + x) as isize)
-                    as *mut u32 as *const libc::c_void,
-                ::core::mem::size_of::<u32>() as usize,
-            );
-            MemCpy(
-                &mut *buf.offset((size.x * (size.y - y - 1 as i32) + x) as isize)
-                    as *mut u32 as *mut libc::c_void,
-                &mut *buf.offset((size.x * y + x) as isize) as *mut u32
+                &mut *buf.offset((size.x * (size.y - y - 1 as i32) + x) as isize) as *mut u32
                     as *const libc::c_void,
                 ::core::mem::size_of::<u32>() as usize,
             );
             MemCpy(
-                &mut *buf.offset((size.x * y + x) as isize) as *mut u32
+                &mut *buf.offset((size.x * (size.y - y - 1 as i32) + x) as isize) as *mut u32
                     as *mut libc::c_void,
+                &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *const libc::c_void,
+                ::core::mem::size_of::<u32>() as usize,
+            );
+            MemCpy(
+                &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *mut libc::c_void,
                 swap_temp.as_mut_ptr() as *const libc::c_void,
                 ::core::mem::size_of::<u32>() as usize,
             );
@@ -265,12 +242,10 @@ pub unsafe extern "C" fn Tex2D_Acquire(mut this: *mut Tex2D) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Free(mut this: *mut Tex2D) {
-    if !this.is_null()
-        && {
-            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-            (*this)._refCount <= 0 as i32 as u32
-        }
-    {
+    if !this.is_null() && {
+        (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+        (*this)._refCount <= 0 as i32 as u32
+    } {
         glDeleteTextures(1 as i32, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
@@ -284,10 +259,7 @@ pub unsafe extern "C" fn Tex2D_Push(mut this: *mut Tex2D) {
     RenderTarget_PushTex2D(this);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_PushLevel(
-    mut this: *mut Tex2D,
-    mut level: i32,
-) {
+pub unsafe extern "C" fn Tex2D_PushLevel(mut this: *mut Tex2D, mut level: i32) {
     RenderTarget_PushTex2DLevel(this, level);
 }
 #[no_mangle]
@@ -304,11 +276,7 @@ pub unsafe extern "C" fn Tex2D_Clear(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Clone(mut this: *mut Tex2D) -> *mut Tex2D {
-    let mut clone: *mut Tex2D = Tex2D_Create(
-        (*this).size.x,
-        (*this).size.y,
-        (*this).format,
-    );
+    let mut clone: *mut Tex2D = Tex2D_Create((*this).size.x, (*this).size.y, (*this).format);
     RenderTarget_PushTex2D(this);
     glBindTexture(0xde1 as i32 as GLenum, (*clone).handle);
     glCopyTexImage2D(
@@ -378,8 +346,7 @@ pub unsafe extern "C" fn Tex2D_DrawEx(
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_GenMipmap(mut this: *mut Tex2D) {
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
-    __glewGenerateMipmap
-        .expect("non-null function pointer")(0xde1 as i32 as GLenum);
+    __glewGenerateMipmap.expect("non-null function pointer")(0xde1 as i32 as GLenum);
     glBindTexture(0xde1 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
@@ -457,8 +424,7 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: cstr) -> *mut Tex2D {
     } else {
         0x1903 as i32
     }) as GLenum;
-    __glewActiveTexture
-        .expect("non-null function pointer")(0x84c0 as i32 as GLenum);
+    __glewActiveTexture.expect("non-null function pointer")(0x84c0 as i32 as GLenum);
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
     glTexImage2D(
         0xde1 as i32 as GLenum,
@@ -477,16 +443,9 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: cstr) -> *mut Tex2D {
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetAnisotropy(
-    mut this: *mut Tex2D,
-    mut factor: f32,
-) {
+pub unsafe extern "C" fn Tex2D_SetAnisotropy(mut this: *mut Tex2D, mut factor: f32) {
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
-    glTexParameterf(
-        0xde1 as i32 as GLenum,
-        0x84fe as i32 as GLenum,
-        factor,
-    );
+    glTexParameterf(0xde1 as i32 as GLenum, 0x84fe as i32 as GLenum, factor);
     glBindTexture(0xde1 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
@@ -520,29 +479,15 @@ pub unsafe extern "C" fn Tex2D_SetDataBytes(
     Tex2D_SetData(this, Bytes_GetData(data), pf, df);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetMagFilter(
-    mut this: *mut Tex2D,
-    mut filter: TexFilter,
-) {
+pub unsafe extern "C" fn Tex2D_SetMagFilter(mut this: *mut Tex2D, mut filter: TexFilter) {
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0xde1 as i32 as GLenum,
-        0x2800 as i32 as GLenum,
-        filter,
-    );
+    glTexParameteri(0xde1 as i32 as GLenum, 0x2800 as i32 as GLenum, filter);
     glBindTexture(0xde1 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetMinFilter(
-    mut this: *mut Tex2D,
-    mut filter: TexFilter,
-) {
+pub unsafe extern "C" fn Tex2D_SetMinFilter(mut this: *mut Tex2D, mut filter: TexFilter) {
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0xde1 as i32 as GLenum,
-        0x2801 as i32 as GLenum,
-        filter,
-    );
+    glTexParameteri(0xde1 as i32 as GLenum, 0x2801 as i32 as GLenum, filter);
     glBindTexture(0xde1 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
@@ -558,16 +503,8 @@ pub unsafe extern "C" fn Tex2D_SetMipRange(
         );
     }
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0xde1 as i32 as GLenum,
-        0x813c as i32 as GLenum,
-        minLevel,
-    );
-    glTexParameteri(
-        0xde1 as i32 as GLenum,
-        0x813d as i32 as GLenum,
-        maxLevel,
-    );
+    glTexParameteri(0xde1 as i32 as GLenum, 0x813c as i32 as GLenum, minLevel);
+    glTexParameteri(0xde1 as i32 as GLenum, 0x813d as i32 as GLenum, maxLevel);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetTexel(
@@ -595,30 +532,18 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
     glBindTexture(0xde1 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetWrapMode(
-    mut this: *mut Tex2D,
-    mut mode: TexWrapMode,
-) {
+pub unsafe extern "C" fn Tex2D_SetWrapMode(mut this: *mut Tex2D, mut mode: TexWrapMode) {
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0xde1 as i32 as GLenum,
-        0x2802 as i32 as GLenum,
-        mode,
-    );
-    glTexParameteri(
-        0xde1 as i32 as GLenum,
-        0x2803 as i32 as GLenum,
-        mode,
-    );
+    glTexParameteri(0xde1 as i32 as GLenum, 0x2802 as i32 as GLenum, mode);
+    glTexParameteri(0xde1 as i32 as GLenum, 0x2803 as i32 as GLenum, mode);
     glBindTexture(0xde1 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Save(mut this: *mut Tex2D, mut path: cstr) {
     Metric_Inc(0x6 as i32);
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
-    let mut buffer: *mut uchar = MemAlloc(
-        (4 as i32 * (*this).size.x * (*this).size.y) as usize,
-    ) as *mut uchar;
+    let mut buffer: *mut uchar =
+        MemAlloc((4 as i32 * (*this).size.x * (*this).size.y) as usize) as *mut uchar;
     glGetTexImage(
         0xde1 as i32 as GLenum,
         0 as i32,

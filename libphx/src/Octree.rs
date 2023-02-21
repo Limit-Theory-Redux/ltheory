@@ -1,34 +1,17 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     pub type Mesh;
     pub type Matrix;
     fn Draw_Box3(box_0: *const Box3f);
-    fn Draw_Color(
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-    );
+    fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
     fn Matrix_Free(_: *mut Matrix);
     fn Matrix_Inverse(_: *const Matrix) -> *mut Matrix;
-    fn Matrix_MulDir(
-        _: *const Matrix,
-        out: *mut Vec3,
-        x: f32,
-        y: f32,
-        z: f32,
-    );
-    fn Matrix_MulPoint(
-        _: *const Matrix,
-        out: *mut Vec3,
-        x: f32,
-        y: f32,
-        z: f32,
-    );
+    fn Matrix_MulDir(_: *const Matrix, out: *mut Vec3, x: f32, y: f32, z: f32);
+    fn Matrix_MulPoint(_: *const Matrix, out: *mut Vec3, x: f32, y: f32, z: f32);
     fn Mesh_GetBound(_: *mut Mesh, out: *mut Box3f);
     fn Mesh_GetIndexCount(_: *mut Mesh) -> i32;
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut i32;
@@ -63,11 +46,7 @@ pub struct Vertex {
     pub uv: Vec2,
 }
 #[inline]
-unsafe extern "C" fn Box3f_IntersectsRay(
-    mut this: Box3f,
-    mut ro: Vec3,
-    mut rdi: Vec3,
-) -> bool {
+unsafe extern "C" fn Box3f_IntersectsRay(mut this: Box3f, mut ro: Vec3, mut rdi: Vec3) -> bool {
     let mut t1: f64 = (rdi.x * (this.lower.x - ro.x)) as f64;
     let mut t2: f64 = (rdi.x * (this.upper.x - ro.x)) as f64;
     let mut tMin: f64 = Min(t1, t2);
@@ -97,35 +76,35 @@ unsafe extern "C" fn Box3f_IntersectsBox(mut a: Box3f, mut b: Box3f) -> bool {
 }
 #[inline]
 unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
-    let mut this: Box3f =  Box3f {
-            lower:  Vec3 {
-                    x: Maxf(a.lower.x, b.lower.x),
-                    y: Maxf(a.lower.y, b.lower.y),
-                    z: Maxf(a.lower.z, b.lower.z),
-                },
-            upper:  Vec3 {
-                    x: Minf(a.upper.x, b.upper.x),
-                    y: Minf(a.upper.y, b.upper.y),
-                    z: Minf(a.upper.z, b.upper.z),
-                },
-        };
+    let mut this: Box3f = Box3f {
+        lower: Vec3 {
+            x: Maxf(a.lower.x, b.lower.x),
+            y: Maxf(a.lower.y, b.lower.y),
+            z: Maxf(a.lower.z, b.lower.z),
+        },
+        upper: Vec3 {
+            x: Minf(a.upper.x, b.upper.x),
+            y: Minf(a.upper.y, b.upper.y),
+            z: Minf(a.upper.z, b.upper.z),
+        },
+    };
     return this;
 }
 #[inline]
 unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
-    let mut center: Vec3 =  Vec3 {
-            x: (this.lower.x + this.upper.x) / 2.0f32,
-            y: (this.lower.y + this.upper.y) / 2.0f32,
-            z: (this.lower.z + this.upper.z) / 2.0f32,
-        };
+    let mut center: Vec3 = Vec3 {
+        x: (this.lower.x + this.upper.x) / 2.0f32,
+        y: (this.lower.y + this.upper.y) / 2.0f32,
+        z: (this.lower.z + this.upper.z) / 2.0f32,
+    };
     return center;
 }
 #[inline]
 unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
-    let mut result: Box3f =  Box3f {
-            lower: lower,
-            upper: upper,
-        };
+    let mut result: Box3f = Box3f {
+        lower: lower,
+        upper: upper,
+    };
     return result;
 }
 #[inline]
@@ -133,10 +112,7 @@ unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Max(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
@@ -144,18 +120,13 @@ unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
     return if a < b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Min(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Create(mut box_0: Box3f) -> *mut Octree {
-    let mut this: *mut Octree = MemAlloc(
-        ::core::mem::size_of::<Octree>() as usize,
-    ) as *mut Octree;
+    let mut this: *mut Octree = MemAlloc(::core::mem::size_of::<Octree>() as usize) as *mut Octree;
     MemZero(
         this as *mut libc::c_void,
         ::core::mem::size_of::<Octree>() as usize,
@@ -183,8 +154,16 @@ pub unsafe extern "C" fn Octree_Free(mut this: *mut Octree) {
 #[no_mangle]
 pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
     let mut meshBox: Box3f = Box3f {
-        lower: Vec3 { x: 0., y: 0., z: 0. },
-        upper: Vec3 { x: 0., y: 0., z: 0. },
+        lower: Vec3 {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        },
+        upper: Vec3 {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        },
     };
     Mesh_GetBound(mesh, &mut meshBox);
     let mut this: *mut Octree = Octree_Create(meshBox);
@@ -193,12 +172,12 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
     let mut i: i32 = 0 as i32;
     while i < indexCount {
-        let mut v0: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 0 as i32) as isize) as isize);
-        let mut v1: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 1 as i32) as isize) as isize);
-        let mut v2: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 2 as i32) as isize) as isize);
+        let mut v0: *const Vertex =
+            vertexData.offset(*indexData.offset((i + 0 as i32) as isize) as isize);
+        let mut v1: *const Vertex =
+            vertexData.offset(*indexData.offset((i + 1 as i32) as isize) as isize);
+        let mut v2: *const Vertex =
+            vertexData.offset(*indexData.offset((i + 2 as i32) as isize) as isize);
         let mut box_0: Box3f = Box3f_Create(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
@@ -256,8 +235,7 @@ pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> i32 {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
-    let mut memory: i32 = ::core::mem::size_of::<Octree>() as usize
-        as i32;
+    let mut memory: i32 = ::core::mem::size_of::<Octree>() as usize as i32;
     let mut i: i32 = 0 as i32;
     while i < 8 as i32 {
         if !((*this).child[i as usize]).is_null() {
@@ -267,9 +245,7 @@ pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        memory = (memory as usize)
-            .wrapping_add(::core::mem::size_of::<Node>()) as i32
-            as i32;
+        memory = (memory as usize).wrapping_add(::core::mem::size_of::<Node>()) as i32 as i32;
         elem = (*elem).next;
     }
     return memory;
@@ -315,13 +291,8 @@ pub unsafe extern "C" fn Octree_IntersectRay(
     Matrix_Free(inv);
     return Octree_IntersectRayImpl(this, invRo, invRd.recip());
 }
-unsafe extern "C" fn Octree_Insert(
-    mut this: *mut Octree,
-    mut box_0: Box3f,
-    mut id: u32,
-) {
-    let mut elem: *mut Node = MemAlloc(::core::mem::size_of::<Node>())
-        as *mut Node;
+unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3f, mut id: u32) {
+    let mut elem: *mut Node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
     (*elem).box_0 = box_0;
     (*elem).id = id as u64;
     (*elem).next = (*this).elems;
@@ -337,70 +308,102 @@ unsafe extern "C" fn Octree_AddDepth(
     let U: *const Vec3 = &mut (*this).box_0.upper;
     let C: Vec3 = Box3f_Center((*this).box_0);
     let childBound: [Box3f; 8] = [
-         Box3f {
-                lower:  Vec3 {
-                        x: (*L).x,
-                        y: (*L).y,
-                        z: (*L).z,
-                    },
-                upper:  Vec3 { x: C.x, y: C.y, z: C.z },
+        Box3f {
+            lower: Vec3 {
+                x: (*L).x,
+                y: (*L).y,
+                z: (*L).z,
             },
-         Box3f {
-                lower:  Vec3 {
-                        x: C.x,
-                        y: (*L).y,
-                        z: (*L).z,
-                    },
-                upper:  Vec3 { x: (*U).x, y: C.y, z: C.z },
+            upper: Vec3 {
+                x: C.x,
+                y: C.y,
+                z: C.z,
             },
-         Box3f {
-                lower:  Vec3 {
-                        x: (*L).x,
-                        y: C.y,
-                        z: (*L).z,
-                    },
-                upper:  Vec3 { x: C.x, y: (*U).y, z: C.z },
+        },
+        Box3f {
+            lower: Vec3 {
+                x: C.x,
+                y: (*L).y,
+                z: (*L).z,
             },
-         Box3f {
-                lower:  Vec3 { x: C.x, y: C.y, z: (*L).z },
-                upper:  Vec3 {
-                        x: (*U).x,
-                        y: (*U).y,
-                        z: C.z,
-                    },
+            upper: Vec3 {
+                x: (*U).x,
+                y: C.y,
+                z: C.z,
             },
-         Box3f {
-                lower:  Vec3 {
-                        x: (*L).x,
-                        y: (*L).y,
-                        z: C.z,
-                    },
-                upper:  Vec3 { x: C.x, y: C.y, z: (*U).z },
+        },
+        Box3f {
+            lower: Vec3 {
+                x: (*L).x,
+                y: C.y,
+                z: (*L).z,
             },
-         Box3f {
-                lower:  Vec3 { x: C.x, y: (*L).y, z: C.z },
-                upper:  Vec3 {
-                        x: (*U).x,
-                        y: C.y,
-                        z: (*U).z,
-                    },
+            upper: Vec3 {
+                x: C.x,
+                y: (*U).y,
+                z: C.z,
             },
-         Box3f {
-                lower:  Vec3 { x: (*L).x, y: C.y, z: C.z },
-                upper:  Vec3 {
-                        x: C.x,
-                        y: (*U).y,
-                        z: (*U).z,
-                    },
+        },
+        Box3f {
+            lower: Vec3 {
+                x: C.x,
+                y: C.y,
+                z: (*L).z,
             },
-         Box3f {
-                lower:  Vec3 { x: C.x, y: C.y, z: C.z },
-                upper:  Vec3 {
-                        x: (*U).x,
-                        y: (*U).y,
-                        z: (*U).z,
-                    },
+            upper: Vec3 {
+                x: (*U).x,
+                y: (*U).y,
+                z: C.z,
             },
+        },
+        Box3f {
+            lower: Vec3 {
+                x: (*L).x,
+                y: (*L).y,
+                z: C.z,
+            },
+            upper: Vec3 {
+                x: C.x,
+                y: C.y,
+                z: (*U).z,
+            },
+        },
+        Box3f {
+            lower: Vec3 {
+                x: C.x,
+                y: (*L).y,
+                z: C.z,
+            },
+            upper: Vec3 {
+                x: (*U).x,
+                y: C.y,
+                z: (*U).z,
+            },
+        },
+        Box3f {
+            lower: Vec3 {
+                x: (*L).x,
+                y: C.y,
+                z: C.z,
+            },
+            upper: Vec3 {
+                x: C.x,
+                y: (*U).y,
+                z: (*U).z,
+            },
+        },
+        Box3f {
+            lower: Vec3 {
+                x: C.x,
+                y: C.y,
+                z: C.z,
+            },
+            upper: Vec3 {
+                x: (*U).x,
+                y: (*U).y,
+                z: (*U).z,
+            },
+        },
     ];
     let mut intersections: i32 = 0 as i32;
     let mut lastIntersection: i32 = 0 as i32;
@@ -417,9 +420,8 @@ unsafe extern "C" fn Octree_AddDepth(
     }
     if intersections == 1 as i32 {
         if ((*this).child[lastIntersection as usize]).is_null() {
-            (*this)
-                .child[lastIntersection
-                as usize] = Octree_Create(childBound[lastIntersection as usize]);
+            (*this).child[lastIntersection as usize] =
+                Octree_Create(childBound[lastIntersection as usize]);
         }
         Octree_AddDepth(
             (*this).child[lastIntersection as usize],
@@ -432,28 +434,14 @@ unsafe extern "C" fn Octree_AddDepth(
     Octree_Insert(this, box_0, id);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Octree_Add(
-    mut this: *mut Octree,
-    mut box_0: Box3f,
-    mut id: u32,
-) {
+pub unsafe extern "C" fn Octree_Add(mut this: *mut Octree, mut box_0: Box3f, mut id: u32) {
     Octree_AddDepth(this, box_0, id, 0 as i32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Draw(mut this: *mut Octree) {
-    Draw_Color(
-        1.0f32,
-        1.0f32,
-        1.0f32,
-        1.0f32,
-    );
+    Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
     Draw_Box3(&mut (*this).box_0);
-    Draw_Color(
-        0.0f32,
-        1.0f32,
-        0.0f32,
-        1.0f32,
-    );
+    Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
         Draw_Box3(&mut (*elem).box_0);

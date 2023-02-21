@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Alloc(mut size: usize) -> *mut libc::c_void {
@@ -8,10 +8,7 @@ pub unsafe extern "C" fn Memory_Alloc(mut size: usize) -> *mut libc::c_void {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Memory_Calloc(
-    mut n: usize,
-    mut size: usize,
-) -> *mut libc::c_void {
+pub unsafe extern "C" fn Memory_Calloc(mut n: usize, mut size: usize) -> *mut libc::c_void {
     return libc::calloc(n, size);
 }
 

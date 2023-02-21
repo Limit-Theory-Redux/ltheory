@@ -1,10 +1,10 @@
-use ::libc;
-use glam::Vec3;
-use glam::IVec3;
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::TexFormat::*;
+use glam::IVec3;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type Bytes;
     fn Bytes_Rewind(_: *mut Bytes);
@@ -35,11 +35,7 @@ extern "C" {
     fn PixelFormat_Components(_: PixelFormat) -> i32;
     fn RenderTarget_Pop();
     fn RenderTarget_PushTex3D(_: *mut Tex3D, layer: i32);
-    fn RenderTarget_PushTex3DLevel(
-        _: *mut Tex3D,
-        layer: i32,
-        level: i32,
-    );
+    fn RenderTarget_PushTex3DLevel(_: *mut Tex3D, layer: i32, level: i32);
     fn TexFormat_IsDepth(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
 }
@@ -64,7 +60,7 @@ pub type GLuint = u32;
 pub type GLint = i32;
 pub type GLsizei = i32;
 pub type GLfloat = f32;
-pub type PFNGLTEXIMAGE3DPROC = Option::<
+pub type PFNGLTEXIMAGE3DPROC = Option<
     unsafe extern "C" fn(
         GLenum,
         GLint,
@@ -78,8 +74,8 @@ pub type PFNGLTEXIMAGE3DPROC = Option::<
         *const libc::c_void,
     ) -> (),
 >;
-pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
-pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
+pub type PFNGLACTIVETEXTUREPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
+pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
 
 #[inline]
 unsafe extern "C" fn Tex3D_Init() {
@@ -118,8 +114,7 @@ pub unsafe extern "C" fn Tex3D_Create(
 ) -> *mut Tex3D {
     if !TexFormat_IsValid(format) {
         Fatal(
-            b"Tex3D_Create: Invalid texture format requested\0" as *const u8
-                as *const libc::c_char,
+            b"Tex3D_Create: Invalid texture format requested\0" as *const u8 as *const libc::c_char,
         );
     }
     if TexFormat_IsDepth(format) {
@@ -128,20 +123,14 @@ pub unsafe extern "C" fn Tex3D_Create(
                 as *const libc::c_char,
         );
     }
-    let mut this: *mut Tex3D = MemAlloc(
-        ::core::mem::size_of::<Tex3D>() as usize,
-    ) as *mut Tex3D;
+    let mut this: *mut Tex3D = MemAlloc(::core::mem::size_of::<Tex3D>() as usize) as *mut Tex3D;
     (*this)._refCount = 1 as i32 as u32;
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).format = format;
     glGenTextures(1 as i32, &mut (*this).handle);
-    __glewActiveTexture
-        .expect("non-null function pointer")(0x84c0 as i32 as GLenum);
+    __glewActiveTexture.expect("non-null function pointer")(0x84c0 as i32 as GLenum);
     glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    __glewTexImage3D
-        .expect(
-            "non-null function pointer",
-        )(
+    __glewTexImage3D.expect("non-null function pointer")(
         0x806f as i32 as GLenum,
         0 as i32,
         (*this).format,
@@ -163,12 +152,10 @@ pub unsafe extern "C" fn Tex3D_Acquire(mut this: *mut Tex3D) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_Free(mut this: *mut Tex3D) {
-    if !this.is_null()
-        && {
-            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-            (*this)._refCount <= 0 as i32 as u32
-        }
-    {
+    if !this.is_null() && {
+        (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+        (*this)._refCount <= 0 as i32 as u32
+    } {
         glDeleteTextures(1 as i32, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
@@ -182,11 +169,7 @@ pub unsafe extern "C" fn Tex3D_Push(mut this: *mut Tex3D, mut layer: i32) {
     RenderTarget_PushTex3D(this, layer);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_PushLevel(
-    mut this: *mut Tex3D,
-    mut layer: i32,
-    mut level: i32,
-) {
+pub unsafe extern "C" fn Tex3D_PushLevel(mut this: *mut Tex3D, mut layer: i32, mut level: i32) {
     RenderTarget_PushTex3DLevel(this, layer, level);
 }
 #[no_mangle]
@@ -198,8 +181,7 @@ pub unsafe extern "C" fn Tex3D_Draw(
     mut xs: f32,
     mut ys: f32,
 ) {
-    let mut r: f32 = (layer + 1 as i32) as f32
-        / ((*this).size.z + 1 as i32) as f32;
+    let mut r: f32 = (layer + 1 as i32) as f32 / ((*this).size.z + 1 as i32) as f32;
     glEnable(0x806f as i32 as GLenum);
     glBindTexture(0x806f as i32 as GLenum, (*this).handle);
     glBegin(0x7 as i32 as GLenum);
@@ -217,8 +199,7 @@ pub unsafe extern "C" fn Tex3D_Draw(
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_GenMipmap(mut this: *mut Tex3D) {
     glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    __glewGenerateMipmap
-        .expect("non-null function pointer")(0x806f as i32 as GLenum);
+    __glewGenerateMipmap.expect("non-null function pointer")(0x806f as i32 as GLenum);
     glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
@@ -287,10 +268,7 @@ pub unsafe extern "C" fn Tex3D_SetData(
     mut df: DataFormat,
 ) {
     glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    __glewTexImage3D
-        .expect(
-            "non-null function pointer",
-        )(
+    __glewTexImage3D.expect("non-null function pointer")(
         0x806f as i32 as GLenum,
         0 as i32,
         (*this).format,
@@ -314,51 +292,22 @@ pub unsafe extern "C" fn Tex3D_SetDataBytes(
     Tex3D_SetData(this, Bytes_GetData(data), pf, df);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_SetMagFilter(
-    mut this: *mut Tex3D,
-    mut filter: TexFilter,
-) {
+pub unsafe extern "C" fn Tex3D_SetMagFilter(mut this: *mut Tex3D, mut filter: TexFilter) {
     glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x2800 as i32 as GLenum,
-        filter,
-    );
+    glTexParameteri(0x806f as i32 as GLenum, 0x2800 as i32 as GLenum, filter);
     glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_SetMinFilter(
-    mut this: *mut Tex3D,
-    mut filter: TexFilter,
-) {
+pub unsafe extern "C" fn Tex3D_SetMinFilter(mut this: *mut Tex3D, mut filter: TexFilter) {
     glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x2801 as i32 as GLenum,
-        filter,
-    );
+    glTexParameteri(0x806f as i32 as GLenum, 0x2801 as i32 as GLenum, filter);
     glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_SetWrapMode(
-    mut this: *mut Tex3D,
-    mut mode: TexWrapMode,
-) {
+pub unsafe extern "C" fn Tex3D_SetWrapMode(mut this: *mut Tex3D, mut mode: TexWrapMode) {
     glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x2802 as i32 as GLenum,
-        mode,
-    );
-    glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x2803 as i32 as GLenum,
-        mode,
-    );
-    glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x8072 as i32 as GLenum,
-        mode,
-    );
+    glTexParameteri(0x806f as i32 as GLenum, 0x2802 as i32 as GLenum, mode);
+    glTexParameteri(0x806f as i32 as GLenum, 0x2803 as i32 as GLenum, mode);
+    glTexParameteri(0x806f as i32 as GLenum, 0x8072 as i32 as GLenum, mode);
     glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLuint);
 }

@@ -1,7 +1,7 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     pub type Mesh;
@@ -11,16 +11,8 @@ extern "C" {
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut i32;
     fn Mesh_GetIndexCount(_: *mut Mesh) -> i32;
-    fn Intersect_SphereTriangle(
-        _: *const Sphere,
-        _: *const Triangle,
-        pHit: *mut Vec3,
-    ) -> bool;
-    fn Intersect_RayTriangle_Moller1(
-        _: *const Ray,
-        _: *const Triangle,
-        tHit: *mut f32,
-    ) -> bool;
+    fn Intersect_SphereTriangle(_: *const Sphere, _: *const Triangle, pHit: *mut Vec3) -> bool;
+    fn Intersect_RayTriangle_Moller1(_: *const Ray, _: *const Triangle, tHit: *mut f32) -> bool;
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
     fn Plane_ClassifyPolygon(_: *mut Plane, _: *mut Polygon) -> PolygonClassification;
@@ -45,12 +37,7 @@ extern "C" {
     fn Draw_PointSize(size: f32);
     fn Draw_Poly3(points: *const Vec3, count: i32);
     fn Draw_Point3(x: f32, y: f32, z: f32);
-    fn Draw_Color(
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-    );
+    fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
     fn Draw_Plane(p: *const Vec3, n: *const Vec3, scale: f32);
     fn Draw_Line3(p1: *const Vec3, p2: *const Vec3);
     fn RenderState_PushBlendMode(_: BlendMode);
@@ -214,25 +201,15 @@ unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
 #[inline]
-unsafe extern "C" fn Lerp(
-    mut a: f64,
-    mut b: f64,
-    mut t: f64,
-) -> f64 {
+unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
     return a + t * (b - a);
 }
 #[inline]
-unsafe extern "C" fn Max(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Min(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
 }
 #[no_mangle]
@@ -260,21 +237,17 @@ pub unsafe extern "C" fn BSP_IntersectRay(
     let mut ray: Ray = *_ray;
     *tHit = 3.40282347e+38f32;
     let mut nodeRef: BSPNodeRef = (*this).rootNode;
-    let mut tEpsilon: f32 = (8.0f32 as f64 * 1e-4f64
-        / ray.dir.length() as f64) as f32;
+    let mut tEpsilon: f32 = (8.0f32 as f64 * 1e-4f64 / ray.dir.length() as f64) as f32;
     let mut hit: bool = 0 as i32 != 0;
     let mut depth: i32 = 0 as i32;
     let mut maxDepth: i32 = 0 as i32;
     loop {
         maxDepth = Max(depth as f64, maxDepth as f64) as i32;
         if nodeRef.index >= 0 as i32 {
-            let mut node: *mut BSPNode = ((*this).nodes_data)
-                .offset(nodeRef.index as isize);
-            let mut dist: f32 = Vec3::dot((*node).plane.n, ray.p)
-                - (*node).plane.d;
+            let mut node: *mut BSPNode = ((*this).nodes_data).offset(nodeRef.index as isize);
+            let mut dist: f32 = Vec3::dot((*node).plane.n, ray.p) - (*node).plane.d;
             let mut denom: f32 = -Vec3::dot((*node).plane.n, ray.dir);
-            let mut nearIndex: i32 = (dist > 0.0f32)
-                as i32;
+            let mut nearIndex: i32 = (dist > 0.0f32) as i32;
             let mut earlyIndex: i32 = nearIndex;
             if denom != 0.0f32 {
                 let mut t: f32 = dist / denom;
@@ -285,32 +258,23 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         earlyIndex = (t >= 0.0f32) as i32 ^ nearIndex;
                     } else {
                         earlyIndex = (t < 0.0f32) as i32 ^ nearIndex;
-                        let mut min: f32 = Max(
-                            planeBegin as f64,
-                            ray.tMin as f64,
-                        ) as f32;
-                        let mut max: f32 = Min(
-                            planeEnd as f64,
-                            ray.tMax as f64,
-                        ) as f32;
-                        let mut d: DelayRay =  DelayRay {
-                                nodeRef: (*node)
-                                    .child[(1 as i32 ^ earlyIndex) as usize],
-                                tMin: min,
-                                tMax: ray.tMax,
-                                depth: depth,
-                            };
-                        if (rayStack_capacity == rayStack_size) as i32
-                            as libc::c_long != 0
-                        {
+                        let mut min: f32 = Max(planeBegin as f64, ray.tMin as f64) as f32;
+                        let mut max: f32 = Min(planeEnd as f64, ray.tMax as f64) as f32;
+                        let mut d: DelayRay = DelayRay {
+                            nodeRef: (*node).child[(1 as i32 ^ earlyIndex) as usize],
+                            tMin: min,
+                            tMax: ray.tMax,
+                            depth: depth,
+                        };
+                        if (rayStack_capacity == rayStack_size) as i32 as libc::c_long != 0 {
                             rayStack_capacity = if rayStack_capacity != 0 {
                                 rayStack_capacity * 2 as i32
                             } else {
                                 1 as i32
                             };
                             let mut elemSize: usize = ::core::mem::size_of::<DelayRay>();
-                            let mut pData: *mut *mut libc::c_void = &mut rayStack_data
-                                as *mut *mut DelayRay as *mut *mut libc::c_void;
+                            let mut pData: *mut *mut libc::c_void =
+                                &mut rayStack_data as *mut *mut DelayRay as *mut *mut libc::c_void;
                             *pData = MemRealloc(
                                 rayStack_data as *mut libc::c_void,
                                 (rayStack_capacity as usize).wrapping_mul(elemSize as usize),
@@ -324,23 +288,21 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 }
             } else if Abs(dist as f64) < 8.0f32 as f64 * 1e-4f64 {
                 earlyIndex = nearIndex;
-                let mut d_0: DelayRay =  DelayRay {
-                        nodeRef: (*node).child[(1 as i32 ^ earlyIndex) as usize],
-                        tMin: ray.tMin,
-                        tMax: ray.tMax,
-                        depth: depth,
-                    };
-                if (rayStack_capacity == rayStack_size) as libc::c_long
-                    != 0
-                {
+                let mut d_0: DelayRay = DelayRay {
+                    nodeRef: (*node).child[(1 as i32 ^ earlyIndex) as usize],
+                    tMin: ray.tMin,
+                    tMax: ray.tMax,
+                    depth: depth,
+                };
+                if (rayStack_capacity == rayStack_size) as libc::c_long != 0 {
                     rayStack_capacity = if rayStack_capacity != 0 {
                         rayStack_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize_0: usize = ::core::mem::size_of::<DelayRay>();
-                    let mut pData_0: *mut *mut libc::c_void = &mut rayStack_data
-                        as *mut *mut DelayRay as *mut *mut libc::c_void;
+                    let mut pData_0: *mut *mut libc::c_void =
+                        &mut rayStack_data as *mut *mut DelayRay as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
                         rayStack_data as *mut libc::c_void,
                         (rayStack_capacity as usize).wrapping_mul(elemSize_0 as usize),
@@ -353,12 +315,11 @@ pub unsafe extern "C" fn BSP_IntersectRay(
             depth += 1;
             nodeRef = (*node).child[earlyIndex as usize];
         } else {
-            let mut leaf: *const Triangle = ((*this).triangles_data)
-                .offset(-nodeRef.index as isize);
+            let mut leaf: *const Triangle =
+                ((*this).triangles_data).offset(-nodeRef.index as isize);
             let mut i: u8 = 0 as i32 as u8;
             while (i as i32) < nodeRef.triangleCount as i32 {
-                let mut triangle: *const Triangle = leaf
-                    .offset(i as i32 as isize);
+                let mut triangle: *const Triangle = leaf.offset(i as i32 as isize);
                 let mut t_0: f32 = 0.;
                 if Intersect_RayTriangle_Moller1(&mut ray, triangle, &mut t_0) {
                     if !hit || t_0 < *tHit {
@@ -393,12 +354,12 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
 ) -> bool {
     let mut t: f32 = 0.;
     let mut dir: Vec3 = (*lineSegment).p1 - (*lineSegment).p0;
-    let mut ray: Ray =  Ray {
-            p: (*lineSegment).p0,
-            dir: dir,
-            tMin: 0.0f32,
-            tMax: 1.0f32,
-        };
+    let mut ray: Ray = Ray {
+        p: (*lineSegment).p0,
+        dir: dir,
+        tMin: 0.0f32,
+        tMax: 1.0f32,
+    };
     if BSP_IntersectRay(this, &mut ray, &mut t) {
         Ray_GetPoint(&mut ray, t, pHit);
         return 1 as i32 != 0;
@@ -424,34 +385,26 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
     loop {
         maxDepth = Max(depth as f64, maxDepth as f64) as i32;
         if nodeRef.index >= 0 as i32 {
-            let mut node: *mut BSPNode = ((*this).nodes_data)
-                .offset(nodeRef.index as isize);
-            let mut dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p)
-                - (*node).plane.d;
-            if dist as f64
-                > (*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64
-            {
+            let mut node: *mut BSPNode = ((*this).nodes_data).offset(nodeRef.index as isize);
+            let mut dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p) - (*node).plane.d;
+            if dist as f64 > (*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64 {
                 nodeRef = (*node).child[FrontIndex as usize];
-            } else if (dist as f64)
-                < -((*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64)
-            {
+            } else if (dist as f64) < -((*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64) {
                 nodeRef = (*node).child[BackIndex as usize];
             } else {
-                let mut d: Delay =  Delay {
-                        nodeRef: (*node).child[BackIndex as usize],
-                        depth: depth,
-                    };
-                if (nodeStack_capacity == nodeStack_size) as libc::c_long
-                    != 0
-                {
+                let mut d: Delay = Delay {
+                    nodeRef: (*node).child[BackIndex as usize],
+                    depth: depth,
+                };
+                if (nodeStack_capacity == nodeStack_size) as libc::c_long != 0 {
                     nodeStack_capacity = if nodeStack_capacity != 0 {
                         nodeStack_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize: usize = ::core::mem::size_of::<Delay>();
-                    let mut pData: *mut *mut libc::c_void = &mut nodeStack_data
-                        as *mut *mut Delay as *mut *mut libc::c_void;
+                    let mut pData: *mut *mut libc::c_void =
+                        &mut nodeStack_data as *mut *mut Delay as *mut *mut libc::c_void;
                     *pData = MemRealloc(
                         nodeStack_data as *mut libc::c_void,
                         (nodeStack_capacity as usize).wrapping_mul(elemSize as usize),
@@ -464,8 +417,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
             }
             depth += 1;
         } else {
-            let mut leaf: *mut Triangle = ((*this).triangles_data)
-                .offset(-nodeRef.index as isize);
+            let mut leaf: *mut Triangle = ((*this).triangles_data).offset(-nodeRef.index as isize);
             let mut i: u8 = 0 as i32 as u8;
             while (i as i32) < nodeRef.triangleCount as i32 {
                 let mut triangle: *mut Triangle = leaf.offset(i as i32 as isize);
@@ -494,17 +446,13 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
     return hit;
 }
 #[no_mangle]
-pub static mut PolygonFlag_None: PolygonFlag = ((0 as i32) << 0 as i32)
-    as PolygonFlag;
+pub static mut PolygonFlag_None: PolygonFlag = ((0 as i32) << 0 as i32) as PolygonFlag;
 #[no_mangle]
-pub static mut PolygonFlag_InvalidFaceSplit: PolygonFlag = ((1 as i32)
-    << 0 as i32) as PolygonFlag;
+pub static mut PolygonFlag_InvalidFaceSplit: PolygonFlag = ((1 as i32) << 0 as i32) as PolygonFlag;
 #[no_mangle]
-pub static mut PolygonFlag_InvalidDecompose: PolygonFlag = ((1 as i32)
-    << 1 as i32) as PolygonFlag;
+pub static mut PolygonFlag_InvalidDecompose: PolygonFlag = ((1 as i32) << 1 as i32) as PolygonFlag;
 #[no_mangle]
-pub static mut PolygonFlag_InvalidEdgeSplit: PolygonFlag = ((1 as i32)
-    << 2 as i32) as PolygonFlag;
+pub static mut PolygonFlag_InvalidEdgeSplit: PolygonFlag = ((1 as i32) << 2 as i32) as PolygonFlag;
 unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     mut nodeData: *mut BSPBuild_NodeData,
     mut plane: Plane,
@@ -514,13 +462,11 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     let mut numBehind: i32 = 0 as i32;
     let mut numStraddling: i32 = 0 as i32;
     let mut polygon: *mut PolygonEx = (*nodeData).polygons_data;
-    let mut __iterend: *mut PolygonEx = ((*nodeData).polygons_data)
-        .offset((*nodeData).polygons_size as isize);
+    let mut __iterend: *mut PolygonEx =
+        ((*nodeData).polygons_data).offset((*nodeData).polygons_size as isize);
     while polygon < __iterend {
-        let mut classification: PolygonClassification = Plane_ClassifyPolygon(
-            &mut plane,
-            polygon as *mut Polygon,
-        );
+        let mut classification: PolygonClassification =
+            Plane_ClassifyPolygon(&mut plane, polygon as *mut Polygon);
         let mut current_block_4: u64;
         match classification as i32 {
             3 | 2 => {
@@ -552,8 +498,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
         polygon = polygon.offset(1);
     }
     let mut score: f32 = Lerp(
-        Abs((numInFront - numBehind) as f64) as f32
-            as f64,
+        Abs((numInFront - numBehind) as f64) as f32 as f64,
         numStraddling as f32 as f64,
         k as f64,
     ) as f32;
@@ -566,49 +511,41 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 ) -> bool {
     let mut maxDepth: f32 = 1000.0f32;
     let mut biasedDepth: f32 = (*nodeData).depth as f32 - 100.0f32;
-    let mut t: f32 = Max(
-        (biasedDepth / maxDepth) as f64,
-        0.0f32 as f64,
-    ) as f32;
-    let mut k: f32 = Lerp(
-        0.85f32 as f64,
-        0.25f32 as f64,
-        t as f64,
-    ) as f32;
+    let mut t: f32 = Max((biasedDepth / maxDepth) as f64, 0.0f32 as f64) as f32;
+    let mut k: f32 = Lerp(0.85f32 as f64, 0.25f32 as f64, t as f64) as f32;
     let mut bestScore: f32 = 3.40282347e+38f32;
-    let mut bestPlane: Plane =  Plane {
-            n: Vec3 { x: 0., y: 0., z: 0. },
-            d: 0.,
-        };
+    let mut bestPlane: Plane = Plane {
+        n: Vec3 {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        },
+        d: 0.,
+    };
     let mut bestPolygon: *mut PolygonEx = 0 as *mut PolygonEx;
     let mut numToCheck: i32 = 10 as i32;
     let mut polygonsLen: i32 = (*nodeData).polygons_size;
     if (*nodeData).validPolygonCount > 0 as i32 {
-        numToCheck = Min(
-            numToCheck as f64,
-            (*nodeData).validPolygonCount as f64,
-        ) as i32;
+        numToCheck = Min(numToCheck as f64, (*nodeData).validPolygonCount as f64) as i32;
         let mut i: i32 = 0 as i32;
         while i < numToCheck {
-            let mut polygonIndex: i32 = (RNG_Get32((*bsp).rng))
-                .wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex: i32 =
+                (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
             let mut j: i32 = 0 as i32;
             while j < polygonsLen {
-                let mut polygon: *mut PolygonEx = ((*nodeData).polygons_data)
-                    .offset(polygonIndex as isize);
-                if (*polygon).flags as i32
-                    & PolygonFlag_InvalidFaceSplit as i32 == 0
-                {
+                let mut polygon: *mut PolygonEx =
+                    ((*nodeData).polygons_data).offset(polygonIndex as isize);
+                if (*polygon).flags as i32 & PolygonFlag_InvalidFaceSplit as i32 == 0 {
                     let mut plane: Plane = Plane {
-                        n: Vec3 { x: 0., y: 0., z: 0. },
+                        n: Vec3 {
+                            x: 0.,
+                            y: 0.,
+                            z: 0.,
+                        },
                         d: 0.,
                     };
                     Polygon_ToPlane(polygon as *mut Polygon, &mut plane);
-                    let mut score: f32 = BSPBuild_ScoreSplitPlane(
-                        nodeData,
-                        plane,
-                        k,
-                    );
+                    let mut score: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane, k);
                     if score < bestScore {
                         bestScore = score;
                         bestPlane = plane;
@@ -623,45 +560,47 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
             i += 1;
         }
         if !bestPolygon.is_null() {
-            (*bestPolygon)
-                .flags = ((*bestPolygon).flags as i32
-                | PolygonFlag_InvalidFaceSplit as i32) as PolygonFlag;
+            (*bestPolygon).flags =
+                ((*bestPolygon).flags as i32 | PolygonFlag_InvalidFaceSplit as i32) as PolygonFlag;
         }
     } else if polygonsLen > 0 as i32 {
         let mut splitFound: bool = 0 as i32 != 0;
         if !splitFound {
-            let mut polygonIndex_0: i32 = (RNG_Get32((*bsp).rng))
-                .wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex_0: i32 =
+                (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
             let mut i_0: i32 = 0 as i32;
             while i_0 < polygonsLen {
-                let mut polygon_0: *mut PolygonEx = ((*nodeData).polygons_data)
-                    .offset(polygonIndex_0 as isize);
-                if !((*polygon_0).flags as i32
-                    & PolygonFlag_InvalidDecompose as i32 != 0)
-                {
+                let mut polygon_0: *mut PolygonEx =
+                    ((*nodeData).polygons_data).offset(polygonIndex_0 as isize);
+                if !((*polygon_0).flags as i32 & PolygonFlag_InvalidDecompose as i32 != 0) {
                     let mut v: *mut Vec3 = (*polygon_0).vertices_data;
                     let mut vLen: i32 = (*polygon_0).vertices_size;
                     let mut j_0: i32 = 2 as i32;
                     while j_0 < vLen - 1 as i32 {
                         let mut edge: Vec3 = *v.offset(0) - *v.offset(j_0 as isize);
-                        let mut mid: Vec3 = Vec3::lerp(
-                            *v.offset(0),
-                            *v.offset(j_0 as isize),
-                            0.5f32,
-                        );
+                        let mut mid: Vec3 =
+                            Vec3::lerp(*v.offset(0), *v.offset(j_0 as isize), 0.5f32);
                         let mut polygonPlane: Plane = Plane {
-                            n: Vec3 { x: 0., y: 0., z: 0. },
+                            n: Vec3 {
+                                x: 0.,
+                                y: 0.,
+                                z: 0.,
+                            },
                             d: 0.,
                         };
                         Polygon_ToPlane(polygon_0 as *mut Polygon, &mut polygonPlane);
                         let mut plane_0: Plane = Plane {
-                            n: Vec3 { x: 0., y: 0., z: 0. },
+                            n: Vec3 {
+                                x: 0.,
+                                y: 0.,
+                                z: 0.,
+                            },
                             d: 0.,
                         };
                         plane_0.n = Vec3::cross(edge, polygonPlane.n).normalize();
                         plane_0.d = Vec3::dot(plane_0.n, mid);
-                        if Plane_ClassifyPolygon(&mut plane_0, polygon_0 as *mut Polygon)
-                            as i32 == 4 as i32
+                        if Plane_ClassifyPolygon(&mut plane_0, polygon_0 as *mut Polygon) as i32
+                            == 4 as i32
                         {
                             splitFound = 1 as i32 != 0;
                             bestScore = 0.0f32;
@@ -669,8 +608,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                             bestPolygon = polygon_0;
                             break;
                         } else {
-                            (*polygon_0)
-                                .flags = ((*polygon_0).flags as i32
+                            (*polygon_0).flags = ((*polygon_0).flags as i32
                                 | PolygonFlag_InvalidDecompose as i32)
                                 as PolygonFlag;
                             j_0 += 1;
@@ -684,46 +622,47 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 i_0 += 1;
             }
             if splitFound {
-                (*bestPolygon)
-                    .flags = ((*bestPolygon).flags as i32
-                    | PolygonFlag_InvalidDecompose as i32) as PolygonFlag;
+                (*bestPolygon).flags = ((*bestPolygon).flags as i32
+                    | PolygonFlag_InvalidDecompose as i32)
+                    as PolygonFlag;
             }
         }
         if !splitFound {
-            let mut polygonIndex_1: i32 = (RNG_Get32((*bsp).rng))
-                .wrapping_rem(polygonsLen as u32) as i32;
+            let mut polygonIndex_1: i32 =
+                (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
             let mut i_1: i32 = 0 as i32;
             while i_1 < polygonsLen {
-                let mut polygon_1: *mut PolygonEx = ((*nodeData).polygons_data)
-                    .offset(polygonIndex_1 as isize);
-                if !((*polygon_1).flags as i32
-                    & PolygonFlag_InvalidEdgeSplit as i32 != 0)
-                {
+                let mut polygon_1: *mut PolygonEx =
+                    ((*nodeData).polygons_data).offset(polygonIndex_1 as isize);
+                if !((*polygon_1).flags as i32 & PolygonFlag_InvalidEdgeSplit as i32 != 0) {
                     let mut polygonPlane_0: Plane = Plane {
-                        n: Vec3 { x: 0., y: 0., z: 0. },
+                        n: Vec3 {
+                            x: 0.,
+                            y: 0.,
+                            z: 0.,
+                        },
                         d: 0.,
                     };
                     Polygon_ToPlane(polygon_1 as *mut Polygon, &mut polygonPlane_0);
                     let mut v_0: *mut Vec3 = (*polygon_1).vertices_data;
                     let mut vLen_0: i32 = (*polygon_1).vertices_size;
-                    let mut vPrev: Vec3 = *v_0
-                        .offset((vLen_0 - 1 as i32) as isize);
+                    let mut vPrev: Vec3 = *v_0.offset((vLen_0 - 1 as i32) as isize);
                     let mut j_1: i32 = 0 as i32;
                     while j_1 < vLen_0 {
                         let mut vCur: Vec3 = *v_0.offset(j_1 as isize);
                         let mut edge_0: Vec3 = vCur - vPrev;
                         let mut mid_0: Vec3 = Vec3::lerp(vPrev, vCur, 0.5f32);
                         let mut plane_1: Plane = Plane {
-                            n: Vec3 { x: 0., y: 0., z: 0. },
+                            n: Vec3 {
+                                x: 0.,
+                                y: 0.,
+                                z: 0.,
+                            },
                             d: 0.,
                         };
                         plane_1.n = Vec3::cross(edge_0, polygonPlane_0.n).normalize();
                         plane_1.d = Vec3::dot(plane_1.n, mid_0);
-                        let mut score_0: f32 = BSPBuild_ScoreSplitPlane(
-                            nodeData,
-                            plane_1,
-                            0.0f32,
-                        );
+                        let mut score_0: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane_1, 0.0f32);
                         if score_0 < bestScore {
                             splitFound = 1 as i32 != 0;
                             bestPolygon = polygon_1;
@@ -745,9 +684,9 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 i_1 += 1;
             }
             if splitFound {
-                (*bestPolygon)
-                    .flags = ((*bestPolygon).flags as i32
-                    | PolygonFlag_InvalidEdgeSplit as i32) as PolygonFlag;
+                (*bestPolygon).flags = ((*bestPolygon).flags as i32
+                    | PolygonFlag_InvalidEdgeSplit as i32)
+                    as PolygonFlag;
             }
         }
     }
@@ -755,7 +694,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
         *splitPlane = bestPlane;
         return 1 as i32 != 0;
     } else {
-        return 0 as i32 != 0
+        return 0 as i32 != 0;
     };
 }
 #[inline]
@@ -764,21 +703,17 @@ unsafe extern "C" fn BSPBuild_AppendPolygon(
     mut polygon: *mut PolygonEx,
 ) {
     (*nodeData).triangleCount += (*polygon).vertices_size - 2 as i32;
-    (*nodeData).validPolygonCount
-        += ((*polygon).flags as i32 & PolygonFlag_InvalidFaceSplit as i32
-            == 0) as i32;
-    if ((*nodeData).polygons_capacity == (*nodeData).polygons_size) as i32
-        as libc::c_long != 0
-    {
-        (*nodeData)
-            .polygons_capacity = if (*nodeData).polygons_capacity != 0 {
+    (*nodeData).validPolygonCount +=
+        ((*polygon).flags as i32 & PolygonFlag_InvalidFaceSplit as i32 == 0) as i32;
+    if ((*nodeData).polygons_capacity == (*nodeData).polygons_size) as i32 as libc::c_long != 0 {
+        (*nodeData).polygons_capacity = if (*nodeData).polygons_capacity != 0 {
             (*nodeData).polygons_capacity * 2 as i32
         } else {
             1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<PolygonEx>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*nodeData).polygons_data
-            as *mut *mut PolygonEx as *mut *mut libc::c_void;
+        let mut pData: *mut *mut libc::c_void =
+            &mut (*nodeData).polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*nodeData).polygons_data as *mut libc::c_void,
             ((*nodeData).polygons_capacity as usize).wrapping_mul(elemSize as usize),
@@ -792,18 +727,19 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     mut bsp: *mut BSPBuild,
     mut nodeData: *mut BSPBuild_NodeData,
 ) -> *mut BSPBuild_Node {
-    let mut node: *mut BSPBuild_Node = MemAllocZero(
-        ::core::mem::size_of::<BSPBuild_Node>() as usize,
-    ) as *mut BSPBuild_Node;
-    let mut splitPlane: Plane =  Plane {
-            n: Vec3 { x: 0., y: 0., z: 0. },
-            d: 0.,
-        };
+    let mut node: *mut BSPBuild_Node =
+        MemAllocZero(::core::mem::size_of::<BSPBuild_Node>() as usize) as *mut BSPBuild_Node;
+    let mut splitPlane: Plane = Plane {
+        n: Vec3 {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        },
+        d: 0.,
+    };
     let mut makeLeaf: bool = 0 as i32 != 0;
-    makeLeaf = makeLeaf as i32 != 0
-        || (*nodeData).triangleCount <= 12 as i32;
-    makeLeaf = makeLeaf as i32 != 0
-        || !BSPBuild_ChooseSplitPlane(bsp, nodeData, &mut splitPlane);
+    makeLeaf = makeLeaf as i32 != 0 || (*nodeData).triangleCount <= 12 as i32;
+    makeLeaf = makeLeaf as i32 != 0 || !BSPBuild_ChooseSplitPlane(bsp, nodeData, &mut splitPlane);
     if makeLeaf {
         if (*nodeData).triangleCount != 0 as i32 {
             (*bsp).leafCount += 1;
@@ -816,56 +752,50 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     }
     (*bsp).nodeCount += 1;
     let mut polygonsLen: i32 = (*nodeData).polygons_size;
-    let mut backNodeData: BSPBuild_NodeData =  BSPBuild_NodeData {
-            polygons_size: 0,
-            polygons_capacity: 0,
-            polygons_data: 0 as *mut PolygonEx,
-            validPolygonCount: 0,
-            triangleCount: 0,
-            depth: 0,
-        };
-    if (backNodeData.polygons_capacity < polygonsLen) as libc::c_long != 0
-    {
+    let mut backNodeData: BSPBuild_NodeData = BSPBuild_NodeData {
+        polygons_size: 0,
+        polygons_capacity: 0,
+        polygons_data: 0 as *mut PolygonEx,
+        validPolygonCount: 0,
+        triangleCount: 0,
+        depth: 0,
+    };
+    if (backNodeData.polygons_capacity < polygonsLen) as libc::c_long != 0 {
         backNodeData.polygons_capacity = polygonsLen;
         let mut elemSize: usize = ::core::mem::size_of::<PolygonEx>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut backNodeData.polygons_data
-            as *mut *mut PolygonEx as *mut *mut libc::c_void;
+        let mut pData: *mut *mut libc::c_void =
+            &mut backNodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
             backNodeData.polygons_data as *mut libc::c_void,
             (backNodeData.polygons_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
     backNodeData.depth = ((*nodeData).depth as i32 + 1 as i32) as u16;
-    let mut frontNodeData: BSPBuild_NodeData =  BSPBuild_NodeData {
-            polygons_size: 0,
-            polygons_capacity: 0,
-            polygons_data: 0 as *mut PolygonEx,
-            validPolygonCount: 0,
-            triangleCount: 0,
-            depth: 0,
-        };
-    if (frontNodeData.polygons_capacity < polygonsLen) as libc::c_long
-        != 0
-    {
+    let mut frontNodeData: BSPBuild_NodeData = BSPBuild_NodeData {
+        polygons_size: 0,
+        polygons_capacity: 0,
+        polygons_data: 0 as *mut PolygonEx,
+        validPolygonCount: 0,
+        triangleCount: 0,
+        depth: 0,
+    };
+    if (frontNodeData.polygons_capacity < polygonsLen) as libc::c_long != 0 {
         frontNodeData.polygons_capacity = polygonsLen;
         let mut elemSize_0: usize = ::core::mem::size_of::<PolygonEx>();
-        let mut pData_0: *mut *mut libc::c_void = &mut frontNodeData.polygons_data
-            as *mut *mut PolygonEx as *mut *mut libc::c_void;
+        let mut pData_0: *mut *mut libc::c_void =
+            &mut frontNodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
             frontNodeData.polygons_data as *mut libc::c_void,
             (frontNodeData.polygons_capacity as usize).wrapping_mul(elemSize_0 as usize),
         );
     }
-    frontNodeData
-        .depth = ((*nodeData).depth as i32 + 1 as i32) as u16;
+    frontNodeData.depth = ((*nodeData).depth as i32 + 1 as i32) as u16;
     let mut polygon: *mut PolygonEx = (*nodeData).polygons_data;
-    let mut __iterend: *mut PolygonEx = ((*nodeData).polygons_data)
-        .offset((*nodeData).polygons_size as isize);
+    let mut __iterend: *mut PolygonEx =
+        ((*nodeData).polygons_data).offset((*nodeData).polygons_size as isize);
     while polygon < __iterend {
-        let mut classification: PolygonClassification = Plane_ClassifyPolygon(
-            &mut splitPlane,
-            polygon as *mut Polygon,
-        );
+        let mut classification: PolygonClassification =
+            Plane_ClassifyPolygon(&mut splitPlane, polygon as *mut Polygon);
         let mut current_block_37: u64;
         match classification as i32 {
             3 => {
@@ -879,19 +809,19 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                 current_block_37 = 17184638872671510253;
             }
             4 => {
-                let mut backPart: PolygonEx =  PolygonEx {
-                        vertices_size: 0,
-                        vertices_capacity: 0,
-                        vertices_data: 0 as *mut Vec3,
-                        flags: 0,
-                    };
+                let mut backPart: PolygonEx = PolygonEx {
+                    vertices_size: 0,
+                    vertices_capacity: 0,
+                    vertices_data: 0 as *mut Vec3,
+                    flags: 0,
+                };
                 backPart.flags = (*polygon).flags;
-                let mut frontPart: PolygonEx =  PolygonEx {
-                        vertices_size: 0,
-                        vertices_capacity: 0,
-                        vertices_data: 0 as *mut Vec3,
-                        flags: 0,
-                    };
+                let mut frontPart: PolygonEx = PolygonEx {
+                    vertices_size: 0,
+                    vertices_capacity: 0,
+                    vertices_data: 0 as *mut Vec3,
+                    flags: 0,
+                };
                 frontPart.flags = (*polygon).flags;
                 Polygon_SplitSafe(
                     polygon as *mut Polygon,
@@ -915,9 +845,8 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         }
         match current_block_37 {
             18363606670811337990 => {
-                (*polygon)
-                    .flags = ((*polygon).flags as i32
-                    | PolygonFlag_InvalidFaceSplit as i32) as PolygonFlag;
+                (*polygon).flags =
+                    ((*polygon).flags as i32 | PolygonFlag_InvalidFaceSplit as i32) as PolygonFlag;
                 current_block_37 = 1190587995684967772;
             }
             _ => {}
@@ -943,29 +872,30 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
     if !((*buildNode).child[BackIndex as usize]).is_null()
         || !((*buildNode).child[FrontIndex as usize]).is_null()
     {
-        let mut dummy: BSPNode =  BSPNode {
-                plane: Plane {
-                    n: Vec3 { x: 0., y: 0., z: 0. },
-                    d: 0.,
+        let mut dummy: BSPNode = BSPNode {
+            plane: Plane {
+                n: Vec3 {
+                    x: 0.,
+                    y: 0.,
+                    z: 0.,
                 },
-                child: [BSPNodeRef {
-                    index: 0,
-                    triangleCount: 0,
-                }; 2],
-            };
+                d: 0.,
+            },
+            child: [BSPNodeRef {
+                index: 0,
+                triangleCount: 0,
+            }; 2],
+        };
         let mut nodeIndex: i32 = (*this).nodes_size;
-        if ((*this).nodes_capacity == (*this).nodes_size) as i32
-            as libc::c_long != 0
-        {
-            (*this)
-                .nodes_capacity = if (*this).nodes_capacity != 0 {
+        if ((*this).nodes_capacity == (*this).nodes_size) as i32 as libc::c_long != 0 {
+            (*this).nodes_capacity = if (*this).nodes_capacity != 0 {
                 (*this).nodes_capacity * 2 as i32
             } else {
                 1 as i32
             };
             let mut elemSize: usize = ::core::mem::size_of::<BSPNode>();
-            let mut pData: *mut *mut libc::c_void = &mut (*this).nodes_data
-                as *mut *mut BSPNode as *mut *mut libc::c_void;
+            let mut pData: *mut *mut libc::c_void =
+                &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 (*this).nodes_data as *mut libc::c_void,
                 ((*this).nodes_capacity as usize).wrapping_mul(elemSize as usize),
@@ -978,22 +908,14 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             .offset((*this).nodes_size as isize)
             .offset(-(1));
         (*node).plane = (*buildNode).plane;
-        (*node)
-            .child[BackIndex
-            as usize] = BSPBuild_OptimizeTree(
-            this,
-            (*buildNode).child[BackIndex as usize],
-        );
-        (*node)
-            .child[FrontIndex
-            as usize] = BSPBuild_OptimizeTree(
-            this,
-            (*buildNode).child[FrontIndex as usize],
-        );
-        let mut result: BSPNodeRef =  BSPNodeRef {
-                index: nodeIndex,
-                triangleCount: 0 as i32 as u8,
-            };
+        (*node).child[BackIndex as usize] =
+            BSPBuild_OptimizeTree(this, (*buildNode).child[BackIndex as usize]);
+        (*node).child[FrontIndex as usize] =
+            BSPBuild_OptimizeTree(this, (*buildNode).child[FrontIndex as usize]);
+        let mut result: BSPNodeRef = BSPNodeRef {
+            index: nodeIndex,
+            triangleCount: 0 as i32 as u8,
+        };
         return result;
     } else {
         if (*buildNode).polygons_size == 0 as i32 {
@@ -1001,8 +923,8 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
         }
         let mut leafIndex: i32 = (*this).triangles_size;
         let mut polygon: *mut PolygonEx = (*buildNode).polygons_data;
-        let mut __iterend: *mut PolygonEx = ((*buildNode).polygons_data)
-            .offset((*buildNode).polygons_size as isize);
+        let mut __iterend: *mut PolygonEx =
+            ((*buildNode).polygons_data).offset((*buildNode).polygons_size as isize);
         while polygon < __iterend {
             Polygon_ConvexToTriangles(
                 polygon as *mut Polygon,
@@ -1013,10 +935,10 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             polygon = polygon.offset(1);
         }
         let mut leafLen: u8 = ((*this).triangles_size - leafIndex) as u8;
-        let mut result_0: BSPNodeRef =  BSPNodeRef {
-                index: -leafIndex,
-                triangleCount: leafLen,
-            };
+        let mut result_0: BSPNodeRef = BSPNodeRef {
+            index: -leafIndex,
+            triangleCount: leafLen,
+        };
         return result_0;
     };
 }
@@ -1028,8 +950,8 @@ unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
         BSPBuild_FreeNode((*node).child[FrontIndex as usize]);
     } else {
         let mut polygon: *mut PolygonEx = (*node).polygons_data;
-        let mut __iterend: *mut PolygonEx = ((*node).polygons_data)
-            .offset((*node).polygons_size as isize);
+        let mut __iterend: *mut PolygonEx =
+            ((*node).polygons_data).offset((*node).polygons_size as isize);
         while polygon < __iterend {
             MemFree((*polygon).vertices_data as *const libc::c_void);
             polygon = polygon.offset(1);
@@ -1040,29 +962,25 @@ unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
-    let mut this: *mut BSP = MemAllocZero(
-        ::core::mem::size_of::<BSP>(),
-    ) as *mut BSP;
+    let mut this: *mut BSP = MemAllocZero(::core::mem::size_of::<BSP>()) as *mut BSP;
     let mut indexLen: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *mut i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(mesh);
-    let mut nodeData: BSPBuild_NodeData =  BSPBuild_NodeData {
-            polygons_size: 0,
-            polygons_capacity: 0,
-            polygons_data: 0 as *mut PolygonEx,
-            validPolygonCount: 0,
-            triangleCount: 0,
-            depth: 0,
-        };
+    let mut nodeData: BSPBuild_NodeData = BSPBuild_NodeData {
+        polygons_size: 0,
+        polygons_capacity: 0,
+        polygons_data: 0 as *mut PolygonEx,
+        validPolygonCount: 0,
+        triangleCount: 0,
+        depth: 0,
+    };
     nodeData.triangleCount = indexLen / 3 as i32;
     nodeData.validPolygonCount = indexLen / 3 as i32;
-    if (nodeData.polygons_capacity < nodeData.triangleCount) as i32
-        as libc::c_long != 0
-    {
+    if (nodeData.polygons_capacity < nodeData.triangleCount) as i32 as libc::c_long != 0 {
         nodeData.polygons_capacity = nodeData.triangleCount;
         let mut elemSize: usize = ::core::mem::size_of::<PolygonEx>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut nodeData.polygons_data
-            as *mut *mut PolygonEx as *mut *mut libc::c_void;
+        let mut pData: *mut *mut libc::c_void =
+            &mut nodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
             nodeData.polygons_data as *mut libc::c_void,
             (nodeData.polygons_capacity as usize).wrapping_mul(elemSize as usize),
@@ -1076,36 +994,31 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut v0: Vec3 = (*vertexData.offset(i0 as isize)).p;
         let mut v1: Vec3 = (*vertexData.offset(i1 as isize)).p;
         let mut v2: Vec3 = (*vertexData.offset(i2 as isize)).p;
-        let mut polygon: PolygonEx =  PolygonEx {
-                vertices_size: 0,
-                vertices_capacity: 0,
-                vertices_data: 0 as *mut Vec3,
-                flags: 0,
-            };
-        if (polygon.vertices_capacity < 3 as i32) as libc::c_long
-            != 0
-        {
+        let mut polygon: PolygonEx = PolygonEx {
+            vertices_size: 0,
+            vertices_capacity: 0,
+            vertices_data: 0 as *mut Vec3,
+            flags: 0,
+        };
+        if (polygon.vertices_capacity < 3 as i32) as libc::c_long != 0 {
             polygon.vertices_capacity = 3 as i32;
             let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
-            let mut pData_0: *mut *mut libc::c_void = &mut polygon.vertices_data
-                as *mut *mut Vec3 as *mut *mut libc::c_void;
+            let mut pData_0: *mut *mut libc::c_void =
+                &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
                 polygon.vertices_data as *mut libc::c_void,
                 (polygon.vertices_capacity as usize).wrapping_mul(elemSize_0 as usize),
             );
         }
-        if (polygon.vertices_capacity == polygon.vertices_size) as i32
-            as libc::c_long != 0
-        {
-            polygon
-                .vertices_capacity = if polygon.vertices_capacity != 0 {
+        if (polygon.vertices_capacity == polygon.vertices_size) as i32 as libc::c_long != 0 {
+            polygon.vertices_capacity = if polygon.vertices_capacity != 0 {
                 polygon.vertices_capacity * 2 as i32
             } else {
                 1 as i32
             };
             let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
-            let mut pData_1: *mut *mut libc::c_void = &mut polygon.vertices_data
-                as *mut *mut Vec3 as *mut *mut libc::c_void;
+            let mut pData_1: *mut *mut libc::c_void =
+                &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_1 = MemRealloc(
                 polygon.vertices_data as *mut libc::c_void,
                 (polygon.vertices_capacity as usize).wrapping_mul(elemSize_1 as usize),
@@ -1114,18 +1027,15 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let fresh5 = polygon.vertices_size;
         polygon.vertices_size = polygon.vertices_size + 1;
         *(polygon.vertices_data).offset(fresh5 as isize) = v0;
-        if (polygon.vertices_capacity == polygon.vertices_size) as i32
-            as libc::c_long != 0
-        {
-            polygon
-                .vertices_capacity = if polygon.vertices_capacity != 0 {
+        if (polygon.vertices_capacity == polygon.vertices_size) as i32 as libc::c_long != 0 {
+            polygon.vertices_capacity = if polygon.vertices_capacity != 0 {
                 polygon.vertices_capacity * 2 as i32
             } else {
                 1 as i32
             };
             let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
-            let mut pData_2: *mut *mut libc::c_void = &mut polygon.vertices_data
-                as *mut *mut Vec3 as *mut *mut libc::c_void;
+            let mut pData_2: *mut *mut libc::c_void =
+                &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_2 = MemRealloc(
                 polygon.vertices_data as *mut libc::c_void,
                 (polygon.vertices_capacity as usize).wrapping_mul(elemSize_2 as usize),
@@ -1134,18 +1044,15 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let fresh6 = polygon.vertices_size;
         polygon.vertices_size = polygon.vertices_size + 1;
         *(polygon.vertices_data).offset(fresh6 as isize) = v1;
-        if (polygon.vertices_capacity == polygon.vertices_size) as i32
-            as libc::c_long != 0
-        {
-            polygon
-                .vertices_capacity = if polygon.vertices_capacity != 0 {
+        if (polygon.vertices_capacity == polygon.vertices_size) as i32 as libc::c_long != 0 {
+            polygon.vertices_capacity = if polygon.vertices_capacity != 0 {
                 polygon.vertices_capacity * 2 as i32
             } else {
                 1 as i32
             };
             let mut elemSize_3: usize = ::core::mem::size_of::<Vec3>();
-            let mut pData_3: *mut *mut libc::c_void = &mut polygon.vertices_data
-                as *mut *mut Vec3 as *mut *mut libc::c_void;
+            let mut pData_3: *mut *mut libc::c_void =
+                &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_3 = MemRealloc(
                 polygon.vertices_data as *mut libc::c_void,
                 (polygon.vertices_capacity as usize).wrapping_mul(elemSize_3 as usize),
@@ -1154,18 +1061,15 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let fresh7 = polygon.vertices_size;
         polygon.vertices_size = polygon.vertices_size + 1;
         *(polygon.vertices_data).offset(fresh7 as isize) = v2;
-        if (nodeData.polygons_capacity == nodeData.polygons_size) as i32
-            as libc::c_long != 0
-        {
-            nodeData
-                .polygons_capacity = if nodeData.polygons_capacity != 0 {
+        if (nodeData.polygons_capacity == nodeData.polygons_size) as i32 as libc::c_long != 0 {
+            nodeData.polygons_capacity = if nodeData.polygons_capacity != 0 {
                 nodeData.polygons_capacity * 2 as i32
             } else {
                 1 as i32
             };
             let mut elemSize_4: usize = ::core::mem::size_of::<PolygonEx>();
-            let mut pData_4: *mut *mut libc::c_void = &mut nodeData.polygons_data
-                as *mut *mut PolygonEx as *mut *mut libc::c_void;
+            let mut pData_4: *mut *mut libc::c_void =
+                &mut nodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
             *pData_4 = MemRealloc(
                 nodeData.polygons_data as *mut libc::c_void,
                 (nodeData.polygons_capacity as usize).wrapping_mul(elemSize_4 as usize),
@@ -1176,42 +1080,41 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         *(nodeData.polygons_data).offset(fresh8 as isize) = polygon;
         i += 3 as i32;
     }
-    let mut bspBuild: BSPBuild =  BSPBuild {
-            rootNode: 0 as *mut BSPBuild_Node,
-            rng: 0 as *mut RNG,
-            nodeCount: 0,
-            leafCount: 0,
-            triangleCount: 0,
-        };
+    let mut bspBuild: BSPBuild = BSPBuild {
+        rootNode: 0 as *mut BSPBuild_Node,
+        rng: 0 as *mut RNG,
+        nodeCount: 0,
+        leafCount: 0,
+        triangleCount: 0,
+    };
     bspBuild.rng = RNG_Create(1235 as i32 as u64);
     bspBuild.rootNode = BSPBuild_CreateNode(&mut bspBuild, &mut nodeData);
-    let mut nullLeaf: Triangle =  Triangle {
-            vertices: [Vec3 { x: 0., y: 0., z: 0. }; 3],
-        };
-    if ((*this).triangles_capacity < bspBuild.triangleCount + 2 as i32)
-        as libc::c_long != 0
-    {
+    let mut nullLeaf: Triangle = Triangle {
+        vertices: [Vec3 {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        }; 3],
+    };
+    if ((*this).triangles_capacity < bspBuild.triangleCount + 2 as i32) as libc::c_long != 0 {
         (*this).triangles_capacity = bspBuild.triangleCount + 2 as i32;
         let mut elemSize_5: usize = ::core::mem::size_of::<Triangle>() as usize;
-        let mut pData_5: *mut *mut libc::c_void = &mut (*this).triangles_data
-            as *mut *mut Triangle as *mut *mut libc::c_void;
+        let mut pData_5: *mut *mut libc::c_void =
+            &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_5 = MemRealloc(
             (*this).triangles_data as *mut libc::c_void,
             ((*this).triangles_capacity as usize).wrapping_mul(elemSize_5 as usize),
         );
     }
-    if ((*this).triangles_capacity == (*this).triangles_size) as i32
-        as libc::c_long != 0
-    {
-        (*this)
-            .triangles_capacity = if (*this).triangles_capacity != 0 {
+    if ((*this).triangles_capacity == (*this).triangles_size) as i32 as libc::c_long != 0 {
+        (*this).triangles_capacity = if (*this).triangles_capacity != 0 {
             (*this).triangles_capacity * 2 as i32
         } else {
             1 as i32
         };
         let mut elemSize_6: usize = ::core::mem::size_of::<Triangle>() as usize;
-        let mut pData_6: *mut *mut libc::c_void = &mut (*this).triangles_data
-            as *mut *mut Triangle as *mut *mut libc::c_void;
+        let mut pData_6: *mut *mut libc::c_void =
+            &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_6 = MemRealloc(
             (*this).triangles_data as *mut libc::c_void,
             ((*this).triangles_capacity as usize).wrapping_mul(elemSize_6 as usize),
@@ -1220,18 +1123,15 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     let fresh9 = (*this).triangles_size;
     (*this).triangles_size = (*this).triangles_size + 1;
     *((*this).triangles_data).offset(fresh9 as isize) = nullLeaf;
-    if ((*this).triangles_capacity == (*this).triangles_size) as i32
-        as libc::c_long != 0
-    {
-        (*this)
-            .triangles_capacity = if (*this).triangles_capacity != 0 {
+    if ((*this).triangles_capacity == (*this).triangles_size) as i32 as libc::c_long != 0 {
+        (*this).triangles_capacity = if (*this).triangles_capacity != 0 {
             (*this).triangles_capacity * 2 as i32
         } else {
             1 as i32
         };
         let mut elemSize_7: usize = ::core::mem::size_of::<Triangle>() as usize;
-        let mut pData_7: *mut *mut libc::c_void = &mut (*this).triangles_data
-            as *mut *mut Triangle as *mut *mut libc::c_void;
+        let mut pData_7: *mut *mut libc::c_void =
+            &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_7 = MemRealloc(
             (*this).triangles_data as *mut libc::c_void,
             ((*this).triangles_capacity as usize).wrapping_mul(elemSize_7 as usize),
@@ -1242,40 +1142,39 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     *((*this).triangles_data).offset(fresh10 as isize) = nullLeaf;
     (*this).emptyLeaf.index = -EmptyLeafIndex;
     (*this).emptyLeaf.triangleCount = 0 as i32 as u8;
-    let mut nullNode: BSPNode =  BSPNode {
-            plane: Plane {
-                n: Vec3 { x: 0., y: 0., z: 0. },
-                d: 0.,
+    let mut nullNode: BSPNode = BSPNode {
+        plane: Plane {
+            n: Vec3 {
+                x: 0.,
+                y: 0.,
+                z: 0.,
             },
-            child: [BSPNodeRef {
-                index: 0,
-                triangleCount: 0,
-            }; 2],
-        };
-    if ((*this).nodes_capacity < bspBuild.nodeCount + 1 as i32) as i32
-        as libc::c_long != 0
-    {
+            d: 0.,
+        },
+        child: [BSPNodeRef {
+            index: 0,
+            triangleCount: 0,
+        }; 2],
+    };
+    if ((*this).nodes_capacity < bspBuild.nodeCount + 1 as i32) as i32 as libc::c_long != 0 {
         (*this).nodes_capacity = bspBuild.nodeCount + 1 as i32;
         let mut elemSize_8: usize = ::core::mem::size_of::<BSPNode>() as usize;
-        let mut pData_8: *mut *mut libc::c_void = &mut (*this).nodes_data
-            as *mut *mut BSPNode as *mut *mut libc::c_void;
+        let mut pData_8: *mut *mut libc::c_void =
+            &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
         *pData_8 = MemRealloc(
             (*this).nodes_data as *mut libc::c_void,
             ((*this).nodes_capacity as usize).wrapping_mul(elemSize_8 as usize),
         );
     }
-    if ((*this).nodes_capacity == (*this).nodes_size) as libc::c_long
-        != 0
-    {
-        (*this)
-            .nodes_capacity = if (*this).nodes_capacity != 0 {
+    if ((*this).nodes_capacity == (*this).nodes_size) as libc::c_long != 0 {
+        (*this).nodes_capacity = if (*this).nodes_capacity != 0 {
             (*this).nodes_capacity * 2 as i32
         } else {
             1 as i32
         };
         let mut elemSize_9: usize = ::core::mem::size_of::<BSPNode>() as usize;
-        let mut pData_9: *mut *mut libc::c_void = &mut (*this).nodes_data
-            as *mut *mut BSPNode as *mut *mut libc::c_void;
+        let mut pData_9: *mut *mut libc::c_void =
+            &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
         *pData_9 = MemRealloc(
             (*this).nodes_data as *mut libc::c_void,
             ((*this).nodes_capacity as usize).wrapping_mul(elemSize_9 as usize),
@@ -1314,10 +1213,10 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
     if nodeRef.index > 0 as i32 {
         node = ((*this).nodes_data).offset(nodeRef.index as isize);
     }
-    let mut newNode: BSPNodeRef =  BSPNodeRef {
-            index: 0,
-            triangleCount: 0,
-        };
+    let mut newNode: BSPNodeRef = BSPNodeRef {
+        index: 0,
+        triangleCount: 0,
+    };
     let mut current_block_15: u64;
     match relationship as i32 {
         0 => {
@@ -1337,8 +1236,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         }
         _ => {
             Fatal(
-                b"BSPDebug_GetNode: Unhandled case: %i\0" as *const u8
-                    as *const libc::c_char,
+                b"BSPDebug_GetNode: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
                 relationship as i32,
             );
             current_block_15 = 1626635900302357725;
@@ -1349,14 +1247,11 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
             if nodeRef.index != 0 {
                 let mut i: i32 = 0 as i32;
                 while i < (*this).nodes_size {
-                    let mut nodeToCheck: *mut BSPNode = ((*this).nodes_data)
-                        .offset(i as isize);
+                    let mut nodeToCheck: *mut BSPNode = ((*this).nodes_data).offset(i as isize);
                     if (*nodeToCheck).child[BackIndex as usize].index == nodeRef.index {
                         newNode.index = i;
                         break;
-                    } else if (*nodeToCheck).child[FrontIndex as usize].index
-                        == nodeRef.index
-                    {
+                    } else if (*nodeToCheck).child[FrontIndex as usize].index == nodeRef.index {
                         newNode.index = i;
                         break;
                     } else {
@@ -1370,18 +1265,13 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
     return if newNode.index != 0 { newNode } else { nodeRef };
 }
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNode(
-    mut this: *mut BSP,
-    mut nodeRef: BSPNodeRef,
-) {
+pub unsafe extern "C" fn BSPDebug_DrawNode(mut this: *mut BSP, mut nodeRef: BSPNodeRef) {
     if nodeRef.index > 0 as i32 {
-        let mut node: *mut BSPNode = ((*this).nodes_data)
-            .offset(nodeRef.index as isize);
+        let mut node: *mut BSPNode = ((*this).nodes_data).offset(nodeRef.index as isize);
         BSPDebug_DrawNode(this, (*node).child[BackIndex as usize]);
         BSPDebug_DrawNode(this, (*node).child[FrontIndex as usize]);
     } else {
-        let mut leaf: *mut Triangle = ((*this).triangles_data)
-            .offset(-nodeRef.index as isize);
+        let mut leaf: *mut Triangle = ((*this).triangles_data).offset(-nodeRef.index as isize);
         let mut i: u8 = 0 as i32 as u8;
         while (i as i32) < nodeRef.triangleCount as i32 {
             let mut triangle: *mut Triangle = leaf.offset(i as i32 as isize);
@@ -1391,32 +1281,28 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(
-    mut this: *mut BSP,
-    mut nodeRef: BSPNodeRef,
-) {
+pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(mut this: *mut BSP, mut nodeRef: BSPNodeRef) {
     RenderState_PushBlendMode(1 as i32);
     RenderState_PushCullFace(1 as i32);
     RenderState_PushDepthTest(1 as i32 != 0);
     RenderState_PushWireframe(1 as i32 != 0);
     if nodeRef.index > 0 as i32 {
-        let mut node: *mut BSPNode = ((*this).nodes_data)
-            .offset(nodeRef.index as isize);
+        let mut node: *mut BSPNode = ((*this).nodes_data).offset(nodeRef.index as isize);
         Draw_Color(0.5f32, 0.3f32, 0.3f32, 0.4f32);
         BSPDebug_DrawNode(this, (*node).child[BackIndex as usize]);
         Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
         BSPDebug_DrawNode(this, (*node).child[FrontIndex as usize]);
         let mut closestPoint = Vec3::ZERO;
-        let mut origin: Vec3 =  Vec3 { x: 0., y: 0., z: 0. };
+        let mut origin: Vec3 = Vec3 {
+            x: 0.,
+            y: 0.,
+            z: 0.,
+        };
         let mut t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
         closestPoint = origin - ((*node).plane.n * t);
         RenderState_PushWireframe(0 as i32 != 0);
         Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
-        Draw_Plane(
-            &mut closestPoint,
-            &mut (*node).plane.n,
-            2.0f32,
-        );
+        Draw_Plane(&mut closestPoint, &mut (*node).plane.n, 2.0f32);
         Draw_Color(0.5f32, 0.3f32, 0.3f32, 0.4f32);
         let mut neg: Vec3 = (*node).plane.n * -1.0f32;
         Draw_Plane(&mut closestPoint, &mut neg, 2.0f32);
@@ -1449,10 +1335,7 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawSphere(
-    mut this: *mut BSP,
-    mut sphere: *mut Sphere,
-) {
+pub unsafe extern "C" fn BSPDebug_DrawSphere(mut this: *mut BSP, mut sphere: *mut Sphere) {
     let mut pHit = Vec3::ZERO;
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(0 as i32 != 0);
@@ -1475,20 +1358,14 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(
-    mut this: *mut BSP,
-    mut totalTime: f64,
-) {
+pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(mut this: *mut BSP, mut totalTime: f64) {
     Warn(
         b"BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.\0"
             as *const u8 as *const libc::c_char,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
-    mut this: *mut BSP,
-    mut totalTime: f64,
-) {
+pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(mut this: *mut BSP, mut totalTime: f64) {
     Warn(
         b"BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.\0"
             as *const u8 as *const libc::c_char,
@@ -1507,35 +1384,27 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     loop {
         maxDepth = Max(depth as f64, maxDepth as f64) as i32;
         if nodeRef.index >= 0 as i32 {
-            let mut node: *mut BSPNode = ((*this).nodes_data)
-                .offset(nodeRef.index as isize);
+            let mut node: *mut BSPNode = ((*this).nodes_data).offset(nodeRef.index as isize);
             (*sphereProf).nodes += 1;
-            let mut dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p)
-                - (*node).plane.d;
-            if dist as f64
-                > (*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64
-            {
+            let mut dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p) - (*node).plane.d;
+            if dist as f64 > (*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64 {
                 nodeRef = (*node).child[FrontIndex as usize];
-            } else if (dist as f64)
-                < -((*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64)
-            {
+            } else if (dist as f64) < -((*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64) {
                 nodeRef = (*node).child[BackIndex as usize];
             } else {
-                let mut d: Delay =  Delay {
-                        nodeRef: (*node).child[BackIndex as usize],
-                        depth: depth,
-                    };
-                if (nodeStack_capacity == nodeStack_size) as libc::c_long
-                    != 0
-                {
+                let mut d: Delay = Delay {
+                    nodeRef: (*node).child[BackIndex as usize],
+                    depth: depth,
+                };
+                if (nodeStack_capacity == nodeStack_size) as libc::c_long != 0 {
                     nodeStack_capacity = if nodeStack_capacity != 0 {
                         nodeStack_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize: usize = ::core::mem::size_of::<Delay>();
-                    let mut pData: *mut *mut libc::c_void = &mut nodeStack_data
-                        as *mut *mut Delay as *mut *mut libc::c_void;
+                    let mut pData: *mut *mut libc::c_void =
+                        &mut nodeStack_data as *mut *mut Delay as *mut *mut libc::c_void;
                     *pData = MemRealloc(
                         nodeStack_data as *mut libc::c_void,
                         (nodeStack_capacity as usize).wrapping_mul(elemSize as usize),
@@ -1548,8 +1417,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
             }
             depth += 1;
         } else {
-            let mut leaf: *mut Triangle = ((*this).triangles_data)
-                .offset(-nodeRef.index as isize);
+            let mut leaf: *mut Triangle = ((*this).triangles_data).offset(-nodeRef.index as isize);
             (*sphereProf).leaves += 1;
             let mut i: u8 = 0 as i32 as u8;
             while (i as i32) < nodeRef.triangleCount as i32 {
@@ -1557,28 +1425,24 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 (*sphereProf).triangles += 1;
                 let mut pHit2 = Vec3::ZERO;
                 if Intersect_SphereTriangle(sphere, triangle, &mut pHit2) {
-                    let mut t: TriangleTest =  TriangleTest {
-                            triangle: triangle,
-                            hit: 1 as i32 != 0,
-                        };
-                    if ((*sphereProf).triangleTests_capacity
-                        == (*sphereProf).triangleTests_size) as i32
-                        as libc::c_long != 0
+                    let mut t: TriangleTest = TriangleTest {
+                        triangle: triangle,
+                        hit: 1 as i32 != 0,
+                    };
+                    if ((*sphereProf).triangleTests_capacity == (*sphereProf).triangleTests_size)
+                        as i32 as libc::c_long
+                        != 0
                     {
-                        (*sphereProf)
-                            .triangleTests_capacity = if (*sphereProf)
-                            .triangleTests_capacity != 0
-                        {
-                            (*sphereProf).triangleTests_capacity * 2 as i32
-                        } else {
-                            1 as i32
-                        };
-                        let mut elemSize_0: usize = ::core::mem::size_of::<
-                            TriangleTest,
-                        >();
-                        let mut pData_0: *mut *mut libc::c_void = &mut (*sphereProf)
-                            .triangleTests_data as *mut *mut TriangleTest
-                            as *mut *mut libc::c_void;
+                        (*sphereProf).triangleTests_capacity =
+                            if (*sphereProf).triangleTests_capacity != 0 {
+                                (*sphereProf).triangleTests_capacity * 2 as i32
+                            } else {
+                                1 as i32
+                            };
+                        let mut elemSize_0: usize = ::core::mem::size_of::<TriangleTest>();
+                        let mut pData_0: *mut *mut libc::c_void =
+                            &mut (*sphereProf).triangleTests_data as *mut *mut TriangleTest
+                                as *mut *mut libc::c_void;
                         *pData_0 = MemRealloc(
                             (*sphereProf).triangleTests_data as *mut libc::c_void,
                             ((*sphereProf).triangleTests_capacity as usize)
@@ -1586,34 +1450,29 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                         );
                     }
                     let fresh13 = (*sphereProf).triangleTests_size;
-                    (*sphereProf)
-                        .triangleTests_size = (*sphereProf).triangleTests_size + 1;
+                    (*sphereProf).triangleTests_size = (*sphereProf).triangleTests_size + 1;
                     *((*sphereProf).triangleTests_data).offset(fresh13 as isize) = t;
                     hit = 1 as i32 != 0;
                     break;
                 } else {
-                    let mut t_0: TriangleTest =  TriangleTest {
-                            triangle: triangle,
-                            hit: 0 as i32 != 0,
-                        };
-                    if ((*sphereProf).triangleTests_capacity
-                        == (*sphereProf).triangleTests_size) as i32
-                        as libc::c_long != 0
+                    let mut t_0: TriangleTest = TriangleTest {
+                        triangle: triangle,
+                        hit: 0 as i32 != 0,
+                    };
+                    if ((*sphereProf).triangleTests_capacity == (*sphereProf).triangleTests_size)
+                        as i32 as libc::c_long
+                        != 0
                     {
-                        (*sphereProf)
-                            .triangleTests_capacity = if (*sphereProf)
-                            .triangleTests_capacity != 0
-                        {
-                            (*sphereProf).triangleTests_capacity * 2 as i32
-                        } else {
-                            1 as i32
-                        };
-                        let mut elemSize_1: usize = ::core::mem::size_of::<
-                            TriangleTest,
-                        >();
-                        let mut pData_1: *mut *mut libc::c_void = &mut (*sphereProf)
-                            .triangleTests_data as *mut *mut TriangleTest
-                            as *mut *mut libc::c_void;
+                        (*sphereProf).triangleTests_capacity =
+                            if (*sphereProf).triangleTests_capacity != 0 {
+                                (*sphereProf).triangleTests_capacity * 2 as i32
+                            } else {
+                                1 as i32
+                            };
+                        let mut elemSize_1: usize = ::core::mem::size_of::<TriangleTest>();
+                        let mut pData_1: *mut *mut libc::c_void =
+                            &mut (*sphereProf).triangleTests_data as *mut *mut TriangleTest
+                                as *mut *mut libc::c_void;
                         *pData_1 = MemRealloc(
                             (*sphereProf).triangleTests_data as *mut libc::c_void,
                             ((*sphereProf).triangleTests_capacity as usize)
@@ -1621,8 +1480,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                         );
                     }
                     let fresh14 = (*sphereProf).triangleTests_size;
-                    (*sphereProf)
-                        .triangleTests_size = (*sphereProf).triangleTests_size + 1;
+                    (*sphereProf).triangleTests_size = (*sphereProf).triangleTests_size + 1;
                     *((*sphereProf).triangleTests_data).offset(fresh14 as isize) = t_0;
                     i = i.wrapping_add(1);
                 }
@@ -1643,14 +1501,10 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     return hit;
 }
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_GetLeaf(
-    mut this: *mut BSP,
-    mut leafIndex: i32,
-) -> BSPNodeRef {
+pub unsafe extern "C" fn BSPDebug_GetLeaf(mut this: *mut BSP, mut leafIndex: i32) -> BSPNodeRef {
     let mut index: i32 = -(1 as i32);
     let mut node: *mut BSPNode = (*this).nodes_data;
-    let mut __iterend: *mut BSPNode = ((*this).nodes_data)
-        .offset((*this).nodes_size as isize);
+    let mut __iterend: *mut BSPNode = ((*this).nodes_data).offset((*this).nodes_size as isize);
     while node < __iterend {
         if (*node).child[0].index < 0 as i32 {
             let fresh15 = index;
@@ -1668,9 +1522,9 @@ pub unsafe extern "C" fn BSPDebug_GetLeaf(
         }
         node = node.offset(1);
     }
-    let mut result: BSPNodeRef =  BSPNodeRef {
-            index: RootNodeIndex,
-            triangleCount: 0 as i32 as u8,
-        };
+    let mut result: BSPNodeRef = BSPNodeRef {
+        index: RootNodeIndex,
+        triangleCount: 0 as i32 as u8,
+    };
     return result;
 }

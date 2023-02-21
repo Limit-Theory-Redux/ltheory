@@ -53,48 +53,53 @@ PHX_API void        _cppRigidBody_SetScale                     (RigidBody*, floa
 use glam::Vec3;
 
 extern "C" {
-fn _cppRigidBody_CreateBox() -> *mut RigidBody;
-fn _cppRigidBody_CreateBoxFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
-fn _cppRigidBody_CreateSphere() -> *mut RigidBody;
-fn _cppRigidBody_CreateSphereFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
-fn _cppRigidBody_CreateHullFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
-fn _cppRigidBody_Free(this: *mut RigidBody);
-fn _cppRigidBody_ApplyForce(this: *mut RigidBody, force: *mut Vec3);
-fn _cppRigidBody_ApplyTorque(this: *mut RigidBody, torque: *mut Vec3);
-fn _cppRigidBody_Attach(this: *mut RigidBody, other: *mut RigidBody, offset: *mut Vec3, rot: *mut Quat);
-fn _cppRigidBody_Detach(this: *mut RigidBody, other: *mut RigidBody);
-fn _cppRigidBody_GetBoundingBox(this: *mut RigidBody, out: *mut Box3f);
-fn _cppRigidBody_GetBoundingBoxCompound(this: *mut RigidBody, out: *mut Box3f);
-fn _cppRigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out: *mut Box3f);
-fn _cppRigidBody_GetBoundingBoxLocalCompound(this: *mut RigidBody, out: *mut Box3f);
-fn _cppRigidBody_GetBoundingRadius(this: *mut RigidBody) -> f32;
-fn _cppRigidBody_GetBoundingRadiusCompound(this: *mut RigidBody) -> f32;
-fn _cppRigidBody_GetParentBody(this: *mut RigidBody) -> *mut RigidBody;
-fn _cppRigidBody_GetSpeed(this: *mut RigidBody) -> f32;
-fn _cppRigidBody_GetToLocalMatrix(this: *mut RigidBody) -> *mut Matrix;
-fn _cppRigidBody_GetToWorldMatrix(this: *mut RigidBody) -> *mut Matrix;
-fn _cppRigidBody_GetVelocity(this: *mut RigidBody, out: *mut Vec3);
-fn _cppRigidBody_GetVelocityA(this: *mut RigidBody, out: *mut Vec3);
-fn _cppRigidBody_SetCollidable(this: *mut RigidBody, collidable: bool);
-fn _cppRigidBody_SetCollisionGroup(this: *mut RigidBody, group: i32);
-fn _cppRigidBody_SetCollisionMask(this: *mut RigidBody, mask: i32);
-fn _cppRigidBody_SetDrag(this: *mut RigidBody, linear: f32, angular: f32);
-fn _cppRigidBody_SetFriction(this: *mut RigidBody, friction: f32);
-fn _cppRigidBody_SetKinematic(this: *mut RigidBody, kinematic: bool);
-fn _cppRigidBody_SetRestitution(this: *mut RigidBody, restitution: f32);
-fn _cppRigidBody_SetSleepThreshold(this: *mut RigidBody, linear: f32, angular: f32);
-fn _cppRigidBody_GetMass(this: *mut RigidBody) -> f32;
-fn _cppRigidBody_SetMass(this: *mut RigidBody, mass: f32);
-fn _cppRigidBody_GetPos(this: *mut RigidBody, out: *mut Vec3);
-fn _cppRigidBody_GetPosLocal(this: *mut RigidBody, out: *mut Vec3);
-fn _cppRigidBody_SetPos(this: *mut RigidBody, pos: *mut Vec3);
-fn _cppRigidBody_SetPosLocal(this: *mut RigidBody, pos: *mut Vec3);
-fn _cppRigidBody_GetRot(this: *mut RigidBody, out: *mut Quat);
-fn _cppRigidBody_GetRotLocal(this: *mut RigidBody, out: *mut Quat);
-fn _cppRigidBody_SetRot(this: *mut RigidBody, rot: *mut Quat);
-fn _cppRigidBody_SetRotLocal(this: *mut RigidBody, rot: *mut Quat);
-fn _cppRigidBody_GetScale(this: *mut RigidBody) -> f32;
-fn _cppRigidBody_SetScale(this: *mut RigidBody, scale: f32);
+    fn _cppRigidBody_CreateBox() -> *mut RigidBody;
+    fn _cppRigidBody_CreateBoxFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
+    fn _cppRigidBody_CreateSphere() -> *mut RigidBody;
+    fn _cppRigidBody_CreateSphereFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
+    fn _cppRigidBody_CreateHullFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
+    fn _cppRigidBody_Free(this: *mut RigidBody);
+    fn _cppRigidBody_ApplyForce(this: *mut RigidBody, force: *mut Vec3);
+    fn _cppRigidBody_ApplyTorque(this: *mut RigidBody, torque: *mut Vec3);
+    fn _cppRigidBody_Attach(
+        this: *mut RigidBody,
+        other: *mut RigidBody,
+        offset: *mut Vec3,
+        rot: *mut Quat,
+    );
+    fn _cppRigidBody_Detach(this: *mut RigidBody, other: *mut RigidBody);
+    fn _cppRigidBody_GetBoundingBox(this: *mut RigidBody, out: *mut Box3f);
+    fn _cppRigidBody_GetBoundingBoxCompound(this: *mut RigidBody, out: *mut Box3f);
+    fn _cppRigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out: *mut Box3f);
+    fn _cppRigidBody_GetBoundingBoxLocalCompound(this: *mut RigidBody, out: *mut Box3f);
+    fn _cppRigidBody_GetBoundingRadius(this: *mut RigidBody) -> f32;
+    fn _cppRigidBody_GetBoundingRadiusCompound(this: *mut RigidBody) -> f32;
+    fn _cppRigidBody_GetParentBody(this: *mut RigidBody) -> *mut RigidBody;
+    fn _cppRigidBody_GetSpeed(this: *mut RigidBody) -> f32;
+    fn _cppRigidBody_GetToLocalMatrix(this: *mut RigidBody) -> *mut Matrix;
+    fn _cppRigidBody_GetToWorldMatrix(this: *mut RigidBody) -> *mut Matrix;
+    fn _cppRigidBody_GetVelocity(this: *mut RigidBody, out: *mut Vec3);
+    fn _cppRigidBody_GetVelocityA(this: *mut RigidBody, out: *mut Vec3);
+    fn _cppRigidBody_SetCollidable(this: *mut RigidBody, collidable: bool);
+    fn _cppRigidBody_SetCollisionGroup(this: *mut RigidBody, group: i32);
+    fn _cppRigidBody_SetCollisionMask(this: *mut RigidBody, mask: i32);
+    fn _cppRigidBody_SetDrag(this: *mut RigidBody, linear: f32, angular: f32);
+    fn _cppRigidBody_SetFriction(this: *mut RigidBody, friction: f32);
+    fn _cppRigidBody_SetKinematic(this: *mut RigidBody, kinematic: bool);
+    fn _cppRigidBody_SetRestitution(this: *mut RigidBody, restitution: f32);
+    fn _cppRigidBody_SetSleepThreshold(this: *mut RigidBody, linear: f32, angular: f32);
+    fn _cppRigidBody_GetMass(this: *mut RigidBody) -> f32;
+    fn _cppRigidBody_SetMass(this: *mut RigidBody, mass: f32);
+    fn _cppRigidBody_GetPos(this: *mut RigidBody, out: *mut Vec3);
+    fn _cppRigidBody_GetPosLocal(this: *mut RigidBody, out: *mut Vec3);
+    fn _cppRigidBody_SetPos(this: *mut RigidBody, pos: *mut Vec3);
+    fn _cppRigidBody_SetPosLocal(this: *mut RigidBody, pos: *mut Vec3);
+    fn _cppRigidBody_GetRot(this: *mut RigidBody, out: *mut Quat);
+    fn _cppRigidBody_GetRotLocal(this: *mut RigidBody, out: *mut Quat);
+    fn _cppRigidBody_SetRot(this: *mut RigidBody, rot: *mut Quat);
+    fn _cppRigidBody_SetRotLocal(this: *mut RigidBody, rot: *mut Quat);
+    fn _cppRigidBody_GetScale(this: *mut RigidBody) -> f32;
+    fn _cppRigidBody_SetScale(this: *mut RigidBody, scale: f32);
 }
 
 pub struct RigidBody;
@@ -144,7 +149,12 @@ pub unsafe extern "C" fn RigidBody_ApplyTorque(this: *mut RigidBody, torque: *mu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_Attach(this: *mut RigidBody, other: *mut RigidBody, offset: *mut Vec3, rot: *mut Quat) {
+pub unsafe extern "C" fn RigidBody_Attach(
+    this: *mut RigidBody,
+    other: *mut RigidBody,
+    offset: *mut Vec3,
+    rot: *mut Quat,
+) {
     _cppRigidBody_Attach(this, other, offset, rot)
 }
 
@@ -169,7 +179,10 @@ pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocalCompound(this: *mut RigidBody, out: *mut Box3f) {
+pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocalCompound(
+    this: *mut RigidBody,
+    out: *mut Box3f,
+) {
     _cppRigidBody_GetBoundingBoxLocalCompound(this, out)
 }
 
@@ -249,7 +262,11 @@ pub unsafe extern "C" fn RigidBody_SetRestitution(this: *mut RigidBody, restitut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetSleepThreshold(this: *mut RigidBody, linear: f32, angular: f32) {
+pub unsafe extern "C" fn RigidBody_SetSleepThreshold(
+    this: *mut RigidBody,
+    linear: f32,
+    angular: f32,
+) {
     _cppRigidBody_SetSleepThreshold(this, linear, angular)
 }
 

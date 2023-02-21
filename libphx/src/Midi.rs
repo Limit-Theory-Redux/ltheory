@@ -1,7 +1,7 @@
-use ::libc;
-use glam::Vec3;
-use glam::IVec2;
 use crate::internal::Memory::*;
+use glam::IVec2;
+use glam::Vec3;
+use libc;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
 }
@@ -35,8 +35,7 @@ pub unsafe extern "C" fn MidiDevice_HasMessage(mut this: *mut MidiDevice) -> boo
 pub unsafe extern "C" fn MidiDevice_PopMessage(mut this: *mut MidiDevice) -> IVec2 {
     if (*this).cursor <= 0 as i32 {
         Fatal(
-            b"MidiDevice_PopMessage: device has no messages\0" as *const u8
-                as *const libc::c_char,
+            b"MidiDevice_PopMessage: device has no messages\0" as *const u8 as *const libc::c_char,
         );
     }
     (*this).cursor -= 1 as i32;

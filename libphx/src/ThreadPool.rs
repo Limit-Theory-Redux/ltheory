@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type SDL_Thread;
     fn Fatal(_: cstr, _: ...);
@@ -27,28 +27,24 @@ pub struct ThreadData {
     pub threads: i32,
     pub data: *mut libc::c_void,
 }
-pub type ThreadPoolFn = Option::<
-    unsafe extern "C" fn(i32, i32, *mut libc::c_void) -> i32,
->;
-pub type SDL_ThreadFunction = Option::<
-    unsafe extern "C" fn(*mut libc::c_void) -> i32,
->;
+pub type ThreadPoolFn = Option<unsafe extern "C" fn(i32, i32, *mut libc::c_void) -> i32>;
+pub type SDL_ThreadFunction = Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
 
 unsafe extern "C" fn ThreadPool_Dispatch(mut data: *mut libc::c_void) -> i32 {
     let mut td: *mut ThreadData = data as *mut ThreadData;
-    return ((*td).fn_0)
-        .expect("non-null function pointer")((*td).index, (*td).threads, (*td).data);
+    return ((*td).fn_0).expect("non-null function pointer")(
+        (*td).index,
+        (*td).threads,
+        (*td).data,
+    );
 }
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool {
-    let mut this: *mut ThreadPool = MemAlloc(
-        ::core::mem::size_of::<ThreadPool>() as usize,
-    ) as *mut ThreadPool;
+    let mut this: *mut ThreadPool =
+        MemAlloc(::core::mem::size_of::<ThreadPool>() as usize) as *mut ThreadPool;
     (*this).threads = threads;
-    (*this)
-        .thread = MemAlloc(
-        ::core::mem::size_of::<ThreadData>().wrapping_mul(threads as usize),
-    ) as *mut ThreadData;
+    (*this).thread = MemAlloc(::core::mem::size_of::<ThreadData>().wrapping_mul(threads as usize))
+        as *mut ThreadData;
     let mut i: i32 = 0 as i32;
     while i < threads {
         let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
@@ -67,8 +63,8 @@ pub unsafe extern "C" fn ThreadPool_Free(mut this: *mut ThreadPool) {
     while i < (*this).threads {
         if !((*((*this).thread).offset(i as isize)).handle).is_null() {
             Fatal(
-                b"ThreadPool_Free: Attempting to free pool with active threads\0"
-                    as *const u8 as *const libc::c_char,
+                b"ThreadPool_Free: Attempting to free pool with active threads\0" as *const u8
+                    as *const libc::c_char,
             );
         }
         i += 1;
@@ -87,12 +83,8 @@ pub unsafe extern "C" fn ThreadPool_Launch(
         let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
         (*td).fn_0 = fn_0;
         (*td).data = data;
-        (*td)
-            .handle = SDL_CreateThread(
-            Some(
-                ThreadPool_Dispatch
-                    as unsafe extern "C" fn(*mut libc::c_void) -> i32,
-            ),
+        (*td).handle = SDL_CreateThread(
+            Some(ThreadPool_Dispatch as unsafe extern "C" fn(*mut libc::c_void) -> i32),
             b"PHX_ThreadPool\0" as *const u8 as *const libc::c_char,
             td as *mut libc::c_void,
         );

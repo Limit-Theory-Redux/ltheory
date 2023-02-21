@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 pub type uchar = libc::c_uchar;
 pub type Key = uchar;
 pub const SDL_SCANCODE_A: C2RustUnnamed = 4;

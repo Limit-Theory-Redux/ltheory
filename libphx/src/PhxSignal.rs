@@ -1,18 +1,18 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
     fn signal(
         _: i32,
-        _: Option::<unsafe extern "C" fn(i32) -> ()>,
-    ) -> Option::<unsafe extern "C" fn(i32) -> ()>;
+        _: Option<unsafe extern "C" fn(i32) -> ()>,
+    ) -> Option<unsafe extern "C" fn(i32) -> ()>;
     fn raise(_: i32) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type Signal = i32;
-pub type SignalHandler = Option::<unsafe extern "C" fn(Signal) -> ()>;
+pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HandlerElem {
@@ -33,38 +33,8 @@ pub static mut Signal_Abrt: Signal = 6 as i32;
 pub static mut Signal_Int: Signal = 2 as i32;
 static mut ignoreDefault: bool = 0 as i32 != 0;
 static mut handlerDefault: [SignalHandler; 32] = [
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
+    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+    None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
 ];
 static mut handlerTable: [*mut HandlerElem; 32] = [
     0 as *const HandlerElem as *mut HandlerElem,
@@ -124,33 +94,27 @@ unsafe extern "C" fn Signal_Handler(mut sig: Signal) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Signal_Init() {
-    handlerDefault[Signal_Int
-        as usize] = signal(
+    handlerDefault[Signal_Int as usize] = signal(
         Signal_Int,
         Some(Signal_Handler as unsafe extern "C" fn(Signal) -> ()),
     );
-    handlerDefault[Signal_Ill
-        as usize] = signal(
+    handlerDefault[Signal_Ill as usize] = signal(
         Signal_Ill,
         Some(Signal_Handler as unsafe extern "C" fn(Signal) -> ()),
     );
-    handlerDefault[Signal_Fpe
-        as usize] = signal(
+    handlerDefault[Signal_Fpe as usize] = signal(
         Signal_Fpe,
         Some(Signal_Handler as unsafe extern "C" fn(Signal) -> ()),
     );
-    handlerDefault[Signal_Segv
-        as usize] = signal(
+    handlerDefault[Signal_Segv as usize] = signal(
         Signal_Segv,
         Some(Signal_Handler as unsafe extern "C" fn(Signal) -> ()),
     );
-    handlerDefault[Signal_Term
-        as usize] = signal(
+    handlerDefault[Signal_Term as usize] = signal(
         Signal_Term,
         Some(Signal_Handler as unsafe extern "C" fn(Signal) -> ()),
     );
-    handlerDefault[Signal_Abrt
-        as usize] = signal(
+    handlerDefault[Signal_Abrt as usize] = signal(
         Signal_Abrt,
         Some(Signal_Handler as unsafe extern "C" fn(Signal) -> ()),
     );
@@ -166,9 +130,8 @@ pub unsafe extern "C" fn Signal_Free() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Signal_AddHandler(mut sig: Signal, mut fn_0: SignalHandler) {
-    let mut e: *mut HandlerElem = MemAlloc(
-        ::core::mem::size_of::<HandlerElem>() as usize,
-    ) as *mut HandlerElem;
+    let mut e: *mut HandlerElem =
+        MemAlloc(::core::mem::size_of::<HandlerElem>() as usize) as *mut HandlerElem;
     (*e).next = handlerTable[sig as usize];
     (*e).fn_0 = fn_0;
     // handlerTable[sig as usize] = e;
@@ -184,9 +147,8 @@ pub unsafe extern "C" fn Signal_AddHandlerAll(mut fn_0: SignalHandler) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Signal_RemoveHandler(mut sig: Signal, mut fn_0: SignalHandler) {
-    let mut prev: *mut *mut HandlerElem = &mut *handlerTable
-        .as_mut_ptr()
-        .offset(sig as isize) as *mut *mut HandlerElem;
+    let mut prev: *mut *mut HandlerElem =
+        &mut *handlerTable.as_mut_ptr().offset(sig as isize) as *mut *mut HandlerElem;
     let mut curr: *mut HandlerElem = handlerTable[sig as usize];
     while !curr.is_null() {
         if (*curr).fn_0 == fn_0 {
@@ -196,10 +158,7 @@ pub unsafe extern "C" fn Signal_RemoveHandler(mut sig: Signal, mut fn_0: SignalH
         prev = &mut (*curr).next;
         curr = (*curr).next;
     }
-    Fatal(
-        b"Signal_RemoveHandler: No such handler installed\0" as *const u8
-            as *const libc::c_char,
-    );
+    Fatal(b"Signal_RemoveHandler: No such handler installed\0" as *const u8 as *const libc::c_char);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Signal_RemoveHandlerAll(mut fn_0: SignalHandler) {

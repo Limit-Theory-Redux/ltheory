@@ -1,13 +1,8 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
-    fn snprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: ...
-    ) -> i32;
+    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type Modifier = i32;
@@ -36,39 +31,34 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
     let mut len: i32 = 0 as i32;
     let mut i: i32 = 0 as i32;
     while i
-        < (::core::mem::size_of::<[Modifier; 3]>())
-            .wrapping_div(::core::mem::size_of::<Modifier>())
+        < (::core::mem::size_of::<[Modifier; 3]>()).wrapping_div(::core::mem::size_of::<Modifier>())
             as i32
     {
         if modifier & modifiers[i as usize] == modifiers[i as usize] {
-            len
-                += snprintf(
-                    start.offset(len as isize),
-                    ((::core::mem::size_of::<[libc::c_char; 512]>())
-                        .wrapping_div(
-                            ::core::mem::size_of::<libc::c_char>(),
-                        ) as i32 - len) as usize,
-                    b"%s%s\0" as *const u8 as *const libc::c_char,
-                    sep,
-                    names[i as usize],
-                );
+            len += snprintf(
+                start.offset(len as isize),
+                ((::core::mem::size_of::<[libc::c_char; 512]>())
+                    .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+                    - len) as usize,
+                b"%s%s\0" as *const u8 as *const libc::c_char,
+                sep,
+                names[i as usize],
+            );
             sep = b" | \0" as *const u8 as *const libc::c_char;
             modifier &= !modifiers[i as usize];
         }
         i += 1;
     }
     if modifier != 0 as i32 {
-        len
-            += snprintf(
-                start.offset(len as isize),
-                ((::core::mem::size_of::<[libc::c_char; 512]>())
-                    .wrapping_div(
-                        ::core::mem::size_of::<libc::c_char>(),
-                    ) as i32 - len) as usize,
-                b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
-                sep,
-                modifier,
-            );
+        len += snprintf(
+            start.offset(len as isize),
+            ((::core::mem::size_of::<[libc::c_char; 512]>())
+                .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+                - len) as usize,
+            b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
+            sep,
+            modifier,
+        );
     }
     return buffer.as_mut_ptr() as cstr;
 }

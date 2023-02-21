@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
 }
@@ -15,9 +15,8 @@ pub struct MemStack {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
-    let mut this: *mut MemStack = MemAlloc(
-        ::core::mem::size_of::<MemStack>() as usize,
-    ) as *mut MemStack;
+    let mut this: *mut MemStack =
+        MemAlloc(::core::mem::size_of::<MemStack>() as usize) as *mut MemStack;
     (*this).size = 0 as i32 as u32;
     (*this).capacity = capacity;
     (*this).data = MemAlloc(capacity as usize);
@@ -35,14 +34,13 @@ pub unsafe extern "C" fn MemStack_Alloc(
 ) -> *mut libc::c_void {
     if ((*this).size).wrapping_add(size) > (*this).capacity {
         Fatal(
-            b"MemStack_Alloc: Allocation request exceeds remaining capacity\0"
-                as *const u8 as *const libc::c_char,
+            b"MemStack_Alloc: Allocation request exceeds remaining capacity\0" as *const u8
+                as *const libc::c_char,
         );
     }
-    let mut p: *mut libc::c_void = ((*this).data as *mut libc::c_char)
-        .offset((*this).size as isize) as *mut libc::c_void;
-    (*this)
-        .size = ((*this).size as u32).wrapping_add(size) as u32;
+    let mut p: *mut libc::c_void =
+        ((*this).data as *mut libc::c_char).offset((*this).size as isize) as *mut libc::c_void;
+    (*this).size = ((*this).size as u32).wrapping_add(size) as u32;
     return p;
 }
 #[no_mangle]
@@ -53,18 +51,14 @@ pub unsafe extern "C" fn MemStack_Clear(mut this: *mut MemStack) {
 pub unsafe extern "C" fn MemStack_Dealloc(mut this: *mut MemStack, mut size: u32) {
     if (*this).size < size {
         Fatal(
-            b"MemStack_Dealloc: Attempt to dealloc more memory than is allocated\0"
-                as *const u8 as *const libc::c_char,
+            b"MemStack_Dealloc: Attempt to dealloc more memory than is allocated\0" as *const u8
+                as *const libc::c_char,
         );
     }
-    (*this)
-        .size = ((*this).size as u32).wrapping_sub(size) as u32;
+    (*this).size = ((*this).size as u32).wrapping_sub(size) as u32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_CanAlloc(
-    mut this: *mut MemStack,
-    mut size: u32,
-) -> bool {
+pub unsafe extern "C" fn MemStack_CanAlloc(mut this: *mut MemStack, mut size: u32) -> bool {
     return ((*this).size).wrapping_add(size) <= (*this).capacity;
 }
 #[no_mangle]

@@ -1,7 +1,7 @@
-use ::libc;
+use crate::internal::Memory::*;
 use glam::Vec3;
 use glam::{IVec2, IVec3, IVec4, Vec2};
-use crate::internal::Memory::*;
+use libc;
 extern "C" {
     pub type Tex1D;
     pub type Tex2D;
@@ -11,9 +11,6 @@ extern "C" {
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
 }
 pub type cstr = *const libc::c_char;
-
-
-
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -76,13 +73,10 @@ pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> cstr 
     return 0 as cstr;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetSize(
-    mut this: ShaderVarType,
-) -> i32 {
+pub unsafe extern "C" fn ShaderVarType_GetSize(mut this: ShaderVarType) -> i32 {
     match this {
         1 => {
-            return ::core::mem::size_of::<f32>() as libc::c_ulong
-                as i32;
+            return ::core::mem::size_of::<f32>() as libc::c_ulong as i32;
         }
         2 => return ::core::mem::size_of::<Vec2>() as libc::c_ulong as i32,
         3 => return ::core::mem::size_of::<Vec3>() as libc::c_ulong as i32,

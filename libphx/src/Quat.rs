@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
@@ -11,12 +11,7 @@ extern "C" {
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn Fatal(_: cstr, _: ...);
-    fn snprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: ...
-    ) -> i32;
+    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 
@@ -66,15 +61,16 @@ unsafe extern "C" fn Sin(mut t: f64) -> f64 {
 }
 #[inline]
 unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
-    let mut classification: i32 = if ::core::mem::size_of::<f64>()
-        as libc::c_ulong == ::core::mem::size_of::<f32>() as libc::c_ulong
+    let mut classification: i32 = if ::core::mem::size_of::<f64>() as libc::c_ulong
+        == ::core::mem::size_of::<f32>() as libc::c_ulong
     {
         f32::classify(x as f32) as i32
     } else if ::core::mem::size_of::<f64>() as libc::c_ulong
         == ::core::mem::size_of::<f64>() as libc::c_ulong
     {
         f64::classify(x) as i32
-    } else {3
+    } else {
+        3
     };
     match classification {
         2 => return 0x4 as i32 as Error,
@@ -83,8 +79,7 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
         3 | 4 => return 0 as i32 as Error,
         _ => {
             Fatal(
-                b"Float_Validate: Unhandled case: %i\0" as *const u8
-                    as *const libc::c_char,
+                b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
                 classification,
             );
         }
@@ -92,20 +87,12 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
     return 0 as i32 as Error;
 }
 #[inline]
-unsafe extern "C" fn Float_ApproximatelyEqual(
-    mut x: f64,
-    mut y: f64,
-) -> bool {
+unsafe extern "C" fn Float_ApproximatelyEqual(mut x: f64, mut y: f64) -> bool {
     return Abs(x - y) < 1e-3f64;
 }
 
 #[no_mangle]
-pub extern "C" fn Quat_Create(
-    mut x: f32,
-    mut y: f32,
-    mut z: f32,
-    mut w: f32,
-) -> Quat {
+pub extern "C" fn Quat_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Quat {
     Quat { x, y, z, w }
 }
 #[no_mangle]
@@ -151,25 +138,13 @@ pub unsafe extern "C" fn Quat_Identity(mut out: *mut Quat) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Canonicalize(mut q: *const Quat, mut out: *mut Quat) {
-    let mut value: f32 = if !Float_ApproximatelyEqual(
-        (*q).w as f64,
-        0.0f32 as f64,
-    ) {
+    let mut value: f32 = if !Float_ApproximatelyEqual((*q).w as f64, 0.0f32 as f64) {
         (*q).w
-    } else if !Float_ApproximatelyEqual(
-        (*q).z as f64,
-        0.0f32 as f64,
-    ) {
+    } else if !Float_ApproximatelyEqual((*q).z as f64, 0.0f32 as f64) {
         (*q).z
-    } else if !Float_ApproximatelyEqual(
-        (*q).y as f64,
-        0.0f32 as f64,
-    ) {
+    } else if !Float_ApproximatelyEqual((*q).y as f64, 0.0f32 as f64) {
         (*q).y
-    } else if !Float_ApproximatelyEqual(
-        (*q).x as f64,
-        0.0f32 as f64,
-    ) {
+    } else if !Float_ApproximatelyEqual((*q).x as f64, 0.0f32 as f64) {
         (*q).x
     } else {
         0.0f32
@@ -188,25 +163,13 @@ pub unsafe extern "C" fn Quat_Canonicalize(mut q: *const Quat, mut out: *mut Qua
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_ICanonicalize(mut q: *mut Quat) {
-    let mut value: f32 = if !Float_ApproximatelyEqual(
-        (*q).w as f64,
-        0.0f32 as f64,
-    ) {
+    let mut value: f32 = if !Float_ApproximatelyEqual((*q).w as f64, 0.0f32 as f64) {
         (*q).w
-    } else if !Float_ApproximatelyEqual(
-        (*q).z as f64,
-        0.0f32 as f64,
-    ) {
+    } else if !Float_ApproximatelyEqual((*q).z as f64, 0.0f32 as f64) {
         (*q).z
-    } else if !Float_ApproximatelyEqual(
-        (*q).y as f64,
-        0.0f32 as f64,
-    ) {
+    } else if !Float_ApproximatelyEqual((*q).y as f64, 0.0f32 as f64) {
         (*q).y
-    } else if !Float_ApproximatelyEqual(
-        (*q).x as f64,
-        0.0f32 as f64,
-    ) {
+    } else if !Float_ApproximatelyEqual((*q).x as f64, 0.0f32 as f64) {
         (*q).x
     } else {
         0.0f32
@@ -219,10 +182,7 @@ pub unsafe extern "C" fn Quat_ICanonicalize(mut q: *mut Quat) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Dot(
-    mut q: *const Quat,
-    mut p: *const Quat,
-) -> f32 {
+pub unsafe extern "C" fn Quat_Dot(mut q: *const Quat, mut p: *const Quat) -> f32 {
     return (*q).x * (*p).x + (*q).y * (*p).y + (*q).z * (*p).z + (*q).w * (*p).w;
 }
 #[no_mangle]
@@ -234,10 +194,7 @@ pub unsafe extern "C" fn Quat_Equal(mut q: *const Quat, mut p: *const Quat) -> b
     return cq.x == cp.x && cq.y == cp.y && cq.z == cp.z && cq.w == cp.w;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ApproximatelyEqual(
-    mut q: *const Quat,
-    mut p: *const Quat,
-) -> bool {
+pub unsafe extern "C" fn Quat_ApproximatelyEqual(mut q: *const Quat, mut p: *const Quat) -> bool {
     let mut cq = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Canonicalize(q, &mut cq);
     let mut cp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
@@ -249,8 +206,7 @@ pub unsafe extern "C" fn Quat_ApproximatelyEqual(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Inverse(mut q: *const Quat, mut out: *mut Quat) {
-    let mut magSq: f32 = (*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z
-        + (*q).w * (*q).w;
+    let mut magSq: f32 = (*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w;
     (*out).x = -(*q).x / magSq;
     (*out).y = -(*q).y / magSq;
     (*out).z = -(*q).z / magSq;
@@ -258,8 +214,7 @@ pub unsafe extern "C" fn Quat_Inverse(mut q: *const Quat, mut out: *mut Quat) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_IInverse(mut q: *mut Quat) {
-    let mut magSq: f32 = (*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z
-        + (*q).w * (*q).w;
+    let mut magSq: f32 = (*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w;
     (*q).x = -(*q).x / magSq;
     (*q).y = -(*q).y / magSq;
     (*q).z = -(*q).z / magSq;
@@ -286,19 +241,14 @@ pub unsafe extern "C" fn Quat_Lerp(
     let mut y: f32 = (*q).y + (dp.y - (*q).y) * t;
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
-    let mut rcpMag: f32 = (1.0f32 as f64
-        / Sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+    let mut rcpMag: f32 = (1.0f32 as f64 / Sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*out).x = x * rcpMag;
     (*out).y = y * rcpMag;
     (*out).z = z * rcpMag;
     (*out).w = w * rcpMag;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ILerp(
-    mut q: *mut Quat,
-    mut p: *const Quat,
-    mut t: f32,
-) {
+pub unsafe extern "C" fn Quat_ILerp(mut q: *mut Quat, mut p: *const Quat, mut t: f32) {
     let mut d: f32 = Quat_Dot(p, q);
     let mut dp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     if d < 0.0f32 {
@@ -313,29 +263,24 @@ pub unsafe extern "C" fn Quat_ILerp(
     let mut y: f32 = (*q).y + (dp.y - (*q).y) * t;
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
-    let mut rcpMag: f32 = (1.0f32 as f64
-        / Sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+    let mut rcpMag: f32 = (1.0f32 as f64 / Sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*q).x = x * rcpMag;
     (*q).y = y * rcpMag;
     (*q).z = z * rcpMag;
     (*q).w = w * rcpMag;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Mul(
-    mut q: *const Quat,
-    mut p: *const Quat,
-    mut out: *mut Quat,
-) {
-    let mut qv: Vec3 =  Vec3 {
-            x: (*q).x,
-            y: (*q).y,
-            z: (*q).z,
-        };
-    let mut pv: Vec3 =  Vec3 {
-            x: (*p).x,
-            y: (*p).y,
-            z: (*p).z,
-        };
+pub unsafe extern "C" fn Quat_Mul(mut q: *const Quat, mut p: *const Quat, mut out: *mut Quat) {
+    let mut qv: Vec3 = Vec3 {
+        x: (*q).x,
+        y: (*q).y,
+        z: (*q).z,
+    };
+    let mut pv: Vec3 = Vec3 {
+        x: (*p).x,
+        y: (*p).y,
+        z: (*p).z,
+    };
     let mut rv: Vec3 = (qv * (*p).w) + (pv * (*q).w) + Vec3::cross(qv, pv);
     (*out).x = rv.x;
     (*out).y = rv.y;
@@ -344,16 +289,16 @@ pub unsafe extern "C" fn Quat_Mul(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_IMul(mut q: *mut Quat, mut p: *const Quat) {
-    let qv: Vec3 =  Vec3 {
-            x: (*q).x,
-            y: (*q).y,
-            z: (*q).z,
-        };
-    let pv: Vec3 =  Vec3 {
-            x: (*p).x,
-            y: (*p).y,
-            z: (*p).z,
-        };
+    let qv: Vec3 = Vec3 {
+        x: (*q).x,
+        y: (*q).y,
+        z: (*q).z,
+    };
+    let pv: Vec3 = Vec3 {
+        x: (*p).x,
+        y: (*p).y,
+        z: (*p).z,
+    };
     let rv: Vec3 = (qv * (*p).w) + (pv * (*q).w) + Vec3::cross(qv, pv);
     (*q).x = rv.x;
     (*q).y = rv.y;
@@ -361,26 +306,20 @@ pub unsafe extern "C" fn Quat_IMul(mut q: *mut Quat, mut p: *const Quat) {
     (*q).w = (*q).w * (*p).w - Vec3::dot(qv, pv);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Quat_MulV(
-    mut q: *const Quat,
-    mut v: *const Vec3,
-    mut out: *mut Vec3,
-) {
-    let mut u: Vec3 =  Vec3 {
-            x: (*q).x,
-            y: (*q).y,
-            z: (*q).z,
-        };
+pub unsafe extern "C" fn Quat_MulV(mut q: *const Quat, mut v: *const Vec3, mut out: *mut Vec3) {
+    let mut u: Vec3 = Vec3 {
+        x: (*q).x,
+        y: (*q).y,
+        z: (*q).z,
+    };
     let mut w: f32 = (*q).w;
     let mut t: Vec3 = Vec3::cross(u, *v);
     *out = (u * 2.0f32 * Vec3::dot(u, *v)) + ((*v) * (2.0f32 * w * w - 1.0f32)) + (t * 2.0f32 * w);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Normalize(mut q: *const Quat, mut out: *mut Quat) {
-    let mut mag: f32 = Sqrt(
-        ((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w)
-            as f64,
-    ) as f32;
+    let mut mag: f32 =
+        Sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64) as f32;
     (*out).x = (*q).x / mag;
     (*out).y = (*q).y / mag;
     (*out).z = (*q).z / mag;
@@ -388,21 +327,15 @@ pub unsafe extern "C" fn Quat_Normalize(mut q: *const Quat, mut out: *mut Quat) 
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_INormalize(mut q: *mut Quat) {
-    let mut mag: f32 = Sqrt(
-        ((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w)
-            as f64,
-    ) as f32;
+    let mut mag: f32 =
+        Sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64) as f32;
     (*q).x /= mag;
     (*q).y /= mag;
     (*q).z /= mag;
     (*q).w /= mag;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Scale(
-    mut q: *const Quat,
-    mut scale: f32,
-    mut out: *mut Quat,
-) {
+pub unsafe extern "C" fn Quat_Scale(mut q: *const Quat, mut scale: f32, mut out: *mut Quat) {
     (*out).x = scale * (*q).x;
     (*out).y = scale * (*q).y;
     (*out).z = scale * (*q).z;
@@ -437,8 +370,7 @@ pub unsafe extern "C" fn Quat_Slerp(
         return;
     }
     d = ClampUnit(d as f64) as f32;
-    let mut angle: f32 = (t as f64 * Acos(d as f64))
-        as f32;
+    let mut angle: f32 = (t as f64 * Acos(d as f64)) as f32;
     let mut c = Quat_Create(
         (*p).x - d * (*q).x,
         (*p).y - d * (*q).y,
@@ -454,11 +386,7 @@ pub unsafe extern "C" fn Quat_Slerp(
     (*out).w = fa * (*q).w + fc * c.w;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ISlerp(
-    mut q: *mut Quat,
-    mut p: *const Quat,
-    mut t: f32,
-) {
+pub unsafe extern "C" fn Quat_ISlerp(mut q: *mut Quat, mut p: *const Quat, mut t: f32) {
     let mut np = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Normalize(p, &mut np);
     let mut d: f32 = Quat_Dot(q, p);
@@ -474,8 +402,7 @@ pub unsafe extern "C" fn Quat_ISlerp(
         return;
     }
     d = ClampUnit(d as f64) as f32;
-    let mut angle: f32 = (t as f64 * Acos(d as f64))
-        as f32;
+    let mut angle: f32 = (t as f64 * Acos(d as f64)) as f32;
     let mut c = Quat_Create(
         (*p).x - d * (*q).x,
         (*p).y - d * (*q).y,
@@ -496,8 +423,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> cstr {
     snprintf(
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
-            .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as i32 as usize,
+            .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32 as usize,
         b"(%.4f, %.4f, %.4f, %.4f)\0" as *const u8 as *const libc::c_char,
         (*q).x as f64,
         (*q).y as f64,
@@ -537,33 +463,25 @@ pub unsafe extern "C" fn Quat_FromBasis(
 ) {
     let mut r: f32 = (*x).x + (*y).y + (*z).z;
     if r > 0.0f32 {
-        (*out)
-            .w = (Sqrt((r + 1.0f32) as f64) * 0.5f32 as f64)
-            as f32;
+        (*out).w = (Sqrt((r + 1.0f32) as f64) * 0.5f32 as f64) as f32;
         let mut w4: f32 = 1.0f32 / (4.0f32 * (*out).w);
         (*out).x = ((*y).z - (*z).y) * w4;
         (*out).y = ((*z).x - (*x).z) * w4;
         (*out).z = ((*x).y - (*y).x) * w4;
     } else if (*x).x > (*y).y && (*x).x > (*z).z {
-        (*out)
-            .x = (Sqrt((1.0f32 + (*x).x - (*y).y - (*z).z) as f64)
-            * 0.5f32 as f64) as f32;
+        (*out).x = (Sqrt((1.0f32 + (*x).x - (*y).y - (*z).z) as f64) * 0.5f32 as f64) as f32;
         let mut x4: f32 = 1.0f32 / (4.0f32 * (*out).x);
         (*out).y = ((*y).x + (*x).y) * x4;
         (*out).z = ((*z).x + (*x).z) * x4;
         (*out).w = ((*y).z - (*z).y) * x4;
     } else if (*y).y > (*z).z {
-        (*out)
-            .y = (Sqrt((1.0f32 + (*y).y - (*x).x - (*z).z) as f64)
-            * 0.5f32 as f64) as f32;
+        (*out).y = (Sqrt((1.0f32 + (*y).y - (*x).x - (*z).z) as f64) * 0.5f32 as f64) as f32;
         let mut y4: f32 = 1.0f32 / (4.0f32 * (*out).y);
         (*out).x = ((*y).x + (*x).y) * y4;
         (*out).z = ((*z).y + (*y).z) * y4;
         (*out).w = ((*z).x - (*x).z) * y4;
     } else {
-        (*out)
-            .z = (Sqrt((1.0f32 + (*z).z - (*x).x - (*y).y) as f64)
-            * 0.5f32 as f64) as f32;
+        (*out).z = (Sqrt((1.0f32 + (*z).z - (*x).x - (*y).y) as f64) * 0.5f32 as f64) as f32;
         let mut z4: f32 = 1.0f32 / (4.0f32 * (*out).z);
         (*out).x = ((*z).x + (*x).z) * z4;
         (*out).y = ((*z).y + (*y).z) * z4;

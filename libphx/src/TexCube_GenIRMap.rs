@@ -1,12 +1,12 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::CubeFace::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
-use crate::TexFormat::*;
 use crate::TexFilter::*;
+use crate::TexFormat::*;
 use glam::Vec2;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     pub type RNG;
@@ -16,12 +16,7 @@ extern "C" {
     fn CubeFace_Get(index: i32) -> CubeFace;
     fn atan2(_: f64, _: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn Draw_Rect(
-        x: f32,
-        y: f32,
-        sx: f32,
-        sy: f32,
-    );
+    fn Draw_Rect(x: f32, y: f32, sx: f32, sy: f32);
     fn RenderTarget_Push(sx: i32, sy: i32);
     fn RenderTarget_Pop();
     fn RenderTarget_BindTexCubeLevel(_: *mut TexCube, _: CubeFace, level: i32);
@@ -39,12 +34,7 @@ extern "C" {
     fn Shader_SetTexCube(_: cstr, _: *mut TexCube);
     fn Tex2D_Create(sx: i32, sy: i32, _: TexFormat) -> *mut Tex2D;
     fn Tex2D_Free(_: *mut Tex2D);
-    fn Tex2D_SetData(
-        _: *mut Tex2D,
-        _: *const libc::c_void,
-        _: PixelFormat,
-        _: DataFormat,
-    );
+    fn Tex2D_SetData(_: *mut Tex2D, _: *const libc::c_void, _: PixelFormat, _: DataFormat);
     fn TexCube_Create(size: i32, _: TexFormat) -> *mut TexCube;
     fn TexCube_GenMipmap(_: *mut TexCube);
     fn TexCube_GetData(
@@ -81,10 +71,7 @@ unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
 }
 #[inline]
-unsafe extern "C" fn Atan2(
-    mut y: f64,
-    mut x: f64,
-) -> f64 {
+unsafe extern "C" fn Atan2(mut y: f64, mut x: f64) -> f64 {
     return atan2(y, x);
 }
 
@@ -108,7 +95,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     };
     let mut df: DataFormat = DataFormat_Float;
     let mut buffer: *mut libc::c_void = MemAlloc(
-        ((size * size) as usize).wrapping_mul(::core::mem::size_of::<f32>())
+        ((size * size) as usize)
+            .wrapping_mul(::core::mem::size_of::<f32>())
             .wrapping_mul(components as usize),
     );
     let mut i: i32 = 0 as i32;
@@ -162,31 +150,19 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     while size > 1 as i32 {
         size /= 2 as i32;
         level += 1 as i32;
-        let mut ggxWidth: f64 = level as f64
-            / levels as f64;
+        let mut ggxWidth: f64 = level as f64 / levels as f64;
         ggxWidth *= ggxWidth;
-        let mut sampleBuffer: *mut Vec2 = MemAlloc(
-            (::core::mem::size_of::<Vec2>())
-                .wrapping_mul(sampleCount as usize),
-        ) as *mut Vec2;
-        let mut sampleTex: *mut Tex2D = Tex2D_Create(
-            sampleCount,
-            1 as i32,
-            TexFormat_RG16F,
-        );
+        let mut sampleBuffer: *mut Vec2 =
+            MemAlloc((::core::mem::size_of::<Vec2>()).wrapping_mul(sampleCount as usize))
+                as *mut Vec2;
+        let mut sampleTex: *mut Tex2D = Tex2D_Create(sampleCount, 1 as i32, TexFormat_RG16F);
         let mut i_1: i32 = 0 as i32;
         while i_1 < sampleCount {
             let mut e1: f64 = RNG_GetUniform(rng);
             let mut e2: f64 = RNG_GetUniform(rng);
-            let mut pitch: f64 = Atan2(
-                ggxWidth * Sqrt(e1),
-                Sqrt(1.0f64 - e1),
-            );
+            let mut pitch: f64 = Atan2(ggxWidth * Sqrt(e1), Sqrt(1.0f64 - e1));
             let mut yaw: f64 = 6.28318531f32 as f64 * e2;
-            *sampleBuffer
-                .offset(
-                    i_1 as isize,
-                ) = Vec2::new(pitch as f32, yaw as f32);
+            *sampleBuffer.offset(i_1 as isize) = Vec2::new(pitch as f32, yaw as f32);
             i_1 += 1;
         }
         Tex2D_SetData(
@@ -195,8 +171,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             PixelFormat_RG,
             DataFormat_Float,
         );
-        let mut angle: f32 = level as f32
-            / (levels - 1 as i32) as f32;
+        let mut angle: f32 = level as f32 / (levels - 1 as i32) as f32;
         angle = angle * angle;
         Shader_ResetTexIndex();
         Shader_SetFloat(b"angle\0" as *const u8 as *const libc::c_char, angle);
@@ -205,7 +180,10 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             b"sampleBuffer\0" as *const u8 as *const libc::c_char,
             sampleTex,
         );
-        Shader_SetInt(b"samples\0" as *const u8 as *const libc::c_char, sampleCount);
+        Shader_SetInt(
+            b"samples\0" as *const u8 as *const libc::c_char,
+            sampleCount,
+        );
         let mut i_2: i32 = 0 as i32;
         while i_2 < 6 as i32 {
             let mut thisFace: CubeFace = face[i_2 as usize];
@@ -225,12 +203,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
                 thisUp.y,
                 thisUp.z,
             );
-            Draw_Rect(
-                -1.0f32,
-                -1.0f32,
-                2.0f32,
-                2.0f32,
-            );
+            Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
             RenderTarget_Pop();
             i_2 += 1;
         }

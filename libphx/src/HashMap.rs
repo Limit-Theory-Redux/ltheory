@@ -1,11 +1,10 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64;
 }
-
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -23,33 +22,23 @@ pub struct Node {
     pub hash: u64,
     pub value: *mut libc::c_void,
 }
-pub type ValueForeach = Option::<
-    unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> (),
->;
+pub type ValueForeach = Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>;
 #[inline]
 unsafe extern "C" fn Hash(mut key: *const libc::c_void, mut len: u32) -> u64 {
     return Hash_XX64(key, len as i32, 0 as u64);
 }
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_Create(
-    mut keySize: u32,
-    mut capacity: u32,
-) -> *mut HashMap {
+pub unsafe extern "C" fn HashMap_Create(mut keySize: u32, mut capacity: u32) -> *mut HashMap {
     let mut logCapacity: u32 = 0 as i32 as u32;
     while capacity > 1 as i32 as u32 {
-        capacity = (capacity as u32)
-            .wrapping_div(2 as i32 as u32) as u32;
+        capacity = (capacity as u32).wrapping_div(2 as i32 as u32) as u32;
         logCapacity = logCapacity.wrapping_add(1);
     }
     capacity = ((1 as i32) << logCapacity) as u32;
-    let mut this: *mut HashMap = MemAlloc(
-        ::core::mem::size_of::<HashMap>() as usize,
-    ) as *mut HashMap;
-    (*this)
-        .elems = MemAllocZero(
-        (::core::mem::size_of::<Node>())
-            .wrapping_mul(capacity as usize),
-    ) as *mut Node;
+    let mut this: *mut HashMap =
+        MemAlloc(::core::mem::size_of::<HashMap>() as usize) as *mut HashMap;
+    (*this).elems =
+        MemAllocZero((::core::mem::size_of::<Node>()).wrapping_mul(capacity as usize)) as *mut Node;
     (*this).size = 0 as i32 as u32;
     (*this).capacity = capacity;
     (*this).mask = (((1 as i32) << logCapacity) - 1 as i32) as u32;
@@ -90,21 +79,15 @@ pub unsafe extern "C" fn HashMap_GetRaw(
     mut hash: u64,
 ) -> *mut libc::c_void {
     let mut index: u32 = 0 as i32 as u32;
-    let mut node: *mut Node = ((*this).elems)
-        .offset(
-            (hash.wrapping_add(index as u64)
-                & (*this).mask as u64) as isize,
-        );
+    let mut node: *mut Node =
+        ((*this).elems).offset((hash.wrapping_add(index as u64) & (*this).mask as u64) as isize);
     while !((*node).value).is_null() && index < (*this).maxProbe {
         if (*node).hash == hash {
             return (*node).value;
         }
         index = index.wrapping_add(1);
         node = ((*this).elems)
-            .offset(
-                (hash.wrapping_add(index as u64)
-                    & (*this).mask as u64) as isize,
-            );
+            .offset((hash.wrapping_add(index as u64) & (*this).mask as u64) as isize);
     }
     return 0 as *mut libc::c_void;
 }
@@ -137,11 +120,8 @@ pub unsafe extern "C" fn HashMap_SetRaw(
     mut value: *mut libc::c_void,
 ) {
     let mut index: u32 = 0 as i32 as u32;
-    let mut node: *mut Node = ((*this).elems)
-        .offset(
-            (hash.wrapping_add(index as u64)
-                & (*this).mask as u64) as isize,
-        );
+    let mut node: *mut Node =
+        ((*this).elems).offset((hash.wrapping_add(index as u64) & (*this).mask as u64) as isize);
     while !((*node).value).is_null() && index < (*this).maxProbe {
         if (*node).hash == hash {
             (*node).value = value;
@@ -149,16 +129,10 @@ pub unsafe extern "C" fn HashMap_SetRaw(
         }
         index = index.wrapping_add(1);
         node = ((*this).elems)
-            .offset(
-                (hash.wrapping_add(index as u64)
-                    & (*this).mask as u64) as isize,
-            );
+            .offset((hash.wrapping_add(index as u64) & (*this).mask as u64) as isize);
     }
     if index >= (*this).maxProbe {
-        HashMap_Resize(
-            this,
-            ((*this).capacity).wrapping_mul(2 as i32 as u32),
-        );
+        HashMap_Resize(this, ((*this).capacity).wrapping_mul(2 as i32 as u32));
         HashMap_SetRaw(this, hash, value);
     } else {
         (*node).hash = hash;

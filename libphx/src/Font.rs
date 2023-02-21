@@ -1,11 +1,11 @@
-use ::libc;
-use glam::Vec3;
-use glam::{IVec2, IVec4};
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
-use crate::TexFormat::*;
 use crate::ResourceType::*;
+use crate::TexFormat::*;
+use glam::Vec3;
+use glam::{IVec2, IVec4};
+use libc;
 
 extern "C" {
     pub type Tex2D;
@@ -17,12 +17,7 @@ extern "C" {
     pub type FT_SubGlyphRec_;
     pub type FT_LibraryRec_;
     fn Fatal(_: cstr, _: ...);
-    fn Draw_Color(
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-    );
+    fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
     fn pow(_: f64, _: f64) -> f64;
     fn floor(_: f64) -> f64;
     fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
@@ -47,12 +42,7 @@ extern "C" {
         u1: f32,
         v1: f32,
     );
-    fn Tex2D_SetData(
-        _: *mut Tex2D,
-        _: *const libc::c_void,
-        _: PixelFormat,
-        _: DataFormat,
-    );
+    fn Tex2D_SetData(_: *mut Tex2D, _: *const libc::c_void, _: PixelFormat, _: DataFormat);
     fn FT_Init_FreeType(alibrary: *mut FT_Library) -> FT_Error;
     fn FT_New_Face(
         library: FT_Library,
@@ -60,17 +50,9 @@ extern "C" {
         face_index: FT_Long,
         aface: *mut FT_Face,
     ) -> FT_Error;
-    fn FT_Set_Pixel_Sizes(
-        face: FT_Face,
-        pixel_width: FT_UInt,
-        pixel_height: FT_UInt,
-    ) -> FT_Error;
+    fn FT_Set_Pixel_Sizes(face: FT_Face, pixel_width: FT_UInt, pixel_height: FT_UInt) -> FT_Error;
     fn FT_Done_Face(face: FT_Face) -> FT_Error;
-    fn FT_Load_Glyph(
-        face: FT_Face,
-        glyph_index: FT_UInt,
-        load_flags: FT_Int32,
-    ) -> FT_Error;
+    fn FT_Load_Glyph(face: FT_Face, glyph_index: FT_UInt, load_flags: FT_Int32) -> FT_Error;
     fn FT_Get_Kerning(
         face: FT_Face,
         left_glyph: FT_UInt,
@@ -148,7 +130,7 @@ pub struct FT_Generic_ {
     pub data: *mut libc::c_void,
     pub finalizer: FT_Generic_Finalizer,
 }
-pub type FT_Generic_Finalizer = Option::<unsafe extern "C" fn(*mut libc::c_void) -> ()>;
+pub type FT_Generic_Finalizer = Option<unsafe extern "C" fn(*mut libc::c_void) -> ()>;
 pub type FT_ListRec = FT_ListRec_;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -188,7 +170,7 @@ pub struct FT_MemoryRec_ {
     pub free: FT_Free_Func,
     pub realloc: FT_Realloc_Func,
 }
-pub type FT_Realloc_Func = Option::<
+pub type FT_Realloc_Func = Option<
     unsafe extern "C" fn(
         FT_Memory,
         libc::c_long,
@@ -196,14 +178,10 @@ pub type FT_Realloc_Func = Option::<
         *mut libc::c_void,
     ) -> *mut libc::c_void,
 >;
-pub type FT_Free_Func = Option::<
-    unsafe extern "C" fn(FT_Memory, *mut libc::c_void) -> (),
->;
-pub type FT_Alloc_Func = Option::<
-    unsafe extern "C" fn(FT_Memory, libc::c_long) -> *mut libc::c_void,
->;
-pub type FT_Stream_CloseFunc = Option::<unsafe extern "C" fn(FT_Stream) -> ()>;
-pub type FT_Stream_IoFunc = Option::<
+pub type FT_Free_Func = Option<unsafe extern "C" fn(FT_Memory, *mut libc::c_void) -> ()>;
+pub type FT_Alloc_Func = Option<unsafe extern "C" fn(FT_Memory, libc::c_long) -> *mut libc::c_void>;
+pub type FT_Stream_CloseFunc = Option<unsafe extern "C" fn(FT_Stream) -> ()>;
+pub type FT_Stream_IoFunc = Option<
     unsafe extern "C" fn(
         FT_Stream,
         libc::c_ulong,
@@ -383,7 +361,6 @@ pub struct FT_Bitmap_Size_ {
 pub type FT_String = libc::c_char;
 pub type FT_Long = libc::c_long;
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -409,35 +386,26 @@ unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
 #[inline]
-unsafe extern "C" fn Pow(
-    mut t: f64,
-    mut p: f64,
-) -> f64 {
+unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
     return pow(t, p);
 }
 #[inline]
-unsafe extern "C" fn Max(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Min(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
 }
 
 #[inline]
-unsafe extern "C" fn Vec4f_Create(
-    mut x: f32,
-    mut y: f32,
-    mut z: f32,
-    mut w: f32,
-) -> Vec4f {
-    let mut this: Vec4f =  Vec4f { x: x, y: y, z: z, w: w };
+unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
+    let mut this: Vec4f = Vec4f {
+        x: x,
+        y: y,
+        z: z,
+        w: w,
+    };
     return this;
 }
 
@@ -446,13 +414,8 @@ pub static mut kGamma: f32 = 1.8f32;
 #[no_mangle]
 pub static mut kRcpGamma: f32 = unsafe { 1.0f32 / kGamma };
 static mut ft: FT_Library = 0 as *const FT_LibraryRec_ as FT_Library;
-unsafe extern "C" fn Font_GetGlyph(
-    mut this: *mut Font,
-    mut codepoint: u32,
-) -> *mut Glyph {
-    if codepoint < 256 as i32 as u32
-        && !((*this).glyphsAscii[codepoint as usize]).is_null()
-    {
+unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *mut Glyph {
+    if codepoint < 256 as i32 as u32 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
         return (*this).glyphsAscii[codepoint as usize];
     }
     let mut g: *mut Glyph = HashMap_Get(
@@ -463,16 +426,14 @@ unsafe extern "C" fn Font_GetGlyph(
         return g;
     }
     let mut face: FT_Face = (*this).handle;
-    let mut glyph: i32 = FT_Get_Char_Index(face, codepoint as FT_ULong)
-        as i32;
+    let mut glyph: i32 = FT_Get_Char_Index(face, codepoint as FT_ULong) as i32;
     if glyph == 0 as i32 {
         return 0 as *mut Glyph;
     }
     if FT_Load_Glyph(
         face,
         glyph as FT_UInt,
-        ((1 as libc::c_long) << 5 as i32
-            | (1 as libc::c_long) << 2 as i32) as FT_Int32,
+        ((1 as libc::c_long) << 5 as i32 | (1 as libc::c_long) << 2 as i32) as FT_Int32,
     ) != 0
     {
         return 0 as *mut Glyph;
@@ -488,18 +449,16 @@ unsafe extern "C" fn Font_GetGlyph(
     (*g).x1 = (*g).x0 + (*g).sx;
     (*g).y1 = (*g).y0 + (*g).sy;
     (*g).advance = ((*(*face).glyph).advance.x >> 6 as i32) as i32;
-    let mut buffer: *mut Vec4f = MemAlloc(
-        (::core::mem::size_of::<Vec4f>())
-            .wrapping_mul(((*g).sx * (*g).sy) as usize),
-    ) as *mut Vec4f;
+    let mut buffer: *mut Vec4f =
+        MemAlloc((::core::mem::size_of::<Vec4f>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
+            as *mut Vec4f;
     let mut pBuffer: *mut Vec4f = buffer;
     let mut dy: uint = 0 as i32 as uint;
     while dy < (*bitmap).rows {
         let mut dx: uint = 0 as i32 as uint;
         while dx < (*bitmap).width {
             let mut a: f32 = Pow(
-                (*pBitmap.offset(dx as isize) as f32 / 255.0f32)
-                    as f64,
+                (*pBitmap.offset(dx as isize) as f32 / 255.0f32) as f64,
                 kRcpGamma as f64,
             ) as f32;
             let fresh0 = pBuffer;
@@ -530,11 +489,7 @@ unsafe extern "C" fn Font_GetGlyph(
     return g;
 }
 #[inline]
-unsafe extern "C" fn Font_GetKerning(
-    mut this: *mut Font,
-    mut a: i32,
-    mut b: i32,
-) -> i32 {
+unsafe extern "C" fn Font_GetKerning(mut this: *mut Font, mut a: i32, mut b: i32) -> i32 {
     let mut kern: FT_Vector = FT_Vector { x: 0, y: 0 };
     FT_Get_Kerning(
         (*this).handle,
@@ -551,13 +506,11 @@ pub unsafe extern "C" fn Font_Load(mut name: cstr, mut size: i32) -> *mut Font {
         FT_Init_FreeType(&mut ft);
     }
     let mut path: cstr = Resource_GetPath(ResourceType_Font, name);
-    let mut this: *mut Font = MemAlloc(::core::mem::size_of::<Font>())
-        as *mut Font;
+    let mut this: *mut Font = MemAlloc(::core::mem::size_of::<Font>()) as *mut Font;
     (*this)._refCount = 1 as i32 as u32;
     if FT_New_Face(ft, path, 0 as i32 as FT_Long, &mut (*this).handle) != 0 {
         Fatal(
-            b"Font_Load: Failed to load font <%s> at <%s>\0" as *const u8
-                as *const libc::c_char,
+            b"Font_Load: Failed to load font <%s> at <%s>\0" as *const u8 as *const libc::c_char,
             name,
             path,
         );
@@ -567,8 +520,7 @@ pub unsafe extern "C" fn Font_Load(mut name: cstr, mut size: i32) -> *mut Font {
         ((*this).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
         ::core::mem::size_of::<[*mut Glyph; 256]>(),
     );
-    (*this)
-        .glyphs = HashMap_Create(
+    (*this).glyphs = HashMap_Create(
         ::core::mem::size_of::<u32>() as usize as u32,
         16 as i32 as u32,
     );
@@ -580,12 +532,10 @@ pub unsafe extern "C" fn Font_Acquire(mut this: *mut Font) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
-    if !this.is_null()
-        && {
-            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-            (*this)._refCount <= 0 as i32 as u32
-        }
-    {
+    if !this.is_null() && {
+        (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+        (*this)._refCount <= 0 as i32 as u32
+    } {
         FT_Done_Face((*this).handle);
         MemFree(this as *const libc::c_void);
     }
@@ -602,8 +552,7 @@ pub unsafe extern "C" fn Font_Draw(
     mut a: f32,
 ) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"Font_Draw\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"Font_Draw\0")).as_ptr(),
     );
     let mut glyphLast: i32 = 0 as i32;
     let fresh1 = text;
@@ -623,17 +572,7 @@ pub unsafe extern "C" fn Font_Draw(
             let mut y0: f32 = y + (*glyph).y0 as f32;
             let mut x1: f32 = x + (*glyph).x1 as f32;
             let mut y1: f32 = y + (*glyph).y1 as f32;
-            Tex2D_DrawEx(
-                (*glyph).tex,
-                x0,
-                y0,
-                x1,
-                y1,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-                1.0f32,
-            );
+            Tex2D_DrawEx((*glyph).tex, x0, y0, x1, y1, 0.0f32, 0.0f32, 1.0f32, 1.0f32);
             x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
         } else {
@@ -643,12 +582,7 @@ pub unsafe extern "C" fn Font_Draw(
         text = text.offset(1);
         codepoint = *fresh2 as u32;
     }
-    Draw_Color(
-        1.0f32,
-        1.0f32,
-        1.0f32,
-        1.0f32,
-    );
+    Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
     RenderState_PopBlendMode();
     Profiler_End();
 }
@@ -660,8 +594,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
     mut y: f32,
 ) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Font_DrawShaded\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Font_DrawShaded\0")).as_ptr(),
     );
     let mut glyphLast: i32 = 0 as i32;
     let fresh3 = text;
@@ -680,21 +613,8 @@ pub unsafe extern "C" fn Font_DrawShaded(
             let mut x1: f32 = x + (*glyph).x1 as f32;
             let mut y1: f32 = y + (*glyph).y1 as f32;
             Shader_ResetTexIndex();
-            Shader_SetTex2D(
-                b"glyph\0" as *const u8 as *const libc::c_char,
-                (*glyph).tex,
-            );
-            Tex2D_DrawEx(
-                (*glyph).tex,
-                x0,
-                y0,
-                x1,
-                y1,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-                1.0f32,
-            );
+            Shader_SetTex2D(b"glyph\0" as *const u8 as *const libc::c_char, (*glyph).tex);
+            Tex2D_DrawEx((*glyph).tex, x0, y0, x1, y1, 0.0f32, 0.0f32, 1.0f32, 1.0f32);
             x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
         } else {
@@ -708,18 +628,12 @@ pub unsafe extern "C" fn Font_DrawShaded(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetLineHeight(mut this: *mut Font) -> i32 {
-    return ((*(*(*this).handle).size).metrics.height >> 6 as i32)
-        as i32;
+    return ((*(*(*this).handle).size).metrics.height >> 6 as i32) as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetSize(
-    mut this: *mut Font,
-    mut out: *mut IVec4,
-    mut text: cstr,
-) {
+pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, mut text: cstr) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Font_GetSize\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Font_GetSize\0")).as_ptr(),
     );
     let mut x: i32 = 0 as i32;
     let mut y: i32 = 0 as i32;
@@ -730,12 +644,7 @@ pub unsafe extern "C" fn Font_GetSize(
     text = text.offset(1);
     let mut codepoint: u32 = *fresh5 as u32;
     if codepoint == 0 {
-        *out = IVec4::new(
-            0 as i32,
-            0 as i32,
-            0 as i32,
-            0 as i32,
-        );
+        *out = IVec4::new(0 as i32, 0 as i32, 0 as i32, 0 as i32);
         return;
     }
     while codepoint != 0 {
@@ -744,18 +653,10 @@ pub unsafe extern "C" fn Font_GetSize(
             if glyphLast != 0 {
                 x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
-            lower
-                .x = Min(lower.x as f64, (x + (*glyph).x0) as f64)
-                as i32;
-            lower
-                .y = Min(lower.y as f64, (y + (*glyph).y0) as f64)
-                as i32;
-            upper
-                .x = Max(upper.x as f64, (x + (*glyph).x1) as f64)
-                as i32;
-            upper
-                .y = Max(upper.y as f64, (y + (*glyph).y1) as f64)
-                as i32;
+            lower.x = Min(lower.x as f64, (x + (*glyph).x0) as f64) as i32;
+            lower.y = Min(lower.y as f64, (y + (*glyph).y0) as f64) as i32;
+            upper.x = Max(upper.x as f64, (x + (*glyph).x1) as f64) as i32;
+            upper.y = Max(upper.y as f64, (y + (*glyph).y1) as f64) as i32;
             x += (*glyph).advance;
             glyphLast = (*glyph).index;
         } else {
@@ -769,14 +670,9 @@ pub unsafe extern "C" fn Font_GetSize(
     Profiler_End();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetSize2(
-    mut this: *mut Font,
-    mut out: *mut IVec2,
-    mut text: cstr,
-) {
+pub unsafe extern "C" fn Font_GetSize2(mut this: *mut Font, mut out: *mut IVec2, mut text: cstr) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Font_GetSize2\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Font_GetSize2\0")).as_ptr(),
     );
     (*out).x = 0 as i32;
     (*out).y = 0 as i32;
@@ -791,11 +687,7 @@ pub unsafe extern "C" fn Font_GetSize2(
                 (*out).x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
             (*out).x += (*glyph).advance;
-            (*out)
-                .y = Max(
-                (*out).y as f64,
-                (-(*glyph).y0 + 1 as i32) as f64,
-            ) as i32;
+            (*out).y = Max((*out).y as f64, (-(*glyph).y0 + 1 as i32) as f64) as i32;
             glyphLast = (*glyph).index;
         } else {
             glyphLast = 0 as i32;

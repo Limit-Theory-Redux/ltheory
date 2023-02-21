@@ -1,10 +1,10 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::CubeFace::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::TexFormat::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type Bytes;
     pub type ShaderState;
@@ -12,28 +12,13 @@ extern "C" {
     fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Rewind(_: *mut Bytes);
-    fn ClipRect_Push(
-        x: f32,
-        y: f32,
-        sx: f32,
-        sy: f32,
-    );
+    fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32);
     fn ClipRect_Pop();
     fn DataFormat_GetSize(_: DataFormat) -> i32;
     fn floor(_: f64) -> f64;
-    fn Draw_Rect(
-        x: f32,
-        y: f32,
-        sx: f32,
-        sy: f32,
-    );
+    fn Draw_Rect(x: f32, y: f32, sx: f32, sy: f32);
     fn Draw_Flush();
-    fn Draw_Clear(
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-    );
+    fn Draw_Clear(r: f32, g: f32, b: f32, a: f32);
     fn GLMatrix_Clear();
     fn GLMatrix_ModeP();
     fn GLMatrix_ModeWV();
@@ -76,19 +61,8 @@ extern "C" {
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
     fn TexFormat_IsDepth(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
-    fn Tex2D_LoadRaw(
-        path: cstr,
-        sx: *mut i32,
-        sy: *mut i32,
-        components: *mut i32,
-    ) -> *mut uchar;
-    fn Tex2D_Save_Png(
-        path: cstr,
-        sx: i32,
-        sy: i32,
-        components: i32,
-        data: *mut uchar,
-    ) -> bool;
+    fn Tex2D_LoadRaw(path: cstr, sx: *mut i32, sy: *mut i32, components: *mut i32) -> *mut uchar;
+    fn Tex2D_Save_Png(path: cstr, sx: i32, sy: i32, components: i32, data: *mut uchar) -> bool;
 }
 pub type uint = u32;
 pub type uchar = libc::c_uchar;
@@ -111,7 +85,7 @@ pub type GLenum = u32;
 pub type GLuint = u32;
 pub type GLint = i32;
 pub type GLsizei = i32;
-pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
+pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Face {
@@ -124,51 +98,45 @@ unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
 #[inline]
-unsafe extern "C" fn Max(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Min(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
 }
 
 static mut kFaces: [Face; 6] = [
-     Face {
-            face: 0x8515 as i32,
-            look: Vec3::new(1.0f32, 0.0f32, 0.0f32),
-            up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        },
-     Face {
-            face: 0x8516 as i32,
-            look: Vec3::new(-1.0f32, 0.0f32, 0.0f32),
-            up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        },
-     Face {
-            face: 0x8517 as i32,
-            look: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-            up: Vec3::new(0.0f32, 0.0f32, -1.0f32),
-        },
-     Face {
-            face: 0x8518 as i32,
-            look: Vec3::new(0.0f32, -1.0f32, 0.0f32),
-            up: Vec3::new(0.0f32, 0.0f32, 1.0f32),
-        },
-     Face {
-            face: 0x8519 as i32,
-            look: Vec3::new(0.0f32, 0.0f32, 1.0f32),
-            up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        },
-     Face {
-            face: 0x851a as i32,
-            look: Vec3::new(0.0f32, 0.0f32, -1.0f32),
-            up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        },
+    Face {
+        face: 0x8515 as i32,
+        look: Vec3::new(1.0f32, 0.0f32, 0.0f32),
+        up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+    },
+    Face {
+        face: 0x8516 as i32,
+        look: Vec3::new(-1.0f32, 0.0f32, 0.0f32),
+        up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+    },
+    Face {
+        face: 0x8517 as i32,
+        look: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        up: Vec3::new(0.0f32, 0.0f32, -1.0f32),
+    },
+    Face {
+        face: 0x8518 as i32,
+        look: Vec3::new(0.0f32, -1.0f32, 0.0f32),
+        up: Vec3::new(0.0f32, 0.0f32, 1.0f32),
+    },
+    Face {
+        face: 0x8519 as i32,
+        look: Vec3::new(0.0f32, 0.0f32, 1.0f32),
+        up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+    },
+    Face {
+        face: 0x851a as i32,
+        look: Vec3::new(0.0f32, 0.0f32, -1.0f32),
+        up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+    },
 ];
 static mut kFaceExt: [cstr; 6] = [
     b"px\0" as *const u8 as *const libc::c_char,
@@ -202,10 +170,7 @@ unsafe extern "C" fn TexCube_InitParameters() {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Create(
-    mut size: i32,
-    mut format: TexFormat,
-) -> *mut TexCube {
+pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) -> *mut TexCube {
     if !TexFormat_IsValid(format) {
         Fatal(
             b"TexCube_Create: Invalid texture format requested\0" as *const u8
@@ -218,9 +183,8 @@ pub unsafe extern "C" fn TexCube_Create(
                 as *const libc::c_char,
         );
     }
-    let mut this: *mut TexCube = MemAlloc(
-        ::core::mem::size_of::<TexCube>() as usize,
-    ) as *mut TexCube;
+    let mut this: *mut TexCube =
+        MemAlloc(::core::mem::size_of::<TexCube>() as usize) as *mut TexCube;
     (*this)._refCount = 1 as i32 as u32;
     glGenTextures(1 as i32, &mut (*this).handle);
     (*this).size = size;
@@ -320,21 +284,18 @@ pub unsafe extern "C" fn TexCube_Clear(
 }
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
-    if !this.is_null()
-        && {
-            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-            (*this)._refCount <= 0 as i32 as u32
-        }
-    {
+    if !this.is_null() && {
+        (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+        (*this)._refCount <= 0 as i32 as u32
+    } {
         glDeleteTextures(1 as i32, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(mut path: cstr) -> *mut TexCube {
-    let mut this: *mut TexCube = MemAlloc(
-        ::core::mem::size_of::<TexCube>() as usize,
-    ) as *mut TexCube;
+    let mut this: *mut TexCube =
+        MemAlloc(::core::mem::size_of::<TexCube>() as usize) as *mut TexCube;
     glGenTextures(1 as i32, &mut (*this).handle);
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
     let mut components: i32 = 0 as i32;
@@ -349,12 +310,7 @@ pub unsafe extern "C" fn TexCube_Load(mut path: cstr) -> *mut TexCube {
         let mut sx: i32 = 0;
         let mut sy: i32 = 0;
         let mut lcomponents: i32 = 0;
-        let mut data: *mut uchar = Tex2D_LoadRaw(
-            facePath,
-            &mut sx,
-            &mut sy,
-            &mut lcomponents,
-        );
+        let mut data: *mut uchar = Tex2D_LoadRaw(facePath, &mut sx, &mut sy, &mut lcomponents);
         if data.is_null() {
             Fatal(
                 b"TexCube_Load failed to load cubemap face from '%s'\0" as *const u8
@@ -371,8 +327,8 @@ pub unsafe extern "C" fn TexCube_Load(mut path: cstr) -> *mut TexCube {
         if i != 0 {
             if sx != (*this).size || sy != (*this).size {
                 Fatal(
-                    b"TexCube_Load loaded cubemap faces have different resolutions\0"
-                        as *const u8 as *const libc::c_char,
+                    b"TexCube_Load loaded cubemap faces have different resolutions\0" as *const u8
+                        as *const libc::c_char,
                 );
             }
             if lcomponents != components {
@@ -384,8 +340,7 @@ pub unsafe extern "C" fn TexCube_Load(mut path: cstr) -> *mut TexCube {
         } else {
             components = lcomponents;
             (*this).size = sx;
-            (*this)
-                .format = if components == 4 as i32 {
+            (*this).format = if components == 4 as i32 {
                 TexFormat_RGBA8
             } else if components == 3 as i32 {
                 TexFormat_RGB8
@@ -465,10 +420,7 @@ pub unsafe extern "C" fn TexCube_GetSize(mut this: *mut TexCube) -> i32 {
     return (*this).size;
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Generate(
-    mut this: *mut TexCube,
-    mut state: *mut ShaderState,
-) {
+pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mut ShaderState) {
     GLMatrix_ModeP();
     GLMatrix_Push();
     GLMatrix_Clear();
@@ -484,12 +436,7 @@ pub unsafe extern "C" fn TexCube_Generate(
         let mut fSize: f32 = (*this).size as f32;
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
-        Draw_Clear(
-            0.0f32,
-            0.0f32,
-            0.0f32,
-            1.0f32,
-        );
+        Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
         Shader_SetFloat3(
             b"cubeLook\0" as *const u8 as *const libc::c_char,
             face.look.x,
@@ -507,31 +454,17 @@ pub unsafe extern "C" fn TexCube_Generate(
         let mut jobSize: i32 = 1 as i32;
         while j <= size {
             let mut time: TimeStamp = TimeStamp_Get();
-            ClipRect_Push(
-                0.0f32,
-                (j - 1 as i32) as f32,
-                size as f32,
-                jobSize as f32,
-            );
-            Draw_Rect(
-                0.0f32,
-                0.0f32,
-                fSize,
-                fSize,
-            );
+            ClipRect_Push(0.0f32, (j - 1 as i32) as f32, size as f32, jobSize as f32);
+            Draw_Rect(0.0f32, 0.0f32, fSize, fSize);
             Draw_Flush();
             ClipRect_Pop();
             j += jobSize;
             let mut elapsed: f64 = TimeStamp_GetElapsed(time);
             jobSize = Max(
                 1 as i32 as f64,
-                Floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64)
-                    as i32 as f64,
+                Floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
             ) as i32;
-            jobSize = Min(
-                jobSize as f64,
-                (size - j + 1 as i32) as f64,
-            ) as i32;
+            jobSize = Min(jobSize as f64, (size - j + 1 as i32) as f64) as i32;
         }
         RenderTarget_Pop();
         i += 1;
@@ -546,8 +479,7 @@ pub unsafe extern "C" fn TexCube_Generate(
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GenMipmap(mut this: *mut TexCube) {
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
-    __glewGenerateMipmap
-        .expect("non-null function pointer")(0x8513 as i32 as GLenum);
+    __glewGenerateMipmap.expect("non-null function pointer")(0x8513 as i32 as GLenum);
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
@@ -585,29 +517,15 @@ pub unsafe extern "C" fn TexCube_SetDataBytes(
     TexCube_SetData(this, Bytes_GetData(data), face, level, pf, df);
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetMagFilter(
-    mut this: *mut TexCube,
-    mut filter: TexFilter,
-) {
+pub unsafe extern "C" fn TexCube_SetMagFilter(mut this: *mut TexCube, mut filter: TexFilter) {
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0x8513 as i32 as GLenum,
-        0x2800 as i32 as GLenum,
-        filter,
-    );
+    glTexParameteri(0x8513 as i32 as GLenum, 0x2800 as i32 as GLenum, filter);
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetMinFilter(
-    mut this: *mut TexCube,
-    mut filter: TexFilter,
-) {
+pub unsafe extern "C" fn TexCube_SetMinFilter(mut this: *mut TexCube, mut filter: TexFilter) {
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
-    glTexParameteri(
-        0x8513 as i32 as GLenum,
-        0x2801 as i32 as GLenum,
-        filter,
-    );
+    glTexParameteri(0x8513 as i32 as GLenum, 0x2801 as i32 as GLenum, filter);
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
@@ -615,17 +533,12 @@ pub unsafe extern "C" fn TexCube_Save(mut this: *mut TexCube, mut path: cstr) {
     TexCube_SaveLevel(this, path, 0 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SaveLevel(
-    mut this: *mut TexCube,
-    mut path: cstr,
-    mut level: i32,
-) {
+pub unsafe extern "C" fn TexCube_SaveLevel(mut this: *mut TexCube, mut path: cstr, mut level: i32) {
     let mut size: i32 = (*this).size >> level;
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
-    let mut buffer: *mut uchar = MemAlloc(
-        (::core::mem::size_of::<uchar>())
-            .wrapping_mul((4 as i32 * size * size) as usize),
-    ) as *mut uchar;
+    let mut buffer: *mut uchar =
+        MemAlloc((::core::mem::size_of::<uchar>()).wrapping_mul((4 as i32 * size * size) as usize))
+            as *mut uchar;
     let mut i: i32 = 0 as i32;
     while i < 6 as i32 {
         let mut face: CubeFace = kFaces[i as usize].face;

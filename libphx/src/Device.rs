@@ -1,15 +1,10 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::DeviceType::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     fn DeviceType_ToString(_: DeviceType) -> cstr;
-    fn snprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: ...
-    ) -> i32;
+    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
@@ -29,8 +24,7 @@ pub unsafe extern "C" fn Device_ToString(mut this: *mut Device) -> cstr {
     snprintf(
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
-            .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as i32 as usize,
+            .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32 as usize,
         b"%s (%u)\0" as *const u8 as *const libc::c_char,
         DeviceType_ToString((*this).type_0),
         (*this).id,

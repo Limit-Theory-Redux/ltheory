@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 pub type GamepadButton = i32;
 pub const SDL_CONTROLLER_BUTTON_A: C2RustUnnamed = 0;
 pub const SDL_CONTROLLER_BUTTON_B: C2RustUnnamed = 1;
@@ -27,8 +27,7 @@ pub const SDL_CONTROLLER_BUTTON_PADDLE1: C2RustUnnamed = 16;
 pub const SDL_CONTROLLER_BUTTON_MISC1: C2RustUnnamed = 15;
 pub const SDL_CONTROLLER_BUTTON_INVALID: C2RustUnnamed = -1;
 #[no_mangle]
-pub static mut GamepadButton_BEGIN: GamepadButton = SDL_CONTROLLER_BUTTON_A
-    as i32;
+pub static mut GamepadButton_BEGIN: GamepadButton = SDL_CONTROLLER_BUTTON_A as i32;
 #[no_mangle]
 pub static mut GamepadButton_A: GamepadButton = SDL_CONTROLLER_BUTTON_A as i32;
 #[no_mangle]
@@ -38,38 +37,26 @@ pub static mut GamepadButton_X: GamepadButton = SDL_CONTROLLER_BUTTON_X as i32;
 #[no_mangle]
 pub static mut GamepadButton_Y: GamepadButton = SDL_CONTROLLER_BUTTON_Y as i32;
 #[no_mangle]
-pub static mut GamepadButton_Back: GamepadButton = SDL_CONTROLLER_BUTTON_BACK
-    as i32;
+pub static mut GamepadButton_Back: GamepadButton = SDL_CONTROLLER_BUTTON_BACK as i32;
 #[no_mangle]
-pub static mut GamepadButton_Guide: GamepadButton = SDL_CONTROLLER_BUTTON_GUIDE
-    as i32;
+pub static mut GamepadButton_Guide: GamepadButton = SDL_CONTROLLER_BUTTON_GUIDE as i32;
 #[no_mangle]
-pub static mut GamepadButton_Start: GamepadButton = SDL_CONTROLLER_BUTTON_START
-    as i32;
+pub static mut GamepadButton_Start: GamepadButton = SDL_CONTROLLER_BUTTON_START as i32;
 #[no_mangle]
-pub static mut GamepadButton_LStick: GamepadButton = SDL_CONTROLLER_BUTTON_LEFTSTICK
-    as i32;
+pub static mut GamepadButton_LStick: GamepadButton = SDL_CONTROLLER_BUTTON_LEFTSTICK as i32;
 #[no_mangle]
-pub static mut GamepadButton_RStick: GamepadButton = SDL_CONTROLLER_BUTTON_RIGHTSTICK
-    as i32;
+pub static mut GamepadButton_RStick: GamepadButton = SDL_CONTROLLER_BUTTON_RIGHTSTICK as i32;
 #[no_mangle]
-pub static mut GamepadButton_LBumper: GamepadButton = SDL_CONTROLLER_BUTTON_LEFTSHOULDER
-    as i32;
+pub static mut GamepadButton_LBumper: GamepadButton = SDL_CONTROLLER_BUTTON_LEFTSHOULDER as i32;
 #[no_mangle]
-pub static mut GamepadButton_RBumper: GamepadButton = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER
-    as i32;
+pub static mut GamepadButton_RBumper: GamepadButton = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER as i32;
 #[no_mangle]
-pub static mut GamepadButton_Up: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_UP
-    as i32;
+pub static mut GamepadButton_Up: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_UP as i32;
 #[no_mangle]
-pub static mut GamepadButton_Down: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_DOWN
-    as i32;
+pub static mut GamepadButton_Down: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_DOWN as i32;
 #[no_mangle]
-pub static mut GamepadButton_Left: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_LEFT
-    as i32;
+pub static mut GamepadButton_Left: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_LEFT as i32;
 #[no_mangle]
-pub static mut GamepadButton_Right: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_RIGHT
-    as i32;
+pub static mut GamepadButton_Right: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_RIGHT as i32;
 #[no_mangle]
-pub static mut GamepadButton_END: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_RIGHT
-    as i32;
+pub static mut GamepadButton_END: GamepadButton = SDL_CONTROLLER_BUTTON_DPAD_RIGHT as i32;

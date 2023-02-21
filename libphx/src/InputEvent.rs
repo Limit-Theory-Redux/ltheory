@@ -1,16 +1,11 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::Button::*;
-use crate::State::*;
 use crate::DeviceType::*;
+use crate::State::*;
+use glam::Vec3;
+use libc;
 extern "C" {
-    fn snprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: ...
-    ) -> i32;
+    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
     fn Button_ToString(_: Button) -> cstr;
     fn Device_ToString(_: *mut Device) -> cstr;
     fn State_ToString(_: State) -> cstr;

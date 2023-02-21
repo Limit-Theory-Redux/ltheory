@@ -1,17 +1,13 @@
-use ::libc;
-use glam::Vec3;
-use glam::DVec3;
 use crate::internal::Memory::*;
+use glam::DVec3;
+use glam::Vec3;
+use libc;
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
     fn sqrt(_: f64) -> f64;
     fn Fatal(_: cstr, _: ...);
-    fn Intersect_LineSegmentPlane(
-        _: *const LineSegment,
-        _: *const Plane,
-        pHit: *mut Vec3,
-    ) -> bool;
+    fn Intersect_LineSegmentPlane(_: *const LineSegment, _: *const Plane, pHit: *mut Vec3) -> bool;
     fn Plane_ClassifyPoint(_: *mut Plane, _: *mut Vec3) -> PointClassification;
 }
 pub type cstr = *const libc::c_char;
@@ -53,17 +49,14 @@ unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Polygon_ToPlane(
-    mut polygon: *mut Polygon,
-    mut out: *mut Plane,
-) {
+pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mut Plane) {
     let mut v: *mut Vec3 = (*polygon).vertices_data;
     let mut vLen: i32 = (*polygon).vertices_size;
-    let mut n: DVec3 =  DVec3 {
-            x: 0 as i32 as f64,
-            y: 0.,
-            z: 0.,
-        };
+    let mut n: DVec3 = DVec3 {
+        x: 0 as i32 as f64,
+        y: 0.,
+        z: 0.,
+    };
     let mut centroid = DVec3::ZERO;
     let vCurAsF32 = *v.offset((vLen - 1) as isize);
     let mut vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
@@ -84,29 +77,23 @@ pub unsafe extern "C" fn Polygon_ToPlane(
     (*out).d = DVec3::dot(centroid, n) as f32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Polygon_ToPlaneFast(
-    mut polygon: *mut Polygon,
-    mut out: *mut Plane,
-) {
+pub unsafe extern "C" fn Polygon_ToPlaneFast(mut polygon: *mut Polygon, mut out: *mut Plane) {
     let mut v: *mut Vec3 = ((*polygon).vertices_data).offset(0);
     let mut vLen: i32 = (*polygon).vertices_size;
-    let mut n: Vec3 =  Vec3 {
-            x: 0.0f32,
-            y: 0.,
-            z: 0.,
-        };
+    let mut n: Vec3 = Vec3 {
+        x: 0.0f32,
+        y: 0.,
+        z: 0.,
+    };
     let mut i: i32 = vLen - 1 as i32;
     let mut j: i32 = 0 as i32;
     while j < vLen {
-        n.x
-            += ((*v.offset(i as isize)).y - (*v.offset(j as isize)).y)
-                * ((*v.offset(i as isize)).z + (*v.offset(j as isize)).z);
-        n.y
-            += ((*v.offset(i as isize)).z - (*v.offset(j as isize)).z)
-                * ((*v.offset(i as isize)).x + (*v.offset(j as isize)).x);
-        n.z
-            += ((*v.offset(i as isize)).x - (*v.offset(j as isize)).x)
-                * ((*v.offset(i as isize)).y + (*v.offset(j as isize)).y);
+        n.x += ((*v.offset(i as isize)).y - (*v.offset(j as isize)).y)
+            * ((*v.offset(i as isize)).z + (*v.offset(j as isize)).z);
+        n.y += ((*v.offset(i as isize)).z - (*v.offset(j as isize)).z)
+            * ((*v.offset(i as isize)).x + (*v.offset(j as isize)).x);
+        n.z += ((*v.offset(i as isize)).x - (*v.offset(j as isize)).x)
+            * ((*v.offset(i as isize)).y + (*v.offset(j as isize)).y);
         i = j;
         j += 1;
     }
@@ -120,84 +107,69 @@ unsafe extern "C" fn Polygon_SplitImpl(
     mut back: *mut Polygon,
     mut front: *mut Polygon,
 ) {
-    let mut a: Vec3 = *((*polygon).vertices_data)
-        .offset(((*polygon).vertices_size - 1 as i32) as isize);
+    let mut a: Vec3 =
+        *((*polygon).vertices_data).offset(((*polygon).vertices_size - 1 as i32) as isize);
     let mut aSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut a);
     let mut j: i32 = 0 as i32;
     while j < (*polygon).vertices_size {
         let mut b: Vec3 = *((*polygon).vertices_data).offset(j as isize);
-        let mut bSide: PointClassification = Plane_ClassifyPoint(
-            &mut splitPlane,
-            &mut b,
-        );
+        let mut bSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut b);
         if bSide as i32 == 1 as i32 {
             if aSide as i32 == 2 as i32 {
                 let mut i = Vec3::ZERO;
-                let mut lineSegment: LineSegment =  LineSegment { p0: b, p1: a };
-                let mut hit: bool = Intersect_LineSegmentPlane(
-                    &mut lineSegment,
-                    &mut splitPlane,
-                    &mut i,
-                );
-                if ((*front).vertices_capacity == (*front).vertices_size) as i32
-                    as libc::c_long != 0
+                let mut lineSegment: LineSegment = LineSegment { p0: b, p1: a };
+                let mut hit: bool =
+                    Intersect_LineSegmentPlane(&mut lineSegment, &mut splitPlane, &mut i);
+                if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long
+                    != 0
                 {
-                    (*front)
-                        .vertices_capacity = if (*front).vertices_capacity != 0 {
+                    (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
                         (*front).vertices_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
-                    let mut pData: *mut *mut libc::c_void = &mut (*front).vertices_data
-                        as *mut *mut Vec3 as *mut *mut libc::c_void;
+                    let mut pData: *mut *mut libc::c_void =
+                        &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData = MemRealloc(
                         (*front).vertices_data as *mut libc::c_void,
-                        ((*front).vertices_capacity as usize)
-                            .wrapping_mul(elemSize),
+                        ((*front).vertices_capacity as usize).wrapping_mul(elemSize),
                     );
                 }
                 let fresh0 = (*front).vertices_size;
                 (*front).vertices_size = (*front).vertices_size + 1;
                 *((*front).vertices_data).offset(fresh0 as isize) = i;
-                if ((*back).vertices_capacity == (*back).vertices_size) as i32
-                    as libc::c_long != 0
+                if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
-                    (*back)
-                        .vertices_capacity = if (*back).vertices_capacity != 0 {
+                    (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
                         (*back).vertices_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
-                    let mut pData_0: *mut *mut libc::c_void = &mut (*back).vertices_data
-                        as *mut *mut Vec3 as *mut *mut libc::c_void;
+                    let mut pData_0: *mut *mut libc::c_void =
+                        &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
                         (*back).vertices_data as *mut libc::c_void,
-                        ((*back).vertices_capacity as usize)
-                            .wrapping_mul(elemSize_0),
+                        ((*back).vertices_capacity as usize).wrapping_mul(elemSize_0),
                     );
                 }
                 let fresh1 = (*back).vertices_size;
                 (*back).vertices_size = (*back).vertices_size + 1;
                 *((*back).vertices_data).offset(fresh1 as isize) = i;
             }
-            if ((*front).vertices_capacity == (*front).vertices_size) as i32
-                as libc::c_long != 0
-            {
-                (*front)
-                    .vertices_capacity = if (*front).vertices_capacity != 0 {
+            if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long != 0 {
+                (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
                     (*front).vertices_capacity * 2 as i32
                 } else {
                     1 as i32
                 };
                 let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
-                let mut pData_1: *mut *mut libc::c_void = &mut (*front).vertices_data
-                    as *mut *mut Vec3 as *mut *mut libc::c_void;
+                let mut pData_1: *mut *mut libc::c_void =
+                    &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_1 = MemRealloc(
                     (*front).vertices_data as *mut libc::c_void,
-                    ((*front).vertices_capacity as usize)
-                        .wrapping_mul(elemSize_1),
+                    ((*front).vertices_capacity as usize).wrapping_mul(elemSize_1),
                 );
             }
             let fresh2 = (*front).vertices_size;
@@ -206,89 +178,75 @@ unsafe extern "C" fn Polygon_SplitImpl(
         } else if bSide as i32 == 2 as i32 {
             if aSide as i32 == 1 as i32 {
                 let mut i_0 = Vec3::ZERO;
-                let mut lineSegment_0: LineSegment =  LineSegment { p0: a, p1: b };
-                let mut hit_0: bool = Intersect_LineSegmentPlane(
-                    &mut lineSegment_0,
-                    &mut splitPlane,
-                    &mut i_0,
-                );
-                if ((*front).vertices_capacity == (*front).vertices_size) as i32
-                    as libc::c_long != 0
+                let mut lineSegment_0: LineSegment = LineSegment { p0: a, p1: b };
+                let mut hit_0: bool =
+                    Intersect_LineSegmentPlane(&mut lineSegment_0, &mut splitPlane, &mut i_0);
+                if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long
+                    != 0
                 {
-                    (*front)
-                        .vertices_capacity = if (*front).vertices_capacity != 0 {
+                    (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
                         (*front).vertices_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
-                    let mut pData_2: *mut *mut libc::c_void = &mut (*front).vertices_data
-                        as *mut *mut Vec3 as *mut *mut libc::c_void;
+                    let mut pData_2: *mut *mut libc::c_void =
+                        &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_2 = MemRealloc(
                         (*front).vertices_data as *mut libc::c_void,
-                        ((*front).vertices_capacity as usize)
-                            .wrapping_mul(elemSize_2),
+                        ((*front).vertices_capacity as usize).wrapping_mul(elemSize_2),
                     );
                 }
                 let fresh3 = (*front).vertices_size;
                 (*front).vertices_size = (*front).vertices_size + 1;
                 *((*front).vertices_data).offset(fresh3 as isize) = i_0;
-                if ((*back).vertices_capacity == (*back).vertices_size) as i32
-                    as libc::c_long != 0
+                if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
-                    (*back)
-                        .vertices_capacity = if (*back).vertices_capacity != 0 {
+                    (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
                         (*back).vertices_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize_3: usize = ::core::mem::size_of::<Vec3>();
-                    let mut pData_3: *mut *mut libc::c_void = &mut (*back).vertices_data
-                        as *mut *mut Vec3 as *mut *mut libc::c_void;
+                    let mut pData_3: *mut *mut libc::c_void =
+                        &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_3 = MemRealloc(
                         (*back).vertices_data as *mut libc::c_void,
-                        ((*back).vertices_capacity as usize)
-                            .wrapping_mul(elemSize_3),
+                        ((*back).vertices_capacity as usize).wrapping_mul(elemSize_3),
                     );
                 }
                 let fresh4 = (*back).vertices_size;
                 (*back).vertices_size = (*back).vertices_size + 1;
                 *((*back).vertices_data).offset(fresh4 as isize) = i_0;
             } else if aSide as i32 == 3 as i32 {
-                if ((*back).vertices_capacity == (*back).vertices_size) as i32
-                    as libc::c_long != 0
+                if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
-                    (*back)
-                        .vertices_capacity = if (*back).vertices_capacity != 0 {
+                    (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
                         (*back).vertices_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize_4: usize = ::core::mem::size_of::<Vec3>();
-                    let mut pData_4: *mut *mut libc::c_void = &mut (*back).vertices_data
-                        as *mut *mut Vec3 as *mut *mut libc::c_void;
+                    let mut pData_4: *mut *mut libc::c_void =
+                        &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_4 = MemRealloc(
                         (*back).vertices_data as *mut libc::c_void,
-                        ((*back).vertices_capacity as usize)
-                            .wrapping_mul(elemSize_4),
+                        ((*back).vertices_capacity as usize).wrapping_mul(elemSize_4),
                     );
                 }
                 let fresh5 = (*back).vertices_size;
                 (*back).vertices_size = (*back).vertices_size + 1;
                 *((*back).vertices_data).offset(fresh5 as isize) = a;
             }
-            if ((*back).vertices_capacity == (*back).vertices_size) as i32
-                as libc::c_long != 0
-            {
-                (*back)
-                    .vertices_capacity = if (*back).vertices_capacity != 0 {
+            if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0 {
+                (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
                     (*back).vertices_capacity * 2 as i32
                 } else {
                     1 as i32
                 };
                 let mut elemSize_5: usize = ::core::mem::size_of::<Vec3>();
-                let mut pData_5: *mut *mut libc::c_void = &mut (*back).vertices_data
-                    as *mut *mut Vec3 as *mut *mut libc::c_void;
+                let mut pData_5: *mut *mut libc::c_void =
+                    &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_5 = MemRealloc(
                     (*back).vertices_data as *mut libc::c_void,
                     ((*back).vertices_capacity as usize).wrapping_mul(elemSize_5 as usize),
@@ -299,44 +257,37 @@ unsafe extern "C" fn Polygon_SplitImpl(
             *((*back).vertices_data).offset(fresh6 as isize) = b;
         } else {
             if aSide as i32 == 2 as i32 {
-                if ((*back).vertices_capacity == (*back).vertices_size) as i32
-                    as libc::c_long != 0
+                if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
-                    (*back)
-                        .vertices_capacity = if (*back).vertices_capacity != 0 {
+                    (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
                         (*back).vertices_capacity * 2 as i32
                     } else {
                         1 as i32
                     };
                     let mut elemSize_6: usize = ::core::mem::size_of::<Vec3>();
-                    let mut pData_6: *mut *mut libc::c_void = &mut (*back).vertices_data
-                        as *mut *mut Vec3 as *mut *mut libc::c_void;
+                    let mut pData_6: *mut *mut libc::c_void =
+                        &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_6 = MemRealloc(
                         (*back).vertices_data as *mut libc::c_void,
-                        ((*back).vertices_capacity as usize)
-                            .wrapping_mul(elemSize_6),
+                        ((*back).vertices_capacity as usize).wrapping_mul(elemSize_6),
                     );
                 }
                 let fresh7 = (*back).vertices_size;
                 (*back).vertices_size = (*back).vertices_size + 1;
                 *((*back).vertices_data).offset(fresh7 as isize) = b;
             }
-            if ((*front).vertices_capacity == (*front).vertices_size) as i32
-                as libc::c_long != 0
-            {
-                (*front)
-                    .vertices_capacity = if (*front).vertices_capacity != 0 {
+            if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long != 0 {
+                (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
                     (*front).vertices_capacity * 2 as i32
                 } else {
                     1 as i32
                 };
                 let mut elemSize_7: usize = ::core::mem::size_of::<Vec3>();
-                let mut pData_7: *mut *mut libc::c_void = &mut (*front).vertices_data
-                    as *mut *mut Vec3 as *mut *mut libc::c_void;
+                let mut pData_7: *mut *mut libc::c_void =
+                    &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_7 = MemRealloc(
                     (*front).vertices_data as *mut libc::c_void,
-                    ((*front).vertices_capacity as usize)
-                        .wrapping_mul(elemSize_7),
+                    ((*front).vertices_capacity as usize).wrapping_mul(elemSize_7),
                 );
             }
             let fresh8 = (*front).vertices_size;
@@ -360,8 +311,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
     let mut i: i32 = 0 as i32;
     while i
         < (::core::mem::size_of::<[*mut Polygon; 2]>())
-            .wrapping_div(::core::mem::size_of::<*mut Polygon>())
-            as i32
+            .wrapping_div(::core::mem::size_of::<*mut Polygon>()) as i32
     {
         let mut polygonPart: *mut Polygon = polygons[i as usize];
         let mut v: *mut Vec3 = (*polygonPart).vertices_data;
@@ -376,46 +326,38 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                 (*back).vertices_size = 0 as i32;
                 (*front).vertices_size = 0 as i32;
                 let mut vertex: *mut Vec3 = (*polygon).vertices_data;
-                let mut __iterend: *mut Vec3 = ((*polygon).vertices_data)
-                    .offset((*polygon).vertices_size as isize);
+                let mut __iterend: *mut Vec3 =
+                    ((*polygon).vertices_data).offset((*polygon).vertices_size as isize);
                 while vertex < __iterend {
-                    if ((*back).vertices_capacity == (*back).vertices_size)
-                        as libc::c_long != 0
-                    {
-                        (*back)
-                            .vertices_capacity = if (*back).vertices_capacity != 0 {
+                    if ((*back).vertices_capacity == (*back).vertices_size) as libc::c_long != 0 {
+                        (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
                             (*back).vertices_capacity * 2 as i32
                         } else {
                             1 as i32
                         };
                         let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
-                        let mut pData: *mut *mut libc::c_void = &mut (*back)
-                            .vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
+                        let mut pData: *mut *mut libc::c_void =
+                            &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                         *pData = MemRealloc(
                             (*back).vertices_data as *mut libc::c_void,
-                            ((*back).vertices_capacity as usize)
-                                .wrapping_mul(elemSize),
+                            ((*back).vertices_capacity as usize).wrapping_mul(elemSize),
                         );
                     }
                     let fresh9 = (*back).vertices_size;
                     (*back).vertices_size = (*back).vertices_size + 1;
                     *((*back).vertices_data).offset(fresh9 as isize) = *vertex;
-                    if ((*front).vertices_capacity == (*front).vertices_size)
-                        as libc::c_long != 0
-                    {
-                        (*front)
-                            .vertices_capacity = if (*front).vertices_capacity != 0 {
+                    if ((*front).vertices_capacity == (*front).vertices_size) as libc::c_long != 0 {
+                        (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
                             (*front).vertices_capacity * 2 as i32
                         } else {
                             1 as i32
                         };
                         let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
-                        let mut pData_0: *mut *mut libc::c_void = &mut (*front)
-                            .vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
+                        let mut pData_0: *mut *mut libc::c_void =
+                            &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                         *pData_0 = MemRealloc(
                             (*front).vertices_data as *mut libc::c_void,
-                            ((*front).vertices_capacity as usize)
-                                .wrapping_mul(elemSize_0),
+                            ((*front).vertices_capacity as usize).wrapping_mul(elemSize_0),
                         );
                     }
                     let fresh10 = (*front).vertices_size;
@@ -440,14 +382,11 @@ pub unsafe extern "C" fn Polygon_Split(
     Polygon_SplitImpl(polygon, splitPlane, back, front);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Polygon_GetCentroid(
-    mut polygon: *mut Polygon,
-    mut out: *mut Vec3,
-) {
+pub unsafe extern "C" fn Polygon_GetCentroid(mut polygon: *mut Polygon, mut out: *mut Vec3) {
     let mut centroid = Vec3::ZERO;
     let mut v: *mut Vec3 = (*polygon).vertices_data;
-    let mut __iterend: *mut Vec3 = ((*polygon).vertices_data)
-        .offset((*polygon).vertices_size as isize);
+    let mut __iterend: *mut Vec3 =
+        ((*polygon).vertices_data).offset((*polygon).vertices_size as isize);
     while v < __iterend {
         centroid -= *v;
         v = v.offset(1);
@@ -474,19 +413,14 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
             };
             *triangles_data = MemRealloc(
                 *triangles_data as *mut libc::c_void,
-                (*triangles_capacity as usize)
-                    .wrapping_mul(::core::mem::size_of::<Triangle>()),
+                (*triangles_capacity as usize).wrapping_mul(::core::mem::size_of::<Triangle>()),
             ) as *mut Triangle;
         }
-        let mut triangle: *mut Triangle = (*triangles_data)
-            .offset(*triangles_size as isize);
+        let mut triangle: *mut Triangle = (*triangles_data).offset(*triangles_size as isize);
         *triangles_size += 1;
-        (*triangle)
-            .vertices[0] = *v.offset(0);
+        (*triangle).vertices[0] = *v.offset(0);
         (*triangle).vertices[1] = *v.offset(i as isize);
-        (*triangle)
-            .vertices[2 as i32
-            as usize] = *v.offset((i + 1 as i32) as isize);
+        (*triangle).vertices[2 as i32 as usize] = *v.offset((i + 1 as i32) as isize);
         i += 1;
     }
 }

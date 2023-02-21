@@ -1,8 +1,8 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::PhxSignal::*;
 use crate::ResourceType::*;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     fn Directory_Create(path: cstr) -> bool;
@@ -33,7 +33,7 @@ extern "C" {
     fn puts(_: *const libc::c_char) -> i32;
     fn printf(_: *const libc::c_char, _: ...) -> i32;
     fn SDL_Init(flags: u32) -> i32;
-    fn atexit(_: Option::<unsafe extern "C" fn() -> ()>) -> i32;
+    fn atexit(_: Option<unsafe extern "C" fn() -> ()>) -> i32;
     fn SDL_Quit();
     fn SDL_InitSubSystem(flags: u32) -> i32;
     fn ShaderVar_Init();
@@ -87,17 +87,12 @@ pub const SDL_GL_CONTEXT_PROFILE_ES: C2RustUnnamed = 4;
 pub const SDL_GL_CONTEXT_PROFILE_CORE: C2RustUnnamed = 1;
 
 #[no_mangle]
-pub static mut subsystems: u32 = 0x4000 as u32 | 0x20 as u32
-    | 0x1 as u32 | 0x1000 as u32 | 0x200 as u32
-    | 0x2000 as u32;
-static mut versionString: cstr = b"Feb 12 2023 23:20:35\0" as *const u8
-    as *const libc::c_char;
+pub static mut subsystems: u32 =
+    0x4000 as u32 | 0x20 as u32 | 0x1 as u32 | 0x1000 as u32 | 0x200 as u32 | 0x2000 as u32;
+static mut versionString: cstr = b"Feb 12 2023 23:20:35\0" as *const u8 as *const libc::c_char;
 static mut initTime: TimeStamp = 0 as i32 as TimeStamp;
 #[no_mangle]
-pub unsafe extern "C" fn Engine_Init(
-    mut glVersionMajor: i32,
-    mut glVersionMinor: i32,
-) {
+pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor: i32) {
     static mut firstTime: bool = 1 as i32 != 0;
     Signal_Init();
     printf(
@@ -127,15 +122,13 @@ pub unsafe extern "C" fn Engine_Init(
                     as *const libc::c_char,
             );
             printf(
-                b"  Version (Compiled) : %d.%d.%d\n\0" as *const u8
-                    as *const libc::c_char,
+                b"  Version (Compiled) : %d.%d.%d\n\0" as *const u8 as *const libc::c_char,
                 compiled.major as i32,
                 compiled.minor as i32,
                 compiled.patch as i32,
             );
             printf(
-                b"  Version (Linked)   : %d.%d.%d\n\0" as *const u8
-                    as *const libc::c_char,
+                b"  Version (Linked)   : %d.%d.%d\n\0" as *const u8 as *const libc::c_char,
                 linked.major as i32,
                 linked.minor as i32,
                 linked.patch as i32,
@@ -143,10 +136,7 @@ pub unsafe extern "C" fn Engine_Init(
             Fatal(b"Engine_Init: Terminating.\0" as *const u8 as *const libc::c_char);
         }
         if SDL_Init(0 as i32 as u32) != 0 as i32 {
-            Fatal(
-                b"Engine_Init: Failed to initialize SDL\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(b"Engine_Init: Failed to initialize SDL\0" as *const u8 as *const libc::c_char);
         }
         if !Directory_Create(b"log\0" as *const u8 as *const libc::c_char) {
             Fatal(
@@ -197,8 +187,7 @@ pub unsafe extern "C" fn Engine_Abort() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetBits() -> i32 {
-    return (8 as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>())
-        as i32;
+    return (8 as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()) as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetTime() -> f64 {
@@ -219,8 +208,7 @@ pub unsafe extern "C" fn Engine_Terminate() {
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Update() {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Engine_Update\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Engine_Update\0")).as_ptr(),
     );
     Metric_Reset();
     Keyboard_UpdatePre();

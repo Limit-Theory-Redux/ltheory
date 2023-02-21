@@ -1,7 +1,7 @@
-use ::libc;
-use glam::Vec3;
-use glam::IVec2;
 use crate::internal::Memory::*;
+use glam::IVec2;
+use glam::Vec3;
+use libc;
 extern "C" {
     fn glLoadIdentity();
     fn glMatrixMode(mode: GLenum);
@@ -56,21 +56,14 @@ unsafe extern "C" fn Viewport_Set(mut this: *const VP) {
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_GetAspect() -> f32 {
     if vpIndex < 0 as i32 {
-        Fatal(
-            b"Viewport_GetAspect: Viewport stack is empty\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(b"Viewport_GetAspect: Viewport stack is empty\0" as *const u8 as *const libc::c_char);
     }
-    return vp[vpIndex as usize].sx as f32
-        / vp[vpIndex as usize].sy as f32;
+    return vp[vpIndex as usize].sx as f32 / vp[vpIndex as usize].sy as f32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_GetSize(mut out: *mut IVec2) {
     if vpIndex < 0 as i32 {
-        Fatal(
-            b"Viewport_GetSize: Viewport stack is empty\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(b"Viewport_GetSize: Viewport stack is empty\0" as *const u8 as *const libc::c_char);
     }
     (*out).x = vp[vpIndex as usize].sx;
     (*out).y = vp[vpIndex as usize].sy;
@@ -101,10 +94,7 @@ pub unsafe extern "C" fn Viewport_Push(
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_Pop() {
     if vpIndex < 0 as i32 {
-        Fatal(
-            b"Viewport_Pop: Viewport stack is empty\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(b"Viewport_Pop: Viewport stack is empty\0" as *const u8 as *const libc::c_char);
     }
     vpIndex -= 1;
     if vpIndex >= 0 as i32 {

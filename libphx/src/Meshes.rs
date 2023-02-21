@@ -1,18 +1,12 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     pub type Mesh;
     fn Mesh_Create() -> *mut Mesh;
-    fn Mesh_AddQuad(
-        _: *mut Mesh,
-        _: i32,
-        _: i32,
-        _: i32,
-        _: i32,
-    );
+    fn Mesh_AddQuad(_: *mut Mesh, _: i32, _: i32, _: i32, _: i32);
     fn Mesh_AddVertex(
         _: *mut Mesh,
         px: f32,
@@ -52,22 +46,14 @@ unsafe extern "C" fn Mesh_AddPlane(
     let mut n: Vec3 = Vec3::cross(du, dv).normalize();
     let mut iu: i32 = 0 as i32;
     while iu < resU {
-        let mut u: f32 = iu as f32
-            / (resU - 1 as i32) as f32;
+        let mut u: f32 = iu as f32 / (resU - 1 as i32) as f32;
         let mut iv: i32 = 0 as i32;
         while iv < resV {
-            let mut v: f32 = iv as f32
-                / (resV - 1 as i32) as f32;
+            let mut v: f32 = iv as f32 / (resV - 1 as i32) as f32;
             let mut p: Vec3 = origin + du * u + dv * v;
             if iu != 0 && iv != 0 {
                 let mut vc: i32 = Mesh_GetVertexCount(this);
-                Mesh_AddQuad(
-                    this,
-                    vc,
-                    vc - resV,
-                    vc - resV - 1 as i32,
-                    vc - 1 as i32,
-                );
+                Mesh_AddQuad(this, vc, vc - resV, vc - resV - 1 as i32, vc - 1 as i32);
             }
             Mesh_AddVertex(this, p.x, p.y, p.z, n.x, n.y, n.z, u, v);
             iv += 1;

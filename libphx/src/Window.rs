@@ -1,8 +1,8 @@
-use ::libc;
-use glam::Vec3;
-use glam::IVec2;
 use crate::internal::Memory::*;
 use crate::WindowMode::*;
+use glam::IVec2;
+use glam::Vec3;
+use libc;
 use sdl2_sys::*;
 
 extern "C" {
@@ -20,37 +20,20 @@ extern "C" {
     fn SDL_SetWindowTitle(window: *mut SDL_Window, title: *const libc::c_char);
     fn SDL_GetWindowTitle(window: *mut SDL_Window) -> *const libc::c_char;
     fn SDL_SetWindowPosition(window: *mut SDL_Window, x: i32, y: i32);
-    fn SDL_GetWindowPosition(
-        window: *mut SDL_Window,
-        x: *mut i32,
-        y: *mut i32,
-    );
+    fn SDL_GetWindowPosition(window: *mut SDL_Window, x: *mut i32, y: *mut i32);
     fn SDL_SetWindowSize(window: *mut SDL_Window, w: i32, h: i32);
-    fn SDL_GetWindowSize(
-        window: *mut SDL_Window,
-        w: *mut i32,
-        h: *mut i32,
-    );
+    fn SDL_GetWindowSize(window: *mut SDL_Window, w: *mut i32, h: *mut i32);
     fn SDL_ShowWindow(window: *mut SDL_Window);
     fn SDL_HideWindow(window: *mut SDL_Window);
     fn SDL_SetWindowFullscreen(window: *mut SDL_Window, flags: u32) -> i32;
     fn SDL_DestroyWindow(window: *mut SDL_Window);
     fn SDL_GL_CreateContext(window: *mut SDL_Window) -> SDL_GLContext;
-    fn SDL_GL_MakeCurrent(
-        window: *mut SDL_Window,
-        context: SDL_GLContext,
-    ) -> i32;
+    fn SDL_GL_MakeCurrent(window: *mut SDL_Window, context: SDL_GLContext) -> i32;
     fn SDL_GL_SetSwapInterval(interval: i32) -> i32;
     fn SDL_GL_SwapWindow(window: *mut SDL_Window);
     fn SDL_GL_DeleteContext(context: SDL_GLContext);
     fn Viewport_Pop();
-    fn Viewport_Push(
-        x: i32,
-        y: i32,
-        sx: i32,
-        sy: i32,
-        isWindow: bool,
-    );
+    fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindow: bool);
 }
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
@@ -99,18 +82,13 @@ pub unsafe extern "C" fn Window_Create(
     mut sy: i32,
     mut mode: WindowMode,
 ) -> *mut Window {
-    let mut this: *mut Window = MemAlloc(
-        ::core::mem::size_of::<Window>() as usize,
-    ) as *mut Window;
+    let mut this: *mut Window = MemAlloc(::core::mem::size_of::<Window>() as usize) as *mut Window;
     mode |= SDL_WINDOW_OPENGL as i32 as u32;
     (*this).handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
     (*this).context = SDL_GL_CreateContext((*this).handle);
     (*this).mode = mode;
     if ((*this).context).is_null() {
-        Fatal(
-            b"Failed to create OpenGL context for window\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(b"Failed to create OpenGL context for window\0" as *const u8 as *const libc::c_char);
     }
     OpenGL_Init();
     return this;
@@ -126,13 +104,7 @@ pub unsafe extern "C" fn Window_BeginDraw(mut this: *mut Window) {
     let mut size: IVec2 = IVec2::new(0, 0);
     SDL_GL_MakeCurrent((*this).handle, (*this).context);
     Window_GetSize(this, &mut size);
-    Viewport_Push(
-        0 as i32,
-        0 as i32,
-        size.x,
-        size.y,
-        1 as i32 != 0,
-    );
+    Viewport_Push(0 as i32, 0 as i32, size.x, size.y, 1 as i32 != 0);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Window_EndDraw(mut this: *mut Window) {
@@ -144,10 +116,7 @@ pub unsafe extern "C" fn Window_GetSize(mut this: *mut Window, mut out: *mut IVe
     SDL_GetWindowSize((*this).handle, &mut (*out).x, &mut (*out).y);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Window_GetPosition(
-    mut this: *mut Window,
-    mut out: *mut IVec2,
-) {
+pub unsafe extern "C" fn Window_GetPosition(mut this: *mut Window, mut out: *mut IVec2) {
     SDL_GetWindowPosition((*this).handle, &mut (*out).x, &mut (*out).y);
 }
 #[no_mangle]
@@ -174,11 +143,7 @@ pub unsafe extern "C" fn Window_SetPosition(
     SDL_SetWindowPosition((*this).handle, x, y);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetSize(
-    mut this: *mut Window,
-    mut sx: i32,
-    mut sy: i32,
-) {
+pub unsafe extern "C" fn Window_SetSize(mut this: *mut Window, mut sx: i32, mut sy: i32) {
     SDL_SetWindowSize((*this).handle, sx, sy);
 }
 #[no_mangle]
@@ -187,9 +152,11 @@ pub unsafe extern "C" fn Window_SetTitle(mut this: *mut Window, mut title: cstr)
 }
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetVsync(mut this: *mut Window, mut vsync: bool) {
-    SDL_GL_SetSwapInterval(
-        if vsync as i32 != 0 { 1 as i32 } else { 0 as i32 },
-    );
+    SDL_GL_SetSwapInterval(if vsync as i32 != 0 {
+        1 as i32
+    } else {
+        0 as i32
+    });
 }
 #[no_mangle]
 pub unsafe extern "C" fn Window_ToggleFullscreen(mut this: *mut Window) {

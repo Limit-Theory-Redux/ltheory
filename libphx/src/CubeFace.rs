@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 pub type CubeFace = i32;
 #[no_mangle]
 pub static mut CubeFace_PX: CubeFace = 0x8515 as i32;
@@ -15,7 +15,14 @@ pub static mut CubeFace_PZ: CubeFace = 0x8519 as i32;
 #[no_mangle]
 pub static mut CubeFace_NZ: CubeFace = 0x851a as i32;
 static mut kFaces: [CubeFace; 6] = unsafe {
-    [CubeFace_PX, CubeFace_NX, CubeFace_PY, CubeFace_NY, CubeFace_PZ, CubeFace_NZ]
+    [
+        CubeFace_PX,
+        CubeFace_NX,
+        CubeFace_PY,
+        CubeFace_NY,
+        CubeFace_PZ,
+        CubeFace_NZ,
+    ]
 };
 #[no_mangle]
 pub unsafe extern "C" fn CubeFace_Get(mut index: i32) -> CubeFace {

@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type SDL_Thread;
     fn Fatal(_: cstr, _: ...);
@@ -20,10 +20,8 @@ pub type cstr = *const libc::c_char;
 pub struct Thread {
     pub handle: *mut SDL_Thread,
 }
-pub type SDL_ThreadFunction = Option::<
-    unsafe extern "C" fn(*mut libc::c_void) -> i32,
->;
-pub type ThreadFn = Option::<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
+pub type SDL_ThreadFunction = Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
+pub type ThreadFn = Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
 
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Create(
@@ -31,15 +29,10 @@ pub unsafe extern "C" fn Thread_Create(
     mut fn_0: ThreadFn,
     mut data: *mut libc::c_void,
 ) -> *mut Thread {
-    let mut this: *mut Thread = MemAlloc(
-        ::core::mem::size_of::<Thread>() as usize,
-    ) as *mut Thread;
+    let mut this: *mut Thread = MemAlloc(::core::mem::size_of::<Thread>() as usize) as *mut Thread;
     (*this).handle = SDL_CreateThread(fn_0, name, data);
     if ((*this).handle).is_null() {
-        Fatal(
-            b"Thread_Create: Failed to start new thread\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(b"Thread_Create: Failed to start new thread\0" as *const u8 as *const libc::c_char);
     }
     return this;
 }

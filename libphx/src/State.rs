@@ -1,13 +1,8 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
-    fn snprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: ...
-    ) -> i32;
+    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type State = i32;
@@ -27,12 +22,7 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> cstr {
     if state == State_Null {
         return b"State_Null\0" as *const u8 as *const libc::c_char;
     }
-    let mut states: [State; 4] = [
-        State_Changed,
-        State_Pressed,
-        State_Down,
-        State_Released,
-    ];
+    let mut states: [State; 4] = [State_Changed, State_Pressed, State_Down, State_Released];
     let mut names: [cstr; 4] = [
         b"State_Changed\0" as *const u8 as *const libc::c_char,
         b"State_Pressed\0" as *const u8 as *const libc::c_char,
@@ -44,39 +34,34 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> cstr {
     let mut len: i32 = 0 as i32;
     let mut i: i32 = 0 as i32;
     while i
-        < (::core::mem::size_of::<[State; 4]>())
-            .wrapping_div(::core::mem::size_of::<State>())
+        < (::core::mem::size_of::<[State; 4]>()).wrapping_div(::core::mem::size_of::<State>())
             as i32
     {
         if state & states[i as usize] == states[i as usize] {
-            len
-                += snprintf(
-                    start.offset(len as isize),
-                    ((::core::mem::size_of::<[libc::c_char; 512]>())
-                        .wrapping_div(
-                            ::core::mem::size_of::<libc::c_char>(),
-                        ) as i32 - len) as usize,
-                    b"%s%s\0" as *const u8 as *const libc::c_char,
-                    sep,
-                    names[i as usize],
-                );
+            len += snprintf(
+                start.offset(len as isize),
+                ((::core::mem::size_of::<[libc::c_char; 512]>())
+                    .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+                    - len) as usize,
+                b"%s%s\0" as *const u8 as *const libc::c_char,
+                sep,
+                names[i as usize],
+            );
             sep = b" | \0" as *const u8 as *const libc::c_char;
             state &= !states[i as usize];
         }
         i += 1;
     }
     if state != 0 as i32 {
-        len
-            += snprintf(
-                start.offset(len as isize),
-                ((::core::mem::size_of::<[libc::c_char; 512]>())
-                    .wrapping_div(
-                        ::core::mem::size_of::<libc::c_char>(),
-                    ) as i32 - len) as usize,
-                b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
-                sep,
-                state,
-            );
+        len += snprintf(
+            start.offset(len as isize),
+            ((::core::mem::size_of::<[libc::c_char; 512]>())
+                .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+                - len) as usize,
+            b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
+            sep,
+            state,
+        );
     }
     return buffer.as_mut_ptr() as cstr;
 }

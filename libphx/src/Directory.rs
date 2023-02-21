@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type _telldir;
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
@@ -62,9 +62,8 @@ pub unsafe extern "C" fn Directory_Open(mut path: cstr) -> *mut Directory {
     if dir.is_null() {
         return 0 as *mut Directory;
     }
-    let mut this: *mut Directory = MemAlloc(
-        ::core::mem::size_of::<Directory>() as usize,
-    ) as *mut Directory;
+    let mut this: *mut Directory =
+        MemAlloc(::core::mem::size_of::<Directory>() as usize) as *mut Directory;
     (*this).handle = dir;
     return this;
 }
@@ -83,16 +82,18 @@ pub unsafe extern "C" fn Directory_GetNext(mut this: *mut Directory) -> cstr {
         if StrEqual(
             ((*ent).d_name).as_mut_ptr() as cstr,
             b".\0" as *const u8 as *const libc::c_char,
-        ) as i32 != 0
+        ) as i32
+            != 0
             || StrEqual(
                 ((*ent).d_name).as_mut_ptr() as cstr,
                 b"..\0" as *const u8 as *const libc::c_char,
-            ) as i32 != 0
+            ) as i32
+                != 0
         {
             continue;
         }
         return ((*ent).d_name).as_mut_ptr() as cstr;
-    };
+    }
 }
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Change(mut cwd: cstr) -> bool {
@@ -110,12 +111,12 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> cstr {
         buffer.as_mut_ptr(),
         ::core::mem::size_of::<[libc::c_char; 1024]>() as usize,
     ))
-        .is_null()
+    .is_null()
     {
         return 0 as cstr;
     }
-    buffer[(::core::mem::size_of::<[libc::c_char; 1024]>())
-        .wrapping_sub(1 as usize)] = 0 as i32 as libc::c_char;
+    buffer[(::core::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1 as usize)] =
+        0 as i32 as libc::c_char;
     return buffer.as_mut_ptr() as cstr;
 }
 #[no_mangle]

@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     fn RenderState_PushBlendMode(_: BlendMode);

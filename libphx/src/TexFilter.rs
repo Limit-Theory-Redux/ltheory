@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 pub type TexFilter = i32;
 #[no_mangle]
 pub static mut TexFilter_Point: TexFilter = 0x2600 as i32;

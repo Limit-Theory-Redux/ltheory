@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 pub type MouseButton = i32;
 #[no_mangle]
 pub static mut MouseButton_Left: MouseButton = 1 as i32;

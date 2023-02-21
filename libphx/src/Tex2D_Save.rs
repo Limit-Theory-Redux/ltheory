@@ -1,6 +1,6 @@
 use libc;
-use std::ffi::CStr;
 use stb::image_write::stbi_write_png;
+use std::ffi::CStr;
 
 pub type uchar = libc::c_uchar;
 pub type cstr = *const libc::c_char;

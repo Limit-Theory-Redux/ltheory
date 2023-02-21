@@ -1,7 +1,7 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::PhxSignal::*;
+use glam::Vec3;
+use libc;
 use std::io::{self, Write};
 
 extern "C" {
@@ -12,9 +12,7 @@ extern "C" {
         __base: *mut libc::c_void,
         __nel: usize,
         __width: usize,
-        __compar: Option::<
-            unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
-        >,
+        __compar: Option<unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32>,
     );
     fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
     fn HashMap_Free(_: *mut HashMap);
@@ -35,7 +33,7 @@ pub type __darwin_off_t = __i64_t;
 pub type cstr = *const libc::c_char;
 pub type TimeStamp = u64;
 pub type Signal = i32;
-pub type SignalHandler = Option::<unsafe extern "C" fn(Signal) -> ()>;
+pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
 pub type FILE = __sFILE;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -48,24 +46,10 @@ pub struct __sFILE {
     pub _bf: __sbuf,
     pub _lbfsize: i32,
     pub _cookie: *mut libc::c_void,
-    pub _close: Option::<unsafe extern "C" fn(*mut libc::c_void) -> i32>,
-    pub _read: Option::<
-        unsafe extern "C" fn(
-            *mut libc::c_void,
-            *mut libc::c_char,
-            i32,
-        ) -> i32,
-    >,
-    pub _seek: Option::<
-        unsafe extern "C" fn(*mut libc::c_void, fpos_t, i32) -> fpos_t,
-    >,
-    pub _write: Option::<
-        unsafe extern "C" fn(
-            *mut libc::c_void,
-            *const libc::c_char,
-            i32,
-        ) -> i32,
-    >,
+    pub _close: Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>,
+    pub _read: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_char, i32) -> i32>,
+    pub _seek: Option<unsafe extern "C" fn(*mut libc::c_void, fpos_t, i32) -> fpos_t>,
+    pub _write: Option<unsafe extern "C" fn(*mut libc::c_void, *const libc::c_char, i32) -> i32>,
     pub _ub: __sbuf,
     pub _extra: *mut __sFILEX,
     pub _ur: i32,
@@ -107,19 +91,12 @@ pub struct Profiler {
     pub start: TimeStamp,
 }
 
-
 #[inline]
-unsafe extern "C" fn Max(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Min(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
 }
 #[inline]
@@ -138,9 +115,7 @@ static mut this: Profiler = Profiler {
 };
 static mut profiling: bool = 0 as i32 != 0;
 unsafe extern "C" fn Scope_Create(mut name: cstr) -> *mut Scope {
-    let mut scope: *mut Scope = MemAlloc(
-        ::core::mem::size_of::<Scope>() as usize,
-    ) as *mut Scope;
+    let mut scope: *mut Scope = MemAlloc(::core::mem::size_of::<Scope>() as usize) as *mut Scope;
     (*scope).name = StrDup(name);
     (*scope).last = 0 as i32 as TimeStamp;
     (*scope).frame = 0 as i32 as TimeStamp;
@@ -150,18 +125,15 @@ unsafe extern "C" fn Scope_Create(mut name: cstr) -> *mut Scope {
     (*scope).var = 0.0f64;
     (*scope).min = 1e30f64;
     (*scope).max = -1e30f64;
-    if (this.scopeList_capacity == this.scopeList_size) as i32
-        as libc::c_long != 0
-    {
-        this
-            .scopeList_capacity = if this.scopeList_capacity != 0 {
+    if (this.scopeList_capacity == this.scopeList_size) as i32 as libc::c_long != 0 {
+        this.scopeList_capacity = if this.scopeList_capacity != 0 {
             this.scopeList_capacity * 2 as i32
         } else {
             1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<*mut Scope>();
-        let mut pData: *mut *mut libc::c_void = &mut this.scopeList_data
-            as *mut *mut *mut Scope as *mut *mut libc::c_void;
+        let mut pData: *mut *mut libc::c_void =
+            &mut this.scopeList_data as *mut *mut *mut Scope as *mut *mut libc::c_void;
         *pData = MemRealloc(
             this.scopeList_data as *mut libc::c_void,
             (this.scopeList_capacity as usize).wrapping_mul(elemSize as usize),
@@ -177,10 +149,7 @@ unsafe extern "C" fn Scope_Free(mut scope: *mut Scope) {
     StrFree((*scope).name);
     MemFree(scope as *const libc::c_void);
 }
-unsafe extern "C" fn SortScopes(
-    mut pa: *const libc::c_void,
-    mut pb: *const libc::c_void,
-) -> i32 {
+unsafe extern "C" fn SortScopes(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
     let mut a: *const Scope = *(pa as *mut *const Scope);
     let mut b: *const Scope = *(pb as *mut *const Scope);
     return if (*b).total < (*a).total {
@@ -192,8 +161,7 @@ unsafe extern "C" fn SortScopes(
     };
 }
 unsafe extern "C" fn Profiler_GetScope(mut name: cstr) -> *mut Scope {
-    let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as usize as u64)
-        as *mut Scope;
+    let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as usize as u64) as *mut Scope;
     if !scope.is_null() {
         return scope;
     }
@@ -207,21 +175,18 @@ unsafe extern "C" fn Profiler_SignalHandler(mut s: Signal) {
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Enable() {
     profiling = 1 as i32 != 0;
-    this
-        .map = HashMap_Create(
+    this.map = HashMap_Create(
         ::core::mem::size_of::<*mut libc::c_void>() as libc::c_ulong as u32,
         (2 as i32 * 1024 as i32) as u32,
     );
     this.scopeList_capacity = 0 as i32;
     this.scopeList_size = 0 as i32;
     this.scopeList_data = 0 as *mut *mut Scope;
-    if (this.scopeList_capacity < 1024 as i32) as libc::c_long
-        != 0
-    {
+    if (this.scopeList_capacity < 1024 as i32) as libc::c_long != 0 {
         this.scopeList_capacity = 1024 as i32;
         let mut elemSize: usize = ::core::mem::size_of::<*mut Scope>();
-        let mut pData: *mut *mut libc::c_void = &mut this.scopeList_data
-            as *mut *mut *mut Scope as *mut *mut libc::c_void;
+        let mut pData: *mut *mut libc::c_void =
+            &mut this.scopeList_data as *mut *mut *mut Scope as *mut *mut libc::c_void;
         *pData = MemRealloc(
             this.scopeList_data as *mut libc::c_void,
             (this.scopeList_capacity as usize).wrapping_mul(elemSize as usize),
@@ -230,16 +195,16 @@ pub unsafe extern "C" fn Profiler_Enable() {
     this.stackIndex = -(1 as i32);
     this.start = TimeStamp_Get();
     Profiler_Begin(b"[Root]\0" as *const u8 as *const libc::c_char);
-    Signal_AddHandlerAll(
-        Some(Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> ()),
-    );
+    Signal_AddHandlerAll(Some(
+        Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> (),
+    ));
 }
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Disable() {
     if this.stackIndex != 0 as i32 {
         Fatal(
-            b"Profiler_Disable: Cannot stop profiler from within a profiled section\0"
-                as *const u8 as *const libc::c_char,
+            b"Profiler_Disable: Cannot stop profiler from within a profiled section\0" as *const u8
+                as *const libc::c_char,
         );
     }
     Profiler_End();
@@ -255,13 +220,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         this.scopeList_data as *mut libc::c_void,
         this.scopeList_size as usize,
         ::core::mem::size_of::<*mut Scope>(),
-        Some(
-            SortScopes
-                as unsafe extern "C" fn(
-                    *const libc::c_void,
-                    *const libc::c_void,
-                ) -> i32,
-        ),
+        Some(SortScopes as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
     );
     puts(
         b"-- PHX PROFILER -------------------------------------\0" as *const u8
@@ -302,7 +261,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         b"-----------------------------------------------------\0" as *const u8
             as *const libc::c_char,
     );
-    
+
     let mut i_1: i32 = 0 as i32;
     while i_1 < this.scopeList_size {
         Scope_Free(*(this.scopeList_data).offset(i_1 as isize));
@@ -311,9 +270,9 @@ pub unsafe extern "C" fn Profiler_Disable() {
     MemFree(this.scopeList_data as *const libc::c_void);
     HashMap_Free(this.map);
     profiling = 0 as i32 != 0;
-    Signal_RemoveHandlerAll(
-        Some(Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> ()),
-    );
+    Signal_RemoveHandlerAll(Some(
+        Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> (),
+    ));
 }
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Begin(mut name: cstr) {
@@ -323,16 +282,14 @@ pub unsafe extern "C" fn Profiler_Begin(mut name: cstr) {
     if this.stackIndex + 1 as i32 >= 128 as i32 {
         Profiler_Backtrace();
         Fatal(
-            b"Profiler_Begin: Maximum stack depth exceeded\0" as *const u8
-                as *const libc::c_char,
+            b"Profiler_Begin: Maximum stack depth exceeded\0" as *const u8 as *const libc::c_char,
         );
     }
     let mut now: TimeStamp = TimeStamp_Get();
     if this.stackIndex >= 0 as i32 {
         let mut prev: *mut Scope = this.stack[this.stackIndex as usize];
-        (*prev)
-            .frame = ((*prev).frame as u64)
-            .wrapping_add(now.wrapping_sub((*prev).last)) as TimeStamp as TimeStamp;
+        (*prev).frame = ((*prev).frame as u64).wrapping_add(now.wrapping_sub((*prev).last))
+            as TimeStamp as TimeStamp;
         (*prev).last = now;
     }
     this.stackIndex += 1;
@@ -348,15 +305,13 @@ pub unsafe extern "C" fn Profiler_End() {
     if this.stackIndex < 0 as i32 {
         Profiler_Backtrace();
         Fatal(
-            b"Profiler_End: Attempting to pop an empty stack\0" as *const u8
-                as *const libc::c_char,
+            b"Profiler_End: Attempting to pop an empty stack\0" as *const u8 as *const libc::c_char,
         );
     }
     let mut now: TimeStamp = TimeStamp_Get();
     let mut prev: *mut Scope = this.stack[this.stackIndex as usize];
-    (*prev)
-        .frame = ((*prev).frame as u64)
-        .wrapping_add(now.wrapping_sub((*prev).last)) as TimeStamp as TimeStamp;
+    (*prev).frame = ((*prev).frame as u64).wrapping_add(now.wrapping_sub((*prev).last)) as TimeStamp
+        as TimeStamp;
     this.stackIndex -= 1;
     if this.stackIndex >= 0 as i32 {
         let mut curr: *mut Scope = this.stack[this.stackIndex as usize];
@@ -374,9 +329,8 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
     while i < this.scopeList_size {
         let mut scope: *mut Scope = *(this.scopeList_data).offset(i as isize);
         if (*scope).frame as f64 > 0.0f64 {
-            (*scope)
-                .total = ((*scope).total as u64)
-                .wrapping_add((*scope).frame) as TimeStamp as TimeStamp;
+            (*scope).total =
+                ((*scope).total as u64).wrapping_add((*scope).frame) as TimeStamp as TimeStamp;
             let mut frame: f64 = TimeStamp_ToDouble((*scope).frame);
             (*scope).min = Min((*scope).min, frame);
             (*scope).max = Max((*scope).max, frame);

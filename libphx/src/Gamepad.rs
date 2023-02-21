@@ -1,35 +1,23 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::GamepadAxis::*;
 use crate::GamepadButton::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type _SDL_GameController;
     pub type __sFILEX;
     pub type _SDL_Joystick;
-    fn SDL_GameControllerGetAttached(
-        gamecontroller: *mut SDL_GameController,
-    ) -> SDL_bool;
-    fn SDL_GameControllerName(
-        gamecontroller: *mut SDL_GameController,
-    ) -> *const libc::c_char;
+    fn SDL_GameControllerGetAttached(gamecontroller: *mut SDL_GameController) -> SDL_bool;
+    fn SDL_GameControllerName(gamecontroller: *mut SDL_GameController) -> *const libc::c_char;
     fn SDL_IsGameController(joystick_index: i32) -> SDL_bool;
     fn SDL_JoystickInstanceID(joystick: *mut SDL_Joystick) -> SDL_JoystickID;
-    fn SDL_GameControllerGetJoystick(
-        gamecontroller: *mut SDL_GameController,
-    ) -> *mut SDL_Joystick;
+    fn SDL_GameControllerGetJoystick(gamecontroller: *mut SDL_GameController) -> *mut SDL_Joystick;
     fn SDL_GameControllerGetButton(
         gamecontroller: *mut SDL_GameController,
         button: SDL_GameControllerButton,
     ) -> u8;
-    fn SDL_GameControllerAddMappingsFromRW(
-        rw: *mut SDL_RWops,
-        freerw: i32,
-    ) -> i32;
-    fn SDL_RWFromFile(
-        file: *const libc::c_char,
-        mode: *const libc::c_char,
-    ) -> *mut SDL_RWops;
+    fn SDL_GameControllerAddMappingsFromRW(rw: *mut SDL_RWops, freerw: i32) -> i32;
+    fn SDL_RWFromFile(file: *const libc::c_char, mode: *const libc::c_char) -> *mut SDL_RWops;
     fn SDL_GameControllerClose(gamecontroller: *mut SDL_GameController);
     fn SDL_GameControllerOpen(joystick_index: i32) -> *mut SDL_GameController;
     fn SDL_GameControllerGetAxis(
@@ -98,22 +86,13 @@ pub const SDL_CONTROLLER_AXIS_INVALID: SDL_GameControllerAxis = -1;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_RWops {
-    pub size: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> i64>,
-    pub seek: Option::<
-        unsafe extern "C" fn(*mut SDL_RWops, i64, i32) -> i64,
-    >,
-    pub read: Option::<
-        unsafe extern "C" fn(*mut SDL_RWops, *mut libc::c_void, usize, usize) -> usize,
-    >,
-    pub write: Option::<
-        unsafe extern "C" fn(
-            *mut SDL_RWops,
-            *const libc::c_void,
-            usize,
-            usize,
-        ) -> usize,
-    >,
-    pub close: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> i32>,
+    pub size: Option<unsafe extern "C" fn(*mut SDL_RWops) -> i64>,
+    pub seek: Option<unsafe extern "C" fn(*mut SDL_RWops, i64, i32) -> i64>,
+    pub read:
+        Option<unsafe extern "C" fn(*mut SDL_RWops, *mut libc::c_void, usize, usize) -> usize>,
+    pub write:
+        Option<unsafe extern "C" fn(*mut SDL_RWops, *const libc::c_void, usize, usize) -> usize>,
+    pub close: Option<unsafe extern "C" fn(*mut SDL_RWops) -> i32>,
     pub type_0: u32,
     pub hidden: C2RustUnnamed,
 }
@@ -155,24 +134,10 @@ pub struct __sFILE {
     pub _bf: __sbuf,
     pub _lbfsize: i32,
     pub _cookie: *mut libc::c_void,
-    pub _close: Option::<unsafe extern "C" fn(*mut libc::c_void) -> i32>,
-    pub _read: Option::<
-        unsafe extern "C" fn(
-            *mut libc::c_void,
-            *mut libc::c_char,
-            i32,
-        ) -> i32,
-    >,
-    pub _seek: Option::<
-        unsafe extern "C" fn(*mut libc::c_void, fpos_t, i32) -> fpos_t,
-    >,
-    pub _write: Option::<
-        unsafe extern "C" fn(
-            *mut libc::c_void,
-            *const libc::c_char,
-            i32,
-        ) -> i32,
-    >,
+    pub _close: Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>,
+    pub _read: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_char, i32) -> i32>,
+    pub _seek: Option<unsafe extern "C" fn(*mut libc::c_void, fpos_t, i32) -> fpos_t>,
+    pub _write: Option<unsafe extern "C" fn(*mut libc::c_void, *const libc::c_char, i32) -> i32>,
     pub _ub: __sbuf,
     pub _extra: *mut __sFILEX,
     pub _ur: i32,
@@ -191,7 +156,6 @@ pub struct __sbuf {
 }
 pub type SDL_JoystickID = i32;
 pub type SDL_Joystick = _SDL_Joystick;
-
 
 static mut gamepadList: *mut Gamepad = 0 as *const Gamepad as *mut Gamepad;
 unsafe extern "C" fn Gamepad_UpdateState(mut this: *mut Gamepad) {
@@ -219,8 +183,7 @@ unsafe extern "C" fn Gamepad_UpdateState(mut this: *mut Gamepad) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_CanOpen(mut index: i32) -> bool {
-    return SDL_IsGameController(index) as u32
-        == SDL_TRUE as i32 as u32;
+    return SDL_IsGameController(index) as u32 == SDL_TRUE as i32 as u32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_Open(mut index: i32) -> *mut Gamepad {
@@ -228,9 +191,8 @@ pub unsafe extern "C" fn Gamepad_Open(mut index: i32) -> *mut Gamepad {
     if handle.is_null() {
         return 0 as *mut Gamepad;
     }
-    let mut this: *mut Gamepad = MemAllocZero(
-        ::core::mem::size_of::<Gamepad>() as usize,
-    ) as *mut Gamepad;
+    let mut this: *mut Gamepad =
+        MemAllocZero(::core::mem::size_of::<Gamepad>() as usize) as *mut Gamepad;
     (*this).handle = handle;
     (*this).lastActive = TimeStamp_Get();
     (*this).gamepadList_prev = &mut gamepadList;
@@ -259,14 +221,10 @@ pub unsafe extern "C" fn Gamepad_AddMappings(mut file: cstr) -> i32 {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetAxis(
-    mut this: *mut Gamepad,
-    mut axis: GamepadAxis,
-) -> f64 {
-    let mut value: f64 = SDL_GameControllerGetAxis(
-        (*this).handle,
-        axis as SDL_GameControllerAxis,
-    ) as f64 / 32767.0f64;
+pub unsafe extern "C" fn Gamepad_GetAxis(mut this: *mut Gamepad, mut axis: GamepadAxis) -> f64 {
+    let mut value: f64 = SDL_GameControllerGetAxis((*this).handle, axis as SDL_GameControllerAxis)
+        as f64
+        / 32767.0f64;
     let mut deadzone: f64 = (*this).deadzone[axis as usize];
     if value > deadzone {
         return (value - deadzone) / (1.0f64 - deadzone);
@@ -288,10 +246,8 @@ pub unsafe extern "C" fn Gamepad_GetButton(
     mut this: *mut Gamepad,
     mut button: GamepadButton,
 ) -> bool {
-    return SDL_GameControllerGetButton(
-        (*this).handle,
-        button as SDL_GameControllerButton,
-    ) as i32 == 1 as i32;
+    return SDL_GameControllerGetButton((*this).handle, button as SDL_GameControllerButton) as i32
+        == 1 as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetButtonPressed(
@@ -320,16 +276,12 @@ pub unsafe extern "C" fn Gamepad_GetButtonReleased(
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetIdleTime(
-    mut this: *mut Gamepad,
-) -> f64 {
+pub unsafe extern "C" fn Gamepad_GetIdleTime(mut this: *mut Gamepad) -> f64 {
     return TimeStamp_GetElapsed((*this).lastActive);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetID(mut this: *mut Gamepad) -> i32 {
-    let mut joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick(
-        (*this).handle,
-    );
+    let mut joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick((*this).handle);
     if joystick.is_null() {
         return -(1 as i32);
     }
@@ -341,8 +293,7 @@ pub unsafe extern "C" fn Gamepad_GetName(mut this: *mut Gamepad) -> cstr {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_IsConnected(mut this: *mut Gamepad) -> bool {
-    return SDL_GameControllerGetAttached((*this).handle) as u32
-        == SDL_TRUE as i32 as u32;
+    return SDL_GameControllerGetAttached((*this).handle) as u32 == SDL_TRUE as i32 as u32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_SetDeadzone(

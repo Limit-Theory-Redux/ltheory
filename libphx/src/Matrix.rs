@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     fn cos(_: f64) -> f64;
     fn sin(_: f64) -> f64;
@@ -8,12 +8,7 @@ extern "C" {
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn printf(_: *const libc::c_char, _: ...) -> i32;
-    fn snprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: ...
-    ) -> i32;
+    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
     fn Quat_GetAxisX(_: *const Quat, _: *mut Vec3);
     fn Quat_GetAxisY(_: *const Quat, _: *mut Vec3);
     fn Quat_GetAxisZ(_: *const Quat, _: *mut Vec3);
@@ -76,18 +71,13 @@ unsafe extern "C" fn Tan(mut t: f64) -> f64 {
     return tan(t);
 }
 #[inline]
-unsafe extern "C" fn Float_ApproximatelyEqual(
-    mut x: f64,
-    mut y: f64,
-) -> bool {
+unsafe extern "C" fn Float_ApproximatelyEqual(mut x: f64, mut y: f64) -> bool {
     return Abs(x - y) < 1e-3f64;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Clone(mut this: *const Matrix) -> *mut Matrix {
-    let mut clone: *mut Matrix = MemAlloc(
-        ::core::mem::size_of::<Matrix>() as usize,
-    ) as *mut Matrix;
+    let mut clone: *mut Matrix = MemAlloc(::core::mem::size_of::<Matrix>() as usize) as *mut Matrix;
     *clone = *this;
     return clone;
 }
@@ -98,303 +88,107 @@ pub unsafe extern "C" fn Matrix_Free(mut this: *mut Matrix) {
 unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Matrix) {
     let mut src: *const f32 = in_0 as *const f32;
     let mut dst: *mut f32 = out as *mut f32;
-    *dst
-        .offset(
-            0 as i32 as isize,
-        ) = *src.offset(5)
-        * *src.offset(10)
-        * *src.offset(15)
-        - *src.offset(5)
-            * *src.offset(11)
-            * *src.offset(14)
-        - *src.offset(9) * *src.offset(6)
-            * *src.offset(15)
-        + *src.offset(9) * *src.offset(7)
-            * *src.offset(14)
-        + *src.offset(13)
-            * *src.offset(6)
-            * *src.offset(11)
-        - *src.offset(13)
-            * *src.offset(7)
-            * *src.offset(10);
-    *dst
-        .offset(
-            4 as i32 as isize,
-        ) = -*src.offset(4)
-        * *src.offset(10)
-        * *src.offset(15)
-        + *src.offset(4)
-            * *src.offset(11)
-            * *src.offset(14)
-        + *src.offset(8) * *src.offset(6)
-            * *src.offset(15)
-        - *src.offset(8) * *src.offset(7)
-            * *src.offset(14)
-        - *src.offset(12)
-            * *src.offset(6)
-            * *src.offset(11)
-        + *src.offset(12)
-            * *src.offset(7)
-            * *src.offset(10);
-    *dst
-        .offset(
-            8 as i32 as isize,
-        ) = *src.offset(4)
-        * *src.offset(9)
-        * *src.offset(15)
-        - *src.offset(4)
-            * *src.offset(11)
-            * *src.offset(13)
-        - *src.offset(8) * *src.offset(5)
-            * *src.offset(15)
-        + *src.offset(8) * *src.offset(7)
-            * *src.offset(13)
-        + *src.offset(12)
-            * *src.offset(5)
-            * *src.offset(11)
-        - *src.offset(12)
-            * *src.offset(7)
-            * *src.offset(9);
-    *dst
-        .offset(
-            12 as i32 as isize,
-        ) = -*src.offset(4)
-        * *src.offset(9)
-        * *src.offset(14)
-        + *src.offset(4)
-            * *src.offset(10)
-            * *src.offset(13)
-        + *src.offset(8) * *src.offset(5)
-            * *src.offset(14)
-        - *src.offset(8) * *src.offset(6)
-            * *src.offset(13)
-        - *src.offset(12)
-            * *src.offset(5)
-            * *src.offset(10)
-        + *src.offset(12)
-            * *src.offset(6)
-            * *src.offset(9);
-    *dst
-        .offset(
-            1 as i32 as isize,
-        ) = -*src.offset(1)
-        * *src.offset(10)
-        * *src.offset(15)
-        + *src.offset(1)
-            * *src.offset(11)
-            * *src.offset(14)
-        + *src.offset(9) * *src.offset(2)
-            * *src.offset(15)
-        - *src.offset(9) * *src.offset(3)
-            * *src.offset(14)
-        - *src.offset(13)
-            * *src.offset(2)
-            * *src.offset(11)
-        + *src.offset(13)
-            * *src.offset(3)
-            * *src.offset(10);
-    *dst
-        .offset(
-            5 as i32 as isize,
-        ) = *src.offset(0)
-        * *src.offset(10)
-        * *src.offset(15)
-        - *src.offset(0)
-            * *src.offset(11)
-            * *src.offset(14)
-        - *src.offset(8) * *src.offset(2)
-            * *src.offset(15)
-        + *src.offset(8) * *src.offset(3)
-            * *src.offset(14)
-        + *src.offset(12)
-            * *src.offset(2)
-            * *src.offset(11)
-        - *src.offset(12)
-            * *src.offset(3)
-            * *src.offset(10);
-    *dst
-        .offset(
-            9 as i32 as isize,
-        ) = -*src.offset(0)
-        * *src.offset(9)
-        * *src.offset(15)
-        + *src.offset(0)
-            * *src.offset(11)
-            * *src.offset(13)
-        + *src.offset(8) * *src.offset(1)
-            * *src.offset(15)
-        - *src.offset(8) * *src.offset(3)
-            * *src.offset(13)
-        - *src.offset(12)
-            * *src.offset(1)
-            * *src.offset(11)
-        + *src.offset(12)
-            * *src.offset(3)
-            * *src.offset(9);
-    *dst
-        .offset(
-            13 as i32 as isize,
-        ) = *src.offset(0)
-        * *src.offset(9)
-        * *src.offset(14)
-        - *src.offset(0)
-            * *src.offset(10)
-            * *src.offset(13)
-        - *src.offset(8) * *src.offset(1)
-            * *src.offset(14)
-        + *src.offset(8) * *src.offset(2)
-            * *src.offset(13)
-        + *src.offset(12)
-            * *src.offset(1)
-            * *src.offset(10)
-        - *src.offset(12)
-            * *src.offset(2)
-            * *src.offset(9);
-    *dst
-        .offset(
-            2 as i32 as isize,
-        ) = *src.offset(1)
-        * *src.offset(6)
-        * *src.offset(15)
-        - *src.offset(1) * *src.offset(7)
-            * *src.offset(14)
-        - *src.offset(5) * *src.offset(2)
-            * *src.offset(15)
-        + *src.offset(5) * *src.offset(3)
-            * *src.offset(14)
-        + *src.offset(13)
-            * *src.offset(2)
-            * *src.offset(7)
-        - *src.offset(13)
-            * *src.offset(3)
-            * *src.offset(6);
-    *dst
-        .offset(
-            6 as i32 as isize,
-        ) = -*src.offset(0)
-        * *src.offset(6)
-        * *src.offset(15)
-        + *src.offset(0) * *src.offset(7)
-            * *src.offset(14)
-        + *src.offset(4) * *src.offset(2)
-            * *src.offset(15)
-        - *src.offset(4) * *src.offset(3)
-            * *src.offset(14)
-        - *src.offset(12)
-            * *src.offset(2)
-            * *src.offset(7)
-        + *src.offset(12)
-            * *src.offset(3)
-            * *src.offset(6);
-    *dst
-        .offset(
-            10 as i32 as isize,
-        ) = *src.offset(0)
-        * *src.offset(5)
-        * *src.offset(15)
-        - *src.offset(0) * *src.offset(7)
-            * *src.offset(13)
-        - *src.offset(4) * *src.offset(1)
-            * *src.offset(15)
-        + *src.offset(4) * *src.offset(3)
-            * *src.offset(13)
-        + *src.offset(12)
-            * *src.offset(1)
-            * *src.offset(7)
-        - *src.offset(12)
-            * *src.offset(3)
-            * *src.offset(5);
-    *dst
-        .offset(
-            14 as i32 as isize,
-        ) = -*src.offset(0)
-        * *src.offset(5)
-        * *src.offset(14)
-        + *src.offset(0) * *src.offset(6)
-            * *src.offset(13)
-        + *src.offset(4) * *src.offset(1)
-            * *src.offset(14)
-        - *src.offset(4) * *src.offset(2)
-            * *src.offset(13)
-        - *src.offset(12)
-            * *src.offset(1)
-            * *src.offset(6)
-        + *src.offset(12)
-            * *src.offset(2)
-            * *src.offset(5);
-    *dst
-        .offset(
-            3 as i32 as isize,
-        ) = -*src.offset(1)
-        * *src.offset(6)
-        * *src.offset(11)
-        + *src.offset(1) * *src.offset(7)
-            * *src.offset(10)
-        + *src.offset(5) * *src.offset(2)
-            * *src.offset(11)
-        - *src.offset(5) * *src.offset(3)
-            * *src.offset(10)
-        - *src.offset(9) * *src.offset(2)
-            * *src.offset(7)
-        + *src.offset(9) * *src.offset(3)
-            * *src.offset(6);
-    *dst
-        .offset(
-            7 as i32 as isize,
-        ) = *src.offset(0)
-        * *src.offset(6)
-        * *src.offset(11)
-        - *src.offset(0) * *src.offset(7)
-            * *src.offset(10)
-        - *src.offset(4) * *src.offset(2)
-            * *src.offset(11)
-        + *src.offset(4) * *src.offset(3)
-            * *src.offset(10)
-        + *src.offset(8) * *src.offset(2)
-            * *src.offset(7)
-        - *src.offset(8) * *src.offset(3)
-            * *src.offset(6);
-    *dst
-        .offset(
-            11 as i32 as isize,
-        ) = -*src.offset(0)
-        * *src.offset(5)
-        * *src.offset(11)
-        + *src.offset(0) * *src.offset(7)
-            * *src.offset(9)
-        + *src.offset(4) * *src.offset(1)
-            * *src.offset(11)
-        - *src.offset(4) * *src.offset(3)
-            * *src.offset(9)
-        - *src.offset(8) * *src.offset(1)
-            * *src.offset(7)
-        + *src.offset(8) * *src.offset(3)
-            * *src.offset(5);
-    *dst
-        .offset(
-            15 as i32 as isize,
-        ) = *src.offset(0)
-        * *src.offset(5)
-        * *src.offset(10)
-        - *src.offset(0) * *src.offset(6)
-            * *src.offset(9)
-        - *src.offset(4) * *src.offset(1)
-            * *src.offset(10)
-        + *src.offset(4) * *src.offset(2)
-            * *src.offset(9)
-        + *src.offset(8) * *src.offset(1)
-            * *src.offset(6)
-        - *src.offset(8) * *src.offset(2)
-            * *src.offset(5);
+    *dst.offset(0 as i32 as isize) = *src.offset(5) * *src.offset(10) * *src.offset(15)
+        - *src.offset(5) * *src.offset(11) * *src.offset(14)
+        - *src.offset(9) * *src.offset(6) * *src.offset(15)
+        + *src.offset(9) * *src.offset(7) * *src.offset(14)
+        + *src.offset(13) * *src.offset(6) * *src.offset(11)
+        - *src.offset(13) * *src.offset(7) * *src.offset(10);
+    *dst.offset(4 as i32 as isize) = -*src.offset(4) * *src.offset(10) * *src.offset(15)
+        + *src.offset(4) * *src.offset(11) * *src.offset(14)
+        + *src.offset(8) * *src.offset(6) * *src.offset(15)
+        - *src.offset(8) * *src.offset(7) * *src.offset(14)
+        - *src.offset(12) * *src.offset(6) * *src.offset(11)
+        + *src.offset(12) * *src.offset(7) * *src.offset(10);
+    *dst.offset(8 as i32 as isize) = *src.offset(4) * *src.offset(9) * *src.offset(15)
+        - *src.offset(4) * *src.offset(11) * *src.offset(13)
+        - *src.offset(8) * *src.offset(5) * *src.offset(15)
+        + *src.offset(8) * *src.offset(7) * *src.offset(13)
+        + *src.offset(12) * *src.offset(5) * *src.offset(11)
+        - *src.offset(12) * *src.offset(7) * *src.offset(9);
+    *dst.offset(12 as i32 as isize) = -*src.offset(4) * *src.offset(9) * *src.offset(14)
+        + *src.offset(4) * *src.offset(10) * *src.offset(13)
+        + *src.offset(8) * *src.offset(5) * *src.offset(14)
+        - *src.offset(8) * *src.offset(6) * *src.offset(13)
+        - *src.offset(12) * *src.offset(5) * *src.offset(10)
+        + *src.offset(12) * *src.offset(6) * *src.offset(9);
+    *dst.offset(1 as i32 as isize) = -*src.offset(1) * *src.offset(10) * *src.offset(15)
+        + *src.offset(1) * *src.offset(11) * *src.offset(14)
+        + *src.offset(9) * *src.offset(2) * *src.offset(15)
+        - *src.offset(9) * *src.offset(3) * *src.offset(14)
+        - *src.offset(13) * *src.offset(2) * *src.offset(11)
+        + *src.offset(13) * *src.offset(3) * *src.offset(10);
+    *dst.offset(5 as i32 as isize) = *src.offset(0) * *src.offset(10) * *src.offset(15)
+        - *src.offset(0) * *src.offset(11) * *src.offset(14)
+        - *src.offset(8) * *src.offset(2) * *src.offset(15)
+        + *src.offset(8) * *src.offset(3) * *src.offset(14)
+        + *src.offset(12) * *src.offset(2) * *src.offset(11)
+        - *src.offset(12) * *src.offset(3) * *src.offset(10);
+    *dst.offset(9 as i32 as isize) = -*src.offset(0) * *src.offset(9) * *src.offset(15)
+        + *src.offset(0) * *src.offset(11) * *src.offset(13)
+        + *src.offset(8) * *src.offset(1) * *src.offset(15)
+        - *src.offset(8) * *src.offset(3) * *src.offset(13)
+        - *src.offset(12) * *src.offset(1) * *src.offset(11)
+        + *src.offset(12) * *src.offset(3) * *src.offset(9);
+    *dst.offset(13 as i32 as isize) = *src.offset(0) * *src.offset(9) * *src.offset(14)
+        - *src.offset(0) * *src.offset(10) * *src.offset(13)
+        - *src.offset(8) * *src.offset(1) * *src.offset(14)
+        + *src.offset(8) * *src.offset(2) * *src.offset(13)
+        + *src.offset(12) * *src.offset(1) * *src.offset(10)
+        - *src.offset(12) * *src.offset(2) * *src.offset(9);
+    *dst.offset(2 as i32 as isize) = *src.offset(1) * *src.offset(6) * *src.offset(15)
+        - *src.offset(1) * *src.offset(7) * *src.offset(14)
+        - *src.offset(5) * *src.offset(2) * *src.offset(15)
+        + *src.offset(5) * *src.offset(3) * *src.offset(14)
+        + *src.offset(13) * *src.offset(2) * *src.offset(7)
+        - *src.offset(13) * *src.offset(3) * *src.offset(6);
+    *dst.offset(6 as i32 as isize) = -*src.offset(0) * *src.offset(6) * *src.offset(15)
+        + *src.offset(0) * *src.offset(7) * *src.offset(14)
+        + *src.offset(4) * *src.offset(2) * *src.offset(15)
+        - *src.offset(4) * *src.offset(3) * *src.offset(14)
+        - *src.offset(12) * *src.offset(2) * *src.offset(7)
+        + *src.offset(12) * *src.offset(3) * *src.offset(6);
+    *dst.offset(10 as i32 as isize) = *src.offset(0) * *src.offset(5) * *src.offset(15)
+        - *src.offset(0) * *src.offset(7) * *src.offset(13)
+        - *src.offset(4) * *src.offset(1) * *src.offset(15)
+        + *src.offset(4) * *src.offset(3) * *src.offset(13)
+        + *src.offset(12) * *src.offset(1) * *src.offset(7)
+        - *src.offset(12) * *src.offset(3) * *src.offset(5);
+    *dst.offset(14 as i32 as isize) = -*src.offset(0) * *src.offset(5) * *src.offset(14)
+        + *src.offset(0) * *src.offset(6) * *src.offset(13)
+        + *src.offset(4) * *src.offset(1) * *src.offset(14)
+        - *src.offset(4) * *src.offset(2) * *src.offset(13)
+        - *src.offset(12) * *src.offset(1) * *src.offset(6)
+        + *src.offset(12) * *src.offset(2) * *src.offset(5);
+    *dst.offset(3 as i32 as isize) = -*src.offset(1) * *src.offset(6) * *src.offset(11)
+        + *src.offset(1) * *src.offset(7) * *src.offset(10)
+        + *src.offset(5) * *src.offset(2) * *src.offset(11)
+        - *src.offset(5) * *src.offset(3) * *src.offset(10)
+        - *src.offset(9) * *src.offset(2) * *src.offset(7)
+        + *src.offset(9) * *src.offset(3) * *src.offset(6);
+    *dst.offset(7 as i32 as isize) = *src.offset(0) * *src.offset(6) * *src.offset(11)
+        - *src.offset(0) * *src.offset(7) * *src.offset(10)
+        - *src.offset(4) * *src.offset(2) * *src.offset(11)
+        + *src.offset(4) * *src.offset(3) * *src.offset(10)
+        + *src.offset(8) * *src.offset(2) * *src.offset(7)
+        - *src.offset(8) * *src.offset(3) * *src.offset(6);
+    *dst.offset(11 as i32 as isize) = -*src.offset(0) * *src.offset(5) * *src.offset(11)
+        + *src.offset(0) * *src.offset(7) * *src.offset(9)
+        + *src.offset(4) * *src.offset(1) * *src.offset(11)
+        - *src.offset(4) * *src.offset(3) * *src.offset(9)
+        - *src.offset(8) * *src.offset(1) * *src.offset(7)
+        + *src.offset(8) * *src.offset(3) * *src.offset(5);
+    *dst.offset(15 as i32 as isize) = *src.offset(0) * *src.offset(5) * *src.offset(10)
+        - *src.offset(0) * *src.offset(6) * *src.offset(9)
+        - *src.offset(4) * *src.offset(1) * *src.offset(10)
+        + *src.offset(4) * *src.offset(2) * *src.offset(9)
+        + *src.offset(8) * *src.offset(1) * *src.offset(6)
+        - *src.offset(8) * *src.offset(2) * *src.offset(5);
     let mut det: f32 = 1.0f32
-        / (*src.offset(0)
-            * *dst.offset(0)
-            + *src.offset(1)
-                * *dst.offset(4)
-            + *src.offset(2)
-                * *dst.offset(8)
-            + *src.offset(3)
-                * *dst.offset(12));
+        / (*src.offset(0) * *dst.offset(0)
+            + *src.offset(1) * *dst.offset(4)
+            + *src.offset(2) * *dst.offset(8)
+            + *src.offset(3) * *dst.offset(12));
     let mut i: i32 = 0 as i32;
     while i < 16 as i32 {
         *dst.offset(i as isize) *= det;
@@ -422,10 +216,7 @@ unsafe extern "C" fn Matrix_IOTranspose(mut in_0: *const Matrix, mut out: *mut M
     *dst.offset(15) = *src.offset(15);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Equal(
-    mut a: *const Matrix,
-    mut b: *const Matrix,
-) -> bool {
+pub unsafe extern "C" fn Matrix_Equal(mut a: *const Matrix, mut b: *const Matrix) -> bool {
     let mut i: i32 = 0 as i32;
     while i < 16 as i32 {
         if (*a).m[i as usize] != (*b).m[i as usize] {
@@ -442,10 +233,7 @@ pub unsafe extern "C" fn Matrix_ApproximatelyEqual(
 ) -> bool {
     let mut i: i32 = 0 as i32;
     while i < 16 as i32 {
-        if !Float_ApproximatelyEqual(
-            (*a).m[i as usize] as f64,
-            (*b).m[i as usize] as f64,
-        ) {
+        if !Float_ApproximatelyEqual((*a).m[i as usize] as f64, (*b).m[i as usize] as f64) {
             return 0 as i32 != 0;
         }
         i += 1;
@@ -459,9 +247,7 @@ pub unsafe extern "C" fn Matrix_Inverse(mut this: *const Matrix) -> *mut Matrix 
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_InverseTranspose(
-    mut this: *const Matrix,
-) -> *mut Matrix {
+pub unsafe extern "C" fn Matrix_InverseTranspose(mut this: *const Matrix) -> *mut Matrix {
     let mut inverse: Matrix = Matrix { m: [0.; 16] };
     let mut result: Matrix = Matrix { m: [0.; 16] };
     Matrix_IOInverse(this, &mut inverse);
@@ -469,10 +255,7 @@ pub unsafe extern "C" fn Matrix_InverseTranspose(
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Sum(
-    mut a: *const Matrix,
-    mut b: *const Matrix,
-) -> *mut Matrix {
+pub unsafe extern "C" fn Matrix_Sum(mut a: *const Matrix, mut b: *const Matrix) -> *mut Matrix {
     let mut result: Matrix = Matrix { m: [0.; 16] };
     let mut i: i32 = 0 as i32;
     while i < 16 as i32 {
@@ -494,10 +277,7 @@ pub unsafe extern "C" fn Matrix_IInverse(mut this: *mut Matrix) {
     *this = result;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_IScale(
-    mut this: *mut Matrix,
-    mut scale: f32,
-) {
+pub unsafe extern "C" fn Matrix_IScale(mut this: *mut Matrix, mut scale: f32) {
     let mut m: *mut f32 = ((*this).m).as_mut_ptr();
     *m.offset(0) *= scale;
     *m.offset(1) *= scale;
@@ -517,26 +297,12 @@ pub unsafe extern "C" fn Matrix_ITranspose(mut this: *mut Matrix) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Identity() -> *mut Matrix {
-    let identity: Matrix =  Matrix {
-            m: [
-                1.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let identity: Matrix = Matrix {
+        m: [
+            1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
+            0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
+        ],
+    };
     return Matrix_Clone(&identity);
 }
 #[no_mangle]
@@ -548,26 +314,26 @@ pub unsafe extern "C" fn Matrix_LookAt(
     let mut z: Vec3 = (*pos - *at).normalize();
     let mut x: Vec3 = Vec3::cross(*up, z).normalize();
     let mut y: Vec3 = Vec3::cross(z, x);
-    let mut result: Matrix =  Matrix {
-            m: [
-                x.x,
-                y.x,
-                z.x,
-                (*pos).x,
-                x.y,
-                y.y,
-                z.y,
-                (*pos).y,
-                x.z,
-                y.z,
-                z.z,
-                (*pos).z,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            x.x,
+            y.x,
+            z.x,
+            (*pos).x,
+            x.y,
+            y.y,
+            z.y,
+            (*pos).y,
+            x.z,
+            y.z,
+            z.z,
+            (*pos).z,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -579,26 +345,26 @@ pub unsafe extern "C" fn Matrix_LookUp(
     let mut z: Vec3 = (*look * -1.0f32).normalize();
     let mut x: Vec3 = Vec3::cross(*up, z).normalize();
     let mut y: Vec3 = Vec3::cross(z, x);
-    let mut result: Matrix =  Matrix {
-            m: [
-                x.x,
-                y.x,
-                z.x,
-                (*pos).x,
-                x.y,
-                y.y,
-                z.y,
-                (*pos).y,
-                x.z,
-                y.z,
-                z.z,
-                (*pos).z,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            x.x,
+            y.x,
+            z.x,
+            (*pos).x,
+            x.y,
+            y.y,
+            z.y,
+            (*pos).y,
+            x.z,
+            y.z,
+            z.z,
+            (*pos).z,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -608,37 +374,32 @@ pub unsafe extern "C" fn Matrix_Perspective(
     mut N: f32,
     mut F: f32,
 ) -> *mut Matrix {
-    let mut rads: f64 = (3.14159265f32 * degreesFovy) as f64
-        / 360.0f64;
+    let mut rads: f64 = (3.14159265f32 * degreesFovy) as f64 / 360.0f64;
     let mut cot: f64 = 1.0f64 / Tan(rads);
-    let mut result: Matrix =  Matrix {
-            m: [
-                (cot / aspect as f64) as f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                cot as f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                (N + F) / (N - F),
-                (2.0f64 * (F * N) as f64 / (N - F) as f64)
-                    as f32,
-                0.0f32,
-                0.0f32,
-                -1.0f32,
-                0.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            (cot / aspect as f64) as f32,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            cot as f32,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            (N + F) / (N - F),
+            (2.0f64 * (F * N) as f64 / (N - F) as f64) as f32,
+            0.0f32,
+            0.0f32,
+            -1.0f32,
+            0.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Product(
-    mut a: *const Matrix,
-    mut b: *const Matrix,
-) -> *mut Matrix {
+pub unsafe extern "C" fn Matrix_Product(mut a: *const Matrix, mut b: *const Matrix) -> *mut Matrix {
     let mut result: Matrix = Matrix { m: [0.; 16] };
     let mut pResult: *mut f32 = (result.m).as_mut_ptr();
     let mut i: i32 = 0 as i32;
@@ -648,9 +409,7 @@ pub unsafe extern "C" fn Matrix_Product(
             let mut sum: f32 = 0.0f32;
             let mut k: i32 = 0 as i32;
             while k < 4 as i32 {
-                sum
-                    += (*a).m[(4 as i32 * i + k) as usize]
-                        * (*b).m[(4 as i32 * k + j) as usize];
+                sum += (*a).m[(4 as i32 * i + k) as usize] * (*b).m[(4 as i32 * k + j) as usize];
                 k += 1;
             }
             let fresh0 = pResult;
@@ -666,106 +425,46 @@ pub unsafe extern "C" fn Matrix_Product(
 pub unsafe extern "C" fn Matrix_RotationX(mut rads: f32) -> *mut Matrix {
     let mut c: f32 = Cos(rads as f64) as f32;
     let mut s: f32 = Sin(rads as f64) as f32;
-    let mut result: Matrix =  Matrix {
-            m: [
-                1.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                c,
-                -s,
-                0.0f32,
-                0.0f32,
-                s,
-                c,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, c, -s, 0.0f32, 0.0f32, s, c, 0.0f32, 0.0f32,
+            0.0f32, 0.0f32, 1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_RotationY(mut rads: f32) -> *mut Matrix {
     let mut c: f32 = Cos(rads as f64) as f32;
     let mut s: f32 = Sin(rads as f64) as f32;
-    let mut result: Matrix =  Matrix {
-            m: [
-                c,
-                0.0f32,
-                s,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-                0.0f32,
-                0.0f32,
-                -s,
-                0.0f32,
-                c,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            c, 0.0f32, s, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, -s, 0.0f32, c, 0.0f32, 0.0f32,
+            0.0f32, 0.0f32, 1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_RotationZ(mut rads: f32) -> *mut Matrix {
     let mut c: f32 = Cos(rads as f64) as f32;
     let mut s: f32 = Sin(rads as f64) as f32;
-    let mut result: Matrix =  Matrix {
-            m: [
-                c,
-                -s,
-                0.0f32,
-                0.0f32,
-                s,
-                c,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            c, -s, 0.0f32, 0.0f32, s, c, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32,
+            0.0f32, 0.0f32, 1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Scaling(
-    mut sx: f32,
-    mut sy: f32,
-    mut sz: f32,
-) -> *mut Matrix {
-    let mut result: Matrix =  Matrix {
-            m: [
-                sx,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                sy,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                sz,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+pub unsafe extern "C" fn Matrix_Scaling(mut sx: f32, mut sy: f32, mut sz: f32) -> *mut Matrix {
+    let mut result: Matrix = Matrix {
+        m: [
+            sx, 0.0f32, 0.0f32, 0.0f32, 0.0f32, sy, 0.0f32, 0.0f32, 0.0f32, 0.0f32, sz, 0.0f32,
+            0.0f32, 0.0f32, 0.0f32, 1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -792,31 +491,13 @@ pub unsafe extern "C" fn Matrix_SRT(
     return TRS;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Translation(
-    mut tx: f32,
-    mut ty: f32,
-    mut tz: f32,
-) -> *mut Matrix {
-    let mut result: Matrix =  Matrix {
-            m: [
-                1.0f32,
-                0.0f32,
-                0.0f32,
-                tx,
-                0.0f32,
-                1.0f32,
-                0.0f32,
-                ty,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-                tz,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+pub unsafe extern "C" fn Matrix_Translation(mut tx: f32, mut ty: f32, mut tz: f32) -> *mut Matrix {
+    let mut result: Matrix = Matrix {
+        m: [
+            1.0f32, 0.0f32, 0.0f32, tx, 0.0f32, 1.0f32, 0.0f32, ty, 0.0f32, 0.0f32, 1.0f32, tz,
+            0.0f32, 0.0f32, 0.0f32, 1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -831,26 +512,26 @@ pub unsafe extern "C" fn Matrix_YawPitchRoll(
     let mut sb: f32 = Sin(yaw as f64) as f32;
     let mut cy: f32 = Cos(pitch as f64) as f32;
     let mut sy: f32 = Sin(pitch as f64) as f32;
-    let mut result: Matrix =  Matrix {
-            m: [
-                ca * cb,
-                ca * sb * sy - sa * cy,
-                ca * sb * cy + sa * sy,
-                0.0f32,
-                sa * cb,
-                sa * sb * sy + ca * cy,
-                sa * sb * cy - ca * sy,
-                0.0f32,
-                -sb,
-                cb * sy,
-                cb * cy,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            ca * cb,
+            ca * sb * sy - sa * cy,
+            ca * sb * cy + sa * sy,
+            0.0f32,
+            sa * cb,
+            sa * sb * sy + ca * cy,
+            sa * sb * cy - ca * sy,
+            0.0f32,
+            -sb,
+            cb * sy,
+            cb * cy,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -860,55 +541,49 @@ pub unsafe extern "C" fn Matrix_MulBox(
     mut in_0: *const Box3f,
 ) {
     let corners: [Vec3; 8] = [
-         Vec3 {
-                x: (*in_0).lower.x,
-                y: (*in_0).lower.y,
-                z: (*in_0).lower.z,
-            },
-         Vec3 {
-                x: (*in_0).upper.x,
-                y: (*in_0).lower.y,
-                z: (*in_0).lower.z,
-            },
-         Vec3 {
-                x: (*in_0).lower.x,
-                y: (*in_0).upper.y,
-                z: (*in_0).lower.z,
-            },
-         Vec3 {
-                x: (*in_0).upper.x,
-                y: (*in_0).upper.y,
-                z: (*in_0).lower.z,
-            },
-         Vec3 {
-                x: (*in_0).lower.x,
-                y: (*in_0).lower.y,
-                z: (*in_0).upper.z,
-            },
-         Vec3 {
-                x: (*in_0).upper.x,
-                y: (*in_0).lower.y,
-                z: (*in_0).upper.z,
-            },
-         Vec3 {
-                x: (*in_0).lower.x,
-                y: (*in_0).upper.y,
-                z: (*in_0).upper.z,
-            },
-         Vec3 {
-                x: (*in_0).upper.x,
-                y: (*in_0).upper.y,
-                z: (*in_0).upper.z,
-            },
+        Vec3 {
+            x: (*in_0).lower.x,
+            y: (*in_0).lower.y,
+            z: (*in_0).lower.z,
+        },
+        Vec3 {
+            x: (*in_0).upper.x,
+            y: (*in_0).lower.y,
+            z: (*in_0).lower.z,
+        },
+        Vec3 {
+            x: (*in_0).lower.x,
+            y: (*in_0).upper.y,
+            z: (*in_0).lower.z,
+        },
+        Vec3 {
+            x: (*in_0).upper.x,
+            y: (*in_0).upper.y,
+            z: (*in_0).lower.z,
+        },
+        Vec3 {
+            x: (*in_0).lower.x,
+            y: (*in_0).lower.y,
+            z: (*in_0).upper.z,
+        },
+        Vec3 {
+            x: (*in_0).upper.x,
+            y: (*in_0).lower.y,
+            z: (*in_0).upper.z,
+        },
+        Vec3 {
+            x: (*in_0).lower.x,
+            y: (*in_0).upper.y,
+            z: (*in_0).upper.z,
+        },
+        Vec3 {
+            x: (*in_0).upper.x,
+            y: (*in_0).upper.y,
+            z: (*in_0).upper.z,
+        },
     ];
     let mut result = Vec3::ZERO;
-    Matrix_MulPoint(
-        this,
-        &mut result,
-        corners[0].x,
-        corners[0].y,
-        corners[0].z,
-    );
+    Matrix_MulPoint(this, &mut result, corners[0].x, corners[0].y, corners[0].z);
     (*out).lower = result;
     (*out).upper = result;
     let mut i: i32 = 1 as i32;
@@ -934,18 +609,9 @@ pub unsafe extern "C" fn Matrix_MulDir(
     mut z: f32,
 ) {
     let mut m: *const f32 = ((*this).m).as_ptr();
-    (*out)
-        .x = *m.offset(0) * x
-        + *m.offset(1) * y
-        + *m.offset(2) * z;
-    (*out)
-        .y = *m.offset(4) * x
-        + *m.offset(5) * y
-        + *m.offset(6) * z;
-    (*out)
-        .z = *m.offset(8) * x
-        + *m.offset(9) * y
-        + *m.offset(10) * z;
+    (*out).x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z;
+    (*out).y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z;
+    (*out).z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_MulPoint(
@@ -956,21 +622,9 @@ pub unsafe extern "C" fn Matrix_MulPoint(
     mut z: f32,
 ) {
     let mut m: *const f32 = ((*this).m).as_ptr();
-    (*out)
-        .x = *m.offset(0) * x
-        + *m.offset(1) * y
-        + *m.offset(2) * z
-        + *m.offset(3);
-    (*out)
-        .y = *m.offset(4) * x
-        + *m.offset(5) * y
-        + *m.offset(6) * z
-        + *m.offset(7);
-    (*out)
-        .z = *m.offset(8) * x
-        + *m.offset(9) * y
-        + *m.offset(10) * z
-        + *m.offset(11);
+    (*out).x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z + *m.offset(3);
+    (*out).y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z + *m.offset(7);
+    (*out).z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z + *m.offset(11);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_MulVec(
@@ -982,41 +636,19 @@ pub unsafe extern "C" fn Matrix_MulVec(
     mut w: f32,
 ) {
     let mut m: *const f32 = ((*this).m).as_ptr();
-    (*out)
-        .x = *m.offset(0) * x
-        + *m.offset(1) * y
-        + *m.offset(2) * z
-        + *m.offset(3) * w;
-    (*out)
-        .y = *m.offset(4) * x
-        + *m.offset(5) * y
-        + *m.offset(6) * z
-        + *m.offset(7) * w;
-    (*out)
-        .z = *m.offset(8) * x
-        + *m.offset(9) * y
-        + *m.offset(10) * z
-        + *m.offset(11) * w;
-    (*out)
-        .w = *m.offset(12) * x
-        + *m.offset(13) * y
-        + *m.offset(14) * z
-        + *m.offset(15) * w;
+    (*out).x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z + *m.offset(3) * w;
+    (*out).y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z + *m.offset(7) * w;
+    (*out).z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z + *m.offset(11) * w;
+    (*out).w = *m.offset(12) * x + *m.offset(13) * y + *m.offset(14) * z + *m.offset(15) * w;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetForward(
-    mut this: *const Matrix,
-    mut out: *mut Vec3,
-) {
+pub unsafe extern "C" fn Matrix_GetForward(mut this: *const Matrix, mut out: *mut Vec3) {
     (*out).x = -(*this).m[2];
     (*out).y = -(*this).m[6];
     (*out).z = -(*this).m[10];
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetRight(
-    mut this: *const Matrix,
-    mut out: *mut Vec3,
-) {
+pub unsafe extern "C" fn Matrix_GetRight(mut this: *const Matrix, mut out: *mut Vec3) {
     (*out).x = (*this).m[0];
     (*out).y = (*this).m[4];
     (*out).z = (*this).m[8];
@@ -1034,11 +666,7 @@ pub unsafe extern "C" fn Matrix_GetPos(mut this: *const Matrix, mut out: *mut Ve
     (*out).z = (*this).m[11];
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetRow(
-    mut this: *const Matrix,
-    mut out: *mut Vec4f,
-    mut row: i32,
-) {
+pub unsafe extern "C" fn Matrix_GetRow(mut this: *const Matrix, mut out: *mut Vec4f, mut row: i32) {
     (*out).x = (*this).m[(4 as i32 * row + 0 as i32) as usize];
     (*out).y = (*this).m[(4 as i32 * row + 1 as i32) as usize];
     (*out).z = (*this).m[(4 as i32 * row + 2 as i32) as usize];
@@ -1050,26 +678,26 @@ pub unsafe extern "C" fn Matrix_FromBasis(
     mut y: *const Vec3,
     mut z: *const Vec3,
 ) -> *mut Matrix {
-    let mut result: Matrix =  Matrix {
-            m: [
-                (*x).x,
-                (*y).x,
-                (*z).x,
-                0.0f32,
-                (*x).y,
-                (*y).y,
-                (*z).y,
-                0.0f32,
-                (*x).z,
-                (*y).z,
-                (*z).z,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            (*x).x,
+            (*y).x,
+            (*z).x,
+            0.0f32,
+            (*x).y,
+            (*y).y,
+            (*z).y,
+            0.0f32,
+            (*x).z,
+            (*y).z,
+            (*z).z,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -1083,26 +711,26 @@ pub unsafe extern "C" fn Matrix_FromPosRot(
     Quat_GetAxisY(rot, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(rot, &mut z);
-    let mut result: Matrix =  Matrix {
-            m: [
-                x.x,
-                y.x,
-                z.x,
-                (*pos).x,
-                x.y,
-                y.y,
-                z.y,
-                (*pos).y,
-                x.z,
-                y.z,
-                z.z,
-                (*pos).z,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            x.x,
+            y.x,
+            z.x,
+            (*pos).x,
+            x.y,
+            y.y,
+            z.y,
+            (*pos).y,
+            x.z,
+            y.z,
+            z.z,
+            (*pos).z,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -1117,26 +745,26 @@ pub unsafe extern "C" fn Matrix_FromPosRotScale(
     Quat_GetAxisY(rot, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(rot, &mut z);
-    let mut result: Matrix =  Matrix {
-            m: [
-                scale * x.x,
-                scale * y.x,
-                scale * z.x,
-                (*pos).x,
-                scale * x.y,
-                scale * y.y,
-                scale * z.y,
-                (*pos).y,
-                scale * x.z,
-                scale * y.z,
-                scale * z.z,
-                (*pos).z,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            scale * x.x,
+            scale * y.x,
+            scale * z.x,
+            (*pos).x,
+            scale * x.y,
+            scale * y.y,
+            scale * z.y,
+            (*pos).y,
+            scale * x.z,
+            scale * y.z,
+            scale * z.z,
+            (*pos).z,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -1146,26 +774,26 @@ pub unsafe extern "C" fn Matrix_FromPosBasis(
     mut y: *const Vec3,
     mut z: *const Vec3,
 ) -> *mut Matrix {
-    let mut result: Matrix =  Matrix {
-            m: [
-                (*x).x,
-                (*y).x,
-                (*z).x,
-                (*pos).x,
-                (*x).y,
-                (*y).y,
-                (*z).y,
-                (*pos).y,
-                (*x).z,
-                (*y).z,
-                (*z).z,
-                (*pos).z,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            (*x).x,
+            (*y).x,
+            (*z).x,
+            (*pos).x,
+            (*x).y,
+            (*y).y,
+            (*z).y,
+            (*pos).y,
+            (*x).z,
+            (*y).z,
+            (*z).z,
+            (*pos).z,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -1176,46 +804,32 @@ pub unsafe extern "C" fn Matrix_FromQuat(mut q: *const Quat) -> *mut Matrix {
     Quat_GetAxisY(q, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(q, &mut z);
-    let mut result: Matrix =  Matrix {
-            m: [
-                x.x,
-                y.x,
-                z.x,
-                0.0f32,
-                x.y,
-                y.y,
-                z.y,
-                0.0f32,
-                x.z,
-                y.z,
-                z.z,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                0.0f32,
-                1.0f32,
-            ],
-        };
+    let mut result: Matrix = Matrix {
+        m: [
+            x.x, y.x, z.x, 0.0f32, x.y, y.y, z.y, 0.0f32, x.z, y.z, z.z, 0.0f32, 0.0f32, 0.0f32,
+            0.0f32, 1.0f32,
+        ],
+    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_ToQuat(mut this: *const Matrix, mut q: *mut Quat) {
     let mut m: *const f32 = this as *const f32;
-    let mut x: Vec3 =  Vec3 {
-            x: *m.offset(0),
-            y: *m.offset(4),
-            z: *m.offset(8),
-        };
-    let mut y: Vec3 =  Vec3 {
-            x: *m.offset(1),
-            y: *m.offset(5),
-            z: *m.offset(9),
-        };
-    let mut z: Vec3 =  Vec3 {
-            x: *m.offset(2),
-            y: *m.offset(6),
-            z: *m.offset(10),
-        };
+    let mut x: Vec3 = Vec3 {
+        x: *m.offset(0),
+        y: *m.offset(4),
+        z: *m.offset(8),
+    };
+    let mut y: Vec3 = Vec3 {
+        x: *m.offset(1),
+        y: *m.offset(5),
+        z: *m.offset(9),
+    };
+    let mut z: Vec3 = Vec3 {
+        x: *m.offset(2),
+        y: *m.offset(6),
+        z: *m.offset(10),
+    };
     Quat_FromBasis(&mut x, &mut y, &mut z, q);
 }
 #[no_mangle]

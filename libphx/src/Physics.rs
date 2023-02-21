@@ -28,24 +28,35 @@ PHX_API void      _cppPhysics_DrawWireframes          (Physics*);
 use glam::Vec3;
 
 extern "C" {
-fn _cppPhysics_Create                  () -> *mut Physics;
-fn _cppPhysics_Free                    (_: *mut Physics);
-fn _cppPhysics_AddRigidBody            (_: *mut Physics, _: *mut RigidBody);
-fn _cppPhysics_RemoveRigidBody         (_: *mut Physics, _: *mut RigidBody);
-fn _cppPhysics_AddTrigger              (_: *mut Physics, _: *mut Trigger);
-fn _cppPhysics_RemoveTrigger           (_: *mut Physics, _: *mut Trigger);
-fn _cppPhysics_GetNextCollision        (_: *mut Physics, _: *mut Collision) -> bool;
-fn _cppPhysics_Update                  (_: *mut Physics, dt: f32);
-fn _cppPhysics_RayCast                 (_: *mut Physics, _: *mut Ray, _: *mut RayCastResult);
-fn _cppPhysics_SphereCast              (_: *mut Physics, _: *mut Sphere, _: *mut ShapeCastResult);
-fn _cppPhysics_BoxCast                 (_: *mut Physics, pos: *mut Vec3, rot: *mut Quat, halfExtents: *mut Vec3, _: *mut ShapeCastResult);
-fn _cppPhysics_SphereOverlap           (_: *mut Physics, _: *mut Sphere) -> bool;
-fn _cppPhysics_BoxOverlap              (_: *mut Physics, pos: *mut Vec3, rot: *mut Quat, halfExtents: *mut Vec3) -> bool;
-fn _cppPhysics_PrintProfiling          (_: *mut Physics);
-fn _cppPhysics_DrawBoundingBoxesLocal  (_: *mut Physics);
-fn _cppPhysics_DrawBoundingBoxesWorld  (_: *mut Physics);
-fn _cppPhysics_DrawTriggers            (_: *mut Physics);
-fn _cppPhysics_DrawWireframes          (_: *mut Physics);
+    fn _cppPhysics_Create() -> *mut Physics;
+    fn _cppPhysics_Free(_: *mut Physics);
+    fn _cppPhysics_AddRigidBody(_: *mut Physics, _: *mut RigidBody);
+    fn _cppPhysics_RemoveRigidBody(_: *mut Physics, _: *mut RigidBody);
+    fn _cppPhysics_AddTrigger(_: *mut Physics, _: *mut Trigger);
+    fn _cppPhysics_RemoveTrigger(_: *mut Physics, _: *mut Trigger);
+    fn _cppPhysics_GetNextCollision(_: *mut Physics, _: *mut Collision) -> bool;
+    fn _cppPhysics_Update(_: *mut Physics, dt: f32);
+    fn _cppPhysics_RayCast(_: *mut Physics, _: *mut Ray, _: *mut RayCastResult);
+    fn _cppPhysics_SphereCast(_: *mut Physics, _: *mut Sphere, _: *mut ShapeCastResult);
+    fn _cppPhysics_BoxCast(
+        _: *mut Physics,
+        pos: *mut Vec3,
+        rot: *mut Quat,
+        halfExtents: *mut Vec3,
+        _: *mut ShapeCastResult,
+    );
+    fn _cppPhysics_SphereOverlap(_: *mut Physics, _: *mut Sphere) -> bool;
+    fn _cppPhysics_BoxOverlap(
+        _: *mut Physics,
+        pos: *mut Vec3,
+        rot: *mut Quat,
+        halfExtents: *mut Vec3,
+    ) -> bool;
+    fn _cppPhysics_PrintProfiling(_: *mut Physics);
+    fn _cppPhysics_DrawBoundingBoxesLocal(_: *mut Physics);
+    fn _cppPhysics_DrawBoundingBoxesWorld(_: *mut Physics);
+    fn _cppPhysics_DrawTriggers(_: *mut Physics);
+    fn _cppPhysics_DrawWireframes(_: *mut Physics);
 }
 
 pub struct Physics;
@@ -99,17 +110,31 @@ pub unsafe extern "C" fn Physics_Update(this: *mut Physics, dt: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_RayCast(this: *mut Physics, ray: *mut Ray, result: *mut RayCastResult) {
+pub unsafe extern "C" fn Physics_RayCast(
+    this: *mut Physics,
+    ray: *mut Ray,
+    result: *mut RayCastResult,
+) {
     _cppPhysics_RayCast(this, ray, result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_SphereCast(this: *mut Physics, sphere: *mut Sphere, result: *mut ShapeCastResult) {
+pub unsafe extern "C" fn Physics_SphereCast(
+    this: *mut Physics,
+    sphere: *mut Sphere,
+    result: *mut ShapeCastResult,
+) {
     _cppPhysics_SphereCast(this, sphere, result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_BoxCast(this: *mut Physics, pos: *mut Vec3, rot: *mut Quat, halfExtents: *mut Vec3, result: *mut ShapeCastResult) {
+pub unsafe extern "C" fn Physics_BoxCast(
+    this: *mut Physics,
+    pos: *mut Vec3,
+    rot: *mut Quat,
+    halfExtents: *mut Vec3,
+    result: *mut ShapeCastResult,
+) {
     _cppPhysics_BoxCast(this, pos, rot, halfExtents, result)
 }
 
@@ -119,7 +144,12 @@ pub unsafe extern "C" fn Physics_SphereOverlap(this: *mut Physics, sphere: *mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_BoxOverlap(this: *mut Physics, pos: *mut Vec3, rot: *mut Quat, halfExtents: *mut Vec3) -> bool {
+pub unsafe extern "C" fn Physics_BoxOverlap(
+    this: *mut Physics,
+    pos: *mut Vec3,
+    rot: *mut Quat,
+    halfExtents: *mut Vec3,
+) -> bool {
     _cppPhysics_BoxOverlap(this, pos, rot, halfExtents)
 }
 

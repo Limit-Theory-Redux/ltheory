@@ -1,7 +1,7 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
+use glam::Vec3;
+use libc;
 
 extern "C" {
     pub type Bytes;
@@ -10,12 +10,7 @@ extern "C" {
     fn File_ReadBytes(path: cstr) -> *mut Bytes;
     fn File_ReadCstr(path: cstr) -> cstr;
     fn ResourceType_ToString(_: ResourceType) -> cstr;
-    fn snprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: ...
-    ) -> i32;
+    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
@@ -54,9 +49,7 @@ unsafe extern "C" fn Resource_Resolve(
             name,
         );
         if res > 0 as i32
-            && res
-                < ::core::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong
-                    as i32
+            && res < ::core::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong as i32
         {
             if File_Exists(buffer.as_mut_ptr() as cstr) {
                 return buffer.as_mut_ptr() as cstr;
@@ -69,8 +62,7 @@ unsafe extern "C" fn Resource_Resolve(
     }
     if failhard {
         Fatal(
-            b"Resource_Resolve: Failed to find %s <%s>\0" as *const u8
-                as *const libc::c_char,
+            b"Resource_Resolve: Failed to find %s <%s>\0" as *const u8 as *const libc::c_char,
             ResourceType_ToString(type_0),
             name,
         );
@@ -79,25 +71,18 @@ unsafe extern "C" fn Resource_Resolve(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: cstr) {
-    let mut this: *mut PathElem = MemAlloc(
-        ::core::mem::size_of::<PathElem>() as usize,
-    ) as *mut PathElem;
+    let mut this: *mut PathElem =
+        MemAlloc(::core::mem::size_of::<PathElem>() as usize) as *mut PathElem;
     (*this).format = StrDup(format);
     (*this).next = paths[type_0 as usize];
     paths[type_0 as usize] = this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Resource_Exists(
-    mut type_0: ResourceType,
-    mut name: cstr,
-) -> bool {
+pub unsafe extern "C" fn Resource_Exists(mut type_0: ResourceType, mut name: cstr) -> bool {
     return !(Resource_Resolve(type_0, name, 0 as i32 != 0)).is_null();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Resource_GetPath(
-    mut type_0: ResourceType,
-    mut name: cstr,
-) -> cstr {
+pub unsafe extern "C" fn Resource_GetPath(mut type_0: ResourceType, mut name: cstr) -> cstr {
     return Resource_Resolve(type_0, name, 1 as i32 != 0);
 }
 #[no_mangle]
@@ -119,10 +104,7 @@ pub unsafe extern "C" fn Resource_LoadBytes(
     return data;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Resource_LoadCstr(
-    mut type_0: ResourceType,
-    mut name: cstr,
-) -> cstr {
+pub unsafe extern "C" fn Resource_LoadCstr(mut type_0: ResourceType, mut name: cstr) -> cstr {
     let mut path: cstr = Resource_Resolve(type_0, name, 1 as i32 != 0);
     let mut data: cstr = File_ReadCstr(path);
     if data.is_null() {
@@ -266,11 +248,26 @@ pub unsafe extern "C" fn Resource_Init() {
         ResourceType_TexCube,
         b"./res/texcube/%s\0" as *const u8 as *const libc::c_char,
     );
-    Resource_AddPath(ResourceType_Font, b"%s.ttf\0" as *const u8 as *const libc::c_char);
-    Resource_AddPath(ResourceType_Font, b"%s.otf\0" as *const u8 as *const libc::c_char);
-    Resource_AddPath(ResourceType_Mesh, b"%s.bin\0" as *const u8 as *const libc::c_char);
-    Resource_AddPath(ResourceType_Mesh, b"%s.obj\0" as *const u8 as *const libc::c_char);
-    Resource_AddPath(ResourceType_Other, b"%s\0" as *const u8 as *const libc::c_char);
+    Resource_AddPath(
+        ResourceType_Font,
+        b"%s.ttf\0" as *const u8 as *const libc::c_char,
+    );
+    Resource_AddPath(
+        ResourceType_Font,
+        b"%s.otf\0" as *const u8 as *const libc::c_char,
+    );
+    Resource_AddPath(
+        ResourceType_Mesh,
+        b"%s.bin\0" as *const u8 as *const libc::c_char,
+    );
+    Resource_AddPath(
+        ResourceType_Mesh,
+        b"%s.obj\0" as *const u8 as *const libc::c_char,
+    );
+    Resource_AddPath(
+        ResourceType_Other,
+        b"%s\0" as *const u8 as *const libc::c_char,
+    );
     Resource_AddPath(
         ResourceType_Script,
         b"%s.lua\0" as *const u8 as *const libc::c_char,
@@ -311,5 +308,8 @@ pub unsafe extern "C" fn Resource_Init() {
         ResourceType_Tex3D,
         b"%s.bin\0" as *const u8 as *const libc::c_char,
     );
-    Resource_AddPath(ResourceType_TexCube, b"%s\0" as *const u8 as *const libc::c_char);
+    Resource_AddPath(
+        ResourceType_TexCube,
+        b"%s\0" as *const u8 as *const libc::c_char,
+    );
 }

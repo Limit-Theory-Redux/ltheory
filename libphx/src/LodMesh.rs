@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type Mesh;
     fn Mesh_Free(_: *mut Mesh);
@@ -23,9 +23,8 @@ pub struct LodMeshEntry {
 
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
-    let mut this: *mut LodMesh = MemAlloc(
-        ::core::mem::size_of::<LodMesh>() as usize,
-    ) as *mut LodMesh;
+    let mut this: *mut LodMesh =
+        MemAlloc(::core::mem::size_of::<LodMesh>() as usize) as *mut LodMesh;
     (*this)._refCount = 1 as i32 as u32;
     (*this).head = 0 as *mut LodMeshEntry;
     return this;
@@ -36,12 +35,10 @@ pub unsafe extern "C" fn LodMesh_Acquire(mut this: *mut LodMesh) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Free(mut this: *mut LodMesh) {
-    if !this.is_null()
-        && {
-            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-            (*this)._refCount <= 0 as i32 as u32
-        }
-    {
+    if !this.is_null() && {
+        (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+        (*this)._refCount <= 0 as i32 as u32
+    } {
         let mut e: *mut LodMeshEntry = (*this).head;
         while !e.is_null() {
             let mut next: *mut LodMeshEntry = (*e).next;
@@ -59,9 +56,8 @@ pub unsafe extern "C" fn LodMesh_Add(
     mut dMin: f32,
     mut dMax: f32,
 ) {
-    let mut e: *mut LodMeshEntry = MemAlloc(
-        ::core::mem::size_of::<LodMeshEntry>() as usize,
-    ) as *mut LodMeshEntry;
+    let mut e: *mut LodMeshEntry =
+        MemAlloc(::core::mem::size_of::<LodMeshEntry>() as usize) as *mut LodMeshEntry;
     (*e).mesh = mesh;
     (*e).dMin = dMin * dMin;
     (*e).dMax = dMax * dMax;
@@ -79,10 +75,7 @@ pub unsafe extern "C" fn LodMesh_Draw(mut this: *mut LodMesh, mut d2: f32) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Get(
-    mut this: *mut LodMesh,
-    mut d2: f32,
-) -> *mut Mesh {
+pub unsafe extern "C" fn LodMesh_Get(mut this: *mut LodMesh, mut d2: f32) -> *mut Mesh {
     let mut e: *mut LodMeshEntry = (*this).head;
     while !e.is_null() {
         if (*e).dMin <= d2 && d2 <= (*e).dMax {

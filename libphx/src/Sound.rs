@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type FMOD_CHANNEL;
     pub type FMOD_SOUND;
@@ -19,39 +19,21 @@ extern "C" {
         channel: *mut *mut FMOD_CHANNEL,
     ) -> FMOD_RESULT;
     fn FMOD_Channel_Stop(channel: *mut FMOD_CHANNEL) -> FMOD_RESULT;
-    fn FMOD_Channel_SetPaused(
-        channel: *mut FMOD_CHANNEL,
-        paused: FMOD_BOOL,
-    ) -> FMOD_RESULT;
-    fn FMOD_Channel_SetVolume(
-        channel: *mut FMOD_CHANNEL,
-        volume: f32,
-    ) -> FMOD_RESULT;
-    fn FMOD_Channel_SetPitch(
-        channel: *mut FMOD_CHANNEL,
-        pitch: f32,
-    ) -> FMOD_RESULT;
-    fn FMOD_Channel_GetMode(
-        channel: *mut FMOD_CHANNEL,
-        mode: *mut FMOD_MODE,
-    ) -> FMOD_RESULT;
+    fn FMOD_Channel_SetPaused(channel: *mut FMOD_CHANNEL, paused: FMOD_BOOL) -> FMOD_RESULT;
+    fn FMOD_Channel_SetVolume(channel: *mut FMOD_CHANNEL, volume: f32) -> FMOD_RESULT;
+    fn FMOD_Channel_SetPitch(channel: *mut FMOD_CHANNEL, pitch: f32) -> FMOD_RESULT;
+    fn FMOD_Channel_GetMode(channel: *mut FMOD_CHANNEL, mode: *mut FMOD_MODE) -> FMOD_RESULT;
     fn FMOD_Channel_SetCallback(
         channel: *mut FMOD_CHANNEL,
         callback: FMOD_CHANNELCONTROL_CALLBACK,
     ) -> FMOD_RESULT;
-    fn FMOD_Channel_SetPan(
-        channel: *mut FMOD_CHANNEL,
-        pan: f32,
-    ) -> FMOD_RESULT;
+    fn FMOD_Channel_SetPan(channel: *mut FMOD_CHANNEL, pan: f32) -> FMOD_RESULT;
     fn FMOD_Channel_Set3DAttributes(
         channel: *mut FMOD_CHANNEL,
         pos: *const FMOD_VECTOR,
         vel: *const FMOD_VECTOR,
     ) -> FMOD_RESULT;
-    fn FMOD_Channel_Set3DLevel(
-        channel: *mut FMOD_CHANNEL,
-        level: f32,
-    ) -> FMOD_RESULT;
+    fn FMOD_Channel_Set3DLevel(channel: *mut FMOD_CHANNEL, level: f32) -> FMOD_RESULT;
     fn FMOD_Channel_SetUserData(
         channel: *mut FMOD_CHANNEL,
         userdata: *mut libc::c_void,
@@ -66,12 +48,7 @@ extern "C" {
         postype: FMOD_TIMEUNIT,
     ) -> FMOD_RESULT;
     fn floor(_: f64) -> f64;
-    fn SoundDesc_Load(
-        name: cstr,
-        immediate: bool,
-        isLooped: bool,
-        is3D: bool,
-    ) -> *mut SoundDesc;
+    fn SoundDesc_Load(name: cstr, immediate: bool, isLooped: bool, is3D: bool) -> *mut SoundDesc;
     fn SoundDesc_FinishLoad(_: *mut SoundDesc, func: cstr);
     fn SoundDesc_Acquire(_: *mut SoundDesc);
     fn SoundDesc_Free(_: *mut SoundDesc);
@@ -199,7 +176,7 @@ pub const FMOD_CHANNELCONTROL_CALLBACK_OCCLUSION: FMOD_CHANNELCONTROL_CALLBACK_T
 pub const FMOD_CHANNELCONTROL_CALLBACK_SYNCPOINT: FMOD_CHANNELCONTROL_CALLBACK_TYPE = 2;
 pub const FMOD_CHANNELCONTROL_CALLBACK_VIRTUALVOICE: FMOD_CHANNELCONTROL_CALLBACK_TYPE = 1;
 pub const FMOD_CHANNELCONTROL_CALLBACK_END: FMOD_CHANNELCONTROL_CALLBACK_TYPE = 0;
-pub type FMOD_CHANNELCONTROL_CALLBACK = Option::<
+pub type FMOD_CHANNELCONTROL_CALLBACK = Option<
     unsafe extern "C" fn(
         *mut FMOD_CHANNELCONTROL,
         FMOD_CHANNELCONTROL_TYPE,
@@ -314,16 +291,13 @@ unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> cstr {
             return b"FMOD_ERR_EVENT_ALREADY_LOADED\0" as *const u8 as *const libc::c_char;
         }
         71 => {
-            return b"FMOD_ERR_EVENT_LIVEUPDATE_BUSY\0" as *const u8
-                as *const libc::c_char;
+            return b"FMOD_ERR_EVENT_LIVEUPDATE_BUSY\0" as *const u8 as *const libc::c_char;
         }
         72 => {
-            return b"FMOD_ERR_EVENT_LIVEUPDATE_MISMATCH\0" as *const u8
-                as *const libc::c_char;
+            return b"FMOD_ERR_EVENT_LIVEUPDATE_MISMATCH\0" as *const u8 as *const libc::c_char;
         }
         73 => {
-            return b"FMOD_ERR_EVENT_LIVEUPDATE_TIMEOUT\0" as *const u8
-                as *const libc::c_char;
+            return b"FMOD_ERR_EVENT_LIVEUPDATE_TIMEOUT\0" as *const u8 as *const libc::c_char;
         }
         74 => return b"FMOD_ERR_EVENT_NOTFOUND\0" as *const u8 as *const libc::c_char,
         75 => {
@@ -350,12 +324,11 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         2 => {
-            return b"Error trying to allocate a channel.\0" as *const u8
-                as *const libc::c_char;
+            return b"Error trying to allocate a channel.\0" as *const u8 as *const libc::c_char;
         }
         3 => {
-            return b"The specified channel has been reused to play another sound.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The specified channel has been reused to play another sound.\0" as *const u8
+                as *const libc::c_char;
         }
         4 => {
             return b"DMA Failure.  See debug output for more information.\0" as *const u8
@@ -378,8 +351,8 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         9 => {
-            return b"DSP connection error.  Couldn't find the DSP unit specified.\0"
-                as *const u8 as *const libc::c_char;
+            return b"DSP connection error.  Couldn't find the DSP unit specified.\0" as *const u8
+                as *const libc::c_char;
         }
         10 => {
             return b"DSP operation error.  Cannot perform operation on this DSP as it is reserved by the system.\0"
@@ -390,8 +363,8 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         12 => {
-            return b"DSP operation cannot be performed on a DSP of this type.\0"
-                as *const u8 as *const libc::c_char;
+            return b"DSP operation cannot be performed on a DSP of this type.\0" as *const u8
+                as *const libc::c_char;
         }
         13 => return b"Error loading file.\0" as *const u8 as *const libc::c_char,
         14 => {
@@ -399,21 +372,19 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         15 => {
-            return b"Media was ejected while reading.\0" as *const u8
-                as *const libc::c_char;
+            return b"Media was ejected while reading.\0" as *const u8 as *const libc::c_char;
         }
         16 => {
             return b"End of file unexpectedly reached while trying to read essential data (truncated?).\0"
                 as *const u8 as *const libc::c_char;
         }
         17 => {
-            return b"End of current chunk reached while trying to read data.\0"
-                as *const u8 as *const libc::c_char;
+            return b"End of current chunk reached while trying to read data.\0" as *const u8
+                as *const libc::c_char;
         }
         18 => return b"File not found.\0" as *const u8 as *const libc::c_char,
         19 => {
-            return b"Unsupported file or audio format.\0" as *const u8
-                as *const libc::c_char;
+            return b"Unsupported file or audio format.\0" as *const u8 as *const libc::c_char;
         }
         20 => {
             return b"There is a version mismatch between the FMOD header and either the FMOD Studio library or the FMOD Low Level library.\0"
@@ -424,8 +395,8 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         22 => {
-            return b"The specified resource requires authentication or is forbidden.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The specified resource requires authentication or is forbidden.\0" as *const u8
+                as *const libc::c_char;
         }
         23 => {
             return b"Proxy authentication is required to access the specified resource.\0"
@@ -436,32 +407,31 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
         }
         25 => return b"The HTTP request timed out.\0" as *const u8 as *const libc::c_char,
         26 => {
-            return b"FMOD was not initialized correctly to support this function.\0"
-                as *const u8 as *const libc::c_char;
+            return b"FMOD was not initialized correctly to support this function.\0" as *const u8
+                as *const libc::c_char;
         }
         27 => {
             return b"Cannot call this command after System::init.\0" as *const u8
                 as *const libc::c_char;
         }
         28 => {
-            return b"An error occurred that wasn't supposed to.  Contact support.\0"
-                as *const u8 as *const libc::c_char;
+            return b"An error occurred that wasn't supposed to.  Contact support.\0" as *const u8
+                as *const libc::c_char;
         }
         29 => {
-            return b"Value passed in was a NaN, Inf or denormalized float.\0"
-                as *const u8 as *const libc::c_char;
+            return b"Value passed in was a NaN, Inf or denormalized float.\0" as *const u8
+                as *const libc::c_char;
         }
         30 => {
-            return b"An invalid object handle was used.\0" as *const u8
-                as *const libc::c_char;
+            return b"An invalid object handle was used.\0" as *const u8 as *const libc::c_char;
         }
         31 => {
             return b"An invalid parameter was passed to this function.\0" as *const u8
                 as *const libc::c_char;
         }
         32 => {
-            return b"An invalid seek position was passed to this function.\0"
-                as *const u8 as *const libc::c_char;
+            return b"An invalid seek position was passed to this function.\0" as *const u8
+                as *const libc::c_char;
         }
         33 => {
             return b"An invalid speaker was passed to this function based on the current speaker mode.\0"
@@ -472,20 +442,19 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const libc::c_char;
         }
         35 => {
-            return b"Tried to call a function on a thread that is not supported.\0"
-                as *const u8 as *const libc::c_char;
+            return b"Tried to call a function on a thread that is not supported.\0" as *const u8
+                as *const libc::c_char;
         }
         36 => {
-            return b"The vectors passed in are not unit length, or perpendicular.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The vectors passed in are not unit length, or perpendicular.\0" as *const u8
+                as *const libc::c_char;
         }
         37 => {
             return b"Reached maximum audible playback count for this sound's soundgroup.\0"
                 as *const u8 as *const libc::c_char;
         }
         38 => {
-            return b"Not enough memory or resources.\0" as *const u8
-                as *const libc::c_char;
+            return b"Not enough memory or resources.\0" as *const u8 as *const libc::c_char;
         }
         39 => {
             return b"Can't use FMOD_OPENMEMORY_POINT on non PCM source data, or non mp3/xma/adpcm data if FMOD_CREATECOMPRESSEDSAMPLE was used.\0"
@@ -496,8 +465,8 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         41 => {
-            return b"Tried to use a feature that requires hardware support.\0"
-                as *const u8 as *const libc::c_char;
+            return b"Tried to use a feature that requires hardware support.\0" as *const u8
+                as *const libc::c_char;
         }
         42 => {
             return b"Couldn't connect to the specified host.\0" as *const u8
@@ -524,8 +493,7 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         48 => {
-            return b"Error creating hardware sound buffer.\0" as *const u8
-                as *const libc::c_char;
+            return b"Error creating hardware sound buffer.\0" as *const u8 as *const libc::c_char;
         }
         49 => {
             return b"A call to a standard soundcard driver failed, which could possibly mean a bug in the driver or resources were missing or exhausted.\0"
@@ -536,20 +504,19 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const libc::c_char;
         }
         51 => {
-            return b"Error initializing output device.\0" as *const u8
-                as *const libc::c_char;
+            return b"Error initializing output device.\0" as *const u8 as *const libc::c_char;
         }
         52 => {
             return b"The output device has no drivers installed.  If pre-init, FMOD_OUTPUT_NOSOUND is selected as the output mode.  If post-init, the function just fails.\0"
                 as *const u8 as *const libc::c_char;
         }
         53 => {
-            return b"An unspecified error has been returned from a plugin.\0"
-                as *const u8 as *const libc::c_char;
+            return b"An unspecified error has been returned from a plugin.\0" as *const u8
+                as *const libc::c_char;
         }
         54 => {
-            return b"A requested output, dsp unit type or codec was not available.\0"
-                as *const u8 as *const libc::c_char;
+            return b"A requested output, dsp unit type or codec was not available.\0" as *const u8
+                as *const libc::c_char;
         }
         55 => {
             return b"A resource that the plugin requires cannot be allocated or found. (ie the DLS file for MIDI playback)\0"
@@ -560,8 +527,8 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const libc::c_char;
         }
         57 => {
-            return b"An error occurred trying to initialize the recording device.\0"
-                as *const u8 as *const libc::c_char;
+            return b"An error occurred trying to initialize the recording device.\0" as *const u8
+                as *const libc::c_char;
         }
         58 => {
             return b"Reverb properties cannot be set on this channel because a parent channelgroup owns the reverb connection.\0"
@@ -584,8 +551,8 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         63 => {
-            return b"The specified tag could not be found or there are no tags.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The specified tag could not be found or there are no tags.\0" as *const u8
+                as *const libc::c_char;
         }
         64 => {
             return b"The sound created exceeds the allowable input channel count.  This can be increased using the 'maxinputchannels' parameter in System::setSoftwareFormat.\0"
@@ -608,8 +575,8 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         69 => {
-            return b"The version number of this file format is not supported.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The version number of this file format is not supported.\0" as *const u8
+                as *const libc::c_char;
         }
         70 => {
             return b"The specified bank has already been loaded.\0" as *const u8
@@ -624,20 +591,19 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const u8 as *const libc::c_char;
         }
         73 => {
-            return b"The live update connection timed out.\0" as *const u8
-                as *const libc::c_char;
+            return b"The live update connection timed out.\0" as *const u8 as *const libc::c_char;
         }
         74 => {
-            return b"The requested event, parameter, bus or vca could not be found.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The requested event, parameter, bus or vca could not be found.\0" as *const u8
+                as *const libc::c_char;
         }
         75 => {
             return b"The Studio::System object is not yet initialized.\0" as *const u8
                 as *const libc::c_char;
         }
         76 => {
-            return b"The specified resource is not loaded, so it can't be unloaded.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The specified resource is not loaded, so it can't be unloaded.\0" as *const u8
+                as *const libc::c_char;
         }
         77 => {
             return b"An invalid string was passed to this function.\0" as *const u8
@@ -648,12 +614,12 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
                 as *const libc::c_char;
         }
         79 => {
-            return b"The specified resource is not locked, so it can't be unlocked.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The specified resource is not locked, so it can't be unlocked.\0" as *const u8
+                as *const libc::c_char;
         }
         80 => {
-            return b"The specified recording driver has been disconnected.\0"
-                as *const u8 as *const libc::c_char;
+            return b"The specified recording driver has been disconnected.\0" as *const u8
+                as *const libc::c_char;
         }
         81 => {
             return b"The length provided exceeds the allowable limit.\0" as *const u8
@@ -677,9 +643,7 @@ unsafe extern "C" fn Sound_Callback(
     mut a: *mut libc::c_void,
     mut b: *mut libc::c_void,
 ) -> FMOD_RESULT {
-    if callbackType as u32
-        == FMOD_CHANNELCONTROL_CALLBACK_END as i32 as u32
-    {
+    if callbackType as u32 == FMOD_CHANNELCONTROL_CALLBACK_END as i32 as u32 {
         let mut this: *mut Sound = 0 as *mut Sound;
         FMOD_CheckError(
             FMOD_Channel_GetUserData(
@@ -689,10 +653,7 @@ unsafe extern "C" fn Sound_Callback(
             b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
                 as *const libc::c_char,
             23 as i32,
-            (*::core::mem::transmute::<
-                &[u8; 15],
-                &[libc::c_char; 15],
-            >(b"Sound_Callback\0"))
+            (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_Callback\0"))
                 .as_ptr(),
         );
         Sound_SetState(this, 4 as i32 as SoundState);
@@ -756,11 +717,11 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: cstr
         // );
         Sound_SetState(this, 2 as i32 as SoundState);
         if Sound_Get3D(this) {
-            let mut zero: Vec3 =  Vec3 {
-                    x: 0.0f32,
-                    y: 0.0f32,
-                    z: 0.0f32,
-                };
+            let mut zero: Vec3 = Vec3 {
+                x: 0.0f32,
+                y: 0.0f32,
+                z: 0.0f32,
+            };
             Sound_Set3DPos(this, &mut zero, &mut zero);
         }
     }
@@ -768,16 +729,13 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: cstr
 #[inline]
 unsafe extern "C" fn Sound_EnsureNotFreedImpl(mut this: *mut Sound, mut func: cstr) {
     if (*this).state as i32 == 5 as i32 {
-        let mut name: cstr = if (*(*this).desc)._refCount
-            > 0 as i32 as u32
-        {
+        let mut name: cstr = if (*(*this).desc)._refCount > 0 as i32 as u32 {
             (*(*this).desc).name
         } else {
             b"<SoundDesc has been freed>\0" as *const u8 as *const libc::c_char
         };
         Fatal(
-            b"%s: Sound has been freed.\n  Name: %s\0" as *const u8
-                as *const libc::c_char,
+            b"%s: Sound has been freed.\n  Name: %s\0" as *const u8 as *const libc::c_char,
             func,
             name,
         );
@@ -867,16 +825,10 @@ pub unsafe extern "C" fn Sound_Load(
     mut isLooped: bool,
     mut is3D: bool,
 ) -> *mut Sound {
-    let mut this: *mut Sound = Sound_Create(
-        name,
-        1 as i32 != 0,
-        isLooped,
-        is3D,
-    );
+    let mut this: *mut Sound = Sound_Create(name, 1 as i32 != 0, isLooped, is3D);
     Sound_EnsureLoadedImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Load\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Load\0")).as_ptr(),
     );
     return this;
 }
@@ -886,20 +838,14 @@ pub unsafe extern "C" fn Sound_LoadAsync(
     mut isLooped: bool,
     mut is3D: bool,
 ) -> *mut Sound {
-    let mut this: *mut Sound = Sound_Create(
-        name,
-        0 as i32 != 0,
-        isLooped,
-        is3D,
-    );
+    let mut this: *mut Sound = Sound_Create(name, 0 as i32 != 0, isLooped, is3D);
     return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Clone(mut this: *mut Sound) -> *mut Sound {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Clone\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Clone\0")).as_ptr(),
     );
     let mut clone: *mut Sound = Audio_AllocSound();
     *clone = *this;
@@ -913,8 +859,7 @@ pub unsafe extern "C" fn Sound_Clone(mut this: *mut Sound) -> *mut Sound {
 pub unsafe extern "C" fn Sound_ToFile(mut this: *mut Sound, mut name: cstr) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_ToFile\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_ToFile\0")).as_ptr(),
     );
     SoundDesc_ToFile((*this).desc, name);
 }
@@ -922,8 +867,7 @@ pub unsafe extern "C" fn Sound_ToFile(mut this: *mut Sound, mut name: cstr) {
 pub unsafe extern "C" fn Sound_Acquire(mut this: *mut Sound) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Sound_Acquire\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Sound_Acquire\0")).as_ptr(),
     );
     (*(*this).desc)._refCount = ((*(*this).desc)._refCount).wrapping_add(1);
 }
@@ -931,8 +875,7 @@ pub unsafe extern "C" fn Sound_Acquire(mut this: *mut Sound) {
 pub unsafe extern "C" fn Sound_Free(mut this: *mut Sound) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Free\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Free\0")).as_ptr(),
     );
     Sound_SetState(this, 4 as i32 as SoundState);
     Sound_SetState(this, 5 as i32 as SoundState);
@@ -942,8 +885,7 @@ pub unsafe extern "C" fn Sound_Free(mut this: *mut Sound) {
 pub unsafe extern "C" fn Sound_Play(mut this: *mut Sound) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Play\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Play\0")).as_ptr(),
     );
     Sound_SetState(this, 3 as i32 as SoundState);
 }
@@ -951,8 +893,7 @@ pub unsafe extern "C" fn Sound_Play(mut this: *mut Sound) {
 pub unsafe extern "C" fn Sound_Pause(mut this: *mut Sound) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Pause\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Pause\0")).as_ptr(),
     );
     Sound_SetState(this, 2 as i32 as SoundState);
 }
@@ -960,8 +901,7 @@ pub unsafe extern "C" fn Sound_Pause(mut this: *mut Sound) {
 pub unsafe extern "C" fn Sound_Rewind(mut this: *mut Sound) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_Rewind\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_Rewind\0")).as_ptr(),
     );
     // FMOD_CheckError(
     //     FMOD_Channel_SetPosition(
@@ -980,8 +920,7 @@ pub unsafe extern "C" fn Sound_Rewind(mut this: *mut Sound) {
 pub unsafe extern "C" fn Sound_Get3D(mut this: *mut Sound) -> bool {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Get3D\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Get3D\0")).as_ptr(),
     );
     let mut mode: FMOD_MODE = 0;
     // FMOD_CheckError(
@@ -992,17 +931,13 @@ pub unsafe extern "C" fn Sound_Get3D(mut this: *mut Sound) -> bool {
     //     (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Get3D\0"))
     //         .as_ptr(),
     // );
-    return mode & 0x10 as i32 as u32
-        == 0x10 as i32 as u32;
+    return mode & 0x10 as i32 as u32 == 0x10 as i32 as u32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_GetDuration(mut this: *mut Sound) -> f32 {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<
-            &[u8; 18],
-            &[libc::c_char; 18],
-        >(b"Sound_GetDuration\0"))
+        (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"Sound_GetDuration\0"))
             .as_ptr(),
     );
     return SoundDesc_GetDuration((*this).desc);
@@ -1023,15 +958,13 @@ pub unsafe extern "C" fn Sound_GetLooped(mut this: *mut Sound) -> bool {
     //     (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_GetLooped\0"))
     //         .as_ptr(),
     // );
-    return mode & 0x2 as i32 as u32
-        == 0x2 as i32 as u32;
+    return mode & 0x2 as i32 as u32 == 0x2 as i32 as u32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_GetName(mut this: *mut Sound) -> cstr {
     Sound_EnsureNotFreedImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Sound_GetName\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Sound_GetName\0")).as_ptr(),
     );
     return SoundDesc_GetName((*this).desc);
 }
@@ -1039,8 +972,7 @@ pub unsafe extern "C" fn Sound_GetName(mut this: *mut Sound) -> cstr {
 pub unsafe extern "C" fn Sound_GetPath(mut this: *mut Sound) -> cstr {
     Sound_EnsureNotFreedImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Sound_GetPath\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Sound_GetPath\0")).as_ptr(),
     );
     return SoundDesc_GetPath((*this).desc);
 }
@@ -1063,17 +995,10 @@ pub unsafe extern "C" fn Sound_Attach3DPos(
     (*this).autoVel = vel;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Sound_Set3DLevel(
-    mut this: *mut Sound,
-    mut level: f32,
-) {
+pub unsafe extern "C" fn Sound_Set3DLevel(mut this: *mut Sound, mut level: f32) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<
-            &[u8; 17],
-            &[libc::c_char; 17],
-        >(b"Sound_Set3DLevel\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"Sound_Set3DLevel\0")).as_ptr(),
     );
     // FMOD_CheckError(
     //     FMOD_Channel_Set3DLevel((*this).handle, level),
@@ -1095,8 +1020,7 @@ pub unsafe extern "C" fn Sound_Set3DPos(
 ) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_Set3DPos\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_Set3DPos\0")).as_ptr(),
     );
     // FMOD_CheckError(
     //     FMOD_Channel_Set3DAttributes(
@@ -1112,18 +1036,14 @@ pub unsafe extern "C" fn Sound_Set3DPos(
     // );
 }
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetFreeOnFinish(
-    mut this: *mut Sound,
-    mut freeOnFinish: bool,
-) {
+pub unsafe extern "C" fn Sound_SetFreeOnFinish(mut this: *mut Sound, mut freeOnFinish: bool) {
     (*this).freeOnFinish = freeOnFinish;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, mut pan: f32) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_SetPan\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_SetPan\0")).as_ptr(),
     );
     // FMOD_CheckError(
     //     FMOD_Channel_SetPan((*this).handle, pan),
@@ -1135,14 +1055,10 @@ pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, mut pan: f32) {
     // );
 }
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetPitch(
-    mut this: *mut Sound,
-    mut pitch: f32,
-) {
+pub unsafe extern "C" fn Sound_SetPitch(mut this: *mut Sound, mut pitch: f32) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_SetPitch\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_SetPitch\0")).as_ptr(),
     );
     // FMOD_CheckError(
     //     FMOD_Channel_SetPitch((*this).handle, pitch),
@@ -1154,20 +1070,12 @@ pub unsafe extern "C" fn Sound_SetPitch(
     // );
 }
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetPlayPos(
-    mut this: *mut Sound,
-    mut seconds: f32,
-) {
+pub unsafe extern "C" fn Sound_SetPlayPos(mut this: *mut Sound, mut seconds: f32) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<
-            &[u8; 17],
-            &[libc::c_char; 17],
-        >(b"Sound_SetPlayPos\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"Sound_SetPlayPos\0")).as_ptr(),
     );
-    let mut ms: u32 = Round((seconds * 1000.0f32) as f64)
-        as u32;
+    let mut ms: u32 = Round((seconds * 1000.0f32) as f64) as u32;
     // FMOD_CheckError(
     //     FMOD_Channel_SetPosition(
     //         (*this).handle,
@@ -1185,14 +1093,10 @@ pub unsafe extern "C" fn Sound_SetPlayPos(
     // );
 }
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetVolume(
-    mut this: *mut Sound,
-    mut volume: f32,
-) {
+pub unsafe extern "C" fn Sound_SetVolume(mut this: *mut Sound, mut volume: f32) {
     Sound_EnsureStateImpl(
         this,
-        (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_SetVolume\0"))
-            .as_ptr(),
+        (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_SetVolume\0")).as_ptr(),
     );
     // FMOD_CheckError(
     //     FMOD_Channel_SetVolume((*this).handle, volume),
@@ -1227,11 +1131,7 @@ pub unsafe extern "C" fn Sound_LoadPlayAttached(
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Sound_LoadPlayFree(
-    mut name: cstr,
-    mut isLooped: bool,
-    mut is3D: bool,
-) {
+pub unsafe extern "C" fn Sound_LoadPlayFree(mut name: cstr, mut isLooped: bool, mut is3D: bool) {
     let mut this: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_SetFreeOnFinish(this, 1 as i32 != 0);
     Sound_Play(this);

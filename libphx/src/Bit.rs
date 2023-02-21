@@ -1,5 +1,4 @@
-use ::libc;
-
+use libc;
 
 #[no_mangle]
 pub extern "C" fn Bit_And32(mut x: u32, mut y: u32) -> u32 {

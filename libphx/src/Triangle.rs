@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
@@ -25,21 +25,15 @@ unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
 #[inline]
-unsafe extern "C" fn Min(
-    mut a: f64,
-    mut b: f64,
-) -> f64 {
+unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_ToPlane(
-    mut tri: *const Triangle,
-    mut plane: *mut Plane,
-) {
+pub unsafe extern "C" fn Triangle_ToPlane(mut tri: *const Triangle, mut plane: *mut Plane) {
     let mut v: *const Vec3 = ((*tri).vertices).as_ptr();
-    let mut e1: Vec3 = *v.offset(1) -  *v.offset(0);
-    let mut e2: Vec3 = *v.offset(2) -  *v.offset(0);
+    let mut e1: Vec3 = *v.offset(1) - *v.offset(0);
+    let mut e2: Vec3 = *v.offset(2) - *v.offset(0);
     let mut n: Vec3 = Vec3::cross(e1, e2).normalize();
     let mut centroid: Vec3 = *v.offset(0);
     centroid += *v.offset(1);
@@ -86,10 +80,7 @@ pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     let mut e01 = (*v.offset(0)).distance(*v.offset(1));
     let mut e12 = (*v.offset(1)).distance(*v.offset(2));
     let mut e20 = (*v.offset(2)).distance(*v.offset(0));
-    let mut shortest: f32 = Min(
-        Min(e01 as f64, e12 as f64),
-        e20 as f64,
-    ) as f32;
+    let mut shortest: f32 = Min(Min(e01 as f64, e12 as f64), e20 as f64) as f32;
     if (shortest as f64) < 0.75f32 as f64 * 1e-4f64 {
         return (0x400000 as i32 | 0x8 as i32) as Error;
     }

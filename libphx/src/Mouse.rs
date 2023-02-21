@@ -1,7 +1,7 @@
-use ::libc;
-use glam::Vec3;
-use glam::IVec2;
 use crate::internal::Memory::*;
+use glam::IVec2;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type SDL_Window;
     fn SDL_WarpMouseInWindow(window: *mut SDL_Window, x: i32, y: i32);
@@ -53,8 +53,7 @@ pub unsafe extern "C" fn Mouse_GetDelta(mut out: *mut IVec2) {
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_GetIdleTime() -> f64 {
     let mut now: u64 = SDL_GetPerformanceCounter();
-    return now.wrapping_sub(lastAction) as f64
-        / SDL_GetPerformanceFrequency() as f64;
+    return now.wrapping_sub(lastAction) as f64 / SDL_GetPerformanceFrequency() as f64;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_GetPosition(mut out: *mut IVec2) {
@@ -74,33 +73,26 @@ pub unsafe extern "C" fn Mouse_SetPosition(mut x: i32, mut y: i32) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_SetVisible(mut visible: bool) {
-    SDL_ShowCursor(
-        if visible as i32 != 0 { 1 as i32 } else { 0 as i32 },
-    );
+    SDL_ShowCursor(if visible as i32 != 0 {
+        1 as i32
+    } else {
+        0 as i32
+    });
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Down(mut button: MouseButton) -> bool {
     button = (1 as i32) << button - 1 as i32;
-    return SDL_GetMouseState(0 as *mut i32, 0 as *mut i32)
-        & button as u32 > 0 as i32 as u32;
+    return SDL_GetMouseState(0 as *mut i32, 0 as *mut i32) & button as u32 > 0 as i32 as u32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Pressed(mut button: MouseButton) -> bool {
     button = (1 as i32) << button - 1 as i32;
-    let mut current: u32 = SDL_GetMouseState(
-        0 as *mut i32,
-        0 as *mut i32,
-    );
-    return current & button as u32 != 0
-        && lastState & button as u32 == 0;
+    let mut current: u32 = SDL_GetMouseState(0 as *mut i32, 0 as *mut i32);
+    return current & button as u32 != 0 && lastState & button as u32 == 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Released(mut button: MouseButton) -> bool {
     button = (1 as i32) << button - 1 as i32;
-    let mut current: u32 = SDL_GetMouseState(
-        0 as *mut i32,
-        0 as *mut i32,
-    );
-    return current & button as u32 == 0
-        && lastState & button as u32 != 0;
+    let mut current: u32 = SDL_GetMouseState(0 as *mut i32, 0 as *mut i32);
+    return current & button as u32 == 0 && lastState & button as u32 != 0;
 }

@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 pub type TexFormat = i32;
 #[no_mangle]
 pub static mut TexFormat_R8: TexFormat = 0x8229 as i32;
@@ -77,8 +77,8 @@ pub unsafe extern "C" fn TexFormat_IsDepth(mut this: TexFormat) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn TexFormat_IsValid(mut this: TexFormat) -> bool {
     match this {
-        33321 | 33322 | 33325 | 33326 | 33323 | 33324 | 33327 | 33328 | 32849 | 32856
-        | 32859 | 34842 | 34836 | 33189 | 33190 | 36012 => return 1 as i32 != 0,
+        33321 | 33322 | 33325 | 33326 | 33323 | 33324 | 33327 | 33328 | 32849 | 32856 | 32859
+        | 34842 | 34836 | 33189 | 33190 | 36012 => return 1 as i32 != 0,
         _ => {}
     }
     return 0 as i32 != 0;

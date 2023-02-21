@@ -1,6 +1,6 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);
@@ -64,8 +64,7 @@ pub unsafe extern "C" fn OpenGL_CheckError(mut file: cstr, mut line: i32) {
             error = b"GL_INVALID_OPERATION\0" as *const u8 as *const libc::c_char;
         }
         1286 => {
-            error = b"GL_INVALID_FRAMEBUFFER_OPERATION\0" as *const u8
-                as *const libc::c_char;
+            error = b"GL_INVALID_FRAMEBUFFER_OPERATION\0" as *const u8 as *const libc::c_char;
         }
         1285 => {
             error = b"GL_OUT_OF_MEMORY\0" as *const u8 as *const libc::c_char;

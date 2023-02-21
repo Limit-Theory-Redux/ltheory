@@ -1,15 +1,13 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type lua_State;
     fn qsort(
         __base: *mut libc::c_void,
         __nel: usize,
         __width: usize,
-        __compar: Option::<
-            unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
-        >,
+        __compar: Option<unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32>,
     );
     fn lua_gettop(L: *mut lua_State) -> i32;
     fn lua_settop(L: *mut lua_State, idx: i32);
@@ -19,12 +17,7 @@ extern "C" {
     fn Lua_PushRef(_: *mut Lua, _: LuaRef);
     fn Lua_ReleaseRef(_: *mut Lua, _: LuaRef);
     fn Lua_GetRef(_: *mut Lua) -> LuaRef;
-    fn Lua_Call(
-        _: *mut Lua,
-        args: i32,
-        rets: i32,
-        errorHandler: i32,
-    );
+    fn Lua_Call(_: *mut Lua, args: i32, rets: i32, errorHandler: i32);
     fn Lua_PushNumber(_: *mut Lua, _: f64);
     fn Lua_SetFn(_: *mut Lua, name: cstr, _: LuaFn);
     fn TimeStamp_Get() -> TimeStamp;
@@ -38,7 +31,7 @@ pub type ptrdiff_t = __darwin_ptrdiff_t;
 pub type lua_Number = f64;
 pub type lua_Integer = ptrdiff_t;
 pub type Lua = lua_State;
-pub type LuaFn = Option::<unsafe extern "C" fn(*mut Lua) -> i32>;
+pub type LuaFn = Option<unsafe extern "C" fn(*mut Lua) -> i32>;
 pub type LuaRef = lua_Integer;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -71,10 +64,7 @@ static mut this: Scheduler = Scheduler {
     now: 0,
     locked: false,
 };
-unsafe extern "C" fn SortByWake(
-    mut pa: *const libc::c_void,
-    mut pb: *const libc::c_void,
-) -> i32 {
+unsafe extern "C" fn SortByWake(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
     let mut a: *const SchedulerElem = pa as *const SchedulerElem;
     let mut b: *const SchedulerElem = pb as *const SchedulerElem;
     return if (*a).tWake < (*b).tWake {
@@ -99,18 +89,15 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
     elem.arg = Lua_GetRef(L);
     elem.fn_0 = Lua_GetRef(L);
     if this.locked {
-        if (this.addQueue_capacity == this.addQueue_size) as i32
-            as libc::c_long != 0
-        {
-            this
-                .addQueue_capacity = if this.addQueue_capacity != 0 {
+        if (this.addQueue_capacity == this.addQueue_size) as i32 as libc::c_long != 0 {
+            this.addQueue_capacity = if this.addQueue_capacity != 0 {
                 this.addQueue_capacity * 2 as i32
             } else {
                 1 as i32
             };
             let mut elemSize: usize = ::core::mem::size_of::<SchedulerElem>();
-            let mut pData: *mut *mut libc::c_void = &mut this.addQueue_data
-                as *mut *mut SchedulerElem as *mut *mut libc::c_void;
+            let mut pData: *mut *mut libc::c_void =
+                &mut this.addQueue_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 this.addQueue_data as *mut libc::c_void,
                 (this.addQueue_capacity as usize).wrapping_mul(elemSize as usize),
@@ -120,18 +107,15 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
         this.addQueue_size = this.addQueue_size + 1;
         *(this.addQueue_data).offset(fresh0 as isize) = elem;
     } else {
-        if (this.elems_capacity == this.elems_size) as libc::c_long
-            != 0
-        {
-            this
-                .elems_capacity = if this.elems_capacity != 0 {
+        if (this.elems_capacity == this.elems_size) as libc::c_long != 0 {
+            this.elems_capacity = if this.elems_capacity != 0 {
                 this.elems_capacity * 2 as i32
             } else {
                 1 as i32
             };
             let mut elemSize_0: usize = ::core::mem::size_of::<SchedulerElem>();
-            let mut pData_0: *mut *mut libc::c_void = &mut this.elems_data
-                as *mut *mut SchedulerElem as *mut *mut libc::c_void;
+            let mut pData_0: *mut *mut libc::c_void =
+                &mut this.elems_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
                 this.elems_data as *mut libc::c_void,
                 (this.elems_capacity as usize).wrapping_mul(elemSize_0 as usize),
@@ -160,13 +144,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
         this.elems_data as *mut libc::c_void,
         this.elems_size as usize,
         ::core::mem::size_of::<SchedulerElem>() as usize,
-        Some(
-            SortByWake
-                as unsafe extern "C" fn(
-                    *const libc::c_void,
-                    *const libc::c_void,
-                ) -> i32,
-        ),
+        Some(SortByWake as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
     );
     this.now = TimeStamp_Get();
     lua_getfield(
@@ -182,10 +160,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
         if this.now < (*elem).tWake {
             break;
         }
-        let mut dt: f64 = TimeStamp_GetDifference(
-            (*elem).tCreated,
-            this.now,
-        );
+        let mut dt: f64 = TimeStamp_GetDifference((*elem).tCreated, this.now);
         Lua_PushRef(L, (*elem).fn_0);
         Lua_PushNumber(L, dt);
         Lua_PushRef(L, (*elem).arg);
@@ -198,20 +173,16 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
     this.locked = 0 as i32 != 0;
     while this.addQueue_size != 0 {
         this.addQueue_size -= 1;
-        let mut elem_0: SchedulerElem = *(this.addQueue_data)
-            .offset(this.addQueue_size as isize);
-        if (this.elems_capacity == this.elems_size) as libc::c_long
-            != 0
-        {
-            this
-                .elems_capacity = if this.elems_capacity != 0 {
+        let mut elem_0: SchedulerElem = *(this.addQueue_data).offset(this.addQueue_size as isize);
+        if (this.elems_capacity == this.elems_size) as libc::c_long != 0 {
+            this.elems_capacity = if this.elems_capacity != 0 {
                 this.elems_capacity * 2 as i32
             } else {
                 1 as i32
             };
             let mut elemSize: usize = ::core::mem::size_of::<SchedulerElem>();
-            let mut pData: *mut *mut libc::c_void = &mut this.elems_data
-                as *mut *mut SchedulerElem as *mut *mut libc::c_void;
+            let mut pData: *mut *mut libc::c_void =
+                &mut this.elems_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 this.elems_data as *mut libc::c_void,
                 (this.elems_capacity as usize).wrapping_mul(elemSize as usize),

@@ -1,8 +1,7 @@
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
-extern "C" {
-}
+use glam::Vec3;
+use libc;
+extern "C" {}
 pub type cstr = *const libc::c_char;
 pub type Metric = i32;
 static mut valueCurr: [i32; 8] = [0 as i32, 0, 0, 0, 0, 0, 0, 0];
@@ -25,22 +24,14 @@ pub unsafe extern "C" fn Metric_GetName(mut this: Metric) -> cstr {
     return 0 as cstr;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Metric_AddDraw(
-    mut polys: i32,
-    mut tris: i32,
-    mut verts: i32,
-) {
+pub unsafe extern "C" fn Metric_AddDraw(mut polys: i32, mut tris: i32, mut verts: i32) {
     valueCurr[0x1] += 1 as i32;
     valueCurr[0x3] += polys;
     valueCurr[0x4] += tris;
     valueCurr[0x5] += verts;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Metric_AddDrawImm(
-    mut polys: i32,
-    mut tris: i32,
-    mut verts: i32,
-) {
+pub unsafe extern "C" fn Metric_AddDrawImm(mut polys: i32, mut tris: i32, mut verts: i32) {
     valueCurr[0x2] += 1 as i32;
     valueCurr[0x3] += polys;
     valueCurr[0x4] += tris;

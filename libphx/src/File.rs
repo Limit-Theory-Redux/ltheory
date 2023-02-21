@@ -1,7 +1,7 @@
-use std::fs;
-use ::libc;
-use glam::Vec3;
 use crate::internal::Memory::*;
+use glam::Vec3;
+use libc;
+use std::fs;
 extern "C" {
     pub type Bytes;
     fn Fatal(_: cstr, _: ...);
@@ -62,8 +62,7 @@ unsafe extern "C" fn File_OpenMode(mut path: cstr, mut mode: cstr) -> *mut File 
     if handle.is_null() {
         return 0 as *mut File;
     }
-    let mut this: *mut File = MemAlloc(::core::mem::size_of::<File>())
-        as *mut File;
+    let mut this: *mut File = MemAlloc(::core::mem::size_of::<File>()) as *mut File;
     (*this).handle = handle;
     return this;
 }
@@ -93,8 +92,7 @@ pub unsafe extern "C" fn File_ReadBytes(mut path: cstr) -> *mut Bytes {
     }
     if size < 0 as i64 {
         Fatal(
-            b"File_Read: failed to get size of file '%s'\0" as *const u8
-                as *const libc::c_char,
+            b"File_Read: failed to get size of file '%s'\0" as *const u8 as *const libc::c_char,
             path,
         );
     }
@@ -107,12 +105,7 @@ pub unsafe extern "C" fn File_ReadBytes(mut path: cstr) -> *mut Bytes {
         );
     }
     let mut buffer: *mut Bytes = Bytes_Create(size as u32);
-    let mut result: usize = libc::fread(
-        Bytes_GetData(buffer),
-        size as usize,
-        1 as usize,
-        file,
-    );
+    let mut result: usize = libc::fread(Bytes_GetData(buffer), size as usize, 1 as usize, file);
     if result != 1 as usize {
         Fatal(
             b"File_Read: failed to read correct number of bytes from '%s'\0" as *const u8
@@ -145,16 +138,10 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: cstr) -> cstr {
     libc::rewind(file);
     let mut buffer: *mut libc::c_char = MemAlloc(
         (::core::mem::size_of::<libc::c_char>())
-            .wrapping_mul(
-                (size as usize).wrapping_add(1 as usize),
-            ),
+            .wrapping_mul((size as usize).wrapping_add(1 as usize)),
     ) as *mut libc::c_char;
-    let mut result: usize = libc::fread(
-        buffer as *mut libc::c_void,
-        size as usize,
-        1 as usize,
-        file,
-    );
+    let mut result: usize =
+        libc::fread(buffer as *mut libc::c_void, size as usize, 1 as usize, file);
     if result != 1 as usize {
         Fatal(
             b"File_Read: failed to read correct number of bytes from '%s'\0" as *const u8
@@ -178,17 +165,8 @@ pub unsafe extern "C" fn File_Size(mut path: cstr) -> i64 {
     return size;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_Read(
-    mut this: *mut File,
-    mut data: *mut libc::c_void,
-    mut len: u32,
-) {
-    libc::fread(
-        data,
-        len as usize,
-        1 as usize,
-        (*this).handle,
-    );
+pub unsafe extern "C" fn File_Read(mut this: *mut File, mut data: *mut libc::c_void, mut len: u32) {
+    libc::fread(data, len as usize, 1 as usize, (*this).handle);
 }
 #[no_mangle]
 pub unsafe extern "C" fn File_Write(
@@ -196,12 +174,7 @@ pub unsafe extern "C" fn File_Write(
     mut data: *const libc::c_void,
     mut len: u32,
 ) {
-    libc::fwrite(
-        data,
-        len as usize,
-        1 as usize,
-        (*this).handle,
-    );
+    libc::fwrite(data, len as usize, 1 as usize, (*this).handle);
 }
 #[no_mangle]
 pub unsafe extern "C" fn File_WriteStr(mut this: *mut File, mut data: cstr) {
@@ -393,10 +366,7 @@ pub unsafe extern "C" fn File_WriteF32(mut this: *mut File, mut value: f32) {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteF64(
-    mut this: *mut File,
-    mut value: f64,
-) {
+pub unsafe extern "C" fn File_WriteF64(mut this: *mut File, mut value: f64) {
     libc::fwrite(
         &mut value as *mut f64 as *const libc::c_void,
         ::core::mem::size_of::<f64>() as usize,

@@ -1,7 +1,7 @@
-use ::libc;
-use glam::Vec3;
-use glam::DVec3;
 use crate::internal::Memory::*;
+use glam::DVec3;
+use glam::Vec3;
+use libc;
 extern "C" {
     pub type Matrix;
     fn tan(_: f64) -> f64;
@@ -211,18 +211,10 @@ pub unsafe extern "C" fn GLMatrix_RotateZ(mut angle: f64) {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Scale(
-    mut x: f64,
-    mut y: f64,
-    mut z: f64,
-) {
+pub unsafe extern "C" fn GLMatrix_Scale(mut x: f64, mut y: f64, mut z: f64) {
     glScaled(x, y, z);
 }
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Translate(
-    mut x: f64,
-    mut y: f64,
-    mut z: f64,
-) {
+pub unsafe extern "C" fn GLMatrix_Translate(mut x: f64, mut y: f64, mut z: f64) {
     glTranslated(x, y, z);
 }
