@@ -5,19 +5,13 @@ use crate::internal::Memory::*;
 use crate::ResourceType::*;
 use memoffset::{offset_of, span_of};
 use glam::Vec2;
+use crate::Bytes::*;
 
 extern "C" {
-    pub type Bytes;
     pub type SDF;
     pub type Matrix;
     fn Fatal(_: cstr, _: ...);
     fn sqrt(_: libc::c_double) -> libc::c_double;
-    fn Bytes_Create(len: uint32) -> *mut Bytes;
-    fn Bytes_Free(_: *mut Bytes);
-    fn Bytes_Read(_: *mut Bytes, data: *mut libc::c_void, len: uint32);
-    fn Bytes_ReadI32(_: *mut Bytes) -> int32;
-    fn Bytes_Write(_: *mut Bytes, data: *const libc::c_void, len: uint32);
-    fn Bytes_WriteI32(_: *mut Bytes, _: int32);
     fn Matrix_Free(_: *mut Matrix);
     fn Matrix_RotationX(rads: libc::c_float) -> *mut Matrix;
     fn Matrix_RotationY(rads: libc::c_float) -> *mut Matrix;
