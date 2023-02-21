@@ -18,13 +18,13 @@ extern "C" {
     pub type FT_LibraryRec_;
     fn Fatal(_: cstr, _: ...);
     fn Draw_Color(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
-    fn pow(_: libc::c_double, _: libc::c_double) -> libc::c_double;
-    fn floor(_: libc::c_double) -> libc::c_double;
+    fn pow(_: f64, _: f64) -> f64;
+    fn floor(_: f64) -> f64;
     fn HashMap_Create(keySize: uint32, capacity: uint32) -> *mut HashMap;
     fn HashMap_Get(_: *mut HashMap, key: *const libc::c_void) -> *mut libc::c_void;
     fn HashMap_Set(_: *mut HashMap, key: *const libc::c_void, value: *mut libc::c_void);
@@ -38,14 +38,14 @@ extern "C" {
     fn Tex2D_Create(sx: libc::c_int, sy: libc::c_int, _: TexFormat) -> *mut Tex2D;
     fn Tex2D_DrawEx(
         _: *mut Tex2D,
-        x0: libc::c_float,
-        y0: libc::c_float,
-        x1: libc::c_float,
-        y1: libc::c_float,
-        u0: libc::c_float,
-        v0: libc::c_float,
-        u1: libc::c_float,
-        v1: libc::c_float,
+        x0: f32,
+        y0: f32,
+        x1: f32,
+        y1: f32,
+        u0: f32,
+        v0: f32,
+        u1: f32,
+        v1: f32,
     );
     fn Tex2D_SetData(
         _: *mut Tex2D,
@@ -391,10 +391,10 @@ pub type FT_Long = libc::c_long;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
 }
 pub type BlendMode = int32;
 pub type DataFormat = int32;
@@ -409,37 +409,37 @@ pub type FT_Kerning_Mode_ = libc::c_uint;
 pub const FT_KERNING_UNSCALED: FT_Kerning_Mode_ = 2;
 pub const FT_KERNING_UNFITTED: FT_Kerning_Mode_ = 1;
 #[inline]
-unsafe extern "C" fn Floor(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
 #[inline]
 unsafe extern "C" fn Pow(
-    mut t: libc::c_double,
-    mut p: libc::c_double,
-) -> libc::c_double {
+    mut t: f64,
+    mut p: f64,
+) -> f64 {
     return pow(t, p);
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 
 #[inline]
 unsafe extern "C" fn Vec4f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+    mut w: f32,
 ) -> Vec4f {
     let mut this: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };
@@ -449,9 +449,9 @@ unsafe extern "C" fn Vec4f_Create(
 }
 
 #[no_mangle]
-pub static mut kGamma: libc::c_float = 1.8f32;
+pub static mut kGamma: f32 = 1.8f32;
 #[no_mangle]
-pub static mut kRcpGamma: libc::c_float = unsafe { 1.0f32 / kGamma };
+pub static mut kRcpGamma: f32 = unsafe { 1.0f32 / kGamma };
 static mut ft: FT_Library = 0 as *const FT_LibraryRec_ as FT_Library;
 unsafe extern "C" fn Font_GetGlyph(
     mut this: *mut Font,
@@ -504,11 +504,11 @@ unsafe extern "C" fn Font_GetGlyph(
     while dy < (*bitmap).rows {
         let mut dx: uint = 0 as libc::c_int as uint;
         while dx < (*bitmap).width {
-            let mut a: libc::c_float = Pow(
-                (*pBitmap.offset(dx as isize) as libc::c_float / 255.0f32)
-                    as libc::c_double,
-                kRcpGamma as libc::c_double,
-            ) as libc::c_float;
+            let mut a: f32 = Pow(
+                (*pBitmap.offset(dx as isize) as f32 / 255.0f32)
+                    as f64,
+                kRcpGamma as f64,
+            ) as f32;
             let fresh0 = pBuffer;
             pBuffer = pBuffer.offset(1);
             *fresh0 = Vec4f_Create(1.0f32, 1.0f32, 1.0f32, a);
@@ -601,12 +601,12 @@ pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
 pub unsafe extern "C" fn Font_Draw(
     mut this: *mut Font,
     mut text: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"Font_Draw\0"))
@@ -616,20 +616,20 @@ pub unsafe extern "C" fn Font_Draw(
     let fresh1 = text;
     text = text.offset(1);
     let mut codepoint: uint32 = *fresh1 as uint32;
-    x = Floor(x as libc::c_double) as libc::c_float;
-    y = Floor(y as libc::c_double) as libc::c_float;
+    x = Floor(x as f64) as f32;
+    y = Floor(y as f64) as f32;
     RenderState_PushBlendMode(1 as libc::c_int);
     Draw_Color(r, g, b, a);
     while codepoint != 0 {
         let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
-                x += Font_GetKerning(this, glyphLast, (*glyph).index) as libc::c_float;
+                x += Font_GetKerning(this, glyphLast, (*glyph).index) as f32;
             }
-            let mut x0: libc::c_float = x + (*glyph).x0 as libc::c_float;
-            let mut y0: libc::c_float = y + (*glyph).y0 as libc::c_float;
-            let mut x1: libc::c_float = x + (*glyph).x1 as libc::c_float;
-            let mut y1: libc::c_float = y + (*glyph).y1 as libc::c_float;
+            let mut x0: f32 = x + (*glyph).x0 as f32;
+            let mut y0: f32 = y + (*glyph).y0 as f32;
+            let mut x1: f32 = x + (*glyph).x1 as f32;
+            let mut y1: f32 = y + (*glyph).y1 as f32;
             Tex2D_DrawEx(
                 (*glyph).tex,
                 x0,
@@ -641,7 +641,7 @@ pub unsafe extern "C" fn Font_Draw(
                 1.0f32,
                 1.0f32,
             );
-            x += (*glyph).advance as libc::c_float;
+            x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
         } else {
             glyphLast = 0 as libc::c_int;
@@ -663,8 +663,8 @@ pub unsafe extern "C" fn Font_Draw(
 pub unsafe extern "C" fn Font_DrawShaded(
     mut this: *mut Font,
     mut text: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
+    mut x: f32,
+    mut y: f32,
 ) {
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Font_DrawShaded\0"))
@@ -674,18 +674,18 @@ pub unsafe extern "C" fn Font_DrawShaded(
     let fresh3 = text;
     text = text.offset(1);
     let mut codepoint: uint32 = *fresh3 as uint32;
-    x = Floor(x as libc::c_double) as libc::c_float;
-    y = Floor(y as libc::c_double) as libc::c_float;
+    x = Floor(x as f64) as f32;
+    y = Floor(y as f64) as f32;
     while codepoint != 0 {
         let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
-                x += Font_GetKerning(this, glyphLast, (*glyph).index) as libc::c_float;
+                x += Font_GetKerning(this, glyphLast, (*glyph).index) as f32;
             }
-            let mut x0: libc::c_float = x + (*glyph).x0 as libc::c_float;
-            let mut y0: libc::c_float = y + (*glyph).y0 as libc::c_float;
-            let mut x1: libc::c_float = x + (*glyph).x1 as libc::c_float;
-            let mut y1: libc::c_float = y + (*glyph).y1 as libc::c_float;
+            let mut x0: f32 = x + (*glyph).x0 as f32;
+            let mut y0: f32 = y + (*glyph).y0 as f32;
+            let mut x1: f32 = x + (*glyph).x1 as f32;
+            let mut y1: f32 = y + (*glyph).y1 as f32;
             Shader_ResetTexIndex();
             Shader_SetTex2D(
                 b"glyph\0" as *const u8 as *const libc::c_char,
@@ -702,7 +702,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
                 1.0f32,
                 1.0f32,
             );
-            x += (*glyph).advance as libc::c_float;
+            x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
         } else {
             glyphLast = 0 as libc::c_int;
@@ -752,16 +752,16 @@ pub unsafe extern "C" fn Font_GetSize(
                 x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
             lower
-                .x = Min(lower.x as libc::c_double, (x + (*glyph).x0) as libc::c_double)
+                .x = Min(lower.x as f64, (x + (*glyph).x0) as f64)
                 as libc::c_int;
             lower
-                .y = Min(lower.y as libc::c_double, (y + (*glyph).y0) as libc::c_double)
+                .y = Min(lower.y as f64, (y + (*glyph).y0) as f64)
                 as libc::c_int;
             upper
-                .x = Max(upper.x as libc::c_double, (x + (*glyph).x1) as libc::c_double)
+                .x = Max(upper.x as f64, (x + (*glyph).x1) as f64)
                 as libc::c_int;
             upper
-                .y = Max(upper.y as libc::c_double, (y + (*glyph).y1) as libc::c_double)
+                .y = Max(upper.y as f64, (y + (*glyph).y1) as f64)
                 as libc::c_int;
             x += (*glyph).advance;
             glyphLast = (*glyph).index;
@@ -800,8 +800,8 @@ pub unsafe extern "C" fn Font_GetSize2(
             (*out).x += (*glyph).advance;
             (*out)
                 .y = Max(
-                (*out).y as libc::c_double,
-                (-(*glyph).y0 + 1 as libc::c_int) as libc::c_double,
+                (*out).y as f64,
+                (-(*glyph).y0 + 1 as libc::c_int) as f64,
             ) as libc::c_int;
             glyphLast = (*glyph).index;
         } else {

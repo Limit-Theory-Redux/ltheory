@@ -11,14 +11,14 @@ extern "C" {
     pub type Shader;
     pub type Tex2D;
     pub type Tex3D;
-    fn fabs(_: libc::c_double) -> libc::c_double;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
-    fn ceil(_: libc::c_double) -> libc::c_double;
+    fn fabs(_: f64) -> f64;
+    fn sqrt(_: f64) -> f64;
+    fn ceil(_: f64) -> f64;
     fn Draw_Rect(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn Mesh_GetIndexCount(_: *mut Mesh) -> libc::c_int;
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
@@ -31,7 +31,7 @@ extern "C" {
     fn Shader_Load(vertName: cstr, fragName: cstr) -> *mut Shader;
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
-    fn Shader_SetFloat(_: cstr, _: libc::c_float);
+    fn Shader_SetFloat(_: cstr, _: f32);
     fn Shader_SetInt(_: cstr, _: libc::c_int);
     fn Shader_SetTex2D(_: cstr, _: *mut Tex2D);
     fn Shader_SetTex3D(_: cstr, _: *mut Tex3D);
@@ -52,10 +52,10 @@ pub type int32 = int32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -69,35 +69,35 @@ pub type PixelFormat = int32;
 pub type TexFormat = int32;
 
 #[inline]
-unsafe extern "C" fn Abs(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Ceil(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Ceil(mut t: f64) -> f64 {
     return ceil(t);
 }
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
-unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
 }
 
 #[inline]
 unsafe extern "C" fn Vec4f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+    mut w: f32,
 ) -> Vec4f {
     let mut this: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };
@@ -108,21 +108,21 @@ unsafe extern "C" fn Vec4f_Create(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeAO(
     mut this: *mut Mesh,
-    mut radius: libc::c_float,
+    mut radius: f32,
 ) {
     let mut indexCount: libc::c_int = Mesh_GetIndexCount(this);
     let mut vertexCount: libc::c_int = Mesh_GetVertexCount(this);
     let mut indexData: *mut libc::c_int = Mesh_GetIndexData(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
     let mut sDim: libc::c_int = Ceil(
-        Sqrt((indexCount / 3 as libc::c_int) as libc::c_double),
+        Sqrt((indexCount / 3 as libc::c_int) as f64),
     ) as libc::c_int;
-    let mut vDim: libc::c_int = Ceil(Sqrt(vertexCount as libc::c_double)) as libc::c_int;
+    let mut vDim: libc::c_int = Ceil(Sqrt(vertexCount as f64)) as libc::c_int;
     let mut surfels: libc::c_int = sDim * sDim;
     let mut vertices: libc::c_int = vDim * vDim;
     let mut bufSize: libc::c_int = Max(
-        surfels as libc::c_double,
-        vertices as libc::c_double,
+        surfels as f64,
+        vertices as f64,
     ) as libc::c_int;
     let mut pointBuffer: *mut Vec4f = MemAlloc(
         (::core::mem::size_of::<Vec4f>())
@@ -154,9 +154,9 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
             (*v3).p - (*v1).p,
             (*v2).p - (*v1).p,
         );
-        let mut length: libc::c_float = normal.length();
-        let mut area: libc::c_float = 0.5f32 * length / 3.14159265f32;
-        if Abs(length as libc::c_double) > 1e-6f64 {
+        let mut length: f32 = normal.length();
+        let mut area: f32 = 0.5f32 * length / 3.14159265f32;
+        if Abs(length as f64) > 1e-6f64 {
             normal /= length;
         } else {
             normal = Vec3::new(
@@ -270,10 +270,10 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
     Shader_Stop(shader);
     RenderTarget_Pop();
     RenderState_PopAll();
-    let mut result: *mut libc::c_float = MemAlloc(
-        (::core::mem::size_of::<libc::c_float>())
+    let mut result: *mut f32 = MemAlloc(
+        (::core::mem::size_of::<f32>())
             .wrapping_mul((vDim * vDim) as usize),
-    ) as *mut libc::c_float;
+    ) as *mut f32;
     Tex2D_GetData(
         texOutput,
         result as *mut libc::c_void,
@@ -296,11 +296,11 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
 pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     mut this: *mut Mesh,
     mut sdf: *mut Tex3D,
-    mut radius: libc::c_float,
+    mut radius: f32,
 ) {
     let mut vertexCount: libc::c_int = Mesh_GetVertexCount(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    let mut vDim: libc::c_int = Ceil(Sqrt(vertexCount as libc::c_double)) as libc::c_int;
+    let mut vDim: libc::c_int = Ceil(Sqrt(vertexCount as f64)) as libc::c_int;
     let mut texPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
     let mut pointBuffer: *mut Vec3 = MemAlloc(
@@ -341,10 +341,10 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     Shader_Stop(shader);
     RenderTarget_Pop();
     RenderState_PopAll();
-    let mut result: *mut libc::c_float = MemAlloc(
-        (::core::mem::size_of::<libc::c_float>())
+    let mut result: *mut f32 = MemAlloc(
+        (::core::mem::size_of::<f32>())
             .wrapping_mul((vDim * vDim) as usize),
-    ) as *mut libc::c_float;
+    ) as *mut f32;
     Tex2D_GetData(
         texOutput,
         result as *mut libc::c_void,

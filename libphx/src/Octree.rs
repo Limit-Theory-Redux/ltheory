@@ -8,26 +8,26 @@ extern "C" {
     pub type Matrix;
     fn Draw_Box3(box_0: *const Box3f);
     fn Draw_Color(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn Matrix_Free(_: *mut Matrix);
     fn Matrix_Inverse(_: *const Matrix) -> *mut Matrix;
     fn Matrix_MulDir(
         _: *const Matrix,
         out: *mut Vec3,
-        x: libc::c_float,
-        y: libc::c_float,
-        z: libc::c_float,
+        x: f32,
+        y: f32,
+        z: f32,
     );
     fn Matrix_MulPoint(
         _: *const Matrix,
         out: *mut Vec3,
-        x: libc::c_float,
-        y: libc::c_float,
-        z: libc::c_float,
+        x: f32,
+        y: f32,
+        z: f32,
     );
     fn Mesh_GetBound(_: *mut Mesh, out: *mut Box3f);
     fn Mesh_GetIndexCount(_: *mut Mesh) -> libc::c_int;
@@ -72,19 +72,19 @@ unsafe extern "C" fn Box3f_IntersectsRay(
     mut ro: Vec3,
     mut rdi: Vec3,
 ) -> bool {
-    let mut t1: libc::c_double = (rdi.x * (this.lower.x - ro.x)) as libc::c_double;
-    let mut t2: libc::c_double = (rdi.x * (this.upper.x - ro.x)) as libc::c_double;
-    let mut tMin: libc::c_double = Min(t1, t2);
-    let mut tMax: libc::c_double = Max(t1, t2);
-    t1 = (rdi.y * (this.lower.y - ro.y)) as libc::c_double;
-    t2 = (rdi.y * (this.upper.y - ro.y)) as libc::c_double;
+    let mut t1: f64 = (rdi.x * (this.lower.x - ro.x)) as f64;
+    let mut t2: f64 = (rdi.x * (this.upper.x - ro.x)) as f64;
+    let mut tMin: f64 = Min(t1, t2);
+    let mut tMax: f64 = Max(t1, t2);
+    t1 = (rdi.y * (this.lower.y - ro.y)) as f64;
+    t2 = (rdi.y * (this.upper.y - ro.y)) as f64;
     tMin = Max(tMin, Min(t1, t2));
     tMax = Min(tMax, Max(t1, t2));
-    t1 = (rdi.z * (this.lower.z - ro.z)) as libc::c_double;
-    t2 = (rdi.z * (this.upper.z - ro.z)) as libc::c_double;
+    t1 = (rdi.z * (this.lower.z - ro.z)) as f64;
+    t2 = (rdi.z * (this.upper.z - ro.z)) as f64;
     tMin = Max(tMin, Min(t1, t2));
     tMax = Min(tMax, Max(t1, t2));
-    return tMax >= tMin && tMax > 0 as libc::c_int as libc::c_double;
+    return tMax >= tMin && tMax > 0 as libc::c_int as f64;
 }
 #[inline]
 unsafe extern "C" fn Box3f_IntersectsBox(mut a: Box3f, mut b: Box3f) -> bool {
@@ -148,25 +148,25 @@ unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
     return result;
 }
 #[inline]
-unsafe extern "C" fn Maxf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
+unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Minf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
+unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
     return if a < b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 
@@ -229,13 +229,13 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
 }
 unsafe extern "C" fn Octree_GetAvgLoadImpl(
     mut this: *mut Octree,
-    mut load: *mut libc::c_double,
-    mut nodes: *mut libc::c_double,
+    mut load: *mut f64,
+    mut nodes: *mut f64,
 ) {
-    *nodes += 1 as libc::c_int as libc::c_double;
+    *nodes += 1 as libc::c_int as f64;
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        *load += 1 as libc::c_int as libc::c_double;
+        *load += 1 as libc::c_int as f64;
         elem = (*elem).next;
     }
     let mut i: libc::c_int = 0 as libc::c_int;
@@ -247,9 +247,9 @@ unsafe extern "C" fn Octree_GetAvgLoadImpl(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Octree_GetAvgLoad(mut this: *mut Octree) -> libc::c_double {
-    let mut load: libc::c_double = 0 as libc::c_int as libc::c_double;
-    let mut nodes: libc::c_double = 0 as libc::c_int as libc::c_double;
+pub unsafe extern "C" fn Octree_GetAvgLoad(mut this: *mut Octree) -> f64 {
+    let mut load: f64 = 0 as libc::c_int as f64;
+    let mut nodes: f64 = 0 as libc::c_int as f64;
     Octree_GetAvgLoadImpl(this, &mut load, &mut nodes);
     return load / nodes;
 }
@@ -265,8 +265,8 @@ pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> libc::c_int
     while i < 8 as libc::c_int {
         if !((*this).child[i as usize]).is_null() {
             load = Max(
-                load as libc::c_double,
-                Octree_GetMaxLoad((*this).child[i as usize]) as libc::c_double,
+                load as f64,
+                Octree_GetMaxLoad((*this).child[i as usize]) as f64,
             ) as libc::c_int;
         }
         i += 1;

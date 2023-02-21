@@ -2,10 +2,10 @@ use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
-    // fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
-    // fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
-    fn fabs(_: libc::c_double) -> libc::c_double;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    // fn __fpclassifyf(_: f32) -> libc::c_int;
+    // fn __fpclassifyd(_: f64) -> libc::c_int;
+    fn fabs(_: f64) -> f64;
+    fn sqrt(_: f64) -> f64;
     fn Fatal(_: cstr, _: ...);
     fn Polygon_ToPlane(_: *mut Polygon, _: *mut Plane);
     fn Polygon_ToPlaneFast(_: *mut Polygon, _: *mut Plane);
@@ -21,7 +21,7 @@ pub type uint32 = uint32_t;
 #[repr(C)]
 pub struct Plane {
     pub n: Vec3,
-    pub d: libc::c_float,
+    pub d: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -34,21 +34,21 @@ pub type Error = uint32;
 pub type PointClassification = uint8;
 pub type PolygonClassification = uint8;
 #[inline]
-unsafe extern "C" fn Abs(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
-unsafe extern "C" fn Float_Validate(mut x: libc::c_double) -> Error {
-    let mut classification: libc::c_int = if ::core::mem::size_of::<libc::c_double>()
-        as libc::c_ulong == ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
+unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
+    let mut classification: libc::c_int = if ::core::mem::size_of::<f64>()
+        as libc::c_ulong == ::core::mem::size_of::<f32>() as libc::c_ulong
     {
-        f32::classify(x as libc::c_float) as libc::c_int
-    } else if ::core::mem::size_of::<libc::c_double>() as libc::c_ulong
-        == ::core::mem::size_of::<libc::c_double>() as libc::c_ulong
+        f32::classify(x as f32) as libc::c_int
+    } else if ::core::mem::size_of::<f64>() as libc::c_ulong
+        == ::core::mem::size_of::<f64>() as libc::c_ulong
     {
         f64::classify(x) as libc::c_int
     } else {3
@@ -73,13 +73,13 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
     mut plane: *mut Plane,
     mut p: *mut Vec3,
 ) -> PointClassification {
-    let mut magnitude: libc::c_float = Abs(
-        (1.0f32 - (*plane).n.length()) as libc::c_double,
-    ) as libc::c_float;
-    let mut dist: libc::c_float = Vec3::dot((*plane).n, *p) - (*plane).d;
-    if dist as libc::c_double > 1e-4f64 {
+    let mut magnitude: f32 = Abs(
+        (1.0f32 - (*plane).n.length()) as f64,
+    ) as f32;
+    let mut dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
+    if dist as f64 > 1e-4f64 {
         return 1 as libc::c_int as PointClassification
-    } else if (dist as libc::c_double) < -1e-4f64 {
+    } else if (dist as f64) < -1e-4f64 {
         return 2 as libc::c_int as PointClassification
     } else {
         return 3 as libc::c_int as PointClassification
@@ -142,7 +142,7 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
 #[no_mangle]
 pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
     let mut e: Error = 0 as libc::c_int as Error;
-    e |= Float_Validate((*plane).d as libc::c_double);
+    e |= Float_Validate((*plane).d as f64);
     e |= Vec3_Validate((*plane).n);
     return e;
 }

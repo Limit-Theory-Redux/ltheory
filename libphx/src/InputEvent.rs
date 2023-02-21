@@ -33,7 +33,7 @@ pub struct InputEvent {
     pub timestamp: uint32,
     pub device: Device,
     pub button: Button,
-    pub value: libc::c_float,
+    pub value: f32,
     pub state: State,
 }
 pub type State = int32;
@@ -53,7 +53,7 @@ pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> cstr {
         (*ie).timestamp,
         Device_ToString(&mut (*ie).device),
         Button_ToString((*ie).button),
-        (*ie).value as libc::c_double,
+        (*ie).value as f64,
         State_ToString((*ie).state),
     );
     return buffer.as_mut_ptr() as cstr;

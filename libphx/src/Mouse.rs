@@ -59,10 +59,10 @@ pub unsafe extern "C" fn Mouse_GetDelta(mut out: *mut IVec2) {
     (*out).y -= lastY;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mouse_GetIdleTime() -> libc::c_double {
+pub unsafe extern "C" fn Mouse_GetIdleTime() -> f64 {
     let mut now: uint64 = SDL_GetPerformanceCounter();
-    return now.wrapping_sub(lastAction) as libc::c_double
-        / SDL_GetPerformanceFrequency() as libc::c_double;
+    return now.wrapping_sub(lastAction) as f64
+        / SDL_GetPerformanceFrequency() as f64;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_GetPosition(mut out: *mut IVec2) {

@@ -7,10 +7,10 @@ extern "C" {
     pub type Mesh;
     pub type Matrix;
     fn Draw_Color(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn Draw_Box3(box_0: *const Box3f);
     fn Matrix_Free(_: *mut Matrix);
@@ -18,16 +18,16 @@ extern "C" {
     fn Matrix_MulDir(
         _: *const Matrix,
         out: *mut Vec3,
-        x: libc::c_float,
-        y: libc::c_float,
-        z: libc::c_float,
+        x: f32,
+        y: f32,
+        z: f32,
     );
     fn Matrix_MulPoint(
         _: *const Matrix,
         out: *mut Vec3,
-        x: libc::c_float,
-        y: libc::c_float,
-        z: libc::c_float,
+        x: f32,
+        y: f32,
+        z: f32,
     );
     fn Mesh_GetIndexCount(_: *mut Mesh) -> libc::c_int;
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
@@ -60,29 +60,29 @@ pub struct Vertex {
     pub uv: Vec2,
 }
 #[inline]
-unsafe extern "C" fn Maxf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
+unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Minf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
+unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
     return if a < b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Box3f_Volume(mut this: Box3f) -> libc::c_float {
+unsafe extern "C" fn Box3f_Volume(mut this: Box3f) -> f32 {
     return (this.upper.x - this.lower.x) * (this.upper.y - this.lower.y)
         * (this.upper.z - this.lower.z);
 }
@@ -133,19 +133,19 @@ unsafe extern "C" fn Box3f_IntersectsRay(
     mut ro: Vec3,
     mut rdi: Vec3,
 ) -> bool {
-    let mut t1: libc::c_double = (rdi.x * (this.lower.x - ro.x)) as libc::c_double;
-    let mut t2: libc::c_double = (rdi.x * (this.upper.x - ro.x)) as libc::c_double;
-    let mut tMin: libc::c_double = Min(t1, t2);
-    let mut tMax: libc::c_double = Max(t1, t2);
-    t1 = (rdi.y * (this.lower.y - ro.y)) as libc::c_double;
-    t2 = (rdi.y * (this.upper.y - ro.y)) as libc::c_double;
+    let mut t1: f64 = (rdi.x * (this.lower.x - ro.x)) as f64;
+    let mut t2: f64 = (rdi.x * (this.upper.x - ro.x)) as f64;
+    let mut tMin: f64 = Min(t1, t2);
+    let mut tMax: f64 = Max(t1, t2);
+    t1 = (rdi.y * (this.lower.y - ro.y)) as f64;
+    t2 = (rdi.y * (this.upper.y - ro.y)) as f64;
     tMin = Max(tMin, Min(t1, t2));
     tMax = Min(tMax, Max(t1, t2));
-    t1 = (rdi.z * (this.lower.z - ro.z)) as libc::c_double;
-    t2 = (rdi.z * (this.upper.z - ro.z)) as libc::c_double;
+    t1 = (rdi.z * (this.lower.z - ro.z)) as f64;
+    t2 = (rdi.z * (this.upper.z - ro.z)) as f64;
     tMin = Max(tMin, Min(t1, t2));
     tMax = Min(tMax, Max(t1, t2));
-    return tMax >= tMin && tMax > 0 as libc::c_int as libc::c_double;
+    return tMax >= tMin && tMax > 0 as libc::c_int as f64;
 }
 
 #[inline]
@@ -209,11 +209,11 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
     return this;
 }
 #[inline]
-unsafe extern "C" fn Cost(mut box_0: Box3f) -> libc::c_float {
+unsafe extern "C" fn Cost(mut box_0: Box3f) -> f32 {
     return Box3f_Volume(box_0);
 }
 #[inline]
-unsafe extern "C" fn CostMerge(mut a: Box3f, mut b: Box3f) -> libc::c_float {
+unsafe extern "C" fn CostMerge(mut a: Box3f, mut b: Box3f) -> f32 {
     return Cost(Box3f_Union(a, b));
 }
 unsafe extern "C" fn Node_Merge(
@@ -237,11 +237,11 @@ unsafe extern "C" fn Node_Merge(
         return;
     }
     if Box3f_ContainsBox((*this).box_0, (*src).box_0) {
-        let mut cost0: libc::c_float = CostMerge(
+        let mut cost0: f32 = CostMerge(
             (*(*this).sub[0]).box_0,
             (*src).box_0,
         ) + Cost((*(*this).sub[1]).box_0);
-        let mut cost1: libc::c_float = CostMerge(
+        let mut cost1: f32 = CostMerge(
             (*(*this).sub[1]).box_0,
             (*src).box_0,
         ) + Cost((*(*this).sub[0]).box_0);
@@ -264,12 +264,12 @@ unsafe extern "C" fn Node_Merge(
             0 as *mut libc::c_void,
         );
         *prev = parent_0;
-        let mut costBase: libc::c_float = Cost((*this).box_0) + Cost((*src).box_0);
-        let mut cost0_0: libc::c_float = CostMerge(
+        let mut costBase: f32 = Cost((*this).box_0) + Cost((*src).box_0);
+        let mut cost0_0: f32 = CostMerge(
             (*(*this).sub[0]).box_0,
             (*src).box_0,
         ) + Cost((*(*this).sub[1]).box_0);
-        let mut cost1_0: libc::c_float = CostMerge(
+        let mut cost1_0: f32 = CostMerge(
             (*(*this).sub[1]).box_0,
             (*src).box_0,
         ) + Cost((*(*this).sub[0]).box_0);

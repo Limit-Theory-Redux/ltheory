@@ -4,7 +4,7 @@ use crate::internal::Memory::*;
 extern "C" {
     pub type _SDL_Joystick;
     fn Fatal(_: cstr, _: ...);
-    fn fabs(_: libc::c_double) -> libc::c_double;
+    fn fabs(_: f64) -> f64;
     fn SDL_JoystickGetGUID(joystick: *mut SDL_Joystick) -> SDL_JoystickGUID;
     fn SDL_JoystickClose(joystick: *mut SDL_Joystick);
     fn SDL_NumJoysticks() -> libc::c_int;
@@ -25,7 +25,7 @@ extern "C" {
         cbGUID: libc::c_int,
     );
     fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> libc::c_double;
+    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
 pub type int16_t = libc::c_short;
 pub type int32_t = libc::c_int;
@@ -46,7 +46,7 @@ pub struct Joystick {
     pub hats: libc::c_int,
     pub buttonStates: *mut bool,
     pub axisAlive: *mut bool,
-    pub axisStates: *mut libc::c_double,
+    pub axisStates: *mut f64,
     pub lastUsed: TimeStamp,
 }
 pub type SDL_Joystick = _SDL_Joystick;
@@ -60,7 +60,7 @@ pub struct SDL_JoystickGUID {
     pub data: [Uint8; 16],
 }
 #[inline]
-unsafe extern "C" fn Abs(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
 
@@ -146,8 +146,8 @@ unsafe extern "C" fn Joystick_UpdateSingle(mut this: *mut Joystick) {
     let mut changed: bool = 0 as libc::c_int != 0;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < (*this).axes {
-        let mut state: libc::c_double = Joystick_GetAxis(this, i);
-        let mut delta: libc::c_double = Abs(
+        let mut state: f64 = Joystick_GetAxis(this, i);
+        let mut delta: f64 = Abs(
             state - *((*this).axisStates).offset(i as isize),
         );
         if delta > 0.1f64 {
@@ -220,9 +220,9 @@ pub unsafe extern "C" fn Joystick_Open(mut index: libc::c_int) -> *mut Joystick 
     );
     (*this)
         .axisStates = MemAlloc(
-        (::core::mem::size_of::<libc::c_double>())
+        (::core::mem::size_of::<f64>())
             .wrapping_mul((*this).axes as usize),
-    ) as *mut libc::c_double;
+    ) as *mut f64;
     (*this).lastUsed = TimeStamp_Get();
     Joystick_UpdateSingle(this);
     return this;
@@ -286,15 +286,15 @@ pub unsafe extern "C" fn Joystick_GetHatCount(mut this: *mut Joystick) -> libc::
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetIdleTime(
     mut this: *mut Joystick,
-) -> libc::c_double {
+) -> f64 {
     return TimeStamp_GetElapsed((*this).lastUsed);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetAxis(
     mut this: *mut Joystick,
     mut index: libc::c_int,
-) -> libc::c_double {
-    return SDL_JoystickGetAxis((*this).handle, index) as libc::c_int as libc::c_double
+) -> f64 {
+    return SDL_JoystickGetAxis((*this).handle, index) as libc::c_int as f64
         / 32768.0f64;
 }
 #[no_mangle]
@@ -308,8 +308,8 @@ pub unsafe extern "C" fn Joystick_GetAxisAlive(
 pub unsafe extern "C" fn Joystick_GetAxisDelta(
     mut this: *mut Joystick,
     mut index: libc::c_int,
-) -> libc::c_double {
-    return SDL_JoystickGetAxis((*this).handle, index) as libc::c_int as libc::c_double
+) -> f64 {
+    return SDL_JoystickGetAxis((*this).handle, index) as libc::c_int as f64
         / 32768.0f64 - *((*this).axisStates).offset(index as isize);
 }
 #[no_mangle]

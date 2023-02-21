@@ -326,10 +326,10 @@ pub unsafe extern "C" fn Keyboard_Released(mut key: Key) -> bool {
         && *stateLast.offset(key as isize) as libc::c_int != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Keyboard_GetIdleTime() -> libc::c_double {
+pub unsafe extern "C" fn Keyboard_GetIdleTime() -> f64 {
     let mut now: uint64 = SDL_GetPerformanceCounter();
-    return now.wrapping_sub(lastAction) as libc::c_double
-        / SDL_GetPerformanceFrequency() as libc::c_double;
+    return now.wrapping_sub(lastAction) as f64
+        / SDL_GetPerformanceFrequency() as f64;
 }
 #[no_mangle]
 pub unsafe extern "C" fn KeyMod_Alt() -> bool {

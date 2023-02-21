@@ -26,10 +26,10 @@ pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
 }
 pub type ShaderVarType = int32;
 #[derive(Copy, Clone)]
@@ -129,18 +129,18 @@ pub unsafe extern "C" fn ShaderVar_Get(
         as *mut libc::c_void;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat(mut name: cstr, mut x: libc::c_float) {
+pub unsafe extern "C" fn ShaderVar_PushFloat(mut name: cstr, mut x: f32) {
     ShaderVar_Push(
         name,
         0x1 as libc::c_int,
-        &mut x as *mut libc::c_float as *const libc::c_void,
+        &mut x as *mut f32 as *const libc::c_void,
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushFloat2(
     mut name: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
+    mut x: f32,
+    mut y: f32,
 ) {
     let mut value = Vec2::new(x, y);
     ShaderVar_Push(
@@ -152,9 +152,9 @@ pub unsafe extern "C" fn ShaderVar_PushFloat2(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushFloat3(
     mut name: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
 ) {
     let mut value: Vec3 = {
         let mut init = Vec3 { x: x, y: y, z: z };
@@ -169,10 +169,10 @@ pub unsafe extern "C" fn ShaderVar_PushFloat3(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushFloat4(
     mut name: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+    mut w: f32,
 ) {
     let mut value: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };

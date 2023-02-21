@@ -7,20 +7,20 @@ extern "C" {
     fn Intersect_RayTriangle_Moller2(
         _: *const Ray,
         _: *const Triangle,
-        tHit: *mut libc::c_float,
+        tHit: *mut f32,
     ) -> bool;
     fn Intersect_RayTriangle_Moller1(
         _: *const Ray,
         _: *const Triangle,
-        tHit: *mut libc::c_float,
+        tHit: *mut f32,
     ) -> bool;
     fn LineSegment_ToRay(_: *const LineSegment, _: *mut Ray);
     fn Intersect_RayPlane(_: *const Ray, _: *const Plane, pHit: *mut Vec3) -> bool;
     fn Intersect_RayTriangle_Barycentric(
         _: *const Ray,
         _: *const Triangle,
-        tEpsilon: libc::c_float,
-        tHit: *mut libc::c_float,
+        tEpsilon: f32,
+        tHit: *mut f32,
     ) -> bool;
 }
 #[derive(Copy, Clone)]
@@ -34,13 +34,13 @@ pub struct LineSegment {
 pub struct Ray {
     pub p: Vec3,
     pub dir: Vec3,
-    pub tMin: libc::c_float,
-    pub tMax: libc::c_float,
+    pub tMin: f32,
+    pub tMax: f32,
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_GetPoint(
     mut this: *const Ray,
-    mut t: libc::c_float,
+    mut t: f32,
     mut out: *mut Vec3,
 ) {
     *out = (*this).p + ((*this).dir * t);
@@ -57,8 +57,8 @@ pub unsafe extern "C" fn Ray_IntersectPlane(
 pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
     mut this: *const Ray,
     mut tri: *const Triangle,
-    mut tEpsilon: libc::c_float,
-    mut tHit: *mut libc::c_float,
+    mut tEpsilon: f32,
+    mut tHit: *mut f32,
 ) -> bool {
     return Intersect_RayTriangle_Barycentric(this, tri, tEpsilon, tHit);
 }
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
     mut this: *const Ray,
     mut tri: *const Triangle,
-    mut tHit: *mut libc::c_float,
+    mut tHit: *mut f32,
 ) -> bool {
     return Intersect_RayTriangle_Moller1(this, tri, tHit);
 }
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
     mut this: *const Ray,
     mut tri: *const Triangle,
-    mut tHit: *mut libc::c_float,
+    mut tHit: *mut f32,
 ) -> bool {
     return Intersect_RayTriangle_Moller2(this, tri, tHit);
 }

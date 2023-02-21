@@ -25,11 +25,11 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_Channel_SetVolume(
         channel: *mut FMOD_CHANNEL,
-        volume: libc::c_float,
+        volume: f32,
     ) -> FMOD_RESULT;
     fn FMOD_Channel_SetPitch(
         channel: *mut FMOD_CHANNEL,
-        pitch: libc::c_float,
+        pitch: f32,
     ) -> FMOD_RESULT;
     fn FMOD_Channel_GetMode(
         channel: *mut FMOD_CHANNEL,
@@ -41,7 +41,7 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_Channel_SetPan(
         channel: *mut FMOD_CHANNEL,
-        pan: libc::c_float,
+        pan: f32,
     ) -> FMOD_RESULT;
     fn FMOD_Channel_Set3DAttributes(
         channel: *mut FMOD_CHANNEL,
@@ -50,7 +50,7 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_Channel_Set3DLevel(
         channel: *mut FMOD_CHANNEL,
-        level: libc::c_float,
+        level: f32,
     ) -> FMOD_RESULT;
     fn FMOD_Channel_SetUserData(
         channel: *mut FMOD_CHANNEL,
@@ -65,7 +65,7 @@ extern "C" {
         position: libc::c_uint,
         postype: FMOD_TIMEUNIT,
     ) -> FMOD_RESULT;
-    fn floor(_: libc::c_double) -> libc::c_double;
+    fn floor(_: f64) -> f64;
     fn SoundDesc_Load(
         name: cstr,
         immediate: bool,
@@ -75,7 +75,7 @@ extern "C" {
     fn SoundDesc_FinishLoad(_: *mut SoundDesc, func: cstr);
     fn SoundDesc_Acquire(_: *mut SoundDesc);
     fn SoundDesc_Free(_: *mut SoundDesc);
-    fn SoundDesc_GetDuration(_: *mut SoundDesc) -> libc::c_float;
+    fn SoundDesc_GetDuration(_: *mut SoundDesc) -> f32;
     fn SoundDesc_GetName(_: *mut SoundDesc) -> cstr;
     fn SoundDesc_GetPath(_: *mut SoundDesc) -> cstr;
     fn SoundDesc_ToFile(_: *mut SoundDesc, _: cstr);
@@ -215,9 +215,9 @@ pub type FMOD_CHANNELCONTROL_CALLBACK = Option::<
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FMOD_VECTOR {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 #[inline]
 unsafe extern "C" fn FMOD_CheckError(
@@ -667,11 +667,11 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
     };
 }
 #[inline]
-unsafe extern "C" fn Floor(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
 #[inline]
-unsafe extern "C" fn Round(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Round(mut t: f64) -> f64 {
     return Floor(t + 0.5f64);
 }
 unsafe extern "C" fn Sound_Callback(
@@ -1003,7 +1003,7 @@ pub unsafe extern "C" fn Sound_Get3D(mut this: *mut Sound) -> bool {
         == 0x10 as libc::c_int as libc::c_uint;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Sound_GetDuration(mut this: *mut Sound) -> libc::c_float {
+pub unsafe extern "C" fn Sound_GetDuration(mut this: *mut Sound) -> f32 {
     Sound_EnsureStateImpl(
         this,
         (*::core::mem::transmute::<
@@ -1072,7 +1072,7 @@ pub unsafe extern "C" fn Sound_Attach3DPos(
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Set3DLevel(
     mut this: *mut Sound,
-    mut level: libc::c_float,
+    mut level: f32,
 ) {
     Sound_EnsureStateImpl(
         this,
@@ -1126,7 +1126,7 @@ pub unsafe extern "C" fn Sound_SetFreeOnFinish(
     (*this).freeOnFinish = freeOnFinish;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, mut pan: libc::c_float) {
+pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, mut pan: f32) {
     Sound_EnsureStateImpl(
         this,
         (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_SetPan\0"))
@@ -1144,7 +1144,7 @@ pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, mut pan: libc::c_flo
 #[no_mangle]
 pub unsafe extern "C" fn Sound_SetPitch(
     mut this: *mut Sound,
-    mut pitch: libc::c_float,
+    mut pitch: f32,
 ) {
     Sound_EnsureStateImpl(
         this,
@@ -1163,7 +1163,7 @@ pub unsafe extern "C" fn Sound_SetPitch(
 #[no_mangle]
 pub unsafe extern "C" fn Sound_SetPlayPos(
     mut this: *mut Sound,
-    mut seconds: libc::c_float,
+    mut seconds: f32,
 ) {
     Sound_EnsureStateImpl(
         this,
@@ -1173,7 +1173,7 @@ pub unsafe extern "C" fn Sound_SetPlayPos(
         >(b"Sound_SetPlayPos\0"))
             .as_ptr(),
     );
-    let mut ms: libc::c_uint = Round((seconds * 1000.0f32) as libc::c_double)
+    let mut ms: libc::c_uint = Round((seconds * 1000.0f32) as f64)
         as libc::c_uint;
     // FMOD_CheckError(
     //     FMOD_Channel_SetPosition(
@@ -1194,7 +1194,7 @@ pub unsafe extern "C" fn Sound_SetPlayPos(
 #[no_mangle]
 pub unsafe extern "C" fn Sound_SetVolume(
     mut this: *mut Sound,
-    mut volume: libc::c_float,
+    mut volume: f32,
 ) {
     Sound_EnsureStateImpl(
         this,

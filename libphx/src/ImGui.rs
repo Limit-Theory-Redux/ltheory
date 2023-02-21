@@ -12,42 +12,42 @@ extern "C" {
     pub type Tex2D;
     fn Fatal(_: cstr, _: ...);
     fn ClipRect_PushCombined(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn ClipRect_Pop();
     fn Draw_Rect(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn Draw_Border(
-        s: libc::c_float,
-        x: libc::c_float,
-        y: libc::c_float,
-        w: libc::c_float,
-        h: libc::c_float,
+        s: f32,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
     );
-    fn Draw_LineWidth(width: libc::c_float);
+    fn Draw_LineWidth(width: f32);
     fn Draw_Color(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn Font_Load(name: cstr, size: libc::c_int) -> *mut Font;
     fn Font_Draw(
         _: *mut Font,
         text: cstr,
-        x: libc::c_float,
-        y: libc::c_float,
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        x: f32,
+        y: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn Font_GetLineHeight(_: *mut Font) -> libc::c_int;
     fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: cstr);
@@ -74,21 +74,21 @@ extern "C" {
     fn Shader_Load(vertName: cstr, fragName: cstr) -> *mut Shader;
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
-    fn Shader_SetFloat(_: cstr, _: libc::c_float);
-    fn Shader_SetFloat2(_: cstr, _: libc::c_float, _: libc::c_float);
+    fn Shader_SetFloat(_: cstr, _: f32);
+    fn Shader_SetFloat2(_: cstr, _: f32, _: f32);
     fn Shader_SetFloat4(
         _: cstr,
-        _: libc::c_float,
-        _: libc::c_float,
-        _: libc::c_float,
-        _: libc::c_float,
+        _: f32,
+        _: f32,
+        _: f32,
+        _: f32,
     );
     fn Tex2D_Draw(
         _: *mut Tex2D,
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn Tex2D_GetSize(_: *mut Tex2D, out: *mut IVec2);
 }
@@ -104,10 +104,10 @@ pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
 }
 pub type BlendMode = int32;
 pub type Button = int32;
@@ -229,8 +229,8 @@ pub struct ImGuiPanel {
     pub color: Vec4f,
     pub pos: Vec2,
     pub size: Vec2,
-    pub innerAlpha: libc::c_float,
-    pub bevel: libc::c_float,
+    pub innerAlpha: f32,
+    pub bevel: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -254,40 +254,40 @@ pub struct ImGuiTex2D {
 pub struct ImGuiData {
     pub size: Vec2,
     pub offset: Vec2,
-    pub scroll: libc::c_float,
+    pub scroll: f32,
 }
 
 
 #[inline]
 unsafe extern "C" fn Clamp(
-    mut t: libc::c_double,
-    mut lower: libc::c_double,
-    mut upper: libc::c_double,
-) -> libc::c_double {
+    mut t: f64,
+    mut lower: f64,
+    mut upper: f64,
+) -> f64 {
     t = if t > upper { upper } else { t };
     t = if t < lower { lower } else { t };
     return t;
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Vec4f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+    mut w: f32,
 ) -> Vec4f {
     let mut self_1: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };
@@ -345,8 +345,8 @@ unsafe extern "C" fn EmitPanel(
     mut color: Vec4f,
     mut pos: Vec2,
     mut size: Vec2,
-    mut innerAlpha: libc::c_float,
-    mut bevel: libc::c_float,
+    mut innerAlpha: f32,
+    mut bevel: f32,
 ) {
     let mut e: *mut ImGuiPanel = MemPool_Alloc(this.panelPool) as *mut ImGuiPanel;
     (*e).color = color;
@@ -455,20 +455,20 @@ unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2, mut size: Vec2) {
     if !prev.is_null() {
         (*rect)
             .p1
-            .x = Max((*rect).p1.x as libc::c_double, (*prev).p1.x as libc::c_double)
-            as libc::c_float;
+            .x = Max((*rect).p1.x as f64, (*prev).p1.x as f64)
+            as f32;
         (*rect)
             .p1
-            .y = Max((*rect).p1.y as libc::c_double, (*prev).p1.y as libc::c_double)
-            as libc::c_float;
+            .y = Max((*rect).p1.y as f64, (*prev).p1.y as f64)
+            as f32;
         (*rect)
             .p2
-            .x = Min((*rect).p2.x as libc::c_double, (*prev).p2.x as libc::c_double)
-            as libc::c_float;
+            .x = Min((*rect).p2.x as f64, (*prev).p2.x as f64)
+            as f32;
         (*rect)
             .p2
-            .y = Min((*rect).p2.y as libc::c_double, (*prev).p2.y as libc::c_double)
-            as libc::c_float;
+            .y = Min((*rect).p2.y as f64, (*prev).p2.y as f64)
+            as f32;
     }
     this.clipRect = rect;
 }
@@ -519,7 +519,7 @@ unsafe extern "C" fn HashPeekNext() -> uint64 {
     );
 }
 #[inline]
-unsafe extern "C" fn TransformPos(mut x: *mut libc::c_float, mut y: *mut libc::c_float) {
+unsafe extern "C" fn TransformPos(mut x: *mut f32, mut y: *mut f32) {
     if *x < 0.0f32 {
         *x = (*this.layout).upper.x + *x;
     }
@@ -529,8 +529,8 @@ unsafe extern "C" fn TransformPos(mut x: *mut libc::c_float, mut y: *mut libc::c
 }
 #[inline]
 unsafe extern "C" fn TransformSize(
-    mut sx: *mut libc::c_float,
-    mut sy: *mut libc::c_float,
+    mut sx: *mut f32,
+    mut sy: *mut f32,
 ) {
     if *sx <= 0.0f32 {
         *sx = (*this.layout).upper.x - this.cursor.x + *sx;
@@ -556,8 +556,8 @@ unsafe extern "C" fn Spacing() {
     (*this.layout).spacing.y = 0.0f32;
 }
 unsafe extern "C" fn ImGui_PushLayout(
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut sx: f32,
+    mut sy: f32,
     mut horizontal: bool,
 ) {
     TransformSize(&mut sx, &mut sy);
@@ -582,9 +582,9 @@ unsafe extern "C" fn ImGui_PopLayout() {
     MemPool_Dealloc(this.layoutPool, layout as *mut libc::c_void);
 }
 #[inline]
-unsafe extern "C" fn ImGui_Pad(mut mx: libc::c_float, mut my: libc::c_float) {
-    let mut px: libc::c_float = mx * (*this.style).padding.x;
-    let mut py: libc::c_float = my * (*this.style).padding.y;
+unsafe extern "C" fn ImGui_Pad(mut mx: f32, mut my: f32) {
+    let mut px: f32 = mx * (*this.style).padding.x;
+    let mut py: f32 = my * (*this.style).padding.y;
     this.cursor.x += px;
     this.cursor.y += py;
     (*this.layout).lower.x += px;
@@ -594,9 +594,9 @@ unsafe extern "C" fn ImGui_Pad(mut mx: libc::c_float, mut my: libc::c_float) {
     (*this.layout).size.x -= 2.0f32 * px;
     (*this.layout).size.y -= 2.0f32 * py;
 }
-unsafe extern "C" fn ImGui_Unpad(mut mx: libc::c_float, mut my: libc::c_float) {
-    let mut px: libc::c_float = mx * (*this.style).padding.x;
-    let mut py: libc::c_float = my * (*this.style).padding.y;
+unsafe extern "C" fn ImGui_Unpad(mut mx: f32, mut my: f32) {
+    let mut px: f32 = mx * (*this.style).padding.x;
+    let mut py: f32 = my * (*this.style).padding.y;
     (*this.layout).lower.x -= px;
     (*this.layout).lower.y -= py;
     (*this.layout).upper.x += px;
@@ -606,7 +606,7 @@ unsafe extern "C" fn ImGui_Unpad(mut mx: libc::c_float, mut my: libc::c_float) {
     this.cursor.x -= px;
     this.cursor.y -= py;
 }
-unsafe extern "C" fn ImGui_BeginWidget(mut sx: libc::c_float, mut sy: libc::c_float) {
+unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
     Spacing();
     TransformSize(&mut sx, &mut sy);
     let mut widget: *mut ImGuiWidget = MemPool_Alloc(this.widgetPool)
@@ -753,15 +753,15 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
                 b"fragment/ui/panel\0" as *const u8 as *const libc::c_char,
             );
         }
-        let pad: libc::c_float = 64.0f32;
+        let pad: f32 = 64.0f32;
         Shader_Start(shader);
         Shader_SetFloat(b"padding\0" as *const u8 as *const libc::c_char, pad);
         let mut e_0: *const ImGuiPanel = (*self_1).panelList;
         while !e_0.is_null() {
-            let mut x: libc::c_float = (*e_0).pos.x - pad;
-            let mut y: libc::c_float = (*e_0).pos.y - pad;
-            let mut sx: libc::c_float = (*e_0).size.x + 2.0f32 * pad;
-            let mut sy: libc::c_float = (*e_0).size.y + 2.0f32 * pad;
+            let mut x: f32 = (*e_0).pos.x - pad;
+            let mut y: f32 = (*e_0).pos.y - pad;
+            let mut sx: f32 = (*e_0).size.x + 2.0f32 * pad;
+            let mut sy: f32 = (*e_0).size.y + 2.0f32 * pad;
             Shader_SetFloat(
                 b"innerAlpha\0" as *const u8 as *const libc::c_char,
                 (*e_0).innerAlpha,
@@ -808,28 +808,28 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
                 b"fragment/ui/line\0" as *const u8 as *const libc::c_char,
             );
         }
-        let pad_0: libc::c_float = 64.0f32;
+        let pad_0: f32 = 64.0f32;
         Shader_Start(shader_0);
         let mut e_2: *const ImGuiLine = (*self_1).lineList;
         while !e_2.is_null() {
-            let mut xMin: libc::c_float = (Min(
-                (*e_2).p1.x as libc::c_double,
-                (*e_2).p2.x as libc::c_double,
-            ) - pad_0 as libc::c_double) as libc::c_float;
-            let mut yMin: libc::c_float = (Min(
-                (*e_2).p1.y as libc::c_double,
-                (*e_2).p2.y as libc::c_double,
-            ) - pad_0 as libc::c_double) as libc::c_float;
-            let mut xMax: libc::c_float = (Max(
-                (*e_2).p1.x as libc::c_double,
-                (*e_2).p2.x as libc::c_double,
-            ) + pad_0 as libc::c_double) as libc::c_float;
-            let mut yMax: libc::c_float = (Max(
-                (*e_2).p1.y as libc::c_double,
-                (*e_2).p2.y as libc::c_double,
-            ) + pad_0 as libc::c_double) as libc::c_float;
-            let mut sx_0: libc::c_float = xMax - xMin;
-            let mut sy_0: libc::c_float = yMax - yMin;
+            let mut xMin: f32 = (Min(
+                (*e_2).p1.x as f64,
+                (*e_2).p2.x as f64,
+            ) - pad_0 as f64) as f32;
+            let mut yMin: f32 = (Min(
+                (*e_2).p1.y as f64,
+                (*e_2).p2.y as f64,
+            ) - pad_0 as f64) as f32;
+            let mut xMax: f32 = (Max(
+                (*e_2).p1.x as f64,
+                (*e_2).p2.x as f64,
+            ) + pad_0 as f64) as f32;
+            let mut yMax: f32 = (Max(
+                (*e_2).p1.y as f64,
+                (*e_2).p2.y as f64,
+            ) + pad_0 as f64) as f32;
+            let mut sx_0: f32 = xMax - xMin;
+            let mut sy_0: f32 = yMax - yMin;
             Shader_SetFloat2(
                 b"origin\0" as *const u8 as *const libc::c_char,
                 xMin,
@@ -938,7 +938,7 @@ unsafe extern "C" fn ImGui_Init() {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_Begin(mut sx: libc::c_float, mut sy: libc::c_float) {
+pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     ImGui_Init();
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < FocusType_SIZE {
@@ -981,8 +981,8 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: libc::c_float, mut sy: libc::c_floa
     ImGui_PushLayer(1 as libc::c_int != 0);
     let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);
-    this.mouse.x = mouse.x as libc::c_float;
-    this.mouse.y = mouse.y as libc::c_float;
+    this.mouse.x = mouse.x as f32;
+    this.mouse.y = mouse.y as f32;
     this.activate = Input_GetPressed(Button_Mouse_Left);
     this
         .forceSize = Vec2::new(
@@ -1018,10 +1018,10 @@ pub unsafe extern "C" fn ImGui_Draw() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_AlignCursor(
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
-    mut alignX: libc::c_float,
-    mut alignY: libc::c_float,
+    mut sx: f32,
+    mut sy: f32,
+    mut alignX: f32,
+    mut alignY: f32,
 ) {
     TransformSize(&mut sx, &mut sy);
     ImGui_SetCursor(
@@ -1030,11 +1030,11 @@ pub unsafe extern "C" fn ImGui_AlignCursor(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_GetCursorX() -> libc::c_float {
+pub unsafe extern "C" fn ImGui_GetCursorX() -> f32 {
     return this.cursor.x;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_GetCursorY() -> libc::c_float {
+pub unsafe extern "C" fn ImGui_GetCursorY() -> f32 {
     return this.cursor.y;
 }
 #[no_mangle]
@@ -1053,7 +1053,7 @@ pub unsafe extern "C" fn ImGui_PopCursor() {
     MemPool_Dealloc(this.cursorPool, cursor as *mut libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_SetCursor(mut cx: libc::c_float, mut cy: libc::c_float) {
+pub unsafe extern "C" fn ImGui_SetCursor(mut cx: f32, mut cy: f32) {
     TransformPos(&mut cx, &mut cy);
     this.cursor = Vec2::new(cx, cy);
     (*this.layout)
@@ -1063,11 +1063,11 @@ pub unsafe extern "C" fn ImGui_SetCursor(mut cx: libc::c_float, mut cy: libc::c_
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_SetCursorX(mut x: libc::c_float) {
+pub unsafe extern "C" fn ImGui_SetCursorX(mut x: f32) {
     ImGui_SetCursor(x, this.cursor.y);
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_SetCursorY(mut y: libc::c_float) {
+pub unsafe extern "C" fn ImGui_SetCursorY(mut y: f32) {
     ImGui_SetCursor(this.cursor.x, y);
 }
 #[no_mangle]
@@ -1080,20 +1080,20 @@ pub unsafe extern "C" fn ImGui_Undent() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginGroup(
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut sx: f32,
+    mut sy: f32,
     mut horizontal: bool,
 ) {
     ImGui_BeginWidget(sx, sy);
     ImGui_PushLayout(sx, sy, horizontal);
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_BeginGroupX(mut sy: libc::c_float) {
+pub unsafe extern "C" fn ImGui_BeginGroupX(mut sy: f32) {
     ImGui_BeginWidget(0.0f32, sy);
     ImGui_PushLayout(0.0f32, sy, 1 as libc::c_int != 0);
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_BeginGroupY(mut sx: libc::c_float) {
+pub unsafe extern "C" fn ImGui_BeginGroupY(mut sx: f32) {
     ImGui_BeginWidget(sx, 0.0f32);
     ImGui_PushLayout(sx, 0.0f32, 0 as libc::c_int != 0);
 }
@@ -1103,7 +1103,7 @@ pub unsafe extern "C" fn ImGui_EndGroup() {
     ImGui_EndWidget();
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_BeginPanel(mut sx: libc::c_float, mut sy: libc::c_float) {
+pub unsafe extern "C" fn ImGui_BeginPanel(mut sx: f32, mut sy: f32) {
     ImGui_BeginGroup(sx, sy, 0 as libc::c_int != 0);
     ImGui_PushLayer(0 as libc::c_int != 0);
     ImGui_PushLayer(1 as libc::c_int != 0);
@@ -1126,8 +1126,8 @@ pub unsafe extern "C" fn ImGui_EndPanel() {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginWindow(
     mut title: cstr,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut sx: f32,
+    mut sy: f32,
 ) {
     let mut hash: uint64 = HashPeekNext();
     let mut data: *mut ImGuiData = GetData(hash);
@@ -1145,16 +1145,16 @@ pub unsafe extern "C" fn ImGui_EndWindow() {
         if Input_GetDown(Button_Mouse_Left) {
             let mut delta: IVec2 = IVec2 { x: 0, y: 0 };
             Input_GetMouseDelta(&mut delta);
-            (*data).offset.x += delta.x as libc::c_float;
-            (*data).offset.y += delta.y as libc::c_float;
+            (*data).offset.x += delta.x as f32;
+            (*data).offset.y += delta.y as f32;
             this.dragging = (*this.widgetLast).hash;
         }
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginScrollFrame(
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut sx: f32,
+    mut sy: f32,
 ) {
     ImGui_BeginGroup(sx, sy, 0 as libc::c_int != 0);
     ImGui_PushLayer(1 as libc::c_int != 0);
@@ -1168,9 +1168,9 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
     this.cursor.y += (*data).scroll;
     let mut layout: *mut ImGuiLayout = this.layout;
     ImGui_PopLayer();
-    let mut scroll: libc::c_float = (*data).scroll;
-    let mut virtualSize: libc::c_float = this.cursor.y - (*layout).lower.y;
-    let mut scrollMax: libc::c_float = virtualSize - (*layout).size.y;
+    let mut scroll: f32 = (*data).scroll;
+    let mut virtualSize: f32 = this.cursor.y - (*layout).lower.y;
+    let mut scrollMax: f32 = virtualSize - (*layout).size.y;
     let mut scrollPos = Vec2::new(
         (*layout).lower.x + (*layout).size.x,
         (*layout).lower.y,
@@ -1181,14 +1181,14 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
     );
     let mut handleHash: uint64 = HashNext();
     if (*layout).size.y < virtualSize {
-        let mut handleSizeY: libc::c_float = (*layout).size.y
+        let mut handleSizeY: f32 = (*layout).size.y
             * ((*layout).size.y / virtualSize);
         handleSizeY = Clamp(
-            handleSizeY as libc::c_double,
-            16.0f32 as libc::c_double,
-            128.0f32 as libc::c_double,
-        ) as libc::c_float;
-        let mut handleOffset: libc::c_float = ((*layout).size.y - handleSizeY)
+            handleSizeY as f64,
+            16.0f32 as f64,
+            128.0f32 as f64,
+        ) as f32;
+        let mut handleOffset: f32 = ((*layout).size.y - handleSizeY)
             * (scroll / scrollMax);
         let mut handlePos = Vec2::new(scrollPos.x, scrollPos.y + handleOffset);
         let mut handleSize = Vec2::new(
@@ -1225,21 +1225,21 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
     if ImGui_FocusLast(FocusType_Scroll) {
         let mut scroll_0: IVec2 = IVec2 { x: 0, y: 0 };
         Input_GetMouseScroll(&mut scroll_0);
-        (*data).scroll -= 10.0f32 * scroll_0.y as libc::c_float;
+        (*data).scroll -= 10.0f32 * scroll_0.y as f32;
     }
     (*data)
         .scroll = Clamp(
-        (*data).scroll as libc::c_double,
-        0.0f32 as libc::c_double,
-        scrollMax as libc::c_double,
-    ) as libc::c_float;
+        (*data).scroll as f64,
+        0.0f32 as f64,
+        scrollMax as f64,
+    ) as f32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_SetNextWidth(mut sx: libc::c_float) {
+pub unsafe extern "C" fn ImGui_SetNextWidth(mut sx: f32) {
     this.forceSize.x = sx;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_SetNextHeight(mut sy: libc::c_float) {
+pub unsafe extern "C" fn ImGui_SetNextHeight(mut sy: f32) {
     this.forceSize.y = sy;
 }
 #[no_mangle]
@@ -1260,26 +1260,26 @@ pub unsafe extern "C" fn ImGui_PushStyleFont(mut font: *mut Font) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PushStylePadding(
-    mut px: libc::c_float,
-    mut py: libc::c_float,
+    mut px: f32,
+    mut py: f32,
 ) {
     ImGui_PushStyle();
     (*this.style).padding = Vec2::new(px, py);
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PushStyleSpacing(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
+    mut x: f32,
+    mut y: f32,
 ) {
     ImGui_PushStyle();
     (*this.style).spacing = Vec2::new(x, y);
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PushStyleTextColor(
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     ImGui_PushStyle();
     (*this.style).textColor = Vec4f_Create(r, g, b, a);
@@ -1302,7 +1302,7 @@ pub unsafe extern "C" fn ImGui_SetFont(mut font: *mut Font) {
     (*this.layout).styleVars += 1;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_SetSpacing(mut sx: libc::c_float, mut sy: libc::c_float) {
+pub unsafe extern "C" fn ImGui_SetSpacing(mut sx: f32, mut sy: f32) {
     ImGui_PushStyleSpacing(sx, sy);
     (*this.layout).styleVars += 1;
 }
@@ -1317,8 +1317,8 @@ pub unsafe extern "C" fn ImGui_Button(mut label: cstr) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_ButtonEx(
     mut label: cstr,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut sx: f32,
+    mut sy: f32,
 ) -> bool {
     ImGui_BeginWidget(sx, sy);
     let mut focus: bool = ImGui_FocusCurrent(FocusType_Mouse);
@@ -1338,13 +1338,13 @@ pub unsafe extern "C" fn ImGui_ButtonEx(
     Font_GetSize2((*this.style).font, &mut bound, label);
     let mut labelPos = Vec2::new(
         (*this.widget).pos.x
-            + 0.5f32 * ((*this.widget).size.x - bound.x as libc::c_float),
+            + 0.5f32 * ((*this.widget).size.x - bound.x as f32),
         (*this.widget).pos.y
-            + 0.5f32 * ((*this.widget).size.y - bound.y as libc::c_float),
+            + 0.5f32 * ((*this.widget).size.y - bound.y as f32),
     );
     let mut labelSize = Vec2::new(
-        bound.x as libc::c_float,
-        bound.y as libc::c_float,
+        bound.x as f32,
+        bound.y as f32,
     );
     EmitText(
         (*this.style).font,
@@ -1353,7 +1353,7 @@ pub unsafe extern "C" fn ImGui_ButtonEx(
         } else {
             (*this.style).textColor
         },
-        Vec2::new(labelPos.x, labelPos.y + bound.y as libc::c_float),
+        Vec2::new(labelPos.x, labelPos.y + bound.y as f32),
         label,
     );
     ImGui_EndWidget();
@@ -1401,12 +1401,12 @@ pub unsafe extern "C" fn ImGui_Divider() {
             2 as libc::c_int
         } else {
             0 as libc::c_int
-        }) as libc::c_float,
+        }) as f32,
         (if (*this.layout).horizontal as libc::c_int != 0 {
             0 as libc::c_int
         } else {
             2 as libc::c_int
-        }) as libc::c_float,
+        }) as f32,
     );
     EmitLine(
         (*this.style).buttonColorFocus,
@@ -1434,14 +1434,14 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: cstr) -> bool {
     Font_GetSize2((*this.style).font, &mut bound, label);
     ImGui_BeginWidget(
         if (*this.layout).horizontal as libc::c_int != 0 {
-            bound.x as libc::c_float + 4.0f32
+            bound.x as f32 + 4.0f32
         } else {
             0.0f32
         },
         if (*this.layout).horizontal as libc::c_int != 0 {
             0.0f32
         } else {
-            4.0f32 + Font_GetLineHeight((*this.style).font) as libc::c_float
+            4.0f32 + Font_GetLineHeight((*this.style).font) as f32
         },
     );
     let mut focus: bool = ImGui_FocusCurrent(FocusType_Mouse);
@@ -1462,8 +1462,8 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: cstr) -> bool {
         },
         Vec2::new(
             (*this.widget).pos.x + 2.0f32,
-            (*this.widget).pos.y + bound.y as libc::c_float
-                + 0.5f32 * ((*this.widget).size.y - bound.y as libc::c_float),
+            (*this.widget).pos.y + bound.y as f32
+                + 0.5f32 * ((*this.widget).size.y - bound.y as f32),
         ),
         label,
     );
@@ -1475,10 +1475,10 @@ pub unsafe extern "C" fn ImGui_Tex2D(mut tex: *mut Tex2D) {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Tex2D_GetSize(tex, &mut size);
     let mut sizef = Vec2::new(
-        size.x as libc::c_float,
-        size.y as libc::c_float,
+        size.x as f32,
+        size.y as f32,
     );
-    ImGui_BeginWidget(size.x as libc::c_float, size.y as libc::c_float);
+    ImGui_BeginWidget(size.x as f32, size.y as f32);
     EmitTex2D(tex, this.cursor, sizef);
     ImGui_EndWidget();
 }
@@ -1496,10 +1496,10 @@ pub unsafe extern "C" fn ImGui_Text(mut text: cstr) {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_TextColored(
     mut text: cstr,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     ImGui_TextEx((*this.style).font, text, r, g, b, a);
 }
@@ -1507,28 +1507,28 @@ pub unsafe extern "C" fn ImGui_TextColored(
 pub unsafe extern "C" fn ImGui_TextEx(
     mut font: *mut Font,
     mut text: cstr,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     let mut bound: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*this.style).font, &mut bound, text);
     ImGui_BeginWidget(
-        bound.x as libc::c_float,
+        bound.x as f32,
         (if (*this.layout).horizontal as libc::c_int != 0 {
             0 as libc::c_int
         } else {
             Font_GetLineHeight((*this.style).font)
-        }) as libc::c_float,
+        }) as f32,
     );
     EmitText(
         font,
         Vec4f_Create(r, g, b, a),
         Vec2::new(
             (*this.widget).pos.x,
-            (*this.widget).pos.y + bound.y as libc::c_float
-                + 0.5f32 * ((*this.widget).size.y - bound.y as libc::c_float),
+            (*this.widget).pos.y + bound.y as f32
+                + 0.5f32 * ((*this.widget).size.y - bound.y as f32),
         ),
         text,
     );

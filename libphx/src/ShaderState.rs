@@ -59,7 +59,7 @@ pub struct Elem {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub union C2RustUnnamed {
-    pub asFloat: libc::c_float,
+    pub asFloat: f32,
     pub asFloat2: Vec2,
     pub asFloat3: Vec3,
     pub asFloat4: Vec4,
@@ -71,7 +71,7 @@ pub union C2RustUnnamed {
     pub asTexCube: *mut TexCube,
 }
 pub type GLint = libc::c_int;
-pub type GLfloat = libc::c_float;
+pub type GLfloat = f32;
 pub type PFNGLUNIFORM1FPROC = Option::<unsafe extern "C" fn(GLint, GLfloat) -> ()>;
 pub type PFNGLUNIFORM1IPROC = Option::<unsafe extern "C" fn(GLint, GLint) -> ()>;
 pub type PFNGLUNIFORM2FPROC = Option::<
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn ShaderState_FromShaderLoad(
 pub unsafe extern "C" fn ShaderState_SetFloat(
     mut this: *mut ShaderState,
     mut name: cstr,
-    mut x: libc::c_float,
+    mut x: f32,
 ) {
     let mut elem: Elem = {
         let mut init = Elem {
@@ -207,8 +207,8 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
 pub unsafe extern "C" fn ShaderState_SetFloat2(
     mut this: *mut ShaderState,
     mut name: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
+    mut x: f32,
+    mut y: f32,
 ) {
     let mut elem: Elem = {
         let mut init = Elem {
@@ -244,9 +244,9 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
 pub unsafe extern "C" fn ShaderState_SetFloat3(
     mut this: *mut ShaderState,
     mut name: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
 ) {
     let mut elem: Elem = {
         let mut init = Elem {
@@ -282,10 +282,10 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
 pub unsafe extern "C" fn ShaderState_SetFloat4(
     mut this: *mut ShaderState,
     mut name: cstr,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+    mut w: f32,
 ) {
     let mut elem: Elem = {
         let mut init = Elem {

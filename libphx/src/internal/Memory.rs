@@ -284,12 +284,12 @@ pub unsafe extern "C" fn StrAdd3(mut a: *const libc::c_char, mut b: *const libc:
 }
 
 #[inline]
-pub unsafe extern "C" fn Float_Validatef(mut x: libc::c_float) -> Error {
-    let mut classification: libc::c_int = if ::core::mem::size_of::<libc::c_float>() == ::core::mem::size_of::<libc::c_float>()
+pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
+    let mut classification: libc::c_int = if ::core::mem::size_of::<f32>() == ::core::mem::size_of::<f32>()
     {
         f32::classify(x) as libc::c_int
-    } else if ::core::mem::size_of::<libc::c_float>() == ::core::mem::size_of::<libc::c_double>() {
-        f64::classify(x as libc::c_double) as libc::c_int
+    } else if ::core::mem::size_of::<f32>() == ::core::mem::size_of::<f64>() {
+        f64::classify(x as f64) as libc::c_int
     } else {
         3
     };

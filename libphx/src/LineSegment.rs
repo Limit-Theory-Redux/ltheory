@@ -22,8 +22,8 @@ pub struct LineSegment {
 pub struct Ray {
     pub p: Vec3,
     pub dir: Vec3,
-    pub tMin: libc::c_float,
-    pub tMax: libc::c_float,
+    pub tMin: f32,
+    pub tMax: f32,
 }
 #[no_mangle]
 pub unsafe extern "C" fn LineSegment_ToRay(

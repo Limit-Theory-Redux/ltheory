@@ -6,8 +6,8 @@ use glam::Vec2;
 extern "C" {
     pub type Mesh;
     pub type RNG;
-    fn fabs(_: libc::c_double) -> libc::c_double;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    fn fabs(_: f64) -> f64;
+    fn sqrt(_: f64) -> f64;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
     fn Mesh_GetIndexCount(_: *mut Mesh) -> libc::c_int;
@@ -19,7 +19,7 @@ extern "C" {
     fn Intersect_RayTriangle_Moller1(
         _: *const Ray,
         _: *const Triangle,
-        tHit: *mut libc::c_float,
+        tHit: *mut f32,
     ) -> bool;
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
@@ -37,21 +37,21 @@ extern "C" {
         triangles_size: *mut int32,
         triangles_data: *mut *mut Triangle,
     );
-    fn Ray_GetPoint(_: *const Ray, t: libc::c_float, out: *mut Vec3);
+    fn Ray_GetPoint(_: *const Ray, t: f32, out: *mut Vec3);
     fn RNG_Create(seed: uint64) -> *mut RNG;
     fn RNG_Free(_: *mut RNG);
     fn RNG_Get32(_: *mut RNG) -> uint32;
-    fn Draw_Sphere(p: *const Vec3, r: libc::c_float);
-    fn Draw_PointSize(size: libc::c_float);
+    fn Draw_Sphere(p: *const Vec3, r: f32);
+    fn Draw_PointSize(size: f32);
     fn Draw_Poly3(points: *const Vec3, count: libc::c_int);
-    fn Draw_Point3(x: libc::c_float, y: libc::c_float, z: libc::c_float);
+    fn Draw_Point3(x: f32, y: f32, z: f32);
     fn Draw_Color(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
-    fn Draw_Plane(p: *const Vec3, n: *const Vec3, scale: libc::c_float);
+    fn Draw_Plane(p: *const Vec3, n: *const Vec3, scale: f32);
     fn Draw_Line3(p1: *const Vec3, p2: *const Vec3);
     fn RenderState_PushBlendMode(_: BlendMode);
     fn RenderState_PushCullFace(_: CullFace);
@@ -106,7 +106,7 @@ pub struct BSPNodeRef {
 #[repr(C)]
 pub struct Plane {
     pub n: Vec3,
-    pub d: libc::c_float,
+    pub d: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -142,14 +142,14 @@ pub struct Polygon {
 pub struct Ray {
     pub p: Vec3,
     pub dir: Vec3,
-    pub tMin: libc::c_float,
-    pub tMax: libc::c_float,
+    pub tMin: f32,
+    pub tMax: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Sphere {
     pub p: Vec3,
-    pub r: libc::c_float,
+    pub r: f32,
 }
 
 #[derive(Copy, Clone)]
@@ -204,8 +204,8 @@ pub struct BSPBuild_NodeData {
 #[repr(C)]
 pub struct DelayRay {
     pub nodeRef: BSPNodeRef,
-    pub tMin: libc::c_float,
-    pub tMax: libc::c_float,
+    pub tMin: f32,
+    pub tMax: f32,
     pub depth: int32,
 }
 #[derive(Copy, Clone)]
@@ -216,33 +216,33 @@ pub struct Delay {
 }
 
 #[inline]
-unsafe extern "C" fn Abs(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
 unsafe extern "C" fn Lerp(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-    mut t: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+    mut t: f64,
+) -> f64 {
     return a + t * (b - a);
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 #[no_mangle]
@@ -265,44 +265,44 @@ pub static mut rayStack_data: *mut DelayRay = 0 as *const DelayRay as *mut Delay
 pub unsafe extern "C" fn BSP_IntersectRay(
     mut this: *mut BSP,
     mut _ray: *const Ray,
-    mut tHit: *mut libc::c_float,
+    mut tHit: *mut f32,
 ) -> bool {
     let mut ray: Ray = *_ray;
     *tHit = 3.40282347e+38f32;
     let mut nodeRef: BSPNodeRef = (*this).rootNode;
-    let mut tEpsilon: libc::c_float = (8.0f32 as libc::c_double * 1e-4f64
-        / ray.dir.length() as libc::c_double) as libc::c_float;
+    let mut tEpsilon: f32 = (8.0f32 as f64 * 1e-4f64
+        / ray.dir.length() as f64) as f32;
     let mut hit: bool = 0 as libc::c_int != 0;
     let mut depth: int32 = 0 as libc::c_int;
     let mut maxDepth: int32 = 0 as libc::c_int;
     loop {
-        maxDepth = Max(depth as libc::c_double, maxDepth as libc::c_double) as int32;
+        maxDepth = Max(depth as f64, maxDepth as f64) as int32;
         if nodeRef.index >= 0 as libc::c_int {
             let mut node: *mut BSPNode = ((*this).nodes_data)
                 .offset(nodeRef.index as isize);
-            let mut dist: libc::c_float = Vec3::dot((*node).plane.n, ray.p)
+            let mut dist: f32 = Vec3::dot((*node).plane.n, ray.p)
                 - (*node).plane.d;
-            let mut denom: libc::c_float = -Vec3::dot((*node).plane.n, ray.dir);
+            let mut denom: f32 = -Vec3::dot((*node).plane.n, ray.dir);
             let mut nearIndex: libc::c_int = (dist > 0.0f32)
                 as libc::c_int;
             let mut earlyIndex: libc::c_int = nearIndex;
             if denom != 0.0f32 {
-                let mut t: libc::c_float = dist / denom;
-                let mut planeBegin: libc::c_float = t - tEpsilon;
-                let mut planeEnd: libc::c_float = t + tEpsilon;
+                let mut t: f32 = dist / denom;
+                let mut planeBegin: f32 = t - tEpsilon;
+                let mut planeEnd: f32 = t + tEpsilon;
                 if !(planeBegin >= ray.tMax) {
                     if planeEnd <= ray.tMin {
                         earlyIndex = (t >= 0.0f32) as libc::c_int ^ nearIndex;
                     } else {
                         earlyIndex = (t < 0.0f32) as libc::c_int ^ nearIndex;
-                        let mut min: libc::c_float = Max(
-                            planeBegin as libc::c_double,
-                            ray.tMin as libc::c_double,
-                        ) as libc::c_float;
-                        let mut max: libc::c_float = Min(
-                            planeEnd as libc::c_double,
-                            ray.tMax as libc::c_double,
-                        ) as libc::c_float;
+                        let mut min: f32 = Max(
+                            planeBegin as f64,
+                            ray.tMin as f64,
+                        ) as f32;
+                        let mut max: f32 = Min(
+                            planeEnd as f64,
+                            ray.tMax as f64,
+                        ) as f32;
                         let mut d: DelayRay = {
                             let mut init = DelayRay {
                                 nodeRef: (*node)
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         ray.tMax = max;
                     }
                 }
-            } else if Abs(dist as libc::c_double) < 8.0f32 as libc::c_double * 1e-4f64 {
+            } else if Abs(dist as f64) < 8.0f32 as f64 * 1e-4f64 {
                 earlyIndex = nearIndex;
                 let mut d_0: DelayRay = {
                     let mut init = DelayRay {
@@ -375,7 +375,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
             while (i as libc::c_int) < nodeRef.triangleCount as libc::c_int {
                 let mut triangle: *const Triangle = leaf
                     .offset(i as libc::c_int as isize);
-                let mut t_0: libc::c_float = 0.;
+                let mut t_0: f32 = 0.;
                 if Intersect_RayTriangle_Moller1(&mut ray, triangle, &mut t_0) {
                     if !hit || t_0 < *tHit {
                         hit = 1 as libc::c_int != 0;
@@ -407,7 +407,7 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     mut lineSegment: *const LineSegment,
     mut pHit: *mut Vec3,
 ) -> bool {
-    let mut t: libc::c_float = 0.;
+    let mut t: f32 = 0.;
     let mut dir: Vec3 = (*lineSegment).p1 - (*lineSegment).p0;
     let mut ray: Ray = {
         let mut init = Ray {
@@ -441,18 +441,18 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
     let mut depth: int32 = 0 as libc::c_int;
     let mut maxDepth: int32 = 0 as libc::c_int;
     loop {
-        maxDepth = Max(depth as libc::c_double, maxDepth as libc::c_double) as int32;
+        maxDepth = Max(depth as f64, maxDepth as f64) as int32;
         if nodeRef.index >= 0 as libc::c_int {
             let mut node: *mut BSPNode = ((*this).nodes_data)
                 .offset(nodeRef.index as isize);
-            let mut dist: libc::c_float = Vec3::dot((*node).plane.n, (*sphere).p)
+            let mut dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p)
                 - (*node).plane.d;
-            if dist as libc::c_double
-                > (*sphere).r as libc::c_double + 2.0f32 as libc::c_double * 1e-4f64
+            if dist as f64
+                > (*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64
             {
                 nodeRef = (*node).child[FrontIndex as usize];
-            } else if (dist as libc::c_double)
-                < -((*sphere).r as libc::c_double + 2.0f32 as libc::c_double * 1e-4f64)
+            } else if (dist as f64)
+                < -((*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64)
             {
                 nodeRef = (*node).child[BackIndex as usize];
             } else {
@@ -530,8 +530,8 @@ pub static mut PolygonFlag_InvalidEdgeSplit: PolygonFlag = ((1 as libc::c_int)
 unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     mut nodeData: *mut BSPBuild_NodeData,
     mut plane: Plane,
-    mut k: libc::c_float,
-) -> libc::c_float {
+    mut k: f32,
+) -> f32 {
     let mut numInFront: int32 = 0 as libc::c_int;
     let mut numBehind: int32 = 0 as libc::c_int;
     let mut numStraddling: int32 = 0 as libc::c_int;
@@ -573,12 +573,12 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
         }
         polygon = polygon.offset(1);
     }
-    let mut score: libc::c_float = Lerp(
-        Abs((numInFront - numBehind) as libc::c_double) as libc::c_float
-            as libc::c_double,
-        numStraddling as libc::c_float as libc::c_double,
-        k as libc::c_double,
-    ) as libc::c_float;
+    let mut score: f32 = Lerp(
+        Abs((numInFront - numBehind) as f64) as f32
+            as f64,
+        numStraddling as f32 as f64,
+        k as f64,
+    ) as f32;
     return score;
 }
 unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
@@ -586,18 +586,18 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     mut nodeData: *mut BSPBuild_NodeData,
     mut splitPlane: *mut Plane,
 ) -> bool {
-    let mut maxDepth: libc::c_float = 1000.0f32;
-    let mut biasedDepth: libc::c_float = (*nodeData).depth as libc::c_float - 100.0f32;
-    let mut t: libc::c_float = Max(
-        (biasedDepth / maxDepth) as libc::c_double,
-        0.0f32 as libc::c_double,
-    ) as libc::c_float;
-    let mut k: libc::c_float = Lerp(
-        0.85f32 as libc::c_double,
-        0.25f32 as libc::c_double,
-        t as libc::c_double,
-    ) as libc::c_float;
-    let mut bestScore: libc::c_float = 3.40282347e+38f32;
+    let mut maxDepth: f32 = 1000.0f32;
+    let mut biasedDepth: f32 = (*nodeData).depth as f32 - 100.0f32;
+    let mut t: f32 = Max(
+        (biasedDepth / maxDepth) as f64,
+        0.0f32 as f64,
+    ) as f32;
+    let mut k: f32 = Lerp(
+        0.85f32 as f64,
+        0.25f32 as f64,
+        t as f64,
+    ) as f32;
+    let mut bestScore: f32 = 3.40282347e+38f32;
     let mut bestPlane: Plane = {
         let mut init = Plane {
             n: Vec3 { x: 0., y: 0., z: 0. },
@@ -610,8 +610,8 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     let mut polygonsLen: int32 = (*nodeData).polygons_size;
     if (*nodeData).validPolygonCount > 0 as libc::c_int {
         numToCheck = Min(
-            numToCheck as libc::c_double,
-            (*nodeData).validPolygonCount as libc::c_double,
+            numToCheck as f64,
+            (*nodeData).validPolygonCount as f64,
         ) as int32;
         let mut i: int32 = 0 as libc::c_int;
         while i < numToCheck {
@@ -629,7 +629,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         d: 0.,
                     };
                     Polygon_ToPlane(polygon as *mut Polygon, &mut plane);
-                    let mut score: libc::c_float = BSPBuild_ScoreSplitPlane(
+                    let mut score: f32 = BSPBuild_ScoreSplitPlane(
                         nodeData,
                         plane,
                         k,
@@ -744,7 +744,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         };
                         plane_1.n = Vec3::cross(edge_0, polygonPlane_0.n).normalize();
                         plane_1.d = Vec3::dot(plane_1.n, mid_0);
-                        let mut score_0: libc::c_float = BSPBuild_ScoreSplitPlane(
+                        let mut score_0: f32 = BSPBuild_ScoreSplitPlane(
                             nodeData,
                             plane_1,
                             0.0f32,
@@ -1478,7 +1478,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(
             let mut init = Vec3 { x: 0., y: 0., z: 0. };
             init
         };
-        let mut t: libc::c_float = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
+        let mut t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
         closestPoint = origin - ((*node).plane.n * t);
         RenderState_PushWireframe(0 as libc::c_int != 0);
         Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
@@ -1547,7 +1547,7 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(
     mut this: *mut BSP,
-    mut totalTime: libc::c_double,
+    mut totalTime: f64,
 ) {
     Warn(
         b"BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.\0"
@@ -1557,7 +1557,7 @@ pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
     mut this: *mut BSP,
-    mut totalTime: libc::c_double,
+    mut totalTime: f64,
 ) {
     Warn(
         b"BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.\0"
@@ -1575,19 +1575,19 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     let mut depth: int32 = 0 as libc::c_int;
     let mut maxDepth: int32 = 0 as libc::c_int;
     loop {
-        maxDepth = Max(depth as libc::c_double, maxDepth as libc::c_double) as int32;
+        maxDepth = Max(depth as f64, maxDepth as f64) as int32;
         if nodeRef.index >= 0 as libc::c_int {
             let mut node: *mut BSPNode = ((*this).nodes_data)
                 .offset(nodeRef.index as isize);
             (*sphereProf).nodes += 1;
-            let mut dist: libc::c_float = Vec3::dot((*node).plane.n, (*sphere).p)
+            let mut dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p)
                 - (*node).plane.d;
-            if dist as libc::c_double
-                > (*sphere).r as libc::c_double + 2.0f32 as libc::c_double * 1e-4f64
+            if dist as f64
+                > (*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64
             {
                 nodeRef = (*node).child[FrontIndex as usize];
-            } else if (dist as libc::c_double)
-                < -((*sphere).r as libc::c_double + 2.0f32 as libc::c_double * 1e-4f64)
+            } else if (dist as f64)
+                < -((*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64)
             {
                 nodeRef = (*node).child[BackIndex as usize];
             } else {

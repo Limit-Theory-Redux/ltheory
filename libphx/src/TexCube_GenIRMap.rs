@@ -14,26 +14,26 @@ extern "C" {
     pub type Tex2D;
     pub type TexCube;
     fn CubeFace_Get(index: libc::c_int) -> CubeFace;
-    fn atan2(_: libc::c_double, _: libc::c_double) -> libc::c_double;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    fn atan2(_: f64, _: f64) -> f64;
+    fn sqrt(_: f64) -> f64;
     fn Draw_Rect(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn RenderTarget_Push(sx: libc::c_int, sy: libc::c_int);
     fn RenderTarget_Pop();
     fn RenderTarget_BindTexCubeLevel(_: *mut TexCube, _: CubeFace, level: libc::c_int);
     fn RNG_FromTime() -> *mut RNG;
     fn RNG_Free(_: *mut RNG);
-    fn RNG_GetUniform(_: *mut RNG) -> libc::c_double;
+    fn RNG_GetUniform(_: *mut RNG) -> f64;
     fn Shader_Load(vertName: cstr, fragName: cstr) -> *mut Shader;
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
     fn Shader_ResetTexIndex();
-    fn Shader_SetFloat(_: cstr, _: libc::c_float);
-    fn Shader_SetFloat3(_: cstr, _: libc::c_float, _: libc::c_float, _: libc::c_float);
+    fn Shader_SetFloat(_: cstr, _: f32);
+    fn Shader_SetFloat3(_: cstr, _: f32, _: f32, _: f32);
     fn Shader_SetInt(_: cstr, _: libc::c_int);
     fn Shader_SetTex2D(_: cstr, _: *mut Tex2D);
     fn Shader_SetTexCube(_: cstr, _: *mut TexCube);
@@ -79,14 +79,14 @@ pub type PixelFormat = int32;
 pub type TexFilter = int32;
 pub type TexFormat = int32;
 #[inline]
-unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
 }
 #[inline]
 unsafe extern "C" fn Atan2(
-    mut y: libc::c_double,
-    mut x: libc::c_double,
-) -> libc::c_double {
+    mut y: f64,
+    mut x: f64,
+) -> f64 {
     return atan2(y, x);
 }
 
@@ -110,7 +110,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     };
     let mut df: DataFormat = DataFormat_Float;
     let mut buffer: *mut libc::c_void = MemAlloc(
-        ((size * size) as usize).wrapping_mul(::core::mem::size_of::<libc::c_float>())
+        ((size * size) as usize).wrapping_mul(::core::mem::size_of::<f32>())
             .wrapping_mul(components as usize),
     );
     let mut i: libc::c_int = 0 as libc::c_int;
@@ -137,104 +137,20 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         CubeFace_NZ,
     ];
     let look: [Vec3; 6] = [
-        {
-            let mut init = Vec3 {
-                x: 1.0f32,
-                y: 0.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: -1.0f32,
-                y: 0.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 1.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: -1.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: 1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: -1.0f32,
-            };
-            init
-        },
+        Vec3::new(1.0f32, 0.0f32, 0.0f32),
+        Vec3::new(-1.0f32, 0.0f32, 0.0f32),
+        Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        Vec3::new(0.0f32, -1.0f32, 0.0f32),
+        Vec3::new(0.0f32, 0.0f32, 1.0f32),
+        Vec3::new(0.0f32, 0.0f32, -1.0f32),
     ];
     let up: [Vec3; 6] = [
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 1.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 1.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: -1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: 1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 1.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 1.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
+        Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        Vec3::new(0.0f32, 0.0f32, -1.0f32),
+        Vec3::new(0.0f32, 0.0f32, 1.0f32),
+        Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        Vec3::new(0.0f32, 1.0f32, 0.0f32),
     ];
     let mut rng: *mut RNG = RNG_FromTime();
     let mut levels: libc::c_int = 0 as libc::c_int;
@@ -248,8 +164,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     while size > 1 as libc::c_int {
         size /= 2 as libc::c_int;
         level += 1 as libc::c_int;
-        let mut ggxWidth: libc::c_double = level as libc::c_double
-            / levels as libc::c_double;
+        let mut ggxWidth: f64 = level as f64
+            / levels as f64;
         ggxWidth *= ggxWidth;
         let mut sampleBuffer: *mut Vec2 = MemAlloc(
             (::core::mem::size_of::<Vec2>())
@@ -262,17 +178,17 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         );
         let mut i_1: libc::c_int = 0 as libc::c_int;
         while i_1 < sampleCount {
-            let mut e1: libc::c_double = RNG_GetUniform(rng);
-            let mut e2: libc::c_double = RNG_GetUniform(rng);
-            let mut pitch: libc::c_double = Atan2(
+            let mut e1: f64 = RNG_GetUniform(rng);
+            let mut e2: f64 = RNG_GetUniform(rng);
+            let mut pitch: f64 = Atan2(
                 ggxWidth * Sqrt(e1),
                 Sqrt(1.0f64 - e1),
             );
-            let mut yaw: libc::c_double = 6.28318531f32 as libc::c_double * e2;
+            let mut yaw: f64 = 6.28318531f32 as f64 * e2;
             *sampleBuffer
                 .offset(
                     i_1 as isize,
-                ) = Vec2::new(pitch as libc::c_float, yaw as libc::c_float);
+                ) = Vec2::new(pitch as f32, yaw as f32);
             i_1 += 1;
         }
         Tex2D_SetData(
@@ -281,8 +197,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             PixelFormat_RG,
             DataFormat_Float,
         );
-        let mut angle: libc::c_float = level as libc::c_float
-            / (levels - 1 as libc::c_int) as libc::c_float;
+        let mut angle: f32 = level as f32
+            / (levels - 1 as libc::c_int) as f32;
         angle = angle * angle;
         Shader_ResetTexIndex();
         Shader_SetFloat(b"angle\0" as *const u8 as *const libc::c_char, angle);

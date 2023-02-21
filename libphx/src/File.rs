@@ -351,22 +351,22 @@ pub unsafe extern "C" fn File_ReadI16(mut this: *mut File) -> int16 {
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadF32(mut this: *mut File) -> libc::c_float {
-    let mut value: libc::c_float = 0.;
+pub unsafe extern "C" fn File_ReadF32(mut this: *mut File) -> f32 {
+    let mut value: f32 = 0.;
     libc::fread(
-        &mut value as *mut libc::c_float as *mut libc::c_void,
-        ::core::mem::size_of::<libc::c_float>() as libc::size_t,
+        &mut value as *mut f32 as *mut libc::c_void,
+        ::core::mem::size_of::<f32>() as libc::size_t,
         1 as libc::size_t,
         (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadF64(mut this: *mut File) -> libc::c_double {
-    let mut value: libc::c_double = 0.;
+pub unsafe extern "C" fn File_ReadF64(mut this: *mut File) -> f64 {
+    let mut value: f64 = 0.;
     libc::fread(
-        &mut value as *mut libc::c_double as *mut libc::c_void,
-        ::core::mem::size_of::<libc::c_double>() as libc::size_t,
+        &mut value as *mut f64 as *mut libc::c_void,
+        ::core::mem::size_of::<f64>() as libc::size_t,
         1 as libc::size_t,
         (*this).handle,
     );
@@ -400,10 +400,10 @@ pub unsafe extern "C" fn File_WriteI64(mut this: *mut File, mut value: int64) {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteF32(mut this: *mut File, mut value: libc::c_float) {
+pub unsafe extern "C" fn File_WriteF32(mut this: *mut File, mut value: f32) {
     libc::fwrite(
-        &mut value as *mut libc::c_float as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_float>() as libc::size_t,
+        &mut value as *mut f32 as *const libc::c_void,
+        ::core::mem::size_of::<f32>() as libc::size_t,
         1 as libc::size_t,
         (*this).handle,
     );
@@ -411,11 +411,11 @@ pub unsafe extern "C" fn File_WriteF32(mut this: *mut File, mut value: libc::c_f
 #[no_mangle]
 pub unsafe extern "C" fn File_WriteF64(
     mut this: *mut File,
-    mut value: libc::c_double,
+    mut value: f64,
 ) {
     libc::fwrite(
-        &mut value as *mut libc::c_double as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_double>() as libc::size_t,
+        &mut value as *mut f64 as *const libc::c_void,
+        ::core::mem::size_of::<f64>() as libc::size_t,
         1 as libc::size_t,
         (*this).handle,
     );

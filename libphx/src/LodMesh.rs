@@ -19,8 +19,8 @@ pub struct LodMesh {
 pub struct LodMeshEntry {
     pub next: *mut LodMeshEntry,
     pub mesh: *mut Mesh,
-    pub dMin: libc::c_float,
-    pub dMax: libc::c_float,
+    pub dMin: f32,
+    pub dMax: f32,
 }
 
 #[no_mangle]
@@ -58,8 +58,8 @@ pub unsafe extern "C" fn LodMesh_Free(mut this: *mut LodMesh) {
 pub unsafe extern "C" fn LodMesh_Add(
     mut this: *mut LodMesh,
     mut mesh: *mut Mesh,
-    mut dMin: libc::c_float,
-    mut dMax: libc::c_float,
+    mut dMin: f32,
+    mut dMax: f32,
 ) {
     let mut e: *mut LodMeshEntry = MemAlloc(
         ::core::mem::size_of::<LodMeshEntry>() as usize,
@@ -71,7 +71,7 @@ pub unsafe extern "C" fn LodMesh_Add(
     (*this).head = e;
 }
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Draw(mut this: *mut LodMesh, mut d2: libc::c_float) {
+pub unsafe extern "C" fn LodMesh_Draw(mut this: *mut LodMesh, mut d2: f32) {
     let mut e: *mut LodMeshEntry = (*this).head;
     while !e.is_null() {
         if (*e).dMin <= d2 && d2 <= (*e).dMax {
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn LodMesh_Draw(mut this: *mut LodMesh, mut d2: libc::c_fl
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Get(
     mut this: *mut LodMesh,
-    mut d2: libc::c_float,
+    mut d2: f32,
 ) -> *mut Mesh {
     let mut e: *mut LodMeshEntry = (*this).head;
     while !e.is_null() {

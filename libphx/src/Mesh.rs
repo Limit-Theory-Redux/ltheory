@@ -10,22 +10,22 @@ extern "C" {
     pub type SDF;
     pub type Matrix;
     fn Fatal(_: cstr, _: ...);
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    fn sqrt(_: f64) -> f64;
     fn Matrix_Free(_: *mut Matrix);
-    fn Matrix_RotationX(rads: libc::c_float) -> *mut Matrix;
-    fn Matrix_RotationY(rads: libc::c_float) -> *mut Matrix;
-    fn Matrix_RotationZ(rads: libc::c_float) -> *mut Matrix;
+    fn Matrix_RotationX(rads: f32) -> *mut Matrix;
+    fn Matrix_RotationY(rads: f32) -> *mut Matrix;
+    fn Matrix_RotationZ(rads: f32) -> *mut Matrix;
     fn Matrix_YawPitchRoll(
-        yaw: libc::c_float,
-        pitch: libc::c_float,
-        roll: libc::c_float,
+        yaw: f32,
+        pitch: f32,
+        roll: f32,
     ) -> *mut Matrix;
     fn Matrix_MulPoint(
         _: *const Matrix,
         out: *mut Vec3,
-        x: libc::c_float,
-        y: libc::c_float,
-        z: libc::c_float,
+        x: f32,
+        y: f32,
+        z: f32,
     );
     fn Metric_AddDraw(polys: int32, tris: int32, verts: int32);
     fn glBegin(mode: GLenum);
@@ -86,7 +86,7 @@ pub struct Vertex {
 #[repr(C)]
 pub struct Computed {
     pub bound: Box3f,
-    pub radius: libc::c_float,
+    pub radius: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -131,31 +131,31 @@ pub type PFNGLBUFFERDATAPROC = Option::<
 pub type PFNGLGENBUFFERSPROC = Option::<
     unsafe extern "C" fn(GLsizei, *mut GLuint) -> (),
 >;
-pub type GLfloat = libc::c_float;
+pub type GLfloat = f32;
 
 
 
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
-unsafe extern "C" fn Maxf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
+unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Minf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
+unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
     return if a < b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
 }
 
@@ -208,18 +208,18 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
         v = v.offset(1);
     }
     let mut center: Vec3 = Box3f_Center((*this).info.bound);
-    let mut r2: libc::c_double = 0.0f64;
+    let mut r2: f64 = 0.0f64;
     let mut v_0: *mut Vertex = (*this).vertex_data;
     let mut __iterend_0: *mut Vertex = ((*this).vertex_data)
         .offset((*this).vertex_size as isize);
     while v_0 < __iterend_0 {
-        let mut dx: libc::c_double = ((*v_0).p.x - center.x) as libc::c_double;
-        let mut dy: libc::c_double = ((*v_0).p.y - center.y) as libc::c_double;
-        let mut dz: libc::c_double = ((*v_0).p.z - center.z) as libc::c_double;
+        let mut dx: f64 = ((*v_0).p.x - center.x) as f64;
+        let mut dy: f64 = ((*v_0).p.y - center.y) as f64;
+        let mut dz: f64 = ((*v_0).p.z - center.z) as f64;
         r2 = Max(r2, dx * dx + dy * dy + dz * dz);
         v_0 = v_0.offset(1);
     }
-    (*this).info.radius = Sqrt(r2) as libc::c_float;
+    (*this).info.radius = Sqrt(r2) as f32;
     (*this).versionInfo = (*this).version;
 }
 #[no_mangle]
@@ -434,14 +434,14 @@ pub unsafe extern "C" fn Mesh_AddTri(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_AddVertex(
     mut this: *mut Mesh,
-    mut px: libc::c_float,
-    mut py: libc::c_float,
-    mut pz: libc::c_float,
-    mut nx: libc::c_float,
-    mut ny: libc::c_float,
-    mut nz: libc::c_float,
-    mut u: libc::c_float,
-    mut v: libc::c_float,
+    mut px: f32,
+    mut py: f32,
+    mut pz: f32,
+    mut nx: f32,
+    mut ny: f32,
+    mut nz: f32,
+    mut u: f32,
+    mut v: f32,
 ) {
     if ((*this).vertex_capacity == (*this).vertex_size) as libc::c_int
         as libc::c_long != 0
@@ -628,7 +628,7 @@ pub unsafe extern "C" fn Mesh_Draw(mut this: *mut Mesh) {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawNormals(
     mut this: *mut Mesh,
-    mut scale: libc::c_float,
+    mut scale: f32,
 ) {
     glBegin(0x1 as libc::c_int as GLenum);
     let mut v: *mut Vertex = (*this).vertex_data;
@@ -664,7 +664,7 @@ pub unsafe extern "C" fn Mesh_GetIndexData(mut this: *mut Mesh) -> *mut libc::c_
     return (*this).index_data;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_GetRadius(mut this: *mut Mesh) -> libc::c_float {
+pub unsafe extern "C" fn Mesh_GetRadius(mut this: *mut Mesh) -> f32 {
     Mesh_UpdateInfo(this);
     return (*this).info.radius;
 }
@@ -811,7 +811,7 @@ pub unsafe extern "C" fn Mesh_Invert(mut this: *mut Mesh) -> *mut Mesh {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateX(
     mut this: *mut Mesh,
-    mut rads: libc::c_float,
+    mut rads: f32,
 ) -> *mut Mesh {
     let mut matrix: *mut Matrix = Matrix_RotationX(rads);
     Mesh_Transform(this, matrix);
@@ -821,7 +821,7 @@ pub unsafe extern "C" fn Mesh_RotateX(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateY(
     mut this: *mut Mesh,
-    mut rads: libc::c_float,
+    mut rads: f32,
 ) -> *mut Mesh {
     let mut matrix: *mut Matrix = Matrix_RotationY(rads);
     Mesh_Transform(this, matrix);
@@ -831,7 +831,7 @@ pub unsafe extern "C" fn Mesh_RotateY(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateZ(
     mut this: *mut Mesh,
-    mut rads: libc::c_float,
+    mut rads: f32,
 ) -> *mut Mesh {
     let mut matrix: *mut Matrix = Matrix_RotationZ(rads);
     Mesh_Transform(this, matrix);
@@ -841,9 +841,9 @@ pub unsafe extern "C" fn Mesh_RotateZ(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateYPR(
     mut this: *mut Mesh,
-    mut yaw: libc::c_float,
-    mut pitch: libc::c_float,
-    mut roll: libc::c_float,
+    mut yaw: f32,
+    mut pitch: f32,
+    mut roll: f32,
 ) -> *mut Mesh {
     let mut matrix: *mut Matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
     Mesh_Transform(this, matrix);
@@ -853,9 +853,9 @@ pub unsafe extern "C" fn Mesh_RotateYPR(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Scale(
     mut this: *mut Mesh,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
 ) -> *mut Mesh {
     let mut v: *mut Vertex = (*this).vertex_data;
     let mut __iterend: *mut Vertex = ((*this).vertex_data)
@@ -872,7 +872,7 @@ pub unsafe extern "C" fn Mesh_Scale(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ScaleUniform(
     mut this: *mut Mesh,
-    mut s: libc::c_float,
+    mut s: f32,
 ) -> *mut Mesh {
     Mesh_Scale(this, s, s, s);
     return this;
@@ -880,9 +880,9 @@ pub unsafe extern "C" fn Mesh_ScaleUniform(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Translate(
     mut this: *mut Mesh,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
 ) -> *mut Mesh {
     let mut v: *mut Vertex = (*this).vertex_data;
     let mut __iterend: *mut Vertex = ((*this).vertex_data)
@@ -956,7 +956,7 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(mut this: *mut Mesh) {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_SplitNormals(
     mut this: *mut Mesh,
-    mut minDot: libc::c_float,
+    mut minDot: f32,
 ) {
     let mut v: *mut Vertex = (*this).vertex_data;
     let mut __iterend: *mut Vertex = ((*this).vertex_data)
@@ -992,7 +992,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(
                 .offset(**index.as_mut_ptr().offset(j as isize) as isize))
                 .n;
             if (*cn).length_squared() > 0.0f32 {
-                let mut cDot: libc::c_float = Vec3::dot(
+                let mut cDot: f32 = Vec3::dot(
                     face.normalize(),
                     (*cn).normalize(),
                 );

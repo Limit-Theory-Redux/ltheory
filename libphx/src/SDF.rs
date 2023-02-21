@@ -17,19 +17,19 @@ extern "C" {
     );
     fn Mesh_AddVertex(
         _: *mut Mesh,
-        px: libc::c_float,
-        py: libc::c_float,
-        pz: libc::c_float,
-        nx: libc::c_float,
-        ny: libc::c_float,
-        nz: libc::c_float,
-        u: libc::c_float,
-        v: libc::c_float,
+        px: f32,
+        py: f32,
+        pz: f32,
+        nx: f32,
+        ny: f32,
+        nz: f32,
+        u: f32,
+        v: f32,
     );
     fn Mesh_GetVertexCount(_: *mut Mesh) -> libc::c_int;
     fn Tex3D_GetData(_: *mut Tex3D, _: *mut libc::c_void, _: PixelFormat, _: DataFormat);
     fn Tex3D_GetSize(_: *mut Tex3D, out: *mut IVec3);
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    fn sqrt(_: f64) -> f64;
 }
 pub type int32_t = libc::c_int;
 pub type uint64_t = libc::c_ulonglong;
@@ -44,18 +44,18 @@ pub struct SDF {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Cell {
-    pub value: libc::c_float,
+    pub value: f32,
     pub normal: Vec3,
 }
 
 
 #[inline]
-unsafe extern "C" fn Saturate(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Saturate(mut t: f64) -> f64 {
     return if t < 0.0f64 { 0.0f64 } else if t > 1.0f64 { 1.0f64 } else { t };
 }
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 
 
@@ -118,9 +118,9 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
     };
     let cellsF: Vec3 = {
         let mut init = Vec3 {
-            x: cells.x as libc::c_float,
-            y: cells.y as libc::c_float,
-            z: cells.z as libc::c_float,
+            x: cells.x as f32,
+            y: cells.y as f32,
+            z: cells.z as f32,
         };
         init
     };
@@ -145,70 +145,14 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
             .wrapping_mul((cells.x * cells.y * cells.z) as usize),
     ) as *mut libc::c_int;
     let vp: [Vec3; 8] = [
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 1.0f32,
-                y: 0.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 1.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 1.0f32,
-                y: 1.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: 1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 1.0f32,
-                y: 0.0f32,
-                z: 1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 1.0f32,
-                z: 1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 1.0f32,
-                y: 1.0f32,
-                z: 1.0f32,
-            };
-            init
-        },
+        Vec3::new(0.0f32, 0.0f32, 0.0f32),
+        Vec3::new(1.0f32, 0.0f32, 0.0f32),
+        Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        Vec3::new(1.0f32, 1.0f32, 0.0f32),
+        Vec3::new(0.0f32, 0.0f32, 1.0f32),
+        Vec3::new(1.0f32, 0.0f32, 1.0f32),
+        Vec3::new(0.0f32, 1.0f32, 1.0f32),
+        Vec3::new(1.0f32, 1.0f32, 1.0f32),
     ];
     let edgeTable: [[libc::c_int; 2]; 12] = [
         [0 as libc::c_int, 1 as libc::c_int],
@@ -226,14 +170,14 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
     ];
     let mut z: libc::c_int = 0 as libc::c_int;
     while z < cells.z {
-        let mut z0: libc::c_float = z as libc::c_float / cells.z as libc::c_float;
+        let mut z0: f32 = z as f32 / cells.z as f32;
         let mut y: libc::c_int = 0 as libc::c_int;
         while y < cells.y {
-            let mut y0: libc::c_float = y as libc::c_float / cells.y as libc::c_float;
+            let mut y0: f32 = y as f32 / cells.y as f32;
             let mut x: libc::c_int = 0 as libc::c_int;
             while x < cells.x {
-                let mut x0: libc::c_float = x as libc::c_float
-                    / cells.x as libc::c_float;
+                let mut x0: f32 = x as f32
+                    / cells.x as f32;
                 let mut cell: IVec3 = {
                     let mut init = IVec3 { x: x, y: y, z: z };
                     init
@@ -322,7 +266,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                 if mask == 0 as libc::c_int || mask == 0xff as libc::c_int {
                     *indices.offset(cellIndex as isize) = -(1 as libc::c_int);
                 } else {
-                    let mut tw: libc::c_float = 0.0f32;
+                    let mut tw: f32 = 0.0f32;
                     let mut offset: Vec3 = {
                         let mut init = Vec3 {
                             x: 0.0f32,
@@ -352,10 +296,10 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                             == ((*v1).value > 0.0f32)
                                 as libc::c_int)
                         {
-                            let mut t: libc::c_float = Saturate(
+                            let mut t: f32 = Saturate(
                                 ((*v0).value / ((*v0).value - (*v1).value))
-                                    as libc::c_double,
-                            ) as libc::c_float;
+                                    as f64,
+                            ) as f32;
                             offset += vp[i0 as usize].lerp(vp[i1 as usize], t);
                             n += (*v0).normal.lerp((*v1).normal, t);
                             tw += 1.0f32;
@@ -428,7 +372,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
     return mesh;
 }
 #[no_mangle]
-pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: libc::c_float) {
+pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
     let mut size: uint64 = ((*this).size.x * (*this).size.y * (*this).size.z)
         as uint64;
     let mut pCell: *mut Cell = (*this).data;
@@ -484,7 +428,7 @@ pub unsafe extern "C" fn SDF_Set(
     mut x: libc::c_int,
     mut y: libc::c_int,
     mut z: libc::c_int,
-    mut value: libc::c_float,
+    mut value: f32,
 ) {
     (*((*this).data)
         .offset((x + (*this).size.x * (y + (*this).size.y * z)) as isize))

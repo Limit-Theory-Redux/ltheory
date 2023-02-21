@@ -2,9 +2,9 @@ use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
-    // fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
-    // fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    // fn __fpclassifyf(_: f32) -> libc::c_int;
+    // fn __fpclassifyd(_: f64) -> libc::c_int;
+    fn sqrt(_: f64) -> f64;
     fn Fatal(_: cstr, _: ...);
 }
 pub type int32_t = libc::c_int;
@@ -16,7 +16,7 @@ pub type uint32 = uint32_t;
 #[repr(C)]
 pub struct Plane {
     pub n: Vec3,
-    pub d: libc::c_float,
+    pub d: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -25,14 +25,14 @@ pub struct Triangle {
 }
 pub type Error = uint32;
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn Triangle_ToPlaneFast(
     (*plane).d = Vec3::dot(*v.offset(0), n);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_GetArea(mut tri: *const Triangle) -> libc::c_float {
+pub unsafe extern "C" fn Triangle_GetArea(mut tri: *const Triangle) -> f32 {
     let mut e1 = (*tri).vertices[1] - (*tri).vertices[0];
     let mut e2 = (*tri).vertices[2] - (*tri).vertices[1];
     return 0.5f32 * Vec3::cross(e1, e2).length();
@@ -90,11 +90,11 @@ pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     let mut e01 = (*v.offset(0)).distance(*v.offset(1));
     let mut e12 = (*v.offset(1)).distance(*v.offset(2));
     let mut e20 = (*v.offset(2)).distance(*v.offset(0));
-    let mut shortest: libc::c_float = Min(
-        Min(e01 as libc::c_double, e12 as libc::c_double),
-        e20 as libc::c_double,
-    ) as libc::c_float;
-    if (shortest as libc::c_double) < 0.75f32 as libc::c_double * 1e-4f64 {
+    let mut shortest: f32 = Min(
+        Min(e01 as f64, e12 as f64),
+        e20 as f64,
+    ) as f32;
+    if (shortest as f64) < 0.75f32 as f64 * 1e-4f64 {
         return (0x400000 as libc::c_int | 0x8 as libc::c_int) as Error;
     }
     return 0 as libc::c_int as Error;

@@ -3,9 +3,9 @@ use glam::Vec3;
 use glam::DVec3;
 use crate::internal::Memory::*;
 extern "C" {
-    // fn __fpclassifyf(_: libc::c_float) -> libc::c_int;
-    // fn __fpclassifyd(_: libc::c_double) -> libc::c_int;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    // fn __fpclassifyf(_: f32) -> libc::c_int;
+    // fn __fpclassifyd(_: f64) -> libc::c_int;
+    fn sqrt(_: f64) -> f64;
     fn Fatal(_: cstr, _: ...);
     fn Intersect_LineSegmentPlane(
         _: *const LineSegment,
@@ -31,7 +31,7 @@ pub struct LineSegment {
 #[repr(C)]
 pub struct Plane {
     pub n: Vec3,
-    pub d: libc::c_float,
+    pub d: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -50,11 +50,11 @@ pub type Error = uint32;
 pub type PointClassification = uint8;
 
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
-unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
 }
 
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(
     let mut vLen: int32 = (*polygon).vertices_size;
     let mut n: DVec3 = {
         let mut init = DVec3 {
-            x: 0 as libc::c_int as libc::c_double,
+            x: 0 as libc::c_int as f64,
             y: 0.,
             z: 0.,
         };
@@ -389,8 +389,8 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
         while l < vLen {
             let mut vPrev: Vec3 = vCur;
             vCur = *v.offset(l as isize);
-            let mut edgeLen: libc::c_float = vCur.distance(vPrev);
-            if (edgeLen as libc::c_double) < 0.75f32 as libc::c_double * 1e-4f64 {
+            let mut edgeLen: f32 = vCur.distance(vPrev);
+            if (edgeLen as f64) < 0.75f32 as f64 * 1e-4f64 {
                 (*back).vertices_size = 0 as libc::c_int;
                 (*front).vertices_size = 0 as libc::c_int;
                 let mut vertex: *mut Vec3 = (*polygon).vertices_data;
@@ -470,7 +470,7 @@ pub unsafe extern "C" fn Polygon_GetCentroid(
         centroid -= *v;
         v = v.offset(1);
     }
-    centroid /= (*polygon).vertices_size as libc::c_float;
+    centroid /= (*polygon).vertices_size as f32;
     *out = centroid;
 }
 #[no_mangle]
@@ -529,7 +529,7 @@ pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
             j += 1;
         }
         let mut edgeLen = vCur.distance(vPrev);
-        if (edgeLen as libc::c_double) < 0.75f32 as libc::c_double * 1e-4f64 {
+        if (edgeLen as f64) < 0.75f32 as f64 * 1e-4f64 {
             return (0x400000 as libc::c_int | 0x8 as libc::c_int) as Error;
         }
         i += 1;

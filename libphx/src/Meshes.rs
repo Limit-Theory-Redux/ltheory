@@ -15,18 +15,18 @@ extern "C" {
     );
     fn Mesh_AddVertex(
         _: *mut Mesh,
-        px: libc::c_float,
-        py: libc::c_float,
-        pz: libc::c_float,
-        nx: libc::c_float,
-        ny: libc::c_float,
-        nz: libc::c_float,
-        u: libc::c_float,
-        v: libc::c_float,
+        px: f32,
+        py: f32,
+        pz: f32,
+        nx: f32,
+        ny: f32,
+        nz: f32,
+        u: f32,
+        v: f32,
     );
     fn Mesh_GetVertexCount(_: *mut Mesh) -> libc::c_int;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    fn sqrt(_: f64) -> f64;
 }
 
 #[derive(Copy, Clone)]
@@ -37,8 +37,8 @@ pub struct Vertex {
     pub uv: Vec2,
 }
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
 unsafe extern "C" fn Mesh_AddPlane(
@@ -52,12 +52,12 @@ unsafe extern "C" fn Mesh_AddPlane(
     let mut n: Vec3 = Vec3::cross(du, dv).normalize();
     let mut iu: libc::c_int = 0 as libc::c_int;
     while iu < resU {
-        let mut u: libc::c_float = iu as libc::c_float
-            / (resU - 1 as libc::c_int) as libc::c_float;
+        let mut u: f32 = iu as f32
+            / (resU - 1 as libc::c_int) as f32;
         let mut iv: libc::c_int = 0 as libc::c_int;
         while iv < resV {
-            let mut v: libc::c_float = iv as libc::c_float
-                / (resV - 1 as libc::c_int) as libc::c_float;
+            let mut v: f32 = iv as f32
+                / (resV - 1 as libc::c_int) as f32;
             let mut p: Vec3 = origin + du * u + dv * v;
             if iu != 0 && iv != 0 {
                 let mut vc: libc::c_int = Mesh_GetVertexCount(this);
@@ -78,154 +78,28 @@ unsafe extern "C" fn Mesh_AddPlane(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
     let origin: [Vec3; 6] = [
-        {
-            let mut init = Vec3 {
-                x: -1.0f32,
-                y: -1.0f32,
-                z: 1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: -1.0f32,
-                y: -1.0f32,
-                z: -1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 1.0f32,
-                y: -1.0f32,
-                z: -1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: -1.0f32,
-                y: -1.0f32,
-                z: -1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: -1.0f32,
-                y: 1.0f32,
-                z: -1.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: -1.0f32,
-                y: -1.0f32,
-                z: -1.0f32,
-            };
-            init
-        },
+        Vec3::new(-1.0f32, -1.0f32, 1.0f32),
+        Vec3::new(-1.0f32, -1.0f32, -1.0f32),
+        Vec3::new(1.0f32, -1.0f32, -1.0f32),
+        Vec3::new(-1.0f32, -1.0f32, -1.0f32),
+        Vec3::new(-1.0f32, 1.0f32, -1.0f32),
+        Vec3::new(-1.0f32, -1.0f32, -1.0f32),
     ];
     let du: [Vec3; 6] = [
-        {
-            let mut init = Vec3 {
-                x: 2.0f32,
-                y: 0.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 2.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 2.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: 2.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: 2.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 2.0f32,
-                y: 0.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
+        Vec3::new(2.0f32, 0.0f32, 0.0f32),
+        Vec3::new(0.0f32, 2.0f32, 0.0f32),
+        Vec3::new(0.0f32, 2.0f32, 0.0f32),
+        Vec3::new(0.0f32, 0.0f32, 2.0f32),
+        Vec3::new(0.0f32, 0.0f32, 2.0f32),
+        Vec3::new(2.0f32, 0.0f32, 0.0f32),
     ];
     let dv: [Vec3; 6] = [
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 2.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 2.0f32,
-                y: 0.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: 2.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 2.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 2.0f32,
-                y: 0.0f32,
-                z: 0.0f32,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
-                x: 0.0f32,
-                y: 0.0f32,
-                z: 2.0f32,
-            };
-            init
-        },
+        Vec3::new(0.0f32, 2.0f32, 0.0f32),
+        Vec3::new(2.0f32, 0.0f32, 0.0f32),
+        Vec3::new(0.0f32, 0.0f32, 2.0f32),
+        Vec3::new(0.0f32, 2.0f32, 0.0f32),
+        Vec3::new(2.0f32, 0.0f32, 0.0f32),
+        Vec3::new(0.0f32, 0.0f32, 2.0f32),
     ];
     let mut this: *mut Mesh = Mesh_Create();
     let mut i: libc::c_int = 0 as libc::c_int;

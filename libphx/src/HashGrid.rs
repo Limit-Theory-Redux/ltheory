@@ -3,7 +3,7 @@ use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type MemPool;
-    fn floor(_: libc::c_double) -> libc::c_double;
+    fn floor(_: f64) -> f64;
     fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: uint64) -> uint64;
     fn MemPool_Create(cellSize: uint32, blockSize: uint32) -> *mut MemPool;
     fn MemPool_Free(_: *mut MemPool);
@@ -27,7 +27,7 @@ pub struct HashGrid {
     pub cells: *mut HashGridCell,
     pub elemPool: *mut MemPool,
     pub cellCount: uint32,
-    pub cellSize: libc::c_float,
+    pub cellSize: f32,
     pub mask: uint32,
     pub results_size: int32,
     pub results_capacity: int32,
@@ -59,7 +59,7 @@ pub struct Box3f {
 
 
 #[inline]
-unsafe extern "C" fn Floor(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
 #[inline]
@@ -72,7 +72,7 @@ unsafe extern "C" fn Mini(mut a: libc::c_int, mut b: libc::c_int) -> libc::c_int
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Create(
-    mut cellSize: libc::c_float,
+    mut cellSize: f32,
     mut cellCount: uint32,
 ) -> *mut HashGrid {
     let mut logCount: uint32 = 0 as libc::c_int as uint32;
@@ -230,9 +230,9 @@ unsafe extern "C" fn HashGrid_RemoveElem(
 #[inline]
 unsafe extern "C" fn HashGrid_ToLocal(
     mut this: *mut HashGrid,
-    mut x: libc::c_float,
+    mut x: f32,
 ) -> int32 {
-    return Floor((x / (*this).cellSize) as libc::c_double) as int32;
+    return Floor((x / (*this).cellSize) as f64) as int32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Add(

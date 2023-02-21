@@ -20,10 +20,10 @@ pub type int32 = int32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
 }
 pub type ShaderVarType = int32;
 #[no_mangle]
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn ShaderVarType_GetSize(
 ) -> libc::c_int {
     match this {
         1 => {
-            return ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
+            return ::core::mem::size_of::<f32>() as libc::c_ulong
                 as libc::c_int;
         }
         2 => return ::core::mem::size_of::<Vec2>() as libc::c_ulong as libc::c_int,

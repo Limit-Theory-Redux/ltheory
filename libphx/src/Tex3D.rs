@@ -67,7 +67,7 @@ pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;
 pub type GLsizei = libc::c_int;
-pub type GLfloat = libc::c_float;
+pub type GLfloat = f32;
 pub type PFNGLTEXIMAGE3DPROC = Option::<
     unsafe extern "C" fn(
         GLenum,
@@ -197,13 +197,13 @@ pub unsafe extern "C" fn Tex3D_PushLevel(
 pub unsafe extern "C" fn Tex3D_Draw(
     mut this: *mut Tex3D,
     mut layer: libc::c_int,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut xs: libc::c_float,
-    mut ys: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut xs: f32,
+    mut ys: f32,
 ) {
-    let mut r: libc::c_float = (layer + 1 as libc::c_int) as libc::c_float
-        / ((*this).size.z + 1 as libc::c_int) as libc::c_float;
+    let mut r: f32 = (layer + 1 as libc::c_int) as f32
+        / ((*this).size.z + 1 as libc::c_int) as f32;
     glEnable(0x806f as libc::c_int as GLenum);
     glBindTexture(0x806f as libc::c_int as GLenum, (*this).handle);
     glBegin(0x7 as libc::c_int as GLenum);

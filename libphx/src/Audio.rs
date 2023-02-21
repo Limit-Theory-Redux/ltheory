@@ -28,9 +28,9 @@ extern "C" {
     fn FMOD_System_Update(system: *mut FMOD_SYSTEM) -> FMOD_RESULT;
     fn FMOD_System_Set3DSettings(
         system: *mut FMOD_SYSTEM,
-        dopplerscale: libc::c_float,
-        distancefactor: libc::c_float,
-        rolloffscale: libc::c_float,
+        dopplerscale: f32,
+        distancefactor: f32,
+        rolloffscale: f32,
     ) -> FMOD_RESULT;
     fn FMOD_System_Set3DListenerAttributes(
         system: *mut FMOD_SYSTEM,
@@ -206,9 +206,9 @@ pub const FMOD_DEBUG_MODE_TTY: FMOD_DEBUG_MODE = 0;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FMOD_VECTOR {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 #[inline]
@@ -773,9 +773,9 @@ pub unsafe extern "C" fn Audio_AttachListenerPos(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Set3DSettings(
-    mut doppler: libc::c_float,
-    mut scale: libc::c_float,
-    mut rolloff: libc::c_float,
+    mut doppler: f32,
+    mut scale: f32,
+    mut rolloff: f32,
 ) {
     // FMOD_CheckError(
     //     FMOD_System_Set3DSettings(this.handle, doppler, scale, rolloff),

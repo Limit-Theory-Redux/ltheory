@@ -16,10 +16,10 @@ extern "C" {
     fn Bytes_Rewind(_: *mut Bytes);
     fn DataFormat_GetSize(_: DataFormat) -> libc::c_int;
     fn Draw_Clear(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn Metric_Inc(_: Metric);
     fn Metric_AddDrawImm(polys: int32, tris: int32, verts: int32);
@@ -133,7 +133,7 @@ pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;
 pub type GLsizei = libc::c_int;
-pub type GLfloat = libc::c_float;
+pub type GLfloat = f32;
 pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 
@@ -297,10 +297,10 @@ pub unsafe extern "C" fn Tex2D_PushLevel(
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Clear(
     mut this: *mut Tex2D,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     RenderTarget_PushTex2D(this);
     Draw_Clear(r, g, b, a);
@@ -332,10 +332,10 @@ pub unsafe extern "C" fn Tex2D_Clone(mut this: *mut Tex2D) -> *mut Tex2D {
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Draw(
     mut this: *mut Tex2D,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut sx: f32,
+    mut sy: f32,
 ) {
     Metric_AddDrawImm(1 as libc::c_int, 2 as libc::c_int, 4 as libc::c_int);
     glEnable(0xde1 as libc::c_int as GLenum);
@@ -355,14 +355,14 @@ pub unsafe extern "C" fn Tex2D_Draw(
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_DrawEx(
     mut this: *mut Tex2D,
-    mut x0: libc::c_float,
-    mut y0: libc::c_float,
-    mut x1: libc::c_float,
-    mut y1: libc::c_float,
-    mut u0: libc::c_float,
-    mut v0: libc::c_float,
-    mut u1: libc::c_float,
-    mut v1: libc::c_float,
+    mut x0: f32,
+    mut y0: f32,
+    mut x1: f32,
+    mut y1: f32,
+    mut u0: f32,
+    mut v0: f32,
+    mut u1: f32,
+    mut v1: f32,
 ) {
     Metric_AddDrawImm(1 as libc::c_int, 2 as libc::c_int, 4 as libc::c_int);
     glEnable(0xde1 as libc::c_int as GLenum);
@@ -483,7 +483,7 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: cstr) -> *mut Tex2D {
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetAnisotropy(
     mut this: *mut Tex2D,
-    mut factor: libc::c_float,
+    mut factor: f32,
 ) {
     glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexParameterf(
@@ -578,12 +578,12 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
     mut this: *mut Tex2D,
     mut x: libc::c_int,
     mut y: libc::c_int,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
-    let mut rgba: [libc::c_float; 4] = [r, g, b, a];
+    let mut rgba: [f32; 4] = [r, g, b, a];
     glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexSubImage2D(
         0xde1 as libc::c_int as GLenum,

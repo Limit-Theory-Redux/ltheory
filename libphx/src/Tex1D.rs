@@ -76,7 +76,7 @@ pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;
 pub type GLsizei = libc::c_int;
-pub type GLfloat = libc::c_float;
+pub type GLfloat = f32;
 pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 #[inline]
@@ -155,10 +155,10 @@ pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Draw(
     mut this: *mut Tex1D,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut xs: libc::c_float,
-    mut ys: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut xs: f32,
+    mut ys: f32,
 ) {
     glEnable(0xde0 as libc::c_int as GLenum);
     glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
@@ -280,12 +280,12 @@ pub unsafe extern "C" fn Tex1D_SetMinFilter(
 pub unsafe extern "C" fn Tex1D_SetTexel(
     mut this: *mut Tex1D,
     mut x: libc::c_int,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
-    let mut rgba: [libc::c_float; 4] = [r, g, b, a];
+    let mut rgba: [f32; 4] = [r, g, b, a];
     glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glTexSubImage1D(
         0xde0 as libc::c_int as GLenum,

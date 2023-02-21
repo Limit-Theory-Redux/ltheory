@@ -25,11 +25,11 @@ extern "C" {
         rets: libc::c_int,
         errorHandler: libc::c_int,
     );
-    fn Lua_PushNumber(_: *mut Lua, _: libc::c_double);
+    fn Lua_PushNumber(_: *mut Lua, _: f64);
     fn Lua_SetFn(_: *mut Lua, name: cstr, _: LuaFn);
     fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetDifference(start: TimeStamp, end: TimeStamp) -> libc::c_double;
-    fn TimeStamp_GetRelative(start: TimeStamp, seconds: libc::c_double) -> TimeStamp;
+    fn TimeStamp_GetDifference(start: TimeStamp, end: TimeStamp) -> f64;
+    fn TimeStamp_GetRelative(start: TimeStamp, seconds: f64) -> TimeStamp;
 }
 pub type int32_t = libc::c_int;
 pub type uint64_t = libc::c_ulonglong;
@@ -39,7 +39,7 @@ pub type int32 = int32_t;
 pub type uint64 = uint64_t;
 pub type TimeStamp = uint64;
 pub type ptrdiff_t = __darwin_ptrdiff_t;
-pub type lua_Number = libc::c_double;
+pub type lua_Number = f64;
 pub type lua_Integer = ptrdiff_t;
 pub type Lua = lua_State;
 pub type LuaFn = Option::<unsafe extern "C" fn(*mut Lua) -> libc::c_int>;
@@ -96,7 +96,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> libc::c_int {
         tCreated: 0,
         tWake: 0,
     };
-    let mut timeToWake: libc::c_double = lua_tonumber(L, lua_gettop(L));
+    let mut timeToWake: f64 = lua_tonumber(L, lua_gettop(L));
     elem.tCreated = this.now;
     elem.tWake = TimeStamp_GetRelative(this.now, timeToWake);
     lua_settop(L, -(1 as libc::c_int) - 1 as libc::c_int);
@@ -186,7 +186,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> libc::c_int {
         if this.now < (*elem).tWake {
             break;
         }
-        let mut dt: libc::c_double = TimeStamp_GetDifference(
+        let mut dt: f64 = TimeStamp_GetDifference(
             (*elem).tCreated,
             this.now,
         );

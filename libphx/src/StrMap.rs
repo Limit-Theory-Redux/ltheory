@@ -244,8 +244,8 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
     );
     printf(
         b"      load: %f\n\0" as *const u8 as *const libc::c_char,
-        ((*this).size as libc::c_float / (*this).capacity as libc::c_float)
-            as libc::c_double,
+        ((*this).size as f32 / (*this).capacity as f32)
+            as f64,
     );
     puts(b"\0" as *const u8 as *const libc::c_char);
     let mut i: uint32 = 0 as libc::c_int as uint32;

@@ -20,15 +20,15 @@ extern "C" {
     fn HashMap_Free(_: *mut HashMap);
     fn HashMap_GetRaw(_: *mut HashMap, keyHash: uint64) -> *mut libc::c_void;
     fn HashMap_SetRaw(_: *mut HashMap, keyHash: uint64, value: *mut libc::c_void);
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    fn sqrt(_: f64) -> f64;
     fn Signal_AddHandlerAll(_: SignalHandler);
     fn Signal_RemoveHandlerAll(_: SignalHandler);
     fn fflush(_: *mut FILE) -> libc::c_int;
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     fn puts(_: *const libc::c_char) -> libc::c_int;
     fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> libc::c_double;
-    fn TimeStamp_ToDouble(_: TimeStamp) -> libc::c_double;
+    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
+    fn TimeStamp_ToDouble(_: TimeStamp) -> f64;
 }
 pub type int32_t = libc::c_int;
 pub type uint32_t = libc::c_uint;
@@ -95,11 +95,11 @@ pub struct Scope {
     pub last: TimeStamp,
     pub frame: TimeStamp,
     pub total: TimeStamp,
-    pub count: libc::c_double,
-    pub mean: libc::c_double,
-    pub var: libc::c_double,
-    pub min: libc::c_double,
-    pub max: libc::c_double,
+    pub count: f64,
+    pub mean: f64,
+    pub var: f64,
+    pub min: f64,
+    pub max: f64,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -116,20 +116,20 @@ pub struct Profiler {
 
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
 }
 
@@ -249,7 +249,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         );
     }
     Profiler_End();
-    let mut total: libc::c_double = TimeStamp_GetElapsed(this.start);
+    let mut total: f64 = TimeStamp_GetElapsed(this.start);
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < this.scopeList_size {
         let mut scope: *mut Scope = *(this.scopeList_data).offset(i as isize);
@@ -273,11 +273,11 @@ pub unsafe extern "C" fn Profiler_Disable() {
         b"-- PHX PROFILER -------------------------------------\0" as *const u8
             as *const libc::c_char,
     );
-    let mut cumulative: libc::c_double = 0 as libc::c_int as libc::c_double;
+    let mut cumulative: f64 = 0 as libc::c_int as f64;
     let mut i_0: libc::c_int = 0 as libc::c_int;
     while i_0 < this.scopeList_size {
         let mut scope_0: *mut Scope = *(this.scopeList_data).offset(i_0 as isize);
-        let mut scopeTotal: libc::c_double = TimeStamp_ToDouble((*scope_0).total);
+        let mut scopeTotal: f64 = TimeStamp_ToDouble((*scope_0).total);
         cumulative += scopeTotal;
         if !(scopeTotal / total < 0.01f64 && (*scope_0).max < 0.01f64) {
             printf(
@@ -379,17 +379,17 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < this.scopeList_size {
         let mut scope: *mut Scope = *(this.scopeList_data).offset(i as isize);
-        if (*scope).frame as libc::c_double > 0.0f64 {
+        if (*scope).frame as f64 > 0.0f64 {
             (*scope)
                 .total = ((*scope).total as libc::c_ulonglong)
                 .wrapping_add((*scope).frame) as TimeStamp as TimeStamp;
-            let mut frame: libc::c_double = TimeStamp_ToDouble((*scope).frame);
+            let mut frame: f64 = TimeStamp_ToDouble((*scope).frame);
             (*scope).min = Min((*scope).min, frame);
             (*scope).max = Max((*scope).max, frame);
             (*scope).count += 1.0f64;
-            let mut d1: libc::c_double = frame - (*scope).mean;
+            let mut d1: f64 = frame - (*scope).mean;
             (*scope).mean += d1 / (*scope).count;
-            let mut d2: libc::c_double = frame - (*scope).mean;
+            let mut d2: f64 = frame - (*scope).mean;
             (*scope).var += d1 * d2;
             (*scope).frame = 0 as libc::c_int as TimeStamp;
         }

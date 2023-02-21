@@ -15,10 +15,10 @@ pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ClipRect {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub sx: libc::c_float,
-    pub sy: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub sx: f32,
+    pub sy: f32,
     pub enabled: bool,
 }
 pub type GLenum = libc::c_uint;
@@ -27,23 +27,23 @@ pub type GLint = libc::c_int;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ClipRectTransform {
-    pub tx: libc::c_float,
-    pub ty: libc::c_float,
-    pub sx: libc::c_float,
-    pub sy: libc::c_float,
+    pub tx: f32,
+    pub ty: f32,
+    pub sx: f32,
+    pub sy: f32,
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 static mut transform: [ClipRectTransform; 128] = [ClipRectTransform {
@@ -63,10 +63,10 @@ static mut rect: [ClipRect; 128] = [ClipRect {
 static mut rectIndex: libc::c_int = -(1 as libc::c_int);
 #[inline]
 unsafe extern "C" fn TransformRect(
-    mut x: *mut libc::c_float,
-    mut y: *mut libc::c_float,
-    mut sx: *mut libc::c_float,
-    mut sy: *mut libc::c_float,
+    mut x: *mut f32,
+    mut y: *mut f32,
+    mut sx: *mut f32,
+    mut sy: *mut f32,
 ) {
     if transformIndex >= 0 as libc::c_int {
         let mut curr: *mut ClipRectTransform = transform
@@ -84,10 +84,10 @@ pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
         let mut vpSize: IVec2 = IVec2 { x: 0, y: 0 };
         Viewport_GetSize(&mut vpSize);
         glEnable(0xc11 as libc::c_int as GLenum);
-        let mut x: libc::c_float = (*this).x;
-        let mut y: libc::c_float = (*this).y;
-        let mut sx: libc::c_float = (*this).sx;
-        let mut sy: libc::c_float = (*this).sy;
+        let mut x: f32 = (*this).x;
+        let mut y: f32 = (*this).y;
+        let mut sx: f32 = (*this).sx;
+        let mut sy: f32 = (*this).sy;
         TransformRect(&mut x, &mut y, &mut sx, &mut sy);
         glScissor(
             x as libc::c_int,
@@ -101,10 +101,10 @@ pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Push(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut sx: f32,
+    mut sy: f32,
 ) {
     if rectIndex + 1 as libc::c_int >= 128 as libc::c_int {
         Fatal(
@@ -123,24 +123,24 @@ pub unsafe extern "C" fn ClipRect_Push(
 }
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushCombined(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut sx: f32,
+    mut sy: f32,
 ) {
     let mut curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
     if rectIndex >= 0 as libc::c_int && (*curr).enabled as libc::c_int != 0 {
-        let mut maxX: libc::c_float = x + sx;
-        let mut maxY: libc::c_float = y + sy;
-        x = Max(x as libc::c_double, (*curr).x as libc::c_double) as libc::c_float;
-        y = Max(y as libc::c_double, (*curr).y as libc::c_double) as libc::c_float;
+        let mut maxX: f32 = x + sx;
+        let mut maxY: f32 = y + sy;
+        x = Max(x as f64, (*curr).x as f64) as f32;
+        y = Max(y as f64, (*curr).y as f64) as f32;
         ClipRect_Push(
             x,
             y,
-            (Min(maxX as libc::c_double, ((*curr).x + (*curr).sx) as libc::c_double)
-                - x as libc::c_double) as libc::c_float,
-            (Min(maxY as libc::c_double, ((*curr).y + (*curr).sy) as libc::c_double)
-                - y as libc::c_double) as libc::c_float,
+            (Min(maxX as f64, ((*curr).x + (*curr).sx) as f64)
+                - x as f64) as f32,
+            (Min(maxY as f64, ((*curr).y + (*curr).sy) as f64)
+                - y as f64) as f32,
         );
     } else {
         ClipRect_Push(x, y, sx, sy);
@@ -161,10 +161,10 @@ pub unsafe extern "C" fn ClipRect_PushDisabled() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushTransform(
-    mut tx: libc::c_float,
-    mut ty: libc::c_float,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut tx: f32,
+    mut ty: f32,
+    mut sx: f32,
+    mut sy: f32,
 ) {
     if transformIndex + 1 as libc::c_int >= 128 as libc::c_int {
         Fatal(

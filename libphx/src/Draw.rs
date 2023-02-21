@@ -6,10 +6,10 @@ use glam::Vec2;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
-    fn cos(_: libc::c_double) -> libc::c_double;
-    fn sin(_: libc::c_double) -> libc::c_double;
-    fn fabs(_: libc::c_double) -> libc::c_double;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    fn cos(_: f64) -> f64;
+    fn sin(_: f64) -> f64;
+    fn fabs(_: f64) -> f64;
+    fn sqrt(_: f64) -> f64;
     fn Metric_Inc(_: Metric);
     fn Metric_AddDrawImm(polys: int32, tris: int32, verts: int32);
     fn glBegin(mode: GLenum);
@@ -43,39 +43,39 @@ pub struct Box3f {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
 }
 pub type Metric = int32;
 pub type GLbitfield = libc::c_uint;
-pub type GLclampf = libc::c_float;
+pub type GLclampf = f32;
 pub type GLenum = libc::c_uint;
 pub type PFNGLCHECKFRAMEBUFFERSTATUSPROC = Option::<
     unsafe extern "C" fn(GLenum) -> GLenum,
 >;
-pub type GLclampd = libc::c_double;
-pub type GLfloat = libc::c_float;
+pub type GLclampd = f64;
+pub type GLfloat = f32;
 #[inline]
-unsafe extern "C" fn Abs(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
-unsafe extern "C" fn Cos(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Cos(mut t: f64) -> f64 {
     return cos(t);
 }
 #[inline]
-unsafe extern "C" fn Sin(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Sin(mut t: f64) -> f64 {
     return sin(t);
 }
 #[inline]
 unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
-    let mut d: libc::c_float = Vec3::dot(a, b);
+    let mut d: f32 = Vec3::dot(a, b);
     let mut this: Vec3 = {
         let mut init = Vec3 {
             x: a.x - d * b.x,
@@ -88,10 +88,10 @@ unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
 }
 #[inline]
 unsafe extern "C" fn Vec4f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+    mut w: f32,
 ) -> Vec4f {
     let mut this: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };
@@ -99,7 +99,7 @@ unsafe extern "C" fn Vec4f_Create(
     };
     return this;
 }
-static mut alphaStack: [libc::c_float; 16] = [0.; 16];
+static mut alphaStack: [f32; 16] = [0.; 16];
 static mut alphaIndex: libc::c_int = -(1 as libc::c_int);
 static mut color: Vec4f = {
     let mut init = Vec4f {
@@ -111,19 +111,19 @@ static mut color: Vec4f = {
     init
 };
 #[no_mangle]
-pub unsafe extern "C" fn Draw_PushAlpha(mut a: libc::c_float) {
+pub unsafe extern "C" fn Draw_PushAlpha(mut a: f32) {
     if alphaIndex + 1 as libc::c_int >= 16 as libc::c_int {
         Fatal(
             b"Draw_PushAlpha: Maximum alpha stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
         );
     }
-    let mut prevAlpha: libc::c_float = if alphaIndex >= 0 as libc::c_int {
+    let mut prevAlpha: f32 = if alphaIndex >= 0 as libc::c_int {
         alphaStack[alphaIndex as usize]
     } else {
         1.0f32
     };
-    let mut alpha: libc::c_float = a * prevAlpha;
+    let mut alpha: f32 = a * prevAlpha;
     alphaIndex += 1;
     alphaStack[alphaIndex as usize] = alpha;
     glColor4f(color.x, color.y, color.z, color.w * alpha);
@@ -137,7 +137,7 @@ pub unsafe extern "C" fn Draw_PopAlpha() {
         );
     }
     alphaIndex -= 1;
-    let mut alpha: libc::c_float = if alphaIndex >= 0 as libc::c_int {
+    let mut alpha: f32 = if alphaIndex >= 0 as libc::c_int {
         alphaStack[alphaIndex as usize]
     } else {
         1.0f32
@@ -150,8 +150,8 @@ pub unsafe extern "C" fn Draw_Axes(
     mut x: *const Vec3,
     mut y: *const Vec3,
     mut z: *const Vec3,
-    mut scale: libc::c_float,
-    mut _alpha: libc::c_float,
+    mut scale: f32,
+    mut _alpha: f32,
 ) {
     let mut left: Vec3 = *pos + (*x) * scale;
     let mut up: Vec3 = *pos + (*y) * scale;
@@ -179,11 +179,11 @@ pub unsafe extern "C" fn Draw_Axes(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Border(
-    mut s: libc::c_float,
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut w: libc::c_float,
-    mut h: libc::c_float,
+    mut s: f32,
+    mut x: f32,
+    mut y: f32,
+    mut w: f32,
+    mut h: f32,
 ) {
     Draw_Rect(x, y, w, s);
     Draw_Rect(x, y + h - s, w, s);
@@ -222,10 +222,10 @@ pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3f) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Clear(
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     let mut status: libc::c_int = __glewCheckFramebufferStatus
         .expect("non-null function pointer")(0x8d40 as libc::c_int as GLenum)
@@ -242,18 +242,18 @@ pub unsafe extern "C" fn Draw_Clear(
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_ClearDepth(mut d: libc::c_float) {
+pub unsafe extern "C" fn Draw_ClearDepth(mut d: f32) {
     glClearDepth(d as GLclampd);
     glClear(0x100 as libc::c_int as GLbitfield);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Color(
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
-    let mut alpha: libc::c_float = if alphaIndex >= 0 as libc::c_int {
+    let mut alpha: f32 = if alphaIndex >= 0 as libc::c_int {
         alphaStack[alphaIndex as usize]
     } else {
         1.0f32
@@ -268,10 +268,10 @@ pub unsafe extern "C" fn Draw_Flush() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Line(
-    mut x1: libc::c_float,
-    mut y1: libc::c_float,
-    mut x2: libc::c_float,
-    mut y2: libc::c_float,
+    mut x1: f32,
+    mut y1: f32,
+    mut x2: f32,
+    mut y2: f32,
 ) {
     glBegin(0x1 as libc::c_int as GLenum);
     glVertex2f(x1, y1);
@@ -286,16 +286,16 @@ pub unsafe extern "C" fn Draw_Line3(mut p1: *const Vec3, mut p2: *const Vec3) {
     glEnd();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_LineWidth(mut width: libc::c_float) {
+pub unsafe extern "C" fn Draw_LineWidth(mut width: f32) {
     glLineWidth(width);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Plane(
     mut p: *const Vec3,
     mut n: *const Vec3,
-    mut scale: libc::c_float,
+    mut scale: f32,
 ) {
-    let mut e1: Vec3 = if Abs((*n).x as libc::c_double) < 0.7f32 as libc::c_double {
+    let mut e1: Vec3 = if Abs((*n).x as f64) < 0.7f32 as f64 {
         Vec3::new(
             1.0f32,
             0.0f32,
@@ -323,23 +323,23 @@ pub unsafe extern "C" fn Draw_Plane(
     glEnd();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Point(mut x: libc::c_float, mut y: libc::c_float) {
+pub unsafe extern "C" fn Draw_Point(mut x: f32, mut y: f32) {
     glBegin(0 as libc::c_int as GLenum);
     glVertex2f(x, y);
     glEnd();
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Point3(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
 ) {
     glBegin(0 as libc::c_int as GLenum);
     glVertex3f(x, y, z);
     glEnd();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_PointSize(mut size: libc::c_float) {
+pub unsafe extern "C" fn Draw_PointSize(mut size: f32) {
     glPointSize(size);
 }
 #[no_mangle]
@@ -408,13 +408,13 @@ pub unsafe extern "C" fn Draw_Quad3(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Rect(
-    mut x1: libc::c_float,
-    mut y1: libc::c_float,
-    mut xs: libc::c_float,
-    mut ys: libc::c_float,
+    mut x1: f32,
+    mut y1: f32,
+    mut xs: f32,
+    mut ys: f32,
 ) {
-    let mut x2: libc::c_float = x1 + xs;
-    let mut y2: libc::c_float = y1 + ys;
+    let mut x2: f32 = x1 + xs;
+    let mut y2: f32 = y1 + ys;
     Metric_AddDrawImm(1 as libc::c_int, 2 as libc::c_int, 4 as libc::c_int);
     glBegin(0x7 as libc::c_int as GLenum);
     glTexCoord2f(0 as libc::c_int as GLfloat, 0 as libc::c_int as GLfloat);
@@ -449,32 +449,32 @@ pub unsafe extern "C" fn Draw_SmoothPoints(mut enabled: bool) {
 }
 #[inline]
 unsafe extern "C" fn Spherical(
-    mut r: libc::c_float,
-    mut yaw: libc::c_float,
-    mut pitch: libc::c_float,
+    mut r: f32,
+    mut yaw: f32,
+    mut pitch: f32,
 ) -> Vec3 {
     return Vec3::new(
-        (r as libc::c_double * Sin(pitch as libc::c_double) * Cos(yaw as libc::c_double))
-            as libc::c_float,
-        (r as libc::c_double * Cos(pitch as libc::c_double)) as libc::c_float,
-        (r as libc::c_double * Sin(pitch as libc::c_double) * Sin(yaw as libc::c_double))
-            as libc::c_float,
+        (r as f64 * Sin(pitch as f64) * Cos(yaw as f64))
+            as f32,
+        (r as f64 * Cos(pitch as f64)) as f32,
+        (r as f64 * Sin(pitch as f64) * Sin(yaw as f64))
+            as f32,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: libc::c_float) {
+pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     let res: libc::size_t = 7 as libc::c_int as libc::size_t;
-    let fRes: libc::c_float = res as libc::c_float;
+    let fRes: f32 = res as f32;
     Metric_AddDrawImm(
         res as int32,
         res as int32,
         res.wrapping_mul(3 as libc::size_t) as int32,
     );
     glBegin(0x4 as libc::c_int as GLenum);
-    let mut lastTheta: libc::c_float = res
-        .wrapping_sub(1 as libc::size_t) as libc::c_float / fRes
+    let mut lastTheta: f32 = res
+        .wrapping_sub(1 as libc::size_t) as f32 / fRes
         * 6.28318531f32;
-    let mut phi: libc::c_float = 1.0f32 / fRes * 3.14159265f32;
+    let mut phi: f32 = 1.0f32 / fRes * 3.14159265f32;
     let mut tc: Vec3 = *p + 
     Spherical(
         r,
@@ -483,7 +483,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: libc::c_float) {
     );
     let mut iTheta: libc::size_t = 0 as libc::c_int as libc::size_t;
     while iTheta < res {
-        let mut theta: libc::c_float = iTheta as libc::c_float / fRes * 6.28318531f32;
+        let mut theta: f32 = iTheta as f32 / fRes * 6.28318531f32;
         let mut br: Vec3 = *p + Spherical(r, lastTheta, phi);
         let mut bl: Vec3 = *p + Spherical(r, theta, phi);
         glVertex3f(br.x, br.y, br.z);
@@ -499,16 +499,16 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: libc::c_float) {
         (4 as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
     );
     glBegin(0x7 as libc::c_int as GLenum);
-    let mut lastPhi: libc::c_float = 1.0f32 / fRes * 3.14159265f32;
-    let mut lastTheta_0: libc::c_float = res
-        .wrapping_sub(1 as libc::size_t) as libc::c_float / fRes
+    let mut lastPhi: f32 = 1.0f32 / fRes * 3.14159265f32;
+    let mut lastTheta_0: f32 = res
+        .wrapping_sub(1 as libc::size_t) as f32 / fRes
         * 6.28318531f32;
     let mut iPhi: libc::size_t = 2 as libc::c_int as libc::size_t;
     while iPhi < res {
-        let mut phi_0: libc::c_float = iPhi as libc::c_float / fRes * 3.14159265f32;
+        let mut phi_0: f32 = iPhi as f32 / fRes * 3.14159265f32;
         let mut iTheta_0: libc::size_t = 0 as libc::c_int as libc::size_t;
         while iTheta_0 < res {
-            let mut theta_0: libc::c_float = iTheta_0 as libc::c_float / fRes
+            let mut theta_0: f32 = iTheta_0 as f32 / fRes
                 * 6.28318531f32;
             let mut br_0: Vec3 = *p + Spherical(r, lastTheta_0, phi_0);
             let mut tr: Vec3 = *p + Spherical(r, lastTheta_0, lastPhi);
@@ -531,16 +531,16 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: libc::c_float) {
         res.wrapping_mul(3 as libc::size_t) as int32,
     );
     glBegin(0x4 as libc::c_int as GLenum);
-    let mut lastTheta_1: libc::c_float = res
-        .wrapping_sub(1 as libc::size_t) as libc::c_float / fRes
+    let mut lastTheta_1: f32 = res
+        .wrapping_sub(1 as libc::size_t) as f32 / fRes
         * 6.28318531f32;
-    let mut phi_1: libc::c_float = res.wrapping_sub(1 as libc::size_t)
-        as libc::c_float / fRes * 3.14159265f32;
+    let mut phi_1: f32 = res.wrapping_sub(1 as libc::size_t)
+        as f32 / fRes * 3.14159265f32;
     let mut bc: Vec3 = *p +
         Spherical(r, 0.0f32, 3.14159265f32);
     let mut iTheta_1: libc::size_t = 0 as libc::c_int as libc::size_t;
     while iTheta_1 < res {
-        let mut theta_1: libc::c_float = iTheta_1 as libc::c_float / fRes
+        let mut theta_1: f32 = iTheta_1 as f32 / fRes
             * 6.28318531f32;
         let mut tr_0: Vec3 = *p + Spherical(r, lastTheta_1, phi_1);
         let mut tl_0: Vec3 = *p + Spherical(r, theta_1, phi_1);

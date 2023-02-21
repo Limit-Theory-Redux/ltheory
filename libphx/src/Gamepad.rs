@@ -37,7 +37,7 @@ extern "C" {
         axis: SDL_GameControllerAxis,
     ) -> Sint16;
     fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> libc::c_double;
+    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
 pub type int16_t = libc::c_short;
 pub type int32_t = libc::c_int;
@@ -58,9 +58,9 @@ pub struct Gamepad {
     pub gamepadList_next: *mut Gamepad,
     pub handle: *mut SDL_GameController,
     pub lastActive: TimeStamp,
-    pub axisState: [libc::c_double; 6],
-    pub axisLast: [libc::c_double; 6],
-    pub deadzone: [libc::c_double; 6],
+    pub axisState: [f64; 6],
+    pub axisLast: [f64; 6],
+    pub deadzone: [f64; 6],
     pub buttonState: [bool; 15],
     pub buttonLast: [bool; 15],
 }
@@ -211,7 +211,7 @@ unsafe extern "C" fn Gamepad_UpdateState(mut this: *mut Gamepad) {
     let mut now: TimeStamp = TimeStamp_Get();
     let mut i: GamepadAxis = GamepadAxis_BEGIN;
     while i <= GamepadAxis_END {
-        let mut state: libc::c_double = Gamepad_GetAxis(this, i);
+        let mut state: f64 = Gamepad_GetAxis(this, i);
         if (*this).axisState[i as usize] != state {
             (*this).lastActive = now;
         }
@@ -275,12 +275,12 @@ pub unsafe extern "C" fn Gamepad_AddMappings(mut file: cstr) -> libc::c_int {
 pub unsafe extern "C" fn Gamepad_GetAxis(
     mut this: *mut Gamepad,
     mut axis: GamepadAxis,
-) -> libc::c_double {
-    let mut value: libc::c_double = SDL_GameControllerGetAxis(
+) -> f64 {
+    let mut value: f64 = SDL_GameControllerGetAxis(
         (*this).handle,
         axis as SDL_GameControllerAxis,
-    ) as libc::c_double / 32767.0f64;
-    let mut deadzone: libc::c_double = (*this).deadzone[axis as usize];
+    ) as f64 / 32767.0f64;
+    let mut deadzone: f64 = (*this).deadzone[axis as usize];
     if value > deadzone {
         return (value - deadzone) / (1.0f64 - deadzone);
     }
@@ -293,7 +293,7 @@ pub unsafe extern "C" fn Gamepad_GetAxis(
 pub unsafe extern "C" fn Gamepad_GetAxisDelta(
     mut this: *mut Gamepad,
     mut axis: GamepadAxis,
-) -> libc::c_double {
+) -> f64 {
     return (*this).axisState[axis as usize] - (*this).axisLast[axis as usize];
 }
 #[no_mangle]
@@ -310,7 +310,7 @@ pub unsafe extern "C" fn Gamepad_GetButton(
 pub unsafe extern "C" fn Gamepad_GetButtonPressed(
     mut this: *mut Gamepad,
     mut button: GamepadButton,
-) -> libc::c_double {
+) -> f64 {
     return if (*this).buttonState[button as usize] as libc::c_int != 0
         && !(*this).buttonLast[button as usize]
     {
@@ -323,7 +323,7 @@ pub unsafe extern "C" fn Gamepad_GetButtonPressed(
 pub unsafe extern "C" fn Gamepad_GetButtonReleased(
     mut this: *mut Gamepad,
     mut button: GamepadButton,
-) -> libc::c_double {
+) -> f64 {
     return if !(*this).buttonState[button as usize]
         && (*this).buttonLast[button as usize] as libc::c_int != 0
     {
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn Gamepad_GetButtonReleased(
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetIdleTime(
     mut this: *mut Gamepad,
-) -> libc::c_double {
+) -> f64 {
     return TimeStamp_GetElapsed((*this).lastActive);
 }
 #[no_mangle]
@@ -361,7 +361,7 @@ pub unsafe extern "C" fn Gamepad_IsConnected(mut this: *mut Gamepad) -> bool {
 pub unsafe extern "C" fn Gamepad_SetDeadzone(
     mut this: *mut Gamepad,
     mut axis: GamepadAxis,
-    mut deadzone: libc::c_double,
+    mut deadzone: f64,
 ) {
     (*this).deadzone[axis as usize] = deadzone;
 }

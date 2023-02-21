@@ -7,7 +7,7 @@ extern "C" {
     pub type Mesh;
     fn Fatal(_: cstr, _: ...);
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    fn strtof(_: *const libc::c_char, _: *mut *mut libc::c_char) -> libc::c_float;
+    fn strtof(_: *const libc::c_char, _: *mut *mut libc::c_char) -> f32;
     fn strtol(
         _: *const libc::c_char,
         _: *mut *mut libc::c_char,
@@ -143,11 +143,11 @@ unsafe extern "C" fn ConsumeToken(
     return i != 0 as libc::c_int;
 }
 unsafe extern "C" fn ConsumeFloat(
-    mut value: *mut libc::c_float,
+    mut value: *mut f32,
     mut s: *mut ParseState,
 ) -> bool {
     let mut afterFloat: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut f: libc::c_float = strtof((*s).cursor, &mut afterFloat);
+    let mut f: f32 = strtof((*s).cursor, &mut afterFloat);
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as libc::c_int {
         Obj_Fatal(
             b"Parsed float in .obj data is out of range.\0" as *const u8
@@ -227,10 +227,10 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
     normals_capacity = 0 as libc::c_int;
     normals_size = 0 as libc::c_int;
     normals_data = 0 as *mut Vec3;
-    if (positions_capacity < (0.008f32 * bytesSize as libc::c_float) as int32)
+    if (positions_capacity < (0.008f32 * bytesSize as f32) as int32)
         as libc::c_long != 0
     {
-        positions_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
+        positions_capacity = (0.008f32 * bytesSize as f32) as int32;
         let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
         let mut pData: *mut *mut libc::c_void = &mut positions_data as *mut *mut Vec3
             as *mut *mut libc::c_void;
@@ -239,10 +239,10 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             (positions_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    if (uvs_capacity < (0.008f32 * bytesSize as libc::c_float) as int32) as libc::c_int
+    if (uvs_capacity < (0.008f32 * bytesSize as f32) as int32) as libc::c_int
         as libc::c_long != 0
     {
-        uvs_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
+        uvs_capacity = (0.008f32 * bytesSize as f32) as int32;
         let mut elemSize_0: usize = ::core::mem::size_of::<Vec2>();
         let mut pData_0: *mut *mut libc::c_void = &mut uvs_data as *mut *mut Vec2
             as *mut *mut libc::c_void;
@@ -251,10 +251,10 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             (uvs_capacity as usize).wrapping_mul(elemSize_0 as usize),
         );
     }
-    if (normals_capacity < (0.008f32 * bytesSize as libc::c_float) as int32)
+    if (normals_capacity < (0.008f32 * bytesSize as f32) as int32)
         as libc::c_long != 0
     {
-        normals_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
+        normals_capacity = (0.008f32 * bytesSize as f32) as int32;
         let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
         let mut pData_1: *mut *mut libc::c_void = &mut normals_data as *mut *mut Vec3
             as *mut *mut libc::c_void;
@@ -263,8 +263,8 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             (normals_capacity as usize).wrapping_mul(elemSize_1 as usize),
         );
     }
-    Mesh_ReserveIndexData(mesh, (0.050f32 * bytesSize as libc::c_float) as int32);
-    Mesh_ReserveVertexData(mesh, (0.050f32 * bytesSize as libc::c_float) as int32);
+    Mesh_ReserveIndexData(mesh, (0.050f32 * bytesSize as f32) as int32);
+    Mesh_ReserveVertexData(mesh, (0.050f32 * bytesSize as f32) as int32);
     loop {
         s.lineStart = s.cursor;
         s.lineNumber += 1;

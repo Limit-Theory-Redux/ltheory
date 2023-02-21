@@ -102,7 +102,7 @@ pub type ResourceType = int32;
 pub type va_list = __builtin_va_list;
 pub type ptrdiff_t = __darwin_ptrdiff_t;
 pub type lua_CFunction = Option::<unsafe extern "C" fn(*mut lua_State) -> libc::c_int>;
-pub type lua_Number = libc::c_double;
+pub type lua_Number = f64;
 pub type lua_Integer = ptrdiff_t;
 
 #[derive(Copy, Clone)]
@@ -311,7 +311,7 @@ pub unsafe extern "C" fn Lua_PushGlobal(mut this: *mut Lua, mut name: cstr) {
 #[no_mangle]
 pub unsafe extern "C" fn Lua_PushNumber(
     mut this: *mut Lua,
-    mut value: libc::c_double,
+    mut value: f64,
 ) {
     lua_pushnumber(this, value);
 }
@@ -353,7 +353,7 @@ pub unsafe extern "C" fn Lua_SetFn(
 pub unsafe extern "C" fn Lua_SetNumber(
     mut this: *mut Lua,
     mut name: cstr,
-    mut value: libc::c_double,
+    mut value: f64,
 ) {
     lua_pushnumber(this, value);
     lua_setfield(this, -(10002 as libc::c_int), name);

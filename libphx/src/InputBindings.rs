@@ -7,8 +7,8 @@ use glam::Vec2;
 extern "C" {
     pub type lua_State;
     fn Input_GetNextEvent(_: *mut InputEvent) -> bool;
-    fn pow(_: libc::c_double, _: libc::c_double) -> libc::c_double;
-    fn sqrt(_: libc::c_double) -> libc::c_double;
+    fn pow(_: f64, _: f64) -> f64;
+    fn sqrt(_: f64) -> f64;
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
 }
 pub type int32_t = libc::c_int;
@@ -22,12 +22,12 @@ pub type uint32 = uint32_t;
 pub struct InputBinding {
     pub name: cstr,
     pub rawButtons: [[RawButton; 4]; 4],
-    pub pressThreshold: libc::c_float,
-    pub releaseThreshold: libc::c_float,
-    pub exponent: libc::c_float,
-    pub deadzone: libc::c_float,
-    pub minValue: libc::c_float,
-    pub maxValue: libc::c_float,
+    pub pressThreshold: f32,
+    pub releaseThreshold: f32,
+    pub exponent: f32,
+    pub deadzone: f32,
+    pub minValue: f32,
+    pub maxValue: f32,
     pub luaInstance: *mut Lua,
     pub buttons: [AggregateButton; 4],
     pub axes: [AggregateAxis; 2],
@@ -46,7 +46,7 @@ pub type ptrdiff_t = __darwin_ptrdiff_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct AggregateAxis {
-    pub value: libc::c_float,
+    pub value: f32,
     pub invert: bool,
     pub onChanged: LuaRef,
 }
@@ -64,7 +64,7 @@ pub type Lua = lua_State;
 #[repr(C)]
 pub struct RawButton {
     pub button: Button,
-    pub value: libc::c_float,
+    pub value: f32,
 }
 pub type Button = int32;
 #[derive(Copy, Clone)]
@@ -80,7 +80,7 @@ pub struct InputEvent {
     pub timestamp: uint32,
     pub device: Device,
     pub button: Button,
-    pub value: libc::c_float,
+    pub value: f32,
     pub state: State,
 }
 #[derive(Copy, Clone)]
@@ -103,37 +103,37 @@ pub struct InputBindings {
 
 #[inline]
 unsafe extern "C" fn Pow(
-    mut t: libc::c_double,
-    mut p: libc::c_double,
-) -> libc::c_double {
+    mut t: f64,
+    mut p: f64,
+) -> f64 {
     return pow(t, p);
 }
 #[inline]
-unsafe extern "C" fn Sqrtf(mut t: libc::c_float) -> libc::c_float {
-    return sqrt(t as libc::c_double) as libc::c_float;
+unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
+    return sqrt(t as f64) as f32;
 }
 #[inline]
 unsafe extern "C" fn Clamp(
-    mut t: libc::c_double,
-    mut lower: libc::c_double,
-    mut upper: libc::c_double,
-) -> libc::c_double {
+    mut t: f64,
+    mut lower: f64,
+    mut upper: f64,
+) -> f64 {
     t = if t > upper { upper } else { t };
     t = if t < lower { lower } else { t };
     return t;
 }
 #[no_mangle]
-pub static mut InputBindings_DefaultMaxValue: libc::c_float = 0.;
+pub static mut InputBindings_DefaultMaxValue: f32 = 0.;
 #[no_mangle]
-pub static mut InputBindings_DefaultMinValue: libc::c_float = 0.;
+pub static mut InputBindings_DefaultMinValue: f32 = 0.;
 #[no_mangle]
-pub static mut InputBindings_DefaultDeadzone: libc::c_float = 0.;
+pub static mut InputBindings_DefaultDeadzone: f32 = 0.;
 #[no_mangle]
-pub static mut InputBindings_DefaultExponent: libc::c_float = 0.;
+pub static mut InputBindings_DefaultExponent: f32 = 0.;
 #[no_mangle]
-pub static mut InputBindings_DefaultReleaseThreshold: libc::c_float = 0.;
+pub static mut InputBindings_DefaultReleaseThreshold: f32 = 0.;
 #[no_mangle]
-pub static mut InputBindings_DefaultPressThreshold: libc::c_float = 0.;
+pub static mut InputBindings_DefaultPressThreshold: f32 = 0.;
 
 static mut BindCount: libc::c_int = 4 as libc::c_int;
 static mut this: InputBindings = {
@@ -192,14 +192,14 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
         let mut init = Vec2::ZERO;
         init
     };
-    let mut axisValues: [*mut libc::c_float; 2] = [&mut value.x, &mut value.y];
+    let mut axisValues: [*mut f32; 2] = [&mut value.x, &mut value.y];
     let mut iAxis: libc::c_int = 0 as libc::c_int;
     while iAxis
         < (::core::mem::size_of::<[AggregateAxis; 2]>())
             .wrapping_div(::core::mem::size_of::<AggregateAxis>())
             as libc::c_int
     {
-        let mut axisValue: *mut libc::c_float = axisValues[iAxis as usize];
+        let mut axisValue: *mut f32 = axisValues[iAxis as usize];
         let mut iBind: libc::c_int = 0 as libc::c_int;
         while iBind < BindCount {
             *axisValue
@@ -216,17 +216,17 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
         }
         *axisValue = (*axisValue - (*binding).deadzone) / (1.0f32 - (*binding).deadzone);
         *axisValue = Pow(
-            *axisValue as libc::c_double,
-            (*binding).exponent as libc::c_double,
-        ) as libc::c_float;
+            *axisValue as f64,
+            (*binding).exponent as f64,
+        ) as f32;
         *axisValue = Clamp(
-            *axisValue as libc::c_double,
-            (*binding).minValue as libc::c_double,
-            (*binding).maxValue as libc::c_double,
-        ) as libc::c_float;
+            *axisValue as f64,
+            (*binding).minValue as f64,
+            (*binding).maxValue as f64,
+        ) as f32;
         iAxis += 1;
     }
-    let mut len: libc::c_float = value.length();
+    let mut len: f32 = value.length();
     if len > 1.0f32 {
         value /= 1.0f32 / len;
     }
@@ -271,7 +271,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
         let mut button: *mut AggregateButton = &mut *((*binding).buttons)
             .as_mut_ptr()
             .offset(iBtn as isize) as *mut AggregateButton;
-        let mut axisValue_0: libc::c_float = (*binding)
+        let mut axisValue_0: f32 = (*binding)
             .axes[(iBtn / 2 as libc::c_int) as usize]
             .value;
         let mut isPos: bool = iBtn & 1 as libc::c_int == 0;
@@ -451,7 +451,7 @@ pub unsafe extern "C" fn InputBinding_GetReleased(
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetValue(
     mut binding: *mut InputBinding,
-) -> libc::c_float {
+) -> f32 {
     return (*binding).axes[iX as usize].value;
 }
 #[no_mangle]
@@ -463,13 +463,13 @@ pub unsafe extern "C" fn InputBinding_GetVecValue(
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetXValue(
     mut binding: *mut InputBinding,
-) -> libc::c_float {
+) -> f32 {
     return (*binding).axes[iX as usize].value;
 }
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetYValue(
     mut binding: *mut InputBinding,
-) -> libc::c_float {
+) -> f32 {
     return (*binding).axes[iY as usize].value;
 }
 #[no_mangle]
@@ -547,7 +547,7 @@ pub unsafe extern "C" fn InputBinding_GetYNegReleased(
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_SetDeadzone(
     mut binding: *mut InputBinding,
-    mut deadzone: libc::c_float,
+    mut deadzone: f32,
 ) -> *mut InputBinding {
     (*binding).deadzone = deadzone;
     return binding;
@@ -555,7 +555,7 @@ pub unsafe extern "C" fn InputBinding_SetDeadzone(
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_SetExponent(
     mut binding: *mut InputBinding,
-    mut exponent: libc::c_float,
+    mut exponent: f32,
 ) -> *mut InputBinding {
     (*binding).exponent = exponent;
     return binding;
@@ -609,8 +609,8 @@ pub unsafe extern "C" fn InputBinding_SetInvertY(
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_SetRange(
     mut binding: *mut InputBinding,
-    mut min: libc::c_float,
-    mut max: libc::c_float,
+    mut min: f32,
+    mut max: f32,
 ) -> *mut InputBinding {
     (*binding).minValue = min;
     (*binding).maxValue = max;
@@ -619,8 +619,8 @@ pub unsafe extern "C" fn InputBinding_SetRange(
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_SetThresholds(
     mut binding: *mut InputBinding,
-    mut press: libc::c_float,
-    mut release: libc::c_float,
+    mut press: f32,
+    mut release: f32,
 ) -> *mut InputBinding {
     (*binding).pressThreshold = press;
     (*binding).releaseThreshold = release;

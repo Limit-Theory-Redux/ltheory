@@ -13,26 +13,26 @@ extern "C" {
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Rewind(_: *mut Bytes);
     fn ClipRect_Push(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn ClipRect_Pop();
     fn DataFormat_GetSize(_: DataFormat) -> libc::c_int;
-    fn floor(_: libc::c_double) -> libc::c_double;
+    fn floor(_: f64) -> f64;
     fn Draw_Rect(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn Draw_Flush();
     fn Draw_Clear(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn GLMatrix_Clear();
     fn GLMatrix_ModeP();
@@ -68,12 +68,12 @@ extern "C" {
     fn RenderTarget_Push(sx: libc::c_int, sy: libc::c_int);
     fn RenderTarget_Pop();
     fn RenderTarget_BindTexCube(_: *mut TexCube, _: CubeFace);
-    fn Shader_SetFloat(_: cstr, _: libc::c_float);
-    fn Shader_SetFloat3(_: cstr, _: libc::c_float, _: libc::c_float, _: libc::c_float);
+    fn Shader_SetFloat(_: cstr, _: f32);
+    fn Shader_SetFloat3(_: cstr, _: f32, _: f32, _: f32);
     fn ShaderState_Start(_: *mut ShaderState);
     fn ShaderState_Stop(_: *mut ShaderState);
     fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> libc::c_double;
+    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
     fn TexFormat_IsDepth(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
     fn Tex2D_LoadRaw(
@@ -126,21 +126,21 @@ pub struct Face {
     pub up: Vec3,
 }
 #[inline]
-unsafe extern "C" fn Floor(mut t: libc::c_double) -> libc::c_double {
+unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 
@@ -148,132 +148,48 @@ static mut kFaces: [Face; 6] = [
     {
         let mut init = Face {
             face: 0x8515 as libc::c_int,
-            look: {
-                let mut init = Vec3 {
-                    x: 1.0f32,
-                    y: 0.0f32,
-                    z: 0.0f32,
-                };
-                init
-            },
-            up: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 1.0f32,
-                    z: 0.0f32,
-                };
-                init
-            },
+            look: Vec3::new(1.0f32, 0.0f32, 0.0f32),
+            up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
         };
         init
     },
     {
         let mut init = Face {
             face: 0x8516 as libc::c_int,
-            look: {
-                let mut init = Vec3 {
-                    x: -1.0f32,
-                    y: 0.0f32,
-                    z: 0.0f32,
-                };
-                init
-            },
-            up: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 1.0f32,
-                    z: 0.0f32,
-                };
-                init
-            },
+            look: Vec3::new(-1.0f32, 0.0f32, 0.0f32),
+            up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
         };
         init
     },
     {
         let mut init = Face {
             face: 0x8517 as libc::c_int,
-            look: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 1.0f32,
-                    z: 0.0f32,
-                };
-                init
-            },
-            up: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 0.0f32,
-                    z: -1.0f32,
-                };
-                init
-            },
+            look: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+            up: Vec3::new(0.0f32, 0.0f32, -1.0f32),
         };
         init
     },
     {
         let mut init = Face {
             face: 0x8518 as libc::c_int,
-            look: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: -1.0f32,
-                    z: 0.0f32,
-                };
-                init
-            },
-            up: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 0.0f32,
-                    z: 1.0f32,
-                };
-                init
-            },
+            look: Vec3::new(0.0f32, -1.0f32, 0.0f32),
+            up: Vec3::new(0.0f32, 0.0f32, 1.0f32),
         };
         init
     },
     {
         let mut init = Face {
             face: 0x8519 as libc::c_int,
-            look: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 0.0f32,
-                    z: 1.0f32,
-                };
-                init
-            },
-            up: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 1.0f32,
-                    z: 0.0f32,
-                };
-                init
-            },
+            look: Vec3::new(0.0f32, 0.0f32, 1.0f32),
+            up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
         };
         init
     },
     {
         let mut init = Face {
             face: 0x851a as libc::c_int,
-            look: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 0.0f32,
-                    z: -1.0f32,
-                };
-                init
-            },
-            up: {
-                let mut init = Vec3 {
-                    x: 0.0f32,
-                    y: 1.0f32,
-                    z: 0.0f32,
-                };
-                init
-            },
+            look: Vec3::new(0.0f32, 0.0f32, -1.0f32),
+            up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
         };
         init
     },
@@ -411,10 +327,10 @@ pub unsafe extern "C" fn TexCube_Acquire(mut this: *mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Clear(
     mut this: *mut TexCube,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 6 as libc::c_int {
@@ -589,7 +505,7 @@ pub unsafe extern "C" fn TexCube_Generate(
     while i < 6 as libc::c_int {
         let mut face: Face = kFaces[i as usize];
         let mut size: libc::c_int = (*this).size;
-        let mut fSize: libc::c_float = (*this).size as libc::c_float;
+        let mut fSize: f32 = (*this).size as f32;
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(
@@ -617,9 +533,9 @@ pub unsafe extern "C" fn TexCube_Generate(
             let mut time: TimeStamp = TimeStamp_Get();
             ClipRect_Push(
                 0.0f32,
-                (j - 1 as libc::c_int) as libc::c_float,
-                size as libc::c_float,
-                jobSize as libc::c_float,
+                (j - 1 as libc::c_int) as f32,
+                size as f32,
+                jobSize as f32,
             );
             Draw_Rect(
                 0.0f32,
@@ -630,15 +546,15 @@ pub unsafe extern "C" fn TexCube_Generate(
             Draw_Flush();
             ClipRect_Pop();
             j += jobSize;
-            let mut elapsed: libc::c_double = TimeStamp_GetElapsed(time);
+            let mut elapsed: f64 = TimeStamp_GetElapsed(time);
             jobSize = Max(
-                1 as libc::c_int as libc::c_double,
-                Floor(0.25f64 * jobSize as libc::c_double / elapsed + 0.5f64)
-                    as libc::c_int as libc::c_double,
+                1 as libc::c_int as f64,
+                Floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64)
+                    as libc::c_int as f64,
             ) as libc::c_int;
             jobSize = Min(
-                jobSize as libc::c_double,
-                (size - j + 1 as libc::c_int) as libc::c_double,
+                jobSize as f64,
+                (size - j + 1 as libc::c_int) as f64,
             ) as libc::c_int;
         }
         RenderTarget_Pop();

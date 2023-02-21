@@ -20,7 +20,7 @@ extern "C" {
 pub type cstr = *const libc::c_char;
 pub type GLenum = libc::c_uint;
 pub type GLint = libc::c_int;
-pub type GLfloat = libc::c_float;
+pub type GLfloat = f32;
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
     static mut init: bool = 0 as libc::c_int != 0;

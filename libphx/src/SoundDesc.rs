@@ -44,7 +44,7 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_Sound_GetDefaults(
         sound: *mut FMOD_SOUND,
-        frequency: *mut libc::c_float,
+        frequency: *mut f32,
         priority: *mut libc::c_int,
     ) -> FMOD_RESULT;
     fn FMOD_Sound_GetLength(
@@ -965,7 +965,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_GetDuration(
     mut this: *mut SoundDesc,
-) -> libc::c_float {
+) -> f32 {
     SoundDesc_FinishLoad(
         this,
         (*::core::mem::transmute::<
@@ -990,7 +990,7 @@ pub unsafe extern "C" fn SoundDesc_GetDuration(
     //     >(b"SoundDesc_GetDuration\0"))
     //         .as_ptr(),
     // );
-    return duration as libc::c_float / 1000.0f32;
+    return duration as f32 / 1000.0f32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_GetName(mut this: *mut SoundDesc) -> cstr {
@@ -1046,7 +1046,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: cs
     //         .as_ptr(),
     // );
     let mut bytesPerSample: int32 = bitsPerSample / 8 as libc::c_int;
-    let mut sampleRate: libc::c_float = 0.;
+    let mut sampleRate: f32 = 0.;
     // FMOD_Sound_GetDefaults((*this).handle, &mut sampleRate, 0 as *mut libc::c_int);
     let mut ptr1: *mut libc::c_void = 0 as *mut libc::c_void;
     let mut len1: uint32 = 0;
@@ -1104,7 +1104,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: cs
     File_WriteI32(file, sampleRate as int32);
     File_WriteI32(
         file,
-        ((bytesPerSample * channels) as libc::c_float * sampleRate) as int32,
+        ((bytesPerSample * channels) as f32 * sampleRate) as int32,
     );
     File_WriteI16(file, (bytesPerSample * channels) as int16);
     File_WriteI16(file, bitsPerSample as int16);

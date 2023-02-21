@@ -9,40 +9,40 @@ extern "C" {
     pub type Shader;
     pub type Tex2D;
     fn ClipRect_PushCombined(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn ClipRect_Pop();
     fn Draw_Rect(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn Draw_Border(
-        s: libc::c_float,
-        x: libc::c_float,
-        y: libc::c_float,
-        w: libc::c_float,
-        h: libc::c_float,
+        s: f32,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
     );
     fn Draw_Color(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn Font_Draw(
         _: *mut Font,
         text: cstr,
-        x: libc::c_float,
-        y: libc::c_float,
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        x: f32,
+        y: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn MemPool_CreateAuto(elemSize: uint32) -> *mut MemPool;
     fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
@@ -52,21 +52,21 @@ extern "C" {
     fn Shader_Load(vertName: cstr, fragName: cstr) -> *mut Shader;
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
-    fn Shader_SetFloat(_: cstr, _: libc::c_float);
-    fn Shader_SetFloat2(_: cstr, _: libc::c_float, _: libc::c_float);
+    fn Shader_SetFloat(_: cstr, _: f32);
+    fn Shader_SetFloat2(_: cstr, _: f32, _: f32);
     fn Shader_SetFloat4(
         _: cstr,
-        _: libc::c_float,
-        _: libc::c_float,
-        _: libc::c_float,
-        _: libc::c_float,
+        _: f32,
+        _: f32,
+        _: f32,
+        _: f32,
     );
     fn Tex2D_Draw(
         _: *mut Tex2D,
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn Viewport_GetSize(out: *mut IVec2);
 }

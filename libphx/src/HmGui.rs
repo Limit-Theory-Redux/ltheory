@@ -32,52 +32,52 @@ extern "C" {
     fn UIRenderer_End();
     fn UIRenderer_Draw();
     fn UIRenderer_BeginLayer(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
         clip: bool,
     );
     fn UIRenderer_EndLayer();
     fn UIRenderer_Image(
         _: *mut Tex2D,
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
     );
     fn UIRenderer_Panel(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
-        bevel: libc::c_float,
-        innerAlpha: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
+        bevel: f32,
+        innerAlpha: f32,
     );
     fn UIRenderer_Rect(
-        x: libc::c_float,
-        y: libc::c_float,
-        sx: libc::c_float,
-        sy: libc::c_float,
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        x: f32,
+        y: f32,
+        sx: f32,
+        sy: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
         outline: bool,
     );
     fn UIRenderer_Text(
         font: *mut Font,
         text: cstr,
-        x: libc::c_float,
-        y: libc::c_float,
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        x: f32,
+        y: f32,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
 }
 pub type int32_t = libc::c_int;
@@ -92,10 +92,10 @@ pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
-    pub x: libc::c_float,
-    pub y: libc::c_float,
-    pub z: libc::c_float,
-    pub w: libc::c_float,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub w: f32,
 }
 pub type BlendMode = int32;
 pub type Button = int32;
@@ -113,8 +113,8 @@ pub struct HmGuiGroup {
     pub offset: Vec2,
     pub maxSize: Vec2,
     pub totalStretch: Vec2,
-    pub spacing: libc::c_float,
-    pub frameOpacity: libc::c_float,
+    pub spacing: f32,
+    pub frameOpacity: f32,
     pub clip: bool,
     pub expand: bool,
     pub focusable: [bool; 2],
@@ -159,7 +159,7 @@ pub struct HmGuiClipRect {
 pub struct HmGuiStyle {
     pub prev: *mut HmGuiStyle,
     pub font: *mut Font,
-    pub spacing: libc::c_float,
+    pub spacing: f32,
     pub colorPrimary: Vec4f,
     pub colorFrame: Vec4f,
     pub colorText: Vec4f,
@@ -194,42 +194,42 @@ pub struct HmGuiRect {
 
 #[inline]
 unsafe extern "C" fn Clamp(
-    mut t: libc::c_double,
-    mut lower: libc::c_double,
-    mut upper: libc::c_double,
-) -> libc::c_double {
+    mut t: f64,
+    mut lower: f64,
+    mut upper: f64,
+) -> f64 {
     t = if t > upper { upper } else { t };
     t = if t < lower { lower } else { t };
     return t;
 }
 #[inline]
 unsafe extern "C" fn Lerp(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-    mut t: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+    mut t: f64,
+) -> f64 {
     return a + t * (b - a);
 }
 #[inline]
 unsafe extern "C" fn Max(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a > b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Min(
-    mut a: libc::c_double,
-    mut b: libc::c_double,
-) -> libc::c_double {
+    mut a: f64,
+    mut b: f64,
+) -> f64 {
     return if a < b { a } else { b };
 }
 #[inline]
 unsafe extern "C" fn Vec4f_Create(
-    mut x: libc::c_float,
-    mut y: libc::c_float,
-    mut z: libc::c_float,
-    mut w: libc::c_float,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+    mut w: f32,
 ) -> Vec4f {
     let mut self_1: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };
@@ -443,25 +443,25 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
                     .widget
                     .minSize
                     .x = Max(
-                    (*g).widget.minSize.x as libc::c_double,
-                    (*e_0).minSize.x as libc::c_double,
-                ) as libc::c_float;
+                    (*g).widget.minSize.x as f64,
+                    (*e_0).minSize.x as f64,
+                ) as f32;
                 (*g)
                     .widget
                     .minSize
                     .y = Max(
-                    (*g).widget.minSize.y as libc::c_double,
-                    (*e_0).minSize.y as libc::c_double,
-                ) as libc::c_float;
+                    (*g).widget.minSize.y as f64,
+                    (*e_0).minSize.y as f64,
+                ) as f32;
             }
             2 => {
                 (*g)
                     .widget
                     .minSize
                     .x = Max(
-                    (*g).widget.minSize.x as libc::c_double,
-                    (*e_0).minSize.x as libc::c_double,
-                ) as libc::c_float;
+                    (*g).widget.minSize.x as f64,
+                    (*e_0).minSize.x as f64,
+                ) as f32;
                 (*g).widget.minSize.y += (*e_0).minSize.y;
                 if e_0 != (*g).head {
                     (*g).widget.minSize.y += (*g).spacing;
@@ -473,9 +473,9 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
                     .widget
                     .minSize
                     .y = Max(
-                    (*g).widget.minSize.y as libc::c_double,
-                    (*e_0).minSize.y as libc::c_double,
-                ) as libc::c_float;
+                    (*g).widget.minSize.y as f64,
+                    (*e_0).minSize.y as f64,
+                ) as f32;
                 if e_0 != (*g).head {
                     (*g).widget.minSize.x += (*g).spacing;
                 }
@@ -494,22 +494,22 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
         .widget
         .minSize
         .x = Min(
-        (*g).widget.minSize.x as libc::c_double,
-        (*g).maxSize.x as libc::c_double,
-    ) as libc::c_float;
+        (*g).widget.minSize.x as f64,
+        (*g).maxSize.x as f64,
+    ) as f32;
     (*g)
         .widget
         .minSize
         .y = Min(
-        (*g).widget.minSize.y as libc::c_double,
-        (*g).maxSize.y as libc::c_double,
-    ) as libc::c_float;
+        (*g).widget.minSize.y as f64,
+        (*g).maxSize.y as f64,
+    ) as f32;
 }
 unsafe extern "C" fn HmGui_LayoutWidget(
     mut e: *mut HmGuiWidget,
     mut pos: Vec2,
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
+    mut sx: f32,
+    mut sy: f32,
 ) {
     (*e).pos = pos;
     (*e).size = (*e).minSize;
@@ -521,8 +521,8 @@ unsafe extern "C" fn HmGui_LayoutWidget(
 unsafe extern "C" fn HmGui_LayoutGroup(mut g: *mut HmGuiGroup) {
     let mut pos = (*g).widget.pos;
     let mut size = (*g).widget.size;
-    let mut extra: libc::c_float = 0.0f32;
-    let mut totalStretch: libc::c_float = 0.0f32;
+    let mut extra: f32 = 0.0f32;
+    let mut totalStretch: f32 = 0.0f32;
     pos.x += (*g).paddingLower.x + (*g).offset.x;
     pos.y += (*g).paddingLower.y + (*g).offset.y;
     size.x -= (*g).paddingLower.x + (*g).paddingUpper.x;
@@ -547,7 +547,7 @@ unsafe extern "C" fn HmGui_LayoutGroup(mut g: *mut HmGuiGroup) {
             extra /= totalStretch;
         }
     }
-    let mut s: libc::c_float = 0.;
+    let mut s: f32 = 0.;
     let mut e_1: *mut HmGuiWidget = (*g).head;
     while !e_1.is_null() {
         match (*g).layout {
@@ -755,7 +755,7 @@ unsafe extern "C" fn HmGui_DrawGroup(mut g: *mut HmGuiGroup) {
     UIRenderer_EndLayer();
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_Begin(mut sx: libc::c_float, mut sy: libc::c_float) {
+pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
     if !init_hmgui {
         init_hmgui = 1 as libc::c_int != 0;
         this.group = 0 as *mut HmGuiGroup;
@@ -825,7 +825,7 @@ pub unsafe extern "C" fn HmGui_End() {
     }
     let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);
-    this.focusPos = Vec2::new(mouse.x as libc::c_float, mouse.y as libc::c_float);
+    this.focusPos = Vec2::new(mouse.x as f32, mouse.y as f32);
     HmGui_CheckFocus(this.root);
     Profiler_End();
 }
@@ -861,7 +861,7 @@ pub unsafe extern "C" fn HmGui_EndGroup() {
     this.group = (*this.group).widget.parent;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginScroll(mut maxSize: libc::c_float) {
+pub unsafe extern "C" fn HmGui_BeginScroll(mut maxSize: f32) {
     HmGui_BeginGroupX();
     HmGui_SetStretch(
         1.0f32,
@@ -890,19 +890,19 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
     if HmGui_GroupHasFocus(1 as libc::c_int) {
         let mut scroll: IVec2 = IVec2 { x: 0, y: 0 };
         Input_GetMouseScroll(&mut scroll);
-        (*data).offset.y -= 10.0f32 * scroll.y as libc::c_float;
+        (*data).offset.y -= 10.0f32 * scroll.y as f32;
     }
-    let mut maxScroll: libc::c_float = Max(
-        0.0f32 as libc::c_double,
-        ((*data).minSize.y - (*data).size.y) as libc::c_double,
-    ) as libc::c_float;
+    let mut maxScroll: f32 = Max(
+        0.0f32 as f64,
+        ((*data).minSize.y - (*data).size.y) as f64,
+    ) as f32;
     (*data)
         .offset
         .y = Clamp(
-        (*data).offset.y as libc::c_double,
-        0.0f32 as libc::c_double,
-        maxScroll as libc::c_double,
-    ) as libc::c_float;
+        (*data).offset.y as f64,
+        0.0f32 as f64,
+        maxScroll as f64,
+    ) as f32;
     HmGui_EndGroup();
     HmGui_BeginGroupY();
     HmGui_SetStretch(
@@ -911,13 +911,13 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
     );
     HmGui_SetSpacing(0.0f32);
     if maxScroll > 0.0f32 {
-        let mut handleSize: libc::c_float = (*data).size.y
+        let mut handleSize: f32 = (*data).size.y
             * ((*data).size.y / (*data).minSize.y);
-        let mut handlePos: libc::c_float = Lerp(
-            0.0f32 as libc::c_double,
-            ((*data).size.y - handleSize) as libc::c_double,
-            ((*data).offset.y / maxScroll) as libc::c_double,
-        ) as libc::c_float;
+        let mut handlePos: f32 = Lerp(
+            0.0f32 as f64,
+            ((*data).size.y - handleSize) as f64,
+            ((*data).offset.y / maxScroll) as f64,
+        ) as f32;
         HmGui_Rect(4.0f32, handlePos, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
         HmGui_Rect(
             4.0f32,
@@ -947,8 +947,8 @@ pub unsafe extern "C" fn HmGui_BeginWindow(mut title: cstr) {
         if Input_GetDown(Button_Mouse_Left) {
             let mut md: IVec2 = IVec2 { x: 0, y: 0 };
             Input_GetMouseDelta(&mut md);
-            (*data).offset.x += md.x as libc::c_float;
-            (*data).offset.y += md.y as libc::c_float;
+            (*data).offset.x += md.x as f32;
+            (*data).offset.y += md.y as f32;
         }
     }
     (*this.group).widget.pos.x += (*data).offset.x;
@@ -1038,10 +1038,10 @@ pub unsafe extern "C" fn HmGui_Checkbox(mut label: cstr, mut value: bool) -> boo
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Slider(
-    mut lower: libc::c_float,
-    mut upper: libc::c_float,
-    mut value: libc::c_float,
-) -> libc::c_float {
+    mut lower: f32,
+    mut upper: f32,
+    mut value: f32,
+) -> f32 {
     HmGui_BeginGroupStack();
     HmGui_Rect(
         0.0f32,
@@ -1075,12 +1075,12 @@ pub unsafe extern "C" fn HmGui_Image(mut image: *mut Tex2D) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Rect(
-    mut sx: libc::c_float,
-    mut sy: libc::c_float,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut sx: f32,
+    mut sy: f32,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     let mut e: *mut HmGuiRect = MemAlloc(
         ::core::mem::size_of::<HmGuiRect>() as usize,
@@ -1103,10 +1103,10 @@ pub unsafe extern "C" fn HmGui_Text(mut text: cstr) {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_TextColored(
     mut text: cstr,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     HmGui_TextEx((*this.style).font, text, r, g, b, a);
 }
@@ -1114,10 +1114,10 @@ pub unsafe extern "C" fn HmGui_TextColored(
 pub unsafe extern "C" fn HmGui_TextEx(
     mut font: *mut Font,
     mut text: cstr,
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     let mut e: *mut HmGuiText = MemAlloc(
         ::core::mem::size_of::<HmGuiText>() as usize,
@@ -1128,50 +1128,50 @@ pub unsafe extern "C" fn HmGui_TextEx(
     (*e).color = Vec4f_Create(r, g, b, a);
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*e).font, &mut size, (*e).text);
-    (*e).widget.minSize = Vec2::new(size.x as libc::c_float, size.y as libc::c_float);
+    (*e).widget.minSize = Vec2::new(size.x as f32, size.y as f32);
     HmGui_SetAlign(0.0f32, 1.0f32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_SetAlign(mut ax: libc::c_float, mut ay: libc::c_float) {
+pub unsafe extern "C" fn HmGui_SetAlign(mut ax: f32, mut ay: f32) {
     (*this.last).align = Vec2::new(ax, ay);
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPadding(mut px: libc::c_float, mut py: libc::c_float) {
+pub unsafe extern "C" fn HmGui_SetPadding(mut px: f32, mut py: f32) {
     (*this.group).paddingLower = Vec2::new(px, py);
     (*this.group).paddingUpper = Vec2::new(px, py);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPaddingEx(
-    mut left: libc::c_float,
-    mut top: libc::c_float,
-    mut right: libc::c_float,
-    mut bottom: libc::c_float,
+    mut left: f32,
+    mut top: f32,
+    mut right: f32,
+    mut bottom: f32,
 ) {
     (*this.group).paddingLower = Vec2::new(left, top);
     (*this.group).paddingUpper = Vec2::new(right, bottom);
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingLeft(mut padding: libc::c_float) {
+pub unsafe extern "C" fn HmGui_SetPaddingLeft(mut padding: f32) {
     (*this.group).paddingLower.x = padding;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingTop(mut padding: libc::c_float) {
+pub unsafe extern "C" fn HmGui_SetPaddingTop(mut padding: f32) {
     (*this.group).paddingLower.y = padding;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingRight(mut padding: libc::c_float) {
+pub unsafe extern "C" fn HmGui_SetPaddingRight(mut padding: f32) {
     (*this.group).paddingUpper.x = padding;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingBottom(mut padding: libc::c_float) {
+pub unsafe extern "C" fn HmGui_SetPaddingBottom(mut padding: f32) {
     (*this.group).paddingUpper.y = padding;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_SetSpacing(mut spacing: libc::c_float) {
+pub unsafe extern "C" fn HmGui_SetSpacing(mut spacing: f32) {
     (*this.group).spacing = spacing;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_SetStretch(mut x: libc::c_float, mut y: libc::c_float) {
+pub unsafe extern "C" fn HmGui_SetStretch(mut x: f32, mut y: f32) {
     (*this.last).stretch = Vec2::new(x, y);
 }
 #[no_mangle]
@@ -1195,10 +1195,10 @@ pub unsafe extern "C" fn HmGui_PushFont(mut font: *mut Font) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushTextColor(
-    mut r: libc::c_float,
-    mut g: libc::c_float,
-    mut b: libc::c_float,
-    mut a: libc::c_float,
+    mut r: f32,
+    mut g: f32,
+    mut b: f32,
+    mut a: f32,
 ) {
     HmGui_PushStyle();
     (*this.style).colorText = Vec4f_Create(r, g, b, a);

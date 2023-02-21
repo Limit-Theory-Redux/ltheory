@@ -39,7 +39,7 @@ extern "C" {
     fn ShaderVar_Init();
     fn ShaderVar_Free();
     fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> libc::c_double;
+    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
 pub type int32_t = libc::c_int;
 pub type uint8_t = libc::c_uchar;
@@ -210,7 +210,7 @@ pub unsafe extern "C" fn Engine_GetBits() -> libc::c_int {
         as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Engine_GetTime() -> libc::c_double {
+pub unsafe extern "C" fn Engine_GetTime() -> f64 {
     return TimeStamp_GetElapsed(initTime);
 }
 #[no_mangle]

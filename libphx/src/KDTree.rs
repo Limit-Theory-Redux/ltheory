@@ -16,10 +16,10 @@ extern "C" {
     );
     fn Draw_Box3(box_0: *const Box3f);
     fn Draw_Color(
-        r: libc::c_float,
-        g: libc::c_float,
-        b: libc::c_float,
-        a: libc::c_float,
+        r: f32,
+        g: f32,
+        b: f32,
+        a: f32,
     );
     fn Mesh_GetIndexCount(_: *mut Mesh) -> libc::c_int;
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
@@ -57,11 +57,11 @@ pub struct Vertex {
     pub uv: Vec2,
 }
 #[inline]
-unsafe extern "C" fn Maxf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
+unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
     return if a > b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Minf(mut a: libc::c_float, mut b: libc::c_float) -> libc::c_float {
+unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
     return if a < b { a } else { b };
 }
 #[inline]
