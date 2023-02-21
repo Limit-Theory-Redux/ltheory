@@ -163,36 +163,6 @@ CPMAddPackage(
   "LZ4_BUILD_LEGACY_LZ4C OFF"
 )
 
-CPMAddPackage(
-  NAME SDL
-  URL https://github.com/libsdl-org/SDL/releases/download/release-2.26.1/SDL2-2.26.1.tar.gz
-  VERSION 2.26.1
-  PATCH_COMMAND ${PATCH_TOOL} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SDL.diff
-  OPTIONS
-  "SDL_SHARED OFF"
-  "SDL_STATIC ON"
-  "SDL_TEST OFF"
-  "SDL2_DISABLE_INSTALL ON"
-  "SDL2_DISABLE_UNINSTALL ON"
-  "SDL_STATIC_PIC ON"
-)
-if (SDL_ADDED)
-  target_include_directories(SDL2-static PUBLIC
-    $<BUILD_INTERFACE:${sdl_BINARY_DIR}/include>
-    $<BUILD_INTERFACE:${sdl_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>)
-endif ()
-
-CPMAddPackage(
-  NAME stb
-  URL https://github.com/nothings/stb/archive/8b5f1f37b5b75829fc72d38e7b5d4bcbf8a26d55.tar.gz
-  VERSION 8b5f1f37b5b75829fc72d38e7b5d4bcbf8a26d55
-  DOWNLOAD_ONLY TRUE
-)
-if (stb_ADDED)
-  add_library(stb INTERFACE)
-  target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
-endif()
-
 if(WIN32)
   CPMAddPackage(
     NAME windirent
