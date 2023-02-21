@@ -7,13 +7,13 @@ extern "C" {
     fn tan(_: f64) -> f64;
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
+    fn printf(_: *const libc::c_char, _: ...) -> i32;
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::size_t,
+        _: usize,
         _: *const libc::c_char,
         _: ...
-    ) -> libc::c_int;
+    ) -> i32;
     fn Quat_GetAxisX(_: *const Quat, _: *mut Vec3);
     fn Quat_GetAxisY(_: *const Quat, _: *mut Vec3);
     fn Quat_GetAxisZ(_: *const Quat, _: *mut Vec3);
@@ -100,7 +100,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
     let mut dst: *mut f32 = out as *mut f32;
     *dst
         .offset(
-            0 as libc::c_int as isize,
+            0 as i32 as isize,
         ) = *src.offset(5)
         * *src.offset(10)
         * *src.offset(15)
@@ -119,7 +119,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(10);
     *dst
         .offset(
-            4 as libc::c_int as isize,
+            4 as i32 as isize,
         ) = -*src.offset(4)
         * *src.offset(10)
         * *src.offset(15)
@@ -138,7 +138,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(10);
     *dst
         .offset(
-            8 as libc::c_int as isize,
+            8 as i32 as isize,
         ) = *src.offset(4)
         * *src.offset(9)
         * *src.offset(15)
@@ -157,7 +157,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(9);
     *dst
         .offset(
-            12 as libc::c_int as isize,
+            12 as i32 as isize,
         ) = -*src.offset(4)
         * *src.offset(9)
         * *src.offset(14)
@@ -176,7 +176,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(9);
     *dst
         .offset(
-            1 as libc::c_int as isize,
+            1 as i32 as isize,
         ) = -*src.offset(1)
         * *src.offset(10)
         * *src.offset(15)
@@ -195,7 +195,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(10);
     *dst
         .offset(
-            5 as libc::c_int as isize,
+            5 as i32 as isize,
         ) = *src.offset(0)
         * *src.offset(10)
         * *src.offset(15)
@@ -214,7 +214,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(10);
     *dst
         .offset(
-            9 as libc::c_int as isize,
+            9 as i32 as isize,
         ) = -*src.offset(0)
         * *src.offset(9)
         * *src.offset(15)
@@ -233,7 +233,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(9);
     *dst
         .offset(
-            13 as libc::c_int as isize,
+            13 as i32 as isize,
         ) = *src.offset(0)
         * *src.offset(9)
         * *src.offset(14)
@@ -252,7 +252,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(9);
     *dst
         .offset(
-            2 as libc::c_int as isize,
+            2 as i32 as isize,
         ) = *src.offset(1)
         * *src.offset(6)
         * *src.offset(15)
@@ -270,7 +270,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(6);
     *dst
         .offset(
-            6 as libc::c_int as isize,
+            6 as i32 as isize,
         ) = -*src.offset(0)
         * *src.offset(6)
         * *src.offset(15)
@@ -288,7 +288,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(6);
     *dst
         .offset(
-            10 as libc::c_int as isize,
+            10 as i32 as isize,
         ) = *src.offset(0)
         * *src.offset(5)
         * *src.offset(15)
@@ -306,7 +306,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(5);
     *dst
         .offset(
-            14 as libc::c_int as isize,
+            14 as i32 as isize,
         ) = -*src.offset(0)
         * *src.offset(5)
         * *src.offset(14)
@@ -324,7 +324,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(5);
     *dst
         .offset(
-            3 as libc::c_int as isize,
+            3 as i32 as isize,
         ) = -*src.offset(1)
         * *src.offset(6)
         * *src.offset(11)
@@ -340,7 +340,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(6);
     *dst
         .offset(
-            7 as libc::c_int as isize,
+            7 as i32 as isize,
         ) = *src.offset(0)
         * *src.offset(6)
         * *src.offset(11)
@@ -356,7 +356,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(6);
     *dst
         .offset(
-            11 as libc::c_int as isize,
+            11 as i32 as isize,
         ) = -*src.offset(0)
         * *src.offset(5)
         * *src.offset(11)
@@ -372,7 +372,7 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             * *src.offset(5);
     *dst
         .offset(
-            15 as libc::c_int as isize,
+            15 as i32 as isize,
         ) = *src.offset(0)
         * *src.offset(5)
         * *src.offset(10)
@@ -395,8 +395,8 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
                 * *dst.offset(8)
             + *src.offset(3)
                 * *dst.offset(12));
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 16 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 16 as i32 {
         *dst.offset(i as isize) *= det;
         i += 1;
     }
@@ -426,31 +426,31 @@ pub unsafe extern "C" fn Matrix_Equal(
     mut a: *const Matrix,
     mut b: *const Matrix,
 ) -> bool {
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 16 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 16 as i32 {
         if (*a).m[i as usize] != (*b).m[i as usize] {
-            return 0 as libc::c_int != 0;
+            return 0 as i32 != 0;
         }
         i += 1;
     }
-    return 1 as libc::c_int != 0;
+    return 1 as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_ApproximatelyEqual(
     mut a: *const Matrix,
     mut b: *const Matrix,
 ) -> bool {
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 16 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 16 as i32 {
         if !Float_ApproximatelyEqual(
             (*a).m[i as usize] as f64,
             (*b).m[i as usize] as f64,
         ) {
-            return 0 as libc::c_int != 0;
+            return 0 as i32 != 0;
         }
         i += 1;
     }
-    return 1 as libc::c_int != 0;
+    return 1 as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Inverse(mut this: *const Matrix) -> *mut Matrix {
@@ -474,8 +474,8 @@ pub unsafe extern "C" fn Matrix_Sum(
     mut b: *const Matrix,
 ) -> *mut Matrix {
     let mut result: Matrix = Matrix { m: [0.; 16] };
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 16 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 16 as i32 {
         result.m[i as usize] = (*a).m[i as usize] + (*b).m[i as usize];
         i += 1;
     }
@@ -641,16 +641,16 @@ pub unsafe extern "C" fn Matrix_Product(
 ) -> *mut Matrix {
     let mut result: Matrix = Matrix { m: [0.; 16] };
     let mut pResult: *mut f32 = (result.m).as_mut_ptr();
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 4 as libc::c_int {
-        let mut j: libc::c_int = 0 as libc::c_int;
-        while j < 4 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 4 as i32 {
+        let mut j: i32 = 0 as i32;
+        while j < 4 as i32 {
             let mut sum: f32 = 0.0f32;
-            let mut k: libc::c_int = 0 as libc::c_int;
-            while k < 4 as libc::c_int {
+            let mut k: i32 = 0 as i32;
+            while k < 4 as i32 {
                 sum
-                    += (*a).m[(4 as libc::c_int * i + k) as usize]
-                        * (*b).m[(4 as libc::c_int * k + j) as usize];
+                    += (*a).m[(4 as i32 * i + k) as usize]
+                        * (*b).m[(4 as i32 * k + j) as usize];
                 k += 1;
             }
             let fresh0 = pResult;
@@ -911,8 +911,8 @@ pub unsafe extern "C" fn Matrix_MulBox(
     );
     (*out).lower = result;
     (*out).upper = result;
-    let mut i: libc::c_int = 1 as libc::c_int;
-    while i < 8 as libc::c_int {
+    let mut i: i32 = 1 as i32;
+    while i < 8 as i32 {
         Matrix_MulPoint(
             this,
             &mut result,
@@ -1037,12 +1037,12 @@ pub unsafe extern "C" fn Matrix_GetPos(mut this: *const Matrix, mut out: *mut Ve
 pub unsafe extern "C" fn Matrix_GetRow(
     mut this: *const Matrix,
     mut out: *mut Vec4f,
-    mut row: libc::c_int,
+    mut row: i32,
 ) {
-    (*out).x = (*this).m[(4 as libc::c_int * row + 0 as libc::c_int) as usize];
-    (*out).y = (*this).m[(4 as libc::c_int * row + 1 as libc::c_int) as usize];
-    (*out).z = (*this).m[(4 as libc::c_int * row + 2 as libc::c_int) as usize];
-    (*out).w = (*this).m[(4 as libc::c_int * row + 3 as libc::c_int) as usize];
+    (*out).x = (*this).m[(4 as i32 * row + 0 as i32) as usize];
+    (*out).y = (*this).m[(4 as i32 * row + 1 as i32) as usize];
+    (*out).z = (*this).m[(4 as i32 * row + 2 as i32) as usize];
+    (*out).w = (*this).m[(4 as i32 * row + 3 as i32) as usize];
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_FromBasis(
@@ -1220,13 +1220,13 @@ pub unsafe extern "C" fn Matrix_ToQuat(mut this: *const Matrix, mut q: *mut Quat
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Print(mut this: *const Matrix) {
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 4 as libc::c_int {
-        let mut j: libc::c_int = 0 as libc::c_int;
-        while j < 4 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 4 as i32 {
+        let mut j: i32 = 0 as i32;
+        while j < 4 as i32 {
             printf(
                 b"%f \0" as *const u8 as *const libc::c_char,
-                (*this).m[(4 as libc::c_int * i + j) as usize] as f64,
+                (*this).m[(4 as i32 * i + j) as usize] as f64,
             );
             j += 1;
         }
@@ -1242,7 +1242,7 @@ pub unsafe extern "C" fn Matrix_ToString(mut this: *const Matrix) -> cstr {
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as libc::size_t,
+            as i32 as usize,
         b"[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\0"
             as *const u8 as *const libc::c_char,
         *m.offset(0) as f64,

@@ -3,11 +3,11 @@ use glam::Vec3;
 use crate::internal::Memory::*;
 use glam::Vec2;
 extern "C" {
-    fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: u64) -> u64;
+    fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64;
     fn cos(_: f64) -> f64;
     fn sin(_: f64) -> f64;
     fn log(_: f64) -> f64;
-    fn ldexp(_: f64, _: libc::c_int) -> f64;
+    fn ldexp(_: f64, _: i32) -> f64;
     fn sqrt(_: f64) -> f64;
     fn floor(_: f64) -> f64;
     fn TimeStamp_Get() -> TimeStamp;
@@ -71,18 +71,18 @@ unsafe extern "C" fn Sin(mut t: f64) -> f64 {
 }
 #[inline]
 unsafe extern "C" fn Random_SplitMix64(mut state: *mut u64) -> u64 {
-    *state = (*state as libc::c_ulonglong)
-        .wrapping_add(0x9e3779b97f4a7c15 as libc::c_ulonglong) as u64 as u64;
+    *state = (*state as u64)
+        .wrapping_add(0x9e3779b97f4a7c15 as u64) as u64;
     let mut z: u64 = *state;
-    z = (z ^ z >> 30 as libc::c_int)
-        .wrapping_mul(0xbf58476d1ce4e5b9 as libc::c_ulonglong);
-    z = (z ^ z >> 27 as libc::c_int)
-        .wrapping_mul(0x94d049bb133111eb as libc::c_ulonglong);
-    return z ^ z >> 31 as libc::c_int;
+    z = (z ^ z >> 30 as i32)
+        .wrapping_mul(0xbf58476d1ce4e5b9 as u64);
+    z = (z ^ z >> 27 as i32)
+        .wrapping_mul(0x94d049bb133111eb as u64);
+    return z ^ z >> 31 as i32;
 }
 #[inline]
-unsafe extern "C" fn rotl(x: u64, mut k: libc::c_int) -> u64 {
-    return x << k | x >> 64 as libc::c_int - k;
+unsafe extern "C" fn rotl(x: u64, mut k: i32) -> u64 {
+    return x << k | x >> 64 as i32 - k;
 }
 #[inline]
 unsafe extern "C" fn Random_Xoroshiro128(
@@ -93,8 +93,8 @@ unsafe extern "C" fn Random_Xoroshiro128(
     let mut s1: u64 = *state1;
     let result: u64 = s0.wrapping_add(s1);
     s1 ^= s0;
-    *state0 = rotl(s0, 55 as libc::c_int) ^ s1 ^ s1 << 14 as libc::c_int;
-    *state1 = rotl(s1, 36 as libc::c_int);
+    *state0 = rotl(s0, 55 as i32) ^ s1 ^ s1 << 14 as i32;
+    *state1 = rotl(s1, 36 as i32);
     return result;
 }
 
@@ -107,21 +107,21 @@ unsafe extern "C" fn RNG_Next64(mut this: *mut RNG) -> u64 {
 }
 #[inline]
 unsafe extern "C" fn RNG_Next32(mut this: *mut RNG) -> u32 {
-    return (RNG_Next64(this) & 0xffffffff as libc::c_uint as libc::c_ulonglong)
+    return (RNG_Next64(this) & 0xffffffff as u32 as u64)
         as u32;
 }
 #[inline]
 unsafe extern "C" fn RNG_Init(mut this: *mut RNG) {
     let mut seed: u64 = (*this).seed;
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 64 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 64 as i32 {
         seed = Random_SplitMix64(&mut seed);
         i += 1;
     }
     (*this).state[0] = Random_SplitMix64(&mut seed);
     (*this).state[1] = Random_SplitMix64(&mut seed);
-    let mut i_0: libc::c_int = 0 as libc::c_int;
-    while i_0 < 64 as libc::c_int {
+    let mut i_0: i32 = 0 as i32;
+    while i_0 < 64 as i32 {
         RNG_Next64(this);
         i_0 += 1;
     }
@@ -139,8 +139,8 @@ pub unsafe extern "C" fn RNG_FromStr(mut s: cstr) -> *mut RNG {
     return RNG_Create(
         Hash_XX64(
             s as *const libc::c_void,
-            StrLen(s) as libc::c_int,
-            0 as libc::c_int as u64,
+            StrLen(s) as i32,
+            0 as i32 as u64,
         ),
     );
 }
@@ -165,7 +165,7 @@ pub unsafe extern "C" fn RNG_Chance(
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_Get31(mut this: *mut RNG) -> i32 {
-    let mut i: u32 = RNG_Next32(this) & 0x7fffffff as libc::c_uint;
+    let mut i: u32 = RNG_Next32(this) & 0x7fffffff as u32;
     return *(&mut i as *mut u32 as *mut i32);
 }
 #[no_mangle]
@@ -183,12 +183,12 @@ pub unsafe extern "C" fn RNG_GetAngle(mut this: *mut RNG) -> f64 {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetInt(
     mut this: *mut RNG,
-    mut lower: libc::c_int,
-    mut upper: libc::c_int,
-) -> libc::c_int {
+    mut lower: i32,
+    mut upper: i32,
+) -> i32 {
     let mut t: f64 = RNG_GetUniform(this);
     return Round(lower as f64 + t * (upper - lower) as f64)
-        as libc::c_int;
+        as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetRNG(mut this: *mut RNG) -> *mut RNG {
@@ -196,7 +196,7 @@ pub unsafe extern "C" fn RNG_GetRNG(mut this: *mut RNG) -> *mut RNG {
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetUniform(mut this: *mut RNG) -> f64 {
-    return ldexp(RNG_Next32(this) as f64, -(32 as libc::c_int));
+    return ldexp(RNG_Next32(this) as f64, -(32 as i32));
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetUniformRange(
@@ -206,17 +206,17 @@ pub unsafe extern "C" fn RNG_GetUniformRange(
 ) -> f64 {
     let mut t: f64 = ldexp(
         RNG_Next32(this) as f64,
-        -(32 as libc::c_int),
+        -(32 as i32),
     );
     return lower + t * (upper - lower);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetErlang(
     mut this: *mut RNG,
-    mut k: libc::c_int,
+    mut k: i32,
 ) -> f64 {
     let mut sum: f64 = 0.0f64;
-    let mut i: libc::c_int = 0 as libc::c_int;
+    let mut i: i32 = 0 as i32;
     while i < k {
         sum += RNG_GetExp(this);
         i += 1;
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn RNG_GetGaussian(mut this: *mut RNG) -> f64 {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetAxis2(mut this: *mut RNG, mut out: *mut Vec2) {
     *out = Vec2::new(0.0f32, 0.0f32);
-    let mut axis: libc::c_int = RNG_GetInt(this, 0 as libc::c_int, 3 as libc::c_int);
+    let mut axis: i32 = RNG_GetInt(this, 0 as i32, 3 as i32);
     match axis {
         0 => {
             (*out).x = 1.0f32;
@@ -260,7 +260,7 @@ pub unsafe extern "C" fn RNG_GetAxis2(mut this: *mut RNG, mut out: *mut Vec2) {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetAxis3(mut this: *mut RNG, mut out: *mut Vec3) {
     *out = Vec3::ZERO;
-    let mut axis: libc::c_int = RNG_GetInt(this, 0 as libc::c_int, 5 as libc::c_int);
+    let mut axis: i32 = RNG_GetInt(this, 0 as i32, 5 as i32);
     match axis {
         0 => {
             (*out).x = 1.0f32;

@@ -21,21 +21,21 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
     (*this).blockCount = ((*this).blockCount).wrapping_add(1);
     let mut newBlockIndex: u16 = fresh0;
     (*this)
-        .capacity = ((*this).capacity as libc::c_uint)
-        .wrapping_add((*this).blockSize) as u32 as u32;
+        .capacity = ((*this).capacity as u32)
+        .wrapping_add((*this).blockSize) as u32;
     (*this)
         .blocks = MemRealloc(
         (*this).blocks as *mut libc::c_void,
         ((*this).blockCount as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()),
     ) as *mut *mut libc::c_void;
     let mut newBlock: *mut libc::c_void = MemAlloc(
-        ((*this).cellSize).wrapping_mul((*this).blockSize) as libc::size_t,
+        ((*this).cellSize).wrapping_mul((*this).blockSize) as usize,
     );
     let ref mut fresh1 = *((*this).blocks).offset(newBlockIndex as isize);
     *fresh1 = newBlock;
     let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
     let mut pCurr: *mut libc::c_char = newBlock as *mut libc::c_char;
-    let mut i: u32 = 0 as libc::c_int as u32;
+    let mut i: u32 = 0 as i32 as u32;
     while i < (*this).blockSize {
         *prev = pCurr as *mut libc::c_void;
         prev = pCurr as *mut *mut libc::c_void;
@@ -52,12 +52,12 @@ pub unsafe extern "C" fn MemPool_Create(
     let mut this: *mut MemPool = MemAlloc(
         ::core::mem::size_of::<MemPool>() as usize,
     ) as *mut MemPool;
-    (*this).size = 0 as libc::c_int as u32;
-    (*this).capacity = 0 as libc::c_int as u32;
+    (*this).size = 0 as i32 as u32;
+    (*this).capacity = 0 as i32 as u32;
     (*this).freeList = 0 as *mut libc::c_void;
     (*this).cellSize = cellSize;
     (*this).blockSize = blockSize;
-    (*this).blockCount = 0 as libc::c_int as u16;
+    (*this).blockCount = 0 as i32 as u16;
     (*this).blocks = 0 as *mut *mut libc::c_void;
     return this;
 }
@@ -65,13 +65,13 @@ pub unsafe extern "C" fn MemPool_Create(
 pub unsafe extern "C" fn MemPool_CreateAuto(mut elemSize: u32) -> *mut MemPool {
     return MemPool_Create(
         elemSize,
-        (0x1000 as libc::c_int as libc::c_uint).wrapping_div(elemSize),
+        (0x1000 as i32 as u32).wrapping_div(elemSize),
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Free(mut this: *mut MemPool) {
-    let mut i: u16 = 0 as libc::c_int as u16;
-    while (i as libc::c_int) < (*this).blockCount as libc::c_int {
+    let mut i: u16 = 0 as i32 as u16;
+    while (i as i32) < (*this).blockCount as i32 {
         MemFree(*((*this).blocks).offset(i as isize));
         i = i.wrapping_add(1);
     }
@@ -85,19 +85,19 @@ pub unsafe extern "C" fn MemPool_Alloc(mut this: *mut MemPool) -> *mut libc::c_v
     let mut freeCell: *mut libc::c_void = (*this).freeList;
     (*this).freeList = *(freeCell as *mut *mut libc::c_void);
     (*this).size = ((*this).size).wrapping_add(1);
-    MemZero(freeCell, (*this).cellSize as libc::size_t);
+    MemZero(freeCell, (*this).cellSize as usize);
     return freeCell;
 }
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Clear(mut this: *mut MemPool) {
-    (*this).size = 0 as libc::c_int as u32;
+    (*this).size = 0 as i32 as u32;
     (*this).freeList = 0 as *mut libc::c_void;
     let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
-    let mut i: u32 = 0 as libc::c_int as u32;
-    while i < (*this).blockCount as libc::c_uint {
+    let mut i: u32 = 0 as i32 as u32;
+    while i < (*this).blockCount as u32 {
         let mut pCurr: *mut libc::c_char = *((*this).blocks).offset(i as isize)
             as *mut libc::c_char;
-        let mut j: u32 = 0 as libc::c_int as u32;
+        let mut j: u32 = 0 as i32 as u32;
         while j < (*this).blockSize {
             *prev = pCurr as *mut libc::c_void;
             prev = pCurr as *mut *mut libc::c_void;

@@ -20,9 +20,9 @@ extern "C" {
         sx: f32,
         sy: f32,
     );
-    fn Mesh_GetIndexCount(_: *mut Mesh) -> libc::c_int;
-    fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> libc::c_int;
+    fn Mesh_GetIndexCount(_: *mut Mesh) -> i32;
+    fn Mesh_GetIndexData(_: *mut Mesh) -> *mut i32;
+    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
     fn RenderState_PushAllDefaults();
     fn RenderState_PopAll();
@@ -32,10 +32,10 @@ extern "C" {
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
     fn Shader_SetFloat(_: cstr, _: f32);
-    fn Shader_SetInt(_: cstr, _: libc::c_int);
+    fn Shader_SetInt(_: cstr, _: i32);
     fn Shader_SetTex2D(_: cstr, _: *mut Tex2D);
     fn Shader_SetTex3D(_: cstr, _: *mut Tex3D);
-    fn Tex2D_Create(sx: libc::c_int, sy: libc::c_int, _: TexFormat) -> *mut Tex2D;
+    fn Tex2D_Create(sx: i32, sy: i32, _: TexFormat) -> *mut Tex2D;
     fn Tex2D_Free(_: *mut Tex2D);
     fn Tex2D_GetData(_: *mut Tex2D, _: *mut libc::c_void, _: PixelFormat, _: DataFormat);
     fn Tex2D_SetData(
@@ -105,20 +105,20 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
     mut this: *mut Mesh,
     mut radius: f32,
 ) {
-    let mut indexCount: libc::c_int = Mesh_GetIndexCount(this);
-    let mut vertexCount: libc::c_int = Mesh_GetVertexCount(this);
-    let mut indexData: *mut libc::c_int = Mesh_GetIndexData(this);
+    let mut indexCount: i32 = Mesh_GetIndexCount(this);
+    let mut vertexCount: i32 = Mesh_GetVertexCount(this);
+    let mut indexData: *mut i32 = Mesh_GetIndexData(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    let mut sDim: libc::c_int = Ceil(
-        Sqrt((indexCount / 3 as libc::c_int) as f64),
-    ) as libc::c_int;
-    let mut vDim: libc::c_int = Ceil(Sqrt(vertexCount as f64)) as libc::c_int;
-    let mut surfels: libc::c_int = sDim * sDim;
-    let mut vertices: libc::c_int = vDim * vDim;
-    let mut bufSize: libc::c_int = Max(
+    let mut sDim: i32 = Ceil(
+        Sqrt((indexCount / 3 as i32) as f64),
+    ) as i32;
+    let mut vDim: i32 = Ceil(Sqrt(vertexCount as f64)) as i32;
+    let mut surfels: i32 = sDim * sDim;
+    let mut vertices: i32 = vDim * vDim;
+    let mut bufSize: i32 = Max(
         surfels as f64,
         vertices as f64,
-    ) as libc::c_int;
+    ) as i32;
     let mut pointBuffer: *mut Vec4f = MemAlloc(
         (::core::mem::size_of::<Vec4f>())
             .wrapping_mul(bufSize as usize),
@@ -137,14 +137,14 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
         (::core::mem::size_of::<Vec4f>())
             .wrapping_mul(bufSize as usize),
     );
-    let mut i: libc::c_int = 0 as libc::c_int;
+    let mut i: i32 = 0 as i32;
     while i < indexCount {
         let mut v1: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 0 as libc::c_int) as isize) as isize);
+            .offset(*indexData.offset((i + 0 as i32) as isize) as isize);
         let mut v2: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 1 as libc::c_int) as isize) as isize);
+            .offset(*indexData.offset((i + 1 as i32) as isize) as isize);
         let mut v3: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 2 as libc::c_int) as isize) as isize);
+            .offset(*indexData.offset((i + 2 as i32) as isize) as isize);
         let mut normal: Vec3 = Vec3::cross(
             (*v3).p - (*v1).p,
             (*v2).p - (*v1).p,
@@ -163,18 +163,18 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
         let mut center: Vec3 = ((*v1).p + (*v2).p + (*v3).p) / 3.0f32;
         *pointBuffer
             .offset(
-                (i / 3 as libc::c_int) as isize,
+                (i / 3 as i32) as isize,
             ) = Vec4f_Create(center.x, center.y, center.z, area);
         *normalBuffer
             .offset(
-                (i / 3 as libc::c_int) as isize,
+                (i / 3 as i32) as isize,
             ) = Vec4f_Create(
             normal.x,
             normal.y,
             normal.z,
             0.0f32,
         );
-        i += 3 as libc::c_int;
+        i += 3 as i32;
     }
     let mut texSPoints: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);
     let mut texSNormals: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);
@@ -200,7 +200,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
         (::core::mem::size_of::<Vec4f>())
             .wrapping_mul(bufSize as usize),
     );
-    let mut i_0: libc::c_int = 0 as libc::c_int;
+    let mut i_0: i32 = 0 as i32;
     while i_0 < vertexCount {
         let mut v: *const Vertex = vertexData.offset(i_0 as isize);
         *pointBuffer
@@ -275,7 +275,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
         PixelFormat_Red,
         DataFormat_Float,
     );
-    let mut i_1: libc::c_int = 0 as libc::c_int;
+    let mut i_1: i32 = 0 as i32;
     while i_1 < vertexCount {
         (*vertexData.offset(i_1 as isize)).uv.x = *result.offset(i_1 as isize);
         i_1 += 1;
@@ -293,16 +293,16 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     mut sdf: *mut Tex3D,
     mut radius: f32,
 ) {
-    let mut vertexCount: libc::c_int = Mesh_GetVertexCount(this);
+    let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    let mut vDim: libc::c_int = Ceil(Sqrt(vertexCount as f64)) as libc::c_int;
+    let mut vDim: i32 = Ceil(Sqrt(vertexCount as f64)) as i32;
     let mut texPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
     let mut pointBuffer: *mut Vec3 = MemAlloc(
         (::core::mem::size_of::<Vec3>())
             .wrapping_mul((vDim * vDim) as usize),
     ) as *mut Vec3;
-    let mut i: libc::c_int = 0 as libc::c_int;
+    let mut i: i32 = 0 as i32;
     while i < vertexCount {
         *pointBuffer.offset(i as isize) = (*vertexData.offset(i as isize)).p;
         i += 1;
@@ -346,7 +346,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
         PixelFormat_Red,
         DataFormat_Float,
     );
-    let mut i_0: libc::c_int = 0 as libc::c_int;
+    let mut i_0: i32 = 0 as i32;
     while i_0 < vertexCount {
         (*vertexData.offset(i_0 as isize)).uv.x = *result.offset(i_0 as isize);
         i_0 += 1;

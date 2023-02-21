@@ -11,12 +11,12 @@ pub struct Timer {
     pub value: u64,
 }
 
-static mut frequency: f64 = 0 as libc::c_int as f64;
+static mut frequency: f64 = 0 as i32 as f64;
 #[no_mangle]
 pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
-    static mut init: bool = 0 as libc::c_int != 0;
+    static mut init: bool = 0 as i32 != 0;
     if !init {
-        init = 1 as libc::c_int != 0;
+        init = 1 as i32 != 0;
         frequency = SDL_GetPerformanceFrequency() as f64;
     }
     let mut this: *mut Timer = MemAlloc(

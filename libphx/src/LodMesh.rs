@@ -26,7 +26,7 @@ pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
     let mut this: *mut LodMesh = MemAlloc(
         ::core::mem::size_of::<LodMesh>() as usize,
     ) as *mut LodMesh;
-    (*this)._refCount = 1 as libc::c_int as u32;
+    (*this)._refCount = 1 as i32 as u32;
     (*this).head = 0 as *mut LodMeshEntry;
     return this;
 }
@@ -39,7 +39,7 @@ pub unsafe extern "C" fn LodMesh_Free(mut this: *mut LodMesh) {
     if !this.is_null()
         && {
             (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-            (*this)._refCount <= 0 as libc::c_int as libc::c_uint
+            (*this)._refCount <= 0 as i32 as u32
         }
     {
         let mut e: *mut LodMeshEntry = (*this).head;

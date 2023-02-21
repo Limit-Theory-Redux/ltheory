@@ -10,10 +10,10 @@ extern "C" {
     fn Mesh_Create() -> *mut Mesh;
     fn Mesh_AddQuad(
         _: *mut Mesh,
-        _: libc::c_int,
-        _: libc::c_int,
-        _: libc::c_int,
-        _: libc::c_int,
+        _: i32,
+        _: i32,
+        _: i32,
+        _: i32,
     );
     fn Mesh_AddVertex(
         _: *mut Mesh,
@@ -26,7 +26,7 @@ extern "C" {
         u: f32,
         v: f32,
     );
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> libc::c_int;
+    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
     fn Tex3D_GetData(_: *mut Tex3D, _: *mut libc::c_void, _: PixelFormat, _: DataFormat);
     fn Tex3D_GetSize(_: *mut Tex3D, out: *mut IVec3);
     fn sqrt(_: f64) -> f64;
@@ -57,9 +57,9 @@ unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Create(
-    mut sx: libc::c_int,
-    mut sy: libc::c_int,
-    mut sz: libc::c_int,
+    mut sx: i32,
+    mut sy: i32,
+    mut sz: i32,
 ) -> *mut SDF {
     let mut this: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>())
         as *mut SDF;
@@ -105,9 +105,9 @@ pub unsafe extern "C" fn SDF_Free(mut this: *mut SDF) {
 pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
     let cells: IVec3 =  IVec3 {
-            x: (*this).size.x - 1 as libc::c_int,
-            y: (*this).size.y - 1 as libc::c_int,
-            z: (*this).size.z - 1 as libc::c_int,
+            x: (*this).size.x - 1 as i32,
+            y: (*this).size.y - 1 as i32,
+            z: (*this).size.z - 1 as i32,
         };
     let cellsF: Vec3 =  Vec3 {
             x: cells.x as f32,
@@ -115,19 +115,19 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
             z: cells.z as f32,
         };
     let stride: IVec3 =  IVec3 {
-            x: 1 as libc::c_int,
+            x: 1 as i32,
             y: (*this).size.x,
             z: (*this).size.x * (*this).size.y,
         };
     let cellStride: IVec3 =  IVec3 {
-            x: 1 as libc::c_int,
+            x: 1 as i32,
             y: cells.x,
             z: cells.x * cells.y,
         };
-    let mut indices: *mut libc::c_int = MemAlloc(
-        (::core::mem::size_of::<libc::c_int>())
+    let mut indices: *mut i32 = MemAlloc(
+        (::core::mem::size_of::<i32>())
             .wrapping_mul((cells.x * cells.y * cells.z) as usize),
-    ) as *mut libc::c_int;
+    ) as *mut i32;
     let vp: [Vec3; 8] = [
         Vec3::new(0.0f32, 0.0f32, 0.0f32),
         Vec3::new(1.0f32, 0.0f32, 0.0f32),
@@ -138,27 +138,27 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
         Vec3::new(0.0f32, 1.0f32, 1.0f32),
         Vec3::new(1.0f32, 1.0f32, 1.0f32),
     ];
-    let edgeTable: [[libc::c_int; 2]; 12] = [
-        [0 as libc::c_int, 1 as libc::c_int],
-        [2 as libc::c_int, 3 as libc::c_int],
-        [4 as libc::c_int, 5 as libc::c_int],
-        [6 as libc::c_int, 7 as libc::c_int],
-        [0 as libc::c_int, 2 as libc::c_int],
-        [1 as libc::c_int, 3 as libc::c_int],
-        [4 as libc::c_int, 6 as libc::c_int],
-        [5 as libc::c_int, 7 as libc::c_int],
-        [0 as libc::c_int, 4 as libc::c_int],
-        [1 as libc::c_int, 5 as libc::c_int],
-        [2 as libc::c_int, 6 as libc::c_int],
-        [3 as libc::c_int, 7 as libc::c_int],
+    let edgeTable: [[i32; 2]; 12] = [
+        [0 as i32, 1 as i32],
+        [2 as i32, 3 as i32],
+        [4 as i32, 5 as i32],
+        [6 as i32, 7 as i32],
+        [0 as i32, 2 as i32],
+        [1 as i32, 3 as i32],
+        [4 as i32, 6 as i32],
+        [5 as i32, 7 as i32],
+        [0 as i32, 4 as i32],
+        [1 as i32, 5 as i32],
+        [2 as i32, 6 as i32],
+        [3 as i32, 7 as i32],
     ];
-    let mut z: libc::c_int = 0 as libc::c_int;
+    let mut z: i32 = 0 as i32;
     while z < cells.z {
         let mut z0: f32 = z as f32 / cells.z as f32;
-        let mut y: libc::c_int = 0 as libc::c_int;
+        let mut y: i32 = 0 as i32;
         while y < cells.y {
             let mut y0: f32 = y as f32 / cells.y as f32;
-            let mut x: libc::c_int = 0 as libc::c_int;
+            let mut x: i32 = 0 as i32;
             while x < cells.x {
                 let mut x0: f32 = x as f32
                     / cells.x as f32;
@@ -179,73 +179,73 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                         .offset(stride.y as isize)
                         .offset(stride.x as isize),
                 ];
-                let mut mask: libc::c_int = 0 as libc::c_int;
+                let mut mask: i32 = 0 as i32;
                 mask
                     |= if (*v[0]).value
                         > 0.0f32
                     {
-                        0x1 as libc::c_int
+                        0x1 as i32
                     } else {
-                        0 as libc::c_int
+                        0 as i32
                     };
                 mask
                     |= if (*v[1]).value
                         > 0.0f32
                     {
-                        0x2 as libc::c_int
+                        0x2 as i32
                     } else {
-                        0 as libc::c_int
+                        0 as i32
                     };
                 mask
                     |= if (*v[2]).value
                         > 0.0f32
                     {
-                        0x4 as libc::c_int
+                        0x4 as i32
                     } else {
-                        0 as libc::c_int
+                        0 as i32
                     };
                 mask
                     |= if (*v[3]).value
                         > 0.0f32
                     {
-                        0x8 as libc::c_int
+                        0x8 as i32
                     } else {
-                        0 as libc::c_int
+                        0 as i32
                     };
                 mask
                     |= if (*v[4]).value
                         > 0.0f32
                     {
-                        0x10 as libc::c_int
+                        0x10 as i32
                     } else {
-                        0 as libc::c_int
+                        0 as i32
                     };
                 mask
                     |= if (*v[5]).value
                         > 0.0f32
                     {
-                        0x20 as libc::c_int
+                        0x20 as i32
                     } else {
-                        0 as libc::c_int
+                        0 as i32
                     };
                 mask
                     |= if (*v[6]).value
                         > 0.0f32
                     {
-                        0x40 as libc::c_int
+                        0x40 as i32
                     } else {
-                        0 as libc::c_int
+                        0 as i32
                     };
                 mask
                     |= if (*v[7]).value
                         > 0.0f32
                     {
-                        0x80 as libc::c_int
+                        0x80 as i32
                     } else {
-                        0 as libc::c_int
+                        0 as i32
                     };
-                if mask == 0 as libc::c_int || mask == 0xff as libc::c_int {
-                    *indices.offset(cellIndex as isize) = -(1 as libc::c_int);
+                if mask == 0 as i32 || mask == 0xff as i32 {
+                    *indices.offset(cellIndex as isize) = -(1 as i32);
                 } else {
                     let mut tw: f32 = 0.0f32;
                     let mut offset: Vec3 =  Vec3 {
@@ -258,18 +258,18 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                             y: 0.0f32,
                             z: 0.0f32,
                         };
-                    let mut i: libc::c_int = 0 as libc::c_int;
-                    while i < 12 as libc::c_int {
-                        let mut i0: libc::c_int = edgeTable[i
+                    let mut i: i32 = 0 as i32;
+                    while i < 12 as i32 {
+                        let mut i0: i32 = edgeTable[i
                             as usize][0];
-                        let mut i1: libc::c_int = edgeTable[i
+                        let mut i1: i32 = edgeTable[i
                             as usize][1];
                         let mut v0: *const Cell = v[i0 as usize];
                         let mut v1: *const Cell = v[i1 as usize];
                         if !(((*v0).value > 0.0f32)
-                            as libc::c_int
+                            as i32
                             == ((*v1).value > 0.0f32)
-                                as libc::c_int)
+                                as i32)
                         {
                             let mut t: f32 = Saturate(
                                 ((*v0).value / ((*v0).value - (*v1).value))
@@ -297,33 +297,33 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                         1.0f32,
                         0.0f32,
                     );
-                    let mut i_0: libc::c_int = 0 as libc::c_int;
-                    while i_0 < 3 as libc::c_int {
-                        let mut j: libc::c_int = (i_0 + 1 as libc::c_int)
-                            % 3 as libc::c_int;
-                        let mut k: libc::c_int = (i_0 + 2 as libc::c_int)
-                            % 3 as libc::c_int;
-                        if !(*(&mut cell.x as *mut libc::c_int).offset(j as isize)
-                            == 0 as libc::c_int
-                            || *(&mut cell.x as *mut libc::c_int).offset(k as isize)
-                                == 0 as libc::c_int)
+                    let mut i_0: i32 = 0 as i32;
+                    while i_0 < 3 as i32 {
+                        let mut j: i32 = (i_0 + 1 as i32)
+                            % 3 as i32;
+                        let mut k: i32 = (i_0 + 2 as i32)
+                            % 3 as i32;
+                        if !(*(&mut cell.x as *mut i32).offset(j as isize)
+                            == 0 as i32
+                            || *(&mut cell.x as *mut i32).offset(k as isize)
+                                == 0 as i32)
                         {
-                            let mut du: libc::c_int = *(&cellStride.x
-                                as *const libc::c_int)
+                            let mut du: i32 = *(&cellStride.x
+                                as *const i32)
                                 .offset(j as isize);
-                            let mut dv: libc::c_int = *(&cellStride.x
-                                as *const libc::c_int)
+                            let mut dv: i32 = *(&cellStride.x
+                                as *const i32)
                                 .offset(k as isize);
-                            let mut i0_0: libc::c_int = *indices
+                            let mut i0_0: i32 = *indices
                                 .offset(cellIndex as isize);
-                            let mut i1_0: libc::c_int = *indices
+                            let mut i1_0: i32 = *indices
                                 .offset((cellIndex - du) as isize);
-                            let mut i2: libc::c_int = *indices
+                            let mut i2: i32 = *indices
                                 .offset((cellIndex - du - dv) as isize);
-                            let mut i3: libc::c_int = *indices
+                            let mut i3: i32 = *indices
                                 .offset((cellIndex - dv) as isize);
-                            if !(i1_0 < 0 as libc::c_int || i2 < 0 as libc::c_int
-                                || i3 < 0 as libc::c_int)
+                            if !(i1_0 < 0 as i32 || i2 < 0 as i32
+                                || i3 < 0 as i32)
                             {
                                 if (*v[0]).value
                                     > 0.0f32
@@ -351,7 +351,7 @@ pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
     let mut size: u64 = ((*this).size.x * (*this).size.y * (*this).size.z)
         as u64;
     let mut pCell: *mut Cell = (*this).data;
-    let mut i: u64 = 0 as libc::c_int as u64;
+    let mut i: u64 = 0 as i32 as u64;
     while i < size {
         let fresh0 = pCell;
         pCell = pCell.offset(1);
@@ -362,16 +362,16 @@ pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn SDF_ComputeNormals(mut this: *mut SDF) {
     let stride: IVec3 =  IVec3 {
-            x: 1 as libc::c_int,
+            x: 1 as i32,
             y: (*this).size.x,
             z: (*this).size.x * (*this).size.y,
         };
-    let mut z: libc::c_int = 1 as libc::c_int;
-    while z < (*this).size.z - 1 as libc::c_int {
-        let mut y: libc::c_int = 1 as libc::c_int;
-        while y < (*this).size.y - 1 as libc::c_int {
-            let mut x: libc::c_int = 1 as libc::c_int;
-            while x < (*this).size.x - 1 as libc::c_int {
+    let mut z: i32 = 1 as i32;
+    while z < (*this).size.z - 1 as i32 {
+        let mut y: i32 = 1 as i32;
+        while y < (*this).size.y - 1 as i32 {
+            let mut x: i32 = 1 as i32;
+            while x < (*this).size.x - 1 as i32 {
                 let mut cell: *mut Cell = ((*this).data)
                     .offset((x * stride.x) as isize)
                     .offset((y * stride.y) as isize)
@@ -397,9 +397,9 @@ pub unsafe extern "C" fn SDF_ComputeNormals(mut this: *mut SDF) {
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Set(
     mut this: *mut SDF,
-    mut x: libc::c_int,
-    mut y: libc::c_int,
-    mut z: libc::c_int,
+    mut x: i32,
+    mut y: i32,
+    mut z: i32,
     mut value: f32,
 ) {
     (*((*this).data)
@@ -409,9 +409,9 @@ pub unsafe extern "C" fn SDF_Set(
 #[no_mangle]
 pub unsafe extern "C" fn SDF_SetNormal(
     mut this: *mut SDF,
-    mut x: libc::c_int,
-    mut y: libc::c_int,
-    mut z: libc::c_int,
+    mut x: i32,
+    mut y: i32,
+    mut z: i32,
     mut normal: *const Vec3,
 ) {
     (*((*this).data)

@@ -5,7 +5,7 @@ extern "C" {
 }
 pub type cstr = *const libc::c_char;
 pub type Metric = i32;
-static mut valueCurr: [i32; 8] = [0 as libc::c_int, 0, 0, 0, 0, 0, 0, 0];
+static mut valueCurr: [i32; 8] = [0 as i32, 0, 0, 0, 0, 0, 0, 0];
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Get(mut this: Metric) -> i32 {
     return valueCurr[this as usize];
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn Metric_AddDraw(
     mut tris: i32,
     mut verts: i32,
 ) {
-    valueCurr[0x1] += 1 as libc::c_int;
+    valueCurr[0x1] += 1 as i32;
     valueCurr[0x3] += polys;
     valueCurr[0x4] += tris;
     valueCurr[0x5] += verts;
@@ -41,14 +41,14 @@ pub unsafe extern "C" fn Metric_AddDrawImm(
     mut tris: i32,
     mut verts: i32,
 ) {
-    valueCurr[0x2] += 1 as libc::c_int;
+    valueCurr[0x2] += 1 as i32;
     valueCurr[0x3] += polys;
     valueCurr[0x4] += tris;
     valueCurr[0x5] += verts;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Inc(mut this: Metric) {
-    valueCurr[this as usize] += 1 as libc::c_int;
+    valueCurr[this as usize] += 1 as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Mod(mut this: Metric, mut delta: i32) {

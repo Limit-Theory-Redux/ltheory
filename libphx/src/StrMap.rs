@@ -2,11 +2,11 @@ use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: u64) -> u64;
+    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
+    fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64;
     fn Fatal(_: cstr, _: ...);
-    fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
-    fn puts(_: *const libc::c_char) -> libc::c_int;
+    fn printf(_: *const libc::c_char, _: ...) -> i32;
+    fn puts(_: *const libc::c_char) -> i32;
 }
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
@@ -38,8 +38,8 @@ pub struct StrMapIter {
 unsafe extern "C" fn Hash(mut key: cstr) -> u64 {
     return Hash_XX64(
         key as *const libc::c_void,
-        StrLen(key) as libc::c_int,
-        0 as libc::c_ulonglong,
+        StrLen(key) as i32,
+        0 as u64,
     );
 }
 #[inline]
@@ -49,14 +49,14 @@ unsafe extern "C" fn StrMap_GetBucket(
 ) -> *mut Node {
     return ((*this).data)
         .offset(
-            (Hash(key)).wrapping_rem((*this).capacity as libc::c_ulonglong) as isize,
+            (Hash(key)).wrapping_rem((*this).capacity as u64) as isize,
         );
 }
 unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
     let mut newMap: StrMap =  StrMap {
             capacity: ((*this).capacity)
-                .wrapping_mul(2 as libc::c_int as libc::c_uint),
-            size: 0 as libc::c_int as u32,
+                .wrapping_mul(2 as i32 as u32),
+            size: 0 as i32 as u32,
             data: 0 as *mut Node,
         };
     newMap
@@ -64,7 +64,7 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
         (::core::mem::size_of::<Node>())
             .wrapping_mul(newMap.capacity as usize),
     ) as *mut Node;
-    let mut i: u32 = 0 as libc::c_int as u32;
+    let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
 }
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Free(mut this: *mut StrMap) {
-    let mut i: u32 = 0 as libc::c_int as u32;
+    let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -122,7 +122,7 @@ pub unsafe extern "C" fn StrMap_FreeEx(
     mut this: *mut StrMap,
     mut freeFn: Option::<unsafe extern "C" fn(cstr, *mut libc::c_void) -> ()>,
 ) {
-    let mut i: u32 = 0 as libc::c_int as u32;
+    let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -201,8 +201,8 @@ pub unsafe extern "C" fn StrMap_Set(
     mut value: *mut libc::c_void,
 ) {
     (*this).size = ((*this).size).wrapping_add(1);
-    if (3 as libc::c_int as libc::c_uint).wrapping_mul((*this).capacity)
-        < (4 as libc::c_int as libc::c_uint).wrapping_mul((*this).size)
+    if (3 as i32 as u32).wrapping_mul((*this).capacity)
+        < (4 as i32 as u32).wrapping_mul((*this).size)
     {
         StrMap_Grow(this);
     }
@@ -241,7 +241,7 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
             as f64,
     );
     puts(b"\0" as *const u8 as *const libc::c_char);
-    let mut i: u32 = 0 as libc::c_int as u32;
+    let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -265,9 +265,9 @@ pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIte
         ::core::mem::size_of::<StrMapIter>() as usize,
     ) as *mut StrMapIter;
     (*it).map = this;
-    (*it).slot = 0 as libc::c_int as u32;
+    (*it).slot = 0 as i32 as u32;
     (*it).node = 0 as *mut Node;
-    let mut i: u32 = 0 as libc::c_int as u32;
+    let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if ((*node).key).is_null() {

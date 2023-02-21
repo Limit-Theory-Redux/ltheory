@@ -29,16 +29,16 @@ extern "C" {
     fn Button_FromSDLControllerButton(_: SDL_GameControllerButton) -> Button;
     fn Button_ToSDLControllerAxis(_: Button) -> SDL_GameControllerAxis;
     fn Button_FromSDLControllerAxis(_: SDL_GameControllerAxis) -> Button;
-    fn SDL_WarpMouseInWindow(window: *mut SDL_Window, x: libc::c_int, y: libc::c_int);
-    fn SDL_CaptureMouse(enabled: SDL_bool) -> libc::c_int;
-    fn SDL_ShowCursor(toggle: libc::c_int) -> libc::c_int;
+    fn SDL_WarpMouseInWindow(window: *mut SDL_Window, x: i32, y: i32);
+    fn SDL_CaptureMouse(enabled: SDL_bool) -> i32;
+    fn SDL_ShowCursor(toggle: i32) -> i32;
     fn SDL_JoystickInstanceID(joystick: *mut SDL_Joystick) -> SDL_JoystickID;
     fn SDL_GameControllerAddMappingsFromRW(
         rw: *mut SDL_RWops,
-        freerw: libc::c_int,
-    ) -> libc::c_int;
-    fn SDL_IsGameController(joystick_index: libc::c_int) -> SDL_bool;
-    fn SDL_GameControllerOpen(joystick_index: libc::c_int) -> *mut SDL_GameController;
+        freerw: i32,
+    ) -> i32;
+    fn SDL_IsGameController(joystick_index: i32) -> SDL_bool;
+    fn SDL_GameControllerOpen(joystick_index: i32) -> *mut SDL_GameController;
     fn SDL_GameControllerFromInstanceID(
         joyid: SDL_JoystickID,
     ) -> *mut SDL_GameController;
@@ -54,7 +54,7 @@ extern "C" {
         button: SDL_GameControllerButton,
     ) -> u8;
     fn SDL_GameControllerClose(gamecontroller: *mut SDL_GameController);
-    fn SDL_PollEvent(event: *mut SDL_Event) -> libc::c_int;
+    fn SDL_PollEvent(event: *mut SDL_Event) -> i32;
     fn SDL_SetHint(name: *const libc::c_char, value: *const libc::c_char) -> SDL_bool;
     fn SDL_GetTicks() -> u32;
     fn Button_ToDeviceType(_: Button) -> DeviceType;
@@ -65,7 +65,7 @@ extern "C" {
     fn Profiler_End();
     fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
 }
-pub type __i64_t = libc::c_longlong;
+pub type __i64_t = i64;
 pub type __darwin_off_t = __i64_t;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
@@ -94,48 +94,48 @@ pub type fpos_t = __darwin_off_t;
 #[repr(C)]
 pub struct __sbuf {
     pub _base: *mut libc::c_uchar,
-    pub _size: libc::c_int,
+    pub _size: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct __sFILE {
     pub _p: *mut libc::c_uchar,
-    pub _r: libc::c_int,
-    pub _w: libc::c_int,
-    pub _flags: libc::c_short,
-    pub _file: libc::c_short,
+    pub _r: i32,
+    pub _w: i32,
+    pub _flags: i16,
+    pub _file: i16,
     pub _bf: __sbuf,
-    pub _lbfsize: libc::c_int,
+    pub _lbfsize: i32,
     pub _cookie: *mut libc::c_void,
-    pub _close: Option::<unsafe extern "C" fn(*mut libc::c_void) -> libc::c_int>,
+    pub _close: Option::<unsafe extern "C" fn(*mut libc::c_void) -> i32>,
     pub _read: Option::<
         unsafe extern "C" fn(
             *mut libc::c_void,
             *mut libc::c_char,
-            libc::c_int,
-        ) -> libc::c_int,
+            i32,
+        ) -> i32,
     >,
     pub _seek: Option::<
-        unsafe extern "C" fn(*mut libc::c_void, fpos_t, libc::c_int) -> fpos_t,
+        unsafe extern "C" fn(*mut libc::c_void, fpos_t, i32) -> fpos_t,
     >,
     pub _write: Option::<
         unsafe extern "C" fn(
             *mut libc::c_void,
             *const libc::c_char,
-            libc::c_int,
-        ) -> libc::c_int,
+            i32,
+        ) -> i32,
     >,
     pub _ub: __sbuf,
     pub _extra: *mut __sFILEX,
-    pub _ur: libc::c_int,
+    pub _ur: i32,
     pub _ubuf: [libc::c_uchar; 3],
     pub _nbuf: [libc::c_uchar; 1],
     pub _lb: __sbuf,
-    pub _blksize: libc::c_int,
+    pub _blksize: i32,
     pub _offset: fpos_t,
 }
 pub type FILE = __sFILE;
-pub type SDL_bool = libc::c_uint;
+pub type SDL_bool = u32;
 pub const SDL_TRUE: SDL_bool = 1;
 pub const SDL_FALSE: SDL_bool = 0;
 
@@ -144,20 +144,20 @@ pub const SDL_FALSE: SDL_bool = 0;
 pub struct SDL_RWops {
     pub size: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> i64>,
     pub seek: Option::<
-        unsafe extern "C" fn(*mut SDL_RWops, i64, libc::c_int) -> i64,
+        unsafe extern "C" fn(*mut SDL_RWops, i64, i32) -> i64,
     >,
     pub read: Option::<
-        unsafe extern "C" fn(*mut SDL_RWops, *mut libc::c_void, libc::size_t, libc::size_t) -> libc::size_t,
+        unsafe extern "C" fn(*mut SDL_RWops, *mut libc::c_void, usize, usize) -> usize,
     >,
     pub write: Option::<
         unsafe extern "C" fn(
             *mut SDL_RWops,
             *const libc::c_void,
-            libc::size_t,
-            libc::size_t,
-        ) -> libc::size_t,
+            usize,
+            usize,
+        ) -> usize,
     >,
-    pub close: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> libc::c_int>,
+    pub close: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> i32>,
     pub type_0: u32,
     pub hidden: C2RustUnnamed,
 }
@@ -187,7 +187,7 @@ pub struct C2RustUnnamed_2 {
     pub autoclose: SDL_bool,
     pub fp: *mut FILE,
 }
-pub type C2RustUnnamed_3 = libc::c_uint;
+pub type C2RustUnnamed_3 = u32;
 pub const SDL_WINDOWEVENT_DISPLAY_CHANGED: C2RustUnnamed_3 = 18;
 pub const SDL_WINDOWEVENT_ICCPROF_CHANGED: C2RustUnnamed_3 = 17;
 pub const SDL_WINDOWEVENT_HIT_TEST: C2RustUnnamed_3 = 16;
@@ -207,7 +207,7 @@ pub const SDL_WINDOWEVENT_EXPOSED: C2RustUnnamed_3 = 3;
 pub const SDL_WINDOWEVENT_HIDDEN: C2RustUnnamed_3 = 2;
 pub const SDL_WINDOWEVENT_SHOWN: C2RustUnnamed_3 = 1;
 pub const SDL_WINDOWEVENT_NONE: C2RustUnnamed_3 = 0;
-pub type SDL_Scancode = libc::c_uint;
+pub type SDL_Scancode = u32;
 pub const SDL_NUM_SCANCODES: SDL_Scancode = 512;
 pub const SDL_SCANCODE_ENDCALL: SDL_Scancode = 290;
 pub const SDL_SCANCODE_CALL: SDL_Scancode = 289;
@@ -467,7 +467,7 @@ pub struct SDL_Keysym {
 }
 pub type SDL_Joystick = _SDL_Joystick;
 pub type SDL_JoystickID = i32;
-pub type SDL_JoystickPowerLevel = libc::c_int;
+pub type SDL_JoystickPowerLevel = i32;
 pub const SDL_JOYSTICK_POWER_MAX: SDL_JoystickPowerLevel = 5;
 pub const SDL_JOYSTICK_POWER_WIRED: SDL_JoystickPowerLevel = 4;
 pub const SDL_JOYSTICK_POWER_FULL: SDL_JoystickPowerLevel = 3;
@@ -476,7 +476,7 @@ pub const SDL_JOYSTICK_POWER_LOW: SDL_JoystickPowerLevel = 1;
 pub const SDL_JOYSTICK_POWER_EMPTY: SDL_JoystickPowerLevel = 0;
 pub const SDL_JOYSTICK_POWER_UNKNOWN: SDL_JoystickPowerLevel = -1;
 pub type SDL_GameController = _SDL_GameController;
-pub type SDL_GameControllerAxis = libc::c_int;
+pub type SDL_GameControllerAxis = i32;
 pub const SDL_CONTROLLER_AXIS_MAX: SDL_GameControllerAxis = 6;
 pub const SDL_CONTROLLER_AXIS_TRIGGERRIGHT: SDL_GameControllerAxis = 5;
 pub const SDL_CONTROLLER_AXIS_TRIGGERLEFT: SDL_GameControllerAxis = 4;
@@ -485,7 +485,7 @@ pub const SDL_CONTROLLER_AXIS_RIGHTX: SDL_GameControllerAxis = 2;
 pub const SDL_CONTROLLER_AXIS_LEFTY: SDL_GameControllerAxis = 1;
 pub const SDL_CONTROLLER_AXIS_LEFTX: SDL_GameControllerAxis = 0;
 pub const SDL_CONTROLLER_AXIS_INVALID: SDL_GameControllerAxis = -1;
-pub type SDL_GameControllerButton = libc::c_int;
+pub type SDL_GameControllerButton = i32;
 pub const SDL_CONTROLLER_BUTTON_MAX: SDL_GameControllerButton = 21;
 pub const SDL_CONTROLLER_BUTTON_TOUCHPAD: SDL_GameControllerButton = 20;
 pub const SDL_CONTROLLER_BUTTON_PADDLE4: SDL_GameControllerButton = 19;
@@ -512,7 +512,7 @@ pub const SDL_CONTROLLER_BUTTON_INVALID: SDL_GameControllerButton = -1;
 pub type SDL_TouchID = i64;
 pub type SDL_FingerID = i64;
 pub type SDL_GestureID = i64;
-pub type C2RustUnnamed_4 = libc::c_uint;
+pub type C2RustUnnamed_4 = u32;
 pub const SDL_LASTEVENT: C2RustUnnamed_4 = 65535;
 pub const SDL_USEREVENT: C2RustUnnamed_4 = 32768;
 pub const SDL_POLLSENTINEL: C2RustUnnamed_4 = 32512;
@@ -981,7 +981,7 @@ static mut Threshold_Pressed: f32 = 0.5f32;
 static mut Threshold_Released: f32 = 0.4f32;
 static mut this: Input =  Input {
         activeDevice:  Device {
-                type_0: 0 as libc::c_int,
+                type_0: 0 as i32,
                 id: 0,
             },
         lastTimestamp: 0,
@@ -1019,14 +1019,14 @@ unsafe extern "C" fn Input_EnsureDeviceState(mut device: Device) -> *mut DeviceS
                 lastEventTimestamp: 0,
                 isConnected: false,
             };
-        if ((*deviceList).devices_capacity == (*deviceList).devices_size) as libc::c_int
+        if ((*deviceList).devices_capacity == (*deviceList).devices_size) as i32
             as libc::c_long != 0
         {
             (*deviceList)
                 .devices_capacity = if (*deviceList).devices_capacity != 0 {
-                (*deviceList).devices_capacity * 2 as libc::c_int
+                (*deviceList).devices_capacity * 2 as i32
             } else {
-                1 as libc::c_int
+                1 as i32
             };
             let mut elemSize: usize = ::core::mem::size_of::<DeviceState>();
             let mut pData: *mut *mut libc::c_void = &mut (*deviceList).devices_data
@@ -1055,9 +1055,9 @@ unsafe extern "C" fn Input_SetActiveDevice(mut device: Device) {
     if this.autoHideMouse {
         SDL_ShowCursor(
             if device.type_0 == DeviceType_Mouse {
-                1 as libc::c_int
+                1 as i32
             } else {
-                0 as libc::c_int
+                0 as i32
             },
         );
     }
@@ -1072,7 +1072,7 @@ unsafe extern "C" fn Input_GetDeviceExists(mut device: Device) -> bool {
             .offset(device.id as isize);
         return (*deviceState).isConnected;
     }
-    return 0 as libc::c_int != 0;
+    return 0 as i32 != 0;
 }
 #[inline]
 unsafe extern "C" fn Input_GetDevicePressedImpl(
@@ -1080,10 +1080,10 @@ unsafe extern "C" fn Input_GetDevicePressedImpl(
     mut button: Button,
 ) -> bool {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return if (*deviceState).buttons[button as usize] as libc::c_int != 0 {
-        ((*deviceState).transitions[button as usize] > 0 as libc::c_int) as libc::c_int
+    return if (*deviceState).buttons[button as usize] as i32 != 0 {
+        ((*deviceState).transitions[button as usize] > 0 as i32) as i32
     } else {
-        ((*deviceState).transitions[button as usize] > 1 as libc::c_int) as libc::c_int
+        ((*deviceState).transitions[button as usize] > 1 as i32) as i32
     } != 0;
 }
 #[inline]
@@ -1092,8 +1092,8 @@ unsafe extern "C" fn Input_GetDeviceDownImpl(
     mut button: Button,
 ) -> bool {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).buttons[button as usize] as libc::c_int != 0
-        || (*deviceState).transitions[button as usize] > 0 as libc::c_int;
+    return (*deviceState).buttons[button as usize] as i32 != 0
+        || (*deviceState).transitions[button as usize] > 0 as i32;
 }
 #[inline]
 unsafe extern "C" fn Input_GetDeviceReleasedImpl(
@@ -1101,10 +1101,10 @@ unsafe extern "C" fn Input_GetDeviceReleasedImpl(
     mut button: Button,
 ) -> bool {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return if (*deviceState).buttons[button as usize] as libc::c_int != 0 {
-        ((*deviceState).transitions[button as usize] > 1 as libc::c_int) as libc::c_int
+    return if (*deviceState).buttons[button as usize] as i32 != 0 {
+        ((*deviceState).transitions[button as usize] > 1 as i32) as i32
     } else {
-        ((*deviceState).transitions[button as usize] > 0 as libc::c_int) as libc::c_int
+        ((*deviceState).transitions[button as usize] > 0 as i32) as i32
     } != 0;
 }
 #[inline]
@@ -1129,7 +1129,7 @@ unsafe extern "C" fn Input_DetermineButtonState(mut event: InputEvent) -> State 
     if !down && event.value > Threshold_Pressed {
         buttonState |= State_Pressed | State_Down;
     }
-    if down as libc::c_int != 0 && event.value < Threshold_Released {
+    if down as i32 != 0 && event.value < Threshold_Released {
         buttonState |= State_Released;
     }
     return buttonState;
@@ -1142,9 +1142,9 @@ unsafe extern "C" fn Input_AppendEvent(mut event: InputEvent) {
     {
         this
             .events_capacity = if this.events_capacity != 0 {
-            this.events_capacity * 2 as libc::c_int
+            this.events_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut this.events_data
@@ -1162,14 +1162,14 @@ unsafe extern "C" fn Input_AppendEvent(mut event: InputEvent) {
 unsafe extern "C" fn Input_InjectEvent(mut event: InputEvent) {
     this.lastTimestamp = event.timestamp;
     this.lastEventTimestamp = event.timestamp;
-    if (this.injectedEvents_capacity == this.injectedEvents_size) as libc::c_int
+    if (this.injectedEvents_capacity == this.injectedEvents_size) as i32
         as libc::c_long != 0
     {
         this
             .injectedEvents_capacity = if this.injectedEvents_capacity != 0 {
-            this.injectedEvents_capacity * 2 as libc::c_int
+            this.injectedEvents_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut this.injectedEvents_data
@@ -1190,15 +1190,15 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
     let mut down: bool = (*deviceState).buttons[event.button as usize];
     if !down && event.state & State_Pressed == State_Pressed {
         (*deviceState).transitions[event.button as usize] += 1;
-        (*deviceState).buttons[event.button as usize] = 1 as libc::c_int != 0;
-        if (this.downButtons_capacity == this.downButtons_size) as libc::c_int
+        (*deviceState).buttons[event.button as usize] = 1 as i32 != 0;
+        if (this.downButtons_capacity == this.downButtons_size) as i32
             as libc::c_long != 0
         {
             this
                 .downButtons_capacity = if this.downButtons_capacity != 0 {
-                this.downButtons_capacity * 2 as libc::c_int
+                this.downButtons_capacity * 2 as i32
             } else {
-                1 as libc::c_int
+                1 as i32
             };
             let mut elemSize: usize = ::core::mem::size_of::<InputEvent>();
             let mut pData: *mut *mut libc::c_void = &mut this.downButtons_data
@@ -1215,13 +1215,13 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
             Input_SetActiveDevice(event.device);
         }
     }
-    if down as libc::c_int != 0 && event.state & State_Released == State_Released {
+    if down as i32 != 0 && event.state & State_Released == State_Released {
         (*deviceState).transitions[event.button as usize] += 1;
-        (*deviceState).buttons[event.button as usize] = 0 as libc::c_int != 0;
-        let mut i: libc::c_int = this.downButtons_size - 1 as libc::c_int;
-        while i >= 0 as libc::c_int {
+        (*deviceState).buttons[event.button as usize] = 0 as i32 != 0;
+        let mut i: i32 = this.downButtons_size - 1 as i32;
+        while i >= 0 as i32 {
             if (*(this.downButtons_data).offset(i as isize)).button == event.button {
-                if i != this.downButtons_size - 1 as libc::c_int {
+                if i != this.downButtons_size - 1 as i32 {
                     let mut curr: *mut libc::c_void = (this.downButtons_data)
                         .offset(i as isize)
                         .offset(0) as *mut libc::c_void;
@@ -1232,7 +1232,7 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
                     MemMove(
                         curr,
                         next,
-                        ((this.downButtons_size - 1 as libc::c_int - i)
+                        ((this.downButtons_size - 1 as i32 - i)
                             as usize).wrapping_mul(elemSize_0),
                     );
                 }
@@ -1242,14 +1242,14 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
         }
     }
     if Button_IsAutoRelease(event.button) {
-        if (this.autoRelease_capacity == this.autoRelease_size) as libc::c_int
+        if (this.autoRelease_capacity == this.autoRelease_size) as i32
             as libc::c_long != 0
         {
             this
                 .autoRelease_capacity = if this.autoRelease_capacity != 0 {
-                this.autoRelease_capacity * 2 as libc::c_int
+                this.autoRelease_capacity * 2 as i32
             } else {
-                1 as libc::c_int
+                1 as i32
             };
             let mut elemSize_1: usize = ::core::mem::size_of::<InputEvent>();
             let mut pData_0: *mut *mut libc::c_void = &mut this.autoRelease_data
@@ -1270,21 +1270,21 @@ pub unsafe extern "C" fn Input_Init() {
         b"SDL_MOUSE_FOCUS_CLICKTHROUGH\0" as *const u8 as *const libc::c_char,
         b"1\0" as *const u8 as *const libc::c_char,
     );
-    if result as libc::c_uint != SDL_TRUE as libc::c_int as libc::c_uint {
+    if result as u32 != SDL_TRUE as i32 as u32 {
         Warn(b"Input_Init: SDL_SetHint failed\0" as *const u8 as *const libc::c_char);
     }
-    let mut iDev: libc::c_int = 0 as libc::c_int;
-    while iDev < 4 as libc::c_int {
+    let mut iDev: i32 = 0 as i32;
+    while iDev < 4 as i32 {
         let mut device: Device =  Device {
                 type_0: iDev,
-                id: 0 as libc::c_int as u32,
+                id: 0 as i32 as u32,
             };
         let mut deviceState: *mut DeviceState = Input_EnsureDeviceState(device);
         (*deviceState).isConnected = iDev != DeviceType_Gamepad;
         iDev += 1;
     }
-    if (this.events_capacity < 16 as libc::c_int) as libc::c_long != 0 {
-        this.events_capacity = 16 as libc::c_int;
+    if (this.events_capacity < 16 as i32) as libc::c_long != 0 {
+        this.events_capacity = 16 as i32;
         let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut this.events_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
@@ -1293,10 +1293,10 @@ pub unsafe extern "C" fn Input_Init() {
             (this.events_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    if (this.downButtons_capacity < 16 as libc::c_int) as libc::c_long
+    if (this.downButtons_capacity < 16 as i32) as libc::c_long
         != 0
     {
-        this.downButtons_capacity = 16 as libc::c_int;
+        this.downButtons_capacity = 16 as i32;
         let mut elemSize_0: usize = ::core::mem::size_of::<InputEvent>();
         let mut pData_0: *mut *mut libc::c_void = &mut this.downButtons_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
@@ -1305,10 +1305,10 @@ pub unsafe extern "C" fn Input_Init() {
             (this.downButtons_capacity as usize).wrapping_mul(elemSize_0 as usize),
         );
     }
-    if (this.autoRelease_capacity < 16 as libc::c_int) as libc::c_long
+    if (this.autoRelease_capacity < 16 as i32) as libc::c_long
         != 0
     {
-        this.autoRelease_capacity = 16 as libc::c_int;
+        this.autoRelease_capacity = 16 as i32;
         let mut elemSize_1: usize = ::core::mem::size_of::<InputEvent>();
         let mut pData_1: *mut *mut libc::c_void = &mut this.autoRelease_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
@@ -1317,10 +1317,10 @@ pub unsafe extern "C" fn Input_Init() {
             (this.autoRelease_capacity as usize).wrapping_mul(elemSize_1 as usize),
         );
     }
-    if (this.injectedEvents_capacity < 16 as libc::c_int) as libc::c_int
+    if (this.injectedEvents_capacity < 16 as i32) as i32
         as libc::c_long != 0
     {
-        this.injectedEvents_capacity = 16 as libc::c_int;
+        this.injectedEvents_capacity = 16 as i32;
         let mut elemSize_2: usize = ::core::mem::size_of::<InputEvent>();
         let mut pData_2: *mut *mut libc::c_void = &mut this.injectedEvents_data
             as *mut *mut InputEvent as *mut *mut libc::c_void;
@@ -1331,14 +1331,14 @@ pub unsafe extern "C" fn Input_Init() {
     }
     let mut device_0: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     Input_SetActiveDevice(device_0);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_Free() {
-    let mut iDev: libc::c_int = 0 as libc::c_int;
-    while iDev < 4 as libc::c_int {
+    let mut iDev: i32 = 0 as i32;
+    while iDev < 4 as i32 {
         MemFree(this.deviceLists[iDev as usize].devices_data as *const libc::c_void);
         iDev += 1;
     }
@@ -1354,10 +1354,10 @@ pub unsafe extern "C" fn Input_Update() {
             .as_ptr(),
     );
     this.lastTimestamp = SDL_GetTicks();
-    this.lastMousePosition.x = Input_GetValue(Button_Mouse_X) as libc::c_int;
-    this.lastMousePosition.y = Input_GetValue(Button_Mouse_Y) as libc::c_int;
-    let mut iDev: libc::c_int = 0 as libc::c_int;
-    while iDev < 4 as libc::c_int {
+    this.lastMousePosition.x = Input_GetValue(Button_Mouse_X) as i32;
+    this.lastMousePosition.y = Input_GetValue(Button_Mouse_Y) as i32;
+    let mut iDev: i32 = 0 as i32;
+    while iDev < 4 as i32 {
         let mut deviceList: *mut DeviceList = &mut *(this.deviceLists)
             .as_mut_ptr()
             .offset(iDev as isize) as *mut DeviceList;
@@ -1367,14 +1367,14 @@ pub unsafe extern "C" fn Input_Update() {
         while deviceState < __iterend {
             MemSet(
                 ((*deviceState).transitions).as_mut_ptr() as *mut libc::c_void,
-                0 as libc::c_int,
+                0 as i32,
                 ::core::mem::size_of::<[i32; 512]>(),
             );
             deviceState = deviceState.offset(1);
         }
         iDev += 1;
     }
-    this.events_size = 0 as libc::c_int;
+    this.events_size = 0 as i32;
     let mut event: *mut InputEvent = this.injectedEvents_data;
     let mut __iterend_0: *mut InputEvent = (this.injectedEvents_data)
         .offset(this.injectedEvents_size as isize);
@@ -1382,7 +1382,7 @@ pub unsafe extern "C" fn Input_Update() {
         Input_AppendEvent(*event);
         event = event.offset(1);
     }
-    this.injectedEvents_size = 0 as libc::c_int;
+    this.injectedEvents_size = 0 as i32;
     let mut down: *mut InputEvent = this.autoRelease_data;
     let mut __iterend_1: *mut InputEvent = (this.autoRelease_data)
         .offset(this.autoRelease_size as isize);
@@ -1409,7 +1409,7 @@ pub unsafe extern "C" fn Input_Update() {
         down_0 = down_0.offset(1);
     }
     let mut sdl: SDL_Event = SDL_Event { type_0: 0 };
-    while SDL_PollEvent(&mut sdl) != 0 as libc::c_int {
+    while SDL_PollEvent(&mut sdl) != 0 as i32 {
         let mut event_0: InputEvent =  InputEvent {
                 timestamp: 0,
                 device: Device { type_0: 0, id: 0 },
@@ -1425,7 +1425,7 @@ pub unsafe extern "C" fn Input_Update() {
                 }
                 let mut device: Device =  Device {
                         type_0: DeviceType_Keyboard,
-                        id: 0 as libc::c_int as u32,
+                        id: 0 as i32 as u32,
                     };
                 event_0.device = device;
                 event_0.button = Button_FromSDLScancode(sdl.key.keysym.scancode);
@@ -1440,7 +1440,7 @@ pub unsafe extern "C" fn Input_Update() {
             769 => {
                 let mut device_0: Device =  Device {
                         type_0: DeviceType_Keyboard,
-                        id: 0 as libc::c_int as u32,
+                        id: 0 as i32 as u32,
                     };
                 event_0.device = device_0;
                 event_0.button = Button_FromSDLScancode(sdl.key.keysym.scancode);
@@ -1574,8 +1574,8 @@ pub unsafe extern "C" fn Input_Update() {
                 ) as f32;
                 let mut axis: SDL_GameControllerAxis = sdl.caxis.axis
                     as SDL_GameControllerAxis;
-                if axis as libc::c_int == SDL_CONTROLLER_AXIS_LEFTY as libc::c_int
-                    || axis as libc::c_int == SDL_CONTROLLER_AXIS_RIGHTY as libc::c_int
+                if axis as i32 == SDL_CONTROLLER_AXIS_LEFTY as i32
+                    || axis as i32 == SDL_CONTROLLER_AXIS_RIGHTY as i32
                 {
                     value = -value;
                 }
@@ -1587,8 +1587,8 @@ pub unsafe extern "C" fn Input_Update() {
                 Input_AppendEvent(event_0);
             }
             1619 => {
-                if SDL_IsGameController(sdl.cdevice.which) as libc::c_uint
-                    == SDL_TRUE as libc::c_int as libc::c_uint
+                if SDL_IsGameController(sdl.cdevice.which) as u32
+                    == SDL_TRUE as i32 as u32
                 {
                     let mut sdlController: *mut SDL_GameController = SDL_GameControllerOpen(
                         sdl.cdevice.which,
@@ -1611,7 +1611,7 @@ pub unsafe extern "C" fn Input_Update() {
                         let mut deviceState_3: *mut DeviceState = Input_EnsureDeviceState(
                             device_8,
                         );
-                        (*deviceState_3).isConnected = 1 as libc::c_int != 0;
+                        (*deviceState_3).isConnected = 1 as i32 != 0;
                     }
                 }
             }
@@ -1621,7 +1621,7 @@ pub unsafe extern "C" fn Input_Update() {
                         id: sdl.cdevice.which as u32,
                     };
                 let mut deviceState_4: *mut DeviceState = Input_GetDeviceState(device_9);
-                (*deviceState_4).isConnected = 0 as libc::c_int != 0;
+                (*deviceState_4).isConnected = 0 as i32 != 0;
                 let mut sdlController_0: *mut SDL_GameController = SDL_GameControllerFromInstanceID(
                     sdl.cdevice.which,
                 );
@@ -1687,7 +1687,7 @@ pub unsafe extern "C" fn Input_Update() {
             256 => {
                 let mut device_11: Device =  Device {
                         type_0: DeviceType_Null,
-                        id: 0 as libc::c_int as u32,
+                        id: 0 as i32 as u32,
                     };
                 event_0.device = device_11;
                 event_0.button = Button_System_Exit;
@@ -1697,13 +1697,13 @@ pub unsafe extern "C" fn Input_Update() {
                 Input_AppendEvent(event_0);
             }
             512 => {
-                if sdl.window.event as libc::c_int
-                    == SDL_WINDOWEVENT_FOCUS_GAINED as libc::c_int
+                if sdl.window.event as i32
+                    == SDL_WINDOWEVENT_FOCUS_GAINED as i32
                 {
                     SDL_CaptureMouse(SDL_TRUE);
                 }
-                if sdl.window.event as libc::c_int
-                    == SDL_WINDOWEVENT_FOCUS_LOST as libc::c_int
+                if sdl.window.event as i32
+                    == SDL_WINDOWEVENT_FOCUS_LOST as i32
                 {
                     SDL_CaptureMouse(SDL_FALSE);
                     let mut down_1: *mut InputEvent = this.downButtons_data;
@@ -1728,11 +1728,11 @@ pub unsafe extern "C" fn Input_Update() {
 #[no_mangle]
 pub unsafe extern "C" fn Input_LoadGamepadDatabase(mut name: cstr) {
     let mut path: cstr = Resource_GetPath(ResourceType_Other, name);
-    let mut result: libc::c_int = SDL_GameControllerAddMappingsFromRW(
+    let mut result: i32 = SDL_GameControllerAddMappingsFromRW(
         SDL_RWFromFile(path, b"rb\0" as *const u8 as *const libc::c_char),
-        1 as libc::c_int,
+        1 as i32,
     );
-    if result == -(1 as libc::c_int) {
+    if result == -(1 as i32) {
         Fatal(
             b"Input_Init: Failed to add gamepad mappings\0" as *const u8
                 as *const libc::c_char,
@@ -1743,7 +1743,7 @@ pub unsafe extern "C" fn Input_LoadGamepadDatabase(mut name: cstr) {
 pub unsafe extern "C" fn Input_GetPressed(mut button: Button) -> bool {
     let mut device: Device =  Device {
             type_0: Button_ToDeviceType(button),
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     return Input_GetDevicePressedImpl(device, button);
 }
@@ -1751,7 +1751,7 @@ pub unsafe extern "C" fn Input_GetPressed(mut button: Button) -> bool {
 pub unsafe extern "C" fn Input_GetDown(mut button: Button) -> bool {
     let mut device: Device =  Device {
             type_0: Button_ToDeviceType(button),
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     return Input_GetDeviceDownImpl(device, button);
 }
@@ -1759,7 +1759,7 @@ pub unsafe extern "C" fn Input_GetDown(mut button: Button) -> bool {
 pub unsafe extern "C" fn Input_GetReleased(mut button: Button) -> bool {
     let mut device: Device =  Device {
             type_0: Button_ToDeviceType(button),
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     return Input_GetDeviceReleasedImpl(device, button);
 }
@@ -1767,7 +1767,7 @@ pub unsafe extern "C" fn Input_GetReleased(mut button: Button) -> bool {
 pub unsafe extern "C" fn Input_GetValue(mut button: Button) -> f32 {
     let mut device: Device =  Device {
             type_0: Button_ToDeviceType(button),
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     return Input_GetDeviceValueImpl(device, button);
 }
@@ -1798,7 +1798,7 @@ pub unsafe extern "C" fn Input_GetDevicePressed(
     mut button: Button,
 ) -> bool {
     if !Input_GetDeviceExists(*device) {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     return Input_GetDevicePressedImpl(*device, button);
 }
@@ -1808,7 +1808,7 @@ pub unsafe extern "C" fn Input_GetDeviceDown(
     mut button: Button,
 ) -> bool {
     if !Input_GetDeviceExists(*device) {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     return Input_GetDeviceDownImpl(*device, button);
 }
@@ -1818,7 +1818,7 @@ pub unsafe extern "C" fn Input_GetDeviceReleased(
     mut button: Button,
 ) -> bool {
     if !Input_GetDeviceExists(*device) {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     return Input_GetDeviceReleasedImpl(*device, button);
 }
@@ -1844,15 +1844,15 @@ pub unsafe extern "C" fn Input_GetDeviceIdleTime(
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetMouseDelta(mut delta: *mut IVec2) {
     (*delta)
-        .x = Input_GetValue(Button_Mouse_X) as libc::c_int - this.lastMousePosition.x;
+        .x = Input_GetValue(Button_Mouse_X) as i32 - this.lastMousePosition.x;
     (*delta)
-        .y = Input_GetValue(Button_Mouse_Y) as libc::c_int - this.lastMousePosition.y;
+        .y = Input_GetValue(Button_Mouse_Y) as i32 - this.lastMousePosition.y;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetMouseIdleTime() -> f32 {
     let mut device: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     return Input_GetDeviceIdleTimeImpl(device);
 }
@@ -1860,19 +1860,19 @@ pub unsafe extern "C" fn Input_GetMouseIdleTime() -> f32 {
 pub unsafe extern "C" fn Input_GetMousePosition(mut position: *mut IVec2) {
     let mut device: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
-    (*position).x = Input_GetDeviceValueImpl(device, Button_Mouse_X) as libc::c_int;
-    (*position).y = Input_GetDeviceValueImpl(device, Button_Mouse_Y) as libc::c_int;
+    (*position).x = Input_GetDeviceValueImpl(device, Button_Mouse_X) as i32;
+    (*position).y = Input_GetDeviceValueImpl(device, Button_Mouse_Y) as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetMouseScroll(mut scroll: *mut IVec2) {
     let mut device: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
-    (*scroll).x = Input_GetDeviceValueImpl(device, Button_Mouse_ScrollX) as libc::c_int;
-    (*scroll).y = Input_GetDeviceValueImpl(device, Button_Mouse_ScrollY) as libc::c_int;
+    (*scroll).x = Input_GetDeviceValueImpl(device, Button_Mouse_ScrollX) as i32;
+    (*scroll).y = Input_GetDeviceValueImpl(device, Button_Mouse_ScrollY) as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMousePosition(mut position: *mut IVec2) {
@@ -1880,14 +1880,14 @@ pub unsafe extern "C" fn Input_SetMousePosition(mut position: *mut IVec2) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMouseVisible(mut visible: bool) {
-    this.autoHideMouse = 0 as libc::c_int != 0;
+    this.autoHideMouse = 0 as i32 != 0;
     SDL_ShowCursor(
-        if visible as libc::c_int != 0 { 1 as libc::c_int } else { 0 as libc::c_int },
+        if visible as i32 != 0 { 1 as i32 } else { 0 as i32 },
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMouseVisibleAuto() {
-    this.autoHideMouse = 1 as libc::c_int != 0;
+    this.autoHideMouse = 1 as i32 != 0;
     Input_SetActiveDevice(this.activeDevice);
 }
 #[no_mangle]
@@ -1895,7 +1895,7 @@ pub unsafe extern "C" fn Input_SetMouseScroll(mut scroll: *mut IVec2) {
     let mut timestamp: u32 = SDL_GetTicks();
     let mut device: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     let mut event: InputEvent =  InputEvent {
             timestamp: 0,
@@ -1925,22 +1925,22 @@ pub unsafe extern "C" fn Input_SetMouseScroll(mut scroll: *mut IVec2) {
 pub unsafe extern "C" fn Input_GetKeyboardIdleTime() -> f32 {
     let mut device: Device =  Device {
             type_0: DeviceType_Keyboard,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     return Input_GetDeviceIdleTimeImpl(device);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetKeyboardMod(mut modifier: Modifier) -> bool {
-    let mut hasMod: bool = 1 as libc::c_int != 0;
+    let mut hasMod: bool = 1 as i32 != 0;
     if modifier & Modifier_Alt == Modifier_Alt {
-        hasMod = (hasMod as libc::c_int & Input_GetKeyboardAlt() as libc::c_int) != 0;
+        hasMod = (hasMod as i32 & Input_GetKeyboardAlt() as i32) != 0;
     }
     if modifier & Modifier_Ctrl == Modifier_Ctrl {
-        hasMod = (hasMod as libc::c_int & Input_GetKeyboardCtrl() as libc::c_int)
+        hasMod = (hasMod as i32 & Input_GetKeyboardCtrl() as i32)
             != 0;
     }
     if modifier & Modifier_Shift == Modifier_Shift {
-        hasMod = (hasMod as libc::c_int & Input_GetKeyboardShift() as libc::c_int)
+        hasMod = (hasMod as i32 & Input_GetKeyboardShift() as i32)
             != 0;
     }
     return hasMod;
@@ -1949,31 +1949,31 @@ pub unsafe extern "C" fn Input_GetKeyboardMod(mut modifier: Modifier) -> bool {
 pub unsafe extern "C" fn Input_GetKeyboardAlt() -> bool {
     let mut device: Device =  Device {
             type_0: DeviceType_Keyboard,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).buttons[Button_Keyboard_LAlt as usize] as libc::c_int != 0
-        || (*deviceState).buttons[Button_Keyboard_RAlt as usize] as libc::c_int != 0;
+    return (*deviceState).buttons[Button_Keyboard_LAlt as usize] as i32 != 0
+        || (*deviceState).buttons[Button_Keyboard_RAlt as usize] as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetKeyboardCtrl() -> bool {
     let mut device: Device =  Device {
             type_0: DeviceType_Keyboard,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).buttons[Button_Keyboard_LCtrl as usize] as libc::c_int != 0
-        || (*deviceState).buttons[Button_Keyboard_RCtrl as usize] as libc::c_int != 0;
+    return (*deviceState).buttons[Button_Keyboard_LCtrl as usize] as i32 != 0
+        || (*deviceState).buttons[Button_Keyboard_RCtrl as usize] as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetKeyboardShift() -> bool {
     let mut device: Device =  Device {
             type_0: DeviceType_Keyboard,
-            id: 0 as libc::c_int as u32,
+            id: 0 as i32 as u32,
         };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).buttons[Button_Keyboard_LShift as usize] as libc::c_int != 0
-        || (*deviceState).buttons[Button_Keyboard_RShift as usize] as libc::c_int != 0;
+    return (*deviceState).buttons[Button_Keyboard_LShift as usize] as i32 != 0
+        || (*deviceState).buttons[Button_Keyboard_RShift as usize] as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetGamepadIdleTime(mut id: u32) -> f32 {
@@ -1996,7 +1996,7 @@ pub unsafe extern "C" fn Input_GetGamepadPressed(
             id: id,
         };
     if !Input_GetDeviceExists(device) {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     return Input_GetDevicePressedImpl(device, button);
 }
@@ -2010,7 +2010,7 @@ pub unsafe extern "C" fn Input_GetGamepadDown(
             id: id,
         };
     if !Input_GetDeviceExists(device) {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     return Input_GetDeviceDownImpl(device, button);
 }
@@ -2024,7 +2024,7 @@ pub unsafe extern "C" fn Input_GetGamepadReleased(
             id: id,
         };
     if !Input_GetDeviceExists(device) {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     return Input_GetDeviceReleasedImpl(device, button);
 }
@@ -2048,8 +2048,8 @@ pub unsafe extern "C" fn Input_GetEventCount() -> i32 {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool {
-    if this.events_size == 0 as libc::c_int {
-        return 0 as libc::c_int != 0;
+    if this.events_size == 0 as i32 {
+        return 0 as i32 != 0;
     }
     Profiler_Begin(
         (*::core::mem::transmute::<
@@ -2059,7 +2059,7 @@ pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool 
             .as_ptr(),
     );
     *event = *(this.events_data).offset(0);
-    if 0 as libc::c_int != this.events_size - 1 as libc::c_int {
+    if 0 as i32 != this.events_size - 1 as i32 {
         let mut curr: *mut libc::c_void = (this.events_data)
             .offset(0)
             .offset(0) as *mut libc::c_void;
@@ -2070,10 +2070,10 @@ pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool 
         MemMove(
             curr,
             next,
-            ((this.events_size - 1 as libc::c_int - 0 as libc::c_int) as usize).wrapping_mul(elemSize),
+            ((this.events_size - 1 as i32 - 0 as i32) as usize).wrapping_mul(elemSize),
         );
     }
     this.events_size -= 1;
     Profiler_End();
-    return 1 as libc::c_int != 0;
+    return 1 as i32 != 0;
 }

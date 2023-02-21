@@ -23,8 +23,8 @@ extern "C" {
 
 pub type GLdouble = f64;
 pub type GLfloat = f32;
-pub type GLenum = libc::c_uint;
-pub type GLint = libc::c_int;
+pub type GLenum = u32;
+pub type GLint = i32;
 
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
@@ -74,30 +74,30 @@ pub unsafe extern "C" fn GLMatrix_LookAt(
         x.x,
         y.x,
         -z.x,
-        0 as libc::c_int as f64,
+        0 as i32 as f64,
         x.y,
         y.y,
         -z.y,
-        0 as libc::c_int as f64,
+        0 as i32 as f64,
         x.z,
         y.z,
         -z.z,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
-        1 as libc::c_int as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
+        1 as i32 as f64,
     ];
     glMultMatrixd(m.as_mut_ptr());
     glTranslated(-(*eye).x, -(*eye).y, -(*eye).z);
 }
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_ModeP() {
-    glMatrixMode(0x1701 as libc::c_int as GLenum);
+    glMatrixMode(0x1701 as i32 as GLenum);
 }
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_ModeWV() {
-    glMatrixMode(0x1700 as libc::c_int as GLenum);
+    glMatrixMode(0x1700 as i32 as GLenum);
 }
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Mult(mut matrix: *mut Matrix) {
@@ -135,21 +135,21 @@ pub unsafe extern "C" fn GLMatrix_Perspective(
     let mut nf: f64 = -2.0f64 * (z0 * z1) / dz;
     let mut m: [f64; 16] = [
         cot / aspect,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
         cot,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
         -(z0 + z1) / dz,
         -1.0f64,
-        0 as libc::c_int as f64,
-        0 as libc::c_int as f64,
+        0 as i32 as f64,
+        0 as i32 as f64,
         nf,
-        0 as libc::c_int as f64,
+        0 as i32 as f64,
     ];
     glMultMatrixd(m.as_mut_ptr());
 }
@@ -169,13 +169,13 @@ pub unsafe extern "C" fn GLMatrix_PushClear() {
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
     let mut matrixMode: GLint = 0;
-    glGetIntegerv(0xba0 as libc::c_int as GLenum, &mut matrixMode);
+    glGetIntegerv(0xba0 as i32 as GLenum, &mut matrixMode);
     match matrixMode {
         5888 => {
-            matrixMode = 0xba6 as libc::c_int;
+            matrixMode = 0xba6 as i32;
         }
         5889 => {
-            matrixMode = 0xba7 as libc::c_int;
+            matrixMode = 0xba7 as i32;
         }
         6144 | 5890 | _ => return 0 as *mut Matrix,
     }
@@ -187,27 +187,27 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
 pub unsafe extern "C" fn GLMatrix_RotateX(mut angle: f64) {
     glRotated(
         angle,
-        1 as libc::c_int as GLdouble,
-        0 as libc::c_int as GLdouble,
-        0 as libc::c_int as GLdouble,
+        1 as i32 as GLdouble,
+        0 as i32 as GLdouble,
+        0 as i32 as GLdouble,
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_RotateY(mut angle: f64) {
     glRotated(
         angle,
-        0 as libc::c_int as GLdouble,
-        1 as libc::c_int as GLdouble,
-        0 as libc::c_int as GLdouble,
+        0 as i32 as GLdouble,
+        1 as i32 as GLdouble,
+        0 as i32 as GLdouble,
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_RotateZ(mut angle: f64) {
     glRotated(
         angle,
-        0 as libc::c_int as GLdouble,
-        0 as libc::c_int as GLdouble,
-        1 as libc::c_int as GLdouble,
+        0 as i32 as GLdouble,
+        0 as i32 as GLdouble,
+        1 as i32 as GLdouble,
     );
 }
 #[no_mangle]

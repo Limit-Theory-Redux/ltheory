@@ -15,9 +15,9 @@ pub unsafe extern "C" fn DepthTest_Push(mut depthTest: bool) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn DepthTest_PushDisabled() {
-    RenderState_PushDepthTest(0 as libc::c_int != 0);
+    RenderState_PushDepthTest(0 as i32 != 0);
 }
 #[no_mangle]
 pub unsafe extern "C" fn DepthTest_PushEnabled() {
-    RenderState_PushDepthTest(1 as libc::c_int != 0);
+    RenderState_PushDepthTest(1 as i32 != 0);
 }

@@ -118,9 +118,9 @@ pub unsafe extern "C" fn Intersect_RayPlane(
     let mut t: f32 = dist / denom;
     if t >= (*ray).tMin && t <= (*ray).tMax {
         *pHit = (*ray).p + (*ray).dir * t;
-        return 1 as libc::c_int != 0;
+        return 1 as i32 != 0;
     }
-    return 0 as libc::c_int != 0;
+    return 0 as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
@@ -157,11 +157,11 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
                 && C > fuzzyMin && C < fuzzyMax
             {
                 *tHit = t;
-                return 1 as libc::c_int != 0;
+                return 1 as i32 != 0;
             }
         }
     }
-    return 0 as libc::c_int != 0;
+    return 0 as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
@@ -182,30 +182,30 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
         let mut tvec: Vec3 = (*ray).p - *vt.offset(0);
         u = Vec3::dot(tvec, pvec);
         if (u as f64) < 0.0f64 || u > det {
-            return 0 as libc::c_int != 0;
+            return 0 as i32 != 0;
         }
         qvec = Vec3::cross(tvec, edge1);
         v = Vec3::dot((*ray).dir, qvec);
         if (v as f64) < 0.0f64 || u + v > det {
-            return 0 as libc::c_int != 0;
+            return 0 as i32 != 0;
         }
     } else if det < -epsilon {
         let mut tvec_0: Vec3 = (*ray).p - *vt.offset(0);
         u = Vec3::dot(tvec_0, pvec);
         if u as f64 > 0.0f64 || u < det {
-            return 0 as libc::c_int != 0;
+            return 0 as i32 != 0;
         }
         qvec = Vec3::cross(tvec_0, edge1);
         v = Vec3::dot((*ray).dir, qvec);
         if v as f64 > 0.0f64 || u + v < det {
-            return 0 as libc::c_int != 0;
+            return 0 as i32 != 0;
         }
     } else {
-        return 0 as libc::c_int != 0
+        return 0 as i32 != 0
     }
     let mut inv_det: f32 = 1.0f32 / det;
     *tHit = Vec3::dot(edge2, qvec) * inv_det;
-    return 1 as libc::c_int != 0;
+    return 1 as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
     let mut pvec: Vec3 = Vec3::cross((*ray).dir, edge2);
     let mut det: f32 = Vec3::dot(edge1, pvec);
     if Abs(det as f64) < 0.000001f32 as f64 {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     let mut inv_det: f32 = 1.0f32 / det;
     let mut tvec: Vec3 = (*ray).p - *vt.offset(0);
@@ -227,15 +227,15 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
     let mut fuzzyMax: f32 = 1.0f32 + 0.01f32;
     let mut u: f32 = Vec3::dot(tvec, pvec) * inv_det;
     if u < fuzzyMin || u > fuzzyMax {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     let mut qvec: Vec3 = Vec3::cross(tvec, edge1);
     let mut v: f32 = Vec3::dot((*ray).dir, qvec) * inv_det;
     if v < fuzzyMin || u + v > fuzzyMax {
-        return 0 as libc::c_int != 0;
+        return 0 as i32 != 0;
     }
     *tHit = Vec3::dot(edge2, qvec) * inv_det;
-    return 1 as libc::c_int != 0;
+    return 1 as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_LineSegmentPlane(
@@ -276,11 +276,11 @@ pub unsafe extern "C" fn Intersect_RectRectFast(
     mut a: *const Vec4f,
     mut b: *const Vec4f,
 ) -> bool {
-    let mut result: bool = 1 as libc::c_int != 0;
-    result = (result as libc::c_int & ((*a).x < (*b).x + (*b).z) as libc::c_int) != 0;
-    result = (result as libc::c_int & ((*b).x < (*a).x + (*a).z) as libc::c_int) != 0;
-    result = (result as libc::c_int & ((*a).y < (*b).y + (*b).w) as libc::c_int) != 0;
-    result = (result as libc::c_int & ((*b).y < (*a).y + (*a).w) as libc::c_int) != 0;
+    let mut result: bool = 1 as i32 != 0;
+    result = (result as i32 & ((*a).x < (*b).x + (*b).z) as i32) != 0;
+    result = (result as i32 & ((*b).x < (*a).x + (*a).z) as i32) != 0;
+    result = (result as i32 & ((*a).y < (*b).y + (*b).w) as i32) != 0;
+    result = (result as i32 & ((*b).y < (*a).y + (*a).w) as i32) != 0;
     return result;
 }
 #[inline]
@@ -345,7 +345,7 @@ pub unsafe extern "C" fn Intersect_SphereTriangle(
     let mut distSq: f32 = (*sphere).p.distance_squared(pClosest);
     if distSq < (*sphere).r * (*sphere).r {
         *pHit = pClosest;
-        return 1 as libc::c_int != 0;
+        return 1 as i32 != 0;
     }
-    return 0 as libc::c_int != 0;
+    return 0 as i32 != 0;
 }

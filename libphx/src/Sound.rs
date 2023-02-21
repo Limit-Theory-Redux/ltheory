@@ -62,7 +62,7 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_Channel_SetPosition(
         channel: *mut FMOD_CHANNEL,
-        position: libc::c_uint,
+        position: u32,
         postype: FMOD_TIMEUNIT,
     ) -> FMOD_RESULT;
     fn floor(_: f64) -> f64;
@@ -100,8 +100,8 @@ pub struct SoundDesc {
     pub name: cstr,
     pub path: cstr,
 }
-pub type FMOD_BOOL = libc::c_int;
-pub type FMOD_RESULT = libc::c_uint;
+pub type FMOD_BOOL = i32;
+pub type FMOD_RESULT = u32;
 pub const FMOD_RESULT_FORCEINT: FMOD_RESULT = 65536;
 pub const FMOD_ERR_TOOMANYSAMPLES: FMOD_RESULT = 81;
 pub const FMOD_ERR_RECORD_DISCONNECTED: FMOD_RESULT = 80;
@@ -185,14 +185,14 @@ pub const FMOD_ERR_CHANNEL_STOLEN: FMOD_RESULT = 3;
 pub const FMOD_ERR_CHANNEL_ALLOC: FMOD_RESULT = 2;
 pub const FMOD_ERR_BADCOMMAND: FMOD_RESULT = 1;
 pub const FMOD_OK: FMOD_RESULT = 0;
-pub type FMOD_TIMEUNIT = libc::c_uint;
-pub type FMOD_MODE = libc::c_uint;
-pub type FMOD_CHANNELCONTROL_TYPE = libc::c_uint;
+pub type FMOD_TIMEUNIT = u32;
+pub type FMOD_MODE = u32;
+pub type FMOD_CHANNELCONTROL_TYPE = u32;
 pub const FMOD_CHANNELCONTROL_FORCEINT: FMOD_CHANNELCONTROL_TYPE = 65536;
 pub const FMOD_CHANNELCONTROL_MAX: FMOD_CHANNELCONTROL_TYPE = 2;
 pub const FMOD_CHANNELCONTROL_CHANNELGROUP: FMOD_CHANNELCONTROL_TYPE = 1;
 pub const FMOD_CHANNELCONTROL_CHANNEL: FMOD_CHANNELCONTROL_TYPE = 0;
-pub type FMOD_CHANNELCONTROL_CALLBACK_TYPE = libc::c_uint;
+pub type FMOD_CHANNELCONTROL_CALLBACK_TYPE = u32;
 pub const FMOD_CHANNELCONTROL_CALLBACK_FORCEINT: FMOD_CHANNELCONTROL_CALLBACK_TYPE = 65536;
 pub const FMOD_CHANNELCONTROL_CALLBACK_MAX: FMOD_CHANNELCONTROL_CALLBACK_TYPE = 4;
 pub const FMOD_CHANNELCONTROL_CALLBACK_OCCLUSION: FMOD_CHANNELCONTROL_CALLBACK_TYPE = 3;
@@ -219,10 +219,10 @@ pub struct FMOD_VECTOR {
 unsafe extern "C" fn FMOD_CheckError(
     mut result: FMOD_RESULT,
     mut file: cstr,
-    mut line: libc::c_int,
+    mut line: i32,
     mut func: cstr,
 ) {
-    if result as libc::c_uint != FMOD_OK as libc::c_int as libc::c_uint {
+    if result as u32 != FMOD_OK as i32 as u32 {
         Fatal(
             b"%s: %s\n%s\n  [%s @ Line %d]\0" as *const u8 as *const libc::c_char,
             func,
@@ -235,7 +235,7 @@ unsafe extern "C" fn FMOD_CheckError(
 }
 #[inline]
 unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> cstr {
-    match this as libc::c_uint {
+    match this as u32 {
         0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
         1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
         2 => return b"FMOD_ERR_CHANNEL_ALLOC\0" as *const u8 as *const libc::c_char,
@@ -343,7 +343,7 @@ unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> cstr {
     return b"Unknown Error\0" as *const u8 as *const libc::c_char;
 }
 unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
-    match errcode as libc::c_uint {
+    match errcode as u32 {
         0 => return b"No errors.\0" as *const u8 as *const libc::c_char,
         1 => {
             return b"Tried to call a function on a data type that does not allow this type of functionality (ie calling Sound::lock on a streaming sound).\0"
@@ -677,8 +677,8 @@ unsafe extern "C" fn Sound_Callback(
     mut a: *mut libc::c_void,
     mut b: *mut libc::c_void,
 ) -> FMOD_RESULT {
-    if callbackType as libc::c_uint
-        == FMOD_CHANNELCONTROL_CALLBACK_END as libc::c_int as libc::c_uint
+    if callbackType as u32
+        == FMOD_CHANNELCONTROL_CALLBACK_END as i32 as u32
     {
         let mut this: *mut Sound = 0 as *mut Sound;
         FMOD_CheckError(
@@ -688,32 +688,32 @@ unsafe extern "C" fn Sound_Callback(
             ),
             b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
                 as *const libc::c_char,
-            23 as libc::c_int,
+            23 as i32,
             (*::core::mem::transmute::<
                 &[u8; 15],
                 &[libc::c_char; 15],
             >(b"Sound_Callback\0"))
                 .as_ptr(),
         );
-        Sound_SetState(this, 4 as libc::c_int as SoundState);
+        Sound_SetState(this, 4 as i32 as SoundState);
     }
     return FMOD_OK;
 }
 #[inline]
 unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: cstr) {
-    if (*this).state as libc::c_int == 1 as libc::c_int {
+    if (*this).state as i32 == 1 as i32 {
         SoundDesc_FinishLoad((*this).desc, func);
         // FMOD_CheckError(
         //     FMOD_System_PlaySound(
         //         Audio_GetHandle() as *mut FMOD_SYSTEM,
         //         (*(*this).desc).handle,
         //         0 as *mut FMOD_CHANNELGROUP,
-        //         1 as libc::c_int,
+        //         1 as i32,
         //         &mut (*this).handle,
         //     ),
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
         //         as *const libc::c_char,
-        //     33 as libc::c_int,
+        //     33 as i32,
         //     (*::core::mem::transmute::<
         //         &[u8; 23],
         //         &[libc::c_char; 23],
@@ -724,7 +724,7 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: cstr
         //     FMOD_Channel_SetUserData((*this).handle, this as *mut libc::c_void),
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
         //         as *const libc::c_char,
-        //     34 as libc::c_int,
+        //     34 as i32,
         //     (*::core::mem::transmute::<
         //         &[u8; 23],
         //         &[libc::c_char; 23],
@@ -747,14 +747,14 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: cstr
         //     ),
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
         //         as *const libc::c_char,
-        //     35 as libc::c_int,
+        //     35 as i32,
         //     (*::core::mem::transmute::<
         //         &[u8; 23],
         //         &[libc::c_char; 23],
         //     >(b"Sound_EnsureLoadedImpl\0"))
         //         .as_ptr(),
         // );
-        Sound_SetState(this, 2 as libc::c_int as SoundState);
+        Sound_SetState(this, 2 as i32 as SoundState);
         if Sound_Get3D(this) {
             let mut zero: Vec3 =  Vec3 {
                     x: 0.0f32,
@@ -767,9 +767,9 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: cstr
 }
 #[inline]
 unsafe extern "C" fn Sound_EnsureNotFreedImpl(mut this: *mut Sound, mut func: cstr) {
-    if (*this).state as libc::c_int == 5 as libc::c_int {
+    if (*this).state as i32 == 5 as i32 {
         let mut name: cstr = if (*(*this).desc)._refCount
-            > 0 as libc::c_int as libc::c_uint
+            > 0 as i32 as u32
         {
             (*(*this).desc).name
         } else {
@@ -789,16 +789,16 @@ unsafe extern "C" fn Sound_EnsureStateImpl(mut this: *mut Sound, mut func: cstr)
     Sound_EnsureNotFreedImpl(this, func);
 }
 unsafe extern "C" fn Sound_SetState(mut this: *mut Sound, mut nextState: SoundState) {
-    if nextState as libc::c_int == (*this).state as libc::c_int {
+    if nextState as i32 == (*this).state as i32 {
         return;
     }
-    // match nextState as libc::c_int {
+    // match nextState as i32 {
     //     3 => {
     //         FMOD_CheckError(
-    //             FMOD_Channel_SetPaused((*this).handle, 0 as libc::c_int),
+    //             FMOD_Channel_SetPaused((*this).handle, 0 as i32),
     //             b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //                 as *const libc::c_char,
-    //             71 as libc::c_int,
+    //             71 as i32,
     //             (*::core::mem::transmute::<
     //                 &[u8; 15],
     //                 &[libc::c_char; 15],
@@ -808,10 +808,10 @@ unsafe extern "C" fn Sound_SetState(mut this: *mut Sound, mut nextState: SoundSt
     //     }
     //     2 => {
     //         FMOD_CheckError(
-    //             FMOD_Channel_SetPaused((*this).handle, 1 as libc::c_int),
+    //             FMOD_Channel_SetPaused((*this).handle, 1 as i32),
     //             b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //                 as *const libc::c_char,
-    //             75 as libc::c_int,
+    //             75 as i32,
     //             (*::core::mem::transmute::<
     //                 &[u8; 15],
     //                 &[libc::c_char; 15],
@@ -824,7 +824,7 @@ unsafe extern "C" fn Sound_SetState(mut this: *mut Sound, mut nextState: SoundSt
     //             FMOD_Channel_Stop((*this).handle),
     //             b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //                 as *const libc::c_char,
-    //             79 as libc::c_int,
+    //             79 as i32,
     //             (*::core::mem::transmute::<
     //                 &[u8; 15],
     //                 &[libc::c_char; 15],
@@ -837,14 +837,14 @@ unsafe extern "C" fn Sound_SetState(mut this: *mut Sound, mut nextState: SoundSt
     //         Fatal(
     //             b"Sound_SetState: Unhandled case: %i\0" as *const u8
     //                 as *const libc::c_char,
-    //             nextState as libc::c_int,
+    //             nextState as i32,
     //         );
     //     }
     // }
     // (*this).state = nextState;
     // Audio_SoundStateChanged(this);
-    // if (*this).freeOnFinish as libc::c_int != 0
-    //     && (*this).state as libc::c_int == 4 as libc::c_int
+    // if (*this).freeOnFinish as i32 != 0
+    //     && (*this).state as i32 == 4 as i32
     // {
     //     Sound_Free(this);
     // }
@@ -858,7 +858,7 @@ unsafe extern "C" fn Sound_Create(
     let mut desc: *mut SoundDesc = SoundDesc_Load(name, immediate, isLooped, is3D);
     let mut this: *mut Sound = Audio_AllocSound();
     (*this).desc = desc;
-    Sound_SetState(this, 1 as libc::c_int as SoundState);
+    Sound_SetState(this, 1 as i32 as SoundState);
     return this;
 }
 #[no_mangle]
@@ -869,7 +869,7 @@ pub unsafe extern "C" fn Sound_Load(
 ) -> *mut Sound {
     let mut this: *mut Sound = Sound_Create(
         name,
-        1 as libc::c_int != 0,
+        1 as i32 != 0,
         isLooped,
         is3D,
     );
@@ -888,7 +888,7 @@ pub unsafe extern "C" fn Sound_LoadAsync(
 ) -> *mut Sound {
     let mut this: *mut Sound = Sound_Create(
         name,
-        0 as libc::c_int != 0,
+        0 as i32 != 0,
         isLooped,
         is3D,
     );
@@ -905,8 +905,8 @@ pub unsafe extern "C" fn Sound_Clone(mut this: *mut Sound) -> *mut Sound {
     *clone = *this;
     SoundDesc_Acquire((*this).desc);
     (*clone).handle = 0 as *mut FMOD_CHANNEL;
-    (*clone).state = 0 as libc::c_int as SoundState;
-    Sound_SetState(clone, 1 as libc::c_int as SoundState);
+    (*clone).state = 0 as i32 as SoundState;
+    Sound_SetState(clone, 1 as i32 as SoundState);
     return clone;
 }
 #[no_mangle]
@@ -934,8 +934,8 @@ pub unsafe extern "C" fn Sound_Free(mut this: *mut Sound) {
         (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Free\0"))
             .as_ptr(),
     );
-    Sound_SetState(this, 4 as libc::c_int as SoundState);
-    Sound_SetState(this, 5 as libc::c_int as SoundState);
+    Sound_SetState(this, 4 as i32 as SoundState);
+    Sound_SetState(this, 5 as i32 as SoundState);
     SoundDesc_Free((*this).desc);
 }
 #[no_mangle]
@@ -945,7 +945,7 @@ pub unsafe extern "C" fn Sound_Play(mut this: *mut Sound) {
         (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Play\0"))
             .as_ptr(),
     );
-    Sound_SetState(this, 3 as libc::c_int as SoundState);
+    Sound_SetState(this, 3 as i32 as SoundState);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Pause(mut this: *mut Sound) {
@@ -954,7 +954,7 @@ pub unsafe extern "C" fn Sound_Pause(mut this: *mut Sound) {
         (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Pause\0"))
             .as_ptr(),
     );
-    Sound_SetState(this, 2 as libc::c_int as SoundState);
+    Sound_SetState(this, 2 as i32 as SoundState);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Rewind(mut this: *mut Sound) {
@@ -966,12 +966,12 @@ pub unsafe extern "C" fn Sound_Rewind(mut this: *mut Sound) {
     // FMOD_CheckError(
     //     FMOD_Channel_SetPosition(
     //         (*this).handle,
-    //         0 as libc::c_int as libc::c_uint,
-    //         0x2 as libc::c_int as FMOD_TIMEUNIT,
+    //         0 as i32 as u32,
+    //         0x2 as i32 as FMOD_TIMEUNIT,
     //     ),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     153 as libc::c_int,
+    //     153 as i32,
     //     (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_Rewind\0"))
     //         .as_ptr(),
     // );
@@ -988,12 +988,12 @@ pub unsafe extern "C" fn Sound_Get3D(mut this: *mut Sound) -> bool {
     //     FMOD_Channel_GetMode((*this).handle, &mut mode),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     159 as libc::c_int,
+    //     159 as i32,
     //     (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Get3D\0"))
     //         .as_ptr(),
     // );
-    return mode & 0x10 as libc::c_int as libc::c_uint
-        == 0x10 as libc::c_int as libc::c_uint;
+    return mode & 0x10 as i32 as u32
+        == 0x10 as i32 as u32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_GetDuration(mut this: *mut Sound) -> f32 {
@@ -1019,12 +1019,12 @@ pub unsafe extern "C" fn Sound_GetLooped(mut this: *mut Sound) -> bool {
     //     FMOD_Channel_GetMode((*this).handle, &mut mode),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     171 as libc::c_int,
+    //     171 as i32,
     //     (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_GetLooped\0"))
     //         .as_ptr(),
     // );
-    return mode & 0x2 as libc::c_int as libc::c_uint
-        == 0x2 as libc::c_int as libc::c_uint;
+    return mode & 0x2 as i32 as u32
+        == 0x2 as i32 as u32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_GetName(mut this: *mut Sound) -> cstr {
@@ -1046,11 +1046,11 @@ pub unsafe extern "C" fn Sound_GetPath(mut this: *mut Sound) -> cstr {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_IsFinished(mut this: *mut Sound) -> bool {
-    return (*this).state as libc::c_int == 4 as libc::c_int;
+    return (*this).state as i32 == 4 as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_IsPlaying(mut this: *mut Sound) -> bool {
-    return (*this).state as libc::c_int == 3 as libc::c_int;
+    return (*this).state as i32 == 3 as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Attach3DPos(
@@ -1079,7 +1079,7 @@ pub unsafe extern "C" fn Sound_Set3DLevel(
     //     FMOD_Channel_Set3DLevel((*this).handle, level),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     202 as libc::c_int,
+    //     202 as i32,
     //     (*::core::mem::transmute::<
     //         &[u8; 17],
     //         &[libc::c_char; 17],
@@ -1106,7 +1106,7 @@ pub unsafe extern "C" fn Sound_Set3DPos(
     //     ),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     210 as libc::c_int,
+    //     210 as i32,
     //     (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_Set3DPos\0"))
     //         .as_ptr(),
     // );
@@ -1129,7 +1129,7 @@ pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, mut pan: f32) {
     //     FMOD_Channel_SetPan((*this).handle, pan),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     219 as libc::c_int,
+    //     219 as i32,
     //     (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_SetPan\0"))
     //         .as_ptr(),
     // );
@@ -1148,7 +1148,7 @@ pub unsafe extern "C" fn Sound_SetPitch(
     //     FMOD_Channel_SetPitch((*this).handle, pitch),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     224 as libc::c_int,
+    //     224 as i32,
     //     (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_SetPitch\0"))
     //         .as_ptr(),
     // );
@@ -1166,17 +1166,17 @@ pub unsafe extern "C" fn Sound_SetPlayPos(
         >(b"Sound_SetPlayPos\0"))
             .as_ptr(),
     );
-    let mut ms: libc::c_uint = Round((seconds * 1000.0f32) as f64)
-        as libc::c_uint;
+    let mut ms: u32 = Round((seconds * 1000.0f32) as f64)
+        as u32;
     // FMOD_CheckError(
     //     FMOD_Channel_SetPosition(
     //         (*this).handle,
     //         ms,
-    //         0x1 as libc::c_int as FMOD_TIMEUNIT,
+    //         0x1 as i32 as FMOD_TIMEUNIT,
     //     ),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     232 as libc::c_int,
+    //     232 as i32,
     //     (*::core::mem::transmute::<
     //         &[u8; 17],
     //         &[libc::c_char; 17],
@@ -1198,7 +1198,7 @@ pub unsafe extern "C" fn Sound_SetVolume(
     //     FMOD_Channel_SetVolume((*this).handle, volume),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
     //         as *const libc::c_char,
-    //     237 as libc::c_int,
+    //     237 as i32,
     //     (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_SetVolume\0"))
     //         .as_ptr(),
     // );
@@ -1233,7 +1233,7 @@ pub unsafe extern "C" fn Sound_LoadPlayFree(
     mut is3D: bool,
 ) {
     let mut this: *mut Sound = Sound_Load(name, isLooped, is3D);
-    Sound_SetFreeOnFinish(this, 1 as libc::c_int != 0);
+    Sound_SetFreeOnFinish(this, 1 as i32 != 0);
     Sound_Play(this);
 }
 #[no_mangle]
@@ -1246,7 +1246,7 @@ pub unsafe extern "C" fn Sound_LoadPlayFreeAttached(
 ) {
     let mut this: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_Attach3DPos(this, pos, vel);
-    Sound_SetFreeOnFinish(this, 1 as libc::c_int != 0);
+    Sound_SetFreeOnFinish(this, 1 as i32 != 0);
     Sound_Play(this);
 }
 #[no_mangle]
@@ -1269,7 +1269,7 @@ pub unsafe extern "C" fn Sound_ClonePlayAttached(
 #[no_mangle]
 pub unsafe extern "C" fn Sound_ClonePlayFree(mut this: *mut Sound) {
     let mut clone: *mut Sound = Sound_Clone(this);
-    Sound_SetFreeOnFinish(clone, 1 as libc::c_int != 0);
+    Sound_SetFreeOnFinish(clone, 1 as i32 != 0);
     Sound_Play(clone);
 }
 #[no_mangle]
@@ -1280,12 +1280,12 @@ pub unsafe extern "C" fn Sound_ClonePlayFreeAttached(
 ) {
     let mut clone: *mut Sound = Sound_Clone(this);
     Sound_Attach3DPos(clone, pos, vel);
-    Sound_SetFreeOnFinish(clone, 1 as libc::c_int != 0);
+    Sound_SetFreeOnFinish(clone, 1 as i32 != 0);
     Sound_Play(clone);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Update(mut this: *mut Sound) {
-    if (*this).state as libc::c_int == 1 as libc::c_int {
+    if (*this).state as i32 == 1 as i32 {
         return;
     }
     if Sound_Get3D(this) {
@@ -1294,5 +1294,5 @@ pub unsafe extern "C" fn Sound_Update(mut this: *mut Sound) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Sound_IsFreed(mut this: *mut Sound) -> bool {
-    return (*this).state as libc::c_int == 5 as libc::c_int;
+    return (*this).state as i32 == 5 as i32;
 }

@@ -10,10 +10,10 @@ extern "C" {
         name: *const libc::c_char,
         data: *mut libc::c_void,
     ) -> *mut SDL_Thread;
-    fn SDL_WaitThread(thread: *mut SDL_Thread, status: *mut libc::c_int);
+    fn SDL_WaitThread(thread: *mut SDL_Thread, status: *mut i32);
     fn SDL_DetachThread(thread: *mut SDL_Thread);
 }
-pub type uint = libc::c_uint;
+pub type uint = u32;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -21,9 +21,9 @@ pub struct Thread {
     pub handle: *mut SDL_Thread,
 }
 pub type SDL_ThreadFunction = Option::<
-    unsafe extern "C" fn(*mut libc::c_void) -> libc::c_int,
+    unsafe extern "C" fn(*mut libc::c_void) -> i32,
 >;
-pub type ThreadFn = Option::<unsafe extern "C" fn(*mut libc::c_void) -> libc::c_int>;
+pub type ThreadFn = Option::<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
 
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Create(
@@ -53,8 +53,8 @@ pub unsafe extern "C" fn Thread_Sleep(mut ms: uint) {
     SDL_Delay(ms);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Thread_Wait(mut this: *mut Thread) -> libc::c_int {
-    let mut ret: libc::c_int = 0;
+pub unsafe extern "C" fn Thread_Wait(mut this: *mut Thread) -> i32 {
+    let mut ret: i32 = 0;
     SDL_WaitThread((*this).handle, &mut ret);
     MemFree(this as *const libc::c_void);
     return ret;

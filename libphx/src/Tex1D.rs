@@ -10,7 +10,7 @@ extern "C" {
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
     fn Bytes_Rewind(_: *mut Bytes);
-    fn DataFormat_GetSize(_: DataFormat) -> libc::c_int;
+    fn DataFormat_GetSize(_: DataFormat) -> i32;
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLuint);
     fn glDeleteTextures(n: GLsizei, textures: *const GLuint);
@@ -49,18 +49,18 @@ extern "C" {
     fn glVertex2f(x: GLfloat, y: GLfloat);
     static mut __glewActiveTexture: PFNGLACTIVETEXTUREPROC;
     static mut __glewGenerateMipmap: PFNGLGENERATEMIPMAPPROC;
-    fn PixelFormat_Components(_: PixelFormat) -> libc::c_int;
+    fn PixelFormat_Components(_: PixelFormat) -> i32;
     fn TexFormat_IsColor(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
 }
-pub type uint = libc::c_uint;
+pub type uint = u32;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tex1D {
     pub _refCount: u32,
     pub handle: uint,
-    pub size: libc::c_int,
+    pub size: i32,
     pub format: TexFormat,
 }
 pub type TexFormat = i32;
@@ -68,34 +68,34 @@ pub type DataFormat = i32;
 pub type PixelFormat = i32;
 pub type TexFilter = i32;
 pub type TexWrapMode = i32;
-pub type GLenum = libc::c_uint;
-pub type GLuint = libc::c_uint;
-pub type GLint = libc::c_int;
-pub type GLsizei = libc::c_int;
+pub type GLenum = u32;
+pub type GLuint = u32;
+pub type GLint = i32;
+pub type GLsizei = i32;
 pub type GLfloat = f32;
 pub type PFNGLACTIVETEXTUREPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 pub type PFNGLGENERATEMIPMAPPROC = Option::<unsafe extern "C" fn(GLenum) -> ()>;
 #[inline]
 unsafe extern "C" fn Tex1D_Init() {
     glTexParameteri(
-        0xde0 as libc::c_int as GLenum,
-        0x2800 as libc::c_int as GLenum,
-        0x2600 as libc::c_int,
+        0xde0 as i32 as GLenum,
+        0x2800 as i32 as GLenum,
+        0x2600 as i32,
     );
     glTexParameteri(
-        0xde0 as libc::c_int as GLenum,
-        0x2801 as libc::c_int as GLenum,
-        0x2600 as libc::c_int,
+        0xde0 as i32 as GLenum,
+        0x2801 as i32 as GLenum,
+        0x2600 as i32,
     );
     glTexParameteri(
-        0xde0 as libc::c_int as GLenum,
-        0x2802 as libc::c_int as GLenum,
-        0x812f as libc::c_int,
+        0xde0 as i32 as GLenum,
+        0x2802 as i32 as GLenum,
+        0x812f as i32,
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Create(
-    mut size: libc::c_int,
+    mut size: i32,
     mut format: TexFormat,
 ) -> *mut Tex1D {
     if !TexFormat_IsValid(format) {
@@ -107,29 +107,29 @@ pub unsafe extern "C" fn Tex1D_Create(
     let mut this: *mut Tex1D = MemAlloc(
         ::core::mem::size_of::<Tex1D>() as usize,
     ) as *mut Tex1D;
-    (*this)._refCount = 1 as libc::c_int as u32;
+    (*this)._refCount = 1 as i32 as u32;
     (*this).size = size;
     (*this).format = format;
-    glGenTextures(1 as libc::c_int, &mut (*this).handle);
+    glGenTextures(1 as i32, &mut (*this).handle);
     __glewActiveTexture
-        .expect("non-null function pointer")(0x84c0 as libc::c_int as GLenum);
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
+        .expect("non-null function pointer")(0x84c0 as i32 as GLenum);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glTexImage1D(
-        0xde0 as libc::c_int as GLenum,
-        0 as libc::c_int,
+        0xde0 as i32 as GLenum,
+        0 as i32,
         (*this).format,
         (*this).size,
-        0 as libc::c_int,
-        (if TexFormat_IsColor(format) as libc::c_int != 0 {
-            0x1903 as libc::c_int
+        0 as i32,
+        (if TexFormat_IsColor(format) as i32 != 0 {
+            0x1903 as i32
         } else {
-            0x1902 as libc::c_int
+            0x1902 as i32
         }) as GLenum,
-        0x1401 as libc::c_int as GLenum,
+        0x1401 as i32 as GLenum,
         0 as *const libc::c_void,
     );
     Tex1D_Init();
-    glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+    glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLuint);
     return this;
 }
 #[no_mangle]
@@ -141,10 +141,10 @@ pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
     if !this.is_null()
         && {
             (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-            (*this)._refCount <= 0 as libc::c_int as libc::c_uint
+            (*this)._refCount <= 0 as i32 as u32
         }
     {
-        glDeleteTextures(1 as libc::c_int, &mut (*this).handle);
+        glDeleteTextures(1 as i32, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
 }
@@ -156,24 +156,24 @@ pub unsafe extern "C" fn Tex1D_Draw(
     mut xs: f32,
     mut ys: f32,
 ) {
-    glEnable(0xde0 as libc::c_int as GLenum);
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
-    glBegin(0x7 as libc::c_int as GLenum);
-    glTexCoord1f(0 as libc::c_int as GLfloat);
+    glEnable(0xde0 as i32 as GLenum);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
+    glBegin(0x7 as i32 as GLenum);
+    glTexCoord1f(0 as i32 as GLfloat);
     glVertex2f(x, y);
     glVertex2f(x, y + ys);
-    glTexCoord1f(1 as libc::c_int as GLfloat);
+    glTexCoord1f(1 as i32 as GLfloat);
     glVertex2f(x + xs, y + ys);
     glVertex2f(x + xs, y);
     glEnd();
-    glDisable(0xde0 as libc::c_int as GLenum);
+    glDisable(0xde0 as i32 as GLenum);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GenMipmap(mut this: *mut Tex1D) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     __glewGenerateMipmap
-        .expect("non-null function pointer")(0xde0 as libc::c_int as GLenum);
-    glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+        .expect("non-null function pointer")(0xde0 as i32 as GLenum);
+    glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetFormat(mut this: *mut Tex1D) -> TexFormat {
@@ -186,15 +186,15 @@ pub unsafe extern "C" fn Tex1D_GetData(
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glGetTexImage(
-        0xde0 as libc::c_int as GLenum,
-        0 as libc::c_int,
+        0xde0 as i32 as GLenum,
+        0 as i32,
         pf as GLenum,
         df as GLenum,
         data,
     );
-    glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+    glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetDataBytes(
@@ -202,7 +202,7 @@ pub unsafe extern "C" fn Tex1D_GetDataBytes(
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) -> *mut Bytes {
-    let mut size: libc::c_int = (*this).size * DataFormat_GetSize(df)
+    let mut size: i32 = (*this).size * DataFormat_GetSize(df)
         * PixelFormat_Components(pf);
     let mut data: *mut Bytes = Bytes_Create(size as u32);
     Tex1D_GetData(this, Bytes_GetData(data), pf, df);
@@ -224,18 +224,18 @@ pub unsafe extern "C" fn Tex1D_SetData(
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glTexImage1D(
-        0xde0 as libc::c_int as GLenum,
-        0 as libc::c_int,
+        0xde0 as i32 as GLenum,
+        0 as i32,
         (*this).format,
         (*this).size,
-        0 as libc::c_int,
+        0 as i32,
         pf as GLenum,
         df as GLenum,
         data,
     );
-    glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+    glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetDataBytes(
@@ -251,59 +251,59 @@ pub unsafe extern "C" fn Tex1D_SetMagFilter(
     mut this: *mut Tex1D,
     mut filter: TexFilter,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glTexParameteri(
-        0xde0 as libc::c_int as GLenum,
-        0x2800 as libc::c_int as GLenum,
+        0xde0 as i32 as GLenum,
+        0x2800 as i32 as GLenum,
         filter,
     );
-    glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+    glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetMinFilter(
     mut this: *mut Tex1D,
     mut filter: TexFilter,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glTexParameteri(
-        0xde0 as libc::c_int as GLenum,
-        0x2801 as libc::c_int as GLenum,
+        0xde0 as i32 as GLenum,
+        0x2801 as i32 as GLenum,
         filter,
     );
-    glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+    glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetTexel(
     mut this: *mut Tex1D,
-    mut x: libc::c_int,
+    mut x: i32,
     mut r: f32,
     mut g: f32,
     mut b: f32,
     mut a: f32,
 ) {
     let mut rgba: [f32; 4] = [r, g, b, a];
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glTexSubImage1D(
-        0xde0 as libc::c_int as GLenum,
-        0 as libc::c_int,
+        0xde0 as i32 as GLenum,
+        0 as i32,
         x,
-        1 as libc::c_int,
-        0x1908 as libc::c_int as GLenum,
-        0x1406 as libc::c_int as GLenum,
+        1 as i32,
+        0x1908 as i32 as GLenum,
+        0x1406 as i32 as GLenum,
         rgba.as_mut_ptr() as *const libc::c_void,
     );
-    glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+    glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLuint);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetWrapMode(
     mut this: *mut Tex1D,
     mut mode: TexWrapMode,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
+    glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glTexParameteri(
-        0xde0 as libc::c_int as GLenum,
-        0x2802 as libc::c_int as GLenum,
+        0xde0 as i32 as GLenum,
+        0x2802 as i32 as GLenum,
         mode,
     );
-    glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+    glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLuint);
 }

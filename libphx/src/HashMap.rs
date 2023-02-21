@@ -3,7 +3,7 @@ use glam::Vec3;
 use crate::internal::Memory::*;
 
 extern "C" {
-    fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: u64) -> u64;
+    fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64;
 }
 
 
@@ -28,20 +28,20 @@ pub type ValueForeach = Option::<
 >;
 #[inline]
 unsafe extern "C" fn Hash(mut key: *const libc::c_void, mut len: u32) -> u64 {
-    return Hash_XX64(key, len as libc::c_int, 0 as libc::c_ulonglong);
+    return Hash_XX64(key, len as i32, 0 as u64);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Create(
     mut keySize: u32,
     mut capacity: u32,
 ) -> *mut HashMap {
-    let mut logCapacity: u32 = 0 as libc::c_int as u32;
-    while capacity > 1 as libc::c_int as libc::c_uint {
-        capacity = (capacity as libc::c_uint)
-            .wrapping_div(2 as libc::c_int as libc::c_uint) as u32 as u32;
+    let mut logCapacity: u32 = 0 as i32 as u32;
+    while capacity > 1 as i32 as u32 {
+        capacity = (capacity as u32)
+            .wrapping_div(2 as i32 as u32) as u32;
         logCapacity = logCapacity.wrapping_add(1);
     }
-    capacity = ((1 as libc::c_int) << logCapacity) as u32;
+    capacity = ((1 as i32) << logCapacity) as u32;
     let mut this: *mut HashMap = MemAlloc(
         ::core::mem::size_of::<HashMap>() as usize,
     ) as *mut HashMap;
@@ -50,9 +50,9 @@ pub unsafe extern "C" fn HashMap_Create(
         (::core::mem::size_of::<Node>())
             .wrapping_mul(capacity as usize),
     ) as *mut Node;
-    (*this).size = 0 as libc::c_int as u32;
+    (*this).size = 0 as i32 as u32;
     (*this).capacity = capacity;
-    (*this).mask = (((1 as libc::c_int) << logCapacity) - 1 as libc::c_int) as u32;
+    (*this).mask = (((1 as i32) << logCapacity) - 1 as i32) as u32;
     (*this).keySize = keySize;
     (*this).maxProbe = logCapacity;
     return this;
@@ -68,7 +68,7 @@ pub unsafe extern "C" fn HashMap_Foreach(
     mut fn_0: ValueForeach,
     mut userData: *mut libc::c_void,
 ) {
-    let mut i: u32 = 0 as libc::c_int as u32;
+    let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).elems).offset(i as isize);
         if !((*node).value).is_null() {
@@ -89,11 +89,11 @@ pub unsafe extern "C" fn HashMap_GetRaw(
     mut this: *mut HashMap,
     mut hash: u64,
 ) -> *mut libc::c_void {
-    let mut index: u32 = 0 as libc::c_int as u32;
+    let mut index: u32 = 0 as i32 as u32;
     let mut node: *mut Node = ((*this).elems)
         .offset(
-            (hash.wrapping_add(index as libc::c_ulonglong)
-                & (*this).mask as libc::c_ulonglong) as isize,
+            (hash.wrapping_add(index as u64)
+                & (*this).mask as u64) as isize,
         );
     while !((*node).value).is_null() && index < (*this).maxProbe {
         if (*node).hash == hash {
@@ -102,8 +102,8 @@ pub unsafe extern "C" fn HashMap_GetRaw(
         index = index.wrapping_add(1);
         node = ((*this).elems)
             .offset(
-                (hash.wrapping_add(index as libc::c_ulonglong)
-                    & (*this).mask as libc::c_ulonglong) as isize,
+                (hash.wrapping_add(index as u64)
+                    & (*this).mask as u64) as isize,
             );
     }
     return 0 as *mut libc::c_void;
@@ -111,7 +111,7 @@ pub unsafe extern "C" fn HashMap_GetRaw(
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: u32) {
     let mut other: *mut HashMap = HashMap_Create((*this).keySize, capacity);
-    let mut i: u32 = 0 as libc::c_int as u32;
+    let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).elems).offset(i as isize);
         if !((*node).value).is_null() {
@@ -136,11 +136,11 @@ pub unsafe extern "C" fn HashMap_SetRaw(
     mut hash: u64,
     mut value: *mut libc::c_void,
 ) {
-    let mut index: u32 = 0 as libc::c_int as u32;
+    let mut index: u32 = 0 as i32 as u32;
     let mut node: *mut Node = ((*this).elems)
         .offset(
-            (hash.wrapping_add(index as libc::c_ulonglong)
-                & (*this).mask as libc::c_ulonglong) as isize,
+            (hash.wrapping_add(index as u64)
+                & (*this).mask as u64) as isize,
         );
     while !((*node).value).is_null() && index < (*this).maxProbe {
         if (*node).hash == hash {
@@ -150,14 +150,14 @@ pub unsafe extern "C" fn HashMap_SetRaw(
         index = index.wrapping_add(1);
         node = ((*this).elems)
             .offset(
-                (hash.wrapping_add(index as libc::c_ulonglong)
-                    & (*this).mask as libc::c_ulonglong) as isize,
+                (hash.wrapping_add(index as u64)
+                    & (*this).mask as u64) as isize,
             );
     }
     if index >= (*this).maxProbe {
         HashMap_Resize(
             this,
-            ((*this).capacity).wrapping_mul(2 as libc::c_int as libc::c_uint),
+            ((*this).capacity).wrapping_mul(2 as i32 as u32),
         );
         HashMap_SetRaw(this, hash, value);
     } else {

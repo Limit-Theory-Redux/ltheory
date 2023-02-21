@@ -26,7 +26,7 @@ pub unsafe extern "C" fn TimeStamp_GetElapsed(mut then: TimeStamp) -> f64 {
 #[no_mangle]
 pub unsafe extern "C" fn TimeStamp_GetElapsedMs(mut then: TimeStamp) -> f64 {
     let mut freq: f64 = SDL_GetPerformanceFrequency() as f64;
-    return (1000 as libc::c_ulonglong)
+    return (1000 as u64)
         .wrapping_mul((SDL_GetPerformanceCounter()).wrapping_sub(then)) as f64
         / freq;
 }

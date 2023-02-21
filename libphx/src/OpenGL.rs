@@ -18,38 +18,38 @@ extern "C" {
     fn RenderState_PushAllDefaults();
 }
 pub type cstr = *const libc::c_char;
-pub type GLenum = libc::c_uint;
-pub type GLint = libc::c_int;
+pub type GLenum = u32;
+pub type GLint = i32;
 pub type GLfloat = f32;
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
-    static mut init: bool = 0 as libc::c_int != 0;
+    static mut init: bool = 0 as i32 != 0;
     if !init {
-        init = 1 as libc::c_int != 0;
+        init = 1 as i32 != 0;
         glewInit();
     }
-    glDisable(0x809d as libc::c_int as GLenum);
-    glDisable(0xb44 as libc::c_int as GLenum);
-    glCullFace(0x405 as libc::c_int as GLenum);
-    glPixelStorei(0xd05 as libc::c_int as GLenum, 1 as libc::c_int);
-    glPixelStorei(0xcf5 as libc::c_int as GLenum, 1 as libc::c_int);
-    glDepthFunc(0x203 as libc::c_int as GLenum);
-    glEnable(0xbe2 as libc::c_int as GLenum);
-    glBlendFunc(1 as libc::c_int as GLenum, 0 as libc::c_int as GLenum);
-    glEnable(0x884f as libc::c_int as GLenum);
-    glDisable(0xb10 as libc::c_int as GLenum);
-    glDisable(0xb20 as libc::c_int as GLenum);
-    glHint(0xc51 as libc::c_int as GLenum, 0x1101 as libc::c_int as GLenum);
-    glHint(0xc52 as libc::c_int as GLenum, 0x1101 as libc::c_int as GLenum);
-    glLineWidth(2 as libc::c_int as GLfloat);
-    glMatrixMode(0x1701 as libc::c_int as GLenum);
+    glDisable(0x809d as i32 as GLenum);
+    glDisable(0xb44 as i32 as GLenum);
+    glCullFace(0x405 as i32 as GLenum);
+    glPixelStorei(0xd05 as i32 as GLenum, 1 as i32);
+    glPixelStorei(0xcf5 as i32 as GLenum, 1 as i32);
+    glDepthFunc(0x203 as i32 as GLenum);
+    glEnable(0xbe2 as i32 as GLenum);
+    glBlendFunc(1 as i32 as GLenum, 0 as i32 as GLenum);
+    glEnable(0x884f as i32 as GLenum);
+    glDisable(0xb10 as i32 as GLenum);
+    glDisable(0xb20 as i32 as GLenum);
+    glHint(0xc51 as i32 as GLenum, 0x1101 as i32 as GLenum);
+    glHint(0xc52 as i32 as GLenum, 0x1101 as i32 as GLenum);
+    glLineWidth(2 as i32 as GLfloat);
+    glMatrixMode(0x1701 as i32 as GLenum);
     glLoadIdentity();
-    glMatrixMode(0x1700 as libc::c_int as GLenum);
+    glMatrixMode(0x1700 as i32 as GLenum);
     glLoadIdentity();
     RenderState_PushAllDefaults();
 }
 #[no_mangle]
-pub unsafe extern "C" fn OpenGL_CheckError(mut file: cstr, mut line: libc::c_int) {
+pub unsafe extern "C" fn OpenGL_CheckError(mut file: cstr, mut line: i32) {
     let mut errorID: GLenum = glGetError();
     let mut error: cstr = 0 as cstr;
     match errorID {

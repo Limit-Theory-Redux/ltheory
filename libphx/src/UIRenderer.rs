@@ -145,11 +145,11 @@ static mut this: UIRenderer =  UIRenderer {
         textPool: 0 as *const MemPool as *mut MemPool,
     };
 unsafe extern "C" fn UIRenderer_Init() {
-    static mut init: bool = 0 as libc::c_int != 0;
+    static mut init: bool = 0 as i32 != 0;
     if init {
         return;
     }
-    init = 1 as libc::c_int != 0;
+    init = 1 as i32 != 0;
     this.root = 0 as *mut UIRendererLayer;
     this.layer = 0 as *mut UIRendererLayer;
     this
@@ -186,11 +186,11 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
     let mut vp: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut vp);
     UIRenderer_BeginLayer(
-        0 as libc::c_int as f32,
-        0 as libc::c_int as f32,
+        0 as i32 as f32,
+        0 as i32 as f32,
         vp.x as f32,
         vp.y as f32,
-        1 as libc::c_int != 0,
+        1 as i32 != 0,
     );
     this.root = this.layer;
 }
@@ -294,7 +294,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Draw() {
-    RenderState_PushBlendMode(1 as libc::c_int);
+    RenderState_PushBlendMode(1 as i32);
     UIRenderer_DrawLayer(this.root);
     RenderState_PopBlendMode();
 }

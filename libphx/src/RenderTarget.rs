@@ -20,31 +20,31 @@ extern "C" {
     fn Profiler_End();
     fn Tex2D_GetFormat(_: *mut Tex2D) -> TexFormat;
     fn Tex2D_GetHandle(_: *mut Tex2D) -> uint;
-    fn Tex2D_GetSizeLevel(_: *mut Tex2D, out: *mut IVec2, level: libc::c_int);
+    fn Tex2D_GetSizeLevel(_: *mut Tex2D, out: *mut IVec2, level: i32);
     fn Tex3D_GetHandle(_: *mut Tex3D) -> uint;
-    fn Tex3D_GetSizeLevel(_: *mut Tex3D, out: *mut IVec3, level: libc::c_int);
+    fn Tex3D_GetSizeLevel(_: *mut Tex3D, out: *mut IVec3, level: i32);
     fn TexCube_GetHandle(_: *mut TexCube) -> uint;
     fn TexFormat_IsColor(_: TexFormat) -> bool;
     fn Viewport_Pop();
     fn Viewport_Push(
-        x: libc::c_int,
-        y: libc::c_int,
-        sx: libc::c_int,
-        sy: libc::c_int,
+        x: i32,
+        y: i32,
+        sx: i32,
+        sy: i32,
         isWindow: bool,
     );
 }
-pub type uint = libc::c_uint;
+pub type uint = u32;
 pub type cstr = *const libc::c_char;
 
 
 pub type CubeFace = i32;
 pub type Metric = i32;
 pub type TexFormat = i32;
-pub type GLenum = libc::c_uint;
-pub type GLuint = libc::c_uint;
-pub type GLint = libc::c_int;
-pub type GLsizei = libc::c_int;
+pub type GLenum = u32;
+pub type GLuint = u32;
+pub type GLint = i32;
+pub type GLsizei = i32;
 pub type PFNGLDRAWBUFFERSPROC = Option::<
     unsafe extern "C" fn(GLsizei, *const GLenum) -> (),
 >;
@@ -65,13 +65,13 @@ pub type PFNGLGENFRAMEBUFFERSPROC = Option::<
 #[repr(C)]
 pub struct FBO {
     pub handle: uint,
-    pub colorIndex: libc::c_int,
-    pub sx: libc::c_int,
-    pub sy: libc::c_int,
+    pub colorIndex: i32,
+    pub sx: i32,
+    pub sy: i32,
     pub depth: bool,
 }
 
-static mut fboIndex: libc::c_int = -(1 as libc::c_int);
+static mut fboIndex: i32 = -(1 as i32);
 static mut fboStack: [FBO; 16] = [FBO {
     handle: 0,
     colorIndex: 0,
@@ -84,17 +84,17 @@ unsafe extern "C" fn GetActive() -> *mut FBO {
     return fboStack.as_mut_ptr().offset(fboIndex as isize);
 }
 #[inline]
-unsafe extern "C" fn SetDrawBuffers(mut count: libc::c_int) {
+unsafe extern "C" fn SetDrawBuffers(mut count: i32) {
     static mut bufs: [GLenum; 4] = [
-        0x8ce0 as libc::c_int as GLenum,
-        0x8ce1 as libc::c_int as GLenum,
-        0x8ce2 as libc::c_int as GLenum,
-        0x8ce3 as libc::c_int as GLenum,
+        0x8ce0 as i32 as GLenum,
+        0x8ce1 as i32 as GLenum,
+        0x8ce2 as i32 as GLenum,
+        0x8ce3 as i32 as GLenum,
     ];
     __glewDrawBuffers.expect("non-null function pointer")(count, bufs.as_ptr());
 }
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_Push(mut sx: libc::c_int, mut sy: libc::c_int) {
+pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     Profiler_Begin(
         (*::core::mem::transmute::<
             &[u8; 18],
@@ -102,7 +102,7 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: libc::c_int, mut sy: libc::c_
         >(b"RenderTarget_Push\0"))
             .as_ptr(),
     );
-    if fboIndex + 1 as libc::c_int >= 16 as libc::c_int {
+    if fboIndex + 1 as i32 >= 16 as i32 {
         Fatal(
             b"RenderTarget_Push: Maximum stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -110,19 +110,19 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: libc::c_int, mut sy: libc::c_
     }
     fboIndex += 1;
     let mut this: *mut FBO = GetActive();
-    (*this).handle = 0 as libc::c_int as uint;
-    (*this).colorIndex = 0 as libc::c_int;
+    (*this).handle = 0 as i32 as uint;
+    (*this).colorIndex = 0 as i32;
     (*this).sx = sx;
     (*this).sy = sy;
-    (*this).depth = 0 as libc::c_int != 0;
-    Metric_Inc(0x7 as libc::c_int);
+    (*this).depth = 0 as i32 != 0;
+    Metric_Inc(0x7 as i32);
     __glewGenFramebuffers
-        .expect("non-null function pointer")(1 as libc::c_int, &mut (*this).handle);
+        .expect("non-null function pointer")(1 as i32, &mut (*this).handle);
     __glewBindFramebuffer
         .expect(
             "non-null function pointer",
-        )(0x8d40 as libc::c_int as GLenum, (*this).handle);
-    Viewport_Push(0 as libc::c_int, 0 as libc::c_int, sx, sy, 0 as libc::c_int != 0);
+        )(0x8d40 as i32 as GLenum, (*this).handle);
+    Viewport_Push(0 as i32, 0 as i32, sx, sy, 0 as i32 != 0);
     Profiler_End();
 }
 #[no_mangle]
@@ -134,23 +134,23 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
         >(b"RenderTarget_Pop\0"))
             .as_ptr(),
     );
-    if fboIndex < 0 as libc::c_int {
+    if fboIndex < 0 as i32 {
         Fatal(
             b"RenderTarget_Pop: Attempting to pop an empty stack\0" as *const u8
                 as *const libc::c_char,
         );
     }
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 4 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 4 as i32 {
         __glewFramebufferTexture2D
             .expect(
                 "non-null function pointer",
             )(
-            0x8d40 as libc::c_int as GLenum,
-            (0x8ce0 as libc::c_int + i) as GLenum,
-            0xde1 as libc::c_int as GLenum,
-            0 as libc::c_int as GLuint,
-            0 as libc::c_int,
+            0x8d40 as i32 as GLenum,
+            (0x8ce0 as i32 + i) as GLenum,
+            0xde1 as i32 as GLenum,
+            0 as i32 as GLuint,
+            0 as i32,
         );
         i += 1;
     }
@@ -158,48 +158,48 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
         .expect(
             "non-null function pointer",
         )(
-        0x8d40 as libc::c_int as GLenum,
-        0x8d00 as libc::c_int as GLenum,
-        0xde1 as libc::c_int as GLenum,
-        0 as libc::c_int as GLuint,
-        0 as libc::c_int,
+        0x8d40 as i32 as GLenum,
+        0x8d00 as i32 as GLenum,
+        0xde1 as i32 as GLenum,
+        0 as i32 as GLuint,
+        0 as i32,
     );
     __glewDeleteFramebuffers
         .expect(
             "non-null function pointer",
         )(
-        1 as libc::c_int,
+        1 as i32,
         &mut (*fboStack.as_mut_ptr().offset(fboIndex as isize)).handle,
     );
     fboIndex -= 1;
-    Metric_Inc(0x7 as libc::c_int);
-    if fboIndex >= 0 as libc::c_int {
+    Metric_Inc(0x7 as i32);
+    if fboIndex >= 0 as i32 {
         __glewBindFramebuffer
             .expect(
                 "non-null function pointer",
-            )(0x8d40 as libc::c_int as GLenum, (*GetActive()).handle);
+            )(0x8d40 as i32 as GLenum, (*GetActive()).handle);
     } else {
         __glewBindFramebuffer
             .expect(
                 "non-null function pointer",
-            )(0x8d40 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
+            )(0x8d40 as i32 as GLenum, 0 as i32 as GLuint);
     }
     Viewport_Pop();
     Profiler_End();
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2D(mut this: *mut Tex2D) {
-    RenderTarget_BindTex2DLevel(this, 0 as libc::c_int);
+    RenderTarget_BindTex2DLevel(this, 0 as i32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(
     mut tex: *mut Tex2D,
-    mut level: libc::c_int,
+    mut level: i32,
 ) {
     let mut this: *mut FBO = GetActive();
     let mut handle: uint = Tex2D_GetHandle(tex);
     if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
-        if (*this).colorIndex >= 4 as libc::c_int {
+        if (*this).colorIndex >= 4 as i32 {
             Fatal(
                 b"RenderTarget_BindTex2D: Max color attachments exceeded\0" as *const u8
                     as *const libc::c_char,
@@ -211,9 +211,9 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(
             .expect(
                 "non-null function pointer",
             )(
-            0x8d40 as libc::c_int as GLenum,
-            (0x8ce0 as libc::c_int + fresh0) as GLenum,
-            0xde1 as libc::c_int as GLenum,
+            0x8d40 as i32 as GLenum,
+            (0x8ce0 as i32 + fresh0) as GLenum,
+            0xde1 as i32 as GLenum,
             handle,
             level,
         );
@@ -229,30 +229,30 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(
             .expect(
                 "non-null function pointer",
             )(
-            0x8d40 as libc::c_int as GLenum,
-            0x8d00 as libc::c_int as GLenum,
-            0xde1 as libc::c_int as GLenum,
+            0x8d40 as i32 as GLenum,
+            0x8d00 as i32 as GLenum,
+            0xde1 as i32 as GLenum,
             handle,
             level,
         );
-        (*this).depth = 1 as libc::c_int != 0;
+        (*this).depth = 1 as i32 != 0;
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex3D(
     mut this: *mut Tex3D,
-    mut layer: libc::c_int,
+    mut layer: i32,
 ) {
-    RenderTarget_BindTex3DLevel(this, layer, 0 as libc::c_int);
+    RenderTarget_BindTex3DLevel(this, layer, 0 as i32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
     mut tex: *mut Tex3D,
-    mut layer: libc::c_int,
-    mut level: libc::c_int,
+    mut layer: i32,
+    mut level: i32,
 ) {
     let mut this: *mut FBO = GetActive();
-    if (*this).colorIndex >= 4 as libc::c_int {
+    if (*this).colorIndex >= 4 as i32 {
         Fatal(
             b"RenderTarget_BindTex3D: Max color attachments exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -265,9 +265,9 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
         .expect(
             "non-null function pointer",
         )(
-        0x8d40 as libc::c_int as GLenum,
-        (0x8ce0 as libc::c_int + fresh1) as GLenum,
-        0x806f as libc::c_int as GLenum,
+        0x8d40 as i32 as GLenum,
+        (0x8ce0 as i32 + fresh1) as GLenum,
+        0x806f as i32 as GLenum,
         handle,
         level,
         layer,
@@ -279,16 +279,16 @@ pub unsafe extern "C" fn RenderTarget_BindTexCube(
     mut this: *mut TexCube,
     mut face: CubeFace,
 ) {
-    RenderTarget_BindTexCubeLevel(this, face, 0 as libc::c_int);
+    RenderTarget_BindTexCubeLevel(this, face, 0 as i32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     mut tex: *mut TexCube,
     mut face: CubeFace,
-    mut level: libc::c_int,
+    mut level: i32,
 ) {
     let mut this: *mut FBO = GetActive();
-    if (*this).colorIndex >= 4 as libc::c_int {
+    if (*this).colorIndex >= 4 as i32 {
         Fatal(
             b"RenderTarget_BindTexCubeLevel: Max color attachments exceeded\0"
                 as *const u8 as *const libc::c_char,
@@ -301,8 +301,8 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
         .expect(
             "non-null function pointer",
         )(
-        0x8d40 as libc::c_int as GLenum,
-        (0x8ce0 as libc::c_int + fresh2) as GLenum,
+        0x8d40 as i32 as GLenum,
+        (0x8ce0 as i32 + fresh2) as GLenum,
         face as GLenum,
         handle,
         level,
@@ -311,12 +311,12 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex2D(mut this: *mut Tex2D) {
-    RenderTarget_PushTex2DLevel(this, 0 as libc::c_int);
+    RenderTarget_PushTex2DLevel(this, 0 as i32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(
     mut this: *mut Tex2D,
-    mut level: libc::c_int,
+    mut level: i32,
 ) {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Tex2D_GetSizeLevel(this, &mut size, level);
@@ -326,15 +326,15 @@ pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex3D(
     mut this: *mut Tex3D,
-    mut layer: libc::c_int,
+    mut layer: i32,
 ) {
-    RenderTarget_PushTex3DLevel(this, layer, 0 as libc::c_int);
+    RenderTarget_PushTex3DLevel(this, layer, 0 as i32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex3DLevel(
     mut this: *mut Tex3D,
-    mut layer: libc::c_int,
-    mut level: libc::c_int,
+    mut layer: i32,
+    mut level: i32,
 ) {
     let mut size: IVec3 = IVec3 { x: 0, y: 0, z: 0 };
     Tex3D_GetSizeLevel(this, &mut size, level);

@@ -23,10 +23,10 @@ extern "C" {
     fn Mesh_Create() -> *mut Mesh;
     fn Mesh_AddQuad(
         _: *mut Mesh,
-        _: libc::c_int,
-        _: libc::c_int,
-        _: libc::c_int,
-        _: libc::c_int,
+        _: i32,
+        _: i32,
+        _: i32,
+        _: i32,
     );
     fn Mesh_AddVertex(
         _: *mut Mesh,
@@ -39,9 +39,9 @@ extern "C" {
         u: f32,
         v: f32,
     );
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> libc::c_int;
-    fn Mesh_ReserveIndexData(_: *mut Mesh, capacity: libc::c_int);
-    fn Mesh_ReserveVertexData(_: *mut Mesh, capacity: libc::c_int);
+    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
+    fn Mesh_ReserveIndexData(_: *mut Mesh, capacity: i32);
+    fn Mesh_ReserveVertexData(_: *mut Mesh, capacity: i32);
     fn sqrt(_: f64) -> f64;
 }
 #[derive(Copy, Clone)]
@@ -104,8 +104,8 @@ pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
     let mut this: *mut BoxMesh = MemAlloc(
         ::core::mem::size_of::<BoxMesh>() as usize,
     ) as *mut BoxMesh;
-    (*this).elem_capacity = 0 as libc::c_int;
-    (*this).elem_size = 0 as libc::c_int;
+    (*this).elem_capacity = 0 as i32;
+    (*this).elem_size = 0 as i32;
     (*this).elem_data = 0 as *mut Box_0;
     return this;
 }
@@ -127,9 +127,9 @@ pub unsafe extern "C" fn BoxMesh_Add(
     {
         (*this)
             .elem_capacity = if (*this).elem_capacity != 0 {
-            (*this).elem_capacity * 2 as libc::c_int
+            (*this).elem_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Box_0>();
         let mut pData: *mut *mut libc::c_void = &mut (*this).elem_data
@@ -150,15 +150,15 @@ pub unsafe extern "C" fn BoxMesh_Add(
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_GetMesh(
     mut this: *mut BoxMesh,
-    mut res: libc::c_int,
+    mut res: i32,
 ) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
-    Mesh_ReserveVertexData(mesh, 6 as libc::c_int * res * res * (*this).elem_size);
+    Mesh_ReserveVertexData(mesh, 6 as i32 * res * res * (*this).elem_size);
     Mesh_ReserveIndexData(
         mesh,
-        12 as libc::c_int * (res - 1 as libc::c_int) * (res - 1 as libc::c_int),
+        12 as i32 * (res - 1 as i32) * (res - 1 as i32),
     );
-    let mut i: libc::c_int = 0 as libc::c_int;
+    let mut i: i32 = 0 as i32;
     while i < (*this).elem_size {
         let mut box_0: *mut Box_0 = ((*this).elem_data).offset(i as isize);
         let mut lower: Vec3 = Vec3::new(
@@ -176,20 +176,20 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(
             (*box_0).r.y,
             (*box_0).r.z,
         );
-        let mut face: libc::c_int = 0 as libc::c_int;
-        while face < 6 as libc::c_int {
+        let mut face: i32 = 0 as i32;
+        while face < 6 as i32 {
             let mut o: Vec3 = kFaceOrigin[face as usize];
             let mut du: Vec3 = kFaceU[face as usize];
             let mut dv: Vec3 = kFaceV[face as usize];
             let mut n: Vec3 = Vec3::cross(du, dv).normalize();
-            let mut iu: libc::c_int = 0 as libc::c_int;
+            let mut iu: i32 = 0 as i32;
             while iu < res {
                 let mut u: f32 = iu as f32
-                    / (res - 1 as libc::c_int) as f32;
-                let mut iv: libc::c_int = 0 as libc::c_int;
+                    / (res - 1 as i32) as f32;
+                let mut iv: i32 = 0 as i32;
                 while iv < res {
                     let mut v: f32 = iv as f32
-                        / (res - 1 as libc::c_int) as f32;
+                        / (res - 1 as i32) as f32;
                     let mut p: Vec3 = o + (du * u) + (dv * v);
                     let mut clamped: Vec3 = Vec3::clamp(p, lower, upper);
                     let mut proj: Vec3 = p - clamped;
@@ -199,13 +199,13 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(
                     Matrix_MulPoint(rot, &mut rp, p.x, p.y, p.z);
                     p = rp + (*box_0).p;
                     if iu != 0 && iv != 0 {
-                        let mut off: libc::c_int = Mesh_GetVertexCount(mesh);
+                        let mut off: i32 = Mesh_GetVertexCount(mesh);
                         Mesh_AddQuad(
                             mesh,
                             off,
                             off - res,
-                            off - res - 1 as libc::c_int,
-                            off - 1 as libc::c_int,
+                            off - res - 1 as i32,
+                            off - 1 as i32,
                         );
                     }
                     Mesh_AddVertex(mesh, p.x, p.y, p.z, n.x, n.y, n.z, u, v);

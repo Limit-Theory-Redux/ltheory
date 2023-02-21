@@ -2,8 +2,8 @@ use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
-    // fn __fpclassifyf(_: f32) -> libc::c_int;
-    // fn __fpclassifyd(_: f64) -> libc::c_int;
+    // fn __fpclassifyf(_: f32) -> i32;
+    // fn __fpclassifyd(_: f64) -> i32;
     fn sqrt(_: f64) -> f64;
     fn Fatal(_: cstr, _: ...);
 }
@@ -69,19 +69,19 @@ pub unsafe extern "C" fn Triangle_GetArea(mut tri: *const Triangle) -> f32 {
 #[no_mangle]
 pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     let mut v: *const Vec3 = ((*tri).vertices).as_ptr();
-    let mut i: i32 = 0 as libc::c_int;
-    while i < 3 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 3 as i32 {
         let mut e: Error = Vec3_Validate(*v.offset(i as isize));
-        if e != 0 as libc::c_int as libc::c_uint {
-            return 0x400000 as libc::c_int as libc::c_uint | e;
+        if e != 0 as i32 as u32 {
+            return 0x400000 as i32 as u32 | e;
         }
         i += 1;
     }
     let mut eq01 = *v.offset(0) == *v.offset(1);
     let mut eq12 = *v.offset(1) == *v.offset(2);
     let mut eq20 = *v.offset(2) == *v.offset(0);
-    if eq01 as libc::c_int != 0 || eq12 as libc::c_int != 0 || eq20 as libc::c_int != 0 {
-        return (0x400000 as libc::c_int | 0x40 as libc::c_int) as Error;
+    if eq01 as i32 != 0 || eq12 as i32 != 0 || eq20 as i32 != 0 {
+        return (0x400000 as i32 | 0x40 as i32) as Error;
     }
     let mut e01 = (*v.offset(0)).distance(*v.offset(1));
     let mut e12 = (*v.offset(1)).distance(*v.offset(2));
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
         e20 as f64,
     ) as f32;
     if (shortest as f64) < 0.75f32 as f64 * 1e-4f64 {
-        return (0x400000 as libc::c_int | 0x8 as libc::c_int) as Error;
+        return (0x400000 as i32 | 0x8 as i32) as Error;
     }
-    return 0 as libc::c_int as Error;
+    return 0 as i32 as Error;
 }

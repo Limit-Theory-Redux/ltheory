@@ -4,25 +4,25 @@ use crate::internal::Memory::*;
 pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
 #[no_mangle]
-pub static mut ResourceType_Font: ResourceType = 0 as libc::c_int;
+pub static mut ResourceType_Font: ResourceType = 0 as i32;
 #[no_mangle]
-pub static mut ResourceType_Mesh: ResourceType = 0x1 as libc::c_int;
+pub static mut ResourceType_Mesh: ResourceType = 0x1 as i32;
 #[no_mangle]
-pub static mut ResourceType_Other: ResourceType = 0x2 as libc::c_int;
+pub static mut ResourceType_Other: ResourceType = 0x2 as i32;
 #[no_mangle]
-pub static mut ResourceType_Script: ResourceType = 0x3 as libc::c_int;
+pub static mut ResourceType_Script: ResourceType = 0x3 as i32;
 #[no_mangle]
-pub static mut ResourceType_Shader: ResourceType = 0x4 as libc::c_int;
+pub static mut ResourceType_Shader: ResourceType = 0x4 as i32;
 #[no_mangle]
-pub static mut ResourceType_Sound: ResourceType = 0x5 as libc::c_int;
+pub static mut ResourceType_Sound: ResourceType = 0x5 as i32;
 #[no_mangle]
-pub static mut ResourceType_Tex1D: ResourceType = 0x6 as libc::c_int;
+pub static mut ResourceType_Tex1D: ResourceType = 0x6 as i32;
 #[no_mangle]
-pub static mut ResourceType_Tex2D: ResourceType = 0x7 as libc::c_int;
+pub static mut ResourceType_Tex2D: ResourceType = 0x7 as i32;
 #[no_mangle]
-pub static mut ResourceType_Tex3D: ResourceType = 0x8 as libc::c_int;
+pub static mut ResourceType_Tex3D: ResourceType = 0x8 as i32;
 #[no_mangle]
-pub static mut ResourceType_TexCube: ResourceType = 0x9 as libc::c_int;
+pub static mut ResourceType_TexCube: ResourceType = 0x9 as i32;
 #[no_mangle]
 pub unsafe extern "C" fn ResourceType_ToString(mut this: ResourceType) -> cstr {
     match this {

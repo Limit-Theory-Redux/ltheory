@@ -11,44 +11,44 @@ extern "C" {
     fn OpenGL_Init();
     fn SDL_CreateWindow(
         title: *const libc::c_char,
-        x: libc::c_int,
-        y: libc::c_int,
-        w: libc::c_int,
-        h: libc::c_int,
+        x: i32,
+        y: i32,
+        w: i32,
+        h: i32,
         flags: u32,
     ) -> *mut SDL_Window;
     fn SDL_SetWindowTitle(window: *mut SDL_Window, title: *const libc::c_char);
     fn SDL_GetWindowTitle(window: *mut SDL_Window) -> *const libc::c_char;
-    fn SDL_SetWindowPosition(window: *mut SDL_Window, x: libc::c_int, y: libc::c_int);
+    fn SDL_SetWindowPosition(window: *mut SDL_Window, x: i32, y: i32);
     fn SDL_GetWindowPosition(
         window: *mut SDL_Window,
-        x: *mut libc::c_int,
-        y: *mut libc::c_int,
+        x: *mut i32,
+        y: *mut i32,
     );
-    fn SDL_SetWindowSize(window: *mut SDL_Window, w: libc::c_int, h: libc::c_int);
+    fn SDL_SetWindowSize(window: *mut SDL_Window, w: i32, h: i32);
     fn SDL_GetWindowSize(
         window: *mut SDL_Window,
-        w: *mut libc::c_int,
-        h: *mut libc::c_int,
+        w: *mut i32,
+        h: *mut i32,
     );
     fn SDL_ShowWindow(window: *mut SDL_Window);
     fn SDL_HideWindow(window: *mut SDL_Window);
-    fn SDL_SetWindowFullscreen(window: *mut SDL_Window, flags: u32) -> libc::c_int;
+    fn SDL_SetWindowFullscreen(window: *mut SDL_Window, flags: u32) -> i32;
     fn SDL_DestroyWindow(window: *mut SDL_Window);
     fn SDL_GL_CreateContext(window: *mut SDL_Window) -> SDL_GLContext;
     fn SDL_GL_MakeCurrent(
         window: *mut SDL_Window,
         context: SDL_GLContext,
-    ) -> libc::c_int;
-    fn SDL_GL_SetSwapInterval(interval: libc::c_int) -> libc::c_int;
+    ) -> i32;
+    fn SDL_GL_SetSwapInterval(interval: i32) -> i32;
     fn SDL_GL_SwapWindow(window: *mut SDL_Window);
     fn SDL_GL_DeleteContext(context: SDL_GLContext);
     fn Viewport_Pop();
     fn Viewport_Push(
-        x: libc::c_int,
-        y: libc::c_int,
-        sx: libc::c_int,
-        sy: libc::c_int,
+        x: i32,
+        y: i32,
+        sx: i32,
+        sy: i32,
         isWindow: bool,
     );
 }
@@ -63,8 +63,8 @@ pub struct Window {
 pub type WindowMode = u32;
 pub type SDL_GLContext = *mut libc::c_void;
 
-pub type WindowPos = libc::c_int;
-pub type C2RustUnnamed = libc::c_uint;
+pub type WindowPos = i32;
+pub type C2RustUnnamed = u32;
 pub const SDL_WINDOW_INPUT_GRABBED: C2RustUnnamed = 256;
 pub const SDL_WINDOW_METAL: C2RustUnnamed = 536870912;
 pub const SDL_WINDOW_VULKAN: C2RustUnnamed = 268435456;
@@ -93,16 +93,16 @@ pub const SDL_WINDOW_FULLSCREEN: C2RustUnnamed = 1;
 #[no_mangle]
 pub unsafe extern "C" fn Window_Create(
     mut title: cstr,
-    mut x: libc::c_int,
-    mut y: libc::c_int,
-    mut sx: libc::c_int,
-    mut sy: libc::c_int,
+    mut x: i32,
+    mut y: i32,
+    mut sx: i32,
+    mut sy: i32,
     mut mode: WindowMode,
 ) -> *mut Window {
     let mut this: *mut Window = MemAlloc(
         ::core::mem::size_of::<Window>() as usize,
     ) as *mut Window;
-    mode |= SDL_WINDOW_OPENGL as libc::c_int as libc::c_uint;
+    mode |= SDL_WINDOW_OPENGL as i32 as u32;
     (*this).handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
     (*this).context = SDL_GL_CreateContext((*this).handle);
     (*this).mode = mode;
@@ -127,11 +127,11 @@ pub unsafe extern "C" fn Window_BeginDraw(mut this: *mut Window) {
     SDL_GL_MakeCurrent((*this).handle, (*this).context);
     Window_GetSize(this, &mut size);
     Viewport_Push(
-        0 as libc::c_int,
-        0 as libc::c_int,
+        0 as i32,
+        0 as i32,
         size.x,
         size.y,
-        1 as libc::c_int != 0,
+        1 as i32 != 0,
     );
 }
 #[no_mangle]
@@ -158,10 +158,10 @@ pub unsafe extern "C" fn Window_GetTitle(mut this: *mut Window) -> cstr {
 pub unsafe extern "C" fn Window_SetFullscreen(mut this: *mut Window, mut fs: bool) {
     SDL_SetWindowFullscreen(
         (*this).handle,
-        if fs as libc::c_int != 0 {
+        if fs as i32 != 0 {
             WindowMode_Fullscreen
         } else {
-            0 as libc::c_int as libc::c_uint
+            0 as i32 as u32
         },
     );
 }
@@ -176,8 +176,8 @@ pub unsafe extern "C" fn Window_SetPosition(
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetSize(
     mut this: *mut Window,
-    mut sx: libc::c_int,
-    mut sy: libc::c_int,
+    mut sx: i32,
+    mut sy: i32,
 ) {
     SDL_SetWindowSize((*this).handle, sx, sy);
 }
@@ -188,13 +188,13 @@ pub unsafe extern "C" fn Window_SetTitle(mut this: *mut Window, mut title: cstr)
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetVsync(mut this: *mut Window, mut vsync: bool) {
     SDL_GL_SetSwapInterval(
-        if vsync as libc::c_int != 0 { 1 as libc::c_int } else { 0 as libc::c_int },
+        if vsync as i32 != 0 { 1 as i32 } else { 0 as i32 },
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn Window_ToggleFullscreen(mut this: *mut Window) {
     if (*this).mode & WindowMode_Fullscreen != 0 {
-        SDL_SetWindowFullscreen((*this).handle, 0 as libc::c_int as u32);
+        SDL_SetWindowFullscreen((*this).handle, 0 as i32 as u32);
     } else {
         SDL_SetWindowFullscreen((*this).handle, WindowMode_Fullscreen);
     }

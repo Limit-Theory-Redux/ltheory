@@ -7,10 +7,10 @@ use crate::DeviceType::*;
 extern "C" {
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::size_t,
+        _: usize,
         _: *const libc::c_char,
         _: ...
-    ) -> libc::c_int;
+    ) -> i32;
     fn Button_ToString(_: Button) -> cstr;
     fn Device_ToString(_: *mut Device) -> cstr;
     fn State_ToString(_: State) -> cstr;
@@ -42,7 +42,7 @@ pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> cstr {
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as libc::size_t,
+            as i32 as usize,
         b"Event %p\n\tTimestamp: %i\n\tDevice:    %s\n\tButton:    %s\n\tValue:     %.2f\n\tState:     %s\0"
             as *const u8 as *const libc::c_char,
         ie,

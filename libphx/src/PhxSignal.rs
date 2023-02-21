@@ -5,13 +5,13 @@ extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
     fn signal(
-        _: libc::c_int,
-        _: Option::<unsafe extern "C" fn(libc::c_int) -> ()>,
-    ) -> Option::<unsafe extern "C" fn(libc::c_int) -> ()>;
-    fn raise(_: libc::c_int) -> libc::c_int;
+        _: i32,
+        _: Option::<unsafe extern "C" fn(i32) -> ()>,
+    ) -> Option::<unsafe extern "C" fn(i32) -> ()>;
+    fn raise(_: i32) -> i32;
 }
 pub type cstr = *const libc::c_char;
-pub type Signal = libc::c_int;
+pub type Signal = i32;
 pub type SignalHandler = Option::<unsafe extern "C" fn(Signal) -> ()>;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -20,18 +20,18 @@ pub struct HandlerElem {
     pub fn_0: SignalHandler,
 }
 #[no_mangle]
-pub static mut Signal_Ill: Signal = 4 as libc::c_int;
+pub static mut Signal_Ill: Signal = 4 as i32;
 #[no_mangle]
-pub static mut Signal_Fpe: Signal = 8 as libc::c_int;
+pub static mut Signal_Fpe: Signal = 8 as i32;
 #[no_mangle]
-pub static mut Signal_Segv: Signal = 11 as libc::c_int;
+pub static mut Signal_Segv: Signal = 11 as i32;
 #[no_mangle]
-pub static mut Signal_Term: Signal = 15 as libc::c_int;
+pub static mut Signal_Term: Signal = 15 as i32;
 #[no_mangle]
-pub static mut Signal_Abrt: Signal = 6 as libc::c_int;
+pub static mut Signal_Abrt: Signal = 6 as i32;
 #[no_mangle]
-pub static mut Signal_Int: Signal = 2 as libc::c_int;
-static mut ignoreDefault: bool = 0 as libc::c_int != 0;
+pub static mut Signal_Int: Signal = 2 as i32;
+static mut ignoreDefault: bool = 0 as i32 != 0;
 static mut handlerDefault: [SignalHandler; 32] = [
     None,
     None,
@@ -117,7 +117,7 @@ unsafe extern "C" fn Signal_Handler(mut sig: Signal) {
         e = (*e).next;
     }
     if ignoreDefault {
-        ignoreDefault = 0 as libc::c_int != 0;
+        ignoreDefault = 0 as i32 != 0;
         return;
     }
     raise(sig);
@@ -225,5 +225,5 @@ pub unsafe extern "C" fn Signal_ToString(mut this: Signal) -> cstr {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Signal_IgnoreDefault() {
-    ignoreDefault = 1 as libc::c_int != 0;
+    ignoreDefault = 1 as i32 != 0;
 }

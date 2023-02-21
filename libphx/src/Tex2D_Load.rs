@@ -16,9 +16,9 @@ pub type uchar = libc::c_uchar;
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_LoadRaw(
     mut path: cstr,
-    mut sx: *mut libc::c_int,
-    mut sy: *mut libc::c_int,
-    mut components: *mut libc::c_int,
+    mut sx: *mut i32,
+    mut sy: *mut i32,
+    mut components: *mut i32,
 ) -> *mut uchar {
     let path_as_str = CStr::from_ptr(path).to_str().unwrap();
     match File::open(path_as_str) {
@@ -26,9 +26,9 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
             let result = stbi_load_from_reader(&mut reader, Channels::Default);
             match result {
                 Some((info, data)) => {
-                    *sx = info.width as libc::c_int;
-                    *sy = info.height as libc::c_int;
-                    *components = info.components as libc::c_int;
+                    *sx = info.width as i32;
+                    *sy = info.height as i32;
+                    *components = info.components as i32;
 
                     let mut memory: *mut uchar = MemAlloc(data.size()) as *mut uchar;
                     MemCpy(memory as *mut libc::c_void, data.as_slice().as_ptr() as *mut libc::c_void, data.size());

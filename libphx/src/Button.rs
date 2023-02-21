@@ -5,15 +5,15 @@ extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::size_t,
+        _: usize,
         _: *const libc::c_char,
         _: ...
-    ) -> libc::c_int;
+    ) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type Button = i32;
 pub type DeviceType = i32;
-pub type SDL_Scancode = libc::c_uint;
+pub type SDL_Scancode = u32;
 pub const SDL_NUM_SCANCODES: SDL_Scancode = 512;
 pub const SDL_SCANCODE_ENDCALL: SDL_Scancode = 290;
 pub const SDL_SCANCODE_CALL: SDL_Scancode = 289;
@@ -262,7 +262,7 @@ pub const SDL_SCANCODE_C: SDL_Scancode = 6;
 pub const SDL_SCANCODE_B: SDL_Scancode = 5;
 pub const SDL_SCANCODE_A: SDL_Scancode = 4;
 pub const SDL_SCANCODE_UNKNOWN: SDL_Scancode = 0;
-pub type SDL_GameControllerAxis = libc::c_int;
+pub type SDL_GameControllerAxis = i32;
 pub const SDL_CONTROLLER_AXIS_MAX: SDL_GameControllerAxis = 6;
 pub const SDL_CONTROLLER_AXIS_TRIGGERRIGHT: SDL_GameControllerAxis = 5;
 pub const SDL_CONTROLLER_AXIS_TRIGGERLEFT: SDL_GameControllerAxis = 4;
@@ -271,7 +271,7 @@ pub const SDL_CONTROLLER_AXIS_RIGHTX: SDL_GameControllerAxis = 2;
 pub const SDL_CONTROLLER_AXIS_LEFTY: SDL_GameControllerAxis = 1;
 pub const SDL_CONTROLLER_AXIS_LEFTX: SDL_GameControllerAxis = 0;
 pub const SDL_CONTROLLER_AXIS_INVALID: SDL_GameControllerAxis = -1;
-pub type SDL_GameControllerButton = libc::c_int;
+pub type SDL_GameControllerButton = i32;
 pub const SDL_CONTROLLER_BUTTON_MAX: SDL_GameControllerButton = 21;
 pub const SDL_CONTROLLER_BUTTON_TOUCHPAD: SDL_GameControllerButton = 20;
 pub const SDL_CONTROLLER_BUTTON_PADDLE4: SDL_GameControllerButton = 19;
@@ -304,634 +304,634 @@ pub static mut DeviceType_Keyboard: DeviceType = 0;
 #[no_mangle]
 pub static mut DeviceType_Gamepad: DeviceType = 0;
 #[no_mangle]
-pub static mut Button_Null: Button = 0 as libc::c_int;
+pub static mut Button_Null: Button = 0 as i32;
 #[no_mangle]
-pub static mut Button_First: Button = 1 as libc::c_int;
+pub static mut Button_First: Button = 1 as i32;
 #[no_mangle]
 pub static mut Button_Keyboard_First: Button = unsafe { Button_First };
 #[no_mangle]
 pub static mut Button_Keyboard_A: Button = unsafe {
-    Button_Keyboard_First + 0 as libc::c_int
+    Button_Keyboard_First + 0 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_B: Button = unsafe {
-    Button_Keyboard_First + 1 as libc::c_int
+    Button_Keyboard_First + 1 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_C: Button = unsafe {
-    Button_Keyboard_First + 2 as libc::c_int
+    Button_Keyboard_First + 2 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_D: Button = unsafe {
-    Button_Keyboard_First + 3 as libc::c_int
+    Button_Keyboard_First + 3 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_E: Button = unsafe {
-    Button_Keyboard_First + 4 as libc::c_int
+    Button_Keyboard_First + 4 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F: Button = unsafe {
-    Button_Keyboard_First + 5 as libc::c_int
+    Button_Keyboard_First + 5 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_G: Button = unsafe {
-    Button_Keyboard_First + 6 as libc::c_int
+    Button_Keyboard_First + 6 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_H: Button = unsafe {
-    Button_Keyboard_First + 7 as libc::c_int
+    Button_Keyboard_First + 7 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_I: Button = unsafe {
-    Button_Keyboard_First + 8 as libc::c_int
+    Button_Keyboard_First + 8 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_J: Button = unsafe {
-    Button_Keyboard_First + 9 as libc::c_int
+    Button_Keyboard_First + 9 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_K: Button = unsafe {
-    Button_Keyboard_First + 10 as libc::c_int
+    Button_Keyboard_First + 10 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_L: Button = unsafe {
-    Button_Keyboard_First + 11 as libc::c_int
+    Button_Keyboard_First + 11 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_M: Button = unsafe {
-    Button_Keyboard_First + 12 as libc::c_int
+    Button_Keyboard_First + 12 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N: Button = unsafe {
-    Button_Keyboard_First + 13 as libc::c_int
+    Button_Keyboard_First + 13 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_O: Button = unsafe {
-    Button_Keyboard_First + 14 as libc::c_int
+    Button_Keyboard_First + 14 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_P: Button = unsafe {
-    Button_Keyboard_First + 15 as libc::c_int
+    Button_Keyboard_First + 15 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Q: Button = unsafe {
-    Button_Keyboard_First + 16 as libc::c_int
+    Button_Keyboard_First + 16 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_R: Button = unsafe {
-    Button_Keyboard_First + 17 as libc::c_int
+    Button_Keyboard_First + 17 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_S: Button = unsafe {
-    Button_Keyboard_First + 18 as libc::c_int
+    Button_Keyboard_First + 18 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_T: Button = unsafe {
-    Button_Keyboard_First + 19 as libc::c_int
+    Button_Keyboard_First + 19 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_U: Button = unsafe {
-    Button_Keyboard_First + 20 as libc::c_int
+    Button_Keyboard_First + 20 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_V: Button = unsafe {
-    Button_Keyboard_First + 21 as libc::c_int
+    Button_Keyboard_First + 21 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_W: Button = unsafe {
-    Button_Keyboard_First + 22 as libc::c_int
+    Button_Keyboard_First + 22 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_X: Button = unsafe {
-    Button_Keyboard_First + 23 as libc::c_int
+    Button_Keyboard_First + 23 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Y: Button = unsafe {
-    Button_Keyboard_First + 24 as libc::c_int
+    Button_Keyboard_First + 24 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Z: Button = unsafe {
-    Button_Keyboard_First + 25 as libc::c_int
+    Button_Keyboard_First + 25 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N0: Button = unsafe {
-    Button_Keyboard_First + 26 as libc::c_int
+    Button_Keyboard_First + 26 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N1: Button = unsafe {
-    Button_Keyboard_First + 27 as libc::c_int
+    Button_Keyboard_First + 27 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N2: Button = unsafe {
-    Button_Keyboard_First + 28 as libc::c_int
+    Button_Keyboard_First + 28 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N3: Button = unsafe {
-    Button_Keyboard_First + 29 as libc::c_int
+    Button_Keyboard_First + 29 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N4: Button = unsafe {
-    Button_Keyboard_First + 30 as libc::c_int
+    Button_Keyboard_First + 30 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N5: Button = unsafe {
-    Button_Keyboard_First + 31 as libc::c_int
+    Button_Keyboard_First + 31 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N6: Button = unsafe {
-    Button_Keyboard_First + 32 as libc::c_int
+    Button_Keyboard_First + 32 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N7: Button = unsafe {
-    Button_Keyboard_First + 33 as libc::c_int
+    Button_Keyboard_First + 33 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N8: Button = unsafe {
-    Button_Keyboard_First + 34 as libc::c_int
+    Button_Keyboard_First + 34 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_N9: Button = unsafe {
-    Button_Keyboard_First + 35 as libc::c_int
+    Button_Keyboard_First + 35 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F1: Button = unsafe {
-    Button_Keyboard_First + 36 as libc::c_int
+    Button_Keyboard_First + 36 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F2: Button = unsafe {
-    Button_Keyboard_First + 37 as libc::c_int
+    Button_Keyboard_First + 37 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F3: Button = unsafe {
-    Button_Keyboard_First + 38 as libc::c_int
+    Button_Keyboard_First + 38 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F4: Button = unsafe {
-    Button_Keyboard_First + 39 as libc::c_int
+    Button_Keyboard_First + 39 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F5: Button = unsafe {
-    Button_Keyboard_First + 40 as libc::c_int
+    Button_Keyboard_First + 40 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F6: Button = unsafe {
-    Button_Keyboard_First + 41 as libc::c_int
+    Button_Keyboard_First + 41 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F7: Button = unsafe {
-    Button_Keyboard_First + 42 as libc::c_int
+    Button_Keyboard_First + 42 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F8: Button = unsafe {
-    Button_Keyboard_First + 43 as libc::c_int
+    Button_Keyboard_First + 43 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F9: Button = unsafe {
-    Button_Keyboard_First + 44 as libc::c_int
+    Button_Keyboard_First + 44 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F10: Button = unsafe {
-    Button_Keyboard_First + 45 as libc::c_int
+    Button_Keyboard_First + 45 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F11: Button = unsafe {
-    Button_Keyboard_First + 46 as libc::c_int
+    Button_Keyboard_First + 46 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F12: Button = unsafe {
-    Button_Keyboard_First + 47 as libc::c_int
+    Button_Keyboard_First + 47 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F13: Button = unsafe {
-    Button_Keyboard_First + 48 as libc::c_int
+    Button_Keyboard_First + 48 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F14: Button = unsafe {
-    Button_Keyboard_First + 49 as libc::c_int
+    Button_Keyboard_First + 49 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F15: Button = unsafe {
-    Button_Keyboard_First + 50 as libc::c_int
+    Button_Keyboard_First + 50 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F16: Button = unsafe {
-    Button_Keyboard_First + 51 as libc::c_int
+    Button_Keyboard_First + 51 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F17: Button = unsafe {
-    Button_Keyboard_First + 52 as libc::c_int
+    Button_Keyboard_First + 52 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F18: Button = unsafe {
-    Button_Keyboard_First + 53 as libc::c_int
+    Button_Keyboard_First + 53 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F19: Button = unsafe {
-    Button_Keyboard_First + 54 as libc::c_int
+    Button_Keyboard_First + 54 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F20: Button = unsafe {
-    Button_Keyboard_First + 55 as libc::c_int
+    Button_Keyboard_First + 55 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F21: Button = unsafe {
-    Button_Keyboard_First + 56 as libc::c_int
+    Button_Keyboard_First + 56 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F22: Button = unsafe {
-    Button_Keyboard_First + 57 as libc::c_int
+    Button_Keyboard_First + 57 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F23: Button = unsafe {
-    Button_Keyboard_First + 58 as libc::c_int
+    Button_Keyboard_First + 58 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_F24: Button = unsafe {
-    Button_Keyboard_First + 59 as libc::c_int
+    Button_Keyboard_First + 59 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP0: Button = unsafe {
-    Button_Keyboard_First + 60 as libc::c_int
+    Button_Keyboard_First + 60 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP1: Button = unsafe {
-    Button_Keyboard_First + 61 as libc::c_int
+    Button_Keyboard_First + 61 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP2: Button = unsafe {
-    Button_Keyboard_First + 62 as libc::c_int
+    Button_Keyboard_First + 62 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP3: Button = unsafe {
-    Button_Keyboard_First + 63 as libc::c_int
+    Button_Keyboard_First + 63 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP4: Button = unsafe {
-    Button_Keyboard_First + 64 as libc::c_int
+    Button_Keyboard_First + 64 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP5: Button = unsafe {
-    Button_Keyboard_First + 65 as libc::c_int
+    Button_Keyboard_First + 65 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP6: Button = unsafe {
-    Button_Keyboard_First + 66 as libc::c_int
+    Button_Keyboard_First + 66 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP7: Button = unsafe {
-    Button_Keyboard_First + 67 as libc::c_int
+    Button_Keyboard_First + 67 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP8: Button = unsafe {
-    Button_Keyboard_First + 68 as libc::c_int
+    Button_Keyboard_First + 68 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KP9: Button = unsafe {
-    Button_Keyboard_First + 69 as libc::c_int
+    Button_Keyboard_First + 69 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KPNumLock: Button = unsafe {
-    Button_Keyboard_First + 70 as libc::c_int
+    Button_Keyboard_First + 70 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KPDivide: Button = unsafe {
-    Button_Keyboard_First + 71 as libc::c_int
+    Button_Keyboard_First + 71 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KPMultiply: Button = unsafe {
-    Button_Keyboard_First + 72 as libc::c_int
+    Button_Keyboard_First + 72 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KPSubtract: Button = unsafe {
-    Button_Keyboard_First + 73 as libc::c_int
+    Button_Keyboard_First + 73 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KPAdd: Button = unsafe {
-    Button_Keyboard_First + 74 as libc::c_int
+    Button_Keyboard_First + 74 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KPEnter: Button = unsafe {
-    Button_Keyboard_First + 75 as libc::c_int
+    Button_Keyboard_First + 75 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_KPDecimal: Button = unsafe {
-    Button_Keyboard_First + 76 as libc::c_int
+    Button_Keyboard_First + 76 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Backspace: Button = unsafe {
-    Button_Keyboard_First + 77 as libc::c_int
+    Button_Keyboard_First + 77 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Escape: Button = unsafe {
-    Button_Keyboard_First + 78 as libc::c_int
+    Button_Keyboard_First + 78 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Return: Button = unsafe {
-    Button_Keyboard_First + 79 as libc::c_int
+    Button_Keyboard_First + 79 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Space: Button = unsafe {
-    Button_Keyboard_First + 80 as libc::c_int
+    Button_Keyboard_First + 80 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Tab: Button = unsafe {
-    Button_Keyboard_First + 81 as libc::c_int
+    Button_Keyboard_First + 81 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Backtick: Button = unsafe {
-    Button_Keyboard_First + 82 as libc::c_int
+    Button_Keyboard_First + 82 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_CapsLock: Button = unsafe {
-    Button_Keyboard_First + 83 as libc::c_int
+    Button_Keyboard_First + 83 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Minus: Button = unsafe {
-    Button_Keyboard_First + 84 as libc::c_int
+    Button_Keyboard_First + 84 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Equals: Button = unsafe {
-    Button_Keyboard_First + 85 as libc::c_int
+    Button_Keyboard_First + 85 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_LBracket: Button = unsafe {
-    Button_Keyboard_First + 86 as libc::c_int
+    Button_Keyboard_First + 86 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_RBracket: Button = unsafe {
-    Button_Keyboard_First + 87 as libc::c_int
+    Button_Keyboard_First + 87 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Backslash: Button = unsafe {
-    Button_Keyboard_First + 88 as libc::c_int
+    Button_Keyboard_First + 88 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Semicolon: Button = unsafe {
-    Button_Keyboard_First + 89 as libc::c_int
+    Button_Keyboard_First + 89 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Apostrophe: Button = unsafe {
-    Button_Keyboard_First + 90 as libc::c_int
+    Button_Keyboard_First + 90 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Comma: Button = unsafe {
-    Button_Keyboard_First + 91 as libc::c_int
+    Button_Keyboard_First + 91 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Period: Button = unsafe {
-    Button_Keyboard_First + 92 as libc::c_int
+    Button_Keyboard_First + 92 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Slash: Button = unsafe {
-    Button_Keyboard_First + 93 as libc::c_int
+    Button_Keyboard_First + 93 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_PrintScreen: Button = unsafe {
-    Button_Keyboard_First + 94 as libc::c_int
+    Button_Keyboard_First + 94 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_ScrollLock: Button = unsafe {
-    Button_Keyboard_First + 95 as libc::c_int
+    Button_Keyboard_First + 95 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Pause: Button = unsafe {
-    Button_Keyboard_First + 96 as libc::c_int
+    Button_Keyboard_First + 96 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Insert: Button = unsafe {
-    Button_Keyboard_First + 97 as libc::c_int
+    Button_Keyboard_First + 97 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Delete: Button = unsafe {
-    Button_Keyboard_First + 98 as libc::c_int
+    Button_Keyboard_First + 98 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Home: Button = unsafe {
-    Button_Keyboard_First + 99 as libc::c_int
+    Button_Keyboard_First + 99 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_End: Button = unsafe {
-    Button_Keyboard_First + 100 as libc::c_int
+    Button_Keyboard_First + 100 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_PageUp: Button = unsafe {
-    Button_Keyboard_First + 101 as libc::c_int
+    Button_Keyboard_First + 101 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_PageDown: Button = unsafe {
-    Button_Keyboard_First + 102 as libc::c_int
+    Button_Keyboard_First + 102 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Right: Button = unsafe {
-    Button_Keyboard_First + 103 as libc::c_int
+    Button_Keyboard_First + 103 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Left: Button = unsafe {
-    Button_Keyboard_First + 104 as libc::c_int
+    Button_Keyboard_First + 104 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Down: Button = unsafe {
-    Button_Keyboard_First + 105 as libc::c_int
+    Button_Keyboard_First + 105 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Up: Button = unsafe {
-    Button_Keyboard_First + 106 as libc::c_int
+    Button_Keyboard_First + 106 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_LCtrl: Button = unsafe {
-    Button_Keyboard_First + 107 as libc::c_int
+    Button_Keyboard_First + 107 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_LShift: Button = unsafe {
-    Button_Keyboard_First + 108 as libc::c_int
+    Button_Keyboard_First + 108 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_LAlt: Button = unsafe {
-    Button_Keyboard_First + 109 as libc::c_int
+    Button_Keyboard_First + 109 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_LMeta: Button = unsafe {
-    Button_Keyboard_First + 110 as libc::c_int
+    Button_Keyboard_First + 110 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_RCtrl: Button = unsafe {
-    Button_Keyboard_First + 111 as libc::c_int
+    Button_Keyboard_First + 111 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_RShift: Button = unsafe {
-    Button_Keyboard_First + 112 as libc::c_int
+    Button_Keyboard_First + 112 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_RAlt: Button = unsafe {
-    Button_Keyboard_First + 113 as libc::c_int
+    Button_Keyboard_First + 113 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_RMeta: Button = unsafe {
-    Button_Keyboard_First + 114 as libc::c_int
+    Button_Keyboard_First + 114 as i32
 };
 #[no_mangle]
 pub static mut Button_Keyboard_Last: Button = unsafe {
-    Button_Keyboard_First + 115 as libc::c_int
+    Button_Keyboard_First + 115 as i32
 };
 #[no_mangle]
 pub static mut Button_Mouse_First: Button = unsafe {
-    Button_Keyboard_Last + 1 as libc::c_int
+    Button_Keyboard_Last + 1 as i32
 };
 #[no_mangle]
 pub static mut Button_Mouse_Left: Button = unsafe {
-    Button_Mouse_First + 0 as libc::c_int
+    Button_Mouse_First + 0 as i32
 };
 #[no_mangle]
 pub static mut Button_Mouse_Middle: Button = unsafe {
-    Button_Mouse_First + 1 as libc::c_int
+    Button_Mouse_First + 1 as i32
 };
 #[no_mangle]
 pub static mut Button_Mouse_Right: Button = unsafe {
-    Button_Mouse_First + 2 as libc::c_int
+    Button_Mouse_First + 2 as i32
 };
 #[no_mangle]
 pub static mut Button_Mouse_X1: Button = unsafe {
-    Button_Mouse_First + 3 as libc::c_int
+    Button_Mouse_First + 3 as i32
 };
 #[no_mangle]
 pub static mut Button_Mouse_X2: Button = unsafe {
-    Button_Mouse_First + 4 as libc::c_int
+    Button_Mouse_First + 4 as i32
 };
 #[no_mangle]
-pub static mut Button_Mouse_X: Button = unsafe { Button_Mouse_First + 5 as libc::c_int };
+pub static mut Button_Mouse_X: Button = unsafe { Button_Mouse_First + 5 as i32 };
 #[no_mangle]
-pub static mut Button_Mouse_Y: Button = unsafe { Button_Mouse_First + 6 as libc::c_int };
+pub static mut Button_Mouse_Y: Button = unsafe { Button_Mouse_First + 6 as i32 };
 #[no_mangle]
 pub static mut Button_Mouse_ScrollX: Button = unsafe {
-    Button_Mouse_First + 7 as libc::c_int
+    Button_Mouse_First + 7 as i32
 };
 #[no_mangle]
 pub static mut Button_Mouse_ScrollY: Button = unsafe {
-    Button_Mouse_First + 8 as libc::c_int
+    Button_Mouse_First + 8 as i32
 };
 #[no_mangle]
 pub static mut Button_Mouse_Last: Button = unsafe {
-    Button_Mouse_First + 8 as libc::c_int
+    Button_Mouse_First + 8 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_First: Button = unsafe {
-    Button_Mouse_Last + 1 as libc::c_int
+    Button_Mouse_Last + 1 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Button_First: Button = unsafe {
-    Button_Gamepad_First + 0 as libc::c_int
+    Button_Gamepad_First + 0 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_A: Button = unsafe {
-    Button_Gamepad_First + 0 as libc::c_int
+    Button_Gamepad_First + 0 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_B: Button = unsafe {
-    Button_Gamepad_First + 1 as libc::c_int
+    Button_Gamepad_First + 1 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_X: Button = unsafe {
-    Button_Gamepad_First + 2 as libc::c_int
+    Button_Gamepad_First + 2 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Y: Button = unsafe {
-    Button_Gamepad_First + 3 as libc::c_int
+    Button_Gamepad_First + 3 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Back: Button = unsafe {
-    Button_Gamepad_First + 4 as libc::c_int
+    Button_Gamepad_First + 4 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Guide: Button = unsafe {
-    Button_Gamepad_First + 5 as libc::c_int
+    Button_Gamepad_First + 5 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Start: Button = unsafe {
-    Button_Gamepad_First + 6 as libc::c_int
+    Button_Gamepad_First + 6 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_LStick: Button = unsafe {
-    Button_Gamepad_First + 7 as libc::c_int
+    Button_Gamepad_First + 7 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_RStick: Button = unsafe {
-    Button_Gamepad_First + 8 as libc::c_int
+    Button_Gamepad_First + 8 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_LBumper: Button = unsafe {
-    Button_Gamepad_First + 9 as libc::c_int
+    Button_Gamepad_First + 9 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_RBumper: Button = unsafe {
-    Button_Gamepad_First + 10 as libc::c_int
+    Button_Gamepad_First + 10 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Up: Button = unsafe {
-    Button_Gamepad_First + 11 as libc::c_int
+    Button_Gamepad_First + 11 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Down: Button = unsafe {
-    Button_Gamepad_First + 12 as libc::c_int
+    Button_Gamepad_First + 12 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Left: Button = unsafe {
-    Button_Gamepad_First + 13 as libc::c_int
+    Button_Gamepad_First + 13 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Right: Button = unsafe {
-    Button_Gamepad_First + 14 as libc::c_int
+    Button_Gamepad_First + 14 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Button_Last: Button = unsafe {
-    Button_Gamepad_First + 14 as libc::c_int
+    Button_Gamepad_First + 14 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Axis_First: Button = unsafe {
-    Button_Gamepad_First + 15 as libc::c_int
+    Button_Gamepad_First + 15 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_LTrigger: Button = unsafe {
-    Button_Gamepad_First + 15 as libc::c_int
+    Button_Gamepad_First + 15 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_RTrigger: Button = unsafe {
-    Button_Gamepad_First + 16 as libc::c_int
+    Button_Gamepad_First + 16 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_LStickX: Button = unsafe {
-    Button_Gamepad_First + 17 as libc::c_int
+    Button_Gamepad_First + 17 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_LStickY: Button = unsafe {
-    Button_Gamepad_First + 18 as libc::c_int
+    Button_Gamepad_First + 18 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_RStickX: Button = unsafe {
-    Button_Gamepad_First + 19 as libc::c_int
+    Button_Gamepad_First + 19 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_RStickY: Button = unsafe {
-    Button_Gamepad_First + 20 as libc::c_int
+    Button_Gamepad_First + 20 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Axis_Last: Button = unsafe {
-    Button_Gamepad_First + 20 as libc::c_int
+    Button_Gamepad_First + 20 as i32
 };
 #[no_mangle]
 pub static mut Button_Gamepad_Last: Button = unsafe {
-    Button_Gamepad_First + 20 as libc::c_int
+    Button_Gamepad_First + 20 as i32
 };
 #[no_mangle]
 pub static mut Button_System_First: Button = unsafe {
-    Button_Gamepad_Last + 1 as libc::c_int
+    Button_Gamepad_Last + 1 as i32
 };
 #[no_mangle]
 pub static mut Button_System_Exit: Button = unsafe {
-    Button_System_First + 0 as libc::c_int
+    Button_System_First + 0 as i32
 };
 #[no_mangle]
 pub static mut Button_System_Last: Button = unsafe {
-    Button_System_First + 0 as libc::c_int
+    Button_System_First + 0 as i32
 };
 #[no_mangle]
 pub static mut Button_Last: Button = unsafe { Button_System_Last };
@@ -1113,7 +1113,7 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> cstr {
                 (::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(
                         ::core::mem::size_of::<libc::c_char>() as usize,
-                    ) as libc::c_int as libc::size_t,
+                    ) as i32 as usize,
                 b"Unknown (%i)\0" as *const u8 as *const libc::c_char,
                 button,
             );
@@ -1124,13 +1124,13 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> cstr {
 #[no_mangle]
 pub unsafe extern "C" fn Button_IsAutoRelease(mut button: Button) -> bool {
     match button {
-        124 | 125 | 147 => return 1 as libc::c_int != 0,
-        _ => return 0 as libc::c_int != 0,
+        124 | 125 | 147 => return 1 as i32 != 0,
+        _ => return 0 as i32 != 0,
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn Button_FromSDLScancode(mut scancode: SDL_Scancode) -> Button {
-    match scancode as libc::c_uint {
+    match scancode as u32 {
         0 => return Button_Null,
         4 => return Button_Keyboard_A,
         5 => return Button_Keyboard_B,
@@ -1381,7 +1381,7 @@ pub unsafe extern "C" fn Button_ToSDLScancode(mut button: Button) -> SDL_Scancod
 }
 #[no_mangle]
 pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: u8) -> Button {
-    match mouseButton as libc::c_int {
+    match mouseButton as i32 {
         1 => {}
         2 => return Button_Mouse_Middle,
         3 => return Button_Mouse_Right,
@@ -1391,7 +1391,7 @@ pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: u8) -> Butto
             Fatal(
                 b"Button_FromSDLMouseButton: Unhandled case: %i\0" as *const u8
                     as *const libc::c_char,
-                mouseButton as libc::c_int,
+                mouseButton as i32,
             );
         }
     }
@@ -1401,10 +1401,10 @@ pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: u8) -> Butto
 pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
     match button {
         117 => {}
-        118 => return 2 as libc::c_int as u8,
-        119 => return 3 as libc::c_int as u8,
-        120 => return 4 as libc::c_int as u8,
-        121 => return 5 as libc::c_int as u8,
+        118 => return 2 as i32 as u8,
+        119 => return 3 as i32 as u8,
+        120 => return 4 as i32 as u8,
+        121 => return 5 as i32 as u8,
         _ => {
             Fatal(
                 b"Button_ToSDLMouseButton: Unhandled case: %i\0" as *const u8
@@ -1413,13 +1413,13 @@ pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
             );
         }
     }
-    return 1 as libc::c_int as u8;
+    return 1 as i32 as u8;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Button_FromSDLControllerAxis(
     mut controllerAxis: SDL_GameControllerAxis,
 ) -> Button {
-    match controllerAxis as libc::c_int {
+    match controllerAxis as i32 {
         0 => {}
         1 => return Button_Gamepad_LStickY,
         2 => return Button_Gamepad_RStickX,
@@ -1430,7 +1430,7 @@ pub unsafe extern "C" fn Button_FromSDLControllerAxis(
             Fatal(
                 b"Button_FromSDLControllerAxis: Unhandled case: %i\0" as *const u8
                     as *const libc::c_char,
-                controllerAxis as libc::c_int,
+                controllerAxis as i32,
             );
         }
     }
@@ -1461,7 +1461,7 @@ pub unsafe extern "C" fn Button_ToSDLControllerAxis(
 pub unsafe extern "C" fn Button_FromSDLControllerButton(
     mut controllerButton: SDL_GameControllerButton,
 ) -> Button {
-    match controllerButton as libc::c_int {
+    match controllerButton as i32 {
         0 => {}
         1 => return Button_Gamepad_B,
         2 => return Button_Gamepad_X,
@@ -1481,7 +1481,7 @@ pub unsafe extern "C" fn Button_FromSDLControllerButton(
             Fatal(
                 b"Button_FromSDLControllerButton: Unhandled case: %i\0" as *const u8
                     as *const libc::c_char,
-                controllerButton as libc::c_int,
+                controllerButton as i32,
             );
         }
     }

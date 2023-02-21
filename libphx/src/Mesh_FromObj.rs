@@ -6,27 +6,27 @@ use glam::Vec2;
 extern "C" {
     pub type Mesh;
     fn Fatal(_: cstr, _: ...);
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
+    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
     fn strtof(_: *const libc::c_char, _: *mut *mut libc::c_char) -> f32;
     fn strtol(
         _: *const libc::c_char,
         _: *mut *mut libc::c_char,
-        _: libc::c_int,
+        _: i32,
     ) -> libc::c_long;
     fn Mesh_Create() -> *mut Mesh;
     fn Mesh_AddQuad(
         _: *mut Mesh,
-        _: libc::c_int,
-        _: libc::c_int,
-        _: libc::c_int,
-        _: libc::c_int,
+        _: i32,
+        _: i32,
+        _: i32,
+        _: i32,
     );
-    fn Mesh_AddTri(_: *mut Mesh, _: libc::c_int, _: libc::c_int, _: libc::c_int);
+    fn Mesh_AddTri(_: *mut Mesh, _: i32, _: i32, _: i32);
     fn Mesh_AddVertexRaw(_: *mut Mesh, _: *const Vertex);
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> libc::c_int;
+    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
-    fn Mesh_ReserveIndexData(_: *mut Mesh, capacity: libc::c_int);
-    fn Mesh_ReserveVertexData(_: *mut Mesh, capacity: libc::c_int);
+    fn Mesh_ReserveIndexData(_: *mut Mesh, capacity: i32);
+    fn Mesh_ReserveVertexData(_: *mut Mesh, capacity: i32);
 }
 pub type cstr = *const libc::c_char;
 
@@ -54,22 +54,22 @@ pub struct VertexIndices {
 }
 
 unsafe extern "C" fn Obj_Fatal(mut message: cstr, mut s: *mut ParseState) {
-    let mut len: i32 = 0 as libc::c_int;
+    let mut len: i32 = 0 as i32;
     let mut ch: *const libc::c_char = (*s).lineStart;
-    while ch < (*s).endOfData && *ch as libc::c_int != '\r' as i32
-        && *ch as libc::c_int != '\n' as i32
+    while ch < (*s).endOfData && *ch as i32 != '\r' as i32
+        && *ch as i32 != '\n' as i32
     {
         ch = ch.offset(1);
-        len += 1 as libc::c_int;
+        len += 1 as i32;
     }
-    let mut line: *mut libc::c_char = MemAlloc((len + 1 as libc::c_int) as libc::size_t)
+    let mut line: *mut libc::c_char = MemAlloc((len + 1 as i32) as usize)
         as *mut libc::c_char;
     MemCpy(
         line as *mut libc::c_void,
         (*s).lineStart as *const libc::c_void,
         len as usize,
     );
-    *line.offset(len as isize) = 0 as libc::c_int as libc::c_char;
+    *line.offset(len as isize) = 0 as i32 as libc::c_char;
     Fatal(
         b"%s Line %i\n%s\0" as *const u8 as *const libc::c_char,
         message,
@@ -79,28 +79,28 @@ unsafe extern "C" fn Obj_Fatal(mut message: cstr, mut s: *mut ParseState) {
 }
 unsafe extern "C" fn ConsumeRestOfLine(mut s: *mut ParseState) -> bool {
     let mut oldPosition: *const libc::c_char = (*s).cursor;
-    while (*s).cursor < (*s).endOfData && *(*s).cursor as libc::c_int != '\r' as i32
-        && *(*s).cursor as libc::c_int != '\n' as i32
+    while (*s).cursor < (*s).endOfData && *(*s).cursor as i32 != '\r' as i32
+        && *(*s).cursor as i32 != '\n' as i32
     {
         (*s).cursor = ((*s).cursor).offset(1);
     }
-    let mut cr: i32 = 0 as libc::c_int;
-    let mut nl: i32 = 0 as libc::c_int;
+    let mut cr: i32 = 0 as i32;
+    let mut nl: i32 = 0 as i32;
     while (*s).cursor < (*s).endOfData
-        && (*(*s).cursor as libc::c_int == '\r' as i32
-            || *(*s).cursor as libc::c_int == '\n' as i32)
+        && (*(*s).cursor as i32 == '\r' as i32
+            || *(*s).cursor as i32 == '\n' as i32)
     {
-        if *(*s).cursor as libc::c_int == '\r' as i32 {
-            if cr == 1 as libc::c_int {
-                nl = 0 as libc::c_int;
+        if *(*s).cursor as i32 == '\r' as i32 {
+            if cr == 1 as i32 {
+                nl = 0 as i32;
                 cr = nl;
                 (*s).lineNumber += 1;
             }
             cr += 1;
         }
-        if *(*s).cursor as libc::c_int == '\n' as i32 {
-            if nl == 1 as libc::c_int {
-                nl = 0 as libc::c_int;
+        if *(*s).cursor as i32 == '\n' as i32 {
+            if nl == 1 as i32 {
+                nl = 0 as i32;
                 cr = nl;
                 (*s).lineNumber += 1;
             }
@@ -113,8 +113,8 @@ unsafe extern "C" fn ConsumeRestOfLine(mut s: *mut ParseState) -> bool {
 unsafe extern "C" fn ConsumeWhitespace(mut s: *mut ParseState) -> bool {
     let mut oldPosition: *const libc::c_char = (*s).cursor;
     while (*s).cursor < (*s).endOfData
-        && (*(*s).cursor as libc::c_int == ' ' as i32
-            || *(*s).cursor as libc::c_int == '\t' as i32)
+        && (*(*s).cursor as i32 == ' ' as i32
+            || *(*s).cursor as i32 == '\t' as i32)
     {
         (*s).cursor = ((*s).cursor).offset(1);
     }
@@ -125,20 +125,20 @@ unsafe extern "C" fn ConsumeToken(
     mut tokenLen: i32,
     mut s: *mut ParseState,
 ) -> bool {
-    let mut i: i32 = 0 as libc::c_int;
-    while (*s).cursor < (*s).endOfData && i < tokenLen - 1 as libc::c_int
-        && *(*s).cursor as libc::c_int != ' ' as i32
-        && *(*s).cursor as libc::c_int != '\t' as i32
-        && *(*s).cursor as libc::c_int != '\r' as i32
-        && *(*s).cursor as libc::c_int != '\n' as i32
+    let mut i: i32 = 0 as i32;
+    while (*s).cursor < (*s).endOfData && i < tokenLen - 1 as i32
+        && *(*s).cursor as i32 != ' ' as i32
+        && *(*s).cursor as i32 != '\t' as i32
+        && *(*s).cursor as i32 != '\r' as i32
+        && *(*s).cursor as i32 != '\n' as i32
     {
         let fresh0 = i;
         i = i + 1;
         *token.offset(fresh0 as isize) = *(*s).cursor;
         (*s).cursor = ((*s).cursor).offset(1);
     }
-    *token.offset(i as isize) = 0 as libc::c_int as libc::c_char;
-    return i != 0 as libc::c_int;
+    *token.offset(i as isize) = 0 as i32 as libc::c_char;
+    return i != 0 as i32;
 }
 unsafe extern "C" fn ConsumeFloat(
     mut value: *mut f32,
@@ -146,7 +146,7 @@ unsafe extern "C" fn ConsumeFloat(
 ) -> bool {
     let mut afterFloat: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut f: f32 = strtof((*s).cursor, &mut afterFloat);
-    if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as libc::c_int {
+    if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as i32 {
         Obj_Fatal(
             b"Parsed float in .obj data is out of range.\0" as *const u8
                 as *const libc::c_char,
@@ -156,14 +156,14 @@ unsafe extern "C" fn ConsumeFloat(
     if afterFloat != (*s).cursor as *mut libc::c_char {
         (*s).cursor = afterFloat;
         *value = f;
-        return 1 as libc::c_int != 0;
+        return 1 as i32 != 0;
     }
-    return 0 as libc::c_int != 0;
+    return 0 as i32 != 0;
 }
 unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> bool {
     let mut afterInt: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut i: i32 = strtol((*s).cursor, &mut afterInt, 10 as libc::c_int) as i32;
-    if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as libc::c_int {
+    let mut i: i32 = strtol((*s).cursor, &mut afterInt, 10 as i32) as i32;
+    if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as i32 {
         Obj_Fatal(
             b"Parsed int in .obj data is out of range.\0" as *const u8
                 as *const libc::c_char,
@@ -173,25 +173,25 @@ unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> 
     if afterInt != (*s).cursor as *mut libc::c_char {
         (*s).cursor = afterInt;
         *value = i;
-        return 1 as libc::c_int != 0;
+        return 1 as i32 != 0;
     }
-    return 0 as libc::c_int != 0;
+    return 0 as i32 != 0;
 }
 unsafe extern "C" fn ConsumeCharacter(
     mut character: libc::c_char,
     mut s: *mut ParseState,
 ) -> bool {
     if (*s).cursor < (*s).endOfData
-        && *(*s).cursor as libc::c_int == character as libc::c_int
+        && *(*s).cursor as i32 == character as i32
     {
         (*s).cursor = ((*s).cursor).offset(1);
-        return 1 as libc::c_int != 0;
+        return 1 as i32 != 0;
     }
-    return 0 as libc::c_int != 0;
+    return 0 as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
-    let mut bytesSize: libc::c_int = StrLen(bytes) as libc::c_int;
+    let mut bytesSize: i32 = StrLen(bytes) as i32;
     let mut s: ParseState =  ParseState {
             cursor: 0 as *const libc::c_char,
             endOfData: 0 as *const libc::c_char,
@@ -201,26 +201,26 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
     s.cursor = bytes;
     s.endOfData = (s.cursor).offset(bytesSize as isize);
     let mut mesh: *mut Mesh = Mesh_Create();
-    let mut vertexCount: i32 = 0 as libc::c_int;
-    let mut indexCount: i32 = 0 as libc::c_int;
-    let mut faceCount: i32 = 0 as libc::c_int;
+    let mut vertexCount: i32 = 0 as i32;
+    let mut indexCount: i32 = 0 as i32;
+    let mut faceCount: i32 = 0 as i32;
     let mut positions_size: i32 = 0;
     let mut positions_capacity: i32 = 0;
     let mut positions_data: *mut Vec3 = 0 as *mut Vec3;
-    positions_capacity = 0 as libc::c_int;
-    positions_size = 0 as libc::c_int;
+    positions_capacity = 0 as i32;
+    positions_size = 0 as i32;
     positions_data = 0 as *mut Vec3;
     let mut uvs_size: i32 = 0;
     let mut uvs_capacity: i32 = 0;
     let mut uvs_data: *mut Vec2 = 0 as *mut Vec2;
-    uvs_capacity = 0 as libc::c_int;
-    uvs_size = 0 as libc::c_int;
+    uvs_capacity = 0 as i32;
+    uvs_size = 0 as i32;
     uvs_data = 0 as *mut Vec2;
     let mut normals_size: i32 = 0;
     let mut normals_capacity: i32 = 0;
     let mut normals_data: *mut Vec3 = 0 as *mut Vec3;
-    normals_capacity = 0 as libc::c_int;
-    normals_size = 0 as libc::c_int;
+    normals_capacity = 0 as i32;
+    normals_size = 0 as i32;
     normals_data = 0 as *mut Vec3;
     if (positions_capacity < (0.008f32 * bytesSize as f32) as i32)
         as libc::c_long != 0
@@ -234,7 +234,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             (positions_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    if (uvs_capacity < (0.008f32 * bytesSize as f32) as i32) as libc::c_int
+    if (uvs_capacity < (0.008f32 * bytesSize as f32) as i32) as i32
         as libc::c_long != 0
     {
         uvs_capacity = (0.008f32 * bytesSize as f32) as i32;
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
         s.lineNumber += 1;
         let mut token: [libc::c_char; 16] = [0; 16];
         ConsumeWhitespace(&mut s);
-        ConsumeToken(token.as_mut_ptr(), 16 as libc::c_int, &mut s);
+        ConsumeToken(token.as_mut_ptr(), 16 as i32, &mut s);
         ConsumeWhitespace(&mut s);
         if StrEqual(
             token.as_mut_ptr() as cstr,
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             token.as_mut_ptr() as cstr,
             b"v\0" as *const u8 as *const libc::c_char,
         ) {
-            if positions_size == 2147483647 as libc::c_int {
+            if positions_size == 2147483647 as i32 {
                 Obj_Fatal(
                     b".obj data contains more vertex positions than will fit in an ArrayList.\0"
                         as *const u8 as *const libc::c_char,
@@ -286,9 +286,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 );
             }
             let mut p = Vec3::ZERO;
-            if !(ConsumeFloat(&mut p.x, &mut s) as libc::c_int != 0
-                && ConsumeFloat(&mut p.y, &mut s) as libc::c_int != 0
-                && ConsumeFloat(&mut p.z, &mut s) as libc::c_int != 0)
+            if !(ConsumeFloat(&mut p.x, &mut s) as i32 != 0
+                && ConsumeFloat(&mut p.y, &mut s) as i32 != 0
+                && ConsumeFloat(&mut p.z, &mut s) as i32 != 0)
             {
                 Obj_Fatal(
                     b"Failed to parse geometric vertex from .obj data.\0" as *const u8
@@ -299,9 +299,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             if (positions_capacity == positions_size) as libc::c_long != 0
             {
                 positions_capacity = if positions_capacity != 0 {
-                    positions_capacity * 2 as libc::c_int
+                    positions_capacity * 2 as i32
                 } else {
-                    1 as libc::c_int
+                    1 as i32
                 };
                 let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_2: *mut *mut libc::c_void = &mut positions_data
@@ -318,7 +318,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             token.as_mut_ptr() as cstr,
             b"vt\0" as *const u8 as *const libc::c_char,
         ) {
-            if uvs_size == 2147483647 as libc::c_int {
+            if uvs_size == 2147483647 as i32 {
                 Obj_Fatal(
                     b".obj data contains more UVs than will fit in an ArrayList.\0"
                         as *const u8 as *const libc::c_char,
@@ -326,8 +326,8 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 );
             }
             let mut uv = Vec2::ZERO;
-            if !(ConsumeFloat(&mut uv.x, &mut s) as libc::c_int != 0
-                && ConsumeFloat(&mut uv.y, &mut s) as libc::c_int != 0)
+            if !(ConsumeFloat(&mut uv.x, &mut s) as i32 != 0
+                && ConsumeFloat(&mut uv.y, &mut s) as i32 != 0)
             {
                 Obj_Fatal(
                     b"Failed to parse texture vertex from .obj data.\0" as *const u8
@@ -337,9 +337,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             }
             if (uvs_capacity == uvs_size) as libc::c_long != 0 {
                 uvs_capacity = if uvs_capacity != 0 {
-                    uvs_capacity * 2 as libc::c_int
+                    uvs_capacity * 2 as i32
                 } else {
-                    1 as libc::c_int
+                    1 as i32
                 };
                 let mut elemSize_3: usize = ::core::mem::size_of::<Vec2>();
                 let mut pData_3: *mut *mut libc::c_void = &mut uvs_data
@@ -356,7 +356,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             token.as_mut_ptr() as cstr,
             b"vn\0" as *const u8 as *const libc::c_char,
         ) {
-            if normals_size == 2147483647 as libc::c_int {
+            if normals_size == 2147483647 as i32 {
                 Obj_Fatal(
                     b".obj data contains more normals than will fit in an ArrayList.\0"
                         as *const u8 as *const libc::c_char,
@@ -364,9 +364,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 );
             }
             let mut n = Vec3::ZERO;
-            if !(ConsumeFloat(&mut n.x, &mut s) as libc::c_int != 0
-                && ConsumeFloat(&mut n.y, &mut s) as libc::c_int != 0
-                && ConsumeFloat(&mut n.z, &mut s) as libc::c_int != 0)
+            if !(ConsumeFloat(&mut n.x, &mut s) as i32 != 0
+                && ConsumeFloat(&mut n.y, &mut s) as i32 != 0
+                && ConsumeFloat(&mut n.z, &mut s) as i32 != 0)
             {
                 Obj_Fatal(
                     b"Failed to parse vertex normal from .obj data.\0" as *const u8
@@ -376,9 +376,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             }
             if (normals_capacity == normals_size) as libc::c_long != 0 {
                 normals_capacity = if normals_capacity != 0 {
-                    normals_capacity * 2 as libc::c_int
+                    normals_capacity * 2 as i32
                 } else {
-                    1 as libc::c_int
+                    1 as i32
                 };
                 let mut elemSize_4: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_4: *mut *mut libc::c_void = &mut normals_data
@@ -395,7 +395,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             token.as_mut_ptr() as cstr,
             b"f\0" as *const u8 as *const libc::c_char,
         ) {
-            let mut vertexIndicesCount: i32 = 0 as libc::c_int;
+            let mut vertexIndicesCount: i32 = 0 as i32;
             let mut vertexIndices: [VertexIndices; 4] = [
                 VertexIndices {
                     iP: 0,
@@ -418,14 +418,14 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     iUV: 0,
                 },
             ];
-            while s.cursor < s.endOfData && *s.cursor as libc::c_int != '\r' as i32
-                && *s.cursor as libc::c_int != '\n' as i32
+            while s.cursor < s.endOfData && *s.cursor as i32 != '\r' as i32
+                && *s.cursor as i32 != '\n' as i32
             {
                 let mut face: *mut VertexIndices = &mut *vertexIndices
                     .as_mut_ptr()
                     .offset(vertexIndicesCount as isize) as *mut VertexIndices;
-                (*face).iUV = -(2147483647 as libc::c_int) - 1 as libc::c_int;
-                (*face).iN = -(2147483647 as libc::c_int) - 1 as libc::c_int;
+                (*face).iUV = -(2147483647 as i32) - 1 as i32;
+                (*face).iN = -(2147483647 as i32) - 1 as i32;
                 if !ConsumeInt(&mut (*face).iP, &mut s) {
                     Obj_Fatal(
                         b"Failed to parse face vertex index from .obj data.\0"
@@ -442,9 +442,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 vertexIndicesCount += 1;
                 ConsumeWhitespace(&mut s);
             }
-            let mut i: i32 = 0 as libc::c_int;
+            let mut i: i32 = 0 as i32;
             while i < vertexIndicesCount {
-                if vertexCount == 2147483647 as libc::c_int {
+                if vertexCount == 2147483647 as i32 {
                     Obj_Fatal(
                         b".obj data contains more vertex indices than will fit in an ArrayList.\0"
                             as *const u8 as *const libc::c_char,
@@ -460,12 +460,12 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                         uv: Vec2::ZERO,
                     };
                 (*face_0).iP
-                    += if (*face_0).iP < 0 as libc::c_int {
+                    += if (*face_0).iP < 0 as i32 {
                         positions_size
                     } else {
-                        -(1 as libc::c_int)
+                        -(1 as i32)
                     };
-                if (*face_0).iP < 0 as libc::c_int || (*face_0).iP >= positions_size {
+                if (*face_0).iP < 0 as i32 || (*face_0).iP >= positions_size {
                     Obj_Fatal(
                         b"Face vertex index is out of range in .obj data\0" as *const u8
                             as *const libc::c_char,
@@ -473,14 +473,14 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     );
                 }
                 vertex.p = *positions_data.offset((*face_0).iP as isize);
-                if (*face_0).iN != -(2147483647 as libc::c_int) - 1 as libc::c_int {
+                if (*face_0).iN != -(2147483647 as i32) - 1 as i32 {
                     (*face_0).iN
-                        += if (*face_0).iN < 0 as libc::c_int {
+                        += if (*face_0).iN < 0 as i32 {
                             normals_size
                         } else {
-                            -(1 as libc::c_int)
+                            -(1 as i32)
                         };
-                    if (*face_0).iN < 0 as libc::c_int || (*face_0).iN >= normals_size {
+                    if (*face_0).iN < 0 as i32 || (*face_0).iN >= normals_size {
                         Obj_Fatal(
                             b"Face normal index is out of range in .obj data\0"
                                 as *const u8 as *const libc::c_char,
@@ -489,14 +489,14 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     }
                     vertex.n = *normals_data.offset((*face_0).iN as isize);
                 }
-                if (*face_0).iUV != -(2147483647 as libc::c_int) - 1 as libc::c_int {
+                if (*face_0).iUV != -(2147483647 as i32) - 1 as i32 {
                     (*face_0).iUV
-                        += if (*face_0).iUV < 0 as libc::c_int {
+                        += if (*face_0).iUV < 0 as i32 {
                             uvs_size
                         } else {
-                            -(1 as libc::c_int)
+                            -(1 as i32)
                         };
-                    if (*face_0).iUV < 0 as libc::c_int || (*face_0).iUV >= uvs_size {
+                    if (*face_0).iUV < 0 as i32 || (*face_0).iUV >= uvs_size {
                         Obj_Fatal(
                             b"Face UV index is out of range in .obj data\0" as *const u8
                                 as *const libc::c_char,
@@ -509,7 +509,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 Mesh_AddVertexRaw(mesh, &mut vertex);
                 i += 1;
             }
-            if indexCount >= 2147483647 as libc::c_int - vertexIndicesCount {
+            if indexCount >= 2147483647 as i32 - vertexIndicesCount {
                 Obj_Fatal(
                     b".obj data contains more vertex indices than will fit in an ArrayList\0"
                         as *const u8 as *const libc::c_char,
@@ -518,9 +518,9 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             }
             let mut vertices: *mut Vertex = Mesh_GetVertexData(mesh);
             let mut verticesLen: i32 = Mesh_GetVertexCount(mesh);
-            let mut i_0: i32 = 0 as libc::c_int;
+            let mut i_0: i32 = 0 as i32;
             while i_0 < vertexIndicesCount {
-                let mut j: i32 = i_0 + 1 as libc::c_int;
+                let mut j: i32 = i_0 + 1 as i32;
                 while j < vertexIndicesCount {
                     let mut p1: Vec3 = (*vertices
                         .offset((verticesLen - vertexIndicesCount + i_0) as isize))
@@ -539,24 +539,24 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 }
                 i_0 += 1;
             }
-            if vertexIndicesCount == 3 as libc::c_int {
-                faceCount += 1 as libc::c_int;
+            if vertexIndicesCount == 3 as i32 {
+                faceCount += 1 as i32;
                 indexCount += vertexIndicesCount;
                 Mesh_AddTri(
                     mesh,
-                    vertexCount - 3 as libc::c_int,
-                    vertexCount - 2 as libc::c_int,
-                    vertexCount - 1 as libc::c_int,
+                    vertexCount - 3 as i32,
+                    vertexCount - 2 as i32,
+                    vertexCount - 1 as i32,
                 );
-            } else if vertexIndicesCount == 4 as libc::c_int {
-                faceCount += 2 as libc::c_int;
+            } else if vertexIndicesCount == 4 as i32 {
+                faceCount += 2 as i32;
                 indexCount += vertexIndicesCount;
                 Mesh_AddQuad(
                     mesh,
-                    vertexCount - 4 as libc::c_int,
-                    vertexCount - 3 as libc::c_int,
-                    vertexCount - 2 as libc::c_int,
-                    vertexCount - 1 as libc::c_int,
+                    vertexCount - 4 as i32,
+                    vertexCount - 3 as i32,
+                    vertexCount - 2 as i32,
+                    vertexCount - 1 as i32,
                 );
             } else {
                 Obj_Fatal(
@@ -568,47 +568,47 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
         } else if !(StrEqual(
             token.as_mut_ptr() as cstr,
             b"#\0" as *const u8 as *const libc::c_char,
-        ) as libc::c_int != 0
+        ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"f\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"s\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"p\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"l\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"g\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"o\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"maplib\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"usemap\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"usemtl\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0
+            ) as i32 != 0
             || StrEqual(
                 token.as_mut_ptr() as cstr,
                 b"mtllib\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 0)
+            ) as i32 != 0)
         {
             Obj_Fatal(
                 b"Unsupported token in .obj data.\0" as *const u8 as *const libc::c_char,

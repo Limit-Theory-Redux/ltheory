@@ -20,12 +20,12 @@ extern "C" {
     fn Shader_Free(_: *mut Shader);
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
-    fn Shader_GetVariable(_: *mut Shader, _: cstr) -> libc::c_int;
-    fn Shader_ISetMatrix(_: libc::c_int, _: *mut Matrix);
-    fn Shader_ISetTex1D(_: libc::c_int, _: *mut Tex1D);
-    fn Shader_ISetTex2D(_: libc::c_int, _: *mut Tex2D);
-    fn Shader_ISetTex3D(_: libc::c_int, _: *mut Tex3D);
-    fn Shader_ISetTexCube(_: libc::c_int, _: *mut TexCube);
+    fn Shader_GetVariable(_: *mut Shader, _: cstr) -> i32;
+    fn Shader_ISetMatrix(_: i32, _: *mut Matrix);
+    fn Shader_ISetTex1D(_: i32, _: *mut Tex1D);
+    fn Shader_ISetTex2D(_: i32, _: *mut Tex2D);
+    fn Shader_ISetTex3D(_: i32, _: *mut Tex3D);
+    fn Shader_ISetTexCube(_: i32, _: *mut TexCube);
     fn Tex1D_Acquire(_: *mut Tex1D);
     fn Tex1D_Free(_: *mut Tex1D);
     fn Tex2D_Acquire(_: *mut Tex2D);
@@ -59,14 +59,14 @@ pub union C2RustUnnamed {
     pub asFloat2: Vec2,
     pub asFloat3: Vec3,
     pub asFloat4: Vec4,
-    pub asInt: libc::c_int,
+    pub asInt: i32,
     pub asMatrix: *mut Matrix,
     pub asTex1D: *mut Tex1D,
     pub asTex2D: *mut Tex2D,
     pub asTex3D: *mut Tex3D,
     pub asTexCube: *mut TexCube,
 }
-pub type GLint = libc::c_int;
+pub type GLint = i32;
 pub type GLfloat = f32;
 pub type PFNGLUNIFORM1FPROC = Option::<unsafe extern "C" fn(GLint, GLfloat) -> ()>;
 pub type PFNGLUNIFORM1IPROC = Option::<unsafe extern "C" fn(GLint, GLint) -> ()>;
@@ -81,25 +81,25 @@ pub type PFNGLUNIFORM4FPROC = Option::<
 >;
 
 #[no_mangle]
-pub static mut ElemType_Float: u32 = 1 as libc::c_int as u32;
+pub static mut ElemType_Float: u32 = 1 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_Float2: u32 = 2 as libc::c_int as u32;
+pub static mut ElemType_Float2: u32 = 2 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_Float3: u32 = 3 as libc::c_int as u32;
+pub static mut ElemType_Float3: u32 = 3 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_Float4: u32 = 4 as libc::c_int as u32;
+pub static mut ElemType_Float4: u32 = 4 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_Int: u32 = 5 as libc::c_int as u32;
+pub static mut ElemType_Int: u32 = 5 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_Matrix: u32 = 6 as libc::c_int as u32;
+pub static mut ElemType_Matrix: u32 = 6 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_Tex1D: u32 = 7 as libc::c_int as u32;
+pub static mut ElemType_Tex1D: u32 = 7 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_Tex2D: u32 = 8 as libc::c_int as u32;
+pub static mut ElemType_Tex2D: u32 = 8 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_Tex3D: u32 = 9 as libc::c_int as u32;
+pub static mut ElemType_Tex3D: u32 = 9 as i32 as u32;
 #[no_mangle]
-pub static mut ElemType_TexCube: u32 = 10 as libc::c_int as u32;
+pub static mut ElemType_TexCube: u32 = 10 as i32 as u32;
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Create(
     mut shader: *mut Shader,
@@ -107,9 +107,9 @@ pub unsafe extern "C" fn ShaderState_Create(
     let mut this: *mut ShaderState = MemAlloc(
         ::core::mem::size_of::<ShaderState>() as usize,
     ) as *mut ShaderState;
-    (*this)._refCount = 1 as libc::c_int as u32;
-    (*this).elems_capacity = 0 as libc::c_int;
-    (*this).elems_size = 0 as libc::c_int;
+    (*this)._refCount = 1 as i32 as u32;
+    (*this).elems_capacity = 0 as i32;
+    (*this).elems_size = 0 as i32;
     (*this).elems_data = 0 as *mut Elem;
     Shader_Acquire(shader);
     (*this).shader = shader;
@@ -124,7 +124,7 @@ pub unsafe extern "C" fn ShaderState_Free(mut this: *mut ShaderState) {
     if !this.is_null()
         && {
             (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-            (*this)._refCount <= 0 as libc::c_int as libc::c_uint
+            (*this)._refCount <= 0 as i32 as u32
         }
     {
         let mut e: *mut Elem = (*this).elems_data;
@@ -180,9 +180,9 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -214,9 +214,9 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -249,9 +249,9 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -285,9 +285,9 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -305,7 +305,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
 pub unsafe extern "C" fn ShaderState_SetInt(
     mut this: *mut ShaderState,
     mut name: cstr,
-    mut x: libc::c_int,
+    mut x: i32,
 ) {
     let mut elem: Elem =  Elem {
             type_0: ElemType_Int,
@@ -318,9 +318,9 @@ pub unsafe extern "C" fn ShaderState_SetInt(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -351,9 +351,9 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -385,9 +385,9 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -419,9 +419,9 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -453,9 +453,9 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
@@ -487,9 +487,9 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
     {
         (*this)
             .elems_capacity = if (*this).elems_capacity != 0 {
-            (*this).elems_capacity * 2 as libc::c_int
+            (*this).elems_capacity * 2 as i32
         } else {
-            1 as libc::c_int
+            1 as i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data

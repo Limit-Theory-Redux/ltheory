@@ -4,10 +4,10 @@ use crate::internal::Memory::*;
 extern "C" {
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::size_t,
+        _: usize,
         _: *const libc::c_char,
         _: ...
-    ) -> libc::c_int;
+    ) -> i32;
     fn Button_ToDeviceType(_: Button) -> DeviceType;
 }
 pub type cstr = *const libc::c_char;
@@ -32,7 +32,7 @@ pub unsafe extern "C" fn DeviceType_ToString(mut deviceType: DeviceType) -> cstr
                 (::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(
                         ::core::mem::size_of::<libc::c_char>(),
-                    ) as libc::c_int as libc::size_t,
+                    ) as i32 as usize,
                 b"Unknown (%i)\0" as *const u8 as *const libc::c_char,
                 deviceType,
             );

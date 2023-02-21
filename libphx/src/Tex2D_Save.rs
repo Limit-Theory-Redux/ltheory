@@ -8,9 +8,9 @@ pub type cstr = *const libc::c_char;
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Save_Png(
     mut path: cstr,
-    mut sx: libc::c_int,
-    mut sy: libc::c_int,
-    mut components: libc::c_int,
+    mut sx: i32,
+    mut sy: i32,
+    mut components: i32,
     mut data: *mut uchar,
 ) -> bool {
     let mut stride: i32 = components * sx;

@@ -6,10 +6,10 @@ extern "C" {
     fn DeviceType_ToString(_: DeviceType) -> cstr;
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::size_t,
+        _: usize,
         _: *const libc::c_char,
         _: ...
-    ) -> libc::c_int;
+    ) -> i32;
 }
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn Device_ToString(mut this: *mut Device) -> cstr {
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as libc::size_t,
+            as i32 as usize,
         b"%s (%u)\0" as *const u8 as *const libc::c_char,
         DeviceType_ToString((*this).type_0),
         (*this).id,

@@ -16,12 +16,12 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_System_Create(
         system: *mut *mut FMOD_SYSTEM,
-        headerversion: libc::c_uint,
+        headerversion: u32,
     ) -> FMOD_RESULT;
     fn FMOD_System_Release(system: *mut FMOD_SYSTEM) -> FMOD_RESULT;
     fn FMOD_System_Init(
         system: *mut FMOD_SYSTEM,
-        maxchannels: libc::c_int,
+        maxchannels: i32,
         flags: FMOD_INITFLAGS,
         extradriverdata: *mut libc::c_void,
     ) -> FMOD_RESULT;
@@ -34,7 +34,7 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_System_Set3DListenerAttributes(
         system: *mut FMOD_SYSTEM,
-        listener: libc::c_int,
+        listener: i32,
         pos: *const FMOD_VECTOR,
         vel: *const FMOD_VECTOR,
         forward: *const FMOD_VECTOR,
@@ -42,7 +42,7 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_System_GetVersion(
         system: *mut FMOD_SYSTEM,
-        version: *mut libc::c_uint,
+        version: *mut u32,
     ) -> FMOD_RESULT;
     fn MemPool_Create(cellSize: u32, blockSize: u32) -> *mut MemPool;
     fn MemPool_Free(_: *mut MemPool);
@@ -59,7 +59,7 @@ extern "C" {
     fn StrMap_Remove(_: *mut StrMap, key: cstr);
     fn StrMap_Set(_: *mut StrMap, key: cstr, val: *mut libc::c_void);
 }
-pub type uint = libc::c_uint;
+pub type uint = u32;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -97,7 +97,7 @@ pub struct Audio {
     pub autoFwd: *const Vec3,
     pub autoUp: *const Vec3,
 }
-pub type FMOD_RESULT = libc::c_uint;
+pub type FMOD_RESULT = u32;
 pub const FMOD_RESULT_FORCEINT: FMOD_RESULT = 65536;
 pub const FMOD_ERR_TOOMANYSAMPLES: FMOD_RESULT = 81;
 pub const FMOD_ERR_RECORD_DISCONNECTED: FMOD_RESULT = 80;
@@ -181,18 +181,18 @@ pub const FMOD_ERR_CHANNEL_STOLEN: FMOD_RESULT = 3;
 pub const FMOD_ERR_CHANNEL_ALLOC: FMOD_RESULT = 2;
 pub const FMOD_ERR_BADCOMMAND: FMOD_RESULT = 1;
 pub const FMOD_OK: FMOD_RESULT = 0;
-pub type FMOD_INITFLAGS = libc::c_uint;
+pub type FMOD_INITFLAGS = u32;
 pub type FMOD_DEBUG_CALLBACK = Option::<
     unsafe extern "C" fn(
         FMOD_DEBUG_FLAGS,
         *const libc::c_char,
-        libc::c_int,
+        i32,
         *const libc::c_char,
         *const libc::c_char,
     ) -> FMOD_RESULT,
 >;
-pub type FMOD_DEBUG_FLAGS = libc::c_uint;
-pub type FMOD_DEBUG_MODE = libc::c_uint;
+pub type FMOD_DEBUG_FLAGS = u32;
+pub type FMOD_DEBUG_MODE = u32;
 pub const FMOD_DEBUG_MODE_FORCEINT: FMOD_DEBUG_MODE = 65536;
 pub const FMOD_DEBUG_MODE_CALLBACK: FMOD_DEBUG_MODE = 2;
 pub const FMOD_DEBUG_MODE_FILE: FMOD_DEBUG_MODE = 1;
@@ -207,7 +207,7 @@ pub struct FMOD_VECTOR {
 
 #[inline]
 unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> cstr {
-    match self_1 as libc::c_uint {
+    match self_1 as u32 {
         0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
         1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
         2 => return b"FMOD_ERR_CHANNEL_ALLOC\0" as *const u8 as *const libc::c_char,
@@ -315,7 +315,7 @@ unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> cstr {
     return b"Unknown Error\0" as *const u8 as *const libc::c_char;
 }
 unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
-    match errcode as libc::c_uint {
+    match errcode as u32 {
         0 => return b"No errors.\0" as *const u8 as *const libc::c_char,
         1 => {
             return b"Tried to call a function on a data type that does not allow this type of functionality (ie calling Sound::lock on a streaming sound).\0"
@@ -638,10 +638,10 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 unsafe extern "C" fn FMOD_CheckError(
     mut result: FMOD_RESULT,
     mut file: cstr,
-    mut line: libc::c_int,
+    mut line: i32,
     mut func: cstr,
 ) {
-    if result as libc::c_uint != FMOD_OK as libc::c_int as libc::c_uint {
+    if result as u32 != FMOD_OK as i32 as u32 {
         Fatal(
             b"%s: %s\n%s\n  [%s @ Line %d]\0" as *const u8 as *const libc::c_char,
             func,
@@ -669,8 +669,8 @@ static mut this: Audio = Audio {
 };
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Init() {
-    // let mut flags: FMOD_DEBUG_FLAGS = 0 as libc::c_int as FMOD_DEBUG_FLAGS;
-    // flags |= 0 as libc::c_int as libc::c_uint;
+    // let mut flags: FMOD_DEBUG_FLAGS = 0 as i32 as FMOD_DEBUG_FLAGS;
+    // flags |= 0 as i32 as u32;
     // let mut res: FMOD_RESULT = FMOD_OK;
     // res = FMOD_Debug_Initialize(
     //     flags,
@@ -678,23 +678,23 @@ pub unsafe extern "C" fn Audio_Init() {
     //     None,
     //     b"log/fmod.txt\0" as *const u8 as *const libc::c_char,
     // );
-    // if res as libc::c_uint != FMOD_OK as libc::c_int as libc::c_uint
-    //     && res as libc::c_uint != FMOD_ERR_UNSUPPORTED as libc::c_int as libc::c_uint
+    // if res as u32 != FMOD_OK as i32 as u32
+    //     && res as u32 != FMOD_ERR_UNSUPPORTED as i32 as u32
     // {
     //     FMOD_CheckError(
     //         res,
     //         b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //             as *const libc::c_char,
-    //         39 as libc::c_int,
+    //         39 as i32,
     //         (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //             .as_ptr(),
     //     );
     // }
     // FMOD_CheckError(
-    //     FMOD_System_Create(&mut this.handle, 0x20208 as libc::c_int as libc::c_uint),
+    //     FMOD_System_Create(&mut this.handle, 0x20208 as i32 as u32),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
-    //     43 as libc::c_int,
+    //     43 as i32,
     //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
@@ -703,38 +703,38 @@ pub unsafe extern "C" fn Audio_Init() {
     //     FMOD_System_GetVersion(this.handle, &mut version),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
-    //     46 as libc::c_int,
+    //     46 as i32,
     //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
-    // if version < 0x20208 as libc::c_int as libc::c_uint {
+    // if version < 0x20208 as i32 as u32 {
     //     Fatal(
     //         b"Audio_Create: FMOD library link/compile version mismatch\0" as *const u8
     //             as *const libc::c_char,
     //     );
     // }
-    // let mut flags_0: FMOD_INITFLAGS = 0 as libc::c_int as FMOD_INITFLAGS;
-    // flags_0 |= 0 as libc::c_int as libc::c_uint;
-    // flags_0 |= 0x4 as libc::c_int as libc::c_uint;
-    // flags_0 |= 0x200 as libc::c_int as libc::c_uint;
+    // let mut flags_0: FMOD_INITFLAGS = 0 as i32 as FMOD_INITFLAGS;
+    // flags_0 |= 0 as i32 as u32;
+    // flags_0 |= 0x4 as i32 as u32;
+    // flags_0 |= 0x200 as i32 as u32;
     // FMOD_CheckError(
     //     FMOD_System_Init(
     //         this.handle,
-    //         1024 as libc::c_int,
+    //         1024 as i32,
     //         flags_0,
     //         0 as *mut libc::c_void,
     //     ),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
-    //     59 as libc::c_int,
+    //     59 as i32,
     //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
-    // this.descMap = StrMap_Create(128 as libc::c_int as u32);
+    // this.descMap = StrMap_Create(128 as i32 as u32);
     // this
     //     .soundPool = MemPool_Create(
     //     ::core::mem::size_of::<Sound>() as usize as u32,
-    //     128 as libc::c_int as u32,
+    //     128 as i32 as u32,
     // );
 }
 #[no_mangle]
@@ -743,7 +743,7 @@ pub unsafe extern "C" fn Audio_Free() {
     //     FMOD_System_Release(this.handle),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
-    //     69 as libc::c_int,
+    //     69 as i32,
     //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Free\0"))
     //         .as_ptr(),
     // );
@@ -775,7 +775,7 @@ pub unsafe extern "C" fn Audio_Set3DSettings(
     //     FMOD_System_Set3DSettings(this.handle, doppler, scale, rolloff),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
-    //     85 as libc::c_int,
+    //     85 as i32,
     //     (*::core::mem::transmute::<
     //         &[u8; 20],
     //         &[libc::c_char; 20],
@@ -793,7 +793,7 @@ pub unsafe extern "C" fn Audio_SetListenerPos(
     // FMOD_CheckError(
     //     FMOD_System_Set3DListenerAttributes(
     //         this.handle,
-    //         0 as libc::c_int,
+    //         0 as i32,
     //         pos as *mut FMOD_VECTOR,
     //         vel as *mut FMOD_VECTOR,
     //         fwd as *mut FMOD_VECTOR,
@@ -801,7 +801,7 @@ pub unsafe extern "C" fn Audio_SetListenerPos(
     //     ),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
-    //     106 as libc::c_int,
+    //     106 as i32,
     //     (*::core::mem::transmute::<
     //         &[u8; 21],
     //         &[libc::c_char; 21],
@@ -815,15 +815,15 @@ pub unsafe extern "C" fn Audio_Update() {
     //     FMOD_System_Update(this.handle),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
-    //     110 as libc::c_int,
+    //     110 as i32,
     //     (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Audio_Update\0"))
     //         .as_ptr(),
     // );
     // Audio_SetListenerPos(this.autoPos, this.autoVel, this.autoFwd, this.autoUp);
-    // let mut i: libc::c_int = 0 as libc::c_int;
+    // let mut i: i32 = 0 as i32;
     // while i < this.playingSounds_size {
     //     let mut sound: *mut Sound = *(this.playingSounds_data).offset(i as isize);
-    //     if !Sound_IsFreed(sound) && Sound_IsPlaying(sound) as libc::c_int != 0 {
+    //     if !Sound_IsFreed(sound) && Sound_IsPlaying(sound) as i32 != 0 {
     //         Sound_Update(sound);
     //     } else {
     //         this.playingSounds_size -= 1;
@@ -835,13 +835,13 @@ pub unsafe extern "C" fn Audio_Update() {
     //     }
     //     i += 1;
     // }
-    // let mut i_0: libc::c_int = 0 as libc::c_int;
+    // let mut i_0: i32 = 0 as i32;
     // while i_0 < this.freeingSounds_size {
     //     let mut sound_0: *mut Sound = *(this.freeingSounds_data).offset(i_0 as isize);
     //     Audio_DeallocSound(sound_0);
     //     i_0 += 1;
     // }
-    // this.freeingSounds_size = 0 as libc::c_int;
+    // this.freeingSounds_size = 0 as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetLoadedCount() -> i32 {
@@ -888,14 +888,14 @@ pub unsafe extern "C" fn Audio_DeallocSound(mut sound: *mut Sound) {
 #[no_mangle]
 pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
     if Sound_IsFreed(sound) {
-        if (this.freeingSounds_capacity == this.freeingSounds_size) as libc::c_int
+        if (this.freeingSounds_capacity == this.freeingSounds_size) as i32
             as libc::c_long != 0
         {
             this
                 .freeingSounds_capacity = if this.freeingSounds_capacity != 0 {
-                this.freeingSounds_capacity * 2 as libc::c_int
+                this.freeingSounds_capacity * 2 as i32
             } else {
-                1 as libc::c_int
+                1 as i32
             };
             let mut elemSize: usize = ::core::mem::size_of::<*mut Sound>();
             let mut pData: *mut *mut libc::c_void = &mut this.freeingSounds_data
@@ -910,14 +910,14 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
         let ref mut fresh3 = *(this.freeingSounds_data).offset(fresh2 as isize);
         *fresh3 = sound;
     } else if Sound_IsPlaying(sound) {
-        if (this.playingSounds_capacity == this.playingSounds_size) as libc::c_int
+        if (this.playingSounds_capacity == this.playingSounds_size) as i32
             as libc::c_long != 0
         {
             this
                 .playingSounds_capacity = if this.playingSounds_capacity != 0 {
-                this.playingSounds_capacity * 2 as libc::c_int
+                this.playingSounds_capacity * 2 as i32
             } else {
-                1 as libc::c_int
+                1 as i32
             };
             let mut elemSize_0: usize = ::core::mem::size_of::<*mut Sound>();
             let mut pData_0: *mut *mut libc::c_void = &mut this.playingSounds_data

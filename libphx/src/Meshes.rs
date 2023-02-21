@@ -8,10 +8,10 @@ extern "C" {
     fn Mesh_Create() -> *mut Mesh;
     fn Mesh_AddQuad(
         _: *mut Mesh,
-        _: libc::c_int,
-        _: libc::c_int,
-        _: libc::c_int,
-        _: libc::c_int,
+        _: i32,
+        _: i32,
+        _: i32,
+        _: i32,
     );
     fn Mesh_AddVertex(
         _: *mut Mesh,
@@ -24,7 +24,7 @@ extern "C" {
         u: f32,
         v: f32,
     );
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> libc::c_int;
+    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
     fn sqrt(_: f64) -> f64;
 }
@@ -46,27 +46,27 @@ unsafe extern "C" fn Mesh_AddPlane(
     mut origin: Vec3,
     mut du: Vec3,
     mut dv: Vec3,
-    mut resU: libc::c_int,
-    mut resV: libc::c_int,
+    mut resU: i32,
+    mut resV: i32,
 ) {
     let mut n: Vec3 = Vec3::cross(du, dv).normalize();
-    let mut iu: libc::c_int = 0 as libc::c_int;
+    let mut iu: i32 = 0 as i32;
     while iu < resU {
         let mut u: f32 = iu as f32
-            / (resU - 1 as libc::c_int) as f32;
-        let mut iv: libc::c_int = 0 as libc::c_int;
+            / (resU - 1 as i32) as f32;
+        let mut iv: i32 = 0 as i32;
         while iv < resV {
             let mut v: f32 = iv as f32
-                / (resV - 1 as libc::c_int) as f32;
+                / (resV - 1 as i32) as f32;
             let mut p: Vec3 = origin + du * u + dv * v;
             if iu != 0 && iv != 0 {
-                let mut vc: libc::c_int = Mesh_GetVertexCount(this);
+                let mut vc: i32 = Mesh_GetVertexCount(this);
                 Mesh_AddQuad(
                     this,
                     vc,
                     vc - resV,
-                    vc - resV - 1 as libc::c_int,
-                    vc - 1 as libc::c_int,
+                    vc - resV - 1 as i32,
+                    vc - 1 as i32,
                 );
             }
             Mesh_AddVertex(this, p.x, p.y, p.z, n.x, n.y, n.z, u, v);
@@ -76,7 +76,7 @@ unsafe extern "C" fn Mesh_AddPlane(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
+pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
     let origin: [Vec3; 6] = [
         Vec3::new(-1.0f32, -1.0f32, 1.0f32),
         Vec3::new(-1.0f32, -1.0f32, -1.0f32),
@@ -102,8 +102,8 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
         Vec3::new(0.0f32, 0.0f32, 2.0f32),
     ];
     let mut this: *mut Mesh = Mesh_Create();
-    let mut i: libc::c_int = 0 as libc::c_int;
-    while i < 6 as libc::c_int {
+    let mut i: i32 = 0 as i32;
+    while i < 6 as i32 {
         Mesh_AddPlane(
             this,
             origin[i as usize],
@@ -117,11 +117,11 @@ pub unsafe extern "C" fn Mesh_Box(mut res: libc::c_int) -> *mut Mesh {
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_BoxSphere(mut res: libc::c_int) -> *mut Mesh {
+pub unsafe extern "C" fn Mesh_BoxSphere(mut res: i32) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Box(res);
-    let mut vertexCount: libc::c_int = Mesh_GetVertexCount(this);
+    let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    let mut i: libc::c_int = 0 as libc::c_int;
+    let mut i: i32 = 0 as i32;
     while i < vertexCount {
         let mut vertex: *mut Vertex = vertexData.offset(i as isize);
         (*vertex).p = (*vertex).p.normalize();
@@ -134,8 +134,8 @@ pub unsafe extern "C" fn Mesh_Plane(
     mut origin: Vec3,
     mut du: Vec3,
     mut dv: Vec3,
-    mut resU: libc::c_int,
-    mut resV: libc::c_int,
+    mut resU: i32,
+    mut resV: i32,
 ) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Create();
     Mesh_AddPlane(this, origin, du, dv, resU, resV);

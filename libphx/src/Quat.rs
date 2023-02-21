@@ -2,8 +2,8 @@ use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
-    // fn __fpclassifyf(_: f32) -> libc::c_int;
-    // fn __fpclassifyd(_: f64) -> libc::c_int;
+    // fn __fpclassifyf(_: f32) -> i32;
+    // fn __fpclassifyd(_: f64) -> i32;
     fn acos(_: f64) -> f64;
     fn asin(_: f64) -> f64;
     fn cos(_: f64) -> f64;
@@ -13,10 +13,10 @@ extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn snprintf(
         _: *mut libc::c_char,
-        _: libc::size_t,
+        _: usize,
         _: *const libc::c_char,
         _: ...
-    ) -> libc::c_int;
+    ) -> i32;
 }
 pub type cstr = *const libc::c_char;
 
@@ -66,21 +66,21 @@ unsafe extern "C" fn Sin(mut t: f64) -> f64 {
 }
 #[inline]
 unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
-    let mut classification: libc::c_int = if ::core::mem::size_of::<f64>()
+    let mut classification: i32 = if ::core::mem::size_of::<f64>()
         as libc::c_ulong == ::core::mem::size_of::<f32>() as libc::c_ulong
     {
-        f32::classify(x as f32) as libc::c_int
+        f32::classify(x as f32) as i32
     } else if ::core::mem::size_of::<f64>() as libc::c_ulong
         == ::core::mem::size_of::<f64>() as libc::c_ulong
     {
-        f64::classify(x) as libc::c_int
+        f64::classify(x) as i32
     } else {3
     };
     match classification {
-        2 => return 0x4 as libc::c_int as Error,
-        5 => return 0x8 as libc::c_int as Error,
-        1 => return 0x20 as libc::c_int as Error,
-        3 | 4 => return 0 as libc::c_int as Error,
+        2 => return 0x4 as i32 as Error,
+        5 => return 0x8 as i32 as Error,
+        1 => return 0x20 as i32 as Error,
+        3 | 4 => return 0 as i32 as Error,
         _ => {
             Fatal(
                 b"Float_Validate: Unhandled case: %i\0" as *const u8
@@ -89,7 +89,7 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
             );
         }
     }
-    return 0 as libc::c_int as Error;
+    return 0 as i32 as Error;
 }
 #[inline]
 unsafe extern "C" fn Float_ApproximatelyEqual(
@@ -497,7 +497,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> cstr {
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
-            as libc::c_int as libc::size_t,
+            as i32 as usize,
         b"(%.4f, %.4f, %.4f, %.4f)\0" as *const u8 as *const libc::c_char,
         (*q).x as f64,
         (*q).y as f64,
@@ -508,7 +508,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> cstr {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Validate(mut q: *const Quat) -> Error {
-    let mut e: Error = 0 as libc::c_int as Error;
+    let mut e: Error = 0 as i32 as Error;
     e |= Float_Validate((*q).x as f64);
     e |= Float_Validate((*q).y as f64);
     e |= Float_Validate((*q).z as f64);

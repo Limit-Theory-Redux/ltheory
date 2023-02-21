@@ -8,7 +8,7 @@ extern "C" {
     pub type Tex3D;
     pub type TexCube;
     pub type Matrix;
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
+    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
 }
 pub type cstr = *const libc::c_char;
 
@@ -26,14 +26,14 @@ pub struct Vec4f {
 pub type ShaderVarType = i32;
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: cstr) -> ShaderVarType {
-    let mut i: ShaderVarType = 0x1 as libc::c_int;
-    while i <= 0xd as libc::c_int {
+    let mut i: ShaderVarType = 0x1 as i32;
+    while i <= 0xd as i32 {
         if StrEqual(s, ShaderVarType_GetGLSLName(i)) {
             return i;
         }
         i += 1;
     }
-    return 0 as libc::c_int;
+    return 0 as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut this: ShaderVarType) -> cstr {
@@ -78,27 +78,27 @@ pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> cstr 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_GetSize(
     mut this: ShaderVarType,
-) -> libc::c_int {
+) -> i32 {
     match this {
         1 => {
             return ::core::mem::size_of::<f32>() as libc::c_ulong
-                as libc::c_int;
+                as i32;
         }
-        2 => return ::core::mem::size_of::<Vec2>() as libc::c_ulong as libc::c_int,
-        3 => return ::core::mem::size_of::<Vec3>() as libc::c_ulong as libc::c_int,
-        4 => return ::core::mem::size_of::<Vec4f>() as libc::c_ulong as libc::c_int,
-        5 => return ::core::mem::size_of::<libc::c_int>() as libc::c_ulong as libc::c_int,
-        6 => return ::core::mem::size_of::<IVec2>() as libc::c_ulong as libc::c_int,
-        7 => return ::core::mem::size_of::<IVec3>() as libc::c_ulong as libc::c_int,
-        8 => return ::core::mem::size_of::<IVec4>() as libc::c_ulong as libc::c_int,
-        9 => return ::core::mem::size_of::<*mut Matrix>() as libc::c_ulong as libc::c_int,
-        10 => return ::core::mem::size_of::<*mut Tex1D>() as libc::c_ulong as libc::c_int,
-        11 => return ::core::mem::size_of::<*mut Tex2D>() as libc::c_ulong as libc::c_int,
-        12 => return ::core::mem::size_of::<*mut Tex3D>() as libc::c_ulong as libc::c_int,
+        2 => return ::core::mem::size_of::<Vec2>() as libc::c_ulong as i32,
+        3 => return ::core::mem::size_of::<Vec3>() as libc::c_ulong as i32,
+        4 => return ::core::mem::size_of::<Vec4f>() as libc::c_ulong as i32,
+        5 => return ::core::mem::size_of::<i32>() as libc::c_ulong as i32,
+        6 => return ::core::mem::size_of::<IVec2>() as libc::c_ulong as i32,
+        7 => return ::core::mem::size_of::<IVec3>() as libc::c_ulong as i32,
+        8 => return ::core::mem::size_of::<IVec4>() as libc::c_ulong as i32,
+        9 => return ::core::mem::size_of::<*mut Matrix>() as libc::c_ulong as i32,
+        10 => return ::core::mem::size_of::<*mut Tex1D>() as libc::c_ulong as i32,
+        11 => return ::core::mem::size_of::<*mut Tex2D>() as libc::c_ulong as i32,
+        12 => return ::core::mem::size_of::<*mut Tex3D>() as libc::c_ulong as i32,
         13 => {
-            return ::core::mem::size_of::<*mut TexCube>() as libc::c_ulong as libc::c_int;
+            return ::core::mem::size_of::<*mut TexCube>() as libc::c_ulong as i32;
         }
         _ => {}
     }
-    return 0 as libc::c_int;
+    return 0 as i32;
 }

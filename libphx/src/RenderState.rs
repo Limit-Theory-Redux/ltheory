@@ -14,21 +14,21 @@ extern "C" {
 pub type cstr = *const libc::c_char;
 pub type BlendMode = i32;
 pub type CullFace = i32;
-pub type GLenum = libc::c_uint;
+pub type GLenum = u32;
 pub type GLboolean = libc::c_uchar;
 pub type PFNGLBLENDFUNCSEPARATEPROC = Option::<
     unsafe extern "C" fn(GLenum, GLenum, GLenum, GLenum) -> (),
 >;
 static mut wireframe: [bool; 16] = [false; 16];
-static mut wireframeIndex: libc::c_int = -(1 as libc::c_int);
+static mut wireframeIndex: i32 = -(1 as i32);
 static mut depthTest: [bool; 16] = [false; 16];
-static mut depthTestIndex: libc::c_int = -(1 as libc::c_int);
-static mut blendModeIndex: libc::c_int = -(1 as libc::c_int);
+static mut depthTestIndex: i32 = -(1 as i32);
+static mut blendModeIndex: i32 = -(1 as i32);
 static mut blendMode: [BlendMode; 16] = [0; 16];
 static mut cullFace: [CullFace; 16] = [0; 16];
-static mut cullFaceIndex: libc::c_int = -(1 as libc::c_int);
+static mut cullFaceIndex: i32 = -(1 as i32);
 static mut depthWritable: [bool; 16] = [false; 16];
-static mut depthWritableIndex: libc::c_int = -(1 as libc::c_int);
+static mut depthWritableIndex: i32 = -(1 as i32);
 #[inline]
 unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
     match mode {
@@ -37,10 +37,10 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
                 .expect(
                     "non-null function pointer",
                 )(
-                1 as libc::c_int as GLenum,
-                1 as libc::c_int as GLenum,
-                1 as libc::c_int as GLenum,
-                1 as libc::c_int as GLenum,
+                1 as i32 as GLenum,
+                1 as i32 as GLenum,
+                1 as i32 as GLenum,
+                1 as i32 as GLenum,
             );
             return;
         }
@@ -49,19 +49,19 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
                 .expect(
                     "non-null function pointer",
                 )(
-                0x302 as libc::c_int as GLenum,
-                0x303 as libc::c_int as GLenum,
-                1 as libc::c_int as GLenum,
-                0x303 as libc::c_int as GLenum,
+                0x302 as i32 as GLenum,
+                0x303 as i32 as GLenum,
+                1 as i32 as GLenum,
+                0x303 as i32 as GLenum,
             );
             return;
         }
         3 => {
-            glBlendFunc(1 as libc::c_int as GLenum, 0x303 as libc::c_int as GLenum);
+            glBlendFunc(1 as i32 as GLenum, 0x303 as i32 as GLenum);
             return;
         }
         2 => {
-            glBlendFunc(1 as libc::c_int as GLenum, 0 as libc::c_int as GLenum);
+            glBlendFunc(1 as i32 as GLenum, 0 as i32 as GLenum);
             return;
         }
         _ => {}
@@ -71,17 +71,17 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
 unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
     match mode {
         0 => {
-            glDisable(0xb44 as libc::c_int as GLenum);
+            glDisable(0xb44 as i32 as GLenum);
             return;
         }
         1 => {
-            glEnable(0xb44 as libc::c_int as GLenum);
-            glCullFace(0x405 as libc::c_int as GLenum);
+            glEnable(0xb44 as i32 as GLenum);
+            glCullFace(0x405 as i32 as GLenum);
             return;
         }
         2 => {
-            glEnable(0xb44 as libc::c_int as GLenum);
-            glCullFace(0x404 as libc::c_int as GLenum);
+            glEnable(0xb44 as i32 as GLenum);
+            glCullFace(0x404 as i32 as GLenum);
             return;
         }
         _ => {}
@@ -90,9 +90,9 @@ unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
 #[inline]
 unsafe extern "C" fn RenderState_SetDepthTest(mut enabled: bool) {
     if enabled {
-        glEnable(0xb71 as libc::c_int as GLenum);
+        glEnable(0xb71 as i32 as GLenum);
     } else {
-        glDisable(0xb71 as libc::c_int as GLenum);
+        glDisable(0xb71 as i32 as GLenum);
     };
 }
 #[inline]
@@ -102,18 +102,18 @@ unsafe extern "C" fn RenderState_SetDepthWritable(mut enabled: bool) {
 #[inline]
 unsafe extern "C" fn RenderState_SetWireframe(mut enabled: bool) {
     if enabled {
-        glPolygonMode(0x408 as libc::c_int as GLenum, 0x1b01 as libc::c_int as GLenum);
+        glPolygonMode(0x408 as i32 as GLenum, 0x1b01 as i32 as GLenum);
     } else {
-        glPolygonMode(0x408 as libc::c_int as GLenum, 0x1b02 as libc::c_int as GLenum);
+        glPolygonMode(0x408 as i32 as GLenum, 0x1b02 as i32 as GLenum);
     };
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushAllDefaults() {
-    RenderState_PushBlendMode(2 as libc::c_int);
-    RenderState_PushCullFace(0 as libc::c_int);
-    RenderState_PushDepthTest(0 as libc::c_int != 0);
-    RenderState_PushDepthWritable(1 as libc::c_int != 0);
-    RenderState_PushWireframe(0 as libc::c_int != 0);
+    RenderState_PushBlendMode(2 as i32);
+    RenderState_PushCullFace(0 as i32);
+    RenderState_PushDepthTest(0 as i32 != 0);
+    RenderState_PushDepthWritable(1 as i32 != 0);
+    RenderState_PushWireframe(0 as i32 != 0);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopAll() {
@@ -125,33 +125,33 @@ pub unsafe extern "C" fn RenderState_PopAll() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopBlendMode() {
-    if blendModeIndex < 0 as libc::c_int {
+    if blendModeIndex < 0 as i32 {
         Fatal(
             b"RenderState_PopBlendMode: Attempting to pop an empty state stack\0"
                 as *const u8 as *const libc::c_char,
         );
     }
     blendModeIndex -= 1;
-    if blendModeIndex >= 0 as libc::c_int {
+    if blendModeIndex >= 0 as i32 {
         RenderState_SetBlendMode(blendMode[blendModeIndex as usize]);
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopWireframe() {
-    if wireframeIndex < 0 as libc::c_int {
+    if wireframeIndex < 0 as i32 {
         Fatal(
             b"RenderState_PopWireframe: Attempting to pop an empty state stack\0"
                 as *const u8 as *const libc::c_char,
         );
     }
     wireframeIndex -= 1;
-    if wireframeIndex >= 0 as libc::c_int {
+    if wireframeIndex >= 0 as i32 {
         RenderState_SetWireframe(wireframe[wireframeIndex as usize]);
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushBlendMode(mut value: BlendMode) {
-    if blendModeIndex + 1 as libc::c_int >= 16 as libc::c_int {
+    if blendModeIndex + 1 as i32 >= 16 as i32 {
         Fatal(
             b"RenderState_PushBlendMode: Maximum state stack depth exceeded\0"
                 as *const u8 as *const libc::c_char,
@@ -163,46 +163,46 @@ pub unsafe extern "C" fn RenderState_PushBlendMode(mut value: BlendMode) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopDepthTest() {
-    if depthTestIndex < 0 as libc::c_int {
+    if depthTestIndex < 0 as i32 {
         Fatal(
             b"RenderState_PopDepthTest: Attempting to pop an empty state stack\0"
                 as *const u8 as *const libc::c_char,
         );
     }
     depthTestIndex -= 1;
-    if depthTestIndex >= 0 as libc::c_int {
+    if depthTestIndex >= 0 as i32 {
         RenderState_SetDepthTest(depthTest[depthTestIndex as usize]);
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopCullFace() {
-    if cullFaceIndex < 0 as libc::c_int {
+    if cullFaceIndex < 0 as i32 {
         Fatal(
             b"RenderState_PopCullFace: Attempting to pop an empty state stack\0"
                 as *const u8 as *const libc::c_char,
         );
     }
     cullFaceIndex -= 1;
-    if cullFaceIndex >= 0 as libc::c_int {
+    if cullFaceIndex >= 0 as i32 {
         RenderState_SetCullFace(cullFace[cullFaceIndex as usize]);
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopDepthWritable() {
-    if depthWritableIndex < 0 as libc::c_int {
+    if depthWritableIndex < 0 as i32 {
         Fatal(
             b"RenderState_PopDepthWritable: Attempting to pop an empty state stack\0"
                 as *const u8 as *const libc::c_char,
         );
     }
     depthWritableIndex -= 1;
-    if depthWritableIndex >= 0 as libc::c_int {
+    if depthWritableIndex >= 0 as i32 {
         RenderState_SetDepthWritable(depthWritable[depthWritableIndex as usize]);
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushCullFace(mut value: CullFace) {
-    if cullFaceIndex + 1 as libc::c_int >= 16 as libc::c_int {
+    if cullFaceIndex + 1 as i32 >= 16 as i32 {
         Fatal(
             b"RenderState_PushCullFace: Maximum state stack depth exceeded\0"
                 as *const u8 as *const libc::c_char,
@@ -214,7 +214,7 @@ pub unsafe extern "C" fn RenderState_PushCullFace(mut value: CullFace) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushDepthTest(mut value: bool) {
-    if depthTestIndex + 1 as libc::c_int >= 16 as libc::c_int {
+    if depthTestIndex + 1 as i32 >= 16 as i32 {
         Fatal(
             b"RenderState_PushDepthTest: Maximum state stack depth exceeded\0"
                 as *const u8 as *const libc::c_char,
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn RenderState_PushDepthTest(mut value: bool) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushDepthWritable(mut value: bool) {
-    if depthWritableIndex + 1 as libc::c_int >= 16 as libc::c_int {
+    if depthWritableIndex + 1 as i32 >= 16 as i32 {
         Fatal(
             b"RenderState_PushDepthWritable: Maximum state stack depth exceeded\0"
                 as *const u8 as *const libc::c_char,
@@ -238,7 +238,7 @@ pub unsafe extern "C" fn RenderState_PushDepthWritable(mut value: bool) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushWireframe(mut value: bool) {
-    if wireframeIndex + 1 as libc::c_int >= 16 as libc::c_int {
+    if wireframeIndex + 1 as i32 >= 16 as i32 {
         Fatal(
             b"RenderState_PushWireframe: Maximum state stack depth exceeded\0"
                 as *const u8 as *const libc::c_char,

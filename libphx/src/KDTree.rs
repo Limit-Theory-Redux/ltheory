@@ -8,10 +8,10 @@ extern "C" {
     pub type Matrix;
     fn qsort(
         __base: *mut libc::c_void,
-        __nel: libc::size_t,
-        __width: libc::size_t,
+        __nel: usize,
+        __width: usize,
         __compar: Option::<
-            unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> libc::c_int,
+            unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
         >,
     );
     fn Draw_Box3(box_0: *const Box3f);
@@ -21,8 +21,8 @@ extern "C" {
         b: f32,
         a: f32,
     );
-    fn Mesh_GetIndexCount(_: *mut Mesh) -> libc::c_int;
-    fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
+    fn Mesh_GetIndexCount(_: *mut Mesh) -> i32;
+    fn Mesh_GetIndexData(_: *mut Mesh) -> *mut i32;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
 }
 #[derive(Copy, Clone)]
@@ -89,41 +89,41 @@ unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
 
 
 #[no_mangle]
-pub static mut kMaxLeafSize: libc::c_int = 64 as libc::c_int;
+pub static mut kMaxLeafSize: i32 = 64 as i32;
 unsafe extern "C" fn compareLowerX(
     mut a: *const libc::c_void,
     mut b: *const libc::c_void,
-) -> libc::c_int {
+) -> i32 {
     return if (*(a as *const Box3f)).lower.x < (*(b as *const Box3f)).lower.x {
-        -(1 as libc::c_int)
+        -(1 as i32)
     } else {
-        1 as libc::c_int
+        1 as i32
     };
 }
 unsafe extern "C" fn compareLowerY(
     mut a: *const libc::c_void,
     mut b: *const libc::c_void,
-) -> libc::c_int {
+) -> i32 {
     return if (*(a as *const Box3f)).lower.y < (*(b as *const Box3f)).lower.y {
-        -(1 as libc::c_int)
+        -(1 as i32)
     } else {
-        1 as libc::c_int
+        1 as i32
     };
 }
 unsafe extern "C" fn compareLowerZ(
     mut a: *const libc::c_void,
     mut b: *const libc::c_void,
-) -> libc::c_int {
+) -> i32 {
     return if (*(a as *const Box3f)).lower.z < (*(b as *const Box3f)).lower.z {
-        -(1 as libc::c_int)
+        -(1 as i32)
     } else {
-        1 as libc::c_int
+        1 as i32
     };
 }
 unsafe extern "C" fn Partition(
     mut boxes: *mut Box3f,
-    mut boxCount: libc::c_int,
-    mut dim: libc::c_int,
+    mut boxCount: i32,
+    mut dim: i32,
 ) -> *mut KDTree {
     let mut this: *mut KDTree = MemAlloc(
         ::core::mem::size_of::<KDTree>() as usize,
@@ -133,68 +133,68 @@ unsafe extern "C" fn Partition(
         (*this).back = 0 as *mut KDTree;
         (*this).front = 0 as *mut KDTree;
         (*this).elems = 0 as *mut Node;
-        let mut i: libc::c_int = 1 as libc::c_int;
+        let mut i: i32 = 1 as i32;
         while i < boxCount {
             (*this).box_0 = Box3f_Union((*this).box_0, *boxes.offset(i as isize));
             i += 1;
         }
-        let mut i_0: libc::c_int = 0 as libc::c_int;
+        let mut i_0: i32 = 0 as i32;
         while i_0 < boxCount {
             let mut node: *mut Node = MemAlloc(
                 ::core::mem::size_of::<Node>() as usize,
             ) as *mut Node;
             (*node).box_0 = *boxes.offset(i_0 as isize);
             (*node).next = (*this).elems;
-            (*node).id = 0 as libc::c_int as u64;
+            (*node).id = 0 as i32 as u64;
             (*this).elems = node;
             i_0 += 1;
         }
         return this;
     }
-    if dim == 0 as libc::c_int {
+    if dim == 0 as i32 {
         qsort(
             boxes as *mut libc::c_void,
-            boxCount as libc::size_t,
+            boxCount as usize,
             ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerX
                     as unsafe extern "C" fn(
                         *const libc::c_void,
                         *const libc::c_void,
-                    ) -> libc::c_int,
+                    ) -> i32,
             ),
         );
     }
-    if dim == 1 as libc::c_int {
+    if dim == 1 as i32 {
         qsort(
             boxes as *mut libc::c_void,
-            boxCount as libc::size_t,
+            boxCount as usize,
             ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerY
                     as unsafe extern "C" fn(
                         *const libc::c_void,
                         *const libc::c_void,
-                    ) -> libc::c_int,
+                    ) -> i32,
             ),
         );
     }
-    if dim == 2 as libc::c_int {
+    if dim == 2 as i32 {
         qsort(
             boxes as *mut libc::c_void,
-            boxCount as libc::size_t,
+            boxCount as usize,
             ::core::mem::size_of::<Box3f>() as usize,
             Some(
                 compareLowerZ
                     as unsafe extern "C" fn(
                         *const libc::c_void,
                         *const libc::c_void,
-                    ) -> libc::c_int,
+                    ) -> i32,
             ),
         );
     }
-    let mut boxCountBack: libc::c_int = boxCount / 2 as libc::c_int;
-    let mut boxCountFront: libc::c_int = boxCount - boxCountBack;
+    let mut boxCountBack: i32 = boxCount / 2 as i32;
+    let mut boxCountFront: i32 = boxCount - boxCountBack;
     let mut boxesBack: *mut Box3f = MemAlloc(
         (::core::mem::size_of::<Box3f>())
             .wrapping_mul(boxCountBack as usize),
@@ -217,13 +217,13 @@ unsafe extern "C" fn Partition(
         .back = Partition(
         boxesBack,
         boxCountBack,
-        (dim + 1 as libc::c_int) % 3 as libc::c_int,
+        (dim + 1 as i32) % 3 as i32,
     );
     (*this)
         .front = Partition(
         boxesFront,
         boxCountFront,
-        (dim + 1 as libc::c_int) % 3 as libc::c_int,
+        (dim + 1 as i32) % 3 as i32,
     );
     (*this).box_0 = Box3f_Union((*(*this).back).box_0, (*(*this).front).box_0);
     (*this).elems = 0 as *mut Node;
@@ -233,32 +233,32 @@ unsafe extern "C" fn Partition(
 }
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
-    let indexCount: libc::c_int = Mesh_GetIndexCount(mesh);
-    let mut indexData: *const libc::c_int = Mesh_GetIndexData(mesh);
+    let indexCount: i32 = Mesh_GetIndexCount(mesh);
+    let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
-    let boxCount: libc::c_int = indexCount / 3 as libc::c_int;
+    let boxCount: i32 = indexCount / 3 as i32;
     let mut boxes: *mut Box3f = MemAlloc(
         (::core::mem::size_of::<Box3f>())
             .wrapping_mul(boxCount as usize),
     ) as *mut Box3f;
-    let mut i: libc::c_int = 0 as libc::c_int;
+    let mut i: i32 = 0 as i32;
     while i < indexCount {
         let mut v0: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 0 as libc::c_int) as isize) as isize);
+            .offset(*indexData.offset((i + 0 as i32) as isize) as isize);
         let mut v1: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 1 as libc::c_int) as isize) as isize);
+            .offset(*indexData.offset((i + 1 as i32) as isize) as isize);
         let mut v2: *const Vertex = vertexData
-            .offset(*indexData.offset((i + 2 as libc::c_int) as isize) as isize);
+            .offset(*indexData.offset((i + 2 as i32) as isize) as isize);
         *boxes
             .offset(
-                (i / 3 as libc::c_int) as isize,
+                (i / 3 as i32) as isize,
             ) = Box3f_Create(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
-        i += 3 as libc::c_int;
+        i += 3 as i32;
     }
-    let mut this: *mut KDTree = Partition(boxes, boxCount, 0 as libc::c_int);
+    let mut this: *mut KDTree = Partition(boxes, boxCount, 0 as i32);
     MemFree(boxes as *const libc::c_void);
     return this;
 }
@@ -279,9 +279,9 @@ pub unsafe extern "C" fn KDTree_Free(mut this: *mut KDTree) {
     MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> libc::c_int {
-    let mut memory: libc::c_int = ::core::mem::size_of::<KDTree>() as usize
-        as libc::c_int;
+pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> i32 {
+    let mut memory: i32 = ::core::mem::size_of::<KDTree>() as usize
+        as i32;
     if !((*this).back).is_null() {
         memory += KDTree_GetMemory((*this).back);
     }
@@ -291,8 +291,8 @@ pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> libc::c_int 
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
         memory = (memory as usize)
-            .wrapping_add(::core::mem::size_of::<Node>()) as libc::c_int
-            as libc::c_int;
+            .wrapping_add(::core::mem::size_of::<Node>()) as i32
+            as i32;
         elem = (*elem).next;
     }
     return memory;
@@ -304,14 +304,14 @@ pub unsafe extern "C" fn KDTree_IntersectRay(
     mut a: *const Vec3,
     mut b: *const Vec3,
 ) -> bool {
-    return 0 as libc::c_int != 0;
+    return 0 as i32 != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_Draw(
     mut this: *mut KDTree,
-    mut maxDepth: libc::c_int,
+    mut maxDepth: i32,
 ) {
-    if maxDepth < 0 as libc::c_int {
+    if maxDepth < 0 as i32 {
         return;
     }
     Draw_Color(
@@ -322,9 +322,9 @@ pub unsafe extern "C" fn KDTree_Draw(
     );
     Draw_Box3(&mut (*this).box_0);
     if !((*this).back).is_null() {
-        KDTree_Draw((*this).back, maxDepth - 1 as libc::c_int);
+        KDTree_Draw((*this).back, maxDepth - 1 as i32);
     }
     if !((*this).front).is_null() {
-        KDTree_Draw((*this).front, maxDepth - 1 as libc::c_int);
+        KDTree_Draw((*this).front, maxDepth - 1 as i32);
     }
 }

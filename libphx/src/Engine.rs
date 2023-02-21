@@ -25,17 +25,17 @@ extern "C" {
     fn Profiler_Begin(_: cstr);
     fn Profiler_End();
     fn Resource_Init();
-    fn exit(_: libc::c_int) -> !;
-    fn SDL_GL_SetAttribute(attr: SDL_GLattr, value: libc::c_int) -> libc::c_int;
+    fn exit(_: i32) -> !;
+    fn SDL_GL_SetAttribute(attr: SDL_GLattr, value: i32) -> i32;
     fn abort() -> !;
     fn SDL_QuitSubSystem(flags: u32);
     fn SDL_GetVersion(ver: *mut SDL_version);
-    fn puts(_: *const libc::c_char) -> libc::c_int;
-    fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
-    fn SDL_Init(flags: u32) -> libc::c_int;
-    fn atexit(_: Option::<unsafe extern "C" fn() -> ()>) -> libc::c_int;
+    fn puts(_: *const libc::c_char) -> i32;
+    fn printf(_: *const libc::c_char, _: ...) -> i32;
+    fn SDL_Init(flags: u32) -> i32;
+    fn atexit(_: Option::<unsafe extern "C" fn() -> ()>) -> i32;
     fn SDL_Quit();
-    fn SDL_InitSubSystem(flags: u32) -> libc::c_int;
+    fn SDL_InitSubSystem(flags: u32) -> i32;
     fn ShaderVar_Init();
     fn ShaderVar_Free();
     fn TimeStamp_Get() -> TimeStamp;
@@ -44,7 +44,7 @@ extern "C" {
 pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
 pub type TimeStamp = u64;
-pub type SDL_GLattr = libc::c_uint;
+pub type SDL_GLattr = u32;
 pub const SDL_GL_FLOATBUFFERS: SDL_GLattr = 27;
 pub const SDL_GL_CONTEXT_NO_ERROR: SDL_GLattr = 26;
 pub const SDL_GL_CONTEXT_RESET_NOTIFICATION: SDL_GLattr = 25;
@@ -81,24 +81,24 @@ pub struct SDL_version {
     pub minor: u8,
     pub patch: u8,
 }
-pub type Signal = libc::c_int;
-pub type C2RustUnnamed = libc::c_uint;
+pub type Signal = i32;
+pub type C2RustUnnamed = u32;
 pub const SDL_GL_CONTEXT_PROFILE_ES: C2RustUnnamed = 4;
 pub const SDL_GL_CONTEXT_PROFILE_CORE: C2RustUnnamed = 1;
 
 #[no_mangle]
-pub static mut subsystems: u32 = 0x4000 as libc::c_uint | 0x20 as libc::c_uint
-    | 0x1 as libc::c_uint | 0x1000 as libc::c_uint | 0x200 as libc::c_uint
-    | 0x2000 as libc::c_uint;
+pub static mut subsystems: u32 = 0x4000 as u32 | 0x20 as u32
+    | 0x1 as u32 | 0x1000 as u32 | 0x200 as u32
+    | 0x2000 as u32;
 static mut versionString: cstr = b"Feb 12 2023 23:20:35\0" as *const u8
     as *const libc::c_char;
-static mut initTime: TimeStamp = 0 as libc::c_int as TimeStamp;
+static mut initTime: TimeStamp = 0 as i32 as TimeStamp;
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Init(
-    mut glVersionMajor: libc::c_int,
-    mut glVersionMinor: libc::c_int,
+    mut glVersionMajor: i32,
+    mut glVersionMinor: i32,
 ) {
-    static mut firstTime: bool = 1 as libc::c_int != 0;
+    static mut firstTime: bool = 1 as i32 != 0;
     Signal_Init();
     printf(
         b"Engine_Init: Requesting GL %d.%d\n\0" as *const u8 as *const libc::c_char,
@@ -106,7 +106,7 @@ pub unsafe extern "C" fn Engine_Init(
         glVersionMinor,
     );
     if firstTime {
-        firstTime = 0 as libc::c_int != 0;
+        firstTime = 0 as i32 != 0;
         let mut compiled: SDL_version = SDL_version {
             major: 0,
             minor: 0,
@@ -117,11 +117,11 @@ pub unsafe extern "C" fn Engine_Init(
             minor: 0,
             patch: 0,
         };
-        compiled.major = 2 as libc::c_int as u8;
-        compiled.minor = 26 as libc::c_int as u8;
-        compiled.patch = 1 as libc::c_int as u8;
+        compiled.major = 2 as i32 as u8;
+        compiled.minor = 26 as i32 as u8;
+        compiled.patch = 1 as i32 as u8;
         SDL_GetVersion(&mut linked);
-        if compiled.major as libc::c_int != linked.major as libc::c_int {
+        if compiled.major as i32 != linked.major as i32 {
             puts(
                 b"Engine_Init: Detected SDL major version mismatch:\0" as *const u8
                     as *const libc::c_char,
@@ -129,20 +129,20 @@ pub unsafe extern "C" fn Engine_Init(
             printf(
                 b"  Version (Compiled) : %d.%d.%d\n\0" as *const u8
                     as *const libc::c_char,
-                compiled.major as libc::c_int,
-                compiled.minor as libc::c_int,
-                compiled.patch as libc::c_int,
+                compiled.major as i32,
+                compiled.minor as i32,
+                compiled.patch as i32,
             );
             printf(
                 b"  Version (Linked)   : %d.%d.%d\n\0" as *const u8
                     as *const libc::c_char,
-                linked.major as libc::c_int,
-                linked.minor as libc::c_int,
-                linked.patch as libc::c_int,
+                linked.major as i32,
+                linked.minor as i32,
+                linked.patch as i32,
             );
             Fatal(b"Engine_Init: Terminating.\0" as *const u8 as *const libc::c_char);
         }
-        if SDL_Init(0 as libc::c_int as u32) != 0 as libc::c_int {
+        if SDL_Init(0 as i32 as u32) != 0 as i32 {
             Fatal(
                 b"Engine_Init: Failed to initialize SDL\0" as *const u8
                     as *const libc::c_char,
@@ -156,7 +156,7 @@ pub unsafe extern "C" fn Engine_Init(
         }
         atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
     }
-    if SDL_InitSubSystem(subsystems) != 0 as libc::c_int {
+    if SDL_InitSubSystem(subsystems) != 0 as i32 {
         Fatal(
             b"Engine_Init: Failed to initialize SDL's subsystems\0" as *const u8
                 as *const libc::c_char,
@@ -166,14 +166,14 @@ pub unsafe extern "C" fn Engine_Init(
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, glVersionMinor);
     SDL_GL_SetAttribute(
         SDL_GL_CONTEXT_PROFILE_MASK,
-        SDL_GL_CONTEXT_PROFILE_COMPATIBILITY as libc::c_int,
+        SDL_GL_CONTEXT_PROFILE_COMPATIBILITY as i32,
     );
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1 as libc::c_int);
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8 as libc::c_int);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8 as libc::c_int);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8 as libc::c_int);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1 as libc::c_int);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24 as libc::c_int);
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1 as i32);
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8 as i32);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8 as i32);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8 as i32);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1 as i32);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24 as i32);
     Keyboard_Init();
     Metric_Reset();
     Mouse_Init();
@@ -196,9 +196,9 @@ pub unsafe extern "C" fn Engine_Abort() {
     abort();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Engine_GetBits() -> libc::c_int {
+pub unsafe extern "C" fn Engine_GetBits() -> i32 {
     return (8 as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>())
-        as libc::c_int;
+        as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetTime() -> f64 {
@@ -210,11 +210,11 @@ pub unsafe extern "C" fn Engine_GetVersion() -> cstr {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_IsInitialized() -> bool {
-    return initTime != 0 as libc::c_ulonglong;
+    return initTime != 0 as u64;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Terminate() {
-    exit(0 as libc::c_int);
+    exit(0 as i32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Update() {
