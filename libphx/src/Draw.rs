@@ -11,7 +11,7 @@ extern "C" {
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn Metric_Inc(_: Metric);
-    fn Metric_AddDrawImm(polys: int32, tris: int32, verts: int32);
+    fn Metric_AddDrawImm(polys: i32, tris: i32, verts: i32);
     fn glBegin(mode: GLenum);
     fn glClear(mask: GLbitfield);
     fn glClearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf);
@@ -30,9 +30,7 @@ extern "C" {
     static mut __glewCheckFramebufferStatus: PFNGLCHECKFRAMEBUFFERSTATUSPROC;
 }
 
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {
@@ -48,7 +46,7 @@ pub struct Vec4f {
     pub z: f32,
     pub w: f32,
 }
-pub type Metric = int32;
+pub type Metric = i32;
 pub type GLbitfield = libc::c_uint;
 pub type GLclampf = f32;
 pub type GLenum = libc::c_uint;
@@ -457,9 +455,9 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     let res: libc::size_t = 7 as libc::c_int as libc::size_t;
     let fRes: f32 = res as f32;
     Metric_AddDrawImm(
-        res as int32,
-        res as int32,
-        res.wrapping_mul(3 as libc::size_t) as int32,
+        res as i32,
+        res as i32,
+        res.wrapping_mul(3 as libc::size_t) as i32,
     );
     glBegin(0x4 as libc::c_int as GLenum);
     let mut lastTheta: f32 = res
@@ -485,9 +483,9 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     }
     glEnd();
     Metric_AddDrawImm(
-        res.wrapping_sub(2 as libc::size_t) as int32,
-        (2 as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
-        (4 as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as int32,
+        res.wrapping_sub(2 as libc::size_t) as i32,
+        (2 as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as i32,
+        (4 as usize).wrapping_mul(res.wrapping_sub(2 as libc::size_t) as usize) as i32,
     );
     glBegin(0x7 as libc::c_int as GLenum);
     let mut lastPhi: f32 = 1.0f32 / fRes * 3.14159265f32;
@@ -517,9 +515,9 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     }
     glEnd();
     Metric_AddDrawImm(
-        res as int32,
-        res as int32,
-        res.wrapping_mul(3 as libc::size_t) as int32,
+        res as i32,
+        res as i32,
+        res.wrapping_mul(3 as libc::size_t) as i32,
     );
     glBegin(0x4 as libc::c_int as GLenum);
     let mut lastTheta_1: f32 = res

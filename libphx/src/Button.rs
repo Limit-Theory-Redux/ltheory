@@ -10,13 +10,9 @@ extern "C" {
         _: ...
     ) -> libc::c_int;
 }
-pub type int32_t = libc::c_int;
-pub type uint8_t = libc::c_uchar;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint8 = uint8_t;
-pub type Button = int32;
-pub type DeviceType = int32;
+pub type Button = i32;
+pub type DeviceType = i32;
 pub type SDL_Scancode = libc::c_uint;
 pub const SDL_NUM_SCANCODES: SDL_Scancode = 512;
 pub const SDL_SCANCODE_ENDCALL: SDL_Scancode = 290;
@@ -1384,7 +1380,7 @@ pub unsafe extern "C" fn Button_ToSDLScancode(mut button: Button) -> SDL_Scancod
     return SDL_SCANCODE_UNKNOWN;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: uint8) -> Button {
+pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: u8) -> Button {
     match mouseButton as libc::c_int {
         1 => {}
         2 => return Button_Mouse_Middle,
@@ -1402,13 +1398,13 @@ pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: uint8) -> Bu
     return Button_Mouse_Left;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> uint8 {
+pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
     match button {
         117 => {}
-        118 => return 2 as libc::c_int as uint8,
-        119 => return 3 as libc::c_int as uint8,
-        120 => return 4 as libc::c_int as uint8,
-        121 => return 5 as libc::c_int as uint8,
+        118 => return 2 as libc::c_int as u8,
+        119 => return 3 as libc::c_int as u8,
+        120 => return 4 as libc::c_int as u8,
+        121 => return 5 as libc::c_int as u8,
         _ => {
             Fatal(
                 b"Button_ToSDLMouseButton: Unhandled case: %i\0" as *const u8
@@ -1417,7 +1413,7 @@ pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> uint8 {
             );
         }
     }
-    return 1 as libc::c_int as uint8;
+    return 1 as libc::c_int as u8;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Button_FromSDLControllerAxis(

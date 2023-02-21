@@ -4,9 +4,7 @@ use crate::internal::Memory::*;
 extern "C" {
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
 }
-pub type uint32_t = libc::c_uint;
-pub type uint32 = uint32_t;
-pub type Error = uint32;
+pub type Error = u32;
 #[no_mangle]
 pub unsafe extern "C" fn Error_Print(mut e: Error) {
     printf(b"ERROR: \0" as *const u8 as *const libc::c_char);

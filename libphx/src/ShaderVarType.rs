@@ -10,9 +10,7 @@ extern "C" {
     pub type Matrix;
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
 }
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
 
 
 
@@ -25,7 +23,7 @@ pub struct Vec4f {
     pub z: f32,
     pub w: f32,
 }
-pub type ShaderVarType = int32;
+pub type ShaderVarType = i32;
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: cstr) -> ShaderVarType {
     let mut i: ShaderVarType = 0x1 as libc::c_int;

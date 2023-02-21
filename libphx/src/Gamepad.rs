@@ -21,7 +21,7 @@ extern "C" {
     fn SDL_GameControllerGetButton(
         gamecontroller: *mut SDL_GameController,
         button: SDL_GameControllerButton,
-    ) -> Uint8;
+    ) -> u8;
     fn SDL_GameControllerAddMappingsFromRW(
         rw: *mut SDL_RWops,
         freerw: libc::c_int,
@@ -35,22 +35,14 @@ extern "C" {
     fn SDL_GameControllerGetAxis(
         gamecontroller: *mut SDL_GameController,
         axis: SDL_GameControllerAxis,
-    ) -> Sint16;
+    ) -> i16;
     fn TimeStamp_Get() -> TimeStamp;
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
-pub type int16_t = libc::c_short;
-pub type int32_t = libc::c_int;
-pub type int64_t = libc::c_longlong;
-pub type uint8_t = libc::c_uchar;
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
-pub type __int64_t = libc::c_longlong;
-pub type __darwin_off_t = __int64_t;
+pub type __i64_t = libc::c_longlong;
+pub type __darwin_off_t = __i64_t;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint64 = uint64_t;
-pub type TimeStamp = uint64;
+pub type TimeStamp = u64;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Gamepad {
@@ -65,12 +57,11 @@ pub struct Gamepad {
     pub buttonLast: [bool; 15],
 }
 pub type SDL_GameController = _SDL_GameController;
-pub type GamepadAxis = int32;
-pub type GamepadButton = int32;
+pub type GamepadAxis = i32;
+pub type GamepadButton = i32;
 pub const SDL_TRUE: SDL_bool = 1;
 pub type SDL_bool = libc::c_uint;
 pub const SDL_FALSE: SDL_bool = 0;
-pub type Uint8 = uint8_t;
 pub type SDL_GameControllerButton = libc::c_int;
 pub const SDL_CONTROLLER_BUTTON_MAX: SDL_GameControllerButton = 21;
 pub const SDL_CONTROLLER_BUTTON_TOUCHPAD: SDL_GameControllerButton = 20;
@@ -95,7 +86,6 @@ pub const SDL_CONTROLLER_BUTTON_X: SDL_GameControllerButton = 2;
 pub const SDL_CONTROLLER_BUTTON_B: SDL_GameControllerButton = 1;
 pub const SDL_CONTROLLER_BUTTON_A: SDL_GameControllerButton = 0;
 pub const SDL_CONTROLLER_BUTTON_INVALID: SDL_GameControllerButton = -1;
-pub type Sint16 = int16_t;
 pub type SDL_GameControllerAxis = libc::c_int;
 pub const SDL_CONTROLLER_AXIS_MAX: SDL_GameControllerAxis = 6;
 pub const SDL_CONTROLLER_AXIS_TRIGGERRIGHT: SDL_GameControllerAxis = 5;
@@ -108,9 +98,9 @@ pub const SDL_CONTROLLER_AXIS_INVALID: SDL_GameControllerAxis = -1;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_RWops {
-    pub size: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> Sint64>,
+    pub size: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> i64>,
     pub seek: Option::<
-        unsafe extern "C" fn(*mut SDL_RWops, Sint64, libc::c_int) -> Sint64,
+        unsafe extern "C" fn(*mut SDL_RWops, i64, libc::c_int) -> i64,
     >,
     pub read: Option::<
         unsafe extern "C" fn(*mut SDL_RWops, *mut libc::c_void, libc::size_t, libc::size_t) -> libc::size_t,
@@ -124,7 +114,7 @@ pub struct SDL_RWops {
         ) -> libc::size_t,
     >,
     pub close: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> libc::c_int>,
-    pub type_0: Uint32,
+    pub type_0: u32,
     pub hidden: C2RustUnnamed,
 }
 #[derive(Copy, Clone)]
@@ -143,9 +133,9 @@ pub struct C2RustUnnamed_0 {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct C2RustUnnamed_1 {
-    pub base: *mut Uint8,
-    pub here: *mut Uint8,
-    pub stop: *mut Uint8,
+    pub base: *mut u8,
+    pub here: *mut u8,
+    pub stop: *mut u8,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -199,10 +189,7 @@ pub struct __sbuf {
     pub _base: *mut libc::c_uchar,
     pub _size: libc::c_int,
 }
-pub type Uint32 = uint32_t;
-pub type Sint64 = int64_t;
-pub type SDL_JoystickID = Sint32;
-pub type Sint32 = int32_t;
+pub type SDL_JoystickID = i32;
 pub type SDL_Joystick = _SDL_Joystick;
 
 

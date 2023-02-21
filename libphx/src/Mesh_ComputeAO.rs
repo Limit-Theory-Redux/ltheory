@@ -45,9 +45,7 @@ extern "C" {
         _: DataFormat,
     );
 }
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -64,9 +62,9 @@ pub struct Vertex {
     pub n: Vec3,
     pub uv: Vec2,
 }
-pub type DataFormat = int32;
-pub type PixelFormat = int32;
-pub type TexFormat = int32;
+pub type DataFormat = i32;
+pub type PixelFormat = i32;
+pub type TexFormat = i32;
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {

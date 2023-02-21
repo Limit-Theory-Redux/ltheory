@@ -48,57 +48,47 @@ extern "C" {
     fn SDL_GameControllerGetAxis(
         gamecontroller: *mut SDL_GameController,
         axis: SDL_GameControllerAxis,
-    ) -> Sint16;
+    ) -> i16;
     fn SDL_GameControllerGetButton(
         gamecontroller: *mut SDL_GameController,
         button: SDL_GameControllerButton,
-    ) -> Uint8;
+    ) -> u8;
     fn SDL_GameControllerClose(gamecontroller: *mut SDL_GameController);
     fn SDL_PollEvent(event: *mut SDL_Event) -> libc::c_int;
     fn SDL_SetHint(name: *const libc::c_char, value: *const libc::c_char) -> SDL_bool;
-    fn SDL_GetTicks() -> Uint32;
+    fn SDL_GetTicks() -> u32;
     fn Button_ToDeviceType(_: Button) -> DeviceType;
     fn Button_IsAutoRelease(_: Button) -> bool;
     fn Button_FromSDLScancode(_: SDL_Scancode) -> Button;
-    fn Button_FromSDLMouseButton(_: uint8) -> Button;
+    fn Button_FromSDLMouseButton(_: u8) -> Button;
     fn Profiler_Begin(_: cstr);
     fn Profiler_End();
     fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
 }
-pub type int16_t = libc::c_short;
-pub type int32_t = libc::c_int;
-pub type int64_t = libc::c_longlong;
-pub type uint8_t = libc::c_uchar;
-pub type uint16_t = libc::c_ushort;
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
-pub type __int64_t = libc::c_longlong;
-pub type __darwin_off_t = __int64_t;
+pub type __i64_t = libc::c_longlong;
+pub type __darwin_off_t = __i64_t;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint8 = uint8_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Device {
     pub type_0: DeviceType,
-    pub id: uint32,
+    pub id: u32,
 }
-pub type DeviceType = int32;
+pub type DeviceType = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputEvent {
-    pub timestamp: uint32,
+    pub timestamp: u32,
     pub device: Device,
     pub button: Button,
     pub value: f32,
     pub state: State,
 }
-pub type State = int32;
-pub type Button = int32;
+pub type State = i32;
+pub type Button = i32;
 
-pub type Modifier = int32;
-pub type ResourceType = int32;
+pub type Modifier = i32;
+pub type ResourceType = i32;
 pub type fpos_t = __darwin_off_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -148,19 +138,13 @@ pub type FILE = __sFILE;
 pub type SDL_bool = libc::c_uint;
 pub const SDL_TRUE: SDL_bool = 1;
 pub const SDL_FALSE: SDL_bool = 0;
-pub type Uint8 = uint8_t;
-pub type Sint16 = int16_t;
-pub type Uint16 = uint16_t;
-pub type Sint32 = int32_t;
-pub type Uint32 = uint32_t;
-pub type Sint64 = int64_t;
-pub type Uint64 = uint64_t;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_RWops {
-    pub size: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> Sint64>,
+    pub size: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> i64>,
     pub seek: Option::<
-        unsafe extern "C" fn(*mut SDL_RWops, Sint64, libc::c_int) -> Sint64,
+        unsafe extern "C" fn(*mut SDL_RWops, i64, libc::c_int) -> i64,
     >,
     pub read: Option::<
         unsafe extern "C" fn(*mut SDL_RWops, *mut libc::c_void, libc::size_t, libc::size_t) -> libc::size_t,
@@ -174,7 +158,7 @@ pub struct SDL_RWops {
         ) -> libc::size_t,
     >,
     pub close: Option::<unsafe extern "C" fn(*mut SDL_RWops) -> libc::c_int>,
-    pub type_0: Uint32,
+    pub type_0: u32,
     pub hidden: C2RustUnnamed,
 }
 #[derive(Copy, Clone)]
@@ -193,9 +177,9 @@ pub struct C2RustUnnamed_0 {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct C2RustUnnamed_1 {
-    pub base: *mut Uint8,
-    pub here: *mut Uint8,
-    pub stop: *mut Uint8,
+    pub base: *mut u8,
+    pub here: *mut u8,
+    pub stop: *mut u8,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -472,17 +456,17 @@ pub const SDL_SCANCODE_C: SDL_Scancode = 6;
 pub const SDL_SCANCODE_B: SDL_Scancode = 5;
 pub const SDL_SCANCODE_A: SDL_Scancode = 4;
 pub const SDL_SCANCODE_UNKNOWN: SDL_Scancode = 0;
-pub type SDL_Keycode = Sint32;
+pub type SDL_Keycode = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_Keysym {
     pub scancode: SDL_Scancode,
     pub sym: SDL_Keycode,
-    pub mod_0: Uint16,
-    pub unused: Uint32,
+    pub mod_0: u16,
+    pub unused: u32,
 }
 pub type SDL_Joystick = _SDL_Joystick;
-pub type SDL_JoystickID = Sint32;
+pub type SDL_JoystickID = i32;
 pub type SDL_JoystickPowerLevel = libc::c_int;
 pub const SDL_JOYSTICK_POWER_MAX: SDL_JoystickPowerLevel = 5;
 pub const SDL_JOYSTICK_POWER_WIRED: SDL_JoystickPowerLevel = 4;
@@ -525,9 +509,9 @@ pub const SDL_CONTROLLER_BUTTON_X: SDL_GameControllerButton = 2;
 pub const SDL_CONTROLLER_BUTTON_B: SDL_GameControllerButton = 1;
 pub const SDL_CONTROLLER_BUTTON_A: SDL_GameControllerButton = 0;
 pub const SDL_CONTROLLER_BUTTON_INVALID: SDL_GameControllerButton = -1;
-pub type SDL_TouchID = Sint64;
-pub type SDL_FingerID = Sint64;
-pub type SDL_GestureID = Sint64;
+pub type SDL_TouchID = i64;
+pub type SDL_FingerID = i64;
+pub type SDL_GestureID = i64;
 pub type C2RustUnnamed_4 = libc::c_uint;
 pub const SDL_LASTEVENT: C2RustUnnamed_4 = 65535;
 pub const SDL_USEREVENT: C2RustUnnamed_4 = 32768;
@@ -591,218 +575,218 @@ pub const SDL_FIRSTEVENT: C2RustUnnamed_4 = 0;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_CommonEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_DisplayEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub display: Uint32,
-    pub event: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
-    pub padding3: Uint8,
-    pub data1: Sint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub display: u32,
+    pub event: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+    pub data1: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_WindowEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
-    pub event: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
-    pub padding3: Uint8,
-    pub data1: Sint32,
-    pub data2: Sint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
+    pub event: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+    pub data1: i32,
+    pub data2: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_KeyboardEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
-    pub state: Uint8,
-    pub repeat: Uint8,
-    pub padding2: Uint8,
-    pub padding3: Uint8,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
+    pub state: u8,
+    pub repeat: u8,
+    pub padding2: u8,
+    pub padding3: u8,
     pub keysym: SDL_Keysym,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_TextEditingEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
     pub text: [libc::c_char; 32],
-    pub start: Sint32,
-    pub length: Sint32,
+    pub start: i32,
+    pub length: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_TextEditingExtEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
     pub text: *mut libc::c_char,
-    pub start: Sint32,
-    pub length: Sint32,
+    pub start: i32,
+    pub length: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_TextInputEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
     pub text: [libc::c_char; 32],
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_MouseMotionEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
-    pub which: Uint32,
-    pub state: Uint32,
-    pub x: Sint32,
-    pub y: Sint32,
-    pub xrel: Sint32,
-    pub yrel: Sint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
+    pub which: u32,
+    pub state: u32,
+    pub x: i32,
+    pub y: i32,
+    pub xrel: i32,
+    pub yrel: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_MouseButtonEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
-    pub which: Uint32,
-    pub button: Uint8,
-    pub state: Uint8,
-    pub clicks: Uint8,
-    pub padding1: Uint8,
-    pub x: Sint32,
-    pub y: Sint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
+    pub which: u32,
+    pub button: u8,
+    pub state: u8,
+    pub clicks: u8,
+    pub padding1: u8,
+    pub x: i32,
+    pub y: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_MouseWheelEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
-    pub which: Uint32,
-    pub x: Sint32,
-    pub y: Sint32,
-    pub direction: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
+    pub which: u32,
+    pub x: i32,
+    pub y: i32,
+    pub direction: u32,
     pub preciseX: f32,
     pub preciseY: f32,
-    pub mouseX: Sint32,
-    pub mouseY: Sint32,
+    pub mouseX: i32,
+    pub mouseY: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_JoyAxisEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
-    pub axis: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
-    pub padding3: Uint8,
-    pub value: Sint16,
-    pub padding4: Uint16,
+    pub axis: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+    pub value: i16,
+    pub padding4: u16,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_JoyBallEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
-    pub ball: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
-    pub padding3: Uint8,
-    pub xrel: Sint16,
-    pub yrel: Sint16,
+    pub ball: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+    pub xrel: i16,
+    pub yrel: i16,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_JoyHatEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
-    pub hat: Uint8,
-    pub value: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
+    pub hat: u8,
+    pub value: u8,
+    pub padding1: u8,
+    pub padding2: u8,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_JoyButtonEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
-    pub button: Uint8,
-    pub state: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
+    pub button: u8,
+    pub state: u8,
+    pub padding1: u8,
+    pub padding2: u8,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_JoyDeviceEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub which: Sint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub which: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_JoyBatteryEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
     pub level: SDL_JoystickPowerLevel,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_ControllerAxisEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
-    pub axis: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
-    pub padding3: Uint8,
-    pub value: Sint16,
-    pub padding4: Uint16,
+    pub axis: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
+    pub value: i16,
+    pub padding4: u16,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_ControllerButtonEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
-    pub button: Uint8,
-    pub state: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
+    pub button: u8,
+    pub state: u8,
+    pub padding1: u8,
+    pub padding2: u8,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_ControllerDeviceEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub which: Sint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub which: i32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_ControllerTouchpadEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
-    pub touchpad: Sint32,
-    pub finger: Sint32,
+    pub touchpad: i32,
+    pub finger: i32,
     pub x: f32,
     pub y: f32,
     pub pressure: f32,
@@ -810,29 +794,29 @@ pub struct SDL_ControllerTouchpadEvent {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_ControllerSensorEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub which: SDL_JoystickID,
-    pub sensor: Sint32,
+    pub sensor: i32,
     pub data: [f32; 3],
-    pub timestamp_us: Uint64,
+    pub timestamp_us: u64,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_AudioDeviceEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub which: Uint32,
-    pub iscapture: Uint8,
-    pub padding1: Uint8,
-    pub padding2: Uint8,
-    pub padding3: Uint8,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub which: u32,
+    pub iscapture: u8,
+    pub padding1: u8,
+    pub padding2: u8,
+    pub padding3: u8,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_TouchFingerEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub touchId: SDL_TouchID,
     pub fingerId: SDL_FingerID,
     pub x: f32,
@@ -840,29 +824,29 @@ pub struct SDL_TouchFingerEvent {
     pub dx: f32,
     pub dy: f32,
     pub pressure: f32,
-    pub windowID: Uint32,
+    pub windowID: u32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_MultiGestureEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub touchId: SDL_TouchID,
     pub dTheta: f32,
     pub dDist: f32,
     pub x: f32,
     pub y: f32,
-    pub numFingers: Uint16,
-    pub padding: Uint16,
+    pub numFingers: u16,
+    pub padding: u16,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_DollarGestureEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub touchId: SDL_TouchID,
     pub gestureId: SDL_GestureID,
-    pub numFingers: Uint32,
+    pub numFingers: u32,
     pub error: f32,
     pub x: f32,
     pub y: f32,
@@ -870,47 +854,47 @@ pub struct SDL_DollarGestureEvent {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_DropEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub file: *mut libc::c_char,
-    pub windowID: Uint32,
+    pub windowID: u32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_SensorEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub which: Sint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub which: i32,
     pub data: [f32; 6],
-    pub timestamp_us: Uint64,
+    pub timestamp_us: u64,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_QuitEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_UserEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
-    pub windowID: Uint32,
-    pub code: Sint32,
+    pub type_0: u32,
+    pub timestamp: u32,
+    pub windowID: u32,
+    pub code: i32,
     pub data1: *mut libc::c_void,
     pub data2: *mut libc::c_void,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_SysWMEvent {
-    pub type_0: Uint32,
-    pub timestamp: Uint32,
+    pub type_0: u32,
+    pub timestamp: u32,
     pub msg: *mut SDL_SysWMmsg,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub union SDL_Event {
-    pub type_0: Uint32,
+    pub type_0: u32,
     pub common: SDL_CommonEvent,
     pub display: SDL_DisplayEvent,
     pub window: SDL_WindowEvent,
@@ -941,44 +925,44 @@ pub union SDL_Event {
     pub mgesture: SDL_MultiGestureEvent,
     pub dgesture: SDL_DollarGestureEvent,
     pub drop: SDL_DropEvent,
-    pub padding: [Uint8; 56],
+    pub padding: [u8; 56],
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DeviceState {
-    pub transitions: [int32; 512],
+    pub transitions: [i32; 512],
     pub buttons: [bool; 512],
     pub axes: [f32; 512],
-    pub lastEventTimestamp: uint32,
+    pub lastEventTimestamp: u32,
     pub isConnected: bool,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DeviceList {
-    pub devices_size: int32,
-    pub devices_capacity: int32,
+    pub devices_size: i32,
+    pub devices_capacity: i32,
     pub devices_data: *mut DeviceState,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Input {
     pub activeDevice: Device,
-    pub lastTimestamp: uint32,
-    pub lastEventTimestamp: uint32,
+    pub lastTimestamp: u32,
+    pub lastEventTimestamp: u32,
     pub lastMousePosition: IVec2,
     pub autoHideMouse: bool,
     pub deviceLists: [DeviceList; 4],
-    pub events_size: int32,
-    pub events_capacity: int32,
+    pub events_size: i32,
+    pub events_capacity: i32,
     pub events_data: *mut InputEvent,
-    pub downButtons_size: int32,
-    pub downButtons_capacity: int32,
+    pub downButtons_size: i32,
+    pub downButtons_capacity: i32,
     pub downButtons_data: *mut InputEvent,
-    pub autoRelease_size: int32,
-    pub autoRelease_capacity: int32,
+    pub autoRelease_size: i32,
+    pub autoRelease_capacity: i32,
     pub autoRelease_data: *mut InputEvent,
-    pub injectedEvents_size: int32,
-    pub injectedEvents_capacity: int32,
+    pub injectedEvents_size: i32,
+    pub injectedEvents_capacity: i32,
     pub injectedEvents_data: *mut InputEvent,
 }
 
@@ -1027,7 +1011,7 @@ unsafe extern "C" fn Input_EnsureDeviceState(mut device: Device) -> *mut DeviceS
     let mut deviceList: *mut DeviceList = &mut *(this.deviceLists)
         .as_mut_ptr()
         .offset(device.type_0 as isize) as *mut DeviceList;
-    while (*deviceList).devices_size as uint32 <= device.id {
+    while (*deviceList).devices_size as u32 <= device.id {
         let mut deviceState: DeviceState =  DeviceState {
                 transitions: [0; 512],
                 buttons: [false; 512],
@@ -1083,7 +1067,7 @@ unsafe extern "C" fn Input_GetDeviceExists(mut device: Device) -> bool {
     let mut deviceList: *mut DeviceList = &mut *(this.deviceLists)
         .as_mut_ptr()
         .offset(device.type_0 as isize) as *mut DeviceList;
-    if device.id < (*deviceList).devices_size as uint32 {
+    if device.id < (*deviceList).devices_size as u32 {
         let mut deviceState: *mut DeviceState = ((*deviceList).devices_data)
             .offset(device.id as isize);
         return (*deviceState).isConnected;
@@ -1293,7 +1277,7 @@ pub unsafe extern "C" fn Input_Init() {
     while iDev < 4 as libc::c_int {
         let mut device: Device =  Device {
                 type_0: iDev,
-                id: 0 as libc::c_int as uint32,
+                id: 0 as libc::c_int as u32,
             };
         let mut deviceState: *mut DeviceState = Input_EnsureDeviceState(device);
         (*deviceState).isConnected = iDev != DeviceType_Gamepad;
@@ -1347,7 +1331,7 @@ pub unsafe extern "C" fn Input_Init() {
     }
     let mut device_0: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     Input_SetActiveDevice(device_0);
 }
@@ -1384,7 +1368,7 @@ pub unsafe extern "C" fn Input_Update() {
             MemSet(
                 ((*deviceState).transitions).as_mut_ptr() as *mut libc::c_void,
                 0 as libc::c_int,
-                ::core::mem::size_of::<[int32; 512]>(),
+                ::core::mem::size_of::<[i32; 512]>(),
             );
             deviceState = deviceState.offset(1);
         }
@@ -1441,7 +1425,7 @@ pub unsafe extern "C" fn Input_Update() {
                 }
                 let mut device: Device =  Device {
                         type_0: DeviceType_Keyboard,
-                        id: 0 as libc::c_int as uint32,
+                        id: 0 as libc::c_int as u32,
                     };
                 event_0.device = device;
                 event_0.button = Button_FromSDLScancode(sdl.key.keysym.scancode);
@@ -1456,7 +1440,7 @@ pub unsafe extern "C" fn Input_Update() {
             769 => {
                 let mut device_0: Device =  Device {
                         type_0: DeviceType_Keyboard,
-                        id: 0 as libc::c_int as uint32,
+                        id: 0 as libc::c_int as u32,
                     };
                 event_0.device = device_0;
                 event_0.button = Button_FromSDLScancode(sdl.key.keysym.scancode);
@@ -1551,7 +1535,7 @@ pub unsafe extern "C" fn Input_Update() {
             1617 => {
                 let mut device_5: Device =  Device {
                         type_0: DeviceType_Gamepad,
-                        id: sdl.cbutton.which as uint32,
+                        id: sdl.cbutton.which as u32,
                     };
                 event_0.device = device_5;
                 event_0
@@ -1566,7 +1550,7 @@ pub unsafe extern "C" fn Input_Update() {
             1618 => {
                 let mut device_6: Device =  Device {
                         type_0: DeviceType_Gamepad,
-                        id: sdl.cbutton.which as uint32,
+                        id: sdl.cbutton.which as u32,
                     };
                 event_0.device = device_6;
                 event_0
@@ -1581,7 +1565,7 @@ pub unsafe extern "C" fn Input_Update() {
             1616 => {
                 let mut device_7: Device =  Device {
                         type_0: DeviceType_Gamepad,
-                        id: sdl.caxis.which as uint32,
+                        id: sdl.caxis.which as u32,
                     };
                 let mut value: f32 = Clamp(
                     (sdl.caxis.value as f32 / 32767.0f32) as f64,
@@ -1618,8 +1602,8 @@ pub unsafe extern "C" fn Input_Update() {
                         let mut sdlJoystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick(
                             sdlController,
                         );
-                        let mut id: uint32 = SDL_JoystickInstanceID(sdlJoystick)
-                            as uint32;
+                        let mut id: u32 = SDL_JoystickInstanceID(sdlJoystick)
+                            as u32;
                         let mut device_8: Device =  Device {
                                 type_0: DeviceType_Gamepad,
                                 id: id,
@@ -1634,7 +1618,7 @@ pub unsafe extern "C" fn Input_Update() {
             1620 => {
                 let mut device_9: Device =  Device {
                         type_0: DeviceType_Gamepad,
-                        id: sdl.cdevice.which as uint32,
+                        id: sdl.cdevice.which as u32,
                     };
                 let mut deviceState_4: *mut DeviceState = Input_GetDeviceState(device_9);
                 (*deviceState_4).isConnected = 0 as libc::c_int != 0;
@@ -1651,12 +1635,12 @@ pub unsafe extern "C" fn Input_Update() {
                 );
                 let mut device_10: Device =  Device {
                         type_0: DeviceType_Gamepad,
-                        id: sdl.cdevice.which as uint32,
+                        id: sdl.cdevice.which as u32,
                     };
                 let mut deviceState_5: *mut DeviceState = Input_GetDeviceState(
                     device_10,
                 );
-                let mut iBtn: int32 = Button_Gamepad_Button_First;
+                let mut iBtn: i32 = Button_Gamepad_Button_First;
                 while iBtn <= Button_Gamepad_Button_Last {
                     let mut value_0: f32 = SDL_GameControllerGetButton(
                         sdlController_1,
@@ -1673,7 +1657,7 @@ pub unsafe extern "C" fn Input_Update() {
                     }
                     iBtn += 1;
                 }
-                let mut iAxis: int32 = Button_Gamepad_Axis_First;
+                let mut iAxis: i32 = Button_Gamepad_Axis_First;
                 while iAxis <= Button_Gamepad_Axis_Last {
                     let mut value_1: f32 = SDL_GameControllerGetAxis(
                         sdlController_1,
@@ -1703,7 +1687,7 @@ pub unsafe extern "C" fn Input_Update() {
             256 => {
                 let mut device_11: Device =  Device {
                         type_0: DeviceType_Null,
-                        id: 0 as libc::c_int as uint32,
+                        id: 0 as libc::c_int as u32,
                     };
                 event_0.device = device_11;
                 event_0.button = Button_System_Exit;
@@ -1759,7 +1743,7 @@ pub unsafe extern "C" fn Input_LoadGamepadDatabase(mut name: cstr) {
 pub unsafe extern "C" fn Input_GetPressed(mut button: Button) -> bool {
     let mut device: Device =  Device {
             type_0: Button_ToDeviceType(button),
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     return Input_GetDevicePressedImpl(device, button);
 }
@@ -1767,7 +1751,7 @@ pub unsafe extern "C" fn Input_GetPressed(mut button: Button) -> bool {
 pub unsafe extern "C" fn Input_GetDown(mut button: Button) -> bool {
     let mut device: Device =  Device {
             type_0: Button_ToDeviceType(button),
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     return Input_GetDeviceDownImpl(device, button);
 }
@@ -1775,7 +1759,7 @@ pub unsafe extern "C" fn Input_GetDown(mut button: Button) -> bool {
 pub unsafe extern "C" fn Input_GetReleased(mut button: Button) -> bool {
     let mut device: Device =  Device {
             type_0: Button_ToDeviceType(button),
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     return Input_GetDeviceReleasedImpl(device, button);
 }
@@ -1783,7 +1767,7 @@ pub unsafe extern "C" fn Input_GetReleased(mut button: Button) -> bool {
 pub unsafe extern "C" fn Input_GetValue(mut button: Button) -> f32 {
     let mut device: Device =  Device {
             type_0: Button_ToDeviceType(button),
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     return Input_GetDeviceValueImpl(device, button);
 }
@@ -1801,7 +1785,7 @@ pub unsafe extern "C" fn Input_GetActiveDeviceType() -> DeviceType {
     return this.activeDevice.type_0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetActiveDeviceID() -> uint32 {
+pub unsafe extern "C" fn Input_GetActiveDeviceID() -> u32 {
     return this.activeDevice.id;
 }
 #[no_mangle]
@@ -1868,7 +1852,7 @@ pub unsafe extern "C" fn Input_GetMouseDelta(mut delta: *mut IVec2) {
 pub unsafe extern "C" fn Input_GetMouseIdleTime() -> f32 {
     let mut device: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     return Input_GetDeviceIdleTimeImpl(device);
 }
@@ -1876,7 +1860,7 @@ pub unsafe extern "C" fn Input_GetMouseIdleTime() -> f32 {
 pub unsafe extern "C" fn Input_GetMousePosition(mut position: *mut IVec2) {
     let mut device: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     (*position).x = Input_GetDeviceValueImpl(device, Button_Mouse_X) as libc::c_int;
     (*position).y = Input_GetDeviceValueImpl(device, Button_Mouse_Y) as libc::c_int;
@@ -1885,7 +1869,7 @@ pub unsafe extern "C" fn Input_GetMousePosition(mut position: *mut IVec2) {
 pub unsafe extern "C" fn Input_GetMouseScroll(mut scroll: *mut IVec2) {
     let mut device: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     (*scroll).x = Input_GetDeviceValueImpl(device, Button_Mouse_ScrollX) as libc::c_int;
     (*scroll).y = Input_GetDeviceValueImpl(device, Button_Mouse_ScrollY) as libc::c_int;
@@ -1908,10 +1892,10 @@ pub unsafe extern "C" fn Input_SetMouseVisibleAuto() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMouseScroll(mut scroll: *mut IVec2) {
-    let mut timestamp: uint32 = SDL_GetTicks();
+    let mut timestamp: u32 = SDL_GetTicks();
     let mut device: Device =  Device {
             type_0: DeviceType_Mouse,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     let mut event: InputEvent =  InputEvent {
             timestamp: 0,
@@ -1941,7 +1925,7 @@ pub unsafe extern "C" fn Input_SetMouseScroll(mut scroll: *mut IVec2) {
 pub unsafe extern "C" fn Input_GetKeyboardIdleTime() -> f32 {
     let mut device: Device =  Device {
             type_0: DeviceType_Keyboard,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     return Input_GetDeviceIdleTimeImpl(device);
 }
@@ -1965,7 +1949,7 @@ pub unsafe extern "C" fn Input_GetKeyboardMod(mut modifier: Modifier) -> bool {
 pub unsafe extern "C" fn Input_GetKeyboardAlt() -> bool {
     let mut device: Device =  Device {
             type_0: DeviceType_Keyboard,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
     return (*deviceState).buttons[Button_Keyboard_LAlt as usize] as libc::c_int != 0
@@ -1975,7 +1959,7 @@ pub unsafe extern "C" fn Input_GetKeyboardAlt() -> bool {
 pub unsafe extern "C" fn Input_GetKeyboardCtrl() -> bool {
     let mut device: Device =  Device {
             type_0: DeviceType_Keyboard,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
     return (*deviceState).buttons[Button_Keyboard_LCtrl as usize] as libc::c_int != 0
@@ -1985,14 +1969,14 @@ pub unsafe extern "C" fn Input_GetKeyboardCtrl() -> bool {
 pub unsafe extern "C" fn Input_GetKeyboardShift() -> bool {
     let mut device: Device =  Device {
             type_0: DeviceType_Keyboard,
-            id: 0 as libc::c_int as uint32,
+            id: 0 as libc::c_int as u32,
         };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
     return (*deviceState).buttons[Button_Keyboard_LShift as usize] as libc::c_int != 0
         || (*deviceState).buttons[Button_Keyboard_RShift as usize] as libc::c_int != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetGamepadIdleTime(mut id: uint32) -> f32 {
+pub unsafe extern "C" fn Input_GetGamepadIdleTime(mut id: u32) -> f32 {
     let mut device: Device =  Device {
             type_0: DeviceType_Gamepad,
             id: id,
@@ -2004,7 +1988,7 @@ pub unsafe extern "C" fn Input_GetGamepadIdleTime(mut id: uint32) -> f32 {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetGamepadPressed(
-    mut id: uint32,
+    mut id: u32,
     mut button: Button,
 ) -> bool {
     let mut device: Device =  Device {
@@ -2018,7 +2002,7 @@ pub unsafe extern "C" fn Input_GetGamepadPressed(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetGamepadDown(
-    mut id: uint32,
+    mut id: u32,
     mut button: Button,
 ) -> bool {
     let mut device: Device =  Device {
@@ -2032,7 +2016,7 @@ pub unsafe extern "C" fn Input_GetGamepadDown(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetGamepadReleased(
-    mut id: uint32,
+    mut id: u32,
     mut button: Button,
 ) -> bool {
     let mut device: Device =  Device {
@@ -2046,7 +2030,7 @@ pub unsafe extern "C" fn Input_GetGamepadReleased(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetGamepadValue(
-    mut id: uint32,
+    mut id: u32,
     mut button: Button,
 ) -> f32 {
     let mut device: Device =  Device {
@@ -2059,7 +2043,7 @@ pub unsafe extern "C" fn Input_GetGamepadValue(
     return Input_GetDeviceValueImpl(device, button);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetEventCount() -> int32 {
+pub unsafe extern "C" fn Input_GetEventCount() -> i32 {
     return this.events_size;
 }
 #[no_mangle]

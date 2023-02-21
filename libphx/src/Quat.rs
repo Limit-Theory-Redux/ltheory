@@ -18,9 +18,7 @@ extern "C" {
         _: ...
     ) -> libc::c_int;
 }
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type uint32 = uint32_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -31,7 +29,7 @@ pub struct Quat {
     pub w: f32,
 }
 
-pub type Error = uint32;
+pub type Error = u32;
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);

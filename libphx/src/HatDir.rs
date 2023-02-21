@@ -1,9 +1,7 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-pub type int32_t = libc::c_int;
-pub type int32 = int32_t;
-pub type HatDir = int32;
+pub type HatDir = i32;
 #[no_mangle]
 pub static mut HatDir_Centered: HatDir = 0 as libc::c_int;
 #[no_mangle]

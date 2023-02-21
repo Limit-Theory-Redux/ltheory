@@ -15,9 +15,9 @@ extern "C" {
     fn Warn(_: cstr, _: ...);
     fn File_Create(path: cstr) -> *mut File;
     fn File_Close(_: *mut File);
-    fn File_Write(_: *mut File, data: *const libc::c_void, len: uint32);
-    fn File_WriteI16(_: *mut File, _: int16);
-    fn File_WriteI32(_: *mut File, _: int32);
+    fn File_Write(_: *mut File, data: *const libc::c_void, len: u32);
+    fn File_WriteI16(_: *mut File, _: i16);
+    fn File_WriteI32(_: *mut File, _: i32);
     fn FMOD_System_CreateSound(
         system: *mut FMOD_SYSTEM,
         name_or_data: *const libc::c_char,
@@ -72,22 +72,16 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
 }
-pub type int16_t = libc::c_short;
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int16 = int16_t;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SoundDesc {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub handle: *mut FMOD_SOUND,
     pub name: cstr,
     pub path: cstr,
 }
-pub type ResourceType = int32;
+pub type ResourceType = i32;
 pub type FMOD_BOOL = libc::c_int;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -912,7 +906,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         // );
         (*this).name = StrDup(name);
         (*this).path = StrDup(path);
-        (*this)._refCount = 1 as libc::c_int as uint32;
+        (*this)._refCount = 1 as libc::c_int as u32;
     } else {
         (*this)._refCount = ((*this)._refCount).wrapping_add(1);
         if immediate {
@@ -974,7 +968,7 @@ pub unsafe extern "C" fn SoundDesc_GetDuration(
         >(b"SoundDesc_GetDuration\0"))
             .as_ptr(),
     );
-    let mut duration: uint32 = 0;
+    let mut duration: u32 = 0;
     // FMOD_CheckError(
     //     FMOD_Sound_GetLength(
     //         (*this).handle,
@@ -1010,9 +1004,9 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: cs
         >(b"SoundDesc_ToFile\0"))
             .as_ptr(),
     );
-    let mut length: uint32 = 0;
-    let mut channels: int32 = 0;
-    let mut bitsPerSample: int32 = 0;
+    let mut length: u32 = 0;
+    let mut channels: i32 = 0;
+    let mut bitsPerSample: i32 = 0;
     // FMOD_CheckError(
     //     FMOD_Sound_GetLength(
     //         (*this).handle,
@@ -1045,13 +1039,13 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: cs
     //     >(b"SoundDesc_ToFile\0"))
     //         .as_ptr(),
     // );
-    let mut bytesPerSample: int32 = bitsPerSample / 8 as libc::c_int;
+    let mut bytesPerSample: i32 = bitsPerSample / 8 as libc::c_int;
     let mut sampleRate: f32 = 0.;
     // FMOD_Sound_GetDefaults((*this).handle, &mut sampleRate, 0 as *mut libc::c_int);
     let mut ptr1: *mut libc::c_void = 0 as *mut libc::c_void;
-    let mut len1: uint32 = 0;
+    let mut len1: u32 = 0;
     let mut ptr2: *mut libc::c_void = 0 as *mut libc::c_void;
-    let mut len2: uint32 = 0;
+    let mut len2: u32 = 0;
     // FMOD_CheckError(
     //     FMOD_Sound_Lock(
     //         (*this).handle,
@@ -1082,38 +1076,38 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: cs
     File_Write(
         file,
         b"RIFF\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4 as libc::c_int as uint32,
+        4 as libc::c_int as u32,
     );
     File_WriteI32(
         file,
-        (36 as libc::c_int as libc::c_uint).wrapping_add(length) as int32,
+        (36 as libc::c_int as libc::c_uint).wrapping_add(length) as i32,
     );
     File_Write(
         file,
         b"WAVE\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4 as libc::c_int as uint32,
+        4 as libc::c_int as u32,
     );
     File_Write(
         file,
         b"fmt \0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4 as libc::c_int as uint32,
+        4 as libc::c_int as u32,
     );
     File_WriteI32(file, 16 as libc::c_int);
-    File_WriteI16(file, 1 as libc::c_int as int16);
-    File_WriteI16(file, channels as int16);
-    File_WriteI32(file, sampleRate as int32);
+    File_WriteI16(file, 1 as libc::c_int as i16);
+    File_WriteI16(file, channels as i16);
+    File_WriteI32(file, sampleRate as i32);
     File_WriteI32(
         file,
-        ((bytesPerSample * channels) as f32 * sampleRate) as int32,
+        ((bytesPerSample * channels) as f32 * sampleRate) as i32,
     );
-    File_WriteI16(file, (bytesPerSample * channels) as int16);
-    File_WriteI16(file, bitsPerSample as int16);
+    File_WriteI16(file, (bytesPerSample * channels) as i16);
+    File_WriteI16(file, bitsPerSample as i16);
     File_Write(
         file,
         b"data\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4 as libc::c_int as uint32,
+        4 as libc::c_int as u32,
     );
-    File_WriteI32(file, length as int32);
+    File_WriteI32(file, length as i32);
     File_Write(file, ptr1, length);
     File_Close(file);
     // FMOD_CheckError(

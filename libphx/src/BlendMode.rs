@@ -7,9 +7,7 @@ extern "C" {
     fn RenderState_PopBlendMode();
 }
 
-pub type int32_t = libc::c_int;
-pub type int32 = int32_t;
-pub type BlendMode = int32;
+pub type BlendMode = i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn BlendMode_Pop() {
@@ -21,17 +19,17 @@ pub unsafe extern "C" fn BlendMode_Push(mut blendMode: BlendMode) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn BlendMode_PushAdditive() {
-    RenderState_PushBlendMode(0 as libc::c_int);
+    RenderState_PushBlendMode(0);
 }
 #[no_mangle]
 pub unsafe extern "C" fn BlendMode_PushAlpha() {
-    RenderState_PushBlendMode(1 as libc::c_int);
+    RenderState_PushBlendMode(1);
 }
 #[no_mangle]
 pub unsafe extern "C" fn BlendMode_PushDisabled() {
-    RenderState_PushBlendMode(2 as libc::c_int);
+    RenderState_PushBlendMode(2);
 }
 #[no_mangle]
 pub unsafe extern "C" fn BlendMode_PushPreMultAlpha() {
-    RenderState_PushBlendMode(3 as libc::c_int);
+    RenderState_PushBlendMode(3);
 }

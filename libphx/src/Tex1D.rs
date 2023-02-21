@@ -6,7 +6,7 @@ use crate::PixelFormat::*;
 use crate::TexFormat::*;
 extern "C" {
     pub type Bytes;
-    fn Bytes_Create(len: uint32) -> *mut Bytes;
+    fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
     fn Bytes_Rewind(_: *mut Bytes);
@@ -53,25 +53,21 @@ extern "C" {
     fn TexFormat_IsColor(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tex1D {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub handle: uint,
     pub size: libc::c_int,
     pub format: TexFormat,
 }
-pub type TexFormat = int32;
-pub type DataFormat = int32;
-pub type PixelFormat = int32;
-pub type TexFilter = int32;
-pub type TexWrapMode = int32;
+pub type TexFormat = i32;
+pub type DataFormat = i32;
+pub type PixelFormat = i32;
+pub type TexFilter = i32;
+pub type TexWrapMode = i32;
 pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;
@@ -111,7 +107,7 @@ pub unsafe extern "C" fn Tex1D_Create(
     let mut this: *mut Tex1D = MemAlloc(
         ::core::mem::size_of::<Tex1D>() as usize,
     ) as *mut Tex1D;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     (*this).size = size;
     (*this).format = format;
     glGenTextures(1 as libc::c_int, &mut (*this).handle);
@@ -208,7 +204,7 @@ pub unsafe extern "C" fn Tex1D_GetDataBytes(
 ) -> *mut Bytes {
     let mut size: libc::c_int = (*this).size * DataFormat_GetSize(df)
         * PixelFormat_Components(pf);
-    let mut data: *mut Bytes = Bytes_Create(size as uint32);
+    let mut data: *mut Bytes = Bytes_Create(size as u32);
     Tex1D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
     return data;

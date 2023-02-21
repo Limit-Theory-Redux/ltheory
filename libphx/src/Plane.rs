@@ -10,13 +10,7 @@ extern "C" {
     fn Polygon_ToPlane(_: *mut Polygon, _: *mut Plane);
     fn Polygon_ToPlaneFast(_: *mut Polygon, _: *mut Plane);
 }
-pub type int32_t = libc::c_int;
-pub type uint8_t = libc::c_uchar;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint8 = uint8_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Plane {
@@ -26,13 +20,13 @@ pub struct Plane {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Polygon {
-    pub vertices_size: int32,
-    pub vertices_capacity: int32,
+    pub vertices_size: i32,
+    pub vertices_capacity: i32,
     pub vertices_data: *mut Vec3,
 }
-pub type Error = uint32;
-pub type PointClassification = uint8;
-pub type PolygonClassification = uint8;
+pub type Error = u32;
+pub type PointClassification = u8;
+pub type PolygonClassification = u8;
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
@@ -90,9 +84,9 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
     mut plane: *mut Plane,
     mut polygon: *mut Polygon,
 ) -> PolygonClassification {
-    let mut numInFront: int32 = 0 as libc::c_int;
-    let mut numBehind: int32 = 0 as libc::c_int;
-    let mut i: int32 = 0 as libc::c_int;
+    let mut numInFront: i32 = 0 as libc::c_int;
+    let mut numBehind: i32 = 0 as libc::c_int;
+    let mut i: i32 = 0 as libc::c_int;
     while i < (*polygon).vertices_size {
         let mut vertex: Vec3 = *((*polygon).vertices_data).offset(i as isize);
         let mut classification: PointClassification = Plane_ClassifyPoint(

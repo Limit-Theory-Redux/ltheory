@@ -34,15 +34,13 @@ extern "C" {
         isWindow: bool,
     );
 }
-pub type int32_t = libc::c_int;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
 
 
-pub type CubeFace = int32;
-pub type Metric = int32;
-pub type TexFormat = int32;
+pub type CubeFace = i32;
+pub type Metric = i32;
+pub type TexFormat = i32;
 pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;

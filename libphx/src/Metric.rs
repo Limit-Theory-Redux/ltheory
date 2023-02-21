@@ -3,13 +3,11 @@ use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
 }
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type Metric = int32;
-static mut valueCurr: [int32; 8] = [0 as libc::c_int, 0, 0, 0, 0, 0, 0, 0];
+pub type Metric = i32;
+static mut valueCurr: [i32; 8] = [0 as libc::c_int, 0, 0, 0, 0, 0, 0, 0];
 #[no_mangle]
-pub unsafe extern "C" fn Metric_Get(mut this: Metric) -> int32 {
+pub unsafe extern "C" fn Metric_Get(mut this: Metric) -> i32 {
     return valueCurr[this as usize];
 }
 #[no_mangle]
@@ -28,9 +26,9 @@ pub unsafe extern "C" fn Metric_GetName(mut this: Metric) -> cstr {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_AddDraw(
-    mut polys: int32,
-    mut tris: int32,
-    mut verts: int32,
+    mut polys: i32,
+    mut tris: i32,
+    mut verts: i32,
 ) {
     valueCurr[0x1] += 1 as libc::c_int;
     valueCurr[0x3] += polys;
@@ -39,9 +37,9 @@ pub unsafe extern "C" fn Metric_AddDraw(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_AddDrawImm(
-    mut polys: int32,
-    mut tris: int32,
-    mut verts: int32,
+    mut polys: i32,
+    mut tris: i32,
+    mut verts: i32,
 ) {
     valueCurr[0x2] += 1 as libc::c_int;
     valueCurr[0x3] += polys;
@@ -53,13 +51,13 @@ pub unsafe extern "C" fn Metric_Inc(mut this: Metric) {
     valueCurr[this as usize] += 1 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Metric_Mod(mut this: Metric, mut delta: int32) {
+pub unsafe extern "C" fn Metric_Mod(mut this: Metric, mut delta: i32) {
     valueCurr[this as usize] += delta;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Reset() {
     MemZero(
         valueCurr.as_mut_ptr() as *mut libc::c_void,
-        ::core::mem::size_of::<[int32; 8]>(),
+        ::core::mem::size_of::<[i32; 8]>(),
     );
 }

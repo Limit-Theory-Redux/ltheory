@@ -15,29 +15,25 @@ extern "C" {
     fn Device_ToString(_: *mut Device) -> cstr;
     fn State_ToString(_: State) -> cstr;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Device {
     pub type_0: DeviceType,
-    pub id: uint32,
+    pub id: u32,
 }
-pub type DeviceType = int32;
+pub type DeviceType = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputEvent {
-    pub timestamp: uint32,
+    pub timestamp: u32,
     pub device: Device,
     pub button: Button,
     pub value: f32,
     pub state: State,
 }
-pub type State = int32;
-pub type Button = int32;
+pub type State = i32;
+pub type Button = i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> cstr {

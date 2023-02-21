@@ -25,7 +25,7 @@ extern "C" {
     );
     fn pow(_: f64, _: f64) -> f64;
     fn floor(_: f64) -> f64;
-    fn HashMap_Create(keySize: uint32, capacity: uint32) -> *mut HashMap;
+    fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
     fn HashMap_Get(_: *mut HashMap, key: *const libc::c_void) -> *mut libc::c_void;
     fn HashMap_Set(_: *mut HashMap, key: *const libc::c_void, value: *mut libc::c_void);
     fn Profiler_Begin(_: cstr);
@@ -80,17 +80,13 @@ extern "C" {
     ) -> FT_Error;
     fn FT_Get_Char_Index(face: FT_Face, charcode: FT_ULong) -> FT_UInt;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type uint = libc::c_uint;
 pub type uchar = libc::c_uchar;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Font {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub handle: FT_Face,
     pub glyphs: *mut HashMap,
     pub glyphsAscii: [*mut Glyph; 256],
@@ -396,11 +392,11 @@ pub struct Vec4f {
     pub z: f32,
     pub w: f32,
 }
-pub type BlendMode = int32;
-pub type DataFormat = int32;
-pub type PixelFormat = int32;
-pub type ResourceType = int32;
-pub type TexFormat = int32;
+pub type BlendMode = i32;
+pub type DataFormat = i32;
+pub type PixelFormat = i32;
+pub type ResourceType = i32;
+pub type TexFormat = i32;
 pub type FT_Error = libc::c_int;
 pub type FT_ULong = libc::c_ulong;
 pub type FT_Int32 = libc::c_int;
@@ -452,7 +448,7 @@ pub static mut kRcpGamma: f32 = unsafe { 1.0f32 / kGamma };
 static mut ft: FT_Library = 0 as *const FT_LibraryRec_ as FT_Library;
 unsafe extern "C" fn Font_GetGlyph(
     mut this: *mut Font,
-    mut codepoint: uint32,
+    mut codepoint: u32,
 ) -> *mut Glyph {
     if codepoint < 256 as libc::c_int as libc::c_uint
         && !((*this).glyphsAscii[codepoint as usize]).is_null()
@@ -461,7 +457,7 @@ unsafe extern "C" fn Font_GetGlyph(
     }
     let mut g: *mut Glyph = HashMap_Get(
         (*this).glyphs,
-        &mut codepoint as *mut uint32 as *const libc::c_void,
+        &mut codepoint as *mut u32 as *const libc::c_void,
     ) as *mut Glyph;
     if !g.is_null() {
         return g;
@@ -527,7 +523,7 @@ unsafe extern "C" fn Font_GetGlyph(
     } else {
         HashMap_Set(
             (*this).glyphs,
-            &mut codepoint as *mut uint32 as *const libc::c_void,
+            &mut codepoint as *mut u32 as *const libc::c_void,
             g as *mut libc::c_void,
         );
     }
@@ -557,7 +553,7 @@ pub unsafe extern "C" fn Font_Load(mut name: cstr, mut size: libc::c_int) -> *mu
     let mut path: cstr = Resource_GetPath(ResourceType_Font, name);
     let mut this: *mut Font = MemAlloc(::core::mem::size_of::<Font>())
         as *mut Font;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     if FT_New_Face(ft, path, 0 as libc::c_int as FT_Long, &mut (*this).handle) != 0 {
         Fatal(
             b"Font_Load: Failed to load font <%s> at <%s>\0" as *const u8
@@ -573,8 +569,8 @@ pub unsafe extern "C" fn Font_Load(mut name: cstr, mut size: libc::c_int) -> *mu
     );
     (*this)
         .glyphs = HashMap_Create(
-        ::core::mem::size_of::<uint32>() as usize as uint32,
-        16 as libc::c_int as uint32,
+        ::core::mem::size_of::<u32>() as usize as u32,
+        16 as libc::c_int as u32,
     );
     return this;
 }
@@ -612,7 +608,7 @@ pub unsafe extern "C" fn Font_Draw(
     let mut glyphLast: libc::c_int = 0 as libc::c_int;
     let fresh1 = text;
     text = text.offset(1);
-    let mut codepoint: uint32 = *fresh1 as uint32;
+    let mut codepoint: u32 = *fresh1 as u32;
     x = Floor(x as f64) as f32;
     y = Floor(y as f64) as f32;
     RenderState_PushBlendMode(1 as libc::c_int);
@@ -645,7 +641,7 @@ pub unsafe extern "C" fn Font_Draw(
         }
         let fresh2 = text;
         text = text.offset(1);
-        codepoint = *fresh2 as uint32;
+        codepoint = *fresh2 as u32;
     }
     Draw_Color(
         1.0f32,
@@ -670,7 +666,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
     let mut glyphLast: libc::c_int = 0 as libc::c_int;
     let fresh3 = text;
     text = text.offset(1);
-    let mut codepoint: uint32 = *fresh3 as uint32;
+    let mut codepoint: u32 = *fresh3 as u32;
     x = Floor(x as f64) as f32;
     y = Floor(y as f64) as f32;
     while codepoint != 0 {
@@ -706,7 +702,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
         }
         let fresh4 = text;
         text = text.offset(1);
-        codepoint = *fresh4 as uint32;
+        codepoint = *fresh4 as u32;
     }
     Profiler_End();
 }
@@ -732,7 +728,7 @@ pub unsafe extern "C" fn Font_GetSize(
     let mut glyphLast: libc::c_int = 0 as libc::c_int;
     let fresh5 = text;
     text = text.offset(1);
-    let mut codepoint: uint32 = *fresh5 as uint32;
+    let mut codepoint: u32 = *fresh5 as u32;
     if codepoint == 0 {
         *out = IVec4::new(
             0 as libc::c_int,
@@ -767,7 +763,7 @@ pub unsafe extern "C" fn Font_GetSize(
         }
         let fresh6 = text;
         text = text.offset(1);
-        codepoint = *fresh6 as uint32;
+        codepoint = *fresh6 as u32;
     }
     *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
     Profiler_End();
@@ -787,7 +783,7 @@ pub unsafe extern "C" fn Font_GetSize2(
     let mut glyphLast: libc::c_int = 0 as libc::c_int;
     let fresh7 = text;
     text = text.offset(1);
-    let mut codepoint: uint32 = *fresh7 as uint32;
+    let mut codepoint: u32 = *fresh7 as u32;
     while codepoint != 0 {
         let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
@@ -806,7 +802,7 @@ pub unsafe extern "C" fn Font_GetSize2(
         }
         let fresh8 = text;
         text = text.offset(1);
-        codepoint = *fresh8 as uint32;
+        codepoint = *fresh8 as u32;
     }
     Profiler_End();
 }

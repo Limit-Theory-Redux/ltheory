@@ -12,16 +12,12 @@ extern "C" {
     fn Fatal(_: cstr, _: ...);
     fn ShaderVarType_GetName(_: ShaderVarType) -> cstr;
     fn ShaderVarType_GetSize(_: ShaderVarType) -> libc::c_int;
-    fn StrMap_Create(initCapacity: uint32) -> *mut StrMap;
+    fn StrMap_Create(initCapacity: u32) -> *mut StrMap;
     fn StrMap_Free(_: *mut StrMap);
     fn StrMap_Get(_: *mut StrMap, key: cstr) -> *mut libc::c_void;
     fn StrMap_Set(_: *mut StrMap, key: cstr, val: *mut libc::c_void);
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -31,14 +27,14 @@ pub struct Vec4f {
     pub z: f32,
     pub w: f32,
 }
-pub type ShaderVarType = int32;
+pub type ShaderVarType = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct VarStack {
     pub type_0: ShaderVarType,
-    pub size: int32,
-    pub capacity: int32,
-    pub elemSize: int32,
+    pub size: i32,
+    pub capacity: i32,
+    pub elemSize: i32,
     pub data: *mut libc::c_void,
 }
 
@@ -99,7 +95,7 @@ unsafe extern "C" fn ShaderVar_Push(
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Init() {
-    varMap = StrMap_Create(16 as libc::c_int as uint32);
+    varMap = StrMap_Create(16 as libc::c_int as u32);
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Free() {
@@ -180,11 +176,11 @@ pub unsafe extern "C" fn ShaderVar_PushFloat4(
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushInt(mut name: cstr, mut x: libc::c_int) {
-    let mut value: int32 = x;
+    let mut value: i32 = x;
     ShaderVar_Push(
         name,
         0x5 as libc::c_int,
-        &mut value as *mut int32 as *const libc::c_void,
+        &mut value as *mut i32 as *const libc::c_void,
     );
 }
 #[no_mangle]

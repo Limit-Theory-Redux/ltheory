@@ -1,7 +1,6 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-pub type uint32_t = libc::c_uint;
 pub type C2RustUnnamed = libc::c_uint;
 pub const SDL_WINDOW_INPUT_GRABBED: C2RustUnnamed = 256;
 pub const SDL_WINDOW_METAL: C2RustUnnamed = 536870912;
@@ -27,8 +26,7 @@ pub const SDL_WINDOW_HIDDEN: C2RustUnnamed = 8;
 pub const SDL_WINDOW_SHOWN: C2RustUnnamed = 4;
 pub const SDL_WINDOW_OPENGL: C2RustUnnamed = 2;
 pub const SDL_WINDOW_FULLSCREEN: C2RustUnnamed = 1;
-pub type uint32 = uint32_t;
-pub type WindowMode = uint32;
+pub type WindowMode = u32;
 #[no_mangle]
 pub static mut WindowMode_AlwaysOnTop: WindowMode = SDL_WINDOW_ALWAYS_ON_TOP
     as libc::c_int as WindowMode;

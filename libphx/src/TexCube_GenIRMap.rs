@@ -69,15 +69,13 @@ extern "C" {
     fn TexCube_SetMinFilter(_: *mut TexCube, _: TexFilter);
     fn TexFormat_Components(_: TexFormat) -> libc::c_int;
 }
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
 
-pub type CubeFace = int32;
-pub type DataFormat = int32;
-pub type PixelFormat = int32;
-pub type TexFilter = int32;
-pub type TexFormat = int32;
+pub type CubeFace = i32;
+pub type DataFormat = i32;
+pub type PixelFormat = i32;
+pub type TexFilter = i32;
+pub type TexFormat = i32;
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);

@@ -9,10 +9,8 @@ extern "C" {
         _: ...
     ) -> libc::c_int;
 }
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type Modifier = int32;
+pub type Modifier = i32;
 #[no_mangle]
 pub static mut Modifier_Null: Modifier = (0 as libc::c_int) << 0 as libc::c_int;
 #[no_mangle]

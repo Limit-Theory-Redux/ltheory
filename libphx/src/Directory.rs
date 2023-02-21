@@ -13,10 +13,10 @@ extern "C" {
     fn rmdir(_: *const libc::c_char) -> libc::c_int;
     fn mkdir(_: *const libc::c_char, _: mode_t) -> libc::c_int;
 }
-pub type __uint8_t = libc::c_uchar;
-pub type __uint16_t = libc::c_ushort;
-pub type __uint64_t = libc::c_ulonglong;
-pub type __darwin_mode_t = __uint16_t;
+pub type __u8_t = libc::c_uchar;
+pub type __u16 = libc::c_ushort;
+pub type __u64_t = libc::c_ulonglong;
+pub type __darwin_mode_t = __u16;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct _opaque_pthread_mutex_t {
@@ -47,11 +47,11 @@ pub struct DIR {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct dirent {
-    pub d_ino: __uint64_t,
-    pub d_seekoff: __uint64_t,
-    pub d_reclen: __uint16_t,
-    pub d_namlen: __uint16_t,
-    pub d_type: __uint8_t,
+    pub d_ino: __u64_t,
+    pub d_seekoff: __u64_t,
+    pub d_reclen: __u16,
+    pub d_namlen: __u16,
+    pub d_type: __u8_t,
     pub d_name: [libc::c_char; 1024],
 }
 pub type mode_t = __darwin_mode_t;

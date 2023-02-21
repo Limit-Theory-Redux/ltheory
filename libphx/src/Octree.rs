@@ -34,10 +34,6 @@ extern "C" {
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
 }
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
-pub type uint32 = uint32_t;
-pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Octree {
@@ -49,7 +45,7 @@ pub struct Octree {
 #[repr(C)]
 pub struct Node {
     pub next: *mut Node,
-    pub id: uint64,
+    pub id: u64,
     pub box_0: Box3f,
 }
 #[derive(Copy, Clone)]
@@ -207,7 +203,7 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
-        Octree_Add(this, box_0, (i / 3 as libc::c_int) as uint32);
+        Octree_Add(this, box_0, (i / 3 as libc::c_int) as u32);
         i += 3 as libc::c_int;
     }
     return this;
@@ -322,19 +318,19 @@ pub unsafe extern "C" fn Octree_IntersectRay(
 unsafe extern "C" fn Octree_Insert(
     mut this: *mut Octree,
     mut box_0: Box3f,
-    mut id: uint32,
+    mut id: u32,
 ) {
     let mut elem: *mut Node = MemAlloc(::core::mem::size_of::<Node>())
         as *mut Node;
     (*elem).box_0 = box_0;
-    (*elem).id = id as uint64;
+    (*elem).id = id as u64;
     (*elem).next = (*this).elems;
     (*this).elems = elem;
 }
 unsafe extern "C" fn Octree_AddDepth(
     mut this: *mut Octree,
     mut box_0: Box3f,
-    mut id: uint32,
+    mut id: u32,
     mut depth: libc::c_int,
 ) {
     let L: *const Vec3 = &mut (*this).box_0.lower;
@@ -439,7 +435,7 @@ unsafe extern "C" fn Octree_AddDepth(
 pub unsafe extern "C" fn Octree_Add(
     mut this: *mut Octree,
     mut box_0: Box3f,
-    mut id: uint32,
+    mut id: u32,
 ) {
     Octree_AddDepth(this, box_0, id, 0 as libc::c_int);
 }

@@ -6,12 +6,10 @@ extern "C" {
     fn Mesh_Free(_: *mut Mesh);
     fn Mesh_Draw(_: *mut Mesh);
 }
-pub type uint32_t = libc::c_uint;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LodMesh {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub head: *mut LodMeshEntry,
 }
 #[derive(Copy, Clone)]
@@ -28,7 +26,7 @@ pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
     let mut this: *mut LodMesh = MemAlloc(
         ::core::mem::size_of::<LodMesh>() as usize,
     ) as *mut LodMesh;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     (*this).head = 0 as *mut LodMeshEntry;
     return this;
 }

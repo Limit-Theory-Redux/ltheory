@@ -31,10 +31,6 @@ extern "C" {
     fn Tex3D_GetSize(_: *mut Tex3D, out: *mut IVec3);
     fn sqrt(_: f64) -> f64;
 }
-pub type int32_t = libc::c_int;
-pub type uint64_t = libc::c_ulonglong;
-pub type int32 = int32_t;
-pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDF {
@@ -352,10 +348,10 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
 }
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
-    let mut size: uint64 = ((*this).size.x * (*this).size.y * (*this).size.z)
-        as uint64;
+    let mut size: u64 = ((*this).size.x * (*this).size.y * (*this).size.z)
+        as u64;
     let mut pCell: *mut Cell = (*this).data;
-    let mut i: uint64 = 0 as libc::c_int as uint64;
+    let mut i: u64 = 0 as libc::c_int as u64;
     while i < size {
         let fresh0 = pCell;
         pCell = pCell.offset(1);

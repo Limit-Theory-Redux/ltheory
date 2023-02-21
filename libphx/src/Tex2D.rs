@@ -11,7 +11,7 @@ extern "C" {
     pub type Bytes;
     fn Fatal(_: cstr, _: ...);
     fn Warn(_: cstr, _: ...);
-    fn Bytes_Create(len: uint32) -> *mut Bytes;
+    fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Rewind(_: *mut Bytes);
     fn DataFormat_GetSize(_: DataFormat) -> libc::c_int;
@@ -22,7 +22,7 @@ extern "C" {
         a: f32,
     );
     fn Metric_Inc(_: Metric);
-    fn Metric_AddDrawImm(polys: int32, tris: int32, verts: int32);
+    fn Metric_AddDrawImm(polys: i32, tris: i32, verts: i32);
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLuint);
     fn glCopyTexImage2D(
@@ -106,29 +106,25 @@ extern "C" {
         data: *mut uchar,
     ) -> bool;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type uint = libc::c_uint;
 pub type uchar = libc::c_uchar;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tex2D {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub handle: uint,
     pub size: IVec2,
     pub format: TexFormat,
 }
-pub type TexFormat = int32;
+pub type TexFormat = i32;
 
-pub type DataFormat = int32;
-pub type Metric = int32;
-pub type PixelFormat = int32;
-pub type ResourceType = int32;
-pub type TexFilter = int32;
-pub type TexWrapMode = int32;
+pub type DataFormat = i32;
+pub type Metric = i32;
+pub type PixelFormat = i32;
+pub type ResourceType = i32;
+pub type TexFilter = i32;
+pub type TexWrapMode = i32;
 pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;
@@ -175,7 +171,7 @@ pub unsafe extern "C" fn Tex2D_Create(
     let mut this: *mut Tex2D = MemAlloc(
         ::core::mem::size_of::<Tex2D>() as usize,
     ) as *mut Tex2D;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     (*this).size = IVec2::new(sx, sy);
     (*this).format = format;
     glGenTextures(1 as libc::c_int, &mut (*this).handle);
@@ -206,10 +202,10 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut size);
     let mut this: *mut Tex2D = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
-    let mut buf: *mut uint32 = MemAlloc(
-        (::core::mem::size_of::<uint32>())
+    let mut buf: *mut u32 = MemAlloc(
+        (::core::mem::size_of::<u32>())
             .wrapping_mul((size.x * size.y) as usize),
-    ) as *mut uint32;
+    ) as *mut u32;
     Metric_Inc(0x6 as libc::c_int);
     glReadPixels(
         0 as libc::c_int,
@@ -228,21 +224,21 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
             MemCpy(
                 swap_temp.as_mut_ptr() as *mut libc::c_void,
                 &mut *buf.offset((size.x * (size.y - y - 1 as libc::c_int) + x) as isize)
-                    as *mut uint32 as *const libc::c_void,
-                ::core::mem::size_of::<uint32>() as usize,
+                    as *mut u32 as *const libc::c_void,
+                ::core::mem::size_of::<u32>() as usize,
             );
             MemCpy(
                 &mut *buf.offset((size.x * (size.y - y - 1 as libc::c_int) + x) as isize)
-                    as *mut uint32 as *mut libc::c_void,
-                &mut *buf.offset((size.x * y + x) as isize) as *mut uint32
+                    as *mut u32 as *mut libc::c_void,
+                &mut *buf.offset((size.x * y + x) as isize) as *mut u32
                     as *const libc::c_void,
-                ::core::mem::size_of::<uint32>() as usize,
+                ::core::mem::size_of::<u32>() as usize,
             );
             MemCpy(
-                &mut *buf.offset((size.x * y + x) as isize) as *mut uint32
+                &mut *buf.offset((size.x * y + x) as isize) as *mut u32
                     as *mut libc::c_void,
                 swap_temp.as_mut_ptr() as *const libc::c_void,
-                ::core::mem::size_of::<uint32>() as usize,
+                ::core::mem::size_of::<u32>() as usize,
             );
             x += 1;
         }
@@ -413,7 +409,7 @@ pub unsafe extern "C" fn Tex2D_GetDataBytes(
     let mut size: libc::c_int = (*this).size.x * (*this).size.y;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
-    let mut data: *mut Bytes = Bytes_Create(size as uint32);
+    let mut data: *mut Bytes = Bytes_Create(size as u32);
     Tex2D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
     return data;

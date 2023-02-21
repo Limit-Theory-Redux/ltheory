@@ -3,19 +3,15 @@ use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
 }
-pub type uint16_t = libc::c_ushort;
-pub type uint32_t = libc::c_uint;
-pub type uint16 = uint16_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct MemPool {
-    pub size: uint32,
-    pub capacity: uint32,
+    pub size: u32,
+    pub capacity: u32,
     pub freeList: *mut libc::c_void,
-    pub cellSize: uint32,
-    pub blockSize: uint32,
-    pub blockCount: uint16,
+    pub cellSize: u32,
+    pub blockSize: u32,
+    pub blockCount: u16,
     pub blocks: *mut *mut libc::c_void,
 }
 
@@ -23,10 +19,10 @@ pub struct MemPool {
 unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
     let fresh0 = (*this).blockCount;
     (*this).blockCount = ((*this).blockCount).wrapping_add(1);
-    let mut newBlockIndex: uint16 = fresh0;
+    let mut newBlockIndex: u16 = fresh0;
     (*this)
         .capacity = ((*this).capacity as libc::c_uint)
-        .wrapping_add((*this).blockSize) as uint32 as uint32;
+        .wrapping_add((*this).blockSize) as u32 as u32;
     (*this)
         .blocks = MemRealloc(
         (*this).blocks as *mut libc::c_void,
@@ -39,7 +35,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
     *fresh1 = newBlock;
     let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
     let mut pCurr: *mut libc::c_char = newBlock as *mut libc::c_char;
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).blockSize {
         *prev = pCurr as *mut libc::c_void;
         prev = pCurr as *mut *mut libc::c_void;
@@ -50,23 +46,23 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Create(
-    mut cellSize: uint32,
-    mut blockSize: uint32,
+    mut cellSize: u32,
+    mut blockSize: u32,
 ) -> *mut MemPool {
     let mut this: *mut MemPool = MemAlloc(
         ::core::mem::size_of::<MemPool>() as usize,
     ) as *mut MemPool;
-    (*this).size = 0 as libc::c_int as uint32;
-    (*this).capacity = 0 as libc::c_int as uint32;
+    (*this).size = 0 as libc::c_int as u32;
+    (*this).capacity = 0 as libc::c_int as u32;
     (*this).freeList = 0 as *mut libc::c_void;
     (*this).cellSize = cellSize;
     (*this).blockSize = blockSize;
-    (*this).blockCount = 0 as libc::c_int as uint16;
+    (*this).blockCount = 0 as libc::c_int as u16;
     (*this).blocks = 0 as *mut *mut libc::c_void;
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_CreateAuto(mut elemSize: uint32) -> *mut MemPool {
+pub unsafe extern "C" fn MemPool_CreateAuto(mut elemSize: u32) -> *mut MemPool {
     return MemPool_Create(
         elemSize,
         (0x1000 as libc::c_int as libc::c_uint).wrapping_div(elemSize),
@@ -74,7 +70,7 @@ pub unsafe extern "C" fn MemPool_CreateAuto(mut elemSize: uint32) -> *mut MemPoo
 }
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Free(mut this: *mut MemPool) {
-    let mut i: uint16 = 0 as libc::c_int as uint16;
+    let mut i: u16 = 0 as libc::c_int as u16;
     while (i as libc::c_int) < (*this).blockCount as libc::c_int {
         MemFree(*((*this).blocks).offset(i as isize));
         i = i.wrapping_add(1);
@@ -94,14 +90,14 @@ pub unsafe extern "C" fn MemPool_Alloc(mut this: *mut MemPool) -> *mut libc::c_v
 }
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Clear(mut this: *mut MemPool) {
-    (*this).size = 0 as libc::c_int as uint32;
+    (*this).size = 0 as libc::c_int as u32;
     (*this).freeList = 0 as *mut libc::c_void;
     let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).blockCount as libc::c_uint {
         let mut pCurr: *mut libc::c_char = *((*this).blocks).offset(i as isize)
             as *mut libc::c_char;
-        let mut j: uint32 = 0 as libc::c_int as uint32;
+        let mut j: u32 = 0 as libc::c_int as u32;
         while j < (*this).blockSize {
             *prev = pCurr as *mut libc::c_void;
             prev = pCurr as *mut *mut libc::c_void;
@@ -123,10 +119,10 @@ pub unsafe extern "C" fn MemPool_Dealloc(
     (*this).size = ((*this).size).wrapping_sub(1);
 }
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_GetCapacity(mut this: *mut MemPool) -> uint32 {
+pub unsafe extern "C" fn MemPool_GetCapacity(mut this: *mut MemPool) -> u32 {
     return (*this).capacity;
 }
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_GetSize(mut this: *mut MemPool) -> uint32 {
+pub unsafe extern "C" fn MemPool_GetSize(mut this: *mut MemPool) -> u32 {
     return (*this).size;
 }

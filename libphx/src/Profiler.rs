@@ -16,10 +16,10 @@ extern "C" {
             unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> libc::c_int,
         >,
     );
-    fn HashMap_Create(keySize: uint32, capacity: uint32) -> *mut HashMap;
+    fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
     fn HashMap_Free(_: *mut HashMap);
-    fn HashMap_GetRaw(_: *mut HashMap, keyHash: uint64) -> *mut libc::c_void;
-    fn HashMap_SetRaw(_: *mut HashMap, keyHash: uint64, value: *mut libc::c_void);
+    fn HashMap_GetRaw(_: *mut HashMap, keyHash: u64) -> *mut libc::c_void;
+    fn HashMap_SetRaw(_: *mut HashMap, keyHash: u64, value: *mut libc::c_void);
     fn sqrt(_: f64) -> f64;
     fn Signal_AddHandlerAll(_: SignalHandler);
     fn Signal_RemoveHandlerAll(_: SignalHandler);
@@ -30,16 +30,10 @@ extern "C" {
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
     fn TimeStamp_ToDouble(_: TimeStamp) -> f64;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
-pub type __int64_t = libc::c_longlong;
-pub type __darwin_off_t = __int64_t;
+pub type __i64_t = libc::c_longlong;
+pub type __darwin_off_t = __i64_t;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
-pub type uint64 = uint64_t;
-pub type TimeStamp = uint64;
+pub type TimeStamp = u64;
 pub type Signal = libc::c_int;
 pub type SignalHandler = Option::<unsafe extern "C" fn(Signal) -> ()>;
 pub type FILE = __sFILE;
@@ -107,8 +101,8 @@ pub struct Profiler {
     pub map: *mut HashMap,
     pub stackIndex: libc::c_int,
     pub stack: [*mut Scope; 128],
-    pub scopeList_size: int32,
-    pub scopeList_capacity: int32,
+    pub scopeList_size: i32,
+    pub scopeList_capacity: i32,
     pub scopeList_data: *mut *mut Scope,
     pub start: TimeStamp,
 }
@@ -198,13 +192,13 @@ unsafe extern "C" fn SortScopes(
     };
 }
 unsafe extern "C" fn Profiler_GetScope(mut name: cstr) -> *mut Scope {
-    let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as libc::size_t as uint64)
+    let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as libc::size_t as u64)
         as *mut Scope;
     if !scope.is_null() {
         return scope;
     }
     scope = Scope_Create(name);
-    HashMap_SetRaw(this.map, name as libc::size_t as uint64, scope as *mut libc::c_void);
+    HashMap_SetRaw(this.map, name as libc::size_t as u64, scope as *mut libc::c_void);
     return scope;
 }
 unsafe extern "C" fn Profiler_SignalHandler(mut s: Signal) {
@@ -215,8 +209,8 @@ pub unsafe extern "C" fn Profiler_Enable() {
     profiling = 1 as libc::c_int != 0;
     this
         .map = HashMap_Create(
-        ::core::mem::size_of::<*mut libc::c_void>() as libc::c_ulong as uint32,
-        (2 as libc::c_int * 1024 as libc::c_int) as uint32,
+        ::core::mem::size_of::<*mut libc::c_void>() as libc::c_ulong as u32,
+        (2 as libc::c_int * 1024 as libc::c_int) as u32,
     );
     this.scopeList_capacity = 0 as libc::c_int;
     this.scopeList_size = 0 as libc::c_int;

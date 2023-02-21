@@ -44,13 +44,11 @@ extern "C" {
     fn Mesh_ReserveVertexData(_: *mut Mesh, capacity: libc::c_int);
     fn sqrt(_: f64) -> f64;
 }
-pub type int32_t = libc::c_int;
-pub type int32 = int32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BoxMesh {
-    pub elem_size: int32,
-    pub elem_capacity: int32,
+    pub elem_size: i32,
+    pub elem_capacity: i32,
     pub elem_data: *mut Box_0,
 }
 #[derive(Copy, Clone)]

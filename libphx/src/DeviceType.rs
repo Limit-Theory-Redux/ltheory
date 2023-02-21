@@ -10,11 +10,9 @@ extern "C" {
     ) -> libc::c_int;
     fn Button_ToDeviceType(_: Button) -> DeviceType;
 }
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type Button = int32;
-pub type DeviceType = int32;
+pub type Button = i32;
+pub type DeviceType = i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn DeviceType_FromButton(mut button: Button) -> DeviceType {

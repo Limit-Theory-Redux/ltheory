@@ -25,8 +25,6 @@ extern "C" {
     fn Mesh_GetIndexData(_: *mut Mesh) -> *mut libc::c_int;
     fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
 }
-pub type uint64_t = libc::c_ulonglong;
-pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct KDTree {
@@ -39,7 +37,7 @@ pub struct KDTree {
 #[repr(C)]
 pub struct Node {
     pub next: *mut Node,
-    pub id: uint64,
+    pub id: u64,
     pub box_0: Box3f,
 }
 #[derive(Copy, Clone)]
@@ -147,7 +145,7 @@ unsafe extern "C" fn Partition(
             ) as *mut Node;
             (*node).box_0 = *boxes.offset(i_0 as isize);
             (*node).next = (*this).elems;
-            (*node).id = 0 as libc::c_int as uint64;
+            (*node).id = 0 as libc::c_int as u64;
             (*this).elems = node;
             i_0 += 1;
         }

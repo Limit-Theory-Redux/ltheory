@@ -1,9 +1,7 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-pub type int32_t = libc::c_int;
-pub type int32 = int32_t;
-pub type PixelFormat = int32;
+pub type PixelFormat = i32;
 #[no_mangle]
 pub static mut PixelFormat_Red: PixelFormat = 0x1903 as libc::c_int;
 #[no_mangle]

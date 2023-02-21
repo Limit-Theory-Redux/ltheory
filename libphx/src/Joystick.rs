@@ -8,9 +8,9 @@ extern "C" {
     fn SDL_JoystickGetGUID(joystick: *mut SDL_Joystick) -> SDL_JoystickGUID;
     fn SDL_JoystickClose(joystick: *mut SDL_Joystick);
     fn SDL_NumJoysticks() -> libc::c_int;
-    fn SDL_JoystickGetHat(joystick: *mut SDL_Joystick, hat: libc::c_int) -> Uint8;
-    fn SDL_JoystickGetButton(joystick: *mut SDL_Joystick, button: libc::c_int) -> Uint8;
-    fn SDL_JoystickGetAxis(joystick: *mut SDL_Joystick, axis: libc::c_int) -> Sint16;
+    fn SDL_JoystickGetHat(joystick: *mut SDL_Joystick, hat: libc::c_int) -> u8;
+    fn SDL_JoystickGetButton(joystick: *mut SDL_Joystick, button: libc::c_int) -> u8;
+    fn SDL_JoystickGetAxis(joystick: *mut SDL_Joystick, axis: libc::c_int) -> i16;
     fn SDL_JoystickNumHats(joystick: *mut SDL_Joystick) -> libc::c_int;
     fn SDL_JoystickNumButtons(joystick: *mut SDL_Joystick) -> libc::c_int;
     fn SDL_JoystickNumBalls(joystick: *mut SDL_Joystick) -> libc::c_int;
@@ -27,14 +27,8 @@ extern "C" {
     fn TimeStamp_Get() -> TimeStamp;
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
-pub type int16_t = libc::c_short;
-pub type int32_t = libc::c_int;
-pub type uint8_t = libc::c_uchar;
-pub type uint64_t = libc::c_ulonglong;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint64 = uint64_t;
-pub type TimeStamp = uint64;
+pub type TimeStamp = u64;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Joystick {
@@ -50,14 +44,12 @@ pub struct Joystick {
     pub lastUsed: TimeStamp,
 }
 pub type SDL_Joystick = _SDL_Joystick;
-pub type HatDir = int32;
-pub type Uint8 = uint8_t;
-pub type Sint16 = int16_t;
+pub type HatDir = i32;
 pub type SDL_GUID = SDL_JoystickGUID;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_JoystickGUID {
-    pub data: [Uint8; 16],
+    pub data: [u8; 16],
 }
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {

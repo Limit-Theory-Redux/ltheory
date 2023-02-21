@@ -44,29 +44,23 @@ extern "C" {
         system: *mut FMOD_SYSTEM,
         version: *mut libc::c_uint,
     ) -> FMOD_RESULT;
-    fn MemPool_Create(cellSize: uint32, blockSize: uint32) -> *mut MemPool;
+    fn MemPool_Create(cellSize: u32, blockSize: u32) -> *mut MemPool;
     fn MemPool_Free(_: *mut MemPool);
     fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
     fn MemPool_Dealloc(_: *mut MemPool, _: *mut libc::c_void);
-    fn MemPool_GetSize(_: *mut MemPool) -> uint32;
+    fn MemPool_GetSize(_: *mut MemPool) -> u32;
     fn Sound_IsPlaying(_: *mut Sound) -> bool;
     fn Sound_Update(_: *mut Sound);
     fn Sound_IsFreed(_: *mut Sound) -> bool;
-    fn StrMap_Create(initCapacity: uint32) -> *mut StrMap;
+    fn StrMap_Create(initCapacity: u32) -> *mut StrMap;
     fn StrMap_Free(_: *mut StrMap);
     fn StrMap_Get(_: *mut StrMap, key: cstr) -> *mut libc::c_void;
-    fn StrMap_GetSize(_: *mut StrMap) -> uint32;
+    fn StrMap_GetSize(_: *mut StrMap) -> u32;
     fn StrMap_Remove(_: *mut StrMap, key: cstr);
     fn StrMap_Set(_: *mut StrMap, key: cstr, val: *mut libc::c_void);
 }
-pub type int32_t = libc::c_int;
-pub type uint8_t = libc::c_uchar;
-pub type uint32_t = libc::c_uint;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint8 = uint8_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Sound {
@@ -77,11 +71,11 @@ pub struct Sound {
     pub autoVel: *const Vec3,
     pub freeOnFinish: bool,
 }
-pub type SoundState = uint8;
+pub type SoundState = u8;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SoundDesc {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub handle: *mut FMOD_SOUND,
     pub name: cstr,
     pub path: cstr,
@@ -92,11 +86,11 @@ pub struct Audio {
     pub handle: *mut FMOD_SYSTEM,
     pub descMap: *mut StrMap,
     pub soundPool: *mut MemPool,
-    pub playingSounds_size: int32,
-    pub playingSounds_capacity: int32,
+    pub playingSounds_size: i32,
+    pub playingSounds_capacity: i32,
     pub playingSounds_data: *mut *mut Sound,
-    pub freeingSounds_size: int32,
-    pub freeingSounds_capacity: int32,
+    pub freeingSounds_size: i32,
+    pub freeingSounds_capacity: i32,
     pub freeingSounds_data: *mut *mut Sound,
     pub autoPos: *const Vec3,
     pub autoVel: *const Vec3,
@@ -736,11 +730,11 @@ pub unsafe extern "C" fn Audio_Init() {
     //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
-    // this.descMap = StrMap_Create(128 as libc::c_int as uint32);
+    // this.descMap = StrMap_Create(128 as libc::c_int as u32);
     // this
     //     .soundPool = MemPool_Create(
-    //     ::core::mem::size_of::<Sound>() as usize as uint32,
-    //     128 as libc::c_int as uint32,
+    //     ::core::mem::size_of::<Sound>() as usize as u32,
+    //     128 as libc::c_int as u32,
     // );
 }
 #[no_mangle]
@@ -850,19 +844,19 @@ pub unsafe extern "C" fn Audio_Update() {
     // this.freeingSounds_size = 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Audio_GetLoadedCount() -> int32 {
+pub unsafe extern "C" fn Audio_GetLoadedCount() -> i32 {
     return 0;
-    // let mut size: uint32 = StrMap_GetSize(this.descMap);
-    // return size as int32;
+    // let mut size: u32 = StrMap_GetSize(this.descMap);
+    // return size as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Audio_GetPlayingCount() -> int32 {
+pub unsafe extern "C" fn Audio_GetPlayingCount() -> i32 {
     return this.playingSounds_size;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Audio_GetTotalCount() -> int32 {
-    let mut size: uint32 = MemPool_GetSize(this.soundPool);
-    return size as int32;
+pub unsafe extern "C" fn Audio_GetTotalCount() -> i32 {
+    let mut size: u32 = MemPool_GetSize(this.soundPool);
+    return size as i32;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {

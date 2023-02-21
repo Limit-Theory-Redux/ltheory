@@ -46,7 +46,7 @@ extern "C" {
     fn ShaderState_Create(_: *mut Shader) -> *mut ShaderState;
     fn ShaderVar_Get(_: cstr, _: ShaderVarType) -> *mut libc::c_void;
     fn ShaderVarType_FromStr(_: cstr) -> ShaderVarType;
-    fn StrMap_Create(initCapacity: uint32) -> *mut StrMap;
+    fn StrMap_Create(initCapacity: u32) -> *mut StrMap;
     fn StrMap_FreeEx(
         _: *mut StrMap,
         freeFn: Option::<unsafe extern "C" fn(cstr, *mut libc::c_void) -> ()>,
@@ -65,23 +65,19 @@ extern "C" {
     fn TexCube_GetHandle(_: *mut TexCube) -> uint;
 }
 pub type __builtin_va_list = *mut libc::c_char;
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Shader {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub name: cstr,
     pub vs: uint,
     pub fs: uint,
     pub program: uint,
     pub texIndex: uint,
-    pub vars_size: int32,
-    pub vars_capacity: int32,
+    pub vars_size: i32,
+    pub vars_capacity: i32,
     pub vars_data: *mut ShaderVar,
 }
 #[derive(Copy, Clone)]
@@ -91,7 +87,7 @@ pub struct ShaderVar {
     pub name: cstr,
     pub index: libc::c_int,
 }
-pub type ShaderVarType = int32;
+pub type ShaderVarType = i32;
 
 
 
@@ -104,7 +100,7 @@ pub struct Vec4f {
     pub z: f32,
     pub w: f32,
 }
-pub type ResourceType = int32;
+pub type ResourceType = i32;
 pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;
@@ -280,7 +276,7 @@ unsafe extern "C" fn CreateGLProgram(mut vs: uint, mut fs: uint) -> uint {
 }
 unsafe extern "C" fn GLSL_Load(mut name: cstr, mut this: *mut Shader) -> cstr {
     if cache.is_null() {
-        cache = StrMap_Create(16 as libc::c_int as uint32);
+        cache = StrMap_Create(16 as libc::c_int as u32);
     }
     let mut cached: *mut libc::c_void = StrMap_Get(cache, name);
     if !cached.is_null() {
@@ -476,7 +472,7 @@ pub unsafe extern "C" fn Shader_Create(mut vs: cstr, mut fs: cstr) -> *mut Shade
     let mut this: *mut Shader = MemAlloc(
         ::core::mem::size_of::<Shader>() as usize,
     ) as *mut Shader;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     (*this).vars_capacity = 0 as libc::c_int;
     (*this).vars_size = 0 as libc::c_int;
     (*this).vars_data = 0 as *mut ShaderVar;
@@ -515,7 +511,7 @@ pub unsafe extern "C" fn Shader_Load(mut vName: cstr, mut fName: cstr) -> *mut S
     let mut this: *mut Shader = MemAlloc(
         ::core::mem::size_of::<Shader>() as usize,
     ) as *mut Shader;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     (*this).vars_capacity = 0 as libc::c_int;
     (*this).vars_size = 0 as libc::c_int;
     (*this).vars_data = 0 as *mut ShaderVar;

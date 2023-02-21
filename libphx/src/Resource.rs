@@ -17,10 +17,8 @@ extern "C" {
         _: ...
     ) -> libc::c_int;
 }
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type ResourceType = int32;
+pub type ResourceType = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct PathElem {

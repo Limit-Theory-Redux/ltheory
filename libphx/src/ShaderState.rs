@@ -35,25 +35,21 @@ extern "C" {
     fn TexCube_Acquire(_: *mut TexCube);
     fn TexCube_Free(_: *mut TexCube);
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ShaderState {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub shader: *mut Shader,
-    pub elems_size: int32,
-    pub elems_capacity: int32,
+    pub elems_size: i32,
+    pub elems_capacity: i32,
     pub elems_data: *mut Elem,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Elem {
-    pub type_0: uint32,
-    pub index: int32,
+    pub type_0: u32,
+    pub index: i32,
     pub data: C2RustUnnamed,
 }
 #[derive(Copy, Clone)]
@@ -85,25 +81,25 @@ pub type PFNGLUNIFORM4FPROC = Option::<
 >;
 
 #[no_mangle]
-pub static mut ElemType_Float: uint32 = 1 as libc::c_int as uint32;
+pub static mut ElemType_Float: u32 = 1 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_Float2: uint32 = 2 as libc::c_int as uint32;
+pub static mut ElemType_Float2: u32 = 2 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_Float3: uint32 = 3 as libc::c_int as uint32;
+pub static mut ElemType_Float3: u32 = 3 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_Float4: uint32 = 4 as libc::c_int as uint32;
+pub static mut ElemType_Float4: u32 = 4 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_Int: uint32 = 5 as libc::c_int as uint32;
+pub static mut ElemType_Int: u32 = 5 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_Matrix: uint32 = 6 as libc::c_int as uint32;
+pub static mut ElemType_Matrix: u32 = 6 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_Tex1D: uint32 = 7 as libc::c_int as uint32;
+pub static mut ElemType_Tex1D: u32 = 7 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_Tex2D: uint32 = 8 as libc::c_int as uint32;
+pub static mut ElemType_Tex2D: u32 = 8 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_Tex3D: uint32 = 9 as libc::c_int as uint32;
+pub static mut ElemType_Tex3D: u32 = 9 as libc::c_int as u32;
 #[no_mangle]
-pub static mut ElemType_TexCube: uint32 = 10 as libc::c_int as uint32;
+pub static mut ElemType_TexCube: u32 = 10 as libc::c_int as u32;
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Create(
     mut shader: *mut Shader,
@@ -111,7 +107,7 @@ pub unsafe extern "C" fn ShaderState_Create(
     let mut this: *mut ShaderState = MemAlloc(
         ::core::mem::size_of::<ShaderState>() as usize,
     ) as *mut ShaderState;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     (*this).elems_capacity = 0 as libc::c_int;
     (*this).elems_size = 0 as libc::c_int;
     (*this).elems_data = 0 as *mut Elem;

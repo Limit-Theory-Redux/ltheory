@@ -4,7 +4,7 @@ use crate::internal::Memory::*;
 extern "C" {
     pub type SDL_Thread;
     fn Fatal(_: cstr, _: ...);
-    fn SDL_Delay(ms: Uint32);
+    fn SDL_Delay(ms: u32);
     fn SDL_CreateThread(
         fn_0: SDL_ThreadFunction,
         name: *const libc::c_char,
@@ -13,7 +13,6 @@ extern "C" {
     fn SDL_WaitThread(thread: *mut SDL_Thread, status: *mut libc::c_int);
     fn SDL_DetachThread(thread: *mut SDL_Thread);
 }
-pub type uint32_t = libc::c_uint;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
@@ -21,7 +20,6 @@ pub type cstr = *const libc::c_char;
 pub struct Thread {
     pub handle: *mut SDL_Thread,
 }
-pub type Uint32 = uint32_t;
 pub type SDL_ThreadFunction = Option::<
     unsafe extern "C" fn(*mut libc::c_void) -> libc::c_int,
 >;

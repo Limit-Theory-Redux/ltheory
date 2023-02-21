@@ -14,13 +14,7 @@ extern "C" {
     ) -> bool;
     fn Plane_ClassifyPoint(_: *mut Plane, _: *mut Vec3) -> PointClassification;
 }
-pub type int32_t = libc::c_int;
-pub type uint8_t = libc::c_uchar;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint8 = uint8_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LineSegment {
@@ -36,8 +30,8 @@ pub struct Plane {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Polygon {
-    pub vertices_size: int32,
-    pub vertices_capacity: int32,
+    pub vertices_size: i32,
+    pub vertices_capacity: i32,
     pub vertices_data: *mut Vec3,
 }
 #[derive(Copy, Clone)]
@@ -46,8 +40,8 @@ pub struct Triangle {
     pub vertices: [Vec3; 3],
 }
 
-pub type Error = uint32;
-pub type PointClassification = uint8;
+pub type Error = u32;
+pub type PointClassification = u8;
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
@@ -64,7 +58,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(
     mut out: *mut Plane,
 ) {
     let mut v: *mut Vec3 = (*polygon).vertices_data;
-    let mut vLen: int32 = (*polygon).vertices_size;
+    let mut vLen: i32 = (*polygon).vertices_size;
     let mut n: DVec3 =  DVec3 {
             x: 0 as libc::c_int as f64,
             y: 0.,
@@ -73,7 +67,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(
     let mut centroid = DVec3::ZERO;
     let vCurAsF32 = *v.offset((vLen - 1) as isize);
     let mut vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
-    let mut i: int32 = 0 as libc::c_int;
+    let mut i: i32 = 0 as libc::c_int;
     while i < vLen {
         let vPrev: DVec3 = vCur;
         let vCurAsF32 = *v.offset(i as isize);
@@ -95,14 +89,14 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(
     mut out: *mut Plane,
 ) {
     let mut v: *mut Vec3 = ((*polygon).vertices_data).offset(0);
-    let mut vLen: int32 = (*polygon).vertices_size;
+    let mut vLen: i32 = (*polygon).vertices_size;
     let mut n: Vec3 =  Vec3 {
             x: 0.0f32,
             y: 0.,
             z: 0.,
         };
-    let mut i: int32 = vLen - 1 as libc::c_int;
-    let mut j: int32 = 0 as libc::c_int;
+    let mut i: i32 = vLen - 1 as libc::c_int;
+    let mut j: i32 = 0 as libc::c_int;
     while j < vLen {
         n.x
             += ((*v.offset(i as isize)).y - (*v.offset(j as isize)).y)
@@ -129,7 +123,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
     let mut a: Vec3 = *((*polygon).vertices_data)
         .offset(((*polygon).vertices_size - 1 as libc::c_int) as isize);
     let mut aSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut a);
-    let mut j: int32 = 0 as libc::c_int;
+    let mut j: i32 = 0 as libc::c_int;
     while j < (*polygon).vertices_size {
         let mut b: Vec3 = *((*polygon).vertices_data).offset(j as isize);
         let mut bSide: PointClassification = Plane_ClassifyPoint(
@@ -371,9 +365,9 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
     {
         let mut polygonPart: *mut Polygon = polygons[i as usize];
         let mut v: *mut Vec3 = (*polygonPart).vertices_data;
-        let mut vLen: int32 = (*polygonPart).vertices_size;
+        let mut vLen: i32 = (*polygonPart).vertices_size;
         let mut vCur: Vec3 = *v.offset((vLen - 1 as libc::c_int) as isize);
-        let mut l: int32 = 0 as libc::c_int;
+        let mut l: i32 = 0 as libc::c_int;
         while l < vLen {
             let mut vPrev: Vec3 = vCur;
             vCur = *v.offset(l as isize);
@@ -464,13 +458,13 @@ pub unsafe extern "C" fn Polygon_GetCentroid(
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ConvexToTriangles(
     mut polygon: *mut Polygon,
-    mut triangles_capacity: *mut int32,
-    mut triangles_size: *mut int32,
+    mut triangles_capacity: *mut i32,
+    mut triangles_size: *mut i32,
     mut triangles_data: *mut *mut Triangle,
 ) {
     let mut v: *mut Vec3 = (*polygon).vertices_data;
-    let mut vLen: int32 = (*polygon).vertices_size;
-    let mut i: int32 = 1 as libc::c_int;
+    let mut vLen: i32 = (*polygon).vertices_size;
+    let mut i: i32 = 1 as libc::c_int;
     while i < vLen - 1 as libc::c_int {
         if (*triangles_capacity == *triangles_size) as libc::c_long != 0 {
             *triangles_capacity = if *triangles_capacity != 0 {
@@ -499,9 +493,9 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
     let mut v: *mut Vec3 = (*polygon).vertices_data;
-    let mut vLen: int32 = (*polygon).vertices_size;
+    let mut vLen: i32 = (*polygon).vertices_size;
     let mut vCur: Vec3 = *v.offset((vLen - 1 as libc::c_int) as isize);
-    let mut i: int32 = 0 as libc::c_int;
+    let mut i: i32 = 0 as libc::c_int;
     while i < vLen {
         let mut vPrev: Vec3 = vCur;
         vCur = *v.offset(i as isize);
@@ -509,7 +503,7 @@ pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
         if e != 0 as libc::c_int as libc::c_uint {
             return 0x400000 as libc::c_int as libc::c_uint | e;
         }
-        let mut j: int32 = i + 1 as libc::c_int;
+        let mut j: i32 = i + 1 as libc::c_int;
         while j < vLen {
             if vCur == *v.offset(j as isize) {
                 return (0x400000 as libc::c_int | 0x40 as libc::c_int) as Error;

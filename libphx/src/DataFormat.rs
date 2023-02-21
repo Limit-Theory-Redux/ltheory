@@ -1,9 +1,7 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-pub type int32_t = libc::c_int;
-pub type int32 = int32_t;
-pub type DataFormat = int32;
+pub type DataFormat = i32;
 #[no_mangle]
 pub static mut DataFormat_U8: DataFormat = 0x1401 as libc::c_int;
 #[no_mangle]

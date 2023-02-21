@@ -7,11 +7,7 @@ extern "C" {
     fn sqrt(_: f64) -> f64;
     fn Fatal(_: cstr, _: ...);
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Plane {
@@ -23,7 +19,7 @@ pub struct Plane {
 pub struct Triangle {
     pub vertices: [Vec3; 3],
 }
-pub type Error = uint32;
+pub type Error = u32;
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
@@ -73,7 +69,7 @@ pub unsafe extern "C" fn Triangle_GetArea(mut tri: *const Triangle) -> f32 {
 #[no_mangle]
 pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     let mut v: *const Vec3 = ((*tri).vertices).as_ptr();
-    let mut i: int32 = 0 as libc::c_int;
+    let mut i: i32 = 0 as libc::c_int;
     while i < 3 as libc::c_int {
         let mut e: Error = Vec3_Validate(*v.offset(i as isize));
         if e != 0 as libc::c_int as libc::c_uint {

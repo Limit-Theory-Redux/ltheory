@@ -94,11 +94,9 @@ extern "C" {
     fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
 }
 pub type __builtin_va_list = *mut libc::c_char;
-pub type int32_t = libc::c_int;
 pub type __darwin_ptrdiff_t = libc::c_long;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type ResourceType = int32;
+pub type ResourceType = i32;
 pub type va_list = __builtin_va_list;
 pub type ptrdiff_t = __darwin_ptrdiff_t;
 pub type lua_CFunction = Option::<unsafe extern "C" fn(*mut lua_State) -> libc::c_int>;
@@ -537,8 +535,8 @@ pub unsafe extern "C" fn Lua_Backtrace() {
     if this.is_null() {
         return;
     }
-    let mut stack_size: int32 = 0;
-    let mut stack_capacity: int32 = 0;
+    let mut stack_size: i32 = 0;
+    let mut stack_capacity: i32 = 0;
     let mut stack_data: *mut cstr = 0 as *mut cstr;
     stack_capacity = 0 as libc::c_int;
     stack_size = 0 as libc::c_int;
@@ -576,7 +574,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         let mut variablesPrinted: libc::c_int = 0 as libc::c_int;
         let mut funcName: cstr = ar.name;
         let mut fileName: cstr = ar.source;
-        let mut line: int32 = ar.currentline;
+        let mut line: i32 = ar.currentline;
         if *fileName.offset(0) as libc::c_int != '@' as i32 {
             fileName = b"<string>\0" as *const u8 as *const libc::c_char;
             line = -(1 as libc::c_int);

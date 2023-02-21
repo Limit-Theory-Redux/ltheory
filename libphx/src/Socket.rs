@@ -3,13 +3,13 @@ use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     pub type Bytes;
-    fn Bytes_GetSize(_: *mut Bytes) -> uint32;
+    fn Bytes_GetSize(_: *mut Bytes) -> u32;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn strstr(_: *const libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Fatal(_: cstr, _: ...);
-    fn Bytes_Create(len: uint32) -> *mut Bytes;
-    fn Bytes_Write(_: *mut Bytes, data: *const libc::c_void, len: uint32);
+    fn Bytes_Create(len: u32) -> *mut Bytes;
+    fn Bytes_Write(_: *mut Bytes, data: *const libc::c_void, len: u32);
     fn strtol(
         _: *const libc::c_char,
         _: *mut *mut libc::c_char,
@@ -56,18 +56,12 @@ extern "C" {
     fn inet_aton(_: *const libc::c_char, _: *mut in_addr) -> libc::c_int;
 }
 pub type __builtin_va_list = *mut libc::c_char;
-pub type int32_t = libc::c_int;
-pub type uint16_t = libc::c_ushort;
-pub type uint32_t = libc::c_uint;
-pub type __uint8_t = libc::c_uchar;
-pub type __uint16_t = libc::c_ushort;
-pub type __uint32_t = libc::c_uint;
-pub type __darwin_socklen_t = __uint32_t;
-pub type u_int32_t = libc::c_uint;
+pub type __u8_t = libc::c_uchar;
+pub type __u16 = libc::c_ushort;
+pub type __u32 = libc::c_uint;
+pub type __darwin_socklen_t = __u32;
+pub type u_i32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint16 = uint16_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Socket {
@@ -80,7 +74,7 @@ pub struct Socket {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sockaddr_in {
-    pub sin_len: __uint8_t,
+    pub sin_len: __u8_t,
     pub sin_family: sa_family_t,
     pub sin_port: in_port_t,
     pub sin_addr: in_addr,
@@ -91,29 +85,29 @@ pub struct sockaddr_in {
 pub struct in_addr {
     pub s_addr: in_addr_t,
 }
-pub type in_addr_t = __uint32_t;
-pub type in_port_t = __uint16_t;
-pub type sa_family_t = __uint8_t;
+pub type in_addr_t = __u32;
+pub type in_port_t = __u16;
+pub type sa_family_t = __u8_t;
 pub type sock_t = libc::c_int;
-pub type SocketType = int32;
+pub type SocketType = i32;
 pub type socklen_t = __darwin_socklen_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct sockaddr {
-    pub sa_len: __uint8_t,
+    pub sa_len: __u8_t,
     pub sa_family: sa_family_t,
     pub sa_data: [libc::c_char; 14],
 }
 pub type va_list = __builtin_va_list;
 #[inline]
-unsafe extern "C" fn _OSSwapInt32(mut _data: uint32_t) -> uint32_t {
+unsafe extern "C" fn _OSSwapInt32(mut _data: u32) -> u32 {
     _data = _data.swap_bytes();
     return _data;
 }
 #[inline]
-unsafe extern "C" fn _OSSwapInt16(mut _data: uint16_t) -> uint16_t {
+unsafe extern "C" fn _OSSwapInt16(mut _data: u16) -> u16 {
     return ((_data as libc::c_int) << 8 as libc::c_int
-        | _data as libc::c_int >> 8 as libc::c_int) as uint16_t;
+        | _data as libc::c_int >> 8 as libc::c_int) as u16;
 }
 
 #[no_mangle]
@@ -271,23 +265,23 @@ pub unsafe extern "C" fn Socket_Bind(mut this: *mut Socket, mut port: libc::c_in
     addr.sin_family = 2 as libc::c_int as sa_family_t;
     addr
         .sin_port = (if 0 != 0 {
-        ((port as uint16 as libc::c_uint & 0xff00 as libc::c_uint) >> 8 as libc::c_int
-            | (port as uint16 as libc::c_uint & 0xff as libc::c_uint)
-                << 8 as libc::c_int) as __uint16_t as libc::c_int
+        ((port as u16 as libc::c_uint & 0xff00 as libc::c_uint) >> 8 as libc::c_int
+            | (port as u16 as libc::c_uint & 0xff as libc::c_uint)
+                << 8 as libc::c_int) as __u16 as libc::c_int
     } else {
-        _OSSwapInt16(port as uint16) as libc::c_int
-    }) as __uint16_t;
+        _OSSwapInt16(port as u16) as libc::c_int
+    }) as __u16;
     addr
         .sin_addr
         .s_addr = if 0 != 0 {
-        (0 as libc::c_int as u_int32_t & 0xff000000 as libc::c_uint) >> 24 as libc::c_int
-            | (0 as libc::c_int as u_int32_t & 0xff0000 as libc::c_uint)
+        (0 as libc::c_int as u_i32_t & 0xff000000 as libc::c_uint) >> 24 as libc::c_int
+            | (0 as libc::c_int as u_i32_t & 0xff0000 as libc::c_uint)
                 >> 8 as libc::c_int
-            | (0 as libc::c_int as u_int32_t & 0xff00 as libc::c_uint)
+            | (0 as libc::c_int as u_i32_t & 0xff00 as libc::c_uint)
                 << 8 as libc::c_int
-            | (0 as libc::c_int as u_int32_t & 0xff as libc::c_uint) << 24 as libc::c_int
+            | (0 as libc::c_int as u_i32_t & 0xff as libc::c_uint) << 24 as libc::c_int
     } else {
-        _OSSwapInt32(0 as libc::c_int as u_int32_t)
+        _OSSwapInt32(0 as libc::c_int as u_i32_t)
     };
     if bind(
         (*this).sock,
@@ -353,11 +347,11 @@ pub unsafe extern "C" fn Socket_ReadBytes(mut this: *mut Socket) -> *mut Bytes {
     if bytes == 0 as libc::c_int {
         return 0 as *mut Bytes;
     }
-    let mut data: *mut Bytes = Bytes_Create(bytes as uint32);
+    let mut data: *mut Bytes = Bytes_Create(bytes as u32);
     Bytes_Write(
         data,
         ((*this).buffer).as_mut_ptr() as *const libc::c_void,
-        bytes as uint32,
+        bytes as u32,
     );
     return data;
 }
@@ -394,10 +388,10 @@ pub unsafe extern "C" fn Socket_GetAddress(mut this: *mut Socket) -> cstr {
             (((*this).addrRecv.sin_port as libc::c_uint & 0xff00 as libc::c_uint)
                 >> 8 as libc::c_int
                 | ((*this).addrRecv.sin_port as libc::c_uint & 0xff as libc::c_uint)
-                    << 8 as libc::c_int) as __uint16_t as libc::c_int
+                    << 8 as libc::c_int) as __u16 as libc::c_int
         } else {
             _OSSwapInt16((*this).addrRecv.sin_port) as libc::c_int
-        }) as __uint16_t as libc::c_int,
+        }) as __u16 as libc::c_int,
     );
 }
 #[no_mangle]
@@ -418,16 +412,16 @@ pub unsafe extern "C" fn Socket_SetAddress(mut this: *mut Socket, mut addr: cstr
     (*this)
         .addrSend
         .sin_port = (if 0 != 0 {
-        ((strtol(port, 0 as *mut *mut libc::c_char, 0 as libc::c_int) as uint16
+        ((strtol(port, 0 as *mut *mut libc::c_char, 0 as libc::c_int) as u16
             as libc::c_uint & 0xff00 as libc::c_uint) >> 8 as libc::c_int
-            | (strtol(port, 0 as *mut *mut libc::c_char, 0 as libc::c_int) as uint16
+            | (strtol(port, 0 as *mut *mut libc::c_char, 0 as libc::c_int) as u16
                 as libc::c_uint & 0xff as libc::c_uint) << 8 as libc::c_int)
-            as __uint16_t as libc::c_int
+            as __u16 as libc::c_int
     } else {
         _OSSwapInt16(
-            strtol(port, 0 as *mut *mut libc::c_char, 0 as libc::c_int) as uint16,
+            strtol(port, 0 as *mut *mut libc::c_char, 0 as libc::c_int) as u16,
         ) as libc::c_int
-    }) as __uint16_t;
+    }) as __u16;
     if inet_aton(ip, &mut (*this).addrSend.sin_addr) == 0 as libc::c_int {
         Fatal(
             b"Socket_SetReceiver: failed to interpret network address\0" as *const u8

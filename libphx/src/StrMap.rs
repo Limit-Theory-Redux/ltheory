@@ -3,21 +3,17 @@ use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: uint64) -> uint64;
+    fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: u64) -> u64;
     fn Fatal(_: cstr, _: ...);
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     fn puts(_: *const libc::c_char) -> libc::c_int;
 }
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
 pub type cstr = *const libc::c_char;
-pub type uint32 = uint32_t;
-pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct StrMap {
-    pub capacity: uint32,
-    pub size: uint32,
+    pub capacity: u32,
+    pub size: u32,
     pub data: *mut Node,
 }
 #[derive(Copy, Clone)]
@@ -32,14 +28,14 @@ pub struct Node {
 pub struct StrMapIter {
     pub map: *mut StrMap,
     pub node: *mut Node,
-    pub slot: uint32,
+    pub slot: u32,
 }
 
 
 
 
 #[inline]
-unsafe extern "C" fn Hash(mut key: cstr) -> uint64 {
+unsafe extern "C" fn Hash(mut key: cstr) -> u64 {
     return Hash_XX64(
         key as *const libc::c_void,
         StrLen(key) as libc::c_int,
@@ -60,7 +56,7 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
     let mut newMap: StrMap =  StrMap {
             capacity: ((*this).capacity)
                 .wrapping_mul(2 as libc::c_int as libc::c_uint),
-            size: 0 as libc::c_int as uint32,
+            size: 0 as libc::c_int as u32,
             data: 0 as *mut Node,
         };
     newMap
@@ -68,7 +64,7 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
         (::core::mem::size_of::<Node>())
             .wrapping_mul(newMap.capacity as usize),
     ) as *mut Node;
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -89,7 +85,7 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
     *this = newMap;
 }
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_Create(mut capacity: uint32) -> *mut StrMap {
+pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
     let mut this: *mut StrMap = MemAllocZero(
         ::core::mem::size_of::<StrMap>() as usize,
     ) as *mut StrMap;
@@ -103,7 +99,7 @@ pub unsafe extern "C" fn StrMap_Create(mut capacity: uint32) -> *mut StrMap {
 }
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Free(mut this: *mut StrMap) {
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -126,7 +122,7 @@ pub unsafe extern "C" fn StrMap_FreeEx(
     mut this: *mut StrMap,
     mut freeFn: Option::<unsafe extern "C" fn(cstr, *mut libc::c_void) -> ()>,
 ) {
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -164,7 +160,7 @@ pub unsafe extern "C" fn StrMap_Get(
     return 0 as *mut libc::c_void;
 }
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_GetSize(mut this: *mut StrMap) -> uint32 {
+pub unsafe extern "C" fn StrMap_GetSize(mut this: *mut StrMap) -> u32 {
     return (*this).size;
 }
 #[no_mangle]
@@ -245,7 +241,7 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
             as f64,
     );
     puts(b"\0" as *const u8 as *const libc::c_char);
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -269,9 +265,9 @@ pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIte
         ::core::mem::size_of::<StrMapIter>() as usize,
     ) as *mut StrMapIter;
     (*it).map = this;
-    (*it).slot = 0 as libc::c_int as uint32;
+    (*it).slot = 0 as libc::c_int as u32;
     (*it).node = 0 as *mut Node;
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if ((*node).key).is_null() {
@@ -296,7 +292,7 @@ pub unsafe extern "C" fn StrMapIter_Advance(mut it: *mut StrMapIter) {
         return;
     }
     (*it).slot = ((*it).slot).wrapping_add(1);
-    let mut i: uint32 = (*it).slot;
+    let mut i: u32 = (*it).slot;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if ((*node).key).is_null() {

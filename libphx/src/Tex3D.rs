@@ -9,7 +9,7 @@ extern "C" {
     pub type Bytes;
     fn Bytes_Rewind(_: *mut Bytes);
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
-    fn Bytes_Create(len: uint32) -> *mut Bytes;
+    fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Fatal(_: cstr, _: ...);
     fn DataFormat_GetSize(_: DataFormat) -> libc::c_int;
     fn glBegin(mode: GLenum);
@@ -43,26 +43,22 @@ extern "C" {
     fn TexFormat_IsDepth(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type uint = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tex3D {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub handle: uint,
     pub size: IVec3,
     pub format: TexFormat,
 }
-pub type TexFormat = int32;
+pub type TexFormat = i32;
 
-pub type DataFormat = int32;
-pub type PixelFormat = int32;
-pub type TexFilter = int32;
-pub type TexWrapMode = int32;
+pub type DataFormat = i32;
+pub type PixelFormat = i32;
+pub type TexFilter = i32;
+pub type TexWrapMode = i32;
 pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;
@@ -135,7 +131,7 @@ pub unsafe extern "C" fn Tex3D_Create(
     let mut this: *mut Tex3D = MemAlloc(
         ::core::mem::size_of::<Tex3D>() as usize,
     ) as *mut Tex3D;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).format = format;
     glGenTextures(1 as libc::c_int, &mut (*this).handle);
@@ -251,7 +247,7 @@ pub unsafe extern "C" fn Tex3D_GetDataBytes(
     let mut size: libc::c_int = (*this).size.x * (*this).size.y * (*this).size.z;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
-    let mut data: *mut Bytes = Bytes_Create(size as uint32);
+    let mut data: *mut Bytes = Bytes_Create(size as u32);
     Tex3D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
     return data;

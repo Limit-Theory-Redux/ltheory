@@ -11,11 +11,9 @@ extern "C" {
     fn glPolygonMode(face: GLenum, mode: GLenum);
     static mut __glewBlendFuncSeparate: PFNGLBLENDFUNCSEPARATEPROC;
 }
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type BlendMode = int32;
-pub type CullFace = int32;
+pub type BlendMode = i32;
+pub type CullFace = i32;
 pub type GLenum = libc::c_uint;
 pub type GLboolean = libc::c_uchar;
 pub type PFNGLBLENDFUNCSEPARATEPROC = Option::<

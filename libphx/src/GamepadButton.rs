@@ -1,9 +1,7 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-pub type int32_t = libc::c_int;
-pub type int32 = int32_t;
-pub type GamepadButton = int32;
+pub type GamepadButton = i32;
 pub const SDL_CONTROLLER_BUTTON_A: C2RustUnnamed = 0;
 pub const SDL_CONTROLLER_BUTTON_B: C2RustUnnamed = 1;
 pub const SDL_CONTROLLER_BUTTON_X: C2RustUnnamed = 2;

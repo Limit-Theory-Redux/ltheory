@@ -2,13 +2,10 @@ use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
-    fn SDL_GetPerformanceFrequency() -> Uint64;
-    fn SDL_GetPerformanceCounter() -> Uint64;
+    fn SDL_GetPerformanceFrequency() -> u64;
+    fn SDL_GetPerformanceCounter() -> u64;
 }
-pub type uint64_t = libc::c_ulonglong;
-pub type Uint64 = uint64_t;
-pub type uint64 = uint64_t;
-pub type TimeStamp = uint64;
+pub type TimeStamp = u64;
 #[no_mangle]
 pub unsafe extern "C" fn TimeStamp_Get() -> TimeStamp {
     return SDL_GetPerformanceCounter();

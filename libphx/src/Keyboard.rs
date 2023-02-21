@@ -2,23 +2,18 @@ use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
-    fn SDL_GetPerformanceFrequency() -> Uint64;
-    fn SDL_GetPerformanceCounter() -> Uint64;
-    fn SDL_GetKeyboardState(numkeys: *mut libc::c_int) -> *const Uint8;
+    fn SDL_GetPerformanceFrequency() -> u64;
+    fn SDL_GetPerformanceCounter() -> u64;
+    fn SDL_GetKeyboardState(numkeys: *mut libc::c_int) -> *const u8;
 }
-pub type uint8_t = libc::c_uchar;
-pub type uint64_t = libc::c_ulonglong;
 pub type uchar = libc::c_uchar;
-pub type uint64 = uint64_t;
 pub type Key = uchar;
-pub type Uint64 = uint64_t;
 pub const SDL_SCANCODE_RALT: C2RustUnnamed = 230;
 pub const SDL_SCANCODE_LALT: C2RustUnnamed = 226;
 pub const SDL_SCANCODE_RCTRL: C2RustUnnamed = 228;
 pub const SDL_SCANCODE_LCTRL: C2RustUnnamed = 224;
 pub const SDL_SCANCODE_RSHIFT: C2RustUnnamed = 229;
 pub const SDL_SCANCODE_LSHIFT: C2RustUnnamed = 225;
-pub type Uint8 = uint8_t;
 pub type C2RustUnnamed = libc::c_uint;
 pub const SDL_NUM_SCANCODES: C2RustUnnamed = 512;
 pub const SDL_SCANCODE_ENDCALL: C2RustUnnamed = 290;
@@ -264,7 +259,7 @@ pub const SDL_SCANCODE_A: C2RustUnnamed = 4;
 pub const SDL_SCANCODE_UNKNOWN: C2RustUnnamed = 0;
 
 
-static mut lastAction: uint64 = 0;
+static mut lastAction: u64 = 0;
 static mut stateLast: *mut uchar = 0 as *const uchar as *mut uchar;
 static mut stateCurr: *mut uchar = 0 as *const uchar as *mut uchar;
 #[no_mangle]
@@ -327,7 +322,7 @@ pub unsafe extern "C" fn Keyboard_Released(mut key: Key) -> bool {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_GetIdleTime() -> f64 {
-    let mut now: uint64 = SDL_GetPerformanceCounter();
+    let mut now: u64 = SDL_GetPerformanceCounter();
     return now.wrapping_sub(lastAction) as f64
         / SDL_GetPerformanceFrequency() as f64;
 }

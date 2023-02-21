@@ -44,7 +44,7 @@ extern "C" {
         b: f32,
         a: f32,
     );
-    fn MemPool_CreateAuto(elemSize: uint32) -> *mut MemPool;
+    fn MemPool_CreateAuto(elemSize: u32) -> *mut MemPool;
     fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
     fn MemPool_Clear(_: *mut MemPool);
     fn RenderState_PushBlendMode(_: BlendMode);
@@ -70,13 +70,9 @@ extern "C" {
     );
     fn Viewport_GetSize(out: *mut IVec2);
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 
-pub type BlendMode = int32;
+pub type BlendMode = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererLayer {
@@ -158,23 +154,23 @@ unsafe extern "C" fn UIRenderer_Init() {
     this.layer = 0 as *mut UIRendererLayer;
     this
         .layerPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererLayer>() as usize as uint32,
+        ::core::mem::size_of::<UIRendererLayer>() as usize as u32,
     );
     this
         .imagePool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererImage>() as usize as uint32,
+        ::core::mem::size_of::<UIRendererImage>() as usize as u32,
     );
     this
         .panelPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererPanel>() as usize as uint32,
+        ::core::mem::size_of::<UIRendererPanel>() as usize as u32,
     );
     this
         .rectPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererRect>() as usize as uint32,
+        ::core::mem::size_of::<UIRendererRect>() as usize as u32,
     );
     this
         .textPool = MemPool_CreateAuto(
-        ::core::mem::size_of::<UIRendererText>() as usize as uint32,
+        ::core::mem::size_of::<UIRendererText>() as usize as u32,
     );
 }
 #[no_mangle]

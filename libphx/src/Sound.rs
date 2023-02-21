@@ -80,11 +80,7 @@ extern "C" {
     fn SoundDesc_GetPath(_: *mut SoundDesc) -> cstr;
     fn SoundDesc_ToFile(_: *mut SoundDesc, _: cstr);
 }
-pub type uint8_t = libc::c_uchar;
-pub type uint32_t = libc::c_uint;
 pub type cstr = *const libc::c_char;
-pub type uint8 = uint8_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Sound {
@@ -95,11 +91,11 @@ pub struct Sound {
     pub autoVel: *const Vec3,
     pub freeOnFinish: bool,
 }
-pub type SoundState = uint8;
+pub type SoundState = u8;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SoundDesc {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub handle: *mut FMOD_SOUND,
     pub name: cstr,
     pub path: cstr,

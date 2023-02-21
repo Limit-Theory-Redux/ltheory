@@ -31,13 +31,9 @@ extern "C" {
     fn TimeStamp_GetDifference(start: TimeStamp, end: TimeStamp) -> f64;
     fn TimeStamp_GetRelative(start: TimeStamp, seconds: f64) -> TimeStamp;
 }
-pub type int32_t = libc::c_int;
-pub type uint64_t = libc::c_ulonglong;
 pub type __darwin_ptrdiff_t = libc::c_long;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint64 = uint64_t;
-pub type TimeStamp = uint64;
+pub type TimeStamp = u64;
 pub type ptrdiff_t = __darwin_ptrdiff_t;
 pub type lua_Number = f64;
 pub type lua_Integer = ptrdiff_t;
@@ -47,11 +43,11 @@ pub type LuaRef = lua_Integer;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Scheduler {
-    pub elems_size: int32,
-    pub elems_capacity: int32,
+    pub elems_size: i32,
+    pub elems_capacity: i32,
     pub elems_data: *mut SchedulerElem,
-    pub addQueue_size: int32,
-    pub addQueue_capacity: int32,
+    pub addQueue_size: i32,
+    pub addQueue_capacity: i32,
     pub addQueue_data: *mut SchedulerElem,
     pub now: TimeStamp,
     pub locked: bool,

@@ -1,9 +1,7 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-pub type int32_t = libc::c_int;
-pub type int32 = int32_t;
-pub type GamepadAxis = int32;
+pub type GamepadAxis = i32;
 pub const SDL_CONTROLLER_AXIS_LEFTX: C2RustUnnamed = 0;
 pub const SDL_CONTROLLER_AXIS_LEFTY: C2RustUnnamed = 1;
 pub const SDL_CONTROLLER_AXIS_RIGHTX: C2RustUnnamed = 2;

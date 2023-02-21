@@ -1,10 +1,8 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-pub type int32_t = libc::c_int;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type ResourceType = int32;
+pub type ResourceType = i32;
 #[no_mangle]
 pub static mut ResourceType_Font: ResourceType = 0 as libc::c_int;
 #[no_mangle]

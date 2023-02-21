@@ -9,7 +9,7 @@ extern "C" {
     pub type Bytes;
     pub type ShaderState;
     fn Fatal(_: cstr, _: ...);
-    fn Bytes_Create(len: uint32) -> *mut Bytes;
+    fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Rewind(_: *mut Bytes);
     fn ClipRect_Push(
@@ -90,29 +90,23 @@ extern "C" {
         data: *mut uchar,
     ) -> bool;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
 pub type uint = libc::c_uint;
 pub type uchar = libc::c_uchar;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
-pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct TexCube {
-    pub _refCount: uint32,
+    pub _refCount: u32,
     pub handle: uint,
     pub size: libc::c_int,
     pub format: TexFormat,
 }
-pub type TexFormat = int32;
-pub type CubeFace = int32;
-pub type DataFormat = int32;
-pub type PixelFormat = int32;
-pub type TexFilter = int32;
-pub type TimeStamp = uint64;
+pub type TexFormat = i32;
+pub type CubeFace = i32;
+pub type DataFormat = i32;
+pub type PixelFormat = i32;
+pub type TexFilter = i32;
+pub type TimeStamp = u64;
 pub type GLenum = libc::c_uint;
 pub type GLuint = libc::c_uint;
 pub type GLint = libc::c_int;
@@ -227,7 +221,7 @@ pub unsafe extern "C" fn TexCube_Create(
     let mut this: *mut TexCube = MemAlloc(
         ::core::mem::size_of::<TexCube>() as usize,
     ) as *mut TexCube;
-    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this)._refCount = 1 as libc::c_int as u32;
     glGenTextures(1 as libc::c_int, &mut (*this).handle);
     (*this).size = size;
     (*this).format = format;
@@ -453,7 +447,7 @@ pub unsafe extern "C" fn TexCube_GetDataBytes(
     let mut size: libc::c_int = (*this).size * (*this).size;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
-    let mut data: *mut Bytes = Bytes_Create(size as uint32);
+    let mut data: *mut Bytes = Bytes_Create(size as u32);
     TexCube_GetData(this, Bytes_GetData(data), face, level, pf, df);
     Bytes_Rewind(data);
     return data;

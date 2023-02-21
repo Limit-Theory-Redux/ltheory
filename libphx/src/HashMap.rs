@@ -3,49 +3,45 @@ use glam::Vec3;
 use crate::internal::Memory::*;
 
 extern "C" {
-    fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: uint64) -> uint64;
+    fn Hash_XX64(buf: *const libc::c_void, len: libc::c_int, seed: u64) -> u64;
 }
 
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
-pub type uint32 = uint32_t;
-pub type uint64 = uint64_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HashMap {
     pub elems: *mut Node,
-    pub size: uint32,
-    pub capacity: uint32,
-    pub mask: uint32,
-    pub keySize: uint32,
-    pub maxProbe: uint32,
+    pub size: u32,
+    pub capacity: u32,
+    pub mask: u32,
+    pub keySize: u32,
+    pub maxProbe: u32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Node {
-    pub hash: uint64,
+    pub hash: u64,
     pub value: *mut libc::c_void,
 }
 pub type ValueForeach = Option::<
     unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> (),
 >;
 #[inline]
-unsafe extern "C" fn Hash(mut key: *const libc::c_void, mut len: uint32) -> uint64 {
+unsafe extern "C" fn Hash(mut key: *const libc::c_void, mut len: u32) -> u64 {
     return Hash_XX64(key, len as libc::c_int, 0 as libc::c_ulonglong);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Create(
-    mut keySize: uint32,
-    mut capacity: uint32,
+    mut keySize: u32,
+    mut capacity: u32,
 ) -> *mut HashMap {
-    let mut logCapacity: uint32 = 0 as libc::c_int as uint32;
+    let mut logCapacity: u32 = 0 as libc::c_int as u32;
     while capacity > 1 as libc::c_int as libc::c_uint {
         capacity = (capacity as libc::c_uint)
-            .wrapping_div(2 as libc::c_int as libc::c_uint) as uint32 as uint32;
+            .wrapping_div(2 as libc::c_int as libc::c_uint) as u32 as u32;
         logCapacity = logCapacity.wrapping_add(1);
     }
-    capacity = ((1 as libc::c_int) << logCapacity) as uint32;
+    capacity = ((1 as libc::c_int) << logCapacity) as u32;
     let mut this: *mut HashMap = MemAlloc(
         ::core::mem::size_of::<HashMap>() as usize,
     ) as *mut HashMap;
@@ -54,9 +50,9 @@ pub unsafe extern "C" fn HashMap_Create(
         (::core::mem::size_of::<Node>())
             .wrapping_mul(capacity as usize),
     ) as *mut Node;
-    (*this).size = 0 as libc::c_int as uint32;
+    (*this).size = 0 as libc::c_int as u32;
     (*this).capacity = capacity;
-    (*this).mask = (((1 as libc::c_int) << logCapacity) - 1 as libc::c_int) as uint32;
+    (*this).mask = (((1 as libc::c_int) << logCapacity) - 1 as libc::c_int) as u32;
     (*this).keySize = keySize;
     (*this).maxProbe = logCapacity;
     return this;
@@ -72,7 +68,7 @@ pub unsafe extern "C" fn HashMap_Foreach(
     mut fn_0: ValueForeach,
     mut userData: *mut libc::c_void,
 ) {
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).elems).offset(i as isize);
         if !((*node).value).is_null() {
@@ -91,9 +87,9 @@ pub unsafe extern "C" fn HashMap_Get(
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_GetRaw(
     mut this: *mut HashMap,
-    mut hash: uint64,
+    mut hash: u64,
 ) -> *mut libc::c_void {
-    let mut index: uint32 = 0 as libc::c_int as uint32;
+    let mut index: u32 = 0 as libc::c_int as u32;
     let mut node: *mut Node = ((*this).elems)
         .offset(
             (hash.wrapping_add(index as libc::c_ulonglong)
@@ -113,9 +109,9 @@ pub unsafe extern "C" fn HashMap_GetRaw(
     return 0 as *mut libc::c_void;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: uint32) {
+pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: u32) {
     let mut other: *mut HashMap = HashMap_Create((*this).keySize, capacity);
-    let mut i: uint32 = 0 as libc::c_int as uint32;
+    let mut i: u32 = 0 as libc::c_int as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).elems).offset(i as isize);
         if !((*node).value).is_null() {
@@ -137,10 +133,10 @@ pub unsafe extern "C" fn HashMap_Set(
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_SetRaw(
     mut this: *mut HashMap,
-    mut hash: uint64,
+    mut hash: u64,
     mut value: *mut libc::c_void,
 ) {
-    let mut index: uint32 = 0 as libc::c_int as uint32;
+    let mut index: u32 = 0 as libc::c_int as u32;
     let mut node: *mut Node = ((*this).elems)
         .offset(
             (hash.wrapping_add(index as libc::c_ulonglong)

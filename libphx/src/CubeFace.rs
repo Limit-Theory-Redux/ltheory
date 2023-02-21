@@ -1,9 +1,7 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-pub type int32_t = libc::c_int;
-pub type int32 = int32_t;
-pub type CubeFace = int32;
+pub type CubeFace = i32;
 #[no_mangle]
 pub static mut CubeFace_PX: CubeFace = 0x8515 as libc::c_int;
 #[no_mangle]

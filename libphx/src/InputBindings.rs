@@ -11,12 +11,8 @@ extern "C" {
     fn sqrt(_: f64) -> f64;
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
 pub type __darwin_ptrdiff_t = libc::c_long;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputBinding {
@@ -58,7 +54,7 @@ pub struct AggregateButton {
     pub onDown: LuaRef,
     pub onReleased: LuaRef,
 }
-pub type State = int32;
+pub type State = i32;
 pub type Lua = lua_State;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -66,18 +62,18 @@ pub struct RawButton {
     pub button: Button,
     pub value: f32,
 }
-pub type Button = int32;
+pub type Button = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Device {
     pub type_0: DeviceType,
-    pub id: uint32,
+    pub id: u32,
 }
-pub type DeviceType = int32;
+pub type DeviceType = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputEvent {
-    pub timestamp: uint32,
+    pub timestamp: u32,
     pub device: Device,
     pub button: Button,
     pub value: f32,
@@ -92,11 +88,11 @@ pub struct DownBinding {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputBindings {
-    pub activeBindings_size: int32,
-    pub activeBindings_capacity: int32,
+    pub activeBindings_size: i32,
+    pub activeBindings_capacity: i32,
     pub activeBindings_data: *mut InputBinding,
-    pub downBindings_size: int32,
-    pub downBindings_capacity: int32,
+    pub downBindings_size: i32,
+    pub downBindings_capacity: i32,
     pub downBindings_data: *mut DownBinding,
 }
 
@@ -324,14 +320,14 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                 binding,
                 (*button).onReleased,
             );
-            let mut _i: int32 = 0 as libc::c_int;
+            let mut _i: i32 = 0 as libc::c_int;
             while _i < this.downBindings_size {
                 let mut x: *mut DownBinding = &mut *(this.downBindings_data)
                     .offset(_i as isize) as *mut DownBinding;
                 if ((*x).binding == binding && (*x).button == button) as libc::c_int
                     as libc::c_long != 0
                 {
-                    let mut _j: int32 = _i;
+                    let mut _j: i32 = _i;
                     while _j < this.downBindings_size - 1 as libc::c_int {
                         *(this.downBindings_data)
                             .offset(

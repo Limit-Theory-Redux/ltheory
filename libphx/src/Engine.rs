@@ -28,29 +28,22 @@ extern "C" {
     fn exit(_: libc::c_int) -> !;
     fn SDL_GL_SetAttribute(attr: SDL_GLattr, value: libc::c_int) -> libc::c_int;
     fn abort() -> !;
-    fn SDL_QuitSubSystem(flags: Uint32);
+    fn SDL_QuitSubSystem(flags: u32);
     fn SDL_GetVersion(ver: *mut SDL_version);
     fn puts(_: *const libc::c_char) -> libc::c_int;
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
-    fn SDL_Init(flags: Uint32) -> libc::c_int;
+    fn SDL_Init(flags: u32) -> libc::c_int;
     fn atexit(_: Option::<unsafe extern "C" fn() -> ()>) -> libc::c_int;
     fn SDL_Quit();
-    fn SDL_InitSubSystem(flags: Uint32) -> libc::c_int;
+    fn SDL_InitSubSystem(flags: u32) -> libc::c_int;
     fn ShaderVar_Init();
     fn ShaderVar_Free();
     fn TimeStamp_Get() -> TimeStamp;
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
-pub type int32_t = libc::c_int;
-pub type uint8_t = libc::c_uchar;
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
 pub type cstr = *const libc::c_char;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
-pub type uint64 = uint64_t;
-pub type ResourceType = int32;
-pub type TimeStamp = uint64;
+pub type ResourceType = i32;
+pub type TimeStamp = u64;
 pub type SDL_GLattr = libc::c_uint;
 pub const SDL_GL_FLOATBUFFERS: SDL_GLattr = 27;
 pub const SDL_GL_CONTEXT_NO_ERROR: SDL_GLattr = 26;
@@ -81,14 +74,12 @@ pub const SDL_GL_BLUE_SIZE: SDL_GLattr = 2;
 pub const SDL_GL_GREEN_SIZE: SDL_GLattr = 1;
 pub const SDL_GL_RED_SIZE: SDL_GLattr = 0;
 pub const SDL_GL_CONTEXT_PROFILE_COMPATIBILITY: C2RustUnnamed = 2;
-pub type Uint32 = uint32_t;
-pub type Uint8 = uint8_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDL_version {
-    pub major: Uint8,
-    pub minor: Uint8,
-    pub patch: Uint8,
+    pub major: u8,
+    pub minor: u8,
+    pub patch: u8,
 }
 pub type Signal = libc::c_int;
 pub type C2RustUnnamed = libc::c_uint;
@@ -96,7 +87,7 @@ pub const SDL_GL_CONTEXT_PROFILE_ES: C2RustUnnamed = 4;
 pub const SDL_GL_CONTEXT_PROFILE_CORE: C2RustUnnamed = 1;
 
 #[no_mangle]
-pub static mut subsystems: uint32 = 0x4000 as libc::c_uint | 0x20 as libc::c_uint
+pub static mut subsystems: u32 = 0x4000 as libc::c_uint | 0x20 as libc::c_uint
     | 0x1 as libc::c_uint | 0x1000 as libc::c_uint | 0x200 as libc::c_uint
     | 0x2000 as libc::c_uint;
 static mut versionString: cstr = b"Feb 12 2023 23:20:35\0" as *const u8
@@ -126,9 +117,9 @@ pub unsafe extern "C" fn Engine_Init(
             minor: 0,
             patch: 0,
         };
-        compiled.major = 2 as libc::c_int as Uint8;
-        compiled.minor = 26 as libc::c_int as Uint8;
-        compiled.patch = 1 as libc::c_int as Uint8;
+        compiled.major = 2 as libc::c_int as u8;
+        compiled.minor = 26 as libc::c_int as u8;
+        compiled.patch = 1 as libc::c_int as u8;
         SDL_GetVersion(&mut linked);
         if compiled.major as libc::c_int != linked.major as libc::c_int {
             puts(
@@ -151,7 +142,7 @@ pub unsafe extern "C" fn Engine_Init(
             );
             Fatal(b"Engine_Init: Terminating.\0" as *const u8 as *const libc::c_char);
         }
-        if SDL_Init(0 as libc::c_int as Uint32) != 0 as libc::c_int {
+        if SDL_Init(0 as libc::c_int as u32) != 0 as libc::c_int {
             Fatal(
                 b"Engine_Init: Failed to initialize SDL\0" as *const u8
                     as *const libc::c_char,

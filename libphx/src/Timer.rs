@@ -2,17 +2,14 @@ use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
 extern "C" {
-    fn SDL_GetPerformanceCounter() -> Uint64;
-    fn SDL_GetPerformanceFrequency() -> Uint64;
+    fn SDL_GetPerformanceCounter() -> u64;
+    fn SDL_GetPerformanceFrequency() -> u64;
 }
-pub type uint64_t = libc::c_ulonglong;
-pub type uint64 = uint64_t;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Timer {
-    pub value: uint64,
+    pub value: u64,
 }
-pub type Uint64 = uint64_t;
 
 static mut frequency: f64 = 0 as libc::c_int as f64;
 #[no_mangle]
@@ -34,7 +31,7 @@ pub unsafe extern "C" fn Timer_Free(mut this: *mut Timer) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Timer_GetAndReset(mut this: *mut Timer) -> f64 {
-    let mut now: uint64 = SDL_GetPerformanceCounter();
+    let mut now: u64 = SDL_GetPerformanceCounter();
     let mut elapsed: f64 = now.wrapping_sub((*this).value) as f64
         / frequency;
     (*this).value = now;
@@ -42,7 +39,7 @@ pub unsafe extern "C" fn Timer_GetAndReset(mut this: *mut Timer) -> f64 {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Timer_GetElapsed(mut this: *mut Timer) -> f64 {
-    let mut now: uint64 = SDL_GetPerformanceCounter();
+    let mut now: u64 = SDL_GetPerformanceCounter();
     return now.wrapping_sub((*this).value) as f64 / frequency;
 }
 #[no_mangle]

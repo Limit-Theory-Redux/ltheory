@@ -5,29 +5,21 @@ use crate::internal::Memory::*;
 extern "C" {
     pub type SDL_Window;
     fn SDL_WarpMouseInWindow(window: *mut SDL_Window, x: libc::c_int, y: libc::c_int);
-    fn SDL_GetMouseState(x: *mut libc::c_int, y: *mut libc::c_int) -> Uint32;
-    fn SDL_GetPerformanceFrequency() -> Uint64;
-    fn SDL_GetPerformanceCounter() -> Uint64;
+    fn SDL_GetMouseState(x: *mut libc::c_int, y: *mut libc::c_int) -> u32;
+    fn SDL_GetPerformanceFrequency() -> u64;
+    fn SDL_GetPerformanceCounter() -> u64;
     fn SDL_ShowCursor(toggle: libc::c_int) -> libc::c_int;
-    fn SDL_GetGlobalMouseState(x: *mut libc::c_int, y: *mut libc::c_int) -> Uint32;
+    fn SDL_GetGlobalMouseState(x: *mut libc::c_int, y: *mut libc::c_int) -> u32;
 }
-pub type int32_t = libc::c_int;
-pub type uint32_t = libc::c_uint;
-pub type uint64_t = libc::c_ulonglong;
-pub type int32 = int32_t;
-pub type uint32 = uint32_t;
-pub type uint64 = uint64_t;
 
-pub type MouseButton = int32;
-pub type Uint32 = uint32_t;
-pub type Uint64 = uint64_t;
+pub type MouseButton = i32;
 #[no_mangle]
 pub static mut lastX: libc::c_int = 0;
 #[no_mangle]
 pub static mut lastY: libc::c_int = 0;
 #[no_mangle]
-pub static mut lastState: uint32 = 0;
-static mut lastAction: uint64 = 0;
+pub static mut lastState: u32 = 0;
+static mut lastAction: u64 = 0;
 static mut scrollAmount: libc::c_int = 0;
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Init() {
@@ -45,7 +37,7 @@ pub unsafe extern "C" fn Mouse_SetScroll(mut amount: libc::c_int) {
 pub unsafe extern "C" fn Mouse_Update() {
     let mut lx: libc::c_int = lastX;
     let mut ly: libc::c_int = lastY;
-    let mut state: uint32 = lastState;
+    let mut state: u32 = lastState;
     lastState = SDL_GetMouseState(&mut lastX, &mut lastY);
     if lx != lastX || ly != lastY || state != lastState {
         lastAction = SDL_GetPerformanceCounter();
@@ -60,7 +52,7 @@ pub unsafe extern "C" fn Mouse_GetDelta(mut out: *mut IVec2) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_GetIdleTime() -> f64 {
-    let mut now: uint64 = SDL_GetPerformanceCounter();
+    let mut now: u64 = SDL_GetPerformanceCounter();
     return now.wrapping_sub(lastAction) as f64
         / SDL_GetPerformanceFrequency() as f64;
 }
@@ -95,7 +87,7 @@ pub unsafe extern "C" fn Mouse_Down(mut button: MouseButton) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Pressed(mut button: MouseButton) -> bool {
     button = (1 as libc::c_int) << button - 1 as libc::c_int;
-    let mut current: uint32 = SDL_GetMouseState(
+    let mut current: u32 = SDL_GetMouseState(
         0 as *mut libc::c_int,
         0 as *mut libc::c_int,
     );
@@ -105,7 +97,7 @@ pub unsafe extern "C" fn Mouse_Pressed(mut button: MouseButton) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Released(mut button: MouseButton) -> bool {
     button = (1 as libc::c_int) << button - 1 as libc::c_int;
-    let mut current: uint32 = SDL_GetMouseState(
+    let mut current: u32 = SDL_GetMouseState(
         0 as *mut libc::c_int,
         0 as *mut libc::c_int,
     );
