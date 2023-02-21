@@ -39,57 +39,57 @@ pub struct Ray {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_GetPoint(
-    mut self_0: *const Ray,
+    mut this: *const Ray,
     mut t: libc::c_float,
     mut out: *mut Vec3,
 ) {
-    *out = (*self_0).p + ((*self_0).dir * t);
+    *out = (*this).p + ((*this).dir * t);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectPlane(
-    mut self_0: *const Ray,
+    mut this: *const Ray,
     mut plane: *const Plane,
     mut pHit: *mut Vec3,
 ) -> bool {
-    return Intersect_RayPlane(self_0, plane, pHit);
+    return Intersect_RayPlane(this, plane, pHit);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
-    mut self_0: *const Ray,
+    mut this: *const Ray,
     mut tri: *const Triangle,
     mut tEpsilon: libc::c_float,
     mut tHit: *mut libc::c_float,
 ) -> bool {
-    return Intersect_RayTriangle_Barycentric(self_0, tri, tEpsilon, tHit);
+    return Intersect_RayTriangle_Barycentric(this, tri, tEpsilon, tHit);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
-    mut self_0: *const Ray,
+    mut this: *const Ray,
     mut tri: *const Triangle,
     mut tHit: *mut libc::c_float,
 ) -> bool {
-    return Intersect_RayTriangle_Moller1(self_0, tri, tHit);
+    return Intersect_RayTriangle_Moller1(this, tri, tHit);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
-    mut self_0: *const Ray,
+    mut this: *const Ray,
     mut tri: *const Triangle,
     mut tHit: *mut libc::c_float,
 ) -> bool {
-    return Intersect_RayTriangle_Moller2(self_0, tri, tHit);
+    return Intersect_RayTriangle_Moller2(this, tri, tHit);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_ToLineSegment(
-    mut self_0: *const Ray,
+    mut this: *const Ray,
     mut lineSegment: *mut LineSegment,
 ) {
-    Ray_GetPoint(self_0, (*self_0).tMin, &mut (*lineSegment).p0);
-    Ray_GetPoint(self_0, (*self_0).tMax, &mut (*lineSegment).p1);
+    Ray_GetPoint(this, (*this).tMin, &mut (*lineSegment).p0);
+    Ray_GetPoint(this, (*this).tMax, &mut (*lineSegment).p1);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ray_FromLineSegment(
     mut lineSegment: *const LineSegment,
-    mut self_0: *mut Ray,
+    mut this: *mut Ray,
 ) {
-    LineSegment_ToRay(lineSegment, self_0);
+    LineSegment_ToRay(lineSegment, this);
 }

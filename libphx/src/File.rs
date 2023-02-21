@@ -78,10 +78,10 @@ unsafe extern "C" fn File_OpenMode(mut path: cstr, mut mode: cstr) -> *mut File 
     if handle.is_null() {
         return 0 as *mut File;
     }
-    let mut self_0: *mut File = MemAlloc(::core::mem::size_of::<File>())
+    let mut this: *mut File = MemAlloc(::core::mem::size_of::<File>())
         as *mut File;
-    (*self_0).handle = handle;
-    return self_0;
+    (*this).handle = handle;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn File_Create(mut path: cstr) -> *mut File {
@@ -92,9 +92,9 @@ pub unsafe extern "C" fn File_Open(mut path: cstr) -> *mut File {
     return File_OpenMode(path, b"ab\0" as *const u8 as *const libc::c_char);
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_Close(mut self_0: *mut File) {
-    libc::fclose((*self_0).handle);
-    MemFree(self_0 as *const libc::c_void);
+pub unsafe extern "C" fn File_Close(mut this: *mut File) {
+    libc::fclose((*this).handle);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
 pub unsafe extern "C" fn File_ReadBytes(mut path: cstr) -> *mut Bytes {
@@ -195,7 +195,7 @@ pub unsafe extern "C" fn File_Size(mut path: cstr) -> int64 {
 }
 #[no_mangle]
 pub unsafe extern "C" fn File_Read(
-    mut self_0: *mut File,
+    mut this: *mut File,
     mut data: *mut libc::c_void,
     mut len: uint32,
 ) {
@@ -203,12 +203,12 @@ pub unsafe extern "C" fn File_Read(
         data,
         len as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn File_Write(
-    mut self_0: *mut File,
+    mut this: *mut File,
     mut data: *const libc::c_void,
     mut len: uint32,
 ) {
@@ -216,218 +216,218 @@ pub unsafe extern "C" fn File_Write(
         data,
         len as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteStr(mut self_0: *mut File, mut data: cstr) {
+pub unsafe extern "C" fn File_WriteStr(mut this: *mut File, mut data: cstr) {
     libc::fwrite(
         data as *const libc::c_void,
         StrLen(data),
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadI64(mut self_0: *mut File) -> int64 {
+pub unsafe extern "C" fn File_ReadI64(mut this: *mut File) -> int64 {
     let mut value: int64 = 0;
     libc::fread(
         &mut value as *mut int64 as *mut libc::c_void,
         ::core::mem::size_of::<int64>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteU64(mut self_0: *mut File, mut value: uint64) {
+pub unsafe extern "C" fn File_WriteU64(mut this: *mut File, mut value: uint64) {
     libc::fwrite(
         &mut value as *mut uint64 as *const libc::c_void,
         ::core::mem::size_of::<uint64>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteI8(mut self_0: *mut File, mut value: int8) {
+pub unsafe extern "C" fn File_WriteI8(mut this: *mut File, mut value: int8) {
     libc::fwrite(
         &mut value as *mut int8 as *const libc::c_void,
         ::core::mem::size_of::<int8>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteU32(mut self_0: *mut File, mut value: uint32) {
+pub unsafe extern "C" fn File_WriteU32(mut this: *mut File, mut value: uint32) {
     libc::fwrite(
         &mut value as *mut uint32 as *const libc::c_void,
         ::core::mem::size_of::<uint32>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteI16(mut self_0: *mut File, mut value: int16) {
+pub unsafe extern "C" fn File_WriteI16(mut this: *mut File, mut value: int16) {
     libc::fwrite(
         &mut value as *mut int16 as *const libc::c_void,
         ::core::mem::size_of::<int16>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadU64(mut self_0: *mut File) -> uint64 {
+pub unsafe extern "C" fn File_ReadU64(mut this: *mut File) -> uint64 {
     let mut value: uint64 = 0;
     libc::fread(
         &mut value as *mut uint64 as *mut libc::c_void,
         ::core::mem::size_of::<uint64>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadI32(mut self_0: *mut File) -> int32 {
+pub unsafe extern "C" fn File_ReadI32(mut this: *mut File) -> int32 {
     let mut value: int32 = 0;
     libc::fread(
         &mut value as *mut int32 as *mut libc::c_void,
         ::core::mem::size_of::<int32>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadU32(mut self_0: *mut File) -> uint32 {
+pub unsafe extern "C" fn File_ReadU32(mut this: *mut File) -> uint32 {
     let mut value: uint32 = 0;
     libc::fread(
         &mut value as *mut uint32 as *mut libc::c_void,
         ::core::mem::size_of::<uint32>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteU16(mut self_0: *mut File, mut value: uint16) {
+pub unsafe extern "C" fn File_WriteU16(mut this: *mut File, mut value: uint16) {
     libc::fwrite(
         &mut value as *mut uint16 as *const libc::c_void,
         ::core::mem::size_of::<uint16>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadU8(mut self_0: *mut File) -> uint8 {
+pub unsafe extern "C" fn File_ReadU8(mut this: *mut File) -> uint8 {
     let mut value: uint8 = 0;
     libc::fread(
         &mut value as *mut uint8 as *mut libc::c_void,
         ::core::mem::size_of::<uint8>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadU16(mut self_0: *mut File) -> uint16 {
+pub unsafe extern "C" fn File_ReadU16(mut this: *mut File) -> uint16 {
     let mut value: uint16 = 0;
     libc::fread(
         &mut value as *mut uint16 as *mut libc::c_void,
         ::core::mem::size_of::<uint16>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadI16(mut self_0: *mut File) -> int16 {
+pub unsafe extern "C" fn File_ReadI16(mut this: *mut File) -> int16 {
     let mut value: int16 = 0;
     libc::fread(
         &mut value as *mut int16 as *mut libc::c_void,
         ::core::mem::size_of::<int16>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadF32(mut self_0: *mut File) -> libc::c_float {
+pub unsafe extern "C" fn File_ReadF32(mut this: *mut File) -> libc::c_float {
     let mut value: libc::c_float = 0.;
     libc::fread(
         &mut value as *mut libc::c_float as *mut libc::c_void,
         ::core::mem::size_of::<libc::c_float>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadF64(mut self_0: *mut File) -> libc::c_double {
+pub unsafe extern "C" fn File_ReadF64(mut this: *mut File) -> libc::c_double {
     let mut value: libc::c_double = 0.;
     libc::fread(
         &mut value as *mut libc::c_double as *mut libc::c_void,
         ::core::mem::size_of::<libc::c_double>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteU8(mut self_0: *mut File, mut value: uint8) {
+pub unsafe extern "C" fn File_WriteU8(mut this: *mut File, mut value: uint8) {
     libc::fwrite(
         &mut value as *mut uint8 as *const libc::c_void,
         ::core::mem::size_of::<uint8>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteI32(mut self_0: *mut File, mut value: int32) {
+pub unsafe extern "C" fn File_WriteI32(mut this: *mut File, mut value: int32) {
     libc::fwrite(
         &mut value as *mut int32 as *const libc::c_void,
         ::core::mem::size_of::<int32>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteI64(mut self_0: *mut File, mut value: int64) {
+pub unsafe extern "C" fn File_WriteI64(mut this: *mut File, mut value: int64) {
     libc::fwrite(
         &mut value as *mut int64 as *const libc::c_void,
         ::core::mem::size_of::<int64>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteF32(mut self_0: *mut File, mut value: libc::c_float) {
+pub unsafe extern "C" fn File_WriteF32(mut this: *mut File, mut value: libc::c_float) {
     libc::fwrite(
         &mut value as *mut libc::c_float as *const libc::c_void,
         ::core::mem::size_of::<libc::c_float>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
 pub unsafe extern "C" fn File_WriteF64(
-    mut self_0: *mut File,
+    mut this: *mut File,
     mut value: libc::c_double,
 ) {
     libc::fwrite(
         &mut value as *mut libc::c_double as *const libc::c_void,
         ::core::mem::size_of::<libc::c_double>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadI8(mut self_0: *mut File) -> int8 {
+pub unsafe extern "C" fn File_ReadI8(mut this: *mut File) -> int8 {
     let mut value: int8 = 0;
     libc::fread(
         &mut value as *mut int8 as *mut libc::c_void,
         ::core::mem::size_of::<int8>() as libc::size_t,
         1 as libc::size_t,
-        (*self_0).handle,
+        (*this).handle,
     );
     return value;
 }

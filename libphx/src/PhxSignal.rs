@@ -211,8 +211,8 @@ pub unsafe extern "C" fn Signal_RemoveHandlerAll(mut fn_0: SignalHandler) {
     Signal_RemoveHandler(Signal_Abrt, fn_0);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Signal_ToString(mut self_0: Signal) -> cstr {
-    match self_0 {
+pub unsafe extern "C" fn Signal_ToString(mut this: Signal) -> cstr {
+    match this {
         2 => return b"Interrupt\0" as *const u8 as *const libc::c_char,
         4 => return b"Illegal Instruction\0" as *const u8 as *const libc::c_char,
         8 => return b"FP Exception\0" as *const u8 as *const libc::c_char,

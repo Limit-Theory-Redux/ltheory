@@ -77,7 +77,7 @@ unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
 }
 #[inline]
 unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
-    let mut self_0: Box3f = {
+    let mut this: Box3f = {
         let mut init = Box3f {
             lower: {
                 let mut init = Vec3 {
@@ -98,7 +98,7 @@ unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
         };
         init
     };
-    return self_0;
+    return this;
 }
 
 
@@ -139,17 +139,17 @@ unsafe extern "C" fn Partition(
     mut boxCount: libc::c_int,
     mut dim: libc::c_int,
 ) -> *mut KDTree {
-    let mut self_0: *mut KDTree = MemAlloc(
+    let mut this: *mut KDTree = MemAlloc(
         ::core::mem::size_of::<KDTree>() as usize,
     ) as *mut KDTree;
     if boxCount <= kMaxLeafSize {
-        (*self_0).box_0 = *boxes.offset(0);
-        (*self_0).back = 0 as *mut KDTree;
-        (*self_0).front = 0 as *mut KDTree;
-        (*self_0).elems = 0 as *mut Node;
+        (*this).box_0 = *boxes.offset(0);
+        (*this).back = 0 as *mut KDTree;
+        (*this).front = 0 as *mut KDTree;
+        (*this).elems = 0 as *mut Node;
         let mut i: libc::c_int = 1 as libc::c_int;
         while i < boxCount {
-            (*self_0).box_0 = Box3f_Union((*self_0).box_0, *boxes.offset(i as isize));
+            (*this).box_0 = Box3f_Union((*this).box_0, *boxes.offset(i as isize));
             i += 1;
         }
         let mut i_0: libc::c_int = 0 as libc::c_int;
@@ -158,12 +158,12 @@ unsafe extern "C" fn Partition(
                 ::core::mem::size_of::<Node>() as usize,
             ) as *mut Node;
             (*node).box_0 = *boxes.offset(i_0 as isize);
-            (*node).next = (*self_0).elems;
+            (*node).next = (*this).elems;
             (*node).id = 0 as libc::c_int as uint64;
-            (*self_0).elems = node;
+            (*this).elems = node;
             i_0 += 1;
         }
-        return self_0;
+        return this;
     }
     if dim == 0 as libc::c_int {
         qsort(
@@ -227,23 +227,23 @@ unsafe extern "C" fn Partition(
         boxes.offset(boxCountBack as isize) as *const libc::c_void,
         (boxCountFront as usize).wrapping_mul(::core::mem::size_of::<Box3f>()),
     );
-    (*self_0)
+    (*this)
         .back = Partition(
         boxesBack,
         boxCountBack,
         (dim + 1 as libc::c_int) % 3 as libc::c_int,
     );
-    (*self_0)
+    (*this)
         .front = Partition(
         boxesFront,
         boxCountFront,
         (dim + 1 as libc::c_int) % 3 as libc::c_int,
     );
-    (*self_0).box_0 = Box3f_Union((*(*self_0).back).box_0, (*(*self_0).front).box_0);
-    (*self_0).elems = 0 as *mut Node;
+    (*this).box_0 = Box3f_Union((*(*this).back).box_0, (*(*this).front).box_0);
+    (*this).elems = 0 as *mut Node;
     MemFree(boxesBack as *const libc::c_void);
     MemFree(boxesFront as *const libc::c_void);
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
@@ -272,37 +272,37 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
         );
         i += 3 as libc::c_int;
     }
-    let mut self_0: *mut KDTree = Partition(boxes, boxCount, 0 as libc::c_int);
+    let mut this: *mut KDTree = Partition(boxes, boxCount, 0 as libc::c_int);
     MemFree(boxes as *const libc::c_void);
-    return self_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_Free(mut self_0: *mut KDTree) {
-    if !((*self_0).back).is_null() {
-        KDTree_Free((*self_0).back);
+pub unsafe extern "C" fn KDTree_Free(mut this: *mut KDTree) {
+    if !((*this).back).is_null() {
+        KDTree_Free((*this).back);
     }
-    if !((*self_0).front).is_null() {
-        KDTree_Free((*self_0).front);
+    if !((*this).front).is_null() {
+        KDTree_Free((*this).front);
     }
-    let mut elem: *mut Node = (*self_0).elems;
+    let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
         let mut next: *mut Node = (*elem).next;
         MemFree(elem as *const libc::c_void);
         elem = next;
     }
-    MemFree(self_0 as *const libc::c_void);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_GetMemory(mut self_0: *mut KDTree) -> libc::c_int {
+pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> libc::c_int {
     let mut memory: libc::c_int = ::core::mem::size_of::<KDTree>() as usize
         as libc::c_int;
-    if !((*self_0).back).is_null() {
-        memory += KDTree_GetMemory((*self_0).back);
+    if !((*this).back).is_null() {
+        memory += KDTree_GetMemory((*this).back);
     }
-    if !((*self_0).front).is_null() {
-        memory += KDTree_GetMemory((*self_0).front);
+    if !((*this).front).is_null() {
+        memory += KDTree_GetMemory((*this).front);
     }
-    let mut elem: *mut Node = (*self_0).elems;
+    let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
         memory = (memory as usize)
             .wrapping_add(::core::mem::size_of::<Node>()) as libc::c_int
@@ -313,7 +313,7 @@ pub unsafe extern "C" fn KDTree_GetMemory(mut self_0: *mut KDTree) -> libc::c_in
 }
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_IntersectRay(
-    mut self_0: *mut KDTree,
+    mut this: *mut KDTree,
     mut m: *mut Matrix,
     mut a: *const Vec3,
     mut b: *const Vec3,
@@ -322,7 +322,7 @@ pub unsafe extern "C" fn KDTree_IntersectRay(
 }
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_Draw(
-    mut self_0: *mut KDTree,
+    mut this: *mut KDTree,
     mut maxDepth: libc::c_int,
 ) {
     if maxDepth < 0 as libc::c_int {
@@ -334,11 +334,11 @@ pub unsafe extern "C" fn KDTree_Draw(
         1 as libc::c_int as libc::c_float,
         1 as libc::c_int as libc::c_float,
     );
-    Draw_Box3(&mut (*self_0).box_0);
-    if !((*self_0).back).is_null() {
-        KDTree_Draw((*self_0).back, maxDepth - 1 as libc::c_int);
+    Draw_Box3(&mut (*this).box_0);
+    if !((*this).back).is_null() {
+        KDTree_Draw((*this).back, maxDepth - 1 as libc::c_int);
     }
-    if !((*self_0).front).is_null() {
-        KDTree_Draw((*self_0).front, maxDepth - 1 as libc::c_int);
+    if !((*this).front).is_null() {
+        KDTree_Draw((*this).front, maxDepth - 1 as libc::c_int);
     }
 }

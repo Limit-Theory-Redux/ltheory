@@ -33,31 +33,31 @@ pub unsafe extern "C" fn Thread_Create(
     mut fn_0: ThreadFn,
     mut data: *mut libc::c_void,
 ) -> *mut Thread {
-    let mut self_0: *mut Thread = MemAlloc(
+    let mut this: *mut Thread = MemAlloc(
         ::core::mem::size_of::<Thread>() as usize,
     ) as *mut Thread;
-    (*self_0).handle = SDL_CreateThread(fn_0, name, data);
-    if ((*self_0).handle).is_null() {
+    (*this).handle = SDL_CreateThread(fn_0, name, data);
+    if ((*this).handle).is_null() {
         Fatal(
             b"Thread_Create: Failed to start new thread\0" as *const u8
                 as *const libc::c_char,
         );
     }
-    return self_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Thread_Detach(mut self_0: *mut Thread) {
-    SDL_DetachThread((*self_0).handle);
-    MemFree(self_0 as *const libc::c_void);
+pub unsafe extern "C" fn Thread_Detach(mut this: *mut Thread) {
+    SDL_DetachThread((*this).handle);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Sleep(mut ms: uint) {
     SDL_Delay(ms);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Thread_Wait(mut self_0: *mut Thread) -> libc::c_int {
+pub unsafe extern "C" fn Thread_Wait(mut this: *mut Thread) -> libc::c_int {
     let mut ret: libc::c_int = 0;
-    SDL_WaitThread((*self_0).handle, &mut ret);
-    MemFree(self_0 as *const libc::c_void);
+    SDL_WaitThread((*this).handle, &mut ret);
+    MemFree(this as *const libc::c_void);
     return ret;
 }

@@ -27,11 +27,11 @@ pub struct Ray {
 }
 #[no_mangle]
 pub unsafe extern "C" fn LineSegment_ToRay(
-    mut self_0: *const LineSegment,
+    mut this: *const LineSegment,
     mut out: *mut Ray,
 ) {
-    (*out).p = (*self_0).p0;
-    (*out).dir = (*self_0).p1 - (*self_0).p0;
+    (*out).p = (*this).p0;
+    (*out).dir = (*this).p1 - (*this).p0;
     (*out).tMin = 0.0f32;
     (*out).tMax = 1.0f32;
 }
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn LineSegment_FromRay(
     Ray_ToLineSegment(ray, out);
 }
 #[no_mangle]
-pub unsafe extern "C" fn LineSegment_ToString(mut self_0: *mut LineSegment) -> cstr {
+pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> cstr {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     snprintf(
         buffer.as_mut_ptr(),
@@ -51,8 +51,8 @@ pub unsafe extern "C" fn LineSegment_ToString(mut self_0: *mut LineSegment) -> c
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
             as libc::c_int as libc::size_t,
         b"p0:%s p1:%s\0" as *const u8 as *const libc::c_char,
-        (*self_0).p0.to_string().as_mut_ptr(),
-        (*self_0).p1.to_string().as_mut_ptr(),
+        (*this).p0.to_string().as_mut_ptr(),
+        (*this).p1.to_string().as_mut_ptr(),
     );
     return buffer.as_mut_ptr() as cstr;
 }

@@ -62,21 +62,21 @@ pub unsafe extern "C" fn Directory_Open(mut path: cstr) -> *mut Directory {
     if dir.is_null() {
         return 0 as *mut Directory;
     }
-    let mut self_0: *mut Directory = MemAlloc(
+    let mut this: *mut Directory = MemAlloc(
         ::core::mem::size_of::<Directory>() as usize,
     ) as *mut Directory;
-    (*self_0).handle = dir;
-    return self_0;
+    (*this).handle = dir;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Close(mut self_0: *mut Directory) {
-    closedir((*self_0).handle);
-    MemFree(self_0 as *const libc::c_void);
+pub unsafe extern "C" fn Directory_Close(mut this: *mut Directory) {
+    closedir((*this).handle);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Directory_GetNext(mut self_0: *mut Directory) -> cstr {
+pub unsafe extern "C" fn Directory_GetNext(mut this: *mut Directory) -> cstr {
     loop {
-        let mut ent: *mut dirent = readdir((*self_0).handle);
+        let mut ent: *mut dirent = readdir((*this).handle);
         if ent.is_null() {
             return 0 as cstr;
         }

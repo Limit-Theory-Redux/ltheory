@@ -105,40 +105,40 @@ unsafe extern "C" fn Random_Xoroshiro128(
 }
 
 #[inline]
-unsafe extern "C" fn RNG_Next64(mut self_0: *mut RNG) -> uint64 {
+unsafe extern "C" fn RNG_Next64(mut this: *mut RNG) -> uint64 {
     return Random_Xoroshiro128(
-        &mut *((*self_0).state).as_mut_ptr().offset(0),
-        &mut *((*self_0).state).as_mut_ptr().offset(1),
+        &mut *((*this).state).as_mut_ptr().offset(0),
+        &mut *((*this).state).as_mut_ptr().offset(1),
     );
 }
 #[inline]
-unsafe extern "C" fn RNG_Next32(mut self_0: *mut RNG) -> uint32 {
-    return (RNG_Next64(self_0) & 0xffffffff as libc::c_uint as libc::c_ulonglong)
+unsafe extern "C" fn RNG_Next32(mut this: *mut RNG) -> uint32 {
+    return (RNG_Next64(this) & 0xffffffff as libc::c_uint as libc::c_ulonglong)
         as uint32;
 }
 #[inline]
-unsafe extern "C" fn RNG_Init(mut self_0: *mut RNG) {
-    let mut seed: uint64 = (*self_0).seed;
+unsafe extern "C" fn RNG_Init(mut this: *mut RNG) {
+    let mut seed: uint64 = (*this).seed;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 64 as libc::c_int {
         seed = Random_SplitMix64(&mut seed);
         i += 1;
     }
-    (*self_0).state[0] = Random_SplitMix64(&mut seed);
-    (*self_0).state[1] = Random_SplitMix64(&mut seed);
+    (*this).state[0] = Random_SplitMix64(&mut seed);
+    (*this).state[1] = Random_SplitMix64(&mut seed);
     let mut i_0: libc::c_int = 0 as libc::c_int;
     while i_0 < 64 as libc::c_int {
-        RNG_Next64(self_0);
+        RNG_Next64(this);
         i_0 += 1;
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_Create(mut seed: uint64) -> *mut RNG {
-    let mut self_0: *mut RNG = MemAlloc(::core::mem::size_of::<RNG>())
+    let mut this: *mut RNG = MemAlloc(::core::mem::size_of::<RNG>())
         as *mut RNG;
-    (*self_0).seed = seed;
-    RNG_Init(self_0);
-    return self_0;
+    (*this).seed = seed;
+    RNG_Init(this);
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_FromStr(mut s: cstr) -> *mut RNG {
@@ -155,94 +155,94 @@ pub unsafe extern "C" fn RNG_FromTime() -> *mut RNG {
     return RNG_Create(TimeStamp_Get());
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Free(mut self_0: *mut RNG) {
-    MemFree(self_0 as *const libc::c_void);
+pub unsafe extern "C" fn RNG_Free(mut this: *mut RNG) {
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Rewind(mut self_0: *mut RNG) {
-    RNG_Init(self_0);
+pub unsafe extern "C" fn RNG_Rewind(mut this: *mut RNG) {
+    RNG_Init(this);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_Chance(
-    mut self_0: *mut RNG,
+    mut this: *mut RNG,
     mut probability: libc::c_double,
 ) -> bool {
-    return RNG_GetUniform(self_0) < probability;
+    return RNG_GetUniform(this) < probability;
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Get31(mut self_0: *mut RNG) -> int32 {
-    let mut i: uint32 = RNG_Next32(self_0) & 0x7fffffff as libc::c_uint;
+pub unsafe extern "C" fn RNG_Get31(mut this: *mut RNG) -> int32 {
+    let mut i: uint32 = RNG_Next32(this) & 0x7fffffff as libc::c_uint;
     return *(&mut i as *mut uint32 as *mut int32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Get32(mut self_0: *mut RNG) -> uint32 {
-    return RNG_Next32(self_0);
+pub unsafe extern "C" fn RNG_Get32(mut this: *mut RNG) -> uint32 {
+    return RNG_Next32(this);
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Get64(mut self_0: *mut RNG) -> uint64 {
-    return RNG_Next64(self_0);
+pub unsafe extern "C" fn RNG_Get64(mut this: *mut RNG) -> uint64 {
+    return RNG_Next64(this);
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetAngle(mut self_0: *mut RNG) -> libc::c_double {
-    return 6.28318531f32 as libc::c_double * RNG_GetUniform(self_0);
+pub unsafe extern "C" fn RNG_GetAngle(mut this: *mut RNG) -> libc::c_double {
+    return 6.28318531f32 as libc::c_double * RNG_GetUniform(this);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetInt(
-    mut self_0: *mut RNG,
+    mut this: *mut RNG,
     mut lower: libc::c_int,
     mut upper: libc::c_int,
 ) -> libc::c_int {
-    let mut t: libc::c_double = RNG_GetUniform(self_0);
+    let mut t: libc::c_double = RNG_GetUniform(this);
     return Round(lower as libc::c_double + t * (upper - lower) as libc::c_double)
         as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetRNG(mut self_0: *mut RNG) -> *mut RNG {
-    return RNG_Create(RNG_Get64(self_0));
+pub unsafe extern "C" fn RNG_GetRNG(mut this: *mut RNG) -> *mut RNG {
+    return RNG_Create(RNG_Get64(this));
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetUniform(mut self_0: *mut RNG) -> libc::c_double {
-    return ldexp(RNG_Next32(self_0) as libc::c_double, -(32 as libc::c_int));
+pub unsafe extern "C" fn RNG_GetUniform(mut this: *mut RNG) -> libc::c_double {
+    return ldexp(RNG_Next32(this) as libc::c_double, -(32 as libc::c_int));
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetUniformRange(
-    mut self_0: *mut RNG,
+    mut this: *mut RNG,
     mut lower: libc::c_double,
     mut upper: libc::c_double,
 ) -> libc::c_double {
     let mut t: libc::c_double = ldexp(
-        RNG_Next32(self_0) as libc::c_double,
+        RNG_Next32(this) as libc::c_double,
         -(32 as libc::c_int),
     );
     return lower + t * (upper - lower);
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetErlang(
-    mut self_0: *mut RNG,
+    mut this: *mut RNG,
     mut k: libc::c_int,
 ) -> libc::c_double {
     let mut sum: libc::c_double = 0.0f64;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < k {
-        sum += RNG_GetExp(self_0);
+        sum += RNG_GetExp(this);
         i += 1;
     }
     return sum / k as libc::c_double;
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetExp(mut self_0: *mut RNG) -> libc::c_double {
-    return -Log(Max(1.0f64 - RNG_GetUniform(self_0), 2.2204460492503131e-16f64));
+pub unsafe extern "C" fn RNG_GetExp(mut this: *mut RNG) -> libc::c_double {
+    return -Log(Max(1.0f64 - RNG_GetUniform(this), 2.2204460492503131e-16f64));
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetGaussian(mut self_0: *mut RNG) -> libc::c_double {
-    let mut angle: libc::c_double = RNG_GetAngle(self_0);
-    let mut radius: libc::c_double = 1.0f64 - RNG_GetUniform(self_0);
+pub unsafe extern "C" fn RNG_GetGaussian(mut this: *mut RNG) -> libc::c_double {
+    let mut angle: libc::c_double = RNG_GetAngle(this);
+    let mut radius: libc::c_double = 1.0f64 - RNG_GetUniform(this);
     return Cos(angle) * Sqrt(-2.0f64 * Log(radius));
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetAxis2(mut self_0: *mut RNG, mut out: *mut Vec2) {
+pub unsafe extern "C" fn RNG_GetAxis2(mut this: *mut RNG, mut out: *mut Vec2) {
     *out = Vec2::new(0.0f32, 0.0f32);
-    let mut axis: libc::c_int = RNG_GetInt(self_0, 0 as libc::c_int, 3 as libc::c_int);
+    let mut axis: libc::c_int = RNG_GetInt(this, 0 as libc::c_int, 3 as libc::c_int);
     match axis {
         0 => {
             (*out).x = 1.0f32;
@@ -264,9 +264,9 @@ pub unsafe extern "C" fn RNG_GetAxis2(mut self_0: *mut RNG, mut out: *mut Vec2) 
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetAxis3(mut self_0: *mut RNG, mut out: *mut Vec3) {
+pub unsafe extern "C" fn RNG_GetAxis3(mut this: *mut RNG, mut out: *mut Vec3) {
     *out = Vec3::ZERO;
-    let mut axis: libc::c_int = RNG_GetInt(self_0, 0 as libc::c_int, 5 as libc::c_int);
+    let mut axis: libc::c_int = RNG_GetInt(this, 0 as libc::c_int, 5 as libc::c_int);
     match axis {
         0 => {
             (*out).x = 1.0f32;
@@ -296,16 +296,16 @@ pub unsafe extern "C" fn RNG_GetAxis3(mut self_0: *mut RNG, mut out: *mut Vec3) 
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetDir2(mut self_0: *mut RNG, mut out: *mut Vec2) {
-    let mut angle: libc::c_double = RNG_GetAngle(self_0);
+pub unsafe extern "C" fn RNG_GetDir2(mut this: *mut RNG, mut out: *mut Vec2) {
+    let mut angle: libc::c_double = RNG_GetAngle(this);
     *out = Vec2::new(Cos(angle) as libc::c_float, Sin(angle) as libc::c_float);
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetDir3(mut self_0: *mut RNG, mut out: *mut Vec3) {
+pub unsafe extern "C" fn RNG_GetDir3(mut this: *mut RNG, mut out: *mut Vec3) {
     loop {
-        let mut x: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
-        let mut y: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
-        let mut z: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
+        let mut x: libc::c_double = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let mut y: libc::c_double = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let mut z: libc::c_double = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         let mut m2: libc::c_double = x * x + y * y + z * z;
         if m2 <= 1.0f64 && m2 > 1e-6f64 {
             m2 = Sqrt(m2);
@@ -317,10 +317,10 @@ pub unsafe extern "C" fn RNG_GetDir3(mut self_0: *mut RNG, mut out: *mut Vec3) {
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetDisc(mut self_0: *mut RNG, mut out: *mut Vec2) {
+pub unsafe extern "C" fn RNG_GetDisc(mut this: *mut RNG, mut out: *mut Vec2) {
     loop {
-        let mut x: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
-        let mut y: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
+        let mut x: libc::c_double = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let mut y: libc::c_double = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         if x * x + y * y <= 1.0f64 {
             (*out).x = x as libc::c_float;
             (*out).y = y as libc::c_float;
@@ -329,15 +329,15 @@ pub unsafe extern "C" fn RNG_GetDisc(mut self_0: *mut RNG, mut out: *mut Vec2) {
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetSign(mut self_0: *mut RNG) -> libc::c_double {
-    return if RNG_GetUniform(self_0) > 0.5f64 { 1.0f64 } else { -1.0f64 };
+pub unsafe extern "C" fn RNG_GetSign(mut this: *mut RNG) -> libc::c_double {
+    return if RNG_GetUniform(this) > 0.5f64 { 1.0f64 } else { -1.0f64 };
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetSphere(mut self_0: *mut RNG, mut out: *mut Vec3) {
+pub unsafe extern "C" fn RNG_GetSphere(mut this: *mut RNG, mut out: *mut Vec3) {
     loop {
-        let mut x: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
-        let mut y: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
-        let mut z: libc::c_double = 2.0f64 * RNG_GetUniform(self_0) - 1.0f64;
+        let mut x: libc::c_double = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let mut y: libc::c_double = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let mut z: libc::c_double = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         if x * x + y * y + z * z <= 1.0f64 {
             (*out).x = x as libc::c_float;
             (*out).y = y as libc::c_float;
@@ -348,43 +348,43 @@ pub unsafe extern "C" fn RNG_GetSphere(mut self_0: *mut RNG, mut out: *mut Vec3)
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetVec2(
-    mut self_0: *mut RNG,
+    mut this: *mut RNG,
     mut out: *mut Vec2,
     mut lower: libc::c_double,
     mut upper: libc::c_double,
 ) {
-    (*out).x = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
-    (*out).y = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
+    (*out).x = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
+    (*out).y = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetVec3(
-    mut self_0: *mut RNG,
+    mut this: *mut RNG,
     mut out: *mut Vec3,
     mut lower: libc::c_double,
     mut upper: libc::c_double,
 ) {
-    (*out).x = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
-    (*out).y = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
-    (*out).z = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
+    (*out).x = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
+    (*out).y = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
+    (*out).z = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
 }
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetVec4(
-    mut self_0: *mut RNG,
+    mut this: *mut RNG,
     mut out: *mut Vec4f,
     mut lower: libc::c_double,
     mut upper: libc::c_double,
 ) {
-    (*out).x = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
-    (*out).y = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
-    (*out).z = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
-    (*out).w = RNG_GetUniformRange(self_0, lower, upper) as libc::c_float;
+    (*out).x = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
+    (*out).y = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
+    (*out).z = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
+    (*out).w = RNG_GetUniformRange(this, lower, upper) as libc::c_float;
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetQuat(mut self_0: *mut RNG, mut out: *mut Quat) {
+pub unsafe extern "C" fn RNG_GetQuat(mut this: *mut RNG, mut out: *mut Quat) {
     let mut p0 = Vec2::ZERO;
     let mut p1 = Vec2::ZERO;
-    RNG_GetDisc(self_0, &mut p0);
-    RNG_GetDisc(self_0, &mut p1);
+    RNG_GetDisc(this, &mut p0);
+    RNG_GetDisc(this, &mut p1);
     let mut d0 = p0.length_squared() as f64;
     let mut d1 = p1.length_squared() as f64 + 2.2204460492503131e-16f64;
     let mut s = Sqrt((1.0f64 - d0) / d1);

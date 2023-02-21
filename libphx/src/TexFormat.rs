@@ -37,8 +37,8 @@ pub static mut TexFormat_Depth24: TexFormat = 0x81a6 as libc::c_int;
 #[no_mangle]
 pub static mut TexFormat_Depth32F: TexFormat = 0x8cac as libc::c_int;
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_Components(mut self_0: TexFormat) -> libc::c_int {
-    match self_0 {
+pub unsafe extern "C" fn TexFormat_Components(mut this: TexFormat) -> libc::c_int {
+    match this {
         33321 | 33322 | 33325 | 33326 | 33189 | 33190 | 36012 => return 1 as libc::c_int,
         33323 | 33324 | 33327 | 33328 => return 2 as libc::c_int,
         32849 => return 3 as libc::c_int,
@@ -48,8 +48,8 @@ pub unsafe extern "C" fn TexFormat_Components(mut self_0: TexFormat) -> libc::c_
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_GetSize(mut self_0: TexFormat) -> libc::c_int {
-    match self_0 {
+pub unsafe extern "C" fn TexFormat_GetSize(mut this: TexFormat) -> libc::c_int {
+    match this {
         33321 => return 1 as libc::c_int,
         33322 | 33325 | 33323 | 33189 => return 2 as libc::c_int,
         32849 | 33190 => return 3 as libc::c_int,
@@ -61,24 +61,24 @@ pub unsafe extern "C" fn TexFormat_GetSize(mut self_0: TexFormat) -> libc::c_int
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_IsColor(mut self_0: TexFormat) -> bool {
-    match self_0 {
+pub unsafe extern "C" fn TexFormat_IsColor(mut this: TexFormat) -> bool {
+    match this {
         33189 | 33190 | 36012 => return 0 as libc::c_int != 0,
         _ => {}
     }
     return 1 as libc::c_int != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_IsDepth(mut self_0: TexFormat) -> bool {
-    match self_0 {
+pub unsafe extern "C" fn TexFormat_IsDepth(mut this: TexFormat) -> bool {
+    match this {
         33189 | 33190 | 36012 => return 1 as libc::c_int != 0,
         _ => {}
     }
     return 0 as libc::c_int != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_IsValid(mut self_0: TexFormat) -> bool {
-    match self_0 {
+pub unsafe extern "C" fn TexFormat_IsValid(mut this: TexFormat) -> bool {
+    match this {
         33321 | 33322 | 33325 | 33326 | 33323 | 33324 | 33327 | 33328 | 32849 | 32856
         | 32859 | 34842 | 34836 | 33189 | 33190 | 36012 => return 1 as libc::c_int != 0,
         _ => {}

@@ -47,6 +47,6 @@ pub unsafe extern "C" fn TimeStamp_GetRelative(
     return start.wrapping_add((freq * seconds) as TimeStamp);
 }
 #[no_mangle]
-pub unsafe extern "C" fn TimeStamp_ToDouble(mut self_0: TimeStamp) -> libc::c_double {
-    return self_0 as libc::c_double / SDL_GetPerformanceFrequency() as libc::c_double;
+pub unsafe extern "C" fn TimeStamp_ToDouble(mut this: TimeStamp) -> libc::c_double {
+    return this as libc::c_double / SDL_GetPerformanceFrequency() as libc::c_double;
 }

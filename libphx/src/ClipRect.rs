@@ -79,15 +79,15 @@ unsafe extern "C" fn TransformRect(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn ClipRect_Activate(mut self_0: *mut ClipRect) {
-    if !self_0.is_null() && (*self_0).enabled as libc::c_int != 0 {
+pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
+    if !this.is_null() && (*this).enabled as libc::c_int != 0 {
         let mut vpSize: IVec2 = IVec2 { x: 0, y: 0 };
         Viewport_GetSize(&mut vpSize);
         glEnable(0xc11 as libc::c_int as GLenum);
-        let mut x: libc::c_float = (*self_0).x;
-        let mut y: libc::c_float = (*self_0).y;
-        let mut sx: libc::c_float = (*self_0).sx;
-        let mut sy: libc::c_float = (*self_0).sy;
+        let mut x: libc::c_float = (*this).x;
+        let mut y: libc::c_float = (*this).y;
+        let mut sx: libc::c_float = (*this).sx;
+        let mut sy: libc::c_float = (*this).sy;
         TransformRect(&mut x, &mut y, &mut sx, &mut sy);
         glScissor(
             x as libc::c_int,

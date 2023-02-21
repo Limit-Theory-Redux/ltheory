@@ -49,30 +49,30 @@ unsafe extern "C" fn ShaderVar_GetStack(
     mut var: cstr,
     mut type_0: ShaderVarType,
 ) -> *mut VarStack {
-    let mut self_0: *mut VarStack = StrMap_Get(varMap, var) as *mut VarStack;
-    if self_0.is_null() {
+    let mut this: *mut VarStack = StrMap_Get(varMap, var) as *mut VarStack;
+    if this.is_null() {
         if type_0 == 0 {
             return 0 as *mut VarStack;
         }
-        self_0 = MemAlloc(::core::mem::size_of::<VarStack>())
+        this = MemAlloc(::core::mem::size_of::<VarStack>())
             as *mut VarStack;
-        (*self_0).type_0 = type_0;
-        (*self_0).size = 0 as libc::c_int;
-        (*self_0).capacity = 4 as libc::c_int;
-        (*self_0).elemSize = ShaderVarType_GetSize(type_0);
-        (*self_0).data = MemAlloc(((*self_0).capacity * (*self_0).elemSize) as libc::size_t);
-        StrMap_Set(varMap, var, self_0 as *mut libc::c_void);
+        (*this).type_0 = type_0;
+        (*this).size = 0 as libc::c_int;
+        (*this).capacity = 4 as libc::c_int;
+        (*this).elemSize = ShaderVarType_GetSize(type_0);
+        (*this).data = MemAlloc(((*this).capacity * (*this).elemSize) as libc::size_t);
+        StrMap_Set(varMap, var, this as *mut libc::c_void);
     }
-    if type_0 != 0 && (*self_0).type_0 != type_0 {
+    if type_0 != 0 && (*this).type_0 != type_0 {
         Fatal(
             b"ShaderVar_GetStack: Attempting to get stack of type <%s> for shader variable <%s> when existing stack has type <%s>\0"
                 as *const u8 as *const libc::c_char,
             ShaderVarType_GetName(type_0),
             var,
-            ShaderVarType_GetName((*self_0).type_0),
+            ShaderVarType_GetName((*this).type_0),
         );
     }
-    return self_0;
+    return this;
 }
 #[inline]
 unsafe extern "C" fn ShaderVar_Push(
@@ -80,22 +80,22 @@ unsafe extern "C" fn ShaderVar_Push(
     mut type_0: ShaderVarType,
     mut value: *const libc::c_void,
 ) {
-    let mut self_0: *mut VarStack = ShaderVar_GetStack(var, type_0);
-    if (*self_0).size == (*self_0).capacity {
-        (*self_0).capacity *= 2 as libc::c_int;
-        (*self_0)
+    let mut this: *mut VarStack = ShaderVar_GetStack(var, type_0);
+    if (*this).size == (*this).capacity {
+        (*this).capacity *= 2 as libc::c_int;
+        (*this)
             .data = MemRealloc(
-            (*self_0).data,
-            ((*self_0).capacity * (*self_0).elemSize) as libc::size_t,
+            (*this).data,
+            ((*this).capacity * (*this).elemSize) as libc::size_t,
         );
     }
     MemCpy(
-        ((*self_0).data as *mut libc::c_char)
-            .offset(((*self_0).size * (*self_0).elemSize) as isize) as *mut libc::c_void,
+        ((*this).data as *mut libc::c_char)
+            .offset(((*this).size * (*this).elemSize) as isize) as *mut libc::c_void,
         value,
-        (*self_0).elemSize as libc::size_t,
+        (*this).elemSize as libc::size_t,
     );
-    (*self_0).size += 1;
+    (*this).size += 1;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Init() {
@@ -111,21 +111,21 @@ pub unsafe extern "C" fn ShaderVar_Get(
     mut name: cstr,
     mut type_0: ShaderVarType,
 ) -> *mut libc::c_void {
-    let mut self_0: *mut VarStack = ShaderVar_GetStack(name, 0 as libc::c_int);
-    if self_0.is_null() || (*self_0).size == 0 as libc::c_int {
+    let mut this: *mut VarStack = ShaderVar_GetStack(name, 0 as libc::c_int);
+    if this.is_null() || (*this).size == 0 as libc::c_int {
         return 0 as *mut libc::c_void;
     }
-    if type_0 != 0 && (*self_0).type_0 != type_0 {
+    if type_0 != 0 && (*this).type_0 != type_0 {
         Fatal(
             b"ShaderVar_Get: Attempting to get variable <%s> with type <%s> when existing stack has type <%s>\0"
                 as *const u8 as *const libc::c_char,
             name,
             ShaderVarType_GetName(type_0),
-            ShaderVarType_GetName((*self_0).type_0),
+            ShaderVarType_GetName((*this).type_0),
         );
     }
-    return ((*self_0).data as *mut libc::c_char)
-        .offset(((*self_0).elemSize * ((*self_0).size - 1 as libc::c_int)) as isize)
+    return ((*this).data as *mut libc::c_char)
+        .offset(((*this).elemSize * ((*this).size - 1 as libc::c_int)) as isize)
         as *mut libc::c_void;
 }
 #[no_mangle]
@@ -235,20 +235,20 @@ pub unsafe extern "C" fn ShaderVar_PushTexCube(mut name: cstr, mut x: *mut TexCu
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Pop(mut name: cstr) {
-    let mut self_0: *mut VarStack = ShaderVar_GetStack(name, 0 as libc::c_int);
-    if self_0.is_null() {
+    let mut this: *mut VarStack = ShaderVar_GetStack(name, 0 as libc::c_int);
+    if this.is_null() {
         Fatal(
             b"ShaderVar_Pop: Attempting to pop nonexistent stack <%s>\0" as *const u8
                 as *const libc::c_char,
             name,
         );
     }
-    if (*self_0).size == 0 as libc::c_int {
+    if (*this).size == 0 as libc::c_int {
         Fatal(
             b"ShaderVar_Pop: Attempting to pop empty stack <%s>\0" as *const u8
                 as *const libc::c_char,
             name,
         );
     }
-    (*self_0).size -= 1;
+    (*this).size -= 1;
 }

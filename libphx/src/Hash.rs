@@ -18,15 +18,15 @@ pub unsafe extern "C" fn Hash_FNV32(
 ) -> uint32 {
     let mut curr: *const uchar = buf as *const uchar;
     let mut end: *const uchar = curr.offset(len as isize);
-    let mut self_0: uint32 = 2166136261 as libc::c_uint;
+    let mut this: uint32 = 2166136261 as libc::c_uint;
     while curr < end {
         let fresh0 = curr;
         curr = curr.offset(1);
-        self_0 ^= *fresh0 as uint32;
-        self_0 = (self_0 as libc::c_uint).wrapping_mul(16777619 as libc::c_uint)
+        this ^= *fresh0 as uint32;
+        this = (this as libc::c_uint).wrapping_mul(16777619 as libc::c_uint)
             as uint32 as uint32;
     }
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV64(
@@ -35,39 +35,39 @@ pub unsafe extern "C" fn Hash_FNV64(
 ) -> uint64 {
     let mut curr: *const uchar = buf as *const uchar;
     let mut end: *const uchar = curr.offset(len as isize);
-    let mut self_0: uint64 = 14695981039346656037 as libc::c_ulonglong;
+    let mut this: uint64 = 14695981039346656037 as libc::c_ulonglong;
     while curr < end {
         let fresh1 = curr;
         curr = curr.offset(1);
-        self_0 ^= *fresh1 as uint64;
-        self_0 = (self_0 as libc::c_ulonglong)
+        this ^= *fresh1 as uint64;
+        this = (this as libc::c_ulonglong)
             .wrapping_mul(1099511628211 as libc::c_ulonglong) as uint64 as uint64;
     }
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNVStr32(mut s: cstr) -> uint32 {
-    let mut self_0: uint32 = 2166136261 as libc::c_uint;
+    let mut this: uint32 = 2166136261 as libc::c_uint;
     while *s != 0 {
         let fresh2 = s;
         s = s.offset(1);
-        self_0 ^= *fresh2 as uint32;
-        self_0 = (self_0 as libc::c_uint).wrapping_mul(16777619 as libc::c_uint)
+        this ^= *fresh2 as uint32;
+        this = (this as libc::c_uint).wrapping_mul(16777619 as libc::c_uint)
             as uint32 as uint32;
     }
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNVStr64(mut s: cstr) -> uint64 {
-    let mut self_0: uint64 = 14695981039346656037 as libc::c_ulonglong;
+    let mut this: uint64 = 14695981039346656037 as libc::c_ulonglong;
     while *s != 0 {
         let fresh3 = s;
         s = s.offset(1);
-        self_0 ^= *fresh3 as uint64;
-        self_0 = (self_0 as libc::c_ulonglong)
+        this ^= *fresh3 as uint64;
+        this = (this as libc::c_ulonglong)
             .wrapping_mul(1099511628211 as libc::c_ulonglong) as uint64 as uint64;
     }
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV64_Init() -> uint64 {
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn Hash_FNV64_Init() -> uint64 {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV64_Incremental(
-    mut self_0: uint64,
+    mut this: uint64,
     mut buf: *const libc::c_void,
     mut len: libc::c_int,
 ) -> uint64 {
@@ -84,11 +84,11 @@ pub unsafe extern "C" fn Hash_FNV64_Incremental(
     while curr < end {
         let fresh4 = curr;
         curr = curr.offset(1);
-        self_0 ^= *fresh4 as uint64;
-        self_0 = (self_0 as libc::c_ulonglong)
+        this ^= *fresh4 as uint64;
+        this = (this as libc::c_ulonglong)
             .wrapping_mul(1099511628211 as libc::c_ulonglong) as uint64 as uint64;
     }
-    return self_0;
+    return this;
 }
 #[inline]
 unsafe extern "C" fn rotl32(mut x: uint32, mut r: int8) -> uint32 {

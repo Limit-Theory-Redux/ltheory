@@ -28,7 +28,7 @@ pub unsafe extern "C" fn Device_Equal(mut a: *mut Device, mut b: *mut Device) ->
     return (*a).type_0 == (*b).type_0 && (*a).id == (*b).id;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Device_ToString(mut self_0: *mut Device) -> cstr {
+pub unsafe extern "C" fn Device_ToString(mut this: *mut Device) -> cstr {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     snprintf(
         buffer.as_mut_ptr(),
@@ -36,8 +36,8 @@ pub unsafe extern "C" fn Device_ToString(mut self_0: *mut Device) -> cstr {
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
             as libc::c_int as libc::size_t,
         b"%s (%u)\0" as *const u8 as *const libc::c_char,
-        DeviceType_ToString((*self_0).type_0),
-        (*self_0).id,
+        DeviceType_ToString((*this).type_0),
+        (*this).id,
     );
     return buffer.as_mut_ptr() as cstr;
 }

@@ -26,8 +26,8 @@ pub static mut ResourceType_Tex3D: ResourceType = 0x8 as libc::c_int;
 #[no_mangle]
 pub static mut ResourceType_TexCube: ResourceType = 0x9 as libc::c_int;
 #[no_mangle]
-pub unsafe extern "C" fn ResourceType_ToString(mut self_0: ResourceType) -> cstr {
-    match self_0 {
+pub unsafe extern "C" fn ResourceType_ToString(mut this: ResourceType) -> cstr {
+    match this {
         0 => return b"Font\0" as *const u8 as *const libc::c_char,
         1 => return b"Mesh\0" as *const u8 as *const libc::c_char,
         2 => return b"Other\0" as *const u8 as *const libc::c_char,

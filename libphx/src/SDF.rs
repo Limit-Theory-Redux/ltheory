@@ -65,54 +65,54 @@ pub unsafe extern "C" fn SDF_Create(
     mut sy: libc::c_int,
     mut sz: libc::c_int,
 ) -> *mut SDF {
-    let mut self_0: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>())
+    let mut this: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>())
         as *mut SDF;
-    (*self_0).size = IVec3::new(sx, sy, sz);
-    (*self_0)
+    (*this).size = IVec3::new(sx, sy, sz);
+    (*this)
         .data = MemAlloc(
         (::core::mem::size_of::<Cell>())
             .wrapping_mul((sx * sy * sz) as usize),
     ) as *mut Cell;
     MemZero(
-        (*self_0).data as *mut libc::c_void,
+        (*this).data as *mut libc::c_void,
         (::core::mem::size_of::<Cell>())
             .wrapping_mul(sx as usize).wrapping_mul(sy as usize).wrapping_mul(sz as usize),
     );
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
-    let mut self_0: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>())
+    let mut this: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>())
         as *mut SDF;
-    Tex3D_GetSize(tex, &mut (*self_0).size);
-    (*self_0)
+    Tex3D_GetSize(tex, &mut (*this).size);
+    (*this)
         .data = MemAlloc(
         (::core::mem::size_of::<Cell>())
             .wrapping_mul(
-                ((*self_0).size.x * (*self_0).size.y * (*self_0).size.z) as usize,
+                ((*this).size.x * (*this).size.y * (*this).size.z) as usize,
             ),
     ) as *mut Cell;
     Tex3D_GetData(
         tex,
-        (*self_0).data as *mut libc::c_void,
+        (*this).data as *mut libc::c_void,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
-    return self_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn SDF_Free(mut self_0: *mut SDF) {
-    MemFree((*self_0).data as *const libc::c_void);
-    MemFree(self_0 as *const libc::c_void);
+pub unsafe extern "C" fn SDF_Free(mut this: *mut SDF) {
+    MemFree((*this).data as *const libc::c_void);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn SDF_ToMesh(mut self_0: *mut SDF) -> *mut Mesh {
+pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
     let cells: IVec3 = {
         let mut init = IVec3 {
-            x: (*self_0).size.x - 1 as libc::c_int,
-            y: (*self_0).size.y - 1 as libc::c_int,
-            z: (*self_0).size.z - 1 as libc::c_int,
+            x: (*this).size.x - 1 as libc::c_int,
+            y: (*this).size.y - 1 as libc::c_int,
+            z: (*this).size.z - 1 as libc::c_int,
         };
         init
     };
@@ -127,8 +127,8 @@ pub unsafe extern "C" fn SDF_ToMesh(mut self_0: *mut SDF) -> *mut Mesh {
     let stride: IVec3 = {
         let mut init = IVec3 {
             x: 1 as libc::c_int,
-            y: (*self_0).size.x,
-            z: (*self_0).size.x * (*self_0).size.y,
+            y: (*this).size.x,
+            z: (*this).size.x * (*this).size.y,
         };
         init
     };
@@ -239,7 +239,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut self_0: *mut SDF) -> *mut Mesh {
                     init
                 };
                 let cellIndex = IVec3::dot(cellStride, IVec3::new(x, y, z));
-                let mut base: *const Cell = ((*self_0).data)
+                let mut base: *const Cell = ((*this).data)
                     .offset(IVec3::dot(stride, IVec3::new(x, y, z)) as isize);
                 let mut v: [*const Cell; 8] = [
                     base,
@@ -428,10 +428,10 @@ pub unsafe extern "C" fn SDF_ToMesh(mut self_0: *mut SDF) -> *mut Mesh {
     return mesh;
 }
 #[no_mangle]
-pub unsafe extern "C" fn SDF_Clear(mut self_0: *mut SDF, mut value: libc::c_float) {
-    let mut size: uint64 = ((*self_0).size.x * (*self_0).size.y * (*self_0).size.z)
+pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: libc::c_float) {
+    let mut size: uint64 = ((*this).size.x * (*this).size.y * (*this).size.z)
         as uint64;
-    let mut pCell: *mut Cell = (*self_0).data;
+    let mut pCell: *mut Cell = (*this).data;
     let mut i: uint64 = 0 as libc::c_int as uint64;
     while i < size {
         let fresh0 = pCell;
@@ -441,22 +441,22 @@ pub unsafe extern "C" fn SDF_Clear(mut self_0: *mut SDF, mut value: libc::c_floa
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn SDF_ComputeNormals(mut self_0: *mut SDF) {
+pub unsafe extern "C" fn SDF_ComputeNormals(mut this: *mut SDF) {
     let stride: IVec3 = {
         let mut init = IVec3 {
             x: 1 as libc::c_int,
-            y: (*self_0).size.x,
-            z: (*self_0).size.x * (*self_0).size.y,
+            y: (*this).size.x,
+            z: (*this).size.x * (*this).size.y,
         };
         init
     };
     let mut z: libc::c_int = 1 as libc::c_int;
-    while z < (*self_0).size.z - 1 as libc::c_int {
+    while z < (*this).size.z - 1 as libc::c_int {
         let mut y: libc::c_int = 1 as libc::c_int;
-        while y < (*self_0).size.y - 1 as libc::c_int {
+        while y < (*this).size.y - 1 as libc::c_int {
             let mut x: libc::c_int = 1 as libc::c_int;
-            while x < (*self_0).size.x - 1 as libc::c_int {
-                let mut cell: *mut Cell = ((*self_0).data)
+            while x < (*this).size.x - 1 as libc::c_int {
+                let mut cell: *mut Cell = ((*this).data)
                     .offset((x * stride.x) as isize)
                     .offset((y * stride.y) as isize)
                     .offset((z * stride.z) as isize);
@@ -480,25 +480,25 @@ pub unsafe extern "C" fn SDF_ComputeNormals(mut self_0: *mut SDF) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Set(
-    mut self_0: *mut SDF,
+    mut this: *mut SDF,
     mut x: libc::c_int,
     mut y: libc::c_int,
     mut z: libc::c_int,
     mut value: libc::c_float,
 ) {
-    (*((*self_0).data)
-        .offset((x + (*self_0).size.x * (y + (*self_0).size.y * z)) as isize))
+    (*((*this).data)
+        .offset((x + (*this).size.x * (y + (*this).size.y * z)) as isize))
         .value = value;
 }
 #[no_mangle]
 pub unsafe extern "C" fn SDF_SetNormal(
-    mut self_0: *mut SDF,
+    mut this: *mut SDF,
     mut x: libc::c_int,
     mut y: libc::c_int,
     mut z: libc::c_int,
     mut normal: *const Vec3,
 ) {
-    (*((*self_0).data)
-        .offset((x + (*self_0).size.x * (y + (*self_0).size.y * z)) as isize))
+    (*((*this).data)
+        .offset((x + (*this).size.x * (y + (*this).size.y * z)) as isize))
         .normal = *normal;
 }

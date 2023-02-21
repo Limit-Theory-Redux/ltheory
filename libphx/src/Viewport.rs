@@ -33,22 +33,22 @@ static mut vp: [VP; 16] = [VP {
     sy: 0,
     isWindow: false,
 }; 16];
-unsafe extern "C" fn Viewport_Set(mut self_0: *const VP) {
-    glViewport((*self_0).x, (*self_0).y, (*self_0).sx, (*self_0).sy);
+unsafe extern "C" fn Viewport_Set(mut this: *const VP) {
+    glViewport((*this).x, (*this).y, (*this).sx, (*this).sy);
     glMatrixMode(0x1701 as libc::c_int as GLenum);
     glLoadIdentity();
-    if (*self_0).isWindow {
+    if (*this).isWindow {
         glTranslatef(-1.0f64 as GLfloat, 1.0f64 as GLfloat, 0.0f64 as GLfloat);
         glScalef(
-            2.0f32 / (*self_0).sx as libc::c_float,
-            -2.0f32 / (*self_0).sy as libc::c_float,
+            2.0f32 / (*this).sx as libc::c_float,
+            -2.0f32 / (*this).sy as libc::c_float,
             1.0f32,
         );
     } else {
         glTranslatef(-1.0f64 as GLfloat, -1.0f64 as GLfloat, 0.0f64 as GLfloat);
         glScalef(
-            2.0f32 / (*self_0).sx as libc::c_float,
-            2.0f32 / (*self_0).sy as libc::c_float,
+            2.0f32 / (*this).sx as libc::c_float,
+            2.0f32 / (*this).sy as libc::c_float,
             1.0f32,
         );
     };
@@ -90,13 +90,13 @@ pub unsafe extern "C" fn Viewport_Push(
         );
     }
     vpIndex += 1;
-    let mut self_0: *mut VP = vp.as_mut_ptr().offset(vpIndex as isize);
-    (*self_0).x = x;
-    (*self_0).y = y;
-    (*self_0).sx = sx;
-    (*self_0).sy = sy;
-    (*self_0).isWindow = isWindow;
-    Viewport_Set(self_0);
+    let mut this: *mut VP = vp.as_mut_ptr().offset(vpIndex as isize);
+    (*this).x = x;
+    (*this).y = y;
+    (*this).sx = sx;
+    (*this).sy = sy;
+    (*this).isWindow = isWindow;
+    Viewport_Set(this);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_Pop() {

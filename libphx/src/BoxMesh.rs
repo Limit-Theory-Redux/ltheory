@@ -229,47 +229,47 @@ static mut kFaceV: [Vec3; 6] = [
 ];
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
-    let mut self_0: *mut BoxMesh = MemAlloc(
+    let mut this: *mut BoxMesh = MemAlloc(
         ::core::mem::size_of::<BoxMesh>() as usize,
     ) as *mut BoxMesh;
-    (*self_0).elem_capacity = 0 as libc::c_int;
-    (*self_0).elem_size = 0 as libc::c_int;
-    (*self_0).elem_data = 0 as *mut Box_0;
-    return self_0;
+    (*this).elem_capacity = 0 as libc::c_int;
+    (*this).elem_size = 0 as libc::c_int;
+    (*this).elem_data = 0 as *mut Box_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn BoxMesh_Free(mut self_0: *mut BoxMesh) {
-    MemFree((*self_0).elem_data as *const libc::c_void);
-    MemFree(self_0 as *const libc::c_void);
+pub unsafe extern "C" fn BoxMesh_Free(mut this: *mut BoxMesh) {
+    MemFree((*this).elem_data as *const libc::c_void);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Add(
-    mut self_0: *mut BoxMesh,
+    mut this: *mut BoxMesh,
     mut p: *const Vec3,
     mut s: *const Vec3,
     mut r: *const Vec3,
     mut b: *const Vec3,
 ) {
-    if ((*self_0).elem_capacity == (*self_0).elem_size) as libc::c_int as libc::c_long
+    if ((*this).elem_capacity == (*this).elem_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elem_capacity = if (*self_0).elem_capacity != 0 {
-            (*self_0).elem_capacity * 2 as libc::c_int
+        (*this)
+            .elem_capacity = if (*this).elem_capacity != 0 {
+            (*this).elem_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Box_0>();
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elem_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elem_data
             as *mut *mut Box_0 as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elem_data as *mut libc::c_void,
-            ((*self_0).elem_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elem_data as *mut libc::c_void,
+            ((*this).elem_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh0 = (*self_0).elem_size;
-    (*self_0).elem_size = (*self_0).elem_size + 1;
-    let mut box_0: *mut Box_0 = ((*self_0).elem_data).offset(fresh0 as isize);
+    let fresh0 = (*this).elem_size;
+    (*this).elem_size = (*this).elem_size + 1;
+    let mut box_0: *mut Box_0 = ((*this).elem_data).offset(fresh0 as isize);
     (*box_0).p = *p;
     (*box_0).s = *s;
     (*box_0).r = *r;
@@ -277,18 +277,18 @@ pub unsafe extern "C" fn BoxMesh_Add(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_GetMesh(
-    mut self_0: *mut BoxMesh,
+    mut this: *mut BoxMesh,
     mut res: libc::c_int,
 ) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
-    Mesh_ReserveVertexData(mesh, 6 as libc::c_int * res * res * (*self_0).elem_size);
+    Mesh_ReserveVertexData(mesh, 6 as libc::c_int * res * res * (*this).elem_size);
     Mesh_ReserveIndexData(
         mesh,
         12 as libc::c_int * (res - 1 as libc::c_int) * (res - 1 as libc::c_int),
     );
     let mut i: libc::c_int = 0 as libc::c_int;
-    while i < (*self_0).elem_size {
-        let mut box_0: *mut Box_0 = ((*self_0).elem_data).offset(i as isize);
+    while i < (*this).elem_size {
+        let mut box_0: *mut Box_0 = ((*this).elem_data).offset(i as isize);
         let mut lower: Vec3 = Vec3::new(
             (*box_0).b.x - 1.0f32,
             (*box_0).b.y - 1.0f32,

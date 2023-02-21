@@ -139,7 +139,7 @@ pub struct UIRenderer {
     pub textPool: *mut MemPool,
 }
 
-static mut self_0: UIRenderer = {
+static mut this: UIRenderer = {
     let mut init = UIRenderer {
         root: 0 as *const UIRendererLayer as *mut UIRendererLayer,
         layer: 0 as *const UIRendererLayer as *mut UIRendererLayer,
@@ -157,25 +157,25 @@ unsafe extern "C" fn UIRenderer_Init() {
         return;
     }
     init = 1 as libc::c_int != 0;
-    self_0.root = 0 as *mut UIRendererLayer;
-    self_0.layer = 0 as *mut UIRendererLayer;
-    self_0
+    this.root = 0 as *mut UIRendererLayer;
+    this.layer = 0 as *mut UIRendererLayer;
+    this
         .layerPool = MemPool_CreateAuto(
         ::core::mem::size_of::<UIRendererLayer>() as usize as uint32,
     );
-    self_0
+    this
         .imagePool = MemPool_CreateAuto(
         ::core::mem::size_of::<UIRendererImage>() as usize as uint32,
     );
-    self_0
+    this
         .panelPool = MemPool_CreateAuto(
         ::core::mem::size_of::<UIRendererPanel>() as usize as uint32,
     );
-    self_0
+    this
         .rectPool = MemPool_CreateAuto(
         ::core::mem::size_of::<UIRendererRect>() as usize as uint32,
     );
-    self_0
+    this
         .textPool = MemPool_CreateAuto(
         ::core::mem::size_of::<UIRendererText>() as usize as uint32,
     );
@@ -183,13 +183,13 @@ unsafe extern "C" fn UIRenderer_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Begin() {
     UIRenderer_Init();
-    self_0.root = 0 as *mut UIRendererLayer;
-    self_0.layer = 0 as *mut UIRendererLayer;
-    MemPool_Clear(self_0.layerPool);
-    MemPool_Clear(self_0.imagePool);
-    MemPool_Clear(self_0.panelPool);
-    MemPool_Clear(self_0.rectPool);
-    MemPool_Clear(self_0.textPool);
+    this.root = 0 as *mut UIRendererLayer;
+    this.layer = 0 as *mut UIRendererLayer;
+    MemPool_Clear(this.layerPool);
+    MemPool_Clear(this.imagePool);
+    MemPool_Clear(this.panelPool);
+    MemPool_Clear(this.rectPool);
+    MemPool_Clear(this.textPool);
     let mut vp: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut vp);
     UIRenderer_BeginLayer(
@@ -199,7 +199,7 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
         vp.y as f32,
         1 as libc::c_int != 0,
     );
-    self_0.root = self_0.layer;
+    this.root = this.layer;
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_End() {
@@ -302,7 +302,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Draw() {
     RenderState_PushBlendMode(1 as libc::c_int);
-    UIRenderer_DrawLayer(self_0.root);
+    UIRenderer_DrawLayer(this.root);
     RenderState_PopBlendMode();
 }
 #[no_mangle]
@@ -313,9 +313,9 @@ pub unsafe extern "C" fn UIRenderer_BeginLayer(
     mut sy: f32,
     mut clip: bool,
 ) {
-    let mut layer: *mut UIRendererLayer = MemPool_Alloc(self_0.layerPool)
+    let mut layer: *mut UIRendererLayer = MemPool_Alloc(this.layerPool)
         as *mut UIRendererLayer;
-    (*layer).parent = self_0.layer;
+    (*layer).parent = this.layer;
     (*layer).next = 0 as *mut UIRendererLayer;
     (*layer).children = 0 as *mut UIRendererLayer;
     (*layer).pos = Vec2::new(x, y);
@@ -325,15 +325,15 @@ pub unsafe extern "C" fn UIRenderer_BeginLayer(
     (*layer).panelList = 0 as *mut UIRendererPanel;
     (*layer).rectList = 0 as *mut UIRendererRect;
     (*layer).textList = 0 as *mut UIRendererText;
-    self_0.layer = layer;
+    this.layer = layer;
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_EndLayer() {
-    if !((*self_0.layer).parent).is_null() {
-        (*self_0.layer).next = (*(*self_0.layer).parent).children;
-        (*(*self_0.layer).parent).children = self_0.layer;
+    if !((*this.layer).parent).is_null() {
+        (*this.layer).next = (*(*this.layer).parent).children;
+        (*(*this.layer).parent).children = this.layer;
     }
-    self_0.layer = (*self_0.layer).parent;
+    this.layer = (*this.layer).parent;
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Image(
@@ -343,13 +343,13 @@ pub unsafe extern "C" fn UIRenderer_Image(
     mut sx: f32,
     mut sy: f32,
 ) {
-    let mut e: *mut UIRendererImage = MemPool_Alloc(self_0.imagePool)
+    let mut e: *mut UIRendererImage = MemPool_Alloc(this.imagePool)
         as *mut UIRendererImage;
-    (*e).next = (*self_0.layer).imageList;
+    (*e).next = (*this.layer).imageList;
     (*e).image = image;
     (*e).pos = Vec2::new(x, y);
     (*e).size = Vec2::new(sx, sy);
-    (*self_0.layer).imageList = e;
+    (*this.layer).imageList = e;
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Panel(
@@ -364,15 +364,15 @@ pub unsafe extern "C" fn UIRenderer_Panel(
     mut bevel: f32,
     mut innerAlpha: f32,
 ) {
-    let mut e: *mut UIRendererPanel = MemPool_Alloc(self_0.panelPool)
+    let mut e: *mut UIRendererPanel = MemPool_Alloc(this.panelPool)
         as *mut UIRendererPanel;
-    (*e).next = (*self_0.layer).panelList;
+    (*e).next = (*this.layer).panelList;
     (*e).pos = Vec2::new(x, y);
     (*e).size = Vec2::new(sx, sy);
     (*e).color = Vec4::new(r, g, b, a);
     (*e).bevel = bevel;
     (*e).innerAlpha = innerAlpha;
-    (*self_0.layer).panelList = e;
+    (*this.layer).panelList = e;
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Rect(
@@ -386,14 +386,14 @@ pub unsafe extern "C" fn UIRenderer_Rect(
     mut a: f32,
     mut outline: bool,
 ) {
-    let mut e: *mut UIRendererRect = MemPool_Alloc(self_0.rectPool)
+    let mut e: *mut UIRendererRect = MemPool_Alloc(this.rectPool)
         as *mut UIRendererRect;
-    (*e).next = (*self_0.layer).rectList;
+    (*e).next = (*this.layer).rectList;
     (*e).pos = Vec2::new(x, y);
     (*e).size = Vec2::new(sx, sy);
     (*e).color = Vec4::new(r, g, b, a);
     (*e).outline = outline;
-    (*self_0.layer).rectList = e;
+    (*this.layer).rectList = e;
 }
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Text(
@@ -406,12 +406,12 @@ pub unsafe extern "C" fn UIRenderer_Text(
     mut b: f32,
     mut a: f32,
 ) {
-    let mut e: *mut UIRendererText = MemPool_Alloc(self_0.textPool)
+    let mut e: *mut UIRendererText = MemPool_Alloc(this.textPool)
         as *mut UIRendererText;
-    (*e).next = (*self_0.layer).textList;
+    (*e).next = (*this.layer).textList;
     (*e).font = font;
     (*e).text = text;
     (*e).pos = Vec2::new(x, y);
     (*e).color = Vec4::new(r, g, b, a);
-    (*self_0.layer).textList = e;
+    (*this.layer).textList = e;
 }

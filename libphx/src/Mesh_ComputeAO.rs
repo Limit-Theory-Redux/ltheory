@@ -99,21 +99,21 @@ unsafe extern "C" fn Vec4f_Create(
     mut z: libc::c_float,
     mut w: libc::c_float,
 ) -> Vec4f {
-    let mut self_0: Vec4f = {
+    let mut this: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };
         init
     };
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeAO(
-    mut self_0: *mut Mesh,
+    mut this: *mut Mesh,
     mut radius: libc::c_float,
 ) {
-    let mut indexCount: libc::c_int = Mesh_GetIndexCount(self_0);
-    let mut vertexCount: libc::c_int = Mesh_GetVertexCount(self_0);
-    let mut indexData: *mut libc::c_int = Mesh_GetIndexData(self_0);
-    let mut vertexData: *mut Vertex = Mesh_GetVertexData(self_0);
+    let mut indexCount: libc::c_int = Mesh_GetIndexCount(this);
+    let mut vertexCount: libc::c_int = Mesh_GetVertexCount(this);
+    let mut indexData: *mut libc::c_int = Mesh_GetIndexData(this);
+    let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
     let mut sDim: libc::c_int = Ceil(
         Sqrt((indexCount / 3 as libc::c_int) as libc::c_double),
     ) as libc::c_int;
@@ -294,12 +294,12 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeOcclusion(
-    mut self_0: *mut Mesh,
+    mut this: *mut Mesh,
     mut sdf: *mut Tex3D,
     mut radius: libc::c_float,
 ) {
-    let mut vertexCount: libc::c_int = Mesh_GetVertexCount(self_0);
-    let mut vertexData: *mut Vertex = Mesh_GetVertexData(self_0);
+    let mut vertexCount: libc::c_int = Mesh_GetVertexCount(this);
+    let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
     let mut vDim: libc::c_int = Ceil(Sqrt(vertexCount as libc::c_double)) as libc::c_int;
     let mut texPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);

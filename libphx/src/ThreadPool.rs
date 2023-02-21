@@ -41,17 +41,17 @@ unsafe extern "C" fn ThreadPool_Dispatch(mut data: *mut libc::c_void) -> libc::c
 }
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Create(mut threads: libc::c_int) -> *mut ThreadPool {
-    let mut self_0: *mut ThreadPool = MemAlloc(
+    let mut this: *mut ThreadPool = MemAlloc(
         ::core::mem::size_of::<ThreadPool>() as usize,
     ) as *mut ThreadPool;
-    (*self_0).threads = threads;
-    (*self_0)
+    (*this).threads = threads;
+    (*this)
         .thread = MemAlloc(
         ::core::mem::size_of::<ThreadData>().wrapping_mul(threads as usize),
     ) as *mut ThreadData;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < threads {
-        let mut td: *mut ThreadData = ((*self_0).thread).offset(i as isize);
+        let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
         (*td).handle = 0 as *mut SDL_Thread;
         (*td).fn_0 = None;
         (*td).index = i;
@@ -59,13 +59,13 @@ pub unsafe extern "C" fn ThreadPool_Create(mut threads: libc::c_int) -> *mut Thr
         (*td).data = 0 as *mut libc::c_void;
         i += 1;
     }
-    return self_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ThreadPool_Free(mut self_0: *mut ThreadPool) {
+pub unsafe extern "C" fn ThreadPool_Free(mut this: *mut ThreadPool) {
     let mut i: libc::c_int = 0 as libc::c_int;
-    while i < (*self_0).threads {
-        if !((*((*self_0).thread).offset(i as isize)).handle).is_null() {
+    while i < (*this).threads {
+        if !((*((*this).thread).offset(i as isize)).handle).is_null() {
             Fatal(
                 b"ThreadPool_Free: Attempting to free pool with active threads\0"
                     as *const u8 as *const libc::c_char,
@@ -73,18 +73,18 @@ pub unsafe extern "C" fn ThreadPool_Free(mut self_0: *mut ThreadPool) {
         }
         i += 1;
     }
-    MemFree((*self_0).thread as *const libc::c_void);
-    MemFree(self_0 as *const libc::c_void);
+    MemFree((*this).thread as *const libc::c_void);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Launch(
-    mut self_0: *mut ThreadPool,
+    mut this: *mut ThreadPool,
     mut fn_0: ThreadPoolFn,
     mut data: *mut libc::c_void,
 ) {
     let mut i: libc::c_int = 0 as libc::c_int;
-    while i < (*self_0).threads {
-        let mut td: *mut ThreadData = ((*self_0).thread).offset(i as isize);
+    while i < (*this).threads {
+        let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
         (*td).fn_0 = fn_0;
         (*td).data = data;
         (*td)
@@ -106,10 +106,10 @@ pub unsafe extern "C" fn ThreadPool_Launch(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn ThreadPool_Wait(mut self_0: *mut ThreadPool) {
+pub unsafe extern "C" fn ThreadPool_Wait(mut this: *mut ThreadPool) {
     let mut i: libc::c_int = 0 as libc::c_int;
-    while i < (*self_0).threads {
-        let mut td: *mut ThreadData = ((*self_0).thread).offset(i as isize);
+    while i < (*this).threads {
+        let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
         if !((*td).handle).is_null() {
             let mut ret: libc::c_int = 0;
             SDL_WaitThread((*td).handle, &mut ret);

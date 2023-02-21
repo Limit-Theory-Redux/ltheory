@@ -136,7 +136,7 @@ pub static mut InputBindings_DefaultReleaseThreshold: libc::c_float = 0.;
 pub static mut InputBindings_DefaultPressThreshold: libc::c_float = 0.;
 
 static mut BindCount: libc::c_int = 4 as libc::c_int;
-static mut self_0: InputBindings = {
+static mut this: InputBindings = {
     let mut init = InputBindings {
         activeBindings_size: 0 as libc::c_int,
         activeBindings_capacity: 0,
@@ -149,35 +149,35 @@ static mut self_0: InputBindings = {
 };
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Init() {
-    if (self_0.activeBindings_capacity < 64 as libc::c_int) as libc::c_int
+    if (this.activeBindings_capacity < 64 as libc::c_int) as libc::c_int
         as libc::c_long != 0
     {
-        self_0.activeBindings_capacity = 64 as libc::c_int;
+        this.activeBindings_capacity = 64 as libc::c_int;
         let mut elemSize: usize = ::core::mem::size_of::<InputBinding>();
-        let mut pData: *mut *mut libc::c_void = &mut self_0.activeBindings_data
+        let mut pData: *mut *mut libc::c_void = &mut this.activeBindings_data
             as *mut *mut InputBinding as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            self_0.activeBindings_data as *mut libc::c_void,
-            (self_0.activeBindings_capacity as usize).wrapping_mul(elemSize as usize),
+            this.activeBindings_data as *mut libc::c_void,
+            (this.activeBindings_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    if (self_0.downBindings_capacity < 8 as libc::c_int) as libc::c_int as libc::c_long
+    if (this.downBindings_capacity < 8 as libc::c_int) as libc::c_int as libc::c_long
         != 0
     {
-        self_0.downBindings_capacity = 8 as libc::c_int;
+        this.downBindings_capacity = 8 as libc::c_int;
         let mut elemSize_0: usize = ::core::mem::size_of::<DownBinding>();
-        let mut pData_0: *mut *mut libc::c_void = &mut self_0.downBindings_data
+        let mut pData_0: *mut *mut libc::c_void = &mut this.downBindings_data
             as *mut *mut DownBinding as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
-            self_0.downBindings_data as *mut libc::c_void,
-            (self_0.downBindings_capacity as usize).wrapping_mul(elemSize_0 as usize),
+            this.downBindings_data as *mut libc::c_void,
+            (this.downBindings_capacity as usize).wrapping_mul(elemSize_0 as usize),
         );
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Free() {
-    MemFree(self_0.activeBindings_data as *const libc::c_void);
-    MemFree(self_0.downBindings_data as *const libc::c_void);
+    MemFree(this.activeBindings_data as *const libc::c_void);
+    MemFree(this.downBindings_data as *const libc::c_void);
 }
 unsafe extern "C" fn InputBindings_RaiseCallback(
     mut event: cstr,
@@ -298,27 +298,27 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                 };
                 downBinding.binding = binding;
                 downBinding.button = button;
-                if (self_0.downBindings_capacity == self_0.downBindings_size)
+                if (this.downBindings_capacity == this.downBindings_size)
                     as libc::c_int as libc::c_long != 0
                 {
-                    self_0
-                        .downBindings_capacity = if self_0.downBindings_capacity != 0 {
-                        self_0.downBindings_capacity * 2 as libc::c_int
+                    this
+                        .downBindings_capacity = if this.downBindings_capacity != 0 {
+                        this.downBindings_capacity * 2 as libc::c_int
                     } else {
                         1 as libc::c_int
                     };
                     let mut elemSize: usize = ::core::mem::size_of::<DownBinding>();
-                    let mut pData: *mut *mut libc::c_void = &mut self_0.downBindings_data
+                    let mut pData: *mut *mut libc::c_void = &mut this.downBindings_data
                         as *mut *mut DownBinding as *mut *mut libc::c_void;
                     *pData = MemRealloc(
-                        self_0.downBindings_data as *mut libc::c_void,
-                        (self_0.downBindings_capacity as usize)
+                        this.downBindings_data as *mut libc::c_void,
+                        (this.downBindings_capacity as usize)
                             .wrapping_mul(elemSize),
                     );
                 }
-                let fresh0 = self_0.downBindings_size;
-                self_0.downBindings_size = self_0.downBindings_size + 1;
-                *(self_0.downBindings_data).offset(fresh0 as isize) = downBinding;
+                let fresh0 = this.downBindings_size;
+                this.downBindings_size = this.downBindings_size + 1;
+                *(this.downBindings_data).offset(fresh0 as isize) = downBinding;
             }
         } else if if isPos as libc::c_int != 0 {
             (axisValue_0 < (*binding).releaseThreshold) as libc::c_int
@@ -334,22 +334,22 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                 (*button).onReleased,
             );
             let mut _i: int32 = 0 as libc::c_int;
-            while _i < self_0.downBindings_size {
-                let mut x: *mut DownBinding = &mut *(self_0.downBindings_data)
+            while _i < this.downBindings_size {
+                let mut x: *mut DownBinding = &mut *(this.downBindings_data)
                     .offset(_i as isize) as *mut DownBinding;
                 if ((*x).binding == binding && (*x).button == button) as libc::c_int
                     as libc::c_long != 0
                 {
                     let mut _j: int32 = _i;
-                    while _j < self_0.downBindings_size - 1 as libc::c_int {
-                        *(self_0.downBindings_data)
+                    while _j < this.downBindings_size - 1 as libc::c_int {
+                        *(this.downBindings_data)
                             .offset(
                                 _j as isize,
-                            ) = *(self_0.downBindings_data)
+                            ) = *(this.downBindings_data)
                             .offset((_j + 1 as libc::c_int) as isize);
                         _j += 1;
                     }
-                    self_0.downBindings_size -= 1;
+                    this.downBindings_size -= 1;
                     break;
                 } else {
                     _i += 1;
@@ -362,8 +362,8 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Update() {
     let mut i: libc::c_int = 0 as libc::c_int;
-    while i < self_0.downBindings_size {
-        let mut down: DownBinding = *(self_0.downBindings_data).offset(i as isize);
+    while i < this.downBindings_size {
+        let mut down: DownBinding = *(this.downBindings_data).offset(i as isize);
         InputBindings_RaiseCallback(
             b"Down\0" as *const u8 as *const libc::c_char,
             down.binding,
@@ -382,10 +382,10 @@ pub unsafe extern "C" fn InputBindings_Update() {
         init
     };
     while Input_GetNextEvent(&mut event) {
-        let mut binding: *mut InputBinding = (self_0.activeBindings_data)
-            .offset(self_0.activeBindings_size as isize)
+        let mut binding: *mut InputBinding = (this.activeBindings_data)
+            .offset(this.activeBindings_size as isize)
             .offset(-(1));
-        let mut __iterbegin: *mut InputBinding = self_0.activeBindings_data;
+        let mut __iterbegin: *mut InputBinding = this.activeBindings_data;
         while binding >= __iterbegin {
             let mut iBtn: libc::c_int = 0 as libc::c_int;
             while iBtn

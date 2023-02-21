@@ -19,8 +19,8 @@ pub static mut PixelFormat_BGRA: PixelFormat = 0x80e1 as libc::c_int;
 #[no_mangle]
 pub static mut PixelFormat_Depth_Component: PixelFormat = 0x1902 as libc::c_int;
 #[no_mangle]
-pub unsafe extern "C" fn PixelFormat_Components(mut self_0: PixelFormat) -> libc::c_int {
-    match self_0 {
+pub unsafe extern "C" fn PixelFormat_Components(mut this: PixelFormat) -> libc::c_int {
+    match this {
         6403 | 6402 => return 1 as libc::c_int,
         33319 => return 2 as libc::c_int,
         6407 | 32992 => return 3 as libc::c_int,

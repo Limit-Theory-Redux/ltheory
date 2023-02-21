@@ -82,13 +82,13 @@ unsafe extern "C" fn Min(
     return if a < b { a } else { b };
 }
 #[inline]
-unsafe extern "C" fn Box3f_Volume(mut self_0: Box3f) -> libc::c_float {
-    return (self_0.upper.x - self_0.lower.x) * (self_0.upper.y - self_0.lower.y)
-        * (self_0.upper.z - self_0.lower.z);
+unsafe extern "C" fn Box3f_Volume(mut this: Box3f) -> libc::c_float {
+    return (this.upper.x - this.lower.x) * (this.upper.y - this.lower.y)
+        * (this.upper.z - this.lower.z);
 }
 #[inline]
 unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
-    let mut self_0: Box3f = {
+    let mut this: Box3f = {
         let mut init = Box3f {
             lower: {
                 let mut init = Vec3 {
@@ -109,7 +109,7 @@ unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
         };
         init
     };
-    return self_0;
+    return this;
 }
 #[inline]
 unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
@@ -129,20 +129,20 @@ unsafe extern "C" fn Box3f_ContainsBox(mut a: Box3f, mut b: Box3f) -> bool {
 }
 #[inline]
 unsafe extern "C" fn Box3f_IntersectsRay(
-    mut self_0: Box3f,
+    mut this: Box3f,
     mut ro: Vec3,
     mut rdi: Vec3,
 ) -> bool {
-    let mut t1: libc::c_double = (rdi.x * (self_0.lower.x - ro.x)) as libc::c_double;
-    let mut t2: libc::c_double = (rdi.x * (self_0.upper.x - ro.x)) as libc::c_double;
+    let mut t1: libc::c_double = (rdi.x * (this.lower.x - ro.x)) as libc::c_double;
+    let mut t2: libc::c_double = (rdi.x * (this.upper.x - ro.x)) as libc::c_double;
     let mut tMin: libc::c_double = Min(t1, t2);
     let mut tMax: libc::c_double = Max(t1, t2);
-    t1 = (rdi.y * (self_0.lower.y - ro.y)) as libc::c_double;
-    t2 = (rdi.y * (self_0.upper.y - ro.y)) as libc::c_double;
+    t1 = (rdi.y * (this.lower.y - ro.y)) as libc::c_double;
+    t2 = (rdi.y * (this.upper.y - ro.y)) as libc::c_double;
     tMin = Max(tMin, Min(t1, t2));
     tMax = Min(tMax, Max(t1, t2));
-    t1 = (rdi.z * (self_0.lower.z - ro.z)) as libc::c_double;
-    t2 = (rdi.z * (self_0.upper.z - ro.z)) as libc::c_double;
+    t1 = (rdi.z * (this.lower.z - ro.z)) as libc::c_double;
+    t2 = (rdi.z * (this.upper.z - ro.z)) as libc::c_double;
     tMin = Max(tMin, Min(t1, t2));
     tMax = Min(tMax, Max(t1, t2));
     return tMax >= tMin && tMax > 0 as libc::c_int as libc::c_double;
@@ -153,41 +153,41 @@ unsafe extern "C" fn Node_Create(
     mut box_0: Box3f,
     mut data: *mut libc::c_void,
 ) -> *mut Node {
-    let mut self_0: *mut Node = MemAlloc(::core::mem::size_of::<Node>())
+    let mut this: *mut Node = MemAlloc(::core::mem::size_of::<Node>())
         as *mut Node;
-    (*self_0).box_0 = box_0;
-    (*self_0).sub[0] = 0 as *mut Node;
-    (*self_0).sub[1] = 0 as *mut Node;
-    (*self_0).data = data;
-    return self_0;
+    (*this).box_0 = box_0;
+    (*this).sub[0] = 0 as *mut Node;
+    (*this).sub[1] = 0 as *mut Node;
+    (*this).data = data;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Create() -> *mut BoxTree {
-    let mut self_0: *mut BoxTree = MemAlloc(
+    let mut this: *mut BoxTree = MemAlloc(
         ::core::mem::size_of::<BoxTree>() as usize,
     ) as *mut BoxTree;
-    (*self_0).root = 0 as *mut Node;
-    return self_0;
+    (*this).root = 0 as *mut Node;
+    return this;
 }
-unsafe extern "C" fn Node_Free(mut self_0: *mut Node) {
-    if !((*self_0).sub[0]).is_null() {
-        Node_Free((*self_0).sub[0]);
+unsafe extern "C" fn Node_Free(mut this: *mut Node) {
+    if !((*this).sub[0]).is_null() {
+        Node_Free((*this).sub[0]);
     }
-    if !((*self_0).sub[1]).is_null() {
-        Node_Free((*self_0).sub[1]);
+    if !((*this).sub[1]).is_null() {
+        Node_Free((*this).sub[1]);
     }
-    MemFree(self_0 as *const libc::c_void);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_Free(mut self_0: *mut BoxTree) {
-    if !((*self_0).root).is_null() {
-        Node_Free((*self_0).root);
+pub unsafe extern "C" fn BoxTree_Free(mut this: *mut BoxTree) {
+    if !((*this).root).is_null() {
+        Node_Free((*this).root);
     }
-    MemFree(self_0 as *const libc::c_void);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
-    let mut self_0: *mut BoxTree = BoxTree_Create();
+    let mut this: *mut BoxTree = BoxTree_Create();
     let mut indexCount: libc::c_int = Mesh_GetIndexCount(mesh);
     let mut indexData: *const libc::c_int = Mesh_GetIndexData(mesh);
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
@@ -203,10 +203,10 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
-        BoxTree_Add(self_0, box_0, 0 as *mut libc::c_void);
+        BoxTree_Add(this, box_0, 0 as *mut libc::c_void);
         i += 3 as libc::c_int;
     }
-    return self_0;
+    return this;
 }
 #[inline]
 unsafe extern "C" fn Cost(mut box_0: Box3f) -> libc::c_float {
@@ -217,73 +217,73 @@ unsafe extern "C" fn CostMerge(mut a: Box3f, mut b: Box3f) -> libc::c_float {
     return Cost(Box3f_Union(a, b));
 }
 unsafe extern "C" fn Node_Merge(
-    mut self_0: *mut Node,
+    mut this: *mut Node,
     mut src: *mut Node,
     mut prev: *mut *mut Node,
 ) {
-    if self_0.is_null() {
+    if this.is_null() {
         *prev = src;
         return;
     }
-    if ((*self_0).sub[0]).is_null() {
+    if ((*this).sub[0]).is_null() {
         let mut parent: *mut Node = Node_Create(
-            Box3f_Union((*self_0).box_0, (*src).box_0),
+            Box3f_Union((*this).box_0, (*src).box_0),
             0 as *mut libc::c_void,
         );
         *prev = parent;
-        (*parent).sub[0] = self_0;
+        (*parent).sub[0] = this;
         (*parent).sub[1] = src;
-        self_0 = parent;
+        this = parent;
         return;
     }
-    if Box3f_ContainsBox((*self_0).box_0, (*src).box_0) {
+    if Box3f_ContainsBox((*this).box_0, (*src).box_0) {
         let mut cost0: libc::c_float = CostMerge(
-            (*(*self_0).sub[0]).box_0,
+            (*(*this).sub[0]).box_0,
             (*src).box_0,
-        ) + Cost((*(*self_0).sub[1]).box_0);
+        ) + Cost((*(*this).sub[1]).box_0);
         let mut cost1: libc::c_float = CostMerge(
-            (*(*self_0).sub[1]).box_0,
+            (*(*this).sub[1]).box_0,
             (*src).box_0,
-        ) + Cost((*(*self_0).sub[0]).box_0);
+        ) + Cost((*(*this).sub[0]).box_0);
         if cost0 < cost1 {
             Node_Merge(
-                (*self_0).sub[0],
+                (*this).sub[0],
                 src,
-                &mut *((*self_0).sub).as_mut_ptr().offset(0),
+                &mut *((*this).sub).as_mut_ptr().offset(0),
             );
         } else {
             Node_Merge(
-                (*self_0).sub[1],
+                (*this).sub[1],
                 src,
-                &mut *((*self_0).sub).as_mut_ptr().offset(1),
+                &mut *((*this).sub).as_mut_ptr().offset(1),
             );
         }
     } else {
         let mut parent_0: *mut Node = Node_Create(
-            Box3f_Union((*self_0).box_0, (*src).box_0),
+            Box3f_Union((*this).box_0, (*src).box_0),
             0 as *mut libc::c_void,
         );
         *prev = parent_0;
-        let mut costBase: libc::c_float = Cost((*self_0).box_0) + Cost((*src).box_0);
+        let mut costBase: libc::c_float = Cost((*this).box_0) + Cost((*src).box_0);
         let mut cost0_0: libc::c_float = CostMerge(
-            (*(*self_0).sub[0]).box_0,
+            (*(*this).sub[0]).box_0,
             (*src).box_0,
-        ) + Cost((*(*self_0).sub[1]).box_0);
+        ) + Cost((*(*this).sub[1]).box_0);
         let mut cost1_0: libc::c_float = CostMerge(
-            (*(*self_0).sub[1]).box_0,
+            (*(*this).sub[1]).box_0,
             (*src).box_0,
-        ) + Cost((*(*self_0).sub[0]).box_0);
+        ) + Cost((*(*this).sub[0]).box_0);
         if costBase <= cost0_0 && costBase <= cost1_0 {
-            (*parent_0).sub[0] = self_0;
+            (*parent_0).sub[0] = this;
             (*parent_0).sub[1] = src;
         } else if cost0_0 <= costBase && cost0_0 <= cost1_0 {
             (*parent_0)
                 .sub[0 as libc::c_int
-                as usize] = (*self_0).sub[0];
+                as usize] = (*this).sub[0];
             (*parent_0)
                 .sub[1 as libc::c_int
-                as usize] = (*self_0).sub[1];
-            MemFree(self_0 as *const libc::c_void);
+                as usize] = (*this).sub[1];
+            MemFree(this as *const libc::c_void);
             Node_Merge(
                 (*parent_0).sub[0],
                 src,
@@ -292,11 +292,11 @@ unsafe extern "C" fn Node_Merge(
         } else {
             (*parent_0)
                 .sub[0 as libc::c_int
-                as usize] = (*self_0).sub[0];
+                as usize] = (*this).sub[0];
             (*parent_0)
                 .sub[1 as libc::c_int
-                as usize] = (*self_0).sub[1];
-            MemFree(self_0 as *const libc::c_void);
+                as usize] = (*this).sub[1];
+            MemFree(this as *const libc::c_void);
             Node_Merge(
                 (*parent_0).sub[1],
                 src,
@@ -307,45 +307,45 @@ unsafe extern "C" fn Node_Merge(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Add(
-    mut self_0: *mut BoxTree,
+    mut this: *mut BoxTree,
     mut box_0: Box3f,
     mut data: *mut libc::c_void,
 ) {
-    Node_Merge((*self_0).root, Node_Create(box_0, data), &mut (*self_0).root);
+    Node_Merge((*this).root, Node_Create(box_0, data), &mut (*this).root);
 }
-unsafe extern "C" fn Node_GetMemory(mut self_0: *mut Node) -> libc::c_int {
+unsafe extern "C" fn Node_GetMemory(mut this: *mut Node) -> libc::c_int {
     let mut memory: libc::c_int = ::core::mem::size_of::<Node>() as usize
         as libc::c_int;
-    if !((*self_0).sub[0]).is_null() {
-        memory += Node_GetMemory((*self_0).sub[0]);
+    if !((*this).sub[0]).is_null() {
+        memory += Node_GetMemory((*this).sub[0]);
     }
-    if !((*self_0).sub[1]).is_null() {
-        memory += Node_GetMemory((*self_0).sub[1]);
+    if !((*this).sub[1]).is_null() {
+        memory += Node_GetMemory((*this).sub[1]);
     }
     return memory;
 }
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_GetMemory(mut self_0: *mut BoxTree) -> libc::c_int {
+pub unsafe extern "C" fn BoxTree_GetMemory(mut this: *mut BoxTree) -> libc::c_int {
     let mut memory: libc::c_int = ::core::mem::size_of::<BoxTree>() as usize
         as libc::c_int;
-    if !((*self_0).root).is_null() {
-        memory += Node_GetMemory((*self_0).root);
+    if !((*this).root).is_null() {
+        memory += Node_GetMemory((*this).root);
     }
     return memory;
 }
 unsafe extern "C" fn Node_IntersectRay(
-    mut self_0: *mut Node,
+    mut this: *mut Node,
     mut o: Vec3,
     mut di: Vec3,
 ) -> bool {
-    if !Box3f_IntersectsRay((*self_0).box_0, o, di) {
+    if !Box3f_IntersectsRay((*this).box_0, o, di) {
         return 0 as libc::c_int != 0;
     }
-    if !((*self_0).sub[0]).is_null() {
-        if Node_IntersectRay((*self_0).sub[0], o, di) {
+    if !((*this).sub[0]).is_null() {
+        if Node_IntersectRay((*this).sub[0], o, di) {
             return 1 as libc::c_int != 0;
         }
-        if Node_IntersectRay((*self_0).sub[1], o, di) {
+        if Node_IntersectRay((*this).sub[1], o, di) {
             return 1 as libc::c_int != 0;
         }
         return 0 as libc::c_int != 0;
@@ -355,12 +355,12 @@ unsafe extern "C" fn Node_IntersectRay(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_IntersectRay(
-    mut self_0: *mut BoxTree,
+    mut this: *mut BoxTree,
     mut matrix: *mut Matrix,
     mut ro: *const Vec3,
     mut rd: *const Vec3,
 ) -> bool {
-    if ((*self_0).root).is_null() {
+    if ((*this).root).is_null() {
         return 0 as libc::c_int != 0;
     }
     let mut inv: *mut Matrix = Matrix_Inverse(matrix);
@@ -369,14 +369,14 @@ pub unsafe extern "C" fn BoxTree_IntersectRay(
     let mut invRd = Vec3::ZERO;
     Matrix_MulDir(inv, &mut invRd, (*rd).x, (*rd).y, (*rd).z);
     Matrix_Free(inv);
-    return Node_IntersectRay((*self_0).root, invRo, invRd.recip());
+    return Node_IntersectRay((*this).root, invRo, invRd.recip());
 }
-unsafe extern "C" fn BoxTree_DrawNode(mut self_0: *mut Node, mut maxDepth: libc::c_int) {
+unsafe extern "C" fn BoxTree_DrawNode(mut this: *mut Node, mut maxDepth: libc::c_int) {
     if maxDepth < 0 as libc::c_int {
         return;
     }
-    if !((*self_0).sub[0]).is_null()
-        || !((*self_0).sub[1]).is_null()
+    if !((*this).sub[0]).is_null()
+        || !((*this).sub[1]).is_null()
     {
         Draw_Color(
             1 as libc::c_int as libc::c_float,
@@ -384,7 +384,7 @@ unsafe extern "C" fn BoxTree_DrawNode(mut self_0: *mut Node, mut maxDepth: libc:
             1 as libc::c_int as libc::c_float,
             1 as libc::c_int as libc::c_float,
         );
-        Draw_Box3(&mut (*self_0).box_0);
+        Draw_Box3(&mut (*this).box_0);
     } else {
         Draw_Color(
             0 as libc::c_int as libc::c_float,
@@ -392,27 +392,27 @@ unsafe extern "C" fn BoxTree_DrawNode(mut self_0: *mut Node, mut maxDepth: libc:
             0 as libc::c_int as libc::c_float,
             1 as libc::c_int as libc::c_float,
         );
-        Draw_Box3(&mut (*self_0).box_0);
+        Draw_Box3(&mut (*this).box_0);
     }
-    if !((*self_0).sub[0]).is_null() {
+    if !((*this).sub[0]).is_null() {
         BoxTree_DrawNode(
-            (*self_0).sub[0],
+            (*this).sub[0],
             maxDepth - 1 as libc::c_int,
         );
     }
-    if !((*self_0).sub[1]).is_null() {
+    if !((*this).sub[1]).is_null() {
         BoxTree_DrawNode(
-            (*self_0).sub[1],
+            (*this).sub[1],
             maxDepth - 1 as libc::c_int,
         );
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Draw(
-    mut self_0: *mut BoxTree,
+    mut this: *mut BoxTree,
     mut maxDepth: libc::c_int,
 ) {
-    if !((*self_0).root).is_null() {
-        BoxTree_DrawNode((*self_0).root, maxDepth);
+    if !((*this).root).is_null() {
+        BoxTree_DrawNode((*this).root, maxDepth);
     }
 }

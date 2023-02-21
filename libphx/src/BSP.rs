@@ -263,13 +263,13 @@ pub static mut rayStack_capacity: int32 = 0;
 pub static mut rayStack_data: *mut DelayRay = 0 as *const DelayRay as *mut DelayRay;
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectRay(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut _ray: *const Ray,
     mut tHit: *mut libc::c_float,
 ) -> bool {
     let mut ray: Ray = *_ray;
     *tHit = 3.40282347e+38f32;
-    let mut nodeRef: BSPNodeRef = (*self_0).rootNode;
+    let mut nodeRef: BSPNodeRef = (*this).rootNode;
     let mut tEpsilon: libc::c_float = (8.0f32 as libc::c_double * 1e-4f64
         / ray.dir.length() as libc::c_double) as libc::c_float;
     let mut hit: bool = 0 as libc::c_int != 0;
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
     loop {
         maxDepth = Max(depth as libc::c_double, maxDepth as libc::c_double) as int32;
         if nodeRef.index >= 0 as libc::c_int {
-            let mut node: *mut BSPNode = ((*self_0).nodes_data)
+            let mut node: *mut BSPNode = ((*this).nodes_data)
                 .offset(nodeRef.index as isize);
             let mut dist: libc::c_float = Vec3::dot((*node).plane.n, ray.p)
                 - (*node).plane.d;
@@ -369,7 +369,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
             depth += 1;
             nodeRef = (*node).child[earlyIndex as usize];
         } else {
-            let mut leaf: *const Triangle = ((*self_0).triangles_data)
+            let mut leaf: *const Triangle = ((*this).triangles_data)
                 .offset(-nodeRef.index as isize);
             let mut i: uint8 = 0 as libc::c_int as uint8;
             while (i as libc::c_int) < nodeRef.triangleCount as libc::c_int {
@@ -403,7 +403,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectLineSegment(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut lineSegment: *const LineSegment,
     mut pHit: *mut Vec3,
 ) -> bool {
@@ -418,7 +418,7 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
         };
         init
     };
-    if BSP_IntersectRay(self_0, &mut ray, &mut t) {
+    if BSP_IntersectRay(this, &mut ray, &mut t) {
         Ray_GetPoint(&mut ray, t, pHit);
         return 1 as libc::c_int != 0;
     }
@@ -432,18 +432,18 @@ pub static mut nodeStack_data: *mut Delay = 0 as *const Delay as *mut Delay;
 pub static mut nodeStack_capacity: int32 = 0;
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut sphere: *const Sphere,
     mut pHit: *mut Vec3,
 ) -> bool {
-    let mut nodeRef: BSPNodeRef = (*self_0).rootNode;
+    let mut nodeRef: BSPNodeRef = (*this).rootNode;
     let mut hit: bool = 0 as libc::c_int != 0;
     let mut depth: int32 = 0 as libc::c_int;
     let mut maxDepth: int32 = 0 as libc::c_int;
     loop {
         maxDepth = Max(depth as libc::c_double, maxDepth as libc::c_double) as int32;
         if nodeRef.index >= 0 as libc::c_int {
-            let mut node: *mut BSPNode = ((*self_0).nodes_data)
+            let mut node: *mut BSPNode = ((*this).nodes_data)
                 .offset(nodeRef.index as isize);
             let mut dist: libc::c_float = Vec3::dot((*node).plane.n, (*sphere).p)
                 - (*node).plane.d;
@@ -486,7 +486,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
             }
             depth += 1;
         } else {
-            let mut leaf: *mut Triangle = ((*self_0).triangles_data)
+            let mut leaf: *mut Triangle = ((*this).triangles_data)
                 .offset(-nodeRef.index as isize);
             let mut i: uint8 = 0 as libc::c_int as uint8;
             while (i as libc::c_int) < nodeRef.triangleCount as libc::c_int {
@@ -977,7 +977,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     return node;
 }
 unsafe extern "C" fn BSPBuild_OptimizeTree(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut buildNode: *mut BSPBuild_Node,
 ) -> BSPNodeRef {
     if !((*buildNode).child[BackIndex as usize]).is_null()
@@ -996,41 +996,41 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             };
             init
         };
-        let mut nodeIndex: int32 = (*self_0).nodes_size;
-        if ((*self_0).nodes_capacity == (*self_0).nodes_size) as libc::c_int
+        let mut nodeIndex: int32 = (*this).nodes_size;
+        if ((*this).nodes_capacity == (*this).nodes_size) as libc::c_int
             as libc::c_long != 0
         {
-            (*self_0)
-                .nodes_capacity = if (*self_0).nodes_capacity != 0 {
-                (*self_0).nodes_capacity * 2 as libc::c_int
+            (*this)
+                .nodes_capacity = if (*this).nodes_capacity != 0 {
+                (*this).nodes_capacity * 2 as libc::c_int
             } else {
                 1 as libc::c_int
             };
             let mut elemSize: usize = ::core::mem::size_of::<BSPNode>();
-            let mut pData: *mut *mut libc::c_void = &mut (*self_0).nodes_data
+            let mut pData: *mut *mut libc::c_void = &mut (*this).nodes_data
                 as *mut *mut BSPNode as *mut *mut libc::c_void;
             *pData = MemRealloc(
-                (*self_0).nodes_data as *mut libc::c_void,
-                ((*self_0).nodes_capacity as usize).wrapping_mul(elemSize as usize),
+                (*this).nodes_data as *mut libc::c_void,
+                ((*this).nodes_capacity as usize).wrapping_mul(elemSize as usize),
             );
         }
-        let fresh4 = (*self_0).nodes_size;
-        (*self_0).nodes_size = (*self_0).nodes_size + 1;
-        *((*self_0).nodes_data).offset(fresh4 as isize) = dummy;
-        let mut node: *mut BSPNode = ((*self_0).nodes_data)
-            .offset((*self_0).nodes_size as isize)
+        let fresh4 = (*this).nodes_size;
+        (*this).nodes_size = (*this).nodes_size + 1;
+        *((*this).nodes_data).offset(fresh4 as isize) = dummy;
+        let mut node: *mut BSPNode = ((*this).nodes_data)
+            .offset((*this).nodes_size as isize)
             .offset(-(1));
         (*node).plane = (*buildNode).plane;
         (*node)
             .child[BackIndex
             as usize] = BSPBuild_OptimizeTree(
-            self_0,
+            this,
             (*buildNode).child[BackIndex as usize],
         );
         (*node)
             .child[FrontIndex
             as usize] = BSPBuild_OptimizeTree(
-            self_0,
+            this,
             (*buildNode).child[FrontIndex as usize],
         );
         let mut result: BSPNodeRef = {
@@ -1043,22 +1043,22 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
         return result;
     } else {
         if (*buildNode).polygons_size == 0 as libc::c_int {
-            return (*self_0).emptyLeaf;
+            return (*this).emptyLeaf;
         }
-        let mut leafIndex: int32 = (*self_0).triangles_size;
+        let mut leafIndex: int32 = (*this).triangles_size;
         let mut polygon: *mut PolygonEx = (*buildNode).polygons_data;
         let mut __iterend: *mut PolygonEx = ((*buildNode).polygons_data)
             .offset((*buildNode).polygons_size as isize);
         while polygon < __iterend {
             Polygon_ConvexToTriangles(
                 polygon as *mut Polygon,
-                &mut (*self_0).triangles_capacity,
-                &mut (*self_0).triangles_size,
-                &mut (*self_0).triangles_data,
+                &mut (*this).triangles_capacity,
+                &mut (*this).triangles_size,
+                &mut (*this).triangles_data,
             );
             polygon = polygon.offset(1);
         }
-        let mut leafLen: uint8 = ((*self_0).triangles_size - leafIndex) as uint8;
+        let mut leafLen: uint8 = ((*this).triangles_size - leafIndex) as uint8;
         let mut result_0: BSPNodeRef = {
             let mut init = BSPNodeRef {
                 index: -leafIndex,
@@ -1089,7 +1089,7 @@ unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
-    let mut self_0: *mut BSP = MemAllocZero(
+    let mut this: *mut BSP = MemAllocZero(
         ::core::mem::size_of::<BSP>(),
     ) as *mut BSP;
     let mut indexLen: int32 = Mesh_GetIndexCount(mesh);
@@ -1249,60 +1249,60 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         };
         init
     };
-    if ((*self_0).triangles_capacity < bspBuild.triangleCount + 2 as libc::c_int)
+    if ((*this).triangles_capacity < bspBuild.triangleCount + 2 as libc::c_int)
         as libc::c_int as libc::c_long != 0
     {
-        (*self_0).triangles_capacity = bspBuild.triangleCount + 2 as libc::c_int;
+        (*this).triangles_capacity = bspBuild.triangleCount + 2 as libc::c_int;
         let mut elemSize_5: usize = ::core::mem::size_of::<Triangle>() as usize;
-        let mut pData_5: *mut *mut libc::c_void = &mut (*self_0).triangles_data
+        let mut pData_5: *mut *mut libc::c_void = &mut (*this).triangles_data
             as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_5 = MemRealloc(
-            (*self_0).triangles_data as *mut libc::c_void,
-            ((*self_0).triangles_capacity as usize).wrapping_mul(elemSize_5 as usize),
+            (*this).triangles_data as *mut libc::c_void,
+            ((*this).triangles_capacity as usize).wrapping_mul(elemSize_5 as usize),
         );
     }
-    if ((*self_0).triangles_capacity == (*self_0).triangles_size) as libc::c_int
+    if ((*this).triangles_capacity == (*this).triangles_size) as libc::c_int
         as libc::c_long != 0
     {
-        (*self_0)
-            .triangles_capacity = if (*self_0).triangles_capacity != 0 {
-            (*self_0).triangles_capacity * 2 as libc::c_int
+        (*this)
+            .triangles_capacity = if (*this).triangles_capacity != 0 {
+            (*this).triangles_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize_6: usize = ::core::mem::size_of::<Triangle>() as usize;
-        let mut pData_6: *mut *mut libc::c_void = &mut (*self_0).triangles_data
+        let mut pData_6: *mut *mut libc::c_void = &mut (*this).triangles_data
             as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_6 = MemRealloc(
-            (*self_0).triangles_data as *mut libc::c_void,
-            ((*self_0).triangles_capacity as usize).wrapping_mul(elemSize_6 as usize),
+            (*this).triangles_data as *mut libc::c_void,
+            ((*this).triangles_capacity as usize).wrapping_mul(elemSize_6 as usize),
         );
     }
-    let fresh9 = (*self_0).triangles_size;
-    (*self_0).triangles_size = (*self_0).triangles_size + 1;
-    *((*self_0).triangles_data).offset(fresh9 as isize) = nullLeaf;
-    if ((*self_0).triangles_capacity == (*self_0).triangles_size) as libc::c_int
+    let fresh9 = (*this).triangles_size;
+    (*this).triangles_size = (*this).triangles_size + 1;
+    *((*this).triangles_data).offset(fresh9 as isize) = nullLeaf;
+    if ((*this).triangles_capacity == (*this).triangles_size) as libc::c_int
         as libc::c_long != 0
     {
-        (*self_0)
-            .triangles_capacity = if (*self_0).triangles_capacity != 0 {
-            (*self_0).triangles_capacity * 2 as libc::c_int
+        (*this)
+            .triangles_capacity = if (*this).triangles_capacity != 0 {
+            (*this).triangles_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize_7: usize = ::core::mem::size_of::<Triangle>() as usize;
-        let mut pData_7: *mut *mut libc::c_void = &mut (*self_0).triangles_data
+        let mut pData_7: *mut *mut libc::c_void = &mut (*this).triangles_data
             as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_7 = MemRealloc(
-            (*self_0).triangles_data as *mut libc::c_void,
-            ((*self_0).triangles_capacity as usize).wrapping_mul(elemSize_7 as usize),
+            (*this).triangles_data as *mut libc::c_void,
+            ((*this).triangles_capacity as usize).wrapping_mul(elemSize_7 as usize),
         );
     }
-    let fresh10 = (*self_0).triangles_size;
-    (*self_0).triangles_size = (*self_0).triangles_size + 1;
-    *((*self_0).triangles_data).offset(fresh10 as isize) = nullLeaf;
-    (*self_0).emptyLeaf.index = -EmptyLeafIndex;
-    (*self_0).emptyLeaf.triangleCount = 0 as libc::c_int as uint8;
+    let fresh10 = (*this).triangles_size;
+    (*this).triangles_size = (*this).triangles_size + 1;
+    *((*this).triangles_data).offset(fresh10 as isize) = nullLeaf;
+    (*this).emptyLeaf.index = -EmptyLeafIndex;
+    (*this).emptyLeaf.triangleCount = 0 as libc::c_int as uint8;
     let mut nullNode: BSPNode = {
         let mut init = BSPNode {
             plane: Plane {
@@ -1316,67 +1316,67 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         };
         init
     };
-    if ((*self_0).nodes_capacity < bspBuild.nodeCount + 1 as libc::c_int) as libc::c_int
+    if ((*this).nodes_capacity < bspBuild.nodeCount + 1 as libc::c_int) as libc::c_int
         as libc::c_long != 0
     {
-        (*self_0).nodes_capacity = bspBuild.nodeCount + 1 as libc::c_int;
+        (*this).nodes_capacity = bspBuild.nodeCount + 1 as libc::c_int;
         let mut elemSize_8: usize = ::core::mem::size_of::<BSPNode>() as usize;
-        let mut pData_8: *mut *mut libc::c_void = &mut (*self_0).nodes_data
+        let mut pData_8: *mut *mut libc::c_void = &mut (*this).nodes_data
             as *mut *mut BSPNode as *mut *mut libc::c_void;
         *pData_8 = MemRealloc(
-            (*self_0).nodes_data as *mut libc::c_void,
-            ((*self_0).nodes_capacity as usize).wrapping_mul(elemSize_8 as usize),
+            (*this).nodes_data as *mut libc::c_void,
+            ((*this).nodes_capacity as usize).wrapping_mul(elemSize_8 as usize),
         );
     }
-    if ((*self_0).nodes_capacity == (*self_0).nodes_size) as libc::c_int as libc::c_long
+    if ((*this).nodes_capacity == (*this).nodes_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .nodes_capacity = if (*self_0).nodes_capacity != 0 {
-            (*self_0).nodes_capacity * 2 as libc::c_int
+        (*this)
+            .nodes_capacity = if (*this).nodes_capacity != 0 {
+            (*this).nodes_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize_9: usize = ::core::mem::size_of::<BSPNode>() as usize;
-        let mut pData_9: *mut *mut libc::c_void = &mut (*self_0).nodes_data
+        let mut pData_9: *mut *mut libc::c_void = &mut (*this).nodes_data
             as *mut *mut BSPNode as *mut *mut libc::c_void;
         *pData_9 = MemRealloc(
-            (*self_0).nodes_data as *mut libc::c_void,
-            ((*self_0).nodes_capacity as usize).wrapping_mul(elemSize_9 as usize),
+            (*this).nodes_data as *mut libc::c_void,
+            ((*this).nodes_capacity as usize).wrapping_mul(elemSize_9 as usize),
         );
     }
-    let fresh11 = (*self_0).nodes_size;
-    (*self_0).nodes_size = (*self_0).nodes_size + 1;
-    *((*self_0).nodes_data).offset(fresh11 as isize) = nullNode;
-    (*self_0).rootNode = BSPBuild_OptimizeTree(self_0, bspBuild.rootNode);
+    let fresh11 = (*this).nodes_size;
+    (*this).nodes_size = (*this).nodes_size + 1;
+    *((*this).nodes_data).offset(fresh11 as isize) = nullNode;
+    (*this).rootNode = BSPBuild_OptimizeTree(this, bspBuild.rootNode);
     BSPBuild_FreeNode(bspBuild.rootNode);
     RNG_Free(bspBuild.rng);
-    return self_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn BSP_Free(mut self_0: *mut BSP) {
-    if self_0.is_null() {
+pub unsafe extern "C" fn BSP_Free(mut this: *mut BSP) {
+    if this.is_null() {
         return;
     }
-    MemFree((*self_0).nodes_data as *const libc::c_void);
-    MemFree((*self_0).triangles_data as *const libc::c_void);
-    MemFree(self_0 as *const libc::c_void);
+    MemFree((*this).nodes_data as *const libc::c_void);
+    MemFree((*this).triangles_data as *const libc::c_void);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetNode(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut nodeRef: BSPNodeRef,
     mut relationship: BSPNodeRel,
 ) -> BSPNodeRef {
-    if self_0.is_null() {
+    if this.is_null() {
         Fatal(b"BSP_GetNode: bsp is null\0" as *const u8 as *const libc::c_char);
     }
     if nodeRef.index == 0 {
-        return (*self_0).rootNode;
+        return (*this).rootNode;
     }
     let mut node: *mut BSPNode = 0 as *mut BSPNode;
     if nodeRef.index > 0 as libc::c_int {
-        node = ((*self_0).nodes_data).offset(nodeRef.index as isize);
+        node = ((*this).nodes_data).offset(nodeRef.index as isize);
     }
     let mut newNode: BSPNodeRef = {
         let mut init = BSPNodeRef {
@@ -1415,8 +1415,8 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         1626635900302357725 => {
             if nodeRef.index != 0 {
                 let mut i: int32 = 0 as libc::c_int;
-                while i < (*self_0).nodes_size {
-                    let mut nodeToCheck: *mut BSPNode = ((*self_0).nodes_data)
+                while i < (*this).nodes_size {
+                    let mut nodeToCheck: *mut BSPNode = ((*this).nodes_data)
                         .offset(i as isize);
                     if (*nodeToCheck).child[BackIndex as usize].index == nodeRef.index {
                         newNode.index = i;
@@ -1438,16 +1438,16 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawNode(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut nodeRef: BSPNodeRef,
 ) {
     if nodeRef.index > 0 as libc::c_int {
-        let mut node: *mut BSPNode = ((*self_0).nodes_data)
+        let mut node: *mut BSPNode = ((*this).nodes_data)
             .offset(nodeRef.index as isize);
-        BSPDebug_DrawNode(self_0, (*node).child[BackIndex as usize]);
-        BSPDebug_DrawNode(self_0, (*node).child[FrontIndex as usize]);
+        BSPDebug_DrawNode(this, (*node).child[BackIndex as usize]);
+        BSPDebug_DrawNode(this, (*node).child[FrontIndex as usize]);
     } else {
-        let mut leaf: *mut Triangle = ((*self_0).triangles_data)
+        let mut leaf: *mut Triangle = ((*this).triangles_data)
             .offset(-nodeRef.index as isize);
         let mut i: uint8 = 0 as libc::c_int as uint8;
         while (i as libc::c_int) < nodeRef.triangleCount as libc::c_int {
@@ -1459,7 +1459,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut nodeRef: BSPNodeRef,
 ) {
     RenderState_PushBlendMode(1 as libc::c_int);
@@ -1467,12 +1467,12 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(
     RenderState_PushDepthTest(1 as libc::c_int != 0);
     RenderState_PushWireframe(1 as libc::c_int != 0);
     if nodeRef.index > 0 as libc::c_int {
-        let mut node: *mut BSPNode = ((*self_0).nodes_data)
+        let mut node: *mut BSPNode = ((*this).nodes_data)
             .offset(nodeRef.index as isize);
         Draw_Color(0.5f32, 0.3f32, 0.3f32, 0.4f32);
-        BSPDebug_DrawNode(self_0, (*node).child[BackIndex as usize]);
+        BSPDebug_DrawNode(this, (*node).child[BackIndex as usize]);
         Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
-        BSPDebug_DrawNode(self_0, (*node).child[FrontIndex as usize]);
+        BSPDebug_DrawNode(this, (*node).child[FrontIndex as usize]);
         let mut closestPoint = Vec3::ZERO;
         let mut origin: Vec3 = {
             let mut init = Vec3 { x: 0., y: 0., z: 0. };
@@ -1493,7 +1493,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(
         RenderState_PopWireframe();
     } else {
         Draw_Color(0.5f32, 0.5f32, 0.3f32, 0.4f32);
-        BSPDebug_DrawNode(self_0, nodeRef);
+        BSPDebug_DrawNode(this, nodeRef);
     }
     RenderState_PopWireframe();
     RenderState_PopDepthTest();
@@ -1520,11 +1520,11 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawSphere(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut sphere: *mut Sphere,
 ) {
     let mut pHit = Vec3::ZERO;
-    if BSP_IntersectSphere(self_0, sphere, &mut pHit) {
+    if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(0 as libc::c_int != 0);
         Draw_Color(1.0f32, 0.0f32, 0.0f32, 0.3f32);
         Draw_Sphere(&mut (*sphere).p, (*sphere).r);
@@ -1546,7 +1546,7 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut totalTime: libc::c_double,
 ) {
     Warn(
@@ -1556,7 +1556,7 @@ pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut totalTime: libc::c_double,
 ) {
     Warn(
@@ -1566,18 +1566,18 @@ pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut sphere: *mut Sphere,
     mut sphereProf: *mut IntersectSphereProfiling,
 ) -> bool {
-    let mut nodeRef: BSPNodeRef = (*self_0).rootNode;
+    let mut nodeRef: BSPNodeRef = (*this).rootNode;
     let mut hit: bool = 0 as libc::c_int != 0;
     let mut depth: int32 = 0 as libc::c_int;
     let mut maxDepth: int32 = 0 as libc::c_int;
     loop {
         maxDepth = Max(depth as libc::c_double, maxDepth as libc::c_double) as int32;
         if nodeRef.index >= 0 as libc::c_int {
-            let mut node: *mut BSPNode = ((*self_0).nodes_data)
+            let mut node: *mut BSPNode = ((*this).nodes_data)
                 .offset(nodeRef.index as isize);
             (*sphereProf).nodes += 1;
             let mut dist: libc::c_float = Vec3::dot((*node).plane.n, (*sphere).p)
@@ -1621,7 +1621,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
             }
             depth += 1;
         } else {
-            let mut leaf: *mut Triangle = ((*self_0).triangles_data)
+            let mut leaf: *mut Triangle = ((*this).triangles_data)
                 .offset(-nodeRef.index as isize);
             (*sphereProf).leaves += 1;
             let mut i: uint8 = 0 as libc::c_int as uint8;
@@ -1723,13 +1723,13 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
 }
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetLeaf(
-    mut self_0: *mut BSP,
+    mut this: *mut BSP,
     mut leafIndex: int32,
 ) -> BSPNodeRef {
     let mut index: int32 = -(1 as libc::c_int);
-    let mut node: *mut BSPNode = (*self_0).nodes_data;
-    let mut __iterend: *mut BSPNode = ((*self_0).nodes_data)
-        .offset((*self_0).nodes_size as isize);
+    let mut node: *mut BSPNode = (*this).nodes_data;
+    let mut __iterend: *mut BSPNode = ((*this).nodes_data)
+        .offset((*this).nodes_size as isize);
     while node < __iterend {
         if (*node).child[0].index < 0 as libc::c_int {
             let fresh15 = index;

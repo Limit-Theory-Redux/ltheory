@@ -108,21 +108,21 @@ pub unsafe extern "C" fn Tex1D_Create(
                 as *const libc::c_char,
         );
     }
-    let mut self_0: *mut Tex1D = MemAlloc(
+    let mut this: *mut Tex1D = MemAlloc(
         ::core::mem::size_of::<Tex1D>() as usize,
     ) as *mut Tex1D;
-    (*self_0)._refCount = 1 as libc::c_int as uint32;
-    (*self_0).size = size;
-    (*self_0).format = format;
-    glGenTextures(1 as libc::c_int, &mut (*self_0).handle);
+    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this).size = size;
+    (*this).format = format;
+    glGenTextures(1 as libc::c_int, &mut (*this).handle);
     __glewActiveTexture
         .expect("non-null function pointer")(0x84c0 as libc::c_int as GLenum);
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glTexImage1D(
         0xde0 as libc::c_int as GLenum,
         0 as libc::c_int,
-        (*self_0).format,
-        (*self_0).size,
+        (*this).format,
+        (*this).size,
         0 as libc::c_int,
         (if TexFormat_IsColor(format) as libc::c_int != 0 {
             0x1903 as libc::c_int
@@ -134,34 +134,34 @@ pub unsafe extern "C" fn Tex1D_Create(
     );
     Tex1D_Init();
     glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
-    return self_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_Acquire(mut self_0: *mut Tex1D) {
-    (*self_0)._refCount = ((*self_0)._refCount).wrapping_add(1);
+pub unsafe extern "C" fn Tex1D_Acquire(mut this: *mut Tex1D) {
+    (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_Free(mut self_0: *mut Tex1D) {
-    if !self_0.is_null()
+pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
+    if !this.is_null()
         && {
-            (*self_0)._refCount = ((*self_0)._refCount).wrapping_sub(1);
-            (*self_0)._refCount <= 0 as libc::c_int as libc::c_uint
+            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+            (*this)._refCount <= 0 as libc::c_int as libc::c_uint
         }
     {
-        glDeleteTextures(1 as libc::c_int, &mut (*self_0).handle);
-        MemFree(self_0 as *const libc::c_void);
+        glDeleteTextures(1 as libc::c_int, &mut (*this).handle);
+        MemFree(this as *const libc::c_void);
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Draw(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut x: libc::c_float,
     mut y: libc::c_float,
     mut xs: libc::c_float,
     mut ys: libc::c_float,
 ) {
     glEnable(0xde0 as libc::c_int as GLenum);
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glBegin(0x7 as libc::c_int as GLenum);
     glTexCoord1f(0 as libc::c_int as GLfloat);
     glVertex2f(x, y);
@@ -173,24 +173,24 @@ pub unsafe extern "C" fn Tex1D_Draw(
     glDisable(0xde0 as libc::c_int as GLenum);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GenMipmap(mut self_0: *mut Tex1D) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+pub unsafe extern "C" fn Tex1D_GenMipmap(mut this: *mut Tex1D) {
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     __glewGenerateMipmap
         .expect("non-null function pointer")(0xde0 as libc::c_int as GLenum);
     glBindTexture(0xde0 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetFormat(mut self_0: *mut Tex1D) -> TexFormat {
-    return (*self_0).format;
+pub unsafe extern "C" fn Tex1D_GetFormat(mut this: *mut Tex1D) -> TexFormat {
+    return (*this).format;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetData(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut data: *mut libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glGetTexImage(
         0xde0 as libc::c_int as GLenum,
         0 as libc::c_int,
@@ -202,38 +202,38 @@ pub unsafe extern "C" fn Tex1D_GetData(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetDataBytes(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) -> *mut Bytes {
-    let mut size: libc::c_int = (*self_0).size * DataFormat_GetSize(df)
+    let mut size: libc::c_int = (*this).size * DataFormat_GetSize(df)
         * PixelFormat_Components(pf);
     let mut data: *mut Bytes = Bytes_Create(size as uint32);
-    Tex1D_GetData(self_0, Bytes_GetData(data), pf, df);
+    Tex1D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
     return data;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetHandle(mut self_0: *mut Tex1D) -> uint {
-    return (*self_0).handle;
+pub unsafe extern "C" fn Tex1D_GetHandle(mut this: *mut Tex1D) -> uint {
+    return (*this).handle;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetSize(mut self_0: *mut Tex1D) -> uint {
-    return (*self_0).size as uint;
+pub unsafe extern "C" fn Tex1D_GetSize(mut this: *mut Tex1D) -> uint {
+    return (*this).size as uint;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetData(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut data: *const libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glTexImage1D(
         0xde0 as libc::c_int as GLenum,
         0 as libc::c_int,
-        (*self_0).format,
-        (*self_0).size,
+        (*this).format,
+        (*this).size,
         0 as libc::c_int,
         pf as GLenum,
         df as GLenum,
@@ -243,19 +243,19 @@ pub unsafe extern "C" fn Tex1D_SetData(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetDataBytes(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut data: *mut Bytes,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    Tex1D_SetData(self_0, Bytes_GetData(data), pf, df);
+    Tex1D_SetData(this, Bytes_GetData(data), pf, df);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetMagFilter(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut filter: TexFilter,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glTexParameteri(
         0xde0 as libc::c_int as GLenum,
         0x2800 as libc::c_int as GLenum,
@@ -265,10 +265,10 @@ pub unsafe extern "C" fn Tex1D_SetMagFilter(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetMinFilter(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut filter: TexFilter,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glTexParameteri(
         0xde0 as libc::c_int as GLenum,
         0x2801 as libc::c_int as GLenum,
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn Tex1D_SetMinFilter(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetTexel(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut x: libc::c_int,
     mut r: libc::c_float,
     mut g: libc::c_float,
@@ -286,7 +286,7 @@ pub unsafe extern "C" fn Tex1D_SetTexel(
     mut a: libc::c_float,
 ) {
     let mut rgba: [libc::c_float; 4] = [r, g, b, a];
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glTexSubImage1D(
         0xde0 as libc::c_int as GLenum,
         0 as libc::c_int,
@@ -300,10 +300,10 @@ pub unsafe extern "C" fn Tex1D_SetTexel(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetWrapMode(
-    mut self_0: *mut Tex1D,
+    mut this: *mut Tex1D,
     mut mode: TexWrapMode,
 ) {
-    glBindTexture(0xde0 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde0 as libc::c_int as GLenum, (*this).handle);
     glTexParameteri(
         0xde0 as libc::c_int as GLenum,
         0x2802 as libc::c_int as GLenum,

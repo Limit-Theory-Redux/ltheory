@@ -46,35 +46,35 @@ pub unsafe extern "C" fn HashMap_Create(
         logCapacity = logCapacity.wrapping_add(1);
     }
     capacity = ((1 as libc::c_int) << logCapacity) as uint32;
-    let mut self_0: *mut HashMap = MemAlloc(
+    let mut this: *mut HashMap = MemAlloc(
         ::core::mem::size_of::<HashMap>() as usize,
     ) as *mut HashMap;
-    (*self_0)
+    (*this)
         .elems = MemAllocZero(
         (::core::mem::size_of::<Node>())
             .wrapping_mul(capacity as usize),
     ) as *mut Node;
-    (*self_0).size = 0 as libc::c_int as uint32;
-    (*self_0).capacity = capacity;
-    (*self_0).mask = (((1 as libc::c_int) << logCapacity) - 1 as libc::c_int) as uint32;
-    (*self_0).keySize = keySize;
-    (*self_0).maxProbe = logCapacity;
-    return self_0;
+    (*this).size = 0 as libc::c_int as uint32;
+    (*this).capacity = capacity;
+    (*this).mask = (((1 as libc::c_int) << logCapacity) - 1 as libc::c_int) as uint32;
+    (*this).keySize = keySize;
+    (*this).maxProbe = logCapacity;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_Free(mut self_0: *mut HashMap) {
-    MemFree((*self_0).elems as *const libc::c_void);
-    MemFree(self_0 as *const libc::c_void);
+pub unsafe extern "C" fn HashMap_Free(mut this: *mut HashMap) {
+    MemFree((*this).elems as *const libc::c_void);
+    MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Foreach(
-    mut self_0: *mut HashMap,
+    mut this: *mut HashMap,
     mut fn_0: ValueForeach,
     mut userData: *mut libc::c_void,
 ) {
     let mut i: uint32 = 0 as libc::c_int as uint32;
-    while i < (*self_0).capacity {
-        let mut node: *mut Node = ((*self_0).elems).offset(i as isize);
+    while i < (*this).capacity {
+        let mut node: *mut Node = ((*this).elems).offset(i as isize);
         if !((*node).value).is_null() {
             fn_0.expect("non-null function pointer")((*node).value, userData);
         }
@@ -83,90 +83,90 @@ pub unsafe extern "C" fn HashMap_Foreach(
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Get(
-    mut self_0: *mut HashMap,
+    mut this: *mut HashMap,
     mut key: *const libc::c_void,
 ) -> *mut libc::c_void {
-    return HashMap_GetRaw(self_0, Hash(key, (*self_0).keySize));
+    return HashMap_GetRaw(this, Hash(key, (*this).keySize));
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_GetRaw(
-    mut self_0: *mut HashMap,
+    mut this: *mut HashMap,
     mut hash: uint64,
 ) -> *mut libc::c_void {
     let mut index: uint32 = 0 as libc::c_int as uint32;
-    let mut node: *mut Node = ((*self_0).elems)
+    let mut node: *mut Node = ((*this).elems)
         .offset(
             (hash.wrapping_add(index as libc::c_ulonglong)
-                & (*self_0).mask as libc::c_ulonglong) as isize,
+                & (*this).mask as libc::c_ulonglong) as isize,
         );
-    while !((*node).value).is_null() && index < (*self_0).maxProbe {
+    while !((*node).value).is_null() && index < (*this).maxProbe {
         if (*node).hash == hash {
             return (*node).value;
         }
         index = index.wrapping_add(1);
-        node = ((*self_0).elems)
+        node = ((*this).elems)
             .offset(
                 (hash.wrapping_add(index as libc::c_ulonglong)
-                    & (*self_0).mask as libc::c_ulonglong) as isize,
+                    & (*this).mask as libc::c_ulonglong) as isize,
             );
     }
     return 0 as *mut libc::c_void;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_Resize(mut self_0: *mut HashMap, mut capacity: uint32) {
-    let mut other: *mut HashMap = HashMap_Create((*self_0).keySize, capacity);
+pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: uint32) {
+    let mut other: *mut HashMap = HashMap_Create((*this).keySize, capacity);
     let mut i: uint32 = 0 as libc::c_int as uint32;
-    while i < (*self_0).capacity {
-        let mut node: *mut Node = ((*self_0).elems).offset(i as isize);
+    while i < (*this).capacity {
+        let mut node: *mut Node = ((*this).elems).offset(i as isize);
         if !((*node).value).is_null() {
             HashMap_SetRaw(other, (*node).hash, (*node).value);
         }
         i = i.wrapping_add(1);
     }
-    MemFree((*self_0).elems as *const libc::c_void);
-    *self_0 = *other;
+    MemFree((*this).elems as *const libc::c_void);
+    *this = *other;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Set(
-    mut self_0: *mut HashMap,
+    mut this: *mut HashMap,
     mut key: *const libc::c_void,
     mut value: *mut libc::c_void,
 ) {
-    HashMap_SetRaw(self_0, Hash(key, (*self_0).keySize), value);
+    HashMap_SetRaw(this, Hash(key, (*this).keySize), value);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_SetRaw(
-    mut self_0: *mut HashMap,
+    mut this: *mut HashMap,
     mut hash: uint64,
     mut value: *mut libc::c_void,
 ) {
     let mut index: uint32 = 0 as libc::c_int as uint32;
-    let mut node: *mut Node = ((*self_0).elems)
+    let mut node: *mut Node = ((*this).elems)
         .offset(
             (hash.wrapping_add(index as libc::c_ulonglong)
-                & (*self_0).mask as libc::c_ulonglong) as isize,
+                & (*this).mask as libc::c_ulonglong) as isize,
         );
-    while !((*node).value).is_null() && index < (*self_0).maxProbe {
+    while !((*node).value).is_null() && index < (*this).maxProbe {
         if (*node).hash == hash {
             (*node).value = value;
             return;
         }
         index = index.wrapping_add(1);
-        node = ((*self_0).elems)
+        node = ((*this).elems)
             .offset(
                 (hash.wrapping_add(index as libc::c_ulonglong)
-                    & (*self_0).mask as libc::c_ulonglong) as isize,
+                    & (*this).mask as libc::c_ulonglong) as isize,
             );
     }
-    if index >= (*self_0).maxProbe {
+    if index >= (*this).maxProbe {
         HashMap_Resize(
-            self_0,
-            ((*self_0).capacity).wrapping_mul(2 as libc::c_int as libc::c_uint),
+            this,
+            ((*this).capacity).wrapping_mul(2 as libc::c_int as libc::c_uint),
         );
-        HashMap_SetRaw(self_0, hash, value);
+        HashMap_SetRaw(this, hash, value);
     } else {
         (*node).hash = hash;
         (*node).value = value;
-        (*self_0).size = ((*self_0).size).wrapping_add(1);
+        (*this).size = ((*this).size).wrapping_add(1);
     };
 }

@@ -172,22 +172,22 @@ pub unsafe extern "C" fn Tex2D_Create(
                 as *const libc::c_char,
         );
     }
-    let mut self_0: *mut Tex2D = MemAlloc(
+    let mut this: *mut Tex2D = MemAlloc(
         ::core::mem::size_of::<Tex2D>() as usize,
     ) as *mut Tex2D;
-    (*self_0)._refCount = 1 as libc::c_int as uint32;
-    (*self_0).size = IVec2::new(sx, sy);
-    (*self_0).format = format;
-    glGenTextures(1 as libc::c_int, &mut (*self_0).handle);
+    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this).size = IVec2::new(sx, sy);
+    (*this).format = format;
+    glGenTextures(1 as libc::c_int, &mut (*this).handle);
     __glewActiveTexture
         .expect("non-null function pointer")(0x84c0 as libc::c_int as GLenum);
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexImage2D(
         0xde1 as libc::c_int as GLenum,
         0 as libc::c_int,
-        (*self_0).format,
-        (*self_0).size.x,
-        (*self_0).size.y,
+        (*this).format,
+        (*this).size.x,
+        (*this).size.y,
         0 as libc::c_int,
         (if TexFormat_IsColor(format) as libc::c_int != 0 {
             0x1903 as libc::c_int
@@ -199,13 +199,13 @@ pub unsafe extern "C" fn Tex2D_Create(
     );
     Tex2D_Init();
     glBindTexture(0xde1 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut size);
-    let mut self_0: *mut Tex2D = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
+    let mut this: *mut Tex2D = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
     let mut buf: *mut uint32 = MemAlloc(
         (::core::mem::size_of::<uint32>())
             .wrapping_mul((size.x * size.y) as usize),
@@ -248,7 +248,7 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
         }
         y += 1;
     }
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexImage2D(
         0xde1 as libc::c_int as GLenum,
         0 as libc::c_int,
@@ -261,22 +261,22 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
         buf as *const libc::c_void,
     );
     glBindTexture(0xde1 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
-    return self_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Acquire(mut self_0: *mut Tex2D) {
-    (*self_0)._refCount = ((*self_0)._refCount).wrapping_add(1);
+pub unsafe extern "C" fn Tex2D_Acquire(mut this: *mut Tex2D) {
+    (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Free(mut self_0: *mut Tex2D) {
-    if !self_0.is_null()
+pub unsafe extern "C" fn Tex2D_Free(mut this: *mut Tex2D) {
+    if !this.is_null()
         && {
-            (*self_0)._refCount = ((*self_0)._refCount).wrapping_sub(1);
-            (*self_0)._refCount <= 0 as libc::c_int as libc::c_uint
+            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+            (*this)._refCount <= 0 as libc::c_int as libc::c_uint
         }
     {
-        glDeleteTextures(1 as libc::c_int, &mut (*self_0).handle);
-        MemFree(self_0 as *const libc::c_void);
+        glDeleteTextures(1 as libc::c_int, &mut (*this).handle);
+        MemFree(this as *const libc::c_void);
     }
 }
 #[no_mangle]
@@ -284,45 +284,45 @@ pub unsafe extern "C" fn Tex2D_Pop(_: *mut Tex2D) {
     RenderTarget_Pop();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Push(mut self_0: *mut Tex2D) {
-    RenderTarget_PushTex2D(self_0);
+pub unsafe extern "C" fn Tex2D_Push(mut this: *mut Tex2D) {
+    RenderTarget_PushTex2D(this);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_PushLevel(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut level: libc::c_int,
 ) {
-    RenderTarget_PushTex2DLevel(self_0, level);
+    RenderTarget_PushTex2DLevel(this, level);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Clear(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut r: libc::c_float,
     mut g: libc::c_float,
     mut b: libc::c_float,
     mut a: libc::c_float,
 ) {
-    RenderTarget_PushTex2D(self_0);
+    RenderTarget_PushTex2D(this);
     Draw_Clear(r, g, b, a);
     RenderTarget_Pop();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Clone(mut self_0: *mut Tex2D) -> *mut Tex2D {
+pub unsafe extern "C" fn Tex2D_Clone(mut this: *mut Tex2D) -> *mut Tex2D {
     let mut clone: *mut Tex2D = Tex2D_Create(
-        (*self_0).size.x,
-        (*self_0).size.y,
-        (*self_0).format,
+        (*this).size.x,
+        (*this).size.y,
+        (*this).format,
     );
-    RenderTarget_PushTex2D(self_0);
+    RenderTarget_PushTex2D(this);
     glBindTexture(0xde1 as libc::c_int as GLenum, (*clone).handle);
     glCopyTexImage2D(
         0xde1 as libc::c_int as GLenum,
         0 as libc::c_int,
-        (*self_0).format as GLenum,
+        (*this).format as GLenum,
         0 as libc::c_int,
         0 as libc::c_int,
-        (*self_0).size.x,
-        (*self_0).size.y,
+        (*this).size.x,
+        (*this).size.y,
         0 as libc::c_int,
     );
     glBindTexture(0xde1 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
@@ -331,7 +331,7 @@ pub unsafe extern "C" fn Tex2D_Clone(mut self_0: *mut Tex2D) -> *mut Tex2D {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Draw(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut x: libc::c_float,
     mut y: libc::c_float,
     mut sx: libc::c_float,
@@ -339,7 +339,7 @@ pub unsafe extern "C" fn Tex2D_Draw(
 ) {
     Metric_AddDrawImm(1 as libc::c_int, 2 as libc::c_int, 4 as libc::c_int);
     glEnable(0xde1 as libc::c_int as GLenum);
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glBegin(0x7 as libc::c_int as GLenum);
     glTexCoord2f(0 as libc::c_int as GLfloat, 0 as libc::c_int as GLfloat);
     glVertex2f(x, y);
@@ -354,7 +354,7 @@ pub unsafe extern "C" fn Tex2D_Draw(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_DrawEx(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut x0: libc::c_float,
     mut y0: libc::c_float,
     mut x1: libc::c_float,
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn Tex2D_DrawEx(
 ) {
     Metric_AddDrawImm(1 as libc::c_int, 2 as libc::c_int, 4 as libc::c_int);
     glEnable(0xde1 as libc::c_int as GLenum);
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glBegin(0x7 as libc::c_int as GLenum);
     glTexCoord2f(u0, v0);
     glVertex2f(x0, y0);
@@ -380,21 +380,21 @@ pub unsafe extern "C" fn Tex2D_DrawEx(
     glDisable(0xde1 as libc::c_int as GLenum);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GenMipmap(mut self_0: *mut Tex2D) {
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+pub unsafe extern "C" fn Tex2D_GenMipmap(mut this: *mut Tex2D) {
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     __glewGenerateMipmap
         .expect("non-null function pointer")(0xde1 as libc::c_int as GLenum);
     glBindTexture(0xde1 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_GetData(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut data: *mut libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
     Metric_Inc(0x6 as libc::c_int);
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glGetTexImage(
         0xde1 as libc::c_int as GLenum,
         0 as libc::c_int,
@@ -406,37 +406,37 @@ pub unsafe extern "C" fn Tex2D_GetData(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_GetDataBytes(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) -> *mut Bytes {
-    let mut size: libc::c_int = (*self_0).size.x * (*self_0).size.y;
+    let mut size: libc::c_int = (*this).size.x * (*this).size.y;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
     let mut data: *mut Bytes = Bytes_Create(size as uint32);
-    Tex2D_GetData(self_0, Bytes_GetData(data), pf, df);
+    Tex2D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
     return data;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetFormat(mut self_0: *mut Tex2D) -> TexFormat {
-    return (*self_0).format;
+pub unsafe extern "C" fn Tex2D_GetFormat(mut this: *mut Tex2D) -> TexFormat {
+    return (*this).format;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetHandle(mut self_0: *mut Tex2D) -> uint {
-    return (*self_0).handle;
+pub unsafe extern "C" fn Tex2D_GetHandle(mut this: *mut Tex2D) -> uint {
+    return (*this).handle;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetSize(mut self_0: *mut Tex2D, mut out: *mut IVec2) {
-    *out = (*self_0).size;
+pub unsafe extern "C" fn Tex2D_GetSize(mut this: *mut Tex2D, mut out: *mut IVec2) {
+    *out = (*this).size;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_GetSizeLevel(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut out: *mut IVec2,
     mut level: libc::c_int,
 ) {
-    *out = (*self_0).size;
+    *out = (*this).size;
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < level {
         (*out).x /= 2 as libc::c_int;
@@ -451,7 +451,7 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: cstr) -> *mut Tex2D {
     let mut sy: libc::c_int = 0;
     let mut components: libc::c_int = 4 as libc::c_int;
     let mut data: *mut uchar = Tex2D_LoadRaw(path, &mut sx, &mut sy, &mut components);
-    let mut self_0: *mut Tex2D = Tex2D_Create(sx, sy, TexFormat_RGBA8);
+    let mut this: *mut Tex2D = Tex2D_Create(sx, sy, TexFormat_RGBA8);
     let mut format: GLenum = (if components == 4 as libc::c_int {
         0x1908 as libc::c_int
     } else if components == 3 as libc::c_int {
@@ -463,13 +463,13 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: cstr) -> *mut Tex2D {
     }) as GLenum;
     __glewActiveTexture
         .expect("non-null function pointer")(0x84c0 as libc::c_int as GLenum);
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexImage2D(
         0xde1 as libc::c_int as GLenum,
         0 as libc::c_int,
         0x8058 as libc::c_int,
-        (*self_0).size.x,
-        (*self_0).size.y,
+        (*this).size.x,
+        (*this).size.y,
         0 as libc::c_int,
         format,
         0x1401 as libc::c_int as GLenum,
@@ -478,14 +478,14 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: cstr) -> *mut Tex2D {
     Tex2D_Init();
     glBindTexture(0xde1 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
     MemFree(data as *const libc::c_void);
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetAnisotropy(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut factor: libc::c_float,
 ) {
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexParameterf(
         0xde1 as libc::c_int as GLenum,
         0x84fe as libc::c_int as GLenum,
@@ -495,18 +495,18 @@ pub unsafe extern "C" fn Tex2D_SetAnisotropy(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetData(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut data: *const libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexImage2D(
         0xde1 as libc::c_int as GLenum,
         0 as libc::c_int,
-        (*self_0).format,
-        (*self_0).size.x,
-        (*self_0).size.y,
+        (*this).format,
+        (*this).size.x,
+        (*this).size.y,
         0 as libc::c_int,
         pf as GLenum,
         df as GLenum,
@@ -516,19 +516,19 @@ pub unsafe extern "C" fn Tex2D_SetData(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetDataBytes(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut data: *mut Bytes,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    Tex2D_SetData(self_0, Bytes_GetData(data), pf, df);
+    Tex2D_SetData(this, Bytes_GetData(data), pf, df);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetMagFilter(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut filter: TexFilter,
 ) {
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexParameteri(
         0xde1 as libc::c_int as GLenum,
         0x2800 as libc::c_int as GLenum,
@@ -538,10 +538,10 @@ pub unsafe extern "C" fn Tex2D_SetMagFilter(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetMinFilter(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut filter: TexFilter,
 ) {
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexParameteri(
         0xde1 as libc::c_int as GLenum,
         0x2801 as libc::c_int as GLenum,
@@ -551,7 +551,7 @@ pub unsafe extern "C" fn Tex2D_SetMinFilter(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetMipRange(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut minLevel: libc::c_int,
     mut maxLevel: libc::c_int,
 ) {
@@ -561,7 +561,7 @@ pub unsafe extern "C" fn Tex2D_SetMipRange(
                 as *const u8 as *const libc::c_char,
         );
     }
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexParameteri(
         0xde1 as libc::c_int as GLenum,
         0x813c as libc::c_int as GLenum,
@@ -575,7 +575,7 @@ pub unsafe extern "C" fn Tex2D_SetMipRange(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetTexel(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut x: libc::c_int,
     mut y: libc::c_int,
     mut r: libc::c_float,
@@ -584,7 +584,7 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
     mut a: libc::c_float,
 ) {
     let mut rgba: [libc::c_float; 4] = [r, g, b, a];
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexSubImage2D(
         0xde1 as libc::c_int as GLenum,
         0 as libc::c_int,
@@ -600,10 +600,10 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetWrapMode(
-    mut self_0: *mut Tex2D,
+    mut this: *mut Tex2D,
     mut mode: TexWrapMode,
 ) {
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     glTexParameteri(
         0xde1 as libc::c_int as GLenum,
         0x2802 as libc::c_int as GLenum,
@@ -617,11 +617,11 @@ pub unsafe extern "C" fn Tex2D_SetWrapMode(
     glBindTexture(0xde1 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Save(mut self_0: *mut Tex2D, mut path: cstr) {
+pub unsafe extern "C" fn Tex2D_Save(mut this: *mut Tex2D, mut path: cstr) {
     Metric_Inc(0x6 as libc::c_int);
-    glBindTexture(0xde1 as libc::c_int as GLenum, (*self_0).handle);
+    glBindTexture(0xde1 as libc::c_int as GLenum, (*this).handle);
     let mut buffer: *mut uchar = MemAlloc(
-        (4 as libc::c_int * (*self_0).size.x * (*self_0).size.y) as libc::size_t,
+        (4 as libc::c_int * (*this).size.x * (*this).size.y) as libc::size_t,
     ) as *mut uchar;
     glGetTexImage(
         0xde1 as libc::c_int as GLenum,
@@ -630,7 +630,7 @@ pub unsafe extern "C" fn Tex2D_Save(mut self_0: *mut Tex2D, mut path: cstr) {
         0x1401 as libc::c_int as GLenum,
         buffer as *mut libc::c_void,
     );
-    Tex2D_Save_Png(path, (*self_0).size.x, (*self_0).size.y, 4 as libc::c_int, buffer);
+    Tex2D_Save_Png(path, (*this).size.x, (*this).size.y, 4 as libc::c_int, buffer);
     MemFree(buffer as *const libc::c_void);
     glBindTexture(0xde1 as libc::c_int as GLenum, 0 as libc::c_int as GLuint);
 }

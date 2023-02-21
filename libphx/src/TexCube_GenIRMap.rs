@@ -92,11 +92,11 @@ unsafe extern "C" fn Atan2(
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GenIRMap(
-    mut self_0: *mut TexCube,
+    mut this: *mut TexCube,
     mut sampleCount: libc::c_int,
 ) -> *mut TexCube {
-    let mut size: libc::c_int = TexCube_GetSize(self_0);
-    let mut format: TexFormat = TexCube_GetFormat(self_0);
+    let mut size: libc::c_int = TexCube_GetSize(this);
+    let mut format: TexFormat = TexCube_GetFormat(this);
     let mut result: *mut TexCube = TexCube_Create(size, format);
     let mut components: libc::c_int = TexFormat_Components(format);
     let mut pf: PixelFormat = if components == 4 as libc::c_int {
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     );
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 6 as libc::c_int {
-        TexCube_GetData(self_0, buffer, CubeFace_Get(i), 0 as libc::c_int, pf, df);
+        TexCube_GetData(this, buffer, CubeFace_Get(i), 0 as libc::c_int, pf, df);
         TexCube_SetData(result, buffer, CubeFace_Get(i), 0 as libc::c_int, pf, df);
         i += 1;
     }
@@ -286,7 +286,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         angle = angle * angle;
         Shader_ResetTexIndex();
         Shader_SetFloat(b"angle\0" as *const u8 as *const libc::c_char, angle);
-        Shader_SetTexCube(b"src\0" as *const u8 as *const libc::c_char, self_0);
+        Shader_SetTexCube(b"src\0" as *const u8 as *const libc::c_char, this);
         Shader_SetTex2D(
             b"sampleBuffer\0" as *const u8 as *const libc::c_char,
             sampleTex,

@@ -38,8 +38,8 @@ pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: cstr) -> ShaderVarType {
     return 0 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut self_0: ShaderVarType) -> cstr {
-    match self_0 {
+pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut this: ShaderVarType) -> cstr {
+    match this {
         1 => return b"float\0" as *const u8 as *const libc::c_char,
         2 => return b"vec2\0" as *const u8 as *const libc::c_char,
         3 => return b"vec3\0" as *const u8 as *const libc::c_char,
@@ -58,8 +58,8 @@ pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut self_0: ShaderVarType) ->
     return 0 as cstr;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetName(mut self_0: ShaderVarType) -> cstr {
-    match self_0 {
+pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> cstr {
+    match this {
         1 => return b"float\0" as *const u8 as *const libc::c_char,
         2 => return b"float2\0" as *const u8 as *const libc::c_char,
         3 => return b"float3\0" as *const u8 as *const libc::c_char,
@@ -79,9 +79,9 @@ pub unsafe extern "C" fn ShaderVarType_GetName(mut self_0: ShaderVarType) -> cst
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_GetSize(
-    mut self_0: ShaderVarType,
+    mut this: ShaderVarType,
 ) -> libc::c_int {
-    match self_0 {
+    match this {
         1 => {
             return ::core::mem::size_of::<libc::c_float>() as libc::c_ulong
                 as libc::c_int;

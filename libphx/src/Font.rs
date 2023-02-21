@@ -441,11 +441,11 @@ unsafe extern "C" fn Vec4f_Create(
     mut z: libc::c_float,
     mut w: libc::c_float,
 ) -> Vec4f {
-    let mut self_0: Vec4f = {
+    let mut this: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };
         init
     };
-    return self_0;
+    return this;
 }
 
 #[no_mangle]
@@ -454,22 +454,22 @@ pub static mut kGamma: libc::c_float = 1.8f32;
 pub static mut kRcpGamma: libc::c_float = unsafe { 1.0f32 / kGamma };
 static mut ft: FT_Library = 0 as *const FT_LibraryRec_ as FT_Library;
 unsafe extern "C" fn Font_GetGlyph(
-    mut self_0: *mut Font,
+    mut this: *mut Font,
     mut codepoint: uint32,
 ) -> *mut Glyph {
     if codepoint < 256 as libc::c_int as libc::c_uint
-        && !((*self_0).glyphsAscii[codepoint as usize]).is_null()
+        && !((*this).glyphsAscii[codepoint as usize]).is_null()
     {
-        return (*self_0).glyphsAscii[codepoint as usize];
+        return (*this).glyphsAscii[codepoint as usize];
     }
     let mut g: *mut Glyph = HashMap_Get(
-        (*self_0).glyphs,
+        (*this).glyphs,
         &mut codepoint as *mut uint32 as *const libc::c_void,
     ) as *mut Glyph;
     if !g.is_null() {
         return g;
     }
-    let mut face: FT_Face = (*self_0).handle;
+    let mut face: FT_Face = (*this).handle;
     let mut glyph: libc::c_int = FT_Get_Char_Index(face, codepoint as FT_ULong)
         as libc::c_int;
     if glyph == 0 as libc::c_int {
@@ -526,10 +526,10 @@ unsafe extern "C" fn Font_GetGlyph(
     );
     MemFree(buffer as *const libc::c_void);
     if codepoint < 256 as libc::c_int as libc::c_uint {
-        (*self_0).glyphsAscii[codepoint as usize] = g;
+        (*this).glyphsAscii[codepoint as usize] = g;
     } else {
         HashMap_Set(
-            (*self_0).glyphs,
+            (*this).glyphs,
             &mut codepoint as *mut uint32 as *const libc::c_void,
             g as *mut libc::c_void,
         );
@@ -538,13 +538,13 @@ unsafe extern "C" fn Font_GetGlyph(
 }
 #[inline]
 unsafe extern "C" fn Font_GetKerning(
-    mut self_0: *mut Font,
+    mut this: *mut Font,
     mut a: libc::c_int,
     mut b: libc::c_int,
 ) -> libc::c_int {
     let mut kern: FT_Vector = FT_Vector { x: 0, y: 0 };
     FT_Get_Kerning(
-        (*self_0).handle,
+        (*this).handle,
         a as FT_UInt,
         b as FT_UInt,
         FT_KERNING_DEFAULT as libc::c_int as FT_UInt,
@@ -558,10 +558,10 @@ pub unsafe extern "C" fn Font_Load(mut name: cstr, mut size: libc::c_int) -> *mu
         FT_Init_FreeType(&mut ft);
     }
     let mut path: cstr = Resource_GetPath(ResourceType_Font, name);
-    let mut self_0: *mut Font = MemAlloc(::core::mem::size_of::<Font>())
+    let mut this: *mut Font = MemAlloc(::core::mem::size_of::<Font>())
         as *mut Font;
-    (*self_0)._refCount = 1 as libc::c_int as uint32;
-    if FT_New_Face(ft, path, 0 as libc::c_int as FT_Long, &mut (*self_0).handle) != 0 {
+    (*this)._refCount = 1 as libc::c_int as uint32;
+    if FT_New_Face(ft, path, 0 as libc::c_int as FT_Long, &mut (*this).handle) != 0 {
         Fatal(
             b"Font_Load: Failed to load font <%s> at <%s>\0" as *const u8
                 as *const libc::c_char,
@@ -569,37 +569,37 @@ pub unsafe extern "C" fn Font_Load(mut name: cstr, mut size: libc::c_int) -> *mu
             path,
         );
     }
-    FT_Set_Pixel_Sizes((*self_0).handle, 0 as libc::c_int as FT_UInt, size as FT_UInt);
+    FT_Set_Pixel_Sizes((*this).handle, 0 as libc::c_int as FT_UInt, size as FT_UInt);
     MemZero(
-        ((*self_0).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
+        ((*this).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
         ::core::mem::size_of::<[*mut Glyph; 256]>(),
     );
-    (*self_0)
+    (*this)
         .glyphs = HashMap_Create(
         ::core::mem::size_of::<uint32>() as usize as uint32,
         16 as libc::c_int as uint32,
     );
-    return self_0;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Font_Acquire(mut self_0: *mut Font) {
-    (*self_0)._refCount = ((*self_0)._refCount).wrapping_add(1);
+pub unsafe extern "C" fn Font_Acquire(mut this: *mut Font) {
+    (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Font_Free(mut self_0: *mut Font) {
-    if !self_0.is_null()
+pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
+    if !this.is_null()
         && {
-            (*self_0)._refCount = ((*self_0)._refCount).wrapping_sub(1);
-            (*self_0)._refCount <= 0 as libc::c_int as libc::c_uint
+            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+            (*this)._refCount <= 0 as libc::c_int as libc::c_uint
         }
     {
-        FT_Done_Face((*self_0).handle);
-        MemFree(self_0 as *const libc::c_void);
+        FT_Done_Face((*this).handle);
+        MemFree(this as *const libc::c_void);
     }
 }
 #[no_mangle]
 pub unsafe extern "C" fn Font_Draw(
-    mut self_0: *mut Font,
+    mut this: *mut Font,
     mut text: cstr,
     mut x: libc::c_float,
     mut y: libc::c_float,
@@ -621,10 +621,10 @@ pub unsafe extern "C" fn Font_Draw(
     RenderState_PushBlendMode(1 as libc::c_int);
     Draw_Color(r, g, b, a);
     while codepoint != 0 {
-        let mut glyph: *mut Glyph = Font_GetGlyph(self_0, codepoint);
+        let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
-                x += Font_GetKerning(self_0, glyphLast, (*glyph).index) as libc::c_float;
+                x += Font_GetKerning(this, glyphLast, (*glyph).index) as libc::c_float;
             }
             let mut x0: libc::c_float = x + (*glyph).x0 as libc::c_float;
             let mut y0: libc::c_float = y + (*glyph).y0 as libc::c_float;
@@ -661,7 +661,7 @@ pub unsafe extern "C" fn Font_Draw(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Font_DrawShaded(
-    mut self_0: *mut Font,
+    mut this: *mut Font,
     mut text: cstr,
     mut x: libc::c_float,
     mut y: libc::c_float,
@@ -677,10 +677,10 @@ pub unsafe extern "C" fn Font_DrawShaded(
     x = Floor(x as libc::c_double) as libc::c_float;
     y = Floor(y as libc::c_double) as libc::c_float;
     while codepoint != 0 {
-        let mut glyph: *mut Glyph = Font_GetGlyph(self_0, codepoint);
+        let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
-                x += Font_GetKerning(self_0, glyphLast, (*glyph).index) as libc::c_float;
+                x += Font_GetKerning(this, glyphLast, (*glyph).index) as libc::c_float;
             }
             let mut x0: libc::c_float = x + (*glyph).x0 as libc::c_float;
             let mut y0: libc::c_float = y + (*glyph).y0 as libc::c_float;
@@ -714,13 +714,13 @@ pub unsafe extern "C" fn Font_DrawShaded(
     Profiler_End();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetLineHeight(mut self_0: *mut Font) -> libc::c_int {
-    return ((*(*(*self_0).handle).size).metrics.height >> 6 as libc::c_int)
+pub unsafe extern "C" fn Font_GetLineHeight(mut this: *mut Font) -> libc::c_int {
+    return ((*(*(*this).handle).size).metrics.height >> 6 as libc::c_int)
         as libc::c_int;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize(
-    mut self_0: *mut Font,
+    mut this: *mut Font,
     mut out: *mut IVec4,
     mut text: cstr,
 ) {
@@ -746,10 +746,10 @@ pub unsafe extern "C" fn Font_GetSize(
         return;
     }
     while codepoint != 0 {
-        let mut glyph: *mut Glyph = Font_GetGlyph(self_0, codepoint);
+        let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
-                x += Font_GetKerning(self_0, glyphLast, (*glyph).index);
+                x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
             lower
                 .x = Min(lower.x as libc::c_double, (x + (*glyph).x0) as libc::c_double)
@@ -777,7 +777,7 @@ pub unsafe extern "C" fn Font_GetSize(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize2(
-    mut self_0: *mut Font,
+    mut this: *mut Font,
     mut out: *mut IVec2,
     mut text: cstr,
 ) {
@@ -792,10 +792,10 @@ pub unsafe extern "C" fn Font_GetSize2(
     text = text.offset(1);
     let mut codepoint: uint32 = *fresh7 as uint32;
     while codepoint != 0 {
-        let mut glyph: *mut Glyph = Font_GetGlyph(self_0, codepoint);
+        let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
-                (*out).x += Font_GetKerning(self_0, glyphLast, (*glyph).index);
+                (*out).x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
             (*out).x += (*glyph).advance;
             (*out)

@@ -9,12 +9,12 @@ pub type int32 = int32_t;
 pub type Metric = int32;
 static mut valueCurr: [int32; 8] = [0 as libc::c_int, 0, 0, 0, 0, 0, 0, 0];
 #[no_mangle]
-pub unsafe extern "C" fn Metric_Get(mut self_0: Metric) -> int32 {
-    return valueCurr[self_0 as usize];
+pub unsafe extern "C" fn Metric_Get(mut this: Metric) -> int32 {
+    return valueCurr[this as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn Metric_GetName(mut self_0: Metric) -> cstr {
-    match self_0 {
+pub unsafe extern "C" fn Metric_GetName(mut this: Metric) -> cstr {
+    match this {
         1 => return b"Draw Calls\0" as *const u8 as *const libc::c_char,
         2 => return b"Draw Calls (Immediate)\0" as *const u8 as *const libc::c_char,
         3 => return b"Polys\0" as *const u8 as *const libc::c_char,
@@ -49,12 +49,12 @@ pub unsafe extern "C" fn Metric_AddDrawImm(
     valueCurr[0x5] += verts;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Metric_Inc(mut self_0: Metric) {
-    valueCurr[self_0 as usize] += 1 as libc::c_int;
+pub unsafe extern "C" fn Metric_Inc(mut this: Metric) {
+    valueCurr[this as usize] += 1 as libc::c_int;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Metric_Mod(mut self_0: Metric, mut delta: int32) {
-    valueCurr[self_0 as usize] += delta;
+pub unsafe extern "C" fn Metric_Mod(mut this: Metric, mut delta: int32) {
+    valueCurr[this as usize] += delta;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Reset() {

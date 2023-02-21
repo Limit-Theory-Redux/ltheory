@@ -76,7 +76,7 @@ unsafe extern "C" fn Sin(mut t: libc::c_double) -> libc::c_double {
 #[inline]
 unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
     let mut d: libc::c_float = Vec3::dot(a, b);
-    let mut self_0: Vec3 = {
+    let mut this: Vec3 = {
         let mut init = Vec3 {
             x: a.x - d * b.x,
             y: a.y - d * b.y,
@@ -84,7 +84,7 @@ unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
         };
         init
     };
-    return self_0;
+    return this;
 }
 #[inline]
 unsafe extern "C" fn Vec4f_Create(
@@ -93,11 +93,11 @@ unsafe extern "C" fn Vec4f_Create(
     mut z: libc::c_float,
     mut w: libc::c_float,
 ) -> Vec4f {
-    let mut self_0: Vec4f = {
+    let mut this: Vec4f = {
         let mut init = Vec4f { x: x, y: y, z: z, w: w };
         init
     };
-    return self_0;
+    return this;
 }
 static mut alphaStack: [libc::c_float; 16] = [0.; 16];
 static mut alphaIndex: libc::c_int = -(1 as libc::c_int);
@@ -191,33 +191,33 @@ pub unsafe extern "C" fn Draw_Border(
     Draw_Rect(x + w - s, y + s, s, h - 2 as libc::c_int as libc::c_float * s);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Box3(mut self_0: *const Box3f) {
+pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3f) {
     Metric_AddDrawImm(6 as libc::c_int, 12 as libc::c_int, 24 as libc::c_int);
     glBegin(0x7 as libc::c_int as GLenum);
-    glVertex3f((*self_0).lower.x, (*self_0).lower.y, (*self_0).lower.z);
-    glVertex3f((*self_0).lower.x, (*self_0).lower.y, (*self_0).upper.z);
-    glVertex3f((*self_0).lower.x, (*self_0).upper.y, (*self_0).upper.z);
-    glVertex3f((*self_0).lower.x, (*self_0).upper.y, (*self_0).lower.z);
-    glVertex3f((*self_0).upper.x, (*self_0).lower.y, (*self_0).lower.z);
-    glVertex3f((*self_0).upper.x, (*self_0).upper.y, (*self_0).lower.z);
-    glVertex3f((*self_0).upper.x, (*self_0).upper.y, (*self_0).upper.z);
-    glVertex3f((*self_0).upper.x, (*self_0).lower.y, (*self_0).upper.z);
-    glVertex3f((*self_0).lower.x, (*self_0).lower.y, (*self_0).upper.z);
-    glVertex3f((*self_0).upper.x, (*self_0).lower.y, (*self_0).upper.z);
-    glVertex3f((*self_0).upper.x, (*self_0).upper.y, (*self_0).upper.z);
-    glVertex3f((*self_0).lower.x, (*self_0).upper.y, (*self_0).upper.z);
-    glVertex3f((*self_0).lower.x, (*self_0).lower.y, (*self_0).lower.z);
-    glVertex3f((*self_0).lower.x, (*self_0).upper.y, (*self_0).lower.z);
-    glVertex3f((*self_0).upper.x, (*self_0).upper.y, (*self_0).lower.z);
-    glVertex3f((*self_0).upper.x, (*self_0).lower.y, (*self_0).lower.z);
-    glVertex3f((*self_0).lower.x, (*self_0).upper.y, (*self_0).lower.z);
-    glVertex3f((*self_0).lower.x, (*self_0).upper.y, (*self_0).upper.z);
-    glVertex3f((*self_0).upper.x, (*self_0).upper.y, (*self_0).upper.z);
-    glVertex3f((*self_0).upper.x, (*self_0).upper.y, (*self_0).lower.z);
-    glVertex3f((*self_0).lower.x, (*self_0).lower.y, (*self_0).lower.z);
-    glVertex3f((*self_0).upper.x, (*self_0).lower.y, (*self_0).lower.z);
-    glVertex3f((*self_0).upper.x, (*self_0).lower.y, (*self_0).upper.z);
-    glVertex3f((*self_0).lower.x, (*self_0).lower.y, (*self_0).upper.z);
+    glVertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
+    glVertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
+    glVertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
+    glVertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
+    glVertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
+    glVertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
+    glVertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
+    glVertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
+    glVertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
+    glVertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
+    glVertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
+    glVertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
+    glVertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
+    glVertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
+    glVertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
+    glVertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
+    glVertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
+    glVertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
+    glVertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
+    glVertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
+    glVertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
+    glVertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
+    glVertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
+    glVertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
     glEnd();
 }
 #[no_mangle]

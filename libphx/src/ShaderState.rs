@@ -108,32 +108,32 @@ pub static mut ElemType_TexCube: uint32 = 10 as libc::c_int as uint32;
 pub unsafe extern "C" fn ShaderState_Create(
     mut shader: *mut Shader,
 ) -> *mut ShaderState {
-    let mut self_0: *mut ShaderState = MemAlloc(
+    let mut this: *mut ShaderState = MemAlloc(
         ::core::mem::size_of::<ShaderState>() as usize,
     ) as *mut ShaderState;
-    (*self_0)._refCount = 1 as libc::c_int as uint32;
-    (*self_0).elems_capacity = 0 as libc::c_int;
-    (*self_0).elems_size = 0 as libc::c_int;
-    (*self_0).elems_data = 0 as *mut Elem;
+    (*this)._refCount = 1 as libc::c_int as uint32;
+    (*this).elems_capacity = 0 as libc::c_int;
+    (*this).elems_size = 0 as libc::c_int;
+    (*this).elems_data = 0 as *mut Elem;
     Shader_Acquire(shader);
-    (*self_0).shader = shader;
-    return self_0;
+    (*this).shader = shader;
+    return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Acquire(mut self_0: *mut ShaderState) {
-    (*self_0)._refCount = ((*self_0)._refCount).wrapping_add(1);
+pub unsafe extern "C" fn ShaderState_Acquire(mut this: *mut ShaderState) {
+    (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Free(mut self_0: *mut ShaderState) {
-    if !self_0.is_null()
+pub unsafe extern "C" fn ShaderState_Free(mut this: *mut ShaderState) {
+    if !this.is_null()
         && {
-            (*self_0)._refCount = ((*self_0)._refCount).wrapping_sub(1);
-            (*self_0)._refCount <= 0 as libc::c_int as libc::c_uint
+            (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
+            (*this)._refCount <= 0 as libc::c_int as libc::c_uint
         }
     {
-        let mut e: *mut Elem = (*self_0).elems_data;
-        let mut __iterend: *mut Elem = ((*self_0).elems_data)
-            .offset((*self_0).elems_size as isize);
+        let mut e: *mut Elem = (*this).elems_data;
+        let mut __iterend: *mut Elem = ((*this).elems_data)
+            .offset((*this).elems_size as isize);
         while e < __iterend {
             match (*e).type_0 {
                 7 => {
@@ -152,9 +152,9 @@ pub unsafe extern "C" fn ShaderState_Free(mut self_0: *mut ShaderState) {
             }
             e = e.offset(1);
         }
-        Shader_Free((*self_0).shader);
-        MemFree((*self_0).elems_data as *const libc::c_void);
-        MemFree(self_0 as *const libc::c_void);
+        Shader_Free((*this).shader);
+        MemFree((*this).elems_data as *const libc::c_void);
+        MemFree(this as *const libc::c_void);
     }
 }
 #[no_mangle]
@@ -163,49 +163,49 @@ pub unsafe extern "C" fn ShaderState_FromShaderLoad(
     mut fragName: cstr,
 ) -> *mut ShaderState {
     let mut shader: *mut Shader = Shader_Load(vertName, fragName);
-    let mut self_0: *mut ShaderState = ShaderState_Create(shader);
+    let mut this: *mut ShaderState = ShaderState_Create(shader);
     Shader_Free(shader);
-    return self_0;
+    return this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: libc::c_float,
 ) {
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Float,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asFloat = x;
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh0 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh0 as isize) = elem;
+    let fresh0 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh0 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat2(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: libc::c_float,
     mut y: libc::c_float,
@@ -213,36 +213,36 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Float2,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asFloat2 = Vec2::new(x, y);
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh1 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh1 as isize) = elem;
+    let fresh1 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh1 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat3(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: libc::c_float,
     mut y: libc::c_float,
@@ -251,36 +251,36 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Float3,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asFloat3 = Vec3::new(x, y, z);
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh2 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh2 as isize) = elem;
+    let fresh2 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh2 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat4(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: libc::c_float,
     mut y: libc::c_float,
@@ -290,108 +290,108 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Float4,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asFloat4 = Vec4::new(x, y, z, w);
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh3 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh3 as isize) = elem;
+    let fresh3 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh3 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetInt(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: libc::c_int,
 ) {
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Int,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asInt = x;
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh4 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh4 as isize) = elem;
+    let fresh4 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh4 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetMatrix(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: *mut Matrix,
 ) {
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Matrix,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asMatrix = x;
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh5 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh5 as isize) = elem;
+    let fresh5 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh5 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex1D(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: *mut Tex1D,
 ) {
@@ -399,36 +399,36 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Tex1D,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asTex1D = x;
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh6 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh6 as isize) = elem;
+    let fresh6 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh6 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex2D(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: *mut Tex2D,
 ) {
@@ -436,36 +436,36 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Tex2D,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asTex2D = x;
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh7 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh7 as isize) = elem;
+    let fresh7 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh7 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex3D(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: *mut Tex3D,
 ) {
@@ -473,36 +473,36 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_Tex3D,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asTex3D = x;
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh8 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh8 as isize) = elem;
+    let fresh8 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh8 as isize) = elem;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTexCube(
-    mut self_0: *mut ShaderState,
+    mut this: *mut ShaderState,
     mut name: cstr,
     mut x: *mut TexCube,
 ) {
@@ -510,39 +510,39 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
     let mut elem: Elem = {
         let mut init = Elem {
             type_0: ElemType_TexCube,
-            index: Shader_GetVariable((*self_0).shader, name),
+            index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
         init
     };
     elem.data.asTexCube = x;
-    if ((*self_0).elems_capacity == (*self_0).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
         != 0
     {
-        (*self_0)
-            .elems_capacity = if (*self_0).elems_capacity != 0 {
-            (*self_0).elems_capacity * 2 as libc::c_int
+        (*this)
+            .elems_capacity = if (*this).elems_capacity != 0 {
+            (*this).elems_capacity * 2 as libc::c_int
         } else {
             1 as libc::c_int
         };
         let mut elemSize: usize = ::core::mem::size_of::<Elem>() as usize;
-        let mut pData: *mut *mut libc::c_void = &mut (*self_0).elems_data
+        let mut pData: *mut *mut libc::c_void = &mut (*this).elems_data
             as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*self_0).elems_data as *mut libc::c_void,
-            ((*self_0).elems_capacity as usize).wrapping_mul(elemSize as usize),
+            (*this).elems_data as *mut libc::c_void,
+            ((*this).elems_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    let fresh9 = (*self_0).elems_size;
-    (*self_0).elems_size = (*self_0).elems_size + 1;
-    *((*self_0).elems_data).offset(fresh9 as isize) = elem;
+    let fresh9 = (*this).elems_size;
+    (*this).elems_size = (*this).elems_size + 1;
+    *((*this).elems_data).offset(fresh9 as isize) = elem;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Start(mut self_0: *mut ShaderState) {
-    Shader_Start((*self_0).shader);
-    let mut e: *mut Elem = (*self_0).elems_data;
-    let mut __iterend: *mut Elem = ((*self_0).elems_data)
-        .offset((*self_0).elems_size as isize);
+pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
+    Shader_Start((*this).shader);
+    let mut e: *mut Elem = (*this).elems_data;
+    let mut __iterend: *mut Elem = ((*this).elems_data)
+        .offset((*this).elems_size as isize);
     while e < __iterend {
         match (*e).type_0 {
             1 => {
@@ -608,6 +608,6 @@ pub unsafe extern "C" fn ShaderState_Start(mut self_0: *mut ShaderState) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Stop(mut self_0: *mut ShaderState) {
-    Shader_Stop((*self_0).shader);
+pub unsafe extern "C" fn ShaderState_Stop(mut this: *mut ShaderState) {
+    Shader_Stop((*this).shader);
 }

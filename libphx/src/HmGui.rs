@@ -238,7 +238,7 @@ unsafe extern "C" fn Vec4f_Create(
     return self_1;
 }
 
-static mut self_0: HmGui = HmGui {
+static mut this: HmGui = HmGui {
     group: 0 as *const HmGuiGroup as *mut HmGuiGroup,
     root: 0 as *const HmGuiGroup as *mut HmGuiGroup,
     last: 0 as *const HmGuiWidget as *mut HmGuiWidget,
@@ -251,11 +251,11 @@ static mut self_0: HmGui = HmGui {
 };
 static mut init_hmgui: bool = 0 as libc::c_int != 0;
 unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: uint32) {
-    (*e).parent = self_0.group;
+    (*e).parent = this.group;
     (*e).next = 0 as *mut HmGuiWidget;
     (*e)
-        .prev = if !(self_0.group).is_null() {
-        (*self_0.group).tail
+        .prev = if !(this.group).is_null() {
+        (*this.group).tail
     } else {
         0 as *mut HmGuiWidget
     };
@@ -306,7 +306,7 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: uint3
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
-    self_0.last = e;
+    this.last = e;
 }
 unsafe extern "C" fn HmGui_BeginGroup(mut layout: uint32) {
     let mut e: *mut HmGuiGroup = MemAlloc(
@@ -334,7 +334,7 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: uint32) {
         0 as libc::c_int as libc::c_float,
     );
     (*e).maxSize = Vec2::new(1e30f32, 1e30f32);
-    (*e).spacing = (*self_0.style).spacing;
+    (*e).spacing = (*this.style).spacing;
     (*e).frameOpacity = 0.0f32;
     (*e).clip = 0 as libc::c_int != 0;
     (*e).expand = 1 as libc::c_int != 0;
@@ -344,7 +344,7 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: uint32) {
         i += 1;
     }
     (*e).storeSize = 0 as libc::c_int != 0;
-    self_0.group = e;
+    this.group = e;
     match layout {
         1 => {
             (*e)
@@ -397,7 +397,7 @@ unsafe extern "C" fn HmGui_FreeGroup(mut g: *mut HmGuiGroup) {
     MemFree(g as *const libc::c_void);
 }
 unsafe extern "C" fn HmGui_GetData(mut g: *mut HmGuiGroup) -> *mut HmGuiData {
-    let mut data: *mut HmGuiData = HashMap_GetRaw(self_0.data, (*g).widget.hash)
+    let mut data: *mut HmGuiData = HashMap_GetRaw(this.data, (*g).widget.hash)
         as *mut HmGuiData;
     if data.is_null() {
         data = MemAlloc(::core::mem::size_of::<HmGuiData>())
@@ -417,7 +417,7 @@ unsafe extern "C" fn HmGui_GetData(mut g: *mut HmGuiGroup) -> *mut HmGuiData {
             0 as libc::c_int as libc::c_float,
             0 as libc::c_int as libc::c_float,
         );
-        HashMap_SetRaw(self_0.data, (*g).widget.hash, data as *mut libc::c_void);
+        HashMap_SetRaw(this.data, (*g).widget.hash, data as *mut libc::c_void);
     }
     return data;
 }
@@ -592,7 +592,7 @@ unsafe extern "C" fn IsClipped(mut g: *mut HmGuiGroup, mut p: Vec2) -> bool {
         || (*g).widget.pos.y + (*g).widget.size.y < p.y;
 }
 unsafe extern "C" fn HmGui_CheckFocus(mut g: *mut HmGuiGroup) {
-    if (*g).clip as libc::c_int != 0 && IsClipped(g, self_0.focusPos) as libc::c_int != 0
+    if (*g).clip as libc::c_int != 0 && IsClipped(g, this.focusPos) as libc::c_int != 0
     {
         return;
     }
@@ -605,15 +605,15 @@ unsafe extern "C" fn HmGui_CheckFocus(mut g: *mut HmGuiGroup) {
     }
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 2 as libc::c_int {
-        if self_0.focus[i as usize] == 0 as libc::c_ulonglong
+        if this.focus[i as usize] == 0 as libc::c_ulonglong
             && (*g).focusable[i as usize] as libc::c_int != 0
         {
-            if (*g).widget.pos.x <= self_0.focusPos.x
-                && (*g).widget.pos.y <= self_0.focusPos.y
-                && self_0.focusPos.x <= (*g).widget.pos.x + (*g).widget.size.x
-                && self_0.focusPos.y <= (*g).widget.pos.y + (*g).widget.size.y
+            if (*g).widget.pos.x <= this.focusPos.x
+                && (*g).widget.pos.y <= this.focusPos.y
+                && this.focusPos.x <= (*g).widget.pos.x + (*g).widget.size.x
+                && this.focusPos.y <= (*g).widget.pos.y + (*g).widget.size.y
             {
-                self_0.focus[i as usize] = (*g).widget.hash;
+                this.focus[i as usize] = (*g).widget.hash;
             }
         }
         i += 1;
@@ -681,7 +681,7 @@ unsafe extern "C" fn HmGui_DrawGroup(mut g: *mut HmGuiGroup) {
         e = (*e).prev;
     }
     if (*g).focusable[0] {
-        let mut focus: bool = self_0.focus[0]
+        let mut focus: bool = this.focus[0]
             == (*g).widget.hash;
         if (*g).focusStyle == 0 as libc::c_int as libc::c_uint {
             UIRenderer_Panel(
@@ -758,56 +758,56 @@ unsafe extern "C" fn HmGui_DrawGroup(mut g: *mut HmGuiGroup) {
 pub unsafe extern "C" fn HmGui_Begin(mut sx: libc::c_float, mut sy: libc::c_float) {
     if !init_hmgui {
         init_hmgui = 1 as libc::c_int != 0;
-        self_0.group = 0 as *mut HmGuiGroup;
-        self_0.root = 0 as *mut HmGuiGroup;
-        self_0
+        this.group = 0 as *mut HmGuiGroup;
+        this.root = 0 as *mut HmGuiGroup;
+        this
             .style = MemAlloc(::core::mem::size_of::<HmGuiStyle>())
             as *mut HmGuiStyle;
-        (*self_0.style).prev = 0 as *mut HmGuiStyle;
-        (*self_0.style)
+        (*this.style).prev = 0 as *mut HmGuiStyle;
+        (*this.style)
             .font = Font_Load(
             b"Rajdhani\0" as *const u8 as *const libc::c_char,
             14 as libc::c_int,
         );
-        (*self_0.style).spacing = 6 as libc::c_int as libc::c_float;
-        (*self_0.style).colorPrimary = Vec4f_Create(0.1f32, 0.5f32, 1.0f32, 1.0f32);
-        (*self_0.style).colorFrame = Vec4f_Create(0.1f32, 0.1f32, 0.1f32, 0.5f32);
-        (*self_0.style)
+        (*this.style).spacing = 6 as libc::c_int as libc::c_float;
+        (*this.style).colorPrimary = Vec4f_Create(0.1f32, 0.5f32, 1.0f32, 1.0f32);
+        (*this.style).colorFrame = Vec4f_Create(0.1f32, 0.1f32, 0.1f32, 0.5f32);
+        (*this.style)
             .colorText = Vec4f_Create(
             1 as libc::c_int as libc::c_float,
             1 as libc::c_int as libc::c_float,
             1 as libc::c_int as libc::c_float,
             1 as libc::c_int as libc::c_float,
         );
-        self_0.clipRect = 0 as *mut HmGuiClipRect;
-        self_0
+        this.clipRect = 0 as *mut HmGuiClipRect;
+        this
             .data = HashMap_Create(
             0 as libc::c_int as uint32,
             128 as libc::c_int as uint32,
         );
         let mut i: libc::c_int = 0 as libc::c_int;
         while i < 2 as libc::c_int {
-            self_0.focus[i as usize] = 0 as libc::c_int as uint64;
+            this.focus[i as usize] = 0 as libc::c_int as uint64;
             i += 1;
         }
-        self_0.activate = 0 as libc::c_int != 0;
+        this.activate = 0 as libc::c_int != 0;
     }
-    if !(self_0.root).is_null() {
-        HmGui_FreeGroup(self_0.root);
-        self_0.root = 0 as *mut HmGuiGroup;
+    if !(this.root).is_null() {
+        HmGui_FreeGroup(this.root);
+        this.root = 0 as *mut HmGuiGroup;
     }
-    self_0.last = 0 as *mut HmGuiWidget;
-    self_0.activate = Input_GetPressed(Button_Mouse_Left);
+    this.last = 0 as *mut HmGuiWidget;
+    this.activate = Input_GetPressed(Button_Mouse_Left);
     HmGui_BeginGroup(0 as libc::c_int as uint32);
-    (*self_0.group).clip = 1 as libc::c_int != 0;
-    (*self_0.group)
+    (*this.group).clip = 1 as libc::c_int != 0;
+    (*this.group)
         .widget
         .pos = Vec2::new(
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
-    (*self_0.group).widget.size = Vec2::new(sx, sy);
-    self_0.root = self_0.group;
+    (*this.group).widget.size = Vec2::new(sx, sy);
+    this.root = this.group;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_End() {
@@ -816,17 +816,17 @@ pub unsafe extern "C" fn HmGui_End() {
             .as_ptr(),
     );
     HmGui_EndGroup();
-    HmGui_ComputeSize(self_0.root);
-    HmGui_LayoutGroup(self_0.root);
+    HmGui_ComputeSize(this.root);
+    HmGui_LayoutGroup(this.root);
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < 2 as libc::c_int {
-        self_0.focus[i as usize] = 0 as libc::c_int as uint64;
+        this.focus[i as usize] = 0 as libc::c_int as uint64;
         i += 1;
     }
     let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);
-    self_0.focusPos = Vec2::new(mouse.x as libc::c_float, mouse.y as libc::c_float);
-    HmGui_CheckFocus(self_0.root);
+    this.focusPos = Vec2::new(mouse.x as libc::c_float, mouse.y as libc::c_float);
+    HmGui_CheckFocus(this.root);
     Profiler_End();
 }
 #[no_mangle]
@@ -837,7 +837,7 @@ pub unsafe extern "C" fn HmGui_Draw() {
     );
     RenderState_PushBlendMode(1 as libc::c_int);
     UIRenderer_Begin();
-    HmGui_DrawGroup(self_0.root);
+    HmGui_DrawGroup(this.root);
     UIRenderer_End();
     RenderState_PopBlendMode();
     UIRenderer_Draw();
@@ -857,8 +857,8 @@ pub unsafe extern "C" fn HmGui_BeginGroupStack() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_EndGroup() {
-    self_0.last = &mut (*self_0.group).widget;
-    self_0.group = (*self_0.group).widget.parent;
+    this.last = &mut (*this.group).widget;
+    this.group = (*this.group).widget.parent;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_BeginScroll(mut maxSize: libc::c_float) {
@@ -867,7 +867,7 @@ pub unsafe extern "C" fn HmGui_BeginScroll(mut maxSize: libc::c_float) {
         1 as libc::c_int as libc::c_float,
         1 as libc::c_int as libc::c_float,
     );
-    (*self_0.group).clip = 1 as libc::c_int != 0;
+    (*this.group).clip = 1 as libc::c_int != 0;
     HmGui_SetSpacing(2 as libc::c_int as libc::c_float);
     HmGui_BeginGroupY();
     HmGui_SetPadding(
@@ -878,15 +878,15 @@ pub unsafe extern "C" fn HmGui_BeginScroll(mut maxSize: libc::c_float) {
         1 as libc::c_int as libc::c_float,
         1 as libc::c_int as libc::c_float,
     );
-    (*self_0.group).expand = 0 as libc::c_int != 0;
-    (*self_0.group).storeSize = 1 as libc::c_int != 0;
-    (*self_0.group).maxSize.y = maxSize;
-    let mut data: *mut HmGuiData = HmGui_GetData(self_0.group);
-    (*self_0.group).offset.y = -(*data).offset.y;
+    (*this.group).expand = 0 as libc::c_int != 0;
+    (*this.group).storeSize = 1 as libc::c_int != 0;
+    (*this.group).maxSize.y = maxSize;
+    let mut data: *mut HmGuiData = HmGui_GetData(this.group);
+    (*this.group).offset.y = -(*data).offset.y;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_EndScroll() {
-    let mut data: *mut HmGuiData = HmGui_GetData(self_0.group);
+    let mut data: *mut HmGuiData = HmGui_GetData(this.group);
     if HmGui_GroupHasFocus(1 as libc::c_int) {
         let mut scroll: IVec2 = IVec2 { x: 0, y: 0 };
         Input_GetMouseScroll(&mut scroll);
@@ -922,10 +922,10 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
         HmGui_Rect(
             4.0f32,
             handleSize,
-            (*self_0.style).colorFrame.x,
-            (*self_0.style).colorFrame.y,
-            (*self_0.style).colorFrame.z,
-            (*self_0.style).colorFrame.w,
+            (*this.style).colorFrame.x,
+            (*this.style).colorFrame.y,
+            (*this.style).colorFrame.z,
+            (*this.style).colorFrame.w,
         );
     } else {
         HmGui_Rect(4.0f32, 16.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
@@ -940,9 +940,9 @@ pub unsafe extern "C" fn HmGui_BeginWindow(mut title: cstr) {
         0 as libc::c_int as libc::c_float,
         0 as libc::c_int as libc::c_float,
     );
-    (*self_0.group).focusStyle = 0 as libc::c_int as uint32;
-    (*self_0.group).frameOpacity = 0.95f32;
-    let mut data: *mut HmGuiData = HmGui_GetData(self_0.group);
+    (*this.group).focusStyle = 0 as libc::c_int as uint32;
+    (*this.group).frameOpacity = 0.95f32;
+    let mut data: *mut HmGuiData = HmGui_GetData(this.group);
     if HmGui_GroupHasFocus(0 as libc::c_int) {
         if Input_GetDown(Button_Mouse_Left) {
             let mut md: IVec2 = IVec2 { x: 0, y: 0 };
@@ -951,10 +951,10 @@ pub unsafe extern "C" fn HmGui_BeginWindow(mut title: cstr) {
             (*data).offset.y += md.y as libc::c_float;
         }
     }
-    (*self_0.group).widget.pos.x += (*data).offset.x;
-    (*self_0.group).widget.pos.y += (*data).offset.y;
+    (*this.group).widget.pos.x += (*data).offset.x;
+    (*this.group).widget.pos.y += (*data).offset.y;
     HmGui_BeginGroupY();
-    (*self_0.group).clip = 1 as libc::c_int != 0;
+    (*this.group).clip = 1 as libc::c_int != 0;
     HmGui_SetPadding(
         8 as libc::c_int as libc::c_float,
         8 as libc::c_int as libc::c_float,
@@ -972,8 +972,8 @@ pub unsafe extern "C" fn HmGui_EndWindow() {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Button(mut label: cstr) -> bool {
     HmGui_BeginGroupStack();
-    (*self_0.group).focusStyle = 1 as libc::c_int as uint32;
-    (*self_0.group).frameOpacity = 0.5f32;
+    (*this.group).focusStyle = 1 as libc::c_int as uint32;
+    (*this.group).frameOpacity = 0.5f32;
     let mut focus: bool = HmGui_GroupHasFocus(0 as libc::c_int);
     HmGui_SetPadding(
         8 as libc::c_int as libc::c_float,
@@ -982,14 +982,14 @@ pub unsafe extern "C" fn HmGui_Button(mut label: cstr) -> bool {
     HmGui_Text(label);
     HmGui_SetAlign(0.5f32, 0.5f32);
     HmGui_EndGroup();
-    return focus as libc::c_int != 0 && self_0.activate as libc::c_int != 0;
+    return focus as libc::c_int != 0 && this.activate as libc::c_int != 0;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Checkbox(mut label: cstr, mut value: bool) -> bool {
     HmGui_BeginGroupX();
-    (*self_0.group).focusStyle = 3 as libc::c_int as uint32;
+    (*this.group).focusStyle = 3 as libc::c_int as uint32;
     if HmGui_GroupHasFocus(0 as libc::c_int) as libc::c_int != 0
-        && self_0.activate as libc::c_int != 0
+        && this.activate as libc::c_int != 0
     {
         value = !value;
     }
@@ -1012,19 +1012,19 @@ pub unsafe extern "C" fn HmGui_Checkbox(mut label: cstr, mut value: bool) -> boo
     HmGui_Rect(
         16 as libc::c_int as libc::c_float,
         16 as libc::c_int as libc::c_float,
-        (*self_0.style).colorFrame.x,
-        (*self_0.style).colorFrame.y,
-        (*self_0.style).colorFrame.z,
-        (*self_0.style).colorFrame.w,
+        (*this.style).colorFrame.x,
+        (*this.style).colorFrame.y,
+        (*this.style).colorFrame.z,
+        (*this.style).colorFrame.w,
     );
     if value {
         HmGui_Rect(
             10 as libc::c_int as libc::c_float,
             10 as libc::c_int as libc::c_float,
-            (*self_0.style).colorPrimary.x,
-            (*self_0.style).colorPrimary.y,
-            (*self_0.style).colorPrimary.z,
-            (*self_0.style).colorPrimary.w,
+            (*this.style).colorPrimary.x,
+            (*this.style).colorPrimary.y,
+            (*this.style).colorPrimary.z,
+            (*this.style).colorPrimary.w,
         );
         HmGui_SetAlign(0.5f32, 0.5f32);
     }
@@ -1092,12 +1092,12 @@ pub unsafe extern "C" fn HmGui_Rect(
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Text(mut text: cstr) {
     HmGui_TextEx(
-        (*self_0.style).font,
+        (*this.style).font,
         text,
-        (*self_0.style).colorText.x,
-        (*self_0.style).colorText.y,
-        (*self_0.style).colorText.z,
-        (*self_0.style).colorText.w,
+        (*this.style).colorText.x,
+        (*this.style).colorText.y,
+        (*this.style).colorText.z,
+        (*this.style).colorText.w,
     );
 }
 #[no_mangle]
@@ -1108,7 +1108,7 @@ pub unsafe extern "C" fn HmGui_TextColored(
     mut b: libc::c_float,
     mut a: libc::c_float,
 ) {
-    HmGui_TextEx((*self_0.style).font, text, r, g, b, a);
+    HmGui_TextEx((*this.style).font, text, r, g, b, a);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_TextEx(
@@ -1133,12 +1133,12 @@ pub unsafe extern "C" fn HmGui_TextEx(
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetAlign(mut ax: libc::c_float, mut ay: libc::c_float) {
-    (*self_0.last).align = Vec2::new(ax, ay);
+    (*this.last).align = Vec2::new(ax, ay);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPadding(mut px: libc::c_float, mut py: libc::c_float) {
-    (*self_0.group).paddingLower = Vec2::new(px, py);
-    (*self_0.group).paddingUpper = Vec2::new(px, py);
+    (*this.group).paddingLower = Vec2::new(px, py);
+    (*this.group).paddingUpper = Vec2::new(px, py);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPaddingEx(
@@ -1147,51 +1147,51 @@ pub unsafe extern "C" fn HmGui_SetPaddingEx(
     mut right: libc::c_float,
     mut bottom: libc::c_float,
 ) {
-    (*self_0.group).paddingLower = Vec2::new(left, top);
-    (*self_0.group).paddingUpper = Vec2::new(right, bottom);
+    (*this.group).paddingLower = Vec2::new(left, top);
+    (*this.group).paddingUpper = Vec2::new(right, bottom);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPaddingLeft(mut padding: libc::c_float) {
-    (*self_0.group).paddingLower.x = padding;
+    (*this.group).paddingLower.x = padding;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPaddingTop(mut padding: libc::c_float) {
-    (*self_0.group).paddingLower.y = padding;
+    (*this.group).paddingLower.y = padding;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPaddingRight(mut padding: libc::c_float) {
-    (*self_0.group).paddingUpper.x = padding;
+    (*this.group).paddingUpper.x = padding;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetPaddingBottom(mut padding: libc::c_float) {
-    (*self_0.group).paddingUpper.y = padding;
+    (*this.group).paddingUpper.y = padding;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetSpacing(mut spacing: libc::c_float) {
-    (*self_0.group).spacing = spacing;
+    (*this.group).spacing = spacing;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_SetStretch(mut x: libc::c_float, mut y: libc::c_float) {
-    (*self_0.last).stretch = Vec2::new(x, y);
+    (*this.last).stretch = Vec2::new(x, y);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_GroupHasFocus(mut type_0: libc::c_int) -> bool {
-    (*self_0.group).focusable[type_0 as usize] = 1 as libc::c_int != 0;
-    return self_0.focus[type_0 as usize] == (*self_0.group).widget.hash;
+    (*this.group).focusable[type_0 as usize] = 1 as libc::c_int != 0;
+    return this.focus[type_0 as usize] == (*this.group).widget.hash;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushStyle() {
     let mut style: *mut HmGuiStyle = MemAlloc(
         ::core::mem::size_of::<HmGuiStyle>() as usize,
     ) as *mut HmGuiStyle;
-    *style = *self_0.style;
-    (*style).prev = self_0.style;
-    self_0.style = style;
+    *style = *this.style;
+    (*style).prev = this.style;
+    this.style = style;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushFont(mut font: *mut Font) {
     HmGui_PushStyle();
-    (*self_0.style).font = font;
+    (*this.style).font = font;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushTextColor(
@@ -1201,14 +1201,14 @@ pub unsafe extern "C" fn HmGui_PushTextColor(
     mut a: libc::c_float,
 ) {
     HmGui_PushStyle();
-    (*self_0.style).colorText = Vec4f_Create(r, g, b, a);
+    (*this.style).colorText = Vec4f_Create(r, g, b, a);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PopStyle(mut depth: libc::c_int) {
     let mut i: libc::c_int = 0 as libc::c_int;
     while i < depth {
-        let mut style: *mut HmGuiStyle = self_0.style;
-        self_0.style = (*style).prev;
+        let mut style: *mut HmGuiStyle = this.style;
+        this.style = (*style).prev;
         MemFree(style as *const libc::c_void);
         i += 1;
     }

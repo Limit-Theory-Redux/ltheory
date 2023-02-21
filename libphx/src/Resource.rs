@@ -81,12 +81,12 @@ unsafe extern "C" fn Resource_Resolve(
 }
 #[no_mangle]
 pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: cstr) {
-    let mut self_0: *mut PathElem = MemAlloc(
+    let mut this: *mut PathElem = MemAlloc(
         ::core::mem::size_of::<PathElem>() as usize,
     ) as *mut PathElem;
-    (*self_0).format = StrDup(format);
-    (*self_0).next = paths[type_0 as usize];
-    paths[type_0 as usize] = self_0;
+    (*this).format = StrDup(format);
+    (*this).next = paths[type_0 as usize];
+    paths[type_0 as usize] = this;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Resource_Exists(

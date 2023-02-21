@@ -19,8 +19,8 @@ pub static mut DataFormat_I32: DataFormat = 0x1404 as libc::c_int;
 #[no_mangle]
 pub static mut DataFormat_Float: DataFormat = 0x1406 as libc::c_int;
 #[no_mangle]
-pub unsafe extern "C" fn DataFormat_GetSize(mut self_0: DataFormat) -> libc::c_int {
-    match self_0 {
+pub unsafe extern "C" fn DataFormat_GetSize(mut this: DataFormat) -> libc::c_int {
+    match this {
         5121 | 5120 => return 1 as libc::c_int,
         5123 | 5122 => return 2 as libc::c_int,
         5125 | 5124 | 5126 => return 4 as libc::c_int,
