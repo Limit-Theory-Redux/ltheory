@@ -58,6 +58,7 @@ function LTheoryRedux:onInit ()
   Audio.Init()
   Audio.Set3DSettings(0.0, 10, 2);
 
+  -- Music courtesy of MesoTronik
   newSound = Sound.Load("./res/sound/system/ambiance/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg", true, false)
   Sound.SetVolume(newSound, 0.0)
   Sound.Play(newSound)
