@@ -16,26 +16,27 @@ PHX_API void        _cppTrigger_SetPosLocal       (Trigger*, Vec3f*);
 
  */
 
+use glam::Vec3;
+
 extern "C" {
-fn _cppTrigger_CreateBox(halfExtents: *mut Vec3f) -> *mut Trigger;
+fn _cppTrigger_CreateBox(halfExtents: *mut Vec3) -> *mut Trigger;
 fn _cppTrigger_Free(this: *mut Trigger);
-fn _cppTrigger_Attach(this: *mut Trigger, rb: *mut RigidBody, offset: *mut Vec3f);
+fn _cppTrigger_Attach(this: *mut Trigger, rb: *mut RigidBody, offset: *mut Vec3);
 fn _cppTrigger_Detach(this: *mut Trigger, rb: *mut RigidBody);
 fn _cppTrigger_GetBoundingBox(this: *mut Trigger, out: *mut Box3f);
 fn _cppTrigger_GetContentsCount(this: *mut Trigger) -> i32;
 fn _cppTrigger_GetContents(this: *mut Trigger, i: i32) -> *mut RigidBody;
 fn _cppTrigger_SetCollisionMask(this: *mut Trigger, i: i32);
-fn _cppTrigger_SetPos(this: *mut Trigger, pos: *mut Vec3f);
-fn _cppTrigger_SetPosLocal(this: *mut Trigger, pos: *mut Vec3f);
+fn _cppTrigger_SetPos(this: *mut Trigger, pos: *mut Vec3);
+fn _cppTrigger_SetPosLocal(this: *mut Trigger, pos: *mut Vec3);
 }
 
-pub struct Vec3f;
 pub struct Trigger;
 pub struct RigidBody;
 pub struct Box3f;
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_CreateBox(halfExtents: *mut Vec3f) -> *mut Trigger {
+pub unsafe extern "C" fn Trigger_CreateBox(halfExtents: *mut Vec3) -> *mut Trigger {
   _cppTrigger_CreateBox(halfExtents)
 }
 
@@ -45,7 +46,7 @@ pub unsafe extern "C" fn Trigger_Free(this: *mut Trigger) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_Attach(this: *mut Trigger, rb: *mut RigidBody, offset: *mut Vec3f) {
+pub unsafe extern "C" fn Trigger_Attach(this: *mut Trigger, rb: *mut RigidBody, offset: *mut Vec3) {
   _cppTrigger_Attach(this, rb, offset)
 }
 
@@ -75,11 +76,11 @@ pub unsafe extern "C" fn Trigger_SetCollisionMask(this: *mut Trigger, i: i32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_SetPos(this: *mut Trigger, pos: *mut Vec3f) {
+pub unsafe extern "C" fn Trigger_SetPos(this: *mut Trigger, pos: *mut Vec3) {
   _cppTrigger_SetPos(this, pos)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_SetPosLocal(this: *mut Trigger, pos: *mut Vec3f) {
+pub unsafe extern "C" fn Trigger_SetPosLocal(this: *mut Trigger, pos: *mut Vec3) {
   _cppTrigger_SetPosLocal(this, pos)
 }
