@@ -13,7 +13,8 @@ function MoveTo:clone ()
 end
 
 function MoveTo:getName ()
-  return format('MoveTo %s', self.target:getName())
+  local typename = Config:getObjectInfo("object_types", self.target:getType())
+  return format("MoveTo %s '%s'", typename, self.target:getName())
 end
 
 function MoveTo:onUpdateActive (e, dt)

@@ -1,5 +1,7 @@
 Config.app = 'LTheoryRedux'
 
+Config.version = "v0.004"
+
 Config.debug = {
   metrics         = true,
   window          = true, -- Debug window visible by default at launch?
@@ -52,8 +54,6 @@ Config.gen = {
 }
 
 Config.game = {
-  currentVersion = "v0.003",
-
   gameMode = 0,
 
   currentShip = nil,
@@ -230,21 +230,109 @@ Config.objectInfo = {
       { 7, "Ocean (90% - 100% water)"},
     }
   },
+  {
+    ID = "zone_subtypes",
+    name = "Zone Subtypes",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Asteroid Field"},
+      { 3, "Political Extent"},
+      { 4, "Military Extent"},
+      { 5, "Economic Extent"},
+      { 6, "Cultural Extent"},
+    }
+  },
+  {
+    ID = "ship_types",
+    name = "Ship Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Fighter"},
+      { 3, "Corvette"},
+      { 4, "Frigate"},
+      { 5, "Monitor"},
+      { 6, "Destroyer"},
+      { 7, "Cruiser"},
+      { 8, "Battleship"},
+      { 9, "Battlecruiser"},
+      {10, "Carrier"},
+      {11, "Yacht"},
+      {12, "Liner"},
+      {13, "Scout"},
+      {14, "Laboratory"},
+      {15, "Merchanter"},
+      {16, "Miner"},
+      {17, "Tanker"},
+      {18, "Transport"},
+      {19, "Ferry"},
+      {20, "Tug"},
+    }
+  },
+  {
+    ID = "station_types",
+    name = "Station Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Solar Energy Array"},
+      { 3, "Nuclear Reactor"},
+    }
+  },
+  {
+    ID = "1_subtypes",
+    name = "1 Subtypes",
+    elems = {
+      { 1, "Unknown"},
+      { 2, ""},
+      { 3, ""},
+      { 4, ""},
+      { 5, ""},
+      { 6, ""},
+    }
+  },
 }
 
-function Config:getObjectType(objname)
-  local objtype = 1
+function Config:getObjectTypeByName(objIDname, objtypename)
+  -- For a given kind of object (by ID), find the index of the object type provided
+  local objIDnum = Config:getObjectTypeIndex(objIDname)
 
-  -- Scan object types table for match against provided object's type
-  -- Return number of object type if found
-  for i = 1, #Config.objectInfo[1]["elems"] do
-    if string.match(objname, Config.objectInfo[1]["elems"][i][2]) then
-      objtype = Config.objectInfo[1]["elems"][i][1]
+  return Config:getObjectTypeByIDVal(objIDnum, objtypename)
+end
+
+function Config:getObjectTypeIndex(objIDname)
+  -- For a given kind of object (by ID name), find the index of the object type provided
+  local objIDnum = 0 -- default is "not found"
+
+  -- Find index number of given object ID in the object types table
+  for i = 1, #Config.objectInfo do
+    if string.match(objIDname, Config.objectInfo[i].ID) then
+      objIDnum = i
       break
     end
   end
 
+  return objIDnum
+end
+
+function Config:getObjectTypeByIDVal(objIDnum, objtypename)
+  -- For a given kind of object (by ID number), find the index of the object type provided
+  local objtype = 1 -- default is "Unknown"
+
+  if objIDnum > 0 then
+    -- Scan object types table for match against provided object's type
+    -- Return number of object type if found
+    for i = 1, #Config.objectInfo[objIDnum]["elems"] do
+      if string.match(objtypename, Config.objectInfo[objIDnum]["elems"][i][2]) then
+        objtype = Config.objectInfo[objIDnum]["elems"][i][1]
+        break
+      end
+    end
+  end
+
   return objtype
+end
+
+function Config:getObjectInfo(objIDname, objtypenum)
+  return Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][2]
 end
 
 function Config.getCurrentTimestamp()

@@ -15,7 +15,9 @@ function Undock:onUpdateActive (e, dt)
     e:getParent():removeDocked(e)
 
     Config.game.shipDocked = false
-    print("Undocked from " .. Config.game.currentStation:getName())
+
+    local typename = Config:getObjectInfo("object_types", Config.game.currentStation:getType())
+    printf("Undocked from %s '%s'", typename, Config.game.currentStation:getName())
   end
   e:popAction()
 end

@@ -21,7 +21,8 @@ function DockControl:onEnable ()
   self.camera:lerpFrom(pCamera.pos, pCamera.rot)
 
   Config.game.shipDocked = true
-  print("Docked at " .. Config.game.currentStation:getName())
+  local typename = Config:getObjectInfo("object_types", Config.game.currentStation:getType())
+  printf("Docked at %s '%s'", typename, Config.game.currentStation:getName())
 end
 
 function DockControl:onInput (state)

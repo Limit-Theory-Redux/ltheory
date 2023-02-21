@@ -78,17 +78,18 @@ function SystemMap:onDraw (state)
         bestDist = d
         best = e
       end
-    else
+--    else
+--      -- Non-object entities (e.g., zones)
 --printf("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
-      local p = e:getPos()
-      local x = p.x - dx
-      local y = p.z - dy
-      x = self.x + x * Config.game.mapSystemZoom + hx
-      y = self.y + y * Config.game.mapSystemZoom + hy
-      Draw.PointSize(2.0)
-      Draw.Color(1.0, 1.0, 1.0, 1)
-      Draw.Point(x, y)
-      --UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 })
+--      local p = e:getPos()
+--      local x = p.x - dx
+--      local y = p.z - dy
+--      x = self.x + x * Config.game.mapSystemZoom + hx
+--      y = self.y + y * Config.game.mapSystemZoom + hy
+--      Draw.PointSize(2.0)
+--      Draw.Color(1.0, 1.0, 1.0, 1)
+--      Draw.Point(x, y)
+--      --UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 })
     end
   end
   Draw.Color(1, 1, 1, 1)
