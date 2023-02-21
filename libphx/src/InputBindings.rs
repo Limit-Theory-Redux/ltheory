@@ -136,8 +136,7 @@ pub static mut InputBindings_DefaultReleaseThreshold: f32 = 0.;
 pub static mut InputBindings_DefaultPressThreshold: f32 = 0.;
 
 static mut BindCount: libc::c_int = 4 as libc::c_int;
-static mut this: InputBindings = {
-    let mut init = InputBindings {
+static mut this: InputBindings =  InputBindings {
         activeBindings_size: 0 as libc::c_int,
         activeBindings_capacity: 0,
         activeBindings_data: 0 as *const InputBinding as *mut InputBinding,
@@ -145,8 +144,6 @@ static mut this: InputBindings = {
         downBindings_capacity: 0,
         downBindings_data: 0 as *const DownBinding as *mut DownBinding,
     };
-    init
-};
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Init() {
     if (this.activeBindings_capacity < 64 as libc::c_int) as libc::c_int
@@ -188,10 +185,7 @@ unsafe extern "C" fn InputBindings_RaiseCallback(
 }
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBinding) {
-    let mut value = {
-        let mut init = Vec2::ZERO;
-        init
-    };
+    let mut value =  Vec2::ZERO;
     let mut axisValues: [*mut f32; 2] = [&mut value.x, &mut value.y];
     let mut iAxis: libc::c_int = 0 as libc::c_int;
     while iAxis
@@ -289,13 +283,10 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                     binding,
                     (*button).onPressed,
                 );
-                let mut downBinding: DownBinding = {
-                    let mut init = DownBinding {
+                let mut downBinding: DownBinding =  DownBinding {
                         binding: 0 as *mut InputBinding,
                         button: 0 as *mut AggregateButton,
                     };
-                    init
-                };
                 downBinding.binding = binding;
                 downBinding.button = button;
                 if (this.downBindings_capacity == this.downBindings_size)
@@ -371,16 +362,13 @@ pub unsafe extern "C" fn InputBindings_Update() {
         );
         i += 1;
     }
-    let mut event: InputEvent = {
-        let mut init = InputEvent {
+    let mut event: InputEvent =  InputEvent {
             timestamp: 0,
             device: Device { type_0: 0, id: 0 },
             button: 0,
             value: 0.,
             state: 0,
         };
-        init
-    };
     while Input_GetNextEvent(&mut event) {
         let mut binding: *mut InputBinding = (this.activeBindings_data)
             .offset(this.activeBindings_size as isize)

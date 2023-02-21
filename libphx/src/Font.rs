@@ -441,10 +441,7 @@ unsafe extern "C" fn Vec4f_Create(
     mut z: f32,
     mut w: f32,
 ) -> Vec4f {
-    let mut this: Vec4f = {
-        let mut init = Vec4f { x: x, y: y, z: z, w: w };
-        init
-    };
+    let mut this: Vec4f =  Vec4f { x: x, y: y, z: z, w: w };
     return this;
 }
 

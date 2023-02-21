@@ -76,14 +76,11 @@ unsafe extern "C" fn Sin(mut t: f64) -> f64 {
 #[inline]
 unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
     let mut d: f32 = Vec3::dot(a, b);
-    let mut this: Vec3 = {
-        let mut init = Vec3 {
+    let mut this: Vec3 =  Vec3 {
             x: a.x - d * b.x,
             y: a.y - d * b.y,
             z: a.z - d * b.z,
         };
-        init
-    };
     return this;
 }
 #[inline]
@@ -93,23 +90,17 @@ unsafe extern "C" fn Vec4f_Create(
     mut z: f32,
     mut w: f32,
 ) -> Vec4f {
-    let mut this: Vec4f = {
-        let mut init = Vec4f { x: x, y: y, z: z, w: w };
-        init
-    };
+    let mut this: Vec4f =  Vec4f { x: x, y: y, z: z, w: w };
     return this;
 }
 static mut alphaStack: [f32; 16] = [0.; 16];
 static mut alphaIndex: libc::c_int = -(1 as libc::c_int);
-static mut color: Vec4f = {
-    let mut init = Vec4f {
+static mut color: Vec4f =  Vec4f {
         x: 1.0f32,
         y: 1.0f32,
         z: 1.0f32,
         w: 1.0f32,
     };
-    init
-};
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PushAlpha(mut a: f32) {
     if alphaIndex + 1 as libc::c_int >= 16 as libc::c_int {

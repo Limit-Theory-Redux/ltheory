@@ -403,14 +403,11 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: cstr, mut this: *mut Shader) -> c
             varName.as_mut_ptr(),
         ) == 2 as libc::c_int
         {
-            let mut var: ShaderVar = {
-                let mut init = ShaderVar {
+            let mut var: ShaderVar =  ShaderVar {
                     type_0: 0 as libc::c_int,
                     name: 0 as *const libc::c_char,
                     index: 0,
                 };
-                init
-            };
             var.type_0 = ShaderVarType_FromStr(varType.as_mut_ptr() as cstr);
             if var.type_0 == 0 as libc::c_int {
                 Fatal(

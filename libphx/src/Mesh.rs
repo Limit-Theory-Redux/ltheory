@@ -161,14 +161,11 @@ unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
-    let mut center: Vec3 = {
-        let mut init = Vec3 {
+    let mut center: Vec3 =  Vec3 {
             x: (this.lower.x + this.upper.x) / 2.0f32,
             y: (this.lower.y + this.upper.y) / 2.0f32,
             z: (this.lower.z + this.upper.z) / 2.0f32,
         };
-        init
-    };
     return center;
 }
 #[inline]

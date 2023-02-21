@@ -57,15 +57,12 @@ unsafe extern "C" fn StrMap_GetBucket(
         );
 }
 unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
-    let mut newMap: StrMap = {
-        let mut init = StrMap {
+    let mut newMap: StrMap =  StrMap {
             capacity: ((*this).capacity)
                 .wrapping_mul(2 as libc::c_int as libc::c_uint),
             size: 0 as libc::c_int as uint32,
             data: 0 as *mut Node,
         };
-        init
-    };
     newMap
         .data = MemAllocZero(
         (::core::mem::size_of::<Node>())

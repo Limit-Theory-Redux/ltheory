@@ -65,14 +65,11 @@ pub unsafe extern "C" fn Polygon_ToPlane(
 ) {
     let mut v: *mut Vec3 = (*polygon).vertices_data;
     let mut vLen: int32 = (*polygon).vertices_size;
-    let mut n: DVec3 = {
-        let mut init = DVec3 {
+    let mut n: DVec3 =  DVec3 {
             x: 0 as libc::c_int as f64,
             y: 0.,
             z: 0.,
         };
-        init
-    };
     let mut centroid = DVec3::ZERO;
     let vCurAsF32 = *v.offset((vLen - 1) as isize);
     let mut vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
@@ -99,14 +96,11 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(
 ) {
     let mut v: *mut Vec3 = ((*polygon).vertices_data).offset(0);
     let mut vLen: int32 = (*polygon).vertices_size;
-    let mut n: Vec3 = {
-        let mut init = Vec3 {
+    let mut n: Vec3 =  Vec3 {
             x: 0.0f32,
             y: 0.,
             z: 0.,
         };
-        init
-    };
     let mut i: int32 = vLen - 1 as libc::c_int;
     let mut j: int32 = 0 as libc::c_int;
     while j < vLen {
@@ -145,10 +139,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
         if bSide as libc::c_int == 1 as libc::c_int {
             if aSide as libc::c_int == 2 as libc::c_int {
                 let mut i = Vec3::ZERO;
-                let mut lineSegment: LineSegment = {
-                    let mut init = LineSegment { p0: b, p1: a };
-                    init
-                };
+                let mut lineSegment: LineSegment =  LineSegment { p0: b, p1: a };
                 let mut hit: bool = Intersect_LineSegmentPlane(
                     &mut lineSegment,
                     &mut splitPlane,
@@ -221,10 +212,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
         } else if bSide as libc::c_int == 2 as libc::c_int {
             if aSide as libc::c_int == 1 as libc::c_int {
                 let mut i_0 = Vec3::ZERO;
-                let mut lineSegment_0: LineSegment = {
-                    let mut init = LineSegment { p0: a, p1: b };
-                    init
-                };
+                let mut lineSegment_0: LineSegment =  LineSegment { p0: a, p1: b };
                 let mut hit_0: bool = Intersect_LineSegmentPlane(
                     &mut lineSegment_0,
                     &mut splitPlane,

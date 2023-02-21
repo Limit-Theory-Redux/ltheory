@@ -66,38 +66,26 @@ unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
 }
 #[inline]
 unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
-    let mut result: Box3f = {
-        let mut init = Box3f {
+    let mut result: Box3f =  Box3f {
             lower: lower,
             upper: upper,
         };
-        init
-    };
     return result;
 }
 #[inline]
 unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
-    let mut this: Box3f = {
-        let mut init = Box3f {
-            lower: {
-                let mut init = Vec3 {
+    let mut this: Box3f =  Box3f {
+            lower:  Vec3 {
                     x: Minf(a.lower.x, b.lower.x),
                     y: Minf(a.lower.y, b.lower.y),
                     z: Minf(a.lower.z, b.lower.z),
-                };
-                init
-            },
-            upper: {
-                let mut init = Vec3 {
+                },
+            upper:  Vec3 {
                     x: Maxf(a.upper.x, b.upper.x),
                     y: Maxf(a.upper.y, b.upper.y),
                     z: Maxf(a.upper.z, b.upper.z),
-                };
-                init
-            },
+                },
         };
-        init
-    };
     return this;
 }
 

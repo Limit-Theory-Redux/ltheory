@@ -101,50 +101,35 @@ unsafe extern "C" fn Box3f_IntersectsBox(mut a: Box3f, mut b: Box3f) -> bool {
 }
 #[inline]
 unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
-    let mut this: Box3f = {
-        let mut init = Box3f {
-            lower: {
-                let mut init = Vec3 {
+    let mut this: Box3f =  Box3f {
+            lower:  Vec3 {
                     x: Maxf(a.lower.x, b.lower.x),
                     y: Maxf(a.lower.y, b.lower.y),
                     z: Maxf(a.lower.z, b.lower.z),
-                };
-                init
-            },
-            upper: {
-                let mut init = Vec3 {
+                },
+            upper:  Vec3 {
                     x: Minf(a.upper.x, b.upper.x),
                     y: Minf(a.upper.y, b.upper.y),
                     z: Minf(a.upper.z, b.upper.z),
-                };
-                init
-            },
+                },
         };
-        init
-    };
     return this;
 }
 #[inline]
 unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
-    let mut center: Vec3 = {
-        let mut init = Vec3 {
+    let mut center: Vec3 =  Vec3 {
             x: (this.lower.x + this.upper.x) / 2.0f32,
             y: (this.lower.y + this.upper.y) / 2.0f32,
             z: (this.lower.z + this.upper.z) / 2.0f32,
         };
-        init
-    };
     return center;
 }
 #[inline]
 unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
-    let mut result: Box3f = {
-        let mut init = Box3f {
+    let mut result: Box3f =  Box3f {
             lower: lower,
             upper: upper,
         };
-        init
-    };
     return result;
 }
 #[inline]
@@ -356,142 +341,70 @@ unsafe extern "C" fn Octree_AddDepth(
     let U: *const Vec3 = &mut (*this).box_0.upper;
     let C: Vec3 = Box3f_Center((*this).box_0);
     let childBound: [Box3f; 8] = [
-        {
-            let mut init = Box3f {
-                lower: {
-                    let mut init = Vec3 {
+         Box3f {
+                lower:  Vec3 {
                         x: (*L).x,
                         y: (*L).y,
                         z: (*L).z,
-                    };
-                    init
-                },
-                upper: {
-                    let mut init = Vec3 { x: C.x, y: C.y, z: C.z };
-                    init
-                },
-            };
-            init
-        },
-        {
-            let mut init = Box3f {
-                lower: {
-                    let mut init = Vec3 {
+                    },
+                upper:  Vec3 { x: C.x, y: C.y, z: C.z },
+            },
+         Box3f {
+                lower:  Vec3 {
                         x: C.x,
                         y: (*L).y,
                         z: (*L).z,
-                    };
-                    init
-                },
-                upper: {
-                    let mut init = Vec3 { x: (*U).x, y: C.y, z: C.z };
-                    init
-                },
-            };
-            init
-        },
-        {
-            let mut init = Box3f {
-                lower: {
-                    let mut init = Vec3 {
+                    },
+                upper:  Vec3 { x: (*U).x, y: C.y, z: C.z },
+            },
+         Box3f {
+                lower:  Vec3 {
                         x: (*L).x,
                         y: C.y,
                         z: (*L).z,
-                    };
-                    init
-                },
-                upper: {
-                    let mut init = Vec3 { x: C.x, y: (*U).y, z: C.z };
-                    init
-                },
-            };
-            init
-        },
-        {
-            let mut init = Box3f {
-                lower: {
-                    let mut init = Vec3 { x: C.x, y: C.y, z: (*L).z };
-                    init
-                },
-                upper: {
-                    let mut init = Vec3 {
+                    },
+                upper:  Vec3 { x: C.x, y: (*U).y, z: C.z },
+            },
+         Box3f {
+                lower:  Vec3 { x: C.x, y: C.y, z: (*L).z },
+                upper:  Vec3 {
                         x: (*U).x,
                         y: (*U).y,
                         z: C.z,
-                    };
-                    init
-                },
-            };
-            init
-        },
-        {
-            let mut init = Box3f {
-                lower: {
-                    let mut init = Vec3 {
+                    },
+            },
+         Box3f {
+                lower:  Vec3 {
                         x: (*L).x,
                         y: (*L).y,
                         z: C.z,
-                    };
-                    init
-                },
-                upper: {
-                    let mut init = Vec3 { x: C.x, y: C.y, z: (*U).z };
-                    init
-                },
-            };
-            init
-        },
-        {
-            let mut init = Box3f {
-                lower: {
-                    let mut init = Vec3 { x: C.x, y: (*L).y, z: C.z };
-                    init
-                },
-                upper: {
-                    let mut init = Vec3 {
+                    },
+                upper:  Vec3 { x: C.x, y: C.y, z: (*U).z },
+            },
+         Box3f {
+                lower:  Vec3 { x: C.x, y: (*L).y, z: C.z },
+                upper:  Vec3 {
                         x: (*U).x,
                         y: C.y,
                         z: (*U).z,
-                    };
-                    init
-                },
-            };
-            init
-        },
-        {
-            let mut init = Box3f {
-                lower: {
-                    let mut init = Vec3 { x: (*L).x, y: C.y, z: C.z };
-                    init
-                },
-                upper: {
-                    let mut init = Vec3 {
+                    },
+            },
+         Box3f {
+                lower:  Vec3 { x: (*L).x, y: C.y, z: C.z },
+                upper:  Vec3 {
                         x: C.x,
                         y: (*U).y,
                         z: (*U).z,
-                    };
-                    init
-                },
-            };
-            init
-        },
-        {
-            let mut init = Box3f {
-                lower: {
-                    let mut init = Vec3 { x: C.x, y: C.y, z: C.z };
-                    init
-                },
-                upper: {
-                    let mut init = Vec3 {
+                    },
+            },
+         Box3f {
+                lower:  Vec3 { x: C.x, y: C.y, z: C.z },
+                upper:  Vec3 {
                         x: (*U).x,
                         y: (*U).y,
                         z: (*U).z,
-                    };
-                    init
-                },
-            };
-            init
-        },
+                    },
+            },
     ];
     let mut intersections: libc::c_int = 0 as libc::c_int;
     let mut lastIntersection: libc::c_int = 0 as libc::c_int;

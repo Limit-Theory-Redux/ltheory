@@ -244,15 +244,12 @@ pub unsafe extern "C" fn Intersect_LineSegmentPlane(
     mut pHit: *mut Vec3,
 ) -> bool {
     let mut dir: Vec3 = (*lineSegment).p1 - (*lineSegment).p0;
-    let mut ray: Ray = {
-        let mut init = Ray {
+    let mut ray: Ray =  Ray {
             p: (*lineSegment).p0,
             dir: dir,
             tMin: 0.0f32,
             tMax: 1.0f32,
         };
-        init
-    };
     return Intersect_RayPlane(&mut ray, plane, pHit);
 }
 #[no_mangle]
@@ -260,24 +257,18 @@ pub unsafe extern "C" fn Intersect_RectRect(
     mut a: *const Vec4f,
     mut b: *const Vec4f,
 ) -> bool {
-    let mut a2: Vec4f = {
-        let mut init = Vec4f {
+    let mut a2: Vec4f =  Vec4f {
             x: (*a).x + Minf((*a).z, 0.0f32),
             y: (*a).y + Minf((*a).w, 0.0f32),
             z: Absf((*a).z),
             w: Absf((*a).w),
         };
-        init
-    };
-    let mut b2: Vec4f = {
-        let mut init = Vec4f {
+    let mut b2: Vec4f =  Vec4f {
             x: (*b).x + Minf((*b).z, 0.0f32),
             y: (*b).y + Minf((*b).w, 0.0f32),
             z: Absf((*b).z),
             w: Absf((*b).w),
         };
-        init
-    };
     return Intersect_RectRectFast(&mut a2, &mut b2);
 }
 #[no_mangle]

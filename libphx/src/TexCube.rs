@@ -145,54 +145,36 @@ unsafe extern "C" fn Min(
 }
 
 static mut kFaces: [Face; 6] = [
-    {
-        let mut init = Face {
+     Face {
             face: 0x8515 as libc::c_int,
             look: Vec3::new(1.0f32, 0.0f32, 0.0f32),
             up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        };
-        init
-    },
-    {
-        let mut init = Face {
+        },
+     Face {
             face: 0x8516 as libc::c_int,
             look: Vec3::new(-1.0f32, 0.0f32, 0.0f32),
             up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        };
-        init
-    },
-    {
-        let mut init = Face {
+        },
+     Face {
             face: 0x8517 as libc::c_int,
             look: Vec3::new(0.0f32, 1.0f32, 0.0f32),
             up: Vec3::new(0.0f32, 0.0f32, -1.0f32),
-        };
-        init
-    },
-    {
-        let mut init = Face {
+        },
+     Face {
             face: 0x8518 as libc::c_int,
             look: Vec3::new(0.0f32, -1.0f32, 0.0f32),
             up: Vec3::new(0.0f32, 0.0f32, 1.0f32),
-        };
-        init
-    },
-    {
-        let mut init = Face {
+        },
+     Face {
             face: 0x8519 as libc::c_int,
             look: Vec3::new(0.0f32, 0.0f32, 1.0f32),
             up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        };
-        init
-    },
-    {
-        let mut init = Face {
+        },
+     Face {
             face: 0x851a as libc::c_int,
             look: Vec3::new(0.0f32, 0.0f32, -1.0f32),
             up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        };
-        init
-    },
+        },
 ];
 static mut kFaceExt: [cstr; 6] = [
     b"px\0" as *const u8 as *const libc::c_char,

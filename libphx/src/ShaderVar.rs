@@ -156,10 +156,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat3(
     mut y: f32,
     mut z: f32,
 ) {
-    let mut value: Vec3 = {
-        let mut init = Vec3 { x: x, y: y, z: z };
-        init
-    };
+    let mut value: Vec3 =  Vec3 { x: x, y: y, z: z };
     ShaderVar_Push(
         name,
         0x3 as libc::c_int,
@@ -174,10 +171,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat4(
     mut z: f32,
     mut w: f32,
 ) {
-    let mut value: Vec4f = {
-        let mut init = Vec4f { x: x, y: y, z: z, w: w };
-        init
-    };
+    let mut value: Vec4f =  Vec4f { x: x, y: y, z: z, w: w };
     ShaderVar_Push(
         name,
         0x4 as libc::c_int,

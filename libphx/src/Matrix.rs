@@ -517,8 +517,7 @@ pub unsafe extern "C" fn Matrix_ITranspose(mut this: *mut Matrix) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Identity() -> *mut Matrix {
-    let identity: Matrix = {
-        let mut init = Matrix {
+    let identity: Matrix =  Matrix {
             m: [
                 1.0f32,
                 0.0f32,
@@ -538,8 +537,6 @@ pub unsafe extern "C" fn Matrix_Identity() -> *mut Matrix {
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&identity);
 }
 #[no_mangle]
@@ -551,8 +548,7 @@ pub unsafe extern "C" fn Matrix_LookAt(
     let mut z: Vec3 = (*pos - *at).normalize();
     let mut x: Vec3 = Vec3::cross(*up, z).normalize();
     let mut y: Vec3 = Vec3::cross(z, x);
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 x.x,
                 y.x,
@@ -572,8 +568,6 @@ pub unsafe extern "C" fn Matrix_LookAt(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -585,8 +579,7 @@ pub unsafe extern "C" fn Matrix_LookUp(
     let mut z: Vec3 = (*look * -1.0f32).normalize();
     let mut x: Vec3 = Vec3::cross(*up, z).normalize();
     let mut y: Vec3 = Vec3::cross(z, x);
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 x.x,
                 y.x,
@@ -606,8 +599,6 @@ pub unsafe extern "C" fn Matrix_LookUp(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -620,8 +611,7 @@ pub unsafe extern "C" fn Matrix_Perspective(
     let mut rads: f64 = (3.14159265f32 * degreesFovy) as f64
         / 360.0f64;
     let mut cot: f64 = 1.0f64 / Tan(rads);
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 (cot / aspect as f64) as f32,
                 0.0f32,
@@ -642,8 +632,6 @@ pub unsafe extern "C" fn Matrix_Perspective(
                 0.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -678,8 +666,7 @@ pub unsafe extern "C" fn Matrix_Product(
 pub unsafe extern "C" fn Matrix_RotationX(mut rads: f32) -> *mut Matrix {
     let mut c: f32 = Cos(rads as f64) as f32;
     let mut s: f32 = Sin(rads as f64) as f32;
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 1.0f32,
                 0.0f32,
@@ -699,16 +686,13 @@ pub unsafe extern "C" fn Matrix_RotationX(mut rads: f32) -> *mut Matrix {
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_RotationY(mut rads: f32) -> *mut Matrix {
     let mut c: f32 = Cos(rads as f64) as f32;
     let mut s: f32 = Sin(rads as f64) as f32;
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 c,
                 0.0f32,
@@ -728,16 +712,13 @@ pub unsafe extern "C" fn Matrix_RotationY(mut rads: f32) -> *mut Matrix {
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_RotationZ(mut rads: f32) -> *mut Matrix {
     let mut c: f32 = Cos(rads as f64) as f32;
     let mut s: f32 = Sin(rads as f64) as f32;
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 c,
                 -s,
@@ -757,8 +738,6 @@ pub unsafe extern "C" fn Matrix_RotationZ(mut rads: f32) -> *mut Matrix {
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -767,8 +746,7 @@ pub unsafe extern "C" fn Matrix_Scaling(
     mut sy: f32,
     mut sz: f32,
 ) -> *mut Matrix {
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 sx,
                 0.0f32,
@@ -788,8 +766,6 @@ pub unsafe extern "C" fn Matrix_Scaling(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -821,8 +797,7 @@ pub unsafe extern "C" fn Matrix_Translation(
     mut ty: f32,
     mut tz: f32,
 ) -> *mut Matrix {
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 1.0f32,
                 0.0f32,
@@ -842,8 +817,6 @@ pub unsafe extern "C" fn Matrix_Translation(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -858,8 +831,7 @@ pub unsafe extern "C" fn Matrix_YawPitchRoll(
     let mut sb: f32 = Sin(yaw as f64) as f32;
     let mut cy: f32 = Cos(pitch as f64) as f32;
     let mut sy: f32 = Sin(pitch as f64) as f32;
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 ca * cb,
                 ca * sb * sy - sa * cy,
@@ -879,8 +851,6 @@ pub unsafe extern "C" fn Matrix_YawPitchRoll(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -890,70 +860,46 @@ pub unsafe extern "C" fn Matrix_MulBox(
     mut in_0: *const Box3f,
 ) {
     let corners: [Vec3; 8] = [
-        {
-            let mut init = Vec3 {
+         Vec3 {
                 x: (*in_0).lower.x,
                 y: (*in_0).lower.y,
                 z: (*in_0).lower.z,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
+            },
+         Vec3 {
                 x: (*in_0).upper.x,
                 y: (*in_0).lower.y,
                 z: (*in_0).lower.z,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
+            },
+         Vec3 {
                 x: (*in_0).lower.x,
                 y: (*in_0).upper.y,
                 z: (*in_0).lower.z,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
+            },
+         Vec3 {
                 x: (*in_0).upper.x,
                 y: (*in_0).upper.y,
                 z: (*in_0).lower.z,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
+            },
+         Vec3 {
                 x: (*in_0).lower.x,
                 y: (*in_0).lower.y,
                 z: (*in_0).upper.z,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
+            },
+         Vec3 {
                 x: (*in_0).upper.x,
                 y: (*in_0).lower.y,
                 z: (*in_0).upper.z,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
+            },
+         Vec3 {
                 x: (*in_0).lower.x,
                 y: (*in_0).upper.y,
                 z: (*in_0).upper.z,
-            };
-            init
-        },
-        {
-            let mut init = Vec3 {
+            },
+         Vec3 {
                 x: (*in_0).upper.x,
                 y: (*in_0).upper.y,
                 z: (*in_0).upper.z,
-            };
-            init
-        },
+            },
     ];
     let mut result = Vec3::ZERO;
     Matrix_MulPoint(
@@ -1104,8 +1050,7 @@ pub unsafe extern "C" fn Matrix_FromBasis(
     mut y: *const Vec3,
     mut z: *const Vec3,
 ) -> *mut Matrix {
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 (*x).x,
                 (*y).x,
@@ -1125,8 +1070,6 @@ pub unsafe extern "C" fn Matrix_FromBasis(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -1140,8 +1083,7 @@ pub unsafe extern "C" fn Matrix_FromPosRot(
     Quat_GetAxisY(rot, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(rot, &mut z);
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 x.x,
                 y.x,
@@ -1161,8 +1103,6 @@ pub unsafe extern "C" fn Matrix_FromPosRot(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -1177,8 +1117,7 @@ pub unsafe extern "C" fn Matrix_FromPosRotScale(
     Quat_GetAxisY(rot, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(rot, &mut z);
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 scale * x.x,
                 scale * y.x,
@@ -1198,8 +1137,6 @@ pub unsafe extern "C" fn Matrix_FromPosRotScale(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -1209,8 +1146,7 @@ pub unsafe extern "C" fn Matrix_FromPosBasis(
     mut y: *const Vec3,
     mut z: *const Vec3,
 ) -> *mut Matrix {
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 (*x).x,
                 (*y).x,
@@ -1230,8 +1166,6 @@ pub unsafe extern "C" fn Matrix_FromPosBasis(
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
@@ -1242,8 +1176,7 @@ pub unsafe extern "C" fn Matrix_FromQuat(mut q: *const Quat) -> *mut Matrix {
     Quat_GetAxisY(q, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(q, &mut z);
-    let mut result: Matrix = {
-        let mut init = Matrix {
+    let mut result: Matrix =  Matrix {
             m: [
                 x.x,
                 y.x,
@@ -1263,37 +1196,26 @@ pub unsafe extern "C" fn Matrix_FromQuat(mut q: *const Quat) -> *mut Matrix {
                 1.0f32,
             ],
         };
-        init
-    };
     return Matrix_Clone(&mut result);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_ToQuat(mut this: *const Matrix, mut q: *mut Quat) {
     let mut m: *const f32 = this as *const f32;
-    let mut x: Vec3 = {
-        let mut init = Vec3 {
+    let mut x: Vec3 =  Vec3 {
             x: *m.offset(0),
             y: *m.offset(4),
             z: *m.offset(8),
         };
-        init
-    };
-    let mut y: Vec3 = {
-        let mut init = Vec3 {
+    let mut y: Vec3 =  Vec3 {
             x: *m.offset(1),
             y: *m.offset(5),
             z: *m.offset(9),
         };
-        init
-    };
-    let mut z: Vec3 = {
-        let mut init = Vec3 {
+    let mut z: Vec3 =  Vec3 {
             x: *m.offset(2),
             y: *m.offset(6),
             z: *m.offset(10),
         };
-        init
-    };
     Quat_FromBasis(&mut x, &mut y, &mut z, q);
 }
 #[no_mangle]

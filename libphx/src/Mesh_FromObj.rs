@@ -194,15 +194,12 @@ unsafe extern "C" fn ConsumeCharacter(
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
     let mut bytesSize: libc::c_int = StrLen(bytes) as libc::c_int;
-    let mut s: ParseState = {
-        let mut init = ParseState {
+    let mut s: ParseState =  ParseState {
             cursor: 0 as *const libc::c_char,
             endOfData: 0 as *const libc::c_char,
             lineStart: 0 as *const libc::c_char,
             lineNumber: 0,
         };
-        init
-    };
     s.cursor = bytes;
     s.endOfData = (s.cursor).offset(bytesSize as isize);
     let mut mesh: *mut Mesh = Mesh_Create();
@@ -459,14 +456,11 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 let mut face_0: *mut VertexIndices = &mut *vertexIndices
                     .as_mut_ptr()
                     .offset(i as isize) as *mut VertexIndices;
-                let mut vertex: Vertex = {
-                    let mut init = Vertex {
+                let mut vertex: Vertex =  Vertex {
                         p: Vec3 { x: 0., y: 0., z: 0. },
                         n: Vec3 { x: 0., y: 0., z: 0. },
                         uv: Vec2::ZERO,
                     };
-                    init
-                };
                 (*face_0).iP
                     += if (*face_0).iP < 0 as libc::c_int {
                         positions_size

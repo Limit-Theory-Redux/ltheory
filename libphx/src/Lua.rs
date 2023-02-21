@@ -545,8 +545,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
     stack_data = 0 as *mut cstr;
     let mut iStack: libc::c_int = 0 as libc::c_int;
     loop {
-        let mut ar: lua_Debug = {
-            let mut init = lua_Debug {
+        let mut ar: lua_Debug =  lua_Debug {
                 event: 0,
                 name: 0 as *const libc::c_char,
                 namewhat: 0 as *const libc::c_char,
@@ -559,8 +558,6 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 short_src: [0; 60],
                 i_ci: 0,
             };
-            init
-        };
         let mut result: libc::c_int = lua_getstack(this, iStack, &mut ar);
         if result == 0 as libc::c_int {
             break;

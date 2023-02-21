@@ -139,8 +139,7 @@ pub struct UIRenderer {
     pub textPool: *mut MemPool,
 }
 
-static mut this: UIRenderer = {
-    let mut init = UIRenderer {
+static mut this: UIRenderer =  UIRenderer {
         root: 0 as *const UIRendererLayer as *mut UIRendererLayer,
         layer: 0 as *const UIRendererLayer as *mut UIRendererLayer,
         layerPool: 0 as *const MemPool as *mut MemPool,
@@ -149,8 +148,6 @@ static mut this: UIRenderer = {
         rectPool: 0 as *const MemPool as *mut MemPool,
         textPool: 0 as *const MemPool as *mut MemPool,
     };
-    init
-};
 unsafe extern "C" fn UIRenderer_Init() {
     static mut init: bool = 0 as libc::c_int != 0;
     if init {

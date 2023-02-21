@@ -173,14 +173,11 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
     mut name: cstr,
     mut x: f32,
 ) {
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Float,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asFloat = x;
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -210,14 +207,11 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
     mut x: f32,
     mut y: f32,
 ) {
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Float2,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asFloat2 = Vec2::new(x, y);
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -248,14 +242,11 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
     mut y: f32,
     mut z: f32,
 ) {
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Float3,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asFloat3 = Vec3::new(x, y, z);
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -287,14 +278,11 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
     mut z: f32,
     mut w: f32,
 ) {
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Float4,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asFloat4 = Vec4::new(x, y, z, w);
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -323,14 +311,11 @@ pub unsafe extern "C" fn ShaderState_SetInt(
     mut name: cstr,
     mut x: libc::c_int,
 ) {
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Int,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asInt = x;
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -359,14 +344,11 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
     mut name: cstr,
     mut x: *mut Matrix,
 ) {
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Matrix,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asMatrix = x;
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -396,14 +378,11 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
     mut x: *mut Tex1D,
 ) {
     Tex1D_Acquire(x);
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Tex1D,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asTex1D = x;
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -433,14 +412,11 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
     mut x: *mut Tex2D,
 ) {
     Tex2D_Acquire(x);
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Tex2D,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asTex2D = x;
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -470,14 +446,11 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
     mut x: *mut Tex3D,
 ) {
     Tex3D_Acquire(x);
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_Tex3D,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asTex3D = x;
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
@@ -507,14 +480,11 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
     mut x: *mut TexCube,
 ) {
     TexCube_Acquire(x);
-    let mut elem: Elem = {
-        let mut init = Elem {
+    let mut elem: Elem =  Elem {
             type_0: ElemType_TexCube,
             index: Shader_GetVariable((*this).shader, name),
             data: C2RustUnnamed { asFloat: 0. },
         };
-        init
-    };
     elem.data.asTexCube = x;
     if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
