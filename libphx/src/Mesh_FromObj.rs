@@ -228,7 +228,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
     normals_size = 0 as libc::c_int;
     normals_data = 0 as *mut Vec3;
     if (positions_capacity < (0.008f32 * bytesSize as libc::c_float) as int32)
-        as libc::c_int as libc::c_long != 0
+        as libc::c_long != 0
     {
         positions_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
         let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
         );
     }
     if (normals_capacity < (0.008f32 * bytesSize as libc::c_float) as int32)
-        as libc::c_int as libc::c_long != 0
+        as libc::c_long != 0
     {
         normals_capacity = (0.008f32 * bytesSize as libc::c_float) as int32;
         let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
@@ -301,7 +301,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     &mut s,
                 );
             }
-            if (positions_capacity == positions_size) as libc::c_int as libc::c_long != 0
+            if (positions_capacity == positions_size) as libc::c_long != 0
             {
                 positions_capacity = if positions_capacity != 0 {
                     positions_capacity * 2 as libc::c_int
@@ -340,7 +340,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     &mut s,
                 );
             }
-            if (uvs_capacity == uvs_size) as libc::c_int as libc::c_long != 0 {
+            if (uvs_capacity == uvs_size) as libc::c_long != 0 {
                 uvs_capacity = if uvs_capacity != 0 {
                     uvs_capacity * 2 as libc::c_int
                 } else {
@@ -379,7 +379,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                     &mut s,
                 );
             }
-            if (normals_capacity == normals_size) as libc::c_int as libc::c_long != 0 {
+            if (normals_capacity == normals_size) as libc::c_long != 0 {
                 normals_capacity = if normals_capacity != 0 {
                     normals_capacity * 2 as libc::c_int
                 } else {

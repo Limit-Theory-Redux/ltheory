@@ -30,7 +30,7 @@ pub type va_list = __builtin_va_list;
 
 #[inline]
 unsafe extern "C" fn StrBuffer_GrowTo(mut this: *mut StrBuffer, mut newSize: uint32) {
-    if (newSize > (*this).capacity) as libc::c_int as libc::c_long != 0 {
+    if (newSize > (*this).capacity) as libc::c_long != 0 {
         while (*this).capacity < newSize {
             (*this)
                 .capacity = ((*this).capacity as libc::c_uint)
@@ -119,7 +119,7 @@ unsafe extern "C" fn StrBuffer_SetImpl(
         format,
         args,
     );
-    if (newSize as uint32 <= (*this).capacity) as libc::c_int as libc::c_long != 0 {
+    if (newSize as uint32 <= (*this).capacity) as libc::c_long != 0 {
         (*this).size = newSize as uint32;
         return 0 as libc::c_int;
     } else {
@@ -135,7 +135,7 @@ pub unsafe extern "C" fn StrBuffer_Set(
     let mut args_0: va_list = 0 as *mut libc::c_char;
     args_0 = &args as *const VaListImpl as va_list;
     let mut neededSpace: int32 = StrBuffer_SetImpl(this, format, args_0);
-    if (neededSpace > 0 as libc::c_int) as libc::c_int as libc::c_long != 0 {
+    if (neededSpace > 0 as libc::c_int) as libc::c_long != 0 {
         StrBuffer_GrowTo(
             this,
             ((*this).capacity).wrapping_add(neededSpace as libc::c_uint),

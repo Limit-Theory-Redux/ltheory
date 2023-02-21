@@ -161,7 +161,7 @@ pub unsafe extern "C" fn InputBindings_Init() {
             (this.activeBindings_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    if (this.downBindings_capacity < 8 as libc::c_int) as libc::c_int as libc::c_long
+    if (this.downBindings_capacity < 8 as libc::c_int) as libc::c_long
         != 0
     {
         this.downBindings_capacity = 8 as libc::c_int;
@@ -299,7 +299,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                 downBinding.binding = binding;
                 downBinding.button = button;
                 if (this.downBindings_capacity == this.downBindings_size)
-                    as libc::c_int as libc::c_long != 0
+                    as libc::c_long != 0
                 {
                     this
                         .downBindings_capacity = if this.downBindings_capacity != 0 {

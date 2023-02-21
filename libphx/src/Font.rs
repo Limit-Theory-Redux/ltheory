@@ -636,10 +636,10 @@ pub unsafe extern "C" fn Font_Draw(
                 y0,
                 x1,
                 y1,
-                0 as libc::c_int as libc::c_float,
-                0 as libc::c_int as libc::c_float,
-                1 as libc::c_int as libc::c_float,
-                1 as libc::c_int as libc::c_float,
+                0.0f32,
+                0.0f32,
+                1.0f32,
+                1.0f32,
             );
             x += (*glyph).advance as libc::c_float;
             glyphLast = (*glyph).index;
@@ -651,10 +651,10 @@ pub unsafe extern "C" fn Font_Draw(
         codepoint = *fresh2 as uint32;
     }
     Draw_Color(
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
+        1.0f32,
+        1.0f32,
+        1.0f32,
+        1.0f32,
     );
     RenderState_PopBlendMode();
     Profiler_End();
@@ -697,10 +697,10 @@ pub unsafe extern "C" fn Font_DrawShaded(
                 y0,
                 x1,
                 y1,
-                0 as libc::c_int as libc::c_float,
-                0 as libc::c_int as libc::c_float,
-                1 as libc::c_int as libc::c_float,
-                1 as libc::c_int as libc::c_float,
+                0.0f32,
+                0.0f32,
+                1.0f32,
+                1.0f32,
             );
             x += (*glyph).advance as libc::c_float;
             glyphLast = (*glyph).index;

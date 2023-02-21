@@ -1163,7 +1163,7 @@ unsafe extern "C" fn Input_DetermineButtonState(mut event: InputEvent) -> State 
 unsafe extern "C" fn Input_AppendEvent(mut event: InputEvent) {
     this.lastTimestamp = event.timestamp;
     this.lastEventTimestamp = event.timestamp;
-    if (this.events_capacity == this.events_size) as libc::c_int as libc::c_long != 0
+    if (this.events_capacity == this.events_size) as libc::c_long != 0
     {
         this
             .events_capacity = if this.events_capacity != 0 {
@@ -1311,7 +1311,7 @@ pub unsafe extern "C" fn Input_Init() {
         (*deviceState).isConnected = iDev != DeviceType_Gamepad;
         iDev += 1;
     }
-    if (this.events_capacity < 16 as libc::c_int) as libc::c_int as libc::c_long != 0 {
+    if (this.events_capacity < 16 as libc::c_int) as libc::c_long != 0 {
         this.events_capacity = 16 as libc::c_int;
         let mut elemSize: usize = ::core::mem::size_of::<InputEvent>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut this.events_data
@@ -1321,7 +1321,7 @@ pub unsafe extern "C" fn Input_Init() {
             (this.events_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    if (this.downButtons_capacity < 16 as libc::c_int) as libc::c_int as libc::c_long
+    if (this.downButtons_capacity < 16 as libc::c_int) as libc::c_long
         != 0
     {
         this.downButtons_capacity = 16 as libc::c_int;
@@ -1333,7 +1333,7 @@ pub unsafe extern "C" fn Input_Init() {
             (this.downButtons_capacity as usize).wrapping_mul(elemSize_0 as usize),
         );
     }
-    if (this.autoRelease_capacity < 16 as libc::c_int) as libc::c_int as libc::c_long
+    if (this.autoRelease_capacity < 16 as libc::c_int) as libc::c_long
         != 0
     {
         this.autoRelease_capacity = 16 as libc::c_int;

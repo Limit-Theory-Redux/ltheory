@@ -177,7 +177,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
             normal.x,
             normal.y,
             normal.z,
-            0 as libc::c_int as libc::c_float,
+            0.0f32,
         );
         i += 3 as libc::c_int;
     }
@@ -215,7 +215,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
             (*v).p.x,
             (*v).p.y,
             (*v).p.z,
-            0 as libc::c_int as libc::c_float,
+            0.0f32,
         );
         *normalBuffer
             .offset(
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
             (*v).n.x,
             (*v).n.y,
             (*v).n.z,
-            0 as libc::c_int as libc::c_float,
+            0.0f32,
         );
         i_0 += 1;
     }
@@ -262,10 +262,10 @@ pub unsafe extern "C" fn Mesh_ComputeAO(
     Shader_SetTex2D(b"vPointBuffer\0" as *const u8 as *const libc::c_char, texVPoints);
     Shader_SetTex2D(b"vNormalBuffer\0" as *const u8 as *const libc::c_char, texVNormals);
     Draw_Rect(
-        -(1 as libc::c_int) as libc::c_float,
-        -(1 as libc::c_int) as libc::c_float,
-        2 as libc::c_int as libc::c_float,
-        2 as libc::c_int as libc::c_float,
+        -1.0f32,
+        -1.0f32,
+        2.0f32,
+        2.0f32,
     );
     Shader_Stop(shader);
     RenderTarget_Pop();
@@ -333,10 +333,10 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     Shader_SetTex2D(b"points\0" as *const u8 as *const libc::c_char, texPoints);
     Shader_SetTex3D(b"sdf\0" as *const u8 as *const libc::c_char, sdf);
     Draw_Rect(
-        -(1 as libc::c_int) as libc::c_float,
-        -(1 as libc::c_int) as libc::c_float,
-        2 as libc::c_int as libc::c_float,
-        2 as libc::c_int as libc::c_float,
+        -1.0f32,
+        -1.0f32,
+        2.0f32,
+        2.0f32,
     );
     Shader_Stop(shader);
     RenderTarget_Pop();

@@ -329,10 +329,10 @@ pub unsafe extern "C" fn KDTree_Draw(
         return;
     }
     Draw_Color(
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
+        1.0f32,
+        1.0f32,
+        1.0f32,
+        1.0f32,
     );
     Draw_Box3(&mut (*this).box_0);
     if !((*this).back).is_null() {

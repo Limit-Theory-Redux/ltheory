@@ -182,7 +182,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
         init
     };
     elem.data.asFloat = x;
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
         init
     };
     elem.data.asFloat2 = Vec2::new(x, y);
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -257,7 +257,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
         init
     };
     elem.data.asFloat3 = Vec3::new(x, y, z);
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -296,7 +296,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
         init
     };
     elem.data.asFloat4 = Vec4::new(x, y, z, w);
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -332,7 +332,7 @@ pub unsafe extern "C" fn ShaderState_SetInt(
         init
     };
     elem.data.asInt = x;
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -368,7 +368,7 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
         init
     };
     elem.data.asMatrix = x;
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -405,7 +405,7 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
         init
     };
     elem.data.asTex1D = x;
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -442,7 +442,7 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
         init
     };
     elem.data.asTex2D = x;
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -479,7 +479,7 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
         init
     };
     elem.data.asTex3D = x;
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)
@@ -516,7 +516,7 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
         init
     };
     elem.data.asTexCube = x;
-    if ((*this).elems_capacity == (*this).elems_size) as libc::c_int as libc::c_long
+    if ((*this).elems_capacity == (*this).elems_size) as libc::c_long
         != 0
     {
         (*this)

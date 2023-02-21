@@ -147,65 +147,65 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
     let vp: [Vec3; 8] = [
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 0.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 1 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 1.0f32,
+                y: 0.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 1.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 1 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 1.0f32,
+                y: 1.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: 1 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 0.0f32,
+                z: 1.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 1 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: 1 as libc::c_int as libc::c_float,
+                x: 1.0f32,
+                y: 0.0f32,
+                z: 1.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 1 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 1.0f32,
+                z: 1.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 1 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 1 as libc::c_int as libc::c_float,
+                x: 1.0f32,
+                y: 1.0f32,
+                z: 1.0f32,
             };
             init
         },
@@ -257,7 +257,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                 let mut mask: libc::c_int = 0 as libc::c_int;
                 mask
                     |= if (*v[0]).value
-                        > 0 as libc::c_int as libc::c_float
+                        > 0.0f32
                     {
                         0x1 as libc::c_int
                     } else {
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     };
                 mask
                     |= if (*v[1]).value
-                        > 0 as libc::c_int as libc::c_float
+                        > 0.0f32
                     {
                         0x2 as libc::c_int
                     } else {
@@ -273,7 +273,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     };
                 mask
                     |= if (*v[2]).value
-                        > 0 as libc::c_int as libc::c_float
+                        > 0.0f32
                     {
                         0x4 as libc::c_int
                     } else {
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     };
                 mask
                     |= if (*v[3]).value
-                        > 0 as libc::c_int as libc::c_float
+                        > 0.0f32
                     {
                         0x8 as libc::c_int
                     } else {
@@ -289,7 +289,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     };
                 mask
                     |= if (*v[4]).value
-                        > 0 as libc::c_int as libc::c_float
+                        > 0.0f32
                     {
                         0x10 as libc::c_int
                     } else {
@@ -297,7 +297,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     };
                 mask
                     |= if (*v[5]).value
-                        > 0 as libc::c_int as libc::c_float
+                        > 0.0f32
                     {
                         0x20 as libc::c_int
                     } else {
@@ -305,7 +305,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     };
                 mask
                     |= if (*v[6]).value
-                        > 0 as libc::c_int as libc::c_float
+                        > 0.0f32
                     {
                         0x40 as libc::c_int
                     } else {
@@ -313,7 +313,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     };
                 mask
                     |= if (*v[7]).value
-                        > 0 as libc::c_int as libc::c_float
+                        > 0.0f32
                     {
                         0x80 as libc::c_int
                     } else {
@@ -325,17 +325,17 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     let mut tw: libc::c_float = 0.0f32;
                     let mut offset: Vec3 = {
                         let mut init = Vec3 {
-                            x: 0 as libc::c_int as libc::c_float,
-                            y: 0 as libc::c_int as libc::c_float,
-                            z: 0 as libc::c_int as libc::c_float,
+                            x: 0.0f32,
+                            y: 0.0f32,
+                            z: 0.0f32,
                         };
                         init
                     };
                     let mut n: Vec3 = {
                         let mut init = Vec3 {
-                            x: 0 as libc::c_int as libc::c_float,
-                            y: 0 as libc::c_int as libc::c_float,
-                            z: 0 as libc::c_int as libc::c_float,
+                            x: 0.0f32,
+                            y: 0.0f32,
+                            z: 0.0f32,
                         };
                         init
                     };
@@ -347,9 +347,9 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                             as usize][1];
                         let mut v0: *const Cell = v[i0 as usize];
                         let mut v1: *const Cell = v[i1 as usize];
-                        if !(((*v0).value > 0 as libc::c_int as libc::c_float)
+                        if !(((*v0).value > 0.0f32)
                             as libc::c_int
-                            == ((*v1).value > 0 as libc::c_int as libc::c_float)
+                            == ((*v1).value > 0.0f32)
                                 as libc::c_int)
                         {
                             let mut t: libc::c_float = Saturate(
@@ -375,8 +375,8 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                         n.x,
                         n.y,
                         n.z,
-                        1 as libc::c_int as libc::c_float,
-                        0 as libc::c_int as libc::c_float,
+                        1.0f32,
+                        0.0f32,
                     );
                     let mut i_0: libc::c_int = 0 as libc::c_int;
                     while i_0 < 3 as libc::c_int {
@@ -407,7 +407,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                                 || i3 < 0 as libc::c_int)
                             {
                                 if (*v[0]).value
-                                    > 0 as libc::c_int as libc::c_float
+                                    > 0.0f32
                                 {
                                     Mesh_AddQuad(mesh, i0_0, i3, i2, i1_0);
                                 } else {

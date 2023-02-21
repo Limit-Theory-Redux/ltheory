@@ -762,9 +762,9 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: cstr
         if Sound_Get3D(this) {
             let mut zero: Vec3 = {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 0 as libc::c_int as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: 0.0f32,
+                    z: 0.0f32,
                 };
                 init
             };

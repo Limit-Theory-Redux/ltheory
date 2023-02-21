@@ -139,49 +139,49 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     let look: [Vec3; 6] = [
         {
             let mut init = Vec3 {
-                x: 1 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 1.0f32,
+                y: 0.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: -(1 as libc::c_int) as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: -1.0f32,
+                y: 0.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 1.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: -(1 as libc::c_int) as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: -1.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: 1 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 0.0f32,
+                z: 1.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: -(1 as libc::c_int) as libc::c_float,
+                x: 0.0f32,
+                y: 0.0f32,
+                z: -1.0f32,
             };
             init
         },
@@ -189,49 +189,49 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     let up: [Vec3; 6] = [
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 1.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 1.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: -(1 as libc::c_int) as libc::c_float,
+                x: 0.0f32,
+                y: 0.0f32,
+                z: -1.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 0 as libc::c_int as libc::c_float,
-                z: 1 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 0.0f32,
+                z: 1.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 1.0f32,
+                z: 0.0f32,
             };
             init
         },
         {
             let mut init = Vec3 {
-                x: 0 as libc::c_int as libc::c_float,
-                y: 1 as libc::c_int as libc::c_float,
-                z: 0 as libc::c_int as libc::c_float,
+                x: 0.0f32,
+                y: 1.0f32,
+                z: 0.0f32,
             };
             init
         },
@@ -312,10 +312,10 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
                 thisUp.z,
             );
             Draw_Rect(
-                -(1 as libc::c_int) as libc::c_float,
-                -(1 as libc::c_int) as libc::c_float,
-                2 as libc::c_int as libc::c_float,
-                2 as libc::c_int as libc::c_float,
+                -1.0f32,
+                -1.0f32,
+                2.0f32,
+                2.0f32,
             );
             RenderTarget_Pop();
             i_2 += 1;

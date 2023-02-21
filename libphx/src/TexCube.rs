@@ -150,17 +150,17 @@ static mut kFaces: [Face; 6] = [
             face: 0x8515 as libc::c_int,
             look: {
                 let mut init = Vec3 {
-                    x: 1 as libc::c_int as libc::c_float,
-                    y: 0 as libc::c_int as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: 1.0f32,
+                    y: 0.0f32,
+                    z: 0.0f32,
                 };
                 init
             },
             up: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 1 as libc::c_int as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: 1.0f32,
+                    z: 0.0f32,
                 };
                 init
             },
@@ -172,17 +172,17 @@ static mut kFaces: [Face; 6] = [
             face: 0x8516 as libc::c_int,
             look: {
                 let mut init = Vec3 {
-                    x: -(1 as libc::c_int) as libc::c_float,
-                    y: 0 as libc::c_int as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: -1.0f32,
+                    y: 0.0f32,
+                    z: 0.0f32,
                 };
                 init
             },
             up: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 1 as libc::c_int as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: 1.0f32,
+                    z: 0.0f32,
                 };
                 init
             },
@@ -194,17 +194,17 @@ static mut kFaces: [Face; 6] = [
             face: 0x8517 as libc::c_int,
             look: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 1 as libc::c_int as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: 1.0f32,
+                    z: 0.0f32,
                 };
                 init
             },
             up: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 0 as libc::c_int as libc::c_float,
-                    z: -(1 as libc::c_int) as libc::c_float,
+                    x: 0.0f32,
+                    y: 0.0f32,
+                    z: -1.0f32,
                 };
                 init
             },
@@ -216,17 +216,17 @@ static mut kFaces: [Face; 6] = [
             face: 0x8518 as libc::c_int,
             look: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: -(1 as libc::c_int) as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: -1.0f32,
+                    z: 0.0f32,
                 };
                 init
             },
             up: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 0 as libc::c_int as libc::c_float,
-                    z: 1 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: 0.0f32,
+                    z: 1.0f32,
                 };
                 init
             },
@@ -238,17 +238,17 @@ static mut kFaces: [Face; 6] = [
             face: 0x8519 as libc::c_int,
             look: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 0 as libc::c_int as libc::c_float,
-                    z: 1 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: 0.0f32,
+                    z: 1.0f32,
                 };
                 init
             },
             up: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 1 as libc::c_int as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: 1.0f32,
+                    z: 0.0f32,
                 };
                 init
             },
@@ -260,17 +260,17 @@ static mut kFaces: [Face; 6] = [
             face: 0x851a as libc::c_int,
             look: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 0 as libc::c_int as libc::c_float,
-                    z: -(1 as libc::c_int) as libc::c_float,
+                    x: 0.0f32,
+                    y: 0.0f32,
+                    z: -1.0f32,
                 };
                 init
             },
             up: {
                 let mut init = Vec3 {
-                    x: 0 as libc::c_int as libc::c_float,
-                    y: 1 as libc::c_int as libc::c_float,
-                    z: 0 as libc::c_int as libc::c_float,
+                    x: 0.0f32,
+                    y: 1.0f32,
+                    z: 0.0f32,
                 };
                 init
             },
@@ -593,10 +593,10 @@ pub unsafe extern "C" fn TexCube_Generate(
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(
-            0 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
+            0.0f32,
+            0.0f32,
+            0.0f32,
+            1.0f32,
         );
         Shader_SetFloat3(
             b"cubeLook\0" as *const u8 as *const libc::c_char,
@@ -616,14 +616,14 @@ pub unsafe extern "C" fn TexCube_Generate(
         while j <= size {
             let mut time: TimeStamp = TimeStamp_Get();
             ClipRect_Push(
-                0 as libc::c_int as libc::c_float,
+                0.0f32,
                 (j - 1 as libc::c_int) as libc::c_float,
                 size as libc::c_float,
                 jobSize as libc::c_float,
             );
             Draw_Rect(
-                0 as libc::c_int as libc::c_float,
-                0 as libc::c_int as libc::c_float,
+                0.0f32,
+                0.0f32,
                 fSize,
                 fSize,
             );

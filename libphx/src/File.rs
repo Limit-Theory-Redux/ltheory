@@ -102,12 +102,12 @@ pub unsafe extern "C" fn File_ReadBytes(mut path: cstr) -> *mut Bytes {
     if file.is_null() {
         return 0 as *mut Bytes;
     }
-    libc::fseek(file, 0 as libc::c_int as libc::c_long, libc::SEEK_END);
+    libc::fseek(file, 0 as libc::c_long, libc::SEEK_END);
     let mut size: int64 = libc::ftell(file) as int64;
-    if size == 0 as libc::c_int as libc::c_longlong {
+    if size == 0 as libc::c_longlong {
         return 0 as *mut Bytes;
     }
-    if size < 0 as libc::c_int as libc::c_longlong {
+    if size < 0 as libc::c_longlong {
         Fatal(
             b"File_Read: failed to get size of file '%s'\0" as *const u8
                 as *const libc::c_char,
@@ -146,12 +146,12 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: cstr) -> cstr {
     if file.is_null() {
         return 0 as cstr;
     }
-    libc::fseek(file, 0 as libc::c_int as libc::c_long, 2 as libc::c_int);
+    libc::fseek(file, 0 as libc::c_long, 2 as libc::c_int);
     let mut size: int64 = libc::ftell(file) as int64;
-    if size == 0 as libc::c_int as libc::c_longlong {
+    if size == 0 as libc::c_longlong {
         return 0 as cstr;
     }
-    if size < 0 as libc::c_int as libc::c_longlong {
+    if size < 0 as libc::c_longlong {
         Fatal(
             b"File_ReadAscii: failed to get size of file '%s'\0" as *const u8
                 as *const libc::c_char,
@@ -188,7 +188,7 @@ pub unsafe extern "C" fn File_Size(mut path: cstr) -> int64 {
     if file.is_null() {
         return 0 as libc::c_int as int64;
     }
-    libc::fseek(file, 0 as libc::c_int as libc::c_long, 2 as libc::c_int);
+    libc::fseek(file, 0 as libc::c_long, 2 as libc::c_int);
     let mut size: int64 = libc::ftell(file) as int64;
     libc::fclose(file);
     return size;

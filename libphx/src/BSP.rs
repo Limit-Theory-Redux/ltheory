@@ -283,7 +283,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
             let mut dist: libc::c_float = Vec3::dot((*node).plane.n, ray.p)
                 - (*node).plane.d;
             let mut denom: libc::c_float = -Vec3::dot((*node).plane.n, ray.dir);
-            let mut nearIndex: libc::c_int = (dist > 0 as libc::c_int as libc::c_float)
+            let mut nearIndex: libc::c_int = (dist > 0.0f32)
                 as libc::c_int;
             let mut earlyIndex: libc::c_int = nearIndex;
             if denom != 0.0f32 {
@@ -346,7 +346,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                     };
                     init
                 };
-                if (rayStack_capacity == rayStack_size) as libc::c_int as libc::c_long
+                if (rayStack_capacity == rayStack_size) as libc::c_long
                     != 0
                 {
                     rayStack_capacity = if rayStack_capacity != 0 {
@@ -463,7 +463,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                     };
                     init
                 };
-                if (nodeStack_capacity == nodeStack_size) as libc::c_int as libc::c_long
+                if (nodeStack_capacity == nodeStack_size) as libc::c_long
                     != 0
                 {
                     nodeStack_capacity = if nodeStack_capacity != 0 {
@@ -689,7 +689,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                             as libc::c_int == 4 as libc::c_int
                         {
                             splitFound = 1 as libc::c_int != 0;
-                            bestScore = 0 as libc::c_int as libc::c_float;
+                            bestScore = 0.0f32;
                             bestPlane = plane_0;
                             bestPolygon = polygon_0;
                             break;
@@ -747,7 +747,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         let mut score_0: libc::c_float = BSPBuild_ScoreSplitPlane(
                             nodeData,
                             plane_1,
-                            0 as libc::c_int as libc::c_float,
+                            0.0f32,
                         );
                         if score_0 < bestScore {
                             splitFound = 1 as libc::c_int != 0;
@@ -855,7 +855,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         };
         init
     };
-    if (backNodeData.polygons_capacity < polygonsLen) as libc::c_int as libc::c_long != 0
+    if (backNodeData.polygons_capacity < polygonsLen) as libc::c_long != 0
     {
         backNodeData.polygons_capacity = polygonsLen;
         let mut elemSize: usize = ::core::mem::size_of::<PolygonEx>() as usize;
@@ -878,7 +878,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         };
         init
     };
-    if (frontNodeData.polygons_capacity < polygonsLen) as libc::c_int as libc::c_long
+    if (frontNodeData.polygons_capacity < polygonsLen) as libc::c_long
         != 0
     {
         frontNodeData.polygons_capacity = polygonsLen;
@@ -1137,7 +1137,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             };
             init
         };
-        if (polygon.vertices_capacity < 3 as libc::c_int) as libc::c_int as libc::c_long
+        if (polygon.vertices_capacity < 3 as libc::c_int) as libc::c_long
             != 0
         {
             polygon.vertices_capacity = 3 as libc::c_int;
@@ -1250,7 +1250,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         init
     };
     if ((*this).triangles_capacity < bspBuild.triangleCount + 2 as libc::c_int)
-        as libc::c_int as libc::c_long != 0
+        as libc::c_long != 0
     {
         (*this).triangles_capacity = bspBuild.triangleCount + 2 as libc::c_int;
         let mut elemSize_5: usize = ::core::mem::size_of::<Triangle>() as usize;
@@ -1328,7 +1328,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             ((*this).nodes_capacity as usize).wrapping_mul(elemSize_8 as usize),
         );
     }
-    if ((*this).nodes_capacity == (*this).nodes_size) as libc::c_int as libc::c_long
+    if ((*this).nodes_capacity == (*this).nodes_size) as libc::c_long
         != 0
     {
         (*this)
@@ -1485,11 +1485,11 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(
         Draw_Plane(
             &mut closestPoint,
             &mut (*node).plane.n,
-            2 as libc::c_int as libc::c_float,
+            2.0f32,
         );
         Draw_Color(0.5f32, 0.3f32, 0.3f32, 0.4f32);
         let mut neg: Vec3 = (*node).plane.n * -1.0f32;
-        Draw_Plane(&mut closestPoint, &mut neg, 2 as libc::c_int as libc::c_float);
+        Draw_Plane(&mut closestPoint, &mut neg, 2.0f32);
         RenderState_PopWireframe();
     } else {
         Draw_Color(0.5f32, 0.5f32, 0.3f32, 0.4f32);
@@ -1598,7 +1598,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     };
                     init
                 };
-                if (nodeStack_capacity == nodeStack_size) as libc::c_int as libc::c_long
+                if (nodeStack_capacity == nodeStack_size) as libc::c_long
                     != 0
                 {
                     nodeStack_capacity = if nodeStack_capacity != 0 {

@@ -83,7 +83,7 @@ pub unsafe extern "C" fn MemPool_Free(mut this: *mut MemPool) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Alloc(mut this: *mut MemPool) -> *mut libc::c_void {
-    if ((*this).size == (*this).capacity) as libc::c_int as libc::c_long != 0 {
+    if ((*this).size == (*this).capacity) as libc::c_long != 0 {
         MemPool_Grow(this);
     }
     let mut freeCell: *mut libc::c_void = (*this).freeList;

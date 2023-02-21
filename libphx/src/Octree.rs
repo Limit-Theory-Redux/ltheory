@@ -128,9 +128,9 @@ unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
 unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
     let mut center: Vec3 = {
         let mut init = Vec3 {
-            x: (this.lower.x + this.upper.x) / 2 as libc::c_int as libc::c_float,
-            y: (this.lower.y + this.upper.y) / 2 as libc::c_int as libc::c_float,
-            z: (this.lower.z + this.upper.z) / 2 as libc::c_int as libc::c_float,
+            x: (this.lower.x + this.upper.x) / 2.0f32,
+            y: (this.lower.y + this.upper.y) / 2.0f32,
+            z: (this.lower.z + this.upper.z) / 2.0f32,
         };
         init
     };
@@ -533,17 +533,17 @@ pub unsafe extern "C" fn Octree_Add(
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Draw(mut this: *mut Octree) {
     Draw_Color(
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
+        1.0f32,
+        1.0f32,
+        1.0f32,
+        1.0f32,
     );
     Draw_Box3(&mut (*this).box_0);
     Draw_Color(
-        0 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
-        0 as libc::c_int as libc::c_float,
-        1 as libc::c_int as libc::c_float,
+        0.0f32,
+        1.0f32,
+        0.0f32,
+        1.0f32,
     );
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {

@@ -207,7 +207,7 @@ unsafe extern "C" fn HashGrid_RemoveElem(
                     let mut _i: int32 = 0 as libc::c_int;
                     while _i < (*cell).elems_size {
                         if (*((*cell).elems_data).offset(_i as isize) == elem)
-                            as libc::c_int as libc::c_long != 0
+                            as libc::c_long != 0
                         {
                             (*cell).elems_size -= 1;
                             let ref mut fresh3 = *((*cell).elems_data)
@@ -348,7 +348,7 @@ pub unsafe extern "C" fn HashGrid_Update(
                                 let mut _i: int32 = 0 as libc::c_int;
                                 while _i < (*cell).elems_size {
                                     if (*((*cell).elems_data).offset(_i as isize) == elem)
-                                        as libc::c_int as libc::c_long != 0
+                                        as libc::c_long != 0
                                     {
                                         (*cell).elems_size -= 1;
                                         let ref mut fresh4 = *((*cell).elems_data)
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn HashGrid_Update(
                                     let mut _i_0: int32 = 0 as libc::c_int;
                                     while _i_0 < (*cell).elems_size {
                                         if (*((*cell).elems_data).offset(_i_0 as isize) == elem)
-                                            as libc::c_int as libc::c_long != 0
+                                            as libc::c_long != 0
                                         {
                                             (*cell).elems_size -= 1;
                                             let ref mut fresh5 = *((*cell).elems_data)
@@ -380,7 +380,7 @@ pub unsafe extern "C" fn HashGrid_Update(
                                     }
                                 }
                                 if ((*cell).elems_capacity == (*cell).elems_size)
-                                    as libc::c_int as libc::c_long != 0
+                                    as libc::c_long != 0
                                 {
                                     (*cell)
                                         .elems_capacity = if (*cell).elems_capacity != 0 {
@@ -463,7 +463,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(
                         if (*elem).version != (*this).version {
                             (*elem).version = (*this).version;
                             if ((*this).results_capacity == (*this).results_size)
-                                as libc::c_int as libc::c_long != 0
+                                as libc::c_long != 0
                             {
                                 (*this)
                                     .results_capacity = if (*this).results_capacity != 0 {

@@ -103,10 +103,10 @@ static mut alphaStack: [libc::c_float; 16] = [0.; 16];
 static mut alphaIndex: libc::c_int = -(1 as libc::c_int);
 static mut color: Vec4f = {
     let mut init = Vec4f {
-        x: 1 as libc::c_int as libc::c_float,
-        y: 1 as libc::c_int as libc::c_float,
-        z: 1 as libc::c_int as libc::c_float,
-        w: 1 as libc::c_int as libc::c_float,
+        x: 1.0f32,
+        y: 1.0f32,
+        z: 1.0f32,
+        w: 1.0f32,
     };
     init
 };
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn Draw_PushAlpha(mut a: libc::c_float) {
     let mut prevAlpha: libc::c_float = if alphaIndex >= 0 as libc::c_int {
         alphaStack[alphaIndex as usize]
     } else {
-        1 as libc::c_int as libc::c_float
+        1.0f32
     };
     let mut alpha: libc::c_float = a * prevAlpha;
     alphaIndex += 1;
@@ -140,7 +140,7 @@ pub unsafe extern "C" fn Draw_PopAlpha() {
     let mut alpha: libc::c_float = if alphaIndex >= 0 as libc::c_int {
         alphaStack[alphaIndex as usize]
     } else {
-        1 as libc::c_int as libc::c_float
+        1.0f32
     };
     glColor4f(color.x, color.y, color.z, color.w * alpha);
 }
@@ -187,8 +187,8 @@ pub unsafe extern "C" fn Draw_Border(
 ) {
     Draw_Rect(x, y, w, s);
     Draw_Rect(x, y + h - s, w, s);
-    Draw_Rect(x, y + s, s, h - 2 as libc::c_int as libc::c_float * s);
-    Draw_Rect(x + w - s, y + s, s, h - 2 as libc::c_int as libc::c_float * s);
+    Draw_Rect(x, y + s, s, h - 2.0f32 * s);
+    Draw_Rect(x + w - s, y + s, s, h - 2.0f32 * s);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3f) {
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn Draw_Color(
     let mut alpha: libc::c_float = if alphaIndex >= 0 as libc::c_int {
         alphaStack[alphaIndex as usize]
     } else {
-        1 as libc::c_int as libc::c_float
+        1.0f32
     };
     color = Vec4f_Create(r, g, b, a);
     glColor4f(r, g, b, a * alpha);
@@ -297,15 +297,15 @@ pub unsafe extern "C" fn Draw_Plane(
 ) {
     let mut e1: Vec3 = if Abs((*n).x as libc::c_double) < 0.7f32 as libc::c_double {
         Vec3::new(
-            1 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
+            1.0f32,
+            0.0f32,
+            0.0f32,
         )
     } else {
         Vec3::new(
-            0 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
+            0.0f32,
+            1.0f32,
+            0.0f32,
         )
     };
     e1 = Vec3_Reject(e1, *n).normalize();
@@ -478,8 +478,8 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: libc::c_float) {
     let mut tc: Vec3 = *p + 
     Spherical(
         r,
-        0 as libc::c_int as libc::c_float,
-        0 as libc::c_int as libc::c_float,
+        0.0f32,
+        0.0f32,
     );
     let mut iTheta: libc::size_t = 0 as libc::c_int as libc::size_t;
     while iTheta < res {
@@ -537,7 +537,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: libc::c_float) {
     let mut phi_1: libc::c_float = res.wrapping_sub(1 as libc::size_t)
         as libc::c_float / fRes * 3.14159265f32;
     let mut bc: Vec3 = *p +
-        Spherical(r, 0 as libc::c_int as libc::c_float, 3.14159265f32);
+        Spherical(r, 0.0f32, 3.14159265f32);
     let mut iTheta_1: libc::size_t = 0 as libc::c_int as libc::size_t;
     while iTheta_1 < res {
         let mut theta_1: libc::c_float = iTheta_1 as libc::c_float / fRes

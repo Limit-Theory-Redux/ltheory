@@ -80,49 +80,49 @@ unsafe extern "C" fn Clampf(
 static mut kFaceOrigin: [Vec3; 6] = [
     {
         let mut init = Vec3 {
-            x: -(1 as libc::c_int) as libc::c_float,
-            y: -(1 as libc::c_int) as libc::c_float,
-            z: 1 as libc::c_int as libc::c_float,
+            x: -1.0f32,
+            y: -1.0f32,
+            z: 1.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: -(1 as libc::c_int) as libc::c_float,
-            y: -(1 as libc::c_int) as libc::c_float,
-            z: -(1 as libc::c_int) as libc::c_float,
+            x: -1.0f32,
+            y: -1.0f32,
+            z: -1.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 1 as libc::c_int as libc::c_float,
-            y: -(1 as libc::c_int) as libc::c_float,
-            z: -(1 as libc::c_int) as libc::c_float,
+            x: 1.0f32,
+            y: -1.0f32,
+            z: -1.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: -(1 as libc::c_int) as libc::c_float,
-            y: -(1 as libc::c_int) as libc::c_float,
-            z: -(1 as libc::c_int) as libc::c_float,
+            x: -1.0f32,
+            y: -1.0f32,
+            z: -1.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: -(1 as libc::c_int) as libc::c_float,
-            y: 1 as libc::c_int as libc::c_float,
-            z: -(1 as libc::c_int) as libc::c_float,
+            x: -1.0f32,
+            y: 1.0f32,
+            z: -1.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: -(1 as libc::c_int) as libc::c_float,
-            y: -(1 as libc::c_int) as libc::c_float,
-            z: -(1 as libc::c_int) as libc::c_float,
+            x: -1.0f32,
+            y: -1.0f32,
+            z: -1.0f32,
         };
         init
     },
@@ -130,49 +130,49 @@ static mut kFaceOrigin: [Vec3; 6] = [
 static mut kFaceU: [Vec3; 6] = [
     {
         let mut init = Vec3 {
-            x: 2 as libc::c_int as libc::c_float,
-            y: 0 as libc::c_int as libc::c_float,
-            z: 0 as libc::c_int as libc::c_float,
+            x: 2.0f32,
+            y: 0.0f32,
+            z: 0.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 2 as libc::c_int as libc::c_float,
-            z: 0 as libc::c_int as libc::c_float,
+            x: 0.0f32,
+            y: 2.0f32,
+            z: 0.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 2 as libc::c_int as libc::c_float,
-            z: 0 as libc::c_int as libc::c_float,
+            x: 0.0f32,
+            y: 2.0f32,
+            z: 0.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 0 as libc::c_int as libc::c_float,
-            z: 2 as libc::c_int as libc::c_float,
+            x: 0.0f32,
+            y: 0.0f32,
+            z: 2.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 0 as libc::c_int as libc::c_float,
-            z: 2 as libc::c_int as libc::c_float,
+            x: 0.0f32,
+            y: 0.0f32,
+            z: 2.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 2 as libc::c_int as libc::c_float,
-            y: 0 as libc::c_int as libc::c_float,
-            z: 0 as libc::c_int as libc::c_float,
+            x: 2.0f32,
+            y: 0.0f32,
+            z: 0.0f32,
         };
         init
     },
@@ -180,49 +180,49 @@ static mut kFaceU: [Vec3; 6] = [
 static mut kFaceV: [Vec3; 6] = [
     {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 2 as libc::c_int as libc::c_float,
-            z: 0 as libc::c_int as libc::c_float,
+            x: 0.0f32,
+            y: 2.0f32,
+            z: 0.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 2 as libc::c_int as libc::c_float,
-            y: 0 as libc::c_int as libc::c_float,
-            z: 0 as libc::c_int as libc::c_float,
+            x: 2.0f32,
+            y: 0.0f32,
+            z: 0.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 0 as libc::c_int as libc::c_float,
-            z: 2 as libc::c_int as libc::c_float,
+            x: 0.0f32,
+            y: 0.0f32,
+            z: 2.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 2 as libc::c_int as libc::c_float,
-            z: 0 as libc::c_int as libc::c_float,
+            x: 0.0f32,
+            y: 2.0f32,
+            z: 0.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 2 as libc::c_int as libc::c_float,
-            y: 0 as libc::c_int as libc::c_float,
-            z: 0 as libc::c_int as libc::c_float,
+            x: 2.0f32,
+            y: 0.0f32,
+            z: 0.0f32,
         };
         init
     },
     {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
-            y: 0 as libc::c_int as libc::c_float,
-            z: 2 as libc::c_int as libc::c_float,
+            x: 0.0f32,
+            y: 0.0f32,
+            z: 2.0f32,
         };
         init
     },
@@ -250,7 +250,7 @@ pub unsafe extern "C" fn BoxMesh_Add(
     mut r: *const Vec3,
     mut b: *const Vec3,
 ) {
-    if ((*this).elem_capacity == (*this).elem_size) as libc::c_int as libc::c_long
+    if ((*this).elem_capacity == (*this).elem_size) as libc::c_long
         != 0
     {
         (*this)

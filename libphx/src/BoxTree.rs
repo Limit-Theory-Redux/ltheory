@@ -379,18 +379,18 @@ unsafe extern "C" fn BoxTree_DrawNode(mut this: *mut Node, mut maxDepth: libc::c
         || !((*this).sub[1]).is_null()
     {
         Draw_Color(
-            1 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
+            1.0f32,
+            1.0f32,
+            1.0f32,
+            1.0f32,
         );
         Draw_Box3(&mut (*this).box_0);
     } else {
         Draw_Color(
-            0 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
+            0.0f32,
+            1.0f32,
+            0.0f32,
+            1.0f32,
         );
         Draw_Box3(&mut (*this).box_0);
     }

@@ -221,7 +221,7 @@ pub unsafe extern "C" fn Profiler_Enable() {
     this.scopeList_capacity = 0 as libc::c_int;
     this.scopeList_size = 0 as libc::c_int;
     this.scopeList_data = 0 as *mut *mut Scope;
-    if (this.scopeList_capacity < 1024 as libc::c_int) as libc::c_int as libc::c_long
+    if (this.scopeList_capacity < 1024 as libc::c_int) as libc::c_long
         != 0
     {
         this.scopeList_capacity = 1024 as libc::c_int;

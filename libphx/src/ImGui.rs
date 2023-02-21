@@ -404,15 +404,15 @@ unsafe extern "C" fn GetData(mut hash: uint64) -> *mut ImGuiData {
             as *mut ImGuiData;
         (*data)
             .size = Vec2::new(
-            0 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
+            0.0f32,
+            0.0f32,
         );
         (*data)
             .offset = Vec2::new(
-            0 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
+            0.0f32,
+            0.0f32,
         );
-        (*data).scroll = 0 as libc::c_int as libc::c_float;
+        (*data).scroll = 0.0f32;
         HashMap_SetRaw(this.data, hash, data as *mut libc::c_void);
     }
     return data;
@@ -552,8 +552,8 @@ unsafe extern "C" fn RectContains(
 unsafe extern "C" fn Spacing() {
     this.cursor.x += (*this.layout).spacing.x;
     this.cursor.y += (*this.layout).spacing.y;
-    (*this.layout).spacing.x = 0 as libc::c_int as libc::c_float;
-    (*this.layout).spacing.y = 0 as libc::c_int as libc::c_float;
+    (*this.layout).spacing.x = 0.0f32;
+    (*this.layout).spacing.y = 0.0f32;
 }
 unsafe extern "C" fn ImGui_PushLayout(
     mut sx: libc::c_float,
@@ -737,10 +737,10 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
     let mut e: *const ImGuiTex2D = (*self_1).tex2DList;
     while !e.is_null() {
         Draw_Color(
-            1 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
-            1 as libc::c_int as libc::c_float,
+            1.0f32,
+            1.0f32,
+            1.0f32,
+            1.0f32,
         );
         Tex2D_Draw((*e).tex, (*e).pos.x, (*e).pos.y, (*e).size.x, (*e).size.y);
         e = (*e).next;
@@ -953,8 +953,8 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: libc::c_float, mut sy: libc::c_floa
     }
     this
         .cursor = Vec2::new(
-        0 as libc::c_int as libc::c_float,
-        0 as libc::c_int as libc::c_float,
+        0.0f32,
+        0.0f32,
     );
     if !(this.layerLast).is_null() {
         ImGuiLayer_Free(this.layerLast);
@@ -986,8 +986,8 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: libc::c_float, mut sy: libc::c_floa
     this.activate = Input_GetPressed(Button_Mouse_Left);
     this
         .forceSize = Vec2::new(
-        0 as libc::c_int as libc::c_float,
-        0 as libc::c_int as libc::c_float,
+        0.0f32,
+        0.0f32,
     );
 }
 #[no_mangle]
@@ -1012,7 +1012,7 @@ pub unsafe extern "C" fn ImGui_End() {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Draw() {
     RenderState_PushBlendMode(1 as libc::c_int);
-    Draw_LineWidth(1 as libc::c_int as libc::c_float);
+    Draw_LineWidth(1.0f32);
     ImGui_DrawLayer(this.layerLast);
     RenderState_PopBlendMode();
 }
@@ -1058,8 +1058,8 @@ pub unsafe extern "C" fn ImGui_SetCursor(mut cx: libc::c_float, mut cy: libc::c_
     this.cursor = Vec2::new(cx, cy);
     (*this.layout)
         .spacing = Vec2::new(
-        0 as libc::c_int as libc::c_float,
-        0 as libc::c_int as libc::c_float,
+        0.0f32,
+        0.0f32,
     );
 }
 #[no_mangle]
@@ -1089,13 +1089,13 @@ pub unsafe extern "C" fn ImGui_BeginGroup(
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginGroupX(mut sy: libc::c_float) {
-    ImGui_BeginWidget(0 as libc::c_int as libc::c_float, sy);
-    ImGui_PushLayout(0 as libc::c_int as libc::c_float, sy, 1 as libc::c_int != 0);
+    ImGui_BeginWidget(0.0f32, sy);
+    ImGui_PushLayout(0.0f32, sy, 1 as libc::c_int != 0);
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginGroupY(mut sx: libc::c_float) {
-    ImGui_BeginWidget(sx, 0 as libc::c_int as libc::c_float);
-    ImGui_PushLayout(sx, 0 as libc::c_int as libc::c_float, 0 as libc::c_int != 0);
+    ImGui_BeginWidget(sx, 0.0f32);
+    ImGui_PushLayout(sx, 0.0f32, 0 as libc::c_int != 0);
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_EndGroup() {
@@ -1310,8 +1310,8 @@ pub unsafe extern "C" fn ImGui_SetSpacing(mut sx: libc::c_float, mut sy: libc::c
 pub unsafe extern "C" fn ImGui_Button(mut label: cstr) -> bool {
     return ImGui_ButtonEx(
         label,
-        0 as libc::c_int as libc::c_float,
-        32 as libc::c_int as libc::c_float,
+        0.0f32,
+        32.0f32,
     );
 }
 #[no_mangle]
@@ -1381,12 +1381,12 @@ pub unsafe extern "C" fn ImGui_Checkbox(mut value: bool) -> bool {
             (*this.style).buttonColor
         },
         Vec2::new(
-            (*this.widget).pos.x + 2 as libc::c_int as libc::c_float,
-            (*this.widget).pos.y + 2 as libc::c_int as libc::c_float,
+            (*this.widget).pos.x + 2.0f32,
+            (*this.widget).pos.y + 2.0f32,
         ),
         Vec2::new(
-            (*this.widget).size.x - 4 as libc::c_int as libc::c_float,
-            (*this.widget).size.y - 4 as libc::c_int as libc::c_float,
+            (*this.widget).size.x - 4.0f32,
+            (*this.widget).size.y - 4.0f32,
         ),
         1.0f32,
         4.0f32,
@@ -1414,7 +1414,7 @@ pub unsafe extern "C" fn ImGui_Divider() {
         Vec2::new(
             (*this.widget).pos.x
                 + (if (*this.layout).horizontal as libc::c_int != 0 {
-                    0 as libc::c_int as libc::c_float
+                    0.0f32
                 } else {
                     (*this.widget).size.x
                 }),
@@ -1422,7 +1422,7 @@ pub unsafe extern "C" fn ImGui_Divider() {
                 + (if (*this.layout).horizontal as libc::c_int != 0 {
                     (*this.widget).size.y
                 } else {
-                    0 as libc::c_int as libc::c_float
+                    0.0f32
                 }),
         ),
     );
@@ -1436,10 +1436,10 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: cstr) -> bool {
         if (*this.layout).horizontal as libc::c_int != 0 {
             bound.x as libc::c_float + 4.0f32
         } else {
-            0 as libc::c_int as libc::c_float
+            0.0f32
         },
         if (*this.layout).horizontal as libc::c_int != 0 {
-            0 as libc::c_int as libc::c_float
+            0.0f32
         } else {
             4.0f32 + Font_GetLineHeight((*this.style).font) as libc::c_float
         },

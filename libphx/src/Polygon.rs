@@ -101,7 +101,7 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(
     let mut vLen: int32 = (*polygon).vertices_size;
     let mut n: Vec3 = {
         let mut init = Vec3 {
-            x: 0 as libc::c_int as libc::c_float,
+            x: 0.0f32,
             y: 0.,
             z: 0.,
         };
@@ -398,7 +398,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                     .offset((*polygon).vertices_size as isize);
                 while vertex < __iterend {
                     if ((*back).vertices_capacity == (*back).vertices_size)
-                        as libc::c_int as libc::c_long != 0
+                        as libc::c_long != 0
                     {
                         (*back)
                             .vertices_capacity = if (*back).vertices_capacity != 0 {
@@ -419,7 +419,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                     (*back).vertices_size = (*back).vertices_size + 1;
                     *((*back).vertices_data).offset(fresh9 as isize) = *vertex;
                     if ((*front).vertices_capacity == (*front).vertices_size)
-                        as libc::c_int as libc::c_long != 0
+                        as libc::c_long != 0
                     {
                         (*front)
                             .vertices_capacity = if (*front).vertices_capacity != 0 {
@@ -484,7 +484,7 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
     let mut vLen: int32 = (*polygon).vertices_size;
     let mut i: int32 = 1 as libc::c_int;
     while i < vLen - 1 as libc::c_int {
-        if (*triangles_capacity == *triangles_size) as libc::c_int as libc::c_long != 0 {
+        if (*triangles_capacity == *triangles_size) as libc::c_long != 0 {
             *triangles_capacity = if *triangles_capacity != 0 {
                 *triangles_capacity * 2 as libc::c_int
             } else {

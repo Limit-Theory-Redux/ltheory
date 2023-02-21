@@ -612,7 +612,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 fileName,
             )
         };
-        if (stack_capacity == stack_size) as libc::c_int as libc::c_long != 0 {
+        if (stack_capacity == stack_size) as libc::c_long != 0 {
             stack_capacity = if stack_capacity != 0 {
                 stack_capacity * 2 as libc::c_int
             } else {
@@ -637,7 +637,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 break;
             }
             if iUp == 1 as libc::c_int {
-                if (stack_capacity == stack_size) as libc::c_int as libc::c_long != 0 {
+                if (stack_capacity == stack_size) as libc::c_long != 0 {
                     stack_capacity = if stack_capacity != 0 {
                         stack_capacity * 2 as libc::c_int
                     } else {
@@ -659,7 +659,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 );
             }
             let mut upValue: cstr = Lua_ToString(this, name);
-            if (stack_capacity == stack_size) as libc::c_int as libc::c_long != 0 {
+            if (stack_capacity == stack_size) as libc::c_long != 0 {
                 stack_capacity = if stack_capacity != 0 {
                     stack_capacity * 2 as libc::c_int
                 } else {
@@ -688,7 +688,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 break;
             }
             if iLocal == 1 as libc::c_int {
-                if (stack_capacity == stack_size) as libc::c_int as libc::c_long != 0 {
+                if (stack_capacity == stack_size) as libc::c_long != 0 {
                     stack_capacity = if stack_capacity != 0 {
                         stack_capacity * 2 as libc::c_int
                     } else {
@@ -708,7 +708,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 *fresh11 = StrDup(b"    [Locals]\0" as *const u8 as *const libc::c_char);
             }
             let mut local: cstr = Lua_ToString(this, name_0);
-            if (stack_capacity == stack_size) as libc::c_int as libc::c_long != 0 {
+            if (stack_capacity == stack_size) as libc::c_long != 0 {
                 stack_capacity = if stack_capacity != 0 {
                     stack_capacity * 2 as libc::c_int
                 } else {
@@ -731,7 +731,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             iLocal += 1;
         }
         if variablesPrinted > 0 as libc::c_int {
-            if (stack_capacity == stack_size) as libc::c_int as libc::c_long != 0 {
+            if (stack_capacity == stack_size) as libc::c_long != 0 {
                 stack_capacity = if stack_capacity != 0 {
                     stack_capacity * 2 as libc::c_int
                 } else {

@@ -163,9 +163,9 @@ unsafe extern "C" fn Sqrt(mut t: libc::c_double) -> libc::c_double {
 unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
     let mut center: Vec3 = {
         let mut init = Vec3 {
-            x: (this.lower.x + this.upper.x) / 2 as libc::c_int as libc::c_float,
-            y: (this.lower.y + this.upper.y) / 2 as libc::c_int as libc::c_float,
-            z: (this.lower.z + this.upper.z) / 2 as libc::c_int as libc::c_float,
+            x: (this.lower.x + this.upper.x) / 2.0f32,
+            y: (this.lower.y + this.upper.y) / 2.0f32,
+            z: (this.lower.z + this.upper.z) / 2.0f32,
         };
         init
     };
@@ -243,7 +243,7 @@ pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Create();
-    if ((*this).index_capacity < (*other).index_size) as libc::c_int as libc::c_long
+    if ((*this).index_capacity < (*other).index_size) as libc::c_long
         != 0
     {
         (*this).index_capacity = (*other).index_size;
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
             ((*this).index_capacity as usize).wrapping_mul(elemSize as usize),
         );
     }
-    if ((*this).vertex_capacity < (*other).vertex_size) as libc::c_int as libc::c_long
+    if ((*this).vertex_capacity < (*other).vertex_size) as libc::c_long
         != 0
     {
         (*this).vertex_capacity = (*other).vertex_size;
@@ -373,7 +373,7 @@ pub unsafe extern "C" fn Mesh_AddIndex(
     mut this: *mut Mesh,
     mut newIndex: libc::c_int,
 ) {
-    if ((*this).index_capacity == (*this).index_size) as libc::c_int as libc::c_long
+    if ((*this).index_capacity == (*this).index_size) as libc::c_long
         != 0
     {
         (*this)
@@ -745,7 +745,7 @@ pub unsafe extern "C" fn Mesh_ReserveIndexData(
     mut this: *mut Mesh,
     mut capacity: libc::c_int,
 ) {
-    if ((*this).index_capacity < capacity) as libc::c_int as libc::c_long != 0 {
+    if ((*this).index_capacity < capacity) as libc::c_long != 0 {
         (*this).index_capacity = capacity;
         let mut elemSize: usize = ::core::mem::size_of::<int32>();
         let mut pData: *mut *mut libc::c_void = &mut (*this).index_data
@@ -761,7 +761,7 @@ pub unsafe extern "C" fn Mesh_ReserveVertexData(
     mut this: *mut Mesh,
     mut capacity: libc::c_int,
 ) {
-    if ((*this).vertex_capacity < capacity) as libc::c_int as libc::c_long != 0 {
+    if ((*this).vertex_capacity < capacity) as libc::c_long != 0 {
         (*this).vertex_capacity = capacity;
         let mut elemSize: usize = ::core::mem::size_of::<Vertex>() as usize;
         let mut pData: *mut *mut libc::c_void = &mut (*this).vertex_data
@@ -917,9 +917,9 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(mut this: *mut Mesh) {
     let mut __iterend: *mut Vertex = ((*this).vertex_data)
         .offset((*this).vertex_size as isize);
     while v < __iterend {
-        (*v).n.x = 0 as libc::c_int as libc::c_float;
-        (*v).n.y = 0 as libc::c_int as libc::c_float;
-        (*v).n.z = 0 as libc::c_int as libc::c_float;
+        (*v).n.x = 0.0f32;
+        (*v).n.y = 0.0f32;
+        (*v).n.z = 0.0f32;
         v = v.offset(1);
     }
     let mut i: libc::c_int = 0 as libc::c_int;
@@ -964,9 +964,9 @@ pub unsafe extern "C" fn Mesh_SplitNormals(
     while v < __iterend {
         (*v)
             .n = Vec3::new(
-            0 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
-            0 as libc::c_int as libc::c_float,
+            0.0f32,
+            0.0f32,
+            0.0f32,
         );
         v = v.offset(1);
     }
@@ -998,7 +998,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(
                 );
                 if cDot < minDot {
                     if ((*this).vertex_capacity == (*this).vertex_size)
-                        as libc::c_int as libc::c_long != 0
+                        as libc::c_long != 0
                     {
                         (*this)
                             .vertex_capacity = if (*this).vertex_capacity != 0 {
