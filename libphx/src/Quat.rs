@@ -11,7 +11,6 @@ extern "C" {
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn Fatal(_: cstr, _: ...);
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 
@@ -420,7 +419,7 @@ pub unsafe extern "C" fn Quat_ISlerp(mut q: *mut Quat, mut p: *const Quat, mut t
 #[no_mangle]
 pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> cstr {
     static mut buffer: [libc::c_char; 512] = [0; 512];
-    snprintf(
+    libc::snprintf(
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32 as usize,

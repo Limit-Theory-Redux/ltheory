@@ -52,12 +52,6 @@ extern "C" {
         freeFn: Option<unsafe extern "C" fn(cstr, *mut libc::c_void) -> ()>,
     );
     fn StrMap_Get(_: *mut StrMap, key: cstr) -> *mut libc::c_void;
-    fn vsnprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: __builtin_va_list,
-    ) -> i32;
     fn sscanf(_: *const libc::c_char, _: *const libc::c_char, _: ...) -> i32;
     fn Tex1D_GetHandle(_: *mut Tex1D) -> u32;
     fn Tex2D_GetHandle(_: *mut Tex2D) -> u32;

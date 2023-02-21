@@ -5,7 +5,6 @@ use crate::State::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
     fn Button_ToString(_: Button) -> cstr;
     fn Device_ToString(_: *mut Device) -> cstr;
     fn State_ToString(_: State) -> cstr;
@@ -33,7 +32,7 @@ pub type Button = i32;
 #[no_mangle]
 pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> cstr {
     static mut buffer: [libc::c_char; 512] = [0; 512];
-    snprintf(
+    libc::snprintf(
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())

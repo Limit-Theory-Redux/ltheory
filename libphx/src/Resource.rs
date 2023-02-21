@@ -10,7 +10,6 @@ extern "C" {
     fn File_ReadBytes(path: cstr) -> *mut Bytes;
     fn File_ReadCstr(path: cstr) -> cstr;
     fn ResourceType_ToString(_: ResourceType) -> cstr;
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
@@ -42,7 +41,7 @@ unsafe extern "C" fn Resource_Resolve(
     static mut buffer: [libc::c_char; 256] = [0; 256];
     let mut elem: *mut PathElem = paths[type_0 as usize];
     while !elem.is_null() {
-        let mut res: i32 = snprintf(
+        let mut res: i32 = libc::snprintf(
             buffer.as_mut_ptr(),
             ::core::mem::size_of::<[libc::c_char; 256]>(),
             (*elem).format,

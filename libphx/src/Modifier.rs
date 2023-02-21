@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type Modifier = i32;
@@ -35,7 +34,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
             as i32
     {
         if modifier & modifiers[i as usize] == modifiers[i as usize] {
-            len += snprintf(
+            len += libc::snprintf(
                 start.offset(len as isize),
                 ((::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
@@ -50,7 +49,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
         i += 1;
     }
     if modifier != 0 as i32 {
-        len += snprintf(
+        len += libc::snprintf(
             start.offset(len as isize),
             ((::core::mem::size_of::<[libc::c_char; 512]>())
                 .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32

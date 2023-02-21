@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
     fn Ray_ToLineSegment(_: *const Ray, _: *mut LineSegment);
 }
 pub type cstr = *const libc::c_char;
@@ -34,7 +33,7 @@ pub unsafe extern "C" fn LineSegment_FromRay(mut ray: *const Ray, mut out: *mut 
 #[no_mangle]
 pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> cstr {
     static mut buffer: [libc::c_char; 512] = [0; 512];
-    snprintf(
+    libc::snprintf(
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32 as usize,

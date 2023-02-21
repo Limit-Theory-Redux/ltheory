@@ -39,12 +39,6 @@ extern "C" {
     fn lua_getupvalue(L: *mut lua_State, funcindex: i32, n: i32) -> *const libc::c_char;
     fn lua_sethook(L: *mut lua_State, func: lua_Hook, mask: i32, count: i32) -> i32;
     fn luaL_loadstring(L: *mut lua_State, s: *const libc::c_char) -> i32;
-    fn vsnprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: __builtin_va_list,
-    ) -> i32;
     fn luaL_callmeta(L: *mut lua_State, obj: i32, e: *const libc::c_char) -> i32;
     fn luaL_where(L: *mut lua_State, lvl: i32);
     fn luaL_ref(L: *mut lua_State, t: i32) -> i32;

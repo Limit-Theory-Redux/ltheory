@@ -4,7 +4,6 @@ use libc;
 use sdl2_sys::*;
 extern "C" {
     fn Fatal(_: cstr, _: ...);
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type Button = i32;
@@ -512,7 +511,7 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> cstr {
         147 => return b"Button_System_Exit\0" as *const u8 as *const libc::c_char,
         _ => {
             static mut buffer: [libc::c_char; 512] = [0; 512];
-            snprintf(
+            libc::snprintf(
                 buffer.as_mut_ptr(),
                 (::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(::core::mem::size_of::<libc::c_char>() as usize)

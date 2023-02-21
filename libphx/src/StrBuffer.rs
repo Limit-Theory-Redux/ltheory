@@ -3,12 +3,6 @@ use glam::Vec3;
 use libc;
 use std::ffi::VaListImpl;
 extern "C" {
-    fn vsnprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: __builtin_va_list,
-    ) -> i32;
 }
 pub type __builtin_va_list = *mut libc::c_char;
 pub type cstr = *const libc::c_char;
@@ -98,7 +92,7 @@ unsafe extern "C" fn StrBuffer_SetImpl(
     mut format: cstr,
     mut args: va_list,
 ) -> i32 {
-    let mut newSize: i32 = vsnprintf(
+    let mut newSize: i32 = libc::snprintf(
         (*this).data,
         ((*this).capacity).wrapping_add(1) as usize,
         format,

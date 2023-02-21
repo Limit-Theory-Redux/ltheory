@@ -1,10 +1,8 @@
 use crate::internal::Memory::*;
+use crate::RenderState::*;
 use glam::Vec3;
 use libc;
-extern "C" {
-    fn RenderState_PushCullFace(_: CullFace);
-    fn RenderState_PopCullFace();
-}
+
 pub type CullFace = i32;
 #[no_mangle]
 pub unsafe extern "C" fn CullFace_Pop() {

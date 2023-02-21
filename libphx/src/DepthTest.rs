@@ -1,10 +1,8 @@
 use crate::internal::Memory::*;
+use crate::RenderState::*;
 use glam::Vec3;
 use libc;
-extern "C" {
-    fn RenderState_PushDepthTest(_: bool);
-    fn RenderState_PopDepthTest();
-}
+
 #[no_mangle]
 pub unsafe extern "C" fn DepthTest_Pop() {
     RenderState_PopDepthTest();

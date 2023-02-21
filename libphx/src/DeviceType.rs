@@ -1,10 +1,11 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
     fn Button_ToDeviceType(_: Button) -> DeviceType;
 }
+
 pub type cstr = *const libc::c_char;
 pub type Button = i32;
 pub type DeviceType = i32;
@@ -22,7 +23,7 @@ pub unsafe extern "C" fn DeviceType_ToString(mut deviceType: DeviceType) -> cstr
         3 => return b"DeviceType_Gamepad\0" as *const u8 as *const libc::c_char,
         _ => {
             static mut buffer: [libc::c_char; 512] = [0; 512];
-            snprintf(
+            libc::snprintf(
                 buffer.as_mut_ptr(),
                 (::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32

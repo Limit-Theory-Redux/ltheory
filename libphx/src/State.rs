@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
 }
 pub type cstr = *const libc::c_char;
 pub type State = i32;
@@ -38,7 +37,7 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> cstr {
             as i32
     {
         if state & states[i as usize] == states[i as usize] {
-            len += snprintf(
+            len += libc::snprintf(
                 start.offset(len as isize),
                 ((::core::mem::size_of::<[libc::c_char; 512]>())
                     .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
@@ -53,7 +52,7 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> cstr {
         i += 1;
     }
     if state != 0 as i32 {
-        len += snprintf(
+        len += libc::snprintf(
             start.offset(len as isize),
             ((::core::mem::size_of::<[libc::c_char; 512]>())
                 .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32

@@ -8,8 +8,6 @@ extern "C" {
     fn File_Close(_: *mut File);
     fn File_ReadBytes(path: cstr) -> *mut Bytes;
     fn File_Write(_: *mut File, data: *const libc::c_void, len: u32);
-    fn putchar(_: i32) -> i32;
-    fn printf(_: *const libc::c_char, _: ...) -> i32;
     fn LZ4_versionNumber() -> i32;
     fn LZ4_compress_default(
         src: *const libc::c_char,
@@ -372,13 +370,13 @@ pub unsafe extern "C" fn Bytes_WriteF64(mut this: *mut Bytes, mut value: f64) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Print(mut this: *mut Bytes) {
-    printf(
+    libc::printf(
         b"%d bytes:\n\0" as *const u8 as *const libc::c_char,
         (*this).size,
     );
     let mut i: u32 = 0 as i32 as u32;
     while i < (*this).size {
-        putchar(*(&mut (*this).data as *mut libc::c_char).offset(i as isize) as i32);
+        libc::putchar(*(&mut (*this).data as *mut libc::c_char).offset(i as isize) as i32);
         i = i.wrapping_add(1);
     }
 }

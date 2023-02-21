@@ -72,7 +72,7 @@
 //
 // #define Vec2_ToString(T, sub, fmt) static inline cstr T##_ToString(T* v) { \
 //   static char buffer[512]; \
-//   snprintf(buffer, (size_t) Array_GetSize(buffer), \
+//   libc::snprintf(buffer, (size_t) Array_GetSize(buffer), \
 //     "(" fmt ", " fmt ")", v->x, v->y); \
 //   return buffer; }
 //      */

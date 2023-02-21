@@ -11,12 +11,6 @@ extern "C" {
     fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_Write(_: *mut Bytes, data: *const libc::c_void, len: u32);
     fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char, _: i32) -> libc::c_long;
-    fn vsnprintf(
-        _: *mut libc::c_char,
-        _: usize,
-        _: *const libc::c_char,
-        _: __builtin_va_list,
-    ) -> i32;
     fn fcntl(_: i32, _: i32, _: ...) -> i32;
     fn close(_: i32) -> i32;
     fn read(_: i32, _: *mut libc::c_void, _: usize) -> isize;

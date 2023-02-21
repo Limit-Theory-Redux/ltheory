@@ -8,7 +8,6 @@ extern "C" {
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn printf(_: *const libc::c_char, _: ...) -> i32;
-    fn snprintf(_: *mut libc::c_char, _: usize, _: *const libc::c_char, _: ...) -> i32;
     fn Quat_GetAxisX(_: *const Quat, _: *mut Vec3);
     fn Quat_GetAxisY(_: *const Quat, _: *mut Vec3);
     fn Quat_GetAxisZ(_: *const Quat, _: *mut Vec3);
@@ -852,7 +851,7 @@ pub unsafe extern "C" fn Matrix_Print(mut this: *const Matrix) {
 pub unsafe extern "C" fn Matrix_ToString(mut this: *const Matrix) -> cstr {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     let mut m: *const f32 = ((*this).m).as_ptr();
-    snprintf(
+    libc::snprintf(
         buffer.as_mut_ptr(),
         (::core::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(::core::mem::size_of::<libc::c_char>())
