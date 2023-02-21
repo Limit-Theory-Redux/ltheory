@@ -1,17 +1,12 @@
 use ::libc;
 use glam::Vec3;
 use crate::internal::Memory::*;
-extern "C" {
-    fn memmove(
-        _: *mut libc::c_void,
-        _: *const libc::c_void,
-        _: libc::c_ulong,
-    ) -> *mut libc::c_void;
-}
+
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Alloc(mut size: libc::size_t) -> *mut libc::c_void {
     return libc::malloc(size);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Calloc(
     mut n: libc::size_t,
@@ -19,10 +14,12 @@ pub unsafe extern "C" fn Memory_Calloc(
 ) -> *mut libc::c_void {
     return libc::calloc(n, size);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Free(mut ptr: *mut libc::c_void) {
     libc::free(ptr);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Memory_MemCopy(
     mut dst: *mut libc::c_void,
@@ -31,6 +28,7 @@ pub unsafe extern "C" fn Memory_MemCopy(
 ) {
     libc::memcpy(dst, src, size);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Memory_MemMove(
     mut dst: *mut libc::c_void,
@@ -39,6 +37,7 @@ pub unsafe extern "C" fn Memory_MemMove(
 ) {
     libc::memmove(dst, src, size);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Realloc(
     mut ptr: *mut libc::c_void,
