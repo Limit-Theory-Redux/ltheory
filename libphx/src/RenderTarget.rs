@@ -19,37 +19,36 @@ extern "C" {
     fn Profiler_Begin(_: cstr);
     fn Profiler_End();
     fn Tex2D_GetFormat(_: *mut Tex2D) -> TexFormat;
-    fn Tex2D_GetHandle(_: *mut Tex2D) -> uint;
+    fn Tex2D_GetHandle(_: *mut Tex2D) -> u32;
     fn Tex2D_GetSizeLevel(_: *mut Tex2D, out: *mut IVec2, level: i32);
-    fn Tex3D_GetHandle(_: *mut Tex3D) -> uint;
+    fn Tex3D_GetHandle(_: *mut Tex3D) -> u32;
     fn Tex3D_GetSizeLevel(_: *mut Tex3D, out: *mut IVec3, level: i32);
-    fn TexCube_GetHandle(_: *mut TexCube) -> uint;
+    fn TexCube_GetHandle(_: *mut TexCube) -> u32;
     fn TexFormat_IsColor(_: TexFormat) -> bool;
     fn Viewport_Pop();
     fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindow: bool);
 }
-pub type uint = u32;
 pub type cstr = *const libc::c_char;
 
 pub type CubeFace = i32;
 pub type Metric = i32;
 pub type TexFormat = i32;
 pub type GLenum = u32;
-pub type GLuint = u32;
+pub type GLu32 = u32;
 pub type GLint = i32;
 pub type GLsizei = i32;
 pub type PFNGLDRAWBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLenum) -> ()>;
-pub type PFNGLBINDFRAMEBUFFERPROC = Option<unsafe extern "C" fn(GLenum, GLuint) -> ()>;
-pub type PFNGLDELETEFRAMEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLuint) -> ()>;
+pub type PFNGLBINDFRAMEBUFFERPROC = Option<unsafe extern "C" fn(GLenum, GLu32) -> ()>;
+pub type PFNGLDELETEFRAMEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLu32) -> ()>;
 pub type PFNGLFRAMEBUFFERTEXTURE2DPROC =
-    Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLuint, GLint) -> ()>;
+    Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLu32, GLint) -> ()>;
 pub type PFNGLFRAMEBUFFERTEXTURE3DPROC =
-    Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLuint, GLint, GLint) -> ()>;
-pub type PFNGLGENFRAMEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLuint) -> ()>;
+    Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLu32, GLint, GLint) -> ()>;
+pub type PFNGLGENFRAMEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLu32) -> ()>;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FBO {
-    pub handle: uint,
+    pub handle: u32,
     pub colorIndex: i32,
     pub sx: i32,
     pub sy: i32,
@@ -92,7 +91,7 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     }
     fboIndex += 1;
     let mut this: *mut FBO = GetActive();
-    (*this).handle = 0 as i32 as uint;
+    (*this).handle = 0 as i32 as u32;
     (*this).colorIndex = 0 as i32;
     (*this).sx = sx;
     (*this).sy = sy;
@@ -123,7 +122,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
             0x8d40 as i32 as GLenum,
             (0x8ce0 as i32 + i) as GLenum,
             0xde1 as i32 as GLenum,
-            0 as i32 as GLuint,
+            0 as i32 as GLu32,
             0 as i32,
         );
         i += 1;
@@ -132,7 +131,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
         0x8d40 as i32 as GLenum,
         0x8d00 as i32 as GLenum,
         0xde1 as i32 as GLenum,
-        0 as i32 as GLuint,
+        0 as i32 as GLu32,
         0 as i32,
     );
     __glewDeleteFramebuffers.expect("non-null function pointer")(
@@ -149,7 +148,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
     } else {
         __glewBindFramebuffer.expect("non-null function pointer")(
             0x8d40 as i32 as GLenum,
-            0 as i32 as GLuint,
+            0 as i32 as GLu32,
         );
     }
     Viewport_Pop();
@@ -162,7 +161,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2D(mut this: *mut Tex2D) {
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut level: i32) {
     let mut this: *mut FBO = GetActive();
-    let mut handle: uint = Tex2D_GetHandle(tex);
+    let mut handle: u32 = Tex2D_GetHandle(tex);
     if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
         if (*this).colorIndex >= 4 as i32 {
             Fatal(
@@ -214,7 +213,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
                 as *const libc::c_char,
         );
     }
-    let mut handle: uint = Tex3D_GetHandle(tex);
+    let mut handle: u32 = Tex3D_GetHandle(tex);
     let fresh1 = (*this).colorIndex;
     (*this).colorIndex = (*this).colorIndex + 1;
     __glewFramebufferTexture3D.expect("non-null function pointer")(
@@ -244,7 +243,7 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
                 as *const libc::c_char,
         );
     }
-    let mut handle: uint = TexCube_GetHandle(tex);
+    let mut handle: u32 = TexCube_GetHandle(tex);
     let fresh2 = (*this).colorIndex;
     (*this).colorIndex = (*this).colorIndex + 1;
     __glewFramebufferTexture2D.expect("non-null function pointer")(

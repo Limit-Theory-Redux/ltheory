@@ -53,7 +53,6 @@ extern "C" {
     fn StrMap_Remove(_: *mut StrMap, key: cstr);
     fn StrMap_Set(_: *mut StrMap, key: cstr, val: *mut libc::c_void);
 }
-pub type uint = u32;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -681,7 +680,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
-    // let mut version: uint = 0;
+    // let mut version: u32 = 0;
     // FMOD_CheckError(
     //     FMOD_System_GetVersion(this.handle, &mut version),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8

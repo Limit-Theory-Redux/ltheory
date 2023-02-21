@@ -28,6 +28,15 @@ PHX_API void      _cppPhysics_DrawWireframes          (Physics*);
 use glam::Vec3;
 
 extern "C" {
+    pub type Physics;
+    pub type RigidBody;
+    pub type Trigger;
+    pub type Collision;
+    pub type Ray;
+    pub type Sphere;
+    pub type RayCastResult;
+    pub type ShapeCastResult;
+    pub type Quat;
     fn _cppPhysics_Create() -> *mut Physics;
     fn _cppPhysics_Free(_: *mut Physics);
     fn _cppPhysics_AddRigidBody(_: *mut Physics, _: *mut RigidBody);
@@ -58,16 +67,6 @@ extern "C" {
     fn _cppPhysics_DrawTriggers(_: *mut Physics);
     fn _cppPhysics_DrawWireframes(_: *mut Physics);
 }
-
-pub struct Physics;
-pub struct RigidBody;
-pub struct Trigger;
-pub struct Collision;
-pub struct Ray;
-pub struct Sphere;
-pub struct RayCastResult;
-pub struct ShapeCastResult;
-pub struct Quat;
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_Create() -> *mut Physics {

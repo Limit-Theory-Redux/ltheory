@@ -53,6 +53,11 @@ PHX_API void        _cppRigidBody_SetScale                     (RigidBody*, floa
 use glam::Vec3;
 
 extern "C" {
+    pub type RigidBody;
+    pub type Mesh;
+    pub type Quat;
+    pub type Box3f;
+    pub type Matrix;
     fn _cppRigidBody_CreateBox() -> *mut RigidBody;
     fn _cppRigidBody_CreateBoxFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
     fn _cppRigidBody_CreateSphere() -> *mut RigidBody;
@@ -101,12 +106,6 @@ extern "C" {
     fn _cppRigidBody_GetScale(this: *mut RigidBody) -> f32;
     fn _cppRigidBody_SetScale(this: *mut RigidBody, scale: f32);
 }
-
-pub struct RigidBody;
-pub struct Mesh;
-pub struct Quat;
-pub struct Box3f;
-pub struct Matrix;
 
 #[no_mangle]
 pub unsafe extern "C" fn RigidBody_CreateBox() -> *mut RigidBody {

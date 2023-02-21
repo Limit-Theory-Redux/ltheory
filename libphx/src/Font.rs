@@ -62,7 +62,6 @@ extern "C" {
     ) -> FT_Error;
     fn FT_Get_Char_Index(face: FT_Face, charcode: FT_ULong) -> FT_UInt;
 }
-pub type uint = u32;
 pub type uchar = libc::c_uchar;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
@@ -453,9 +452,9 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
         MemAlloc((::core::mem::size_of::<Vec4f>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
             as *mut Vec4f;
     let mut pBuffer: *mut Vec4f = buffer;
-    let mut dy: uint = 0 as i32 as uint;
+    let mut dy: u32 = 0 as i32 as u32;
     while dy < (*bitmap).rows {
-        let mut dx: uint = 0 as i32 as uint;
+        let mut dx: u32 = 0 as i32 as u32;
         while dx < (*bitmap).width {
             let mut a: f32 = Pow(
                 (*pBitmap.offset(dx as isize) as f32 / 255.0f32) as f64,

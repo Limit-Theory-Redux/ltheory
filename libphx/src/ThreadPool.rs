@@ -1,16 +1,12 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+use sdl2_sys::*;
+
 extern "C" {
-    pub type SDL_Thread;
     fn Fatal(_: cstr, _: ...);
-    fn SDL_CreateThread(
-        fn_0: SDL_ThreadFunction,
-        name: *const libc::c_char,
-        data: *mut libc::c_void,
-    ) -> *mut SDL_Thread;
-    fn SDL_WaitThread(thread: *mut SDL_Thread, status: *mut i32);
 }
+
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -28,7 +24,6 @@ pub struct ThreadData {
     pub data: *mut libc::c_void,
 }
 pub type ThreadPoolFn = Option<unsafe extern "C" fn(i32, i32, *mut libc::c_void) -> i32>;
-pub type SDL_ThreadFunction = Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
 
 unsafe extern "C" fn ThreadPool_Dispatch(mut data: *mut libc::c_void) -> i32 {
     let mut td: *mut ThreadData = data as *mut ThreadData;
@@ -49,7 +44,7 @@ pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool 
     while i < threads {
         let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
         (*td).handle = 0 as *mut SDL_Thread;
-        (*td).fn_0 = None;
+        (*td).fn_0 = std::option::Option::None;
         (*td).index = i;
         (*td).threads = threads;
         (*td).data = 0 as *mut libc::c_void;

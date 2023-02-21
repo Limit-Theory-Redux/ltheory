@@ -1,25 +1,13 @@
 use crate::internal::Memory::*;
+use crate::HatDir::*;
 use glam::Vec3;
 use libc;
+use sdl2_sys::*;
+
 extern "C" {
     pub type _SDL_Joystick;
     fn Fatal(_: cstr, _: ...);
     fn fabs(_: f64) -> f64;
-    fn SDL_JoystickGetGUID(joystick: *mut SDL_Joystick) -> SDL_JoystickGUID;
-    fn SDL_JoystickClose(joystick: *mut SDL_Joystick);
-    fn SDL_NumJoysticks() -> i32;
-    fn SDL_JoystickGetHat(joystick: *mut SDL_Joystick, hat: i32) -> u8;
-    fn SDL_JoystickGetButton(joystick: *mut SDL_Joystick, button: i32) -> u8;
-    fn SDL_JoystickGetAxis(joystick: *mut SDL_Joystick, axis: i32) -> i16;
-    fn SDL_JoystickNumHats(joystick: *mut SDL_Joystick) -> i32;
-    fn SDL_JoystickNumButtons(joystick: *mut SDL_Joystick) -> i32;
-    fn SDL_JoystickNumBalls(joystick: *mut SDL_Joystick) -> i32;
-    fn SDL_JoystickNumAxes(joystick: *mut SDL_Joystick) -> i32;
-    fn SDL_JoystickNameForIndex(device_index: i32) -> *const libc::c_char;
-    fn SDL_JoystickName(joystick: *mut SDL_Joystick) -> *const libc::c_char;
-    fn SDL_JoystickGetDeviceGUID(device_index: i32) -> SDL_JoystickGUID;
-    fn SDL_JoystickOpen(device_index: i32) -> *mut SDL_Joystick;
-    fn SDL_JoystickGetGUIDString(guid: SDL_JoystickGUID, pszGUID: *mut libc::c_char, cbGUID: i32);
     fn TimeStamp_Get() -> TimeStamp;
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
@@ -39,14 +27,7 @@ pub struct Joystick {
     pub axisStates: *mut f64,
     pub lastUsed: TimeStamp,
 }
-pub type SDL_Joystick = _SDL_Joystick;
-pub type HatDir = i32;
-pub type SDL_GUID = SDL_JoystickGUID;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct SDL_JoystickGUID {
-    pub data: [u8; 16],
-}
+
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);

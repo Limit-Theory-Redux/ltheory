@@ -2,15 +2,7 @@ use crate::internal::Memory::*;
 use glam::IVec2;
 use glam::Vec3;
 use libc;
-extern "C" {
-    pub type SDL_Window;
-    fn SDL_WarpMouseInWindow(window: *mut SDL_Window, x: i32, y: i32);
-    fn SDL_GetMouseState(x: *mut i32, y: *mut i32) -> u32;
-    fn SDL_GetPerformanceFrequency() -> u64;
-    fn SDL_GetPerformanceCounter() -> u64;
-    fn SDL_ShowCursor(toggle: i32) -> i32;
-    fn SDL_GetGlobalMouseState(x: *mut i32, y: *mut i32) -> u32;
-}
+use sdl2_sys::*;
 
 pub type MouseButton = i32;
 #[no_mangle]

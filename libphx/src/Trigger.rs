@@ -19,6 +19,9 @@ PHX_API void        _cppTrigger_SetPosLocal       (Trigger*, Vec3f*);
 use glam::Vec3;
 
 extern "C" {
+    pub type Trigger;
+    pub type RigidBody;
+    pub type Box3f;
     fn _cppTrigger_CreateBox(halfExtents: *mut Vec3) -> *mut Trigger;
     fn _cppTrigger_Free(this: *mut Trigger);
     fn _cppTrigger_Attach(this: *mut Trigger, rb: *mut RigidBody, offset: *mut Vec3);
@@ -30,10 +33,6 @@ extern "C" {
     fn _cppTrigger_SetPos(this: *mut Trigger, pos: *mut Vec3);
     fn _cppTrigger_SetPosLocal(this: *mut Trigger, pos: *mut Vec3);
 }
-
-pub struct Trigger;
-pub struct RigidBody;
-pub struct Box3f;
 
 #[no_mangle]
 pub unsafe extern "C" fn Trigger_CreateBox(halfExtents: *mut Vec3) -> *mut Trigger {

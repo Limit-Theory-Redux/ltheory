@@ -18,6 +18,8 @@ fn link_kind(kind : &str, lib :&str, root : &PathBuf, path_segments: &[&str])
 
 // #[cfg(target_os = "macos")]
 fn main() {
+    println!("cargo:rustc-env=PHX_VERSION=0.0.1");
+
     use std::str::FromStr;
 
     let out_dir = PathBuf::from_str(env::var_os("OUT_DIR").unwrap().to_str().unwrap()).unwrap();

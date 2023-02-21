@@ -34,14 +34,13 @@ extern "C" {
     fn Triangle_Validate(_: *const Triangle) -> Error;
 }
 pub type __darwin_ptrdiff_t = libc::c_long;
-pub type uint = u32;
 pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Mesh {
     pub _refCount: u32,
-    pub vbo: uint,
-    pub ibo: uint,
+    pub vbo: u32,
+    pub ibo: u32,
     pub version: u64,
     pub versionBuffers: u64,
     pub versionInfo: u64,
@@ -79,23 +78,23 @@ pub struct Triangle {
     pub vertices: [Vec3; 3],
 }
 pub type ResourceType = i32;
-pub type GLuint = u32;
-pub type PFNGLDELETEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLuint) -> ()>;
+pub type GLu32 = u32;
+pub type PFNGLDELETEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLu32) -> ()>;
 pub type GLsizei = i32;
 pub type GLenum = u32;
-pub type PFNGLBINDBUFFERPROC = Option<unsafe extern "C" fn(GLenum, GLuint) -> ()>;
-pub type PFNGLDISABLEVERTEXATTRIBARRAYPROC = Option<unsafe extern "C" fn(GLuint) -> ()>;
+pub type PFNGLBINDBUFFERPROC = Option<unsafe extern "C" fn(GLenum, GLu32) -> ()>;
+pub type PFNGLDISABLEVERTEXATTRIBARRAYPROC = Option<unsafe extern "C" fn(GLu32) -> ()>;
 pub type GLboolean = libc::c_uchar;
 pub type PFNGLVERTEXATTRIBPOINTERPROC = Option<
-    unsafe extern "C" fn(GLuint, GLint, GLenum, GLboolean, GLsizei, *const libc::c_void) -> (),
+    unsafe extern "C" fn(GLu32, GLint, GLenum, GLboolean, GLsizei, *const libc::c_void) -> (),
 >;
 pub type GLint = i32;
-pub type PFNGLENABLEVERTEXATTRIBARRAYPROC = Option<unsafe extern "C" fn(GLuint) -> ()>;
+pub type PFNGLENABLEVERTEXATTRIBARRAYPROC = Option<unsafe extern "C" fn(GLu32) -> ()>;
 pub type GLsizeiptr = ptrdiff_t;
 pub type ptrdiff_t = __darwin_ptrdiff_t;
 pub type PFNGLBUFFERDATAPROC =
     Option<unsafe extern "C" fn(GLenum, GLsizeiptr, *const libc::c_void, GLenum) -> ()>;
-pub type PFNGLGENBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLuint) -> ()>;
+pub type PFNGLGENBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLu32) -> ()>;
 pub type GLfloat = f32;
 
 #[inline]
@@ -172,8 +171,8 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
 pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
     let mut this: *mut Mesh = MemAlloc(::core::mem::size_of::<Mesh>()) as *mut Mesh;
     (*this)._refCount = 1 as i32 as u32;
-    (*this).vbo = 0 as i32 as uint;
-    (*this).ibo = 0 as i32 as uint;
+    (*this).vbo = 0 as i32 as u32;
+    (*this).ibo = 0 as i32 as u32;
     (*this).version = 1 as i32 as u64;
     (*this).versionBuffers = 0 as i32 as u64;
     (*this).versionInfo = 0 as i32 as u64;
@@ -412,8 +411,8 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
     if (*this).vbo != 0 && (*this).version != (*this).versionBuffers {
         __glewDeleteBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).vbo);
         __glewDeleteBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).ibo);
-        (*this).vbo = 0 as i32 as uint;
-        (*this).ibo = 0 as i32 as uint;
+        (*this).vbo = 0 as i32 as u32;
+        (*this).ibo = 0 as i32 as u32;
     }
     if (*this).vbo == 0 {
         __glewGenBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).vbo);
@@ -437,11 +436,11 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
     }
     __glewBindBuffer.expect("non-null function pointer")(0x8892 as i32 as GLenum, (*this).vbo);
     __glewBindBuffer.expect("non-null function pointer")(0x8893 as i32 as GLenum, (*this).ibo);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(0 as i32 as GLuint);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(1 as i32 as GLuint);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(2 as i32 as GLuint);
+    __glewEnableVertexAttribArray.expect("non-null function pointer")(0 as i32 as GLu32);
+    __glewEnableVertexAttribArray.expect("non-null function pointer")(1 as i32 as GLu32);
+    __glewEnableVertexAttribArray.expect("non-null function pointer")(2 as i32 as GLu32);
     __glewVertexAttribPointer.expect("non-null function pointer")(
-        0 as i32 as GLuint,
+        0 as i32 as GLu32,
         3 as i32,
         0x1406 as i32 as GLenum,
         0 as i32 as GLboolean,
@@ -449,7 +448,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         offset_of!(Vertex, p) as *const libc::c_void,
     );
     __glewVertexAttribPointer.expect("non-null function pointer")(
-        1 as i32 as GLuint,
+        1 as i32 as GLu32,
         3 as i32,
         0x1406 as i32 as GLenum,
         0 as i32 as GLboolean,
@@ -457,7 +456,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         offset_of!(Vertex, n) as *const libc::c_void,
     );
     __glewVertexAttribPointer.expect("non-null function pointer")(
-        2 as i32 as GLuint,
+        2 as i32 as GLu32,
         2 as i32,
         0x1406 as i32 as GLenum,
         0 as i32 as GLboolean,
@@ -481,16 +480,16 @@ pub unsafe extern "C" fn Mesh_DrawBound(mut this: *mut Mesh) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawUnbind(mut this: *mut Mesh) {
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(0 as i32 as GLuint);
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(1 as i32 as GLuint);
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(2 as i32 as GLuint);
+    __glewDisableVertexAttribArray.expect("non-null function pointer")(0 as i32 as GLu32);
+    __glewDisableVertexAttribArray.expect("non-null function pointer")(1 as i32 as GLu32);
+    __glewDisableVertexAttribArray.expect("non-null function pointer")(2 as i32 as GLu32);
     __glewBindBuffer.expect("non-null function pointer")(
         0x8892 as i32 as GLenum,
-        0 as i32 as GLuint,
+        0 as i32 as GLu32,
     );
     __glewBindBuffer.expect("non-null function pointer")(
         0x8893 as i32 as GLenum,
-        0 as i32 as GLuint,
+        0 as i32 as GLu32,
     );
 }
 #[no_mangle]

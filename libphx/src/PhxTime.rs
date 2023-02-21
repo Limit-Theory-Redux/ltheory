@@ -7,7 +7,6 @@ extern "C" {
     fn time(_: *mut time_t) -> time_t;
 }
 pub type __darwin_time_t = libc::c_long;
-pub type uint = u32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Time {
@@ -69,6 +68,6 @@ pub unsafe extern "C" fn Time_GetUTC() -> Time {
     return Time_Convert(gmtime(&mut t));
 }
 #[no_mangle]
-pub unsafe extern "C" fn Time_GetRaw() -> uint {
-    return (time(0 as *mut time_t) % 0xffffffff as u32 as libc::c_long) as uint;
+pub unsafe extern "C" fn Time_GetRaw() -> u32 {
+    return (time(0 as *mut time_t) % 0xffffffff as u32 as libc::c_long) as u32;
 }

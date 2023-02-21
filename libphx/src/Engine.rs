@@ -3,6 +3,7 @@ use crate::PhxSignal::*;
 use crate::ResourceType::*;
 use glam::Vec3;
 use libc;
+use sdl2_sys::*;
 
 extern "C" {
     fn Directory_Create(path: cstr) -> bool;
@@ -26,16 +27,10 @@ extern "C" {
     fn Profiler_End();
     fn Resource_Init();
     fn exit(_: i32) -> !;
-    fn SDL_GL_SetAttribute(attr: SDL_GLattr, value: i32) -> i32;
     fn abort() -> !;
-    fn SDL_QuitSubSystem(flags: u32);
-    fn SDL_GetVersion(ver: *mut SDL_version);
     fn puts(_: *const libc::c_char) -> i32;
     fn printf(_: *const libc::c_char, _: ...) -> i32;
-    fn SDL_Init(flags: u32) -> i32;
     fn atexit(_: Option<unsafe extern "C" fn() -> ()>) -> i32;
-    fn SDL_Quit();
-    fn SDL_InitSubSystem(flags: u32) -> i32;
     fn ShaderVar_Init();
     fn ShaderVar_Free();
     fn TimeStamp_Get() -> TimeStamp;
@@ -44,53 +39,18 @@ extern "C" {
 pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
 pub type TimeStamp = u64;
-pub type SDL_GLattr = u32;
-pub const SDL_GL_FLOATBUFFERS: SDL_GLattr = 27;
-pub const SDL_GL_CONTEXT_NO_ERROR: SDL_GLattr = 26;
-pub const SDL_GL_CONTEXT_RESET_NOTIFICATION: SDL_GLattr = 25;
-pub const SDL_GL_CONTEXT_RELEASE_BEHAVIOR: SDL_GLattr = 24;
-pub const SDL_GL_FRAMEBUFFER_SRGB_CAPABLE: SDL_GLattr = 23;
-pub const SDL_GL_SHARE_WITH_CURRENT_CONTEXT: SDL_GLattr = 22;
-pub const SDL_GL_CONTEXT_PROFILE_MASK: SDL_GLattr = 21;
-pub const SDL_GL_CONTEXT_FLAGS: SDL_GLattr = 20;
-pub const SDL_GL_CONTEXT_EGL: SDL_GLattr = 19;
-pub const SDL_GL_CONTEXT_MINOR_VERSION: SDL_GLattr = 18;
-pub const SDL_GL_CONTEXT_MAJOR_VERSION: SDL_GLattr = 17;
-pub const SDL_GL_RETAINED_BACKING: SDL_GLattr = 16;
-pub const SDL_GL_ACCELERATED_VISUAL: SDL_GLattr = 15;
-pub const SDL_GL_MULTISAMPLESAMPLES: SDL_GLattr = 14;
-pub const SDL_GL_MULTISAMPLEBUFFERS: SDL_GLattr = 13;
-pub const SDL_GL_STEREO: SDL_GLattr = 12;
-pub const SDL_GL_ACCUM_ALPHA_SIZE: SDL_GLattr = 11;
-pub const SDL_GL_ACCUM_BLUE_SIZE: SDL_GLattr = 10;
-pub const SDL_GL_ACCUM_GREEN_SIZE: SDL_GLattr = 9;
-pub const SDL_GL_ACCUM_RED_SIZE: SDL_GLattr = 8;
-pub const SDL_GL_STENCIL_SIZE: SDL_GLattr = 7;
-pub const SDL_GL_DEPTH_SIZE: SDL_GLattr = 6;
-pub const SDL_GL_DOUBLEBUFFER: SDL_GLattr = 5;
-pub const SDL_GL_BUFFER_SIZE: SDL_GLattr = 4;
-pub const SDL_GL_ALPHA_SIZE: SDL_GLattr = 3;
-pub const SDL_GL_BLUE_SIZE: SDL_GLattr = 2;
-pub const SDL_GL_GREEN_SIZE: SDL_GLattr = 1;
-pub const SDL_GL_RED_SIZE: SDL_GLattr = 0;
-pub const SDL_GL_CONTEXT_PROFILE_COMPATIBILITY: C2RustUnnamed = 2;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct SDL_version {
-    pub major: u8,
-    pub minor: u8,
-    pub patch: u8,
-}
-pub type Signal = i32;
-pub type C2RustUnnamed = u32;
-pub const SDL_GL_CONTEXT_PROFILE_ES: C2RustUnnamed = 4;
-pub const SDL_GL_CONTEXT_PROFILE_CORE: C2RustUnnamed = 1;
 
 #[no_mangle]
 pub static mut subsystems: u32 =
-    0x4000 as u32 | 0x20 as u32 | 0x1 as u32 | 0x1000 as u32 | 0x200 as u32 | 0x2000 as u32;
-static mut versionString: cstr = b"Feb 12 2023 23:20:35\0" as *const u8 as *const libc::c_char;
+    SDL_INIT_EVENTS |
+    SDL_INIT_VIDEO |
+    SDL_INIT_TIMER |
+    SDL_INIT_HAPTIC |
+    SDL_INIT_JOYSTICK |
+    SDL_INIT_GAMECONTROLLER;
+
 static mut initTime: TimeStamp = 0 as i32 as TimeStamp;
+
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor: i32) {
     static mut firstTime: bool = 1 as i32 != 0;
@@ -112,11 +72,11 @@ pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor
             minor: 0,
             patch: 0,
         };
-        compiled.major = 2 as i32 as u8;
-        compiled.minor = 26 as i32 as u8;
-        compiled.patch = 1 as i32 as u8;
+        compiled.major = 2;
+        compiled.minor = 26;
+        compiled.patch = 1;
         SDL_GetVersion(&mut linked);
-        if compiled.major as i32 != linked.major as i32 {
+        if compiled.major != linked.major {
             puts(
                 b"Engine_Init: Detected SDL major version mismatch:\0" as *const u8
                     as *const libc::c_char,
@@ -135,7 +95,7 @@ pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor
             );
             Fatal(b"Engine_Init: Terminating.\0" as *const u8 as *const libc::c_char);
         }
-        if SDL_Init(0 as i32 as u32) != 0 as i32 {
+        if SDL_Init(0 as i32 as u32) != 0 {
             Fatal(b"Engine_Init: Failed to initialize SDL\0" as *const u8 as *const libc::c_char);
         }
         if !Directory_Create(b"log\0" as *const u8 as *const libc::c_char) {
@@ -146,24 +106,24 @@ pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor
         }
         atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
     }
-    if SDL_InitSubSystem(subsystems) != 0 as i32 {
+    if SDL_InitSubSystem(subsystems) != 0 {
         Fatal(
             b"Engine_Init: Failed to initialize SDL's subsystems\0" as *const u8
                 as *const libc::c_char,
         );
     }
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, glVersionMajor);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, glVersionMinor);
+    SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, glVersionMajor);
+    SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MINOR_VERSION, glVersionMinor);
     SDL_GL_SetAttribute(
-        SDL_GL_CONTEXT_PROFILE_MASK,
-        SDL_GL_CONTEXT_PROFILE_COMPATIBILITY as i32,
+        SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK,
+        SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_COMPATIBILITY as i32,
     );
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1 as i32);
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8 as i32);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8 as i32);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8 as i32);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1 as i32);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24 as i32);
+    SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_ACCELERATED_VISUAL, 1);
+    SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DEPTH_SIZE, 24);
     Keyboard_Init();
     Metric_Reset();
     Mouse_Init();
@@ -195,7 +155,7 @@ pub unsafe extern "C" fn Engine_GetTime() -> f64 {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetVersion() -> cstr {
-    return versionString;
+    return env!("PHX_VERSION").as_ptr() as cstr;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_IsInitialized() -> bool {

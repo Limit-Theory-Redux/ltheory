@@ -1,26 +1,20 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+use sdl2_sys::*;
+
 extern "C" {
-    pub type SDL_Thread;
     fn Fatal(_: cstr, _: ...);
-    fn SDL_Delay(ms: u32);
-    fn SDL_CreateThread(
-        fn_0: SDL_ThreadFunction,
-        name: *const libc::c_char,
-        data: *mut libc::c_void,
-    ) -> *mut SDL_Thread;
-    fn SDL_WaitThread(thread: *mut SDL_Thread, status: *mut i32);
-    fn SDL_DetachThread(thread: *mut SDL_Thread);
 }
-pub type uint = u32;
+
 pub type cstr = *const libc::c_char;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Thread {
     pub handle: *mut SDL_Thread,
 }
-pub type SDL_ThreadFunction = Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
+
 pub type ThreadFn = Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
 
 #[no_mangle]
@@ -42,7 +36,7 @@ pub unsafe extern "C" fn Thread_Detach(mut this: *mut Thread) {
     MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Thread_Sleep(mut ms: uint) {
+pub unsafe extern "C" fn Thread_Sleep(mut ms: u32) {
     SDL_Delay(ms);
 }
 #[no_mangle]
