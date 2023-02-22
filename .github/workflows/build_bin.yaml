@@ -21,7 +21,7 @@ jobs:
       - name: Create Build Environment
         run: cmake -B build
       - name: Build
-        run: cmake --build ./build --config RelWithDebInfo
+        run: cmake --build ./build --config RelWithDebInfo --parallel
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
@@ -48,7 +48,7 @@ jobs:
       - name: Create Build Environment
         run: cmake -B build
       - name: Build
-        run: cmake --build ./build --config RelWithDebInfo
+        run: cmake --build ./build --config RelWithDebInfo --parallel
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
@@ -60,10 +60,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
+      - name: Update packages
+        run: sudo apt-get update
+      - name: Install packages
+        run: sudo apt-get install -y libgl1-mesa-dev
       - name: Create Build Environment
         run: cmake -B build
       - name: Build
-        run: cmake --build ./build --config RelWithDebInfo
+        run: cmake --build ./build --config RelWithDebInfo --parallel
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
