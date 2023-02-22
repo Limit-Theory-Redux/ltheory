@@ -27,6 +27,18 @@ jobs:
         with:
           name: ltheory-bin-win32
           path: ${{github.workspace}}/bin/*
+      - name: Upload binary with assets
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory-distro-win32
+          path: |
+            ${{github.workspace}}/bin/*
+            ${{github.workspace}}/docs/*
+            ${{github.workspace}}/lihphx/script/*
+            ${{github.workspace}}/res/*
+            ${{github.workspace}}/script/*
+            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/README.md
 
   build-macos:
     name: Build macOS
@@ -40,7 +52,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
-          name: ltheory-bin-win32
+          name: ltheory-bin-macos
           path: ${{github.workspace}}/bin/*
 
   build-ubuntu:
