@@ -152,17 +152,6 @@ if (LuaJIT_ADDED)
     "${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
 endif ()
 
-CPMAddPackage(
-  NAME LZ4
-  URL https://github.com/lz4/lz4/archive/refs/tags/v1.9.4.tar.gz
-  VERSION 1.9.4
-  SOURCE_SUBDIR build/cmake
-  OPTIONS
-  "BUILD_SHARED_LIBS OFF"
-  "LZ4_BUILD_CLI OFF"
-  "LZ4_BUILD_LEGACY_LZ4C OFF"
-)
-
 if(WIN32)
   CPMAddPackage(
     NAME windirent

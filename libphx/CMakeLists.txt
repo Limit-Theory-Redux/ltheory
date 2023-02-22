@@ -15,6 +15,5 @@ if(NOT TARGET libphx-external)
 #    fmod
     freetype
     glew_s
-    luajit
-    lz4_static)
+    luajit)
 endif()

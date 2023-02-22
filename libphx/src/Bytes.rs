@@ -1,6 +1,11 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+use flate2::write::{ZlibEncoder, ZlibDecoder};
+use flate2::Compression;
+use std::io::Write;
+use std::ffi::CString;
+
 extern "C" {
     pub type File;
     fn Fatal(_: cstr, _: ...);
@@ -8,20 +13,9 @@ extern "C" {
     fn File_Close(_: *mut File);
     fn File_ReadBytes(path: cstr) -> *mut Bytes;
     fn File_Write(_: *mut File, data: *const libc::c_void, len: u32);
-    fn LZ4_versionNumber() -> i32;
-    fn LZ4_compress_default(
-        src: *const libc::c_char,
-        dst: *mut libc::c_char,
-        srcSize: i32,
-        dstCapacity: i32,
-    ) -> i32;
-    fn LZ4_decompress_fast(
-        src: *const libc::c_char,
-        dst: *mut libc::c_char,
-        originalSize: i32,
-    ) -> i32;
 }
 pub type cstr = *const libc::c_char;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Bytes {
@@ -30,19 +24,20 @@ pub struct Bytes {
     pub data: libc::c_char,
 }
 
-unsafe extern "C" fn Bytes_CheckLZ4Version() {
-    let mut vLink: i32 = LZ4_versionNumber() / (100 as i32 * 100 as i32);
-    let mut vCompile: i32 = (1 as i32 * 100 as i32 * 100 as i32 + 9 as i32 * 100 as i32 + 4 as i32)
-        / (100 as i32 * 100 as i32);
-    if vLink != vCompile {
-        Fatal(
-            b"Bytes_CheckLZ4Version: Linked against incompatible major version of liblz4: Compiled (Major): %d, Linked (Major): %d\0"
-                as *const u8 as *const libc::c_char,
-            vCompile,
-            vLink,
-        );
+impl Bytes {
+    fn to_slice(&self) -> &[u8] {
+        return unsafe {
+            std::slice::from_raw_parts(&self.data as *const i8 as *const u8, self.size as usize)
+        };
+    }
+
+    fn to_slice_mut(&mut self) -> &mut [u8] {
+        return unsafe {
+            std::slice::from_raw_parts_mut(&mut self.data as *mut i8 as *mut u8, self.size as usize)
+        };
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Create(mut size: u32) -> *mut Bytes {
     let mut this: *mut Bytes = MemAlloc(
@@ -81,81 +76,50 @@ pub unsafe extern "C" fn Bytes_GetData(mut this: *mut Bytes) -> *mut libc::c_voi
     return &mut (*this).data as *mut libc::c_char as *mut libc::c_void;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_GetSize(mut this: *mut Bytes) -> u32 {
-    return (*this).size;
+pub extern "C" fn Bytes_GetSize(mut this: *mut Bytes) -> u32 {
+    return unsafe { (*this).size };
 }
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Compress(mut bytes: *mut Bytes) -> *mut Bytes {
-    Bytes_CheckLZ4Version();
-    let mut input: *mut libc::c_char = Bytes_GetData(bytes) as *mut libc::c_char;
-    let mut inputLen: u32 = Bytes_GetSize(bytes);
-    let mut header: u32 = inputLen;
-    let mut headerLen: u32 = ::core::mem::size_of::<u32>() as libc::c_ulong as u32;
-    if inputLen > 0x7e000000 as i32 as u32 || inputLen > (4294967295 as u32).wrapping_sub(headerLen)
-    {
-        Fatal(
-            b"Bytes_Compress: Input is too large to compress.\0" as *const u8
-                as *const libc::c_char,
-        );
+pub extern "C" fn Bytes_Compress(mut bytes: *mut Bytes) -> *mut Bytes {
+    let input = unsafe { (*bytes).to_slice() };
+    
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+    if let Err(e) = encoder.write_all(input) {
+        unsafe {
+            Fatal(
+                b"Bytes_Compress: Encoding failed: %s\0" as *const u8
+                    as *const libc::c_char,
+                CString::new(e.to_string()).unwrap().as_ptr() as *const libc::c_char,
+            );
+        }
     }
-    let mut bufferLen: u32 = inputLen.wrapping_add(headerLen);
-    let mut buffer: *mut libc::c_char =
-        MemAlloc((::core::mem::size_of::<libc::c_char>()).wrapping_mul(bufferLen as usize))
-            as *mut libc::c_char;
-    *(buffer as *mut u32) = header;
-    let mut resultLen: u32 = LZ4_compress_default(
-        input,
-        buffer.offset(headerLen as isize),
-        inputLen as i32,
-        bufferLen.wrapping_sub(headerLen) as i32,
-    ) as u32;
-    if resultLen == 0 as i32 as u32 {
-        Fatal(b"Bytes_Compress: LZ4 failed to compress.\0" as *const u8 as *const libc::c_char);
-    }
-    let mut result: *mut Bytes = Bytes_FromData(
-        buffer as *const libc::c_void,
-        resultLen.wrapping_add(headerLen),
-    );
-    MemFree(buffer as *const libc::c_void);
-    return result;
+    
+    let result = encoder.finish().unwrap();
+    return unsafe { Bytes_FromData(
+        result.as_ptr() as *const libc::c_void,
+        result.len() as u32,
+    ) };
 }
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Decompress(mut bytes: *mut Bytes) -> *mut Bytes {
-    Bytes_CheckLZ4Version();
-    let mut input: *mut libc::c_char = Bytes_GetData(bytes) as *mut libc::c_char;
-    let mut inputLen: u32 = Bytes_GetSize(bytes);
-    let mut header: u32 = *(input as *mut u32);
-    let mut headerLen: u32 = ::core::mem::size_of::<u32>() as libc::c_ulong as u32;
-    let mut bufferLen: u32 = header;
-    let mut buffer: *mut libc::c_char =
-        MemAlloc((::core::mem::size_of::<libc::c_char>()).wrapping_mul(bufferLen as usize))
-            as *mut libc::c_char;
-    if inputLen < headerLen {
-        Fatal(
-            b"Bytes_Decompress: Input is smaller than the header size. Data is likely corrupted.\0"
-                as *const u8 as *const libc::c_char,
-        );
+    let input = unsafe { (*bytes).to_slice() };
+    
+    let mut decoder = ZlibDecoder::new(Vec::new());
+    if let Err(e) = decoder.write_all(input) {
+        unsafe {
+            Fatal(
+                b"Bytes_Decompress: Decoding failed: %s\0" as *const u8
+                    as *const libc::c_char,
+                CString::new(e.to_string()).unwrap().as_ptr() as *const libc::c_char,
+            );
+        }
     }
-    let mut resultLen: i32 =
-        LZ4_decompress_fast(input.offset(headerLen as isize), buffer, bufferLen as i32);
-    if resultLen < 0 as i32 {
-        Fatal(
-            b"Bytes_Decompress: LZ4 failed with return value: %i\0" as *const u8
-                as *const libc::c_char,
-            resultLen,
-        );
-    }
-    if (resultLen as u32).wrapping_add(headerLen) != inputLen {
-        Fatal(
-            b"Bytes_Decompress: Decompressed length does not match expected result.Expected: %u, Actual: %u\0"
-                as *const u8 as *const libc::c_char,
-            inputLen.wrapping_sub(headerLen),
-            resultLen,
-        );
-    }
-    let mut result: *mut Bytes = Bytes_FromData(buffer as *const libc::c_void, bufferLen);
-    MemFree(buffer as *const libc::c_void);
-    return result;
+
+    let result = decoder.finish().unwrap();
+    return unsafe { Bytes_FromData(
+        result.as_ptr() as *const libc::c_void,
+        result.len() as u32,
+    ) };
 }
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_GetCursor(mut this: *mut Bytes) -> u32 {

@@ -104,7 +104,6 @@ fn main() {
     // Link dependencies.
     link_lib_from_cmake("luajit", &deps_root, &["luajit-src", "src"]);
     link_lib_from_cmake("freetype", &deps_root, &["freetype-build"]);
-    link_lib_from_cmake("lz4", &deps_root, &["lz4-build"]);
     link_lib_from_cmake("GLEW", &cmake_root, &["build", "lib"]);
     link_lib_from_cmake("BulletDynamics", &deps_root, &["bullet-build", "src", "BulletDynamics"]);
     link_lib_from_cmake("BulletCollision", &deps_root, &["bullet-build", "src", "BulletCollision"]);
