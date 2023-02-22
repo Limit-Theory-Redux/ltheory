@@ -86,60 +86,6 @@ CPMAddPackage(
   "FT_DISABLE_BROTLI ON"
 )
 
-CPMAddPackage(
-  NAME LuaJIT
-  URL https://github.com/LuaJIT/LuaJIT/archive/de2e1ca9d3d87e74c0c20c1e4ad3c32b31a5875b.tar.gz
-  VERSION de2e1ca9d3d87e74c0c20c1e4ad3c32b31a5875b
-  DOWNLOAD_ONLY TRUE
-)
-if (LuaJIT_ADDED)
-  file(GLOB_RECURSE LUAJIT_SRCS ${LuaJIT_SOURCE_DIR}/src/*.c)
-  file(GLOB_RECURSE LUAJIT_HDRS ${LuaJIT_SOURCE_DIR}/src/*.h\(pp\)?)
-  if (WIN32)
-    add_custom_command(
-      COMMAND msvcbuild.bat static
-      COMMAND ${CMAKE_COMMAND} -E copy
-      ${LuaJIT_SOURCE_DIR}/src/lua51.lib
-      ${LuaJIT_BINARY_DIR}/lib/luajit-5.1.lib
-      WORKING_DIRECTORY ${LuaJIT_SOURCE_DIR}/src
-      OUTPUT ${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
-      DEPENDS ${LUAJIT_SRCS} ${LUAJIT_HDRS}
-    )
-  elseif (APPLE)
-    # Extract the SDK version from the macOS SDK sysroot. The SDK name will be of the form MacOSX00.0.sdk.
-    if("${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
-      get_filename_component(osx_sdk_name ${CMAKE_OSX_SYSROOT} NAME)
-      string(SUBSTRING ${osx_sdk_name} 6 -1 osx_sdk_version_with_prefix)
-      string(LENGTH ${osx_sdk_version_with_prefix} osx_sdk_substr_len)
-      math(EXPR osx_sdk_substr_len "${osx_sdk_substr_len}-4")
-      string(SUBSTRING ${osx_sdk_version_with_prefix} 0 ${osx_sdk_substr_len} osx_sdk_version)
-    else()
-      set(osx_sdk_version ${CMAKE_OSX_DEPLOYMENT_TARGET})
-    endif()
-    add_custom_command(
-      COMMAND make amalg MACOSX_DEPLOYMENT_TARGET=${osx_sdk_version} BUILDMODE=static
-      COMMAND make install PREFIX=${LuaJIT_BINARY_DIR}
-      WORKING_DIRECTORY ${LuaJIT_SOURCE_DIR}
-      OUTPUT ${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
-      DEPENDS ${LUAJIT_SRCS} ${LUAJIT_HDRS}
-    )
-  else ()
-    add_custom_command(
-      COMMAND make amalg CFLAGS=-fPIC BUILDMODE=static
-      COMMAND make install PREFIX=${LuaJIT_BINARY_DIR}
-      WORKING_DIRECTORY ${LuaJIT_SOURCE_DIR}
-      OUTPUT ${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
-      DEPENDS ${LUAJIT_SRCS} ${LUAJIT_HDRS}
-    )
-  endif ()
-
-  add_library (luajit INTERFACE
-    "${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  target_include_directories (luajit INTERFACE "${LuaJIT_SOURCE_DIR}/src")
-  set_property (TARGET luajit PROPERTY INTERFACE_LINK_LIBRARIES
-    "${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
-endif ()
-
 if(WIN32)
   CPMAddPackage(
     NAME windirent

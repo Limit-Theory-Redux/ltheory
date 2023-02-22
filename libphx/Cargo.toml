@@ -20,6 +20,7 @@ memoffset = "0.8"
 printf-compat = "0.1.1"
 rodio = "0.17.0"
 flate2 = "1.0.25"
+mlua = { version = "0.8.7", features = ["luajit", "vendored"] }
 
 [build-dependencies]
 cmake = "0.1"

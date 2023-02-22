@@ -13,6 +13,5 @@ if(NOT TARGET libphx-external)
     BulletDynamics
     LinearMath
 #    fmod
-    freetype
-    luajit)
+    freetype)
 endif()

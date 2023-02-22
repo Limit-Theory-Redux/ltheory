@@ -135,7 +135,6 @@ fn main() {
         .compile("phx-cc");
 
     // Link dependencies.
-    link_lib_from_cmake("luajit", &deps_root, &["luajit-src", "src"]);
     link_lib_from_cmake("freetype", &deps_root, &["freetype-build"]);
     link_lib_from_cmake(
         "BulletDynamics",
