@@ -3,7 +3,7 @@ Config.debug.jobSpeed = 10000
 
 Config.debug.window = true
 Config.debug.metrics = true
-Config.ui.showTrackers = false
+Config.ui.showTrackers = true
 
 Config.render.vsync = false
 

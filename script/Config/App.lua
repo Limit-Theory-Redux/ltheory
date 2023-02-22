@@ -7,6 +7,7 @@ Config.debug = {
   window          = true, -- Debug window visible by default at launch?
   windowSection   = nil,  -- Set to the name of a debug window section to
                           -- collapse all others by default
+
   instantJobs     = true,
 
   timeAccelFactor = 10,
@@ -84,13 +85,12 @@ Config.game = {
   shipEnergyRecharge     = 10,
   shipHealth             = 100,
   shipHealthRegen        = 2,
-  shipDocked             = false,
+  shipDocked             = false, -- ?????????
 
   stationScale           = 20,
 
   playerDamageResistance = 1.0,
   playerMoving           = false,
-  autonavTimestamp       = nil,
 
   enemies                = 0,
   friendlies             = 0,
@@ -104,6 +104,7 @@ Config.game = {
   aiUsesBoost            = true,
   aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
 
+  autonavTimestamp       = nil,
   autonavRanges          = {  200,  -- Unknown
                               100,  -- Ship
                               200,  -- Asteroid
@@ -113,20 +114,6 @@ Config.game = {
 
   dockRange              = 50,
 }
-
-function Config.setGameMode(gm)
-  Config.game.gameMode = gm
-
-  if Config.game.gameMode == 1 then
-    Config.ui.defaultControl = 'Background' -- enable game startup mode
-  else
-    Config.ui.defaultControl = 'Ship' -- enable flight mode
-  end
-end
-
-function Config.getGameMode()
-  return Config.game.gameMode
-end
 
 Config.render = {
   startingHorz = 1600,
@@ -167,6 +154,20 @@ Config.ui.font = {
   title      = Cache.Font('Exo2Bold', 10),
   titleSize  = 10,
 }
+
+function Config.setGameMode(gm)
+  Config.game.gameMode = gm
+
+  if Config.game.gameMode == 1 then
+    Config.ui.defaultControl = 'Background' -- enable game startup mode
+  else
+    Config.ui.defaultControl = 'Ship' -- enable flight mode
+  end
+end
+
+function Config.getGameMode()
+  return Config.game.gameMode
+end
 
 Config.objectInfo = {
   {

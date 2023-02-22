@@ -144,13 +144,13 @@ function MasterControl:activateControl (controlDef)
   end
 end
 
-function MasterControl:getControlDefName ()
-  if self.activeControlDef then
-    return self.activeControlDef.name
-  else
-    return "-"
-  end
-end
+--function MasterControl:getControlDefName ()
+--  if self.activeControlDef then
+--    return self.activeControlDef.name
+--  else
+--    return "-"
+--  end
+--end
 
 function MasterControl.Create (gameView, player)
   local self = setmetatable({

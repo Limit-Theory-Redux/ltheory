@@ -37,4 +37,13 @@ function Ship:getTopSpeed ()
   return 100
 end
 
+function Ship:attackedBy (target)
+  -- This ship has been attacked
+  -- TODO: Allow a number of "grace" hits that decay over time
+  -- TODO: Improve smarts so that this ship can decide which of multiple attackers to target
+printf("%s (health at %s%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
+  self:clearActions()
+  self:pushAction(Actions.Attack(target))
+end
+
 return Ship

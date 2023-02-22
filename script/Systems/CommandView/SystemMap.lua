@@ -49,12 +49,22 @@ function SystemMap:onDraw (state)
       if e:hasActions() then
 --printf("Action: %s", e:getName())
         if Config.game.currentShip == e then
-          Draw.Color(0.2, 1.0, 0.3, 1)
+          Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
         else
-          Draw.Color(1.0, 0.0, 0.4, 1)
+          local entAction = e:getCurrentAction()
+          if entAction ~= nil then
+--printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
+            if string.find(entAction:getName(), "Attack") and entAction.target == Config.game.currentShip then
+              Draw.Color(1.0, 0.3, 0.3, 1.0) -- other ship, hostile (has a current action of "Attack player's ship")
+            else
+              Draw.Color(0.2, 0.6, 1.0, 1.0) -- other ship, non-hostile (TODO: divide into friendly [green] and neutral [blue])
+            end
+          else
+            Draw.Color(1.0, 1.0, 1.0, 1.0) -- some other object that suddenly has no actions
+          end
         end
       else
-        Draw.Color(0.4, 0.4, 0.4, 1)
+        Draw.Color(0.4, 0.4, 0.4, 1.0) -- planet, asteroid, station
       end
       Draw.Point(x, y)
 

@@ -64,7 +64,7 @@ local self = {
     Control.GamepadButton(Button.Gamepad.Y))
     :delta(),
 
-  Undock = Control.Or( -- add separate control for undocking from station
+  Undock = Control.Or(
     Control.Key(Button.Keyboard.J),
     Control.GamepadButton(Button.Gamepad.A))
     :delta(),
