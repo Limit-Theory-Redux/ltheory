@@ -33,8 +33,9 @@ jobs:
           name: ltheory-distro-win32
           path: |
             ${{github.workspace}}/bin/*
+            !${{github.workspace}}/bin/*.pdb
             ${{github.workspace}}/docs/*
-            ${{github.workspace}}/lihphx/script/*
+            ${{github.workspace}}/libphx/script/*
             ${{github.workspace}}/res/*
             ${{github.workspace}}/script/*
             ${{github.workspace}}/LICENSE
