@@ -16,7 +16,7 @@ struct Window {
 Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode) {
   Window* self = MemNew(Window);
   mode |= SDL_WINDOW_OPENGL;
-  cstr titleWithBuild = StrAdd(title, " (libphx build " __DATE__ " " __TIME__ ")");
+  cstr titleWithBuild = StrAdd(title, " (libphx version " __DATE__ ")");
   self->handle = SDL_CreateWindow(titleWithBuild, x, y, sx, sy, mode);
   StrFree(titleWithBuild);
   self->context = SDL_GL_CreateContext(self->handle);
