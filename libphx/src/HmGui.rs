@@ -8,8 +8,8 @@ extern "C" {
     pub type Font;
     pub type HashMap;
     pub type Tex2D;
-    fn Font_Load(name: cstr, size: i32) -> *mut Font;
-    fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: cstr);
+    fn Font_Load(name: *const libc::c_char, size: i32) -> *mut Font;
+    fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: *const libc::c_char);
     fn Hash_FNV64_Init() -> u64;
     fn Hash_FNV64_Incremental(_: u64, buf: *const libc::c_void, len: i32) -> u64;
     fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
@@ -20,7 +20,7 @@ extern "C" {
     fn Input_GetMouseDelta(_: *mut IVec2);
     fn Input_GetMousePosition(_: *mut IVec2);
     fn Input_GetMouseScroll(_: *mut IVec2);
-    fn Profiler_Begin(_: cstr);
+    fn Profiler_Begin(_: *const libc::c_char);
     fn Profiler_End();
     fn RenderState_PushBlendMode(_: BlendMode);
     fn RenderState_PopBlendMode();
@@ -53,9 +53,8 @@ extern "C" {
         a: f32,
         outline: bool,
     );
-    fn UIRenderer_Text(font: *mut Font, text: cstr, x: f32, y: f32, r: f32, g: f32, b: f32, a: f32);
+    fn UIRenderer_Text(font: *mut Font, text: *const libc::c_char, x: f32, y: f32, r: f32, g: f32, b: f32, a: f32);
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -137,7 +136,7 @@ pub struct HmGuiStyle {
 pub struct HmGuiText {
     pub widget: HmGuiWidget,
     pub font: *mut Font,
-    pub text: cstr,
+    pub text: *const libc::c_char,
     pub color: Vec4f,
 }
 #[derive(Copy, Clone)]
@@ -741,7 +740,7 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
     HmGui_EndGroup();
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginWindow(mut title: cstr) {
+pub unsafe extern "C" fn HmGui_BeginWindow(mut title: *const libc::c_char) {
     HmGui_BeginGroupStack();
     HmGui_SetStretch(0.0f32, 0.0f32);
     (*this.group).focusStyle = 0 as i32 as u32;
@@ -768,7 +767,7 @@ pub unsafe extern "C" fn HmGui_EndWindow() {
     HmGui_EndGroup();
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_Button(mut label: cstr) -> bool {
+pub unsafe extern "C" fn HmGui_Button(mut label: *const libc::c_char) -> bool {
     HmGui_BeginGroupStack();
     (*this.group).focusStyle = 1 as i32 as u32;
     (*this.group).frameOpacity = 0.5f32;
@@ -780,7 +779,7 @@ pub unsafe extern "C" fn HmGui_Button(mut label: cstr) -> bool {
     return focus as i32 != 0 && this.activate as i32 != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_Checkbox(mut label: cstr, mut value: bool) -> bool {
+pub unsafe extern "C" fn HmGui_Checkbox(mut label: *const libc::c_char, mut value: bool) -> bool {
     HmGui_BeginGroupX();
     (*this.group).focusStyle = 3 as i32 as u32;
     if HmGui_GroupHasFocus(0 as i32) as i32 != 0 && this.activate as i32 != 0 {
@@ -850,7 +849,7 @@ pub unsafe extern "C" fn HmGui_Rect(
     (*e).widget.minSize = Vec2::new(sx, sy);
 }
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_Text(mut text: cstr) {
+pub unsafe extern "C" fn HmGui_Text(mut text: *const libc::c_char) {
     HmGui_TextEx(
         (*this.style).font,
         text,
@@ -862,7 +861,7 @@ pub unsafe extern "C" fn HmGui_Text(mut text: cstr) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_TextColored(
-    mut text: cstr,
+    mut text: *const libc::c_char,
     mut r: f32,
     mut g: f32,
     mut b: f32,
@@ -873,7 +872,7 @@ pub unsafe extern "C" fn HmGui_TextColored(
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_TextEx(
     mut font: *mut Font,
-    mut text: cstr,
+    mut text: *const libc::c_char,
     mut r: f32,
     mut g: f32,
     mut b: f32,

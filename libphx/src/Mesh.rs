@@ -9,7 +9,7 @@ use memoffset::{offset_of, span_of};
 extern "C" {
     pub type SDF;
     pub type Matrix;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn sqrt(_: f64) -> f64;
     fn Matrix_Free(_: *mut Matrix);
     fn Matrix_RotationX(rads: f32) -> *mut Matrix;
@@ -29,12 +29,11 @@ extern "C" {
     static mut __glewDisableVertexAttribArray: PFNGLDISABLEVERTEXATTRIBARRAYPROC;
     static mut __glewEnableVertexAttribArray: PFNGLENABLEVERTEXATTRIBARRAYPROC;
     static mut __glewVertexAttribPointer: PFNGLVERTEXATTRIBPOINTERPROC;
-    fn Resource_LoadBytes(_: ResourceType, name: cstr) -> *mut Bytes;
+    fn Resource_LoadBytes(_: ResourceType, name: *const libc::c_char) -> *mut Bytes;
     fn SDF_ToMesh(_: *mut SDF) -> *mut Mesh;
     fn Triangle_Validate(_: *const Triangle) -> Error;
 }
 pub type __darwin_ptrdiff_t = libc::c_long;
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Mesh {
@@ -222,7 +221,7 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_Load(mut name: cstr) -> *mut Mesh {
+pub unsafe extern "C" fn Mesh_Load(mut name: *const libc::c_char) -> *mut Mesh {
     let mut bytes: *mut Bytes = Resource_LoadBytes(ResourceType_Mesh, name);
     let mut this: *mut Mesh = Mesh_FromBytes(bytes);
     Bytes_Free(bytes);

@@ -3,11 +3,10 @@ use stb::image_write::stbi_write_png;
 use std::ffi::CStr;
 
 pub type uchar = libc::c_uchar;
-pub type cstr = *const libc::c_char;
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Save_Png(
-    mut path: cstr,
+    mut path: *const libc::c_char,
     mut sx: i32,
     mut sy: i32,
     mut components: i32,

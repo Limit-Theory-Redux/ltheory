@@ -1,7 +1,6 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
-pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
 #[no_mangle]
 pub static mut ResourceType_Font: ResourceType = 0 as i32;
@@ -24,7 +23,7 @@ pub static mut ResourceType_Tex3D: ResourceType = 0x8 as i32;
 #[no_mangle]
 pub static mut ResourceType_TexCube: ResourceType = 0x9 as i32;
 #[no_mangle]
-pub unsafe extern "C" fn ResourceType_ToString(mut this: ResourceType) -> cstr {
+pub unsafe extern "C" fn ResourceType_ToString(mut this: ResourceType) -> *const libc::c_char {
     match this {
         0 => return b"Font\0" as *const u8 as *const libc::c_char,
         1 => return b"Mesh\0" as *const u8 as *const libc::c_char,
@@ -38,5 +37,5 @@ pub unsafe extern "C" fn ResourceType_ToString(mut this: ResourceType) -> cstr {
         9 => return b"TexCube\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return 0 as cstr;
+    return 0 as *const libc::c_char;
 }

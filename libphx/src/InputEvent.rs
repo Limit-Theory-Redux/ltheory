@@ -5,11 +5,10 @@ use crate::State::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    fn Button_ToString(_: Button) -> cstr;
-    fn Device_ToString(_: *mut Device) -> cstr;
-    fn State_ToString(_: State) -> cstr;
+    fn Button_ToString(_: Button) -> *const libc::c_char;
+    fn Device_ToString(_: *mut Device) -> *const libc::c_char;
+    fn State_ToString(_: State) -> *const libc::c_char;
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Device {
@@ -30,7 +29,7 @@ pub type State = i32;
 pub type Button = i32;
 
 #[no_mangle]
-pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> cstr {
+pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),
@@ -46,5 +45,5 @@ pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> cstr {
         (*ie).value as f64,
         State_ToString((*ie).state),
     );
-    return buffer.as_mut_ptr() as cstr;
+    return buffer.as_mut_ptr() as *const libc::c_char;
 }

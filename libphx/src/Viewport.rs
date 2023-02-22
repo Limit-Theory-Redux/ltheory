@@ -8,9 +8,8 @@ extern "C" {
     fn glScalef(x: GLfloat, y: GLfloat, z: GLfloat);
     fn glTranslatef(x: GLfloat, y: GLfloat, z: GLfloat);
     fn glViewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei);
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
 }
-pub type cstr = *const libc::c_char;
 
 pub type GLenum = u32;
 pub type GLint = i32;

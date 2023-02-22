@@ -13,7 +13,6 @@ extern "C" {
     fn Quat_GetAxisZ(_: *const Quat, _: *mut Vec3);
     fn Quat_FromBasis(x: *const Vec3, y: *const Vec3, z: *const Vec3, _: *mut Quat);
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {
@@ -848,7 +847,7 @@ pub unsafe extern "C" fn Matrix_Print(mut this: *const Matrix) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_ToString(mut this: *const Matrix) -> cstr {
+pub unsafe extern "C" fn Matrix_ToString(mut this: *const Matrix) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     let mut m: *const f32 = ((*this).m).as_ptr();
     libc::snprintf(
@@ -875,5 +874,5 @@ pub unsafe extern "C" fn Matrix_ToString(mut this: *const Matrix) -> cstr {
         *m.offset(14) as f64,
         *m.offset(15) as f64,
     );
-    return buffer.as_mut_ptr() as cstr;
+    return buffer.as_mut_ptr() as *const libc::c_char;
 }

@@ -12,7 +12,6 @@ extern "C" {
     fn floor(_: f64) -> f64;
     fn TimeStamp_Get() -> TimeStamp;
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct RNG {
@@ -124,7 +123,7 @@ pub unsafe extern "C" fn RNG_Create(mut seed: u64) -> *mut RNG {
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn RNG_FromStr(mut s: cstr) -> *mut RNG {
+pub unsafe extern "C" fn RNG_FromStr(mut s: *const libc::c_char) -> *mut RNG {
     return RNG_Create(Hash_XX64(
         s as *const libc::c_void,
         StrLen(s) as i32,

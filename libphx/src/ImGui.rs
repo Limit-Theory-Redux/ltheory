@@ -10,17 +10,17 @@ extern "C" {
     pub type MemPool;
     pub type Shader;
     pub type Tex2D;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32);
     fn ClipRect_Pop();
     fn Draw_Rect(x: f32, y: f32, sx: f32, sy: f32);
     fn Draw_Border(s: f32, x: f32, y: f32, w: f32, h: f32);
     fn Draw_LineWidth(width: f32);
     fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
-    fn Font_Load(name: cstr, size: i32) -> *mut Font;
-    fn Font_Draw(_: *mut Font, text: cstr, x: f32, y: f32, r: f32, g: f32, b: f32, a: f32);
+    fn Font_Load(name: *const libc::c_char, size: i32) -> *mut Font;
+    fn Font_Draw(_: *mut Font, text: *const libc::c_char, x: f32, y: f32, r: f32, g: f32, b: f32, a: f32);
     fn Font_GetLineHeight(_: *mut Font) -> i32;
-    fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: cstr);
+    fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: *const libc::c_char);
     fn Hash_FNV64_Init() -> u64;
     fn Hash_FNV64_Incremental(_: u64, buf: *const libc::c_void, len: i32) -> u64;
     fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
@@ -37,16 +37,15 @@ extern "C" {
     fn MemPool_Dealloc(_: *mut MemPool, _: *mut libc::c_void);
     fn RenderState_PushBlendMode(_: BlendMode);
     fn RenderState_PopBlendMode();
-    fn Shader_Load(vertName: cstr, fragName: cstr) -> *mut Shader;
+    fn Shader_Load(vertName: *const libc::c_char, fragName: *const libc::c_char) -> *mut Shader;
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
-    fn Shader_SetFloat(_: cstr, _: f32);
-    fn Shader_SetFloat2(_: cstr, _: f32, _: f32);
-    fn Shader_SetFloat4(_: cstr, _: f32, _: f32, _: f32, _: f32);
+    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
+    fn Shader_SetFloat2(_: *const libc::c_char, _: f32, _: f32);
+    fn Shader_SetFloat4(_: *const libc::c_char, _: f32, _: f32, _: f32, _: f32);
     fn Tex2D_Draw(_: *mut Tex2D, x: f32, y: f32, sx: f32, sy: f32);
     fn Tex2D_GetSize(_: *mut Tex2D, out: *mut IVec2);
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -167,7 +166,7 @@ pub struct ImGuiText {
     pub font: *mut Font,
     pub color: Vec4f,
     pub pos: Vec2,
-    pub text: cstr,
+    pub text: *const libc::c_char,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -314,7 +313,7 @@ unsafe extern "C" fn EmitText(
     mut font: *mut Font,
     mut color: Vec4f,
     mut pos: Vec2,
-    mut text: cstr,
+    mut text: *const libc::c_char,
 ) {
     let mut e: *mut ImGuiText = MemPool_Alloc(this.textPool) as *mut ImGuiText;
     (*e).font = font;
@@ -932,7 +931,7 @@ pub unsafe extern "C" fn ImGui_EndPanel() {
     ImGui_EndGroup();
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_BeginWindow(mut title: cstr, mut sx: f32, mut sy: f32) {
+pub unsafe extern "C" fn ImGui_BeginWindow(mut title: *const libc::c_char, mut sx: f32, mut sy: f32) {
     let mut hash: u64 = HashPeekNext();
     let mut data: *mut ImGuiData = GetData(hash);
     this.cursor.x += (*data).offset.x;
@@ -1077,11 +1076,11 @@ pub unsafe extern "C" fn ImGui_SetSpacing(mut sx: f32, mut sy: f32) {
     (*this.layout).styleVars += 1;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_Button(mut label: cstr) -> bool {
+pub unsafe extern "C" fn ImGui_Button(mut label: *const libc::c_char) -> bool {
     return ImGui_ButtonEx(label, 0.0f32, 32.0f32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_ButtonEx(mut label: cstr, mut sx: f32, mut sy: f32) -> bool {
+pub unsafe extern "C" fn ImGui_ButtonEx(mut label: *const libc::c_char, mut sx: f32, mut sy: f32) -> bool {
     ImGui_BeginWidget(sx, sy);
     let mut focus: bool = ImGui_FocusCurrent(FocusType_Mouse);
     let mut color: Vec4f = if focus as i32 != 0 {
@@ -1183,7 +1182,7 @@ pub unsafe extern "C" fn ImGui_Divider() {
     ImGui_EndWidget();
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_Selectable(mut label: cstr) -> bool {
+pub unsafe extern "C" fn ImGui_Selectable(mut label: *const libc::c_char) -> bool {
     let mut bound: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*this.style).font, &mut bound, label);
     ImGui_BeginWidget(
@@ -1235,7 +1234,7 @@ pub unsafe extern "C" fn ImGui_Tex2D(mut tex: *mut Tex2D) {
     ImGui_EndWidget();
 }
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_Text(mut text: cstr) {
+pub unsafe extern "C" fn ImGui_Text(mut text: *const libc::c_char) {
     ImGui_TextEx(
         (*this.style).font,
         text,
@@ -1247,7 +1246,7 @@ pub unsafe extern "C" fn ImGui_Text(mut text: cstr) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_TextColored(
-    mut text: cstr,
+    mut text: *const libc::c_char,
     mut r: f32,
     mut g: f32,
     mut b: f32,
@@ -1258,7 +1257,7 @@ pub unsafe extern "C" fn ImGui_TextColored(
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_TextEx(
     mut font: *mut Font,
-    mut text: cstr,
+    mut text: *const libc::c_char,
     mut r: f32,
     mut g: f32,
     mut b: f32,

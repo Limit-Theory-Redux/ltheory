@@ -8,7 +8,7 @@ use libc;
 extern "C" {
     pub type Bytes;
     pub type ShaderState;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Rewind(_: *mut Bytes);
@@ -53,19 +53,18 @@ extern "C" {
     fn RenderTarget_Push(sx: i32, sy: i32);
     fn RenderTarget_Pop();
     fn RenderTarget_BindTexCube(_: *mut TexCube, _: CubeFace);
-    fn Shader_SetFloat(_: cstr, _: f32);
-    fn Shader_SetFloat3(_: cstr, _: f32, _: f32, _: f32);
+    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
+    fn Shader_SetFloat3(_: *const libc::c_char, _: f32, _: f32, _: f32);
     fn ShaderState_Start(_: *mut ShaderState);
     fn ShaderState_Stop(_: *mut ShaderState);
     fn TimeStamp_Get() -> TimeStamp;
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
     fn TexFormat_IsDepth(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
-    fn Tex2D_LoadRaw(path: cstr, sx: *mut i32, sy: *mut i32, components: *mut i32) -> *mut uchar;
-    fn Tex2D_Save_Png(path: cstr, sx: i32, sy: i32, components: i32, data: *mut uchar) -> bool;
+    fn Tex2D_LoadRaw(path: *const libc::c_char, sx: *mut i32, sy: *mut i32, components: *mut i32) -> *mut uchar;
+    fn Tex2D_Save_Png(path: *const libc::c_char, sx: i32, sy: i32, components: i32, data: *mut uchar) -> bool;
 }
 pub type uchar = libc::c_uchar;
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct TexCube {
@@ -137,7 +136,7 @@ static mut kFaces: [Face; 6] = [
         up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
     },
 ];
-static mut kFaceExt: [cstr; 6] = [
+static mut kFaceExt: [*const libc::c_char; 6] = [
     b"px\0" as *const u8 as *const libc::c_char,
     b"py\0" as *const u8 as *const libc::c_char,
     b"pz\0" as *const u8 as *const libc::c_char,
@@ -292,7 +291,7 @@ pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Load(mut path: cstr) -> *mut TexCube {
+pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut TexCube {
     let mut this: *mut TexCube =
         MemAlloc(::core::mem::size_of::<TexCube>() as usize) as *mut TexCube;
     glGenTextures(1 as i32, &mut (*this).handle);
@@ -301,7 +300,7 @@ pub unsafe extern "C" fn TexCube_Load(mut path: cstr) -> *mut TexCube {
     let mut dataLayout: i32 = 0 as i32;
     let mut i: i32 = 0 as i32;
     while i < 6 as i32 {
-        let mut facePath: cstr = StrAdd3(
+        let mut facePath: *const libc::c_char = StrAdd3(
             path,
             kFaceExt[i as usize],
             b".jpg\0" as *const u8 as *const libc::c_char,
@@ -528,11 +527,11 @@ pub unsafe extern "C" fn TexCube_SetMinFilter(mut this: *mut TexCube, mut filter
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Save(mut this: *mut TexCube, mut path: cstr) {
+pub unsafe extern "C" fn TexCube_Save(mut this: *mut TexCube, mut path: *const libc::c_char) {
     TexCube_SaveLevel(this, path, 0 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SaveLevel(mut this: *mut TexCube, mut path: cstr, mut level: i32) {
+pub unsafe extern "C" fn TexCube_SaveLevel(mut this: *mut TexCube, mut path: *const libc::c_char, mut level: i32) {
     let mut size: i32 = (*this).size >> level;
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
     let mut buffer: *mut uchar =
@@ -541,7 +540,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(mut this: *mut TexCube, mut path: cst
     let mut i: i32 = 0 as i32;
     while i < 6 as i32 {
         let mut face: CubeFace = kFaces[i as usize].face;
-        let mut facePath: cstr = StrAdd3(
+        let mut facePath: *const libc::c_char = StrAdd3(
             path,
             kFaceExt[i as usize],
             b".png\0" as *const u8 as *const libc::c_char,

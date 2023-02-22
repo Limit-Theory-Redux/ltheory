@@ -2,7 +2,7 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);
     fn glCullFace(mode: GLenum);
     fn glDepthMask(flag: GLboolean);
@@ -11,7 +11,6 @@ extern "C" {
     fn glPolygonMode(face: GLenum, mode: GLenum);
     static mut __glewBlendFuncSeparate: PFNGLBLENDFUNCSEPARATEPROC;
 }
-pub type cstr = *const libc::c_char;
 pub type BlendMode = i32;
 pub type CullFace = i32;
 pub type GLenum = u32;

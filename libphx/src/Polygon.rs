@@ -6,11 +6,10 @@ extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
     fn sqrt(_: f64) -> f64;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn Intersect_LineSegmentPlane(_: *const LineSegment, _: *const Plane, pHit: *mut Vec3) -> bool;
     fn Plane_ClassifyPoint(_: *mut Plane, _: *mut Vec3) -> PointClassification;
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LineSegment {

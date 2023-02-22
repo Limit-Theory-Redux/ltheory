@@ -9,15 +9,14 @@ extern "C" {
     pub type Tex3D;
     pub type TexCube;
     pub type Matrix;
-    fn Fatal(_: cstr, _: ...);
-    fn ShaderVarType_GetName(_: ShaderVarType) -> cstr;
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn ShaderVarType_GetName(_: ShaderVarType) -> *const libc::c_char;
     fn ShaderVarType_GetSize(_: ShaderVarType) -> i32;
     fn StrMap_Create(initCapacity: u32) -> *mut StrMap;
     fn StrMap_Free(_: *mut StrMap);
-    fn StrMap_Get(_: *mut StrMap, key: cstr) -> *mut libc::c_void;
-    fn StrMap_Set(_: *mut StrMap, key: cstr, val: *mut libc::c_void);
+    fn StrMap_Get(_: *mut StrMap, key: *const libc::c_char) -> *mut libc::c_void;
+    fn StrMap_Set(_: *mut StrMap, key: *const libc::c_char, val: *mut libc::c_void);
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -40,7 +39,7 @@ pub struct VarStack {
 
 static mut varMap: *mut StrMap = 0 as *const StrMap as *mut StrMap;
 #[inline]
-unsafe extern "C" fn ShaderVar_GetStack(mut var: cstr, mut type_0: ShaderVarType) -> *mut VarStack {
+unsafe extern "C" fn ShaderVar_GetStack(mut var: *const libc::c_char, mut type_0: ShaderVarType) -> *mut VarStack {
     let mut this: *mut VarStack = StrMap_Get(varMap, var) as *mut VarStack;
     if this.is_null() {
         if type_0 == 0 {
@@ -67,7 +66,7 @@ unsafe extern "C" fn ShaderVar_GetStack(mut var: cstr, mut type_0: ShaderVarType
 }
 #[inline]
 unsafe extern "C" fn ShaderVar_Push(
-    mut var: cstr,
+    mut var: *const libc::c_char,
     mut type_0: ShaderVarType,
     mut value: *const libc::c_void,
 ) {
@@ -95,7 +94,7 @@ pub unsafe extern "C" fn ShaderVar_Free() {
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Get(
-    mut name: cstr,
+    mut name: *const libc::c_char,
     mut type_0: ShaderVarType,
 ) -> *mut libc::c_void {
     let mut this: *mut VarStack = ShaderVar_GetStack(name, 0 as i32);
@@ -116,11 +115,11 @@ pub unsafe extern "C" fn ShaderVar_Get(
         as *mut libc::c_void;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat(mut name: cstr, mut x: f32) {
+pub unsafe extern "C" fn ShaderVar_PushFloat(mut name: *const libc::c_char, mut x: f32) {
     ShaderVar_Push(name, 0x1 as i32, &mut x as *mut f32 as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat2(mut name: cstr, mut x: f32, mut y: f32) {
+pub unsafe extern "C" fn ShaderVar_PushFloat2(mut name: *const libc::c_char, mut x: f32, mut y: f32) {
     let mut value = Vec2::new(x, y);
     ShaderVar_Push(
         name,
@@ -129,7 +128,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat2(mut name: cstr, mut x: f32, mut y:
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat3(mut name: cstr, mut x: f32, mut y: f32, mut z: f32) {
+pub unsafe extern "C" fn ShaderVar_PushFloat3(mut name: *const libc::c_char, mut x: f32, mut y: f32, mut z: f32) {
     let mut value: Vec3 = Vec3 { x: x, y: y, z: z };
     ShaderVar_Push(
         name,
@@ -139,7 +138,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat3(mut name: cstr, mut x: f32, mut y:
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushFloat4(
-    mut name: cstr,
+    mut name: *const libc::c_char,
     mut x: f32,
     mut y: f32,
     mut z: f32,
@@ -158,7 +157,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat4(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushInt(mut name: cstr, mut x: i32) {
+pub unsafe extern "C" fn ShaderVar_PushInt(mut name: *const libc::c_char, mut x: i32) {
     let mut value: i32 = x;
     ShaderVar_Push(
         name,
@@ -167,7 +166,7 @@ pub unsafe extern "C" fn ShaderVar_PushInt(mut name: cstr, mut x: i32) {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushMatrix(mut name: cstr, mut x: *mut Matrix) {
+pub unsafe extern "C" fn ShaderVar_PushMatrix(mut name: *const libc::c_char, mut x: *mut Matrix) {
     ShaderVar_Push(
         name,
         0x9 as i32,
@@ -175,7 +174,7 @@ pub unsafe extern "C" fn ShaderVar_PushMatrix(mut name: cstr, mut x: *mut Matrix
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushTex1D(mut name: cstr, mut x: *mut Tex1D) {
+pub unsafe extern "C" fn ShaderVar_PushTex1D(mut name: *const libc::c_char, mut x: *mut Tex1D) {
     ShaderVar_Push(
         name,
         0xa as i32,
@@ -183,7 +182,7 @@ pub unsafe extern "C" fn ShaderVar_PushTex1D(mut name: cstr, mut x: *mut Tex1D) 
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushTex2D(mut name: cstr, mut x: *mut Tex2D) {
+pub unsafe extern "C" fn ShaderVar_PushTex2D(mut name: *const libc::c_char, mut x: *mut Tex2D) {
     ShaderVar_Push(
         name,
         0xb as i32,
@@ -191,7 +190,7 @@ pub unsafe extern "C" fn ShaderVar_PushTex2D(mut name: cstr, mut x: *mut Tex2D) 
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushTex3D(mut name: cstr, mut x: *mut Tex3D) {
+pub unsafe extern "C" fn ShaderVar_PushTex3D(mut name: *const libc::c_char, mut x: *mut Tex3D) {
     ShaderVar_Push(
         name,
         0xc as i32,
@@ -199,7 +198,7 @@ pub unsafe extern "C" fn ShaderVar_PushTex3D(mut name: cstr, mut x: *mut Tex3D) 
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushTexCube(mut name: cstr, mut x: *mut TexCube) {
+pub unsafe extern "C" fn ShaderVar_PushTexCube(mut name: *const libc::c_char, mut x: *mut TexCube) {
     ShaderVar_Push(
         name,
         0xd as i32,
@@ -207,7 +206,7 @@ pub unsafe extern "C" fn ShaderVar_PushTexCube(mut name: cstr, mut x: *mut TexCu
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_Pop(mut name: cstr) {
+pub unsafe extern "C" fn ShaderVar_Pop(mut name: *const libc::c_char) {
     let mut this: *mut VarStack = ShaderVar_GetStack(name, 0 as i32);
     if this.is_null() {
         Fatal(

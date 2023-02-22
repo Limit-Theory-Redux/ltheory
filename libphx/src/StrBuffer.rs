@@ -5,7 +5,6 @@ use std::ffi::VaListImpl;
 extern "C" {
 }
 pub type __builtin_va_list = *mut libc::c_char;
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct StrBuffer {
@@ -89,7 +88,7 @@ pub unsafe extern "C" fn StrBuffer_AppendStr(
 #[inline]
 unsafe extern "C" fn StrBuffer_SetImpl(
     mut this: *mut StrBuffer,
-    mut format: cstr,
+    mut format: *const libc::c_char,
     mut args: va_list,
 ) -> i32 {
     let mut newSize: i32 = libc::snprintf(
@@ -106,7 +105,7 @@ unsafe extern "C" fn StrBuffer_SetImpl(
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn StrBuffer_Set(mut this: *mut StrBuffer, mut format: cstr, mut args: ...) {
+pub unsafe extern "C" fn StrBuffer_Set(mut this: *mut StrBuffer, mut format: *const libc::c_char, mut args: ...) {
     let mut args_0: va_list = 0 as *mut libc::c_char;
     args_0 = &args as *const VaListImpl as va_list;
     let mut neededSpace: i32 = StrBuffer_SetImpl(this, format, args_0);
@@ -129,6 +128,6 @@ pub unsafe extern "C" fn StrBuffer_Clone(mut other: *mut StrBuffer) -> *mut StrB
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn StrBuffer_GetData(mut this: *mut StrBuffer) -> cstr {
-    return (*this).data as cstr;
+pub unsafe extern "C" fn StrBuffer_GetData(mut this: *mut StrBuffer) -> *const libc::c_char {
+    return (*this).data as *const libc::c_char;
 }

@@ -6,18 +6,17 @@ use sdl2_sys::*;
 
 extern "C" {
     pub type _SDL_Joystick;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn fabs(_: f64) -> f64;
     fn TimeStamp_Get() -> TimeStamp;
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
-pub type cstr = *const libc::c_char;
 pub type TimeStamp = u64;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Joystick {
     pub handle: *mut SDL_Joystick,
-    pub guid: cstr,
+    pub guid: *const libc::c_char,
     pub axes: i32,
     pub balls: i32,
     pub buttons: i32,
@@ -158,7 +157,7 @@ pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
         }
     }
     (*this).handle = SDL_JoystickOpen(index);
-    (*this).guid = StrDup(ConvertGUID(SDL_JoystickGetGUID((*this).handle)) as cstr);
+    (*this).guid = StrDup(ConvertGUID(SDL_JoystickGetGUID((*this).handle)) as *const libc::c_char);
     (*this).axes = SDL_JoystickNumAxes((*this).handle);
     (*this).balls = SDL_JoystickNumBalls((*this).handle);
     (*this).buttons = SDL_JoystickNumButtons((*this).handle);
@@ -197,19 +196,19 @@ pub unsafe extern "C" fn Joystick_Close(mut this: *mut Joystick) {
     MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetGUID(mut this: *mut Joystick) -> cstr {
+pub unsafe extern "C" fn Joystick_GetGUID(mut this: *mut Joystick) -> *const libc::c_char {
     return (*this).guid;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetGUIDByIndex(mut index: i32) -> cstr {
-    return ConvertGUID(SDL_JoystickGetDeviceGUID(index)) as cstr;
+pub unsafe extern "C" fn Joystick_GetGUIDByIndex(mut index: i32) -> *const libc::c_char {
+    return ConvertGUID(SDL_JoystickGetDeviceGUID(index)) as *const libc::c_char;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetName(mut this: *mut Joystick) -> cstr {
+pub unsafe extern "C" fn Joystick_GetName(mut this: *mut Joystick) -> *const libc::c_char {
     return SDL_JoystickName((*this).handle);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetNameByIndex(mut index: i32) -> cstr {
+pub unsafe extern "C" fn Joystick_GetNameByIndex(mut index: i32) -> *const libc::c_char {
     return SDL_JoystickNameForIndex(index);
 }
 #[no_mangle]

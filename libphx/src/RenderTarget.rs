@@ -9,14 +9,14 @@ extern "C" {
     pub type Tex3D;
     pub type TexCube;
     fn Metric_Inc(_: Metric);
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     static mut __glewDrawBuffers: PFNGLDRAWBUFFERSPROC;
     static mut __glewBindFramebuffer: PFNGLBINDFRAMEBUFFERPROC;
     static mut __glewDeleteFramebuffers: PFNGLDELETEFRAMEBUFFERSPROC;
     static mut __glewFramebufferTexture2D: PFNGLFRAMEBUFFERTEXTURE2DPROC;
     static mut __glewFramebufferTexture3D: PFNGLFRAMEBUFFERTEXTURE3DPROC;
     static mut __glewGenFramebuffers: PFNGLGENFRAMEBUFFERSPROC;
-    fn Profiler_Begin(_: cstr);
+    fn Profiler_Begin(_: *const libc::c_char);
     fn Profiler_End();
     fn Tex2D_GetFormat(_: *mut Tex2D) -> TexFormat;
     fn Tex2D_GetHandle(_: *mut Tex2D) -> u32;
@@ -28,7 +28,6 @@ extern "C" {
     fn Viewport_Pop();
     fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindow: bool);
 }
-pub type cstr = *const libc::c_char;
 
 pub type CubeFace = i32;
 pub type Metric = i32;

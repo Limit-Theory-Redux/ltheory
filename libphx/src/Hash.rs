@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 pub type uchar = libc::c_uchar;
-pub type cstr = *const libc::c_char;
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV32(mut buf: *const libc::c_void, mut len: i32) -> u32 {
     let mut curr: *const uchar = buf as *const uchar;
@@ -30,7 +29,7 @@ pub unsafe extern "C" fn Hash_FNV64(mut buf: *const libc::c_void, mut len: i32) 
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Hash_FNVStr32(mut s: cstr) -> u32 {
+pub unsafe extern "C" fn Hash_FNVStr32(mut s: *const libc::c_char) -> u32 {
     let mut this: u32 = 2166136261 as u32;
     while *s != 0 {
         let fresh2 = s;
@@ -41,7 +40,7 @@ pub unsafe extern "C" fn Hash_FNVStr32(mut s: cstr) -> u32 {
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Hash_FNVStr64(mut s: cstr) -> u64 {
+pub unsafe extern "C" fn Hash_FNVStr64(mut s: *const libc::c_char) -> u64 {
     let mut this: u64 = 14695981039346656037 as u64;
     while *s != 0 {
         let fresh3 = s;

@@ -13,22 +13,21 @@ extern "C" {
     fn Draw_Rect(x: f32, y: f32, sx: f32, sy: f32);
     fn Draw_Border(s: f32, x: f32, y: f32, w: f32, h: f32);
     fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
-    fn Font_Draw(_: *mut Font, text: cstr, x: f32, y: f32, r: f32, g: f32, b: f32, a: f32);
+    fn Font_Draw(_: *mut Font, text: *const libc::c_char, x: f32, y: f32, r: f32, g: f32, b: f32, a: f32);
     fn MemPool_CreateAuto(elemSize: u32) -> *mut MemPool;
     fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
     fn MemPool_Clear(_: *mut MemPool);
     fn RenderState_PushBlendMode(_: BlendMode);
     fn RenderState_PopBlendMode();
-    fn Shader_Load(vertName: cstr, fragName: cstr) -> *mut Shader;
+    fn Shader_Load(vertName: *const libc::c_char, fragName: *const libc::c_char) -> *mut Shader;
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
-    fn Shader_SetFloat(_: cstr, _: f32);
-    fn Shader_SetFloat2(_: cstr, _: f32, _: f32);
-    fn Shader_SetFloat4(_: cstr, _: f32, _: f32, _: f32, _: f32);
+    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
+    fn Shader_SetFloat2(_: *const libc::c_char, _: f32, _: f32);
+    fn Shader_SetFloat4(_: *const libc::c_char, _: f32, _: f32, _: f32, _: f32);
     fn Tex2D_Draw(_: *mut Tex2D, x: f32, y: f32, sx: f32, sy: f32);
     fn Viewport_GetSize(out: *mut IVec2);
 }
-pub type cstr = *const libc::c_char;
 
 pub type BlendMode = i32;
 #[derive(Copy, Clone)]
@@ -50,7 +49,7 @@ pub struct UIRendererLayer {
 pub struct UIRendererText {
     pub next: *mut UIRendererText,
     pub font: *mut Font,
-    pub text: cstr,
+    pub text: *const libc::c_char,
     pub pos: Vec2,
     pub color: Vec4,
 }
@@ -335,7 +334,7 @@ pub unsafe extern "C" fn UIRenderer_Rect(
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Text(
     mut font: *mut Font,
-    mut text: cstr,
+    mut text: *const libc::c_char,
     mut x: f32,
     mut y: f32,
     mut r: f32,

@@ -70,7 +70,7 @@
 // Vec2_Validate(Vec2, float, f)
 // Vec2_Validate(Vec2d, double,)
 //
-// #define Vec2_ToString(T, sub, fmt) static inline cstr T##_ToString(T* v) { \
+// #define Vec2_ToString(T, sub, fmt) static inline *const libc::c_char T##_ToString(T* v) { \
 //   static char buffer[512]; \
 //   libc::snprintf(buffer, (size_t) Array_GetSize(buffer), \
 //     "(" fmt ", " fmt ")", v->x, v->y); \

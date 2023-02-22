@@ -6,8 +6,8 @@ use libc;
 use sdl2_sys::*;
 
 extern "C" {
-    fn Directory_Create(path: cstr) -> bool;
-    fn Fatal(_: cstr, _: ...);
+    fn Directory_Create(path: *const libc::c_char) -> bool;
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn Gamepad_Update();
     fn Input_Init();
     fn Input_Free();
@@ -23,7 +23,7 @@ extern "C" {
     fn Mouse_Update();
     fn Signal_Init();
     fn Signal_Free();
-    fn Profiler_Begin(_: cstr);
+    fn Profiler_Begin(_: *const libc::c_char);
     fn Profiler_End();
     fn Resource_Init();
     fn exit(_: i32) -> !;
@@ -36,7 +36,6 @@ extern "C" {
     fn TimeStamp_Get() -> TimeStamp;
     fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
-pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
 pub type TimeStamp = u64;
 
@@ -154,8 +153,8 @@ pub unsafe extern "C" fn Engine_GetTime() -> f64 {
     return TimeStamp_GetElapsed(initTime);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Engine_GetVersion() -> cstr {
-    return env!("PHX_VERSION").as_ptr() as cstr;
+pub unsafe extern "C" fn Engine_GetVersion() -> *const libc::c_char {
+    return env!("PHX_VERSION").as_ptr() as *const libc::c_char;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Engine_IsInitialized() -> bool {

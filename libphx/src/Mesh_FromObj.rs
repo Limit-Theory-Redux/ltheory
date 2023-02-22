@@ -5,7 +5,7 @@ use libc;
 
 extern "C" {
     pub type Mesh;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
     fn strtof(_: *const libc::c_char, _: *mut *mut libc::c_char) -> f32;
     fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char, _: i32) -> libc::c_long;
@@ -18,7 +18,6 @@ extern "C" {
     fn Mesh_ReserveIndexData(_: *mut Mesh, capacity: i32);
     fn Mesh_ReserveVertexData(_: *mut Mesh, capacity: i32);
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -43,7 +42,7 @@ pub struct VertexIndices {
     pub iUV: i32,
 }
 
-unsafe extern "C" fn Obj_Fatal(mut message: cstr, mut s: *mut ParseState) {
+unsafe extern "C" fn Obj_Fatal(mut message: *const libc::c_char, mut s: *mut ParseState) {
     let mut len: i32 = 0 as i32;
     let mut ch: *const libc::c_char = (*s).lineStart;
     while ch < (*s).endOfData && *ch as i32 != '\r' as i32 && *ch as i32 != '\n' as i32 {
@@ -167,7 +166,7 @@ unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut P
     return 0 as i32 != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
+pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Mesh {
     let mut bytesSize: i32 = StrLen(bytes) as i32;
     let mut s: ParseState = ParseState {
         cursor: 0 as *const libc::c_char,
@@ -239,14 +238,14 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
         ConsumeToken(token.as_mut_ptr(), 16 as i32, &mut s);
         ConsumeWhitespace(&mut s);
         if StrEqual(
-            token.as_mut_ptr() as cstr,
+            token.as_mut_ptr() as *const libc::c_char,
             b"\0" as *const u8 as *const libc::c_char,
         ) {
             if s.cursor >= s.endOfData {
                 break;
             }
         } else if StrEqual(
-            token.as_mut_ptr() as cstr,
+            token.as_mut_ptr() as *const libc::c_char,
             b"v\0" as *const u8 as *const libc::c_char,
         ) {
             if positions_size == 2147483647 as i32 {
@@ -285,7 +284,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             positions_size = positions_size + 1;
             *positions_data.offset(fresh1 as isize) = p;
         } else if StrEqual(
-            token.as_mut_ptr() as cstr,
+            token.as_mut_ptr() as *const libc::c_char,
             b"vt\0" as *const u8 as *const libc::c_char,
         ) {
             if uvs_size == 2147483647 as i32 {
@@ -323,7 +322,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             uvs_size = uvs_size + 1;
             *uvs_data.offset(fresh2 as isize) = uv;
         } else if StrEqual(
-            token.as_mut_ptr() as cstr,
+            token.as_mut_ptr() as *const libc::c_char,
             b"vn\0" as *const u8 as *const libc::c_char,
         ) {
             if normals_size == 2147483647 as i32 {
@@ -362,7 +361,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
             normals_size = normals_size + 1;
             *normals_data.offset(fresh3 as isize) = n;
         } else if StrEqual(
-            token.as_mut_ptr() as cstr,
+            token.as_mut_ptr() as *const libc::c_char,
             b"f\0" as *const u8 as *const libc::c_char,
         ) {
             let mut vertexIndicesCount: i32 = 0 as i32;
@@ -540,57 +539,57 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: cstr) -> *mut Mesh {
                 );
             }
         } else if !(StrEqual(
-            token.as_mut_ptr() as cstr,
+            token.as_mut_ptr() as *const libc::c_char,
             b"#\0" as *const u8 as *const libc::c_char,
         ) as i32
             != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"f\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"s\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"p\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"l\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"g\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"o\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"maplib\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"usemap\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"usemtl\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0
             || StrEqual(
-                token.as_mut_ptr() as cstr,
+                token.as_mut_ptr() as *const libc::c_char,
                 b"mtllib\0" as *const u8 as *const libc::c_char,
             ) as i32
                 != 0)

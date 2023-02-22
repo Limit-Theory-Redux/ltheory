@@ -11,12 +11,11 @@ extern "C" {
     fn sqrt(_: f64) -> f64;
     fn printf(_: *const libc::c_char, _: ...) -> i32;
 }
-pub type __darwin_ptrdiff_t = libc::c_long;
-pub type cstr = *const libc::c_char;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputBinding {
-    pub name: cstr,
+    pub name: *const libc::c_char,
     pub rawButtons: [[RawButton; 4]; 4],
     pub pressThreshold: f32,
     pub releaseThreshold: f32,
@@ -36,8 +35,7 @@ pub struct AggregateAxis2D {
     pub onChanged: LuaRef,
 }
 pub type LuaRef = lua_Integer;
-pub type lua_Integer = ptrdiff_t;
-pub type ptrdiff_t = __darwin_ptrdiff_t;
+pub type lua_Integer = libc::ptrdiff_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -161,7 +159,7 @@ pub unsafe extern "C" fn InputBindings_Free() {
     MemFree(this.downBindings_data as *const libc::c_void);
 }
 unsafe extern "C" fn InputBindings_RaiseCallback(
-    mut event: cstr,
+    mut event: *const libc::c_char,
     mut binding: *mut InputBinding,
     mut callback: LuaRef,
 ) {

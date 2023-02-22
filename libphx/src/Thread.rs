@@ -4,10 +4,9 @@ use libc;
 use sdl2_sys::*;
 
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
 }
 
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -19,7 +18,7 @@ pub type ThreadFn = Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
 
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Create(
-    mut name: cstr,
+    mut name: *const libc::c_char,
     mut fn_0: ThreadFn,
     mut data: *mut libc::c_void,
 ) -> *mut Thread {

@@ -10,10 +10,9 @@ extern "C" {
     fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
     fn MemPool_Clear(_: *mut MemPool);
     fn MemPool_Dealloc(_: *mut MemPool, _: *mut libc::c_void);
-    fn Profiler_Begin(_: cstr);
+    fn Profiler_Begin(_: *const libc::c_char);
     fn Profiler_End();
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HashGrid {

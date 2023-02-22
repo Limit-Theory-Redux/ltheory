@@ -10,7 +10,6 @@ extern "C" {
     pub type Matrix;
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -22,7 +21,7 @@ pub struct Vec4f {
 }
 pub type ShaderVarType = i32;
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: cstr) -> ShaderVarType {
+pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: *const libc::c_char) -> ShaderVarType {
     let mut i: ShaderVarType = 0x1 as i32;
     while i <= 0xd as i32 {
         if StrEqual(s, ShaderVarType_GetGLSLName(i)) {
@@ -33,7 +32,7 @@ pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: cstr) -> ShaderVarType {
     return 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut this: ShaderVarType) -> cstr {
+pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut this: ShaderVarType) -> *const libc::c_char {
     match this {
         1 => return b"float\0" as *const u8 as *const libc::c_char,
         2 => return b"vec2\0" as *const u8 as *const libc::c_char,
@@ -50,10 +49,10 @@ pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut this: ShaderVarType) -> c
         13 => return b"samplerCube\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return 0 as cstr;
+    return 0 as *const libc::c_char;
 }
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> cstr {
+pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> *const libc::c_char {
     match this {
         1 => return b"float\0" as *const u8 as *const libc::c_char,
         2 => return b"float2\0" as *const u8 as *const libc::c_char,
@@ -70,7 +69,7 @@ pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> cstr 
         13 => return b"TexCube\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return 0 as cstr;
+    return 0 as *const libc::c_char;
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_GetSize(mut this: ShaderVarType) -> i32 {

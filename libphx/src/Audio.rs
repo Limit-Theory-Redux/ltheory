@@ -7,7 +7,7 @@ extern "C" {
     pub type FMOD_SOUND;
     pub type StrMap;
     pub type FMOD_SYSTEM;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn FMOD_Debug_Initialize(
         flags: FMOD_DEBUG_FLAGS,
         mode: FMOD_DEBUG_MODE,
@@ -48,12 +48,11 @@ extern "C" {
     fn Sound_IsFreed(_: *mut Sound) -> bool;
     fn StrMap_Create(initCapacity: u32) -> *mut StrMap;
     fn StrMap_Free(_: *mut StrMap);
-    fn StrMap_Get(_: *mut StrMap, key: cstr) -> *mut libc::c_void;
+    fn StrMap_Get(_: *mut StrMap, key: *const libc::c_char) -> *mut libc::c_void;
     fn StrMap_GetSize(_: *mut StrMap) -> u32;
-    fn StrMap_Remove(_: *mut StrMap, key: cstr);
-    fn StrMap_Set(_: *mut StrMap, key: cstr, val: *mut libc::c_void);
+    fn StrMap_Remove(_: *mut StrMap, key: *const libc::c_char);
+    fn StrMap_Set(_: *mut StrMap, key: *const libc::c_char, val: *mut libc::c_void);
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Sound {
@@ -70,8 +69,8 @@ pub type SoundState = u8;
 pub struct SoundDesc {
     pub _refCount: u32,
     pub handle: *mut FMOD_SOUND,
-    pub name: cstr,
-    pub path: cstr,
+    pub name: *const libc::c_char,
+    pub path: *const libc::c_char,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -199,7 +198,7 @@ pub struct FMOD_VECTOR {
 }
 
 #[inline]
-unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> cstr {
+unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> *const libc::c_char {
     match self_1 as u32 {
         0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
         1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
@@ -619,9 +618,9 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 #[inline]
 unsafe extern "C" fn FMOD_CheckError(
     mut result: FMOD_RESULT,
-    mut file: cstr,
+    mut file: *const libc::c_char,
     mut line: i32,
-    mut func: cstr,
+    mut func: *const libc::c_char,
 ) {
     if result as u32 != FMOD_OK as i32 as u32 {
         Fatal(
@@ -841,7 +840,7 @@ pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {
     return this.handle as *mut libc::c_void;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: cstr) -> *mut SoundDesc {
+pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> *mut SoundDesc {
     let mut desc: *mut SoundDesc = StrMap_Get(this.descMap, name) as *mut SoundDesc;
     if desc.is_null() {
         desc = MemAllocZero(::core::mem::size_of::<SoundDesc>()) as *mut SoundDesc;

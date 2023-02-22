@@ -11,7 +11,6 @@ extern "C" {
 }
 pub type __i64_t = i64;
 pub type __darwin_off_t = __i64_t;
-pub type cstr = *const libc::c_char;
 pub type TimeStamp = u64;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -84,7 +83,7 @@ pub unsafe extern "C" fn Gamepad_Close(mut this: *mut Gamepad) {
     MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_AddMappings(mut file: cstr) -> i32 {
+pub unsafe extern "C" fn Gamepad_AddMappings(mut file: *const libc::c_char) -> i32 {
     return SDL_GameControllerAddMappingsFromRW(
         SDL_RWFromFile(file, b"rb\0" as *const u8 as *const libc::c_char),
         1 as i32,
@@ -158,7 +157,7 @@ pub unsafe extern "C" fn Gamepad_GetID(mut this: *mut Gamepad) -> i32 {
     return SDL_JoystickInstanceID(joystick);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetName(mut this: *mut Gamepad) -> cstr {
+pub unsafe extern "C" fn Gamepad_GetName(mut this: *mut Gamepad) -> *const libc::c_char {
     return SDL_GameControllerName((*this).handle);
 }
 #[no_mangle]

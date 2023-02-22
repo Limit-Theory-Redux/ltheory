@@ -23,19 +23,18 @@ extern "C" {
     fn RenderState_PopAll();
     fn RenderTarget_Pop();
     fn RenderTarget_PushTex2D(_: *mut Tex2D);
-    fn Shader_Load(vertName: cstr, fragName: cstr) -> *mut Shader;
+    fn Shader_Load(vertName: *const libc::c_char, fragName: *const libc::c_char) -> *mut Shader;
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
-    fn Shader_SetFloat(_: cstr, _: f32);
-    fn Shader_SetInt(_: cstr, _: i32);
-    fn Shader_SetTex2D(_: cstr, _: *mut Tex2D);
-    fn Shader_SetTex3D(_: cstr, _: *mut Tex3D);
+    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
+    fn Shader_SetInt(_: *const libc::c_char, _: i32);
+    fn Shader_SetTex2D(_: *const libc::c_char, _: *mut Tex2D);
+    fn Shader_SetTex3D(_: *const libc::c_char, _: *mut Tex3D);
     fn Tex2D_Create(sx: i32, sy: i32, _: TexFormat) -> *mut Tex2D;
     fn Tex2D_Free(_: *mut Tex2D);
     fn Tex2D_GetData(_: *mut Tex2D, _: *mut libc::c_void, _: PixelFormat, _: DataFormat);
     fn Tex2D_SetData(_: *mut Tex2D, _: *const libc::c_void, _: PixelFormat, _: DataFormat);
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

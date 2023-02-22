@@ -6,11 +6,10 @@ extern "C" {
     // fn __fpclassifyd(_: f64) -> i32;
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn Polygon_ToPlane(_: *mut Polygon, _: *mut Plane);
     fn Polygon_ToPlaneFast(_: *mut Polygon, _: *mut Plane);
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Plane {

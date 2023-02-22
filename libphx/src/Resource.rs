@@ -5,18 +5,17 @@ use libc;
 
 extern "C" {
     pub type Bytes;
-    fn Fatal(_: cstr, _: ...);
-    fn File_Exists(path: cstr) -> bool;
-    fn File_ReadBytes(path: cstr) -> *mut Bytes;
-    fn File_ReadCstr(path: cstr) -> cstr;
-    fn ResourceType_ToString(_: ResourceType) -> cstr;
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn File_Exists(path: *const libc::c_char) -> bool;
+    fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes;
+    fn File_ReadCstr(path: *const libc::c_char) -> *const libc::c_char;
+    fn ResourceType_ToString(_: ResourceType) -> *const libc::c_char;
 }
-pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct PathElem {
-    pub format: cstr,
+    pub format: *const libc::c_char,
     pub next: *mut PathElem,
 }
 
@@ -35,9 +34,9 @@ static mut paths: [*mut PathElem; 10] = [
 #[inline]
 unsafe extern "C" fn Resource_Resolve(
     mut type_0: ResourceType,
-    mut name: cstr,
+    mut name: *const libc::c_char,
     mut failhard: bool,
-) -> cstr {
+) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 256] = [0; 256];
     let mut elem: *mut PathElem = paths[type_0 as usize];
     while !elem.is_null() {
@@ -50,8 +49,8 @@ unsafe extern "C" fn Resource_Resolve(
         if res > 0 as i32
             && res < ::core::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong as i32
         {
-            if File_Exists(buffer.as_mut_ptr() as cstr) {
-                return buffer.as_mut_ptr() as cstr;
+            if File_Exists(buffer.as_mut_ptr() as *const libc::c_char) {
+                return buffer.as_mut_ptr() as *const libc::c_char;
             }
         }
         elem = (*elem).next;
@@ -66,10 +65,10 @@ unsafe extern "C" fn Resource_Resolve(
             name,
         );
     }
-    return 0 as cstr;
+    return 0 as *const libc::c_char;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: cstr) {
+pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: *const libc::c_char) {
     let mut this: *mut PathElem =
         MemAlloc(::core::mem::size_of::<PathElem>() as usize) as *mut PathElem;
     (*this).format = StrDup(format);
@@ -77,19 +76,19 @@ pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: 
     paths[type_0 as usize] = this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Resource_Exists(mut type_0: ResourceType, mut name: cstr) -> bool {
+pub unsafe extern "C" fn Resource_Exists(mut type_0: ResourceType, mut name: *const libc::c_char) -> bool {
     return !(Resource_Resolve(type_0, name, 0 as i32 != 0)).is_null();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Resource_GetPath(mut type_0: ResourceType, mut name: cstr) -> cstr {
+pub unsafe extern "C" fn Resource_GetPath(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
     return Resource_Resolve(type_0, name, 1 as i32 != 0);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Resource_LoadBytes(
     mut type_0: ResourceType,
-    mut name: cstr,
+    mut name: *const libc::c_char,
 ) -> *mut Bytes {
-    let mut path: cstr = Resource_Resolve(type_0, name, 1 as i32 != 0);
+    let mut path: *const libc::c_char = Resource_Resolve(type_0, name, 1 as i32 != 0);
     let mut data: *mut Bytes = File_ReadBytes(path);
     if data.is_null() {
         Fatal(
@@ -103,9 +102,9 @@ pub unsafe extern "C" fn Resource_LoadBytes(
     return data;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Resource_LoadCstr(mut type_0: ResourceType, mut name: cstr) -> cstr {
-    let mut path: cstr = Resource_Resolve(type_0, name, 1 as i32 != 0);
-    let mut data: cstr = File_ReadCstr(path);
+pub unsafe extern "C" fn Resource_LoadCstr(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
+    let mut path: *const libc::c_char = Resource_Resolve(type_0, name, 1 as i32 != 0);
+    let mut data: *const libc::c_char = File_ReadCstr(path);
     if data.is_null() {
         Fatal(
             b"Resource_LoadCstr: Failed to load %s <%s> at <%s>\0" as *const u8

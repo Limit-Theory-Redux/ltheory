@@ -4,8 +4,8 @@ use glam::Vec3;
 use libc;
 
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
-    fn Warn(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn Warn(_: *const libc::c_char, _: ...);
     fn cos(_: f64) -> f64;
     fn sin(_: f64) -> f64;
     fn fabs(_: f64) -> f64;
@@ -30,7 +30,6 @@ extern "C" {
     static mut __glewCheckFramebufferStatus: PFNGLCHECKFRAMEBUFFERSTATUSPROC;
 }
 
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box3f {

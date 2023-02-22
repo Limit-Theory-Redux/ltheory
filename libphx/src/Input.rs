@@ -10,8 +10,8 @@ use sdl2_sys::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
-    fn Warn(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn Warn(_: *const libc::c_char, _: ...);
     fn Button_ToSDLControllerButton(_: Button) -> SDL_GameControllerButton;
     fn Button_FromSDLControllerButton(_: SDL_GameControllerButton) -> Button;
     fn Button_ToSDLControllerAxis(_: Button) -> SDL_GameControllerAxis;
@@ -20,11 +20,10 @@ extern "C" {
     fn Button_IsAutoRelease(_: Button) -> bool;
     fn Button_FromSDLScancode(_: SDL_Scancode) -> Button;
     fn Button_FromSDLMouseButton(_: u8) -> Button;
-    fn Profiler_Begin(_: cstr);
+    fn Profiler_Begin(_: *const libc::c_char);
     fn Profiler_End();
-    fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
+    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Device {
@@ -778,8 +777,8 @@ pub unsafe extern "C" fn Input_Update() {
     Profiler_End();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Input_LoadGamepadDatabase(mut name: cstr) {
-    let mut path: cstr = Resource_GetPath(ResourceType_Other, name);
+pub unsafe extern "C" fn Input_LoadGamepadDatabase(mut name: *const libc::c_char) {
+    let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Other, name);
     let mut result: i32 = SDL_GameControllerAddMappingsFromRW(
         SDL_RWFromFile(path, b"rb\0" as *const u8 as *const libc::c_char),
         1 as i32,

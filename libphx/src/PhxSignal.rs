@@ -2,15 +2,14 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
-    fn Warn(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn Warn(_: *const libc::c_char, _: ...);
     fn signal(
         _: i32,
         _: Option<unsafe extern "C" fn(i32) -> ()>,
     ) -> Option<unsafe extern "C" fn(i32) -> ()>;
     fn raise(_: i32) -> i32;
 }
-pub type cstr = *const libc::c_char;
 pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
 #[derive(Copy, Clone)]
@@ -170,7 +169,7 @@ pub unsafe extern "C" fn Signal_RemoveHandlerAll(mut fn_0: SignalHandler) {
     Signal_RemoveHandler(Signal_Abrt, fn_0);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Signal_ToString(mut this: Signal) -> cstr {
+pub unsafe extern "C" fn Signal_ToString(mut this: Signal) -> *const libc::c_char {
     match this {
         2 => return b"Interrupt\0" as *const u8 as *const libc::c_char,
         4 => return b"Illegal Instruction\0" as *const u8 as *const libc::c_char,

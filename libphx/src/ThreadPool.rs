@@ -4,10 +4,9 @@ use libc;
 use sdl2_sys::*;
 
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
 }
 
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ThreadPool {

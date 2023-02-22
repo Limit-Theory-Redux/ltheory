@@ -2,7 +2,7 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);
     fn glCullFace(mode: GLenum);
     fn glDepthFunc(func: GLenum);
@@ -17,7 +17,6 @@ extern "C" {
     fn glewInit() -> GLenum;
     fn RenderState_PushAllDefaults();
 }
-pub type cstr = *const libc::c_char;
 pub type GLenum = u32;
 pub type GLint = i32;
 pub type GLfloat = f32;
@@ -49,9 +48,9 @@ pub unsafe extern "C" fn OpenGL_Init() {
     RenderState_PushAllDefaults();
 }
 #[no_mangle]
-pub unsafe extern "C" fn OpenGL_CheckError(mut file: cstr, mut line: i32) {
+pub unsafe extern "C" fn OpenGL_CheckError(mut file: *const libc::c_char, mut line: i32) {
     let mut errorID: GLenum = glGetError();
-    let mut error: cstr = 0 as cstr;
+    let mut error: *const libc::c_char = 0 as *const libc::c_char;
     match errorID {
         0 => return,
         1280 => {

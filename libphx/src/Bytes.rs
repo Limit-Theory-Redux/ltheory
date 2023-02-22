@@ -8,13 +8,12 @@ use std::ffi::CString;
 
 extern "C" {
     pub type File;
-    fn Fatal(_: cstr, _: ...);
-    fn File_Create(path: cstr) -> *mut File;
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn File_Create(path: *const libc::c_char) -> *mut File;
     fn File_Close(_: *mut File);
-    fn File_ReadBytes(path: cstr) -> *mut Bytes;
+    fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes;
     fn File_Write(_: *mut File, data: *const libc::c_void, len: u32);
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -57,7 +56,7 @@ pub unsafe extern "C" fn Bytes_FromData(mut data: *const libc::c_void, mut len: 
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Load(mut path: cstr) -> *mut Bytes {
+pub unsafe extern "C" fn Bytes_Load(mut path: *const libc::c_char) -> *mut Bytes {
     let mut this: *mut Bytes = File_ReadBytes(path);
     if this.is_null() {
         Fatal(
@@ -162,7 +161,7 @@ pub unsafe extern "C" fn Bytes_Write(
     (*this).cursor = ((*this).cursor as u32).wrapping_add(len) as u32 as u32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteStr(mut this: *mut Bytes, mut data: cstr) {
+pub unsafe extern "C" fn Bytes_WriteStr(mut this: *mut Bytes, mut data: *const libc::c_char) {
     let mut len: usize = StrLen(data);
     MemCpy(
         (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize)
@@ -345,7 +344,7 @@ pub unsafe extern "C" fn Bytes_Print(mut this: *mut Bytes) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Save(mut this: *mut Bytes, mut path: cstr) {
+pub unsafe extern "C" fn Bytes_Save(mut this: *mut Bytes, mut path: *const libc::c_char) {
     let mut file: *mut File = File_Create(path);
     if file.is_null() {
         Fatal(

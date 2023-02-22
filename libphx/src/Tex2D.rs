@@ -9,8 +9,8 @@ use libc;
 
 extern "C" {
     pub type Bytes;
-    fn Fatal(_: cstr, _: ...);
-    fn Warn(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn Warn(_: *const libc::c_char, _: ...);
     fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Rewind(_: *mut Bytes);
@@ -83,15 +83,14 @@ extern "C" {
     fn RenderTarget_Pop();
     fn RenderTarget_PushTex2D(_: *mut Tex2D);
     fn RenderTarget_PushTex2DLevel(_: *mut Tex2D, level: i32);
-    fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
+    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
     fn TexFormat_IsColor(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
     fn Viewport_GetSize(out: *mut IVec2);
-    fn Tex2D_LoadRaw(path: cstr, sx: *mut i32, sy: *mut i32, components: *mut i32) -> *mut uchar;
-    fn Tex2D_Save_Png(path: cstr, sx: i32, sy: i32, components: i32, data: *mut uchar) -> bool;
+    fn Tex2D_LoadRaw(path: *const libc::c_char, sx: *mut i32, sy: *mut i32, components: *mut i32) -> *mut uchar;
+    fn Tex2D_Save_Png(path: *const libc::c_char, sx: i32, sy: i32, components: i32, data: *mut uchar) -> bool;
 }
 pub type uchar = libc::c_uchar;
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tex2D {
@@ -407,8 +406,8 @@ pub unsafe extern "C" fn Tex2D_GetSizeLevel(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Load(mut name: cstr) -> *mut Tex2D {
-    let mut path: cstr = Resource_GetPath(ResourceType_Tex2D, name);
+pub unsafe extern "C" fn Tex2D_Load(mut name: *const libc::c_char) -> *mut Tex2D {
+    let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Tex2D, name);
     let mut sx: i32 = 0;
     let mut sy: i32 = 0;
     let mut components: i32 = 4 as i32;
@@ -538,7 +537,7 @@ pub unsafe extern "C" fn Tex2D_SetWrapMode(mut this: *mut Tex2D, mut mode: TexWr
     glBindTexture(0xde1 as i32 as GLenum, 0 as i32 as GLu32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Save(mut this: *mut Tex2D, mut path: cstr) {
+pub unsafe extern "C" fn Tex2D_Save(mut this: *mut Tex2D, mut path: *const libc::c_char) {
     Metric_Inc(0x6 as i32);
     glBindTexture(0xde1 as i32 as GLenum, (*this).handle);
     let mut buffer: *mut uchar =

@@ -13,8 +13,8 @@ extern "C" {
     fn Mesh_GetIndexCount(_: *mut Mesh) -> i32;
     fn Intersect_SphereTriangle(_: *const Sphere, _: *const Triangle, pHit: *mut Vec3) -> bool;
     fn Intersect_RayTriangle_Moller1(_: *const Ray, _: *const Triangle, tHit: *mut f32) -> bool;
-    fn Fatal(_: cstr, _: ...);
-    fn Warn(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn Warn(_: *const libc::c_char, _: ...);
     fn Plane_ClassifyPolygon(_: *mut Plane, _: *mut Polygon) -> PolygonClassification;
     fn Polygon_ToPlane(_: *mut Polygon, _: *mut Plane);
     fn Polygon_SplitSafe(
@@ -49,7 +49,6 @@ extern "C" {
     fn RenderState_PopDepthTest();
     fn RenderState_PopWireframe();
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BSP {

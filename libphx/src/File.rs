@@ -4,47 +4,19 @@ use libc;
 use std::fs;
 extern "C" {
     pub type Bytes;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
 }
-pub type __u16 = u16;
-pub type __i32_t = i32;
-pub type __u32 = u32;
-pub type __i64_t = i64;
-pub type __u64_t = u64;
-pub type __darwin_time_t = libc::c_long;
-pub type __darwin_blkcnt_t = __i64_t;
-pub type __darwin_blksize_t = __i32_t;
-pub type __darwin_dev_t = __i32_t;
-pub type __darwin_gid_t = __u32;
-pub type __darwin_ino64_t = __u64_t;
-pub type __darwin_mode_t = __u16;
-pub type __darwin_off_t = __i64_t;
-pub type __darwin_uid_t = __u32;
-pub type cstr = *const libc::c_char;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct File {
     pub handle: *mut libc::FILE,
 }
 
-pub type blksize_t = __darwin_blksize_t;
-pub type blkcnt_t = __darwin_blkcnt_t;
-pub type off_t = __darwin_off_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct timespec {
-    pub tv_sec: __darwin_time_t,
-    pub tv_nsec: libc::c_long,
-}
-pub type dev_t = __darwin_dev_t;
-pub type gid_t = __darwin_gid_t;
-pub type uid_t = __darwin_uid_t;
-pub type nlink_t = __u16;
-
 #[no_mangle]
-pub unsafe extern "C" fn File_Exists(mut path: cstr) -> bool {
+pub unsafe extern "C" fn File_Exists(mut path: *const libc::c_char) -> bool {
     let mut f: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if !f.is_null() {
         libc::fclose(f);
@@ -53,11 +25,11 @@ pub unsafe extern "C" fn File_Exists(mut path: cstr) -> bool {
     return 0 as i32 != 0;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_IsDir(path: cstr) -> bool {
+pub unsafe extern "C" fn File_IsDir(path: *const libc::c_char) -> bool {
     let meta = fs::metadata(std::ffi::CStr::from_ptr(path).to_str().unwrap()).unwrap();
     return meta.is_dir();
 }
-unsafe extern "C" fn File_OpenMode(mut path: cstr, mut mode: cstr) -> *mut File {
+unsafe extern "C" fn File_OpenMode(mut path: *const libc::c_char, mut mode: *const libc::c_char) -> *mut File {
     let mut handle: *mut libc::FILE = libc::fopen(path, mode);
     if handle.is_null() {
         return 0 as *mut File;
@@ -67,11 +39,11 @@ unsafe extern "C" fn File_OpenMode(mut path: cstr, mut mode: cstr) -> *mut File 
     return this;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_Create(mut path: cstr) -> *mut File {
+pub unsafe extern "C" fn File_Create(mut path: *const libc::c_char) -> *mut File {
     return File_OpenMode(path, b"wb\0" as *const u8 as *const libc::c_char);
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_Open(mut path: cstr) -> *mut File {
+pub unsafe extern "C" fn File_Open(mut path: *const libc::c_char) -> *mut File {
     return File_OpenMode(path, b"ab\0" as *const u8 as *const libc::c_char);
 }
 #[no_mangle]
@@ -80,7 +52,7 @@ pub unsafe extern "C" fn File_Close(mut this: *mut File) {
     MemFree(this as *const libc::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadBytes(mut path: cstr) -> *mut Bytes {
+pub unsafe extern "C" fn File_ReadBytes(mut path: *const libc::c_char) -> *mut Bytes {
     let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if file.is_null() {
         return 0 as *mut Bytes;
@@ -118,15 +90,15 @@ pub unsafe extern "C" fn File_ReadBytes(mut path: cstr) -> *mut Bytes {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn File_ReadCstr(mut path: cstr) -> cstr {
+pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const libc::c_char {
     let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if file.is_null() {
-        return 0 as cstr;
+        return 0 as *const libc::c_char;
     }
     libc::fseek(file, 0 as libc::c_long, 2 as i32);
     let mut size: i64 = libc::ftell(file) as i64;
     if size == 0 as i64 {
-        return 0 as cstr;
+        return 0 as *const libc::c_char;
     }
     if size < 0 as i64 {
         Fatal(
@@ -151,10 +123,10 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: cstr) -> cstr {
     }
     libc::fclose(file);
     *buffer.offset(size as isize) = 0 as i32 as libc::c_char;
-    return buffer as cstr;
+    return buffer as *const libc::c_char;
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_Size(mut path: cstr) -> i64 {
+pub unsafe extern "C" fn File_Size(mut path: *const libc::c_char) -> i64 {
     let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if file.is_null() {
         return 0 as i32 as i64;
@@ -177,7 +149,7 @@ pub unsafe extern "C" fn File_Write(
     libc::fwrite(data, len as usize, 1 as usize, (*this).handle);
 }
 #[no_mangle]
-pub unsafe extern "C" fn File_WriteStr(mut this: *mut File, mut data: cstr) {
+pub unsafe extern "C" fn File_WriteStr(mut this: *mut File, mut data: *const libc::c_char) {
     libc::fwrite(
         data as *const libc::c_void,
         StrLen(data),

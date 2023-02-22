@@ -4,10 +4,9 @@ use glam::Vec3;
 use libc;
 
 extern "C" {
-    fn DeviceType_ToString(_: DeviceType) -> cstr;
+    fn DeviceType_ToString(_: DeviceType) -> *const libc::c_char;
 }
 
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Device {
@@ -20,7 +19,7 @@ pub unsafe extern "C" fn Device_Equal(mut a: *mut Device, mut b: *mut Device) ->
     return (*a).type_0 == (*b).type_0 && (*a).id == (*b).id;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Device_ToString(mut this: *mut Device) -> cstr {
+pub unsafe extern "C" fn Device_ToString(mut this: *mut Device) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),
@@ -30,5 +29,5 @@ pub unsafe extern "C" fn Device_ToString(mut this: *mut Device) -> cstr {
         DeviceType_ToString((*this).type_0),
         (*this).id,
     );
-    return buffer.as_mut_ptr() as cstr;
+    return buffer.as_mut_ptr() as *const libc::c_char;
 }

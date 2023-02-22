@@ -10,9 +10,8 @@ extern "C" {
     fn sin(_: f64) -> f64;
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -417,7 +416,7 @@ pub unsafe extern "C" fn Quat_ISlerp(mut q: *mut Quat, mut p: *const Quat, mut t
     (*q).w = fa * (*q).w + fc * c.w;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> cstr {
+pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),
@@ -429,7 +428,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> cstr {
         (*q).z as f64,
         (*q).w as f64,
     );
-    return buffer.as_mut_ptr() as cstr;
+    return buffer.as_mut_ptr() as *const libc::c_char;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Validate(mut q: *const Quat) -> Error {

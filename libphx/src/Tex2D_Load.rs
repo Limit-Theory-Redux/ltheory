@@ -7,15 +7,14 @@ use std::fs::File;
 
 extern "C" {
     pub type __sFILEX;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
 }
 
-pub type cstr = *const libc::c_char;
 pub type uchar = libc::c_uchar;
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_LoadRaw(
-    mut path: cstr,
+    mut path: *const libc::c_char,
     mut sx: *mut i32,
     mut sy: *mut i32,
     mut components: *mut i32,

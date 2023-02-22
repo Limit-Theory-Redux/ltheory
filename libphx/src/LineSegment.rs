@@ -4,7 +4,6 @@ use libc;
 extern "C" {
     fn Ray_ToLineSegment(_: *const Ray, _: *mut LineSegment);
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LineSegment {
@@ -31,7 +30,7 @@ pub unsafe extern "C" fn LineSegment_FromRay(mut ray: *const Ray, mut out: *mut 
     Ray_ToLineSegment(ray, out);
 }
 #[no_mangle]
-pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> cstr {
+pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),
@@ -41,5 +40,5 @@ pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> cst
         (*this).p0.to_string().as_mut_ptr(),
         (*this).p1.to_string().as_mut_ptr(),
     );
-    return buffer.as_mut_ptr() as cstr;
+    return buffer.as_mut_ptr() as *const libc::c_char;
 }

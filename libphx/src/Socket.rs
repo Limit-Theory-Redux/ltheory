@@ -7,7 +7,7 @@ extern "C" {
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn strstr(_: *const libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Bytes_Write(_: *mut Bytes, data: *const libc::c_void, len: u32);
     fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char, _: i32) -> libc::c_long;
@@ -45,7 +45,6 @@ pub type __u16 = u16;
 pub type __u32 = u32;
 pub type __darwin_socklen_t = __u32;
 pub type u_i32_t = u32;
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Socket {
@@ -101,11 +100,11 @@ pub static mut SocketType_UDP: SocketType = 0x1 as i32;
 pub static mut SocketType_TCP: SocketType = 0x2 as i32;
 
 #[inline]
-unsafe extern "C" fn StrFind(mut s: cstr, mut sub: cstr) -> cstr {
-    return strstr(s, sub) as cstr;
+unsafe extern "C" fn StrFind(mut s: *const libc::c_char, mut sub: *const libc::c_char) -> *const libc::c_char {
+    return strstr(s, sub) as *const libc::c_char;
 }
 #[inline]
-unsafe extern "C" fn StrSubStr(mut begin: cstr, mut end: cstr) -> cstr {
+unsafe extern "C" fn StrSubStr(mut begin: *const libc::c_char, mut end: *const libc::c_char) -> *const libc::c_char {
     let mut len: usize = end.offset_from(begin) as libc::c_long as usize;
     let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1 as usize));
     let mut pResult: *mut libc::c_char = result;
@@ -117,7 +116,7 @@ unsafe extern "C" fn StrSubStr(mut begin: cstr, mut end: cstr) -> cstr {
         *fresh1 = *fresh0;
     }
     *result.offset(len as isize) = 0 as i32 as libc::c_char;
-    return result as cstr;
+    return result as *const libc::c_char;
 }
 #[inline]
 unsafe extern "C" fn Socket_Cleanup(mut this: sock_t) {
@@ -268,7 +267,7 @@ pub unsafe extern "C" fn Socket_Listen(mut this: *mut Socket) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Socket_Read(mut this: *mut Socket) -> cstr {
+pub unsafe extern "C" fn Socket_Read(mut this: *mut Socket) -> *const libc::c_char {
     let mut bytes: i32 = Socket_Receive(
         (*this).sock,
         ((*this).buffer).as_mut_ptr() as *mut libc::c_void,
@@ -276,15 +275,15 @@ pub unsafe extern "C" fn Socket_Read(mut this: *mut Socket) -> cstr {
     );
     if bytes == -(1 as i32) {
         if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 35 as i32 {
-            return 0 as cstr;
+            return 0 as *const libc::c_char;
         }
         Fatal(b"Socket_Read: failed to read from socket\0" as *const u8 as *const libc::c_char);
     }
     if bytes == 0 as i32 {
-        return 0 as cstr;
+        return 0 as *const libc::c_char;
     }
     (*this).buffer[bytes as usize] = 0 as i32 as libc::c_char;
-    return ((*this).buffer).as_mut_ptr() as cstr;
+    return ((*this).buffer).as_mut_ptr() as *const libc::c_char;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Socket_ReadBytes(mut this: *mut Socket) -> *mut Bytes {
@@ -335,7 +334,7 @@ pub unsafe extern "C" fn Socket_ReceiveFrom(
     return bytes;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Socket_GetAddress(mut this: *mut Socket) -> cstr {
+pub unsafe extern "C" fn Socket_GetAddress(mut this: *mut Socket) -> *const libc::c_char {
     return StrFormat(
         b"%s:%d\0" as *const u8 as *const libc::c_char,
         inet_ntoa((*this).addrRecv.sin_addr),
@@ -349,16 +348,16 @@ pub unsafe extern "C" fn Socket_GetAddress(mut this: *mut Socket) -> cstr {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn Socket_SetAddress(mut this: *mut Socket, mut addr: cstr) {
-    let mut colon: cstr = StrFind(addr, b":\0" as *const u8 as *const libc::c_char);
+pub unsafe extern "C" fn Socket_SetAddress(mut this: *mut Socket, mut addr: *const libc::c_char) {
+    let mut colon: *const libc::c_char = StrFind(addr, b":\0" as *const u8 as *const libc::c_char);
     if colon.is_null() {
         Fatal(
             b"Socket_SetReceiver: address must be in format a.b.c.d:port format\0" as *const u8
                 as *const libc::c_char,
         );
     }
-    let mut ip: cstr = StrSubStr(addr, colon);
-    let mut port: cstr = StrSubStr(colon.offset(1), addr.offset(strlen(addr) as isize));
+    let mut ip: *const libc::c_char = StrSubStr(addr, colon);
+    let mut port: *const libc::c_char = StrSubStr(colon.offset(1), addr.offset(strlen(addr) as isize));
     (*this).addrSend.sin_family = 2 as i32 as sa_family_t;
     (*this).addrSend.sin_port = (if 0 != 0 {
         ((strtol(port, 0 as *mut *mut libc::c_char, 0 as i32) as u16 as u32 & 0xff00 as u32)
@@ -397,7 +396,7 @@ pub unsafe extern "C" fn Socket_SendTo(
     return bytes;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Socket_Write(mut this: *mut Socket, mut msg: cstr) {
+pub unsafe extern "C" fn Socket_Write(mut this: *mut Socket, mut msg: *const libc::c_char) {
     if Socket_Send((*this).sock, msg as *const libc::c_void, StrLen(msg) as i32) == -(1 as i32) {
         Fatal(b"Socket_Write: failed to write to socket\0" as *const u8 as *const libc::c_char);
     }

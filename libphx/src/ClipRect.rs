@@ -4,13 +4,12 @@ use glam::Vec3;
 use libc;
 
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn glDisable(cap: GLenum);
     fn glEnable(cap: GLenum);
     fn glScissor(x: GLint, y: GLint, width: GLsizei, height: GLsizei);
     fn Viewport_GetSize(out: *mut IVec2);
 }
-pub type cstr = *const libc::c_char;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

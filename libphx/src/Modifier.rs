@@ -3,7 +3,6 @@ use glam::Vec3;
 use libc;
 extern "C" {
 }
-pub type cstr = *const libc::c_char;
 pub type Modifier = i32;
 #[no_mangle]
 pub static mut Modifier_Null: Modifier = (0 as i32) << 0 as i32;
@@ -14,13 +13,13 @@ pub static mut Modifier_Ctrl: Modifier = (1 as i32) << 1 as i32;
 #[no_mangle]
 pub static mut Modifier_Shift: Modifier = (1 as i32) << 2 as i32;
 #[no_mangle]
-pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
+pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     if modifier == Modifier_Null {
         return b"Modifier_Null\0" as *const u8 as *const libc::c_char;
     }
     let mut modifiers: [Modifier; 3] = [Modifier_Alt, Modifier_Ctrl, Modifier_Shift];
-    let mut names: [cstr; 3] = [
+    let mut names: [*const libc::c_char; 3] = [
         b"Modifier_Alt\0" as *const u8 as *const libc::c_char,
         b"Modifier_Ctrl\0" as *const u8 as *const libc::c_char,
         b"Modifier_Shift\0" as *const u8 as *const libc::c_char,
@@ -59,5 +58,5 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> cstr {
             modifier,
         );
     }
-    return buffer.as_mut_ptr() as cstr;
+    return buffer.as_mut_ptr() as *const libc::c_char;
 }

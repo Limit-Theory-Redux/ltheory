@@ -7,7 +7,7 @@ use std::io::{self, Write};
 extern "C" {
     pub type HashMap;
     pub type __sFILEX;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn qsort(
         __base: *mut libc::c_void,
         __nel: usize,
@@ -30,7 +30,6 @@ extern "C" {
 }
 pub type __i64_t = i64;
 pub type __darwin_off_t = __i64_t;
-pub type cstr = *const libc::c_char;
 pub type TimeStamp = u64;
 pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
@@ -69,7 +68,7 @@ pub struct __sbuf {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Scope {
-    pub name: cstr,
+    pub name: *const libc::c_char,
     pub last: TimeStamp,
     pub frame: TimeStamp,
     pub total: TimeStamp,
@@ -114,7 +113,7 @@ static mut this: Profiler = Profiler {
     start: 0,
 };
 static mut profiling: bool = 0 as i32 != 0;
-unsafe extern "C" fn Scope_Create(mut name: cstr) -> *mut Scope {
+unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
     let mut scope: *mut Scope = MemAlloc(::core::mem::size_of::<Scope>() as usize) as *mut Scope;
     (*scope).name = StrDup(name);
     (*scope).last = 0 as i32 as TimeStamp;
@@ -160,7 +159,7 @@ unsafe extern "C" fn SortScopes(mut pa: *const libc::c_void, mut pb: *const libc
         1 as i32
     };
 }
-unsafe extern "C" fn Profiler_GetScope(mut name: cstr) -> *mut Scope {
+unsafe extern "C" fn Profiler_GetScope(mut name: *const libc::c_char) -> *mut Scope {
     let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as usize as u64) as *mut Scope;
     if !scope.is_null() {
         return scope;
@@ -275,7 +274,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     ));
 }
 #[no_mangle]
-pub unsafe extern "C" fn Profiler_Begin(mut name: cstr) {
+pub unsafe extern "C" fn Profiler_Begin(mut name: *const libc::c_char) {
     if !profiling {
         return;
     }
@@ -319,7 +318,7 @@ pub unsafe extern "C" fn Profiler_End() {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Profiler_SetValue(mut name: cstr, mut value: i32) {}
+pub unsafe extern "C" fn Profiler_SetValue(mut name: *const libc::c_char, mut value: i32) {}
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_LoopMarker() {
     if !profiling {

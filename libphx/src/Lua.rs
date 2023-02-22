@@ -7,8 +7,8 @@ use libc;
 extern "C" {
     pub type lua_State;
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
-    fn Fatal(_: cstr, _: ...);
-    fn Warn(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
+    fn Warn(_: *const libc::c_char, _: ...);
     fn lua_close(L: *mut lua_State);
     fn lua_newthread(L: *mut lua_State) -> *mut lua_State;
     fn lua_gettop(L: *mut lua_State) -> i32;
@@ -49,19 +49,16 @@ extern "C" {
     fn LuaScheduler_Init(_: *mut Lua);
     fn luaL_newstate() -> *mut lua_State;
     fn Signal_AddHandlerAll(_: SignalHandler);
-    fn Signal_ToString(_: Signal) -> cstr;
+    fn Signal_ToString(_: Signal) -> *const libc::c_char;
     fn Signal_IgnoreDefault();
-    fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
+    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
 }
 pub type __builtin_va_list = *mut libc::c_char;
-pub type __darwin_ptrdiff_t = libc::c_long;
-pub type cstr = *const libc::c_char;
 pub type ResourceType = i32;
 pub type va_list = __builtin_va_list;
-pub type ptrdiff_t = __darwin_ptrdiff_t;
 pub type lua_CFunction = Option<unsafe extern "C" fn(*mut lua_State) -> i32>;
 pub type lua_Number = f64;
-pub type lua_Integer = ptrdiff_t;
+pub type lua_Integer = libc::ptrdiff_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -86,7 +83,7 @@ pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
 
 #[no_mangle]
-pub static mut kErrorHandler: cstr =
+pub static mut kErrorHandler: *const libc::c_char =
     b"function __error_handler__ (e)  return debug.traceback(e, 1)end\0" as *const u8
         as *const libc::c_char;
 static mut initialized: bool = 0 as i32 != 0;
@@ -142,7 +139,7 @@ unsafe extern "C" fn Lua_PCall(
                     as *const libc::c_char,
             );
         } else if result == 2 as i32 {
-            let mut error: cstr = lua_tolstring(this, -(1 as i32), 0 as *mut usize);
+            let mut error: *const libc::c_char = lua_tolstring(this, -(1 as i32), 0 as *mut usize);
             println!("{}", std::ffi::CStr::from_ptr(error).to_str().unwrap());
             Fatal(
                 b"Lua_PCall: Lua returned error message: %s\0" as *const u8 as *const libc::c_char,
@@ -202,18 +199,18 @@ pub unsafe extern "C" fn Lua_GetActive() -> *mut Lua {
     return activeInstance;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_DoFile(mut this: *mut Lua, mut name: cstr) {
+pub unsafe extern "C" fn Lua_DoFile(mut this: *mut Lua, mut name: *const libc::c_char) {
     Lua_LoadFile(this, name);
     Lua_PCall(this, 0 as i32, 0 as i32, 0 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_DoString(mut this: *mut Lua, mut code: cstr) {
+pub unsafe extern "C" fn Lua_DoString(mut this: *mut Lua, mut code: *const libc::c_char) {
     Lua_LoadString(this, code);
     Lua_PCall(this, 0 as i32, 0 as i32, 0 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_LoadFile(mut this: *mut Lua, mut name: cstr) {
-    let mut path: cstr = Resource_GetPath(ResourceType_Script, name);
+pub unsafe extern "C" fn Lua_LoadFile(mut this: *mut Lua, mut name: *const libc::c_char) {
+    let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Script, name);
     if luaL_loadfile(this, path) != 0 {
         Fatal(
             b"Lua_LoadFile: failed to load <%s>:\n%s\0" as *const u8 as *const libc::c_char,
@@ -223,7 +220,7 @@ pub unsafe extern "C" fn Lua_LoadFile(mut this: *mut Lua, mut name: cstr) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_LoadString(mut this: *mut Lua, mut code: cstr) {
+pub unsafe extern "C" fn Lua_LoadString(mut this: *mut Lua, mut code: *const libc::c_char) {
     if luaL_loadstring(this, code) != 0 {
         Fatal(
             b"Lua_LoadString: failed to load string:\n%s\0" as *const u8 as *const libc::c_char,
@@ -241,7 +238,7 @@ pub unsafe extern "C" fn Lua_Call(
     Lua_PCall(this, args, rets, errorHandler);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_PushGlobal(mut this: *mut Lua, mut name: cstr) {
+pub unsafe extern "C" fn Lua_PushGlobal(mut this: *mut Lua, mut name: *const libc::c_char) {
     lua_getfield(this, -(10002 as i32), name);
     if lua_type(this, lua_gettop(this)) == 0 as i32 {
         Fatal(
@@ -259,7 +256,7 @@ pub unsafe extern "C" fn Lua_PushPtr(mut this: *mut Lua, mut value: *mut libc::c
     lua_pushlightuserdata(this, value);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_PushStr(mut this: *mut Lua, mut value: cstr) {
+pub unsafe extern "C" fn Lua_PushStr(mut this: *mut Lua, mut value: *const libc::c_char) {
     lua_pushstring(this, value);
 }
 #[no_mangle]
@@ -268,31 +265,31 @@ pub unsafe extern "C" fn Lua_PushThread(mut this: *mut Lua, mut thread: *mut Lua
     lua_xmove(thread, this, 1 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_SetBool(mut this: *mut Lua, mut name: cstr, mut value: bool) {
+pub unsafe extern "C" fn Lua_SetBool(mut this: *mut Lua, mut name: *const libc::c_char, mut value: bool) {
     lua_pushboolean(this, value as i32);
     lua_setfield(this, -(10002 as i32), name);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_SetFn(mut this: *mut Lua, mut name: cstr, mut fn_0: LuaFn) {
+pub unsafe extern "C" fn Lua_SetFn(mut this: *mut Lua, mut name: *const libc::c_char, mut fn_0: LuaFn) {
     lua_pushcclosure(this, fn_0, 0 as i32);
     lua_setfield(this, -(10002 as i32), name);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_SetNumber(mut this: *mut Lua, mut name: cstr, mut value: f64) {
+pub unsafe extern "C" fn Lua_SetNumber(mut this: *mut Lua, mut name: *const libc::c_char, mut value: f64) {
     lua_pushnumber(this, value);
     lua_setfield(this, -(10002 as i32), name);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Lua_SetPtr(
     mut this: *mut Lua,
-    mut name: cstr,
+    mut name: *const libc::c_char,
     mut value: *mut libc::c_void,
 ) {
     lua_pushlightuserdata(this, value);
     lua_setfield(this, -(10002 as i32), name);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Lua_SetStr(mut this: *mut Lua, mut name: cstr, mut value: cstr) {
+pub unsafe extern "C" fn Lua_SetStr(mut this: *mut Lua, mut name: *const libc::c_char, mut value: *const libc::c_char) {
     lua_pushstring(this, value);
     lua_setfield(this, -(10002 as i32), name);
 }
@@ -333,10 +330,10 @@ pub unsafe extern "C" fn Lua_GetMemory(mut this: *mut Lua) -> i32 {
     return lua_gc(this, 3 as i32, 0 as i32) * 1024 as i32 + lua_gc(this, 4 as i32, 0 as i32);
 }
 #[inline]
-unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: cstr) -> cstr {
+unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: *const libc::c_char) -> *const libc::c_char {
     let mut type_0: i32 = lua_type(this, -(1 as i32));
-    let mut typeName: cstr = lua_typename(this, type_0);
-    let mut strValue: cstr = 0 as cstr;
+    let mut typeName: *const libc::c_char = lua_typename(this, type_0);
+    let mut strValue: *const libc::c_char = 0 as *const libc::c_char;
     let mut isNull: bool = 0 as i32 != 0;
     if luaL_callmeta(
         this,
@@ -426,12 +423,12 @@ unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: cstr) -> cstr {
             _ => {}
         }
     }
-    let mut pre: cstr = if isNull as i32 != 0 {
+    let mut pre: *const libc::c_char = if isNull as i32 != 0 {
         b"\x1B[91;1m\0" as *const u8 as *const libc::c_char
     } else {
         b"\0" as *const u8 as *const libc::c_char
     };
-    let mut app: cstr = if isNull as i32 != 0 {
+    let mut app: *const libc::c_char = if isNull as i32 != 0 {
         b"\x1B[0m\0" as *const u8 as *const libc::c_char
     } else {
         b"\0" as *const u8 as *const libc::c_char
@@ -453,10 +450,10 @@ pub unsafe extern "C" fn Lua_Backtrace() {
     }
     let mut stack_size: i32 = 0;
     let mut stack_capacity: i32 = 0;
-    let mut stack_data: *mut cstr = 0 as *mut cstr;
+    let mut stack_data: *mut *const libc::c_char = 0 as *mut *const libc::c_char;
     stack_capacity = 0 as i32;
     stack_size = 0 as i32;
-    stack_data = 0 as *mut cstr;
+    stack_data = 0 as *mut *const libc::c_char;
     let mut iStack: i32 = 0 as i32;
     loop {
         let mut ar: lua_Debug = lua_Debug {
@@ -485,8 +482,8 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             Fatal(b"Lua_GetStack: lua_getinfo failed.\0" as *const u8 as *const libc::c_char);
         }
         let mut variablesPrinted: i32 = 0 as i32;
-        let mut funcName: cstr = ar.name;
-        let mut fileName: cstr = ar.source;
+        let mut funcName: *const libc::c_char = ar.name;
+        let mut fileName: *const libc::c_char = ar.source;
         let mut line: i32 = ar.currentline;
         if *fileName.offset(0) as i32 != '@' as i32 {
             fileName = b"<string>\0" as *const u8 as *const libc::c_char;
@@ -504,7 +501,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         if funcName.is_null() {
             funcName = b"<null>\0" as *const u8 as *const libc::c_char;
         }
-        let mut stackFrame: cstr = if line > 0 as i32 {
+        let mut stackFrame: *const libc::c_char = if line > 0 as i32 {
             StrFormat(
                 b"  #%i %s at %s:%i\0" as *const u8 as *const libc::c_char,
                 iStack,
@@ -526,9 +523,9 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             } else {
                 1 as i32
             };
-            let mut elemSize: usize = ::core::mem::size_of::<cstr>() as usize;
+            let mut elemSize: usize = ::core::mem::size_of::<*const libc::c_char>() as usize;
             let mut pData: *mut *mut libc::c_void =
-                &mut stack_data as *mut *mut cstr as *mut *mut libc::c_void;
+                &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 stack_data as *mut libc::c_void,
                 (stack_capacity as usize).wrapping_mul(elemSize as usize),
@@ -540,7 +537,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         *fresh5 = stackFrame;
         let mut iUp: i32 = 1 as i32;
         loop {
-            let mut name: cstr = lua_getupvalue(this, -(1 as i32), iUp);
+            let mut name: *const libc::c_char = lua_getupvalue(this, -(1 as i32), iUp);
             if name.is_null() {
                 break;
             }
@@ -551,9 +548,9 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     } else {
                         1 as i32
                     };
-                    let mut elemSize_0: usize = ::core::mem::size_of::<cstr>();
+                    let mut elemSize_0: usize = ::core::mem::size_of::<*const libc::c_char>();
                     let mut pData_0: *mut *mut libc::c_void =
-                        &mut stack_data as *mut *mut cstr as *mut *mut libc::c_void;
+                        &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
                         stack_data as *mut libc::c_void,
                         (stack_capacity as usize).wrapping_mul(elemSize_0 as usize),
@@ -564,16 +561,16 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 let ref mut fresh7 = *stack_data.offset(fresh6 as isize);
                 *fresh7 = StrDup(b"    [Upvalues]\0" as *const u8 as *const libc::c_char);
             }
-            let mut upValue: cstr = Lua_ToString(this, name);
+            let mut upValue: *const libc::c_char = Lua_ToString(this, name);
             if (stack_capacity == stack_size) as libc::c_long != 0 {
                 stack_capacity = if stack_capacity != 0 {
                     stack_capacity * 2 as i32
                 } else {
                     1 as i32
                 };
-                let mut elemSize_1: usize = ::core::mem::size_of::<cstr>();
+                let mut elemSize_1: usize = ::core::mem::size_of::<*const libc::c_char>();
                 let mut pData_1: *mut *mut libc::c_void =
-                    &mut stack_data as *mut *mut cstr as *mut *mut libc::c_void;
+                    &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_1 = MemRealloc(
                     stack_data as *mut libc::c_void,
                     (stack_capacity as usize).wrapping_mul(elemSize_1 as usize),
@@ -589,7 +586,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         }
         let mut iLocal: i32 = 1 as i32;
         loop {
-            let mut name_0: cstr = lua_getlocal(this, &mut ar, iLocal);
+            let mut name_0: *const libc::c_char = lua_getlocal(this, &mut ar, iLocal);
             if name_0.is_null() {
                 break;
             }
@@ -600,9 +597,9 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     } else {
                         1 as i32
                     };
-                    let mut elemSize_2: usize = ::core::mem::size_of::<cstr>();
+                    let mut elemSize_2: usize = ::core::mem::size_of::<*const libc::c_char>();
                     let mut pData_2: *mut *mut libc::c_void =
-                        &mut stack_data as *mut *mut cstr as *mut *mut libc::c_void;
+                        &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                     *pData_2 = MemRealloc(
                         stack_data as *mut libc::c_void,
                         (stack_capacity as usize).wrapping_mul(elemSize_2 as usize),
@@ -613,16 +610,16 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 let ref mut fresh11 = *stack_data.offset(fresh10 as isize);
                 *fresh11 = StrDup(b"    [Locals]\0" as *const u8 as *const libc::c_char);
             }
-            let mut local: cstr = Lua_ToString(this, name_0);
+            let mut local: *const libc::c_char = Lua_ToString(this, name_0);
             if (stack_capacity == stack_size) as libc::c_long != 0 {
                 stack_capacity = if stack_capacity != 0 {
                     stack_capacity * 2 as i32
                 } else {
                     1 as i32
                 };
-                let mut elemSize_3: usize = ::core::mem::size_of::<cstr>();
+                let mut elemSize_3: usize = ::core::mem::size_of::<*const libc::c_char>();
                 let mut pData_3: *mut *mut libc::c_void =
-                    &mut stack_data as *mut *mut cstr as *mut *mut libc::c_void;
+                    &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_3 = MemRealloc(
                     stack_data as *mut libc::c_void,
                     (stack_capacity as usize).wrapping_mul(elemSize_3 as usize),
@@ -643,9 +640,9 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 } else {
                     1 as i32
                 };
-                let mut elemSize_4: usize = ::core::mem::size_of::<cstr>();
+                let mut elemSize_4: usize = ::core::mem::size_of::<*const libc::c_char>();
                 let mut pData_4: *mut *mut libc::c_void =
-                    &mut stack_data as *mut *mut cstr as *mut *mut libc::c_void;
+                    &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_4 = MemRealloc(
                     stack_data as *mut libc::c_void,
                     (stack_capacity as usize).wrapping_mul(elemSize_4 as usize),
@@ -660,8 +657,8 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         iStack += 1;
     }
     Warn(b"Lua Backtrace:\0" as *const u8 as *const libc::c_char);
-    let mut stackFrame_0: *mut cstr = stack_data;
-    let mut __iterend: *mut cstr = stack_data.offset(stack_size as isize);
+    let mut stackFrame_0: *mut *const libc::c_char = stack_data;
+    let mut __iterend: *mut *const libc::c_char = stack_data.offset(stack_size as isize);
     while stackFrame_0 < __iterend {
         Warn(*stackFrame_0);
         StrFree(*stackFrame_0);

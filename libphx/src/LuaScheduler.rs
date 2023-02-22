@@ -19,17 +19,14 @@ extern "C" {
     fn Lua_GetRef(_: *mut Lua) -> LuaRef;
     fn Lua_Call(_: *mut Lua, args: i32, rets: i32, errorHandler: i32);
     fn Lua_PushNumber(_: *mut Lua, _: f64);
-    fn Lua_SetFn(_: *mut Lua, name: cstr, _: LuaFn);
+    fn Lua_SetFn(_: *mut Lua, name: *const libc::c_char, _: LuaFn);
     fn TimeStamp_Get() -> TimeStamp;
     fn TimeStamp_GetDifference(start: TimeStamp, end: TimeStamp) -> f64;
     fn TimeStamp_GetRelative(start: TimeStamp, seconds: f64) -> TimeStamp;
 }
-pub type __darwin_ptrdiff_t = libc::c_long;
-pub type cstr = *const libc::c_char;
 pub type TimeStamp = u64;
-pub type ptrdiff_t = __darwin_ptrdiff_t;
 pub type lua_Number = f64;
-pub type lua_Integer = ptrdiff_t;
+pub type lua_Integer = libc::ptrdiff_t;
 pub type Lua = lua_State;
 pub type LuaFn = Option<unsafe extern "C" fn(*mut Lua) -> i32>;
 pub type LuaRef = lua_Integer;

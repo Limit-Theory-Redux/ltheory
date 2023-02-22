@@ -3,7 +3,6 @@ use glam::Vec3;
 use libc;
 extern "C" {
 }
-pub type cstr = *const libc::c_char;
 pub type State = i32;
 #[no_mangle]
 pub static mut State_Null: State = (0 as i32) << 0 as i32;
@@ -16,13 +15,13 @@ pub static mut State_Down: State = (1 as i32) << 2 as i32;
 #[no_mangle]
 pub static mut State_Released: State = (1 as i32) << 3 as i32;
 #[no_mangle]
-pub unsafe extern "C" fn State_ToString(mut state: State) -> cstr {
+pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     if state == State_Null {
         return b"State_Null\0" as *const u8 as *const libc::c_char;
     }
     let mut states: [State; 4] = [State_Changed, State_Pressed, State_Down, State_Released];
-    let mut names: [cstr; 4] = [
+    let mut names: [*const libc::c_char; 4] = [
         b"State_Changed\0" as *const u8 as *const libc::c_char,
         b"State_Pressed\0" as *const u8 as *const libc::c_char,
         b"State_Down\0" as *const u8 as *const libc::c_char,
@@ -62,5 +61,5 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> cstr {
             state,
         );
     }
-    return buffer.as_mut_ptr() as cstr;
+    return buffer.as_mut_ptr() as *const libc::c_char;
 }

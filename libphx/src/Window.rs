@@ -7,12 +7,11 @@ use libc;
 use sdl2_sys::*;
 
 extern "C" {
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn OpenGL_Init();
     fn Viewport_Pop();
     fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindow: bool);
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Window {
@@ -23,7 +22,7 @@ pub struct Window {
 
 #[no_mangle]
 pub unsafe extern "C" fn Window_Create(
-    mut title: cstr,
+    mut title: *const libc::c_char,
     mut x: i32,
     mut y: i32,
     mut sx: i32,
@@ -68,7 +67,7 @@ pub unsafe extern "C" fn Window_GetPosition(mut this: *mut Window, mut out: *mut
     SDL_GetWindowPosition((*this).handle, &mut (*out).x, &mut (*out).y);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Window_GetTitle(mut this: *mut Window) -> cstr {
+pub unsafe extern "C" fn Window_GetTitle(mut this: *mut Window) -> *const libc::c_char {
     return SDL_GetWindowTitle((*this).handle);
 }
 #[no_mangle]
@@ -95,7 +94,7 @@ pub unsafe extern "C" fn Window_SetSize(mut this: *mut Window, mut sx: i32, mut 
     SDL_SetWindowSize((*this).handle, sx, sy);
 }
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetTitle(mut this: *mut Window, mut title: cstr) {
+pub unsafe extern "C" fn Window_SetTitle(mut this: *mut Window, mut title: *const libc::c_char) {
     SDL_SetWindowTitle((*this).handle, title);
 }
 #[no_mangle]

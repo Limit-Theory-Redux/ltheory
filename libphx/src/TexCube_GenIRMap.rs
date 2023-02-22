@@ -23,15 +23,15 @@ extern "C" {
     fn RNG_FromTime() -> *mut RNG;
     fn RNG_Free(_: *mut RNG);
     fn RNG_GetUniform(_: *mut RNG) -> f64;
-    fn Shader_Load(vertName: cstr, fragName: cstr) -> *mut Shader;
+    fn Shader_Load(vertName: *const libc::c_char, fragName: *const libc::c_char) -> *mut Shader;
     fn Shader_Start(_: *mut Shader);
     fn Shader_Stop(_: *mut Shader);
     fn Shader_ResetTexIndex();
-    fn Shader_SetFloat(_: cstr, _: f32);
-    fn Shader_SetFloat3(_: cstr, _: f32, _: f32, _: f32);
-    fn Shader_SetInt(_: cstr, _: i32);
-    fn Shader_SetTex2D(_: cstr, _: *mut Tex2D);
-    fn Shader_SetTexCube(_: cstr, _: *mut TexCube);
+    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
+    fn Shader_SetFloat3(_: *const libc::c_char, _: f32, _: f32, _: f32);
+    fn Shader_SetInt(_: *const libc::c_char, _: i32);
+    fn Shader_SetTex2D(_: *const libc::c_char, _: *mut Tex2D);
+    fn Shader_SetTexCube(_: *const libc::c_char, _: *mut TexCube);
     fn Tex2D_Create(sx: i32, sy: i32, _: TexFormat) -> *mut Tex2D;
     fn Tex2D_Free(_: *mut Tex2D);
     fn Tex2D_SetData(_: *mut Tex2D, _: *const libc::c_void, _: PixelFormat, _: DataFormat);
@@ -59,7 +59,6 @@ extern "C" {
     fn TexCube_SetMinFilter(_: *mut TexCube, _: TexFilter);
     fn TexFormat_Components(_: TexFormat) -> i32;
 }
-pub type cstr = *const libc::c_char;
 
 pub type CubeFace = i32;
 pub type DataFormat = i32;

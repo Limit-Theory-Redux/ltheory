@@ -16,20 +16,20 @@ extern "C" {
     pub type FT_Slot_InternalRec_;
     pub type FT_SubGlyphRec_;
     pub type FT_LibraryRec_;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
     fn pow(_: f64, _: f64) -> f64;
     fn floor(_: f64) -> f64;
     fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
     fn HashMap_Get(_: *mut HashMap, key: *const libc::c_void) -> *mut libc::c_void;
     fn HashMap_Set(_: *mut HashMap, key: *const libc::c_void, value: *mut libc::c_void);
-    fn Profiler_Begin(_: cstr);
+    fn Profiler_Begin(_: *const libc::c_char);
     fn Profiler_End();
     fn RenderState_PushBlendMode(_: BlendMode);
     fn RenderState_PopBlendMode();
-    fn Resource_GetPath(_: ResourceType, name: cstr) -> cstr;
+    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
     fn Shader_ResetTexIndex();
-    fn Shader_SetTex2D(_: cstr, _: *mut Tex2D);
+    fn Shader_SetTex2D(_: *const libc::c_char, _: *mut Tex2D);
     fn Tex2D_Create(sx: i32, sy: i32, _: TexFormat) -> *mut Tex2D;
     fn Tex2D_DrawEx(
         _: *mut Tex2D,
@@ -63,7 +63,6 @@ extern "C" {
     fn FT_Get_Char_Index(face: FT_Face, charcode: FT_ULong) -> FT_UInt;
 }
 pub type uchar = libc::c_uchar;
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Font {
@@ -500,11 +499,11 @@ unsafe extern "C" fn Font_GetKerning(mut this: *mut Font, mut a: i32, mut b: i32
     return (kern.x >> 6 as i32) as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Font_Load(mut name: cstr, mut size: i32) -> *mut Font {
+pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32) -> *mut Font {
     if ft.is_null() {
         FT_Init_FreeType(&mut ft);
     }
-    let mut path: cstr = Resource_GetPath(ResourceType_Font, name);
+    let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Font, name);
     let mut this: *mut Font = MemAlloc(::core::mem::size_of::<Font>()) as *mut Font;
     (*this)._refCount = 1 as i32 as u32;
     if FT_New_Face(ft, path, 0 as i32 as FT_Long, &mut (*this).handle) != 0 {
@@ -542,7 +541,7 @@ pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
 #[no_mangle]
 pub unsafe extern "C" fn Font_Draw(
     mut this: *mut Font,
-    mut text: cstr,
+    mut text: *const libc::c_char,
     mut x: f32,
     mut y: f32,
     mut r: f32,
@@ -588,7 +587,7 @@ pub unsafe extern "C" fn Font_Draw(
 #[no_mangle]
 pub unsafe extern "C" fn Font_DrawShaded(
     mut this: *mut Font,
-    mut text: cstr,
+    mut text: *const libc::c_char,
     mut x: f32,
     mut y: f32,
 ) {
@@ -630,7 +629,7 @@ pub unsafe extern "C" fn Font_GetLineHeight(mut this: *mut Font) -> i32 {
     return ((*(*(*this).handle).size).metrics.height >> 6 as i32) as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, mut text: cstr) {
+pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, mut text: *const libc::c_char) {
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Font_GetSize\0")).as_ptr(),
     );
@@ -669,7 +668,7 @@ pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, 
     Profiler_End();
 }
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetSize2(mut this: *mut Font, mut out: *mut IVec2, mut text: cstr) {
+pub unsafe extern "C" fn Font_GetSize2(mut this: *mut Font, mut out: *mut IVec2, mut text: *const libc::c_char) {
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Font_GetSize2\0")).as_ptr(),
     );

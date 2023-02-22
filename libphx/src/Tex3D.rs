@@ -10,7 +10,7 @@ extern "C" {
     fn Bytes_Rewind(_: *mut Bytes);
     fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Bytes_Create(len: u32) -> *mut Bytes;
-    fn Fatal(_: cstr, _: ...);
+    fn Fatal(_: *const libc::c_char, _: ...);
     fn DataFormat_GetSize(_: DataFormat) -> i32;
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLu32);
@@ -39,7 +39,6 @@ extern "C" {
     fn TexFormat_IsDepth(_: TexFormat) -> bool;
     fn TexFormat_IsValid(_: TexFormat) -> bool;
 }
-pub type cstr = *const libc::c_char;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tex3D {
