@@ -37,11 +37,11 @@ Once Homebrew is installed, open a **Terminal** window and run the following one
 
 ### Linux
 
-You should install Git and a C++ toolchain using your distro's package manager.
+You should install Git and a C++ toolchain using your distro's package manager. OpenGL and GLU development libraries are also required.
 
 For example, if using Ubuntu 22.04, open a terminal and install the following packages:
 
-- `sudo apt install -y git build-essential cmake`
+- `sudo apt install -y git build-essential cmake libgl1-mesa-dev libglu1-mesa-dev`
 
 # Setting up
 
