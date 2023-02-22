@@ -15,8 +15,9 @@ To build Limit Theory, you'll need a few standard developer tools. All of them a
 ### Windows
 
 Install the following tools:
-- Python: https://www.python.org/downloads/
 - Git: https://git-scm.com/downloads
+
+You may want to install a GUI for Git, such as GitHub for Desktop: https://desktop.github.com/
 
 If you would like to made changes to the libphx engine, you will also need:
 - Visual Studio Community: https://visualstudio.microsoft.com/vs/
@@ -24,7 +25,7 @@ If you would like to made changes to the libphx engine, you will also need:
 
 ### macOS
 
-Users on macOS will need to install Python, Git, CMake and Xcode.
+Users on macOS will need to install Git, CMake and Xcode.
 
 First, install Xcode using the Mac App store: https://apps.apple.com/us/app/xcode/id497799835
 
@@ -32,15 +33,15 @@ To install the remaining dependencies, we recommend first installing the Homebre
 
 Once Homebrew is installed, open a **Terminal** window and run the following one-liner:
 
-- `brew install python3 git cmake`
+- `brew install git cmake`
 
 ### Linux
 
-You should install Python 3, Git and a C++ toolchain using your distro's package manager.
+You should install Git and a C++ toolchain using your distro's package manager.
 
 For example, if using Ubuntu 22.04, open a terminal and install the following packages:
 
-- `sudo apt install -y python3 python-is-python3 git build-essential cmake`
+- `sudo apt install -y git build-essential cmake`
 
 # Setting up
 
@@ -78,11 +79,12 @@ Once you have the repository, the build process consists of two steps (as with o
 
 From a terminal in the directory of the checked-out repository, run
 
-- `python configure.py`
+- `cmake -B build`
 
-This runs CMake to generate the build files. Then, to compile,
+This runs CMake to generate the build files and places them in 'build`. Then, to compile
 
-- `python configure.py build`
+- Windows: `cmake --build ./build --config RelWithDebInfo`
+- macOS/Linux: `cmake --build ./build`
 
 ## Running a Lua App
 
@@ -104,7 +106,7 @@ All top-level scripts are in the `script/States/App` directory.
 
 ## Debugging in Visual Studio
 
-First, make sure that the CMake project is configured by running the steps above up to `python configure.py`.
+First, make sure that the CMake project is configured by running the steps above up to `cmake -B build`.
 
 Next, open the Visual Studio solution by navigating to `build/LTheory.sln` and opening it. Once the project has loaded, right-click the `lt` project in the Solution Explorer, then select "Set as Startup Project".
 
