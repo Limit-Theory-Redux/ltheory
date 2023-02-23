@@ -67,11 +67,12 @@ function ThrustController:update (e, dt)
       -self.roll * thrustRollMax))
   end
 
-  -- TODO : This is terrible. 
-  for thruster in e:iterSocketsByType(SocketType.Thruster) do
-    thruster.activationT = self.forward
-    thruster.boostT = boost
-  end
+  -- TODO : This is terrible.
+--printf("thruster")
+--  for thruster in e:iterSocketsByType(SocketType.Thruster) do
+--    thruster.activationT = self.forward
+--    thruster.boostT = boost
+--  end
 end
 
 --------------------------------------------------------------------------------

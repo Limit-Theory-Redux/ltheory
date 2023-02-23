@@ -68,7 +68,7 @@ function SystemMap:onDraw (state)
       end
       Draw.Point(x, y)
 
-      if e:hasFlows() then
+      if e:hasFlows() and not e:isDestroyed() then
 --printf("Flow: %s", e:getName())
         UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
       end
@@ -110,14 +110,16 @@ function SystemMap:onDraw (state)
 
   do -- Debug Info
     local dbg = DebugContext(16, 16)
-    dbg:text('--- System ---')
+    dbg:text("--- System ---")
     dbg:indent()
     self.system:send(Event.Debug(dbg))
     dbg:undent()
 
     if self.focus then
+      local boomtext = ""
+      if self.focus:isDestroyed() then boomtext = " (destroyed)" end
       dbg:text('')
-      dbg:text('--- %s ---', self.focus:getName())
+      dbg:text("--- %s %s%s ---", Config:getObjectInfo("object_types", self.focus:getType()), self.focus:getName(), boomtext)
       dbg:indent()
       self.focus:send(Event.Debug(dbg))
       dbg:undent()

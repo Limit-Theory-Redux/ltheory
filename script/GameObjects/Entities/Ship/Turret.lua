@@ -88,6 +88,7 @@ function Turret:canFire ()
 end
 
 function Turret:fire ()
+--printf("%s firing!", self:getParent():getName())
   if not self:canFire() then return end
   local e = self:getRoot():addProjectile(self:getParent())
   local dir = (self:getForward() + rng:getDir3():scale(self.projSpread * rng:getExp())):normalize()

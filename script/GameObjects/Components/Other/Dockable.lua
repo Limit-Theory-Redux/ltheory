@@ -38,6 +38,15 @@ function Entity:hasDockable ()
   return self.dockable ~= nil
 end
 
+function Entity:isDockable ()
+  return self.dockable
+end
+
+function Entity:setUndockable ()
+  self.dockable = false
+printf("%s %s is now undockable", Config:getObjectInfo("object_types", self:getType()), self:getName())
+end
+
 function Entity:removeDocked (e)
   assert(self.dockable)
   self:getParent():addChild(e)

@@ -5,6 +5,7 @@ local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Bindings = require('States.ApplicationBindings')
 local Actions = requireAll('GameObjects.Actions')
 local Item = require('Systems.Economy.Item')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local LTheoryRedux = require('States.Application')
 
@@ -121,8 +122,8 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Disengage autopilot (require a 1-second delay, otherwise keypress turns autopilot on then off instantly)
-  if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
-    if Config.game.playerMoving then
+  if Config.game.playerMoving then
+    if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
       Config.game.playerMoving = false
     end
   end
@@ -181,8 +182,8 @@ end
 function LTheoryRedux:createStarSystem ()
   if self.system then self.system:delete() end
 print("------------------------")
-printf("Spawning new star system using seed = %s", self.seed)
   self.system = System(self.seed)
+printf("Spawning new star system '%s' using seed = %s", self.system:getName(), self.seed)
 
   do
     if Config.getGameMode() == 1 then
@@ -215,6 +216,7 @@ printf("Spawning new star system using seed = %s", self.seed)
       -- Add the player's ship
       newShip = self.system:spawnShip()
       newShip:setName("NSS Titonicus")
+      newShip:setHealth(1000, 1000, 10) -- make the player's ship extra-healthy for now
       Config.game.currentShip = newShip
       LTheoryRedux:insertShip(newShip)
       printf("Added our ship, the '%s'", newShip:getName())
@@ -238,6 +240,7 @@ printf("Spawning new star system using seed = %s", self.seed)
 
       -- Add escort ships
       local ships = {}
+
       for i = 1, escortCount do
         local escort = self.system:spawnShip()
         local offset = rng:getSphere():scale(100)
@@ -246,17 +249,17 @@ printf("Spawning new star system using seed = %s", self.seed)
         escort:addItem(Item.Credit, Config.game.eStartCredits)
 --        escort:pushAction(Actions.Think()) -- (currently generates an error)
 --        escort:pushAction(Actions.Attack(newShip)) -- (currently doesn't break, but doesn't work)
-        escort:pushAction(Actions.Escort(newShip, offset))
+--        escort:pushAction(Actions.Escort(newShip, offset))
         insert(ships, escort)
       end
 
-      -- Make escort ships chase each other!
---      for i = 1, #ships do
---        local j = rng:getInt(1, #ships)
---        if i ~= j then
---          ships[i]:pushAction(Actions.Attack(ships[j]))
---        end
---      end
+      -- Make ships chase each other!
+      for i = 1, #ships do
+        local j = rng:getInt(1, #ships)
+        if i ~= j then
+          ships[i]:pushAction(Actions.Attack(ships[j]))
+        end
+      end
 
       printf("Added %s escort ships", escortCount)
     end
@@ -309,7 +312,7 @@ function LTheoryRedux:showMainMenu ()
 
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.version, 0.2, 0.2, 0.2, 1.0)
     HmGui.SetAlign(0.011, 0.971)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.version, 0.9, 0.9, 0.9, 1.0)
+
     HmGui.SetAlign(0.01, 0.97)
 
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.2, 0.2, 0.2, 1.0)

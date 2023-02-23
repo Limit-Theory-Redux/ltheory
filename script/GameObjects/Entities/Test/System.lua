@@ -10,6 +10,11 @@ local Dust = require('GameObjects.Entities.Effects.Dust')
 local Nebula = require('GameObjects.Entities.Objects.Nebula')
 
 local System = subclass(Entity, function (self, seed)
+  self.rng = RNG.Create(seed):managed()
+
+  self:setName(self:getCoolName(self.rng))
+  self:setType(Config:getObjectTypeByName("object_types", "Star System"))
+
   self:addChildren()
   self:addProjectiles()
   self:addEconomy()
@@ -20,7 +25,6 @@ local System = subclass(Entity, function (self, seed)
   --        result in unexpected behavior
   self:addFlows()
 
-  self.rng = RNG.Create(seed):managed()
   -- TODO : Will physics be freed correctly?
   self.physics = Physics.Create():managed()
   local starAngle = self.rng:getDir2()
@@ -294,13 +298,15 @@ function System:spawnShip ()
       local turret = Ship.Turret()
       turret:setScale(2 * ship:getScale())
       -- TODO : Does this leak a Turret/RigidBody?
-      if not ship:plug(turret) then break end
+--printf("ship %s: plug a turret", ship:getName())
+      if not ship:plug(turret) then
+        break
+      end
     end
   end
 
---local typeName = Config:getObjectInfo("object_types", ship:getType())
 --local subtypeName = Config:getObjectInfo("ship_types", ship:getSubType())
---printf("Added %s (%s) '%s'", typeName, subtypeName, ship:getName())
+--printf("Added Ship (%s) '%s'", subtypeName, ship:getName())
 
   return ship
 end

@@ -9,6 +9,7 @@ local self = {
   MoveTo           = Button.Keyboard.F,
   TimeAccel        = Button.Keyboard.H,
   ToggleMetrics    = Button.Keyboard.M,
+  ToggleHUD        = Button.Keyboard.V,
   ToggleWireframe  = Button.Keyboard.W, -- does nothing
   ScoreNebulaBad   = Button.Keyboard.Minus, -- does nothing
   ScoreNebulaGood  = Button.Keyboard.Equals, -- does nothing

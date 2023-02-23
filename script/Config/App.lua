@@ -73,6 +73,8 @@ Config.game = {
   boostCost = 10,
   rateOfFire = 10,
 
+  explosionSize          = 64,
+
   autoTarget             = false,
   pulseDamage            = 5,
   pulseSize              = 64,
@@ -85,12 +87,11 @@ Config.game = {
   shipEnergyRecharge     = 10,
   shipHealth             = 100,
   shipHealthRegen        = 2,
-  shipDocked             = false, -- ?????????
+  shipDocked             = false,
 
   stationScale           = 20,
 
   playerDamageResistance = 1.0,
-  playerMoving           = false,
 
   enemies                = 0,
   friendlies             = 0,
@@ -104,6 +105,7 @@ Config.game = {
   aiUsesBoost            = true,
   aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
 
+  playerMoving           = false,
   autonavTimestamp       = nil,
   autonavRanges          = {  200,  -- Unknown
                               100,  -- Ship
@@ -125,7 +127,8 @@ Config.render = {
 Config.ui = {
   defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
-  controlBarHeight = 48
+  controlBarHeight = 48,
+  HUDdisplayed     = false,
 }
 
 Config.ui.color = {
@@ -175,11 +178,13 @@ Config.objectInfo = {
     name = "Object Types",
     elems = {
       { 1, "Unknown"},
-      { 2, "Ship"},
-      { 3, "Asteroid"},
-      { 4, "Station"},
-      { 5, "Zone"},
-      { 6, "Planet"},
+      { 2, "Star Sector"},
+      { 3, "Star System"},
+      { 4, "Ship"},
+      { 5, "Asteroid"},
+      { 6, "Station"},
+      { 7, "Zone"},
+      { 8, "Planet"},
     }
   },
   {

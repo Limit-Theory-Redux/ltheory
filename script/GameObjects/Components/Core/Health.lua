@@ -12,10 +12,26 @@ end
 
 function Entity:damage (amount, source)
   assert(self.health)
+
   if self.health <= 0 then return end
+
   self.health = max(0, self.health - amount)
   self:send(Event.Damaged(amount, source))
-  if self.health <= 0 then
+
+  if self.health <= 0.009999999 then
+    -- Entity has been damaged to the point of destruction (0 health)
+    self.health = 0
+    self:clearActions()
+    -- Also need to process destroyed entity's assets, including credits and cargo
+    -- Also ALSO need to notify nearby ships
+    --    resulting Actions may include Evade, Attack, and/or alert faction members
+
+printf("%s destroyed by %s!", self:getName(), source:getName())
+    if self:hasDockable() and self:isDockable() then
+      -- If this object was dockable, make it undockable
+      self:setUndockable()
+    end
+
     self:send(Event.Destroyed(source))
   end
 end
@@ -59,6 +75,7 @@ function Entity:setHealth (value, max, rate)
 end
 
 function Entity:updateHealth (state)
-  if self:isDestroyed() then return end
-  self.health = min(self.healthMax, self.health + state.dt * self.healthRate)
+  if not self:isDestroyed() then
+    self.health = min(self.healthMax, self.health + state.dt * self.healthRate)
+  end
 end

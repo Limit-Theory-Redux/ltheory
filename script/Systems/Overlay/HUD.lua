@@ -1,3 +1,4 @@
+local Bindings = require('States.ApplicationBindings')
 local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 local Disposition = require('GameObjects.Components.NPC.Dispositions')
@@ -96,7 +97,7 @@ end
 
 function HUD:drawLock (a)
   local playerShip = self.player:getControlling()
-  local target = self.player:getControlling():getTarget()
+  local target = playerShip:getTarget()
   if not target then return end
   local camera = self.gameView.camera
   local center = Vec2f(self.sx / 2, self.sy / 2)
@@ -207,6 +208,7 @@ function HUD:controlTurrets (e)
 
   -- Compute a firing solution separately for each turret to support
   -- different projectile velocities & ranges
+--printf("HUD")
   for turret in e:iterSocketsByType(SocketType.Turret) do
     if Config.game.autoTarget and targetPos then
       turret:aimAtTarget(target, fallback)
@@ -236,14 +238,21 @@ function HUD:onInput (state)
   camera:pop()
 
   if self.dockable then
-    if ShipBindings.Dock:get() > 0 then
-      e:pushAction(Actions.DockAt(self.dockable))
-      self.dockable = nil
+--printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()), self.dockable:getName(), self.dockable:isDockable())
+    if self.dockable:isDockable() then
+      if ShipBindings.Dock:get() > 0 then
+        e:pushAction(Actions.DockAt(self.dockable))
+        self.dockable = nil
+      end
     end
   end
 end
 
 function HUD:onUpdate (state)
+  if Input.GetPressed(Bindings.ToggleHUD) then
+    Config.ui.HUDdisplayed = not Config.ui.HUDdisplayed
+  end
+
   self.targets:update()
   self.dockables:update()
 
@@ -261,7 +270,7 @@ function HUD:onUpdate (state)
     local dPos = dockable:getPos()
     local dRad = dockable:getRadius()
     local dist = pPos:distance(dPos) - pRad - dRad
-    if dist < minDist then
+    if dist < minDist and dockable:isDockable() then
       minDist = dist
       self.dockable = dockable
     end
@@ -269,8 +278,11 @@ function HUD:onUpdate (state)
 end
 
 function HUD:onDraw (focus, active)
-  Profiler.Begin('HUD.DrawTargets') self:drawTargets   (self.enabled) Profiler.End()
-  Profiler.Begin('HUD.DrawLock')    self:drawLock      (self.enabled) Profiler.End()
+  if Config.ui.HUDdisplayed then
+    Profiler.Begin('HUD.DrawTargets') self:drawTargets   (self.enabled) Profiler.End()
+    Profiler.Begin('HUD.DrawLock')    self:drawLock      (self.enabled) Profiler.End()
+  end
+
   Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
   Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
 end

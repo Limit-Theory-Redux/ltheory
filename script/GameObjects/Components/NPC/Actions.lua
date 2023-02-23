@@ -16,13 +16,15 @@ function Entity:clearActions ()
 end
 
 function Entity:debugActions (state)
-  local ctx = state.context
-  ctx:text('Actions')
-  ctx:indent()
-  for i, v in ipairs(self.actions) do
-    ctx:text('%d : %s', i, v:getName())
+  if not self:isDestroyed() then
+    local ctx = state.context
+    ctx:text('Actions')
+    ctx:indent()
+    for i, v in ipairs(self.actions) do
+      ctx:text('%d : %s', i, v:getName())
+    end
+    ctx:undent()
   end
-  ctx:undent()
 end
 
 function Entity:getCurrentAction ()

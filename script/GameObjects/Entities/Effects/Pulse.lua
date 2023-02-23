@@ -140,7 +140,7 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
         if hitEnt ~= source then
           -- do damage if the collidee has health
           if hitEnt.health then
-            if not source:isDestroyed() then
+            if source:getHealth() > 0 then
               -- If attacked, this entity stops what it's doing and attacks that ship
               hitEnt:attackedBy(source)
             end
