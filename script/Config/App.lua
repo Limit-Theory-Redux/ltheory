@@ -1,6 +1,6 @@
 Config.app = 'LTheoryRedux'
 
-Config.version = "v0.004"
+Config.version = "v0.005"
 
 Config.debug = {
   metrics         = true,
@@ -76,7 +76,7 @@ Config.game = {
   explosionSize          = 64,
 
   autoTarget             = false,
-  pulseDamage            = 5,
+  pulseDamage            = 2,
   pulseSize              = 64,
   pulseSpeed             = 6e2,
   pulseRange             = 1000,
@@ -108,11 +108,14 @@ Config.game = {
   playerMoving           = false,
   autonavTimestamp       = nil,
   autonavRanges          = {  200,  -- Unknown
-                              100,  -- Ship
+                                0,  -- Reserved
+                                0,  -- Star Sector
+                                0,  -- Star System
+                             2000,  -- Zone
+                            50000,  -- Planet
                               200,  -- Asteroid
                              1000,  -- Station
-                             2000,  -- Zone
-                            50000}, -- Planet
+                              100}, -- Ship
 
   dockRange              = 50,
 }
@@ -149,6 +152,30 @@ Config.ui.color = {
   control           = Color(0.20, 0.60, 1.00, 0.3),
   controlFocused    = Color(0.20, 1.00, 0.20, 0.4),
   controlActive     = Color(0.14, 0.70, 0.14, 0.4),
+  hologram          = Color(0.30, 0.40, 1.00, 0.8),
+
+  healthColor = {
+    Color(0.8, 0.0, 0.6, 1.0), --  0% -   4% FULL PURPLE
+    Color(0.9, 0.0, 0.3, 1.0), --  5% -   9%
+    Color(1.0, 0.0, 0.1, 1.0), -- 10% -  14%
+    Color(1.0, 0.0, 0.0, 1.0), -- 15% -  19% FULL RED
+    Color(1.0, 0.2, 0.0, 1.0), -- 20% -  24%
+    Color(1.0, 0.4, 0.0, 1.0), -- 25% -  29%
+    Color(0.9, 0.6, 0.1, 1.0), -- 30% -  34%
+    Color(0.8, 0.7, 0.2, 1.0), -- 35% -  39% FULL ORANGE
+    Color(0.8, 0.7, 0.1, 1.0), -- 40% -  44%
+    Color(0.7, 0.7, 0.0, 1.0), -- 45% -  49%
+    Color(0.7, 0.8, 0.0, 1.0), -- 50% -  54% FULL YELLOW
+    Color(0.6, 0.8, 0.0, 1.0), -- 55% -  59%
+    Color(0.6, 0.8, 0.0, 1.0), -- 60% -  64%
+    Color(0.5, 0.8, 0.0, 1.0), -- 65% -  69%
+    Color(0.4, 0.8, 0.0, 1.0), -- 70% -  74%
+    Color(0.3, 0.9, 0.0, 1.0), -- 75% -  79% OLIVE?
+    Color(0.2, 0.9, 0.0, 1.0), -- 80% -  84%
+    Color(0.1, 0.9, 0.0, 1.0), -- 85% -  89%
+    Color(0.0, 1.0, 0.0, 1.0), -- 90% -  94%
+    Color(0.0, 1.0, 0.0, 1.0), -- 95% - 100% FULL GREEN
+  },
 }
 
 Config.ui.font = {
@@ -177,14 +204,16 @@ Config.objectInfo = {
     ID = "object_types",
     name = "Object Types",
     elems = {
+      -- NOTE: If you change these, you must also change autonavRanges!
       { 1, "Unknown"},
-      { 2, "Star Sector"},
-      { 3, "Star System"},
-      { 4, "Ship"},
-      { 5, "Asteroid"},
-      { 6, "Station"},
-      { 7, "Zone"},
-      { 8, "Planet"},
+      { 2, "Reserved"},
+      { 3, "Star Sector"},
+      { 4, "Star System"},
+      { 5, "Zone"},
+      { 6, "Planet"},
+      { 7, "Asteroid"},
+      { 8, "Station"},
+      { 9, "Ship"},
     }
   },
   {

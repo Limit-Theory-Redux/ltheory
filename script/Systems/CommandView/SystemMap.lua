@@ -137,14 +137,15 @@ function SystemMap:onInput (state)
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
 
   if Input.GetPressed(Bindings.MoveTo) then
-    if not Config.game.shipDocked and self.focus ~= nil and self.focus ~= Config.game.currentShip then
+    if not Config.game.currentShip:isDestroyed() and not Config.game.shipDocked and self.focus ~= nil and self.focus ~= Config.game.currentShip then
       if Config.game.currentShip:getCurrentAction() == nil or not string.find(Config.game.currentShip:getCurrentAction():getName(),"MoveTo") then
-        -- Move undocked player ship to area of selected target
-        Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+        -- Move undestroyed, undocked player ship to area of selected target
         local autodistance = Config.game.autonavRanges[self.focus:getType()]
-        Config.game.currentShip:pushAction(Actions.MoveTo(self.focus, autodistance))
         Config.game.autonavTimestamp = Config.getCurrentTimestamp()
-        printf("-> %s at time %s, range = %s", Config.game.currentShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance)
+        Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+        Config.game.currentShip:pushAction(Actions.MoveTo(self.focus, autodistance))
+printf("-> %s at time %s, range = %s (moving = %s)",
+  Config.game.currentShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
       end
     end
   end

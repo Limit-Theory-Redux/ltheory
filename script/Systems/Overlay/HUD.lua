@@ -166,6 +166,61 @@ function HUD:drawReticle (a)
   end
 end
 
+function HUD:drawPlayerHealth (a)
+  local x, y, sx, sy = self:getRectGlobal()
+  local playerShip = self.player:getControlling()
+
+  local playerHealthPct = playerShip:getHealthPercent()
+  local playerHealthText = format("Health: %3.2f%%", playerHealthPct)
+  local playerHealthCI = math.min(20, math.floor((playerHealthPct / 5.0) + 0.5) + 1)
+
+  -- Draw hologram of player ship
+  local playerRadius = playerShip:getRadius()
+--local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
+--printf("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
+--printf("radius = %3.2f, yaw = %3.2f, pitch = %3.2f", radius, yaw, pitch)
+--printf("radius = %3.2f, radius / 1.7 = %3.2f", radius, radius / 1.7)
+
+  UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 260, 260, 260, Config.ui.color.healthColor[playerHealthCI], playerRadius / 1.7, -1.5, 0.0)
+
+  -- Draw text of player ship health
+  UI.DrawEx.TextAdditive(
+    'NovaMono',
+    playerHealthText,
+    10,
+    x, y, sx, sy,
+    1, 1, 1, a,
+    0.08, 0.97
+  )
+
+  local target = playerShip:getTarget()
+  if target then
+    local targetHealthPct = target:getHealthPercent()
+    if targetHealthPct > 0.0 then
+      local targetHealthText = format("Health: %3.2f%%", targetHealthPct)
+      local targetHealthCI = math.min(20, math.floor((targetHealthPct / 5.0) + 0.5) + 1)
+
+      -- Draw hologram of target entity
+      local targetRadius = target:getRadius()
+      local targetRadiusAdj = targetRadius
+      if target:getType() == Config:getObjectTypeByName("object_types", "Station") then targetRadiusAdj = targetRadius / 35.0 end
+      if target:getType() == Config:getObjectTypeByName("object_types", "Ship")    then targetRadiusAdj = targetRadius /  1.7 end
+
+      UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 260, 260, 260, Config.ui.color.healthColor[targetHealthCI], targetRadiusAdj, -1.5, 0.0)
+
+      -- Draw text of target ship health
+      UI.DrawEx.TextAdditive(
+        'NovaMono',
+        targetHealthText,
+        10,
+        x, y, sx, sy,
+        1, 1, 1, a,
+        0.93, 0.97
+      )
+    end
+  end
+end
+
 function HUD:drawDockPrompt (a)
   local x, y, sx, sy = self:getRectGlobal()
   UI.DrawEx.TextAdditive(
@@ -279,8 +334,9 @@ end
 
 function HUD:onDraw (focus, active)
   if Config.ui.HUDdisplayed then
-    Profiler.Begin('HUD.DrawTargets') self:drawTargets   (self.enabled) Profiler.End()
-    Profiler.Begin('HUD.DrawLock')    self:drawLock      (self.enabled) Profiler.End()
+    Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
+    Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
+    Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
   end
 
   Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()

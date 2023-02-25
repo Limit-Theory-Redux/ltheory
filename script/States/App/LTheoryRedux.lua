@@ -216,7 +216,7 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
       -- Add the player's ship
       newShip = self.system:spawnShip()
       newShip:setName("NSS Titonicus")
-      newShip:setHealth(1000, 1000, 10) -- make the player's ship extra-healthy for now
+      newShip:setHealth(1000, 1000, 50) -- make the player's ship extra-healthy for now
       Config.game.currentShip = newShip
       LTheoryRedux:insertShip(newShip)
       printf("Added our ship, the '%s'", newShip:getName())
@@ -249,17 +249,14 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
         escort:addItem(Item.Credit, Config.game.eStartCredits)
 --        escort:pushAction(Actions.Think()) -- (currently generates an error)
 --        escort:pushAction(Actions.Attack(newShip)) -- (currently doesn't break, but doesn't work)
---        escort:pushAction(Actions.Escort(newShip, offset))
+        escort:pushAction(Actions.Escort(newShip, offset))
         insert(ships, escort)
       end
 
       -- Make ships chase each other!
-      for i = 1, #ships do
-        local j = rng:getInt(1, #ships)
-        if i ~= j then
-          ships[i]:pushAction(Actions.Attack(ships[j]))
-        end
-      end
+--      for i = 1, #ships - 1 do
+--        ships[i]:pushAction(Actions.Attack(ships[i+1]))
+--      end
 
       printf("Added %s escort ships", escortCount)
     end
