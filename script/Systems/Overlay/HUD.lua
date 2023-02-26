@@ -13,6 +13,8 @@ HUD.name = 'HUD'
 HUD.focusable = true
 HUD:setPadUniform(8)
 
+local dockingAllowed = true
+
 function HUD:onEnable ()
   -- TODO : Wtf does this do? Who wrote this?? WHY.
   local pCamera = self.gameView.camera
@@ -24,6 +26,52 @@ function HUD:onEnable ()
 
   camera:warp()
   camera:lerpFrom(pCamera.pos, pCamera.rot)
+end
+
+function HUD:controlThrust (e)
+  if not e:hasThrustController() then return end
+  local c = e:getThrustController()
+  c:setThrust(
+    ShipBindings.ThrustZ:get(),
+    ShipBindings.ThrustX:get(),
+    0,
+    ShipBindings.Yaw:get(),
+   -ShipBindings.Pitch:get(),
+    ShipBindings.Roll:get(),
+    ShipBindings.Boost:get())
+  self.aimX = c.yaw
+  self.aimY = c.pitch
+end
+
+function HUD:controlTurrets (e)
+  local targetPos, targetVel
+  local target = e:getTarget()
+  if target and target:getOwnerDisposition(self.player) <= 0.0 then
+    targetPos = target:getPos()
+    targetVel = target:getVelocity()
+  end
+
+  local firing   = ShipBindings.Fire:get() > 0 and 1 or 0
+  local camera   = self.gameView.camera
+  local ndc      = Vec3f(self.aimX, self.aimY)
+  local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin)
+
+  -- Compute a firing solution separately for each turret to support
+  -- different projectile velocities & ranges
+--printf("HUD")
+  for turret in e:iterSocketsByType(SocketType.Turret) do
+    if Config.game.autoTarget and targetPos then
+      turret:aimAtTarget(target, fallback)
+    else
+      turret:aimAt(fallback)
+    end
+    turret.firing = firing
+  end
+end
+
+function HUD:controlTargetLock (e)
+  if ShipBindings.LockTarget:get() > 0.5 then e:setTarget(self.target) end
+  if ShipBindings.ClearTarget:get() > 0.5 then e:setTarget(nil) end
 end
 
 function HUD:drawTargets (a)
@@ -255,60 +303,22 @@ end
 
 function HUD:drawDockPrompt (a)
   local x, y, sx, sy = self:getRectGlobal()
+  local dockText = nil
+
+  if dockingAllowed then
+    dockText = "Press F to Dock"
+  else
+    dockText = "Docking is refused at this Station"
+  end
+
   UI.DrawEx.TextAdditive(
     'NovaMono',
-    'Press F to Dock',
+    dockText,
     16,
     x, y, sx, sy,
     1, 1, 1, self.dockPromptAlpha * a,
     0.5, 0.99
   )
-end
-
-function HUD:controlThrust (e)
-  if not e:hasThrustController() then return end
-  local c = e:getThrustController()
-  c:setThrust(
-    ShipBindings.ThrustZ:get(),
-    ShipBindings.ThrustX:get(),
-    0,
-    ShipBindings.Yaw:get(),
-   -ShipBindings.Pitch:get(),
-    ShipBindings.Roll:get(),
-    ShipBindings.Boost:get())
-  self.aimX = c.yaw
-  self.aimY = c.pitch
-end
-
-function HUD:controlTurrets (e)
-  local targetPos, targetVel
-  local target = e:getTarget()
-  if target and target:getOwnerDisposition(self.player) <= 0.0 then
-    targetPos = target:getPos()
-    targetVel = target:getVelocity()
-  end
-
-  local firing   = ShipBindings.Fire:get() > 0 and 1 or 0
-  local camera   = self.gameView.camera
-  local ndc      = Vec3f(self.aimX, self.aimY)
-  local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin)
-
-  -- Compute a firing solution separately for each turret to support
-  -- different projectile velocities & ranges
---printf("HUD")
-  for turret in e:iterSocketsByType(SocketType.Turret) do
-    if Config.game.autoTarget and targetPos then
-      turret:aimAtTarget(target, fallback)
-    else
-      turret:aimAt(fallback)
-    end
-    turret.firing = firing
-  end
-end
-
-function HUD:controlTargetLock (e)
-  if ShipBindings.LockTarget:get() > 0.5 then e:setTarget(self.target) end
-  if ShipBindings.ClearTarget:get() > 0.5 then e:setTarget(nil) end
 end
 
 function HUD:onInput (state)
@@ -328,6 +338,7 @@ function HUD:onInput (state)
 --printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()), self.dockable:getName(), self.dockable:isDockable())
     if self.dockable:isDockable() then
       if ShipBindings.Dock:get() > 0 then
+        -- TODO: migrate this action outside the HUD
         e:pushAction(Actions.DockAt(self.dockable))
         self.dockable = nil
       end
@@ -343,13 +354,31 @@ function HUD:onUpdate (state)
   self.targets:update()
   self.dockables:update()
 
+  self.dockable = HUD:getDockable(self)
+
   local f = 1.0 - exp(-state.dt * 8.0)
-  local alphaT = self.dockable and 1 or 0
+  local alphaT = 0
+  if self.dockable then
+    if self.dockable:isDockable() then
+      dockingAllowed = true
+      alphaT = 1
+    else
+      dockingAllowed = false
+      if not self.dockable:isDestroyed() and self.dockable:isHostileTo(self.player:getControlling()) then
+        alphaT = 1
+      else
+        alphaT = 0
+      end
+    end
+  end
   self.dockPromptAlpha = Math.Lerp(self.dockPromptAlpha, alphaT, f)
+end
+
+function HUD:getDockable (self)
+  local dockableObj = nil
 
   local pPos    = self.player:getControlling():getPos()
   local pRad    = self.player:getControlling():getRadius()
-  local minDist = Config.game.dockRange
   self.dockable = nil
   for i = 1, #self.dockables.tracked do
     local dockable = self.dockables.tracked[i]
@@ -357,11 +386,14 @@ function HUD:onUpdate (state)
     local dPos = dockable:getPos()
     local dRad = dockable:getRadius()
     local dist = pPos:distance(dPos) - pRad - dRad
-    if dist < minDist and dockable:isDockable() then
-      minDist = dist
-      self.dockable = dockable
+    if dist < Config.game.dockRange then
+      -- return the Entity instance of the first dockable object found (might not be closest if several are within range)
+      dockableObj = dockable
+      break
     end
   end
+
+  return dockableObj
 end
 
 function HUD:onDraw (focus, active)

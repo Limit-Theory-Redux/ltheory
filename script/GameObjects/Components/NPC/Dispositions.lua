@@ -1,14 +1,21 @@
 --[[----------------------------------------------------------------------------
   Dispositions are normalized to the following scale:
-     +1.0 = maximal friendliness
-      0.0 = total neutrality
      -1.0 = maximal hostility
+      0.0 = total neutrality
+     +1.0 = maximal friendliness
 ----------------------------------------------------------------------------]]--
 
 local Entity = require('GameObjects.Entity')
 
-local kFriendlyThreshold = 0.5
-local kHostileThreshold = -0.5
+local kDispMin = -1.0
+local kDispMax =  1.0
+local kHostileThreshold = -0.3333333
+local kFriendlyThreshold = 0.3333333
+local sDispName = {
+      "hostile",
+      "neutral",
+      "friendly",
+}
 
 function Entity:addDispositions ()
   assert(not self.dispositions)
@@ -27,12 +34,15 @@ end
 
 function Entity:isHostileTo (target)
   assert(self.dispositions)
-  return self:getDisposition(target) <= kHostileThreshold
+  return self:getDisposition(target) <  kHostileThreshold
 end
 
 function Entity:modDisposition (target, amount)
   assert(self.dispositions)
-  self:setDisposition(target, self:getDisposition(target) + amount)
+
+  local newDispVal = self:getDisposition(target) + amount
+  newDispVal = math.min(math.max(newDispVal, kDispMin), kDispMax) -- normalize disposition within allowed ranges
+  self:setDisposition(target, newDispVal)
 end
 
 function Entity:setDisposition (target, value)
@@ -40,13 +50,23 @@ function Entity:setDisposition (target, value)
     assert(self.dispositions)
     self.dispositions[target] = value
 printf("Disposition of %s to %s is now %f!", self:getName(), target:getName(), self:getDisposition(target))
+
+  -- generate an integer array index: -1.0 to -0.33332 -> 1, -0.33333 to 0.33332 -> 2, 0.33333 to 1.0 -> 3
+  local dispNameIndex = 2
+  if self:isHostileTo(target) then
+    dispNameIndex = 1
+  elseif self:isFriendlyTo(target) then
+    dispNameIndex = 3
+  end
+printf("%s is now %s to %s.", self:getName(), sDispName[dispNameIndex], target:getName())
+
   end
 end
 
 --function Entity:getDispositionColor (disp)
---  if disp < -0.3 then
+--  if disp < kHostileThreshold then
 --    return Color(1.0, 0.2, 0.2, 1.0) -- red (hostile)
---  elseif disp <= 0.3 then
+--  elseif disp <= kFriendlyThreshold then
 --    return Color(0.1, 0.2, 1.0, 1.0) -- blue (neutral)
 --  else
 --    return Color(0.1, 1.0, 0.2, 1.0) -- green (friendly)

@@ -19,7 +19,7 @@ local Station = subclass(Entity, function (self, seed)
   self:setScale(100)
   self:setMass(1e10)
 
-  self.explosionSize = 512 -- stations make bigger explosions than ships
+  self.explosionSize = 512 -- destroyed stations have visually larger explosions than ships
 end)
 
 function Station:attackedBy (target)
@@ -28,9 +28,16 @@ function Station:attackedBy (target)
   -- TODO: Improve smarts so that this station can decide which of multiple attackers to target
   if not self:isDestroyed() then
 printf("Station %s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
-    -- Stations currently have no turrets and so pushing an Attack() action generates an error
-    -- If an when stations are armed, modify this method to let the station know whodunnit
-    self:setDisposition(target, -1.0)
+    -- Stations currently have no turrets, so pushing an Attack() action generates an error
+    -- If and when stations are armed, modify this method to let the station know whodunnit
+    self:modDisposition(target, -0.2)
+
+    if self:hasDockable() then
+      if self:isHostileTo(target) and self:isDockable() then
+        -- If this object was dockable, make it undockable
+        self:setUndockable()
+      end
+    end
   end
 end
 

@@ -25,12 +25,12 @@ function Entity:damage (amount, source)
     -- Also need to process destroyed entity's assets, including credits and cargo
     -- Also ALSO need to notify nearby ships
     --    resulting Actions may include Evade, Attack, and/or alert faction members
-
-printf("%s destroyed by %s!", self:getName(), source:getName())
     if self:hasDockable() and self:isDockable() then
       -- If this object was dockable, make it undockable
       self:setUndockable()
     end
+
+printf("%s destroyed by %s!", self:getName(), source:getName())
 
     self:send(Event.Destroyed(source))
   end

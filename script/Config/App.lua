@@ -1,6 +1,6 @@
 Config.app = 'LTheoryRedux'
 
-Config.version = "v0.005"
+Config.version = "v0.006"
 
 Config.debug = {
   metrics         = true,
