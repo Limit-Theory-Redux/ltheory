@@ -36,9 +36,22 @@ function Entity:modDisposition (target, amount)
 end
 
 function Entity:setDisposition (target, value)
-  assert(self.dispositions)
-  self.dispositions[target] = value
+  if self ~= Config.game.currentShip then
+    assert(self.dispositions)
+    self.dispositions[target] = value
+printf("Disposition of %s to %s is now %f!", self:getName(), target:getName(), self:getDisposition(target))
+  end
 end
+
+--function Entity:getDispositionColor (disp)
+--  if disp < -0.3 then
+--    return Color(1.0, 0.2, 0.2, 1.0) -- red (hostile)
+--  elseif disp <= 0.3 then
+--    return Color(0.1, 0.2, 1.0, 1.0) -- blue (neutral)
+--  else
+--    return Color(0.1, 1.0, 0.2, 1.0) -- green (friendly)
+--  end
+--end
 
 return {
   GetColor = function (disp)

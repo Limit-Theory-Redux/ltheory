@@ -5,6 +5,7 @@ local Ship = subclass(Entity, function (self, proto)
   self:addActions()
   self:addCapacitor(100, 10)
   self:addChildren()
+  self:addDispositions()
   self:addExplodable()
   self:addHealth(500, 5)
   self:addInventory(100)
@@ -46,6 +47,7 @@ function Ship:attackedBy (target)
   if not self:isDestroyed() then
     -- Ignore hits on ships that have already been destroyed
 printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
+    self:setDisposition(target, -1.0)
     if self ~= Config.game.currentShip then
       -- If this non-player-controlled ship is not yet attacking its attacker, empty its Action queue and add the Attack action
       if self:hasActions() then

@@ -40,7 +40,8 @@ local guiElements = {
       { nil, 8668067427585514558ULL,  false },
       { nil, 3806448947569663889ULL,  false },
       { nil, 2509601882259751919ULL,  false },
-      { nil, 7450823138892184048ULL, false }
+      { nil, 12145308173506787001ULL, false },
+      { nil, 7450823138892184048ULL,  false }
     }
   }
 }
@@ -216,7 +217,8 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
       -- Add the player's ship
       newShip = self.system:spawnShip()
       newShip:setName("NSS Titonicus")
-      newShip:setHealth(1000, 1000, 50) -- make the player's ship extra-healthy for now
+--      newShip:setHealth(1000, 1000, 50) -- make the player's ship extra-healthy for now
+      newShip:setHealth(500, 500, 20) -- make the player's ship extra-healthy for now
       Config.game.currentShip = newShip
       LTheoryRedux:insertShip(newShip)
       printf("Added our ship, the '%s'", newShip:getName())

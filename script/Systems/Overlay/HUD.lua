@@ -30,8 +30,8 @@ function HUD:drawTargets (a)
   if not Config.ui.showTrackers then return end
   local camera = self.gameView.camera
 
-  local cTarget = Color(1.0, 0.5, 0.1, 1.0 * a)
-  local cLock = Color(1.0, 0.5, 0.1, 1.0 * a)
+  local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
+  local cLock =   Color(1.0, 0.5, 0.1, 1.0 * a)
 
   local player = self.player
   local playerShip = player:getControlling()
@@ -48,8 +48,11 @@ function HUD:drawTargets (a)
       local ndc = camera:worldToNDC(pos)
       local ndcMax = max(abs(ndc.x), abs(ndc.y))
 
-      local disp = target:getOwnerDisposition(player)
+--      local disp = target:getOwnerDisposition(player)
+      local disp = target:getDisposition(playerShip)
+--      local c = target:getDispositionColor(disp)
       local c = Disposition.GetColor(disp)
+
       c.a = a * c.a
       if ndcMax <= 1.0 and ndc.z > 0 then
         do -- Draw rounded box corners
@@ -167,20 +170,29 @@ function HUD:drawReticle (a)
 end
 
 function HUD:drawPlayerHealth (a)
+  local cx, cy = self.sx / 2, self.sy / 2
   local x, y, sx, sy = self:getRectGlobal()
   local playerShip = self.player:getControlling()
-
+  local playerRadius = playerShip:getRadius()
   local playerHealthPct = playerShip:getHealthPercent()
   local playerHealthText = format("Health: %3.2f%%", playerHealthPct)
-  local playerHealthCI = math.min(20, math.floor((playerHealthPct / 5.0) + 0.5) + 1)
+  local playerHealthCI = math.min(50, math.floor((playerHealthPct / 2.0) + 0.5) + 1)
+
+  -- Draw text of player ship name
+  UI.DrawEx.TextAdditive(
+    'NovaMono',
+    playerShip:getName(),
+    10,
+    x, y, sx, sy,
+    1, 1, 1, a,
+    0.077, 0.75
+  )
 
   -- Draw hologram of player ship
-  local playerRadius = playerShip:getRadius()
 --local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
 --printf("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
 --printf("radius = %3.2f, yaw = %3.2f, pitch = %3.2f", radius, yaw, pitch)
 --printf("radius = %3.2f, radius / 1.7 = %3.2f", radius, radius / 1.7)
-
   UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 260, 260, 260, Config.ui.color.healthColor[playerHealthCI], playerRadius / 1.7, -1.5, 0.0)
 
   -- Draw text of player ship health
@@ -190,22 +202,38 @@ function HUD:drawPlayerHealth (a)
     10,
     x, y, sx, sy,
     1, 1, 1, a,
-    0.08, 0.97
+    0.075, 0.97
   )
 
   local target = playerShip:getTarget()
   if target then
+    local targetName = target:getName()
     local targetHealthPct = target:getHealthPercent()
     if targetHealthPct > 0.0 then
       local targetHealthText = format("Health: %3.2f%%", targetHealthPct)
-      local targetHealthCI = math.min(20, math.floor((targetHealthPct / 5.0) + 0.5) + 1)
-
-      -- Draw hologram of target entity
+      local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
       local targetRadius = target:getRadius()
       local targetRadiusAdj = targetRadius
-      if target:getType() == Config:getObjectTypeByName("object_types", "Station") then targetRadiusAdj = targetRadius / 35.0 end
-      if target:getType() == Config:getObjectTypeByName("object_types", "Ship")    then targetRadiusAdj = targetRadius /  1.7 end
 
+      if target:getType() == Config:getObjectTypeByName("object_types", "Ship")    then
+        targetRadiusAdj = targetRadius /  1.7
+      end
+      if target:getType() == Config:getObjectTypeByName("object_types", "Station") then
+        targetRadiusAdj = targetRadius / 35.0
+        targetName = "Station " .. target:getName()
+      end
+
+      -- Draw text of target name
+      UI.DrawEx.TextAdditive(
+        'NovaMono',
+        targetName,
+        10,
+        x, y, sx, sy,
+        1, 1, 1, a,
+        0.922, 0.75
+      )
+
+      -- Draw hologram of target entity
       UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 260, 260, 260, Config.ui.color.healthColor[targetHealthCI], targetRadiusAdj, -1.5, 0.0)
 
       -- Draw text of target ship health
@@ -215,10 +243,14 @@ function HUD:drawPlayerHealth (a)
         10,
         x, y, sx, sy,
         1, 1, 1, a,
-        0.93, 0.97
+        0.925, 0.97
       )
     end
   end
+
+  UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
+  UI.DrawEx.Rect(cx - 20, cy + 20, 40, 4, Config.ui.color.healthColor[playerHealthCI])
+
 end
 
 function HUD:drawDockPrompt (a)
@@ -333,14 +365,17 @@ function HUD:onUpdate (state)
 end
 
 function HUD:onDraw (focus, active)
-  if Config.ui.HUDdisplayed then
-    Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
-    Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
-    Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
-  end
+  local playerShip = self.player:getControlling()
+  if playerShip:isAlive() then
+    if Config.ui.HUDdisplayed then
+      Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
+    end
 
-  Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
-  Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+    Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
+    Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+  end
 end
 
 function HUD:onDrawIcon (iconButton, focus, active)

@@ -1,5 +1,6 @@
 local DebugContext = require('Systems.CommandView.DebugContext')
 local Bindings = require('States.ApplicationBindings')
+local Player = require('GameObjects.Entities.Player')
 
 local SystemMap = {}
 SystemMap.__index  = SystemMap
@@ -31,6 +32,11 @@ function SystemMap:onDraw (state)
   local best = nil
   local bestDist = math.huge
   local mp = Input.GetMousePosition()
+
+  local playerTarget = Config.game.currentShip:getTarget()
+  if playerTarget ~= nil then
+    self.focus = playerTarget
+  end
 
   BlendMode.PushAlpha()
   Draw.SmoothPoints(true)
@@ -106,7 +112,16 @@ function SystemMap:onDraw (state)
   Draw.SmoothPoints(false)
   BlendMode.Pop()
 
-  if Input.GetDown(Button.Mouse.Left) then self.focus = best end
+  if Input.GetDown(Button.Mouse.Left) then
+    self.focus = best
+    -- If focused-on object in the System Map is a ship or a station, make it the current target
+    if Config.game.currentShip ~= self.focus and Config.game.currentShip:getTarget() ~= self.focus then
+      if self.focus:getType() == Config:getObjectTypeByName("object_types", "Ship")    or
+         self.focus:getType() == Config:getObjectTypeByName("object_types", "Station") then
+        Config.game.currentShip:setTarget(self.focus)
+      end
+    end
+  end
 
   do -- Debug Info
     local dbg = DebugContext(16, 16)

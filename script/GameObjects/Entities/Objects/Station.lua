@@ -6,6 +6,7 @@ local Station = subclass(Entity, function (self, seed)
   self:addActions()
   self:addCapacitor(10000, 10000, 100)
   self:addChildren()
+  self:addDispositions()
   self:addDockable()
   self:addExplodable()
   self:addFlows()
@@ -29,6 +30,7 @@ function Station:attackedBy (target)
 printf("Station %s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
     -- Stations currently have no turrets and so pushing an Attack() action generates an error
     -- If an when stations are armed, modify this method to let the station know whodunnit
+    self:setDisposition(target, -1.0)
   end
 end
 
