@@ -1,5 +1,6 @@
 local DebugContext = require('Systems.CommandView.DebugContext')
 local Bindings = require('States.ApplicationBindings')
+local Player = require('GameObjects.Entities.Player')
 
 local SystemMap = {}
 SystemMap.__index  = SystemMap
@@ -32,6 +33,11 @@ function SystemMap:onDraw (state)
   local bestDist = math.huge
   local mp = Input.GetMousePosition()
 
+  local playerTarget = Config.game.currentShip:getTarget()
+  if playerTarget ~= nil then
+    self.focus = playerTarget
+  end
+
   BlendMode.PushAlpha()
   Draw.SmoothPoints(true)
 --printf("------------------------------")
@@ -49,16 +55,26 @@ function SystemMap:onDraw (state)
       if e:hasActions() then
 --printf("Action: %s", e:getName())
         if Config.game.currentShip == e then
-          Draw.Color(0.2, 1.0, 0.3, 1)
+          Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
         else
-          Draw.Color(1.0, 0.0, 0.4, 1)
+          local entAction = e:getCurrentAction()
+          if entAction ~= nil then
+--printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
+            if string.find(entAction:getName(), "Attack") and entAction.target == Config.game.currentShip then
+              Draw.Color(1.0, 0.3, 0.3, 1.0) -- other ship, hostile (has a current action of "Attack player's ship")
+            else
+              Draw.Color(0.2, 0.6, 1.0, 1.0) -- other ship, non-hostile (TODO: divide into friendly [green] and neutral [blue])
+            end
+          else
+            Draw.Color(1.0, 1.0, 1.0, 1.0) -- some other object that suddenly has no actions
+          end
         end
       else
-        Draw.Color(0.4, 0.4, 0.4, 1)
+        Draw.Color(0.4, 0.4, 0.4, 1.0) -- planet, asteroid, station
       end
       Draw.Point(x, y)
 
-      if e:hasFlows() then
+      if e:hasFlows() and not e:isDestroyed() then
 --printf("Flow: %s", e:getName())
         UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
       end
@@ -96,18 +112,29 @@ function SystemMap:onDraw (state)
   Draw.SmoothPoints(false)
   BlendMode.Pop()
 
-  if Input.GetDown(Button.Mouse.Left) then self.focus = best end
+  if Input.GetDown(Button.Mouse.Left) then
+    self.focus = best
+    -- If focused-on object in the System Map is a ship or a station, make it the current target
+    if Config.game.currentShip ~= self.focus and Config.game.currentShip:getTarget() ~= self.focus then
+      if self.focus:getType() == Config:getObjectTypeByName("object_types", "Ship")    or
+         self.focus:getType() == Config:getObjectTypeByName("object_types", "Station") then
+        Config.game.currentShip:setTarget(self.focus)
+      end
+    end
+  end
 
   do -- Debug Info
     local dbg = DebugContext(16, 16)
-    dbg:text('--- System ---')
+    dbg:text("--- System ---")
     dbg:indent()
     self.system:send(Event.Debug(dbg))
     dbg:undent()
 
     if self.focus then
+      local boomtext = ""
+      if self.focus:isDestroyed() then boomtext = " (destroyed)" end
       dbg:text('')
-      dbg:text('--- %s ---', self.focus:getName())
+      dbg:text("--- %s %s%s ---", Config:getObjectInfo("object_types", self.focus:getType()), self.focus:getName(), boomtext)
       dbg:indent()
       self.focus:send(Event.Debug(dbg))
       dbg:undent()
@@ -125,14 +152,15 @@ function SystemMap:onInput (state)
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
 
   if Input.GetPressed(Bindings.MoveTo) then
-    if not Config.game.shipDocked and self.focus ~= nil and self.focus ~= Config.game.currentShip then
+    if not Config.game.currentShip:isDestroyed() and not Config.game.shipDocked and self.focus ~= nil and self.focus ~= Config.game.currentShip then
       if Config.game.currentShip:getCurrentAction() == nil or not string.find(Config.game.currentShip:getCurrentAction():getName(),"MoveTo") then
-        -- Move undocked player ship to area of selected target
-        Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+        -- Move undestroyed, undocked player ship to area of selected target
         local autodistance = Config.game.autonavRanges[self.focus:getType()]
-        Config.game.currentShip:pushAction(Actions.MoveTo(self.focus, autodistance))
         Config.game.autonavTimestamp = Config.getCurrentTimestamp()
-        printf("-> %s at time %s, range = %s", Config.game.currentShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance)
+        Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+        Config.game.currentShip:pushAction(Actions.MoveTo(self.focus, autodistance))
+printf("-> %s at time %s, range = %s (moving = %s)",
+  Config.game.currentShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
       end
     end
   end

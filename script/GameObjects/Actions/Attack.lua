@@ -1,4 +1,5 @@
 local Action = require('GameObjects.Action')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local Attack = subclass(Action, function (self, target)
   self.target = target
@@ -22,7 +23,7 @@ local expMap = Core.FFI.Math.ExpMap1Signed
 
 function Attack:onUpdateActive (e, dt)
   local target = self.target
-  if not target:isAlive() then
+  if not target:isAlive() or target:isDestroyed() then
     e:popAction()
     return
   end
@@ -40,9 +41,10 @@ function Attack:onUpdateActive (e, dt)
       rng:getUniformRange(0, 1) ^ 2.0)
   end
 
-  local targetPos =
-      target:getPos() + self.offset:scale(self.radius) +
-      target:getVelocity():scale(kVelFactor)
+--  local targetPos =
+--      target:getPos() + self.offset:scale(self.radius) +
+--      target:getVelocity():scale(kVelFactor)
+  local targetPos = target:getPos()
 
   local course   = targetPos - e:getPos()
   local dist     = course:length()
@@ -54,13 +56,17 @@ function Attack:onUpdateActive (e, dt)
   local roll     = e:getUp():cross(target:getUp())
 
   self:flyToward(e, targetPos, forward, target:getUp())
+--  self:flyToward(e, targetPos, e:getForward(), target:getUp())
 end
 
 function Attack:onUpdatePassive (e, dt)
   local align = (self.target:getPos() - e:getPos()):normalize():dot(e:getForward())
+--printf("Attack:onUpdatePassive by %s, align = %s", e:getName(), align)
   if align < 0.25 then return end
-  local firing = Config.game.aiFire(dt, rng)
+--  local firing = Config.game.aiFire(dt, rng)
+  local firing = true
   for turret in e:iterSocketsByType(SocketType.Turret) do
+--printf("%s firing turret %s!", e:getName(), turret)
     turret:aimAtTarget(self.target, self.target:getPos())
     if firing then turret:fire() end
   end

@@ -1,3 +1,4 @@
+local Bindings = require('States.ApplicationBindings')
 local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 local Disposition = require('GameObjects.Components.NPC.Dispositions')
@@ -12,6 +13,8 @@ HUD.name = 'HUD'
 HUD.focusable = true
 HUD:setPadUniform(8)
 
+local dockingAllowed = true
+
 function HUD:onEnable ()
   -- TODO : Wtf does this do? Who wrote this?? WHY.
   local pCamera = self.gameView.camera
@@ -25,12 +28,58 @@ function HUD:onEnable ()
   camera:lerpFrom(pCamera.pos, pCamera.rot)
 end
 
+function HUD:controlThrust (e)
+  if not e:hasThrustController() then return end
+  local c = e:getThrustController()
+  c:setThrust(
+    ShipBindings.ThrustZ:get(),
+    ShipBindings.ThrustX:get(),
+    0,
+    ShipBindings.Yaw:get(),
+   -ShipBindings.Pitch:get(),
+    ShipBindings.Roll:get(),
+    ShipBindings.Boost:get())
+  self.aimX = c.yaw
+  self.aimY = c.pitch
+end
+
+function HUD:controlTurrets (e)
+  local targetPos, targetVel
+  local target = e:getTarget()
+  if target and target:getOwnerDisposition(self.player) <= 0.0 then
+    targetPos = target:getPos()
+    targetVel = target:getVelocity()
+  end
+
+  local firing   = ShipBindings.Fire:get() > 0 and 1 or 0
+  local camera   = self.gameView.camera
+  local ndc      = Vec3f(self.aimX, self.aimY)
+  local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin)
+
+  -- Compute a firing solution separately for each turret to support
+  -- different projectile velocities & ranges
+--printf("HUD")
+  for turret in e:iterSocketsByType(SocketType.Turret) do
+    if Config.game.autoTarget and targetPos then
+      turret:aimAtTarget(target, fallback)
+    else
+      turret:aimAt(fallback)
+    end
+    turret.firing = firing
+  end
+end
+
+function HUD:controlTargetLock (e)
+  if ShipBindings.LockTarget:get() > 0.5 then e:setTarget(self.target) end
+  if ShipBindings.ClearTarget:get() > 0.5 then e:setTarget(nil) end
+end
+
 function HUD:drawTargets (a)
   if not Config.ui.showTrackers then return end
   local camera = self.gameView.camera
 
-  local cTarget = Color(1.0, 0.5, 0.1, 1.0 * a)
-  local cLock = Color(1.0, 0.5, 0.1, 1.0 * a)
+  local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
+  local cLock =   Color(1.0, 0.5, 0.1, 1.0 * a)
 
   local player = self.player
   local playerShip = player:getControlling()
@@ -47,8 +96,11 @@ function HUD:drawTargets (a)
       local ndc = camera:worldToNDC(pos)
       local ndcMax = max(abs(ndc.x), abs(ndc.y))
 
-      local disp = target:getOwnerDisposition(player)
+--      local disp = target:getOwnerDisposition(player)
+      local disp = target:getDisposition(playerShip)
+--      local c = target:getDispositionColor(disp)
       local c = Disposition.GetColor(disp)
+
       c.a = a * c.a
       if ndcMax <= 1.0 and ndc.z > 0 then
         do -- Draw rounded box corners
@@ -96,7 +148,7 @@ end
 
 function HUD:drawLock (a)
   local playerShip = self.player:getControlling()
-  local target = self.player:getControlling():getTarget()
+  local target = playerShip:getTarget()
   if not target then return end
   local camera = self.gameView.camera
   local center = Vec2f(self.sx / 2, self.sy / 2)
@@ -114,7 +166,8 @@ function HUD:drawLock (a)
       dir:inormalize()
       ss = center + dir:scale(r)
       local a = a * (1.0 - exp(-max(0.0, dist / (r + 16) - 1.0)))
-      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
+--      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
+      UI.DrawEx.Cross(ss.x, ss.y, 4, Color(1.0, 0.5, 0.1, a))
     end
   end
 
@@ -164,61 +217,108 @@ function HUD:drawReticle (a)
   end
 end
 
-function HUD:drawDockPrompt (a)
+function HUD:drawPlayerHealth (a)
+  local cx, cy = self.sx / 2, self.sy / 2
   local x, y, sx, sy = self:getRectGlobal()
+  local playerShip = self.player:getControlling()
+  local playerRadius = playerShip:getRadius()
+  local playerHealthPct = playerShip:getHealthPercent()
+  local playerHealthText = format("Health: %3.2f%%", playerHealthPct)
+  local playerHealthCI = math.min(50, math.floor((playerHealthPct / 2.0) + 0.5) + 1)
+
+  -- Draw text of player ship name
   UI.DrawEx.TextAdditive(
     'NovaMono',
-    'Press F to Dock',
+    playerShip:getName(),
+    10,
+    x, y, sx, sy,
+    1, 1, 1, a,
+    0.077, 0.75
+  )
+
+  -- Draw hologram of player ship
+--local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
+--printf("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
+--printf("radius = %3.2f, yaw = %3.2f, pitch = %3.2f", radius, yaw, pitch)
+--printf("radius = %3.2f, radius / 1.7 = %3.2f", radius, radius / 1.7)
+  UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 260, 260, 260, Config.ui.color.healthColor[playerHealthCI], playerRadius / 1.7, -1.5, 0.0)
+
+  -- Draw text of player ship health
+  UI.DrawEx.TextAdditive(
+    'NovaMono',
+    playerHealthText,
+    10,
+    x, y, sx, sy,
+    1, 1, 1, a,
+    0.075, 0.97
+  )
+
+  local target = playerShip:getTarget()
+  if target then
+    local targetName = target:getName()
+    local targetHealthPct = target:getHealthPercent()
+    if targetHealthPct > 0.0 then
+      local targetHealthText = format("Health: %3.2f%%", targetHealthPct)
+      local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
+      local targetRadius = target:getRadius()
+      local targetRadiusAdj = targetRadius
+
+      if target:getType() == Config:getObjectTypeByName("object_types", "Ship")    then
+        targetRadiusAdj = targetRadius /  1.7
+      end
+      if target:getType() == Config:getObjectTypeByName("object_types", "Station") then
+        targetRadiusAdj = targetRadius / 35.0
+        targetName = "Station " .. target:getName()
+      end
+
+      -- Draw text of target name
+      UI.DrawEx.TextAdditive(
+        'NovaMono',
+        targetName,
+        10,
+        x, y, sx, sy,
+        1, 1, 1, a,
+        0.922, 0.75
+      )
+
+      -- Draw hologram of target entity
+      UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 260, 260, 260, Config.ui.color.healthColor[targetHealthCI], targetRadiusAdj, -1.5, 0.0)
+
+      -- Draw text of target ship health
+      UI.DrawEx.TextAdditive(
+        'NovaMono',
+        targetHealthText,
+        10,
+        x, y, sx, sy,
+        1, 1, 1, a,
+        0.925, 0.97
+      )
+    end
+  end
+
+  UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
+  UI.DrawEx.Rect(cx - 20, cy + 20, 40, 4, Config.ui.color.healthColor[playerHealthCI])
+
+end
+
+function HUD:drawDockPrompt (a)
+  local x, y, sx, sy = self:getRectGlobal()
+  local dockText = nil
+
+  if dockingAllowed then
+    dockText = "Press F to Dock"
+  else
+    dockText = "Docking is refused at this Station"
+  end
+
+  UI.DrawEx.TextAdditive(
+    'NovaMono',
+    dockText,
     16,
     x, y, sx, sy,
     1, 1, 1, self.dockPromptAlpha * a,
     0.5, 0.99
   )
-end
-
-function HUD:controlThrust (e)
-  if not e:hasThrustController() then return end
-  local c = e:getThrustController()
-  c:setThrust(
-    ShipBindings.ThrustZ:get(),
-    ShipBindings.ThrustX:get(),
-    0,
-    ShipBindings.Yaw:get(),
-   -ShipBindings.Pitch:get(),
-    ShipBindings.Roll:get(),
-    ShipBindings.Boost:get())
-  self.aimX = c.yaw
-  self.aimY = c.pitch
-end
-
-function HUD:controlTurrets (e)
-  local targetPos, targetVel
-  local target = e:getTarget()
-  if target and target:getOwnerDisposition(self.player) <= 0.0 then
-    targetPos = target:getPos()
-    targetVel = target:getVelocity()
-  end
-
-  local firing   = ShipBindings.Fire:get() > 0 and 1 or 0
-  local camera   = self.gameView.camera
-  local ndc      = Vec3f(self.aimX, self.aimY)
-  local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin)
-
-  -- Compute a firing solution separately for each turret to support
-  -- different projectile velocities & ranges
-  for turret in e:iterSocketsByType(SocketType.Turret) do
-    if Config.game.autoTarget and targetPos then
-      turret:aimAtTarget(target, fallback)
-    else
-      turret:aimAt(fallback)
-    end
-    turret.firing = firing
-  end
-end
-
-function HUD:controlTargetLock (e)
-  if ShipBindings.LockTarget:get() > 0.5 then e:setTarget(self.target) end
-  if ShipBindings.ClearTarget:get() > 0.5 then e:setTarget(nil) end
 end
 
 function HUD:onInput (state)
@@ -235,24 +335,50 @@ function HUD:onInput (state)
   camera:pop()
 
   if self.dockable then
-    if ShipBindings.Dock:get() > 0 then
-      e:pushAction(Actions.DockAt(self.dockable))
-      self.dockable = nil
+--printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()), self.dockable:getName(), self.dockable:isDockable())
+    if self.dockable:isDockable() then
+      if ShipBindings.Dock:get() > 0 then
+        -- TODO: migrate this action outside the HUD
+        e:pushAction(Actions.DockAt(self.dockable))
+        self.dockable = nil
+      end
     end
   end
 end
 
 function HUD:onUpdate (state)
+  if Input.GetPressed(Bindings.ToggleHUD) then
+    Config.ui.HUDdisplayed = not Config.ui.HUDdisplayed
+  end
+
   self.targets:update()
   self.dockables:update()
 
+  self.dockable = HUD:getDockable(self)
+
   local f = 1.0 - exp(-state.dt * 8.0)
-  local alphaT = self.dockable and 1 or 0
+  local alphaT = 0
+  if self.dockable then
+    if self.dockable:isDockable() then
+      dockingAllowed = true
+      alphaT = 1
+    else
+      dockingAllowed = false
+      if not self.dockable:isDestroyed() and self.dockable:isHostileTo(self.player:getControlling()) then
+        alphaT = 1
+      else
+        alphaT = 0
+      end
+    end
+  end
   self.dockPromptAlpha = Math.Lerp(self.dockPromptAlpha, alphaT, f)
+end
+
+function HUD:getDockable (self)
+  local dockableObj = nil
 
   local pPos    = self.player:getControlling():getPos()
   local pRad    = self.player:getControlling():getRadius()
-  local minDist = Config.game.dockRange
   self.dockable = nil
   for i = 1, #self.dockables.tracked do
     local dockable = self.dockables.tracked[i]
@@ -260,18 +386,28 @@ function HUD:onUpdate (state)
     local dPos = dockable:getPos()
     local dRad = dockable:getRadius()
     local dist = pPos:distance(dPos) - pRad - dRad
-    if dist < minDist then
-      minDist = dist
-      self.dockable = dockable
+    if dist < Config.game.dockRange then
+      -- return the Entity instance of the first dockable object found (might not be closest if several are within range)
+      dockableObj = dockable
+      break
     end
   end
+
+  return dockableObj
 end
 
 function HUD:onDraw (focus, active)
-  Profiler.Begin('HUD.DrawTargets') self:drawTargets   (self.enabled) Profiler.End()
-  Profiler.Begin('HUD.DrawLock')    self:drawLock      (self.enabled) Profiler.End()
-  Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
-  Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+  local playerShip = self.player:getControlling()
+  if playerShip:isAlive() then
+    if Config.ui.HUDdisplayed then
+      Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
+    end
+
+    Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
+    Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+  end
 end
 
 function HUD:onDrawIcon (iconButton, focus, active)

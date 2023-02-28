@@ -5,6 +5,7 @@ local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Bindings = require('States.ApplicationBindings')
 local Actions = requireAll('GameObjects.Actions')
 local Item = require('Systems.Economy.Item')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local LTheoryRedux = require('States.Application')
 
@@ -39,7 +40,8 @@ local guiElements = {
       { nil, 8668067427585514558ULL,  false },
       { nil, 3806448947569663889ULL,  false },
       { nil, 2509601882259751919ULL,  false },
-      { nil, 7450823138892184048ULL, false }
+      { nil, 12145308173506787001ULL, false },
+      { nil, 7450823138892184048ULL,  false }
     }
   }
 }
@@ -58,13 +60,10 @@ function LTheoryRedux:onInit ()
   Audio.Init()
   Audio.Set3DSettings(0.0, 10, 2);
 
-  -- Music courtesy of MesoTronik
+  -- Music courtesy of MesoTroniK
   newSound = Sound.Load("./res/sound/system/ambiance/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg", true, false)
-  Sound.SetVolume(newSound, 0.0)
+  Sound.SetVolume(newSound, 1) -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
   Sound.Play(newSound)
-  for i = 1, 100 do
-    Sound.SetVolume(newSound, i)
-  end
 end
 
 function LTheoryRedux:onInput ()
@@ -124,8 +123,8 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Disengage autopilot (require a 1-second delay, otherwise keypress turns autopilot on then off instantly)
-  if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
-    if Config.game.playerMoving then
+  if Config.game.playerMoving then
+    if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
       Config.game.playerMoving = false
     end
   end
@@ -184,8 +183,8 @@ end
 function LTheoryRedux:createStarSystem ()
   if self.system then self.system:delete() end
 print("------------------------")
-printf("Spawning new star system using seed = %s", self.seed)
   self.system = System(self.seed)
+printf("Spawning new star system '%s' using seed = %s", self.system:getName(), self.seed)
 
   do
     if Config.getGameMode() == 1 then
@@ -206,7 +205,7 @@ printf("Spawning new star system using seed = %s", self.seed)
 
       -- Add an asteroid field
       for i = 1, 1 do
-        self.system:spawnAsteroidField(500, 10)
+        self.system:spawnAsteroidField(500)
       end
     else
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
@@ -218,6 +217,8 @@ printf("Spawning new star system using seed = %s", self.seed)
       -- Add the player's ship
       newShip = self.system:spawnShip()
       newShip:setName("NSS Titonicus")
+--      newShip:setHealth(1000, 1000, 50) -- make the player's ship extra-healthy for now
+      newShip:setHealth(500, 500, 20) -- make the player's ship extra-healthy for now
       Config.game.currentShip = newShip
       LTheoryRedux:insertShip(newShip)
       printf("Added our ship, the '%s'", newShip:getName())
@@ -234,30 +235,29 @@ printf("Spawning new star system using seed = %s", self.seed)
 
       -- Add an asteroid field
       for i = 1, 1 do
-        aField = self.system:spawnAsteroidField(asteroidCount, 10)
+        aField = self.system:spawnAsteroidField(asteroidCount)
       end
       printf("Added %s asteroids to %s", asteroidCount, aField:getName())
       --printf("Object type is '%s'", Config.objectInfo[1]["elems"][aField:getType()][2])
 
       -- Add escort ships
       local ships = {}
+
       for i = 1, escortCount do
         local escort = self.system:spawnShip()
         local offset = rng:getSphere():scale(100)
         escort:setPos(newShip:getPos() + offset)
         escort:setOwner(self.player)
         escort:addItem(Item.Credit, Config.game.eStartCredits)
+--        escort:pushAction(Actions.Think()) -- (currently generates an error)
+--        escort:pushAction(Actions.Attack(newShip)) -- (currently doesn't break, but doesn't work)
         escort:pushAction(Actions.Escort(newShip, offset))
-        --escort:pushAction(Actions.Think()) -- (generates an error currently)
         insert(ships, escort)
       end
 
-      -- Make escort ships chase each other!
---      for i = 1, #ships do
---        local j = rng:getInt(1, #ships)
---        if i ~= j then
---          ships[i]:pushAction(Actions.Attack(ships[j]))
---        end
+      -- Make ships chase each other!
+--      for i = 1, #ships - 1 do
+--        ships[i]:pushAction(Actions.Attack(ships[i+1]))
 --      end
 
       printf("Added %s escort ships", escortCount)
@@ -311,7 +311,7 @@ function LTheoryRedux:showMainMenu ()
 
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.version, 0.2, 0.2, 0.2, 1.0)
     HmGui.SetAlign(0.011, 0.971)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.version, 0.9, 0.9, 0.9, 1.0)
+
     HmGui.SetAlign(0.01, 0.97)
 
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.2, 0.2, 0.2, 1.0)
@@ -478,9 +478,7 @@ end
 
 function LTheoryRedux:exitGame ()
   -- Shut down game and exit
-  for i = 1, 100 do
-    Sound.SetVolume(newSound, 100.0 - i)
-  end
+  Sound.SetVolume(newSound, 0.0)
 
   LTheoryRedux:quit()
 end

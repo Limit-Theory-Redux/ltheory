@@ -26,7 +26,7 @@ function DockControl:onEnable ()
 end
 
 function DockControl:onInput (state)
-  if ShipBindings.Undock:get() > 0 then -- use the new Undock input control
+  if ShipBindings.Undock:get() > 0 then
     self.player:getControlling():pushAction(Actions.Undock())
   end
 end

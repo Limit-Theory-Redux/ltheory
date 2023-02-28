@@ -88,9 +88,9 @@ function MasterControl:onInput (state)
     if self.activeControlSet.predicate(self) then
       for i = 1, #self.activeControlSet.controls do
         local control = self.activeControlSet.controls[i]
-        if Bindings.Controls[i]:get() > 0 then
+        --if Bindings.Controls[i]:get() > 0 then
           self:activateControl(control)
-        end
+        --end
       end
     end
   end
@@ -144,13 +144,13 @@ function MasterControl:activateControl (controlDef)
   end
 end
 
-function MasterControl:getControlDefName ()
-  if self.activeControlDef then
-    return self.activeControlDef.name
-  else
-    return "-"
-  end
-end
+--function MasterControl:getControlDefName ()
+--  if self.activeControlDef then
+--    return self.activeControlDef.name
+--  else
+--    return "-"
+--  end
+--end
 
 function MasterControl.Create (gameView, player)
   local self = setmetatable({

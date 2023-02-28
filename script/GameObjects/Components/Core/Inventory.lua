@@ -20,13 +20,15 @@ function Entity:addItem (item, count)
 end
 
 function Entity:debugInventory (state)
-  local ctx = state.context
-  ctx:text('Inventory')
-  ctx:indent()
-  for k, v in pairs(self.inventory) do
-    ctx:text('%d x %s', v, k:getName())
+  if not self:isDestroyed() then
+    local ctx = state.context
+    ctx:text('Inventory')
+    ctx:indent()
+    for k, v in pairs(self.inventory) do
+      ctx:text('%d x %s', v, k:getName())
+    end
+    ctx:undent()
   end
-  ctx:undent()
 end
 
 function Entity:getInventory ()

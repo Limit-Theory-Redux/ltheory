@@ -4,6 +4,8 @@ local rng = RNG.Create(1231)
 
 local function explode (self, source)
   if self:getOwner() then self:getOwner():removeAsset(self) end
+
+  Config.game.explosionSize = self.explosionSize
   local root = self:getRoot()
   for i = 1, 8 do
     local p = self:getPos() + rng:getSphere():scale(8.0 * self:getScale() * rng:getExp() ^ (1.0 / 3.0))
@@ -13,7 +15,6 @@ local function explode (self, source)
   end
 
   self:clearActions()
-
   self.explodable = false
 --printf("%s exploded! self.explodable = %s, hasExplo = %s, isExplo = %s",
 --self:getName(), self.explodable, self:hasExplodable(), self:isExplodable())
@@ -24,6 +25,9 @@ function Entity:addExplodable ()
   self.explodable = true
 --printf("Explodable: %s: self.explodable = %s, self:hasExplodable() = %s",
 --self:getName(), self.explodable, self:hasExplodable())
+
+  self.explosionSize = 64
+
   self:register(Event.Destroyed, explode)
 end
 

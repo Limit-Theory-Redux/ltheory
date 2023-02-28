@@ -1,12 +1,13 @@
 Config.app = 'LTheoryRedux'
 
-Config.version = "v0.004"
+Config.version = "v0.006"
 
 Config.debug = {
   metrics         = true,
   window          = true, -- Debug window visible by default at launch?
   windowSection   = nil,  -- Set to the name of a debug window section to
                           -- collapse all others by default
+
   instantJobs     = true,
 
   timeAccelFactor = 10,
@@ -72,8 +73,10 @@ Config.game = {
   boostCost = 10,
   rateOfFire = 10,
 
+  explosionSize          = 64,
+
   autoTarget             = false,
-  pulseDamage            = 5,
+  pulseDamage            = 2,
   pulseSize              = 64,
   pulseSpeed             = 6e2,
   pulseRange             = 1000,
@@ -89,8 +92,6 @@ Config.game = {
   stationScale           = 20,
 
   playerDamageResistance = 1.0,
-  playerMoving           = false,
-  autonavTimestamp       = nil,
 
   enemies                = 0,
   friendlies             = 0,
@@ -104,29 +105,20 @@ Config.game = {
   aiUsesBoost            = true,
   aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
 
+  playerMoving           = false,
+  autonavTimestamp       = nil,
   autonavRanges          = {  200,  -- Unknown
-                              100,  -- Ship
+                                0,  -- Reserved
+                                0,  -- Star Sector
+                                0,  -- Star System
+                             2000,  -- Zone
+                            50000,  -- Planet
                               200,  -- Asteroid
                              1000,  -- Station
-                             2000,  -- Zone
-                            50000}, -- Planet
+                              100}, -- Ship
 
   dockRange              = 50,
 }
-
-function Config.setGameMode(gm)
-  Config.game.gameMode = gm
-
-  if Config.game.gameMode == 1 then
-    Config.ui.defaultControl = 'Background' -- enable game startup mode
-  else
-    Config.ui.defaultControl = 'Ship' -- enable flight mode
-  end
-end
-
-function Config.getGameMode()
-  return Config.game.gameMode
-end
 
 Config.render = {
   startingHorz = 1600,
@@ -138,7 +130,8 @@ Config.render = {
 Config.ui = {
   defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
-  controlBarHeight = 48
+  controlBarHeight = 48,
+  HUDdisplayed     = false,
 }
 
 Config.ui.color = {
@@ -159,6 +152,61 @@ Config.ui.color = {
   control           = Color(0.20, 0.60, 1.00, 0.3),
   controlFocused    = Color(0.20, 1.00, 0.20, 0.4),
   controlActive     = Color(0.14, 0.70, 0.14, 0.4),
+  hologram          = Color(0.30, 0.40, 1.00, 0.8),
+  borderBright      = Color(1.00, 1.00, 1.00, 0.8),
+
+  healthColor = {
+    Color(0.0, 0.0, 0.0, 0.7), --  0% -   1% BLACK
+    Color(0.1, 0.0, 0.0, 0.7), --  2% -   3%
+    Color(0.3, 0.0, 0.1, 0.7), --  4% -   5%
+    Color(0.5, 0.0, 0.3, 0.7), --  6% -   7%
+    Color(0.6, 0.0, 0.5, 0.7), --  8% -   9%
+    Color(0.7, 0.0, 0.7, 0.7), -- 10% -  11%
+    Color(0.8, 0.0, 0.8, 0.7), -- 12% -  13% PURPLE
+    Color(0.9, 0.0, 0.7, 0.7), -- 14% -  15%
+    Color(1.0, 0.0, 0.5, 0.7), -- 16% -  17%
+    Color(1.0, 0.0, 0.3, 0.7), -- 18% -  19%
+    Color(1.0, 0.1, 0.2, 0.7), -- 20% -  21%
+    Color(1.0, 0.1, 0.1, 0.7), -- 22% -  23%
+    Color(1.0, 0.1, 0.0, 0.7), -- 24% -  25% RED
+    Color(0.9, 0.2, 0.0, 0.7), -- 26% -  27%
+    Color(0.9, 0.2, 0.0, 0.7), -- 28% -  29%
+    Color(0.8, 0.3, 0.0, 0.7), -- 30% -  31%
+    Color(0.8, 0.3, 0.0, 0.7), -- 32% -  33%
+    Color(0.7, 0.3, 0.1, 0.7), -- 34% -  35%
+    Color(0.7, 0.4, 0.1, 0.7), -- 36% -  37%
+    Color(0.6, 0.4, 0.1, 0.7), -- 38% -  39% ORANGE
+    Color(0.6, 0.5, 0.1, 0.7), -- 40% -  41%
+    Color(0.6, 0.5, 0.1, 0.7), -- 42% -  43%
+    Color(0.7, 0.5, 0.1, 0.7), -- 44% -  45%
+    Color(0.7, 0.5, 0.2, 0.7), -- 46% -  47%
+    Color(0.7, 0.6, 0.2, 0.7), -- 48% -  49%
+    Color(0.7, 0.6, 0.2, 0.7), -- 50% -  51%
+    Color(0.7, 0.7, 0.3, 0.7), -- 52% -  53%
+    Color(0.8, 0.7, 0.3, 0.7), -- 54% -  55%
+    Color(0.8, 0.7, 0.3, 0.7), -- 56% -  57%
+    Color(0.8, 0.7, 0.3, 0.7), -- 58% -  59% YELLOW
+    Color(0.7, 0.7, 0.2, 0.7), -- 60% -  61%
+    Color(0.7, 0.7, 0.2, 0.7), -- 62% -  63%
+    Color(0.6, 0.7, 0.1, 0.7), -- 64% -  65%
+    Color(0.6, 0.7, 0.1, 0.7), -- 66% -  67%
+    Color(0.5, 0.7, 0.0, 0.7), -- 68% -  69%
+    Color(0.5, 0.8, 0.0, 0.7), -- 70% -  71%
+    Color(0.4, 0.8, 0.0, 0.7), -- 72% -  73%
+    Color(0.4, 0.8, 0.1, 0.7), -- 74% -  75%
+    Color(0.3, 0.8, 0.1, 0.7), -- 76% -  77%
+    Color(0.3, 0.8, 0.2, 0.7), -- 78% -  79% OLIVE?
+    Color(0.2, 0.8, 0.2, 0.7), -- 80% -  81%
+    Color(0.2, 0.9, 0.2, 0.7), -- 82% -  83%
+    Color(0.2, 0.9, 0.3, 0.7), -- 84% -  85%
+    Color(0.1, 0.9, 0.3, 0.7), -- 86% -  87%
+    Color(0.1, 0.9, 0.2, 0.7), -- 88% -  89%
+    Color(0.1, 1.0, 0.2, 0.7), -- 90% -  91%
+    Color(0.1, 1.0, 0.1, 0.7), -- 92% -  93%
+    Color(0.0, 1.0, 0.1, 0.7), -- 94% -  95%
+    Color(0.0, 1.0, 0.0, 0.7), -- 96% -  97%
+    Color(0.0, 1.0, 0.0, 0.7), -- 98% - 100% GREEN
+  },
 }
 
 Config.ui.font = {
@@ -168,17 +216,35 @@ Config.ui.font = {
   titleSize  = 10,
 }
 
+function Config.setGameMode(gm)
+  Config.game.gameMode = gm
+
+  if Config.game.gameMode == 1 then
+    Config.ui.defaultControl = 'Background' -- enable game startup mode
+  else
+    Config.ui.defaultControl = 'Ship' -- enable flight mode
+  end
+end
+
+function Config.getGameMode()
+  return Config.game.gameMode
+end
+
 Config.objectInfo = {
   {
     ID = "object_types",
     name = "Object Types",
     elems = {
+      -- NOTE: If you change these, you must also change autonavRanges!
       { 1, "Unknown"},
-      { 2, "Ship"},
-      { 3, "Asteroid"},
-      { 4, "Station"},
+      { 2, "Reserved"},
+      { 3, "Star Sector"},
+      { 4, "Star System"},
       { 5, "Zone"},
       { 6, "Planet"},
+      { 7, "Asteroid"},
+      { 8, "Station"},
+      { 9, "Ship"},
     }
   },
   {

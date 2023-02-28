@@ -10,6 +10,11 @@ local Dust = require('GameObjects.Entities.Effects.Dust')
 local Nebula = require('GameObjects.Entities.Objects.Nebula')
 
 local System = subclass(Entity, function (self, seed)
+  self.rng = RNG.Create(seed):managed()
+
+  self:setName(self:getCoolName(self.rng))
+  self:setType(Config:getObjectTypeByName("object_types", "Star System"))
+
   self:addChildren()
   self:addProjectiles()
   self:addEconomy()
@@ -20,7 +25,6 @@ local System = subclass(Entity, function (self, seed)
   --        result in unexpected behavior
   self:addFlows()
 
-  self.rng = RNG.Create(seed):managed()
   -- TODO : Will physics be freed correctly?
   self.physics = Physics.Create():managed()
   local starAngle = self.rng:getDir2()
@@ -163,7 +167,7 @@ function System:spawnAI (shipCount)
   return player
 end
 
-function System:spawnAsteroidField (count, oreCount)
+function System:spawnAsteroidField (count)
   -- Spawn a new asteroid field (a zone containing individual asteroids)
   local rng = self.rng
 
@@ -193,8 +197,9 @@ function System:spawnAsteroidField (count, oreCount)
     asteroid:setScale(scale)
     asteroid:setRot(rng:getQuat())
 
-    if i > (count - oreCount) then
-      asteroid:addYield(rng:choose(Item.T1), 1.0)
+    -- TODO: Replace with actual system for generating minable materials in asteroids
+    if rng:getInt(0, 100) > 70 then
+      asteroid:addYield(rng:choose(Item.T2), 1.0)
     end
 
     -- Give the individual asteroid a name
@@ -244,8 +249,9 @@ function System:spawnPlanet ()
   -- Planets have significant manufacturing capacity
   local prod = self.rng:choose(Production.All())
   planet:addFactory()
-  -- Adding production to a planet yields an error; apparently Josh didn't think planets could have production facilities
-  --   ...which isn't wrong. Really, it's _colonies_ on planets that should have production facility children.
+  -- Adding production to a planet previously yielded an error; apparently Josh didn't
+  --   think planets could have production facilities... which isn't wrong. Really, it's
+  --   _colonies_ on planets that should have production facility children.
   planet:addProduction(prod)
 
   -- Give the planet a name
@@ -292,21 +298,23 @@ function System:spawnShip ()
       local turret = Ship.Turret()
       turret:setScale(2 * ship:getScale())
       -- TODO : Does this leak a Turret/RigidBody?
-      if not ship:plug(turret) then break end
+--printf("ship %s: plug a turret", ship:getName())
+      if not ship:plug(turret) then
+        break
+      end
     end
   end
 
---local typeName = Config:getObjectInfo("object_types", ship:getType())
 --local subtypeName = Config:getObjectInfo("ship_types", ship:getSubType())
---printf("Added %s (%s) '%s'", typeName, subtypeName, ship:getName())
+--printf("Added Ship (%s) '%s'", subtypeName, ship:getName())
 
   return ship
 end
 
 function System:spawnBackground ()
-  -- Flat: for a star system background only (no ship), spawn an invisible ship
-  --       (because System.lua needs a thing with mass, scale, drag, and thrust
-  --       in order to rotate around a camera viewpoint)
+  -- For a star system background only (no ship), spawn an invisible ship
+  --   (because System.lua needs a thing with mass, scale, drag, and thrust
+  --   in order to rotate around a camera viewpoint)
   if not self.shipType then
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
   end
