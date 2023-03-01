@@ -292,9 +292,9 @@ printf("Added %s asteroids to %s", asteroidCount, aField:getName())
         local offset = rng:getSphere():scale(100)
         escort:setPos(newShip:getPos() + offset)
         escort:addItem(Item.Credit, Config.game.eStartCredits)
-        escort:getOwner():pushAction(Actions.Think())
+--        escort:getOwner():pushAction(Actions.Think())
 --        escort:pushAction(Actions.Attack(newShip))
---        escort:pushAction(Actions.Escort(newShip, offset))
+        escort:pushAction(Actions.Escort(newShip, offset))
         insert(ships, escort)
       end
 
