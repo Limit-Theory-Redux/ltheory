@@ -3,6 +3,7 @@ local Material = require('GameObjects.Material')
 
 local Ship = subclass(Entity, function (self, proto)
   self:addActions()
+--  self:addAssets()
   self:addCapacitor(100, 10)
   self:addChildren()
   self:addDispositions()
@@ -33,6 +34,8 @@ local Ship = subclass(Entity, function (self, proto)
 
   local mass = 50.0 * (self:getRadius() ^ 3.0)
   self:setMass(mass)
+
+  local shipDocked = false
 end)
 
 -- TODO : Calculate true top speed based on max thrust & drag factor
@@ -61,6 +64,22 @@ printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthP
       self:pushAction(Actions.Attack(target))
     end
   end
+end
+
+function Ship:setShipDocked (bDocked)
+  self.shipDocked = bDocked
+
+local station = self:getParent()
+if self.shipDocked then
+  printf("%s docked at Station %s", self:getName(), station:getName())
+else
+  printf("%s undocked from Station %s", self:getName(), station:getName())
+end
+
+end
+
+function Ship:isShipDocked ()
+  return self.shipDocked
 end
 
 return Ship

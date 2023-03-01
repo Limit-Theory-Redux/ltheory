@@ -8,11 +8,12 @@ local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
 local Dust = require('GameObjects.Entities.Effects.Dust')
 local Nebula = require('GameObjects.Entities.Objects.Nebula')
+local Words = require('Systems.Gen.Words')
 
 local System = subclass(Entity, function (self, seed)
   self.rng = RNG.Create(seed):managed()
 
-  self:setName(self:getCoolName(self.rng))
+  self:setName(Words.getCoolName(self.rng))
   self:setType(Config:getObjectTypeByName("object_types", "Star System"))
 
   self:addChildren()
@@ -90,76 +91,14 @@ end
 
 local kSystemScale = 10000
 
-local cons = Distribution()
-cons:add('b', 1.5)
-cons:add('c', 2.8)
-cons:add('d', 4.3)
-cons:add('f', 2.2)
-cons:add('g', 2.0)
-cons:add('h', 6.1)
-cons:add('j', 0.2)
-cons:add('k', 0.8)
-cons:add('l', 4.0)
-cons:add('m', 2.4)
-cons:add('n', 6.7)
-cons:add('p', 1.9)
-cons:add('q', 0.1)
-cons:add('r', 6.0)
-cons:add('s', 6.3)
-cons:add('t', 9.1)
-cons:add('v', 1.0)
-cons:add('w', 2.4)
-cons:add('x', 0.2)
-cons:add('z', 0.1)
-
-cons:add('ll', 0.4)
-cons:add('ss', 0.6)
-cons:add('tt', 0.9)
-cons:add('ff', 0.2)
-cons:add('rr', 0.6)
-cons:add('nn', 0.6)
-cons:add('pp', 0.2)
-cons:add('cc', 0.3)
-
-local vowels = Distribution()
-vowels:add('a',  8.2)
-vowels:add('e', 12.7)
-vowels:add('i',  7.0)
-vowels:add('o',  7.5)
-vowels:add('u',  2.8)
-vowels:add('y',  2.0)
-
-vowels:add('ee',  1.2)
-vowels:add('oo',  0.7)
-
-local function genName (rng)
-  -- Word generator
-  local name = {}
-  for i = 1, rng:getInt(2, 5) do
-    insert(name, cons:sample(rng))
-    insert(name, vowels:sample(rng))
-  end
-  name[1] = name[1]:upper()
-  name = join(name)
-  return name
-end
-
-function System:getCoolName (rngv)
-  -- Create an object name that, if the first name is short, adds a second name for presumed uniqueness
-  local name  = genName(rngv)
-  local name2 = genName(rngv)
-  if name:len() < 7 and rngv:getInt(0, 100) < (40 + ((7 - name:len()) * 20)) then
-    name = name .. " " .. name2
-  end
-  return name
-end
-
-function System:spawnAI (shipCount)
+function System:spawnAI (shipCount, action, player)
   -- Spawn a number of independent AI-controlled ships
-  local player = Player()
   for i = 1, shipCount do
-    local ship = self:spawnShip()
+    local ship = self:spawnShip(player)
     ship:setOwner(player)
+    if action then
+      ship:pushAction(action)
+    end
   end
   player:addItem(Item.Credit, Config.game.eStartCredits)
   player:pushAction(Actions.Think())
@@ -172,7 +111,7 @@ function System:spawnAsteroidField (count)
   local rng = self.rng
 
   -- Give the asteroid field (actually a zone) a name
-  local AFieldName = System:getCoolName(rng)
+  local AFieldName = Words.getCoolName(rng)
   local zone = Zone(AFieldName)
   zone:setType(Config:getObjectTypeByName("object_types", "Zone"))
   zone:setSubType(Config:getObjectTypeByName("zone_subtypes", "Asteroid Field"))
@@ -192,6 +131,7 @@ function System:spawnAsteroidField (count)
     local scale = 7 * (1 + rng:getExp() ^ 2)
     local asteroid = Objects.Asteroid(rng:get31(), scale)
     asteroid:setType(Config:getObjectTypeByName("object_types", "Asteroid"))
+    asteroid:setSubType(Config:getObjectTypeByName("asteroid_subtypes", "Silicaceous"))
 
     asteroid:setPos(pos)
     asteroid:setScale(scale)
@@ -203,7 +143,7 @@ function System:spawnAsteroidField (count)
     end
 
     -- Give the individual asteroid a name
-    local asteroidName = System:getCoolName(self.rng)
+    local asteroidName = Words.getCoolName(self.rng)
     local namernd = rng:getInt(0, 100)
     if namernd < 60 then
       asteroidName = asteroidName .. " " .. tostring(rng:getInt(11, 99))
@@ -234,7 +174,7 @@ function System:spawnPlanet ()
   local rng = self.rng
   local planet = Objects.Planet(rng:get64())
   planet:setType(Config:getObjectTypeByName("object_types", "Planet"))
-  planet:setSubType(Config:getObjectTypeByName("planet_types", "Rocky"))
+  planet:setSubType(Config:getObjectTypeByName("planet_subtypes", "Rocky"))
 
   local pos = rng:getDir3():scale(kSystemScale * (1.0 + rng:getExp()))
   local scale = 1e5 * rng:getErlang(2)
@@ -255,31 +195,41 @@ function System:spawnPlanet ()
   planet:addProduction(prod)
 
   -- Give the planet a name
-  local planetName = System:getCoolName(self.rng)
+  local planetName = Words.getCoolName(self.rng)
   planet:setName(format("%s", planetName))
 
   self:addChild(planet)
 
 local typeName = Config:getObjectInfo("object_types", planet:getType())
-local subtypeName = Config:getObjectInfo("planet_types", planet:getSubType())
+local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
 printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
 
   Config.game.currentPlanet = planet
   return planet
 end
 
-function System:spawnShip ()
-  -- Spawn a new ship
-  if not self.shipType then
+function System:spawnShip (player)
+  -- Spawn a new ship (with a new ship type)
+  if Config.ui.uniqueShips or not self.shipType then
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
   end
   local ship = self.shipType:instantiate()
   ship:setType(Config:getObjectTypeByName("object_types", "Ship"))
-  ship:setSubType(Config:getObjectTypeByName("ship_types", "Fighter"))
+  ship:setSubType(Config:getObjectTypeByName("ship_subtypes", "Fighter"))
 
   -- Give the ship a name
-  local shipName = System:getCoolName(self.rng)
+  local shipName = Words.getCoolName(self.rng)
   ship:setName(format("HSS %s", shipName))
+
+  -- Give the ship a player owner if one was not provided
+  local shipPlayer = nil
+  if player ~= nil then
+    shipPlayer = player
+  else
+    shipPlayer = Player(format("Ship Player for %s", ship:getName()))
+    insert(self.players, shipPlayer)
+  end
+  ship:setOwner(shipPlayer)
 
   ship:setInventoryCapacity(Config.game.eInventory)
   ship:setPos(self.rng:getDir3():scale(kSystemScale * (1.0 + self.rng:getExp())))
@@ -305,7 +255,7 @@ function System:spawnShip ()
     end
   end
 
---local subtypeName = Config:getObjectInfo("ship_types", ship:getSubType())
+--local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
 --printf("Added Ship (%s) '%s'", subtypeName, ship:getName())
 
   return ship
@@ -320,12 +270,15 @@ function System:spawnBackground ()
   end
   local background = self.shipType:instantiate()
 
+  local player = Player("Background Player")
+  background:setOwner(player)
+
   self:addChild(background)
 
   return background
 end
 
-function System:spawnStation ()
+function System:spawnStation (player)
   -- Spawn a new space station
   local station = Objects.Station(self.rng:get31())
   station:setType(Config:getObjectTypeByName("object_types", "Station"))
@@ -343,18 +296,19 @@ function System:spawnStation ()
   local prod = self.rng:choose(Production.All())
   station:addFactory()
   station:addProduction(prod)
-  station:setSubType(Config:getObjectTypeByName("station_types", prod:getName()))
+  station:setSubType(Config:getObjectTypeByName("station_subtypes", prod:getName()))
 
   -- Give the station a name
-  station:setName(System:getCoolName(self.rng))
+  station:setName(Words.getCoolName(self.rng))
+
+  station:setOwner(player)
 
   self:addChild(station)
 
 local typeName = Config:getObjectInfo("object_types", station:getType())
-local subtypeName = Config:getObjectInfo("station_types", station:getSubType())
-printf("Added %s (%s) '%s'", typeName, subtypeName, station:getName())
+local subtypeName = Config:getObjectInfo("station_subtypes", station:getSubType())
+printf("Added %s %s '%s'", subtypeName, typeName, station:getName())
 
-  Config.game.currentStation = station
   return station
 end
 

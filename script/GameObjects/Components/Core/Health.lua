@@ -18,7 +18,8 @@ function Entity:damage (amount, source)
   self.health = max(0, self.health - amount)
   self:send(Event.Damaged(amount, source))
 
-  if self.health <= 0.009999999 then
+  -- Treat health < 0.01 (from 0.0 - 100.0) as zero when testing for destruction
+  if math.floor(self.health * 100) < 1 then
     -- Entity has been damaged to the point of destruction (0 health)
     self.health = 0
     self:clearActions()
@@ -33,6 +34,10 @@ function Entity:damage (amount, source)
 printf("%s destroyed by %s!", self:getName(), source:getName())
 
     self:send(Event.Destroyed(source))
+
+    if self == Config.game.currentShip then
+      Config.game.bFlightModePaused = true
+    end
   end
 end
 

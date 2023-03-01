@@ -12,6 +12,7 @@ local SocketType = require('GameObjects.Entities.Ship.SocketType')
 local ShipType = class(function (self, seed, generator, scale)
   local rng = RNG.Create(seed)
   self.seed = seed
+--printf("new ship seed = %d", seed)
   self.mesh = generator(seed, Config.gen.shipRes):managed()
   self.bsp = BSP.Create(self.mesh):managed()
   self.scale = scale

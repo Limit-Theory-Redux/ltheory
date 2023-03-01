@@ -3,6 +3,7 @@ local Material = require('GameObjects.Material')
 
 local Background = subclass(Entity, function (self, proto)
   self:addActions() -- required
+--  self:addAssets()
 
   -- Flat: All these calls are still required even for an invisible ship!
   --       Mass, drag, and the ThrustController() are used to tell the universe

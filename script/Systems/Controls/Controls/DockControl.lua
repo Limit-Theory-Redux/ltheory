@@ -9,7 +9,7 @@ function DockControl:onEnable ()
   local pCamera = self.gameView.camera
   self.gameView:setOrbit(true)
 
-  local station  = self.player:getControlling():getParent()
+  local station = self.player:getControlling():getParent()
 
   self.camera = self.gameView.camera
   self.camera:setYaw(-Math.Pi2)
@@ -19,10 +19,6 @@ function DockControl:onEnable ()
   self.camera:setRelative(true)
   self.camera:warp()
   self.camera:lerpFrom(pCamera.pos, pCamera.rot)
-
-  Config.game.shipDocked = true
-  local typename = Config:getObjectInfo("object_types", Config.game.currentStation:getType())
-  printf("Docked at %s '%s'", typename, Config.game.currentStation:getName())
 end
 
 function DockControl:onInput (state)

@@ -1,11 +1,15 @@
 local Entity = require('GameObjects.Entity')
 
-local Player = subclass(Entity, function (self)
-  self:addActions()
+local Player = subclass(Entity, function (self, name)
+  self:setName(name)
+
+  self:addActions() -- needed for Think() action
   self:addAssets()
   self:addDispositions()
-  self:addInventory(0)
+  self:addInventory(Config.game.pStartCredits)
+
   self.controlling = nil
+  self.docked = nil
 end)
 
 function Player:getControlling ()

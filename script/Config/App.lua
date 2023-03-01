@@ -1,6 +1,7 @@
 Config.app = 'LTheoryRedux'
 
-Config.version = "v0.006"
+Config.gameTitle   = "Limit Theory Redux"
+Config.gameVersion = "v0.007"
 
 Config.debug = {
   metrics         = true,
@@ -56,9 +57,10 @@ Config.gen = {
 
 Config.game = {
   gameMode = 0,
+  bFlightModePaused = false,
 
+  humanPlayer = nil,
   currentShip = nil,
-  currentStation = nil,
   currentPlanet = nil,
   currentZone = nil,
 
@@ -87,7 +89,6 @@ Config.game = {
   shipEnergyRecharge     = 10,
   shipHealth             = 100,
   shipHealthRegen        = 2,
-  shipDocked             = false,
 
   stationScale           = 20,
 
@@ -112,8 +113,9 @@ Config.game = {
                                 0,  -- Star Sector
                                 0,  -- Star System
                              2000,  -- Zone
-                            50000,  -- Planet
+                            50000,  -- Planet (probably should be radius + offset)
                               200,  -- Asteroid
+                              500,  -- Jumpgate
                              1000,  -- Station
                               100}, -- Ship
 
@@ -127,11 +129,18 @@ Config.render = {
   vsync        = true,
 }
 
+Config.audio = {
+  bSoundOn  = false,
+  soundMin  = 0,
+  soundMax  = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+}
+
 Config.ui = {
   defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
   controlBarHeight = 48,
-  HUDdisplayed     = false,
+  HUDdisplayed     = true,
+  uniqueShips      = false,
 }
 
 Config.ui.color = {
@@ -153,59 +162,59 @@ Config.ui.color = {
   controlFocused    = Color(0.20, 1.00, 0.20, 0.4),
   controlActive     = Color(0.14, 0.70, 0.14, 0.4),
   hologram          = Color(0.30, 0.40, 1.00, 0.8),
-  borderBright      = Color(1.00, 1.00, 1.00, 0.8),
+  borderBright      = Color(1.00, 1.00, 1.00, 0.6),
 
   healthColor = {
-    Color(0.0, 0.0, 0.0, 0.7), --  0% -   1% BLACK
-    Color(0.1, 0.0, 0.0, 0.7), --  2% -   3%
-    Color(0.3, 0.0, 0.1, 0.7), --  4% -   5%
-    Color(0.5, 0.0, 0.3, 0.7), --  6% -   7%
-    Color(0.6, 0.0, 0.5, 0.7), --  8% -   9%
-    Color(0.7, 0.0, 0.7, 0.7), -- 10% -  11%
-    Color(0.8, 0.0, 0.8, 0.7), -- 12% -  13% PURPLE
-    Color(0.9, 0.0, 0.7, 0.7), -- 14% -  15%
-    Color(1.0, 0.0, 0.5, 0.7), -- 16% -  17%
-    Color(1.0, 0.0, 0.3, 0.7), -- 18% -  19%
-    Color(1.0, 0.1, 0.2, 0.7), -- 20% -  21%
-    Color(1.0, 0.1, 0.1, 0.7), -- 22% -  23%
-    Color(1.0, 0.1, 0.0, 0.7), -- 24% -  25% RED
-    Color(0.9, 0.2, 0.0, 0.7), -- 26% -  27%
-    Color(0.9, 0.2, 0.0, 0.7), -- 28% -  29%
-    Color(0.8, 0.3, 0.0, 0.7), -- 30% -  31%
-    Color(0.8, 0.3, 0.0, 0.7), -- 32% -  33%
-    Color(0.7, 0.3, 0.1, 0.7), -- 34% -  35%
-    Color(0.7, 0.4, 0.1, 0.7), -- 36% -  37%
-    Color(0.6, 0.4, 0.1, 0.7), -- 38% -  39% ORANGE
-    Color(0.6, 0.5, 0.1, 0.7), -- 40% -  41%
-    Color(0.6, 0.5, 0.1, 0.7), -- 42% -  43%
-    Color(0.7, 0.5, 0.1, 0.7), -- 44% -  45%
-    Color(0.7, 0.5, 0.2, 0.7), -- 46% -  47%
-    Color(0.7, 0.6, 0.2, 0.7), -- 48% -  49%
-    Color(0.7, 0.6, 0.2, 0.7), -- 50% -  51%
-    Color(0.7, 0.7, 0.3, 0.7), -- 52% -  53%
-    Color(0.8, 0.7, 0.3, 0.7), -- 54% -  55%
-    Color(0.8, 0.7, 0.3, 0.7), -- 56% -  57%
-    Color(0.8, 0.7, 0.3, 0.7), -- 58% -  59% YELLOW
-    Color(0.7, 0.7, 0.2, 0.7), -- 60% -  61%
-    Color(0.7, 0.7, 0.2, 0.7), -- 62% -  63%
-    Color(0.6, 0.7, 0.1, 0.7), -- 64% -  65%
-    Color(0.6, 0.7, 0.1, 0.7), -- 66% -  67%
-    Color(0.5, 0.7, 0.0, 0.7), -- 68% -  69%
-    Color(0.5, 0.8, 0.0, 0.7), -- 70% -  71%
-    Color(0.4, 0.8, 0.0, 0.7), -- 72% -  73%
-    Color(0.4, 0.8, 0.1, 0.7), -- 74% -  75%
-    Color(0.3, 0.8, 0.1, 0.7), -- 76% -  77%
-    Color(0.3, 0.8, 0.2, 0.7), -- 78% -  79% OLIVE?
-    Color(0.2, 0.8, 0.2, 0.7), -- 80% -  81%
-    Color(0.2, 0.9, 0.2, 0.7), -- 82% -  83%
-    Color(0.2, 0.9, 0.3, 0.7), -- 84% -  85%
-    Color(0.1, 0.9, 0.3, 0.7), -- 86% -  87%
-    Color(0.1, 0.9, 0.2, 0.7), -- 88% -  89%
-    Color(0.1, 1.0, 0.2, 0.7), -- 90% -  91%
-    Color(0.1, 1.0, 0.1, 0.7), -- 92% -  93%
-    Color(0.0, 1.0, 0.1, 0.7), -- 94% -  95%
-    Color(0.0, 1.0, 0.0, 0.7), -- 96% -  97%
-    Color(0.0, 1.0, 0.0, 0.7), -- 98% - 100% GREEN
+    Color(0.0, 0.0, 0.0, 0.2), --  0% -   1% BLACK
+    Color(0.1, 0.0, 0.0, 0.2), --  2% -   3%
+    Color(0.3, 0.0, 0.1, 0.2), --  4% -   5%
+    Color(0.5, 0.0, 0.3, 0.2), --  6% -   7%
+    Color(0.6, 0.0, 0.5, 0.2), --  8% -   9%
+    Color(0.7, 0.0, 0.7, 0.2), -- 10% -  11%
+    Color(0.8, 0.0, 0.8, 0.2), -- 12% -  13% PURPLE
+    Color(0.9, 0.0, 0.7, 0.2), -- 14% -  15%
+    Color(1.0, 0.0, 0.5, 0.2), -- 16% -  17%
+    Color(1.0, 0.0, 0.3, 0.2), -- 18% -  19%
+    Color(1.0, 0.1, 0.2, 0.2), -- 20% -  21%
+    Color(1.0, 0.1, 0.1, 0.2), -- 22% -  23%
+    Color(1.0, 0.1, 0.0, 0.2), -- 24% -  25% RED
+    Color(0.9, 0.2, 0.0, 0.2), -- 26% -  27%
+    Color(0.9, 0.2, 0.0, 0.2), -- 28% -  29%
+    Color(0.8, 0.3, 0.0, 0.2), -- 30% -  31%
+    Color(0.8, 0.3, 0.0, 0.2), -- 32% -  33%
+    Color(0.7, 0.3, 0.1, 0.2), -- 34% -  35%
+    Color(0.7, 0.4, 0.1, 0.2), -- 36% -  37%
+    Color(0.6, 0.4, 0.1, 0.2), -- 38% -  39% ORANGE
+    Color(0.6, 0.5, 0.1, 0.2), -- 40% -  41%
+    Color(0.6, 0.5, 0.1, 0.2), -- 42% -  43%
+    Color(0.7, 0.5, 0.1, 0.2), -- 44% -  45%
+    Color(0.7, 0.5, 0.2, 0.2), -- 46% -  47%
+    Color(0.7, 0.6, 0.2, 0.2), -- 48% -  49%
+    Color(0.7, 0.6, 0.2, 0.2), -- 50% -  51%
+    Color(0.7, 0.7, 0.3, 0.2), -- 52% -  53%
+    Color(0.8, 0.7, 0.3, 0.2), -- 54% -  55%
+    Color(0.8, 0.7, 0.3, 0.2), -- 56% -  57%
+    Color(0.8, 0.7, 0.3, 0.2), -- 58% -  59% YELLOW
+    Color(0.7, 0.7, 0.2, 0.2), -- 60% -  61%
+    Color(0.7, 0.7, 0.2, 0.2), -- 62% -  63%
+    Color(0.6, 0.7, 0.1, 0.2), -- 64% -  65%
+    Color(0.6, 0.7, 0.1, 0.2), -- 66% -  67%
+    Color(0.5, 0.7, 0.0, 0.2), -- 68% -  69%
+    Color(0.5, 0.8, 0.0, 0.2), -- 70% -  71%
+    Color(0.4, 0.8, 0.0, 0.2), -- 72% -  73%
+    Color(0.4, 0.8, 0.1, 0.2), -- 74% -  75%
+    Color(0.3, 0.8, 0.1, 0.2), -- 76% -  77%
+    Color(0.3, 0.8, 0.2, 0.2), -- 78% -  79% OLIVE?
+    Color(0.2, 0.8, 0.2, 0.2), -- 80% -  81%
+    Color(0.2, 0.9, 0.2, 0.2), -- 82% -  83%
+    Color(0.2, 0.9, 0.3, 0.2), -- 84% -  85%
+    Color(0.1, 0.9, 0.3, 0.2), -- 86% -  87%
+    Color(0.1, 0.9, 0.2, 0.2), -- 88% -  89%
+    Color(0.1, 1.0, 0.2, 0.2), -- 90% -  91%
+    Color(0.1, 1.0, 0.1, 0.2), -- 92% -  93%
+    Color(0.0, 1.0, 0.1, 0.2), -- 94% -  95%
+    Color(0.0, 1.0, 0.0, 0.2), -- 96% -  97%
+    Color(0.0, 1.0, 0.0, 0.2), -- 98% - 100% GREEN
   },
 }
 
@@ -236,19 +245,34 @@ Config.objectInfo = {
     name = "Object Types",
     elems = {
       -- NOTE: If you change these, you must also change autonavRanges!
-      { 1, "Unknown"},
-      { 2, "Reserved"},
-      { 3, "Star Sector"},
-      { 4, "Star System"},
-      { 5, "Zone"},
-      { 6, "Planet"},
-      { 7, "Asteroid"},
-      { 8, "Station"},
-      { 9, "Ship"},
+      { 1, "Unknown", ""},
+      { 2, "Reserved", ""},
+      { 3, "Star Sector", ""},
+      { 4, "Star System", ""},
+      { 5, "Zone", "zone_subtypes"},
+      { 6, "Planet", "planet_subtypes"},
+      { 7, "Asteroid", "asteroid_subtypes"},
+      { 8, "Jumpgate", "kumpgate_subtypes"},
+      { 9, "Station", "station_subtypes"},
+      {10, "Ship", "ship_subtypes"},
+      {11, "Colony", "colony_subtypes"},
     }
   },
   {
-    ID = "planet_types",
+    ID = "zone_subtypes",
+    name = "Zone Subtypes",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Reserved"},
+      { 3, "Asteroid Field"},
+      { 4, "Political Extent"},
+      { 5, "Military Extent"},
+      { 6, "Economic Extent"},
+      { 7, "Cultural Extent"},
+    }
+  },
+  {
+    ID = "planet_subtypes",
     name = "Planet Types",
     elems = {
       { 1, "Unknown"},
@@ -297,50 +321,86 @@ Config.objectInfo = {
     }
   },
   {
-    ID = "zone_subtypes",
-    name = "Zone Subtypes",
+    ID = "asteroid_subtypes",
+    name = "Asteroid Types",
     elems = {
       { 1, "Unknown"},
-      { 2, "Asteroid Field"},
-      { 3, "Political Extent"},
-      { 4, "Military Extent"},
-      { 5, "Economic Extent"},
-      { 6, "Cultural Extent"},
+      { 2, "Reserved"},
+      { 3, "Carbonaceous"},
+      { 4, "Metallic"},
+      { 5, "Silicaceous"},
     }
   },
   {
-    ID = "ship_types",
-    name = "Ship Types",
+    ID = "jumpgate_subtypes",
+    name = "Jumpgate Types",
     elems = {
       { 1, "Unknown"},
-      { 2, "Fighter"},
-      { 3, "Corvette"},
-      { 4, "Frigate"},
-      { 5, "Monitor"},
-      { 6, "Destroyer"},
-      { 7, "Cruiser"},
-      { 8, "Battleship"},
-      { 9, "Battlecruiser"},
-      {10, "Carrier"},
-      {11, "Yacht"},
-      {12, "Liner"},
-      {13, "Scout"},
-      {14, "Laboratory"},
-      {15, "Merchanter"},
-      {16, "Miner"},
-      {17, "Tanker"},
-      {18, "Transport"},
-      {19, "Ferry"},
-      {20, "Tug"},
+      { 2, "Reserved"},
+      { 3, "Neighbor"},
+      { 4, "Wild"},
     }
   },
   {
-    ID = "station_types",
+    ID = "station_subtypes",
     name = "Station Types",
     elems = {
       { 1, "Unknown"},
-      { 2, "Solar Energy Array"},
-      { 3, "Nuclear Reactor"},
+      { 2, "Reserved"},
+      { 3, "Solar Energy Array"},
+      { 4, "Nuclear Reactor"},
+    }
+  },
+  {
+    ID = "ship_subtypes",
+    name = "Ship Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Reserved"},
+      { 3, "Fighter"},
+      { 4, "Corvette"},
+      { 5, "Frigate"},
+      { 6, "Monitor"},
+      { 7, "Destroyer"},
+      { 8, "Cruiser"},
+      { 9, "Battleship"},
+      {10, "Battlecruiser"},
+      {11, "Carrier"},
+      {12, "Yacht"},
+      {13, "Liner"},
+      {14, "Scout"},
+      {15, "Laboratory"},
+      {16, "Merchanter"},
+      {17, "Miner"},
+      {18, "Tanker"},
+      {19, "Transport"},
+      {20, "Ferry"},
+      {21, "Tug"},
+    }
+  },
+  {
+    ID = "colony_subtypes",
+    name = "Colony Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Reserved"},
+      { 3, "Outpost"},
+      { 4, "Military Base"},
+      { 5, "Manufacturing"},
+      { 6, "Trading"},
+      { 7, "Research"},
+      { 8, "Breeding"},
+      { 9, "Consulate"},
+    }
+  },
+  {
+    ID = "reserved_subtypes",
+    name = "Reserved Types",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Reserved"},
+      { 3, "?"},
+      { 4, "!"},
     }
   },
   {
@@ -366,7 +426,7 @@ end
 
 function Config:getObjectTypeIndex(objIDname)
   -- For a given kind of object (by ID name), find the index of the object type provided
-  local objIDnum = 0 -- default is "not found"
+  local objIDnum = 1 -- default is "Unknown"
 
   -- Find index number of given object ID in the object types table
   for i = 1, #Config.objectInfo do
@@ -399,6 +459,11 @@ end
 
 function Config:getObjectInfo(objIDname, objtypenum)
   return Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][2]
+end
+
+function Config:getObjectSubInfo(objIDname, objtypenum, objsubtypenum)
+  local subtypename = Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][3]
+  return Config.objectInfo[Config:getObjectTypeIndex(subtypename)]["elems"][objsubtypenum][2]
 end
 
 function Config.getCurrentTimestamp()
