@@ -1,5 +1,6 @@
 `      -- switch between graphics monitor/control panel and game (not quite working)
 Tab    -- toggle star system tactical map on/off
+Enter  -- toggle audio on/off
 F10    -- toggle profiler on, then toggle off and display stats
 F11    -- toggle between fullscreen and windowed
 F12    -- take a screenshot (*.png) and save it to ./screenshot folder

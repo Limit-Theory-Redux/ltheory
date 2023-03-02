@@ -16,7 +16,6 @@ local newShip = nil
 local menuMode = 0 -- initially show game logo
 local scalefactor = 0.0
 local bNewSSystem = false
-local bFlightModePaused = false
 local bSeedDialogDisplayed = false
 local bBackgroundMode = false
 local bShowSystemMap = false
@@ -30,7 +29,7 @@ local guiElements = {
   {
     name = "Choose Seed",
     elems = {
-      { nil, 7035008865122330386ULL,  false },
+      { nil, 5022463494542550306ULL,  false },
       { nil, 15054808765102574876ULL, false },
       { nil, 1777258448479734603ULL,  false },
       { nil, 9770135211012317023ULL,  false },
@@ -53,7 +52,8 @@ function LTheoryRedux:onInit ()
 
   DebugControl.ltheory = self
 
-  self.player = Entities.Player()
+  self.player = Entities.Player("[Human Player Name]")
+  Config.game.humanPlayer = self.player
   self:generate()
 
   -- Audio initialization moved here from GameView.lua
@@ -62,8 +62,22 @@ function LTheoryRedux:onInit ()
 
   -- Music courtesy of MesoTroniK
   newSound = Sound.Load("./res/sound/system/ambiance/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg", true, false)
-  Sound.SetVolume(newSound, 1) -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+  if Config.audio.bSoundOn then
+    Sound.SetVolume(newSound, Config.audio.soundMax)
+  else
+    Sound.SetVolume(newSound, Config.audio.soundMin)
+  end
   Sound.Play(newSound)
+end
+
+function LTheoryRedux:toggleSound ()
+  if Config.audio.bSoundOn then
+    Sound.SetVolume(newSound, Config.audio.soundMin)
+    Config.audio.bSoundOn = false
+  else
+    Sound.SetVolume(newSound, Config.audio.soundMax)
+    Config.audio.bSoundOn = true
+  end
 end
 
 function LTheoryRedux:onInput ()
@@ -96,6 +110,12 @@ function LTheoryRedux:onUpdate (dt)
   self.player:getRoot():update(dt)
   self.canvas:update(dt)
 
+local playerShip = self.player
+if playerShip ~= nil then
+--playerShip = playerShip.getControlling()
+playerShip = Config.game.currentShip
+end
+
   -- Add basic Game Control menu
   if Input.GetPressed(Bindings.Escape) then
     bBackgroundMode = false
@@ -106,9 +126,9 @@ function LTheoryRedux:onUpdate (dt)
       --   so don't pop up the Flight Mode dialog box
       -- After that, when we're in Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if menuMode == 0 then
-        bFlightModePaused = false
+        Config.game.bFlightModePaused = false
       else
-        bFlightModePaused = true
+        Config.game.bFlightModePaused = true
       end
       menuMode = 2 -- show Flight Mode dialog
     end
@@ -119,6 +139,25 @@ function LTheoryRedux:onUpdate (dt)
     bShowSystemMap = not bShowSystemMap
     if smap == nil then
       smap = Systems.CommandView.SystemMap(self.system)
+    end
+  end
+
+  -- Engage autopilot if we're in flight mode
+  if Input.GetPressed(Bindings.MoveTo) and menuMode == 2 then
+    if playerShip ~= nil then
+      local target = playerShip:getTarget()
+      if target == nil then target = self.focus end
+      if not playerShip:isDestroyed() and not playerShip:isShipDocked() and target ~= nil and target ~= playerShip then
+        if playerShip:getCurrentAction() == nil or not string.find(playerShip:getCurrentAction():getName(),"MoveTo") then
+          -- Move undestroyed, undocked player ship to area of selected target
+          local autodistance = Config.game.autonavRanges[target:getType()]
+          Config.game.autonavTimestamp = Config.getCurrentTimestamp()
+          Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+          playerShip:pushAction(Actions.MoveTo(target, autodistance))
+printf("-> %s at time %s, range = %s (moving = %s)",
+  playerShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
+        end
+      end
     end
   end
 
@@ -138,7 +177,7 @@ function LTheoryRedux:onUpdate (dt)
         LTheoryRedux:showMainMenu()
       end
     elseif menuMode == 2 then
-      if bFlightModePaused then
+      if Config.game.bFlightModePaused then
         LTheoryRedux:showFlightDialog()
       else
         if bSeedDialogDisplayed then
@@ -162,6 +201,11 @@ function LTheoryRedux:onUpdate (dt)
       self.seed = rng:get64()
     end
     LTheoryRedux:createStarSystem()
+  end
+
+  -- If player pressed the "toggle audio" key, turn it off if it's on or on if it's off
+  if Input.GetPressed(Bindings.ToggleSound) then
+    LTheoryRedux:toggleSound()
   end
 end
 
@@ -188,6 +232,7 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
 
   do
     if Config.getGameMode() == 1 then
+      -- Background Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, and an invisible rotating ship
       newShip = self.system:spawnBackground() -- spawn an invisible ship
@@ -208,49 +253,47 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
         self.system:spawnAsteroidField(500)
       end
     else
+      -- Flight Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, a visible pilotable ship, and 100 "escort" ships
       local asteroidCount = 500
-      local escortCount   = 100
       local aField = nil
 
       -- Add the player's ship
-      newShip = self.system:spawnShip()
+      newShip = self.system:spawnShip(Config.game.humanPlayer)
       newShip:setName("NSS Titonicus")
---      newShip:setHealth(1000, 1000, 50) -- make the player's ship extra-healthy for now
-      newShip:setHealth(500, 500, 20) -- make the player's ship extra-healthy for now
+--      newShip:setHealth(1000, 1000, 50) -- extra-healthy version of player ship for surviving testing
+      newShip:setHealth(500, 500, 20)
       Config.game.currentShip = newShip
       LTheoryRedux:insertShip(newShip)
       printf("Added our ship, the '%s'", newShip:getName())
 
-      -- Add a planet
-      for i = 1, 1 do
+      -- Add planets
+      for i = 1, Config.gen.nPlanets do
         self.system:spawnPlanet()
       end
 
-      -- Add a space station
-      for i = 1, 1 do
-        self.system:spawnStation()
+      -- Add space stations
+      for i = 1, Config.gen.nStations do
+        self.system:spawnStation(Config.game.humanPlayer)
       end
 
-      -- Add an asteroid field
-      for i = 1, 1 do
+      -- Add asteroid fields
+      for i = 1, Config.gen.nFields do
         aField = self.system:spawnAsteroidField(asteroidCount)
       end
-      printf("Added %s asteroids to %s", asteroidCount, aField:getName())
-      --printf("Object type is '%s'", Config.objectInfo[1]["elems"][aField:getType()][2])
+printf("Added %s asteroids to %s", asteroidCount, aField:getName())
+--printf("Object type is '%s'", Config.objectInfo[1]["elems"][aField:getType()][2])
 
       -- Add escort ships
       local ships = {}
-
-      for i = 1, escortCount do
-        local escort = self.system:spawnShip()
+      for i = 1, Config.gen.nNPCs do
+        local escort = self.system:spawnShip(nil)
         local offset = rng:getSphere():scale(100)
         escort:setPos(newShip:getPos() + offset)
-        escort:setOwner(self.player)
         escort:addItem(Item.Credit, Config.game.eStartCredits)
---        escort:pushAction(Actions.Think()) -- (currently generates an error)
---        escort:pushAction(Actions.Attack(newShip)) -- (currently doesn't break, but doesn't work)
+--        escort:getOwner():pushAction(Actions.Think())
+--        escort:pushAction(Actions.Attack(newShip))
         escort:pushAction(Actions.Escort(newShip, offset))
         insert(ships, escort)
       end
@@ -260,7 +303,7 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
 --        ships[i]:pushAction(Actions.Attack(ships[i+1]))
 --      end
 
-      printf("Added %s escort ships", escortCount)
+printf("Added %s escort ships", Config.gen.nNPCs)
     end
   end
 
@@ -309,7 +352,9 @@ function LTheoryRedux:showMainMenu ()
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.9, 0.9, 0.9, 1.0)
     HmGui.SetAlign(0.18, 0.13)
 
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.version, 0.2, 0.2, 0.2, 1.0)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.gameVersion, 0.2, 0.2, 0.2, 1.0)
+    HmGui.SetAlign(0.012, 0.973)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.gameVersion, 0.9, 0.9, 0.9, 1.0)
     HmGui.SetAlign(0.011, 0.971)
 
     HmGui.SetAlign(0.01, 0.97)
@@ -371,25 +416,29 @@ function LTheoryRedux:showFlightDialogInner ()
   HmGui.BeginGroupY()
     HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
     HmGui.PushFont(Cache.Font('Exo2Bold', 18))
-    if HmGui.Button("Return to Game") then
-      bFlightModePaused = false
+    if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
+      if HmGui.Button("Return to Game") then
+        Config.game.bFlightModePaused = false
+      end
     end
-    HmGui.SetSpacing(8)
-    if HmGui.Button("Save Game") then
-      bFlightModePaused = false
+    if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
+      HmGui.SetSpacing(8)
+      if HmGui.Button("Save Game") then
+        Config.game.bFlightModePaused = false
+      end
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Load Game") then
-      bFlightModePaused = false
+      Config.game.bFlightModePaused = false
       LTheoryRedux:showSeedDialog()
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Game Settings") then
-      bFlightModePaused = true
+      Config.game.bFlightModePaused = true
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Exit to Main Menu") then
-      bFlightModePaused = false
+      Config.game.bFlightModePaused = false
       Config.setGameMode(1) -- switch to Startup Mode
       LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode
     end

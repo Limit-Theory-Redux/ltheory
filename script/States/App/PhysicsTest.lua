@@ -39,11 +39,11 @@ local printCounts         = false
 local print_ = print
 local print = function (...) if printCounts then print_(...) end end
 
--- This requireAll seems to be against normal conventions. 
+-- This requireAll seems to be against normal conventions.
 -- TODO: Potentially instead of requireAll Entities Only Require each entity needed. Otherwise we might need a way to require specific entities into a file in a more seemless way.
--- Could theoretically have a function does like. 
+-- Could theoretically have a function does like.
 -- local Entites = RequireEach('GameObjects.Entites', [(System, Test.System), (Asteroid, Objects.Asteroid)]). Then we can call them by Entities.Objects.Asteroid and Entities.System
--- Might be Faulty logic but should be investigated.  
+-- Might be Faulty logic but should be investigated.
 local Entities = requireAll('GameObjects.Entities')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local MasterControl = require('Systems.Controls.Controls.MasterControl')
@@ -65,7 +65,7 @@ function LTheory:generate ()
 
   local ship
   do -- Player Ship
-    ship = self.system:spawnShip()
+    ship = self.system:spawnShip(self.player)
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)

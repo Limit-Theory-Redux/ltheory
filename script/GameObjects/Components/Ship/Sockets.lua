@@ -1,5 +1,6 @@
 local Entity = require('GameObjects.Entity')
 local Socket = require('GameObjects.Entities.Ship.Socket')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local function iterateSocketsByType (s)
   s.i = s.i + 1

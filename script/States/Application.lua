@@ -10,7 +10,7 @@ function Application:getDefaultSize ()
 end
 
 function Application:getTitle () return
-  'Phoenix Engine Application'
+  Config.gameTitle
 end
 
 function Application:getWindowMode ()

@@ -46,6 +46,7 @@ end
 function HUD:controlTurrets (e)
   local targetPos, targetVel
   local target = e:getTarget()
+
   if target and target:getOwnerDisposition(self.player) <= 0.0 then
     targetPos = target:getPos()
     targetVel = target:getVelocity()
@@ -58,7 +59,6 @@ function HUD:controlTurrets (e)
 
   -- Compute a firing solution separately for each turret to support
   -- different projectile velocities & ranges
---printf("HUD")
   for turret in e:iterSocketsByType(SocketType.Turret) do
     if Config.game.autoTarget and targetPos then
       turret:aimAtTarget(target, fallback)
@@ -96,16 +96,39 @@ function HUD:drawTargets (a)
       local ndc = camera:worldToNDC(pos)
       local ndcMax = max(abs(ndc.x), abs(ndc.y))
 
---      local disp = target:getOwnerDisposition(player)
+--      local disp = target:getOwnerDisposition(player) -- might need to switch back to this version
       local disp = target:getDisposition(playerShip)
---      local c = target:getDispositionColor(disp)
+--      local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
       local c = Disposition.GetColor(disp)
 
       c.a = a * c.a
       if ndcMax <= 1.0 and ndc.z > 0 then
-        do -- Draw rounded box corners
+        do
+          -- Get tracker box extents based on object size, and adjust inward slightly
           local bx1, by1, bsx, bsy = camera:entityToScreenRect(target)
+          bx1 = bx1 + 20
+          by1 = by1 + 20
           local bx2, by2 = bx1 + bsx, by1 + bsy
+          bx2 = bx2 - 40
+          by2 = by2 - 40
+
+          -- Draw target name
+          if playerTarget == target then
+            local targetName = target:getName()
+            if target:getType() == Config:getObjectTypeByName("object_types", "Station") then
+              targetName = "Station " .. target:getName()
+            end
+            UI.DrawEx.TextAdditive(
+              'NovaMono',
+              targetName,
+              10,
+              (bx1 + bx2) / 2 - targetName:len() / 2, by1 - 30, targetName:len(), 20,
+              1, 1, 1, a,
+              0.5, 0.5
+            )
+          end
+
+          -- Draw rounded box corners
           --local a = a * (1.0 - exp(-0.5 * max(0.0, max(bsx, bsy) - 2.0)))
           UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c)
           UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c)
@@ -121,6 +144,16 @@ function HUD:drawTargets (a)
             UI.DrawEx.Wedge(bx1, by1, 8, 8, 0.375, 0.2, cTarget)
             UI.DrawEx.Wedge(bx1, by2, 8, 8, 0.625, 0.2, cTarget)
             UI.DrawEx.Wedge(bx2, by2, 8, 8, 0.875, 0.2, cTarget)
+          end
+
+          -- Draw target health bar
+          if playerTarget == target then
+            local targetHealthPct = target:getHealthPercent()
+            if targetHealthPct > 0.0 then
+              local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
+              UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
+              UI.DrawEx.Rect(bx1 + 3, by2 - 1, (bx2 - bx1) - 8, 4, Config.ui.color.healthColor[targetHealthCI])
+            end
           end
         end
 
@@ -149,7 +182,9 @@ end
 function HUD:drawLock (a)
   local playerShip = self.player:getControlling()
   local target = playerShip:getTarget()
-  if not target then return end
+
+  if not target or target:isDestroyed() then return end
+
   local camera = self.gameView.camera
   local center = Vec2f(self.sx / 2, self.sy / 2)
 
@@ -185,7 +220,7 @@ function HUD:drawLock (a)
       local ndcMax = max(abs(ndc.x), abs(ndc.y))
       if ndcMax <= 1 and ndc.z > 0 then
         local ss = camera:ndcToScreen(ndc)
-        UI.DrawEx.Cross(ss.x, ss.y, 4, Color(1.0, 0.5, 0.1, a))
+        UI.DrawEx.Ring(ss.x, ss.y, 10, Color(1.0, 0.3, 0.3, a))
       end
     end
   end
@@ -241,7 +276,12 @@ function HUD:drawPlayerHealth (a)
 --printf("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
 --printf("radius = %3.2f, yaw = %3.2f, pitch = %3.2f", radius, yaw, pitch)
 --printf("radius = %3.2f, radius / 1.7 = %3.2f", radius, radius / 1.7)
-  UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 260, 260, 260, Config.ui.color.healthColor[playerHealthCI], playerRadius / 1.7, -1.5, 0.0)
+  local hc = Color(1, 1, 1, 1)
+  hc.r = Config.ui.color.healthColor[playerHealthCI].r
+  hc.g = Config.ui.color.healthColor[playerHealthCI].g
+  hc.b = Config.ui.color.healthColor[playerHealthCI].b
+  hc.a = 1.0
+  UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 260, 260, 260, hc, playerRadius / 1.7, -1.5, 0.0)
 
   -- Draw text of player ship health
   UI.DrawEx.TextAdditive(
@@ -253,7 +293,17 @@ function HUD:drawPlayerHealth (a)
     0.075, 0.97
   )
 
+  UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
+  UI.DrawEx.Rect(cx - 20, cy + 20, 40, 4, Config.ui.color.healthColor[playerHealthCI])
+
+end
+
+function HUD:drawTargetHealth (a)
+  local cx, cy = self.sx / 2, self.sy / 2
+  local x, y, sx, sy = self:getRectGlobal()
+  local playerShip = self.player:getControlling()
   local target = playerShip:getTarget()
+
   if target then
     local targetName = target:getName()
     local targetHealthPct = target:getHealthPercent()
@@ -282,9 +332,14 @@ function HUD:drawPlayerHealth (a)
       )
 
       -- Draw hologram of target entity
-      UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 260, 260, 260, Config.ui.color.healthColor[targetHealthCI], targetRadiusAdj, -1.5, 0.0)
+      local hc = Color(1, 1, 1, 1)
+      hc.r = Config.ui.color.healthColor[targetHealthCI].r
+      hc.g = Config.ui.color.healthColor[targetHealthCI].g
+      hc.b = Config.ui.color.healthColor[targetHealthCI].b
+      hc.a = 1.0
+      UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 260, 260, 260, hc, targetRadiusAdj, -1.5, 0.0)
 
-      -- Draw text of target ship health
+      -- Draw text of target health
       UI.DrawEx.TextAdditive(
         'NovaMono',
         targetHealthText,
@@ -295,10 +350,6 @@ function HUD:drawPlayerHealth (a)
       )
     end
   end
-
-  UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
-  UI.DrawEx.Rect(cx - 20, cy + 20, 40, 4, Config.ui.color.healthColor[playerHealthCI])
-
 end
 
 function HUD:drawDockPrompt (a)
@@ -329,9 +380,12 @@ function HUD:onInput (state)
   -- camera:modPitch(0.005 * CameraBindings.Pitch:get())
 
   local e = self.player:getControlling()
-  self:controlThrust(e)
-  self:controlTurrets(e)
-  self:controlTargetLock(e)
+  if not e:isDestroyed() then
+    self:controlThrust(e)
+    self:controlTurrets(e)
+    self:controlTargetLock(e)
+  end
+
   camera:pop()
 
   if self.dockable then
@@ -403,6 +457,7 @@ function HUD:onDraw (focus, active)
       Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
       Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
       Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawTargetHealth') self:drawTargetHealth(self.enabled) Profiler.End()
     end
 
     Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()

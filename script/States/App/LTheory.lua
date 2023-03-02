@@ -21,7 +21,7 @@ function LTheory:generate ()
 
   local ship
   do -- Player Ship
-    ship = self.system:spawnShip()
+    ship = self.system:spawnShip(self.player)
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)
@@ -52,7 +52,7 @@ function LTheory:generate ()
   end
 
   for i = 1, 0 do
-    self.system:spawnAI(100)
+    self.system:spawnAI(100, Actions.Wait(100), self.player)
   end
 
   for i = 1, 1 do
@@ -65,7 +65,7 @@ function LTheory:generate ()
 end
 
 function LTheory:onInit ()
-  self.player = Player()
+  self.player = Player("LTheory Player")
   self:generate()
 
   DebugControl.ltheory = self

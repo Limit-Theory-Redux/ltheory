@@ -1,4 +1,5 @@
 local Action = require('GameObjects.Action')
+local Player = require('GameObjects.Entities.Player')
 
 local kJobIterations = 100
 
@@ -90,6 +91,7 @@ end
 function Think:onUpdateActive (e, dt)
   Profiler.Begin('Action.Think')
   do -- Manage assets
+--printf("%s is thinking", e:getName())
     for asset in e:iterAssets() do
       if asset:getRoot():hasEconomy() and asset:isIdle() then
         self:manageAsset(asset)
@@ -100,7 +102,7 @@ function Think:onUpdateActive (e, dt)
   self.timer = self.timer + dt
   do -- Capital expenditure
     if self.timer > 5 then
-      -- 
+      --
     end
   end
   Profiler.End()

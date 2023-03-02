@@ -5,6 +5,7 @@ local self = {
   ToggleFullscreen = Button.Keyboard.F11,
   Screenshot       = Button.Keyboard.F12,
   SystemMap        = Button.Keyboard.Tab,
+  ToggleSound      = Button.Keyboard.Return,
   NewBackground    = Button.Keyboard.B,
   TimeAccel        = Button.Keyboard.H,
   ToggleMetrics    = Button.Keyboard.K,
