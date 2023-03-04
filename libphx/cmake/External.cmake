@@ -42,17 +42,17 @@ endif()
 # ------------------------------------------------------------------------------
 # Define dependencies
 
-if(UNIX AND NOT APPLE)
+if(LINUX)
   set(OpenGL_GL_PREFERENCE GLVND)
 endif()
 set(CMAKE_REQUIRED_QUIET ON)
 set(X11_FIND_QUIETLY ON)
 
 CPMAddPackage(
-  NAME bullet
+  NAME Bullet
   URL https://github.com/bulletphysics/bullet3/archive/refs/tags/3.24.tar.gz
   VERSION 3.24
-  PATCH_COMMAND ${PATCH_TOOL} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/bullet.diff
+  PATCH_COMMAND ${PATCH_TOOL} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Bullet.diff
   OPTIONS
   "BUILD_BULLET2_DEMOS OFF"
   "BUILD_BULLET3 OFF"
@@ -71,40 +71,40 @@ CPMAddPackage(
   "USE_GLUT OFF"
   "USE_SOFT_BODY_MULTI_BODY_DYNAMICS_WORLD OFF"
 )
-if (bullet_ADDED)
-  target_include_directories(BulletDynamics PUBLIC ${bullet_SOURCE_DIR}/src)
+if (Bullet_ADDED)
+  target_include_directories(BulletDynamics PUBLIC ${Bullet_SOURCE_DIR}/src)
 endif ()
 
 CPMAddPackage(
-  NAME fmod
+  NAME FMOD
   URL https://github.com/Limit-Theory-Redux/ltheory/releases/download/v0.0.1-pre/fmod-2.02.08.zip
   VERSION 2.02.08
   DOWNLOAD_ONLY TRUE
 )
-if (fmod_ADDED)
+if (FMOD_ADDED)
   add_library(fmod SHARED IMPORTED)
-  target_include_directories(fmod INTERFACE "${fmod_SOURCE_DIR}/include")
+  target_include_directories(fmod INTERFACE "${FMOD_SOURCE_DIR}/include")
   if (WIN32)
     set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-      "${fmod_SOURCE_DIR}/lib/win/x86_64/fmod.dll")
+      "${FMOD_SOURCE_DIR}/lib/win/x86_64/fmod.dll")
     set_property(TARGET fmod PROPERTY IMPORTED_IMPLIB
-      "${fmod_SOURCE_DIR}/lib/win/x86_64/fmod_vc.lib")
+      "${FMOD_SOURCE_DIR}/lib/win/x86_64/fmod_vc.lib")
   elseif (APPLE)
     set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-      "${fmod_SOURCE_DIR}/lib/macos/libfmod.dylib")
+      "${FMOD_SOURCE_DIR}/lib/macos/libfmod.dylib")
   else ()
     if (ARCH_X86)
       set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-        "${fmod_SOURCE_DIR}/lib/linux/x86_64/libfmod.so.13")
+        "${FMOD_SOURCE_DIR}/lib/linux/x86_64/libfmod.so.13")
     else ()
       set_property(TARGET fmod PROPERTY IMPORTED_LOCATION
-        "${fmod_SOURCE_DIR}/lib/linux/arm64/libfmod.so.13")
+        "${FMOD_SOURCE_DIR}/lib/linux/arm64/libfmod.so.13")
     endif ()
   endif ()
 endif ()
 
 CPMAddPackage(
-  NAME freetype
+  NAME FreeType
   URL https://github.com/freetype/freetype/archive/refs/tags/VER-2-12-1.tar.gz
   VERSION 2.12.1
   OPTIONS
@@ -127,22 +127,22 @@ if (glew_ADDED)
 endif ()
 
 CPMAddPackage(
-  NAME luajit
+  NAME LuaJIT
   URL https://github.com/LuaJIT/LuaJIT/archive/de2e1ca9d3d87e74c0c20c1e4ad3c32b31a5875b.tar.gz
   VERSION de2e1ca9d3d87e74c0c20c1e4ad3c32b31a5875b
   DOWNLOAD_ONLY TRUE
 )
-if (luajit_ADDED)
-  file(GLOB_RECURSE LUAJIT_SRCS ${luajit_SOURCE_DIR}/src/*.c)
-  file(GLOB_RECURSE LUAJIT_HDRS ${luajit_SOURCE_DIR}/src/*.h\(pp\)?)
+if (LuaJIT_ADDED)
+  file(GLOB_RECURSE LUAJIT_SRCS ${LuaJIT_SOURCE_DIR}/src/*.c)
+  file(GLOB_RECURSE LUAJIT_HDRS ${LuaJIT_SOURCE_DIR}/src/*.h\(pp\)?)
   if (WIN32)
     add_custom_command(
       COMMAND msvcbuild.bat static
       COMMAND ${CMAKE_COMMAND} -E copy
-      ${luajit_SOURCE_DIR}/src/lua51.lib
-      ${luajit_BINARY_DIR}/lib/luajit-5.1.lib
-      WORKING_DIRECTORY ${luajit_SOURCE_DIR}/src
-      OUTPUT ${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
+      ${LuaJIT_SOURCE_DIR}/src/lua51.lib
+      ${LuaJIT_BINARY_DIR}/lib/luajit-5.1.lib
+      WORKING_DIRECTORY ${LuaJIT_SOURCE_DIR}/src
+      OUTPUT ${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
       DEPENDS ${LUAJIT_SRCS} ${LUAJIT_HDRS}
     )
   elseif (APPLE)
@@ -156,33 +156,32 @@ if (luajit_ADDED)
     else()
       set(osx_sdk_version ${CMAKE_OSX_DEPLOYMENT_TARGET})
     endif()
-    message("Passing MACOSX_DEPLOYMENT_TARGET=${osx_sdk_version}")
     add_custom_command(
       COMMAND make amalg MACOSX_DEPLOYMENT_TARGET=${osx_sdk_version} BUILDMODE=static
-      COMMAND make install PREFIX=${luajit_BINARY_DIR}
-      WORKING_DIRECTORY ${luajit_SOURCE_DIR}
-      OUTPUT ${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
+      COMMAND make install PREFIX=${LuaJIT_BINARY_DIR}
+      WORKING_DIRECTORY ${LuaJIT_SOURCE_DIR}
+      OUTPUT ${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
       DEPENDS ${LUAJIT_SRCS} ${LUAJIT_HDRS}
     )
   else ()
     add_custom_command(
       COMMAND make amalg CFLAGS=-fPIC BUILDMODE=static
-      COMMAND make install PREFIX=${luajit_BINARY_DIR}
-      WORKING_DIRECTORY ${luajit_SOURCE_DIR}
-      OUTPUT ${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
+      COMMAND make install PREFIX=${LuaJIT_BINARY_DIR}
+      WORKING_DIRECTORY ${LuaJIT_SOURCE_DIR}
+      OUTPUT ${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}
       DEPENDS ${LUAJIT_SRCS} ${LUAJIT_HDRS}
     )
   endif ()
 
   add_library (luajit INTERFACE
-    "${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  target_include_directories (luajit INTERFACE "${luajit_SOURCE_DIR}/src")
+    "${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  target_include_directories (luajit INTERFACE "${LuaJIT_SOURCE_DIR}/src")
   set_property (TARGET luajit PROPERTY INTERFACE_LINK_LIBRARIES
-    "${luajit_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    "${LuaJIT_BINARY_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}luajit-5.1${CMAKE_STATIC_LIBRARY_SUFFIX}")
 endif ()
 
 CPMAddPackage(
-  NAME lz4
+  NAME LZ4
   URL https://github.com/lz4/lz4/archive/refs/tags/v1.9.4.tar.gz
   VERSION 1.9.4
   SOURCE_SUBDIR build/cmake
@@ -193,10 +192,10 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
-  NAME sdl
+  NAME SDL
   URL https://github.com/libsdl-org/SDL/releases/download/release-2.26.1/SDL2-2.26.1.tar.gz
   VERSION 2.26.1
-  PATCH_COMMAND ${PATCH_TOOL} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sdl.diff
+  PATCH_COMMAND ${PATCH_TOOL} -p1 -i ${CMAKE_CURRENT_SOURCE_DIR}/cmake/SDL.diff
   OPTIONS
   "SDL_SHARED OFF"
   "SDL_STATIC ON"
@@ -205,7 +204,7 @@ CPMAddPackage(
   "SDL2_DISABLE_UNINSTALL ON"
   "SDL_STATIC_PIC ON"
 )
-if (sdl_ADDED)
+if (SDL_ADDED)
   target_include_directories(SDL2-static PUBLIC
     $<BUILD_INTERFACE:${sdl_BINARY_DIR}/include>
     $<BUILD_INTERFACE:${sdl_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>)

@@ -1,6 +1,7 @@
 #include "PhxMemory.h"
 #include "OpenGL.h"
 #include "SDLext.h"
+#include "PhxString.h"
 #include "Vec2.h"
 #include "Viewport.h"
 #include "Window.h"
@@ -15,7 +16,9 @@ struct Window {
 Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode) {
   Window* self = MemNew(Window);
   mode |= SDL_WINDOW_OPENGL;
-  self->handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
+  cstr titleWithBuild = StrAdd(title, " (libphx version " __DATE__ ")");
+  self->handle = SDL_CreateWindow(titleWithBuild, x, y, sx, sy, mode);
+  StrFree(titleWithBuild);
   self->context = SDL_GL_CreateContext(self->handle);
   self->mode = mode;
   if (!self->context)
