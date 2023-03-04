@@ -85,7 +85,7 @@ function SystemMap:onDraw (state)
 
       if e:hasFlows() and not e:isDestroyed() then
 --printf("Flow: %s", e:getName())
-        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
+        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale() * 10, { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
       end
 
       if e:hasYield() then
@@ -126,14 +126,14 @@ function SystemMap:onDraw (state)
     self.focus = best
     -- If focused-on object in the System Map is a ship (not the player's) or a station, make it the current target
     if Config.game.currentShip ~= nil and Config.game.currentShip ~= self.focus then
-      if self.focus:getType() == Config:getObjectTypeByName("object_types", "Ship")    or
-         self.focus:getType() == Config:getObjectTypeByName("object_types", "Station") then
+--      if self.focus:getType() == Config:getObjectTypeByName("object_types", "Ship")    or
+--         self.focus:getType() == Config:getObjectTypeByName("object_types", "Station") then
         Config.game.currentShip:setTarget(self.focus)
-      else
+--      else
         -- TODO: extend targetable objects in space (via HUD) to include asteroids and planets (or planetary colonies)
         --       For now, a non-Ship or non-Station was focused on, so clear the target for the HUD
-        Config.game.currentShip:setTarget(nil)
-      end
+--        Config.game.currentShip:setTarget(nil)
+--      end
     end
   end
 
@@ -148,6 +148,8 @@ function SystemMap:onDraw (state)
       local objtype    = Config:getObjectInfo("object_types", self.focus:getType())
       local objsubtype = Config:getObjectSubInfo("object_types", self.focus:getType(), self.focus:getSubType())
       local owner = self.focus:getOwner()
+      local objval = 0
+      local objemit = ""
       local boomtext = ""
       if self.focus:isDestroyed() then boomtext = " (destroyed)" end
       dbg:text("")
@@ -157,6 +159,53 @@ function SystemMap:onDraw (state)
         dbg:text("Owner: %s", owner:getName())
       else
         dbg:text("Owner: [None]")
+      end
+      objval = self.focus:getRadius()
+      if string.match(objtype, "Planet") then
+        objval = objval * 9 -- planets needs to be a certain radius for the game currently, so fake their reported radius for printing
+      end
+      objemit = "Radius: %d m"
+      if objval > 120000000000 then
+        objval = objval / 149598000000
+        objemit = "Radius: %0.1f AU"
+      elseif objval > 600000000 then
+        objval = objval / 695700000
+        objemit = "Radius: %0.1f Sr"
+      elseif objval > 1000 then
+        objval = objval / 1000
+        objemit = "Radius: %0.1f km"
+      end
+      dbg:text(objemit, objval)
+      objval = self.focus:getMass()
+      objemit = "Mass: %0.0f kg"
+      if objval > 1.0e28 then
+        objval = objval / 1.99e30
+        objemit = "Mass: %0.2f Sm"
+      elseif objval > 5e23 then
+        objval = objval / 5.97e24
+        objemit = "Mass: %0.2f Em"
+      elseif objval > 1000000 then
+        objval = objval / 1000000
+        objemit = "Mass: %0.1f mt"
+      elseif objval > 907.18474 then
+        objval = objval / 907.18474
+        objemit = "Mass: %0.1f kt"
+      end
+      dbg:text(objemit, objval)
+      if Config.game.currentShip then
+        local posMe = Config.game.currentShip:getPos()
+        local posIt = self.focus:getPos()
+        objval = posMe:distance(posIt)
+        -- TODO: Add check here to see if our ship is docked to the target, and set displayed range to 0 if so
+        objemit = "Range: %0.0f m"
+        if objval > 149598000 then
+          objval = objval / 149598000
+          objemit = "Range: %0.2f AU"
+        elseif objval > 1000 then
+          objval = objval / 1000
+          objemit = "Range: %0.1f km"
+        end
+        dbg:text(objemit, objval)
       end
       self.focus:send(Event.Debug(dbg))
       dbg:undent()
@@ -183,16 +232,13 @@ function SystemMap.Create (system)
     if Config.game.mapSystemPos == nil then
       -- Initialize system map starting position only if not already initialized
       Config.game.mapSystemPos = Config.game.currentShip:getPos()
-      -- Adjust map centering with magic numbers to center on current position of player's ship
-      Config.game.mapSystemPos.x = Config.game.mapSystemPos.x - 803
-      Config.game.mapSystemPos.y = Config.game.mapSystemPos.y - 449
     end
   else
-    Config.game.mapSystemPos = Vec2f(0, 0)
+    Config.game.mapSystemPos = Vec3f(0, 0, 0)
   end
   if Config.game.mapSystemZoom == nil then
     -- Initialize system map zoom level only if not already initialized
-    Config.game.mapSystemZoom = 0.01
+    Config.game.mapSystemZoom = 0.0001
   end
   return self
 end

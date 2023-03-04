@@ -21,6 +21,15 @@ function Zone:getPos ()
   return self.pos
 end
 
+function Zone:getExtent ()
+  return self.extent
+end
+
+function Zone:setExtent (extent)
+  -- "extent" is a scalar radius for a spherical volume
+  self.extent = extent
+end
+
 function Zone:sample (rng)
   return rng:choose(self.children)
 end

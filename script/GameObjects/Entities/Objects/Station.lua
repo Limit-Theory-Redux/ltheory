@@ -14,10 +14,13 @@ local Station = subclass(Entity, function (self, seed)
   self:addInventory(1e10)
   self:addRigidBody(true, mesh)
   self:addVisibleMesh(mesh, Material.Metal())
+  self:addTrackable(true)
+  self:addAttackable(true)
+  self:addMinable(false)
 
-  self:setDrag(0, 0)
+  self:setDrag(10, 10) -- fix station in place
   self:setScale(100)
-  self:setMass(1e10)
+  self:setMass(1e7)
 
   self.explosionSize = 512 -- destroyed stations have visually larger explosions than ships
 end)

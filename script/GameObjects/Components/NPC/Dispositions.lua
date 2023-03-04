@@ -1,21 +1,11 @@
 --[[----------------------------------------------------------------------------
-  Dispositions are normalized to the following scale:
+  Dispositions are normalized to the following scale in App.lua:
      -1.0 = maximal hostility
       0.0 = total neutrality
      +1.0 = maximal friendliness
 ----------------------------------------------------------------------------]]--
 
 local Entity = require('GameObjects.Entity')
-
-local kDispMin = -1.0
-local kDispMax =  1.0
-local kHostileThreshold = -0.3333333
-local kFriendlyThreshold = 0.3333333
-local sDispName = {
-      "hostile",
-      "neutral",
-      "friendly",
-}
 
 function Entity:addDispositions ()
   assert(not self.dispositions)
@@ -29,19 +19,19 @@ end
 
 function Entity:isFriendlyTo (target)
   assert(self.dispositions)
-  return self:getDisposition(target) >= kFriendlyThreshold
+  return self:getDisposition(target) >= Config.game.dispoFriendlyThreshold
 end
 
 function Entity:isHostileTo (target)
   assert(self.dispositions)
-  return self:getDisposition(target) <  kHostileThreshold
+  return self:getDisposition(target) <  Config.game.dispoHostileThreshold
 end
 
 function Entity:modDisposition (target, amount)
   assert(self.dispositions)
 
   local newDispVal = self:getDisposition(target) + amount
-  newDispVal = math.min(math.max(newDispVal, kDispMin), kDispMax) -- normalize disposition within allowed ranges
+  newDispVal = math.min(math.max(newDispVal, Config.game.dispoMin), Config.game.dispoMax) -- normalize disposition within allowed ranges
   self:setDisposition(target, newDispVal)
 end
 
@@ -58,15 +48,15 @@ printf("Disposition of %s to %s is now %f!", self:getName(), target:getName(), s
   elseif self:isFriendlyTo(target) then
     dispNameIndex = 3
   end
-printf("%s is now %s to %s.", self:getName(), sDispName[dispNameIndex], target:getName())
+printf("%s is now %s to %s.", self:getName(), Config.game.dispoName[dispNameIndex], target:getName())
 
   end
 end
 
 --function Entity:getDispositionColor (disp)
---  if disp < kHostileThreshold then
+--  if disp < Config.game.dispoHostileThreshold then
 --    return Color(1.0, 0.2, 0.2, 1.0) -- red (hostile)
---  elseif disp <= kFriendlyThreshold then
+--  elseif disp <= Config.game.dispoFriendlyThreshold then
 --    return Color(0.1, 0.2, 1.0, 1.0) -- blue (neutral)
 --  else
 --    return Color(0.1, 1.0, 0.2, 1.0) -- green (friendly)

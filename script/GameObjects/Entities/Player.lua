@@ -25,4 +25,12 @@ function Player:setControlling (target)
   self.controlling = target
 end
 
+local function isAttackable ()
+  self.attackable = false
+end
+
+local function isMinable ()
+  self.minable = false
+end
+
 return Player

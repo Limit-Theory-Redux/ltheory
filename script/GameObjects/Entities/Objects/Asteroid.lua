@@ -15,12 +15,18 @@ local Asteroid = subclass(Entity, function (self, seed, scale)
   local mesh = getMesh(seed)
   self:addRigidBody(true, mesh:get(0))
   self:addVisibleLodMesh(mesh, Material.Rock())
+  self:addTrackable(true)
+  self:addMinable(true)
 
-  self:setDrag(0.2, 0.2)
+  -- NOTE: scale must be set before the radius will be reported correctly
   self:setScale(scale)
 
-  local mass = self:getRadius() ^ 3.0
+  -- TODO: Define asteroid mass as radius ^ asteroid type exponent
+  local radius = self:getRadius()
+  local mass = 100 + radius ^ Config.gen.massAsteroidExp[1]
   self:setMass(mass)
+
+  self:setDrag(radius / 10, radius / 10) -- fix asteroid in place (unless really tiny)
 end)
 
 return Asteroid

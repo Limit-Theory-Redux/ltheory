@@ -9,13 +9,16 @@ local genColor = function (rng)
 end
 
 local Planet = subclass(Entity, function (self, seed)
+  local rng = RNG.Create(seed):managed()
+
   -- TODO : Had to lower quality to 2 because RigidBody is automatically
   --        building BSP, and sphere is pathological case for BSPs. Need
   --        generalized CollisionShape.
   local mesh = Gen.Primitive.IcoSphere(5):managed()
-
   self:addRigidBody(true, mesh)
-  self:setMass(1000)
+
+  -- TODO: Generate planetary mass based on type, size, and composition
+  self:setMass(Config.gen.massPlanet)
 
   -- Enable market/production on planets
   -- TODO: Replace with 0 - N colonies, each of which has its own distinct
@@ -23,14 +26,15 @@ local Planet = subclass(Entity, function (self, seed)
   self:addChildren()
   self:addActions()
   self:addFlows()
-  self:addInventory(10000)
+  self:addInventory(1e8)
+  self:addTrackable(true)
+  self:addMinable(false)
 
   self.mesh = mesh
   self.meshAtmo = Gen.Primitive.IcoSphere(5):managed()
   self.meshAtmo:computeNormals()
   self.meshAtmo:invert()
 
-  local rng = RNG.Create(seed):managed()
   self.texSurface = Gen.GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
     seed = rng:getUniform(),
     freq = 4 + rng:getExp(),
@@ -46,6 +50,8 @@ local Planet = subclass(Entity, function (self, seed)
   self.color2 = genColor(rng)
   self.color3 = genColor(rng)
   self.color4 = genColor(rng)
+
+  self:setDrag(10, 10) -- fix planet in place
 
   self:register(Event.Render, self.render)
 end)

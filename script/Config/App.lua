@@ -1,7 +1,11 @@
 Config.app = 'LTheoryRedux'
 
 Config.gameTitle   = "Limit Theory Redux"
-Config.gameVersion = "v0.007"
+Config.gameVersion = "v0.008"
+
+Config.paths = {
+  soundAmbiance = "./res/sound/system/ambiance/",
+}
 
 Config.debug = {
   metrics         = true,
@@ -51,7 +55,37 @@ Config.gen = {
   shipRes     = 8,
   nebulaRes   = 1024,
 
-  scalePlanet = 2000,
+  zNearBack   = 0.1,
+  zNearReal   = 0.1, -- 0.1
+  zFarBack    = 1e6,
+  zFarReal    = 1e5, -- 1e6
+
+  scaleSystemBack    = 2e5,
+  scaleSystemReal    = 1e6, -- 1e9 maximum
+  scalePlanetBack    = 120000,
+  scalePlanetReal    = 180000,
+  scalePlanetModBack = 7e4,
+  scalePlanetModReal = 4e5,
+
+  scaleSystem        = 1e6,   -- this needs to be extended massively; see also zFar and zNear
+  scaleStar          = 1e6,
+  scalePlanet        = 2000,
+  scalePlanetMod     = 7e4,
+  scaleFieldAsteroid = 10000, -- overwritten in Local.lua
+  scaleAsteroid      = 7.0,
+  scaleStation       = 100,
+
+  radiusAsteroid =     50000, -- 0.005 km to 450 km
+  radiusPlanet   =   6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
+  radiusStar     = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
+
+  massAsteroidExp = {4.1,  -- Carbonaceous
+                     5.7,  -- Metallic
+                     3.2}, -- Silicaceous
+  massAsteroid    = 5e18,  -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
+  massPlanet      = 6e24,  -- 5.97e24 is Earth's mass in kg (1.e10 as a test value)
+  massStar        = 2e30,  -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
+
   playerShipSize = 4,
 }
 
@@ -62,10 +96,9 @@ Config.game = {
   humanPlayer = nil,
   currentShip = nil,
   currentPlanet = nil,
-  currentZone = nil,
 
-  mapSystemPos  = Vec2f(0, 0),
-  mapSystemZoom = 0.01,
+  mapSystemPos  = Vec3f(0, 0, 0),
+  mapSystemZoom = 0.0001,
 
   pStartCredits = 10000,
   eStartCredits = 100000,
@@ -90,8 +123,6 @@ Config.game = {
   shipHealth             = 100,
   shipHealthRegen        = 2,
 
-  stationScale           = 20,
-
   playerDamageResistance = 1.0,
 
   enemies                = 0,
@@ -113,13 +144,23 @@ Config.game = {
                                 0,  -- Star Sector
                                 0,  -- Star System
                              2000,  -- Zone
-                            50000,  -- Planet (probably should be radius + offset)
-                              200,  -- Asteroid
+                              1e7,  -- Star (TODO: radius + offset)
+                            30000,  -- Planet (TODO: radius + offset)
+                              300,  -- Asteroid
                               500,  -- Jumpgate
-                             1000,  -- Station
+                             2000,  -- Station
                               100}, -- Ship
 
   dockRange              = 50,
+
+  dispoMin               = -1.0,
+  dispoNeutral           =  0.0,
+  dispoMax               =  1.0,
+  dispoHostileThreshold  = -0.3333333,
+  dispoFriendlyThreshold =  0.3333333,
+  dispoName              = {"hostile",
+                            "neutral",
+                            "friendly"},
 }
 
 Config.render = {
@@ -127,6 +168,8 @@ Config.render = {
   startingVert =  900,
   fullscreen   = false,
   vsync        = true,
+  zNear        = 0.1, -- default: 0.1
+  zFar         = 1e8, -- default: 1e6
 }
 
 Config.audio = {
@@ -250,12 +293,13 @@ Config.objectInfo = {
       { 3, "Star Sector", ""},
       { 4, "Star System", ""},
       { 5, "Zone", "zone_subtypes"},
-      { 6, "Planet", "planet_subtypes"},
-      { 7, "Asteroid", "asteroid_subtypes"},
-      { 8, "Jumpgate", "kumpgate_subtypes"},
-      { 9, "Station", "station_subtypes"},
-      {10, "Ship", "ship_subtypes"},
-      {11, "Colony", "colony_subtypes"},
+      { 6, "Star", "star_subtypes"},
+      { 7, "Planet", "planet_subtypes"},
+      { 8, "Asteroid", "asteroid_subtypes"},
+      { 9, "Jumpgate", "kumpgate_subtypes"},
+      {10, "Station", "station_subtypes"},
+      {11, "Ship", "ship_subtypes"},
+      {12, "Colony", "colony_subtypes"},
     }
   },
   {
@@ -321,14 +365,14 @@ Config.objectInfo = {
     }
   },
   {
-    ID = "asteroid_subtypes",
-    name = "Asteroid Types",
+    ID = "asteroid_subtypes",     -- if you change these, also change massAsteroidExp
+    name = "Asteroid Types",      -- until reference functions access the values from here
     elems = {
-      { 1, "Unknown"},
-      { 2, "Reserved"},
-      { 3, "Carbonaceous"},
-      { 4, "Metallic"},
-      { 5, "Silicaceous"},
+      { 1, "Unknown",      0.0},
+      { 2, "Reserved",     0.0},
+      { 3, "Carbonaceous", 5.5},
+      { 4, "Metallic",     6.0},
+      { 5, "Silicaceous",  5.0},
     }
   },
   {

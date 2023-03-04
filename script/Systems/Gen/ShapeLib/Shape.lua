@@ -218,8 +218,8 @@ function Shape:getFaceNormal (poly)
     n:inormalize()
     return n
   else
-    print("Bad normal at poly:")
-    self:printPoly(poly)
+--    print("Bad normal at poly:") -- TEMP: disabled to keep it from interrupting other testing
+--    self:printPoly(poly)         -- TEMP: disabled to keep it from interrupting other testing
     --assert(n:length() > 1e-6)
   end
   return nil

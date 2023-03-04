@@ -2,6 +2,7 @@ local Entity = require('GameObjects.Entity')
 local Material = require('GameObjects.Material')
 
 local Ship = subclass(Entity, function (self, proto)
+
   self:addActions()
 --  self:addAssets()
   self:addCapacitor(100, 10)
@@ -10,6 +11,9 @@ local Ship = subclass(Entity, function (self, proto)
   self:addExplodable()
   self:addHealth(500, 5)
   self:addInventory(100)
+  self:addTrackable(true)
+  self:addAttackable(true)
+  self:addMinable(false)
 
   self.explosionSize = 64 -- ships get the default explosion size
 
@@ -32,8 +36,9 @@ local Ship = subclass(Entity, function (self, proto)
   self:setDrag(0.75, 4.0)
   self:setScale(proto.scale)
 
-  local mass = 50.0 * (self:getRadius() ^ 3.0)
-  self:setMass(mass)
+  -- TODO: Use mass values from the ship hull class
+  local mass = 1000.0 + (self:getRadius() * 2000) -- (fully loaded F-15 = 20,000 kg, but Josh's mass calc gets sluggish x 10)
+  self:setMass(mass) -- holy heck, do NOT use too low a number here; the screen will wobble uncontrollably
 
   local shipDocked = false
 end)
@@ -69,13 +74,13 @@ end
 function Ship:setShipDocked (bDocked)
   self.shipDocked = bDocked
 
-local station = self:getParent()
-if self.shipDocked then
-  printf("%s docked at Station %s", self:getName(), station:getName())
-else
-  printf("%s undocked from Station %s", self:getName(), station:getName())
-end
-
+  -- Debugging
+  local station = self:getParent()
+  if self.shipDocked then
+    printf("%s docked at Station %s", self:getName(), station:getName())
+  else
+    printf("%s undocked from Station %s", self:getName(), station:getName())
+  end
 end
 
 function Ship:isShipDocked ()
