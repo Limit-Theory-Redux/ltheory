@@ -56,8 +56,8 @@ function FMODTest:onInit ()
 
   self.musicToggle = 0
   self.music = {}
-  self.music[0] = Sound.Load(Music.MainTheme, false, false)
-  self.music[1] = Sound.Load(Music.AltTheme, false, false)
+  self.music[0] = Sound.Load(Music.MainTheme, true, false)
+  self.music[1] = Sound.Load(Music.AltTheme, true, false)
   self.music[self.musicToggle]:play()
 
   for i = 1, #self.emitters do
