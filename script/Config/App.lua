@@ -13,7 +13,7 @@ Config.debug = {
   windowSection   = nil,  -- Set to the name of a debug window section to
                           -- collapse all others by default
 
-  instantJobs     = true,
+  instantJobs     = true, -- set to true to speed up econmomic testing
 
   timeAccelFactor = 10,
 }
@@ -61,7 +61,7 @@ Config.gen = {
   zFarReal    = 1e5, -- 1e6
 
   scaleSystemBack    = 2e5,
-  scaleSystemReal    = 1e6, -- 1e9 maximum
+  scaleSystemReal    = 1e6, -- 2e9 maximum
   scalePlanetBack    = 120000,
   scalePlanetReal    = 180000,
   scalePlanetModBack = 7e4,

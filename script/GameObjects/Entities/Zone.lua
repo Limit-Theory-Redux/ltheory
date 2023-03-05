@@ -34,4 +34,8 @@ function Zone:sample (rng)
   return rng:choose(self.children)
 end
 
+function Zone:getRandomPos (rng)
+  return self.pos + rng:getDir3():scale((0.1 * self.extent) * rng:getExp() ^ rng:getExp())
+end
+
 return Zone

@@ -44,6 +44,7 @@ function Transport:getPayout (e)
   local capacity = e:getInventoryCapacity()
   local maxCount = math.floor(capacity / self.item:getMass())
   local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
+printf("Mine:payout = %s", profit)
   return profit
 end
 

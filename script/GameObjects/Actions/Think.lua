@@ -52,46 +52,44 @@ function Think:manageAsset (asset)
   end
 end
 
-if true then -- Use payout, not flow
-  function Think:manageAsset (asset)
-    local root = asset:getRoot()
-    local bestPayout = 0
-    local bestJob = nil
-
-    -- Consider re-running last job
-    if asset.job then
-      local payout = asset.job:getPayout(asset)
-      if payout > bestPayout then
-        bestPayout = payout
-        bestJob = asset.job
-      end
-    end
-
-    -- Consider changing to a new job
-    for i = 1, kJobIterations do
-      -- TODO : KnowsAbout check
-      local job = self.rng:choose(root:getEconomy().jobs)
-      if not job then break end
-
-      local payout = job:getPayout(asset)
-      if payout > bestPayout then
-        bestPayout = payout
-        bestJob = job
-      end
-    end
-
-    if bestJob then
-      asset.job = bestJob
-      asset:pushAction(bestJob)
-    end
-  end
-
-end
+--if true then -- Use payout, not flow
+--  function Think:manageAsset (asset)
+--    local root = asset:getRoot()
+--    local bestPayout = 0
+--    local bestJob = nil
+--
+--    -- Consider re-running last job
+--    if asset.job then
+--      local payout = asset.job:getPayout(asset)
+--      if payout > bestPayout then
+--        bestPayout = payout
+--        bestJob = asset.job
+--      end
+--    end
+--
+--    -- Consider changing to a new job
+--    for i = 1, kJobIterations do
+--      -- TODO : KnowsAbout check
+--      local job = self.rng:choose(root:getEconomy().jobs)
+--      if not job then break end
+--
+--      local payout = job:getPayout(asset)
+--      if payout > bestPayout then
+--        bestPayout = payout
+--        bestJob = job
+--      end
+--    end
+--
+--    if bestJob then
+--      asset.job = bestJob
+--      asset:pushAction(bestJob)
+--    end
+--  end
+--end
 
 function Think:onUpdateActive (e, dt)
   Profiler.Begin('Action.Think')
   do -- Manage assets
---printf("%s is thinking", e:getName())
     for asset in e:iterAssets() do
       if asset:getRoot():hasEconomy() and asset:isIdle() then
         self:manageAsset(asset)

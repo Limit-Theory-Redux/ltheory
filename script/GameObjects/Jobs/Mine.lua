@@ -1,4 +1,5 @@
 local Job = require('GameObjects.Job')
+local Flow = require('Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
 local Mine = subclass(Job, function (self, src, dst)
@@ -29,6 +30,8 @@ function Mine:getPayout (e)
   local capacity = e:getInventoryCapacity()
   local item = self.src:getYield().item
   local count = math.floor(capacity / item:getMass())
+printf("Mine: capacity = %d, item = %s, count = %d, dest = %s, payout = %s",
+capacity, item:getName(), count, self.dst:getName(), self.dst:getTrader():getSellToPrice(item, count))
   return self.dst:getTrader():getSellToPrice(item, count)
 end
 

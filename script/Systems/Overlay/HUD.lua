@@ -146,12 +146,20 @@ function HUD:drawTargets (a)
               elseif target:getType() == Config:getObjectTypeByName("object_types", "Jumpgate") then
                 targetName = "Jumpgate " .. target:getName()
               end
+              local tcr = 1
+              local tcg = 1
+              local tcb = 1
+              if target:isDestroyed() then
+                tcr = 0
+                tcg = 0
+                tcb = 0
+              end
               UI.DrawEx.TextAdditive(
                 'NovaMono',
                 targetName,
                 10,
                 (bx1 + bx2) / 2 - targetName:len() / 2, by1 - 30, targetName:len(), 20,
-                1, 1, 1, a,
+                tcr, tcg, tcb, a,
                 0.5, 0.5
               )
             end

@@ -5,6 +5,12 @@
 
 local Item = require('Systems.Economy.Item')
 
+Item.T1 = {} -- nonsolid
+Item.T2 = {} -- solid, raw, inanimate
+Item.T3 = {} -- solid, raw, animate
+Item.T4 = {} -- solid, processed, elemental
+Item.T5 = {} -- solid, processed, constructed
+
 Item.Energy      = Item('Energy Cell',            1,   1.00)
 Item.Data        = Item('Data Cube',              1,   0.10)
 Item.Information = Item('Info Wafer',             1,   0.12)
@@ -38,12 +44,6 @@ Item.HullShip    = Item('Ship Hull',             36,   1.00)
 Item.EngineShip  = Item('Ship Engine',           36,   1.00)
 Item.WeaponShip  = Item('Ship Weapon',           20,   1.00)
 Item.Waste       = Item('Radioactive Waste',      1,   0.50)
-
-Item.T1 = {} -- nonsolid
-Item.T2 = {} -- solid, raw, inanimate
-Item.T3 = {} -- solid, raw, animate
-Item.T4 = {} -- solid, processed, elemental
-Item.T5 = {} -- solid, processed, constructed
 
 insert(Item.T1, Item.Energy)
 insert(Item.T1, Item.Data)

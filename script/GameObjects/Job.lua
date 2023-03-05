@@ -15,6 +15,7 @@ function Job:getName ()
 end
 
 function Job:getPayout (e)
+printf("Job:payout = nil")
   assert(false, 'NYI @ Job.getPayout')
 end
 
@@ -25,6 +26,7 @@ function Job:getPressure (e)
     local curr = prev + flow.rate
     pressure = pressure + (curr*curr - prev*prev)
   end
+--printf("pressure = %s", pressure)
   return pressure
 end
 

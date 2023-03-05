@@ -158,13 +158,15 @@ function Entity:addTrader ()
   self.trader = Trader(self)
   self:register(Event.Debug, Entity.debugTrader)
   self:register(Event.Update, Entity.updateTrader)
+  return self.trader
 end
 
 function Entity:debugTrader (state)
   local ctx = state.context
   ctx:text('Trader')
   ctx:indent()
-  ctx:text('Credits: %d', self.trader.credits)
+  ctx:text('Credits: %d', self:getCredits())
+--  ctx:text('Credits: %d', self.trader.credits)
   for item, data in pairs(self.trader.elems) do
     ctx:text('%s', item:getName())
     ctx:indent()

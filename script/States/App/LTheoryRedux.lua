@@ -318,17 +318,14 @@ printf("Added %s asteroids to %s", asteroidCount, afield:getName())
       newShip:setHealth(500, 500, 20)
       Config.game.currentShip = newShip
       LTheoryRedux:insertShip(newShip)
-      afield = rng:choose(self.system:getZones())
-      if afield then
-        local newpos = afield:getPos()
---local newpos = Vec3f(500000, 500000, 500000) -- visible ship wobble!
---local newpos = Vec3f(0, 0, 0)
-printf("oldpos = %s, newpos = %s", newShip:getPos(), newpos)
-        newShip:setPos(newpos) -- start the player's ship in the middle of a random asteroid field
-      end
+
+      -- Set our ship's starting location within the extent of a random asteroid field
+      self.system:place(rng, newShip)
+printf("Player ship position = %s", newShip:getPos())
+
       printf("Added our ship, the '%s'", newShip:getName())
 
-      -- Add escort ships
+      -- Add escort ships clustered around the player's ship
       local ships = {}
       for i = 1, 100 do
         local escort = self.system:spawnShip(nil)
