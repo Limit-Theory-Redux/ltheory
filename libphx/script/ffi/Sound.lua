@@ -21,6 +21,7 @@ do -- C Definitions
     cstr   Sound_GetPath               (Sound*);
     bool   Sound_IsFinished            (Sound*);
     bool   Sound_IsPlaying             (Sound*);
+    bool   Sound_IsAudible             (Sound*);
     void   Sound_Attach3DPos           (Sound*, Vec3f const* pos, Vec3f const* vel);
     void   Sound_Set3DLevel            (Sound*, float);
     void   Sound_Set3DPos              (Sound*, Vec3f const* pos, Vec3f const* vel);
@@ -29,6 +30,8 @@ do -- C Definitions
     void   Sound_SetPitch              (Sound*, float);
     void   Sound_SetPlayPos            (Sound*, float);
     void   Sound_SetVolume             (Sound*, float);
+    void   Sound_FadeIn                (Sound*, float);
+    void   Sound_FadeOut               (Sound*, float);
     Sound* Sound_LoadPlay              (cstr name, bool isLooped, bool is3D);
     Sound* Sound_LoadPlayAttached      (cstr name, bool isLooped, bool is3D, Vec3f const* pos, Vec3f const* vel);
     void   Sound_LoadPlayFree          (cstr name, bool isLooped, bool is3D);
@@ -58,6 +61,7 @@ do -- Global Symbol Table
     GetPath               = libphx.Sound_GetPath,
     IsFinished            = libphx.Sound_IsFinished,
     IsPlaying             = libphx.Sound_IsPlaying,
+    IsAudible             = libphx.Sound_IsAudible,
     Attach3DPos           = libphx.Sound_Attach3DPos,
     Set3DLevel            = libphx.Sound_Set3DLevel,
     Set3DPos              = libphx.Sound_Set3DPos,
@@ -66,6 +70,8 @@ do -- Global Symbol Table
     SetPitch              = libphx.Sound_SetPitch,
     SetPlayPos            = libphx.Sound_SetPlayPos,
     SetVolume             = libphx.Sound_SetVolume,
+    FadeIn                = libphx.Sound_FadeIn,
+    FadeOut               = libphx.Sound_FadeOut,
     LoadPlay              = libphx.Sound_LoadPlay,
     LoadPlayAttached      = libphx.Sound_LoadPlayAttached,
     LoadPlayFree          = libphx.Sound_LoadPlayFree,
@@ -99,6 +105,7 @@ do -- Metatype for class instances
       getPath               = libphx.Sound_GetPath,
       isFinished            = libphx.Sound_IsFinished,
       isPlaying             = libphx.Sound_IsPlaying,
+      isAudible             = libphx.Sound_IsAudible,
       attach3DPos           = libphx.Sound_Attach3DPos,
       set3DLevel            = libphx.Sound_Set3DLevel,
       set3DPos              = libphx.Sound_Set3DPos,
@@ -107,6 +114,8 @@ do -- Metatype for class instances
       setPitch              = libphx.Sound_SetPitch,
       setPlayPos            = libphx.Sound_SetPlayPos,
       setVolume             = libphx.Sound_SetVolume,
+      fadeIn                = libphx.Sound_FadeIn,
+      fadeOut               = libphx.Sound_FadeOut,
       clonePlay             = libphx.Sound_ClonePlay,
       clonePlayAttached     = libphx.Sound_ClonePlayAttached,
       clonePlayFree         = libphx.Sound_ClonePlayFree,

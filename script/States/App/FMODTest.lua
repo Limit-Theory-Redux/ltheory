@@ -3,9 +3,14 @@ local Bindings = require('States.ApplicationBindings')
 
 local FMODTest = require('States.Application')
 
+local Music = {
+  MainTheme = './res/sound/system/ambiance/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade',
+  AltTheme = './res/sound/system/ambiance/LTR_Parallax_Universe_loop'
+}
+
 local SFX = {
-  Gun  = 'blaster',
-  Hero = 'chewy',
+--  Gun  = 'blaster',
+--  Hero = 'chewy',
 }
 
 local kMoveSpeed = 100.0
@@ -19,12 +24,12 @@ function FMODTest:onInit ()
   Audio.Set3DSettings(1, 10, 2);
 
   self.emitters = {
-    { file = 'cantina', image = 'image/cantinaband', x = 128, y = 100 },
-    { file = 'Imperial_March', image = 'image/vader', x = 256, y = 600 },
+  --  { file = 'cantina', image = 'image/cantinaband', x = 128, y = 100 },
+  --  { file = 'Imperial_March', image = 'image/vader', x = 256, y = 600 },
   }
 
   self.ambiances = {
-    '900years',
+--[[     '900years',
     'breath',
     'chewy',
     'chosenone',
@@ -36,7 +41,7 @@ function FMODTest:onInit ()
     'thybidding',
     'traintheboy',
     'yesmaster',
-    'yodalaugh',
+    'yodalaugh', ]]
   }
 
   self.rng = RNG.FromTime()
@@ -47,7 +52,13 @@ function FMODTest:onInit ()
     end
   end
 
-  Sound.Load('cantina', true, true)
+--  Sound.Load('cantina', true, true)
+
+  self.musicToggle = 0
+  self.music = {}
+  self.music[0] = Sound.Load(Music.MainTheme, false, false)
+  self.music[1] = Sound.Load(Music.AltTheme, false, false)
+  self.music[self.musicToggle]:play()
 
   for i = 1, #self.emitters do
     local e = self.emitters[i]
@@ -68,22 +79,22 @@ function FMODTest:onInit ()
   self.ambianceTimer = 1.0 + self.rng:getExp()
   self.particles = {}
 
-  self.onKeyDown = {
-    [Key.S] = function () self.vel.z = self.vel.z + kMoveSpeed * self.dt end,
-    [Key.W] = function () self.vel.z = self.vel.z - kMoveSpeed * self.dt end,
-    [Key.D] = function () self.vel.x = self.vel.x + kMoveSpeed * self.dt end,
-    [Key.A] = function () self.vel.x = self.vel.x - kMoveSpeed * self.dt end,
-  }
+  -- self.onKeyDown = {
+  --   [Key.S] = function () self.vel.z = self.vel.z + kMoveSpeed * self.dt end,
+  --   [Key.W] = function () self.vel.z = self.vel.z - kMoveSpeed * self.dt end,
+  --   [Key.D] = function () self.vel.x = self.vel.x + kMoveSpeed * self.dt end,
+  --   [Key.A] = function () self.vel.x = self.vel.x - kMoveSpeed * self.dt end,
+  -- }
 
-  self.onKeyPress = {
-    [Key.N1]    = function () Audio.Prepare(Audio.Load(SFX.Gun, true), true, false):play() end,
-    [Key.N2]    = function () Audio.Prepare(Audio.Load(SFX.Hero, true), false, false):play() end,
-    [Key.Left]  = function () self.pos = Vec3f( 10,  0,   0) end,
-    [Key.Right] = function () self.pos = Vec3f(-10,  0,   0) end,
-    [Key.Up]    = function () self.pos = Vec3f(  0,  0, -10) end,
-    [Key.Down]  = function () self.pos = Vec3f(  0,  0,  10) end,
-    [Key.Space] = function () self.pos = Vec3f(  0,  2,   0) end,
-  }
+  -- self.onKeyPress = {
+  --   [Key.N1]    = function () Audio.Prepare(Audio.Load(SFX.Gun, true), true, false):play() end,
+  --   [Key.N2]    = function () Audio.Prepare(Audio.Load(SFX.Hero, true), false, false):play() end,
+  --   [Key.Left]  = function () self.pos = Vec3f( 10,  0,   0) end,
+  --   [Key.Right] = function () self.pos = Vec3f(-10,  0,   0) end,
+  --   [Key.Up]    = function () self.pos = Vec3f(  0,  0, -10) end,
+  --   [Key.Down]  = function () self.pos = Vec3f(  0,  0,  10) end,
+  --   [Key.Space] = function () self.pos = Vec3f(  0,  2,   0) end,
+  -- }
 end
 
 function FMODTest:onInput ()
@@ -91,30 +102,38 @@ function FMODTest:onInput ()
     self:quit()
   end
 
+  if Input.GetPressed(Button.Mouse.Left) then
+    -- Fade out currently playing music
+    self.music[self.musicToggle]:fadeOut(5.0)
+    -- Fade in alternate music
+    self.musicToggle = (self.musicToggle + 1) % 2
+    self.music[self.musicToggle]:fadeIn(5.0)
+  end
+
   if Input.GetDown(Button.Mouse.Left) then
-    if TimeStamp.GetElapsed(self.lastFireTime) > 0.12 then
-      self.lastFireTime = self.lastUpdate
-      local sound = Sound.Load(SFX.Gun, false, true)
-      sound:setFreeOnFinish(true)
-      sound:set3DPos(Vec3f(0, 0, 0), Vec3f(0, 0, 0))
-      sound:setVolume(Math.Lerp(0.2, 0.6, self.rng:getUniform() ^ 2.0))
-      sound:play()
-    end
+    -- if TimeStamp.GetElapsed(self.lastFireTime) > 0.12 then
+    --   self.lastFireTime = self.lastUpdate
+    --   local sound = Sound.Load(SFX.Gun, false, true)
+    --   sound:setFreeOnFinish(true)
+    --   sound:set3DPos(Vec3f(0, 0, 0), Vec3f(0, 0, 0))
+    --   sound:setVolume(Math.Lerp(0.2, 0.6, self.rng:getUniform() ^ 2.0))
+    --   sound:play()
+    -- end
   end
 
   if Input.GetDown(Button.Mouse.Right) then
-    local is = Input.GetState()
+    local is = Input.GetMousePosition()
     self.pos.x = is.mousePosition.x
     self.pos.z = is.mousePosition.y
   end
 
-  for k, v in pairs(self.onKeyDown) do
-    if Input.GetDown(k) then v() end
-  end
+  -- for k, v in pairs(self.onKeyDown) do
+  --   if Input.GetDown(k) then v() end
+  -- end
 
-  for k, v in pairs(self.onKeyPress) do
-    if Input.GetPressed(k) then v() end
-  end
+  -- for k, v in pairs(self.onKeyPress) do
+  --   if Input.GetPressed(k) then v() end
+  -- end
 end
 
 function FMODTest:onDraw ()
@@ -155,13 +174,13 @@ function FMODTest:onUpdate (dt)
     self.ambianceTimer = self.ambianceTimer - dt
     if self.ambianceTimer <= 0 then
       self.ambianceTimer = self.ambianceTimer + 0.25 * self.rng:getExp()
-      local sound = Sound.Load(self.rng:choose(self.ambiances), false, true)
+--      local sound = Sound.Load(self.rng:choose(self.ambiances), false, true)
       local dp = self.rng:getDir2():scale(100.0 * (1.0 + self.rng:getExp()))
-      sound:setFreeOnFinish(true)
-      sound:setPitch(Math.Clamp(1.0 + 0.1 * self.rng:getGaussian(), 0.6, 1.0 / 0.6))
-      sound:set3DPos(self.pos + Vec3f(dp.x, 0, dp.y), Vec3f(0, 0, 0))
-      sound:setVolume(0.5 + 0.5 * self.rng:getExp())
-      sound:play()
+      -- sound:setFreeOnFinish(true)
+      -- sound:setPitch(Math.Clamp(1.0 + 0.1 * self.rng:getGaussian(), 0.6, 1.0 / 0.6))
+      -- sound:set3DPos(self.pos + Vec3f(dp.x, 0, dp.y), Vec3f(0, 0, 0))
+      -- sound:setVolume(0.5 + 0.5 * self.rng:getExp())
+      -- sound:play()
       self.particles[#self.particles + 1] = { life = 5, x = self.pos.x + dp.x, y = self.pos.z + dp.y }
     end
   end
