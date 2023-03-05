@@ -257,7 +257,7 @@ void Sound_FadeIn (Sound* self, float seconds) {
 
   int rate = 0;
 	FMODCALL(FMOD_System_GetSoftwareFormat((FMOD_SYSTEM*)Audio_GetHandle(), &rate, 0, 0));
-  unsigned long long fadeTime = unsigned long long(rate * seconds);
+  unsigned long long fadeTime = (unsigned long long)(rate * seconds);
 
   float volume = 1.0f;
   FMODCALL(FMOD_Channel_GetVolume(self->handle, &volume));
@@ -282,7 +282,7 @@ void Sound_FadeOut (Sound* self, float seconds) {
 
   int rate = 0;
 	FMODCALL(FMOD_System_GetSoftwareFormat((FMOD_SYSTEM*)Audio_GetHandle(), &rate, 0, 0));
-  unsigned long long fadeTime = unsigned long long(rate * seconds);
+  unsigned long long fadeTime = (unsigned long long)(rate * seconds);
   
   float volume = 1.0f;
   FMODCALL(FMOD_Channel_GetVolume(self->handle, &volume));
