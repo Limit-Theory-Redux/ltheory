@@ -190,6 +190,13 @@ bool Sound_IsPlaying (Sound* self) {
   return self->state == SoundState_Playing;
 }
 
+bool Sound_IsAudible (Sound* self) {
+  Sound_EnsureState(self);
+  float audibility = 0.0f;
+  FMODCALL(FMOD_Channel_GetAudibility(self->handle, &audibility));
+  return audibility > 0.0f;
+}
+
 void Sound_Attach3DPos (Sound* self, Vec3f const* pos, Vec3f const* vel) {
   //EnsureState happens in Set3DPos already
   Sound_Set3DPos(self, pos, vel);
@@ -235,6 +242,58 @@ void Sound_SetPlayPos (Sound* self, float seconds) {
 void Sound_SetVolume (Sound* self, float volume) {
   Sound_EnsureState(self);
   FMODCALL(FMOD_Channel_SetVolume(self->handle, volume));
+}
+
+void Sound_FadeIn (Sound* self, float seconds) {
+  Sound_EnsureState(self);
+  Assert(seconds >= 0.0f);
+
+  if (Sound_IsPlaying(self) == false) Sound_Play(self);
+  
+  // Already fading in/out?
+  unsigned int numpoints = 0;
+  FMODCALL(FMOD_Channel_GetFadePoints(self->handle, &numpoints, 0, 0));
+  if (numpoints > 0) return;
+
+  int rate = 0;
+	FMODCALL(FMOD_System_GetSoftwareFormat((FMOD_SYSTEM*)Audio_GetHandle(), &rate, 0, 0));
+  unsigned long long fadeTime = (unsigned long long)(rate * seconds);
+
+  float volume = 1.0f;
+  FMODCALL(FMOD_Channel_GetVolume(self->handle, &volume));
+
+  unsigned long long dspClock = 0u;
+  FMODCALL(FMOD_Channel_GetDSPClock(self->handle, nullptr, &dspClock));
+  
+  FMODCALL(FMOD_Channel_SetDelay(self->handle, dspClock, 0, false));
+
+  FMODCALL(FMOD_Channel_AddFadePoint(self->handle, dspClock, 0.0f));
+  FMODCALL(FMOD_Channel_AddFadePoint(self->handle, dspClock + fadeTime, volume));
+}
+
+void Sound_FadeOut (Sound* self, float seconds) {
+  Sound_EnsureState(self);
+  Assert(seconds >= 0.0f);
+
+  // Already fading in/out?
+  unsigned int numpoints = 0;
+  FMODCALL(FMOD_Channel_GetFadePoints(self->handle, &numpoints, 0, 0));
+  if (numpoints > 0) return;
+
+  int rate = 0;
+	FMODCALL(FMOD_System_GetSoftwareFormat((FMOD_SYSTEM*)Audio_GetHandle(), &rate, 0, 0));
+  unsigned long long fadeTime = (unsigned long long)(rate * seconds);
+  
+  float volume = 1.0f;
+  FMODCALL(FMOD_Channel_GetVolume(self->handle, &volume));
+
+  unsigned long long dspClock = 0u;
+  FMODCALL(FMOD_Channel_GetDSPClock(self->handle, nullptr, &dspClock));
+
+  FMODCALL(FMOD_Channel_AddFadePoint(self->handle, dspClock, volume));
+  FMODCALL(FMOD_Channel_AddFadePoint(self->handle, dspClock + fadeTime, 0.0f));
+
+  FMODCALL(FMOD_Channel_SetDelay(self->handle, 0, dspClock + fadeTime, false));
 }
 
 Sound* Sound_LoadPlay (cstr name, bool isLooped, bool is3D) {
