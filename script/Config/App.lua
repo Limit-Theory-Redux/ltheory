@@ -15,7 +15,7 @@ Config.debug = {
 
   instantJobs     = true, -- set to true to speed up econmomic testing
 
-  timeAccelFactor = 10,
+  timeAccelFactor = 100,
 }
 
 Config.debug.physics = {
@@ -101,7 +101,7 @@ Config.game = {
   mapSystemZoom = 0.0001,
 
   pStartCredits = 10000,
-  eStartCredits = 100000,
+  eStartCredits = 1000000,
 
   eInventory = 100,
 
@@ -161,6 +161,10 @@ Config.game = {
   dispoName              = {"hostile",
                             "neutral",
                             "friendly"},
+}
+
+Config.econ = {
+  pickupDistWeight = 15, -- importance of pickup distance when considering a Mine job (depends on system size)
 }
 
 Config.render = {

@@ -20,7 +20,7 @@ end
 function MoveTo:onUpdateActive (e, dt)
   if e:getMinDistance(self.target) <= self.range or (e == Config.game.currentShip and not Config.game.playerMoving) then
     -- MoveTo is complete, remove movement action from entity's Action queue
-printf("-> %s ended", e:getCurrentAction():getName())
+--printf("-> %s ended", e:getCurrentAction():getName())
     e:popAction()
 
     if Config.game.playerMoving then

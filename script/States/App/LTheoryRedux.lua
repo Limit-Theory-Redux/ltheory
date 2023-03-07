@@ -155,8 +155,8 @@ function LTheoryRedux:onUpdate (dt)
           Config.game.autonavTimestamp = Config.getCurrentTimestamp()
           Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
           playerShip:pushAction(Actions.MoveTo(target, autodistance))
-printf("-> %s at time %s, range = %s (moving = %s)",
-  playerShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
+--printf("-> %s at time %s, range = %s (moving = %s)",
+--  playerShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
         end
       end
     end
@@ -325,15 +325,19 @@ printf("Player ship position = %s", newShip:getPos())
 
       printf("Added our ship, the '%s'", newShip:getName())
 
-      -- Add escort ships clustered around the player's ship
+      -- Add some ships that start off clustered around the player's ship
       local ships = {}
-      for i = 1, 100 do
+      for i = 1, Config.gen.nNPCs do
         local escort = self.system:spawnShip(nil)
         local offset = rng:getSphere():scale(100)
         escort:setPos(newShip:getPos() + offset)
+
+        -- TODO: change money ownership from the individual escort ship to the escort ship's AI player/owner
         escort:addItem(Item.Credit, Config.game.eStartCredits)
-        escort:pushAction(Actions.Escort(newShip, offset))
---        escort:getOwner():pushAction(Actions.Think())
+        escort:addCredits(Config.game.eStartCredits)
+
+--        escort:pushAction(Actions.Escort(newShip, offset))
+        escort:getOwner():pushAction(Actions.Think())
 --        escort:pushAction(Actions.Attack(newShip))
         insert(ships, escort)
       end

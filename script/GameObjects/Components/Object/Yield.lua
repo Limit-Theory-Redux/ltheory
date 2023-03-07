@@ -21,7 +21,7 @@ function Entity:debugYield (state)
   ctx:text('Yield')
   ctx:indent()
   ctx:text('Item: %s', self.yield.item:getName())
-  ctx:text('Size: %.2f', self.yield.size)
+  ctx:text('Size: %d', self.yield.size)
   ctx:undent()
 end
 

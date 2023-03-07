@@ -99,8 +99,8 @@ function Economy:debug (ctx)
   for item, data in pairs(self.goods) do
     ctx:text('%s', item:getName())
     ctx:indent()
-    -- ctx:text('BUYING  : min = %.2f, max = %.2f', data.buyMin, data.buyMax)
-    -- ctx:text('SELLING : min = %.2f, max = %.2f', data.sellMin, data.sellMax)
+    ctx:text('BUYING  : min = %.2f, max = %.2f', data.buyMin, data.buyMax)
+    ctx:text('SELLING : min = %.2f, max = %.2f', data.sellMin, data.sellMax)
     ctx:undent()
   end
 end

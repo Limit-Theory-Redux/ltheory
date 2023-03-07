@@ -7,13 +7,13 @@ local TestEcon = require('States.Application')
 local SystemMap = require('Systems.CommandView.SystemMap')
 
 local rng = RNG.FromTime()
---local rng = RNG.Create(10)
+--local rng = RNG.Create(10) -- for when the same seed is needed
 
-local kAssets = 4
-local kPlayers = 3
-local kStations = 4
-local kFields = 5
+local kFields = 10
 local kFieldCount = 200
+local kStations = 24
+local kPlayers = 3
+local kAssets = 333
 
 function TestEcon:getWindowMode ()
   return Bit.Or32(WindowMode.Shown, WindowMode.Resizable)
@@ -52,22 +52,22 @@ function TestEcon:showStatus ()
       end
       ctx:undent()
       ctx:undent()
-      ctx:indent()
-      ctx:text("Assets:")
-      ctx:indent()
-      for asset in v:iterAssets() do
-        ctx:text("%s", asset:getName())
-        ctx:indent()
-        ctx:text("Actions:")
-        ctx:indent()
-        for j, a in ipairs(asset.actions) do
-          ctx:text("%d : %s", j, a:getName())
-        end
-        ctx:undent()
-        ctx:undent()
-      end
-      ctx:undent()
-      ctx:undent()
+--      ctx:indent()
+--      ctx:text("Assets:")
+--      ctx:indent()
+--      for asset in v:iterAssets() do
+--        ctx:text("%s", asset:getName())
+--        ctx:indent()
+--        ctx:text("Actions:")
+--        ctx:indent()
+--        for j, a in ipairs(asset.actions) do
+--          ctx:text("%d : %s", j, a:getName())
+--        end
+--        ctx:undent()
+--        ctx:undent()
+--      end
+--      ctx:undent()
+--      ctx:undent()
       ctx:undent()
     end
   end)
@@ -120,7 +120,10 @@ function TestEcon:onInit ()
   for i = 1, kPlayers do
     local tradePlayerName = format("AI Trade Player %d", i)
     local tradePlayer = Entities.Player(tradePlayerName)
+
+    -- Give player some starting money
     tradePlayer:addItem(Item.Credit, Config.game.eStartCredits)
+    tradePlayer:addCredits(Config.game.eStartCredits)
 
     -- Create assets (ships)
     self.system:spawnAI(kAssets, Actions.Wait(10), tradePlayer)

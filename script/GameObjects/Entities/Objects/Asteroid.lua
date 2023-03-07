@@ -19,6 +19,7 @@ local Asteroid = subclass(Entity, function (self, seed, scale)
   self:addMinable(true)
 
   -- NOTE: scale must be set before the radius will be reported correctly
+  -- may be updated by the caller
   self:setScale(scale)
 
   -- TODO: Define asteroid mass as radius ^ asteroid type exponent

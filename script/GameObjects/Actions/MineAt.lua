@@ -15,6 +15,10 @@ end
 
 function MineAt:onUpdateActive (e, dt)
   local item = self.target:getYield().item
+
+--printf("MineAt: [%s], target:name = %s, target item = %s",
+--e:getName(), self.target:getName(), self.target:getYield().item:getName())
+
   if Config.debug.instantJobs then
     while e:addItem(item, 1) do end
     e:popAction()

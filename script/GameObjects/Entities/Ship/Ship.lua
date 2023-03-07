@@ -54,7 +54,7 @@ function Ship:attackedBy (target)
   -- TODO: Improve smarts so that this ship can decide which of multiple attackers to target
   if not self:isDestroyed() then
     -- Ignore hits on ships that have already been destroyed
-printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
+--printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
     self:modDisposition(target, -0.2)
     if self ~= Config.game.currentShip and self:isHostileTo(target) then
       -- If this non-player-controlled ship is not yet attacking its attacker, empty its Action queue and add the Attack action
@@ -75,12 +75,12 @@ function Ship:setShipDocked (bDocked)
   self.shipDocked = bDocked
 
   -- Debugging
-  local station = self:getParent()
-  if self.shipDocked then
-    printf("%s docked at Station %s", self:getName(), station:getName())
-  else
-    printf("%s undocked from Station %s", self:getName(), station:getName())
-  end
+--local station = self:getParent()
+--if self.shipDocked then
+--  printf("%s docked at Station %s", self:getName(), station:getName())
+--else
+--  printf("%s undocked from Station %s", self:getName(), station:getName())
+--end
 end
 
 function Ship:isShipDocked ()

@@ -23,12 +23,13 @@ local Planet = subclass(Entity, function (self, seed)
   -- Enable market/production on planets
   -- TODO: Replace with 0 - N colonies, each of which has its own distinct
   --       market/production/research capabilities
-  self:addChildren()
   self:addActions()
+  self:addChildren()
+  self:addDockable() -- TODO: rethink how "docking with planets" should work
   self:addFlows()
-  self:addInventory(1e8)
-  self:addTrackable(true)
+  self:addInventory(1e10)
   self:addMinable(false)
+  self:addTrackable(true)
 
   self.mesh = mesh
   self.meshAtmo = Gen.Primitive.IcoSphere(5):managed()

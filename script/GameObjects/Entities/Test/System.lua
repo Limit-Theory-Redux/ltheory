@@ -134,8 +134,8 @@ printf("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
   planet:setScale(scale)
 
   -- Planets have significant market capacity
---  planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- temporary!
   planet:addMarket()
+  planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- TEMP
 
   -- Planets have enormous trading capacity
   planet:addTrader()
@@ -143,27 +143,26 @@ printf("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
   -- Let the planet bid on all items
   -- TODO: add iterating through each item type
   for _, v in pairs(Item.T1) do
-    -- TODO: generate better bid price (ask price?); this is just for testing the "payout" model in Think.lua
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
     planet.trader:addBid(v, rng:getInt(50, 200))
   end
   for _, v in pairs(Item.T2) do
-    -- TODO: generate better bid price (ask price?); this is just for testing the "payout" model in Think.lua
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
     planet.trader:addBid(v, rng:getInt(20, 100))
   end
   for _, v in pairs(Item.T3) do
-    -- TODO: generate better bid price (ask price?); this is just for testing the "payout" model in Think.lua
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
     planet.trader:addBid(v, rng:getInt(150, 350))
   end
   for _, v in pairs(Item.T5) do
-    -- TODO: generate better bid price (ask price?); this is just for testing the "payout" model in Think.lua
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
     planet.trader:addBid(v, rng:getInt(2550, 40000))
   end
 
   -- Planets have significant manufacturing capacity
-  local prod = self.rng:choose(Production.All())
-  planet:addFactory()
   -- TODO: Move on-planet production to manufacturing colonies
-  planet:addProduction(prod)
+--  planet:addFactory()
+--  planet:addProduction(self.rng:choose(Production.All()))
 
   if bAddBelt then
     -- Add a planetary belt
@@ -236,7 +235,7 @@ function System:spawnAsteroidField (count, reduced)
   zone:setExtent(Config.gen.scaleFieldAsteroid)
 
   for i = 1, count do
-    -- Define the scale (size) of the new asteroid; "reduced" means make small ones only
+    -- Define the actual scale (size) of the new asteroid; "reduced" means make small ones only
     local scale = 7 * (1 + rng:getExp() ^ 3)
     if reduced then
       scale = 7 * (1 + rng:getExp())
@@ -304,7 +303,8 @@ end
 function System:setAsteroidYield (rng, asteroid)
   -- TODO: Replace with actual system for generating minable materials in asteroids
   if rng:getInt(0, 100) > 50 then
-    asteroid:addYield(rng:choose(Item.T2), rng:getInt(1, 100))
+    local amass = math.floor(asteroid:getMass() / 1000)
+    asteroid:addYield(rng:choose(Item.T2), rng:getInt(amass / 2, amass))
   end
 end
 
@@ -330,21 +330,28 @@ function System:spawnStation (player, fieldPos, fieldExtent)
 
   -- Stations have market capacity
   station:addMarket()
-  station:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0))
+  for _, v in pairs(Item.T2) do
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    local flowval = self.rng:getUniformRange(-1000, 0)
+--printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
+    station:setFlow(v, flowval) -- TEMP
+  end
 
   -- Stations have trading capacity
   station:addTrader()
   station:addCredits(Config.game.eStartCredits)
-  station.trader.credits = Config.game.eStartCredits
+--  station.trader.credits = Config.game.eStartCredits
   -- Let the station bid on all items that can be mined (T2)
   for _, v in pairs(Item.T2) do
-    -- TODO: generate better bid price (ask price?); this is just for testing the "payout" model in Think.lua
-    station.trader:addBid(v, 100)
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    local bidPrice = rng:getInt(20, 100)
+--printf("Station %s: adding bid for item %s at bid price %d", station:getName(), v:getName(), bidPrice)
+    station.trader:addBid(v, bidPrice)
   end
 
   -- Stations have manufacturing capacity
-  local prod = rng:choose(Production.All())
   station:addFactory()
+  local prod = rng:choose(Production.All())
   station:addProduction(prod)
   station:setSubType(Config:getObjectTypeByName("station_subtypes", prod:getName()))
 

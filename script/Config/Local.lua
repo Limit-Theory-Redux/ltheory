@@ -11,10 +11,10 @@ Config.audio.bSoundOn = false
 
 Config.gen.scaleFieldAsteroid = Config.gen.scaleAsteroid * 9500
 Config.gen.nBeltSize = function (rng) return 200 end
-Config.gen.nNPCs = 100
-Config.gen.nFields = 3
+Config.gen.nNPCs = 1000
+Config.gen.nFields = 8
 Config.gen.nPlanets = 1
-Config.gen.nStations = 6
+Config.gen.nStations = 15
 Config.gen.nTurrets = 1
 Config.gen.nThrusters = 2
 -- Config.gen.nDustClouds = 0
