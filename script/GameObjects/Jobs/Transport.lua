@@ -44,6 +44,7 @@ function Transport:getPayout (e)
   local capacity = e:getInventoryCapacity()
   local maxCount = math.floor(capacity / self.item:getMass())
   local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
+printf("Mine:payout = %s", profit)
   return profit
 end
 
@@ -59,7 +60,7 @@ function Transport:onUpdateActive (e, dt)
     local capacity = e:getInventoryCapacity()
     local maxCount = math.floor(capacity / self.item:getMass())
     local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
-    -- printf("[TRADE] %d x %s from %s -> %s, expect %d profit", count, self.item:getName(), self.src:getName(), self.dst:getName(), profit)
+printf("[TRADE] %d x %s from %s -> %s, expect %d profit", count, self.item:getName(), self.src:getName(), self.dst:getName(), profit)
     e.tradeCount = count
     e:pushAction(Actions.DockAt(self.src))
   elseif e.jobState == 2 then

@@ -90,7 +90,7 @@ end
 function Factory:updateTradeOrders (prod, dt)
   local trader = self.parent:getTrader()
   local duration = prod.type:getDuration()
-  
+
   -- TODO : Intelligently compute price ranges via estimation using item
   --        intrinsic energy
 
@@ -124,7 +124,10 @@ function Factory:update (dt)
   if not self:isBlocked() then self.timeOnline = self.timeOnline + dt end
 
   for _, prod in ipairs(self.prods) do
-    self:updateProduction(prod, dt)
+
+-- TEMPORARILY DISABLED -- restore this once Trader.lua is working
+--    self:updateProduction(prod, dt)
+
     -- NOTE : Disabled trade orders for the moment due to not having limits on
     --        max active orders, leading to stalling the entire game via tens
     --        of thousands of individual energy cell orders...

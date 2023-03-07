@@ -34,10 +34,20 @@ function Trader:addAsk (item, price)
   return true
 end
 
+function Trader:addAsk (item, price)
+  local data = self:getData(item)
+  if not self.parent:removeItem(item, 1) then return false end
+  data.escrow = data.escrow + 1
+  insert(data.asks, price)
+--  insert(data.asksQueue, price) -- TODO: test if this is a good change
+  return true
+end
+
 function Trader:addBid (item, price)
   local data = self:getData(item)
   -- TODO : Remove credits
-  insert(data.bidsQueue, price)
+  insert(data.bids, price)
+--  insert(data.bidsQueue, price) -- TODO: test if this is a good change
   return true
 end
 
@@ -96,35 +106,61 @@ function Trader:buy (asset, item)
   local player = asset:getOwner()
   local data = self:getData(item)
   if #data.asks == 0 then return false end
+  if not player:hasCredits(0) then return false end -- make sure asset's owning player isn't broke
+
   local price = data.asks[1]
   assert(data.escrow > 0)
   if not player:hasItem(Credit, price) then return false end
 
+--printf("BUY: Asset %s (owner %s) buys 1 unit of item %s from trader %s at price %d",
+--asset:getName(), player:getName(), item:getName(), self.parent:getName(), price)
+
   asset:addItem(item, 1)
   player:removeItem(Credit, price)
-  self.credits = self.credits + price
+  self.parent:addCredits(price)
+--  self.credits = self.credits + price
   data.totalAsk = data.totalAsk + 1
   data.totalAskPrice = data.totalAskPrice + price
   data.escrow = data.escrow - 1
-  remove(data.asks, 1)
+  data.asks[1] = (data.asks[1] + 1) or math.huge -- update bid price
+--  remove(data.asks, 1)
   return true
 end
 
 function Trader:sell (asset, item)
+  local rng = self.parent.parent.rng
+  local madeSale = false
+
   local player = asset:getOwner()
   local data = self:getData(item)
-  if #data.bids == 0 then return false end
-  if not asset:hasItem(item, 1) then return false end
+  if #data.bids > 0 then
+    if not asset:hasItem(item, 1) then return false end
 
-  local price = data.bids[1]
-  asset:removeItem(item, 1)
-  player:addItem(Credit, price)
-  self.credits = self.credits - price
-  data.totalBid = data.totalBid + 1
-  data.totalBidPrice = data.totalBidPrice + price
-  self.parent:addItem(item, 1)
-  remove(data.bids, 1)
-  return true
+    local price = data.bids[1]
+    if not self.parent:hasCredits(price) then return false end -- no deal if trader is broke
+    if price > 0 then
+
+--printf("SELL: Asset %s (owner %s) sells 1 unit of item %s to trader %s at price %d",
+--asset:getName(), player:getName(), item:getName(), self.parent:getName(), price)
+
+      asset:removeItem(item, 1)
+      player:addItem(Credit, price)
+      self.parent:removeCredits(price)
+--      self.credits = self.credits - price
+--printf("removed %d credits from %s (now has %d credits)", price, self.parent:getName(), self.parent:getCredits())
+      data.totalBid = data.totalBid + 1
+      data.totalBidPrice = data.totalBidPrice + price
+      self.parent:addItem(item, 1)
+      if rng:getInt(0, 100) < 50 then
+        data.bids[1] = math.max(0, data.bids[1] - 1) -- possibly update bid price
+--      remove(data.bids, 1)
+      end
+
+      madeSale = true
+    end
+  end
+
+  return madeSale
 end
 
 local function sortAsks (a, b)
@@ -136,7 +172,32 @@ local function sortBids (a, b)
 end
 
 function Trader:update ()
+  local rng = self.parent.parent.rng
+
   for item, data in pairs(self.elems) do
+    for i = 1, #data.bids do
+      if rng:getInt(0, 100) < 5 then
+        -- Possibly increase bid (so that there's always some interest in buying something)
+        -- TODO: Connect this to any nearby Factory so that bid prices depend on the factory's desired inputs
+        local raisedPrice = 0
+        if rng:getInt(0, 100) < 10 then
+          raisedPrice = rng:getInt(5, 30) -- rare windfall
+        else
+          raisedPrice = 1 -- restore bid price
+        end
+        if raisedPrice > 0 then
+          if self.parent:hasCredits(raisedPrice) then
+            data.bids[1] = data.bids[1] + math.max(0, raisedPrice or math.huge) -- change bid price (within limits)
+--            printf("%s has %d credits (sale = %s) and raised bid for %s by %d to %d",
+--                self.parent:getName(), self.parent:getCredits(), madeSale, item:getName(), raisedPrice, data.bids[1])
+--          else
+--            printf("%s has %d credits (sale = %s) and can't raise bid for %s by %d",
+--                self.parent:getName(), self.parent:getCredits(), madeSale, item:getName(), raisedPrice)
+          end
+        end
+      end
+    end
+
     if #data.asksQueue > 0 then
       for i, v in ipairs(data.asksQueue) do insert(data.asks, v) end
       table.clear(data.asksQueue)
@@ -158,13 +219,18 @@ function Entity:addTrader ()
   self.trader = Trader(self)
   self:register(Event.Debug, Entity.debugTrader)
   self:register(Event.Update, Entity.updateTrader)
+
+printf("Added Trader to %s", self:getName())
+
+  return self.trader
 end
 
 function Entity:debugTrader (state)
   local ctx = state.context
   ctx:text('Trader')
   ctx:indent()
-  ctx:text('Credits: %d', self.trader.credits)
+  ctx:text('Credits: %d', self:getCredits())
+--  ctx:text('Credits: %d', self.trader.credits)
   for item, data in pairs(self.trader.elems) do
     ctx:text('%s', item:getName())
     ctx:indent()

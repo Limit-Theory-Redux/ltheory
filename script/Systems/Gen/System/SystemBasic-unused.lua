@@ -37,11 +37,12 @@ local function generateSystemBasic (seed)
       e:setScale(Config.gen.scalePlanet)
       e:setPos(Vec3f(dir.x, 0, dir.y):scale(e:getScale() + kSystemScale * (0.25 + 0.75 * sqrt(rng:getUniform()))))
       e:modPos(Config.gen.origin)
-      local center = e:getPos()
-      local rc = 2.00 * e:getRadius()
-      local rw = 0.20 * e:getRadius()
 
       do -- Planetary belts
+        local center = e:getPos()
+        local rc = 2.00 * e:getRadius()
+        local rw = 0.20 * e:getRadius()
+
         for j = 1, Config.gen.nBeltSize(rng) do
           local r = rc + rng:getUniformRange(-rw, rw) * (0.5 + 0.5 * rng:getExp())
           local h = 0.1 * rw * rng:getGaussian()

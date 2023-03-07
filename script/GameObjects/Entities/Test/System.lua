@@ -17,8 +17,10 @@ local System = subclass(Entity, function (self, seed)
   self:setType(Config:getObjectTypeByName("object_types", "Star System"))
 
   self:addChildren()
-  self:addProjectiles()
+
   self:addEconomy()
+
+  self:addProjectiles()
 
   -- NOTE : For now, we will use a flow component on the system to represent
   --        the summed net flow of all entities in the system. Seems natural,
@@ -43,6 +45,21 @@ end
 
 function System:getZones ()
   return self.zones
+end
+
+function System:sampleZones (rng)
+  return rng:choose(self.zones)
+end
+
+function System:place (rng, object)
+  -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
+  -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
+  local pos = Vec3f(0, 0, 0)
+  local field = self:sampleZones(rng)
+  if field then pos = field:getRandomPos(rng) end
+  object:setPos(pos)
+
+  return pos
 end
 
 function System:beginRender ()
@@ -87,9 +104,269 @@ function System:update (dt)
   self:send(event)
 end
 
--- Helpers For Testing ---------------------------------------------------------
+---------------------
+-- OBJECT CREATION --
+---------------------
 
-local kSystemScale = 10000
+function System:spawnPlanet (bAddBelt)
+  local rng = self.rng
+
+  -- Create the new planet
+  local planet = Objects.Planet(rng:get64())
+  planet:setType(Config:getObjectTypeByName("object_types", "Planet"))
+  planet:setSubType(Config:getObjectTypeByName("planet_subtypes", "Rocky"))
+
+  -- Give the new planet a name
+  local planetName = Words.getCoolName(self.rng)
+  planet:setName(format("%s", planetName))
+
+  -- Randomly place the planet within the system, but not within 200 x or y units of the system origin
+  local pos = rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + rng:getExp()))
+  pos.x = pos.x + 200
+  pos.y = pos.y + 200
+  planet:setPos(pos)
+
+  -- Set the planet's scale
+  local psbase = Config.gen.scalePlanet
+  local psmod = math.floor(Config.gen.scalePlanetMod * math.abs(rng:getGaussian())) -- or rng:getErlang(2)
+  local scale = psbase + psmod
+printf("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
+  planet:setScale(scale)
+
+  -- Planets have significant market capacity
+  planet:addMarket()
+  planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- TEMP
+
+  -- Planets have enormous trading capacity
+  planet:addTrader()
+  planet:addCredits(Config.game.eStartCredits * 1000)
+  -- Let the planet bid on all items
+  -- TODO: add iterating through each item type
+  for _, v in pairs(Item.T1) do
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    planet.trader:addBid(v, rng:getInt(50, 200))
+  end
+  for _, v in pairs(Item.T2) do
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    planet.trader:addBid(v, rng:getInt(20, 100))
+  end
+  for _, v in pairs(Item.T3) do
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    planet.trader:addBid(v, rng:getInt(150, 350))
+  end
+  for _, v in pairs(Item.T5) do
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    planet.trader:addBid(v, rng:getInt(2550, 40000))
+  end
+
+  -- Planets have significant manufacturing capacity
+  -- TODO: Move on-planet production to manufacturing colonies
+--  planet:addFactory()
+--  planet:addProduction(self.rng:choose(Production.All()))
+
+  if bAddBelt then
+    -- Add a planetary belt
+    -- TODO: GAH! NO! Change this to a planetary rings billboard!
+    local center = planet:getPos()
+    local rc = 2.00 * planet:getRadius()
+    local rw = 0.20 * planet:getRadius()
+
+    for j = 1, Config.gen.nBeltSize(rng) do
+      local r = rc + rng:getUniformRange(-rw, rw) * (0.5 + 0.5 * rng:getExp())
+      local h = 0.1 * rw * rng:getGaussian()
+      local dir = rng:getDir2()
+
+      local scale = Config.gen.scaleAsteroid
+--      local scale = Config.gen.scaleAsteroid * (1.0 + rng:getExp() ^ 2.0)
+
+      local asteroid = Objects.Asteroid(rng:get31(), scale)
+      asteroid:setType(Config:getObjectTypeByName("object_types", "Asteroid"))
+      asteroid:setSubType(Config:getObjectTypeByName("asteroid_subtypes", "Silicaceous"))
+
+      -- Give the individual asteroid a name
+      local asteroidName = System:getAsteroidName(self, rng)
+      asteroid:setName(format("%s", asteroidName))
+
+      -- Possibly give the new asteroid minable Yield
+      System:setAsteroidYield(rng, asteroid)
+
+      -- Place the new asteroid in a torus around the planet
+      asteroid:setPos(center + Vec3f(r * dir.x, h, r * dir.y))
+
+      -- Let the new asteroid have a random angle
+      asteroid:setRot(rng:getQuat())
+
+      self:addChild(asteroid)
+    end
+  end
+
+  self:addChild(planet)
+
+local typeName = Config:getObjectInfo("object_types", planet:getType())
+local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
+printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
+
+  Config.game.currentPlanet = planet
+  return planet
+end
+
+function System:spawnAsteroidField (count, reduced)
+  -- Spawn a new asteroid field (a zone containing individual asteroids)
+  local rng = self.rng
+
+  -- Create the asteroid field (actually a zone)
+  local AFieldName = Words.getCoolName(rng)
+
+  -- Give the new asteroid field a name
+  local zone = Zone(AFieldName)
+  zone:setType(Config:getObjectTypeByName("object_types", "Zone"))
+  zone:setSubType(Config:getObjectTypeByName("zone_subtypes", "Asteroid Field"))
+
+  -- Pick a random location in the system for the center of the asteroid field
+  --   (unless background, in which pick the center of the system)
+  if count == 0 then
+    zone.pos = Vec3f(200, 0, 200)
+    count = 500
+  else
+    zone.pos = rng:getDir3():scale(1.0 * Config.gen.scaleSystem * (1 + rng:getExp()))
+  end
+
+  -- Set the extent (scale) of the asteroid field within a spherical (3D) volume
+  zone:setExtent(Config.gen.scaleFieldAsteroid)
+
+  for i = 1, count do
+    -- Define the actual scale (size) of the new asteroid; "reduced" means make small ones only
+    local scale = 7 * (1 + rng:getExp() ^ 3)
+    if reduced then
+      scale = 7 * (1 + rng:getExp())
+    end
+
+    -- Create the new asteroid
+    local asteroid = Objects.Asteroid(rng:get31(), scale)
+    asteroid:setType(Config:getObjectTypeByName("object_types", "Asteroid"))
+    asteroid:setSubType(Config:getObjectTypeByName("asteroid_subtypes", "Silicaceous"))
+
+    -- Give the individual asteroid a name
+    local asteroidName = System:getAsteroidName(self, rng)
+    asteroid:setName(format("%s", asteroidName))
+--printf("Added %s '%s'", Config.objectInfo[1]["elems"][asteroid:getType()][2], asteroid:getName())
+
+    -- Actually set the scale of the new asteroid
+    asteroid:setScale(scale)
+
+    -- Set asteroid position
+    local pos
+    if i == 1 then
+      pos = zone.pos
+    else
+      -- We place this asteroid directly, rather than using self:place(rng, asteroid) for randomness,
+      --   because we want it to go into the area around this AsteroidField (a Zone) we just created
+      pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
+    end
+    asteroid:setPos(pos)
+
+    -- Randomly rotate the asteroid from the vertical axis
+    asteroid:setRot(rng:getQuat())
+
+    -- TODO: Replace with actual system for generating minable materials in asteroids
+    System:setAsteroidYield(rng, asteroid)
+
+    -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
+    -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
+    zone:add(asteroid)
+    self:addChild(asteroid)
+  end
+
+  self:addZone(zone)
+
+local typeName = Config:getObjectInfo("object_types", zone:getType())
+local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())
+printf("Added %s - %s '%s'", typeName, subtypeName, zone:getName())
+
+  return zone
+end
+
+function System:getAsteroidName (self, rng)
+  local aName = Words.getCoolName(self.rng)
+  local namernd = rng:getInt(0, 100)
+  if namernd < 60 then
+    aName = aName .. " " .. tostring(rng:getInt(11, 99))
+  elseif namernd < 85 then
+    aName = aName .. " " .. tostring(rng:getInt(101, 999))
+  else
+    aName = aName .. " " .. tostring(rng:getInt(1001, 9999))
+  end
+
+  return aName
+end
+
+function System:setAsteroidYield (rng, asteroid)
+  -- TODO: Replace with actual system for generating minable materials in asteroids
+  if rng:getInt(0, 100) > 50 then
+    local amass = math.floor(asteroid:getMass() / 1000)
+    asteroid:addYield(rng:choose(Item.T2), rng:getInt(amass / 2, amass))
+  end
+end
+
+function System:spawnStation (player, fieldPos, fieldExtent)
+  local rng = self.rng
+
+  -- Spawn a new space station
+  local station = Objects.Station(self.rng:get31())
+  station:setType(Config:getObjectTypeByName("object_types", "Station"))
+
+  -- Give the station a name
+  station:setName(Words.getCoolName(rng))
+
+  -- Set station location within the extent of a randomly selected asteroid field
+  self:place(rng, station)
+--  pos = rng:getDisc():scale(Config.gen.scaleSystem) -- old placement style
+
+  -- Set station scale
+  station:setScale(Config.gen.scaleStation)
+
+  -- Stations have inventory
+  station:setInventoryCapacity(Config.game.eInventory)
+
+  -- Stations have market capacity
+  station:addMarket()
+  for _, v in pairs(Item.T2) do
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    local flowval = self.rng:getUniformRange(-1000, 0)
+--printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
+    station:setFlow(v, flowval) -- TEMP
+  end
+
+  -- Stations have trading capacity
+  station:addTrader()
+  station:addCredits(Config.game.eStartCredits)
+--  station.trader.credits = Config.game.eStartCredits
+  -- Let the station bid on all items that can be mined (T2)
+  for _, v in pairs(Item.T2) do
+    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    local bidPrice = rng:getInt(20, 100)
+--printf("Station %s: adding bid for item %s at bid price %d", station:getName(), v:getName(), bidPrice)
+    station.trader:addBid(v, bidPrice)
+  end
+
+  -- Stations have manufacturing capacity
+  station:addFactory()
+  local prod = rng:choose(Production.All())
+  station:addProduction(prod)
+  station:setSubType(Config:getObjectTypeByName("station_subtypes", prod:getName()))
+
+  -- Assign the station to an owner
+  station:setOwner(player)
+
+  -- Add the station to this star system
+  self:addChild(station)
+
+local typeName = Config:getObjectInfo("object_types", station:getType())
+local subtypeName = Config:getObjectInfo("station_subtypes", station:getSubType())
+printf("Added %s %s '%s'", subtypeName, typeName, station:getName())
+
+  return station
+end
 
 function System:spawnAI (shipCount, action, player)
   -- Spawn a number of independent AI-controlled ships
@@ -100,112 +377,8 @@ function System:spawnAI (shipCount, action, player)
       ship:pushAction(action)
     end
   end
-  player:addItem(Item.Credit, Config.game.eStartCredits)
-  player:pushAction(Actions.Think())
   insert(self.players, player)
-  return player
-end
-
-function System:spawnAsteroidField (count)
-  -- Spawn a new asteroid field (a zone containing individual asteroids)
-  local rng = self.rng
-
-  -- Give the asteroid field (actually a zone) a name
-  local AFieldName = Words.getCoolName(rng)
-  local zone = Zone(AFieldName)
-  zone:setType(Config:getObjectTypeByName("object_types", "Zone"))
-  zone:setSubType(Config:getObjectTypeByName("zone_subtypes", "Asteroid Field"))
-
-  zone.pos = rng:getDir3():scale(0.0 * kSystemScale * (1 + rng:getExp()))
-
-  for i = 1, count do
-    -- Spawn a new asteroid
-    local pos
-    if i == 1 then
-      pos = zone.pos
-    else
-      pos = rng:choose(zone.children):getPos()
-      pos = pos + rng:getDir3():scale((0.1 * kSystemScale) * rng:getExp() ^ rng:getExp())
-    end
-
-    local scale = 7 * (1 + rng:getExp() ^ 2)
-    local asteroid = Objects.Asteroid(rng:get31(), scale)
-    asteroid:setType(Config:getObjectTypeByName("object_types", "Asteroid"))
-    asteroid:setSubType(Config:getObjectTypeByName("asteroid_subtypes", "Silicaceous"))
-
-    asteroid:setPos(pos)
-    asteroid:setScale(scale)
-    asteroid:setRot(rng:getQuat())
-
-    -- TODO: Replace with actual system for generating minable materials in asteroids
-    if rng:getInt(0, 100) > 70 then
-      asteroid:addYield(rng:choose(Item.T2), 1.0)
-    end
-
-    -- Give the individual asteroid a name
-    local asteroidName = Words.getCoolName(self.rng)
-    local namernd = rng:getInt(0, 100)
-    if namernd < 60 then
-      asteroidName = asteroidName .. " " .. tostring(rng:getInt(11, 99))
-    elseif namernd < 85 then
-      asteroidName = asteroidName .. " " .. tostring(rng:getInt(101, 999))
-    else
-      asteroidName = asteroidName .. " " .. tostring(rng:getInt(1001, 9999))
-    end
-    asteroid:setName(format("%s", asteroidName))
---printf("Added %s '%s'", Config.objectInfo[1]["elems"][asteroid:getType()][2], asteroid:getName())
-
-    zone:add(asteroid)
-    self:addChild(asteroid) -- adding each asteroid to both the system and an owning zone (itself not a child of system)
-  end
-
-  self:addZone(zone)
-
-local typeName = Config:getObjectInfo("object_types", zone:getType())
-local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())
-printf("Added %s - %s '%s'", typeName, subtypeName, zone:getName())
-
-  Config.game.currentZone = zone
-  return zone
-end
-
-function System:spawnPlanet ()
-  -- Spawn a new planet
-  local rng = self.rng
-  local planet = Objects.Planet(rng:get64())
-  planet:setType(Config:getObjectTypeByName("object_types", "Planet"))
-  planet:setSubType(Config:getObjectTypeByName("planet_subtypes", "Rocky"))
-
-  local pos = rng:getDir3():scale(kSystemScale * (1.0 + rng:getExp()))
-  local scale = 1e5 * rng:getErlang(2)
-  planet:setPos(pos)
-  planet:setScale(scale)
-
-  -- Planets have significant market capacity
---  planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- temporary!
-  planet:addMarket()
-  planet:addTrader()
-
-  -- Planets have significant manufacturing capacity
-  local prod = self.rng:choose(Production.All())
-  planet:addFactory()
-  -- Adding production to a planet previously yielded an error; apparently Josh didn't
-  --   think planets could have production facilities... which isn't wrong. Really, it's
-  --   _colonies_ on planets that should have production facility children.
-  planet:addProduction(prod)
-
-  -- Give the planet a name
-  local planetName = Words.getCoolName(self.rng)
-  planet:setName(format("%s", planetName))
-
-  self:addChild(planet)
-
-local typeName = Config:getObjectInfo("object_types", planet:getType())
-local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
-printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
-
-  Config.game.currentPlanet = planet
-  return planet
+  return
 end
 
 function System:spawnShip (player)
@@ -231,27 +404,31 @@ function System:spawnShip (player)
   end
   ship:setOwner(shipPlayer)
 
+  -- TODO: make sure spawn position for player ship is well outside any planetary volume
+  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * 500.0))
+--  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp())))
+
   ship:setInventoryCapacity(Config.game.eInventory)
-  ship:setPos(self.rng:getDir3():scale(kSystemScale * (1.0 + self.rng:getExp())))
+
   self:addChild(ship)
 
-  if true then
-    while true do
-      local thruster = Ship.Thruster()
-      thruster:setScale(0.5 * ship:getScale())
-      -- TODO : Does this leak a Thruster/RigidBody?
-      if not ship:plug(thruster) then break end
-    end
+  -- Add as many thrusters as there are thruster plugs for
+  while true do
+    local thruster = Ship.Thruster()
+    thruster:setScale(0.5 * ship:getScale())
+    -- TODO : Does this leak a Thruster/RigidBody?
+--printf("ship %s: plug a thruster", ship:getName())
+    if not ship:plug(thruster) then break end
   end
-  if true then
-    while true do
-      local turret = Ship.Turret()
-      turret:setScale(2 * ship:getScale())
-      -- TODO : Does this leak a Turret/RigidBody?
+
+  -- Add as many turrets as there are turret plugs for
+  while true do
+    local turret = Ship.Turret()
+    turret:setScale(2 * ship:getScale())
+    -- TODO : Does this leak a Turret/RigidBody?
 --printf("ship %s: plug a turret", ship:getName())
-      if not ship:plug(turret) then
-        break
-      end
+    if not ship:plug(turret) then
+      break
     end
   end
 
@@ -276,40 +453,6 @@ function System:spawnBackground ()
   self:addChild(background)
 
   return background
-end
-
-function System:spawnStation (player)
-  -- Spawn a new space station
-  local station = Objects.Station(self.rng:get31())
-  station:setType(Config:getObjectTypeByName("object_types", "Station"))
-
-  local p = self.rng:getDisc():scale(kSystemScale)
-  station:setPos(Vec3f(p.x, 0, p.y))
-  station:setScale(100)
-
-  -- Stations have market capacity
-  --  station:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0))
-  station:addMarket()
-  station:addTrader()
-
-  -- Stations have manufacturing capacity
-  local prod = self.rng:choose(Production.All())
-  station:addFactory()
-  station:addProduction(prod)
-  station:setSubType(Config:getObjectTypeByName("station_subtypes", prod:getName()))
-
-  -- Give the station a name
-  station:setName(Words.getCoolName(self.rng))
-
-  station:setOwner(player)
-
-  self:addChild(station)
-
-local typeName = Config:getObjectInfo("object_types", station:getType())
-local subtypeName = Config:getObjectInfo("station_subtypes", station:getSubType())
-printf("Added %s %s '%s'", subtypeName, typeName, station:getName())
-
-  return station
 end
 
 return System

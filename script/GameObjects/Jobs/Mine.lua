@@ -1,4 +1,5 @@
 local Job = require('GameObjects.Job')
+local Flow = require('Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
 local Mine = subclass(Job, function (self, src, dst)
@@ -19,21 +20,44 @@ function Mine:getFlows (e)
 end
 
 function Mine:getName ()
-  return format('Mine %s at %s, drop off at %s',
+  return format('Mine %s at %s, drop off at %s, distance = %d',
     self.src:getYield().item:getName(),
     self.src:getName(),
-    self.dst:getName())
+    self.dst:getName(),
+    self.src:getDistance(self.dst))
 end
 
 function Mine:getPayout (e)
   local capacity = e:getInventoryCapacity()
   local item = self.src:getYield().item
   local count = math.floor(capacity / item:getMass())
-  return self.dst:getTrader():getSellToPrice(item, count)
+  local value = self.dst:getTrader():getSellToPrice(item, count)
+
+  -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
+  local yieldSize = self.src:getYield().size
+  local pickupTravelTime = self:getShipTravelTime(e)
+  local transportTravelTime = self:getTravelTime(e)
+  local payoutMod = 100 / ((pickupTravelTime / Config.econ.pickupDistWeight) + transportTravelTime)
+--  local payoutMod = math.min(10000, yieldSize) / (pickupTravelTime + transportTravelTime)
+
+  local payout = math.max(1, math.floor(value * payoutMod))
+
+--local pstr1 = "Mine [%s]: capacity = %d, item = %s, count = %d, src = %s, dest = %s, value = %d, "
+--local pstr2 = "yieldsize = %d, pickupTravelTime = %d, transportTravelTime = %d, payoutmod = %f, payout = %s"
+--local pstr  = pstr1 .. pstr2
+--printf(pstr,
+--e:getName(), capacity, item:getName(), count, self.src:getName(), self.dst:getName(),
+--  value, yieldSize, transportTravelTime, pickupTravelTime, payoutMod, payout)
+
+  return payout
 end
 
 function Mine:getTravelTime (e)
   return 2.0 * self.src:getDistance(self.dst) / e:getTopSpeed()
+end
+
+function Mine:getShipTravelTime (e)
+  return e:getDistance(self.dst) / e:getTopSpeed()
 end
 
 function Mine:onUpdateActive (e, dt)
@@ -45,7 +69,8 @@ function Mine:onUpdateActive (e, dt)
     local item = self.src:getYield().item
     local count = math.floor(capacity / item:getMass())
     local profit = self.dst:getTrader():getSellToPrice(item, count)
-    -- printf("[MINE] %d x %s from %s -> %s, expect %d profit", count, item:getName(), self.src:getName(), self.dst:getName(), profit)
+--printf("[MINE] [e:%s] %d x %s from %s -> %s, expect %d profit",
+--e:getName(), count, item:getName(), self.src:getName(), self.dst:getName(), profit)
     e:pushAction(Actions.MoveTo(self.src, 100))
   elseif e.jobState == 2 then
     e:pushAction(Actions.MineAt(self.src))

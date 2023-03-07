@@ -7,7 +7,7 @@ local kFieldScale = 750
 
 function SystemGenerator:addAsteroidField (center, count)
   local rng = self.rng
-  local zone = Zone('Asteroid Field')
+  local zone = Zone("Asteroid Field")
   for i = 1, count do
     local scale = 7.0 * (1.0 + rng:getExp() ^ 2.0)
     local e = Asteroid(rng:get31(), scale)

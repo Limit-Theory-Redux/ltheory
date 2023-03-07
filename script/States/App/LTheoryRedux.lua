@@ -61,7 +61,7 @@ function LTheoryRedux:onInit ()
   Audio.Set3DSettings(0.0, 10, 2);
 
   -- Music courtesy of MesoTroniK
-  newSound = Sound.Load("./res/sound/system/ambiance/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg", true, false)
+  newSound = Sound.Load(Config.paths.soundAmbiance .. "LTR_Parallax_Universe_loop.ogg", true, false)
   if Config.audio.bSoundOn then
     Sound.SetVolume(newSound, Config.audio.soundMax)
   else
@@ -110,11 +110,12 @@ function LTheoryRedux:onUpdate (dt)
   self.player:getRoot():update(dt)
   self.canvas:update(dt)
 
-local playerShip = self.player
-if playerShip ~= nil then
---playerShip = playerShip.getControlling()
-playerShip = Config.game.currentShip
-end
+  -- TODO: Confirm whether this is still needed
+  local playerShip = self.player
+  if playerShip ~= nil then
+    --playerShip = playerShip.getControlling()
+    playerShip = Config.game.currentShip
+  end
 
   -- Add basic Game Control menu
   if Input.GetPressed(Bindings.Escape) then
@@ -154,8 +155,8 @@ end
           Config.game.autonavTimestamp = Config.getCurrentTimestamp()
           Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
           playerShip:pushAction(Actions.MoveTo(target, autodistance))
-printf("-> %s at time %s, range = %s (moving = %s)",
-  playerShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
+--printf("-> %s at time %s, range = %s (moving = %s)",
+--  playerShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
         end
       end
     end
@@ -227,6 +228,21 @@ end
 function LTheoryRedux:createStarSystem ()
   if self.system then self.system:delete() end
 print("------------------------")
+  if Config.getGameMode() == 1 then
+    -- Use custom system generation sizes for a nice background star system
+    Config.gen.scaleSystem    = Config.gen.scaleSystemBack
+    Config.gen.scalePlanet    = Config.gen.scalePlanetBack
+    Config.gen.scalePlanetMod = Config.gen.scalePlanetModBack
+    Config.render.zNear       = Config.gen.zNearBack
+    Config.render.zFar        = Config.gen.zFarBack
+  else
+    -- Use the "real" system generation sizes for a gameplay star system
+    Config.gen.scaleSystem    = Config.gen.scaleSystemReal
+    Config.gen.scalePlanet    = Config.gen.scalePlanetReal
+    Config.gen.scalePlanetMod = Config.gen.scalePlanetModReal
+    Config.render.zNear       = Config.gen.zNearReal
+    Config.render.zFar        = Config.gen.zFarReal
+  end
   self.system = System(self.seed)
 printf("Spawning new star system '%s' using seed = %s", self.system:getName(), self.seed)
 
@@ -240,70 +256,97 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
 
       -- Add a planet
       for i = 1, 1 do
-        self.system:spawnPlanet()
-      end
-
-      -- Add a space station
-      for i = 1, 1 do
-        self.system:spawnStation()
+        local planet = self.system:spawnPlanet(false)
+        local ppos = planet:getPos()
+        ppos.x = ppos.x * 2
+        ppos.y = ppos.y * 2
+        planet:setPos(ppos) -- move planet away from origin for background
       end
 
       -- Add an asteroid field
-      for i = 1, 1 do
-        self.system:spawnAsteroidField(500)
+      -- Must add BEFORE space stations
+      for i = 1, rng:getInt(0, 1) do -- 50/50 chance of having asteroids
+        self.system:spawnAsteroidField(0, true) -- 0 is a special case meaning background
       end
+
+      -- Add a space station
+      local szone   = rng:choose(self.system:getZones())
+      local spos    = nil
+      local sextent = 0
+      if szone ~= nil then
+        spos    = szone:getPos()
+        sextent = szone:getExtent()
+      end
+      self.system:spawnStation(Config.game.humanPlayer, spos, sextent)
     else
       -- Flight Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, a visible pilotable ship, and 100 "escort" ships
       local asteroidCount = 500
-      local aField = nil
-
-      -- Add the player's ship
-      newShip = self.system:spawnShip(Config.game.humanPlayer)
-      newShip:setName("NSS Titonicus")
---      newShip:setHealth(1000, 1000, 50) -- extra-healthy version of player ship for surviving testing
-      newShip:setHealth(500, 500, 20)
-      Config.game.currentShip = newShip
-      LTheoryRedux:insertShip(newShip)
-      printf("Added our ship, the '%s'", newShip:getName())
+      local afield = nil
 
       -- Add planets
       for i = 1, Config.gen.nPlanets do
-        self.system:spawnPlanet()
+--        self.system:spawnPlanet(false) -- no planetary asteroid belt
+        self.system:spawnPlanet(true) -- also create planetary asteroid belt
+      end
+
+      -- Add asteroid fields
+      -- Must add BEFORE space stations
+      for i = 1, Config.gen.nFields do
+        afield = self.system:spawnAsteroidField(asteroidCount, false)
+printf("Added %s asteroids to %s", asteroidCount, afield:getName())
       end
 
       -- Add space stations
       for i = 1, Config.gen.nStations do
-        self.system:spawnStation(Config.game.humanPlayer)
+        -- For now, create a Station within one randomly selected AsteroidField Zone
+        local szone   = rng:choose(self.system:getZones())
+        local spos    = nil
+        local sextent = nil
+        if szone ~= nil then
+          spos    = szone:getPos()
+          sextent = szone:getExtent()
+        end
+        self.system:spawnStation(Config.game.humanPlayer, spos, sextent)
       end
 
-      -- Add asteroid fields
-      for i = 1, Config.gen.nFields do
-        aField = self.system:spawnAsteroidField(asteroidCount)
-      end
-printf("Added %s asteroids to %s", asteroidCount, aField:getName())
---printf("Object type is '%s'", Config.objectInfo[1]["elems"][aField:getType()][2])
+      -- Add the player's ship
+      newShip = self.system:spawnShip(Config.game.humanPlayer)
+      newShip:setName("NSS [Human Player Ship Name]")
+--      newShip:setHealth(1000, 1000, 50) -- extra-healthy version of player ship for surviving testing
+      newShip:setHealth(500, 500, 20)
+      Config.game.currentShip = newShip
+      LTheoryRedux:insertShip(newShip)
 
-      -- Add escort ships
+      -- Set our ship's starting location within the extent of a random asteroid field
+      self.system:place(rng, newShip)
+printf("Player ship position = %s", newShip:getPos())
+
+      printf("Added our ship, the '%s'", newShip:getName())
+
+      -- Add some ships that start off clustered around the player's ship
       local ships = {}
       for i = 1, Config.gen.nNPCs do
         local escort = self.system:spawnShip(nil)
         local offset = rng:getSphere():scale(100)
         escort:setPos(newShip:getPos() + offset)
+
+        -- TODO: change money ownership from the individual escort ship to the escort ship's AI player/owner
         escort:addItem(Item.Credit, Config.game.eStartCredits)
---        escort:getOwner():pushAction(Actions.Think())
+        escort:addCredits(Config.game.eStartCredits)
+
+--        escort:pushAction(Actions.Escort(newShip, offset))
+        escort:getOwner():pushAction(Actions.Think())
 --        escort:pushAction(Actions.Attack(newShip))
-        escort:pushAction(Actions.Escort(newShip, offset))
         insert(ships, escort)
       end
+printf("Added %s escort ships", Config.gen.nNPCs)
 
       -- Make ships chase each other!
 --      for i = 1, #ships - 1 do
 --        ships[i]:pushAction(Actions.Attack(ships[i+1]))
 --      end
-
-printf("Added %s escort ships", Config.gen.nNPCs)
     end
   end
 
