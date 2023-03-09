@@ -95,14 +95,17 @@ end
 
 function Trader:getSellToPrice (item, count)
   local price = 0
-  local bids = self:getData(item).bids
-  for i = 1, count do
-    price = price + (bids[i] or 0)
+  if self.parent:getInventoryFree() > 20 then -- if no inventory space remaining, set SellTo price to 0
+    local bids = self:getData(item).bids
+    for i = 1, count do
+      price = price + (bids[i] or 0)
+    end
   end
   return price
 end
 
 function Trader:buy (asset, item)
+  -- Buy item FROM trader
   local player = asset:getOwner()
   local data = self:getData(item)
   if #data.asks == 0 then return false end
@@ -117,17 +120,21 @@ function Trader:buy (asset, item)
 
   asset:addItem(item, 1)
   player:removeItem(Credit, price)
+
   self.parent:addCredits(price)
 --  self.credits = self.credits + price
+
   data.totalAsk = data.totalAsk + 1
   data.totalAskPrice = data.totalAskPrice + price
   data.escrow = data.escrow - 1
   data.asks[1] = (data.asks[1] + 1) or math.huge -- update bid price
 --  remove(data.asks, 1)
+
   return true
 end
 
 function Trader:sell (asset, item)
+  -- Sell item TO trader
   local rng = self.parent.parent.rng
   local madeSale = false
 
@@ -141,19 +148,29 @@ function Trader:sell (asset, item)
     if price > 0 then
 
 --printf("SELL: Asset %s (owner %s) sells 1 unit of item %s to trader %s at price %d",
---asset:getName(), player:getName(), item:getName(), self.parent:getName(), price)
+--    asset:getName(), player:getName(), item:getName(), self.parent:getName(), price)
 
-      asset:removeItem(item, 1)
-      player:addItem(Credit, price)
-      self.parent:removeCredits(price)
---      self.credits = self.credits - price
+      if self.parent:addItem(item, 1) then
+        asset:removeItem(item, 1)
+
+--printf("Trader %s now has %d units of item %s",
+--    self.parent:getName(), self.parent:getItemCount(item), item:getName())
+
+        player:addItem(Credit, price)
+        self.parent:removeCredits(price)
+--        self.credits = self.credits - price
 --printf("removed %d credits from %s (now has %d credits)", price, self.parent:getName(), self.parent:getCredits())
-      data.totalBid = data.totalBid + 1
-      data.totalBidPrice = data.totalBidPrice + price
-      self.parent:addItem(item, 1)
-      if rng:getInt(0, 100) < 50 then
-        data.bids[1] = math.max(0, data.bids[1] - 1) -- possibly update bid price
---      remove(data.bids, 1)
+
+        data.totalBid = data.totalBid + 1
+        data.totalBidPrice = data.totalBidPrice + price
+
+        if rng:getInt(0, 100) < 50 then
+          data.bids[1] = math.max(0, data.bids[1] - 1) -- possibly update bid price
+--        remove(data.bids, 1)
+        end
+      else
+        printf("Trader %s has no capacity (max is %d) for item %s!",
+            self.parent:getName(), self.parent:getInventoryCapacity(), item:getName())
       end
 
       madeSale = true
@@ -220,7 +237,7 @@ function Entity:addTrader ()
   self:register(Event.Debug, Entity.debugTrader)
   self:register(Event.Update, Entity.updateTrader)
 
-printf("Added Trader to %s", self:getName())
+--printf("Added Trader to %s", self:getName())
 
   return self.trader
 end
@@ -232,15 +249,17 @@ function Entity:debugTrader (state)
   ctx:text('Credits: %d', self:getCredits())
 --  ctx:text('Credits: %d', self.trader.credits)
   for item, data in pairs(self.trader.elems) do
-    ctx:text('%s', item:getName())
-    ctx:indent()
-    if #data.bids > 0 then
-      ctx:text('[BID] Vol: %d  Hi: %d', #data.bids, data.bids[1])
+    if #data.bids > 0 or #data.asks > 0 then
+      ctx:text('%s', item:getName())
+      ctx:indent()
+      if #data.bids > 0 then
+        ctx:text('[BID] Vol: %d  Hi: %d', #data.bids, data.bids[1])
+      end
+      if #data.asks > 0 then
+        ctx:text('[ASK] Vol: %d  Lo: %d', #data.asks, data.asks[1])
+      end
+      ctx:undent()
     end
-    if #data.asks > 0 then
-      ctx:text('[ASK] Vol: %d  Lo: %d', #data.asks, data.asks[1])
-    end
-    ctx:undent()
   end
   ctx:undent()
 end

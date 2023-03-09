@@ -10,8 +10,8 @@ local rng = RNG.FromTime()
 --local rng = RNG.Create(10) -- for when the same seed is needed
 
 local kFields = 10
-local kFieldCount = 200
-local kStations = 24
+local kFieldCount = 400
+local kStations = 22
 local kPlayers = 3
 local kAssets = 333
 
@@ -86,6 +86,10 @@ function TestEcon:onInit ()
   self.tradeShip = Entity()
   self.tradeShip:addInventory(Config.game.eStartCredits)
   self.tradeShip:setOwner(self.tradeAI)
+
+  -- Add a planet at the origin
+  local planet = self.system:spawnPlanet(false)
+  planet:setPos(Vec3f(0, 0, 0)) -- move planet to origin
 
   -- Add Asteroid Field (and Asteroid) objects
   for i = 1, kFields do self.system:spawnAsteroidField(kFieldCount, false) end

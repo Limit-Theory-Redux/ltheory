@@ -37,6 +37,16 @@ local System = subclass(Entity, function (self, seed)
 
   self.players = {}
   self.zones = {}
+
+  -- When creating a new system, initialize station subtype options from all production types
+  local prodType = Config:getObjectTypeIndex("station_subtypes")
+  for i, prod in ipairs(Production.All()) do
+    Config.objectInfo[prodType]["elems"][i+2] = {
+      i + 2,
+      prod:getName()
+    }
+  end
+
 end)
 
 function System:addZone (zone)
@@ -120,43 +130,36 @@ function System:spawnPlanet (bAddBelt)
   local planetName = Words.getCoolName(self.rng)
   planet:setName(format("%s", planetName))
 
-  -- Randomly place the planet within the system, but not within 200 x or y units of the system origin
-  local pos = rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + rng:getExp()))
-  pos.x = pos.x + 200
-  pos.y = pos.y + 200
-  planet:setPos(pos)
+  -- Randomly place the planet within the system
+  planet:setPos(rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + rng:getExp())))
 
   -- Set the planet's scale
   local psbase = Config.gen.scalePlanet
   local psmod = math.floor(Config.gen.scalePlanetMod * math.abs(rng:getGaussian())) -- or rng:getErlang(2)
   local scale = psbase + psmod
-printf("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
   planet:setScale(scale)
+--printf("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
+
+  -- Planets produce lots of plants and animals (just go with it)
+  planet:addYield(Item.Biomass, rng:getInt(100000, 10000000))
 
   -- Planets have significant market capacity
   planet:addMarket()
-  planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- TEMP
+--  planet:setFlow(Item.Silver, self.rng:getUniformRange(-1000, 0)) -- TEMP
 
   -- Planets have enormous trading capacity
   planet:addTrader()
   planet:addCredits(Config.game.eStartCredits * 1000)
-  -- Let the planet bid on all items
-  -- TODO: add iterating through each item type
+  -- Let the planet bid on selected item types
+  -- TODO: generate better bid prices; this is just for testing the "payout" model
   for _, v in pairs(Item.T1) do
-    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
     planet.trader:addBid(v, rng:getInt(50, 200))
   end
-  for _, v in pairs(Item.T2) do
-    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
-    planet.trader:addBid(v, rng:getInt(20, 100))
-  end
-  for _, v in pairs(Item.T3) do
-    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
-    planet.trader:addBid(v, rng:getInt(150, 350))
-  end
   for _, v in pairs(Item.T5) do
-    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
-    planet.trader:addBid(v, rng:getInt(2550, 40000))
+    planet.trader:addBid(v, rng:getInt(1550, 10000))
+  end
+  for _, v in pairs(Item.T6) do
+    planet.trader:addBid(v, rng:getInt(2450, 48000))
   end
 
   -- Planets have significant manufacturing capacity
@@ -223,8 +226,9 @@ function System:spawnAsteroidField (count, reduced)
   zone:setSubType(Config:getObjectTypeByName("zone_subtypes", "Asteroid Field"))
 
   -- Pick a random location in the system for the center of the asteroid field
-  --   (unless background, in which pick the center of the system)
-  if count == 0 then
+  --   (unless background, in which case pick the center of the system)
+  -- If count is -1, that's the signal to create a field for background mode
+  if count == -1 then
     zone.pos = Vec3f(200, 0, 200)
     count = 500
   else
@@ -325,35 +329,57 @@ function System:spawnStation (player, fieldPos, fieldExtent)
   -- Set station scale
   station:setScale(Config.gen.scaleStation)
 
-  -- Stations have inventory
-  station:setInventoryCapacity(Config.game.eInventory)
-
   -- Stations have market capacity
   station:addMarket()
   for _, v in pairs(Item.T2) do
     -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
     local flowval = self.rng:getUniformRange(-1000, 0)
---printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
     station:setFlow(v, flowval) -- TEMP
+--printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
   end
 
-  -- Stations have trading capacity
-  station:addTrader()
-  station:addCredits(Config.game.eStartCredits)
---  station.trader.credits = Config.game.eStartCredits
-  -- Let the station bid on all items that can be mined (T2)
-  for _, v in pairs(Item.T2) do
-    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
-    local bidPrice = rng:getInt(20, 100)
---printf("Station %s: adding bid for item %s at bid price %d", station:getName(), v:getName(), bidPrice)
-    station.trader:addBid(v, bidPrice)
-  end
-
-  -- Stations have manufacturing capacity
+  -- Stations have manufacturing capacity for one randomly-chosen production type
+  -- TODO: Assign a station's production type based on system needs (e.g., insure there's
+  --       always at least one energy-generating station in each system)
   station:addFactory()
   local prod = rng:choose(Production.All())
   station:addProduction(prod)
   station:setSubType(Config:getObjectTypeByName("station_subtypes", prod:getName()))
+
+  -- Stations have trading capacity
+  -- TODO: Define which production service type this trader provides:
+  --         Depot:    buys/sells ore (T2), ship products (T6)
+  --         Importer: buys/sells plants and animals ("biomass") (T4)
+  --         Refinery: buys/sells ore (T2), elements (T3)
+  --         Factory:  buys/sells elements (T3), general products (T5)
+  --         Drydock:  buys/sells general products (T5), ship products (T6)
+  station:addTrader()
+  station:addCredits(Config.game.eStartCredits * 100)
+--  station.trader.credits = Config.game.eStartCredits
+
+  -- Let the station bid on selected items
+  -- TODO: generate better bid prices; this is just for testing the "payout" model
+  if not prod:inOutputs(Item.Energy) then
+    -- If this station doesn't make energy, offer a bid for it
+    local bidprice = rng:getInt(100, 200)
+    station.trader:addBid(Item.Energy, bidprice)
+printf("Added Energy bid of %d for trader %s with production '%s'", bidprice, station:getName(), prod:getName())
+  end
+  for _, v in pairs(Item.T2) do
+    station.trader:addBid(v, rng:getInt(20, 100))
+  end
+  for _, v in pairs(Item.T3) do
+    station.trader:addBid(v, rng:getInt(150, 350))
+  end
+  for _, v in pairs(Item.T4) do
+    station.trader:addBid(v, rng:getInt(750, 2500))
+  end
+  for _, v in pairs(Item.T5) do
+    station.trader:addBid(v, rng:getInt(1550, 10000))
+  end
+  for _, v in pairs(Item.T6) do
+    station.trader:addBid(v, rng:getInt(2450, 48000))
+  end
 
   -- Assign the station to an owner
   station:setOwner(player)
@@ -405,8 +431,8 @@ function System:spawnShip (player)
   ship:setOwner(shipPlayer)
 
   -- TODO: make sure spawn position for player ship is well outside any planetary volume
-  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * 500.0))
---  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp())))
+--  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * 500.0))
+  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp())))
 
   ship:setInventoryCapacity(Config.game.eInventory)
 

@@ -12,10 +12,13 @@ end
 function Entity:addItem (item, count)
   assert(self.inventory)
   assert(count >= 0)
+
   local mass = count * item:getMass()
-  if mass > self.inventoryFree then return false end
+  if mass > self.inventoryFree then return false end -- no more room!
+
   self.inventoryFree = self.inventoryFree - mass
   self.inventory[item] = self:getItemCount(item) + count
+
   return true
 end
 
