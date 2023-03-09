@@ -44,7 +44,8 @@ Config.gen = {
   nNPCs      = 0,
   nNPCsNew   = 0,
   nPlanets   = 0,
-  nBeltSize  = function (rng) return 0 end, -- Asteroids per planetary belt
+  nAsteroids = 500, -- asteroids per asteroid field
+  nBeltSize  = function (rng) return 0 end, -- asteroids per planetary belt
   nThrusters = 1,
   nTurrets   = 2,
 
@@ -58,22 +59,22 @@ Config.gen = {
   zNearBack   = 0.1,
   zNearReal   = 0.1, -- 0.1
   zFarBack    = 1e6,
-  zFarReal    = 1e5, -- 1e6
+  zFarReal    = 1e4, -- 1e6
 
   scaleSystemBack    = 2e5,
-  scaleSystemReal    = 1e6, -- 2e9 maximum
+  scaleSystemReal    = 2e4, -- 2e9 maximum, but anything bigger than 5e4 currently introduces a horrible "wobble"
   scalePlanetBack    = 120000,
-  scalePlanetReal    = 180000,
+  scalePlanetReal    = 15000,
   scalePlanetModBack = 7e4,
-  scalePlanetModReal = 4e5,
+  scalePlanetModReal = 1, -- 4e5
 
-  scaleSystem        = 1e6,   -- this needs to be extended massively; see also zFar and zNear
+  scaleSystem        = 1e4,   -- this needs to be extended massively; see also zFar and zNear
   scaleStar          = 1e6,
-  scalePlanet        = 2000,
-  scalePlanetMod     = 7e4,
+  scalePlanet        = 5e3,
+  scalePlanetMod     = 7e4,  -- 7e4
   scaleFieldAsteroid = 10000, -- overwritten in Local.lua
   scaleAsteroid      = 7.0,
-  scaleStation       = 100,
+  scaleStation       = 70,
 
   radiusAsteroid =     50000, -- 0.005 km to 450 km
   radiusPlanet   =   6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
@@ -145,7 +146,7 @@ Config.game = {
                                 0,  -- Star System
                              2000,  -- Zone
                               1e7,  -- Star (TODO: radius + offset)
-                            30000,  -- Planet (TODO: radius + offset)
+                            10000,  -- Planet (TODO: radius + offset)
                               300,  -- Asteroid
                               500,  -- Jumpgate
                              2000,  -- Station
@@ -300,7 +301,7 @@ Config.objectInfo = {
       { 6, "Star", "star_subtypes"},
       { 7, "Planet", "planet_subtypes"},
       { 8, "Asteroid", "asteroid_subtypes"},
-      { 9, "Jumpgate", "kumpgate_subtypes"},
+      { 9, "Jumpgate", "jumpgate_subtypes"},
       {10, "Station", "station_subtypes"},
       {11, "Ship", "ship_subtypes"},
       {12, "Colony", "colony_subtypes"},

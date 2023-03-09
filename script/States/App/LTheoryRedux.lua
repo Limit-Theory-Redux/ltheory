@@ -56,7 +56,11 @@ function LTheoryRedux:onInit ()
   Config.game.humanPlayer = self.player
   self:generate()
 
-  -- Audio initialization moved here from GameView.lua
+  --* Value initializations *--
+
+
+  --* Audio initializations *--
+  --   moved here from GameView.lua
   Audio.Init()
   Audio.Set3DSettings(0.0, 10, 2);
 
@@ -166,6 +170,7 @@ function LTheoryRedux:onUpdate (dt)
   if Config.game.playerMoving then
     if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
       Config.game.playerMoving = false
+--printf("Manually disengaged autopilot, playerMoving = false")
     end
   end
 
@@ -266,7 +271,7 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
       -- Add an asteroid field
       -- Must add BEFORE space stations
       for i = 1, rng:getInt(0, 1) do -- 50/50 chance of having asteroids
-        self.system:spawnAsteroidField(0, true) -- 0 is a special case meaning background
+        self.system:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
       end
 
       -- Add a space station
@@ -282,7 +287,6 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
       -- Flight Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, a visible pilotable ship, and 100 "escort" ships
-      local asteroidCount = 500
       local afield = nil
 
       -- Add planets
@@ -294,8 +298,8 @@ printf("Spawning new star system '%s' using seed = %s", self.system:getName(), s
       -- Add asteroid fields
       -- Must add BEFORE space stations
       for i = 1, Config.gen.nFields do
-        afield = self.system:spawnAsteroidField(asteroidCount, false)
-printf("Added %s asteroids to %s", asteroidCount, afield:getName())
+        afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, false)
+printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
       end
 
       -- Add space stations

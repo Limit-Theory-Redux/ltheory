@@ -23,7 +23,7 @@ function MoveTo:onUpdateActive (e, dt)
 --printf("-> %s ended", e:getCurrentAction():getName())
     e:popAction()
 
-    if Config.game.playerMoving then
+    if e == Config.game.currentShip and Config.game.playerMoving then
       Config.game.playerMoving = false
       Config.debug.instantJobs = true
     end
@@ -31,7 +31,7 @@ function MoveTo:onUpdateActive (e, dt)
     return
   end
 
-  if Config.game.playerMoving then
+  if e == Config.game.currentShip and Config.game.playerMoving then
     Config.debug.instantJobs = false
   end
 

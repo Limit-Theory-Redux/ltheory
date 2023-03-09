@@ -64,8 +64,30 @@ function Production:iterInputs ()
   return ipairs(self.inputs)
 end
 
+function Production:inInputs (item)
+  local ifound = false
+  for i, v in ipairs(self.inputs) do
+    if v.item == item then
+      ifound = true
+      break
+    end
+  end
+  return ifound
+end
+
 function Production:iterOutputs ()
   return ipairs(self.outputs)
+end
+
+function Production:inOutputs (item)
+  local ofound = false
+  for i, v in ipairs(self.outputs) do
+    if v.item == item then
+      ofound = true
+      break
+    end
+  end
+  return ofound
 end
 
 function Production:setDuration (duration)
