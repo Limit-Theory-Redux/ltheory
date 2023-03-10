@@ -220,8 +220,7 @@ function HUD:drawLock (a)
       dir:inormalize()
       ss = center + dir:scale(r)
       local a = a * (1.0 - exp(-max(0.0, dist / (r + 16) - 1.0)))
---      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
-      UI.DrawEx.Cross(ss.x, ss.y, 4, Color(1.0, 0.5, 0.1, a))
+      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
     end
   end
 
