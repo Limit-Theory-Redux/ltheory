@@ -9,7 +9,7 @@ uniform vec4 color;
 const float kRadius = 0.5;
 
 void main() {
-  vec3 p = pos;
+  vec2 p = pos.xy;
   vec2 center = (p1 + p2 + p3) / 3.0;
   vec2 p1n = p1 + kRadius * normalize(center - p1);
   vec2 p2n = p2 + kRadius * normalize(center - p2);
