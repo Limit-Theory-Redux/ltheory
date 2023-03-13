@@ -52,7 +52,7 @@ function LTheory:generate ()
   end
 
   for i = 1, 0 do
-    self.system:spawnAI(100, Actions.Wait(100), self.player)
+    self.system:spawnAI(100, Actions.Wait(5), self.player)
   end
 
   for i = 1, 1 do

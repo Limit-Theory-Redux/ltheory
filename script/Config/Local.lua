@@ -1,4 +1,4 @@
-Config.debug.instantJobs = true
+Config.debug.instantJobs = false
 Config.debug.jobSpeed = 10000
 
 Config.debug.window = false
@@ -10,12 +10,12 @@ Config.render.vsync = false
 Config.audio.bSoundOn = false
 
 Config.gen.scaleFieldAsteroid = Config.gen.scaleAsteroid * 9500
-Config.gen.nBeltSize = function (rng) return 200 end
-Config.gen.nNPCs = 200
-Config.gen.nFields = 6
-Config.gen.nAsteroids = 500
+Config.gen.nFields = 10
+Config.gen.nAsteroids = 400
 Config.gen.nPlanets = 1
-Config.gen.nStations = 12
+Config.gen.nBeltSize = function (rng) return 200 end
+Config.gen.nStations = 1
+Config.gen.nNPCs = 100
 Config.gen.nTurrets = 1
 Config.gen.nThrusters = 2
 -- Config.gen.nDustClouds = 0

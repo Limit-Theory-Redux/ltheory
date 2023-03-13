@@ -13,9 +13,9 @@ Config.debug = {
   windowSection   = nil,  -- Set to the name of a debug window section to
                           -- collapse all others by default
 
-  instantJobs     = true, -- set to true to speed up econmomic testing
+  instantJobs     = false, -- set to true to speed up economic testing
 
-  timeAccelFactor = 100,
+  timeAccelFactor = 10,
 }
 
 Config.debug.physics = {
@@ -37,6 +37,10 @@ Config.gen = {
   seedGlobal = nil, -- Set to force deterministic global RNG
   seedSystem = nil, -- Set to force deterministic system generation
 
+  playerShipSize = 4,
+  nThrusters     = 1,
+  nTurrets       = 2,
+
   origin     = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
   nFields    = 20,
   nFieldSize = function (rng) return 200 * (rng:getExp() + 1.0) end,
@@ -46,8 +50,6 @@ Config.gen = {
   nPlanets   = 0,
   nAsteroids = 500, -- asteroids per asteroid field
   nBeltSize  = function (rng) return 0 end, -- asteroids per planetary belt
-  nThrusters = 1,
-  nTurrets   = 2,
 
   nDustFlecks = 1024,
   nDustClouds = 1024,
@@ -56,19 +58,19 @@ Config.gen = {
   shipRes     = 8,
   nebulaRes   = 1024,
 
-  zNearBack   = 0.1,
-  zNearReal   = 0.1, -- 0.1
-  zFarBack    = 1e6,
-  zFarReal    = 1e4, -- 1e6
+  zNearBack          = 0.1,
+  zNearReal          = 0.1, -- 0.1
+  zFarBack           = 1e6,
+  zFarReal           = 1e4, -- 1e6
 
   scaleSystemBack    = 2e5,
   scaleSystemReal    = 2e4, -- 2e9 maximum, but anything bigger than 5e4 currently introduces a horrible "wobble"
   scalePlanetBack    = 120000,
-  scalePlanetReal    = 15000,
+  scalePlanetReal    = 8000, -- 15000
   scalePlanetModBack = 7e4,
   scalePlanetModReal = 1, -- 4e5
 
-  scaleSystem        = 1e4,   -- this needs to be extended massively; see also zFar and zNear
+  scaleSystem        = 1e6,   -- this needs to be extended massively; see also zFar and zNear
   scaleStar          = 1e6,
   scalePlanet        = 5e3,
   scalePlanetMod     = 7e4,  -- 7e4
@@ -76,23 +78,23 @@ Config.gen = {
   scaleAsteroid      = 7.0,
   scaleStation       = 70,
 
-  radiusAsteroid =     50000, -- 0.005 km to 450 km
-  radiusPlanet   =   6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
-  radiusStar     = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
+  radiusStarTrue      = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
+  radiusPlanetTrue    =   6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
+  radiusAsteroidTrue  =     50000, -- 0.005 km to 450 km
+  massStarTrue        = 2e30,  -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
+  massPlanetTrue      = 6e24,  -- 5.97e24 is Earth's mass in kg (1.e10 as a test value)
+  massAsteroidTrue    = 5e18,  -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
 
   massAsteroidExp = {4.1,  -- Carbonaceous
-                     5.7,  -- Metallic
+                     5.9,  -- Metallic
                      3.2}, -- Silicaceous
-  massAsteroid    = 5e18,  -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
-  massPlanet      = 6e24,  -- 5.97e24 is Earth's mass in kg (1.e10 as a test value)
-  massStar        = 2e30,  -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
-
-  playerShipSize = 4,
 }
 
 Config.game = {
   gameMode = 0,
-  bFlightModePaused = false,
+  bFlightModeInactive = false,
+
+  gamePaused = false,
 
   humanPlayer = nil,
   currentShip = nil,
@@ -165,7 +167,10 @@ Config.game = {
 }
 
 Config.econ = {
-  pickupDistWeight = 15, -- importance of pickup distance when considering a Mine job (depends on system size)
+  pickupDistWeightMine = 0.1, -- importance of pickup distance for a Mine job (smaller = more important)
+  pickupDistWeightTran = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
+  markup   = 1.4, -- change to base value when calculating bid price for selling an item
+  markdown = 0.7, -- change to base value when calculating ask price for buying an item
 }
 
 Config.render = {
@@ -192,6 +197,7 @@ Config.ui = {
 }
 
 Config.ui.color = {
+                      --     R     G     B     A
   accent            = Color(1.00, 0.00, 0.30, 1.0),
   focused           = Color(1.00, 0.00, 0.30, 1.0),
   active            = Color(0.70, 0.00, 0.21, 1.0),
@@ -213,10 +219,11 @@ Config.ui.color = {
   borderBright      = Color(1.00, 1.00, 1.00, 0.6),
 
   healthColor = {
-    Color(0.0, 0.0, 0.0, 0.2), --  0% -   1% BLACK
-    Color(0.1, 0.0, 0.0, 0.2), --  2% -   3%
-    Color(0.3, 0.0, 0.1, 0.2), --  4% -   5%
-    Color(0.5, 0.0, 0.3, 0.2), --  6% -   7%
+    --     R    G    B    A
+    Color(0.0, 0.0, 0.0, 0.8), --  0% -   1% BLACK
+    Color(0.1, 0.0, 0.0, 0.6), --  2% -   3%
+    Color(0.3, 0.0, 0.1, 0.4), --  4% -   5%
+    Color(0.5, 0.0, 0.3, 0.3), --  6% -   7%
     Color(0.6, 0.0, 0.5, 0.2), --  8% -   9%
     Color(0.7, 0.0, 0.7, 0.2), -- 10% -  11%
     Color(0.8, 0.0, 0.8, 0.2), -- 12% -  13% PURPLE

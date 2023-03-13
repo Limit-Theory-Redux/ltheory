@@ -25,15 +25,15 @@ function MoveTo:onUpdateActive (e, dt)
 
     if e == Config.game.currentShip and Config.game.playerMoving then
       Config.game.playerMoving = false
-      Config.debug.instantJobs = true
+--      Config.debug.instantJobs = true
     end
 
     return
   end
 
-  if e == Config.game.currentShip and Config.game.playerMoving then
-    Config.debug.instantJobs = false
-  end
+--  if e == Config.game.currentShip and Config.game.playerMoving then
+--    Config.debug.instantJobs = false
+--  end
 
   if Config.debug.instantJobs then
 --print("MoveTo - instantJob!")

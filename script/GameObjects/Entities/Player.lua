@@ -6,7 +6,6 @@ local Player = subclass(Entity, function (self, name)
   self:addActions() -- needed for Think() action
   self:addAssets()
   self:addDispositions()
-  self:addInventory(Config.game.pStartCredits)
 
   self.controlling = nil
   self.docked = nil

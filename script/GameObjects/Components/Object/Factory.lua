@@ -89,7 +89,7 @@ end
 -- Buy inputs and sell outputs
 function Factory:updateTradeOrders (prod, dt)
   local trader = self.parent:getTrader()
-  local duration = prod.type:getDuration()
+  local duration = prod.type:getDuration() -- ????: should this be used here somewhere?
 
   -- TODO : Intelligently compute price ranges via estimation using item
   --        intrinsic energy
@@ -126,7 +126,7 @@ function Factory:update (dt)
   for _, prod in ipairs(self.prods) do
 
 -- TEMPORARILY DISABLED -- restore this once Trader.lua is working
---    self:updateProduction(prod, dt)
+    self:updateProduction(prod, dt)
 
     -- NOTE : Disabled trade orders for the moment due to not having limits on
     --        max active orders, leading to stalling the entire game via tens

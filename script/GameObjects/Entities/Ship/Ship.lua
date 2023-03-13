@@ -4,7 +4,6 @@ local Material = require('GameObjects.Material')
 local Ship = subclass(Entity, function (self, proto)
 
   self:addActions()
---  self:addAssets()
   self:addCapacitor(100, 10)
   self:addChildren()
   self:addDispositions()
@@ -38,7 +37,7 @@ local Ship = subclass(Entity, function (self, proto)
 
   -- TODO: Use mass values from the ship hull class
   local mass = 1000.0 + (self:getRadius() * 2000) -- (fully loaded F-15 = 20,000 kg, but Josh's mass calc gets sluggish x 10)
-  self:setMass(mass) -- holy heck, do NOT use too low a number here; the screen will wobble uncontrollably
+  self:setMass(mass) -- lower mass is related to the ship "wobble" problem
 
   local shipDocked = false
 end)

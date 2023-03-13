@@ -12,7 +12,7 @@ function Mine:clone ()
 end
 
 function Mine:getFlows (e)
-  local capacity = e:getInventoryCapacity()
+  local capacity = e:getInventoryFree()
   local duration = self:getTravelTime(e) -- TODO : + miningTime
   local item = self.src:getYield().item
   local rate = math.floor(capacity / item:getMass()) / duration
@@ -20,7 +20,7 @@ function Mine:getFlows (e)
 end
 
 function Mine:getName ()
-  return format('Mine %s at %s, drop off at %s, distance = %d',
+  return format('Mine %s at %s, drop off at %s (distance = %d)',
     self.src:getYield().item:getName(),
     self.src:getName(),
     self.dst:getName(),
@@ -28,36 +28,43 @@ function Mine:getName ()
 end
 
 function Mine:getPayout (e)
-  local capacity = e:getInventoryCapacity()
+  local payout = 0
+  local capacity = e:getInventoryFree()
   local item = self.src:getYield().item
-  local count = math.floor(capacity / item:getMass())
-  local value = self.dst:getTrader():getSellToPrice(item, count)
+  local itemBidVol = self.dst:getTrader():getBidVolume(item)
+  if itemBidVol and itemBidVol > 0 then
+    -- Mine only as many units as the destination has bids for, or as much as we can carry
+    local count = math.min(itemBidVol, math.floor(capacity / item:getMass()))
+    local value = self.dst:getTrader():getSellToPrice(item, count)
 
-  -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
-  local yieldSize = self.src:getYield().size
-  local pickupTravelTime = self:getShipTravelTime(e)
-  local transportTravelTime = self:getTravelTime(e)
-  local payoutMod = 100 / ((pickupTravelTime / Config.econ.pickupDistWeight) + transportTravelTime)
---  local payoutMod = math.min(10000, yieldSize) / (pickupTravelTime + transportTravelTime)
+    -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
+--    local yieldSize = self.src:getYield().size
+    local pickupTravelTime = self:getShipTravelTime(e)
+    local transportTravelTime = self:getTravelTime(e)
+    local payoutMod = 10000 / ((pickupTravelTime / Config.econ.pickupDistWeightMine) + transportTravelTime)
+--    local payoutMod = math.min(10000, yieldSize) / (pickupTravelTime + transportTravelTime)
 
-  local payout = math.max(1, math.floor(value * payoutMod))
+    payout = math.max(1, math.floor(value * payoutMod))
 
 --local pstr1 = "Mine [%s]: capacity = %d, item = %s, count = %d, src = %s, dest = %s, value = %d, "
 --local pstr2 = "yieldsize = %d, pickupTravelTime = %d, transportTravelTime = %d, payoutmod = %f, payout = %s"
 --local pstr  = pstr1 .. pstr2
 --printf(pstr,
---e:getName(), capacity, item:getName(), count, self.src:getName(), self.dst:getName(),
---  value, yieldSize, transportTravelTime, pickupTravelTime, payoutMod, payout)
+--e:getName(), capacity, item:getName(), count, self.src:getName(), self.dst:getName(), value,
+--  yieldSize, transportTravelTime, pickupTravelTime, payoutMod, payout)
+  end
 
   return payout
 end
 
-function Mine:getTravelTime (e)
-  return 2.0 * self.src:getDistance(self.dst) / e:getTopSpeed()
+function Mine:getShipTravelTime (e)
+  -- Return the travel time between the ship and a non-ship target depending on ship's top speed
+  return e:getDistance(self.dst) / e:getTopSpeed()
 end
 
-function Mine:getShipTravelTime (e)
-  return e:getDistance(self.dst) / e:getTopSpeed()
+function Mine:getTravelTime (e)
+  -- Return the two-way travel time between two non-ship targets depending on ship's top speed
+  return 2.0 * self.src:getDistance(self.dst) / e:getTopSpeed()
 end
 
 function Mine:onUpdateActive (e, dt)
@@ -65,20 +72,28 @@ function Mine:onUpdateActive (e, dt)
   e.jobState = e.jobState + 1
 
   if e.jobState == 1 then
-    local capacity = e:getInventoryCapacity()
+    local capacity = e:getInventoryFree()
     local item = self.src:getYield().item
     local count = math.floor(capacity / item:getMass())
+    local itemBidVol = self.dst:getTrader():getBidVolume(item)
+    if itemBidVol and itemBidVol > 0 then
+      count = math.min(itemBidVol, count)
+    end
     local profit = self.dst:getTrader():getSellToPrice(item, count)
---printf("[MINE] [e:%s] %d x %s from %s -> %s, expect %d profit",
---e:getName(), count, item:getName(), self.src:getName(), self.dst:getName(), profit)
+printf("[MINE] [e:%s] %d x %s from %s (travel: %d) -> %s (travel: %d), expect %d profit",
+e:getName(), count, item:getName(),
+self.src:getName(), self:getShipTravelTime(e), self.dst:getName(), self:getTravelTime(e), profit)
     e:pushAction(Actions.MoveTo(self.src, 100))
   elseif e.jobState == 2 then
-    e:pushAction(Actions.MineAt(self.src))
+--printf("Mining dest = %s", self.dst:getName())
+    e:pushAction(Actions.MineAt(self.src, self.dst))
   elseif e.jobState == 3 then
     e:pushAction(Actions.DockAt(self.dst))
   elseif e.jobState == 4 then
     local item = self.src:getYield().item
-    while self.dst:getTrader():sell(e, item) do end
+printf("%s offers to sell %d units of %s to Trader %s",
+e:getName(), e:getItemCount(item), item:getName(), self.dst:getName())
+    while self.dst:getTrader():buy(e, item) do end
   elseif e.jobState == 5 then
     e:pushAction(Actions.Undock())
   elseif e.jobState == 6 then

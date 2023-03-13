@@ -220,8 +220,7 @@ function HUD:drawLock (a)
       dir:inormalize()
       ss = center + dir:scale(r)
       local a = a * (1.0 - exp(-max(0.0, dist / (r + 16) - 1.0)))
---      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
-      UI.DrawEx.Cross(ss.x, ss.y, 4, Color(1.0, 0.5, 0.1, a))
+      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
     end
   end
 
@@ -381,7 +380,7 @@ function HUD:drawDockPrompt (a)
   local dockText = nil
 
   if dockingAllowed then
-    dockText = "Press F to Dock"
+    dockText = "Press F to Dock" -- TODO: connect Docking input to bindings
   else
     dockText = "Docking is refused at this Station"
   end
@@ -392,7 +391,7 @@ function HUD:drawDockPrompt (a)
     16,
     x, y, sx, sy,
     1, 1, 1, self.dockPromptAlpha * a,
-    0.5, 0.99
+    0.5, 0.96
   )
 end
 
@@ -415,7 +414,7 @@ function HUD:onInput (state)
   if self.dockable then
 --printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()), self.dockable:getName(), self.dockable:isDockable())
     if self.dockable:isDockable() then
-      if ShipBindings.Dock:get() > 0 then
+      if not Config.game.gamePaused and ShipBindings.Dock:get() > 0 then
         -- TODO: migrate this action outside the HUD
         e:pushAction(Actions.DockAt(self.dockable))
         self.dockable = nil
