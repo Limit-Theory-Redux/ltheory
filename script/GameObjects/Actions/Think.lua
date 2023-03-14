@@ -1,7 +1,7 @@
 local Action = require('GameObjects.Action')
 local Player = require('GameObjects.Entities.Player')
 
-local kJobIterations = 100
+local kJobIterations = 1000 -- how many randomly-chosen jobs the asset will consider before deciding
 
 local Think = subclass(Action, function (self)
   self.timer = 0
@@ -53,7 +53,7 @@ end
 --  end
 --end
 
---if true then -- Use payout, not flow
+if true then -- Use payout, not flow
   function Think:manageAsset (asset)
     local root = asset:getRoot()
     local bestPayout = 0
@@ -70,7 +70,7 @@ end
 
     -- Consider changing to a new job
     for i = 1, kJobIterations do
-      -- TODO : KnowsAbout check
+      -- TODO : KnowsAbout check (information economy + AI load reduction)
       local job = self.rng:choose(root:getEconomy().jobs)
       if not job then break end
 
@@ -86,8 +86,15 @@ end
 --printf("pushing action: %s", asset.job:getName())
       asset:pushAction(bestJob)
     end
+
+    if asset:isIdle() and not asset:isShipDocked() then
+      local system = asset.parent
+      local station = system:sampleStations(system.rng)
+printf("Asset '%s' has no more jobs available, docking at Station '%s'", asset:getName(), station:getName())
+      asset:pushAction(Actions.DockAt(station))
+    end
   end
---end
+end
 
 function Think:onUpdateActive (e, dt)
   Profiler.Begin('Action.Think')

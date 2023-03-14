@@ -16,6 +16,8 @@ end)
 
 -- TODO : Economy cache should be updated infrequently and the update should be
 --        spread over many frames.
+-- NOTE : In particular, the evaluation of Mining jobs becomes very expensive as
+--        asteroid count (Yield) and station/planet count (Market) increase.
 function Economy:update (dt)
   Profiler.Begin('Economy.Update')
   table.clear(self.factories)
@@ -43,30 +45,39 @@ function Economy:update (dt)
     end
   end
 
-  if false then
-    do -- Cache trade jobs from positive to negative flow
-      for _, src in ipairs(self.markets) do
-        for item, srcFlow in pairs(src:getFlows()) do
-          if srcFlow > 0 then
-            for _, dst in ipairs(self.markets) do
-              if dst:getFlow(item) < 0 then
-                insert(self.jobs, Jobs.Transport(src, dst, item))
-              end
-            end
-          end
-        end
-      end
-    end
-  end
+--  if false then  -- INACTIVE
+--    do -- Cache trade jobs from positive to negative flow
+--      for _, src in ipairs(self.markets) do
+--        for item, srcFlow in pairs(src:getFlows()) do
+--          if srcFlow > 0 then
+--            for _, dst in ipairs(self.markets) do
+--              if dst:getFlow(item) < 0 then
+--                insert(self.jobs, Jobs.Transport(src, dst, item))
+--              end
+--            end
+--          end
+--        end
+--      end
+--    end
+--  end
 
   -- Cache profitable trade offers
   for _, src in ipairs(self.traders) do
     for item, data in pairs(src:getTrader().elems) do
       local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
-      for _, dst in ipairs(self.traders) do
-        local sellPrice = dst:getTrader():getSellToPrice(item, 1)
-        if buyPrice < sellPrice then
-          insert(self.jobs, Jobs.Transport(src, dst, item))
+--printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
+      if buyPrice > 0 then
+        for _, dst in ipairs(self.traders) do
+          if src ~= dst then
+            local sellPrice = dst:getTrader():getSellToPrice(item, 1)
+--printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
+--    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+            if buyPrice < sellPrice then
+--printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
+--    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+              insert(self.jobs, Jobs.Transport(src, dst, item))
+            end
+          end
         end
       end
     end

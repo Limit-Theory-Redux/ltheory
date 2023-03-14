@@ -5,11 +5,12 @@ F10    -- toggle profiler on, then toggle off and display stats
 F11    -- toggle between fullscreen and windowed
 F12    -- take a screenshot (*.png) and save it to ./screenshot folder
 B      -- when in startup mode (not flight mode), generate a new background star system
-G      -- when the full HUD is on, toggles target lock off
+G      -- toggles target lock off (HUD or System Map)
 H      -- speed up time processing (currently 10x, defined in /script/Config/App.lua)
 K      -- toggle the realtime metrics overlay on/off
 M      -- toggle autopilot: in the system map, click on a target, then press this key to fly there
-G      -- when the full HUD is on, toggles target lock on
+T      -- toggles target lock off (HUD or System Map)
+U      -- pause and unpause the game (flight mode)
 V      -- toggle parts of the HUD off and back on again
 Ctrl-W -- immediately exit game
 Alt-Q  -- immediately exit game

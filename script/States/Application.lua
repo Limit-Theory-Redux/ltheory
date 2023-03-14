@@ -119,6 +119,20 @@ function Application:run ()
         Profiler.End()
       end
 
+      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() ~= 1 then
+        if Config.game.gamePaused then
+          Config.game.gamePaused = false
+        else
+          Config.game.gamePaused = true
+        end
+      end
+
+      if Config.game.gamePaused then
+        timeScale = 0.0
+      else
+        timeScale = 1.0
+      end
+
       if Input.GetDown(Bindings.TimeAccel) then
         timeScale = Config.debug.timeAccelFactor
       end
@@ -183,6 +197,28 @@ function Application:run ()
           y = y - 12
         end
         BlendMode.Pop()
+      end
+    end
+
+    if Config.getGameMode() ~= 1 then
+      UI.DrawEx.TextAdditive(
+        'NovaRound',
+        "EXPERIMENTAL BUILD - NOT FINAL!",
+        20,
+        0, 0, self.resX, self.resY,
+        1, 1, 1, 1,
+        0.50, 0.01
+      )
+
+      if Config.game.gamePaused then
+        UI.DrawEx.TextAdditive(
+          'NovaRound',
+          "[PAUSED]",
+          24,
+          0, 0, self.resX, self.resY,
+          1, 1, 1, 1,
+          0.5, 0.99
+        )
       end
     end
 

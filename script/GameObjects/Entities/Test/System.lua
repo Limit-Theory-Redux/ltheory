@@ -16,6 +16,8 @@ local System = subclass(Entity, function (self, seed)
   self:setName(Words.getCoolName(self.rng))
   self:setType(Config:getObjectTypeByName("object_types", "Star System"))
 
+printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
+
   self:addChildren()
 
   self:addEconomy()
@@ -35,8 +37,9 @@ local System = subclass(Entity, function (self, seed)
   self.nebula = Nebula(self.rng:get64(), self.starDir)
   self.dust = Dust()
 
-  self.players = {}
-  self.zones = {}
+  self.zones    = {}
+  self.stations = {}
+  self.players  = {}
 
   -- When creating a new system, initialize station subtype options from all production types
   local prodType = Config:getObjectTypeIndex("station_subtypes")
@@ -59,6 +62,18 @@ end
 
 function System:sampleZones (rng)
   return rng:choose(self.zones)
+end
+
+function System:addStation (station)
+  insert(self.stations, station)
+end
+
+function System:getStations ()
+  return self.stations
+end
+
+function System:sampleStations (rng)
+  return rng:choose(self.stations)
 end
 
 function System:place (rng, object)
@@ -150,16 +165,17 @@ function System:spawnPlanet (bAddBelt)
   -- Planets have enormous trading capacity
   planet:addTrader()
   planet:addCredits(Config.game.eStartCredits * 1000)
-  -- Let the planet bid on selected item types
+
+  -- Let the planet bid for selected item types it wants
   -- TODO: generate better bid prices; this is just for testing the "payout" model
   for _, v in pairs(Item.T1) do
-    planet.trader:addBid(v, rng:getInt(50, 200))
+    planet.trader:addBid(v, rng:getInt(50, 200)) -- add a bid for a single unit of each item in this group
   end
   for _, v in pairs(Item.T5) do
-    planet.trader:addBid(v, rng:getInt(1550, 10000))
+    planet.trader:addBid(v, rng:getInt(1550, 10000)) -- add a bid for a single unit of each item in this group
   end
   for _, v in pairs(Item.T6) do
-    planet.trader:addBid(v, rng:getInt(2450, 48000))
+    planet.trader:addBid(v, rng:getInt(2450, 48000)) -- add a bid for a single unit of each item in this group
   end
 
   -- Planets have significant manufacturing capacity
@@ -179,8 +195,8 @@ function System:spawnPlanet (bAddBelt)
       local h = 0.1 * rw * rng:getGaussian()
       local dir = rng:getDir2()
 
-      local scale = Config.gen.scaleAsteroid
---      local scale = Config.gen.scaleAsteroid * (1.0 + rng:getExp() ^ 2.0)
+--      local scale = Config.gen.scaleAsteroid
+      local scale = Config.gen.scaleAsteroid * (1.0 + rng:getExp() ^ 2.0)
 
       local asteroid = Objects.Asteroid(rng:get31(), scale)
       asteroid:setType(Config:getObjectTypeByName("object_types", "Asteroid"))
@@ -306,13 +322,13 @@ end
 
 function System:setAsteroidYield (rng, asteroid)
   -- TODO: Replace with actual system for generating minable materials in asteroids
-  if rng:getInt(0, 100) > 50 then
+  if rng:getInt(0, 100) < 70 then
     local amass = math.floor(asteroid:getMass() / 1000)
-    asteroid:addYield(rng:choose(Item.T2), rng:getInt(amass / 2, amass))
+    asteroid:addYield(rng:choose(Item.T2), math.max(1, rng:getInt(amass / 2, amass)))
   end
 end
 
-function System:spawnStation (player, fieldPos, fieldExtent)
+function System:spawnStation (player, prodType)
   local rng = self.rng
 
   -- Spawn a new space station
@@ -324,7 +340,6 @@ function System:spawnStation (player, fieldPos, fieldExtent)
 
   -- Set station location within the extent of a randomly selected asteroid field
   self:place(rng, station)
---  pos = rng:getDisc():scale(Config.gen.scaleSystem) -- old placement style
 
   -- Set station scale
   station:setScale(Config.gen.scaleStation)
@@ -338,47 +353,37 @@ function System:spawnStation (player, fieldPos, fieldExtent)
 --printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
   end
 
+  -- Stations have trading capacity
+  station:addTrader()
+
   -- Stations have manufacturing capacity for one randomly-chosen production type
   -- TODO: Assign a station's production type based on system needs (e.g., insure there's
   --       always at least one energy-generating station in each system)
   station:addFactory()
-  local prod = rng:choose(Production.All())
+  local prod = prodType
+  if not prodType then
+    prod = rng:choose(Production.P1) -- if no production type is provided, randomly choose a refinery
+--    prod = rng:choose(Production.All()) -- if no production type is provided, choose one randomly
+  end
   station:addProduction(prod)
   station:setSubType(Config:getObjectTypeByName("station_subtypes", prod:getName()))
 
-  -- Stations have trading capacity
-  -- TODO: Define which production service type this trader provides:
-  --         Depot:    buys/sells ore (T2), ship products (T6)
-  --         Importer: buys/sells plants and animals ("biomass") (T4)
-  --         Refinery: buys/sells ore (T2), elements (T3)
-  --         Factory:  buys/sells elements (T3), general products (T5)
-  --         Drydock:  buys/sells general products (T5), ship products (T6)
-  station:addTrader()
+  -- Station starts with some credits and some energy (energy Item must exist before bid is offered!)
   station:addCredits(Config.game.eStartCredits * 100)
---  station.trader.credits = Config.game.eStartCredits
 
-  -- Let the station bid on selected items
-  -- TODO: generate better bid prices; this is just for testing the "payout" model
-  if not prod:inOutputs(Item.Energy) then
-    -- If this station doesn't make energy, offer a bid for it
-    local bidprice = rng:getInt(100, 200)
-    station.trader:addBid(Item.Energy, bidprice)
-printf("Added Energy bid of %d for trader %s with production '%s'", bidprice, station:getName(), prod:getName())
+  -- The station sets asks for selling items its facility produces as outputs,
+  --     and sets bids for buying items its facility wants as inputs
+  -- Ask prices (for selling) are calculated as the item's base price times a markup value
+  -- Bid prices (for buying) are calculated as the item's base price times a markdown value
+  for _, input in prod:iterInputs() do
+    for i = 1, input.count do
+      station.trader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33))) -- 33
+    end
   end
-  for _, v in pairs(Item.T2) do
-    station.trader:addBid(v, rng:getInt(20, 100))
-  end
-  for _, v in pairs(Item.T3) do
-    station.trader:addBid(v, rng:getInt(150, 350))
-  end
-  for _, v in pairs(Item.T4) do
-    station.trader:addBid(v, rng:getInt(750, 2500))
-  end
-  for _, v in pairs(Item.T5) do
-    station.trader:addBid(v, rng:getInt(1550, 10000))
-  end
-  for _, v in pairs(Item.T6) do
-    station.trader:addBid(v, rng:getInt(2450, 48000))
+  for _, output in prod:iterOutputs () do
+    for i = 1, output.count do
+      station.trader:addAsk(output.item, math.floor(output.item.energy * Config.econ.markup))
+    end
   end
 
   -- Assign the station to an owner
@@ -389,7 +394,9 @@ printf("Added Energy bid of %d for trader %s with production '%s'", bidprice, st
 
 local typeName = Config:getObjectInfo("object_types", station:getType())
 local subtypeName = Config:getObjectInfo("station_subtypes", station:getSubType())
-printf("Added %s %s '%s'", subtypeName, typeName, station:getName())
+printf("Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(), prod:getName())
+
+  self:addStation(station)
 
   return station
 end
@@ -436,6 +443,7 @@ function System:spawnShip (player)
 
   ship:setInventoryCapacity(Config.game.eInventory)
 
+  -- NOTE: a new ship must be added to a star system BEFORE thrusters and turrets are attached!
   self:addChild(ship)
 
   -- Add as many thrusters as there are thruster plugs for

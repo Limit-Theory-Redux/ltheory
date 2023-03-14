@@ -6,7 +6,7 @@ local SystemMap = {}
 SystemMap.__index  = SystemMap
 setmetatable(SystemMap, UI.Container)
 
-local kPanSpeed = 500
+local kPanSpeed = 20 -- NOTE: may be dependent on player's CPU, needs testing
 local kZoomSpeed = 0.1
 
 SystemMap.scrollable = true
@@ -124,16 +124,9 @@ function SystemMap:onDraw (state)
 
   if Input.GetDown(Button.Mouse.Left) then
     self.focus = best
-    -- If focused-on object in the System Map is a ship (not the player's) or a station, make it the current target
+    -- Set focused-on object in the System Map as the player ship's current target
     if Config.game.currentShip ~= nil and Config.game.currentShip ~= self.focus then
---      if self.focus:getType() == Config:getObjectTypeByName("object_types", "Ship")    or
---         self.focus:getType() == Config:getObjectTypeByName("object_types", "Station") then
-        Config.game.currentShip:setTarget(self.focus)
---      else
-        -- TODO: extend targetable objects in space (via HUD) to include asteroids and planets (or planetary colonies)
-        --       For now, a non-Ship or non-Station was focused on, so clear the target for the HUD
---        Config.game.currentShip:setTarget(nil)
---      end
+      Config.game.currentShip:setTarget(self.focus)
     end
   end
 
@@ -157,6 +150,9 @@ function SystemMap:onDraw (state)
       dbg:indent()
       if owner ~= nil then
         dbg:text("Owner: %s", owner:getName())
+        dbg:indent()
+          dbg:text("Credits: %d", owner:getCredits())
+        dbg:undent()
       else
         dbg:text("Owner: [None]")
       end
@@ -214,12 +210,14 @@ function SystemMap:onDraw (state)
 end
 
 function SystemMap:onInput (state)
+  -- TODO: Connect to bindings (probably should be a new MapBindings.lua)
+  -- NOTE: Keyboard pan and zoom previous used (e.g.) "kPanSpeed * state.dt"
   Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-  Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (kPanSpeed * state.dt / Config.game.mapSystemZoom) * (
+  Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (kPanSpeed / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-  Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (kPanSpeed * state.dt / Config.game.mapSystemZoom) * (
+  Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (kPanSpeed / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
-  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(10.0 * kZoomSpeed * state.dt * (
+  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(10.0 * kZoomSpeed * (
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
 end
 
