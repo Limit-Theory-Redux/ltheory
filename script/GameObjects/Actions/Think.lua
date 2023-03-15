@@ -89,9 +89,14 @@ if true then -- Use payout, not flow
 
     if asset:isIdle() and not asset:isShipDocked() then
       local system = asset.parent
-      local station = system:sampleStations(system.rng)
+
+      local stations = system:getStationsByDistance(asset)
+      if #stations > 0 and stations[1] ~= nil then
+        local station = stations[1].stationRef
+
 printf("Asset '%s' has no more jobs available, docking at Station '%s'", asset:getName(), station:getName())
-      asset:pushAction(Actions.DockAt(station))
+        asset:pushAction(Actions.DockAt(station))
+      end
     end
   end
 end

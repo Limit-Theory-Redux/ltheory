@@ -85,7 +85,6 @@ e:getName(), count, item:getName(),
 self.src:getName(), self:getShipTravelTime(e), self.dst:getName(), self:getTravelTime(e), profit)
     e:pushAction(Actions.MoveTo(self.src, 100))
   elseif e.jobState == 2 then
---printf("Mining dest = %s", self.dst:getName())
     e:pushAction(Actions.MineAt(self.src, self.dst))
   elseif e.jobState == 3 then
     e:pushAction(Actions.DockAt(self.dst))

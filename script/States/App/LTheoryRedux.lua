@@ -299,7 +299,7 @@ print("------------------------")
       -- Add asteroid fields
       -- Must add BEFORE space stations
       for i = 1, Config.gen.nFields do
-        afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, true)
+        afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, false)
 printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
       end
 

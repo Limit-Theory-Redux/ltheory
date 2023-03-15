@@ -107,6 +107,7 @@ Config.game = {
   eStartCredits = 1000000,
 
   eInventory = 100,
+  inputBacklog = 3,
 
   boostCost = 10,
   rateOfFire = 10,

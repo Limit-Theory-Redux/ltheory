@@ -14,7 +14,7 @@ local kFields = 10
 local kFieldCount = 300
 local kStations = 22
 local kPlayers = 3
-local kAssets = 100
+local kAssets = 10
 
 function TestEcon:getWindowMode ()
   return Bit.Or32(WindowMode.Shown, WindowMode.Resizable)
@@ -53,9 +53,16 @@ function TestEcon:showStatus ()
       end
       ctx:undent()
       ctx:undent()
+      local allAssets = #v:getAssets()
+      local idleAssets = 0
+      for asset in v:iterAssets() do
+        if asset:isIdle() then
+          idleAssets = idleAssets + 1
+        end
+      end
+      ctx:indent()
+      ctx:text("Assets (active/total): %d / %d", allAssets - idleAssets, allAssets)
       if kAssets <= 3 then -- only show asset details if there are a handful for testing
-        ctx:indent()
-        ctx:text("Assets:") -- TODO: show number of active assets / total assets owned by this player
         ctx:indent()
         for asset in v:iterAssets() do
           ctx:text("%s", asset:getName())
@@ -71,6 +78,7 @@ function TestEcon:showStatus ()
         ctx:undent()
         ctx:undent()
       end
+      ctx:undent()
       ctx:undent()
     end
   end)
@@ -135,7 +143,6 @@ function TestEcon:onInit ()
     local tradePlayer = Entities.Player(tradePlayerName)
 
     -- Give player some starting money
---    tradePlayer:addItem(Item.Credit, Config.game.eStartCredits)
     tradePlayer:addCredits(Config.game.eStartCredits)
 
     -- Create assets (ships)
