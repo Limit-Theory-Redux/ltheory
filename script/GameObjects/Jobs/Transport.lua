@@ -73,31 +73,33 @@ function Transport:getTravelTime (e)
 end
 
 function Transport:onUpdateActive (e, dt)
-  if not e.jobState then e.jobState = 0 end
-  e.jobState = e.jobState + 1
+  if not Config.game.gamePaused then
+    if not e.jobState then e.jobState = 0 end
+    e.jobState = e.jobState + 1
 
-  if e.jobState == 1 then
-    local capacity = e:getInventoryFree()
-    local maxCount = math.floor(capacity / self.item:getMass())
-    local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
+    if e.jobState == 1 then
+      local capacity = e:getInventoryFree()
+      local maxCount = math.floor(capacity / self.item:getMass())
+      local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
 printf("[TRADE] %d x %s from %s -> %s, expect %d profit", count, self.item:getName(), self.src:getName(), self.dst:getName(), profit)
-    e.tradeCount = count
-    e:pushAction(Actions.DockAt(self.src))
-  elseif e.jobState == 2 then
+      e.tradeCount = count
+      e:pushAction(Actions.DockAt(self.src))
+    elseif e.jobState == 2 then
 printf("%s offers to buy %d units of %s from Trader %s", e:getName(), e.tradeCount, self.item:getName(), self.src:getName())
-    for i = 1, e.tradeCount do self.src:getTrader():sell(e, self.item) end
-  elseif e.jobState == 3 then
-    e:pushAction(Actions.Undock())
-  elseif e.jobState == 4 then
-    e:pushAction(Actions.DockAt(self.dst))
-  elseif e.jobState == 5 then
+      for i = 1, e.tradeCount do self.src:getTrader():sell(e, self.item) end
+    elseif e.jobState == 3 then
+      e:pushAction(Actions.Undock())
+    elseif e.jobState == 4 then
+      e:pushAction(Actions.DockAt(self.dst))
+    elseif e.jobState == 5 then
 printf("%s offers to sell %d units of %s to Trader %s", e:getName(), e.tradeCount, self.item:getName(), self.dst:getName())
-    while self.dst:getTrader():buy(e, self.item) do end
-  elseif e.jobState == 6 then
-    e:pushAction(Actions.Undock())
-  elseif e.jobState == 7 then
-    e:popAction()
-    e.jobState = nil
+      while self.dst:getTrader():buy(e, self.item) do end
+    elseif e.jobState == 6 then
+      e:pushAction(Actions.Undock())
+    elseif e.jobState == 7 then
+      e:popAction()
+      e.jobState = nil
+    end
   end
 end
 

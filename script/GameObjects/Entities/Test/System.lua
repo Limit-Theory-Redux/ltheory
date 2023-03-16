@@ -121,25 +121,27 @@ function System:endRender ()
 end
 
 function System:update (dt)
-  -- pre-physics update
-  local event = Event.Update(dt)
-  Profiler.Begin('AI Update')
-  for _, player in ipairs(self.players) do player:send(event) end
-  Profiler.End()
+  if not Config.game.gamePaused then
+    -- pre-physics update
+    local event = Event.Update(dt)
+    Profiler.Begin('AI Update')
+    for _, player in ipairs(self.players) do player:send(event) end
+    Profiler.End()
 
-  self:send(event)
-  Profiler.Begin('Broadcast Update')
-  self:send(Event.Broadcast(event))
-  Profiler.End()
+    self:send(event)
+    Profiler.Begin('Broadcast Update')
+    self:send(Event.Broadcast(event))
+    Profiler.End()
 
-  Profiler.Begin('Physics Update')
-  self.physics:update(dt)
-  Profiler.End()
+    Profiler.Begin('Physics Update')
+    self.physics:update(dt)
+    Profiler.End()
 
-  -- post-physics update
-  event = Event.UpdatePost(dt)
-  self:send(Event.Broadcast(event))
-  self:send(event)
+    -- post-physics update
+    event = Event.UpdatePost(dt)
+    self:send(Event.Broadcast(event))
+    self:send(event)
+  end
 end
 
 ---------------------

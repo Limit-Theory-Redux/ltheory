@@ -21,21 +21,9 @@ local self = {
       Control.GamepadButton(Button.Gamepad.RBumper),
       Control.GamepadButton(Button.Gamepad.LBumper))),
 
---  Yaw = Control.Or(
---    Control.And(
---      Control.MouseX(),
---      Control.Key(Button.Keyboard.Space)),
---    Control.GamepadAxis(Button.Gamepad.RStickX)),
-
   Yaw = Control.Or(
     Control.MouseX(),
     Control.GamepadAxis(Button.Gamepad.RStickX)),
-
---  Pitch = Control.Or(
---    Control.And(
---      Control.MouseY(),
---      Control.Key(Button.Keyboard.Space)),
---    Control.GamepadAxis(Button.Gamepad.RStickY):invert()),
 
   Pitch = Control.Or(
     Control.MouseY(),

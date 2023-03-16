@@ -68,39 +68,41 @@ function Mine:getTravelTime (e)
 end
 
 function Mine:onUpdateActive (e, dt)
-  if not e.jobState then e.jobState = 0 end
-  e.jobState = e.jobState + 1
+  if not Config.game.gamePaused then
+    if not e.jobState then e.jobState = 0 end
+    e.jobState = e.jobState + 1
 
-  if e.jobState == 1 then
-    local capacity = e:getInventoryFree()
-    local item = self.src:getYield().item
-    local count = math.floor(capacity / item:getMass())
-    local itemBidVol = self.dst:getTrader():getBidVolume(item)
-    if itemBidVol and itemBidVol > 0 then
-      count = math.min(itemBidVol, count)
-    end
-    local profit = self.dst:getTrader():getSellToPrice(item, count)
+    if e.jobState == 1 then
+      local capacity = e:getInventoryFree()
+      local item = self.src:getYield().item
+      local count = math.floor(capacity / item:getMass())
+      local itemBidVol = self.dst:getTrader():getBidVolume(item)
+      if itemBidVol and itemBidVol > 0 then
+        count = math.min(itemBidVol, count)
+      end
+      local profit = self.dst:getTrader():getSellToPrice(item, count)
 printf("[MINE] [e:%s] %d x %s from %s (travel: %d) -> %s (travel: %d), expect %d profit",
 e:getName(), count, item:getName(),
 self.src:getName(), self:getShipTravelTime(e), self.dst:getName(), self:getTravelTime(e), profit)
-    e:pushAction(Actions.MoveTo(self.src, 100))
-  elseif e.jobState == 2 then
-    e:pushAction(Actions.MineAt(self.src, self.dst))
-  elseif e.jobState == 3 then
-    e:pushAction(Actions.DockAt(self.dst))
-  elseif e.jobState == 4 then
-    local item = self.src:getYield().item
+      e:pushAction(Actions.MoveTo(self.src, 100))
+    elseif e.jobState == 2 then
+      e:pushAction(Actions.MineAt(self.src, self.dst))
+    elseif e.jobState == 3 then
+      e:pushAction(Actions.DockAt(self.dst))
+    elseif e.jobState == 4 then
+      local item = self.src:getYield().item
 printf("%s offers to sell %d units of %s to Trader %s",
 e:getName(), e:getItemCount(item), item:getName(), self.dst:getName())
-    while self.dst:getTrader():buy(e, item) do end
-  elseif e.jobState == 5 then
-    e:pushAction(Actions.Undock())
-  elseif e.jobState == 6 then
-    -- TODO : This is just a quick hack to force AI to re-evaluate job
-    --        decisions. In reality, AI should 'pre-empt' the job, which
-    --        should otherwise loop indefinitely by default
-    e:popAction()
-    e.jobState = nil
+      while self.dst:getTrader():buy(e, item) do end
+    elseif e.jobState == 5 then
+      e:pushAction(Actions.Undock())
+    elseif e.jobState == 6 then
+      -- TODO : This is just a quick hack to force AI to re-evaluate job
+      --        decisions. In reality, AI should 'pre-empt' the job, which
+      --        should otherwise loop indefinitely by default
+      e:popAction()
+      e.jobState = nil
+    end
   end
 end
 

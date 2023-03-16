@@ -1,4 +1,5 @@
 `      -- switch between graphics monitor/control panel and game (not quite working)
+Space  -- pause and unpause the game (flight mode)
 Tab    -- toggle star system tactical map on/off
 Enter  -- toggle audio on/off
 F10    -- toggle profiler on, then toggle off and display stats
@@ -8,9 +9,8 @@ B      -- when in startup mode (not flight mode), generate a new background star
 G      -- toggles target lock off (HUD or System Map)
 H      -- speed up time processing (currently 10x, defined in /script/Config/App.lua)
 K      -- toggle the realtime metrics overlay on/off
-M      -- toggle autopilot: in the system map, click on a target, then press this key to fly there
-T      -- toggles target lock off (HUD or System Map)
-U      -- pause and unpause the game (flight mode)
+M      -- toggle autopilot: click on a target (in world view or System Map), then press this key to fly there
+T      -- toggles target lock on (HUD or System Map)
 V      -- toggle parts of the HUD off and back on again
 Ctrl-W -- immediately exit game
 Alt-Q  -- immediately exit game

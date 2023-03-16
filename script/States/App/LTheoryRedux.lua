@@ -3,6 +3,7 @@ local Player = require('GameObjects.Entities.Player')
 local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Bindings = require('States.ApplicationBindings')
+local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 local Actions = requireAll('GameObjects.Actions')
 local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
@@ -121,7 +122,7 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Add basic Game Control menu
-  if Input.GetPressed(Bindings.Escape) then
+  if Input.GetPressed(Bindings.All:get()) then -- take down splash text if pretty much any key is pressed
     bBackgroundMode = false
     if Config.getGameMode() == 1 then
       menuMode = 1 -- show Main Menu
