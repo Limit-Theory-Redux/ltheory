@@ -27,3 +27,4 @@ cc = { version = "1.0", features = ["parallel"] }
 flate2 = "1.0.25"
 http_req = "~0.2.1"
 tar = "~0.4.15"
+cbindgen = "0.24.3"

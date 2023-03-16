@@ -6,6 +6,7 @@ use std::io::Cursor;
 use http_req::request;
 use std::fs;
 
+extern crate cbindgen;
 // extern crate flate2;
 // extern crate http_req;
 // extern crate tar;
@@ -75,6 +76,15 @@ fn link_lib_from_cmake(lib: &str, root: &PathBuf, path_segments: &[&str])
     println!("cargo:rustc-link-lib={}", lib);
 }
 
+fn gen_bindings()
+{
+    let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    cbindgen::Builder::new().with_crate(crate_dir)
+        .generate()
+        .expect("Error generating bindings.")
+        .write_to_file("src/cpp/include/bindings.h");
+}
+
 fn main() {
     println!("cargo:rustc-env=PHX_VERSION=0.0.1");
 
@@ -86,6 +96,8 @@ fn main() {
         .build_target("libphx-external")
         .build();
     let deps_root = cmake_root.join("build").join("_deps");
+
+    gen_bindings();
 
     // Build C++ files which haven't been ported yet.
     cc::Build::new()
