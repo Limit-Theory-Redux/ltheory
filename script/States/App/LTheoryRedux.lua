@@ -117,12 +117,17 @@ function LTheoryRedux:onUpdate (dt)
   -- TODO: Confirm whether this is still needed
   local playerShip = self.player
   if playerShip ~= nil then
-    --playerShip = playerShip.getControlling()
     playerShip = Config.game.currentShip
   end
 
+  -- Take down splash text if pretty much any key is pressed
+  if menuMode == 0 and Input.GetPressed(Bindings.All:get()) then
+    bBackgroundMode = false
+    menuMode = 1 -- show Main Menu
+  end
+
   -- Add basic Game Control menu
-  if Input.GetPressed(Bindings.All:get()) then -- take down splash text if pretty much any key is pressed
+  if menuMode ~= 0 and Input.GetPressed(Bindings.Escape) then
     bBackgroundMode = false
     if Config.getGameMode() == 1 then
       menuMode = 1 -- show Main Menu
@@ -184,7 +189,6 @@ function LTheoryRedux:onUpdate (dt)
       end
     elseif menuMode == 2 then
       if Config.game.bFlightModeInactive then
-        Config.game.gamePaused = true
         LTheoryRedux:showFlightDialog()
       else
         if bSeedDialogDisplayed then
