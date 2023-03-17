@@ -2,20 +2,14 @@ use crate::internal::Memory::*;
 use crate::Button::*;
 use crate::DeviceType::*;
 use crate::State::*;
+use crate::Device::*;
+use crate::State::*;
+use crate::Button::*;
 use glam::Vec3;
 use libc;
-extern "C" {
-    fn Button_ToString(_: Button) -> *const libc::c_char;
-    fn Device_ToString(_: *mut Device) -> *const libc::c_char;
-    fn State_ToString(_: State) -> *const libc::c_char;
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Device {
-    pub type_0: DeviceType,
-    pub id: u32,
-}
+
 pub type DeviceType = i32;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputEvent {
@@ -25,6 +19,7 @@ pub struct InputEvent {
     pub value: f32,
     pub state: State,
 }
+
 pub type State = i32;
 pub type Button = i32;
 

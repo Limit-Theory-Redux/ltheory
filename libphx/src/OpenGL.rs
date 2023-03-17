@@ -1,6 +1,8 @@
 use crate::internal::Memory::*;
+use crate::RenderState::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
     fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);
@@ -15,8 +17,8 @@ extern "C" {
     fn glMatrixMode(mode: GLenum);
     fn glPixelStorei(pname: GLenum, param: GLint);
     fn glewInit() -> GLenum;
-    fn RenderState_PushAllDefaults();
 }
+
 pub type GLenum = u32;
 pub type GLint = i32;
 pub type GLfloat = f32;

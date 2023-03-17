@@ -1,17 +1,15 @@
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
-use crate::PixelFormat::*;
+use crate::RenderTarget::*;
 use crate::TexFormat::*;
+use crate::PixelFormat::*;
+use crate::Bytes::*;
 use glam::IVec3;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type Bytes;
-    fn Bytes_Rewind(_: *mut Bytes);
-    fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
-    fn Bytes_Create(len: u32) -> *mut Bytes;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn DataFormat_GetSize(_: DataFormat) -> i32;
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLu32);
     fn glDeleteTextures(n: GLsizei, textures: *const GLu32);
@@ -32,13 +30,8 @@ extern "C" {
     static mut __glewTexImage3D: PFNGLTEXIMAGE3DPROC;
     static mut __glewActiveTexture: PFNGLACTIVETEXTUREPROC;
     static mut __glewGenerateMipmap: PFNGLGENERATEMIPMAPPROC;
-    fn PixelFormat_Components(_: PixelFormat) -> i32;
-    fn RenderTarget_Pop();
-    fn RenderTarget_PushTex3D(_: *mut Tex3D, layer: i32);
-    fn RenderTarget_PushTex3DLevel(_: *mut Tex3D, layer: i32, level: i32);
-    fn TexFormat_IsDepth(_: TexFormat) -> bool;
-    fn TexFormat_IsValid(_: TexFormat) -> bool;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tex3D {

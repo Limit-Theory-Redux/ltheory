@@ -1,21 +1,11 @@
 use crate::internal::Memory::*;
+use crate::Matrix::*;
+use crate::Mesh::*;
+use crate::Draw::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    pub type Mesh;
-    pub type Matrix;
-    fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
-    fn Draw_Box3(box_0: *const Box3f);
-    fn Matrix_Free(_: *mut Matrix);
-    fn Matrix_Inverse(_: *const Matrix) -> *mut Matrix;
-    fn Matrix_MulDir(_: *const Matrix, out: *mut Vec3, x: f32, y: f32, z: f32);
-    fn Matrix_MulPoint(_: *const Matrix, out: *mut Vec3, x: f32, y: f32, z: f32);
-    fn Mesh_GetIndexCount(_: *mut Mesh) -> i32;
-    fn Mesh_GetIndexData(_: *mut Mesh) -> *mut i32;
-    fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
-}
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BoxTree {
@@ -28,20 +18,7 @@ pub struct Node {
     pub data: *mut libc::c_void,
     pub sub: [*mut Node; 2],
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Box3f {
-    pub lower: Vec3,
-    pub upper: Vec3,
-}
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vertex {
-    pub p: Vec3,
-    pub n: Vec3,
-    pub uv: Vec2,
-}
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
     return if a > b { a } else { b };

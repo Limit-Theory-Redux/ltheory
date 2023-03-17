@@ -3,27 +3,24 @@ use crate::CubeFace::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::TexFormat::*;
+use crate::RenderState::*;
+use crate::RenderTarget::*;
+use crate::GLMatrix::*;
+use crate::Tex2D_Load::*;
+use crate::Tex2D_Save::*;
+use crate::Shader::*;
+use crate::Bytes::*;
+use crate::ClipRect::*;
+use crate::ShaderState::*;
+use crate::Draw::*;
+use crate::Tex2D::*;
+use crate::TimeStamp::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type Bytes;
-    pub type ShaderState;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn Bytes_Create(len: u32) -> *mut Bytes;
-    fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
-    fn Bytes_Rewind(_: *mut Bytes);
-    fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32);
-    fn ClipRect_Pop();
-    fn DataFormat_GetSize(_: DataFormat) -> i32;
     fn floor(_: f64) -> f64;
-    fn Draw_Rect(x: f32, y: f32, sx: f32, sy: f32);
-    fn Draw_Flush();
-    fn Draw_Clear(r: f32, g: f32, b: f32, a: f32);
-    fn GLMatrix_Clear();
-    fn GLMatrix_ModeP();
-    fn GLMatrix_ModeWV();
-    fn GLMatrix_Pop();
-    fn GLMatrix_Push();
     fn glBindTexture(target: GLenum, texture: GLu32);
     fn glDeleteTextures(n: GLsizei, textures: *const GLu32);
     fn glGenTextures(n: GLsizei, textures: *mut GLu32);
@@ -47,23 +44,8 @@ extern "C" {
     );
     fn glTexParameteri(target: GLenum, pname: GLenum, param: GLint);
     static mut __glewGenerateMipmap: PFNGLGENERATEMIPMAPPROC;
-    fn PixelFormat_Components(_: PixelFormat) -> i32;
-    fn RenderState_PushAllDefaults();
-    fn RenderState_PopAll();
-    fn RenderTarget_Push(sx: i32, sy: i32);
-    fn RenderTarget_Pop();
-    fn RenderTarget_BindTexCube(_: *mut TexCube, _: CubeFace);
-    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
-    fn Shader_SetFloat3(_: *const libc::c_char, _: f32, _: f32, _: f32);
-    fn ShaderState_Start(_: *mut ShaderState);
-    fn ShaderState_Stop(_: *mut ShaderState);
-    fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
-    fn TexFormat_IsDepth(_: TexFormat) -> bool;
-    fn TexFormat_IsValid(_: TexFormat) -> bool;
-    fn Tex2D_LoadRaw(path: *const libc::c_char, sx: *mut i32, sy: *mut i32, components: *mut i32) -> *mut uchar;
-    fn Tex2D_Save_Png(path: *const libc::c_char, sx: i32, sy: i32, components: i32, data: *mut uchar) -> bool;
 }
+
 pub type uchar = libc::c_uchar;
 #[derive(Copy, Clone)]
 #[repr(C)]

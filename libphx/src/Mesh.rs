@@ -1,23 +1,19 @@
 use crate::internal::Memory::*;
 use crate::Bytes::*;
 use crate::ResourceType::*;
+use crate::SDF::*;
+use crate::Metric::*;
+use crate::Triangle::*;
+use crate::Matrix::*;
+use crate::Resource::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
 use memoffset::{offset_of, span_of};
 
 extern "C" {
-    pub type SDF;
-    pub type Matrix;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn sqrt(_: f64) -> f64;
-    fn Matrix_Free(_: *mut Matrix);
-    fn Matrix_RotationX(rads: f32) -> *mut Matrix;
-    fn Matrix_RotationY(rads: f32) -> *mut Matrix;
-    fn Matrix_RotationZ(rads: f32) -> *mut Matrix;
-    fn Matrix_YawPitchRoll(yaw: f32, pitch: f32, roll: f32) -> *mut Matrix;
-    fn Matrix_MulPoint(_: *const Matrix, out: *mut Vec3, x: f32, y: f32, z: f32);
-    fn Metric_AddDraw(polys: i32, tris: i32, verts: i32);
     fn glBegin(mode: GLenum);
     fn glDrawElements(mode: GLenum, count: GLsizei, type_0: GLenum, indices: *const libc::c_void);
     fn glEnd();
@@ -29,11 +25,7 @@ extern "C" {
     static mut __glewDisableVertexAttribArray: PFNGLDISABLEVERTEXATTRIBARRAYPROC;
     static mut __glewEnableVertexAttribArray: PFNGLENABLEVERTEXATTRIBARRAYPROC;
     static mut __glewVertexAttribPointer: PFNGLVERTEXATTRIBPOINTERPROC;
-    fn Resource_LoadBytes(_: ResourceType, name: *const libc::c_char) -> *mut Bytes;
-    fn SDF_ToMesh(_: *mut SDF) -> *mut Mesh;
-    fn Triangle_Validate(_: *const Triangle) -> Error;
 }
-pub type __darwin_ptrdiff_t = libc::c_long;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Mesh {
@@ -51,6 +43,7 @@ pub struct Mesh {
     pub vertex_capacity: i32,
     pub vertex_data: *mut Vertex,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vertex {
@@ -65,17 +58,7 @@ pub struct Computed {
     pub bound: Box3f,
     pub radius: f32,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Box3f {
-    pub lower: Vec3,
-    pub upper: Vec3,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Triangle {
-    pub vertices: [Vec3; 3],
-}
+
 pub type ResourceType = i32;
 pub type GLu32 = u32;
 pub type PFNGLDELETEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLu32) -> ()>;
@@ -89,8 +72,7 @@ pub type PFNGLVERTEXATTRIBPOINTERPROC = Option<
 >;
 pub type GLint = i32;
 pub type PFNGLENABLEVERTEXATTRIBARRAYPROC = Option<unsafe extern "C" fn(GLu32) -> ()>;
-pub type GLsizeiptr = ptrdiff_t;
-pub type ptrdiff_t = __darwin_ptrdiff_t;
+pub type GLsizeiptr = libc::ptrdiff_t;
 pub type PFNGLBUFFERDATAPROC =
     Option<unsafe extern "C" fn(GLenum, GLsizeiptr, *const libc::c_void, GLenum) -> ()>;
 pub type PFNGLGENBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLu32) -> ()>;

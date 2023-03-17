@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Metric::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
@@ -10,8 +11,6 @@ extern "C" {
     fn sin(_: f64) -> f64;
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn Metric_Inc(_: Metric);
-    fn Metric_AddDrawImm(polys: i32, tris: i32, verts: i32);
     fn glBegin(mode: GLenum);
     fn glClear(mask: GLbitfield);
     fn glClearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf);
@@ -30,12 +29,7 @@ extern "C" {
     static mut __glewCheckFramebufferStatus: PFNGLCHECKFRAMEBUFFERSTATUSPROC;
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Box3f {
-    pub lower: Vec3,
-    pub upper: Vec3,
-}
+
 
 #[derive(Copy, Clone)]
 #[repr(C)]

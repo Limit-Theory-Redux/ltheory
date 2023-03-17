@@ -1,5 +1,6 @@
 use crate::internal::Memory::*;
 use crate::HatDir::*;
+use crate::TimeStamp::*;
 use glam::Vec3;
 use libc;
 use sdl2_sys::*;
@@ -8,10 +9,8 @@ extern "C" {
     pub type _SDL_Joystick;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn fabs(_: f64) -> f64;
-    fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
 }
-pub type TimeStamp = u64;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Joystick {

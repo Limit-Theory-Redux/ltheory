@@ -1,10 +1,13 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn printf(_: *const libc::c_char, _: ...) -> i32;
 }
+
 pub type Error = u32;
+
 #[no_mangle]
 pub unsafe extern "C" fn Error_Print(mut e: Error) {
     printf(b"ERROR: \0" as *const u8 as *const libc::c_char);

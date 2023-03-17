@@ -2,15 +2,13 @@ use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::TexFormat::*;
+use crate::Bytes::*;
+use crate::TexFormat::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type Bytes;
-    fn Bytes_Create(len: u32) -> *mut Bytes;
-    fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn Bytes_Rewind(_: *mut Bytes);
-    fn DataFormat_GetSize(_: DataFormat) -> i32;
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLu32);
     fn glDeleteTextures(n: GLsizei, textures: *const GLu32);
@@ -49,10 +47,8 @@ extern "C" {
     fn glVertex2f(x: GLfloat, y: GLfloat);
     static mut __glewActiveTexture: PFNGLACTIVETEXTUREPROC;
     static mut __glewGenerateMipmap: PFNGLGENERATEMIPMAPPROC;
-    fn PixelFormat_Components(_: PixelFormat) -> i32;
-    fn TexFormat_IsColor(_: TexFormat) -> bool;
-    fn TexFormat_IsValid(_: TexFormat) -> bool;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Tex1D {

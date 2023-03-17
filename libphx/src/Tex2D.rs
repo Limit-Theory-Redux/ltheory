@@ -2,22 +2,24 @@ use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::ResourceType::*;
+use crate::RenderTarget::*;
+use crate::Bytes::*;
+use crate::DataFormat::*;
+use crate::Viewport::*;
+use crate::Resource::*;
+use crate::Draw::*;
+use crate::Tex2D_Save::*;
+use crate::Tex2D_Load::*;
+use crate::PixelFormat::*;
+use crate::Metric::*;
 use crate::TexFormat::*;
 use glam::IVec2;
 use glam::Vec3;
 use libc;
 
 extern "C" {
-    pub type Bytes;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn Warn(_: *const libc::c_char, _: ...);
-    fn Bytes_Create(len: u32) -> *mut Bytes;
-    fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
-    fn Bytes_Rewind(_: *mut Bytes);
-    fn DataFormat_GetSize(_: DataFormat) -> i32;
-    fn Draw_Clear(r: f32, g: f32, b: f32, a: f32);
-    fn Metric_Inc(_: Metric);
-    fn Metric_AddDrawImm(polys: i32, tris: i32, verts: i32);
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLu32);
     fn glCopyTexImage2D(
@@ -79,16 +81,6 @@ extern "C" {
     fn glVertex2f(x: GLfloat, y: GLfloat);
     static mut __glewActiveTexture: PFNGLACTIVETEXTUREPROC;
     static mut __glewGenerateMipmap: PFNGLGENERATEMIPMAPPROC;
-    fn PixelFormat_Components(_: PixelFormat) -> i32;
-    fn RenderTarget_Pop();
-    fn RenderTarget_PushTex2D(_: *mut Tex2D);
-    fn RenderTarget_PushTex2DLevel(_: *mut Tex2D, level: i32);
-    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
-    fn TexFormat_IsColor(_: TexFormat) -> bool;
-    fn TexFormat_IsValid(_: TexFormat) -> bool;
-    fn Viewport_GetSize(out: *mut IVec2);
-    fn Tex2D_LoadRaw(path: *const libc::c_char, sx: *mut i32, sy: *mut i32, components: *mut i32) -> *mut uchar;
-    fn Tex2D_Save_Png(path: *const libc::c_char, sx: i32, sy: i32, components: i32, data: *mut uchar) -> bool;
 }
 pub type uchar = libc::c_uchar;
 #[derive(Copy, Clone)]

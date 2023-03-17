@@ -1,21 +1,17 @@
 use crate::internal::Memory::*;
+use crate::ShaderVarType::*;
+use crate::Tex1D::*;
+use crate::Tex2D::*;
+use crate::Tex3D::*;
+use crate::TexCube::*;
+use crate::Matrix::*;
+use crate::StrMap::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type StrMap;
-    pub type Tex1D;
-    pub type Tex2D;
-    pub type Tex3D;
-    pub type TexCube;
-    pub type Matrix;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn ShaderVarType_GetName(_: ShaderVarType) -> *const libc::c_char;
-    fn ShaderVarType_GetSize(_: ShaderVarType) -> i32;
-    fn StrMap_Create(initCapacity: u32) -> *mut StrMap;
-    fn StrMap_Free(_: *mut StrMap);
-    fn StrMap_Get(_: *mut StrMap, key: *const libc::c_char) -> *mut libc::c_void;
-    fn StrMap_Set(_: *mut StrMap, key: *const libc::c_char, val: *mut libc::c_void);
 }
 
 #[derive(Copy, Clone)]

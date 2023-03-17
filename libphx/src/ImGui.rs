@@ -1,50 +1,21 @@
 use crate::internal::Memory::*;
 use crate::Button::*;
+use crate::Shader::*;
+use crate::Font::*;
+use crate::MemPool::*;
+use crate::Input::*;
+use crate::HashMap::*;
+use crate::ClipRect::*;
+use crate::Tex2D::*;
+use crate::Hash::*;
+use crate::Draw::*;
+use crate::RenderState::*;
 use glam::Vec3;
 use glam::{IVec2, Vec2};
 use libc;
 
 extern "C" {
-    pub type Font;
-    pub type HashMap;
-    pub type MemPool;
-    pub type Shader;
-    pub type Tex2D;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32);
-    fn ClipRect_Pop();
-    fn Draw_Rect(x: f32, y: f32, sx: f32, sy: f32);
-    fn Draw_Border(s: f32, x: f32, y: f32, w: f32, h: f32);
-    fn Draw_LineWidth(width: f32);
-    fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
-    fn Font_Load(name: *const libc::c_char, size: i32) -> *mut Font;
-    fn Font_Draw(_: *mut Font, text: *const libc::c_char, x: f32, y: f32, r: f32, g: f32, b: f32, a: f32);
-    fn Font_GetLineHeight(_: *mut Font) -> i32;
-    fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: *const libc::c_char);
-    fn Hash_FNV64_Init() -> u64;
-    fn Hash_FNV64_Incremental(_: u64, buf: *const libc::c_void, len: i32) -> u64;
-    fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
-    fn HashMap_GetRaw(_: *mut HashMap, keyHash: u64) -> *mut libc::c_void;
-    fn HashMap_SetRaw(_: *mut HashMap, keyHash: u64, value: *mut libc::c_void);
-    fn Input_GetPressed(_: Button) -> bool;
-    fn Input_GetDown(_: Button) -> bool;
-    fn Input_GetMouseDelta(_: *mut IVec2);
-    fn Input_GetMousePosition(_: *mut IVec2);
-    fn Input_GetMouseScroll(_: *mut IVec2);
-    fn MemPool_CreateAuto(elemSize: u32) -> *mut MemPool;
-    fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
-    fn MemPool_Clear(_: *mut MemPool);
-    fn MemPool_Dealloc(_: *mut MemPool, _: *mut libc::c_void);
-    fn RenderState_PushBlendMode(_: BlendMode);
-    fn RenderState_PopBlendMode();
-    fn Shader_Load(vertName: *const libc::c_char, fragName: *const libc::c_char) -> *mut Shader;
-    fn Shader_Start(_: *mut Shader);
-    fn Shader_Stop(_: *mut Shader);
-    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
-    fn Shader_SetFloat2(_: *const libc::c_char, _: f32, _: f32);
-    fn Shader_SetFloat4(_: *const libc::c_char, _: f32, _: f32, _: f32, _: f32);
-    fn Tex2D_Draw(_: *mut Tex2D, x: f32, y: f32, sx: f32, sy: f32);
-    fn Tex2D_GetSize(_: *mut Tex2D, out: *mut IVec2);
 }
 
 #[derive(Copy, Clone)]

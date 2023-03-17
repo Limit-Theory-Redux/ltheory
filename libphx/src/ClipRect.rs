@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Viewport::*;
 use glam::IVec2;
 use glam::Vec3;
 use libc;
@@ -8,7 +9,6 @@ extern "C" {
     fn glDisable(cap: GLenum);
     fn glEnable(cap: GLenum);
     fn glScissor(x: GLint, y: GLint, width: GLsizei, height: GLsizei);
-    fn Viewport_GetSize(out: *mut IVec2);
 }
 
 #[derive(Copy, Clone)]

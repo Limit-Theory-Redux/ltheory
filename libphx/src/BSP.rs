@@ -1,53 +1,22 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
+use crate::Plane::*;
+use crate::RenderState::*;
+use crate::Ray::*;
+use crate::Triangle::*;
+use crate::LineSegment::*;
+use crate::Polygon::*;
+use crate::Intersect::*;
+use crate::RNG::*;
+use crate::Mesh::*;
+use crate::Draw::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
 
 extern "C" {
-    pub type Mesh;
-    pub type RNG;
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
-    fn Mesh_GetIndexData(_: *mut Mesh) -> *mut i32;
-    fn Mesh_GetIndexCount(_: *mut Mesh) -> i32;
-    fn Intersect_SphereTriangle(_: *const Sphere, _: *const Triangle, pHit: *mut Vec3) -> bool;
-    fn Intersect_RayTriangle_Moller1(_: *const Ray, _: *const Triangle, tHit: *mut f32) -> bool;
-    fn Fatal(_: *const libc::c_char, _: ...);
-    fn Warn(_: *const libc::c_char, _: ...);
-    fn Plane_ClassifyPolygon(_: *mut Plane, _: *mut Polygon) -> PolygonClassification;
-    fn Polygon_ToPlane(_: *mut Polygon, _: *mut Plane);
-    fn Polygon_SplitSafe(
-        _: *mut Polygon,
-        splitPlane: Plane,
-        back: *mut Polygon,
-        front: *mut Polygon,
-    );
-    fn Polygon_ConvexToTriangles(
-        _: *mut Polygon,
-        triangles_capacity: *mut i32,
-        triangles_size: *mut i32,
-        triangles_data: *mut *mut Triangle,
-    );
-    fn Ray_GetPoint(_: *const Ray, t: f32, out: *mut Vec3);
-    fn RNG_Create(seed: u64) -> *mut RNG;
-    fn RNG_Free(_: *mut RNG);
-    fn RNG_Get32(_: *mut RNG) -> u32;
-    fn Draw_Sphere(p: *const Vec3, r: f32);
-    fn Draw_PointSize(size: f32);
-    fn Draw_Poly3(points: *const Vec3, count: i32);
-    fn Draw_Point3(x: f32, y: f32, z: f32);
-    fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
-    fn Draw_Plane(p: *const Vec3, n: *const Vec3, scale: f32);
-    fn Draw_Line3(p1: *const Vec3, p2: *const Vec3);
-    fn RenderState_PushBlendMode(_: BlendMode);
-    fn RenderState_PushCullFace(_: CullFace);
-    fn RenderState_PushDepthTest(_: bool);
-    fn RenderState_PushWireframe(_: bool);
-    fn RenderState_PopBlendMode();
-    fn RenderState_PopCullFace();
-    fn RenderState_PopDepthTest();
-    fn RenderState_PopWireframe();
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -63,11 +32,6 @@ pub struct BSP {
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct Triangle {
-    pub vertices: [Vec3; 3],
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
 pub struct BSPNode {
     pub plane: Plane,
     pub child: [BSPNodeRef; 2],
@@ -77,12 +41,6 @@ pub struct BSPNode {
 pub struct BSPNodeRef {
     pub index: i32,
     pub triangleCount: u8,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Plane {
-    pub n: Vec3,
-    pub d: f32,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -100,41 +58,7 @@ pub struct TriangleTest {
     pub triangle: *mut Triangle,
     pub hit: bool,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct LineSegment {
-    pub p0: Vec3,
-    pub p1: Vec3,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Polygon {
-    pub vertices_size: i32,
-    pub vertices_capacity: i32,
-    pub vertices_data: *mut Vec3,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Ray {
-    pub p: Vec3,
-    pub dir: Vec3,
-    pub tMin: f32,
-    pub tMax: f32,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Sphere {
-    pub p: Vec3,
-    pub r: f32,
-}
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vertex {
-    pub p: Vec3,
-    pub n: Vec3,
-    pub uv: Vec2,
-}
 pub type BlendMode = i32;
 pub type BSPNodeRel = u8;
 pub type CullFace = i32;

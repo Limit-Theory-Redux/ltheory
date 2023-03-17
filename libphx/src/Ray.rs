@@ -1,26 +1,11 @@
 use crate::internal::Memory::*;
+use crate::Intersect::*;
+use crate::Plane::*;
+use crate::Triangle::*;
+use crate::LineSegment::*;
 use glam::Vec3;
 use libc;
-extern "C" {
-    pub type Plane;
-    pub type Triangle;
-    fn Intersect_RayTriangle_Moller2(_: *const Ray, _: *const Triangle, tHit: *mut f32) -> bool;
-    fn Intersect_RayTriangle_Moller1(_: *const Ray, _: *const Triangle, tHit: *mut f32) -> bool;
-    fn LineSegment_ToRay(_: *const LineSegment, _: *mut Ray);
-    fn Intersect_RayPlane(_: *const Ray, _: *const Plane, pHit: *mut Vec3) -> bool;
-    fn Intersect_RayTriangle_Barycentric(
-        _: *const Ray,
-        _: *const Triangle,
-        tEpsilon: f32,
-        tHit: *mut f32,
-    ) -> bool;
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct LineSegment {
-    pub p0: Vec3,
-    pub p1: Vec3,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Ray {
@@ -29,6 +14,7 @@ pub struct Ray {
     pub tMin: f32,
     pub tMax: f32,
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Ray_GetPoint(mut this: *const Ray, mut t: f32, mut out: *mut Vec3) {
     *out = (*this).p + ((*this).dir * t);

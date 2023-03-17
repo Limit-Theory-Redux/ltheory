@@ -1,60 +1,17 @@
 use crate::internal::Memory::*;
 use crate::Button::*;
+use crate::Input::*;
+use crate::Font::*;
+use crate::UIRenderer::*;
+use crate::Tex2D::*;
+use crate::Profiler::*;
+use crate::RenderState::*;
+use crate::Hash::*;
+use crate::HashMap::*;
+
 use glam::Vec3;
 use glam::{IVec2, Vec2};
 use libc;
-
-extern "C" {
-    pub type Font;
-    pub type HashMap;
-    pub type Tex2D;
-    fn Font_Load(name: *const libc::c_char, size: i32) -> *mut Font;
-    fn Font_GetSize2(_: *mut Font, out: *mut IVec2, text: *const libc::c_char);
-    fn Hash_FNV64_Init() -> u64;
-    fn Hash_FNV64_Incremental(_: u64, buf: *const libc::c_void, len: i32) -> u64;
-    fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
-    fn HashMap_GetRaw(_: *mut HashMap, keyHash: u64) -> *mut libc::c_void;
-    fn HashMap_SetRaw(_: *mut HashMap, keyHash: u64, value: *mut libc::c_void);
-    fn Input_GetPressed(_: Button) -> bool;
-    fn Input_GetDown(_: Button) -> bool;
-    fn Input_GetMouseDelta(_: *mut IVec2);
-    fn Input_GetMousePosition(_: *mut IVec2);
-    fn Input_GetMouseScroll(_: *mut IVec2);
-    fn Profiler_Begin(_: *const libc::c_char);
-    fn Profiler_End();
-    fn RenderState_PushBlendMode(_: BlendMode);
-    fn RenderState_PopBlendMode();
-    fn UIRenderer_Begin();
-    fn UIRenderer_End();
-    fn UIRenderer_Draw();
-    fn UIRenderer_BeginLayer(x: f32, y: f32, sx: f32, sy: f32, clip: bool);
-    fn UIRenderer_EndLayer();
-    fn UIRenderer_Image(_: *mut Tex2D, x: f32, y: f32, sx: f32, sy: f32);
-    fn UIRenderer_Panel(
-        x: f32,
-        y: f32,
-        sx: f32,
-        sy: f32,
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-        bevel: f32,
-        innerAlpha: f32,
-    );
-    fn UIRenderer_Rect(
-        x: f32,
-        y: f32,
-        sx: f32,
-        sy: f32,
-        r: f32,
-        g: f32,
-        b: f32,
-        a: f32,
-        outline: bool,
-    );
-    fn UIRenderer_Text(font: *mut Font, text: *const libc::c_char, x: f32, y: f32, r: f32, g: f32, b: f32, a: f32);
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]

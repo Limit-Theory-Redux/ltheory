@@ -1,23 +1,15 @@
 use crate::internal::Memory::*;
+use crate::Ray::*;
 use glam::Vec3;
 use libc;
-extern "C" {
-    fn Ray_ToLineSegment(_: *const Ray, _: *mut LineSegment);
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LineSegment {
     pub p0: Vec3,
     pub p1: Vec3,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Ray {
-    pub p: Vec3,
-    pub dir: Vec3,
-    pub tMin: f32,
-    pub tMax: f32,
-}
+
 #[no_mangle]
 pub unsafe extern "C" fn LineSegment_ToRay(mut this: *const LineSegment, mut out: *mut Ray) {
     (*out).p = (*this).p0;

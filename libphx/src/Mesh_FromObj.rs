@@ -1,31 +1,16 @@
 use crate::internal::Memory::*;
+use crate::Mesh::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
 
 extern "C" {
-    pub type Mesh;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
     fn strtof(_: *const libc::c_char, _: *mut *mut libc::c_char) -> f32;
     fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char, _: i32) -> libc::c_long;
-    fn Mesh_Create() -> *mut Mesh;
-    fn Mesh_AddQuad(_: *mut Mesh, _: i32, _: i32, _: i32, _: i32);
-    fn Mesh_AddTri(_: *mut Mesh, _: i32, _: i32, _: i32);
-    fn Mesh_AddVertexRaw(_: *mut Mesh, _: *const Vertex);
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
-    fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
-    fn Mesh_ReserveIndexData(_: *mut Mesh, capacity: i32);
-    fn Mesh_ReserveVertexData(_: *mut Mesh, capacity: i32);
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vertex {
-    pub p: Vec3,
-    pub n: Vec3,
-    pub uv: Vec2,
-}
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ParseState {

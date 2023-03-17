@@ -1,6 +1,7 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
     fn SDL_GetClipboardText() -> *mut libc::c_char;
@@ -9,6 +10,7 @@ extern "C" {
     fn SDL_GetError() -> *const libc::c_char;
     fn SDL_GetCurrentVideoDriver() -> *const libc::c_char;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn OS_GetClipboard() -> *const libc::c_char {
     return SDL_GetClipboardText() as *const libc::c_char;

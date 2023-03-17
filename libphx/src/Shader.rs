@@ -1,17 +1,21 @@
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
+use crate::Profiler::*;
+use crate::Tex1D::*;
+use crate::Tex2D::*;
+use crate::Matrix::*;
+use crate::ShaderVar::*;
+use crate::Resource::*;
+use crate::ShaderState::*;
+use crate::TexCube::*;
+use crate::Tex3D::*;
+use crate::StrMap::*;
+use crate::ShaderVarType::*;
 use glam::Vec3;
 use glam::{IVec2, IVec3, IVec4, Vec2};
 use libc;
 
 extern "C" {
-    pub type ShaderState;
-    pub type StrMap;
-    pub type Tex1D;
-    pub type Tex2D;
-    pub type Tex3D;
-    pub type TexCube;
-    pub type Matrix;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn Warn(_: *const libc::c_char, _: ...);
     fn glBindTexture(target: GLenum, texture: GLu32);
@@ -40,23 +44,6 @@ extern "C" {
     static mut __glewUniform4i: PFNGLUNIFORM4IPROC;
     static mut __glewUniformMatrix4fv: PFNGLUNIFORMMATRIX4FVPROC;
     static mut __glewUseProgram: PFNGLUSEPROGRAMPROC;
-    fn Profiler_Begin(_: *const libc::c_char);
-    fn Profiler_End();
-    fn Resource_LoadCstr(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
-    fn ShaderState_Create(_: *mut Shader) -> *mut ShaderState;
-    fn ShaderVar_Get(_: *const libc::c_char, _: ShaderVarType) -> *mut libc::c_void;
-    fn ShaderVarType_FromStr(_: *const libc::c_char) -> ShaderVarType;
-    fn StrMap_Create(initCapacity: u32) -> *mut StrMap;
-    fn StrMap_FreeEx(
-        _: *mut StrMap,
-        freeFn: Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> ()>,
-    );
-    fn StrMap_Get(_: *mut StrMap, key: *const libc::c_char) -> *mut libc::c_void;
-    fn sscanf(_: *const libc::c_char, _: *const libc::c_char, _: ...) -> i32;
-    fn Tex1D_GetHandle(_: *mut Tex1D) -> u32;
-    fn Tex2D_GetHandle(_: *mut Tex2D) -> u32;
-    fn Tex3D_GetHandle(_: *mut Tex3D) -> u32;
-    fn TexCube_GetHandle(_: *mut TexCube) -> u32;
 }
 pub type __builtin_va_list = *mut libc::c_char;
 #[derive(Copy, Clone)]
@@ -340,7 +327,7 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *m
             0,
             0,
         ];
-        if sscanf(
+        if libc::sscanf(
             line,
             b"#autovar %31s %31s\0" as *const u8 as *const libc::c_char,
             varType.as_mut_ptr(),

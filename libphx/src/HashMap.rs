@@ -1,10 +1,7 @@
 use crate::internal::Memory::*;
+use crate::Hash::*;
 use glam::Vec3;
 use libc;
-
-extern "C" {
-    fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64;
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]

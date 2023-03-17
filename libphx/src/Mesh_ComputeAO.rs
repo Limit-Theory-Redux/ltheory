@@ -2,38 +2,21 @@ use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::TexFormat::*;
+use crate::Tex2D::*;
+use crate::Tex3D::*;
+use crate::RenderTarget::*;
+use crate::RenderState::*;
+use crate::Mesh::*;
+use crate::Shader::*;
+use crate::Draw::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
 
 extern "C" {
-    pub type Mesh;
-    pub type Shader;
-    pub type Tex2D;
-    pub type Tex3D;
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn ceil(_: f64) -> f64;
-    fn Draw_Rect(x: f32, y: f32, sx: f32, sy: f32);
-    fn Mesh_GetIndexCount(_: *mut Mesh) -> i32;
-    fn Mesh_GetIndexData(_: *mut Mesh) -> *mut i32;
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
-    fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
-    fn RenderState_PushAllDefaults();
-    fn RenderState_PopAll();
-    fn RenderTarget_Pop();
-    fn RenderTarget_PushTex2D(_: *mut Tex2D);
-    fn Shader_Load(vertName: *const libc::c_char, fragName: *const libc::c_char) -> *mut Shader;
-    fn Shader_Start(_: *mut Shader);
-    fn Shader_Stop(_: *mut Shader);
-    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
-    fn Shader_SetInt(_: *const libc::c_char, _: i32);
-    fn Shader_SetTex2D(_: *const libc::c_char, _: *mut Tex2D);
-    fn Shader_SetTex3D(_: *const libc::c_char, _: *mut Tex3D);
-    fn Tex2D_Create(sx: i32, sy: i32, _: TexFormat) -> *mut Tex2D;
-    fn Tex2D_Free(_: *mut Tex2D);
-    fn Tex2D_GetData(_: *mut Tex2D, _: *mut libc::c_void, _: PixelFormat, _: DataFormat);
-    fn Tex2D_SetData(_: *mut Tex2D, _: *const libc::c_void, _: PixelFormat, _: DataFormat);
 }
 
 #[derive(Copy, Clone)]
@@ -43,13 +26,6 @@ pub struct Vec4f {
     pub y: f32,
     pub z: f32,
     pub w: f32,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vertex {
-    pub p: Vec3,
-    pub n: Vec3,
-    pub uv: Vec2,
 }
 pub type DataFormat = i32;
 pub type PixelFormat = i32;

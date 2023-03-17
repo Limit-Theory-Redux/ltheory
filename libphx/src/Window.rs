@@ -1,6 +1,8 @@
 use crate::internal::Memory::*;
 use crate::WindowMode::*;
 use crate::WindowPos::WindowPos;
+use crate::OpenGL::*;
+use crate::Viewport::*;
 use glam::IVec2;
 use glam::Vec3;
 use libc;
@@ -8,9 +10,6 @@ use sdl2_sys::*;
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn OpenGL_Init();
-    fn Viewport_Pop();
-    fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindow: bool);
 }
 #[derive(Copy, Clone)]
 #[repr(C)]

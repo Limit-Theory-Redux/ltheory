@@ -1,39 +1,20 @@
 use crate::internal::Memory::*;
+use crate::Shader::*;
+use crate::Tex3D::*;
+use crate::Tex2D::*;
+use crate::Tex1D::*;
+use crate::TexCube::*;
+use crate::Matrix::*;
 use glam::{Vec2, Vec3, Vec4};
 use libc;
 
 extern "C" {
-    pub type Shader;
-    pub type TexCube;
-    pub type Tex3D;
-    pub type Tex2D;
-    pub type Tex1D;
-    pub type Matrix;
     fn Fatal(_: *const libc::c_char, _: ...);
     static mut __glewUniform1f: PFNGLUNIFORM1FPROC;
     static mut __glewUniform1i: PFNGLUNIFORM1IPROC;
     static mut __glewUniform2f: PFNGLUNIFORM2FPROC;
     static mut __glewUniform3f: PFNGLUNIFORM3FPROC;
     static mut __glewUniform4f: PFNGLUNIFORM4FPROC;
-    fn Shader_Load(vertName: *const libc::c_char, fragName: *const libc::c_char) -> *mut Shader;
-    fn Shader_Acquire(_: *mut Shader);
-    fn Shader_Free(_: *mut Shader);
-    fn Shader_Start(_: *mut Shader);
-    fn Shader_Stop(_: *mut Shader);
-    fn Shader_GetVariable(_: *mut Shader, _: *const libc::c_char) -> i32;
-    fn Shader_ISetMatrix(_: i32, _: *mut Matrix);
-    fn Shader_ISetTex1D(_: i32, _: *mut Tex1D);
-    fn Shader_ISetTex2D(_: i32, _: *mut Tex2D);
-    fn Shader_ISetTex3D(_: i32, _: *mut Tex3D);
-    fn Shader_ISetTexCube(_: i32, _: *mut TexCube);
-    fn Tex1D_Acquire(_: *mut Tex1D);
-    fn Tex1D_Free(_: *mut Tex1D);
-    fn Tex2D_Acquire(_: *mut Tex2D);
-    fn Tex2D_Free(_: *mut Tex2D);
-    fn Tex3D_Acquire(_: *mut Tex3D);
-    fn Tex3D_Free(_: *mut Tex3D);
-    fn TexCube_Acquire(_: *mut TexCube);
-    fn TexCube_Free(_: *mut TexCube);
 }
 #[derive(Copy, Clone)]
 #[repr(C)]

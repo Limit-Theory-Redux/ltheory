@@ -4,6 +4,11 @@ use crate::DeviceType::*;
 use crate::Modifier::*;
 use crate::ResourceType::*;
 use crate::State::*;
+use crate::InputEvent::*;
+use crate::Resource::*;
+use crate::Profiler::*;
+use crate::Button::*;
+use crate::Device::*;
 use glam::IVec2;
 use glam::Vec3;
 use sdl2_sys::*;
@@ -12,34 +17,10 @@ use libc;
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
     fn Warn(_: *const libc::c_char, _: ...);
-    fn Button_ToSDLControllerButton(_: Button) -> SDL_GameControllerButton;
-    fn Button_FromSDLControllerButton(_: SDL_GameControllerButton) -> Button;
-    fn Button_ToSDLControllerAxis(_: Button) -> SDL_GameControllerAxis;
-    fn Button_FromSDLControllerAxis(_: SDL_GameControllerAxis) -> Button;
-    fn Button_ToDeviceType(_: Button) -> DeviceType;
-    fn Button_IsAutoRelease(_: Button) -> bool;
-    fn Button_FromSDLScancode(_: SDL_Scancode) -> Button;
-    fn Button_FromSDLMouseButton(_: u8) -> Button;
-    fn Profiler_Begin(_: *const libc::c_char);
-    fn Profiler_End();
-    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Device {
-    pub type_0: DeviceType,
-    pub id: u32,
-}
+
 pub type DeviceType = i32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct InputEvent {
-    pub timestamp: u32,
-    pub device: Device,
-    pub button: Button,
-    pub value: f32,
-    pub state: State,
-}
+
 pub type State = i32;
 pub type Button = i32;
 

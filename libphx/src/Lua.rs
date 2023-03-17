@@ -1,6 +1,8 @@
 use crate::internal::Memory::*;
 use crate::PhxSignal::*;
 use crate::ResourceType::*;
+use crate::LuaScheduler::*;
+use crate::Resource::*;
 use glam::Vec3;
 use libc;
 
@@ -45,13 +47,7 @@ extern "C" {
     fn luaL_unref(L: *mut lua_State, t: i32, ref_0: i32);
     fn luaL_loadfile(L: *mut lua_State, filename: *const libc::c_char) -> i32;
     fn luaL_openlibs(L: *mut lua_State);
-    fn LuaScheduler_Register(_: *mut Lua);
-    fn LuaScheduler_Init(_: *mut Lua);
     fn luaL_newstate() -> *mut lua_State;
-    fn Signal_AddHandlerAll(_: SignalHandler);
-    fn Signal_ToString(_: Signal) -> *const libc::c_char;
-    fn Signal_IgnoreDefault();
-    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
 }
 pub type __builtin_va_list = *mut libc::c_char;
 pub type ResourceType = i32;

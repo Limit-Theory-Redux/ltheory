@@ -1,17 +1,19 @@
 use crate::internal::Memory::*;
+use crate::Hash::*;
+use crate::TimeStamp::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64;
     fn cos(_: f64) -> f64;
     fn sin(_: f64) -> f64;
     fn log(_: f64) -> f64;
     fn ldexp(_: f64, _: i32) -> f64;
     fn sqrt(_: f64) -> f64;
     fn floor(_: f64) -> f64;
-    fn TimeStamp_Get() -> TimeStamp;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct RNG {

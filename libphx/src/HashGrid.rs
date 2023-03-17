@@ -1,18 +1,14 @@
 use crate::internal::Memory::*;
+use crate::Hash::*;
+use crate::MemPool::*;
+use crate::Profiler::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type MemPool;
     fn floor(_: f64) -> f64;
-    fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64;
-    fn MemPool_Create(cellSize: u32, blockSize: u32) -> *mut MemPool;
-    fn MemPool_Free(_: *mut MemPool);
-    fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
-    fn MemPool_Clear(_: *mut MemPool);
-    fn MemPool_Dealloc(_: *mut MemPool, _: *mut libc::c_void);
-    fn Profiler_Begin(_: *const libc::c_char);
-    fn Profiler_End();
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HashGrid {
@@ -42,12 +38,7 @@ pub struct HashGridElem {
     pub lower: [i32; 3],
     pub upper: [i32; 3],
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Box3f {
-    pub lower: Vec3,
-    pub upper: Vec3,
-}
+
 
 #[inline]
 unsafe extern "C" fn Floor(mut t: f64) -> f64 {

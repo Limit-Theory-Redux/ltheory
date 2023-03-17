@@ -3,10 +3,6 @@ use crate::DeviceType::*;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn DeviceType_ToString(_: DeviceType) -> *const libc::c_char;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Device {

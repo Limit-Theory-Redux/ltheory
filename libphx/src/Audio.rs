@@ -1,11 +1,14 @@
 use crate::internal::Memory::*;
+use crate::Sound::*;
+use crate::SoundDesc::*;
+use crate::MemPool::*;
+use crate::StrMap::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type MemPool;
     pub type FMOD_CHANNEL;
     pub type FMOD_SOUND;
-    pub type StrMap;
     pub type FMOD_SYSTEM;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn FMOD_Debug_Initialize(
@@ -38,40 +41,10 @@ extern "C" {
         up: *const FMOD_VECTOR,
     ) -> FMOD_RESULT;
     fn FMOD_System_GetVersion(system: *mut FMOD_SYSTEM, version: *mut u32) -> FMOD_RESULT;
-    fn MemPool_Create(cellSize: u32, blockSize: u32) -> *mut MemPool;
-    fn MemPool_Free(_: *mut MemPool);
-    fn MemPool_Alloc(_: *mut MemPool) -> *mut libc::c_void;
-    fn MemPool_Dealloc(_: *mut MemPool, _: *mut libc::c_void);
-    fn MemPool_GetSize(_: *mut MemPool) -> u32;
-    fn Sound_IsPlaying(_: *mut Sound) -> bool;
-    fn Sound_Update(_: *mut Sound);
-    fn Sound_IsFreed(_: *mut Sound) -> bool;
-    fn StrMap_Create(initCapacity: u32) -> *mut StrMap;
-    fn StrMap_Free(_: *mut StrMap);
-    fn StrMap_Get(_: *mut StrMap, key: *const libc::c_char) -> *mut libc::c_void;
-    fn StrMap_GetSize(_: *mut StrMap) -> u32;
-    fn StrMap_Remove(_: *mut StrMap, key: *const libc::c_char);
-    fn StrMap_Set(_: *mut StrMap, key: *const libc::c_char, val: *mut libc::c_void);
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Sound {
-    pub desc: *mut SoundDesc,
-    pub handle: *mut FMOD_CHANNEL,
-    pub state: SoundState,
-    pub autoPos: *const Vec3,
-    pub autoVel: *const Vec3,
-    pub freeOnFinish: bool,
-}
+
 pub type SoundState = u8;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct SoundDesc {
-    pub _refCount: u32,
-    pub handle: *mut FMOD_SOUND,
-    pub name: *const libc::c_char,
-    pub path: *const libc::c_char,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Audio {

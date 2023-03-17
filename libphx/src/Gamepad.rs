@@ -1,16 +1,11 @@
 use crate::internal::Memory::*;
 use crate::GamepadAxis::*;
 use crate::GamepadButton::*;
+use crate::TimeStamp::*;
 use glam::Vec3;
 use libc;
 use sdl2_sys::*;
 
-extern "C" {
-    fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
-}
-pub type __i64_t = i64;
-pub type __darwin_off_t = __i64_t;
 pub type TimeStamp = u64;
 #[derive(Copy, Clone)]
 #[repr(C)]

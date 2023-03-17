@@ -25,6 +25,8 @@ PHX_API void      _cppPhysics_DrawWireframes          (Physics*);
 
  */
 
+use crate::Ray::*;
+use crate::Trigger::*;
 use glam::Vec3;
 
 extern "C" {
@@ -32,7 +34,6 @@ extern "C" {
     pub type RigidBody;
     pub type Trigger;
     pub type Collision;
-    pub type Ray;
     pub type Sphere;
     pub type RayCastResult;
     pub type ShapeCastResult;

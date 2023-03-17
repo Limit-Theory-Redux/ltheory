@@ -1,6 +1,8 @@
 use crate::internal::Memory::*;
+use crate::Quat::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn cos(_: f64) -> f64;
     fn sin(_: f64) -> f64;
@@ -8,30 +10,15 @@ extern "C" {
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn printf(_: *const libc::c_char, _: ...) -> i32;
-    fn Quat_GetAxisX(_: *const Quat, _: *mut Vec3);
-    fn Quat_GetAxisY(_: *const Quat, _: *mut Vec3);
-    fn Quat_GetAxisZ(_: *const Quat, _: *mut Vec3);
-    fn Quat_FromBasis(x: *const Vec3, y: *const Vec3, z: *const Vec3, _: *mut Quat);
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Box3f {
-    pub lower: Vec3,
-    pub upper: Vec3,
-}
+
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Matrix {
     pub m: [f32; 16],
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Quat {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {

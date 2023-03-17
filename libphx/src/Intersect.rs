@@ -1,47 +1,17 @@
 use crate::internal::Memory::*;
+use crate::Ray::*;
+use crate::Triangle::*;
+use crate::LineSegment::*;
+use crate::Plane::*;
+use crate::Matrix::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type Matrix;
     fn fabs(_: f64) -> f64;
-    fn Matrix_Free(_: *mut Matrix);
-    fn Matrix_Inverse(_: *const Matrix) -> *mut Matrix;
-    fn Matrix_MulPoint(_: *const Matrix, out: *mut Vec3, x: f32, y: f32, z: f32);
-    fn Matrix_GetPos(_: *const Matrix, out: *mut Vec3);
-    fn Ray_GetPoint(_: *const Ray, t: f32, out: *mut Vec3);
-    fn Triangle_ToPlaneFast(_: *const Triangle, _: *mut Plane);
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct LineSegment {
-    pub p0: Vec3,
-    pub p1: Vec3,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Plane {
-    pub n: Vec3,
-    pub d: f32,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Ray {
-    pub p: Vec3,
-    pub dir: Vec3,
-    pub tMin: f32,
-    pub tMax: f32,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Sphere {
-    pub p: Vec3,
-    pub r: f32,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Triangle {
-    pub vertices: [Vec3; 3],
-}
+
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {

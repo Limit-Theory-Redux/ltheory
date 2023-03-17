@@ -1,14 +1,17 @@
 use crate::internal::Memory::*;
+use crate::TexCube::*;
+use crate::Metric::*;
+use crate::Profiler::*;
+use crate::Viewport::*;
+use crate::Tex2D::*;
+use crate::TexFormat::*;
+use crate::Tex3D::*;
 use crate::TexFormat::*;
 use glam::Vec3;
 use glam::{IVec2, IVec3};
 use libc;
 
 extern "C" {
-    pub type Tex2D;
-    pub type Tex3D;
-    pub type TexCube;
-    fn Metric_Inc(_: Metric);
     fn Fatal(_: *const libc::c_char, _: ...);
     static mut __glewDrawBuffers: PFNGLDRAWBUFFERSPROC;
     static mut __glewBindFramebuffer: PFNGLBINDFRAMEBUFFERPROC;
@@ -16,17 +19,6 @@ extern "C" {
     static mut __glewFramebufferTexture2D: PFNGLFRAMEBUFFERTEXTURE2DPROC;
     static mut __glewFramebufferTexture3D: PFNGLFRAMEBUFFERTEXTURE3DPROC;
     static mut __glewGenFramebuffers: PFNGLGENFRAMEBUFFERSPROC;
-    fn Profiler_Begin(_: *const libc::c_char);
-    fn Profiler_End();
-    fn Tex2D_GetFormat(_: *mut Tex2D) -> TexFormat;
-    fn Tex2D_GetHandle(_: *mut Tex2D) -> u32;
-    fn Tex2D_GetSizeLevel(_: *mut Tex2D, out: *mut IVec2, level: i32);
-    fn Tex3D_GetHandle(_: *mut Tex3D) -> u32;
-    fn Tex3D_GetSizeLevel(_: *mut Tex3D, out: *mut IVec3, level: i32);
-    fn TexCube_GetHandle(_: *mut TexCube) -> u32;
-    fn TexFormat_IsColor(_: TexFormat) -> bool;
-    fn Viewport_Pop();
-    fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindow: bool);
 }
 
 pub type CubeFace = i32;

@@ -1,12 +1,12 @@
 use crate::internal::Memory::*;
+use crate::Matrix::*;
 use glam::DVec3;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type Matrix;
     fn tan(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn Matrix_Identity() -> *mut Matrix;
     fn glGetFloatv(pname: GLenum, params: *mut GLfloat);
     fn glGetIntegerv(pname: GLenum, params: *mut GLint);
     fn glLoadIdentity();

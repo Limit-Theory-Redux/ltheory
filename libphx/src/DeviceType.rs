@@ -1,10 +1,7 @@
 use crate::internal::Memory::*;
+use crate::Button::*;
 use glam::Vec3;
 use libc;
-
-extern "C" {
-    fn Button_ToDeviceType(_: Button) -> DeviceType;
-}
 
 pub type Button = i32;
 pub type DeviceType = i32;

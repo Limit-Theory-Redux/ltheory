@@ -1,30 +1,16 @@
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
+use crate::Mesh::*;
+use crate::Tex3D::*;
 use glam::IVec3;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type Mesh;
-    pub type Tex3D;
-    fn Mesh_Create() -> *mut Mesh;
-    fn Mesh_AddQuad(_: *mut Mesh, _: i32, _: i32, _: i32, _: i32);
-    fn Mesh_AddVertex(
-        _: *mut Mesh,
-        px: f32,
-        py: f32,
-        pz: f32,
-        nx: f32,
-        ny: f32,
-        nz: f32,
-        u: f32,
-        v: f32,
-    );
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
-    fn Tex3D_GetData(_: *mut Tex3D, _: *mut libc::c_void, _: PixelFormat, _: DataFormat);
-    fn Tex3D_GetSize(_: *mut Tex3D, out: *mut IVec3);
     fn sqrt(_: f64) -> f64;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SDF {

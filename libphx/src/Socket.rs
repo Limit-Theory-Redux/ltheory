@@ -1,15 +1,12 @@
 use crate::internal::Memory::*;
+use crate::Bytes::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    pub type Bytes;
-    fn Bytes_GetSize(_: *mut Bytes) -> u32;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn strstr(_: *const libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn Bytes_Create(len: u32) -> *mut Bytes;
-    fn Bytes_Write(_: *mut Bytes, data: *const libc::c_void, len: u32);
     fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char, _: i32) -> libc::c_long;
     fn fcntl(_: i32, _: i32, _: ...) -> i32;
     fn close(_: i32) -> i32;

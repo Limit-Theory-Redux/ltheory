@@ -4,60 +4,19 @@ use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::TexFilter::*;
 use crate::TexFormat::*;
+use crate::Shader::*;
+use crate::TexCube::*;
+use crate::Tex2D::*;
+use crate::RenderTarget::*;
+use crate::Draw::*;
+use crate::RNG::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
 
 extern "C" {
-    pub type RNG;
-    pub type Shader;
-    pub type Tex2D;
-    pub type TexCube;
-    fn CubeFace_Get(index: i32) -> CubeFace;
     fn atan2(_: f64, _: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn Draw_Rect(x: f32, y: f32, sx: f32, sy: f32);
-    fn RenderTarget_Push(sx: i32, sy: i32);
-    fn RenderTarget_Pop();
-    fn RenderTarget_BindTexCubeLevel(_: *mut TexCube, _: CubeFace, level: i32);
-    fn RNG_FromTime() -> *mut RNG;
-    fn RNG_Free(_: *mut RNG);
-    fn RNG_GetUniform(_: *mut RNG) -> f64;
-    fn Shader_Load(vertName: *const libc::c_char, fragName: *const libc::c_char) -> *mut Shader;
-    fn Shader_Start(_: *mut Shader);
-    fn Shader_Stop(_: *mut Shader);
-    fn Shader_ResetTexIndex();
-    fn Shader_SetFloat(_: *const libc::c_char, _: f32);
-    fn Shader_SetFloat3(_: *const libc::c_char, _: f32, _: f32, _: f32);
-    fn Shader_SetInt(_: *const libc::c_char, _: i32);
-    fn Shader_SetTex2D(_: *const libc::c_char, _: *mut Tex2D);
-    fn Shader_SetTexCube(_: *const libc::c_char, _: *mut TexCube);
-    fn Tex2D_Create(sx: i32, sy: i32, _: TexFormat) -> *mut Tex2D;
-    fn Tex2D_Free(_: *mut Tex2D);
-    fn Tex2D_SetData(_: *mut Tex2D, _: *const libc::c_void, _: PixelFormat, _: DataFormat);
-    fn TexCube_Create(size: i32, _: TexFormat) -> *mut TexCube;
-    fn TexCube_GenMipmap(_: *mut TexCube);
-    fn TexCube_GetData(
-        _: *mut TexCube,
-        _: *mut libc::c_void,
-        _: CubeFace,
-        level: i32,
-        _: PixelFormat,
-        _: DataFormat,
-    );
-    fn TexCube_GetFormat(_: *mut TexCube) -> TexFormat;
-    fn TexCube_GetSize(_: *mut TexCube) -> i32;
-    fn TexCube_SetData(
-        _: *mut TexCube,
-        _: *const libc::c_void,
-        _: CubeFace,
-        level: i32,
-        _: PixelFormat,
-        _: DataFormat,
-    );
-    fn TexCube_SetMagFilter(_: *mut TexCube, _: TexFilter);
-    fn TexCube_SetMinFilter(_: *mut TexCube, _: TexFilter);
-    fn TexFormat_Components(_: TexFormat) -> i32;
 }
 
 pub type CubeFace = i32;

@@ -22,7 +22,6 @@ pub struct Quat {
     pub w: f32,
 }
 
-pub type Error = u32;
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);

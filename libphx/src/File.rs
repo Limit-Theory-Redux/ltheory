@@ -1,12 +1,11 @@
 use crate::internal::Memory::*;
+use crate::Bytes::*;
 use glam::Vec3;
 use libc;
 use std::fs;
+
 extern "C" {
-    pub type Bytes;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn Bytes_Create(len: u32) -> *mut Bytes;
-    fn Bytes_GetData(_: *mut Bytes) -> *mut libc::c_void;
 }
 
 #[derive(Copy, Clone)]

@@ -1,16 +1,14 @@
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
+use crate::Bytes::*;
+use crate::File::*;
 use glam::Vec3;
 use libc;
 
 extern "C" {
-    pub type Bytes;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn File_Exists(path: *const libc::c_char) -> bool;
-    fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes;
-    fn File_ReadCstr(path: *const libc::c_char) -> *const libc::c_char;
-    fn ResourceType_ToString(_: ResourceType) -> *const libc::c_char;
 }
+
 pub type ResourceType = i32;
 #[derive(Copy, Clone)]
 #[repr(C)]

@@ -1,27 +1,19 @@
 use crate::internal::Memory::*;
+use crate::Intersect::*;
+use crate::LineSegment::*;
+use crate::Triangle::*;
+use crate::Plane::*;
 use glam::DVec3;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
     fn sqrt(_: f64) -> f64;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn Intersect_LineSegmentPlane(_: *const LineSegment, _: *const Plane, pHit: *mut Vec3) -> bool;
-    fn Plane_ClassifyPoint(_: *mut Plane, _: *mut Vec3) -> PointClassification;
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct LineSegment {
-    pub p0: Vec3,
-    pub p1: Vec3,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Plane {
-    pub n: Vec3,
-    pub d: f32,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Polygon {
@@ -29,13 +21,8 @@ pub struct Polygon {
     pub vertices_capacity: i32,
     pub vertices_data: *mut Vec3,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Triangle {
-    pub vertices: [Vec3; 3],
-}
 
-pub type Error = u32;
+
 pub type PointClassification = u8;
 
 #[inline]

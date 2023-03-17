@@ -3,13 +3,18 @@ use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::ResourceType::*;
 use crate::TexFormat::*;
+use crate::HashMap::*;
+use crate::RenderState::*;
+use crate::Profiler::*;
+use crate::Draw::*;
+use crate::Shader::*;
+use crate::Resource::*;
+use crate::Tex2D::*;
 use glam::Vec3;
 use glam::{IVec2, IVec4};
 use libc;
 
 extern "C" {
-    pub type Tex2D;
-    pub type HashMap;
     pub type FT_Face_InternalRec_;
     pub type FT_DriverRec_;
     pub type FT_Size_InternalRec_;
@@ -17,32 +22,8 @@ extern "C" {
     pub type FT_SubGlyphRec_;
     pub type FT_LibraryRec_;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn Draw_Color(r: f32, g: f32, b: f32, a: f32);
     fn pow(_: f64, _: f64) -> f64;
     fn floor(_: f64) -> f64;
-    fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
-    fn HashMap_Get(_: *mut HashMap, key: *const libc::c_void) -> *mut libc::c_void;
-    fn HashMap_Set(_: *mut HashMap, key: *const libc::c_void, value: *mut libc::c_void);
-    fn Profiler_Begin(_: *const libc::c_char);
-    fn Profiler_End();
-    fn RenderState_PushBlendMode(_: BlendMode);
-    fn RenderState_PopBlendMode();
-    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
-    fn Shader_ResetTexIndex();
-    fn Shader_SetTex2D(_: *const libc::c_char, _: *mut Tex2D);
-    fn Tex2D_Create(sx: i32, sy: i32, _: TexFormat) -> *mut Tex2D;
-    fn Tex2D_DrawEx(
-        _: *mut Tex2D,
-        x0: f32,
-        y0: f32,
-        x1: f32,
-        y1: f32,
-        u0: f32,
-        v0: f32,
-        u1: f32,
-        v1: f32,
-    );
-    fn Tex2D_SetData(_: *mut Tex2D, _: *const libc::c_void, _: PixelFormat, _: DataFormat);
     fn FT_Init_FreeType(alibrary: *mut FT_Library) -> FT_Error;
     fn FT_New_Face(
         library: FT_Library,

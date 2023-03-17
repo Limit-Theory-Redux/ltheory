@@ -1,12 +1,14 @@
 use crate::internal::Memory::*;
 use crate::State::*;
+use crate::Input::*;
+use crate::Device::*;
+use crate::InputEvent::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
 
 extern "C" {
     pub type lua_State;
-    fn Input_GetNextEvent(_: *mut InputEvent) -> bool;
     fn pow(_: f64, _: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn printf(_: *const libc::c_char, _: ...) -> i32;
@@ -61,22 +63,9 @@ pub struct RawButton {
     pub value: f32,
 }
 pub type Button = i32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Device {
-    pub type_0: DeviceType,
-    pub id: u32,
-}
+
 pub type DeviceType = i32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct InputEvent {
-    pub timestamp: u32,
-    pub device: Device,
-    pub button: Button,
-    pub value: f32,
-    pub state: State,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DownBinding {

@@ -1,12 +1,12 @@
 use crate::internal::Memory::*;
 use crate::PhxSignal::*;
+use crate::TimeStamp::*;
+use crate::HashMap::*;
 use glam::Vec3;
 use libc;
 use std::io::{self, Write};
 
 extern "C" {
-    pub type HashMap;
-    pub type __sFILEX;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn qsort(
         __base: *mut libc::c_void,
@@ -14,57 +14,14 @@ extern "C" {
         __width: usize,
         __compar: Option<unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32>,
     );
-    fn HashMap_Create(keySize: u32, capacity: u32) -> *mut HashMap;
-    fn HashMap_Free(_: *mut HashMap);
-    fn HashMap_GetRaw(_: *mut HashMap, keyHash: u64) -> *mut libc::c_void;
-    fn HashMap_SetRaw(_: *mut HashMap, keyHash: u64, value: *mut libc::c_void);
     fn sqrt(_: f64) -> f64;
-    fn Signal_AddHandlerAll(_: SignalHandler);
-    fn Signal_RemoveHandlerAll(_: SignalHandler);
-    fn fflush(_: *mut FILE) -> i32;
     fn printf(_: *const libc::c_char, _: ...) -> i32;
     fn puts(_: *const libc::c_char) -> i32;
-    fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetElapsed(start: TimeStamp) -> f64;
-    fn TimeStamp_ToDouble(_: TimeStamp) -> f64;
 }
-pub type __i64_t = i64;
-pub type __darwin_off_t = __i64_t;
+
 pub type TimeStamp = u64;
 pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
-pub type FILE = __sFILE;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct __sFILE {
-    pub _p: *mut libc::c_uchar,
-    pub _r: i32,
-    pub _w: i32,
-    pub _flags: i16,
-    pub _file: i16,
-    pub _bf: __sbuf,
-    pub _lbfsize: i32,
-    pub _cookie: *mut libc::c_void,
-    pub _close: Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>,
-    pub _read: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_char, i32) -> i32>,
-    pub _seek: Option<unsafe extern "C" fn(*mut libc::c_void, fpos_t, i32) -> fpos_t>,
-    pub _write: Option<unsafe extern "C" fn(*mut libc::c_void, *const libc::c_char, i32) -> i32>,
-    pub _ub: __sbuf,
-    pub _extra: *mut __sFILEX,
-    pub _ur: i32,
-    pub _ubuf: [libc::c_uchar; 3],
-    pub _nbuf: [libc::c_uchar; 1],
-    pub _lb: __sbuf,
-    pub _blksize: i32,
-    pub _offset: fpos_t,
-}
-pub type fpos_t = __darwin_off_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct __sbuf {
-    pub _base: *mut libc::c_uchar,
-    pub _size: i32,
-}
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Scope {

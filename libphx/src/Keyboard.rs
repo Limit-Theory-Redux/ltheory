@@ -1,11 +1,13 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn SDL_GetPerformanceFrequency() -> u64;
     fn SDL_GetPerformanceCounter() -> u64;
     fn SDL_GetKeyboardState(numkeys: *mut i32) -> *const u8;
 }
+
 pub type uchar = libc::c_uchar;
 pub type Key = uchar;
 pub const SDL_SCANCODE_RALT: C2RustUnnamed = 230;

@@ -1,10 +1,7 @@
 use crate::internal::Memory::*;
+use crate::File::*;
 use glam::Vec3;
 use libc;
-
-extern "C" {
-    fn File_IsDir(path: *const libc::c_char) -> bool;
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]

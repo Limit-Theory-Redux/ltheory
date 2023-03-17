@@ -2,6 +2,7 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 use sdl2_sys::*;
+
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
 }

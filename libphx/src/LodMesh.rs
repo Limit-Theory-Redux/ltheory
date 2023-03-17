@@ -1,11 +1,8 @@
 use crate::internal::Memory::*;
+use crate::Mesh::*;
 use glam::Vec3;
 use libc;
-extern "C" {
-    pub type Mesh;
-    fn Mesh_Free(_: *mut Mesh);
-    fn Mesh_Draw(_: *mut Mesh);
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LodMesh {

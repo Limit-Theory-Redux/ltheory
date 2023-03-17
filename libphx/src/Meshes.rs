@@ -1,35 +1,13 @@
 use crate::internal::Memory::*;
+use crate::Mesh::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
 
 extern "C" {
-    pub type Mesh;
-    fn Mesh_Create() -> *mut Mesh;
-    fn Mesh_AddQuad(_: *mut Mesh, _: i32, _: i32, _: i32, _: i32);
-    fn Mesh_AddVertex(
-        _: *mut Mesh,
-        px: f32,
-        py: f32,
-        pz: f32,
-        nx: f32,
-        ny: f32,
-        nz: f32,
-        u: f32,
-        v: f32,
-    );
-    fn Mesh_GetVertexCount(_: *mut Mesh) -> i32;
-    fn Mesh_GetVertexData(_: *mut Mesh) -> *mut Vertex;
     fn sqrt(_: f64) -> f64;
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vertex {
-    pub p: Vec3,
-    pub n: Vec3,
-    pub uv: Vec2,
-}
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;

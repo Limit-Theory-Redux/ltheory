@@ -1,8 +1,9 @@
 use crate::internal::Memory::*;
+use crate::TimeStamp::*;
+use crate::Lua::*;
 use glam::Vec3;
 use libc;
 extern "C" {
-    pub type lua_State;
     fn qsort(
         __base: *mut libc::c_void,
         __nel: usize,

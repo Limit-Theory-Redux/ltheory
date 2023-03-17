@@ -1,7 +1,7 @@
 use glam::Vec3;
 use libc;
 
-pub type Error = u32;
+pub use crate::Error::Error;
 
 #[inline]
 pub unsafe extern "C" fn MemAlloc(mut size: usize) -> *mut libc::c_void {
@@ -328,4 +328,19 @@ pub unsafe extern "C" fn Vec3_Validate(mut v: Vec3) -> Error {
     e |= Float_Validatef(v.y);
     e |= Float_Validatef(v.z);
     return e;
+}
+
+// TODO: Move these somewhere better.
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct Box3f {
+    pub lower: Vec3,
+    pub upper: Vec3,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct Sphere {
+    pub p: Vec3,
+    pub r: f32,
 }

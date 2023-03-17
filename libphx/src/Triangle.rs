@@ -1,24 +1,21 @@
 use crate::internal::Memory::*;
+use crate::Plane::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
     fn sqrt(_: f64) -> f64;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Plane {
-    pub n: Vec3,
-    pub d: f32,
-}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Triangle {
     pub vertices: [Vec3; 3],
 }
-pub type Error = u32;
+
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;

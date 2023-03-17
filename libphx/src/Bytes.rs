@@ -1,19 +1,12 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
+use crate::File::*;
 use glam::Vec3;
 use libc;
 use flate2::write::{ZlibEncoder, ZlibDecoder};
 use flate2::Compression;
 use std::io::Write;
 use std::ffi::CString;
-
-extern "C" {
-    pub type File;
-    fn Fatal(_: *const libc::c_char, _: ...);
-    fn File_Create(path: *const libc::c_char) -> *mut File;
-    fn File_Close(_: *mut File);
-    fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes;
-    fn File_Write(_: *mut File, data: *const libc::c_void, len: u32);
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]

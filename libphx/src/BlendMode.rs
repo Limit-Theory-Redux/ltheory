@@ -1,11 +1,7 @@
 use crate::internal::Memory::*;
+use crate::RenderState::*;
 use glam::Vec3;
 use libc;
-
-extern "C" {
-    fn RenderState_PushBlendMode(_: BlendMode);
-    fn RenderState_PopBlendMode();
-}
 
 pub type BlendMode = i32;
 

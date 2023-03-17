@@ -1,23 +1,17 @@
 use crate::internal::Memory::*;
 use crate::ResourceType::*;
+use crate::Resource::*;
+use crate::File::*;
+use crate::Audio::*;
 use glam::Vec3;
 use libc;
 
 extern "C" {
-    pub type File;
     pub type FMOD_SOUND;
     pub type FMOD_SYSTEM;
     pub type FMOD_SOUNDGROUP;
-    fn Audio_DeallocSoundDesc(_: *mut SoundDesc);
-    fn Audio_AllocSoundDesc(name: *const libc::c_char) -> *mut SoundDesc;
-    fn Audio_GetHandle() -> *mut libc::c_void;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn Warn(_: *const libc::c_char, _: ...);
-    fn File_Create(path: *const libc::c_char) -> *mut File;
-    fn File_Close(_: *mut File);
-    fn File_Write(_: *mut File, data: *const libc::c_void, len: u32);
-    fn File_WriteI16(_: *mut File, _: i16);
-    fn File_WriteI32(_: *mut File, _: i32);
     fn FMOD_System_CreateSound(
         system: *mut FMOD_SYSTEM,
         name_or_data: *const libc::c_char,
@@ -67,7 +61,6 @@ extern "C" {
         diskbusy: *mut FMOD_BOOL,
     ) -> FMOD_RESULT;
     fn FMOD_Sound_SetUserData(sound: *mut FMOD_SOUND, userdata: *mut libc::c_void) -> FMOD_RESULT;
-    fn Resource_GetPath(_: ResourceType, name: *const libc::c_char) -> *const libc::c_char;
 }
 #[derive(Copy, Clone)]
 #[repr(C)]

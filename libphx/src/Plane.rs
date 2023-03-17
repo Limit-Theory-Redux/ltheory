@@ -1,29 +1,23 @@
 use crate::internal::Memory::*;
+use crate::Polygon::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn Polygon_ToPlane(_: *mut Polygon, _: *mut Plane);
-    fn Polygon_ToPlaneFast(_: *mut Polygon, _: *mut Plane);
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Plane {
     pub n: Vec3,
     pub d: f32,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Polygon {
-    pub vertices_size: i32,
-    pub vertices_capacity: i32,
-    pub vertices_data: *mut Vec3,
-}
-pub type Error = u32;
+
 pub type PointClassification = u8;
 pub type PolygonClassification = u8;
 #[inline]

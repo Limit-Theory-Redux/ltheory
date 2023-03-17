@@ -1,13 +1,15 @@
 use crate::internal::Memory::*;
+use crate::Hash::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
-    fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn printf(_: *const libc::c_char, _: ...) -> i32;
     fn puts(_: *const libc::c_char) -> i32;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct StrMap {

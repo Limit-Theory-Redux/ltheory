@@ -1,4 +1,6 @@
 use crate::internal::Memory::*;
+use crate::SoundDesc::*;
+use crate::Audio::*;
 use glam::Vec3;
 use libc;
 extern "C" {
@@ -7,10 +9,7 @@ extern "C" {
     pub type FMOD_SYSTEM;
     pub type FMOD_CHANNELCONTROL;
     pub type FMOD_CHANNELGROUP;
-    fn Audio_AllocSound() -> *mut Sound;
-    fn Audio_GetHandle() -> *mut libc::c_void;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn Audio_SoundStateChanged(_: *mut Sound);
     fn FMOD_System_PlaySound(
         system: *mut FMOD_SYSTEM,
         sound: *mut FMOD_SOUND,
@@ -48,14 +47,6 @@ extern "C" {
         postype: FMOD_TIMEUNIT,
     ) -> FMOD_RESULT;
     fn floor(_: f64) -> f64;
-    fn SoundDesc_Load(name: *const libc::c_char, immediate: bool, isLooped: bool, is3D: bool) -> *mut SoundDesc;
-    fn SoundDesc_FinishLoad(_: *mut SoundDesc, func: *const libc::c_char);
-    fn SoundDesc_Acquire(_: *mut SoundDesc);
-    fn SoundDesc_Free(_: *mut SoundDesc);
-    fn SoundDesc_GetDuration(_: *mut SoundDesc) -> f32;
-    fn SoundDesc_GetName(_: *mut SoundDesc) -> *const libc::c_char;
-    fn SoundDesc_GetPath(_: *mut SoundDesc) -> *const libc::c_char;
-    fn SoundDesc_ToFile(_: *mut SoundDesc, _: *const libc::c_char);
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -68,14 +59,7 @@ pub struct Sound {
     pub freeOnFinish: bool,
 }
 pub type SoundState = u8;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct SoundDesc {
-    pub _refCount: u32,
-    pub handle: *mut FMOD_SOUND,
-    pub name: *const libc::c_char,
-    pub path: *const libc::c_char,
-}
+
 pub type FMOD_BOOL = i32;
 pub type FMOD_RESULT = u32;
 pub const FMOD_RESULT_FORCEINT: FMOD_RESULT = 65536;

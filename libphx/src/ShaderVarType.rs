@@ -1,13 +1,13 @@
 use crate::internal::Memory::*;
+use crate::Tex1D::*;
+use crate::Tex2D::*;
+use crate::Tex3D::*;
+use crate::TexCube::*;
+use crate::Matrix::*;
 use glam::Vec3;
 use glam::{IVec2, IVec3, IVec4, Vec2};
 use libc;
 extern "C" {
-    pub type Tex1D;
-    pub type Tex2D;
-    pub type Tex3D;
-    pub type TexCube;
-    pub type Matrix;
     fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
 }
 
