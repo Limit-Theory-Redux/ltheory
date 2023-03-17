@@ -77,10 +77,10 @@ pub type LuaRef = lua_Integer;
 pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
 
-#[no_mangle]
-pub static mut kErrorHandler: *const libc::c_char =
+pub const kErrorHandler: *const libc::c_char =
     b"function __error_handler__ (e)  return debug.traceback(e, 1)end\0" as *const u8
         as *const libc::c_char;
+
 static mut initialized: bool = 0 as i32 != 0;
 static mut activeInstance: *mut Lua = std::ptr::null_mut();
 static mut cSignal: Signal = 0 as i32;

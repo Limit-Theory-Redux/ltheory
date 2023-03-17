@@ -60,7 +60,8 @@ unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
 }
 
 #[no_mangle]
-pub static mut kMaxLeafSize: i32 = 64 as i32;
+pub static kMaxLeafSize: i32 = 64 as i32;
+
 unsafe extern "C" fn compareLowerX(mut a: *const libc::c_void, mut b: *const libc::c_void) -> i32 {
     return if (*(a as *const Box3f)).lower.x < (*(b as *const Box3f)).lower.x {
         -(1 as i32)

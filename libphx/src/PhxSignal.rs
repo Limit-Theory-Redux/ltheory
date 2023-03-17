@@ -22,22 +22,23 @@ pub struct HandlerElem {
 }
 
 #[no_mangle]
-pub static mut Signal_Ill: Signal = 4 as i32;
+pub static Signal_Ill: Signal = 4 as i32;
 
 #[no_mangle]
-pub static mut Signal_Fpe: Signal = 8 as i32;
+pub static Signal_Fpe: Signal = 8 as i32;
 
 #[no_mangle]
-pub static mut Signal_Segv: Signal = 11 as i32;
+pub static Signal_Segv: Signal = 11 as i32;
 
 #[no_mangle]
-pub static mut Signal_Term: Signal = 15 as i32;
+pub static Signal_Term: Signal = 15 as i32;
 
 #[no_mangle]
-pub static mut Signal_Abrt: Signal = 6 as i32;
+pub static Signal_Abrt: Signal = 6 as i32;
 
 #[no_mangle]
-pub static mut Signal_Int: Signal = 2 as i32;
+pub static Signal_Int: Signal = 2 as i32;
+
 static mut ignoreDefault: bool = 0 as i32 != 0;
 static mut handlerDefault: [SignalHandler; 32] = [
     None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,

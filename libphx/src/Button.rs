@@ -10,499 +10,499 @@ pub type Button = i32;
 pub type DeviceType = i32;
 
 #[no_mangle]
-pub static mut DeviceType_Null: DeviceType = 0;
+pub static DeviceType_Null: DeviceType = 0;
 
 #[no_mangle]
-pub static mut DeviceType_Mouse: DeviceType = 0;
+pub static DeviceType_Mouse: DeviceType = 0;
 
 #[no_mangle]
-pub static mut DeviceType_Keyboard: DeviceType = 0;
+pub static DeviceType_Keyboard: DeviceType = 0;
 
 #[no_mangle]
-pub static mut DeviceType_Gamepad: DeviceType = 0;
+pub static DeviceType_Gamepad: DeviceType = 0;
 
 #[no_mangle]
-pub static mut Button_Null: Button = 0 as i32;
+pub static Button_Null: Button = 0 as i32;
 
 #[no_mangle]
-pub static mut Button_First: Button = 1 as i32;
+pub static Button_First: Button = 1 as i32;
 
 #[no_mangle]
-pub static mut Button_Keyboard_First: Button = unsafe { Button_First };
+pub static Button_Keyboard_First: Button = Button_First;
 
 #[no_mangle]
-pub static mut Button_Keyboard_A: Button = unsafe { Button_Keyboard_First + 0 as i32 };
+pub static Button_Keyboard_A: Button = Button_Keyboard_First + 0;
 
 #[no_mangle]
-pub static mut Button_Keyboard_B: Button = unsafe { Button_Keyboard_First + 1 as i32 };
+pub static Button_Keyboard_B: Button = Button_Keyboard_First + 1;
 
 #[no_mangle]
-pub static mut Button_Keyboard_C: Button = unsafe { Button_Keyboard_First + 2 as i32 };
+pub static Button_Keyboard_C: Button = Button_Keyboard_First + 2;
 
 #[no_mangle]
-pub static mut Button_Keyboard_D: Button = unsafe { Button_Keyboard_First + 3 as i32 };
+pub static Button_Keyboard_D: Button = Button_Keyboard_First + 3;
 
 #[no_mangle]
-pub static mut Button_Keyboard_E: Button = unsafe { Button_Keyboard_First + 4 as i32 };
+pub static Button_Keyboard_E: Button = Button_Keyboard_First + 4;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F: Button = unsafe { Button_Keyboard_First + 5 as i32 };
+pub static Button_Keyboard_F: Button = Button_Keyboard_First + 5;
 
 #[no_mangle]
-pub static mut Button_Keyboard_G: Button = unsafe { Button_Keyboard_First + 6 as i32 };
+pub static Button_Keyboard_G: Button = Button_Keyboard_First + 6;
 
 #[no_mangle]
-pub static mut Button_Keyboard_H: Button = unsafe { Button_Keyboard_First + 7 as i32 };
+pub static Button_Keyboard_H: Button = Button_Keyboard_First + 7;
 
 #[no_mangle]
-pub static mut Button_Keyboard_I: Button = unsafe { Button_Keyboard_First + 8 as i32 };
+pub static Button_Keyboard_I: Button = Button_Keyboard_First + 8;
 
 #[no_mangle]
-pub static mut Button_Keyboard_J: Button = unsafe { Button_Keyboard_First + 9 as i32 };
+pub static Button_Keyboard_J: Button = Button_Keyboard_First + 9;
 
 #[no_mangle]
-pub static mut Button_Keyboard_K: Button = unsafe { Button_Keyboard_First + 10 as i32 };
+pub static Button_Keyboard_K: Button = Button_Keyboard_First + 10;
 
 #[no_mangle]
-pub static mut Button_Keyboard_L: Button = unsafe { Button_Keyboard_First + 11 as i32 };
+pub static Button_Keyboard_L: Button = Button_Keyboard_First + 11;
 
 #[no_mangle]
-pub static mut Button_Keyboard_M: Button = unsafe { Button_Keyboard_First + 12 as i32 };
+pub static Button_Keyboard_M: Button = Button_Keyboard_First + 12;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N: Button = unsafe { Button_Keyboard_First + 13 as i32 };
+pub static Button_Keyboard_N: Button = Button_Keyboard_First + 13;
 
 #[no_mangle]
-pub static mut Button_Keyboard_O: Button = unsafe { Button_Keyboard_First + 14 as i32 };
+pub static Button_Keyboard_O: Button = Button_Keyboard_First + 14;
 
 #[no_mangle]
-pub static mut Button_Keyboard_P: Button = unsafe { Button_Keyboard_First + 15 as i32 };
+pub static Button_Keyboard_P: Button = Button_Keyboard_First + 15;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Q: Button = unsafe { Button_Keyboard_First + 16 as i32 };
+pub static Button_Keyboard_Q: Button = Button_Keyboard_First + 16;
 
 #[no_mangle]
-pub static mut Button_Keyboard_R: Button = unsafe { Button_Keyboard_First + 17 as i32 };
+pub static Button_Keyboard_R: Button = Button_Keyboard_First + 17;
 
 #[no_mangle]
-pub static mut Button_Keyboard_S: Button = unsafe { Button_Keyboard_First + 18 as i32 };
+pub static Button_Keyboard_S: Button = Button_Keyboard_First + 18;
 
 #[no_mangle]
-pub static mut Button_Keyboard_T: Button = unsafe { Button_Keyboard_First + 19 as i32 };
+pub static Button_Keyboard_T: Button = Button_Keyboard_First + 19;
 
 #[no_mangle]
-pub static mut Button_Keyboard_U: Button = unsafe { Button_Keyboard_First + 20 as i32 };
+pub static Button_Keyboard_U: Button = Button_Keyboard_First + 20;
 
 #[no_mangle]
-pub static mut Button_Keyboard_V: Button = unsafe { Button_Keyboard_First + 21 as i32 };
+pub static Button_Keyboard_V: Button = Button_Keyboard_First + 21;
 
 #[no_mangle]
-pub static mut Button_Keyboard_W: Button = unsafe { Button_Keyboard_First + 22 as i32 };
+pub static Button_Keyboard_W: Button = Button_Keyboard_First + 22;
 
 #[no_mangle]
-pub static mut Button_Keyboard_X: Button = unsafe { Button_Keyboard_First + 23 as i32 };
+pub static Button_Keyboard_X: Button = Button_Keyboard_First + 23;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Y: Button = unsafe { Button_Keyboard_First + 24 as i32 };
+pub static Button_Keyboard_Y: Button = Button_Keyboard_First + 24;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Z: Button = unsafe { Button_Keyboard_First + 25 as i32 };
+pub static Button_Keyboard_Z: Button = Button_Keyboard_First + 25;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N0: Button = unsafe { Button_Keyboard_First + 26 as i32 };
+pub static Button_Keyboard_N0: Button = Button_Keyboard_First + 26;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N1: Button = unsafe { Button_Keyboard_First + 27 as i32 };
+pub static Button_Keyboard_N1: Button = Button_Keyboard_First + 27;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N2: Button = unsafe { Button_Keyboard_First + 28 as i32 };
+pub static Button_Keyboard_N2: Button = Button_Keyboard_First + 28;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N3: Button = unsafe { Button_Keyboard_First + 29 as i32 };
+pub static Button_Keyboard_N3: Button = Button_Keyboard_First + 29;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N4: Button = unsafe { Button_Keyboard_First + 30 as i32 };
+pub static Button_Keyboard_N4: Button = Button_Keyboard_First + 30;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N5: Button = unsafe { Button_Keyboard_First + 31 as i32 };
+pub static Button_Keyboard_N5: Button = Button_Keyboard_First + 31;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N6: Button = unsafe { Button_Keyboard_First + 32 as i32 };
+pub static Button_Keyboard_N6: Button = Button_Keyboard_First + 32;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N7: Button = unsafe { Button_Keyboard_First + 33 as i32 };
+pub static Button_Keyboard_N7: Button = Button_Keyboard_First + 33;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N8: Button = unsafe { Button_Keyboard_First + 34 as i32 };
+pub static Button_Keyboard_N8: Button = Button_Keyboard_First + 34;
 
 #[no_mangle]
-pub static mut Button_Keyboard_N9: Button = unsafe { Button_Keyboard_First + 35 as i32 };
+pub static Button_Keyboard_N9: Button = Button_Keyboard_First + 35;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F1: Button = unsafe { Button_Keyboard_First + 36 as i32 };
+pub static Button_Keyboard_F1: Button = Button_Keyboard_First + 36;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F2: Button = unsafe { Button_Keyboard_First + 37 as i32 };
+pub static Button_Keyboard_F2: Button = Button_Keyboard_First + 37;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F3: Button = unsafe { Button_Keyboard_First + 38 as i32 };
+pub static Button_Keyboard_F3: Button = Button_Keyboard_First + 38;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F4: Button = unsafe { Button_Keyboard_First + 39 as i32 };
+pub static Button_Keyboard_F4: Button = Button_Keyboard_First + 39;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F5: Button = unsafe { Button_Keyboard_First + 40 as i32 };
+pub static Button_Keyboard_F5: Button = Button_Keyboard_First + 40;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F6: Button = unsafe { Button_Keyboard_First + 41 as i32 };
+pub static Button_Keyboard_F6: Button = Button_Keyboard_First + 41;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F7: Button = unsafe { Button_Keyboard_First + 42 as i32 };
+pub static Button_Keyboard_F7: Button = Button_Keyboard_First + 42;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F8: Button = unsafe { Button_Keyboard_First + 43 as i32 };
+pub static Button_Keyboard_F8: Button = Button_Keyboard_First + 43;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F9: Button = unsafe { Button_Keyboard_First + 44 as i32 };
+pub static Button_Keyboard_F9: Button = Button_Keyboard_First + 44;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F10: Button = unsafe { Button_Keyboard_First + 45 as i32 };
+pub static Button_Keyboard_F10: Button = Button_Keyboard_First + 45;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F11: Button = unsafe { Button_Keyboard_First + 46 as i32 };
+pub static Button_Keyboard_F11: Button = Button_Keyboard_First + 46;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F12: Button = unsafe { Button_Keyboard_First + 47 as i32 };
+pub static Button_Keyboard_F12: Button = Button_Keyboard_First + 47;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F13: Button = unsafe { Button_Keyboard_First + 48 as i32 };
+pub static Button_Keyboard_F13: Button = Button_Keyboard_First + 48;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F14: Button = unsafe { Button_Keyboard_First + 49 as i32 };
+pub static Button_Keyboard_F14: Button = Button_Keyboard_First + 49;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F15: Button = unsafe { Button_Keyboard_First + 50 as i32 };
+pub static Button_Keyboard_F15: Button = Button_Keyboard_First + 50;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F16: Button = unsafe { Button_Keyboard_First + 51 as i32 };
+pub static Button_Keyboard_F16: Button = Button_Keyboard_First + 51;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F17: Button = unsafe { Button_Keyboard_First + 52 as i32 };
+pub static Button_Keyboard_F17: Button = Button_Keyboard_First + 52;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F18: Button = unsafe { Button_Keyboard_First + 53 as i32 };
+pub static Button_Keyboard_F18: Button = Button_Keyboard_First + 53;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F19: Button = unsafe { Button_Keyboard_First + 54 as i32 };
+pub static Button_Keyboard_F19: Button = Button_Keyboard_First + 54;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F20: Button = unsafe { Button_Keyboard_First + 55 as i32 };
+pub static Button_Keyboard_F20: Button = Button_Keyboard_First + 55;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F21: Button = unsafe { Button_Keyboard_First + 56 as i32 };
+pub static Button_Keyboard_F21: Button = Button_Keyboard_First + 56;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F22: Button = unsafe { Button_Keyboard_First + 57 as i32 };
+pub static Button_Keyboard_F22: Button = Button_Keyboard_First + 57;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F23: Button = unsafe { Button_Keyboard_First + 58 as i32 };
+pub static Button_Keyboard_F23: Button = Button_Keyboard_First + 58;
 
 #[no_mangle]
-pub static mut Button_Keyboard_F24: Button = unsafe { Button_Keyboard_First + 59 as i32 };
+pub static Button_Keyboard_F24: Button = Button_Keyboard_First + 59;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP0: Button = unsafe { Button_Keyboard_First + 60 as i32 };
+pub static Button_Keyboard_KP0: Button = Button_Keyboard_First + 60;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP1: Button = unsafe { Button_Keyboard_First + 61 as i32 };
+pub static Button_Keyboard_KP1: Button = Button_Keyboard_First + 61;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP2: Button = unsafe { Button_Keyboard_First + 62 as i32 };
+pub static Button_Keyboard_KP2: Button = Button_Keyboard_First + 62;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP3: Button = unsafe { Button_Keyboard_First + 63 as i32 };
+pub static Button_Keyboard_KP3: Button = Button_Keyboard_First + 63;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP4: Button = unsafe { Button_Keyboard_First + 64 as i32 };
+pub static Button_Keyboard_KP4: Button = Button_Keyboard_First + 64;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP5: Button = unsafe { Button_Keyboard_First + 65 as i32 };
+pub static Button_Keyboard_KP5: Button = Button_Keyboard_First + 65;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP6: Button = unsafe { Button_Keyboard_First + 66 as i32 };
+pub static Button_Keyboard_KP6: Button = Button_Keyboard_First + 66;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP7: Button = unsafe { Button_Keyboard_First + 67 as i32 };
+pub static Button_Keyboard_KP7: Button = Button_Keyboard_First + 67;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP8: Button = unsafe { Button_Keyboard_First + 68 as i32 };
+pub static Button_Keyboard_KP8: Button = Button_Keyboard_First + 68;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KP9: Button = unsafe { Button_Keyboard_First + 69 as i32 };
+pub static Button_Keyboard_KP9: Button = Button_Keyboard_First + 69;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KPNumLock: Button = unsafe { Button_Keyboard_First + 70 as i32 };
+pub static Button_Keyboard_KPNumLock: Button = Button_Keyboard_First + 70;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KPDivide: Button = unsafe { Button_Keyboard_First + 71 as i32 };
+pub static Button_Keyboard_KPDivide: Button = Button_Keyboard_First + 71;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KPMultiply: Button = unsafe { Button_Keyboard_First + 72 as i32 };
+pub static Button_Keyboard_KPMultiply: Button = Button_Keyboard_First + 72;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KPSubtract: Button = unsafe { Button_Keyboard_First + 73 as i32 };
+pub static Button_Keyboard_KPSubtract: Button = Button_Keyboard_First + 73;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KPAdd: Button = unsafe { Button_Keyboard_First + 74 as i32 };
+pub static Button_Keyboard_KPAdd: Button = Button_Keyboard_First + 74;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KPEnter: Button = unsafe { Button_Keyboard_First + 75 as i32 };
+pub static Button_Keyboard_KPEnter: Button = Button_Keyboard_First + 75;
 
 #[no_mangle]
-pub static mut Button_Keyboard_KPDecimal: Button = unsafe { Button_Keyboard_First + 76 as i32 };
+pub static Button_Keyboard_KPDecimal: Button = Button_Keyboard_First + 76;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Backspace: Button = unsafe { Button_Keyboard_First + 77 as i32 };
+pub static Button_Keyboard_Backspace: Button = Button_Keyboard_First + 77;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Escape: Button = unsafe { Button_Keyboard_First + 78 as i32 };
+pub static Button_Keyboard_Escape: Button = Button_Keyboard_First + 78;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Return: Button = unsafe { Button_Keyboard_First + 79 as i32 };
+pub static Button_Keyboard_Return: Button = Button_Keyboard_First + 79;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Space: Button = unsafe { Button_Keyboard_First + 80 as i32 };
+pub static Button_Keyboard_Space: Button = Button_Keyboard_First + 80;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Tab: Button = unsafe { Button_Keyboard_First + 81 as i32 };
+pub static Button_Keyboard_Tab: Button = Button_Keyboard_First + 81;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Backtick: Button = unsafe { Button_Keyboard_First + 82 as i32 };
+pub static Button_Keyboard_Backtick: Button = Button_Keyboard_First + 82;
 
 #[no_mangle]
-pub static mut Button_Keyboard_CapsLock: Button = unsafe { Button_Keyboard_First + 83 as i32 };
+pub static Button_Keyboard_CapsLock: Button = Button_Keyboard_First + 83;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Minus: Button = unsafe { Button_Keyboard_First + 84 as i32 };
+pub static Button_Keyboard_Minus: Button = Button_Keyboard_First + 84;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Equals: Button = unsafe { Button_Keyboard_First + 85 as i32 };
+pub static Button_Keyboard_Equals: Button = Button_Keyboard_First + 85;
 
 #[no_mangle]
-pub static mut Button_Keyboard_LBracket: Button = unsafe { Button_Keyboard_First + 86 as i32 };
+pub static Button_Keyboard_LBracket: Button = Button_Keyboard_First + 86;
 
 #[no_mangle]
-pub static mut Button_Keyboard_RBracket: Button = unsafe { Button_Keyboard_First + 87 as i32 };
+pub static Button_Keyboard_RBracket: Button = Button_Keyboard_First + 87;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Backslash: Button = unsafe { Button_Keyboard_First + 88 as i32 };
+pub static Button_Keyboard_Backslash: Button = Button_Keyboard_First + 88;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Semicolon: Button = unsafe { Button_Keyboard_First + 89 as i32 };
+pub static Button_Keyboard_Semicolon: Button = Button_Keyboard_First + 89;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Apostrophe: Button = unsafe { Button_Keyboard_First + 90 as i32 };
+pub static Button_Keyboard_Apostrophe: Button = Button_Keyboard_First + 90;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Comma: Button = unsafe { Button_Keyboard_First + 91 as i32 };
+pub static Button_Keyboard_Comma: Button = Button_Keyboard_First + 91;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Period: Button = unsafe { Button_Keyboard_First + 92 as i32 };
+pub static Button_Keyboard_Period: Button = Button_Keyboard_First + 92;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Slash: Button = unsafe { Button_Keyboard_First + 93 as i32 };
+pub static Button_Keyboard_Slash: Button = Button_Keyboard_First + 93;
 
 #[no_mangle]
-pub static mut Button_Keyboard_PrintScreen: Button = unsafe { Button_Keyboard_First + 94 as i32 };
+pub static Button_Keyboard_PrintScreen: Button = Button_Keyboard_First + 94;
 
 #[no_mangle]
-pub static mut Button_Keyboard_ScrollLock: Button = unsafe { Button_Keyboard_First + 95 as i32 };
+pub static Button_Keyboard_ScrollLock: Button = Button_Keyboard_First + 95;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Pause: Button = unsafe { Button_Keyboard_First + 96 as i32 };
+pub static Button_Keyboard_Pause: Button = Button_Keyboard_First + 96;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Insert: Button = unsafe { Button_Keyboard_First + 97 as i32 };
+pub static Button_Keyboard_Insert: Button = Button_Keyboard_First + 97;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Delete: Button = unsafe { Button_Keyboard_First + 98 as i32 };
+pub static Button_Keyboard_Delete: Button = Button_Keyboard_First + 98;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Home: Button = unsafe { Button_Keyboard_First + 99 as i32 };
+pub static Button_Keyboard_Home: Button = Button_Keyboard_First + 99;
 
 #[no_mangle]
-pub static mut Button_Keyboard_End: Button = unsafe { Button_Keyboard_First + 100 as i32 };
+pub static Button_Keyboard_End: Button = Button_Keyboard_First + 100;
 
 #[no_mangle]
-pub static mut Button_Keyboard_PageUp: Button = unsafe { Button_Keyboard_First + 101 as i32 };
+pub static Button_Keyboard_PageUp: Button = Button_Keyboard_First + 101;
 
 #[no_mangle]
-pub static mut Button_Keyboard_PageDown: Button = unsafe { Button_Keyboard_First + 102 as i32 };
+pub static Button_Keyboard_PageDown: Button = Button_Keyboard_First + 102;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Right: Button = unsafe { Button_Keyboard_First + 103 as i32 };
+pub static Button_Keyboard_Right: Button = Button_Keyboard_First + 103;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Left: Button = unsafe { Button_Keyboard_First + 104 as i32 };
+pub static Button_Keyboard_Left: Button = Button_Keyboard_First + 104;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Down: Button = unsafe { Button_Keyboard_First + 105 as i32 };
+pub static Button_Keyboard_Down: Button = Button_Keyboard_First + 105;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Up: Button = unsafe { Button_Keyboard_First + 106 as i32 };
+pub static Button_Keyboard_Up: Button = Button_Keyboard_First + 106;
 
 #[no_mangle]
-pub static mut Button_Keyboard_LCtrl: Button = unsafe { Button_Keyboard_First + 107 as i32 };
+pub static Button_Keyboard_LCtrl: Button = Button_Keyboard_First + 107;
 
 #[no_mangle]
-pub static mut Button_Keyboard_LShift: Button = unsafe { Button_Keyboard_First + 108 as i32 };
+pub static Button_Keyboard_LShift: Button = Button_Keyboard_First + 108;
 
 #[no_mangle]
-pub static mut Button_Keyboard_LAlt: Button = unsafe { Button_Keyboard_First + 109 as i32 };
+pub static Button_Keyboard_LAlt: Button = Button_Keyboard_First + 109;
 
 #[no_mangle]
-pub static mut Button_Keyboard_LMeta: Button = unsafe { Button_Keyboard_First + 110 as i32 };
+pub static Button_Keyboard_LMeta: Button = Button_Keyboard_First + 110;
 
 #[no_mangle]
-pub static mut Button_Keyboard_RCtrl: Button = unsafe { Button_Keyboard_First + 111 as i32 };
+pub static Button_Keyboard_RCtrl: Button = Button_Keyboard_First + 111;
 
 #[no_mangle]
-pub static mut Button_Keyboard_RShift: Button = unsafe { Button_Keyboard_First + 112 as i32 };
+pub static Button_Keyboard_RShift: Button = Button_Keyboard_First + 112;
 
 #[no_mangle]
-pub static mut Button_Keyboard_RAlt: Button = unsafe { Button_Keyboard_First + 113 as i32 };
+pub static Button_Keyboard_RAlt: Button = Button_Keyboard_First + 113;
 
 #[no_mangle]
-pub static mut Button_Keyboard_RMeta: Button = unsafe { Button_Keyboard_First + 114 as i32 };
+pub static Button_Keyboard_RMeta: Button = Button_Keyboard_First + 114;
 
 #[no_mangle]
-pub static mut Button_Keyboard_Last: Button = unsafe { Button_Keyboard_First + 115 as i32 };
+pub static Button_Keyboard_Last: Button = Button_Keyboard_First + 115;
 
 #[no_mangle]
-pub static mut Button_Mouse_First: Button = unsafe { Button_Keyboard_Last + 1 as i32 };
+pub static Button_Mouse_First: Button = Button_Keyboard_Last + 1;
 
 #[no_mangle]
-pub static mut Button_Mouse_Left: Button = unsafe { Button_Mouse_First + 0 as i32 };
+pub static Button_Mouse_Left: Button = Button_Mouse_First + 0;
 
 #[no_mangle]
-pub static mut Button_Mouse_Middle: Button = unsafe { Button_Mouse_First + 1 as i32 };
+pub static Button_Mouse_Middle: Button = Button_Mouse_First + 1;
 
 #[no_mangle]
-pub static mut Button_Mouse_Right: Button = unsafe { Button_Mouse_First + 2 as i32 };
+pub static Button_Mouse_Right: Button = Button_Mouse_First + 2;
 
 #[no_mangle]
-pub static mut Button_Mouse_X1: Button = unsafe { Button_Mouse_First + 3 as i32 };
+pub static Button_Mouse_X1: Button = Button_Mouse_First + 3;
 
 #[no_mangle]
-pub static mut Button_Mouse_X2: Button = unsafe { Button_Mouse_First + 4 as i32 };
+pub static Button_Mouse_X2: Button = Button_Mouse_First + 4;
 
 #[no_mangle]
-pub static mut Button_Mouse_X: Button = unsafe { Button_Mouse_First + 5 as i32 };
+pub static Button_Mouse_X: Button = Button_Mouse_First + 5;
 
 #[no_mangle]
-pub static mut Button_Mouse_Y: Button = unsafe { Button_Mouse_First + 6 as i32 };
+pub static Button_Mouse_Y: Button = Button_Mouse_First + 6;
 
 #[no_mangle]
-pub static mut Button_Mouse_ScrollX: Button = unsafe { Button_Mouse_First + 7 as i32 };
+pub static Button_Mouse_ScrollX: Button = Button_Mouse_First + 7;
 
 #[no_mangle]
-pub static mut Button_Mouse_ScrollY: Button = unsafe { Button_Mouse_First + 8 as i32 };
+pub static Button_Mouse_ScrollY: Button = Button_Mouse_First + 8;
 
 #[no_mangle]
-pub static mut Button_Mouse_Last: Button = unsafe { Button_Mouse_First + 8 as i32 };
+pub static Button_Mouse_Last: Button = Button_Mouse_First + 8;
 
 #[no_mangle]
-pub static mut Button_Gamepad_First: Button = unsafe { Button_Mouse_Last + 1 as i32 };
+pub static Button_Gamepad_First: Button = Button_Mouse_Last + 1;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Button_First: Button = unsafe { Button_Gamepad_First + 0 as i32 };
+pub static Button_Gamepad_Button_First: Button = Button_Gamepad_First + 0;
 
 #[no_mangle]
-pub static mut Button_Gamepad_A: Button = unsafe { Button_Gamepad_First + 0 as i32 };
+pub static Button_Gamepad_A: Button = Button_Gamepad_First + 0;
 
 #[no_mangle]
-pub static mut Button_Gamepad_B: Button = unsafe { Button_Gamepad_First + 1 as i32 };
+pub static Button_Gamepad_B: Button = Button_Gamepad_First + 1;
 
 #[no_mangle]
-pub static mut Button_Gamepad_X: Button = unsafe { Button_Gamepad_First + 2 as i32 };
+pub static Button_Gamepad_X: Button = Button_Gamepad_First + 2;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Y: Button = unsafe { Button_Gamepad_First + 3 as i32 };
+pub static Button_Gamepad_Y: Button = Button_Gamepad_First + 3;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Back: Button = unsafe { Button_Gamepad_First + 4 as i32 };
+pub static Button_Gamepad_Back: Button = Button_Gamepad_First + 4;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Guide: Button = unsafe { Button_Gamepad_First + 5 as i32 };
+pub static Button_Gamepad_Guide: Button = Button_Gamepad_First + 5;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Start: Button = unsafe { Button_Gamepad_First + 6 as i32 };
+pub static Button_Gamepad_Start: Button = Button_Gamepad_First + 6;
 
 #[no_mangle]
-pub static mut Button_Gamepad_LStick: Button = unsafe { Button_Gamepad_First + 7 as i32 };
+pub static Button_Gamepad_LStick: Button = Button_Gamepad_First + 7;
 
 #[no_mangle]
-pub static mut Button_Gamepad_RStick: Button = unsafe { Button_Gamepad_First + 8 as i32 };
+pub static Button_Gamepad_RStick: Button = Button_Gamepad_First + 8;
 
 #[no_mangle]
-pub static mut Button_Gamepad_LBumper: Button = unsafe { Button_Gamepad_First + 9 as i32 };
+pub static Button_Gamepad_LBumper: Button = Button_Gamepad_First + 9;
 
 #[no_mangle]
-pub static mut Button_Gamepad_RBumper: Button = unsafe { Button_Gamepad_First + 10 as i32 };
+pub static Button_Gamepad_RBumper: Button = Button_Gamepad_First + 10;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Up: Button = unsafe { Button_Gamepad_First + 11 as i32 };
+pub static Button_Gamepad_Up: Button = Button_Gamepad_First + 11;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Down: Button = unsafe { Button_Gamepad_First + 12 as i32 };
+pub static Button_Gamepad_Down: Button = Button_Gamepad_First + 12;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Left: Button = unsafe { Button_Gamepad_First + 13 as i32 };
+pub static Button_Gamepad_Left: Button = Button_Gamepad_First + 13;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Right: Button = unsafe { Button_Gamepad_First + 14 as i32 };
+pub static Button_Gamepad_Right: Button = Button_Gamepad_First + 14;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Button_Last: Button = unsafe { Button_Gamepad_First + 14 as i32 };
+pub static Button_Gamepad_Button_Last: Button = Button_Gamepad_First + 14;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Axis_First: Button = unsafe { Button_Gamepad_First + 15 as i32 };
+pub static Button_Gamepad_Axis_First: Button = Button_Gamepad_First + 15;
 
 #[no_mangle]
-pub static mut Button_Gamepad_LTrigger: Button = unsafe { Button_Gamepad_First + 15 as i32 };
+pub static Button_Gamepad_LTrigger: Button = Button_Gamepad_First + 15;
 
 #[no_mangle]
-pub static mut Button_Gamepad_RTrigger: Button = unsafe { Button_Gamepad_First + 16 as i32 };
+pub static Button_Gamepad_RTrigger: Button = Button_Gamepad_First + 16;
 
 #[no_mangle]
-pub static mut Button_Gamepad_LStickX: Button = unsafe { Button_Gamepad_First + 17 as i32 };
+pub static Button_Gamepad_LStickX: Button = Button_Gamepad_First + 17;
 
 #[no_mangle]
-pub static mut Button_Gamepad_LStickY: Button = unsafe { Button_Gamepad_First + 18 as i32 };
+pub static Button_Gamepad_LStickY: Button = Button_Gamepad_First + 18;
 
 #[no_mangle]
-pub static mut Button_Gamepad_RStickX: Button = unsafe { Button_Gamepad_First + 19 as i32 };
+pub static Button_Gamepad_RStickX: Button = Button_Gamepad_First + 19;
 
 #[no_mangle]
-pub static mut Button_Gamepad_RStickY: Button = unsafe { Button_Gamepad_First + 20 as i32 };
+pub static Button_Gamepad_RStickY: Button = Button_Gamepad_First + 20;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Axis_Last: Button = unsafe { Button_Gamepad_First + 20 as i32 };
+pub static Button_Gamepad_Axis_Last: Button = Button_Gamepad_First + 20;
 
 #[no_mangle]
-pub static mut Button_Gamepad_Last: Button = unsafe { Button_Gamepad_First + 20 as i32 };
+pub static Button_Gamepad_Last: Button = Button_Gamepad_First + 20;
 
 #[no_mangle]
-pub static mut Button_System_First: Button = unsafe { Button_Gamepad_Last + 1 as i32 };
+pub static Button_System_First: Button = Button_Gamepad_Last + 1;
 
 #[no_mangle]
-pub static mut Button_System_Exit: Button = unsafe { Button_System_First + 0 as i32 };
+pub static Button_System_Exit: Button = Button_System_First + 0;
 
 #[no_mangle]
-pub static mut Button_System_Last: Button = unsafe { Button_System_First + 0 as i32 };
+pub static Button_System_Last: Button = Button_System_First + 0;
 
 #[no_mangle]
-pub static mut Button_Last: Button = unsafe { Button_System_Last };
+pub static Button_Last: Button = Button_System_Last;
 
 #[no_mangle]
 pub unsafe extern "C" fn Button_ToDeviceType(mut button: Button) -> DeviceType {

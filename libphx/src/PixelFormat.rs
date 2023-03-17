@@ -4,25 +4,25 @@ use libc;
 pub type PixelFormat = i32;
 
 #[no_mangle]
-pub static mut PixelFormat_Red: PixelFormat = 0x1903 as i32;
+pub static PixelFormat_Red: PixelFormat = 0x1903 as i32;
 
 #[no_mangle]
-pub static mut PixelFormat_RG: PixelFormat = 0x8227 as i32;
+pub static PixelFormat_RG: PixelFormat = 0x8227 as i32;
 
 #[no_mangle]
-pub static mut PixelFormat_RGB: PixelFormat = 0x1907 as i32;
+pub static PixelFormat_RGB: PixelFormat = 0x1907 as i32;
 
 #[no_mangle]
-pub static mut PixelFormat_BGR: PixelFormat = 0x80e0 as i32;
+pub static PixelFormat_BGR: PixelFormat = 0x80e0 as i32;
 
 #[no_mangle]
-pub static mut PixelFormat_RGBA: PixelFormat = 0x1908 as i32;
+pub static PixelFormat_RGBA: PixelFormat = 0x1908 as i32;
 
 #[no_mangle]
-pub static mut PixelFormat_BGRA: PixelFormat = 0x80e1 as i32;
+pub static PixelFormat_BGRA: PixelFormat = 0x80e1 as i32;
 
 #[no_mangle]
-pub static mut PixelFormat_Depth_Component: PixelFormat = 0x1902 as i32;
+pub static PixelFormat_Depth_Component: PixelFormat = 0x1902 as i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn PixelFormat_Components(mut this: PixelFormat) -> i32 {

@@ -34,13 +34,13 @@ unsafe extern "C" fn _OSSwapInt16(mut _data: u16) -> u16 {
 }
 
 #[no_mangle]
-pub static mut SocketType_None: SocketType = 0 as i32;
+pub static SocketType_None: SocketType = 0 as i32;
 
 #[no_mangle]
-pub static mut SocketType_UDP: SocketType = 0x1 as i32;
+pub static SocketType_UDP: SocketType = 0x1 as i32;
 
 #[no_mangle]
-pub static mut SocketType_TCP: SocketType = 0x2 as i32;
+pub static SocketType_TCP: SocketType = 0x2 as i32;
 
 #[inline]
 unsafe extern "C" fn Socket_Cleanup(mut this: sock_t) {

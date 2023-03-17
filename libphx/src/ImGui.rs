@@ -216,16 +216,17 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
 }
 
 #[no_mangle]
-pub static mut FocusType_Mouse: i32 = 0 as i32;
+pub static FocusType_Mouse: i32 = 0 as i32;
 
 #[no_mangle]
-pub static mut FocusType_Keyboard: i32 = 1 as i32;
+pub static FocusType_Keyboard: i32 = 1 as i32;
 
 #[no_mangle]
-pub static mut FocusType_Scroll: i32 = 2 as i32;
+pub static FocusType_Scroll: i32 = 2 as i32;
 
 #[no_mangle]
-pub static mut FocusType_SIZE: i32 = 3 as i32;
+pub static FocusType_SIZE: i32 = 3 as i32;
+
 static mut this: ImGui = ImGui {
     layer: std::ptr::null_mut(),
     layerLast: std::ptr::null_mut(),

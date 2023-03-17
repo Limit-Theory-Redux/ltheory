@@ -152,13 +152,14 @@ unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
 }
 
 #[no_mangle]
-pub static mut BSPNodeRel_Parent: BSPNodeRel = 0 as i32 as BSPNodeRel;
+pub static BSPNodeRel_Parent: BSPNodeRel = 0 as i32 as BSPNodeRel;
 
 #[no_mangle]
-pub static mut BSPNodeRel_Back: BSPNodeRel = 1 as i32 as BSPNodeRel;
+pub static BSPNodeRel_Back: BSPNodeRel = 1 as i32 as BSPNodeRel;
 
 #[no_mangle]
-pub static mut BSPNodeRel_Front: BSPNodeRel = 2 as i32 as BSPNodeRel;
+pub static BSPNodeRel_Front: BSPNodeRel = 2 as i32 as BSPNodeRel;
+
 static mut BackIndex: i32 = 0 as i32;
 static mut FrontIndex: i32 = 1 as i32;
 static mut RootNodeIndex: i32 = 1 as i32;
@@ -397,16 +398,17 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
 }
 
 #[no_mangle]
-pub static mut PolygonFlag_None: PolygonFlag = ((0 as i32) << 0 as i32) as PolygonFlag;
+pub static PolygonFlag_None: PolygonFlag = ((0 as i32) << 0 as i32) as PolygonFlag;
 
 #[no_mangle]
-pub static mut PolygonFlag_InvalidFaceSplit: PolygonFlag = ((1 as i32) << 0 as i32) as PolygonFlag;
+pub static PolygonFlag_InvalidFaceSplit: PolygonFlag = ((1 as i32) << 0 as i32) as PolygonFlag;
 
 #[no_mangle]
-pub static mut PolygonFlag_InvalidDecompose: PolygonFlag = ((1 as i32) << 1 as i32) as PolygonFlag;
+pub static PolygonFlag_InvalidDecompose: PolygonFlag = ((1 as i32) << 1 as i32) as PolygonFlag;
 
 #[no_mangle]
-pub static mut PolygonFlag_InvalidEdgeSplit: PolygonFlag = ((1 as i32) << 2 as i32) as PolygonFlag;
+pub static PolygonFlag_InvalidEdgeSplit: PolygonFlag = ((1 as i32) << 2 as i32) as PolygonFlag;
+
 unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     mut nodeData: *mut BSPBuild_NodeData,
     mut plane: Plane,

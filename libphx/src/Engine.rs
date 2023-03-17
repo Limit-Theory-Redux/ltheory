@@ -23,7 +23,7 @@ pub type ResourceType = i32;
 pub type TimeStamp = u64;
 
 #[no_mangle]
-pub static mut subsystems: u32 =
+pub static subsystems: u32 =
     SDL_INIT_EVENTS |
     SDL_INIT_VIDEO |
     SDL_INIT_TIMER |

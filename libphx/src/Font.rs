@@ -412,11 +412,13 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
 }
 
 #[no_mangle]
-pub static mut kGamma: f32 = 1.8f32;
+pub static kGamma: f32 = 1.8f32;
 
 #[no_mangle]
-pub static mut kRcpGamma: f32 = unsafe { 1.0f32 / kGamma };
+pub static kRcpGamma: f32 = 1.0f32 / kGamma;
+
 static mut ft: FT_Library = std::ptr::null_mut();
+
 unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *mut Glyph {
     if codepoint < 256 as i32 as u32 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
         return (*this).glyphsAscii[codepoint as usize];

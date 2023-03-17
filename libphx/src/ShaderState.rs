@@ -59,34 +59,34 @@ pub type PFNGLUNIFORM4FPROC =
     Option<unsafe extern "C" fn(GLint, GLfloat, GLfloat, GLfloat, GLfloat) -> ()>;
 
 #[no_mangle]
-pub static mut ElemType_Float: u32 = 1 as i32 as u32;
+pub static ElemType_Float: u32 = 1 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_Float2: u32 = 2 as i32 as u32;
+pub static ElemType_Float2: u32 = 2 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_Float3: u32 = 3 as i32 as u32;
+pub static ElemType_Float3: u32 = 3 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_Float4: u32 = 4 as i32 as u32;
+pub static ElemType_Float4: u32 = 4 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_Int: u32 = 5 as i32 as u32;
+pub static ElemType_Int: u32 = 5 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_Matrix: u32 = 6 as i32 as u32;
+pub static ElemType_Matrix: u32 = 6 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_Tex1D: u32 = 7 as i32 as u32;
+pub static ElemType_Tex1D: u32 = 7 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_Tex2D: u32 = 8 as i32 as u32;
+pub static ElemType_Tex2D: u32 = 8 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_Tex3D: u32 = 9 as i32 as u32;
+pub static ElemType_Tex3D: u32 = 9 as i32 as u32;
 
 #[no_mangle]
-pub static mut ElemType_TexCube: u32 = 10 as i32 as u32;
+pub static ElemType_TexCube: u32 = 10 as i32 as u32;
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut ShaderState {

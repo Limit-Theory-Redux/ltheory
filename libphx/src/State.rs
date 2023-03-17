@@ -7,19 +7,19 @@ extern "C" {
 pub type State = i32;
 
 #[no_mangle]
-pub static mut State_Null: State = (0 as i32) << 0 as i32;
+pub static State_Null: State = (0 as i32) << 0 as i32;
 
 #[no_mangle]
-pub static mut State_Changed: State = (1 as i32) << 0 as i32;
+pub static State_Changed: State = (1 as i32) << 0 as i32;
 
 #[no_mangle]
-pub static mut State_Pressed: State = (1 as i32) << 1 as i32;
+pub static State_Pressed: State = (1 as i32) << 1 as i32;
 
 #[no_mangle]
-pub static mut State_Down: State = (1 as i32) << 2 as i32;
+pub static State_Down: State = (1 as i32) << 2 as i32;
 
 #[no_mangle]
-pub static mut State_Released: State = (1 as i32) << 3 as i32;
+pub static State_Released: State = (1 as i32) << 3 as i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char {

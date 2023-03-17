@@ -104,22 +104,22 @@ unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
 }
 
 #[no_mangle]
-pub static mut InputBindings_DefaultMaxValue: f32 = 0.;
+pub static InputBindings_DefaultMaxValue: f32 = 0.;
 
 #[no_mangle]
-pub static mut InputBindings_DefaultMinValue: f32 = 0.;
+pub static InputBindings_DefaultMinValue: f32 = 0.;
 
 #[no_mangle]
-pub static mut InputBindings_DefaultDeadzone: f32 = 0.;
+pub static InputBindings_DefaultDeadzone: f32 = 0.;
 
 #[no_mangle]
-pub static mut InputBindings_DefaultExponent: f32 = 0.;
+pub static InputBindings_DefaultExponent: f32 = 0.;
 
 #[no_mangle]
-pub static mut InputBindings_DefaultReleaseThreshold: f32 = 0.;
+pub static InputBindings_DefaultReleaseThreshold: f32 = 0.;
 
 #[no_mangle]
-pub static mut InputBindings_DefaultPressThreshold: f32 = 0.;
+pub static InputBindings_DefaultPressThreshold: f32 = 0.;
 
 static mut BindCount: i32 = 4 as i32;
 static mut this: InputBindings = InputBindings {
