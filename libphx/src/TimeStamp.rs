@@ -1,11 +1,8 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+use sdl2_sys::*;
 
-extern "C" {
-    fn SDL_GetPerformanceFrequency() -> u64;
-    fn SDL_GetPerformanceCounter() -> u64;
-}
 pub type TimeStamp = u64;
 
 #[no_mangle]

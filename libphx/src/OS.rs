@@ -1,14 +1,10 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+use sdl2_sys::*;
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn SDL_GetClipboardText() -> *mut libc::c_char;
-    fn SDL_GetCPUCount() -> i32;
-    fn SDL_SetClipboardText(text: *const libc::c_char) -> i32;
-    fn SDL_GetError() -> *const libc::c_char;
-    fn SDL_GetCurrentVideoDriver() -> *const libc::c_char;
 }
 
 #[no_mangle]

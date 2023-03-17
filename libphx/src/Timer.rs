@@ -1,11 +1,7 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
-
-extern "C" {
-    fn SDL_GetPerformanceCounter() -> u64;
-    fn SDL_GetPerformanceFrequency() -> u64;
-}
+use sdl2_sys::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
