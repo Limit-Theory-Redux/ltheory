@@ -87,9 +87,9 @@ unsafe extern "C" fn Partition(
     let mut this: *mut KDTree = MemAlloc(::core::mem::size_of::<KDTree>() as usize) as *mut KDTree;
     if boxCount <= kMaxLeafSize {
         (*this).box_0 = *boxes.offset(0);
-        (*this).back = 0 as *mut KDTree;
-        (*this).front = 0 as *mut KDTree;
-        (*this).elems = 0 as *mut Node;
+        (*this).back = std::ptr::null_mut();
+        (*this).front = std::ptr::null_mut();
+        (*this).elems = std::ptr::null_mut();
         let mut i: i32 = 1 as i32;
         while i < boxCount {
             (*this).box_0 = Box3f_Union((*this).box_0, *boxes.offset(i as isize));
@@ -161,7 +161,7 @@ unsafe extern "C" fn Partition(
     (*this).back = Partition(boxesBack, boxCountBack, (dim + 1 as i32) % 3 as i32);
     (*this).front = Partition(boxesFront, boxCountFront, (dim + 1 as i32) % 3 as i32);
     (*this).box_0 = Box3f_Union((*(*this).back).box_0, (*(*this).front).box_0);
-    (*this).elems = 0 as *mut Node;
+    (*this).elems = std::ptr::null_mut();
     MemFree(boxesBack as *const libc::c_void);
     MemFree(boxesFront as *const libc::c_void);
     return this;

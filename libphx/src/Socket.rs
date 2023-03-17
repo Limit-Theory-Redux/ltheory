@@ -122,9 +122,9 @@ pub unsafe extern "C" fn Socket_Accept(mut this: *mut Socket) -> *mut Socket {
                 as *const libc::c_char,
         );
     }
-    let mut sock: sock_t = libc::accept((*this).sock, 0 as *mut libc::sockaddr, 0 as *mut libc::socklen_t);
+    let mut sock: sock_t = libc::accept((*this).sock, std::ptr::null_mut(), std::ptr::null_mut());
     if sock == -(1 as i32) {
-        return 0 as *mut Socket;
+        return std::ptr::null_mut();
     }
     let mut con: *mut Socket = MemAlloc(::core::mem::size_of::<Socket>() as usize) as *mut Socket;
     (*con).type_0 = SocketType_TCP;
@@ -196,12 +196,12 @@ pub unsafe extern "C" fn Socket_Read(mut this: *mut Socket) -> *const libc::c_ch
     );
     if bytes == -(1 as i32) {
         if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 35 as i32 {
-            return 0 as *const libc::c_char;
+            return std::ptr::null();
         }
         Fatal(b"Socket_Read: failed to read from socket\0" as *const u8 as *const libc::c_char);
     }
     if bytes == 0 as i32 {
-        return 0 as *const libc::c_char;
+        return std::ptr::null();
     }
     (*this).buffer[bytes as usize] = 0 as i32 as libc::c_char;
     return ((*this).buffer).as_mut_ptr() as *const libc::c_char;
@@ -215,12 +215,12 @@ pub unsafe extern "C" fn Socket_ReadBytes(mut this: *mut Socket) -> *mut Bytes {
     );
     if bytes == -(1 as i32) {
         if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 35 as i32 {
-            return 0 as *mut Bytes;
+            return std::ptr::null_mut();
         }
         Fatal(b"Socket_ReadRaw: failed to read from socket\0" as *const u8 as *const libc::c_char);
     }
     if bytes == 0 as i32 {
-        return 0 as *mut Bytes;
+        return std::ptr::null_mut();
     }
     let mut data: *mut Bytes = Bytes_Create(bytes as u32);
     Bytes_Write(
@@ -281,12 +281,12 @@ pub unsafe extern "C" fn Socket_SetAddress(mut this: *mut Socket, mut addr: *con
     let mut port: *const libc::c_char = StrSubStr(colon.offset(1), addr.offset(libc::strlen(addr) as isize));
     (*this).addrSend.sin_family = 2 as i32 as libc::sa_family_t;
     (*this).addrSend.sin_port = (if 0 != 0 {
-        ((libc::strtol(port, 0 as *mut *mut libc::c_char, 0 as i32) as u16 as u32 & 0xff00 as u32)
+        ((libc::strtol(port, std::ptr::null_mut(), 0 as i32) as u16 as u32 & 0xff00 as u32)
             >> 8 as i32
-            | (libc::strtol(port, 0 as *mut *mut libc::c_char, 0 as i32) as u16 as u32 & 0xff as u32)
+            | (libc::strtol(port, std::ptr::null_mut(), 0 as i32) as u16 as u32 & 0xff as u32)
                 << 8 as i32) as u16 as i32
     } else {
-        _OSSwapInt16(libc::strtol(port, 0 as *mut *mut libc::c_char, 0 as i32) as u16) as i32
+        _OSSwapInt16(libc::strtol(port, std::ptr::null_mut(), 0 as i32) as u16) as i32
     }) as u16;
     if inet_aton(ip, &mut (*this).addrSend.sin_addr) == 0 as i32 {
         Fatal(

@@ -53,12 +53,12 @@ unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
 }
 
 static mut this: Profiler = Profiler {
-    map: 0 as *const HashMap as *mut HashMap,
+    map: std::ptr::null_mut(),
     stackIndex: 0,
-    stack: [0 as *const Scope as *mut Scope; 128],
+    stack: [std::ptr::null_mut(); 128],
     scopeList_size: 0,
     scopeList_capacity: 0,
-    scopeList_data: 0 as *const *mut Scope as *mut *mut Scope,
+    scopeList_data: std::ptr::null_mut(),
     start: 0,
 };
 static mut profiling: bool = 0 as i32 != 0;
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn Profiler_Enable() {
     );
     this.scopeList_capacity = 0 as i32;
     this.scopeList_size = 0 as i32;
-    this.scopeList_data = 0 as *mut *mut Scope;
+    this.scopeList_data = std::ptr::null_mut();
     if (this.scopeList_capacity < 1024 as i32) as libc::c_long != 0 {
         this.scopeList_capacity = 1024 as i32;
         let mut elemSize: usize = ::core::mem::size_of::<*mut Scope>();

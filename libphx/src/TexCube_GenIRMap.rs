@@ -65,7 +65,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     }
     TexCube_GenMipmap(result);
     MemFree(buffer);
-    static mut shader: *mut Shader = 0 as *const Shader as *mut Shader;
+    static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
         shader = Shader_Load(
             b"vertex/identity\0" as *const u8 as *const libc::c_char,

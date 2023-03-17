@@ -75,13 +75,13 @@ pub struct UIRenderer {
 }
 
 static mut this: UIRenderer = UIRenderer {
-    root: 0 as *const UIRendererLayer as *mut UIRendererLayer,
-    layer: 0 as *const UIRendererLayer as *mut UIRendererLayer,
-    layerPool: 0 as *const MemPool as *mut MemPool,
-    imagePool: 0 as *const MemPool as *mut MemPool,
-    panelPool: 0 as *const MemPool as *mut MemPool,
-    rectPool: 0 as *const MemPool as *mut MemPool,
-    textPool: 0 as *const MemPool as *mut MemPool,
+    root: std::ptr::null_mut(),
+    layer: std::ptr::null_mut(),
+    layerPool: std::ptr::null_mut(),
+    imagePool: std::ptr::null_mut(),
+    panelPool: std::ptr::null_mut(),
+    rectPool: std::ptr::null_mut(),
+    textPool: std::ptr::null_mut(),
 };
 unsafe extern "C" fn UIRenderer_Init() {
     static mut init: bool = 0 as i32 != 0;
@@ -89,8 +89,8 @@ unsafe extern "C" fn UIRenderer_Init() {
         return;
     }
     init = 1 as i32 != 0;
-    this.root = 0 as *mut UIRendererLayer;
-    this.layer = 0 as *mut UIRendererLayer;
+    this.root = std::ptr::null_mut();
+    this.layer = std::ptr::null_mut();
     this.layerPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererLayer>() as usize as u32);
     this.imagePool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererImage>() as usize as u32);
     this.panelPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererPanel>() as usize as u32);
@@ -100,8 +100,8 @@ unsafe extern "C" fn UIRenderer_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Begin() {
     UIRenderer_Init();
-    this.root = 0 as *mut UIRendererLayer;
-    this.layer = 0 as *mut UIRendererLayer;
+    this.root = std::ptr::null_mut();
+    this.layer = std::ptr::null_mut();
     MemPool_Clear(this.layerPool);
     MemPool_Clear(this.imagePool);
     MemPool_Clear(this.panelPool);
@@ -132,7 +132,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
         );
     }
     if !((*self_1).panelList).is_null() {
-        static mut shader: *mut Shader = 0 as *const Shader as *mut Shader;
+        static mut shader: *mut Shader = std::ptr::null_mut();
         if shader.is_null() {
             shader = Shader_Load(
                 b"vertex/ui\0" as *const u8 as *const libc::c_char,
@@ -237,15 +237,15 @@ pub unsafe extern "C" fn UIRenderer_BeginLayer(
 ) {
     let mut layer: *mut UIRendererLayer = MemPool_Alloc(this.layerPool) as *mut UIRendererLayer;
     (*layer).parent = this.layer;
-    (*layer).next = 0 as *mut UIRendererLayer;
-    (*layer).children = 0 as *mut UIRendererLayer;
+    (*layer).next = std::ptr::null_mut();
+    (*layer).children = std::ptr::null_mut();
     (*layer).pos = Vec2::new(x, y);
     (*layer).size = Vec2::new(sx, sy);
     (*layer).clip = clip;
-    (*layer).imageList = 0 as *mut UIRendererImage;
-    (*layer).panelList = 0 as *mut UIRendererPanel;
-    (*layer).rectList = 0 as *mut UIRendererRect;
-    (*layer).textList = 0 as *mut UIRendererText;
+    (*layer).imageList = std::ptr::null_mut();
+    (*layer).panelList = std::ptr::null_mut();
+    (*layer).rectList = std::ptr::null_mut();
+    (*layer).textList = std::ptr::null_mut();
     this.layer = layer;
 }
 #[no_mangle]

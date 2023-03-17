@@ -82,7 +82,7 @@ pub static mut kErrorHandler: *const libc::c_char =
     b"function __error_handler__ (e)  return debug.traceback(e, 1)end\0" as *const u8
         as *const libc::c_char;
 static mut initialized: bool = 0 as i32 != 0;
-static mut activeInstance: *mut Lua = 0 as *const Lua as *mut Lua;
+static mut activeInstance: *mut Lua = std::ptr::null_mut();
 static mut cSignal: Signal = 0 as i32;
 unsafe extern "C" fn Lua_BacktraceHook(mut this: *mut Lua, _: *mut lua_Debug) {
     lua_sethook(this, None, 0 as i32, 0 as i32);
@@ -134,7 +134,7 @@ unsafe extern "C" fn Lua_PCall(
                     as *const libc::c_char,
             );
         } else if result == 2 as i32 {
-            let mut error: *const libc::c_char = lua_tolstring(this, -(1 as i32), 0 as *mut usize);
+            let mut error: *const libc::c_char = lua_tolstring(this, -(1 as i32), std::ptr::null_mut());
             println!("{}", std::ffi::CStr::from_ptr(error).to_str().unwrap());
             Fatal(
                 b"Lua_PCall: Lua returned error message: %s\0" as *const u8 as *const libc::c_char,
@@ -210,7 +210,7 @@ pub unsafe extern "C" fn Lua_LoadFile(mut this: *mut Lua, mut name: *const libc:
         Fatal(
             b"Lua_LoadFile: failed to load <%s>:\n%s\0" as *const u8 as *const libc::c_char,
             path,
-            lua_tolstring(this, -(1 as i32), 0 as *mut usize),
+            lua_tolstring(this, -(1 as i32), std::ptr::null_mut()),
         );
     }
 }
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn Lua_LoadString(mut this: *mut Lua, mut code: *const lib
     if luaL_loadstring(this, code) != 0 {
         Fatal(
             b"Lua_LoadString: failed to load string:\n%s\0" as *const u8 as *const libc::c_char,
-            lua_tolstring(this, -(1 as i32), 0 as *mut usize),
+            lua_tolstring(this, -(1 as i32), std::ptr::null_mut()),
         );
     }
 }
@@ -328,7 +328,7 @@ pub unsafe extern "C" fn Lua_GetMemory(mut this: *mut Lua) -> i32 {
 unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: *const libc::c_char) -> *const libc::c_char {
     let mut type_0: i32 = lua_type(this, -(1 as i32));
     let mut typeName: *const libc::c_char = lua_typename(this, type_0);
-    let mut strValue: *const libc::c_char = 0 as *const libc::c_char;
+    let mut strValue: *const libc::c_char = std::ptr::null();
     let mut isNull: bool = 0 as i32 != 0;
     if luaL_callmeta(
         this,
@@ -336,7 +336,7 @@ unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: *const libc::c_c
         b"__tostring\0" as *const u8 as *const libc::c_char,
     ) != 0
     {
-        strValue = StrDup(lua_tolstring(this, -(1 as i32), 0 as *mut usize));
+        strValue = StrDup(lua_tolstring(this, -(1 as i32), std::ptr::null_mut()));
         lua_settop(this, -(1 as i32) - 1 as i32);
     } else {
         let mut current_block_14: u64;
@@ -353,11 +353,11 @@ unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: *const libc::c_c
                 current_block_14 = 11584701595673473500;
             }
             3 => {
-                strValue = lua_tolstring(this, -(1 as i32), 0 as *mut usize);
+                strValue = lua_tolstring(this, -(1 as i32), std::ptr::null_mut());
                 current_block_14 = 11584701595673473500;
             }
             4 => {
-                strValue = lua_tolstring(this, -(1 as i32), 0 as *mut usize);
+                strValue = lua_tolstring(this, -(1 as i32), std::ptr::null_mut());
                 current_block_14 = 11584701595673473500;
             }
             2 => {
@@ -445,18 +445,18 @@ pub unsafe extern "C" fn Lua_Backtrace() {
     }
     let mut stack_size: i32 = 0;
     let mut stack_capacity: i32 = 0;
-    let mut stack_data: *mut *const libc::c_char = 0 as *mut *const libc::c_char;
+    let mut stack_data: *mut *const libc::c_char = std::ptr::null_mut();
     stack_capacity = 0 as i32;
     stack_size = 0 as i32;
-    stack_data = 0 as *mut *const libc::c_char;
+    stack_data = std::ptr::null_mut();
     let mut iStack: i32 = 0 as i32;
     loop {
         let mut ar: lua_Debug = lua_Debug {
             event: 0,
-            name: 0 as *const libc::c_char,
-            namewhat: 0 as *const libc::c_char,
-            what: 0 as *const libc::c_char,
-            source: 0 as *const libc::c_char,
+            name: std::ptr::null(),
+            namewhat: std::ptr::null(),
+            what: std::ptr::null(),
+            source: std::ptr::null(),
             currentline: 0,
             nups: 0,
             linedefined: 0,

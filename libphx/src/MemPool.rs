@@ -36,7 +36,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
         pCurr = pCurr.offset((*this).cellSize as isize);
         i = i.wrapping_add(1);
     }
-    *prev = 0 as *mut libc::c_void;
+    *prev = std::ptr::null_mut();
 }
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -> *mut MemPool {
@@ -44,11 +44,11 @@ pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -
         MemAlloc(::core::mem::size_of::<MemPool>() as usize) as *mut MemPool;
     (*this).size = 0 as i32 as u32;
     (*this).capacity = 0 as i32 as u32;
-    (*this).freeList = 0 as *mut libc::c_void;
+    (*this).freeList = std::ptr::null_mut();
     (*this).cellSize = cellSize;
     (*this).blockSize = blockSize;
     (*this).blockCount = 0 as i32 as u16;
-    (*this).blocks = 0 as *mut *mut libc::c_void;
+    (*this).blocks = std::ptr::null_mut();
     return this;
 }
 #[no_mangle]
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn MemPool_Alloc(mut this: *mut MemPool) -> *mut libc::c_v
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Clear(mut this: *mut MemPool) {
     (*this).size = 0 as i32 as u32;
-    (*this).freeList = 0 as *mut libc::c_void;
+    (*this).freeList = std::ptr::null_mut();
     let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
     let mut i: u32 = 0 as i32 as u32;
     while i < (*this).blockCount as u32 {
@@ -93,7 +93,7 @@ pub unsafe extern "C" fn MemPool_Clear(mut this: *mut MemPool) {
         }
         i = i.wrapping_add(1);
     }
-    *prev = 0 as *mut libc::c_void;
+    *prev = std::ptr::null_mut();
 }
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Dealloc(mut this: *mut MemPool, mut ptr: *mut libc::c_void) {

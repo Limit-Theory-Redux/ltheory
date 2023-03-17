@@ -106,12 +106,12 @@ unsafe extern "C" fn StrBuffer_SetImpl(
 }
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_Set(mut this: *mut StrBuffer, mut format: *const libc::c_char, mut args: ...) {
-    let mut args_0: va_list = 0 as *mut libc::c_char;
+    let mut args_0: va_list = std::ptr::null_mut();
     args_0 = &args as *const VaListImpl as va_list;
     let mut neededSpace: i32 = StrBuffer_SetImpl(this, format, args_0);
     if (neededSpace > 0 as i32) as libc::c_long != 0 {
         StrBuffer_GrowTo(this, ((*this).capacity).wrapping_add(neededSpace as u32));
-        let mut args2: va_list = 0 as *mut libc::c_char;
+        let mut args2: va_list = std::ptr::null_mut();
         args2 = &args as *const VaListImpl as va_list;
         neededSpace = StrBuffer_SetImpl(this, format, args_0);
     }

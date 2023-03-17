@@ -86,7 +86,7 @@ pub unsafe extern "C" fn HashMap_GetRaw(
         node = ((*this).elems)
             .offset((hash.wrapping_add(index as u64) & (*this).mask as u64) as isize);
     }
-    return 0 as *mut libc::c_void;
+    return std::ptr::null_mut();
 }
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: u32) {

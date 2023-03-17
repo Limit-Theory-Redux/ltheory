@@ -42,7 +42,7 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                         b"Failed to load image from '%s'\0" as *const u8 as *const libc::c_char,
                         path,
                     );
-                    0 as *mut uchar
+                    std::ptr::null_mut()
                 }
             }
         }
@@ -51,7 +51,7 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                 b"Failed to load image from '%s'\0" as *const u8 as *const libc::c_char,
                 path,
             );
-            0 as *mut uchar
+            std::ptr::null_mut()
         }
     }
 }

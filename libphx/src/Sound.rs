@@ -627,7 +627,7 @@ unsafe extern "C" fn Sound_Callback(
     mut b: *mut libc::c_void,
 ) -> FMOD_RESULT {
     if callbackType as u32 == FMOD_CHANNELCONTROL_CALLBACK_END as i32 as u32 {
-        let mut this: *mut Sound = 0 as *mut Sound;
+        let mut this: *mut Sound = std::ptr::null_mut();
         FMOD_CheckError(
             FMOD_Channel_GetUserData(
                 channel as *mut FMOD_CHANNEL,
@@ -651,7 +651,7 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: *con
         //     FMOD_System_PlaySound(
         //         Audio_GetHandle() as *mut FMOD_SYSTEM,
         //         (*(*this).desc).handle,
-        //         0 as *mut FMOD_CHANNELGROUP,
+        //         std::ptr::null_mut(),
         //         1 as i32,
         //         &mut (*this).handle,
         //     ),
@@ -833,7 +833,7 @@ pub unsafe extern "C" fn Sound_Clone(mut this: *mut Sound) -> *mut Sound {
     let mut clone: *mut Sound = Audio_AllocSound();
     *clone = *this;
     SoundDesc_Acquire((*this).desc);
-    (*clone).handle = 0 as *mut FMOD_CHANNEL;
+    (*clone).handle = std::ptr::null_mut();
     (*clone).state = 0 as i32 as SoundState;
     Sound_SetState(clone, 1 as i32 as SoundState);
     return clone;

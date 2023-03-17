@@ -161,7 +161,7 @@ pub unsafe extern "C" fn Tex2D_Create(
             0x1902 as i32
         }) as GLenum,
         0x1401 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     Tex2D_Init();
     glBindTexture(0xde1 as i32 as GLenum, 0 as i32 as GLu32);

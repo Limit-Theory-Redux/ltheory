@@ -82,7 +82,7 @@ pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut Sha
     (*this)._refCount = 1 as i32 as u32;
     (*this).elems_capacity = 0 as i32;
     (*this).elems_size = 0 as i32;
-    (*this).elems_data = 0 as *mut Elem;
+    (*this).elems_data = std::ptr::null_mut();
     Shader_Acquire(shader);
     (*this).shader = shader;
     return this;

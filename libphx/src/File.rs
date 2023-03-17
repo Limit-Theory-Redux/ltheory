@@ -31,7 +31,7 @@ pub unsafe extern "C" fn File_IsDir(path: *const libc::c_char) -> bool {
 unsafe extern "C" fn File_OpenMode(mut path: *const libc::c_char, mut mode: *const libc::c_char) -> *mut File {
     let mut handle: *mut libc::FILE = libc::fopen(path, mode);
     if handle.is_null() {
-        return 0 as *mut File;
+        return std::ptr::null_mut();
     }
     let mut this: *mut File = MemAlloc(::core::mem::size_of::<File>()) as *mut File;
     (*this).handle = handle;
@@ -54,12 +54,12 @@ pub unsafe extern "C" fn File_Close(mut this: *mut File) {
 pub unsafe extern "C" fn File_ReadBytes(mut path: *const libc::c_char) -> *mut Bytes {
     let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if file.is_null() {
-        return 0 as *mut Bytes;
+        return std::ptr::null_mut();
     }
     libc::fseek(file, 0 as libc::c_long, libc::SEEK_END);
     let mut size: i64 = libc::ftell(file) as i64;
     if size == 0 as i64 {
-        return 0 as *mut Bytes;
+        return std::ptr::null_mut();
     }
     if size < 0 as i64 {
         Fatal(
@@ -92,12 +92,12 @@ pub unsafe extern "C" fn File_ReadBytes(mut path: *const libc::c_char) -> *mut B
 pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const libc::c_char {
     let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if file.is_null() {
-        return 0 as *const libc::c_char;
+        return std::ptr::null();
     }
     libc::fseek(file, 0 as libc::c_long, 2 as i32);
     let mut size: i64 = libc::ftell(file) as i64;
     if size == 0 as i64 {
-        return 0 as *const libc::c_char;
+        return std::ptr::null();
     }
     if size < 0 as i64 {
         Fatal(

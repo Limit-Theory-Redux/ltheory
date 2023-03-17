@@ -113,10 +113,10 @@ static mut BindCount: i32 = 4 as i32;
 static mut this: InputBindings = InputBindings {
     activeBindings_size: 0 as i32,
     activeBindings_capacity: 0,
-    activeBindings_data: 0 as *const InputBinding as *mut InputBinding,
+    activeBindings_data: std::ptr::null_mut(),
     downBindings_size: 0,
     downBindings_capacity: 0,
-    downBindings_data: 0 as *const DownBinding as *mut DownBinding,
+    downBindings_data: std::ptr::null_mut(),
 };
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Init() {
@@ -242,8 +242,8 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                     (*button).onPressed,
                 );
                 let mut downBinding: DownBinding = DownBinding {
-                    binding: 0 as *mut InputBinding,
-                    button: 0 as *mut AggregateButton,
+                    binding: std::ptr::null_mut(),
+                    button: std::ptr::null_mut(),
                 };
                 downBinding.binding = binding;
                 downBinding.button = button;

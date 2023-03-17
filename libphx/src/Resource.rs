@@ -18,16 +18,16 @@ pub struct PathElem {
 }
 
 static mut paths: [*mut PathElem; 10] = [
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
-    0 as *const PathElem as *mut PathElem,
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
+    std::ptr::null_mut(),
 ];
 #[inline]
 unsafe extern "C" fn Resource_Resolve(
@@ -63,7 +63,7 @@ unsafe extern "C" fn Resource_Resolve(
             name,
         );
     }
-    return 0 as *const libc::c_char;
+    return std::ptr::null();
 }
 #[no_mangle]
 pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: *const libc::c_char) {

@@ -755,9 +755,9 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(mut this: *mut SoundDesc, mut func
         //     FMOD_Sound_GetOpenState(
         //         (*this).handle,
         //         &mut openState,
-        //         0 as *mut u32,
-        //         0 as *mut FMOD_BOOL,
-        //         0 as *mut FMOD_BOOL,
+        //         std::ptr::null_mut(),
+        //         std::ptr::null_mut(),
+        //         std::ptr::null_mut(),
         //     ),
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
         //         as *const libc::c_char,
@@ -833,7 +833,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         //         Audio_GetHandle() as *mut FMOD_SYSTEM,
         //         path,
         //         mode,
-        //         0 as *mut FMOD_CREATESOUNDEXINFO,
+        //         std::ptr::null_mut(),
         //         &mut (*this).handle,
         //     ),
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
@@ -963,8 +963,8 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     // FMOD_CheckError(
     //     FMOD_Sound_GetFormat(
     //         (*this).handle,
-    //         0 as *mut FMOD_SOUND_TYPE,
-    //         0 as *mut FMOD_SOUND_FORMAT,
+    //         std::ptr::null_mut(),
+    //         std::ptr::null_mut(),
     //         &mut channels,
     //         &mut bitsPerSample,
     //     ),
@@ -979,10 +979,10 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     // );
     let mut bytesPerSample: i32 = bitsPerSample / 8 as i32;
     let mut sampleRate: f32 = 0.;
-    // FMOD_Sound_GetDefaults((*this).handle, &mut sampleRate, 0 as *mut i32);
-    let mut ptr1: *mut libc::c_void = 0 as *mut libc::c_void;
+    // FMOD_Sound_GetDefaults((*this).handle, &mut sampleRate, std::ptr::null_mut());
+    let mut ptr1: *mut libc::c_void = std::ptr::null_mut();
     let mut len1: u32 = 0;
-    let mut ptr2: *mut libc::c_void = 0 as *mut libc::c_void;
+    let mut ptr2: *mut libc::c_void = std::ptr::null_mut();
     let mut len2: u32 = 0;
     // FMOD_CheckError(
     //     FMOD_Sound_Lock(

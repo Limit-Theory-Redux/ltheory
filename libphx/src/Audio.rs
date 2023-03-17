@@ -607,19 +607,19 @@ unsafe extern "C" fn FMOD_CheckError(
     }
 }
 static mut this: Audio = Audio {
-    handle: 0 as *const FMOD_SYSTEM as *mut FMOD_SYSTEM,
-    descMap: 0 as *const StrMap as *mut StrMap,
-    soundPool: 0 as *const MemPool as *mut MemPool,
+    handle: std::ptr::null_mut(),
+    descMap: std::ptr::null_mut(),
+    soundPool: std::ptr::null_mut(),
     playingSounds_size: 0,
     playingSounds_capacity: 0,
-    playingSounds_data: 0 as *const *mut Sound as *mut *mut Sound,
+    playingSounds_data: std::ptr::null_mut(),
     freeingSounds_size: 0,
     freeingSounds_capacity: 0,
-    freeingSounds_data: 0 as *const *mut Sound as *mut *mut Sound,
-    autoPos: 0 as *const Vec3,
-    autoVel: 0 as *const Vec3,
-    autoFwd: 0 as *const Vec3,
-    autoUp: 0 as *const Vec3,
+    freeingSounds_data: std::ptr::null_mut(),
+    autoPos: std::ptr::null(),
+    autoVel: std::ptr::null(),
+    autoFwd: std::ptr::null(),
+    autoUp: std::ptr::null(),
 };
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Init() {
@@ -676,7 +676,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //         this.handle,
     //         1024 as i32,
     //         flags_0,
-    //         0 as *mut libc::c_void,
+    //         std::ptr::null_mut(),
     //     ),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,

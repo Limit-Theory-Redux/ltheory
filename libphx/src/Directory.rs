@@ -13,7 +13,7 @@ pub struct Directory {
 pub unsafe extern "C" fn Directory_Open(mut path: *const libc::c_char) -> *mut Directory {
     let mut dir: *mut libc::DIR = libc::opendir(path);
     if dir.is_null() {
-        return 0 as *mut Directory;
+        return std::ptr::null_mut();
     }
     let mut this: *mut Directory =
         MemAlloc(::core::mem::size_of::<Directory>() as usize) as *mut Directory;
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn Directory_GetNext(mut this: *mut Directory) -> *const l
     loop {
         let mut ent: *mut libc::dirent = libc::readdir((*this).handle);
         if ent.is_null() {
-            return 0 as *const libc::c_char;
+            return std::ptr::null();
         }
         if StrEqual(
             ((*ent).d_name).as_mut_ptr() as *const libc::c_char,
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
     ))
     .is_null()
     {
-        return 0 as *const libc::c_char;
+        return std::ptr::null();
     }
     buffer[(::core::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1 as usize)] =
         0 as i32 as libc::c_char;

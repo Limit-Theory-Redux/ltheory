@@ -146,12 +146,12 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
 }
 
 static mut this: HmGui = HmGui {
-    group: 0 as *const HmGuiGroup as *mut HmGuiGroup,
-    root: 0 as *const HmGuiGroup as *mut HmGuiGroup,
-    last: 0 as *const HmGuiWidget as *mut HmGuiWidget,
-    style: 0 as *const HmGuiStyle as *mut HmGuiStyle,
-    clipRect: 0 as *const HmGuiClipRect as *mut HmGuiClipRect,
-    data: 0 as *const HashMap as *mut HashMap,
+    group: std::ptr::null_mut(),
+    root: std::ptr::null_mut(),
+    last: std::ptr::null_mut(),
+    style: std::ptr::null_mut(),
+    clipRect: std::ptr::null_mut(),
+    data: std::ptr::null_mut(),
     focus: [0; 2],
     focusPos: Vec2::ZERO,
     activate: false,
@@ -159,11 +159,11 @@ static mut this: HmGui = HmGui {
 static mut init_hmgui: bool = 0 as i32 != 0;
 unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: u32) {
     (*e).parent = this.group;
-    (*e).next = 0 as *mut HmGuiWidget;
+    (*e).next = std::ptr::null_mut();
     (*e).prev = if !(this.group).is_null() {
         (*this.group).tail
     } else {
-        0 as *mut HmGuiWidget
+        std::ptr::null_mut()
     };
     if !((*e).parent).is_null() {
         (*(*e).parent).children = ((*(*e).parent).children).wrapping_add(1);
@@ -197,8 +197,8 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: u32) {
     let mut e: *mut HmGuiGroup =
         MemAlloc(::core::mem::size_of::<HmGuiGroup>() as usize) as *mut HmGuiGroup;
     HmGui_InitWidget(&mut (*e).widget, 0 as i32 as u32);
-    (*e).head = 0 as *mut HmGuiWidget;
-    (*e).tail = 0 as *mut HmGuiWidget;
+    (*e).head = std::ptr::null_mut();
+    (*e).tail = std::ptr::null_mut();
     (*e).layout = layout;
     (*e).children = 0 as i32 as u32;
     (*e).focusStyle = 0 as i32 as u32;
@@ -565,17 +565,17 @@ unsafe extern "C" fn HmGui_DrawGroup(mut g: *mut HmGuiGroup) {
 pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
     if !init_hmgui {
         init_hmgui = 1 as i32 != 0;
-        this.group = 0 as *mut HmGuiGroup;
-        this.root = 0 as *mut HmGuiGroup;
+        this.group = std::ptr::null_mut();
+        this.root = std::ptr::null_mut();
         this.style = MemAlloc(::core::mem::size_of::<HmGuiStyle>()) as *mut HmGuiStyle;
-        (*this.style).prev = 0 as *mut HmGuiStyle;
+        (*this.style).prev = std::ptr::null_mut();
         (*this.style).font =
             Font_Load(b"Rajdhani\0" as *const u8 as *const libc::c_char, 14 as i32);
         (*this.style).spacing = 6.0f32;
         (*this.style).colorPrimary = Vec4f_Create(0.1f32, 0.5f32, 1.0f32, 1.0f32);
         (*this.style).colorFrame = Vec4f_Create(0.1f32, 0.1f32, 0.1f32, 0.5f32);
         (*this.style).colorText = Vec4f_Create(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-        this.clipRect = 0 as *mut HmGuiClipRect;
+        this.clipRect = std::ptr::null_mut();
         this.data = HashMap_Create(0 as i32 as u32, 128 as i32 as u32);
         let mut i: i32 = 0 as i32;
         while i < 2 as i32 {
@@ -586,9 +586,9 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
     }
     if !(this.root).is_null() {
         HmGui_FreeGroup(this.root);
-        this.root = 0 as *mut HmGuiGroup;
+        this.root = std::ptr::null_mut();
     }
-    this.last = 0 as *mut HmGuiWidget;
+    this.last = std::ptr::null_mut();
     this.activate = Input_GetPressed(Button_Mouse_Left);
     HmGui_BeginGroup(0 as i32 as u32);
     (*this.group).clip = 1 as i32 != 0;

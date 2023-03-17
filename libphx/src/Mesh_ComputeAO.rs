@@ -154,7 +154,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     MemFree(pointBuffer as *const libc::c_void);
     MemFree(normalBuffer as *const libc::c_void);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
-    static mut shader: *mut Shader = 0 as *const Shader as *mut Shader;
+    static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
         shader = Shader_Load(
             b"vertex/identity\0" as *const u8 as *const libc::c_char,
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
         DataFormat_Float,
     );
     MemFree(pointBuffer as *const libc::c_void);
-    static mut shader: *mut Shader = 0 as *const Shader as *mut Shader;
+    static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
         shader = Shader_Load(
             b"vertex/identity\0" as *const u8 as *const libc::c_char,

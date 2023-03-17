@@ -177,7 +177,7 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
         5889 => {
             matrixMode = 0xba7 as i32;
         }
-        6144 | 5890 | _ => return 0 as *mut Matrix,
+        6144 | 5890 | _ => return std::ptr::null_mut(),
     }
     let mut matrix: *mut Matrix = Matrix_Identity();
     glGetFloatv(matrixMode as GLenum, matrix as *mut f32);

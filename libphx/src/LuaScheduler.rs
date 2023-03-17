@@ -51,10 +51,10 @@ pub struct SchedulerElem {
 static mut this: Scheduler = Scheduler {
     elems_size: 0,
     elems_capacity: 0,
-    elems_data: 0 as *const SchedulerElem as *mut SchedulerElem,
+    elems_data: std::ptr::null_mut(),
     addQueue_size: 0,
     addQueue_capacity: 0,
-    addQueue_data: 0 as *const SchedulerElem as *mut SchedulerElem,
+    addQueue_data: std::ptr::null_mut(),
     now: 0,
     locked: false,
 };
@@ -192,10 +192,10 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
 pub unsafe extern "C" fn LuaScheduler_Init(mut L: *mut Lua) {
     this.elems_capacity = 0 as i32;
     this.elems_size = 0 as i32;
-    this.elems_data = 0 as *mut SchedulerElem;
+    this.elems_data = std::ptr::null_mut();
     this.addQueue_capacity = 0 as i32;
     this.addQueue_size = 0 as i32;
-    this.addQueue_data = 0 as *mut SchedulerElem;
+    this.addQueue_data = std::ptr::null_mut();
     this.now = TimeStamp_Get();
     this.locked = 0 as i32 != 0;
 }

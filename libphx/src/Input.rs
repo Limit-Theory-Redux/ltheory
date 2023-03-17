@@ -87,20 +87,20 @@ static mut this: Input = Input {
     deviceLists: [DeviceList {
         devices_size: 0,
         devices_capacity: 0,
-        devices_data: 0 as *const DeviceState as *mut DeviceState,
+        devices_data: std::ptr::null_mut(),
     }; 4],
     events_size: 0,
     events_capacity: 0,
-    events_data: 0 as *const InputEvent as *mut InputEvent,
+    events_data: std::ptr::null_mut(),
     downButtons_size: 0,
     downButtons_capacity: 0,
-    downButtons_data: 0 as *const InputEvent as *mut InputEvent,
+    downButtons_data: std::ptr::null_mut(),
     autoRelease_size: 0,
     autoRelease_capacity: 0,
-    autoRelease_data: 0 as *const InputEvent as *mut InputEvent,
+    autoRelease_data: std::ptr::null_mut(),
     injectedEvents_size: 0,
     injectedEvents_capacity: 0,
-    injectedEvents_data: 0 as *const InputEvent as *mut InputEvent,
+    injectedEvents_data: std::ptr::null_mut(),
 };
 #[inline]
 unsafe extern "C" fn Input_EnsureDeviceState(mut device: Device) -> *mut DeviceState {
@@ -894,7 +894,7 @@ pub unsafe extern "C" fn Input_GetMouseScroll(mut scroll: *mut IVec2) {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMousePosition(mut position: *mut IVec2) {
-    SDL_WarpMouseInWindow(0 as *mut SDL_Window, (*position).x, (*position).y);
+    SDL_WarpMouseInWindow(std::ptr::null_mut(), (*position).x, (*position).y);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMouseVisible(mut visible: bool) {

@@ -21,7 +21,7 @@ pub struct Gamepad {
     pub buttonLast: [bool; 15],
 }
 
-static mut gamepadList: *mut Gamepad = 0 as *const Gamepad as *mut Gamepad;
+static mut gamepadList: *mut Gamepad = std::ptr::null_mut();
 unsafe extern "C" fn Gamepad_UpdateState(mut this: *mut Gamepad) {
     let now: TimeStamp = TimeStamp_Get();
     let mut i = GamepadAxis_BEGIN as i32;
@@ -53,7 +53,7 @@ pub unsafe extern "C" fn Gamepad_CanOpen(mut index: i32) -> bool {
 pub unsafe extern "C" fn Gamepad_Open(mut index: i32) -> *mut Gamepad {
     let mut handle: *mut SDL_GameController = SDL_GameControllerOpen(index);
     if handle.is_null() {
-        return 0 as *mut Gamepad;
+        return std::ptr::null_mut();
     }
     let mut this: *mut Gamepad =
         MemAllocZero(::core::mem::size_of::<Gamepad>() as usize) as *mut Gamepad;

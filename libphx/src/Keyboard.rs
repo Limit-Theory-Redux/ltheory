@@ -261,8 +261,8 @@ pub const SDL_SCANCODE_A: C2RustUnnamed = 4;
 pub const SDL_SCANCODE_UNKNOWN: C2RustUnnamed = 0;
 
 static mut lastAction: u64 = 0;
-static mut stateLast: *mut uchar = 0 as *const uchar as *mut uchar;
-static mut stateCurr: *mut uchar = 0 as *const uchar as *mut uchar;
+static mut stateLast: *mut uchar = std::ptr::null_mut();
+static mut stateCurr: *mut uchar = std::ptr::null_mut();
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_Init() {
     let mut size: i32 = 0;

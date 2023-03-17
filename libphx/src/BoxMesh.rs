@@ -64,7 +64,7 @@ pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
         MemAlloc(::core::mem::size_of::<BoxMesh>() as usize) as *mut BoxMesh;
     (*this).elem_capacity = 0 as i32;
     (*this).elem_size = 0 as i32;
-    (*this).elem_data = 0 as *mut Box_0;
+    (*this).elem_data = std::ptr::null_mut();
     return this;
 }
 #[no_mangle]

@@ -20,7 +20,7 @@ pub unsafe extern "C" fn Metric_GetName(mut this: Metric) -> *const libc::c_char
         7 => return b"Framebuffer Swaps\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return 0 as *const libc::c_char;
+    return std::ptr::null();
 }
 #[no_mangle]
 pub unsafe extern "C" fn Metric_AddDraw(mut polys: i32, mut tris: i32, mut verts: i32) {

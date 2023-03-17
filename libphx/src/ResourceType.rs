@@ -37,5 +37,5 @@ pub unsafe extern "C" fn ResourceType_ToString(mut this: ResourceType) -> *const
         9 => return b"TexCube\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return 0 as *const libc::c_char;
+    return std::ptr::null();
 }

@@ -41,7 +41,7 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
     let mut newMap: StrMap = StrMap {
         capacity: ((*this).capacity).wrapping_mul(2 as i32 as u32),
         size: 0 as i32 as u32,
-        data: 0 as *mut Node,
+        data: std::ptr::null_mut(),
     };
     newMap.data =
         MemAllocZero((::core::mem::size_of::<Node>()).wrapping_mul(newMap.capacity as usize))
@@ -124,7 +124,7 @@ pub unsafe extern "C" fn StrMap_FreeEx(
 pub unsafe extern "C" fn StrMap_Get(mut this: *mut StrMap, mut key: *const libc::c_char) -> *mut libc::c_void {
     let mut node: *mut Node = StrMap_GetBucket(this, key);
     if ((*node).key).is_null() {
-        return 0 as *mut libc::c_void;
+        return std::ptr::null_mut();
     }
     while !node.is_null() {
         if StrEqual((*node).key, key) {
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn StrMap_Get(mut this: *mut StrMap, mut key: *const libc:
         }
         node = (*node).next;
     }
-    return 0 as *mut libc::c_void;
+    return std::ptr::null_mut();
 }
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_GetSize(mut this: *mut StrMap) -> u32 {
@@ -140,7 +140,7 @@ pub unsafe extern "C" fn StrMap_GetSize(mut this: *mut StrMap) -> u32 {
 }
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Remove(mut this: *mut StrMap, mut key: *const libc::c_char) {
-    let mut prev: *mut *mut Node = 0 as *mut *mut Node;
+    let mut prev: *mut *mut Node = std::ptr::null_mut();
     let mut node: *mut Node = StrMap_GetBucket(this, key);
     while !node.is_null() && !((*node).key).is_null() {
         if StrEqual((*node).key, key) {
@@ -152,8 +152,8 @@ pub unsafe extern "C" fn StrMap_Remove(mut this: *mut StrMap, mut key: *const li
                 (*node).value = (*next).value;
                 MemFree(next as *const libc::c_void);
             } else {
-                (*node).key = 0 as *const libc::c_char;
-                (*node).value = 0 as *mut libc::c_void;
+                (*node).key = std::ptr::null();
+                (*node).value = std::ptr::null_mut();
             }
             if !prev.is_null() {
                 *prev = next;
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn StrMap_Set(
         (*node).value = value;
         return;
     }
-    let mut prev: *mut *mut Node = 0 as *mut *mut Node;
+    let mut prev: *mut *mut Node = std::ptr::null_mut();
     while !node.is_null() {
         if StrEqual((*node).key, key) {
             (*node).value = value;
@@ -198,7 +198,7 @@ pub unsafe extern "C" fn StrMap_Set(
     node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
     (*node).key = StrDup(key);
     (*node).value = value;
-    (*node).next = 0 as *mut Node;
+    (*node).next = std::ptr::null_mut();
     *prev = node;
 }
 #[no_mangle]
@@ -244,7 +244,7 @@ pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIte
         MemAlloc(::core::mem::size_of::<StrMapIter>() as usize) as *mut StrMapIter;
     (*it).map = this;
     (*it).slot = 0 as i32 as u32;
-    (*it).node = 0 as *mut Node;
+    (*it).node = std::ptr::null_mut();
     let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);

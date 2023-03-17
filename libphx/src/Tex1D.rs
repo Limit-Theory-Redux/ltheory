@@ -113,7 +113,7 @@ pub unsafe extern "C" fn Tex1D_Create(mut size: i32, mut format: TexFormat) -> *
             0x1902 as i32
         }) as GLenum,
         0x1401 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     Tex1D_Init();
     glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLu32);

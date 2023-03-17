@@ -42,11 +42,11 @@ pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool 
     let mut i: i32 = 0 as i32;
     while i < threads {
         let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
-        (*td).handle = 0 as *mut SDL_Thread;
+        (*td).handle = std::ptr::null_mut();
         (*td).fn_0 = std::option::Option::None;
         (*td).index = i;
         (*td).threads = threads;
-        (*td).data = 0 as *mut libc::c_void;
+        (*td).data = std::ptr::null_mut();
         i += 1;
     }
     return this;
@@ -99,7 +99,7 @@ pub unsafe extern "C" fn ThreadPool_Wait(mut this: *mut ThreadPool) {
         if !((*td).handle).is_null() {
             let mut ret: i32 = 0;
             SDL_WaitThread((*td).handle, &mut ret);
-            (*td).handle = 0 as *mut SDL_Thread;
+            (*td).handle = std::ptr::null_mut();
         }
         i += 1;
     }

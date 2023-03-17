@@ -159,10 +159,10 @@ pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
     (*this).versionInfo = 0 as i32 as u64;
     (*this).vertex_capacity = 0 as i32;
     (*this).vertex_size = 0 as i32;
-    (*this).vertex_data = 0 as *mut Vertex;
+    (*this).vertex_data = std::ptr::null_mut();
     (*this).index_capacity = 0 as i32;
     (*this).index_size = 0 as i32;
-    (*this).index_data = 0 as *mut i32;
+    (*this).index_data = std::ptr::null_mut();
     return this;
 }
 #[no_mangle]
@@ -456,7 +456,7 @@ pub unsafe extern "C" fn Mesh_DrawBound(mut this: *mut Mesh) {
         0x4 as i32 as GLenum,
         (*this).index_size,
         0x1405 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
 }
 #[no_mangle]

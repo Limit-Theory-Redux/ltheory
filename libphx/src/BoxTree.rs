@@ -95,8 +95,8 @@ unsafe extern "C" fn Box3f_IntersectsRay(mut this: Box3f, mut ro: Vec3, mut rdi:
 unsafe extern "C" fn Node_Create(mut box_0: Box3f, mut data: *mut libc::c_void) -> *mut Node {
     let mut this: *mut Node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
     (*this).box_0 = box_0;
-    (*this).sub[0] = 0 as *mut Node;
-    (*this).sub[1] = 0 as *mut Node;
+    (*this).sub[0] = std::ptr::null_mut();
+    (*this).sub[1] = std::ptr::null_mut();
     (*this).data = data;
     return this;
 }
@@ -104,7 +104,7 @@ unsafe extern "C" fn Node_Create(mut box_0: Box3f, mut data: *mut libc::c_void) 
 pub unsafe extern "C" fn BoxTree_Create() -> *mut BoxTree {
     let mut this: *mut BoxTree =
         MemAlloc(::core::mem::size_of::<BoxTree>() as usize) as *mut BoxTree;
-    (*this).root = 0 as *mut Node;
+    (*this).root = std::ptr::null_mut();
     return this;
 }
 unsafe extern "C" fn Node_Free(mut this: *mut Node) {
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
-        BoxTree_Add(this, box_0, 0 as *mut libc::c_void);
+        BoxTree_Add(this, box_0, std::ptr::null_mut());
         i += 3 as i32;
     }
     return this;
@@ -162,7 +162,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
     if ((*this).sub[0]).is_null() {
         let mut parent: *mut Node = Node_Create(
             Box3f_Union((*this).box_0, (*src).box_0),
-            0 as *mut libc::c_void,
+            std::ptr::null_mut(),
         );
         *prev = parent;
         (*parent).sub[0] = this;
@@ -191,7 +191,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
     } else {
         let mut parent_0: *mut Node = Node_Create(
             Box3f_Union((*this).box_0, (*src).box_0),
-            0 as *mut libc::c_void,
+            std::ptr::null_mut(),
         );
         *prev = parent_0;
         let mut costBase: f32 = Cost((*this).box_0) + Cost((*src).box_0);

@@ -52,7 +52,7 @@ pub unsafe extern "C" fn OpenGL_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_CheckError(mut file: *const libc::c_char, mut line: i32) {
     let mut errorID: GLenum = glGetError();
-    let mut error: *const libc::c_char = 0 as *const libc::c_char;
+    let mut error: *const libc::c_char = std::ptr::null();
     match errorID {
         0 => return,
         1280 => {

@@ -109,7 +109,7 @@ unsafe extern "C" fn ConsumeToken(
     return i != 0 as i32;
 }
 unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -> bool {
-    let mut afterFloat: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut afterFloat: *mut libc::c_char = std::ptr::null_mut();
     let mut f: f32 = libc::strtof((*s).cursor, &mut afterFloat);
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as i32 {
         Obj_Fatal(
@@ -125,7 +125,7 @@ unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -
     return 0 as i32 != 0;
 }
 unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> bool {
-    let mut afterInt: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut afterInt: *mut libc::c_char = std::ptr::null_mut();
     let mut i: i32 = libc::strtol((*s).cursor, &mut afterInt, 10 as i32) as i32;
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as i32 {
         Obj_Fatal(
@@ -151,9 +151,9 @@ unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut P
 pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Mesh {
     let mut bytesSize: i32 = StrLen(bytes) as i32;
     let mut s: ParseState = ParseState {
-        cursor: 0 as *const libc::c_char,
-        endOfData: 0 as *const libc::c_char,
-        lineStart: 0 as *const libc::c_char,
+        cursor: std::ptr::null(),
+        endOfData: std::ptr::null(),
+        lineStart: std::ptr::null(),
         lineNumber: 0,
     };
     s.cursor = bytes;
@@ -164,22 +164,22 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
     let mut faceCount: i32 = 0 as i32;
     let mut positions_size: i32 = 0;
     let mut positions_capacity: i32 = 0;
-    let mut positions_data: *mut Vec3 = 0 as *mut Vec3;
+    let mut positions_data: *mut Vec3 = std::ptr::null_mut();
     positions_capacity = 0 as i32;
     positions_size = 0 as i32;
-    positions_data = 0 as *mut Vec3;
+    positions_data = std::ptr::null_mut();
     let mut uvs_size: i32 = 0;
     let mut uvs_capacity: i32 = 0;
-    let mut uvs_data: *mut Vec2 = 0 as *mut Vec2;
+    let mut uvs_data: *mut Vec2 = std::ptr::null_mut();
     uvs_capacity = 0 as i32;
     uvs_size = 0 as i32;
-    uvs_data = 0 as *mut Vec2;
+    uvs_data = std::ptr::null_mut();
     let mut normals_size: i32 = 0;
     let mut normals_capacity: i32 = 0;
-    let mut normals_data: *mut Vec3 = 0 as *mut Vec3;
+    let mut normals_data: *mut Vec3 = std::ptr::null_mut();
     normals_capacity = 0 as i32;
     normals_size = 0 as i32;
-    normals_data = 0 as *mut Vec3;
+    normals_data = std::ptr::null_mut();
     if (positions_capacity < (0.008f32 * bytesSize as f32) as i32) as libc::c_long != 0 {
         positions_capacity = (0.008f32 * bytesSize as f32) as i32;
         let mut elemSize: usize = ::core::mem::size_of::<Vec3>();

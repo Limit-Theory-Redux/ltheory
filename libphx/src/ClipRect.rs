@@ -162,7 +162,7 @@ pub unsafe extern "C" fn ClipRect_Pop() {
     ClipRect_Activate(if rectIndex >= 0 as i32 {
         rect.as_mut_ptr().offset(rectIndex as isize)
     } else {
-        0 as *mut ClipRect
+        std::ptr::null_mut()
     });
 }
 #[no_mangle]

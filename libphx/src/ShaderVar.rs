@@ -33,13 +33,13 @@ pub struct VarStack {
     pub data: *mut libc::c_void,
 }
 
-static mut varMap: *mut StrMap = 0 as *const StrMap as *mut StrMap;
+static mut varMap: *mut StrMap = std::ptr::null_mut();
 #[inline]
 unsafe extern "C" fn ShaderVar_GetStack(mut var: *const libc::c_char, mut type_0: ShaderVarType) -> *mut VarStack {
     let mut this: *mut VarStack = StrMap_Get(varMap, var) as *mut VarStack;
     if this.is_null() {
         if type_0 == 0 {
-            return 0 as *mut VarStack;
+            return std::ptr::null_mut();
         }
         this = MemAlloc(::core::mem::size_of::<VarStack>()) as *mut VarStack;
         (*this).type_0 = type_0;
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn ShaderVar_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Free() {
     StrMap_Free(varMap);
-    varMap = 0 as *mut StrMap;
+    varMap = std::ptr::null_mut();
 }
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Get(
@@ -95,7 +95,7 @@ pub unsafe extern "C" fn ShaderVar_Get(
 ) -> *mut libc::c_void {
     let mut this: *mut VarStack = ShaderVar_GetStack(name, 0 as i32);
     if this.is_null() || (*this).size == 0 as i32 {
-        return 0 as *mut libc::c_void;
+        return std::ptr::null_mut();
     }
     if type_0 != 0 && (*this).type_0 != type_0 {
         Fatal(

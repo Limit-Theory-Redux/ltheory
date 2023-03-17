@@ -150,7 +150,7 @@ pub static mut rayStack_size: i32 = 0;
 #[no_mangle]
 pub static mut rayStack_capacity: i32 = 0;
 #[no_mangle]
-pub static mut rayStack_data: *mut DelayRay = 0 as *const DelayRay as *mut DelayRay;
+pub static mut rayStack_data: *mut DelayRay = std::ptr::null_mut();
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectRay(
     mut this: *mut BSP,
@@ -292,7 +292,7 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
 #[no_mangle]
 pub static mut nodeStack_size: i32 = 0;
 #[no_mangle]
-pub static mut nodeStack_data: *mut Delay = 0 as *const Delay as *mut Delay;
+pub static mut nodeStack_data: *mut Delay = std::ptr::null_mut();
 #[no_mangle]
 pub static mut nodeStack_capacity: i32 = 0;
 #[no_mangle]
@@ -445,7 +445,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
         },
         d: 0.,
     };
-    let mut bestPolygon: *mut PolygonEx = 0 as *mut PolygonEx;
+    let mut bestPolygon: *mut PolygonEx = std::ptr::null_mut();
     let mut numToCheck: i32 = 10 as i32;
     let mut polygonsLen: i32 = (*nodeData).polygons_size;
     if (*nodeData).validPolygonCount > 0 as i32 {
@@ -678,7 +678,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     let mut backNodeData: BSPBuild_NodeData = BSPBuild_NodeData {
         polygons_size: 0,
         polygons_capacity: 0,
-        polygons_data: 0 as *mut PolygonEx,
+        polygons_data: std::ptr::null_mut(),
         validPolygonCount: 0,
         triangleCount: 0,
         depth: 0,
@@ -697,7 +697,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     let mut frontNodeData: BSPBuild_NodeData = BSPBuild_NodeData {
         polygons_size: 0,
         polygons_capacity: 0,
-        polygons_data: 0 as *mut PolygonEx,
+        polygons_data: std::ptr::null_mut(),
         validPolygonCount: 0,
         triangleCount: 0,
         depth: 0,
@@ -735,14 +735,14 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                 let mut backPart: PolygonEx = PolygonEx {
                     vertices_size: 0,
                     vertices_capacity: 0,
-                    vertices_data: 0 as *mut Vec3,
+                    vertices_data: std::ptr::null_mut(),
                     flags: 0,
                 };
                 backPart.flags = (*polygon).flags;
                 let mut frontPart: PolygonEx = PolygonEx {
                     vertices_size: 0,
                     vertices_capacity: 0,
-                    vertices_data: 0 as *mut Vec3,
+                    vertices_data: std::ptr::null_mut(),
                     flags: 0,
                 };
                 frontPart.flags = (*polygon).flags;
@@ -892,7 +892,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     let mut nodeData: BSPBuild_NodeData = BSPBuild_NodeData {
         polygons_size: 0,
         polygons_capacity: 0,
-        polygons_data: 0 as *mut PolygonEx,
+        polygons_data: std::ptr::null_mut(),
         validPolygonCount: 0,
         triangleCount: 0,
         depth: 0,
@@ -920,7 +920,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut polygon: PolygonEx = PolygonEx {
             vertices_size: 0,
             vertices_capacity: 0,
-            vertices_data: 0 as *mut Vec3,
+            vertices_data: std::ptr::null_mut(),
             flags: 0,
         };
         if (polygon.vertices_capacity < 3 as i32) as libc::c_long != 0 {
@@ -1004,8 +1004,8 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         i += 3 as i32;
     }
     let mut bspBuild: BSPBuild = BSPBuild {
-        rootNode: 0 as *mut BSPBuild_Node,
-        rng: 0 as *mut RNG,
+        rootNode: std::ptr::null_mut(),
+        rng: std::ptr::null_mut(),
         nodeCount: 0,
         leafCount: 0,
         triangleCount: 0,
@@ -1132,7 +1132,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
     if nodeRef.index == 0 {
         return (*this).rootNode;
     }
-    let mut node: *mut BSPNode = 0 as *mut BSPNode;
+    let mut node: *mut BSPNode = std::ptr::null_mut();
     if nodeRef.index > 0 as i32 {
         node = ((*this).nodes_data).offset(nodeRef.index as isize);
     }

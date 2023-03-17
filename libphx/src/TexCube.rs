@@ -179,7 +179,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         0 as i32,
         0x1903 as i32 as GLenum,
         0x1400 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     glTexImage2D(
         0x8517 as i32 as GLenum,
@@ -190,7 +190,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         0 as i32,
         0x1903 as i32 as GLenum,
         0x1400 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     glTexImage2D(
         0x8519 as i32 as GLenum,
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         0 as i32,
         0x1903 as i32 as GLenum,
         0x1400 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     glTexImage2D(
         0x8516 as i32 as GLenum,
@@ -212,7 +212,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         0 as i32,
         0x1903 as i32 as GLenum,
         0x1400 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     glTexImage2D(
         0x8518 as i32 as GLenum,
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         0 as i32,
         0x1903 as i32 as GLenum,
         0x1400 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     glTexImage2D(
         0x851a as i32 as GLenum,
@@ -234,7 +234,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         0 as i32,
         0x1903 as i32 as GLenum,
         0x1400 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     TexCube_InitParameters();
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);

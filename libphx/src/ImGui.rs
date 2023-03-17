@@ -208,31 +208,31 @@ pub static mut FocusType_Scroll: i32 = 2 as i32;
 #[no_mangle]
 pub static mut FocusType_SIZE: i32 = 3 as i32;
 static mut this: ImGui = ImGui {
-    layer: 0 as *const ImGuiLayer as *mut ImGuiLayer,
-    layerLast: 0 as *const ImGuiLayer as *mut ImGuiLayer,
-    layout: 0 as *const ImGuiLayout as *mut ImGuiLayout,
-    widget: 0 as *const ImGuiWidget as *mut ImGuiWidget,
-    widgetLast: 0 as *const ImGuiWidget as *mut ImGuiWidget,
-    style: 0 as *const ImGuiStyle as *mut ImGuiStyle,
-    clipRect: 0 as *const ImGuiClipRect as *mut ImGuiClipRect,
-    cursorStack: 0 as *const ImGuiCursor as *mut ImGuiCursor,
+    layer: std::ptr::null_mut(),
+    layerLast: std::ptr::null_mut(),
+    layout: std::ptr::null_mut(),
+    widget: std::ptr::null_mut(),
+    widgetLast: std::ptr::null_mut(),
+    style: std::ptr::null_mut(),
+    clipRect: std::ptr::null_mut(),
+    cursorStack: std::ptr::null_mut(),
     cursor: Vec2::ZERO,
     mouse: Vec2::ZERO,
     focus: [0; 3],
     dragging: 0,
     activate: false,
     forceSize: Vec2::ZERO,
-    data: 0 as *const HashMap as *mut HashMap,
-    layoutPool: 0 as *const MemPool as *mut MemPool,
-    widgetPool: 0 as *const MemPool as *mut MemPool,
-    stylePool: 0 as *const MemPool as *mut MemPool,
-    clipRectPool: 0 as *const MemPool as *mut MemPool,
-    cursorPool: 0 as *const MemPool as *mut MemPool,
-    tex2DPool: 0 as *const MemPool as *mut MemPool,
-    panelPool: 0 as *const MemPool as *mut MemPool,
-    rectPool: 0 as *const MemPool as *mut MemPool,
-    textPool: 0 as *const MemPool as *mut MemPool,
-    linePool: 0 as *const MemPool as *mut MemPool,
+    data: std::ptr::null_mut(),
+    layoutPool: std::ptr::null_mut(),
+    widgetPool: std::ptr::null_mut(),
+    stylePool: std::ptr::null_mut(),
+    clipRectPool: std::ptr::null_mut(),
+    cursorPool: std::ptr::null_mut(),
+    tex2DPool: std::ptr::null_mut(),
+    panelPool: std::ptr::null_mut(),
+    rectPool: std::ptr::null_mut(),
+    textPool: std::ptr::null_mut(),
+    linePool: std::ptr::null_mut(),
 };
 #[inline]
 unsafe extern "C" fn EmitLine(mut color: Vec4f, mut p1: Vec2, mut p2: Vec2) {
@@ -307,8 +307,8 @@ unsafe extern "C" fn GetData(mut hash: u64) -> *mut ImGuiData {
     return data;
 }
 unsafe extern "C" fn ImGui_PushDefaultStyle() {
-    static mut font: *mut Font = 0 as *const Font as *mut Font;
-    static mut fontSubheading: *mut Font = 0 as *const Font as *mut Font;
+    static mut font: *mut Font = std::ptr::null_mut();
+    static mut fontSubheading: *mut Font = std::ptr::null_mut();
     if font.is_null() {
         font = Font_Load(b"Share\0" as *const u8 as *const libc::c_char, 16 as i32);
         fontSubheading = Font_Load(b"Iceland\0" as *const u8 as *const libc::c_char, 18 as i32);
@@ -543,17 +543,17 @@ unsafe extern "C" fn ImGui_PushLayer(mut clip: bool) -> *mut ImGuiLayer {
     let mut layer: *mut ImGuiLayer =
         MemAlloc(::core::mem::size_of::<ImGuiLayer>() as usize) as *mut ImGuiLayer;
     (*layer).parent = this.layer;
-    (*layer).children = 0 as *mut ImGuiLayer;
-    (*layer).next = 0 as *mut ImGuiLayer;
+    (*layer).children = std::ptr::null_mut();
+    (*layer).next = std::ptr::null_mut();
     (*layer).pos = (*this.layout).lower;
     (*layer).size = (*this.layout).size;
     (*layer).index = 0 as i32 as u32;
     (*layer).clip = clip;
-    (*layer).tex2DList = 0 as *mut ImGuiTex2D;
-    (*layer).panelList = 0 as *mut ImGuiPanel;
-    (*layer).rectList = 0 as *mut ImGuiRect;
-    (*layer).textList = 0 as *mut ImGuiText;
-    (*layer).lineList = 0 as *mut ImGuiLine;
+    (*layer).tex2DList = std::ptr::null_mut();
+    (*layer).panelList = std::ptr::null_mut();
+    (*layer).rectList = std::ptr::null_mut();
+    (*layer).textList = std::ptr::null_mut();
+    (*layer).lineList = std::ptr::null_mut();
     if !(this.layer).is_null() {
         (*layer).next = (*this.layer).children;
         (*this.layer).children = layer;
@@ -590,7 +590,7 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
         e = (*e).next;
     }
     if !((*self_1).panelList).is_null() {
-        static mut shader: *mut Shader = 0 as *const Shader as *mut Shader;
+        static mut shader: *mut Shader = std::ptr::null_mut();
         if shader.is_null() {
             shader = Shader_Load(
                 b"vertex/ui\0" as *const u8 as *const libc::c_char,
@@ -647,7 +647,7 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
     }
     if !((*self_1).lineList).is_null() {
         RenderState_PushBlendMode(0 as i32);
-        static mut shader_0: *mut Shader = 0 as *const Shader as *mut Shader;
+        static mut shader_0: *mut Shader = std::ptr::null_mut();
         if shader_0.is_null() {
             shader_0 = Shader_Load(
                 b"vertex/ui\0" as *const u8 as *const libc::c_char,
@@ -718,11 +718,11 @@ unsafe extern "C" fn ImGui_Init() {
         return;
     }
     init_imgui = 1 as i32 != 0;
-    this.layer = 0 as *mut ImGuiLayer;
-    this.layerLast = 0 as *mut ImGuiLayer;
-    this.style = 0 as *mut ImGuiStyle;
-    this.clipRect = 0 as *mut ImGuiClipRect;
-    this.cursorStack = 0 as *mut ImGuiCursor;
+    this.layer = std::ptr::null_mut();
+    this.layerLast = std::ptr::null_mut();
+    this.style = std::ptr::null_mut();
+    this.clipRect = std::ptr::null_mut();
+    this.cursorStack = std::ptr::null_mut();
     this.dragging = 0 as i32 as u64;
     this.data = HashMap_Create(0 as i32 as u32, 128 as i32 as u32);
     this.layoutPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiLayout>() as usize as u32);
@@ -753,7 +753,7 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     this.cursor = Vec2::new(0.0f32, 0.0f32);
     if !(this.layerLast).is_null() {
         ImGuiLayer_Free(this.layerLast);
-        this.layerLast = 0 as *mut ImGuiLayer;
+        this.layerLast = std::ptr::null_mut();
     }
     MemPool_Clear(this.layoutPool);
     MemPool_Clear(this.widgetPool);
@@ -765,14 +765,14 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     MemPool_Clear(this.rectPool);
     MemPool_Clear(this.textPool);
     MemPool_Clear(this.linePool);
-    this.style = 0 as *mut ImGuiStyle;
+    this.style = std::ptr::null_mut();
     ImGui_PushDefaultStyle();
-    this.layout = 0 as *mut ImGuiLayout;
+    this.layout = std::ptr::null_mut();
     ImGui_PushLayout(sx, sy, 0 as i32 != 0);
-    this.widget = 0 as *mut ImGuiWidget;
-    this.widgetLast = 0 as *mut ImGuiWidget;
+    this.widget = std::ptr::null_mut();
+    this.widgetLast = std::ptr::null_mut();
     ImGui_BeginWidget(sx, sy);
-    this.layer = 0 as *mut ImGuiLayer;
+    this.layer = std::ptr::null_mut();
     ImGui_PushLayer(1 as i32 != 0);
     let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);

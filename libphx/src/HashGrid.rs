@@ -75,13 +75,13 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
     (*this).mask = (((1 as i32) << logCount) - 1 as i32) as u32;
     (*this).results_capacity = 0 as i32;
     (*this).results_size = 0 as i32;
-    (*this).results_data = 0 as *mut *mut libc::c_void;
+    (*this).results_data = std::ptr::null_mut();
     let mut i: u32 = 0 as i32 as u32;
     while i < cellCount {
         (*((*this).cells).offset(i as isize)).elems_capacity = 0 as i32;
         (*((*this).cells).offset(i as isize)).elems_size = 0 as i32;
         let ref mut fresh0 = (*((*this).cells).offset(i as isize)).elems_data;
-        *fresh0 = 0 as *mut *mut HashGridElem;
+        *fresh0 = std::ptr::null_mut();
         i = i.wrapping_add(1);
     }
     return this;

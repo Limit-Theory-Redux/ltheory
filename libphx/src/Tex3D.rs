@@ -131,7 +131,7 @@ pub unsafe extern "C" fn Tex3D_Create(
         0 as i32,
         0x1903 as i32 as GLenum,
         0x1401 as i32 as GLenum,
-        0 as *const libc::c_void,
+        std::ptr::null(),
     );
     Tex3D_Init();
     glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLu32);

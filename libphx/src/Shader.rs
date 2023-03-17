@@ -121,8 +121,8 @@ static mut includePath: *const libc::c_char = b"include/\0" as *const u8 as *con
 static mut versionString: *const libc::c_char =
     b"#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n\0"
         as *const u8 as *const libc::c_char;
-static mut current: *mut Shader = 0 as *const Shader as *mut Shader;
-static mut cache: *mut StrMap = 0 as *const StrMap as *mut StrMap;
+static mut current: *mut Shader = std::ptr::null_mut();
+static mut cache: *mut StrMap = std::ptr::null_mut();
 unsafe extern "C" fn GetUniformIndex(mut this: *mut Shader, mut name: *const libc::c_char) -> i32 {
     if this.is_null() {
         Fatal(b"GetUniformIndex: No shader is bound\0" as *const u8 as *const libc::c_char);
@@ -138,7 +138,7 @@ unsafe extern "C" fn CreateGLShader(mut src: *const libc::c_char, mut type_0: GL
         this,
         2 as i32,
         srcs.as_mut_ptr() as *const *const GLchar,
-        0 as *const GLint,
+        std::ptr::null(),
     );
     __glewCompileShader.expect("non-null function pointer")(this);
     let mut status: i32 = 0;
@@ -159,7 +159,7 @@ unsafe extern "C" fn CreateGLShader(mut src: *const libc::c_char, mut type_0: GL
         __glewGetShaderInfoLog.expect("non-null function pointer")(
             this,
             length,
-            0 as *mut GLsizei,
+            std::ptr::null_mut(),
             infoLog,
         );
         Fatal(
@@ -207,7 +207,7 @@ unsafe extern "C" fn CreateGLProgram(mut vs: u32, mut fs: u32) -> u32 {
         __glewGetProgramInfoLog.expect("non-null function pointer")(
             this,
             length,
-            0 as *mut GLsizei,
+            std::ptr::null_mut(),
             infoLog,
         );
         Fatal(
@@ -237,7 +237,7 @@ unsafe extern "C" fn GLSL_Load(mut name: *const libc::c_char, mut this: *mut Sha
 }
 unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *mut Shader) -> *const libc::c_char {
     let lenInclude: i32 = StrLen(b"#include\0" as *const u8 as *const libc::c_char) as i32;
-    let mut begin: *const libc::c_char = 0 as *const libc::c_char;
+    let mut begin: *const libc::c_char = std::ptr::null();
     loop {
         begin = StrFind(code, b"#include\0" as *const u8 as *const libc::c_char);
         if begin.is_null() {
@@ -336,7 +336,7 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *m
         {
             let mut var: ShaderVar = ShaderVar {
                 type_0: 0 as i32,
-                name: 0 as *const libc::c_char,
+                name: std::ptr::null(),
                 index: 0,
             };
             var.type_0 = ShaderVarType_FromStr(varType.as_mut_ptr() as *const libc::c_char);
@@ -411,7 +411,7 @@ pub unsafe extern "C" fn Shader_Create(mut vs: *const libc::c_char, mut fs: *con
     (*this)._refCount = 1 as i32 as u32;
     (*this).vars_capacity = 0 as i32;
     (*this).vars_size = 0 as i32;
-    (*this).vars_data = 0 as *mut ShaderVar;
+    (*this).vars_data = std::ptr::null_mut();
     vs = GLSL_Preprocess(
         StrReplace(
             vs,
@@ -447,7 +447,7 @@ pub unsafe extern "C" fn Shader_Load(mut vName: *const libc::c_char, mut fName: 
     (*this)._refCount = 1 as i32 as u32;
     (*this).vars_capacity = 0 as i32;
     (*this).vars_size = 0 as i32;
-    (*this).vars_data = 0 as *mut ShaderVar;
+    (*this).vars_data = std::ptr::null_mut();
     let mut vs: *const libc::c_char = GLSL_Load(vName, this);
     let mut fs: *const libc::c_char = GLSL_Load(fName, this);
     (*this).vs = CreateGLShader(vs, 0x8b31 as i32 as GLenum);
@@ -592,7 +592,7 @@ pub unsafe extern "C" fn Shader_Start(mut this: *mut Shader) {
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Stop(mut s: *mut Shader) {
     __glewUseProgram.expect("non-null function pointer")(0 as i32 as GLu32);
-    current = 0 as *mut Shader;
+    current = std::ptr::null_mut();
 }
 unsafe extern "C" fn ShaderCache_FreeElem(mut s: *const libc::c_char, mut data: *mut libc::c_void) {
     MemFree(data);
@@ -604,7 +604,7 @@ pub unsafe extern "C" fn Shader_ClearCache() {
             cache,
             Some(ShaderCache_FreeElem as unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> ()),
         );
-        cache = 0 as *mut StrMap;
+        cache = std::ptr::null_mut();
     }
 }
 #[no_mangle]

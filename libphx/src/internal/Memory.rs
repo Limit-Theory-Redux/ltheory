@@ -67,7 +67,7 @@ pub unsafe extern "C" fn StrFree(mut s: *const libc::c_char) {
 #[inline]
 pub unsafe extern "C" fn StrDup(mut s: *const libc::c_char) -> *const libc::c_char {
     if s.is_null() {
-        return 0 as *const libc::c_char;
+        return std::ptr::null();
     }
     let mut len: usize = (StrLen(s)).wrapping_add(1 as usize);
     let mut buf: *mut libc::c_char = StrAlloc(len);
@@ -119,19 +119,19 @@ pub unsafe extern "C" fn StrReplace(
     mut search: *const libc::c_char,
     mut replace: *const libc::c_char,
 ) -> *const libc::c_char {
-    let mut result: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut ins: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut tmp: *mut libc::c_char = 0 as *mut libc::c_char;
+    let mut result: *mut libc::c_char = std::ptr::null_mut();
+    let mut ins: *mut libc::c_char = std::ptr::null_mut();
+    let mut tmp: *mut libc::c_char = std::ptr::null_mut();
     let mut len_search: usize = 0;
     let mut len_replace: usize = 0;
     let mut len_front: usize = 0;
     let mut count: usize = 0;
     if s.is_null() || search.is_null() {
-        return 0 as *const libc::c_char;
+        return std::ptr::null();
     }
     len_search = StrLen(search);
     if len_search == 0 as usize {
-        return 0 as *const libc::c_char;
+        return std::ptr::null();
     }
     if replace.is_null() {
         replace = b"\0" as *const u8 as *const libc::c_char;

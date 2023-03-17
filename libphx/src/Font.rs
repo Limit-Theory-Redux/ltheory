@@ -392,7 +392,7 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
 pub static mut kGamma: f32 = 1.8f32;
 #[no_mangle]
 pub static mut kRcpGamma: f32 = unsafe { 1.0f32 / kGamma };
-static mut ft: FT_Library = 0 as *const FT_LibraryRec_ as FT_Library;
+static mut ft: FT_Library = std::ptr::null_mut();
 unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *mut Glyph {
     if codepoint < 256 as i32 as u32 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
         return (*this).glyphsAscii[codepoint as usize];
@@ -407,7 +407,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     let mut face: FT_Face = (*this).handle;
     let mut glyph: i32 = FT_Get_Char_Index(face, codepoint as FT_ULong) as i32;
     if glyph == 0 as i32 {
-        return 0 as *mut Glyph;
+        return std::ptr::null_mut();
     }
     if FT_Load_Glyph(
         face,
@@ -415,7 +415,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
         ((1 as libc::c_long) << 5 as i32 | (1 as libc::c_long) << 2 as i32) as FT_Int32,
     ) != 0
     {
-        return 0 as *mut Glyph;
+        return std::ptr::null_mut();
     }
     let mut bitmap: *const FT_Bitmap = &mut (*(*face).glyph).bitmap;
     let mut pBitmap: *const uchar = (*bitmap).buffer;
