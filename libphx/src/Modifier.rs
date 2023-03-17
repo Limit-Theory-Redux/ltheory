@@ -1,17 +1,23 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
 }
 pub type Modifier = i32;
+
 #[no_mangle]
 pub static mut Modifier_Null: Modifier = (0 as i32) << 0 as i32;
+
 #[no_mangle]
 pub static mut Modifier_Alt: Modifier = (1 as i32) << 0 as i32;
+
 #[no_mangle]
 pub static mut Modifier_Ctrl: Modifier = (1 as i32) << 1 as i32;
+
 #[no_mangle]
 pub static mut Modifier_Shift: Modifier = (1 as i32) << 2 as i32;
+
 #[no_mangle]
 pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];

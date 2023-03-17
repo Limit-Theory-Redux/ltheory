@@ -7,6 +7,7 @@ use libc;
 use sdl2_sys::*;
 
 pub type TimeStamp = u64;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Gamepad {
@@ -45,10 +46,12 @@ unsafe extern "C" fn Gamepad_UpdateState(mut this: *mut Gamepad) {
         i += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_CanOpen(mut index: i32) -> bool {
     return SDL_IsGameController(index) == SDL_bool::SDL_TRUE;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_Open(mut index: i32) -> *mut Gamepad {
     let mut handle: *mut SDL_GameController = SDL_GameControllerOpen(index);
@@ -68,6 +71,7 @@ pub unsafe extern "C" fn Gamepad_Open(mut index: i32) -> *mut Gamepad {
     Gamepad_UpdateState(this);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_Close(mut this: *mut Gamepad) {
     *(*this).gamepadList_prev = (*this).gamepadList_next;
@@ -77,6 +81,7 @@ pub unsafe extern "C" fn Gamepad_Close(mut this: *mut Gamepad) {
     SDL_GameControllerClose((*this).handle);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_AddMappings(mut file: *const libc::c_char) -> i32 {
     return SDL_GameControllerAddMappingsFromRW(
@@ -84,6 +89,7 @@ pub unsafe extern "C" fn Gamepad_AddMappings(mut file: *const libc::c_char) -> i
         1 as i32,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetAxis(mut this: *mut Gamepad, mut axis: GamepadAxis) -> f64 {
     let mut value: f64 = SDL_GameControllerGetAxis((*this).handle, axis as SDL_GameControllerAxis)
@@ -98,6 +104,7 @@ pub unsafe extern "C" fn Gamepad_GetAxis(mut this: *mut Gamepad, mut axis: Gamep
     }
     return 0.0f64;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetAxisDelta(
     mut this: *mut Gamepad,
@@ -105,6 +112,7 @@ pub unsafe extern "C" fn Gamepad_GetAxisDelta(
 ) -> f64 {
     return (*this).axisState[axis as usize] - (*this).axisLast[axis as usize];
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetButton(
     mut this: *mut Gamepad,
@@ -113,6 +121,7 @@ pub unsafe extern "C" fn Gamepad_GetButton(
     return SDL_GameControllerGetButton((*this).handle, button as SDL_GameControllerButton) as i32
         == 1 as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetButtonPressed(
     mut this: *mut Gamepad,
@@ -126,6 +135,7 @@ pub unsafe extern "C" fn Gamepad_GetButtonPressed(
         0.0f64
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetButtonReleased(
     mut this: *mut Gamepad,
@@ -139,10 +149,12 @@ pub unsafe extern "C" fn Gamepad_GetButtonReleased(
         0.0f64
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetIdleTime(mut this: *mut Gamepad) -> f64 {
     return TimeStamp_GetElapsed((*this).lastActive);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetID(mut this: *mut Gamepad) -> i32 {
     let mut joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick((*this).handle);
@@ -151,14 +163,17 @@ pub unsafe extern "C" fn Gamepad_GetID(mut this: *mut Gamepad) -> i32 {
     }
     return SDL_JoystickInstanceID(joystick);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetName(mut this: *mut Gamepad) -> *const libc::c_char {
     return SDL_GameControllerName((*this).handle);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_IsConnected(mut this: *mut Gamepad) -> bool {
     return SDL_GameControllerGetAttached((*this).handle) == SDL_bool::SDL_TRUE;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_SetDeadzone(
     mut this: *mut Gamepad,
@@ -167,6 +182,7 @@ pub unsafe extern "C" fn Gamepad_SetDeadzone(
 ) {
     (*this).deadzone[axis as usize] = deadzone;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_Update() {
     let mut this: *mut Gamepad = gamepadList;

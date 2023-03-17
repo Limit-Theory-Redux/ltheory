@@ -15,6 +15,7 @@ pub struct BoxMesh {
     pub elem_capacity: i32,
     pub elem_data: *mut Box_0,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Box_0 {
@@ -28,6 +29,7 @@ pub struct Box_0 {
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
+
 #[inline]
 unsafe extern "C" fn Clampf(mut t: f32, mut lower: f32, mut upper: f32) -> f32 {
     t = if t > upper { upper } else { t };
@@ -58,6 +60,7 @@ static mut kFaceV: [Vec3; 6] = [
     Vec3::new(2.0f32, 0.0f32, 0.0f32),
     Vec3::new(0.0f32, 0.0f32, 2.0f32),
 ];
+
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
     let mut this: *mut BoxMesh =
@@ -67,11 +70,13 @@ pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
     (*this).elem_data = std::ptr::null_mut();
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Free(mut this: *mut BoxMesh) {
     MemFree((*this).elem_data as *const libc::c_void);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Add(
     mut this: *mut BoxMesh,
@@ -102,6 +107,7 @@ pub unsafe extern "C" fn BoxMesh_Add(
     (*box_0).r = *r;
     (*box_0).b = *b;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_GetMesh(mut this: *mut BoxMesh, mut res: i32) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();

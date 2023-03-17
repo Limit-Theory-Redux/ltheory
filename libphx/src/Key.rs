@@ -252,231 +252,345 @@ pub const SDL_SCANCODE_KP_PERIOD: C2RustUnnamed = 99;
 pub const SDL_SCANCODE_END: C2RustUnnamed = 77;
 pub const SDL_SCANCODE_NONUSHASH: C2RustUnnamed = 50;
 pub const SDL_SCANCODE_UNKNOWN: C2RustUnnamed = 0;
+
 #[no_mangle]
 pub static mut Key_A: Key = SDL_SCANCODE_A as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_B: Key = SDL_SCANCODE_B as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_C: Key = SDL_SCANCODE_C as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_D: Key = SDL_SCANCODE_D as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_E: Key = SDL_SCANCODE_E as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F: Key = SDL_SCANCODE_F as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_G: Key = SDL_SCANCODE_G as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_H: Key = SDL_SCANCODE_H as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_I: Key = SDL_SCANCODE_I as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_J: Key = SDL_SCANCODE_J as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_K: Key = SDL_SCANCODE_K as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_L: Key = SDL_SCANCODE_L as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_M: Key = SDL_SCANCODE_M as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N: Key = SDL_SCANCODE_N as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_O: Key = SDL_SCANCODE_O as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_P: Key = SDL_SCANCODE_P as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Q: Key = SDL_SCANCODE_Q as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_R: Key = SDL_SCANCODE_R as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_S: Key = SDL_SCANCODE_S as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_T: Key = SDL_SCANCODE_T as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_U: Key = SDL_SCANCODE_U as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_V: Key = SDL_SCANCODE_V as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_W: Key = SDL_SCANCODE_W as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_X: Key = SDL_SCANCODE_X as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Y: Key = SDL_SCANCODE_Y as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Z: Key = SDL_SCANCODE_Z as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N0: Key = SDL_SCANCODE_0 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N1: Key = SDL_SCANCODE_1 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N2: Key = SDL_SCANCODE_2 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N3: Key = SDL_SCANCODE_3 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N4: Key = SDL_SCANCODE_4 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N5: Key = SDL_SCANCODE_5 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N6: Key = SDL_SCANCODE_6 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N7: Key = SDL_SCANCODE_7 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N8: Key = SDL_SCANCODE_8 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_N9: Key = SDL_SCANCODE_9 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F1: Key = SDL_SCANCODE_F1 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F2: Key = SDL_SCANCODE_F2 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F3: Key = SDL_SCANCODE_F3 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F4: Key = SDL_SCANCODE_F4 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F5: Key = SDL_SCANCODE_F5 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F6: Key = SDL_SCANCODE_F6 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F7: Key = SDL_SCANCODE_F7 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F8: Key = SDL_SCANCODE_F8 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F9: Key = SDL_SCANCODE_F9 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F10: Key = SDL_SCANCODE_F10 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F11: Key = SDL_SCANCODE_F11 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F12: Key = SDL_SCANCODE_F12 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F13: Key = SDL_SCANCODE_F13 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F14: Key = SDL_SCANCODE_F14 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F15: Key = SDL_SCANCODE_F15 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F16: Key = SDL_SCANCODE_F16 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F17: Key = SDL_SCANCODE_F17 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F18: Key = SDL_SCANCODE_F18 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F19: Key = SDL_SCANCODE_F19 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F20: Key = SDL_SCANCODE_F20 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F21: Key = SDL_SCANCODE_F21 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F22: Key = SDL_SCANCODE_F22 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F23: Key = SDL_SCANCODE_F23 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_F24: Key = SDL_SCANCODE_F24 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP0: Key = SDL_SCANCODE_KP_0 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP1: Key = SDL_SCANCODE_KP_1 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP2: Key = SDL_SCANCODE_KP_2 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP3: Key = SDL_SCANCODE_KP_3 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP4: Key = SDL_SCANCODE_KP_4 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP5: Key = SDL_SCANCODE_KP_5 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP6: Key = SDL_SCANCODE_KP_6 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP7: Key = SDL_SCANCODE_KP_7 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP8: Key = SDL_SCANCODE_KP_8 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KP9: Key = SDL_SCANCODE_KP_9 as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KPNumLock: Key = SDL_SCANCODE_NUMLOCKCLEAR as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KPDivide: Key = SDL_SCANCODE_KP_DIVIDE as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KPMultiply: Key = SDL_SCANCODE_KP_MULTIPLY as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KPSubtract: Key = SDL_SCANCODE_KP_MINUS as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KPAdd: Key = SDL_SCANCODE_KP_PLUS as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KPEnter: Key = SDL_SCANCODE_KP_ENTER as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_KPDecimal: Key = SDL_SCANCODE_KP_DECIMAL as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Backspace: Key = SDL_SCANCODE_BACKSPACE as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Escape: Key = SDL_SCANCODE_ESCAPE as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Return: Key = SDL_SCANCODE_RETURN as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Space: Key = SDL_SCANCODE_SPACE as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Tab: Key = SDL_SCANCODE_TAB as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Backtick: Key = SDL_SCANCODE_GRAVE as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_CapsLock: Key = SDL_SCANCODE_CAPSLOCK as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Minus: Key = SDL_SCANCODE_MINUS as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Equals: Key = SDL_SCANCODE_EQUALS as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_LBracket: Key = SDL_SCANCODE_LEFTBRACKET as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_RBracket: Key = SDL_SCANCODE_RIGHTBRACKET as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Backslash: Key = SDL_SCANCODE_BACKSLASH as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Semicolon: Key = SDL_SCANCODE_SEMICOLON as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Apostrophe: Key = SDL_SCANCODE_APOSTROPHE as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Comma: Key = SDL_SCANCODE_COMMA as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Period: Key = SDL_SCANCODE_PERIOD as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Slash: Key = SDL_SCANCODE_SLASH as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_PrintScreen: Key = SDL_SCANCODE_PRINTSCREEN as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_ScrollLock: Key = SDL_SCANCODE_SCROLLLOCK as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Pause: Key = SDL_SCANCODE_PAUSE as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Insert: Key = SDL_SCANCODE_INSERT as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Home: Key = SDL_SCANCODE_HOME as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_PageUp: Key = SDL_SCANCODE_PAGEUP as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_PageDown: Key = SDL_SCANCODE_PAGEDOWN as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Delete: Key = SDL_SCANCODE_DELETE as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Right: Key = SDL_SCANCODE_RIGHT as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Left: Key = SDL_SCANCODE_LEFT as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Down: Key = SDL_SCANCODE_DOWN as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_Up: Key = SDL_SCANCODE_UP as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_LCtrl: Key = SDL_SCANCODE_LCTRL as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_LShift: Key = SDL_SCANCODE_LSHIFT as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_LAlt: Key = SDL_SCANCODE_LALT as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_LMeta: Key = SDL_SCANCODE_LGUI as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_RCtrl: Key = SDL_SCANCODE_RCTRL as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_RShift: Key = SDL_SCANCODE_RSHIFT as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_RAlt: Key = SDL_SCANCODE_RALT as i32 as Key;
+
 #[no_mangle]
 pub static mut Key_RMeta: Key = SDL_SCANCODE_RGUI as i32 as Key;

@@ -18,6 +18,7 @@ extern "C" {
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BSP {
@@ -30,18 +31,21 @@ pub struct BSP {
     pub triangles_capacity: i32,
     pub triangles_data: *mut Triangle,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BSPNode {
     pub plane: Plane,
     pub child: [BSPNodeRef; 2],
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BSPNodeRef {
     pub index: i32,
     pub triangleCount: u8,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct IntersectSphereProfiling {
@@ -52,6 +56,7 @@ pub struct IntersectSphereProfiling {
     pub triangleTests_capacity: i32,
     pub triangleTests_data: *mut TriangleTest,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct TriangleTest {
@@ -63,6 +68,7 @@ pub type BlendMode = i32;
 pub type BSPNodeRel = u8;
 pub type CullFace = i32;
 pub type PolygonClassification = u8;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BSPBuild {
@@ -72,6 +78,7 @@ pub struct BSPBuild {
     pub leafCount: i32,
     pub triangleCount: i32,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BSPBuild_Node {
@@ -81,6 +88,7 @@ pub struct BSPBuild_Node {
     pub polygons_capacity: i32,
     pub polygons_data: *mut PolygonEx,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct PolygonEx {
@@ -90,6 +98,7 @@ pub struct PolygonEx {
     pub flags: PolygonFlag,
 }
 pub type PolygonFlag = u8;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BSPBuild_NodeData {
@@ -100,6 +109,7 @@ pub struct BSPBuild_NodeData {
     pub triangleCount: i32,
     pub depth: u16,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DelayRay {
@@ -108,6 +118,7 @@ pub struct DelayRay {
     pub tMax: f32,
     pub depth: i32,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Delay {
@@ -119,38 +130,49 @@ pub struct Delay {
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
+
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
+
 #[inline]
 unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
     return a + t * (b - a);
 }
+
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
 }
+
 #[no_mangle]
 pub static mut BSPNodeRel_Parent: BSPNodeRel = 0 as i32 as BSPNodeRel;
+
 #[no_mangle]
 pub static mut BSPNodeRel_Back: BSPNodeRel = 1 as i32 as BSPNodeRel;
+
 #[no_mangle]
 pub static mut BSPNodeRel_Front: BSPNodeRel = 2 as i32 as BSPNodeRel;
 static mut BackIndex: i32 = 0 as i32;
 static mut FrontIndex: i32 = 1 as i32;
 static mut RootNodeIndex: i32 = 1 as i32;
 static mut EmptyLeafIndex: i32 = 1 as i32;
+
 #[no_mangle]
 pub static mut rayStack_size: i32 = 0;
+
 #[no_mangle]
 pub static mut rayStack_capacity: i32 = 0;
+
 #[no_mangle]
 pub static mut rayStack_data: *mut DelayRay = std::ptr::null_mut();
+
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectRay(
     mut this: *mut BSP,
@@ -269,6 +291,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
     rayStack_size = 0 as i32;
     return hit;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectLineSegment(
     mut this: *mut BSP,
@@ -289,12 +312,16 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     }
     return 0 as i32 != 0;
 }
+
 #[no_mangle]
 pub static mut nodeStack_size: i32 = 0;
+
 #[no_mangle]
 pub static mut nodeStack_data: *mut Delay = std::ptr::null_mut();
+
 #[no_mangle]
 pub static mut nodeStack_capacity: i32 = 0;
+
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
     mut this: *mut BSP,
@@ -368,12 +395,16 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
     nodeStack_size = 0 as i32;
     return hit;
 }
+
 #[no_mangle]
 pub static mut PolygonFlag_None: PolygonFlag = ((0 as i32) << 0 as i32) as PolygonFlag;
+
 #[no_mangle]
 pub static mut PolygonFlag_InvalidFaceSplit: PolygonFlag = ((1 as i32) << 0 as i32) as PolygonFlag;
+
 #[no_mangle]
 pub static mut PolygonFlag_InvalidDecompose: PolygonFlag = ((1 as i32) << 1 as i32) as PolygonFlag;
+
 #[no_mangle]
 pub static mut PolygonFlag_InvalidEdgeSplit: PolygonFlag = ((1 as i32) << 2 as i32) as PolygonFlag;
 unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
@@ -427,6 +458,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     ) as f32;
     return score;
 }
+
 unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     mut bsp: *mut BSPBuild,
     mut nodeData: *mut BSPBuild_NodeData,
@@ -620,6 +652,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
         return 0 as i32 != 0;
     };
 }
+
 #[inline]
 unsafe extern "C" fn BSPBuild_AppendPolygon(
     mut nodeData: *mut BSPBuild_NodeData,
@@ -646,6 +679,7 @@ unsafe extern "C" fn BSPBuild_AppendPolygon(
     (*nodeData).polygons_size = (*nodeData).polygons_size + 1;
     *((*nodeData).polygons_data).offset(fresh3 as isize) = *polygon;
 }
+
 unsafe extern "C" fn BSPBuild_CreateNode(
     mut bsp: *mut BSPBuild,
     mut nodeData: *mut BSPBuild_NodeData,
@@ -788,6 +822,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     (*node).child[FrontIndex as usize] = BSPBuild_CreateNode(bsp, &mut frontNodeData);
     return node;
 }
+
 unsafe extern "C" fn BSPBuild_OptimizeTree(
     mut this: *mut BSP,
     mut buildNode: *mut BSPBuild_Node,
@@ -865,6 +900,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
         return result_0;
     };
 }
+
 unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
     if !((*node).child[BackIndex as usize]).is_null()
         || !((*node).child[FrontIndex as usize]).is_null()
@@ -883,6 +919,7 @@ unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
     }
     MemFree(node as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     let mut this: *mut BSP = MemAllocZero(::core::mem::size_of::<BSP>()) as *mut BSP;
@@ -1111,6 +1148,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     RNG_Free(bspBuild.rng);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSP_Free(mut this: *mut BSP) {
     if this.is_null() {
@@ -1120,6 +1158,7 @@ pub unsafe extern "C" fn BSP_Free(mut this: *mut BSP) {
     MemFree((*this).triangles_data as *const libc::c_void);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetNode(
     mut this: *mut BSP,
@@ -1187,6 +1226,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
     }
     return if newNode.index != 0 { newNode } else { nodeRef };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawNode(mut this: *mut BSP, mut nodeRef: BSPNodeRef) {
     if nodeRef.index > 0 as i32 {
@@ -1203,6 +1243,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(mut this: *mut BSP, mut nodeRef: BSPN
         }
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(mut this: *mut BSP, mut nodeRef: BSPNodeRef) {
     RenderState_PushBlendMode(1 as i32);
@@ -1239,6 +1280,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(mut this: *mut BSP, mut nodeRef:
     RenderState_PopCullFace();
     RenderState_PopBlendMode();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
     mut bsp: *mut BSP,
@@ -1257,6 +1299,7 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
         Draw_Line3(&mut (*lineSegment).p0, &mut (*lineSegment).p1);
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_DrawSphere(mut this: *mut BSP, mut sphere: *mut Sphere) {
     let mut pHit = Vec3::ZERO;
@@ -1280,6 +1323,7 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(mut this: *mut BSP, mut sphere: *mu
         Draw_Sphere(&mut (*sphere).p, (*sphere).r);
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(mut this: *mut BSP, mut totalTime: f64) {
     Warn(
@@ -1287,6 +1331,7 @@ pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(mut this: *mut BSP, mut 
             as *const u8 as *const libc::c_char,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(mut this: *mut BSP, mut totalTime: f64) {
     Warn(
@@ -1294,6 +1339,7 @@ pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(mut this: *mut BSP, m
             as *const u8 as *const libc::c_char,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     mut this: *mut BSP,
@@ -1423,6 +1469,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     nodeStack_size = 0 as i32;
     return hit;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetLeaf(mut this: *mut BSP, mut leafIndex: i32) -> BSPNodeRef {
     let mut index: i32 = -(1 as i32);

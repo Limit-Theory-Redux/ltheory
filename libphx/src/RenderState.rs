@@ -1,6 +1,7 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
     fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);
@@ -27,6 +28,7 @@ static mut cullFace: [CullFace; 16] = [0; 16];
 static mut cullFaceIndex: i32 = -(1 as i32);
 static mut depthWritable: [bool; 16] = [false; 16];
 static mut depthWritableIndex: i32 = -(1 as i32);
+
 #[inline]
 unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
     match mode {
@@ -59,6 +61,7 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
         _ => {}
     };
 }
+
 #[inline]
 unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
     match mode {
@@ -79,6 +82,7 @@ unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
         _ => {}
     };
 }
+
 #[inline]
 unsafe extern "C" fn RenderState_SetDepthTest(mut enabled: bool) {
     if enabled {
@@ -87,10 +91,12 @@ unsafe extern "C" fn RenderState_SetDepthTest(mut enabled: bool) {
         glDisable(0xb71 as i32 as GLenum);
     };
 }
+
 #[inline]
 unsafe extern "C" fn RenderState_SetDepthWritable(mut enabled: bool) {
     glDepthMask(enabled as GLboolean);
 }
+
 #[inline]
 unsafe extern "C" fn RenderState_SetWireframe(mut enabled: bool) {
     if enabled {
@@ -99,6 +105,7 @@ unsafe extern "C" fn RenderState_SetWireframe(mut enabled: bool) {
         glPolygonMode(0x408 as i32 as GLenum, 0x1b02 as i32 as GLenum);
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushAllDefaults() {
     RenderState_PushBlendMode(2 as i32);
@@ -107,6 +114,7 @@ pub unsafe extern "C" fn RenderState_PushAllDefaults() {
     RenderState_PushDepthWritable(1 as i32 != 0);
     RenderState_PushWireframe(0 as i32 != 0);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopAll() {
     RenderState_PopBlendMode();
@@ -115,6 +123,7 @@ pub unsafe extern "C" fn RenderState_PopAll() {
     RenderState_PopDepthWritable();
     RenderState_PopWireframe();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopBlendMode() {
     if blendModeIndex < 0 as i32 {
@@ -128,6 +137,7 @@ pub unsafe extern "C" fn RenderState_PopBlendMode() {
         RenderState_SetBlendMode(blendMode[blendModeIndex as usize]);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopWireframe() {
     if wireframeIndex < 0 as i32 {
@@ -141,6 +151,7 @@ pub unsafe extern "C" fn RenderState_PopWireframe() {
         RenderState_SetWireframe(wireframe[wireframeIndex as usize]);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushBlendMode(mut value: BlendMode) {
     if blendModeIndex + 1 as i32 >= 16 as i32 {
@@ -153,6 +164,7 @@ pub unsafe extern "C" fn RenderState_PushBlendMode(mut value: BlendMode) {
     blendMode[blendModeIndex as usize] = value;
     RenderState_SetBlendMode(value);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopDepthTest() {
     if depthTestIndex < 0 as i32 {
@@ -166,6 +178,7 @@ pub unsafe extern "C" fn RenderState_PopDepthTest() {
         RenderState_SetDepthTest(depthTest[depthTestIndex as usize]);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopCullFace() {
     if cullFaceIndex < 0 as i32 {
@@ -179,6 +192,7 @@ pub unsafe extern "C" fn RenderState_PopCullFace() {
         RenderState_SetCullFace(cullFace[cullFaceIndex as usize]);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopDepthWritable() {
     if depthWritableIndex < 0 as i32 {
@@ -192,6 +206,7 @@ pub unsafe extern "C" fn RenderState_PopDepthWritable() {
         RenderState_SetDepthWritable(depthWritable[depthWritableIndex as usize]);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushCullFace(mut value: CullFace) {
     if cullFaceIndex + 1 as i32 >= 16 as i32 {
@@ -204,6 +219,7 @@ pub unsafe extern "C" fn RenderState_PushCullFace(mut value: CullFace) {
     cullFace[cullFaceIndex as usize] = value;
     RenderState_SetCullFace(value);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushDepthTest(mut value: bool) {
     if depthTestIndex + 1 as i32 >= 16 as i32 {
@@ -216,6 +232,7 @@ pub unsafe extern "C" fn RenderState_PushDepthTest(mut value: bool) {
     depthTest[depthTestIndex as usize] = value;
     RenderState_SetDepthTest(value);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushDepthWritable(mut value: bool) {
     if depthWritableIndex + 1 as i32 >= 16 as i32 {
@@ -228,6 +245,7 @@ pub unsafe extern "C" fn RenderState_PushDepthWritable(mut value: bool) {
     depthWritable[depthWritableIndex as usize] = value;
     RenderState_SetDepthWritable(value);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushWireframe(mut value: bool) {
     if wireframeIndex + 1 as i32 >= 16 as i32 {

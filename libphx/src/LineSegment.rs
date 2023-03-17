@@ -17,10 +17,12 @@ pub unsafe extern "C" fn LineSegment_ToRay(mut this: *const LineSegment, mut out
     (*out).tMin = 0.0f32;
     (*out).tMax = 1.0f32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LineSegment_FromRay(mut ray: *const Ray, mut out: *mut LineSegment) {
     Ray_ToLineSegment(ray, out);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];

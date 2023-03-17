@@ -20,14 +20,17 @@ pub struct Plane {
 
 pub type PointClassification = u8;
 pub type PolygonClassification = u8;
+
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
+
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
+
 #[inline]
 unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
     let mut classification: i32 = if ::core::mem::size_of::<f64>() as libc::c_ulong
@@ -55,6 +58,7 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
     }
     return 0 as i32 as Error;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Plane_ClassifyPoint(
     mut plane: *mut Plane,
@@ -70,6 +74,7 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
         return 3 as i32 as PointClassification;
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Plane_ClassifyPolygon(
     mut plane: *mut Plane,
@@ -121,6 +126,7 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
     }
     return 3 as i32 as PolygonClassification;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
     let mut e: Error = 0 as i32 as Error;
@@ -128,10 +134,12 @@ pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
     e |= Vec3_Validate((*plane).n);
     return e;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Plane_FromPolygon(mut polygon: *mut Polygon, mut plane: *mut Plane) {
     Polygon_ToPlane(polygon, plane);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Plane_FromPolygonFast(mut polygon: *mut Polygon, mut plane: *mut Plane) {
     Polygon_ToPlaneFast(polygon, plane);

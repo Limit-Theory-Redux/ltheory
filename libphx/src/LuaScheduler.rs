@@ -27,6 +27,7 @@ pub type lua_Integer = libc::ptrdiff_t;
 pub type Lua = lua_State;
 pub type LuaFn = Option<unsafe extern "C" fn(*mut Lua) -> i32>;
 pub type LuaRef = lua_Integer;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Scheduler {
@@ -39,6 +40,7 @@ pub struct Scheduler {
     pub now: TimeStamp,
     pub locked: bool,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SchedulerElem {
@@ -69,6 +71,7 @@ unsafe extern "C" fn SortByWake(mut pa: *const libc::c_void, mut pb: *const libc
         -(1 as i32)
     };
 }
+
 unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
     let mut elem: SchedulerElem = SchedulerElem {
         fn_0: 0,
@@ -121,6 +124,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
     }
     return 0 as i32;
 }
+
 unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
     let mut i: i32 = 0 as i32;
     while i < this.elems_size {
@@ -132,6 +136,7 @@ unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
     this.elems_size = 0 as i32;
     return 0 as i32;
 }
+
 unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
     this.locked = 1 as i32 != 0;
     libc::qsort(
@@ -188,6 +193,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
     }
     return 0 as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LuaScheduler_Init(mut L: *mut Lua) {
     this.elems_capacity = 0 as i32;
@@ -199,6 +205,7 @@ pub unsafe extern "C" fn LuaScheduler_Init(mut L: *mut Lua) {
     this.now = TimeStamp_Get();
     this.locked = 0 as i32 != 0;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LuaScheduler_Register(mut L: *mut Lua) {
     Lua_SetFn(

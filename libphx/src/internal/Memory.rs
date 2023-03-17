@@ -195,6 +195,7 @@ pub unsafe extern "C" fn StrSubStr(
     *result.offset(len as isize) = 0 as i32 as libc::c_char;
     return result as *const libc::c_char;
 }
+
 #[inline]
 pub unsafe extern "C" fn StrSub(
     mut s: *const libc::c_char,

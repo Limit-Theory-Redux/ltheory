@@ -1,7 +1,9 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {}
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct MemPool {
@@ -38,6 +40,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
     }
     *prev = std::ptr::null_mut();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -> *mut MemPool {
     let mut this: *mut MemPool =
@@ -51,10 +54,12 @@ pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -
     (*this).blocks = std::ptr::null_mut();
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_CreateAuto(mut elemSize: u32) -> *mut MemPool {
     return MemPool_Create(elemSize, (0x1000 as i32 as u32).wrapping_div(elemSize));
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Free(mut this: *mut MemPool) {
     let mut i: u16 = 0 as i32 as u16;
@@ -64,6 +69,7 @@ pub unsafe extern "C" fn MemPool_Free(mut this: *mut MemPool) {
     }
     MemFree((*this).blocks as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Alloc(mut this: *mut MemPool) -> *mut libc::c_void {
     if ((*this).size == (*this).capacity) as libc::c_long != 0 {
@@ -75,6 +81,7 @@ pub unsafe extern "C" fn MemPool_Alloc(mut this: *mut MemPool) -> *mut libc::c_v
     MemZero(freeCell, (*this).cellSize as usize);
     return freeCell;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Clear(mut this: *mut MemPool) {
     (*this).size = 0 as i32 as u32;
@@ -95,6 +102,7 @@ pub unsafe extern "C" fn MemPool_Clear(mut this: *mut MemPool) {
     }
     *prev = std::ptr::null_mut();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Dealloc(mut this: *mut MemPool, mut ptr: *mut libc::c_void) {
     let ref mut fresh2 = *(ptr as *mut *mut libc::c_void);
@@ -102,10 +110,12 @@ pub unsafe extern "C" fn MemPool_Dealloc(mut this: *mut MemPool, mut ptr: *mut l
     (*this).freeList = ptr;
     (*this).size = ((*this).size).wrapping_sub(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_GetCapacity(mut this: *mut MemPool) -> u32 {
     return (*this).capacity;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_GetSize(mut this: *mut MemPool) -> u32 {
     return (*this).size;

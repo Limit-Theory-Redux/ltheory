@@ -36,6 +36,7 @@ pub type PFNGLFRAMEBUFFERTEXTURE2DPROC =
 pub type PFNGLFRAMEBUFFERTEXTURE3DPROC =
     Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLu32, GLint, GLint) -> ()>;
 pub type PFNGLGENFRAMEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLu32) -> ()>;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FBO {
@@ -54,10 +55,12 @@ static mut fboStack: [FBO; 16] = [FBO {
     sy: 0,
     depth: false,
 }; 16];
+
 #[inline]
 unsafe extern "C" fn GetActive() -> *mut FBO {
     return fboStack.as_mut_ptr().offset(fboIndex as isize);
 }
+
 #[inline]
 unsafe extern "C" fn SetDrawBuffers(mut count: i32) {
     static mut bufs: [GLenum; 4] = [
@@ -68,6 +71,7 @@ unsafe extern "C" fn SetDrawBuffers(mut count: i32) {
     ];
     __glewDrawBuffers.expect("non-null function pointer")(count, bufs.as_ptr());
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     Profiler_Begin(
@@ -96,6 +100,7 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     Viewport_Push(0 as i32, 0 as i32, sx, sy, 0 as i32 != 0);
     Profiler_End();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Pop() {
     Profiler_Begin(
@@ -145,10 +150,12 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
     Viewport_Pop();
     Profiler_End();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2D(mut this: *mut Tex2D) {
     RenderTarget_BindTex2DLevel(this, 0 as i32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut level: i32) {
     let mut this: *mut FBO = GetActive();
@@ -187,10 +194,12 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
         (*this).depth = 1 as i32 != 0;
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex3D(mut this: *mut Tex3D, mut layer: i32) {
     RenderTarget_BindTex3DLevel(this, layer, 0 as i32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
     mut tex: *mut Tex3D,
@@ -217,10 +226,12 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
     );
     SetDrawBuffers((*this).colorIndex);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTexCube(mut this: *mut TexCube, mut face: CubeFace) {
     RenderTarget_BindTexCubeLevel(this, face, 0 as i32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     mut tex: *mut TexCube,
@@ -246,10 +257,12 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     );
     SetDrawBuffers((*this).colorIndex);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex2D(mut this: *mut Tex2D) {
     RenderTarget_PushTex2DLevel(this, 0 as i32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(mut this: *mut Tex2D, mut level: i32) {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
@@ -257,10 +270,12 @@ pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(mut this: *mut Tex2D, mut l
     RenderTarget_Push(size.x, size.y);
     RenderTarget_BindTex2DLevel(this, level);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex3D(mut this: *mut Tex3D, mut layer: i32) {
     RenderTarget_PushTex3DLevel(this, layer, 0 as i32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex3DLevel(
     mut this: *mut Tex3D,

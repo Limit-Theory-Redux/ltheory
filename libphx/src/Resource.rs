@@ -10,6 +10,7 @@ extern "C" {
 }
 
 pub type ResourceType = i32;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct PathElem {
@@ -29,6 +30,7 @@ static mut paths: [*mut PathElem; 10] = [
     std::ptr::null_mut(),
     std::ptr::null_mut(),
 ];
+
 #[inline]
 unsafe extern "C" fn Resource_Resolve(
     mut type_0: ResourceType,
@@ -65,6 +67,7 @@ unsafe extern "C" fn Resource_Resolve(
     }
     return std::ptr::null();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: *const libc::c_char) {
     let mut this: *mut PathElem =
@@ -73,14 +76,17 @@ pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: 
     (*this).next = paths[type_0 as usize];
     paths[type_0 as usize] = this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Resource_Exists(mut type_0: ResourceType, mut name: *const libc::c_char) -> bool {
     return !(Resource_Resolve(type_0, name, 0 as i32 != 0)).is_null();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Resource_GetPath(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
     return Resource_Resolve(type_0, name, 1 as i32 != 0);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Resource_LoadBytes(
     mut type_0: ResourceType,
@@ -99,6 +105,7 @@ pub unsafe extern "C" fn Resource_LoadBytes(
     }
     return data;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Resource_LoadCstr(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
     let mut path: *const libc::c_char = Resource_Resolve(type_0, name, 1 as i32 != 0);
@@ -114,6 +121,7 @@ pub unsafe extern "C" fn Resource_LoadCstr(mut type_0: ResourceType, mut name: *
     }
     return data;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Resource_Init() {
     Resource_AddPath(

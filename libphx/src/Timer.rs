@@ -1,10 +1,12 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn SDL_GetPerformanceCounter() -> u64;
     fn SDL_GetPerformanceFrequency() -> u64;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Timer {
@@ -12,6 +14,7 @@ pub struct Timer {
 }
 
 static mut frequency: f64 = 0 as i32 as f64;
+
 #[no_mangle]
 pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
     static mut init: bool = 0 as i32 != 0;
@@ -23,10 +26,12 @@ pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
     (*this).value = SDL_GetPerformanceCounter();
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Timer_Free(mut this: *mut Timer) {
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Timer_GetAndReset(mut this: *mut Timer) -> f64 {
     let mut now: u64 = SDL_GetPerformanceCounter();
@@ -34,11 +39,13 @@ pub unsafe extern "C" fn Timer_GetAndReset(mut this: *mut Timer) -> f64 {
     (*this).value = now;
     return elapsed;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Timer_GetElapsed(mut this: *mut Timer) -> f64 {
     let mut now: u64 = SDL_GetPerformanceCounter();
     return now.wrapping_sub((*this).value) as f64 / frequency;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Timer_Reset(mut this: *mut Timer) {
     (*this).value = SDL_GetPerformanceCounter();

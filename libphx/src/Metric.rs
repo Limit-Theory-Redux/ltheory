@@ -1,13 +1,16 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {}
 pub type Metric = i32;
 static mut valueCurr: [i32; 8] = [0 as i32, 0, 0, 0, 0, 0, 0, 0];
+
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Get(mut this: Metric) -> i32 {
     return valueCurr[this as usize];
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Metric_GetName(mut this: Metric) -> *const libc::c_char {
     match this {
@@ -22,6 +25,7 @@ pub unsafe extern "C" fn Metric_GetName(mut this: Metric) -> *const libc::c_char
     }
     return std::ptr::null();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Metric_AddDraw(mut polys: i32, mut tris: i32, mut verts: i32) {
     valueCurr[0x1] += 1 as i32;
@@ -29,6 +33,7 @@ pub unsafe extern "C" fn Metric_AddDraw(mut polys: i32, mut tris: i32, mut verts
     valueCurr[0x4] += tris;
     valueCurr[0x5] += verts;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Metric_AddDrawImm(mut polys: i32, mut tris: i32, mut verts: i32) {
     valueCurr[0x2] += 1 as i32;
@@ -36,14 +41,17 @@ pub unsafe extern "C" fn Metric_AddDrawImm(mut polys: i32, mut tris: i32, mut ve
     valueCurr[0x4] += tris;
     valueCurr[0x5] += verts;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Inc(mut this: Metric) {
     valueCurr[this as usize] += 1 as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Mod(mut this: Metric, mut delta: i32) {
     valueCurr[this as usize] += delta;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Reset() {
     MemZero(

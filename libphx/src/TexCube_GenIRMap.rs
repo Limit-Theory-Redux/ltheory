@@ -24,10 +24,12 @@ pub type DataFormat = i32;
 pub type PixelFormat = i32;
 pub type TexFilter = i32;
 pub type TexFormat = i32;
+
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
 }
+
 #[inline]
 unsafe extern "C" fn Atan2(mut y: f64, mut x: f64) -> f64 {
     return atan2(y, x);

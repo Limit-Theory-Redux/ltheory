@@ -16,6 +16,7 @@ pub struct ParseState {
     pub lineStart: *const libc::c_char,
     pub lineNumber: i32,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct VertexIndices {
@@ -45,6 +46,7 @@ unsafe extern "C" fn Obj_Fatal(mut message: *const libc::c_char, mut s: *mut Par
         line,
     );
 }
+
 unsafe extern "C" fn ConsumeRestOfLine(mut s: *mut ParseState) -> bool {
     let mut oldPosition: *const libc::c_char = (*s).cursor;
     while (*s).cursor < (*s).endOfData
@@ -78,6 +80,7 @@ unsafe extern "C" fn ConsumeRestOfLine(mut s: *mut ParseState) -> bool {
     }
     return (*s).cursor != oldPosition;
 }
+
 unsafe extern "C" fn ConsumeWhitespace(mut s: *mut ParseState) -> bool {
     let mut oldPosition: *const libc::c_char = (*s).cursor;
     while (*s).cursor < (*s).endOfData
@@ -87,6 +90,7 @@ unsafe extern "C" fn ConsumeWhitespace(mut s: *mut ParseState) -> bool {
     }
     return (*s).cursor != oldPosition;
 }
+
 unsafe extern "C" fn ConsumeToken(
     mut token: *mut libc::c_char,
     mut tokenLen: i32,
@@ -108,6 +112,7 @@ unsafe extern "C" fn ConsumeToken(
     *token.offset(i as isize) = 0 as i32 as libc::c_char;
     return i != 0 as i32;
 }
+
 unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -> bool {
     let mut afterFloat: *mut libc::c_char = std::ptr::null_mut();
     let mut f: f32 = libc::strtof((*s).cursor, &mut afterFloat);
@@ -124,6 +129,7 @@ unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -
     }
     return 0 as i32 != 0;
 }
+
 unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> bool {
     let mut afterInt: *mut libc::c_char = std::ptr::null_mut();
     let mut i: i32 = libc::strtol((*s).cursor, &mut afterInt, 10 as i32) as i32;
@@ -140,6 +146,7 @@ unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> 
     }
     return 0 as i32 != 0;
 }
+
 unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut ParseState) -> bool {
     if (*s).cursor < (*s).endOfData && *(*s).cursor as i32 == character as i32 {
         (*s).cursor = ((*s).cursor).offset(1);
@@ -147,6 +154,7 @@ unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut P
     }
     return 0 as i32 != 0;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Mesh {
     let mut bytesSize: i32 = StrLen(bytes) as i32;

@@ -7,7 +7,6 @@ extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Thread {
@@ -29,15 +28,18 @@ pub unsafe extern "C" fn Thread_Create(
     }
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Detach(mut this: *mut Thread) {
     SDL_DetachThread((*this).handle);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Sleep(mut ms: u32) {
     SDL_Delay(ms);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Wait(mut this: *mut Thread) -> i32 {
     let mut ret: i32 = 0;

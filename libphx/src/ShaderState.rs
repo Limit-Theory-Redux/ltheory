@@ -16,6 +16,7 @@ extern "C" {
     static mut __glewUniform3f: PFNGLUNIFORM3FPROC;
     static mut __glewUniform4f: PFNGLUNIFORM4FPROC;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ShaderState {
@@ -25,6 +26,7 @@ pub struct ShaderState {
     pub elems_capacity: i32,
     pub elems_data: *mut Elem,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Elem {
@@ -32,6 +34,7 @@ pub struct Elem {
     pub index: i32,
     pub data: C2RustUnnamed,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub union C2RustUnnamed {
@@ -57,24 +60,34 @@ pub type PFNGLUNIFORM4FPROC =
 
 #[no_mangle]
 pub static mut ElemType_Float: u32 = 1 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_Float2: u32 = 2 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_Float3: u32 = 3 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_Float4: u32 = 4 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_Int: u32 = 5 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_Matrix: u32 = 6 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_Tex1D: u32 = 7 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_Tex2D: u32 = 8 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_Tex3D: u32 = 9 as i32 as u32;
+
 #[no_mangle]
 pub static mut ElemType_TexCube: u32 = 10 as i32 as u32;
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut ShaderState {
     let mut this: *mut ShaderState =
@@ -87,10 +100,12 @@ pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut Sha
     (*this).shader = shader;
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Acquire(mut this: *mut ShaderState) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Free(mut this: *mut ShaderState) {
     if !this.is_null() && {
@@ -122,6 +137,7 @@ pub unsafe extern "C" fn ShaderState_Free(mut this: *mut ShaderState) {
         MemFree(this as *const libc::c_void);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_FromShaderLoad(
     mut vertName: *const libc::c_char,
@@ -132,6 +148,7 @@ pub unsafe extern "C" fn ShaderState_FromShaderLoad(
     Shader_Free(shader);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat(
     mut this: *mut ShaderState,
@@ -162,6 +179,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh0 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat2(
     mut this: *mut ShaderState,
@@ -193,6 +211,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh1 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat3(
     mut this: *mut ShaderState,
@@ -225,6 +244,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh2 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat4(
     mut this: *mut ShaderState,
@@ -258,6 +278,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh3 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetInt(
     mut this: *mut ShaderState,
@@ -288,6 +309,7 @@ pub unsafe extern "C" fn ShaderState_SetInt(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh4 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetMatrix(
     mut this: *mut ShaderState,
@@ -318,6 +340,7 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh5 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex1D(
     mut this: *mut ShaderState,
@@ -349,6 +372,7 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh6 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex2D(
     mut this: *mut ShaderState,
@@ -380,6 +404,7 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh7 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex3D(
     mut this: *mut ShaderState,
@@ -411,6 +436,7 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh8 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTexCube(
     mut this: *mut ShaderState,
@@ -442,6 +468,7 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
     (*this).elems_size = (*this).elems_size + 1;
     *((*this).elems_data).offset(fresh9 as isize) = elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
     Shader_Start((*this).shader);
@@ -504,6 +531,7 @@ pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
         e = e.offset(1);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Stop(mut this: *mut ShaderState) {
     Shader_Stop((*this).shader);

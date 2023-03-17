@@ -69,6 +69,7 @@ pub type GLsizei = i32;
 pub type GLfloat = f32;
 pub type PFNGLACTIVETEXTUREPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
 pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
+
 #[inline]
 unsafe extern "C" fn Tex1D_Init() {
     glTexParameteri(
@@ -87,6 +88,7 @@ unsafe extern "C" fn Tex1D_Init() {
         0x812f as i32,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Create(mut size: i32, mut format: TexFormat) -> *mut Tex1D {
     if !TexFormat_IsValid(format) {
@@ -119,10 +121,12 @@ pub unsafe extern "C" fn Tex1D_Create(mut size: i32, mut format: TexFormat) -> *
     glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLu32);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Acquire(mut this: *mut Tex1D) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
     if !this.is_null() && {
@@ -133,6 +137,7 @@ pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
         MemFree(this as *const libc::c_void);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Draw(
     mut this: *mut Tex1D,
@@ -153,16 +158,19 @@ pub unsafe extern "C" fn Tex1D_Draw(
     glEnd();
     glDisable(0xde0 as i32 as GLenum);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GenMipmap(mut this: *mut Tex1D) {
     glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     __glewGenerateMipmap.expect("non-null function pointer")(0xde0 as i32 as GLenum);
     glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetFormat(mut this: *mut Tex1D) -> TexFormat {
     return (*this).format;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetData(
     mut this: *mut Tex1D,
@@ -180,6 +188,7 @@ pub unsafe extern "C" fn Tex1D_GetData(
     );
     glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetDataBytes(
     mut this: *mut Tex1D,
@@ -192,14 +201,17 @@ pub unsafe extern "C" fn Tex1D_GetDataBytes(
     Bytes_Rewind(data);
     return data;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetHandle(mut this: *mut Tex1D) -> u32 {
     return (*this).handle;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetSize(mut this: *mut Tex1D) -> u32 {
     return (*this).size as u32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetData(
     mut this: *mut Tex1D,
@@ -220,6 +232,7 @@ pub unsafe extern "C" fn Tex1D_SetData(
     );
     glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetDataBytes(
     mut this: *mut Tex1D,
@@ -229,18 +242,21 @@ pub unsafe extern "C" fn Tex1D_SetDataBytes(
 ) {
     Tex1D_SetData(this, Bytes_GetData(data), pf, df);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetMagFilter(mut this: *mut Tex1D, mut filter: TexFilter) {
     glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glTexParameteri(0xde0 as i32 as GLenum, 0x2800 as i32 as GLenum, filter);
     glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetMinFilter(mut this: *mut Tex1D, mut filter: TexFilter) {
     glBindTexture(0xde0 as i32 as GLenum, (*this).handle);
     glTexParameteri(0xde0 as i32 as GLenum, 0x2801 as i32 as GLenum, filter);
     glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetTexel(
     mut this: *mut Tex1D,
@@ -263,6 +279,7 @@ pub unsafe extern "C" fn Tex1D_SetTexel(
     );
     glBindTexture(0xde0 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetWrapMode(mut this: *mut Tex1D, mut mode: TexWrapMode) {
     glBindTexture(0xde0 as i32 as GLenum, (*this).handle);

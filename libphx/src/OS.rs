@@ -15,14 +15,17 @@ extern "C" {
 pub unsafe extern "C" fn OS_GetClipboard() -> *const libc::c_char {
     return SDL_GetClipboardText() as *const libc::c_char;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn OS_GetCPUCount() -> i32 {
     return SDL_GetCPUCount();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn OS_GetVideoDriver() -> *const libc::c_char {
     return SDL_GetCurrentVideoDriver();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn OS_SetClipboard(mut text: *const libc::c_char) {
     if SDL_SetClipboardText(text) != 0 as i32 {

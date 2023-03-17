@@ -13,6 +13,7 @@ pub struct ThreadPool {
     pub threads: i32,
     pub thread: *mut ThreadData,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ThreadData {
@@ -32,6 +33,7 @@ unsafe extern "C" fn ThreadPool_Dispatch(mut data: *mut libc::c_void) -> i32 {
         (*td).data,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool {
     let mut this: *mut ThreadPool =
@@ -51,6 +53,7 @@ pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool 
     }
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Free(mut this: *mut ThreadPool) {
     let mut i: i32 = 0 as i32;
@@ -66,6 +69,7 @@ pub unsafe extern "C" fn ThreadPool_Free(mut this: *mut ThreadPool) {
     MemFree((*this).thread as *const libc::c_void);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Launch(
     mut this: *mut ThreadPool,
@@ -91,6 +95,7 @@ pub unsafe extern "C" fn ThreadPool_Launch(
         i += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Wait(mut this: *mut ThreadPool) {
     let mut i: i32 = 0 as i32;

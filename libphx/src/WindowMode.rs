@@ -27,20 +27,28 @@ pub const SDL_WINDOW_SHOWN: C2RustUnnamed = 4;
 pub const SDL_WINDOW_OPENGL: C2RustUnnamed = 2;
 pub const SDL_WINDOW_FULLSCREEN: C2RustUnnamed = 1;
 pub type WindowMode = u32;
+
 #[no_mangle]
 pub static mut WindowMode_AlwaysOnTop: WindowMode = SDL_WINDOW_ALWAYS_ON_TOP as i32 as WindowMode;
+
 #[no_mangle]
 pub static mut WindowMode_Borderless: WindowMode = SDL_WINDOW_BORDERLESS as i32 as WindowMode;
+
 #[no_mangle]
 pub static mut WindowMode_Fullscreen: WindowMode =
     SDL_WINDOW_FULLSCREEN_DESKTOP as i32 as WindowMode;
+
 #[no_mangle]
 pub static mut WindowMode_Hidden: WindowMode = SDL_WINDOW_HIDDEN as i32 as WindowMode;
+
 #[no_mangle]
 pub static mut WindowMode_Maximized: WindowMode = SDL_WINDOW_MAXIMIZED as i32 as WindowMode;
+
 #[no_mangle]
 pub static mut WindowMode_Minimized: WindowMode = SDL_WINDOW_MINIMIZED as i32 as WindowMode;
+
 #[no_mangle]
 pub static mut WindowMode_Resizable: WindowMode = SDL_WINDOW_RESIZABLE as i32 as WindowMode;
+
 #[no_mangle]
 pub static mut WindowMode_Shown: WindowMode = SDL_WINDOW_SHOWN as i32 as WindowMode;

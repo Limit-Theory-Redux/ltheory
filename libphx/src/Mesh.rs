@@ -26,6 +26,7 @@ extern "C" {
     static mut __glewEnableVertexAttribArray: PFNGLENABLEVERTEXATTRIBARRAYPROC;
     static mut __glewVertexAttribPointer: PFNGLVERTEXATTRIBPOINTERPROC;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Mesh {
@@ -82,18 +83,22 @@ pub type GLfloat = f32;
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
+
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
     return if a < b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
@@ -108,6 +113,7 @@ unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
     };
     return center;
 }
+
 #[inline]
 unsafe extern "C" fn Box3f_Add(mut this: *mut Box3f, mut point: Vec3) {
     (*this).lower = Vec3::min((*this).lower, point);
@@ -121,6 +127,7 @@ unsafe extern "C" fn Vec2_Validate(mut v: Vec2) -> Error {
     e |= Float_Validatef(v.y);
     return e;
 }
+
 unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
     if (*this).versionInfo == (*this).version {
         return;
@@ -148,6 +155,7 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
     (*this).info.radius = Sqrt(r2) as f32;
     (*this).versionInfo = (*this).version;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
     let mut this: *mut Mesh = MemAlloc(::core::mem::size_of::<Mesh>()) as *mut Mesh;
@@ -165,6 +173,7 @@ pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
     (*this).index_data = std::ptr::null_mut();
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Create();
@@ -202,6 +211,7 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
     );
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Load(mut name: *const libc::c_char) -> *mut Mesh {
     let mut bytes: *mut Bytes = Resource_LoadBytes(ResourceType_Mesh, name);
@@ -209,10 +219,12 @@ pub unsafe extern "C" fn Mesh_Load(mut name: *const libc::c_char) -> *mut Mesh {
     Bytes_Free(bytes);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Acquire(mut this: *mut Mesh) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Free(mut this: *mut Mesh) {
     if !this.is_null() && {
@@ -228,6 +240,7 @@ pub unsafe extern "C" fn Mesh_Free(mut this: *mut Mesh) {
         MemFree(this as *const libc::c_void);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     let mut vertexCount: i32 = Mesh_GetVertexCount(mesh);
@@ -252,6 +265,7 @@ pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     );
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_FromBytes(mut buf: *mut Bytes) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Create();
@@ -273,10 +287,12 @@ pub unsafe extern "C" fn Mesh_FromBytes(mut buf: *mut Bytes) -> *mut Mesh {
     (*this).index_size = indexCount;
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_FromSDF(mut sdf: *mut SDF) -> *mut Mesh {
     return SDF_ToMesh(sdf);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_AddIndex(mut this: *mut Mesh, mut newIndex: i32) {
     if ((*this).index_capacity == (*this).index_size) as libc::c_long != 0 {
@@ -298,6 +314,7 @@ pub unsafe extern "C" fn Mesh_AddIndex(mut this: *mut Mesh, mut newIndex: i32) {
     *((*this).index_data).offset(fresh0 as isize) = newIndex;
     (*this).version = ((*this).version).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_AddMesh(mut this: *mut Mesh, mut other: *mut Mesh) {
     let mut indexOffset: i32 = (*this).vertex_size;
@@ -315,6 +332,7 @@ pub unsafe extern "C" fn Mesh_AddMesh(mut this: *mut Mesh, mut other: *mut Mesh)
         i_0 += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_AddQuad(
     mut this: *mut Mesh,
@@ -326,12 +344,14 @@ pub unsafe extern "C" fn Mesh_AddQuad(
     Mesh_AddTri(this, i1, i2, i3);
     Mesh_AddTri(this, i1, i3, i4);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_AddTri(mut this: *mut Mesh, mut i1: i32, mut i2: i32, mut i3: i32) {
     Mesh_AddIndex(this, i1);
     Mesh_AddIndex(this, i2);
     Mesh_AddIndex(this, i3);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_AddVertex(
     mut this: *mut Mesh,
@@ -366,6 +386,7 @@ pub unsafe extern "C" fn Mesh_AddVertex(
     (*newVertex).uv = Vec2::new(u, v);
     (*this).version = ((*this).version).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_AddVertexRaw(mut this: *mut Mesh, mut vertex: *const Vertex) {
     if ((*this).vertex_capacity == (*this).vertex_size) as i32 as libc::c_long != 0 {
@@ -387,6 +408,7 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(mut this: *mut Mesh, mut vertex: *con
     *((*this).vertex_data).offset(fresh2 as isize) = *vertex;
     (*this).version = ((*this).version).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
     if (*this).vbo != 0 && (*this).version != (*this).versionBuffers {
@@ -445,6 +467,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         offset_of!(Vertex, uv) as *const libc::c_void,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawBound(mut this: *mut Mesh) {
     Metric_AddDraw(
@@ -459,6 +482,7 @@ pub unsafe extern "C" fn Mesh_DrawBound(mut this: *mut Mesh) {
         std::ptr::null(),
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawUnbind(mut this: *mut Mesh) {
     __glewDisableVertexAttribArray.expect("non-null function pointer")(0 as i32 as GLu32);
@@ -473,12 +497,14 @@ pub unsafe extern "C" fn Mesh_DrawUnbind(mut this: *mut Mesh) {
         0 as i32 as GLu32,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Draw(mut this: *mut Mesh) {
     Mesh_DrawBind(this);
     Mesh_DrawBound(this);
     Mesh_DrawUnbind(this);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawNormals(mut this: *mut Mesh, mut scale: f32) {
     glBegin(0x1 as i32 as GLenum);
@@ -495,37 +521,45 @@ pub unsafe extern "C" fn Mesh_DrawNormals(mut this: *mut Mesh, mut scale: f32) {
     }
     glEnd();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetBound(mut this: *mut Mesh, mut out: *mut Box3f) {
     Mesh_UpdateInfo(this);
     *out = (*this).info.bound;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetCenter(mut this: *mut Mesh, mut out: *mut Vec3) {
     Mesh_UpdateInfo(this);
     *out = Box3f_Center((*this).info.bound);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetIndexCount(mut this: *mut Mesh) -> i32 {
     return (*this).index_size;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetIndexData(mut this: *mut Mesh) -> *mut i32 {
     return (*this).index_data;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetRadius(mut this: *mut Mesh) -> f32 {
     Mesh_UpdateInfo(this);
     return (*this).info.radius;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetVersion(mut this: *mut Mesh) -> u64 {
     return (*this).version;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_IncVersion(mut this: *mut Mesh) {
     (*this).version = ((*this).version).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Validate(mut this: *mut Mesh) -> Error {
     let mut indexLen: i32 = Mesh_GetIndexCount(this);
@@ -575,18 +609,22 @@ pub unsafe extern "C" fn Mesh_Validate(mut this: *mut Mesh) -> Error {
     }
     return 0 as i32 as Error;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetVertex(mut this: *mut Mesh, mut index: i32) -> *mut Vertex {
     return ((*this).vertex_data).offset(index as isize);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetVertexCount(mut this: *mut Mesh) -> i32 {
     return (*this).vertex_size;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetVertexData(mut this: *mut Mesh) -> *mut Vertex {
     return (*this).vertex_data;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ReserveIndexData(mut this: *mut Mesh, mut capacity: i32) {
     if ((*this).index_capacity < capacity) as libc::c_long != 0 {
@@ -600,6 +638,7 @@ pub unsafe extern "C" fn Mesh_ReserveIndexData(mut this: *mut Mesh, mut capacity
         );
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ReserveVertexData(mut this: *mut Mesh, mut capacity: i32) {
     if ((*this).vertex_capacity < capacity) as libc::c_long != 0 {
@@ -613,6 +652,7 @@ pub unsafe extern "C" fn Mesh_ReserveVertexData(mut this: *mut Mesh, mut capacit
         );
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Center(mut this: *mut Mesh) -> *mut Mesh {
     let mut c = Vec3::ZERO;
@@ -620,6 +660,7 @@ pub unsafe extern "C" fn Mesh_Center(mut this: *mut Mesh) -> *mut Mesh {
     Mesh_Translate(this, -c.x, -c.y, -c.z);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Invert(mut this: *mut Mesh) -> *mut Mesh {
     let mut i: i32 = 0 as i32;
@@ -649,6 +690,7 @@ pub unsafe extern "C" fn Mesh_Invert(mut this: *mut Mesh) -> *mut Mesh {
     (*this).version = ((*this).version).wrapping_add(1);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateX(mut this: *mut Mesh, mut rads: f32) -> *mut Mesh {
     let mut matrix: *mut Matrix = Matrix_RotationX(rads);
@@ -656,6 +698,7 @@ pub unsafe extern "C" fn Mesh_RotateX(mut this: *mut Mesh, mut rads: f32) -> *mu
     Matrix_Free(matrix);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateY(mut this: *mut Mesh, mut rads: f32) -> *mut Mesh {
     let mut matrix: *mut Matrix = Matrix_RotationY(rads);
@@ -663,6 +706,7 @@ pub unsafe extern "C" fn Mesh_RotateY(mut this: *mut Mesh, mut rads: f32) -> *mu
     Matrix_Free(matrix);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateZ(mut this: *mut Mesh, mut rads: f32) -> *mut Mesh {
     let mut matrix: *mut Matrix = Matrix_RotationZ(rads);
@@ -670,6 +714,7 @@ pub unsafe extern "C" fn Mesh_RotateZ(mut this: *mut Mesh, mut rads: f32) -> *mu
     Matrix_Free(matrix);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateYPR(
     mut this: *mut Mesh,
@@ -682,6 +727,7 @@ pub unsafe extern "C" fn Mesh_RotateYPR(
     Matrix_Free(matrix);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Scale(
     mut this: *mut Mesh,
@@ -700,11 +746,13 @@ pub unsafe extern "C" fn Mesh_Scale(
     (*this).version = ((*this).version).wrapping_add(1);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ScaleUniform(mut this: *mut Mesh, mut s: f32) -> *mut Mesh {
     Mesh_Scale(this, s, s, s);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Translate(
     mut this: *mut Mesh,
@@ -723,6 +771,7 @@ pub unsafe extern "C" fn Mesh_Translate(
     (*this).version = ((*this).version).wrapping_add(1);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Transform(mut this: *mut Mesh, mut matrix: *mut Matrix) -> *mut Mesh {
     let mut v: *mut Vertex = (*this).vertex_data;
@@ -734,6 +783,7 @@ pub unsafe extern "C" fn Mesh_Transform(mut this: *mut Mesh, mut matrix: *mut Ma
     (*this).version = ((*this).version).wrapping_add(1);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeNormals(mut this: *mut Mesh) {
     let mut v: *mut Vertex = (*this).vertex_data;
@@ -768,6 +818,7 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(mut this: *mut Mesh) {
     }
     (*this).version = ((*this).version).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32) {
     let mut v: *mut Vertex = (*this).vertex_data;

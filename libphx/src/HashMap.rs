@@ -13,6 +13,7 @@ pub struct HashMap {
     pub keySize: u32,
     pub maxProbe: u32,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Node {
@@ -20,10 +21,12 @@ pub struct Node {
     pub value: *mut libc::c_void,
 }
 pub type ValueForeach = Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>;
+
 #[inline]
 unsafe extern "C" fn Hash(mut key: *const libc::c_void, mut len: u32) -> u64 {
     return Hash_XX64(key, len as i32, 0 as u64);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Create(mut keySize: u32, mut capacity: u32) -> *mut HashMap {
     let mut logCapacity: u32 = 0 as i32 as u32;
@@ -43,11 +46,13 @@ pub unsafe extern "C" fn HashMap_Create(mut keySize: u32, mut capacity: u32) -> 
     (*this).maxProbe = logCapacity;
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Free(mut this: *mut HashMap) {
     MemFree((*this).elems as *const libc::c_void);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Foreach(
     mut this: *mut HashMap,
@@ -63,6 +68,7 @@ pub unsafe extern "C" fn HashMap_Foreach(
         i = i.wrapping_add(1);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Get(
     mut this: *mut HashMap,
@@ -70,6 +76,7 @@ pub unsafe extern "C" fn HashMap_Get(
 ) -> *mut libc::c_void {
     return HashMap_GetRaw(this, Hash(key, (*this).keySize));
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_GetRaw(
     mut this: *mut HashMap,
@@ -88,6 +95,7 @@ pub unsafe extern "C" fn HashMap_GetRaw(
     }
     return std::ptr::null_mut();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: u32) {
     let mut other: *mut HashMap = HashMap_Create((*this).keySize, capacity);
@@ -102,6 +110,7 @@ pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: u3
     MemFree((*this).elems as *const libc::c_void);
     *this = *other;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Set(
     mut this: *mut HashMap,
@@ -110,6 +119,7 @@ pub unsafe extern "C" fn HashMap_Set(
 ) {
     HashMap_SetRaw(this, Hash(key, (*this).keySize), value);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_SetRaw(
     mut this: *mut HashMap,

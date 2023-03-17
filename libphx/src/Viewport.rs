@@ -2,6 +2,7 @@ use crate::internal::Memory::*;
 use glam::IVec2;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn glLoadIdentity();
     fn glMatrixMode(mode: GLenum);
@@ -15,6 +16,7 @@ pub type GLenum = u32;
 pub type GLint = i32;
 pub type GLsizei = i32;
 pub type GLfloat = f32;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct VP {
@@ -52,6 +54,7 @@ unsafe extern "C" fn Viewport_Set(mut this: *const VP) {
         );
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_GetAspect() -> f32 {
     if vpIndex < 0 as i32 {
@@ -59,6 +62,7 @@ pub unsafe extern "C" fn Viewport_GetAspect() -> f32 {
     }
     return vp[vpIndex as usize].sx as f32 / vp[vpIndex as usize].sy as f32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_GetSize(mut out: *mut IVec2) {
     if vpIndex < 0 as i32 {
@@ -67,6 +71,7 @@ pub unsafe extern "C" fn Viewport_GetSize(mut out: *mut IVec2) {
     (*out).x = vp[vpIndex as usize].sx;
     (*out).y = vp[vpIndex as usize].sy;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_Push(
     mut x: i32,
@@ -90,6 +95,7 @@ pub unsafe extern "C" fn Viewport_Push(
     (*this).isWindow = isWindow;
     Viewport_Set(this);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Viewport_Pop() {
     if vpIndex < 0 as i32 {

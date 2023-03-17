@@ -23,6 +23,7 @@ pub struct ClipRect {
 pub type GLenum = u32;
 pub type GLsizei = i32;
 pub type GLint = i32;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ClipRectTransform {
@@ -31,10 +32,12 @@ pub struct ClipRectTransform {
     pub sx: f32,
     pub sy: f32,
 }
+
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
@@ -54,6 +57,7 @@ static mut rect: [ClipRect; 128] = [ClipRect {
     enabled: false,
 }; 128];
 static mut rectIndex: i32 = -(1 as i32);
+
 #[inline]
 unsafe extern "C" fn TransformRect(
     mut x: *mut f32,
@@ -70,6 +74,7 @@ unsafe extern "C" fn TransformRect(
         *sy = (*curr).sy * *sy;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
     if !this.is_null() && (*this).enabled as i32 != 0 {
@@ -86,6 +91,7 @@ pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
         glDisable(0xc11 as i32 as GLenum);
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Push(mut x: f32, mut y: f32, mut sx: f32, mut sy: f32) {
     if rectIndex + 1 as i32 >= 128 as i32 {
@@ -100,6 +106,7 @@ pub unsafe extern "C" fn ClipRect_Push(mut x: f32, mut y: f32, mut sx: f32, mut 
     (*curr).enabled = 1 as i32 != 0;
     ClipRect_Activate(curr);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushCombined(mut x: f32, mut y: f32, mut sx: f32, mut sy: f32) {
     let mut curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
@@ -118,6 +125,7 @@ pub unsafe extern "C" fn ClipRect_PushCombined(mut x: f32, mut y: f32, mut sx: f
         ClipRect_Push(x, y, sx, sy);
     };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushDisabled() {
     if rectIndex + 1 as i32 >= 128 as i32 {
@@ -128,6 +136,7 @@ pub unsafe extern "C" fn ClipRect_PushDisabled() {
     (*curr).enabled = 0 as i32 != 0;
     ClipRect_Activate(curr);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushTransform(
     mut tx: f32,
@@ -151,6 +160,7 @@ pub unsafe extern "C" fn ClipRect_PushTransform(
         ClipRect_Activate(rect.as_mut_ptr().offset(rectIndex as isize));
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Pop() {
     if rectIndex < 0 as i32 {
@@ -165,6 +175,7 @@ pub unsafe extern "C" fn ClipRect_Pop() {
         std::ptr::null_mut()
     });
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PopTransform() {
     if transformIndex < 0 as i32 {

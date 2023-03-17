@@ -12,6 +12,7 @@ extern "C" {
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
+
 #[inline]
 unsafe extern "C" fn Mesh_AddPlane(
     mut this: *mut Mesh,
@@ -39,6 +40,7 @@ unsafe extern "C" fn Mesh_AddPlane(
         iu += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
     let origin: [Vec3; 6] = [
@@ -80,6 +82,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
     }
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_BoxSphere(mut res: i32) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Box(res);
@@ -93,6 +96,7 @@ pub unsafe extern "C" fn Mesh_BoxSphere(mut res: i32) -> *mut Mesh {
     }
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Plane(
     mut origin: Vec3,

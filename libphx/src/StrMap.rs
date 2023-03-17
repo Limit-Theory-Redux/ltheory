@@ -14,6 +14,7 @@ pub struct StrMap {
     pub size: u32,
     pub data: *mut Node,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Node {
@@ -21,6 +22,7 @@ pub struct Node {
     pub next: *mut Node,
     pub value: *mut libc::c_void,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct StrMapIter {
@@ -33,10 +35,12 @@ pub struct StrMapIter {
 unsafe extern "C" fn Hash(mut key: *const libc::c_char) -> u64 {
     return Hash_XX64(key as *const libc::c_void, StrLen(key) as i32, 0 as u64);
 }
+
 #[inline]
 unsafe extern "C" fn StrMap_GetBucket(mut this: *mut StrMap, mut key: *const libc::c_char) -> *mut Node {
     return ((*this).data).offset((Hash(key)).wrapping_rem((*this).capacity as u64) as isize);
 }
+
 unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
     let mut newMap: StrMap = StrMap {
         capacity: ((*this).capacity).wrapping_mul(2 as i32 as u32),
@@ -66,6 +70,7 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
     MemFree((*this).data as *const libc::c_void);
     *this = newMap;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
     let mut this: *mut StrMap =
@@ -75,6 +80,7 @@ pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
         MemAllocZero((::core::mem::size_of::<Node>()).wrapping_mul(capacity as usize)) as *mut Node;
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Free(mut this: *mut StrMap) {
     let mut i: u32 = 0 as i32 as u32;
@@ -95,6 +101,7 @@ pub unsafe extern "C" fn StrMap_Free(mut this: *mut StrMap) {
     MemFree((*this).data as *const libc::c_void);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_FreeEx(
     mut this: *mut StrMap,
@@ -120,6 +127,7 @@ pub unsafe extern "C" fn StrMap_FreeEx(
     MemFree((*this).data as *const libc::c_void);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Get(mut this: *mut StrMap, mut key: *const libc::c_char) -> *mut libc::c_void {
     let mut node: *mut Node = StrMap_GetBucket(this, key);
@@ -134,10 +142,12 @@ pub unsafe extern "C" fn StrMap_Get(mut this: *mut StrMap, mut key: *const libc:
     }
     return std::ptr::null_mut();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_GetSize(mut this: *mut StrMap) -> u32 {
     return (*this).size;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Remove(mut this: *mut StrMap, mut key: *const libc::c_char) {
     let mut prev: *mut *mut Node = std::ptr::null_mut();
@@ -168,6 +178,7 @@ pub unsafe extern "C" fn StrMap_Remove(mut this: *mut StrMap, mut key: *const li
         key,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Set(
     mut this: *mut StrMap,
@@ -201,6 +212,7 @@ pub unsafe extern "C" fn StrMap_Set(
     (*node).next = std::ptr::null_mut();
     *prev = node;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
     libc::printf(
@@ -238,6 +250,7 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
         i = i.wrapping_add(1);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIter {
     let mut it: *mut StrMapIter =
@@ -258,10 +271,12 @@ pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIte
     }
     return it;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_Free(mut this: *mut StrMapIter) {
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_Advance(mut it: *mut StrMapIter) {
     let mut this: *mut StrMap = (*it).map;
@@ -282,14 +297,17 @@ pub unsafe extern "C" fn StrMapIter_Advance(mut it: *mut StrMapIter) {
         }
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_HasMore(mut it: *mut StrMapIter) -> bool {
     return !((*it).node).is_null();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_GetKey(mut it: *mut StrMapIter) -> *const libc::c_char {
     return (*(*it).node).key;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_GetValue(mut it: *mut StrMapIter) -> *mut libc::c_void {
     return (*(*it).node).value;

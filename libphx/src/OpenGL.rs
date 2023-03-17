@@ -22,6 +22,7 @@ extern "C" {
 pub type GLenum = u32;
 pub type GLint = i32;
 pub type GLfloat = f32;
+
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
     static mut init: bool = 0 as i32 != 0;
@@ -49,6 +50,7 @@ pub unsafe extern "C" fn OpenGL_Init() {
     glLoadIdentity();
     RenderState_PushAllDefaults();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_CheckError(mut file: *const libc::c_char, mut line: i32) {
     let mut errorID: GLenum = glGetError();

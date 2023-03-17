@@ -62,6 +62,7 @@ extern "C" {
     ) -> FMOD_RESULT;
     fn FMOD_Sound_SetUserData(sound: *mut FMOD_SOUND, userdata: *mut libc::c_void) -> FMOD_RESULT;
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct SoundDesc {
@@ -72,6 +73,7 @@ pub struct SoundDesc {
 }
 pub type ResourceType = i32;
 pub type FMOD_BOOL = i32;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FMOD_ASYNCREADINFO {
@@ -261,6 +263,7 @@ pub type FMOD_FILE_ASYNCREAD_CALLBACK =
     Option<unsafe extern "C" fn(*mut FMOD_ASYNCREADINFO, *mut libc::c_void) -> FMOD_RESULT>;
 pub type FMOD_FILE_ASYNCCANCEL_CALLBACK =
     Option<unsafe extern "C" fn(*mut FMOD_ASYNCREADINFO, *mut libc::c_void) -> FMOD_RESULT>;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FMOD_GUID {
@@ -269,6 +272,7 @@ pub struct FMOD_GUID {
     pub Data3: u16,
     pub Data4: [libc::c_uchar; 8],
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FMOD_CREATESOUNDEXINFO {
@@ -309,6 +313,7 @@ pub struct FMOD_CREATESOUNDEXINFO {
     pub nonblockthreadid: i32,
     pub fsbguid: *mut FMOD_GUID,
 }
+
 #[inline]
 unsafe extern "C" fn FMOD_CheckError(
     mut result: FMOD_RESULT,
@@ -327,6 +332,7 @@ unsafe extern "C" fn FMOD_CheckError(
         );
     }
 }
+
 #[inline]
 unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> *const libc::c_char {
     match this as u32 {
@@ -433,6 +439,7 @@ unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> *const libc::c
     }
     return b"Unknown Error\0" as *const u8 as *const libc::c_char;
 }
+
 unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
     match errcode as u32 {
         0 => return b"No errors.\0" as *const u8 as *const libc::c_char,
@@ -792,6 +799,7 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(mut this: *mut SoundDesc, mut func
         }
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_Load(
     mut name: *const libc::c_char,
@@ -871,10 +879,12 @@ pub unsafe extern "C" fn SoundDesc_Load(
     }
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_Acquire(mut this: *mut SoundDesc) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
     if !this.is_null() && {
@@ -903,6 +913,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
         );
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_GetDuration(mut this: *mut SoundDesc) -> f32 {
     SoundDesc_FinishLoad(
@@ -928,14 +939,17 @@ pub unsafe extern "C" fn SoundDesc_GetDuration(mut this: *mut SoundDesc) -> f32 
     // );
     return duration as f32 / 1000.0f32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_GetName(mut this: *mut SoundDesc) -> *const libc::c_char {
     return (*this).name;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_GetPath(mut this: *mut SoundDesc) -> *const libc::c_char {
     return (*this).path;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *const libc::c_char) {
     SoundDesc_FinishLoad(

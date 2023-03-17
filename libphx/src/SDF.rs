@@ -17,6 +17,7 @@ pub struct SDF {
     pub size: IVec3,
     pub data: *mut Cell,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Cell {
@@ -34,6 +35,7 @@ unsafe extern "C" fn Saturate(mut t: f64) -> f64 {
         t
     };
 }
+
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
@@ -54,6 +56,7 @@ pub unsafe extern "C" fn SDF_Create(mut sx: i32, mut sy: i32, mut sz: i32) -> *m
     );
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
     let mut this: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>()) as *mut SDF;
@@ -70,11 +73,13 @@ pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
     );
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Free(mut this: *mut SDF) {
     MemFree((*this).data as *const libc::c_void);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
@@ -259,6 +264,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
     MemFree(indices as *const libc::c_void);
     return mesh;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
     let mut size: u64 = ((*this).size.x * (*this).size.y * (*this).size.z) as u64;
@@ -271,6 +277,7 @@ pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
         i = i.wrapping_add(1);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SDF_ComputeNormals(mut this: *mut SDF) {
     let stride: IVec3 = IVec3 {
@@ -307,6 +314,7 @@ pub unsafe extern "C" fn SDF_ComputeNormals(mut this: *mut SDF) {
         z += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Set(
     mut this: *mut SDF,
@@ -318,6 +326,7 @@ pub unsafe extern "C" fn SDF_Set(
     (*((*this).data).offset((x + (*this).size.x * (y + (*this).size.y * z)) as isize)).value =
         value;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn SDF_SetNormal(
     mut this: *mut SDF,

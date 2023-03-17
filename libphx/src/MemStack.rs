@@ -1,9 +1,11 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct MemStack {
@@ -21,11 +23,13 @@ pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
     (*this).data = MemAlloc(capacity as usize);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Free(mut this: *mut MemStack) {
     MemFree((*this).data);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Alloc(
     mut this: *mut MemStack,
@@ -42,10 +46,12 @@ pub unsafe extern "C" fn MemStack_Alloc(
     (*this).size = ((*this).size as u32).wrapping_add(size) as u32;
     return p;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Clear(mut this: *mut MemStack) {
     (*this).size = 0 as i32 as u32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Dealloc(mut this: *mut MemStack, mut size: u32) {
     if (*this).size < size {
@@ -56,18 +62,22 @@ pub unsafe extern "C" fn MemStack_Dealloc(mut this: *mut MemStack, mut size: u32
     }
     (*this).size = ((*this).size as u32).wrapping_sub(size) as u32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_CanAlloc(mut this: *mut MemStack, mut size: u32) -> bool {
     return ((*this).size).wrapping_add(size) <= (*this).capacity;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_GetSize(mut this: *mut MemStack) -> u32 {
     return (*this).size;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_GetCapacity(mut this: *mut MemStack) -> u32 {
     return (*this).capacity;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_GetRemaining(mut this: *mut MemStack) -> u32 {
     return ((*this).capacity).wrapping_sub((*this).size);

@@ -29,6 +29,7 @@ pub type PointClassification = u8;
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
+
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
@@ -62,6 +63,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mu
     (*out).n = Vec3::new(n.x as f32, n.y as f32, n.z as f32);
     (*out).d = DVec3::dot(centroid, n) as f32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ToPlaneFast(mut polygon: *mut Polygon, mut out: *mut Plane) {
     let mut v: *mut Vec3 = ((*polygon).vertices_data).offset(0);
@@ -86,6 +88,7 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(mut polygon: *mut Polygon, mut out:
     (*out).n = n;
     (*out).d = Vec3::dot(*v.offset(0), n);
 }
+
 #[inline]
 unsafe extern "C" fn Polygon_SplitImpl(
     mut polygon: *mut Polygon,
@@ -285,6 +288,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
         j += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_SplitSafe(
     mut polygon: *mut Polygon,
@@ -358,6 +362,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
         i += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_Split(
     mut polygon: *mut Polygon,
@@ -367,6 +372,7 @@ pub unsafe extern "C" fn Polygon_Split(
 ) {
     Polygon_SplitImpl(polygon, splitPlane, back, front);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_GetCentroid(mut polygon: *mut Polygon, mut out: *mut Vec3) {
     let mut centroid = Vec3::ZERO;
@@ -380,6 +386,7 @@ pub unsafe extern "C" fn Polygon_GetCentroid(mut polygon: *mut Polygon, mut out:
     centroid /= (*polygon).vertices_size as f32;
     *out = centroid;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ConvexToTriangles(
     mut polygon: *mut Polygon,
@@ -410,6 +417,7 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
         i += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
     let mut v: *mut Vec3 = (*polygon).vertices_data;

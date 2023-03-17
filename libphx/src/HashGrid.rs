@@ -22,6 +22,7 @@ pub struct HashGrid {
     pub results_capacity: i32,
     pub results_data: *mut *mut libc::c_void,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HashGridCell {
@@ -30,6 +31,7 @@ pub struct HashGridCell {
     pub elems_capacity: i32,
     pub elems_data: *mut *mut HashGridElem,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HashGridElem {
@@ -39,19 +41,21 @@ pub struct HashGridElem {
     pub upper: [i32; 3],
 }
 
-
 #[inline]
 unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
+
 #[inline]
 unsafe extern "C" fn Maxi(mut a: i32, mut b: i32) -> i32 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Mini(mut a: i32, mut b: i32) -> i32 {
     return if a < b { a } else { b };
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) -> *mut HashGrid {
     let mut logCount: u32 = 0 as i32 as u32;
@@ -86,6 +90,7 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
     }
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Free(mut this: *mut HashGrid) {
     MemFree((*this).results_data as *const libc::c_void);
@@ -98,6 +103,7 @@ pub unsafe extern "C" fn HashGrid_Free(mut this: *mut HashGrid) {
     MemFree((*this).cells as *const libc::c_void);
     MemFree(this as *const libc::c_void);
 }
+
 #[inline]
 unsafe extern "C" fn HashGrid_GetCell(
     mut this: *mut HashGrid,
@@ -113,6 +119,7 @@ unsafe extern "C" fn HashGrid_GetCell(
     );
     return ((*this).cells).offset((hash & (*this).mask as u64) as isize);
 }
+
 unsafe extern "C" fn HashGrid_AddElem(mut this: *mut HashGrid, mut elem: *mut HashGridElem) {
     (*this).version = ((*this).version).wrapping_add(1);
     let mut x: i32 = (*elem).lower[0];
@@ -151,6 +158,7 @@ unsafe extern "C" fn HashGrid_AddElem(mut this: *mut HashGrid, mut elem: *mut Ha
         x += 1;
     }
 }
+
 unsafe extern "C" fn HashGrid_RemoveElem(mut this: *mut HashGrid, mut elem: *mut HashGridElem) {
     (*this).version = ((*this).version).wrapping_add(1);
     let mut x: i32 = (*elem).lower[0];
@@ -182,10 +190,12 @@ unsafe extern "C" fn HashGrid_RemoveElem(mut this: *mut HashGrid, mut elem: *mut
         x += 1;
     }
 }
+
 #[inline]
 unsafe extern "C" fn HashGrid_ToLocal(mut this: *mut HashGrid, mut x: f32) -> i32 {
     return Floor((x / (*this).cellSize) as f64) as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Add(
     mut this: *mut HashGrid,
@@ -203,6 +213,7 @@ pub unsafe extern "C" fn HashGrid_Add(
     HashGrid_AddElem(this, elem);
     return elem;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Clear(mut this: *mut HashGrid) {
     (*this).version = 0 as i32 as u64;
@@ -215,11 +226,13 @@ pub unsafe extern "C" fn HashGrid_Clear(mut this: *mut HashGrid) {
     MemPool_Clear((*this).elemPool);
     (*this).results_size = 0 as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Remove(mut this: *mut HashGrid, mut elem: *mut HashGridElem) {
     HashGrid_RemoveElem(this, elem);
     MemPool_Dealloc((*this).elemPool, elem as *mut libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Update(
     mut this: *mut HashGrid,
@@ -363,10 +376,12 @@ pub unsafe extern "C" fn HashGrid_Update(
     (*elem).upper[2] = upper[2];
     Profiler_End();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_GetResults(mut this: *mut HashGrid) -> *mut *mut libc::c_void {
     return (*this).results_data;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_QueryBox(
     mut this: *mut HashGrid,
@@ -432,6 +447,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(
     }
     return (*this).results_size;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_QueryPoint(mut this: *mut HashGrid, mut p: *const Vec3) -> i32 {
     (*this).results_size = 0 as i32;

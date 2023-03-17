@@ -14,6 +14,7 @@ pub struct KDTree {
     pub front: *mut KDTree,
     pub elems: *mut Node,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Node {
@@ -22,15 +23,16 @@ pub struct Node {
     pub box_0: Box3f,
 }
 
-
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
     return if a < b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
     let mut result: Box3f = Box3f {
@@ -39,6 +41,7 @@ unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
     };
     return result;
 }
+
 #[inline]
 unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
     let mut this: Box3f = Box3f {
@@ -65,6 +68,7 @@ unsafe extern "C" fn compareLowerX(mut a: *const libc::c_void, mut b: *const lib
         1 as i32
     };
 }
+
 unsafe extern "C" fn compareLowerY(mut a: *const libc::c_void, mut b: *const libc::c_void) -> i32 {
     return if (*(a as *const Box3f)).lower.y < (*(b as *const Box3f)).lower.y {
         -(1 as i32)
@@ -72,6 +76,7 @@ unsafe extern "C" fn compareLowerY(mut a: *const libc::c_void, mut b: *const lib
         1 as i32
     };
 }
+
 unsafe extern "C" fn compareLowerZ(mut a: *const libc::c_void, mut b: *const libc::c_void) -> i32 {
     return if (*(a as *const Box3f)).lower.z < (*(b as *const Box3f)).lower.z {
         -(1 as i32)
@@ -79,6 +84,7 @@ unsafe extern "C" fn compareLowerZ(mut a: *const libc::c_void, mut b: *const lib
         1 as i32
     };
 }
+
 unsafe extern "C" fn Partition(
     mut boxes: *mut Box3f,
     mut boxCount: i32,
@@ -166,6 +172,7 @@ unsafe extern "C" fn Partition(
     MemFree(boxesFront as *const libc::c_void);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
     let indexCount: i32 = Mesh_GetIndexCount(mesh);
@@ -192,6 +199,7 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
     MemFree(boxes as *const libc::c_void);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_Free(mut this: *mut KDTree) {
     if !((*this).back).is_null() {
@@ -208,6 +216,7 @@ pub unsafe extern "C" fn KDTree_Free(mut this: *mut KDTree) {
     }
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> i32 {
     let mut memory: i32 = ::core::mem::size_of::<KDTree>() as usize as i32;
@@ -224,6 +233,7 @@ pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> i32 {
     }
     return memory;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_IntersectRay(
     mut this: *mut KDTree,
@@ -233,6 +243,7 @@ pub unsafe extern "C" fn KDTree_IntersectRay(
 ) -> bool {
     return 0 as i32 != 0;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_Draw(mut this: *mut KDTree, mut maxDepth: i32) {
     if maxDepth < 0 as i32 {

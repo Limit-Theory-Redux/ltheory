@@ -35,18 +35,22 @@ pub type TexFormat = i32;
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
+
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Ceil(mut t: f64) -> f64 {
     return ceil(t);
 }
+
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
+
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
@@ -62,6 +66,7 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
     };
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut indexCount: i32 = Mesh_GetIndexCount(this);
@@ -206,6 +211,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     Tex2D_Free(texVPoints);
     Tex2D_Free(texVNormals);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     mut this: *mut Mesh,

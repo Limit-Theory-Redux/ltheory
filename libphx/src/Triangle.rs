@@ -20,6 +20,7 @@ pub struct Triangle {
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
     return sqrt(t as f64) as f32;
 }
+
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
@@ -38,6 +39,7 @@ pub unsafe extern "C" fn Triangle_ToPlane(mut tri: *const Triangle, mut plane: *
     (*plane).n = n;
     (*plane).d = Vec3::dot(centroid, n);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Triangle_ToPlaneFast(
     mut triangle: *const Triangle,
@@ -50,12 +52,14 @@ pub unsafe extern "C" fn Triangle_ToPlaneFast(
     (*plane).n = n;
     (*plane).d = Vec3::dot(*v.offset(0), n);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Triangle_GetArea(mut tri: *const Triangle) -> f32 {
     let mut e1 = (*tri).vertices[1] - (*tri).vertices[0];
     let mut e2 = (*tri).vertices[2] - (*tri).vertices[1];
     return 0.5f32 * Vec3::cross(e1, e2).length();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     let mut v: *const Vec3 = ((*tri).vertices).as_ptr();

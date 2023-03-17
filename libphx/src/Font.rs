@@ -44,6 +44,7 @@ extern "C" {
     fn FT_Get_Char_Index(face: FT_Face, charcode: FT_ULong) -> FT_UInt;
 }
 pub type uchar = libc::c_uchar;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Font {
@@ -52,6 +53,7 @@ pub struct Font {
     pub glyphs: *mut HashMap,
     pub glyphsAscii: [*mut Glyph; 256],
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Glyph {
@@ -66,6 +68,7 @@ pub struct Glyph {
     pub advance: i32,
 }
 pub type FT_Face = *mut FT_FaceRec_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_FaceRec_ {
@@ -103,6 +106,7 @@ pub struct FT_FaceRec_ {
 }
 pub type FT_Face_Internal = *mut FT_Face_InternalRec_;
 pub type FT_Generic = FT_Generic_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_Generic_ {
@@ -111,6 +115,7 @@ pub struct FT_Generic_ {
 }
 pub type FT_Generic_Finalizer = Option<unsafe extern "C" fn(*mut libc::c_void) -> ()>;
 pub type FT_ListRec = FT_ListRec_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_ListRec_ {
@@ -118,6 +123,7 @@ pub struct FT_ListRec_ {
     pub tail: FT_ListNode,
 }
 pub type FT_ListNode = *mut FT_ListNodeRec_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_ListNodeRec_ {
@@ -126,6 +132,7 @@ pub struct FT_ListNodeRec_ {
     pub data: *mut libc::c_void,
 }
 pub type FT_Stream = *mut FT_StreamRec_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_StreamRec_ {
@@ -141,6 +148,7 @@ pub struct FT_StreamRec_ {
     pub limit: *mut libc::c_uchar,
 }
 pub type FT_Memory = *mut FT_MemoryRec_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_MemoryRec_ {
@@ -169,6 +177,7 @@ pub type FT_Stream_IoFunc = Option<
     ) -> libc::c_ulong,
 >;
 pub type FT_StreamDesc = FT_StreamDesc_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub union FT_StreamDesc_ {
@@ -177,6 +186,7 @@ pub union FT_StreamDesc_ {
 }
 pub type FT_Driver = *mut FT_DriverRec_;
 pub type FT_CharMap = *mut FT_CharMapRec_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_CharMapRec_ {
@@ -209,6 +219,7 @@ pub const FT_ENCODING_UNICODE: FT_Encoding_ = 1970170211;
 pub const FT_ENCODING_MS_SYMBOL: FT_Encoding_ = 1937337698;
 pub const FT_ENCODING_NONE: FT_Encoding_ = 0;
 pub type FT_Size = *mut FT_SizeRec_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_SizeRec_ {
@@ -219,6 +230,7 @@ pub struct FT_SizeRec_ {
 }
 pub type FT_Size_Internal = *mut FT_Size_InternalRec_;
 pub type FT_Size_Metrics = FT_Size_Metrics_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_Size_Metrics_ {
@@ -234,6 +246,7 @@ pub struct FT_Size_Metrics_ {
 pub type FT_Pos = libc::c_long;
 pub type FT_Fixed = libc::c_long;
 pub type FT_GlyphSlot = *mut FT_GlyphSlotRec_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_GlyphSlotRec_ {
@@ -264,6 +277,7 @@ pub type FT_Slot_Internal = *mut FT_Slot_InternalRec_;
 pub type FT_SubGlyph = *mut FT_SubGlyphRec_;
 pub type FT_UInt = u32;
 pub type FT_Outline = FT_Outline_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_Outline_ {
@@ -275,6 +289,7 @@ pub struct FT_Outline_ {
     pub flags: i32,
 }
 pub type FT_Vector = FT_Vector_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_Vector_ {
@@ -283,6 +298,7 @@ pub struct FT_Vector_ {
 }
 pub type FT_Int = i32;
 pub type FT_Bitmap = FT_Bitmap_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_Bitmap_ {
@@ -304,6 +320,7 @@ pub const FT_GLYPH_FORMAT_BITMAP: FT_Glyph_Format_ = 1651078259;
 pub const FT_GLYPH_FORMAT_COMPOSITE: FT_Glyph_Format_ = 1668246896;
 pub const FT_GLYPH_FORMAT_NONE: FT_Glyph_Format_ = 0;
 pub type FT_Glyph_Metrics = FT_Glyph_Metrics_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_Glyph_Metrics_ {
@@ -319,6 +336,7 @@ pub struct FT_Glyph_Metrics_ {
 pub type FT_Library = *mut FT_LibraryRec_;
 pub type FT_Short = i16;
 pub type FT_BBox = FT_BBox_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_BBox_ {
@@ -328,6 +346,7 @@ pub struct FT_BBox_ {
     pub yMax: FT_Pos,
 }
 pub type FT_Bitmap_Size = FT_Bitmap_Size_;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FT_Bitmap_Size_ {
@@ -360,18 +379,22 @@ pub const FT_KERNING_DEFAULT: FT_Kerning_Mode_ = 0;
 pub type FT_Kerning_Mode_ = u32;
 pub const FT_KERNING_UNSCALED: FT_Kerning_Mode_ = 2;
 pub const FT_KERNING_UNFITTED: FT_Kerning_Mode_ = 1;
+
 #[inline]
 unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
+
 #[inline]
 unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
     return pow(t, p);
 }
+
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
@@ -390,6 +413,7 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
 
 #[no_mangle]
 pub static mut kGamma: f32 = 1.8f32;
+
 #[no_mangle]
 pub static mut kRcpGamma: f32 = unsafe { 1.0f32 / kGamma };
 static mut ft: FT_Library = std::ptr::null_mut();
@@ -467,6 +491,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     }
     return g;
 }
+
 #[inline]
 unsafe extern "C" fn Font_GetKerning(mut this: *mut Font, mut a: i32, mut b: i32) -> i32 {
     let mut kern: FT_Vector = FT_Vector { x: 0, y: 0 };
@@ -479,6 +504,7 @@ unsafe extern "C" fn Font_GetKerning(mut this: *mut Font, mut a: i32, mut b: i32
     );
     return (kern.x >> 6 as i32) as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32) -> *mut Font {
     if ft.is_null() {
@@ -505,10 +531,12 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
     );
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Font_Acquire(mut this: *mut Font) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
     if !this.is_null() && {
@@ -519,6 +547,7 @@ pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
         MemFree(this as *const libc::c_void);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Font_Draw(
     mut this: *mut Font,
@@ -565,6 +594,7 @@ pub unsafe extern "C" fn Font_Draw(
     RenderState_PopBlendMode();
     Profiler_End();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Font_DrawShaded(
     mut this: *mut Font,
@@ -605,10 +635,12 @@ pub unsafe extern "C" fn Font_DrawShaded(
     }
     Profiler_End();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetLineHeight(mut this: *mut Font) -> i32 {
     return ((*(*(*this).handle).size).metrics.height >> 6 as i32) as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, mut text: *const libc::c_char) {
     Profiler_Begin(
@@ -648,6 +680,7 @@ pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, 
     *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
     Profiler_End();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize2(mut this: *mut Font, mut out: *mut IVec2, mut text: *const libc::c_char) {
     Profiler_Begin(

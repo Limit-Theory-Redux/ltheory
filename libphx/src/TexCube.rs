@@ -47,6 +47,7 @@ extern "C" {
 }
 
 pub type uchar = libc::c_uchar;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct TexCube {
@@ -66,6 +67,7 @@ pub type GLu32 = u32;
 pub type GLint = i32;
 pub type GLsizei = i32;
 pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Face {
@@ -73,14 +75,17 @@ pub struct Face {
     pub look: Vec3,
     pub up: Vec3,
 }
+
 #[inline]
 unsafe extern "C" fn Floor(mut t: f64) -> f64 {
     return floor(t);
 }
+
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
@@ -126,6 +131,7 @@ static mut kFaceExt: [*const libc::c_char; 6] = [
     b"ny\0" as *const u8 as *const libc::c_char,
     b"nz\0" as *const u8 as *const libc::c_char,
 ];
+
 #[inline]
 unsafe extern "C" fn TexCube_InitParameters() {
     glTexParameteri(
@@ -149,6 +155,7 @@ unsafe extern "C" fn TexCube_InitParameters() {
         0x812f as i32,
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) -> *mut TexCube {
     if !TexFormat_IsValid(format) {
@@ -240,10 +247,12 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Acquire(mut this: *mut TexCube) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Clear(
     mut this: *mut TexCube,
@@ -262,6 +271,7 @@ pub unsafe extern "C" fn TexCube_Clear(
         i += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
     if !this.is_null() && {
@@ -272,6 +282,7 @@ pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
         MemFree(this as *const libc::c_void);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut TexCube {
     let mut this: *mut TexCube =
@@ -358,6 +369,7 @@ pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut Tex
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetData(
     mut this: *mut TexCube,
@@ -371,6 +383,7 @@ pub unsafe extern "C" fn TexCube_GetData(
     glGetTexImage(face as GLenum, level, pf as GLenum, df as GLenum, data);
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetDataBytes(
     mut this: *mut TexCube,
@@ -387,18 +400,22 @@ pub unsafe extern "C" fn TexCube_GetDataBytes(
     Bytes_Rewind(data);
     return data;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetFormat(mut this: *mut TexCube) -> TexFormat {
     return (*this).format;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetHandle(mut this: *mut TexCube) -> u32 {
     return (*this).handle;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetSize(mut this: *mut TexCube) -> i32 {
     return (*this).size;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mut ShaderState) {
     GLMatrix_ModeP();
@@ -456,12 +473,14 @@ pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mu
     GLMatrix_ModeWV();
     GLMatrix_Pop();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GenMipmap(mut this: *mut TexCube) {
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
     __glewGenerateMipmap.expect("non-null function pointer")(0x8513 as i32 as GLenum);
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetData(
     mut this: *mut TexCube,
@@ -485,6 +504,7 @@ pub unsafe extern "C" fn TexCube_SetData(
     );
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetDataBytes(
     mut this: *mut TexCube,
@@ -496,22 +516,26 @@ pub unsafe extern "C" fn TexCube_SetDataBytes(
 ) {
     TexCube_SetData(this, Bytes_GetData(data), face, level, pf, df);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetMagFilter(mut this: *mut TexCube, mut filter: TexFilter) {
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
     glTexParameteri(0x8513 as i32 as GLenum, 0x2800 as i32 as GLenum, filter);
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetMinFilter(mut this: *mut TexCube, mut filter: TexFilter) {
     glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
     glTexParameteri(0x8513 as i32 as GLenum, 0x2801 as i32 as GLenum, filter);
     glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Save(mut this: *mut TexCube, mut path: *const libc::c_char) {
     TexCube_SaveLevel(this, path, 0 as i32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SaveLevel(mut this: *mut TexCube, mut path: *const libc::c_char, mut level: i32) {
     let mut size: i32 = (*this).size >> level;

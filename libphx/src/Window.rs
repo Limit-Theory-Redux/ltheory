@@ -11,6 +11,7 @@ use sdl2_sys::*;
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Window {
@@ -39,12 +40,14 @@ pub unsafe extern "C" fn Window_Create(
     OpenGL_Init();
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_Free(mut this: *mut Window) {
     SDL_GL_DeleteContext((*this).context);
     SDL_DestroyWindow((*this).handle);
     MemFree(this as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_BeginDraw(mut this: *mut Window) {
     let mut size: IVec2 = IVec2::new(0, 0);
@@ -52,23 +55,28 @@ pub unsafe extern "C" fn Window_BeginDraw(mut this: *mut Window) {
     Window_GetSize(this, &mut size);
     Viewport_Push(0 as i32, 0 as i32, size.x, size.y, 1 as i32 != 0);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_EndDraw(mut this: *mut Window) {
     Viewport_Pop();
     SDL_GL_SwapWindow((*this).handle);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_GetSize(mut this: *mut Window, mut out: *mut IVec2) {
     SDL_GetWindowSize((*this).handle, &mut (*out).x, &mut (*out).y);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_GetPosition(mut this: *mut Window, mut out: *mut IVec2) {
     SDL_GetWindowPosition((*this).handle, &mut (*out).x, &mut (*out).y);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_GetTitle(mut this: *mut Window) -> *const libc::c_char {
     return SDL_GetWindowTitle((*this).handle);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetFullscreen(mut this: *mut Window, mut fs: bool) {
     SDL_SetWindowFullscreen(
@@ -80,6 +88,7 @@ pub unsafe extern "C" fn Window_SetFullscreen(mut this: *mut Window, mut fs: boo
         },
     );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetPosition(
     mut this: *mut Window,
@@ -88,14 +97,17 @@ pub unsafe extern "C" fn Window_SetPosition(
 ) {
     SDL_SetWindowPosition((*this).handle, x, y);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetSize(mut this: *mut Window, mut sx: i32, mut sy: i32) {
     SDL_SetWindowSize((*this).handle, sx, sy);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetTitle(mut this: *mut Window, mut title: *const libc::c_char) {
     SDL_SetWindowTitle((*this).handle, title);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetVsync(mut this: *mut Window, mut vsync: bool) {
     SDL_GL_SetSwapInterval(if vsync {
@@ -104,6 +116,7 @@ pub unsafe extern "C" fn Window_SetVsync(mut this: *mut Window, mut vsync: bool)
         0
     });
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_ToggleFullscreen(mut this: *mut Window) {
     if (*this).mode & WindowMode_Fullscreen != 0 {
@@ -113,10 +126,12 @@ pub unsafe extern "C" fn Window_ToggleFullscreen(mut this: *mut Window) {
     }
     (*this).mode ^= WindowMode_Fullscreen;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_Hide(mut this: *mut Window) {
     SDL_HideWindow((*this).handle);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Window_Show(mut this: *mut Window) {
     SDL_ShowWindow((*this).handle);

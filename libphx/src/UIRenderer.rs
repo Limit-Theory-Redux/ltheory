@@ -12,6 +12,7 @@ use glam::{IVec2, Vec2, Vec4};
 use libc;
 
 pub type BlendMode = i32;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererLayer {
@@ -26,6 +27,7 @@ pub struct UIRendererLayer {
     pub size: Vec2,
     pub clip: bool,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererText {
@@ -35,6 +37,7 @@ pub struct UIRendererText {
     pub pos: Vec2,
     pub color: Vec4,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererRect {
@@ -44,6 +47,7 @@ pub struct UIRendererRect {
     pub color: Vec4,
     pub outline: bool,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererPanel {
@@ -54,6 +58,7 @@ pub struct UIRendererPanel {
     pub bevel: f32,
     pub innerAlpha: f32,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererImage {
@@ -62,6 +67,7 @@ pub struct UIRendererImage {
     pub pos: Vec2,
     pub size: Vec2,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRenderer {
@@ -97,6 +103,7 @@ unsafe extern "C" fn UIRenderer_Init() {
     this.rectPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererRect>() as usize as u32);
     this.textPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererText>() as usize as u32);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Begin() {
     UIRenderer_Init();
@@ -118,10 +125,12 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
     );
     this.root = this.layer;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_End() {
     UIRenderer_EndLayer();
 }
+
 unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
     if (*self_1).clip {
         ClipRect_PushCombined(
@@ -221,12 +230,14 @@ unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
         ClipRect_Pop();
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Draw() {
     RenderState_PushBlendMode(1 as i32);
     UIRenderer_DrawLayer(this.root);
     RenderState_PopBlendMode();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_BeginLayer(
     mut x: f32,
@@ -248,6 +259,7 @@ pub unsafe extern "C" fn UIRenderer_BeginLayer(
     (*layer).textList = std::ptr::null_mut();
     this.layer = layer;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_EndLayer() {
     if !((*this.layer).parent).is_null() {
@@ -256,6 +268,7 @@ pub unsafe extern "C" fn UIRenderer_EndLayer() {
     }
     this.layer = (*this.layer).parent;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Image(
     mut image: *mut Tex2D,
@@ -271,6 +284,7 @@ pub unsafe extern "C" fn UIRenderer_Image(
     (*e).size = Vec2::new(sx, sy);
     (*this.layer).imageList = e;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Panel(
     mut x: f32,
@@ -293,6 +307,7 @@ pub unsafe extern "C" fn UIRenderer_Panel(
     (*e).innerAlpha = innerAlpha;
     (*this.layer).panelList = e;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Rect(
     mut x: f32,
@@ -313,6 +328,7 @@ pub unsafe extern "C" fn UIRenderer_Rect(
     (*e).outline = outline;
     (*this.layer).rectList = e;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Text(
     mut font: *mut Font,

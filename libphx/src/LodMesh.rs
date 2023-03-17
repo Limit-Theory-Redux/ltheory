@@ -9,6 +9,7 @@ pub struct LodMesh {
     pub _refCount: u32,
     pub head: *mut LodMeshEntry,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LodMeshEntry {
@@ -26,10 +27,12 @@ pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
     (*this).head = std::ptr::null_mut();
     return this;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Acquire(mut this: *mut LodMesh) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Free(mut this: *mut LodMesh) {
     if !this.is_null() && {
@@ -46,6 +49,7 @@ pub unsafe extern "C" fn LodMesh_Free(mut this: *mut LodMesh) {
         MemFree(this as *const libc::c_void);
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Add(
     mut this: *mut LodMesh,
@@ -61,6 +65,7 @@ pub unsafe extern "C" fn LodMesh_Add(
     (*e).next = (*this).head;
     (*this).head = e;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Draw(mut this: *mut LodMesh, mut d2: f32) {
     let mut e: *mut LodMeshEntry = (*this).head;
@@ -71,6 +76,7 @@ pub unsafe extern "C" fn LodMesh_Draw(mut this: *mut LodMesh, mut d2: f32) {
         e = (*e).next;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Get(mut this: *mut LodMesh, mut d2: f32) -> *mut Mesh {
     let mut e: *mut LodMeshEntry = (*this).head;

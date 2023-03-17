@@ -162,6 +162,7 @@ pub const FMOD_DEBUG_MODE_FORCEINT: FMOD_DEBUG_MODE = 65536;
 pub const FMOD_DEBUG_MODE_CALLBACK: FMOD_DEBUG_MODE = 2;
 pub const FMOD_DEBUG_MODE_FILE: FMOD_DEBUG_MODE = 1;
 pub const FMOD_DEBUG_MODE_TTY: FMOD_DEBUG_MODE = 0;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct FMOD_VECTOR {
@@ -276,6 +277,7 @@ unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> *const libc:
     }
     return b"Unknown Error\0" as *const u8 as *const libc::c_char;
 }
+
 unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
     match errcode as u32 {
         0 => return b"No errors.\0" as *const u8 as *const libc::c_char,
@@ -588,6 +590,7 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
         _ => return b"Unknown error.\0" as *const u8 as *const libc::c_char,
     };
 }
+
 #[inline]
 unsafe extern "C" fn FMOD_CheckError(
     mut result: FMOD_RESULT,
@@ -621,6 +624,7 @@ static mut this: Audio = Audio {
     autoFwd: std::ptr::null(),
     autoUp: std::ptr::null(),
 };
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Init() {
     // let mut flags: FMOD_DEBUG_FLAGS = 0 as i32 as FMOD_DEBUG_FLAGS;
@@ -691,6 +695,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //     128 as i32 as u32,
     // );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Free() {
     // FMOD_CheckError(
@@ -706,6 +711,7 @@ pub unsafe extern "C" fn Audio_Free() {
     // MemFree(this.playingSounds_data as *const libc::c_void);
     // MemFree(this.freeingSounds_data as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AttachListenerPos(
     mut pos: *const Vec3,
@@ -719,6 +725,7 @@ pub unsafe extern "C" fn Audio_AttachListenerPos(
     // this.autoUp = up;
     // Audio_SetListenerPos(pos, vel, fwd, up);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Set3DSettings(mut doppler: f32, mut scale: f32, mut rolloff: f32) {
     // FMOD_CheckError(
@@ -733,6 +740,7 @@ pub unsafe extern "C" fn Audio_Set3DSettings(mut doppler: f32, mut scale: f32, m
     //         .as_ptr(),
     // );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_SetListenerPos(
     mut pos: *const Vec3,
@@ -759,6 +767,7 @@ pub unsafe extern "C" fn Audio_SetListenerPos(
     //         .as_ptr(),
     // );
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Update() {
     // FMOD_CheckError(
@@ -793,25 +802,30 @@ pub unsafe extern "C" fn Audio_Update() {
     // }
     // this.freeingSounds_size = 0 as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetLoadedCount() -> i32 {
     return 0;
     // let mut size: u32 = StrMap_GetSize(this.descMap);
     // return size as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetPlayingCount() -> i32 {
     return this.playingSounds_size;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetTotalCount() -> i32 {
     let mut size: u32 = MemPool_GetSize(this.soundPool);
     return size as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {
     return this.handle as *mut libc::c_void;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> *mut SoundDesc {
     let mut desc: *mut SoundDesc = StrMap_Get(this.descMap, name) as *mut SoundDesc;
@@ -821,19 +835,23 @@ pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> 
     }
     return desc;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_DeallocSoundDesc(mut desc: *mut SoundDesc) {
     StrMap_Remove(this.descMap, (*desc).name);
     MemFree(desc as *const libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AllocSound() -> *mut Sound {
     return MemPool_Alloc(this.soundPool) as *mut Sound;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_DeallocSound(mut sound: *mut Sound) {
     MemPool_Dealloc(this.soundPool, sound as *mut libc::c_void);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
     if Sound_IsFreed(sound) {

@@ -2,9 +2,11 @@ use crate::internal::Memory::*;
 use glam::IVec2;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct MidiDevice {
@@ -16,20 +18,25 @@ pub struct MidiDevice {
 pub unsafe extern "C" fn MidiDevice_GetCount() -> i32 {
     return 0 as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_Open(mut index: i32) -> *mut MidiDevice {
     return std::ptr::null_mut();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_Close(mut this: *mut MidiDevice) {}
+
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_GetNameByIndex(mut index: i32) -> *const libc::c_char {
     return std::ptr::null();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_HasMessage(mut this: *mut MidiDevice) -> bool {
     return (*this).cursor > 0 as i32;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_PopMessage(mut this: *mut MidiDevice) -> IVec2 {
     if (*this).cursor <= 0 as i32 {

@@ -10,6 +10,7 @@ pub type DeviceType = i32;
 pub unsafe extern "C" fn DeviceType_FromButton(mut button: Button) -> DeviceType {
     return Button_ToDeviceType(button);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn DeviceType_ToString(mut deviceType: DeviceType) -> *const libc::c_char {
     match deviceType {

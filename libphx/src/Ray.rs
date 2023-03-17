@@ -19,6 +19,7 @@ pub struct Ray {
 pub unsafe extern "C" fn Ray_GetPoint(mut this: *const Ray, mut t: f32, mut out: *mut Vec3) {
     *out = (*this).p + ((*this).dir * t);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectPlane(
     mut this: *const Ray,
@@ -27,6 +28,7 @@ pub unsafe extern "C" fn Ray_IntersectPlane(
 ) -> bool {
     return Intersect_RayPlane(this, plane, pHit);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
     mut this: *const Ray,
@@ -36,6 +38,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
 ) -> bool {
     return Intersect_RayTriangle_Barycentric(this, tri, tEpsilon, tHit);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
     mut this: *const Ray,
@@ -44,6 +47,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
 ) -> bool {
     return Intersect_RayTriangle_Moller1(this, tri, tHit);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
     mut this: *const Ray,
@@ -52,6 +56,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
 ) -> bool {
     return Intersect_RayTriangle_Moller2(this, tri, tHit);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Ray_ToLineSegment(
     mut this: *const Ray,
@@ -60,6 +65,7 @@ pub unsafe extern "C" fn Ray_ToLineSegment(
     Ray_GetPoint(this, (*this).tMin, &mut (*lineSegment).p0);
     Ray_GetPoint(this, (*this).tMax, &mut (*lineSegment).p1);
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Ray_FromLineSegment(
     mut lineSegment: *const LineSegment,

@@ -14,6 +14,7 @@ extern "C" {
 pub type TimeStamp = u64;
 pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Scope {
@@ -27,6 +28,7 @@ pub struct Scope {
     pub min: f64,
     pub max: f64,
 }
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Profiler {
@@ -43,10 +45,12 @@ pub struct Profiler {
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
     return if a > b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
     return if a < b { a } else { b };
 }
+
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
     return sqrt(t);
@@ -93,10 +97,12 @@ unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
     *fresh1 = scope;
     return scope;
 }
+
 unsafe extern "C" fn Scope_Free(mut scope: *mut Scope) {
     StrFree((*scope).name);
     MemFree(scope as *const libc::c_void);
 }
+
 unsafe extern "C" fn SortScopes(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
     let mut a: *const Scope = *(pa as *mut *const Scope);
     let mut b: *const Scope = *(pb as *mut *const Scope);
@@ -108,6 +114,7 @@ unsafe extern "C" fn SortScopes(mut pa: *const libc::c_void, mut pb: *const libc
         1 as i32
     };
 }
+
 unsafe extern "C" fn Profiler_GetScope(mut name: *const libc::c_char) -> *mut Scope {
     let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as usize as u64) as *mut Scope;
     if !scope.is_null() {
@@ -117,9 +124,11 @@ unsafe extern "C" fn Profiler_GetScope(mut name: *const libc::c_char) -> *mut Sc
     HashMap_SetRaw(this.map, name as usize as u64, scope as *mut libc::c_void);
     return scope;
 }
+
 unsafe extern "C" fn Profiler_SignalHandler(mut s: Signal) {
     Profiler_Backtrace();
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Enable() {
     profiling = 1 as i32 != 0;
@@ -147,6 +156,7 @@ pub unsafe extern "C" fn Profiler_Enable() {
         Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> (),
     ));
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Disable() {
     if this.stackIndex != 0 as i32 {
@@ -222,6 +232,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> (),
     ));
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Begin(mut name: *const libc::c_char) {
     if !profiling {
@@ -245,6 +256,7 @@ pub unsafe extern "C" fn Profiler_Begin(mut name: *const libc::c_char) {
     this.stack[this.stackIndex as usize] = curr;
     (*curr).last = now;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_End() {
     if !profiling {
@@ -266,8 +278,10 @@ pub unsafe extern "C" fn Profiler_End() {
         (*curr).last = now;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_SetValue(mut name: *const libc::c_char, mut value: i32) {}
+
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_LoopMarker() {
     if !profiling {
@@ -292,6 +306,7 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
         i += 1;
     }
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Backtrace() {
     if !profiling {

@@ -37,16 +37,19 @@ unsafe extern "C" fn Time_Convert(t: *const libc::tm) -> Time {
     result.year = (*t).tm_year + 1900 as i32;
     return result;
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetLocal() -> Time {
     let mut t: libc::time_t = libc::time(std::ptr::null_mut());
     return Time_Convert(libc::localtime(&mut t));
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetUTC() -> Time {
     let mut t: libc::time_t = libc::time(std::ptr::null_mut());
     return Time_Convert(libc::gmtime(&mut t));
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetRaw() -> u32 {
     return (libc::time(std::ptr::null_mut()) % 0xffffffff as u32 as libc::c_long) as u32;
