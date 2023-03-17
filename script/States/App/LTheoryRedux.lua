@@ -132,8 +132,7 @@ function LTheoryRedux:onUpdate (dt)
     if Config.getGameMode() == 1 then
       menuMode = 1 -- show Main Menu
     else
-      -- The first time we get here, menuMode should be 0 to show we're just starting the game,
-      --   so don't pop up the Flight Mode dialog box
+      -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
       -- After that, when we're in Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if menuMode == 0 then
         Config.game.bFlightModeInactive = false
