@@ -6,9 +6,6 @@ use libc;
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
-    fn strtof(_: *const libc::c_char, _: *mut *mut libc::c_char) -> f32;
-    fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char, _: i32) -> libc::c_long;
 }
 
 #[derive(Copy, Clone)]
@@ -113,7 +110,7 @@ unsafe extern "C" fn ConsumeToken(
 }
 unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -> bool {
     let mut afterFloat: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut f: f32 = strtof((*s).cursor, &mut afterFloat);
+    let mut f: f32 = libc::strtof((*s).cursor, &mut afterFloat);
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as i32 {
         Obj_Fatal(
             b"Parsed float in .obj data is out of range.\0" as *const u8 as *const libc::c_char,
@@ -129,7 +126,7 @@ unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -
 }
 unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> bool {
     let mut afterInt: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut i: i32 = strtol((*s).cursor, &mut afterInt, 10 as i32) as i32;
+    let mut i: i32 = libc::strtol((*s).cursor, &mut afterInt, 10 as i32) as i32;
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 as i32 {
         Obj_Fatal(
             b"Parsed int in .obj data is out of range.\0" as *const u8 as *const libc::c_char,

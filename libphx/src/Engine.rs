@@ -18,11 +18,6 @@ use sdl2_sys::*;
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn exit(_: i32) -> !;
-    fn abort() -> !;
-    fn puts(_: *const libc::c_char) -> i32;
-    fn printf(_: *const libc::c_char, _: ...) -> i32;
-    fn atexit(_: Option<unsafe extern "C" fn() -> ()>) -> i32;
 }
 pub type ResourceType = i32;
 pub type TimeStamp = u64;
@@ -42,7 +37,7 @@ static mut initTime: TimeStamp = 0 as i32 as TimeStamp;
 pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor: i32) {
     static mut firstTime: bool = 1 as i32 != 0;
     Signal_Init();
-    printf(
+    libc::printf(
         b"Engine_Init: Requesting GL %d.%d\n\0" as *const u8 as *const libc::c_char,
         glVersionMajor,
         glVersionMinor,
@@ -64,17 +59,17 @@ pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor
         compiled.patch = 1;
         SDL_GetVersion(&mut linked);
         if compiled.major != linked.major {
-            puts(
+            libc::puts(
                 b"Engine_Init: Detected SDL major version mismatch:\0" as *const u8
                     as *const libc::c_char,
             );
-            printf(
+            libc::printf(
                 b"  Version (Compiled) : %d.%d.%d\n\0" as *const u8 as *const libc::c_char,
                 compiled.major as i32,
                 compiled.minor as i32,
                 compiled.patch as i32,
             );
-            printf(
+            libc::printf(
                 b"  Version (Linked)   : %d.%d.%d\n\0" as *const u8 as *const libc::c_char,
                 linked.major as i32,
                 linked.minor as i32,

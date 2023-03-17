@@ -1,12 +1,7 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
-extern "C" {
-    fn gmtime(_: *const time_t) -> *mut tm;
-    fn localtime(_: *const time_t) -> *mut tm;
-    fn time(_: *mut time_t) -> time_t;
-}
-pub type __darwin_time_t = libc::c_long;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Time {
@@ -19,24 +14,9 @@ pub struct Time {
     pub month: i32,
     pub year: i32,
 }
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct tm {
-    pub tm_sec: i32,
-    pub tm_min: i32,
-    pub tm_hour: i32,
-    pub tm_mday: i32,
-    pub tm_mon: i32,
-    pub tm_year: i32,
-    pub tm_wday: i32,
-    pub tm_yday: i32,
-    pub tm_isdst: i32,
-    pub tm_gmtoff: libc::c_long,
-    pub tm_zone: *mut libc::c_char,
-}
-pub type time_t = __darwin_time_t;
+
 #[inline]
-unsafe extern "C" fn Time_Convert(mut t: *mut tm) -> Time {
+unsafe extern "C" fn Time_Convert(t: *const libc::tm) -> Time {
     let mut result: Time = Time {
         second: 0,
         minute: 0,
@@ -59,15 +39,15 @@ unsafe extern "C" fn Time_Convert(mut t: *mut tm) -> Time {
 }
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetLocal() -> Time {
-    let mut t: time_t = time(0 as *mut time_t);
-    return Time_Convert(localtime(&mut t));
+    let mut t: libc::time_t = libc::time(std::ptr::null_mut());
+    return Time_Convert(libc::localtime(&mut t));
 }
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetUTC() -> Time {
-    let mut t: time_t = time(0 as *mut time_t);
-    return Time_Convert(gmtime(&mut t));
+    let mut t: libc::time_t = libc::time(std::ptr::null_mut());
+    return Time_Convert(libc::gmtime(&mut t));
 }
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetRaw() -> u32 {
-    return (time(0 as *mut time_t) % 0xffffffff as u32 as libc::c_long) as u32;
+    return (libc::time(std::ptr::null_mut()) % 0xffffffff as u32 as libc::c_long) as u32;
 }

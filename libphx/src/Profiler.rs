@@ -8,15 +8,7 @@ use std::io::{self, Write};
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn qsort(
-        __base: *mut libc::c_void,
-        __nel: usize,
-        __width: usize,
-        __compar: Option<unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32>,
-    );
     fn sqrt(_: f64) -> f64;
-    fn printf(_: *const libc::c_char, _: ...) -> i32;
-    fn puts(_: *const libc::c_char) -> i32;
 }
 
 pub type TimeStamp = u64;
@@ -172,13 +164,13 @@ pub unsafe extern "C" fn Profiler_Disable() {
         (*scope).var = Sqrt((*scope).var);
         i += 1;
     }
-    qsort(
+    libc::qsort(
         this.scopeList_data as *mut libc::c_void,
         this.scopeList_size as usize,
         ::core::mem::size_of::<*mut Scope>(),
         Some(SortScopes as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
     );
-    puts(
+    libc::puts(
         b"-- PHX PROFILER -------------------------------------\0" as *const u8
             as *const libc::c_char,
     );
@@ -189,7 +181,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         let mut scopeTotal: f64 = TimeStamp_ToDouble((*scope_0).total);
         cumulative += scopeTotal;
         if !(scopeTotal / total < 0.01f64 && (*scope_0).max < 0.01f64) {
-            printf(
+            libc::printf(
                 b"%*.1f%% %*.0f%% %*.0fms  [%*.2f, %*.2f] %*.2f  / %*.2f  (%*.0f%%)  |  %s\n\0"
                     as *const u8 as *const libc::c_char,
                 5 as i32,
@@ -213,7 +205,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         }
         i_0 += 1;
     }
-    puts(
+    libc::puts(
         b"-----------------------------------------------------\0" as *const u8
             as *const libc::c_char,
     );
@@ -305,11 +297,11 @@ pub unsafe extern "C" fn Profiler_Backtrace() {
     if !profiling {
         return;
     }
-    puts(b"PHX Profiler Backtrace:\0" as *const u8 as *const libc::c_char);
+    libc::puts(b"PHX Profiler Backtrace:\0" as *const u8 as *const libc::c_char);
     let mut i: i32 = 0 as i32;
     while i <= this.stackIndex {
         let mut index: i32 = this.stackIndex - i;
-        printf(
+        libc::printf(
             b"  [%i] %s\n\0" as *const u8 as *const libc::c_char,
             index,
             (*this.stack[index as usize]).name,

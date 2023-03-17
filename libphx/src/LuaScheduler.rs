@@ -3,13 +3,8 @@ use crate::TimeStamp::*;
 use crate::Lua::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
-    fn qsort(
-        __base: *mut libc::c_void,
-        __nel: usize,
-        __width: usize,
-        __compar: Option<unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32>,
-    );
     fn lua_gettop(L: *mut lua_State) -> i32;
     fn lua_settop(L: *mut lua_State, idx: i32);
     fn lua_tonumber(L: *mut lua_State, idx: i32) -> lua_Number;
@@ -25,6 +20,7 @@ extern "C" {
     fn TimeStamp_GetDifference(start: TimeStamp, end: TimeStamp) -> f64;
     fn TimeStamp_GetRelative(start: TimeStamp, seconds: f64) -> TimeStamp;
 }
+
 pub type TimeStamp = u64;
 pub type lua_Number = f64;
 pub type lua_Integer = libc::ptrdiff_t;
@@ -138,7 +134,7 @@ unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
 }
 unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
     this.locked = 1 as i32 != 0;
-    qsort(
+    libc::qsort(
         this.elems_data as *mut libc::c_void,
         this.elems_size as usize,
         ::core::mem::size_of::<SchedulerElem>() as usize,

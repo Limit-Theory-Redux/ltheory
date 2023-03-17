@@ -4,10 +4,7 @@ use glam::Vec3;
 use libc;
 
 extern "C" {
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn printf(_: *const libc::c_char, _: ...) -> i32;
-    fn puts(_: *const libc::c_char) -> i32;
 }
 
 #[derive(Copy, Clone)]
@@ -206,30 +203,30 @@ pub unsafe extern "C" fn StrMap_Set(
 }
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
-    printf(
+    libc::printf(
         b"StrMap @ %p:\n\0" as *const u8 as *const libc::c_char,
         this,
     );
-    printf(
+    libc::printf(
         b"      size: %d\n\0" as *const u8 as *const libc::c_char,
         (*this).size,
     );
-    printf(
+    libc::printf(
         b"  capacity: %d\n\0" as *const u8 as *const libc::c_char,
         (*this).capacity,
     );
-    printf(
+    libc::printf(
         b"      load: %f\n\0" as *const u8 as *const libc::c_char,
         ((*this).size as f32 / (*this).capacity as f32) as f64,
     );
-    puts(b"\0" as *const u8 as *const libc::c_char);
+    libc::puts(b"\0" as *const u8 as *const libc::c_char);
     let mut i: u32 = 0 as i32 as u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
-            printf(b"  [%03i]:\n\0" as *const u8 as *const libc::c_char, i);
+            libc::printf(b"  [%03i]:\n\0" as *const u8 as *const libc::c_char, i);
             while !node.is_null() {
-                printf(
+                libc::printf(
                     b"    (%lx) %s -> %p\n\0" as *const u8 as *const libc::c_char,
                     Hash((*node).key),
                     (*node).key,

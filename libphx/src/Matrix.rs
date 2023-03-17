@@ -9,7 +9,6 @@ extern "C" {
     fn tan(_: f64) -> f64;
     fn fabs(_: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn printf(_: *const libc::c_char, _: ...) -> i32;
 }
 
 
@@ -823,13 +822,13 @@ pub unsafe extern "C" fn Matrix_Print(mut this: *const Matrix) {
     while i < 4 as i32 {
         let mut j: i32 = 0 as i32;
         while j < 4 as i32 {
-            printf(
+            libc::printf(
                 b"%f \0" as *const u8 as *const libc::c_char,
                 (*this).m[(4 as i32 * i + j) as usize] as f64,
             );
             j += 1;
         }
-        printf(b"\n\0" as *const u8 as *const libc::c_char);
+        libc::printf(b"\n\0" as *const u8 as *const libc::c_char);
         i += 1;
     }
 }

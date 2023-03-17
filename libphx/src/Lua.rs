@@ -8,7 +8,6 @@ use libc;
 
 extern "C" {
     pub type lua_State;
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> i32;
     fn Fatal(_: *const libc::c_char, _: ...);
     fn Warn(_: *const libc::c_char, _: ...);
     fn lua_close(L: *mut lua_State);

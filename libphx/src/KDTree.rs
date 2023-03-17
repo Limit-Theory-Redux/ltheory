@@ -6,14 +6,6 @@ use glam::Vec2;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn qsort(
-        __base: *mut libc::c_void,
-        __nel: usize,
-        __width: usize,
-        __compar: Option<unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32>,
-    );
-}
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct KDTree {
@@ -116,7 +108,7 @@ unsafe extern "C" fn Partition(
         return this;
     }
     if dim == 0 as i32 {
-        qsort(
+        libc::qsort(
             boxes as *mut libc::c_void,
             boxCount as usize,
             ::core::mem::size_of::<Box3f>() as usize,
@@ -127,7 +119,7 @@ unsafe extern "C" fn Partition(
         );
     }
     if dim == 1 as i32 {
-        qsort(
+        libc::qsort(
             boxes as *mut libc::c_void,
             boxCount as usize,
             ::core::mem::size_of::<Box3f>() as usize,
@@ -138,7 +130,7 @@ unsafe extern "C" fn Partition(
         );
     }
     if dim == 2 as i32 {
-        qsort(
+        libc::qsort(
             boxes as *mut libc::c_void,
             boxCount as usize,
             ::core::mem::size_of::<Box3f>() as usize,

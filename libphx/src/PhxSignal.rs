@@ -1,6 +1,7 @@
 use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
+
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
     fn Warn(_: *const libc::c_char, _: ...);
@@ -8,8 +9,8 @@ extern "C" {
         _: i32,
         _: Option<unsafe extern "C" fn(i32) -> ()>,
     ) -> Option<unsafe extern "C" fn(i32) -> ()>;
-    fn raise(_: i32) -> i32;
 }
+
 pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
 #[derive(Copy, Clone)]
@@ -89,7 +90,7 @@ unsafe extern "C" fn Signal_Handler(mut sig: Signal) {
         ignoreDefault = 0 as i32 != 0;
         return;
     }
-    raise(sig);
+    libc::raise(sig);
 }
 #[no_mangle]
 pub unsafe extern "C" fn Signal_Init() {

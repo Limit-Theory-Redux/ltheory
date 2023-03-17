@@ -11,7 +11,6 @@ extern "C" {
     pub type lua_State;
     fn pow(_: f64, _: f64) -> f64;
     fn sqrt(_: f64) -> f64;
-    fn printf(_: *const libc::c_char, _: ...) -> i32;
 }
 
 #[derive(Copy, Clone)]
@@ -152,7 +151,7 @@ unsafe extern "C" fn InputBindings_RaiseCallback(
     mut binding: *mut InputBinding,
     mut callback: LuaRef,
 ) {
-    printf(
+    libc::printf(
         b"%s - %s\n\0" as *const u8 as *const libc::c_char,
         event,
         (*binding).name,
