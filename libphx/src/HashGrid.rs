@@ -43,17 +43,17 @@ pub struct HashGridElem {
 
 #[inline]
 unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    return floor(t);
+    floor(t)
 }
 
 #[inline]
 unsafe extern "C" fn Maxi(mut a: i32, mut b: i32) -> i32 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Mini(mut a: i32, mut b: i32) -> i32 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[no_mangle]
@@ -88,7 +88,7 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
         *fresh0 = std::ptr::null_mut();
         i = i.wrapping_add(1);
     }
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -117,7 +117,7 @@ unsafe extern "C" fn HashGrid_GetCell(
         ::core::mem::size_of::<[i32; 3]>() as libc::c_ulong as i32,
         0_u64,
     );
-    return ((*this).cells).offset((hash & (*this).mask as u64) as isize);
+    ((*this).cells).offset((hash & (*this).mask as u64) as isize)
 }
 
 unsafe extern "C" fn HashGrid_AddElem(mut this: *mut HashGrid, mut elem: *mut HashGridElem) {
@@ -193,7 +193,7 @@ unsafe extern "C" fn HashGrid_RemoveElem(mut this: *mut HashGrid, mut elem: *mut
 
 #[inline]
 unsafe extern "C" fn HashGrid_ToLocal(mut this: *mut HashGrid, mut x: f32) -> i32 {
-    return Floor((x / (*this).cellSize) as f64) as i32;
+    Floor((x / (*this).cellSize) as f64) as i32
 }
 
 #[no_mangle]
@@ -211,7 +211,7 @@ pub unsafe extern "C" fn HashGrid_Add(
     (*elem).upper[1] = HashGrid_ToLocal(this, (*box_0).upper.y);
     (*elem).upper[2] = HashGrid_ToLocal(this, (*box_0).upper.z);
     HashGrid_AddElem(this, elem);
-    return elem;
+    elem
 }
 
 #[no_mangle]
@@ -379,7 +379,7 @@ pub unsafe extern "C" fn HashGrid_Update(
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_GetResults(mut this: *mut HashGrid) -> *mut *mut libc::c_void {
-    return (*this).results_data;
+    (*this).results_data
 }
 
 #[no_mangle]
@@ -445,7 +445,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(
         }
         x += 1;
     }
-    return (*this).results_size;
+    (*this).results_size
 }
 
 #[no_mangle]
@@ -480,5 +480,5 @@ pub unsafe extern "C" fn HashGrid_QueryPoint(mut this: *mut HashGrid, mut p: *co
         *fresh11 = (*elem).object;
         i += 1;
     }
-    return (*this).results_size;
+    (*this).results_size
 }

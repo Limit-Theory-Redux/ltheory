@@ -88,19 +88,19 @@ pub struct InputBindings {
 
 #[inline]
 unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
-    return pow(t, p);
+    pow(t, p)
 }
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
     t = if t > upper { upper } else { t };
     t = if t < lower { lower } else { t };
-    return t;
+    t
 }
 
 #[no_mangle]
@@ -382,102 +382,102 @@ unsafe extern "C" fn InputBinding_GetButtonState(
     mut iBtn: i32,
     mut state: State,
 ) -> bool {
-    return (*binding).buttons[iBtn as usize].state & state == state;
+    (*binding).buttons[iBtn as usize].state & state == state
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetPressed(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXPos, State_Pressed);
+    InputBinding_GetButtonState(binding, iXPos, State_Pressed)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetDown(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXPos, State_Down);
+    InputBinding_GetButtonState(binding, iXPos, State_Down)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetReleased(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXPos, State_Released);
+    InputBinding_GetButtonState(binding, iXPos, State_Released)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetValue(mut binding: *mut InputBinding) -> f32 {
-    return (*binding).axes[iX as usize].value;
+    (*binding).axes[iX as usize].value
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetVecValue(mut binding: *mut InputBinding) -> Vec2 {
-    return (*binding).axis2D.value;
+    (*binding).axis2D.value
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetXValue(mut binding: *mut InputBinding) -> f32 {
-    return (*binding).axes[iX as usize].value;
+    (*binding).axes[iX as usize].value
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetYValue(mut binding: *mut InputBinding) -> f32 {
-    return (*binding).axes[iY as usize].value;
+    (*binding).axes[iY as usize].value
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetXPosPressed(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXPos, State_Pressed);
+    InputBinding_GetButtonState(binding, iXPos, State_Pressed)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetXPosDown(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXPos, State_Down);
+    InputBinding_GetButtonState(binding, iXPos, State_Down)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetXPosReleased(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXPos, State_Released);
+    InputBinding_GetButtonState(binding, iXPos, State_Released)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetXNegPressed(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXNeg, State_Pressed);
+    InputBinding_GetButtonState(binding, iXNeg, State_Pressed)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetXNegDown(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXNeg, State_Down);
+    InputBinding_GetButtonState(binding, iXNeg, State_Down)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetXNegReleased(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iXNeg, State_Released);
+    InputBinding_GetButtonState(binding, iXNeg, State_Released)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetYPosPressed(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iYPos, State_Pressed);
+    InputBinding_GetButtonState(binding, iYPos, State_Pressed)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetYPosDown(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iYPos, State_Down);
+    InputBinding_GetButtonState(binding, iYPos, State_Down)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetYPosReleased(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iYPos, State_Released);
+    InputBinding_GetButtonState(binding, iYPos, State_Released)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetYNegPressed(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iYNeg, State_Pressed);
+    InputBinding_GetButtonState(binding, iYNeg, State_Pressed)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetYNegDown(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iYNeg, State_Down);
+    InputBinding_GetButtonState(binding, iYNeg, State_Down)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBinding_GetYNegReleased(mut binding: *mut InputBinding) -> bool {
-    return InputBinding_GetButtonState(binding, iYNeg, State_Released);
+    InputBinding_GetButtonState(binding, iYNeg, State_Released)
 }
 
 #[no_mangle]
@@ -486,7 +486,7 @@ pub unsafe extern "C" fn InputBinding_SetDeadzone(
     mut deadzone: f32,
 ) -> *mut InputBinding {
     (*binding).deadzone = deadzone;
-    return binding;
+    binding
 }
 
 #[no_mangle]
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn InputBinding_SetExponent(
     mut exponent: f32,
 ) -> *mut InputBinding {
     (*binding).exponent = exponent;
-    return binding;
+    binding
 }
 
 #[inline]
@@ -534,7 +534,7 @@ pub unsafe extern "C" fn InputBinding_SetInvertX(
     mut invert: bool,
 ) -> *mut InputBinding {
     InputBinding_SetInvert(binding, 0_i32, invert);
-    return binding;
+    binding
 }
 
 #[no_mangle]
@@ -543,7 +543,7 @@ pub unsafe extern "C" fn InputBinding_SetInvertY(
     mut invert: bool,
 ) -> *mut InputBinding {
     InputBinding_SetInvert(binding, 1_i32, invert);
-    return binding;
+    binding
 }
 
 #[no_mangle]
@@ -554,7 +554,7 @@ pub unsafe extern "C" fn InputBinding_SetRange(
 ) -> *mut InputBinding {
     (*binding).minValue = min;
     (*binding).maxValue = max;
-    return binding;
+    binding
 }
 
 #[no_mangle]
@@ -565,5 +565,5 @@ pub unsafe extern "C" fn InputBinding_SetThresholds(
 ) -> *mut InputBinding {
     (*binding).pressThreshold = press;
     (*binding).releaseThreshold = release;
-    return binding;
+    binding
 }

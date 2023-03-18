@@ -34,5 +34,5 @@ pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> *co
         (*this).p0.to_string().as_mut_ptr(),
         (*this).p1.to_string().as_mut_ptr(),
     );
-    return buffer.as_mut_ptr() as *const libc::c_char;
+    buffer.as_mut_ptr() as *const libc::c_char
 }

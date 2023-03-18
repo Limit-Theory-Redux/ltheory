@@ -25,44 +25,44 @@ pub struct Quat {
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    return fabs(t);
+    fabs(t)
 }
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn ClampUnit(mut t: f64) -> f64 {
     t = if t > 1.0f64 { 1.0f64 } else { t };
     t = if t < -1.0f64 { -1.0f64 } else { t };
-    return t;
+    t
 }
 
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    return sqrt(t);
+    sqrt(t)
 }
 
 #[inline]
 unsafe extern "C" fn Acos(mut t: f64) -> f64 {
-    return acos(t);
+    acos(t)
 }
 
 #[inline]
 unsafe extern "C" fn Asin(mut t: f64) -> f64 {
-    return asin(t);
+    asin(t)
 }
 
 #[inline]
 unsafe extern "C" fn Cos(mut t: f64) -> f64 {
-    return cos(t);
+    cos(t)
 }
 
 #[inline]
 unsafe extern "C" fn Sin(mut t: f64) -> f64 {
-    return sin(t);
+    sin(t)
 }
 
 #[inline]
@@ -90,12 +90,12 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
             );
         }
     }
-    return 0_i32 as Error;
+    0_i32 as Error
 }
 
 #[inline]
 unsafe extern "C" fn Float_ApproximatelyEqual(mut x: f64, mut y: f64) -> bool {
-    return Abs(x - y) < 1e-3f64;
+    Abs(x - y) < 1e-3f64
 }
 
 #[no_mangle]
@@ -200,7 +200,7 @@ pub unsafe extern "C" fn Quat_ICanonicalize(mut q: *mut Quat) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Dot(mut q: *const Quat, mut p: *const Quat) -> f32 {
-    return (*q).x * (*p).x + (*q).y * (*p).y + (*q).z * (*p).z + (*q).w * (*p).w;
+    (*q).x * (*p).x + (*q).y * (*p).y + (*q).z * (*p).z + (*q).w * (*p).w
 }
 
 #[no_mangle]
@@ -209,7 +209,7 @@ pub unsafe extern "C" fn Quat_Equal(mut q: *const Quat, mut p: *const Quat) -> b
     Quat_Canonicalize(q, &mut cq);
     let mut cp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Canonicalize(p, &mut cp);
-    return cq.x == cp.x && cq.y == cp.y && cq.z == cp.z && cq.w == cp.w;
+    cq.x == cp.x && cq.y == cp.y && cq.z == cp.z && cq.w == cp.w
 }
 
 #[no_mangle]
@@ -218,10 +218,10 @@ pub unsafe extern "C" fn Quat_ApproximatelyEqual(mut q: *const Quat, mut p: *con
     Quat_Canonicalize(q, &mut cq);
     let mut cp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Canonicalize(p, &mut cp);
-    return Abs((cq.x - cp.x) as f64) < 1e-3f32 as f64
+    Abs((cq.x - cp.x) as f64) < 1e-3f32 as f64
         && Abs((cq.y - cp.y) as f64) < 1e-3f32 as f64
         && Abs((cq.z - cp.z) as f64) < 1e-3f32 as f64
-        && Abs((cq.w - cp.w) as f64) < 1e-3f32 as f64;
+        && Abs((cq.w - cp.w) as f64) < 1e-3f32 as f64
 }
 
 #[no_mangle]
@@ -463,7 +463,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> *const libc::c_cha
         (*q).z as f64,
         (*q).w as f64,
     );
-    return buffer.as_mut_ptr() as *const libc::c_char;
+    buffer.as_mut_ptr() as *const libc::c_char
 }
 
 #[no_mangle]
@@ -473,7 +473,7 @@ pub unsafe extern "C" fn Quat_Validate(mut q: *const Quat) -> Error {
     e |= Float_Validate((*q).y as f64);
     e |= Float_Validate((*q).z as f64);
     e |= Float_Validate((*q).w as f64);
-    return e;
+    e
 }
 
 #[no_mangle]

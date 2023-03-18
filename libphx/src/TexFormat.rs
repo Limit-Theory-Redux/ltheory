@@ -60,7 +60,7 @@ pub unsafe extern "C" fn TexFormat_Components(mut this: TexFormat) -> i32 {
         32856 | 32859 | 34842 | 34836 => return 4_i32,
         _ => {}
     }
-    return 0_i32;
+    0_i32
 }
 
 #[no_mangle]
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn TexFormat_GetSize(mut this: TexFormat) -> i32 {
         34836 => return 16_i32,
         _ => {}
     }
-    return 0_i32;
+    0_i32
 }
 
 #[no_mangle]
@@ -83,7 +83,7 @@ pub unsafe extern "C" fn TexFormat_IsColor(mut this: TexFormat) -> bool {
         33189 | 33190 | 36012 => return false,
         _ => {}
     }
-    return true;
+    true
 }
 
 #[no_mangle]
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn TexFormat_IsDepth(mut this: TexFormat) -> bool {
         33189 | 33190 | 36012 => return true,
         _ => {}
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -102,5 +102,5 @@ pub unsafe extern "C" fn TexFormat_IsValid(mut this: TexFormat) -> bool {
         | 34842 | 34836 | 33189 | 33190 | 36012 => return true,
         _ => {}
     }
-    return false;
+    false
 }

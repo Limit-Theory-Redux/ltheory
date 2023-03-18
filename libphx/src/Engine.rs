@@ -132,22 +132,22 @@ pub unsafe extern "C" fn Engine_Abort() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetBits() -> i32 {
-    return 8_usize.wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()) as i32;
+    8_usize.wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()) as i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetTime() -> f64 {
-    return TimeStamp_GetElapsed(initTime);
+    TimeStamp_GetElapsed(initTime)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetVersion() -> *const libc::c_char {
-    return env!("PHX_VERSION").as_ptr() as *const libc::c_char;
+    env!("PHX_VERSION").as_ptr() as *const libc::c_char
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_IsInitialized() -> bool {
-    return initTime != 0_u64;
+    initTime != 0_u64
 }
 
 #[no_mangle]

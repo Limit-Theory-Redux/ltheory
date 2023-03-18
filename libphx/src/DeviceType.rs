@@ -8,16 +8,16 @@ pub type DeviceType = i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn DeviceType_FromButton(mut button: Button) -> DeviceType {
-    return Button_ToDeviceType(button);
+    Button_ToDeviceType(button)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn DeviceType_ToString(mut deviceType: DeviceType) -> *const libc::c_char {
     match deviceType {
-        0 => return b"DeviceType_Null\0" as *const u8 as *const libc::c_char,
-        1 => return b"DeviceType_Mouse\0" as *const u8 as *const libc::c_char,
-        2 => return b"DeviceType_Keyboard\0" as *const u8 as *const libc::c_char,
-        3 => return b"DeviceType_Gamepad\0" as *const u8 as *const libc::c_char,
+        0 => b"DeviceType_Null\0" as *const u8 as *const libc::c_char,
+        1 => b"DeviceType_Mouse\0" as *const u8 as *const libc::c_char,
+        2 => b"DeviceType_Keyboard\0" as *const u8 as *const libc::c_char,
+        3 => b"DeviceType_Gamepad\0" as *const u8 as *const libc::c_char,
         _ => {
             static mut buffer: [libc::c_char; 512] = [0; 512];
             libc::snprintf(
@@ -28,7 +28,7 @@ pub unsafe extern "C" fn DeviceType_ToString(mut deviceType: DeviceType) -> *con
                 b"Unknown (%i)\0" as *const u8 as *const libc::c_char,
                 deviceType,
             );
-            return buffer.as_mut_ptr() as *const libc::c_char;
+            buffer.as_mut_ptr() as *const libc::c_char
         }
-    };
+    }
 }

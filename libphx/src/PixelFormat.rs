@@ -33,5 +33,5 @@ pub unsafe extern "C" fn PixelFormat_Components(mut this: PixelFormat) -> i32 {
         6408 | 32993 => return 4_i32,
         _ => {}
     }
-    return 0_i32;
+    0_i32
 }

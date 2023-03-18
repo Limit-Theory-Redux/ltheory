@@ -191,17 +191,17 @@ pub struct ImGuiData {
 unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
     t = if t > upper { upper } else { t };
     t = if t < lower { lower } else { t };
-    return t;
+    t
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[inline]
@@ -212,7 +212,7 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
         z: z,
         w: w,
     };
-    return self_1;
+    self_1
 }
 
 #[no_mangle]
@@ -330,7 +330,7 @@ unsafe extern "C" fn GetData(mut hash: u64) -> *mut ImGuiData {
         (*data).scroll = 0.0f32;
         HashMap_SetRaw(this.data, hash, data as *mut libc::c_void);
     }
-    return data;
+    data
 }
 
 unsafe extern "C" fn ImGui_PushDefaultStyle() {
@@ -382,10 +382,10 @@ unsafe extern "C" fn IsClipped(mut p: Vec2) -> bool {
     if (this.clipRect).is_null() {
         return false;
     }
-    return p.x < (*this.clipRect).p1.x
+    p.x < (*this.clipRect).p1.x
         || p.y < (*this.clipRect).p1.y
         || (*this.clipRect).p2.x < p.x
-        || (*this.clipRect).p2.y < p.y;
+        || (*this.clipRect).p2.y < p.y
 }
 
 #[inline]
@@ -401,27 +401,27 @@ unsafe extern "C" fn Advance(mut size: Vec2) {
 
 #[inline]
 unsafe extern "C" fn HashGet() -> u64 {
-    return Hash_FNV64_Incremental(
+    Hash_FNV64_Incremental(
         (*this.widget).hash,
         &mut (*this.widget).index as *mut u32 as *const libc::c_void,
         ::core::mem::size_of::<u32>() as i32,
-    );
+    )
 }
 
 #[inline]
 unsafe extern "C" fn HashNext() -> u64 {
     (*this.widget).index = ((*this.widget).index).wrapping_add(1);
-    return HashGet();
+    HashGet()
 }
 
 #[inline]
 unsafe extern "C" fn HashPeekNext() -> u64 {
     let mut index: u32 = ((*this.widget).index).wrapping_add(1_i32 as u32);
-    return Hash_FNV64_Incremental(
+    Hash_FNV64_Incremental(
         (*this.widget).hash,
         &mut index as *mut u32 as *const libc::c_void,
         ::core::mem::size_of::<u32>() as i32,
-    );
+    )
 }
 
 #[inline]
@@ -446,7 +446,7 @@ unsafe extern "C" fn TransformSize(mut sx: *mut f32, mut sy: *mut f32) {
 
 #[inline]
 unsafe extern "C" fn RectContains(mut pos: Vec2, mut size: Vec2, mut p: Vec2) -> bool {
-    return pos.x <= p.x && p.x <= pos.x + size.x && pos.y <= p.y && p.y <= pos.y + size.y;
+    pos.x <= p.x && p.x <= pos.x + size.x && pos.y <= p.y && p.y <= pos.y + size.y
 }
 
 #[inline]
@@ -546,17 +546,17 @@ unsafe extern "C" fn ImGui_Focus(mut widget: *mut ImGuiWidget, mut focusType: i3
             this.focus[focusType as usize] = (*widget).hash;
         }
     }
-    return this.focus[focusType as usize] == (*widget).hash;
+    this.focus[focusType as usize] == (*widget).hash
 }
 
 #[inline]
 unsafe extern "C" fn ImGui_FocusCurrent(mut focusType: i32) -> bool {
-    return ImGui_Focus(this.widget, focusType);
+    ImGui_Focus(this.widget, focusType)
 }
 
 #[inline]
 unsafe extern "C" fn ImGui_FocusLast(mut focusType: i32) -> bool {
-    return ImGui_Focus(this.widgetLast, focusType);
+    ImGui_Focus(this.widgetLast, focusType)
 }
 
 #[inline]
@@ -571,7 +571,7 @@ unsafe extern "C" fn TryFocusRect(
             this.focus[focusType as usize] = hash;
         }
     }
-    return this.focus[focusType as usize] == hash;
+    this.focus[focusType as usize] == hash
 }
 
 unsafe extern "C" fn ImGuiLayer_Free(mut self_1: *mut ImGuiLayer) {
@@ -615,7 +615,7 @@ unsafe extern "C" fn ImGui_PushLayer(mut clip: bool) -> *mut ImGuiLayer {
     if clip {
         ImGui_PushClipRect((*this.layer).pos, (*this.layer).size);
     }
-    return layer;
+    layer
 }
 
 unsafe extern "C" fn ImGui_PopLayer() {
@@ -875,12 +875,12 @@ pub unsafe extern "C" fn ImGui_AlignCursor(
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_GetCursorX() -> f32 {
-    return this.cursor.x;
+    this.cursor.x
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_GetCursorY() -> f32 {
-    return this.cursor.y;
+    this.cursor.y
 }
 
 #[no_mangle]
@@ -1134,7 +1134,7 @@ pub unsafe extern "C" fn ImGui_SetSpacing(mut sx: f32, mut sy: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Button(mut label: *const libc::c_char) -> bool {
-    return ImGui_ButtonEx(label, 0.0f32, 32.0f32);
+    ImGui_ButtonEx(label, 0.0f32, 32.0f32)
 }
 
 #[no_mangle]
@@ -1171,7 +1171,7 @@ pub unsafe extern "C" fn ImGui_ButtonEx(mut label: *const libc::c_char, mut sx: 
         label,
     );
     ImGui_EndWidget();
-    return focus as i32 != 0 && this.activate as i32 != 0;
+    focus as i32 != 0 && this.activate as i32 != 0
 }
 
 #[no_mangle]
@@ -1204,7 +1204,7 @@ pub unsafe extern "C" fn ImGui_Checkbox(mut value: bool) -> bool {
         4.0f32,
     );
     ImGui_EndWidget();
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -1283,7 +1283,7 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: *const libc::c_char) -> boo
         label,
     );
     ImGui_EndWidget();
-    return focus as i32 != 0 && this.activate as i32 != 0;
+    focus as i32 != 0 && this.activate as i32 != 0
 }
 
 #[no_mangle]

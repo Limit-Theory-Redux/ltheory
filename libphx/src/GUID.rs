@@ -9,12 +9,12 @@ pub static mut nextID: u64 = 1_i32 as u64;
 pub unsafe extern "C" fn GUID_Create() -> u64 {
     let fresh0 = nextID;
     nextID = nextID.wrapping_add(1);
-    return fresh0;
+    fresh0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GUID_Exists(mut id: u64) -> bool {
-    return id < nextID && id != 0_u64;
+    id < nextID && id != 0_u64
 }
 
 #[no_mangle]

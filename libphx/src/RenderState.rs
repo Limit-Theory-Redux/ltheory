@@ -39,7 +39,6 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
                 1_i32 as GLenum,
                 1_i32 as GLenum,
             );
-            return;
         }
         1 => {
             __glewBlendFuncSeparate.expect("non-null function pointer")(
@@ -48,18 +47,15 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
                 1_i32 as GLenum,
                 0x303_i32 as GLenum,
             );
-            return;
         }
         3 => {
             glBlendFunc(1_i32 as GLenum, 0x303_i32 as GLenum);
-            return;
         }
         2 => {
             glBlendFunc(1_i32 as GLenum, 0_i32 as GLenum);
-            return;
         }
         _ => {}
-    };
+    }
 }
 
 #[inline]
@@ -67,20 +63,17 @@ unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
     match mode {
         0 => {
             glDisable(0xb44_i32 as GLenum);
-            return;
         }
         1 => {
             glEnable(0xb44_i32 as GLenum);
             glCullFace(0x405_i32 as GLenum);
-            return;
         }
         2 => {
             glEnable(0xb44_i32 as GLenum);
             glCullFace(0x404_i32 as GLenum);
-            return;
         }
         _ => {}
-    };
+    }
 }
 
 #[inline]

@@ -63,13 +63,13 @@ static mut this: Scheduler = Scheduler {
 unsafe extern "C" fn SortByWake(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
     let mut a: *const SchedulerElem = pa as *const SchedulerElem;
     let mut b: *const SchedulerElem = pb as *const SchedulerElem;
-    return if (*a).tWake < (*b).tWake {
+    if (*a).tWake < (*b).tWake {
         1_i32
     } else if (*a).tWake == (*b).tWake {
         0_i32
     } else {
         -1_i32
-    };
+    }
 }
 
 unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
@@ -122,7 +122,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
         this.elems_size = this.elems_size + 1;
         *(this.elems_data).offset(fresh1 as isize) = elem;
     }
-    return 0_i32;
+    0_i32
 }
 
 unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
@@ -134,7 +134,7 @@ unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
         i += 1;
     }
     this.elems_size = 0_i32;
-    return 0_i32;
+    0_i32
 }
 
 unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
@@ -191,7 +191,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
         this.elems_size = this.elems_size + 1;
         *(this.elems_data).offset(fresh2 as isize) = elem_0;
     }
-    return 0_i32;
+    0_i32
 }
 
 #[no_mangle]

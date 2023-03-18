@@ -275,320 +275,320 @@ unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> *const libc:
         65536 => return b"FMOD_RESULT_FORCEINT\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return b"Unknown Error\0" as *const u8 as *const libc::c_char;
+    b"Unknown Error\0" as *const u8 as *const libc::c_char
 }
 
 unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
     match errcode {
-        0 => return b"No errors.\0" as *const u8 as *const libc::c_char,
+        0 => b"No errors.\0" as *const u8 as *const libc::c_char,
         1 => {
-            return b"Tried to call a function on a data type that does not allow this type of functionality (ie calling Sound::lock on a streaming sound).\0"
-                as *const u8 as *const libc::c_char;
+            b"Tried to call a function on a data type that does not allow this type of functionality (ie calling Sound::lock on a streaming sound).\0"
+                as *const u8 as *const libc::c_char
         }
         2 => {
-            return b"Error trying to allocate a channel.\0" as *const u8 as *const libc::c_char;
+            b"Error trying to allocate a channel.\0" as *const u8 as *const libc::c_char
         }
         3 => {
-            return b"The specified channel has been reused to play another sound.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified channel has been reused to play another sound.\0" as *const u8
+                as *const libc::c_char
         }
         4 => {
-            return b"DMA Failure.  See debug output for more information.\0" as *const u8
-                as *const libc::c_char;
+            b"DMA Failure.  See debug output for more information.\0" as *const u8
+                as *const libc::c_char
         }
         5 => {
-            return b"DSP connection error.  Connection possibly caused a cyclic dependency or connected dsps with incompatible buffer counts.\0"
-                as *const u8 as *const libc::c_char;
+            b"DSP connection error.  Connection possibly caused a cyclic dependency or connected dsps with incompatible buffer counts.\0"
+                as *const u8 as *const libc::c_char
         }
         6 => {
-            return b"DSP return code from a DSP process query callback.  Tells mixer not to call the process callback and therefore not consume CPU.  Use this to optimize the DSP graph.\0"
-                as *const u8 as *const libc::c_char;
+            b"DSP return code from a DSP process query callback.  Tells mixer not to call the process callback and therefore not consume CPU.  Use this to optimize the DSP graph.\0"
+                as *const u8 as *const libc::c_char
         }
         7 => {
-            return b"DSP Format error.  A DSP unit may have attempted to connect to this network with the wrong format, or a matrix may have been set with the wrong size if the target unit has a specified channel map.\0"
-                as *const u8 as *const libc::c_char;
+            b"DSP Format error.  A DSP unit may have attempted to connect to this network with the wrong format, or a matrix may have been set with the wrong size if the target unit has a specified channel map.\0"
+                as *const u8 as *const libc::c_char
         }
         8 => {
-            return b"DSP is already in the mixer's DSP network. It must be removed before being reinserted or released.\0"
-                as *const u8 as *const libc::c_char;
+            b"DSP is already in the mixer's DSP network. It must be removed before being reinserted or released.\0"
+                as *const u8 as *const libc::c_char
         }
         9 => {
-            return b"DSP connection error.  Couldn't find the DSP unit specified.\0" as *const u8
-                as *const libc::c_char;
+            b"DSP connection error.  Couldn't find the DSP unit specified.\0" as *const u8
+                as *const libc::c_char
         }
         10 => {
-            return b"DSP operation error.  Cannot perform operation on this DSP as it is reserved by the system.\0"
-                as *const u8 as *const libc::c_char;
+            b"DSP operation error.  Cannot perform operation on this DSP as it is reserved by the system.\0"
+                as *const u8 as *const libc::c_char
         }
         11 => {
-            return b"DSP return code from a DSP process query callback.  Tells mixer silence would be produced from read, so go idle and not consume CPU.  Use this to optimize the DSP graph.\0"
-                as *const u8 as *const libc::c_char;
+            b"DSP return code from a DSP process query callback.  Tells mixer silence would be produced from read, so go idle and not consume CPU.  Use this to optimize the DSP graph.\0"
+                as *const u8 as *const libc::c_char
         }
         12 => {
-            return b"DSP operation cannot be performed on a DSP of this type.\0" as *const u8
-                as *const libc::c_char;
+            b"DSP operation cannot be performed on a DSP of this type.\0" as *const u8
+                as *const libc::c_char
         }
-        13 => return b"Error loading file.\0" as *const u8 as *const libc::c_char,
+        13 => b"Error loading file.\0" as *const u8 as *const libc::c_char,
         14 => {
-            return b"Couldn't perform seek operation.  This is a limitation of the medium (ie netstreams) or the file format.\0"
-                as *const u8 as *const libc::c_char;
+            b"Couldn't perform seek operation.  This is a limitation of the medium (ie netstreams) or the file format.\0"
+                as *const u8 as *const libc::c_char
         }
         15 => {
-            return b"Media was ejected while reading.\0" as *const u8 as *const libc::c_char;
+            b"Media was ejected while reading.\0" as *const u8 as *const libc::c_char
         }
         16 => {
-            return b"End of file unexpectedly reached while trying to read essential data (truncated?).\0"
-                as *const u8 as *const libc::c_char;
+            b"End of file unexpectedly reached while trying to read essential data (truncated?).\0"
+                as *const u8 as *const libc::c_char
         }
         17 => {
-            return b"End of current chunk reached while trying to read data.\0" as *const u8
-                as *const libc::c_char;
+            b"End of current chunk reached while trying to read data.\0" as *const u8
+                as *const libc::c_char
         }
-        18 => return b"File not found.\0" as *const u8 as *const libc::c_char,
+        18 => b"File not found.\0" as *const u8 as *const libc::c_char,
         19 => {
-            return b"Unsupported file or audio format.\0" as *const u8 as *const libc::c_char;
+            b"Unsupported file or audio format.\0" as *const u8 as *const libc::c_char
         }
         20 => {
-            return b"There is a version mismatch between the FMOD header and either the FMOD Studio library or the FMOD Low Level library.\0"
-                as *const u8 as *const libc::c_char;
+            b"There is a version mismatch between the FMOD header and either the FMOD Studio library or the FMOD Low Level library.\0"
+                as *const u8 as *const libc::c_char
         }
         21 => {
-            return b"A HTTP error occurred. This is a catch-all for HTTP errors not listed elsewhere.\0"
-                as *const u8 as *const libc::c_char;
+            b"A HTTP error occurred. This is a catch-all for HTTP errors not listed elsewhere.\0"
+                as *const u8 as *const libc::c_char
         }
         22 => {
-            return b"The specified resource requires authentication or is forbidden.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified resource requires authentication or is forbidden.\0" as *const u8
+                as *const libc::c_char
         }
         23 => {
-            return b"Proxy authentication is required to access the specified resource.\0"
-                as *const u8 as *const libc::c_char;
+            b"Proxy authentication is required to access the specified resource.\0"
+                as *const u8 as *const libc::c_char
         }
         24 => {
-            return b"A HTTP server error occurred.\0" as *const u8 as *const libc::c_char;
+            b"A HTTP server error occurred.\0" as *const u8 as *const libc::c_char
         }
-        25 => return b"The HTTP request timed out.\0" as *const u8 as *const libc::c_char,
+        25 => b"The HTTP request timed out.\0" as *const u8 as *const libc::c_char,
         26 => {
-            return b"FMOD was not initialized correctly to support this function.\0" as *const u8
-                as *const libc::c_char;
+            b"FMOD was not initialized correctly to support this function.\0" as *const u8
+                as *const libc::c_char
         }
         27 => {
-            return b"Cannot call this command after System::init.\0" as *const u8
-                as *const libc::c_char;
+            b"Cannot call this command after System::init.\0" as *const u8
+                as *const libc::c_char
         }
         28 => {
-            return b"An error occurred that wasn't supposed to.  Contact support.\0" as *const u8
-                as *const libc::c_char;
+            b"An error occurred that wasn't supposed to.  Contact support.\0" as *const u8
+                as *const libc::c_char
         }
         29 => {
-            return b"Value passed in was a NaN, Inf or denormalized float.\0" as *const u8
-                as *const libc::c_char;
+            b"Value passed in was a NaN, Inf or denormalized float.\0" as *const u8
+                as *const libc::c_char
         }
         30 => {
-            return b"An invalid object handle was used.\0" as *const u8 as *const libc::c_char;
+            b"An invalid object handle was used.\0" as *const u8 as *const libc::c_char
         }
         31 => {
-            return b"An invalid parameter was passed to this function.\0" as *const u8
-                as *const libc::c_char;
+            b"An invalid parameter was passed to this function.\0" as *const u8
+                as *const libc::c_char
         }
         32 => {
-            return b"An invalid seek position was passed to this function.\0" as *const u8
-                as *const libc::c_char;
+            b"An invalid seek position was passed to this function.\0" as *const u8
+                as *const libc::c_char
         }
         33 => {
-            return b"An invalid speaker was passed to this function based on the current speaker mode.\0"
-                as *const u8 as *const libc::c_char;
+            b"An invalid speaker was passed to this function based on the current speaker mode.\0"
+                as *const u8 as *const libc::c_char
         }
         34 => {
-            return b"The syncpoint did not come from this sound handle.\0" as *const u8
-                as *const libc::c_char;
+            b"The syncpoint did not come from this sound handle.\0" as *const u8
+                as *const libc::c_char
         }
         35 => {
-            return b"Tried to call a function on a thread that is not supported.\0" as *const u8
-                as *const libc::c_char;
+            b"Tried to call a function on a thread that is not supported.\0" as *const u8
+                as *const libc::c_char
         }
         36 => {
-            return b"The vectors passed in are not unit length, or perpendicular.\0" as *const u8
-                as *const libc::c_char;
+            b"The vectors passed in are not unit length, or perpendicular.\0" as *const u8
+                as *const libc::c_char
         }
         37 => {
-            return b"Reached maximum audible playback count for this sound's soundgroup.\0"
-                as *const u8 as *const libc::c_char;
+            b"Reached maximum audible playback count for this sound's soundgroup.\0"
+                as *const u8 as *const libc::c_char
         }
         38 => {
-            return b"Not enough memory or resources.\0" as *const u8 as *const libc::c_char;
+            b"Not enough memory or resources.\0" as *const u8 as *const libc::c_char
         }
         39 => {
-            return b"Can't use FMOD_OPENMEMORY_POINT on non PCM source data, or non mp3/xma/adpcm data if FMOD_CREATECOMPRESSEDSAMPLE was used.\0"
-                as *const u8 as *const libc::c_char;
+            b"Can't use FMOD_OPENMEMORY_POINT on non PCM source data, or non mp3/xma/adpcm data if FMOD_CREATECOMPRESSEDSAMPLE was used.\0"
+                as *const u8 as *const libc::c_char
         }
         40 => {
-            return b"Tried to call a command on a 2d sound when the command was meant for 3d sound.\0"
-                as *const u8 as *const libc::c_char;
+            b"Tried to call a command on a 2d sound when the command was meant for 3d sound.\0"
+                as *const u8 as *const libc::c_char
         }
         41 => {
-            return b"Tried to use a feature that requires hardware support.\0" as *const u8
-                as *const libc::c_char;
+            b"Tried to use a feature that requires hardware support.\0" as *const u8
+                as *const libc::c_char
         }
         42 => {
-            return b"Couldn't connect to the specified host.\0" as *const u8
-                as *const libc::c_char;
+            b"Couldn't connect to the specified host.\0" as *const u8
+                as *const libc::c_char
         }
         43 => {
-            return b"A socket error occurred.  This is a catch-all for socket-related errors not listed elsewhere.\0"
-                as *const u8 as *const libc::c_char;
+            b"A socket error occurred.  This is a catch-all for socket-related errors not listed elsewhere.\0"
+                as *const u8 as *const libc::c_char
         }
         44 => {
-            return b"The specified URL couldn't be resolved.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified URL couldn't be resolved.\0" as *const u8
+                as *const libc::c_char
         }
         45 => {
-            return b"Operation on a non-blocking socket could not complete immediately.\0"
-                as *const u8 as *const libc::c_char;
+            b"Operation on a non-blocking socket could not complete immediately.\0"
+                as *const u8 as *const libc::c_char
         }
         46 => {
-            return b"Operation could not be performed because specified sound/DSP connection is not ready.\0"
-                as *const u8 as *const libc::c_char;
+            b"Operation could not be performed because specified sound/DSP connection is not ready.\0"
+                as *const u8 as *const libc::c_char
         }
         47 => {
-            return b"Error initializing output device, but more specifically, the output device is already in use and cannot be reused.\0"
-                as *const u8 as *const libc::c_char;
+            b"Error initializing output device, but more specifically, the output device is already in use and cannot be reused.\0"
+                as *const u8 as *const libc::c_char
         }
         48 => {
-            return b"Error creating hardware sound buffer.\0" as *const u8 as *const libc::c_char;
+            b"Error creating hardware sound buffer.\0" as *const u8 as *const libc::c_char
         }
         49 => {
-            return b"A call to a standard soundcard driver failed, which could possibly mean a bug in the driver or resources were missing or exhausted.\0"
-                as *const u8 as *const libc::c_char;
+            b"A call to a standard soundcard driver failed, which could possibly mean a bug in the driver or resources were missing or exhausted.\0"
+                as *const u8 as *const libc::c_char
         }
         50 => {
-            return b"Soundcard does not support the specified format.\0" as *const u8
-                as *const libc::c_char;
+            b"Soundcard does not support the specified format.\0" as *const u8
+                as *const libc::c_char
         }
         51 => {
-            return b"Error initializing output device.\0" as *const u8 as *const libc::c_char;
+            b"Error initializing output device.\0" as *const u8 as *const libc::c_char
         }
         52 => {
-            return b"The output device has no drivers installed.  If pre-init, FMOD_OUTPUT_NOSOUND is selected as the output mode.  If post-init, the function just fails.\0"
-                as *const u8 as *const libc::c_char;
+            b"The output device has no drivers installed.  If pre-init, FMOD_OUTPUT_NOSOUND is selected as the output mode.  If post-init, the function just fails.\0"
+                as *const u8 as *const libc::c_char
         }
         53 => {
-            return b"An unspecified error has been returned from a plugin.\0" as *const u8
-                as *const libc::c_char;
+            b"An unspecified error has been returned from a plugin.\0" as *const u8
+                as *const libc::c_char
         }
         54 => {
-            return b"A requested output, dsp unit type or codec was not available.\0" as *const u8
-                as *const libc::c_char;
+            b"A requested output, dsp unit type or codec was not available.\0" as *const u8
+                as *const libc::c_char
         }
         55 => {
-            return b"A resource that the plugin requires cannot be allocated or found. (ie the DLS file for MIDI playback)\0"
-                as *const u8 as *const libc::c_char;
+            b"A resource that the plugin requires cannot be allocated or found. (ie the DLS file for MIDI playback)\0"
+                as *const u8 as *const libc::c_char
         }
         56 => {
-            return b"A plugin was built with an unsupported SDK version.\0" as *const u8
-                as *const libc::c_char;
+            b"A plugin was built with an unsupported SDK version.\0" as *const u8
+                as *const libc::c_char
         }
         57 => {
-            return b"An error occurred trying to initialize the recording device.\0" as *const u8
-                as *const libc::c_char;
+            b"An error occurred trying to initialize the recording device.\0" as *const u8
+                as *const libc::c_char
         }
         58 => {
-            return b"Reverb properties cannot be set on this channel because a parent channelgroup owns the reverb connection.\0"
-                as *const u8 as *const libc::c_char;
+            b"Reverb properties cannot be set on this channel because a parent channelgroup owns the reverb connection.\0"
+                as *const u8 as *const libc::c_char
         }
         59 => {
-            return b"Specified instance in FMOD_REVERB_PROPERTIES couldn't be set. Most likely because it is an invalid instance number or the reverb doesn't exist.\0"
-                as *const u8 as *const libc::c_char;
+            b"Specified instance in FMOD_REVERB_PROPERTIES couldn't be set. Most likely because it is an invalid instance number or the reverb doesn't exist.\0"
+                as *const u8 as *const libc::c_char
         }
         60 => {
-            return b"The error occurred because the sound referenced contains subsounds when it shouldn't have, or it doesn't contain subsounds when it should have.  The operation may also not be able to be performed on a parent sound.\0"
-                as *const u8 as *const libc::c_char;
+            b"The error occurred because the sound referenced contains subsounds when it shouldn't have, or it doesn't contain subsounds when it should have.  The operation may also not be able to be performed on a parent sound.\0"
+                as *const u8 as *const libc::c_char
         }
         61 => {
-            return b"This subsound is already being used by another sound, you cannot have more than one parent to a sound.  Null out the other parent's entry first.\0"
-                as *const u8 as *const libc::c_char;
+            b"This subsound is already being used by another sound, you cannot have more than one parent to a sound.  Null out the other parent's entry first.\0"
+                as *const u8 as *const libc::c_char
         }
         62 => {
-            return b"Shared subsounds cannot be replaced or moved from their parent stream, such as when the parent stream is an FSB file.\0"
-                as *const u8 as *const libc::c_char;
+            b"Shared subsounds cannot be replaced or moved from their parent stream, such as when the parent stream is an FSB file.\0"
+                as *const u8 as *const libc::c_char
         }
         63 => {
-            return b"The specified tag could not be found or there are no tags.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified tag could not be found or there are no tags.\0" as *const u8
+                as *const libc::c_char
         }
         64 => {
-            return b"The sound created exceeds the allowable input channel count.  This can be increased using the 'maxinputchannels' parameter in System::setSoftwareFormat.\0"
-                as *const u8 as *const libc::c_char;
+            b"The sound created exceeds the allowable input channel count.  This can be increased using the 'maxinputchannels' parameter in System::setSoftwareFormat.\0"
+                as *const u8 as *const libc::c_char
         }
         65 => {
-            return b"The retrieved string is too long to fit in the supplied buffer and has been truncated.\0"
-                as *const u8 as *const libc::c_char;
+            b"The retrieved string is too long to fit in the supplied buffer and has been truncated.\0"
+                as *const u8 as *const libc::c_char
         }
         66 => {
-            return b"Something in FMOD hasn't been implemented when it should be! contact support!\0"
-                as *const u8 as *const libc::c_char;
+            b"Something in FMOD hasn't been implemented when it should be! contact support!\0"
+                as *const u8 as *const libc::c_char
         }
         67 => {
-            return b"This command failed because System::init or System::setDriver was not called.\0"
-                as *const u8 as *const libc::c_char;
+            b"This command failed because System::init or System::setDriver was not called.\0"
+                as *const u8 as *const libc::c_char
         }
         68 => {
-            return b"A command issued was not supported by this object.  Possibly a plugin without certain callbacks specified.\0"
-                as *const u8 as *const libc::c_char;
+            b"A command issued was not supported by this object.  Possibly a plugin without certain callbacks specified.\0"
+                as *const u8 as *const libc::c_char
         }
         69 => {
-            return b"The version number of this file format is not supported.\0" as *const u8
-                as *const libc::c_char;
+            b"The version number of this file format is not supported.\0" as *const u8
+                as *const libc::c_char
         }
         70 => {
-            return b"The specified bank has already been loaded.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified bank has already been loaded.\0" as *const u8
+                as *const libc::c_char
         }
         71 => {
-            return b"The live update connection failed due to the game already being connected.\0"
-                as *const u8 as *const libc::c_char;
+            b"The live update connection failed due to the game already being connected.\0"
+                as *const u8 as *const libc::c_char
         }
         72 => {
-            return b"The live update connection failed due to the game data being out of sync with the tool.\0"
-                as *const u8 as *const libc::c_char;
+            b"The live update connection failed due to the game data being out of sync with the tool.\0"
+                as *const u8 as *const libc::c_char
         }
         73 => {
-            return b"The live update connection timed out.\0" as *const u8 as *const libc::c_char;
+            b"The live update connection timed out.\0" as *const u8 as *const libc::c_char
         }
         74 => {
-            return b"The requested event, parameter, bus or vca could not be found.\0" as *const u8
-                as *const libc::c_char;
+            b"The requested event, parameter, bus or vca could not be found.\0" as *const u8
+                as *const libc::c_char
         }
         75 => {
-            return b"The Studio::System object is not yet initialized.\0" as *const u8
-                as *const libc::c_char;
+            b"The Studio::System object is not yet initialized.\0" as *const u8
+                as *const libc::c_char
         }
         76 => {
-            return b"The specified resource is not loaded, so it can't be unloaded.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified resource is not loaded, so it can't be unloaded.\0" as *const u8
+                as *const libc::c_char
         }
         77 => {
-            return b"An invalid string was passed to this function.\0" as *const u8
-                as *const libc::c_char;
+            b"An invalid string was passed to this function.\0" as *const u8
+                as *const libc::c_char
         }
         78 => {
-            return b"The specified resource is already locked.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified resource is already locked.\0" as *const u8
+                as *const libc::c_char
         }
         79 => {
-            return b"The specified resource is not locked, so it can't be unlocked.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified resource is not locked, so it can't be unlocked.\0" as *const u8
+                as *const libc::c_char
         }
         80 => {
-            return b"The specified recording driver has been disconnected.\0" as *const u8
-                as *const libc::c_char;
+            b"The specified recording driver has been disconnected.\0" as *const u8
+                as *const libc::c_char
         }
         81 => {
-            return b"The length provided exceeds the allowable limit.\0" as *const u8
-                as *const libc::c_char;
+            b"The length provided exceeds the allowable limit.\0" as *const u8
+                as *const libc::c_char
         }
-        _ => return b"Unknown error.\0" as *const u8 as *const libc::c_char,
-    };
+        _ => b"Unknown error.\0" as *const u8 as *const libc::c_char,
+    }
 }
 
 #[inline]
@@ -805,25 +805,25 @@ pub unsafe extern "C" fn Audio_Update() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetLoadedCount() -> i32 {
-    return 0;
+    0
     // let mut size: u32 = StrMap_GetSize(this.descMap);
     // return size as i32;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetPlayingCount() -> i32 {
-    return this.playingSounds_size;
+    this.playingSounds_size
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetTotalCount() -> i32 {
     let mut size: u32 = MemPool_GetSize(this.soundPool);
-    return size as i32;
+    size as i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {
-    return this.handle as *mut libc::c_void;
+    this.handle as *mut libc::c_void
 }
 
 #[no_mangle]
@@ -833,7 +833,7 @@ pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> 
         desc = MemAllocZero(::core::mem::size_of::<SoundDesc>()) as *mut SoundDesc;
         StrMap_Set(this.descMap, name, desc as *mut libc::c_void);
     }
-    return desc;
+    desc
 }
 
 #[no_mangle]
@@ -844,7 +844,7 @@ pub unsafe extern "C" fn Audio_DeallocSoundDesc(mut desc: *mut SoundDesc) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AllocSound() -> *mut Sound {
-    return MemPool_Alloc(this.soundPool) as *mut Sound;
+    MemPool_Alloc(this.soundPool) as *mut Sound
 }
 
 #[no_mangle]

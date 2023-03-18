@@ -32,5 +32,5 @@ pub unsafe extern "C" fn DataFormat_GetSize(mut this: DataFormat) -> i32 {
         5125 | 5124 | 5126 => return 4_i32,
         _ => {}
     }
-    return 0_i32;
+    0_i32
 }

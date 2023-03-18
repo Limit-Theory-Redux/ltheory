@@ -26,7 +26,7 @@ pub unsafe extern "C" fn Thread_Create(
     if ((*this).handle).is_null() {
         Fatal(b"Thread_Create: Failed to start new thread\0" as *const u8 as *const libc::c_char);
     }
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -45,5 +45,5 @@ pub unsafe extern "C" fn Thread_Wait(mut this: *mut Thread) -> i32 {
     let mut ret: i32 = 0;
     SDL_WaitThread((*this).handle, &mut ret);
     MemFree(this as *const libc::c_void);
-    return ret;
+    ret
 }

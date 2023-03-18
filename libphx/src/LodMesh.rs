@@ -25,7 +25,7 @@ pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
         MemAlloc(::core::mem::size_of::<LodMesh>()) as *mut LodMesh;
     (*this)._refCount = 1_i32 as u32;
     (*this).head = std::ptr::null_mut();
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -86,5 +86,5 @@ pub unsafe extern "C" fn LodMesh_Get(mut this: *mut LodMesh, mut d2: f32) -> *mu
         }
         e = (*e).next;
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }

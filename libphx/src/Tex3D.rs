@@ -136,7 +136,7 @@ pub unsafe extern "C" fn Tex3D_Create(
     );
     Tex3D_Init();
     glBindTexture(0x806f_i32 as GLenum, 0_i32 as GLu32);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -232,17 +232,17 @@ pub unsafe extern "C" fn Tex3D_GetDataBytes(
     let mut data: *mut Bytes = Bytes_Create(size as u32);
     Tex3D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
-    return data;
+    data
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_GetFormat(mut this: *mut Tex3D) -> TexFormat {
-    return (*this).format;
+    (*this).format
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_GetHandle(mut this: *mut Tex3D) -> u32 {
-    return (*this).handle;
+    (*this).handle
 }
 
 #[no_mangle]

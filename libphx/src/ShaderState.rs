@@ -98,7 +98,7 @@ pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut Sha
     (*this).elems_data = std::ptr::null_mut();
     Shader_Acquire(shader);
     (*this).shader = shader;
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -146,7 +146,7 @@ pub unsafe extern "C" fn ShaderState_FromShaderLoad(
     let mut shader: *mut Shader = Shader_Load(vertName, fragName);
     let mut this: *mut ShaderState = ShaderState_Create(shader);
     Shader_Free(shader);
-    return this;
+    this
 }
 
 #[no_mangle]

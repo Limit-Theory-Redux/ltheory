@@ -78,7 +78,7 @@ unsafe extern "C" fn ConsumeRestOfLine(mut s: *mut ParseState) -> bool {
         }
         (*s).cursor = ((*s).cursor).offset(1);
     }
-    return (*s).cursor != oldPosition;
+    (*s).cursor != oldPosition
 }
 
 unsafe extern "C" fn ConsumeWhitespace(mut s: *mut ParseState) -> bool {
@@ -88,7 +88,7 @@ unsafe extern "C" fn ConsumeWhitespace(mut s: *mut ParseState) -> bool {
     {
         (*s).cursor = ((*s).cursor).offset(1);
     }
-    return (*s).cursor != oldPosition;
+    (*s).cursor != oldPosition
 }
 
 unsafe extern "C" fn ConsumeToken(
@@ -110,7 +110,7 @@ unsafe extern "C" fn ConsumeToken(
         (*s).cursor = ((*s).cursor).offset(1);
     }
     *token.offset(i as isize) = 0_i32 as libc::c_char;
-    return i != 0_i32;
+    i != 0_i32
 }
 
 unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -> bool {
@@ -127,7 +127,7 @@ unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -
         *value = f;
         return true;
     }
-    return false;
+    false
 }
 
 unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> bool {
@@ -144,7 +144,7 @@ unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> 
         *value = i;
         return true;
     }
-    return false;
+    false
 }
 
 unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut ParseState) -> bool {
@@ -152,7 +152,7 @@ unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut P
         (*s).cursor = ((*s).cursor).offset(1);
         return true;
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -594,5 +594,5 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
     MemFree(positions_data as *const libc::c_void);
     MemFree(uvs_data as *const libc::c_void);
     MemFree(normals_data as *const libc::c_void);
-    return mesh;
+    mesh
 }

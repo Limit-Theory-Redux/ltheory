@@ -43,17 +43,17 @@ pub struct Profiler {
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    return sqrt(t);
+    sqrt(t)
 }
 
 static mut this: Profiler = Profiler {
@@ -95,7 +95,7 @@ unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
     this.scopeList_size = this.scopeList_size + 1;
     let ref mut fresh1 = *(this.scopeList_data).offset(fresh0 as isize);
     *fresh1 = scope;
-    return scope;
+    scope
 }
 
 unsafe extern "C" fn Scope_Free(mut scope: *mut Scope) {
@@ -106,13 +106,13 @@ unsafe extern "C" fn Scope_Free(mut scope: *mut Scope) {
 unsafe extern "C" fn SortScopes(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
     let mut a: *const Scope = *(pa as *mut *const Scope);
     let mut b: *const Scope = *(pb as *mut *const Scope);
-    return if (*b).total < (*a).total {
+    if (*b).total < (*a).total {
         -1_i32
     } else if (*b).total == (*a).total {
         0_i32
     } else {
         1_i32
-    };
+    }
 }
 
 unsafe extern "C" fn Profiler_GetScope(mut name: *const libc::c_char) -> *mut Scope {
@@ -122,7 +122,7 @@ unsafe extern "C" fn Profiler_GetScope(mut name: *const libc::c_char) -> *mut Sc
     }
     scope = Scope_Create(name);
     HashMap_SetRaw(this.map, name as usize as u64, scope as *mut libc::c_void);
-    return scope;
+    scope
 }
 
 unsafe extern "C" fn Profiler_SignalHandler(mut _s: Signal) {

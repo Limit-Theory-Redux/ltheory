@@ -11,44 +11,44 @@ extern "C" {
 
 #[inline]
 unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    return floor(t);
+    floor(t)
 }
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    return fabs(t);
+    fabs(t)
 }
 
 #[inline]
 unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
-    return pow(t, p);
+    pow(t, p)
 }
 
 #[inline]
 unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
-    return a + t * (b - a);
+    a + t * (b - a)
 }
 
 #[inline]
 unsafe extern "C" fn Exp(mut t: f64) -> f64 {
-    return exp(t);
+    exp(t)
 }
 
 #[inline]
 unsafe extern "C" fn Round(mut t: f64) -> f64 {
-    return Floor(t + 0.5f64);
+    Floor(t + 0.5f64)
 }
 
 #[inline]
 unsafe extern "C" fn Sign2(mut x: f64) -> f64 {
-    return if x > 0.0f64 { 1.0f64 } else { -1.0f64 };
+    if x > 0.0f64 { 1.0f64 } else { -1.0f64 }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_Bezier3(mut x: f64, mut y1: f64, mut y2: f64, mut y3: f64) -> f64 {
     let mut y12: f64 = Lerp(y1, y2, x);
     let mut y23: f64 = Lerp(y2, y3, x);
-    return Lerp(y12, y23, x);
+    Lerp(y12, y23, x)
 }
 
 #[no_mangle]
@@ -64,29 +64,29 @@ pub unsafe extern "C" fn Math_Bezier4(
     let mut y34: f64 = Lerp(y3, y4, x);
     let mut y123: f64 = Lerp(y12, y23, x);
     let mut y234: f64 = Lerp(y23, y34, x);
-    return Lerp(y123, y234, x);
+    Lerp(y123, y234, x)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_Clamp(mut x: f64, mut a: f64, mut b: f64) -> f64 {
-    return if x < a {
+    if x < a {
         a
     } else if x > b {
         b
     } else {
         x
-    };
+    }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_Clamp01(mut x: f64) -> f64 {
-    return if x < 0.0f64 {
+    if x < 0.0f64 {
         0.0f64
     } else if x > 1.0f64 {
         1.0f64
     } else {
         x
-    };
+    }
 }
 
 #[no_mangle]
@@ -109,73 +109,73 @@ pub unsafe extern "C" fn Math_ClampSafe(mut x: f64, mut a: f64, mut b: f64) -> f
             ::core::mem::size_of::<f64>(),
         );
     }
-    return if x < a {
+    if x < a {
         a
     } else if x > b {
         b
     } else {
         x
-    };
+    }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ClampUnit(mut x: f64) -> f64 {
-    return if x < -1.0f64 {
+    if x < -1.0f64 {
         -1.0f64
     } else if x > 1.0f64 {
         1.0f64
     } else {
         x
-    };
+    }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap(mut x: f64, mut p: f64) -> f64 {
-    return 1.0f64 - Exp(-Pow(Abs(x), p));
+    1.0f64 - Exp(-Pow(Abs(x), p))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMapSigned(mut x: f64, mut p: f64) -> f64 {
-    return Sign2(x) * (1.0f64 - Exp(-Pow(Abs(x), p)));
+    Sign2(x) * (1.0f64 - Exp(-Pow(Abs(x), p)))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap1(mut x: f64) -> f64 {
-    return 1.0f64 - Exp(-Abs(x));
+    1.0f64 - Exp(-Abs(x))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap1Signed(mut x: f64) -> f64 {
-    return Sign2(x) * (1.0f64 - Exp(-Abs(x)));
+    Sign2(x) * (1.0f64 - Exp(-Abs(x)))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap2(mut x: f64) -> f64 {
-    return 1.0f64 - Exp(-x * x);
+    1.0f64 - Exp(-x * x)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap2Signed(mut x: f64) -> f64 {
-    return Sign2(x) * (1.0f64 - Exp(-x * x));
+    Sign2(x) * (1.0f64 - Exp(-x * x))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_PowSigned(mut x: f64, mut p: f64) -> f64 {
-    return Sign2(x) * Pow(Abs(x), p);
+    Sign2(x) * Pow(Abs(x), p)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_Round(mut x: f64) -> f64 {
-    return Round(x);
+    Round(x)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_Sign(mut x: f64) -> f64 {
-    return if x > 0.0f64 {
+    if x > 0.0f64 {
         1.0f64
     } else if x < 0.0f64 {
         -1.0f64
     } else {
         0.0f64
-    };
+    }
 }

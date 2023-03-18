@@ -72,7 +72,7 @@ pub struct Input {
 unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
     t = if t > upper { upper } else { t };
     t = if t < lower { lower } else { t };
-    return t;
+    t
 }
 
 static mut Threshold_Pressed: f32 = 0.5f32;
@@ -139,7 +139,7 @@ unsafe extern "C" fn Input_EnsureDeviceState(mut device: Device) -> *mut DeviceS
         (*deviceList).devices_size = (*deviceList).devices_size + 1;
         *((*deviceList).devices_data).offset(fresh0 as isize) = deviceState;
     }
-    return ((*deviceList).devices_data).offset(device.id as isize);
+    ((*deviceList).devices_data).offset(device.id as isize)
 }
 
 #[inline]
@@ -148,7 +148,7 @@ unsafe extern "C" fn Input_GetDeviceState(mut device: Device) -> *mut DeviceStat
         .as_mut_ptr()
         .offset(device.type_0 as isize)
         as *mut DeviceList;
-    return ((*deviceList).devices_data).offset(device.id as isize);
+    ((*deviceList).devices_data).offset(device.id as isize)
 }
 
 #[inline]
@@ -174,46 +174,46 @@ unsafe extern "C" fn Input_GetDeviceExists(mut device: Device) -> bool {
             ((*deviceList).devices_data).offset(device.id as isize);
         return (*deviceState).isConnected;
     }
-    return false;
+    false
 }
 
 #[inline]
 unsafe extern "C" fn Input_GetDevicePressedImpl(mut device: Device, mut button: Button) -> bool {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return if (*deviceState).buttons[button as usize] as i32 != 0 {
-        ((*deviceState).transitions[button as usize] > 0_i32) as i32
+    if (*deviceState).buttons[button as usize] as i32 != 0 {
+        (*deviceState).transitions[button as usize] > 0_i32
     } else {
-        ((*deviceState).transitions[button as usize] > 1_i32) as i32
-    } != 0;
+        (*deviceState).transitions[button as usize] > 1_i32
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Input_GetDeviceDownImpl(mut device: Device, mut button: Button) -> bool {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).buttons[button as usize] as i32 != 0
-        || (*deviceState).transitions[button as usize] > 0_i32;
+    (*deviceState).buttons[button as usize] as i32 != 0
+        || (*deviceState).transitions[button as usize] > 0_i32
 }
 
 #[inline]
 unsafe extern "C" fn Input_GetDeviceReleasedImpl(mut device: Device, mut button: Button) -> bool {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return if (*deviceState).buttons[button as usize] as i32 != 0 {
-        ((*deviceState).transitions[button as usize] > 1_i32) as i32
+    if (*deviceState).buttons[button as usize] as i32 != 0 {
+        (*deviceState).transitions[button as usize] > 1_i32
     } else {
-        ((*deviceState).transitions[button as usize] > 0_i32) as i32
-    } != 0;
+        (*deviceState).transitions[button as usize] > 0_i32
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Input_GetDeviceValueImpl(mut device: Device, mut button: Button) -> f32 {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).axes[button as usize];
+    (*deviceState).axes[button as usize]
 }
 
 #[inline]
 unsafe extern "C" fn Input_GetDeviceIdleTimeImpl(mut device: Device) -> f32 {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (this.lastTimestamp).wrapping_sub((*deviceState).lastEventTimestamp) as f32 / 1000.0f32;
+    (this.lastTimestamp).wrapping_sub((*deviceState).lastEventTimestamp) as f32 / 1000.0f32
 }
 
 #[inline]
@@ -227,7 +227,7 @@ unsafe extern "C" fn Input_DetermineButtonState(mut event: InputEvent) -> State 
     if down as i32 != 0 && event.value < Threshold_Released {
         buttonState |= State_Released;
     }
-    return buttonState;
+    buttonState
 }
 
 #[inline]
@@ -794,7 +794,7 @@ pub unsafe extern "C" fn Input_GetPressed(mut button: Button) -> bool {
         type_0: Button_ToDeviceType(button),
         id: 0_i32 as u32,
     };
-    return Input_GetDevicePressedImpl(device, button);
+    Input_GetDevicePressedImpl(device, button)
 }
 
 #[no_mangle]
@@ -803,7 +803,7 @@ pub unsafe extern "C" fn Input_GetDown(mut button: Button) -> bool {
         type_0: Button_ToDeviceType(button),
         id: 0_i32 as u32,
     };
-    return Input_GetDeviceDownImpl(device, button);
+    Input_GetDeviceDownImpl(device, button)
 }
 
 #[no_mangle]
@@ -812,7 +812,7 @@ pub unsafe extern "C" fn Input_GetReleased(mut button: Button) -> bool {
         type_0: Button_ToDeviceType(button),
         id: 0_i32 as u32,
     };
-    return Input_GetDeviceReleasedImpl(device, button);
+    Input_GetDeviceReleasedImpl(device, button)
 }
 
 #[no_mangle]
@@ -821,12 +821,12 @@ pub unsafe extern "C" fn Input_GetValue(mut button: Button) -> f32 {
         type_0: Button_ToDeviceType(button),
         id: 0_i32 as u32,
     };
-    return Input_GetDeviceValueImpl(device, button);
+    Input_GetDeviceValueImpl(device, button)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetIdleTime() -> f32 {
-    return (this.lastTimestamp).wrapping_sub(this.lastEventTimestamp) as f32 / 1000.0f32;
+    (this.lastTimestamp).wrapping_sub(this.lastEventTimestamp) as f32 / 1000.0f32
 }
 
 #[no_mangle]
@@ -836,17 +836,17 @@ pub unsafe extern "C" fn Input_GetActiveDevice(mut device: *mut Device) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetActiveDeviceType() -> DeviceType {
-    return this.activeDevice.type_0;
+    this.activeDevice.type_0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetActiveDeviceID() -> u32 {
-    return this.activeDevice.id;
+    this.activeDevice.id
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetActiveDeviceIdleTime() -> f32 {
-    return Input_GetDeviceIdleTimeImpl(this.activeDevice);
+    Input_GetDeviceIdleTimeImpl(this.activeDevice)
 }
 
 #[no_mangle]
@@ -857,7 +857,7 @@ pub unsafe extern "C" fn Input_GetDevicePressed(
     if !Input_GetDeviceExists(*device) {
         return false;
     }
-    return Input_GetDevicePressedImpl(*device, button);
+    Input_GetDevicePressedImpl(*device, button)
 }
 
 #[no_mangle]
@@ -865,7 +865,7 @@ pub unsafe extern "C" fn Input_GetDeviceDown(mut device: *mut Device, mut button
     if !Input_GetDeviceExists(*device) {
         return false;
     }
-    return Input_GetDeviceDownImpl(*device, button);
+    Input_GetDeviceDownImpl(*device, button)
 }
 
 #[no_mangle]
@@ -876,7 +876,7 @@ pub unsafe extern "C" fn Input_GetDeviceReleased(
     if !Input_GetDeviceExists(*device) {
         return false;
     }
-    return Input_GetDeviceReleasedImpl(*device, button);
+    Input_GetDeviceReleasedImpl(*device, button)
 }
 
 #[no_mangle]
@@ -884,7 +884,7 @@ pub unsafe extern "C" fn Input_GetDeviceValue(mut device: *mut Device, mut butto
     if !Input_GetDeviceExists(*device) {
         return 0.0f32;
     }
-    return Input_GetDeviceValueImpl(*device, button);
+    Input_GetDeviceValueImpl(*device, button)
 }
 
 #[no_mangle]
@@ -892,7 +892,7 @@ pub unsafe extern "C" fn Input_GetDeviceIdleTime(mut device: *mut Device) -> f32
     if !Input_GetDeviceExists(*device) {
         return 3.40282347e+38f32;
     }
-    return Input_GetDeviceIdleTimeImpl(*device);
+    Input_GetDeviceIdleTimeImpl(*device)
 }
 
 #[no_mangle]
@@ -907,7 +907,7 @@ pub unsafe extern "C" fn Input_GetMouseIdleTime() -> f32 {
         type_0: DeviceType_Mouse,
         id: 0_i32 as u32,
     };
-    return Input_GetDeviceIdleTimeImpl(device);
+    Input_GetDeviceIdleTimeImpl(device)
 }
 
 #[no_mangle]
@@ -989,7 +989,7 @@ pub unsafe extern "C" fn Input_GetKeyboardIdleTime() -> f32 {
         type_0: DeviceType_Keyboard,
         id: 0_i32 as u32,
     };
-    return Input_GetDeviceIdleTimeImpl(device);
+    Input_GetDeviceIdleTimeImpl(device)
 }
 
 #[no_mangle]
@@ -1004,7 +1004,7 @@ pub unsafe extern "C" fn Input_GetKeyboardMod(mut modifier: Modifier) -> bool {
     if modifier & Modifier_Shift == Modifier_Shift {
         hasMod = (hasMod as i32 & Input_GetKeyboardShift() as i32) != 0;
     }
-    return hasMod;
+    hasMod
 }
 
 #[no_mangle]
@@ -1014,8 +1014,8 @@ pub unsafe extern "C" fn Input_GetKeyboardAlt() -> bool {
         id: 0_i32 as u32,
     };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).buttons[Button_Keyboard_LAlt as usize] as i32 != 0
-        || (*deviceState).buttons[Button_Keyboard_RAlt as usize] as i32 != 0;
+    (*deviceState).buttons[Button_Keyboard_LAlt as usize] as i32 != 0
+        || (*deviceState).buttons[Button_Keyboard_RAlt as usize] as i32 != 0
 }
 
 #[no_mangle]
@@ -1025,8 +1025,8 @@ pub unsafe extern "C" fn Input_GetKeyboardCtrl() -> bool {
         id: 0_i32 as u32,
     };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).buttons[Button_Keyboard_LCtrl as usize] as i32 != 0
-        || (*deviceState).buttons[Button_Keyboard_RCtrl as usize] as i32 != 0;
+    (*deviceState).buttons[Button_Keyboard_LCtrl as usize] as i32 != 0
+        || (*deviceState).buttons[Button_Keyboard_RCtrl as usize] as i32 != 0
 }
 
 #[no_mangle]
@@ -1036,8 +1036,8 @@ pub unsafe extern "C" fn Input_GetKeyboardShift() -> bool {
         id: 0_i32 as u32,
     };
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
-    return (*deviceState).buttons[Button_Keyboard_LShift as usize] as i32 != 0
-        || (*deviceState).buttons[Button_Keyboard_RShift as usize] as i32 != 0;
+    (*deviceState).buttons[Button_Keyboard_LShift as usize] as i32 != 0
+        || (*deviceState).buttons[Button_Keyboard_RShift as usize] as i32 != 0
 }
 
 #[no_mangle]
@@ -1049,7 +1049,7 @@ pub unsafe extern "C" fn Input_GetGamepadIdleTime(mut id: u32) -> f32 {
     if !Input_GetDeviceExists(device) {
         return 3.40282347e+38f32;
     }
-    return Input_GetDeviceIdleTimeImpl(device);
+    Input_GetDeviceIdleTimeImpl(device)
 }
 
 #[no_mangle]
@@ -1061,7 +1061,7 @@ pub unsafe extern "C" fn Input_GetGamepadPressed(mut id: u32, mut button: Button
     if !Input_GetDeviceExists(device) {
         return false;
     }
-    return Input_GetDevicePressedImpl(device, button);
+    Input_GetDevicePressedImpl(device, button)
 }
 
 #[no_mangle]
@@ -1073,7 +1073,7 @@ pub unsafe extern "C" fn Input_GetGamepadDown(mut id: u32, mut button: Button) -
     if !Input_GetDeviceExists(device) {
         return false;
     }
-    return Input_GetDeviceDownImpl(device, button);
+    Input_GetDeviceDownImpl(device, button)
 }
 
 #[no_mangle]
@@ -1085,7 +1085,7 @@ pub unsafe extern "C" fn Input_GetGamepadReleased(mut id: u32, mut button: Butto
     if !Input_GetDeviceExists(device) {
         return false;
     }
-    return Input_GetDeviceReleasedImpl(device, button);
+    Input_GetDeviceReleasedImpl(device, button)
 }
 
 #[no_mangle]
@@ -1097,12 +1097,12 @@ pub unsafe extern "C" fn Input_GetGamepadValue(mut id: u32, mut button: Button) 
     if !Input_GetDeviceExists(device) {
         return 0.0f32;
     }
-    return Input_GetDeviceValueImpl(device, button);
+    Input_GetDeviceValueImpl(device, button)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetEventCount() -> i32 {
-    return this.events_size;
+    this.events_size
 }
 
 #[no_mangle]
@@ -1129,5 +1129,5 @@ pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool 
     }
     this.events_size -= 1;
     Profiler_End();
-    return true;
+    true
 }

@@ -16,12 +16,12 @@ pub struct MidiDevice {
 
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_GetCount() -> i32 {
-    return 0_i32;
+    0_i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_Open(mut _index: i32) -> *mut MidiDevice {
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
@@ -29,12 +29,12 @@ pub unsafe extern "C" fn MidiDevice_Close(mut _this: *mut MidiDevice) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_GetNameByIndex(mut _index: i32) -> *const libc::c_char {
-    return std::ptr::null();
+    std::ptr::null()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_HasMessage(mut this: *mut MidiDevice) -> bool {
-    return (*this).cursor > 0_i32;
+    (*this).cursor > 0_i32
 }
 
 #[no_mangle]
@@ -45,5 +45,5 @@ pub unsafe extern "C" fn MidiDevice_PopMessage(mut this: *mut MidiDevice) -> IVe
         );
     }
     (*this).cursor -= 1_i32;
-    return (*this).buffer[(*this).cursor as usize];
+    (*this).buffer[(*this).cursor as usize]
 }

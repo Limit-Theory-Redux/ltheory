@@ -26,7 +26,7 @@ pub unsafe extern "C" fn Ray_IntersectPlane(
     mut plane: *const Plane,
     mut pHit: *mut Vec3,
 ) -> bool {
-    return Intersect_RayPlane(this, plane, pHit);
+    Intersect_RayPlane(this, plane, pHit)
 }
 
 #[no_mangle]
@@ -36,7 +36,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
     mut tEpsilon: f32,
     mut tHit: *mut f32,
 ) -> bool {
-    return Intersect_RayTriangle_Barycentric(this, tri, tEpsilon, tHit);
+    Intersect_RayTriangle_Barycentric(this, tri, tEpsilon, tHit)
 }
 
 #[no_mangle]
@@ -45,7 +45,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
     mut tri: *const Triangle,
     mut tHit: *mut f32,
 ) -> bool {
-    return Intersect_RayTriangle_Moller1(this, tri, tHit);
+    Intersect_RayTriangle_Moller1(this, tri, tHit)
 }
 
 #[no_mangle]
@@ -54,7 +54,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
     mut tri: *const Triangle,
     mut tHit: *mut f32,
 ) -> bool {
-    return Intersect_RayTriangle_Moller2(this, tri, tHit);
+    Intersect_RayTriangle_Moller2(this, tri, tHit)
 }
 
 #[no_mangle]

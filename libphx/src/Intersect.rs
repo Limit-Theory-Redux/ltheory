@@ -22,17 +22,17 @@ pub struct Vec4f {
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    return fabs(t);
+    fabs(t)
 }
 
 #[inline]
 unsafe extern "C" fn Absf(mut t: f32) -> f32 {
-    return fabs(t as f64) as f32;
+    fabs(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[no_mangle]
@@ -43,12 +43,12 @@ pub unsafe extern "C" fn Intersect_PointBox(mut src: *mut Matrix, mut dst: *mut 
     let mut dstPt = Vec3::ZERO;
     Matrix_MulPoint(inv, &mut dstPt, srcPt.x, srcPt.y, srcPt.z);
     Matrix_Free(inv);
-    return -1.0f32 < dstPt.x
+    -1.0f32 < dstPt.x
         && dstPt.x < 1.0f32
         && -1.0f32 < dstPt.y
         && dstPt.y < 1.0f32
         && -1.0f32 < dstPt.z
-        && dstPt.z < 1.0f32;
+        && dstPt.z < 1.0f32
 }
 
 #[no_mangle]
@@ -77,12 +77,12 @@ pub unsafe extern "C" fn Intersect_PointTriangle_Barycentric(
     let mut C: f32 = 1.0f32 - A - B;
     let mut fuzzyMin: f32 = 0.0f32 - 0.01f32;
     let mut fuzzyMax: f32 = 1.0f32 + 0.01f32;
-    return A > fuzzyMin
+    A > fuzzyMin
         && A < fuzzyMax
         && B > fuzzyMin
         && B < fuzzyMax
         && C > fuzzyMin
-        && C < fuzzyMax;
+        && C < fuzzyMax
 }
 
 #[no_mangle]
@@ -98,7 +98,7 @@ pub unsafe extern "C" fn Intersect_RayPlane(
         *pHit = (*ray).p + (*ray).dir * t;
         return true;
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
             }
         }
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
     }
     let mut inv_det: f32 = 1.0f32 / det;
     *tHit = Vec3::dot(edge2, qvec) * inv_det;
-    return true;
+    true
 }
 
 #[no_mangle]
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
         return false;
     }
     *tHit = Vec3::dot(edge2, qvec) * inv_det;
-    return true;
+    true
 }
 
 #[no_mangle]
@@ -240,7 +240,7 @@ pub unsafe extern "C" fn Intersect_LineSegmentPlane(
         tMin: 0.0f32,
         tMax: 1.0f32,
     };
-    return Intersect_RayPlane(&mut ray, plane, pHit);
+    Intersect_RayPlane(&mut ray, plane, pHit)
 }
 
 #[no_mangle]
@@ -257,7 +257,7 @@ pub unsafe extern "C" fn Intersect_RectRect(mut a: *const Vec4f, mut b: *const V
         z: Absf((*b).z),
         w: Absf((*b).w),
     };
-    return Intersect_RectRectFast(&mut a2, &mut b2);
+    Intersect_RectRectFast(&mut a2, &mut b2)
 }
 
 #[no_mangle]
@@ -267,7 +267,7 @@ pub unsafe extern "C" fn Intersect_RectRectFast(mut a: *const Vec4f, mut b: *con
     result = (result as i32 & ((*b).x < (*a).x + (*a).z) as i32) != 0;
     result = (result as i32 & ((*a).y < (*b).y + (*b).w) as i32) != 0;
     result = (result as i32 & ((*b).y < (*a).y + (*a).w) as i32) != 0;
-    return result;
+    result
 }
 
 #[inline]
@@ -319,7 +319,7 @@ unsafe extern "C" fn ClosestPoint_PointToTriangle(
     let mut denom: f32 = 1.0f32 / (va + vb + vc);
     let mut v_0: f32 = vb * denom;
     let mut w_1: f32 = vc * denom;
-    return a + ab * v_0 + ac * w_1;
+    a + ab * v_0 + ac * w_1
 }
 
 #[no_mangle]
@@ -334,5 +334,5 @@ pub unsafe extern "C" fn Intersect_SphereTriangle(
         *pHit = pClosest;
         return true;
     }
-    return false;
+    false
 }

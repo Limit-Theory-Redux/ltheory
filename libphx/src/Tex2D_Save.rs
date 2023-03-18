@@ -21,5 +21,5 @@ pub unsafe extern "C" fn Tex2D_Save_Png(
         std::slice::from_raw_parts(data, (stride * sy) as usize),
         stride,
     );
-    return result.is_some();
+    result.is_some()
 }

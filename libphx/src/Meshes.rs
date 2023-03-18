@@ -10,7 +10,7 @@ extern "C" {
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
         );
         i += 1;
     }
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -94,7 +94,7 @@ pub unsafe extern "C" fn Mesh_BoxSphere(mut res: i32) -> *mut Mesh {
         (*vertex).p = (*vertex).p.normalize();
         i += 1;
     }
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -107,5 +107,5 @@ pub unsafe extern "C" fn Mesh_Plane(
 ) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Create();
     Mesh_AddPlane(this, origin, du, dv, resU, resV);
-    return this;
+    this
 }

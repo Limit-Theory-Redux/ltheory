@@ -24,7 +24,7 @@ pub type ValueForeach = Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc
 
 #[inline]
 unsafe extern "C" fn Hash(mut key: *const libc::c_void, mut len: u32) -> u64 {
-    return Hash_XX64(key, len as i32, 0_u64);
+    Hash_XX64(key, len as i32, 0_u64)
 }
 
 #[no_mangle]
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn HashMap_Create(mut keySize: u32, mut capacity: u32) -> 
     (*this).mask = ((1_i32 << logCapacity) - 1_i32) as u32;
     (*this).keySize = keySize;
     (*this).maxProbe = logCapacity;
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn HashMap_Get(
     mut this: *mut HashMap,
     mut key: *const libc::c_void,
 ) -> *mut libc::c_void {
-    return HashMap_GetRaw(this, Hash(key, (*this).keySize));
+    HashMap_GetRaw(this, Hash(key, (*this).keySize))
 }
 
 #[no_mangle]
@@ -93,7 +93,7 @@ pub unsafe extern "C" fn HashMap_GetRaw(
         node = ((*this).elems)
             .offset((hash.wrapping_add(index as u64) & (*this).mask as u64) as isize);
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]

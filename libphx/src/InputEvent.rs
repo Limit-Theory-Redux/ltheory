@@ -40,5 +40,5 @@ pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> *const 
         (*ie).value as f64,
         State_ToString((*ie).state),
     );
-    return buffer.as_mut_ptr() as *const libc::c_char;
+    buffer.as_mut_ptr() as *const libc::c_char
 }

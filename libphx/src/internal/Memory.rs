@@ -5,12 +5,12 @@ pub use crate::Error::Error;
 
 #[inline]
 pub unsafe extern "C" fn MemAlloc(mut size: usize) -> *mut libc::c_void {
-    return libc::malloc(size);
+    libc::malloc(size)
 }
 
 #[inline]
 pub unsafe extern "C" fn MemAllocZero(mut size: usize) -> *mut libc::c_void {
-    return libc::calloc(1, size);
+    libc::calloc(1, size)
 }
 
 #[inline]
@@ -23,7 +23,7 @@ pub unsafe extern "C" fn MemRealloc(
     mut ptr: *mut libc::c_void,
     mut newSize: usize,
 ) -> *mut libc::c_void {
-    return libc::realloc(ptr, newSize);
+    libc::realloc(ptr, newSize)
 }
 
 #[inline]
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn MemSet(mut dst: *mut libc::c_void, mut value: i32, mut 
 
 #[inline]
 pub unsafe extern "C" fn StrAlloc(mut len: usize) -> *mut libc::c_char {
-    return libc::malloc(len) as *mut libc::c_char;
+    libc::malloc(len) as *mut libc::c_char
 }
 
 #[inline]
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn StrDup(mut s: *const libc::c_char) -> *const libc::c_ch
     let mut len: usize = (StrLen(s)).wrapping_add(1_usize);
     let mut buf: *mut libc::c_char = StrAlloc(len);
     libc::memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
-    return buf as *const libc::c_char;
+    buf as *const libc::c_char
 }
 
 #[inline]
@@ -84,12 +84,12 @@ pub unsafe extern "C" fn StrLen(mut s: *const libc::c_char) -> usize {
     while *s != 0 {
         s = s.offset(1);
     }
-    return s.offset_from(begin) as libc::c_long as usize;
+    s.offset_from(begin) as libc::c_long as usize
 }
 
 #[inline]
 pub unsafe extern "C" fn StrEqual(mut a: *const libc::c_char, mut b: *const libc::c_char) -> bool {
-    return libc::strcmp(a, b) == 0_i32;
+    libc::strcmp(a, b) == 0_i32
 }
 
 #[inline]
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn StrReplace(
         s = s.offset(len_front.wrapping_add(len_search) as isize);
     }
     libc::strcpy(tmp, s);
-    return result as *const libc::c_char;
+    result as *const libc::c_char
 }
 
 #[inline]
@@ -174,7 +174,7 @@ pub unsafe extern "C" fn StrFind(
     mut s: *const libc::c_char,
     mut sub: *const libc::c_char,
 ) -> *const libc::c_char {
-    return libc::strstr(s, sub) as *const libc::c_char;
+    libc::strstr(s, sub) as *const libc::c_char
 }
 
 #[inline]
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn StrSubStr(
         *fresh2 = *fresh1;
     }
     *result.offset(len as isize) = 0_i32 as libc::c_char;
-    return result as *const libc::c_char;
+    result as *const libc::c_char
 }
 
 #[inline]
@@ -230,7 +230,7 @@ pub unsafe extern "C" fn StrSub(
         *fresh8 = *fresh7;
     }
     *pResult = 0_i32 as libc::c_char;
-    return result as *const libc::c_char;
+    result as *const libc::c_char
 }
 
 #[inline]
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn StrAdd(
         *fresh12 = *fresh11;
     }
     *cur = 0_i32 as libc::c_char;
-    return buf as *const libc::c_char;
+    buf as *const libc::c_char
 }
 
 #[inline]
@@ -294,7 +294,7 @@ pub unsafe extern "C" fn StrAdd3(
         *fresh5 = *fresh4;
     }
     *cur = 0_i32 as libc::c_char;
-    return buf as *const libc::c_char;
+    buf as *const libc::c_char
 }
 
 #[inline]
@@ -319,7 +319,7 @@ pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
             );
         }
     }
-    return 0_i32 as Error;
+    0_i32 as Error
 }
 
 #[inline]
@@ -328,7 +328,7 @@ pub unsafe extern "C" fn Vec3_Validate(mut v: Vec3) -> Error {
     e |= Float_Validatef(v.x);
     e |= Float_Validatef(v.y);
     e |= Float_Validatef(v.z);
-    return e;
+    e
 }
 
 // TODO: Move these somewhere better.

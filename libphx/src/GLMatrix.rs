@@ -28,12 +28,12 @@ pub type GLint = i32;
 
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    return sqrt(t);
+    sqrt(t)
 }
 
 #[inline]
 unsafe extern "C" fn Tan(mut t: f64) -> f64 {
-    return tan(t);
+    tan(t)
 }
 
 #[no_mangle]
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
     }
     let mut matrix: *mut Matrix = Matrix_Identity();
     glGetFloatv(matrixMode as GLenum, matrix as *mut f32);
-    return matrix;
+    matrix
 }
 
 #[no_mangle]

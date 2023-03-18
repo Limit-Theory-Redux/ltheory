@@ -35,22 +35,22 @@ unsafe extern "C" fn Time_Convert(t: *const libc::tm) -> Time {
     result.dayOfYear = (*t).tm_yday + 1_i32;
     result.month = (*t).tm_mon + 1_i32;
     result.year = (*t).tm_year + 1900_i32;
-    return result;
+    result
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetLocal() -> Time {
     let mut t: libc::time_t = libc::time(std::ptr::null_mut());
-    return Time_Convert(libc::localtime(&mut t));
+    Time_Convert(libc::localtime(&mut t))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetUTC() -> Time {
     let mut t: libc::time_t = libc::time(std::ptr::null_mut());
-    return Time_Convert(libc::gmtime(&mut t));
+    Time_Convert(libc::gmtime(&mut t))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetRaw() -> u32 {
-    return (libc::time(std::ptr::null_mut()) % 0xffffffff_u32 as libc::c_long) as u32;
+    (libc::time(std::ptr::null_mut()) % 0xffffffff_u32 as libc::c_long) as u32
 }

@@ -23,12 +23,12 @@ pub type PolygonClassification = u8;
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    return fabs(t);
+    fabs(t)
 }
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
@@ -56,7 +56,7 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
             );
         }
     }
-    return 0_i32 as Error;
+    0_i32 as Error
 }
 
 #[no_mangle]
@@ -67,12 +67,12 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
     let mut _magnitude: f32 = Abs((1.0f32 - (*plane).n.length()) as f64) as f32;
     let mut dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
     if dist as f64 > 1e-4f64 {
-        return 1_i32 as PointClassification;
+        1_i32 as PointClassification
     } else if (dist as f64) < -1e-4f64 {
         return 2_i32 as PointClassification;
     } else {
         return 3_i32 as PointClassification;
-    };
+    }
 }
 
 #[no_mangle]
@@ -124,7 +124,7 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
     if numBehind != 0_i32 {
         return 2_i32 as PolygonClassification;
     }
-    return 3_i32 as PolygonClassification;
+    3_i32 as PolygonClassification
 }
 
 #[no_mangle]
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
     let mut e: Error = 0_i32 as Error;
     e |= Float_Validate((*plane).d as f64);
     e |= Vec3_Validate((*plane).n);
-    return e;
+    e
 }
 
 #[no_mangle]

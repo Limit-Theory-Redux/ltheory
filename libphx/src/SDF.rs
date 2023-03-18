@@ -27,18 +27,18 @@ pub struct Cell {
 
 #[inline]
 unsafe extern "C" fn Saturate(mut t: f64) -> f64 {
-    return if t < 0.0f64 {
+    if t < 0.0f64 {
         0.0f64
     } else if t > 1.0f64 {
         1.0f64
     } else {
         t
-    };
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[no_mangle]
@@ -54,7 +54,7 @@ pub unsafe extern "C" fn SDF_Create(mut sx: i32, mut sy: i32, mut sz: i32) -> *m
             .wrapping_mul(sy as usize)
             .wrapping_mul(sz as usize),
     );
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -71,7 +71,7 @@ pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
         PixelFormat_RGBA,
         DataFormat_Float,
     );
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -262,7 +262,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
         z += 1;
     }
     MemFree(indices as *const libc::c_void);
-    return mesh;
+    mesh
 }
 
 #[no_mangle]

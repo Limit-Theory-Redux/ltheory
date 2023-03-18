@@ -36,7 +36,7 @@ unsafe extern "C" fn Box3f_IntersectsRay(mut this: Box3f, mut ro: Vec3, mut rdi:
     t2 = (rdi.z * (this.upper.z - ro.z)) as f64;
     tMin = Max(tMin, Min(t1, t2));
     tMax = Min(tMax, Max(t1, t2));
-    return tMax >= tMin && tMax > 0_i32 as f64;
+    tMax >= tMin && tMax > 0_i32 as f64
 }
 
 #[inline]
@@ -50,7 +50,7 @@ unsafe extern "C" fn Box3f_IntersectsBox(mut a: Box3f, mut b: Box3f) -> bool {
     if a.lower.z > b.upper.z || a.upper.z < b.lower.z {
         return false;
     }
-    return true;
+    true
 }
 
 #[inline]
@@ -67,7 +67,7 @@ unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
             z: Minf(a.upper.z, b.upper.z),
         },
     };
-    return this;
+    this
 }
 
 #[inline]
@@ -77,7 +77,7 @@ unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
         y: (this.lower.y + this.upper.y) / 2.0f32,
         z: (this.lower.z + this.upper.z) / 2.0f32,
     };
-    return center;
+    center
 }
 
 #[inline]
@@ -86,27 +86,27 @@ unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
         lower: lower,
         upper: upper,
     };
-    return result;
+    result
 }
 
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[no_mangle]
@@ -117,7 +117,7 @@ pub unsafe extern "C" fn Octree_Create(mut box_0: Box3f) -> *mut Octree {
         ::core::mem::size_of::<Octree>(),
     );
     (*this).box_0 = box_0;
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -172,7 +172,7 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
         Octree_Add(this, box_0, (i / 3_i32) as u32);
         i += 3_i32;
     }
-    return this;
+    this
 }
 
 unsafe extern "C" fn Octree_GetAvgLoadImpl(
@@ -200,7 +200,7 @@ pub unsafe extern "C" fn Octree_GetAvgLoad(mut this: *mut Octree) -> f64 {
     let mut load: f64 = 0_i32 as f64;
     let mut nodes: f64 = 0_i32 as f64;
     Octree_GetAvgLoadImpl(this, &mut load, &mut nodes);
-    return load / nodes;
+    load / nodes
 }
 
 #[no_mangle]
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> i32 {
         }
         i += 1;
     }
-    return load;
+    load
 }
 
 #[no_mangle]
@@ -239,7 +239,7 @@ pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
         memory = (memory as usize).wrapping_add(::core::mem::size_of::<Node>()) as i32;
         elem = (*elem).next;
     }
-    return memory;
+    memory
 }
 
 unsafe extern "C" fn Octree_IntersectRayImpl(
@@ -266,7 +266,7 @@ unsafe extern "C" fn Octree_IntersectRayImpl(
         }
         i += 1;
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -282,7 +282,7 @@ pub unsafe extern "C" fn Octree_IntersectRay(
     let mut invRd = Vec3::ZERO;
     Matrix_MulDir(inv, &mut invRd, (*rd).x, (*rd).y, (*rd).z);
     Matrix_Free(inv);
-    return Octree_IntersectRayImpl(this, invRo, invRd.recip());
+    Octree_IntersectRayImpl(this, invRo, invRd.recip())
 }
 
 unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3f, mut id: u32) {

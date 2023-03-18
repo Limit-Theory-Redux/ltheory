@@ -49,22 +49,22 @@ pub type GLfloat = f32;
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    return fabs(t);
+    fabs(t)
 }
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn Cos(mut t: f64) -> f64 {
-    return cos(t);
+    cos(t)
 }
 
 #[inline]
 unsafe extern "C" fn Sin(mut t: f64) -> f64 {
-    return sin(t);
+    sin(t)
 }
 
 #[inline]
@@ -75,7 +75,7 @@ unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
         y: a.y - d * b.y,
         z: a.z - d * b.z,
     };
-    return this;
+    this
 }
 
 #[inline]
@@ -86,7 +86,7 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
         z: z,
         w: w,
     };
-    return this;
+    this
 }
 static mut alphaStack: [f32; 16] = [0.; 16];
 static mut alphaIndex: i32 = -1_i32;
@@ -419,11 +419,11 @@ pub unsafe extern "C" fn Draw_SmoothPoints(mut enabled: bool) {
 
 #[inline]
 unsafe extern "C" fn Spherical(mut r: f32, mut yaw: f32, mut pitch: f32) -> Vec3 {
-    return Vec3::new(
+    Vec3::new(
         (r as f64 * Sin(pitch as f64) * Cos(yaw as f64)) as f32,
         (r as f64 * Cos(pitch as f64)) as f32,
         (r as f64 * Sin(pitch as f64) * Sin(yaw as f64)) as f32,
-    );
+    )
 }
 
 #[no_mangle]

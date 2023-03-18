@@ -119,7 +119,7 @@ pub unsafe extern "C" fn Tex1D_Create(mut size: i32, mut format: TexFormat) -> *
     );
     Tex1D_Init();
     glBindTexture(0xde0_i32 as GLenum, 0_i32 as GLu32);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn Tex1D_GenMipmap(mut this: *mut Tex1D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetFormat(mut this: *mut Tex1D) -> TexFormat {
-    return (*this).format;
+    (*this).format
 }
 
 #[no_mangle]
@@ -199,17 +199,17 @@ pub unsafe extern "C" fn Tex1D_GetDataBytes(
     let mut data: *mut Bytes = Bytes_Create(size as u32);
     Tex1D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
-    return data;
+    data
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetHandle(mut this: *mut Tex1D) -> u32 {
-    return (*this).handle;
+    (*this).handle
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetSize(mut this: *mut Tex1D) -> u32 {
-    return (*this).size as u32;
+    (*this).size as u32
 }
 
 #[no_mangle]

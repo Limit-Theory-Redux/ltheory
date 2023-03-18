@@ -195,7 +195,7 @@ pub unsafe extern "C" fn Signal_ToString(mut this: Signal) -> *const libc::c_cha
         6 => return b"Abort\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return b"<unknown signal>\0" as *const u8 as *const libc::c_char;
+    b"<unknown signal>\0" as *const u8 as *const libc::c_char
 }
 
 #[no_mangle]

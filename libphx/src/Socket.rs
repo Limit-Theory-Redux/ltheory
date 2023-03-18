@@ -25,12 +25,12 @@ pub type SocketType = i32;
 #[inline]
 unsafe extern "C" fn _OSSwapInt32(mut _data: u32) -> u32 {
     _data = _data.swap_bytes();
-    return _data;
+    _data
 }
 
 #[inline]
 unsafe extern "C" fn _OSSwapInt16(mut _data: u16) -> u16 {
-    return ((_data as i32) << 8_i32 | _data as i32 >> 8_i32) as u16;
+    ((_data as i32) << 8_i32 | _data as i32 >> 8_i32) as u16
 }
 
 #[no_mangle]
@@ -55,7 +55,7 @@ unsafe extern "C" fn Socket_Receive(
     mut buf: *mut libc::c_void,
     mut len: i32,
 ) -> i32 {
-    return libc::read(this, buf, len as usize) as i32;
+    libc::read(this, buf, len as usize) as i32
 }
 
 #[inline]
@@ -64,12 +64,12 @@ unsafe extern "C" fn Socket_Send(
     mut buf: *const libc::c_void,
     mut len: i32,
 ) -> i32 {
-    return libc::write(this, buf, len as usize) as i32;
+    libc::write(this, buf, len as usize) as i32
 }
 
 #[inline]
 unsafe extern "C" fn Socket_SetNonblocking(mut this: sock_t) -> bool {
-    return libc::fcntl(this, 4_i32, libc::fcntl(this, 3_i32, 0_i32) | 0x4_i32) >= 0_i32;
+    libc::fcntl(this, 4_i32, libc::fcntl(this, 3_i32, 0_i32) | 0x4_i32) >= 0_i32
 }
 
 #[no_mangle]
@@ -114,7 +114,7 @@ pub unsafe extern "C" fn Socket_Create(mut type_0: SocketType) -> *mut Socket {
                 as *const libc::c_char,
         );
     }
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -144,7 +144,7 @@ pub unsafe extern "C" fn Socket_Accept(mut this: *mut Socket) -> *mut Socket {
                 as *const libc::c_char,
         );
     }
-    return con;
+    con
 }
 
 #[no_mangle]
@@ -216,7 +216,7 @@ pub unsafe extern "C" fn Socket_Read(mut this: *mut Socket) -> *const libc::c_ch
         return std::ptr::null();
     }
     (*this).buffer[bytes as usize] = 0_i32 as libc::c_char;
-    return ((*this).buffer).as_mut_ptr() as *const libc::c_char;
+    ((*this).buffer).as_mut_ptr() as *const libc::c_char
 }
 
 #[no_mangle]
@@ -241,7 +241,7 @@ pub unsafe extern "C" fn Socket_ReadBytes(mut this: *mut Socket) -> *mut Bytes {
         ((*this).buffer).as_mut_ptr() as *const libc::c_void,
         bytes as u32,
     );
-    return data;
+    data
 }
 
 #[no_mangle]
@@ -266,12 +266,12 @@ pub unsafe extern "C" fn Socket_ReceiveFrom(
         }
         return -1_i32;
     }
-    return bytes;
+    bytes
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Socket_GetAddress(mut this: *mut Socket) -> *const libc::c_char {
-    return StrFormat(
+    StrFormat(
         b"%s:%d\0" as *const u8 as *const libc::c_char,
         inet_ntoa((*this).addrRecv.sin_addr),
         (if 0 != 0 {
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn Socket_GetAddress(mut this: *mut Socket) -> *const libc
         } else {
             _OSSwapInt16((*this).addrRecv.sin_port) as i32
         }) as u16 as i32,
-    );
+    )
 }
 
 #[no_mangle]
@@ -331,7 +331,7 @@ pub unsafe extern "C" fn Socket_SendTo(
     if bytes == -1_i32 {
         return -1_i32;
     }
-    return bytes;
+    bytes
 }
 
 #[no_mangle]

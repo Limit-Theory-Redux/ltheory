@@ -131,7 +131,7 @@ unsafe extern "C" fn GetUniformIndex(mut this: *mut Shader, mut name: *const lib
     }
     let mut index: i32 =
         __glewGetUniformLocation.expect("non-null function pointer")((*this).program, name);
-    return index;
+    index
 }
 
 unsafe extern "C" fn CreateGLShader(mut src: *const libc::c_char, mut type_0: GLenum) -> u32 {
@@ -170,7 +170,7 @@ unsafe extern "C" fn CreateGLShader(mut src: *const libc::c_char, mut type_0: GL
             infoLog,
         );
     }
-    return this;
+    this
 }
 
 unsafe extern "C" fn CreateGLProgram(mut vs: u32, mut fs: u32) -> u32 {
@@ -219,7 +219,7 @@ unsafe extern "C" fn CreateGLProgram(mut vs: u32, mut fs: u32) -> u32 {
             infoLog,
         );
     }
-    return this;
+    this
 }
 
 unsafe extern "C" fn GLSL_Load(mut name: *const libc::c_char, mut this: *mut Shader) -> *const libc::c_char {
@@ -238,7 +238,7 @@ unsafe extern "C" fn GLSL_Load(mut name: *const libc::c_char, mut this: *mut Sha
     );
     StrFree(rawCode);
     code = GLSL_Preprocess(code, this);
-    return code;
+    code
 }
 
 unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *mut Shader) -> *const libc::c_char {
@@ -390,7 +390,7 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *m
         StrFree(prev_0);
         StrFree(line);
     }
-    return code;
+    code
 }
 
 unsafe extern "C" fn Shader_BindVariables(mut this: *mut Shader) {
@@ -447,7 +447,7 @@ pub unsafe extern "C" fn Shader_Create(mut vs: *const libc::c_char, mut fs: *con
     StrFree(vs);
     StrFree(fs);
     Shader_BindVariables(this);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -469,7 +469,7 @@ pub unsafe extern "C" fn Shader_Load(mut vName: *const libc::c_char, mut fName: 
         fName,
     );
     Shader_BindVariables(this);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -494,7 +494,7 @@ pub unsafe extern "C" fn Shader_Free(mut this: *mut Shader) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ToShaderState(mut this: *mut Shader) -> *mut ShaderState {
-    return ShaderState_Create(this);
+    ShaderState_Create(this)
 }
 
 #[no_mangle]
@@ -626,7 +626,7 @@ pub unsafe extern "C" fn Shader_ClearCache() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_GetHandle(mut this: *mut Shader) -> u32 {
-    return (*this).program;
+    (*this).program
 }
 
 #[no_mangle]
@@ -641,13 +641,13 @@ pub unsafe extern "C" fn Shader_GetVariable(mut this: *mut Shader, mut name: *co
             name,
         );
     }
-    return index;
+    index
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_HasVariable(mut this: *mut Shader, mut name: *const libc::c_char) -> bool {
-    return __glewGetUniformLocation.expect("non-null function pointer")((*this).program, name)
-        > -1_i32;
+    __glewGetUniformLocation.expect("non-null function pointer")((*this).program, name)
+        > -1_i32
 }
 
 #[no_mangle]

@@ -58,7 +58,7 @@ static mut fboStack: [FBO; 16] = [FBO {
 
 #[inline]
 unsafe extern "C" fn GetActive() -> *mut FBO {
-    return fboStack.as_mut_ptr().offset(fboIndex as isize);
+    fboStack.as_mut_ptr().offset(fboIndex as isize)
 }
 
 #[inline]

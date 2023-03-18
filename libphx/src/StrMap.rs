@@ -33,12 +33,12 @@ pub struct StrMapIter {
 
 #[inline]
 unsafe extern "C" fn Hash(mut key: *const libc::c_char) -> u64 {
-    return Hash_XX64(key as *const libc::c_void, StrLen(key) as i32, 0_u64);
+    Hash_XX64(key as *const libc::c_void, StrLen(key) as i32, 0_u64)
 }
 
 #[inline]
 unsafe extern "C" fn StrMap_GetBucket(mut this: *mut StrMap, mut key: *const libc::c_char) -> *mut Node {
-    return ((*this).data).offset((Hash(key)).wrapping_rem((*this).capacity as u64) as isize);
+    ((*this).data).offset((Hash(key)).wrapping_rem((*this).capacity as u64) as isize)
 }
 
 unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
     (*this).capacity = capacity;
     (*this).data =
         MemAllocZero((::core::mem::size_of::<Node>()).wrapping_mul(capacity as usize)) as *mut Node;
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -140,12 +140,12 @@ pub unsafe extern "C" fn StrMap_Get(mut this: *mut StrMap, mut key: *const libc:
         }
         node = (*node).next;
     }
-    return std::ptr::null_mut();
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_GetSize(mut this: *mut StrMap) -> u32 {
-    return (*this).size;
+    (*this).size
 }
 
 #[no_mangle]
@@ -269,7 +269,7 @@ pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIte
             break;
         }
     }
-    return it;
+    it
 }
 
 #[no_mangle]
@@ -300,15 +300,15 @@ pub unsafe extern "C" fn StrMapIter_Advance(mut it: *mut StrMapIter) {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_HasMore(mut it: *mut StrMapIter) -> bool {
-    return !((*it).node).is_null();
+    !((*it).node).is_null()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_GetKey(mut it: *mut StrMapIter) -> *const libc::c_char {
-    return (*(*it).node).key;
+    (*(*it).node).key
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_GetValue(mut it: *mut StrMapIter) -> *mut libc::c_void {
-    return (*(*it).node).value;
+    (*(*it).node).value
 }

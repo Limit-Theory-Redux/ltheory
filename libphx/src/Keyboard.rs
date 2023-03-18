@@ -68,39 +68,39 @@ pub unsafe extern "C" fn Keyboard_UpdatePost() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_Down(mut key: Key) -> bool {
-    return *stateCurr.offset(key as isize) as i32 != 0_i32;
+    *stateCurr.offset(key as isize) as i32 != 0_i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_Pressed(mut key: Key) -> bool {
-    return *stateCurr.offset(key as isize) as i32 != 0 && *stateLast.offset(key as isize) == 0;
+    *stateCurr.offset(key as isize) as i32 != 0 && *stateLast.offset(key as isize) == 0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_Released(mut key: Key) -> bool {
-    return *stateCurr.offset(key as isize) == 0 && *stateLast.offset(key as isize) as i32 != 0;
+    *stateCurr.offset(key as isize) == 0 && *stateLast.offset(key as isize) as i32 != 0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_GetIdleTime() -> f64 {
     let mut now: u64 = SDL_GetPerformanceCounter();
-    return now.wrapping_sub(lastAction) as f64 / SDL_GetPerformanceFrequency() as f64;
+    now.wrapping_sub(lastAction) as f64 / SDL_GetPerformanceFrequency() as f64
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn KeyMod_Alt() -> bool {
-    return *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LALT as i32 as isize) as i32 != 0
-        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RALT as i32 as isize) as i32 != 0;
+    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LALT as i32 as isize) as i32 != 0
+        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RALT as i32 as isize) as i32 != 0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn KeyMod_Ctrl() -> bool {
-    return *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LCTRL as i32 as isize) as i32 != 0
-        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RCTRL as i32 as isize) as i32 != 0;
+    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LCTRL as i32 as isize) as i32 != 0
+        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RCTRL as i32 as isize) as i32 != 0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn KeyMod_Shift() -> bool {
-    return *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LSHIFT as i32 as isize) as i32 != 0
-        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RSHIFT as i32 as isize) as i32 != 0;
+    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LSHIFT as i32 as isize) as i32 != 0
+        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RSHIFT as i32 as isize) as i32 != 0
 }

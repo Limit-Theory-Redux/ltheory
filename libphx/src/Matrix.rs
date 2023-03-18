@@ -28,49 +28,49 @@ pub struct Vec4f {
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    return fabs(t);
+    fabs(t)
 }
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Cos(mut t: f64) -> f64 {
-    return cos(t);
+    cos(t)
 }
 
 #[inline]
 unsafe extern "C" fn Sin(mut t: f64) -> f64 {
-    return sin(t);
+    sin(t)
 }
 
 #[inline]
 unsafe extern "C" fn Tan(mut t: f64) -> f64 {
-    return tan(t);
+    tan(t)
 }
 
 #[inline]
 unsafe extern "C" fn Float_ApproximatelyEqual(mut x: f64, mut y: f64) -> bool {
-    return Abs(x - y) < 1e-3f64;
+    Abs(x - y) < 1e-3f64
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Clone(mut this: *const Matrix) -> *mut Matrix {
     let mut clone: *mut Matrix = MemAlloc(::core::mem::size_of::<Matrix>()) as *mut Matrix;
     *clone = *this;
-    return clone;
+    clone
 }
 
 #[no_mangle]
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn Matrix_Equal(mut a: *const Matrix, mut b: *const Matrix
         }
         i += 1;
     }
-    return true;
+    true
 }
 
 #[no_mangle]
@@ -234,14 +234,14 @@ pub unsafe extern "C" fn Matrix_ApproximatelyEqual(
         }
         i += 1;
     }
-    return true;
+    true
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Inverse(mut this: *const Matrix) -> *mut Matrix {
     let mut result: Matrix = Matrix { m: [0.; 16] };
     Matrix_IOInverse(this, &mut result);
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -250,7 +250,7 @@ pub unsafe extern "C" fn Matrix_InverseTranspose(mut this: *const Matrix) -> *mu
     let mut result: Matrix = Matrix { m: [0.; 16] };
     Matrix_IOInverse(this, &mut inverse);
     Matrix_IOTranspose(&mut inverse, &mut result);
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -261,14 +261,14 @@ pub unsafe extern "C" fn Matrix_Sum(mut a: *const Matrix, mut b: *const Matrix) 
         result.m[i as usize] = (*a).m[i as usize] + (*b).m[i as usize];
         i += 1;
     }
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Transpose(mut this: *const Matrix) -> *mut Matrix {
     let mut result: Matrix = Matrix { m: [0.; 16] };
     Matrix_IOTranspose(this, &mut result);
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -307,7 +307,7 @@ pub unsafe extern "C" fn Matrix_Identity() -> *mut Matrix {
             0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    return Matrix_Clone(&identity);
+    Matrix_Clone(&identity)
 }
 
 #[no_mangle]
@@ -339,7 +339,7 @@ pub unsafe extern "C" fn Matrix_LookAt(
             1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -371,7 +371,7 @@ pub unsafe extern "C" fn Matrix_LookUp(
             1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -403,7 +403,7 @@ pub unsafe extern "C" fn Matrix_Perspective(
             0.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -427,7 +427,7 @@ pub unsafe extern "C" fn Matrix_Product(mut a: *const Matrix, mut b: *const Matr
         }
         i += 1;
     }
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -440,7 +440,7 @@ pub unsafe extern "C" fn Matrix_RotationX(mut rads: f32) -> *mut Matrix {
             0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -453,7 +453,7 @@ pub unsafe extern "C" fn Matrix_RotationY(mut rads: f32) -> *mut Matrix {
             0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -466,7 +466,7 @@ pub unsafe extern "C" fn Matrix_RotationZ(mut rads: f32) -> *mut Matrix {
             0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -477,7 +477,7 @@ pub unsafe extern "C" fn Matrix_Scaling(mut sx: f32, mut sy: f32, mut sz: f32) -
             0.0f32, 0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -501,7 +501,7 @@ pub unsafe extern "C" fn Matrix_SRT(
     Matrix_Free(R);
     Matrix_Free(T);
     Matrix_Free(TR);
-    return TRS;
+    TRS
 }
 
 #[no_mangle]
@@ -512,7 +512,7 @@ pub unsafe extern "C" fn Matrix_Translation(mut tx: f32, mut ty: f32, mut tz: f3
             0.0f32, 0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -547,7 +547,7 @@ pub unsafe extern "C" fn Matrix_YawPitchRoll(
             1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -723,7 +723,7 @@ pub unsafe extern "C" fn Matrix_FromBasis(
             1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -757,7 +757,7 @@ pub unsafe extern "C" fn Matrix_FromPosRot(
             1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -792,7 +792,7 @@ pub unsafe extern "C" fn Matrix_FromPosRotScale(
             1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -822,7 +822,7 @@ pub unsafe extern "C" fn Matrix_FromPosBasis(
             1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -839,7 +839,7 @@ pub unsafe extern "C" fn Matrix_FromQuat(mut q: *const Quat) -> *mut Matrix {
             0.0f32, 1.0f32,
         ],
     };
-    return Matrix_Clone(&mut result);
+    Matrix_Clone(&mut result)
 }
 
 #[no_mangle]
@@ -908,5 +908,5 @@ pub unsafe extern "C" fn Matrix_ToString(mut this: *const Matrix) -> *const libc
         *m.offset(14) as f64,
         *m.offset(15) as f64,
     );
-    return buffer.as_mut_ptr() as *const libc::c_char;
+    buffer.as_mut_ptr() as *const libc::c_char
 }

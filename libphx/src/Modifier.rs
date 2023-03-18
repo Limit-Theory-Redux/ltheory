@@ -64,5 +64,5 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
             modifier,
         );
     }
-    return buffer.as_mut_ptr() as *const libc::c_char;
+    buffer.as_mut_ptr() as *const libc::c_char
 }

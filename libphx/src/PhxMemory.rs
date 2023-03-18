@@ -4,12 +4,12 @@ use libc;
 
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Alloc(mut size: usize) -> *mut libc::c_void {
-    return libc::malloc(size);
+    libc::malloc(size)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Calloc(mut n: usize, mut size: usize) -> *mut libc::c_void {
-    return libc::calloc(n, size);
+    libc::calloc(n, size)
 }
 
 #[no_mangle]
@@ -40,5 +40,5 @@ pub unsafe extern "C" fn Memory_Realloc(
     mut ptr: *mut libc::c_void,
     mut newSize: usize,
 ) -> *mut libc::c_void {
-    return libc::realloc(ptr, newSize);
+    libc::realloc(ptr, newSize)
 }

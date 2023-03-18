@@ -59,7 +59,7 @@ pub unsafe extern "C" fn StrBuffer_Create(mut capacity: u32) -> *mut StrBuffer {
         MemAllocZero(capacity.wrapping_add(1_i32 as u32) as usize) as *mut libc::c_char;
     (*this).size = 0_i32 as u32;
     (*this).capacity = capacity;
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn StrBuffer_FromStr(mut s: *const libc::c_char) -> *mut S
         s as *const libc::c_void,
         len as usize,
     );
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -108,10 +108,10 @@ unsafe extern "C" fn StrBuffer_SetImpl(
     );
     if (newSize as u32 <= (*this).capacity) as libc::c_long != 0 {
         (*this).size = newSize as u32;
-        return 0_i32;
+        0_i32
     } else {
-        return (newSize as u32).wrapping_sub((*this).capacity) as i32;
-    };
+        (newSize as u32).wrapping_sub((*this).capacity) as i32
+    }
 }
 
 #[no_mangle]
@@ -136,10 +136,10 @@ pub unsafe extern "C" fn StrBuffer_Clone(mut other: *mut StrBuffer) -> *mut StrB
         (*other).size as usize,
     );
     (*this).size = (*other).size;
-    return this;
+    this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_GetData(mut this: *mut StrBuffer) -> *const libc::c_char {
-    return (*this).data as *const libc::c_char;
+    (*this).data as *const libc::c_char
 }

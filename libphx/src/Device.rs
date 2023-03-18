@@ -12,7 +12,7 @@ pub struct Device {
 
 #[no_mangle]
 pub unsafe extern "C" fn Device_Equal(mut a: *mut Device, mut b: *mut Device) -> bool {
-    return (*a).type_0 == (*b).type_0 && (*a).id == (*b).id;
+    (*a).type_0 == (*b).type_0 && (*a).id == (*b).id
 }
 
 #[no_mangle]
@@ -26,5 +26,5 @@ pub unsafe extern "C" fn Device_ToString(mut this: *mut Device) -> *const libc::
         DeviceType_ToString((*this).type_0),
         (*this).id,
     );
-    return buffer.as_mut_ptr() as *const libc::c_char;
+    buffer.as_mut_ptr() as *const libc::c_char
 }

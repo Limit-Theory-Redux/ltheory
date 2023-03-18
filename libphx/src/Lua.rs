@@ -155,7 +155,7 @@ unsafe extern "C" fn Lua_PCall(
 unsafe extern "C" fn Lua_CallBarrier(mut this: *mut Lua) -> i32 {
     let mut args: i32 = lua_gettop(this) - 1_i32;
     lua_call(this, args, -1_i32);
-    return lua_gettop(this);
+    lua_gettop(this)
 }
 
 unsafe extern "C" fn Lua_InitExtensions(mut this: *mut Lua) {
@@ -184,12 +184,12 @@ pub unsafe extern "C" fn Lua_Create() -> *mut Lua {
     {
         Fatal(b"Lua_Create: failed to load error handler\0" as *const u8 as *const libc::c_char);
     }
-    return this;
+    this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_CreateThread(mut this: *mut Lua) -> *mut Lua {
-    return lua_newthread(this);
+    lua_newthread(this)
 }
 
 #[no_mangle]
@@ -199,7 +199,7 @@ pub unsafe extern "C" fn Lua_Free(mut this: *mut Lua) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_GetActive() -> *mut Lua {
-    return activeInstance;
+    activeInstance
 }
 
 #[no_mangle]
@@ -319,7 +319,7 @@ pub unsafe extern "C" fn Lua_TransferStack(mut src: *mut Lua, mut dst: *mut Lua,
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_GetRef(mut this: *mut Lua) -> LuaRef {
-    return luaL_ref(this, -10000_i32) as LuaRef;
+    luaL_ref(this, -10000_i32) as LuaRef
 }
 
 #[no_mangle]
@@ -353,7 +353,7 @@ pub unsafe extern "C" fn Lua_GCStep(mut this: *mut Lua) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_GetMemory(mut this: *mut Lua) -> i32 {
-    return lua_gc(this, 3_i32, 0_i32) * 1024_i32 + lua_gc(this, 4_i32, 0_i32);
+    lua_gc(this, 3_i32, 0_i32) * 1024_i32 + lua_gc(this, 4_i32, 0_i32)
 }
 
 #[inline]
@@ -460,14 +460,14 @@ unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: *const libc::c_c
     } else {
         b"\0" as *const u8 as *const libc::c_char
     };
-    return StrFormat(
+    StrFormat(
         b"%s      %-10s %-16s = %s%s\0" as *const u8 as *const libc::c_char,
         pre,
         typeName,
         name,
         strValue,
         app,
-    );
+    )
 }
 
 #[no_mangle]

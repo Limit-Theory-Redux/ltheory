@@ -38,7 +38,7 @@ pub unsafe extern "C" fn Window_Create(
         Fatal(b"Failed to create OpenGL context for window\0" as *const u8 as *const libc::c_char);
     }
     OpenGL_Init();
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn Window_GetPosition(mut this: *mut Window, mut out: *mut
 
 #[no_mangle]
 pub unsafe extern "C" fn Window_GetTitle(mut this: *mut Window) -> *const libc::c_char {
-    return SDL_GetWindowTitle((*this).handle);
+    SDL_GetWindowTitle((*this).handle)
 }
 
 #[no_mangle]

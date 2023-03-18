@@ -27,7 +27,7 @@ pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: *const libc::c_char) -> Sh
         }
         i += 1;
     }
-    return 0_i32;
+    0_i32
 }
 
 #[no_mangle]
@@ -48,7 +48,7 @@ pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut this: ShaderVarType) -> *
         13 => return b"samplerCube\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return std::ptr::null();
+    std::ptr::null()
 }
 
 #[no_mangle]
@@ -69,7 +69,7 @@ pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> *cons
         13 => return b"TexCube\0" as *const u8 as *const libc::c_char,
         _ => {}
     }
-    return std::ptr::null();
+    std::ptr::null()
 }
 
 #[no_mangle]
@@ -94,5 +94,5 @@ pub unsafe extern "C" fn ShaderVarType_GetSize(mut this: ShaderVarType) -> i32 {
         }
         _ => {}
     }
-    return 0;
+    0
 }

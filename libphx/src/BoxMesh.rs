@@ -27,14 +27,14 @@ pub struct Box_0 {
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn Clampf(mut t: f32, mut lower: f32, mut upper: f32) -> f32 {
     t = if t > upper { upper } else { t };
     t = if t < lower { lower } else { t };
-    return t;
+    t
 }
 static mut kFaceOrigin: [Vec3; 6] = [
     Vec3::new(-1.0f32, -1.0f32, 1.0f32),
@@ -68,7 +68,7 @@ pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
     (*this).elem_capacity = 0_i32;
     (*this).elem_size = 0_i32;
     (*this).elem_data = std::ptr::null_mut();
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -161,5 +161,5 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(mut this: *mut BoxMesh, mut res: i32) -
         Matrix_Free(rot);
         i += 1;
     }
-    return mesh;
+    mesh
 }

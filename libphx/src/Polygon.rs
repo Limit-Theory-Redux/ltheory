@@ -27,12 +27,12 @@ pub type PointClassification = u8;
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    return sqrt(t);
+    sqrt(t)
 }
 
 #[no_mangle]
@@ -444,5 +444,5 @@ pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
         }
         i += 1;
     }
-    return 0_i32 as Error;
+    0_i32 as Error
 }

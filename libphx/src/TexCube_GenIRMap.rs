@@ -27,12 +27,12 @@ pub type TexFormat = i32;
 
 #[inline]
 unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    return sqrt(t);
+    sqrt(t)
 }
 
 #[inline]
 unsafe extern "C" fn Atan2(mut y: f64, mut x: f64) -> f64 {
-    return atan2(y, x);
+    atan2(y, x)
 }
 
 #[no_mangle]
@@ -174,5 +174,5 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     Shader_Stop(shader);
     TexCube_SetMagFilter(result, TexFilter_Linear);
     TexCube_SetMinFilter(result, TexFilter_LinearMipLinear);
-    return result;
+    result
 }

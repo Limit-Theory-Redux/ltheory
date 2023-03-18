@@ -128,27 +128,27 @@ pub struct Delay {
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    return fabs(t);
+    fabs(t)
 }
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
-    return a + t * (b - a);
+    a + t * (b - a)
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[no_mangle]
@@ -290,7 +290,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
         }
     }
     rayStack_size = 0_i32;
-    return hit;
+    hit
 }
 
 #[no_mangle]
@@ -311,7 +311,7 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
         Ray_GetPoint(&mut ray, t, pHit);
         return true;
     }
-    return false;
+    false
 }
 
 #[no_mangle]
@@ -394,7 +394,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
         }
     }
     nodeStack_size = 0_i32;
-    return hit;
+    hit
 }
 
 #[no_mangle]
@@ -458,7 +458,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
         numStraddling as f32 as f64,
         k as f64,
     ) as f32;
-    return score;
+    score
 }
 
 unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
@@ -649,10 +649,10 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     }
     if bestScore < 3.40282347e+38f32 {
         *splitPlane = bestPlane;
-        return true;
+        true
     } else {
-        return false;
-    };
+        false
+    }
 }
 
 #[inline]
@@ -822,7 +822,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     (*node).plane = splitPlane;
     (*node).child[BackIndex as usize] = BSPBuild_CreateNode(bsp, &mut backNodeData);
     (*node).child[FrontIndex as usize] = BSPBuild_CreateNode(bsp, &mut frontNodeData);
-    return node;
+    node
 }
 
 unsafe extern "C" fn BSPBuild_OptimizeTree(
@@ -876,7 +876,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             index: nodeIndex,
             triangleCount: 0_i32 as u8,
         };
-        return result;
+        result
     } else {
         if (*buildNode).polygons_size == 0_i32 {
             return (*this).emptyLeaf;
@@ -899,8 +899,8 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             index: -leafIndex,
             triangleCount: leafLen,
         };
-        return result_0;
-    };
+        result_0
+    }
 }
 
 unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
@@ -1148,7 +1148,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     (*this).rootNode = BSPBuild_OptimizeTree(this, bspBuild.rootNode);
     BSPBuild_FreeNode(bspBuild.rootNode);
     RNG_Free(bspBuild.rng);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -1226,7 +1226,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         }
         _ => {}
     }
-    return if newNode.index != 0 { newNode } else { nodeRef };
+    if newNode.index != 0 { newNode } else { nodeRef }
 }
 
 #[no_mangle]
@@ -1469,7 +1469,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
         }
     }
     nodeStack_size = 0_i32;
-    return hit;
+    hit
 }
 
 #[no_mangle]
@@ -1498,5 +1498,5 @@ pub unsafe extern "C" fn BSPDebug_GetLeaf(mut this: *mut BSP, mut leafIndex: i32
         index: RootNodeIndex,
         triangleCount: 0_i32 as u8,
     };
-    return result;
+    result
 }

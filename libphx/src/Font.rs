@@ -382,22 +382,22 @@ pub const FT_KERNING_UNFITTED: FT_Kerning_Mode_ = 1;
 
 #[inline]
 unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    return floor(t);
+    floor(t)
 }
 
 #[inline]
 unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
-    return pow(t, p);
+    pow(t, p)
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[inline]
@@ -408,7 +408,7 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
         z: z,
         w: w,
     };
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -491,7 +491,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
             g as *mut libc::c_void,
         );
     }
-    return g;
+    g
 }
 
 #[inline]
@@ -504,7 +504,7 @@ unsafe extern "C" fn Font_GetKerning(mut this: *mut Font, mut a: i32, mut b: i32
         FT_KERNING_DEFAULT as i32 as FT_UInt,
         &mut kern,
     );
-    return (kern.x >> 6_i32) as i32;
+    (kern.x >> 6_i32) as i32
 }
 
 #[no_mangle]
@@ -531,7 +531,7 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
         ::core::mem::size_of::<u32>() as u32,
         16_i32 as u32,
     );
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -640,7 +640,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetLineHeight(mut this: *mut Font) -> i32 {
-    return ((*(*(*this).handle).size).metrics.height >> 6_i32) as i32;
+    ((*(*(*this).handle).size).metrics.height >> 6_i32) as i32
 }
 
 #[no_mangle]

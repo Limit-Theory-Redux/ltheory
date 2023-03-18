@@ -28,7 +28,7 @@ pub struct Joystick {
 
 #[inline]
 unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    return fabs(t);
+    fabs(t)
 }
 
 static mut kMaxOpen: i32 = 64_i32;
@@ -106,7 +106,7 @@ unsafe extern "C" fn ConvertGUID(mut id: SDL_JoystickGUID) -> *mut libc::c_char 
         buf.as_mut_ptr(),
         ::core::mem::size_of::<[libc::c_char; 64]>() as libc::c_ulong as i32,
     );
-    return buf.as_mut_ptr();
+    buf.as_mut_ptr()
 }
 
 unsafe extern "C" fn Joystick_UpdateSingle(mut this: *mut Joystick) {
@@ -138,7 +138,7 @@ unsafe extern "C" fn Joystick_UpdateSingle(mut this: *mut Joystick) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetCount() -> i32 {
-    return SDL_NumJoysticks();
+    SDL_NumJoysticks()
 }
 
 #[no_mangle]
@@ -177,7 +177,7 @@ pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
         MemAlloc((::core::mem::size_of::<f64>()).wrapping_mul((*this).axes as usize)) as *mut f64;
     (*this).lastUsed = TimeStamp_Get();
     Joystick_UpdateSingle(this);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -201,85 +201,85 @@ pub unsafe extern "C" fn Joystick_Close(mut this: *mut Joystick) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetGUID(mut this: *mut Joystick) -> *const libc::c_char {
-    return (*this).guid;
+    (*this).guid
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetGUIDByIndex(mut index: i32) -> *const libc::c_char {
-    return ConvertGUID(SDL_JoystickGetDeviceGUID(index)) as *const libc::c_char;
+    ConvertGUID(SDL_JoystickGetDeviceGUID(index)) as *const libc::c_char
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetName(mut this: *mut Joystick) -> *const libc::c_char {
-    return SDL_JoystickName((*this).handle);
+    SDL_JoystickName((*this).handle)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetNameByIndex(mut index: i32) -> *const libc::c_char {
-    return SDL_JoystickNameForIndex(index);
+    SDL_JoystickNameForIndex(index)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetAxisCount(mut this: *mut Joystick) -> i32 {
-    return (*this).axes;
+    (*this).axes
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetBallCount(mut this: *mut Joystick) -> i32 {
-    return (*this).balls;
+    (*this).balls
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetButtonCount(mut this: *mut Joystick) -> i32 {
-    return (*this).buttons;
+    (*this).buttons
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetHatCount(mut this: *mut Joystick) -> i32 {
-    return (*this).hats;
+    (*this).hats
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetIdleTime(mut this: *mut Joystick) -> f64 {
-    return TimeStamp_GetElapsed((*this).lastUsed);
+    TimeStamp_GetElapsed((*this).lastUsed)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetAxis(mut this: *mut Joystick, mut index: i32) -> f64 {
-    return SDL_JoystickGetAxis((*this).handle, index) as i32 as f64 / 32768.0f64;
+    SDL_JoystickGetAxis((*this).handle, index) as i32 as f64 / 32768.0f64
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetAxisAlive(mut this: *mut Joystick, mut index: i32) -> bool {
-    return *((*this).axisAlive).offset(index as isize);
+    *((*this).axisAlive).offset(index as isize)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetAxisDelta(mut this: *mut Joystick, mut index: i32) -> f64 {
-    return SDL_JoystickGetAxis((*this).handle, index) as i32 as f64 / 32768.0f64
-        - *((*this).axisStates).offset(index as isize);
+    SDL_JoystickGetAxis((*this).handle, index) as i32 as f64 / 32768.0f64
+        - *((*this).axisStates).offset(index as isize)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetHat(mut this: *mut Joystick, mut index: i32) -> HatDir {
-    return SDL_JoystickGetHat((*this).handle, index) as HatDir;
+    SDL_JoystickGetHat((*this).handle, index) as HatDir
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_ButtonDown(mut this: *mut Joystick, mut index: i32) -> bool {
-    return SDL_JoystickGetButton((*this).handle, index) as i32 > 0_i32;
+    SDL_JoystickGetButton((*this).handle, index) as i32 > 0_i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_ButtonPressed(mut this: *mut Joystick, mut index: i32) -> bool {
-    return SDL_JoystickGetButton((*this).handle, index) as i32 > 0_i32
-        && !*((*this).buttonStates).offset(index as isize);
+    SDL_JoystickGetButton((*this).handle, index) as i32 > 0_i32
+        && !*((*this).buttonStates).offset(index as isize)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_ButtonReleased(mut this: *mut Joystick, mut index: i32) -> bool {
-    return SDL_JoystickGetButton((*this).handle, index) as i32 == 0_i32
-        && *((*this).buttonStates).offset(index as isize) as i32 != 0;
+    SDL_JoystickGetButton((*this).handle, index) as i32 == 0_i32
+        && *((*this).buttonStates).offset(index as isize) as i32 != 0
 }
 
 #[no_mangle]

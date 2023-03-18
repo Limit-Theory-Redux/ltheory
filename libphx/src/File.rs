@@ -21,13 +21,13 @@ pub unsafe extern "C" fn File_Exists(mut path: *const libc::c_char) -> bool {
         libc::fclose(f);
         return true;
     }
-    return false;
+    false
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn File_IsDir(path: *const libc::c_char) -> bool {
     let meta = fs::metadata(std::ffi::CStr::from_ptr(path).to_str().unwrap()).unwrap();
-    return meta.is_dir();
+    meta.is_dir()
 }
 
 unsafe extern "C" fn File_OpenMode(mut path: *const libc::c_char, mut mode: *const libc::c_char) -> *mut File {
@@ -37,17 +37,17 @@ unsafe extern "C" fn File_OpenMode(mut path: *const libc::c_char, mut mode: *con
     }
     let mut this: *mut File = MemAlloc(::core::mem::size_of::<File>()) as *mut File;
     (*this).handle = handle;
-    return this;
+    this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn File_Create(mut path: *const libc::c_char) -> *mut File {
-    return File_OpenMode(path, b"wb\0" as *const u8 as *const libc::c_char);
+    File_OpenMode(path, b"wb\0" as *const u8 as *const libc::c_char)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn File_Open(mut path: *const libc::c_char) -> *mut File {
-    return File_OpenMode(path, b"ab\0" as *const u8 as *const libc::c_char);
+    File_OpenMode(path, b"ab\0" as *const u8 as *const libc::c_char)
 }
 
 #[no_mangle]
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn File_ReadBytes(mut path: *const libc::c_char) -> *mut B
         );
     }
     libc::fclose(file);
-    return buffer;
+    buffer
 }
 
 #[no_mangle]
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const 
     }
     libc::fclose(file);
     *buffer.offset(size as isize) = 0_i32 as libc::c_char;
-    return buffer as *const libc::c_char;
+    buffer as *const libc::c_char
 }
 
 #[no_mangle]
@@ -140,7 +140,7 @@ pub unsafe extern "C" fn File_Size(mut path: *const libc::c_char) -> i64 {
     libc::fseek(file, 0 as libc::c_long, 2_i32);
     let mut size: i64 = libc::ftell(file);
     libc::fclose(file);
-    return size;
+    size
 }
 
 #[no_mangle]
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn File_ReadI64(mut this: *mut File) -> i64 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -228,7 +228,7 @@ pub unsafe extern "C" fn File_ReadU64(mut this: *mut File) -> u64 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -240,7 +240,7 @@ pub unsafe extern "C" fn File_ReadI32(mut this: *mut File) -> i32 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn File_ReadU32(mut this: *mut File) -> u32 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -274,7 +274,7 @@ pub unsafe extern "C" fn File_ReadU8(mut this: *mut File) -> u8 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -286,7 +286,7 @@ pub unsafe extern "C" fn File_ReadU16(mut this: *mut File) -> u16 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -298,7 +298,7 @@ pub unsafe extern "C" fn File_ReadI16(mut this: *mut File) -> i16 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -310,7 +310,7 @@ pub unsafe extern "C" fn File_ReadF32(mut this: *mut File) -> f32 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -322,7 +322,7 @@ pub unsafe extern "C" fn File_ReadF64(mut this: *mut File) -> f64 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -384,5 +384,5 @@ pub unsafe extern "C" fn File_ReadI8(mut this: *mut File) -> i8 {
         1_usize,
         (*this).handle,
     );
-    return value;
+    value
 }

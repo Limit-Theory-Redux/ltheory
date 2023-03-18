@@ -52,12 +52,12 @@ pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -
     (*this).blockSize = blockSize;
     (*this).blockCount = 0_i32 as u16;
     (*this).blocks = std::ptr::null_mut();
-    return this;
+    this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_CreateAuto(mut elemSize: u32) -> *mut MemPool {
-    return MemPool_Create(elemSize, (0x1000_i32 as u32).wrapping_div(elemSize));
+    MemPool_Create(elemSize, (0x1000_i32 as u32).wrapping_div(elemSize))
 }
 
 #[no_mangle]
@@ -79,7 +79,7 @@ pub unsafe extern "C" fn MemPool_Alloc(mut this: *mut MemPool) -> *mut libc::c_v
     (*this).freeList = *(freeCell as *mut *mut libc::c_void);
     (*this).size = ((*this).size).wrapping_add(1);
     MemZero(freeCell, (*this).cellSize as usize);
-    return freeCell;
+    freeCell
 }
 
 #[no_mangle]
@@ -113,10 +113,10 @@ pub unsafe extern "C" fn MemPool_Dealloc(mut this: *mut MemPool, mut ptr: *mut l
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_GetCapacity(mut this: *mut MemPool) -> u32 {
-    return (*this).capacity;
+    (*this).capacity
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_GetSize(mut this: *mut MemPool) -> u32 {
-    return (*this).size;
+    (*this).size
 }

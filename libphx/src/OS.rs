@@ -9,17 +9,17 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn OS_GetClipboard() -> *const libc::c_char {
-    return SDL_GetClipboardText() as *const libc::c_char;
+    SDL_GetClipboardText() as *const libc::c_char
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn OS_GetCPUCount() -> i32 {
-    return SDL_GetCPUCount();
+    SDL_GetCPUCount()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn OS_GetVideoDriver() -> *const libc::c_char {
-    return SDL_GetCurrentVideoDriver();
+    SDL_GetCurrentVideoDriver()
 }
 
 #[no_mangle]

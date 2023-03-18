@@ -21,7 +21,7 @@ pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
     (*this).size = 0_i32 as u32;
     (*this).capacity = capacity;
     (*this).data = MemAlloc(capacity as usize);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn MemStack_Alloc(
     let mut p: *mut libc::c_void =
         ((*this).data as *mut libc::c_char).offset((*this).size as isize) as *mut libc::c_void;
     (*this).size = (*this).size.wrapping_add(size);
-    return p;
+    p
 }
 
 #[no_mangle]
@@ -65,20 +65,20 @@ pub unsafe extern "C" fn MemStack_Dealloc(mut this: *mut MemStack, mut size: u32
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_CanAlloc(mut this: *mut MemStack, mut size: u32) -> bool {
-    return ((*this).size).wrapping_add(size) <= (*this).capacity;
+    ((*this).size).wrapping_add(size) <= (*this).capacity
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_GetSize(mut this: *mut MemStack) -> u32 {
-    return (*this).size;
+    (*this).size
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_GetCapacity(mut this: *mut MemStack) -> u32 {
-    return (*this).capacity;
+    (*this).capacity
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_GetRemaining(mut this: *mut MemStack) -> u32 {
-    return ((*this).capacity).wrapping_sub((*this).size);
+    ((*this).capacity).wrapping_sub((*this).size)
 }

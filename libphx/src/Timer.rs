@@ -20,7 +20,7 @@ pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
     }
     let mut this: *mut Timer = MemAlloc(::core::mem::size_of::<Timer>()) as *mut Timer;
     (*this).value = SDL_GetPerformanceCounter();
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -33,13 +33,13 @@ pub unsafe extern "C" fn Timer_GetAndReset(mut this: *mut Timer) -> f64 {
     let mut now: u64 = SDL_GetPerformanceCounter();
     let mut elapsed: f64 = now.wrapping_sub((*this).value) as f64 / frequency;
     (*this).value = now;
-    return elapsed;
+    elapsed
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Timer_GetElapsed(mut this: *mut Timer) -> f64 {
     let mut now: u64 = SDL_GetPerformanceCounter();
-    return now.wrapping_sub((*this).value) as f64 / frequency;
+    now.wrapping_sub((*this).value) as f64 / frequency
 }
 
 #[no_mangle]

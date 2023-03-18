@@ -78,17 +78,17 @@ pub struct Face {
 
 #[inline]
 unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    return floor(t);
+    floor(t)
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 static mut kFaces: [Face; 6] = [
@@ -245,7 +245,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
     );
     TexCube_InitParameters();
     glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -367,7 +367,7 @@ pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut Tex
     }
     TexCube_InitParameters();
     glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -398,22 +398,22 @@ pub unsafe extern "C" fn TexCube_GetDataBytes(
     let mut data: *mut Bytes = Bytes_Create(size as u32);
     TexCube_GetData(this, Bytes_GetData(data), face, level, pf, df);
     Bytes_Rewind(data);
-    return data;
+    data
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetFormat(mut this: *mut TexCube) -> TexFormat {
-    return (*this).format;
+    (*this).format
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetHandle(mut this: *mut TexCube) -> u32 {
-    return (*this).handle;
+    (*this).handle
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetSize(mut this: *mut TexCube) -> i32 {
-    return (*this).size;
+    (*this).size
 }
 
 #[no_mangle]

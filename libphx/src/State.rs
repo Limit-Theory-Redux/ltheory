@@ -68,5 +68,5 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
             state,
         );
     }
-    return buffer.as_mut_ptr() as *const libc::c_char;
+    buffer.as_mut_ptr() as *const libc::c_char
 }

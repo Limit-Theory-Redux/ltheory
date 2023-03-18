@@ -129,22 +129,22 @@ pub struct HmGuiRect {
 unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
     t = if t > upper { upper } else { t };
     t = if t < lower { lower } else { t };
-    return t;
+    t
 }
 
 #[inline]
 unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
-    return a + t * (b - a);
+    a + t * (b - a)
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    return if a > b { a } else { b };
+    if a > b { a } else { b }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[inline]
@@ -155,7 +155,7 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
         z: z,
         w: w,
     };
-    return self_1;
+    self_1
 }
 
 static mut this: HmGui = HmGui {
@@ -279,7 +279,7 @@ unsafe extern "C" fn HmGui_GetData(mut g: *mut HmGuiGroup) -> *mut HmGuiData {
         (*data).size = Vec2::new(0.0f32, 0.0f32);
         HashMap_SetRaw(this.data, (*g).widget.hash, data as *mut libc::c_void);
     }
-    return data;
+    data
 }
 
 unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
@@ -414,10 +414,10 @@ unsafe extern "C" fn HmGui_LayoutGroup(mut g: *mut HmGuiGroup) {
 
 #[inline]
 unsafe extern "C" fn IsClipped(mut g: *mut HmGuiGroup, mut p: Vec2) -> bool {
-    return p.x < (*g).widget.pos.x
+    p.x < (*g).widget.pos.x
         || p.y < (*g).widget.pos.y
         || (*g).widget.pos.x + (*g).widget.size.x < p.x
-        || (*g).widget.pos.y + (*g).widget.size.y < p.y;
+        || (*g).widget.pos.y + (*g).widget.size.y < p.y
 }
 
 unsafe extern "C" fn HmGui_CheckFocus(mut g: *mut HmGuiGroup) {
@@ -771,7 +771,7 @@ pub unsafe extern "C" fn HmGui_Button(mut label: *const libc::c_char) -> bool {
     HmGui_Text(label);
     HmGui_SetAlign(0.5f32, 0.5f32);
     HmGui_EndGroup();
-    return focus as i32 != 0 && this.activate as i32 != 0;
+    focus as i32 != 0 && this.activate as i32 != 0
 }
 
 #[no_mangle]
@@ -810,7 +810,7 @@ pub unsafe extern "C" fn HmGui_Checkbox(mut label: *const libc::c_char, mut valu
     HmGui_EndGroup();
     HmGui_SetStretch(0.0f32, 0.0f32);
     HmGui_EndGroup();
-    return value;
+    value
 }
 
 #[no_mangle]
@@ -820,7 +820,7 @@ pub unsafe extern "C" fn HmGui_Slider(mut _lower: f32, mut _upper: f32, mut _val
     HmGui_SetAlign(0.5f32, 0.5f32);
     HmGui_SetStretch(1.0f32, 0.0f32);
     HmGui_EndGroup();
-    return 0.0f32;
+    0.0f32
 }
 
 #[no_mangle]
@@ -947,7 +947,7 @@ pub unsafe extern "C" fn HmGui_SetStretch(mut x: f32, mut y: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_GroupHasFocus(mut type_0: i32) -> bool {
     (*this.group).focusable[type_0 as usize] = true;
-    return this.focus[type_0 as usize] == (*this.group).widget.hash;
+    this.focus[type_0 as usize] == (*this.group).widget.hash
 }
 
 #[no_mangle]

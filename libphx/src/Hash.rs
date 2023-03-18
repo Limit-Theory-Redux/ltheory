@@ -14,7 +14,7 @@ pub unsafe extern "C" fn Hash_FNV32(mut buf: *const libc::c_void, mut len: i32) 
         this ^= *fresh0 as u32;
         this = this.wrapping_mul(16777619_u32);
     }
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -28,7 +28,7 @@ pub unsafe extern "C" fn Hash_FNV64(mut buf: *const libc::c_void, mut len: i32) 
         this ^= *fresh1 as u64;
         this = this.wrapping_mul(1099511628211_u64);
     }
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -40,7 +40,7 @@ pub unsafe extern "C" fn Hash_FNVStr32(mut s: *const libc::c_char) -> u32 {
         this ^= *fresh2 as u32;
         this = this.wrapping_mul(16777619_u32);
     }
-    return this;
+    this
 }
 
 #[no_mangle]
@@ -52,12 +52,12 @@ pub unsafe extern "C" fn Hash_FNVStr64(mut s: *const libc::c_char) -> u64 {
         this ^= *fresh3 as u64;
         this = this.wrapping_mul(1099511628211_u64);
     }
-    return this;
+    this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV64_Init() -> u64 {
-    return 14695981039346656037_u64;
+    14695981039346656037_u64
 }
 
 #[no_mangle]
@@ -74,12 +74,12 @@ pub unsafe extern "C" fn Hash_FNV64_Incremental(
         this ^= *fresh4 as u64;
         this = this.wrapping_mul(1099511628211_u64);
     }
-    return this;
+    this
 }
 
 #[inline]
 unsafe extern "C" fn rotl32(mut x: u32, mut r: i8) -> u32 {
-    return x << r as i32 | x >> 32_i32 - r as i32;
+    x << r as i32 | x >> 32_i32 - r as i32
 }
 
 #[inline]
@@ -89,7 +89,7 @@ unsafe extern "C" fn fmix32(mut h: u32) -> u32 {
     h ^= h >> 13_i32;
     h = h.wrapping_mul(0xc2b2ae35_u32);
     h ^= h >> 16_i32;
-    return h;
+    h
 }
 
 #[no_mangle]
@@ -150,7 +150,7 @@ pub unsafe extern "C" fn Hash_Murmur3(mut key: *const libc::c_void, mut len: i32
     }
     h1 ^= len as u32;
     h1 = fmix32(h1);
-    return h1;
+    h1
 }
 static mut PRIME64_1: u64 = 11400714785074694791_u64;
 static mut PRIME64_2: u64 = 14029467366897019727_u64;
@@ -161,14 +161,14 @@ unsafe extern "C" fn XXH64_round(mut acc: u64, mut val: u64) -> u64 {
     acc = acc.wrapping_add(val.wrapping_mul(PRIME64_2));
     acc = acc << 31_i32 | acc >> 64_i32 - 31_i32;
     acc = acc.wrapping_mul(PRIME64_1);
-    return acc;
+    acc
 }
 
 unsafe extern "C" fn XXH64_mergeRound(mut acc: u64, mut val: u64) -> u64 {
     val = XXH64_round(0_i32 as u64, val);
     acc ^= val;
     acc = acc.wrapping_mul(PRIME64_1).wrapping_add(PRIME64_4);
-    return acc;
+    acc
 }
 
 #[no_mangle]
@@ -236,5 +236,5 @@ pub unsafe extern "C" fn Hash_XX64(
     hash ^= hash >> 29_i32;
     hash = hash.wrapping_mul(PRIME64_3);
     hash ^= hash >> 32_i32;
-    return hash;
+    hash
 }

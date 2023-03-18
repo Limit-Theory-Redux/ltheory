@@ -60,7 +60,7 @@ pub unsafe extern "C" fn Viewport_GetAspect() -> f32 {
     if vpIndex < 0_i32 {
         Fatal(b"Viewport_GetAspect: Viewport stack is empty\0" as *const u8 as *const libc::c_char);
     }
-    return vp[vpIndex as usize].sx as f32 / vp[vpIndex as usize].sy as f32;
+    vp[vpIndex as usize].sx as f32 / vp[vpIndex as usize].sy as f32
 }
 
 #[no_mangle]

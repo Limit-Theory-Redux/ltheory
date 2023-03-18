@@ -60,7 +60,7 @@ unsafe extern "C" fn ShaderVar_GetStack(mut var: *const libc::c_char, mut type_0
             ShaderVarType_GetName((*this).type_0),
         );
     }
-    return this;
+    this
 }
 
 #[inline]
@@ -112,9 +112,9 @@ pub unsafe extern "C" fn ShaderVar_Get(
             ShaderVarType_GetName((*this).type_0),
         );
     }
-    return ((*this).data as *mut libc::c_char)
+    ((*this).data as *mut libc::c_char)
         .offset(((*this).elemSize * ((*this).size - 1_i32)) as isize)
-        as *mut libc::c_void;
+        as *mut libc::c_void
 }
 
 #[no_mangle]

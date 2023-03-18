@@ -18,12 +18,12 @@ pub struct Triangle {
 
 #[inline]
 unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    return sqrt(t as f64) as f32;
+    sqrt(t as f64) as f32
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    return if a < b { a } else { b };
+    if a < b { a } else { b }
 }
 
 #[no_mangle]
@@ -57,7 +57,7 @@ pub unsafe extern "C" fn Triangle_ToPlaneFast(
 pub unsafe extern "C" fn Triangle_GetArea(mut tri: *const Triangle) -> f32 {
     let mut e1 = (*tri).vertices[1] - (*tri).vertices[0];
     let mut e2 = (*tri).vertices[2] - (*tri).vertices[1];
-    return 0.5f32 * Vec3::cross(e1, e2).length();
+    0.5f32 * Vec3::cross(e1, e2).length()
 }
 
 #[no_mangle]
@@ -84,5 +84,5 @@ pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     if (shortest as f64) < 0.75f32 as f64 * 1e-4f64 {
         return (0x400000_i32 | 0x8_i32) as Error;
     }
-    return 0_i32 as Error;
+    0_i32 as Error
 }

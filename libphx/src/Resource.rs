@@ -65,7 +65,7 @@ unsafe extern "C" fn Resource_Resolve(
             name,
         );
     }
-    return std::ptr::null();
+    std::ptr::null()
 }
 
 #[no_mangle]
@@ -79,12 +79,12 @@ pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: 
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_Exists(mut type_0: ResourceType, mut name: *const libc::c_char) -> bool {
-    return !(Resource_Resolve(type_0, name, false)).is_null();
+    !(Resource_Resolve(type_0, name, false)).is_null()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_GetPath(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
-    return Resource_Resolve(type_0, name, true);
+    Resource_Resolve(type_0, name, true)
 }
 
 #[no_mangle]
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn Resource_LoadBytes(
             path,
         );
     }
-    return data;
+    data
 }
 
 #[no_mangle]
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn Resource_LoadCstr(mut type_0: ResourceType, mut name: *
             path,
         );
     }
-    return data;
+    data
 }
 
 #[no_mangle]
