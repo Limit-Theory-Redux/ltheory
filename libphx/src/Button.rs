@@ -22,10 +22,10 @@ pub static DeviceType_Keyboard: DeviceType = 0;
 pub static DeviceType_Gamepad: DeviceType = 0;
 
 #[no_mangle]
-pub static Button_Null: Button = 0 as i32;
+pub static Button_Null: Button = 0_i32;
 
 #[no_mangle]
-pub static Button_First: Button = 1 as i32;
+pub static Button_First: Button = 1_i32;
 
 #[no_mangle]
 pub static Button_Keyboard_First: Button = Button_First;
@@ -680,7 +680,7 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> *const libc::c_c
             libc::snprintf(
                 buffer.as_mut_ptr(),
                 (::core::mem::size_of::<[libc::c_char; 512]>())
-                    .wrapping_div(::core::mem::size_of::<libc::c_char>() as usize)
+                    .wrapping_div(::core::mem::size_of::<libc::c_char>())
                     as i32 as usize,
                 b"Unknown (%i)\0" as *const u8 as *const libc::c_char,
                 button,
@@ -693,8 +693,8 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> *const libc::c_c
 #[no_mangle]
 pub unsafe extern "C" fn Button_IsAutoRelease(mut button: Button) -> bool {
     match button {
-        124 | 125 | 147 => return 1 as i32 != 0,
-        _ => return 0 as i32 != 0,
+        124 | 125 | 147 => return 1_i32 != 0,
+        _ => return 0_i32 != 0,
     };
 }
 
@@ -973,10 +973,10 @@ pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: u8) -> Butto
 pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
     match button {
         117 => {}
-        118 => return 2 as i32 as u8,
-        119 => return 3 as i32 as u8,
-        120 => return 4 as i32 as u8,
-        121 => return 5 as i32 as u8,
+        118 => return 2_i32 as u8,
+        119 => return 3_i32 as u8,
+        120 => return 4_i32 as u8,
+        121 => return 5_i32 as u8,
         _ => {
             Fatal(
                 b"Button_ToSDLMouseButton: Unhandled case: %i\0" as *const u8
@@ -985,7 +985,7 @@ pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
             );
         }
     }
-    return 1 as i32 as u8;
+    return 1_i32 as u8;
 }
 
 #[no_mangle]

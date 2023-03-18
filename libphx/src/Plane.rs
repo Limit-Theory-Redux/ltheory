@@ -45,10 +45,10 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
         3
     };
     match classification {
-        2 => return 0x4 as i32 as Error,
-        5 => return 0x8 as i32 as Error,
-        1 => return 0x20 as i32 as Error,
-        3 | 4 => return 0 as i32 as Error,
+        2 => return 0x4_i32 as Error,
+        5 => return 0x8_i32 as Error,
+        1 => return 0x20_i32 as Error,
+        3 | 4 => return 0_i32 as Error,
         _ => {
             Fatal(
                 b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
@@ -56,7 +56,7 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
             );
         }
     }
-    return 0 as i32 as Error;
+    return 0_i32 as Error;
 }
 
 #[no_mangle]
@@ -64,14 +64,14 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
     mut plane: *mut Plane,
     mut p: *mut Vec3,
 ) -> PointClassification {
-    let mut magnitude: f32 = Abs((1.0f32 - (*plane).n.length()) as f64) as f32;
+    let mut _magnitude: f32 = Abs((1.0f32 - (*plane).n.length()) as f64) as f32;
     let mut dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
     if dist as f64 > 1e-4f64 {
-        return 1 as i32 as PointClassification;
+        return 1_i32 as PointClassification;
     } else if (dist as f64) < -1e-4f64 {
-        return 2 as i32 as PointClassification;
+        return 2_i32 as PointClassification;
     } else {
-        return 3 as i32 as PointClassification;
+        return 3_i32 as PointClassification;
     };
 }
 
@@ -80,9 +80,9 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
     mut plane: *mut Plane,
     mut polygon: *mut Polygon,
 ) -> PolygonClassification {
-    let mut numInFront: i32 = 0 as i32;
-    let mut numBehind: i32 = 0 as i32;
-    let mut i: i32 = 0 as i32;
+    let mut numInFront: i32 = 0_i32;
+    let mut numBehind: i32 = 0_i32;
+    let mut i: i32 = 0_i32;
     while i < (*polygon).vertices_size {
         let mut vertex: Vec3 = *((*polygon).vertices_data).offset(i as isize);
         let mut classification: PointClassification = Plane_ClassifyPoint(plane, &mut vertex);
@@ -113,23 +113,23 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
             }
             _ => {}
         }
-        if numInFront != 0 as i32 && numBehind != 0 as i32 {
-            return 4 as i32 as PolygonClassification;
+        if numInFront != 0_i32 && numBehind != 0_i32 {
+            return 4_i32 as PolygonClassification;
         }
         i += 1;
     }
-    if numInFront != 0 as i32 {
-        return 1 as i32 as PolygonClassification;
+    if numInFront != 0_i32 {
+        return 1_i32 as PolygonClassification;
     }
-    if numBehind != 0 as i32 {
-        return 2 as i32 as PolygonClassification;
+    if numBehind != 0_i32 {
+        return 2_i32 as PolygonClassification;
     }
-    return 3 as i32 as PolygonClassification;
+    return 3_i32 as PolygonClassification;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
-    let mut e: Error = 0 as i32 as Error;
+    let mut e: Error = 0_i32 as Error;
     e |= Float_Validate((*plane).d as f64);
     e |= Vec3_Validate((*plane).n);
     return e;

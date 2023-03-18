@@ -23,16 +23,16 @@ unsafe extern "C" fn Mesh_AddPlane(
     mut resV: i32,
 ) {
     let mut n: Vec3 = Vec3::cross(du, dv).normalize();
-    let mut iu: i32 = 0 as i32;
+    let mut iu: i32 = 0_i32;
     while iu < resU {
-        let mut u: f32 = iu as f32 / (resU - 1 as i32) as f32;
-        let mut iv: i32 = 0 as i32;
+        let mut u: f32 = iu as f32 / (resU - 1_i32) as f32;
+        let mut iv: i32 = 0_i32;
         while iv < resV {
-            let mut v: f32 = iv as f32 / (resV - 1 as i32) as f32;
+            let mut v: f32 = iv as f32 / (resV - 1_i32) as f32;
             let mut p: Vec3 = origin + du * u + dv * v;
             if iu != 0 && iv != 0 {
                 let mut vc: i32 = Mesh_GetVertexCount(this);
-                Mesh_AddQuad(this, vc, vc - resV, vc - resV - 1 as i32, vc - 1 as i32);
+                Mesh_AddQuad(this, vc, vc - resV, vc - resV - 1_i32, vc - 1_i32);
             }
             Mesh_AddVertex(this, p.x, p.y, p.z, n.x, n.y, n.z, u, v);
             iv += 1;
@@ -68,8 +68,8 @@ pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
         Vec3::new(0.0f32, 0.0f32, 2.0f32),
     ];
     let mut this: *mut Mesh = Mesh_Create();
-    let mut i: i32 = 0 as i32;
-    while i < 6 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 6_i32 {
         Mesh_AddPlane(
             this,
             origin[i as usize],
@@ -88,7 +88,7 @@ pub unsafe extern "C" fn Mesh_BoxSphere(mut res: i32) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Box(res);
     let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < vertexCount {
         let mut vertex: *mut Vertex = vertexData.offset(i as isize);
         (*vertex).p = (*vertex).p.normalize();

@@ -7,16 +7,16 @@ extern "C" {
 pub type Modifier = i32;
 
 #[no_mangle]
-pub static Modifier_Null: Modifier = (0 as i32) << 0 as i32;
+pub static Modifier_Null: Modifier = 0_i32 << 0_i32;
 
 #[no_mangle]
-pub static Modifier_Alt: Modifier = (1 as i32) << 0 as i32;
+pub static Modifier_Alt: Modifier = 1_i32 << 0_i32;
 
 #[no_mangle]
-pub static Modifier_Ctrl: Modifier = (1 as i32) << 1 as i32;
+pub static Modifier_Ctrl: Modifier = 1_i32 << 1_i32;
 
 #[no_mangle]
-pub static Modifier_Shift: Modifier = (1 as i32) << 2 as i32;
+pub static Modifier_Shift: Modifier = 1_i32 << 2_i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
@@ -32,8 +32,8 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
     ];
     let mut start: *mut libc::c_char = buffer.as_mut_ptr();
     let mut sep: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char;
-    let mut len: i32 = 0 as i32;
-    let mut i: i32 = 0 as i32;
+    let mut len: i32 = 0_i32;
+    let mut i: i32 = 0_i32;
     while i
         < (::core::mem::size_of::<[Modifier; 3]>()).wrapping_div(::core::mem::size_of::<Modifier>())
             as i32
@@ -53,7 +53,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
         }
         i += 1;
     }
-    if modifier != 0 as i32 {
+    if modifier != 0_i32 {
         len += libc::snprintf(
             start.offset(len as isize),
             ((::core::mem::size_of::<[libc::c_char; 512]>())

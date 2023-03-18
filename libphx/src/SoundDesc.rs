@@ -321,7 +321,7 @@ unsafe extern "C" fn FMOD_CheckError(
     mut line: i32,
     mut func: *const libc::c_char,
 ) {
-    if result as u32 != FMOD_OK as i32 as u32 {
+    if result != FMOD_OK as i32 as u32 {
         Fatal(
             b"%s: %s\n%s\n  [%s @ Line %d]\0" as *const u8 as *const libc::c_char,
             func,
@@ -335,7 +335,7 @@ unsafe extern "C" fn FMOD_CheckError(
 
 #[inline]
 unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> *const libc::c_char {
-    match this as u32 {
+    match this {
         0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
         1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
         2 => return b"FMOD_ERR_CHANNEL_ALLOC\0" as *const u8 as *const libc::c_char,
@@ -441,7 +441,7 @@ unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> *const libc::c
 }
 
 unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
-    match errcode as u32 {
+    match errcode {
         0 => return b"No errors.\0" as *const u8 as *const libc::c_char,
         1 => {
             return b"Tried to call a function on a data type that does not allow this type of functionality (ie calling Sound::lock on a streaming sound).\0"
@@ -755,7 +755,7 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_FinishLoad(mut this: *mut SoundDesc, mut func: *const libc::c_char) {
-    let mut warned: bool = 0 as i32 != 0;
+    let mut warned: bool = 0_i32 != 0;
     let mut openState: FMOD_OPENSTATE = FMOD_OPENSTATE_READY;
     loop {
         // FMOD_CheckError(
@@ -775,7 +775,7 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(mut this: *mut SoundDesc, mut func
         //     >(b"SoundDesc_FinishLoad\0"))
         //         .as_ptr(),
         // );
-        if openState as u32 == FMOD_OPENSTATE_ERROR as i32 as u32 {
+        if openState == FMOD_OPENSTATE_ERROR as i32 as u32 {
             Fatal(
                 b"%s: Background file load has failed.\n  Path: %s\0" as *const u8
                     as *const libc::c_char,
@@ -783,13 +783,13 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(mut this: *mut SoundDesc, mut func
                 (*this).path,
             );
         }
-        if openState as u32 == FMOD_OPENSTATE_READY as i32 as u32
-            || openState as u32 == FMOD_OPENSTATE_PLAYING as i32 as u32
+        if openState == FMOD_OPENSTATE_READY as i32 as u32
+            || openState == FMOD_OPENSTATE_PLAYING as i32 as u32
         {
             break;
         }
         if !warned {
-            warned = 1 as i32 != 0;
+            warned = 1_i32 != 0;
             Warn(
                 b"%s: Background file load hasn't finished. Blocking the main thread.\n  Path: %s\0"
                     as *const u8 as *const libc::c_char,
@@ -819,22 +819,22 @@ pub unsafe extern "C" fn SoundDesc_Load(
     StrFree(mapKey);
     if ((*this).name).is_null() {
         let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Sound, name);
-        let mut mode: FMOD_MODE = 0 as i32 as FMOD_MODE;
-        mode |= 0x100 as i32 as u32;
-        mode |= 0x2000000 as i32 as u32;
-        mode |= 0x4000 as i32 as u32;
+        let mut mode: FMOD_MODE = 0_i32 as FMOD_MODE;
+        mode |= 0x100_i32 as u32;
+        mode |= 0x2000000_i32 as u32;
+        mode |= 0x4000_i32 as u32;
         mode |= (if isLooped as i32 != 0 {
-            0x2 as i32
+            0x2_i32
         } else {
-            0x1 as i32
+            0x1_i32
         }) as u32;
         mode |= (if is3D as i32 != 0 {
-            0x10 as i32 | 0x80000 as i32
+            0x10_i32 | 0x80000_i32
         } else {
-            0x8 as i32
+            0x8_i32
         }) as u32;
         if !immediate {
-            mode |= 0x10000 as i32 as u32;
+            mode |= 0x10000_i32 as u32;
         }
         // FMOD_CheckError(
         //     FMOD_System_CreateSound(
@@ -866,7 +866,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         // );
         (*this).name = StrDup(name);
         (*this).path = StrDup(path);
-        (*this)._refCount = 1 as i32 as u32;
+        (*this)._refCount = 1_i32 as u32;
     } else {
         (*this)._refCount = ((*this)._refCount).wrapping_add(1);
         if immediate {
@@ -889,7 +889,7 @@ pub unsafe extern "C" fn SoundDesc_Acquire(mut this: *mut SoundDesc) {
 pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0 as i32 as u32
+        (*this)._refCount <= 0_i32 as u32
     } {
         let mut name: *const libc::c_char = (*this).name;
         let mut path: *const libc::c_char = (*this).path;
@@ -909,7 +909,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
         StrFree(path);
         MemZero(
             this as *mut libc::c_void,
-            ::core::mem::size_of::<SoundDesc>() as usize,
+            ::core::mem::size_of::<SoundDesc>(),
         );
     }
 }
@@ -991,13 +991,13 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     //     >(b"SoundDesc_ToFile\0"))
     //         .as_ptr(),
     // );
-    let mut bytesPerSample: i32 = bitsPerSample / 8 as i32;
+    let mut bytesPerSample: i32 = bitsPerSample / 8_i32;
     let mut sampleRate: f32 = 0.;
     // FMOD_Sound_GetDefaults((*this).handle, &mut sampleRate, std::ptr::null_mut());
     let mut ptr1: *mut libc::c_void = std::ptr::null_mut();
-    let mut len1: u32 = 0;
-    let mut ptr2: *mut libc::c_void = std::ptr::null_mut();
-    let mut len2: u32 = 0;
+    let mut _len1: u32 = 0;
+    let mut _ptr2: *mut libc::c_void = std::ptr::null_mut();
+    let mut _len2: u32 = 0;
     // FMOD_CheckError(
     //     FMOD_Sound_Lock(
     //         (*this).handle,
@@ -1028,21 +1028,21 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     File_Write(
         file,
         b"RIFF\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4 as i32 as u32,
+        4_i32 as u32,
     );
-    File_WriteI32(file, (36 as i32 as u32).wrapping_add(length) as i32);
+    File_WriteI32(file, (36_i32 as u32).wrapping_add(length) as i32);
     File_Write(
         file,
         b"WAVE\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4 as i32 as u32,
+        4_i32 as u32,
     );
     File_Write(
         file,
         b"fmt \0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4 as i32 as u32,
+        4_i32 as u32,
     );
-    File_WriteI32(file, 16 as i32);
-    File_WriteI16(file, 1 as i32 as i16);
+    File_WriteI32(file, 16_i32);
+    File_WriteI16(file, 1_i32 as i16);
     File_WriteI16(file, channels as i16);
     File_WriteI32(file, sampleRate as i32);
     File_WriteI32(
@@ -1054,7 +1054,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     File_Write(
         file,
         b"data\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4 as i32 as u32,
+        4_i32 as u32,
     );
     File_WriteI32(file, length as i32);
     File_Write(file, ptr1, length);

@@ -36,21 +36,21 @@ unsafe extern "C" fn Box3f_IntersectsRay(mut this: Box3f, mut ro: Vec3, mut rdi:
     t2 = (rdi.z * (this.upper.z - ro.z)) as f64;
     tMin = Max(tMin, Min(t1, t2));
     tMax = Min(tMax, Max(t1, t2));
-    return tMax >= tMin && tMax > 0 as i32 as f64;
+    return tMax >= tMin && tMax > 0_i32 as f64;
 }
 
 #[inline]
 unsafe extern "C" fn Box3f_IntersectsBox(mut a: Box3f, mut b: Box3f) -> bool {
     if a.lower.x > b.upper.x || a.upper.x < b.lower.x {
-        return 0 as i32 != 0;
+        return 0_i32 != 0;
     }
     if a.lower.y > b.upper.y || a.upper.y < b.lower.y {
-        return 0 as i32 != 0;
+        return 0_i32 != 0;
     }
     if a.lower.z > b.upper.z || a.upper.z < b.lower.z {
-        return 0 as i32 != 0;
+        return 0_i32 != 0;
     }
-    return 1 as i32 != 0;
+    return 1_i32 != 0;
 }
 
 #[inline]
@@ -111,10 +111,10 @@ unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Create(mut box_0: Box3f) -> *mut Octree {
-    let mut this: *mut Octree = MemAlloc(::core::mem::size_of::<Octree>() as usize) as *mut Octree;
+    let mut this: *mut Octree = MemAlloc(::core::mem::size_of::<Octree>()) as *mut Octree;
     MemZero(
         this as *mut libc::c_void,
-        ::core::mem::size_of::<Octree>() as usize,
+        ::core::mem::size_of::<Octree>(),
     );
     (*this).box_0 = box_0;
     return this;
@@ -122,8 +122,8 @@ pub unsafe extern "C" fn Octree_Create(mut box_0: Box3f) -> *mut Octree {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Free(mut this: *mut Octree) {
-    let mut i: i32 = 0 as i32;
-    while i < 8 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
             Octree_Free((*this).child[i as usize]);
         }
@@ -157,20 +157,20 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
     let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < indexCount {
         let mut v0: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 0 as i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 0_i32) as isize) as isize);
         let mut v1: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 1 as i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 1_i32) as isize) as isize);
         let mut v2: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 2 as i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 2_i32) as isize) as isize);
         let mut box_0: Box3f = Box3f_Create(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
-        Octree_Add(this, box_0, (i / 3 as i32) as u32);
-        i += 3 as i32;
+        Octree_Add(this, box_0, (i / 3_i32) as u32);
+        i += 3_i32;
     }
     return this;
 }
@@ -180,14 +180,14 @@ unsafe extern "C" fn Octree_GetAvgLoadImpl(
     mut load: *mut f64,
     mut nodes: *mut f64,
 ) {
-    *nodes += 1 as i32 as f64;
+    *nodes += 1_f64;
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        *load += 1 as i32 as f64;
+        *load += 1_f64;
         elem = (*elem).next;
     }
-    let mut i: i32 = 0 as i32;
-    while i < 8 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
             Octree_GetAvgLoadImpl((*this).child[i as usize], load, nodes);
         }
@@ -197,22 +197,22 @@ unsafe extern "C" fn Octree_GetAvgLoadImpl(
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_GetAvgLoad(mut this: *mut Octree) -> f64 {
-    let mut load: f64 = 0 as i32 as f64;
-    let mut nodes: f64 = 0 as i32 as f64;
+    let mut load: f64 = 0_i32 as f64;
+    let mut nodes: f64 = 0_i32 as f64;
     Octree_GetAvgLoadImpl(this, &mut load, &mut nodes);
     return load / nodes;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> i32 {
-    let mut load: i32 = 0 as i32;
+    let mut load: i32 = 0_i32;
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        load += 1 as i32;
+        load += 1_i32;
         elem = (*elem).next;
     }
-    let mut i: i32 = 0 as i32;
-    while i < 8 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
             load = Max(
                 load as f64,
@@ -226,9 +226,9 @@ pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
-    let mut memory: i32 = ::core::mem::size_of::<Octree>() as usize as i32;
-    let mut i: i32 = 0 as i32;
-    while i < 8 as i32 {
+    let mut memory: i32 = ::core::mem::size_of::<Octree>() as i32;
+    let mut i: i32 = 0_i32;
+    while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
             memory += Octree_GetMemory((*this).child[i as usize]);
         }
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        memory = (memory as usize).wrapping_add(::core::mem::size_of::<Node>()) as i32 as i32;
+        memory = (memory as usize).wrapping_add(::core::mem::size_of::<Node>()) as i32;
         elem = (*elem).next;
     }
     return memory;
@@ -248,25 +248,25 @@ unsafe extern "C" fn Octree_IntersectRayImpl(
     mut di: Vec3,
 ) -> bool {
     if !Box3f_IntersectsRay((*this).box_0, o, di) {
-        return 0 as i32 != 0;
+        return 0_i32 != 0;
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
         if Box3f_IntersectsRay((*elem).box_0, o, di) {
-            return 1 as i32 != 0;
+            return 1_i32 != 0;
         }
         elem = (*elem).next;
     }
-    let mut i: i32 = 0 as i32;
-    while i < 8 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
             if Octree_IntersectRayImpl((*this).child[i as usize], o, di) {
-                return 1 as i32 != 0;
+                return 1_i32 != 0;
             }
         }
         i += 1;
     }
-    return 0 as i32 != 0;
+    return 0_i32 != 0;
 }
 
 #[no_mangle]
@@ -400,20 +400,20 @@ unsafe extern "C" fn Octree_AddDepth(
             },
         },
     ];
-    let mut intersections: i32 = 0 as i32;
-    let mut lastIntersection: i32 = 0 as i32;
-    let mut i: i32 = 0 as i32;
-    while i < 8 as i32 {
+    let mut intersections: i32 = 0_i32;
+    let mut lastIntersection: i32 = 0_i32;
+    let mut i: i32 = 0_i32;
+    while i < 8_i32 {
         if Box3f_IntersectsBox(box_0, childBound[i as usize]) {
             intersections += 1;
             lastIntersection = i;
         }
         i += 1;
     }
-    if intersections == 0 as i32 {
+    if intersections == 0_i32 {
         return;
     }
-    if intersections == 1 as i32 {
+    if intersections == 1_i32 {
         if ((*this).child[lastIntersection as usize]).is_null() {
             (*this).child[lastIntersection as usize] =
                 Octree_Create(childBound[lastIntersection as usize]);
@@ -422,7 +422,7 @@ unsafe extern "C" fn Octree_AddDepth(
             (*this).child[lastIntersection as usize],
             Box3f_Intersection(box_0, childBound[lastIntersection as usize]),
             id,
-            depth + 1 as i32,
+            depth + 1_i32,
         );
         return;
     }
@@ -431,7 +431,7 @@ unsafe extern "C" fn Octree_AddDepth(
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Add(mut this: *mut Octree, mut box_0: Box3f, mut id: u32) {
-    Octree_AddDepth(this, box_0, id, 0 as i32);
+    Octree_AddDepth(this, box_0, id, 0_i32);
 }
 
 #[no_mangle]
@@ -444,8 +444,8 @@ pub unsafe extern "C" fn Octree_Draw(mut this: *mut Octree) {
         Draw_Box3(&mut (*elem).box_0);
         elem = (*elem).next;
     }
-    let mut i: i32 = 0 as i32;
-    while i < 8 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
             Octree_Draw((*this).child[i as usize]);
         }

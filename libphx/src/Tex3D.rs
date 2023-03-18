@@ -71,29 +71,29 @@ pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
 #[inline]
 unsafe extern "C" fn Tex3D_Init() {
     glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x2800 as i32 as GLenum,
-        0x2600 as i32,
+        0x806f_i32 as GLenum,
+        0x2800_i32 as GLenum,
+        0x2600_i32,
     );
     glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x2801 as i32 as GLenum,
-        0x2600 as i32,
+        0x806f_i32 as GLenum,
+        0x2801_i32 as GLenum,
+        0x2600_i32,
     );
     glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x2802 as i32 as GLenum,
-        0x812f as i32,
+        0x806f_i32 as GLenum,
+        0x2802_i32 as GLenum,
+        0x812f_i32,
     );
     glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x2803 as i32 as GLenum,
-        0x812f as i32,
+        0x806f_i32 as GLenum,
+        0x2803_i32 as GLenum,
+        0x812f_i32,
     );
     glTexParameteri(
-        0x806f as i32 as GLenum,
-        0x8072 as i32 as GLenum,
-        0x812f as i32,
+        0x806f_i32 as GLenum,
+        0x8072_i32 as GLenum,
+        0x812f_i32,
     );
 }
 
@@ -115,27 +115,27 @@ pub unsafe extern "C" fn Tex3D_Create(
                 as *const libc::c_char,
         );
     }
-    let mut this: *mut Tex3D = MemAlloc(::core::mem::size_of::<Tex3D>() as usize) as *mut Tex3D;
-    (*this)._refCount = 1 as i32 as u32;
+    let mut this: *mut Tex3D = MemAlloc(::core::mem::size_of::<Tex3D>()) as *mut Tex3D;
+    (*this)._refCount = 1_i32 as u32;
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).format = format;
-    glGenTextures(1 as i32, &mut (*this).handle);
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0 as i32 as GLenum);
-    glBindTexture(0x806f as i32 as GLenum, (*this).handle);
+    glGenTextures(1_i32, &mut (*this).handle);
+    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    glBindTexture(0x806f_i32 as GLenum, (*this).handle);
     __glewTexImage3D.expect("non-null function pointer")(
-        0x806f as i32 as GLenum,
-        0 as i32,
+        0x806f_i32 as GLenum,
+        0_i32,
         (*this).format,
         (*this).size.x,
         (*this).size.y,
         (*this).size.z,
-        0 as i32,
-        0x1903 as i32 as GLenum,
-        0x1401 as i32 as GLenum,
+        0_i32,
+        0x1903_i32 as GLenum,
+        0x1401_i32 as GLenum,
         std::ptr::null(),
     );
     Tex3D_Init();
-    glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x806f_i32 as GLenum, 0_i32 as GLu32);
     return this;
 }
 
@@ -148,15 +148,15 @@ pub unsafe extern "C" fn Tex3D_Acquire(mut this: *mut Tex3D) {
 pub unsafe extern "C" fn Tex3D_Free(mut this: *mut Tex3D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0 as i32 as u32
+        (*this)._refCount <= 0_i32 as u32
     } {
-        glDeleteTextures(1 as i32, &mut (*this).handle);
+        glDeleteTextures(1_i32, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_Pop(mut this: *mut Tex3D) {
+pub unsafe extern "C" fn Tex3D_Pop(mut _this: *mut Tex3D) {
     RenderTarget_Pop();
 }
 
@@ -179,27 +179,27 @@ pub unsafe extern "C" fn Tex3D_Draw(
     mut xs: f32,
     mut ys: f32,
 ) {
-    let mut r: f32 = (layer + 1 as i32) as f32 / ((*this).size.z + 1 as i32) as f32;
-    glEnable(0x806f as i32 as GLenum);
-    glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    glBegin(0x7 as i32 as GLenum);
-    glTexCoord3f(0 as i32 as GLfloat, 0 as i32 as GLfloat, r);
+    let mut r: f32 = (layer + 1_i32) as f32 / ((*this).size.z + 1_i32) as f32;
+    glEnable(0x806f_i32 as GLenum);
+    glBindTexture(0x806f_i32 as GLenum, (*this).handle);
+    glBegin(0x7_i32 as GLenum);
+    glTexCoord3f(0_i32 as GLfloat, 0_i32 as GLfloat, r);
     glVertex2f(x, y);
-    glTexCoord3f(0 as i32 as GLfloat, 1 as i32 as GLfloat, r);
+    glTexCoord3f(0_i32 as GLfloat, 1_i32 as GLfloat, r);
     glVertex2f(x, y + ys);
-    glTexCoord3f(1 as i32 as GLfloat, 1 as i32 as GLfloat, r);
+    glTexCoord3f(1_i32 as GLfloat, 1_i32 as GLfloat, r);
     glVertex2f(x + xs, y + ys);
-    glTexCoord3f(1 as i32 as GLfloat, 0 as i32 as GLfloat, r);
+    glTexCoord3f(1_i32 as GLfloat, 0_i32 as GLfloat, r);
     glVertex2f(x + xs, y);
     glEnd();
-    glDisable(0x806f as i32 as GLenum);
+    glDisable(0x806f_i32 as GLenum);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_GenMipmap(mut this: *mut Tex3D) {
-    glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    __glewGenerateMipmap.expect("non-null function pointer")(0x806f as i32 as GLenum);
-    glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x806f_i32 as GLenum, (*this).handle);
+    __glewGenerateMipmap.expect("non-null function pointer")(0x806f_i32 as GLenum);
+    glBindTexture(0x806f_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
@@ -209,15 +209,15 @@ pub unsafe extern "C" fn Tex3D_GetData(
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0x806f as i32 as GLenum, (*this).handle);
+    glBindTexture(0x806f_i32 as GLenum, (*this).handle);
     glGetTexImage(
-        0x806f as i32 as GLenum,
-        0 as i32,
+        0x806f_i32 as GLenum,
+        0_i32,
         pf as GLenum,
         df as GLenum,
         data,
     );
-    glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x806f_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
@@ -257,11 +257,11 @@ pub unsafe extern "C" fn Tex3D_GetSizeLevel(
     mut level: i32,
 ) {
     *out = (*this).size;
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < level {
-        (*out).x /= 2 as i32;
-        (*out).y /= 2 as i32;
-        (*out).z /= 2 as i32;
+        (*out).x /= 2_i32;
+        (*out).y /= 2_i32;
+        (*out).z /= 2_i32;
         i += 1;
     }
 }
@@ -273,20 +273,20 @@ pub unsafe extern "C" fn Tex3D_SetData(
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0x806f as i32 as GLenum, (*this).handle);
+    glBindTexture(0x806f_i32 as GLenum, (*this).handle);
     __glewTexImage3D.expect("non-null function pointer")(
-        0x806f as i32 as GLenum,
-        0 as i32,
+        0x806f_i32 as GLenum,
+        0_i32,
         (*this).format,
         (*this).size.x,
         (*this).size.y,
         (*this).size.z,
-        0 as i32,
+        0_i32,
         pf as GLenum,
         df as GLenum,
         data,
     );
-    glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x806f_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
@@ -301,23 +301,23 @@ pub unsafe extern "C" fn Tex3D_SetDataBytes(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_SetMagFilter(mut this: *mut Tex3D, mut filter: TexFilter) {
-    glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    glTexParameteri(0x806f as i32 as GLenum, 0x2800 as i32 as GLenum, filter);
-    glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x806f_i32 as GLenum, (*this).handle);
+    glTexParameteri(0x806f_i32 as GLenum, 0x2800_i32 as GLenum, filter);
+    glBindTexture(0x806f_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_SetMinFilter(mut this: *mut Tex3D, mut filter: TexFilter) {
-    glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    glTexParameteri(0x806f as i32 as GLenum, 0x2801 as i32 as GLenum, filter);
-    glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x806f_i32 as GLenum, (*this).handle);
+    glTexParameteri(0x806f_i32 as GLenum, 0x2801_i32 as GLenum, filter);
+    glBindTexture(0x806f_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_SetWrapMode(mut this: *mut Tex3D, mut mode: TexWrapMode) {
-    glBindTexture(0x806f as i32 as GLenum, (*this).handle);
-    glTexParameteri(0x806f as i32 as GLenum, 0x2802 as i32 as GLenum, mode);
-    glTexParameteri(0x806f as i32 as GLenum, 0x2803 as i32 as GLenum, mode);
-    glTexParameteri(0x806f as i32 as GLenum, 0x8072 as i32 as GLenum, mode);
-    glBindTexture(0x806f as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x806f_i32 as GLenum, (*this).handle);
+    glTexParameteri(0x806f_i32 as GLenum, 0x2802_i32 as GLenum, mode);
+    glTexParameteri(0x806f_i32 as GLenum, 0x2803_i32 as GLenum, mode);
+    glTexParameteri(0x806f_i32 as GLenum, 0x8072_i32 as GLenum, mode);
+    glBindTexture(0x806f_i32 as GLenum, 0_i32 as GLu32);
 }

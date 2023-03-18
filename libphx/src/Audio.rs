@@ -173,7 +173,7 @@ pub struct FMOD_VECTOR {
 
 #[inline]
 unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> *const libc::c_char {
-    match self_1 as u32 {
+    match self_1 {
         0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
         1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
         2 => return b"FMOD_ERR_CHANNEL_ALLOC\0" as *const u8 as *const libc::c_char,
@@ -279,7 +279,7 @@ unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> *const libc:
 }
 
 unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
-    match errcode as u32 {
+    match errcode {
         0 => return b"No errors.\0" as *const u8 as *const libc::c_char,
         1 => {
             return b"Tried to call a function on a data type that does not allow this type of functionality (ie calling Sound::lock on a streaming sound).\0"
@@ -598,7 +598,7 @@ unsafe extern "C" fn FMOD_CheckError(
     mut line: i32,
     mut func: *const libc::c_char,
 ) {
-    if result as u32 != FMOD_OK as i32 as u32 {
+    if result != FMOD_OK as i32 as u32 {
         Fatal(
             b"%s: %s\n%s\n  [%s @ Line %d]\0" as *const u8 as *const libc::c_char,
             func,
@@ -714,10 +714,10 @@ pub unsafe extern "C" fn Audio_Free() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AttachListenerPos(
-    mut pos: *const Vec3,
-    mut vel: *const Vec3,
-    mut fwd: *const Vec3,
-    mut up: *const Vec3,
+    mut _pos: *const Vec3,
+    mut _vel: *const Vec3,
+    mut _fwd: *const Vec3,
+    mut _up: *const Vec3,
 ) {
     // this.autoPos = pos;
     // this.autoVel = vel;
@@ -727,7 +727,7 @@ pub unsafe extern "C" fn Audio_AttachListenerPos(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Audio_Set3DSettings(mut doppler: f32, mut scale: f32, mut rolloff: f32) {
+pub unsafe extern "C" fn Audio_Set3DSettings(mut _doppler: f32, mut _scale: f32, mut _rolloff: f32) {
     // FMOD_CheckError(
     //     FMOD_System_Set3DSettings(this.handle, doppler, scale, rolloff),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
@@ -743,10 +743,10 @@ pub unsafe extern "C" fn Audio_Set3DSettings(mut doppler: f32, mut scale: f32, m
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_SetListenerPos(
-    mut pos: *const Vec3,
-    mut vel: *const Vec3,
-    mut fwd: *const Vec3,
-    mut up: *const Vec3,
+    mut _pos: *const Vec3,
+    mut _vel: *const Vec3,
+    mut _fwd: *const Vec3,
+    mut _up: *const Vec3,
 ) {
     // FMOD_CheckError(
     //     FMOD_System_Set3DListenerAttributes(
@@ -857,16 +857,16 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
     if Sound_IsFreed(sound) {
         if (this.freeingSounds_capacity == this.freeingSounds_size) as i32 as libc::c_long != 0 {
             this.freeingSounds_capacity = if this.freeingSounds_capacity != 0 {
-                this.freeingSounds_capacity * 2 as i32
+                this.freeingSounds_capacity * 2_i32
             } else {
-                1 as i32
+                1_i32
             };
             let mut elemSize: usize = ::core::mem::size_of::<*mut Sound>();
             let mut pData: *mut *mut libc::c_void =
                 &mut this.freeingSounds_data as *mut *mut *mut Sound as *mut *mut libc::c_void;
             *pData = MemRealloc(
                 this.freeingSounds_data as *mut libc::c_void,
-                (this.freeingSounds_capacity as usize).wrapping_mul(elemSize as usize),
+                (this.freeingSounds_capacity as usize).wrapping_mul(elemSize),
             );
         }
         let fresh2 = this.freeingSounds_size;
@@ -876,16 +876,16 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
     } else if Sound_IsPlaying(sound) {
         if (this.playingSounds_capacity == this.playingSounds_size) as i32 as libc::c_long != 0 {
             this.playingSounds_capacity = if this.playingSounds_capacity != 0 {
-                this.playingSounds_capacity * 2 as i32
+                this.playingSounds_capacity * 2_i32
             } else {
-                1 as i32
+                1_i32
             };
             let mut elemSize_0: usize = ::core::mem::size_of::<*mut Sound>();
             let mut pData_0: *mut *mut libc::c_void =
                 &mut this.playingSounds_data as *mut *mut *mut Sound as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
                 this.playingSounds_data as *mut libc::c_void,
-                (this.playingSounds_capacity as usize).wrapping_mul(elemSize_0 as usize),
+                (this.playingSounds_capacity as usize).wrapping_mul(elemSize_0),
             );
         }
         let fresh4 = this.playingSounds_size;

@@ -16,7 +16,7 @@ pub unsafe extern "C" fn Directory_Open(mut path: *const libc::c_char) -> *mut D
         return std::ptr::null_mut();
     }
     let mut this: *mut Directory =
-        MemAlloc(::core::mem::size_of::<Directory>() as usize) as *mut Directory;
+        MemAlloc(::core::mem::size_of::<Directory>()) as *mut Directory;
     (*this).handle = dir;
     return this;
 }
@@ -53,7 +53,7 @@ pub unsafe extern "C" fn Directory_GetNext(mut this: *mut Directory) -> *const l
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Change(mut cwd: *const libc::c_char) -> bool {
-    return libc::chdir(cwd) == 0 as i32;
+    return libc::chdir(cwd) == 0_i32;
 }
 
 #[no_mangle]
@@ -67,18 +67,18 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
     static mut buffer: [libc::c_char; 1024] = [0; 1024];
     if !(libc::getcwd(
         buffer.as_mut_ptr(),
-        ::core::mem::size_of::<[libc::c_char; 1024]>() as usize,
+        ::core::mem::size_of::<[libc::c_char; 1024]>(),
     ))
     .is_null()
     {
         return std::ptr::null();
     }
-    buffer[(::core::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1 as usize)] =
-        0 as i32 as libc::c_char;
+    buffer[(::core::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1_usize)] =
+        0_i32 as libc::c_char;
     return buffer.as_mut_ptr() as *const libc::c_char;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Remove(mut path: *const libc::c_char) -> bool {
-    return libc::rmdir(path) == 0 as i32;
+    return libc::rmdir(path) == 0_i32;
 }

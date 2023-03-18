@@ -79,10 +79,10 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
         3
     };
     match classification {
-        2 => return 0x4 as i32 as Error,
-        5 => return 0x8 as i32 as Error,
-        1 => return 0x20 as i32 as Error,
-        3 | 4 => return 0 as i32 as Error,
+        2 => return 0x4_i32 as Error,
+        5 => return 0x8_i32 as Error,
+        1 => return 0x20_i32 as Error,
+        3 | 4 => return 0_i32 as Error,
         _ => {
             Fatal(
                 b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
@@ -90,7 +90,7 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
             );
         }
     }
-    return 0 as i32 as Error;
+    return 0_i32 as Error;
 }
 
 #[inline]
@@ -468,7 +468,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> *const libc::c_cha
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Validate(mut q: *const Quat) -> Error {
-    let mut e: Error = 0 as i32 as Error;
+    let mut e: Error = 0_i32 as Error;
     e |= Float_Validate((*q).x as f64);
     e |= Float_Validate((*q).y as f64);
     e |= Float_Validate((*q).z as f64);

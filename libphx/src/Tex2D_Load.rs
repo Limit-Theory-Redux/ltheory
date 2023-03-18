@@ -25,9 +25,9 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
             let result = stbi_load_from_reader(&mut reader, Channels::Default);
             match result {
                 Some((info, data)) => {
-                    *sx = info.width as i32;
-                    *sy = info.height as i32;
-                    *components = info.components as i32;
+                    *sx = info.width;
+                    *sy = info.height;
+                    *components = info.components;
 
                     let mut memory: *mut uchar = MemAlloc(data.size()) as *mut uchar;
                     MemCpy(

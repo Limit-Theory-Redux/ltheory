@@ -44,11 +44,11 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     let mut format: TexFormat = TexCube_GetFormat(this);
     let mut result: *mut TexCube = TexCube_Create(size, format);
     let mut components: i32 = TexFormat_Components(format);
-    let mut pf: PixelFormat = if components == 4 as i32 {
+    let mut pf: PixelFormat = if components == 4_i32 {
         PixelFormat_RGBA
-    } else if components == 3 as i32 {
+    } else if components == 3_i32 {
         PixelFormat_RGB
-    } else if components == 2 as i32 {
+    } else if components == 2_i32 {
         PixelFormat_RG
     } else {
         PixelFormat_Red
@@ -59,10 +59,10 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             .wrapping_mul(::core::mem::size_of::<f32>())
             .wrapping_mul(components as usize),
     );
-    let mut i: i32 = 0 as i32;
-    while i < 6 as i32 {
-        TexCube_GetData(this, buffer, CubeFace_Get(i), 0 as i32, pf, df);
-        TexCube_SetData(result, buffer, CubeFace_Get(i), 0 as i32, pf, df);
+    let mut i: i32 = 0_i32;
+    while i < 6_i32 {
+        TexCube_GetData(this, buffer, CubeFace_Get(i), 0_i32, pf, df);
+        TexCube_SetData(result, buffer, CubeFace_Get(i), 0_i32, pf, df);
         i += 1;
     }
     TexCube_GenMipmap(result);
@@ -99,24 +99,24 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         Vec3::new(0.0f32, 1.0f32, 0.0f32),
     ];
     let mut rng: *mut RNG = RNG_FromTime();
-    let mut levels: i32 = 0 as i32;
+    let mut levels: i32 = 0_i32;
     let mut i_0: i32 = size;
-    while i_0 > 0 as i32 {
+    while i_0 > 0_i32 {
         levels += 1;
-        i_0 /= 2 as i32;
+        i_0 /= 2_i32;
     }
     Shader_Start(shader);
-    let mut level: i32 = 0 as i32;
-    while size > 1 as i32 {
-        size /= 2 as i32;
-        level += 1 as i32;
+    let mut level: i32 = 0_i32;
+    while size > 1_i32 {
+        size /= 2_i32;
+        level += 1_i32;
         let mut ggxWidth: f64 = level as f64 / levels as f64;
         ggxWidth *= ggxWidth;
         let mut sampleBuffer: *mut Vec2 =
             MemAlloc((::core::mem::size_of::<Vec2>()).wrapping_mul(sampleCount as usize))
                 as *mut Vec2;
-        let mut sampleTex: *mut Tex2D = Tex2D_Create(sampleCount, 1 as i32, TexFormat_RG16F);
-        let mut i_1: i32 = 0 as i32;
+        let mut sampleTex: *mut Tex2D = Tex2D_Create(sampleCount, 1_i32, TexFormat_RG16F);
+        let mut i_1: i32 = 0_i32;
         while i_1 < sampleCount {
             let mut e1: f64 = RNG_GetUniform(rng);
             let mut e2: f64 = RNG_GetUniform(rng);
@@ -131,7 +131,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             PixelFormat_RG,
             DataFormat_Float,
         );
-        let mut angle: f32 = level as f32 / (levels - 1 as i32) as f32;
+        let mut angle: f32 = level as f32 / (levels - 1_i32) as f32;
         angle = angle * angle;
         Shader_ResetTexIndex();
         Shader_SetFloat(b"angle\0" as *const u8 as *const libc::c_char, angle);
@@ -144,8 +144,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             b"samples\0" as *const u8 as *const libc::c_char,
             sampleCount,
         );
-        let mut i_2: i32 = 0 as i32;
-        while i_2 < 6 as i32 {
+        let mut i_2: i32 = 0_i32;
+        while i_2 < 6_i32 {
             let mut thisFace: CubeFace = face[i_2 as usize];
             let mut thisLook: Vec3 = look[i_2 as usize];
             let mut thisUp: Vec3 = up[i_2 as usize];

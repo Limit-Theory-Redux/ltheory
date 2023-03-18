@@ -216,16 +216,16 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
 }
 
 #[no_mangle]
-pub static FocusType_Mouse: i32 = 0 as i32;
+pub static FocusType_Mouse: i32 = 0_i32;
 
 #[no_mangle]
-pub static FocusType_Keyboard: i32 = 1 as i32;
+pub static FocusType_Keyboard: i32 = 1_i32;
 
 #[no_mangle]
-pub static FocusType_Scroll: i32 = 2 as i32;
+pub static FocusType_Scroll: i32 = 2_i32;
 
 #[no_mangle]
-pub static FocusType_SIZE: i32 = 3 as i32;
+pub static FocusType_SIZE: i32 = 3_i32;
 
 static mut this: ImGui = ImGui {
     layer: std::ptr::null_mut(),
@@ -337,8 +337,8 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
     static mut font: *mut Font = std::ptr::null_mut();
     static mut fontSubheading: *mut Font = std::ptr::null_mut();
     if font.is_null() {
-        font = Font_Load(b"Share\0" as *const u8 as *const libc::c_char, 16 as i32);
-        fontSubheading = Font_Load(b"Iceland\0" as *const u8 as *const libc::c_char, 18 as i32);
+        font = Font_Load(b"Share\0" as *const u8 as *const libc::c_char, 16_i32);
+        fontSubheading = Font_Load(b"Iceland\0" as *const u8 as *const libc::c_char, 18_i32);
     }
     let mut style: *mut ImGuiStyle = MemPool_Alloc(this.stylePool) as *mut ImGuiStyle;
     (*style).prev = this.style;
@@ -357,7 +357,7 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
 
 unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2, mut size: Vec2) {
     let mut rect: *mut ImGuiClipRect =
-        MemAlloc(::core::mem::size_of::<ImGuiClipRect>() as usize) as *mut ImGuiClipRect;
+        MemAlloc(::core::mem::size_of::<ImGuiClipRect>()) as *mut ImGuiClipRect;
     let mut prev: *mut ImGuiClipRect = this.clipRect;
     (*rect).prev = prev;
     (*rect).p1 = pos;
@@ -380,7 +380,7 @@ unsafe extern "C" fn ImGui_PopClipRect() {
 #[inline]
 unsafe extern "C" fn IsClipped(mut p: Vec2) -> bool {
     if (this.clipRect).is_null() {
-        return 0 as i32 != 0;
+        return 0_i32 != 0;
     }
     return p.x < (*this.clipRect).p1.x
         || p.y < (*this.clipRect).p1.y
@@ -404,7 +404,7 @@ unsafe extern "C" fn HashGet() -> u64 {
     return Hash_FNV64_Incremental(
         (*this.widget).hash,
         &mut (*this.widget).index as *mut u32 as *const libc::c_void,
-        ::core::mem::size_of::<u32>() as usize as i32,
+        ::core::mem::size_of::<u32>() as i32,
     );
 }
 
@@ -416,11 +416,11 @@ unsafe extern "C" fn HashNext() -> u64 {
 
 #[inline]
 unsafe extern "C" fn HashPeekNext() -> u64 {
-    let mut index: u32 = ((*this.widget).index).wrapping_add(1 as i32 as u32);
+    let mut index: u32 = ((*this.widget).index).wrapping_add(1_i32 as u32);
     return Hash_FNV64_Incremental(
         (*this.widget).hash,
         &mut index as *mut u32 as *const libc::c_void,
-        ::core::mem::size_of::<u32>() as usize as i32,
+        ::core::mem::size_of::<u32>() as i32,
     );
 }
 
@@ -464,14 +464,14 @@ unsafe extern "C" fn ImGui_PushLayout(mut sx: f32, mut sy: f32, mut horizontal: 
     (*layout).lower = this.cursor;
     (*layout).upper = Vec2::new(this.cursor.x + sx, this.cursor.y + sy);
     (*layout).size = Vec2::new(sx, sy);
-    (*layout).styleVars = 0 as i32;
+    (*layout).styleVars = 0_i32;
     (*layout).horizontal = horizontal;
     this.layout = layout;
 }
 
 unsafe extern "C" fn ImGui_PopLayout() {
     let mut layout: *mut ImGuiLayout = this.layout;
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < (*layout).styleVars {
         ImGui_PopStyle();
         i += 1;
@@ -512,7 +512,7 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
     TransformSize(&mut sx, &mut sy);
     let mut widget: *mut ImGuiWidget = MemPool_Alloc(this.widgetPool) as *mut ImGuiWidget;
     (*widget).prev = this.widget;
-    (*widget).index = 0 as i32 as u32;
+    (*widget).index = 0_i32 as u32;
     (*widget).pos = Vec2::new(this.cursor.x, this.cursor.y);
     (*widget).size = Vec2::new(sx, sy);
     if !(this.widget).is_null() {
@@ -520,7 +520,7 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
         (*widget).hash = Hash_FNV64_Incremental(
             (*this.widget).hash,
             &mut (*this.widget).index as *mut u32 as *const libc::c_void,
-            ::core::mem::size_of::<u32>() as usize as i32,
+            ::core::mem::size_of::<u32>() as i32,
         );
     } else {
         (*widget).hash = Hash_FNV64_Init();
@@ -539,7 +539,7 @@ unsafe extern "C" fn ImGui_EndWidget() {
 }
 
 unsafe extern "C" fn ImGui_Focus(mut widget: *mut ImGuiWidget, mut focusType: i32) -> bool {
-    if this.focus[focusType as usize] == 0 as u64 {
+    if this.focus[focusType as usize] == 0_u64 {
         if !IsClipped(this.mouse)
             && RectContains((*widget).pos, (*widget).size, this.mouse) as i32 != 0
         {
@@ -566,7 +566,7 @@ unsafe extern "C" fn TryFocusRect(
     mut pos: Vec2,
     mut size: Vec2,
 ) -> bool {
-    if this.focus[focusType as usize] == 0 as u64 {
+    if this.focus[focusType as usize] == 0_u64 {
         if !IsClipped(this.mouse) && RectContains(pos, size, this.mouse) as i32 != 0 {
             this.focus[focusType as usize] = hash;
         }
@@ -591,13 +591,13 @@ unsafe extern "C" fn ImGuiLayer_Free(mut self_1: *mut ImGuiLayer) {
 
 unsafe extern "C" fn ImGui_PushLayer(mut clip: bool) -> *mut ImGuiLayer {
     let mut layer: *mut ImGuiLayer =
-        MemAlloc(::core::mem::size_of::<ImGuiLayer>() as usize) as *mut ImGuiLayer;
+        MemAlloc(::core::mem::size_of::<ImGuiLayer>()) as *mut ImGuiLayer;
     (*layer).parent = this.layer;
     (*layer).children = std::ptr::null_mut();
     (*layer).next = std::ptr::null_mut();
     (*layer).pos = (*this.layout).lower;
     (*layer).size = (*this.layout).size;
-    (*layer).index = 0 as i32 as u32;
+    (*layer).index = 0_i32 as u32;
     (*layer).clip = clip;
     (*layer).tex2DList = std::ptr::null_mut();
     (*layer).panelList = std::ptr::null_mut();
@@ -698,7 +698,7 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
         e_1 = (*e_1).next;
     }
     if !((*self_1).lineList).is_null() {
-        RenderState_PushBlendMode(0 as i32);
+        RenderState_PushBlendMode(0_i32);
         static mut shader_0: *mut Shader = std::ptr::null_mut();
         if shader_0.is_null() {
             shader_0 = Shader_Load(
@@ -764,41 +764,41 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
         ClipRect_Pop();
     }
 }
-static mut init_imgui: bool = 0 as i32 != 0;
+static mut init_imgui: bool = 0_i32 != 0;
 unsafe extern "C" fn ImGui_Init() {
     if init_imgui {
         return;
     }
-    init_imgui = 1 as i32 != 0;
+    init_imgui = 1_i32 != 0;
     this.layer = std::ptr::null_mut();
     this.layerLast = std::ptr::null_mut();
     this.style = std::ptr::null_mut();
     this.clipRect = std::ptr::null_mut();
     this.cursorStack = std::ptr::null_mut();
-    this.dragging = 0 as i32 as u64;
-    this.data = HashMap_Create(0 as i32 as u32, 128 as i32 as u32);
-    this.layoutPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiLayout>() as usize as u32);
-    this.widgetPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiWidget>() as usize as u32);
-    this.stylePool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiStyle>() as usize as u32);
-    this.clipRectPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiClipRect>() as usize as u32);
-    this.cursorPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiCursor>() as usize as u32);
-    this.tex2DPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiTex2D>() as usize as u32);
-    this.panelPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiPanel>() as usize as u32);
-    this.rectPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiRect>() as usize as u32);
-    this.textPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiText>() as usize as u32);
-    this.linePool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiLine>() as usize as u32);
+    this.dragging = 0_i32 as u64;
+    this.data = HashMap_Create(0_i32 as u32, 128_i32 as u32);
+    this.layoutPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiLayout>() as u32);
+    this.widgetPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiWidget>() as u32);
+    this.stylePool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiStyle>() as u32);
+    this.clipRectPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiClipRect>() as u32);
+    this.cursorPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiCursor>() as u32);
+    this.tex2DPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiTex2D>() as u32);
+    this.panelPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiPanel>() as u32);
+    this.rectPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiRect>() as u32);
+    this.textPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiText>() as u32);
+    this.linePool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiLine>() as u32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     ImGui_Init();
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < FocusType_SIZE {
-        this.focus[i as usize] = 0 as i32 as u64;
+        this.focus[i as usize] = 0_i32 as u64;
         i += 1;
     }
     if !Input_GetDown(Button_Mouse_Left) {
-        this.dragging = 0 as i32 as u64;
+        this.dragging = 0_i32 as u64;
     }
     if this.dragging != 0 {
         this.focus[FocusType_Mouse as usize] = this.dragging;
@@ -821,12 +821,12 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     this.style = std::ptr::null_mut();
     ImGui_PushDefaultStyle();
     this.layout = std::ptr::null_mut();
-    ImGui_PushLayout(sx, sy, 0 as i32 != 0);
+    ImGui_PushLayout(sx, sy, 0_i32 != 0);
     this.widget = std::ptr::null_mut();
     this.widgetLast = std::ptr::null_mut();
     ImGui_BeginWidget(sx, sy);
     this.layer = std::ptr::null_mut();
-    ImGui_PushLayer(1 as i32 != 0);
+    ImGui_PushLayer(1_i32 != 0);
     let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);
     this.mouse.x = mouse.x as f32;
@@ -853,7 +853,7 @@ pub unsafe extern "C" fn ImGui_End() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Draw() {
-    RenderState_PushBlendMode(1 as i32);
+    RenderState_PushBlendMode(1_i32);
     Draw_LineWidth(1.0f32);
     ImGui_DrawLayer(this.layerLast);
     RenderState_PopBlendMode();
@@ -935,13 +935,13 @@ pub unsafe extern "C" fn ImGui_BeginGroup(mut sx: f32, mut sy: f32, mut horizont
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginGroupX(mut sy: f32) {
     ImGui_BeginWidget(0.0f32, sy);
-    ImGui_PushLayout(0.0f32, sy, 1 as i32 != 0);
+    ImGui_PushLayout(0.0f32, sy, 1_i32 != 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginGroupY(mut sx: f32) {
     ImGui_BeginWidget(sx, 0.0f32);
-    ImGui_PushLayout(sx, 0.0f32, 0 as i32 != 0);
+    ImGui_PushLayout(sx, 0.0f32, 0_i32 != 0);
 }
 
 #[no_mangle]
@@ -952,9 +952,9 @@ pub unsafe extern "C" fn ImGui_EndGroup() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginPanel(mut sx: f32, mut sy: f32) {
-    ImGui_BeginGroup(sx, sy, 0 as i32 != 0);
-    ImGui_PushLayer(0 as i32 != 0);
-    ImGui_PushLayer(1 as i32 != 0);
+    ImGui_BeginGroup(sx, sy, 0_i32 != 0);
+    ImGui_PushLayer(0_i32 != 0);
+    ImGui_PushLayer(1_i32 != 0);
     ImGui_Pad(1.0f32, 1.0f32);
 }
 
@@ -974,7 +974,7 @@ pub unsafe extern "C" fn ImGui_EndPanel() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_BeginWindow(mut title: *const libc::c_char, mut sx: f32, mut sy: f32) {
+pub unsafe extern "C" fn ImGui_BeginWindow(mut _title: *const libc::c_char, mut sx: f32, mut sy: f32) {
     let mut hash: u64 = HashPeekNext();
     let mut data: *mut ImGuiData = GetData(hash);
     this.cursor.x += (*data).offset.x;
@@ -1001,8 +1001,8 @@ pub unsafe extern "C" fn ImGui_EndWindow() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginScrollFrame(mut sx: f32, mut sy: f32) {
-    ImGui_BeginGroup(sx, sy, 0 as i32 != 0);
-    ImGui_PushLayer(1 as i32 != 0);
+    ImGui_BeginGroup(sx, sy, 0_i32 != 0);
+    ImGui_PushLayer(1_i32 != 0);
     ImGui_Pad(1.0f32, 1.0f32);
     let mut data: *mut ImGuiData = GetData((*this.widget).hash);
     this.cursor.y -= (*data).scroll;
@@ -1018,7 +1018,7 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
     let mut virtualSize: f32 = this.cursor.y - (*layout).lower.y;
     let mut scrollMax: f32 = virtualSize - (*layout).size.y;
     let mut scrollPos = Vec2::new((*layout).lower.x + (*layout).size.x, (*layout).lower.y);
-    let mut scrollSize = Vec2::new((*this.style).scrollBarSize.x, (*layout).size.y);
+    let mut _scrollSize = Vec2::new((*this.style).scrollBarSize.x, (*layout).size.y);
     let mut handleHash: u64 = HashNext();
     if (*layout).size.y < virtualSize {
         let mut handleSizeY: f32 = (*layout).size.y * ((*layout).size.y / virtualSize);
@@ -1077,7 +1077,7 @@ pub unsafe extern "C" fn ImGui_PushStyle() {
     MemCpy(
         style as *mut libc::c_void,
         this.style as *const libc::c_void,
-        ::core::mem::size_of::<ImGuiStyle>() as usize,
+        ::core::mem::size_of::<ImGuiStyle>(),
     );
     (*style).prev = this.style;
     this.style = style;
@@ -1159,7 +1159,7 @@ pub unsafe extern "C" fn ImGui_ButtonEx(mut label: *const libc::c_char, mut sx: 
         (*this.widget).pos.x + 0.5f32 * ((*this.widget).size.x - bound.x as f32),
         (*this.widget).pos.y + 0.5f32 * ((*this.widget).size.y - bound.y as f32),
     );
-    let mut labelSize = Vec2::new(bound.x as f32, bound.y as f32);
+    let mut _labelSize = Vec2::new(bound.x as f32, bound.y as f32);
     EmitText(
         (*this.style).font,
         if focus as i32 != 0 {
@@ -1186,7 +1186,7 @@ pub unsafe extern "C" fn ImGui_Checkbox(mut value: bool) -> bool {
             (*this.style).buttonColorFocus,
             (*this.widget).pos,
             (*this.widget).size,
-            1 as i32 != 0,
+            1_i32 != 0,
         );
     }
     EmitPanel(
@@ -1211,14 +1211,14 @@ pub unsafe extern "C" fn ImGui_Checkbox(mut value: bool) -> bool {
 pub unsafe extern "C" fn ImGui_Divider() {
     ImGui_BeginWidget(
         (if (*this.layout).horizontal as i32 != 0 {
-            2 as i32
+            2_i32
         } else {
-            0 as i32
+            0_i32
         }) as f32,
         (if (*this.layout).horizontal as i32 != 0 {
-            0 as i32
+            0_i32
         } else {
-            2 as i32
+            2_i32
         }) as f32,
     );
     EmitLine(
@@ -1264,7 +1264,7 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: *const libc::c_char) -> boo
             (*this.style).buttonColorFocus,
             (*this.widget).pos,
             (*this.widget).size,
-            0 as i32 != 0,
+            0_i32 != 0,
         );
     }
     EmitText(
@@ -1333,7 +1333,7 @@ pub unsafe extern "C" fn ImGui_TextEx(
     ImGui_BeginWidget(
         bound.x as f32,
         (if (*this.layout).horizontal as i32 != 0 {
-            0 as i32
+            0_i32
         } else {
             Font_GetLineHeight((*this.style).font)
         }) as f32,

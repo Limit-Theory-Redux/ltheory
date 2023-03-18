@@ -24,7 +24,7 @@ pub unsafe extern "C" fn OS_GetVideoDriver() -> *const libc::c_char {
 
 #[no_mangle]
 pub unsafe extern "C" fn OS_SetClipboard(mut text: *const libc::c_char) {
-    if SDL_SetClipboardText(text) != 0 as i32 {
+    if SDL_SetClipboardText(text) != 0_i32 {
         Fatal(
             b"OS_SetClipboard: %s\0" as *const u8 as *const libc::c_char,
             SDL_GetError(),

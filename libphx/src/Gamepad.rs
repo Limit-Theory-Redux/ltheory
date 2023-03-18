@@ -59,7 +59,7 @@ pub unsafe extern "C" fn Gamepad_Open(mut index: i32) -> *mut Gamepad {
         return std::ptr::null_mut();
     }
     let mut this: *mut Gamepad =
-        MemAllocZero(::core::mem::size_of::<Gamepad>() as usize) as *mut Gamepad;
+        MemAllocZero(::core::mem::size_of::<Gamepad>()) as *mut Gamepad;
     (*this).handle = handle;
     (*this).lastActive = TimeStamp_Get();
     (*this).gamepadList_prev = &mut gamepadList;
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn Gamepad_Close(mut this: *mut Gamepad) {
 pub unsafe extern "C" fn Gamepad_AddMappings(mut file: *const libc::c_char) -> i32 {
     return SDL_GameControllerAddMappingsFromRW(
         SDL_RWFromFile(file, b"rb\0" as *const u8 as *const libc::c_char),
-        1 as i32,
+        1_i32,
     );
 }
 
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn Gamepad_GetButton(
     mut button: GamepadButton,
 ) -> bool {
     return SDL_GameControllerGetButton((*this).handle, button as SDL_GameControllerButton) as i32
-        == 1 as i32;
+        == 1_i32;
 }
 
 #[no_mangle]
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn Gamepad_GetIdleTime(mut this: *mut Gamepad) -> f64 {
 pub unsafe extern "C" fn Gamepad_GetID(mut this: *mut Gamepad) -> i32 {
     let mut joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick((*this).handle);
     if joystick.is_null() {
-        return -(1 as i32);
+        return -1_i32;
     }
     return SDL_JoystickInstanceID(joystick);
 }

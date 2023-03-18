@@ -420,7 +420,7 @@ pub static kRcpGamma: f32 = 1.0f32 / kGamma;
 static mut ft: FT_Library = std::ptr::null_mut();
 
 unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *mut Glyph {
-    if codepoint < 256 as i32 as u32 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
+    if codepoint < 256_i32 as u32 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
         return (*this).glyphsAscii[codepoint as usize];
     }
     let mut g: *mut Glyph = HashMap_Get(
@@ -432,13 +432,13 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     }
     let mut face: FT_Face = (*this).handle;
     let mut glyph: i32 = FT_Get_Char_Index(face, codepoint as FT_ULong) as i32;
-    if glyph == 0 as i32 {
+    if glyph == 0_i32 {
         return std::ptr::null_mut();
     }
     if FT_Load_Glyph(
         face,
         glyph as FT_UInt,
-        ((1 as libc::c_long) << 5 as i32 | (1 as libc::c_long) << 2 as i32) as FT_Int32,
+        ((1 as libc::c_long) << 5_i32 | (1 as libc::c_long) << 2_i32) as FT_Int32,
     ) != 0
     {
         return std::ptr::null_mut();
@@ -453,14 +453,14 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     (*g).sy = (*bitmap).rows as i32;
     (*g).x1 = (*g).x0 + (*g).sx;
     (*g).y1 = (*g).y0 + (*g).sy;
-    (*g).advance = ((*(*face).glyph).advance.x >> 6 as i32) as i32;
+    (*g).advance = ((*(*face).glyph).advance.x >> 6_i32) as i32;
     let mut buffer: *mut Vec4f =
         MemAlloc((::core::mem::size_of::<Vec4f>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
             as *mut Vec4f;
     let mut pBuffer: *mut Vec4f = buffer;
-    let mut dy: u32 = 0 as i32 as u32;
+    let mut dy: u32 = 0_i32 as u32;
     while dy < (*bitmap).rows {
-        let mut dx: u32 = 0 as i32 as u32;
+        let mut dx: u32 = 0_i32 as u32;
         while dx < (*bitmap).width {
             let mut a: f32 = Pow(
                 (*pBitmap.offset(dx as isize) as f32 / 255.0f32) as f64,
@@ -482,7 +482,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
         DataFormat_Float,
     );
     MemFree(buffer as *const libc::c_void);
-    if codepoint < 256 as i32 as u32 {
+    if codepoint < 256_i32 as u32 {
         (*this).glyphsAscii[codepoint as usize] = g;
     } else {
         HashMap_Set(
@@ -504,7 +504,7 @@ unsafe extern "C" fn Font_GetKerning(mut this: *mut Font, mut a: i32, mut b: i32
         FT_KERNING_DEFAULT as i32 as FT_UInt,
         &mut kern,
     );
-    return (kern.x >> 6 as i32) as i32;
+    return (kern.x >> 6_i32) as i32;
 }
 
 #[no_mangle]
@@ -514,22 +514,22 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
     }
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Font, name);
     let mut this: *mut Font = MemAlloc(::core::mem::size_of::<Font>()) as *mut Font;
-    (*this)._refCount = 1 as i32 as u32;
-    if FT_New_Face(ft, path, 0 as i32 as FT_Long, &mut (*this).handle) != 0 {
+    (*this)._refCount = 1_i32 as u32;
+    if FT_New_Face(ft, path, 0_i32 as FT_Long, &mut (*this).handle) != 0 {
         Fatal(
             b"Font_Load: Failed to load font <%s> at <%s>\0" as *const u8 as *const libc::c_char,
             name,
             path,
         );
     }
-    FT_Set_Pixel_Sizes((*this).handle, 0 as i32 as FT_UInt, size as FT_UInt);
+    FT_Set_Pixel_Sizes((*this).handle, 0_i32 as FT_UInt, size as FT_UInt);
     MemZero(
         ((*this).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
         ::core::mem::size_of::<[*mut Glyph; 256]>(),
     );
     (*this).glyphs = HashMap_Create(
-        ::core::mem::size_of::<u32>() as usize as u32,
-        16 as i32 as u32,
+        ::core::mem::size_of::<u32>() as u32,
+        16_i32 as u32,
     );
     return this;
 }
@@ -543,7 +543,7 @@ pub unsafe extern "C" fn Font_Acquire(mut this: *mut Font) {
 pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0 as i32 as u32
+        (*this)._refCount <= 0_i32 as u32
     } {
         FT_Done_Face((*this).handle);
         MemFree(this as *const libc::c_void);
@@ -564,13 +564,13 @@ pub unsafe extern "C" fn Font_Draw(
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"Font_Draw\0")).as_ptr(),
     );
-    let mut glyphLast: i32 = 0 as i32;
+    let mut glyphLast: i32 = 0_i32;
     let fresh1 = text;
     text = text.offset(1);
     let mut codepoint: u32 = *fresh1 as u32;
     x = Floor(x as f64) as f32;
     y = Floor(y as f64) as f32;
-    RenderState_PushBlendMode(1 as i32);
+    RenderState_PushBlendMode(1_i32);
     Draw_Color(r, g, b, a);
     while codepoint != 0 {
         let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
@@ -586,7 +586,7 @@ pub unsafe extern "C" fn Font_Draw(
             x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
         } else {
-            glyphLast = 0 as i32;
+            glyphLast = 0_i32;
         }
         let fresh2 = text;
         text = text.offset(1);
@@ -607,7 +607,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Font_DrawShaded\0")).as_ptr(),
     );
-    let mut glyphLast: i32 = 0 as i32;
+    let mut glyphLast: i32 = 0_i32;
     let fresh3 = text;
     text = text.offset(1);
     let mut codepoint: u32 = *fresh3 as u32;
@@ -629,7 +629,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
             x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
         } else {
-            glyphLast = 0 as i32;
+            glyphLast = 0_i32;
         }
         let fresh4 = text;
         text = text.offset(1);
@@ -640,7 +640,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetLineHeight(mut this: *mut Font) -> i32 {
-    return ((*(*(*this).handle).size).metrics.height >> 6 as i32) as i32;
+    return ((*(*(*this).handle).size).metrics.height >> 6_i32) as i32;
 }
 
 #[no_mangle]
@@ -648,16 +648,16 @@ pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, 
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Font_GetSize\0")).as_ptr(),
     );
-    let mut x: i32 = 0 as i32;
-    let mut y: i32 = 0 as i32;
+    let mut x: i32 = 0_i32;
+    let mut y: i32 = 0_i32;
     let mut lower = IVec2::new(i32::MAX, i32::MAX);
     let mut upper = IVec2::new(i32::MIN, i32::MIN);
-    let mut glyphLast: i32 = 0 as i32;
+    let mut glyphLast: i32 = 0_i32;
     let fresh5 = text;
     text = text.offset(1);
     let mut codepoint: u32 = *fresh5 as u32;
     if codepoint == 0 {
-        *out = IVec4::new(0 as i32, 0 as i32, 0 as i32, 0 as i32);
+        *out = IVec4::new(0_i32, 0_i32, 0_i32, 0_i32);
         return;
     }
     while codepoint != 0 {
@@ -673,7 +673,7 @@ pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, 
             x += (*glyph).advance;
             glyphLast = (*glyph).index;
         } else {
-            glyphLast = 0 as i32;
+            glyphLast = 0_i32;
         }
         let fresh6 = text;
         text = text.offset(1);
@@ -688,9 +688,9 @@ pub unsafe extern "C" fn Font_GetSize2(mut this: *mut Font, mut out: *mut IVec2,
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Font_GetSize2\0")).as_ptr(),
     );
-    (*out).x = 0 as i32;
-    (*out).y = 0 as i32;
-    let mut glyphLast: i32 = 0 as i32;
+    (*out).x = 0_i32;
+    (*out).y = 0_i32;
+    let mut glyphLast: i32 = 0_i32;
     let fresh7 = text;
     text = text.offset(1);
     let mut codepoint: u32 = *fresh7 as u32;
@@ -701,10 +701,10 @@ pub unsafe extern "C" fn Font_GetSize2(mut this: *mut Font, mut out: *mut IVec2,
                 (*out).x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
             (*out).x += (*glyph).advance;
-            (*out).y = Max((*out).y as f64, (-(*glyph).y0 + 1 as i32) as f64) as i32;
+            (*out).y = Max((*out).y as f64, (-(*glyph).y0 + 1_i32) as f64) as i32;
             glyphLast = (*glyph).index;
         } else {
-            glyphLast = 0 as i32;
+            glyphLast = 0_i32;
         }
         let fresh8 = text;
         text = text.offset(1);

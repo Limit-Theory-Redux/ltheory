@@ -21,7 +21,7 @@ static mut scrollAmount: i32 = 0;
 pub unsafe extern "C" fn Mouse_Init() {
     lastState = SDL_GetMouseState(&mut lastX, &mut lastY);
     lastAction = SDL_GetPerformanceCounter();
-    scrollAmount = 0 as i32;
+    scrollAmount = 0_i32;
 }
 
 #[no_mangle]
@@ -41,7 +41,7 @@ pub unsafe extern "C" fn Mouse_Update() {
     if lx != lastX || ly != lastY || state != lastState {
         lastAction = SDL_GetPerformanceCounter();
     }
-    scrollAmount = 0 as i32;
+    scrollAmount = 0_i32;
 }
 
 #[no_mangle]
@@ -80,28 +80,28 @@ pub unsafe extern "C" fn Mouse_SetPosition(mut x: i32, mut y: i32) {
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_SetVisible(mut visible: bool) {
     SDL_ShowCursor(if visible as i32 != 0 {
-        1 as i32
+        1_i32
     } else {
-        0 as i32
+        0_i32
     });
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Down(mut button: MouseButton) -> bool {
-    button = (1 as i32) << button - 1 as i32;
-    return SDL_GetMouseState(std::ptr::null_mut(), std::ptr::null_mut()) & button as u32 > 0 as i32 as u32;
+    button = 1_i32 << button - 1_i32;
+    return SDL_GetMouseState(std::ptr::null_mut(), std::ptr::null_mut()) & button as u32 > 0_i32 as u32;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Pressed(mut button: MouseButton) -> bool {
-    button = (1 as i32) << button - 1 as i32;
+    button = 1_i32 << button - 1_i32;
     let mut current: u32 = SDL_GetMouseState(std::ptr::null_mut(), std::ptr::null_mut());
     return current & button as u32 != 0 && lastState & button as u32 == 0;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Released(mut button: MouseButton) -> bool {
-    button = (1 as i32) << button - 1 as i32;
+    button = 1_i32 << button - 1_i32;
     let mut current: u32 = SDL_GetMouseState(std::ptr::null_mut(), std::ptr::null_mut());
     return current & button as u32 == 0 && lastState & button as u32 != 0;
 }

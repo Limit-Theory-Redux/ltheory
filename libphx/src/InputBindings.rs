@@ -121,9 +121,9 @@ pub static InputBindings_DefaultReleaseThreshold: f32 = 0.;
 #[no_mangle]
 pub static InputBindings_DefaultPressThreshold: f32 = 0.;
 
-static mut BindCount: i32 = 4 as i32;
+static mut BindCount: i32 = 4_i32;
 static mut this: InputBindings = InputBindings {
-    activeBindings_size: 0 as i32,
+    activeBindings_size: 0_i32,
     activeBindings_capacity: 0,
     activeBindings_data: std::ptr::null_mut(),
     downBindings_size: 0,
@@ -133,24 +133,24 @@ static mut this: InputBindings = InputBindings {
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Init() {
-    if (this.activeBindings_capacity < 64 as i32) as i32 as libc::c_long != 0 {
-        this.activeBindings_capacity = 64 as i32;
+    if (this.activeBindings_capacity < 64_i32) as i32 as libc::c_long != 0 {
+        this.activeBindings_capacity = 64_i32;
         let mut elemSize: usize = ::core::mem::size_of::<InputBinding>();
         let mut pData: *mut *mut libc::c_void =
             &mut this.activeBindings_data as *mut *mut InputBinding as *mut *mut libc::c_void;
         *pData = MemRealloc(
             this.activeBindings_data as *mut libc::c_void,
-            (this.activeBindings_capacity as usize).wrapping_mul(elemSize as usize),
+            (this.activeBindings_capacity as usize).wrapping_mul(elemSize),
         );
     }
-    if (this.downBindings_capacity < 8 as i32) as libc::c_long != 0 {
-        this.downBindings_capacity = 8 as i32;
+    if (this.downBindings_capacity < 8_i32) as libc::c_long != 0 {
+        this.downBindings_capacity = 8_i32;
         let mut elemSize_0: usize = ::core::mem::size_of::<DownBinding>();
         let mut pData_0: *mut *mut libc::c_void =
             &mut this.downBindings_data as *mut *mut DownBinding as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
             this.downBindings_data as *mut libc::c_void,
-            (this.downBindings_capacity as usize).wrapping_mul(elemSize_0 as usize),
+            (this.downBindings_capacity as usize).wrapping_mul(elemSize_0),
         );
     }
 }
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn InputBindings_Free() {
 unsafe extern "C" fn InputBindings_RaiseCallback(
     mut event: *const libc::c_char,
     mut binding: *mut InputBinding,
-    mut callback: LuaRef,
+    mut _callback: LuaRef,
 ) {
     libc::printf(
         b"%s - %s\n\0" as *const u8 as *const libc::c_char,
@@ -177,18 +177,18 @@ unsafe extern "C" fn InputBindings_RaiseCallback(
 pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBinding) {
     let mut value = Vec2::ZERO;
     let mut axisValues: [*mut f32; 2] = [&mut value.x, &mut value.y];
-    let mut iAxis: i32 = 0 as i32;
+    let mut iAxis: i32 = 0_i32;
     while iAxis
         < (::core::mem::size_of::<[AggregateAxis; 2]>())
             .wrapping_div(::core::mem::size_of::<AggregateAxis>()) as i32
     {
         let mut axisValue: *mut f32 = axisValues[iAxis as usize];
-        let mut iBind: i32 = 0 as i32;
+        let mut iBind: i32 = 0_i32;
         while iBind < BindCount {
             *axisValue +=
-                (*binding).rawButtons[(2 as i32 * iAxis + 0 as i32) as usize][iBind as usize].value;
+                (*binding).rawButtons[(2_i32 * iAxis + 0_i32) as usize][iBind as usize].value;
             *axisValue -=
-                (*binding).rawButtons[(2 as i32 * iAxis + 1 as i32) as usize][iBind as usize].value;
+                (*binding).rawButtons[(2_i32 * iAxis + 1_i32) as usize][iBind as usize].value;
             iBind += 1;
         }
         *axisValue = (*axisValue - (*binding).deadzone) / (1.0f32 - (*binding).deadzone);
@@ -213,7 +213,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
             (*axis2D).onChanged,
         );
     }
-    let mut iAxis_0: i32 = 0 as i32;
+    let mut iAxis_0: i32 = 0_i32;
     while iAxis_0
         < (::core::mem::size_of::<[AggregateAxis; 2]>())
             .wrapping_div(::core::mem::size_of::<AggregateAxis>()) as i32
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
         if *axisValues[iAxis_0 as usize] != (*axis).value {
             (*axis).value = *axisValues[iAxis_0 as usize];
             InputBindings_RaiseCallback(
-                if iAxis_0 == 0 as i32 {
+                if iAxis_0 == 0_i32 {
                     b"Changed X\0" as *const u8 as *const libc::c_char
                 } else {
                     b"Changed Y\0" as *const u8 as *const libc::c_char
@@ -234,15 +234,15 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
         }
         iAxis_0 += 1;
     }
-    let mut iBtn: i32 = 0 as i32;
+    let mut iBtn: i32 = 0_i32;
     while iBtn
         < (::core::mem::size_of::<[AggregateButton; 4]>())
             .wrapping_div(::core::mem::size_of::<AggregateButton>()) as i32
     {
         let mut button: *mut AggregateButton =
             &mut *((*binding).buttons).as_mut_ptr().offset(iBtn as isize) as *mut AggregateButton;
-        let mut axisValue_0: f32 = (*binding).axes[(iBtn / 2 as i32) as usize].value;
-        let mut isPos: bool = iBtn & 1 as i32 == 0;
+        let mut axisValue_0: f32 = (*binding).axes[(iBtn / 2_i32) as usize].value;
+        let mut isPos: bool = iBtn & 1_i32 == 0;
         if !((*button).state & State_Down == State_Down) {
             if if isPos as i32 != 0 {
                 (axisValue_0 > (*binding).pressThreshold) as i32
@@ -265,9 +265,9 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                 downBinding.button = button;
                 if (this.downBindings_capacity == this.downBindings_size) as libc::c_long != 0 {
                     this.downBindings_capacity = if this.downBindings_capacity != 0 {
-                        this.downBindings_capacity * 2 as i32
+                        this.downBindings_capacity * 2_i32
                     } else {
-                        1 as i32
+                        1_i32
                     };
                     let mut elemSize: usize = ::core::mem::size_of::<DownBinding>();
                     let mut pData: *mut *mut libc::c_void = &mut this.downBindings_data
@@ -295,15 +295,15 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                 binding,
                 (*button).onReleased,
             );
-            let mut _i: i32 = 0 as i32;
+            let mut _i: i32 = 0_i32;
             while _i < this.downBindings_size {
                 let mut x: *mut DownBinding =
                     &mut *(this.downBindings_data).offset(_i as isize) as *mut DownBinding;
                 if ((*x).binding == binding && (*x).button == button) as i32 as libc::c_long != 0 {
                     let mut _j: i32 = _i;
-                    while _j < this.downBindings_size - 1 as i32 {
+                    while _j < this.downBindings_size - 1_i32 {
                         *(this.downBindings_data).offset(_j as isize) =
-                            *(this.downBindings_data).offset((_j + 1 as i32) as isize);
+                            *(this.downBindings_data).offset((_j + 1_i32) as isize);
                         _j += 1;
                     }
                     this.downBindings_size -= 1;
@@ -319,7 +319,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Update() {
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < this.downBindings_size {
         let mut down: DownBinding = *(this.downBindings_data).offset(i as isize);
         InputBindings_RaiseCallback(
@@ -342,15 +342,15 @@ pub unsafe extern "C" fn InputBindings_Update() {
             .offset(-(1));
         let mut __iterbegin: *mut InputBinding = this.activeBindings_data;
         while binding >= __iterbegin {
-            let mut iBtn: i32 = 0 as i32;
+            let mut iBtn: i32 = 0_i32;
             while iBtn
                 < (::core::mem::size_of::<[[RawButton; 4]; 4]>())
                     .wrapping_div(::core::mem::size_of::<[RawButton; 4]>()) as i32
             {
-                let mut iBind: i32 = 0 as i32;
+                let mut iBind: i32 = 0_i32;
                 while iBind
                     < (::core::mem::size_of::<[RawButton; 4]>())
-                        .wrapping_div(::core::mem::size_of::<RawButton>() as usize)
+                        .wrapping_div(::core::mem::size_of::<RawButton>())
                         as i32
                 {
                     let mut button: *mut RawButton =
@@ -369,12 +369,12 @@ pub unsafe extern "C" fn InputBindings_Update() {
         }
     }
 }
-static mut iXPos: i32 = 0 as i32;
-static mut iXNeg: i32 = 1 as i32;
-static mut iYPos: i32 = 2 as i32;
-static mut iYNeg: i32 = 3 as i32;
-static mut iX: i32 = 0 as i32;
-static mut iY: i32 = 1 as i32;
+static mut iXPos: i32 = 0_i32;
+static mut iXNeg: i32 = 1_i32;
+static mut iYPos: i32 = 2_i32;
+static mut iYNeg: i32 = 3_i32;
+static mut iX: i32 = 0_i32;
+static mut iY: i32 = 1_i32;
 
 #[inline]
 unsafe extern "C" fn InputBinding_GetButtonState(
@@ -508,16 +508,16 @@ unsafe extern "C" fn InputBinding_SetInvert(
         &mut *((*binding).axes).as_mut_ptr().offset(iAxis as isize) as *mut AggregateAxis;
     if invert as i32 != (*axis).invert as i32 {
         (*axis).invert = invert;
-        let mut iBind: i32 = 0 as i32;
+        let mut iBind: i32 = 0_i32;
         while iBind < BindCount {
             let mut btnPos: *mut RawButton = &mut *(*((*binding).rawButtons)
                 .as_mut_ptr()
-                .offset((2 as i32 * iAxis + 0 as i32) as isize))
+                .offset((2_i32 * iAxis + 0_i32) as isize))
             .as_mut_ptr()
             .offset(iBind as isize) as *mut RawButton;
             let mut btnNeg: *mut RawButton = &mut *(*((*binding).rawButtons)
                 .as_mut_ptr()
-                .offset((2 as i32 * iAxis + 1 as i32) as isize))
+                .offset((2_i32 * iAxis + 1_i32) as isize))
             .as_mut_ptr()
             .offset(iBind as isize) as *mut RawButton;
             let mut temp: Button = (*btnPos).button;
@@ -533,7 +533,7 @@ pub unsafe extern "C" fn InputBinding_SetInvertX(
     mut binding: *mut InputBinding,
     mut invert: bool,
 ) -> *mut InputBinding {
-    InputBinding_SetInvert(binding, 0 as i32, invert);
+    InputBinding_SetInvert(binding, 0_i32, invert);
     return binding;
 }
 
@@ -542,7 +542,7 @@ pub unsafe extern "C" fn InputBinding_SetInvertY(
     mut binding: *mut InputBinding,
     mut invert: bool,
 ) -> *mut InputBinding {
-    InputBinding_SetInvert(binding, 1 as i32, invert);
+    InputBinding_SetInvert(binding, 1_i32, invert);
     return binding;
 }
 

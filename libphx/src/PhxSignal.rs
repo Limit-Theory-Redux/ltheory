@@ -22,24 +22,24 @@ pub struct HandlerElem {
 }
 
 #[no_mangle]
-pub static Signal_Ill: Signal = 4 as i32;
+pub static Signal_Ill: Signal = 4_i32;
 
 #[no_mangle]
-pub static Signal_Fpe: Signal = 8 as i32;
+pub static Signal_Fpe: Signal = 8_i32;
 
 #[no_mangle]
-pub static Signal_Segv: Signal = 11 as i32;
+pub static Signal_Segv: Signal = 11_i32;
 
 #[no_mangle]
-pub static Signal_Term: Signal = 15 as i32;
+pub static Signal_Term: Signal = 15_i32;
 
 #[no_mangle]
-pub static Signal_Abrt: Signal = 6 as i32;
+pub static Signal_Abrt: Signal = 6_i32;
 
 #[no_mangle]
-pub static Signal_Int: Signal = 2 as i32;
+pub static Signal_Int: Signal = 2_i32;
 
-static mut ignoreDefault: bool = 0 as i32 != 0;
+static mut ignoreDefault: bool = 0_i32 != 0;
 static mut handlerDefault: [SignalHandler; 32] = [
     None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
     None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
@@ -95,7 +95,7 @@ unsafe extern "C" fn Signal_Handler(mut sig: Signal) {
         e = (*e).next;
     }
     if ignoreDefault {
-        ignoreDefault = 0 as i32 != 0;
+        ignoreDefault = 0_i32 != 0;
         return;
     }
     libc::raise(sig);
@@ -142,7 +142,7 @@ pub unsafe extern "C" fn Signal_Free() {
 #[no_mangle]
 pub unsafe extern "C" fn Signal_AddHandler(mut sig: Signal, mut fn_0: SignalHandler) {
     let mut e: *mut HandlerElem =
-        MemAlloc(::core::mem::size_of::<HandlerElem>() as usize) as *mut HandlerElem;
+        MemAlloc(::core::mem::size_of::<HandlerElem>()) as *mut HandlerElem;
     (*e).next = handlerTable[sig as usize];
     (*e).fn_0 = fn_0;
     // handlerTable[sig as usize] = e;
@@ -200,5 +200,5 @@ pub unsafe extern "C" fn Signal_ToString(mut this: Signal) -> *const libc::c_cha
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_IgnoreDefault() {
-    ignoreDefault = 1 as i32 != 0;
+    ignoreDefault = 1_i32 != 0;
 }

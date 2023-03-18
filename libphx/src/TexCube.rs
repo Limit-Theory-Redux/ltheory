@@ -93,32 +93,32 @@ unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
 
 static mut kFaces: [Face; 6] = [
     Face {
-        face: 0x8515 as i32,
+        face: 0x8515_i32,
         look: Vec3::new(1.0f32, 0.0f32, 0.0f32),
         up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
     },
     Face {
-        face: 0x8516 as i32,
+        face: 0x8516_i32,
         look: Vec3::new(-1.0f32, 0.0f32, 0.0f32),
         up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
     },
     Face {
-        face: 0x8517 as i32,
+        face: 0x8517_i32,
         look: Vec3::new(0.0f32, 1.0f32, 0.0f32),
         up: Vec3::new(0.0f32, 0.0f32, -1.0f32),
     },
     Face {
-        face: 0x8518 as i32,
+        face: 0x8518_i32,
         look: Vec3::new(0.0f32, -1.0f32, 0.0f32),
         up: Vec3::new(0.0f32, 0.0f32, 1.0f32),
     },
     Face {
-        face: 0x8519 as i32,
+        face: 0x8519_i32,
         look: Vec3::new(0.0f32, 0.0f32, 1.0f32),
         up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
     },
     Face {
-        face: 0x851a as i32,
+        face: 0x851a_i32,
         look: Vec3::new(0.0f32, 0.0f32, -1.0f32),
         up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
     },
@@ -135,24 +135,24 @@ static mut kFaceExt: [*const libc::c_char; 6] = [
 #[inline]
 unsafe extern "C" fn TexCube_InitParameters() {
     glTexParameteri(
-        0x8513 as i32 as GLenum,
-        0x2800 as i32 as GLenum,
-        0x2600 as i32,
+        0x8513_i32 as GLenum,
+        0x2800_i32 as GLenum,
+        0x2600_i32,
     );
     glTexParameteri(
-        0x8513 as i32 as GLenum,
-        0x2801 as i32 as GLenum,
-        0x2600 as i32,
+        0x8513_i32 as GLenum,
+        0x2801_i32 as GLenum,
+        0x2600_i32,
     );
     glTexParameteri(
-        0x8513 as i32 as GLenum,
-        0x2802 as i32 as GLenum,
-        0x812f as i32,
+        0x8513_i32 as GLenum,
+        0x2802_i32 as GLenum,
+        0x812f_i32,
     );
     glTexParameteri(
-        0x8513 as i32 as GLenum,
-        0x2803 as i32 as GLenum,
-        0x812f as i32,
+        0x8513_i32 as GLenum,
+        0x2803_i32 as GLenum,
+        0x812f_i32,
     );
 }
 
@@ -171,80 +171,80 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         );
     }
     let mut this: *mut TexCube =
-        MemAlloc(::core::mem::size_of::<TexCube>() as usize) as *mut TexCube;
-    (*this)._refCount = 1 as i32 as u32;
-    glGenTextures(1 as i32, &mut (*this).handle);
+        MemAlloc(::core::mem::size_of::<TexCube>()) as *mut TexCube;
+    (*this)._refCount = 1_i32 as u32;
+    glGenTextures(1_i32, &mut (*this).handle);
     (*this).size = size;
     (*this).format = format;
-    glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
+    glBindTexture(0x8513_i32 as GLenum, (*this).handle);
     glTexImage2D(
-        0x8515 as i32 as GLenum,
-        0 as i32,
+        0x8515_i32 as GLenum,
+        0_i32,
         format,
         size,
         size,
-        0 as i32,
-        0x1903 as i32 as GLenum,
-        0x1400 as i32 as GLenum,
+        0_i32,
+        0x1903_i32 as GLenum,
+        0x1400_i32 as GLenum,
         std::ptr::null(),
     );
     glTexImage2D(
-        0x8517 as i32 as GLenum,
-        0 as i32,
+        0x8517_i32 as GLenum,
+        0_i32,
         format,
         size,
         size,
-        0 as i32,
-        0x1903 as i32 as GLenum,
-        0x1400 as i32 as GLenum,
+        0_i32,
+        0x1903_i32 as GLenum,
+        0x1400_i32 as GLenum,
         std::ptr::null(),
     );
     glTexImage2D(
-        0x8519 as i32 as GLenum,
-        0 as i32,
+        0x8519_i32 as GLenum,
+        0_i32,
         format,
         size,
         size,
-        0 as i32,
-        0x1903 as i32 as GLenum,
-        0x1400 as i32 as GLenum,
+        0_i32,
+        0x1903_i32 as GLenum,
+        0x1400_i32 as GLenum,
         std::ptr::null(),
     );
     glTexImage2D(
-        0x8516 as i32 as GLenum,
-        0 as i32,
+        0x8516_i32 as GLenum,
+        0_i32,
         format,
         size,
         size,
-        0 as i32,
-        0x1903 as i32 as GLenum,
-        0x1400 as i32 as GLenum,
+        0_i32,
+        0x1903_i32 as GLenum,
+        0x1400_i32 as GLenum,
         std::ptr::null(),
     );
     glTexImage2D(
-        0x8518 as i32 as GLenum,
-        0 as i32,
+        0x8518_i32 as GLenum,
+        0_i32,
         format,
         size,
         size,
-        0 as i32,
-        0x1903 as i32 as GLenum,
-        0x1400 as i32 as GLenum,
+        0_i32,
+        0x1903_i32 as GLenum,
+        0x1400_i32 as GLenum,
         std::ptr::null(),
     );
     glTexImage2D(
-        0x851a as i32 as GLenum,
-        0 as i32,
+        0x851a_i32 as GLenum,
+        0_i32,
         format,
         size,
         size,
-        0 as i32,
-        0x1903 as i32 as GLenum,
-        0x1400 as i32 as GLenum,
+        0_i32,
+        0x1903_i32 as GLenum,
+        0x1400_i32 as GLenum,
         std::ptr::null(),
     );
     TexCube_InitParameters();
-    glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
     return this;
 }
 
@@ -261,8 +261,8 @@ pub unsafe extern "C" fn TexCube_Clear(
     mut b: f32,
     mut a: f32,
 ) {
-    let mut i: i32 = 0 as i32;
-    while i < 6 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 6_i32 {
         let mut face: Face = kFaces[i as usize];
         RenderTarget_Push((*this).size, (*this).size);
         RenderTarget_BindTexCube(this, face.face);
@@ -276,9 +276,9 @@ pub unsafe extern "C" fn TexCube_Clear(
 pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0 as i32 as u32
+        (*this)._refCount <= 0_i32 as u32
     } {
-        glDeleteTextures(1 as i32, &mut (*this).handle);
+        glDeleteTextures(1_i32, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
 }
@@ -286,13 +286,13 @@ pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut TexCube {
     let mut this: *mut TexCube =
-        MemAlloc(::core::mem::size_of::<TexCube>() as usize) as *mut TexCube;
-    glGenTextures(1 as i32, &mut (*this).handle);
-    glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
-    let mut components: i32 = 0 as i32;
-    let mut dataLayout: i32 = 0 as i32;
-    let mut i: i32 = 0 as i32;
-    while i < 6 as i32 {
+        MemAlloc(::core::mem::size_of::<TexCube>()) as *mut TexCube;
+    glGenTextures(1_i32, &mut (*this).handle);
+    glBindTexture(0x8513_i32 as GLenum, (*this).handle);
+    let mut components: i32 = 0_i32;
+    let mut dataLayout: i32 = 0_i32;
+    let mut i: i32 = 0_i32;
+    while i < 6_i32 {
         let mut facePath: *const libc::c_char = StrAdd3(
             path,
             kFaceExt[i as usize],
@@ -331,34 +331,34 @@ pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut Tex
         } else {
             components = lcomponents;
             (*this).size = sx;
-            (*this).format = if components == 4 as i32 {
+            (*this).format = if components == 4_i32 {
                 TexFormat_RGBA8
-            } else if components == 3 as i32 {
+            } else if components == 3_i32 {
                 TexFormat_RGB8
-            } else if components == 2 as i32 {
+            } else if components == 2_i32 {
                 TexFormat_RG8
             } else {
                 TexFormat_R8
             };
-            dataLayout = if components == 4 as i32 {
-                0x1908 as i32
-            } else if components == 3 as i32 {
-                0x1907 as i32
-            } else if components == 2 as i32 {
-                0x8227 as i32
+            dataLayout = if components == 4_i32 {
+                0x1908_i32
+            } else if components == 3_i32 {
+                0x1907_i32
+            } else if components == 2_i32 {
+                0x8227_i32
             } else {
-                0x1903 as i32
+                0x1903_i32
             };
         }
         glTexImage2D(
             kFaces[i as usize].face as GLenum,
-            0 as i32,
+            0_i32,
             (*this).format,
             (*this).size,
             (*this).size,
-            0 as i32,
+            0_i32,
             dataLayout as GLenum,
-            0x1401 as i32 as GLenum,
+            0x1401_i32 as GLenum,
             data as *const libc::c_void,
         );
         MemFree(facePath as *const libc::c_void);
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut Tex
         i += 1;
     }
     TexCube_InitParameters();
-    glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
     return this;
 }
 
@@ -379,9 +379,9 @@ pub unsafe extern "C" fn TexCube_GetData(
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
+    glBindTexture(0x8513_i32 as GLenum, (*this).handle);
     glGetTexImage(face as GLenum, level, pf as GLenum, df as GLenum, data);
-    glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
@@ -426,8 +426,8 @@ pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mu
     GLMatrix_Clear();
     RenderState_PushAllDefaults();
     ShaderState_Start(state);
-    let mut i: i32 = 0 as i32;
-    while i < 6 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 6_i32 {
         let mut face: Face = kFaces[i as usize];
         let mut size: i32 = (*this).size;
         let mut fSize: f32 = (*this).size as f32;
@@ -447,21 +447,21 @@ pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mu
             face.up.z,
         );
         Shader_SetFloat(b"cubeSize\0" as *const u8 as *const libc::c_char, fSize);
-        let mut j: i32 = 1 as i32;
-        let mut jobSize: i32 = 1 as i32;
+        let mut j: i32 = 1_i32;
+        let mut jobSize: i32 = 1_i32;
         while j <= size {
             let mut time: TimeStamp = TimeStamp_Get();
-            ClipRect_Push(0.0f32, (j - 1 as i32) as f32, size as f32, jobSize as f32);
+            ClipRect_Push(0.0f32, (j - 1_i32) as f32, size as f32, jobSize as f32);
             Draw_Rect(0.0f32, 0.0f32, fSize, fSize);
             Draw_Flush();
             ClipRect_Pop();
             j += jobSize;
             let mut elapsed: f64 = TimeStamp_GetElapsed(time);
             jobSize = Max(
-                1 as i32 as f64,
+                1_f64,
                 Floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
             ) as i32;
-            jobSize = Min(jobSize as f64, (size - j + 1 as i32) as f64) as i32;
+            jobSize = Min(jobSize as f64, (size - j + 1_i32) as f64) as i32;
         }
         RenderTarget_Pop();
         i += 1;
@@ -476,9 +476,9 @@ pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mu
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GenMipmap(mut this: *mut TexCube) {
-    glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
-    __glewGenerateMipmap.expect("non-null function pointer")(0x8513 as i32 as GLenum);
-    glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x8513_i32 as GLenum, (*this).handle);
+    __glewGenerateMipmap.expect("non-null function pointer")(0x8513_i32 as GLenum);
+    glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
@@ -490,19 +490,19 @@ pub unsafe extern "C" fn TexCube_SetData(
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
+    glBindTexture(0x8513_i32 as GLenum, (*this).handle);
     glTexImage2D(
         face as GLenum,
         level,
         (*this).format,
         (*this).size,
         (*this).size,
-        0 as i32,
+        0_i32,
         pf as GLenum,
         df as GLenum,
         data,
     );
-    glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
@@ -519,32 +519,32 @@ pub unsafe extern "C" fn TexCube_SetDataBytes(
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetMagFilter(mut this: *mut TexCube, mut filter: TexFilter) {
-    glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
-    glTexParameteri(0x8513 as i32 as GLenum, 0x2800 as i32 as GLenum, filter);
-    glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x8513_i32 as GLenum, (*this).handle);
+    glTexParameteri(0x8513_i32 as GLenum, 0x2800_i32 as GLenum, filter);
+    glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetMinFilter(mut this: *mut TexCube, mut filter: TexFilter) {
-    glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
-    glTexParameteri(0x8513 as i32 as GLenum, 0x2801 as i32 as GLenum, filter);
-    glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x8513_i32 as GLenum, (*this).handle);
+    glTexParameteri(0x8513_i32 as GLenum, 0x2801_i32 as GLenum, filter);
+    glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Save(mut this: *mut TexCube, mut path: *const libc::c_char) {
-    TexCube_SaveLevel(this, path, 0 as i32);
+    TexCube_SaveLevel(this, path, 0_i32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SaveLevel(mut this: *mut TexCube, mut path: *const libc::c_char, mut level: i32) {
     let mut size: i32 = (*this).size >> level;
-    glBindTexture(0x8513 as i32 as GLenum, (*this).handle);
+    glBindTexture(0x8513_i32 as GLenum, (*this).handle);
     let mut buffer: *mut uchar =
-        MemAlloc((::core::mem::size_of::<uchar>()).wrapping_mul((4 as i32 * size * size) as usize))
+        MemAlloc((::core::mem::size_of::<uchar>()).wrapping_mul((4_i32 * size * size) as usize))
             as *mut uchar;
-    let mut i: i32 = 0 as i32;
-    while i < 6 as i32 {
+    let mut i: i32 = 0_i32;
+    while i < 6_i32 {
         let mut face: CubeFace = kFaces[i as usize].face;
         let mut facePath: *const libc::c_char = StrAdd3(
             path,
@@ -554,14 +554,14 @@ pub unsafe extern "C" fn TexCube_SaveLevel(mut this: *mut TexCube, mut path: *co
         glGetTexImage(
             face as GLenum,
             level,
-            0x1908 as i32 as GLenum,
-            0x1401 as i32 as GLenum,
+            0x1908_i32 as GLenum,
+            0x1401_i32 as GLenum,
             buffer as *mut libc::c_void,
         );
-        Tex2D_Save_Png(facePath, size, size, 4 as i32, buffer);
+        Tex2D_Save_Png(facePath, size, size, 4_i32, buffer);
         MemFree(facePath as *const libc::c_void);
         i += 1;
     }
     MemFree(buffer as *const libc::c_void);
-    glBindTexture(0x8513 as i32 as GLenum, 0 as i32 as GLu32);
+    glBindTexture(0x8513_i32 as GLenum, 0_i32 as GLu32);
 }

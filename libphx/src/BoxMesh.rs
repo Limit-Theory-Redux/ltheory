@@ -64,9 +64,9 @@ static mut kFaceV: [Vec3; 6] = [
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
     let mut this: *mut BoxMesh =
-        MemAlloc(::core::mem::size_of::<BoxMesh>() as usize) as *mut BoxMesh;
-    (*this).elem_capacity = 0 as i32;
-    (*this).elem_size = 0 as i32;
+        MemAlloc(::core::mem::size_of::<BoxMesh>()) as *mut BoxMesh;
+    (*this).elem_capacity = 0_i32;
+    (*this).elem_size = 0_i32;
     (*this).elem_data = std::ptr::null_mut();
     return this;
 }
@@ -87,16 +87,16 @@ pub unsafe extern "C" fn BoxMesh_Add(
 ) {
     if ((*this).elem_capacity == (*this).elem_size) as libc::c_long != 0 {
         (*this).elem_capacity = if (*this).elem_capacity != 0 {
-            (*this).elem_capacity * 2 as i32
+            (*this).elem_capacity * 2_i32
         } else {
-            1 as i32
+            1_i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<Box_0>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elem_data as *mut *mut Box_0 as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*this).elem_data as *mut libc::c_void,
-            ((*this).elem_capacity as usize).wrapping_mul(elemSize as usize),
+            ((*this).elem_capacity as usize).wrapping_mul(elemSize),
         );
     }
     let fresh0 = (*this).elem_size;
@@ -111,9 +111,9 @@ pub unsafe extern "C" fn BoxMesh_Add(
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_GetMesh(mut this: *mut BoxMesh, mut res: i32) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
-    Mesh_ReserveVertexData(mesh, 6 as i32 * res * res * (*this).elem_size);
-    Mesh_ReserveIndexData(mesh, 12 as i32 * (res - 1 as i32) * (res - 1 as i32));
-    let mut i: i32 = 0 as i32;
+    Mesh_ReserveVertexData(mesh, 6_i32 * res * res * (*this).elem_size);
+    Mesh_ReserveIndexData(mesh, 12_i32 * (res - 1_i32) * (res - 1_i32));
+    let mut i: i32 = 0_i32;
     while i < (*this).elem_size {
         let mut box_0: *mut Box_0 = ((*this).elem_data).offset(i as isize);
         let mut lower: Vec3 = Vec3::new(
@@ -127,18 +127,18 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(mut this: *mut BoxMesh, mut res: i32) -
             1.0f32 - (*box_0).b.z,
         );
         let mut rot: *mut Matrix = Matrix_YawPitchRoll((*box_0).r.x, (*box_0).r.y, (*box_0).r.z);
-        let mut face: i32 = 0 as i32;
-        while face < 6 as i32 {
+        let mut face: i32 = 0_i32;
+        while face < 6_i32 {
             let mut o: Vec3 = kFaceOrigin[face as usize];
             let mut du: Vec3 = kFaceU[face as usize];
             let mut dv: Vec3 = kFaceV[face as usize];
             let mut n: Vec3 = Vec3::cross(du, dv).normalize();
-            let mut iu: i32 = 0 as i32;
+            let mut iu: i32 = 0_i32;
             while iu < res {
-                let mut u: f32 = iu as f32 / (res - 1 as i32) as f32;
-                let mut iv: i32 = 0 as i32;
+                let mut u: f32 = iu as f32 / (res - 1_i32) as f32;
+                let mut iv: i32 = 0_i32;
                 while iv < res {
-                    let mut v: f32 = iv as f32 / (res - 1 as i32) as f32;
+                    let mut v: f32 = iv as f32 / (res - 1_i32) as f32;
                     let mut p: Vec3 = o + (du * u) + (dv * v);
                     let mut clamped: Vec3 = Vec3::clamp(p, lower, upper);
                     let mut proj: Vec3 = p - clamped;
@@ -149,7 +149,7 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(mut this: *mut BoxMesh, mut res: i32) -
                     p = rp + (*box_0).p;
                     if iu != 0 && iv != 0 {
                         let mut off: i32 = Mesh_GetVertexCount(mesh);
-                        Mesh_AddQuad(mesh, off, off - res, off - res - 1 as i32, off - 1 as i32);
+                        Mesh_AddQuad(mesh, off, off - res, off - res - 1_i32, off - 1_i32);
                     }
                     Mesh_AddVertex(mesh, p.x, p.y, p.z, n.x, n.y, n.z, u, v);
                     iv += 1;

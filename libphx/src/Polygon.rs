@@ -40,14 +40,14 @@ pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mu
     let mut v: *mut Vec3 = (*polygon).vertices_data;
     let mut vLen: i32 = (*polygon).vertices_size;
     let mut n: DVec3 = DVec3 {
-        x: 0 as i32 as f64,
+        x: 0_i32 as f64,
         y: 0.,
         z: 0.,
     };
     let mut centroid = DVec3::ZERO;
     let vCurAsF32 = *v.offset((vLen - 1) as isize);
     let mut vCur = DVec3::new(vCurAsF32.x as f64, vCurAsF32.y as f64, vCurAsF32.z as f64);
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < vLen {
         let vPrev: DVec3 = vCur;
         let vCurAsF32 = *v.offset(i as isize);
@@ -73,8 +73,8 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(mut polygon: *mut Polygon, mut out:
         y: 0.,
         z: 0.,
     };
-    let mut i: i32 = vLen - 1 as i32;
-    let mut j: i32 = 0 as i32;
+    let mut i: i32 = vLen - 1_i32;
+    let mut j: i32 = 0_i32;
     while j < vLen {
         n.x += ((*v.offset(i as isize)).y - (*v.offset(j as isize)).y)
             * ((*v.offset(i as isize)).z + (*v.offset(j as isize)).z);
@@ -97,25 +97,25 @@ unsafe extern "C" fn Polygon_SplitImpl(
     mut front: *mut Polygon,
 ) {
     let mut a: Vec3 =
-        *((*polygon).vertices_data).offset(((*polygon).vertices_size - 1 as i32) as isize);
+        *((*polygon).vertices_data).offset(((*polygon).vertices_size - 1_i32) as isize);
     let mut aSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut a);
-    let mut j: i32 = 0 as i32;
+    let mut j: i32 = 0_i32;
     while j < (*polygon).vertices_size {
         let mut b: Vec3 = *((*polygon).vertices_data).offset(j as isize);
         let mut bSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut b);
-        if bSide as i32 == 1 as i32 {
-            if aSide as i32 == 2 as i32 {
+        if bSide as i32 == 1_i32 {
+            if aSide as i32 == 2_i32 {
                 let mut i = Vec3::ZERO;
                 let mut lineSegment: LineSegment = LineSegment { p0: b, p1: a };
-                let mut hit: bool =
+                let mut _hit: bool =
                     Intersect_LineSegmentPlane(&mut lineSegment, &mut splitPlane, &mut i);
                 if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long
                     != 0
                 {
                     (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
-                        (*front).vertices_capacity * 2 as i32
+                        (*front).vertices_capacity * 2_i32
                     } else {
-                        1 as i32
+                        1_i32
                     };
                     let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData: *mut *mut libc::c_void =
@@ -131,9 +131,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
                     (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
-                        (*back).vertices_capacity * 2 as i32
+                        (*back).vertices_capacity * 2_i32
                     } else {
-                        1 as i32
+                        1_i32
                     };
                     let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_0: *mut *mut libc::c_void =
@@ -149,9 +149,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
             }
             if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long != 0 {
                 (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
-                    (*front).vertices_capacity * 2 as i32
+                    (*front).vertices_capacity * 2_i32
                 } else {
-                    1 as i32
+                    1_i32
                 };
                 let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_1: *mut *mut libc::c_void =
@@ -164,19 +164,19 @@ unsafe extern "C" fn Polygon_SplitImpl(
             let fresh2 = (*front).vertices_size;
             (*front).vertices_size = (*front).vertices_size + 1;
             *((*front).vertices_data).offset(fresh2 as isize) = b;
-        } else if bSide as i32 == 2 as i32 {
-            if aSide as i32 == 1 as i32 {
+        } else if bSide as i32 == 2_i32 {
+            if aSide as i32 == 1_i32 {
                 let mut i_0 = Vec3::ZERO;
                 let mut lineSegment_0: LineSegment = LineSegment { p0: a, p1: b };
-                let mut hit_0: bool =
+                let mut _hit_0: bool =
                     Intersect_LineSegmentPlane(&mut lineSegment_0, &mut splitPlane, &mut i_0);
                 if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long
                     != 0
                 {
                     (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
-                        (*front).vertices_capacity * 2 as i32
+                        (*front).vertices_capacity * 2_i32
                     } else {
-                        1 as i32
+                        1_i32
                     };
                     let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_2: *mut *mut libc::c_void =
@@ -192,9 +192,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
                     (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
-                        (*back).vertices_capacity * 2 as i32
+                        (*back).vertices_capacity * 2_i32
                     } else {
-                        1 as i32
+                        1_i32
                     };
                     let mut elemSize_3: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_3: *mut *mut libc::c_void =
@@ -207,13 +207,13 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 let fresh4 = (*back).vertices_size;
                 (*back).vertices_size = (*back).vertices_size + 1;
                 *((*back).vertices_data).offset(fresh4 as isize) = i_0;
-            } else if aSide as i32 == 3 as i32 {
+            } else if aSide as i32 == 3_i32 {
                 if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
                     (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
-                        (*back).vertices_capacity * 2 as i32
+                        (*back).vertices_capacity * 2_i32
                     } else {
-                        1 as i32
+                        1_i32
                     };
                     let mut elemSize_4: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_4: *mut *mut libc::c_void =
@@ -229,29 +229,29 @@ unsafe extern "C" fn Polygon_SplitImpl(
             }
             if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0 {
                 (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
-                    (*back).vertices_capacity * 2 as i32
+                    (*back).vertices_capacity * 2_i32
                 } else {
-                    1 as i32
+                    1_i32
                 };
                 let mut elemSize_5: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_5: *mut *mut libc::c_void =
                     &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_5 = MemRealloc(
                     (*back).vertices_data as *mut libc::c_void,
-                    ((*back).vertices_capacity as usize).wrapping_mul(elemSize_5 as usize),
+                    ((*back).vertices_capacity as usize).wrapping_mul(elemSize_5),
                 );
             }
             let fresh6 = (*back).vertices_size;
             (*back).vertices_size = (*back).vertices_size + 1;
             *((*back).vertices_data).offset(fresh6 as isize) = b;
         } else {
-            if aSide as i32 == 2 as i32 {
+            if aSide as i32 == 2_i32 {
                 if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
                     (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
-                        (*back).vertices_capacity * 2 as i32
+                        (*back).vertices_capacity * 2_i32
                     } else {
-                        1 as i32
+                        1_i32
                     };
                     let mut elemSize_6: usize = ::core::mem::size_of::<Vec3>();
                     let mut pData_6: *mut *mut libc::c_void =
@@ -267,9 +267,9 @@ unsafe extern "C" fn Polygon_SplitImpl(
             }
             if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long != 0 {
                 (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
-                    (*front).vertices_capacity * 2 as i32
+                    (*front).vertices_capacity * 2_i32
                 } else {
-                    1 as i32
+                    1_i32
                 };
                 let mut elemSize_7: usize = ::core::mem::size_of::<Vec3>();
                 let mut pData_7: *mut *mut libc::c_void =
@@ -298,7 +298,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
 ) {
     Polygon_SplitImpl(polygon, splitPlane, back, front);
     let mut polygons: [*mut Polygon; 2] = [front, back];
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i
         < (::core::mem::size_of::<[*mut Polygon; 2]>())
             .wrapping_div(::core::mem::size_of::<*mut Polygon>()) as i32
@@ -306,24 +306,24 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
         let mut polygonPart: *mut Polygon = polygons[i as usize];
         let mut v: *mut Vec3 = (*polygonPart).vertices_data;
         let mut vLen: i32 = (*polygonPart).vertices_size;
-        let mut vCur: Vec3 = *v.offset((vLen - 1 as i32) as isize);
-        let mut l: i32 = 0 as i32;
+        let mut vCur: Vec3 = *v.offset((vLen - 1_i32) as isize);
+        let mut l: i32 = 0_i32;
         while l < vLen {
             let mut vPrev: Vec3 = vCur;
             vCur = *v.offset(l as isize);
             let mut edgeLen: f32 = vCur.distance(vPrev);
             if (edgeLen as f64) < 0.75f32 as f64 * 1e-4f64 {
-                (*back).vertices_size = 0 as i32;
-                (*front).vertices_size = 0 as i32;
+                (*back).vertices_size = 0_i32;
+                (*front).vertices_size = 0_i32;
                 let mut vertex: *mut Vec3 = (*polygon).vertices_data;
                 let mut __iterend: *mut Vec3 =
                     ((*polygon).vertices_data).offset((*polygon).vertices_size as isize);
                 while vertex < __iterend {
                     if ((*back).vertices_capacity == (*back).vertices_size) as libc::c_long != 0 {
                         (*back).vertices_capacity = if (*back).vertices_capacity != 0 {
-                            (*back).vertices_capacity * 2 as i32
+                            (*back).vertices_capacity * 2_i32
                         } else {
-                            1 as i32
+                            1_i32
                         };
                         let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
                         let mut pData: *mut *mut libc::c_void =
@@ -338,9 +338,9 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                     *((*back).vertices_data).offset(fresh9 as isize) = *vertex;
                     if ((*front).vertices_capacity == (*front).vertices_size) as libc::c_long != 0 {
                         (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
-                            (*front).vertices_capacity * 2 as i32
+                            (*front).vertices_capacity * 2_i32
                         } else {
-                            1 as i32
+                            1_i32
                         };
                         let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
                         let mut pData_0: *mut *mut libc::c_void =
@@ -396,13 +396,13 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
 ) {
     let mut v: *mut Vec3 = (*polygon).vertices_data;
     let mut vLen: i32 = (*polygon).vertices_size;
-    let mut i: i32 = 1 as i32;
-    while i < vLen - 1 as i32 {
+    let mut i: i32 = 1_i32;
+    while i < vLen - 1_i32 {
         if (*triangles_capacity == *triangles_size) as libc::c_long != 0 {
             *triangles_capacity = if *triangles_capacity != 0 {
-                *triangles_capacity * 2 as i32
+                *triangles_capacity * 2_i32
             } else {
-                1 as i32
+                1_i32
             };
             *triangles_data = MemRealloc(
                 *triangles_data as *mut libc::c_void,
@@ -413,7 +413,7 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
         *triangles_size += 1;
         (*triangle).vertices[0] = *v.offset(0);
         (*triangle).vertices[1] = *v.offset(i as isize);
-        (*triangle).vertices[2 as i32 as usize] = *v.offset((i + 1 as i32) as isize);
+        (*triangle).vertices[2_i32 as usize] = *v.offset((i + 1_i32) as isize);
         i += 1;
     }
 }
@@ -422,27 +422,27 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
 pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
     let mut v: *mut Vec3 = (*polygon).vertices_data;
     let mut vLen: i32 = (*polygon).vertices_size;
-    let mut vCur: Vec3 = *v.offset((vLen - 1 as i32) as isize);
-    let mut i: i32 = 0 as i32;
+    let mut vCur: Vec3 = *v.offset((vLen - 1_i32) as isize);
+    let mut i: i32 = 0_i32;
     while i < vLen {
         let mut vPrev: Vec3 = vCur;
         vCur = *v.offset(i as isize);
         let mut e: Error = Vec3_Validate(vCur);
-        if e != 0 as i32 as u32 {
-            return 0x400000 as i32 as u32 | e;
+        if e != 0_i32 as u32 {
+            return 0x400000_i32 as u32 | e;
         }
-        let mut j: i32 = i + 1 as i32;
+        let mut j: i32 = i + 1_i32;
         while j < vLen {
             if vCur == *v.offset(j as isize) {
-                return (0x400000 as i32 | 0x40 as i32) as Error;
+                return (0x400000_i32 | 0x40_i32) as Error;
             }
             j += 1;
         }
         let mut edgeLen = vCur.distance(vPrev);
         if (edgeLen as f64) < 0.75f32 as f64 * 1e-4f64 {
-            return (0x400000 as i32 | 0x8 as i32) as Error;
+            return (0x400000_i32 | 0x8_i32) as Error;
         }
         i += 1;
     }
-    return 0 as i32 as Error;
+    return 0_i32 as Error;
 }

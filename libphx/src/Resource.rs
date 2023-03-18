@@ -46,7 +46,7 @@ unsafe extern "C" fn Resource_Resolve(
             (*elem).format,
             name,
         );
-        if res > 0 as i32
+        if res > 0_i32
             && res < ::core::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong as i32
         {
             if File_Exists(buffer.as_mut_ptr() as *const libc::c_char) {
@@ -71,7 +71,7 @@ unsafe extern "C" fn Resource_Resolve(
 #[no_mangle]
 pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: *const libc::c_char) {
     let mut this: *mut PathElem =
-        MemAlloc(::core::mem::size_of::<PathElem>() as usize) as *mut PathElem;
+        MemAlloc(::core::mem::size_of::<PathElem>()) as *mut PathElem;
     (*this).format = StrDup(format);
     (*this).next = paths[type_0 as usize];
     paths[type_0 as usize] = this;
@@ -79,12 +79,12 @@ pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: 
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_Exists(mut type_0: ResourceType, mut name: *const libc::c_char) -> bool {
-    return !(Resource_Resolve(type_0, name, 0 as i32 != 0)).is_null();
+    return !(Resource_Resolve(type_0, name, 0_i32 != 0)).is_null();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_GetPath(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
-    return Resource_Resolve(type_0, name, 1 as i32 != 0);
+    return Resource_Resolve(type_0, name, 1_i32 != 0);
 }
 
 #[no_mangle]
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn Resource_LoadBytes(
     mut type_0: ResourceType,
     mut name: *const libc::c_char,
 ) -> *mut Bytes {
-    let mut path: *const libc::c_char = Resource_Resolve(type_0, name, 1 as i32 != 0);
+    let mut path: *const libc::c_char = Resource_Resolve(type_0, name, 1_i32 != 0);
     let mut data: *mut Bytes = File_ReadBytes(path);
     if data.is_null() {
         Fatal(
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn Resource_LoadBytes(
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_LoadCstr(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
-    let mut path: *const libc::c_char = Resource_Resolve(type_0, name, 1 as i32 != 0);
+    let mut path: *const libc::c_char = Resource_Resolve(type_0, name, 1_i32 != 0);
     let mut data: *const libc::c_char = File_ReadCstr(path);
     if data.is_null() {
         Fatal(

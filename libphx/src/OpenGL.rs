@@ -25,28 +25,28 @@ pub type GLfloat = f32;
 
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
-    static mut init: bool = 0 as i32 != 0;
+    static mut init: bool = 0_i32 != 0;
     if !init {
-        init = 1 as i32 != 0;
+        init = 1_i32 != 0;
         glewInit();
     }
-    glDisable(0x809d as i32 as GLenum);
-    glDisable(0xb44 as i32 as GLenum);
-    glCullFace(0x405 as i32 as GLenum);
-    glPixelStorei(0xd05 as i32 as GLenum, 1 as i32);
-    glPixelStorei(0xcf5 as i32 as GLenum, 1 as i32);
-    glDepthFunc(0x203 as i32 as GLenum);
-    glEnable(0xbe2 as i32 as GLenum);
-    glBlendFunc(1 as i32 as GLenum, 0 as i32 as GLenum);
-    glEnable(0x884f as i32 as GLenum);
-    glDisable(0xb10 as i32 as GLenum);
-    glDisable(0xb20 as i32 as GLenum);
-    glHint(0xc51 as i32 as GLenum, 0x1101 as i32 as GLenum);
-    glHint(0xc52 as i32 as GLenum, 0x1101 as i32 as GLenum);
-    glLineWidth(2 as i32 as GLfloat);
-    glMatrixMode(0x1701 as i32 as GLenum);
+    glDisable(0x809d_i32 as GLenum);
+    glDisable(0xb44_i32 as GLenum);
+    glCullFace(0x405_i32 as GLenum);
+    glPixelStorei(0xd05_i32 as GLenum, 1_i32);
+    glPixelStorei(0xcf5_i32 as GLenum, 1_i32);
+    glDepthFunc(0x203_i32 as GLenum);
+    glEnable(0xbe2_i32 as GLenum);
+    glBlendFunc(1_i32 as GLenum, 0_i32 as GLenum);
+    glEnable(0x884f_i32 as GLenum);
+    glDisable(0xb10_i32 as GLenum);
+    glDisable(0xb20_i32 as GLenum);
+    glHint(0xc51_i32 as GLenum, 0x1101_i32 as GLenum);
+    glHint(0xc52_i32 as GLenum, 0x1101_i32 as GLenum);
+    glLineWidth(2_i32 as GLfloat);
+    glMatrixMode(0x1701_i32 as GLenum);
     glLoadIdentity();
-    glMatrixMode(0x1700 as i32 as GLenum);
+    glMatrixMode(0x1700_i32 as GLenum);
     glLoadIdentity();
     RenderState_PushAllDefaults();
 }

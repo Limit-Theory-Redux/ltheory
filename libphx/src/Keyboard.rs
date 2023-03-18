@@ -55,7 +55,7 @@ pub unsafe extern "C" fn Keyboard_UpdatePost() {
         state as *const libc::c_void,
         size as usize,
     );
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < size {
         if *stateCurr.offset(i as isize) as i32 != *stateLast.offset(i as isize) as i32 {
             lastAction = SDL_GetPerformanceCounter();
@@ -68,7 +68,7 @@ pub unsafe extern "C" fn Keyboard_UpdatePost() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_Down(mut key: Key) -> bool {
-    return *stateCurr.offset(key as isize) as i32 != 0 as i32;
+    return *stateCurr.offset(key as isize) as i32 != 0_i32;
 }
 
 #[no_mangle]

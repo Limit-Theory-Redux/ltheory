@@ -122,7 +122,7 @@ unsafe extern "C" fn Box3f_Add(mut this: *mut Box3f, mut point: Vec3) {
 
 #[inline]
 unsafe extern "C" fn Vec2_Validate(mut v: Vec2) -> Error {
-    let mut e: Error = 0 as i32 as Error;
+    let mut e: Error = 0_i32 as Error;
     e |= Float_Validatef(v.x);
     e |= Float_Validatef(v.y);
     return e;
@@ -159,17 +159,17 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
     let mut this: *mut Mesh = MemAlloc(::core::mem::size_of::<Mesh>()) as *mut Mesh;
-    (*this)._refCount = 1 as i32 as u32;
-    (*this).vbo = 0 as i32 as u32;
-    (*this).ibo = 0 as i32 as u32;
-    (*this).version = 1 as i32 as u64;
-    (*this).versionBuffers = 0 as i32 as u64;
-    (*this).versionInfo = 0 as i32 as u64;
-    (*this).vertex_capacity = 0 as i32;
-    (*this).vertex_size = 0 as i32;
+    (*this)._refCount = 1_i32 as u32;
+    (*this).vbo = 0_i32 as u32;
+    (*this).ibo = 0_i32 as u32;
+    (*this).version = 1_i32 as u64;
+    (*this).versionBuffers = 0_i32 as u64;
+    (*this).versionInfo = 0_i32 as u64;
+    (*this).vertex_capacity = 0_i32;
+    (*this).vertex_size = 0_i32;
     (*this).vertex_data = std::ptr::null_mut();
-    (*this).index_capacity = 0 as i32;
-    (*this).index_size = 0 as i32;
+    (*this).index_capacity = 0_i32;
+    (*this).index_size = 0_i32;
     (*this).index_data = std::ptr::null_mut();
     return this;
 }
@@ -184,17 +184,17 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*this).index_data as *mut libc::c_void,
-            ((*this).index_capacity as usize).wrapping_mul(elemSize as usize),
+            ((*this).index_capacity as usize).wrapping_mul(elemSize),
         );
     }
     if ((*this).vertex_capacity < (*other).vertex_size) as libc::c_long != 0 {
         (*this).vertex_capacity = (*other).vertex_size;
-        let mut elemSize_0: usize = ::core::mem::size_of::<Vertex>() as usize;
+        let mut elemSize_0: usize = ::core::mem::size_of::<Vertex>();
         let mut pData_0: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
             (*this).vertex_data as *mut libc::c_void,
-            ((*this).vertex_capacity as usize).wrapping_mul(elemSize_0 as usize),
+            ((*this).vertex_capacity as usize).wrapping_mul(elemSize_0),
         );
     }
     (*this).index_size = (*other).index_size;
@@ -229,13 +229,13 @@ pub unsafe extern "C" fn Mesh_Acquire(mut this: *mut Mesh) {
 pub unsafe extern "C" fn Mesh_Free(mut this: *mut Mesh) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0 as i32 as u32
+        (*this)._refCount <= 0_i32 as u32
     } {
         MemFree((*this).vertex_data as *const libc::c_void);
         MemFree((*this).index_data as *const libc::c_void);
         if (*this).vbo != 0 {
-            __glewDeleteBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).vbo);
-            __glewDeleteBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).ibo);
+            __glewDeleteBuffers.expect("non-null function pointer")(1_i32, &mut (*this).vbo);
+            __glewDeleteBuffers.expect("non-null function pointer")(1_i32, &mut (*this).ibo);
         }
         MemFree(this as *const libc::c_void);
     }
@@ -245,7 +245,7 @@ pub unsafe extern "C" fn Mesh_Free(mut this: *mut Mesh) {
 pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     let mut vertexCount: i32 = Mesh_GetVertexCount(mesh);
     let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let mut size: u32 = (2 as usize)
+    let mut size: u32 = 2_usize
         .wrapping_mul(::core::mem::size_of::<i32>())
         .wrapping_add((vertexCount as usize).wrapping_mul(::core::mem::size_of::<Vertex>()))
         .wrapping_add((indexCount as usize).wrapping_mul(::core::mem::size_of::<i32>()))
@@ -297,16 +297,16 @@ pub unsafe extern "C" fn Mesh_FromSDF(mut sdf: *mut SDF) -> *mut Mesh {
 pub unsafe extern "C" fn Mesh_AddIndex(mut this: *mut Mesh, mut newIndex: i32) {
     if ((*this).index_capacity == (*this).index_size) as libc::c_long != 0 {
         (*this).index_capacity = if (*this).index_capacity != 0 {
-            (*this).index_capacity * 2 as i32
+            (*this).index_capacity * 2_i32
         } else {
-            1 as i32
+            1_i32
         };
         let mut elemSize: usize = ::core::mem::size_of::<i32>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*this).index_data as *mut libc::c_void,
-            ((*this).index_capacity as usize).wrapping_mul(elemSize as usize),
+            ((*this).index_capacity as usize).wrapping_mul(elemSize),
         );
     }
     let fresh0 = (*this).index_size;
@@ -318,12 +318,12 @@ pub unsafe extern "C" fn Mesh_AddIndex(mut this: *mut Mesh, mut newIndex: i32) {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_AddMesh(mut this: *mut Mesh, mut other: *mut Mesh) {
     let mut indexOffset: i32 = (*this).vertex_size;
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < (*other).vertex_size {
         Mesh_AddVertexRaw(this, ((*other).vertex_data).offset(i as isize));
         i += 1;
     }
-    let mut i_0: i32 = 0 as i32;
+    let mut i_0: i32 = 0_i32;
     while i_0 < (*other).index_size {
         Mesh_AddIndex(
             this,
@@ -366,16 +366,16 @@ pub unsafe extern "C" fn Mesh_AddVertex(
 ) {
     if ((*this).vertex_capacity == (*this).vertex_size) as i32 as libc::c_long != 0 {
         (*this).vertex_capacity = if (*this).vertex_capacity != 0 {
-            (*this).vertex_capacity * 2 as i32
+            (*this).vertex_capacity * 2_i32
         } else {
-            1 as i32
+            1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Vertex>() as usize;
+        let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*this).vertex_data as *mut libc::c_void,
-            ((*this).vertex_capacity as usize).wrapping_mul(elemSize as usize),
+            ((*this).vertex_capacity as usize).wrapping_mul(elemSize),
         );
     }
     let fresh1 = (*this).vertex_size;
@@ -391,16 +391,16 @@ pub unsafe extern "C" fn Mesh_AddVertex(
 pub unsafe extern "C" fn Mesh_AddVertexRaw(mut this: *mut Mesh, mut vertex: *const Vertex) {
     if ((*this).vertex_capacity == (*this).vertex_size) as i32 as libc::c_long != 0 {
         (*this).vertex_capacity = if (*this).vertex_capacity != 0 {
-            (*this).vertex_capacity * 2 as i32
+            (*this).vertex_capacity * 2_i32
         } else {
-            1 as i32
+            1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Vertex>() as usize;
+        let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*this).vertex_data as *mut libc::c_void,
-            ((*this).vertex_capacity as usize).wrapping_mul(elemSize as usize),
+            ((*this).vertex_capacity as usize).wrapping_mul(elemSize),
         );
     }
     let fresh2 = (*this).vertex_size;
@@ -412,58 +412,58 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(mut this: *mut Mesh, mut vertex: *con
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
     if (*this).vbo != 0 && (*this).version != (*this).versionBuffers {
-        __glewDeleteBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).vbo);
-        __glewDeleteBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).ibo);
-        (*this).vbo = 0 as i32 as u32;
-        (*this).ibo = 0 as i32 as u32;
+        __glewDeleteBuffers.expect("non-null function pointer")(1_i32, &mut (*this).vbo);
+        __glewDeleteBuffers.expect("non-null function pointer")(1_i32, &mut (*this).ibo);
+        (*this).vbo = 0_i32 as u32;
+        (*this).ibo = 0_i32 as u32;
     }
     if (*this).vbo == 0 {
-        __glewGenBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).vbo);
-        __glewGenBuffers.expect("non-null function pointer")(1 as i32, &mut (*this).ibo);
-        __glewBindBuffer.expect("non-null function pointer")(0x8892 as i32 as GLenum, (*this).vbo);
-        __glewBindBuffer.expect("non-null function pointer")(0x8893 as i32 as GLenum, (*this).ibo);
+        __glewGenBuffers.expect("non-null function pointer")(1_i32, &mut (*this).vbo);
+        __glewGenBuffers.expect("non-null function pointer")(1_i32, &mut (*this).ibo);
+        __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, (*this).vbo);
+        __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, (*this).ibo);
         __glewBufferData.expect("non-null function pointer")(
-            0x8892 as i32 as GLenum,
+            0x8892_i32 as GLenum,
             ((*this).vertex_size as usize).wrapping_mul(::core::mem::size_of::<Vertex>())
                 as GLsizeiptr,
             (*this).vertex_data as *const libc::c_void,
-            0x88e4 as i32 as GLenum,
+            0x88e4_i32 as GLenum,
         );
         __glewBufferData.expect("non-null function pointer")(
-            0x8893 as i32 as GLenum,
+            0x8893_i32 as GLenum,
             ((*this).index_size as usize).wrapping_mul(::core::mem::size_of::<i32>()) as GLsizeiptr,
             (*this).index_data as *const libc::c_void,
-            0x88e4 as i32 as GLenum,
+            0x88e4_i32 as GLenum,
         );
         (*this).versionBuffers = (*this).version;
     }
-    __glewBindBuffer.expect("non-null function pointer")(0x8892 as i32 as GLenum, (*this).vbo);
-    __glewBindBuffer.expect("non-null function pointer")(0x8893 as i32 as GLenum, (*this).ibo);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(0 as i32 as GLu32);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(1 as i32 as GLu32);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(2 as i32 as GLu32);
+    __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, (*this).vbo);
+    __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, (*this).ibo);
+    __glewEnableVertexAttribArray.expect("non-null function pointer")(0_i32 as GLu32);
+    __glewEnableVertexAttribArray.expect("non-null function pointer")(1_i32 as GLu32);
+    __glewEnableVertexAttribArray.expect("non-null function pointer")(2_i32 as GLu32);
     __glewVertexAttribPointer.expect("non-null function pointer")(
-        0 as i32 as GLu32,
-        3 as i32,
-        0x1406 as i32 as GLenum,
-        0 as i32 as GLboolean,
-        ::core::mem::size_of::<Vertex>() as usize as GLsizei,
+        0_i32 as GLu32,
+        3_i32,
+        0x1406_i32 as GLenum,
+        0_i32 as GLboolean,
+        ::core::mem::size_of::<Vertex>() as GLsizei,
         offset_of!(Vertex, p) as *const libc::c_void,
     );
     __glewVertexAttribPointer.expect("non-null function pointer")(
-        1 as i32 as GLu32,
-        3 as i32,
-        0x1406 as i32 as GLenum,
-        0 as i32 as GLboolean,
-        ::core::mem::size_of::<Vertex>() as usize as GLsizei,
+        1_i32 as GLu32,
+        3_i32,
+        0x1406_i32 as GLenum,
+        0_i32 as GLboolean,
+        ::core::mem::size_of::<Vertex>() as GLsizei,
         offset_of!(Vertex, n) as *const libc::c_void,
     );
     __glewVertexAttribPointer.expect("non-null function pointer")(
-        2 as i32 as GLu32,
-        2 as i32,
-        0x1406 as i32 as GLenum,
-        0 as i32 as GLboolean,
-        ::core::mem::size_of::<Vertex>() as usize as GLsizei,
+        2_i32 as GLu32,
+        2_i32,
+        0x1406_i32 as GLenum,
+        0_i32 as GLboolean,
+        ::core::mem::size_of::<Vertex>() as GLsizei,
         offset_of!(Vertex, uv) as *const libc::c_void,
     );
 }
@@ -471,30 +471,30 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawBound(mut this: *mut Mesh) {
     Metric_AddDraw(
-        (*this).index_size / 3 as i32,
-        (*this).index_size / 3 as i32,
+        (*this).index_size / 3_i32,
+        (*this).index_size / 3_i32,
         (*this).vertex_size,
     );
     glDrawElements(
-        0x4 as i32 as GLenum,
+        0x4_i32 as GLenum,
         (*this).index_size,
-        0x1405 as i32 as GLenum,
+        0x1405_i32 as GLenum,
         std::ptr::null(),
     );
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_DrawUnbind(mut this: *mut Mesh) {
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(0 as i32 as GLu32);
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(1 as i32 as GLu32);
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(2 as i32 as GLu32);
+pub unsafe extern "C" fn Mesh_DrawUnbind(mut _this: *mut Mesh) {
+    __glewDisableVertexAttribArray.expect("non-null function pointer")(0_i32 as GLu32);
+    __glewDisableVertexAttribArray.expect("non-null function pointer")(1_i32 as GLu32);
+    __glewDisableVertexAttribArray.expect("non-null function pointer")(2_i32 as GLu32);
     __glewBindBuffer.expect("non-null function pointer")(
-        0x8892 as i32 as GLenum,
-        0 as i32 as GLu32,
+        0x8892_i32 as GLenum,
+        0_i32 as GLu32,
     );
     __glewBindBuffer.expect("non-null function pointer")(
-        0x8893 as i32 as GLenum,
-        0 as i32 as GLu32,
+        0x8893_i32 as GLenum,
+        0_i32 as GLu32,
     );
 }
 
@@ -507,7 +507,7 @@ pub unsafe extern "C" fn Mesh_Draw(mut this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawNormals(mut this: *mut Mesh, mut scale: f32) {
-    glBegin(0x1 as i32 as GLenum);
+    glBegin(0x1_i32 as GLenum);
     let mut v: *mut Vertex = (*this).vertex_data;
     let mut __iterend: *mut Vertex = ((*this).vertex_data).offset((*this).vertex_size as isize);
     while v < __iterend {
@@ -565,14 +565,14 @@ pub unsafe extern "C" fn Mesh_Validate(mut this: *mut Mesh) -> Error {
     let mut indexLen: i32 = Mesh_GetIndexCount(this);
     let mut indexData: *mut i32 = Mesh_GetIndexData(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    if indexLen % 3 as i32 != 0 as i32 {
-        return (0x100000 as i32 | 0x80 as i32) as Error;
+    if indexLen % 3_i32 != 0_i32 {
+        return (0x100000_i32 | 0x80_i32) as Error;
     }
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < indexLen {
-        let mut i0: i32 = *indexData.offset((i + 0 as i32) as isize);
-        let mut i1: i32 = *indexData.offset((i + 1 as i32) as isize);
-        let mut i2: i32 = *indexData.offset((i + 2 as i32) as isize);
+        let mut i0: i32 = *indexData.offset((i + 0_i32) as isize);
+        let mut i1: i32 = *indexData.offset((i + 1_i32) as isize);
+        let mut i2: i32 = *indexData.offset((i + 2_i32) as isize);
         let mut triangle: Triangle = Triangle {
             vertices: [Vec3 {
                 x: 0.,
@@ -584,30 +584,30 @@ pub unsafe extern "C" fn Mesh_Validate(mut this: *mut Mesh) -> Error {
         triangle.vertices[1] = (*vertexData.offset(i1 as isize)).p;
         triangle.vertices[2] = (*vertexData.offset(i2 as isize)).p;
         let mut e: Error = Triangle_Validate(&mut triangle);
-        if e != 0 as i32 as u32 {
-            return 0x400000 as i32 as u32 | e;
+        if e != 0_i32 as u32 {
+            return 0x400000_i32 as u32 | e;
         }
-        i += 3 as i32;
+        i += 3_i32;
     }
     let mut v: *const Vertex = (*this).vertex_data;
     let mut __iterend: *const Vertex = ((*this).vertex_data).offset((*this).vertex_size as isize);
     while v < __iterend {
         let mut e_0: Error = 0;
         e_0 = Vec3_Validate((*v).p);
-        if e_0 != 0 as i32 as u32 {
-            return 0x400000 as i32 as u32 | e_0;
+        if e_0 != 0_i32 as u32 {
+            return 0x400000_i32 as u32 | e_0;
         }
         e_0 = Vec3_Validate((*v).n);
-        if e_0 != 0 as i32 as u32 {
-            return 0x800000 as i32 as u32 | e_0;
+        if e_0 != 0_i32 as u32 {
+            return 0x800000_i32 as u32 | e_0;
         }
         e_0 = Vec2_Validate((*v).uv);
-        if e_0 != 0 as i32 as u32 {
-            return 0x1000000 as i32 as u32 | e_0;
+        if e_0 != 0_i32 as u32 {
+            return 0x1000000_i32 as u32 | e_0;
         }
         v = v.offset(1);
     }
-    return 0 as i32 as Error;
+    return 0_i32 as Error;
 }
 
 #[no_mangle]
@@ -634,7 +634,7 @@ pub unsafe extern "C" fn Mesh_ReserveIndexData(mut this: *mut Mesh, mut capacity
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*this).index_data as *mut libc::c_void,
-            ((*this).index_capacity as usize).wrapping_mul(elemSize as usize),
+            ((*this).index_capacity as usize).wrapping_mul(elemSize),
         );
     }
 }
@@ -643,12 +643,12 @@ pub unsafe extern "C" fn Mesh_ReserveIndexData(mut this: *mut Mesh, mut capacity
 pub unsafe extern "C" fn Mesh_ReserveVertexData(mut this: *mut Mesh, mut capacity: i32) {
     if ((*this).vertex_capacity < capacity) as libc::c_long != 0 {
         (*this).vertex_capacity = capacity;
-        let mut elemSize: usize = ::core::mem::size_of::<Vertex>() as usize;
+        let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
             (*this).vertex_data as *mut libc::c_void,
-            ((*this).vertex_capacity as usize).wrapping_mul(elemSize as usize),
+            ((*this).vertex_capacity as usize).wrapping_mul(elemSize),
         );
     }
 }
@@ -663,29 +663,29 @@ pub unsafe extern "C" fn Mesh_Center(mut this: *mut Mesh) -> *mut Mesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Invert(mut this: *mut Mesh) -> *mut Mesh {
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < (*this).index_size {
         let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
         libc::memcpy(
             swap_temp.as_mut_ptr() as *mut libc::c_void,
-            &mut *((*this).index_data).offset((i + 2 as i32) as isize) as *mut i32
+            &mut *((*this).index_data).offset((i + 2_i32) as isize) as *mut i32
                 as *const libc::c_void,
-            ::core::mem::size_of::<i32>() as usize,
+            ::core::mem::size_of::<i32>(),
         );
         libc::memcpy(
-            &mut *((*this).index_data).offset((i + 2 as i32) as isize) as *mut i32
+            &mut *((*this).index_data).offset((i + 2_i32) as isize) as *mut i32
                 as *mut libc::c_void,
-            &mut *((*this).index_data).offset((i + 1 as i32) as isize) as *mut i32
+            &mut *((*this).index_data).offset((i + 1_i32) as isize) as *mut i32
                 as *const libc::c_void,
-            ::core::mem::size_of::<i32>() as usize,
+            ::core::mem::size_of::<i32>(),
         );
         libc::memcpy(
-            &mut *((*this).index_data).offset((i + 1 as i32) as isize) as *mut i32
+            &mut *((*this).index_data).offset((i + 1_i32) as isize) as *mut i32
                 as *mut libc::c_void,
             swap_temp.as_mut_ptr() as *const libc::c_void,
-            ::core::mem::size_of::<i32>() as usize,
+            ::core::mem::size_of::<i32>(),
         );
-        i += 3 as i32;
+        i += 3_i32;
     }
     (*this).version = ((*this).version).wrapping_add(1);
     return this;
@@ -794,21 +794,21 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(mut this: *mut Mesh) {
         (*v).n.z = 0.0f32;
         v = v.offset(1);
     }
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < (*this).index_size {
         let mut v1: *mut Vertex = ((*this).vertex_data)
-            .offset(*((*this).index_data).offset((i + 0 as i32) as isize) as isize);
+            .offset(*((*this).index_data).offset((i + 0_i32) as isize) as isize);
         let mut v2: *mut Vertex = ((*this).vertex_data)
-            .offset(*((*this).index_data).offset((i + 1 as i32) as isize) as isize);
+            .offset(*((*this).index_data).offset((i + 1_i32) as isize) as isize);
         let mut v3: *mut Vertex = ((*this).vertex_data)
-            .offset(*((*this).index_data).offset((i + 2 as i32) as isize) as isize);
+            .offset(*((*this).index_data).offset((i + 2_i32) as isize) as isize);
         let mut e1: Vec3 = (*v2).p - (*v1).p;
         let mut e2: Vec3 = (*v3).p - (*v2).p;
         let mut en: Vec3 = Vec3::cross(e1, e2);
         (*v1).n = (*v1).n + en;
         (*v2).n = (*v2).n + en;
         (*v3).n = (*v3).n + en;
-        i += 3 as i32;
+        i += 3_i32;
     }
     let mut v_0: *mut Vertex = (*this).vertex_data;
     let mut __iterend_0: *mut Vertex = ((*this).vertex_data).offset((*this).vertex_size as isize);
@@ -827,7 +827,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32)
         (*v).n = Vec3::new(0.0f32, 0.0f32, 0.0f32);
         v = v.offset(1);
     }
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < (*this).index_size {
         let mut index: [*mut i32; 3] = [
             ((*this).index_data).offset(i as isize).offset(0),
@@ -840,8 +840,8 @@ pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32)
             ((*this).vertex_data).offset(*index[2] as isize),
         ];
         let mut face: Vec3 = Vec3::cross((*v_0[1]).p - (*v_0[0]).p, (*v_0[2]).p - (*v_0[0]).p);
-        let mut j: i32 = 0 as i32;
-        while j < 3 as i32 {
+        let mut j: i32 = 0_i32;
+        while j < 3_i32 {
             let mut cn: *mut Vec3 = &mut (*((*this).vertex_data)
                 .offset(**index.as_mut_ptr().offset(j as isize) as isize))
             .n;
@@ -850,9 +850,9 @@ pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32)
                 if cDot < minDot {
                     if ((*this).vertex_capacity == (*this).vertex_size) as libc::c_long != 0 {
                         (*this).vertex_capacity = if (*this).vertex_capacity != 0 {
-                            (*this).vertex_capacity * 2 as i32
+                            (*this).vertex_capacity * 2_i32
                         } else {
-                            1 as i32
+                            1_i32
                         };
                         let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
                         let mut pData: *mut *mut libc::c_void =
@@ -867,7 +867,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32)
                     let mut nv: *mut Vertex = ((*this).vertex_data).offset(fresh3 as isize);
                     *nv = *((*this).vertex_data).offset(*index[j as usize] as isize);
                     (*nv).n = face;
-                    *index[j as usize] = (*this).vertex_size - 1 as i32;
+                    *index[j as usize] = (*this).vertex_size - 1_i32;
                 } else {
                     (*cn) += face;
                 }
@@ -876,7 +876,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32)
             }
             j += 1;
         }
-        i += 3 as i32;
+        i += 3_i32;
     }
     let mut v_1: *mut Vertex = (*this).vertex_data;
     let mut __iterend_0: *mut Vertex = ((*this).vertex_data).offset((*this).vertex_size as isize);

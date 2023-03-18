@@ -31,8 +31,8 @@ unsafe extern "C" fn Abs(mut t: f64) -> f64 {
     return fabs(t);
 }
 
-static mut kMaxOpen: i32 = 64 as i32;
-static mut kOpen: i32 = 0 as i32;
+static mut kMaxOpen: i32 = 64_i32;
+static mut kOpen: i32 = 0_i32;
 static mut freeList: [*mut Joystick; 64] = [
     std::ptr::null_mut(),
     std::ptr::null_mut(),
@@ -110,23 +110,23 @@ unsafe extern "C" fn ConvertGUID(mut id: SDL_JoystickGUID) -> *mut libc::c_char 
 }
 
 unsafe extern "C" fn Joystick_UpdateSingle(mut this: *mut Joystick) {
-    let mut changed: bool = 0 as i32 != 0;
-    let mut i: i32 = 0 as i32;
+    let mut changed: bool = 0_i32 != 0;
+    let mut i: i32 = 0_i32;
     while i < (*this).axes {
         let mut state: f64 = Joystick_GetAxis(this, i);
         let mut delta: f64 = Abs(state - *((*this).axisStates).offset(i as isize));
         if delta > 0.1f64 {
-            changed = 1 as i32 != 0;
-            *((*this).axisAlive).offset(i as isize) = 1 as i32 != 0;
+            changed = 1_i32 != 0;
+            *((*this).axisAlive).offset(i as isize) = 1_i32 != 0;
         }
         *((*this).axisStates).offset(i as isize) = state;
         i += 1;
     }
-    let mut i_0: i32 = 0 as i32;
+    let mut i_0: i32 = 0_i32;
     while i_0 < (*this).buttons {
         let mut state_0: bool = Joystick_ButtonDown(this, i_0);
         if *((*this).buttonStates).offset(i_0 as isize) as i32 != state_0 as i32 {
-            changed = 1 as i32 != 0;
+            changed = 1_i32 != 0;
         }
         *((*this).buttonStates).offset(i_0 as isize) = state_0;
         i_0 += 1;
@@ -144,11 +144,11 @@ pub unsafe extern "C" fn Joystick_GetCount() -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
     let mut this: *mut Joystick =
-        MemAlloc(::core::mem::size_of::<Joystick>() as usize) as *mut Joystick;
+        MemAlloc(::core::mem::size_of::<Joystick>()) as *mut Joystick;
     if kOpen == kMaxOpen {
         Fatal(b"Cannot open any more gamepad connections.\0" as *const u8 as *const libc::c_char);
     }
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < kMaxOpen {
         if (freeList[i as usize]).is_null() {
             freeList[i as usize] = this;
@@ -183,7 +183,7 @@ pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_Close(mut this: *mut Joystick) {
     kOpen -= 1;
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < kMaxOpen {
         if freeList[i as usize] == this {
             freeList[i as usize] = std::ptr::null_mut();
@@ -267,24 +267,24 @@ pub unsafe extern "C" fn Joystick_GetHat(mut this: *mut Joystick, mut index: i32
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_ButtonDown(mut this: *mut Joystick, mut index: i32) -> bool {
-    return SDL_JoystickGetButton((*this).handle, index) as i32 > 0 as i32;
+    return SDL_JoystickGetButton((*this).handle, index) as i32 > 0_i32;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_ButtonPressed(mut this: *mut Joystick, mut index: i32) -> bool {
-    return SDL_JoystickGetButton((*this).handle, index) as i32 > 0 as i32
+    return SDL_JoystickGetButton((*this).handle, index) as i32 > 0_i32
         && !*((*this).buttonStates).offset(index as isize);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_ButtonReleased(mut this: *mut Joystick, mut index: i32) -> bool {
-    return SDL_JoystickGetButton((*this).handle, index) as i32 == 0 as i32
+    return SDL_JoystickGetButton((*this).handle, index) as i32 == 0_i32
         && *((*this).buttonStates).offset(index as isize) as i32 != 0;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_Update() {
-    let mut i: i32 = 0 as i32;
+    let mut i: i32 = 0_i32;
     while i < kMaxOpen {
         if !(freeList[i as usize]).is_null() {
             Joystick_UpdateSingle(freeList[i as usize]);

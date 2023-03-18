@@ -29,7 +29,7 @@ pub unsafe extern "C" fn Window_Create(
     mut sy: i32,
     mut mode: WindowMode,
 ) -> *mut Window {
-    let mut this: *mut Window = MemAlloc(::core::mem::size_of::<Window>() as usize) as *mut Window;
+    let mut this: *mut Window = MemAlloc(::core::mem::size_of::<Window>()) as *mut Window;
     mode |= SDL_WindowFlags::SDL_WINDOW_OPENGL as WindowMode;
     (*this).handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
     (*this).context = SDL_GL_CreateContext((*this).handle);
@@ -53,7 +53,7 @@ pub unsafe extern "C" fn Window_BeginDraw(mut this: *mut Window) {
     let mut size: IVec2 = IVec2::new(0, 0);
     SDL_GL_MakeCurrent((*this).handle, (*this).context);
     Window_GetSize(this, &mut size);
-    Viewport_Push(0 as i32, 0 as i32, size.x, size.y, 1 as i32 != 0);
+    Viewport_Push(0_i32, 0_i32, size.x, size.y, 1_i32 != 0);
 }
 
 #[no_mangle]
@@ -84,7 +84,7 @@ pub unsafe extern "C" fn Window_SetFullscreen(mut this: *mut Window, mut fs: boo
         if fs {
             WindowMode_Fullscreen
         } else {
-            0 as i32 as u32
+            0_i32 as u32
         },
     );
 }
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn Window_SetTitle(mut this: *mut Window, mut title: *cons
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetVsync(mut this: *mut Window, mut vsync: bool) {
+pub unsafe extern "C" fn Window_SetVsync(mut _this: *mut Window, mut vsync: bool) {
     SDL_GL_SetSwapInterval(if vsync {
         1
     } else {

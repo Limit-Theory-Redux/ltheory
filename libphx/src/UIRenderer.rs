@@ -90,18 +90,18 @@ static mut this: UIRenderer = UIRenderer {
     textPool: std::ptr::null_mut(),
 };
 unsafe extern "C" fn UIRenderer_Init() {
-    static mut init: bool = 0 as i32 != 0;
+    static mut init: bool = 0_i32 != 0;
     if init {
         return;
     }
-    init = 1 as i32 != 0;
+    init = 1_i32 != 0;
     this.root = std::ptr::null_mut();
     this.layer = std::ptr::null_mut();
-    this.layerPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererLayer>() as usize as u32);
-    this.imagePool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererImage>() as usize as u32);
-    this.panelPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererPanel>() as usize as u32);
-    this.rectPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererRect>() as usize as u32);
-    this.textPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererText>() as usize as u32);
+    this.layerPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererLayer>() as u32);
+    this.imagePool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererImage>() as u32);
+    this.panelPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererPanel>() as u32);
+    this.rectPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererRect>() as u32);
+    this.textPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererText>() as u32);
 }
 
 #[no_mangle]
@@ -117,11 +117,11 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
     let mut vp: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut vp);
     UIRenderer_BeginLayer(
-        0 as i32 as f32,
-        0 as i32 as f32,
+        0_i32 as f32,
+        0_i32 as f32,
         vp.x as f32,
         vp.y as f32,
-        1 as i32 != 0,
+        1_i32 != 0,
     );
     this.root = this.layer;
 }
@@ -233,7 +233,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Draw() {
-    RenderState_PushBlendMode(1 as i32);
+    RenderState_PushBlendMode(1_i32);
     UIRenderer_DrawLayer(this.root);
     RenderState_PopBlendMode();
 }

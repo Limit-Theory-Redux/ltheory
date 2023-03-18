@@ -32,7 +32,7 @@ pub unsafe extern "C" fn MemCpy(
     mut src: *const libc::c_void,
     mut size: usize,
 ) {
-    libc::memcpy(dst, src, size as usize);
+    libc::memcpy(dst, src, size);
 }
 
 #[inline]
@@ -41,12 +41,12 @@ pub unsafe extern "C" fn MemMove(
     mut src: *const libc::c_void,
     mut size: usize,
 ) {
-    libc::memmove(dst, src, size as usize);
+    libc::memmove(dst, src, size);
 }
 
 #[inline]
 pub unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: usize) {
-    libc::memset(dst, 0 as i32, size);
+    libc::memset(dst, 0_i32, size);
 }
 
 #[inline]
@@ -69,7 +69,7 @@ pub unsafe extern "C" fn StrDup(mut s: *const libc::c_char) -> *const libc::c_ch
     if s.is_null() {
         return std::ptr::null();
     }
-    let mut len: usize = (StrLen(s)).wrapping_add(1 as usize);
+    let mut len: usize = (StrLen(s)).wrapping_add(1_usize);
     let mut buf: *mut libc::c_char = StrAlloc(len);
     libc::memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
     return buf as *const libc::c_char;
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn StrDup(mut s: *const libc::c_char) -> *const libc::c_ch
 #[inline]
 pub unsafe extern "C" fn StrLen(mut s: *const libc::c_char) -> usize {
     if s.is_null() {
-        return 0 as i32 as usize;
+        return 0_i32 as usize;
     }
     let mut begin: *const libc::c_char = s;
     while *s != 0 {
@@ -89,7 +89,7 @@ pub unsafe extern "C" fn StrLen(mut s: *const libc::c_char) -> usize {
 
 #[inline]
 pub unsafe extern "C" fn StrEqual(mut a: *const libc::c_char, mut b: *const libc::c_char) -> bool {
-    return libc::strcmp(a, b) == 0 as i32;
+    return libc::strcmp(a, b) == 0_i32;
 }
 
 #[inline]
@@ -130,7 +130,7 @@ pub unsafe extern "C" fn StrReplace(
         return std::ptr::null();
     }
     len_search = StrLen(search);
-    if len_search == 0 as usize {
+    if len_search == 0_usize {
         return std::ptr::null();
     }
     if replace.is_null() {
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn StrReplace(
     }
     len_replace = StrLen(replace);
     ins = s as *mut libc::c_char;
-    count = 0 as i32 as usize;
+    count = 0_i32 as usize;
     loop {
         tmp = libc::strstr(ins, search);
         if tmp.is_null() {
@@ -150,7 +150,7 @@ pub unsafe extern "C" fn StrReplace(
     result = StrAlloc(
         (StrLen(s))
             .wrapping_add(len_replace.wrapping_sub(len_search).wrapping_mul(count))
-            .wrapping_add(1 as usize),
+            .wrapping_add(1_usize),
     );
     tmp = result;
     loop {
@@ -183,7 +183,7 @@ pub unsafe extern "C" fn StrSubStr(
     mut end: *const libc::c_char,
 ) -> *const libc::c_char {
     let mut len: usize = end.offset_from(begin) as libc::c_long as usize;
-    let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1 as usize));
+    let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1_usize));
     let mut pResult: *mut libc::c_char = result;
     while begin != end {
         let fresh1 = begin;
@@ -192,7 +192,7 @@ pub unsafe extern "C" fn StrSubStr(
         pResult = pResult.offset(1);
         *fresh2 = *fresh1;
     }
-    *result.offset(len as isize) = 0 as i32 as libc::c_char;
+    *result.offset(len as isize) = 0_i32 as libc::c_char;
     return result as *const libc::c_char;
 }
 
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn StrSub(
     let mut len: usize = begin
         .offset((StrLen(s)).wrapping_add(StrLen(replace)) as isize)
         .offset_from(end) as libc::c_long as usize;
-    let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1 as usize));
+    let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1_usize));
     let mut pResult: *mut libc::c_char = result;
     while s != begin {
         let fresh3 = s;
@@ -229,7 +229,7 @@ pub unsafe extern "C" fn StrSub(
         pResult = pResult.offset(1);
         *fresh8 = *fresh7;
     }
-    *pResult = 0 as i32 as libc::c_char;
+    *pResult = 0_i32 as libc::c_char;
     return result as *const libc::c_char;
 }
 
@@ -239,7 +239,7 @@ pub unsafe extern "C" fn StrAdd(
     mut b: *const libc::c_char,
 ) -> *const libc::c_char {
     let mut buf: *mut libc::c_char =
-        StrAlloc((StrLen(a)).wrapping_add(StrLen(b)).wrapping_add(1 as usize));
+        StrAlloc((StrLen(a)).wrapping_add(StrLen(b)).wrapping_add(1_usize));
     let mut cur: *mut libc::c_char = buf;
     while *a != 0 {
         let fresh9 = a;
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn StrAdd(
         cur = cur.offset(1);
         *fresh12 = *fresh11;
     }
-    *cur = 0 as i32 as libc::c_char;
+    *cur = 0_i32 as libc::c_char;
     return buf as *const libc::c_char;
 }
 
@@ -269,7 +269,7 @@ pub unsafe extern "C" fn StrAdd3(
         (StrLen(a))
             .wrapping_add(StrLen(b))
             .wrapping_add(StrLen(c))
-            .wrapping_add(1 as usize),
+            .wrapping_add(1_usize),
     );
     let mut cur: *mut libc::c_char = buf;
     while *a != 0 {
@@ -293,7 +293,7 @@ pub unsafe extern "C" fn StrAdd3(
         cur = cur.offset(1);
         *fresh5 = *fresh4;
     }
-    *cur = 0 as i32 as libc::c_char;
+    *cur = 0_i32 as libc::c_char;
     return buf as *const libc::c_char;
 }
 
@@ -308,10 +308,10 @@ pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
         3
     };
     match classification {
-        2 => return 0x4 as i32 as Error,
+        2 => return 0x4_i32 as Error,
         5 => {}
-        1 => return 0x20 as i32 as Error,
-        3 | 4 => return 0 as i32 as Error,
+        1 => return 0x20_i32 as Error,
+        3 | 4 => return 0_i32 as Error,
         _ => {
             crate::Common::Fatal(
                 b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
@@ -319,12 +319,12 @@ pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
             );
         }
     }
-    return 0 as i32 as Error;
+    return 0_i32 as Error;
 }
 
 #[inline]
 pub unsafe extern "C" fn Vec3_Validate(mut v: Vec3) -> Error {
-    let mut e: Error = 0 as i32 as Error;
+    let mut e: Error = 0_i32 as Error;
     e |= Float_Validatef(v.x);
     e |= Float_Validatef(v.y);
     e |= Float_Validatef(v.z);

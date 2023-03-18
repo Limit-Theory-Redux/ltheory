@@ -31,11 +31,11 @@ pub static subsystems: u32 =
     SDL_INIT_JOYSTICK |
     SDL_INIT_GAMECONTROLLER;
 
-static mut initTime: TimeStamp = 0 as i32 as TimeStamp;
+static mut initTime: TimeStamp = 0_i32 as TimeStamp;
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor: i32) {
-    static mut firstTime: bool = 1 as i32 != 0;
+    static mut firstTime: bool = 1_i32 != 0;
     Signal_Init();
     libc::printf(
         b"Engine_Init: Requesting GL %d.%d\n\0" as *const u8 as *const libc::c_char,
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor
         glVersionMinor,
     );
     if firstTime {
-        firstTime = 0 as i32 != 0;
+        firstTime = 0_i32 != 0;
         let mut compiled: SDL_version = SDL_version {
             major: 0,
             minor: 0,
@@ -77,7 +77,7 @@ pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor
             );
             Fatal(b"Engine_Init: Terminating.\0" as *const u8 as *const libc::c_char);
         }
-        if SDL_Init(0 as i32 as u32) != 0 {
+        if SDL_Init(0_i32 as u32) != 0 {
             Fatal(b"Engine_Init: Failed to initialize SDL\0" as *const u8 as *const libc::c_char);
         }
         if !Directory_Create(b"log\0" as *const u8 as *const libc::c_char) {
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn Engine_Abort() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetBits() -> i32 {
-    return (8 as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()) as i32;
+    return 8_usize.wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()) as i32;
 }
 
 #[no_mangle]
@@ -147,12 +147,12 @@ pub unsafe extern "C" fn Engine_GetVersion() -> *const libc::c_char {
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_IsInitialized() -> bool {
-    return initTime != 0 as u64;
+    return initTime != 0_u64;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Terminate() {
-    exit(0 as i32);
+    exit(0_i32);
 }
 
 #[no_mangle]
