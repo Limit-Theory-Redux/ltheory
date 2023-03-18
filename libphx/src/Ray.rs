@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
 use crate::Intersect::*;
+use crate::LineSegment::*;
 use crate::Plane::*;
 use crate::Triangle::*;
-use crate::LineSegment::*;
 use glam::Vec3;
 use libc;
 

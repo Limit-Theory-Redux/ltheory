@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
+use crate::Draw::*;
 use crate::Matrix::*;
 use crate::Mesh::*;
-use crate::Draw::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
@@ -22,29 +22,43 @@ pub struct Node {
 
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Box3f_Volume(mut this: Box3f) -> f32 {
-    (this.upper.x - this.lower.x)
-        * (this.upper.y - this.lower.y)
-        * (this.upper.z - this.lower.z)
+    (this.upper.x - this.lower.x) * (this.upper.y - this.lower.y) * (this.upper.z - this.lower.z)
 }
 
 #[inline]
@@ -112,8 +126,7 @@ unsafe extern "C" fn Node_Create(mut box_0: Box3f, mut data: *mut libc::c_void) 
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Create() -> *mut BoxTree {
-    let mut this: *mut BoxTree =
-        MemAlloc(::core::mem::size_of::<BoxTree>()) as *mut BoxTree;
+    let mut this: *mut BoxTree = MemAlloc(::core::mem::size_of::<BoxTree>()) as *mut BoxTree;
     (*this).root = std::ptr::null_mut();
     this
 }

@@ -37,7 +37,10 @@ unsafe extern "C" fn Hash(mut key: *const libc::c_char) -> u64 {
 }
 
 #[inline]
-unsafe extern "C" fn StrMap_GetBucket(mut this: *mut StrMap, mut key: *const libc::c_char) -> *mut Node {
+unsafe extern "C" fn StrMap_GetBucket(
+    mut this: *mut StrMap,
+    mut key: *const libc::c_char,
+) -> *mut Node {
     ((*this).data).offset((Hash(key)).wrapping_rem((*this).capacity as u64) as isize)
 }
 
@@ -73,8 +76,7 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
-    let mut this: *mut StrMap =
-        MemAllocZero(::core::mem::size_of::<StrMap>()) as *mut StrMap;
+    let mut this: *mut StrMap = MemAllocZero(::core::mem::size_of::<StrMap>()) as *mut StrMap;
     (*this).capacity = capacity;
     (*this).data =
         MemAllocZero((::core::mem::size_of::<Node>()).wrapping_mul(capacity as usize)) as *mut Node;
@@ -129,7 +131,10 @@ pub unsafe extern "C" fn StrMap_FreeEx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_Get(mut this: *mut StrMap, mut key: *const libc::c_char) -> *mut libc::c_void {
+pub unsafe extern "C" fn StrMap_Get(
+    mut this: *mut StrMap,
+    mut key: *const libc::c_char,
+) -> *mut libc::c_void {
     let mut node: *mut Node = StrMap_GetBucket(this, key);
     if ((*node).key).is_null() {
         return std::ptr::null_mut();
@@ -186,9 +191,7 @@ pub unsafe extern "C" fn StrMap_Set(
     mut value: *mut libc::c_void,
 ) {
     (*this).size = ((*this).size).wrapping_add(1);
-    if (3_i32 as u32).wrapping_mul((*this).capacity)
-        < (4_i32 as u32).wrapping_mul((*this).size)
-    {
+    if (3_i32 as u32).wrapping_mul((*this).capacity) < (4_i32 as u32).wrapping_mul((*this).size) {
         StrMap_Grow(this);
     }
     let mut node: *mut Node = StrMap_GetBucket(this, key);
@@ -253,8 +256,7 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIter {
-    let mut it: *mut StrMapIter =
-        MemAlloc(::core::mem::size_of::<StrMapIter>()) as *mut StrMapIter;
+    let mut it: *mut StrMapIter = MemAlloc(::core::mem::size_of::<StrMapIter>()) as *mut StrMapIter;
     (*it).map = this;
     (*it).slot = 0_i32 as u32;
     (*it).node = std::ptr::null_mut();

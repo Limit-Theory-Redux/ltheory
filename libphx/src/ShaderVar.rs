@@ -1,11 +1,11 @@
 use crate::internal::Memory::*;
+use crate::Matrix::*;
 use crate::ShaderVarType::*;
+use crate::StrMap::*;
 use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use crate::Matrix::*;
-use crate::StrMap::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
@@ -37,7 +37,10 @@ pub struct VarStack {
 static mut varMap: *mut StrMap = std::ptr::null_mut();
 
 #[inline]
-unsafe extern "C" fn ShaderVar_GetStack(mut var: *const libc::c_char, mut type_0: ShaderVarType) -> *mut VarStack {
+unsafe extern "C" fn ShaderVar_GetStack(
+    mut var: *const libc::c_char,
+    mut type_0: ShaderVarType,
+) -> *mut VarStack {
     let mut this: *mut VarStack = StrMap_Get(varMap, var) as *mut VarStack;
     if this.is_null() {
         if type_0 == 0 {
@@ -112,8 +115,7 @@ pub unsafe extern "C" fn ShaderVar_Get(
             ShaderVarType_GetName((*this).type_0),
         );
     }
-    ((*this).data as *mut libc::c_char)
-        .offset(((*this).elemSize * ((*this).size - 1_i32)) as isize)
+    ((*this).data as *mut libc::c_char).offset(((*this).elemSize * ((*this).size - 1_i32)) as isize)
         as *mut libc::c_void
 }
 
@@ -123,7 +125,11 @@ pub unsafe extern "C" fn ShaderVar_PushFloat(mut name: *const libc::c_char, mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat2(mut name: *const libc::c_char, mut x: f32, mut y: f32) {
+pub unsafe extern "C" fn ShaderVar_PushFloat2(
+    mut name: *const libc::c_char,
+    mut x: f32,
+    mut y: f32,
+) {
     let mut value = Vec2::new(x, y);
     ShaderVar_Push(
         name,
@@ -133,7 +139,12 @@ pub unsafe extern "C" fn ShaderVar_PushFloat2(mut name: *const libc::c_char, mut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVar_PushFloat3(mut name: *const libc::c_char, mut x: f32, mut y: f32, mut z: f32) {
+pub unsafe extern "C" fn ShaderVar_PushFloat3(
+    mut name: *const libc::c_char,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+) {
     let mut value: Vec3 = Vec3 { x: x, y: y, z: z };
     ShaderVar_Push(
         name,
@@ -166,11 +177,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat4(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushInt(mut name: *const libc::c_char, mut x: i32) {
     let mut value: i32 = x;
-    ShaderVar_Push(
-        name,
-        0x5_i32,
-        &mut value as *mut i32 as *const libc::c_void,
-    );
+    ShaderVar_Push(name, 0x5_i32, &mut value as *mut i32 as *const libc::c_void);
 }
 
 #[no_mangle]

@@ -1,13 +1,13 @@
 use crate::internal::Memory::*;
 use crate::Button::*;
-use crate::Input::*;
 use crate::Font::*;
-use crate::UIRenderer::*;
-use crate::Tex2D::*;
-use crate::Profiler::*;
-use crate::RenderState::*;
 use crate::Hash::*;
 use crate::HashMap::*;
+use crate::Input::*;
+use crate::Profiler::*;
+use crate::RenderState::*;
+use crate::Tex2D::*;
+use crate::UIRenderer::*;
 
 use glam::Vec3;
 use glam::{IVec2, Vec2};
@@ -139,12 +139,20 @@ unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
@@ -208,8 +216,7 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: u32) 
 }
 
 unsafe extern "C" fn HmGui_BeginGroup(mut layout: u32) {
-    let mut e: *mut HmGuiGroup =
-        MemAlloc(::core::mem::size_of::<HmGuiGroup>()) as *mut HmGuiGroup;
+    let mut e: *mut HmGuiGroup = MemAlloc(::core::mem::size_of::<HmGuiGroup>()) as *mut HmGuiGroup;
     HmGui_InitWidget(&mut (*e).widget, 0_i32 as u32);
     (*e).head = std::ptr::null_mut();
     (*e).tail = std::ptr::null_mut();
@@ -596,8 +603,7 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
         this.root = std::ptr::null_mut();
         this.style = MemAlloc(::core::mem::size_of::<HmGuiStyle>()) as *mut HmGuiStyle;
         (*this.style).prev = std::ptr::null_mut();
-        (*this.style).font =
-            Font_Load(b"Rajdhani\0" as *const u8 as *const libc::c_char, 14_i32);
+        (*this.style).font = Font_Load(b"Rajdhani\0" as *const u8 as *const libc::c_char, 14_i32);
         (*this.style).spacing = 6.0f32;
         (*this.style).colorPrimary = Vec4f_Create(0.1f32, 0.5f32, 1.0f32, 1.0f32);
         (*this.style).colorFrame = Vec4f_Create(0.1f32, 0.1f32, 0.1f32, 0.5f32);
@@ -825,8 +831,7 @@ pub unsafe extern "C" fn HmGui_Slider(mut _lower: f32, mut _upper: f32, mut _val
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Image(mut image: *mut Tex2D) {
-    let mut e: *mut HmGuiImage =
-        MemAlloc(::core::mem::size_of::<HmGuiImage>()) as *mut HmGuiImage;
+    let mut e: *mut HmGuiImage = MemAlloc(::core::mem::size_of::<HmGuiImage>()) as *mut HmGuiImage;
     HmGui_InitWidget(&mut (*e).widget, 3_i32 as u32);
     (*e).image = image;
     (*e).widget.stretch = Vec2::new(1.0f32, 1.0f32);
@@ -841,8 +846,7 @@ pub unsafe extern "C" fn HmGui_Rect(
     mut b: f32,
     mut a: f32,
 ) {
-    let mut e: *mut HmGuiRect =
-        MemAlloc(::core::mem::size_of::<HmGuiRect>()) as *mut HmGuiRect;
+    let mut e: *mut HmGuiRect = MemAlloc(::core::mem::size_of::<HmGuiRect>()) as *mut HmGuiRect;
     HmGui_InitWidget(&mut (*e).widget, 2_i32 as u32);
     (*e).color = Vec4f_Create(r, g, b, a);
     (*e).widget.minSize = Vec2::new(sx, sy);
@@ -880,8 +884,7 @@ pub unsafe extern "C" fn HmGui_TextEx(
     mut b: f32,
     mut a: f32,
 ) {
-    let mut e: *mut HmGuiText =
-        MemAlloc(::core::mem::size_of::<HmGuiText>()) as *mut HmGuiText;
+    let mut e: *mut HmGuiText = MemAlloc(::core::mem::size_of::<HmGuiText>()) as *mut HmGuiText;
     HmGui_InitWidget(&mut (*e).widget, 1_i32 as u32);
     (*e).font = font;
     (*e).text = StrDup(text);

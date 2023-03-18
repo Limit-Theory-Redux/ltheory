@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 
-extern "C" {}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -43,8 +42,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -> *mut MemPool {
-    let mut this: *mut MemPool =
-        MemAlloc(::core::mem::size_of::<MemPool>()) as *mut MemPool;
+    let mut this: *mut MemPool = MemAlloc(::core::mem::size_of::<MemPool>()) as *mut MemPool;
     (*this).size = 0_i32 as u32;
     (*this).capacity = 0_i32 as u32;
     (*this).freeList = std::ptr::null_mut();

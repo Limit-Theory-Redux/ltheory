@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
-use crate::ResourceType::*;
 use crate::Bytes::*;
 use crate::File::*;
+use crate::ResourceType::*;
 use glam::Vec3;
 use libc;
 
@@ -69,21 +69,29 @@ unsafe extern "C" fn Resource_Resolve(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Resource_AddPath(mut type_0: ResourceType, mut format: *const libc::c_char) {
-    let mut this: *mut PathElem =
-        MemAlloc(::core::mem::size_of::<PathElem>()) as *mut PathElem;
+pub unsafe extern "C" fn Resource_AddPath(
+    mut type_0: ResourceType,
+    mut format: *const libc::c_char,
+) {
+    let mut this: *mut PathElem = MemAlloc(::core::mem::size_of::<PathElem>()) as *mut PathElem;
     (*this).format = StrDup(format);
     (*this).next = paths[type_0 as usize];
     paths[type_0 as usize] = this;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Resource_Exists(mut type_0: ResourceType, mut name: *const libc::c_char) -> bool {
+pub unsafe extern "C" fn Resource_Exists(
+    mut type_0: ResourceType,
+    mut name: *const libc::c_char,
+) -> bool {
     !(Resource_Resolve(type_0, name, false)).is_null()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Resource_GetPath(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
+pub unsafe extern "C" fn Resource_GetPath(
+    mut type_0: ResourceType,
+    mut name: *const libc::c_char,
+) -> *const libc::c_char {
     Resource_Resolve(type_0, name, true)
 }
 
@@ -107,7 +115,10 @@ pub unsafe extern "C" fn Resource_LoadBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Resource_LoadCstr(mut type_0: ResourceType, mut name: *const libc::c_char) -> *const libc::c_char {
+pub unsafe extern "C" fn Resource_LoadCstr(
+    mut type_0: ResourceType,
+    mut name: *const libc::c_char,
+) -> *const libc::c_char {
     let mut path: *const libc::c_char = Resource_Resolve(type_0, name, true);
     let mut data: *const libc::c_char = File_ReadCstr(path);
     if data.is_null() {

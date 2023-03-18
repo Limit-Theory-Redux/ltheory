@@ -24,34 +24,45 @@ pub static GamepadButton_Y: GamepadButton = SDL_GameControllerButton::SDL_CONTRO
 pub static GamepadButton_Back: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_BACK;
 
 #[no_mangle]
-pub static GamepadButton_Guide: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_GUIDE;
+pub static GamepadButton_Guide: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_GUIDE;
 
 #[no_mangle]
-pub static GamepadButton_Start: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_START;
+pub static GamepadButton_Start: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_START;
 
 #[no_mangle]
-pub static GamepadButton_LStick: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_LEFTSTICK;
+pub static GamepadButton_LStick: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_LEFTSTICK;
 
 #[no_mangle]
-pub static GamepadButton_RStick: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_RIGHTSTICK;
+pub static GamepadButton_RStick: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_RIGHTSTICK;
 
 #[no_mangle]
-pub static GamepadButton_LBumper: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_LEFTSHOULDER;
+pub static GamepadButton_LBumper: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_LEFTSHOULDER;
 
 #[no_mangle]
-pub static GamepadButton_RBumper: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
+pub static GamepadButton_RBumper: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
 
 #[no_mangle]
-pub static GamepadButton_Up: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_UP;
+pub static GamepadButton_Up: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_UP;
 
 #[no_mangle]
-pub static GamepadButton_Down: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_DOWN;
+pub static GamepadButton_Down: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_DOWN;
 
 #[no_mangle]
-pub static GamepadButton_Left: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_LEFT;
+pub static GamepadButton_Left: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_LEFT;
 
 #[no_mangle]
-pub static GamepadButton_Right: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+pub static GamepadButton_Right: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
 
 #[no_mangle]
-pub static GamepadButton_END: GamepadButton = SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+pub static GamepadButton_END: GamepadButton =
+    SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_RIGHT;

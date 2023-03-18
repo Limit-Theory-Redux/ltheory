@@ -30,7 +30,10 @@ pub unsafe extern "C" fn File_IsDir(path: *const libc::c_char) -> bool {
     meta.is_dir()
 }
 
-unsafe extern "C" fn File_OpenMode(mut path: *const libc::c_char, mut mode: *const libc::c_char) -> *mut File {
+unsafe extern "C" fn File_OpenMode(
+    mut path: *const libc::c_char,
+    mut mode: *const libc::c_char,
+) -> *mut File {
     let mut handle: *mut libc::FILE = libc::fopen(path, mode);
     if handle.is_null() {
         return std::ptr::null_mut();
@@ -117,8 +120,7 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const 
         (::core::mem::size_of::<libc::c_char>())
             .wrapping_mul((size as usize).wrapping_add(1_usize)),
     ) as *mut libc::c_char;
-    let mut result: usize =
-        libc::fread(buffer as *mut libc::c_void, size as usize, 1_usize, file);
+    let mut result: usize = libc::fread(buffer as *mut libc::c_void, size as usize, 1_usize, file);
     if result != 1_usize {
         Fatal(
             b"File_Read: failed to read correct number of bytes from '%s'\0" as *const u8

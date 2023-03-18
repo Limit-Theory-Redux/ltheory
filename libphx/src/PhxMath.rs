@@ -41,7 +41,11 @@ unsafe extern "C" fn Round(mut t: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Sign2(mut x: f64) -> f64 {
-    if x > 0.0f64 { 1.0f64 } else { -1.0f64 }
+    if x > 0.0f64 {
+        1.0f64
+    } else {
+        -1.0f64
+    }
 }
 
 #[no_mangle]

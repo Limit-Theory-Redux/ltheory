@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
+use crate::MemPool::*;
 use crate::Sound::*;
 use crate::SoundDesc::*;
-use crate::MemPool::*;
 use crate::StrMap::*;
 use glam::Vec3;
 use libc;
@@ -727,7 +727,11 @@ pub unsafe extern "C" fn Audio_AttachListenerPos(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Audio_Set3DSettings(mut _doppler: f32, mut _scale: f32, mut _rolloff: f32) {
+pub unsafe extern "C" fn Audio_Set3DSettings(
+    mut _doppler: f32,
+    mut _scale: f32,
+    mut _rolloff: f32,
+) {
     // FMOD_CheckError(
     //     FMOD_System_Set3DSettings(this.handle, doppler, scale, rolloff),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8

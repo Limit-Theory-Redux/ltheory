@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
-use crate::SoundDesc::*;
 use crate::Audio::*;
+use crate::SoundDesc::*;
 use glam::Vec3;
 use libc;
 
@@ -743,8 +743,7 @@ unsafe extern "C" fn Sound_EnsureStateImpl(mut this: *mut Sound, mut func: *cons
 }
 
 unsafe extern "C" fn Sound_SetState(mut this: *mut Sound, mut nextState: SoundState) {
-    if nextState as i32 == (*this).state as i32 {
-    }
+    if nextState as i32 == (*this).state as i32 {}
     // match nextState as i32 {
     //     3 => {
     //         FMOD_CheckError(
@@ -1154,7 +1153,11 @@ pub unsafe extern "C" fn Sound_LoadPlayAttached(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_LoadPlayFree(mut name: *const libc::c_char, mut isLooped: bool, mut is3D: bool) {
+pub unsafe extern "C" fn Sound_LoadPlayFree(
+    mut name: *const libc::c_char,
+    mut isLooped: bool,
+    mut is3D: bool,
+) {
     let mut this: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_SetFreeOnFinish(this, true);
     Sound_Play(this);

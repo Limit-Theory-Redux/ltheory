@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
-use crate::ResourceType::*;
-use crate::Resource::*;
-use crate::File::*;
 use crate::Audio::*;
+use crate::File::*;
+use crate::Resource::*;
+use crate::ResourceType::*;
 use glam::Vec3;
 use libc;
 
@@ -754,7 +754,10 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_FinishLoad(mut this: *mut SoundDesc, mut func: *const libc::c_char) {
+pub unsafe extern "C" fn SoundDesc_FinishLoad(
+    mut this: *mut SoundDesc,
+    mut func: *const libc::c_char,
+) {
     let mut warned: bool = false;
     let mut openState: FMOD_OPENSTATE = FMOD_OPENSTATE_READY;
     loop {

@@ -12,10 +12,10 @@ static mut stateCurr: *mut libc::c_uchar = std::ptr::null_mut();
 pub unsafe extern "C" fn Keyboard_Init() {
     let mut size: i32 = 0;
     let mut state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
-    stateLast =
-        MemAlloc((::core::mem::size_of::<libc::c_uchar>()).wrapping_mul(size as usize)) as *mut libc::c_uchar;
-    stateCurr =
-        MemAlloc((::core::mem::size_of::<libc::c_uchar>()).wrapping_mul(size as usize)) as *mut libc::c_uchar;
+    stateLast = MemAlloc((::core::mem::size_of::<libc::c_uchar>()).wrapping_mul(size as usize))
+        as *mut libc::c_uchar;
+    stateCurr = MemAlloc((::core::mem::size_of::<libc::c_uchar>()).wrapping_mul(size as usize))
+        as *mut libc::c_uchar;
     MemCpy(
         stateLast as *mut libc::c_void,
         state as *const libc::c_void,

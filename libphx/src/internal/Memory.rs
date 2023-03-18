@@ -203,7 +203,8 @@ pub unsafe extern "C" fn StrSub(
     mut end: *const libc::c_char,
     mut replace: *const libc::c_char,
 ) -> *const libc::c_char {
-    let mut len: usize = begin.add((StrLen(s)).wrapping_add(StrLen(replace)))
+    let mut len: usize = begin
+        .add((StrLen(s)).wrapping_add(StrLen(replace)))
         .offset_from(end) as libc::c_long as usize;
     let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1_usize));
     let mut pResult: *mut libc::c_char = result;

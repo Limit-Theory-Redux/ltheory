@@ -1,10 +1,10 @@
 use crate::internal::Memory::*;
-use crate::Shader::*;
-use crate::Tex3D::*;
-use crate::Tex2D::*;
-use crate::Tex1D::*;
-use crate::TexCube::*;
 use crate::Matrix::*;
+use crate::Shader::*;
+use crate::Tex1D::*;
+use crate::Tex2D::*;
+use crate::Tex3D::*;
+use crate::TexCube::*;
 use glam::{Vec2, Vec3, Vec4};
 use libc;
 

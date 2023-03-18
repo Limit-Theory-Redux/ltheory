@@ -1,15 +1,15 @@
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
-use crate::PixelFormat::*;
-use crate::ResourceType::*;
-use crate::TexFormat::*;
-use crate::HashMap::*;
-use crate::RenderState::*;
-use crate::Profiler::*;
 use crate::Draw::*;
-use crate::Shader::*;
+use crate::HashMap::*;
+use crate::PixelFormat::*;
+use crate::Profiler::*;
+use crate::RenderState::*;
 use crate::Resource::*;
+use crate::ResourceType::*;
+use crate::Shader::*;
 use crate::Tex2D::*;
+use crate::TexFormat::*;
 use glam::Vec3;
 use glam::{IVec2, IVec4};
 use libc;
@@ -392,12 +392,20 @@ unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
@@ -527,10 +535,7 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
         ((*this).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
         ::core::mem::size_of::<[*mut Glyph; 256]>(),
     );
-    (*this).glyphs = HashMap_Create(
-        ::core::mem::size_of::<u32>() as u32,
-        16_i32 as u32,
-    );
+    (*this).glyphs = HashMap_Create(::core::mem::size_of::<u32>() as u32, 16_i32 as u32);
     this
 }
 
@@ -644,7 +649,11 @@ pub unsafe extern "C" fn Font_GetLineHeight(mut this: *mut Font) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, mut text: *const libc::c_char) {
+pub unsafe extern "C" fn Font_GetSize(
+    mut this: *mut Font,
+    mut out: *mut IVec4,
+    mut text: *const libc::c_char,
+) {
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Font_GetSize\0")).as_ptr(),
     );
@@ -684,7 +693,11 @@ pub unsafe extern "C" fn Font_GetSize(mut this: *mut Font, mut out: *mut IVec4, 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetSize2(mut this: *mut Font, mut out: *mut IVec2, mut text: *const libc::c_char) {
+pub unsafe extern "C" fn Font_GetSize2(
+    mut this: *mut Font,
+    mut out: *mut IVec2,
+    mut text: *const libc::c_char,
+) {
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Font_GetSize2\0")).as_ptr(),
     );

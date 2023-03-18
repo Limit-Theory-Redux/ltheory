@@ -3,8 +3,6 @@ use glam::Vec3;
 use libc;
 use std::ffi::VaListImpl;
 
-extern "C" {
-}
 pub type __builtin_va_list = *mut libc::c_char;
 
 #[derive(Copy, Clone)]
@@ -53,10 +51,8 @@ unsafe extern "C" fn StrBuffer_AppendData(
 
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_Create(mut capacity: u32) -> *mut StrBuffer {
-    let mut this: *mut StrBuffer =
-        MemAlloc(::core::mem::size_of::<StrBuffer>()) as *mut StrBuffer;
-    (*this).data =
-        MemAllocZero(capacity.wrapping_add(1_i32 as u32) as usize) as *mut libc::c_char;
+    let mut this: *mut StrBuffer = MemAlloc(::core::mem::size_of::<StrBuffer>()) as *mut StrBuffer;
+    (*this).data = MemAllocZero(capacity.wrapping_add(1_i32 as u32) as usize) as *mut libc::c_char;
     (*this).size = 0_i32 as u32;
     (*this).capacity = capacity;
     this
@@ -115,7 +111,11 @@ unsafe extern "C" fn StrBuffer_SetImpl(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrBuffer_Set(mut this: *mut StrBuffer, mut format: *const libc::c_char, mut args: ...) {
+pub unsafe extern "C" fn StrBuffer_Set(
+    mut this: *mut StrBuffer,
+    mut format: *const libc::c_char,
+    mut args: ...
+) {
     let mut args_0: va_list = std::ptr::null_mut();
     args_0 = &args as *const VaListImpl as va_list;
     let mut neededSpace: i32 = StrBuffer_SetImpl(this, format, args_0);

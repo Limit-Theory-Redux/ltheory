@@ -1,18 +1,18 @@
 use crate::internal::Memory::*;
 use crate::Button::*;
-use crate::DeviceType::*;
-use crate::Modifier::*;
-use crate::ResourceType::*;
-use crate::State::*;
-use crate::InputEvent::*;
-use crate::Resource::*;
-use crate::Profiler::*;
 use crate::Button::*;
 use crate::Device::*;
+use crate::DeviceType::*;
+use crate::InputEvent::*;
+use crate::Modifier::*;
+use crate::Profiler::*;
+use crate::Resource::*;
+use crate::ResourceType::*;
+use crate::State::*;
 use glam::IVec2;
 use glam::Vec3;
-use sdl2_sys::*;
 use libc;
+use sdl2_sys::*;
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
@@ -679,7 +679,7 @@ pub unsafe extern "C" fn Input_Update() {
             SDL_EventType::SDL_CONTROLLERDEVICEREMOVED => {
                 /* NOTE : SDL already sends events to zero out all game controller
                  *        input so there's no need to do it manually. */
-      
+
                 let mut device_9: Device = Device {
                     type_0: DeviceType_Gamepad,
                     id: sdl.cdevice.which as u32,
@@ -752,7 +752,8 @@ pub unsafe extern "C" fn Input_Update() {
                 Input_AppendEvent(event_0);
             }
             SDL_EventType::SDL_WINDOWEVENT => {
-                if sdl.window.event as i32 == SDL_WindowEventID::SDL_WINDOWEVENT_FOCUS_GAINED as i32 {
+                if sdl.window.event as i32 == SDL_WindowEventID::SDL_WINDOWEVENT_FOCUS_GAINED as i32
+                {
                     SDL_CaptureMouse(SDL_bool::SDL_TRUE);
                 }
                 if sdl.window.event as i32 == SDL_WindowEventID::SDL_WINDOWEVENT_FOCUS_LOST as i32 {
@@ -938,11 +939,7 @@ pub unsafe extern "C" fn Input_SetMousePosition(mut position: *mut IVec2) {
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMouseVisible(mut visible: bool) {
     this.autoHideMouse = false;
-    SDL_ShowCursor(if visible as i32 != 0 {
-        1_i32
-    } else {
-        0_i32
-    });
+    SDL_ShowCursor(if visible as i32 != 0 { 1_i32 } else { 0_i32 });
 }
 
 #[no_mangle]

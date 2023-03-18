@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
-use crate::PhxSignal::*;
-use crate::ResourceType::*;
 use crate::LuaScheduler::*;
+use crate::PhxSignal::*;
 use crate::Resource::*;
+use crate::ResourceType::*;
 use glam::Vec3;
 use libc;
 
@@ -179,9 +179,7 @@ pub unsafe extern "C" fn Lua_Create() -> *mut Lua {
     let mut this: *mut Lua = luaL_newstate();
     luaL_openlibs(this);
     Lua_InitExtensions(this);
-    if luaL_loadstring(this, kErrorHandler) != 0
-        || lua_pcall(this, 0_i32, -1_i32, 0_i32) != 0
-    {
+    if luaL_loadstring(this, kErrorHandler) != 0 || lua_pcall(this, 0_i32, -1_i32, 0_i32) != 0 {
         Fatal(b"Lua_Create: failed to load error handler\0" as *const u8 as *const libc::c_char);
     }
     this
@@ -279,19 +277,31 @@ pub unsafe extern "C" fn Lua_PushThread(mut this: *mut Lua, mut thread: *mut Lua
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_SetBool(mut this: *mut Lua, mut name: *const libc::c_char, mut value: bool) {
+pub unsafe extern "C" fn Lua_SetBool(
+    mut this: *mut Lua,
+    mut name: *const libc::c_char,
+    mut value: bool,
+) {
     lua_pushboolean(this, value as i32);
     lua_setfield(this, -10002_i32, name);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_SetFn(mut this: *mut Lua, mut name: *const libc::c_char, mut fn_0: LuaFn) {
+pub unsafe extern "C" fn Lua_SetFn(
+    mut this: *mut Lua,
+    mut name: *const libc::c_char,
+    mut fn_0: LuaFn,
+) {
     lua_pushcclosure(this, fn_0, 0_i32);
     lua_setfield(this, -10002_i32, name);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_SetNumber(mut this: *mut Lua, mut name: *const libc::c_char, mut value: f64) {
+pub unsafe extern "C" fn Lua_SetNumber(
+    mut this: *mut Lua,
+    mut name: *const libc::c_char,
+    mut value: f64,
+) {
     lua_pushnumber(this, value);
     lua_setfield(this, -10002_i32, name);
 }
@@ -307,7 +317,11 @@ pub unsafe extern "C" fn Lua_SetPtr(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_SetStr(mut this: *mut Lua, mut name: *const libc::c_char, mut value: *const libc::c_char) {
+pub unsafe extern "C" fn Lua_SetStr(
+    mut this: *mut Lua,
+    mut name: *const libc::c_char,
+    mut value: *const libc::c_char,
+) {
     lua_pushstring(this, value);
     lua_setfield(this, -10002_i32, name);
 }
@@ -357,7 +371,10 @@ pub unsafe extern "C" fn Lua_GetMemory(mut this: *mut Lua) -> i32 {
 }
 
 #[inline]
-unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: *const libc::c_char) -> *const libc::c_char {
+unsafe extern "C" fn Lua_ToString(
+    mut this: *mut Lua,
+    mut name: *const libc::c_char,
+) -> *const libc::c_char {
     let mut type_0: i32 = lua_type(this, -1_i32);
     let mut typeName: *const libc::c_char = lua_typename(this, type_0);
     let mut strValue: *const libc::c_char = std::ptr::null();

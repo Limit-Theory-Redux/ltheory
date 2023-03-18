@@ -27,11 +27,7 @@ pub type ThreadPoolFn = Option<unsafe extern "C" fn(i32, i32, *mut libc::c_void)
 
 unsafe extern "C" fn ThreadPool_Dispatch(mut data: *mut libc::c_void) -> i32 {
     let mut td: *mut ThreadData = data as *mut ThreadData;
-    ((*td).fn_0).expect("non-null function pointer")(
-        (*td).index,
-        (*td).threads,
-        (*td).data,
-    )
+    ((*td).fn_0).expect("non-null function pointer")((*td).index, (*td).threads, (*td).data)
 }
 
 #[no_mangle]

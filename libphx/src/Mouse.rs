@@ -79,11 +79,7 @@ pub unsafe extern "C" fn Mouse_SetPosition(mut x: i32, mut y: i32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_SetVisible(mut visible: bool) {
-    SDL_ShowCursor(if visible as i32 != 0 {
-        1_i32
-    } else {
-        0_i32
-    });
+    SDL_ShowCursor(if visible as i32 != 0 { 1_i32 } else { 0_i32 });
 }
 
 #[no_mangle]

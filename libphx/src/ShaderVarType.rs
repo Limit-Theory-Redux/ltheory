@@ -1,9 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Matrix::*;
 use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use crate::Matrix::*;
 use glam::Vec3;
 use glam::{IVec2, IVec3, IVec4, Vec2};
 use libc;

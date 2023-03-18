@@ -48,12 +48,20 @@ unsafe extern "C" fn Floor(mut t: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Maxi(mut a: i32, mut b: i32) -> i32 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Mini(mut a: i32, mut b: i32) -> i32 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[no_mangle]
@@ -64,8 +72,7 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
         logCount = logCount.wrapping_add(1);
     }
     cellCount = (1_i32 << logCount) as u32;
-    let mut this: *mut HashGrid =
-        MemAlloc(::core::mem::size_of::<HashGrid>()) as *mut HashGrid;
+    let mut this: *mut HashGrid = MemAlloc(::core::mem::size_of::<HashGrid>()) as *mut HashGrid;
     (*this).version = 0_i32 as u64;
     (*this).cells =
         MemAllocZero((::core::mem::size_of::<HashGridCell>()).wrapping_mul(cellCount as usize))

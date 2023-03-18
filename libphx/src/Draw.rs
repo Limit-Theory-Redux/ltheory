@@ -29,8 +29,6 @@ extern "C" {
     static mut __glewCheckFramebufferStatus: PFNGLCHECKFRAMEBUFFERSTATUSPROC;
 }
 
-
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -157,12 +155,7 @@ pub unsafe extern "C" fn Draw_Axes(
     glVertex3f(forward.x, forward.y, forward.z);
     glEnd();
     glBegin(0_i32 as GLenum);
-    glColor4f(
-        1_i32 as GLfloat,
-        1_i32 as GLfloat,
-        1_i32 as GLfloat,
-        _alpha,
-    );
+    glColor4f(1_i32 as GLfloat, 1_i32 as GLfloat, 1_i32 as GLfloat, _alpha);
     glVertex3f((*pos).x, (*pos).y, (*pos).z);
     glEnd();
 }

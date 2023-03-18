@@ -21,10 +21,12 @@ pub static GamepadAxis_RightX: GamepadAxis = SDL_GameControllerAxis::SDL_CONTROL
 pub static GamepadAxis_RightY: GamepadAxis = SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_RIGHTY;
 
 #[no_mangle]
-pub static GamepadAxis_LTrigger: GamepadAxis = SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERLEFT;
+pub static GamepadAxis_LTrigger: GamepadAxis =
+    SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERLEFT;
 
 #[no_mangle]
-pub static GamepadAxis_RTrigger: GamepadAxis = SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
+pub static GamepadAxis_RTrigger: GamepadAxis =
+    SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
 
 #[no_mangle]
 pub static GamepadAxis_END: GamepadAxis = SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERRIGHT;

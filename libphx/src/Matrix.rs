@@ -38,12 +38,20 @@ unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
 
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]

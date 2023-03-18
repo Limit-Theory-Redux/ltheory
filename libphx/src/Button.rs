@@ -680,8 +680,8 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> *const libc::c_c
             libc::snprintf(
                 buffer.as_mut_ptr(),
                 (::core::mem::size_of::<[libc::c_char; 512]>())
-                    .wrapping_div(::core::mem::size_of::<libc::c_char>())
-                    as i32 as usize,
+                    .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+                    as usize,
                 b"Unknown (%i)\0" as *const u8 as *const libc::c_char,
                 button,
             );

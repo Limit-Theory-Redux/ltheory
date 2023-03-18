@@ -1,19 +1,19 @@
 use crate::internal::Memory::*;
-use crate::CubeFace::*;
-use crate::DataFormat::*;
-use crate::PixelFormat::*;
-use crate::TexFormat::*;
-use crate::RenderState::*;
-use crate::RenderTarget::*;
-use crate::GLMatrix::*;
-use crate::Tex2D_Load::*;
-use crate::Tex2D_Save::*;
-use crate::Shader::*;
 use crate::Bytes::*;
 use crate::ClipRect::*;
-use crate::ShaderState::*;
+use crate::CubeFace::*;
+use crate::DataFormat::*;
 use crate::Draw::*;
+use crate::GLMatrix::*;
+use crate::PixelFormat::*;
+use crate::RenderState::*;
+use crate::RenderTarget::*;
+use crate::Shader::*;
+use crate::ShaderState::*;
 use crate::Tex2D::*;
+use crate::Tex2D_Load::*;
+use crate::Tex2D_Save::*;
+use crate::TexFormat::*;
 use crate::TimeStamp::*;
 use glam::Vec3;
 use libc;
@@ -83,12 +83,20 @@ unsafe extern "C" fn Floor(mut t: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 static mut kFaces: [Face; 6] = [
@@ -134,26 +142,10 @@ static mut kFaceExt: [*const libc::c_char; 6] = [
 
 #[inline]
 unsafe extern "C" fn TexCube_InitParameters() {
-    glTexParameteri(
-        0x8513_i32 as GLenum,
-        0x2800_i32 as GLenum,
-        0x2600_i32,
-    );
-    glTexParameteri(
-        0x8513_i32 as GLenum,
-        0x2801_i32 as GLenum,
-        0x2600_i32,
-    );
-    glTexParameteri(
-        0x8513_i32 as GLenum,
-        0x2802_i32 as GLenum,
-        0x812f_i32,
-    );
-    glTexParameteri(
-        0x8513_i32 as GLenum,
-        0x2803_i32 as GLenum,
-        0x812f_i32,
-    );
+    glTexParameteri(0x8513_i32 as GLenum, 0x2800_i32 as GLenum, 0x2600_i32);
+    glTexParameteri(0x8513_i32 as GLenum, 0x2801_i32 as GLenum, 0x2600_i32);
+    glTexParameteri(0x8513_i32 as GLenum, 0x2802_i32 as GLenum, 0x812f_i32);
+    glTexParameteri(0x8513_i32 as GLenum, 0x2803_i32 as GLenum, 0x812f_i32);
 }
 
 #[no_mangle]
@@ -170,8 +162,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
                 as *const libc::c_char,
         );
     }
-    let mut this: *mut TexCube =
-        MemAlloc(::core::mem::size_of::<TexCube>()) as *mut TexCube;
+    let mut this: *mut TexCube = MemAlloc(::core::mem::size_of::<TexCube>()) as *mut TexCube;
     (*this)._refCount = 1_i32 as u32;
     glGenTextures(1_i32, &mut (*this).handle);
     (*this).size = size;
@@ -285,8 +276,7 @@ pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut TexCube {
-    let mut this: *mut TexCube =
-        MemAlloc(::core::mem::size_of::<TexCube>()) as *mut TexCube;
+    let mut this: *mut TexCube = MemAlloc(::core::mem::size_of::<TexCube>()) as *mut TexCube;
     glGenTextures(1_i32, &mut (*this).handle);
     glBindTexture(0x8513_i32 as GLenum, (*this).handle);
     let mut components: i32 = 0_i32;
@@ -537,7 +527,11 @@ pub unsafe extern "C" fn TexCube_Save(mut this: *mut TexCube, mut path: *const l
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SaveLevel(mut this: *mut TexCube, mut path: *const libc::c_char, mut level: i32) {
+pub unsafe extern "C" fn TexCube_SaveLevel(
+    mut this: *mut TexCube,
+    mut path: *const libc::c_char,
+    mut level: i32,
+) {
     let mut size: i32 = (*this).size >> level;
     glBindTexture(0x8513_i32 as GLenum, (*this).handle);
     let mut buffer: *mut uchar =

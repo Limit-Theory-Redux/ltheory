@@ -1,14 +1,14 @@
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
+use crate::Draw::*;
+use crate::Mesh::*;
 use crate::PixelFormat::*;
-use crate::TexFormat::*;
+use crate::RenderState::*;
+use crate::RenderTarget::*;
+use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
-use crate::RenderTarget::*;
-use crate::RenderState::*;
-use crate::Mesh::*;
-use crate::Shader::*;
-use crate::Draw::*;
+use crate::TexFormat::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
@@ -38,7 +38,11 @@ unsafe extern "C" fn Abs(mut t: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]

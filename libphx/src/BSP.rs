@@ -1,15 +1,15 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
-use crate::Plane::*;
-use crate::RenderState::*;
-use crate::Ray::*;
-use crate::Triangle::*;
-use crate::LineSegment::*;
-use crate::Polygon::*;
-use crate::Intersect::*;
-use crate::RNG::*;
-use crate::Mesh::*;
 use crate::Draw::*;
+use crate::Intersect::*;
+use crate::LineSegment::*;
+use crate::Mesh::*;
+use crate::Plane::*;
+use crate::Polygon::*;
+use crate::Ray::*;
+use crate::RenderState::*;
+use crate::Triangle::*;
+use crate::RNG::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
@@ -143,12 +143,20 @@ unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[no_mangle]
@@ -1226,7 +1234,11 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
         }
         _ => {}
     }
-    if newNode.index != 0 { newNode } else { nodeRef }
+    if newNode.index != 0 {
+        newNode
+    } else {
+        nodeRef
+    }
 }
 
 #[no_mangle]
@@ -1335,7 +1347,10 @@ pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(mut _this: *mut BSP, mut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(mut _this: *mut BSP, mut _totalTime: f64) {
+pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
+    mut _this: *mut BSP,
+    mut _totalTime: f64,
+) {
     Warn(
         b"BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.\0"
             as *const u8 as *const libc::c_char,

@@ -1,4 +1,12 @@
-#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut
+)]
 #![feature(extern_types)]
 
 extern "C" {
@@ -18,20 +26,16 @@ extern "C" {
 
 pub type cstr = *const libc::c_char;
 pub type Lua = lua_State;
-unsafe fn main_0(
-    mut argc: libc::c_int,
-    mut argv: *mut *mut libc::c_char,
-) -> libc::c_int {
+unsafe fn main_0(mut argc: libc::c_int, mut argv: *mut *mut libc::c_char) -> libc::c_int {
     Engine_Init(2 as libc::c_int, 1 as libc::c_int);
     let mut lua: *mut Lua = Lua_Create();
-    let mut entryPoint: *const libc::c_char = b"./script/Main.lua\0" as *const u8
-        as *const libc::c_char;
+    let mut entryPoint: *const libc::c_char =
+        b"./script/Main.lua\0" as *const u8 as *const libc::c_char;
     if !File_Exists(entryPoint) {
         Directory_Change(b"../\0" as *const u8 as *const libc::c_char);
         if !File_Exists(entryPoint) {
             Fatal(
-                b"can't find script entrypoint <%s>\0" as *const u8
-                    as *const libc::c_char,
+                b"can't find script entrypoint <%s>\0" as *const u8 as *const libc::c_char,
                 entryPoint,
             );
         }
@@ -64,7 +68,7 @@ unsafe fn main_0(
     return 0 as libc::c_int;
 }
 pub fn main() {
-    let mut args: Vec::<*mut libc::c_char> = Vec::new();
+    let mut args: Vec<*mut libc::c_char> = Vec::new();
     for arg in ::std::env::args() {
         args.push(
             (::std::ffi::CString::new(arg))
@@ -74,11 +78,9 @@ pub fn main() {
     }
     args.push(::core::ptr::null_mut());
     unsafe {
-        ::std::process::exit(
-            main_0(
-                (args.len() - 1) as libc::c_int,
-                args.as_mut_ptr() as *mut *mut libc::c_char,
-            ),
-        )
+        ::std::process::exit(main_0(
+            (args.len() - 1) as libc::c_int,
+            args.as_mut_ptr() as *mut *mut libc::c_char,
+        ))
     }
 }

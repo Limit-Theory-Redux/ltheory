@@ -1,12 +1,12 @@
 use crate::internal::Memory::*;
-use crate::Font::*;
-use crate::Draw::*;
-use crate::Tex2D::*;
-use crate::RenderState::*;
-use crate::MemPool::*;
-use crate::Viewport::*;
-use crate::Shader::*;
 use crate::ClipRect::*;
+use crate::Draw::*;
+use crate::Font::*;
+use crate::MemPool::*;
+use crate::RenderState::*;
+use crate::Shader::*;
+use crate::Tex2D::*;
+use crate::Viewport::*;
 use glam::Vec3;
 use glam::{IVec2, Vec2, Vec4};
 use libc;
@@ -116,13 +116,7 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
     MemPool_Clear(this.textPool);
     let mut vp: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut vp);
-    UIRenderer_BeginLayer(
-        0_i32 as f32,
-        0_i32 as f32,
-        vp.x as f32,
-        vp.y as f32,
-        true,
-    );
+    UIRenderer_BeginLayer(0_i32 as f32, 0_i32 as f32, vp.x as f32, vp.y as f32, true);
     this.root = this.layer;
 }
 

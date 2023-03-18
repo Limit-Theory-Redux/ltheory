@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
-use crate::WindowMode::*;
-use crate::WindowPos::WindowPos;
 use crate::OpenGL::*;
 use crate::Viewport::*;
+use crate::WindowMode::*;
+use crate::WindowPos::WindowPos;
 use glam::IVec2;
 use glam::Vec3;
 use libc;
@@ -110,11 +110,7 @@ pub unsafe extern "C" fn Window_SetTitle(mut this: *mut Window, mut title: *cons
 
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetVsync(mut _this: *mut Window, mut vsync: bool) {
-    SDL_GL_SetSwapInterval(if vsync {
-        1
-    } else {
-        0
-    });
+    SDL_GL_SetSwapInterval(if vsync { 1 } else { 0 });
 }
 
 #[no_mangle]

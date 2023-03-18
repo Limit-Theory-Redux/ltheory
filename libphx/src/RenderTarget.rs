@@ -1,12 +1,12 @@
 use crate::internal::Memory::*;
-use crate::TexCube::*;
 use crate::Metric::*;
 use crate::Profiler::*;
-use crate::Viewport::*;
 use crate::Tex2D::*;
-use crate::TexFormat::*;
 use crate::Tex3D::*;
+use crate::TexCube::*;
 use crate::TexFormat::*;
+use crate::TexFormat::*;
+use crate::Viewport::*;
 use glam::Vec3;
 use glam::{IVec2, IVec3};
 use libc;
@@ -93,10 +93,7 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     (*this).depth = false;
     Metric_Inc(0x7_i32);
     __glewGenFramebuffers.expect("non-null function pointer")(1_i32, &mut (*this).handle);
-    __glewBindFramebuffer.expect("non-null function pointer")(
-        0x8d40_i32 as GLenum,
-        (*this).handle,
-    );
+    __glewBindFramebuffer.expect("non-null function pointer")(0x8d40_i32 as GLenum, (*this).handle);
     Viewport_Push(0_i32, 0_i32, sx, sy, false);
     Profiler_End();
 }

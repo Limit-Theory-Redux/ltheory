@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
+use crate::Bytes::*;
 use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::TexFormat::*;
-use crate::Bytes::*;
 use crate::TexFormat::*;
 use glam::Vec3;
 use libc;
@@ -72,21 +72,9 @@ pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
 
 #[inline]
 unsafe extern "C" fn Tex1D_Init() {
-    glTexParameteri(
-        0xde0_i32 as GLenum,
-        0x2800_i32 as GLenum,
-        0x2600_i32,
-    );
-    glTexParameteri(
-        0xde0_i32 as GLenum,
-        0x2801_i32 as GLenum,
-        0x2600_i32,
-    );
-    glTexParameteri(
-        0xde0_i32 as GLenum,
-        0x2802_i32 as GLenum,
-        0x812f_i32,
-    );
+    glTexParameteri(0xde0_i32 as GLenum, 0x2800_i32 as GLenum, 0x2600_i32);
+    glTexParameteri(0xde0_i32 as GLenum, 0x2801_i32 as GLenum, 0x2600_i32);
+    glTexParameteri(0xde0_i32 as GLenum, 0x2802_i32 as GLenum, 0x812f_i32);
 }
 
 #[no_mangle]
@@ -179,13 +167,7 @@ pub unsafe extern "C" fn Tex1D_GetData(
     mut df: DataFormat,
 ) {
     glBindTexture(0xde0_i32 as GLenum, (*this).handle);
-    glGetTexImage(
-        0xde0_i32 as GLenum,
-        0_i32,
-        pf as GLenum,
-        df as GLenum,
-        data,
-    );
+    glGetTexImage(0xde0_i32 as GLenum, 0_i32, pf as GLenum, df as GLenum, data);
     glBindTexture(0xde0_i32 as GLenum, 0_i32 as GLu32);
 }
 

@@ -163,8 +163,8 @@ pub unsafe extern "C" fn Socket_Bind(mut this: *mut Socket, mut port: i32) {
     );
     addr.sin_family = 2_i32 as libc::sa_family_t;
     addr.sin_port = (if 0 != 0 {
-        ((port as u16 as u32 & 0xff00_u32) >> 8_i32
-            | (port as u16 as u32 & 0xff_u32) << 8_i32) as u16 as i32
+        ((port as u16 as u32 & 0xff00_u32) >> 8_i32 | (port as u16 as u32 & 0xff_u32) << 8_i32)
+            as u16 as i32
     } else {
         _OSSwapInt16(port as u16) as i32
     }) as u16;
@@ -276,8 +276,7 @@ pub unsafe extern "C" fn Socket_GetAddress(mut this: *mut Socket) -> *const libc
         inet_ntoa((*this).addrRecv.sin_addr),
         (if 0 != 0 {
             (((*this).addrRecv.sin_port as u32 & 0xff00_u32) >> 8_i32
-                | ((*this).addrRecv.sin_port as u32 & 0xff_u32) << 8_i32) as u16
-                as i32
+                | ((*this).addrRecv.sin_port as u32 & 0xff_u32) << 8_i32) as u16 as i32
         } else {
             _OSSwapInt16((*this).addrRecv.sin_port) as i32
         }) as u16 as i32,
@@ -297,10 +296,9 @@ pub unsafe extern "C" fn Socket_SetAddress(mut this: *mut Socket, mut addr: *con
     let mut port: *const libc::c_char = StrSubStr(colon.offset(1), addr.add(libc::strlen(addr)));
     (*this).addrSend.sin_family = 2_i32 as libc::sa_family_t;
     (*this).addrSend.sin_port = (if 0 != 0 {
-        ((libc::strtol(port, std::ptr::null_mut(), 0_i32) as u16 as u32 & 0xff00_u32)
-            >> 8_i32
-            | (libc::strtol(port, std::ptr::null_mut(), 0_i32) as u16 as u32 & 0xff_u32)
-                << 8_i32) as u16 as i32
+        ((libc::strtol(port, std::ptr::null_mut(), 0_i32) as u16 as u32 & 0xff00_u32) >> 8_i32
+            | (libc::strtol(port, std::ptr::null_mut(), 0_i32) as u16 as u32 & 0xff_u32) << 8_i32)
+            as u16 as i32
     } else {
         _OSSwapInt16(libc::strtol(port, std::ptr::null_mut(), 0_i32) as u16) as i32
     }) as u16;

@@ -1,10 +1,10 @@
 #![allow(unused_imports, dead_code)]
-use std::path::PathBuf;
-use std::path::Path;
-use std::env;
-use std::io::Cursor;
 use http_req::request;
+use std::env;
 use std::fs;
+use std::io::Cursor;
+use std::path::Path;
+use std::path::PathBuf;
 
 extern crate cbindgen;
 // extern crate flate2;
@@ -68,18 +68,17 @@ extern crate cbindgen;
 //     }
 // }
 
-fn link_lib_from_cmake(lib: &str, root: &PathBuf, path_segments: &[&str])
-{
+fn link_lib_from_cmake(lib: &str, root: &PathBuf, path_segments: &[&str]) {
     let mut path = root.clone();
     path.extend(path_segments);
     println!("cargo:rustc-link-search=native={}", path.display());
     println!("cargo:rustc-link-lib={}", lib);
 }
 
-fn gen_bindings()
-{
+fn gen_bindings() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    cbindgen::Builder::new().with_crate(crate_dir)
+    cbindgen::Builder::new()
+        .with_crate(crate_dir)
         .generate()
         .expect("Error generating bindings.")
         .write_to_file("src/cpp/include/bindings.h");
@@ -117,9 +116,21 @@ fn main() {
     link_lib_from_cmake("luajit", &deps_root, &["luajit-src", "src"]);
     link_lib_from_cmake("freetype", &deps_root, &["freetype-build"]);
     link_lib_from_cmake("GLEW", &cmake_root, &["build", "lib"]);
-    link_lib_from_cmake("BulletDynamics", &deps_root, &["bullet-build", "src", "BulletDynamics"]);
-    link_lib_from_cmake("BulletCollision", &deps_root, &["bullet-build", "src", "BulletCollision"]);
-    link_lib_from_cmake("LinearMath", &deps_root, &["bullet-build", "src", "LinearMath"]);
+    link_lib_from_cmake(
+        "BulletDynamics",
+        &deps_root,
+        &["bullet-build", "src", "BulletDynamics"],
+    );
+    link_lib_from_cmake(
+        "BulletCollision",
+        &deps_root,
+        &["bullet-build", "src", "BulletCollision"],
+    );
+    link_lib_from_cmake(
+        "LinearMath",
+        &deps_root,
+        &["bullet-build", "src", "LinearMath"],
+    );
     // if cfg!(target_os = "macos") {
     //     link_lib_from_cmake("fmod", &deps_root, &["fmod-src", "lib", "macos"]);
     // } else if cfg!(target_os = "linux") {

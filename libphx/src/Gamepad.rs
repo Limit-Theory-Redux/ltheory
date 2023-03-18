@@ -58,8 +58,7 @@ pub unsafe extern "C" fn Gamepad_Open(mut index: i32) -> *mut Gamepad {
     if handle.is_null() {
         return std::ptr::null_mut();
     }
-    let mut this: *mut Gamepad =
-        MemAllocZero(::core::mem::size_of::<Gamepad>()) as *mut Gamepad;
+    let mut this: *mut Gamepad = MemAllocZero(::core::mem::size_of::<Gamepad>()) as *mut Gamepad;
     (*this).handle = handle;
     (*this).lastActive = TimeStamp_Get();
     (*this).gamepadList_prev = &mut gamepadList;
@@ -118,8 +117,7 @@ pub unsafe extern "C" fn Gamepad_GetButton(
     mut this: *mut Gamepad,
     mut button: GamepadButton,
 ) -> bool {
-    SDL_GameControllerGetButton((*this).handle, button as SDL_GameControllerButton) as i32
-        == 1_i32
+    SDL_GameControllerGetButton((*this).handle, button as SDL_GameControllerButton) as i32 == 1_i32
 }
 
 #[no_mangle]
@@ -127,9 +125,7 @@ pub unsafe extern "C" fn Gamepad_GetButtonPressed(
     mut this: *mut Gamepad,
     mut button: GamepadButton,
 ) -> f64 {
-    if (*this).buttonState[button as usize] as i32 != 0
-        && !(*this).buttonLast[button as usize]
-    {
+    if (*this).buttonState[button as usize] as i32 != 0 && !(*this).buttonLast[button as usize] {
         1.0f64
     } else {
         0.0f64
@@ -141,9 +137,7 @@ pub unsafe extern "C" fn Gamepad_GetButtonReleased(
     mut this: *mut Gamepad,
     mut button: GamepadButton,
 ) -> f64 {
-    if !(*this).buttonState[button as usize]
-        && (*this).buttonLast[button as usize] as i32 != 0
-    {
+    if !(*this).buttonState[button as usize] && (*this).buttonLast[button as usize] as i32 != 0 {
         1.0f64
     } else {
         0.0f64

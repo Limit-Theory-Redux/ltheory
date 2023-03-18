@@ -1,17 +1,17 @@
 use crate::internal::Memory::*;
-use crate::PhxSignal::*;
-use crate::ResourceType::*;
-use crate::Input::*;
-use crate::Profiler::*;
 use crate::Directory::*;
+use crate::Gamepad::*;
+use crate::Input::*;
 use crate::Joystick::*;
 use crate::Keyboard::*;
 use crate::Metric::*;
-use crate::Gamepad::*;
+use crate::Mouse::*;
+use crate::PhxSignal::*;
+use crate::Profiler::*;
 use crate::Resource::*;
+use crate::ResourceType::*;
 use crate::ShaderVar::*;
 use crate::TimeStamp::*;
-use crate::Mouse::*;
 use glam::Vec3;
 use libc;
 use sdl2_sys::*;
@@ -23,13 +23,12 @@ pub type ResourceType = i32;
 pub type TimeStamp = u64;
 
 #[no_mangle]
-pub static subsystems: u32 =
-    SDL_INIT_EVENTS |
-    SDL_INIT_VIDEO |
-    SDL_INIT_TIMER |
-    SDL_INIT_HAPTIC |
-    SDL_INIT_JOYSTICK |
-    SDL_INIT_GAMECONTROLLER;
+pub static subsystems: u32 = SDL_INIT_EVENTS
+    | SDL_INIT_VIDEO
+    | SDL_INIT_TIMER
+    | SDL_INIT_HAPTIC
+    | SDL_INIT_JOYSTICK
+    | SDL_INIT_GAMECONTROLLER;
 
 static mut initTime: TimeStamp = 0_i32 as TimeStamp;
 

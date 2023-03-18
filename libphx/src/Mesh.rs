@@ -1,11 +1,11 @@
 use crate::internal::Memory::*;
 use crate::Bytes::*;
-use crate::ResourceType::*;
-use crate::SDF::*;
-use crate::Metric::*;
-use crate::Triangle::*;
 use crate::Matrix::*;
+use crate::Metric::*;
 use crate::Resource::*;
+use crate::ResourceType::*;
+use crate::Triangle::*;
+use crate::SDF::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
@@ -86,17 +86,29 @@ unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
 
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
@@ -488,14 +500,8 @@ pub unsafe extern "C" fn Mesh_DrawUnbind(mut _this: *mut Mesh) {
     __glewDisableVertexAttribArray.expect("non-null function pointer")(0_i32 as GLu32);
     __glewDisableVertexAttribArray.expect("non-null function pointer")(1_i32 as GLu32);
     __glewDisableVertexAttribArray.expect("non-null function pointer")(2_i32 as GLu32);
-    __glewBindBuffer.expect("non-null function pointer")(
-        0x8892_i32 as GLenum,
-        0_i32 as GLu32,
-    );
-    __glewBindBuffer.expect("non-null function pointer")(
-        0x8893_i32 as GLenum,
-        0_i32 as GLu32,
-    );
+    __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, 0_i32 as GLu32);
+    __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, 0_i32 as GLu32);
 }
 
 #[no_mangle]

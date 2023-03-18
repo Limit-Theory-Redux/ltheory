@@ -91,31 +91,44 @@ unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
 
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Create(mut box_0: Box3f) -> *mut Octree {
     let mut this: *mut Octree = MemAlloc(::core::mem::size_of::<Octree>()) as *mut Octree;
-    MemZero(
-        this as *mut libc::c_void,
-        ::core::mem::size_of::<Octree>(),
-    );
+    MemZero(this as *mut libc::c_void, ::core::mem::size_of::<Octree>());
     (*this).box_0 = box_0;
     this
 }

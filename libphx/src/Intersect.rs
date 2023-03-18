@@ -1,9 +1,9 @@
 use crate::internal::Memory::*;
+use crate::LineSegment::*;
+use crate::Matrix::*;
+use crate::Plane::*;
 use crate::Ray::*;
 use crate::Triangle::*;
-use crate::LineSegment::*;
-use crate::Plane::*;
-use crate::Matrix::*;
 use glam::Vec3;
 use libc;
 
@@ -32,7 +32,11 @@ unsafe extern "C" fn Absf(mut t: f32) -> f32 {
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[no_mangle]
@@ -77,12 +81,7 @@ pub unsafe extern "C" fn Intersect_PointTriangle_Barycentric(
     let mut C: f32 = 1.0f32 - A - B;
     let mut fuzzyMin: f32 = 0.0f32 - 0.01f32;
     let mut fuzzyMax: f32 = 1.0f32 + 0.01f32;
-    A > fuzzyMin
-        && A < fuzzyMax
-        && B > fuzzyMin
-        && B < fuzzyMax
-        && C > fuzzyMin
-        && C < fuzzyMax
+    A > fuzzyMin && A < fuzzyMax && B > fuzzyMin && B < fuzzyMax && C > fuzzyMin && C < fuzzyMax
 }
 
 #[no_mangle]

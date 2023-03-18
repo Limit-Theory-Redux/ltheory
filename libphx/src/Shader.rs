@@ -1,16 +1,16 @@
 use crate::internal::Memory::*;
-use crate::ResourceType::*;
+use crate::Matrix::*;
 use crate::Profiler::*;
+use crate::Resource::*;
+use crate::ResourceType::*;
+use crate::ShaderState::*;
+use crate::ShaderVar::*;
+use crate::ShaderVarType::*;
+use crate::StrMap::*;
 use crate::Tex1D::*;
 use crate::Tex2D::*;
-use crate::Matrix::*;
-use crate::ShaderVar::*;
-use crate::Resource::*;
-use crate::ShaderState::*;
-use crate::TexCube::*;
 use crate::Tex3D::*;
-use crate::StrMap::*;
-use crate::ShaderVarType::*;
+use crate::TexCube::*;
 use glam::Vec3;
 use glam::{IVec2, IVec3, IVec4, Vec2};
 use libc;
@@ -145,11 +145,7 @@ unsafe extern "C" fn CreateGLShader(mut src: *const libc::c_char, mut type_0: GL
     );
     __glewCompileShader.expect("non-null function pointer")(this);
     let mut status: i32 = 0;
-    __glewGetShaderiv.expect("non-null function pointer")(
-        this,
-        0x8b81_i32 as GLenum,
-        &mut status,
-    );
+    __glewGetShaderiv.expect("non-null function pointer")(this, 0x8b81_i32 as GLenum, &mut status);
     if status == 0_i32 {
         let mut length: i32 = 0;
         __glewGetShaderiv.expect("non-null function pointer")(
@@ -194,11 +190,7 @@ unsafe extern "C" fn CreateGLProgram(mut vs: u32, mut fs: u32) -> u32 {
     );
     __glewLinkProgram.expect("non-null function pointer")(this);
     let mut status: i32 = 0;
-    __glewGetProgramiv.expect("non-null function pointer")(
-        this,
-        0x8b82_i32 as GLenum,
-        &mut status,
-    );
+    __glewGetProgramiv.expect("non-null function pointer")(this, 0x8b82_i32 as GLenum, &mut status);
     if status == 0_i32 {
         let mut length: i32 = 0;
         __glewGetProgramiv.expect("non-null function pointer")(
@@ -222,7 +214,10 @@ unsafe extern "C" fn CreateGLProgram(mut vs: u32, mut fs: u32) -> u32 {
     this
 }
 
-unsafe extern "C" fn GLSL_Load(mut name: *const libc::c_char, mut this: *mut Shader) -> *const libc::c_char {
+unsafe extern "C" fn GLSL_Load(
+    mut name: *const libc::c_char,
+    mut this: *mut Shader,
+) -> *const libc::c_char {
     if cache.is_null() {
         cache = StrMap_Create(16_i32 as u32);
     }
@@ -241,7 +236,10 @@ unsafe extern "C" fn GLSL_Load(mut name: *const libc::c_char, mut this: *mut Sha
     code
 }
 
-unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *mut Shader) -> *const libc::c_char {
+unsafe extern "C" fn GLSL_Preprocess(
+    mut code: *const libc::c_char,
+    mut this: *mut Shader,
+) -> *const libc::c_char {
     let lenInclude: i32 = StrLen(b"#include\0" as *const u8 as *const libc::c_char) as i32;
     let mut begin: *const libc::c_char = std::ptr::null();
     loop {
@@ -249,8 +247,10 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *m
         if begin.is_null() {
             break;
         }
-        let mut end: *const libc::c_char = StrFind(begin, b"\n\0" as *const u8 as *const libc::c_char);
-        let mut name: *const libc::c_char = StrSubStr(begin.offset(lenInclude as isize).offset(1), end);
+        let mut end: *const libc::c_char =
+            StrFind(begin, b"\n\0" as *const u8 as *const libc::c_char);
+        let mut name: *const libc::c_char =
+            StrSubStr(begin.offset(lenInclude as isize).offset(1), end);
         let mut path: *const libc::c_char = StrAdd(includePath, name);
         let mut prev: *const libc::c_char = code;
         code = StrSub(code, begin, end, GLSL_Load(path, this));
@@ -263,7 +263,8 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *m
         if begin.is_null() {
             break;
         }
-        let mut end_0: *const libc::c_char = StrFind(begin, b"\n\0" as *const u8 as *const libc::c_char);
+        let mut end_0: *const libc::c_char =
+            StrFind(begin, b"\n\0" as *const u8 as *const libc::c_char);
         let mut line: *const libc::c_char = StrSubStr(begin, end_0);
         let mut varType: [libc::c_char; 32] = [
             0_i32 as libc::c_char,
@@ -414,7 +415,10 @@ unsafe extern "C" fn Shader_BindVariables(mut this: *mut Shader) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Create(mut vs: *const libc::c_char, mut fs: *const libc::c_char) -> *mut Shader {
+pub unsafe extern "C" fn Shader_Create(
+    mut vs: *const libc::c_char,
+    mut fs: *const libc::c_char,
+) -> *mut Shader {
     let mut this: *mut Shader = MemAlloc(::core::mem::size_of::<Shader>()) as *mut Shader;
     (*this)._refCount = 1_i32 as u32;
     (*this).vars_capacity = 0_i32;
@@ -451,7 +455,10 @@ pub unsafe extern "C" fn Shader_Create(mut vs: *const libc::c_char, mut fs: *con
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Load(mut vName: *const libc::c_char, mut fName: *const libc::c_char) -> *mut Shader {
+pub unsafe extern "C" fn Shader_Load(
+    mut vName: *const libc::c_char,
+    mut fName: *const libc::c_char,
+) -> *mut Shader {
     let mut this: *mut Shader = MemAlloc(::core::mem::size_of::<Shader>()) as *mut Shader;
     (*this)._refCount = 1_i32 as u32;
     (*this).vars_capacity = 0_i32;
@@ -609,7 +616,10 @@ pub unsafe extern "C" fn Shader_Stop(mut _s: *mut Shader) {
     current = std::ptr::null_mut();
 }
 
-unsafe extern "C" fn ShaderCache_FreeElem(mut _s: *const libc::c_char, mut data: *mut libc::c_void) {
+unsafe extern "C" fn ShaderCache_FreeElem(
+    mut _s: *const libc::c_char,
+    mut data: *mut libc::c_void,
+) {
     MemFree(data);
 }
 
@@ -618,7 +628,10 @@ pub unsafe extern "C" fn Shader_ClearCache() {
     if !cache.is_null() {
         StrMap_FreeEx(
             cache,
-            Some(ShaderCache_FreeElem as unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> ()),
+            Some(
+                ShaderCache_FreeElem
+                    as unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> (),
+            ),
         );
         cache = std::ptr::null_mut();
     }
@@ -630,7 +643,10 @@ pub unsafe extern "C" fn Shader_GetHandle(mut this: *mut Shader) -> u32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_GetVariable(mut this: *mut Shader, mut name: *const libc::c_char) -> i32 {
+pub unsafe extern "C" fn Shader_GetVariable(
+    mut this: *mut Shader,
+    mut name: *const libc::c_char,
+) -> i32 {
     let mut index: i32 =
         __glewGetUniformLocation.expect("non-null function pointer")((*this).program, name);
     if index == -1_i32 {
@@ -645,9 +661,11 @@ pub unsafe extern "C" fn Shader_GetVariable(mut this: *mut Shader, mut name: *co
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_HasVariable(mut this: *mut Shader, mut name: *const libc::c_char) -> bool {
-    __glewGetUniformLocation.expect("non-null function pointer")((*this).program, name)
-        > -1_i32
+pub unsafe extern "C" fn Shader_HasVariable(
+    mut this: *mut Shader,
+    mut name: *const libc::c_char,
+) -> bool {
+    __glewGetUniformLocation.expect("non-null function pointer")((*this).program, name) > -1_i32
 }
 
 #[no_mangle]
@@ -676,7 +694,12 @@ pub unsafe extern "C" fn Shader_ISetFloat2(mut index: i32, mut x: f32, mut y: f3
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_SetFloat3(mut name: *const libc::c_char, mut x: f32, mut y: f32, mut z: f32) {
+pub unsafe extern "C" fn Shader_SetFloat3(
+    mut name: *const libc::c_char,
+    mut x: f32,
+    mut y: f32,
+    mut z: f32,
+) {
     __glewUniform3f.expect("non-null function pointer")(GetUniformIndex(current, name), x, y, z);
 }
 

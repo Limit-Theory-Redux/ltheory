@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
-use crate::PixelFormat::*;
 use crate::Mesh::*;
+use crate::PixelFormat::*;
 use crate::Tex3D::*;
 use glam::IVec3;
 use glam::Vec3;

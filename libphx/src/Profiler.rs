@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
+use crate::HashMap::*;
 use crate::PhxSignal::*;
 use crate::TimeStamp::*;
-use crate::HashMap::*;
 use glam::Vec3;
 use libc;
 use std::io::{self, Write};
@@ -43,12 +43,20 @@ pub struct Profiler {
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
@@ -247,8 +255,8 @@ pub unsafe extern "C" fn Profiler_Begin(mut name: *const libc::c_char) {
     let mut now: TimeStamp = TimeStamp_Get();
     if this.stackIndex >= 0_i32 {
         let mut prev: *mut Scope = this.stack[this.stackIndex as usize];
-        (*prev).frame = (*prev).frame.wrapping_add(now.wrapping_sub((*prev).last))
-            as TimeStamp as TimeStamp;
+        (*prev).frame =
+            (*prev).frame.wrapping_add(now.wrapping_sub((*prev).last)) as TimeStamp as TimeStamp;
         (*prev).last = now;
     }
     this.stackIndex += 1;
@@ -270,8 +278,8 @@ pub unsafe extern "C" fn Profiler_End() {
     }
     let mut now: TimeStamp = TimeStamp_Get();
     let mut prev: *mut Scope = this.stack[this.stackIndex as usize];
-    (*prev).frame = (*prev).frame.wrapping_add(now.wrapping_sub((*prev).last)) as TimeStamp
-        as TimeStamp;
+    (*prev).frame =
+        (*prev).frame.wrapping_add(now.wrapping_sub((*prev).last)) as TimeStamp as TimeStamp;
     this.stackIndex -= 1;
     if this.stackIndex >= 0_i32 {
         let mut curr: *mut Scope = this.stack[this.stackIndex as usize];
@@ -291,8 +299,7 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
     while i < this.scopeList_size {
         let mut scope: *mut Scope = *(this.scopeList_data).offset(i as isize);
         if (*scope).frame as f64 > 0.0f64 {
-            (*scope).total =
-                (*scope).total.wrapping_add((*scope).frame) as TimeStamp as TimeStamp;
+            (*scope).total = (*scope).total.wrapping_add((*scope).frame) as TimeStamp as TimeStamp;
             let mut frame: f64 = TimeStamp_ToDouble((*scope).frame);
             (*scope).min = Min((*scope).min, frame);
             (*scope).max = Max((*scope).max, frame);

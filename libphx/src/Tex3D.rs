@@ -1,9 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Bytes::*;
 use crate::DataFormat::*;
+use crate::PixelFormat::*;
 use crate::RenderTarget::*;
 use crate::TexFormat::*;
-use crate::PixelFormat::*;
-use crate::Bytes::*;
 use glam::IVec3;
 use glam::Vec3;
 use libc;
@@ -70,31 +70,11 @@ pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
 
 #[inline]
 unsafe extern "C" fn Tex3D_Init() {
-    glTexParameteri(
-        0x806f_i32 as GLenum,
-        0x2800_i32 as GLenum,
-        0x2600_i32,
-    );
-    glTexParameteri(
-        0x806f_i32 as GLenum,
-        0x2801_i32 as GLenum,
-        0x2600_i32,
-    );
-    glTexParameteri(
-        0x806f_i32 as GLenum,
-        0x2802_i32 as GLenum,
-        0x812f_i32,
-    );
-    glTexParameteri(
-        0x806f_i32 as GLenum,
-        0x2803_i32 as GLenum,
-        0x812f_i32,
-    );
-    glTexParameteri(
-        0x806f_i32 as GLenum,
-        0x8072_i32 as GLenum,
-        0x812f_i32,
-    );
+    glTexParameteri(0x806f_i32 as GLenum, 0x2800_i32 as GLenum, 0x2600_i32);
+    glTexParameteri(0x806f_i32 as GLenum, 0x2801_i32 as GLenum, 0x2600_i32);
+    glTexParameteri(0x806f_i32 as GLenum, 0x2802_i32 as GLenum, 0x812f_i32);
+    glTexParameteri(0x806f_i32 as GLenum, 0x2803_i32 as GLenum, 0x812f_i32);
+    glTexParameteri(0x806f_i32 as GLenum, 0x8072_i32 as GLenum, 0x812f_i32);
 }
 
 #[no_mangle]

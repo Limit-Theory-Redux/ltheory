@@ -1,18 +1,18 @@
 use crate::internal::Memory::*;
-use crate::DataFormat::*;
-use crate::PixelFormat::*;
-use crate::ResourceType::*;
-use crate::RenderTarget::*;
 use crate::Bytes::*;
 use crate::DataFormat::*;
-use crate::Viewport::*;
-use crate::Resource::*;
+use crate::DataFormat::*;
 use crate::Draw::*;
-use crate::Tex2D_Save::*;
-use crate::Tex2D_Load::*;
-use crate::PixelFormat::*;
 use crate::Metric::*;
+use crate::PixelFormat::*;
+use crate::PixelFormat::*;
+use crate::RenderTarget::*;
+use crate::Resource::*;
+use crate::ResourceType::*;
+use crate::Tex2D_Load::*;
+use crate::Tex2D_Save::*;
 use crate::TexFormat::*;
+use crate::Viewport::*;
 use glam::IVec2;
 use glam::Vec3;
 use libc;
@@ -110,26 +110,10 @@ pub type PFNGLGENERATEMIPMAPPROC = Option<unsafe extern "C" fn(GLenum) -> ()>;
 
 #[inline]
 unsafe extern "C" fn Tex2D_Init() {
-    glTexParameteri(
-        0xde1_i32 as GLenum,
-        0x2800_i32 as GLenum,
-        0x2600_i32,
-    );
-    glTexParameteri(
-        0xde1_i32 as GLenum,
-        0x2801_i32 as GLenum,
-        0x2600_i32,
-    );
-    glTexParameteri(
-        0xde1_i32 as GLenum,
-        0x2802_i32 as GLenum,
-        0x812f_i32,
-    );
-    glTexParameteri(
-        0xde1_i32 as GLenum,
-        0x2803_i32 as GLenum,
-        0x812f_i32,
-    );
+    glTexParameteri(0xde1_i32 as GLenum, 0x2800_i32 as GLenum, 0x2600_i32);
+    glTexParameteri(0xde1_i32 as GLenum, 0x2801_i32 as GLenum, 0x2600_i32);
+    glTexParameteri(0xde1_i32 as GLenum, 0x2802_i32 as GLenum, 0x812f_i32);
+    glTexParameteri(0xde1_i32 as GLenum, 0x2803_i32 as GLenum, 0x812f_i32);
 }
 
 #[no_mangle]
@@ -362,13 +346,7 @@ pub unsafe extern "C" fn Tex2D_GetData(
 ) {
     Metric_Inc(0x6_i32);
     glBindTexture(0xde1_i32 as GLenum, (*this).handle);
-    glGetTexImage(
-        0xde1_i32 as GLenum,
-        0_i32,
-        pf as GLenum,
-        df as GLenum,
-        data,
-    );
+    glGetTexImage(0xde1_i32 as GLenum, 0_i32, pf as GLenum, df as GLenum, data);
     glBindTexture(0xde1_i32 as GLenum, 0_i32 as GLu32);
 }
 

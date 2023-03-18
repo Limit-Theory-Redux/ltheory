@@ -1,10 +1,10 @@
 use crate::internal::Memory::*;
 use crate::Button::*;
+use crate::Button::*;
+use crate::Device::*;
 use crate::DeviceType::*;
 use crate::State::*;
-use crate::Device::*;
 use crate::State::*;
-use crate::Button::*;
 use glam::Vec3;
 use libc;
 

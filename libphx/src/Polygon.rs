@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
 use crate::Intersect::*;
 use crate::LineSegment::*;
-use crate::Triangle::*;
 use crate::Plane::*;
+use crate::Triangle::*;
 use glam::DVec3;
 use glam::Vec3;
 use libc;
@@ -21,7 +21,6 @@ pub struct Polygon {
     pub vertices_capacity: i32,
     pub vertices_data: *mut Vec3,
 }
-
 
 pub type PointClassification = u8;
 

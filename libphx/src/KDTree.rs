@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
 use crate::Draw::*;
-use crate::Mesh::*;
 use crate::Matrix::*;
+use crate::Mesh::*;
 use glam::Vec2;
 use glam::Vec3;
 use libc;
@@ -25,12 +25,20 @@ pub struct Node {
 
 #[inline]
 unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
@@ -104,8 +112,7 @@ unsafe extern "C" fn Partition(
         }
         let mut i_0: i32 = 0_i32;
         while i_0 < boxCount {
-            let mut node: *mut Node =
-                MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
+            let mut node: *mut Node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
             (*node).box_0 = *boxes.offset(i_0 as isize);
             (*node).next = (*this).elems;
             (*node).id = 0_i32 as u64;

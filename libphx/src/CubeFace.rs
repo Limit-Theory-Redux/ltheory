@@ -21,16 +21,14 @@ pub static CubeFace_PZ: CubeFace = 0x8519_i32;
 #[no_mangle]
 pub static CubeFace_NZ: CubeFace = 0x851a_i32;
 
-static mut kFaces: [CubeFace; 6] = unsafe {
-    [
-        CubeFace_PX,
-        CubeFace_NX,
-        CubeFace_PY,
-        CubeFace_NY,
-        CubeFace_PZ,
-        CubeFace_NZ,
-    ]
-};
+static mut kFaces: [CubeFace; 6] = [
+    CubeFace_PX,
+    CubeFace_NX,
+    CubeFace_PY,
+    CubeFace_NY,
+    CubeFace_PZ,
+    CubeFace_NZ,
+];
 
 #[no_mangle]
 pub unsafe extern "C" fn CubeFace_Get(mut index: i32) -> CubeFace {

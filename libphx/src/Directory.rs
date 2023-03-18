@@ -15,8 +15,7 @@ pub unsafe extern "C" fn Directory_Open(mut path: *const libc::c_char) -> *mut D
     if dir.is_null() {
         return std::ptr::null_mut();
     }
-    let mut this: *mut Directory =
-        MemAlloc(::core::mem::size_of::<Directory>()) as *mut Directory;
+    let mut this: *mut Directory = MemAlloc(::core::mem::size_of::<Directory>()) as *mut Directory;
     (*this).handle = dir;
     this
 }

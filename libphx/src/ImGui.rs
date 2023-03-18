@@ -1,15 +1,15 @@
 use crate::internal::Memory::*;
 use crate::Button::*;
-use crate::Shader::*;
-use crate::Font::*;
-use crate::MemPool::*;
-use crate::Input::*;
-use crate::HashMap::*;
 use crate::ClipRect::*;
-use crate::Tex2D::*;
-use crate::Hash::*;
 use crate::Draw::*;
+use crate::Font::*;
+use crate::Hash::*;
+use crate::HashMap::*;
+use crate::Input::*;
+use crate::MemPool::*;
 use crate::RenderState::*;
+use crate::Shader::*;
+use crate::Tex2D::*;
 use glam::Vec3;
 use glam::{IVec2, Vec2};
 use libc;
@@ -196,12 +196,20 @@ unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b { a } else { b }
+    if a > b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[inline]
@@ -974,7 +982,11 @@ pub unsafe extern "C" fn ImGui_EndPanel() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_BeginWindow(mut _title: *const libc::c_char, mut sx: f32, mut sy: f32) {
+pub unsafe extern "C" fn ImGui_BeginWindow(
+    mut _title: *const libc::c_char,
+    mut sx: f32,
+    mut sy: f32,
+) {
     let mut hash: u64 = HashPeekNext();
     let mut data: *mut ImGuiData = GetData(hash);
     this.cursor.x += (*data).offset.x;
@@ -1138,7 +1150,11 @@ pub unsafe extern "C" fn ImGui_Button(mut label: *const libc::c_char) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ImGui_ButtonEx(mut label: *const libc::c_char, mut sx: f32, mut sy: f32) -> bool {
+pub unsafe extern "C" fn ImGui_ButtonEx(
+    mut label: *const libc::c_char,
+    mut sx: f32,
+    mut sy: f32,
+) -> bool {
     ImGui_BeginWidget(sx, sy);
     let mut focus: bool = ImGui_FocusCurrent(FocusType_Mouse);
     let mut color: Vec4f = if focus as i32 != 0 {

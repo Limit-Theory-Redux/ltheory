@@ -16,8 +16,7 @@ pub struct MemStack {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
-    let mut this: *mut MemStack =
-        MemAlloc(::core::mem::size_of::<MemStack>()) as *mut MemStack;
+    let mut this: *mut MemStack = MemAlloc(::core::mem::size_of::<MemStack>()) as *mut MemStack;
     (*this).size = 0_i32 as u32;
     (*this).capacity = capacity;
     (*this).data = MemAlloc(capacity as usize);

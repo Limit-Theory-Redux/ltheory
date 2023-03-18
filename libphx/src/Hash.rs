@@ -108,9 +108,7 @@ pub unsafe extern "C" fn Hash_Murmur3(mut key: *const libc::c_void, mut len: i32
         k1 = k1.wrapping_mul(c2);
         h1 ^= k1;
         h1 = rotl32(h1, 13_i32 as i8);
-        h1 = h1
-            .wrapping_mul(5_i32 as u32)
-            .wrapping_add(0xe6546b64_u32);
+        h1 = h1.wrapping_mul(5_i32 as u32).wrapping_add(0xe6546b64_u32);
         i += 1;
     }
     let mut tail: *const u8 = data.offset((nblocks * 4_i32) as isize);

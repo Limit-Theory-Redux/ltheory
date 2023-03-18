@@ -2,8 +2,6 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-}
 pub type State = i32;
 
 #[no_mangle]

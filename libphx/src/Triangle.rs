@@ -23,7 +23,11 @@ unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
 
 #[inline]
 unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b { a } else { b }
+    if a < b {
+        a
+    } else {
+        b
+    }
 }
 
 #[no_mangle]
