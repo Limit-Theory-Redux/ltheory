@@ -88,7 +88,7 @@ pub unsafe extern "C" fn Mouse_SetVisible(mut visible: bool) {
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Down(mut button: MouseButton) -> bool {
     button = 1_i32 << button - 1_i32;
-    SDL_GetMouseState(std::ptr::null_mut(), std::ptr::null_mut()) & button as u32 > 0_i32 as u32
+    SDL_GetMouseState(std::ptr::null_mut(), std::ptr::null_mut()) & button as u32 > 0_u32
 }
 
 #[no_mangle]

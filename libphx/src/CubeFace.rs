@@ -1,26 +1,24 @@
-use crate::internal::Memory::*;
-use crate::Common::*;
-use crate::Math::Vec3;
+use crate::GL::gl;
 use libc;
 pub type CubeFace = i32;
 
 #[no_mangle]
-pub static CubeFace_PX: CubeFace = 0x8515_i32;
+pub static CubeFace_PX: CubeFace = gl::TEXTURE_CUBE_MAP_POSITIVE_X as CubeFace;
 
 #[no_mangle]
-pub static CubeFace_NX: CubeFace = 0x8516_i32;
+pub static CubeFace_NX: CubeFace = gl::TEXTURE_CUBE_MAP_NEGATIVE_X as CubeFace;
 
 #[no_mangle]
-pub static CubeFace_PY: CubeFace = 0x8517_i32;
+pub static CubeFace_PY: CubeFace = gl::TEXTURE_CUBE_MAP_POSITIVE_Y as CubeFace;
 
 #[no_mangle]
-pub static CubeFace_NY: CubeFace = 0x8518_i32;
+pub static CubeFace_NY: CubeFace = gl::TEXTURE_CUBE_MAP_NEGATIVE_Y as CubeFace;
 
 #[no_mangle]
-pub static CubeFace_PZ: CubeFace = 0x8519_i32;
+pub static CubeFace_PZ: CubeFace = gl::TEXTURE_CUBE_MAP_POSITIVE_Z as CubeFace;
 
 #[no_mangle]
-pub static CubeFace_NZ: CubeFace = 0x851a_i32;
+pub static CubeFace_NZ: CubeFace = gl::TEXTURE_CUBE_MAP_NEGATIVE_Z as CubeFace;
 
 static mut kFaces: [CubeFace; 6] = [
     CubeFace_PX,

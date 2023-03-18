@@ -78,7 +78,7 @@ unsafe extern "C" fn ShaderVar_Push(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Init() {
-    varMap = StrMap_Create(16_i32 as u32);
+    varMap = StrMap_Create(16_u32);
 }
 
 #[no_mangle]

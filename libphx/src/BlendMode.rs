@@ -6,6 +6,11 @@ use libc;
 
 pub type BlendMode = i32;
 
+pub const BlendMode_Additive: BlendMode = 0;
+pub const BlendMode_Alpha: BlendMode = 1;
+pub const BlendMode_Disabled: BlendMode = 2;
+pub const BlendMode_PreMultAlpha: BlendMode = 3;
+
 #[no_mangle]
 pub unsafe extern "C" fn BlendMode_Pop() {
     RenderState_PopBlendMode();

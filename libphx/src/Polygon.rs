@@ -413,8 +413,8 @@ pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
         let mut vPrev: Vec3 = vCur;
         vCur = *v.offset(i as isize);
         let mut e: Error = Vec3_Validate(vCur);
-        if e != 0_i32 as u32 {
-            return 0x400000_i32 as u32 | e;
+        if e != 0_u32 {
+            return 0x400000_u32 | e;
         }
         let mut j: i32 = i + 1_i32;
         while j < vLen {

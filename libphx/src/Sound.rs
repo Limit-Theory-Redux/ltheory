@@ -712,7 +712,7 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: *con
 #[inline]
 unsafe extern "C" fn Sound_EnsureNotFreedImpl(mut this: *mut Sound, mut func: *const libc::c_char) {
     if (*this).state as i32 == 5_i32 {
-        let mut name: *const libc::c_char = if (*(*this).desc)._refCount > 0_i32 as u32 {
+        let mut name: *const libc::c_char = if (*(*this).desc)._refCount > 0_u32 {
             (*(*this).desc).name
         } else {
             b"<SoundDesc has been freed>\0" as *const u8 as *const libc::c_char
@@ -925,7 +925,7 @@ pub unsafe extern "C" fn Sound_Get3D(mut this: *mut Sound) -> bool {
     //     (*::core::mem::transmute::<&[u8; 12], &[libc::c_char; 12]>(b"Sound_Get3D\0"))
     //         .as_ptr(),
     // );
-    mode & 0x10_i32 as u32 == 0x10_i32 as u32
+    mode & 0x10_u32 == 0x10_u32
 }
 
 #[no_mangle]
@@ -954,7 +954,7 @@ pub unsafe extern "C" fn Sound_GetLooped(mut _this: *mut Sound) -> bool {
     //     (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_GetLooped\0"))
     //         .as_ptr(),
     // );
-    mode & 0x2_i32 as u32 == 0x2_i32 as u32
+    mode & 0x2_u32 == 0x2_u32
 }
 
 #[no_mangle]

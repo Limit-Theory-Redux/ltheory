@@ -5,10 +5,8 @@ use crate::Math::Vec3;
 use crate::GL::gl;
 use libc;
 
-pub type GLenum = u32;
-pub type GLint = i32;
-pub type GLsizei = i32;
-pub type GLfloat = f32;
+/* TODO : This is a low-level mechanism and probably not for use outside of
+ *        RenderTarget. Should likely be folded into RenderTarget. */
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -31,7 +29,7 @@ static mut vp: [VP; 16] = [VP {
 
 unsafe extern "C" fn Viewport_Set(mut this: *const VP) {
     gl::Viewport((*this).x, (*this).y, (*this).sx, (*this).sy);
-    gl::MatrixMode(0x1701_i32 as GLenum);
+    gl::MatrixMode(gl::PROJECTION);
     gl::LoadIdentity();
     if (*this).isWindow {
         gl::Translatef(-1.0f32, 1.0f32, 0.0f32);

@@ -15,9 +15,6 @@ pub struct ClipRect {
     pub sy: f32,
     pub enabled: bool,
 }
-pub type GLenum = u32;
-pub type GLsizei = i32;
-pub type GLint = i32;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -68,7 +65,7 @@ pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
     if !this.is_null() && (*this).enabled as i32 != 0 {
         let mut vpSize: IVec2 = IVec2 { x: 0, y: 0 };
         Viewport_GetSize(&mut vpSize);
-        gl::Enable(0xc11_i32 as GLenum);
+        gl::Enable(gl::SCISSOR_TEST);
         let mut x: f32 = (*this).x;
         let mut y: f32 = (*this).y;
         let mut sx: f32 = (*this).sx;
@@ -76,7 +73,7 @@ pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
         TransformRect(&mut x, &mut y, &mut sx, &mut sy);
         gl::Scissor(x as i32, vpSize.y - (y + sy) as i32, sx as i32, sy as i32);
     } else {
-        gl::Disable(0xc11_i32 as GLenum);
+        gl::Disable(gl::SCISSOR_TEST);
     };
 }
 

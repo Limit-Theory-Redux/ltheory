@@ -6,6 +6,10 @@ use libc;
 
 pub type CullFace = i32;
 
+pub const CullFace_None  : CullFace = 0;
+pub const CullFace_Back  : CullFace = 1;
+pub const CullFace_Front : CullFace = 2;
+
 #[no_mangle]
 pub unsafe extern "C" fn CullFace_Pop() {
     RenderState_PopCullFace();

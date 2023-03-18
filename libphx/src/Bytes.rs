@@ -39,7 +39,7 @@ pub unsafe extern "C" fn Bytes_Create(mut size: u32) -> *mut Bytes {
             .wrapping_add(size as usize),
     ) as *mut Bytes;
     (*this).size = size;
-    (*this).cursor = 0_i32 as u32;
+    (*this).cursor = 0_u32;
     this
 }
 
@@ -123,7 +123,7 @@ pub unsafe extern "C" fn Bytes_GetCursor(mut this: *mut Bytes) -> u32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Rewind(mut this: *mut Bytes) {
-    (*this).cursor = 0_i32 as u32;
+    (*this).cursor = 0_u32;
 }
 
 #[no_mangle]
@@ -359,7 +359,7 @@ pub unsafe extern "C" fn Bytes_Print(mut this: *mut Bytes) {
         b"%d bytes:\n\0" as *const u8 as *const libc::c_char,
         (*this).size,
     );
-    let mut i: u32 = 0_i32 as u32;
+    let mut i: u32 = 0_u32;
     while i < (*this).size {
         libc::putchar(*(&mut (*this).data as *mut libc::c_char).offset(i as isize) as i32);
         i = i.wrapping_add(1);

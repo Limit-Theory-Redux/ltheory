@@ -98,7 +98,7 @@ pub unsafe extern "C" fn Hash_Murmur3(mut key: *const libc::c_void, mut len: i32
     let mut data: *const u8 = key as *const u8;
     let mut h1: u32 = 0xdeadbeef_u32;
     let c1: u32 = 0xcc9e2d51_u32;
-    let c2: u32 = 0x1b873593_i32 as u32;
+    let c2: u32 = 0x1b873593_u32;
     let nblocks: i32 = len / 4_i32;
     let mut blocks: *const u32 = data.offset((nblocks * 4_i32) as isize) as *const u32;
     let mut i: i32 = -nblocks;
@@ -109,11 +109,11 @@ pub unsafe extern "C" fn Hash_Murmur3(mut key: *const libc::c_void, mut len: i32
         k1 = k1.wrapping_mul(c2);
         h1 ^= k1;
         h1 = rotl32(h1, 13_i32 as i8);
-        h1 = h1.wrapping_mul(5_i32 as u32).wrapping_add(0xe6546b64_u32);
+        h1 = h1.wrapping_mul(5_u32).wrapping_add(0xe6546b64_u32);
         i += 1;
     }
     let mut tail: *const u8 = data.offset((nblocks * 4_i32) as isize);
-    let mut k1_0: u32 = 0_i32 as u32;
+    let mut k1_0: u32 = 0_u32;
     let mut current_block_14: u64;
     match len & 3_i32 {
         3 => {

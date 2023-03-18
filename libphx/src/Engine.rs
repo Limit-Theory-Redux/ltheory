@@ -74,7 +74,7 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
             );
             Fatal(b"Engine_Init: Terminating.\0" as *const u8 as *const libc::c_char);
         }
-        if SDL_Init(0_i32 as u32) != 0 {
+        if SDL_Init(0_u32) != 0 {
             Fatal(b"Engine_Init: Failed to initialize SDL\0" as *const u8 as *const libc::c_char);
         }
         if !Directory_Create(b"log\0" as *const u8 as *const libc::c_char) {

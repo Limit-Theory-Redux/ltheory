@@ -5,18 +5,6 @@ use crate::Metric::*;
 use crate::GL::gl;
 use libc;
 
-extern "C" {
-    static mut __glewCheckFramebufferStatus: PFNGLCHECKFRAMEBUFFERSTATUSPROC;
-}
-
-pub type Metric = i32;
-pub type GLbitfield = u32;
-pub type GLclampf = f32;
-pub type GLenum = u32;
-pub type PFNGLCHECKFRAMEBUFFERSTATUSPROC = Option<unsafe extern "C" fn(GLenum) -> GLenum>;
-pub type GLclampd = f64;
-pub type GLfloat = f32;
-
 static mut alphaStack: [f32; 16] = [0.; 16];
 
 static mut alphaIndex: i32 = -1_i32;
@@ -76,7 +64,7 @@ pub unsafe extern "C" fn Draw_Axes(
     let mut left: Vec3 = *pos + (*x) * scale;
     let mut up: Vec3 = *pos + (*y) * scale;
     let mut forward: Vec3 = *pos + (*z) * scale;
-    gl::Begin(0x1_i32 as GLenum);
+    gl::Begin(gl::LINES);
     gl::Color4f(1.0f32, 0.25f32, 0.25f32, _alpha);
     gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
     gl::Vertex3f(left.x, left.y, left.z);
@@ -87,7 +75,7 @@ pub unsafe extern "C" fn Draw_Axes(
     gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
     gl::Vertex3f(forward.x, forward.y, forward.z);
     gl::End();
-    gl::Begin(0_i32 as GLenum);
+    gl::Begin(gl::POINTS);
     gl::Color4f(1.0f32, 1.0f32, 1.0f32, _alpha);
     gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
     gl::End();
@@ -135,28 +123,28 @@ pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3) {
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Clear(mut r: f32, mut g: f32, mut b: f32, mut a: f32) {
     let mut status: i32 =
-        __glewCheckFramebufferStatus.expect("non-null function pointer")(gl::FRAMEBUFFER)
+        gl::CheckFramebufferStatus(gl::FRAMEBUFFER)
             as i32;
-    if status != 0x8cd5_i32 {
+    if status != gl::FRAMEBUFFER_COMPLETE as i32 {
         Warn(
             b"Framebuffer is incomplete, skipping clear: %d\0" as *const u8 as *const libc::c_char,
             status,
         );
     } else {
         gl::ClearColor(r, g, b, a);
-        gl::Clear(0x4000_i32 as GLbitfield);
+        gl::Clear(gl::COLOR_BUFFER_BIT);
     };
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_ClearDepth(mut d: f32) {
-    gl::ClearDepth(d as GLclampd);
-    gl::Clear(0x100_i32 as GLbitfield);
+pub unsafe extern "C" fn Draw_ClearDepth(d: f32) {
+    gl::ClearDepth(d as f64);
+    gl::Clear(gl::DEPTH_BUFFER_BIT);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Color(mut r: f32, mut g: f32, mut b: f32, mut a: f32) {
-    let mut alpha: f32 = if alphaIndex >= 0_i32 {
+pub unsafe extern "C" fn Draw_Color(r: f32, g: f32, b: f32, a: f32) {
+    let mut alpha: f32 = if alphaIndex >= 0 {
         alphaStack[alphaIndex as usize]
     } else {
         1.0f32
@@ -172,23 +160,23 @@ pub unsafe extern "C" fn Draw_Flush() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Line(mut x1: f32, mut y1: f32, mut x2: f32, mut y2: f32) {
-    gl::Begin(0x1_i32 as GLenum);
+pub unsafe extern "C" fn Draw_Line(x1: f32, y1: f32, x2: f32, y2: f32) {
+    gl::Begin(gl::LINES);
     gl::Vertex2f(x1, y1);
     gl::Vertex2f(x2, y2);
     gl::End();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Line3(mut p1: *const Vec3, mut p2: *const Vec3) {
-    gl::Begin(0x1_i32 as GLenum);
+pub unsafe extern "C" fn Draw_Line3(p1: *const Vec3, p2: *const Vec3) {
+    gl::Begin(gl::LINES);
     gl::Vertex3f((*p1).x, (*p1).y, (*p1).z);
     gl::Vertex3f((*p2).x, (*p2).y, (*p2).z);
     gl::End();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_LineWidth(mut width: f32) {
+pub unsafe extern "C" fn Draw_LineWidth(width: f32) {
     gl::LineWidth(width);
 }
 
@@ -215,28 +203,28 @@ pub unsafe extern "C" fn Draw_Plane(mut p: *const Vec3, mut n: *const Vec3, mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Point(mut x: f32, mut y: f32) {
-    gl::Begin(0_i32 as GLenum);
+pub unsafe extern "C" fn Draw_Point(x: f32, y: f32) {
+    gl::Begin(gl::POINTS);
     gl::Vertex2f(x, y);
     gl::End();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Point3(mut x: f32, mut y: f32, mut z: f32) {
-    gl::Begin(0_i32 as GLenum);
+pub unsafe extern "C" fn Draw_Point3(x: f32, y: f32, z: f32) {
+    gl::Begin(gl::POINTS);
     gl::Vertex3f(x, y, z);
     gl::End();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_PointSize(mut size: f32) {
+pub unsafe extern "C" fn Draw_PointSize(size: f32) {
     gl::PointSize(size);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Poly(mut points: *const Vec2, mut count: i32) {
+pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
     Metric_AddDrawImm(1_i32, count - 2_i32, count);
-    gl::Begin(0x9_i32 as GLenum);
+    gl::Begin(gl::POLYGON);
     let mut i: i32 = 0_i32;
     while i < count {
         gl::Vertex2f(
@@ -251,7 +239,7 @@ pub unsafe extern "C" fn Draw_Poly(mut points: *const Vec2, mut count: i32) {
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Poly3(mut points: *const Vec3, mut count: i32) {
     Metric_AddDrawImm(1_i32, count - 2_i32, count);
-    gl::Begin(0x9_i32 as GLenum);
+    gl::Begin(gl::POLYGON);
     let mut i: i32 = 0_i32;
     while i < count {
         gl::Vertex3f(
@@ -324,22 +312,22 @@ pub unsafe extern "C" fn Draw_Rect(mut x1: f32, mut y1: f32, mut xs: f32, mut ys
 #[no_mangle]
 pub unsafe extern "C" fn Draw_SmoothLines(mut enabled: bool) {
     if enabled {
-        gl::Enable(0xb20_i32 as GLenum);
-        gl::Hint(0xc52_i32 as GLenum, 0x1102_i32 as GLenum);
+        gl::Enable(gl::LINE_SMOOTH);
+        gl::Hint(gl::LINE_SMOOTH_HINT, gl::NICEST);
     } else {
-        gl::Disable(0xb20_i32 as GLenum);
-        gl::Hint(0xc52_i32 as GLenum, 0x1101_i32 as GLenum);
+        gl::Disable(gl::LINE_SMOOTH);
+        gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
     };
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_SmoothPoints(mut enabled: bool) {
     if enabled {
-        gl::Enable(0xb10_i32 as GLenum);
-        gl::Hint(0xc51_i32 as GLenum, 0x1102_i32 as GLenum);
+        gl::Enable(gl::POINT_SMOOTH);
+        gl::Hint(gl::POINT_SMOOTH_HINT, gl::NICEST);
     } else {
-        gl::Disable(0xb10_i32 as GLenum);
-        gl::Hint(0xc51_i32 as GLenum, 0x1101_i32 as GLenum);
+        gl::Disable(gl::POINT_SMOOTH);
+        gl::Hint(gl::POINT_SMOOTH_HINT, gl::FASTEST);
     };
 }
 
@@ -356,8 +344,10 @@ unsafe extern "C" fn Spherical(mut r: f32, mut yaw: f32, mut pitch: f32) -> Vec3
 pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     let res: usize = 7_i32 as usize;
     let fRes: f32 = res as f32;
+
+     // First Row
     Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3_usize) as i32);
-    gl::Begin(0x4_i32 as GLenum);
+    gl::Begin(gl::TRIANGLES);
     let mut lastTheta: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
     let mut phi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
     let mut tc: Vec3 = *p + Spherical(r, 0.0f32, 0.0f32);
@@ -373,6 +363,8 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
         iTheta = iTheta.wrapping_add(1);
     }
     gl::End();
+
+    // Middle Rows
     Metric_AddDrawImm(
         res.wrapping_sub(2_usize) as i32,
         2_usize.wrapping_mul(res.wrapping_sub(2_usize)) as i32,
@@ -402,8 +394,10 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
         iPhi = iPhi.wrapping_add(1);
     }
     gl::End();
+
+    // Bottom Row
     Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3_usize) as i32);
-    gl::Begin(0x4_i32 as GLenum);
+    gl::Begin(gl::TRIANGLES);
     let mut lastTheta_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
     let mut phi_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::PI;
     let mut bc: Vec3 = *p + Spherical(r, 0.0f32, std::f32::consts::PI);
@@ -424,7 +418,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Tri(mut v1: *const Vec2, mut v2: *const Vec2, mut v3: *const Vec2) {
     Metric_AddDrawImm(1_i32, 1_i32, 3_i32);
-    gl::Begin(0x4_i32 as GLenum);
+    gl::Begin(gl::TRIANGLES);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex2f((*v1).x, (*v1).y);
     gl::TexCoord2f(0.0f32, 1.0f32);
@@ -437,7 +431,7 @@ pub unsafe extern "C" fn Draw_Tri(mut v1: *const Vec2, mut v2: *const Vec2, mut 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Tri3(mut v1: *const Vec3, mut v2: *const Vec3, mut v3: *const Vec3) {
     Metric_AddDrawImm(1_i32, 1_i32, 3_i32);
-    gl::Begin(0x4_i32 as GLenum);
+    gl::Begin(gl::TRIANGLES);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex3f((*v1).x, (*v1).y, (*v1).z);
     gl::TexCoord2f(0.0f32, 1.0f32);

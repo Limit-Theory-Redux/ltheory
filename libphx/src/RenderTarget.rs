@@ -4,6 +4,7 @@ use crate::Math::Vec3;
 use crate::Math::{IVec2, IVec3};
 use crate::Metric::*;
 use crate::Profiler::*;
+use crate::CubeFace::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
@@ -12,31 +13,6 @@ use crate::TexFormat::*;
 use crate::Viewport::*;
 use crate::GL::gl;
 use libc;
-
-extern "C" {
-    static mut __glewDrawBuffers: PFNGLDRAWBUFFERSPROC;
-    static mut __glewBindFramebuffer: PFNGLBINDFRAMEBUFFERPROC;
-    static mut __glewDeleteFramebuffers: PFNGLDELETEFRAMEBUFFERSPROC;
-    static mut __glewFramebufferTexture2D: PFNGLFRAMEBUFFERTEXTURE2DPROC;
-    static mut __glewFramebufferTexture3D: PFNGLFRAMEBUFFERTEXTURE3DPROC;
-    static mut __glewGenFramebuffers: PFNGLGENFRAMEBUFFERSPROC;
-}
-
-pub type CubeFace = i32;
-pub type Metric = i32;
-pub type TexFormat = i32;
-pub type GLenum = u32;
-pub type GLu32 = u32;
-pub type GLint = i32;
-pub type GLsizei = i32;
-pub type PFNGLDRAWBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLenum) -> ()>;
-pub type PFNGLBINDFRAMEBUFFERPROC = Option<unsafe extern "C" fn(GLenum, GLu32) -> ()>;
-pub type PFNGLDELETEFRAMEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLu32) -> ()>;
-pub type PFNGLFRAMEBUFFERTEXTURE2DPROC =
-    Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLu32, GLint) -> ()>;
-pub type PFNGLFRAMEBUFFERTEXTURE3DPROC =
-    Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLu32, GLint, GLint) -> ()>;
-pub type PFNGLGENFRAMEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLu32) -> ()>;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -65,13 +41,13 @@ unsafe extern "C" fn GetActive() -> *mut FBO {
 
 #[inline]
 unsafe extern "C" fn SetDrawBuffers(mut count: i32) {
-    static mut bufs: [GLenum; 4] = [
-        gl::COLOR_ATTACHMENT0 as GLenum,
-        0x8ce1_i32 as GLenum,
-        0x8ce2_i32 as GLenum,
-        0x8ce3_i32 as GLenum,
+    static mut bufs: [gl::types::GLenum; 4] = [
+        gl::COLOR_ATTACHMENT0 as gl::types::GLenum,
+        gl::COLOR_ATTACHMENT1 as gl::types::GLenum,
+        gl::COLOR_ATTACHMENT2 as gl::types::GLenum,
+        gl::COLOR_ATTACHMENT3 as gl::types::GLenum,
     ];
-    __glewDrawBuffers.expect("non-null function pointer")(count, bufs.as_ptr());
+    gl::DrawBuffers(count, bufs.as_ptr());
 }
 
 #[no_mangle]
@@ -88,14 +64,14 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     }
     fboIndex += 1;
     let mut this: *mut FBO = GetActive();
-    (*this).handle = 0_i32 as u32;
+    (*this).handle = 0_u32;
     (*this).colorIndex = 0_i32;
     (*this).sx = sx;
     (*this).sy = sy;
     (*this).depth = false;
     Metric_Inc(0x7_i32);
-    __glewGenFramebuffers.expect("non-null function pointer")(1_i32, &mut (*this).handle);
-    __glewBindFramebuffer.expect("non-null function pointer")(gl::FRAMEBUFFER, (*this).handle);
+    gl::GenFramebuffers(1_i32, &mut (*this).handle);
+    gl::BindFramebuffer(gl::FRAMEBUFFER, (*this).handle);
     Viewport_Push(0_i32, 0_i32, sx, sy, false);
     Profiler_End();
 }
@@ -113,7 +89,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
     }
     let mut i: u32 = 0;
     while i < 4 {
-        __glewFramebufferTexture2D.expect("non-null function pointer")(
+        gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
             gl::COLOR_ATTACHMENT0 + i,
             gl::TEXTURE_2D,
@@ -122,26 +98,26 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
         );
         i += 1;
     }
-    __glewFramebufferTexture2D.expect("non-null function pointer")(
+    gl::FramebufferTexture2D(
         gl::FRAMEBUFFER,
         gl::DEPTH_ATTACHMENT,
         gl::TEXTURE_2D,
         0,
         0_i32,
     );
-    __glewDeleteFramebuffers.expect("non-null function pointer")(
+    gl::DeleteFramebuffers(
         1_i32,
         &mut (*fboStack.as_mut_ptr().offset(fboIndex as isize)).handle,
     );
     fboIndex -= 1;
     Metric_Inc(0x7_i32);
     if fboIndex >= 0_i32 {
-        __glewBindFramebuffer.expect("non-null function pointer")(
+        gl::BindFramebuffer(
             gl::FRAMEBUFFER,
             (*GetActive()).handle,
         );
     } else {
-        __glewBindFramebuffer.expect("non-null function pointer")(
+        gl::BindFramebuffer(
             gl::FRAMEBUFFER,
             0,
         );
@@ -166,7 +142,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
                     as *const libc::c_char,
             );
         }
-        __glewFramebufferTexture2D.expect("non-null function pointer")(
+        gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
             gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
             gl::TEXTURE_2D,
@@ -182,7 +158,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
                     as *const libc::c_char,
             );
         }
-        __glewFramebufferTexture2D.expect("non-null function pointer")(
+        gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
             gl::DEPTH_ATTACHMENT,
             gl::TEXTURE_2D,
@@ -213,7 +189,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
     }
 
     let mut handle: u32 = Tex3D_GetHandle(tex);
-    __glewFramebufferTexture3D.expect("non-null function pointer")(
+    gl::FramebufferTexture3D(
         gl::FRAMEBUFFER,
         gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
         gl::TEXTURE_3D,
@@ -245,10 +221,10 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     }
     let mut handle: u32 = TexCube_GetHandle(tex);
 
-    __glewFramebufferTexture2D.expect("non-null function pointer")(
+    gl::FramebufferTexture2D(
         gl::FRAMEBUFFER,
         gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
-        face as GLenum,
+        face as u32,
         handle,
         level,
     );

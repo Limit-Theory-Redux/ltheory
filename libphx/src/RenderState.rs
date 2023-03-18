@@ -1,18 +1,10 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
+use crate::BlendMode::*;
+use crate::CullFace::*;
 use crate::GL::gl;
 use libc;
-
-extern "C" {
-    static mut __glewBlendFuncSeparate: PFNGLBLENDFUNCSEPARATEPROC;
-}
-pub type BlendMode = i32;
-pub type CullFace = i32;
-pub type GLenum = u32;
-pub type GLboolean = libc::c_uchar;
-pub type PFNGLBLENDFUNCSEPARATEPROC =
-    Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLenum) -> ()>;
 
 static mut wireframe: [bool; 16] = [false; 16];
 
@@ -35,29 +27,29 @@ static mut depthWritable: [bool; 16] = [false; 16];
 static mut depthWritableIndex: i32 = -1_i32;
 
 #[inline]
-unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
+unsafe extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
     match mode {
-        0 => {
-            __glewBlendFuncSeparate.expect("non-null function pointer")(
-                1_i32 as GLenum,
-                1_i32 as GLenum,
-                1_i32 as GLenum,
-                1_i32 as GLenum,
+        BlendMode_Additive => {
+            gl::BlendFuncSeparate(
+                gl::ONE,
+                gl::ONE,
+                gl::ONE,
+                gl::ONE,
             );
         }
-        1 => {
-            __glewBlendFuncSeparate.expect("non-null function pointer")(
-                0x302_i32 as GLenum,
-                0x303_i32 as GLenum,
-                1_i32 as GLenum,
-                0x303_i32 as GLenum,
+        BlendMode_Alpha => {
+            gl::BlendFuncSeparate(
+                gl::SRC_ALPHA,
+                gl::ONE_MINUS_SRC_ALPHA,
+                gl::ONE,
+                gl::ONE_MINUS_SRC_ALPHA,
             );
         }
-        3 => {
-            gl::BlendFunc(1_i32 as GLenum, 0x303_i32 as GLenum);
+        BlendMode_PreMultAlpha => {
+            gl::BlendFunc(gl::ONE, gl::ONE_MINUS_SRC_ALPHA);
         }
-        2 => {
-            gl::BlendFunc(1_i32 as GLenum, 0_i32 as GLenum);
+        BlendMode_Disabled => {
+            gl::BlendFunc(gl::ONE, gl::ZERO);
         }
         _ => {}
     }
@@ -66,41 +58,41 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
 #[inline]
 unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
     match mode {
-        0 => {
-            gl::Disable(0xb44_i32 as GLenum);
+        CullFace_None => {
+            gl::Disable(gl::CULL_FACE);
         }
-        1 => {
-            gl::Enable(0xb44_i32 as GLenum);
-            gl::CullFace(0x405_i32 as GLenum);
+        CullFace_Back => {
+            gl::Enable(gl::CULL_FACE);
+            gl::CullFace(gl::BACK);
         }
-        2 => {
-            gl::Enable(0xb44_i32 as GLenum);
-            gl::CullFace(0x404_i32 as GLenum);
+        CullFace_Front => {
+            gl::Enable(gl::CULL_FACE);
+            gl::CullFace(gl::FRONT);
         }
         _ => {}
     }
 }
 
 #[inline]
-unsafe extern "C" fn RenderState_SetDepthTest(mut enabled: bool) {
+unsafe extern "C" fn RenderState_SetDepthTest(enabled: bool) {
     if enabled {
-        gl::Enable(0xb71_i32 as GLenum);
+        gl::Enable(gl::DEPTH_TEST);
     } else {
-        gl::Disable(0xb71_i32 as GLenum);
+        gl::Disable(gl::DEPTH_TEST);
     };
 }
 
 #[inline]
-unsafe extern "C" fn RenderState_SetDepthWritable(mut enabled: bool) {
-    gl::DepthMask(enabled as GLboolean);
+unsafe extern "C" fn RenderState_SetDepthWritable(enabled: bool) {
+    gl::DepthMask(enabled as gl::types::GLboolean);
 }
 
 #[inline]
 unsafe extern "C" fn RenderState_SetWireframe(mut enabled: bool) {
     if enabled {
-        gl::PolygonMode(0x408_i32 as GLenum, 0x1b01_i32 as GLenum);
+        gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
     } else {
-        gl::PolygonMode(0x408_i32 as GLenum, 0x1b02_i32 as GLenum);
+        gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
     };
 }
 

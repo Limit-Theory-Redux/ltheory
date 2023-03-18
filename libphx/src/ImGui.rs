@@ -16,9 +16,6 @@ use crate::Shader::*;
 use crate::Tex2D::*;
 use libc;
 
-pub type BlendMode = i32;
-pub type Button = i32;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ImGui {
@@ -378,7 +375,7 @@ unsafe extern "C" fn HashNext() -> u64 {
 
 #[inline]
 unsafe extern "C" fn HashPeekNext() -> u64 {
-    let mut index: u32 = ((*this.widget).index).wrapping_add(1_i32 as u32);
+    let mut index: u32 = ((*this.widget).index).wrapping_add(1_u32);
     Hash_FNV64_Incremental(
         (*this.widget).hash,
         &mut index as *mut u32 as *const libc::c_void,
@@ -474,7 +471,7 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
     TransformSize(&mut sx, &mut sy);
     let mut widget: *mut ImGuiWidget = MemPool_Alloc(this.widgetPool) as *mut ImGuiWidget;
     (*widget).prev = this.widget;
-    (*widget).index = 0_i32 as u32;
+    (*widget).index = 0_u32;
     (*widget).pos = Vec2::new(this.cursor.x, this.cursor.y);
     (*widget).size = Vec2::new(sx, sy);
     if !(this.widget).is_null() {
@@ -559,7 +556,7 @@ unsafe extern "C" fn ImGui_PushLayer(mut clip: bool) -> *mut ImGuiLayer {
     (*layer).next = std::ptr::null_mut();
     (*layer).pos = (*this.layout).lower;
     (*layer).size = (*this.layout).size;
-    (*layer).index = 0_i32 as u32;
+    (*layer).index = 0_u32;
     (*layer).clip = clip;
     (*layer).tex2DList = std::ptr::null_mut();
     (*layer).panelList = std::ptr::null_mut();
@@ -743,7 +740,7 @@ unsafe extern "C" fn ImGui_Init() {
     this.clipRect = std::ptr::null_mut();
     this.cursorStack = std::ptr::null_mut();
     this.dragging = 0_i32 as u64;
-    this.data = HashMap_Create(0_i32 as u32, 128_i32 as u32);
+    this.data = HashMap_Create(0_u32, 128_u32);
     this.layoutPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiLayout>() as u32);
     this.widgetPool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiWidget>() as u32);
     this.stylePool = MemPool_CreateAuto(::core::mem::size_of::<ImGuiStyle>() as u32);

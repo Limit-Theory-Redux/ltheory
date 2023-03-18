@@ -19,17 +19,17 @@ pub type va_list = __builtin_va_list;
 unsafe extern "C" fn StrBuffer_GrowTo(mut this: *mut StrBuffer, mut newSize: u32) {
     if (newSize > (*this).capacity) as libc::c_long != 0 {
         while (*this).capacity < newSize {
-            (*this).capacity = (*this).capacity.wrapping_mul(2_i32 as u32);
+            (*this).capacity = (*this).capacity.wrapping_mul(2_u32);
         }
         (*this).data = MemRealloc(
             (*this).data as *mut libc::c_void,
-            ((*this).capacity).wrapping_add(1_i32 as u32) as usize,
+            ((*this).capacity).wrapping_add(1_u32) as usize,
         ) as *mut libc::c_char;
         MemSet(
             ((*this).data).offset((*this).size as isize) as *mut libc::c_void,
             0_i32,
             ((*this).capacity)
-                .wrapping_add(1_i32 as u32)
+                .wrapping_add(1_u32)
                 .wrapping_sub((*this).size) as usize,
         );
     }
@@ -53,8 +53,8 @@ unsafe extern "C" fn StrBuffer_AppendData(
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_Create(mut capacity: u32) -> *mut StrBuffer {
     let mut this: *mut StrBuffer = MemAlloc(::core::mem::size_of::<StrBuffer>()) as *mut StrBuffer;
-    (*this).data = MemAllocZero(capacity.wrapping_add(1_i32 as u32) as usize) as *mut libc::c_char;
-    (*this).size = 0_i32 as u32;
+    (*this).data = MemAllocZero(capacity.wrapping_add(1_u32) as usize) as *mut libc::c_char;
+    (*this).size = 0_u32;
     (*this).capacity = capacity;
     this
 }

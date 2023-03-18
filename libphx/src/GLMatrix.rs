@@ -6,11 +6,6 @@ use crate::Matrix::*;
 use crate::GL::gl;
 use libc;
 
-pub type GLdouble = f64;
-pub type GLfloat = f32;
-pub type GLenum = u32;
-pub type GLint = i32;
-
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Clear() {
     gl::LoadIdentity();
@@ -73,12 +68,12 @@ pub unsafe extern "C" fn GLMatrix_LookAt(
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_ModeP() {
-    gl::MatrixMode(0x1701_i32 as GLenum);
+    gl::MatrixMode(gl::PROJECTION);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_ModeWV() {
-    gl::MatrixMode(0x1700_i32 as GLenum);
+    gl::MatrixMode(gl::MODELVIEW);
 }
 
 #[no_mangle]
@@ -155,19 +150,21 @@ pub unsafe extern "C" fn GLMatrix_PushClear() {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
-    let mut matrixMode: GLint = 0;
-    gl::GetIntegerv(0xba0_i32 as GLenum, &mut matrixMode);
-    match matrixMode {
-        5888 => {
-            matrixMode = 0xba6_i32;
+    let mut matrixMode: gl::types::GLint = 0;
+    gl::GetIntegerv(gl::MATRIX_MODE, &mut matrixMode);
+
+    match matrixMode as u32 {
+        gl::MODELVIEW => {
+            matrixMode = gl::MODELVIEW_MATRIX as i32;
         }
-        5889 => {
-            matrixMode = 0xba7_i32;
+        gl::PROJECTION => {
+            matrixMode = gl::PROJECTION_MATRIX as i32;
         }
-        6144 | 5890 | _ => return std::ptr::null_mut(),
+        gl::COLOR | gl::TEXTURE | _ => return std::ptr::null_mut(),
     }
+
     let mut matrix: *mut Matrix = Matrix_Identity();
-    gl::GetFloatv(matrixMode as GLenum, matrix as *mut f32);
+    gl::GetFloatv(matrixMode as gl::types::GLenum, matrix as *mut f32);
     matrix
 }
 
@@ -175,9 +172,9 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
 pub unsafe extern "C" fn GLMatrix_RotateX(mut angle: f64) {
     gl::Rotated(
         angle,
-        1_i32 as GLdouble,
-        0_i32 as GLdouble,
-        0_i32 as GLdouble,
+        1.0f64,
+        0.0f64,
+        0.0f64,
     );
 }
 
@@ -185,9 +182,9 @@ pub unsafe extern "C" fn GLMatrix_RotateX(mut angle: f64) {
 pub unsafe extern "C" fn GLMatrix_RotateY(mut angle: f64) {
     gl::Rotated(
         angle,
-        0_i32 as GLdouble,
-        1_i32 as GLdouble,
-        0_i32 as GLdouble,
+        0.0f64,
+        1.0f64,
+        0.0f64,
     );
 }
 
@@ -195,9 +192,9 @@ pub unsafe extern "C" fn GLMatrix_RotateY(mut angle: f64) {
 pub unsafe extern "C" fn GLMatrix_RotateZ(mut angle: f64) {
     gl::Rotated(
         angle,
-        0_i32 as GLdouble,
-        0_i32 as GLdouble,
-        1_i32 as GLdouble,
+        0.0f64,
+        0.0f64,
+        1.0f64,
     );
 }
 

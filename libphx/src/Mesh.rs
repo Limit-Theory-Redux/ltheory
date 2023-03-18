@@ -12,16 +12,6 @@ use crate::GL::gl;
 use libc;
 use memoffset::{offset_of, span_of};
 
-extern "C" {
-    static mut __glewBindBuffer: PFNGLBINDBUFFERPROC;
-    static mut __glewBufferData: PFNGLBUFFERDATAPROC;
-    static mut __glewDeleteBuffers: PFNGLDELETEBUFFERSPROC;
-    static mut __glewGenBuffers: PFNGLGENBUFFERSPROC;
-    static mut __glewDisableVertexAttribArray: PFNGLDISABLEVERTEXATTRIBARRAYPROC;
-    static mut __glewEnableVertexAttribArray: PFNGLENABLEVERTEXATTRIBARRAYPROC;
-    static mut __glewVertexAttribPointer: PFNGLVERTEXATTRIBPOINTERPROC;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Mesh {
@@ -54,25 +44,6 @@ pub struct Computed {
     pub bound: Box3,
     pub radius: f32,
 }
-
-pub type ResourceType = i32;
-pub type GLu32 = u32;
-pub type PFNGLDELETEBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *const GLu32) -> ()>;
-pub type GLsizei = i32;
-pub type GLenum = u32;
-pub type PFNGLBINDBUFFERPROC = Option<unsafe extern "C" fn(GLenum, GLu32) -> ()>;
-pub type PFNGLDISABLEVERTEXATTRIBARRAYPROC = Option<unsafe extern "C" fn(GLu32) -> ()>;
-pub type GLboolean = libc::c_uchar;
-pub type PFNGLVERTEXATTRIBPOINTERPROC = Option<
-    unsafe extern "C" fn(GLu32, GLint, GLenum, GLboolean, GLsizei, *const libc::c_void) -> (),
->;
-pub type GLint = i32;
-pub type PFNGLENABLEVERTEXATTRIBARRAYPROC = Option<unsafe extern "C" fn(GLu32) -> ()>;
-pub type GLsizeiptr = libc::ptrdiff_t;
-pub type PFNGLBUFFERDATAPROC =
-    Option<unsafe extern "C" fn(GLenum, GLsizeiptr, *const libc::c_void, GLenum) -> ()>;
-pub type PFNGLGENBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLu32) -> ()>;
-pub type GLfloat = f32;
 
 #[inline]
 unsafe extern "C" fn Vec2_Validate(mut v: Vec2) -> Error {
@@ -113,9 +84,9 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
     let mut this: *mut Mesh = MemAlloc(::core::mem::size_of::<Mesh>()) as *mut Mesh;
-    (*this)._refCount = 1_i32 as u32;
-    (*this).vbo = 0_i32 as u32;
-    (*this).ibo = 0_i32 as u32;
+    (*this)._refCount = 1_u32;
+    (*this).vbo = 0_u32;
+    (*this).ibo = 0_u32;
     (*this).version = 1_i32 as u64;
     (*this).versionBuffers = 0_i32 as u64;
     (*this).versionInfo = 0_i32 as u64;
@@ -183,13 +154,13 @@ pub unsafe extern "C" fn Mesh_Acquire(mut this: *mut Mesh) {
 pub unsafe extern "C" fn Mesh_Free(mut this: *mut Mesh) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0_i32 as u32
+        (*this)._refCount <= 0_u32
     } {
         MemFree((*this).vertex_data as *const libc::c_void);
         MemFree((*this).index_data as *const libc::c_void);
         if (*this).vbo != 0 {
-            __glewDeleteBuffers.expect("non-null function pointer")(1_i32, &mut (*this).vbo);
-            __glewDeleteBuffers.expect("non-null function pointer")(1_i32, &mut (*this).ibo);
+            gl::DeleteBuffers(1_i32, &mut (*this).vbo);
+            gl::DeleteBuffers(1_i32, &mut (*this).ibo);
         }
         MemFree(this as *const libc::c_void);
     }
@@ -365,59 +336,71 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(mut this: *mut Mesh, mut vertex: *con
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
+    /* Release cached GL buffers if the mesh has changed since we built them. */
     if (*this).vbo != 0 && (*this).version != (*this).versionBuffers {
-        __glewDeleteBuffers.expect("non-null function pointer")(1_i32, &mut (*this).vbo);
-        __glewDeleteBuffers.expect("non-null function pointer")(1_i32, &mut (*this).ibo);
-        (*this).vbo = 0_i32 as u32;
-        (*this).ibo = 0_i32 as u32;
+        gl::DeleteBuffers(1_i32, &mut (*this).vbo);
+        gl::DeleteBuffers(1_i32, &mut (*this).ibo);
+        (*this).vbo = 0_u32;
+        (*this).ibo = 0_u32;
     }
+
+  /* Generate cached GL buffers for fast drawing. */
     if (*this).vbo == 0 {
-        __glewGenBuffers.expect("non-null function pointer")(1_i32, &mut (*this).vbo);
-        __glewGenBuffers.expect("non-null function pointer")(1_i32, &mut (*this).ibo);
-        __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, (*this).vbo);
-        __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, (*this).ibo);
-        __glewBufferData.expect("non-null function pointer")(
-            0x8892_i32 as GLenum,
+        gl::GenBuffers(1_i32, &mut (*this).vbo);
+        gl::GenBuffers(1_i32, &mut (*this).ibo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, (*this).vbo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, (*this).ibo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
             ((*this).vertex_size as usize).wrapping_mul(::core::mem::size_of::<Vertex>())
-                as GLsizeiptr,
+                as gl::types::GLsizeiptr,
             (*this).vertex_data as *const libc::c_void,
-            0x88e4_i32 as GLenum,
+            gl::STATIC_DRAW,
         );
-        __glewBufferData.expect("non-null function pointer")(
-            0x8893_i32 as GLenum,
-            ((*this).index_size as usize).wrapping_mul(::core::mem::size_of::<i32>()) as GLsizeiptr,
+
+    /* TODO : 16-bit index optimization */
+    /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
+     *        weren't last time I checked. */
+
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            ((*this).index_size as usize).wrapping_mul(::core::mem::size_of::<i32>()) as gl::types::GLsizeiptr,
             (*this).index_data as *const libc::c_void,
-            0x88e4_i32 as GLenum,
+            gl::STATIC_DRAW,
         );
+
         (*this).versionBuffers = (*this).version;
     }
-    __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, (*this).vbo);
-    __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, (*this).ibo);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(0);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(1_i32 as GLu32);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(2_i32 as GLu32);
-    __glewVertexAttribPointer.expect("non-null function pointer")(
+
+    gl::BindBuffer(gl::ARRAY_BUFFER, (*this).vbo);
+    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, (*this).ibo);
+
+    gl::EnableVertexAttribArray(0);
+    gl::EnableVertexAttribArray(1_u32);
+    gl::EnableVertexAttribArray(2_u32);
+
+    gl::VertexAttribPointer(
         0,
         3_i32,
         gl::FLOAT,
-        0_i32 as GLboolean,
-        ::core::mem::size_of::<Vertex>() as GLsizei,
+        gl::FALSE,
+        ::core::mem::size_of::<Vertex>() as gl::types::GLsizei,
         offset_of!(Vertex, p) as *const libc::c_void,
     );
-    __glewVertexAttribPointer.expect("non-null function pointer")(
-        1_i32 as GLu32,
+    gl::VertexAttribPointer(
+        1_u32,
         3_i32,
         gl::FLOAT,
-        0_i32 as GLboolean,
-        ::core::mem::size_of::<Vertex>() as GLsizei,
+        gl::FALSE,
+        ::core::mem::size_of::<Vertex>() as gl::types::GLsizei,
         offset_of!(Vertex, n) as *const libc::c_void,
     );
-    __glewVertexAttribPointer.expect("non-null function pointer")(
-        2_i32 as GLu32,
+    gl::VertexAttribPointer(
+        2_u32,
         2_i32,
         gl::FLOAT,
-        0_i32 as GLboolean,
-        ::core::mem::size_of::<Vertex>() as GLsizei,
+        gl::FALSE,
+        ::core::mem::size_of::<Vertex>() as gl::types::GLsizei,
         offset_of!(Vertex, uv) as *const libc::c_void,
     );
 }
@@ -430,7 +413,7 @@ pub unsafe extern "C" fn Mesh_DrawBound(mut this: *mut Mesh) {
         (*this).vertex_size,
     );
     gl::DrawElements(
-        0x4_i32 as GLenum,
+        gl::TRIANGLES,
         (*this).index_size,
         gl::UNSIGNED_INT,
         std::ptr::null(),
@@ -439,11 +422,11 @@ pub unsafe extern "C" fn Mesh_DrawBound(mut this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawUnbind(mut _this: *mut Mesh) {
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(0);
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(1_i32 as GLu32);
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(2_i32 as GLu32);
-    __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, 0);
-    __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, 0);
+    gl::DisableVertexAttribArray(0);
+    gl::DisableVertexAttribArray(1_u32);
+    gl::DisableVertexAttribArray(2_u32);
+    gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
 }
 
 #[no_mangle]
@@ -455,7 +438,7 @@ pub unsafe extern "C" fn Mesh_Draw(mut this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawNormals(mut this: *mut Mesh, mut scale: f32) {
-    gl::Begin(0x1_i32 as GLenum);
+    gl::Begin(gl::LINES);
     let mut v: *mut Vertex = (*this).vertex_data;
     let mut __iterend: *mut Vertex = ((*this).vertex_data).offset((*this).vertex_size as isize);
     while v < __iterend {
@@ -532,8 +515,8 @@ pub unsafe extern "C" fn Mesh_Validate(mut this: *mut Mesh) -> Error {
         triangle.vertices[1] = (*vertexData.offset(i1 as isize)).p;
         triangle.vertices[2] = (*vertexData.offset(i2 as isize)).p;
         let mut e: Error = Triangle_Validate(&mut triangle);
-        if e != 0_i32 as u32 {
-            return 0x400000_i32 as u32 | e;
+        if e != 0_u32 {
+            return 0x400000_u32 | e;
         }
         i += 3_i32;
     }
@@ -542,16 +525,16 @@ pub unsafe extern "C" fn Mesh_Validate(mut this: *mut Mesh) -> Error {
     while v < __iterend {
         let mut e_0: Error = 0;
         e_0 = Vec3_Validate((*v).p);
-        if e_0 != 0_i32 as u32 {
-            return 0x400000_i32 as u32 | e_0;
+        if e_0 != 0_u32 {
+            return 0x400000_u32 | e_0;
         }
         e_0 = Vec3_Validate((*v).n);
-        if e_0 != 0_i32 as u32 {
-            return 0x800000_i32 as u32 | e_0;
+        if e_0 != 0_u32 {
+            return 0x800000_u32 | e_0;
         }
         e_0 = Vec2_Validate((*v).uv);
-        if e_0 != 0_i32 as u32 {
-            return 0x1000000_i32 as u32 | e_0;
+        if e_0 != 0_u32 {
+            return 0x1000000_u32 | e_0;
         }
         v = v.offset(1);
     }

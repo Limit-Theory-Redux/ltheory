@@ -82,7 +82,7 @@ pub unsafe extern "C" fn Window_SetFullscreen(mut this: *mut Window, mut fs: boo
         if fs {
             WindowMode_Fullscreen
         } else {
-            0_i32 as u32
+            0_u32
         },
     );
 }

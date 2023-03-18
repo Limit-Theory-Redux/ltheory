@@ -7,15 +7,8 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
+use crate::GL::gl;
 use libc;
-
-extern "C" {
-    static mut __glewUniform1f: PFNGLUNIFORM1FPROC;
-    static mut __glewUniform1i: PFNGLUNIFORM1IPROC;
-    static mut __glewUniform2f: PFNGLUNIFORM2FPROC;
-    static mut __glewUniform3f: PFNGLUNIFORM3FPROC;
-    static mut __glewUniform4f: PFNGLUNIFORM4FPROC;
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -49,50 +42,42 @@ pub union C2RustUnnamed {
     pub asTex3D: *mut Tex3D,
     pub asTexCube: *mut TexCube,
 }
-pub type GLint = i32;
-pub type GLfloat = f32;
-pub type PFNGLUNIFORM1FPROC = Option<unsafe extern "C" fn(GLint, GLfloat) -> ()>;
-pub type PFNGLUNIFORM1IPROC = Option<unsafe extern "C" fn(GLint, GLint) -> ()>;
-pub type PFNGLUNIFORM2FPROC = Option<unsafe extern "C" fn(GLint, GLfloat, GLfloat) -> ()>;
-pub type PFNGLUNIFORM3FPROC = Option<unsafe extern "C" fn(GLint, GLfloat, GLfloat, GLfloat) -> ()>;
-pub type PFNGLUNIFORM4FPROC =
-    Option<unsafe extern "C" fn(GLint, GLfloat, GLfloat, GLfloat, GLfloat) -> ()>;
 
 #[no_mangle]
-pub static ElemType_Float: u32 = 1_i32 as u32;
+pub static ElemType_Float: u32 = 1_u32;
 
 #[no_mangle]
-pub static ElemType_Float2: u32 = 2_i32 as u32;
+pub static ElemType_Float2: u32 = 2_u32;
 
 #[no_mangle]
-pub static ElemType_Float3: u32 = 3_i32 as u32;
+pub static ElemType_Float3: u32 = 3_u32;
 
 #[no_mangle]
-pub static ElemType_Float4: u32 = 4_i32 as u32;
+pub static ElemType_Float4: u32 = 4_u32;
 
 #[no_mangle]
-pub static ElemType_Int: u32 = 5_i32 as u32;
+pub static ElemType_Int: u32 = 5_u32;
 
 #[no_mangle]
-pub static ElemType_Matrix: u32 = 6_i32 as u32;
+pub static ElemType_Matrix: u32 = 6_u32;
 
 #[no_mangle]
-pub static ElemType_Tex1D: u32 = 7_i32 as u32;
+pub static ElemType_Tex1D: u32 = 7_u32;
 
 #[no_mangle]
-pub static ElemType_Tex2D: u32 = 8_i32 as u32;
+pub static ElemType_Tex2D: u32 = 8_u32;
 
 #[no_mangle]
-pub static ElemType_Tex3D: u32 = 9_i32 as u32;
+pub static ElemType_Tex3D: u32 = 9_u32;
 
 #[no_mangle]
-pub static ElemType_TexCube: u32 = 10_i32 as u32;
+pub static ElemType_TexCube: u32 = 10_u32;
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut ShaderState {
     let mut this: *mut ShaderState =
         MemAlloc(::core::mem::size_of::<ShaderState>()) as *mut ShaderState;
-    (*this)._refCount = 1_i32 as u32;
+    (*this)._refCount = 1_u32;
     (*this).elems_capacity = 0_i32;
     (*this).elems_size = 0_i32;
     (*this).elems_data = std::ptr::null_mut();
@@ -110,7 +95,7 @@ pub unsafe extern "C" fn ShaderState_Acquire(mut this: *mut ShaderState) {
 pub unsafe extern "C" fn ShaderState_Free(mut this: *mut ShaderState) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0_i32 as u32
+        (*this)._refCount <= 0_u32
     } {
         let mut e: *mut Elem = (*this).elems_data;
         let mut __iterend: *mut Elem = ((*this).elems_data).offset((*this).elems_size as isize);
@@ -477,17 +462,17 @@ pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
     while e < __iterend {
         match (*e).type_0 {
             1 => {
-                __glewUniform1f.expect("non-null function pointer")((*e).index, (*e).data.asFloat);
+                gl::Uniform1f((*e).index, (*e).data.asFloat);
             }
             2 => {
-                __glewUniform2f.expect("non-null function pointer")(
+                gl::Uniform2f(
                     (*e).index,
                     (*e).data.asFloat2.x,
                     (*e).data.asFloat2.y,
                 );
             }
             3 => {
-                __glewUniform3f.expect("non-null function pointer")(
+                gl::Uniform3f(
                     (*e).index,
                     (*e).data.asFloat3.x,
                     (*e).data.asFloat3.y,
@@ -495,7 +480,7 @@ pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
                 );
             }
             4 => {
-                __glewUniform4f.expect("non-null function pointer")(
+                gl::Uniform4f(
                     (*e).index,
                     (*e).data.asFloat4.x,
                     (*e).data.asFloat4.y,
@@ -504,7 +489,7 @@ pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
                 );
             }
             5 => {
-                __glewUniform1i.expect("non-null function pointer")((*e).index, (*e).data.asInt);
+                gl::Uniform1i((*e).index, (*e).data.asInt);
             }
             6 => {
                 Shader_ISetMatrix((*e).index, (*e).data.asMatrix);

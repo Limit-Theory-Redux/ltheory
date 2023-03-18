@@ -61,10 +61,7 @@ pub struct TriangleTest {
     pub hit: bool,
 }
 
-pub type BlendMode = i32;
 pub type BSPNodeRel = u8;
-pub type CullFace = i32;
-pub type PolygonClassification = u8;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

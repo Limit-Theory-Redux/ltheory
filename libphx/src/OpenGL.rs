@@ -7,10 +7,6 @@ use libc;
 use sdl2_sys::*;
 use crate::GL::gl;
 
-extern "C" {
-    fn glewInit() -> u32;
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
     static mut init: bool = false;
@@ -20,7 +16,6 @@ pub unsafe extern "C" fn OpenGL_Init() {
             let cs = CString::new(s.as_bytes()).unwrap();
             SDL_GL_GetProcAddress(cs.as_ptr())
         });
-        glewInit();
     }
     
     gl::Disable(gl::MULTISAMPLE);
@@ -51,7 +46,7 @@ pub unsafe extern "C" fn OpenGL_Init() {
 
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_CheckError(file: *const libc::c_char, line: i32) {
-    let errorID: GLenum = gl::GetError();
+    let errorID: gl::types::GLenum = gl::GetError();
     let mut error: *const libc::c_char = std::ptr::null();
     match errorID {
         0 => return,

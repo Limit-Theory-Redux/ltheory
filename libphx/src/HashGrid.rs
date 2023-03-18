@@ -59,9 +59,9 @@ unsafe extern "C" fn Mini(mut a: i32, mut b: i32) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) -> *mut HashGrid {
-    let mut logCount: u32 = 0_i32 as u32;
-    while cellCount > 1_i32 as u32 {
-        cellCount = cellCount.wrapping_div(2_i32 as u32);
+    let mut logCount: u32 = 0_u32;
+    while cellCount > 1_u32 {
+        cellCount = cellCount.wrapping_div(2_u32);
         logCount = logCount.wrapping_add(1);
     }
     cellCount = (1_i32 << logCount) as u32;
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
     (*this).results_capacity = 0_i32;
     (*this).results_size = 0_i32;
     (*this).results_data = std::ptr::null_mut();
-    let mut i: u32 = 0_i32 as u32;
+    let mut i: u32 = 0_u32;
     while i < cellCount {
         (*((*this).cells).offset(i as isize)).elems_capacity = 0_i32;
         (*((*this).cells).offset(i as isize)).elems_size = 0_i32;
@@ -94,7 +94,7 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Free(mut this: *mut HashGrid) {
     MemFree((*this).results_data as *const libc::c_void);
-    let mut i: u32 = 0_i32 as u32;
+    let mut i: u32 = 0_u32;
     while i < (*this).cellCount {
         MemFree((*((*this).cells).offset(i as isize)).elems_data as *const libc::c_void);
         i = i.wrapping_add(1);
@@ -217,7 +217,7 @@ pub unsafe extern "C" fn HashGrid_Add(
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Clear(mut this: *mut HashGrid) {
     (*this).version = 0_i32 as u64;
-    let mut i: u32 = 0_i32 as u32;
+    let mut i: u32 = 0_u32;
     while i < (*this).cellCount {
         (*((*this).cells).offset(i as isize)).elems_size = 0_i32;
         (*((*this).cells).offset(i as isize)).version = 0_i32 as u64;

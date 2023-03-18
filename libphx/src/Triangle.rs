@@ -52,8 +52,8 @@ pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     let mut i: i32 = 0_i32;
     while i < 3_i32 {
         let mut e: Error = Vec3_Validate(*v.offset(i as isize));
-        if e != 0_i32 as u32 {
-            return 0x400000_i32 as u32 | e;
+        if e != 0_u32 {
+            return 0x400000_u32 | e;
         }
         i += 1;
     }

@@ -15,12 +15,6 @@ use crate::TexFormat::*;
 use crate::RNG::*;
 use libc;
 
-pub type CubeFace = i32;
-pub type DataFormat = i32;
-pub type PixelFormat = i32;
-pub type TexFilter = i32;
-pub type TexFormat = i32;
-
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GenIRMap(
     mut this: *mut TexCube,

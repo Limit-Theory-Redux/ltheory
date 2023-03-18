@@ -379,7 +379,7 @@ pub static kRcpGamma: f32 = 1.0f32 / kGamma;
 static mut ft: FT_Library = std::ptr::null_mut();
 
 unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *mut Glyph {
-    if codepoint < 256_i32 as u32 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
+    if codepoint < 256_u32 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
         return (*this).glyphsAscii[codepoint as usize];
     }
     let mut g: *mut Glyph = HashMap_Get(
@@ -417,9 +417,9 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
         MemAlloc((::core::mem::size_of::<Vec4>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
             as *mut Vec4;
     let mut pBuffer: *mut Vec4 = buffer;
-    let mut dy: u32 = 0_i32 as u32;
+    let mut dy: u32 = 0_u32;
     while dy < (*bitmap).rows {
-        let mut dx: u32 = 0_i32 as u32;
+        let mut dx: u32 = 0_u32;
         while dx < (*bitmap).width {
             let mut a: f32 = f64::powf(
                 (*pBitmap.offset(dx as isize) as f32 / 255.0f32) as f64,
@@ -441,7 +441,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
         DataFormat_Float,
     );
     MemFree(buffer as *const libc::c_void);
-    if codepoint < 256_i32 as u32 {
+    if codepoint < 256_u32 {
         (*this).glyphsAscii[codepoint as usize] = g;
     } else {
         HashMap_Set(
@@ -473,7 +473,7 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
     }
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Font, name);
     let mut this: *mut Font = MemAlloc(::core::mem::size_of::<Font>()) as *mut Font;
-    (*this)._refCount = 1_i32 as u32;
+    (*this)._refCount = 1_u32;
     if FT_New_Face(ft, path, 0_i32 as FT_Long, &mut (*this).handle) != 0 {
         Fatal(
             b"Font_Load: Failed to load font <%s> at <%s>\0" as *const u8 as *const libc::c_char,
@@ -486,7 +486,7 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
         ((*this).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
         ::core::mem::size_of::<[*mut Glyph; 256]>(),
     );
-    (*this).glyphs = HashMap_Create(::core::mem::size_of::<u32>() as u32, 16_i32 as u32);
+    (*this).glyphs = HashMap_Create(::core::mem::size_of::<u32>() as u32, 16_u32);
     this
 }
 
@@ -499,7 +499,7 @@ pub unsafe extern "C" fn Font_Acquire(mut this: *mut Font) {
 pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0_i32 as u32
+        (*this)._refCount <= 0_u32
     } {
         FT_Done_Face((*this).handle);
         MemFree(this as *const libc::c_void);
