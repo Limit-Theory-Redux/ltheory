@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
 use crate::HashMap::*;
-use crate::PhxSignal::*;
+use crate::Signal::*;
 use crate::TimeStamp::*;
 use glam::Vec3;
 use libc;

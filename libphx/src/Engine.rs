@@ -6,7 +6,7 @@ use crate::Joystick::*;
 use crate::Keyboard::*;
 use crate::Metric::*;
 use crate::Mouse::*;
-use crate::PhxSignal::*;
+use crate::Signal::*;
 use crate::Profiler::*;
 use crate::Resource::*;
 use crate::ResourceType::*;

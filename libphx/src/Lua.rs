@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
 use crate::LuaScheduler::*;
-use crate::PhxSignal::*;
+use crate::Signal::*;
 use crate::Resource::*;
 use crate::ResourceType::*;
 use glam::Vec3;
