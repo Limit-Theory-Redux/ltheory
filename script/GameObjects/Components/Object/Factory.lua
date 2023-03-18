@@ -120,18 +120,19 @@ function Factory:updateTradeOrders (prod, dt)
 end
 
 function Factory:update (dt)
-  self.time = self.time + dt
-  if not self:isBlocked() then self.timeOnline = self.timeOnline + dt end
+  if not Config.game.gamePaused then
+    self.time = self.time + dt
+    if not self:isBlocked() then self.timeOnline = self.timeOnline + dt end
 
-  for _, prod in ipairs(self.prods) do
+    for _, prod in ipairs(self.prods) do
 
--- TEMPORARILY DISABLED -- restore this once Trader.lua is working
-    self:updateProduction(prod, dt)
+      self:updateProduction(prod, dt)
 
-    -- NOTE : Disabled trade orders for the moment due to not having limits on
-    --        max active orders, leading to stalling the entire game via tens
-    --        of thousands of individual energy cell orders...
-    -- self:updateTradeOrders(prod, dt)
+      -- NOTE : Disabled trade orders for the moment due to not having limits on
+      --        max active orders, leading to stalling the entire game via tens
+      --        of thousands of individual energy cell orders...
+      self:updateTradeOrders(prod, dt)
+    end
   end
 end
 

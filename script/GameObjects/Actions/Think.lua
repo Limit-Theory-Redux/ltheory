@@ -1,7 +1,7 @@
 local Action = require('GameObjects.Action')
 local Player = require('GameObjects.Entities.Player')
 
-local kJobIterations = 1000 -- how many randomly-chosen jobs the asset will consider before deciding
+local kJobIterations = 5000 -- how many randomly-chosen jobs the asset will consider before deciding
 
 local Think = subclass(Action, function (self)
   self.timer = 0
@@ -89,30 +89,37 @@ if true then -- Use payout, not flow
 
     if asset:isIdle() and not asset:isShipDocked() then
       local system = asset.parent
-      local station = system:sampleStations(system.rng)
+
+      local stations = system:getStationsByDistance(asset)
+      if #stations > 0 and stations[1] ~= nil then
+        local station = stations[1].stationRef
+
 printf("Asset '%s' has no more jobs available, docking at Station '%s'", asset:getName(), station:getName())
-      asset:pushAction(Actions.DockAt(station))
+        asset:pushAction(Actions.DockAt(station))
+      end
     end
   end
 end
 
 function Think:onUpdateActive (e, dt)
-  Profiler.Begin('Action.Think')
-  do -- Manage assets
-    for asset in e:iterAssets() do
-      if asset:getRoot():hasEconomy() and asset:isIdle() then
-        self:manageAsset(asset)
+  if not Config.game.gamePaused then
+    Profiler.Begin('Action.Think')
+    do -- Manage assets
+      for asset in e:iterAssets() do
+        if asset:getRoot():hasEconomy() and asset:isIdle() then
+          self:manageAsset(asset)
+        end
       end
     end
-  end
 
-  self.timer = self.timer + dt
-  do -- Capital expenditure
-    if self.timer > 5 then
-      --
+    self.timer = self.timer + dt
+    do -- Capital expenditure
+      if self.timer > 5 then
+        --
+      end
     end
+    Profiler.End()
   end
-  Profiler.End()
 end
 
 return Think

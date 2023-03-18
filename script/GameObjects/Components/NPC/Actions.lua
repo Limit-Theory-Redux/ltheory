@@ -56,12 +56,14 @@ function Entity:pushAction (action)
 end
 
 function Entity:updateActions (state)
-  if #self.actions == 0 then return end
-  Profiler.Begin('Update Actions')
-  for i, v in ipairs(self.actions) do
-    v:onUpdatePassive(self, state.dt)
-  end
+  if not Config.game.gamePaused then
+    if #self.actions == 0 then return end
+    Profiler.Begin('Update Actions')
+    for i, v in ipairs(self.actions) do
+      v:onUpdatePassive(self, state.dt)
+    end
 
-  self.actions[#self.actions]:onUpdateActive(self, state.dt)
-  Profiler.End()
+    self.actions[#self.actions]:onUpdateActive(self, state.dt)
+    Profiler.End()
+  end
 end

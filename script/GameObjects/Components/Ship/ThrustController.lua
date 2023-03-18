@@ -1,5 +1,4 @@
 local Entity = require('GameObjects.Entity')
--- Game was previously not animating the thrusters because SocketType was assumed to be accessible.
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local thrustMult        = 1

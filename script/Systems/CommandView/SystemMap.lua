@@ -62,17 +62,35 @@ function SystemMap:onDraw (state)
       Draw.PointSize(3.0)
 
       if e:hasActions() then
+        local entAction = e:getCurrentAction()
 --printf("Action: %s", e:getName())
         if Config.game.currentShip == e then
           Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
+          if playerTarget then
+            local tp = playerTarget:getPos()
+            local tx = tp.x - dx
+            local ty = tp.z - dy
+            tx = self.x + tx * Config.game.mapSystemZoom + hx
+            ty = self.y + ty * Config.game.mapSystemZoom + hy
+            UI.DrawEx.Line(x, y, tx, ty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 })
+          end
         else
-          local entAction = e:getCurrentAction()
           if entAction ~= nil then
 --printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
             if string.find(entAction:getName(), "Attack") and entAction.target == Config.game.currentShip then
+              -- TODO: draw in color based on Disposition toward player
               Draw.Color(1.0, 0.3, 0.3, 1.0) -- other ship, hostile (has a current action of "Attack player's ship")
             else
-              Draw.Color(0.2, 0.6, 1.0, 1.0) -- other ship, non-hostile (TODO: divide into friendly [green] and neutral [blue])
+              Draw.Color(0.2, 0.6, 1.0, 1.0) -- other ship, non-hostile
+            end
+            local focusedTarget = e:getTarget()
+            if focusedTarget then
+              local ftp = focusedTarget:getPos()
+              local ftx = ftp.x - dx
+              local fty = ftp.z - dy
+              ftx = self.x + ftx * Config.game.mapSystemZoom + hx
+              fty = self.y + fty * Config.game.mapSystemZoom + hy
+              UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 })
             end
           else
             Draw.Color(1.0, 1.0, 1.0, 1.0) -- some other object that suddenly has no actions
@@ -157,8 +175,22 @@ function SystemMap:onDraw (state)
         dbg:text("Owner: [None]")
       end
       objval = self.focus:getRadius()
+      if string.match(objtype, "Station") then
+        local docked = self.focus:getDocked()
+        if docked and #docked > 0 then
+          table.sort(docked, function (a, b) return a:getName() < b:getName() end)
+          dbg:indent()
+          dbg:text("Docked here:")
+          dbg:indent()
+            for _, v in ipairs(docked) do
+              dbg:text("%s", v:getName())
+            end
+          dbg:undent()
+          dbg:undent()
+        end
+      end
       if string.match(objtype, "Planet") then
-        objval = objval * 9 -- planets needs to be a certain radius for the game currently, so fake their reported radius for printing
+        objval = objval * 9 -- planets need to be a certain radius for the game currently, so fake their reported radius for printing
       end
       objemit = "Radius: %d m"
       if objval > 120000000000 then

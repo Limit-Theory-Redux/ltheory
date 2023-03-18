@@ -212,46 +212,47 @@ local function sortBids (a, b)
 end
 
 function Trader:update ()
-  local rng = self.parent.parent.rng
-
-  for item, data in pairs(self.elems) do
-    -- Move asks from asks queue to asks table
-    if #data.asksQueue > 0 then
-      for i, v in ipairs(data.asksQueue) do insert(data.asks, v) end
-      table.clear(data.asksQueue)
-      table.sort(data.asks, sortAsks)
+  if not Config.game.gamePaused then
+    local rng = self.parent.parent.rng
+    for item, data in pairs(self.elems) do
+      -- Move asks from asks queue to asks table
+      if #data.asksQueue > 0 then
+        for i, v in ipairs(data.asksQueue) do insert(data.asks, v) end
+        table.clear(data.asksQueue)
+        table.sort(data.asks, sortAsks)
 --for i = 1, #data.asks do
 --  printf("ask[%d] = %d", i, data.asks[i])
 --end
-    end
+      end
 
-    -- Move bids from bids queue to bids table
-    if #data.bidsQueue > 0 then
-      for i, v in ipairs(data.bidsQueue) do insert(data.bids, v) end
-      table.clear(data.bidsQueue)
-      table.sort(data.bids, sortBids)
+      -- Move bids from bids queue to bids table
+      if #data.bidsQueue > 0 then
+        for i, v in ipairs(data.bidsQueue) do insert(data.bids, v) end
+        table.clear(data.bidsQueue)
+        table.sort(data.bids, sortBids)
 --for i = 1, #data.bids do
 --  printf("bid[%d] = %d", i, data.bids[i])
 --end
-    end
-
-    -- Possibly decrease ask to increase chance that someone will sell this item to the trader
-    if rng:getInt(0, 100) < 1 then
-      for i = 1, #data.asks do
-        data.asks[i] = math.max(1, data.asks[i] - 1) -- lower price on all asks for this item
       end
-    end
 
-    -- Possibly increase bid to increase chance that someone will buy this item from the trader
-    if rng:getInt(0, 100) < 1 then
-      local raisedPrice = 1
-      if rng:getInt(0, 100) < 2 then
-        raisedPrice = rng:getInt(5, 30) -- rare windfall
+      -- Possibly decrease ask to increase chance that someone will sell this item to the trader
+      if rng:getInt(0, 100) < 1 then
+        for i = 1, #data.asks do
+          data.asks[i] = math.max(1, data.asks[i] - 1) -- lower price on all asks for this item
+        end
       end
-      if self.parent:hasCredits(data.totalBidPrice + raisedPrice * data.totalBid) then
-        -- Trader can cover the increased price
-        for i = 1, #data.bids do
-          data.bids[i] = data.bids[i] + raisedPrice -- raise price on all bids for this item
+
+      -- Possibly increase bid to increase chance that someone will buy this item from the trader
+      if rng:getInt(0, 100) < 1 then
+        local raisedPrice = 1
+        if rng:getInt(0, 100) < 2 then
+          raisedPrice = rng:getInt(5, 30) -- rare windfall
+        end
+        if self.parent:hasCredits(data.totalBidPrice + raisedPrice * data.totalBid) then
+          -- Trader can cover the increased price
+          for i = 1, #data.bids do
+            data.bids[i] = data.bids[i] + raisedPrice -- raise price on all bids for this item
+          end
         end
       end
     end

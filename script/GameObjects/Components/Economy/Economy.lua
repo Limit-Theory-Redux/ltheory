@@ -19,87 +19,89 @@ end)
 -- NOTE : In particular, the evaluation of Mining jobs becomes very expensive as
 --        asteroid count (Yield) and station/planet count (Market) increase.
 function Economy:update (dt)
-  Profiler.Begin('Economy.Update')
-  table.clear(self.factories)
-  table.clear(self.flows)
-  table.clear(self.markets)
-  table.clear(self.jobs)
-  table.clear(self.traders)
-  table.clear(self.yields)
+  if not Config.game.gamePaused then
+    Profiler.Begin('Economy.Update')
+    table.clear(self.factories)
+    table.clear(self.flows)
+    table.clear(self.markets)
+    table.clear(self.jobs)
+    table.clear(self.traders)
+    table.clear(self.yields)
 
-  do -- Cache points-of-interest
-    for _, e in self.parent:iterChildren() do
-      if e:hasFactory() then insert(self.factories, e) end
-      if e:hasFlows() then insert(self.flows, e) end
-      if e:hasMarket() then insert(self.markets, e) end
-      if e:hasTrader() then insert(self.traders, e) end
-      if e:hasYield() then insert(self.yields, e) end
-    end
-  end
-
-  do -- Cache mining jobs
-    for _, src in ipairs(self.yields) do
-      for _, dst in ipairs(self.markets) do
-        insert(self.jobs, Jobs.Mine(src, dst))
+    do -- Cache points-of-interest
+      for _, e in self.parent:iterChildren() do
+        if e:hasFactory() then insert(self.factories, e) end
+        if e:hasFlows() then insert(self.flows, e) end
+        if e:hasMarket() then insert(self.markets, e) end
+        if e:hasTrader() then insert(self.traders, e) end
+        if e:hasYield() then insert(self.yields, e) end
       end
     end
-  end
 
---  if false then  -- INACTIVE
---    do -- Cache trade jobs from positive to negative flow
---      for _, src in ipairs(self.markets) do
---        for item, srcFlow in pairs(src:getFlows()) do
---          if srcFlow > 0 then
---            for _, dst in ipairs(self.markets) do
---              if dst:getFlow(item) < 0 then
---                insert(self.jobs, Jobs.Transport(src, dst, item))
+    do -- Cache mining jobs
+      for _, src in ipairs(self.yields) do
+        for _, dst in ipairs(self.markets) do
+          insert(self.jobs, Jobs.Mine(src, dst))
+        end
+      end
+    end
+
+--    if false then  -- INACTIVE
+--      do -- Cache trade jobs from positive to negative flow
+--        for _, src in ipairs(self.markets) do
+--          for item, srcFlow in pairs(src:getFlows()) do
+--            if srcFlow > 0 then
+--              for _, dst in ipairs(self.markets) do
+--                if dst:getFlow(item) < 0 then
+--                  insert(self.jobs, Jobs.Transport(src, dst, item))
+--                end
 --              end
 --            end
 --          end
 --        end
 --      end
 --    end
---  end
 
-  -- Cache profitable trade offers
-  for _, src in ipairs(self.traders) do
-    for item, data in pairs(src:getTrader().elems) do
-      local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
+    -- Cache profitable trade offers
+    for _, src in ipairs(self.traders) do
+      for item, data in pairs(src:getTrader().elems) do
+        local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
 --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
-      if buyPrice > 0 then
-        for _, dst in ipairs(self.traders) do
-          if src ~= dst then
-            local sellPrice = dst:getTrader():getSellToPrice(item, 1)
+        if buyPrice > 0 then
+          for _, dst in ipairs(self.traders) do
+            if src ~= dst then
+              local sellPrice = dst:getTrader():getSellToPrice(item, 1)
 --printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-            if buyPrice < sellPrice then
+              if buyPrice < sellPrice then
 --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-              insert(self.jobs, Jobs.Transport(src, dst, item))
+                insert(self.jobs, Jobs.Transport(src, dst, item))
+              end
             end
           end
         end
       end
     end
-  end
 
-  do -- Compute net flow of entire economy
-    -- Clear current flow
-    for k, v in pairs(self.parent.flows) do self.parent.flows[k] = 0 end
+    do -- Compute net flow of entire economy
+      -- Clear current flow
+      for k, v in pairs(self.parent.flows) do self.parent.flows[k] = 0 end
 
-    -- Sum all flows
-    for _, e in ipairs(self.flows) do
-      for k, v in pairs(e.flows) do
-        self.parent.flows[k] = (self.parent.flows[k] or 0) + v
+      -- Sum all flows
+      for _, e in ipairs(self.flows) do
+        for k, v in pairs(e.flows) do
+          self.parent.flows[k] = (self.parent.flows[k] or 0) + v
+        end
       end
     end
-  end
 
-  do -- Compute commodity metrics
-    self.goods = {}
-  end
+    do -- Compute commodity metrics
+      self.goods = {}
+    end
 
-  Profiler.End()
+    Profiler.End()
+  end
 end
 
 function Economy:debug (ctx)

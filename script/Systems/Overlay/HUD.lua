@@ -44,6 +44,7 @@ function HUD:controlThrust (e)
 end
 
 function HUD:controlTurrets (e)
+  -- TODO: Should this really be here in HUD.lua?
   local targetPos, targetVel
   local target = e:getTarget()
 
@@ -424,31 +425,33 @@ function HUD:onInput (state)
 end
 
 function HUD:onUpdate (state)
-  if Input.GetPressed(Bindings.ToggleHUD) then
-    Config.ui.HUDdisplayed = not Config.ui.HUDdisplayed
-  end
+  if not Config.game.gamePaused then
+    if Input.GetPressed(Bindings.ToggleHUD) then
+      Config.ui.HUDdisplayed = not Config.ui.HUDdisplayed
+    end
 
-  self.targets:update()
-  self.dockables:update()
+    self.targets:update()
+    self.dockables:update()
 
-  self.dockable = HUD:getDockable(self)
+    self.dockable = HUD:getDockable(self)
 
-  local f = 1.0 - exp(-state.dt * 8.0)
-  local alphaT = 0
-  if self.dockable then
-    if self.dockable:isDockable() then
-      dockingAllowed = true
-      alphaT = 1
-    else
-      dockingAllowed = false
-      if not self.dockable:isDestroyed() and self.dockable:isHostileTo(self.player:getControlling()) then
+    local f = 1.0 - exp(-state.dt * 8.0)
+    local alphaT = 0
+    if self.dockable then
+      if self.dockable:isDockable() then
+        dockingAllowed = true
         alphaT = 1
       else
-        alphaT = 0
+        dockingAllowed = false
+        if not self.dockable:isDestroyed() and self.dockable:isHostileTo(self.player:getControlling()) then
+          alphaT = 1
+        else
+          alphaT = 0
+        end
       end
     end
+    self.dockPromptAlpha = Math.Lerp(self.dockPromptAlpha, alphaT, f)
   end
-  self.dockPromptAlpha = Math.Lerp(self.dockPromptAlpha, alphaT, f)
 end
 
 function HUD:getDockable (self)

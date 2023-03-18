@@ -33,6 +33,9 @@ function DockAt:onUpdateActive (e, dt)
     return
   end
 
+  -- Use the "target" metaphor to store where this ship is moving to
+  e:setTarget(self.target)
+
   if Config.debug.instantJobs then
     local p = e:getPos()
     local dp = tp - p

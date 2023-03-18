@@ -35,6 +35,9 @@ function MoveTo:onUpdateActive (e, dt)
 --    Config.debug.instantJobs = false
 --  end
 
+  -- Use the "target" metaphor to store where this ship is moving to
+  e:setTarget(self.target)
+
   if Config.debug.instantJobs then
 --print("MoveTo - instantJob!")
     local p = e:getPos()

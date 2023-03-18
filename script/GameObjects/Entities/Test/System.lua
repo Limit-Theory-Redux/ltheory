@@ -72,6 +72,19 @@ function System:getStations ()
   return self.stations
 end
 
+function System:getStationsByDistance (ship)
+  local stationList = {}
+
+  for _, station in ipairs(self.stations) do
+    local stationStruct = {stationRef = station, stationDist = ship:getDistance(station)}
+    insert(stationList, stationStruct)
+  end
+
+  table.sort(stationList, function (a, b) return a.stationDist < b.stationDist end)
+
+  return stationList
+end
+
 function System:sampleStations (rng)
   return rng:choose(self.stations)
 end
@@ -108,25 +121,27 @@ function System:endRender ()
 end
 
 function System:update (dt)
-  -- pre-physics update
-  local event = Event.Update(dt)
-  Profiler.Begin('AI Update')
-  for _, player in ipairs(self.players) do player:send(event) end
-  Profiler.End()
+  if not Config.game.gamePaused then
+    -- pre-physics update
+    local event = Event.Update(dt)
+    Profiler.Begin('AI Update')
+    for _, player in ipairs(self.players) do player:send(event) end
+    Profiler.End()
 
-  self:send(event)
-  Profiler.Begin('Broadcast Update')
-  self:send(Event.Broadcast(event))
-  Profiler.End()
+    self:send(event)
+    Profiler.Begin('Broadcast Update')
+    self:send(Event.Broadcast(event))
+    Profiler.End()
 
-  Profiler.Begin('Physics Update')
-  self.physics:update(dt)
-  Profiler.End()
+    Profiler.Begin('Physics Update')
+    self.physics:update(dt)
+    Profiler.End()
 
-  -- post-physics update
-  event = Event.UpdatePost(dt)
-  self:send(Event.Broadcast(event))
-  self:send(event)
+    -- post-physics update
+    event = Event.UpdatePost(dt)
+    self:send(Event.Broadcast(event))
+    self:send(event)
+  end
 end
 
 ---------------------
@@ -376,7 +391,7 @@ function System:spawnStation (player, prodType)
   -- Ask prices (for selling) are calculated as the item's base price times a markup value
   -- Bid prices (for buying) are calculated as the item's base price times a markdown value
   for _, input in prod:iterInputs() do
-    for i = 1, input.count do
+    for i = 1, input.count * Config.game.inputBacklog do
       station.trader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33))) -- 33
     end
   end
@@ -441,6 +456,7 @@ function System:spawnShip (player)
 --  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * 500.0))
   ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp())))
 
+  -- TODO: replace Config.game.eInventory with actual cargo hold capacity based on ship role plug assignments
   ship:setInventoryCapacity(Config.game.eInventory)
 
   -- NOTE: a new ship must be added to a star system BEFORE thrusters and turrets are attached!

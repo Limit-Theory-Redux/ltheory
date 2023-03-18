@@ -3,6 +3,7 @@ local Player = require('GameObjects.Entities.Player')
 local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Bindings = require('States.ApplicationBindings')
+local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 local Actions = requireAll('GameObjects.Actions')
 local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
@@ -116,18 +117,22 @@ function LTheoryRedux:onUpdate (dt)
   -- TODO: Confirm whether this is still needed
   local playerShip = self.player
   if playerShip ~= nil then
-    --playerShip = playerShip.getControlling()
     playerShip = Config.game.currentShip
   end
 
+  -- Take down splash text if pretty much any key is pressed
+  if menuMode == 0 and Input.GetPressed(Bindings.All:get()) then
+    bBackgroundMode = false
+    menuMode = 1 -- show Main Menu
+  end
+
   -- Add basic Game Control menu
-  if Input.GetPressed(Bindings.Escape) then
+  if menuMode ~= 0 and Input.GetPressed(Bindings.Escape) then
     bBackgroundMode = false
     if Config.getGameMode() == 1 then
       menuMode = 1 -- show Main Menu
     else
-      -- The first time we get here, menuMode should be 0 to show we're just starting the game,
-      --   so don't pop up the Flight Mode dialog box
+      -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
       -- After that, when we're in Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if menuMode == 0 then
         Config.game.bFlightModeInactive = false
@@ -183,7 +188,6 @@ function LTheoryRedux:onUpdate (dt)
       end
     elseif menuMode == 2 then
       if Config.game.bFlightModeInactive then
-        Config.game.gamePaused = true
         LTheoryRedux:showFlightDialog()
       else
         if bSeedDialogDisplayed then
@@ -299,7 +303,7 @@ print("------------------------")
       -- Add asteroid fields
       -- Must add BEFORE space stations
       for i = 1, Config.gen.nFields do
-        afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, true)
+        afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, false)
 printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
       end
 

@@ -59,32 +59,36 @@ function Turret:getSocketType ()
 end
 
 function Turret:aimAt (pos)
-  local look = pos - self:getPos()
-  local up   = self:getParent():getUp()
-   self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
-  self.aim = Quat.FromLookUp(look, up)
-  -- TODO : Isn't this already normalized?
-  self.aim:iNormalize()
+  if not Config.game.gamePaused then
+    local look = pos - self:getPos()
+    local up   = self:getParent():getUp()
+     self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
+    self.aim = Quat.FromLookUp(look, up)
+    -- TODO : Isn't this already normalized?
+    self.aim:iNormalize()
+  end
 end
 
 function Turret:aimAtTarget (target, fallback)
-  local tHit, pHit = Math.Impact(
-    self:getPos(),
-    target:getPos(),
-    self:getParent():getVelocity(),
-    target:getVelocity(),
-    self.projSpeed)
-  if tHit and tHit < self.projLife then
-    self:aimAt(pHit)
-    return true
-  elseif fallback then
-    self:aimAt(fallback)
-  end
+    local tHit, pHit = Math.Impact(
+      self:getPos(),
+      target:getPos(),
+      self:getParent():getVelocity(),
+      target:getVelocity(),
+      self.projSpeed)
+
+    if tHit and tHit < self.projLife then
+      self:aimAt(pHit)
+      return true
+    elseif fallback then
+      self:aimAt(fallback)
+    end
+
   return false
 end
 
 function Turret:canFire ()
-  return self.cooldown <= 0
+  return not Config.game.gamePaused and self.cooldown <= 0
 end
 
 function Turret:fire ()
