@@ -489,12 +489,28 @@ void Input_Update () {
         break;
 
         case SDL_WINDOWEVENT: {
-          if (sdl.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
-            SDL_CaptureMouse(SDL_TRUE);
+          if (sdl.window.event == SDL_WINDOWEVENT_ENTER) {
+            Device device = { DeviceType_Null, 0 };
 
-          /* TODO : Test button release on focus loss */
-          if (sdl.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
-            SDL_CaptureMouse(SDL_FALSE);
+            event.device = device;
+            event.button = Button_System_Win_Enter;
+            event.value  = 0.0f;
+            event.state  = State_Changed | State_Pressed | State_Down;
+            Input_SetButton(event);
+            Input_AppendEvent(event);
+          }
+
+          if (sdl.window.event == SDL_WINDOWEVENT_LEAVE) {
+            Device device = { DeviceType_Null, 0 };
+
+            event.device = device;
+            event.button = Button_System_Win_Leave;
+            event.value  = 0.0f;
+            event.state  = State_Changed | State_Pressed | State_Down;
+            Input_SetButton(event);
+            Input_AppendEvent(event);
+
+            /* TODO : Test button release on focus loss */
 
             /* OPTIMIZE : Do this without incurring the cost of the search and
              *            removes in SetButton */

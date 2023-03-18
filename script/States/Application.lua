@@ -127,6 +127,10 @@ function Application:run ()
         end
       end
 
+      if Input.GetPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+        Config.game.gamePaused = true
+      end
+
       if Config.game.gamePaused then
         timeScale = 0.0
       else
