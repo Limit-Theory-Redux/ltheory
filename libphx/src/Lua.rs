@@ -453,12 +453,10 @@ unsafe extern "C" fn Lua_ToString(
                 );
                 current_block_14 = 11584701595673473500;
             }
-            _ => {
-                Fatal(
-                    b"Lua_ToString: Unexpected type %i\0" as *const u8 as *const libc::c_char,
-                    type_0,
-                )
-            }
+            _ => Fatal(
+                b"Lua_ToString: Unexpected type %i\0" as *const u8 as *const libc::c_char,
+                type_0,
+            ),
         }
         match current_block_14 {
             12136430868992966025 => {

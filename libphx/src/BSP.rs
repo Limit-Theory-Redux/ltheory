@@ -413,13 +413,11 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
                 numStraddling += 1;
                 current_block_4 = 11812396948646013369;
             }
-            _ => {
-                Fatal(
-                    b"BSPBuild_ScoreSplitPlane: Unhandled case: %i\0" as *const u8
-                        as *const libc::c_char,
-                    classification as i32,
-                )
-            }
+            _ => Fatal(
+                b"BSPBuild_ScoreSplitPlane: Unhandled case: %i\0" as *const u8
+                    as *const libc::c_char,
+                classification as i32,
+            ),
         }
         match current_block_4 {
             11316911015026613471 => {
@@ -769,13 +767,10 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                 MemFree((*polygon).vertices_data as *const libc::c_void);
                 current_block_37 = 17184638872671510253;
             }
-            _ => {
-                Fatal(
-                    b"BSPBuild_CreateNode: Unhandled case: %i\0" as *const u8
-                        as *const libc::c_char,
-                    classification as i32,
-                )
-            }
+            _ => Fatal(
+                b"BSPBuild_CreateNode: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
+                classification as i32,
+            ),
         }
         match current_block_37 {
             18363606670811337990 => {
@@ -1173,12 +1168,10 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
             }
             current_block_15 = 4495394744059808450;
         }
-        _ => {
-            Fatal(
-                b"BSPDebug_GetNode: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
-                relationship as i32,
-            )
-        }
+        _ => Fatal(
+            b"BSPDebug_GetNode: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
+            relationship as i32,
+        ),
     }
     match current_block_15 {
         1626635900302357725 => {

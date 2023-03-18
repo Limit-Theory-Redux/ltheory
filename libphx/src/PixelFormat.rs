@@ -27,14 +27,14 @@ pub static PixelFormat_Depth_Component: PixelFormat = gl::DEPTH_COMPONENT as Pix
 
 #[no_mangle]
 pub extern "C" fn PixelFormat_Components(this: PixelFormat) -> i32 {
-    if this == PixelFormat_Red || this == PixelFormat_Depth_Component{
-      1
-} else if this == PixelFormat_RG{
-      2
-    } else if this == PixelFormat_RGB || this == PixelFormat_BGR{
-      3
-    } else if this == PixelFormat_RGBA || this == PixelFormat_BGRA{
-      4
+    if this == PixelFormat_Red || this == PixelFormat_Depth_Component {
+        1
+    } else if this == PixelFormat_RG {
+        2
+    } else if this == PixelFormat_RGB || this == PixelFormat_BGR {
+        3
+    } else if this == PixelFormat_RGBA || this == PixelFormat_BGRA {
+        4
     } else {
         0
     }

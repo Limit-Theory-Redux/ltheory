@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct MemStack {

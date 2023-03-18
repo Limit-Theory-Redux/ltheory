@@ -9,7 +9,6 @@ use crate::WindowPos::WindowPos;
 use libc;
 use sdl2_sys::*;
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Window {
@@ -79,11 +78,7 @@ pub unsafe extern "C" fn Window_GetTitle(mut this: *mut Window) -> *const libc::
 pub unsafe extern "C" fn Window_SetFullscreen(mut this: *mut Window, mut fs: bool) {
     SDL_SetWindowFullscreen(
         (*this).handle,
-        if fs {
-            WindowMode_Fullscreen
-        } else {
-            0_u32
-        },
+        if fs { WindowMode_Fullscreen } else { 0_u32 },
     );
 }
 

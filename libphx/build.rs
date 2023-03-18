@@ -1,15 +1,15 @@
 #![allow(unused_imports, dead_code)]
+use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
 use http_req::request;
 use std::env;
 use std::fs;
+use std::fs::File;
 use std::io::Cursor;
 use std::path::Path;
 use std::path::PathBuf;
-use std::fs::File;
-use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
 
-extern crate gl_generator;
 extern crate cbindgen;
+extern crate gl_generator;
 // extern crate flate2;
 // extern crate http_req;
 // extern crate tar;
@@ -95,15 +95,21 @@ fn main() {
     // Generate GL bindings.
     let dest = env::var("OUT_DIR").unwrap();
     let mut file = File::create(&Path::new(&dest).join("bindings.rs")).unwrap();
-    Registry::new(Api::Gl, (2, 1), Profile::Compatibility, Fallbacks::All, [
-        "GL_ARB_seamless_cubemap_per_texture",
-        "GL_ARB_texture_rg",
-        "GL_EXT_texture_filter_anisotropic",
-        "GL_ARB_framebuffer_object",
-        "GL_ARB_texture_mirror_clamp_to_edge",
-    ])
-        .write_bindings(GlobalGenerator, &mut file)
-        .unwrap();
+    Registry::new(
+        Api::Gl,
+        (2, 1),
+        Profile::Compatibility,
+        Fallbacks::All,
+        [
+            "GL_ARB_seamless_cubemap_per_texture",
+            "GL_ARB_texture_rg",
+            "GL_EXT_texture_filter_anisotropic",
+            "GL_ARB_framebuffer_object",
+            "GL_ARB_texture_mirror_clamp_to_edge",
+        ],
+    )
+    .write_bindings(GlobalGenerator, &mut file)
+    .unwrap();
 
     // Download dependencies.
     let cmake_root = cmake::Config::new(".")

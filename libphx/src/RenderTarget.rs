@@ -1,10 +1,10 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
+use crate::CubeFace::*;
 use crate::Math::Vec3;
 use crate::Math::{IVec2, IVec3};
 use crate::Metric::*;
 use crate::Profiler::*;
-use crate::CubeFace::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
@@ -112,15 +112,9 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
     fboIndex -= 1;
     Metric_Inc(0x7_i32);
     if fboIndex >= 0_i32 {
-        gl::BindFramebuffer(
-            gl::FRAMEBUFFER,
-            (*GetActive()).handle,
-        );
+        gl::BindFramebuffer(gl::FRAMEBUFFER, (*GetActive()).handle);
     } else {
-        gl::BindFramebuffer(
-            gl::FRAMEBUFFER,
-            0,
-        );
+        gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
     }
     Viewport_Pop();
     Profiler_End();

@@ -170,32 +170,17 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_RotateX(mut angle: f64) {
-    gl::Rotated(
-        angle,
-        1.0f64,
-        0.0f64,
-        0.0f64,
-    );
+    gl::Rotated(angle, 1.0f64, 0.0f64, 0.0f64);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_RotateY(mut angle: f64) {
-    gl::Rotated(
-        angle,
-        0.0f64,
-        1.0f64,
-        0.0f64,
-    );
+    gl::Rotated(angle, 0.0f64, 1.0f64, 0.0f64);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_RotateZ(mut angle: f64) {
-    gl::Rotated(
-        angle,
-        0.0f64,
-        0.0f64,
-        1.0f64,
-    );
+    gl::Rotated(angle, 0.0f64, 0.0f64, 1.0f64);
 }
 
 #[no_mangle]

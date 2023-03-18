@@ -465,11 +465,7 @@ pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
                 gl::Uniform1f((*e).index, (*e).data.asFloat);
             }
             2 => {
-                gl::Uniform2f(
-                    (*e).index,
-                    (*e).data.asFloat2.x,
-                    (*e).data.asFloat2.y,
-                );
+                gl::Uniform2f((*e).index, (*e).data.asFloat2.x, (*e).data.asFloat2.y);
             }
             3 => {
                 gl::Uniform3f(

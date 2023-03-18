@@ -4,7 +4,6 @@ use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ThreadPool {

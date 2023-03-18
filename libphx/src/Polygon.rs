@@ -9,7 +9,6 @@ use crate::Plane::*;
 use crate::Triangle::*;
 use libc;
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Polygon {

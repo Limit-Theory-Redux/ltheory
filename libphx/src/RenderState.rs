@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
-use crate::Common::*;
-use crate::Math::Vec3;
 use crate::BlendMode::*;
+use crate::Common::*;
 use crate::CullFace::*;
+use crate::Math::Vec3;
 use crate::GL::gl;
 use libc;
 
@@ -30,12 +30,7 @@ static mut depthWritableIndex: i32 = -1_i32;
 unsafe extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
     match mode {
         BlendMode_Additive => {
-            gl::BlendFuncSeparate(
-                gl::ONE,
-                gl::ONE,
-                gl::ONE,
-                gl::ONE,
-            );
+            gl::BlendFuncSeparate(gl::ONE, gl::ONE, gl::ONE, gl::ONE);
         }
         BlendMode_Alpha => {
             gl::BlendFuncSeparate(

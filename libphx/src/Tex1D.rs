@@ -1,12 +1,12 @@
 use crate::internal::Memory::*;
-use crate::Common::*;
 use crate::Bytes::*;
+use crate::Common::*;
 use crate::DataFormat::*;
 use crate::Math::Vec3;
 use crate::PixelFormat::*;
+use crate::TexFilter::*;
 use crate::TexFormat::*;
 use crate::TexWrapMode::*;
-use crate::TexFilter::*;
 use crate::GL::gl;
 use libc;
 
@@ -116,7 +116,13 @@ pub unsafe extern "C" fn Tex1D_GetData(
     mut df: DataFormat,
 ) {
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
-    gl::GetTexImage(gl::TEXTURE_1D, 0_i32, pf as gl::types::GLenum, df as gl::types::GLenum, data);
+    gl::GetTexImage(
+        gl::TEXTURE_1D,
+        0_i32,
+        pf as gl::types::GLenum,
+        df as gl::types::GLenum,
+        data,
+    );
     gl::BindTexture(gl::TEXTURE_1D, 0);
 }
 

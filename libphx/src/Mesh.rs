@@ -1,14 +1,14 @@
 use crate::internal::Memory::*;
-use crate::Common::*;
 use crate::Bytes::*;
+use crate::Common::*;
 use crate::Math::*;
 use crate::Matrix::*;
 use crate::Metric::*;
 use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::Triangle::*;
-use crate::SDF::*;
 use crate::GL::gl;
+use crate::SDF::*;
 use libc;
 use memoffset::{offset_of, span_of};
 
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         (*this).ibo = 0_u32;
     }
 
-  /* Generate cached GL buffers for fast drawing. */
+    /* Generate cached GL buffers for fast drawing. */
     if (*this).vbo == 0 {
         gl::GenBuffers(1_i32, &mut (*this).vbo);
         gl::GenBuffers(1_i32, &mut (*this).ibo);
@@ -358,13 +358,14 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
             gl::STATIC_DRAW,
         );
 
-    /* TODO : 16-bit index optimization */
-    /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
-     *        weren't last time I checked. */
+        /* TODO : 16-bit index optimization */
+        /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
+         *        weren't last time I checked. */
 
         gl::BufferData(
             gl::ELEMENT_ARRAY_BUFFER,
-            ((*this).index_size as usize).wrapping_mul(::core::mem::size_of::<i32>()) as gl::types::GLsizeiptr,
+            ((*this).index_size as usize).wrapping_mul(::core::mem::size_of::<i32>())
+                as gl::types::GLsizeiptr,
             (*this).index_data as *const libc::c_void,
             gl::STATIC_DRAW,
         );

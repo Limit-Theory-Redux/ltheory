@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
+use crate::Button::*;
+use crate::Button::*;
 use crate::Common::*;
-use crate::Button::*;
-use crate::Button::*;
 use crate::Device::*;
 use crate::DeviceType::*;
 use crate::Math::Vec3;

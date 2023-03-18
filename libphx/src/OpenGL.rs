@@ -2,10 +2,10 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
 use crate::RenderState::*;
-use std::ffi::CString;
+use crate::GL::gl;
 use libc;
 use sdl2_sys::*;
-use crate::GL::gl;
+use std::ffi::CString;
 
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
@@ -17,7 +17,7 @@ pub unsafe extern "C" fn OpenGL_Init() {
             SDL_GL_GetProcAddress(cs.as_ptr())
         });
     }
-    
+
     gl::Disable(gl::MULTISAMPLE);
     gl::Disable(gl::CULL_FACE);
     gl::CullFace(gl::BACK);
@@ -35,7 +35,7 @@ pub unsafe extern "C" fn OpenGL_Init() {
     gl::Hint(gl::POINT_SMOOTH_HINT, gl::FASTEST);
     gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
     gl::LineWidth(2.0f32);
-    
+
     gl::MatrixMode(gl::PROJECTION);
     gl::LoadIdentity();
     gl::MatrixMode(gl::MODELVIEW);

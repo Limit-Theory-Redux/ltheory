@@ -5,7 +5,6 @@ use crate::Math::Vec3;
 use crate::Mesh::*;
 use libc;
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ParseState {

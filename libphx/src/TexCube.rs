@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
-use crate::Common::*;
 use crate::Bytes::*;
 use crate::ClipRect::*;
+use crate::Common::*;
 use crate::CubeFace::*;
 use crate::DataFormat::*;
 use crate::Draw::*;
@@ -15,9 +15,9 @@ use crate::ShaderState::*;
 use crate::Tex2D::*;
 use crate::Tex2D_Load::*;
 use crate::Tex2D_Save::*;
+use crate::TexFilter::*;
 use crate::TexFormat::*;
 use crate::TexWrapMode::*;
-use crate::TexFilter::*;
 use crate::TimeStamp::*;
 use crate::GL::gl;
 use libc;
@@ -83,10 +83,26 @@ static mut kFaceExt: [*const libc::c_char; 6] = [
 
 #[inline]
 unsafe extern "C" fn TexCube_InitParameters() {
-    gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-    gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-    gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-    gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+    gl::TexParameteri(
+        gl::TEXTURE_CUBE_MAP,
+        gl::TEXTURE_MAG_FILTER,
+        gl::NEAREST as i32,
+    );
+    gl::TexParameteri(
+        gl::TEXTURE_CUBE_MAP,
+        gl::TEXTURE_MIN_FILTER,
+        gl::NEAREST as i32,
+    );
+    gl::TexParameteri(
+        gl::TEXTURE_CUBE_MAP,
+        gl::TEXTURE_WRAP_S,
+        gl::CLAMP_TO_EDGE as i32,
+    );
+    gl::TexParameteri(
+        gl::TEXTURE_CUBE_MAP,
+        gl::TEXTURE_WRAP_T,
+        gl::CLAMP_TO_EDGE as i32,
+    );
 }
 
 #[no_mangle]
@@ -187,13 +203,7 @@ pub unsafe extern "C" fn TexCube_Acquire(mut this: *mut TexCube) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Clear(
-    mut this: *mut TexCube,
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
-) {
+pub unsafe extern "C" fn TexCube_Clear(mut this: *mut TexCube, r: f32, g: f32, b: f32, a: f32) {
     for i in 0..6 {
         let mut face: Face = kFaces[i as usize];
         RenderTarget_Push((*this).size, (*this).size);
@@ -232,7 +242,8 @@ pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut Tex
         let mut sx: i32 = 0;
         let mut sy: i32 = 0;
         let mut lcomponents: i32 = 0;
-        let mut data: *mut libc::c_uchar = Tex2D_LoadRaw(facePath, &mut sx, &mut sy, &mut lcomponents);
+        let mut data: *mut libc::c_uchar =
+            Tex2D_LoadRaw(facePath, &mut sx, &mut sy, &mut lcomponents);
         if data.is_null() {
             Fatal(
                 b"TexCube_Load failed to load cubemap face from '%s'\0" as *const u8
@@ -312,7 +323,13 @@ pub unsafe extern "C" fn TexCube_GetData(
     mut df: DataFormat,
 ) {
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
-    gl::GetTexImage(face as gl::types::GLenum, level, pf as gl::types::GLenum, df as gl::types::GLenum, data);
+    gl::GetTexImage(
+        face as gl::types::GLenum,
+        level,
+        pf as gl::types::GLenum,
+        df as gl::types::GLenum,
+        data,
+    );
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
@@ -479,9 +496,9 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
 ) {
     let mut size: i32 = (*this).size >> level;
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
-    let mut buffer: *mut libc::c_uchar =
-        MemAlloc((::core::mem::size_of::<libc::c_uchar>()).wrapping_mul((4_i32 * size * size) as usize))
-            as *mut libc::c_uchar;
+    let mut buffer: *mut libc::c_uchar = MemAlloc(
+        (::core::mem::size_of::<libc::c_uchar>()).wrapping_mul((4_i32 * size * size) as usize),
+    ) as *mut libc::c_uchar;
     for i in 0..6 {
         let mut face: CubeFace = kFaces[i as usize].face;
         let mut facePath: *const libc::c_char = StrAdd3(

@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
-use crate::Common::*;
 use crate::Button::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 

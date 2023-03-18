@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
-use crate::Common::*;
 use crate::ClipRect::*;
+use crate::Common::*;
 use crate::Draw::*;
 use crate::Font::*;
 use crate::Math::Vec3;

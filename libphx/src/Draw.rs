@@ -122,9 +122,7 @@ pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Clear(mut r: f32, mut g: f32, mut b: f32, mut a: f32) {
-    let mut status: i32 =
-        gl::CheckFramebufferStatus(gl::FRAMEBUFFER)
-            as i32;
+    let mut status: i32 = gl::CheckFramebufferStatus(gl::FRAMEBUFFER) as i32;
     if status != gl::FRAMEBUFFER_COMPLETE as i32 {
         Warn(
             b"Framebuffer is incomplete, skipping clear: %d\0" as *const u8 as *const libc::c_char,
@@ -345,7 +343,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     let res: usize = 7_i32 as usize;
     let fRes: f32 = res as f32;
 
-     // First Row
+    // First Row
     Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3_usize) as i32);
     gl::Begin(gl::TRIANGLES);
     let mut lastTheta: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;

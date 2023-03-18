@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
-use crate::GL::gl;
 use crate::Common::*;
 use crate::Math::Vec3;
+use crate::GL::gl;
 use libc;
 pub type TexFormat = i32;
 
@@ -62,33 +62,57 @@ pub static TexFormat_Depth32F: TexFormat = 0x8cac_i32;
 
 #[no_mangle]
 pub extern "C" fn TexFormat_Components(this: TexFormat) -> i32 {
-    if this == TexFormat_R8 || this == TexFormat_R16 || this == TexFormat_R16F || this == TexFormat_R32F || this == TexFormat_Depth16 || this == TexFormat_Depth24 || this == TexFormat_Depth32F {
-    1
-    } else if this == TexFormat_RG8 || this == TexFormat_RG16 || this == TexFormat_RG16F || this == TexFormat_RG32F {
-    2
+    if this == TexFormat_R8
+        || this == TexFormat_R16
+        || this == TexFormat_R16F
+        || this == TexFormat_R32F
+        || this == TexFormat_Depth16
+        || this == TexFormat_Depth24
+        || this == TexFormat_Depth32F
+    {
+        1
+    } else if this == TexFormat_RG8
+        || this == TexFormat_RG16
+        || this == TexFormat_RG16F
+        || this == TexFormat_RG32F
+    {
+        2
     } else if this == TexFormat_RGB8 {
-    3
-    } else if this == TexFormat_RGBA8 || this == TexFormat_RGBA16 || this == TexFormat_RGBA16F || this == TexFormat_RGBA32F {
-    4
+        3
+    } else if this == TexFormat_RGBA8
+        || this == TexFormat_RGBA16
+        || this == TexFormat_RGBA16F
+        || this == TexFormat_RGBA32F
+    {
+        4
     } else {
-    0
+        0
     }
 }
 
 #[no_mangle]
 pub extern "C" fn TexFormat_GetSize(this: TexFormat) -> i32 {
     if this == TexFormat_R8 {
-      1
-} else if this == TexFormat_R16 || this == TexFormat_R16F || this == TexFormat_RG8 || this == TexFormat_Depth16 {
-      2
+        1
+    } else if this == TexFormat_R16
+        || this == TexFormat_R16F
+        || this == TexFormat_RG8
+        || this == TexFormat_Depth16
+    {
+        2
     } else if this == TexFormat_RGB8 || this == TexFormat_Depth24 {
-      3
-    } else if this == TexFormat_R32F || this == TexFormat_RG16 || this == TexFormat_RG16F || this == TexFormat_RGBA8 || this == TexFormat_Depth32F {
-      4
+        3
+    } else if this == TexFormat_R32F
+        || this == TexFormat_RG16
+        || this == TexFormat_RG16F
+        || this == TexFormat_RGBA8
+        || this == TexFormat_Depth32F
+    {
+        4
     } else if this == TexFormat_RG32F || this == TexFormat_RGBA16 || this == TexFormat_RGBA16F {
-      8
+        8
     } else if this == TexFormat_RGBA32F {
-      16
+        16
     } else {
         0
     }
@@ -106,20 +130,20 @@ pub extern "C" fn TexFormat_IsDepth(this: TexFormat) -> bool {
 
 #[no_mangle]
 pub extern "C" fn TexFormat_IsValid(this: TexFormat) -> bool {
-    this == TexFormat_R8 ||
-    this == TexFormat_R16 ||
-    this == TexFormat_R16F ||
-    this == TexFormat_R32F ||
-    this == TexFormat_RG8 ||
-    this == TexFormat_RG16 ||
-    this == TexFormat_RG16F ||
-    this == TexFormat_RG32F ||
-    this == TexFormat_RGB8 ||
-    this == TexFormat_RGBA8 ||
-    this == TexFormat_RGBA16 ||
-    this == TexFormat_RGBA16F ||
-    this == TexFormat_RGBA32F ||
-    this == TexFormat_Depth16 ||
-    this == TexFormat_Depth24 ||
-    this == TexFormat_Depth32F
+    this == TexFormat_R8
+        || this == TexFormat_R16
+        || this == TexFormat_R16F
+        || this == TexFormat_R32F
+        || this == TexFormat_RG8
+        || this == TexFormat_RG16
+        || this == TexFormat_RG16F
+        || this == TexFormat_RG32F
+        || this == TexFormat_RGB8
+        || this == TexFormat_RGBA8
+        || this == TexFormat_RGBA16
+        || this == TexFormat_RGBA16F
+        || this == TexFormat_RGBA32F
+        || this == TexFormat_Depth16
+        || this == TexFormat_Depth24
+        || this == TexFormat_Depth32F
 }

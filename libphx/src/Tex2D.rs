@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
-use crate::Common::*;
 use crate::Bytes::*;
+use crate::Common::*;
 use crate::DataFormat::*;
 use crate::DataFormat::*;
 use crate::Draw::*;
@@ -14,8 +14,8 @@ use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::Tex2D_Load::*;
 use crate::Tex2D_Save::*;
-use crate::TexFormat::*;
 use crate::TexFilter::*;
+use crate::TexFormat::*;
 use crate::TexWrapMode::*;
 use crate::Viewport::*;
 use crate::GL::gl;
@@ -268,7 +268,13 @@ pub unsafe extern "C" fn Tex2D_GetData(
 ) {
     Metric_Inc(0x6_i32);
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
-    gl::GetTexImage(gl::TEXTURE_2D, 0_i32, pf as gl::types::GLenum, df as gl::types::GLenum, data);
+    gl::GetTexImage(
+        gl::TEXTURE_2D,
+        0_i32,
+        pf as gl::types::GLenum,
+        df as gl::types::GLenum,
+        data,
+    );
     gl::BindTexture(gl::TEXTURE_2D, 0);
 }
 

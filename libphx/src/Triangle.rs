@@ -5,7 +5,6 @@ use crate::Math::Vec3_Validate;
 use crate::Plane::*;
 use libc;
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Triangle {

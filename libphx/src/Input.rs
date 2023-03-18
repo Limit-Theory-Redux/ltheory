@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
-use crate::Common::*;
 use crate::Button::*;
+use crate::Common::*;
 use crate::Device::*;
 use crate::DeviceType::*;
 use crate::InputEvent::*;

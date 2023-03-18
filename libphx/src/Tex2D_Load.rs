@@ -23,7 +23,8 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                     *sy = info.height;
                     *components = info.components;
 
-                    let mut memory: *mut libc::c_uchar = MemAlloc(data.size()) as *mut libc::c_uchar;
+                    let mut memory: *mut libc::c_uchar =
+                        MemAlloc(data.size()) as *mut libc::c_uchar;
                     MemCpy(
                         memory as *mut libc::c_void,
                         data.as_slice().as_ptr() as *mut libc::c_void,
@@ -31,19 +32,15 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                     );
                     memory
                 }
-                None => {
-                    Fatal(
-                        b"Failed to load image from '%s'\0" as *const u8 as *const libc::c_char,
-                        path,
-                    )
-                }
+                None => Fatal(
+                    b"Failed to load image from '%s'\0" as *const u8 as *const libc::c_char,
+                    path,
+                ),
             }
         }
-        Err(_) => {
-            Fatal(
-                b"Failed to load image from '%s'\0" as *const u8 as *const libc::c_char,
-                path,
-            )
-        }
+        Err(_) => Fatal(
+            b"Failed to load image from '%s'\0" as *const u8 as *const libc::c_char,
+            path,
+        ),
     }
 }

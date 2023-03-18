@@ -43,8 +43,6 @@ extern "C" {
     fn FMOD_System_GetVersion(system: *mut FMOD_SYSTEM, version: *mut u32) -> FMOD_RESULT;
 }
 
-pub type SoundState = u8;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Audio {

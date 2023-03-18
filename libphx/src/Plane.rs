@@ -4,7 +4,6 @@ use crate::Math::*;
 use crate::Polygon::*;
 use libc;
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Plane {
@@ -54,13 +53,10 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
             3 => {
                 current_block_2 = 14523784380283086299;
             }
-            _ => {
-                Fatal(
-                    b"Plane_ClassifyPolygon: Unhandled case: %i\0" as *const u8
-                        as *const libc::c_char,
-                    classification as i32,
-                )
-            }
+            _ => Fatal(
+                b"Plane_ClassifyPolygon: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
+                classification as i32,
+            ),
         }
         match current_block_2 {
             18070553979786946493 => {

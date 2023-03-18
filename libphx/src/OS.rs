@@ -4,7 +4,6 @@ use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 
-
 #[no_mangle]
 pub unsafe extern "C" fn OS_GetClipboard() -> *const libc::c_char {
     SDL_GetClipboardText() as *const libc::c_char
