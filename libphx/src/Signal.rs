@@ -1,10 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-    fn Warn(_: *const libc::c_char, _: ...);
     fn signal(
         _: i32,
         _: Option<unsafe extern "C" fn(i32) -> ()>,

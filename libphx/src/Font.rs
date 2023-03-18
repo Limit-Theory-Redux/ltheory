@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::DataFormat::*;
 use crate::Draw::*;
 use crate::HashMap::*;
@@ -22,7 +23,6 @@ extern "C" {
     pub type FT_Slot_InternalRec_;
     pub type FT_SubGlyphRec_;
     pub type FT_LibraryRec_;
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn FT_Init_FreeType(alibrary: *mut FT_Library) -> FT_Error;
     fn FT_New_Face(
         library: FT_Library,

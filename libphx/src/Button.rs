@@ -1,11 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 pub type Button = i32;
 pub type DeviceType = i32;
 
@@ -520,8 +518,7 @@ pub unsafe extern "C" fn Button_ToDeviceType(mut button: Button) -> DeviceType {
         Fatal(
             b"Button_ToDeviceType: Unknown Button: %i\0" as *const u8 as *const libc::c_char,
             button,
-        );
-        return DeviceType_Null;
+        )
     }
 }
 

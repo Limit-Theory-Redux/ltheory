@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use crate::Math::Vec4;
 use crate::Math::{IVec2, IVec3, IVec4, Vec2};
@@ -17,8 +18,6 @@ use crate::TexCube::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-    fn Warn(_: *const libc::c_char, _: ...);
     fn glBindTexture(target: GLenum, texture: GLu32);
     static mut __glewActiveTexture: PFNGLACTIVETEXTUREPROC;
     static mut __glewAttachShader: PFNGLATTACHSHADERPROC;

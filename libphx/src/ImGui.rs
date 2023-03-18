@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Button::*;
 use crate::ClipRect::*;
 use crate::Draw::*;
@@ -15,9 +16,6 @@ use crate::Shader::*;
 use crate::Tex2D::*;
 use libc;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 pub type BlendMode = i32;
 pub type Button = i32;
 

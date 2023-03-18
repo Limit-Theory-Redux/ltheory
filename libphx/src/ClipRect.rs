@@ -1,11 +1,11 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::IVec2;
 use crate::Math::Vec3;
 use crate::Viewport::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn glDisable(cap: GLenum);
     fn glEnable(cap: GLenum);
     fn glScissor(x: GLint, y: GLint, width: GLsizei, height: GLsizei);

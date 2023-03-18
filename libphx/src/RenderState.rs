@@ -1,9 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);
     fn glCullFace(mode: GLenum);
     fn glDepthMask(flag: GLboolean);

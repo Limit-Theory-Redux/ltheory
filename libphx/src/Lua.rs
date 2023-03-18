@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::LuaScheduler::*;
 use crate::Math::Vec3;
 use crate::Resource::*;
@@ -8,8 +9,6 @@ use libc;
 
 extern "C" {
     pub type lua_State;
-    fn Fatal(_: *const libc::c_char, _: ...);
-    fn Warn(_: *const libc::c_char, _: ...);
     fn lua_close(L: *mut lua_State);
     fn lua_newthread(L: *mut lua_State) -> *mut lua_State;
     fn lua_gettop(L: *mut lua_State) -> i32;
@@ -457,8 +456,7 @@ unsafe extern "C" fn Lua_ToString(
                 Fatal(
                     b"Lua_ToString: Unexpected type %i\0" as *const u8 as *const libc::c_char,
                     type_0,
-                );
-                current_block_14 = 12136430868992966025;
+                )
             }
         }
         match current_block_14 {

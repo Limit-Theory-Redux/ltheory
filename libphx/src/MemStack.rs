@@ -1,10 +1,8 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]

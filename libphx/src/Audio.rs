@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use crate::MemPool::*;
 use crate::Sound::*;
@@ -10,7 +11,6 @@ extern "C" {
     pub type FMOD_CHANNEL;
     pub type FMOD_SOUND;
     pub type FMOD_SYSTEM;
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn FMOD_Debug_Initialize(
         flags: FMOD_DEBUG_FLAGS,
         mode: FMOD_DEBUG_MODE,

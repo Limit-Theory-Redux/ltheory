@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Device::*;
 use crate::Input::*;
 use crate::InputEvent::*;

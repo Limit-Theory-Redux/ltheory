@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Bytes::*;
 use crate::DataFormat::*;
 use crate::DataFormat::*;
@@ -18,8 +19,6 @@ use crate::Viewport::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-    fn Warn(_: *const libc::c_char, _: ...);
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLu32);
     fn glCopyTexImage2D(

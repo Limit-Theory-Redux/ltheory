@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::IVec2;
 use crate::Math::Vec3;
 use libc;
@@ -9,7 +10,6 @@ extern "C" {
     fn glScalef(x: GLfloat, y: GLfloat, z: GLfloat);
     fn glTranslatef(x: GLfloat, y: GLfloat, z: GLfloat);
     fn glViewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei);
-    fn Fatal(_: *const libc::c_char, _: ...);
 }
 
 pub type GLenum = u32;

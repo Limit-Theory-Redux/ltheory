@@ -1,10 +1,10 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Bytes::*;
 use crate::Math::Vec3;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn inet_ntoa(_: libc::in_addr) -> *mut libc::c_char;
     fn inet_aton(_: *const libc::c_char, _: *mut libc::in_addr) -> i32;
 }

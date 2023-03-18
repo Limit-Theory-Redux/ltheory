@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Bytes::*;
 use crate::DataFormat::*;
 use crate::Math::IVec3;
@@ -9,7 +10,6 @@ use crate::TexFormat::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn glBegin(mode: GLenum);
     fn glBindTexture(target: GLenum, texture: GLu32);
     fn glDeleteTextures(n: GLsizei, textures: *const GLu32);

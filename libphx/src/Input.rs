@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Button::*;
 use crate::Button::*;
 use crate::Device::*;
@@ -14,10 +15,6 @@ use crate::State::*;
 use libc;
 use sdl2_sys::*;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-    fn Warn(_: *const libc::c_char, _: ...);
-}
 
 pub type DeviceType = i32;
 

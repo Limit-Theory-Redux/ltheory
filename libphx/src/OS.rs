@@ -1,11 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn OS_GetClipboard() -> *const libc::c_char {

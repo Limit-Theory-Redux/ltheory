@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::HashMap::*;
 use crate::Math::Vec3;
 use crate::Signal::*;
@@ -6,9 +7,6 @@ use crate::TimeStamp::*;
 use libc;
 use std::io::{self, Write};
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 
 pub type TimeStamp = u64;
 pub type Signal = i32;

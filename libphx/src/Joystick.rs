@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::HatDir::*;
 use crate::Math::Vec3;
 use crate::TimeStamp::*;
@@ -7,7 +8,6 @@ use sdl2_sys::*;
 
 extern "C" {
     pub type _SDL_Joystick;
-    fn Fatal(_: *const libc::c_char, _: ...);
 }
 
 #[derive(Copy, Clone)]

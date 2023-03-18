@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Directory::*;
 use crate::Gamepad::*;
 use crate::Input::*;
@@ -16,9 +17,6 @@ use crate::TimeStamp::*;
 use libc;
 use sdl2_sys::*;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 pub type ResourceType = i32;
 pub type TimeStamp = u64;
 

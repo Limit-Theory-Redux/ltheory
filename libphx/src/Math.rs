@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use libc;
 
 // Re-export glam types.
@@ -139,7 +140,7 @@ pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
         1 => return 0x20_i32 as Error,
         3 | 4 => return 0_i32 as Error,
         _ => {
-            crate::Common::Fatal(
+            Fatal(
                 b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
                 classification,
             );
@@ -167,13 +168,12 @@ pub unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
         1 => return 0x20_i32 as Error,
         3 | 4 => return 0_i32 as Error,
         _ => {
-            crate::Common::Fatal(
+            Fatal(
                 b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
                 classification,
             );
         }
     }
-    0_i32 as Error
 }
 
 #[inline]

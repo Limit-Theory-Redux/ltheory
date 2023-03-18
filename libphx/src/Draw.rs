@@ -1,11 +1,10 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::*;
 use crate::Metric::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-    fn Warn(_: *const libc::c_char, _: ...);
     fn glBegin(mode: GLenum);
     fn glClear(mask: GLbitfield);
     fn glClearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf);

@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Bytes::*;
 use crate::ClipRect::*;
 use crate::CubeFace::*;
@@ -19,7 +20,6 @@ use crate::TimeStamp::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn glBindTexture(target: GLenum, texture: GLu32);
     fn glDeleteTextures(n: GLsizei, textures: *const GLu32);
     fn glGenTextures(n: GLsizei, textures: *mut GLu32);

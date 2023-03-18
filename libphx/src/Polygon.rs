@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Intersect::*;
 use crate::LineSegment::*;
 use crate::Math::DVec3;
@@ -8,9 +9,6 @@ use crate::Plane::*;
 use crate::Triangle::*;
 use libc;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]

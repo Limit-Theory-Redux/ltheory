@@ -1,14 +1,10 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 use stb::image::{stbi_load_from_reader, Channels};
 use std::ffi::CStr;
 use std::fs::File;
-
-extern "C" {
-    pub type __sFILEX;
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 
 pub type uchar = libc::c_uchar;
 
@@ -41,8 +37,7 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                     Fatal(
                         b"Failed to load image from '%s'\0" as *const u8 as *const libc::c_char,
                         path,
-                    );
-                    std::ptr::null_mut()
+                    )
                 }
             }
         }
@@ -50,8 +45,7 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
             Fatal(
                 b"Failed to load image from '%s'\0" as *const u8 as *const libc::c_char,
                 path,
-            );
-            std::ptr::null_mut()
+            )
         }
     }
 }

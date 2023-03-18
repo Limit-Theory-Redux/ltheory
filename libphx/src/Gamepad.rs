@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::GamepadAxis::*;
 use crate::GamepadButton::*;
 use crate::Math::Vec3;

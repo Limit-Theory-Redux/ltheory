@@ -1,11 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::*;
 use crate::Polygon::*;
 use libc;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -61,8 +59,7 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
                     b"Plane_ClassifyPolygon: Unhandled case: %i\0" as *const u8
                         as *const libc::c_char,
                     classification as i32,
-                );
-                current_block_2 = 18070553979786946493;
+                )
             }
         }
         match current_block_2 {

@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Bytes::*;
 use crate::Math::*;
 use crate::Matrix::*;
@@ -11,7 +12,6 @@ use libc;
 use memoffset::{offset_of, span_of};
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn glBegin(mode: GLenum);
     fn glDrawElements(mode: GLenum, count: GLsizei, type_0: GLenum, indices: *const libc::c_void);
     fn glEnd();

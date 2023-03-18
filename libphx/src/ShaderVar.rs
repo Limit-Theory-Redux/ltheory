@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::Math::Vec4;
@@ -11,9 +12,6 @@ use crate::Tex3D::*;
 use crate::TexCube::*;
 use libc;
 
-extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
-}
 pub type ShaderVarType = i32;
 
 #[derive(Copy, Clone)]

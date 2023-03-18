@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::Vec3;
 use crate::Math::{IVec2, IVec3};
 use crate::Metric::*;
@@ -12,7 +13,6 @@ use crate::Viewport::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
     static mut __glewDrawBuffers: PFNGLDRAWBUFFERSPROC;
     static mut __glewBindFramebuffer: PFNGLBINDFRAMEBUFFERPROC;
     static mut __glewDeleteFramebuffers: PFNGLDELETEFRAMEBUFFERSPROC;

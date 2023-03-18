@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::ClipRect::*;
 use crate::Draw::*;
 use crate::Font::*;

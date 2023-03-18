@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Audio::*;
 use crate::Math::Vec3;
 use crate::SoundDesc::*;
@@ -10,7 +11,6 @@ extern "C" {
     pub type FMOD_SYSTEM;
     pub type FMOD_CHANNELCONTROL;
     pub type FMOD_CHANNELGROUP;
-    fn Fatal(_: *const libc::c_char, _: ...);
     fn FMOD_System_PlaySound(
         system: *mut FMOD_SYSTEM,
         sound: *mut FMOD_SOUND,

@@ -1,5 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
+use crate::Common::*;
 use crate::Draw::*;
 use crate::Intersect::*;
 use crate::LineSegment::*;
@@ -420,8 +421,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
                     b"BSPBuild_ScoreSplitPlane: Unhandled case: %i\0" as *const u8
                         as *const libc::c_char,
                     classification as i32,
-                );
-                current_block_4 = 11316911015026613471;
+                )
             }
         }
         match current_block_4 {
@@ -777,8 +777,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                     b"BSPBuild_CreateNode: Unhandled case: %i\0" as *const u8
                         as *const libc::c_char,
                     classification as i32,
-                );
-                current_block_37 = 18363606670811337990;
+                )
             }
         }
         match current_block_37 {
@@ -1181,8 +1180,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
             Fatal(
                 b"BSPDebug_GetNode: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
                 relationship as i32,
-            );
-            current_block_15 = 1626635900302357725;
+            )
         }
     }
     match current_block_15 {

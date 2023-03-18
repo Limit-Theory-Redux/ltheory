@@ -1,4 +1,5 @@
 use crate::internal::Memory::*;
+use crate::Common::*;
 use crate::Math::{Vec2, Vec3, Vec4};
 use crate::Matrix::*;
 use crate::Shader::*;
@@ -9,7 +10,6 @@ use crate::TexCube::*;
 use libc;
 
 extern "C" {
-    fn Fatal(_: *const libc::c_char, _: ...);
     static mut __glewUniform1f: PFNGLUNIFORM1FPROC;
     static mut __glewUniform1i: PFNGLUNIFORM1IPROC;
     static mut __glewUniform2f: PFNGLUNIFORM2FPROC;
