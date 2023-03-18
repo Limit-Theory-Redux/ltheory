@@ -110,14 +110,14 @@ unsafe extern "C" fn ConvertGUID(mut id: SDL_JoystickGUID) -> *mut libc::c_char 
 }
 
 unsafe extern "C" fn Joystick_UpdateSingle(mut this: *mut Joystick) {
-    let mut changed: bool = 0_i32 != 0;
+    let mut changed: bool = false;
     let mut i: i32 = 0_i32;
     while i < (*this).axes {
         let mut state: f64 = Joystick_GetAxis(this, i);
         let mut delta: f64 = Abs(state - *((*this).axisStates).offset(i as isize));
         if delta > 0.1f64 {
-            changed = 1_i32 != 0;
-            *((*this).axisAlive).offset(i as isize) = 1_i32 != 0;
+            changed = true;
+            *((*this).axisAlive).offset(i as isize) = true;
         }
         *((*this).axisStates).offset(i as isize) = state;
         i += 1;
@@ -126,7 +126,7 @@ unsafe extern "C" fn Joystick_UpdateSingle(mut this: *mut Joystick) {
     while i_0 < (*this).buttons {
         let mut state_0: bool = Joystick_ButtonDown(this, i_0);
         if *((*this).buttonStates).offset(i_0 as isize) as i32 != state_0 as i32 {
-            changed = 1_i32 != 0;
+            changed = true;
         }
         *((*this).buttonStates).offset(i_0 as isize) = state_0;
         i_0 += 1;

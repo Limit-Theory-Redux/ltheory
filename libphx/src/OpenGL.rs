@@ -25,9 +25,9 @@ pub type GLfloat = f32;
 
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
-    static mut init: bool = 0_i32 != 0;
+    static mut init: bool = false;
     if !init {
-        init = 1_i32 != 0;
+        init = true;
         glewInit();
     }
     glDisable(0x809d_i32 as GLenum);

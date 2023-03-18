@@ -125,9 +125,9 @@ unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -
     if afterFloat != (*s).cursor as *mut libc::c_char {
         (*s).cursor = afterFloat;
         *value = f;
-        return 1_i32 != 0;
+        return true;
     }
-    return 0_i32 != 0;
+    return false;
 }
 
 unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> bool {
@@ -142,17 +142,17 @@ unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> 
     if afterInt != (*s).cursor as *mut libc::c_char {
         (*s).cursor = afterInt;
         *value = i;
-        return 1_i32 != 0;
+        return true;
     }
-    return 0_i32 != 0;
+    return false;
 }
 
 unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut ParseState) -> bool {
     if (*s).cursor < (*s).endOfData && *(*s).cursor as i32 == character as i32 {
         (*s).cursor = ((*s).cursor).offset(1);
-        return 1_i32 != 0;
+        return true;
     }
-    return 0_i32 != 0;
+    return false;
 }
 
 #[no_mangle]

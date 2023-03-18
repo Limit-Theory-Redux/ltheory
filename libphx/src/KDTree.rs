@@ -242,7 +242,7 @@ pub unsafe extern "C" fn KDTree_IntersectRay(
     mut _a: *const Vec3,
     mut _b: *const Vec3,
 ) -> bool {
-    return 0_i32 != 0;
+    return false;
 }
 
 #[no_mangle]

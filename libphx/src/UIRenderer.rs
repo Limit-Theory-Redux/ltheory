@@ -90,11 +90,11 @@ static mut this: UIRenderer = UIRenderer {
     textPool: std::ptr::null_mut(),
 };
 unsafe extern "C" fn UIRenderer_Init() {
-    static mut init: bool = 0_i32 != 0;
+    static mut init: bool = false;
     if init {
         return;
     }
-    init = 1_i32 != 0;
+    init = true;
     this.root = std::ptr::null_mut();
     this.layer = std::ptr::null_mut();
     this.layerPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererLayer>() as u32);
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
         0_i32 as f32,
         vp.x as f32,
         vp.y as f32,
-        1_i32 != 0,
+        true,
     );
     this.root = this.layer;
 }

@@ -271,18 +271,18 @@ pub unsafe extern "C" fn BoxTree_GetMemory(mut this: *mut BoxTree) -> i32 {
 
 unsafe extern "C" fn Node_IntersectRay(mut this: *mut Node, mut o: Vec3, mut di: Vec3) -> bool {
     if !Box3f_IntersectsRay((*this).box_0, o, di) {
-        return 0_i32 != 0;
+        return false;
     }
     if !((*this).sub[0]).is_null() {
         if Node_IntersectRay((*this).sub[0], o, di) {
-            return 1_i32 != 0;
+            return true;
         }
         if Node_IntersectRay((*this).sub[1], o, di) {
-            return 1_i32 != 0;
+            return true;
         }
-        return 0_i32 != 0;
+        return false;
     } else {
-        return 1_i32 != 0;
+        return true;
     };
 }
 
@@ -294,7 +294,7 @@ pub unsafe extern "C" fn BoxTree_IntersectRay(
     mut rd: *const Vec3,
 ) -> bool {
     if ((*this).root).is_null() {
-        return 0_i32 != 0;
+        return false;
     }
     let mut inv: *mut Matrix = Matrix_Inverse(matrix);
     let mut invRo = Vec3::ZERO;

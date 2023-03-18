@@ -755,7 +755,7 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_FinishLoad(mut this: *mut SoundDesc, mut func: *const libc::c_char) {
-    let mut warned: bool = 0_i32 != 0;
+    let mut warned: bool = false;
     let mut openState: FMOD_OPENSTATE = FMOD_OPENSTATE_READY;
     loop {
         // FMOD_CheckError(
@@ -789,7 +789,7 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(mut this: *mut SoundDesc, mut func
             break;
         }
         if !warned {
-            warned = 1_i32 != 0;
+            warned = true;
             Warn(
                 b"%s: Background file load hasn't finished. Blocking the main thread.\n  Path: %s\0"
                     as *const u8 as *const libc::c_char,

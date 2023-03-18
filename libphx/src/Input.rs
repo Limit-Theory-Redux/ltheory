@@ -174,7 +174,7 @@ unsafe extern "C" fn Input_GetDeviceExists(mut device: Device) -> bool {
             ((*deviceList).devices_data).offset(device.id as isize);
         return (*deviceState).isConnected;
     }
-    return 0_i32 != 0;
+    return false;
 }
 
 #[inline]
@@ -283,7 +283,7 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
     let mut down: bool = (*deviceState).buttons[event.button as usize];
     if !down && event.state & State_Pressed == State_Pressed {
         (*deviceState).transitions[event.button as usize] += 1;
-        (*deviceState).buttons[event.button as usize] = 1_i32 != 0;
+        (*deviceState).buttons[event.button as usize] = true;
         if (this.downButtons_capacity == this.downButtons_size) as i32 as libc::c_long != 0 {
             this.downButtons_capacity = if this.downButtons_capacity != 0 {
                 this.downButtons_capacity * 2_i32
@@ -307,7 +307,7 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
     }
     if down as i32 != 0 && event.state & State_Released == State_Released {
         (*deviceState).transitions[event.button as usize] += 1;
-        (*deviceState).buttons[event.button as usize] = 0_i32 != 0;
+        (*deviceState).buttons[event.button as usize] = false;
         let mut i: i32 = this.downButtons_size - 1_i32;
         while i >= 0_i32 {
             if (*(this.downButtons_data).offset(i as isize)).button == event.button {
@@ -672,7 +672,7 @@ pub unsafe extern "C" fn Input_Update() {
                             id: id,
                         };
                         let mut deviceState_3: *mut DeviceState = Input_EnsureDeviceState(device_8);
-                        (*deviceState_3).isConnected = 1_i32 != 0;
+                        (*deviceState_3).isConnected = true;
                     }
                 }
             }
@@ -685,7 +685,7 @@ pub unsafe extern "C" fn Input_Update() {
                     id: sdl.cdevice.which as u32,
                 };
                 let mut deviceState_4: *mut DeviceState = Input_GetDeviceState(device_9);
-                (*deviceState_4).isConnected = 0_i32 != 0;
+                (*deviceState_4).isConnected = false;
                 let mut sdlController_0: *mut SDL_GameController =
                     SDL_GameControllerFromInstanceID(sdl.cdevice.which);
                 if !sdlController_0.is_null() {
@@ -855,7 +855,7 @@ pub unsafe extern "C" fn Input_GetDevicePressed(
     mut button: Button,
 ) -> bool {
     if !Input_GetDeviceExists(*device) {
-        return 0_i32 != 0;
+        return false;
     }
     return Input_GetDevicePressedImpl(*device, button);
 }
@@ -863,7 +863,7 @@ pub unsafe extern "C" fn Input_GetDevicePressed(
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetDeviceDown(mut device: *mut Device, mut button: Button) -> bool {
     if !Input_GetDeviceExists(*device) {
-        return 0_i32 != 0;
+        return false;
     }
     return Input_GetDeviceDownImpl(*device, button);
 }
@@ -874,7 +874,7 @@ pub unsafe extern "C" fn Input_GetDeviceReleased(
     mut button: Button,
 ) -> bool {
     if !Input_GetDeviceExists(*device) {
-        return 0_i32 != 0;
+        return false;
     }
     return Input_GetDeviceReleasedImpl(*device, button);
 }
@@ -937,7 +937,7 @@ pub unsafe extern "C" fn Input_SetMousePosition(mut position: *mut IVec2) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMouseVisible(mut visible: bool) {
-    this.autoHideMouse = 0_i32 != 0;
+    this.autoHideMouse = false;
     SDL_ShowCursor(if visible as i32 != 0 {
         1_i32
     } else {
@@ -947,7 +947,7 @@ pub unsafe extern "C" fn Input_SetMouseVisible(mut visible: bool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_SetMouseVisibleAuto() {
-    this.autoHideMouse = 1_i32 != 0;
+    this.autoHideMouse = true;
     Input_SetActiveDevice(this.activeDevice);
 }
 
@@ -994,7 +994,7 @@ pub unsafe extern "C" fn Input_GetKeyboardIdleTime() -> f32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetKeyboardMod(mut modifier: Modifier) -> bool {
-    let mut hasMod: bool = 1_i32 != 0;
+    let mut hasMod: bool = true;
     if modifier & Modifier_Alt == Modifier_Alt {
         hasMod = (hasMod as i32 & Input_GetKeyboardAlt() as i32) != 0;
     }
@@ -1059,7 +1059,7 @@ pub unsafe extern "C" fn Input_GetGamepadPressed(mut id: u32, mut button: Button
         id: id,
     };
     if !Input_GetDeviceExists(device) {
-        return 0_i32 != 0;
+        return false;
     }
     return Input_GetDevicePressedImpl(device, button);
 }
@@ -1071,7 +1071,7 @@ pub unsafe extern "C" fn Input_GetGamepadDown(mut id: u32, mut button: Button) -
         id: id,
     };
     if !Input_GetDeviceExists(device) {
-        return 0_i32 != 0;
+        return false;
     }
     return Input_GetDeviceDownImpl(device, button);
 }
@@ -1083,7 +1083,7 @@ pub unsafe extern "C" fn Input_GetGamepadReleased(mut id: u32, mut button: Butto
         id: id,
     };
     if !Input_GetDeviceExists(device) {
-        return 0_i32 != 0;
+        return false;
     }
     return Input_GetDeviceReleasedImpl(device, button);
 }
@@ -1108,7 +1108,7 @@ pub unsafe extern "C" fn Input_GetEventCount() -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool {
     if this.events_size == 0_i32 {
-        return 0_i32 != 0;
+        return false;
     }
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"Input_GetNextEvent\0"))
@@ -1129,5 +1129,5 @@ pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool 
     }
     this.events_size -= 1;
     Profiler_End();
-    return 1_i32 != 0;
+    return true;
 }

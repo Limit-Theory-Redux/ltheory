@@ -39,7 +39,7 @@ pub static Signal_Abrt: Signal = 6_i32;
 #[no_mangle]
 pub static Signal_Int: Signal = 2_i32;
 
-static mut ignoreDefault: bool = 0_i32 != 0;
+static mut ignoreDefault: bool = false;
 static mut handlerDefault: [SignalHandler; 32] = [
     None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
     None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
@@ -95,7 +95,7 @@ unsafe extern "C" fn Signal_Handler(mut sig: Signal) {
         e = (*e).next;
     }
     if ignoreDefault {
-        ignoreDefault = 0_i32 != 0;
+        ignoreDefault = false;
         return;
     }
     libc::raise(sig);
@@ -200,5 +200,5 @@ pub unsafe extern "C" fn Signal_ToString(mut this: Signal) -> *const libc::c_cha
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_IgnoreDefault() {
-    ignoreDefault = 1_i32 != 0;
+    ignoreDefault = true;
 }

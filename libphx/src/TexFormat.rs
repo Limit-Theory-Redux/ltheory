@@ -80,27 +80,27 @@ pub unsafe extern "C" fn TexFormat_GetSize(mut this: TexFormat) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn TexFormat_IsColor(mut this: TexFormat) -> bool {
     match this {
-        33189 | 33190 | 36012 => return 0_i32 != 0,
+        33189 | 33190 | 36012 => return false,
         _ => {}
     }
-    return 1_i32 != 0;
+    return true;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexFormat_IsDepth(mut this: TexFormat) -> bool {
     match this {
-        33189 | 33190 | 36012 => return 1_i32 != 0,
+        33189 | 33190 | 36012 => return true,
         _ => {}
     }
-    return 0_i32 != 0;
+    return false;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexFormat_IsValid(mut this: TexFormat) -> bool {
     match this {
         33321 | 33322 | 33325 | 33326 | 33323 | 33324 | 33327 | 33328 | 32849 | 32856 | 32859
-        | 34842 | 34836 | 33189 | 33190 | 36012 => return 1_i32 != 0,
+        | 34842 | 34836 | 33189 | 33190 | 36012 => return true,
         _ => {}
     }
-    return 0_i32 != 0;
+    return false;
 }

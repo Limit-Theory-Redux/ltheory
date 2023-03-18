@@ -35,7 +35,7 @@ static mut initTime: TimeStamp = 0_i32 as TimeStamp;
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor: i32) {
-    static mut firstTime: bool = 1_i32 != 0;
+    static mut firstTime: bool = true;
     Signal_Init();
     libc::printf(
         b"Engine_Init: Requesting GL %d.%d\n\0" as *const u8 as *const libc::c_char,
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor
         glVersionMinor,
     );
     if firstTime {
-        firstTime = 0_i32 != 0;
+        firstTime = false;
         let mut compiled: SDL_version = SDL_version {
             major: 0,
             minor: 0,

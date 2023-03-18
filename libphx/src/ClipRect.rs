@@ -103,7 +103,7 @@ pub unsafe extern "C" fn ClipRect_Push(mut x: f32, mut y: f32, mut sx: f32, mut 
     (*curr).y = y;
     (*curr).sx = sx;
     (*curr).sy = sy;
-    (*curr).enabled = 1_i32 != 0;
+    (*curr).enabled = true;
     ClipRect_Activate(curr);
 }
 
@@ -133,7 +133,7 @@ pub unsafe extern "C" fn ClipRect_PushDisabled() {
     }
     rectIndex += 1;
     let mut curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
-    (*curr).enabled = 0_i32 != 0;
+    (*curr).enabled = false;
     ClipRect_Activate(curr);
 }
 

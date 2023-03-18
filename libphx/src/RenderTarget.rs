@@ -90,14 +90,14 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     (*this).colorIndex = 0_i32;
     (*this).sx = sx;
     (*this).sy = sy;
-    (*this).depth = 0_i32 != 0;
+    (*this).depth = false;
     Metric_Inc(0x7_i32);
     __glewGenFramebuffers.expect("non-null function pointer")(1_i32, &mut (*this).handle);
     __glewBindFramebuffer.expect("non-null function pointer")(
         0x8d40_i32 as GLenum,
         (*this).handle,
     );
-    Viewport_Push(0_i32, 0_i32, sx, sy, 0_i32 != 0);
+    Viewport_Push(0_i32, 0_i32, sx, sy, false);
     Profiler_End();
 }
 
@@ -191,7 +191,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
             handle,
             level,
         );
-        (*this).depth = 1_i32 != 0;
+        (*this).depth = true;
     };
 }
 

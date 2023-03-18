@@ -823,7 +823,7 @@ pub unsafe extern "C" fn Sound_Load(
     mut isLooped: bool,
     mut is3D: bool,
 ) -> *mut Sound {
-    let mut this: *mut Sound = Sound_Create(name, 1_i32 != 0, isLooped, is3D);
+    let mut this: *mut Sound = Sound_Create(name, true, isLooped, is3D);
     Sound_EnsureLoadedImpl(
         this,
         (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Sound_Load\0")).as_ptr(),
@@ -837,7 +837,7 @@ pub unsafe extern "C" fn Sound_LoadAsync(
     mut isLooped: bool,
     mut is3D: bool,
 ) -> *mut Sound {
-    let mut this: *mut Sound = Sound_Create(name, 0_i32 != 0, isLooped, is3D);
+    let mut this: *mut Sound = Sound_Create(name, false, isLooped, is3D);
     return this;
 }
 
@@ -1157,7 +1157,7 @@ pub unsafe extern "C" fn Sound_LoadPlayAttached(
 #[no_mangle]
 pub unsafe extern "C" fn Sound_LoadPlayFree(mut name: *const libc::c_char, mut isLooped: bool, mut is3D: bool) {
     let mut this: *mut Sound = Sound_Load(name, isLooped, is3D);
-    Sound_SetFreeOnFinish(this, 1_i32 != 0);
+    Sound_SetFreeOnFinish(this, true);
     Sound_Play(this);
 }
 
@@ -1171,7 +1171,7 @@ pub unsafe extern "C" fn Sound_LoadPlayFreeAttached(
 ) {
     let mut this: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_Attach3DPos(this, pos, vel);
-    Sound_SetFreeOnFinish(this, 1_i32 != 0);
+    Sound_SetFreeOnFinish(this, true);
     Sound_Play(this);
 }
 
@@ -1197,7 +1197,7 @@ pub unsafe extern "C" fn Sound_ClonePlayAttached(
 #[no_mangle]
 pub unsafe extern "C" fn Sound_ClonePlayFree(mut this: *mut Sound) {
     let mut clone: *mut Sound = Sound_Clone(this);
-    Sound_SetFreeOnFinish(clone, 1_i32 != 0);
+    Sound_SetFreeOnFinish(clone, true);
     Sound_Play(clone);
 }
 
@@ -1209,7 +1209,7 @@ pub unsafe extern "C" fn Sound_ClonePlayFreeAttached(
 ) {
     let mut clone: *mut Sound = Sound_Clone(this);
     Sound_Attach3DPos(clone, pos, vel);
-    Sound_SetFreeOnFinish(clone, 1_i32 != 0);
+    Sound_SetFreeOnFinish(clone, true);
     Sound_Play(clone);
 }
 

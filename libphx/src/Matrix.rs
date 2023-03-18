@@ -215,11 +215,11 @@ pub unsafe extern "C" fn Matrix_Equal(mut a: *const Matrix, mut b: *const Matrix
     let mut i: i32 = 0_i32;
     while i < 16_i32 {
         if (*a).m[i as usize] != (*b).m[i as usize] {
-            return 0_i32 != 0;
+            return false;
         }
         i += 1;
     }
-    return 1_i32 != 0;
+    return true;
 }
 
 #[no_mangle]
@@ -230,11 +230,11 @@ pub unsafe extern "C" fn Matrix_ApproximatelyEqual(
     let mut i: i32 = 0_i32;
     while i < 16_i32 {
         if !Float_ApproximatelyEqual((*a).m[i as usize] as f64, (*b).m[i as usize] as f64) {
-            return 0_i32 != 0;
+            return false;
         }
         i += 1;
     }
-    return 1_i32 != 0;
+    return true;
 }
 
 #[no_mangle]

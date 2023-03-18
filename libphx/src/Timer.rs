@@ -13,9 +13,9 @@ static mut frequency: f64 = 0_i32 as f64;
 
 #[no_mangle]
 pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
-    static mut init: bool = 0_i32 != 0;
+    static mut init: bool = false;
     if !init {
-        init = 1_i32 != 0;
+        init = true;
         frequency = SDL_GetPerformanceFrequency() as f64;
     }
     let mut this: *mut Timer = MemAlloc(::core::mem::size_of::<Timer>()) as *mut Timer;

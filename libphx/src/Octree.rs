@@ -42,15 +42,15 @@ unsafe extern "C" fn Box3f_IntersectsRay(mut this: Box3f, mut ro: Vec3, mut rdi:
 #[inline]
 unsafe extern "C" fn Box3f_IntersectsBox(mut a: Box3f, mut b: Box3f) -> bool {
     if a.lower.x > b.upper.x || a.upper.x < b.lower.x {
-        return 0_i32 != 0;
+        return false;
     }
     if a.lower.y > b.upper.y || a.upper.y < b.lower.y {
-        return 0_i32 != 0;
+        return false;
     }
     if a.lower.z > b.upper.z || a.upper.z < b.lower.z {
-        return 0_i32 != 0;
+        return false;
     }
-    return 1_i32 != 0;
+    return true;
 }
 
 #[inline]
@@ -248,12 +248,12 @@ unsafe extern "C" fn Octree_IntersectRayImpl(
     mut di: Vec3,
 ) -> bool {
     if !Box3f_IntersectsRay((*this).box_0, o, di) {
-        return 0_i32 != 0;
+        return false;
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
         if Box3f_IntersectsRay((*elem).box_0, o, di) {
-            return 1_i32 != 0;
+            return true;
         }
         elem = (*elem).next;
     }
@@ -261,12 +261,12 @@ unsafe extern "C" fn Octree_IntersectRayImpl(
     while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
             if Octree_IntersectRayImpl((*this).child[i as usize], o, di) {
-                return 1_i32 != 0;
+                return true;
             }
         }
         i += 1;
     }
-    return 0_i32 != 0;
+    return false;
 }
 
 #[no_mangle]

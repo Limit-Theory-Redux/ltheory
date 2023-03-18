@@ -184,7 +184,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
     *tHit = 3.40282347e+38f32;
     let mut nodeRef: BSPNodeRef = (*this).rootNode;
     let mut tEpsilon: f32 = (8.0f32 as f64 * 1e-4f64 / ray.dir.length() as f64) as f32;
-    let mut hit: bool = 0_i32 != 0;
+    let mut hit: bool = false;
     let mut depth: i32 = 0_i32;
     let mut maxDepth: i32 = 0_i32;
     loop {
@@ -269,7 +269,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                 let mut t_0: f32 = 0.;
                 if Intersect_RayTriangle_Moller1(&mut ray, triangle, &mut t_0) {
                     if !hit || t_0 < *tHit {
-                        hit = 1_i32 != 0;
+                        hit = true;
                         *tHit = t_0;
                     }
                 }
@@ -309,9 +309,9 @@ pub unsafe extern "C" fn BSP_IntersectLineSegment(
     };
     if BSP_IntersectRay(this, &mut ray, &mut t) {
         Ray_GetPoint(&mut ray, t, pHit);
-        return 1_i32 != 0;
+        return true;
     }
-    return 0_i32 != 0;
+    return false;
 }
 
 #[no_mangle]
@@ -330,7 +330,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
     mut pHit: *mut Vec3,
 ) -> bool {
     let mut nodeRef: BSPNodeRef = (*this).rootNode;
-    let mut hit: bool = 0_i32 != 0;
+    let mut hit: bool = false;
     let mut depth: i32 = 0_i32;
     let mut maxDepth: i32 = 0_i32;
     loop {
@@ -374,7 +374,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                 let mut triangle: *mut Triangle = leaf.offset(i as i32 as isize);
                 let mut pHit2 = Vec3::ZERO;
                 if Intersect_SphereTriangle(sphere, triangle, &mut pHit2) {
-                    hit = 1_i32 != 0;
+                    hit = true;
                     *pHit = pHit2;
                     break;
                 } else {
@@ -521,7 +521,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 ((*bestPolygon).flags as i32 | PolygonFlag_InvalidFaceSplit as i32) as PolygonFlag;
         }
     } else if polygonsLen > 0_i32 {
-        let mut splitFound: bool = 0_i32 != 0;
+        let mut splitFound: bool = false;
         if !splitFound {
             let mut polygonIndex_0: i32 =
                 (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
@@ -559,7 +559,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         if Plane_ClassifyPolygon(&mut plane_0, polygon_0 as *mut Polygon) as i32
                             == 4_i32
                         {
-                            splitFound = 1_i32 != 0;
+                            splitFound = true;
                             bestScore = 0.0f32;
                             bestPlane = plane_0;
                             bestPolygon = polygon_0;
@@ -621,7 +621,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                         plane_1.d = Vec3::dot(plane_1.n, mid_0);
                         let mut score_0: f32 = BSPBuild_ScoreSplitPlane(nodeData, plane_1, 0.0f32);
                         if score_0 < bestScore {
-                            splitFound = 1_i32 != 0;
+                            splitFound = true;
                             bestPolygon = polygon_1;
                             bestScore = score_0;
                             bestPlane = plane_1;
@@ -649,9 +649,9 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     }
     if bestScore < 3.40282347e+38f32 {
         *splitPlane = bestPlane;
-        return 1_i32 != 0;
+        return true;
     } else {
-        return 0_i32 != 0;
+        return false;
     };
 }
 
@@ -696,7 +696,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         },
         d: 0.,
     };
-    let mut makeLeaf: bool = 0_i32 != 0;
+    let mut makeLeaf: bool = false;
     makeLeaf = makeLeaf as i32 != 0 || (*nodeData).triangleCount <= 12_i32;
     makeLeaf = makeLeaf as i32 != 0 || !BSPBuild_ChooseSplitPlane(bsp, nodeData, &mut splitPlane);
     if makeLeaf {
@@ -1250,8 +1250,8 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(mut this: *mut BSP, mut nodeRef: BSPN
 pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(mut this: *mut BSP, mut nodeRef: BSPNodeRef) {
     RenderState_PushBlendMode(1_i32);
     RenderState_PushCullFace(1_i32);
-    RenderState_PushDepthTest(1_i32 != 0);
-    RenderState_PushWireframe(1_i32 != 0);
+    RenderState_PushDepthTest(true);
+    RenderState_PushWireframe(true);
     if nodeRef.index > 0_i32 {
         let mut node: *mut BSPNode = ((*this).nodes_data).offset(nodeRef.index as isize);
         Draw_Color(0.5f32, 0.3f32, 0.3f32, 0.4f32);
@@ -1266,7 +1266,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(mut this: *mut BSP, mut nodeRef:
         };
         let mut t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
         closestPoint = origin - ((*node).plane.n * t);
-        RenderState_PushWireframe(0_i32 != 0);
+        RenderState_PushWireframe(false);
         Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
         Draw_Plane(&mut closestPoint, &mut (*node).plane.n, 2.0f32);
         Draw_Color(0.5f32, 0.3f32, 0.3f32, 0.4f32);
@@ -1306,18 +1306,18 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
 pub unsafe extern "C" fn BSPDebug_DrawSphere(mut this: *mut BSP, mut sphere: *mut Sphere) {
     let mut pHit = Vec3::ZERO;
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
-        RenderState_PushWireframe(0_i32 != 0);
+        RenderState_PushWireframe(false);
         Draw_Color(1.0f32, 0.0f32, 0.0f32, 0.3f32);
         Draw_Sphere(&mut (*sphere).p, (*sphere).r);
         RenderState_PopWireframe();
         Draw_Color(1.0f32, 0.0f32, 0.0f32, 1.0f32);
         Draw_Sphere(&mut (*sphere).p, (*sphere).r);
-        RenderState_PushDepthTest(0_i32 != 0);
+        RenderState_PushDepthTest(false);
         Draw_PointSize(8.0f32);
         Draw_Point3(pHit.x, pHit.y, pHit.z);
         RenderState_PopDepthTest();
     } else {
-        RenderState_PushWireframe(0_i32 != 0);
+        RenderState_PushWireframe(false);
         Draw_Color(0.0f32, 1.0f32, 0.0f32, 0.3f32);
         Draw_Sphere(&mut (*sphere).p, (*sphere).r);
         RenderState_PopWireframe();
@@ -1349,7 +1349,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     mut sphereProf: *mut IntersectSphereProfiling,
 ) -> bool {
     let mut nodeRef: BSPNodeRef = (*this).rootNode;
-    let mut hit: bool = 0_i32 != 0;
+    let mut hit: bool = false;
     let mut depth: i32 = 0_i32;
     let mut maxDepth: i32 = 0_i32;
     loop {
@@ -1398,7 +1398,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 if Intersect_SphereTriangle(sphere, triangle, &mut pHit2) {
                     let mut t: TriangleTest = TriangleTest {
                         triangle: triangle,
-                        hit: 1_i32 != 0,
+                        hit: true,
                     };
                     if ((*sphereProf).triangleTests_capacity == (*sphereProf).triangleTests_size)
                         as i32 as libc::c_long
@@ -1423,12 +1423,12 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     let fresh13 = (*sphereProf).triangleTests_size;
                     (*sphereProf).triangleTests_size = (*sphereProf).triangleTests_size + 1;
                     *((*sphereProf).triangleTests_data).offset(fresh13 as isize) = t;
-                    hit = 1_i32 != 0;
+                    hit = true;
                     break;
                 } else {
                     let mut t_0: TriangleTest = TriangleTest {
                         triangle: triangle,
-                        hit: 0_i32 != 0,
+                        hit: false,
                     };
                     if ((*sphereProf).triangleTests_capacity == (*sphereProf).triangleTests_size)
                         as i32 as libc::c_long

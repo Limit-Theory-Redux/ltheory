@@ -138,7 +138,7 @@ unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
 }
 
 unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
-    this.locked = 1_i32 != 0;
+    this.locked = true;
     libc::qsort(
         this.elems_data as *mut libc::c_void,
         this.elems_size as usize,
@@ -169,7 +169,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
         this.elems_size -= 1;
     }
     lua_settop(L, -1_i32 - 1_i32);
-    this.locked = 0_i32 != 0;
+    this.locked = false;
     while this.addQueue_size != 0 {
         this.addQueue_size -= 1;
         let mut elem_0: SchedulerElem = *(this.addQueue_data).offset(this.addQueue_size as isize);
@@ -203,7 +203,7 @@ pub unsafe extern "C" fn LuaScheduler_Init(mut _L: *mut Lua) {
     this.addQueue_size = 0_i32;
     this.addQueue_data = std::ptr::null_mut();
     this.now = TimeStamp_Get();
-    this.locked = 0_i32 != 0;
+    this.locked = false;
 }
 
 #[no_mangle]

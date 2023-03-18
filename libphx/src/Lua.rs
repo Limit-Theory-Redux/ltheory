@@ -81,7 +81,7 @@ pub const kErrorHandler: *const libc::c_char =
     b"function __error_handler__ (e)  return debug.traceback(e, 1)end\0" as *const u8
         as *const libc::c_char;
 
-static mut initialized: bool = 0_i32 != 0;
+static mut initialized: bool = false;
 static mut activeInstance: *mut Lua = std::ptr::null_mut();
 static mut cSignal: Signal = 0_i32;
 unsafe extern "C" fn Lua_BacktraceHook(mut this: *mut Lua, _: *mut lua_Debug) {
@@ -171,7 +171,7 @@ unsafe extern "C" fn Lua_InitExtensions(mut this: *mut Lua) {
 #[no_mangle]
 pub unsafe extern "C" fn Lua_Create() -> *mut Lua {
     if !initialized {
-        initialized = 1_i32 != 0;
+        initialized = true;
         Signal_AddHandlerAll(Some(
             Lua_SignalHandler as unsafe extern "C" fn(Signal) -> (),
         ));
@@ -361,7 +361,7 @@ unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: *const libc::c_c
     let mut type_0: i32 = lua_type(this, -1_i32);
     let mut typeName: *const libc::c_char = lua_typename(this, type_0);
     let mut strValue: *const libc::c_char = std::ptr::null();
-    let mut isNull: bool = 0_i32 != 0;
+    let mut isNull: bool = false;
     if luaL_callmeta(
         this,
         -1_i32,
@@ -445,7 +445,7 @@ unsafe extern "C" fn Lua_ToString(mut this: *mut Lua, mut name: *const libc::c_c
         match current_block_14 {
             12136430868992966025 => {
                 strValue = b"nil\0" as *const u8 as *const libc::c_char;
-                isNull = 1_i32 != 0;
+                isNull = true;
             }
             _ => {}
         }

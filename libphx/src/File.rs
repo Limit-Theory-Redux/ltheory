@@ -19,9 +19,9 @@ pub unsafe extern "C" fn File_Exists(mut path: *const libc::c_char) -> bool {
     let mut f: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if !f.is_null() {
         libc::fclose(f);
-        return 1_i32 != 0;
+        return true;
     }
-    return 0_i32 != 0;
+    return false;
 }
 
 #[no_mangle]

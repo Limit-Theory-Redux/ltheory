@@ -380,7 +380,7 @@ unsafe extern "C" fn ImGui_PopClipRect() {
 #[inline]
 unsafe extern "C" fn IsClipped(mut p: Vec2) -> bool {
     if (this.clipRect).is_null() {
-        return 0_i32 != 0;
+        return false;
     }
     return p.x < (*this.clipRect).p1.x
         || p.y < (*this.clipRect).p1.y
@@ -764,12 +764,12 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
         ClipRect_Pop();
     }
 }
-static mut init_imgui: bool = 0_i32 != 0;
+static mut init_imgui: bool = false;
 unsafe extern "C" fn ImGui_Init() {
     if init_imgui {
         return;
     }
-    init_imgui = 1_i32 != 0;
+    init_imgui = true;
     this.layer = std::ptr::null_mut();
     this.layerLast = std::ptr::null_mut();
     this.style = std::ptr::null_mut();
@@ -821,12 +821,12 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     this.style = std::ptr::null_mut();
     ImGui_PushDefaultStyle();
     this.layout = std::ptr::null_mut();
-    ImGui_PushLayout(sx, sy, 0_i32 != 0);
+    ImGui_PushLayout(sx, sy, false);
     this.widget = std::ptr::null_mut();
     this.widgetLast = std::ptr::null_mut();
     ImGui_BeginWidget(sx, sy);
     this.layer = std::ptr::null_mut();
-    ImGui_PushLayer(1_i32 != 0);
+    ImGui_PushLayer(true);
     let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };
     Input_GetMousePosition(&mut mouse);
     this.mouse.x = mouse.x as f32;
@@ -935,13 +935,13 @@ pub unsafe extern "C" fn ImGui_BeginGroup(mut sx: f32, mut sy: f32, mut horizont
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginGroupX(mut sy: f32) {
     ImGui_BeginWidget(0.0f32, sy);
-    ImGui_PushLayout(0.0f32, sy, 1_i32 != 0);
+    ImGui_PushLayout(0.0f32, sy, true);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginGroupY(mut sx: f32) {
     ImGui_BeginWidget(sx, 0.0f32);
-    ImGui_PushLayout(sx, 0.0f32, 0_i32 != 0);
+    ImGui_PushLayout(sx, 0.0f32, false);
 }
 
 #[no_mangle]
@@ -952,9 +952,9 @@ pub unsafe extern "C" fn ImGui_EndGroup() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginPanel(mut sx: f32, mut sy: f32) {
-    ImGui_BeginGroup(sx, sy, 0_i32 != 0);
-    ImGui_PushLayer(0_i32 != 0);
-    ImGui_PushLayer(1_i32 != 0);
+    ImGui_BeginGroup(sx, sy, false);
+    ImGui_PushLayer(false);
+    ImGui_PushLayer(true);
     ImGui_Pad(1.0f32, 1.0f32);
 }
 
@@ -1001,8 +1001,8 @@ pub unsafe extern "C" fn ImGui_EndWindow() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_BeginScrollFrame(mut sx: f32, mut sy: f32) {
-    ImGui_BeginGroup(sx, sy, 0_i32 != 0);
-    ImGui_PushLayer(1_i32 != 0);
+    ImGui_BeginGroup(sx, sy, false);
+    ImGui_PushLayer(true);
     ImGui_Pad(1.0f32, 1.0f32);
     let mut data: *mut ImGuiData = GetData((*this.widget).hash);
     this.cursor.y -= (*data).scroll;
@@ -1186,7 +1186,7 @@ pub unsafe extern "C" fn ImGui_Checkbox(mut value: bool) -> bool {
             (*this.style).buttonColorFocus,
             (*this.widget).pos,
             (*this.widget).size,
-            1_i32 != 0,
+            true,
         );
     }
     EmitPanel(
@@ -1264,7 +1264,7 @@ pub unsafe extern "C" fn ImGui_Selectable(mut label: *const libc::c_char) -> boo
             (*this.style).buttonColorFocus,
             (*this.widget).pos,
             (*this.widget).size,
-            0_i32 != 0,
+            false,
         );
     }
     EmitText(

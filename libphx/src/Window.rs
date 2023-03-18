@@ -53,7 +53,7 @@ pub unsafe extern "C" fn Window_BeginDraw(mut this: *mut Window) {
     let mut size: IVec2 = IVec2::new(0, 0);
     SDL_GL_MakeCurrent((*this).handle, (*this).context);
     Window_GetSize(this, &mut size);
-    Viewport_Push(0_i32, 0_i32, size.x, size.y, 1_i32 != 0);
+    Viewport_Push(0_i32, 0_i32, size.x, size.y, true);
 }
 
 #[no_mangle]

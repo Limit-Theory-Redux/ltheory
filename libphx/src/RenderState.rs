@@ -110,9 +110,9 @@ unsafe extern "C" fn RenderState_SetWireframe(mut enabled: bool) {
 pub unsafe extern "C" fn RenderState_PushAllDefaults() {
     RenderState_PushBlendMode(2_i32);
     RenderState_PushCullFace(0_i32);
-    RenderState_PushDepthTest(0_i32 != 0);
-    RenderState_PushDepthWritable(1_i32 != 0);
-    RenderState_PushWireframe(0_i32 != 0);
+    RenderState_PushDepthTest(false);
+    RenderState_PushDepthWritable(true);
+    RenderState_PushWireframe(false);
 }
 
 #[no_mangle]

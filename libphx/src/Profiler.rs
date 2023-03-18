@@ -65,7 +65,7 @@ static mut this: Profiler = Profiler {
     scopeList_data: std::ptr::null_mut(),
     start: 0,
 };
-static mut profiling: bool = 0_i32 != 0;
+static mut profiling: bool = false;
 unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
     let mut scope: *mut Scope = MemAlloc(::core::mem::size_of::<Scope>()) as *mut Scope;
     (*scope).name = StrDup(name);
@@ -131,7 +131,7 @@ unsafe extern "C" fn Profiler_SignalHandler(mut _s: Signal) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Enable() {
-    profiling = 1_i32 != 0;
+    profiling = true;
     this.map = HashMap_Create(
         ::core::mem::size_of::<*mut libc::c_void>() as libc::c_ulong as u32,
         (2_i32 * 1024_i32) as u32,
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     }
     MemFree(this.scopeList_data as *const libc::c_void);
     HashMap_Free(this.map);
-    profiling = 0_i32 != 0;
+    profiling = false;
     Signal_RemoveHandlerAll(Some(
         Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> (),
     ));

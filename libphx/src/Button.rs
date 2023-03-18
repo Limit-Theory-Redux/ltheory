@@ -693,8 +693,8 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> *const libc::c_c
 #[no_mangle]
 pub unsafe extern "C" fn Button_IsAutoRelease(mut button: Button) -> bool {
     match button {
-        124 | 125 | 147 => return 1_i32 != 0,
-        _ => return 0_i32 != 0,
+        124 | 125 | 147 => return true,
+        _ => return false,
     };
 }
 
