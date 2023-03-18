@@ -432,12 +432,12 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     let fRes: f32 = res as f32;
     Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3_usize) as i32);
     glBegin(0x4_i32 as GLenum);
-    let mut lastTheta: f32 = res.wrapping_sub(1_usize) as f32 / fRes * 6.28318531f32;
-    let mut phi: f32 = 1.0f32 / fRes * 3.14159265f32;
+    let mut lastTheta: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
+    let mut phi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
     let mut tc: Vec3 = *p + Spherical(r, 0.0f32, 0.0f32);
     let mut iTheta: usize = 0_i32 as usize;
     while iTheta < res {
-        let mut theta: f32 = iTheta as f32 / fRes * 6.28318531f32;
+        let mut theta: f32 = iTheta as f32 / fRes * std::f32::consts::TAU;
         let mut br: Vec3 = *p + Spherical(r, lastTheta, phi);
         let mut bl: Vec3 = *p + Spherical(r, theta, phi);
         glVertex3f(br.x, br.y, br.z);
@@ -453,14 +453,14 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
         4_usize.wrapping_mul(res.wrapping_sub(2_usize)) as i32,
     );
     glBegin(0x7_i32 as GLenum);
-    let mut lastPhi: f32 = 1.0f32 / fRes * 3.14159265f32;
-    let mut lastTheta_0: f32 = res.wrapping_sub(1_usize) as f32 / fRes * 6.28318531f32;
+    let mut lastPhi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
+    let mut lastTheta_0: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
     let mut iPhi: usize = 2_i32 as usize;
     while iPhi < res {
-        let mut phi_0: f32 = iPhi as f32 / fRes * 3.14159265f32;
+        let mut phi_0: f32 = iPhi as f32 / fRes * std::f32::consts::PI;
         let mut iTheta_0: usize = 0_i32 as usize;
         while iTheta_0 < res {
-            let mut theta_0: f32 = iTheta_0 as f32 / fRes * 6.28318531f32;
+            let mut theta_0: f32 = iTheta_0 as f32 / fRes * std::f32::consts::TAU;
             let mut br_0: Vec3 = *p + Spherical(r, lastTheta_0, phi_0);
             let mut tr: Vec3 = *p + Spherical(r, lastTheta_0, lastPhi);
             let mut tl: Vec3 = *p + Spherical(r, theta_0, lastPhi);
@@ -478,12 +478,12 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     glEnd();
     Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3_usize) as i32);
     glBegin(0x4_i32 as GLenum);
-    let mut lastTheta_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * 6.28318531f32;
-    let mut phi_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * 3.14159265f32;
-    let mut bc: Vec3 = *p + Spherical(r, 0.0f32, 3.14159265f32);
+    let mut lastTheta_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
+    let mut phi_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::PI;
+    let mut bc: Vec3 = *p + Spherical(r, 0.0f32, std::f32::consts::PI);
     let mut iTheta_1: usize = 0_i32 as usize;
     while iTheta_1 < res {
-        let mut theta_1: f32 = iTheta_1 as f32 / fRes * 6.28318531f32;
+        let mut theta_1: f32 = iTheta_1 as f32 / fRes * std::f32::consts::TAU;
         let mut tr_0: Vec3 = *p + Spherical(r, lastTheta_1, phi_1);
         let mut tl_0: Vec3 = *p + Spherical(r, theta_1, phi_1);
         glVertex3f(tr_0.x, tr_0.y, tr_0.z);

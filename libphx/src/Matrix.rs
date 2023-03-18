@@ -381,7 +381,7 @@ pub unsafe extern "C" fn Matrix_Perspective(
     mut N: f32,
     mut F: f32,
 ) -> *mut Matrix {
-    let mut rads: f64 = (3.14159265f32 * degreesFovy) as f64 / 360.0f64;
+    let mut rads: f64 = (std::f32::consts::PI * degreesFovy) as f64 / 360.0f64;
     let mut cot: f64 = 1.0f64 / Tan(rads);
     let mut result: Matrix = Matrix {
         m: [

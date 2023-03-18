@@ -185,7 +185,7 @@ pub unsafe extern "C" fn RNG_Get64(mut this: *mut RNG) -> u64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetAngle(mut this: *mut RNG) -> f64 {
-    6.28318531f32 as f64 * RNG_GetUniform(this)
+    std::f64::consts::TAU * RNG_GetUniform(this)
 }
 
 #[no_mangle]

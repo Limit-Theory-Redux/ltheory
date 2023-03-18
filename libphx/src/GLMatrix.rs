@@ -137,7 +137,7 @@ pub unsafe extern "C" fn GLMatrix_Perspective(
     mut z0: f64,
     mut z1: f64,
 ) {
-    let mut rads: f64 = 3.14159265f32 as f64 * fovy / 360.0f64;
+    let mut rads: f64 = std::f32::consts::PI as f64 * fovy / 360.0f64;
     let mut cot: f64 = 1.0f64 / Tan(rads);
     let mut dz: f64 = z1 - z0;
     let mut nf: f64 = -2.0f64 * (z0 * z1) / dz;

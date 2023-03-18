@@ -121,7 +121,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             let mut e1: f64 = RNG_GetUniform(rng);
             let mut e2: f64 = RNG_GetUniform(rng);
             let mut pitch: f64 = Atan2(ggxWidth * Sqrt(e1), Sqrt(1.0f64 - e1));
-            let mut yaw: f64 = 6.28318531f32 as f64 * e2;
+            let mut yaw: f64 = std::f64::consts::TAU * e2;
             *sampleBuffer.offset(i_1 as isize) = Vec2::new(pitch as f32, yaw as f32);
             i_1 += 1;
         }

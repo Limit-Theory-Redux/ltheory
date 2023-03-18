@@ -100,7 +100,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
             vertexData.offset(*indexData.offset((i + 2_i32) as isize) as isize);
         let mut normal: Vec3 = Vec3::cross((*v3).p - (*v1).p, (*v2).p - (*v1).p);
         let mut length: f32 = normal.length();
-        let mut area: f32 = 0.5f32 * length / 3.14159265f32;
+        let mut area: f32 = 0.5f32 * length / std::f32::consts::PI;
         if Abs(length as f64) > 1e-6f64 {
             normal /= length;
         } else {
