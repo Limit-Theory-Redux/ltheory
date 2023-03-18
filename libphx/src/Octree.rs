@@ -1,15 +1,16 @@
 use crate::internal::Memory::*;
 use crate::Draw::*;
-use crate::Matrix::*;
-use crate::Mesh::*;
+use crate::Math::Box3;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
+use crate::Matrix::*;
+use crate::Mesh::*;
 use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Octree {
-    pub box_0: Box3f,
+    pub box_0: Box3,
     pub child: [*mut Octree; 8],
     pub elems: *mut Node,
 }
@@ -19,78 +20,11 @@ pub struct Octree {
 pub struct Node {
     pub next: *mut Node,
     pub id: u64,
-    pub box_0: Box3f,
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_IntersectsRay(mut this: Box3f, mut ro: Vec3, mut rdi: Vec3) -> bool {
-    let mut t1: f64 = (rdi.x * (this.lower.x - ro.x)) as f64;
-    let mut t2: f64 = (rdi.x * (this.upper.x - ro.x)) as f64;
-    let mut tMin: f64 = f64::min(t1, t2);
-    let mut tMax: f64 = f64::max(t1, t2);
-    t1 = (rdi.y * (this.lower.y - ro.y)) as f64;
-    t2 = (rdi.y * (this.upper.y - ro.y)) as f64;
-    tMin = f64::max(tMin, f64::min(t1, t2));
-    tMax = f64::min(tMax, f64::max(t1, t2));
-    t1 = (rdi.z * (this.lower.z - ro.z)) as f64;
-    t2 = (rdi.z * (this.upper.z - ro.z)) as f64;
-    tMin = f64::max(tMin, f64::min(t1, t2));
-    tMax = f64::min(tMax, f64::max(t1, t2));
-    tMax >= tMin && tMax > 0_i32 as f64
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_IntersectsBox(mut a: Box3f, mut b: Box3f) -> bool {
-    if a.lower.x > b.upper.x || a.upper.x < b.lower.x {
-        return false;
-    }
-    if a.lower.y > b.upper.y || a.upper.y < b.lower.y {
-        return false;
-    }
-    if a.lower.z > b.upper.z || a.upper.z < b.lower.z {
-        return false;
-    }
-    true
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
-    let mut this: Box3f = Box3f {
-        lower: Vec3 {
-            x: f32::max(a.lower.x, b.lower.x),
-            y: f32::max(a.lower.y, b.lower.y),
-            z: f32::max(a.lower.z, b.lower.z),
-        },
-        upper: Vec3 {
-            x: f32::min(a.upper.x, b.upper.x),
-            y: f32::min(a.upper.y, b.upper.y),
-            z: f32::min(a.upper.z, b.upper.z),
-        },
-    };
-    this
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
-    let mut center: Vec3 = Vec3 {
-        x: (this.lower.x + this.upper.x) / 2.0f32,
-        y: (this.lower.y + this.upper.y) / 2.0f32,
-        z: (this.lower.z + this.upper.z) / 2.0f32,
-    };
-    center
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
-    let mut result: Box3f = Box3f {
-        lower: lower,
-        upper: upper,
-    };
-    result
+    pub box_0: Box3,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Octree_Create(mut box_0: Box3f) -> *mut Octree {
+pub unsafe extern "C" fn Octree_Create(mut box_0: Box3) -> *mut Octree {
     let mut this: *mut Octree = MemAlloc(::core::mem::size_of::<Octree>()) as *mut Octree;
     MemZero(this as *mut libc::c_void, ::core::mem::size_of::<Octree>());
     (*this).box_0 = box_0;
@@ -117,7 +51,7 @@ pub unsafe extern "C" fn Octree_Free(mut this: *mut Octree) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
-    let mut meshBox: Box3f = Box3f {
+    let mut meshBox: Box3 = Box3 {
         lower: Vec3 {
             x: 0.,
             y: 0.,
@@ -142,7 +76,7 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
             vertexData.offset(*indexData.offset((i + 1_i32) as isize) as isize);
         let mut v2: *const Vertex =
             vertexData.offset(*indexData.offset((i + 2_i32) as isize) as isize);
-        let mut box_0: Box3f = Box3f_Create(
+        let mut box_0: Box3 = Box3::new(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
@@ -224,12 +158,12 @@ unsafe extern "C" fn Octree_IntersectRayImpl(
     mut o: Vec3,
     mut di: Vec3,
 ) -> bool {
-    if !Box3f_IntersectsRay((*this).box_0, o, di) {
+    if !(*this).box_0.intersects_ray(o, di) {
         return false;
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        if Box3f_IntersectsRay((*elem).box_0, o, di) {
+        if (*elem).box_0.intersects_ray(o, di) {
             return true;
         }
         elem = (*elem).next;
@@ -262,7 +196,7 @@ pub unsafe extern "C" fn Octree_IntersectRay(
     Octree_IntersectRayImpl(this, invRo, invRd.recip())
 }
 
-unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3f, mut id: u32) {
+unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3, mut id: u32) {
     let mut elem: *mut Node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
     (*elem).box_0 = box_0;
     (*elem).id = id as u64;
@@ -272,15 +206,15 @@ unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3f, mut 
 
 unsafe extern "C" fn Octree_AddDepth(
     mut this: *mut Octree,
-    mut box_0: Box3f,
+    mut box_0: Box3,
     mut id: u32,
     mut depth: i32,
 ) {
     let L: *const Vec3 = &mut (*this).box_0.lower;
     let U: *const Vec3 = &mut (*this).box_0.upper;
-    let C: Vec3 = Box3f_Center((*this).box_0);
-    let childBound: [Box3f; 8] = [
-        Box3f {
+    let C: Vec3 = (*this).box_0.center();
+    let childBound: [Box3; 8] = [
+        Box3 {
             lower: Vec3 {
                 x: (*L).x,
                 y: (*L).y,
@@ -292,7 +226,7 @@ unsafe extern "C" fn Octree_AddDepth(
                 z: C.z,
             },
         },
-        Box3f {
+        Box3 {
             lower: Vec3 {
                 x: C.x,
                 y: (*L).y,
@@ -304,7 +238,7 @@ unsafe extern "C" fn Octree_AddDepth(
                 z: C.z,
             },
         },
-        Box3f {
+        Box3 {
             lower: Vec3 {
                 x: (*L).x,
                 y: C.y,
@@ -316,7 +250,7 @@ unsafe extern "C" fn Octree_AddDepth(
                 z: C.z,
             },
         },
-        Box3f {
+        Box3 {
             lower: Vec3 {
                 x: C.x,
                 y: C.y,
@@ -328,7 +262,7 @@ unsafe extern "C" fn Octree_AddDepth(
                 z: C.z,
             },
         },
-        Box3f {
+        Box3 {
             lower: Vec3 {
                 x: (*L).x,
                 y: (*L).y,
@@ -340,7 +274,7 @@ unsafe extern "C" fn Octree_AddDepth(
                 z: (*U).z,
             },
         },
-        Box3f {
+        Box3 {
             lower: Vec3 {
                 x: C.x,
                 y: (*L).y,
@@ -352,7 +286,7 @@ unsafe extern "C" fn Octree_AddDepth(
                 z: (*U).z,
             },
         },
-        Box3f {
+        Box3 {
             lower: Vec3 {
                 x: (*L).x,
                 y: C.y,
@@ -364,7 +298,7 @@ unsafe extern "C" fn Octree_AddDepth(
                 z: (*U).z,
             },
         },
-        Box3f {
+        Box3 {
             lower: Vec3 {
                 x: C.x,
                 y: C.y,
@@ -381,7 +315,7 @@ unsafe extern "C" fn Octree_AddDepth(
     let mut lastIntersection: i32 = 0_i32;
     let mut i: i32 = 0_i32;
     while i < 8_i32 {
-        if Box3f_IntersectsBox(box_0, childBound[i as usize]) {
+        if Box3::intersects_box(box_0, childBound[i as usize]) {
             intersections += 1;
             lastIntersection = i;
         }
@@ -397,7 +331,7 @@ unsafe extern "C" fn Octree_AddDepth(
         }
         Octree_AddDepth(
             (*this).child[lastIntersection as usize],
-            Box3f_Intersection(box_0, childBound[lastIntersection as usize]),
+            Box3::intersection(box_0, childBound[lastIntersection as usize]),
             id,
             depth + 1_i32,
         );
@@ -407,7 +341,7 @@ unsafe extern "C" fn Octree_AddDepth(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Octree_Add(mut this: *mut Octree, mut box_0: Box3f, mut id: u32) {
+pub unsafe extern "C" fn Octree_Add(mut this: *mut Octree, mut box_0: Box3, mut id: u32) {
     Octree_AddDepth(this, box_0, id, 0_i32);
 }
 

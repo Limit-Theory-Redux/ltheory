@@ -3,6 +3,8 @@ use crate::Bytes::*;
 use crate::DataFormat::*;
 use crate::DataFormat::*;
 use crate::Draw::*;
+use crate::Math::IVec2;
+use crate::Math::Vec3;
 use crate::Metric::*;
 use crate::PixelFormat::*;
 use crate::PixelFormat::*;
@@ -13,8 +15,6 @@ use crate::Tex2D_Load::*;
 use crate::Tex2D_Save::*;
 use crate::TexFormat::*;
 use crate::Viewport::*;
-use crate::Math::IVec2;
-use crate::Math::Vec3;
 use libc;
 
 extern "C" {

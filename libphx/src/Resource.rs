@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
 use crate::Bytes::*;
 use crate::File::*;
-use crate::ResourceType::*;
 use crate::Math::Vec3;
+use crate::ResourceType::*;
 use libc;
 
 extern "C" {

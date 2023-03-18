@@ -1,9 +1,9 @@
 use crate::internal::Memory::*;
 use crate::Audio::*;
 use crate::File::*;
+use crate::Math::Vec3;
 use crate::Resource::*;
 use crate::ResourceType::*;
-use crate::Math::Vec3;
 use libc;
 
 extern "C" {

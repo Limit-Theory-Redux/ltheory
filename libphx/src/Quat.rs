@@ -1,10 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Math::Float_Validate;
 use crate::Math::Vec3;
 use libc;
 
 extern "C" {
-    // fn __fpclassifyf(_: f32) -> i32;
-    // fn __fpclassifyd(_: f64) -> i32;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 
@@ -15,34 +14,6 @@ pub struct Quat {
     pub y: f32,
     pub z: f32,
     pub w: f32,
-}
-
-#[inline]
-unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
-    let mut classification: i32 = if ::core::mem::size_of::<f64>() as libc::c_ulong
-        == ::core::mem::size_of::<f32>() as libc::c_ulong
-    {
-        f32::classify(x as f32) as i32
-    } else if ::core::mem::size_of::<f64>() as libc::c_ulong
-        == ::core::mem::size_of::<f64>() as libc::c_ulong
-    {
-        f64::classify(x) as i32
-    } else {
-        3
-    };
-    match classification {
-        2 => return 0x4_i32 as Error,
-        5 => return 0x8_i32 as Error,
-        1 => return 0x20_i32 as Error,
-        3 | 4 => return 0_i32 as Error,
-        _ => {
-            Fatal(
-                b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
-                classification,
-            );
-        }
-    }
-    0_i32 as Error
 }
 
 #[inline]
@@ -215,7 +186,8 @@ pub unsafe extern "C" fn Quat_Lerp(
     let mut y: f32 = (*q).y + (dp.y - (*q).y) * t;
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
-    let mut rcpMag: f32 = (1.0f32 as f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+    let mut rcpMag: f32 =
+        (1.0f32 as f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*out).x = x * rcpMag;
     (*out).y = y * rcpMag;
     (*out).z = z * rcpMag;
@@ -238,7 +210,8 @@ pub unsafe extern "C" fn Quat_ILerp(mut q: *mut Quat, mut p: *const Quat, mut t:
     let mut y: f32 = (*q).y + (dp.y - (*q).y) * t;
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
-    let mut rcpMag: f32 = (1.0f32 as f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+    let mut rcpMag: f32 =
+        (1.0f32 as f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*q).x = x * rcpMag;
     (*q).y = y * rcpMag;
     (*q).z = z * rcpMag;
@@ -298,7 +271,8 @@ pub unsafe extern "C" fn Quat_MulV(mut q: *const Quat, mut v: *const Vec3, mut o
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Normalize(mut q: *const Quat, mut out: *mut Quat) {
     let mut mag: f32 =
-        f64::sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64) as f32;
+        f64::sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64)
+            as f32;
     (*out).x = (*q).x / mag;
     (*out).y = (*q).y / mag;
     (*out).z = (*q).z / mag;
@@ -308,7 +282,8 @@ pub unsafe extern "C" fn Quat_Normalize(mut q: *const Quat, mut out: *mut Quat) 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_INormalize(mut q: *mut Quat) {
     let mut mag: f32 =
-        f64::sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64) as f32;
+        f64::sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64)
+            as f32;
     (*q).x /= mag;
     (*q).y /= mag;
     (*q).z /= mag;

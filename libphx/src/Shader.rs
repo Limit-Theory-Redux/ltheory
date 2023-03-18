@@ -1,4 +1,7 @@
 use crate::internal::Memory::*;
+use crate::Math::Vec3;
+use crate::Math::Vec4;
+use crate::Math::{IVec2, IVec3, IVec4, Vec2};
 use crate::Matrix::*;
 use crate::Profiler::*;
 use crate::Resource::*;
@@ -11,8 +14,6 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use crate::Math::Vec3;
-use crate::Math::{IVec2, IVec3, IVec4, Vec2};
 use libc;
 
 extern "C" {
@@ -69,15 +70,6 @@ pub struct ShaderVar {
     pub index: i32,
 }
 pub type ShaderVarType = i32;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
 pub type ResourceType = i32;
 pub type GLenum = u32;
 pub type GLu32 = u32;
@@ -550,7 +542,7 @@ pub unsafe extern "C" fn Shader_Start(mut this: *mut Shader) {
                     );
                 }
                 4 => {
-                    let mut value_2: Vec4f = *(pValue as *mut Vec4f);
+                    let mut value_2: Vec4 = *(pValue as *mut Vec4);
                     __glewUniform4f.expect("non-null function pointer")(
                         (*var).index,
                         value_2.x,

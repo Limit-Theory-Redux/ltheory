@@ -1,10 +1,10 @@
 use crate::internal::Memory::*;
+use crate::Math::IVec2;
+use crate::Math::Vec3;
 use crate::OpenGL::*;
 use crate::Viewport::*;
 use crate::WindowMode::*;
 use crate::WindowPos::WindowPos;
-use crate::Math::IVec2;
-use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 

@@ -25,9 +25,9 @@ PHX_API void      _cppPhysics_DrawWireframes          (Physics*);
 
  */
 
+use crate::Math::Vec3;
 use crate::Ray::*;
 use crate::Trigger::*;
-use crate::Math::Vec3;
 
 extern "C" {
     pub type Physics;

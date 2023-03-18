@@ -3,7 +3,7 @@ use crate::Math::Vec3;
 use libc;
 
 #[no_mangle]
-pub unsafe extern "C" fn Fatal(mut format: *const libc::c_char, mut args: ...) {
+pub unsafe extern "C" fn Fatal(mut format: *const libc::c_char, mut args: ...) -> ! {
     let mut s = String::new();
     let _ = printf_compat::format(
         format,
@@ -11,6 +11,7 @@ pub unsafe extern "C" fn Fatal(mut format: *const libc::c_char, mut args: ...) {
         printf_compat::output::fmt_write(&mut s),
     );
     println!("FATAL: {}", s);
+    libc::abort();
 }
 
 #[no_mangle]

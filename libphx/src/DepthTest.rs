@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
-use crate::RenderState::*;
 use crate::Math::Vec3;
+use crate::RenderState::*;
 use libc;
 
 #[no_mangle]

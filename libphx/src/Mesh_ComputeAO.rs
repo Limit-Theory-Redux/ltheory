@@ -1,6 +1,9 @@
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::Draw::*;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
+use crate::Math::Vec4;
 use crate::Mesh::*;
 use crate::PixelFormat::*;
 use crate::RenderState::*;
@@ -9,32 +12,11 @@ use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexFormat::*;
-use crate::Math::Vec2;
-use crate::Math::Vec3;
 use libc;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
 pub type DataFormat = i32;
 pub type PixelFormat = i32;
 pub type TexFormat = i32;
-
-#[inline]
-unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
-    let mut this: Vec4f = Vec4f {
-        x: x,
-        y: y,
-        z: z,
-        w: w,
-    };
-    this
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
@@ -47,17 +29,17 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut surfels: i32 = sDim * sDim;
     let mut vertices: i32 = vDim * vDim;
     let mut bufSize: i32 = f64::max(surfels as f64, vertices as f64) as i32;
-    let mut pointBuffer: *mut Vec4f =
-        MemAlloc((::core::mem::size_of::<Vec4f>()).wrapping_mul(bufSize as usize)) as *mut Vec4f;
-    let mut normalBuffer: *mut Vec4f =
-        MemAlloc((::core::mem::size_of::<Vec4f>()).wrapping_mul(bufSize as usize)) as *mut Vec4f;
+    let mut pointBuffer: *mut Vec4 =
+        MemAlloc((::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize)) as *mut Vec4;
+    let mut normalBuffer: *mut Vec4 =
+        MemAlloc((::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize)) as *mut Vec4;
     MemZero(
         pointBuffer as *mut libc::c_void,
-        (::core::mem::size_of::<Vec4f>()).wrapping_mul(bufSize as usize),
+        (::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     MemZero(
         normalBuffer as *mut libc::c_void,
-        (::core::mem::size_of::<Vec4f>()).wrapping_mul(bufSize as usize),
+        (::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     let mut i: i32 = 0_i32;
     while i < indexCount {
@@ -76,10 +58,9 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
             normal = Vec3::new(1.0f32, 0.0f32, 0.0f32);
         }
         let mut center: Vec3 = ((*v1).p + (*v2).p + (*v3).p) / 3.0f32;
-        *pointBuffer.offset((i / 3_i32) as isize) =
-            Vec4f_Create(center.x, center.y, center.z, area);
+        *pointBuffer.offset((i / 3_i32) as isize) = Vec4::new(center.x, center.y, center.z, area);
         *normalBuffer.offset((i / 3_i32) as isize) =
-            Vec4f_Create(normal.x, normal.y, normal.z, 0.0f32);
+            Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
         i += 3_i32;
     }
     let mut texSPoints: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);
@@ -98,17 +79,17 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     );
     MemZero(
         pointBuffer as *mut libc::c_void,
-        (::core::mem::size_of::<Vec4f>()).wrapping_mul(bufSize as usize),
+        (::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     MemZero(
         normalBuffer as *mut libc::c_void,
-        (::core::mem::size_of::<Vec4f>()).wrapping_mul(bufSize as usize),
+        (::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     let mut i_0: i32 = 0_i32;
     while i_0 < vertexCount {
         let mut v: *const Vertex = vertexData.offset(i_0 as isize);
-        *pointBuffer.offset(i_0 as isize) = Vec4f_Create((*v).p.x, (*v).p.y, (*v).p.z, 0.0f32);
-        *normalBuffer.offset(i_0 as isize) = Vec4f_Create((*v).n.x, (*v).n.y, (*v).n.z, 0.0f32);
+        *pointBuffer.offset(i_0 as isize) = Vec4::new((*v).p.x, (*v).p.y, (*v).p.z, 0.0f32);
+        *normalBuffer.offset(i_0 as isize) = Vec4::new((*v).n.x, (*v).n.y, (*v).n.z, 0.0f32);
         i_0 += 1;
     }
     let mut texVPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);

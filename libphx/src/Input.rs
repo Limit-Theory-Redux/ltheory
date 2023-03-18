@@ -4,13 +4,13 @@ use crate::Button::*;
 use crate::Device::*;
 use crate::DeviceType::*;
 use crate::InputEvent::*;
+use crate::Math::IVec2;
+use crate::Math::Vec3;
 use crate::Modifier::*;
 use crate::Profiler::*;
 use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::State::*;
-use crate::Math::IVec2;
-use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 
@@ -719,7 +719,8 @@ pub unsafe extern "C" fn Input_Update() {
                         Button_ToSDLControllerAxis(iAxis),
                     ) as f32;
                     value_1 =
-                        f64::clamp((value_1 / 32767.0f32) as f64, -1.0f32 as f64, 1.0f32 as f64) as f32;
+                        f64::clamp((value_1 / 32767.0f32) as f64, -1.0f32 as f64, 1.0f32 as f64)
+                            as f32;
                     if iAxis == Button_Gamepad_LStickY || iAxis == Button_Gamepad_RStickY {
                         value_1 = -value_1;
                     }

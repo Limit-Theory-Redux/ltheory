@@ -1,11 +1,10 @@
 use crate::internal::Memory::*;
-use crate::Plane::*;
 use crate::Math::Vec3;
+use crate::Math::Vec3_Validate;
+use crate::Plane::*;
 use libc;
 
 extern "C" {
-    // fn __fpclassifyf(_: f32) -> i32;
-    // fn __fpclassifyd(_: f64) -> i32;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 

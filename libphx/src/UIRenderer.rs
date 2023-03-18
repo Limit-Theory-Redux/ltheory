@@ -2,13 +2,13 @@ use crate::internal::Memory::*;
 use crate::ClipRect::*;
 use crate::Draw::*;
 use crate::Font::*;
+use crate::Math::Vec3;
+use crate::Math::{IVec2, Vec2, Vec4};
 use crate::MemPool::*;
 use crate::RenderState::*;
 use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::Viewport::*;
-use crate::Math::Vec3;
-use crate::Math::{IVec2, Vec2, Vec4};
 use libc;
 
 pub type BlendMode = i32;

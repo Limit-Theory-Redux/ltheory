@@ -1,4 +1,7 @@
 use crate::internal::Memory::*;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
+use crate::Math::Vec4;
 use crate::Matrix::*;
 use crate::ShaderVarType::*;
 use crate::StrMap::*;
@@ -6,21 +9,10 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use crate::Math::Vec2;
-use crate::Math::Vec3;
 use libc;
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
 }
 pub type ShaderVarType = i32;
 
@@ -161,7 +153,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat4(
     mut z: f32,
     mut w: f32,
 ) {
-    let mut value: Vec4f = Vec4f {
+    let mut value: Vec4 = Vec4 {
         x: x,
         y: y,
         z: z,
@@ -170,7 +162,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat4(
     ShaderVar_Push(
         name,
         0x4_i32,
-        &mut value as *mut Vec4f as *const libc::c_void,
+        &mut value as *mut Vec4 as *const libc::c_void,
     );
 }
 

@@ -6,25 +6,17 @@ use crate::Font::*;
 use crate::Hash::*;
 use crate::HashMap::*;
 use crate::Input::*;
+use crate::Math::Vec3;
+use crate::Math::Vec4;
+use crate::Math::{IVec2, Vec2};
 use crate::MemPool::*;
 use crate::RenderState::*;
 use crate::Shader::*;
 use crate::Tex2D::*;
-use crate::Math::Vec3;
-use crate::Math::{IVec2, Vec2};
 use libc;
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
 }
 pub type BlendMode = i32;
 pub type Button = i32;
@@ -83,11 +75,11 @@ pub struct ImGuiStyle {
     pub spacing: Vec2,
     pub padding: Vec2,
     pub scrollBarSize: Vec2,
-    pub buttonColor: Vec4f,
-    pub buttonColorFocus: Vec4f,
-    pub frameColor: Vec4f,
-    pub textColor: Vec4f,
-    pub textColorFocus: Vec4f,
+    pub buttonColor: Vec4,
+    pub buttonColorFocus: Vec4,
+    pub frameColor: Vec4,
+    pub textColor: Vec4,
+    pub textColorFocus: Vec4,
 }
 
 #[derive(Copy, Clone)]
@@ -134,7 +126,7 @@ pub struct ImGuiLayer {
 #[repr(C)]
 pub struct ImGuiLine {
     pub next: *mut ImGuiLine,
-    pub color: Vec4f,
+    pub color: Vec4,
     pub p1: Vec2,
     pub p2: Vec2,
 }
@@ -144,7 +136,7 @@ pub struct ImGuiLine {
 pub struct ImGuiText {
     pub next: *mut ImGuiText,
     pub font: *mut Font,
-    pub color: Vec4f,
+    pub color: Vec4,
     pub pos: Vec2,
     pub text: *const libc::c_char,
 }
@@ -153,7 +145,7 @@ pub struct ImGuiText {
 #[repr(C)]
 pub struct ImGuiPanel {
     pub next: *mut ImGuiPanel,
-    pub color: Vec4f,
+    pub color: Vec4,
     pub pos: Vec2,
     pub size: Vec2,
     pub innerAlpha: f32,
@@ -164,7 +156,7 @@ pub struct ImGuiPanel {
 #[repr(C)]
 pub struct ImGuiRect {
     pub next: *mut ImGuiRect,
-    pub color: Vec4f,
+    pub color: Vec4,
     pub pos: Vec2,
     pub size: Vec2,
     pub outline: bool,
@@ -185,17 +177,6 @@ pub struct ImGuiData {
     pub size: Vec2,
     pub offset: Vec2,
     pub scroll: f32,
-}
-
-#[inline]
-unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
-    let mut self_1: Vec4f = Vec4f {
-        x: x,
-        y: y,
-        z: z,
-        w: w,
-    };
-    self_1
 }
 
 #[no_mangle]
@@ -239,7 +220,7 @@ static mut this: ImGui = ImGui {
 };
 
 #[inline]
-unsafe extern "C" fn EmitLine(mut color: Vec4f, mut p1: Vec2, mut p2: Vec2) {
+unsafe extern "C" fn EmitLine(mut color: Vec4, mut p1: Vec2, mut p2: Vec2) {
     let mut e: *mut ImGuiLine = MemPool_Alloc(this.linePool) as *mut ImGuiLine;
     (*e).color = color;
     (*e).p1 = p1;
@@ -250,7 +231,7 @@ unsafe extern "C" fn EmitLine(mut color: Vec4f, mut p1: Vec2, mut p2: Vec2) {
 
 #[inline]
 unsafe extern "C" fn EmitPanel(
-    mut color: Vec4f,
+    mut color: Vec4,
     mut pos: Vec2,
     mut size: Vec2,
     mut innerAlpha: f32,
@@ -267,7 +248,7 @@ unsafe extern "C" fn EmitPanel(
 }
 
 #[inline]
-unsafe extern "C" fn EmitRect(mut color: Vec4f, mut pos: Vec2, mut size: Vec2, mut outline: bool) {
+unsafe extern "C" fn EmitRect(mut color: Vec4, mut pos: Vec2, mut size: Vec2, mut outline: bool) {
     let mut e: *mut ImGuiRect = MemPool_Alloc(this.rectPool) as *mut ImGuiRect;
     (*e).color = color;
     (*e).pos = pos;
@@ -290,7 +271,7 @@ unsafe extern "C" fn EmitTex2D(mut tex: *mut Tex2D, mut pos: Vec2, mut size: Vec
 #[inline]
 unsafe extern "C" fn EmitText(
     mut font: *mut Font,
-    mut color: Vec4f,
+    mut color: Vec4,
     mut pos: Vec2,
     mut text: *const libc::c_char,
 ) {
@@ -330,11 +311,11 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
     (*style).spacing = Vec2::new(8.0f32, 8.0f32);
     (*style).padding = Vec2::new(8.0f32, 8.0f32);
     (*style).scrollBarSize = Vec2::new(4.0f32, 4.0f32);
-    (*style).buttonColor = Vec4f_Create(0.1f32, 0.12f32, 0.15f32, 1.0f32);
-    (*style).buttonColorFocus = Vec4f_Create(0.1f32, 0.6f32, 1.0f32, 1.0f32);
-    (*style).frameColor = Vec4f_Create(0.1f32, 0.12f32, 0.15f32, 0.95f32);
-    (*style).textColor = Vec4f_Create(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-    (*style).textColorFocus = Vec4f_Create(0.1f32, 0.1f32, 0.1f32, 1.0f32);
+    (*style).buttonColor = Vec4::new(0.1f32, 0.12f32, 0.15f32, 1.0f32);
+    (*style).buttonColorFocus = Vec4::new(0.1f32, 0.6f32, 1.0f32, 1.0f32);
+    (*style).frameColor = Vec4::new(0.1f32, 0.12f32, 0.15f32, 0.95f32);
+    (*style).textColor = Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32);
+    (*style).textColorFocus = Vec4::new(0.1f32, 0.1f32, 0.1f32, 1.0f32);
     this.style = style;
 }
 
@@ -693,10 +674,14 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
         Shader_Start(shader_0);
         let mut e_2: *const ImGuiLine = (*self_1).lineList;
         while !e_2.is_null() {
-            let mut xMin: f32 = (f64::min((*e_2).p1.x as f64, (*e_2).p2.x as f64) - pad_0 as f64) as f32;
-            let mut yMin: f32 = (f64::min((*e_2).p1.y as f64, (*e_2).p2.y as f64) - pad_0 as f64) as f32;
-            let mut xMax: f32 = (f64::max((*e_2).p1.x as f64, (*e_2).p2.x as f64) + pad_0 as f64) as f32;
-            let mut yMax: f32 = (f64::max((*e_2).p1.y as f64, (*e_2).p2.y as f64) + pad_0 as f64) as f32;
+            let mut xMin: f32 =
+                (f64::min((*e_2).p1.x as f64, (*e_2).p2.x as f64) - pad_0 as f64) as f32;
+            let mut yMin: f32 =
+                (f64::min((*e_2).p1.y as f64, (*e_2).p2.y as f64) - pad_0 as f64) as f32;
+            let mut xMax: f32 =
+                (f64::max((*e_2).p1.x as f64, (*e_2).p2.x as f64) + pad_0 as f64) as f32;
+            let mut yMax: f32 =
+                (f64::max((*e_2).p1.y as f64, (*e_2).p2.y as f64) + pad_0 as f64) as f32;
             let mut sx_0: f32 = xMax - xMin;
             let mut sy_0: f32 = yMax - yMin;
             Shader_SetFloat2(b"origin\0" as *const u8 as *const libc::c_char, xMin, yMin);
@@ -1019,7 +1004,7 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
             if handleFocus as i32 != 0 {
                 (*this.style).buttonColorFocus
             } else {
-                Vec4f_Create(0.3f32, 0.4f32, 0.5f32, 1.0f32)
+                Vec4::new(0.3f32, 0.4f32, 0.5f32, 1.0f32)
             },
             handlePos,
             handleSize,
@@ -1034,7 +1019,7 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
     ImGui_Unpad(1.0f32, 1.0f32);
     ImGui_EndGroup();
     EmitPanel(
-        Vec4f_Create(0.0f32, 0.0f32, 0.0f32, 0.5f32),
+        Vec4::new(0.0f32, 0.0f32, 0.0f32, 0.5f32),
         (*this.widgetLast).pos,
         (*this.widgetLast).size,
         0.25f32,
@@ -1091,7 +1076,7 @@ pub unsafe extern "C" fn ImGui_PushStyleSpacing(mut x: f32, mut y: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PushStyleTextColor(mut r: f32, mut g: f32, mut b: f32, mut a: f32) {
     ImGui_PushStyle();
-    (*this.style).textColor = Vec4f_Create(r, g, b, a);
+    (*this.style).textColor = Vec4::new(r, g, b, a);
 }
 
 #[no_mangle]
@@ -1132,7 +1117,7 @@ pub unsafe extern "C" fn ImGui_ButtonEx(
 ) -> bool {
     ImGui_BeginWidget(sx, sy);
     let mut focus: bool = ImGui_FocusCurrent(FocusType_Mouse);
-    let mut color: Vec4f = if focus as i32 != 0 {
+    let mut color: Vec4 = if focus as i32 != 0 {
         (*this.style).buttonColorFocus
     } else {
         (*this.style).buttonColor
@@ -1331,7 +1316,7 @@ pub unsafe extern "C" fn ImGui_TextEx(
     );
     EmitText(
         font,
-        Vec4f_Create(r, g, b, a),
+        Vec4::new(r, g, b, a),
         Vec2::new(
             (*this.widget).pos.x,
             (*this.widget).pos.y

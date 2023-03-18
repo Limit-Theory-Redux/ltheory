@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
-use crate::Matrix::*;
 use crate::Math::DVec3;
 use crate::Math::Vec3;
+use crate::Matrix::*;
 use libc;
 
 extern "C" {
@@ -23,7 +23,6 @@ pub type GLdouble = f64;
 pub type GLfloat = f32;
 pub type GLenum = u32;
 pub type GLint = i32;
-
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Clear() {

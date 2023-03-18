@@ -1,9 +1,10 @@
 use crate::internal::Memory::*;
 use crate::Draw::*;
-use crate::Matrix::*;
-use crate::Mesh::*;
+use crate::Math::Box3;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
+use crate::Matrix::*;
+use crate::Mesh::*;
 use libc;
 
 #[derive(Copy, Clone)]
@@ -15,71 +16,13 @@ pub struct BoxTree {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Node {
-    pub box_0: Box3f,
+    pub box_0: Box3,
     pub data: *mut libc::c_void,
     pub sub: [*mut Node; 2],
 }
 
 #[inline]
-unsafe extern "C" fn Box3f_Volume(mut this: Box3f) -> f32 {
-    (this.upper.x - this.lower.x) * (this.upper.y - this.lower.y) * (this.upper.z - this.lower.z)
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
-    let mut this: Box3f = Box3f {
-        lower: Vec3 {
-            x: f32::min(a.lower.x, b.lower.x),
-            y: f32::min(a.lower.y, b.lower.y),
-            z: f32::min(a.lower.z, b.lower.z),
-        },
-        upper: Vec3 {
-            x: f32::max(a.upper.x, b.upper.x),
-            y: f32::max(a.upper.y, b.upper.y),
-            z: f32::max(a.upper.z, b.upper.z),
-        },
-    };
-    this
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
-    let mut result: Box3f = Box3f {
-        lower: lower,
-        upper: upper,
-    };
-    result
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_ContainsBox(mut a: Box3f, mut b: Box3f) -> bool {
-    a.lower.x <= b.lower.x
-        && a.upper.x >= b.upper.x
-        && a.lower.y <= b.lower.y
-        && a.upper.y >= b.upper.y
-        && a.lower.z <= b.lower.z
-        && a.upper.z >= b.upper.z
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_IntersectsRay(mut this: Box3f, mut ro: Vec3, mut rdi: Vec3) -> bool {
-    let mut t1: f64 = (rdi.x * (this.lower.x - ro.x)) as f64;
-    let mut t2: f64 = (rdi.x * (this.upper.x - ro.x)) as f64;
-    let mut tMin: f64 = f64::min(t1, t2);
-    let mut tMax: f64 = f64::max(t1, t2);
-    t1 = (rdi.y * (this.lower.y - ro.y)) as f64;
-    t2 = (rdi.y * (this.upper.y - ro.y)) as f64;
-    tMin = f64::max(tMin, f64::min(t1, t2));
-    tMax = f64::min(tMax, f64::max(t1, t2));
-    t1 = (rdi.z * (this.lower.z - ro.z)) as f64;
-    t2 = (rdi.z * (this.upper.z - ro.z)) as f64;
-    tMin = f64::max(tMin, f64::min(t1, t2));
-    tMax = f64::min(tMax, f64::max(t1, t2));
-    tMax >= tMin && tMax > 0_i32 as f64
-}
-
-#[inline]
-unsafe extern "C" fn Node_Create(mut box_0: Box3f, mut data: *mut libc::c_void) -> *mut Node {
+unsafe extern "C" fn Node_Create(mut box_0: Box3, mut data: *mut libc::c_void) -> *mut Node {
     let mut this: *mut Node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
     (*this).box_0 = box_0;
     (*this).sub[0] = std::ptr::null_mut();
@@ -127,7 +70,7 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
             vertexData.offset(*indexData.offset((i + 1_i32) as isize) as isize);
         let mut v2: *const Vertex =
             vertexData.offset(*indexData.offset((i + 2_i32) as isize) as isize);
-        let mut box_0: Box3f = Box3f_Create(
+        let mut box_0: Box3 = Box3::new(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
@@ -138,13 +81,13 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
 }
 
 #[inline]
-unsafe extern "C" fn Cost(mut box_0: Box3f) -> f32 {
-    Box3f_Volume(box_0)
+unsafe extern "C" fn Cost(mut box_0: Box3) -> f32 {
+    box_0.volume()
 }
 
 #[inline]
-unsafe extern "C" fn CostMerge(mut a: Box3f, mut b: Box3f) -> f32 {
-    Cost(Box3f_Union(a, b))
+unsafe extern "C" fn CostMerge(mut a: Box3, mut b: Box3) -> f32 {
+    Cost(Box3::union(a, b))
 }
 
 unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut prev: *mut *mut Node) {
@@ -154,7 +97,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
     }
     if ((*this).sub[0]).is_null() {
         let mut parent: *mut Node = Node_Create(
-            Box3f_Union((*this).box_0, (*src).box_0),
+            Box3::union((*this).box_0, (*src).box_0),
             std::ptr::null_mut(),
         );
         *prev = parent;
@@ -163,7 +106,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
         this = parent;
         return;
     }
-    if Box3f_ContainsBox((*this).box_0, (*src).box_0) {
+    if Box3::contains((*this).box_0, (*src).box_0) {
         let mut cost0: f32 =
             CostMerge((*(*this).sub[0]).box_0, (*src).box_0) + Cost((*(*this).sub[1]).box_0);
         let mut cost1: f32 =
@@ -183,7 +126,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
         }
     } else {
         let mut parent_0: *mut Node = Node_Create(
-            Box3f_Union((*this).box_0, (*src).box_0),
+            Box3::union((*this).box_0, (*src).box_0),
             std::ptr::null_mut(),
         );
         *prev = parent_0;
@@ -220,7 +163,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Add(
     mut this: *mut BoxTree,
-    mut box_0: Box3f,
+    mut box_0: Box3,
     mut data: *mut libc::c_void,
 ) {
     Node_Merge((*this).root, Node_Create(box_0, data), &mut (*this).root);
@@ -247,7 +190,7 @@ pub unsafe extern "C" fn BoxTree_GetMemory(mut this: *mut BoxTree) -> i32 {
 }
 
 unsafe extern "C" fn Node_IntersectRay(mut this: *mut Node, mut o: Vec3, mut di: Vec3) -> bool {
-    if !Box3f_IntersectsRay((*this).box_0, o, di) {
+    if !(*this).box_0.intersects_ray(o, di) {
         return false;
     }
     if !((*this).sub[0]).is_null() {

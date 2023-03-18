@@ -2,6 +2,9 @@ use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::Draw::*;
 use crate::HashMap::*;
+use crate::Math::Vec3;
+use crate::Math::Vec4;
+use crate::Math::{IVec2, IVec4};
 use crate::PixelFormat::*;
 use crate::Profiler::*;
 use crate::RenderState::*;
@@ -10,8 +13,6 @@ use crate::ResourceType::*;
 use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::TexFormat::*;
-use crate::Math::Vec3;
-use crate::Math::{IVec2, IVec4};
 use libc;
 
 extern "C" {
@@ -356,15 +357,6 @@ pub struct FT_Bitmap_Size_ {
 }
 pub type FT_String = libc::c_char;
 pub type FT_Long = libc::c_long;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
 pub type BlendMode = i32;
 pub type DataFormat = i32;
 pub type PixelFormat = i32;
@@ -377,18 +369,6 @@ pub const FT_KERNING_DEFAULT: FT_Kerning_Mode_ = 0;
 pub type FT_Kerning_Mode_ = u32;
 pub const FT_KERNING_UNSCALED: FT_Kerning_Mode_ = 2;
 pub const FT_KERNING_UNFITTED: FT_Kerning_Mode_ = 1;
-
-
-#[inline]
-unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
-    let mut this: Vec4f = Vec4f {
-        x: x,
-        y: y,
-        z: z,
-        w: w,
-    };
-    this
-}
 
 #[no_mangle]
 pub static kGamma: f32 = 1.8f32;
@@ -433,10 +413,10 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     (*g).x1 = (*g).x0 + (*g).sx;
     (*g).y1 = (*g).y0 + (*g).sy;
     (*g).advance = ((*(*face).glyph).advance.x >> 6_i32) as i32;
-    let mut buffer: *mut Vec4f =
-        MemAlloc((::core::mem::size_of::<Vec4f>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
-            as *mut Vec4f;
-    let mut pBuffer: *mut Vec4f = buffer;
+    let mut buffer: *mut Vec4 =
+        MemAlloc((::core::mem::size_of::<Vec4>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
+            as *mut Vec4;
+    let mut pBuffer: *mut Vec4 = buffer;
     let mut dy: u32 = 0_i32 as u32;
     while dy < (*bitmap).rows {
         let mut dx: u32 = 0_i32 as u32;
@@ -447,7 +427,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
             ) as f32;
             let fresh0 = pBuffer;
             pBuffer = pBuffer.offset(1);
-            *fresh0 = Vec4f_Create(1.0f32, 1.0f32, 1.0f32, a);
+            *fresh0 = Vec4::new(1.0f32, 1.0f32, 1.0f32, a);
             dx = dx.wrapping_add(1);
         }
         pBitmap = pBitmap.offset((*bitmap).pitch as isize);

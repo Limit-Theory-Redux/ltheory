@@ -1,11 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Math::*;
 use crate::Polygon::*;
-use crate::Math::Vec3;
 use libc;
 
 extern "C" {
-    // fn __fpclassifyf(_: f32) -> i32;
-    // fn __fpclassifyd(_: f64) -> i32;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 
@@ -18,34 +16,6 @@ pub struct Plane {
 
 pub type PointClassification = u8;
 pub type PolygonClassification = u8;
-
-#[inline]
-unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
-    let mut classification: i32 = if ::core::mem::size_of::<f64>() as libc::c_ulong
-        == ::core::mem::size_of::<f32>() as libc::c_ulong
-    {
-        f32::classify(x as f32) as i32
-    } else if ::core::mem::size_of::<f64>() as libc::c_ulong
-        == ::core::mem::size_of::<f64>() as libc::c_ulong
-    {
-        f64::classify(x) as i32
-    } else {
-        3
-    };
-    match classification {
-        2 => return 0x4_i32 as Error,
-        5 => return 0x8_i32 as Error,
-        1 => return 0x20_i32 as Error,
-        3 | 4 => return 0_i32 as Error,
-        _ => {
-            Fatal(
-                b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
-                classification,
-            );
-        }
-    }
-    0_i32 as Error
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn Plane_ClassifyPoint(

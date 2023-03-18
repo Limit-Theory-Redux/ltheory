@@ -1,8 +1,9 @@
 use crate::internal::Memory::*;
 use crate::Hash::*;
+use crate::Math::Box3;
+use crate::Math::Vec3;
 use crate::MemPool::*;
 use crate::Profiler::*;
-use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]
@@ -36,7 +37,6 @@ pub struct HashGridElem {
     pub lower: [i32; 3],
     pub upper: [i32; 3],
 }
-
 
 #[inline]
 unsafe extern "C" fn Maxi(mut a: i32, mut b: i32) -> i32 {
@@ -199,7 +199,7 @@ unsafe extern "C" fn HashGrid_ToLocal(mut this: *mut HashGrid, mut x: f32) -> i3
 pub unsafe extern "C" fn HashGrid_Add(
     mut this: *mut HashGrid,
     mut object: *mut libc::c_void,
-    mut box_0: *const Box3f,
+    mut box_0: *const Box3,
 ) -> *mut HashGridElem {
     let mut elem: *mut HashGridElem = MemPool_Alloc((*this).elemPool) as *mut HashGridElem;
     (*elem).object = object;
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn HashGrid_Remove(mut this: *mut HashGrid, mut elem: *mut
 pub unsafe extern "C" fn HashGrid_Update(
     mut this: *mut HashGrid,
     mut elem: *mut HashGridElem,
-    mut box_0: *const Box3f,
+    mut box_0: *const Box3,
 ) {
     Profiler_Begin(
         (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"HashGrid_Update\0")).as_ptr(),
@@ -382,10 +382,7 @@ pub unsafe extern "C" fn HashGrid_GetResults(mut this: *mut HashGrid) -> *mut *m
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashGrid_QueryBox(
-    mut this: *mut HashGrid,
-    mut box_0: *const Box3f,
-) -> i32 {
+pub unsafe extern "C" fn HashGrid_QueryBox(mut this: *mut HashGrid, mut box_0: *const Box3) -> i32 {
     (*this).results_size = 0_i32;
     (*this).version = ((*this).version).wrapping_add(1);
     let mut lower: [i32; 3] = [

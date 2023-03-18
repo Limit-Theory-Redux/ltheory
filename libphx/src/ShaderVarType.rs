@@ -1,21 +1,13 @@
 use crate::internal::Memory::*;
+use crate::Math::Vec3;
+use crate::Math::Vec4;
+use crate::Math::{IVec2, IVec3, IVec4, Vec2};
 use crate::Matrix::*;
 use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use crate::Math::Vec3;
-use crate::Math::{IVec2, IVec3, IVec4, Vec2};
 use libc;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
 pub type ShaderVarType = i32;
 
 #[no_mangle]
@@ -80,7 +72,7 @@ pub unsafe extern "C" fn ShaderVarType_GetSize(mut this: ShaderVarType) -> i32 {
         }
         2 => return ::core::mem::size_of::<Vec2>() as i32,
         3 => return ::core::mem::size_of::<Vec3>() as i32,
-        4 => return ::core::mem::size_of::<Vec4f>() as i32,
+        4 => return ::core::mem::size_of::<Vec4>() as i32,
         5 => return ::core::mem::size_of::<i32>() as i32,
         6 => return ::core::mem::size_of::<IVec2>() as i32,
         7 => return ::core::mem::size_of::<IVec3>() as i32,

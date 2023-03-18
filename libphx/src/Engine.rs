@@ -4,15 +4,15 @@ use crate::Gamepad::*;
 use crate::Input::*;
 use crate::Joystick::*;
 use crate::Keyboard::*;
+use crate::Math::Vec3;
 use crate::Metric::*;
 use crate::Mouse::*;
-use crate::Signal::*;
 use crate::Profiler::*;
 use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::ShaderVar::*;
+use crate::Signal::*;
 use crate::TimeStamp::*;
-use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 

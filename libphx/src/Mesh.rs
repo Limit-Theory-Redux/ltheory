@@ -1,13 +1,12 @@
 use crate::internal::Memory::*;
 use crate::Bytes::*;
+use crate::Math::*;
 use crate::Matrix::*;
 use crate::Metric::*;
 use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::Triangle::*;
 use crate::SDF::*;
-use crate::Math::Vec2;
-use crate::Math::Vec3;
 use libc;
 use memoffset::{offset_of, span_of};
 
@@ -55,7 +54,7 @@ pub struct Vertex {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Computed {
-    pub bound: Box3f,
+    pub bound: Box3,
     pub radius: f32,
 }
 
@@ -78,23 +77,6 @@ pub type PFNGLBUFFERDATAPROC =
 pub type PFNGLGENBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLu32) -> ()>;
 pub type GLfloat = f32;
 
-
-#[inline]
-unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
-    let mut center: Vec3 = Vec3 {
-        x: (this.lower.x + this.upper.x) / 2.0f32,
-        y: (this.lower.y + this.upper.y) / 2.0f32,
-        z: (this.lower.z + this.upper.z) / 2.0f32,
-    };
-    center
-}
-
-#[inline]
-unsafe extern "C" fn Box3f_Add(mut this: *mut Box3f, mut point: Vec3) {
-    (*this).lower = Vec3::min((*this).lower, point);
-    (*this).upper = Vec3::max((*this).upper, point);
-}
-
 #[inline]
 unsafe extern "C" fn Vec2_Validate(mut v: Vec2) -> Error {
     let mut e: Error = 0_i32 as Error;
@@ -113,10 +95,10 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
     let mut v: *mut Vertex = (*this).vertex_data;
     let mut __iterend: *mut Vertex = ((*this).vertex_data).offset((*this).vertex_size as isize);
     while v < __iterend {
-        Box3f_Add(&mut (*this).info.bound, (*v).p);
+        (*this).info.bound.add((*v).p);
         v = v.offset(1);
     }
-    let mut center: Vec3 = Box3f_Center((*this).info.bound);
+    let mut center: Vec3 = (*this).info.bound.center();
     let mut r2: f64 = 0.0f64;
     let mut v_0: *mut Vertex = (*this).vertex_data;
     let mut __iterend_0: *mut Vertex = ((*this).vertex_data).offset((*this).vertex_size as isize);
@@ -492,7 +474,7 @@ pub unsafe extern "C" fn Mesh_DrawNormals(mut this: *mut Mesh, mut scale: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_GetBound(mut this: *mut Mesh, mut out: *mut Box3f) {
+pub unsafe extern "C" fn Mesh_GetBound(mut this: *mut Mesh, mut out: *mut Box3) {
     Mesh_UpdateInfo(this);
     *out = (*this).info.bound;
 }
@@ -500,7 +482,7 @@ pub unsafe extern "C" fn Mesh_GetBound(mut this: *mut Mesh, mut out: *mut Box3f)
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_GetCenter(mut this: *mut Mesh, mut out: *mut Vec3) {
     Mesh_UpdateInfo(this);
-    *out = Box3f_Center((*this).info.bound);
+    *out = (*this).info.bound.center();
 }
 
 #[no_mangle]

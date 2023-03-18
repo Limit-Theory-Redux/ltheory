@@ -1,4 +1,6 @@
 use crate::internal::Memory::*;
+use crate::Math::Vec3;
+use crate::Math::{IVec2, IVec3};
 use crate::Metric::*;
 use crate::Profiler::*;
 use crate::Tex2D::*;
@@ -7,8 +9,6 @@ use crate::TexCube::*;
 use crate::TexFormat::*;
 use crate::TexFormat::*;
 use crate::Viewport::*;
-use crate::Math::Vec3;
-use crate::Math::{IVec2, IVec3};
 use libc;
 
 extern "C" {

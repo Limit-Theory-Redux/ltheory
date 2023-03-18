@@ -3,6 +3,9 @@ use crate::Common::*;
 use crate::Draw::*;
 use crate::Intersect::*;
 use crate::LineSegment::*;
+use crate::Math::Sphere;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
 use crate::Mesh::*;
 use crate::Plane::*;
 use crate::Polygon::*;
@@ -10,8 +13,6 @@ use crate::Ray::*;
 use crate::RenderState::*;
 use crate::Triangle::*;
 use crate::RNG::*;
-use crate::Math::Vec2;
-use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

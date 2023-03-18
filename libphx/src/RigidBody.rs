@@ -12,10 +12,10 @@ PHX_API void        _cppRigidBody_ApplyTorque                  (RigidBody*, Vec3
 PHX_API void        _cppRigidBody_Attach                       (RigidBody*, RigidBody* other, Vec3f*, Quat*);
 PHX_API void        _cppRigidBody_Detach                       (RigidBody*, RigidBody* other);
 
-PHX_API void        _cppRigidBody_GetBoundingBox               (RigidBody*, Box3f*);
-PHX_API void        _cppRigidBody_GetBoundingBoxCompound       (RigidBody*, Box3f*);
-PHX_API void        _cppRigidBody_GetBoundingBoxLocal          (RigidBody*, Box3f*);
-PHX_API void        _cppRigidBody_GetBoundingBoxLocalCompound  (RigidBody*, Box3f*);
+PHX_API void        _cppRigidBody_GetBoundingBox               (RigidBody*, Box3*);
+PHX_API void        _cppRigidBody_GetBoundingBoxCompound       (RigidBody*, Box3*);
+PHX_API void        _cppRigidBody_GetBoundingBoxLocal          (RigidBody*, Box3*);
+PHX_API void        _cppRigidBody_GetBoundingBoxLocalCompound  (RigidBody*, Box3*);
 PHX_API float       _cppRigidBody_GetBoundingRadius            (RigidBody*);
 PHX_API float       _cppRigidBody_GetBoundingRadiusCompound    (RigidBody*);
 
@@ -56,7 +56,7 @@ extern "C" {
     pub type RigidBody;
     pub type Mesh;
     pub type Quat;
-    pub type Box3f;
+    pub type Box3;
     pub type Matrix;
     fn _cppRigidBody_CreateBox() -> *mut RigidBody;
     fn _cppRigidBody_CreateBoxFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
@@ -73,10 +73,10 @@ extern "C" {
         rot: *mut Quat,
     );
     fn _cppRigidBody_Detach(this: *mut RigidBody, other: *mut RigidBody);
-    fn _cppRigidBody_GetBoundingBox(this: *mut RigidBody, out: *mut Box3f);
-    fn _cppRigidBody_GetBoundingBoxCompound(this: *mut RigidBody, out: *mut Box3f);
-    fn _cppRigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out: *mut Box3f);
-    fn _cppRigidBody_GetBoundingBoxLocalCompound(this: *mut RigidBody, out: *mut Box3f);
+    fn _cppRigidBody_GetBoundingBox(this: *mut RigidBody, out: *mut Box3);
+    fn _cppRigidBody_GetBoundingBoxCompound(this: *mut RigidBody, out: *mut Box3);
+    fn _cppRigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out: *mut Box3);
+    fn _cppRigidBody_GetBoundingBoxLocalCompound(this: *mut RigidBody, out: *mut Box3);
     fn _cppRigidBody_GetBoundingRadius(this: *mut RigidBody) -> f32;
     fn _cppRigidBody_GetBoundingRadiusCompound(this: *mut RigidBody) -> f32;
     fn _cppRigidBody_GetParentBody(this: *mut RigidBody) -> *mut RigidBody;
@@ -163,24 +163,24 @@ pub unsafe extern "C" fn RigidBody_Detach(this: *mut RigidBody, other: *mut Rigi
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBox(this: *mut RigidBody, out: *mut Box3f) {
+pub unsafe extern "C" fn RigidBody_GetBoundingBox(this: *mut RigidBody, out: *mut Box3) {
     _cppRigidBody_GetBoundingBox(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBoxCompound(this: *mut RigidBody, out: *mut Box3f) {
+pub unsafe extern "C" fn RigidBody_GetBoundingBoxCompound(this: *mut RigidBody, out: *mut Box3) {
     _cppRigidBody_GetBoundingBoxCompound(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out: *mut Box3f) {
+pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out: *mut Box3) {
     _cppRigidBody_GetBoundingBoxLocal(this, out)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocalCompound(
     this: *mut RigidBody,
-    out: *mut Box3f,
+    out: *mut Box3,
 ) {
     _cppRigidBody_GetBoundingBoxLocalCompound(this, out)
 }

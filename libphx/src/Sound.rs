@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
 use crate::Audio::*;
-use crate::SoundDesc::*;
 use crate::Math::Vec3;
+use crate::SoundDesc::*;
 use libc;
 
 extern "C" {
@@ -616,7 +616,6 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
         _ => b"Unknown error.\0" as *const u8 as *const libc::c_char,
     }
 }
-
 
 unsafe extern "C" fn Sound_Callback(
     mut channel: *mut FMOD_CHANNELCONTROL,

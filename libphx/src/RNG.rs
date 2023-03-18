@@ -1,8 +1,9 @@
 use crate::internal::Memory::*;
 use crate::Hash::*;
-use crate::TimeStamp::*;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
+use crate::Math::Vec4;
+use crate::TimeStamp::*;
 use libc;
 
 #[derive(Copy, Clone)]
@@ -15,15 +16,6 @@ pub struct RNG {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Quat {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -183,10 +175,7 @@ pub unsafe extern "C" fn RNG_GetErlang(mut this: *mut RNG, mut k: i32) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetExp(mut this: *mut RNG) -> f64 {
-    -f64::ln(f64::max(
-        1.0f64 - RNG_GetUniform(this),
-        f64::EPSILON,
-    ))
+    -f64::ln(f64::max(1.0f64 - RNG_GetUniform(this), f64::EPSILON))
 }
 
 #[no_mangle]
@@ -330,7 +319,7 @@ pub unsafe extern "C" fn RNG_GetVec3(
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetVec4(
     mut this: *mut RNG,
-    mut out: *mut Vec4f,
+    mut out: *mut Vec4,
     mut lower: f64,
     mut upper: f64,
 ) {

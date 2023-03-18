@@ -1,20 +1,13 @@
 use crate::internal::Memory::*;
 use crate::LineSegment::*;
+use crate::Math::Sphere;
+use crate::Math::Vec3;
+use crate::Math::Vec4;
 use crate::Matrix::*;
 use crate::Plane::*;
 use crate::Ray::*;
 use crate::Triangle::*;
-use crate::Math::Vec3;
 use libc;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_PointBox(mut src: *mut Matrix, mut dst: *mut Matrix) -> bool {
@@ -220,14 +213,14 @@ pub unsafe extern "C" fn Intersect_LineSegmentPlane(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Intersect_RectRect(mut a: *const Vec4f, mut b: *const Vec4f) -> bool {
-    let mut a2: Vec4f = Vec4f {
+pub unsafe extern "C" fn Intersect_RectRect(mut a: *const Vec4, mut b: *const Vec4) -> bool {
+    let mut a2: Vec4 = Vec4 {
         x: (*a).x + f32::min((*a).z, 0.0f32),
         y: (*a).y + f32::min((*a).w, 0.0f32),
         z: f32::abs((*a).z),
         w: f32::abs((*a).w),
     };
-    let mut b2: Vec4f = Vec4f {
+    let mut b2: Vec4 = Vec4 {
         x: (*b).x + f32::min((*b).z, 0.0f32),
         y: (*b).y + f32::min((*b).w, 0.0f32),
         z: f32::abs((*b).z),
@@ -237,7 +230,7 @@ pub unsafe extern "C" fn Intersect_RectRect(mut a: *const Vec4f, mut b: *const V
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Intersect_RectRectFast(mut a: *const Vec4f, mut b: *const Vec4f) -> bool {
+pub unsafe extern "C" fn Intersect_RectRectFast(mut a: *const Vec4, mut b: *const Vec4) -> bool {
     let mut result: bool = true;
     result = (result as i32 & ((*a).x < (*b).x + (*b).z) as i32) != 0;
     result = (result as i32 & ((*b).x < (*a).x + (*a).z) as i32) != 0;

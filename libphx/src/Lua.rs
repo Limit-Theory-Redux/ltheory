@@ -1,9 +1,9 @@
 use crate::internal::Memory::*;
 use crate::LuaScheduler::*;
-use crate::Signal::*;
+use crate::Math::Vec3;
 use crate::Resource::*;
 use crate::ResourceType::*;
-use crate::Math::Vec3;
+use crate::Signal::*;
 use libc;
 
 extern "C" {

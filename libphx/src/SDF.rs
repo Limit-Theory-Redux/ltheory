@@ -1,11 +1,11 @@
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
-use crate::Mesh::*;
-use crate::Math::*;
-use crate::PixelFormat::*;
-use crate::Tex3D::*;
 use crate::Math::IVec3;
 use crate::Math::Vec3;
+use crate::Math::*;
+use crate::Mesh::*;
+use crate::PixelFormat::*;
+use crate::Tex3D::*;
 use libc;
 
 #[derive(Copy, Clone)]

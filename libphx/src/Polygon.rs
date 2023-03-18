@@ -1,15 +1,14 @@
 use crate::internal::Memory::*;
 use crate::Intersect::*;
 use crate::LineSegment::*;
-use crate::Plane::*;
-use crate::Triangle::*;
 use crate::Math::DVec3;
 use crate::Math::Vec3;
+use crate::Math::Vec3_Validate;
+use crate::Plane::*;
+use crate::Triangle::*;
 use libc;
 
 extern "C" {
-    // fn __fpclassifyf(_: f32) -> i32;
-    // fn __fpclassifyd(_: f64) -> i32;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 
@@ -22,7 +21,6 @@ pub struct Polygon {
 }
 
 pub type PointClassification = u8;
-
 
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mut Plane) {

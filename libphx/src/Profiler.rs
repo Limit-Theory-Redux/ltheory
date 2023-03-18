@@ -1,8 +1,8 @@
 use crate::internal::Memory::*;
 use crate::HashMap::*;
+use crate::Math::Vec3;
 use crate::Signal::*;
 use crate::TimeStamp::*;
-use crate::Math::Vec3;
 use libc;
 use std::io::{self, Write};
 
@@ -39,7 +39,6 @@ pub struct Profiler {
     pub scopeList_data: *mut *mut Scope,
     pub start: TimeStamp,
 }
-
 
 static mut this: Profiler = Profiler {
     map: std::ptr::null_mut(),

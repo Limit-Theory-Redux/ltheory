@@ -1,11 +1,11 @@
 use crate::internal::Memory::*;
 use crate::Bytes::*;
 use crate::DataFormat::*;
+use crate::Math::IVec3;
+use crate::Math::Vec3;
 use crate::PixelFormat::*;
 use crate::RenderTarget::*;
 use crate::TexFormat::*;
-use crate::Math::IVec3;
-use crate::Math::Vec3;
 use libc;
 
 extern "C" {

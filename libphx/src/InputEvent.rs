@@ -3,9 +3,9 @@ use crate::Button::*;
 use crate::Button::*;
 use crate::Device::*;
 use crate::DeviceType::*;
-use crate::State::*;
-use crate::State::*;
 use crate::Math::Vec3;
+use crate::State::*;
+use crate::State::*;
 use libc;
 
 pub type DeviceType = i32;

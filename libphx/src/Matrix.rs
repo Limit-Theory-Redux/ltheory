@@ -1,21 +1,14 @@
 use crate::internal::Memory::*;
-use crate::Quat::*;
+use crate::Math::Box3;
 use crate::Math::Vec3;
+use crate::Math::Vec4;
+use crate::Quat::*;
 use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Matrix {
     pub m: [f32; 16],
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
 }
 
 #[inline]
@@ -510,8 +503,8 @@ pub unsafe extern "C" fn Matrix_YawPitchRoll(
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_MulBox(
     mut this: *const Matrix,
-    mut out: *mut Box3f,
-    mut in_0: *const Box3f,
+    mut out: *mut Box3,
+    mut in_0: *const Box3,
 ) {
     let corners: [Vec3; 8] = [
         Vec3 {
@@ -605,7 +598,7 @@ pub unsafe extern "C" fn Matrix_MulPoint(
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_MulVec(
     mut this: *const Matrix,
-    mut out: *mut Vec4f,
+    mut out: *mut Vec4,
     mut x: f32,
     mut y: f32,
     mut z: f32,
@@ -647,7 +640,7 @@ pub unsafe extern "C" fn Matrix_GetPos(mut this: *const Matrix, mut out: *mut Ve
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetRow(mut this: *const Matrix, mut out: *mut Vec4f, mut row: i32) {
+pub unsafe extern "C" fn Matrix_GetRow(mut this: *const Matrix, mut out: *mut Vec4, mut row: i32) {
     (*out).x = (*this).m[(4_i32 * row + 0_i32) as usize];
     (*out).y = (*this).m[(4_i32 * row + 1_i32) as usize];
     (*out).z = (*this).m[(4_i32 * row + 2_i32) as usize];

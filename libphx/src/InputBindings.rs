@@ -2,9 +2,9 @@ use crate::internal::Memory::*;
 use crate::Device::*;
 use crate::Input::*;
 use crate::InputEvent::*;
-use crate::State::*;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
+use crate::State::*;
 use libc;
 
 extern "C" {

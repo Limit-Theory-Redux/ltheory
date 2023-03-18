@@ -4,23 +4,15 @@ use crate::Font::*;
 use crate::Hash::*;
 use crate::HashMap::*;
 use crate::Input::*;
+use crate::Math::Vec3;
+use crate::Math::Vec4;
+use crate::Math::{IVec2, Vec2};
 use crate::Profiler::*;
 use crate::RenderState::*;
 use crate::Tex2D::*;
 use crate::UIRenderer::*;
-
-use crate::Math::Vec3;
-use crate::Math::{IVec2, Vec2};
 use libc;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
 pub type BlendMode = i32;
 pub type Button = i32;
 
@@ -89,9 +81,9 @@ pub struct HmGuiStyle {
     pub prev: *mut HmGuiStyle,
     pub font: *mut Font,
     pub spacing: f32,
-    pub colorPrimary: Vec4f,
-    pub colorFrame: Vec4f,
-    pub colorText: Vec4f,
+    pub colorPrimary: Vec4,
+    pub colorFrame: Vec4,
+    pub colorText: Vec4,
 }
 
 #[derive(Copy, Clone)]
@@ -100,7 +92,7 @@ pub struct HmGuiText {
     pub widget: HmGuiWidget,
     pub font: *mut Font,
     pub text: *const libc::c_char,
-    pub color: Vec4f,
+    pub color: Vec4,
 }
 
 #[derive(Copy, Clone)]
@@ -122,23 +114,12 @@ pub struct HmGuiImage {
 #[repr(C)]
 pub struct HmGuiRect {
     pub widget: HmGuiWidget,
-    pub color: Vec4f,
+    pub color: Vec4,
 }
 
 #[inline]
 unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
     a + t * (b - a)
-}
-
-#[inline]
-unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
-    let mut self_1: Vec4f = Vec4f {
-        x: x,
-        y: y,
-        z: z,
-        w: w,
-    };
-    self_1
 }
 
 static mut this: HmGui = HmGui {
@@ -581,9 +562,9 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
         (*this.style).prev = std::ptr::null_mut();
         (*this.style).font = Font_Load(b"Rajdhani\0" as *const u8 as *const libc::c_char, 14_i32);
         (*this.style).spacing = 6.0f32;
-        (*this.style).colorPrimary = Vec4f_Create(0.1f32, 0.5f32, 1.0f32, 1.0f32);
-        (*this.style).colorFrame = Vec4f_Create(0.1f32, 0.1f32, 0.1f32, 0.5f32);
-        (*this.style).colorText = Vec4f_Create(1.0f32, 1.0f32, 1.0f32, 1.0f32);
+        (*this.style).colorPrimary = Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32);
+        (*this.style).colorFrame = Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32);
+        (*this.style).colorText = Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32);
         this.clipRect = std::ptr::null_mut();
         this.data = HashMap_Create(0_i32 as u32, 128_i32 as u32);
         let mut i: i32 = 0_i32;
@@ -685,7 +666,8 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
         Input_GetMouseScroll(&mut scroll);
         (*data).offset.y -= 10.0f32 * scroll.y as f32;
     }
-    let mut maxScroll: f32 = f64::max(0.0f32 as f64, ((*data).minSize.y - (*data).size.y) as f64) as f32;
+    let mut maxScroll: f32 =
+        f64::max(0.0f32 as f64, ((*data).minSize.y - (*data).size.y) as f64) as f32;
     (*data).offset.y = f64::clamp((*data).offset.y as f64, 0.0f32 as f64, maxScroll as f64) as f32;
     HmGui_EndGroup();
     HmGui_BeginGroupY();
@@ -824,7 +806,7 @@ pub unsafe extern "C" fn HmGui_Rect(
 ) {
     let mut e: *mut HmGuiRect = MemAlloc(::core::mem::size_of::<HmGuiRect>()) as *mut HmGuiRect;
     HmGui_InitWidget(&mut (*e).widget, 2_i32 as u32);
-    (*e).color = Vec4f_Create(r, g, b, a);
+    (*e).color = Vec4::new(r, g, b, a);
     (*e).widget.minSize = Vec2::new(sx, sy);
 }
 
@@ -864,7 +846,7 @@ pub unsafe extern "C" fn HmGui_TextEx(
     HmGui_InitWidget(&mut (*e).widget, 1_i32 as u32);
     (*e).font = font;
     (*e).text = StrDup(text);
-    (*e).color = Vec4f_Create(r, g, b, a);
+    (*e).color = Vec4::new(r, g, b, a);
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Font_GetSize2((*e).font, &mut size, (*e).text);
     (*e).widget.minSize = Vec2::new(size.x as f32, size.y as f32);
@@ -947,7 +929,7 @@ pub unsafe extern "C" fn HmGui_PushFont(mut font: *mut Font) {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushTextColor(mut r: f32, mut g: f32, mut b: f32, mut a: f32) {
     HmGui_PushStyle();
-    (*this.style).colorText = Vec4f_Create(r, g, b, a);
+    (*this.style).colorText = Vec4::new(r, g, b, a);
 }
 
 #[no_mangle]

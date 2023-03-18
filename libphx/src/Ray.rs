@@ -1,9 +1,9 @@
 use crate::internal::Memory::*;
 use crate::Intersect::*;
 use crate::LineSegment::*;
+use crate::Math::Vec3;
 use crate::Plane::*;
 use crate::Triangle::*;
-use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

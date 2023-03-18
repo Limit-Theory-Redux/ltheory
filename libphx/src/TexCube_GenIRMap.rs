@@ -2,6 +2,8 @@ use crate::internal::Memory::*;
 use crate::CubeFace::*;
 use crate::DataFormat::*;
 use crate::Draw::*;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
 use crate::PixelFormat::*;
 use crate::RenderTarget::*;
 use crate::Shader::*;
@@ -10,8 +12,6 @@ use crate::TexCube::*;
 use crate::TexFilter::*;
 use crate::TexFormat::*;
 use crate::RNG::*;
-use crate::Math::Vec2;
-use crate::Math::Vec3;
 use libc;
 
 pub type CubeFace = i32;

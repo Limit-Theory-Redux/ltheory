@@ -1,7 +1,6 @@
 use crate::internal::Memory::*;
+use crate::Math::*;
 use crate::Metric::*;
-use crate::Math::Vec2;
-use crate::Math::Vec3;
 use libc;
 
 extern "C" {
@@ -24,15 +23,6 @@ extern "C" {
     fn glVertex3f(x: GLfloat, y: GLfloat, z: GLfloat);
     static mut __glewCheckFramebufferStatus: PFNGLCHECKFRAMEBUFFERSTATUSPROC;
 }
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Vec4f {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
 pub type Metric = i32;
 pub type GLbitfield = u32;
 pub type GLclampf = f32;
@@ -41,32 +31,11 @@ pub type PFNGLCHECKFRAMEBUFFERSTATUSPROC = Option<unsafe extern "C" fn(GLenum) -
 pub type GLclampd = f64;
 pub type GLfloat = f32;
 
-#[inline]
-unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
-    let mut d: f32 = Vec3::dot(a, b);
-    let mut this: Vec3 = Vec3 {
-        x: a.x - d * b.x,
-        y: a.y - d * b.y,
-        z: a.z - d * b.z,
-    };
-    this
-}
-
-#[inline]
-unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
-    let mut this: Vec4f = Vec4f {
-        x: x,
-        y: y,
-        z: z,
-        w: w,
-    };
-    this
-}
 static mut alphaStack: [f32; 16] = [0.; 16];
 
 static mut alphaIndex: i32 = -1_i32;
 
-static mut color: Vec4f = Vec4f {
+static mut color: Vec4 = Vec4 {
     x: 1.0f32,
     y: 1.0f32,
     z: 1.0f32,
@@ -147,7 +116,7 @@ pub unsafe extern "C" fn Draw_Border(mut s: f32, mut x: f32, mut y: f32, mut w: 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3f) {
+pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3) {
     Metric_AddDrawImm(6_i32, 12_i32, 24_i32);
     glBegin(0x7_i32 as GLenum);
     glVertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
@@ -206,7 +175,7 @@ pub unsafe extern "C" fn Draw_Color(mut r: f32, mut g: f32, mut b: f32, mut a: f
     } else {
         1.0f32
     };
-    color = Vec4f_Create(r, g, b, a);
+    color = Vec4::new(r, g, b, a);
     glColor4f(r, g, b, a * alpha);
 }
 

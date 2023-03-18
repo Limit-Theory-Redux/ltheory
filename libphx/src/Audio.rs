@@ -1,9 +1,9 @@
 use crate::internal::Memory::*;
+use crate::Math::Vec3;
 use crate::MemPool::*;
 use crate::Sound::*;
 use crate::SoundDesc::*;
 use crate::StrMap::*;
-use crate::Math::Vec3;
 use libc;
 
 extern "C" {

@@ -5,6 +5,7 @@ use crate::CubeFace::*;
 use crate::DataFormat::*;
 use crate::Draw::*;
 use crate::GLMatrix::*;
+use crate::Math::Vec3;
 use crate::PixelFormat::*;
 use crate::RenderState::*;
 use crate::RenderTarget::*;
@@ -15,7 +16,6 @@ use crate::Tex2D_Load::*;
 use crate::Tex2D_Save::*;
 use crate::TexFormat::*;
 use crate::TimeStamp::*;
-use crate::Math::Vec3;
 use libc;
 
 extern "C" {
@@ -74,7 +74,6 @@ pub struct Face {
     pub look: Vec3,
     pub up: Vec3,
 }
-
 
 static mut kFaces: [Face; 6] = [
     Face {
