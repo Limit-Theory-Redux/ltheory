@@ -95,6 +95,7 @@ static mut freeList: [*mut Joystick; 64] = [
     std::ptr::null_mut(),
     std::ptr::null_mut(),
 ];
+
 unsafe extern "C" fn ConvertGUID(mut id: SDL_JoystickGUID) -> *mut libc::c_char {
     static mut buf: [libc::c_char; 64] = [0; 64];
     SDL_JoystickGetGUIDString(

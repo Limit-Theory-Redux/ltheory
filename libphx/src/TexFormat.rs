@@ -1,107 +1,125 @@
 use crate::internal::Memory::*;
+use crate::GL::gl;
 use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 pub type TexFormat = i32;
 
 #[no_mangle]
-pub static TexFormat_R8: TexFormat = 0x8229_i32;
+pub static TexFormat_R8: TexFormat = gl::R8 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_R16: TexFormat = 0x822a_i32;
+pub static TexFormat_R16: TexFormat = gl::R16 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_R16F: TexFormat = 0x822d_i32;
+pub static TexFormat_R16F: TexFormat = gl::R16F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_R32F: TexFormat = 0x822e_i32;
+pub static TexFormat_R32F: TexFormat = gl::R32F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RG8: TexFormat = 0x822b_i32;
+pub static TexFormat_RG8: TexFormat = gl::RGB as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RG16: TexFormat = 0x822c_i32;
+pub static TexFormat_RG16: TexFormat = gl::RG16 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RG16F: TexFormat = 0x822f_i32;
+pub static TexFormat_RG16F: TexFormat = gl::RG16F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RG32F: TexFormat = 0x8230_i32;
+pub static TexFormat_RG32F: TexFormat = gl::RG32F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RGB8: TexFormat = 0x8051_i32;
+pub static TexFormat_RGB8: TexFormat = gl::RGB8 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RGBA8: TexFormat = 0x8058_i32;
+pub static TexFormat_RGBA8: TexFormat = gl::RGBA8 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RGBA16: TexFormat = 0x805b_i32;
+pub static TexFormat_RGBA16: TexFormat = gl::RGBA16 as TexFormat;
+
+// #[no_mangle]
+// pub static TexFormat_RGBA16F: TexFormat = gl::RGBA16F as TexFormat;
 
 #[no_mangle]
 pub static TexFormat_RGBA16F: TexFormat = 0x881a_i32;
 
+// #[no_mangle]
+// pub static TexFormat_RGBA32F: TexFormat = gl::RGBA32F as TexFormat;
 #[no_mangle]
 pub static TexFormat_RGBA32F: TexFormat = 0x8814_i32;
 
 #[no_mangle]
-pub static TexFormat_Depth16: TexFormat = 0x81a5_i32;
+pub static TexFormat_Depth16: TexFormat = gl::DEPTH_COMPONENT16 as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_Depth24: TexFormat = 0x81a6_i32;
+pub static TexFormat_Depth24: TexFormat = gl::DEPTH_COMPONENT24 as TexFormat;
 
+// #[no_mangle]
+// pub static TexFormat_Depth32F: TexFormat = gl::DEPTH_COMPONENT32F as TexFormat;
 #[no_mangle]
 pub static TexFormat_Depth32F: TexFormat = 0x8cac_i32;
 
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_Components(mut this: TexFormat) -> i32 {
-    match this {
-        33321 | 33322 | 33325 | 33326 | 33189 | 33190 | 36012 => return 1_i32,
-        33323 | 33324 | 33327 | 33328 => return 2_i32,
-        32849 => return 3_i32,
-        32856 | 32859 | 34842 | 34836 => return 4_i32,
-        _ => {}
+pub extern "C" fn TexFormat_Components(this: TexFormat) -> i32 {
+    if this == TexFormat_R8 || this == TexFormat_R16 || this == TexFormat_R16F || this == TexFormat_R32F || this == TexFormat_Depth16 || this == TexFormat_Depth24 || this == TexFormat_Depth32F {
+    1
+    } else if this == TexFormat_RG8 || this == TexFormat_RG16 || this == TexFormat_RG16F || this == TexFormat_RG32F {
+    2
+    } else if this == TexFormat_RGB8 {
+    3
+    } else if this == TexFormat_RGBA8 || this == TexFormat_RGBA16 || this == TexFormat_RGBA16F || this == TexFormat_RGBA32F {
+    4
+    } else {
+    0
     }
-    0_i32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_GetSize(mut this: TexFormat) -> i32 {
-    match this {
-        33321 => return 1_i32,
-        33322 | 33325 | 33323 | 33189 => return 2_i32,
-        32849 | 33190 => return 3_i32,
-        33326 | 33324 | 33327 | 32856 | 36012 => return 4_i32,
-        33328 | 32859 | 34842 => return 8_i32,
-        34836 => return 16_i32,
-        _ => {}
+pub extern "C" fn TexFormat_GetSize(this: TexFormat) -> i32 {
+    if this == TexFormat_R8 {
+      1
+} else if this == TexFormat_R16 || this == TexFormat_R16F || this == TexFormat_RG8 || this == TexFormat_Depth16 {
+      2
+    } else if this == TexFormat_RGB8 || this == TexFormat_Depth24 {
+      3
+    } else if this == TexFormat_R32F || this == TexFormat_RG16 || this == TexFormat_RG16F || this == TexFormat_RGBA8 || this == TexFormat_Depth32F {
+      4
+    } else if this == TexFormat_RG32F || this == TexFormat_RGBA16 || this == TexFormat_RGBA16F {
+      8
+    } else if this == TexFormat_RGBA32F {
+      16
+    } else {
+        0
     }
-    0_i32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_IsColor(mut this: TexFormat) -> bool {
-    match this {
-        33189 | 33190 | 36012 => return false,
-        _ => {}
-    }
-    true
+pub extern "C" fn TexFormat_IsColor(this: TexFormat) -> bool {
+    this != TexFormat_Depth16 && this != TexFormat_Depth24 && this != TexFormat_Depth32F
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_IsDepth(mut this: TexFormat) -> bool {
-    match this {
-        33189 | 33190 | 36012 => return true,
-        _ => {}
-    }
-    false
+pub extern "C" fn TexFormat_IsDepth(this: TexFormat) -> bool {
+    !TexFormat_IsColor(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexFormat_IsValid(mut this: TexFormat) -> bool {
-    match this {
-        33321 | 33322 | 33325 | 33326 | 33323 | 33324 | 33327 | 33328 | 32849 | 32856 | 32859
-        | 34842 | 34836 | 33189 | 33190 | 36012 => return true,
-        _ => {}
-    }
-    false
+pub extern "C" fn TexFormat_IsValid(this: TexFormat) -> bool {
+    this == TexFormat_R8 ||
+    this == TexFormat_R16 ||
+    this == TexFormat_R16F ||
+    this == TexFormat_R32F ||
+    this == TexFormat_RG8 ||
+    this == TexFormat_RG16 ||
+    this == TexFormat_RG16F ||
+    this == TexFormat_RG32F ||
+    this == TexFormat_RGB8 ||
+    this == TexFormat_RGBA8 ||
+    this == TexFormat_RGBA16 ||
+    this == TexFormat_RGBA16F ||
+    this == TexFormat_RGBA32F ||
+    this == TexFormat_Depth16 ||
+    this == TexFormat_Depth24 ||
+    this == TexFormat_Depth32F
 }

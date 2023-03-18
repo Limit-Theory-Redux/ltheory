@@ -85,6 +85,7 @@ static mut initialized: bool = false;
 static mut activeInstance: *mut Lua = std::ptr::null_mut();
 
 static mut cSignal: Signal = 0_i32;
+
 unsafe extern "C" fn Lua_BacktraceHook(mut this: *mut Lua, _: *mut lua_Debug) {
     lua_sethook(this, None, 0_i32, 0_i32);
     luaL_where(this, 0_i32);

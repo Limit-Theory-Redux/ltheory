@@ -2,15 +2,8 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::IVec2;
 use crate::Math::Vec3;
+use crate::GL::gl;
 use libc;
-
-extern "C" {
-    fn glLoadIdentity();
-    fn glMatrixMode(mode: GLenum);
-    fn glScalef(x: GLfloat, y: GLfloat, z: GLfloat);
-    fn glTranslatef(x: GLfloat, y: GLfloat, z: GLfloat);
-    fn glViewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei);
-}
 
 pub type GLenum = u32;
 pub type GLint = i32;
@@ -35,20 +28,21 @@ static mut vp: [VP; 16] = [VP {
     sy: 0,
     isWindow: false,
 }; 16];
+
 unsafe extern "C" fn Viewport_Set(mut this: *const VP) {
-    glViewport((*this).x, (*this).y, (*this).sx, (*this).sy);
-    glMatrixMode(0x1701_i32 as GLenum);
-    glLoadIdentity();
+    gl::Viewport((*this).x, (*this).y, (*this).sx, (*this).sy);
+    gl::MatrixMode(0x1701_i32 as GLenum);
+    gl::LoadIdentity();
     if (*this).isWindow {
-        glTranslatef(-1.0f64 as GLfloat, 1.0f64 as GLfloat, 0.0f64 as GLfloat);
-        glScalef(
+        gl::Translatef(-1.0f32, 1.0f32, 0.0f32);
+        gl::Scalef(
             2.0f32 / (*this).sx as f32,
             -2.0f32 / (*this).sy as f32,
             1.0f32,
         );
     } else {
-        glTranslatef(-1.0f64 as GLfloat, -1.0f64 as GLfloat, 0.0f64 as GLfloat);
-        glScalef(
+        gl::Translatef(-1.0f32, -1.0f32, 0.0f32);
+        gl::Scalef(
             2.0f32 / (*this).sx as f32,
             2.0f32 / (*this).sy as f32,
             1.0f32,

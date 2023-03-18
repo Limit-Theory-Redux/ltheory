@@ -49,6 +49,7 @@ pub mod GUID;
 pub mod Gamepad;
 pub mod GamepadAxis;
 pub mod GamepadButton;
+pub mod GL;
 pub mod Hash;
 pub mod HashGrid;
 pub mod HashMap;

@@ -15,10 +15,10 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
+use crate::GL::gl;
 use libc;
 
 extern "C" {
-    fn glBindTexture(target: GLenum, texture: GLu32);
     static mut __glewActiveTexture: PFNGLACTIVETEXTUREPROC;
     static mut __glewAttachShader: PFNGLATTACHSHADERPROC;
     static mut __glewBindAttribLocation: PFNGLBINDATTRIBLOCATIONPROC;
@@ -119,6 +119,7 @@ static mut versionString: *const libc::c_char =
 static mut current: *mut Shader = std::ptr::null_mut();
 
 static mut cache: *mut StrMap = std::ptr::null_mut();
+
 unsafe extern "C" fn GetUniformIndex(mut this: *mut Shader, mut name: *const libc::c_char) -> i32 {
     if this.is_null() {
         Fatal(b"GetUniformIndex: No shader is bound\0" as *const u8 as *const libc::c_char);
@@ -169,7 +170,7 @@ unsafe extern "C" fn CreateGLProgram(mut vs: u32, mut fs: u32) -> u32 {
     __glewAttachShader.expect("non-null function pointer")(this, fs);
     __glewBindAttribLocation.expect("non-null function pointer")(
         this,
-        0_i32 as GLu32,
+        0,
         b"vertex_position\0" as *const u8 as *const libc::c_char,
     );
     __glewBindAttribLocation.expect("non-null function pointer")(
@@ -606,7 +607,7 @@ pub unsafe extern "C" fn Shader_Start(mut this: *mut Shader) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Stop(mut _s: *mut Shader) {
-    __glewUseProgram.expect("non-null function pointer")(0_i32 as GLu32);
+    __glewUseProgram.expect("non-null function pointer")(0);
     current = std::ptr::null_mut();
 }
 
@@ -785,8 +786,8 @@ pub unsafe extern "C" fn Shader_SetTex1D(mut name: *const libc::c_char, mut valu
     __glewActiveTexture.expect("non-null function pointer")(
         (0x84c0_i32 as u32).wrapping_add(fresh14),
     );
-    glBindTexture(0xde0_i32 as GLenum, Tex1D_GetHandle(value));
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    gl::BindTexture(0xde0_i32 as GLenum, Tex1D_GetHandle(value));
+    __glewActiveTexture.expect("non-null function pointer")(gl::TEXTURE0);
 }
 
 #[no_mangle]
@@ -797,8 +798,8 @@ pub unsafe extern "C" fn Shader_ISetTex1D(mut index: i32, mut value: *mut Tex1D)
     __glewActiveTexture.expect("non-null function pointer")(
         (0x84c0_i32 as u32).wrapping_add(fresh15),
     );
-    glBindTexture(0xde0_i32 as GLenum, Tex1D_GetHandle(value));
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    gl::BindTexture(0xde0_i32 as GLenum, Tex1D_GetHandle(value));
+    __glewActiveTexture.expect("non-null function pointer")(gl::TEXTURE0);
 }
 
 #[no_mangle]
@@ -812,8 +813,8 @@ pub unsafe extern "C" fn Shader_SetTex2D(mut name: *const libc::c_char, mut valu
     __glewActiveTexture.expect("non-null function pointer")(
         (0x84c0_i32 as u32).wrapping_add(fresh16),
     );
-    glBindTexture(0xde1_i32 as GLenum, Tex2D_GetHandle(value));
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    gl::BindTexture(gl::TEXTURE_2D, Tex2D_GetHandle(value));
+    __glewActiveTexture.expect("non-null function pointer")(gl::TEXTURE0);
 }
 
 #[no_mangle]
@@ -824,8 +825,8 @@ pub unsafe extern "C" fn Shader_ISetTex2D(mut index: i32, mut value: *mut Tex2D)
     __glewActiveTexture.expect("non-null function pointer")(
         (0x84c0_i32 as u32).wrapping_add(fresh17),
     );
-    glBindTexture(0xde1_i32 as GLenum, Tex2D_GetHandle(value));
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    gl::BindTexture(gl::TEXTURE_2D, Tex2D_GetHandle(value));
+    __glewActiveTexture.expect("non-null function pointer")(gl::TEXTURE0);
 }
 
 #[no_mangle]
@@ -839,8 +840,8 @@ pub unsafe extern "C" fn Shader_SetTex3D(mut name: *const libc::c_char, mut valu
     __glewActiveTexture.expect("non-null function pointer")(
         (0x84c0_i32 as u32).wrapping_add(fresh18),
     );
-    glBindTexture(0x806f_i32 as GLenum, Tex3D_GetHandle(value));
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    gl::BindTexture(gl::TEXTURE_3D, Tex3D_GetHandle(value));
+    __glewActiveTexture.expect("non-null function pointer")(gl::TEXTURE0);
 }
 
 #[no_mangle]
@@ -851,8 +852,8 @@ pub unsafe extern "C" fn Shader_ISetTex3D(mut index: i32, mut value: *mut Tex3D)
     __glewActiveTexture.expect("non-null function pointer")(
         (0x84c0_i32 as u32).wrapping_add(fresh19),
     );
-    glBindTexture(0x806f_i32 as GLenum, Tex3D_GetHandle(value));
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    gl::BindTexture(gl::TEXTURE_3D, Tex3D_GetHandle(value));
+    __glewActiveTexture.expect("non-null function pointer")(gl::TEXTURE0);
 }
 
 #[no_mangle]
@@ -866,8 +867,8 @@ pub unsafe extern "C" fn Shader_SetTexCube(mut name: *const libc::c_char, mut va
     __glewActiveTexture.expect("non-null function pointer")(
         (0x84c0_i32 as u32).wrapping_add(fresh20),
     );
-    glBindTexture(0x8513_i32 as GLenum, TexCube_GetHandle(value));
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    gl::BindTexture(gl::TEXTURE_CUBE_MAP, TexCube_GetHandle(value));
+    __glewActiveTexture.expect("non-null function pointer")(gl::TEXTURE0);
 }
 
 #[no_mangle]
@@ -878,6 +879,6 @@ pub unsafe extern "C" fn Shader_ISetTexCube(mut index: i32, mut value: *mut TexC
     __glewActiveTexture.expect("non-null function pointer")(
         (0x84c0_i32 as u32).wrapping_add(fresh21),
     );
-    glBindTexture(0x8513_i32 as GLenum, TexCube_GetHandle(value));
-    __glewActiveTexture.expect("non-null function pointer")(0x84c0_i32 as GLenum);
+    gl::BindTexture(gl::TEXTURE_CUBE_MAP, TexCube_GetHandle(value));
+    __glewActiveTexture.expect("non-null function pointer")(gl::TEXTURE0);
 }

@@ -1,23 +1,21 @@
-use crate::internal::Memory::*;
-use crate::Common::*;
-use crate::Math::Vec3;
-use libc;
+use crate::GL::gl;
+
 pub type TexFilter = i32;
 
 #[no_mangle]
-pub static TexFilter_Point: TexFilter = 0x2600_i32;
+pub static TexFilter_Point: TexFilter = gl::NEAREST as TexFilter;
 
 #[no_mangle]
-pub static TexFilter_PointMipPoint: TexFilter = 0x2700_i32;
+pub static TexFilter_PointMipPoint: TexFilter = gl::NEAREST_MIPMAP_NEAREST as TexFilter;
 
 #[no_mangle]
-pub static TexFilter_PointMipLinear: TexFilter = 0x2702_i32;
+pub static TexFilter_PointMipLinear: TexFilter = gl::NEAREST_MIPMAP_LINEAR as TexFilter;
 
 #[no_mangle]
-pub static TexFilter_Linear: TexFilter = 0x2601_i32;
+pub static TexFilter_Linear: TexFilter = gl::LINEAR as TexFilter;
 
 #[no_mangle]
-pub static TexFilter_LinearMipPoint: TexFilter = 0x2701_i32;
+pub static TexFilter_LinearMipPoint: TexFilter = gl::LINEAR_MIPMAP_NEAREST as TexFilter;
 
 #[no_mangle]
-pub static TexFilter_LinearMipLinear: TexFilter = 0x2703_i32;
+pub static TexFilter_LinearMipLinear: TexFilter = gl::LINEAR_MIPMAP_LINEAR as TexFilter;

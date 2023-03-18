@@ -1,15 +1,10 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
+use crate::GL::gl;
 use libc;
 
 extern "C" {
-    fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);
-    fn glCullFace(mode: GLenum);
-    fn glDepthMask(flag: GLboolean);
-    fn glDisable(cap: GLenum);
-    fn glEnable(cap: GLenum);
-    fn glPolygonMode(face: GLenum, mode: GLenum);
     static mut __glewBlendFuncSeparate: PFNGLBLENDFUNCSEPARATEPROC;
 }
 pub type BlendMode = i32;
@@ -59,10 +54,10 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
             );
         }
         3 => {
-            glBlendFunc(1_i32 as GLenum, 0x303_i32 as GLenum);
+            gl::BlendFunc(1_i32 as GLenum, 0x303_i32 as GLenum);
         }
         2 => {
-            glBlendFunc(1_i32 as GLenum, 0_i32 as GLenum);
+            gl::BlendFunc(1_i32 as GLenum, 0_i32 as GLenum);
         }
         _ => {}
     }
@@ -72,15 +67,15 @@ unsafe extern "C" fn RenderState_SetBlendMode(mut mode: BlendMode) {
 unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
     match mode {
         0 => {
-            glDisable(0xb44_i32 as GLenum);
+            gl::Disable(0xb44_i32 as GLenum);
         }
         1 => {
-            glEnable(0xb44_i32 as GLenum);
-            glCullFace(0x405_i32 as GLenum);
+            gl::Enable(0xb44_i32 as GLenum);
+            gl::CullFace(0x405_i32 as GLenum);
         }
         2 => {
-            glEnable(0xb44_i32 as GLenum);
-            glCullFace(0x404_i32 as GLenum);
+            gl::Enable(0xb44_i32 as GLenum);
+            gl::CullFace(0x404_i32 as GLenum);
         }
         _ => {}
     }
@@ -89,23 +84,23 @@ unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
 #[inline]
 unsafe extern "C" fn RenderState_SetDepthTest(mut enabled: bool) {
     if enabled {
-        glEnable(0xb71_i32 as GLenum);
+        gl::Enable(0xb71_i32 as GLenum);
     } else {
-        glDisable(0xb71_i32 as GLenum);
+        gl::Disable(0xb71_i32 as GLenum);
     };
 }
 
 #[inline]
 unsafe extern "C" fn RenderState_SetDepthWritable(mut enabled: bool) {
-    glDepthMask(enabled as GLboolean);
+    gl::DepthMask(enabled as GLboolean);
 }
 
 #[inline]
 unsafe extern "C" fn RenderState_SetWireframe(mut enabled: bool) {
     if enabled {
-        glPolygonMode(0x408_i32 as GLenum, 0x1b01_i32 as GLenum);
+        gl::PolygonMode(0x408_i32 as GLenum, 0x1b01_i32 as GLenum);
     } else {
-        glPolygonMode(0x408_i32 as GLenum, 0x1b02_i32 as GLenum);
+        gl::PolygonMode(0x408_i32 as GLenum, 0x1b02_i32 as GLenum);
     };
 }
 

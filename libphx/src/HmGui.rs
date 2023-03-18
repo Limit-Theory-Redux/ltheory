@@ -136,6 +136,7 @@ static mut this: HmGui = HmGui {
 };
 
 static mut init_hmgui: bool = false;
+
 unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: u32) {
     (*e).parent = this.group;
     (*e).next = std::ptr::null_mut();

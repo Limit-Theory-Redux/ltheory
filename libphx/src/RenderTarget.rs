@@ -10,6 +10,7 @@ use crate::TexCube::*;
 use crate::TexFormat::*;
 use crate::TexFormat::*;
 use crate::Viewport::*;
+use crate::GL::gl;
 use libc;
 
 extern "C" {
@@ -65,7 +66,7 @@ unsafe extern "C" fn GetActive() -> *mut FBO {
 #[inline]
 unsafe extern "C" fn SetDrawBuffers(mut count: i32) {
     static mut bufs: [GLenum; 4] = [
-        0x8ce0_i32 as GLenum,
+        gl::COLOR_ATTACHMENT0 as GLenum,
         0x8ce1_i32 as GLenum,
         0x8ce2_i32 as GLenum,
         0x8ce3_i32 as GLenum,
@@ -94,7 +95,7 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     (*this).depth = false;
     Metric_Inc(0x7_i32);
     __glewGenFramebuffers.expect("non-null function pointer")(1_i32, &mut (*this).handle);
-    __glewBindFramebuffer.expect("non-null function pointer")(0x8d40_i32 as GLenum, (*this).handle);
+    __glewBindFramebuffer.expect("non-null function pointer")(gl::FRAMEBUFFER, (*this).handle);
     Viewport_Push(0_i32, 0_i32, sx, sy, false);
     Profiler_End();
 }
@@ -110,22 +111,22 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
                 as *const libc::c_char,
         );
     }
-    let mut i: i32 = 0_i32;
-    while i < 4_i32 {
+    let mut i: u32 = 0;
+    while i < 4 {
         __glewFramebufferTexture2D.expect("non-null function pointer")(
-            0x8d40_i32 as GLenum,
-            (0x8ce0_i32 + i) as GLenum,
-            0xde1_i32 as GLenum,
-            0_i32 as GLu32,
-            0_i32,
+            gl::FRAMEBUFFER,
+            gl::COLOR_ATTACHMENT0 + i,
+            gl::TEXTURE_2D,
+            0,
+            0,
         );
         i += 1;
     }
     __glewFramebufferTexture2D.expect("non-null function pointer")(
-        0x8d40_i32 as GLenum,
-        0x8d00_i32 as GLenum,
-        0xde1_i32 as GLenum,
-        0_i32 as GLu32,
+        gl::FRAMEBUFFER,
+        gl::DEPTH_ATTACHMENT,
+        gl::TEXTURE_2D,
+        0,
         0_i32,
     );
     __glewDeleteFramebuffers.expect("non-null function pointer")(
@@ -136,13 +137,13 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
     Metric_Inc(0x7_i32);
     if fboIndex >= 0_i32 {
         __glewBindFramebuffer.expect("non-null function pointer")(
-            0x8d40_i32 as GLenum,
+            gl::FRAMEBUFFER,
             (*GetActive()).handle,
         );
     } else {
         __glewBindFramebuffer.expect("non-null function pointer")(
-            0x8d40_i32 as GLenum,
-            0_i32 as GLu32,
+            gl::FRAMEBUFFER,
+            0,
         );
     }
     Viewport_Pop();
@@ -165,15 +166,14 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
                     as *const libc::c_char,
             );
         }
-        let fresh0 = (*this).colorIndex;
-        (*this).colorIndex += 1;
         __glewFramebufferTexture2D.expect("non-null function pointer")(
-            0x8d40_i32 as GLenum,
-            (0x8ce0_i32 + fresh0) as GLenum,
-            0xde1_i32 as GLenum,
+            gl::FRAMEBUFFER,
+            gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
+            gl::TEXTURE_2D,
             handle,
             level,
         );
+        (*this).colorIndex += 1;
         SetDrawBuffers((*this).colorIndex);
     } else {
         if (*this).depth {
@@ -183,9 +183,9 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
             );
         }
         __glewFramebufferTexture2D.expect("non-null function pointer")(
-            0x8d40_i32 as GLenum,
-            0x8d00_i32 as GLenum,
-            0xde1_i32 as GLenum,
+            gl::FRAMEBUFFER,
+            gl::DEPTH_ATTACHMENT,
+            gl::TEXTURE_2D,
             handle,
             level,
         );
@@ -211,17 +211,17 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
                 as *const libc::c_char,
         );
     }
+
     let mut handle: u32 = Tex3D_GetHandle(tex);
-    let fresh1 = (*this).colorIndex;
-    (*this).colorIndex += 1;
     __glewFramebufferTexture3D.expect("non-null function pointer")(
-        0x8d40_i32 as GLenum,
-        (0x8ce0_i32 + fresh1) as GLenum,
-        0x806f_i32 as GLenum,
+        gl::FRAMEBUFFER,
+        gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
+        gl::TEXTURE_3D,
         handle,
         level,
         layer,
     );
+    (*this).colorIndex += 1;
     SetDrawBuffers((*this).colorIndex);
 }
 
@@ -244,15 +244,15 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
         );
     }
     let mut handle: u32 = TexCube_GetHandle(tex);
-    let fresh2 = (*this).colorIndex;
-    (*this).colorIndex += 1;
+
     __glewFramebufferTexture2D.expect("non-null function pointer")(
-        0x8d40_i32 as GLenum,
-        (0x8ce0_i32 + fresh2) as GLenum,
+        gl::FRAMEBUFFER,
+        gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
         face as GLenum,
         handle,
         level,
     );
+    (*this).colorIndex += 1;
     SetDrawBuffers((*this).colorIndex);
 }
 

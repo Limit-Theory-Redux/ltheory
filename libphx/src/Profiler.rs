@@ -49,6 +49,7 @@ static mut this: Profiler = Profiler {
 };
 
 static mut profiling: bool = false;
+
 unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
     let mut scope: *mut Scope = MemAlloc(::core::mem::size_of::<Scope>()) as *mut Scope;
     (*scope).name = StrDup(name);

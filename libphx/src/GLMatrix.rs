@@ -3,22 +3,8 @@ use crate::Common::*;
 use crate::Math::DVec3;
 use crate::Math::Vec3;
 use crate::Matrix::*;
+use crate::GL::gl;
 use libc;
-
-extern "C" {
-    fn glGetFloatv(pname: GLenum, params: *mut GLfloat);
-    fn glGetIntegerv(pname: GLenum, params: *mut GLint);
-    fn glLoadIdentity();
-    fn glLoadMatrixf(m: *const GLfloat);
-    fn glMatrixMode(mode: GLenum);
-    fn glMultMatrixd(m: *const GLdouble);
-    fn glMultMatrixf(m: *const GLfloat);
-    fn glPopMatrix();
-    fn glPushMatrix();
-    fn glRotated(angle: GLdouble, x: GLdouble, y: GLdouble, z: GLdouble);
-    fn glScaled(x: GLdouble, y: GLdouble, z: GLdouble);
-    fn glTranslated(x: GLdouble, y: GLdouble, z: GLdouble);
-}
 
 pub type GLdouble = f64;
 pub type GLfloat = f32;
@@ -27,7 +13,7 @@ pub type GLint = i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Clear() {
-    glLoadIdentity();
+    gl::LoadIdentity();
 }
 
 #[no_mangle]
@@ -51,7 +37,7 @@ pub unsafe extern "C" fn GLMatrix_Load(mut matrix: *mut Matrix) {
         *m.offset(11),
         *m.offset(15),
     ];
-    glLoadMatrixf(transpose.as_mut_ptr());
+    gl::LoadMatrixf(transpose.as_mut_ptr());
 }
 
 #[no_mangle]
@@ -81,18 +67,18 @@ pub unsafe extern "C" fn GLMatrix_LookAt(
         0_i32 as f64,
         1_f64,
     ];
-    glMultMatrixd(m.as_mut_ptr());
-    glTranslated(-(*eye).x, -(*eye).y, -(*eye).z);
+    gl::MultMatrixd(m.as_mut_ptr());
+    gl::Translated(-(*eye).x, -(*eye).y, -(*eye).z);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_ModeP() {
-    glMatrixMode(0x1701_i32 as GLenum);
+    gl::MatrixMode(0x1701_i32 as GLenum);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_ModeWV() {
-    glMatrixMode(0x1700_i32 as GLenum);
+    gl::MatrixMode(0x1700_i32 as GLenum);
 }
 
 #[no_mangle]
@@ -116,7 +102,7 @@ pub unsafe extern "C" fn GLMatrix_Mult(mut matrix: *mut Matrix) {
         *m.offset(11),
         *m.offset(15),
     ];
-    glMultMatrixf(transpose.as_mut_ptr());
+    gl::MultMatrixf(transpose.as_mut_ptr());
 }
 
 #[no_mangle]
@@ -148,29 +134,29 @@ pub unsafe extern "C" fn GLMatrix_Perspective(
         nf,
         0_i32 as f64,
     ];
-    glMultMatrixd(m.as_mut_ptr());
+    gl::MultMatrixd(m.as_mut_ptr());
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Pop() {
-    glPopMatrix();
+    gl::PopMatrix();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Push() {
-    glPushMatrix();
+    gl::PushMatrix();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_PushClear() {
-    glPushMatrix();
-    glLoadIdentity();
+    gl::PushMatrix();
+    gl::LoadIdentity();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
     let mut matrixMode: GLint = 0;
-    glGetIntegerv(0xba0_i32 as GLenum, &mut matrixMode);
+    gl::GetIntegerv(0xba0_i32 as GLenum, &mut matrixMode);
     match matrixMode {
         5888 => {
             matrixMode = 0xba6_i32;
@@ -181,13 +167,13 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
         6144 | 5890 | _ => return std::ptr::null_mut(),
     }
     let mut matrix: *mut Matrix = Matrix_Identity();
-    glGetFloatv(matrixMode as GLenum, matrix as *mut f32);
+    gl::GetFloatv(matrixMode as GLenum, matrix as *mut f32);
     matrix
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_RotateX(mut angle: f64) {
-    glRotated(
+    gl::Rotated(
         angle,
         1_i32 as GLdouble,
         0_i32 as GLdouble,
@@ -197,7 +183,7 @@ pub unsafe extern "C" fn GLMatrix_RotateX(mut angle: f64) {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_RotateY(mut angle: f64) {
-    glRotated(
+    gl::Rotated(
         angle,
         0_i32 as GLdouble,
         1_i32 as GLdouble,
@@ -207,7 +193,7 @@ pub unsafe extern "C" fn GLMatrix_RotateY(mut angle: f64) {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_RotateZ(mut angle: f64) {
-    glRotated(
+    gl::Rotated(
         angle,
         0_i32 as GLdouble,
         0_i32 as GLdouble,
@@ -217,10 +203,10 @@ pub unsafe extern "C" fn GLMatrix_RotateZ(mut angle: f64) {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Scale(mut x: f64, mut y: f64, mut z: f64) {
-    glScaled(x, y, z);
+    gl::Scaled(x, y, z);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Translate(mut x: f64, mut y: f64, mut z: f64) {
-    glTranslated(x, y, z);
+    gl::Translated(x, y, z);
 }

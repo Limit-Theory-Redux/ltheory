@@ -731,6 +731,7 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
     }
 }
 static mut init_imgui: bool = false;
+
 unsafe extern "C" fn ImGui_Init() {
     if init_imgui {
         return;

@@ -2,58 +2,56 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
 use crate::RenderState::*;
+use std::ffi::CString;
 use libc;
+use sdl2_sys::*;
+use crate::GL::gl;
 
 extern "C" {
-    fn glBlendFunc(sfactor: GLenum, dfactor: GLenum);
-    fn glCullFace(mode: GLenum);
-    fn glDepthFunc(func: GLenum);
-    fn glDisable(cap: GLenum);
-    fn glEnable(cap: GLenum);
-    fn glGetError() -> GLenum;
-    fn glHint(target: GLenum, mode: GLenum);
-    fn glLineWidth(width: GLfloat);
-    fn glLoadIdentity();
-    fn glMatrixMode(mode: GLenum);
-    fn glPixelStorei(pname: GLenum, param: GLint);
-    fn glewInit() -> GLenum;
+    fn glewInit() -> u32;
 }
-
-pub type GLenum = u32;
-pub type GLint = i32;
-pub type GLfloat = f32;
 
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
     static mut init: bool = false;
     if !init {
         init = true;
+        gl::load_with(|s| {
+            let cs = CString::new(s.as_bytes()).unwrap();
+            SDL_GL_GetProcAddress(cs.as_ptr())
+        });
         glewInit();
     }
-    glDisable(0x809d_i32 as GLenum);
-    glDisable(0xb44_i32 as GLenum);
-    glCullFace(0x405_i32 as GLenum);
-    glPixelStorei(0xd05_i32 as GLenum, 1_i32);
-    glPixelStorei(0xcf5_i32 as GLenum, 1_i32);
-    glDepthFunc(0x203_i32 as GLenum);
-    glEnable(0xbe2_i32 as GLenum);
-    glBlendFunc(1_i32 as GLenum, 0_i32 as GLenum);
-    glEnable(0x884f_i32 as GLenum);
-    glDisable(0xb10_i32 as GLenum);
-    glDisable(0xb20_i32 as GLenum);
-    glHint(0xc51_i32 as GLenum, 0x1101_i32 as GLenum);
-    glHint(0xc52_i32 as GLenum, 0x1101_i32 as GLenum);
-    glLineWidth(2_i32 as GLfloat);
-    glMatrixMode(0x1701_i32 as GLenum);
-    glLoadIdentity();
-    glMatrixMode(0x1700_i32 as GLenum);
-    glLoadIdentity();
+    
+    gl::Disable(gl::MULTISAMPLE);
+    gl::Disable(gl::CULL_FACE);
+    gl::CullFace(gl::BACK);
+
+    gl::PixelStorei(gl::PACK_ALIGNMENT, 1);
+    gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
+    gl::DepthFunc(gl::LEQUAL);
+
+    gl::Enable(gl::BLEND);
+    gl::BlendFunc(gl::ONE, gl::ZERO);
+
+    gl::Enable(gl::TEXTURE_CUBE_MAP_SEAMLESS);
+    gl::Disable(gl::POINT_SMOOTH);
+    gl::Disable(gl::LINE_SMOOTH);
+    gl::Hint(gl::POINT_SMOOTH_HINT, gl::FASTEST);
+    gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
+    gl::LineWidth(2.0f32);
+    
+    gl::MatrixMode(gl::PROJECTION);
+    gl::LoadIdentity();
+    gl::MatrixMode(gl::MODELVIEW);
+    gl::LoadIdentity();
+
     RenderState_PushAllDefaults();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn OpenGL_CheckError(mut file: *const libc::c_char, mut line: i32) {
-    let mut errorID: GLenum = glGetError();
+pub unsafe extern "C" fn OpenGL_CheckError(file: *const libc::c_char, line: i32) {
+    let errorID: GLenum = gl::GetError();
     let mut error: *const libc::c_char = std::ptr::null();
     match errorID {
         0 => return,
@@ -74,7 +72,7 @@ pub unsafe extern "C" fn OpenGL_CheckError(mut file: *const libc::c_char, mut li
         }
         _ => {
             Fatal(
-                b"OpenGL_CheckError: glGetError returned illegal error code %u at %s:%d\0"
+                b"OpenGL_CheckError: gl::GetError returned illegal error code %u at %s:%d\0"
                     as *const u8 as *const libc::c_char,
                 errorID,
                 file,

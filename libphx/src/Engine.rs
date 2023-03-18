@@ -31,7 +31,7 @@ pub static subsystems: u32 = SDL_INIT_EVENTS
 static mut initTime: TimeStamp = 0_i32 as TimeStamp;
 
 #[no_mangle]
-pub unsafe extern "C" fn Engine_Init(mut glVersionMajor: i32, mut glVersionMinor: i32) {
+pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
     static mut firstTime: bool = true;
     Signal_Init();
     libc::printf(

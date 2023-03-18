@@ -90,6 +90,7 @@ static mut this: UIRenderer = UIRenderer {
     rectPool: std::ptr::null_mut(),
     textPool: std::ptr::null_mut(),
 };
+
 unsafe extern "C" fn UIRenderer_Init() {
     static mut init: bool = false;
     if init {

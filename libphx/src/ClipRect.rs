@@ -3,13 +3,8 @@ use crate::Common::*;
 use crate::Math::IVec2;
 use crate::Math::Vec3;
 use crate::Viewport::*;
+use crate::GL::gl;
 use libc;
-
-extern "C" {
-    fn glDisable(cap: GLenum);
-    fn glEnable(cap: GLenum);
-    fn glScissor(x: GLint, y: GLint, width: GLsizei, height: GLsizei);
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -73,15 +68,15 @@ pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
     if !this.is_null() && (*this).enabled as i32 != 0 {
         let mut vpSize: IVec2 = IVec2 { x: 0, y: 0 };
         Viewport_GetSize(&mut vpSize);
-        glEnable(0xc11_i32 as GLenum);
+        gl::Enable(0xc11_i32 as GLenum);
         let mut x: f32 = (*this).x;
         let mut y: f32 = (*this).y;
         let mut sx: f32 = (*this).sx;
         let mut sy: f32 = (*this).sy;
         TransformRect(&mut x, &mut y, &mut sx, &mut sy);
-        glScissor(x as i32, vpSize.y - (y + sy) as i32, sx as i32, sy as i32);
+        gl::Scissor(x as i32, vpSize.y - (y + sy) as i32, sx as i32, sy as i32);
     } else {
-        glDisable(0xc11_i32 as GLenum);
+        gl::Disable(0xc11_i32 as GLenum);
     };
 }
 

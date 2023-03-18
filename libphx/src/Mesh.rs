@@ -8,14 +8,11 @@ use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::Triangle::*;
 use crate::SDF::*;
+use crate::GL::gl;
 use libc;
 use memoffset::{offset_of, span_of};
 
 extern "C" {
-    fn glBegin(mode: GLenum);
-    fn glDrawElements(mode: GLenum, count: GLsizei, type_0: GLenum, indices: *const libc::c_void);
-    fn glEnd();
-    fn glVertex3f(x: GLfloat, y: GLfloat, z: GLfloat);
     static mut __glewBindBuffer: PFNGLBINDBUFFERPROC;
     static mut __glewBufferData: PFNGLBUFFERDATAPROC;
     static mut __glewDeleteBuffers: PFNGLDELETEBUFFERSPROC;
@@ -396,13 +393,13 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
     }
     __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, (*this).vbo);
     __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, (*this).ibo);
-    __glewEnableVertexAttribArray.expect("non-null function pointer")(0_i32 as GLu32);
+    __glewEnableVertexAttribArray.expect("non-null function pointer")(0);
     __glewEnableVertexAttribArray.expect("non-null function pointer")(1_i32 as GLu32);
     __glewEnableVertexAttribArray.expect("non-null function pointer")(2_i32 as GLu32);
     __glewVertexAttribPointer.expect("non-null function pointer")(
-        0_i32 as GLu32,
+        0,
         3_i32,
-        0x1406_i32 as GLenum,
+        gl::FLOAT,
         0_i32 as GLboolean,
         ::core::mem::size_of::<Vertex>() as GLsizei,
         offset_of!(Vertex, p) as *const libc::c_void,
@@ -410,7 +407,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
     __glewVertexAttribPointer.expect("non-null function pointer")(
         1_i32 as GLu32,
         3_i32,
-        0x1406_i32 as GLenum,
+        gl::FLOAT,
         0_i32 as GLboolean,
         ::core::mem::size_of::<Vertex>() as GLsizei,
         offset_of!(Vertex, n) as *const libc::c_void,
@@ -418,7 +415,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
     __glewVertexAttribPointer.expect("non-null function pointer")(
         2_i32 as GLu32,
         2_i32,
-        0x1406_i32 as GLenum,
+        gl::FLOAT,
         0_i32 as GLboolean,
         ::core::mem::size_of::<Vertex>() as GLsizei,
         offset_of!(Vertex, uv) as *const libc::c_void,
@@ -432,21 +429,21 @@ pub unsafe extern "C" fn Mesh_DrawBound(mut this: *mut Mesh) {
         (*this).index_size / 3_i32,
         (*this).vertex_size,
     );
-    glDrawElements(
+    gl::DrawElements(
         0x4_i32 as GLenum,
         (*this).index_size,
-        0x1405_i32 as GLenum,
+        gl::UNSIGNED_INT,
         std::ptr::null(),
     );
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawUnbind(mut _this: *mut Mesh) {
-    __glewDisableVertexAttribArray.expect("non-null function pointer")(0_i32 as GLu32);
+    __glewDisableVertexAttribArray.expect("non-null function pointer")(0);
     __glewDisableVertexAttribArray.expect("non-null function pointer")(1_i32 as GLu32);
     __glewDisableVertexAttribArray.expect("non-null function pointer")(2_i32 as GLu32);
-    __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, 0_i32 as GLu32);
-    __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, 0_i32 as GLu32);
+    __glewBindBuffer.expect("non-null function pointer")(0x8892_i32 as GLenum, 0);
+    __glewBindBuffer.expect("non-null function pointer")(0x8893_i32 as GLenum, 0);
 }
 
 #[no_mangle]
@@ -458,19 +455,19 @@ pub unsafe extern "C" fn Mesh_Draw(mut this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawNormals(mut this: *mut Mesh, mut scale: f32) {
-    glBegin(0x1_i32 as GLenum);
+    gl::Begin(0x1_i32 as GLenum);
     let mut v: *mut Vertex = (*this).vertex_data;
     let mut __iterend: *mut Vertex = ((*this).vertex_data).offset((*this).vertex_size as isize);
     while v < __iterend {
-        glVertex3f((*v).p.x, (*v).p.y, (*v).p.z);
-        glVertex3f(
+        gl::Vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
+        gl::Vertex3f(
             (*v).p.x + scale * (*v).n.x,
             (*v).p.y + scale * (*v).n.y,
             (*v).p.z + scale * (*v).n.z,
         );
         v = v.offset(1);
     }
-    glEnd();
+    gl::End();
 }
 
 #[no_mangle]

@@ -61,6 +61,7 @@ static mut this: Scheduler = Scheduler {
     now: 0,
     locked: false,
 };
+
 unsafe extern "C" fn SortByWake(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
     let mut a: *const SchedulerElem = pa as *const SchedulerElem;
     let mut b: *const SchedulerElem = pb as *const SchedulerElem;

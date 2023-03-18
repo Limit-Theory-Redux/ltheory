@@ -1,17 +1,15 @@
-use crate::internal::Memory::*;
-use crate::Common::*;
-use crate::Math::Vec3;
-use libc;
+use crate::GL::gl;
+
 pub type TexWrapMode = i32;
 
 #[no_mangle]
-pub static TexWrapMode_Clamp: TexWrapMode = 0x812f_i32;
+pub static TexWrapMode_Clamp: TexWrapMode = gl::CLAMP_TO_EDGE as TexWrapMode;
 
 #[no_mangle]
-pub static TexWrapMode_MirrorClamp: TexWrapMode = 0x8743_i32;
+pub static TexWrapMode_MirrorClamp: TexWrapMode = gl::MIRROR_CLAMP_TO_EDGE as TexWrapMode;
 
 #[no_mangle]
-pub static TexWrapMode_MirrorRepeat: TexWrapMode = 0x8370_i32;
+pub static TexWrapMode_MirrorRepeat: TexWrapMode = gl::MIRRORED_REPEAT as TexWrapMode;
 
 #[no_mangle]
-pub static TexWrapMode_Repeat: TexWrapMode = 0x2901_i32;
+pub static TexWrapMode_Repeat: TexWrapMode = gl::REPEAT as TexWrapMode;

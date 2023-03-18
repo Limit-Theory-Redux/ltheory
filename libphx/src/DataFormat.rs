@@ -1,37 +1,38 @@
-use crate::internal::Memory::*;
-use crate::Common::*;
-use crate::Math::Vec3;
+use crate::GL::gl;
 use libc;
+
 pub type DataFormat = i32;
 
 #[no_mangle]
-pub static DataFormat_U8: DataFormat = 0x1401_i32;
+pub static DataFormat_U8: DataFormat = gl::UNSIGNED_BYTE as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_I8: DataFormat = 0x1400_i32;
+pub static DataFormat_I8: DataFormat = gl::BYTE as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_U16: DataFormat = 0x1403_i32;
+pub static DataFormat_U16: DataFormat = gl::UNSIGNED_SHORT as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_I16: DataFormat = 0x1402_i32;
+pub static DataFormat_I16: DataFormat = gl::SHORT as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_U32: DataFormat = 0x1405_i32;
+pub static DataFormat_U32: DataFormat = gl::UNSIGNED_INT as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_I32: DataFormat = 0x1404_i32;
+pub static DataFormat_I32: DataFormat = gl::INT as DataFormat;
 
 #[no_mangle]
-pub static DataFormat_Float: DataFormat = 0x1406_i32;
+pub static DataFormat_Float: DataFormat = gl::FLOAT as DataFormat;
 
 #[no_mangle]
-pub unsafe extern "C" fn DataFormat_GetSize(mut this: DataFormat) -> i32 {
-    match this {
-        5121 | 5120 => return 1_i32,
-        5123 | 5122 => return 2_i32,
-        5125 | 5124 | 5126 => return 4_i32,
-        _ => {}
+pub extern "C" fn DataFormat_GetSize(this: DataFormat) -> i32 {
+    if this == DataFormat_U8 || this == DataFormat_I8 {
+        1
+    } else if this == DataFormat_U16 || this == DataFormat_I16 {
+        2
+    } else if this == DataFormat_U32 || this == DataFormat_I32 || this == DataFormat_Float {
+        4
+    } else {
+        0
     }
-    0_i32
 }
