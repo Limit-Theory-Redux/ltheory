@@ -105,7 +105,7 @@ unsafe extern "C" fn ConsumeToken(
         && *(*s).cursor as i32 != '\n' as i32
     {
         let fresh0 = i;
-        i = i + 1;
+        i += 1;
         *token.offset(fresh0 as isize) = *(*s).cursor;
         (*s).cursor = ((*s).cursor).offset(1);
     }
@@ -271,7 +271,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 );
             }
             let fresh1 = positions_size;
-            positions_size = positions_size + 1;
+            positions_size += 1;
             *positions_data.offset(fresh1 as isize) = p;
         } else if StrEqual(
             token.as_mut_ptr() as *const libc::c_char,
@@ -309,7 +309,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 );
             }
             let fresh2 = uvs_size;
-            uvs_size = uvs_size + 1;
+            uvs_size += 1;
             *uvs_data.offset(fresh2 as isize) = uv;
         } else if StrEqual(
             token.as_mut_ptr() as *const libc::c_char,
@@ -348,7 +348,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 );
             }
             let fresh3 = normals_size;
-            normals_size = normals_size + 1;
+            normals_size += 1;
             *normals_data.offset(fresh3 as isize) = n;
         } else if StrEqual(
             token.as_mut_ptr() as *const libc::c_char,

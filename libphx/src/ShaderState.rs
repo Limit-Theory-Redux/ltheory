@@ -176,7 +176,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
         );
     }
     let fresh0 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh0 as isize) = elem;
 }
 
@@ -208,7 +208,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
         );
     }
     let fresh1 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh1 as isize) = elem;
 }
 
@@ -241,7 +241,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
         );
     }
     let fresh2 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh2 as isize) = elem;
 }
 
@@ -275,7 +275,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
         );
     }
     let fresh3 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh3 as isize) = elem;
 }
 
@@ -306,7 +306,7 @@ pub unsafe extern "C" fn ShaderState_SetInt(
         );
     }
     let fresh4 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh4 as isize) = elem;
 }
 
@@ -337,7 +337,7 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
         );
     }
     let fresh5 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh5 as isize) = elem;
 }
 
@@ -369,7 +369,7 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
         );
     }
     let fresh6 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh6 as isize) = elem;
 }
 
@@ -401,7 +401,7 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
         );
     }
     let fresh7 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh7 as isize) = elem;
 }
 
@@ -433,7 +433,7 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
         );
     }
     let fresh8 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh8 as isize) = elem;
 }
 
@@ -465,7 +465,7 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
         );
     }
     let fresh9 = (*this).elems_size;
-    (*this).elems_size = (*this).elems_size + 1;
+    (*this).elems_size += 1;
     *((*this).elems_data).offset(fresh9 as isize) = elem;
 }
 

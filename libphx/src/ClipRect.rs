@@ -70,8 +70,8 @@ unsafe extern "C" fn TransformRect(
             transform.as_mut_ptr().offset(transformIndex as isize);
         *x = (*curr).sx * *x + (*curr).tx;
         *y = (*curr).sy * *y + (*curr).ty;
-        *sx = (*curr).sx * *sx;
-        *sy = (*curr).sy * *sy;
+        *sx *= (*curr).sx;
+        *sy *= (*curr).sy;
     }
 }
 

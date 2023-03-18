@@ -101,7 +101,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
             );
         }
         let fresh0 = this.addQueue_size;
-        this.addQueue_size = this.addQueue_size + 1;
+        this.addQueue_size += 1;
         *(this.addQueue_data).offset(fresh0 as isize) = elem;
     } else {
         if (this.elems_capacity == this.elems_size) as libc::c_long != 0 {
@@ -119,7 +119,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
             );
         }
         let fresh1 = this.elems_size;
-        this.elems_size = this.elems_size + 1;
+        this.elems_size += 1;
         *(this.elems_data).offset(fresh1 as isize) = elem;
     }
     0_i32
@@ -188,7 +188,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
             );
         }
         let fresh2 = this.elems_size;
-        this.elems_size = this.elems_size + 1;
+        this.elems_size += 1;
         *(this.elems_data).offset(fresh2 as isize) = elem_0;
     }
     0_i32

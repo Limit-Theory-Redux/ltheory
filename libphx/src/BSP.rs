@@ -227,7 +227,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                             );
                         }
                         let fresh0 = rayStack_size;
-                        rayStack_size = rayStack_size + 1;
+                        rayStack_size += 1;
                         *rayStack_data.offset(fresh0 as isize) = d;
                         ray.tMax = max;
                     }
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                     );
                 }
                 let fresh1 = rayStack_size;
-                rayStack_size = rayStack_size + 1;
+                rayStack_size += 1;
                 *rayStack_data.offset(fresh1 as isize) = d_0;
             }
             depth += 1;
@@ -362,7 +362,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                     );
                 }
                 let fresh2 = nodeStack_size;
-                nodeStack_size = nodeStack_size + 1;
+                nodeStack_size += 1;
                 *nodeStack_data.offset(fresh2 as isize) = d;
                 nodeRef = (*node).child[FrontIndex as usize];
             }
@@ -678,7 +678,7 @@ unsafe extern "C" fn BSPBuild_AppendPolygon(
         );
     }
     let fresh3 = (*nodeData).polygons_size;
-    (*nodeData).polygons_size = (*nodeData).polygons_size + 1;
+    (*nodeData).polygons_size += 1;
     *((*nodeData).polygons_data).offset(fresh3 as isize) = *polygon;
 }
 
@@ -862,7 +862,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             );
         }
         let fresh4 = (*this).nodes_size;
-        (*this).nodes_size = (*this).nodes_size + 1;
+        (*this).nodes_size += 1;
         *((*this).nodes_data).offset(fresh4 as isize) = dummy;
         let mut node: *mut BSPNode = ((*this).nodes_data)
             .offset((*this).nodes_size as isize)
@@ -987,7 +987,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             );
         }
         let fresh5 = polygon.vertices_size;
-        polygon.vertices_size = polygon.vertices_size + 1;
+        polygon.vertices_size += 1;
         *(polygon.vertices_data).offset(fresh5 as isize) = v0;
         if (polygon.vertices_capacity == polygon.vertices_size) as i32 as libc::c_long != 0 {
             polygon.vertices_capacity = if polygon.vertices_capacity != 0 {
@@ -1004,7 +1004,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             );
         }
         let fresh6 = polygon.vertices_size;
-        polygon.vertices_size = polygon.vertices_size + 1;
+        polygon.vertices_size += 1;
         *(polygon.vertices_data).offset(fresh6 as isize) = v1;
         if (polygon.vertices_capacity == polygon.vertices_size) as i32 as libc::c_long != 0 {
             polygon.vertices_capacity = if polygon.vertices_capacity != 0 {
@@ -1021,7 +1021,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             );
         }
         let fresh7 = polygon.vertices_size;
-        polygon.vertices_size = polygon.vertices_size + 1;
+        polygon.vertices_size += 1;
         *(polygon.vertices_data).offset(fresh7 as isize) = v2;
         if (nodeData.polygons_capacity == nodeData.polygons_size) as i32 as libc::c_long != 0 {
             nodeData.polygons_capacity = if nodeData.polygons_capacity != 0 {
@@ -1038,7 +1038,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             );
         }
         let fresh8 = nodeData.polygons_size;
-        nodeData.polygons_size = nodeData.polygons_size + 1;
+        nodeData.polygons_size += 1;
         *(nodeData.polygons_data).offset(fresh8 as isize) = polygon;
         i += 3_i32;
     }
@@ -1083,7 +1083,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         );
     }
     let fresh9 = (*this).triangles_size;
-    (*this).triangles_size = (*this).triangles_size + 1;
+    (*this).triangles_size += 1;
     *((*this).triangles_data).offset(fresh9 as isize) = nullLeaf;
     if ((*this).triangles_capacity == (*this).triangles_size) as i32 as libc::c_long != 0 {
         (*this).triangles_capacity = if (*this).triangles_capacity != 0 {
@@ -1100,7 +1100,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         );
     }
     let fresh10 = (*this).triangles_size;
-    (*this).triangles_size = (*this).triangles_size + 1;
+    (*this).triangles_size += 1;
     *((*this).triangles_data).offset(fresh10 as isize) = nullLeaf;
     (*this).emptyLeaf.index = -EmptyLeafIndex;
     (*this).emptyLeaf.triangleCount = 0_i32 as u8;
@@ -1143,7 +1143,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         );
     }
     let fresh11 = (*this).nodes_size;
-    (*this).nodes_size = (*this).nodes_size + 1;
+    (*this).nodes_size += 1;
     *((*this).nodes_data).offset(fresh11 as isize) = nullNode;
     (*this).rootNode = BSPBuild_OptimizeTree(this, bspBuild.rootNode);
     BSPBuild_FreeNode(bspBuild.rootNode);
@@ -1382,7 +1382,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     );
                 }
                 let fresh12 = nodeStack_size;
-                nodeStack_size = nodeStack_size + 1;
+                nodeStack_size += 1;
                 *nodeStack_data.offset(fresh12 as isize) = d;
                 nodeRef = (*node).child[FrontIndex as usize];
             }
@@ -1421,7 +1421,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                         );
                     }
                     let fresh13 = (*sphereProf).triangleTests_size;
-                    (*sphereProf).triangleTests_size = (*sphereProf).triangleTests_size + 1;
+                    (*sphereProf).triangleTests_size += 1;
                     *((*sphereProf).triangleTests_data).offset(fresh13 as isize) = t;
                     hit = true;
                     break;
@@ -1451,7 +1451,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                         );
                     }
                     let fresh14 = (*sphereProf).triangleTests_size;
-                    (*sphereProf).triangleTests_size = (*sphereProf).triangleTests_size + 1;
+                    (*sphereProf).triangleTests_size += 1;
                     *((*sphereProf).triangleTests_data).offset(fresh14 as isize) = t_0;
                     i = i.wrapping_add(1);
                 }
@@ -1480,14 +1480,14 @@ pub unsafe extern "C" fn BSPDebug_GetLeaf(mut this: *mut BSP, mut leafIndex: i32
     while node < __iterend {
         if (*node).child[0].index < 0_i32 {
             let fresh15 = index;
-            index = index + 1;
+            index += 1;
             if fresh15 == leafIndex {
                 return (*node).child[0];
             }
         }
         if (*node).child[1].index < 0_i32 {
             let fresh16 = index;
-            index = index + 1;
+            index += 1;
             if fresh16 == leafIndex {
                 return (*node).child[1];
             }

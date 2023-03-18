@@ -870,7 +870,7 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
             );
         }
         let fresh2 = this.freeingSounds_size;
-        this.freeingSounds_size = this.freeingSounds_size + 1;
+        this.freeingSounds_size += 1;
         let ref mut fresh3 = *(this.freeingSounds_data).offset(fresh2 as isize);
         *fresh3 = sound;
     } else if Sound_IsPlaying(sound) {
@@ -889,7 +889,7 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
             );
         }
         let fresh4 = this.playingSounds_size;
-        this.playingSounds_size = this.playingSounds_size + 1;
+        this.playingSounds_size += 1;
         let ref mut fresh5 = *(this.playingSounds_data).offset(fresh4 as isize);
         *fresh5 = sound;
     }

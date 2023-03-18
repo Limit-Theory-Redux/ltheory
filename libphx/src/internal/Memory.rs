@@ -144,7 +144,7 @@ pub unsafe extern "C" fn StrReplace(
         if tmp.is_null() {
             break;
         }
-        ins = tmp.offset(len_search as isize);
+        ins = tmp.add(len_search);
         count = count.wrapping_add(1);
     }
     result = StrAlloc(
@@ -161,9 +161,9 @@ pub unsafe extern "C" fn StrReplace(
         }
         ins = libc::strstr(s, search);
         len_front = ins.offset_from(s) as libc::c_long as usize;
-        tmp = (libc::strncpy(tmp, s, len_front)).offset(len_front as isize);
-        tmp = (libc::strcpy(tmp, replace)).offset(len_replace as isize);
-        s = s.offset(len_front.wrapping_add(len_search) as isize);
+        tmp = (libc::strncpy(tmp, s, len_front)).add(len_front);
+        tmp = (libc::strcpy(tmp, replace)).add(len_replace);
+        s = s.add(len_front.wrapping_add(len_search));
     }
     libc::strcpy(tmp, s);
     result as *const libc::c_char
@@ -192,7 +192,7 @@ pub unsafe extern "C" fn StrSubStr(
         pResult = pResult.offset(1);
         *fresh2 = *fresh1;
     }
-    *result.offset(len as isize) = 0_i32 as libc::c_char;
+    *result.add(len) = 0_i32 as libc::c_char;
     result as *const libc::c_char
 }
 
@@ -203,8 +203,7 @@ pub unsafe extern "C" fn StrSub(
     mut end: *const libc::c_char,
     mut replace: *const libc::c_char,
 ) -> *const libc::c_char {
-    let mut len: usize = begin
-        .offset((StrLen(s)).wrapping_add(StrLen(replace)) as isize)
+    let mut len: usize = begin.add((StrLen(s)).wrapping_add(StrLen(replace)))
         .offset_from(end) as libc::c_long as usize;
     let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1_usize));
     let mut pResult: *mut libc::c_char = result;

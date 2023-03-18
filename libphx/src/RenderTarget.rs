@@ -168,7 +168,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
             );
         }
         let fresh0 = (*this).colorIndex;
-        (*this).colorIndex = (*this).colorIndex + 1;
+        (*this).colorIndex += 1;
         __glewFramebufferTexture2D.expect("non-null function pointer")(
             0x8d40_i32 as GLenum,
             (0x8ce0_i32 + fresh0) as GLenum,
@@ -215,7 +215,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
     }
     let mut handle: u32 = Tex3D_GetHandle(tex);
     let fresh1 = (*this).colorIndex;
-    (*this).colorIndex = (*this).colorIndex + 1;
+    (*this).colorIndex += 1;
     __glewFramebufferTexture3D.expect("non-null function pointer")(
         0x8d40_i32 as GLenum,
         (0x8ce0_i32 + fresh1) as GLenum,
@@ -247,7 +247,7 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     }
     let mut handle: u32 = TexCube_GetHandle(tex);
     let fresh2 = (*this).colorIndex;
-    (*this).colorIndex = (*this).colorIndex + 1;
+    (*this).colorIndex += 1;
     __glewFramebufferTexture2D.expect("non-null function pointer")(
         0x8d40_i32 as GLenum,
         (0x8ce0_i32 + fresh2) as GLenum,

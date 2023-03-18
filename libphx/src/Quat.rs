@@ -239,7 +239,7 @@ pub unsafe extern "C" fn Quat_IInverse(mut q: *mut Quat) {
     (*q).x = -(*q).x / magSq;
     (*q).y = -(*q).y / magSq;
     (*q).z = -(*q).z / magSq;
-    (*q).w = (*q).w / magSq;
+    (*q).w /= magSq;
 }
 
 #[no_mangle]

@@ -100,7 +100,7 @@ pub unsafe extern "C" fn BoxMesh_Add(
         );
     }
     let fresh0 = (*this).elem_size;
-    (*this).elem_size = (*this).elem_size + 1;
+    (*this).elem_size += 1;
     let mut box_0: *mut Box_0 = ((*this).elem_data).offset(fresh0 as isize);
     (*box_0).p = *p;
     (*box_0).s = *s;

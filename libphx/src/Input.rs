@@ -136,7 +136,7 @@ unsafe extern "C" fn Input_EnsureDeviceState(mut device: Device) -> *mut DeviceS
             );
         }
         let fresh0 = (*deviceList).devices_size;
-        (*deviceList).devices_size = (*deviceList).devices_size + 1;
+        (*deviceList).devices_size += 1;
         *((*deviceList).devices_data).offset(fresh0 as isize) = deviceState;
     }
     ((*deviceList).devices_data).offset(device.id as isize)
@@ -249,7 +249,7 @@ unsafe extern "C" fn Input_AppendEvent(mut event: InputEvent) {
         );
     }
     let fresh1 = this.events_size;
-    this.events_size = this.events_size + 1;
+    this.events_size += 1;
     *(this.events_data).offset(fresh1 as isize) = event;
 }
 
@@ -272,7 +272,7 @@ unsafe extern "C" fn Input_InjectEvent(mut event: InputEvent) {
         );
     }
     let fresh2 = this.injectedEvents_size;
-    this.injectedEvents_size = this.injectedEvents_size + 1;
+    this.injectedEvents_size += 1;
     *(this.injectedEvents_data).offset(fresh2 as isize) = event;
 }
 
@@ -299,7 +299,7 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
             );
         }
         let fresh3 = this.downButtons_size;
-        this.downButtons_size = this.downButtons_size + 1;
+        this.downButtons_size += 1;
         *(this.downButtons_data).offset(fresh3 as isize) = event;
         if event.device.type_0 != DeviceType_Null {
             Input_SetActiveDevice(event.device);
@@ -344,7 +344,7 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
             );
         }
         let fresh4 = this.autoRelease_size;
-        this.autoRelease_size = this.autoRelease_size + 1;
+        this.autoRelease_size += 1;
         *(this.autoRelease_data).offset(fresh4 as isize) = event;
     }
 }

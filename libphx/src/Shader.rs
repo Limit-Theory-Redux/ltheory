@@ -371,7 +371,7 @@ unsafe extern "C" fn GLSL_Preprocess(mut code: *const libc::c_char, mut this: *m
                 );
             }
             let fresh13 = (*this).vars_size;
-            (*this).vars_size = (*this).vars_size + 1;
+            (*this).vars_size += 1;
             *((*this).vars_data).offset(fresh13 as isize) = var;
         } else {
             Fatal(

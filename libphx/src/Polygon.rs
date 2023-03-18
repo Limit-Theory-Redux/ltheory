@@ -126,7 +126,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     );
                 }
                 let fresh0 = (*front).vertices_size;
-                (*front).vertices_size = (*front).vertices_size + 1;
+                (*front).vertices_size += 1;
                 *((*front).vertices_data).offset(fresh0 as isize) = i;
                 if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
@@ -144,7 +144,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     );
                 }
                 let fresh1 = (*back).vertices_size;
-                (*back).vertices_size = (*back).vertices_size + 1;
+                (*back).vertices_size += 1;
                 *((*back).vertices_data).offset(fresh1 as isize) = i;
             }
             if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long != 0 {
@@ -162,7 +162,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 );
             }
             let fresh2 = (*front).vertices_size;
-            (*front).vertices_size = (*front).vertices_size + 1;
+            (*front).vertices_size += 1;
             *((*front).vertices_data).offset(fresh2 as isize) = b;
         } else if bSide as i32 == 2_i32 {
             if aSide as i32 == 1_i32 {
@@ -187,7 +187,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     );
                 }
                 let fresh3 = (*front).vertices_size;
-                (*front).vertices_size = (*front).vertices_size + 1;
+                (*front).vertices_size += 1;
                 *((*front).vertices_data).offset(fresh3 as isize) = i_0;
                 if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
                 {
@@ -205,7 +205,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     );
                 }
                 let fresh4 = (*back).vertices_size;
-                (*back).vertices_size = (*back).vertices_size + 1;
+                (*back).vertices_size += 1;
                 *((*back).vertices_data).offset(fresh4 as isize) = i_0;
             } else if aSide as i32 == 3_i32 {
                 if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0
@@ -224,7 +224,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     );
                 }
                 let fresh5 = (*back).vertices_size;
-                (*back).vertices_size = (*back).vertices_size + 1;
+                (*back).vertices_size += 1;
                 *((*back).vertices_data).offset(fresh5 as isize) = a;
             }
             if ((*back).vertices_capacity == (*back).vertices_size) as i32 as libc::c_long != 0 {
@@ -242,7 +242,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 );
             }
             let fresh6 = (*back).vertices_size;
-            (*back).vertices_size = (*back).vertices_size + 1;
+            (*back).vertices_size += 1;
             *((*back).vertices_data).offset(fresh6 as isize) = b;
         } else {
             if aSide as i32 == 2_i32 {
@@ -262,7 +262,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     );
                 }
                 let fresh7 = (*back).vertices_size;
-                (*back).vertices_size = (*back).vertices_size + 1;
+                (*back).vertices_size += 1;
                 *((*back).vertices_data).offset(fresh7 as isize) = b;
             }
             if ((*front).vertices_capacity == (*front).vertices_size) as i32 as libc::c_long != 0 {
@@ -280,7 +280,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 );
             }
             let fresh8 = (*front).vertices_size;
-            (*front).vertices_size = (*front).vertices_size + 1;
+            (*front).vertices_size += 1;
             *((*front).vertices_data).offset(fresh8 as isize) = b;
         }
         a = b;
@@ -334,7 +334,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                         );
                     }
                     let fresh9 = (*back).vertices_size;
-                    (*back).vertices_size = (*back).vertices_size + 1;
+                    (*back).vertices_size += 1;
                     *((*back).vertices_data).offset(fresh9 as isize) = *vertex;
                     if ((*front).vertices_capacity == (*front).vertices_size) as libc::c_long != 0 {
                         (*front).vertices_capacity = if (*front).vertices_capacity != 0 {
@@ -351,7 +351,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                         );
                     }
                     let fresh10 = (*front).vertices_size;
-                    (*front).vertices_size = (*front).vertices_size + 1;
+                    (*front).vertices_size += 1;
                     *((*front).vertices_data).offset(fresh10 as isize) = *vertex;
                     vertex = vertex.offset(1);
                 }

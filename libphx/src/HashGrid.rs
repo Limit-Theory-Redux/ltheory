@@ -147,7 +147,7 @@ unsafe extern "C" fn HashGrid_AddElem(mut this: *mut HashGrid, mut elem: *mut Ha
                         );
                     }
                     let fresh1 = (*cell).elems_size;
-                    (*cell).elems_size = (*cell).elems_size + 1;
+                    (*cell).elems_size += 1;
                     let ref mut fresh2 = *((*cell).elems_data).offset(fresh1 as isize);
                     *fresh2 = elem;
                 }
@@ -354,7 +354,7 @@ pub unsafe extern "C" fn HashGrid_Update(
                                     );
                                 }
                                 let fresh6 = (*cell).elems_size;
-                                (*cell).elems_size = (*cell).elems_size + 1;
+                                (*cell).elems_size += 1;
                                 let ref mut fresh7 = *((*cell).elems_data).offset(fresh6 as isize);
                                 *fresh7 = elem;
                                 (*cell).version = vAdd;
@@ -432,7 +432,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(
                                 );
                             }
                             let fresh8 = (*this).results_size;
-                            (*this).results_size = (*this).results_size + 1;
+                            (*this).results_size += 1;
                             let ref mut fresh9 = *((*this).results_data).offset(fresh8 as isize);
                             *fresh9 = (*elem).object;
                         }
@@ -475,7 +475,7 @@ pub unsafe extern "C" fn HashGrid_QueryPoint(mut this: *mut HashGrid, mut p: *co
             );
         }
         let fresh10 = (*this).results_size;
-        (*this).results_size = (*this).results_size + 1;
+        (*this).results_size += 1;
         let ref mut fresh11 = *((*this).results_data).offset(fresh10 as isize);
         *fresh11 = (*elem).object;
         i += 1;

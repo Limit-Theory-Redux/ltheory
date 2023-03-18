@@ -310,7 +310,7 @@ pub unsafe extern "C" fn Mesh_AddIndex(mut this: *mut Mesh, mut newIndex: i32) {
         );
     }
     let fresh0 = (*this).index_size;
-    (*this).index_size = (*this).index_size + 1;
+    (*this).index_size += 1;
     *((*this).index_data).offset(fresh0 as isize) = newIndex;
     (*this).version = ((*this).version).wrapping_add(1);
 }
@@ -379,7 +379,7 @@ pub unsafe extern "C" fn Mesh_AddVertex(
         );
     }
     let fresh1 = (*this).vertex_size;
-    (*this).vertex_size = (*this).vertex_size + 1;
+    (*this).vertex_size += 1;
     let mut newVertex: *mut Vertex = ((*this).vertex_data).offset(fresh1 as isize);
     (*newVertex).p = Vec3::new(px, py, pz);
     (*newVertex).n = Vec3::new(nx, ny, nz);
@@ -404,7 +404,7 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(mut this: *mut Mesh, mut vertex: *con
         );
     }
     let fresh2 = (*this).vertex_size;
-    (*this).vertex_size = (*this).vertex_size + 1;
+    (*this).vertex_size += 1;
     *((*this).vertex_data).offset(fresh2 as isize) = *vertex;
     (*this).version = ((*this).version).wrapping_add(1);
 }
@@ -805,9 +805,9 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(mut this: *mut Mesh) {
         let mut e1: Vec3 = (*v2).p - (*v1).p;
         let mut e2: Vec3 = (*v3).p - (*v2).p;
         let mut en: Vec3 = Vec3::cross(e1, e2);
-        (*v1).n = (*v1).n + en;
-        (*v2).n = (*v2).n + en;
-        (*v3).n = (*v3).n + en;
+        (*v1).n += en;
+        (*v2).n += en;
+        (*v3).n += en;
         i += 3_i32;
     }
     let mut v_0: *mut Vertex = (*this).vertex_data;
@@ -863,7 +863,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32)
                         );
                     }
                     let fresh3 = (*this).vertex_size;
-                    (*this).vertex_size = (*this).vertex_size + 1;
+                    (*this).vertex_size += 1;
                     let mut nv: *mut Vertex = ((*this).vertex_data).offset(fresh3 as isize);
                     *nv = *((*this).vertex_data).offset(*index[j as usize] as isize);
                     (*nv).n = face;

@@ -560,7 +560,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             );
         }
         let fresh4 = stack_size;
-        stack_size = stack_size + 1;
+        stack_size += 1;
         let ref mut fresh5 = *stack_data.offset(fresh4 as isize);
         *fresh5 = stackFrame;
         let mut iUp: i32 = 1_i32;
@@ -585,7 +585,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     );
                 }
                 let fresh6 = stack_size;
-                stack_size = stack_size + 1;
+                stack_size += 1;
                 let ref mut fresh7 = *stack_data.offset(fresh6 as isize);
                 *fresh7 = StrDup(b"    [Upvalues]\0" as *const u8 as *const libc::c_char);
             }
@@ -605,7 +605,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 );
             }
             let fresh8 = stack_size;
-            stack_size = stack_size + 1;
+            stack_size += 1;
             let ref mut fresh9 = *stack_data.offset(fresh8 as isize);
             *fresh9 = upValue;
             lua_settop(this, -1_i32 - 1_i32);
@@ -634,7 +634,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     );
                 }
                 let fresh10 = stack_size;
-                stack_size = stack_size + 1;
+                stack_size += 1;
                 let ref mut fresh11 = *stack_data.offset(fresh10 as isize);
                 *fresh11 = StrDup(b"    [Locals]\0" as *const u8 as *const libc::c_char);
             }
@@ -654,7 +654,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 );
             }
             let fresh12 = stack_size;
-            stack_size = stack_size + 1;
+            stack_size += 1;
             let ref mut fresh13 = *stack_data.offset(fresh12 as isize);
             *fresh13 = local;
             lua_settop(this, -1_i32 - 1_i32);
@@ -677,7 +677,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 );
             }
             let fresh14 = stack_size;
-            stack_size = stack_size + 1;
+            stack_size += 1;
             let ref mut fresh15 = *stack_data.offset(fresh14 as isize);
             *fresh15 = StrDup(b"\0" as *const u8 as *const libc::c_char);
         }

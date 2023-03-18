@@ -294,7 +294,7 @@ pub unsafe extern "C" fn Socket_SetAddress(mut this: *mut Socket, mut addr: *con
         );
     }
     let mut ip: *const libc::c_char = StrSubStr(addr, colon);
-    let mut port: *const libc::c_char = StrSubStr(colon.offset(1), addr.offset(libc::strlen(addr) as isize));
+    let mut port: *const libc::c_char = StrSubStr(colon.offset(1), addr.add(libc::strlen(addr)));
     (*this).addrSend.sin_family = 2_i32 as libc::sa_family_t;
     (*this).addrSend.sin_port = (if 0 != 0 {
         ((libc::strtol(port, std::ptr::null_mut(), 0_i32) as u16 as u32 & 0xff00_u32)

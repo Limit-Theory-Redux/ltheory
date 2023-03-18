@@ -427,20 +427,20 @@ unsafe extern "C" fn HashPeekNext() -> u64 {
 #[inline]
 unsafe extern "C" fn TransformPos(mut x: *mut f32, mut y: *mut f32) {
     if *x < 0.0f32 {
-        *x = (*this.layout).upper.x + *x;
+        *x += (*this.layout).upper.x;
     }
     if *y < 0.0f32 {
-        *y = (*this.layout).upper.y + *y;
+        *y += (*this.layout).upper.y;
     }
 }
 
 #[inline]
 unsafe extern "C" fn TransformSize(mut sx: *mut f32, mut sy: *mut f32) {
     if *sx <= 0.0f32 {
-        *sx = (*this.layout).upper.x - this.cursor.x + *sx;
+        *sx += (*this.layout).upper.x - this.cursor.x;
     }
     if *sy <= 0.0f32 {
-        *sy = (*this.layout).upper.y - this.cursor.y + *sy;
+        *sy += (*this.layout).upper.y - this.cursor.y;
     }
 }
 

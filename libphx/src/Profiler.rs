@@ -92,7 +92,7 @@ unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
         );
     }
     let fresh0 = this.scopeList_size;
-    this.scopeList_size = this.scopeList_size + 1;
+    this.scopeList_size += 1;
     let ref mut fresh1 = *(this.scopeList_data).offset(fresh0 as isize);
     *fresh1 = scope;
     scope

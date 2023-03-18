@@ -279,7 +279,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                     );
                 }
                 let fresh0 = this.downBindings_size;
-                this.downBindings_size = this.downBindings_size + 1;
+                this.downBindings_size += 1;
                 *(this.downBindings_data).offset(fresh0 as isize) = downBinding;
             }
         } else if if isPos as i32 != 0 {
