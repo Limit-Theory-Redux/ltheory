@@ -18,8 +18,6 @@ pub struct Polygon {
     pub vertices_data: *mut Vec3,
 }
 
-pub type PointClassification = u8;
-
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mut Plane) {
     let mut v: *mut Vec3 = (*polygon).vertices_data;

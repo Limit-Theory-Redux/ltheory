@@ -10,7 +10,7 @@ pub unsafe extern "C" fn DepthTest_Pop() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn DepthTest_Push(mut depthTest: bool) {
+pub unsafe extern "C" fn DepthTest_Push(depthTest: bool) {
     RenderState_PushDepthTest(depthTest);
 }
 

@@ -17,9 +17,6 @@ use crate::TimeStamp::*;
 use libc;
 use sdl2_sys::*;
 
-pub type ResourceType = i32;
-pub type TimeStamp = u64;
-
 #[no_mangle]
 pub static subsystems: u32 = SDL_INIT_EVENTS
     | SDL_INIT_VIDEO

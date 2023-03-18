@@ -6,9 +6,6 @@ use crate::Math::Vec3;
 use crate::ResourceType::*;
 use libc;
 
-
-pub type ResourceType = i32;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct PathElem {

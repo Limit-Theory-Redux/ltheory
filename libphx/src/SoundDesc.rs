@@ -70,7 +70,6 @@ pub struct SoundDesc {
     pub name: *const libc::c_char,
     pub path: *const libc::c_char,
 }
-pub type ResourceType = i32;
 pub type FMOD_BOOL = i32;
 
 #[derive(Copy, Clone)]

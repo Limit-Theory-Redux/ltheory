@@ -22,7 +22,6 @@ extern "C" {
     fn TimeStamp_GetRelative(start: TimeStamp, seconds: f64) -> TimeStamp;
 }
 
-pub type TimeStamp = u64;
 pub type lua_Number = f64;
 pub type lua_Integer = libc::ptrdiff_t;
 pub type Lua = lua_State;

@@ -2,10 +2,9 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::IVec2;
 use crate::Math::Vec3;
+use crate::MouseButton::*;
 use libc;
 use sdl2_sys::*;
-
-pub type MouseButton = i32;
 
 #[no_mangle]
 pub static mut lastX: i32 = 0;

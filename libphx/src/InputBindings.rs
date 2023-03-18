@@ -6,6 +6,7 @@ use crate::InputEvent::*;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::State::*;
+use crate::Button::*;
 use libc;
 
 extern "C" {
@@ -63,9 +64,6 @@ pub struct RawButton {
     pub button: Button,
     pub value: f32,
 }
-pub type Button = i32;
-
-pub type DeviceType = i32;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

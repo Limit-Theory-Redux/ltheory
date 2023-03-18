@@ -6,15 +6,13 @@ use stb::image::{stbi_load_from_reader, Channels};
 use std::ffi::CStr;
 use std::fs::File;
 
-pub type uchar = libc::c_uchar;
-
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_LoadRaw(
     mut path: *const libc::c_char,
     mut sx: *mut i32,
     mut sy: *mut i32,
     mut components: *mut i32,
-) -> *mut uchar {
+) -> *mut libc::c_uchar {
     let path_as_str = CStr::from_ptr(path).to_str().unwrap();
     match File::open(path_as_str) {
         Ok(mut reader) => {
@@ -25,7 +23,7 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                     *sy = info.height;
                     *components = info.components;
 
-                    let mut memory: *mut uchar = MemAlloc(data.size()) as *mut uchar;
+                    let mut memory: *mut libc::c_uchar = MemAlloc(data.size()) as *mut libc::c_uchar;
                     MemCpy(
                         memory as *mut libc::c_void,
                         data.as_slice().as_ptr() as *mut libc::c_void,

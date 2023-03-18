@@ -2,12 +2,11 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
-pub type uchar = libc::c_uchar;
 
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV32(mut buf: *const libc::c_void, mut len: i32) -> u32 {
-    let mut curr: *const uchar = buf as *const uchar;
-    let mut end: *const uchar = curr.offset(len as isize);
+    let mut curr: *const libc::c_uchar = buf as *const libc::c_uchar;
+    let mut end: *const libc::c_uchar = curr.offset(len as isize);
     let mut this: u32 = 2166136261_u32;
     while curr < end {
         let fresh0 = curr;
@@ -20,8 +19,8 @@ pub unsafe extern "C" fn Hash_FNV32(mut buf: *const libc::c_void, mut len: i32) 
 
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV64(mut buf: *const libc::c_void, mut len: i32) -> u64 {
-    let mut curr: *const uchar = buf as *const uchar;
-    let mut end: *const uchar = curr.offset(len as isize);
+    let mut curr: *const libc::c_uchar = buf as *const libc::c_uchar;
+    let mut end: *const libc::c_uchar = curr.offset(len as isize);
     let mut this: u64 = 14695981039346656037_u64;
     while curr < end {
         let fresh1 = curr;
@@ -67,8 +66,8 @@ pub unsafe extern "C" fn Hash_FNV64_Incremental(
     mut buf: *const libc::c_void,
     mut len: i32,
 ) -> u64 {
-    let mut curr: *const uchar = buf as *const uchar;
-    let mut end: *const uchar = curr.offset(len as isize);
+    let mut curr: *const libc::c_uchar = buf as *const libc::c_uchar;
+    let mut end: *const libc::c_uchar = curr.offset(len as isize);
     while curr < end {
         let fresh4 = curr;
         curr = curr.offset(1);

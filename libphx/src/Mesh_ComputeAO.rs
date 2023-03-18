@@ -15,10 +15,6 @@ use crate::Tex3D::*;
 use crate::TexFormat::*;
 use libc;
 
-pub type DataFormat = i32;
-pub type PixelFormat = i32;
-pub type TexFormat = i32;
-
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut indexCount: i32 = Mesh_GetIndexCount(this);

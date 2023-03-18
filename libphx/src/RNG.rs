@@ -22,7 +22,6 @@ pub struct Quat {
     pub z: f32,
     pub w: f32,
 }
-pub type TimeStamp = u64;
 
 #[inline]
 unsafe extern "C" fn Random_SplitMix64(mut state: *mut u64) -> u64 {

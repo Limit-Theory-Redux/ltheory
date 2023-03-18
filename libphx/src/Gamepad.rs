@@ -7,8 +7,6 @@ use crate::TimeStamp::*;
 use libc;
 use sdl2_sys::*;
 
-pub type TimeStamp = u64;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Gamepad {

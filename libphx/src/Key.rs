@@ -4,8 +4,7 @@ use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 
-pub type uchar = libc::c_uchar;
-pub type Key = uchar;
+pub type Key = u8;
 
 #[no_mangle]
 pub static Key_A: Key = SDL_Scancode::SDL_SCANCODE_A as Key;

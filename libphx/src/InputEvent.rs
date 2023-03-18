@@ -9,8 +9,6 @@ use crate::State::*;
 use crate::State::*;
 use libc;
 
-pub type DeviceType = i32;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputEvent {
@@ -20,9 +18,6 @@ pub struct InputEvent {
     pub value: f32,
     pub state: State,
 }
-
-pub type State = i32;
-pub type Button = i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> *const libc::c_char {

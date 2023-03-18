@@ -14,9 +14,6 @@ use crate::Tex2D::*;
 use crate::UIRenderer::*;
 use libc;
 
-pub type BlendMode = i32;
-pub type Button = i32;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HmGuiGroup {

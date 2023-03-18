@@ -12,8 +12,6 @@ use crate::Tex2D::*;
 use crate::Viewport::*;
 use libc;
 
-pub type BlendMode = i32;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct UIRendererLayer {

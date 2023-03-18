@@ -1,7 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Button::*;
-use crate::Button::*;
 use crate::Device::*;
 use crate::DeviceType::*;
 use crate::InputEvent::*;
@@ -14,15 +13,6 @@ use crate::ResourceType::*;
 use crate::State::*;
 use libc;
 use sdl2_sys::*;
-
-
-pub type DeviceType = i32;
-
-pub type State = i32;
-pub type Button = i32;
-
-pub type Modifier = i32;
-pub type ResourceType = i32;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

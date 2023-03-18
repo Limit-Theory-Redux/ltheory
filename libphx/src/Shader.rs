@@ -40,9 +40,6 @@ pub struct ShaderVar {
     pub index: i32,
 }
 
-pub type ShaderVarType = i32;
-pub type ResourceType = i32;
-
 static mut includePath: *const libc::c_char = b"include/\0" as *const u8 as *const libc::c_char;
 
 static mut versionString: *const libc::c_char =

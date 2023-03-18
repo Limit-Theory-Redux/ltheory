@@ -7,7 +7,6 @@ use crate::TimeStamp::*;
 use libc;
 use std::io::{self, Write};
 
-pub type TimeStamp = u64;
 pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
 

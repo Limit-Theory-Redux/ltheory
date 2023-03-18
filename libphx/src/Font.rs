@@ -357,11 +357,6 @@ pub struct FT_Bitmap_Size_ {
 }
 pub type FT_String = libc::c_char;
 pub type FT_Long = libc::c_long;
-pub type BlendMode = i32;
-pub type DataFormat = i32;
-pub type PixelFormat = i32;
-pub type ResourceType = i32;
-pub type TexFormat = i32;
 pub type FT_Error = i32;
 pub type FT_ULong = libc::c_ulong;
 pub type FT_Int32 = i32;

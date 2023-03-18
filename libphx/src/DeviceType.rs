@@ -4,8 +4,19 @@ use crate::Button::*;
 use crate::Math::Vec3;
 use libc;
 
-pub type Button = i32;
 pub type DeviceType = i32;
+
+#[no_mangle]
+pub static DeviceType_Null: DeviceType = 0;
+
+#[no_mangle]
+pub static DeviceType_Mouse: DeviceType = 0;
+
+#[no_mangle]
+pub static DeviceType_Keyboard: DeviceType = 0;
+
+#[no_mangle]
+pub static DeviceType_Gamepad: DeviceType = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn DeviceType_FromButton(mut button: Button) -> DeviceType {

@@ -1,23 +1,10 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
-use crate::Math::Vec3;
+use crate::DeviceType::*;
 use libc;
 use sdl2_sys::*;
 
 pub type Button = i32;
-pub type DeviceType = i32;
-
-#[no_mangle]
-pub static DeviceType_Null: DeviceType = 0;
-
-#[no_mangle]
-pub static DeviceType_Mouse: DeviceType = 0;
-
-#[no_mangle]
-pub static DeviceType_Keyboard: DeviceType = 0;
-
-#[no_mangle]
-pub static DeviceType_Gamepad: DeviceType = 0;
 
 #[no_mangle]
 pub static Button_Null: Button = 0_i32;

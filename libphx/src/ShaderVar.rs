@@ -12,8 +12,6 @@ use crate::Tex3D::*;
 use crate::TexCube::*;
 use libc;
 
-pub type ShaderVarType = i32;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct VarStack {

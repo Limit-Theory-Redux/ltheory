@@ -20,6 +20,7 @@ pub struct Socket {
     pub addrRecv: libc::sockaddr_in,
     pub buffer: [libc::c_char; 2048],
 }
+
 pub type SocketType = i32;
 
 #[inline]
