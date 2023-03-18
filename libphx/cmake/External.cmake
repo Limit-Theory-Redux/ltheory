@@ -87,18 +87,6 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
-  NAME glew
-  URL https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.tgz
-  VERSION 2.2.0
-  SOURCE_SUBDIR build/cmake
-  OPTIONS
-  "BUILD_UTILS OFF"
-)
-if (glew_ADDED)
-  target_include_directories(glew_s PUBLIC $<BUILD_INTERFACE:${glew_SOURCE_DIR}/include>)
-endif ()
-
-CPMAddPackage(
   NAME LuaJIT
   URL https://github.com/LuaJIT/LuaJIT/archive/de2e1ca9d3d87e74c0c20c1e4ad3c32b31a5875b.tar.gz
   VERSION de2e1ca9d3d87e74c0c20c1e4ad3c32b31a5875b

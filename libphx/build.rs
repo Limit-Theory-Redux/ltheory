@@ -131,7 +131,6 @@ fn main() {
     // Link dependencies.
     link_lib_from_cmake("luajit", &deps_root, &["luajit-src", "src"]);
     link_lib_from_cmake("freetype", &deps_root, &["freetype-build"]);
-    link_lib_from_cmake("GLEW", &cmake_root, &["build", "lib"]);
     link_lib_from_cmake(
         "BulletDynamics",
         &deps_root,
@@ -157,10 +156,6 @@ fn main() {
     println!("cargo:rustc-link-lib={}", "z");
     if cfg!(target_os = "macos") {
         println!("cargo:rustc-link-lib=framework={}", "CoreHaptics");
-        println!("cargo:rustc-link-lib=framework={}", "OpenGL");
-    } else if cfg!(target_os = "linux") {
-        println!("cargo:rustc-link-lib={}", "GLX");
-        println!("cargo:rustc-link-lib={}", "OpenGL");
     }
 
     if cfg!(target_os = "macos") {

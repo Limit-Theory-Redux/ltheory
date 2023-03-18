@@ -14,6 +14,5 @@ if(NOT TARGET libphx-external)
     LinearMath
 #    fmod
     freetype
-    glew_s
     luajit)
 endif()
