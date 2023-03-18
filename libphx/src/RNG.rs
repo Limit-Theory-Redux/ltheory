@@ -77,7 +77,7 @@ unsafe extern "C" fn Sin(mut t: f64) -> f64 {
 
 #[inline]
 unsafe extern "C" fn Random_SplitMix64(mut state: *mut u64) -> u64 {
-    *state = *state.wrapping_add(0x9e3779b97f4a7c15_usize);
+    *state = (*state as u64).wrapping_add(0x9e3779b97f4a7c15_u64);
     let mut z: u64 = *state;
     z = (z ^ z >> 30_i32).wrapping_mul(0xbf58476d1ce4e5b9_u64);
     z = (z ^ z >> 27_i32).wrapping_mul(0x94d049bb133111eb_u64);
