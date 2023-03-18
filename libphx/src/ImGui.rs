@@ -10,8 +10,8 @@ use crate::MemPool::*;
 use crate::RenderState::*;
 use crate::Shader::*;
 use crate::Tex2D::*;
-use glam::Vec3;
-use glam::{IVec2, Vec2};
+use crate::Math::Vec3;
+use crate::Math::{IVec2, Vec2};
 use libc;
 
 extern "C" {

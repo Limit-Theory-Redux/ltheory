@@ -5,7 +5,7 @@ use crate::Device::*;
 use crate::DeviceType::*;
 use crate::State::*;
 use crate::State::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 pub type DeviceType = i32;

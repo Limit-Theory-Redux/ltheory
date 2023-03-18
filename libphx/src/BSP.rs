@@ -10,8 +10,8 @@ use crate::Ray::*;
 use crate::RenderState::*;
 use crate::Triangle::*;
 use crate::RNG::*;
-use glam::Vec2;
-use glam::Vec3;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

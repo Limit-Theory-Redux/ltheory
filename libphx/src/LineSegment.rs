@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Ray::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

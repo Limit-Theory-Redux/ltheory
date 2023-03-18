@@ -3,7 +3,7 @@ use crate::Audio::*;
 use crate::File::*;
 use crate::Resource::*;
 use crate::ResourceType::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 extern "C" {

@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
 use crate::Metric::*;
-use glam::Vec2;
-use glam::Vec3;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
 use libc;
 
 extern "C" {

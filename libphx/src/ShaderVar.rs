@@ -6,8 +6,8 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use glam::Vec2;
-use glam::Vec3;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
 use libc;
 
 extern "C" {

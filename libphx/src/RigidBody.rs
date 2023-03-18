@@ -50,7 +50,7 @@ PHX_API void        _cppRigidBody_SetScale                     (RigidBody*, floa
 
 */
 
-use glam::Vec3;
+use crate::Math::Vec3;
 
 extern "C" {
     pub type RigidBody;

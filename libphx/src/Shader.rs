@@ -11,8 +11,8 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use glam::Vec3;
-use glam::{IVec2, IVec3, IVec4, Vec2};
+use crate::Math::Vec3;
+use crate::Math::{IVec2, IVec3, IVec4, Vec2};
 use libc;
 
 extern "C" {

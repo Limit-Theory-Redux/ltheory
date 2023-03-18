@@ -2,7 +2,7 @@ use crate::internal::Memory::*;
 use crate::Hash::*;
 use crate::MemPool::*;
 use crate::Profiler::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

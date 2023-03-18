@@ -1,6 +1,10 @@
 use crate::internal::Memory::*;
-use glam::Vec3;
 use libc;
+
+// Re-export glam types.
+pub use glam::{Vec2, Vec3, Vec4};
+pub use glam::{IVec2, IVec3, IVec4};
+pub use glam::{DVec2, DVec3, DVec4};
 
 #[inline]
 pub unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {

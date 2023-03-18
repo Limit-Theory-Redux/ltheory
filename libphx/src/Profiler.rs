@@ -2,7 +2,7 @@ use crate::internal::Memory::*;
 use crate::HashMap::*;
 use crate::Signal::*;
 use crate::TimeStamp::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 use std::io::{self, Write};
 

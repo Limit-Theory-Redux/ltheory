@@ -3,8 +3,8 @@ use crate::Intersect::*;
 use crate::LineSegment::*;
 use crate::Plane::*;
 use crate::Triangle::*;
-use glam::DVec3;
-use glam::Vec3;
+use crate::Math::DVec3;
+use crate::Math::Vec3;
 use libc;
 
 extern "C" {

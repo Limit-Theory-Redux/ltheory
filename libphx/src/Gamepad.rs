@@ -2,7 +2,7 @@ use crate::internal::Memory::*;
 use crate::GamepadAxis::*;
 use crate::GamepadButton::*;
 use crate::TimeStamp::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 

@@ -3,7 +3,7 @@ use crate::MemPool::*;
 use crate::Sound::*;
 use crate::SoundDesc::*;
 use crate::StrMap::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 extern "C" {

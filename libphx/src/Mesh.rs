@@ -6,8 +6,8 @@ use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::Triangle::*;
 use crate::SDF::*;
-use glam::Vec2;
-use glam::Vec3;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
 use libc;
 use memoffset::{offset_of, span_of};
 

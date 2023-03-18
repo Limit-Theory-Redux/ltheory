@@ -1,5 +1,5 @@
 use crate::internal::Memory::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 use stb::image::{stbi_load_from_reader, Channels};
 use std::ffi::CStr;

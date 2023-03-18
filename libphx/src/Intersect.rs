@@ -4,7 +4,7 @@ use crate::Matrix::*;
 use crate::Plane::*;
 use crate::Ray::*;
 use crate::Triangle::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

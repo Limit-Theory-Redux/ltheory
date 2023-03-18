@@ -9,8 +9,8 @@ use crate::RenderState::*;
 use crate::Tex2D::*;
 use crate::UIRenderer::*;
 
-use glam::Vec3;
-use glam::{IVec2, Vec2};
+use crate::Math::Vec3;
+use crate::Math::{IVec2, Vec2};
 use libc;
 
 #[derive(Copy, Clone)]

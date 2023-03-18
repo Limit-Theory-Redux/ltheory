@@ -3,7 +3,7 @@ use crate::Intersect::*;
 use crate::LineSegment::*;
 use crate::Plane::*;
 use crate::Triangle::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

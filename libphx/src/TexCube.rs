@@ -15,7 +15,7 @@ use crate::Tex2D_Load::*;
 use crate::Tex2D_Save::*;
 use crate::TexFormat::*;
 use crate::TimeStamp::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 extern "C" {

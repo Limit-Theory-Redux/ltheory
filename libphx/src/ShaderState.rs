@@ -5,7 +5,7 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use glam::{Vec2, Vec3, Vec4};
+use crate::Math::{Vec2, Vec3, Vec4};
 use libc;
 
 extern "C" {

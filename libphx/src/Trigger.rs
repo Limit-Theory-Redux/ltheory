@@ -16,7 +16,7 @@ PHX_API void        _cppTrigger_SetPosLocal       (Trigger*, Vec3f*);
 
  */
 
-use glam::Vec3;
+use crate::Math::Vec3;
 
 extern "C" {
     pub type Trigger;

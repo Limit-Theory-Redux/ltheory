@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Button::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 pub type Button = i32;

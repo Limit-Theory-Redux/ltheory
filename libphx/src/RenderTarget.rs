@@ -7,8 +7,8 @@ use crate::TexCube::*;
 use crate::TexFormat::*;
 use crate::TexFormat::*;
 use crate::Viewport::*;
-use glam::Vec3;
-use glam::{IVec2, IVec3};
+use crate::Math::Vec3;
+use crate::Math::{IVec2, IVec3};
 use libc;
 
 extern "C" {

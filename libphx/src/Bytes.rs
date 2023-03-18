@@ -3,7 +3,7 @@ use crate::Common::*;
 use crate::File::*;
 use flate2::write::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 use std::ffi::CString;
 use std::io::Write;

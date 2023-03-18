@@ -2,8 +2,8 @@ use crate::internal::Memory::*;
 use crate::Draw::*;
 use crate::Matrix::*;
 use crate::Mesh::*;
-use glam::Vec2;
-use glam::Vec3;
+use crate::Math::Vec2;
+use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

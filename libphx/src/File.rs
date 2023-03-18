@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Bytes::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 use std::fs;
 

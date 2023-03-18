@@ -12,7 +12,7 @@ use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::ShaderVar::*;
 use crate::TimeStamp::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 

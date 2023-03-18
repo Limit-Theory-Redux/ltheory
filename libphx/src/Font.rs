@@ -10,8 +10,8 @@ use crate::ResourceType::*;
 use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::TexFormat::*;
-use glam::Vec3;
-use glam::{IVec2, IVec4};
+use crate::Math::Vec3;
+use crate::Math::{IVec2, IVec4};
 use libc;
 
 extern "C" {

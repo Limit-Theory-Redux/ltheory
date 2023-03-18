@@ -4,8 +4,8 @@ use crate::Mesh::*;
 use crate::Math::*;
 use crate::PixelFormat::*;
 use crate::Tex3D::*;
-use glam::IVec3;
-use glam::Vec3;
+use crate::Math::IVec3;
+use crate::Math::Vec3;
 use libc;
 
 #[derive(Copy, Clone)]

@@ -1,6 +1,6 @@
 use crate::internal::Memory::*;
-use glam::IVec2;
-use glam::Vec3;
+use crate::Math::IVec2;
+use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 

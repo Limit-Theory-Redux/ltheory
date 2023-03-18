@@ -4,8 +4,8 @@ use crate::DataFormat::*;
 use crate::PixelFormat::*;
 use crate::RenderTarget::*;
 use crate::TexFormat::*;
-use glam::IVec3;
-use glam::Vec3;
+use crate::Math::IVec3;
+use crate::Math::Vec3;
 use libc;
 
 extern "C" {

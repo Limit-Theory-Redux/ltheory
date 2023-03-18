@@ -1,4 +1,4 @@
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 pub use crate::Error::Error;

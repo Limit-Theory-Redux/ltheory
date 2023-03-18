@@ -3,8 +3,8 @@ use crate::OpenGL::*;
 use crate::Viewport::*;
 use crate::WindowMode::*;
 use crate::WindowPos::WindowPos;
-use glam::IVec2;
-use glam::Vec3;
+use crate::Math::IVec2;
+use crate::Math::Vec3;
 use libc;
 use sdl2_sys::*;
 

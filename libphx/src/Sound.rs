@@ -1,7 +1,7 @@
 use crate::internal::Memory::*;
 use crate::Audio::*;
 use crate::SoundDesc::*;
-use glam::Vec3;
+use crate::Math::Vec3;
 use libc;
 
 extern "C" {
