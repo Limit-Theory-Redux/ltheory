@@ -188,31 +188,6 @@ pub struct ImGuiData {
 }
 
 #[inline]
-unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
-    t = if t > upper { upper } else { t };
-    t = if t < lower { lower } else { t };
-    t
-}
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
 unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
     let mut self_1: Vec4f = Vec4f {
         x: x,
@@ -371,10 +346,10 @@ unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2, mut size: Vec2) {
     (*rect).p1 = pos;
     (*rect).p2 = pos + size;
     if !prev.is_null() {
-        (*rect).p1.x = Max((*rect).p1.x as f64, (*prev).p1.x as f64) as f32;
-        (*rect).p1.y = Max((*rect).p1.y as f64, (*prev).p1.y as f64) as f32;
-        (*rect).p2.x = Min((*rect).p2.x as f64, (*prev).p2.x as f64) as f32;
-        (*rect).p2.y = Min((*rect).p2.y as f64, (*prev).p2.y as f64) as f32;
+        (*rect).p1.x = f64::max((*rect).p1.x as f64, (*prev).p1.x as f64) as f32;
+        (*rect).p1.y = f64::max((*rect).p1.y as f64, (*prev).p1.y as f64) as f32;
+        (*rect).p2.x = f64::min((*rect).p2.x as f64, (*prev).p2.x as f64) as f32;
+        (*rect).p2.y = f64::min((*rect).p2.y as f64, (*prev).p2.y as f64) as f32;
     }
     this.clipRect = rect;
 }
@@ -718,10 +693,10 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
         Shader_Start(shader_0);
         let mut e_2: *const ImGuiLine = (*self_1).lineList;
         while !e_2.is_null() {
-            let mut xMin: f32 = (Min((*e_2).p1.x as f64, (*e_2).p2.x as f64) - pad_0 as f64) as f32;
-            let mut yMin: f32 = (Min((*e_2).p1.y as f64, (*e_2).p2.y as f64) - pad_0 as f64) as f32;
-            let mut xMax: f32 = (Max((*e_2).p1.x as f64, (*e_2).p2.x as f64) + pad_0 as f64) as f32;
-            let mut yMax: f32 = (Max((*e_2).p1.y as f64, (*e_2).p2.y as f64) + pad_0 as f64) as f32;
+            let mut xMin: f32 = (f64::min((*e_2).p1.x as f64, (*e_2).p2.x as f64) - pad_0 as f64) as f32;
+            let mut yMin: f32 = (f64::min((*e_2).p1.y as f64, (*e_2).p2.y as f64) - pad_0 as f64) as f32;
+            let mut xMax: f32 = (f64::max((*e_2).p1.x as f64, (*e_2).p2.x as f64) + pad_0 as f64) as f32;
+            let mut yMax: f32 = (f64::max((*e_2).p1.y as f64, (*e_2).p2.y as f64) + pad_0 as f64) as f32;
             let mut sx_0: f32 = xMax - xMin;
             let mut sy_0: f32 = yMax - yMin;
             Shader_SetFloat2(b"origin\0" as *const u8 as *const libc::c_char, xMin, yMin);
@@ -1034,7 +1009,7 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
     let mut handleHash: u64 = HashNext();
     if (*layout).size.y < virtualSize {
         let mut handleSizeY: f32 = (*layout).size.y * ((*layout).size.y / virtualSize);
-        handleSizeY = Clamp(handleSizeY as f64, 16.0f32 as f64, 128.0f32 as f64) as f32;
+        handleSizeY = f64::clamp(handleSizeY as f64, 16.0f32 as f64, 128.0f32 as f64) as f32;
         let mut handleOffset: f32 = ((*layout).size.y - handleSizeY) * (scroll / scrollMax);
         let mut handlePos = Vec2::new(scrollPos.x, scrollPos.y + handleOffset);
         let mut handleSize = Vec2::new((*this.style).scrollBarSize.x, handleSizeY);
@@ -1070,7 +1045,7 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
         Input_GetMouseScroll(&mut scroll_0);
         (*data).scroll -= 10.0f32 * scroll_0.y as f32;
     }
-    (*data).scroll = Clamp((*data).scroll as f64, 0.0f32 as f64, scrollMax as f64) as f32;
+    (*data).scroll = f64::clamp((*data).scroll as f64, 0.0f32 as f64, scrollMax as f64) as f32;
 }
 
 #[no_mangle]

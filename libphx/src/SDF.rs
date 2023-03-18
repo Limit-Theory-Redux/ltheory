@@ -1,15 +1,12 @@
 use crate::internal::Memory::*;
 use crate::DataFormat::*;
 use crate::Mesh::*;
+use crate::PhxMath::*;
 use crate::PixelFormat::*;
 use crate::Tex3D::*;
 use glam::IVec3;
 use glam::Vec3;
 use libc;
-
-extern "C" {
-    fn sqrt(_: f64) -> f64;
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -23,22 +20,6 @@ pub struct SDF {
 pub struct Cell {
     pub value: f32,
     pub normal: Vec3,
-}
-
-#[inline]
-unsafe extern "C" fn Saturate(mut t: f64) -> f64 {
-    if t < 0.0f64 {
-        0.0f64
-    } else if t > 1.0f64 {
-        1.0f64
-    } else {
-        t
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
 }
 
 #[no_mangle]

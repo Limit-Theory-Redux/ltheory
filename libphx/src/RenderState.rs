@@ -18,15 +18,25 @@ pub type GLenum = u32;
 pub type GLboolean = libc::c_uchar;
 pub type PFNGLBLENDFUNCSEPARATEPROC =
     Option<unsafe extern "C" fn(GLenum, GLenum, GLenum, GLenum) -> ()>;
+
 static mut wireframe: [bool; 16] = [false; 16];
+
 static mut wireframeIndex: i32 = -1_i32;
+
 static mut depthTest: [bool; 16] = [false; 16];
+
 static mut depthTestIndex: i32 = -1_i32;
+
 static mut blendModeIndex: i32 = -1_i32;
+
 static mut blendMode: [BlendMode; 16] = [0; 16];
+
 static mut cullFace: [CullFace; 16] = [0; 16];
+
 static mut cullFaceIndex: i32 = -1_i32;
+
 static mut depthWritable: [bool; 16] = [false; 16];
+
 static mut depthWritableIndex: i32 = -1_i32;
 
 #[inline]

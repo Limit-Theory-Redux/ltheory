@@ -4,10 +4,6 @@ use crate::Mesh::*;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn sqrt(_: f64) -> f64;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct BoxMesh {
@@ -25,17 +21,6 @@ pub struct Box_0 {
     pub b: Vec3,
 }
 
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Clampf(mut t: f32, mut lower: f32, mut upper: f32) -> f32 {
-    t = if t > upper { upper } else { t };
-    t = if t < lower { lower } else { t };
-    t
-}
 static mut kFaceOrigin: [Vec3; 6] = [
     Vec3::new(-1.0f32, -1.0f32, 1.0f32),
     Vec3::new(-1.0f32, -1.0f32, -1.0f32),
@@ -44,6 +29,7 @@ static mut kFaceOrigin: [Vec3; 6] = [
     Vec3::new(-1.0f32, 1.0f32, -1.0f32),
     Vec3::new(-1.0f32, -1.0f32, -1.0f32),
 ];
+
 static mut kFaceU: [Vec3; 6] = [
     Vec3::new(2.0f32, 0.0f32, 0.0f32),
     Vec3::new(0.0f32, 2.0f32, 0.0f32),
@@ -52,6 +38,7 @@ static mut kFaceU: [Vec3; 6] = [
     Vec3::new(0.0f32, 0.0f32, 2.0f32),
     Vec3::new(2.0f32, 0.0f32, 0.0f32),
 ];
+
 static mut kFaceV: [Vec3; 6] = [
     Vec3::new(0.0f32, 2.0f32, 0.0f32),
     Vec3::new(2.0f32, 0.0f32, 0.0f32),

@@ -13,7 +13,6 @@ use memoffset::{offset_of, span_of};
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn sqrt(_: f64) -> f64;
     fn glBegin(mode: GLenum);
     fn glDrawElements(mode: GLenum, count: GLsizei, type_0: GLenum, indices: *const libc::c_void);
     fn glEnd();
@@ -79,42 +78,6 @@ pub type PFNGLBUFFERDATAPROC =
 pub type PFNGLGENBUFFERSPROC = Option<unsafe extern "C" fn(GLsizei, *mut GLu32) -> ()>;
 pub type GLfloat = f32;
 
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    sqrt(t)
-}
 
 #[inline]
 unsafe extern "C" fn Box3f_Center(mut this: Box3f) -> Vec3 {
@@ -161,10 +124,10 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
         let mut dx: f64 = ((*v_0).p.x - center.x) as f64;
         let mut dy: f64 = ((*v_0).p.y - center.y) as f64;
         let mut dz: f64 = ((*v_0).p.z - center.z) as f64;
-        r2 = Max(r2, dx * dx + dy * dy + dz * dz);
+        r2 = f64::max(r2, dx * dx + dy * dy + dz * dz);
         v_0 = v_0.offset(1);
     }
-    (*this).info.radius = Sqrt(r2) as f32;
+    (*this).info.radius = f64::sqrt(r2) as f32;
     (*this).versionInfo = (*this).version;
 }
 

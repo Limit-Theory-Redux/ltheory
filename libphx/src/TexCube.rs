@@ -20,7 +20,6 @@ use libc;
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn floor(_: f64) -> f64;
     fn glBindTexture(target: GLenum, texture: GLu32);
     fn glDeleteTextures(n: GLsizei, textures: *const GLu32);
     fn glGenTextures(n: GLsizei, textures: *mut GLu32);
@@ -76,28 +75,6 @@ pub struct Face {
     pub up: Vec3,
 }
 
-#[inline]
-unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    floor(t)
-}
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
 
 static mut kFaces: [Face; 6] = [
     Face {
@@ -131,6 +108,7 @@ static mut kFaces: [Face; 6] = [
         up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
     },
 ];
+
 static mut kFaceExt: [*const libc::c_char; 6] = [
     b"px\0" as *const u8 as *const libc::c_char,
     b"py\0" as *const u8 as *const libc::c_char,
@@ -447,11 +425,11 @@ pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mu
             ClipRect_Pop();
             j += jobSize;
             let mut elapsed: f64 = TimeStamp_GetElapsed(time);
-            jobSize = Max(
+            jobSize = f64::max(
                 1_f64,
-                Floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
+                f64::floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
             ) as i32;
-            jobSize = Min(jobSize as f64, (size - j + 1_i32) as f64) as i32;
+            jobSize = f64::min(jobSize as f64, (size - j + 1_i32) as f64) as i32;
         }
         RenderTarget_Pop();
         i += 1;

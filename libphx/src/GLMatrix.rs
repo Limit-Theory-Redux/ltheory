@@ -5,8 +5,6 @@ use glam::Vec3;
 use libc;
 
 extern "C" {
-    fn tan(_: f64) -> f64;
-    fn sqrt(_: f64) -> f64;
     fn glGetFloatv(pname: GLenum, params: *mut GLfloat);
     fn glGetIntegerv(pname: GLenum, params: *mut GLint);
     fn glLoadIdentity();
@@ -26,15 +24,6 @@ pub type GLfloat = f32;
 pub type GLenum = u32;
 pub type GLint = i32;
 
-#[inline]
-unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    sqrt(t)
-}
-
-#[inline]
-unsafe extern "C" fn Tan(mut t: f64) -> f64 {
-    tan(t)
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Clear() {
@@ -138,7 +127,7 @@ pub unsafe extern "C" fn GLMatrix_Perspective(
     mut z1: f64,
 ) {
     let mut rads: f64 = std::f32::consts::PI as f64 * fovy / 360.0f64;
-    let mut cot: f64 = 1.0f64 / Tan(rads);
+    let mut cot: f64 = 1.0f64 / f64::tan(rads);
     let mut dz: f64 = z1 - z0;
     let mut nf: f64 = -2.0f64 * (z0 * z1) / dz;
     let mut m: [f64; 16] = [

@@ -26,16 +26,16 @@ pub struct Node {
 unsafe extern "C" fn Box3f_IntersectsRay(mut this: Box3f, mut ro: Vec3, mut rdi: Vec3) -> bool {
     let mut t1: f64 = (rdi.x * (this.lower.x - ro.x)) as f64;
     let mut t2: f64 = (rdi.x * (this.upper.x - ro.x)) as f64;
-    let mut tMin: f64 = Min(t1, t2);
-    let mut tMax: f64 = Max(t1, t2);
+    let mut tMin: f64 = f64::min(t1, t2);
+    let mut tMax: f64 = f64::max(t1, t2);
     t1 = (rdi.y * (this.lower.y - ro.y)) as f64;
     t2 = (rdi.y * (this.upper.y - ro.y)) as f64;
-    tMin = Max(tMin, Min(t1, t2));
-    tMax = Min(tMax, Max(t1, t2));
+    tMin = f64::max(tMin, f64::min(t1, t2));
+    tMax = f64::min(tMax, f64::max(t1, t2));
     t1 = (rdi.z * (this.lower.z - ro.z)) as f64;
     t2 = (rdi.z * (this.upper.z - ro.z)) as f64;
-    tMin = Max(tMin, Min(t1, t2));
-    tMax = Min(tMax, Max(t1, t2));
+    tMin = f64::max(tMin, f64::min(t1, t2));
+    tMax = f64::min(tMax, f64::max(t1, t2));
     tMax >= tMin && tMax > 0_i32 as f64
 }
 
@@ -57,14 +57,14 @@ unsafe extern "C" fn Box3f_IntersectsBox(mut a: Box3f, mut b: Box3f) -> bool {
 unsafe extern "C" fn Box3f_Intersection(mut a: Box3f, mut b: Box3f) -> Box3f {
     let mut this: Box3f = Box3f {
         lower: Vec3 {
-            x: Maxf(a.lower.x, b.lower.x),
-            y: Maxf(a.lower.y, b.lower.y),
-            z: Maxf(a.lower.z, b.lower.z),
+            x: f32::max(a.lower.x, b.lower.x),
+            y: f32::max(a.lower.y, b.lower.y),
+            z: f32::max(a.lower.z, b.lower.z),
         },
         upper: Vec3 {
-            x: Minf(a.upper.x, b.upper.x),
-            y: Minf(a.upper.y, b.upper.y),
-            z: Minf(a.upper.z, b.upper.z),
+            x: f32::min(a.upper.x, b.upper.x),
+            y: f32::min(a.upper.y, b.upper.y),
+            z: f32::min(a.upper.z, b.upper.z),
         },
     };
     this
@@ -87,42 +87,6 @@ unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
         upper: upper,
     };
     result
-}
-
-#[inline]
-unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b {
-        a
-    } else {
-        b
-    }
 }
 
 #[no_mangle]
@@ -227,7 +191,7 @@ pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> i32 {
     let mut i: i32 = 0_i32;
     while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
-            load = Max(
+            load = f64::max(
                 load as f64,
                 Octree_GetMaxLoad((*this).child[i as usize]) as f64,
             ) as i32;

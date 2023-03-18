@@ -27,6 +27,7 @@ pub struct VP {
     pub isWindow: bool,
 }
 static mut vpIndex: i32 = -1_i32;
+
 static mut vp: [VP; 16] = [VP {
     x: 0,
     y: 0,

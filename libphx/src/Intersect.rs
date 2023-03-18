@@ -7,10 +7,6 @@ use crate::Triangle::*;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn fabs(_: f64) -> f64;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -18,25 +14,6 @@ pub struct Vec4f {
     pub y: f32,
     pub z: f32,
     pub w: f32,
-}
-
-#[inline]
-unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    fabs(t)
-}
-
-#[inline]
-unsafe extern "C" fn Absf(mut t: f32) -> f32 {
-    fabs(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
 }
 
 #[no_mangle]
@@ -206,7 +183,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
     let mut edge2: Vec3 = *vt.offset(2) - *vt.offset(0);
     let mut pvec: Vec3 = Vec3::cross((*ray).dir, edge2);
     let mut det: f32 = Vec3::dot(edge1, pvec);
-    if Abs(det as f64) < 0.000001f32 as f64 {
+    if f32::abs(det) < 0.000001f32 {
         return false;
     }
     let mut inv_det: f32 = 1.0f32 / det;
@@ -245,16 +222,16 @@ pub unsafe extern "C" fn Intersect_LineSegmentPlane(
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RectRect(mut a: *const Vec4f, mut b: *const Vec4f) -> bool {
     let mut a2: Vec4f = Vec4f {
-        x: (*a).x + Minf((*a).z, 0.0f32),
-        y: (*a).y + Minf((*a).w, 0.0f32),
-        z: Absf((*a).z),
-        w: Absf((*a).w),
+        x: (*a).x + f32::min((*a).z, 0.0f32),
+        y: (*a).y + f32::min((*a).w, 0.0f32),
+        z: f32::abs((*a).z),
+        w: f32::abs((*a).w),
     };
     let mut b2: Vec4f = Vec4f {
-        x: (*b).x + Minf((*b).z, 0.0f32),
-        y: (*b).y + Minf((*b).w, 0.0f32),
-        z: Absf((*b).z),
-        w: Absf((*b).w),
+        x: (*b).x + f32::min((*b).z, 0.0f32),
+        y: (*b).y + f32::min((*b).w, 0.0f32),
+        z: f32::abs((*b).z),
+        w: f32::abs((*b).w),
     };
     Intersect_RectRectFast(&mut a2, &mut b2)
 }

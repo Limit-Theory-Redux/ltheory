@@ -5,7 +5,9 @@ use libc;
 use sdl2_sys::*;
 
 static mut lastAction: u64 = 0;
+
 static mut stateLast: *mut libc::c_uchar = std::ptr::null_mut();
+
 static mut stateCurr: *mut libc::c_uchar = std::ptr::null_mut();
 
 #[no_mangle]

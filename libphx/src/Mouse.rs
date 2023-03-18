@@ -14,7 +14,9 @@ pub static mut lastY: i32 = 0;
 
 #[no_mangle]
 pub static mut lastState: u32 = 0;
+
 static mut lastAction: u64 = 0;
+
 static mut scrollAmount: i32 = 0;
 
 #[no_mangle]

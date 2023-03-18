@@ -6,8 +6,6 @@ use libc;
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
-    fn fabs(_: f64) -> f64;
-    fn sqrt(_: f64) -> f64;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 
@@ -20,16 +18,6 @@ pub struct Plane {
 
 pub type PointClassification = u8;
 pub type PolygonClassification = u8;
-
-#[inline]
-unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    fabs(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
 
 #[inline]
 unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
@@ -64,7 +52,7 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
     mut plane: *mut Plane,
     mut p: *mut Vec3,
 ) -> PointClassification {
-    let mut _magnitude: f32 = Abs((1.0f32 - (*plane).n.length()) as f64) as f32;
+    let mut _magnitude: f32 = f64::abs((1.0f32 - (*plane).n.length()) as f64) as f32;
     let mut dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
     if dist as f64 > 1e-4f64 {
         1_i32 as PointClassification

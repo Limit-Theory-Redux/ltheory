@@ -14,26 +14,11 @@ use glam::Vec2;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn atan2(_: f64, _: f64) -> f64;
-    fn sqrt(_: f64) -> f64;
-}
-
 pub type CubeFace = i32;
 pub type DataFormat = i32;
 pub type PixelFormat = i32;
 pub type TexFilter = i32;
 pub type TexFormat = i32;
-
-#[inline]
-unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    sqrt(t)
-}
-
-#[inline]
-unsafe extern "C" fn Atan2(mut y: f64, mut x: f64) -> f64 {
-    atan2(y, x)
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GenIRMap(
@@ -120,7 +105,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         while i_1 < sampleCount {
             let mut e1: f64 = RNG_GetUniform(rng);
             let mut e2: f64 = RNG_GetUniform(rng);
-            let mut pitch: f64 = Atan2(ggxWidth * Sqrt(e1), Sqrt(1.0f64 - e1));
+            let mut pitch: f64 = f64::atan2(ggxWidth * f64::sqrt(e1), f64::sqrt(1.0f64 - e1));
             let mut yaw: f64 = std::f64::consts::TAU * e2;
             *sampleBuffer.offset(i_1 as isize) = Vec2::new(pitch as f32, yaw as f32);
             i_1 += 1;

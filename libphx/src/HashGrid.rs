@@ -5,10 +5,6 @@ use crate::Profiler::*;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn floor(_: f64) -> f64;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HashGrid {
@@ -41,10 +37,6 @@ pub struct HashGridElem {
     pub upper: [i32; 3],
 }
 
-#[inline]
-unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    floor(t)
-}
 
 #[inline]
 unsafe extern "C" fn Maxi(mut a: i32, mut b: i32) -> i32 {
@@ -200,7 +192,7 @@ unsafe extern "C" fn HashGrid_RemoveElem(mut this: *mut HashGrid, mut elem: *mut
 
 #[inline]
 unsafe extern "C" fn HashGrid_ToLocal(mut this: *mut HashGrid, mut x: f32) -> i32 {
-    Floor((x / (*this).cellSize) as f64) as i32
+    f64::floor((x / (*this).cellSize) as f64) as i32
 }
 
 #[no_mangle]

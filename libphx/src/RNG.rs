@@ -5,15 +5,6 @@ use glam::Vec2;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn cos(_: f64) -> f64;
-    fn sin(_: f64) -> f64;
-    fn log(_: f64) -> f64;
-    fn ldexp(_: f64, _: i32) -> f64;
-    fn sqrt(_: f64) -> f64;
-    fn floor(_: f64) -> f64;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct RNG {
@@ -39,45 +30,6 @@ pub struct Vec4f {
     pub w: f32,
 }
 pub type TimeStamp = u64;
-
-#[inline]
-unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    floor(t)
-}
-
-#[inline]
-unsafe extern "C" fn Log(mut t: f64) -> f64 {
-    log(t)
-}
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Round(mut t: f64) -> f64 {
-    Floor(t + 0.5f64)
-}
-
-#[inline]
-unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    sqrt(t)
-}
-
-#[inline]
-unsafe extern "C" fn Cos(mut t: f64) -> f64 {
-    cos(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sin(mut t: f64) -> f64 {
-    sin(t)
-}
 
 #[inline]
 unsafe extern "C" fn Random_SplitMix64(mut state: *mut u64) -> u64 {
@@ -195,7 +147,7 @@ pub unsafe extern "C" fn RNG_GetAngle(mut this: *mut RNG) -> f64 {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetInt(mut this: *mut RNG, mut lower: i32, mut upper: i32) -> i32 {
     let mut t: f64 = RNG_GetUniform(this);
-    Round(lower as f64 + t * (upper - lower) as f64) as i32
+    f64::round(lower as f64 + t * (upper - lower) as f64) as i32
 }
 
 #[no_mangle]
@@ -205,7 +157,7 @@ pub unsafe extern "C" fn RNG_GetRNG(mut this: *mut RNG) -> *mut RNG {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetUniform(mut this: *mut RNG) -> f64 {
-    ldexp(RNG_Next32(this) as f64, -32_i32)
+    RNG_Next32(this) as f64 * f64::exp2(-32_f64)
 }
 
 #[no_mangle]
@@ -214,7 +166,7 @@ pub unsafe extern "C" fn RNG_GetUniformRange(
     mut lower: f64,
     mut upper: f64,
 ) -> f64 {
-    let mut t: f64 = ldexp(RNG_Next32(this) as f64, -32_i32);
+    let mut t: f64 = RNG_Next32(this) as f64 * f64::exp2(-32_f64);
     lower + t * (upper - lower)
 }
 
@@ -231,9 +183,9 @@ pub unsafe extern "C" fn RNG_GetErlang(mut this: *mut RNG, mut k: i32) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetExp(mut this: *mut RNG) -> f64 {
-    -Log(Max(
+    -f64::ln(f64::max(
         1.0f64 - RNG_GetUniform(this),
-        2.2204460492503131e-16f64,
+        f64::EPSILON,
     ))
 }
 
@@ -241,7 +193,7 @@ pub unsafe extern "C" fn RNG_GetExp(mut this: *mut RNG) -> f64 {
 pub unsafe extern "C" fn RNG_GetGaussian(mut this: *mut RNG) -> f64 {
     let mut angle: f64 = RNG_GetAngle(this);
     let mut radius: f64 = 1.0f64 - RNG_GetUniform(this);
-    Cos(angle) * Sqrt(-2.0f64 * Log(radius))
+    f64::cos(angle) * f64::sqrt(-2.0f64 * f64::ln(radius))
 }
 
 #[no_mangle]
@@ -295,7 +247,7 @@ pub unsafe extern "C" fn RNG_GetAxis3(mut this: *mut RNG, mut out: *mut Vec3) {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetDir2(mut this: *mut RNG, mut out: *mut Vec2) {
     let mut angle: f64 = RNG_GetAngle(this);
-    *out = Vec2::new(Cos(angle) as f32, Sin(angle) as f32);
+    *out = Vec2::new(f64::cos(angle) as f32, f64::sin(angle) as f32);
 }
 
 #[no_mangle]
@@ -306,7 +258,7 @@ pub unsafe extern "C" fn RNG_GetDir3(mut this: *mut RNG, mut out: *mut Vec3) {
         let mut z: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         let mut m2: f64 = x * x + y * y + z * z;
         if m2 <= 1.0f64 && m2 > 1e-6f64 {
-            m2 = Sqrt(m2);
+            m2 = f64::sqrt(m2);
             (*out).x = (x / m2) as f32;
             (*out).y = (y / m2) as f32;
             (*out).z = (z / m2) as f32;
@@ -395,8 +347,8 @@ pub unsafe extern "C" fn RNG_GetQuat(mut this: *mut RNG, mut out: *mut Quat) {
     RNG_GetDisc(this, &mut p0);
     RNG_GetDisc(this, &mut p1);
     let mut d0 = p0.length_squared() as f64;
-    let mut d1 = p1.length_squared() as f64 + 2.2204460492503131e-16f64;
-    let mut s = Sqrt((1.0f64 - d0) / d1);
+    let mut d1 = p1.length_squared() as f64 + f64::EPSILON;
+    let mut s = f64::sqrt((1.0f64 - d0) / d1);
     (*out).x = p0.y;
     (*out).y = (p1.x as f64 * s) as f32;
     (*out).z = (p1.y as f64 * s) as f32;

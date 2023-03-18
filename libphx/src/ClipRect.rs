@@ -32,31 +32,15 @@ pub struct ClipRectTransform {
     pub sx: f32,
     pub sy: f32,
 }
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
 static mut transform: [ClipRectTransform; 128] = [ClipRectTransform {
     tx: 0.,
     ty: 0.,
     sx: 0.,
     sy: 0.,
 }; 128];
+
 static mut transformIndex: i32 = -1_i32;
+
 static mut rect: [ClipRect; 128] = [ClipRect {
     x: 0.,
     y: 0.,
@@ -64,6 +48,7 @@ static mut rect: [ClipRect; 128] = [ClipRect {
     sy: 0.,
     enabled: false,
 }; 128];
+
 static mut rectIndex: i32 = -1_i32;
 
 #[inline]
@@ -121,13 +106,13 @@ pub unsafe extern "C" fn ClipRect_PushCombined(mut x: f32, mut y: f32, mut sx: f
     if rectIndex >= 0_i32 && (*curr).enabled as i32 != 0 {
         let mut maxX: f32 = x + sx;
         let mut maxY: f32 = y + sy;
-        x = Max(x as f64, (*curr).x as f64) as f32;
-        y = Max(y as f64, (*curr).y as f64) as f32;
+        x = f64::max(x as f64, (*curr).x as f64) as f32;
+        y = f64::max(y as f64, (*curr).y as f64) as f32;
         ClipRect_Push(
             x,
             y,
-            (Min(maxX as f64, ((*curr).x + (*curr).sx) as f64) - x as f64) as f32,
-            (Min(maxY as f64, ((*curr).y + (*curr).sy) as f64) - y as f64) as f32,
+            (f64::min(maxX as f64, ((*curr).x + (*curr).sx) as f64) - x as f64) as f32,
+            (f64::min(maxY as f64, ((*curr).y + (*curr).sy) as f64) - y as f64) as f32,
         );
     } else {
         ClipRect_Push(x, y, sx, sy);

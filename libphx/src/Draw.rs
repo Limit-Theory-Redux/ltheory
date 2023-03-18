@@ -7,10 +7,6 @@ use libc;
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
     fn Warn(_: *const libc::c_char, _: ...);
-    fn cos(_: f64) -> f64;
-    fn sin(_: f64) -> f64;
-    fn fabs(_: f64) -> f64;
-    fn sqrt(_: f64) -> f64;
     fn glBegin(mode: GLenum);
     fn glClear(mask: GLbitfield);
     fn glClearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf);
@@ -46,26 +42,6 @@ pub type GLclampd = f64;
 pub type GLfloat = f32;
 
 #[inline]
-unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    fabs(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Cos(mut t: f64) -> f64 {
-    cos(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sin(mut t: f64) -> f64 {
-    sin(t)
-}
-
-#[inline]
 unsafe extern "C" fn Vec3_Reject(mut a: Vec3, mut b: Vec3) -> Vec3 {
     let mut d: f32 = Vec3::dot(a, b);
     let mut this: Vec3 = Vec3 {
@@ -87,7 +63,9 @@ unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32
     this
 }
 static mut alphaStack: [f32; 16] = [0.; 16];
+
 static mut alphaIndex: i32 = -1_i32;
+
 static mut color: Vec4f = Vec4f {
     x: 1.0f32,
     y: 1.0f32,
@@ -261,7 +239,7 @@ pub unsafe extern "C" fn Draw_LineWidth(mut width: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Plane(mut p: *const Vec3, mut n: *const Vec3, mut scale: f32) {
-    let mut e1: Vec3 = if Abs((*n).x as f64) < 0.7f32 as f64 {
+    let mut e1: Vec3 = if f64::abs((*n).x as f64) < 0.7f32 as f64 {
         Vec3::new(1.0f32, 0.0f32, 0.0f32)
     } else {
         Vec3::new(0.0f32, 1.0f32, 0.0f32)
@@ -413,9 +391,9 @@ pub unsafe extern "C" fn Draw_SmoothPoints(mut enabled: bool) {
 #[inline]
 unsafe extern "C" fn Spherical(mut r: f32, mut yaw: f32, mut pitch: f32) -> Vec3 {
     Vec3::new(
-        (r as f64 * Sin(pitch as f64) * Cos(yaw as f64)) as f32,
-        (r as f64 * Cos(pitch as f64)) as f32,
-        (r as f64 * Sin(pitch as f64) * Sin(yaw as f64)) as f32,
+        (r as f64 * f64::sin(pitch as f64) * f64::cos(yaw as f64)) as f32,
+        (r as f64 * f64::cos(pitch as f64)) as f32,
+        (r as f64 * f64::sin(pitch as f64) * f64::sin(yaw as f64)) as f32,
     )
 }
 

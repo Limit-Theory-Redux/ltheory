@@ -9,8 +9,6 @@ use libc;
 
 extern "C" {
     pub type lua_State;
-    fn pow(_: f64, _: f64) -> f64;
-    fn sqrt(_: f64) -> f64;
 }
 
 #[derive(Copy, Clone)]
@@ -86,23 +84,6 @@ pub struct InputBindings {
     pub downBindings_data: *mut DownBinding,
 }
 
-#[inline]
-unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
-    pow(t, p)
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
-    t = if t > upper { upper } else { t };
-    t = if t < lower { lower } else { t };
-    t
-}
-
 #[no_mangle]
 pub static InputBindings_DefaultMaxValue: f32 = 0.;
 
@@ -122,6 +103,7 @@ pub static InputBindings_DefaultReleaseThreshold: f32 = 0.;
 pub static InputBindings_DefaultPressThreshold: f32 = 0.;
 
 static mut BindCount: i32 = 4_i32;
+
 static mut this: InputBindings = InputBindings {
     activeBindings_size: 0_i32,
     activeBindings_capacity: 0,
@@ -192,8 +174,8 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
             iBind += 1;
         }
         *axisValue = (*axisValue - (*binding).deadzone) / (1.0f32 - (*binding).deadzone);
-        *axisValue = Pow(*axisValue as f64, (*binding).exponent as f64) as f32;
-        *axisValue = Clamp(
+        *axisValue = f64::powf(*axisValue as f64, (*binding).exponent as f64) as f32;
+        *axisValue = f64::clamp(
             *axisValue as f64,
             (*binding).minValue as f64,
             (*binding).maxValue as f64,
@@ -370,10 +352,15 @@ pub unsafe extern "C" fn InputBindings_Update() {
     }
 }
 static mut iXPos: i32 = 0_i32;
+
 static mut iXNeg: i32 = 1_i32;
+
 static mut iYPos: i32 = 2_i32;
+
 static mut iYNeg: i32 = 3_i32;
+
 static mut iX: i32 = 0_i32;
+
 static mut iY: i32 = 1_i32;
 
 #[inline]

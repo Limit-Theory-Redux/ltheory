@@ -8,7 +8,6 @@ use std::io::{self, Write};
 
 extern "C" {
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn sqrt(_: f64) -> f64;
 }
 
 pub type TimeStamp = u64;
@@ -41,28 +40,6 @@ pub struct Profiler {
     pub start: TimeStamp,
 }
 
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    sqrt(t)
-}
 
 static mut this: Profiler = Profiler {
     map: std::ptr::null_mut(),
@@ -73,6 +50,7 @@ static mut this: Profiler = Profiler {
     scopeList_data: std::ptr::null_mut(),
     start: 0,
 };
+
 static mut profiling: bool = false;
 unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
     let mut scope: *mut Scope = MemAlloc(::core::mem::size_of::<Scope>()) as *mut Scope;
@@ -179,7 +157,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     while i < this.scopeList_size {
         let mut scope: *mut Scope = *(this.scopeList_data).offset(i as isize);
         (*scope).var /= (*scope).count - 1.0f64;
-        (*scope).var = Sqrt((*scope).var);
+        (*scope).var = f64::sqrt((*scope).var);
         i += 1;
     }
     libc::qsort(
@@ -301,8 +279,8 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
         if (*scope).frame as f64 > 0.0f64 {
             (*scope).total = (*scope).total.wrapping_add((*scope).frame) as TimeStamp as TimeStamp;
             let mut frame: f64 = TimeStamp_ToDouble((*scope).frame);
-            (*scope).min = Min((*scope).min, frame);
-            (*scope).max = Max((*scope).max, frame);
+            (*scope).min = f64::min((*scope).min, frame);
+            (*scope).max = f64::max((*scope).max, frame);
             (*scope).count += 1.0f64;
             let mut d1: f64 = frame - (*scope).mean;
             (*scope).mean += d1 / (*scope).count;

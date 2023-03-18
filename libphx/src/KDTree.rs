@@ -24,24 +24,6 @@ pub struct Node {
 }
 
 #[inline]
-unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
 unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
     let mut result: Box3f = Box3f {
         lower: lower,
@@ -54,14 +36,14 @@ unsafe extern "C" fn Box3f_Create(mut lower: Vec3, mut upper: Vec3) -> Box3f {
 unsafe extern "C" fn Box3f_Union(mut a: Box3f, mut b: Box3f) -> Box3f {
     let mut this: Box3f = Box3f {
         lower: Vec3 {
-            x: Minf(a.lower.x, b.lower.x),
-            y: Minf(a.lower.y, b.lower.y),
-            z: Minf(a.lower.z, b.lower.z),
+            x: f32::min(a.lower.x, b.lower.x),
+            y: f32::min(a.lower.y, b.lower.y),
+            z: f32::min(a.lower.z, b.lower.z),
         },
         upper: Vec3 {
-            x: Maxf(a.upper.x, b.upper.x),
-            y: Maxf(a.upper.y, b.upper.y),
-            z: Maxf(a.upper.z, b.upper.z),
+            x: f32::max(a.upper.x, b.upper.x),
+            y: f32::max(a.upper.y, b.upper.y),
+            z: f32::max(a.upper.z, b.upper.z),
         },
     };
     this

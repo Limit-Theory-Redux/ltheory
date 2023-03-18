@@ -13,14 +13,14 @@
 //
 //     /*
 //
-// #define Vec2_Abs(T, prefix) inline T T##_Abs(T v) { \
+// #define Vec2_Abs(T, prefix) inline T T##_f64::abs(T v) { \
 //   T self = { Abs##prefix(v.x), Abs##prefix(v.y) }; return self; }
 //
 // Vec2_Abs(IVec2, i)
 // Vec2_Abs(Vec2, f)
 // Vec2_Abs(Vec2d,)
 //
-// #define Vec2_IAbs(T, prefix) inline void T##_IAbs(T* v) { \
+// #define Vec2_IAbs(T, prefix) inline void T##_If64::abs(T* v) { \
 //   v->x = Abs##prefix(v->x); v->y = Abs##prefix(v->y); }
 //
 // Vec2_IAbs(IVec2, i)

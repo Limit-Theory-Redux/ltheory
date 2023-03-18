@@ -6,7 +6,6 @@ use libc;
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
-    fn sqrt(_: f64) -> f64;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 
@@ -14,20 +13,6 @@ extern "C" {
 #[repr(C)]
 pub struct Triangle {
     pub vertices: [Vec3; 3],
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b {
-        a
-    } else {
-        b
-    }
 }
 
 #[no_mangle]
@@ -84,7 +69,7 @@ pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     let mut e01 = (*v.offset(0)).distance(*v.offset(1));
     let mut e12 = (*v.offset(1)).distance(*v.offset(2));
     let mut e20 = (*v.offset(2)).distance(*v.offset(0));
-    let mut shortest: f32 = Min(Min(e01 as f64, e12 as f64), e20 as f64) as f32;
+    let mut shortest: f32 = f64::min(f64::min(e01 as f64, e12 as f64), e20 as f64) as f32;
     if (shortest as f64) < 0.75f32 as f64 * 1e-4f64 {
         return (0x400000_i32 | 0x8_i32) as Error;
     }

@@ -3,14 +3,6 @@ use crate::Quat::*;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn cos(_: f64) -> f64;
-    fn sin(_: f64) -> f64;
-    fn tan(_: f64) -> f64;
-    fn fabs(_: f64) -> f64;
-    fn sqrt(_: f64) -> f64;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Matrix {
@@ -27,51 +19,8 @@ pub struct Vec4f {
 }
 
 #[inline]
-unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    fabs(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Maxf(mut a: f32, mut b: f32) -> f32 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Minf(mut a: f32, mut b: f32) -> f32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Cos(mut t: f64) -> f64 {
-    cos(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sin(mut t: f64) -> f64 {
-    sin(t)
-}
-
-#[inline]
-unsafe extern "C" fn Tan(mut t: f64) -> f64 {
-    tan(t)
-}
-
-#[inline]
 unsafe extern "C" fn Float_ApproximatelyEqual(mut x: f64, mut y: f64) -> bool {
-    Abs(x - y) < 1e-3f64
+    f64::abs(x - y) < 1e-3f64
 }
 
 #[no_mangle]
@@ -390,7 +339,7 @@ pub unsafe extern "C" fn Matrix_Perspective(
     mut F: f32,
 ) -> *mut Matrix {
     let mut rads: f64 = (std::f32::consts::PI * degreesFovy) as f64 / 360.0f64;
-    let mut cot: f64 = 1.0f64 / Tan(rads);
+    let mut cot: f64 = 1.0f64 / f64::tan(rads);
     let mut result: Matrix = Matrix {
         m: [
             (cot / aspect as f64) as f32,
@@ -440,8 +389,8 @@ pub unsafe extern "C" fn Matrix_Product(mut a: *const Matrix, mut b: *const Matr
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_RotationX(mut rads: f32) -> *mut Matrix {
-    let mut c: f32 = Cos(rads as f64) as f32;
-    let mut s: f32 = Sin(rads as f64) as f32;
+    let mut c: f32 = f64::cos(rads as f64) as f32;
+    let mut s: f32 = f64::sin(rads as f64) as f32;
     let mut result: Matrix = Matrix {
         m: [
             1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, c, -s, 0.0f32, 0.0f32, s, c, 0.0f32, 0.0f32,
@@ -453,8 +402,8 @@ pub unsafe extern "C" fn Matrix_RotationX(mut rads: f32) -> *mut Matrix {
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_RotationY(mut rads: f32) -> *mut Matrix {
-    let mut c: f32 = Cos(rads as f64) as f32;
-    let mut s: f32 = Sin(rads as f64) as f32;
+    let mut c: f32 = f64::cos(rads as f64) as f32;
+    let mut s: f32 = f64::sin(rads as f64) as f32;
     let mut result: Matrix = Matrix {
         m: [
             c, 0.0f32, s, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, -s, 0.0f32, c, 0.0f32, 0.0f32,
@@ -466,8 +415,8 @@ pub unsafe extern "C" fn Matrix_RotationY(mut rads: f32) -> *mut Matrix {
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_RotationZ(mut rads: f32) -> *mut Matrix {
-    let mut c: f32 = Cos(rads as f64) as f32;
-    let mut s: f32 = Sin(rads as f64) as f32;
+    let mut c: f32 = f64::cos(rads as f64) as f32;
+    let mut s: f32 = f64::sin(rads as f64) as f32;
     let mut result: Matrix = Matrix {
         m: [
             c, -s, 0.0f32, 0.0f32, s, c, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32,
@@ -529,12 +478,12 @@ pub unsafe extern "C" fn Matrix_YawPitchRoll(
     mut pitch: f32,
     mut roll: f32,
 ) -> *mut Matrix {
-    let mut ca: f32 = Cos(roll as f64) as f32;
-    let mut sa: f32 = Sin(roll as f64) as f32;
-    let mut cb: f32 = Cos(yaw as f64) as f32;
-    let mut sb: f32 = Sin(yaw as f64) as f32;
-    let mut cy: f32 = Cos(pitch as f64) as f32;
-    let mut sy: f32 = Sin(pitch as f64) as f32;
+    let mut ca: f32 = f64::cos(roll as f64) as f32;
+    let mut sa: f32 = f64::sin(roll as f64) as f32;
+    let mut cb: f32 = f64::cos(yaw as f64) as f32;
+    let mut sb: f32 = f64::sin(yaw as f64) as f32;
+    let mut cy: f32 = f64::cos(pitch as f64) as f32;
+    let mut sy: f32 = f64::sin(pitch as f64) as f32;
     let mut result: Matrix = Matrix {
         m: [
             ca * cb,

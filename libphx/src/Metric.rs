@@ -3,6 +3,7 @@ use glam::Vec3;
 use libc;
 
 pub type Metric = i32;
+
 static mut valueCurr: [i32; 8] = [0_i32, 0, 0, 0, 0, 0, 0, 0];
 
 #[no_mangle]

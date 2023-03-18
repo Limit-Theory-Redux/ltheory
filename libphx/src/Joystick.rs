@@ -8,7 +8,6 @@ use sdl2_sys::*;
 extern "C" {
     pub type _SDL_Joystick;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn fabs(_: f64) -> f64;
 }
 
 #[derive(Copy, Clone)]
@@ -26,13 +25,10 @@ pub struct Joystick {
     pub lastUsed: TimeStamp,
 }
 
-#[inline]
-unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    fabs(t)
-}
-
 static mut kMaxOpen: i32 = 64_i32;
+
 static mut kOpen: i32 = 0_i32;
+
 static mut freeList: [*mut Joystick; 64] = [
     std::ptr::null_mut(),
     std::ptr::null_mut(),
@@ -114,7 +110,7 @@ unsafe extern "C" fn Joystick_UpdateSingle(mut this: *mut Joystick) {
     let mut i: i32 = 0_i32;
     while i < (*this).axes {
         let mut state: f64 = Joystick_GetAxis(this, i);
-        let mut delta: f64 = Abs(state - *((*this).axisStates).offset(i as isize));
+        let mut delta: f64 = f64::abs(state - *((*this).axisStates).offset(i as isize));
         if delta > 0.1f64 {
             changed = true;
             *((*this).axisAlive).offset(i as isize) = true;

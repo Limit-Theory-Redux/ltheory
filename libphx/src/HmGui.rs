@@ -126,33 +126,8 @@ pub struct HmGuiRect {
 }
 
 #[inline]
-unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
-    t = if t > upper { upper } else { t };
-    t = if t < lower { lower } else { t };
-    t
-}
-
-#[inline]
 unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
     a + t * (b - a)
-}
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b {
-        a
-    } else {
-        b
-    }
 }
 
 #[inline]
@@ -177,6 +152,7 @@ static mut this: HmGui = HmGui {
     focusPos: Vec2::ZERO,
     activate: false,
 };
+
 static mut init_hmgui: bool = false;
 unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: u32) {
     (*e).parent = this.group;
@@ -303,13 +279,13 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
         match (*g).layout {
             1 => {
                 (*g).widget.minSize.x =
-                    Max((*g).widget.minSize.x as f64, (*e_0).minSize.x as f64) as f32;
+                    f64::max((*g).widget.minSize.x as f64, (*e_0).minSize.x as f64) as f32;
                 (*g).widget.minSize.y =
-                    Max((*g).widget.minSize.y as f64, (*e_0).minSize.y as f64) as f32;
+                    f64::max((*g).widget.minSize.y as f64, (*e_0).minSize.y as f64) as f32;
             }
             2 => {
                 (*g).widget.minSize.x =
-                    Max((*g).widget.minSize.x as f64, (*e_0).minSize.x as f64) as f32;
+                    f64::max((*g).widget.minSize.x as f64, (*e_0).minSize.x as f64) as f32;
                 (*g).widget.minSize.y += (*e_0).minSize.y;
                 if e_0 != (*g).head {
                     (*g).widget.minSize.y += (*g).spacing;
@@ -318,7 +294,7 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
             3 => {
                 (*g).widget.minSize.x += (*e_0).minSize.x;
                 (*g).widget.minSize.y =
-                    Max((*g).widget.minSize.y as f64, (*e_0).minSize.y as f64) as f32;
+                    f64::max((*g).widget.minSize.y as f64, (*e_0).minSize.y as f64) as f32;
                 if e_0 != (*g).head {
                     (*g).widget.minSize.x += (*g).spacing;
                 }
@@ -333,8 +309,8 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
         let mut data: *mut HmGuiData = HmGui_GetData(g);
         (*data).minSize = (*g).widget.minSize;
     }
-    (*g).widget.minSize.x = Min((*g).widget.minSize.x as f64, (*g).maxSize.x as f64) as f32;
-    (*g).widget.minSize.y = Min((*g).widget.minSize.y as f64, (*g).maxSize.y as f64) as f32;
+    (*g).widget.minSize.x = f64::min((*g).widget.minSize.x as f64, (*g).maxSize.x as f64) as f32;
+    (*g).widget.minSize.y = f64::min((*g).widget.minSize.y as f64, (*g).maxSize.y as f64) as f32;
 }
 
 unsafe extern "C" fn HmGui_LayoutWidget(
@@ -709,8 +685,8 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
         Input_GetMouseScroll(&mut scroll);
         (*data).offset.y -= 10.0f32 * scroll.y as f32;
     }
-    let mut maxScroll: f32 = Max(0.0f32 as f64, ((*data).minSize.y - (*data).size.y) as f64) as f32;
-    (*data).offset.y = Clamp((*data).offset.y as f64, 0.0f32 as f64, maxScroll as f64) as f32;
+    let mut maxScroll: f32 = f64::max(0.0f32 as f64, ((*data).minSize.y - (*data).size.y) as f64) as f32;
+    (*data).offset.y = f64::clamp((*data).offset.y as f64, 0.0f32 as f64, maxScroll as f64) as f32;
     HmGui_EndGroup();
     HmGui_BeginGroupY();
     HmGui_SetStretch(0.0f32, 1.0f32);

@@ -13,12 +13,6 @@ use glam::Vec2;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn fabs(_: f64) -> f64;
-    fn sqrt(_: f64) -> f64;
-    fn ceil(_: f64) -> f64;
-}
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Vec4f {
@@ -30,35 +24,6 @@ pub struct Vec4f {
 pub type DataFormat = i32;
 pub type PixelFormat = i32;
 pub type TexFormat = i32;
-
-#[inline]
-unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    fabs(t)
-}
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Ceil(mut t: f64) -> f64 {
-    ceil(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    sqrt(t)
-}
 
 #[inline]
 unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
@@ -77,11 +42,11 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut indexData: *mut i32 = Mesh_GetIndexData(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    let mut sDim: i32 = Ceil(Sqrt((indexCount / 3_i32) as f64)) as i32;
-    let mut vDim: i32 = Ceil(Sqrt(vertexCount as f64)) as i32;
+    let mut sDim: i32 = f64::ceil(f64::sqrt((indexCount / 3_i32) as f64)) as i32;
+    let mut vDim: i32 = f64::ceil(f64::sqrt(vertexCount as f64)) as i32;
     let mut surfels: i32 = sDim * sDim;
     let mut vertices: i32 = vDim * vDim;
-    let mut bufSize: i32 = Max(surfels as f64, vertices as f64) as i32;
+    let mut bufSize: i32 = f64::max(surfels as f64, vertices as f64) as i32;
     let mut pointBuffer: *mut Vec4f =
         MemAlloc((::core::mem::size_of::<Vec4f>()).wrapping_mul(bufSize as usize)) as *mut Vec4f;
     let mut normalBuffer: *mut Vec4f =
@@ -105,7 +70,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
         let mut normal: Vec3 = Vec3::cross((*v3).p - (*v1).p, (*v2).p - (*v1).p);
         let mut length: f32 = normal.length();
         let mut area: f32 = 0.5f32 * length / std::f32::consts::PI;
-        if Abs(length as f64) > 1e-6f64 {
+        if f64::abs(length as f64) > 1e-6f64 {
             normal /= length;
         } else {
             normal = Vec3::new(1.0f32, 0.0f32, 0.0f32);
@@ -224,7 +189,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
 ) {
     let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    let mut vDim: i32 = Ceil(Sqrt(vertexCount as f64)) as i32;
+    let mut vDim: i32 = f64::ceil(f64::sqrt(vertexCount as f64)) as i32;
     let mut texPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
     let mut pointBuffer: *mut Vec3 =

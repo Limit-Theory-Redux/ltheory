@@ -120,10 +120,13 @@ pub type PFNGLUSEPROGRAMPROC = Option<unsafe extern "C" fn(GLu32) -> ()>;
 pub type va_list = __builtin_va_list;
 
 static mut includePath: *const libc::c_char = b"include/\0" as *const u8 as *const libc::c_char;
+
 static mut versionString: *const libc::c_char =
     b"#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n\0"
         as *const u8 as *const libc::c_char;
+
 static mut current: *mut Shader = std::ptr::null_mut();
+
 static mut cache: *mut StrMap = std::ptr::null_mut();
 unsafe extern "C" fn GetUniformIndex(mut this: *mut Shader, mut name: *const libc::c_char) -> i32 {
     if this.is_null() {

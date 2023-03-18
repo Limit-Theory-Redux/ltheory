@@ -2,50 +2,14 @@ use crate::internal::Memory::*;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn exp(_: f64) -> f64;
-    fn fabs(_: f64) -> f64;
-    fn pow(_: f64, _: f64) -> f64;
-    fn floor(_: f64) -> f64;
-}
-
 #[inline]
-unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    floor(t)
-}
-
-#[inline]
-unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    fabs(t)
-}
-
-#[inline]
-unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
-    pow(t, p)
-}
-
-#[inline]
-unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
+pub unsafe extern "C" fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
     a + t * (b - a)
 }
 
 #[inline]
-unsafe extern "C" fn Exp(mut t: f64) -> f64 {
-    exp(t)
-}
-
-#[inline]
-unsafe extern "C" fn Round(mut t: f64) -> f64 {
-    Floor(t + 0.5f64)
-}
-
-#[inline]
-unsafe extern "C" fn Sign2(mut x: f64) -> f64 {
-    if x > 0.0f64 {
-        1.0f64
-    } else {
-        -1.0f64
-    }
+pub unsafe extern "C" fn Saturate(mut t: f64) -> f64 {
+    f64::clamp(t, 0.0f64, 1.0f64)
 }
 
 #[no_mangle]
@@ -124,53 +88,47 @@ pub unsafe extern "C" fn Math_ClampSafe(mut x: f64, mut a: f64, mut b: f64) -> f
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ClampUnit(mut x: f64) -> f64 {
-    if x < -1.0f64 {
-        -1.0f64
-    } else if x > 1.0f64 {
-        1.0f64
-    } else {
-        x
-    }
+    f64::clamp(x, -1.0f64, 1.0f64)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap(mut x: f64, mut p: f64) -> f64 {
-    1.0f64 - Exp(-Pow(Abs(x), p))
+    1.0f64 - f64::exp(-f64::powf(f64::abs(x), p))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMapSigned(mut x: f64, mut p: f64) -> f64 {
-    Sign2(x) * (1.0f64 - Exp(-Pow(Abs(x), p)))
+    f64::signum(x) * (1.0f64 - f64::exp(-f64::powf(f64::abs(x), p)))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap1(mut x: f64) -> f64 {
-    1.0f64 - Exp(-Abs(x))
+    1.0f64 - f64::exp(-f64::abs(x))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap1Signed(mut x: f64) -> f64 {
-    Sign2(x) * (1.0f64 - Exp(-Abs(x)))
+    f64::signum(x) * (1.0f64 - f64::exp(-f64::abs(x)))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap2(mut x: f64) -> f64 {
-    1.0f64 - Exp(-x * x)
+    1.0f64 - f64::exp(-x * x)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_ExpMap2Signed(mut x: f64) -> f64 {
-    Sign2(x) * (1.0f64 - Exp(-x * x))
+    f64::signum(x) * (1.0f64 - f64::exp(-x * x))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_PowSigned(mut x: f64, mut p: f64) -> f64 {
-    Sign2(x) * Pow(Abs(x), p)
+    f64::signum(x) * f64::powf(f64::abs(x), p)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_Round(mut x: f64) -> f64 {
-    Round(x)
+    f64::round(x)
 }
 
 #[no_mangle]

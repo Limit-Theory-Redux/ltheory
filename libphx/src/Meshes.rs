@@ -4,15 +4,6 @@ use glam::Vec2;
 use glam::Vec3;
 use libc;
 
-extern "C" {
-    fn sqrt(_: f64) -> f64;
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
 #[inline]
 unsafe extern "C" fn Mesh_AddPlane(
     mut this: *mut Mesh,

@@ -22,8 +22,6 @@ extern "C" {
     pub type FT_SubGlyphRec_;
     pub type FT_LibraryRec_;
     fn Fatal(_: *const libc::c_char, _: ...);
-    fn pow(_: f64, _: f64) -> f64;
-    fn floor(_: f64) -> f64;
     fn FT_Init_FreeType(alibrary: *mut FT_Library) -> FT_Error;
     fn FT_New_Face(
         library: FT_Library,
@@ -380,33 +378,6 @@ pub type FT_Kerning_Mode_ = u32;
 pub const FT_KERNING_UNSCALED: FT_Kerning_Mode_ = 2;
 pub const FT_KERNING_UNFITTED: FT_Kerning_Mode_ = 1;
 
-#[inline]
-unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    floor(t)
-}
-
-#[inline]
-unsafe extern "C" fn Pow(mut t: f64, mut p: f64) -> f64 {
-    pow(t, p)
-}
-
-#[inline]
-unsafe extern "C" fn Max(mut a: f64, mut b: f64) -> f64 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-unsafe extern "C" fn Min(mut a: f64, mut b: f64) -> f64 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
 
 #[inline]
 unsafe extern "C" fn Vec4f_Create(mut x: f32, mut y: f32, mut z: f32, mut w: f32) -> Vec4f {
@@ -470,7 +441,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     while dy < (*bitmap).rows {
         let mut dx: u32 = 0_i32 as u32;
         while dx < (*bitmap).width {
-            let mut a: f32 = Pow(
+            let mut a: f32 = f64::powf(
                 (*pBitmap.offset(dx as isize) as f32 / 255.0f32) as f64,
                 kRcpGamma as f64,
             ) as f32;
@@ -573,8 +544,8 @@ pub unsafe extern "C" fn Font_Draw(
     let fresh1 = text;
     text = text.offset(1);
     let mut codepoint: u32 = *fresh1 as u32;
-    x = Floor(x as f64) as f32;
-    y = Floor(y as f64) as f32;
+    x = f64::floor(x as f64) as f32;
+    y = f64::floor(y as f64) as f32;
     RenderState_PushBlendMode(1_i32);
     Draw_Color(r, g, b, a);
     while codepoint != 0 {
@@ -616,8 +587,8 @@ pub unsafe extern "C" fn Font_DrawShaded(
     let fresh3 = text;
     text = text.offset(1);
     let mut codepoint: u32 = *fresh3 as u32;
-    x = Floor(x as f64) as f32;
-    y = Floor(y as f64) as f32;
+    x = f64::floor(x as f64) as f32;
+    y = f64::floor(y as f64) as f32;
     while codepoint != 0 {
         let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
@@ -675,10 +646,10 @@ pub unsafe extern "C" fn Font_GetSize(
             if glyphLast != 0 {
                 x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
-            lower.x = Min(lower.x as f64, (x + (*glyph).x0) as f64) as i32;
-            lower.y = Min(lower.y as f64, (y + (*glyph).y0) as f64) as i32;
-            upper.x = Max(upper.x as f64, (x + (*glyph).x1) as f64) as i32;
-            upper.y = Max(upper.y as f64, (y + (*glyph).y1) as f64) as i32;
+            lower.x = f64::min(lower.x as f64, (x + (*glyph).x0) as f64) as i32;
+            lower.y = f64::min(lower.y as f64, (y + (*glyph).y0) as f64) as i32;
+            upper.x = f64::max(upper.x as f64, (x + (*glyph).x1) as f64) as i32;
+            upper.y = f64::max(upper.y as f64, (y + (*glyph).y1) as f64) as i32;
             x += (*glyph).advance;
             glyphLast = (*glyph).index;
         } else {
@@ -714,7 +685,7 @@ pub unsafe extern "C" fn Font_GetSize2(
                 (*out).x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
             (*out).x += (*glyph).advance;
-            (*out).y = Max((*out).y as f64, (-(*glyph).y0 + 1_i32) as f64) as i32;
+            (*out).y = f64::max((*out).y as f64, (-(*glyph).y0 + 1_i32) as f64) as i32;
             glyphLast = (*glyph).index;
         } else {
             glyphLast = 0_i32;

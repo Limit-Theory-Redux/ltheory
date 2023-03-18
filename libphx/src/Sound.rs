@@ -47,7 +47,6 @@ extern "C" {
         position: u32,
         postype: FMOD_TIMEUNIT,
     ) -> FMOD_RESULT;
-    fn floor(_: f64) -> f64;
 }
 
 #[derive(Copy, Clone)]
@@ -618,15 +617,6 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
     }
 }
 
-#[inline]
-unsafe extern "C" fn Floor(mut t: f64) -> f64 {
-    floor(t)
-}
-
-#[inline]
-unsafe extern "C" fn Round(mut t: f64) -> f64 {
-    Floor(t + 0.5f64)
-}
 
 unsafe extern "C" fn Sound_Callback(
     mut channel: *mut FMOD_CHANNELCONTROL,
@@ -1093,7 +1083,7 @@ pub unsafe extern "C" fn Sound_SetPlayPos(mut this: *mut Sound, mut seconds: f32
         this,
         (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"Sound_SetPlayPos\0")).as_ptr(),
     );
-    let mut _ms: u32 = Round((seconds * 1000.0f32) as f64) as u32;
+    let mut _ms: u32 = f64::round((seconds * 1000.0f32) as f64) as u32;
     // FMOD_CheckError(
     //     FMOD_Channel_SetPosition(
     //         (*this).handle,

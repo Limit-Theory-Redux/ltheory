@@ -151,9 +151,13 @@ pub unsafe extern "C" fn Hash_Murmur3(mut key: *const libc::c_void, mut len: i32
     h1
 }
 static mut PRIME64_1: u64 = 11400714785074694791_u64;
+
 static mut PRIME64_2: u64 = 14029467366897019727_u64;
+
 static mut PRIME64_3: u64 = 1609587929392839161_u64;
+
 static mut PRIME64_4: u64 = 9650029242287828579_u64;
+
 static mut PRIME64_5: u64 = 2870177450012600261_u64;
 unsafe extern "C" fn XXH64_round(mut acc: u64, mut val: u64) -> u64 {
     acc = acc.wrapping_add(val.wrapping_mul(PRIME64_2));

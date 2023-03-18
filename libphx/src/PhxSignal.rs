@@ -40,10 +40,12 @@ pub static Signal_Abrt: Signal = 6_i32;
 pub static Signal_Int: Signal = 2_i32;
 
 static mut ignoreDefault: bool = false;
+
 static mut handlerDefault: [SignalHandler; 32] = [
     None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
     None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
 ];
+
 static mut handlerTable: [*mut HandlerElem; 32] = [
     std::ptr::null_mut(),
     std::ptr::null_mut(),

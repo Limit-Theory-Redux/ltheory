@@ -68,15 +68,10 @@ pub struct Input {
     pub injectedEvents_data: *mut InputEvent,
 }
 
-#[inline]
-unsafe extern "C" fn Clamp(mut t: f64, mut lower: f64, mut upper: f64) -> f64 {
-    t = if t > upper { upper } else { t };
-    t = if t < lower { lower } else { t };
-    t
-}
-
 static mut Threshold_Pressed: f32 = 0.5f32;
+
 static mut Threshold_Released: f32 = 0.4f32;
+
 static mut this: Input = Input {
     activeDevice: Device {
         type_0: 0_i32,
@@ -636,7 +631,7 @@ pub unsafe extern "C" fn Input_Update() {
                     type_0: DeviceType_Gamepad,
                     id: sdl.caxis.which as u32,
                 };
-                let mut value: f32 = Clamp(
+                let mut value: f32 = f64::clamp(
                     (sdl.caxis.value as f32 / 32767.0f32) as f64,
                     -1.0f32 as f64,
                     1.0f32 as f64,
@@ -724,7 +719,7 @@ pub unsafe extern "C" fn Input_Update() {
                         Button_ToSDLControllerAxis(iAxis),
                     ) as f32;
                     value_1 =
-                        Clamp((value_1 / 32767.0f32) as f64, -1.0f32 as f64, 1.0f32 as f64) as f32;
+                        f64::clamp((value_1 / 32767.0f32) as f64, -1.0f32 as f64, 1.0f32 as f64) as f32;
                     if iAxis == Button_Gamepad_LStickY || iAxis == Button_Gamepad_RStickY {
                         value_1 = -value_1;
                     }

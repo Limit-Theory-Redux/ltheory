@@ -48,6 +48,7 @@ pub struct FBO {
 }
 
 static mut fboIndex: i32 = -1_i32;
+
 static mut fboStack: [FBO; 16] = [FBO {
     handle: 0,
     colorIndex: 0,

@@ -10,7 +10,6 @@ use libc;
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
-    fn sqrt(_: f64) -> f64;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 
@@ -24,15 +23,6 @@ pub struct Polygon {
 
 pub type PointClassification = u8;
 
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    sqrt(t)
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mut Plane) {

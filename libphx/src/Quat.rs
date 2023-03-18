@@ -5,12 +5,6 @@ use libc;
 extern "C" {
     // fn __fpclassifyf(_: f32) -> i32;
     // fn __fpclassifyd(_: f64) -> i32;
-    fn acos(_: f64) -> f64;
-    fn asin(_: f64) -> f64;
-    fn cos(_: f64) -> f64;
-    fn sin(_: f64) -> f64;
-    fn fabs(_: f64) -> f64;
-    fn sqrt(_: f64) -> f64;
     fn Fatal(_: *const libc::c_char, _: ...);
 }
 
@@ -21,48 +15,6 @@ pub struct Quat {
     pub y: f32,
     pub z: f32,
     pub w: f32,
-}
-
-#[inline]
-unsafe extern "C" fn Abs(mut t: f64) -> f64 {
-    fabs(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sqrtf(mut t: f32) -> f32 {
-    sqrt(t as f64) as f32
-}
-
-#[inline]
-unsafe extern "C" fn ClampUnit(mut t: f64) -> f64 {
-    t = if t > 1.0f64 { 1.0f64 } else { t };
-    t = if t < -1.0f64 { -1.0f64 } else { t };
-    t
-}
-
-#[inline]
-unsafe extern "C" fn Sqrt(mut t: f64) -> f64 {
-    sqrt(t)
-}
-
-#[inline]
-unsafe extern "C" fn Acos(mut t: f64) -> f64 {
-    acos(t)
-}
-
-#[inline]
-unsafe extern "C" fn Asin(mut t: f64) -> f64 {
-    asin(t)
-}
-
-#[inline]
-unsafe extern "C" fn Cos(mut t: f64) -> f64 {
-    cos(t)
-}
-
-#[inline]
-unsafe extern "C" fn Sin(mut t: f64) -> f64 {
-    sin(t)
 }
 
 #[inline]
@@ -95,7 +47,7 @@ unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
 
 #[inline]
 unsafe extern "C" fn Float_ApproximatelyEqual(mut x: f64, mut y: f64) -> bool {
-    Abs(x - y) < 1e-3f64
+    f64::abs(x - y) < 1e-3f64
 }
 
 #[no_mangle]
@@ -218,10 +170,10 @@ pub unsafe extern "C" fn Quat_ApproximatelyEqual(mut q: *const Quat, mut p: *con
     Quat_Canonicalize(q, &mut cq);
     let mut cp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Canonicalize(p, &mut cp);
-    Abs((cq.x - cp.x) as f64) < 1e-3f32 as f64
-        && Abs((cq.y - cp.y) as f64) < 1e-3f32 as f64
-        && Abs((cq.z - cp.z) as f64) < 1e-3f32 as f64
-        && Abs((cq.w - cp.w) as f64) < 1e-3f32 as f64
+    f64::abs((cq.x - cp.x) as f64) < 1e-3f32 as f64
+        && f64::abs((cq.y - cp.y) as f64) < 1e-3f32 as f64
+        && f64::abs((cq.z - cp.z) as f64) < 1e-3f32 as f64
+        && f64::abs((cq.w - cp.w) as f64) < 1e-3f32 as f64
 }
 
 #[no_mangle]
@@ -263,7 +215,7 @@ pub unsafe extern "C" fn Quat_Lerp(
     let mut y: f32 = (*q).y + (dp.y - (*q).y) * t;
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
-    let mut rcpMag: f32 = (1.0f32 as f64 / Sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+    let mut rcpMag: f32 = (1.0f32 as f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*out).x = x * rcpMag;
     (*out).y = y * rcpMag;
     (*out).z = z * rcpMag;
@@ -286,7 +238,7 @@ pub unsafe extern "C" fn Quat_ILerp(mut q: *mut Quat, mut p: *const Quat, mut t:
     let mut y: f32 = (*q).y + (dp.y - (*q).y) * t;
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
-    let mut rcpMag: f32 = (1.0f32 as f64 / Sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+    let mut rcpMag: f32 = (1.0f32 as f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*q).x = x * rcpMag;
     (*q).y = y * rcpMag;
     (*q).z = z * rcpMag;
@@ -346,7 +298,7 @@ pub unsafe extern "C" fn Quat_MulV(mut q: *const Quat, mut v: *const Vec3, mut o
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Normalize(mut q: *const Quat, mut out: *mut Quat) {
     let mut mag: f32 =
-        Sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64) as f32;
+        f64::sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64) as f32;
     (*out).x = (*q).x / mag;
     (*out).y = (*q).y / mag;
     (*out).z = (*q).z / mag;
@@ -356,7 +308,7 @@ pub unsafe extern "C" fn Quat_Normalize(mut q: *const Quat, mut out: *mut Quat) 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_INormalize(mut q: *mut Quat) {
     let mut mag: f32 =
-        Sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64) as f32;
+        f64::sqrt(((*q).x * (*q).x + (*q).y * (*q).y + (*q).z * (*q).z + (*q).w * (*q).w) as f64) as f32;
     (*q).x /= mag;
     (*q).y /= mag;
     (*q).z /= mag;
@@ -400,8 +352,8 @@ pub unsafe extern "C" fn Quat_Slerp(
         Quat_Lerp(q, p, t, out);
         return;
     }
-    d = ClampUnit(d as f64) as f32;
-    let mut angle: f32 = (t as f64 * Acos(d as f64)) as f32;
+    d = f32::clamp(d, -1.0f32, 1.0f32);
+    let mut angle: f32 = t * f32::acos(d);
     let mut c = Quat_Create(
         (*p).x - d * (*q).x,
         (*p).y - d * (*q).y,
@@ -409,8 +361,8 @@ pub unsafe extern "C" fn Quat_Slerp(
         (*p).w - d * (*q).w,
     );
     Quat_INormalize(&mut c);
-    let mut fa: f32 = Cos(angle as f64) as f32;
-    let mut fc: f32 = Sin(angle as f64) as f32;
+    let mut fa: f32 = f32::cos(angle);
+    let mut fc: f32 = f32::sin(angle);
     (*out).x = fa * (*q).x + fc * c.x;
     (*out).y = fa * (*q).y + fc * c.y;
     (*out).z = fa * (*q).z + fc * c.z;
@@ -433,8 +385,8 @@ pub unsafe extern "C" fn Quat_ISlerp(mut q: *mut Quat, mut p: *const Quat, mut t
         Quat_ILerp(q, p, t);
         return;
     }
-    d = ClampUnit(d as f64) as f32;
-    let mut angle: f32 = (t as f64 * Acos(d as f64)) as f32;
+    d = f32::clamp(d, -1.0f32, 1.0f32);
+    let mut angle: f32 = t * f32::acos(d);
     let mut c = Quat_Create(
         (*p).x - d * (*q).x,
         (*p).y - d * (*q).y,
@@ -442,8 +394,8 @@ pub unsafe extern "C" fn Quat_ISlerp(mut q: *mut Quat, mut p: *const Quat, mut t
         (*p).w - d * (*q).w,
     );
     Quat_INormalize(&mut c);
-    let mut fa: f32 = Cos(angle as f64) as f32;
-    let mut fc: f32 = Sin(angle as f64) as f32;
+    let mut fa: f32 = f32::cos(angle);
+    let mut fc: f32 = f32::sin(angle);
     (*q).x = fa * (*q).x + fc * c.x;
     (*q).y = fa * (*q).y + fc * c.y;
     (*q).z = fa * (*q).z + fc * c.z;
@@ -483,11 +435,11 @@ pub unsafe extern "C" fn Quat_FromAxisAngle(
     mut out: *mut Quat,
 ) {
     radians *= 0.5f32;
-    let mut v: Vec3 = *axis * Sin(radians as f64) as f32;
+    let mut v: Vec3 = *axis * f64::sin(radians as f64) as f32;
     (*out).x = v.x;
     (*out).y = v.y;
     (*out).z = v.z;
-    (*out).w = Cos(radians as f64) as f32;
+    (*out).w = f64::cos(radians as f64) as f32;
 }
 
 #[no_mangle]
@@ -499,25 +451,25 @@ pub unsafe extern "C" fn Quat_FromBasis(
 ) {
     let mut r: f32 = (*x).x + (*y).y + (*z).z;
     if r > 0.0f32 {
-        (*out).w = (Sqrt((r + 1.0f32) as f64) * 0.5f32 as f64) as f32;
+        (*out).w = (f64::sqrt((r + 1.0f32) as f64) * 0.5f32 as f64) as f32;
         let mut w4: f32 = 1.0f32 / (4.0f32 * (*out).w);
         (*out).x = ((*y).z - (*z).y) * w4;
         (*out).y = ((*z).x - (*x).z) * w4;
         (*out).z = ((*x).y - (*y).x) * w4;
     } else if (*x).x > (*y).y && (*x).x > (*z).z {
-        (*out).x = (Sqrt((1.0f32 + (*x).x - (*y).y - (*z).z) as f64) * 0.5f32 as f64) as f32;
+        (*out).x = (f64::sqrt((1.0f32 + (*x).x - (*y).y - (*z).z) as f64) * 0.5f32 as f64) as f32;
         let mut x4: f32 = 1.0f32 / (4.0f32 * (*out).x);
         (*out).y = ((*y).x + (*x).y) * x4;
         (*out).z = ((*z).x + (*x).z) * x4;
         (*out).w = ((*y).z - (*z).y) * x4;
     } else if (*y).y > (*z).z {
-        (*out).y = (Sqrt((1.0f32 + (*y).y - (*x).x - (*z).z) as f64) * 0.5f32 as f64) as f32;
+        (*out).y = (f64::sqrt((1.0f32 + (*y).y - (*x).x - (*z).z) as f64) * 0.5f32 as f64) as f32;
         let mut y4: f32 = 1.0f32 / (4.0f32 * (*out).y);
         (*out).x = ((*y).x + (*x).y) * y4;
         (*out).z = ((*z).y + (*y).z) * y4;
         (*out).w = ((*z).x - (*x).z) * y4;
     } else {
-        (*out).z = (Sqrt((1.0f32 + (*z).z - (*x).x - (*y).y) as f64) * 0.5f32 as f64) as f32;
+        (*out).z = (f64::sqrt((1.0f32 + (*z).z - (*x).x - (*y).y) as f64) * 0.5f32 as f64) as f32;
         let mut z4: f32 = 1.0f32 / (4.0f32 * (*out).z);
         (*out).x = ((*z).x + (*x).z) * z4;
         (*out).y = ((*z).y + (*y).z) * z4;
