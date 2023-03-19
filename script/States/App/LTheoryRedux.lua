@@ -15,7 +15,7 @@ local LTheoryRedux = require('States.Application')
 local newSound = nil
 local newSeed = 0ULL
 local newShip = nil
-local menuMode = 0 -- initially show game logo
+local menuMode = 0 -- 0 = splash screen, 1 = Main Menu, 2 = either Flight dialog or Seed dialog (New Game / Load Game menus TBD)
 local bNewSSystem = false
 local bSeedDialogDisplayed = false
 local bBackgroundMode = false
@@ -135,9 +135,9 @@ function LTheoryRedux:onUpdate (dt)
       -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
       -- After that, when we're in Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if menuMode == 0 then
-        Config.game.bFlightModeInactive = false
+        Config.game.flightModeActive = false
       else
-        Config.game.bFlightModeInactive = true
+        Config.game.flightModeActive = true
       end
       menuMode = 2 -- show Flight Mode dialog
     end
@@ -187,7 +187,7 @@ function LTheoryRedux:onUpdate (dt)
         LTheoryRedux:showMainMenu()
       end
     elseif menuMode == 2 then
-      if Config.game.bFlightModeInactive then
+      if Config.game.flightModeActive then
         LTheoryRedux:showFlightDialog()
       else
         if bSeedDialogDisplayed then
@@ -492,29 +492,29 @@ function LTheoryRedux:showFlightDialogInner ()
     HmGui.PushFont(Cache.Font('Exo2Bold', 18))
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
       if HmGui.Button("Return to Game") then
-        Config.game.bFlightModeInactive = false
+        Config.game.flightModeActive = false
         Config.game.gamePaused = false
       end
     end
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
       HmGui.SetSpacing(8)
       if HmGui.Button("Save Game") then
-        Config.game.bFlightModeInactive = false
+        Config.game.flightModeActive = false
         Config.game.gamePaused = false
       end
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Load Game") then
       LTheoryRedux:showSeedDialog()
-      Config.game.bFlightModeInactive = false
+      Config.game.flightModeActive = false
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Game Settings") then
-      Config.game.bFlightModeInactive = true
+      Config.game.flightModeActive = true
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Exit to Main Menu") then
-      Config.game.bFlightModeInactive = false
+      Config.game.flightModeActive = false
       Config.game.gamePaused = false
       Config.setGameMode(1) -- switch to Startup Mode
       LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode

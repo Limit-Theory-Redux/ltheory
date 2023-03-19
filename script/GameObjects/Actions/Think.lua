@@ -1,7 +1,7 @@
 local Action = require('GameObjects.Action')
 local Player = require('GameObjects.Entities.Player')
 
-local kJobIterations = 5000 -- how many randomly-chosen jobs the asset will consider before deciding
+local kJobIterations = 4000 -- how many randomly-chosen jobs the asset will consider before deciding
 
 local Think = subclass(Action, function (self)
   self.timer = 0
@@ -81,9 +81,10 @@ if true then -- Use payout, not flow
       end
     end
 
-    if bestJob then
+    -- Maybe assign a new or reassign an old job
+    if bestJob and bestPayout > 0 then -- if asset has no capacity left, bestPayout should be 0
       asset.job = bestJob
---printf("pushing action: %s", asset.job:getName())
+printf("THINK: pushing action: %s", asset.job:getName())
       asset:pushAction(bestJob)
     end
 
@@ -94,7 +95,8 @@ if true then -- Use payout, not flow
       if #stations > 0 and stations[1] ~= nil then
         local station = stations[1].stationRef
 
-printf("Asset '%s' has no more jobs available, docking at Station '%s'", asset:getName(), station:getName())
+printf("THINK: *** Asset '%s' (owner = %s), with capacity %d, has no more jobs available; docking at Station '%s'",
+asset:getName(), asset:getOwner():getName(), asset:getInventoryFree(), station:getName())
         asset:pushAction(Actions.DockAt(station))
       end
     end
@@ -104,7 +106,7 @@ end
 function Think:onUpdateActive (e, dt)
   if not Config.game.gamePaused then
     Profiler.Begin('Action.Think')
-    do -- Manage assets
+    do -- manage assets
       for asset in e:iterAssets() do
         if asset:getRoot():hasEconomy() and asset:isIdle() then
           self:manageAsset(asset)
@@ -112,9 +114,27 @@ function Think:onUpdateActive (e, dt)
       end
     end
 
+    -- Increment elapsed time in seconds (a float value) since game start
+    -- Note that self.timer does not appear to reset!
+    -- TODO: Correct the self.timer tests below to trigger on their _intervals_,
+    --       not on elapsed time (which never resets)
     self.timer = self.timer + dt
-    do -- Capital expenditure
-      if self.timer > 5 then
+--printf("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
+
+    do -- TODO: Capital expenditure AI
+      if self.timer > 30 then
+        --
+      end
+    end
+
+    do -- TODO: Fleet management AI
+      if self.timer > 60 then
+        --
+      end
+    end
+
+    do -- TODO: Strategic goal-planning AI
+      if self.timer > 300 then
         --
       end
     end

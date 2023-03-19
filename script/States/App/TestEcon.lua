@@ -14,7 +14,7 @@ local kFields = 10
 local kFieldCount = 300
 local kStations = 22
 local kPlayers = 3
-local kAssets = 10
+local kAssets = 100
 
 function TestEcon:getWindowMode ()
   return Bit.Or32(WindowMode.Shown, WindowMode.Resizable)
@@ -98,7 +98,8 @@ function TestEcon:onInit ()
   self.tradeShip:setOwner(self.tradeAI)
 
   -- Use fast movement and hyperspeedup for economic testing
-  Config.debug.instantJobs     = true
+  Config.debug.instantJobs     = false
+--  Config.debug.instantJobs     = true
   Config.debug.timeAccelFactor = 100
 
   -- Add a planet at the origin

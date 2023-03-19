@@ -337,9 +337,25 @@ end
 
 function System:setAsteroidYield (rng, asteroid)
   -- TODO: Replace with actual system for generating minable materials in asteroids
+  -- Start with a 70% chance that an asteroid will have any yield at all
   if rng:getInt(0, 100) < 70 then
     local amass = math.floor(asteroid:getMass() / 1000)
-    asteroid:addYield(rng:choose(Item.T2), math.max(1, rng:getInt(amass / 2, amass)))
+    local itemT2 = Item.T2
+    table.sort(itemT2, function (a, b) return a.distribution < b.distribution end)
+    local itemType = nil
+    local ichance = 0.0
+    local uval = rng:getUniformRange(0.00, 1.00)
+    for i, item in ipairs(itemT2) do
+      ichance = ichance + item.distribution
+      if uval < ichance then -- pick a minable material based on distribution %
+        itemType = item
+        break
+      end
+    end
+    if itemType == nil then
+      itemType = Item.Silicates
+    end
+    asteroid:addYield(itemType, math.max(1, rng:getInt(amass / 2, amass)))
   end
 end
 
@@ -377,8 +393,16 @@ function System:spawnStation (player, prodType)
   station:addFactory()
   local prod = prodType
   if not prodType then
-    prod = rng:choose(Production.P1) -- if no production type is provided, randomly choose a refinery
---    prod = rng:choose(Production.All()) -- if no production type is provided, choose one randomly
+    -- No specific production type provided, so pick one randomly
+    local rint = rng:getInt(0, 100)
+    if rint > 80 then
+      prod = rng:choose(Production.P0) -- small chance for a powerplant
+    elseif rint > 20 then
+      prod = rng:choose(Production.P1) -- good chance for a refinery
+    else
+      prod = rng:choose(Production.P2) -- small chance for a factory
+--      prod = rng:choose(Production.All()) -- if no production type is provided, choose anything randomly
+    end
   end
   station:addProduction(prod)
   station:setSubType(Config:getObjectTypeByName("station_subtypes", prod:getName()))
@@ -392,7 +416,8 @@ function System:spawnStation (player, prodType)
   -- Bid prices (for buying) are calculated as the item's base price times a markdown value
   for _, input in prod:iterInputs() do
     for i = 1, input.count * Config.game.inputBacklog do
-      station.trader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33))) -- 33
+      -- TODO: Change magic number 33 for "I want..." bids to a multiplier connected to this system's flows
+      station.trader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33)))
     end
   end
   for _, output in prod:iterOutputs () do

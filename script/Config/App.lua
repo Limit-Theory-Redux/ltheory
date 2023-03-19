@@ -91,8 +91,8 @@ Config.gen = {
 }
 
 Config.game = {
-  gameMode = 0,
-  bFlightModeInactive = false,
+  gameMode = 0, -- used by LTheoryRedux: 0 = undefined (splash screen), 1 = Startup Mode (Main Menu), 2 = Flight Mode
+  flightModeActive = false, -- flag for being in Flight Mode but unable to fly (as when player ship is destroyed)
 
   gamePaused = false,
 
@@ -168,7 +168,7 @@ Config.game = {
 }
 
 Config.econ = {
-  pickupDistWeightMine = 0.1, -- importance of pickup distance for a Mine job (smaller = more important)
+  pickupDistWeightMine = 1.0, -- importance of pickup distance for a Mine job (smaller = more important)
   pickupDistWeightTran = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
   markup   = 1.4, -- change to base value when calculating bid price for selling an item
   markdown = 0.7, -- change to base value when calculating ask price for buying an item

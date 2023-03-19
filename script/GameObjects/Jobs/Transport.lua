@@ -49,7 +49,7 @@ function Transport:getPayout (e)
 
   if count > 0 then
     -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
-    local pickupTravelTime = self:getShipTravelTime(e)
+    local pickupTravelTime = self:getShipTravelTime(e, self.dst)
     local transportTravelTime = self:getTravelTime(e)
     local payoutMod = 10000 / ((pickupTravelTime / Config.econ.pickupDistWeightTran) + transportTravelTime)
     payout = math.max(1, math.floor(profit * payoutMod))
@@ -63,9 +63,9 @@ function Transport:getPayout (e)
   return payout
 end
 
-function Transport:getShipTravelTime (e)
+function Transport:getShipTravelTime (e, dst)
   -- Return the travel time between the ship and a non-ship target depending on ship's top speed
-  return e:getDistance(self.dst) / e:getTopSpeed()
+  return e:getDistance(dst) / e:getTopSpeed()
 end
 
 function Transport:getTravelTime (e)

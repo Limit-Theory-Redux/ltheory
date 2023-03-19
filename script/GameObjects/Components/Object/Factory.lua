@@ -114,7 +114,9 @@ function Factory:updateTradeOrders (prod, dt)
       timer.value = timer.value - timer.max
       local price = (trader:getData(timer.item).bids[1] or 0)
       price = maxBid - bidSlope * (maxBid - price)
-      trader:addBid(timer.item, price)
+      if price >= 1 then
+        trader:addBid(timer.item, price)
+      end
     end
   end
 end
@@ -131,7 +133,8 @@ function Factory:update (dt)
       -- NOTE : Disabled trade orders for the moment due to not having limits on
       --        max active orders, leading to stalling the entire game via tens
       --        of thousands of individual energy cell orders...
-      self:updateTradeOrders(prod, dt)
+      -- (restored by Flatfingers for testing)
+      --self:updateTradeOrders(prod, dt)
     end
   end
 end

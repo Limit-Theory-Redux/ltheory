@@ -121,6 +121,12 @@ function Trader:getSellToPrice (item, count)
   for i = 1, count do
     price = price + (bids[i] or 0)
   end
+
+  -- No bid for a valid unit of an item should ever be less than 1 credit
+  if count > 0 then
+    price = math.max(1, price)
+  end
+
   return price
 end
 
@@ -147,7 +153,9 @@ function Trader:buy (asset, item)
 --self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
 
           data.totalBid = data.totalBid - 1
+          if data.totalBid < 0 then data.totalBid = 0 end
           data.totalBidPrice = data.totalBidPrice - price
+          if data.totalBidPrice < 0 then data.totalBidPrice = 0 end
 
           remove(data.bids, 1)
 
@@ -188,8 +196,10 @@ function Trader:sell (asset, item)
 --printf("removed %d credits from %s (now has %d credits)", price, self.parent:getName(), self.parent:getCredits())
 
         data.totalAsk = data.totalAsk - 1
+        if data.totalAsk < 0 then data.totalAsk = 0 end
         data.totalAskPrice = data.totalAskPrice - price
         data.escrow = data.escrow - 1
+        if data.escrow < 0 then data.escrow = 0 end
 
         remove(data.asks, 1)
 
@@ -272,18 +282,18 @@ end
 
 function Entity:debugTrader (state)
   local ctx = state.context
-  ctx:text('Trader')
+  ctx:text("Trader")
   ctx:indent()
-  ctx:text('Credits: %d', self:getCredits())
+  ctx:text("Credits: %d", self:getCredits())
   for item, data in pairs(self.trader.elems) do
-    if #data.bids > 0 or #data.asks > 0 then
-      ctx:text('%s', item:getName())
+    if #data.bids > 0 or #data.asks + data.escrow > 0 then
+      ctx:text("%s", item:getName())
       ctx:indent()
       if #data.bids > 0 then
-        ctx:text('[BID] Vol: %d  Hi: %d', #data.bids, data.bids[1])
+        ctx:text("[BID] Vol: %d  Hi: %d", #data.bids, data.bids[1])
       end
-      if #data.asks > 0 then
-        ctx:text('[ASK] Vol: %d  Lo: %d', #data.asks, data.asks[1])
+      if #data.asks + data.escrow > 0 then
+        ctx:text("[ASK] Vol: %d (%d)  Lo: %d", #data.asks, data.escrow, data.asks[1])
       end
       ctx:undent()
     end

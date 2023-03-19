@@ -1,5 +1,6 @@
 local Entity = require('GameObjects.Entity')
 local Jobs = requireAll('GameObjects.Jobs')
+local Mine = require('GameObjects.Jobs.Mine')
 
 --------------------------------------------------------------------------------
 
@@ -38,13 +39,23 @@ function Economy:update (dt)
       end
     end
 
+    local alljobcount = 0
+    local realjobcount = 0
     do -- Cache mining jobs
       for _, src in ipairs(self.yields) do
         for _, dst in ipairs(self.markets) do
-          insert(self.jobs, Jobs.Mine(src, dst))
+          -- Create a Mine job only if the destination trader has a bid for the source item
+          alljobcount = alljobcount + 1
+          local item = src:getYield().item
+          local itemBidVol = dst:getTrader():getBidVolume(item)
+          if itemBidVol > 0 then
+            realjobcount = realjobcount + 1
+            insert(self.jobs, Jobs.Mine(src, dst))
+          end
         end
       end
     end
+--printf("Mine job test: alljobcount = %d, realjobcount = %d", alljobcount, realjobcount)
 
 --    if false then  -- INACTIVE
 --      do -- Cache trade jobs from positive to negative flow
