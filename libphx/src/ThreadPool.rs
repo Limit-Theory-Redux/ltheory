@@ -30,9 +30,9 @@ unsafe extern "C" fn ThreadPool_Dispatch(mut data: *mut libc::c_void) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool {
     let mut this: *mut ThreadPool =
-        MemAlloc(::core::mem::size_of::<ThreadPool>()) as *mut ThreadPool;
+        MemAlloc(std::mem::size_of::<ThreadPool>()) as *mut ThreadPool;
     (*this).threads = threads;
-    (*this).thread = MemAlloc(::core::mem::size_of::<ThreadData>().wrapping_mul(threads as usize))
+    (*this).thread = MemAlloc(std::mem::size_of::<ThreadData>().wrapping_mul(threads as usize))
         as *mut ThreadData;
     let mut i: i32 = 0_i32;
     while i < threads {

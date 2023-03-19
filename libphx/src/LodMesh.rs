@@ -22,7 +22,7 @@ pub struct LodMeshEntry {
 
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
-    let mut this: *mut LodMesh = MemAlloc(::core::mem::size_of::<LodMesh>()) as *mut LodMesh;
+    let mut this: *mut LodMesh = MemAlloc(std::mem::size_of::<LodMesh>()) as *mut LodMesh;
     (*this)._refCount = 1_u32;
     (*this).head = std::ptr::null_mut();
     this
@@ -58,7 +58,7 @@ pub unsafe extern "C" fn LodMesh_Add(
     mut dMax: f32,
 ) {
     let mut e: *mut LodMeshEntry =
-        MemAlloc(::core::mem::size_of::<LodMeshEntry>()) as *mut LodMeshEntry;
+        MemAlloc(std::mem::size_of::<LodMeshEntry>()) as *mut LodMeshEntry;
     (*e).mesh = mesh;
     (*e).dMin = dMin * dMin;
     (*e).dMax = dMax * dMax;

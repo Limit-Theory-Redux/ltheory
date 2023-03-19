@@ -76,7 +76,7 @@ pub static ElemType_TexCube: u32 = 10_u32;
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut ShaderState {
     let mut this: *mut ShaderState =
-        MemAlloc(::core::mem::size_of::<ShaderState>()) as *mut ShaderState;
+        MemAlloc(std::mem::size_of::<ShaderState>()) as *mut ShaderState;
     (*this)._refCount = 1_u32;
     (*this).elems_capacity = 0_i32;
     (*this).elems_size = 0_i32;
@@ -152,7 +152,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -217,7 +217,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -251,7 +251,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -282,7 +282,7 @@ pub unsafe extern "C" fn ShaderState_SetInt(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -313,7 +313,7 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -345,7 +345,7 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -377,7 +377,7 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -409,7 +409,7 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -441,7 +441,7 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Elem>();
+        let mut elemSize: usize = std::mem::size_of::<Elem>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(

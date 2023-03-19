@@ -289,7 +289,7 @@ unsafe extern "C" fn GLSL_Preprocess(
                 } else {
                     1_i32
                 };
-                let mut elemSize: usize = ::core::mem::size_of::<ShaderVar>();
+                let mut elemSize: usize = std::mem::size_of::<ShaderVar>();
                 let mut pData: *mut *mut libc::c_void =
                     &mut (*this).vars_data as *mut *mut ShaderVar as *mut *mut libc::c_void;
                 *pData = MemRealloc(
@@ -343,7 +343,7 @@ pub unsafe extern "C" fn Shader_Create(
     mut vs: *const libc::c_char,
     mut fs: *const libc::c_char,
 ) -> *mut Shader {
-    let mut this: *mut Shader = MemAlloc(::core::mem::size_of::<Shader>()) as *mut Shader;
+    let mut this: *mut Shader = MemAlloc(std::mem::size_of::<Shader>()) as *mut Shader;
     (*this)._refCount = 1_u32;
     (*this).vars_capacity = 0_i32;
     (*this).vars_size = 0_i32;
@@ -383,7 +383,7 @@ pub unsafe extern "C" fn Shader_Load(
     mut vName: *const libc::c_char,
     mut fName: *const libc::c_char,
 ) -> *mut Shader {
-    let mut this: *mut Shader = MemAlloc(::core::mem::size_of::<Shader>()) as *mut Shader;
+    let mut this: *mut Shader = MemAlloc(std::mem::size_of::<Shader>()) as *mut Shader;
     (*this)._refCount = 1_u32;
     (*this).vars_capacity = 0_i32;
     (*this).vars_size = 0_i32;
@@ -431,7 +431,7 @@ pub unsafe extern "C" fn Shader_ToShaderState(mut this: *mut Shader) -> *mut Sha
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Start(mut this: *mut Shader) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Shader_Start\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Shader_Start\0")).as_ptr(),
     );
     gl::UseProgram((*this).program);
     current = this;

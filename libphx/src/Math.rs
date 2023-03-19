@@ -126,10 +126,10 @@ pub unsafe extern "C" fn Saturate(mut t: f64) -> f64 {
 
 #[inline]
 pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
-    let mut classification: i32 = if ::core::mem::size_of::<f32>() == ::core::mem::size_of::<f32>()
+    let mut classification: i32 = if std::mem::size_of::<f32>() == std::mem::size_of::<f32>()
     {
         f32::classify(x) as i32
-    } else if ::core::mem::size_of::<f32>() == ::core::mem::size_of::<f64>() {
+    } else if std::mem::size_of::<f32>() == std::mem::size_of::<f64>() {
         f64::classify(x as f64) as i32
     } else {
         3
@@ -151,12 +151,12 @@ pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
 
 #[inline]
 pub unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
-    let mut classification: i32 = if ::core::mem::size_of::<f64>() as libc::c_ulong
-        == ::core::mem::size_of::<f32>() as libc::c_ulong
+    let mut classification: i32 = if std::mem::size_of::<f64>() as libc::c_ulong
+        == std::mem::size_of::<f32>() as libc::c_ulong
     {
         f32::classify(x as f32) as i32
-    } else if ::core::mem::size_of::<f64>() as libc::c_ulong
-        == ::core::mem::size_of::<f64>() as libc::c_ulong
+    } else if std::mem::size_of::<f64>() as libc::c_ulong
+        == std::mem::size_of::<f64>() as libc::c_ulong
     {
         f64::classify(x) as i32
     } else {
@@ -247,17 +247,17 @@ pub unsafe extern "C" fn Math_ClampSafe(mut x: f64, mut a: f64, mut b: f64) -> f
         MemCpy(
             swap_temp.as_mut_ptr() as *mut libc::c_void,
             &mut b as *mut f64 as *const libc::c_void,
-            ::core::mem::size_of::<f64>(),
+            std::mem::size_of::<f64>(),
         );
         MemCpy(
             &mut b as *mut f64 as *mut libc::c_void,
             &mut a as *mut f64 as *const libc::c_void,
-            ::core::mem::size_of::<f64>(),
+            std::mem::size_of::<f64>(),
         );
         MemCpy(
             &mut a as *mut f64 as *mut libc::c_void,
             swap_temp.as_mut_ptr() as *const libc::c_void,
-            ::core::mem::size_of::<f64>(),
+            std::mem::size_of::<f64>(),
         );
     }
     if x < a {

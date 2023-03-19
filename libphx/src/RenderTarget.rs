@@ -53,7 +53,7 @@ unsafe extern "C" fn SetDrawBuffers(mut count: i32) {
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"RenderTarget_Push\0"))
+        (*std::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"RenderTarget_Push\0"))
             .as_ptr(),
     );
     if fboIndex + 1_i32 >= 16_i32 {
@@ -79,7 +79,7 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Pop() {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"RenderTarget_Pop\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"RenderTarget_Pop\0")).as_ptr(),
     );
     if fboIndex < 0_i32 {
         Fatal(

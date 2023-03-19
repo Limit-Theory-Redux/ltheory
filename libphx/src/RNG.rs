@@ -80,7 +80,7 @@ unsafe extern "C" fn RNG_Init(mut this: *mut RNG) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_Create(mut seed: u64) -> *mut RNG {
-    let mut this: *mut RNG = MemAlloc(::core::mem::size_of::<RNG>()) as *mut RNG;
+    let mut this: *mut RNG = MemAlloc(std::mem::size_of::<RNG>()) as *mut RNG;
     (*this).seed = seed;
     RNG_Init(this);
     this

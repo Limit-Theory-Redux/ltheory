@@ -19,7 +19,7 @@ unsafe extern "C" fn Float_ApproximatelyEqual(mut x: f64, mut y: f64) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Clone(mut this: *const Matrix) -> *mut Matrix {
-    let mut clone: *mut Matrix = MemAlloc(::core::mem::size_of::<Matrix>()) as *mut Matrix;
+    let mut clone: *mut Matrix = MemAlloc(std::mem::size_of::<Matrix>()) as *mut Matrix;
     *clone = *this;
     clone
 }
@@ -837,8 +837,8 @@ pub unsafe extern "C" fn Matrix_ToString(mut this: *const Matrix) -> *const libc
     let mut m: *const f32 = ((*this).m).as_ptr();
     libc::snprintf(
         buffer.as_mut_ptr(),
-        (::core::mem::size_of::<[libc::c_char; 512]>())
-            .wrapping_div(::core::mem::size_of::<libc::c_char>())
+        (std::mem::size_of::<[libc::c_char; 512]>())
+            .wrapping_div(std::mem::size_of::<libc::c_char>())
             as i32 as usize,
         b"[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\0"
             as *const u8 as *const libc::c_char,

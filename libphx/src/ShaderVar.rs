@@ -34,7 +34,7 @@ unsafe extern "C" fn ShaderVar_GetStack(
         if type_0 == 0 {
             return std::ptr::null_mut();
         }
-        this = MemAlloc(::core::mem::size_of::<VarStack>()) as *mut VarStack;
+        this = MemAlloc(std::mem::size_of::<VarStack>()) as *mut VarStack;
         (*this).type_0 = type_0;
         (*this).size = 0_i32;
         (*this).capacity = 4_i32;

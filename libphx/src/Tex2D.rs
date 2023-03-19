@@ -49,7 +49,7 @@ pub unsafe extern "C" fn Tex2D_Create(
             b"Tex2D_Create: Invalid texture format requested\0" as *const u8 as *const libc::c_char,
         );
     }
-    let mut this: *mut Tex2D = MemAlloc(::core::mem::size_of::<Tex2D>()) as *mut Tex2D;
+    let mut this: *mut Tex2D = MemAlloc(std::mem::size_of::<Tex2D>()) as *mut Tex2D;
     (*this)._refCount = 1_u32;
     (*this).size = IVec2::new(sx, sy);
     (*this).format = format;
@@ -82,7 +82,7 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     Viewport_GetSize(&mut size);
     let mut this: *mut Tex2D = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
     let mut buf: *mut u32 =
-        MemAlloc((::core::mem::size_of::<u32>()).wrapping_mul((size.x * size.y) as usize))
+        MemAlloc((std::mem::size_of::<u32>()).wrapping_mul((size.x * size.y) as usize))
             as *mut u32;
     Metric_Inc(0x6_i32);
     gl::ReadPixels(
@@ -103,18 +103,18 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
                 swap_temp.as_mut_ptr() as *mut libc::c_void,
                 &mut *buf.offset((size.x * (size.y - y - 1_i32) + x) as isize) as *mut u32
                     as *const libc::c_void,
-                ::core::mem::size_of::<u32>(),
+                std::mem::size_of::<u32>(),
             );
             MemCpy(
                 &mut *buf.offset((size.x * (size.y - y - 1_i32) + x) as isize) as *mut u32
                     as *mut libc::c_void,
                 &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *const libc::c_void,
-                ::core::mem::size_of::<u32>(),
+                std::mem::size_of::<u32>(),
             );
             MemCpy(
                 &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *mut libc::c_void,
                 swap_temp.as_mut_ptr() as *const libc::c_void,
-                ::core::mem::size_of::<u32>(),
+                std::mem::size_of::<u32>(),
             );
             x += 1;
         }

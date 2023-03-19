@@ -48,7 +48,7 @@ pub unsafe extern "C" fn Tex3D_Create(
                 as *const libc::c_char,
         );
     }
-    let mut this: *mut Tex3D = MemAlloc(::core::mem::size_of::<Tex3D>()) as *mut Tex3D;
+    let mut this: *mut Tex3D = MemAlloc(std::mem::size_of::<Tex3D>()) as *mut Tex3D;
     (*this)._refCount = 1_u32;
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).format = format;

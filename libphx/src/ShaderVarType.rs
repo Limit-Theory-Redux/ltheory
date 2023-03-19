@@ -69,21 +69,21 @@ pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> *cons
 pub unsafe extern "C" fn ShaderVarType_GetSize(mut this: ShaderVarType) -> i32 {
     match this {
         1 => {
-            return ::core::mem::size_of::<f32>() as i32;
+            return std::mem::size_of::<f32>() as i32;
         }
-        2 => return ::core::mem::size_of::<Vec2>() as i32,
-        3 => return ::core::mem::size_of::<Vec3>() as i32,
-        4 => return ::core::mem::size_of::<Vec4>() as i32,
-        5 => return ::core::mem::size_of::<i32>() as i32,
-        6 => return ::core::mem::size_of::<IVec2>() as i32,
-        7 => return ::core::mem::size_of::<IVec3>() as i32,
-        8 => return ::core::mem::size_of::<IVec4>() as i32,
-        9 => return ::core::mem::size_of::<*mut Matrix>() as i32,
-        10 => return ::core::mem::size_of::<*mut Tex1D>() as i32,
-        11 => return ::core::mem::size_of::<*mut Tex2D>() as i32,
-        12 => return ::core::mem::size_of::<*mut Tex3D>() as i32,
+        2 => return std::mem::size_of::<Vec2>() as i32,
+        3 => return std::mem::size_of::<Vec3>() as i32,
+        4 => return std::mem::size_of::<Vec4>() as i32,
+        5 => return std::mem::size_of::<i32>() as i32,
+        6 => return std::mem::size_of::<IVec2>() as i32,
+        7 => return std::mem::size_of::<IVec3>() as i32,
+        8 => return std::mem::size_of::<IVec4>() as i32,
+        9 => return std::mem::size_of::<*mut Matrix>() as i32,
+        10 => return std::mem::size_of::<*mut Tex1D>() as i32,
+        11 => return std::mem::size_of::<*mut Tex2D>() as i32,
+        12 => return std::mem::size_of::<*mut Tex3D>() as i32,
         13 => {
-            return ::core::mem::size_of::<*mut TexCube>() as i32;
+            return std::mem::size_of::<*mut TexCube>() as i32;
         }
         _ => {}
     }

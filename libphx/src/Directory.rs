@@ -16,7 +16,7 @@ pub unsafe extern "C" fn Directory_Open(mut path: *const libc::c_char) -> *mut D
     if dir.is_null() {
         return std::ptr::null_mut();
     }
-    let mut this: *mut Directory = MemAlloc(::core::mem::size_of::<Directory>()) as *mut Directory;
+    let mut this: *mut Directory = MemAlloc(std::mem::size_of::<Directory>()) as *mut Directory;
     (*this).handle = dir;
     this
 }
@@ -67,13 +67,13 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
     static mut buffer: [libc::c_char; 1024] = [0; 1024];
     if !(libc::getcwd(
         buffer.as_mut_ptr(),
-        ::core::mem::size_of::<[libc::c_char; 1024]>(),
+        std::mem::size_of::<[libc::c_char; 1024]>(),
     ))
     .is_null()
     {
         return std::ptr::null();
     }
-    buffer[(::core::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1_usize)] =
+    buffer[(std::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1_usize)] =
         0_i32 as libc::c_char;
     buffer.as_mut_ptr() as *const libc::c_char
 }

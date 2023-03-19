@@ -26,8 +26,8 @@ pub struct Node {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Create(mut box_0: Box3) -> *mut Octree {
-    let mut this: *mut Octree = MemAlloc(::core::mem::size_of::<Octree>()) as *mut Octree;
-    MemZero(this as *mut libc::c_void, ::core::mem::size_of::<Octree>());
+    let mut this: *mut Octree = MemAlloc(std::mem::size_of::<Octree>()) as *mut Octree;
+    MemZero(this as *mut libc::c_void, std::mem::size_of::<Octree>());
     (*this).box_0 = box_0;
     this
 }
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
-    let mut memory: i32 = ::core::mem::size_of::<Octree>() as i32;
+    let mut memory: i32 = std::mem::size_of::<Octree>() as i32;
     let mut i: i32 = 0_i32;
     while i < 8_i32 {
         if !((*this).child[i as usize]).is_null() {
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        memory = (memory as usize).wrapping_add(::core::mem::size_of::<Node>()) as i32;
+        memory = (memory as usize).wrapping_add(std::mem::size_of::<Node>()) as i32;
         elem = (*elem).next;
     }
     memory
@@ -198,7 +198,7 @@ pub unsafe extern "C" fn Octree_IntersectRay(
 }
 
 unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3, mut id: u32) {
-    let mut elem: *mut Node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
+    let mut elem: *mut Node = MemAlloc(std::mem::size_of::<Node>()) as *mut Node;
     (*elem).box_0 = box_0;
     (*elem).id = id as u64;
     (*elem).next = (*this).elems;

@@ -19,7 +19,7 @@ pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
         init = true;
         frequency = SDL_GetPerformanceFrequency() as f64;
     }
-    let mut this: *mut Timer = MemAlloc(::core::mem::size_of::<Timer>()) as *mut Timer;
+    let mut this: *mut Timer = MemAlloc(std::mem::size_of::<Timer>()) as *mut Timer;
     (*this).value = SDL_GetPerformanceCounter();
     this
 }

@@ -379,8 +379,8 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> *const libc::c_cha
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),
-        (::core::mem::size_of::<[libc::c_char; 512]>())
-            .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32 as usize,
+        (std::mem::size_of::<[libc::c_char; 512]>())
+            .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32 as usize,
         b"(%.4f, %.4f, %.4f, %.4f)\0" as *const u8 as *const libc::c_char,
         (*q).x as f64,
         (*q).y as f64,

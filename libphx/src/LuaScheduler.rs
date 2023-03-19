@@ -93,7 +93,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
             } else {
                 1_i32
             };
-            let mut elemSize: usize = ::core::mem::size_of::<SchedulerElem>();
+            let mut elemSize: usize = std::mem::size_of::<SchedulerElem>();
             let mut pData: *mut *mut libc::c_void =
                 &mut this.addQueue_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData = MemRealloc(
@@ -111,7 +111,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
             } else {
                 1_i32
             };
-            let mut elemSize_0: usize = ::core::mem::size_of::<SchedulerElem>();
+            let mut elemSize_0: usize = std::mem::size_of::<SchedulerElem>();
             let mut pData_0: *mut *mut libc::c_void =
                 &mut this.elems_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
@@ -143,7 +143,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
     libc::qsort(
         this.elems_data as *mut libc::c_void,
         this.elems_size as usize,
-        ::core::mem::size_of::<SchedulerElem>(),
+        std::mem::size_of::<SchedulerElem>(),
         Some(SortByWake as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
     );
     this.now = TimeStamp_Get();
@@ -180,7 +180,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
             } else {
                 1_i32
             };
-            let mut elemSize: usize = ::core::mem::size_of::<SchedulerElem>();
+            let mut elemSize: usize = std::mem::size_of::<SchedulerElem>();
             let mut pData: *mut *mut libc::c_void =
                 &mut this.elems_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData = MemRealloc(

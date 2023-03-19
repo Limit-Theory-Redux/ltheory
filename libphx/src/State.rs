@@ -38,14 +38,14 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
     let mut len: i32 = 0_i32;
     let mut i: i32 = 0_i32;
     while i
-        < (::core::mem::size_of::<[State; 4]>()).wrapping_div(::core::mem::size_of::<State>())
+        < (std::mem::size_of::<[State; 4]>()).wrapping_div(std::mem::size_of::<State>())
             as i32
     {
         if state & states[i as usize] == states[i as usize] {
             len += libc::snprintf(
                 start.offset(len as isize),
-                ((::core::mem::size_of::<[libc::c_char; 512]>())
-                    .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+                ((std::mem::size_of::<[libc::c_char; 512]>())
+                    .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32
                     - len) as usize,
                 b"%s%s\0" as *const u8 as *const libc::c_char,
                 sep,
@@ -59,8 +59,8 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
     if state != 0_i32 {
         len += libc::snprintf(
             start.offset(len as isize),
-            ((::core::mem::size_of::<[libc::c_char; 512]>())
-                .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+            ((std::mem::size_of::<[libc::c_char; 512]>())
+                .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32
                 - len) as usize,
             b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
             sep,

@@ -126,7 +126,7 @@ pub unsafe extern "C" fn Engine_Abort() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_GetBits() -> i32 {
-    8_usize.wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()) as i32
+    8_usize.wrapping_mul(std::mem::size_of::<*mut libc::c_void>()) as i32
 }
 
 #[no_mangle]
@@ -152,7 +152,7 @@ pub unsafe extern "C" fn Engine_Terminate() {
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Update() {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Engine_Update\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Engine_Update\0")).as_ptr(),
     );
     Metric_Reset();
     Keyboard_UpdatePre();

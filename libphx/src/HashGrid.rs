@@ -65,14 +65,14 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
         logCount = logCount.wrapping_add(1);
     }
     cellCount = (1_i32 << logCount) as u32;
-    let mut this: *mut HashGrid = MemAlloc(::core::mem::size_of::<HashGrid>()) as *mut HashGrid;
+    let mut this: *mut HashGrid = MemAlloc(std::mem::size_of::<HashGrid>()) as *mut HashGrid;
     (*this).version = 0_i32 as u64;
     (*this).cells =
-        MemAllocZero((::core::mem::size_of::<HashGridCell>()).wrapping_mul(cellCount as usize))
+        MemAllocZero((std::mem::size_of::<HashGridCell>()).wrapping_mul(cellCount as usize))
             as *mut HashGridCell;
     (*this).elemPool = MemPool_Create(
-        ::core::mem::size_of::<HashGridElem>() as u32,
-        (0x1000_u32 as usize).wrapping_div(::core::mem::size_of::<HashGridElem>()) as u32,
+        std::mem::size_of::<HashGridElem>() as u32,
+        (0x1000_u32 as usize).wrapping_div(std::mem::size_of::<HashGridElem>()) as u32,
     );
     (*this).cellCount = cellCount;
     (*this).cellSize = cellSize;
@@ -114,7 +114,7 @@ unsafe extern "C" fn HashGrid_GetCell(
     let mut p: [i32; 3] = [x, y, z];
     let mut hash: u64 = Hash_XX64(
         p.as_mut_ptr() as *const libc::c_void,
-        ::core::mem::size_of::<[i32; 3]>() as libc::c_ulong as i32,
+        std::mem::size_of::<[i32; 3]>() as libc::c_ulong as i32,
         0_u64,
     );
     ((*this).cells).offset((hash & (*this).mask as u64) as isize)
@@ -137,7 +137,7 @@ unsafe extern "C" fn HashGrid_AddElem(mut this: *mut HashGrid, mut elem: *mut Ha
                         } else {
                             1_i32
                         };
-                        let mut elemSize: usize = ::core::mem::size_of::<*mut HashGridElem>();
+                        let mut elemSize: usize = std::mem::size_of::<*mut HashGridElem>();
                         let mut pData: *mut *mut libc::c_void = &mut (*cell).elems_data
                             as *mut *mut *mut HashGridElem
                             as *mut *mut libc::c_void;
@@ -240,7 +240,7 @@ pub unsafe extern "C" fn HashGrid_Update(
     mut box_0: *const Box3,
 ) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"HashGrid_Update\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"HashGrid_Update\0")).as_ptr(),
     );
     let mut lower: [i32; 3] = [
         HashGrid_ToLocal(this, (*box_0).lower.x),
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn HashGrid_Update(
                                         1_i32
                                     };
                                     let mut elemSize: usize =
-                                        ::core::mem::size_of::<*mut HashGridElem>();
+                                        std::mem::size_of::<*mut HashGridElem>();
                                     let mut pData: *mut *mut libc::c_void = &mut (*cell).elems_data
                                         as *mut *mut *mut HashGridElem
                                         as *mut *mut libc::c_void;
@@ -419,7 +419,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(mut this: *mut HashGrid, mut box_0: *
                                     1_i32
                                 };
                                 let mut elemSize: usize =
-                                    ::core::mem::size_of::<*mut libc::c_void>();
+                                    std::mem::size_of::<*mut libc::c_void>();
                                 let mut pData: *mut *mut libc::c_void = &mut (*this).results_data
                                     as *mut *mut *mut libc::c_void
                                     as *mut *mut libc::c_void;
@@ -463,7 +463,7 @@ pub unsafe extern "C" fn HashGrid_QueryPoint(mut this: *mut HashGrid, mut p: *co
             } else {
                 1_i32
             };
-            let mut elemSize: usize = ::core::mem::size_of::<*mut libc::c_void>();
+            let mut elemSize: usize = std::mem::size_of::<*mut libc::c_void>();
             let mut pData: *mut *mut libc::c_void =
                 &mut (*this).results_data as *mut *mut *mut libc::c_void as *mut *mut libc::c_void;
             *pData = MemRealloc(

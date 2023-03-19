@@ -34,14 +34,14 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
     let mut len: i32 = 0_i32;
     let mut i: i32 = 0_i32;
     while i
-        < (::core::mem::size_of::<[Modifier; 3]>()).wrapping_div(::core::mem::size_of::<Modifier>())
+        < (std::mem::size_of::<[Modifier; 3]>()).wrapping_div(std::mem::size_of::<Modifier>())
             as i32
     {
         if modifier & modifiers[i as usize] == modifiers[i as usize] {
             len += libc::snprintf(
                 start.offset(len as isize),
-                ((::core::mem::size_of::<[libc::c_char; 512]>())
-                    .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+                ((std::mem::size_of::<[libc::c_char; 512]>())
+                    .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32
                     - len) as usize,
                 b"%s%s\0" as *const u8 as *const libc::c_char,
                 sep,
@@ -55,8 +55,8 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
     if modifier != 0_i32 {
         len += libc::snprintf(
             start.offset(len as isize),
-            ((::core::mem::size_of::<[libc::c_char; 512]>())
-                .wrapping_div(::core::mem::size_of::<libc::c_char>()) as i32
+            ((std::mem::size_of::<[libc::c_char; 512]>())
+                .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32
                 - len) as usize,
             b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
             sep,

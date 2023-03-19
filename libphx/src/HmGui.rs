@@ -147,7 +147,7 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: u32) 
         (*e).hash = Hash_FNV64_Incremental(
             (*(*e).parent).widget.hash,
             &mut (*(*e).parent).children as *mut u32 as *const libc::c_void,
-            ::core::mem::size_of::<u32>() as i32,
+            std::mem::size_of::<u32>() as i32,
         );
         if !((*e).next).is_null() {
             (*(*e).next).prev = e;
@@ -172,7 +172,7 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: u32) 
 }
 
 unsafe extern "C" fn HmGui_BeginGroup(mut layout: u32) {
-    let mut e: *mut HmGuiGroup = MemAlloc(::core::mem::size_of::<HmGuiGroup>()) as *mut HmGuiGroup;
+    let mut e: *mut HmGuiGroup = MemAlloc(std::mem::size_of::<HmGuiGroup>()) as *mut HmGuiGroup;
     HmGui_InitWidget(&mut (*e).widget, 0_u32);
     (*e).head = std::ptr::null_mut();
     (*e).tail = std::ptr::null_mut();
@@ -236,7 +236,7 @@ unsafe extern "C" fn HmGui_FreeGroup(mut g: *mut HmGuiGroup) {
 unsafe extern "C" fn HmGui_GetData(mut g: *mut HmGuiGroup) -> *mut HmGuiData {
     let mut data: *mut HmGuiData = HashMap_GetRaw(this.data, (*g).widget.hash) as *mut HmGuiData;
     if data.is_null() {
-        data = MemAlloc(::core::mem::size_of::<HmGuiData>()) as *mut HmGuiData;
+        data = MemAlloc(std::mem::size_of::<HmGuiData>()) as *mut HmGuiData;
         (*data).offset = Vec2::new(0.0f32, 0.0f32);
         (*data).minSize = Vec2::new(0.0f32, 0.0f32);
         (*data).size = Vec2::new(0.0f32, 0.0f32);
@@ -557,7 +557,7 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
         init_hmgui = true;
         this.group = std::ptr::null_mut();
         this.root = std::ptr::null_mut();
-        this.style = MemAlloc(::core::mem::size_of::<HmGuiStyle>()) as *mut HmGuiStyle;
+        this.style = MemAlloc(std::mem::size_of::<HmGuiStyle>()) as *mut HmGuiStyle;
         (*this.style).prev = std::ptr::null_mut();
         (*this.style).font = Font_Load(b"Rajdhani\0" as *const u8 as *const libc::c_char, 14_i32);
         (*this.style).spacing = 6.0f32;
@@ -589,7 +589,7 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_End() {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"HmGui_End\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"HmGui_End\0")).as_ptr(),
     );
     HmGui_EndGroup();
     HmGui_ComputeSize(this.root);
@@ -609,7 +609,7 @@ pub unsafe extern "C" fn HmGui_End() {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Draw() {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"HmGui_Draw\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"HmGui_Draw\0")).as_ptr(),
     );
     RenderState_PushBlendMode(1_i32);
     UIRenderer_Begin();
@@ -788,7 +788,7 @@ pub unsafe extern "C" fn HmGui_Slider(mut _lower: f32, mut _upper: f32, mut _val
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Image(mut image: *mut Tex2D) {
-    let mut e: *mut HmGuiImage = MemAlloc(::core::mem::size_of::<HmGuiImage>()) as *mut HmGuiImage;
+    let mut e: *mut HmGuiImage = MemAlloc(std::mem::size_of::<HmGuiImage>()) as *mut HmGuiImage;
     HmGui_InitWidget(&mut (*e).widget, 3_u32);
     (*e).image = image;
     (*e).widget.stretch = Vec2::new(1.0f32, 1.0f32);
@@ -803,7 +803,7 @@ pub unsafe extern "C" fn HmGui_Rect(
     mut b: f32,
     mut a: f32,
 ) {
-    let mut e: *mut HmGuiRect = MemAlloc(::core::mem::size_of::<HmGuiRect>()) as *mut HmGuiRect;
+    let mut e: *mut HmGuiRect = MemAlloc(std::mem::size_of::<HmGuiRect>()) as *mut HmGuiRect;
     HmGui_InitWidget(&mut (*e).widget, 2_u32);
     (*e).color = Vec4::new(r, g, b, a);
     (*e).widget.minSize = Vec2::new(sx, sy);
@@ -841,7 +841,7 @@ pub unsafe extern "C" fn HmGui_TextEx(
     mut b: f32,
     mut a: f32,
 ) {
-    let mut e: *mut HmGuiText = MemAlloc(::core::mem::size_of::<HmGuiText>()) as *mut HmGuiText;
+    let mut e: *mut HmGuiText = MemAlloc(std::mem::size_of::<HmGuiText>()) as *mut HmGuiText;
     HmGui_InitWidget(&mut (*e).widget, 1_u32);
     (*e).font = font;
     (*e).text = StrDup(text);
@@ -913,7 +913,7 @@ pub unsafe extern "C" fn HmGui_GroupHasFocus(mut type_0: i32) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushStyle() {
     let mut style: *mut HmGuiStyle =
-        MemAlloc(::core::mem::size_of::<HmGuiStyle>()) as *mut HmGuiStyle;
+        MemAlloc(std::mem::size_of::<HmGuiStyle>()) as *mut HmGuiStyle;
     *style = *this.style;
     (*style).prev = this.style;
     this.style = style;

@@ -99,7 +99,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1_i32
                     };
-                    let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
+                    let mut elemSize: usize = std::mem::size_of::<Vec3>();
                     let mut pData: *mut *mut libc::c_void =
                         &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData = MemRealloc(
@@ -117,7 +117,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1_i32
                     };
-                    let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
+                    let mut elemSize_0: usize = std::mem::size_of::<Vec3>();
                     let mut pData_0: *mut *mut libc::c_void =
                         &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
@@ -135,7 +135,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 } else {
                     1_i32
                 };
-                let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
+                let mut elemSize_1: usize = std::mem::size_of::<Vec3>();
                 let mut pData_1: *mut *mut libc::c_void =
                     &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_1 = MemRealloc(
@@ -160,7 +160,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1_i32
                     };
-                    let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
+                    let mut elemSize_2: usize = std::mem::size_of::<Vec3>();
                     let mut pData_2: *mut *mut libc::c_void =
                         &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_2 = MemRealloc(
@@ -178,7 +178,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1_i32
                     };
-                    let mut elemSize_3: usize = ::core::mem::size_of::<Vec3>();
+                    let mut elemSize_3: usize = std::mem::size_of::<Vec3>();
                     let mut pData_3: *mut *mut libc::c_void =
                         &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_3 = MemRealloc(
@@ -197,7 +197,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1_i32
                     };
-                    let mut elemSize_4: usize = ::core::mem::size_of::<Vec3>();
+                    let mut elemSize_4: usize = std::mem::size_of::<Vec3>();
                     let mut pData_4: *mut *mut libc::c_void =
                         &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_4 = MemRealloc(
@@ -215,7 +215,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 } else {
                     1_i32
                 };
-                let mut elemSize_5: usize = ::core::mem::size_of::<Vec3>();
+                let mut elemSize_5: usize = std::mem::size_of::<Vec3>();
                 let mut pData_5: *mut *mut libc::c_void =
                     &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_5 = MemRealloc(
@@ -235,7 +235,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                     } else {
                         1_i32
                     };
-                    let mut elemSize_6: usize = ::core::mem::size_of::<Vec3>();
+                    let mut elemSize_6: usize = std::mem::size_of::<Vec3>();
                     let mut pData_6: *mut *mut libc::c_void =
                         &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                     *pData_6 = MemRealloc(
@@ -253,7 +253,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 } else {
                     1_i32
                 };
-                let mut elemSize_7: usize = ::core::mem::size_of::<Vec3>();
+                let mut elemSize_7: usize = std::mem::size_of::<Vec3>();
                 let mut pData_7: *mut *mut libc::c_void =
                     &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_7 = MemRealloc(
@@ -282,8 +282,8 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
     let mut polygons: [*mut Polygon; 2] = [front, back];
     let mut i: i32 = 0_i32;
     while i
-        < (::core::mem::size_of::<[*mut Polygon; 2]>())
-            .wrapping_div(::core::mem::size_of::<*mut Polygon>()) as i32
+        < (std::mem::size_of::<[*mut Polygon; 2]>())
+            .wrapping_div(std::mem::size_of::<*mut Polygon>()) as i32
     {
         let mut polygonPart: *mut Polygon = polygons[i as usize];
         let mut v: *mut Vec3 = (*polygonPart).vertices_data;
@@ -307,7 +307,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                         } else {
                             1_i32
                         };
-                        let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
+                        let mut elemSize: usize = std::mem::size_of::<Vec3>();
                         let mut pData: *mut *mut libc::c_void =
                             &mut (*back).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                         *pData = MemRealloc(
@@ -324,7 +324,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
                         } else {
                             1_i32
                         };
-                        let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
+                        let mut elemSize_0: usize = std::mem::size_of::<Vec3>();
                         let mut pData_0: *mut *mut libc::c_void =
                             &mut (*front).vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                         *pData_0 = MemRealloc(
@@ -388,7 +388,7 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
             };
             *triangles_data = MemRealloc(
                 *triangles_data as *mut libc::c_void,
-                (*triangles_capacity as usize).wrapping_mul(::core::mem::size_of::<Triangle>()),
+                (*triangles_capacity as usize).wrapping_mul(std::mem::size_of::<Triangle>()),
             ) as *mut Triangle;
         }
         let mut triangle: *mut Triangle = (*triangles_data).offset(*triangles_size as isize);

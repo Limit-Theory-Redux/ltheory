@@ -58,7 +58,7 @@ pub unsafe extern "C" fn Gamepad_Open(mut index: i32) -> *mut Gamepad {
     if handle.is_null() {
         return std::ptr::null_mut();
     }
-    let mut this: *mut Gamepad = MemAllocZero(::core::mem::size_of::<Gamepad>()) as *mut Gamepad;
+    let mut this: *mut Gamepad = MemAllocZero(std::mem::size_of::<Gamepad>()) as *mut Gamepad;
     (*this).handle = handle;
     (*this).lastActive = TimeStamp_Get();
     (*this).gamepadList_prev = &mut gamepadList;

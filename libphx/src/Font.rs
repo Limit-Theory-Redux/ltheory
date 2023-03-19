@@ -399,7 +399,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     }
     let mut bitmap: *const FT_Bitmap = &mut (*(*face).glyph).bitmap;
     let mut pBitmap: *const uchar = (*bitmap).buffer;
-    g = MemAlloc(::core::mem::size_of::<Glyph>()) as *mut Glyph;
+    g = MemAlloc(std::mem::size_of::<Glyph>()) as *mut Glyph;
     (*g).index = glyph;
     (*g).x0 = (*(*face).glyph).bitmap_left;
     (*g).y0 = -(*(*face).glyph).bitmap_top;
@@ -409,7 +409,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     (*g).y1 = (*g).y0 + (*g).sy;
     (*g).advance = ((*(*face).glyph).advance.x >> 6_i32) as i32;
     let mut buffer: *mut Vec4 =
-        MemAlloc((::core::mem::size_of::<Vec4>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
+        MemAlloc((std::mem::size_of::<Vec4>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
             as *mut Vec4;
     let mut pBuffer: *mut Vec4 = buffer;
     let mut dy: u32 = 0_u32;
@@ -467,7 +467,7 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
         FT_Init_FreeType(&mut ft);
     }
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Font, name);
-    let mut this: *mut Font = MemAlloc(::core::mem::size_of::<Font>()) as *mut Font;
+    let mut this: *mut Font = MemAlloc(std::mem::size_of::<Font>()) as *mut Font;
     (*this)._refCount = 1_u32;
     if FT_New_Face(ft, path, 0_i32 as FT_Long, &mut (*this).handle) != 0 {
         Fatal(
@@ -479,9 +479,9 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
     FT_Set_Pixel_Sizes((*this).handle, 0_i32 as FT_UInt, size as FT_UInt);
     MemZero(
         ((*this).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
-        ::core::mem::size_of::<[*mut Glyph; 256]>(),
+        std::mem::size_of::<[*mut Glyph; 256]>(),
     );
-    (*this).glyphs = HashMap_Create(::core::mem::size_of::<u32>() as u32, 16_u32);
+    (*this).glyphs = HashMap_Create(std::mem::size_of::<u32>() as u32, 16_u32);
     this
 }
 
@@ -513,7 +513,7 @@ pub unsafe extern "C" fn Font_Draw(
     mut a: f32,
 ) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"Font_Draw\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"Font_Draw\0")).as_ptr(),
     );
     let mut glyphLast: i32 = 0_i32;
     let fresh1 = text;
@@ -556,7 +556,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
     mut y: f32,
 ) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Font_DrawShaded\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Font_DrawShaded\0")).as_ptr(),
     );
     let mut glyphLast: i32 = 0_i32;
     let fresh3 = text;
@@ -601,7 +601,7 @@ pub unsafe extern "C" fn Font_GetSize(
     mut text: *const libc::c_char,
 ) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Font_GetSize\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Font_GetSize\0")).as_ptr(),
     );
     let mut x: i32 = 0_i32;
     let mut y: i32 = 0_i32;
@@ -645,7 +645,7 @@ pub unsafe extern "C" fn Font_GetSize2(
     mut text: *const libc::c_char,
 ) {
     Profiler_Begin(
-        (*::core::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Font_GetSize2\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Font_GetSize2\0")).as_ptr(),
     );
     (*out).x = 0_i32;
     (*out).y = 0_i32;

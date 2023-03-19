@@ -83,7 +83,7 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
-    let mut this: *mut Mesh = MemAlloc(::core::mem::size_of::<Mesh>()) as *mut Mesh;
+    let mut this: *mut Mesh = MemAlloc(std::mem::size_of::<Mesh>()) as *mut Mesh;
     (*this)._refCount = 1_u32;
     (*this).vbo = 0_u32;
     (*this).ibo = 0_u32;
@@ -104,7 +104,7 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
     let mut this: *mut Mesh = Mesh_Create();
     if ((*this).index_capacity < (*other).index_size) as libc::c_long != 0 {
         (*this).index_capacity = (*other).index_size;
-        let mut elemSize: usize = ::core::mem::size_of::<i32>();
+        let mut elemSize: usize = std::mem::size_of::<i32>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -114,7 +114,7 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
     }
     if ((*this).vertex_capacity < (*other).vertex_size) as libc::c_long != 0 {
         (*this).vertex_capacity = (*other).vertex_size;
-        let mut elemSize_0: usize = ::core::mem::size_of::<Vertex>();
+        let mut elemSize_0: usize = std::mem::size_of::<Vertex>();
         let mut pData_0: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
@@ -127,12 +127,12 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
     MemCpy(
         (*this).index_data as *mut libc::c_void,
         (*other).index_data as *const libc::c_void,
-        (::core::mem::size_of::<i32>()).wrapping_mul((*other).index_size as usize),
+        (std::mem::size_of::<i32>()).wrapping_mul((*other).index_size as usize),
     );
     MemCpy(
         (*this).vertex_data as *mut libc::c_void,
         (*other).vertex_data as *const libc::c_void,
-        (::core::mem::size_of::<Vertex>()).wrapping_mul((*other).vertex_size as usize),
+        (std::mem::size_of::<Vertex>()).wrapping_mul((*other).vertex_size as usize),
     );
     this
 }
@@ -171,9 +171,9 @@ pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     let mut vertexCount: i32 = Mesh_GetVertexCount(mesh);
     let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
     let mut size: u32 = 2_usize
-        .wrapping_mul(::core::mem::size_of::<i32>())
-        .wrapping_add((vertexCount as usize).wrapping_mul(::core::mem::size_of::<Vertex>()))
-        .wrapping_add((indexCount as usize).wrapping_mul(::core::mem::size_of::<i32>()))
+        .wrapping_mul(std::mem::size_of::<i32>())
+        .wrapping_add((vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()))
+        .wrapping_add((indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()))
         as u32;
     let mut this: *mut Bytes = Bytes_Create(size);
     Bytes_WriteI32(this, vertexCount);
@@ -181,12 +181,12 @@ pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     Bytes_Write(
         this,
         (*mesh).vertex_data as *const libc::c_void,
-        (vertexCount as usize).wrapping_mul(::core::mem::size_of::<Vertex>()) as u32,
+        (vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()) as u32,
     );
     Bytes_Write(
         this,
         (*mesh).index_data as *const libc::c_void,
-        (indexCount as usize).wrapping_mul(::core::mem::size_of::<i32>()) as u32,
+        (indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()) as u32,
     );
     this
 }
@@ -201,12 +201,12 @@ pub unsafe extern "C" fn Mesh_FromBytes(mut buf: *mut Bytes) -> *mut Mesh {
     Bytes_Read(
         buf,
         (*this).vertex_data as *mut libc::c_void,
-        (vertexCount as usize).wrapping_mul(::core::mem::size_of::<Vertex>()) as u32,
+        (vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()) as u32,
     );
     Bytes_Read(
         buf,
         (*this).index_data as *mut libc::c_void,
-        (indexCount as usize).wrapping_mul(::core::mem::size_of::<i32>()) as u32,
+        (indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()) as u32,
     );
     (*this).vertex_size = vertexCount;
     (*this).index_size = indexCount;
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn Mesh_AddIndex(mut this: *mut Mesh, mut newIndex: i32) {
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<i32>();
+        let mut elemSize: usize = std::mem::size_of::<i32>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -295,7 +295,7 @@ pub unsafe extern "C" fn Mesh_AddVertex(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
+        let mut elemSize: usize = std::mem::size_of::<Vertex>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -320,7 +320,7 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(mut this: *mut Mesh, mut vertex: *con
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
+        let mut elemSize: usize = std::mem::size_of::<Vertex>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -352,7 +352,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, (*this).ibo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            ((*this).vertex_size as usize).wrapping_mul(::core::mem::size_of::<Vertex>())
+            ((*this).vertex_size as usize).wrapping_mul(std::mem::size_of::<Vertex>())
                 as gl::types::GLsizeiptr,
             (*this).vertex_data as *const libc::c_void,
             gl::STATIC_DRAW,
@@ -364,7 +364,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
 
         gl::BufferData(
             gl::ELEMENT_ARRAY_BUFFER,
-            ((*this).index_size as usize).wrapping_mul(::core::mem::size_of::<i32>())
+            ((*this).index_size as usize).wrapping_mul(std::mem::size_of::<i32>())
                 as gl::types::GLsizeiptr,
             (*this).index_data as *const libc::c_void,
             gl::STATIC_DRAW,
@@ -385,7 +385,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         3_i32,
         gl::FLOAT,
         gl::FALSE,
-        ::core::mem::size_of::<Vertex>() as gl::types::GLsizei,
+        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
         offset_of!(Vertex, p) as *const libc::c_void,
     );
     gl::VertexAttribPointer(
@@ -393,7 +393,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         3_i32,
         gl::FLOAT,
         gl::FALSE,
-        ::core::mem::size_of::<Vertex>() as gl::types::GLsizei,
+        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
         offset_of!(Vertex, n) as *const libc::c_void,
     );
     gl::VertexAttribPointer(
@@ -401,7 +401,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         2_i32,
         gl::FLOAT,
         gl::FALSE,
-        ::core::mem::size_of::<Vertex>() as gl::types::GLsizei,
+        std::mem::size_of::<Vertex>() as gl::types::GLsizei,
         offset_of!(Vertex, uv) as *const libc::c_void,
     );
 }
@@ -561,7 +561,7 @@ pub unsafe extern "C" fn Mesh_GetVertexData(mut this: *mut Mesh) -> *mut Vertex 
 pub unsafe extern "C" fn Mesh_ReserveIndexData(mut this: *mut Mesh, mut capacity: i32) {
     if ((*this).index_capacity < capacity) as libc::c_long != 0 {
         (*this).index_capacity = capacity;
-        let mut elemSize: usize = ::core::mem::size_of::<i32>();
+        let mut elemSize: usize = std::mem::size_of::<i32>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -575,7 +575,7 @@ pub unsafe extern "C" fn Mesh_ReserveIndexData(mut this: *mut Mesh, mut capacity
 pub unsafe extern "C" fn Mesh_ReserveVertexData(mut this: *mut Mesh, mut capacity: i32) {
     if ((*this).vertex_capacity < capacity) as libc::c_long != 0 {
         (*this).vertex_capacity = capacity;
-        let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
+        let mut elemSize: usize = std::mem::size_of::<Vertex>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -602,20 +602,20 @@ pub unsafe extern "C" fn Mesh_Invert(mut this: *mut Mesh) -> *mut Mesh {
             swap_temp.as_mut_ptr() as *mut libc::c_void,
             &mut *((*this).index_data).offset((i + 2_i32) as isize) as *mut i32
                 as *const libc::c_void,
-            ::core::mem::size_of::<i32>(),
+            std::mem::size_of::<i32>(),
         );
         libc::memcpy(
             &mut *((*this).index_data).offset((i + 2_i32) as isize) as *mut i32
                 as *mut libc::c_void,
             &mut *((*this).index_data).offset((i + 1_i32) as isize) as *mut i32
                 as *const libc::c_void,
-            ::core::mem::size_of::<i32>(),
+            std::mem::size_of::<i32>(),
         );
         libc::memcpy(
             &mut *((*this).index_data).offset((i + 1_i32) as isize) as *mut i32
                 as *mut libc::c_void,
             swap_temp.as_mut_ptr() as *const libc::c_void,
-            ::core::mem::size_of::<i32>(),
+            std::mem::size_of::<i32>(),
         );
         i += 3_i32;
     }
@@ -786,7 +786,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32)
                         } else {
                             1_i32
                         };
-                        let mut elemSize: usize = ::core::mem::size_of::<Vertex>();
+                        let mut elemSize: usize = std::mem::size_of::<Vertex>();
                         let mut pData: *mut *mut libc::c_void =
                             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
                         *pData = MemRealloc(

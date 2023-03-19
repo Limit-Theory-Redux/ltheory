@@ -195,7 +195,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                             } else {
                                 1_i32
                             };
-                            let mut elemSize: usize = ::core::mem::size_of::<DelayRay>();
+                            let mut elemSize: usize = std::mem::size_of::<DelayRay>();
                             let mut pData: *mut *mut libc::c_void =
                                 &mut rayStack_data as *mut *mut DelayRay as *mut *mut libc::c_void;
                             *pData = MemRealloc(
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                     } else {
                         1_i32
                     };
-                    let mut elemSize_0: usize = ::core::mem::size_of::<DelayRay>();
+                    let mut elemSize_0: usize = std::mem::size_of::<DelayRay>();
                     let mut pData_0: *mut *mut libc::c_void =
                         &mut rayStack_data as *mut *mut DelayRay as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
@@ -330,7 +330,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                     } else {
                         1_i32
                     };
-                    let mut elemSize: usize = ::core::mem::size_of::<Delay>();
+                    let mut elemSize: usize = std::mem::size_of::<Delay>();
                     let mut pData: *mut *mut libc::c_void =
                         &mut nodeStack_data as *mut *mut Delay as *mut *mut libc::c_void;
                     *pData = MemRealloc(
@@ -643,7 +643,7 @@ unsafe extern "C" fn BSPBuild_AppendPolygon(
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<PolygonEx>();
+        let mut elemSize: usize = std::mem::size_of::<PolygonEx>();
         let mut pData: *mut *mut libc::c_void =
             &mut (*nodeData).polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -661,7 +661,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     mut nodeData: *mut BSPBuild_NodeData,
 ) -> *mut BSPBuild_Node {
     let mut node: *mut BSPBuild_Node =
-        MemAllocZero(::core::mem::size_of::<BSPBuild_Node>()) as *mut BSPBuild_Node;
+        MemAllocZero(std::mem::size_of::<BSPBuild_Node>()) as *mut BSPBuild_Node;
     let mut splitPlane: Plane = Plane {
         n: Vec3 {
             x: 0.,
@@ -695,7 +695,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     };
     if (backNodeData.polygons_capacity < polygonsLen) as libc::c_long != 0 {
         backNodeData.polygons_capacity = polygonsLen;
-        let mut elemSize: usize = ::core::mem::size_of::<PolygonEx>();
+        let mut elemSize: usize = std::mem::size_of::<PolygonEx>();
         let mut pData: *mut *mut libc::c_void =
             &mut backNodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -714,7 +714,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     };
     if (frontNodeData.polygons_capacity < polygonsLen) as libc::c_long != 0 {
         frontNodeData.polygons_capacity = polygonsLen;
-        let mut elemSize_0: usize = ::core::mem::size_of::<PolygonEx>();
+        let mut elemSize_0: usize = std::mem::size_of::<PolygonEx>();
         let mut pData_0: *mut *mut libc::c_void =
             &mut frontNodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
@@ -823,7 +823,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             } else {
                 1_i32
             };
-            let mut elemSize: usize = ::core::mem::size_of::<BSPNode>();
+            let mut elemSize: usize = std::mem::size_of::<BSPNode>();
             let mut pData: *mut *mut libc::c_void =
                 &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
             *pData = MemRealloc(
@@ -894,7 +894,7 @@ unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
-    let mut this: *mut BSP = MemAllocZero(::core::mem::size_of::<BSP>()) as *mut BSP;
+    let mut this: *mut BSP = MemAllocZero(std::mem::size_of::<BSP>()) as *mut BSP;
     let mut indexLen: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *mut i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(mesh);
@@ -910,7 +910,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     nodeData.validPolygonCount = indexLen / 3_i32;
     if (nodeData.polygons_capacity < nodeData.triangleCount) as i32 as libc::c_long != 0 {
         nodeData.polygons_capacity = nodeData.triangleCount;
-        let mut elemSize: usize = ::core::mem::size_of::<PolygonEx>();
+        let mut elemSize: usize = std::mem::size_of::<PolygonEx>();
         let mut pData: *mut *mut libc::c_void =
             &mut nodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -934,7 +934,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         };
         if (polygon.vertices_capacity < 3_i32) as libc::c_long != 0 {
             polygon.vertices_capacity = 3_i32;
-            let mut elemSize_0: usize = ::core::mem::size_of::<Vec3>();
+            let mut elemSize_0: usize = std::mem::size_of::<Vec3>();
             let mut pData_0: *mut *mut libc::c_void =
                 &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
@@ -948,7 +948,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             } else {
                 1_i32
             };
-            let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
+            let mut elemSize_1: usize = std::mem::size_of::<Vec3>();
             let mut pData_1: *mut *mut libc::c_void =
                 &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_1 = MemRealloc(
@@ -965,7 +965,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             } else {
                 1_i32
             };
-            let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
+            let mut elemSize_2: usize = std::mem::size_of::<Vec3>();
             let mut pData_2: *mut *mut libc::c_void =
                 &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_2 = MemRealloc(
@@ -982,7 +982,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             } else {
                 1_i32
             };
-            let mut elemSize_3: usize = ::core::mem::size_of::<Vec3>();
+            let mut elemSize_3: usize = std::mem::size_of::<Vec3>();
             let mut pData_3: *mut *mut libc::c_void =
                 &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_3 = MemRealloc(
@@ -999,7 +999,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             } else {
                 1_i32
             };
-            let mut elemSize_4: usize = ::core::mem::size_of::<PolygonEx>();
+            let mut elemSize_4: usize = std::mem::size_of::<PolygonEx>();
             let mut pData_4: *mut *mut libc::c_void =
                 &mut nodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
             *pData_4 = MemRealloc(
@@ -1030,7 +1030,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     };
     if ((*this).triangles_capacity < bspBuild.triangleCount + 2_i32) as libc::c_long != 0 {
         (*this).triangles_capacity = bspBuild.triangleCount + 2_i32;
-        let mut elemSize_5: usize = ::core::mem::size_of::<Triangle>();
+        let mut elemSize_5: usize = std::mem::size_of::<Triangle>();
         let mut pData_5: *mut *mut libc::c_void =
             &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_5 = MemRealloc(
@@ -1044,7 +1044,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         } else {
             1_i32
         };
-        let mut elemSize_6: usize = ::core::mem::size_of::<Triangle>();
+        let mut elemSize_6: usize = std::mem::size_of::<Triangle>();
         let mut pData_6: *mut *mut libc::c_void =
             &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_6 = MemRealloc(
@@ -1061,7 +1061,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         } else {
             1_i32
         };
-        let mut elemSize_7: usize = ::core::mem::size_of::<Triangle>();
+        let mut elemSize_7: usize = std::mem::size_of::<Triangle>();
         let mut pData_7: *mut *mut libc::c_void =
             &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_7 = MemRealloc(
@@ -1090,7 +1090,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     };
     if ((*this).nodes_capacity < bspBuild.nodeCount + 1_i32) as i32 as libc::c_long != 0 {
         (*this).nodes_capacity = bspBuild.nodeCount + 1_i32;
-        let mut elemSize_8: usize = ::core::mem::size_of::<BSPNode>();
+        let mut elemSize_8: usize = std::mem::size_of::<BSPNode>();
         let mut pData_8: *mut *mut libc::c_void =
             &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
         *pData_8 = MemRealloc(
@@ -1104,7 +1104,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         } else {
             1_i32
         };
-        let mut elemSize_9: usize = ::core::mem::size_of::<BSPNode>();
+        let mut elemSize_9: usize = std::mem::size_of::<BSPNode>();
         let mut pData_9: *mut *mut libc::c_void =
             &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
         *pData_9 = MemRealloc(
@@ -1347,7 +1347,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     } else {
                         1_i32
                     };
-                    let mut elemSize: usize = ::core::mem::size_of::<Delay>();
+                    let mut elemSize: usize = std::mem::size_of::<Delay>();
                     let mut pData: *mut *mut libc::c_void =
                         &mut nodeStack_data as *mut *mut Delay as *mut *mut libc::c_void;
                     *pData = MemRealloc(
@@ -1384,7 +1384,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                             } else {
                                 1_i32
                             };
-                        let mut elemSize_0: usize = ::core::mem::size_of::<TriangleTest>();
+                        let mut elemSize_0: usize = std::mem::size_of::<TriangleTest>();
                         let mut pData_0: *mut *mut libc::c_void =
                             &mut (*sphereProf).triangleTests_data as *mut *mut TriangleTest
                                 as *mut *mut libc::c_void;
@@ -1414,7 +1414,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                             } else {
                                 1_i32
                             };
-                        let mut elemSize_1: usize = ::core::mem::size_of::<TriangleTest>();
+                        let mut elemSize_1: usize = std::mem::size_of::<TriangleTest>();
                         let mut pData_1: *mut *mut libc::c_void =
                             &mut (*sphereProf).triangleTests_data as *mut *mut TriangleTest
                                 as *mut *mut libc::c_void;

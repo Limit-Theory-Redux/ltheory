@@ -26,7 +26,7 @@ pub unsafe extern "C" fn Window_Create(
     mut sy: i32,
     mut mode: WindowMode,
 ) -> *mut Window {
-    let mut this: *mut Window = MemAlloc(::core::mem::size_of::<Window>()) as *mut Window;
+    let mut this: *mut Window = MemAlloc(std::mem::size_of::<Window>()) as *mut Window;
     mode |= SDL_WindowFlags::SDL_WINDOW_OPENGL as WindowMode;
     (*this).handle = SDL_CreateWindow(title, x, y, sx, sy, mode);
     (*this).context = SDL_GL_CreateContext((*this).handle);

@@ -97,11 +97,11 @@ unsafe extern "C" fn UIRenderer_Init() {
     init = true;
     this.root = std::ptr::null_mut();
     this.layer = std::ptr::null_mut();
-    this.layerPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererLayer>() as u32);
-    this.imagePool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererImage>() as u32);
-    this.panelPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererPanel>() as u32);
-    this.rectPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererRect>() as u32);
-    this.textPool = MemPool_CreateAuto(::core::mem::size_of::<UIRendererText>() as u32);
+    this.layerPool = MemPool_CreateAuto(std::mem::size_of::<UIRendererLayer>() as u32);
+    this.imagePool = MemPool_CreateAuto(std::mem::size_of::<UIRendererImage>() as u32);
+    this.panelPool = MemPool_CreateAuto(std::mem::size_of::<UIRendererPanel>() as u32);
+    this.rectPool = MemPool_CreateAuto(std::mem::size_of::<UIRendererRect>() as u32);
+    this.textPool = MemPool_CreateAuto(std::mem::size_of::<UIRendererText>() as u32);
 }
 
 #[no_mangle]

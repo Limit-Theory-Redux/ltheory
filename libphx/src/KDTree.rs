@@ -57,7 +57,7 @@ unsafe extern "C" fn Partition(
     mut boxCount: i32,
     mut dim: i32,
 ) -> *mut KDTree {
-    let mut this: *mut KDTree = MemAlloc(::core::mem::size_of::<KDTree>()) as *mut KDTree;
+    let mut this: *mut KDTree = MemAlloc(std::mem::size_of::<KDTree>()) as *mut KDTree;
     if boxCount <= kMaxLeafSize {
         (*this).box_0 = *boxes.offset(0);
         (*this).back = std::ptr::null_mut();
@@ -70,7 +70,7 @@ unsafe extern "C" fn Partition(
         }
         let mut i_0: i32 = 0_i32;
         while i_0 < boxCount {
-            let mut node: *mut Node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
+            let mut node: *mut Node = MemAlloc(std::mem::size_of::<Node>()) as *mut Node;
             (*node).box_0 = *boxes.offset(i_0 as isize);
             (*node).next = (*this).elems;
             (*node).id = 0_i32 as u64;
@@ -83,7 +83,7 @@ unsafe extern "C" fn Partition(
         libc::qsort(
             boxes as *mut libc::c_void,
             boxCount as usize,
-            ::core::mem::size_of::<Box3>(),
+            std::mem::size_of::<Box3>(),
             Some(
                 compareLowerX
                     as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
@@ -94,7 +94,7 @@ unsafe extern "C" fn Partition(
         libc::qsort(
             boxes as *mut libc::c_void,
             boxCount as usize,
-            ::core::mem::size_of::<Box3>(),
+            std::mem::size_of::<Box3>(),
             Some(
                 compareLowerY
                     as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
@@ -105,7 +105,7 @@ unsafe extern "C" fn Partition(
         libc::qsort(
             boxes as *mut libc::c_void,
             boxCount as usize,
-            ::core::mem::size_of::<Box3>(),
+            std::mem::size_of::<Box3>(),
             Some(
                 compareLowerZ
                     as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
@@ -115,19 +115,19 @@ unsafe extern "C" fn Partition(
     let mut boxCountBack: i32 = boxCount / 2_i32;
     let mut boxCountFront: i32 = boxCount - boxCountBack;
     let mut boxesBack: *mut Box3 =
-        MemAlloc((::core::mem::size_of::<Box3>()).wrapping_mul(boxCountBack as usize)) as *mut Box3;
+        MemAlloc((std::mem::size_of::<Box3>()).wrapping_mul(boxCountBack as usize)) as *mut Box3;
     let mut boxesFront: *mut Box3 =
-        MemAlloc((::core::mem::size_of::<Box3>()).wrapping_mul(boxCountFront as usize))
+        MemAlloc((std::mem::size_of::<Box3>()).wrapping_mul(boxCountFront as usize))
             as *mut Box3;
     MemCpy(
         boxesBack as *mut libc::c_void,
         boxes as *const libc::c_void,
-        (boxCountBack as usize).wrapping_mul(::core::mem::size_of::<Box3>()),
+        (boxCountBack as usize).wrapping_mul(std::mem::size_of::<Box3>()),
     );
     MemCpy(
         boxesFront as *mut libc::c_void,
         boxes.offset(boxCountBack as isize) as *const libc::c_void,
-        (boxCountFront as usize).wrapping_mul(::core::mem::size_of::<Box3>()),
+        (boxCountFront as usize).wrapping_mul(std::mem::size_of::<Box3>()),
     );
     (*this).back = Partition(boxesBack, boxCountBack, (dim + 1_i32) % 3_i32);
     (*this).front = Partition(boxesFront, boxCountFront, (dim + 1_i32) % 3_i32);
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
     let boxCount: i32 = indexCount / 3_i32;
     let mut boxes: *mut Box3 =
-        MemAlloc((::core::mem::size_of::<Box3>()).wrapping_mul(boxCount as usize)) as *mut Box3;
+        MemAlloc((std::mem::size_of::<Box3>()).wrapping_mul(boxCount as usize)) as *mut Box3;
     let mut i: i32 = 0_i32;
     while i < indexCount {
         let mut v0: *const Vertex =
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn KDTree_Free(mut this: *mut KDTree) {
 
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> i32 {
-    let mut memory: i32 = ::core::mem::size_of::<KDTree>() as i32;
+    let mut memory: i32 = std::mem::size_of::<KDTree>() as i32;
     if !((*this).back).is_null() {
         memory += KDTree_GetMemory((*this).back);
     }
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> i32 {
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        memory = (memory as usize).wrapping_add(::core::mem::size_of::<Node>()) as i32;
+        memory = (memory as usize).wrapping_add(std::mem::size_of::<Node>()) as i32;
         elem = (*elem).next;
     }
     memory

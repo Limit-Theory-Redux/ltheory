@@ -567,7 +567,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             } else {
                 1_i32
             };
-            let mut elemSize: usize = ::core::mem::size_of::<*const libc::c_char>();
+            let mut elemSize: usize = std::mem::size_of::<*const libc::c_char>();
             let mut pData: *mut *mut libc::c_void =
                 &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
             *pData = MemRealloc(
@@ -592,7 +592,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     } else {
                         1_i32
                     };
-                    let mut elemSize_0: usize = ::core::mem::size_of::<*const libc::c_char>();
+                    let mut elemSize_0: usize = std::mem::size_of::<*const libc::c_char>();
                     let mut pData_0: *mut *mut libc::c_void =
                         &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
@@ -612,7 +612,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 } else {
                     1_i32
                 };
-                let mut elemSize_1: usize = ::core::mem::size_of::<*const libc::c_char>();
+                let mut elemSize_1: usize = std::mem::size_of::<*const libc::c_char>();
                 let mut pData_1: *mut *mut libc::c_void =
                     &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_1 = MemRealloc(
@@ -641,7 +641,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     } else {
                         1_i32
                     };
-                    let mut elemSize_2: usize = ::core::mem::size_of::<*const libc::c_char>();
+                    let mut elemSize_2: usize = std::mem::size_of::<*const libc::c_char>();
                     let mut pData_2: *mut *mut libc::c_void =
                         &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                     *pData_2 = MemRealloc(
@@ -661,7 +661,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 } else {
                     1_i32
                 };
-                let mut elemSize_3: usize = ::core::mem::size_of::<*const libc::c_char>();
+                let mut elemSize_3: usize = std::mem::size_of::<*const libc::c_char>();
                 let mut pData_3: *mut *mut libc::c_void =
                     &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_3 = MemRealloc(
@@ -684,7 +684,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 } else {
                     1_i32
                 };
-                let mut elemSize_4: usize = ::core::mem::size_of::<*const libc::c_char>();
+                let mut elemSize_4: usize = std::mem::size_of::<*const libc::c_char>();
                 let mut pData_4: *mut *mut libc::c_void =
                     &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_4 = MemRealloc(

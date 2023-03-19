@@ -101,7 +101,7 @@ unsafe extern "C" fn ConvertGUID(mut id: SDL_JoystickGUID) -> *mut libc::c_char 
     SDL_JoystickGetGUIDString(
         id,
         buf.as_mut_ptr(),
-        ::core::mem::size_of::<[libc::c_char; 64]>() as libc::c_ulong as i32,
+        std::mem::size_of::<[libc::c_char; 64]>() as libc::c_ulong as i32,
     );
     buf.as_mut_ptr()
 }
@@ -140,7 +140,7 @@ pub unsafe extern "C" fn Joystick_GetCount() -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
-    let mut this: *mut Joystick = MemAlloc(::core::mem::size_of::<Joystick>()) as *mut Joystick;
+    let mut this: *mut Joystick = MemAlloc(std::mem::size_of::<Joystick>()) as *mut Joystick;
     if kOpen == kMaxOpen {
         Fatal(b"Cannot open any more gamepad connections.\0" as *const u8 as *const libc::c_char);
     }
@@ -161,16 +161,16 @@ pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
     (*this).buttons = SDL_JoystickNumButtons((*this).handle);
     (*this).hats = SDL_JoystickNumHats((*this).handle);
     (*this).buttonStates =
-        MemAlloc((::core::mem::size_of::<bool>()).wrapping_mul((*this).buttons as usize))
+        MemAlloc((std::mem::size_of::<bool>()).wrapping_mul((*this).buttons as usize))
             as *mut bool;
     (*this).axisAlive =
-        MemAlloc((::core::mem::size_of::<bool>()).wrapping_mul((*this).axes as usize)) as *mut bool;
+        MemAlloc((std::mem::size_of::<bool>()).wrapping_mul((*this).axes as usize)) as *mut bool;
     MemZero(
         (*this).axisAlive as *mut libc::c_void,
-        (::core::mem::size_of::<bool>()).wrapping_mul((*this).axes as usize),
+        (std::mem::size_of::<bool>()).wrapping_mul((*this).axes as usize),
     );
     (*this).axisStates =
-        MemAlloc((::core::mem::size_of::<f64>()).wrapping_mul((*this).axes as usize)) as *mut f64;
+        MemAlloc((std::mem::size_of::<f64>()).wrapping_mul((*this).axes as usize)) as *mut f64;
     (*this).lastUsed = TimeStamp_Get();
     Joystick_UpdateSingle(this);
     this

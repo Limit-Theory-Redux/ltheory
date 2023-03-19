@@ -27,16 +27,16 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut vertices: i32 = vDim * vDim;
     let mut bufSize: i32 = f64::max(surfels as f64, vertices as f64) as i32;
     let mut pointBuffer: *mut Vec4 =
-        MemAlloc((::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize)) as *mut Vec4;
+        MemAlloc((std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize)) as *mut Vec4;
     let mut normalBuffer: *mut Vec4 =
-        MemAlloc((::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize)) as *mut Vec4;
+        MemAlloc((std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize)) as *mut Vec4;
     MemZero(
         pointBuffer as *mut libc::c_void,
-        (::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
+        (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     MemZero(
         normalBuffer as *mut libc::c_void,
-        (::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
+        (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     let mut i: i32 = 0_i32;
     while i < indexCount {
@@ -76,11 +76,11 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     );
     MemZero(
         pointBuffer as *mut libc::c_void,
-        (::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
+        (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     MemZero(
         normalBuffer as *mut libc::c_void,
-        (::core::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
+        (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     let mut i_0: i32 = 0_i32;
     while i_0 < vertexCount {
@@ -139,7 +139,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     RenderTarget_Pop();
     RenderState_PopAll();
     let mut result: *mut f32 =
-        MemAlloc((::core::mem::size_of::<f32>()).wrapping_mul((vDim * vDim) as usize)) as *mut f32;
+        MemAlloc((std::mem::size_of::<f32>()).wrapping_mul((vDim * vDim) as usize)) as *mut f32;
     Tex2D_GetData(
         texOutput,
         result as *mut libc::c_void,
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     let mut texPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
     let mut pointBuffer: *mut Vec3 =
-        MemAlloc((::core::mem::size_of::<Vec3>()).wrapping_mul((vDim * vDim) as usize))
+        MemAlloc((std::mem::size_of::<Vec3>()).wrapping_mul((vDim * vDim) as usize))
             as *mut Vec3;
     let mut i: i32 = 0_i32;
     while i < vertexCount {
@@ -203,7 +203,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     RenderTarget_Pop();
     RenderState_PopAll();
     let mut result: *mut f32 =
-        MemAlloc((::core::mem::size_of::<f32>()).wrapping_mul((vDim * vDim) as usize)) as *mut f32;
+        MemAlloc((std::mem::size_of::<f32>()).wrapping_mul((vDim * vDim) as usize)) as *mut f32;
     Tex2D_GetData(
         texOutput,
         result as *mut libc::c_void,

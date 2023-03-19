@@ -642,7 +642,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //         b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //             as *const libc::c_char,
     //         39 as i32,
-    //         (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
+    //         (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //             .as_ptr(),
     //     );
     // }
@@ -651,7 +651,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
     //     43 as i32,
-    //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
+    //     (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
     // let mut version: u32 = 0;
@@ -660,7 +660,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
     //     46 as i32,
-    //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
+    //     (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
     // if version < 0x20208 as i32 as u32 {
@@ -683,13 +683,13 @@ pub unsafe extern "C" fn Audio_Init() {
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
     //     59 as i32,
-    //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
+    //     (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
     // this.descMap = StrMap_Create(128 as i32 as u32);
     // this
     //     .soundPool = MemPool_Create(
-    //     ::core::mem::size_of::<Sound>() as usize as u32,
+    //     std::mem::size_of::<Sound>() as usize as u32,
     //     128 as i32 as u32,
     // );
 }
@@ -701,7 +701,7 @@ pub unsafe extern "C" fn Audio_Free() {
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
     //     69 as i32,
-    //     (*::core::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Free\0"))
+    //     (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Free\0"))
     //         .as_ptr(),
     // );
     // StrMap_Free(this.descMap);
@@ -735,7 +735,7 @@ pub unsafe extern "C" fn Audio_Set3DSettings(
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
     //     85 as i32,
-    //     (*::core::mem::transmute::<
+    //     (*std::mem::transmute::<
     //         &[u8; 20],
     //         &[libc::c_char; 20],
     //     >(b"Audio_Set3DSettings\0"))
@@ -762,7 +762,7 @@ pub unsafe extern "C" fn Audio_SetListenerPos(
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
     //     106 as i32,
-    //     (*::core::mem::transmute::<
+    //     (*std::mem::transmute::<
     //         &[u8; 21],
     //         &[libc::c_char; 21],
     //     >(b"Audio_SetListenerPos\0"))
@@ -777,7 +777,7 @@ pub unsafe extern "C" fn Audio_Update() {
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
     //         as *const libc::c_char,
     //     110 as i32,
-    //     (*::core::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Audio_Update\0"))
+    //     (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Audio_Update\0"))
     //         .as_ptr(),
     // );
     // Audio_SetListenerPos(this.autoPos, this.autoVel, this.autoFwd, this.autoUp);
@@ -832,7 +832,7 @@ pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {
 pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> *mut SoundDesc {
     let mut desc: *mut SoundDesc = StrMap_Get(this.descMap, name) as *mut SoundDesc;
     if desc.is_null() {
-        desc = MemAllocZero(::core::mem::size_of::<SoundDesc>()) as *mut SoundDesc;
+        desc = MemAllocZero(std::mem::size_of::<SoundDesc>()) as *mut SoundDesc;
         StrMap_Set(this.descMap, name, desc as *mut libc::c_void);
     }
     desc
@@ -863,7 +863,7 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
             } else {
                 1_i32
             };
-            let mut elemSize: usize = ::core::mem::size_of::<*mut Sound>();
+            let mut elemSize: usize = std::mem::size_of::<*mut Sound>();
             let mut pData: *mut *mut libc::c_void =
                 &mut this.freeingSounds_data as *mut *mut *mut Sound as *mut *mut libc::c_void;
             *pData = MemRealloc(
@@ -882,7 +882,7 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
             } else {
                 1_i32
             };
-            let mut elemSize_0: usize = ::core::mem::size_of::<*mut Sound>();
+            let mut elemSize_0: usize = std::mem::size_of::<*mut Sound>();
             let mut pData_0: *mut *mut libc::c_void =
                 &mut this.playingSounds_data as *mut *mut *mut Sound as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(

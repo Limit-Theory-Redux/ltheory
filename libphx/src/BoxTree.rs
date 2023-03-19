@@ -24,7 +24,7 @@ pub struct Node {
 
 #[inline]
 unsafe extern "C" fn Node_Create(mut box_0: Box3, mut data: *mut libc::c_void) -> *mut Node {
-    let mut this: *mut Node = MemAlloc(::core::mem::size_of::<Node>()) as *mut Node;
+    let mut this: *mut Node = MemAlloc(std::mem::size_of::<Node>()) as *mut Node;
     (*this).box_0 = box_0;
     (*this).sub[0] = std::ptr::null_mut();
     (*this).sub[1] = std::ptr::null_mut();
@@ -34,7 +34,7 @@ unsafe extern "C" fn Node_Create(mut box_0: Box3, mut data: *mut libc::c_void) -
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Create() -> *mut BoxTree {
-    let mut this: *mut BoxTree = MemAlloc(::core::mem::size_of::<BoxTree>()) as *mut BoxTree;
+    let mut this: *mut BoxTree = MemAlloc(std::mem::size_of::<BoxTree>()) as *mut BoxTree;
     (*this).root = std::ptr::null_mut();
     this
 }
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn BoxTree_Add(
 }
 
 unsafe extern "C" fn Node_GetMemory(mut this: *mut Node) -> i32 {
-    let mut memory: i32 = ::core::mem::size_of::<Node>() as i32;
+    let mut memory: i32 = std::mem::size_of::<Node>() as i32;
     if !((*this).sub[0]).is_null() {
         memory += Node_GetMemory((*this).sub[0]);
     }
@@ -183,7 +183,7 @@ unsafe extern "C" fn Node_GetMemory(mut this: *mut Node) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_GetMemory(mut this: *mut BoxTree) -> i32 {
-    let mut memory: i32 = ::core::mem::size_of::<BoxTree>() as i32;
+    let mut memory: i32 = std::mem::size_of::<BoxTree>() as i32;
     if !((*this).root).is_null() {
         memory += Node_GetMemory((*this).root);
     }

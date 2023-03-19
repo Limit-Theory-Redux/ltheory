@@ -49,7 +49,7 @@ static mut this: Profiler = Profiler {
 static mut profiling: bool = false;
 
 unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
-    let mut scope: *mut Scope = MemAlloc(::core::mem::size_of::<Scope>()) as *mut Scope;
+    let mut scope: *mut Scope = MemAlloc(std::mem::size_of::<Scope>()) as *mut Scope;
     (*scope).name = StrDup(name);
     (*scope).last = 0_i32 as TimeStamp;
     (*scope).frame = 0_i32 as TimeStamp;
@@ -65,7 +65,7 @@ unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
         } else {
             1_i32
         };
-        let mut elemSize: usize = ::core::mem::size_of::<*mut Scope>();
+        let mut elemSize: usize = std::mem::size_of::<*mut Scope>();
         let mut pData: *mut *mut libc::c_void =
             &mut this.scopeList_data as *mut *mut *mut Scope as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -115,7 +115,7 @@ unsafe extern "C" fn Profiler_SignalHandler(mut _s: Signal) {
 pub unsafe extern "C" fn Profiler_Enable() {
     profiling = true;
     this.map = HashMap_Create(
-        ::core::mem::size_of::<*mut libc::c_void>() as libc::c_ulong as u32,
+        std::mem::size_of::<*mut libc::c_void>() as libc::c_ulong as u32,
         (2_i32 * 1024_i32) as u32,
     );
     this.scopeList_capacity = 0_i32;
@@ -123,7 +123,7 @@ pub unsafe extern "C" fn Profiler_Enable() {
     this.scopeList_data = std::ptr::null_mut();
     if (this.scopeList_capacity < 1024_i32) as libc::c_long != 0 {
         this.scopeList_capacity = 1024_i32;
-        let mut elemSize: usize = ::core::mem::size_of::<*mut Scope>();
+        let mut elemSize: usize = std::mem::size_of::<*mut Scope>();
         let mut pData: *mut *mut libc::c_void =
             &mut this.scopeList_data as *mut *mut *mut Scope as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     libc::qsort(
         this.scopeList_data as *mut libc::c_void,
         this.scopeList_size as usize,
-        ::core::mem::size_of::<*mut Scope>(),
+        std::mem::size_of::<*mut Scope>(),
         Some(SortScopes as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
     );
     libc::puts(

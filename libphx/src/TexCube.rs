@@ -120,7 +120,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         );
     }
 
-    let mut this: *mut TexCube = MemAlloc(::core::mem::size_of::<TexCube>()) as *mut TexCube;
+    let mut this: *mut TexCube = MemAlloc(std::mem::size_of::<TexCube>()) as *mut TexCube;
     (*this)._refCount = 1_u32;
     gl::GenTextures(1_i32, &mut (*this).handle);
     (*this).size = size;
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut TexCube {
-    let mut this: *mut TexCube = MemAlloc(::core::mem::size_of::<TexCube>()) as *mut TexCube;
+    let mut this: *mut TexCube = MemAlloc(std::mem::size_of::<TexCube>()) as *mut TexCube;
     gl::GenTextures(1_i32, &mut (*this).handle);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
 
@@ -497,7 +497,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
     let mut size: i32 = (*this).size >> level;
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
     let mut buffer: *mut libc::c_uchar = MemAlloc(
-        (::core::mem::size_of::<libc::c_uchar>()).wrapping_mul((4_i32 * size * size) as usize),
+        (std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4_i32 * size * size) as usize),
     ) as *mut libc::c_uchar;
     for i in 0..6 {
         let mut face: CubeFace = kFaces[i as usize].face;

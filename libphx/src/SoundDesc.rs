@@ -770,7 +770,7 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
         //         as *const libc::c_char,
         //     16 as i32,
-        //     (*::core::mem::transmute::<
+        //     (*std::mem::transmute::<
         //         &[u8; 21],
         //         &[libc::c_char; 21],
         //     >(b"SoundDesc_FinishLoad\0"))
@@ -848,7 +848,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
         //         as *const libc::c_char,
         //     48 as i32,
-        //     (*::core::mem::transmute::<
+        //     (*std::mem::transmute::<
         //         &[u8; 15],
         //         &[libc::c_char; 15],
         //     >(b"SoundDesc_Load\0"))
@@ -859,7 +859,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
         //         as *const libc::c_char,
         //     49 as i32,
-        //     (*::core::mem::transmute::<
+        //     (*std::mem::transmute::<
         //         &[u8; 15],
         //         &[libc::c_char; 15],
         //     >(b"SoundDesc_Load\0"))
@@ -873,7 +873,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         if immediate {
             SoundDesc_FinishLoad(
                 this,
-                (*::core::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"SoundDesc_Load\0"))
+                (*std::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"SoundDesc_Load\0"))
                     .as_ptr(),
             );
         }
@@ -899,7 +899,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
         //         as *const libc::c_char,
         //     72 as i32,
-        //     (*::core::mem::transmute::<
+        //     (*std::mem::transmute::<
         //         &[u8; 15],
         //         &[libc::c_char; 15],
         //     >(b"SoundDesc_Free\0"))
@@ -910,7 +910,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
         StrFree(path);
         MemZero(
             this as *mut libc::c_void,
-            ::core::mem::size_of::<SoundDesc>(),
+            std::mem::size_of::<SoundDesc>(),
         );
     }
 }
@@ -919,7 +919,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
 pub unsafe extern "C" fn SoundDesc_GetDuration(mut this: *mut SoundDesc) -> f32 {
     SoundDesc_FinishLoad(
         this,
-        (*::core::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"SoundDesc_GetDuration\0"))
+        (*std::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"SoundDesc_GetDuration\0"))
             .as_ptr(),
     );
     let mut duration: u32 = 0;
@@ -932,7 +932,7 @@ pub unsafe extern "C" fn SoundDesc_GetDuration(mut this: *mut SoundDesc) -> f32 
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
     //         as *const libc::c_char,
     //     85 as i32,
-    //     (*::core::mem::transmute::<
+    //     (*std::mem::transmute::<
     //         &[u8; 22],
     //         &[libc::c_char; 22],
     //     >(b"SoundDesc_GetDuration\0"))
@@ -955,7 +955,7 @@ pub unsafe extern "C" fn SoundDesc_GetPath(mut this: *mut SoundDesc) -> *const l
 pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *const libc::c_char) {
     SoundDesc_FinishLoad(
         this,
-        (*::core::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"SoundDesc_ToFile\0")).as_ptr(),
+        (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"SoundDesc_ToFile\0")).as_ptr(),
     );
     let mut length: u32 = 0;
     let mut channels: i32 = 0;
@@ -969,7 +969,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
     //         as *const libc::c_char,
     //     128 as i32,
-    //     (*::core::mem::transmute::<
+    //     (*std::mem::transmute::<
     //         &[u8; 17],
     //         &[libc::c_char; 17],
     //     >(b"SoundDesc_ToFile\0"))
@@ -986,7 +986,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
     //         as *const libc::c_char,
     //     129 as i32,
-    //     (*::core::mem::transmute::<
+    //     (*std::mem::transmute::<
     //         &[u8; 17],
     //         &[libc::c_char; 17],
     //     >(b"SoundDesc_ToFile\0"))
@@ -1012,7 +1012,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
     //         as *const libc::c_char,
     //     137 as i32,
-    //     (*::core::mem::transmute::<
+    //     (*std::mem::transmute::<
     //         &[u8; 17],
     //         &[libc::c_char; 17],
     //     >(b"SoundDesc_ToFile\0"))
@@ -1065,7 +1065,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
     //         as *const libc::c_char,
     //     163 as i32,
-    //     (*::core::mem::transmute::<
+    //     (*std::mem::transmute::<
     //         &[u8; 17],
     //         &[libc::c_char; 17],
     //     >(b"SoundDesc_ToFile\0"))

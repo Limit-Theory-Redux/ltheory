@@ -22,7 +22,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
     (*this).capacity = (*this).capacity.wrapping_add((*this).blockSize);
     (*this).blocks = MemRealloc(
         (*this).blocks as *mut libc::c_void,
-        ((*this).blockCount as usize).wrapping_mul(::core::mem::size_of::<*mut libc::c_void>()),
+        ((*this).blockCount as usize).wrapping_mul(std::mem::size_of::<*mut libc::c_void>()),
     ) as *mut *mut libc::c_void;
     let mut newBlock: *mut libc::c_void =
         MemAlloc(((*this).cellSize).wrapping_mul((*this).blockSize) as usize);
@@ -42,7 +42,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -> *mut MemPool {
-    let mut this: *mut MemPool = MemAlloc(::core::mem::size_of::<MemPool>()) as *mut MemPool;
+    let mut this: *mut MemPool = MemAlloc(std::mem::size_of::<MemPool>()) as *mut MemPool;
     (*this).size = 0_u32;
     (*this).capacity = 0_u32;
     (*this).freeList = std::ptr::null_mut();

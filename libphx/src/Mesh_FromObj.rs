@@ -187,7 +187,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
     normals_data = std::ptr::null_mut();
     if (positions_capacity < (0.008f32 * bytesSize as f32) as i32) as libc::c_long != 0 {
         positions_capacity = (0.008f32 * bytesSize as f32) as i32;
-        let mut elemSize: usize = ::core::mem::size_of::<Vec3>();
+        let mut elemSize: usize = std::mem::size_of::<Vec3>();
         let mut pData: *mut *mut libc::c_void =
             &mut positions_data as *mut *mut Vec3 as *mut *mut libc::c_void;
         *pData = MemRealloc(
@@ -197,7 +197,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
     }
     if (uvs_capacity < (0.008f32 * bytesSize as f32) as i32) as i32 as libc::c_long != 0 {
         uvs_capacity = (0.008f32 * bytesSize as f32) as i32;
-        let mut elemSize_0: usize = ::core::mem::size_of::<Vec2>();
+        let mut elemSize_0: usize = std::mem::size_of::<Vec2>();
         let mut pData_0: *mut *mut libc::c_void =
             &mut uvs_data as *mut *mut Vec2 as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
@@ -207,7 +207,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
     }
     if (normals_capacity < (0.008f32 * bytesSize as f32) as i32) as libc::c_long != 0 {
         normals_capacity = (0.008f32 * bytesSize as f32) as i32;
-        let mut elemSize_1: usize = ::core::mem::size_of::<Vec3>();
+        let mut elemSize_1: usize = std::mem::size_of::<Vec3>();
         let mut pData_1: *mut *mut libc::c_void =
             &mut normals_data as *mut *mut Vec3 as *mut *mut libc::c_void;
         *pData_1 = MemRealloc(
@@ -259,7 +259,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 } else {
                     1_i32
                 };
-                let mut elemSize_2: usize = ::core::mem::size_of::<Vec3>();
+                let mut elemSize_2: usize = std::mem::size_of::<Vec3>();
                 let mut pData_2: *mut *mut libc::c_void =
                     &mut positions_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_2 = MemRealloc(
@@ -297,7 +297,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 } else {
                     1_i32
                 };
-                let mut elemSize_3: usize = ::core::mem::size_of::<Vec2>();
+                let mut elemSize_3: usize = std::mem::size_of::<Vec2>();
                 let mut pData_3: *mut *mut libc::c_void =
                     &mut uvs_data as *mut *mut Vec2 as *mut *mut libc::c_void;
                 *pData_3 = MemRealloc(
@@ -336,7 +336,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 } else {
                     1_i32
                 };
-                let mut elemSize_4: usize = ::core::mem::size_of::<Vec3>();
+                let mut elemSize_4: usize = std::mem::size_of::<Vec3>();
                 let mut pData_4: *mut *mut libc::c_void =
                     &mut normals_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_4 = MemRealloc(

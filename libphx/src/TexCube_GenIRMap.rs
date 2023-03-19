@@ -36,7 +36,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
     let mut df: DataFormat = DataFormat_Float;
     let mut buffer: *mut libc::c_void = MemAlloc(
         ((size * size) as usize)
-            .wrapping_mul(::core::mem::size_of::<f32>())
+            .wrapping_mul(std::mem::size_of::<f32>())
             .wrapping_mul(components as usize),
     );
     let mut i: i32 = 0_i32;
@@ -93,7 +93,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         let mut ggxWidth: f64 = level as f64 / levels as f64;
         ggxWidth *= ggxWidth;
         let mut sampleBuffer: *mut Vec2 =
-            MemAlloc((::core::mem::size_of::<Vec2>()).wrapping_mul(sampleCount as usize))
+            MemAlloc((std::mem::size_of::<Vec2>()).wrapping_mul(sampleCount as usize))
                 as *mut Vec2;
         let mut sampleTex: *mut Tex2D = Tex2D_Create(sampleCount, 1_i32, TexFormat_RG16F);
         let mut i_1: i32 = 0_i32;

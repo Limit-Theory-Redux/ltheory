@@ -25,13 +25,13 @@ pub struct Cell {
 
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Create(mut sx: i32, mut sy: i32, mut sz: i32) -> *mut SDF {
-    let mut this: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>()) as *mut SDF;
+    let mut this: *mut SDF = MemAlloc(std::mem::size_of::<SDF>()) as *mut SDF;
     (*this).size = IVec3::new(sx, sy, sz);
-    (*this).data = MemAlloc((::core::mem::size_of::<Cell>()).wrapping_mul((sx * sy * sz) as usize))
+    (*this).data = MemAlloc((std::mem::size_of::<Cell>()).wrapping_mul((sx * sy * sz) as usize))
         as *mut Cell;
     MemZero(
         (*this).data as *mut libc::c_void,
-        (::core::mem::size_of::<Cell>())
+        (std::mem::size_of::<Cell>())
             .wrapping_mul(sx as usize)
             .wrapping_mul(sy as usize)
             .wrapping_mul(sz as usize),
@@ -41,10 +41,10 @@ pub unsafe extern "C" fn SDF_Create(mut sx: i32, mut sy: i32, mut sz: i32) -> *m
 
 #[no_mangle]
 pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
-    let mut this: *mut SDF = MemAlloc(::core::mem::size_of::<SDF>()) as *mut SDF;
+    let mut this: *mut SDF = MemAlloc(std::mem::size_of::<SDF>()) as *mut SDF;
     Tex3D_GetSize(tex, &mut (*this).size);
     (*this).data = MemAlloc(
-        (::core::mem::size_of::<Cell>())
+        (std::mem::size_of::<Cell>())
             .wrapping_mul(((*this).size.x * (*this).size.y * (*this).size.z) as usize),
     ) as *mut Cell;
     Tex3D_GetData(
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
         z: cells.x * cells.y,
     };
     let mut indices: *mut i32 = MemAlloc(
-        (::core::mem::size_of::<i32>()).wrapping_mul((cells.x * cells.y * cells.z) as usize),
+        (std::mem::size_of::<i32>()).wrapping_mul((cells.x * cells.y * cells.z) as usize),
     ) as *mut i32;
     let vp: [Vec3; 8] = [
         Vec3::new(0.0f32, 0.0f32, 0.0f32),
