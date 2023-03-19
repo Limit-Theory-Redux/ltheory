@@ -126,11 +126,6 @@ function Entity:getMinDistance (other)
     - other:getRadius())
 end
 
-function Entity:getMass ()
-  assert(self.body)
-  return self.body:getMass()
-end
-
 function Entity:getPos ()
   assert(self.body)
   local pos = Vec3f()

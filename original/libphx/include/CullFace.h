@@ -3,9 +3,9 @@
 
 #include "Common.h"
 
-#define CullFace_None  0
-#define CullFace_Back  1
-#define CullFace_Front 2
+const CullFace CullFace_None  = 0;
+const CullFace CullFace_Back  = 1;
+const CullFace CullFace_Front = 2;
 
 PHX_API void  CullFace_Pop        ();
 PHX_API void  CullFace_Push       (CullFace);

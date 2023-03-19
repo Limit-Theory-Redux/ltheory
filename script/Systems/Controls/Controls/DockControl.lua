@@ -9,7 +9,7 @@ function DockControl:onEnable ()
   local pCamera = self.gameView.camera
   self.gameView:setOrbit(true)
 
-  local station  = self.player:getControlling():getParent()
+  local station = self.player:getControlling():getParent()
 
   self.camera = self.gameView.camera
   self.camera:setYaw(-Math.Pi2)
@@ -22,7 +22,7 @@ function DockControl:onEnable ()
 end
 
 function DockControl:onInput (state)
-  if ShipBindings.Dock:get() > 0 then
+  if not Config.game.gamePaused and ShipBindings.Undock:get() > 0 then
     self.player:getControlling():pushAction(Actions.Undock())
   end
 end
@@ -32,11 +32,11 @@ function DockControl:onDraw (focus, active)
   local x, y, sx, sy = self:getRectGlobal()
   UI.DrawEx.TextAdditive(
     'NovaMono',
-    'Press ??? to Undock',
+    'Press J to Undock', -- TODO: connect Undocking input to bindings
     16,
     x, y, sx, sy,
     1, 1, 1, 1,
-    0.5, 0.99
+    0.5, 0.96
   )
 end
 

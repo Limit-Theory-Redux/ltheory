@@ -14,6 +14,18 @@ function Production.All ()
   return all
 end
 
+function Production.Solar ()
+  local solarplant = nil
+  for i = 1, #all do
+    if string.match(all[i]:getName(), "Solar Energy Array") then
+      solarplant = all[i]
+      break
+    end
+  end
+
+  return solarplant
+end
+
 function Production:addInput (item, count)
   assert(item)
   assert(count)
@@ -60,6 +72,28 @@ function Production:getPressure (location)
   return pressure
 end
 
+function Production:inInputs (item)
+  local ifound = false
+  for i, v in ipairs(self.inputs) do
+    if v.item == item then
+      ifound = true
+      break
+    end
+  end
+  return ifound
+end
+
+function Production:inOutputs (item)
+  local ofound = false
+  for i, v in ipairs(self.outputs) do
+    if v.item == item then
+      ofound = true
+      break
+    end
+  end
+  return ofound
+end
+
 function Production:iterInputs ()
   return ipairs(self.inputs)
 end
@@ -70,6 +104,7 @@ end
 
 function Production:setDuration (duration)
   self.duration = duration
+  return self
 end
 
 return Production

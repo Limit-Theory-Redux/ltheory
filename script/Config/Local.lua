@@ -1,22 +1,27 @@
-Config.debug.instantJobs = true
+Config.debug.instantJobs = false
 Config.debug.jobSpeed = 10000
 
-Config.debug.window = true
-Config.debug.metrics = true
-Config.ui.showTrackers = false
+Config.debug.window = false
+Config.debug.metrics = false
+Config.ui.showTrackers = true
 
 Config.render.vsync = false
 
--- Config.gen.nBeltSize = function (rng) return 10000 end
-Config.gen.scalePlanet = 5e3
--- Config.gen.nNPCs = 10
-Config.gen.nFields = 1
-Config.gen.nPlanets = 0
+Config.audio.bSoundOn = false
+
+Config.gen.scaleFieldAsteroid = Config.gen.scaleAsteroid * 9500
+Config.gen.nFields = 10
+Config.gen.nAsteroids = 400
+Config.gen.nPlanets = 1
+Config.gen.nBeltSize = function (rng) return 200 end
+Config.gen.nStations = 1
+Config.gen.nNPCs = 100
 Config.gen.nTurrets = 1
 Config.gen.nThrusters = 2
-Config.gen.nStations = 2
 -- Config.gen.nDustClouds = 0
 -- Config.gen.nDustFlecks = 2048
+
+Config.ui.uniqueShips = false -- true = generate each ship as a unique mesh (very slow!)
 
 if false then
   Config.jit.loom = true

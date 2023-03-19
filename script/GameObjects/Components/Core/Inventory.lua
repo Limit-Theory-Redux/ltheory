@@ -12,21 +12,29 @@ end
 function Entity:addItem (item, count)
   assert(self.inventory)
   assert(count >= 0)
+
   local mass = count * item:getMass()
-  if mass > self.inventoryFree then return false end
+  if mass > self.inventoryFree then return false end -- no more room!
+
   self.inventoryFree = self.inventoryFree - mass
   self.inventory[item] = self:getItemCount(item) + count
+
+--printf("Added %d units of item %s to inventory of object %s, count now = %d",
+--      count, item:getName(), self:getName(), self.inventory[item])
+
   return true
 end
 
 function Entity:debugInventory (state)
-  local ctx = state.context
-  ctx:text('Inventory')
-  ctx:indent()
-  for k, v in pairs(self.inventory) do
-    ctx:text('%d x %s', v, k:getName())
+  if not self:isDestroyed() then
+    local ctx = state.context
+    ctx:text('Inventory (capacity: %d/%d)', self:getInventoryFree(), self:getInventoryCapacity())
+    ctx:indent()
+    for k, v in pairs(self.inventory) do
+      ctx:text('%d x %s', v, k:getName())
+    end
+    ctx:undent()
   end
-  ctx:undent()
 end
 
 function Entity:getInventory ()
@@ -76,6 +84,10 @@ function Entity:removeItem (item, count)
   local mass = count * item:getMass()
   self.inventoryFree = self.inventoryFree + mass
   self.inventory[item] = self:getItemCount(item) - count
+
+--printf("Removed %d units of item %s to inventory of object %s, count now = %d",
+--      count, item:getName(), self:getName(), self.inventory[item])
+
   if self.inventory[item] == 0 then
     self.inventory[item] = nil
   end

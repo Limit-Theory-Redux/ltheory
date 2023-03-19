@@ -35,6 +35,7 @@ PHX_API cstr    Sound_GetName                (Sound*);
 PHX_API cstr    Sound_GetPath                (Sound*);
 PHX_API bool    Sound_IsFinished             (Sound*);
 PHX_API bool    Sound_IsPlaying              (Sound*);
+PHX_API bool    Sound_IsAudible              (Sound*);
 
 PHX_API void    Sound_Attach3DPos            (Sound*, Vec3f const* pos, Vec3f const* vel);
 PHX_API void    Sound_Set3DLevel             (Sound*, float);
@@ -44,6 +45,8 @@ PHX_API void    Sound_SetPan                 (Sound*, float);
 PHX_API void    Sound_SetPitch               (Sound*, float);
 PHX_API void    Sound_SetPlayPos             (Sound*, float);
 PHX_API void    Sound_SetVolume              (Sound*, float);
+PHX_API void    Sound_FadeIn                 (Sound*, float);
+PHX_API void    Sound_FadeOut                (Sound*, float);
 
 /* --- Convenience API ------------------------------------------------------ */
 

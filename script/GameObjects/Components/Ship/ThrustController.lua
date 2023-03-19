@@ -1,5 +1,4 @@
 local Entity = require('GameObjects.Entity')
--- Game was previously not animating the thrusters because SocketType was assumed to be accessible.
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local thrustMult        = 1
@@ -67,7 +66,7 @@ function ThrustController:update (e, dt)
       -self.roll * thrustRollMax))
   end
 
-  -- TODO : This is terrible. 
+  -- TODO : This is terrible.
   for thruster in e:iterSocketsByType(SocketType.Thruster) do
     thruster.activationT = self.forward
     thruster.boostT = boost

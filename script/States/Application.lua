@@ -5,11 +5,12 @@ local Application = class(function (self) end)
 -- Virtual ---------------------------------------------------------------------
 
 function Application:getDefaultSize ()
-  return 1600, 900
+--  return 1600, 900
+  return Config.render.startingHorz, Config.render.startingVert
 end
 
 function Application:getTitle () return
-  'Phoenix Engine Application'
+  Config.gameTitle
 end
 
 function Application:getWindowMode ()
@@ -91,6 +92,7 @@ function Application:run ()
 
        -- TODO : Remove this once bindings are fixed
       if Input.GetKeyboardCtrl() and Input.GetPressed(Button.Keyboard.W) then self:quit() end
+      if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end
 
       if Input.GetPressed(Bindings.ProfilerToggle) then
@@ -117,12 +119,30 @@ function Application:run ()
         Profiler.End()
       end
 
+      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() ~= 1 then
+        if Config.game.gamePaused then
+          Config.game.gamePaused = false
+        else
+          Config.game.gamePaused = true
+        end
+      end
+
+      if Config.game.gamePaused then
+        timeScale = 0.0
+      else
+        timeScale = 1.0
+      end
+
       if Input.GetDown(Bindings.TimeAccel) then
         timeScale = Config.debug.timeAccelFactor
       end
 
       if Input.GetPressed(Bindings.ToggleWireframe) then
         Settings.set('render.wireframe', not Settings.get('render.wireframe'))
+      end
+
+      if Input.GetPressed(Bindings.ToggleMetrics) then
+        Config.debug.metrics = not Config.debug.metrics
       end
 
       self:onInput()
@@ -177,6 +197,28 @@ function Application:run ()
           y = y - 12
         end
         BlendMode.Pop()
+      end
+    end
+
+    if Config.getGameMode() ~= 1 then
+      UI.DrawEx.TextAdditive(
+        'NovaRound',
+        "EXPERIMENTAL BUILD - NOT FINAL!",
+        20,
+        0, 0, self.resX, self.resY,
+        1, 1, 1, 1,
+        0.50, 0.01
+      )
+
+      if Config.game.gamePaused then
+        UI.DrawEx.TextAdditive(
+          'NovaRound',
+          "[PAUSED]",
+          24,
+          0, 0, self.resX, self.resY,
+          1, 1, 1, 1,
+          0.5, 0.99
+        )
       end
     end
 

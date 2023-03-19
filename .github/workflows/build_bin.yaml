@@ -21,12 +21,25 @@ jobs:
       - name: Create Build Environment
         run: cmake -B build
       - name: Build
-        run: cmake --build ./build --config RelWithDebInfo
+        run: cmake --build ./build --config RelWithDebInfo --parallel
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
           name: ltheory-bin-win32
           path: ${{github.workspace}}/bin/*
+      - name: Upload binary with assets
+        uses: actions/upload-artifact@v3
+        with:
+          name: ltheory-distro-win32
+          path: |
+            ${{github.workspace}}/bin/*
+            !${{github.workspace}}/bin/*.pdb
+            ${{github.workspace}}/docs/*
+            ${{github.workspace}}/libphx/script/*
+            ${{github.workspace}}/res/*
+            ${{github.workspace}}/script/*
+            ${{github.workspace}}/LICENSE
+            ${{github.workspace}}/README.md
 
   build-macos:
     name: Build macOS
@@ -36,11 +49,11 @@ jobs:
       - name: Create Build Environment
         run: cmake -B build
       - name: Build
-        run: cmake --build ./build --config RelWithDebInfo
+        run: cmake --build ./build --config RelWithDebInfo --parallel
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
-          name: ltheory-bin-win32
+          name: ltheory-bin-macos
           path: ${{github.workspace}}/bin/*
 
   build-ubuntu:
@@ -48,10 +61,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
+      - name: Update packages
+        run: sudo apt-get update
+      - name: Install packages
+        run: sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libasound2-dev
       - name: Create Build Environment
         run: cmake -B build
       - name: Build
-        run: cmake --build ./build --config RelWithDebInfo
+        run: cmake --build ./build --config RelWithDebInfo --parallel
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:

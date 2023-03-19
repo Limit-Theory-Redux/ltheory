@@ -1,9 +1,12 @@
 local Entity = require('GameObjects.Entity')
 local Socket = require('GameObjects.Entities.Ship.Socket')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local function iterateSocketsByType (s)
   s.i = s.i + 1
+--printf("1: s.entity = %s, s.type = %s", s.entity:getName(), s.type)
   while s.entity.sockets[s.i] do
+--printf("2")
     if s.entity.sockets[s.i].child and
        s.entity.sockets[s.i].type == s.type then
        break
@@ -41,13 +44,14 @@ function Entity:hasSockets ()
 end
 
 function Entity:iterSocketsByType (type)
+--printf("%s: iterSocketsByType(%s)", self:getName(), type)
   assert(self.sockets)
   return iterateSocketsByType, { entity = self, type = type, i = 0 }
 end
 
 function Entity:plug (child)
   assert(self.sockets)
-  
+
   local type = child:getSocketType()
   for i, socket in ipairs(self.sockets) do
     if socket.type == type and socket.child == nil then

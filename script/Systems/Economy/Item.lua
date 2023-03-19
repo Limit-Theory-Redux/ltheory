@@ -3,7 +3,7 @@ local all = {}
 local Item = class(function (self, name, mass, energyDensity)
   self.name = name
   self.mass = mass or 1
-  self.energy = (energyDensity or 1) * self.mass
+  self.energy = math.max(1, (energyDensity or 1) * self.mass)
   insert(all, self)
 end)
 

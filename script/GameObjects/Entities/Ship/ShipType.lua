@@ -6,11 +6,13 @@
 ----------------------------------------------------------------------------]]--
 
 local Ship = require('GameObjects.Entities.Ship.Ship')
+local ShipI = require('GameObjects.Entities.Ship.ShipInvis')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local ShipType = class(function (self, seed, generator, scale)
   local rng = RNG.Create(seed)
   self.seed = seed
+--printf("new ship seed = %d", seed)
   self.mesh = generator(seed, Config.gen.shipRes):managed()
   self.bsp = BSP.Create(self.mesh):managed()
   self.scale = scale
@@ -40,7 +42,11 @@ local ShipType = class(function (self, seed, generator, scale)
 end)
 
 function ShipType:instantiate ()
-  return Ship(self)
+  if Config.game.gameMode == 1 then
+    return ShipI(self) -- enable game startup mode
+  else
+    return Ship(self) -- enable flight mode
+  end
 end
 
 return ShipType

@@ -686,12 +686,12 @@ pub unsafe extern "C" fn Audio_Init() {
     //     (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Init\0"))
     //         .as_ptr(),
     // );
-    // this.descMap = StrMap_Create(128 as i32 as u32);
-    // this
-    //     .soundPool = MemPool_Create(
-    //     std::mem::size_of::<Sound>() as usize as u32,
-    //     128 as i32 as u32,
-    // );
+    this.descMap = StrMap_Create(128 as i32 as u32);
+    this
+        .soundPool = MemPool_Create(
+        std::mem::size_of::<Sound>() as usize as u32,
+        128 as i32 as u32,
+    );
 }
 
 #[no_mangle]
@@ -704,10 +704,10 @@ pub unsafe extern "C" fn Audio_Free() {
     //     (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"Audio_Free\0"))
     //         .as_ptr(),
     // );
-    // StrMap_Free(this.descMap);
-    // MemPool_Free(this.soundPool);
-    // MemFree(this.playingSounds_data as *const libc::c_void);
-    // MemFree(this.freeingSounds_data as *const libc::c_void);
+    StrMap_Free(this.descMap);
+    MemPool_Free(this.soundPool);
+    MemFree(this.playingSounds_data as *const libc::c_void);
+    MemFree(this.freeingSounds_data as *const libc::c_void);
 }
 
 #[no_mangle]

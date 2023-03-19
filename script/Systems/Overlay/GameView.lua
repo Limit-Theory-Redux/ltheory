@@ -1,4 +1,5 @@
 local Material = require('GameObjects.Material')
+
 local GameView = {}
 GameView.__index  = GameView
 setmetatable(GameView, UI.Container)
@@ -174,9 +175,9 @@ function GameView:draw (focus, active)
   --[[
     Unclear what this is referencing will need to investigate later
   ]]
-  --if GUI.DrawHmGui then
-  --  GUI.DrawHmGui(self.sx, self.sy)
-  --end
+--  if GUI.DrawHmGui then
+--    GUI.DrawHmGui(self.sx, self.sy)
+--  end
 
   RenderState.PopAll()
   ClipRect.Pop()
@@ -247,8 +248,11 @@ end
 
 function GameView.Create (player)
   -- TODO : Should Audio be handled in App/LTheory??
-  Audio.Init()
-  Audio.Set3DSettings(0.0, 10, 2);
+  if Config.game.gameMode == 0 then
+    print("Initializing FMOD audio")
+    Audio.Init()
+    Audio.Set3DSettings(0.0, 10, 2);
+  end
 
   local self = setmetatable({
     player      = player,

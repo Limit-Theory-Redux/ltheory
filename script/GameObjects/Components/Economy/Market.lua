@@ -52,34 +52,36 @@ function Market:addSell (...)
 end
 
 function Market:update (e, dt)
-  for k, v in pairs(self.data) do
-    while
-      #v.ordersBuy > 0 and
-      #v.ordersSell > 0 and
-       v.ordersSell[#v.ordersSell].price <= v.ordersBuy[#v.ordersBuy].price
-    do
-      local orderBuy = v.ordersBuy[#v.ordersBuy]
-      local orderSell = v.ordersSell[#v.ordersSell]
-      local count = min(orderBuy.count, orderSell.count)
-      local price = orderSell.price
-      local total = count * price
+  if not Config.game.gamePaused then
+    for k, v in pairs(self.data) do
+      while
+        #v.ordersBuy > 0 and
+        #v.ordersSell > 0 and
+         v.ordersSell[#v.ordersSell].price <= v.ordersBuy[#v.ordersBuy].price
+      do
+        local orderBuy = v.ordersBuy[#v.ordersBuy]
+        local orderSell = v.ordersSell[#v.ordersSell]
+        local count = min(orderBuy.count, orderSell.count)
+        local price = orderSell.price
+        local total = count * price
 
-      -- TODO : Transfer credits from escrow, transfer item from storage
-      orderBuy.count = orderBuy.count - count
-      orderSell.count = orderSell.count - count
+        -- TODO : Transfer credits from escrow, transfer item from storage
+        orderBuy.count = orderBuy.count - count
+        orderSell.count = orderSell.count - count
 
-      if false then
-        e:addMessage('Market Transaction: %d %s from %s -> %s @ %d/unit (%d total)',
-          count,
-          v.item.name,
-          orderSell.actor:getName(),
-          orderBuy.actor:getName(),
-          price,
-          total)
+        if false then
+          e:addMessage('Market Transaction: %d %s from %s -> %s @ %d/unit (%d total)',
+            count,
+            v.item.name,
+            orderSell.actor:getName(),
+            orderBuy.actor:getName(),
+            price,
+            total)
+        end
+
+        if orderBuy.count == 0 then table.remove(v.ordersBuy) end
+        if orderSell.count == 0 then table.remove(v.ordersSell) end
       end
-
-      if orderBuy.count == 0 then table.remove(v.ordersBuy) end
-      if orderSell.count == 0 then table.remove(v.ordersSell) end
     end
   end
 end

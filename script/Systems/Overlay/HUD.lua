@@ -1,3 +1,4 @@
+local Bindings = require('States.ApplicationBindings')
 local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 local Disposition = require('GameObjects.Components.NPC.Dispositions')
@@ -8,167 +9,23 @@ local HUD = {}
 HUD.__index = HUD
 setmetatable(HUD, UI.Panel)
 
-HUD.name      = 'HUD'
+HUD.name = 'HUD'
 HUD.focusable = true
 HUD:setPadUniform(8)
+
+local dockingAllowed = true
 
 function HUD:onEnable ()
   -- TODO : Wtf does this do? Who wrote this?? WHY.
   local pCamera = self.gameView.camera
   local camera = self.gameView.camera
+
+  -- Lock camera back to player ship when HUD is enabled!
+  -- (e.g., changing from "Dock" control -> "Ship" control in MasterControl.lua)
+  self.gameView:setOrbit(false)
+
   camera:warp()
   camera:lerpFrom(pCamera.pos, pCamera.rot)
-end
-
-function HUD:drawTargets (a)
-  if not Config.ui.showTrackers then return end
-  local camera = self.gameView.camera
-
-  local cTarget = Color(1.0, 0.5, 0.1, 1.0 * a)
-  local cLock = Color(1.0, 0.5, 0.1, 1.0 * a)
-
-  local player = self.player
-  local playerShip = player:getControlling()
-  local playerTarget = playerShip:getTarget()
-
-  local closest = nil
-  local minDist = 128
-  local center = Vec2f(self.sx / 2, self.sy / 2)
-
-  for i = 1, #self.targets.tracked do
-    local target = self.targets.tracked[i]
-    if target ~= playerShip and target:isAlive() then
-      local pos = target:getPos()
-      local ndc = camera:worldToNDC(pos)
-      local ndcMax = max(abs(ndc.x), abs(ndc.y))
-
-      local disp = target:getOwnerDisposition(player)
-      local c = Disposition.GetColor(disp)
-      c.a = a * c.a
-      if ndcMax <= 1.0 and ndc.z > 0 then
-        do -- Draw rounded box corners
-          local bx1, by1, bsx, bsy = camera:entityToScreenRect(target)
-          local bx2, by2 = bx1 + bsx, by1 + bsy
-          --local a = a * (1.0 - exp(-0.5 * max(0.0, max(bsx, bsy) - 2.0)))
-          UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c)
-          UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c)
-          UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c)
-          UI.DrawEx.Wedge(bx2, by2, 4, 4, 0.875, 0.2, c)
-          if playerTarget == target then
-            UI.DrawEx.Wedge(bx2, by1, 12, 12, 0.125, 0.3, cLock)
-            UI.DrawEx.Wedge(bx1, by1, 12, 12, 0.375, 0.3, cLock)
-            UI.DrawEx.Wedge(bx1, by2, 12, 12, 0.625, 0.3, cLock)
-            UI.DrawEx.Wedge(bx2, by2, 12, 12, 0.875, 0.3, cLock)
-          elseif self.target == target then
-            UI.DrawEx.Wedge(bx2, by1, 8, 8, 0.125, 0.2, cTarget)
-            UI.DrawEx.Wedge(bx1, by1, 8, 8, 0.375, 0.2, cTarget)
-            UI.DrawEx.Wedge(bx1, by2, 8, 8, 0.625, 0.2, cTarget)
-            UI.DrawEx.Wedge(bx2, by2, 8, 8, 0.875, 0.2, cTarget)
-          end
-        end
-
-        local ss = camera:ndcToScreen(ndc)
-        local dist = ss:distance(center)
-        if disp < 0.5 and dist < minDist then
-          closest = target
-          minDist = dist
-        end
-      else
-        ndc.x = ndc.x / ((1 + 16/camera.sx) * ndcMax)
-        ndc.y = ndc.y / ((1 + 16/camera.sy) * ndcMax)
-        local x = ( ndc.x + 1)/2 * camera.sx
-        local y = (-ndc.y + 1)/2 * camera.sy
-        if disp < 0.0 then
-          c.a = c.a * 0.5
-          UI.DrawEx.Point(x, y, 64, c)
-        end
-      end
-    end
-  end
-
-  self.target = closest
-end
-
-function HUD:drawLock (a)
-  local playerShip = self.player:getControlling()
-  local target = self.player:getControlling():getTarget()
-  if not target then return end
-  local camera = self.gameView.camera
-  local center = Vec2f(self.sx / 2, self.sy / 2)
-
-  do -- Direction indicator
-    local r = 96
-    local pos = target:getPos()
-    local ndc = camera:worldToNDC(pos)
-    local ndcMax = max(abs(ndc.x), abs(ndc.y))
-    if ndcMax > 1 or ndc.z <= 0 then ndc:idivs(ndcMax) end
-    local ss = camera:ndcToScreen(ndc)
-    local dir = ss - center
-    local dist = dir:length()
-    if dist > 1 then
-      dir:inormalize()
-      ss = center + dir:scale(r)
-      local a = a * (1.0 - exp(-max(0.0, dist / (r + 16) - 1.0)))
-      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
-    end
-  end
-
-  -- Impact point
-  if playerShip.socketSpeedMax > 0 then
-    local tHit, pHit = Math.Impact(
-      playerShip:getPos(),
-      target:getPos(),
-      playerShip:getVelocity(),
-      target:getVelocity(),
-      playerShip.socketSpeedMax)
-
-    if tHit then
-      local ndc = camera:worldToNDC(pHit)
-      local ndcMax = max(abs(ndc.x), abs(ndc.y))
-      if ndcMax <= 1 and ndc.z > 0 then
-        local ss = camera:ndcToScreen(ndc)
-        UI.DrawEx.Cross(ss.x, ss.y, 4, Color(1.0, 0.5, 0.1, a))
-      end
-    end
-  end
-end
-
-function HUD:drawReticle (a)
-  local cx, cy = self.sx / 2, self.sy / 2
-  do -- Reticle
-    do -- Central Crosshair
-      local c = Color(0.1, 0.5, 1.0, a)
-      local phase = 0.125
-      local r1 = 24
-      local r2 = 28
-      local n = 3
-      for i = 0, n - 1 do
-        local angle = -(Math.Pi2 + (i / n) * Math.Tau)
-        local dx, dy = cos(angle), sin(angle)
-        UI.DrawEx.Line(cx + r1 * dx, cy + r1 * dy, cx + r2 * dx, cy + r2 * dy, c)
-      end
-    end
-
-    if false then -- Aim
-      local c = Color(0.1, 0.5, 1.0, a)
-      local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
-      local x = cx + 0.5 * self.sx * self.aimX
-      local y = cy - 0.5 * self.sy * self.aimY
-      UI.DrawEx.Ring(x, y, 16, c)
-    end
-  end
-end
-
-function HUD:drawDockPrompt (a)
-  local x, y, sx, sy = self:getRectGlobal()
-  UI.DrawEx.TextAdditive(
-    'NovaMono',
-    'Press ??? to Dock',
-    16,
-    x, y, sx, sy,
-    1, 1, 1, self.dockPromptAlpha * a,
-    0.5, 0.99
-  )
 end
 
 function HUD:controlThrust (e)
@@ -187,8 +44,10 @@ function HUD:controlThrust (e)
 end
 
 function HUD:controlTurrets (e)
+  -- TODO: Should this really be here in HUD.lua?
   local targetPos, targetVel
   local target = e:getTarget()
+
   if target and target:getOwnerDisposition(self.player) <= 0.0 then
     targetPos = target:getPos()
     targetVel = target:getVelocity()
@@ -216,6 +75,327 @@ function HUD:controlTargetLock (e)
   if ShipBindings.ClearTarget:get() > 0.5 then e:setTarget(nil) end
 end
 
+function HUD:drawTargets (a)
+  if not Config.ui.showTrackers then return end
+  local camera = self.gameView.camera
+
+  local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
+  local cLock =   Color(1.0, 0.5, 0.1, 1.0 * a)
+
+  local player = self.player
+  local playerShip = player:getControlling()
+  local playerTarget = playerShip:getTarget()
+
+  local closest = nil
+  local minDist = 128
+  local center = Vec2f(self.sx / 2, self.sy / 2)
+
+  for i = 1, #self.targets.tracked do
+    local target = self.targets.tracked[i]
+    if target and target ~= playerShip then
+      if target:getTrackable() then
+        local pos = target:getPos()
+        local ndc = camera:worldToNDC(pos)
+        local ndcMax = max(abs(ndc.x), abs(ndc.y))
+
+--        local disp = target:getOwnerDisposition(player) -- might need to switch back to this version
+        local disp = Config.game.dispoNeutral -- disposition to neutral by default
+        if target:hasAttackable() and target:getAttackable() then disp = target:getDisposition(playerShip) end
+--        local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+        local c = Disposition.GetColor(disp)
+
+        c.a = a * c.a
+        if ndcMax <= 1.0 and ndc.z > 0 then
+          do
+            -- Get tracker box extents based on object size, and adjust inward slightly
+            local bx1, by1, bsx, bsy = camera:entityToScreenRect(target)
+            bx1 = bx1 + 20
+            by1 = by1 + 20
+            local bx2, by2 = bx1 + bsx, by1 + bsy
+            bx2 = bx2 - 40
+            by2 = by2 - 40
+
+            -- Draw rounded box corners
+            --local a = a * (1.0 - exp(-0.5 * max(0.0, max(bsx, bsy) - 2.0)))
+            if target:hasAttackable() and target:getAttackable() then
+              UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c)
+              UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c)
+              UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c)
+              UI.DrawEx.Wedge(bx2, by2, 4, 4, 0.875, 0.2, c)
+            end
+            if playerTarget == target then
+              UI.DrawEx.Wedge(bx2, by1, 12, 12, 0.125, 0.3, cLock)
+              UI.DrawEx.Wedge(bx1, by1, 12, 12, 0.375, 0.3, cLock)
+              UI.DrawEx.Wedge(bx1, by2, 12, 12, 0.625, 0.3, cLock)
+              UI.DrawEx.Wedge(bx2, by2, 12, 12, 0.875, 0.3, cLock)
+            elseif self.target == target then
+              UI.DrawEx.Wedge(bx2, by1, 8, 8, 0.125, 0.2, cTarget)
+              UI.DrawEx.Wedge(bx1, by1, 8, 8, 0.375, 0.2, cTarget)
+              UI.DrawEx.Wedge(bx1, by2, 8, 8, 0.625, 0.2, cTarget)
+              UI.DrawEx.Wedge(bx2, by2, 8, 8, 0.875, 0.2, cTarget)
+            end
+
+            -- Draw target name
+            if playerTarget == target then
+              local targetName = target:getName()
+              if target:getType() == Config:getObjectTypeByName("object_types", "Planet") then
+                targetName = "Planet " .. target:getName()
+              elseif target:getType() == Config:getObjectTypeByName("object_types", "Asteroid") then
+                targetName = "Asteroid " .. target:getName()
+              elseif target:getType() == Config:getObjectTypeByName("object_types", "Station") then
+                targetName = "Station " .. target:getName()
+              elseif target:getType() == Config:getObjectTypeByName("object_types", "Jumpgate") then
+                targetName = "Jumpgate " .. target:getName()
+              end
+              local tcr = 1
+              local tcg = 1
+              local tcb = 1
+              if target:isDestroyed() then
+                tcr = 0
+                tcg = 0
+                tcb = 0
+              end
+              UI.DrawEx.TextAdditive(
+                'NovaMono',
+                targetName,
+                10,
+                (bx1 + bx2) / 2 - targetName:len() / 2, by1 - 30, targetName:len(), 20,
+                tcr, tcg, tcb, a,
+                0.5, 0.5
+              )
+            end
+
+            -- Draw target health bar
+            if playerTarget == target and target:hasHealth() then
+              local targetHealthPct = target:getHealthPercent()
+              if targetHealthPct > 0.0 then
+                local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
+                UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
+                UI.DrawEx.Rect(bx1 + 3, by2 - 1, (bx2 - bx1) - 8, 4, Config.ui.color.healthColor[targetHealthCI])
+              end
+            end
+          end
+
+          local ss = camera:ndcToScreen(ndc)
+          local dist = ss:distance(center)
+          if disp < 0.5 and dist < minDist then
+            closest = target
+            minDist = dist
+          end
+        else
+          ndc.x = ndc.x / ((1 + 16/camera.sx) * ndcMax)
+          ndc.y = ndc.y / ((1 + 16/camera.sy) * ndcMax)
+          local x = ( ndc.x + 1)/2 * camera.sx
+          local y = (-ndc.y + 1)/2 * camera.sy
+          if disp < 0.0 then
+            c.a = c.a * 0.5
+            UI.DrawEx.Point(x, y, 64, c)
+          end
+        end
+      end
+    end
+  end
+
+  self.target = closest
+end
+
+function HUD:drawLock (a)
+  local playerShip = self.player:getControlling()
+  local target = playerShip:getTarget()
+
+  if not target or target:isDestroyed() then return end
+
+  local camera = self.gameView.camera
+  local center = Vec2f(self.sx / 2, self.sy / 2)
+
+  do -- Direction indicator
+    local r = 96
+    local pos = target:getPos()
+    local ndc = camera:worldToNDC(pos)
+    local ndcMax = max(abs(ndc.x), abs(ndc.y))
+    if ndcMax > 1 or ndc.z <= 0 then ndc:idivs(ndcMax) end
+    local ss = camera:ndcToScreen(ndc)
+    local dir = ss - center
+    local dist = dir:length()
+    if dist > 1 then
+      dir:inormalize()
+      ss = center + dir:scale(r)
+      local a = a * (1.0 - exp(-max(0.0, dist / (r + 16) - 1.0)))
+      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
+    end
+  end
+
+  -- Predictive impact point
+  -- Takes into account player's movement, target's movement,
+  --   and the speed of the currently selected weapon/projectile
+  -- TEMP: change reference to Config.game.pulseRange from App.lua when multiple weapon types are available
+  local range = playerShip:getPos():distance(target:getPos())
+  if target:hasAttackable() and target:getAttackable() and range < Config.game.pulseRange then
+    if playerShip.socketSpeedMax > 0 then
+      local tHit, pHit = Math.Impact(
+        playerShip:getPos(),
+        target:getPos(),
+        playerShip:getVelocity(),
+        target:getVelocity(),
+        playerShip.socketSpeedMax)
+
+      if tHit then
+        local ndc = camera:worldToNDC(pHit)
+        local ndcMax = max(abs(ndc.x), abs(ndc.y))
+        if ndcMax <= 1 and ndc.z > 0 then
+          local ss = camera:ndcToScreen(ndc)
+          UI.DrawEx.Ring(ss.x, ss.y, 10, Color(1.0, 0.3, 0.3, a))
+        end
+      end
+    end
+  end
+end
+
+function HUD:drawReticle (a)
+  local cx, cy = self.sx / 2, self.sy / 2
+  do -- Reticle
+    do -- Central Crosshair
+      local c = Color(0.1, 0.5, 1.0, a)
+      local phase = 0.125
+      local r1 = 24
+      local r2 = 28
+      local n = 3
+      for i = 0, n - 1 do
+        local angle = -(Math.Pi2 + (i / n) * Math.Tau)
+        local dx, dy = cos(angle), sin(angle)
+        UI.DrawEx.Line(cx + r1 * dx, cy + r1 * dy, cx + r2 * dx, cy + r2 * dy, c)
+      end
+    end
+
+    if false then -- Aim (not terribly useful now, but preserved in case we can improve it)
+      local c = Color(0.1, 0.5, 1.0, a)
+      local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
+      local x = cx + 0.5 * self.sx * self.aimX
+      local y = cy - 0.5 * self.sy * self.aimY
+      UI.DrawEx.Ring(x, y, 16, c)
+    end
+  end
+end
+
+function HUD:drawPlayerHealth (a)
+  local cx, cy = self.sx / 2, self.sy / 2
+  local x, y, sx, sy = self:getRectGlobal()
+  local playerShip = self.player:getControlling()
+  local playerRadius = playerShip:getRadius()
+  local playerHealthPct = playerShip:getHealthPercent()
+  local playerHealthText = format("Health: %3.2f%%", playerHealthPct)
+  local playerHealthCI = math.min(50, math.floor((playerHealthPct / 2.0) + 0.5) + 1)
+
+  -- Draw text of player ship name
+  UI.DrawEx.TextAdditive(
+    'NovaMono',
+    playerShip:getName(),
+    10,
+    x, y, sx, sy,
+    1, 1, 1, a,
+    0.077, 0.75
+  )
+
+  -- Draw hologram of player ship
+--local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
+--printf("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
+--printf("radius = %3.2f, yaw = %3.2f, pitch = %3.2f", radius, yaw, pitch)
+--printf("radius = %3.2f, radius / 1.7 = %3.2f", radius, radius / 1.7)
+  local hc = Color(1, 1, 1, 1)
+  hc.r = Config.ui.color.healthColor[playerHealthCI].r
+  hc.g = Config.ui.color.healthColor[playerHealthCI].g
+  hc.b = Config.ui.color.healthColor[playerHealthCI].b
+  hc.a = 1.0
+  UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 260, 260, 260, hc, playerRadius / 1.7, -1.5, 0.0)
+
+  -- Draw text of player ship health
+  UI.DrawEx.TextAdditive(
+    'NovaMono',
+    playerHealthText,
+    10,
+    x, y, sx, sy,
+    1, 1, 1, a,
+    0.075, 0.97
+  )
+
+  UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
+  UI.DrawEx.Rect(cx - 20, cy + 20, 40, 4, Config.ui.color.healthColor[playerHealthCI])
+
+end
+
+function HUD:drawTargetHealth (a)
+  local playerShip = self.player:getControlling()
+  local target = playerShip:getTarget()
+  if target and target:hasHealth() then
+    local cx, cy = self.sx / 2, self.sy / 2
+    local x, y, sx, sy = self:getRectGlobal()
+    local targetName = target:getName()
+    local targetHealthPct = target:getHealthPercent()
+    if targetHealthPct > 0.0 then
+      local targetHealthText = format("Health: %3.2f%%", targetHealthPct)
+      local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
+      local targetRadius = target:getRadius()
+      local targetRadiusAdj = targetRadius
+
+      if target:getType() == Config:getObjectTypeByName("object_types", "Ship")    then
+        targetRadiusAdj = 5.9
+      end
+      if target:getType() == Config:getObjectTypeByName("object_types", "Station") then
+        targetRadiusAdj = 26
+        targetName = "Station " .. target:getName()
+      end
+
+      -- Draw text of target name
+      UI.DrawEx.TextAdditive(
+        'NovaMono',
+        targetName,
+        10,
+        x, y, sx, sy,
+        1, 1, 1, a,
+        0.922, 0.75
+      )
+
+      -- Draw hologram of target entity
+      local hc = Color(1, 1, 1, 1)
+      hc.r = Config.ui.color.healthColor[targetHealthCI].r
+      hc.g = Config.ui.color.healthColor[targetHealthCI].g
+      hc.b = Config.ui.color.healthColor[targetHealthCI].b
+      hc.a = 1.0
+      UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 260, 260, 260, hc, targetRadiusAdj, -1.5, 0.0)
+
+      -- Draw text of target health
+      UI.DrawEx.TextAdditive(
+        'NovaMono',
+        targetHealthText,
+        10,
+        x, y, sx, sy,
+        1, 1, 1, a,
+        0.925, 0.97
+      )
+    end
+  end
+end
+
+function HUD:drawDockPrompt (a)
+  local x, y, sx, sy = self:getRectGlobal()
+  local dockText = nil
+
+  if dockingAllowed then
+    dockText = "Press F to Dock" -- TODO: connect Docking input to bindings
+  else
+    dockText = "Docking is refused at this Station"
+  end
+
+  UI.DrawEx.TextAdditive(
+    'NovaMono',
+    dockText,
+    16,
+    x, y, sx, sy,
+    1, 1, 1, self.dockPromptAlpha * a,
+    0.5, 0.96
+  )
+end
+
 function HUD:onInput (state)
   local camera = self.gameView.camera
   camera:push()
@@ -224,30 +404,61 @@ function HUD:onInput (state)
   -- camera:modPitch(0.005 * CameraBindings.Pitch:get())
 
   local e = self.player:getControlling()
-  self:controlThrust(e)
-  self:controlTurrets(e)
-  self:controlTargetLock(e)
+  if not e:isDestroyed() then
+    self:controlThrust(e)
+    self:controlTurrets(e)
+    self:controlTargetLock(e)
+  end
+
   camera:pop()
 
   if self.dockable then
-    if ShipBindings.Dock:get() > 0 then
-      e:pushAction(Actions.DockAt(self.dockable))
-      self.dockable = nil
+--printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()), self.dockable:getName(), self.dockable:isDockable())
+    if self.dockable:isDockable() then
+      if not Config.game.gamePaused and ShipBindings.Dock:get() > 0 then
+        -- TODO: migrate this action outside the HUD
+        e:pushAction(Actions.DockAt(self.dockable))
+        self.dockable = nil
+      end
     end
   end
 end
 
 function HUD:onUpdate (state)
-  self.targets:update()
-  self.dockables:update()
+  if not Config.game.gamePaused then
+    if Input.GetPressed(Bindings.ToggleHUD) then
+      Config.ui.HUDdisplayed = not Config.ui.HUDdisplayed
+    end
 
-  local f = 1.0 - exp(-state.dt * 8.0)
-  local alphaT = self.dockable and 1 or 0
-  self.dockPromptAlpha = Math.Lerp(self.dockPromptAlpha, alphaT, f)
+    self.targets:update()
+    self.dockables:update()
+
+    self.dockable = HUD:getDockable(self)
+
+    local f = 1.0 - exp(-state.dt * 8.0)
+    local alphaT = 0
+    if self.dockable then
+      if self.dockable:isDockable() then
+        dockingAllowed = true
+        alphaT = 1
+      else
+        dockingAllowed = false
+        if not self.dockable:isDestroyed() and self.dockable:isHostileTo(self.player:getControlling()) then
+          alphaT = 1
+        else
+          alphaT = 0
+        end
+      end
+    end
+    self.dockPromptAlpha = Math.Lerp(self.dockPromptAlpha, alphaT, f)
+  end
+end
+
+function HUD:getDockable (self)
+  local dockableObj = nil
 
   local pPos    = self.player:getControlling():getPos()
   local pRad    = self.player:getControlling():getRadius()
-  local minDist = Config.game.dockRange
   self.dockable = nil
   for i = 1, #self.dockables.tracked do
     local dockable = self.dockables.tracked[i]
@@ -255,18 +466,29 @@ function HUD:onUpdate (state)
     local dPos = dockable:getPos()
     local dRad = dockable:getRadius()
     local dist = pPos:distance(dPos) - pRad - dRad
-    if dist < minDist then
-      minDist = dist
-      self.dockable = dockable
+    if dist < Config.game.dockRange then
+      -- return the Entity instance of the first dockable object found (might not be closest if several are within range)
+      dockableObj = dockable
+      break
     end
   end
+
+  return dockableObj
 end
 
 function HUD:onDraw (focus, active)
-  Profiler.Begin('HUD.DrawTargets') self:drawTargets   (self.enabled) Profiler.End()
-  Profiler.Begin('HUD.DrawLock')    self:drawLock      (self.enabled) Profiler.End()
-  Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
-  Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+  local playerShip = self.player:getControlling()
+  if playerShip:isAlive() then
+    if Config.ui.HUDdisplayed then
+      Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawTargetHealth') self:drawTargetHealth(self.enabled) Profiler.End()
+    end
+
+    Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
+    Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+  end
 end
 
 function HUD:onDrawIcon (iconButton, focus, active)
@@ -300,7 +522,8 @@ function HUD.Create (gameView, player)
     icon            = UI.Icon(),
 
     target          = nil,
-    targets         = Systems.CommandView.TrackingList(player, Entity.isAlive),
+    targets         = Systems.CommandView.TrackingList(player, Entity.isTrackable),
+--    targets         = Systems.CommandView.TrackingList(player, Entity.isAlive),
 
     -- TODO Probably want a reusable prompt thing
     dockPromptAlpha = 0,

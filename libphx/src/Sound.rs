@@ -11,6 +11,8 @@ extern "C" {
     pub type FMOD_SYSTEM;
     pub type FMOD_CHANNELCONTROL;
     pub type FMOD_CHANNELGROUP;
+    pub type FMOD_SPEAKERMODE;
+    fn FMOD_System_GetSoftwareFormat         (system: *mut FMOD_SYSTEM, samplerate: *mut i32, speakermode: *mut FMOD_SPEAKERMODE, numrawspeakers: *mut i32);
     fn FMOD_System_PlaySound(
         system: *mut FMOD_SYSTEM,
         sound: *mut FMOD_SOUND,
@@ -21,6 +23,7 @@ extern "C" {
     fn FMOD_Channel_Stop(channel: *mut FMOD_CHANNEL) -> FMOD_RESULT;
     fn FMOD_Channel_SetPaused(channel: *mut FMOD_CHANNEL, paused: FMOD_BOOL) -> FMOD_RESULT;
     fn FMOD_Channel_SetVolume(channel: *mut FMOD_CHANNEL, volume: f32) -> FMOD_RESULT;
+    fn FMOD_Channel_GetVolume(channel: *mut FMOD_CHANNEL, volume: *mut f32);
     fn FMOD_Channel_SetPitch(channel: *mut FMOD_CHANNEL, pitch: f32) -> FMOD_RESULT;
     fn FMOD_Channel_GetMode(channel: *mut FMOD_CHANNEL, mode: *mut FMOD_MODE) -> FMOD_RESULT;
     fn FMOD_Channel_SetCallback(
@@ -47,6 +50,16 @@ extern "C" {
         position: u32,
         postype: FMOD_TIMEUNIT,
     ) -> FMOD_RESULT;
+    fn FMOD_Channel_GetAudibility(channel: *mut FMOD_CHANNEL, out: *mut f32);
+    
+fn FMOD_Channel_GetDSPClock              (channel: *mut FMOD_CHANNEL, dspclock: *mut u64, parentclock: *mut u64);
+fn FMOD_Channel_SetDelay                 (channel: *mut FMOD_CHANNEL, dspclock_start: u64, dspclock_end: u64, stopchannels: u32);
+fn FMOD_Channel_GetDelay                 (channel: *mut FMOD_CHANNEL, dspclock_start: *mut u64, dspclock_end: *mut u64, stopchannels: *mut u32);
+fn FMOD_Channel_AddFadePoint             (channel: *mut FMOD_CHANNEL, dspclock: u64, volume: f32);
+fn FMOD_Channel_SetFadePointRamp         (channel: *mut FMOD_CHANNEL, dspclock: u64, volume: f32);
+fn FMOD_Channel_RemoveFadePoints         (channel: *mut FMOD_CHANNEL, dspclock_start: u64, dspclock_end: u64);
+fn FMOD_Channel_GetFadePoints            (channel: *mut FMOD_CHANNEL, numpoints: *mut i32, point_dspclock: *mut u64, point_volume: *mut f32);
+
 }
 
 #[derive(Copy, Clone)]
@@ -986,6 +999,18 @@ pub unsafe extern "C" fn Sound_IsPlaying(mut this: *mut Sound) -> bool {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn Sound_IsAudible(mut this: *mut Sound) -> bool {
+    Sound_EnsureStateImpl(
+        this,
+        (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"Sound_Set3DLevel\0")).as_ptr(),
+    );
+
+    let mut audibility = 0.0f32;
+    // FMOD_Channel_GetAudibility((*this).handle, &mut audibility);
+    return audibility > 0.0f32;
+  }
+
+#[no_mangle]
 pub unsafe extern "C" fn Sound_Attach3DPos(
     mut this: *mut Sound,
     mut pos: *const Vec3,
@@ -1018,8 +1043,8 @@ pub unsafe extern "C" fn Sound_Set3DLevel(mut this: *mut Sound, mut _level: f32)
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Set3DPos(
     mut this: *mut Sound,
-    mut _pos: *const Vec3,
-    mut _vel: *const Vec3,
+    mut pos: *const Vec3,
+    mut vel: *const Vec3,
 ) {
     Sound_EnsureStateImpl(
         this,
@@ -1045,7 +1070,7 @@ pub unsafe extern "C" fn Sound_SetFreeOnFinish(mut this: *mut Sound, mut freeOnF
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, mut _pan: f32) {
+pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, pan: f32) {
     Sound_EnsureStateImpl(
         this,
         (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_SetPan\0")).as_ptr(),
@@ -1061,7 +1086,7 @@ pub unsafe extern "C" fn Sound_SetPan(mut this: *mut Sound, mut _pan: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetPitch(mut this: *mut Sound, mut _pitch: f32) {
+pub unsafe extern "C" fn Sound_SetPitch(mut this: *mut Sound, pitch: f32) {
     Sound_EnsureStateImpl(
         this,
         (*std::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_SetPitch\0")).as_ptr(),
@@ -1077,12 +1102,12 @@ pub unsafe extern "C" fn Sound_SetPitch(mut this: *mut Sound, mut _pitch: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetPlayPos(mut this: *mut Sound, mut seconds: f32) {
+pub unsafe extern "C" fn Sound_SetPlayPos(mut this: *mut Sound, seconds: f32) {
     Sound_EnsureStateImpl(
         this,
         (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"Sound_SetPlayPos\0")).as_ptr(),
     );
-    let mut _ms: u32 = f64::round((seconds * 1000.0f32) as f64) as u32;
+    let mut ms: u32 = f64::round((seconds * 1000.0f32) as f64) as u32;
     // FMOD_CheckError(
     //     FMOD_Channel_SetPosition(
     //         (*this).handle,
@@ -1101,7 +1126,7 @@ pub unsafe extern "C" fn Sound_SetPlayPos(mut this: *mut Sound, mut seconds: f32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetVolume(mut this: *mut Sound, mut _volume: f32) {
+pub unsafe extern "C" fn Sound_SetVolume(mut this: *mut Sound, mut volume: f32) {
     Sound_EnsureStateImpl(
         this,
         (*std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_SetVolume\0")).as_ptr(),
@@ -1115,6 +1140,73 @@ pub unsafe extern "C" fn Sound_SetVolume(mut this: *mut Sound, mut _volume: f32)
     //         .as_ptr(),
     // );
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn Sound_FadeIn(mut this: *mut Sound, seconds: f32) {
+    Sound_EnsureStateImpl(
+        this,
+        (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_FadeIn\0")).as_ptr(),
+    );
+    // Assert(seconds >= 0.0f);
+  
+    if !Sound_IsPlaying(this) {
+        Sound_Play(this);
+    }
+    
+    // // Already fading in/out?
+    // let mut numpoints = 0;
+    // FMOD_Channel_GetFadePoints((*this).handle, &mut numpoints, std::ptr::null_mut(), std::ptr::null_mut());
+    // if numpoints > 0 {
+    //     return;
+    // } 
+  
+    // let mut rate = 0;
+    // FMOD_System_GetSoftwareFormat(Audio_GetHandle() as *mut _, &mut rate, std::ptr::null_mut(), std::ptr::null_mut());
+    // let fadeTime = (rate as f32 * seconds) as u64;
+  
+    // let mut volume = 1.0f32;
+    // FMOD_Channel_GetVolume((*this).handle, &mut volume);
+  
+    // let mut dspClock = 0_u64;
+    // FMOD_Channel_GetDSPClock((*this).handle, std::ptr::null_mut(), &mut dspClock);
+    
+    // FMOD_Channel_SetDelay((*this).handle, dspClock, 0, 0);
+  
+    // FMOD_Channel_AddFadePoint((*this).handle, dspClock, 0.0f32);
+    // FMOD_Channel_AddFadePoint((*this).handle, dspClock + fadeTime, volume);
+}
+  
+#[no_mangle]
+pub unsafe extern "C" fn Sound_FadeOut (mut this: *mut Sound, seconds: f32) {
+    Sound_EnsureStateImpl(
+        this,
+        (*std::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Sound_FadeOut\0")).as_ptr(),
+    );
+    // Assert(seconds >= 0.0f);
+  
+    // // Already fading in/out?
+    // let mut numpoints = 0;
+    // FMOD_Channel_GetFadePoints((*this).handle, &mut numpoints, std::ptr::null_mut(), std::ptr::null_mut());
+    // if numpoints > 0 {
+    //     return;
+    // } 
+  
+    // let mut rate = 0;
+    // FMOD_System_GetSoftwareFormat(Audio_GetHandle() as *mut _, &mut rate, std::ptr::null_mut(), std::ptr::null_mut());
+    // let fadeTime = (rate as f32 * seconds) as u64;
+  
+    // let mut volume = 1.0f32;
+    // FMOD_Channel_GetVolume((*this).handle, &mut volume);
+
+    // let mut dspClock = 0_u64;
+    // FMOD_Channel_GetDSPClock((*this).handle, std::ptr::null_mut(), &mut dspClock);
+    
+    // FMOD_Channel_AddFadePoint((*this).handle, dspClock, volume);
+    // FMOD_Channel_AddFadePoint((*this).handle, dspClock + fadeTime, 0.0f32);
+  
+    // FMOD_Channel_SetDelay((*this).handle, dspClock + fadeTime, 0, 0);
+  }
+  
 
 #[no_mangle]
 pub unsafe extern "C" fn Sound_LoadPlay(

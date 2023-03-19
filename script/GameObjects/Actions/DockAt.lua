@@ -3,7 +3,7 @@ local Action = require('GameObjects.Action')
 local rng = RNG.FromTime()
 
 -- TODO : Dock range should be specified by the dockable component
-local kDockRange = 200
+local kDockRange = 250
 
 local function getTargetPos (e, target)
   local tp = target:getPos()
@@ -32,6 +32,9 @@ function DockAt:onUpdateActive (e, dt)
     e:popAction()
     return
   end
+
+  -- Use the "target" metaphor to store where this ship is moving to
+  e:setTarget(self.target)
 
   if Config.debug.instantJobs then
     local p = e:getPos()

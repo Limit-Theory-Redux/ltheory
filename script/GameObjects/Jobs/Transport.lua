@@ -11,6 +11,7 @@
       search for sure
 ----------------------------------------------------------------------------]]--
 
+local Flow = require('Systems.Economy.Flow')
 local Job = require('GameObjects.Job')
 
 local Transport = subclass(Job, function (self, src, dst, item)
@@ -24,7 +25,7 @@ function Transport:clone ()
 end
 
 function Transport:getFlows (e)
-  local capacity = e:getInventoryCapacity()
+  local capacity = e:getInventoryFree()
   local duration = self:getTravelTime(e)
   local count = math.floor(capacity / self.item:getMass())
   return {
@@ -41,10 +42,30 @@ function Transport:getName ()
 end
 
 function Transport:getPayout (e)
-  local capacity = e:getInventoryCapacity()
+  local payout = 0
+  local capacity = e:getInventoryFree()
   local maxCount = math.floor(capacity / self.item:getMass())
   local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
-  return profit
+
+  if count > 0 then
+    -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
+    local pickupTravelTime = self:getShipTravelTime(e)
+    local transportTravelTime = self:getTravelTime(e)
+    local payoutMod = 10000 / ((pickupTravelTime / Config.econ.pickupDistWeightTran) + transportTravelTime)
+    payout = math.max(1, math.floor(profit * payoutMod))
+  else
+    payout = 0
+  end
+
+--printf("Transport check: Asset %s (%d free) taking %d (max %d) units of item %s from %s to %s, raw profit = %d, payout = %d",
+--    e:getName(), capacity, count, maxCount, self.item:getName(), self.src:getName(), self.dst:getName(), profit, payout)
+
+  return payout
+end
+
+function Transport:getShipTravelTime (e)
+  -- Return the travel time between the ship and a non-ship target depending on ship's top speed
+  return e:getDistance(self.dst) / e:getTopSpeed()
 end
 
 function Transport:getTravelTime (e)
@@ -52,29 +73,33 @@ function Transport:getTravelTime (e)
 end
 
 function Transport:onUpdateActive (e, dt)
-  if not e.jobState then e.jobState = 0 end
-  e.jobState = e.jobState + 1
+  if not Config.game.gamePaused then
+    if not e.jobState then e.jobState = 0 end
+    e.jobState = e.jobState + 1
 
-  if e.jobState == 1 then
-    local capacity = e:getInventoryCapacity()
-    local maxCount = math.floor(capacity / self.item:getMass())
-    local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
-    -- printf("[TRADE] %d x %s from %s -> %s, expect %d profit", count, self.item:getName(), self.src:getName(), self.dst:getName(), profit)
-    e.tradeCount = count
-    e:pushAction(Actions.DockAt(self.src))
-  elseif e.jobState == 2 then
-    for i = 1, e.tradeCount do self.src:getTrader():buy(e, self.item) end
-  elseif e.jobState == 3 then
-    e:pushAction(Actions.Undock())
-  elseif e.jobState == 4 then
-    e:pushAction(Actions.DockAt(self.dst))
-  elseif e.jobState == 5 then
-    while self.dst:getTrader():sell(e, self.item) do end
-  elseif e.jobState == 6 then
-    e:pushAction(Actions.Undock())
-  elseif e.jobState == 7 then
-    e:popAction()
-    e.jobState = nil
+    if e.jobState == 1 then
+      local capacity = e:getInventoryFree()
+      local maxCount = math.floor(capacity / self.item:getMass())
+      local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
+printf("[TRADE] %d x %s from %s -> %s, expect %d profit", count, self.item:getName(), self.src:getName(), self.dst:getName(), profit)
+      e.tradeCount = count
+      e:pushAction(Actions.DockAt(self.src))
+    elseif e.jobState == 2 then
+printf("%s offers to buy %d units of %s from Trader %s", e:getName(), e.tradeCount, self.item:getName(), self.src:getName())
+      for i = 1, e.tradeCount do self.src:getTrader():sell(e, self.item) end
+    elseif e.jobState == 3 then
+      e:pushAction(Actions.Undock())
+    elseif e.jobState == 4 then
+      e:pushAction(Actions.DockAt(self.dst))
+    elseif e.jobState == 5 then
+printf("%s offers to sell %d units of %s to Trader %s", e:getName(), e.tradeCount, self.item:getName(), self.dst:getName())
+      while self.dst:getTrader():buy(e, self.item) do end
+    elseif e.jobState == 6 then
+      e:pushAction(Actions.Undock())
+    elseif e.jobState == 7 then
+      e:popAction()
+      e.jobState = nil
+    end
   end
 end
 

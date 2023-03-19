@@ -22,7 +22,7 @@ function Label:setFormat (format)
 end
 
 function Label:setText (text)
-  -- NOTE : Text may not be a string! Automatic conversion is supported.
+  -- NOTE : Text might not be a string! Automatic conversion is supported.
   if self.format then
     self.text = format(self.format, text)
   else

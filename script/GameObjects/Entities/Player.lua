@@ -1,11 +1,14 @@
 local Entity = require('GameObjects.Entity')
 
-local Player = subclass(Entity, function (self)
-  self:addActions()
+local Player = subclass(Entity, function (self, name)
+  self:setName(name)
+
+  self:addActions() -- needed for Think() action
   self:addAssets()
   self:addDispositions()
-  self:addInventory(0)
+
   self.controlling = nil
+  self.docked = nil
 end)
 
 function Player:getControlling ()
@@ -20,5 +23,13 @@ end
 function Player:setControlling (target)
   self.controlling = target
 end
+
+--local function isAttackable ()
+--  self.attackable = false
+--end
+
+--local function isMinable ()
+--  self.minable = false
+--end
 
 return Player

@@ -113,13 +113,13 @@ cstr MidiDevice_GetNameByIndex (int index) {
     return 0;
   }
 
-  MidiDevice* MidiDevice_Open (int index) {
+  MidiDevice* MidiDevice_Open (int) {
     return 0;
   }
 
-  void MidiDevice_Close (MidiDevice* self) {}
+  void MidiDevice_Close (MidiDevice*) {}
 
-  cstr MidiDevice_GetNameByIndex (int index) {
+  cstr MidiDevice_GetNameByIndex (int) {
     return 0;
   }
 #endif

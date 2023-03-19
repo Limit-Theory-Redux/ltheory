@@ -1,4 +1,5 @@
 local Action = require('GameObjects.Action')
+local Bindings = require('States.ApplicationBindings')
 
 local rng = RNG.FromTime()
 
@@ -12,20 +13,38 @@ function MoveTo:clone ()
 end
 
 function MoveTo:getName ()
-  return format('MoveTo %s', self.target:getName())
+  local typename = Config:getObjectInfo("object_types", self.target:getType())
+  return format("MoveTo %s '%s'", typename, self.target:getName())
 end
 
 function MoveTo:onUpdateActive (e, dt)
-  if e:getMinDistance(self.target) <= self.range then
+  if e:getMinDistance(self.target) <= self.range or (e == Config.game.currentShip and not Config.game.playerMoving) then
+    -- MoveTo is complete, remove movement action from entity's Action queue
+--printf("-> %s ended", e:getCurrentAction():getName())
     e:popAction()
+
+    if e == Config.game.currentShip and Config.game.playerMoving then
+      Config.game.playerMoving = false
+--      Config.debug.instantJobs = true
+    end
+
     return
   end
 
+--  if e == Config.game.currentShip and Config.game.playerMoving then
+--    Config.debug.instantJobs = false
+--  end
+
+  -- Use the "target" metaphor to store where this ship is moving to
+  e:setTarget(self.target)
+
   if Config.debug.instantJobs then
+--print("MoveTo - instantJob!")
     local p = e:getPos()
     local dp = self.target:getPos() - p
     e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * Config.debug.jobSpeed)))
   else
+--printf("MoveTo - flyToward %s", self.target:getName())
     self:flyToward(e,
       self.target:getPos(),
       e:getForward(),

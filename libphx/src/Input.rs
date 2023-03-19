@@ -17,9 +17,9 @@ use sdl2_sys::*;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct DeviceState {
-    pub transitions: [i32; 512],
-    pub buttons: [bool; 512],
-    pub axes: [f32; 512],
+    pub transitions: [i32; SDL_Scancode::SDL_NUM_SCANCODES as usize],
+    pub buttons: [bool; SDL_Scancode::SDL_NUM_SCANCODES as usize],
+    pub axes: [f32; SDL_Scancode::SDL_NUM_SCANCODES as usize],
     pub lastEventTimestamp: u32,
     pub isConnected: bool,
 }
@@ -161,6 +161,9 @@ unsafe extern "C" fn Input_GetDeviceExists(mut device: Device) -> bool {
 
 #[inline]
 unsafe extern "C" fn Input_GetDevicePressedImpl(mut device: Device, mut button: Button) -> bool {
+    if button < 0 || button > SDL_Scancode::SDL_NUM_SCANCODES as i32 {
+        return false;
+    }
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
     if (*deviceState).buttons[button as usize] as i32 != 0 {
         (*deviceState).transitions[button as usize] > 0_i32
