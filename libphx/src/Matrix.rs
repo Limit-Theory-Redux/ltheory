@@ -19,7 +19,7 @@ unsafe extern "C" fn Float_ApproximatelyEqual(mut x: f64, mut y: f64) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Clone(mut this: *const Matrix) -> *mut Matrix {
-    let mut clone: *mut Matrix = MemAlloc(std::mem::size_of::<Matrix>()) as *mut Matrix;
+    let mut clone = MemNew!(Matrix);
     *clone = *this;
     clone
 }

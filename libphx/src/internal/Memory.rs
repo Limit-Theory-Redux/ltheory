@@ -3,6 +3,32 @@ use libc;
 
 pub use crate::Error::Error;
 
+macro_rules! MemNew {
+    ($x:ty) => {
+        MemAlloc(std::mem::size_of::<$x>()) as *mut $x
+    };
+}
+macro_rules! MemNewZero {
+    ($x:ty) => {
+        MemAllocZero(std::mem::size_of::<$x>()) as *mut $x
+    };
+}
+macro_rules! MemNewArray {
+    ($x:ty, $s:expr) => {
+        MemAlloc(std::mem::size_of::<$x>().wrapping_mul($s as usize)) as *mut $x
+    };
+}
+macro_rules! MemNewArrayZero {
+    ($x:ty, $s:expr) => {
+        MemAllocZero(std::mem::size_of::<$x>().wrapping_mul($s as usize)) as *mut $x
+    };
+}
+
+pub(crate) use MemNew;
+pub(crate) use MemNewArray;
+pub(crate) use MemNewArrayZero;
+pub(crate) use MemNewZero;
+
 #[inline]
 pub unsafe extern "C" fn MemAlloc(mut size: usize) -> *mut libc::c_void {
     libc::malloc(size)

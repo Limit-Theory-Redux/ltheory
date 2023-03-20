@@ -26,7 +26,7 @@ pub struct Node {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Create(mut box_0: Box3) -> *mut Octree {
-    let mut this: *mut Octree = MemAlloc(std::mem::size_of::<Octree>()) as *mut Octree;
+    let mut this = MemNew!(Octree);
     MemZero(this as *mut libc::c_void, std::mem::size_of::<Octree>());
     (*this).box_0 = box_0;
     this
@@ -198,7 +198,7 @@ pub unsafe extern "C" fn Octree_IntersectRay(
 }
 
 unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3, mut id: u32) {
-    let mut elem: *mut Node = MemAlloc(std::mem::size_of::<Node>()) as *mut Node;
+    let mut elem = MemNew!(Node);
     (*elem).box_0 = box_0;
     (*elem).id = id as u64;
     (*elem).next = (*this).elems;

@@ -13,11 +13,11 @@
 extern crate glam;
 extern crate libc;
 extern crate memoffset;
+extern crate mlua;
 extern crate printf_compat;
 extern crate rodio;
 extern crate sdl2_sys;
 extern crate stb;
-extern crate mlua;
 
 pub mod internal {
     pub mod Memory;

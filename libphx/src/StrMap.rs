@@ -47,9 +47,7 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
         size: 0_u32,
         data: std::ptr::null_mut(),
     };
-    newMap.data =
-        MemAllocZero((std::mem::size_of::<Node>()).wrapping_mul(newMap.capacity as usize))
-            as *mut Node;
+    newMap.data = MemNewArrayZero!(Node, newMap.capacity);
     let mut i: u32 = 0_u32;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
@@ -73,10 +71,9 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
-    let mut this: *mut StrMap = MemAllocZero(std::mem::size_of::<StrMap>()) as *mut StrMap;
+    let mut this = MemNewZero!(StrMap);
     (*this).capacity = capacity;
-    (*this).data =
-        MemAllocZero((std::mem::size_of::<Node>()).wrapping_mul(capacity as usize)) as *mut Node;
+    (*this).data = MemNewArrayZero!(Node, capacity);
     this
 }
 
@@ -206,7 +203,7 @@ pub unsafe extern "C" fn StrMap_Set(
         prev = &mut (*node).next;
         node = (*node).next;
     }
-    node = MemAlloc(std::mem::size_of::<Node>()) as *mut Node;
+    node = MemNew!(Node);
     (*node).key = StrDup(key);
     (*node).value = value;
     (*node).next = std::ptr::null_mut();
@@ -253,7 +250,7 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIter {
-    let mut it: *mut StrMapIter = MemAlloc(std::mem::size_of::<StrMapIter>()) as *mut StrMapIter;
+    let mut it = MemNew!(StrMapIter);
     (*it).map = this;
     (*it).slot = 0_u32;
     (*it).node = std::ptr::null_mut();

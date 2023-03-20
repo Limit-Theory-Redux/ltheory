@@ -120,7 +120,7 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
         );
     }
 
-    let mut this: *mut TexCube = MemAlloc(std::mem::size_of::<TexCube>()) as *mut TexCube;
+    let mut this = MemNew!(TexCube);
     (*this)._refCount = 1_u32;
     gl::GenTextures(1_i32, &mut (*this).handle);
     (*this).size = size;
@@ -226,7 +226,7 @@ pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut TexCube {
-    let mut this: *mut TexCube = MemAlloc(std::mem::size_of::<TexCube>()) as *mut TexCube;
+    let mut this = MemNew!(TexCube);
     gl::GenTextures(1_i32, &mut (*this).handle);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
 

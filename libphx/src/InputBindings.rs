@@ -331,8 +331,7 @@ pub unsafe extern "C" fn InputBindings_Update() {
                 let mut iBind: i32 = 0_i32;
                 while iBind
                     < (std::mem::size_of::<[RawButton; 4]>())
-                        .wrapping_div(std::mem::size_of::<RawButton>())
-                        as i32
+                        .wrapping_div(std::mem::size_of::<RawButton>()) as i32
                 {
                     let mut button: *mut RawButton =
                         &mut *(*((*binding).rawButtons).as_mut_ptr().offset(iBtn as isize))

@@ -215,8 +215,18 @@ pub unsafe extern "C" fn Intersect_LineSegmentPlane(
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RectRect(mut a: *const Vec4, mut b: *const Vec4) -> bool {
-    let mut a2: Vec4 = Vec4::new((*a).x + f32::min((*a).z, 0.0f32), (*a).y + f32::min((*a).w, 0.0f32), f32::abs((*a).z), f32::abs((*a).w));
-    let mut b2: Vec4 = Vec4::new((*b).x + f32::min((*b).z, 0.0f32), (*b).y + f32::min((*b).w, 0.0f32), f32::abs((*b).z), f32::abs((*b).w));
+    let mut a2: Vec4 = Vec4::new(
+        (*a).x + f32::min((*a).z, 0.0f32),
+        (*a).y + f32::min((*a).w, 0.0f32),
+        f32::abs((*a).z),
+        f32::abs((*a).w),
+    );
+    let mut b2: Vec4 = Vec4::new(
+        (*b).x + f32::min((*b).z, 0.0f32),
+        (*b).y + f32::min((*b).w, 0.0f32),
+        f32::abs((*b).z),
+        f32::abs((*b).w),
+    );
     Intersect_RectRectFast(&mut a2, &mut b2)
 }
 

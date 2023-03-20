@@ -83,7 +83,7 @@ unsafe extern "C" fn Mesh_UpdateInfo(mut this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
-    let mut this: *mut Mesh = MemAlloc(std::mem::size_of::<Mesh>()) as *mut Mesh;
+    let mut this = MemNew!(Mesh);
     (*this)._refCount = 1_u32;
     (*this).vbo = 0_u32;
     (*this).ibo = 0_u32;

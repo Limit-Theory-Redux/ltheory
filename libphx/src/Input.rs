@@ -1094,8 +1094,7 @@ pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool 
         return false;
     }
     Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"Input_GetNextEvent\0"))
-            .as_ptr(),
+        (*std::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"Input_GetNextEvent\0")).as_ptr(),
     );
     *event = *(this.events_data).offset(0);
     if 0_i32 != this.events_size - 1_i32 {

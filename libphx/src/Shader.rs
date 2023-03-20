@@ -343,7 +343,7 @@ pub unsafe extern "C" fn Shader_Create(
     mut vs: *const libc::c_char,
     mut fs: *const libc::c_char,
 ) -> *mut Shader {
-    let mut this: *mut Shader = MemAlloc(std::mem::size_of::<Shader>()) as *mut Shader;
+    let mut this = MemNew!(Shader);
     (*this)._refCount = 1_u32;
     (*this).vars_capacity = 0_i32;
     (*this).vars_size = 0_i32;
@@ -383,7 +383,7 @@ pub unsafe extern "C" fn Shader_Load(
     mut vName: *const libc::c_char,
     mut fName: *const libc::c_char,
 ) -> *mut Shader {
-    let mut this: *mut Shader = MemAlloc(std::mem::size_of::<Shader>()) as *mut Shader;
+    let mut this = MemNew!(Shader);
     (*this)._refCount = 1_u32;
     (*this).vars_capacity = 0_i32;
     (*this).vars_size = 0_i32;

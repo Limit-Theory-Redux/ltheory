@@ -104,7 +104,7 @@ unsafe extern "C" fn Lua_SignalHandler(mut sig: Signal) {
         return;
     }
     // if sig == Signal_Abrt || sig == Signal_Segv {
-        Lua_Backtrace();
+    Lua_Backtrace();
     // } else {
     //     cSignal = sig;
     //     lua_sethook(

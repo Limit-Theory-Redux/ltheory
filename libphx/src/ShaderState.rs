@@ -75,8 +75,7 @@ pub static ElemType_TexCube: u32 = 10_u32;
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut ShaderState {
-    let mut this: *mut ShaderState =
-        MemAlloc(std::mem::size_of::<ShaderState>()) as *mut ShaderState;
+    let mut this = MemNew!(ShaderState);
     (*this)._refCount = 1_u32;
     (*this).elems_capacity = 0_i32;
     (*this).elems_size = 0_i32;

@@ -51,7 +51,7 @@ static mut kFaceV: [Vec3; 6] = [
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
-    let mut this: *mut BoxMesh = MemAlloc(std::mem::size_of::<BoxMesh>()) as *mut BoxMesh;
+    let mut this = MemNew!(BoxMesh);
     (*this).elem_capacity = 0_i32;
     (*this).elem_size = 0_i32;
     (*this).elem_data = std::ptr::null_mut();

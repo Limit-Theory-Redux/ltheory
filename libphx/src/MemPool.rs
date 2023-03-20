@@ -42,7 +42,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -> *mut MemPool {
-    let mut this: *mut MemPool = MemAlloc(std::mem::size_of::<MemPool>()) as *mut MemPool;
+    let mut this = MemNew!(MemPool);
     (*this).size = 0_u32;
     (*this).capacity = 0_u32;
     (*this).freeList = std::ptr::null_mut();

@@ -660,8 +660,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     mut bsp: *mut BSPBuild,
     mut nodeData: *mut BSPBuild_NodeData,
 ) -> *mut BSPBuild_Node {
-    let mut node: *mut BSPBuild_Node =
-        MemAllocZero(std::mem::size_of::<BSPBuild_Node>()) as *mut BSPBuild_Node;
+    let mut node = MemNewZero!(BSPBuild_Node);
     let mut splitPlane: Plane = Plane {
         n: Vec3 {
             x: 0.,
@@ -894,7 +893,7 @@ unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
-    let mut this: *mut BSP = MemAllocZero(std::mem::size_of::<BSP>()) as *mut BSP;
+    let mut this = MemNewZero!(BSP);
     let mut indexLen: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *mut i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(mesh);

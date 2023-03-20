@@ -65,11 +65,9 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
         logCount = logCount.wrapping_add(1);
     }
     cellCount = (1_i32 << logCount) as u32;
-    let mut this: *mut HashGrid = MemAlloc(std::mem::size_of::<HashGrid>()) as *mut HashGrid;
+    let mut this = MemNew!(HashGrid);
     (*this).version = 0_i32 as u64;
-    (*this).cells =
-        MemAllocZero((std::mem::size_of::<HashGridCell>()).wrapping_mul(cellCount as usize))
-            as *mut HashGridCell;
+    (*this).cells = MemNewArrayZero!(HashGridCell, cellCount);
     (*this).elemPool = MemPool_Create(
         std::mem::size_of::<HashGridElem>() as u32,
         (0x1000_u32 as usize).wrapping_div(std::mem::size_of::<HashGridElem>()) as u32,
@@ -418,8 +416,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(mut this: *mut HashGrid, mut box_0: *
                                 } else {
                                     1_i32
                                 };
-                                let mut elemSize: usize =
-                                    std::mem::size_of::<*mut libc::c_void>();
+                                let mut elemSize: usize = std::mem::size_of::<*mut libc::c_void>();
                                 let mut pData: *mut *mut libc::c_void = &mut (*this).results_data
                                     as *mut *mut *mut libc::c_void
                                     as *mut *mut libc::c_void;

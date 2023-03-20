@@ -687,8 +687,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //         .as_ptr(),
     // );
     this.descMap = StrMap_Create(128 as i32 as u32);
-    this
-        .soundPool = MemPool_Create(
+    this.soundPool = MemPool_Create(
         std::mem::size_of::<Sound>() as usize as u32,
         128 as i32 as u32,
     );
@@ -832,7 +831,7 @@ pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {
 pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> *mut SoundDesc {
     let mut desc: *mut SoundDesc = StrMap_Get(this.descMap, name) as *mut SoundDesc;
     if desc.is_null() {
-        desc = MemAllocZero(std::mem::size_of::<SoundDesc>()) as *mut SoundDesc;
+        desc = MemNewZero!(SoundDesc);
         StrMap_Set(this.descMap, name, desc as *mut libc::c_void);
     }
     desc

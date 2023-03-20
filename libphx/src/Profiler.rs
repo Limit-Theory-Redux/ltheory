@@ -49,7 +49,7 @@ static mut this: Profiler = Profiler {
 static mut profiling: bool = false;
 
 unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
-    let mut scope: *mut Scope = MemAlloc(std::mem::size_of::<Scope>()) as *mut Scope;
+    let mut scope = MemNew!(Scope);
     (*scope).name = StrDup(name);
     (*scope).last = 0_i32 as TimeStamp;
     (*scope).frame = 0_i32 as TimeStamp;

@@ -24,7 +24,7 @@ pub struct Node {
 
 #[inline]
 unsafe extern "C" fn Node_Create(mut box_0: Box3, mut data: *mut libc::c_void) -> *mut Node {
-    let mut this: *mut Node = MemAlloc(std::mem::size_of::<Node>()) as *mut Node;
+    let mut this = MemNew!(Node);
     (*this).box_0 = box_0;
     (*this).sub[0] = std::ptr::null_mut();
     (*this).sub[1] = std::ptr::null_mut();
@@ -34,7 +34,7 @@ unsafe extern "C" fn Node_Create(mut box_0: Box3, mut data: *mut libc::c_void) -
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Create() -> *mut BoxTree {
-    let mut this: *mut BoxTree = MemAlloc(std::mem::size_of::<BoxTree>()) as *mut BoxTree;
+    let mut this = MemNew!(BoxTree);
     (*this).root = std::ptr::null_mut();
     this
 }

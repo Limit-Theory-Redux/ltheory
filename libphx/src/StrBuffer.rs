@@ -52,7 +52,7 @@ unsafe extern "C" fn StrBuffer_AppendData(
 
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_Create(mut capacity: u32) -> *mut StrBuffer {
-    let mut this: *mut StrBuffer = MemAlloc(std::mem::size_of::<StrBuffer>()) as *mut StrBuffer;
+    let mut this = MemNew!(StrBuffer);
     (*this).data = MemAllocZero(capacity.wrapping_add(1_i32 as u32) as usize) as *mut libc::c_char;
     (*this).size = 0_i32 as u32;
     (*this).capacity = capacity;

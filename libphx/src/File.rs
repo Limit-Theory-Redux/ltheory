@@ -35,7 +35,7 @@ unsafe extern "C" fn File_OpenMode(
     if handle.is_null() {
         return std::ptr::null_mut();
     }
-    let mut this: *mut File = MemAlloc(std::mem::size_of::<File>()) as *mut File;
+    let mut this = MemNew!(File);
     (*this).handle = handle;
     this
 }
@@ -114,8 +114,7 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const 
     }
     libc::rewind(file);
     let mut buffer: *mut libc::c_char = MemAlloc(
-        (std::mem::size_of::<libc::c_char>())
-            .wrapping_mul((size as usize).wrapping_add(1_usize)),
+        (std::mem::size_of::<libc::c_char>()).wrapping_mul((size as usize).wrapping_add(1_usize)),
     ) as *mut libc::c_char;
     let mut result: usize = libc::fread(buffer as *mut libc::c_void, size as usize, 1_usize, file);
     if result != 1_usize {

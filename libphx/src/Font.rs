@@ -399,7 +399,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     }
     let mut bitmap: *const FT_Bitmap = &mut (*(*face).glyph).bitmap;
     let mut pBitmap: *const uchar = (*bitmap).buffer;
-    g = MemAlloc(std::mem::size_of::<Glyph>()) as *mut Glyph;
+    g = MemNew!(Glyph);
     (*g).index = glyph;
     (*g).x0 = (*(*face).glyph).bitmap_left;
     (*g).y0 = -(*(*face).glyph).bitmap_top;
@@ -408,10 +408,8 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     (*g).x1 = (*g).x0 + (*g).sx;
     (*g).y1 = (*g).y0 + (*g).sy;
     (*g).advance = ((*(*face).glyph).advance.x >> 6_i32) as i32;
-    let mut buffer: *mut Vec4 =
-        MemAlloc((std::mem::size_of::<Vec4>()).wrapping_mul(((*g).sx * (*g).sy) as usize))
-            as *mut Vec4;
-    let mut pBuffer: *mut Vec4 = buffer;
+    let mut buffer = MemNewArray!(Vec4, ((*g).sx * (*g).sy));
+    let mut pBuffer = buffer;
     let mut dy: u32 = 0_u32;
     while dy < (*bitmap).rows {
         let mut dx: u32 = 0_u32;
@@ -467,7 +465,7 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
         FT_Init_FreeType(&mut ft);
     }
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Font, name);
-    let mut this: *mut Font = MemAlloc(std::mem::size_of::<Font>()) as *mut Font;
+    let mut this = MemNew!(Font);
     (*this)._refCount = 1_u32;
     if FT_New_Face(ft, path, 0_i32 as FT_Long, &mut (*this).handle) != 0 {
         Fatal(

@@ -126,8 +126,7 @@ pub unsafe extern "C" fn Saturate(mut t: f64) -> f64 {
 
 #[inline]
 pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
-    let mut classification: i32 = if std::mem::size_of::<f32>() == std::mem::size_of::<f32>()
-    {
+    let mut classification: i32 = if std::mem::size_of::<f32>() == std::mem::size_of::<f32>() {
         f32::classify(x) as i32
     } else if std::mem::size_of::<f32>() == std::mem::size_of::<f64>() {
         f64::classify(x as f64) as i32

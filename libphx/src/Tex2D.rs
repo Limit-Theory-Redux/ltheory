@@ -49,7 +49,7 @@ pub unsafe extern "C" fn Tex2D_Create(
             b"Tex2D_Create: Invalid texture format requested\0" as *const u8 as *const libc::c_char,
         );
     }
-    let mut this: *mut Tex2D = MemAlloc(std::mem::size_of::<Tex2D>()) as *mut Tex2D;
+    let mut this = MemNew!(Tex2D);
     (*this)._refCount = 1_u32;
     (*this).size = IVec2::new(sx, sy);
     (*this).format = format;
@@ -80,10 +80,8 @@ pub unsafe extern "C" fn Tex2D_Create(
 pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut size);
-    let mut this: *mut Tex2D = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
-    let mut buf: *mut u32 =
-        MemAlloc((std::mem::size_of::<u32>()).wrapping_mul((size.x * size.y) as usize))
-            as *mut u32;
+    let mut this = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
+    let mut buf = MemNewArray!(u32, (size.x * size.y));
     Metric_Inc(0x6_i32);
     gl::ReadPixels(
         0_i32,

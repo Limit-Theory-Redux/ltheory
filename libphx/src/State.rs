@@ -37,9 +37,7 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
     let mut sep: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char;
     let mut len: i32 = 0_i32;
     let mut i: i32 = 0_i32;
-    while i
-        < (std::mem::size_of::<[State; 4]>()).wrapping_div(std::mem::size_of::<State>())
-            as i32
+    while i < (std::mem::size_of::<[State; 4]>()).wrapping_div(std::mem::size_of::<State>()) as i32
     {
         if state & states[i as usize] == states[i as usize] {
             len += libc::snprintf(

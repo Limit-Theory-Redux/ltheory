@@ -283,7 +283,7 @@ unsafe extern "C" fn EmitText(
 unsafe extern "C" fn GetData(mut hash: u64) -> *mut ImGuiData {
     let mut data: *mut ImGuiData = HashMap_GetRaw(this.data, hash) as *mut ImGuiData;
     if data.is_null() {
-        data = MemAlloc(std::mem::size_of::<ImGuiData>()) as *mut ImGuiData;
+        data = MemNew!(ImGuiData);
         (*data).size = Vec2::new(0.0f32, 0.0f32);
         (*data).offset = Vec2::new(0.0f32, 0.0f32);
         (*data).scroll = 0.0f32;
@@ -315,9 +315,8 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
 }
 
 unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2, mut size: Vec2) {
-    let mut rect: *mut ImGuiClipRect =
-        MemAlloc(std::mem::size_of::<ImGuiClipRect>()) as *mut ImGuiClipRect;
-    let mut prev: *mut ImGuiClipRect = this.clipRect;
+    let mut rect = MemNew!(ImGuiClipRect);
+    let mut prev = this.clipRect;
     (*rect).prev = prev;
     (*rect).p1 = pos;
     (*rect).p2 = pos + size;
@@ -331,7 +330,7 @@ unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2, mut size: Vec2) {
 }
 
 unsafe extern "C" fn ImGui_PopClipRect() {
-    let mut rect: *mut ImGuiClipRect = this.clipRect;
+    let mut rect = this.clipRect;
     this.clipRect = (*rect).prev;
     MemFree(rect as *const libc::c_void);
 }
@@ -549,8 +548,7 @@ unsafe extern "C" fn ImGuiLayer_Free(mut self_1: *mut ImGuiLayer) {
 }
 
 unsafe extern "C" fn ImGui_PushLayer(mut clip: bool) -> *mut ImGuiLayer {
-    let mut layer: *mut ImGuiLayer =
-        MemAlloc(std::mem::size_of::<ImGuiLayer>()) as *mut ImGuiLayer;
+    let mut layer = MemNew!(ImGuiLayer);
     (*layer).parent = this.layer;
     (*layer).children = std::ptr::null_mut();
     (*layer).next = std::ptr::null_mut();

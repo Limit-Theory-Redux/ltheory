@@ -57,7 +57,7 @@ unsafe extern "C" fn Partition(
     mut boxCount: i32,
     mut dim: i32,
 ) -> *mut KDTree {
-    let mut this: *mut KDTree = MemAlloc(std::mem::size_of::<KDTree>()) as *mut KDTree;
+    let mut this = MemNew!(KDTree);
     if boxCount <= kMaxLeafSize {
         (*this).box_0 = *boxes.offset(0);
         (*this).back = std::ptr::null_mut();
@@ -70,7 +70,7 @@ unsafe extern "C" fn Partition(
         }
         let mut i_0: i32 = 0_i32;
         while i_0 < boxCount {
-            let mut node: *mut Node = MemAlloc(std::mem::size_of::<Node>()) as *mut Node;
+            let mut node = MemNew!(Node);
             (*node).box_0 = *boxes.offset(i_0 as isize);
             (*node).next = (*this).elems;
             (*node).id = 0_i32 as u64;
@@ -114,11 +114,8 @@ unsafe extern "C" fn Partition(
     }
     let mut boxCountBack: i32 = boxCount / 2_i32;
     let mut boxCountFront: i32 = boxCount - boxCountBack;
-    let mut boxesBack: *mut Box3 =
-        MemAlloc((std::mem::size_of::<Box3>()).wrapping_mul(boxCountBack as usize)) as *mut Box3;
-    let mut boxesFront: *mut Box3 =
-        MemAlloc((std::mem::size_of::<Box3>()).wrapping_mul(boxCountFront as usize))
-            as *mut Box3;
+    let mut boxesBack: *mut Box3 = MemNewArray!(Box3, boxCountBack);
+    let mut boxesFront: *mut Box3 = MemNewArray!(Box3, boxCountFront);
     MemCpy(
         boxesBack as *mut libc::c_void,
         boxes as *const libc::c_void,
@@ -144,8 +141,7 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
     let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
     let boxCount: i32 = indexCount / 3_i32;
-    let mut boxes: *mut Box3 =
-        MemAlloc((std::mem::size_of::<Box3>()).wrapping_mul(boxCount as usize)) as *mut Box3;
+    let mut boxes: *mut Box3 = MemNewArray!(Box3, boxCount);
     let mut i: i32 = 0_i32;
     while i < indexCount {
         let mut v0: *const Vertex =

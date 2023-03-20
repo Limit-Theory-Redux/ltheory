@@ -34,10 +34,10 @@ pub unsafe extern "C" fn Window_Create(
     }
     OpenGL_Init();
 
-    Box::new(Window{
+    Box::new(Window {
         handle: handle,
         context: context,
-        mode: modeWithGL
+        mode: modeWithGL,
     })
 }
 
@@ -85,10 +85,7 @@ pub unsafe extern "C" fn Window_GetTitle(w: Option<&Window>) -> *const libc::c_c
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetFullscreen(w: Option<&Window>, mut fs: bool) {
     let w = unwrap_or_return!(w);
-    SDL_SetWindowFullscreen(
-        w.handle,
-        if fs { WindowMode_Fullscreen } else { 0_u32 },
-    );
+    SDL_SetWindowFullscreen(w.handle, if fs { WindowMode_Fullscreen } else { 0_u32 });
 }
 
 #[no_mangle]

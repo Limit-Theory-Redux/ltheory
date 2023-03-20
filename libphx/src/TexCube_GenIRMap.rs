@@ -92,10 +92,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         level += 1_i32;
         let mut ggxWidth: f64 = level as f64 / levels as f64;
         ggxWidth *= ggxWidth;
-        let mut sampleBuffer: *mut Vec2 =
-            MemAlloc((std::mem::size_of::<Vec2>()).wrapping_mul(sampleCount as usize))
-                as *mut Vec2;
-        let mut sampleTex: *mut Tex2D = Tex2D_Create(sampleCount, 1_i32, TexFormat_RG16F);
+        let mut sampleBuffer = MemNewArray!(Vec2, sampleCount);
+        let mut sampleTex = Tex2D_Create(sampleCount, 1_i32, TexFormat_RG16F);
         let mut i_1: i32 = 0_i32;
         while i_1 < sampleCount {
             let mut e1: f64 = RNG_GetUniform(rng);

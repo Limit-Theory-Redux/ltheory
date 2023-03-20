@@ -140,7 +140,7 @@ pub unsafe extern "C" fn Joystick_GetCount() -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
-    let mut this: *mut Joystick = MemAlloc(std::mem::size_of::<Joystick>()) as *mut Joystick;
+    let mut this = MemNew!(Joystick);
     if kOpen == kMaxOpen {
         Fatal(b"Cannot open any more gamepad connections.\0" as *const u8 as *const libc::c_char);
     }
@@ -160,17 +160,13 @@ pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
     (*this).balls = SDL_JoystickNumBalls((*this).handle);
     (*this).buttons = SDL_JoystickNumButtons((*this).handle);
     (*this).hats = SDL_JoystickNumHats((*this).handle);
-    (*this).buttonStates =
-        MemAlloc((std::mem::size_of::<bool>()).wrapping_mul((*this).buttons as usize))
-            as *mut bool;
-    (*this).axisAlive =
-        MemAlloc((std::mem::size_of::<bool>()).wrapping_mul((*this).axes as usize)) as *mut bool;
+    (*this).buttonStates = MemNewArray!(bool, (*this).buttons);
+    (*this).axisAlive = MemNewArray!(bool, (*this).axes);
     MemZero(
         (*this).axisAlive as *mut libc::c_void,
         (std::mem::size_of::<bool>()).wrapping_mul((*this).axes as usize),
     );
-    (*this).axisStates =
-        MemAlloc((std::mem::size_of::<f64>()).wrapping_mul((*this).axes as usize)) as *mut f64;
+    (*this).axisStates = MemNewArray!(f64, (*this).axes);
     (*this).lastUsed = TimeStamp_Get();
     Joystick_UpdateSingle(this);
     this

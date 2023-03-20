@@ -13,7 +13,7 @@ pub struct MemStack {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
-    let mut this: *mut MemStack = MemAlloc(std::mem::size_of::<MemStack>()) as *mut MemStack;
+    let mut this = MemNew!(MemStack);
     (*this).size = 0_u32;
     (*this).capacity = capacity;
     (*this).data = MemAlloc(capacity as usize);

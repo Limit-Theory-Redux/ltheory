@@ -33,7 +33,7 @@ pub unsafe extern "C" fn Tex1D_Create(mut size: i32, mut format: TexFormat) -> *
             b"Tex1D_Create: Invalid texture format requested\0" as *const u8 as *const libc::c_char,
         );
     }
-    let mut this: *mut Tex1D = MemAlloc(std::mem::size_of::<Tex1D>()) as *mut Tex1D;
+    let mut this = MemNew!(Tex1D);
     (*this)._refCount = 1_u32;
     (*this).size = size;
     (*this).format = format;

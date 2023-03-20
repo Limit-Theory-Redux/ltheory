@@ -41,9 +41,7 @@ unsafe extern "C" fn Resource_Resolve(
             (*elem).format,
             name,
         );
-        if res > 0_i32
-            && res < std::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong as i32
-        {
+        if res > 0_i32 && res < std::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong as i32 {
             if File_Exists(buffer.as_mut_ptr() as *const libc::c_char) {
                 return buffer.as_mut_ptr() as *const libc::c_char;
             }
@@ -68,7 +66,7 @@ pub unsafe extern "C" fn Resource_AddPath(
     mut type_0: ResourceType,
     mut format: *const libc::c_char,
 ) {
-    let mut this: *mut PathElem = MemAlloc(std::mem::size_of::<PathElem>()) as *mut PathElem;
+    let mut this = MemNew!(PathElem);
     (*this).format = StrDup(format);
     (*this).next = paths[type_0 as usize];
     paths[type_0 as usize] = this;

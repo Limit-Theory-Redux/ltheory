@@ -81,7 +81,7 @@ pub unsafe extern "C" fn Socket_Create(mut type_0: SocketType) -> *mut Socket {
                 as *const u8 as *const libc::c_char,
         );
     }
-    let mut this: *mut Socket = MemAlloc(std::mem::size_of::<Socket>()) as *mut Socket;
+    let mut this = MemNew!(Socket);
     (*this).type_0 = type_0;
     (*this).sock = libc::socket(
         2_i32,
@@ -136,7 +136,7 @@ pub unsafe extern "C" fn Socket_Accept(mut this: *mut Socket) -> *mut Socket {
     if sock == -1_i32 {
         return std::ptr::null_mut();
     }
-    let mut con: *mut Socket = MemAlloc(std::mem::size_of::<Socket>()) as *mut Socket;
+    let mut con = MemNew!(Socket);
     (*con).type_0 = SocketType_TCP;
     (*con).sock = sock;
     if !Socket_SetNonblocking((*con).sock) {

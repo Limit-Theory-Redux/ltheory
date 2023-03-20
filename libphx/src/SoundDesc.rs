@@ -908,10 +908,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
         Audio_DeallocSoundDesc(this);
         StrFree(name);
         StrFree(path);
-        MemZero(
-            this as *mut libc::c_void,
-            std::mem::size_of::<SoundDesc>(),
-        );
+        MemZero(this as *mut libc::c_void, std::mem::size_of::<SoundDesc>());
     }
 }
 

@@ -26,10 +26,8 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut surfels: i32 = sDim * sDim;
     let mut vertices: i32 = vDim * vDim;
     let mut bufSize: i32 = f64::max(surfels as f64, vertices as f64) as i32;
-    let mut pointBuffer: *mut Vec4 =
-        MemAlloc((std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize)) as *mut Vec4;
-    let mut normalBuffer: *mut Vec4 =
-        MemAlloc((std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize)) as *mut Vec4;
+    let mut pointBuffer: *mut Vec4 = MemNewArray!(Vec4, bufSize);
+    let mut normalBuffer: *mut Vec4 = MemNewArray!(Vec4, bufSize);
     MemZero(
         pointBuffer as *mut libc::c_void,
         (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
@@ -138,8 +136,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     Shader_Stop(shader);
     RenderTarget_Pop();
     RenderState_PopAll();
-    let mut result: *mut f32 =
-        MemAlloc((std::mem::size_of::<f32>()).wrapping_mul((vDim * vDim) as usize)) as *mut f32;
+    let mut result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
     Tex2D_GetData(
         texOutput,
         result as *mut libc::c_void,
@@ -170,9 +167,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     let mut vDim: i32 = f64::ceil(f64::sqrt(vertexCount as f64)) as i32;
     let mut texPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
-    let mut pointBuffer: *mut Vec3 =
-        MemAlloc((std::mem::size_of::<Vec3>()).wrapping_mul((vDim * vDim) as usize))
-            as *mut Vec3;
+    let mut pointBuffer: *mut Vec3 = MemNewArray!(Vec3, (vDim * vDim));
     let mut i: i32 = 0_i32;
     while i < vertexCount {
         *pointBuffer.offset(i as isize) = (*vertexData.offset(i as isize)).p;
@@ -202,8 +197,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     Shader_Stop(shader);
     RenderTarget_Pop();
     RenderState_PopAll();
-    let mut result: *mut f32 =
-        MemAlloc((std::mem::size_of::<f32>()).wrapping_mul((vDim * vDim) as usize)) as *mut f32;
+    let mut result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
     Tex2D_GetData(
         texOutput,
         result as *mut libc::c_void,

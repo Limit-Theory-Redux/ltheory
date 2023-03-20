@@ -36,9 +36,8 @@ pub unsafe extern "C" fn HashMap_Create(mut keySize: u32, mut capacity: u32) -> 
         logCapacity = logCapacity.wrapping_add(1);
     }
     capacity = (1_i32 << logCapacity) as u32;
-    let mut this: *mut HashMap = MemAlloc(std::mem::size_of::<HashMap>()) as *mut HashMap;
-    (*this).elems =
-        MemAllocZero((std::mem::size_of::<Node>()).wrapping_mul(capacity as usize)) as *mut Node;
+    let mut this = MemNew!(HashMap);
+    (*this).elems = MemNewArrayZero!(Node, capacity);
     (*this).size = 0_u32;
     (*this).capacity = capacity;
     (*this).mask = ((1_i32 << logCapacity) - 1_i32) as u32;
