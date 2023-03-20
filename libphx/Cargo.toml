@@ -21,6 +21,7 @@ printf-compat = "0.1.1"
 rodio = "0.17.0"
 flate2 = "1.0.25"
 mlua = { version = "0.8.7", features = ["luajit", "vendored"] }
+freetype-sys = "0.17"
 
 [build-dependencies]
 cmake = "0.1"

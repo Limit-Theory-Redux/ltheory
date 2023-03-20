@@ -478,6 +478,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
+name = "freetype-sys"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "643148ca6cbad6bec384b52fbe1968547d578c4efe83109e035c43a71734ff88"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
 name = "gl_generator"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1028,6 +1038,7 @@ dependencies = [
  "cc",
  "cmake",
  "flate2",
+ "freetype-sys",
  "gl_generator",
  "glam",
  "http_req",

@@ -18,6 +18,7 @@ extern crate printf_compat;
 extern crate rodio;
 extern crate sdl2_sys;
 extern crate stb;
+extern crate freetype_sys;
 
 pub mod internal {
     pub mod Memory;
