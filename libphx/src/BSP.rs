@@ -1230,11 +1230,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(mut this: *mut BSP, mut nodeRef:
         Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
         BSPDebug_DrawNode(this, (*node).child[FrontIndex as usize]);
         let mut closestPoint = Vec3::ZERO;
-        let mut origin: Vec3 = Vec3 {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        };
+        let mut origin: Vec3 = Vec3::new(0., 0., 0.);
         let mut t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
         closestPoint = origin - ((*node).plane.n * t);
         RenderState_PushWireframe(false);

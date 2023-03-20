@@ -149,12 +149,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat4(
     mut z: f32,
     mut w: f32,
 ) {
-    let mut value: Vec4 = Vec4 {
-        x: x,
-        y: y,
-        z: z,
-        w: w,
-    };
+    let mut value: Vec4 = Vec4::new(x, y, z, w);
     ShaderVar_Push(
         name,
         0x4_i32,

@@ -796,21 +796,9 @@ pub unsafe extern "C" fn Matrix_FromQuat(mut q: *const Quat) -> *mut Matrix {
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_ToQuat(mut this: *const Matrix, mut q: *mut Quat) {
     let mut m: *const f32 = this as *const f32;
-    let mut x: Vec3 = Vec3 {
-        x: *m.offset(0),
-        y: *m.offset(4),
-        z: *m.offset(8),
-    };
-    let mut y: Vec3 = Vec3 {
-        x: *m.offset(1),
-        y: *m.offset(5),
-        z: *m.offset(9),
-    };
-    let mut z: Vec3 = Vec3 {
-        x: *m.offset(2),
-        y: *m.offset(6),
-        z: *m.offset(10),
-    };
+    let mut x: Vec3 = Vec3::new(*m.offset(0), *m.offset(4), *m.offset(8));
+    let mut y: Vec3 = Vec3::new(*m.offset(1), *m.offset(5), *m.offset(9));
+    let mut z: Vec3 = Vec3::new(*m.offset(2), *m.offset(6), *m.offset(10));
     Quat_FromBasis(&mut x, &mut y, &mut z, q);
 }
 

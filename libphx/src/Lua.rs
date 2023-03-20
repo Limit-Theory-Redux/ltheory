@@ -103,18 +103,18 @@ unsafe extern "C" fn Lua_SignalHandler(mut sig: Signal) {
     if activeInstance.is_null() {
         return;
     }
-    if sig == Signal_Abrt || sig == Signal_Segv {
+    // if sig == Signal_Abrt || sig == Signal_Segv {
         Lua_Backtrace();
-    } else {
-        cSignal = sig;
-        lua_sethook(
-            activeInstance,
-            Some(Lua_BacktraceHook as unsafe extern "C" fn(*mut Lua, *mut lua_Debug) -> ()),
-            1_i32 << 0_i32 | 1_i32 << 1_i32 | 1_i32 << 3_i32,
-            1_i32,
-        );
-        Signal_IgnoreDefault();
-    };
+    // } else {
+    //     cSignal = sig;
+    //     lua_sethook(
+    //         activeInstance,
+    //         Some(Lua_BacktraceHook as unsafe extern "C" fn(*mut Lua, *mut lua_Debug) -> ()),
+    //         1_i32 << 0_i32 | 1_i32 << 1_i32 | 1_i32 << 3_i32,
+    //         1_i32,
+    //     );
+    //     Signal_IgnoreDefault();
+    // };
 }
 
 unsafe extern "C" fn Lua_PCall(
@@ -485,6 +485,26 @@ unsafe extern "C" fn Lua_ToString(
         app,
     )
 }
+
+// pub unsafe fn Lua_GetCurrentLocation() {
+//     let mut this: *mut Lua = activeInstance;
+//     if this.is_null() {
+//         return;
+//     }
+
+//     let mut result: i32 = lua_getstack(this, iStack, &mut ar);
+//     if result == 0 {
+//         return;
+//     }
+//     result = lua_getinfo(
+//         this,
+//         b"nSluf\0" as *const u8 as *const libc::c_char,
+//         &mut ar,
+//     );
+//     if result == 0_i32 {
+//         Fatal(b"Lua_GetStack: lua_getinfo failed.\0" as *const u8 as *const libc::c_char);
+//     }
+// }
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_Backtrace() {

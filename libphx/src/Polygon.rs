@@ -50,11 +50,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mu
 pub unsafe extern "C" fn Polygon_ToPlaneFast(mut polygon: *mut Polygon, mut out: *mut Plane) {
     let mut v: *mut Vec3 = ((*polygon).vertices_data).offset(0);
     let mut vLen: i32 = (*polygon).vertices_size;
-    let mut n: Vec3 = Vec3 {
-        x: 0.0f32,
-        y: 0.,
-        z: 0.,
-    };
+    let mut n: Vec3 = Vec3::new(0.0f32, 0., 0.);
     let mut i: i32 = vLen - 1_i32;
     let mut j: i32 = 0_i32;
     while j < vLen {

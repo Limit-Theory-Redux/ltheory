@@ -70,11 +70,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
         y: (*this).size.y - 1_i32,
         z: (*this).size.z - 1_i32,
     };
-    let cellsF: Vec3 = Vec3 {
-        x: cells.x as f32,
-        y: cells.y as f32,
-        z: cells.z as f32,
-    };
+    let cellsF: Vec3 = Vec3::new(cells.x as f32, cells.y as f32, cells.z as f32);
     let stride: IVec3 = IVec3 {
         x: 1_i32,
         y: (*this).size.x,
@@ -182,16 +178,8 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     *indices.offset(cellIndex as isize) = -1_i32;
                 } else {
                     let mut tw: f32 = 0.0f32;
-                    let mut offset: Vec3 = Vec3 {
-                        x: 0.0f32,
-                        y: 0.0f32,
-                        z: 0.0f32,
-                    };
-                    let mut n: Vec3 = Vec3 {
-                        x: 0.0f32,
-                        y: 0.0f32,
-                        z: 0.0f32,
-                    };
+                    let mut offset: Vec3 = Vec3::new(0.0f32, 0.0f32, 0.0f32);
+                    let mut n: Vec3 = Vec3::new(0.0f32, 0.0f32, 0.0f32);
                     let mut i: i32 = 0_i32;
                     while i < 12_i32 {
                         let mut i0: i32 = edgeTable[i as usize][0];

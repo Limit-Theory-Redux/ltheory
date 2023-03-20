@@ -137,7 +137,7 @@ pub unsafe extern "C" fn RNG_GetAngle(mut this: *mut RNG) -> f64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetInt(mut this: *mut RNG, mut lower: i32, mut upper: i32) -> i32 {
+pub unsafe extern "C" fn RNG_GetInt(mut this: *mut RNG, lower: i32, upper: i32) -> i32 {
     let mut t: f64 = RNG_GetUniform(this);
     f64::round(lower as f64 + t * (upper - lower) as f64) as i32
 }

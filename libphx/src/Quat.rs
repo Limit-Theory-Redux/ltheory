@@ -217,16 +217,8 @@ pub unsafe extern "C" fn Quat_ILerp(mut q: *mut Quat, mut p: *const Quat, mut t:
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Mul(mut q: *const Quat, mut p: *const Quat, mut out: *mut Quat) {
-    let mut qv: Vec3 = Vec3 {
-        x: (*q).x,
-        y: (*q).y,
-        z: (*q).z,
-    };
-    let mut pv: Vec3 = Vec3 {
-        x: (*p).x,
-        y: (*p).y,
-        z: (*p).z,
-    };
+    let mut qv: Vec3 = Vec3::new((*q).x, (*q).y, (*q).z);
+    let mut pv: Vec3 = Vec3::new((*p).x, (*p).y, (*p).z);
     let mut rv: Vec3 = (qv * (*p).w) + (pv * (*q).w) + Vec3::cross(qv, pv);
     (*out).x = rv.x;
     (*out).y = rv.y;
@@ -236,16 +228,8 @@ pub unsafe extern "C" fn Quat_Mul(mut q: *const Quat, mut p: *const Quat, mut ou
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_IMul(mut q: *mut Quat, mut p: *const Quat) {
-    let qv: Vec3 = Vec3 {
-        x: (*q).x,
-        y: (*q).y,
-        z: (*q).z,
-    };
-    let pv: Vec3 = Vec3 {
-        x: (*p).x,
-        y: (*p).y,
-        z: (*p).z,
-    };
+    let qv: Vec3 = Vec3::new((*q).x, (*q).y, (*q).z);
+    let pv: Vec3 = Vec3::new((*p).x, (*p).y, (*p).z);
     let rv: Vec3 = (qv * (*p).w) + (pv * (*q).w) + Vec3::cross(qv, pv);
     (*q).x = rv.x;
     (*q).y = rv.y;
@@ -255,11 +239,7 @@ pub unsafe extern "C" fn Quat_IMul(mut q: *mut Quat, mut p: *const Quat) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_MulV(mut q: *const Quat, mut v: *const Vec3, mut out: *mut Vec3) {
-    let mut u: Vec3 = Vec3 {
-        x: (*q).x,
-        y: (*q).y,
-        z: (*q).z,
-    };
+    let mut u: Vec3 = Vec3::new((*q).x, (*q).y, (*q).z);
     let mut w: f32 = (*q).w;
     let mut t: Vec3 = Vec3::cross(u, *v);
     *out = (u * 2.0f32 * Vec3::dot(u, *v)) + ((*v) * (2.0f32 * w * w - 1.0f32)) + (t * 2.0f32 * w);

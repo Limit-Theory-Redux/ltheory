@@ -9,12 +9,7 @@ static mut alphaStack: [f32; 16] = [0.; 16];
 
 static mut alphaIndex: i32 = -1_i32;
 
-static mut color: Vec4 = Vec4 {
-    x: 1.0f32,
-    y: 1.0f32,
-    z: 1.0f32,
-    w: 1.0f32,
-};
+static mut color: Vec4 = Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32);
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PushAlpha(mut a: f32) {
