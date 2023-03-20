@@ -116,7 +116,7 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
     MemPool_Clear(this.textPool);
     let mut vp: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut vp);
-    UIRenderer_BeginLayer(0 as f32, 0 as f32, vp.x as f32, vp.y as f32, true);
+    UIRenderer_BeginLayer(0.0f32, 0.0f32, vp.x as f32, vp.y as f32, true);
     this.root = this.layer;
 }
 

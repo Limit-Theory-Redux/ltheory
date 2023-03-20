@@ -73,13 +73,13 @@ pub unsafe extern "C" fn Quat_Identity(mut out: *mut Quat) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Canonicalize(mut q: *const Quat, mut out: *mut Quat) {
-    let mut value: f32 = if !Float_ApproximatelyEqual((*q).w as f64, 0.0f32 as f64) {
+    let mut value: f32 = if !Float_ApproximatelyEqual((*q).w as f64, 0.0f64) {
         (*q).w
-    } else if !Float_ApproximatelyEqual((*q).z as f64, 0.0f32 as f64) {
+    } else if !Float_ApproximatelyEqual((*q).z as f64, 0.0f64) {
         (*q).z
-    } else if !Float_ApproximatelyEqual((*q).y as f64, 0.0f32 as f64) {
+    } else if !Float_ApproximatelyEqual((*q).y as f64, 0.0f64) {
         (*q).y
-    } else if !Float_ApproximatelyEqual((*q).x as f64, 0.0f32 as f64) {
+    } else if !Float_ApproximatelyEqual((*q).x as f64, 0.0f64) {
         (*q).x
     } else {
         0.0f32
@@ -99,13 +99,13 @@ pub unsafe extern "C" fn Quat_Canonicalize(mut q: *const Quat, mut out: *mut Qua
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_ICanonicalize(mut q: *mut Quat) {
-    let mut value: f32 = if !Float_ApproximatelyEqual((*q).w as f64, 0.0f32 as f64) {
+    let mut value: f32 = if !Float_ApproximatelyEqual((*q).w as f64, 0.0f64) {
         (*q).w
-    } else if !Float_ApproximatelyEqual((*q).z as f64, 0.0f32 as f64) {
+    } else if !Float_ApproximatelyEqual((*q).z as f64, 0.0f64) {
         (*q).z
-    } else if !Float_ApproximatelyEqual((*q).y as f64, 0.0f32 as f64) {
+    } else if !Float_ApproximatelyEqual((*q).y as f64, 0.0f64) {
         (*q).y
-    } else if !Float_ApproximatelyEqual((*q).x as f64, 0.0f32 as f64) {
+    } else if !Float_ApproximatelyEqual((*q).x as f64, 0.0f64) {
         (*q).x
     } else {
         0.0f32
@@ -138,10 +138,10 @@ pub unsafe extern "C" fn Quat_ApproximatelyEqual(mut q: *const Quat, mut p: *con
     Quat_Canonicalize(q, &mut cq);
     let mut cp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Canonicalize(p, &mut cp);
-    f64::abs((cq.x - cp.x) as f64) < 1e-3f32 as f64
-        && f64::abs((cq.y - cp.y) as f64) < 1e-3f32 as f64
-        && f64::abs((cq.z - cp.z) as f64) < 1e-3f32 as f64
-        && f64::abs((cq.w - cp.w) as f64) < 1e-3f32 as f64
+    f64::abs((cq.x - cp.x) as f64) < 1e-3f64
+        && f64::abs((cq.y - cp.y) as f64) < 1e-3f64
+        && f64::abs((cq.z - cp.z) as f64) < 1e-3f64
+        && f64::abs((cq.w - cp.w) as f64) < 1e-3f64
 }
 
 #[no_mangle]
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn Quat_Lerp(
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
     let mut rcpMag: f32 =
-        (1.0f32 as f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+        (1.0f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*out).x = x * rcpMag;
     (*out).y = y * rcpMag;
     (*out).z = z * rcpMag;
@@ -208,7 +208,7 @@ pub unsafe extern "C" fn Quat_ILerp(mut q: *mut Quat, mut p: *const Quat, mut t:
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
     let mut rcpMag: f32 =
-        (1.0f32 as f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+        (1.0f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*q).x = x * rcpMag;
     (*q).y = y * rcpMag;
     (*q).z = z * rcpMag;
@@ -403,25 +403,25 @@ pub unsafe extern "C" fn Quat_FromBasis(
 ) {
     let mut r: f32 = (*x).x + (*y).y + (*z).z;
     if r > 0.0f32 {
-        (*out).w = (f64::sqrt((r + 1.0f32) as f64) * 0.5f32 as f64) as f32;
+        (*out).w = (f64::sqrt((r + 1.0f32) as f64) * 0.5f64) as f32;
         let mut w4: f32 = 1.0f32 / (4.0f32 * (*out).w);
         (*out).x = ((*y).z - (*z).y) * w4;
         (*out).y = ((*z).x - (*x).z) * w4;
         (*out).z = ((*x).y - (*y).x) * w4;
     } else if (*x).x > (*y).y && (*x).x > (*z).z {
-        (*out).x = (f64::sqrt((1.0f32 + (*x).x - (*y).y - (*z).z) as f64) * 0.5f32 as f64) as f32;
+        (*out).x = (f64::sqrt((1.0f32 + (*x).x - (*y).y - (*z).z) as f64) * 0.5f64) as f32;
         let mut x4: f32 = 1.0f32 / (4.0f32 * (*out).x);
         (*out).y = ((*y).x + (*x).y) * x4;
         (*out).z = ((*z).x + (*x).z) * x4;
         (*out).w = ((*y).z - (*z).y) * x4;
     } else if (*y).y > (*z).z {
-        (*out).y = (f64::sqrt((1.0f32 + (*y).y - (*x).x - (*z).z) as f64) * 0.5f32 as f64) as f32;
+        (*out).y = (f64::sqrt((1.0f32 + (*y).y - (*x).x - (*z).z) as f64) * 0.5f64) as f32;
         let mut y4: f32 = 1.0f32 / (4.0f32 * (*out).y);
         (*out).x = ((*y).x + (*x).y) * y4;
         (*out).z = ((*z).y + (*y).z) * y4;
         (*out).w = ((*z).x - (*x).z) * y4;
     } else {
-        (*out).z = (f64::sqrt((1.0f32 + (*z).z - (*x).x - (*y).y) as f64) * 0.5f32 as f64) as f32;
+        (*out).z = (f64::sqrt((1.0f32 + (*z).z - (*x).x - (*y).y) as f64) * 0.5f64) as f32;
         let mut z4: f32 = 1.0f32 / (4.0f32 * (*out).z);
         (*out).x = ((*z).x + (*x).z) * z4;
         (*out).y = ((*z).y + (*y).z) * z4;

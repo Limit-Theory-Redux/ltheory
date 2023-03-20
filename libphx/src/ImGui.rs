@@ -988,7 +988,7 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
     let mut handleHash: u64 = HashNext();
     if (*layout).size.y < virtualSize {
         let mut handleSizeY: f32 = (*layout).size.y * ((*layout).size.y / virtualSize);
-        handleSizeY = f64::clamp(handleSizeY as f64, 16.0f32 as f64, 128.0f32 as f64) as f32;
+        handleSizeY = f64::clamp(handleSizeY as f64, 16.0f64, 128.0f64) as f32;
         let mut handleOffset: f32 = ((*layout).size.y - handleSizeY) * (scroll / scrollMax);
         let mut handlePos = Vec2::new(scrollPos.x, scrollPos.y + handleOffset);
         let mut handleSize = Vec2::new((*this.style).scrollBarSize.x, handleSizeY);
@@ -1024,7 +1024,7 @@ pub unsafe extern "C" fn ImGui_EndScrollFrame() {
         Input_GetMouseScroll(&mut scroll_0);
         (*data).scroll -= 10.0f32 * scroll_0.y as f32;
     }
-    (*data).scroll = f64::clamp((*data).scroll as f64, 0.0f32 as f64, scrollMax as f64) as f32;
+    (*data).scroll = f64::clamp((*data).scroll as f64, 0.0f64, scrollMax as f64) as f32;
 }
 
 #[no_mangle]

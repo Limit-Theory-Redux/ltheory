@@ -623,8 +623,8 @@ pub unsafe extern "C" fn Input_Update() {
                 };
                 let mut value: f32 = f64::clamp(
                     (sdl.caxis.value as f32 / 32767.0f32) as f64,
-                    -1.0f32 as f64,
-                    1.0f32 as f64,
+                    -1.0f64,
+                    1.0f64,
                 ) as f32;
                 let mut axis: SDL_GameControllerAxis = std::mem::transmute(sdl.caxis.axis as i32);
                 if axis == SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTY
@@ -709,7 +709,7 @@ pub unsafe extern "C" fn Input_Update() {
                         Button_ToSDLControllerAxis(iAxis),
                     ) as f32;
                     value_1 =
-                        f64::clamp((value_1 / 32767.0f32) as f64, -1.0f32 as f64, 1.0f32 as f64)
+                        f64::clamp((value_1 / 32767.0f32) as f64, -1.0f64, 1.0f64)
                             as f32;
                     if iAxis == Button_Gamepad_LStickY || iAxis == Button_Gamepad_RStickY {
                         value_1 = -value_1;

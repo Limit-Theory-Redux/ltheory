@@ -66,7 +66,7 @@ pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
     let mut e12 = (*v.offset(1)).distance(*v.offset(2));
     let mut e20 = (*v.offset(2)).distance(*v.offset(0));
     let mut shortest: f32 = f64::min(f64::min(e01 as f64, e12 as f64), e20 as f64) as f32;
-    if (shortest as f64) < 0.75f32 as f64 * 1e-4f64 {
+    if (shortest as f64) < 0.75f64 * 1e-4f64 {
         return (0x400000 | 0x8) as Error;
     }
     0 as Error

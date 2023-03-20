@@ -290,7 +290,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
             let mut vPrev: Vec3 = vCur;
             vCur = *v.offset(l as isize);
             let mut edgeLen: f32 = vCur.distance(vPrev);
-            if (edgeLen as f64) < 0.75f32 as f64 * 1e-4f64 {
+            if (edgeLen as f64) < 0.75f64 * 1e-4f64 {
                 (*back).vertices_size = 0;
                 (*front).vertices_size = 0;
                 let mut vertex: *mut Vec3 = (*polygon).vertices_data;
@@ -417,7 +417,7 @@ pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
             j += 1;
         }
         let mut edgeLen = vCur.distance(vPrev);
-        if (edgeLen as f64) < 0.75f32 as f64 * 1e-4f64 {
+        if (edgeLen as f64) < 0.75f64 * 1e-4f64 {
             return (0x400000 | 0x8) as Error;
         }
         i += 1;

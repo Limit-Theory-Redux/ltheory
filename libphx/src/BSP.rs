@@ -160,7 +160,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
     let mut ray: Ray = *_ray;
     *tHit = 3.40282347e+38f32;
     let mut nodeRef: BSPNodeRef = (*this).rootNode;
-    let mut tEpsilon: f32 = (8.0f32 as f64 * 1e-4f64 / ray.dir.length() as f64) as f32;
+    let mut tEpsilon: f32 = (8.0f64 * 1e-4f64 / ray.dir.length() as f64) as f32;
     let mut hit: bool = false;
     let mut depth: i32 = 0;
     let mut maxDepth: i32 = 0;
@@ -209,7 +209,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         ray.tMax = max;
                     }
                 }
-            } else if f64::abs(dist as f64) < 8.0f32 as f64 * 1e-4f64 {
+            } else if f64::abs(dist as f64) < 8.0f64 * 1e-4f64 {
                 earlyIndex = nearIndex;
                 let mut d_0: DelayRay = DelayRay {
                     nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
@@ -315,9 +315,9 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
         if nodeRef.index >= 0 {
             let mut node: *mut BSPNode = ((*this).nodes_data).offset(nodeRef.index as isize);
             let mut dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p) - (*node).plane.d;
-            if dist as f64 > (*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64 {
+            if dist as f64 > (*sphere).r as f64 + 2.0f64 * 1e-4f64 {
                 nodeRef = (*node).child[FrontIndex as usize];
-            } else if (dist as f64) < -((*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64) {
+            } else if (dist as f64) < -((*sphere).r as f64 + 2.0f64 * 1e-4f64) {
                 nodeRef = (*node).child[BackIndex as usize];
             } else {
                 let mut d: Delay = Delay {
@@ -428,8 +428,8 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
         polygon = polygon.offset(1);
     }
     let mut score: f32 = Lerp(
-        f64::abs((numInFront - numBehind) as f64) as f32 as f64,
-        numStraddling as f32 as f64,
+        f64::abs((numInFront - numBehind) as f64) as f64,
+        numStraddling as f64,
         k as f64,
     ) as f32;
     score
@@ -442,8 +442,8 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 ) -> bool {
     let mut maxDepth: f32 = 1000.0f32;
     let mut biasedDepth: f32 = (*nodeData).depth as f32 - 100.0f32;
-    let mut t: f32 = f64::max((biasedDepth / maxDepth) as f64, 0.0f32 as f64) as f32;
-    let mut k: f32 = Lerp(0.85f32 as f64, 0.25f32 as f64, t as f64) as f32;
+    let mut t: f32 = f64::max((biasedDepth / maxDepth) as f64, 0.0f64) as f32;
+    let mut k: f32 = Lerp(0.85f64, 0.25f64, t as f64) as f32;
     let mut bestScore: f32 = 3.40282347e+38f32;
     let mut bestPlane: Plane = Plane {
         n: Vec3 {
@@ -1327,9 +1327,9 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
             let mut node: *mut BSPNode = ((*this).nodes_data).offset(nodeRef.index as isize);
             (*sphereProf).nodes += 1;
             let mut dist: f32 = Vec3::dot((*node).plane.n, (*sphere).p) - (*node).plane.d;
-            if dist as f64 > (*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64 {
+            if dist as f64 > (*sphere).r as f64 + 2.0f64 * 1e-4f64 {
                 nodeRef = (*node).child[FrontIndex as usize];
-            } else if (dist as f64) < -((*sphere).r as f64 + 2.0f32 as f64 * 1e-4f64) {
+            } else if (dist as f64) < -((*sphere).r as f64 + 2.0f64 * 1e-4f64) {
                 nodeRef = (*node).child[BackIndex as usize];
             } else {
                 let mut d: Delay = Delay {

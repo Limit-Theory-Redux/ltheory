@@ -666,8 +666,8 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
         (*data).offset.y -= 10.0f32 * scroll.y as f32;
     }
     let mut maxScroll: f32 =
-        f64::max(0.0f32 as f64, ((*data).minSize.y - (*data).size.y) as f64) as f32;
-    (*data).offset.y = f64::clamp((*data).offset.y as f64, 0.0f32 as f64, maxScroll as f64) as f32;
+        f64::max(0.0f64, ((*data).minSize.y - (*data).size.y) as f64) as f32;
+    (*data).offset.y = f64::clamp((*data).offset.y as f64, 0.0f64, maxScroll as f64) as f32;
     HmGui_EndGroup();
     HmGui_BeginGroupY();
     HmGui_SetStretch(0.0f32, 1.0f32);
@@ -675,7 +675,7 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
     if maxScroll > 0.0f32 {
         let mut handleSize: f32 = (*data).size.y * ((*data).size.y / (*data).minSize.y);
         let mut handlePos: f32 = Lerp(
-            0.0f32 as f64,
+            0.0f64,
             ((*data).size.y - handleSize) as f64,
             ((*data).offset.y / maxScroll) as f64,
         ) as f32;

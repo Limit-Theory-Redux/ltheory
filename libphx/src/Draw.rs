@@ -175,7 +175,7 @@ pub unsafe extern "C" fn Draw_LineWidth(width: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Plane(mut p: *const Vec3, mut n: *const Vec3, mut scale: f32) {
-    let mut e1: Vec3 = if f64::abs((*n).x as f64) < 0.7f32 as f64 {
+    let mut e1: Vec3 = if f64::abs((*n).x as f64) < 0.7f64 {
         Vec3::new(1.0f32, 0.0f32, 0.0f32)
     } else {
         Vec3::new(0.0f32, 1.0f32, 0.0f32)
