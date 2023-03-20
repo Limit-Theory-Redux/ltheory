@@ -167,7 +167,9 @@ const Button Button_Gamepad_Last         = Button_Gamepad_First + 20;
 
 const Button Button_System_First         = Button_Gamepad_Last + 1;
 const Button Button_System_Exit          = Button_System_First + 0;
-const Button Button_System_Last          = Button_System_First + 0;
+const Button Button_System_Win_Enter     = Button_System_First + 1;
+const Button Button_System_Win_Leave     = Button_System_First + 2;
+const Button Button_System_Last          = Button_System_First + 2;
 
 const Button Button_Last                 = Button_System_Last;
 
@@ -337,6 +339,8 @@ cstr Button_ToString (Button button) {
       case Button_Gamepad_RStickX:      return "Button_Gamepad_RStickX";
       case Button_Gamepad_RStickY:      return "Button_Gamepad_RStickY";
       case Button_System_Exit:          return "Button_System_Exit";
+      case Button_System_Win_Enter:     return "Button_System_Win_Enter";
+      case Button_System_Win_Leave:     return "Button_System_Win_Leave";
   }
 }
 
@@ -348,6 +352,8 @@ bool Button_IsAutoRelease (Button button) {
     case Button_Mouse_ScrollX:
     case Button_Mouse_ScrollY:
     case Button_System_Exit:
+    case Button_System_Win_Enter:
+    case Button_System_Win_Leave:
       return true;
   }
 }
