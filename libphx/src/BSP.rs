@@ -1018,7 +1018,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         leafCount: 0,
         triangleCount: 0,
     };
-    bspBuild.rng = RNG_Create(1235_i32 as u64);
+    bspBuild.rng = RNG_Create(1235_u64);
     bspBuild.rootNode = BSPBuild_CreateNode(&mut bspBuild, &mut nodeData);
     let mut nullLeaf: Triangle = Triangle {
         vertices: [Vec3 {

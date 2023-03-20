@@ -73,7 +73,7 @@ unsafe extern "C" fn Partition(
             let mut node = MemNew!(Node);
             (*node).box_0 = *boxes.offset(i_0 as isize);
             (*node).next = (*this).elems;
-            (*node).id = 0_i32 as u64;
+            (*node).id = 0_u64;
             (*this).elems = node;
             i_0 += 1;
         }

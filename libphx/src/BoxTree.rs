@@ -140,8 +140,8 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
             (*parent_0).sub[0] = this;
             (*parent_0).sub[1] = src;
         } else if cost0_0 <= costBase && cost0_0 <= cost1_0 {
-            (*parent_0).sub[0_i32 as usize] = (*this).sub[0];
-            (*parent_0).sub[1_i32 as usize] = (*this).sub[1];
+            (*parent_0).sub[0] = (*this).sub[0];
+            (*parent_0).sub[1] = (*this).sub[1];
             MemFree(this as *const libc::c_void);
             Node_Merge(
                 (*parent_0).sub[0],
@@ -149,8 +149,8 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
                 &mut *((*parent_0).sub).as_mut_ptr().offset(0),
             );
         } else {
-            (*parent_0).sub[0_i32 as usize] = (*this).sub[0];
-            (*parent_0).sub[1_i32 as usize] = (*this).sub[1];
+            (*parent_0).sub[0] = (*this).sub[0];
+            (*parent_0).sub[1] = (*this).sub[1];
             MemFree(this as *const libc::c_void);
             Node_Merge(
                 (*parent_0).sub[1],

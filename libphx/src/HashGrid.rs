@@ -66,11 +66,11 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
     }
     cellCount = (1_i32 << logCount) as u32;
     let mut this = MemNew!(HashGrid);
-    (*this).version = 0_i32 as u64;
+    (*this).version = 0_u64;
     (*this).cells = MemNewArrayZero!(HashGridCell, cellCount);
     (*this).elemPool = MemPool_Create(
         std::mem::size_of::<HashGridElem>() as u32,
-        (0x1000_u32 as usize).wrapping_div(std::mem::size_of::<HashGridElem>()) as u32,
+        (0x1000_usize).wrapping_div(std::mem::size_of::<HashGridElem>()) as u32,
     );
     (*this).cellCount = cellCount;
     (*this).cellSize = cellSize;
@@ -214,11 +214,11 @@ pub unsafe extern "C" fn HashGrid_Add(
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Clear(mut this: *mut HashGrid) {
-    (*this).version = 0_i32 as u64;
+    (*this).version = 0_u64;
     let mut i: u32 = 0_u32;
     while i < (*this).cellCount {
         (*((*this).cells).offset(i as isize)).elems_size = 0_i32;
-        (*((*this).cells).offset(i as isize)).version = 0_i32 as u64;
+        (*((*this).cells).offset(i as isize)).version = 0_u64;
         i = i.wrapping_add(1);
     }
     MemPool_Clear((*this).elemPool);

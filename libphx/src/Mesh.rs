@@ -87,9 +87,9 @@ pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
     (*this)._refCount = 1_u32;
     (*this).vbo = 0_u32;
     (*this).ibo = 0_u32;
-    (*this).version = 1_i32 as u64;
-    (*this).versionBuffers = 0_i32 as u64;
-    (*this).versionInfo = 0_i32 as u64;
+    (*this).version = 1_u64;
+    (*this).versionBuffers = 0_u64;
+    (*this).versionInfo = 0_u64;
     (*this).vertex_capacity = 0_i32;
     (*this).vertex_size = 0_i32;
     (*this).vertex_data = std::ptr::null_mut();

@@ -4,7 +4,7 @@ use crate::Math::Vec3;
 use libc;
 
 #[no_mangle]
-pub static mut nextID: u64 = 1_i32 as u64;
+pub static mut nextID: u64 = 1_u64;
 
 #[no_mangle]
 pub unsafe extern "C" fn GUID_Create() -> u64 {
@@ -20,5 +20,5 @@ pub unsafe extern "C" fn GUID_Exists(mut id: u64) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn GUID_Reset() {
-    nextID = 1_i32 as u64;
+    nextID = 1_u64;
 }

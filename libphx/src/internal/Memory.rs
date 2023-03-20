@@ -104,7 +104,7 @@ pub unsafe extern "C" fn StrDup(mut s: *const libc::c_char) -> *const libc::c_ch
 #[inline]
 pub unsafe extern "C" fn StrLen(mut s: *const libc::c_char) -> usize {
     if s.is_null() {
-        return 0_i32 as usize;
+        return 0;
     }
     let mut begin: *const libc::c_char = s;
     while *s != 0 {
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn StrReplace(
     }
     len_replace = StrLen(replace);
     ins = s as *mut libc::c_char;
-    count = 0_i32 as usize;
+    count = 0;
     loop {
         tmp = libc::strstr(ins, search);
         if tmp.is_null() {

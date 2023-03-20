@@ -58,7 +58,7 @@ unsafe extern "C" fn RNG_Next64(mut this: *mut RNG) -> u64 {
 
 #[inline]
 unsafe extern "C" fn RNG_Next32(mut this: *mut RNG) -> u32 {
-    (RNG_Next64(this) & 0xffffffff_u32 as u64) as u32
+    (RNG_Next64(this) & 0xffffffff_u64) as u32
 }
 
 #[inline]
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn RNG_FromStr(mut s: *const libc::c_char) -> *mut RNG {
     RNG_Create(Hash_XX64(
         s as *const libc::c_void,
         StrLen(s) as i32,
-        0_i32 as u64,
+        0_u64,
     ))
 }
 

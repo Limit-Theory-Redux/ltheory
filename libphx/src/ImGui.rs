@@ -737,7 +737,7 @@ unsafe extern "C" fn ImGui_Init() {
     this.style = std::ptr::null_mut();
     this.clipRect = std::ptr::null_mut();
     this.cursorStack = std::ptr::null_mut();
-    this.dragging = 0_i32 as u64;
+    this.dragging = 0_u64;
     this.data = HashMap_Create(0_u32, 128_u32);
     this.layoutPool = MemPool_CreateAuto(std::mem::size_of::<ImGuiLayout>() as u32);
     this.widgetPool = MemPool_CreateAuto(std::mem::size_of::<ImGuiWidget>() as u32);
@@ -756,11 +756,11 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     ImGui_Init();
     let mut i: i32 = 0_i32;
     while i < FocusType_SIZE {
-        this.focus[i as usize] = 0_i32 as u64;
+        this.focus[i as usize] = 0_u64;
         i += 1;
     }
     if !Input_GetDown(Button_Mouse_Left) {
-        this.dragging = 0_i32 as u64;
+        this.dragging = 0_u64;
     }
     if this.dragging != 0 {
         this.focus[FocusType_Mouse as usize] = this.dragging;

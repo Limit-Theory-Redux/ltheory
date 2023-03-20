@@ -238,7 +238,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
 pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
     let mut size: u64 = ((*this).size.x * (*this).size.y * (*this).size.z) as u64;
     let mut pCell: *mut Cell = (*this).data;
-    let mut i: u64 = 0_i32 as u64;
+    let mut i: u64 = 0_u64;
     while i < size {
         let fresh0 = pCell;
         pCell = pCell.offset(1);

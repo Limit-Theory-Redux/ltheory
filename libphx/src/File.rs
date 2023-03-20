@@ -133,7 +133,7 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const 
 pub unsafe extern "C" fn File_Size(mut path: *const libc::c_char) -> i64 {
     let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if file.is_null() {
-        return 0_i32 as i64;
+        return 0_i64;
     }
     libc::fseek(file, 0 as libc::c_long, 2_i32);
     let mut size: i64 = libc::ftell(file);

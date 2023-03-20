@@ -168,7 +168,7 @@ unsafe extern "C" fn XXH64_round(mut acc: u64, mut val: u64) -> u64 {
 }
 
 unsafe extern "C" fn XXH64_mergeRound(mut acc: u64, mut val: u64) -> u64 {
-    val = XXH64_round(0_i32 as u64, val);
+    val = XXH64_round(0_u64, val);
     acc ^= val;
     acc = acc.wrapping_mul(PRIME64_1).wrapping_add(PRIME64_4);
     acc
@@ -215,7 +215,7 @@ pub unsafe extern "C" fn Hash_XX64(
     }
     hash = hash.wrapping_add(len as u64);
     while p.offset(8) <= end {
-        let k1: u64 = XXH64_round(0_i32 as u64, *(p as *const u64));
+        let k1: u64 = XXH64_round(0_u64, *(p as *const u64));
         hash ^= k1;
         hash = (hash << 27_i32 | hash >> 64_i32 - 27_i32)
             .wrapping_mul(PRIME64_1)

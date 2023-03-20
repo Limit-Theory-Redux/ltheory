@@ -568,7 +568,7 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
         this.data = HashMap_Create(0_u32, 128_u32);
         let mut i: i32 = 0_i32;
         while i < 2_i32 {
-            this.focus[i as usize] = 0_i32 as u64;
+            this.focus[i as usize] = 0_u64;
             i += 1;
         }
         this.activate = false;
@@ -596,7 +596,7 @@ pub unsafe extern "C" fn HmGui_End() {
     HmGui_LayoutGroup(this.root);
     let mut i: i32 = 0_i32;
     while i < 2_i32 {
-        this.focus[i as usize] = 0_i32 as u64;
+        this.focus[i as usize] = 0_u64;
         i += 1;
     }
     let mut mouse: IVec2 = IVec2 { x: 0, y: 0 };

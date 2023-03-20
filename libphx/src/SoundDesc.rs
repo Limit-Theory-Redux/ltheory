@@ -1040,7 +1040,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
         4_u32,
     );
     File_WriteI32(file, 16_i32);
-    File_WriteI16(file, 1_i32 as i16);
+    File_WriteI16(file, 1_i16);
     File_WriteI16(file, channels as i16);
     File_WriteI32(file, sampleRate as i32);
     File_WriteI32(

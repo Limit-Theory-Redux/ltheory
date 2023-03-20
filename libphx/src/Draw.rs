@@ -335,7 +335,7 @@ unsafe extern "C" fn Spherical(mut r: f32, mut yaw: f32, mut pitch: f32) -> Vec3
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
-    let res: usize = 7_i32 as usize;
+    let res: usize = 7;
     let fRes: f32 = res as f32;
 
     // First Row
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     let mut lastTheta: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
     let mut phi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
     let mut tc: Vec3 = *p + Spherical(r, 0.0f32, 0.0f32);
-    let mut iTheta: usize = 0_i32 as usize;
+    let mut iTheta: usize = 0;
     while iTheta < res {
         let mut theta: f32 = iTheta as f32 / fRes * std::f32::consts::TAU;
         let mut br: Vec3 = *p + Spherical(r, lastTheta, phi);
@@ -366,10 +366,10 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     gl::Begin(gl::QUADS);
     let mut lastPhi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
     let mut lastTheta_0: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
-    let mut iPhi: usize = 2_i32 as usize;
+    let mut iPhi: usize = 2;
     while iPhi < res {
         let mut phi_0: f32 = iPhi as f32 / fRes * std::f32::consts::PI;
-        let mut iTheta_0: usize = 0_i32 as usize;
+        let mut iTheta_0: usize = 0;
         while iTheta_0 < res {
             let mut theta_0: f32 = iTheta_0 as f32 / fRes * std::f32::consts::TAU;
             let mut br_0: Vec3 = *p + Spherical(r, lastTheta_0, phi_0);
@@ -394,7 +394,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     let mut lastTheta_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
     let mut phi_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::PI;
     let mut bc: Vec3 = *p + Spherical(r, 0.0f32, std::f32::consts::PI);
-    let mut iTheta_1: usize = 0_i32 as usize;
+    let mut iTheta_1: usize = 0;
     while iTheta_1 < res {
         let mut theta_1: f32 = iTheta_1 as f32 / fRes * std::f32::consts::TAU;
         let mut tr_0: Vec3 = *p + Spherical(r, lastTheta_1, phi_1);

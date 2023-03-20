@@ -391,7 +391,7 @@ pub unsafe extern "C" fn Polygon_ConvexToTriangles(
         *triangles_size += 1;
         (*triangle).vertices[0] = *v.offset(0);
         (*triangle).vertices[1] = *v.offset(i as isize);
-        (*triangle).vertices[2_i32 as usize] = *v.offset((i + 1_i32) as isize);
+        (*triangle).vertices[2] = *v.offset((i + 1_i32) as isize);
         i += 1;
     }
 }

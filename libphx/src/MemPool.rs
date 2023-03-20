@@ -48,7 +48,7 @@ pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -
     (*this).freeList = std::ptr::null_mut();
     (*this).cellSize = cellSize;
     (*this).blockSize = blockSize;
-    (*this).blockCount = 0_i32 as u16;
+    (*this).blockCount = 0_u16;
     (*this).blocks = std::ptr::null_mut();
     this
 }
@@ -60,7 +60,7 @@ pub unsafe extern "C" fn MemPool_CreateAuto(mut elemSize: u32) -> *mut MemPool {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Free(mut this: *mut MemPool) {
-    let mut i: u16 = 0_i32 as u16;
+    let mut i: u16 = 0_u16;
     while (i as i32) < (*this).blockCount as i32 {
         MemFree(*((*this).blocks).offset(i as isize));
         i = i.wrapping_add(1);
