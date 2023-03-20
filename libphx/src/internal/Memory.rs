@@ -130,11 +130,7 @@ pub unsafe extern "C" fn StrFormat(
         printf_compat::output::fmt_write(&mut s),
     );
     let mut mem = libc::malloc(s.len() + 1) as *mut libc::c_char;
-    libc::memcpy(
-        mem as *mut _,
-        s.as_bytes().as_ptr() as *const _,
-        s.len(),
-    );
+    libc::memcpy(mem as *mut _, s.as_bytes().as_ptr() as *const _, s.len());
     *mem.add(s.len()) = 0;
     mem
 }
@@ -264,8 +260,7 @@ pub unsafe extern "C" fn StrAdd(
     mut a: *const libc::c_char,
     mut b: *const libc::c_char,
 ) -> *const libc::c_char {
-    let mut buf: *mut libc::c_char =
-        StrAlloc((StrLen(a)).wrapping_add(StrLen(b)).wrapping_add(1));
+    let mut buf: *mut libc::c_char = StrAlloc((StrLen(a)).wrapping_add(StrLen(b)).wrapping_add(1));
     let mut cur: *mut libc::c_char = buf;
     while *a != 0 {
         let fresh9 = a;

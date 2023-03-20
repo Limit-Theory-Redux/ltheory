@@ -119,11 +119,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat2(
     mut y: f32,
 ) {
     let mut value = Vec2::new(x, y);
-    ShaderVar_Push(
-        name,
-        0x2,
-        &mut value as *mut Vec2 as *const _,
-    );
+    ShaderVar_Push(name, 0x2, &mut value as *mut Vec2 as *const _);
 }
 
 #[no_mangle]
@@ -134,11 +130,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat3(
     mut z: f32,
 ) {
     let mut value: Vec3 = Vec3 { x: x, y: y, z: z };
-    ShaderVar_Push(
-        name,
-        0x3,
-        &mut value as *mut Vec3 as *const _,
-    );
+    ShaderVar_Push(name, 0x3, &mut value as *mut Vec3 as *const _);
 }
 
 #[no_mangle]
@@ -150,11 +142,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat4(
     mut w: f32,
 ) {
     let mut value: Vec4 = Vec4::new(x, y, z, w);
-    ShaderVar_Push(
-        name,
-        0x4,
-        &mut value as *mut Vec4 as *const _,
-    );
+    ShaderVar_Push(name, 0x4, &mut value as *mut Vec4 as *const _);
 }
 
 #[no_mangle]
@@ -165,47 +153,27 @@ pub unsafe extern "C" fn ShaderVar_PushInt(mut name: *const libc::c_char, mut x:
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushMatrix(mut name: *const libc::c_char, mut x: *mut Matrix) {
-    ShaderVar_Push(
-        name,
-        0x9,
-        &mut x as *mut *mut Matrix as *const _,
-    );
+    ShaderVar_Push(name, 0x9, &mut x as *mut *mut Matrix as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushTex1D(mut name: *const libc::c_char, mut x: *mut Tex1D) {
-    ShaderVar_Push(
-        name,
-        0xa,
-        &mut x as *mut *mut Tex1D as *const _,
-    );
+    ShaderVar_Push(name, 0xa, &mut x as *mut *mut Tex1D as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushTex2D(mut name: *const libc::c_char, mut x: *mut Tex2D) {
-    ShaderVar_Push(
-        name,
-        0xb,
-        &mut x as *mut *mut Tex2D as *const _,
-    );
+    ShaderVar_Push(name, 0xb, &mut x as *mut *mut Tex2D as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushTex3D(mut name: *const libc::c_char, mut x: *mut Tex3D) {
-    ShaderVar_Push(
-        name,
-        0xc,
-        &mut x as *mut *mut Tex3D as *const _,
-    );
+    ShaderVar_Push(name, 0xc, &mut x as *mut *mut Tex3D as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushTexCube(mut name: *const libc::c_char, mut x: *mut TexCube) {
-    ShaderVar_Push(
-        name,
-        0xd,
-        &mut x as *mut *mut TexCube as *const _,
-    );
+    ShaderVar_Push(name, 0xd, &mut x as *mut *mut TexCube as *const _);
 }
 
 #[no_mangle]

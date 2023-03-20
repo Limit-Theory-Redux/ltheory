@@ -14,8 +14,8 @@ use crate::ResourceType::*;
 use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::TexFormat::*;
-use libc;
 use freetype_sys::*;
+use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -52,10 +52,8 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     if codepoint < 256 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
         return (*this).glyphsAscii[codepoint as usize];
     }
-    let mut g: *mut Glyph = HashMap_Get(
-        (*this).glyphs,
-        &mut codepoint as *mut u32 as *const _,
-    ) as *mut Glyph;
+    let mut g: *mut Glyph =
+        HashMap_Get((*this).glyphs, &mut codepoint as *mut u32 as *const _) as *mut Glyph;
     if !g.is_null() {
         return g;
     }

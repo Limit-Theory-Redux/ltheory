@@ -600,20 +600,16 @@ pub unsafe extern "C" fn Mesh_Invert(mut this: *mut Mesh) -> *mut Mesh {
         let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
         libc::memcpy(
             swap_temp.as_mut_ptr() as *mut _,
-            &mut *((*this).index_data).offset((i + 2) as isize) as *mut i32
-                as *const _,
+            &mut *((*this).index_data).offset((i + 2) as isize) as *mut i32 as *const _,
             std::mem::size_of::<i32>(),
         );
         libc::memcpy(
-            &mut *((*this).index_data).offset((i + 2) as isize) as *mut i32
-                as *mut _,
-            &mut *((*this).index_data).offset((i + 1) as isize) as *mut i32
-                as *const _,
+            &mut *((*this).index_data).offset((i + 2) as isize) as *mut i32 as *mut _,
+            &mut *((*this).index_data).offset((i + 1) as isize) as *mut i32 as *const _,
             std::mem::size_of::<i32>(),
         );
         libc::memcpy(
-            &mut *((*this).index_data).offset((i + 1) as isize) as *mut i32
-                as *mut _,
+            &mut *((*this).index_data).offset((i + 1) as isize) as *mut i32 as *mut _,
             swap_temp.as_mut_ptr() as *const _,
             std::mem::size_of::<i32>(),
         );
@@ -728,12 +724,12 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(mut this: *mut Mesh) {
     }
     let mut i: i32 = 0;
     while i < (*this).index_size {
-        let mut v1: *mut Vertex = ((*this).vertex_data)
-            .offset(*((*this).index_data).offset((i + 0) as isize) as isize);
-        let mut v2: *mut Vertex = ((*this).vertex_data)
-            .offset(*((*this).index_data).offset((i + 1) as isize) as isize);
-        let mut v3: *mut Vertex = ((*this).vertex_data)
-            .offset(*((*this).index_data).offset((i + 2) as isize) as isize);
+        let mut v1: *mut Vertex =
+            ((*this).vertex_data).offset(*((*this).index_data).offset((i + 0) as isize) as isize);
+        let mut v2: *mut Vertex =
+            ((*this).vertex_data).offset(*((*this).index_data).offset((i + 1) as isize) as isize);
+        let mut v3: *mut Vertex =
+            ((*this).vertex_data).offset(*((*this).index_data).offset((i + 2) as isize) as isize);
         let mut e1: Vec3 = (*v2).p - (*v1).p;
         let mut e2: Vec3 = (*v3).p - (*v2).p;
         let mut en: Vec3 = Vec3::cross(e1, e2);

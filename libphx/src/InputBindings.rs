@@ -158,18 +158,13 @@ unsafe extern "C" fn InputBindings_RaiseCallback(
 pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBinding) {
     let mut value = Vec2::ZERO;
     let mut axisValues: [*mut f32; 2] = [&mut value.x, &mut value.y];
-    let mut iAxis: i32 = 0;
-    while iAxis
-        < (std::mem::size_of::<[AggregateAxis; 2]>())
-            .wrapping_div(std::mem::size_of::<AggregateAxis>()) as i32
-    {
+    let mut iAxis = 0;
+    while iAxis < (*binding).axes.len() {
         let mut axisValue: *mut f32 = axisValues[iAxis as usize];
         let mut iBind: i32 = 0;
         while iBind < BindCount {
-            *axisValue +=
-                (*binding).rawButtons[(2 * iAxis + 0) as usize][iBind as usize].value;
-            *axisValue -=
-                (*binding).rawButtons[(2 * iAxis + 1) as usize][iBind as usize].value;
+            *axisValue += (*binding).rawButtons[(2 * iAxis + 0) as usize][iBind as usize].value;
+            *axisValue -= (*binding).rawButtons[(2 * iAxis + 1) as usize][iBind as usize].value;
             iBind += 1;
         }
         *axisValue = (*axisValue - (*binding).deadzone) / (1.0f32 - (*binding).deadzone);
@@ -194,11 +189,8 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
             (*axis2D).onChanged,
         );
     }
-    let mut iAxis_0: i32 = 0;
-    while iAxis_0
-        < (std::mem::size_of::<[AggregateAxis; 2]>())
-            .wrapping_div(std::mem::size_of::<AggregateAxis>()) as i32
-    {
+    let mut iAxis_0 = 0;
+    while iAxis_0 < (*binding).axes.len() {
         let mut axis: *mut AggregateAxis =
             &mut *((*binding).axes).as_mut_ptr().offset(iAxis_0 as isize) as *mut AggregateAxis;
         if *axisValues[iAxis_0 as usize] != (*axis).value {
@@ -215,11 +207,8 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
         }
         iAxis_0 += 1;
     }
-    let mut iBtn: i32 = 0;
-    while iBtn
-        < (std::mem::size_of::<[AggregateButton; 4]>())
-            .wrapping_div(std::mem::size_of::<AggregateButton>()) as i32
-    {
+    let mut iBtn = 0;
+    while iBtn < (*binding).buttons.len() {
         let mut button: *mut AggregateButton =
             &mut *((*binding).buttons).as_mut_ptr().offset(iBtn as isize) as *mut AggregateButton;
         let mut axisValue_0: f32 = (*binding).axes[(iBtn / 2) as usize].value;
@@ -300,6 +289,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Update() {
+    // Down
     let mut i: i32 = 0;
     while i < this.downBindings_size {
         let mut down: DownBinding = *(this.downBindings_data).offset(i as isize);
@@ -318,21 +308,16 @@ pub unsafe extern "C" fn InputBindings_Update() {
         state: 0,
     };
     while Input_GetNextEvent(&mut event) {
+        // Match
         let mut binding: *mut InputBinding = (this.activeBindings_data)
             .offset(this.activeBindings_size as isize)
             .offset(-(1));
         let mut __iterbegin: *mut InputBinding = this.activeBindings_data;
         while binding >= __iterbegin {
-            let mut iBtn: i32 = 0;
-            while iBtn
-                < (std::mem::size_of::<[[RawButton; 4]; 4]>())
-                    .wrapping_div(std::mem::size_of::<[RawButton; 4]>()) as i32
-            {
-                let mut iBind: i32 = 0;
-                while iBind
-                    < (std::mem::size_of::<[RawButton; 4]>())
-                        .wrapping_div(std::mem::size_of::<RawButton>()) as i32
-                {
+            let mut iBtn = 0;
+            while iBtn < (*binding).rawButtons.len() {
+                let mut iBind = 0;
+                while iBind < (*binding).rawButtons[iBtn].len() {
                     let mut button: *mut RawButton =
                         &mut *(*((*binding).rawButtons).as_mut_ptr().offset(iBtn as isize))
                             .as_mut_ptr()

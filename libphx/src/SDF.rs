@@ -133,46 +133,14 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                         .offset(stride.x as isize),
                 ];
                 let mut mask: i32 = 0;
-                mask |= if (*v[0]).value > 0.0f32 {
-                    0x1
-                } else {
-                    0
-                };
-                mask |= if (*v[1]).value > 0.0f32 {
-                    0x2
-                } else {
-                    0
-                };
-                mask |= if (*v[2]).value > 0.0f32 {
-                    0x4
-                } else {
-                    0
-                };
-                mask |= if (*v[3]).value > 0.0f32 {
-                    0x8
-                } else {
-                    0
-                };
-                mask |= if (*v[4]).value > 0.0f32 {
-                    0x10
-                } else {
-                    0
-                };
-                mask |= if (*v[5]).value > 0.0f32 {
-                    0x20
-                } else {
-                    0
-                };
-                mask |= if (*v[6]).value > 0.0f32 {
-                    0x40
-                } else {
-                    0
-                };
-                mask |= if (*v[7]).value > 0.0f32 {
-                    0x80
-                } else {
-                    0
-                };
+                mask |= if (*v[0]).value > 0.0f32 { 0x1 } else { 0 };
+                mask |= if (*v[1]).value > 0.0f32 { 0x2 } else { 0 };
+                mask |= if (*v[2]).value > 0.0f32 { 0x4 } else { 0 };
+                mask |= if (*v[3]).value > 0.0f32 { 0x8 } else { 0 };
+                mask |= if (*v[4]).value > 0.0f32 { 0x10 } else { 0 };
+                mask |= if (*v[5]).value > 0.0f32 { 0x20 } else { 0 };
+                mask |= if (*v[6]).value > 0.0f32 { 0x40 } else { 0 };
+                mask |= if (*v[7]).value > 0.0f32 { 0x80 } else { 0 };
                 if mask == 0 || mask == 0xff {
                     *indices.offset(cellIndex as isize) = -1;
                 } else {

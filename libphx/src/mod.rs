@@ -10,6 +10,7 @@
 #![feature(extern_types)]
 #![feature(thread_local)]
 
+extern crate freetype_sys;
 extern crate glam;
 extern crate libc;
 extern crate memoffset;
@@ -18,7 +19,6 @@ extern crate printf_compat;
 extern crate rodio;
 extern crate sdl2_sys;
 extern crate stb;
-extern crate freetype_sys;
 
 pub mod internal {
     pub mod Memory;

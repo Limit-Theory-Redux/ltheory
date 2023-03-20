@@ -144,12 +144,9 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
     let mut boxes: *mut Box3 = MemNewArray!(Box3, boxCount);
     let mut i: i32 = 0;
     while i < indexCount {
-        let mut v0: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
-        let mut v1: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let mut v2: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
+        let mut v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let mut v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
+        let mut v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         *boxes.offset((i / 3) as isize) = Box3::new(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),

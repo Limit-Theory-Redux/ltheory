@@ -74,8 +74,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
     mut back: *mut Polygon,
     mut front: *mut Polygon,
 ) {
-    let mut a: Vec3 =
-        *((*polygon).vertices_data).offset(((*polygon).vertices_size - 1) as isize);
+    let mut a: Vec3 = *((*polygon).vertices_data).offset(((*polygon).vertices_size - 1) as isize);
     let mut aSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut a);
     let mut j: i32 = 0;
     while j < (*polygon).vertices_size {

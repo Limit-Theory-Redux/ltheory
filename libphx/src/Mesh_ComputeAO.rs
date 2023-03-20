@@ -38,12 +38,9 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     );
     let mut i: i32 = 0;
     while i < indexCount {
-        let mut v1: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
-        let mut v2: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let mut v3: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
+        let mut v1: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let mut v2: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
+        let mut v3: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         let mut normal: Vec3 = Vec3::cross((*v3).p - (*v1).p, (*v2).p - (*v1).p);
         let mut length: f32 = normal.length();
         let mut area: f32 = 0.5f32 * length / std::f32::consts::PI;
@@ -54,8 +51,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
         }
         let mut center: Vec3 = ((*v1).p + (*v2).p + (*v3).p) / 3.0f32;
         *pointBuffer.offset((i / 3) as isize) = Vec4::new(center.x, center.y, center.z, area);
-        *normalBuffer.offset((i / 3) as isize) =
-            Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
+        *normalBuffer.offset((i / 3) as isize) = Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
         i += 3;
     }
     let mut texSPoints: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);

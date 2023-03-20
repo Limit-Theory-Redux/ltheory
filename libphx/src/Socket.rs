@@ -83,15 +83,7 @@ pub unsafe extern "C" fn Socket_Create(mut type_0: SocketType) -> *mut Socket {
     }
     let mut this = MemNew!(Socket);
     (*this).type_0 = type_0;
-    (*this).sock = libc::socket(
-        2,
-        if type_0 == SocketType_UDP {
-            2
-        } else {
-            1
-        },
-        0,
-    );
+    (*this).sock = libc::socket(2, if type_0 == SocketType_UDP { 2 } else { 1 }, 0);
     if (*this).sock == -1 {
         Fatal(b"Socket_Create: failed to open socket\0" as *const u8 as *const libc::c_char);
     }
@@ -164,16 +156,12 @@ pub unsafe extern "C" fn Socket_Bind(mut this: *mut Socket, mut port: i32) {
     );
     addr.sin_family = 2 as libc::sa_family_t;
     addr.sin_port = (if 0 != 0 {
-        ((port as u16 as u32 & 0xff00) >> 8 | (port as u16 as u32 & 0xff) << 8)
-            as u16 as i32
+        ((port as u16 as u32 & 0xff00) >> 8 | (port as u16 as u32 & 0xff) << 8) as u16 as i32
     } else {
         _OSSwapInt16(port as u16) as i32
     }) as u16;
     addr.sin_addr.s_addr = if 0 != 0 {
-        (0 & 0xff000000) >> 24
-            | (0 & 0xff0000) >> 8
-            | (0 & 0xff00) << 8
-            | (0 & 0xff) << 24
+        (0 & 0xff000000) >> 24 | (0 & 0xff0000) >> 8 | (0 & 0xff00) << 8 | (0 & 0xff) << 24
     } else {
         _OSSwapInt32(0)
     };

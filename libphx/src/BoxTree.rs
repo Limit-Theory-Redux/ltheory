@@ -65,12 +65,9 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
     let mut i: i32 = 0;
     while i < indexCount {
-        let mut v0: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
-        let mut v1: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let mut v2: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
+        let mut v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let mut v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
+        let mut v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         let mut box_0: Box3 = Box3::new(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),

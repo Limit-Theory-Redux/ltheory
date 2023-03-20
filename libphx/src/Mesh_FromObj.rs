@@ -30,11 +30,7 @@ unsafe extern "C" fn Obj_Fatal(mut message: *const libc::c_char, mut s: *mut Par
         len += 1;
     }
     let mut line: *mut libc::c_char = MemAlloc((len + 1) as usize) as *mut libc::c_char;
-    MemCpy(
-        line as *mut _,
-        (*s).lineStart as *const _,
-        len as usize,
-    );
+    MemCpy(line as *mut _, (*s).lineStart as *const _, len as usize);
     *line.offset(len as isize) = 0 as libc::c_char;
     Fatal(
         b"%s Line %i\n%s\0" as *const u8 as *const libc::c_char,
@@ -424,11 +420,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                     },
                     uv: Vec2::ZERO,
                 };
-                (*face_0).iP += if (*face_0).iP < 0 {
-                    positions_size
-                } else {
-                    -1
-                };
+                (*face_0).iP += if (*face_0).iP < 0 { positions_size } else { -1 };
                 if (*face_0).iP < 0 || (*face_0).iP >= positions_size {
                     Obj_Fatal(
                         b"Face vertex index is out of range in .obj data\0" as *const u8
@@ -438,11 +430,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 }
                 vertex.p = *positions_data.offset((*face_0).iP as isize);
                 if (*face_0).iN != -2147483647 - 1 {
-                    (*face_0).iN += if (*face_0).iN < 0 {
-                        normals_size
-                    } else {
-                        -1
-                    };
+                    (*face_0).iN += if (*face_0).iN < 0 { normals_size } else { -1 };
                     if (*face_0).iN < 0 || (*face_0).iN >= normals_size {
                         Obj_Fatal(
                             b"Face normal index is out of range in .obj data\0" as *const u8
@@ -453,11 +441,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                     vertex.n = *normals_data.offset((*face_0).iN as isize);
                 }
                 if (*face_0).iUV != -2147483647 - 1 {
-                    (*face_0).iUV += if (*face_0).iUV < 0 {
-                        uvs_size
-                    } else {
-                        -1
-                    };
+                    (*face_0).iUV += if (*face_0).iUV < 0 { uvs_size } else { -1 };
                     if (*face_0).iUV < 0 || (*face_0).iUV >= uvs_size {
                         Obj_Fatal(
                             b"Face UV index is out of range in .obj data\0" as *const u8
@@ -502,12 +486,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
             if vertexIndicesCount == 3 {
                 faceCount += 1;
                 indexCount += vertexIndicesCount;
-                Mesh_AddTri(
-                    mesh,
-                    vertexCount - 3,
-                    vertexCount - 2,
-                    vertexCount - 1,
-                );
+                Mesh_AddTri(mesh, vertexCount - 3, vertexCount - 2, vertexCount - 1);
             } else if vertexIndicesCount == 4 {
                 faceCount += 2;
                 indexCount += vertexIndicesCount;

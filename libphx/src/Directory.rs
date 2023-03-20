@@ -73,8 +73,7 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
     {
         return std::ptr::null();
     }
-    buffer[(std::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1)] =
-        0 as libc::c_char;
+    buffer[(std::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1)] = 0 as libc::c_char;
     buffer.as_mut_ptr() as *const libc::c_char
 }
 

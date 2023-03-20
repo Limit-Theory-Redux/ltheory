@@ -827,7 +827,7 @@ pub unsafe extern "C" fn Matrix_ToString(mut this: *const Matrix) -> *const libc
         buffer.as_mut_ptr(),
         (std::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(std::mem::size_of::<libc::c_char>())
-            as i32 as usize,
+           ,
         b"[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\0"
             as *const u8 as *const libc::c_char,
         *m.offset(0) as f64,

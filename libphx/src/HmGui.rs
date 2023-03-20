@@ -665,8 +665,7 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
         Input_GetMouseScroll(&mut scroll);
         (*data).offset.y -= 10.0f32 * scroll.y as f32;
     }
-    let mut maxScroll: f32 =
-        f64::max(0.0f64, ((*data).minSize.y - (*data).size.y) as f64) as f32;
+    let mut maxScroll: f32 = f64::max(0.0f64, ((*data).minSize.y - (*data).size.y) as f64) as f32;
     (*data).offset.y = f64::clamp((*data).offset.y as f64, 0.0f64, maxScroll as f64) as f32;
     HmGui_EndGroup();
     HmGui_BeginGroupY();

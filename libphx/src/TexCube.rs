@@ -496,9 +496,9 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
 ) {
     let mut size: i32 = (*this).size >> level;
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
-    let mut buffer: *mut libc::c_uchar = MemAlloc(
-        (std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4 * size * size) as usize),
-    ) as *mut libc::c_uchar;
+    let mut buffer: *mut libc::c_uchar =
+        MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4 * size * size) as usize))
+            as *mut libc::c_uchar;
     for i in 0..6 {
         let mut face: CubeFace = kFaces[i as usize].face;
         let mut facePath: *const libc::c_char = StrAdd3(

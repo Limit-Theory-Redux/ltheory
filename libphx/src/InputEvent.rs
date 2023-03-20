@@ -26,7 +26,7 @@ pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> *const 
         buffer.as_mut_ptr(),
         (std::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(std::mem::size_of::<libc::c_char>())
-            as i32 as usize,
+           ,
         b"Event %p\n\tTimestamp: %i\n\tDevice:    %s\n\tButton:    %s\n\tValue:     %.2f\n\tState:     %s\0"
             as *const u8 as *const libc::c_char,
         ie,

@@ -139,8 +139,7 @@ pub unsafe extern "C" fn Bytes_Read(
 ) {
     MemCpy(
         data,
-        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize)
-            as *const _,
+        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *const _,
         len as usize,
     );
     (*this).cursor = (*this).cursor.wrapping_add(len);
@@ -153,8 +152,7 @@ pub unsafe extern "C" fn Bytes_Write(
     mut len: u32,
 ) {
     MemCpy(
-        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize)
-            as *mut _,
+        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut _,
         data,
         len as usize,
     );
@@ -165,8 +163,7 @@ pub unsafe extern "C" fn Bytes_Write(
 pub unsafe extern "C" fn Bytes_WriteStr(mut this: *mut Bytes, mut data: *const libc::c_char) {
     let mut len: usize = StrLen(data);
     MemCpy(
-        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize)
-            as *mut _,
+        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut _,
         data as *const _,
         len,
     );

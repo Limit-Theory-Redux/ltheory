@@ -29,8 +29,7 @@ pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> *co
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),
-        (std::mem::size_of::<[libc::c_char; 512]>())
-            .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32 as usize,
+        buffer.len(),
         b"p0:%s p1:%s\0" as *const u8 as *const libc::c_char,
         (*this).p0.to_string().as_mut_ptr(),
         (*this).p1.to_string().as_mut_ptr(),

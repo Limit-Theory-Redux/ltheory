@@ -99,13 +99,11 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
             let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
             MemCpy(
                 swap_temp.as_mut_ptr() as *mut _,
-                &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32
-                    as *const _,
+                &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32 as *const _,
                 std::mem::size_of::<u32>(),
             );
             MemCpy(
-                &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32
-                    as *mut _,
+                &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32 as *mut _,
                 &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *const _,
                 std::mem::size_of::<u32>(),
             );

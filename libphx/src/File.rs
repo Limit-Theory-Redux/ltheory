@@ -157,12 +157,7 @@ pub unsafe extern "C" fn File_Write(
 
 #[no_mangle]
 pub unsafe extern "C" fn File_WriteStr(mut this: *mut File, mut data: *const libc::c_char) {
-    libc::fwrite(
-        data as *const _,
-        StrLen(data),
-        1,
-        (*this).handle,
-    );
+    libc::fwrite(data as *const _, StrLen(data), 1, (*this).handle);
 }
 
 #[no_mangle]

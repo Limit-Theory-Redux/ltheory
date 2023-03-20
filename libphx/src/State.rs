@@ -36,15 +36,12 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
     let mut start: *mut libc::c_char = buffer.as_mut_ptr();
     let mut sep: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char;
     let mut len: i32 = 0;
-    let mut i: i32 = 0;
-    while i < (std::mem::size_of::<[State; 4]>()).wrapping_div(std::mem::size_of::<State>()) as i32
-    {
+    let mut i = 0;
+    while i < states.len() {
         if state & states[i as usize] == states[i as usize] {
             len += libc::snprintf(
                 start.offset(len as isize),
-                ((std::mem::size_of::<[libc::c_char; 512]>())
-                    .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32
-                    - len) as usize,
+                (buffer.len() as i32 - len) as usize,
                 b"%s%s\0" as *const u8 as *const libc::c_char,
                 sep,
                 names[i as usize],
@@ -57,9 +54,7 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
     if state != 0 {
         len += libc::snprintf(
             start.offset(len as isize),
-            ((std::mem::size_of::<[libc::c_char; 512]>())
-                .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32
-                - len) as usize,
+            (buffer.len() as i32 - len) as usize,
             b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
             sep,
             state,

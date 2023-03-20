@@ -60,10 +60,7 @@ static mut Threshold_Pressed: f32 = 0.5f32;
 static mut Threshold_Released: f32 = 0.4f32;
 
 static mut this: Input = Input {
-    activeDevice: Device {
-        type_0: 0,
-        id: 0,
-    },
+    activeDevice: Device { type_0: 0, id: 0 },
     lastTimestamp: 0,
     lastEventTimestamp: 0,
     lastMousePosition: IVec2 { x: 0, y: 0 },
@@ -708,9 +705,7 @@ pub unsafe extern "C" fn Input_Update() {
                         sdlController_1,
                         Button_ToSDLControllerAxis(iAxis),
                     ) as f32;
-                    value_1 =
-                        f64::clamp((value_1 / 32767.0f32) as f64, -1.0f64, 1.0f64)
-                            as f32;
+                    value_1 = f64::clamp((value_1 / 32767.0f32) as f64, -1.0f64, 1.0f64) as f32;
                     if iAxis == Button_Gamepad_LStickY || iAxis == Button_Gamepad_RStickY {
                         value_1 = -value_1;
                     }
@@ -1098,10 +1093,8 @@ pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool 
     );
     *event = *(this.events_data).offset(0);
     if 0 != this.events_size - 1 {
-        let mut curr: *mut libc::c_void =
-            (this.events_data).offset(0).offset(0) as *mut _;
-        let mut next: *mut libc::c_void =
-            (this.events_data).offset(0).offset(1) as *mut _;
+        let mut curr: *mut libc::c_void = (this.events_data).offset(0).offset(0) as *mut _;
+        let mut next: *mut libc::c_void = (this.events_data).offset(0).offset(1) as *mut _;
         let mut elemSize: usize = std::mem::size_of::<InputEvent>();
         MemMove(
             curr,

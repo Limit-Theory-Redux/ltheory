@@ -97,13 +97,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
         );
         i += 1;
     }
-    gl::FramebufferTexture2D(
-        gl::FRAMEBUFFER,
-        gl::DEPTH_ATTACHMENT,
-        gl::TEXTURE_2D,
-        0,
-        0,
-    );
+    gl::FramebufferTexture2D(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::TEXTURE_2D, 0, 0);
     gl::DeleteFramebuffers(
         1,
         &mut (*fboStack.as_mut_ptr().offset(fboIndex as isize)).handle,

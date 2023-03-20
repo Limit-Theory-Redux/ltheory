@@ -107,11 +107,7 @@ unsafe extern "C" fn CreateGLProgram(mut vs: u32, mut fs: u32) -> u32 {
         1,
         b"vertex_normal\0" as *const u8 as *const libc::c_char,
     );
-    gl::BindAttribLocation(
-        this,
-        2,
-        b"vertex_uv\0" as *const u8 as *const libc::c_char,
-    );
+    gl::BindAttribLocation(this, 2, b"vertex_uv\0" as *const u8 as *const libc::c_char);
 
     gl::LinkProgram(this);
 

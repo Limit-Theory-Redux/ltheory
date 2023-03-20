@@ -824,11 +824,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         mode |= 0x100;
         mode |= 0x2000000;
         mode |= 0x4000;
-        mode |= (if isLooped as i32 != 0 {
-            0x2
-        } else {
-            0x1
-        }) as u32;
+        mode |= (if isLooped as i32 != 0 { 0x2 } else { 0x1 }) as u32;
         mode |= (if is3D as i32 != 0 {
             0x10 | 0x80000
         } else {

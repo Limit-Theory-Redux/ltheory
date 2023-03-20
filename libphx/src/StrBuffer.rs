@@ -64,11 +64,7 @@ pub unsafe extern "C" fn StrBuffer_FromStr(mut s: *const libc::c_char) -> *mut S
     let mut len: u32 = StrLen(s) as u32;
     let mut this: *mut StrBuffer = StrBuffer_Create(len);
     (*this).size = len;
-    MemCpy(
-        (*this).data as *mut _,
-        s as *const _,
-        len as usize,
-    );
+    MemCpy((*this).data as *mut _, s as *const _, len as usize);
     this
 }
 

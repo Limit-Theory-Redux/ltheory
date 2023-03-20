@@ -183,8 +183,7 @@ pub unsafe extern "C" fn Quat_Lerp(
     let mut y: f32 = (*q).y + (dp.y - (*q).y) * t;
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
-    let mut rcpMag: f32 =
-        (1.0f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+    let mut rcpMag: f32 = (1.0f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*out).x = x * rcpMag;
     (*out).y = y * rcpMag;
     (*out).z = z * rcpMag;
@@ -207,8 +206,7 @@ pub unsafe extern "C" fn Quat_ILerp(mut q: *mut Quat, mut p: *const Quat, mut t:
     let mut y: f32 = (*q).y + (dp.y - (*q).y) * t;
     let mut z: f32 = (*q).z + (dp.z - (*q).z) * t;
     let mut w: f32 = (*q).w + (dp.w - (*q).w) * t;
-    let mut rcpMag: f32 =
-        (1.0f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
+    let mut rcpMag: f32 = (1.0f64 / f64::sqrt((x * x + y * y + z * z + w * w) as f64)) as f32;
     (*q).x = x * rcpMag;
     (*q).y = y * rcpMag;
     (*q).z = z * rcpMag;
@@ -359,8 +357,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> *const libc::c_cha
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),
-        (std::mem::size_of::<[libc::c_char; 512]>())
-            .wrapping_div(std::mem::size_of::<libc::c_char>()) as i32 as usize,
+        buffer.len(),
         b"(%.4f, %.4f, %.4f, %.4f)\0" as *const u8 as *const libc::c_char,
         (*q).x as f64,
         (*q).y as f64,
