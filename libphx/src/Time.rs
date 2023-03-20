@@ -31,11 +31,11 @@ unsafe extern "C" fn Time_Convert(t: *const libc::tm) -> Time {
     result.second = (*t).tm_sec;
     result.minute = (*t).tm_min;
     result.hour = (*t).tm_hour;
-    result.dayOfWeek = (*t).tm_wday + 1_i32;
+    result.dayOfWeek = (*t).tm_wday + 1;
     result.dayOfMonth = (*t).tm_mday;
-    result.dayOfYear = (*t).tm_yday + 1_i32;
-    result.month = (*t).tm_mon + 1_i32;
-    result.year = (*t).tm_year + 1900_i32;
+    result.dayOfYear = (*t).tm_yday + 1;
+    result.month = (*t).tm_mon + 1;
+    result.year = (*t).tm_year + 1900;
     result
 }
 
@@ -53,5 +53,5 @@ pub unsafe extern "C" fn Time_GetUTC() -> Time {
 
 #[no_mangle]
 pub unsafe extern "C" fn Time_GetRaw() -> u32 {
-    (libc::time(std::ptr::null_mut()) % 0xffffffff_u32 as libc::c_long) as u32
+    (libc::time(std::ptr::null_mut()) % 0xffffffff as libc::c_long) as u32
 }

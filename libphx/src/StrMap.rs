@@ -30,7 +30,7 @@ pub struct StrMapIter {
 
 #[inline]
 unsafe extern "C" fn Hash(mut key: *const libc::c_char) -> u64 {
-    Hash_XX64(key as *const libc::c_void, StrLen(key) as i32, 0_u64)
+    Hash_XX64(key as *const libc::c_void, StrLen(key) as i32, 0)
 }
 
 #[inline]
@@ -43,12 +43,12 @@ unsafe extern "C" fn StrMap_GetBucket(
 
 unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
     let mut newMap: StrMap = StrMap {
-        capacity: ((*this).capacity).wrapping_mul(2_u32),
-        size: 0_u32,
+        capacity: ((*this).capacity).wrapping_mul(2),
+        size: 0,
         data: std::ptr::null_mut(),
     };
     newMap.data = MemNewArrayZero!(Node, newMap.capacity);
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -79,7 +79,7 @@ pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Free(mut this: *mut StrMap) {
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -103,7 +103,7 @@ pub unsafe extern "C" fn StrMap_FreeEx(
     mut this: *mut StrMap,
     mut freeFn: Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> ()>,
 ) {
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -229,7 +229,7 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
         ((*this).size as f32 / (*this).capacity as f32) as f64,
     );
     libc::puts(b"\0" as *const u8 as *const libc::c_char);
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
@@ -252,9 +252,9 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
 pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIter {
     let mut it = MemNew!(StrMapIter);
     (*it).map = this;
-    (*it).slot = 0_u32;
+    (*it).slot = 0;
     (*it).node = std::ptr::null_mut();
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if ((*node).key).is_null() {

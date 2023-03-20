@@ -54,7 +54,7 @@ pub unsafe extern "C" fn Window_BeginDraw(w: Option<&Window>) {
     let mut size: IVec2 = IVec2::new(0, 0);
     SDL_GL_MakeCurrent(w.handle, w.context);
     Window_GetSize(Some(w), &mut size);
-    Viewport_Push(0_i32, 0_i32, size.x, size.y, true);
+    Viewport_Push(0, 0, size.x, size.y, true);
 }
 
 #[no_mangle]
@@ -85,7 +85,7 @@ pub unsafe extern "C" fn Window_GetTitle(w: Option<&Window>) -> *const libc::c_c
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetFullscreen(w: Option<&Window>, mut fs: bool) {
     let w = unwrap_or_return!(w);
-    SDL_SetWindowFullscreen(w.handle, if fs { WindowMode_Fullscreen } else { 0_u32 });
+    SDL_SetWindowFullscreen(w.handle, if fs { WindowMode_Fullscreen } else { 0 });
 }
 
 #[no_mangle]

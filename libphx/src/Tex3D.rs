@@ -49,20 +49,20 @@ pub unsafe extern "C" fn Tex3D_Create(
         );
     }
     let mut this = MemNew!(Tex3D);
-    (*this)._refCount = 1_u32;
+    (*this)._refCount = 1;
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).format = format;
-    gl::GenTextures(1_i32, &mut (*this).handle);
+    gl::GenTextures(1, &mut (*this).handle);
     gl::ActiveTexture(gl::TEXTURE0);
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::TexImage3D(
         gl::TEXTURE_3D,
-        0_i32,
+        0,
         (*this).format,
         (*this).size.x,
         (*this).size.y,
         (*this).size.z,
-        0_i32,
+        0,
         gl::RED,
         gl::UNSIGNED_BYTE,
         std::ptr::null(),
@@ -81,9 +81,9 @@ pub unsafe extern "C" fn Tex3D_Acquire(mut this: *mut Tex3D) {
 pub unsafe extern "C" fn Tex3D_Free(mut this: *mut Tex3D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0_u32
+        (*this)._refCount <= 0
     } {
-        gl::DeleteTextures(1_i32, &mut (*this).handle);
+        gl::DeleteTextures(1, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
 }
@@ -112,7 +112,7 @@ pub unsafe extern "C" fn Tex3D_Draw(
     mut xs: f32,
     mut ys: f32,
 ) {
-    let mut r: f32 = (layer + 1_i32) as f32 / ((*this).size.z + 1_i32) as f32;
+    let mut r: f32 = (layer + 1) as f32 / ((*this).size.z + 1) as f32;
     gl::Enable(gl::TEXTURE_3D);
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::Begin(gl::QUADS);
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn Tex3D_GetData(
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::GetTexImage(
         gl::TEXTURE_3D,
-        0_i32,
+        0,
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
         data,
@@ -190,11 +190,11 @@ pub unsafe extern "C" fn Tex3D_GetSizeLevel(
     mut level: i32,
 ) {
     *out = (*this).size;
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < level {
-        (*out).x /= 2_i32;
-        (*out).y /= 2_i32;
-        (*out).z /= 2_i32;
+        (*out).x /= 2;
+        (*out).y /= 2;
+        (*out).z /= 2;
         i += 1;
     }
 }
@@ -209,12 +209,12 @@ pub unsafe extern "C" fn Tex3D_SetData(
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::TexImage3D(
         gl::TEXTURE_3D,
-        0_i32,
+        0,
         (*this).format,
         (*this).size.x,
         (*this).size.y,
         (*this).size.z,
-        0_i32,
+        0,
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
         data,

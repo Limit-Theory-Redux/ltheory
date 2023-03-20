@@ -5,34 +5,34 @@ use libc;
 pub type ResourceType = i32;
 
 #[no_mangle]
-pub static ResourceType_Font: ResourceType = 0_i32;
+pub static ResourceType_Font: ResourceType = 0;
 
 #[no_mangle]
-pub static ResourceType_Mesh: ResourceType = 0x1_i32;
+pub static ResourceType_Mesh: ResourceType = 0x1;
 
 #[no_mangle]
-pub static ResourceType_Other: ResourceType = 0x2_i32;
+pub static ResourceType_Other: ResourceType = 0x2;
 
 #[no_mangle]
-pub static ResourceType_Script: ResourceType = 0x3_i32;
+pub static ResourceType_Script: ResourceType = 0x3;
 
 #[no_mangle]
-pub static ResourceType_Shader: ResourceType = 0x4_i32;
+pub static ResourceType_Shader: ResourceType = 0x4;
 
 #[no_mangle]
-pub static ResourceType_Sound: ResourceType = 0x5_i32;
+pub static ResourceType_Sound: ResourceType = 0x5;
 
 #[no_mangle]
-pub static ResourceType_Tex1D: ResourceType = 0x6_i32;
+pub static ResourceType_Tex1D: ResourceType = 0x6;
 
 #[no_mangle]
-pub static ResourceType_Tex2D: ResourceType = 0x7_i32;
+pub static ResourceType_Tex2D: ResourceType = 0x7;
 
 #[no_mangle]
-pub static ResourceType_Tex3D: ResourceType = 0x8_i32;
+pub static ResourceType_Tex3D: ResourceType = 0x8;
 
 #[no_mangle]
-pub static ResourceType_TexCube: ResourceType = 0x9_i32;
+pub static ResourceType_TexCube: ResourceType = 0x9;
 
 #[no_mangle]
 pub unsafe extern "C" fn ResourceType_ToString(mut this: ResourceType) -> *const libc::c_char {

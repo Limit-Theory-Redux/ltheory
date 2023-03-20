@@ -50,19 +50,19 @@ pub unsafe extern "C" fn Tex2D_Create(
         );
     }
     let mut this = MemNew!(Tex2D);
-    (*this)._refCount = 1_u32;
+    (*this)._refCount = 1;
     (*this).size = IVec2::new(sx, sy);
     (*this).format = format;
-    gl::GenTextures(1_i32, &mut (*this).handle);
+    gl::GenTextures(1, &mut (*this).handle);
     gl::ActiveTexture(gl::TEXTURE0);
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexImage2D(
         gl::TEXTURE_2D,
-        0_i32,
+        0,
         (*this).format,
         (*this).size.x,
         (*this).size.y,
-        0_i32,
+        0,
         if TexFormat_IsColor(format) {
             gl::RED
         } else {
@@ -82,29 +82,29 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     Viewport_GetSize(&mut size);
     let mut this = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
     let mut buf = MemNewArray!(u32, (size.x * size.y));
-    Metric_Inc(0x6_i32);
+    Metric_Inc(0x6);
     gl::ReadPixels(
-        0_i32,
-        0_i32,
+        0,
+        0,
         size.x,
         size.y,
         gl::RGBA,
         gl::UNSIGNED_BYTE,
         buf as *mut libc::c_void,
     );
-    let mut y: i32 = 0_i32;
-    while y < size.y / 2_i32 {
-        let mut x: i32 = 0_i32;
+    let mut y: i32 = 0;
+    while y < size.y / 2 {
+        let mut x: i32 = 0;
         while x < size.x {
             let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
             MemCpy(
                 swap_temp.as_mut_ptr() as *mut libc::c_void,
-                &mut *buf.offset((size.x * (size.y - y - 1_i32) + x) as isize) as *mut u32
+                &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32
                     as *const libc::c_void,
                 std::mem::size_of::<u32>(),
             );
             MemCpy(
-                &mut *buf.offset((size.x * (size.y - y - 1_i32) + x) as isize) as *mut u32
+                &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32
                     as *mut libc::c_void,
                 &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *const libc::c_void,
                 std::mem::size_of::<u32>(),
@@ -121,11 +121,11 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexImage2D(
         gl::TEXTURE_2D,
-        0_i32,
+        0,
         TexFormat_RGBA8,
         size.x,
         size.y,
-        0_i32,
+        0,
         gl::RGBA,
         gl::UNSIGNED_BYTE,
         buf as *const libc::c_void,
@@ -143,9 +143,9 @@ pub unsafe extern "C" fn Tex2D_Acquire(mut this: *mut Tex2D) {
 pub unsafe extern "C" fn Tex2D_Free(mut this: *mut Tex2D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0_u32
+        (*this)._refCount <= 0
     } {
-        gl::DeleteTextures(1_i32, &mut (*this).handle);
+        gl::DeleteTextures(1, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
 }
@@ -185,13 +185,13 @@ pub unsafe extern "C" fn Tex2D_Clone(mut this: *mut Tex2D) -> *mut Tex2D {
     gl::BindTexture(gl::TEXTURE_2D, (*clone).handle);
     gl::CopyTexImage2D(
         gl::TEXTURE_2D,
-        0_i32,
+        0,
         (*this).format as gl::types::GLenum,
-        0_i32,
-        0_i32,
+        0,
+        0,
         (*this).size.x,
         (*this).size.y,
-        0_i32,
+        0,
     );
     gl::BindTexture(gl::TEXTURE_2D, 0);
     RenderTarget_Pop();
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn Tex2D_Draw(
     mut sx: f32,
     mut sy: f32,
 ) {
-    Metric_AddDrawImm(1_i32, 2_i32, 4_i32);
+    Metric_AddDrawImm(1, 2, 4);
     gl::Enable(gl::TEXTURE_2D);
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::Begin(gl::QUADS);
@@ -234,7 +234,7 @@ pub unsafe extern "C" fn Tex2D_DrawEx(
     mut u1: f32,
     mut v1: f32,
 ) {
-    Metric_AddDrawImm(1_i32, 2_i32, 4_i32);
+    Metric_AddDrawImm(1, 2, 4);
     gl::Enable(gl::TEXTURE_2D);
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::Begin(gl::QUADS);
@@ -264,11 +264,11 @@ pub unsafe extern "C" fn Tex2D_GetData(
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) {
-    Metric_Inc(0x6_i32);
+    Metric_Inc(0x6);
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::GetTexImage(
         gl::TEXTURE_2D,
-        0_i32,
+        0,
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
         data,
@@ -313,10 +313,10 @@ pub unsafe extern "C" fn Tex2D_GetSizeLevel(
     mut level: i32,
 ) {
     *out = (*this).size;
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < level {
-        (*out).x /= 2_i32;
-        (*out).y /= 2_i32;
+        (*out).x /= 2;
+        (*out).y /= 2;
         i += 1;
     }
 }
@@ -326,15 +326,15 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: *const libc::c_char) -> *mut Tex2D
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Tex2D, name);
     let mut sx: i32 = 0;
     let mut sy: i32 = 0;
-    let mut components: i32 = 4_i32;
+    let mut components: i32 = 4;
     let mut data: *mut libc::c_uchar = Tex2D_LoadRaw(path, &mut sx, &mut sy, &mut components);
     let mut this: *mut Tex2D = Tex2D_Create(sx, sy, TexFormat_RGBA8);
 
-    let mut format = if components == 4_i32 {
+    let mut format = if components == 4 {
         gl::RGBA
-    } else if components == 3_i32 {
+    } else if components == 3 {
         gl::RGB
-    } else if components == 2_i32 {
+    } else if components == 2 {
         gl::RG
     } else {
         gl::RED
@@ -344,11 +344,11 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: *const libc::c_char) -> *mut Tex2D
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexImage2D(
         gl::TEXTURE_2D,
-        0_i32,
+        0,
         gl::RGBA8 as i32,
         (*this).size.x,
         (*this).size.y,
-        0_i32,
+        0,
         format,
         gl::UNSIGNED_BYTE,
         data as *const libc::c_void,
@@ -377,11 +377,11 @@ pub unsafe extern "C" fn Tex2D_SetData(
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexImage2D(
         gl::TEXTURE_2D,
-        0_i32,
+        0,
         (*this).format,
         (*this).size.x,
         (*this).size.y,
-        0_i32,
+        0,
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
         data,
@@ -453,11 +453,11 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexSubImage2D(
         gl::TEXTURE_2D,
-        0_i32,
+        0,
         x,
         y,
-        1_i32,
-        1_i32,
+        1,
+        1,
         gl::RGBA,
         gl::FLOAT,
         rgba.as_mut_ptr() as *const libc::c_void,
@@ -475,18 +475,18 @@ pub unsafe extern "C" fn Tex2D_SetWrapMode(mut this: *mut Tex2D, mut mode: TexWr
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Save(mut this: *mut Tex2D, mut path: *const libc::c_char) {
-    Metric_Inc(0x6_i32);
+    Metric_Inc(0x6);
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     let mut buffer: *mut libc::c_uchar =
-        MemAlloc((4_i32 * (*this).size.x * (*this).size.y) as usize) as *mut libc::c_uchar;
+        MemAlloc((4 * (*this).size.x * (*this).size.y) as usize) as *mut libc::c_uchar;
     gl::GetTexImage(
         gl::TEXTURE_2D,
-        0_i32,
+        0,
         gl::RGBA,
         gl::UNSIGNED_BYTE,
         buffer as *mut libc::c_void,
     );
-    Tex2D_Save_Png(path, (*this).size.x, (*this).size.y, 4_i32, buffer);
+    Tex2D_Save_Png(path, (*this).size.x, (*this).size.y, 4, buffer);
     MemFree(buffer as *const libc::c_void);
     gl::BindTexture(gl::TEXTURE_2D, 0);
 }

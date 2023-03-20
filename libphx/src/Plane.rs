@@ -22,11 +22,11 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
     let mut _magnitude: f32 = f64::abs((1.0f32 - (*plane).n.length()) as f64) as f32;
     let mut dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
     if dist as f64 > 1e-4f64 {
-        1_i32 as PointClassification
+        1 as PointClassification
     } else if (dist as f64) < -1e-4f64 {
-        return 2_i32 as PointClassification;
+        return 2 as PointClassification;
     } else {
-        return 3_i32 as PointClassification;
+        return 3 as PointClassification;
     }
 }
 
@@ -35,9 +35,9 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
     mut plane: *mut Plane,
     mut polygon: *mut Polygon,
 ) -> PolygonClassification {
-    let mut numInFront: i32 = 0_i32;
-    let mut numBehind: i32 = 0_i32;
-    let mut i: i32 = 0_i32;
+    let mut numInFront: i32 = 0;
+    let mut numBehind: i32 = 0;
+    let mut i: i32 = 0;
     while i < (*polygon).vertices_size {
         let mut vertex: Vec3 = *((*polygon).vertices_data).offset(i as isize);
         let mut classification: PointClassification = Plane_ClassifyPoint(plane, &mut vertex);
@@ -64,23 +64,23 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
             }
             _ => {}
         }
-        if numInFront != 0_i32 && numBehind != 0_i32 {
-            return 4_i32 as PolygonClassification;
+        if numInFront != 0 && numBehind != 0 {
+            return 4 as PolygonClassification;
         }
         i += 1;
     }
-    if numInFront != 0_i32 {
-        return 1_i32 as PolygonClassification;
+    if numInFront != 0 {
+        return 1 as PolygonClassification;
     }
-    if numBehind != 0_i32 {
-        return 2_i32 as PolygonClassification;
+    if numBehind != 0 {
+        return 2 as PolygonClassification;
     }
-    3_i32 as PolygonClassification
+    3 as PolygonClassification
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
-    let mut e: Error = 0_i32 as Error;
+    let mut e: Error = 0 as Error;
     e |= Float_Validate((*plane).d as f64);
     e |= Vec3_Validate((*plane).n);
     e

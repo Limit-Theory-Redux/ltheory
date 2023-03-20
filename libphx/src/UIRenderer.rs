@@ -116,7 +116,7 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
     MemPool_Clear(this.textPool);
     let mut vp: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut vp);
-    UIRenderer_BeginLayer(0_i32 as f32, 0_i32 as f32, vp.x as f32, vp.y as f32, true);
+    UIRenderer_BeginLayer(0 as f32, 0 as f32, vp.x as f32, vp.y as f32, true);
     this.root = this.layer;
 }
 
@@ -227,7 +227,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Draw() {
-    RenderState_PushBlendMode(1_i32);
+    RenderState_PushBlendMode(1);
     UIRenderer_DrawLayer(this.root);
     RenderState_PopBlendMode();
 }

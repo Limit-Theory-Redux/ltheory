@@ -7,10 +7,10 @@ use sdl2_sys::*;
 pub type Button = i32;
 
 #[no_mangle]
-pub static Button_Null: Button = 0_i32;
+pub static Button_Null: Button = 0;
 
 #[no_mangle]
-pub static Button_First: Button = 1_i32;
+pub static Button_First: Button = 1;
 
 #[no_mangle]
 pub static Button_Keyboard_First: Button = Button_First;
@@ -957,10 +957,10 @@ pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: u8) -> Butto
 pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
     match button {
         117 => {}
-        118 => return 2_i32 as u8,
-        119 => return 3_i32 as u8,
-        120 => return 4_i32 as u8,
-        121 => return 5_i32 as u8,
+        118 => return 2 as u8,
+        119 => return 3 as u8,
+        120 => return 4 as u8,
+        121 => return 5 as u8,
         _ => {
             Fatal(
                 b"Button_ToSDLMouseButton: Unhandled case: %i\0" as *const u8
@@ -969,7 +969,7 @@ pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
             );
         }
     }
-    1_i32 as u8
+    1 as u8
 }
 
 #[no_mangle]

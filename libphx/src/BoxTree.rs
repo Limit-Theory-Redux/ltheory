@@ -63,20 +63,20 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
     let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < indexCount {
         let mut v0: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 0_i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
         let mut v1: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 1_i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
         let mut v2: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 2_i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         let mut box_0: Box3 = Box3::new(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
         BoxTree_Add(this, box_0, std::ptr::null_mut());
-        i += 3_i32;
+        i += 3;
     }
     this
 }
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn BoxTree_IntersectRay(
 }
 
 unsafe extern "C" fn BoxTree_DrawNode(mut this: *mut Node, mut maxDepth: i32) {
-    if maxDepth < 0_i32 {
+    if maxDepth < 0 {
         return;
     }
     if !((*this).sub[0]).is_null() || !((*this).sub[1]).is_null() {
@@ -238,10 +238,10 @@ unsafe extern "C" fn BoxTree_DrawNode(mut this: *mut Node, mut maxDepth: i32) {
         Draw_Box3(&mut (*this).box_0);
     }
     if !((*this).sub[0]).is_null() {
-        BoxTree_DrawNode((*this).sub[0], maxDepth - 1_i32);
+        BoxTree_DrawNode((*this).sub[0], maxDepth - 1);
     }
     if !((*this).sub[1]).is_null() {
-        BoxTree_DrawNode((*this).sub[1], maxDepth - 1_i32);
+        BoxTree_DrawNode((*this).sub[1], maxDepth - 1);
     }
 }
 

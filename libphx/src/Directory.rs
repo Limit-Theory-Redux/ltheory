@@ -53,7 +53,7 @@ pub unsafe extern "C" fn Directory_GetNext(mut this: *mut Directory) -> *const l
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Change(mut cwd: *const libc::c_char) -> bool {
-    libc::chdir(cwd) == 0_i32
+    libc::chdir(cwd) == 0
 }
 
 #[no_mangle]
@@ -73,12 +73,12 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
     {
         return std::ptr::null();
     }
-    buffer[(std::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1_usize)] =
-        0_i32 as libc::c_char;
+    buffer[(std::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1)] =
+        0 as libc::c_char;
     buffer.as_mut_ptr() as *const libc::c_char
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Remove(mut path: *const libc::c_char) -> bool {
-    libc::rmdir(path) == 0_i32
+    libc::rmdir(path) == 0
 }

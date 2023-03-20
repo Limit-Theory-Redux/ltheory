@@ -372,7 +372,7 @@ pub unsafe extern "C" fn Quat_ToString(mut q: *const Quat) -> *const libc::c_cha
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_Validate(mut q: *const Quat) -> Error {
-    let mut e: Error = 0_i32 as Error;
+    let mut e: Error = 0 as Error;
     e |= Float_Validate((*q).x as f64);
     e |= Float_Validate((*q).y as f64);
     e |= Float_Validate((*q).z as f64);

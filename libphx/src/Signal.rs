@@ -21,22 +21,22 @@ pub struct HandlerElem {
 }
 
 #[no_mangle]
-pub static Signal_Ill: Signal = 4_i32;
+pub static Signal_Ill: Signal = 4;
 
 #[no_mangle]
-pub static Signal_Fpe: Signal = 8_i32;
+pub static Signal_Fpe: Signal = 8;
 
 #[no_mangle]
-pub static Signal_Segv: Signal = 11_i32;
+pub static Signal_Segv: Signal = 11;
 
 #[no_mangle]
-pub static Signal_Term: Signal = 15_i32;
+pub static Signal_Term: Signal = 15;
 
 #[no_mangle]
-pub static Signal_Abrt: Signal = 6_i32;
+pub static Signal_Abrt: Signal = 6;
 
 #[no_mangle]
-pub static Signal_Int: Signal = 2_i32;
+pub static Signal_Int: Signal = 2;
 
 static mut ignoreDefault: bool = false;
 

@@ -820,22 +820,22 @@ pub unsafe extern "C" fn SoundDesc_Load(
     StrFree(mapKey);
     if ((*this).name).is_null() {
         let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Sound, name);
-        let mut mode: FMOD_MODE = 0_i32 as FMOD_MODE;
-        mode |= 0x100_u32;
-        mode |= 0x2000000_u32;
-        mode |= 0x4000_u32;
+        let mut mode: FMOD_MODE = 0 as FMOD_MODE;
+        mode |= 0x100;
+        mode |= 0x2000000;
+        mode |= 0x4000;
         mode |= (if isLooped as i32 != 0 {
-            0x2_i32
+            0x2
         } else {
-            0x1_i32
+            0x1
         }) as u32;
         mode |= (if is3D as i32 != 0 {
-            0x10_i32 | 0x80000_i32
+            0x10 | 0x80000
         } else {
-            0x8_i32
+            0x8
         }) as u32;
         if !immediate {
-            mode |= 0x10000_u32;
+            mode |= 0x10000;
         }
         // FMOD_CheckError(
         //     FMOD_System_CreateSound(
@@ -867,7 +867,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         // );
         (*this).name = StrDup(name);
         (*this).path = StrDup(path);
-        (*this)._refCount = 1_u32;
+        (*this)._refCount = 1;
     } else {
         (*this)._refCount = ((*this)._refCount).wrapping_add(1);
         if immediate {
@@ -890,7 +890,7 @@ pub unsafe extern "C" fn SoundDesc_Acquire(mut this: *mut SoundDesc) {
 pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0_u32
+        (*this)._refCount <= 0
     } {
         let mut name: *const libc::c_char = (*this).name;
         let mut path: *const libc::c_char = (*this).path;
@@ -989,7 +989,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     //     >(b"SoundDesc_ToFile\0"))
     //         .as_ptr(),
     // );
-    let mut bytesPerSample: i32 = bitsPerSample / 8_i32;
+    let mut bytesPerSample: i32 = bitsPerSample / 8;
     let mut sampleRate: f32 = 0.;
     // FMOD_Sound_GetDefaults((*this).handle, &mut sampleRate, std::ptr::null_mut());
     let mut ptr1: *mut libc::c_void = std::ptr::null_mut();
@@ -1026,21 +1026,21 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     File_Write(
         file,
         b"RIFF\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4_u32,
+        4,
     );
     File_WriteI32(file, (36_u32).wrapping_add(length) as i32);
     File_Write(
         file,
         b"WAVE\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4_u32,
+        4,
     );
     File_Write(
         file,
         b"fmt \0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4_u32,
+        4,
     );
-    File_WriteI32(file, 16_i32);
-    File_WriteI16(file, 1_i16);
+    File_WriteI32(file, 16);
+    File_WriteI16(file, 1);
     File_WriteI16(file, channels as i16);
     File_WriteI32(file, sampleRate as i32);
     File_WriteI32(
@@ -1052,7 +1052,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     File_Write(
         file,
         b"data\0" as *const u8 as *const libc::c_char as *const libc::c_void,
-        4_u32,
+        4,
     );
     File_WriteI32(file, length as i32);
     File_Write(file, ptr1, length);

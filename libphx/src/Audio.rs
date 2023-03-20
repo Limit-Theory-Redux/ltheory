@@ -858,9 +858,9 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
     if Sound_IsFreed(sound) {
         if (this.freeingSounds_capacity == this.freeingSounds_size) as i32 as libc::c_long != 0 {
             this.freeingSounds_capacity = if this.freeingSounds_capacity != 0 {
-                this.freeingSounds_capacity * 2_i32
+                this.freeingSounds_capacity * 2
             } else {
-                1_i32
+                1
             };
             let mut elemSize: usize = std::mem::size_of::<*mut Sound>();
             let mut pData: *mut *mut libc::c_void =
@@ -877,9 +877,9 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
     } else if Sound_IsPlaying(sound) {
         if (this.playingSounds_capacity == this.playingSounds_size) as i32 as libc::c_long != 0 {
             this.playingSounds_capacity = if this.playingSounds_capacity != 0 {
-                this.playingSounds_capacity * 2_i32
+                this.playingSounds_capacity * 2
             } else {
-                1_i32
+                1
             };
             let mut elemSize_0: usize = std::mem::size_of::<*mut Sound>();
             let mut pData_0: *mut *mut libc::c_void =

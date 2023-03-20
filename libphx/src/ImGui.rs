@@ -175,16 +175,16 @@ pub struct ImGuiData {
 }
 
 #[no_mangle]
-pub static FocusType_Mouse: i32 = 0_i32;
+pub static FocusType_Mouse: i32 = 0;
 
 #[no_mangle]
-pub static FocusType_Keyboard: i32 = 1_i32;
+pub static FocusType_Keyboard: i32 = 1;
 
 #[no_mangle]
-pub static FocusType_Scroll: i32 = 2_i32;
+pub static FocusType_Scroll: i32 = 2;
 
 #[no_mangle]
-pub static FocusType_SIZE: i32 = 3_i32;
+pub static FocusType_SIZE: i32 = 3;
 
 static mut this: ImGui = ImGui {
     layer: std::ptr::null_mut(),
@@ -296,8 +296,8 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
     static mut font: *mut Font = std::ptr::null_mut();
     static mut fontSubheading: *mut Font = std::ptr::null_mut();
     if font.is_null() {
-        font = Font_Load(b"Share\0" as *const u8 as *const libc::c_char, 16_i32);
-        fontSubheading = Font_Load(b"Iceland\0" as *const u8 as *const libc::c_char, 18_i32);
+        font = Font_Load(b"Share\0" as *const u8 as *const libc::c_char, 16);
+        fontSubheading = Font_Load(b"Iceland\0" as *const u8 as *const libc::c_char, 18);
     }
     let mut style: *mut ImGuiStyle = MemPool_Alloc(this.stylePool) as *mut ImGuiStyle;
     (*style).prev = this.style;
@@ -374,7 +374,7 @@ unsafe extern "C" fn HashNext() -> u64 {
 
 #[inline]
 unsafe extern "C" fn HashPeekNext() -> u64 {
-    let mut index: u32 = ((*this.widget).index).wrapping_add(1_u32);
+    let mut index: u32 = ((*this.widget).index).wrapping_add(1);
     Hash_FNV64_Incremental(
         (*this.widget).hash,
         &mut index as *mut u32 as *const libc::c_void,
@@ -422,14 +422,14 @@ unsafe extern "C" fn ImGui_PushLayout(mut sx: f32, mut sy: f32, mut horizontal: 
     (*layout).lower = this.cursor;
     (*layout).upper = Vec2::new(this.cursor.x + sx, this.cursor.y + sy);
     (*layout).size = Vec2::new(sx, sy);
-    (*layout).styleVars = 0_i32;
+    (*layout).styleVars = 0;
     (*layout).horizontal = horizontal;
     this.layout = layout;
 }
 
 unsafe extern "C" fn ImGui_PopLayout() {
     let mut layout: *mut ImGuiLayout = this.layout;
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < (*layout).styleVars {
         ImGui_PopStyle();
         i += 1;
@@ -470,7 +470,7 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
     TransformSize(&mut sx, &mut sy);
     let mut widget: *mut ImGuiWidget = MemPool_Alloc(this.widgetPool) as *mut ImGuiWidget;
     (*widget).prev = this.widget;
-    (*widget).index = 0_u32;
+    (*widget).index = 0;
     (*widget).pos = Vec2::new(this.cursor.x, this.cursor.y);
     (*widget).size = Vec2::new(sx, sy);
     if !(this.widget).is_null() {
@@ -497,7 +497,7 @@ unsafe extern "C" fn ImGui_EndWidget() {
 }
 
 unsafe extern "C" fn ImGui_Focus(mut widget: *mut ImGuiWidget, mut focusType: i32) -> bool {
-    if this.focus[focusType as usize] == 0_u64 {
+    if this.focus[focusType as usize] == 0 {
         if !IsClipped(this.mouse)
             && RectContains((*widget).pos, (*widget).size, this.mouse) as i32 != 0
         {
@@ -524,7 +524,7 @@ unsafe extern "C" fn TryFocusRect(
     mut pos: Vec2,
     mut size: Vec2,
 ) -> bool {
-    if this.focus[focusType as usize] == 0_u64 {
+    if this.focus[focusType as usize] == 0 {
         if !IsClipped(this.mouse) && RectContains(pos, size, this.mouse) as i32 != 0 {
             this.focus[focusType as usize] = hash;
         }
@@ -554,7 +554,7 @@ unsafe extern "C" fn ImGui_PushLayer(mut clip: bool) -> *mut ImGuiLayer {
     (*layer).next = std::ptr::null_mut();
     (*layer).pos = (*this.layout).lower;
     (*layer).size = (*this.layout).size;
-    (*layer).index = 0_u32;
+    (*layer).index = 0;
     (*layer).clip = clip;
     (*layer).tex2DList = std::ptr::null_mut();
     (*layer).panelList = std::ptr::null_mut();
@@ -655,7 +655,7 @@ unsafe extern "C" fn ImGui_DrawLayer(mut self_1: *const ImGuiLayer) {
         e_1 = (*e_1).next;
     }
     if !((*self_1).lineList).is_null() {
-        RenderState_PushBlendMode(0_i32);
+        RenderState_PushBlendMode(0);
         static mut shader_0: *mut Shader = std::ptr::null_mut();
         if shader_0.is_null() {
             shader_0 = Shader_Load(
@@ -737,8 +737,8 @@ unsafe extern "C" fn ImGui_Init() {
     this.style = std::ptr::null_mut();
     this.clipRect = std::ptr::null_mut();
     this.cursorStack = std::ptr::null_mut();
-    this.dragging = 0_u64;
-    this.data = HashMap_Create(0_u32, 128_u32);
+    this.dragging = 0;
+    this.data = HashMap_Create(0, 128);
     this.layoutPool = MemPool_CreateAuto(std::mem::size_of::<ImGuiLayout>() as u32);
     this.widgetPool = MemPool_CreateAuto(std::mem::size_of::<ImGuiWidget>() as u32);
     this.stylePool = MemPool_CreateAuto(std::mem::size_of::<ImGuiStyle>() as u32);
@@ -754,13 +754,13 @@ unsafe extern "C" fn ImGui_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     ImGui_Init();
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < FocusType_SIZE {
-        this.focus[i as usize] = 0_u64;
+        this.focus[i as usize] = 0;
         i += 1;
     }
     if !Input_GetDown(Button_Mouse_Left) {
-        this.dragging = 0_u64;
+        this.dragging = 0;
     }
     if this.dragging != 0 {
         this.focus[FocusType_Mouse as usize] = this.dragging;
@@ -815,7 +815,7 @@ pub unsafe extern "C" fn ImGui_End() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Draw() {
-    RenderState_PushBlendMode(1_i32);
+    RenderState_PushBlendMode(1);
     Draw_LineWidth(1.0f32);
     ImGui_DrawLayer(this.layerLast);
     RenderState_PopBlendMode();
@@ -1181,14 +1181,14 @@ pub unsafe extern "C" fn ImGui_Checkbox(mut value: bool) -> bool {
 pub unsafe extern "C" fn ImGui_Divider() {
     ImGui_BeginWidget(
         (if (*this.layout).horizontal as i32 != 0 {
-            2_i32
+            2
         } else {
-            0_i32
+            0
         }) as f32,
         (if (*this.layout).horizontal as i32 != 0 {
-            0_i32
+            0
         } else {
-            2_i32
+            2
         }) as f32,
     );
     EmitLine(
@@ -1303,7 +1303,7 @@ pub unsafe extern "C" fn ImGui_TextEx(
     ImGui_BeginWidget(
         bound.x as f32,
         (if (*this.layout).horizontal as i32 != 0 {
-            0_i32
+            0
         } else {
             Font_GetLineHeight((*this.style).font)
         }) as f32,

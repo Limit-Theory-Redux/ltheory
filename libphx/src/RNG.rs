@@ -25,16 +25,16 @@ pub struct Quat {
 
 #[inline]
 unsafe extern "C" fn Random_SplitMix64(mut state: *mut u64) -> u64 {
-    *state = (*state as u64).wrapping_add(0x9e3779b97f4a7c15_u64);
+    *state = (*state as u64).wrapping_add(0x9e3779b97f4a7c15);
     let mut z: u64 = *state;
-    z = (z ^ z >> 30_i32).wrapping_mul(0xbf58476d1ce4e5b9_u64);
-    z = (z ^ z >> 27_i32).wrapping_mul(0x94d049bb133111eb_u64);
-    z ^ z >> 31_i32
+    z = (z ^ z >> 30_i32).wrapping_mul(0xbf58476d1ce4e5b9);
+    z = (z ^ z >> 27_i32).wrapping_mul(0x94d049bb133111eb);
+    z ^ z >> 31
 }
 
 #[inline]
 unsafe extern "C" fn rotl(x: u64, mut k: i32) -> u64 {
-    x << k | x >> 64_i32 - k
+    x << k | x >> 64 - k
 }
 
 #[inline]
@@ -43,8 +43,8 @@ unsafe extern "C" fn Random_Xoroshiro128(mut state0: *mut u64, mut state1: *mut 
     let mut s1: u64 = *state1;
     let result: u64 = s0.wrapping_add(s1);
     s1 ^= s0;
-    *state0 = rotl(s0, 55_i32) ^ s1 ^ s1 << 14_i32;
-    *state1 = rotl(s1, 36_i32);
+    *state0 = rotl(s0, 55) ^ s1 ^ s1 << 14;
+    *state1 = rotl(s1, 36);
     result
 }
 
@@ -58,21 +58,21 @@ unsafe extern "C" fn RNG_Next64(mut this: *mut RNG) -> u64 {
 
 #[inline]
 unsafe extern "C" fn RNG_Next32(mut this: *mut RNG) -> u32 {
-    (RNG_Next64(this) & 0xffffffff_u64) as u32
+    (RNG_Next64(this) & 0xffffffff) as u32
 }
 
 #[inline]
 unsafe extern "C" fn RNG_Init(mut this: *mut RNG) {
     let mut seed: u64 = (*this).seed;
-    let mut i: i32 = 0_i32;
-    while i < 64_i32 {
+    let mut i: i32 = 0;
+    while i < 64 {
         seed = Random_SplitMix64(&mut seed);
         i += 1;
     }
     (*this).state[0] = Random_SplitMix64(&mut seed);
     (*this).state[1] = Random_SplitMix64(&mut seed);
-    let mut i_0: i32 = 0_i32;
-    while i_0 < 64_i32 {
+    let mut i_0: i32 = 0;
+    while i_0 < 64 {
         RNG_Next64(this);
         i_0 += 1;
     }
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn RNG_FromStr(mut s: *const libc::c_char) -> *mut RNG {
     RNG_Create(Hash_XX64(
         s as *const libc::c_void,
         StrLen(s) as i32,
-        0_u64,
+        0,
     ))
 }
 
@@ -117,7 +117,7 @@ pub unsafe extern "C" fn RNG_Chance(mut this: *mut RNG, mut probability: f64) ->
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_Get31(mut this: *mut RNG) -> i32 {
-    let mut i: u32 = RNG_Next32(this) & 0x7fffffff_u32;
+    let mut i: u32 = RNG_Next32(this) & 0x7fffffff;
     *(&mut i as *mut u32 as *mut i32)
 }
 
@@ -165,7 +165,7 @@ pub unsafe extern "C" fn RNG_GetUniformRange(
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetErlang(mut this: *mut RNG, mut k: i32) -> f64 {
     let mut sum: f64 = 0.0f64;
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < k {
         sum += RNG_GetExp(this);
         i += 1;
@@ -188,7 +188,7 @@ pub unsafe extern "C" fn RNG_GetGaussian(mut this: *mut RNG) -> f64 {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetAxis2(mut this: *mut RNG, mut out: *mut Vec2) {
     *out = Vec2::new(0.0f32, 0.0f32);
-    let mut axis: i32 = RNG_GetInt(this, 0_i32, 3_i32);
+    let mut axis: i32 = RNG_GetInt(this, 0, 3);
     match axis {
         0 => {
             (*out).x = 1.0f32;
@@ -209,7 +209,7 @@ pub unsafe extern "C" fn RNG_GetAxis2(mut this: *mut RNG, mut out: *mut Vec2) {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetAxis3(mut this: *mut RNG, mut out: *mut Vec3) {
     *out = Vec3::ZERO;
-    let mut axis: i32 = RNG_GetInt(this, 0_i32, 5_i32);
+    let mut axis: i32 = RNG_GetInt(this, 0, 5);
     match axis {
         0 => {
             (*out).x = 1.0f32;

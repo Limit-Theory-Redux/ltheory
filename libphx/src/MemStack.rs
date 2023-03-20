@@ -14,7 +14,7 @@ pub struct MemStack {
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
     let mut this = MemNew!(MemStack);
-    (*this).size = 0_u32;
+    (*this).size = 0;
     (*this).capacity = capacity;
     (*this).data = MemAlloc(capacity as usize);
     this
@@ -45,7 +45,7 @@ pub unsafe extern "C" fn MemStack_Alloc(
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Clear(mut this: *mut MemStack) {
-    (*this).size = 0_u32;
+    (*this).size = 0;
 }
 
 #[no_mangle]

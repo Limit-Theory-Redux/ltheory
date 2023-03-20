@@ -42,12 +42,12 @@ pub static TexFormat_RGBA16: TexFormat = gl::RGBA16 as TexFormat;
 // pub static TexFormat_RGBA16F: TexFormat = gl::RGBA16F as TexFormat;
 
 #[no_mangle]
-pub static TexFormat_RGBA16F: TexFormat = 0x881a_i32;
+pub static TexFormat_RGBA16F: TexFormat = 0x881a;
 
 // #[no_mangle]
 // pub static TexFormat_RGBA32F: TexFormat = gl::RGBA32F as TexFormat;
 #[no_mangle]
-pub static TexFormat_RGBA32F: TexFormat = 0x8814_i32;
+pub static TexFormat_RGBA32F: TexFormat = 0x8814;
 
 #[no_mangle]
 pub static TexFormat_Depth16: TexFormat = gl::DEPTH_COMPONENT16 as TexFormat;
@@ -58,7 +58,7 @@ pub static TexFormat_Depth24: TexFormat = gl::DEPTH_COMPONENT24 as TexFormat;
 // #[no_mangle]
 // pub static TexFormat_Depth32F: TexFormat = gl::DEPTH_COMPONENT32F as TexFormat;
 #[no_mangle]
-pub static TexFormat_Depth32F: TexFormat = 0x8cac_i32;
+pub static TexFormat_Depth32F: TexFormat = 0x8cac;
 
 #[no_mangle]
 pub extern "C" fn TexFormat_Components(this: TexFormat) -> i32 {

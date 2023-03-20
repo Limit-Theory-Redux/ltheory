@@ -59,14 +59,14 @@ unsafe extern "C" fn Mini(mut a: i32, mut b: i32) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) -> *mut HashGrid {
-    let mut logCount: u32 = 0_u32;
-    while cellCount > 1_u32 {
-        cellCount = cellCount.wrapping_div(2_u32);
+    let mut logCount: u32 = 0;
+    while cellCount > 1 {
+        cellCount = cellCount.wrapping_div(2);
         logCount = logCount.wrapping_add(1);
     }
-    cellCount = (1_i32 << logCount) as u32;
+    cellCount = (1 << logCount) as u32;
     let mut this = MemNew!(HashGrid);
-    (*this).version = 0_u64;
+    (*this).version = 0;
     (*this).cells = MemNewArrayZero!(HashGridCell, cellCount);
     (*this).elemPool = MemPool_Create(
         std::mem::size_of::<HashGridElem>() as u32,
@@ -74,14 +74,14 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
     );
     (*this).cellCount = cellCount;
     (*this).cellSize = cellSize;
-    (*this).mask = ((1_i32 << logCount) - 1_i32) as u32;
-    (*this).results_capacity = 0_i32;
-    (*this).results_size = 0_i32;
+    (*this).mask = ((1 << logCount) - 1) as u32;
+    (*this).results_capacity = 0;
+    (*this).results_size = 0;
     (*this).results_data = std::ptr::null_mut();
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < cellCount {
-        (*((*this).cells).offset(i as isize)).elems_capacity = 0_i32;
-        (*((*this).cells).offset(i as isize)).elems_size = 0_i32;
+        (*((*this).cells).offset(i as isize)).elems_capacity = 0;
+        (*((*this).cells).offset(i as isize)).elems_size = 0;
         let ref mut fresh0 = (*((*this).cells).offset(i as isize)).elems_data;
         *fresh0 = std::ptr::null_mut();
         i = i.wrapping_add(1);
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Free(mut this: *mut HashGrid) {
     MemFree((*this).results_data as *const libc::c_void);
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < (*this).cellCount {
         MemFree((*((*this).cells).offset(i as isize)).elems_data as *const libc::c_void);
         i = i.wrapping_add(1);
@@ -113,7 +113,7 @@ unsafe extern "C" fn HashGrid_GetCell(
     let mut hash: u64 = Hash_XX64(
         p.as_mut_ptr() as *const libc::c_void,
         std::mem::size_of::<[i32; 3]>() as libc::c_ulong as i32,
-        0_u64,
+        0,
     );
     ((*this).cells).offset((hash & (*this).mask as u64) as isize)
 }
@@ -131,9 +131,9 @@ unsafe extern "C" fn HashGrid_AddElem(mut this: *mut HashGrid, mut elem: *mut Ha
                     (*cell).version = (*this).version;
                     if ((*cell).elems_capacity == (*cell).elems_size) as i32 as libc::c_long != 0 {
                         (*cell).elems_capacity = if (*cell).elems_capacity != 0 {
-                            (*cell).elems_capacity * 2_i32
+                            (*cell).elems_capacity * 2
                         } else {
-                            1_i32
+                            1
                         };
                         let mut elemSize: usize = std::mem::size_of::<*mut HashGridElem>();
                         let mut pData: *mut *mut libc::c_void = &mut (*cell).elems_data
@@ -168,7 +168,7 @@ unsafe extern "C" fn HashGrid_RemoveElem(mut this: *mut HashGrid, mut elem: *mut
                 let mut cell: *mut HashGridCell = HashGrid_GetCell(this, x, y, z);
                 if (*cell).version != (*this).version {
                     (*cell).version = (*this).version;
-                    let mut _i: i32 = 0_i32;
+                    let mut _i: i32 = 0;
                     while _i < (*cell).elems_size {
                         if (*((*cell).elems_data).offset(_i as isize) == elem) as libc::c_long != 0
                         {
@@ -214,15 +214,15 @@ pub unsafe extern "C" fn HashGrid_Add(
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Clear(mut this: *mut HashGrid) {
-    (*this).version = 0_u64;
-    let mut i: u32 = 0_u32;
+    (*this).version = 0;
+    let mut i: u32 = 0;
     while i < (*this).cellCount {
-        (*((*this).cells).offset(i as isize)).elems_size = 0_i32;
-        (*((*this).cells).offset(i as isize)).version = 0_u64;
+        (*((*this).cells).offset(i as isize)).elems_size = 0;
+        (*((*this).cells).offset(i as isize)).version = 0;
         i = i.wrapping_add(1);
     }
     MemPool_Clear((*this).elemPool);
-    (*this).results_size = 0_i32;
+    (*this).results_size = 0;
 }
 
 #[no_mangle]
@@ -297,7 +297,7 @@ pub unsafe extern "C" fn HashGrid_Update(
                     if !((*cell).version == vAdd) {
                         if !((*cell).version == vRemove && inPrev as i32 != 0) {
                             if inPrev {
-                                let mut _i: i32 = 0_i32;
+                                let mut _i: i32 = 0;
                                 while _i < (*cell).elems_size {
                                     if (*((*cell).elems_data).offset(_i as isize) == elem)
                                         as libc::c_long
@@ -316,7 +316,7 @@ pub unsafe extern "C" fn HashGrid_Update(
                                 (*cell).version = vRemove;
                             } else {
                                 if (*cell).version != vRemove {
-                                    let mut _i_0: i32 = 0_i32;
+                                    let mut _i_0: i32 = 0;
                                     while _i_0 < (*cell).elems_size {
                                         if (*((*cell).elems_data).offset(_i_0 as isize) == elem)
                                             as libc::c_long
@@ -337,9 +337,9 @@ pub unsafe extern "C" fn HashGrid_Update(
                                     != 0
                                 {
                                     (*cell).elems_capacity = if (*cell).elems_capacity != 0 {
-                                        (*cell).elems_capacity * 2_i32
+                                        (*cell).elems_capacity * 2
                                     } else {
-                                        1_i32
+                                        1
                                     };
                                     let mut elemSize: usize =
                                         std::mem::size_of::<*mut HashGridElem>();
@@ -382,7 +382,7 @@ pub unsafe extern "C" fn HashGrid_GetResults(mut this: *mut HashGrid) -> *mut *m
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_QueryBox(mut this: *mut HashGrid, mut box_0: *const Box3) -> i32 {
-    (*this).results_size = 0_i32;
+    (*this).results_size = 0;
     (*this).version = ((*this).version).wrapping_add(1);
     let mut lower: [i32; 3] = [
         HashGrid_ToLocal(this, (*box_0).lower.x),
@@ -403,7 +403,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(mut this: *mut HashGrid, mut box_0: *
                 let mut cell: *mut HashGridCell = HashGrid_GetCell(this, x, y, z);
                 if (*cell).version != (*this).version {
                     (*cell).version = (*this).version;
-                    let mut i: i32 = 0_i32;
+                    let mut i: i32 = 0;
                     while i < (*cell).elems_size {
                         let mut elem: *mut HashGridElem = *((*cell).elems_data).offset(i as isize);
                         if (*elem).version != (*this).version {
@@ -412,9 +412,9 @@ pub unsafe extern "C" fn HashGrid_QueryBox(mut this: *mut HashGrid, mut box_0: *
                                 != 0
                             {
                                 (*this).results_capacity = if (*this).results_capacity != 0 {
-                                    (*this).results_capacity * 2_i32
+                                    (*this).results_capacity * 2
                                 } else {
-                                    1_i32
+                                    1
                                 };
                                 let mut elemSize: usize = std::mem::size_of::<*mut libc::c_void>();
                                 let mut pData: *mut *mut libc::c_void = &mut (*this).results_data
@@ -444,21 +444,21 @@ pub unsafe extern "C" fn HashGrid_QueryBox(mut this: *mut HashGrid, mut box_0: *
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_QueryPoint(mut this: *mut HashGrid, mut p: *const Vec3) -> i32 {
-    (*this).results_size = 0_i32;
+    (*this).results_size = 0;
     let mut cell: *mut HashGridCell = HashGrid_GetCell(
         this,
         HashGrid_ToLocal(this, (*p).x),
         HashGrid_ToLocal(this, (*p).y),
         HashGrid_ToLocal(this, (*p).z),
     );
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < (*cell).elems_size {
         let mut elem: *mut HashGridElem = *((*cell).elems_data).offset(i as isize);
         if ((*this).results_capacity == (*this).results_size) as i32 as libc::c_long != 0 {
             (*this).results_capacity = if (*this).results_capacity != 0 {
-                (*this).results_capacity * 2_i32
+                (*this).results_capacity * 2
             } else {
-                1_i32
+                1
             };
             let mut elemSize: usize = std::mem::size_of::<*mut libc::c_void>();
             let mut pData: *mut *mut libc::c_void =

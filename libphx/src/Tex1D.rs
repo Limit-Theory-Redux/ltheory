@@ -34,18 +34,18 @@ pub unsafe extern "C" fn Tex1D_Create(mut size: i32, mut format: TexFormat) -> *
         );
     }
     let mut this = MemNew!(Tex1D);
-    (*this)._refCount = 1_u32;
+    (*this)._refCount = 1;
     (*this).size = size;
     (*this).format = format;
-    gl::GenTextures(1_i32, &mut (*this).handle);
+    gl::GenTextures(1, &mut (*this).handle);
     gl::ActiveTexture(gl::TEXTURE0);
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
     gl::TexImage1D(
         gl::TEXTURE_1D,
-        0_i32,
+        0,
         (*this).format,
         (*this).size,
-        0_i32,
+        0,
         (if TexFormat_IsColor(format) as i32 != 0 {
             gl::RED
         } else {
@@ -68,9 +68,9 @@ pub unsafe extern "C" fn Tex1D_Acquire(mut this: *mut Tex1D) {
 pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
-        (*this)._refCount <= 0_u32
+        (*this)._refCount <= 0
     } {
-        gl::DeleteTextures(1_i32, &mut (*this).handle);
+        gl::DeleteTextures(1, &mut (*this).handle);
         MemFree(this as *const libc::c_void);
     }
 }
@@ -118,7 +118,7 @@ pub unsafe extern "C" fn Tex1D_GetData(
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
     gl::GetTexImage(
         gl::TEXTURE_1D,
-        0_i32,
+        0,
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
         data,
@@ -159,10 +159,10 @@ pub unsafe extern "C" fn Tex1D_SetData(
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
     gl::TexImage1D(
         gl::TEXTURE_1D,
-        0_i32,
+        0,
         (*this).format,
         (*this).size,
-        0_i32,
+        0,
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
         data,
@@ -207,9 +207,9 @@ pub unsafe extern "C" fn Tex1D_SetTexel(
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
     gl::TexSubImage1D(
         gl::TEXTURE_1D,
-        0_i32,
+        0,
         x,
-        1_i32,
+        1,
         gl::RGBA,
         gl::FLOAT,
         rgba.as_mut_ptr() as *const libc::c_void,

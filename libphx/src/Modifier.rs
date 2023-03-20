@@ -6,16 +6,16 @@ use libc;
 pub type Modifier = i32;
 
 #[no_mangle]
-pub static Modifier_Null: Modifier = 0_i32 << 0_i32;
+pub static Modifier_Null: Modifier = 0 << 0;
 
 #[no_mangle]
-pub static Modifier_Alt: Modifier = 1_i32 << 0_i32;
+pub static Modifier_Alt: Modifier = 1 << 0;
 
 #[no_mangle]
-pub static Modifier_Ctrl: Modifier = 1_i32 << 1_i32;
+pub static Modifier_Ctrl: Modifier = 1 << 1;
 
 #[no_mangle]
-pub static Modifier_Shift: Modifier = 1_i32 << 2_i32;
+pub static Modifier_Shift: Modifier = 1 << 2;
 
 #[no_mangle]
 pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
@@ -31,8 +31,8 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
     ];
     let mut start: *mut libc::c_char = buffer.as_mut_ptr();
     let mut sep: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char;
-    let mut len: i32 = 0_i32;
-    let mut i: i32 = 0_i32;
+    let mut len: i32 = 0;
+    let mut i: i32 = 0;
     while i
         < (std::mem::size_of::<[Modifier; 3]>()).wrapping_div(std::mem::size_of::<Modifier>())
             as i32
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
         }
         i += 1;
     }
-    if modifier != 0_i32 {
+    if modifier != 0 {
         len += libc::snprintf(
             start.offset(len as isize),
             ((std::mem::size_of::<[libc::c_char; 512]>())

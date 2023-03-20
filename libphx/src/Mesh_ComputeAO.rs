@@ -21,7 +21,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut indexData: *mut i32 = Mesh_GetIndexData(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
-    let mut sDim: i32 = f64::ceil(f64::sqrt((indexCount / 3_i32) as f64)) as i32;
+    let mut sDim: i32 = f64::ceil(f64::sqrt((indexCount / 3) as f64)) as i32;
     let mut vDim: i32 = f64::ceil(f64::sqrt(vertexCount as f64)) as i32;
     let mut surfels: i32 = sDim * sDim;
     let mut vertices: i32 = vDim * vDim;
@@ -36,14 +36,14 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
         normalBuffer as *mut libc::c_void,
         (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < indexCount {
         let mut v1: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 0_i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
         let mut v2: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 1_i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
         let mut v3: *const Vertex =
-            vertexData.offset(*indexData.offset((i + 2_i32) as isize) as isize);
+            vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         let mut normal: Vec3 = Vec3::cross((*v3).p - (*v1).p, (*v2).p - (*v1).p);
         let mut length: f32 = normal.length();
         let mut area: f32 = 0.5f32 * length / std::f32::consts::PI;
@@ -53,10 +53,10 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
             normal = Vec3::new(1.0f32, 0.0f32, 0.0f32);
         }
         let mut center: Vec3 = ((*v1).p + (*v2).p + (*v3).p) / 3.0f32;
-        *pointBuffer.offset((i / 3_i32) as isize) = Vec4::new(center.x, center.y, center.z, area);
-        *normalBuffer.offset((i / 3_i32) as isize) =
+        *pointBuffer.offset((i / 3) as isize) = Vec4::new(center.x, center.y, center.z, area);
+        *normalBuffer.offset((i / 3) as isize) =
             Vec4::new(normal.x, normal.y, normal.z, 0.0f32);
-        i += 3_i32;
+        i += 3;
     }
     let mut texSPoints: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);
     let mut texSNormals: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
         normalBuffer as *mut libc::c_void,
         (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
-    let mut i_0: i32 = 0_i32;
+    let mut i_0: i32 = 0;
     while i_0 < vertexCount {
         let mut v: *const Vertex = vertexData.offset(i_0 as isize);
         *pointBuffer.offset(i_0 as isize) = Vec4::new((*v).p.x, (*v).p.y, (*v).p.z, 0.0f32);
@@ -143,7 +143,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
         PixelFormat_Red,
         DataFormat_Float,
     );
-    let mut i_1: i32 = 0_i32;
+    let mut i_1: i32 = 0;
     while i_1 < vertexCount {
         (*vertexData.offset(i_1 as isize)).uv.x = *result.offset(i_1 as isize);
         i_1 += 1;
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     let mut texPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
     let mut pointBuffer: *mut Vec3 = MemNewArray!(Vec3, (vDim * vDim));
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < vertexCount {
         *pointBuffer.offset(i as isize) = (*vertexData.offset(i as isize)).p;
         i += 1;
@@ -204,7 +204,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
         PixelFormat_Red,
         DataFormat_Float,
     );
-    let mut i_0: i32 = 0_i32;
+    let mut i_0: i32 = 0;
     while i_0 < vertexCount {
         (*vertexData.offset(i_0 as isize)).uv.x = *result.offset(i_0 as isize);
         i_0 += 1;

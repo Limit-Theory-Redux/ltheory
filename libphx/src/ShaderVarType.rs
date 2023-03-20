@@ -13,14 +13,14 @@ pub type ShaderVarType = i32;
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: *const libc::c_char) -> ShaderVarType {
-    let mut i: ShaderVarType = 0x1_i32;
-    while i <= 0xd_i32 {
+    let mut i: ShaderVarType = 0x1;
+    while i <= 0xd {
         if StrEqual(s, ShaderVarType_GetGLSLName(i)) {
             return i;
         }
         i += 1;
     }
-    0_i32
+    0
 }
 
 #[no_mangle]

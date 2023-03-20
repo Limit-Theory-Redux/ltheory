@@ -25,7 +25,7 @@ pub static subsystems: u32 = SDL_INIT_EVENTS
     | SDL_INIT_JOYSTICK
     | SDL_INIT_GAMECONTROLLER;
 
-static mut initTime: TimeStamp = 0_i32 as TimeStamp;
+static mut initTime: TimeStamp = 0 as TimeStamp;
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
@@ -71,7 +71,7 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
             );
             Fatal(b"Engine_Init: Terminating.\0" as *const u8 as *const libc::c_char);
         }
-        if SDL_Init(0_u32) != 0 {
+        if SDL_Init(0) != 0 {
             Fatal(b"Engine_Init: Failed to initialize SDL\0" as *const u8 as *const libc::c_char);
         }
         if !Directory_Create(b"log\0" as *const u8 as *const libc::c_char) {
@@ -141,12 +141,12 @@ pub unsafe extern "C" fn Engine_GetVersion() -> *const libc::c_char {
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_IsInitialized() -> bool {
-    initTime != 0_u64
+    initTime != 0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Terminate() {
-    exit(0_i32);
+    exit(0);
 }
 
 #[no_mangle]

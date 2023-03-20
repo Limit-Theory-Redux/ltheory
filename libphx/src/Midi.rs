@@ -13,7 +13,7 @@ pub struct MidiDevice {
 
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_GetCount() -> i32 {
-    0_i32
+    0
 }
 
 #[no_mangle]
@@ -31,16 +31,16 @@ pub unsafe extern "C" fn MidiDevice_GetNameByIndex(mut _index: i32) -> *const li
 
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_HasMessage(mut this: *mut MidiDevice) -> bool {
-    (*this).cursor > 0_i32
+    (*this).cursor > 0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_PopMessage(mut this: *mut MidiDevice) -> IVec2 {
-    if (*this).cursor <= 0_i32 {
+    if (*this).cursor <= 0 {
         Fatal(
             b"MidiDevice_PopMessage: device has no messages\0" as *const u8 as *const libc::c_char,
         );
     }
-    (*this).cursor -= 1_i32;
+    (*this).cursor -= 1;
     (*this).buffer[(*this).cursor as usize]
 }

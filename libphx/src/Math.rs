@@ -90,7 +90,7 @@ impl Box3 {
         t2 = (rdi.z * (self.upper.z - ro.z)) as f64;
         tMin = f64::max(tMin, f64::min(t1, t2));
         tMax = f64::min(tMax, f64::max(t1, t2));
-        tMax >= tMin && tMax > 0_i32 as f64
+        tMax >= tMin && tMax > 0 as f64
     }
 
     pub fn intersects_box(a: Box3, b: Box3) -> bool {
@@ -134,10 +134,10 @@ pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
         3
     };
     match classification {
-        2 => return 0x4_i32 as Error,
+        2 => return 0x4 as Error,
         5 => {}
-        1 => return 0x20_i32 as Error,
-        3 | 4 => return 0_i32 as Error,
+        1 => return 0x20 as Error,
+        3 | 4 => return 0 as Error,
         _ => {
             Fatal(
                 b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn Float_Validatef(mut x: f32) -> Error {
             );
         }
     }
-    0_i32 as Error
+    0 as Error
 }
 
 #[inline]
@@ -162,10 +162,10 @@ pub unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
         3
     };
     match classification {
-        2 => return 0x4_i32 as Error,
-        5 => return 0x8_i32 as Error,
-        1 => return 0x20_i32 as Error,
-        3 | 4 => return 0_i32 as Error,
+        2 => return 0x4 as Error,
+        5 => return 0x8 as Error,
+        1 => return 0x20 as Error,
+        3 | 4 => return 0 as Error,
         _ => {
             Fatal(
                 b"Float_Validate: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
@@ -177,7 +177,7 @@ pub unsafe extern "C" fn Float_Validate(mut x: f64) -> Error {
 
 #[inline]
 pub unsafe extern "C" fn Vec3_Validate(mut v: Vec3) -> Error {
-    let mut e: Error = 0_i32 as Error;
+    let mut e: Error = 0 as Error;
     e |= Float_Validatef(v.x);
     e |= Float_Validatef(v.y);
     e |= Float_Validatef(v.z);

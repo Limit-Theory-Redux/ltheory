@@ -30,7 +30,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
     *fresh1 = newBlock;
     let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
     let mut pCurr: *mut libc::c_char = newBlock as *mut libc::c_char;
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < (*this).blockSize {
         *prev = pCurr as *mut libc::c_void;
         prev = pCurr as *mut *mut libc::c_void;
@@ -43,12 +43,12 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Create(mut cellSize: u32, mut blockSize: u32) -> *mut MemPool {
     let mut this = MemNew!(MemPool);
-    (*this).size = 0_u32;
-    (*this).capacity = 0_u32;
+    (*this).size = 0;
+    (*this).capacity = 0;
     (*this).freeList = std::ptr::null_mut();
     (*this).cellSize = cellSize;
     (*this).blockSize = blockSize;
-    (*this).blockCount = 0_u16;
+    (*this).blockCount = 0;
     (*this).blocks = std::ptr::null_mut();
     this
 }
@@ -60,7 +60,7 @@ pub unsafe extern "C" fn MemPool_CreateAuto(mut elemSize: u32) -> *mut MemPool {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Free(mut this: *mut MemPool) {
-    let mut i: u16 = 0_u16;
+    let mut i: u16 = 0;
     while (i as i32) < (*this).blockCount as i32 {
         MemFree(*((*this).blocks).offset(i as isize));
         i = i.wrapping_add(1);
@@ -82,14 +82,14 @@ pub unsafe extern "C" fn MemPool_Alloc(mut this: *mut MemPool) -> *mut libc::c_v
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Clear(mut this: *mut MemPool) {
-    (*this).size = 0_u32;
+    (*this).size = 0;
     (*this).freeList = std::ptr::null_mut();
     let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
-    let mut i: u32 = 0_u32;
+    let mut i: u32 = 0;
     while i < (*this).blockCount as u32 {
         let mut pCurr: *mut libc::c_char =
             *((*this).blocks).offset(i as isize) as *mut libc::c_char;
-        let mut j: u32 = 0_u32;
+        let mut j: u32 = 0;
         while j < (*this).blockSize {
             *prev = pCurr as *mut libc::c_void;
             prev = pCurr as *mut *mut libc::c_void;

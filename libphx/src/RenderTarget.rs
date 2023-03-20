@@ -24,7 +24,7 @@ pub struct FBO {
     pub depth: bool,
 }
 
-static mut fboIndex: i32 = -1_i32;
+static mut fboIndex: i32 = -1;
 
 static mut fboStack: [FBO; 16] = [FBO {
     handle: 0,
@@ -55,7 +55,7 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     Profiler_Begin(
         (*std::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"RenderTarget_Push\0")).as_ptr(),
     );
-    if fboIndex + 1_i32 >= 16_i32 {
+    if fboIndex + 1 >= 16 {
         Fatal(
             b"RenderTarget_Push: Maximum stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -63,15 +63,15 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
     }
     fboIndex += 1;
     let mut this: *mut FBO = GetActive();
-    (*this).handle = 0_u32;
-    (*this).colorIndex = 0_i32;
+    (*this).handle = 0;
+    (*this).colorIndex = 0;
     (*this).sx = sx;
     (*this).sy = sy;
     (*this).depth = false;
-    Metric_Inc(0x7_i32);
-    gl::GenFramebuffers(1_i32, &mut (*this).handle);
+    Metric_Inc(0x7);
+    gl::GenFramebuffers(1, &mut (*this).handle);
     gl::BindFramebuffer(gl::FRAMEBUFFER, (*this).handle);
-    Viewport_Push(0_i32, 0_i32, sx, sy, false);
+    Viewport_Push(0, 0, sx, sy, false);
     Profiler_End();
 }
 
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
     Profiler_Begin(
         (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"RenderTarget_Pop\0")).as_ptr(),
     );
-    if fboIndex < 0_i32 {
+    if fboIndex < 0 {
         Fatal(
             b"RenderTarget_Pop: Attempting to pop an empty stack\0" as *const u8
                 as *const libc::c_char,
@@ -102,15 +102,15 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
         gl::DEPTH_ATTACHMENT,
         gl::TEXTURE_2D,
         0,
-        0_i32,
+        0,
     );
     gl::DeleteFramebuffers(
-        1_i32,
+        1,
         &mut (*fboStack.as_mut_ptr().offset(fboIndex as isize)).handle,
     );
     fboIndex -= 1;
-    Metric_Inc(0x7_i32);
-    if fboIndex >= 0_i32 {
+    Metric_Inc(0x7);
+    if fboIndex >= 0 {
         gl::BindFramebuffer(gl::FRAMEBUFFER, (*GetActive()).handle);
     } else {
         gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2D(mut this: *mut Tex2D) {
-    RenderTarget_BindTex2DLevel(this, 0_i32);
+    RenderTarget_BindTex2DLevel(this, 0);
 }
 
 #[no_mangle]
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
     let mut this: *mut FBO = GetActive();
     let mut handle: u32 = Tex2D_GetHandle(tex);
     if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
-        if (*this).colorIndex >= 4_i32 {
+        if (*this).colorIndex >= 4 {
             Fatal(
                 b"RenderTarget_BindTex2D: Max color attachments exceeded\0" as *const u8
                     as *const libc::c_char,
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex3D(mut this: *mut Tex3D, mut layer: i32) {
-    RenderTarget_BindTex3DLevel(this, layer, 0_i32);
+    RenderTarget_BindTex3DLevel(this, layer, 0);
 }
 
 #[no_mangle]
@@ -174,7 +174,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
     mut level: i32,
 ) {
     let mut this: *mut FBO = GetActive();
-    if (*this).colorIndex >= 4_i32 {
+    if (*this).colorIndex >= 4 {
         Fatal(
             b"RenderTarget_BindTex3D: Max color attachments exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -196,7 +196,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTexCube(mut this: *mut TexCube, mut face: CubeFace) {
-    RenderTarget_BindTexCubeLevel(this, face, 0_i32);
+    RenderTarget_BindTexCubeLevel(this, face, 0);
 }
 
 #[no_mangle]
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     mut level: i32,
 ) {
     let mut this: *mut FBO = GetActive();
-    if (*this).colorIndex >= 4_i32 {
+    if (*this).colorIndex >= 4 {
         Fatal(
             b"RenderTarget_BindTexCubeLevel: Max color attachments exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex2D(mut this: *mut Tex2D) {
-    RenderTarget_PushTex2DLevel(this, 0_i32);
+    RenderTarget_PushTex2DLevel(this, 0);
 }
 
 #[no_mangle]
@@ -240,7 +240,7 @@ pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(mut this: *mut Tex2D, mut l
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex3D(mut this: *mut Tex3D, mut layer: i32) {
-    RenderTarget_PushTex3DLevel(this, layer, 0_i32);
+    RenderTarget_PushTex3DLevel(this, layer, 0);
 }
 
 #[no_mangle]

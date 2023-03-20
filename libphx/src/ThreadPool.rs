@@ -32,7 +32,7 @@ pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool 
     let mut this = MemNew!(ThreadPool);
     (*this).threads = threads;
     (*this).thread = MemNewArray!(ThreadData, threads);
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < threads {
         let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
         (*td).handle = std::ptr::null_mut();
@@ -47,7 +47,7 @@ pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool 
 
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Free(mut this: *mut ThreadPool) {
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < (*this).threads {
         if !((*((*this).thread).offset(i as isize)).handle).is_null() {
             Fatal(
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn ThreadPool_Launch(
     mut fn_0: ThreadPoolFn,
     mut data: *mut libc::c_void,
 ) {
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < (*this).threads {
         let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
         (*td).fn_0 = fn_0;
@@ -89,7 +89,7 @@ pub unsafe extern "C" fn ThreadPool_Launch(
 
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Wait(mut this: *mut ThreadPool) {
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < (*this).threads {
         let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
         if !((*td).handle).is_null() {

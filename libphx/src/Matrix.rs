@@ -133,8 +133,8 @@ unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Mat
             + *src.offset(1) * *dst.offset(4)
             + *src.offset(2) * *dst.offset(8)
             + *src.offset(3) * *dst.offset(12));
-    let mut i: i32 = 0_i32;
-    while i < 16_i32 {
+    let mut i: i32 = 0;
+    while i < 16 {
         *dst.offset(i as isize) *= det;
         i += 1;
     }
@@ -163,8 +163,8 @@ unsafe extern "C" fn Matrix_IOTranspose(mut in_0: *const Matrix, mut out: *mut M
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Equal(mut a: *const Matrix, mut b: *const Matrix) -> bool {
-    let mut i: i32 = 0_i32;
-    while i < 16_i32 {
+    let mut i: i32 = 0;
+    while i < 16 {
         if (*a).m[i as usize] != (*b).m[i as usize] {
             return false;
         }
@@ -178,8 +178,8 @@ pub unsafe extern "C" fn Matrix_ApproximatelyEqual(
     mut a: *const Matrix,
     mut b: *const Matrix,
 ) -> bool {
-    let mut i: i32 = 0_i32;
-    while i < 16_i32 {
+    let mut i: i32 = 0;
+    while i < 16 {
         if !Float_ApproximatelyEqual((*a).m[i as usize] as f64, (*b).m[i as usize] as f64) {
             return false;
         }
@@ -207,8 +207,8 @@ pub unsafe extern "C" fn Matrix_InverseTranspose(mut this: *const Matrix) -> *mu
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Sum(mut a: *const Matrix, mut b: *const Matrix) -> *mut Matrix {
     let mut result: Matrix = Matrix { m: [0.; 16] };
-    let mut i: i32 = 0_i32;
-    while i < 16_i32 {
+    let mut i: i32 = 0;
+    while i < 16 {
         result.m[i as usize] = (*a).m[i as usize] + (*b).m[i as usize];
         i += 1;
     }
@@ -361,14 +361,14 @@ pub unsafe extern "C" fn Matrix_Perspective(
 pub unsafe extern "C" fn Matrix_Product(mut a: *const Matrix, mut b: *const Matrix) -> *mut Matrix {
     let mut result: Matrix = Matrix { m: [0.; 16] };
     let mut pResult: *mut f32 = (result.m).as_mut_ptr();
-    let mut i: i32 = 0_i32;
-    while i < 4_i32 {
-        let mut j: i32 = 0_i32;
-        while j < 4_i32 {
+    let mut i: i32 = 0;
+    while i < 4 {
+        let mut j: i32 = 0;
+        while j < 4 {
             let mut sum: f32 = 0.0f32;
-            let mut k: i32 = 0_i32;
-            while k < 4_i32 {
-                sum += (*a).m[(4_i32 * i + k) as usize] * (*b).m[(4_i32 * k + j) as usize];
+            let mut k: i32 = 0;
+            while k < 4 {
+                sum += (*a).m[(4 * i + k) as usize] * (*b).m[(4 * k + j) as usize];
                 k += 1;
             }
             let fresh0 = pResult;
@@ -553,8 +553,8 @@ pub unsafe extern "C" fn Matrix_MulBox(
     Matrix_MulPoint(this, &mut result, corners[0].x, corners[0].y, corners[0].z);
     (*out).lower = result;
     (*out).upper = result;
-    let mut i: i32 = 1_i32;
-    while i < 8_i32 {
+    let mut i: i32 = 1;
+    while i < 8 {
         Matrix_MulPoint(
             this,
             &mut result,
@@ -642,10 +642,10 @@ pub unsafe extern "C" fn Matrix_GetPos(mut this: *const Matrix, mut out: *mut Ve
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_GetRow(mut this: *const Matrix, mut out: *mut Vec4, mut row: i32) {
-    (*out).x = (*this).m[(4_i32 * row + 0_i32) as usize];
-    (*out).y = (*this).m[(4_i32 * row + 1_i32) as usize];
-    (*out).z = (*this).m[(4_i32 * row + 2_i32) as usize];
-    (*out).w = (*this).m[(4_i32 * row + 3_i32) as usize];
+    (*out).x = (*this).m[(4 * row + 0) as usize];
+    (*out).y = (*this).m[(4 * row + 1) as usize];
+    (*out).z = (*this).m[(4 * row + 2) as usize];
+    (*out).w = (*this).m[(4 * row + 3) as usize];
 }
 
 #[no_mangle]
@@ -804,13 +804,13 @@ pub unsafe extern "C" fn Matrix_ToQuat(mut this: *const Matrix, mut q: *mut Quat
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Print(mut this: *const Matrix) {
-    let mut i: i32 = 0_i32;
-    while i < 4_i32 {
-        let mut j: i32 = 0_i32;
-        while j < 4_i32 {
+    let mut i: i32 = 0;
+    while i < 4 {
+        let mut j: i32 = 0;
+        while j < 4 {
             libc::printf(
                 b"%f \0" as *const u8 as *const libc::c_char,
-                (*this).m[(4_i32 * i + j) as usize] as f64,
+                (*this).m[(4 * i + j) as usize] as f64,
             );
             j += 1;
         }

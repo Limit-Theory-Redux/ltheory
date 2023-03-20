@@ -64,10 +64,10 @@ pub unsafe extern "C" fn File_ReadBytes(mut path: *const libc::c_char) -> *mut B
     }
     libc::fseek(file, 0 as libc::c_long, libc::SEEK_END);
     let mut size: i64 = libc::ftell(file);
-    if size == 0_i64 {
+    if size == 0 {
         return std::ptr::null_mut();
     }
-    if size < 0_i64 {
+    if size < 0 {
         Fatal(
             b"File_Read: failed to get size of file '%s'\0" as *const u8 as *const libc::c_char,
             path,
@@ -82,8 +82,8 @@ pub unsafe extern "C" fn File_ReadBytes(mut path: *const libc::c_char) -> *mut B
         );
     }
     let mut buffer: *mut Bytes = Bytes_Create(size as u32);
-    let mut result: usize = libc::fread(Bytes_GetData(buffer), size as usize, 1_usize, file);
-    if result != 1_usize {
+    let mut result: usize = libc::fread(Bytes_GetData(buffer), size as usize, 1, file);
+    if result != 1 {
         Fatal(
             b"File_Read: failed to read correct number of bytes from '%s'\0" as *const u8
                 as *const libc::c_char,
@@ -100,12 +100,12 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const 
     if file.is_null() {
         return std::ptr::null();
     }
-    libc::fseek(file, 0 as libc::c_long, 2_i32);
+    libc::fseek(file, 0 as libc::c_long, 2);
     let mut size: i64 = libc::ftell(file);
-    if size == 0_i64 {
+    if size == 0 {
         return std::ptr::null();
     }
-    if size < 0_i64 {
+    if size < 0 {
         Fatal(
             b"File_ReadAscii: failed to get size of file '%s'\0" as *const u8
                 as *const libc::c_char,
@@ -114,10 +114,10 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const 
     }
     libc::rewind(file);
     let mut buffer: *mut libc::c_char = MemAlloc(
-        (std::mem::size_of::<libc::c_char>()).wrapping_mul((size as usize).wrapping_add(1_usize)),
+        (std::mem::size_of::<libc::c_char>()).wrapping_mul((size as usize).wrapping_add(1)),
     ) as *mut libc::c_char;
-    let mut result: usize = libc::fread(buffer as *mut libc::c_void, size as usize, 1_usize, file);
-    if result != 1_usize {
+    let mut result: usize = libc::fread(buffer as *mut libc::c_void, size as usize, 1, file);
+    if result != 1 {
         Fatal(
             b"File_Read: failed to read correct number of bytes from '%s'\0" as *const u8
                 as *const libc::c_char,
@@ -125,7 +125,7 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const 
         );
     }
     libc::fclose(file);
-    *buffer.offset(size as isize) = 0_i32 as libc::c_char;
+    *buffer.offset(size as isize) = 0 as libc::c_char;
     buffer as *const libc::c_char
 }
 
@@ -133,9 +133,9 @@ pub unsafe extern "C" fn File_ReadCstr(mut path: *const libc::c_char) -> *const 
 pub unsafe extern "C" fn File_Size(mut path: *const libc::c_char) -> i64 {
     let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
     if file.is_null() {
-        return 0_i64;
+        return 0;
     }
-    libc::fseek(file, 0 as libc::c_long, 2_i32);
+    libc::fseek(file, 0 as libc::c_long, 2);
     let mut size: i64 = libc::ftell(file);
     libc::fclose(file);
     size
@@ -143,7 +143,7 @@ pub unsafe extern "C" fn File_Size(mut path: *const libc::c_char) -> i64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn File_Read(mut this: *mut File, mut data: *mut libc::c_void, mut len: u32) {
-    libc::fread(data, len as usize, 1_usize, (*this).handle);
+    libc::fread(data, len as usize, 1, (*this).handle);
 }
 
 #[no_mangle]
@@ -152,7 +152,7 @@ pub unsafe extern "C" fn File_Write(
     mut data: *const libc::c_void,
     mut len: u32,
 ) {
-    libc::fwrite(data, len as usize, 1_usize, (*this).handle);
+    libc::fwrite(data, len as usize, 1, (*this).handle);
 }
 
 #[no_mangle]
@@ -160,7 +160,7 @@ pub unsafe extern "C" fn File_WriteStr(mut this: *mut File, mut data: *const lib
     libc::fwrite(
         data as *const libc::c_void,
         StrLen(data),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -171,7 +171,7 @@ pub unsafe extern "C" fn File_ReadI64(mut this: *mut File) -> i64 {
     libc::fread(
         &mut value as *mut i64 as *mut libc::c_void,
         std::mem::size_of::<i64>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -182,7 +182,7 @@ pub unsafe extern "C" fn File_WriteU64(mut this: *mut File, mut value: u64) {
     libc::fwrite(
         &mut value as *mut u64 as *const libc::c_void,
         std::mem::size_of::<u64>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -192,7 +192,7 @@ pub unsafe extern "C" fn File_WriteI8(mut this: *mut File, mut value: i8) {
     libc::fwrite(
         &mut value as *mut i8 as *const libc::c_void,
         std::mem::size_of::<i8>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -202,7 +202,7 @@ pub unsafe extern "C" fn File_WriteU32(mut this: *mut File, mut value: u32) {
     libc::fwrite(
         &mut value as *mut u32 as *const libc::c_void,
         std::mem::size_of::<u32>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -212,7 +212,7 @@ pub unsafe extern "C" fn File_WriteI16(mut this: *mut File, mut value: i16) {
     libc::fwrite(
         &mut value as *mut i16 as *const libc::c_void,
         std::mem::size_of::<i16>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn File_ReadU64(mut this: *mut File) -> u64 {
     libc::fread(
         &mut value as *mut u64 as *mut libc::c_void,
         std::mem::size_of::<u64>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -235,7 +235,7 @@ pub unsafe extern "C" fn File_ReadI32(mut this: *mut File) -> i32 {
     libc::fread(
         &mut value as *mut i32 as *mut libc::c_void,
         std::mem::size_of::<i32>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -247,7 +247,7 @@ pub unsafe extern "C" fn File_ReadU32(mut this: *mut File) -> u32 {
     libc::fread(
         &mut value as *mut u32 as *mut libc::c_void,
         std::mem::size_of::<u32>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -258,7 +258,7 @@ pub unsafe extern "C" fn File_WriteU16(mut this: *mut File, mut value: u16) {
     libc::fwrite(
         &mut value as *mut u16 as *const libc::c_void,
         std::mem::size_of::<u16>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -269,7 +269,7 @@ pub unsafe extern "C" fn File_ReadU8(mut this: *mut File) -> u8 {
     libc::fread(
         &mut value as *mut u8 as *mut libc::c_void,
         std::mem::size_of::<u8>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn File_ReadU16(mut this: *mut File) -> u16 {
     libc::fread(
         &mut value as *mut u16 as *mut libc::c_void,
         std::mem::size_of::<u16>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -293,7 +293,7 @@ pub unsafe extern "C" fn File_ReadI16(mut this: *mut File) -> i16 {
     libc::fread(
         &mut value as *mut i16 as *mut libc::c_void,
         std::mem::size_of::<i16>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -305,7 +305,7 @@ pub unsafe extern "C" fn File_ReadF32(mut this: *mut File) -> f32 {
     libc::fread(
         &mut value as *mut f32 as *mut libc::c_void,
         std::mem::size_of::<f32>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -317,7 +317,7 @@ pub unsafe extern "C" fn File_ReadF64(mut this: *mut File) -> f64 {
     libc::fread(
         &mut value as *mut f64 as *mut libc::c_void,
         std::mem::size_of::<f64>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value
@@ -328,7 +328,7 @@ pub unsafe extern "C" fn File_WriteU8(mut this: *mut File, mut value: u8) {
     libc::fwrite(
         &mut value as *mut u8 as *const libc::c_void,
         std::mem::size_of::<u8>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -338,7 +338,7 @@ pub unsafe extern "C" fn File_WriteI32(mut this: *mut File, mut value: i32) {
     libc::fwrite(
         &mut value as *mut i32 as *const libc::c_void,
         std::mem::size_of::<i32>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -348,7 +348,7 @@ pub unsafe extern "C" fn File_WriteI64(mut this: *mut File, mut value: i64) {
     libc::fwrite(
         &mut value as *mut i64 as *const libc::c_void,
         std::mem::size_of::<i64>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -358,7 +358,7 @@ pub unsafe extern "C" fn File_WriteF32(mut this: *mut File, mut value: f32) {
     libc::fwrite(
         &mut value as *mut f32 as *const libc::c_void,
         std::mem::size_of::<f32>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -368,7 +368,7 @@ pub unsafe extern "C" fn File_WriteF64(mut this: *mut File, mut value: f64) {
     libc::fwrite(
         &mut value as *mut f64 as *const libc::c_void,
         std::mem::size_of::<f64>(),
-        1_usize,
+        1,
         (*this).handle,
     );
 }
@@ -379,7 +379,7 @@ pub unsafe extern "C" fn File_ReadI8(mut this: *mut File) -> i8 {
     libc::fread(
         &mut value as *mut i8 as *mut libc::c_void,
         std::mem::size_of::<i8>(),
-        1_usize,
+        1,
         (*this).handle,
     );
     value

@@ -7,19 +7,19 @@ use libc;
 
 static mut alphaStack: [f32; 16] = [0.; 16];
 
-static mut alphaIndex: i32 = -1_i32;
+static mut alphaIndex: i32 = -1;
 
 static mut color: Vec4 = Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32);
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PushAlpha(mut a: f32) {
-    if alphaIndex + 1_i32 >= 16_i32 {
+    if alphaIndex + 1 >= 16 {
         Fatal(
             b"Draw_PushAlpha: Maximum alpha stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
         );
     }
-    let mut prevAlpha: f32 = if alphaIndex >= 0_i32 {
+    let mut prevAlpha: f32 = if alphaIndex >= 0 {
         alphaStack[alphaIndex as usize]
     } else {
         1.0f32
@@ -32,14 +32,14 @@ pub unsafe extern "C" fn Draw_PushAlpha(mut a: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PopAlpha() {
-    if alphaIndex < 0_i32 {
+    if alphaIndex < 0 {
         Fatal(
             b"Draw_PopAlpha Attempting to pop an empty alpha stack\0" as *const u8
                 as *const libc::c_char,
         );
     }
     alphaIndex -= 1;
-    let mut alpha: f32 = if alphaIndex >= 0_i32 {
+    let mut alpha: f32 = if alphaIndex >= 0 {
         alphaStack[alphaIndex as usize]
     } else {
         1.0f32
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn Draw_Border(mut s: f32, mut x: f32, mut y: f32, mut w: 
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3) {
-    Metric_AddDrawImm(6_i32, 12_i32, 24_i32);
+    Metric_AddDrawImm(6, 12, 24);
     gl::Begin(gl::QUADS);
     gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
     gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn Draw_Color(r: f32, g: f32, b: f32, a: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Flush() {
-    Metric_Inc(0x6_i32);
+    Metric_Inc(0x6);
     gl::Finish();
 }
 
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn Draw_Plane(mut p: *const Vec3, mut n: *const Vec3, mut 
     let mut p1: Vec3 = *p + (e1 * scale) + (e2 * -scale);
     let mut p2: Vec3 = *p + (e1 * scale) + (e2 * scale);
     let mut p3: Vec3 = *p + (e1 * -scale) + (e2 * scale);
-    Metric_AddDrawImm(1_i32, 2_i32, 4_i32);
+    Metric_AddDrawImm(1, 2, 4);
     gl::Begin(gl::QUADS);
     gl::Vertex3f(p0.x, p0.y, p0.z);
     gl::Vertex3f(p1.x, p1.y, p1.z);
@@ -216,9 +216,9 @@ pub unsafe extern "C" fn Draw_PointSize(size: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
-    Metric_AddDrawImm(1_i32, count - 2_i32, count);
+    Metric_AddDrawImm(1, count - 2, count);
     gl::Begin(gl::POLYGON);
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < count {
         gl::Vertex2f(
             (*points.offset(i as isize)).x,
@@ -231,9 +231,9 @@ pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Poly3(mut points: *const Vec3, mut count: i32) {
-    Metric_AddDrawImm(1_i32, count - 2_i32, count);
+    Metric_AddDrawImm(1, count - 2, count);
     gl::Begin(gl::POLYGON);
-    let mut i: i32 = 0_i32;
+    let mut i: i32 = 0;
     while i < count {
         gl::Vertex3f(
             (*points.offset(i as isize)).x,
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn Draw_Quad(
     mut p3: *const Vec2,
     mut p4: *const Vec2,
 ) {
-    Metric_AddDrawImm(1_i32, 2_i32, 4_i32);
+    Metric_AddDrawImm(1, 2, 4);
     gl::Begin(gl::QUADS);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex2f((*p1).x, (*p1).y);
@@ -272,7 +272,7 @@ pub unsafe extern "C" fn Draw_Quad3(
     mut p3: *const Vec3,
     mut p4: *const Vec3,
 ) {
-    Metric_AddDrawImm(1_i32, 2_i32, 4_i32);
+    Metric_AddDrawImm(1, 2, 4);
     gl::Begin(gl::QUADS);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex3f((*p1).x, (*p1).y, (*p1).z);
@@ -289,7 +289,7 @@ pub unsafe extern "C" fn Draw_Quad3(
 pub unsafe extern "C" fn Draw_Rect(mut x1: f32, mut y1: f32, mut xs: f32, mut ys: f32) {
     let mut x2: f32 = x1 + xs;
     let mut y2: f32 = y1 + ys;
-    Metric_AddDrawImm(1_i32, 2_i32, 4_i32);
+    Metric_AddDrawImm(1, 2, 4);
     gl::Begin(gl::QUADS);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex2f(x1, y1);
@@ -339,9 +339,9 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     let fRes: f32 = res as f32;
 
     // First Row
-    Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3_usize) as i32);
+    Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32);
     gl::Begin(gl::TRIANGLES);
-    let mut lastTheta: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
+    let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
     let mut phi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
     let mut tc: Vec3 = *p + Spherical(r, 0.0f32, 0.0f32);
     let mut iTheta: usize = 0;
@@ -359,13 +359,13 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
 
     // Middle Rows
     Metric_AddDrawImm(
-        res.wrapping_sub(2_usize) as i32,
-        2_usize.wrapping_mul(res.wrapping_sub(2_usize)) as i32,
-        4_usize.wrapping_mul(res.wrapping_sub(2_usize)) as i32,
+        res.wrapping_sub(2) as i32,
+        2_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
+        4_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
     );
     gl::Begin(gl::QUADS);
     let mut lastPhi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
-    let mut lastTheta_0: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
+    let mut lastTheta_0: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
     let mut iPhi: usize = 2;
     while iPhi < res {
         let mut phi_0: f32 = iPhi as f32 / fRes * std::f32::consts::PI;
@@ -389,10 +389,10 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
     gl::End();
 
     // Bottom Row
-    Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3_usize) as i32);
+    Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32);
     gl::Begin(gl::TRIANGLES);
-    let mut lastTheta_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::TAU;
-    let mut phi_1: f32 = res.wrapping_sub(1_usize) as f32 / fRes * std::f32::consts::PI;
+    let mut lastTheta_1: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
+    let mut phi_1: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::PI;
     let mut bc: Vec3 = *p + Spherical(r, 0.0f32, std::f32::consts::PI);
     let mut iTheta_1: usize = 0;
     while iTheta_1 < res {
@@ -410,7 +410,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Tri(mut v1: *const Vec2, mut v2: *const Vec2, mut v3: *const Vec2) {
-    Metric_AddDrawImm(1_i32, 1_i32, 3_i32);
+    Metric_AddDrawImm(1, 1, 3);
     gl::Begin(gl::TRIANGLES);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex2f((*v1).x, (*v1).y);
@@ -423,7 +423,7 @@ pub unsafe extern "C" fn Draw_Tri(mut v1: *const Vec2, mut v2: *const Vec2, mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Tri3(mut v1: *const Vec3, mut v2: *const Vec3, mut v3: *const Vec3) {
-    Metric_AddDrawImm(1_i32, 1_i32, 3_i32);
+    Metric_AddDrawImm(1, 1, 3);
     gl::Begin(gl::TRIANGLES);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex3f((*v1).x, (*v1).y, (*v1).z);

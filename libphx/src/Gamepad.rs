@@ -85,7 +85,7 @@ pub unsafe extern "C" fn Gamepad_Close(mut this: *mut Gamepad) {
 pub unsafe extern "C" fn Gamepad_AddMappings(mut file: *const libc::c_char) -> i32 {
     SDL_GameControllerAddMappingsFromRW(
         SDL_RWFromFile(file, b"rb\0" as *const u8 as *const libc::c_char),
-        1_i32,
+        1,
     )
 }
 
@@ -117,7 +117,7 @@ pub unsafe extern "C" fn Gamepad_GetButton(
     mut this: *mut Gamepad,
     mut button: GamepadButton,
 ) -> bool {
-    SDL_GameControllerGetButton((*this).handle, button as SDL_GameControllerButton) as i32 == 1_i32
+    SDL_GameControllerGetButton((*this).handle, button as SDL_GameControllerButton) as i32 == 1
 }
 
 #[no_mangle]
@@ -153,7 +153,7 @@ pub unsafe extern "C" fn Gamepad_GetIdleTime(mut this: *mut Gamepad) -> f64 {
 pub unsafe extern "C" fn Gamepad_GetID(mut this: *mut Gamepad) -> i32 {
     let mut joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick((*this).handle);
     if joystick.is_null() {
-        return -1_i32;
+        return -1;
     }
     SDL_JoystickInstanceID(joystick)
 }

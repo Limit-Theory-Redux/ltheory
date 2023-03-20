@@ -72,7 +72,7 @@ pub unsafe extern "C" fn MemMove(
 
 #[inline]
 pub unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: usize) {
-    libc::memset(dst, 0_i32, size);
+    libc::memset(dst, 0, size);
 }
 
 #[inline]
@@ -95,7 +95,7 @@ pub unsafe extern "C" fn StrDup(mut s: *const libc::c_char) -> *const libc::c_ch
     if s.is_null() {
         return std::ptr::null();
     }
-    let mut len: usize = (StrLen(s)).wrapping_add(1_usize);
+    let mut len: usize = (StrLen(s)).wrapping_add(1);
     let mut buf: *mut libc::c_char = StrAlloc(len);
     libc::memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
     buf as *const libc::c_char
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn StrLen(mut s: *const libc::c_char) -> usize {
 
 #[inline]
 pub unsafe extern "C" fn StrEqual(mut a: *const libc::c_char, mut b: *const libc::c_char) -> bool {
-    libc::strcmp(a, b) == 0_i32
+    libc::strcmp(a, b) == 0
 }
 
 #[inline]
@@ -156,7 +156,7 @@ pub unsafe extern "C" fn StrReplace(
         return std::ptr::null();
     }
     len_search = StrLen(search);
-    if len_search == 0_usize {
+    if len_search == 0 {
         return std::ptr::null();
     }
     if replace.is_null() {
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn StrReplace(
     result = StrAlloc(
         (StrLen(s))
             .wrapping_add(len_replace.wrapping_sub(len_search).wrapping_mul(count))
-            .wrapping_add(1_usize),
+            .wrapping_add(1),
     );
     tmp = result;
     loop {
@@ -209,7 +209,7 @@ pub unsafe extern "C" fn StrSubStr(
     mut end: *const libc::c_char,
 ) -> *const libc::c_char {
     let mut len: usize = end.offset_from(begin) as libc::c_long as usize;
-    let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1_usize));
+    let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1));
     let mut pResult: *mut libc::c_char = result;
     while begin != end {
         let fresh1 = begin;
@@ -218,7 +218,7 @@ pub unsafe extern "C" fn StrSubStr(
         pResult = pResult.offset(1);
         *fresh2 = *fresh1;
     }
-    *result.add(len) = 0_i32 as libc::c_char;
+    *result.add(len) = 0 as libc::c_char;
     result as *const libc::c_char
 }
 
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn StrSub(
     let mut len: usize = begin
         .add((StrLen(s)).wrapping_add(StrLen(replace)))
         .offset_from(end) as libc::c_long as usize;
-    let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1_usize));
+    let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1));
     let mut pResult: *mut libc::c_char = result;
     while s != begin {
         let fresh3 = s;
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn StrSub(
         pResult = pResult.offset(1);
         *fresh8 = *fresh7;
     }
-    *pResult = 0_i32 as libc::c_char;
+    *pResult = 0 as libc::c_char;
     result as *const libc::c_char
 }
 
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn StrAdd(
     mut b: *const libc::c_char,
 ) -> *const libc::c_char {
     let mut buf: *mut libc::c_char =
-        StrAlloc((StrLen(a)).wrapping_add(StrLen(b)).wrapping_add(1_usize));
+        StrAlloc((StrLen(a)).wrapping_add(StrLen(b)).wrapping_add(1));
     let mut cur: *mut libc::c_char = buf;
     while *a != 0 {
         let fresh9 = a;
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn StrAdd(
         cur = cur.offset(1);
         *fresh12 = *fresh11;
     }
-    *cur = 0_i32 as libc::c_char;
+    *cur = 0 as libc::c_char;
     buf as *const libc::c_char
 }
 
@@ -295,7 +295,7 @@ pub unsafe extern "C" fn StrAdd3(
         (StrLen(a))
             .wrapping_add(StrLen(b))
             .wrapping_add(StrLen(c))
-            .wrapping_add(1_usize),
+            .wrapping_add(1),
     );
     let mut cur: *mut libc::c_char = buf;
     while *a != 0 {
@@ -319,6 +319,6 @@ pub unsafe extern "C" fn StrAdd3(
         cur = cur.offset(1);
         *fresh5 = *fresh4;
     }
-    *cur = 0_i32 as libc::c_char;
+    *cur = 0 as libc::c_char;
     buf as *const libc::c_char
 }

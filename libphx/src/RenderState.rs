@@ -8,23 +8,23 @@ use libc;
 
 static mut wireframe: [bool; 16] = [false; 16];
 
-static mut wireframeIndex: i32 = -1_i32;
+static mut wireframeIndex: i32 = -1;
 
 static mut depthTest: [bool; 16] = [false; 16];
 
-static mut depthTestIndex: i32 = -1_i32;
+static mut depthTestIndex: i32 = -1;
 
-static mut blendModeIndex: i32 = -1_i32;
+static mut blendModeIndex: i32 = -1;
 
 static mut blendMode: [BlendMode; 16] = [0; 16];
 
 static mut cullFace: [CullFace; 16] = [0; 16];
 
-static mut cullFaceIndex: i32 = -1_i32;
+static mut cullFaceIndex: i32 = -1;
 
 static mut depthWritable: [bool; 16] = [false; 16];
 
-static mut depthWritableIndex: i32 = -1_i32;
+static mut depthWritableIndex: i32 = -1;
 
 #[inline]
 unsafe extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
@@ -93,8 +93,8 @@ unsafe extern "C" fn RenderState_SetWireframe(mut enabled: bool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushAllDefaults() {
-    RenderState_PushBlendMode(2_i32);
-    RenderState_PushCullFace(0_i32);
+    RenderState_PushBlendMode(2);
+    RenderState_PushCullFace(0);
     RenderState_PushDepthTest(false);
     RenderState_PushDepthWritable(true);
     RenderState_PushWireframe(false);
@@ -111,35 +111,35 @@ pub unsafe extern "C" fn RenderState_PopAll() {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopBlendMode() {
-    if blendModeIndex < 0_i32 {
+    if blendModeIndex < 0 {
         Fatal(
             b"RenderState_PopBlendMode: Attempting to pop an empty state stack\0" as *const u8
                 as *const libc::c_char,
         );
     }
     blendModeIndex -= 1;
-    if blendModeIndex >= 0_i32 {
+    if blendModeIndex >= 0 {
         RenderState_SetBlendMode(blendMode[blendModeIndex as usize]);
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopWireframe() {
-    if wireframeIndex < 0_i32 {
+    if wireframeIndex < 0 {
         Fatal(
             b"RenderState_PopWireframe: Attempting to pop an empty state stack\0" as *const u8
                 as *const libc::c_char,
         );
     }
     wireframeIndex -= 1;
-    if wireframeIndex >= 0_i32 {
+    if wireframeIndex >= 0 {
         RenderState_SetWireframe(wireframe[wireframeIndex as usize]);
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushBlendMode(mut value: BlendMode) {
-    if blendModeIndex + 1_i32 >= 16_i32 {
+    if blendModeIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushBlendMode: Maximum state stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -152,49 +152,49 @@ pub unsafe extern "C" fn RenderState_PushBlendMode(mut value: BlendMode) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopDepthTest() {
-    if depthTestIndex < 0_i32 {
+    if depthTestIndex < 0 {
         Fatal(
             b"RenderState_PopDepthTest: Attempting to pop an empty state stack\0" as *const u8
                 as *const libc::c_char,
         );
     }
     depthTestIndex -= 1;
-    if depthTestIndex >= 0_i32 {
+    if depthTestIndex >= 0 {
         RenderState_SetDepthTest(depthTest[depthTestIndex as usize]);
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopCullFace() {
-    if cullFaceIndex < 0_i32 {
+    if cullFaceIndex < 0 {
         Fatal(
             b"RenderState_PopCullFace: Attempting to pop an empty state stack\0" as *const u8
                 as *const libc::c_char,
         );
     }
     cullFaceIndex -= 1;
-    if cullFaceIndex >= 0_i32 {
+    if cullFaceIndex >= 0 {
         RenderState_SetCullFace(cullFace[cullFaceIndex as usize]);
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopDepthWritable() {
-    if depthWritableIndex < 0_i32 {
+    if depthWritableIndex < 0 {
         Fatal(
             b"RenderState_PopDepthWritable: Attempting to pop an empty state stack\0" as *const u8
                 as *const libc::c_char,
         );
     }
     depthWritableIndex -= 1;
-    if depthWritableIndex >= 0_i32 {
+    if depthWritableIndex >= 0 {
         RenderState_SetDepthWritable(depthWritable[depthWritableIndex as usize]);
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushCullFace(mut value: CullFace) {
-    if cullFaceIndex + 1_i32 >= 16_i32 {
+    if cullFaceIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushCullFace: Maximum state stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -207,7 +207,7 @@ pub unsafe extern "C" fn RenderState_PushCullFace(mut value: CullFace) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushDepthTest(mut value: bool) {
-    if depthTestIndex + 1_i32 >= 16_i32 {
+    if depthTestIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushDepthTest: Maximum state stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -220,7 +220,7 @@ pub unsafe extern "C" fn RenderState_PushDepthTest(mut value: bool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushDepthWritable(mut value: bool) {
-    if depthWritableIndex + 1_i32 >= 16_i32 {
+    if depthWritableIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushDepthWritable: Maximum state stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
@@ -233,7 +233,7 @@ pub unsafe extern "C" fn RenderState_PushDepthWritable(mut value: bool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushWireframe(mut value: bool) {
-    if wireframeIndex + 1_i32 >= 16_i32 {
+    if wireframeIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushWireframe: Maximum state stack depth exceeded\0" as *const u8
                 as *const libc::c_char,
