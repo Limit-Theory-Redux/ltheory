@@ -84,7 +84,7 @@ pub unsafe extern "C" fn Tex3D_Free(mut this: *mut Tex3D) {
         (*this)._refCount <= 0
     } {
         gl::DeleteTextures(1, &mut (*this).handle);
-        MemFree(this as *const libc::c_void);
+        MemFree(this as *const _);
     }
 }
 

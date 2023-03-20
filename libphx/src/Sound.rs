@@ -704,7 +704,7 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: *con
         //         .as_ptr(),
         // );
         // FMOD_CheckError(
-        //     FMOD_Channel_SetUserData((*this).handle, this as *mut libc::c_void),
+        //     FMOD_Channel_SetUserData((*this).handle, this as *mut _),
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
         //         as *const libc::c_char,
         //     34 as i32,

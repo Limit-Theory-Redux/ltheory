@@ -20,13 +20,13 @@ pub unsafe extern "C" fn Keyboard_Init() {
     stateCurr = MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul(size as usize))
         as *mut libc::c_uchar;
     MemCpy(
-        stateLast as *mut libc::c_void,
-        state as *const libc::c_void,
+        stateLast as *mut _,
+        state as *const _,
         size as usize,
     );
     MemCpy(
-        stateCurr as *mut libc::c_void,
-        state as *const libc::c_void,
+        stateCurr as *mut _,
+        state as *const _,
         size as usize,
     );
     lastAction = SDL_GetPerformanceCounter();
@@ -34,8 +34,8 @@ pub unsafe extern "C" fn Keyboard_Init() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_Free() {
-    MemFree(stateLast as *const libc::c_void);
-    MemFree(stateCurr as *const libc::c_void);
+    MemFree(stateLast as *const _);
+    MemFree(stateCurr as *const _);
 }
 
 #[no_mangle]
@@ -43,8 +43,8 @@ pub unsafe extern "C" fn Keyboard_UpdatePre() {
     let mut size: i32 = 0;
     let mut state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
     MemCpy(
-        stateLast as *mut libc::c_void,
-        state as *const libc::c_void,
+        stateLast as *mut _,
+        state as *const _,
         size as usize,
     );
 }
@@ -54,8 +54,8 @@ pub unsafe extern "C" fn Keyboard_UpdatePost() {
     let mut size: i32 = 0;
     let mut state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
     MemCpy(
-        stateCurr as *mut libc::c_void,
-        state as *const libc::c_void,
+        stateCurr as *mut _,
+        state as *const _,
         size as usize,
     );
     let mut i: i32 = 0;

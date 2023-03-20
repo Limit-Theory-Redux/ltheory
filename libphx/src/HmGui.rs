@@ -146,7 +146,7 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: u32) 
         (*(*e).parent).children = ((*(*e).parent).children).wrapping_add(1);
         (*e).hash = Hash_FNV64_Incremental(
             (*(*e).parent).widget.hash,
-            &mut (*(*e).parent).children as *mut u32 as *const libc::c_void,
+            &mut (*(*e).parent).children as *mut u32 as *const _,
             std::mem::size_of::<u32>() as i32,
         );
         if !((*e).next).is_null() {
@@ -210,7 +210,7 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: u32) {
 
 unsafe extern "C" fn HmGui_FreeText(mut e: *mut HmGuiText) {
     StrFree((*e).text);
-    MemFree(e as *const libc::c_void);
+    MemFree(e as *const _);
 }
 
 unsafe extern "C" fn HmGui_FreeGroup(mut g: *mut HmGuiGroup) {
@@ -225,12 +225,12 @@ unsafe extern "C" fn HmGui_FreeGroup(mut g: *mut HmGuiGroup) {
                 HmGui_FreeText(e as *mut HmGuiText);
             }
             _ => {
-                MemFree(e as *const libc::c_void);
+                MemFree(e as *const _);
             }
         }
         e = next;
     }
-    MemFree(g as *const libc::c_void);
+    MemFree(g as *const _);
 }
 
 unsafe extern "C" fn HmGui_GetData(mut g: *mut HmGuiGroup) -> *mut HmGuiData {
@@ -240,7 +240,7 @@ unsafe extern "C" fn HmGui_GetData(mut g: *mut HmGuiGroup) -> *mut HmGuiData {
         (*data).offset = Vec2::new(0.0f32, 0.0f32);
         (*data).minSize = Vec2::new(0.0f32, 0.0f32);
         (*data).size = Vec2::new(0.0f32, 0.0f32);
-        HashMap_SetRaw(this.data, (*g).widget.hash, data as *mut libc::c_void);
+        HashMap_SetRaw(this.data, (*g).widget.hash, data as *mut _);
     }
     data
 }
@@ -936,7 +936,7 @@ pub unsafe extern "C" fn HmGui_PopStyle(mut depth: i32) {
     while i < depth {
         let mut style: *mut HmGuiStyle = this.style;
         this.style = (*style).prev;
-        MemFree(style as *const libc::c_void);
+        MemFree(style as *const _);
         i += 1;
     }
 }

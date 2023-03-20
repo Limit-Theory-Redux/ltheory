@@ -78,7 +78,7 @@ pub unsafe extern "C" fn Gamepad_Close(mut this: *mut Gamepad) {
         (*(*this).gamepadList_next).gamepadList_prev = (*this).gamepadList_prev;
     }
     SDL_GameControllerClose((*this).handle);
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]

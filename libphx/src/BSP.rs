@@ -199,7 +199,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                             let mut pData: *mut *mut libc::c_void =
                                 &mut rayStack_data as *mut *mut DelayRay as *mut *mut libc::c_void;
                             *pData = MemRealloc(
-                                rayStack_data as *mut libc::c_void,
+                                rayStack_data as *mut _,
                                 (rayStack_capacity as usize).wrapping_mul(elemSize),
                             );
                         }
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                     let mut pData_0: *mut *mut libc::c_void =
                         &mut rayStack_data as *mut *mut DelayRay as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
-                        rayStack_data as *mut libc::c_void,
+                        rayStack_data as *mut _,
                         (rayStack_capacity as usize).wrapping_mul(elemSize_0),
                     );
                 }
@@ -334,7 +334,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                     let mut pData: *mut *mut libc::c_void =
                         &mut nodeStack_data as *mut *mut Delay as *mut *mut libc::c_void;
                     *pData = MemRealloc(
-                        nodeStack_data as *mut libc::c_void,
+                        nodeStack_data as *mut _,
                         (nodeStack_capacity as usize).wrapping_mul(elemSize),
                     );
                 }
@@ -647,7 +647,7 @@ unsafe extern "C" fn BSPBuild_AppendPolygon(
         let mut pData: *mut *mut libc::c_void =
             &mut (*nodeData).polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*nodeData).polygons_data as *mut libc::c_void,
+            (*nodeData).polygons_data as *mut _,
             ((*nodeData).polygons_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -698,7 +698,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         let mut pData: *mut *mut libc::c_void =
             &mut backNodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            backNodeData.polygons_data as *mut libc::c_void,
+            backNodeData.polygons_data as *mut _,
             (backNodeData.polygons_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -717,7 +717,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         let mut pData_0: *mut *mut libc::c_void =
             &mut frontNodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
-            frontNodeData.polygons_data as *mut libc::c_void,
+            frontNodeData.polygons_data as *mut _,
             (frontNodeData.polygons_capacity as usize).wrapping_mul(elemSize_0),
         );
     }
@@ -763,7 +763,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
                 );
                 BSPBuild_AppendPolygon(&mut backNodeData, &mut backPart);
                 BSPBuild_AppendPolygon(&mut frontNodeData, &mut frontPart);
-                MemFree((*polygon).vertices_data as *const libc::c_void);
+                MemFree((*polygon).vertices_data as *const _);
                 current_block_37 = 17184638872671510253;
             }
             _ => Fatal(
@@ -787,7 +787,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
         }
         polygon = polygon.offset(1);
     }
-    MemFree((*nodeData).polygons_data as *const libc::c_void);
+    MemFree((*nodeData).polygons_data as *const _);
     (*node).plane = splitPlane;
     (*node).child[BackIndex as usize] = BSPBuild_CreateNode(bsp, &mut backNodeData);
     (*node).child[FrontIndex as usize] = BSPBuild_CreateNode(bsp, &mut frontNodeData);
@@ -826,7 +826,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
             let mut pData: *mut *mut libc::c_void =
                 &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
             *pData = MemRealloc(
-                (*this).nodes_data as *mut libc::c_void,
+                (*this).nodes_data as *mut _,
                 ((*this).nodes_capacity as usize).wrapping_mul(elemSize),
             );
         }
@@ -883,12 +883,12 @@ unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
         let mut __iterend: *mut PolygonEx =
             ((*node).polygons_data).offset((*node).polygons_size as isize);
         while polygon < __iterend {
-            MemFree((*polygon).vertices_data as *const libc::c_void);
+            MemFree((*polygon).vertices_data as *const _);
             polygon = polygon.offset(1);
         }
-        MemFree((*node).polygons_data as *const libc::c_void);
+        MemFree((*node).polygons_data as *const _);
     }
-    MemFree(node as *const libc::c_void);
+    MemFree(node as *const _);
 }
 
 #[no_mangle]
@@ -913,7 +913,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut pData: *mut *mut libc::c_void =
             &mut nodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            nodeData.polygons_data as *mut libc::c_void,
+            nodeData.polygons_data as *mut _,
             (nodeData.polygons_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -937,7 +937,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             let mut pData_0: *mut *mut libc::c_void =
                 &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
-                polygon.vertices_data as *mut libc::c_void,
+                polygon.vertices_data as *mut _,
                 (polygon.vertices_capacity as usize).wrapping_mul(elemSize_0),
             );
         }
@@ -951,7 +951,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             let mut pData_1: *mut *mut libc::c_void =
                 &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_1 = MemRealloc(
-                polygon.vertices_data as *mut libc::c_void,
+                polygon.vertices_data as *mut _,
                 (polygon.vertices_capacity as usize).wrapping_mul(elemSize_1),
             );
         }
@@ -968,7 +968,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             let mut pData_2: *mut *mut libc::c_void =
                 &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_2 = MemRealloc(
-                polygon.vertices_data as *mut libc::c_void,
+                polygon.vertices_data as *mut _,
                 (polygon.vertices_capacity as usize).wrapping_mul(elemSize_2),
             );
         }
@@ -985,7 +985,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             let mut pData_3: *mut *mut libc::c_void =
                 &mut polygon.vertices_data as *mut *mut Vec3 as *mut *mut libc::c_void;
             *pData_3 = MemRealloc(
-                polygon.vertices_data as *mut libc::c_void,
+                polygon.vertices_data as *mut _,
                 (polygon.vertices_capacity as usize).wrapping_mul(elemSize_3),
             );
         }
@@ -1002,7 +1002,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
             let mut pData_4: *mut *mut libc::c_void =
                 &mut nodeData.polygons_data as *mut *mut PolygonEx as *mut *mut libc::c_void;
             *pData_4 = MemRealloc(
-                nodeData.polygons_data as *mut libc::c_void,
+                nodeData.polygons_data as *mut _,
                 (nodeData.polygons_capacity as usize).wrapping_mul(elemSize_4),
             );
         }
@@ -1033,7 +1033,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut pData_5: *mut *mut libc::c_void =
             &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_5 = MemRealloc(
-            (*this).triangles_data as *mut libc::c_void,
+            (*this).triangles_data as *mut _,
             ((*this).triangles_capacity as usize).wrapping_mul(elemSize_5),
         );
     }
@@ -1047,7 +1047,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut pData_6: *mut *mut libc::c_void =
             &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_6 = MemRealloc(
-            (*this).triangles_data as *mut libc::c_void,
+            (*this).triangles_data as *mut _,
             ((*this).triangles_capacity as usize).wrapping_mul(elemSize_6),
         );
     }
@@ -1064,7 +1064,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut pData_7: *mut *mut libc::c_void =
             &mut (*this).triangles_data as *mut *mut Triangle as *mut *mut libc::c_void;
         *pData_7 = MemRealloc(
-            (*this).triangles_data as *mut libc::c_void,
+            (*this).triangles_data as *mut _,
             ((*this).triangles_capacity as usize).wrapping_mul(elemSize_7),
         );
     }
@@ -1093,7 +1093,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut pData_8: *mut *mut libc::c_void =
             &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
         *pData_8 = MemRealloc(
-            (*this).nodes_data as *mut libc::c_void,
+            (*this).nodes_data as *mut _,
             ((*this).nodes_capacity as usize).wrapping_mul(elemSize_8),
         );
     }
@@ -1107,7 +1107,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut pData_9: *mut *mut libc::c_void =
             &mut (*this).nodes_data as *mut *mut BSPNode as *mut *mut libc::c_void;
         *pData_9 = MemRealloc(
-            (*this).nodes_data as *mut libc::c_void,
+            (*this).nodes_data as *mut _,
             ((*this).nodes_capacity as usize).wrapping_mul(elemSize_9),
         );
     }
@@ -1125,9 +1125,9 @@ pub unsafe extern "C" fn BSP_Free(mut this: *mut BSP) {
     if this.is_null() {
         return;
     }
-    MemFree((*this).nodes_data as *const libc::c_void);
-    MemFree((*this).triangles_data as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).nodes_data as *const _);
+    MemFree((*this).triangles_data as *const _);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -1346,7 +1346,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                     let mut pData: *mut *mut libc::c_void =
                         &mut nodeStack_data as *mut *mut Delay as *mut *mut libc::c_void;
                     *pData = MemRealloc(
-                        nodeStack_data as *mut libc::c_void,
+                        nodeStack_data as *mut _,
                         (nodeStack_capacity as usize).wrapping_mul(elemSize),
                     );
                 }
@@ -1384,7 +1384,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                             &mut (*sphereProf).triangleTests_data as *mut *mut TriangleTest
                                 as *mut *mut libc::c_void;
                         *pData_0 = MemRealloc(
-                            (*sphereProf).triangleTests_data as *mut libc::c_void,
+                            (*sphereProf).triangleTests_data as *mut _,
                             ((*sphereProf).triangleTests_capacity as usize)
                                 .wrapping_mul(elemSize_0),
                         );
@@ -1414,7 +1414,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                             &mut (*sphereProf).triangleTests_data as *mut *mut TriangleTest
                                 as *mut *mut libc::c_void;
                         *pData_1 = MemRealloc(
-                            (*sphereProf).triangleTests_data as *mut libc::c_void,
+                            (*sphereProf).triangleTests_data as *mut _,
                             ((*sphereProf).triangleTests_capacity as usize)
                                 .wrapping_mul(elemSize_1),
                         );

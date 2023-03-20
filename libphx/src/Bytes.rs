@@ -65,12 +65,12 @@ pub unsafe extern "C" fn Bytes_Load(mut path: *const libc::c_char) -> *mut Bytes
 
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Free(mut this: *mut Bytes) {
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_GetData(mut this: *mut Bytes) -> *mut libc::c_void {
-    &mut (*this).data as *mut libc::c_char as *mut libc::c_void
+    &mut (*this).data as *mut libc::c_char as *mut _
 }
 
 #[no_mangle]
@@ -94,7 +94,7 @@ pub extern "C" fn Bytes_Compress(mut bytes: *mut Bytes) -> *mut Bytes {
     }
 
     let result = encoder.finish().unwrap();
-    unsafe { Bytes_FromData(result.as_ptr() as *const libc::c_void, result.len() as u32) }
+    unsafe { Bytes_FromData(result.as_ptr() as *const _, result.len() as u32) }
 }
 
 #[no_mangle]
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn Bytes_Decompress(mut bytes: *mut Bytes) -> *mut Bytes {
     }
 
     let result = decoder.finish().unwrap();
-    unsafe { Bytes_FromData(result.as_ptr() as *const libc::c_void, result.len() as u32) }
+    unsafe { Bytes_FromData(result.as_ptr() as *const _, result.len() as u32) }
 }
 
 #[no_mangle]
@@ -140,7 +140,7 @@ pub unsafe extern "C" fn Bytes_Read(
     MemCpy(
         data,
         (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize)
-            as *const libc::c_void,
+            as *const _,
         len as usize,
     );
     (*this).cursor = (*this).cursor.wrapping_add(len);
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn Bytes_Write(
 ) {
     MemCpy(
         (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize)
-            as *mut libc::c_void,
+            as *mut _,
         data,
         len as usize,
     );
@@ -166,8 +166,8 @@ pub unsafe extern "C" fn Bytes_WriteStr(mut this: *mut Bytes, mut data: *const l
     let mut len: usize = StrLen(data);
     MemCpy(
         (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize)
-            as *mut libc::c_void,
-        data as *const libc::c_void,
+            as *mut _,
+        data as *const _,
         len,
     );
     (*this).cursor = (*this).cursor.wrapping_add(len as u32);
@@ -378,7 +378,7 @@ pub unsafe extern "C" fn Bytes_Save(mut this: *mut Bytes, mut path: *const libc:
     }
     File_Write(
         file,
-        &mut (*this).data as *mut libc::c_char as *const libc::c_void,
+        &mut (*this).data as *mut libc::c_char as *const _,
         (*this).size,
     );
     File_Close(file);

@@ -855,7 +855,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         //         .as_ptr(),
         // );
         // FMOD_CheckError(
-        //     FMOD_Sound_SetUserData((*this).handle, this as *mut libc::c_void),
+        //     FMOD_Sound_SetUserData((*this).handle, this as *mut _),
         //     b"/Users/dgavedissian/Work/ltheory/libphx/src/SoundDesc.c\0" as *const u8
         //         as *const libc::c_char,
         //     49 as i32,
@@ -908,7 +908,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
         Audio_DeallocSoundDesc(this);
         StrFree(name);
         StrFree(path);
-        MemZero(this as *mut libc::c_void, std::mem::size_of::<SoundDesc>());
+        MemZero(this as *mut _, std::mem::size_of::<SoundDesc>());
     }
 }
 
@@ -1025,18 +1025,18 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     }
     File_Write(
         file,
-        b"RIFF\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        b"RIFF\0" as *const u8 as *const libc::c_char as *const _,
         4,
     );
     File_WriteI32(file, (36_u32).wrapping_add(length) as i32);
     File_Write(
         file,
-        b"WAVE\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        b"WAVE\0" as *const u8 as *const libc::c_char as *const _,
         4,
     );
     File_Write(
         file,
-        b"fmt \0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        b"fmt \0" as *const u8 as *const libc::c_char as *const _,
         4,
     );
     File_WriteI32(file, 16);
@@ -1051,7 +1051,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *c
     File_WriteI16(file, bitsPerSample as i16);
     File_Write(
         file,
-        b"data\0" as *const u8 as *const libc::c_char as *const libc::c_void,
+        b"data\0" as *const u8 as *const libc::c_char as *const _,
         4,
     );
     File_WriteI32(file, length as i32);

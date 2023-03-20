@@ -26,7 +26,7 @@ pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
 
 #[no_mangle]
 pub unsafe extern "C" fn Timer_Free(mut this: *mut Timer) {
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]

@@ -56,7 +56,7 @@ pub unsafe extern "C" fn Metric_Mod(mut this: Metric, mut delta: i32) {
 #[no_mangle]
 pub unsafe extern "C" fn Metric_Reset() {
     MemZero(
-        valueCurr.as_mut_ptr() as *mut libc::c_void,
+        valueCurr.as_mut_ptr() as *mut _,
         std::mem::size_of::<[i32; 8]>(),
     );
 }

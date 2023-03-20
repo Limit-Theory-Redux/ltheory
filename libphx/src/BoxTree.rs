@@ -46,7 +46,7 @@ unsafe extern "C" fn Node_Free(mut this: *mut Node) {
     if !((*this).sub[1]).is_null() {
         Node_Free((*this).sub[1]);
     }
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -54,7 +54,7 @@ pub unsafe extern "C" fn BoxTree_Free(mut this: *mut BoxTree) {
     if !((*this).root).is_null() {
         Node_Free((*this).root);
     }
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -142,7 +142,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
         } else if cost0_0 <= costBase && cost0_0 <= cost1_0 {
             (*parent_0).sub[0] = (*this).sub[0];
             (*parent_0).sub[1] = (*this).sub[1];
-            MemFree(this as *const libc::c_void);
+            MemFree(this as *const _);
             Node_Merge(
                 (*parent_0).sub[0],
                 src,
@@ -151,7 +151,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
         } else {
             (*parent_0).sub[0] = (*this).sub[0];
             (*parent_0).sub[1] = (*this).sub[1];
-            MemFree(this as *const libc::c_void);
+            MemFree(this as *const _);
             Node_Merge(
                 (*parent_0).sub[1],
                 src,

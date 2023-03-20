@@ -48,8 +48,8 @@ pub unsafe extern "C" fn HashMap_Create(mut keySize: u32, mut capacity: u32) -> 
 
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Free(mut this: *mut HashMap) {
-    MemFree((*this).elems as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).elems as *const _);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -106,7 +106,7 @@ pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: u3
         }
         i = i.wrapping_add(1);
     }
-    MemFree((*this).elems as *const libc::c_void);
+    MemFree((*this).elems as *const _);
     *this = *other;
 }
 

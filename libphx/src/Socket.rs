@@ -100,7 +100,7 @@ pub unsafe extern "C" fn Socket_Create(mut type_0: SocketType) -> *mut Socket {
         (*this).sock,
         0xffff,
         0x4,
-        &mut opt as *mut i32 as *mut libc::c_char as *const libc::c_void,
+        &mut opt as *mut i32 as *mut libc::c_char as *const _,
         std::mem::size_of::<i32>() as libc::c_ulong as libc::socklen_t,
     ) != 0
     {
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn Socket_Create(mut type_0: SocketType) -> *mut Socket {
 #[no_mangle]
 pub unsafe extern "C" fn Socket_Free(mut this: *mut Socket) {
     Socket_Cleanup((*this).sock);
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -158,7 +158,7 @@ pub unsafe extern "C" fn Socket_Bind(mut this: *mut Socket, mut port: i32) {
         sin_zero: [0; 8],
     };
     MemSet(
-        &mut addr as *mut libc::sockaddr_in as *mut libc::c_void,
+        &mut addr as *mut libc::sockaddr_in as *mut _,
         0,
         std::mem::size_of::<libc::sockaddr_in>(),
     );
@@ -204,7 +204,7 @@ pub unsafe extern "C" fn Socket_Listen(mut this: *mut Socket) {
 pub unsafe extern "C" fn Socket_Read(mut this: *mut Socket) -> *const libc::c_char {
     let mut bytes: i32 = Socket_Receive(
         (*this).sock,
-        ((*this).buffer).as_mut_ptr() as *mut libc::c_void,
+        ((*this).buffer).as_mut_ptr() as *mut _,
         std::mem::size_of::<[libc::c_char; 2048]>() as libc::c_ulong as i32,
     );
     if bytes == -1 {
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn Socket_Read(mut this: *mut Socket) -> *const libc::c_ch
 pub unsafe extern "C" fn Socket_ReadBytes(mut this: *mut Socket) -> *mut Bytes {
     let mut bytes: i32 = Socket_Receive(
         (*this).sock,
-        ((*this).buffer).as_mut_ptr() as *mut libc::c_void,
+        ((*this).buffer).as_mut_ptr() as *mut _,
         std::mem::size_of::<[libc::c_char; 2048]>() as libc::c_ulong as i32,
     );
     if bytes == -1 {
@@ -239,7 +239,7 @@ pub unsafe extern "C" fn Socket_ReadBytes(mut this: *mut Socket) -> *mut Bytes {
     let mut data: *mut Bytes = Bytes_Create(bytes as u32);
     Bytes_Write(
         data,
-        ((*this).buffer).as_mut_ptr() as *const libc::c_void,
+        ((*this).buffer).as_mut_ptr() as *const _,
         bytes as u32,
     );
     data
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn Socket_SendTo(
 
 #[no_mangle]
 pub unsafe extern "C" fn Socket_Write(mut this: *mut Socket, mut msg: *const libc::c_char) {
-    if Socket_Send((*this).sock, msg as *const libc::c_void, msg as i32) == -1 {
+    if Socket_Send((*this).sock, msg as *const _, msg as i32) == -1 {
         Fatal(b"Socket_Write: failed to write to socket\0" as *const u8 as *const libc::c_char);
     }
 }

@@ -27,7 +27,7 @@ pub struct Node {
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Create(mut box_0: Box3) -> *mut Octree {
     let mut this = MemNew!(Octree);
-    MemZero(this as *mut libc::c_void, std::mem::size_of::<Octree>());
+    MemZero(this as *mut _, std::mem::size_of::<Octree>());
     (*this).box_0 = box_0;
     this
 }
@@ -44,10 +44,10 @@ pub unsafe extern "C" fn Octree_Free(mut this: *mut Octree) {
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
         let mut next: *mut Node = (*elem).next;
-        MemFree(elem as *const libc::c_void);
+        MemFree(elem as *const _);
         elem = next;
     }
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]

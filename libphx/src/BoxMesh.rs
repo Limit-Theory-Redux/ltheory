@@ -60,8 +60,8 @@ pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Free(mut this: *mut BoxMesh) {
-    MemFree((*this).elem_data as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).elem_data as *const _);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -82,7 +82,7 @@ pub unsafe extern "C" fn BoxMesh_Add(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elem_data as *mut *mut Box_0 as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elem_data as *mut libc::c_void,
+            (*this).elem_data as *mut _,
             ((*this).elem_capacity as usize).wrapping_mul(elemSize),
         );
     }

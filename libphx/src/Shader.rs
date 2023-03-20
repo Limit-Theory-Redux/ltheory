@@ -293,7 +293,7 @@ unsafe extern "C" fn GLSL_Preprocess(
                 let mut pData: *mut *mut libc::c_void =
                     &mut (*this).vars_data as *mut *mut ShaderVar as *mut *mut libc::c_void;
                 *pData = MemRealloc(
-                    (*this).vars_data as *mut libc::c_void,
+                    (*this).vars_data as *mut _,
                     ((*this).vars_capacity as usize).wrapping_mul(elemSize),
                 );
             }
@@ -417,9 +417,9 @@ pub unsafe extern "C" fn Shader_Free(mut this: *mut Shader) {
         gl::DeleteShader((*this).vs);
         gl::DeleteShader((*this).fs);
         gl::DeleteProgram((*this).program);
-        MemFree((*this).vars_data as *const libc::c_void);
+        MemFree((*this).vars_data as *const _);
         StrFree((*this).name);
-        MemFree(this as *const libc::c_void);
+        MemFree(this as *const _);
     }
 }
 

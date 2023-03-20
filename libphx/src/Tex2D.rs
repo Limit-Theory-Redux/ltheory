@@ -90,7 +90,7 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
         size.y,
         gl::RGBA,
         gl::UNSIGNED_BYTE,
-        buf as *mut libc::c_void,
+        buf as *mut _,
     );
     let mut y: i32 = 0;
     while y < size.y / 2 {
@@ -98,20 +98,20 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
         while x < size.x {
             let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
             MemCpy(
-                swap_temp.as_mut_ptr() as *mut libc::c_void,
+                swap_temp.as_mut_ptr() as *mut _,
                 &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32
-                    as *const libc::c_void,
+                    as *const _,
                 std::mem::size_of::<u32>(),
             );
             MemCpy(
                 &mut *buf.offset((size.x * (size.y - y - 1) + x) as isize) as *mut u32
-                    as *mut libc::c_void,
-                &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *const libc::c_void,
+                    as *mut _,
+                &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *const _,
                 std::mem::size_of::<u32>(),
             );
             MemCpy(
-                &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *mut libc::c_void,
-                swap_temp.as_mut_ptr() as *const libc::c_void,
+                &mut *buf.offset((size.x * y + x) as isize) as *mut u32 as *mut _,
+                swap_temp.as_mut_ptr() as *const _,
                 std::mem::size_of::<u32>(),
             );
             x += 1;
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
         0,
         gl::RGBA,
         gl::UNSIGNED_BYTE,
-        buf as *const libc::c_void,
+        buf as *const _,
     );
     gl::BindTexture(gl::TEXTURE_2D, 0);
     this
@@ -146,7 +146,7 @@ pub unsafe extern "C" fn Tex2D_Free(mut this: *mut Tex2D) {
         (*this)._refCount <= 0
     } {
         gl::DeleteTextures(1, &mut (*this).handle);
-        MemFree(this as *const libc::c_void);
+        MemFree(this as *const _);
     }
 }
 
@@ -351,12 +351,12 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: *const libc::c_char) -> *mut Tex2D
         0,
         format,
         gl::UNSIGNED_BYTE,
-        data as *const libc::c_void,
+        data as *const _,
     );
     Tex2D_Init();
     gl::BindTexture(gl::TEXTURE_2D, 0);
 
-    MemFree(data as *const libc::c_void);
+    MemFree(data as *const _);
     this
 }
 
@@ -460,7 +460,7 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
         1,
         gl::RGBA,
         gl::FLOAT,
-        rgba.as_mut_ptr() as *const libc::c_void,
+        rgba.as_mut_ptr() as *const _,
     );
     gl::BindTexture(gl::TEXTURE_2D, 0);
 }
@@ -484,9 +484,9 @@ pub unsafe extern "C" fn Tex2D_Save(mut this: *mut Tex2D, mut path: *const libc:
         0,
         gl::RGBA,
         gl::UNSIGNED_BYTE,
-        buffer as *mut libc::c_void,
+        buffer as *mut _,
     );
     Tex2D_Save_Png(path, (*this).size.x, (*this).size.y, 4, buffer);
-    MemFree(buffer as *const libc::c_void);
+    MemFree(buffer as *const _);
     gl::BindTexture(gl::TEXTURE_2D, 0);
 }

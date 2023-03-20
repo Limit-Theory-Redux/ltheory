@@ -24,7 +24,7 @@ pub unsafe extern "C" fn Directory_Open(mut path: *const libc::c_char) -> *mut D
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Close(mut this: *mut Directory) {
     libc::closedir((*this).handle);
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]

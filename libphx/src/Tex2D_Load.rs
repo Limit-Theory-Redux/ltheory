@@ -26,8 +26,8 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                     let mut memory: *mut libc::c_uchar =
                         MemAlloc(data.size()) as *mut libc::c_uchar;
                     MemCpy(
-                        memory as *mut libc::c_void,
-                        data.as_slice().as_ptr() as *mut libc::c_void,
+                        memory as *mut _,
+                        data.as_slice().as_ptr() as *mut _,
                         data.size(),
                     );
                     memory

@@ -81,7 +81,7 @@ unsafe extern "C" fn Partition(
     }
     if dim == 0 {
         libc::qsort(
-            boxes as *mut libc::c_void,
+            boxes as *mut _,
             boxCount as usize,
             std::mem::size_of::<Box3>(),
             Some(
@@ -92,7 +92,7 @@ unsafe extern "C" fn Partition(
     }
     if dim == 1 {
         libc::qsort(
-            boxes as *mut libc::c_void,
+            boxes as *mut _,
             boxCount as usize,
             std::mem::size_of::<Box3>(),
             Some(
@@ -103,7 +103,7 @@ unsafe extern "C" fn Partition(
     }
     if dim == 2 {
         libc::qsort(
-            boxes as *mut libc::c_void,
+            boxes as *mut _,
             boxCount as usize,
             std::mem::size_of::<Box3>(),
             Some(
@@ -117,21 +117,21 @@ unsafe extern "C" fn Partition(
     let mut boxesBack: *mut Box3 = MemNewArray!(Box3, boxCountBack);
     let mut boxesFront: *mut Box3 = MemNewArray!(Box3, boxCountFront);
     MemCpy(
-        boxesBack as *mut libc::c_void,
-        boxes as *const libc::c_void,
+        boxesBack as *mut _,
+        boxes as *const _,
         (boxCountBack as usize).wrapping_mul(std::mem::size_of::<Box3>()),
     );
     MemCpy(
-        boxesFront as *mut libc::c_void,
-        boxes.offset(boxCountBack as isize) as *const libc::c_void,
+        boxesFront as *mut _,
+        boxes.offset(boxCountBack as isize) as *const _,
         (boxCountFront as usize).wrapping_mul(std::mem::size_of::<Box3>()),
     );
     (*this).back = Partition(boxesBack, boxCountBack, (dim + 1) % 3);
     (*this).front = Partition(boxesFront, boxCountFront, (dim + 1) % 3);
     (*this).box_0 = Box3::union((*(*this).back).box_0, (*(*this).front).box_0);
     (*this).elems = std::ptr::null_mut();
-    MemFree(boxesBack as *const libc::c_void);
-    MemFree(boxesFront as *const libc::c_void);
+    MemFree(boxesBack as *const _);
+    MemFree(boxesFront as *const _);
     this
 }
 
@@ -157,7 +157,7 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
         i += 3;
     }
     let mut this: *mut KDTree = Partition(boxes, boxCount, 0);
-    MemFree(boxes as *const libc::c_void);
+    MemFree(boxes as *const _);
     this
 }
 
@@ -172,10 +172,10 @@ pub unsafe extern "C" fn KDTree_Free(mut this: *mut KDTree) {
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
         let mut next: *mut Node = (*elem).next;
-        MemFree(elem as *const libc::c_void);
+        MemFree(elem as *const _);
         elem = next;
     }
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]

@@ -26,7 +26,7 @@ pub unsafe extern "C" fn Matrix_Clone(mut this: *const Matrix) -> *mut Matrix {
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_Free(mut this: *mut Matrix) {
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 unsafe extern "C" fn Matrix_IOInverse(mut in_0: *const Matrix, mut out: *mut Matrix) {

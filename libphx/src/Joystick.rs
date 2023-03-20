@@ -163,7 +163,7 @@ pub unsafe extern "C" fn Joystick_Open(mut index: i32) -> *mut Joystick {
     (*this).buttonStates = MemNewArray!(bool, (*this).buttons);
     (*this).axisAlive = MemNewArray!(bool, (*this).axes);
     MemZero(
-        (*this).axisAlive as *mut libc::c_void,
+        (*this).axisAlive as *mut _,
         (std::mem::size_of::<bool>()).wrapping_mul((*this).axes as usize),
     );
     (*this).axisStates = MemNewArray!(f64, (*this).axes);
@@ -185,10 +185,10 @@ pub unsafe extern "C" fn Joystick_Close(mut this: *mut Joystick) {
         }
     }
     SDL_JoystickClose((*this).handle);
-    MemFree((*this).guid as *const libc::c_void);
-    MemFree((*this).buttonStates as *const libc::c_void);
-    MemFree((*this).axisStates as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).guid as *const _);
+    MemFree((*this).buttonStates as *const _);
+    MemFree((*this).axisStates as *const _);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]

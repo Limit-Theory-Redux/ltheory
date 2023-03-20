@@ -91,15 +91,15 @@ pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) 
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Free(mut this: *mut HashGrid) {
-    MemFree((*this).results_data as *const libc::c_void);
+    MemFree((*this).results_data as *const _);
     let mut i: u32 = 0;
     while i < (*this).cellCount {
-        MemFree((*((*this).cells).offset(i as isize)).elems_data as *const libc::c_void);
+        MemFree((*((*this).cells).offset(i as isize)).elems_data as *const _);
         i = i.wrapping_add(1);
     }
     MemPool_Free((*this).elemPool);
-    MemFree((*this).cells as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).cells as *const _);
+    MemFree(this as *const _);
 }
 
 #[inline]
@@ -111,7 +111,7 @@ unsafe extern "C" fn HashGrid_GetCell(
 ) -> *mut HashGridCell {
     let mut p: [i32; 3] = [x, y, z];
     let mut hash: u64 = Hash_XX64(
-        p.as_mut_ptr() as *const libc::c_void,
+        p.as_mut_ptr() as *const _,
         std::mem::size_of::<[i32; 3]>() as libc::c_ulong as i32,
         0,
     );
@@ -140,7 +140,7 @@ unsafe extern "C" fn HashGrid_AddElem(mut this: *mut HashGrid, mut elem: *mut Ha
                             as *mut *mut *mut HashGridElem
                             as *mut *mut libc::c_void;
                         *pData = MemRealloc(
-                            (*cell).elems_data as *mut libc::c_void,
+                            (*cell).elems_data as *mut _,
                             ((*cell).elems_capacity as usize).wrapping_mul(elemSize),
                         );
                     }
@@ -228,7 +228,7 @@ pub unsafe extern "C" fn HashGrid_Clear(mut this: *mut HashGrid) {
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Remove(mut this: *mut HashGrid, mut elem: *mut HashGridElem) {
     HashGrid_RemoveElem(this, elem);
-    MemPool_Dealloc((*this).elemPool, elem as *mut libc::c_void);
+    MemPool_Dealloc((*this).elemPool, elem as *mut _);
 }
 
 #[no_mangle]
@@ -347,7 +347,7 @@ pub unsafe extern "C" fn HashGrid_Update(
                                         as *mut *mut *mut HashGridElem
                                         as *mut *mut libc::c_void;
                                     *pData = MemRealloc(
-                                        (*cell).elems_data as *mut libc::c_void,
+                                        (*cell).elems_data as *mut _,
                                         ((*cell).elems_capacity as usize).wrapping_mul(elemSize),
                                     );
                                 }
@@ -421,7 +421,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(mut this: *mut HashGrid, mut box_0: *
                                     as *mut *mut *mut libc::c_void
                                     as *mut *mut libc::c_void;
                                 *pData = MemRealloc(
-                                    (*this).results_data as *mut libc::c_void,
+                                    (*this).results_data as *mut _,
                                     ((*this).results_capacity as usize).wrapping_mul(elemSize),
                                 );
                             }
@@ -464,7 +464,7 @@ pub unsafe extern "C" fn HashGrid_QueryPoint(mut this: *mut HashGrid, mut p: *co
             let mut pData: *mut *mut libc::c_void =
                 &mut (*this).results_data as *mut *mut *mut libc::c_void as *mut *mut libc::c_void;
             *pData = MemRealloc(
-                (*this).results_data as *mut libc::c_void,
+                (*this).results_data as *mut _,
                 ((*this).results_capacity as usize).wrapping_mul(elemSize),
             );
         }

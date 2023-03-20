@@ -57,8 +57,8 @@ pub unsafe extern "C" fn ThreadPool_Free(mut this: *mut ThreadPool) {
         }
         i += 1;
     }
-    MemFree((*this).thread as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).thread as *const _);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn ThreadPool_Launch(
         (*td).handle = SDL_CreateThread(
             Some(ThreadPool_Dispatch as unsafe extern "C" fn(*mut libc::c_void) -> i32),
             b"PHX_ThreadPool\0" as *const u8 as *const libc::c_char,
-            td as *mut libc::c_void,
+            td as *mut _,
         );
         if ((*td).handle).is_null() {
             Fatal(

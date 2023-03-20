@@ -41,7 +41,7 @@ pub unsafe extern "C" fn MemAllocZero(mut size: usize) -> *mut libc::c_void {
 
 #[inline]
 pub unsafe extern "C" fn MemFree(mut ptr: *const libc::c_void) {
-    libc::free(ptr as *mut libc::c_void);
+    libc::free(ptr as *mut _);
 }
 
 #[inline]
@@ -87,7 +87,7 @@ pub unsafe extern "C" fn StrAlloc(mut len: usize) -> *mut libc::c_char {
 
 #[inline]
 pub unsafe extern "C" fn StrFree(mut s: *const libc::c_char) {
-    libc::free(s as *mut libc::c_void);
+    libc::free(s as *mut _);
 }
 
 #[inline]
@@ -97,7 +97,7 @@ pub unsafe extern "C" fn StrDup(mut s: *const libc::c_char) -> *const libc::c_ch
     }
     let mut len: usize = (StrLen(s)).wrapping_add(1);
     let mut buf: *mut libc::c_char = StrAlloc(len);
-    libc::memcpy(buf as *mut libc::c_void, s as *const libc::c_void, len);
+    libc::memcpy(buf as *mut _, s as *const _, len);
     buf as *const libc::c_char
 }
 
@@ -131,8 +131,8 @@ pub unsafe extern "C" fn StrFormat(
     );
     let mut mem = libc::malloc(s.len() + 1) as *mut libc::c_char;
     libc::memcpy(
-        mem as *mut libc::c_void,
-        s.as_bytes().as_ptr() as *const libc::c_void,
+        mem as *mut _,
+        s.as_bytes().as_ptr() as *const _,
         s.len(),
     );
     *mem.add(s.len()) = 0;

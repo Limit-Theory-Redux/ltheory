@@ -29,7 +29,7 @@ pub unsafe extern "C" fn Thread_Create(
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Detach(mut this: *mut Thread) {
     SDL_DetachThread((*this).handle);
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -41,6 +41,6 @@ pub unsafe extern "C" fn Thread_Sleep(mut ms: u32) {
 pub unsafe extern "C" fn Thread_Wait(mut this: *mut Thread) -> i32 {
     let mut ret: i32 = 0;
     SDL_WaitThread((*this).handle, &mut ret);
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
     ret
 }

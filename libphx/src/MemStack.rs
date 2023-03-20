@@ -23,7 +23,7 @@ pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Free(mut this: *mut MemStack) {
     MemFree((*this).data);
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -38,7 +38,7 @@ pub unsafe extern "C" fn MemStack_Alloc(
         );
     }
     let mut p: *mut libc::c_void =
-        ((*this).data as *mut libc::c_char).offset((*this).size as isize) as *mut libc::c_void;
+        ((*this).data as *mut libc::c_char).offset((*this).size as isize) as *mut _;
     (*this).size = (*this).size.wrapping_add(size);
     p
 }

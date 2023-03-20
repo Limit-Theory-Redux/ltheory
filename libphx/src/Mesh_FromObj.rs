@@ -31,8 +31,8 @@ unsafe extern "C" fn Obj_Fatal(mut message: *const libc::c_char, mut s: *mut Par
     }
     let mut line: *mut libc::c_char = MemAlloc((len + 1) as usize) as *mut libc::c_char;
     MemCpy(
-        line as *mut libc::c_void,
-        (*s).lineStart as *const libc::c_void,
+        line as *mut _,
+        (*s).lineStart as *const _,
         len as usize,
     );
     *line.offset(len as isize) = 0 as libc::c_char;
@@ -191,7 +191,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
         let mut pData: *mut *mut libc::c_void =
             &mut positions_data as *mut *mut Vec3 as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            positions_data as *mut libc::c_void,
+            positions_data as *mut _,
             (positions_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
         let mut pData_0: *mut *mut libc::c_void =
             &mut uvs_data as *mut *mut Vec2 as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
-            uvs_data as *mut libc::c_void,
+            uvs_data as *mut _,
             (uvs_capacity as usize).wrapping_mul(elemSize_0),
         );
     }
@@ -211,7 +211,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
         let mut pData_1: *mut *mut libc::c_void =
             &mut normals_data as *mut *mut Vec3 as *mut *mut libc::c_void;
         *pData_1 = MemRealloc(
-            normals_data as *mut libc::c_void,
+            normals_data as *mut _,
             (normals_capacity as usize).wrapping_mul(elemSize_1),
         );
     }
@@ -263,7 +263,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 let mut pData_2: *mut *mut libc::c_void =
                     &mut positions_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_2 = MemRealloc(
-                    positions_data as *mut libc::c_void,
+                    positions_data as *mut _,
                     (positions_capacity as usize).wrapping_mul(elemSize_2),
                 );
             }
@@ -301,7 +301,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 let mut pData_3: *mut *mut libc::c_void =
                     &mut uvs_data as *mut *mut Vec2 as *mut *mut libc::c_void;
                 *pData_3 = MemRealloc(
-                    uvs_data as *mut libc::c_void,
+                    uvs_data as *mut _,
                     (uvs_capacity as usize).wrapping_mul(elemSize_3),
                 );
             }
@@ -340,7 +340,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                 let mut pData_4: *mut *mut libc::c_void =
                     &mut normals_data as *mut *mut Vec3 as *mut *mut libc::c_void;
                 *pData_4 = MemRealloc(
-                    normals_data as *mut libc::c_void,
+                    normals_data as *mut _,
                     (normals_capacity as usize).wrapping_mul(elemSize_4),
                 );
             }
@@ -588,8 +588,8 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
         }
         ConsumeRestOfLine(&mut s);
     }
-    MemFree(positions_data as *const libc::c_void);
-    MemFree(uvs_data as *const libc::c_void);
-    MemFree(normals_data as *const libc::c_void);
+    MemFree(positions_data as *const _);
+    MemFree(uvs_data as *const _);
+    MemFree(normals_data as *const _);
     mesh
 }

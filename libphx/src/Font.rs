@@ -379,7 +379,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     }
     let mut g: *mut Glyph = HashMap_Get(
         (*this).glyphs,
-        &mut codepoint as *mut u32 as *const libc::c_void,
+        &mut codepoint as *mut u32 as *const _,
     ) as *mut Glyph;
     if !g.is_null() {
         return g;
@@ -429,18 +429,18 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
     (*g).tex = Tex2D_Create((*g).sx, (*g).sy, TexFormat_RGBA8);
     Tex2D_SetData(
         (*g).tex,
-        buffer as *const libc::c_void,
+        buffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
-    MemFree(buffer as *const libc::c_void);
+    MemFree(buffer as *const _);
     if codepoint < 256 {
         (*this).glyphsAscii[codepoint as usize] = g;
     } else {
         HashMap_Set(
             (*this).glyphs,
-            &mut codepoint as *mut u32 as *const libc::c_void,
-            g as *mut libc::c_void,
+            &mut codepoint as *mut u32 as *const _,
+            g as *mut _,
         );
     }
     g
@@ -476,7 +476,7 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
     }
     FT_Set_Pixel_Sizes((*this).handle, 0 as FT_UInt, size as FT_UInt);
     MemZero(
-        ((*this).glyphsAscii).as_mut_ptr() as *mut libc::c_void,
+        ((*this).glyphsAscii).as_mut_ptr() as *mut _,
         std::mem::size_of::<[*mut Glyph; 256]>(),
     );
     (*this).glyphs = HashMap_Create(std::mem::size_of::<u32>() as u32, 16);
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
         (*this)._refCount <= 0
     } {
         FT_Done_Face((*this).handle);
-        MemFree(this as *const libc::c_void);
+        MemFree(this as *const _);
     }
 }
 

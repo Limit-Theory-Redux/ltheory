@@ -220,7 +220,7 @@ pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
         (*this)._refCount <= 0
     } {
         gl::DeleteTextures(1, &mut (*this).handle);
-        MemFree(this as *const libc::c_void);
+        MemFree(this as *const _);
     }
 }
 
@@ -302,10 +302,10 @@ pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut Tex
             0,
             dataLayout as gl::types::GLenum,
             gl::UNSIGNED_BYTE,
-            data as *const libc::c_void,
+            data as *const _,
         );
-        MemFree(facePath as *const libc::c_void);
-        MemFree(data as *const libc::c_void);
+        MemFree(facePath as *const _);
+        MemFree(data as *const _);
     }
 
     TexCube_InitParameters();
@@ -511,11 +511,11 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
             level,
             gl::RGBA,
             gl::UNSIGNED_BYTE,
-            buffer as *mut libc::c_void,
+            buffer as *mut _,
         );
         Tex2D_Save_Png(facePath, size, size, 4, buffer);
-        MemFree(facePath as *const libc::c_void);
+        MemFree(facePath as *const _);
     }
-    MemFree(buffer as *const libc::c_void);
+    MemFree(buffer as *const _);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }

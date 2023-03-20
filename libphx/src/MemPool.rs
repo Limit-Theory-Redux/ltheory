@@ -21,7 +21,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
     let mut newBlockIndex: u16 = fresh0;
     (*this).capacity = (*this).capacity.wrapping_add((*this).blockSize);
     (*this).blocks = MemRealloc(
-        (*this).blocks as *mut libc::c_void,
+        (*this).blocks as *mut _,
         ((*this).blockCount as usize).wrapping_mul(std::mem::size_of::<*mut libc::c_void>()),
     ) as *mut *mut libc::c_void;
     let mut newBlock: *mut libc::c_void =
@@ -32,7 +32,7 @@ unsafe extern "C" fn MemPool_Grow(mut this: *mut MemPool) {
     let mut pCurr: *mut libc::c_char = newBlock as *mut libc::c_char;
     let mut i: u32 = 0;
     while i < (*this).blockSize {
-        *prev = pCurr as *mut libc::c_void;
+        *prev = pCurr as *mut _;
         prev = pCurr as *mut *mut libc::c_void;
         pCurr = pCurr.offset((*this).cellSize as isize);
         i = i.wrapping_add(1);
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn MemPool_Free(mut this: *mut MemPool) {
         MemFree(*((*this).blocks).offset(i as isize));
         i = i.wrapping_add(1);
     }
-    MemFree((*this).blocks as *const libc::c_void);
+    MemFree((*this).blocks as *const _);
 }
 
 #[no_mangle]
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn MemPool_Clear(mut this: *mut MemPool) {
             *((*this).blocks).offset(i as isize) as *mut libc::c_char;
         let mut j: u32 = 0;
         while j < (*this).blockSize {
-            *prev = pCurr as *mut libc::c_void;
+            *prev = pCurr as *mut _;
             prev = pCurr as *mut *mut libc::c_void;
             pCurr = pCurr.offset((*this).cellSize as isize);
             j = j.wrapping_add(1);

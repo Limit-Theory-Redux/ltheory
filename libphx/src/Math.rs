@@ -244,18 +244,18 @@ pub unsafe extern "C" fn Math_ClampSafe(mut x: f64, mut a: f64, mut b: f64) -> f
     if b < a {
         let mut swap_temp: [libc::c_uchar; 8] = [0; 8];
         MemCpy(
-            swap_temp.as_mut_ptr() as *mut libc::c_void,
-            &mut b as *mut f64 as *const libc::c_void,
+            swap_temp.as_mut_ptr() as *mut _,
+            &mut b as *mut f64 as *const _,
             std::mem::size_of::<f64>(),
         );
         MemCpy(
-            &mut b as *mut f64 as *mut libc::c_void,
-            &mut a as *mut f64 as *const libc::c_void,
+            &mut b as *mut f64 as *mut _,
+            &mut a as *mut f64 as *const _,
             std::mem::size_of::<f64>(),
         );
         MemCpy(
-            &mut a as *mut f64 as *mut libc::c_void,
-            swap_temp.as_mut_ptr() as *const libc::c_void,
+            &mut a as *mut f64 as *mut _,
+            swap_temp.as_mut_ptr() as *const _,
             std::mem::size_of::<f64>(),
         );
     }

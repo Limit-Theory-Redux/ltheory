@@ -287,7 +287,7 @@ unsafe extern "C" fn GetData(mut hash: u64) -> *mut ImGuiData {
         (*data).size = Vec2::new(0.0f32, 0.0f32);
         (*data).offset = Vec2::new(0.0f32, 0.0f32);
         (*data).scroll = 0.0f32;
-        HashMap_SetRaw(this.data, hash, data as *mut libc::c_void);
+        HashMap_SetRaw(this.data, hash, data as *mut _);
     }
     data
 }
@@ -332,7 +332,7 @@ unsafe extern "C" fn ImGui_PushClipRect(mut pos: Vec2, mut size: Vec2) {
 unsafe extern "C" fn ImGui_PopClipRect() {
     let mut rect = this.clipRect;
     this.clipRect = (*rect).prev;
-    MemFree(rect as *const libc::c_void);
+    MemFree(rect as *const _);
 }
 
 #[inline]
@@ -361,7 +361,7 @@ unsafe extern "C" fn Advance(mut size: Vec2) {
 unsafe extern "C" fn HashGet() -> u64 {
     Hash_FNV64_Incremental(
         (*this.widget).hash,
-        &mut (*this.widget).index as *mut u32 as *const libc::c_void,
+        &mut (*this.widget).index as *mut u32 as *const _,
         std::mem::size_of::<u32>() as i32,
     )
 }
@@ -377,7 +377,7 @@ unsafe extern "C" fn HashPeekNext() -> u64 {
     let mut index: u32 = ((*this.widget).index).wrapping_add(1);
     Hash_FNV64_Incremental(
         (*this.widget).hash,
-        &mut index as *mut u32 as *const libc::c_void,
+        &mut index as *mut u32 as *const _,
         std::mem::size_of::<u32>() as i32,
     )
 }
@@ -435,7 +435,7 @@ unsafe extern "C" fn ImGui_PopLayout() {
         i += 1;
     }
     this.layout = (*layout).prev;
-    MemPool_Dealloc(this.layoutPool, layout as *mut libc::c_void);
+    MemPool_Dealloc(this.layoutPool, layout as *mut _);
 }
 
 #[inline]
@@ -477,7 +477,7 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
         (*this.widget).index = ((*this.widget).index).wrapping_add(1);
         (*widget).hash = Hash_FNV64_Incremental(
             (*this.widget).hash,
-            &mut (*this.widget).index as *mut u32 as *const libc::c_void,
+            &mut (*this.widget).index as *mut u32 as *const _,
             std::mem::size_of::<u32>() as i32,
         );
     } else {
@@ -488,7 +488,7 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
 
 unsafe extern "C" fn ImGui_EndWidget() {
     if !(this.widgetLast).is_null() {
-        MemPool_Dealloc(this.widgetPool, this.widgetLast as *mut libc::c_void);
+        MemPool_Dealloc(this.widgetPool, this.widgetLast as *mut _);
     }
     this.cursor = (*this.widget).pos;
     this.widgetLast = this.widget;
@@ -544,7 +544,7 @@ unsafe extern "C" fn ImGuiLayer_Free(mut self_1: *mut ImGuiLayer) {
         StrFree((*e).text);
         e = (*e).next;
     }
-    MemFree(self_1 as *const libc::c_void);
+    MemFree(self_1 as *const _);
 }
 
 unsafe extern "C" fn ImGui_PushLayer(mut clip: bool) -> *mut ImGuiLayer {
@@ -858,7 +858,7 @@ pub unsafe extern "C" fn ImGui_PopCursor() {
     let mut cursor: *mut ImGuiCursor = this.cursorStack;
     this.cursor = (*cursor).pos;
     this.cursorStack = (*cursor).prev;
-    MemPool_Dealloc(this.cursorPool, cursor as *mut libc::c_void);
+    MemPool_Dealloc(this.cursorPool, cursor as *mut _);
 }
 
 #[no_mangle]
@@ -1041,8 +1041,8 @@ pub unsafe extern "C" fn ImGui_SetNextHeight(mut sy: f32) {
 pub unsafe extern "C" fn ImGui_PushStyle() {
     let mut style: *mut ImGuiStyle = MemPool_Alloc(this.stylePool) as *mut ImGuiStyle;
     MemCpy(
-        style as *mut libc::c_void,
-        this.style as *const libc::c_void,
+        style as *mut _,
+        this.style as *const _,
         std::mem::size_of::<ImGuiStyle>(),
     );
     (*style).prev = this.style;
@@ -1083,7 +1083,7 @@ pub unsafe extern "C" fn ImGui_PopStyle() {
     }
     let mut style: *mut ImGuiStyle = this.style;
     this.style = (*style).prev;
-    MemPool_Dealloc(this.stylePool, style as *mut libc::c_void);
+    MemPool_Dealloc(this.stylePool, style as *mut _);
 }
 
 #[no_mangle]

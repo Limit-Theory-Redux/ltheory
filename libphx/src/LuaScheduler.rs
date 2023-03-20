@@ -97,7 +97,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
             let mut pData: *mut *mut libc::c_void =
                 &mut this.addQueue_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData = MemRealloc(
-                this.addQueue_data as *mut libc::c_void,
+                this.addQueue_data as *mut _,
                 (this.addQueue_capacity as usize).wrapping_mul(elemSize),
             );
         }
@@ -115,7 +115,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
             let mut pData_0: *mut *mut libc::c_void =
                 &mut this.elems_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
-                this.elems_data as *mut libc::c_void,
+                this.elems_data as *mut _,
                 (this.elems_capacity as usize).wrapping_mul(elemSize_0),
             );
         }
@@ -141,7 +141,7 @@ unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
 unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
     this.locked = true;
     libc::qsort(
-        this.elems_data as *mut libc::c_void,
+        this.elems_data as *mut _,
         this.elems_size as usize,
         std::mem::size_of::<SchedulerElem>(),
         Some(SortByWake as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
@@ -184,7 +184,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
             let mut pData: *mut *mut libc::c_void =
                 &mut this.elems_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
             *pData = MemRealloc(
-                this.elems_data as *mut libc::c_void,
+                this.elems_data as *mut _,
                 (this.elems_capacity as usize).wrapping_mul(elemSize),
             );
         }

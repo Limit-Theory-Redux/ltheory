@@ -108,7 +108,7 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).index_data as *mut libc::c_void,
+            (*this).index_data as *mut _,
             ((*this).index_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -118,20 +118,20 @@ pub unsafe extern "C" fn Mesh_Clone(mut other: *mut Mesh) -> *mut Mesh {
         let mut pData_0: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
-            (*this).vertex_data as *mut libc::c_void,
+            (*this).vertex_data as *mut _,
             ((*this).vertex_capacity as usize).wrapping_mul(elemSize_0),
         );
     }
     (*this).index_size = (*other).index_size;
     (*this).vertex_size = (*other).vertex_size;
     MemCpy(
-        (*this).index_data as *mut libc::c_void,
-        (*other).index_data as *const libc::c_void,
+        (*this).index_data as *mut _,
+        (*other).index_data as *const _,
         (std::mem::size_of::<i32>()).wrapping_mul((*other).index_size as usize),
     );
     MemCpy(
-        (*this).vertex_data as *mut libc::c_void,
-        (*other).vertex_data as *const libc::c_void,
+        (*this).vertex_data as *mut _,
+        (*other).vertex_data as *const _,
         (std::mem::size_of::<Vertex>()).wrapping_mul((*other).vertex_size as usize),
     );
     this
@@ -156,13 +156,13 @@ pub unsafe extern "C" fn Mesh_Free(mut this: *mut Mesh) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        MemFree((*this).vertex_data as *const libc::c_void);
-        MemFree((*this).index_data as *const libc::c_void);
+        MemFree((*this).vertex_data as *const _);
+        MemFree((*this).index_data as *const _);
         if (*this).vbo != 0 {
             gl::DeleteBuffers(1, &mut (*this).vbo);
             gl::DeleteBuffers(1, &mut (*this).ibo);
         }
-        MemFree(this as *const libc::c_void);
+        MemFree(this as *const _);
     }
 }
 
@@ -180,12 +180,12 @@ pub unsafe extern "C" fn Mesh_ToBytes(mut mesh: *mut Mesh) -> *mut Bytes {
     Bytes_WriteI32(this, indexCount);
     Bytes_Write(
         this,
-        (*mesh).vertex_data as *const libc::c_void,
+        (*mesh).vertex_data as *const _,
         (vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()) as u32,
     );
     Bytes_Write(
         this,
-        (*mesh).index_data as *const libc::c_void,
+        (*mesh).index_data as *const _,
         (indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()) as u32,
     );
     this
@@ -200,12 +200,12 @@ pub unsafe extern "C" fn Mesh_FromBytes(mut buf: *mut Bytes) -> *mut Mesh {
     Mesh_ReserveIndexData(this, indexCount);
     Bytes_Read(
         buf,
-        (*this).vertex_data as *mut libc::c_void,
+        (*this).vertex_data as *mut _,
         (vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()) as u32,
     );
     Bytes_Read(
         buf,
-        (*this).index_data as *mut libc::c_void,
+        (*this).index_data as *mut _,
         (indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()) as u32,
     );
     (*this).vertex_size = vertexCount;
@@ -230,7 +230,7 @@ pub unsafe extern "C" fn Mesh_AddIndex(mut this: *mut Mesh, mut newIndex: i32) {
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).index_data as *mut libc::c_void,
+            (*this).index_data as *mut _,
             ((*this).index_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -299,7 +299,7 @@ pub unsafe extern "C" fn Mesh_AddVertex(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).vertex_data as *mut libc::c_void,
+            (*this).vertex_data as *mut _,
             ((*this).vertex_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -324,7 +324,7 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(mut this: *mut Mesh, mut vertex: *con
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).vertex_data as *mut libc::c_void,
+            (*this).vertex_data as *mut _,
             ((*this).vertex_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -354,7 +354,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
             gl::ARRAY_BUFFER,
             ((*this).vertex_size as usize).wrapping_mul(std::mem::size_of::<Vertex>())
                 as gl::types::GLsizeiptr,
-            (*this).vertex_data as *const libc::c_void,
+            (*this).vertex_data as *const _,
             gl::STATIC_DRAW,
         );
 
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
             gl::ELEMENT_ARRAY_BUFFER,
             ((*this).index_size as usize).wrapping_mul(std::mem::size_of::<i32>())
                 as gl::types::GLsizeiptr,
-            (*this).index_data as *const libc::c_void,
+            (*this).index_data as *const _,
             gl::STATIC_DRAW,
         );
 
@@ -386,7 +386,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         gl::FLOAT,
         gl::FALSE,
         std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, p) as *const libc::c_void,
+        offset_of!(Vertex, p) as *const _,
     );
     gl::VertexAttribPointer(
         1,
@@ -394,7 +394,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         gl::FLOAT,
         gl::FALSE,
         std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, n) as *const libc::c_void,
+        offset_of!(Vertex, n) as *const _,
     );
     gl::VertexAttribPointer(
         2,
@@ -402,7 +402,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(mut this: *mut Mesh) {
         gl::FLOAT,
         gl::FALSE,
         std::mem::size_of::<Vertex>() as gl::types::GLsizei,
-        offset_of!(Vertex, uv) as *const libc::c_void,
+        offset_of!(Vertex, uv) as *const _,
     );
 }
 
@@ -565,7 +565,7 @@ pub unsafe extern "C" fn Mesh_ReserveIndexData(mut this: *mut Mesh, mut capacity
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).index_data as *mut *mut i32 as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).index_data as *mut libc::c_void,
+            (*this).index_data as *mut _,
             ((*this).index_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -579,7 +579,7 @@ pub unsafe extern "C" fn Mesh_ReserveVertexData(mut this: *mut Mesh, mut capacit
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).vertex_data as *mut libc::c_void,
+            (*this).vertex_data as *mut _,
             ((*this).vertex_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -599,22 +599,22 @@ pub unsafe extern "C" fn Mesh_Invert(mut this: *mut Mesh) -> *mut Mesh {
     while i < (*this).index_size {
         let mut swap_temp: [libc::c_uchar; 4] = [0; 4];
         libc::memcpy(
-            swap_temp.as_mut_ptr() as *mut libc::c_void,
+            swap_temp.as_mut_ptr() as *mut _,
             &mut *((*this).index_data).offset((i + 2) as isize) as *mut i32
-                as *const libc::c_void,
+                as *const _,
             std::mem::size_of::<i32>(),
         );
         libc::memcpy(
             &mut *((*this).index_data).offset((i + 2) as isize) as *mut i32
-                as *mut libc::c_void,
+                as *mut _,
             &mut *((*this).index_data).offset((i + 1) as isize) as *mut i32
-                as *const libc::c_void,
+                as *const _,
             std::mem::size_of::<i32>(),
         );
         libc::memcpy(
             &mut *((*this).index_data).offset((i + 1) as isize) as *mut i32
-                as *mut libc::c_void,
-            swap_temp.as_mut_ptr() as *const libc::c_void,
+                as *mut _,
+            swap_temp.as_mut_ptr() as *const _,
             std::mem::size_of::<i32>(),
         );
         i += 3;
@@ -790,7 +790,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, mut minDot: f32)
                         let mut pData: *mut *mut libc::c_void =
                             &mut (*this).vertex_data as *mut *mut Vertex as *mut *mut libc::c_void;
                         *pData = MemRealloc(
-                            (*this).vertex_data as *mut libc::c_void,
+                            (*this).vertex_data as *mut _,
                             ((*this).vertex_capacity as usize).wrapping_mul(elemSize),
                         );
                     }

@@ -71,7 +71,7 @@ pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
         (*this)._refCount <= 0
     } {
         gl::DeleteTextures(1, &mut (*this).handle);
-        MemFree(this as *const libc::c_void);
+        MemFree(this as *const _);
     }
 }
 
@@ -212,7 +212,7 @@ pub unsafe extern "C" fn Tex1D_SetTexel(
         1,
         gl::RGBA,
         gl::FLOAT,
-        rgba.as_mut_ptr() as *const libc::c_void,
+        rgba.as_mut_ptr() as *const _,
     );
     gl::BindTexture(gl::TEXTURE_1D, 0);
 }

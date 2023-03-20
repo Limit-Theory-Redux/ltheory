@@ -105,7 +105,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         }
         Tex2D_SetData(
             sampleTex,
-            sampleBuffer as *const libc::c_void,
+            sampleBuffer as *const _,
             PixelFormat_RG,
             DataFormat_Float,
         );
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
             RenderTarget_Pop();
             i_2 += 1;
         }
-        MemFree(sampleBuffer as *const libc::c_void);
+        MemFree(sampleBuffer as *const _);
         Tex2D_Free(sampleTex);
     }
     RNG_Free(rng);

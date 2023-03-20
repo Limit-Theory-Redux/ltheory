@@ -43,10 +43,10 @@ pub unsafe extern "C" fn LodMesh_Free(mut this: *mut LodMesh) {
         while !e.is_null() {
             let mut next: *mut LodMeshEntry = (*e).next;
             Mesh_Free((*e).mesh);
-            MemFree(e as *const libc::c_void);
+            MemFree(e as *const _);
             e = next;
         }
-        MemFree(this as *const libc::c_void);
+        MemFree(this as *const _);
     }
 }
 

@@ -69,7 +69,7 @@ unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
         let mut pData: *mut *mut libc::c_void =
             &mut this.scopeList_data as *mut *mut *mut Scope as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            this.scopeList_data as *mut libc::c_void,
+            this.scopeList_data as *mut _,
             (this.scopeList_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -82,7 +82,7 @@ unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
 
 unsafe extern "C" fn Scope_Free(mut scope: *mut Scope) {
     StrFree((*scope).name);
-    MemFree(scope as *const libc::c_void);
+    MemFree(scope as *const _);
 }
 
 unsafe extern "C" fn SortScopes(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
@@ -103,7 +103,7 @@ unsafe extern "C" fn Profiler_GetScope(mut name: *const libc::c_char) -> *mut Sc
         return scope;
     }
     scope = Scope_Create(name);
-    HashMap_SetRaw(this.map, name as usize as u64, scope as *mut libc::c_void);
+    HashMap_SetRaw(this.map, name as usize as u64, scope as *mut _);
     scope
 }
 
@@ -127,7 +127,7 @@ pub unsafe extern "C" fn Profiler_Enable() {
         let mut pData: *mut *mut libc::c_void =
             &mut this.scopeList_data as *mut *mut *mut Scope as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            this.scopeList_data as *mut libc::c_void,
+            this.scopeList_data as *mut _,
             (this.scopeList_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -157,7 +157,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         i += 1;
     }
     libc::qsort(
-        this.scopeList_data as *mut libc::c_void,
+        this.scopeList_data as *mut _,
         this.scopeList_size as usize,
         std::mem::size_of::<*mut Scope>(),
         Some(SortScopes as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
@@ -207,7 +207,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         Scope_Free(*(this.scopeList_data).offset(i_1 as isize));
         i_1 += 1;
     }
-    MemFree(this.scopeList_data as *const libc::c_void);
+    MemFree(this.scopeList_data as *const _);
     HashMap_Free(this.map);
     profiling = false;
     Signal_RemoveHandlerAll(Some(

@@ -29,7 +29,7 @@ pub unsafe extern "C" fn SDF_Create(mut sx: i32, mut sy: i32, mut sz: i32) -> *m
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).data = MemNewArray!(Cell, (sx * sy * sz));
     MemZero(
-        (*this).data as *mut libc::c_void,
+        (*this).data as *mut _,
         (std::mem::size_of::<Cell>())
             .wrapping_mul(sx as usize)
             .wrapping_mul(sy as usize)
@@ -48,7 +48,7 @@ pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
     ) as *mut Cell;
     Tex3D_GetData(
         tex,
-        (*this).data as *mut libc::c_void,
+        (*this).data as *mut _,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
@@ -57,8 +57,8 @@ pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
 
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Free(mut this: *mut SDF) {
-    MemFree((*this).data as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).data as *const _);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -230,7 +230,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
         }
         z += 1;
     }
-    MemFree(indices as *const libc::c_void);
+    MemFree(indices as *const _);
     mesh
 }
 

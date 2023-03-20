@@ -705,8 +705,8 @@ pub unsafe extern "C" fn Audio_Free() {
     // );
     StrMap_Free(this.descMap);
     MemPool_Free(this.soundPool);
-    MemFree(this.playingSounds_data as *const libc::c_void);
-    MemFree(this.freeingSounds_data as *const libc::c_void);
+    MemFree(this.playingSounds_data as *const _);
+    MemFree(this.freeingSounds_data as *const _);
 }
 
 #[no_mangle]
@@ -824,7 +824,7 @@ pub unsafe extern "C" fn Audio_GetTotalCount() -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {
-    this.handle as *mut libc::c_void
+    this.handle as *mut _
 }
 
 #[no_mangle]
@@ -832,7 +832,7 @@ pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> 
     let mut desc: *mut SoundDesc = StrMap_Get(this.descMap, name) as *mut SoundDesc;
     if desc.is_null() {
         desc = MemNewZero!(SoundDesc);
-        StrMap_Set(this.descMap, name, desc as *mut libc::c_void);
+        StrMap_Set(this.descMap, name, desc as *mut _);
     }
     desc
 }
@@ -840,7 +840,7 @@ pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_DeallocSoundDesc(mut desc: *mut SoundDesc) {
     StrMap_Remove(this.descMap, (*desc).name);
-    MemFree(desc as *const libc::c_void);
+    MemFree(desc as *const _);
 }
 
 #[no_mangle]
@@ -850,7 +850,7 @@ pub unsafe extern "C" fn Audio_AllocSound() -> *mut Sound {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_DeallocSound(mut sound: *mut Sound) {
-    MemPool_Dealloc(this.soundPool, sound as *mut libc::c_void);
+    MemPool_Dealloc(this.soundPool, sound as *mut _);
 }
 
 #[no_mangle]
@@ -866,7 +866,7 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
             let mut pData: *mut *mut libc::c_void =
                 &mut this.freeingSounds_data as *mut *mut *mut Sound as *mut *mut libc::c_void;
             *pData = MemRealloc(
-                this.freeingSounds_data as *mut libc::c_void,
+                this.freeingSounds_data as *mut _,
                 (this.freeingSounds_capacity as usize).wrapping_mul(elemSize),
             );
         }
@@ -885,7 +885,7 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
             let mut pData_0: *mut *mut libc::c_void =
                 &mut this.playingSounds_data as *mut *mut *mut Sound as *mut *mut libc::c_void;
             *pData_0 = MemRealloc(
-                this.playingSounds_data as *mut libc::c_void,
+                this.playingSounds_data as *mut _,
                 (this.playingSounds_capacity as usize).wrapping_mul(elemSize_0),
             );
         }

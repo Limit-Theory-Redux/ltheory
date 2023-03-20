@@ -120,7 +120,7 @@ pub unsafe extern "C" fn InputBindings_Init() {
         let mut pData: *mut *mut libc::c_void =
             &mut this.activeBindings_data as *mut *mut InputBinding as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            this.activeBindings_data as *mut libc::c_void,
+            this.activeBindings_data as *mut _,
             (this.activeBindings_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -130,7 +130,7 @@ pub unsafe extern "C" fn InputBindings_Init() {
         let mut pData_0: *mut *mut libc::c_void =
             &mut this.downBindings_data as *mut *mut DownBinding as *mut *mut libc::c_void;
         *pData_0 = MemRealloc(
-            this.downBindings_data as *mut libc::c_void,
+            this.downBindings_data as *mut _,
             (this.downBindings_capacity as usize).wrapping_mul(elemSize_0),
         );
     }
@@ -138,8 +138,8 @@ pub unsafe extern "C" fn InputBindings_Init() {
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Free() {
-    MemFree(this.activeBindings_data as *const libc::c_void);
-    MemFree(this.downBindings_data as *const libc::c_void);
+    MemFree(this.activeBindings_data as *const _);
+    MemFree(this.downBindings_data as *const _);
 }
 
 unsafe extern "C" fn InputBindings_RaiseCallback(
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                         as *mut *mut DownBinding
                         as *mut *mut libc::c_void;
                     *pData = MemRealloc(
-                        this.downBindings_data as *mut libc::c_void,
+                        this.downBindings_data as *mut _,
                         (this.downBindings_capacity as usize).wrapping_mul(elemSize),
                     );
                 }

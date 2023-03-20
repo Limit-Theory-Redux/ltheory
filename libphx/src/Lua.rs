@@ -591,7 +591,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             let mut pData: *mut *mut libc::c_void =
                 &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
             *pData = MemRealloc(
-                stack_data as *mut libc::c_void,
+                stack_data as *mut _,
                 (stack_capacity as usize).wrapping_mul(elemSize),
             );
         }
@@ -616,7 +616,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     let mut pData_0: *mut *mut libc::c_void =
                         &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                     *pData_0 = MemRealloc(
-                        stack_data as *mut libc::c_void,
+                        stack_data as *mut _,
                         (stack_capacity as usize).wrapping_mul(elemSize_0),
                     );
                 }
@@ -636,7 +636,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 let mut pData_1: *mut *mut libc::c_void =
                     &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_1 = MemRealloc(
-                    stack_data as *mut libc::c_void,
+                    stack_data as *mut _,
                     (stack_capacity as usize).wrapping_mul(elemSize_1),
                 );
             }
@@ -665,7 +665,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                     let mut pData_2: *mut *mut libc::c_void =
                         &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                     *pData_2 = MemRealloc(
-                        stack_data as *mut libc::c_void,
+                        stack_data as *mut _,
                         (stack_capacity as usize).wrapping_mul(elemSize_2),
                     );
                 }
@@ -685,7 +685,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 let mut pData_3: *mut *mut libc::c_void =
                     &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_3 = MemRealloc(
-                    stack_data as *mut libc::c_void,
+                    stack_data as *mut _,
                     (stack_capacity as usize).wrapping_mul(elemSize_3),
                 );
             }
@@ -708,7 +708,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 let mut pData_4: *mut *mut libc::c_void =
                     &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
                 *pData_4 = MemRealloc(
-                    stack_data as *mut libc::c_void,
+                    stack_data as *mut _,
                     (stack_capacity as usize).wrapping_mul(elemSize_4),
                 );
             }
@@ -728,5 +728,5 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         StrFree(*stackFrame_0);
         stackFrame_0 = stackFrame_0.offset(1);
     }
-    MemFree(stack_data as *const libc::c_void);
+    MemFree(stack_data as *const _);
 }

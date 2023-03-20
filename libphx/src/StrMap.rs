@@ -30,7 +30,7 @@ pub struct StrMapIter {
 
 #[inline]
 unsafe extern "C" fn Hash(mut key: *const libc::c_char) -> u64 {
-    Hash_XX64(key as *const libc::c_void, StrLen(key) as i32, 0)
+    Hash_XX64(key as *const _, StrLen(key) as i32, 0)
 }
 
 #[inline]
@@ -59,13 +59,13 @@ unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
                 let mut next: *mut Node = (*node).next;
                 StrMap_Set(&mut newMap, (*node).key, (*node).value);
                 StrFree((*node).key);
-                MemFree(node as *const libc::c_void);
+                MemFree(node as *const _);
                 node = next;
             }
         }
         i = i.wrapping_add(1);
     }
-    MemFree((*this).data as *const libc::c_void);
+    MemFree((*this).data as *const _);
     *this = newMap;
 }
 
@@ -88,14 +88,14 @@ pub unsafe extern "C" fn StrMap_Free(mut this: *mut StrMap) {
             while !node.is_null() {
                 let mut next: *mut Node = (*node).next;
                 StrFree((*node).key);
-                MemFree(node as *const libc::c_void);
+                MemFree(node as *const _);
                 node = next;
             }
         }
         i = i.wrapping_add(1);
     }
-    MemFree((*this).data as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).data as *const _);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -114,14 +114,14 @@ pub unsafe extern "C" fn StrMap_FreeEx(
                 let mut next: *mut Node = (*node).next;
                 freeFn.expect("non-null function pointer")((*node).key, (*node).value);
                 StrFree((*node).key);
-                MemFree(node as *const libc::c_void);
+                MemFree(node as *const _);
                 node = next;
             }
         }
         i = i.wrapping_add(1);
     }
-    MemFree((*this).data as *const libc::c_void);
-    MemFree(this as *const libc::c_void);
+    MemFree((*this).data as *const _);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn StrMap_Remove(mut this: *mut StrMap, mut key: *const li
                 (*node).key = (*next).key;
                 (*node).next = (*next).next;
                 (*node).value = (*next).value;
-                MemFree(next as *const libc::c_void);
+                MemFree(next as *const _);
             } else {
                 (*node).key = std::ptr::null();
                 (*node).value = std::ptr::null_mut();
@@ -270,7 +270,7 @@ pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIte
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_Free(mut this: *mut StrMapIter) {
-    MemFree(this as *const libc::c_void);
+    MemFree(this as *const _);
 }
 
 #[no_mangle]

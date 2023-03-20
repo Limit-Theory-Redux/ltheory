@@ -29,11 +29,11 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut pointBuffer: *mut Vec4 = MemNewArray!(Vec4, bufSize);
     let mut normalBuffer: *mut Vec4 = MemNewArray!(Vec4, bufSize);
     MemZero(
-        pointBuffer as *mut libc::c_void,
+        pointBuffer as *mut _,
         (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     MemZero(
-        normalBuffer as *mut libc::c_void,
+        normalBuffer as *mut _,
         (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     let mut i: i32 = 0;
@@ -62,22 +62,22 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut texSNormals: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);
     Tex2D_SetData(
         texSPoints,
-        pointBuffer as *const libc::c_void,
+        pointBuffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
     Tex2D_SetData(
         texSNormals,
-        normalBuffer as *const libc::c_void,
+        normalBuffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
     MemZero(
-        pointBuffer as *mut libc::c_void,
+        pointBuffer as *mut _,
         (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     MemZero(
-        normalBuffer as *mut libc::c_void,
+        normalBuffer as *mut _,
         (std::mem::size_of::<Vec4>()).wrapping_mul(bufSize as usize),
     );
     let mut i_0: i32 = 0;
@@ -91,18 +91,18 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut texVNormals: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     Tex2D_SetData(
         texVPoints,
-        pointBuffer as *const libc::c_void,
+        pointBuffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
     Tex2D_SetData(
         texVNormals,
-        normalBuffer as *const libc::c_void,
+        normalBuffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
-    MemFree(pointBuffer as *const libc::c_void);
-    MemFree(normalBuffer as *const libc::c_void);
+    MemFree(pointBuffer as *const _);
+    MemFree(normalBuffer as *const _);
     let mut texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
@@ -139,7 +139,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
     let mut result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
     Tex2D_GetData(
         texOutput,
-        result as *mut libc::c_void,
+        result as *mut _,
         PixelFormat_Red,
         DataFormat_Float,
     );
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
         (*vertexData.offset(i_1 as isize)).uv.x = *result.offset(i_1 as isize);
         i_1 += 1;
     }
-    MemFree(result as *const libc::c_void);
+    MemFree(result as *const _);
     Tex2D_Free(texOutput);
     Tex2D_Free(texSPoints);
     Tex2D_Free(texSNormals);
@@ -175,11 +175,11 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     }
     Tex2D_SetData(
         texPoints,
-        pointBuffer as *const libc::c_void,
+        pointBuffer as *const _,
         PixelFormat_RGB,
         DataFormat_Float,
     );
-    MemFree(pointBuffer as *const libc::c_void);
+    MemFree(pointBuffer as *const _);
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
         shader = Shader_Load(
@@ -200,7 +200,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
     let mut result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
     Tex2D_GetData(
         texOutput,
-        result as *mut libc::c_void,
+        result as *mut _,
         PixelFormat_Red,
         DataFormat_Float,
     );
@@ -209,7 +209,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(
         (*vertexData.offset(i_0 as isize)).uv.x = *result.offset(i_0 as isize);
         i_0 += 1;
     }
-    MemFree(result as *const libc::c_void);
+    MemFree(result as *const _);
     Tex2D_Free(texPoints);
     Tex2D_Free(texOutput);
 }

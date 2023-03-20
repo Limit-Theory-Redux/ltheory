@@ -117,8 +117,8 @@ pub unsafe extern "C" fn ShaderState_Free(mut this: *mut ShaderState) {
             e = e.offset(1);
         }
         Shader_Free((*this).shader);
-        MemFree((*this).elems_data as *const libc::c_void);
-        MemFree(this as *const libc::c_void);
+        MemFree((*this).elems_data as *const _);
+        MemFree(this as *const _);
     }
 }
 
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -220,7 +220,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -254,7 +254,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -285,7 +285,7 @@ pub unsafe extern "C" fn ShaderState_SetInt(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -316,7 +316,7 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -348,7 +348,7 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -380,7 +380,7 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -412,7 +412,7 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
@@ -444,7 +444,7 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
         let mut pData: *mut *mut libc::c_void =
             &mut (*this).elems_data as *mut *mut Elem as *mut *mut libc::c_void;
         *pData = MemRealloc(
-            (*this).elems_data as *mut libc::c_void,
+            (*this).elems_data as *mut _,
             ((*this).elems_capacity as usize).wrapping_mul(elemSize),
         );
     }
