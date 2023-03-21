@@ -5,12 +5,10 @@ use crate::Matrix::*;
 use crate::Mesh::*;
 use libc;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct BoxMesh {
-    pub elem_size: i32,
-    pub elem_capacity: i32,
-    pub elem_data: *mut Box_0,
+    pub elem: Vec<Box_0>
 }
 
 #[derive(Copy, Clone)]
@@ -52,57 +50,32 @@ static mut kFaceV: [Vec3; 6] = [
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
     let mut this = MemNew!(BoxMesh);
-    (*this).elem_capacity = 0;
-    (*this).elem_size = 0;
-    (*this).elem_data = std::ptr::null_mut();
+    (*this).elem = Vec::new();
     this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Free(mut this: *mut BoxMesh) {
-    MemFree((*this).elem_data as *const _);
     MemFree(this as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Add(
     mut this: *mut BoxMesh,
-    mut p: *const Vec3,
-    mut s: *const Vec3,
-    mut r: *const Vec3,
-    mut b: *const Vec3,
+    p: *const Vec3,
+    s: *const Vec3,
+    r: *const Vec3,
+    b: *const Vec3,
 ) {
-    if ((*this).elem_capacity == (*this).elem_size) as libc::c_long != 0 {
-        (*this).elem_capacity = if (*this).elem_capacity != 0 {
-            (*this).elem_capacity * 2
-        } else {
-            1
-        };
-        let mut elemSize: usize = std::mem::size_of::<Box_0>();
-        let mut pData: *mut *mut libc::c_void =
-            &mut (*this).elem_data as *mut *mut Box_0 as *mut *mut libc::c_void;
-        *pData = MemRealloc(
-            (*this).elem_data as *mut _,
-            ((*this).elem_capacity as usize).wrapping_mul(elemSize),
-        );
-    }
-    let fresh0 = (*this).elem_size;
-    (*this).elem_size += 1;
-    let mut box_0: *mut Box_0 = ((*this).elem_data).offset(fresh0 as isize);
-    (*box_0).p = *p;
-    (*box_0).s = *s;
-    (*box_0).r = *r;
-    (*box_0).b = *b;
+    (*this).elem.push(Box_0 { p: *p, s: *s, r: *r, b: *b });
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_GetMesh(mut this: *mut BoxMesh, mut res: i32) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
-    Mesh_ReserveVertexData(mesh, 6 * res * res * (*this).elem_size);
+    Mesh_ReserveVertexData(mesh, 6 * res * res * (*this).elem.len() as i32);
     Mesh_ReserveIndexData(mesh, 12 * (res - 1) * (res - 1));
-    let mut i: i32 = 0;
-    while i < (*this).elem_size {
-        let mut box_0: *mut Box_0 = ((*this).elem_data).offset(i as isize);
+    for box_0 in (*this).elem.iter() {
         let mut lower: Vec3 = Vec3::new(
             (*box_0).b.x - 1.0f32,
             (*box_0).b.y - 1.0f32,
@@ -146,7 +119,6 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(mut this: *mut BoxMesh, mut res: i32) -
             face += 1;
         }
         Matrix_Free(rot);
-        i += 1;
     }
     mesh
 }
