@@ -18,10 +18,10 @@ end
 
 function Entity:debugYield (state)
   local ctx = state.context
-  ctx:text('Yield')
+  ctx:text("Yield")
   ctx:indent()
-  ctx:text('Item: %s', self.yield.item:getName())
-  ctx:text('Size: %d', self.yield.size)
+  ctx:text("Item: %s", self.yield.item:getName())
+  ctx:text("Size: %d", self.yield.size)
   ctx:undent()
 end
 

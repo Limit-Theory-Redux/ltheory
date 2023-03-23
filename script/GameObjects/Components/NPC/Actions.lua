@@ -18,10 +18,10 @@ end
 function Entity:debugActions (state)
   if not self:isDestroyed() then
     local ctx = state.context
-    ctx:text('Actions')
+    ctx:text("Actions")
     ctx:indent()
     for i, v in ipairs(self.actions) do
-      ctx:text('%d : %s', i, v:getName())
+      ctx:text("%d : %s", i, v:getName())
     end
     ctx:undent()
   end
@@ -43,14 +43,14 @@ end
 
 function Entity:popAction ()
   assert(self.actions)
-  assert(#self.actions > 0, 'Action stack underflow')
+  assert(#self.actions > 0, "Action stack underflow")
   self.actions[#self.actions]:onStop(self)
   remove(self.actions)
 end
 
 function Entity:pushAction (action)
   assert(self.actions)
-  assert(#self.actions < 1024, 'Action stack overflow')
+  assert(#self.actions < 1024, "Action stack overflow")
   insert(self.actions, action)
   action:onStart(self)
 end

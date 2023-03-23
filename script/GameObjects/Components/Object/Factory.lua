@@ -1,4 +1,5 @@
 local Entity = require('GameObjects.Entity')
+local Item = require('Systems.Economy.Item')
 
 --------------------------------------------------------------------------------
 
@@ -52,7 +53,23 @@ function Factory:getUptime ()
   return self.timeOnline / self.time
 end
 
+function Factory:hasProductionType (productiontype)
+  -- Scan all production lines installed in this factory for one that matches the given production type
+  local hasProductionType = false
+
+  for _, prod in ipairs(self.prods) do
+    if prod.type == productiontype then
+      hasProductionType = true
+      break
+    end
+  end
+
+  return hasProductionType
+end
+
 function Factory:updateProduction (prod, dt)
+  local rng = RNG.FromTime()
+
   if not prod.active then
     -- Check inventory for presence of required inputs
     for _, input in prod.type:iterInputs() do
@@ -81,13 +98,54 @@ function Factory:updateProduction (prod, dt)
         -- TODO : How to handle failure when a factory finishes a production
         --        for which the output inventory has insufficient capacity?
         assert(self.parent:addItem(output.item, output.count))
+if output.item ~= Item.Energy then
+printf("FACTORY %s produced %d units of %s", self.parent:getName(), output.count, output.item:getName())
+end
       end
+
+      -- TODO: Make factory trade order timers work
+      --       Until then, after a production run respawn bids and asks per factory inputs and outputs
+      for _, input in prod.type:iterInputs() do
+        for i = 1, input.count * Config.econ.inputBacklog do
+          if input.item == Item.Energy then
+            -- Make sure Energy-requiring factories bid well (to spur production)
+            self.parent.trader:addBid(input.item, 10 + rng:getInt(25, 100))
+          elseif input.item == Item.Waste then
+            -- Make sure Waste-requiring factories bid fairly well (to increase Energy supply)
+            self.parent.trader:addBid(input.item, 5 + rng:getInt(5, 45))
+          else
+            self.parent.trader:addBid(input.item, input.item.energy * 10 + rng:getInt(1, 10)) -- TODO: do smarter bids
+          end
+        end
+      end
+      for _, output in prod.type:iterOutputs() do
+        for i = 1, output.count do
+          if output.item == Item.Energy or output.item == Item.WasteRad or output.item == Item.Waste then
+            -- Make Energy and Waste / Radioactive Waste cheap to buy
+            self.parent.trader:addAsk(output.item, output.item.energy)
+          else
+            -- Asking price should be at least the cost of all the inputs plus a little profit
+            local askPrice = 1
+            if output.item ~= Item.AnodeSludge then -- TODO: eliminate this temporary special case
+              for _, input in prod.type:iterInputs() do
+                askPrice = askPrice + input.item.energy * input.count
+              end
+            end
+            askPrice = math.floor(math.max(askPrice, output.item.energy) * Config.econ.markup) * output.count
+            self.parent.trader:addAsk(output.item, askPrice)
+          end
+        end
+      end
+
     end
   end
 end
 
--- Buy inputs and sell outputs
 function Factory:updateTradeOrders (prod, dt)
+  -- Buy inputs and sell outputs
+  -- NOTE: This is Josh's original code for re-adding bids and asks after a production run
+  --       Currently it runs constantly (not just after a production run) and inconsistently
+  -- TODO: Fix this so that trade orders run at the correct time and to the correct amounts
   local trader = self.parent:getTrader()
   local duration = prod.type:getDuration() -- ????: should this be used here somewhere?
 
@@ -99,6 +157,7 @@ function Factory:updateTradeOrders (prod, dt)
   local maxAsk = 100 / askSlope
   local maxBid = 100 / bidSlope
 
+  -- Add new asks for the Output items this factory just produced
   for _, timer in ipairs(prod.askTimers) do
     timer.value = timer.value + dt
     if timer.value >= timer.max then
@@ -108,13 +167,16 @@ function Factory:updateTradeOrders (prod, dt)
     end
   end
 
+  -- Add new bids for the Input items this factory needs for another run
   for _, timer in ipairs(prod.bidTimers) do
     timer.value = timer.value + dt
     if timer.value >= timer.max then
       timer.value = timer.value - timer.max
       local price = (trader:getData(timer.item).bids[1] or 0)
       price = maxBid - bidSlope * (maxBid - price)
-      trader:addBid(timer.item, price)
+      if price >= 1 then
+        trader:addBid(timer.item, price)
+      end
     end
   end
 end
@@ -125,14 +187,13 @@ function Factory:update (dt)
     if not self:isBlocked() then self.timeOnline = self.timeOnline + dt end
 
     for _, prod in ipairs(self.prods) do
-
       self:updateProduction(prod, dt)
-
-      -- NOTE : Disabled trade orders for the moment due to not having limits on
-      --        max active orders, leading to stalling the entire game via tens
-      --        of thousands of individual energy cell orders...
-      self:updateTradeOrders(prod, dt)
     end
+
+    -- NOTE : Disabled trade orders for the moment due to not having limits on
+    --        max active orders, leading to stalling the entire game via tens
+    --        of thousands of individual energy cell orders...
+--    self:updateTradeOrders(prod, dt)
   end
 end
 

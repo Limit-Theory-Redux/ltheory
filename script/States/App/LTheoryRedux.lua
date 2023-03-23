@@ -15,7 +15,7 @@ local LTheoryRedux = require('States.Application')
 local newSound = nil
 local newSeed = 0ULL
 local newShip = nil
-local menuMode = 0 -- initially show game logo
+local menuMode = 0 -- 0 = splash screen, 1 = Main Menu, 2 = either Flight dialog or Seed dialog (New Game / Load Game menus TBD)
 local bNewSSystem = false
 local bSeedDialogDisplayed = false
 local bBackgroundMode = false
@@ -121,7 +121,7 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Take down splash text if pretty much any key is pressed
-  if menuMode == 0 and Input.GetPressed(Bindings.All:get()) then
+  if menuMode == 0 and Bindings.All:get() == 1 then
     bBackgroundMode = false
     menuMode = 1 -- show Main Menu
   end
@@ -135,9 +135,9 @@ function LTheoryRedux:onUpdate (dt)
       -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
       -- After that, when we're in Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if menuMode == 0 then
-        Config.game.bFlightModeInactive = false
+        Config.game.flightModeActive = false
       else
-        Config.game.bFlightModeInactive = true
+        Config.game.flightModeActive = true
       end
       menuMode = 2 -- show Flight Mode dialog
     end
@@ -156,15 +156,13 @@ function LTheoryRedux:onUpdate (dt)
     if playerShip ~= nil then
       local target = playerShip:getTarget()
       if target == nil then target = self.focus end
-      if not playerShip:isDestroyed() and not playerShip:isShipDocked() and target ~= nil and target ~= playerShip then
+      if not playerShip:isDestroyed() and playerShip:isShipDocked() == nil and target ~= nil and target ~= playerShip then
         if playerShip:getCurrentAction() == nil or not string.find(playerShip:getCurrentAction():getName(),"MoveTo") then
           -- Move undestroyed, undocked player ship to area of selected target
           local autodistance = Config.game.autonavRanges[target:getType()]
           Config.game.autonavTimestamp = Config.getCurrentTimestamp()
           Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
           playerShip:pushAction(Actions.MoveTo(target, autodistance))
---printf("-> %s at time %s, range = %s (moving = %s)",
---  playerShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
         end
       end
     end
@@ -174,7 +172,6 @@ function LTheoryRedux:onUpdate (dt)
   if Config.game.playerMoving then
     if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
       Config.game.playerMoving = false
---printf("Manually disengaged autopilot, playerMoving = false")
     end
   end
 
@@ -187,7 +184,7 @@ function LTheoryRedux:onUpdate (dt)
         LTheoryRedux:showMainMenu()
       end
     elseif menuMode == 2 then
-      if Config.game.bFlightModeInactive then
+      if Config.game.flightModeActive then
         LTheoryRedux:showFlightDialog()
       else
         if bSeedDialogDisplayed then
@@ -236,7 +233,8 @@ end
 
 function LTheoryRedux:createStarSystem ()
   if self.system then self.system:delete() end
-print("------------------------")
+
+  print("------------------------")
   if Config.getGameMode() == 1 then
     -- Use custom system generation sizes for a nice background star system
     Config.gen.scaleSystem    = Config.gen.scaleSystemBack
@@ -279,12 +277,12 @@ print("------------------------")
         self.system:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
       end
 
-      -- Add a space station with a random factory
+      -- Add a space station
       self.system:spawnStation(Config.game.humanPlayer, nil)
     else
       -- Flight Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-      --   a space station, a visible pilotable ship, and 100 "escort" ships
+      --   a space station, a visible pilotable ship, and possibly some NPC ships
       local afield = nil
 
       -- Add system-wide AI director
@@ -297,28 +295,33 @@ print("------------------------")
 
       -- Add planets
       for i = 1, Config.gen.nPlanets do
-        self.system:spawnPlanet(true) -- also create planetary asteroid belt
+        self.system:spawnPlanet(false)
       end
 
       -- Add asteroid fields
       -- Must add BEFORE space stations
       for i = 1, Config.gen.nFields do
         afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, false)
-printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
+        printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
       end
 
       -- Add space stations with random factories
-      -- Must have one "free" solar energy generating station per star system
-      local newStation = self.system:spawnStation(self.tradeAI, Production.Solar())
-      newStation:setPos(rng:getDir3():scale(1.0 * Config.gen.scaleSystem * (1 + rng:getExp()))) -- move station
-      for i = 1, 200 do
-        -- Add some units of Energy for sale as a starting inventory
-        -- (Be aware they will immediately be removed and accounted for in the Asks escrow counter)
-        newStation:addItem(Item.Energy, 1)
-        newStation.trader:addAsk(Item.Energy, math.floor(Item.Energy.energy * Config.econ.markup))
+      -- Every system gets one "free" solar plant
+      local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
+      self.system:place(rng, newStation)
+
+      if Config.gen.nAIPlayers > 0 and Config.gen.nEconNPCs > 0 then
+        -- Add the "extra" stations only if there are economic ships to use them
+        -- Add a free Water Melter station
+        newStation = self.system:spawnStation(self.tradeAI, Production.WaterMelter)
+        self.system:place(rng, newStation)
+
+        -- Add a free Waste Recycler station
+        newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
+        self.system:place(rng, newStation)
       end
 
-      for i = 2, Config.gen.nStations do
+      for i = 4, Config.gen.nStations do
         -- Create Stations within randomly selected AsteroidField Zones
         self.system:spawnStation(self.tradeAI, nil)
       end
@@ -337,9 +340,9 @@ printf("Player ship position = %s", newShip:getPos())
 
       printf("Added our ship, the '%s'", newShip:getName())
 
-      -- TESTING: ADD 100 ESCORT SHIPS
+      -- TESTING: ADD SHIPS WITH ESCORT BEHAVIOR ENABLED
       local ships = {}
-      for i = 1, Config.gen.nNPCs do
+      for i = 1, Config.gen.nEscortNPCs do
         local escort = self.system:spawnShip(nil)
         local offset = rng:getSphere():scale(100)
         escort:setPos(newShip:getPos() + offset)
@@ -349,35 +352,42 @@ printf("Player ship position = %s", newShip:getPos())
 
         insert(ships, escort)
       end
-      printf("Added %d escort ships", Config.gen.nNPCs)
+      if Config.gen.nEscortNPCs > 0 then
+        printf("Added %d escort ships", Config.gen.nEscortNPCs)
+      end
 
       -- TESTING: MAKE SHIPS CHASE EACH OTHER!
 --      for i = 1, #ships - 1 do
 --        ships[i]:pushAction(Actions.Attack(ships[i+1]))
 --      end
 
-----      -- TESTING: ADD nNPCs SHIPS WITH ECONOMIC BEHAVIOR ENABLED
---      local ships = {}
---      for i = 1, Config.gen.nNPCs do
---        local tradePlayerName = format("AI Trade Player %d", i)
---        local tradePlayer = Entities.Player(tradePlayerName)
---
---        -- Give player some starting money
---        tradePlayer:addCredits(Config.game.eStartCredits)
---
---        -- Create assets (ships) assigned to their own individual AI player
---        self.system:spawnAI(Config.gen.nNPCs, Actions.Wait(1), tradePlayer)
---        printf("%d assets added to %s", Config.gen.nNPCs, tradePlayerName)
---
---        -- Set initial asset locations (in random asteroid fields if available)
---        for asset in tradePlayer:iterAssets() do
---          self.system:place(rng, asset)
---        end
---
---        -- Tell the AI player who owns this ship asset to start using the Think action
---        tradePlayer:pushAction(Actions.Think())
---      end
---      printf("Added %s economic ships", Config.gen.nNPCs)
+      -- TESTING: ADD SHIPS WITH ECONOMIC BEHAVIOR ENABLED
+      -- Add AI Players and give each one some assets
+      if Config.gen.nAIPlayers > 0 and Config.gen.nEconNPCs > 0 then
+        local econShipsPerAI = math.floor(Config.gen.nEconNPCs / Config.gen.nAIPlayers)
+        local econShipsAdded = econShipsPerAI * Config.gen.nAIPlayers
+        for i = 1, Config.gen.nAIPlayers do
+          local tradePlayerName = format("AI Trade Player %d", i)
+          local tradePlayer = Entities.Player(tradePlayerName)
+
+          -- Give AI Player some starting money
+          tradePlayer:addCredits(Config.econ.eStartCredits)
+
+          -- Create multiple assets (ships) assigned to this AI Player
+          self.system:spawnAI(econShipsPerAI, Actions.Wait(1), tradePlayer)
+          printf("%d assets added to %s", econShipsPerAI, tradePlayerName)
+
+          -- Configure assets
+          for asset in tradePlayer:iterAssets() do
+            self.system:place(rng, asset)
+          end
+
+          -- Tell AI player to start using the Think action
+          tradePlayer:pushAction(Actions.Think())
+        end
+        printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nAIPlayers)
+      end
+
     end
   end
 
@@ -492,29 +502,29 @@ function LTheoryRedux:showFlightDialogInner ()
     HmGui.PushFont(Cache.Font('Exo2Bold', 18))
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
       if HmGui.Button("Return to Game") then
-        Config.game.bFlightModeInactive = false
+        Config.game.flightModeActive = false
         Config.game.gamePaused = false
       end
     end
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
       HmGui.SetSpacing(8)
       if HmGui.Button("Save Game") then
-        Config.game.bFlightModeInactive = false
+        Config.game.flightModeActive = false
         Config.game.gamePaused = false
       end
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Load Game") then
       LTheoryRedux:showSeedDialog()
-      Config.game.bFlightModeInactive = false
+      Config.game.flightModeActive = false
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Game Settings") then
-      Config.game.bFlightModeInactive = true
+      Config.game.flightModeActive = true
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Exit to Main Menu") then
-      Config.game.bFlightModeInactive = false
+      Config.game.flightModeActive = false
       Config.game.gamePaused = false
       Config.setGameMode(1) -- switch to Startup Mode
       LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode

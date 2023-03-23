@@ -97,11 +97,11 @@ end
 
 function Entity:debugMarket (state)
   local ctx = state.context
-  ctx:text('Market')
+  ctx:text("Market")
   ctx:indent()
   for k, v in pairs(self.market.data) do
     ctx:text(
-      '%s : %d/%d buy/sell orders',
+      "%s : %d/%d buy/sell orders",
       k:getName(),
       #v.ordersBuy,
       #v.ordersSell)

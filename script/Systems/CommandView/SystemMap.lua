@@ -243,7 +243,9 @@ end
 
 function SystemMap:onInput (state)
   -- TODO: Connect to bindings (probably should be a new MapBindings.lua)
-  -- NOTE: Keyboard pan and zoom previous used (e.g.) "kPanSpeed * state.dt"
+  -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
+  --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
+  --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
   Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
   Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (kPanSpeed / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))

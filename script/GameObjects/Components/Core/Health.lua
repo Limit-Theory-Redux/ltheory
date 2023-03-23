@@ -36,7 +36,8 @@ printf("%s destroyed by %s!", self:getName(), source:getName())
     self:send(Event.Destroyed(source))
 
     if self == Config.game.currentShip then
-      Config.game.bFlightModeInactive = true
+      Config.game.flightModeActive = false
+--      Config.game.flightModeActive = true
     end
   end
 end

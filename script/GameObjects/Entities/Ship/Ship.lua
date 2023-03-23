@@ -39,7 +39,7 @@ local Ship = subclass(Entity, function (self, proto)
   local mass = 1000.0 + (self:getRadius() * 2000) -- (fully loaded F-15 = 20,000 kg, but Josh's mass calc gets sluggish x 10)
   self:setMass(mass) -- lower mass is related to the ship "wobble" problem
 
-  local shipDocked = false
+  local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
 end)
 
 -- TODO : Calculate true top speed based on max thrust & drag factor
@@ -70,20 +70,18 @@ function Ship:attackedBy (target)
   end
 end
 
-function Ship:setShipDocked (bDocked)
-  self.shipDocked = bDocked
+function Ship:setShipDocked (entity)
+  self.shipDockedAt = entity -- remember where we parked
 
-  -- Debugging
---local station = self:getParent()
---if self.shipDocked then
---  printf("%s docked at Station %s", self:getName(), station:getName())
+--if self.shipDockedAt then
+--  printf("%s docked at Station %s", self:getName(), self.shipDockedAt:getName())
 --else
---  printf("%s undocked from Station %s", self:getName(), station:getName())
+--  printf("%s undocked from Station %s", self:getName(), self.shipDockedAt:getName())
 --end
 end
 
 function Ship:isShipDocked ()
-  return self.shipDocked
+  return self.shipDockedAt
 end
 
 return Ship
