@@ -167,6 +167,8 @@ PHX_API const Button Button_Gamepad_Last;
 
 PHX_API const Button Button_System_First;
 PHX_API const Button Button_System_Exit;
+PHX_API const Button Button_System_Win_Enter;
+PHX_API const Button Button_System_Win_Leave;
 PHX_API const Button Button_System_Last;
 
 PHX_API const Button Button_Last;
