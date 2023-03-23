@@ -53,6 +53,20 @@ function Factory:getUptime ()
   return self.timeOnline / self.time
 end
 
+function Factory:hasProductionType (productiontype)
+  -- Scan all production lines installed in this factory for one that matches the given production type
+  local hasProductionType = false
+
+  for _, prod in ipairs(self.prods) do
+    if prod.type == productiontype then
+      hasProductionType = true
+      break
+    end
+  end
+
+  return hasProductionType
+end
+
 function Factory:updateProduction (prod, dt)
   local rng = RNG.FromTime()
 
@@ -111,14 +125,14 @@ end
             self.parent.trader:addAsk(output.item, output.item.energy)
           else
             -- Asking price should be at least the cost of all the inputs plus a little profit
-            local askprice = 1
+            local askPrice = 1
             if output.item ~= Item.AnodeSludge then -- TODO: eliminate this temporary special case
               for _, input in prod.type:iterInputs() do
-                askprice = askprice + input.item.energy * input.count
+                askPrice = askPrice + input.item.energy * input.count
               end
             end
-            askprice = math.floor(math.max(askprice, output.item.energy) * Config.econ.markup) * output.count
-            self.parent.trader:addAsk(output.item, askprice)
+            askPrice = math.floor(math.max(askPrice, output.item.energy) * Config.econ.markup) * output.count
+            self.parent.trader:addAsk(output.item, askPrice)
           end
         end
       end

@@ -10,11 +10,14 @@ local SystemMap = require('Systems.CommandView.SystemMap')
 local rng = RNG.FromTime()
 --local rng = RNG.Create(10) -- for when the same seed is needed
 
+-- Manage system and NPC numbers locally, rather than through App.lua or Local.lua
 local kFields = 10
 local kFieldCount = 200
 local kStations = 30
 local kPlayers = 3
 local kAssets = 15
+
+local planet = false -- needs to be here for any function to access
 
 function TestEcon:getWindowMode ()
   return Bit.Or32(WindowMode.Shown, WindowMode.Resizable)
@@ -55,36 +58,23 @@ function TestEcon:onInit ()
   Config.debug.timeAccelFactor = 100
 
   -- Add a planet at the origin
-  local planet = self.system:spawnPlanet(false)
+  planet = self.system:spawnPlanet(false)
   planet:setPos(Vec3f(0, 0, 0)) -- move planet to origin
 
   -- Add Asteroid Field (and Asteroid) objects
   for i = 1, kFields do self.system:spawnAsteroidField(kFieldCount, false) end
 
   -- Add Station objects
-  -- Every system gets one "free" solar plant, water melter, and waste recycler
+  -- Every system gets one "free" solar plant
   local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
   self.system:place(rng, newStation)
 
-  newStation = self.system:spawnStation(self.tradeAI, Production.WaterMelter)
-  self.system:place(rng, newStation)
-
+  -- Every system gets one "free" waste recycler
   newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
   self.system:place(rng, newStation)
 
---  if a Production.Silver or Production.Gold or Production.Platinum exists then
---    add a Production.Copper
---  if a Production.Isotopes exists then
---    add a Production.Thorium if one doesn't already exist
---  if a Production.EnergyNuclear exists then
---    add a Production.Isotopes if one doesn't already exist
---  if a Production.EnergyFusion exists then
---    add a Production.WaterMelter if one doesn't already exist
---  if a planet exists then
---    add a Production.Petroleum if one doesn't already exist
-
   -- Now maybe add some additional stations
-  for i = 4, kStations do
+  for i = 3, kStations do
     -- Create a station, owned by this system's AI player, within a random AsteroidField Zone
     local newStation = self.system:spawnStation(self.tradeAI, nil)
 
@@ -100,6 +90,9 @@ function TestEcon:onInit ()
       end
     end
   end
+
+  -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
+  self.system:addExtraFactories(self.system, planet, self.tradeAI, rng)
 
   -- Add Players and give each one some assets
   for i = 1, kPlayers do

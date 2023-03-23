@@ -156,7 +156,7 @@ function HUD:drawTargets (a)
                 tcb = 0
               end
               UI.DrawEx.TextAdditive(
-                'NovaMono',
+                'NovaRound',
                 targetName,
                 10,
                 (bx1 + bx2) / 2 - targetName:len() / 2, by1 - 30, targetName:len(), 20,
@@ -288,7 +288,7 @@ function HUD:drawPlayerHealth (a)
 
   -- Draw text of player ship name
   UI.DrawEx.TextAdditive(
-    'NovaMono',
+    'NovaRound',
     playerShip:getName(),
     10,
     x, y, sx, sy,
@@ -310,7 +310,7 @@ function HUD:drawPlayerHealth (a)
 
   -- Draw text of player ship health
   UI.DrawEx.TextAdditive(
-    'NovaMono',
+    'NovaRound',
     playerHealthText,
     10,
     x, y, sx, sy,
@@ -347,7 +347,7 @@ function HUD:drawTargetHealth (a)
 
       -- Draw text of target name
       UI.DrawEx.TextAdditive(
-        'NovaMono',
+        'NovaRound',
         targetName,
         10,
         x, y, sx, sy,
@@ -365,7 +365,7 @@ function HUD:drawTargetHealth (a)
 
       -- Draw text of target health
       UI.DrawEx.TextAdditive(
-        'NovaMono',
+        'NovaRound',
         targetHealthText,
         10,
         x, y, sx, sy,

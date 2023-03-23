@@ -1,8 +1,6 @@
 local Action = require('GameObjects.Action')
 local Player = require('GameObjects.Entities.Player')
 
-local kJobIterations = 4000 -- how many randomly-chosen jobs the asset will consider before deciding
-
 local Think = subclass(Action, function (self)
   self.timer = 0
   self.rng = RNG.FromTime()
@@ -26,7 +24,7 @@ end
 --  local root = asset:getRoot()
 --  local bestPressure = asset.job and asset.job:getPressure(asset) or math.huge
 --  local bestJob = asset.job
---  for i = 1, kJobIterations do
+--  for i = 1, Config.econ.jobIterations do
 --    -- TODO : KnowsAbout check
 --    local job = self.rng:choose(root:getEconomy().jobs)
 --    if not job then break end
@@ -69,7 +67,7 @@ if true then -- Use payout, not flow
     end
 
     -- Consider changing to a new job
-    for i = 1, math.min(kJobIterations, #root:getEconomy().jobs * 2) do
+    for i = 1, math.min(Config.econ.jobIterations, #root:getEconomy().jobs * 2) do
       -- TODO : KnowsAbout check (information economy + AI load reduction)
       local job = self.rng:choose(root:getEconomy().jobs)
       if not job then break end

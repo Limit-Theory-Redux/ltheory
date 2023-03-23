@@ -1,5 +1,5 @@
 local Action = require('GameObjects.Action')
-local Bindings = require('States.ApplicationBindings')
+--local Bindings = require('States.ApplicationBindings')
 
 local rng = RNG.FromTime()
 
@@ -31,7 +31,6 @@ function MoveTo:onUpdateActive (e, dt)
 
   -- Within range of the target object?
   if (e:getPos() - tp):length() <= self.range or (e == Config.game.currentShip and not Config.game.playerMoving) then
---  if e:getMinDistance(self.target) <= self.range or (e == Config.game.currentShip and not Config.game.playerMoving) then
     -- MoveTo is complete, remove movement action from entity's Action queue
 --printf("-> %s ended", e:getCurrentAction():getName())
     e:popAction()
@@ -49,13 +48,11 @@ function MoveTo:onUpdateActive (e, dt)
   if Config.debug.instantJobs then
     local p = e:getPos()
     local dp = tp - p
---    local dp = self.target:getPos() - p
     e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * Config.debug.jobSpeed)))
   else
     local tf = self.target:getForward()
     local tu = self.target:getUp()
     self:flyToward(e, tp, -tf, tu)
---    self:flyToward(e, self.target:getPos(), e:getForward(), e:getUp())
   end
 end
 

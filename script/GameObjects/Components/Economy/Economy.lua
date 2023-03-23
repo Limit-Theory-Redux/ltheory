@@ -40,25 +40,25 @@ function Economy:update (dt)
     end
 
     -- Cache profitable mining jobs
-    local alljobcount = 0
-    local realjobcount = 0
+    local allJobCount = 0
+    local realJobCount = 0
     do -- Cache mining jobs
       for _, src in ipairs(self.yields) do
         for _, dst in ipairs(self.markets) do
           -- Create a Mine job only if the destination trader has a bid for the source item
-          alljobcount = alljobcount + 1
+          allJobCount = allJobCount + 1
           local item = src:getYield().item
           local itemBidVol = dst:getTrader():getBidVolume(item)
           if itemBidVol > 0 then
 --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
 --    src:getName(), dst:getName(), item:getName(), itemBidVol)
-            realjobcount = realjobcount + 1
+            realJobCount = realJobCount + 1
             insert(self.jobs, Jobs.Mine(src, dst, item))
           end
         end
       end
     end
---printf("ECONOMY: Mine job test: alljobcount = %d, realjobcount = %d", alljobcount, realjobcount)
+--printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
 --    if false then  -- INACTIVE (Josh code)
 --      do -- Cache trade jobs from positive to negative flow
@@ -77,8 +77,8 @@ function Economy:update (dt)
 --    end
 
     -- Cache profitable trade jobs
-    local alljobcount = 0
-    local realjobcount = 0
+    local allJobCount = 0
+    local realJobCount = 0
     for _, src in ipairs(self.traders) do
       for item, data in pairs(src:getTrader().elems) do
         if src:getTrader():getAskVolume(item) > 0 then
@@ -87,14 +87,14 @@ function Economy:update (dt)
           if buyPrice > 0 then
             for _, dst in ipairs(self.traders) do
               if src ~= dst then
-                alljobcount = alljobcount + 1
+                allJobCount = allJobCount + 1
                 local sellPrice = dst:getTrader():getSellToPrice(item, 1)
 --printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                 if buyPrice < sellPrice then
 --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-                  realjobcount = realjobcount + 1
+                  realJobCount = realJobCount + 1
                   insert(self.jobs, Jobs.Transport(src, dst, item))
                 end
               end
@@ -103,7 +103,7 @@ function Economy:update (dt)
         end
       end
     end
---printf("ECONOMY: Trade job test: alljobcount = %d, realjobcount = %d", alljobcount, realjobcount)
+--printf("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
     do -- Compute net flow of entire economy
       -- Clear current flow

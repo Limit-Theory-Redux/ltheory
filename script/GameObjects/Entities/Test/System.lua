@@ -52,6 +52,48 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
 
 end)
 
+function System:addExtraFactories (system, planet, aiPlayer, rng)
+  -- Based on what factories were added randomly to stations, a system may need some additional factories
+  local newStation = nil
+  if system:hasProdType(Production.Silver)   or
+     system:hasProdType(Production.Gold)     or
+     system:hasProdType(Production.Platinum) then
+    -- Add a Copper Refinery station if one doesn't already exist (to create Item.AnodeSludge)
+    if not system:hasProdType(Production.Copper) then
+      newStation = system:spawnStation(aiPlayer, Production.Copper)
+      system:place(rng, newStation)
+    end
+  end
+  if system:hasProdType(Production.EnergyNuclear) then
+    -- Add an Isotope Factory station if one doesn't already exist (to create Item.Isotopes)
+    if not system:hasProdType(Production.Isotopes) then
+      newStation = system:spawnStation(aiPlayer, Production.Isotopes)
+      system:place(rng, newStation)
+    end
+  end
+  if system:hasProdType(Production.Isotopes) then
+    -- Add a Thorium Refinery station if one doesn't already exist (to create Item.Thorium)
+    if not system:hasProdType(Production.Thorium) then
+      newStation = system:spawnStation(aiPlayer, Production.Thorium)
+      system:place(rng, newStation)
+    end
+  end
+  if system:hasProdType(Production.EnergyFusion) then
+    -- Add a Water Melter station if one doesn't already exist (to create Item.WaterLiquid)
+    if not system:hasProdType(Production.WaterMelter) then
+      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
+      system:place(rng, newStation)
+    end
+  end
+  if planet then
+    -- Add a Petroleum Refinery station if one doesn't already exist
+    if not system:hasProdType(Production.Petroleum) then
+      newStation = system:spawnStation(aiPlayer, Production.Petroleum)
+      system:place(rng, newStation)
+    end
+  end
+end
+
 function System:addZone (zone)
   insert(self.zones, zone)
 end
@@ -73,8 +115,8 @@ function System:getStations ()
 end
 
 function System:getStationsByDistance (ship)
+  -- Return a table of stations sorted by nearest first
   local stationList = {}
-
   for _, station in ipairs(self.stations) do
     local stationStruct = {stationRef = station, stationDist = ship:getDistance(station)}
     insert(stationList, stationStruct)
@@ -83,6 +125,23 @@ function System:getStationsByDistance (ship)
   table.sort(stationList, function (a, b) return a.stationDist < b.stationDist end)
 
   return stationList
+end
+
+function System:hasProdType (prodtype)
+  -- Scan the production types of all factories in this system to see if one has the specified production type
+  local hasProdType = false
+
+  local stationList = {}
+  for _, station in ipairs(self.stations) do
+    if station:hasFactory() then
+      if station:getFactory():hasProductionType(prodtype) then
+        hasProdType = true
+        break
+      end
+    end
+  end
+
+  return hasProdType
 end
 
 function System:sampleStations (rng)
@@ -262,7 +321,6 @@ local typeName = Config:getObjectInfo("object_types", planet:getType())
 local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
 printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
 
-  Config.game.currentPlanet = planet
   return planet
 end
 

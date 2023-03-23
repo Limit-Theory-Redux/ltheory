@@ -38,16 +38,11 @@ Config.gen = {
   seedGlobal = nil, -- Set to force deterministic global RNG
   seedSystem = nil, -- Set to force deterministic system generation
 
-  playerShipSize = 4,
-  nThrusters     = 1,
-  nTurrets       = 2,
-
   origin     = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
+
   nFields    = 20,
   nFieldSize = function (rng) return 200 * (rng:getExp() + 1.0) end,
   nStations  = 0,
-  nNPCs      = 0,
-  nNPCsNew   = 0,
   nPlanets   = 0,
   nAsteroids = 200, -- asteroids per asteroid field (smaller = less CPU hit)
   nBeltSize  = function (rng) return 0 end, -- asteroids per planetary belt
@@ -58,6 +53,14 @@ Config.gen = {
 
   shipRes     = 8,
   nebulaRes   = 1024,
+
+  nAIPlayers  = 0,  -- # of AI players (who manage Economic assets)
+  nEconNPCs   = 0,  -- # of ships to be given Economic actions (managed by AI players)
+  nEscortNPCs = 0,  -- # of ships to be given the Escort action
+
+  playerShipSize = 4,
+  nThrusters     = 1,
+  nTurrets       = 2,
 
   zNearBack          = 0.1,
   zNearReal          = 0.1, -- 0.1
@@ -99,7 +102,6 @@ Config.game = {
 
   humanPlayer = nil,
   currentShip = nil,
-  currentPlanet = nil,
 
   mapSystemPos  = Vec3f(0, 0, 0),
   mapSystemZoom = 0.0001,
@@ -168,6 +170,8 @@ Config.econ = {
 
   eInventory = 100, -- starting number of inventory slots
 
+  jobIterations = 4000, -- how many randomly-chosen jobs an asset will consider before picking
+
   inputBacklog = 1, -- multiplier of number of units a factory can bid for on each input
 
   pickupDistWeightMine = 1.0, -- importance of pickup distance for a Mine job (smaller = more important)
@@ -177,8 +181,8 @@ Config.econ = {
 }
 
 Config.render = {
-  startingHorz = 1600,
-  startingVert =  900,
+  startingHorz = 1800, -- 1600
+  startingVert = 1375, --  900
   fullscreen   = false,
   vsync        = true,
   zNear        = 0.1, -- default: 0.1
