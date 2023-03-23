@@ -3,7 +3,7 @@ local all = {}
 local Item = class(function (self, name, mass, energyDensity, distribution)
   self.name = name
   self.mass = mass or 1
-  self.energy = math.max(1, (energyDensity or 1) * self.mass)
+  self.energy = Math.Round(math.max(1, (energyDensity or 1) * self.mass))
   self.distribution = distribution
   insert(all, self)
 end)

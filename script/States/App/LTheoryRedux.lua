@@ -121,7 +121,7 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Take down splash text if pretty much any key is pressed
-  if menuMode == 0 and Input.GetPressed(Bindings.All:get()) then
+  if menuMode == 0 and Bindings.All:get() == 1 then
     bBackgroundMode = false
     menuMode = 1 -- show Main Menu
   end
@@ -156,15 +156,13 @@ function LTheoryRedux:onUpdate (dt)
     if playerShip ~= nil then
       local target = playerShip:getTarget()
       if target == nil then target = self.focus end
-      if not playerShip:isDestroyed() and not playerShip:isShipDocked() and target ~= nil and target ~= playerShip then
+      if not playerShip:isDestroyed() and playerShip:isShipDocked() == nil and target ~= nil and target ~= playerShip then
         if playerShip:getCurrentAction() == nil or not string.find(playerShip:getCurrentAction():getName(),"MoveTo") then
           -- Move undestroyed, undocked player ship to area of selected target
           local autodistance = Config.game.autonavRanges[target:getType()]
           Config.game.autonavTimestamp = Config.getCurrentTimestamp()
           Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
           playerShip:pushAction(Actions.MoveTo(target, autodistance))
---printf("-> %s at time %s, range = %s (moving = %s)",
---  playerShip:getCurrentAction():getName(), Config.game.autonavTimestamp, autodistance, Config.game.playerMoving)
         end
       end
     end
@@ -174,7 +172,6 @@ function LTheoryRedux:onUpdate (dt)
   if Config.game.playerMoving then
     if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
       Config.game.playerMoving = false
---printf("Manually disengaged autopilot, playerMoving = false")
     end
   end
 
@@ -236,7 +233,8 @@ end
 
 function LTheoryRedux:createStarSystem ()
   if self.system then self.system:delete() end
-print("------------------------")
+
+  print("------------------------")
   if Config.getGameMode() == 1 then
     -- Use custom system generation sizes for a nice background star system
     Config.gen.scaleSystem    = Config.gen.scaleSystemBack
@@ -279,12 +277,12 @@ print("------------------------")
         self.system:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
       end
 
-      -- Add a space station with a random factory
+      -- Add a space station
       self.system:spawnStation(Config.game.humanPlayer, nil)
     else
       -- Flight Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-      --   a space station, a visible pilotable ship, and 100 "escort" ships
+      --   a space station, a visible pilotable ship, and possibly some NPC ships
       local afield = nil
 
       -- Add system-wide AI director
@@ -308,17 +306,17 @@ printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
       end
 
       -- Add space stations with random factories
-      -- Must have one "free" solar energy generating station per star system
-      local newStation = self.system:spawnStation(self.tradeAI, Production.Solar())
-      newStation:setPos(rng:getDir3():scale(1.0 * Config.gen.scaleSystem * (1 + rng:getExp()))) -- move station
-      for i = 1, 200 do
-        -- Add some units of Energy for sale as a starting inventory
-        -- (Be aware they will immediately be removed and accounted for in the Asks escrow counter)
-        newStation:addItem(Item.Energy, 1)
-        newStation.trader:addAsk(Item.Energy, math.floor(Item.Energy.energy * Config.econ.markup))
-      end
+      -- Every system gets one "free" solar plant, water melter, and waste recycler
+      local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
+      self.system:place(rng, newStation)
 
-      for i = 2, Config.gen.nStations do
+      newStation = self.system:spawnStation(self.tradeAI, Production.WaterMelter)
+      self.system:place(rng, newStation)
+
+      newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
+      self.system:place(rng, newStation)
+
+      for i = 4, Config.gen.nStations do
         -- Create Stations within randomly selected AsteroidField Zones
         self.system:spawnStation(self.tradeAI, nil)
       end
@@ -363,7 +361,7 @@ printf("Player ship position = %s", newShip:getPos())
 --        local tradePlayer = Entities.Player(tradePlayerName)
 --
 --        -- Give player some starting money
---        tradePlayer:addCredits(Config.game.eStartCredits)
+--        tradePlayer:addCredits(Config.econ.eStartCredits)
 --
 --        -- Create assets (ships) assigned to their own individual AI player
 --        self.system:spawnAI(Config.gen.nNPCs, Actions.Wait(1), tradePlayer)

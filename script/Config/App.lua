@@ -14,8 +14,9 @@ Config.debug = {
                           -- collapse all others by default
 
   instantJobs     = false, -- set to true to speed up economic testing
+  jobSpeed        = 10000, -- acceleration rate for instant jobs (in MineAt, DockAt)
 
-  timeAccelFactor = 10,
+  timeAccelFactor = 10, -- acceleration rate when holding "TimeAccel" input
 }
 
 Config.debug.physics = {
@@ -48,7 +49,7 @@ Config.gen = {
   nNPCs      = 0,
   nNPCsNew   = 0,
   nPlanets   = 0,
-  nAsteroids = 500, -- asteroids per asteroid field
+  nAsteroids = 200, -- asteroids per asteroid field (smaller = less CPU hit)
   nBeltSize  = function (rng) return 0 end, -- asteroids per planetary belt
 
   nDustFlecks = 1024,
@@ -102,12 +103,6 @@ Config.game = {
 
   mapSystemPos  = Vec3f(0, 0, 0),
   mapSystemZoom = 0.0001,
-
-  pStartCredits = 10000,
-  eStartCredits = 1000000,
-
-  eInventory = 100,
-  inputBacklog = 3,
 
   boostCost = 10,
   rateOfFire = 10,
@@ -168,10 +163,17 @@ Config.game = {
 }
 
 Config.econ = {
+  pStartCredits = 10000,   -- player starting credits
+  eStartCredits = 1000000, -- NPC player starting credits
+
+  eInventory = 100, -- starting number of inventory slots
+
+  inputBacklog = 1, -- multiplier of number of units a factory can bid for on each input
+
   pickupDistWeightMine = 1.0, -- importance of pickup distance for a Mine job (smaller = more important)
   pickupDistWeightTran = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
-  markup   = 1.4, -- change to base value when calculating bid price for selling an item
-  markdown = 0.7, -- change to base value when calculating ask price for buying an item
+  markup   = 1.2, -- change to base value when calculating ask price for selling an item
+  markdown = 0.8, -- change to base value when calculating bid price for buying an item
 }
 
 Config.render = {

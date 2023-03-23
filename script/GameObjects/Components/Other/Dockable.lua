@@ -24,7 +24,7 @@ end
 function Entity:addDocked (e)
   assert(self.dockable)
   self:addChild(e)
-  e:setShipDocked(true) -- mark ship as docked
+  e:setShipDocked(self) -- mark ship as docked to this entity
 end
 
 function Entity:getDockable ()
@@ -58,5 +58,5 @@ end
 function Entity:removeDocked (e)
   assert(self.dockable)
   self:getParent():addChild(e)
-  e:setShipDocked(false) -- mark ship as undocked
+  e:setShipDocked(nil) -- mark ship as undocked
 end

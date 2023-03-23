@@ -5,14 +5,6 @@ local rng = RNG.FromTime()
 -- TODO : Dock range should be specified by the dockable component
 local kDockRange = 250
 
-local function getTargetPos (e, target)
-  local tp = target:getPos()
-  local tr = target:getRadius()
-  local tu = target:getUp()
-  local er = e:getRadius()
-  return tp - tu:muls(1.25*tr + er)
-end
-
 local DockAt = subclass(Action, function (self, target)
   self.target = target
 end)
@@ -22,15 +14,28 @@ function DockAt:clone ()
 end
 
 function DockAt:getName ()
-  return format('DockAt %s', self.target:getName())
+  local typename = Config:getObjectInfo("object_types", self.target:getType())
+  return format("DockAt %s '%s'", typename, self.target:getName())
+end
+
+local function getTargetPos (e, target)
+  local tp = target:getPos()
+  local tr = target:getRadius()
+  local tu = target:getUp()
+  local er = e:getRadius()
+  return tp - tu:muls(1.25*tr + er)
 end
 
 function DockAt:onUpdateActive (e, dt)
+  -- Move to within docking range of the dockable target object
   local tp = getTargetPos(e, self.target)
+
+  -- Within range of the target object?
   if (e:getPos() - tp):length() <= kDockRange then
     self.target:addDocked(e)
     e:popAction()
-    return
+
+    return -- within range, so end flight
   end
 
   -- Use the "target" metaphor to store where this ship is moving to

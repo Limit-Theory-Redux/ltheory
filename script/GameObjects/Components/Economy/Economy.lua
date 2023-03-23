@@ -39,6 +39,7 @@ function Economy:update (dt)
       end
     end
 
+    -- Cache profitable mining jobs
     local alljobcount = 0
     local realjobcount = 0
     do -- Cache mining jobs
@@ -49,15 +50,17 @@ function Economy:update (dt)
           local item = src:getYield().item
           local itemBidVol = dst:getTrader():getBidVolume(item)
           if itemBidVol > 0 then
+--printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
+--    src:getName(), dst:getName(), item:getName(), itemBidVol)
             realjobcount = realjobcount + 1
-            insert(self.jobs, Jobs.Mine(src, dst))
+            insert(self.jobs, Jobs.Mine(src, dst, item))
           end
         end
       end
     end
---printf("Mine job test: alljobcount = %d, realjobcount = %d", alljobcount, realjobcount)
+--printf("ECONOMY: Mine job test: alljobcount = %d, realjobcount = %d", alljobcount, realjobcount)
 
---    if false then  -- INACTIVE
+--    if false then  -- INACTIVE (Josh code)
 --      do -- Cache trade jobs from positive to negative flow
 --        for _, src in ipairs(self.markets) do
 --          for item, srcFlow in pairs(src:getFlows()) do
@@ -73,27 +76,34 @@ function Economy:update (dt)
 --      end
 --    end
 
-    -- Cache profitable trade offers
+    -- Cache profitable trade jobs
+    local alljobcount = 0
+    local realjobcount = 0
     for _, src in ipairs(self.traders) do
       for item, data in pairs(src:getTrader().elems) do
-        local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
+        if src:getTrader():getAskVolume(item) > 0 then
+          local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
 --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
-        if buyPrice > 0 then
-          for _, dst in ipairs(self.traders) do
-            if src ~= dst then
-              local sellPrice = dst:getTrader():getSellToPrice(item, 1)
+          if buyPrice > 0 then
+            for _, dst in ipairs(self.traders) do
+              if src ~= dst then
+                alljobcount = alljobcount + 1
+                local sellPrice = dst:getTrader():getSellToPrice(item, 1)
 --printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-              if buyPrice < sellPrice then
+                if buyPrice < sellPrice then
 --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-                insert(self.jobs, Jobs.Transport(src, dst, item))
+                  realjobcount = realjobcount + 1
+                  insert(self.jobs, Jobs.Transport(src, dst, item))
+                end
               end
             end
           end
         end
       end
     end
+--printf("ECONOMY: Trade job test: alljobcount = %d, realjobcount = %d", alljobcount, realjobcount)
 
     do -- Compute net flow of entire economy
       -- Clear current flow
@@ -116,17 +126,18 @@ function Economy:update (dt)
 end
 
 function Economy:debug (ctx)
-  ctx:text('Economy')
+  ctx:text("Economy")
   ctx:indent()
-  ctx:text('%d jobs', #self.jobs)
-  ctx:text('%d markets', #self.markets)
+  ctx:text("%d jobs", #self.jobs)
+  ctx:text("%d markets", #self.markets)
   for item, data in pairs(self.goods) do
-    ctx:text('%s', item:getName())
+    ctx:text("%s", item:getName())
     ctx:indent()
-    ctx:text('BUYING  : min = %.2f, max = %.2f', data.buyMin, data.buyMax)
-    ctx:text('SELLING : min = %.2f, max = %.2f', data.sellMin, data.sellMax)
+    ctx:text("BUYING  : min = %.2f, max = %.2f", data.buyMin, data.buyMax)
+    ctx:text("SELLING : min = %.2f, max = %.2f", data.sellMin, data.sellMax)
     ctx:undent()
   end
+  ctx:undent()
 end
 
 --------------------------------------------------------------------------------

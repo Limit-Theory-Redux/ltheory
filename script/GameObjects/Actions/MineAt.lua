@@ -23,7 +23,7 @@ end
 
 function MineAt:onUpdateActive (e, dt)
   local item = self.source:getYield().item
-  local maxBids = self.target:getTrader():getBidVolume(item)
+  local maxBids = self.target:getTrader():getBidVolumeForAsset(item, e)
 
   -- Mine 1 unit of item every [duration in seconds as specified when pushing the MineAt action]
   --    (unless instantJobs is true)
@@ -63,14 +63,16 @@ function MineAt:onUpdateActive (e, dt)
 
         -- Try to add 1 unit of the item (note that item size is its mass, not necessarily 1 unit of cargo space)
         if not e:addItem(item, 1) then
-          printf("MineAt STOP (regular): [%s (%s)] mined no units of %s from %s, but %s wanted %d units!",
-              e:getName(), e:getOwner():getName(), item:getName(), self.source:getName(),
+          printf("MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s, but %s wanted %d units!",
+              e:getName(), e:getOwner():getName(), e:getItemCount(item), item:getName(), self.source:getName(),
               self.target:getName(), maxBids)
           e:popAction() -- regular: stop mining if asset ran out of cargo capacity for 1 unit of this item
         end
 
         if e:getItemCount(item) == maxBids then
           e:popAction() -- regular: stop mining if asset has mined 1 unit of item for each bid
+        else
+          e:pushAction(Actions.MoveTo(self.source, 150)) -- move back to within range!
         end
       end
     end

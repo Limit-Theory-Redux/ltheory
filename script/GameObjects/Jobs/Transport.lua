@@ -18,6 +18,7 @@ local Transport = subclass(Job, function (self, src, dst, item)
   self.src = src
   self.dst = dst
   self.item = item
+  self.jcount = 0
 end)
 
 function Transport:clone ()
@@ -35,26 +36,38 @@ function Transport:getFlows (e)
 end
 
 function Transport:getName ()
-  return format('Transport %s from %s to %s',
+  return format('Transport %d x %s from %s to %s',
+    self.jcount,
     self.item:getName(),
     self.src:getName(),
     self.dst:getName())
 end
 
 function Transport:getPayout (e)
+  self.jcount = 0
   local payout = 0
   local capacity = e:getInventoryFree()
   local maxCount = math.floor(capacity / self.item:getMass())
-  local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
 
-  if count > 0 then
-    -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
-    local pickupTravelTime = self:getShipTravelTime(e, self.dst)
-    local transportTravelTime = self:getTravelTime(e)
-    local payoutMod = 10000 / ((pickupTravelTime / Config.econ.pickupDistWeightTran) + transportTravelTime)
-    payout = math.max(1, math.floor(profit * payoutMod))
-  else
-    payout = 0
+  if maxCount > 0 then
+    -- Calculate trade count and profit of available bids
+    local srcTrader = self.src:getTrader()
+    local dstTrader = self.dst:getTrader()
+    local itemAskVol = srcTrader:getAskVolume(self.item)
+    local itemBidVol = dstTrader:getBidVolume(self.item)
+    if itemAskVol and itemAskVol > 0 and itemBidVol and itemBidVol > 0 then
+      local count, profit = srcTrader:computeTrade(self.item, maxCount, dstTrader, nil)
+
+      if count > 0 then
+        -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
+        local pickupTravelTime = self:getShipTravelTime(e, self.dst)
+        local transportTravelTime = self:getTravelTime(e)
+        local payoutMod = 10000 / ((pickupTravelTime    / Config.econ.pickupDistWeightMine) +
+                                   (transportTravelTime / Config.econ.pickupDistWeightTran))
+        payout = math.max(1, math.floor(profit * payoutMod))
+        self.jcount = count
+      end
+    end
   end
 
 --printf("Transport check: Asset %s (%d free) taking %d (max %d) units of item %s from %s to %s, raw profit = %d, payout = %d",
@@ -79,21 +92,45 @@ function Transport:onUpdateActive (e, dt)
 
     if e.jobState == 1 then
       local capacity = e:getInventoryFree()
-      local maxCount = math.floor(capacity / self.item:getMass())
-      local count, profit = self.src:getTrader():computeTrade(self.item, maxCount, self.dst:getTrader())
-printf("[TRADE] %d x %s from %s -> %s, expect %d profit", count, self.item:getName(), self.src:getName(), self.dst:getName(), profit)
-      e.tradeCount = count
-      e:pushAction(Actions.DockAt(self.src))
+      local capCount = math.floor(capacity / self.item:getMass())
+      local count, profit = self.src:getTrader():computeTrade(self.item, capCount, self.dst:getTrader(), e)
+printf("[TRANSPORT] %s to move %d x %s from %s -> %s, expect %d profit (oldCount = %d)",
+e:getName(), count, self.item:getName(), self.src:getName(), self.dst:getName(), profit, self.jcount)
+      self.jcount = count
+      e.count = count
+      if count > 0 then
+        e:pushAction(Actions.DockAt(self.src))
+      else
+printf("[TRANSPORT OFFER FAIL ***] No trade of 0 %s from %s -> %s", self.item:getName(), self.src:getName(), self.dst:getName())
+        e:popAction()
+        e.jobState = nil
+      end
     elseif e.jobState == 2 then
-printf("%s offers to buy %d units of %s from Trader %s", e:getName(), e.tradeCount, self.item:getName(), self.src:getName())
-      for i = 1, e.tradeCount do self.src:getTrader():sell(e, self.item) end
+printf("[TRANSPORT] %s offers to buy %d units of %s from Trader %s", e:getName(), e.count, self.item:getName(), self.src:getName())
+      local bought = 0
+      for i = 1, e.count do
+        if self.src:getTrader():sell(e, self.item) then
+          bought = bought + 1
+        end
+      end
+      if bought == 0 then
+printf("[TRANSPORT BUY FAIL ***] %s bought 0 %s from %s!", e:getName(), self.item:getName(), self.src:getName())
+        e:popAction()
+        e.jobState = nil
+      else
+printf("[TRANSPORT] %s bought %d units of %s from Trader %s", e:getName(), bought, self.item:getName(), self.src:getName())
+      end
     elseif e.jobState == 3 then
       e:pushAction(Actions.Undock())
     elseif e.jobState == 4 then
       e:pushAction(Actions.DockAt(self.dst))
     elseif e.jobState == 5 then
-printf("%s offers to sell %d units of %s to Trader %s", e:getName(), e.tradeCount, self.item:getName(), self.dst:getName())
-      while self.dst:getTrader():buy(e, self.item) do end
+--printf("[TRANSPORT] %s offers to sell %d units of %s to Trader %s", e:getName(), e.count, self.item:getName(), self.dst:getName())
+      local sold = 0
+      while self.dst:getTrader():buy(e, self.item) do
+        sold = sold + 1
+      end
+printf("[TRANSPORT] %s sold %d units of %s to Trader %s", e:getName(), sold, self.item:getName(), self.dst:getName())
     elseif e.jobState == 6 then
       e:pushAction(Actions.Undock())
     elseif e.jobState == 7 then
