@@ -166,6 +166,8 @@ do -- C Definitions
     Button     Button_Gamepad_Last;
     Button     Button_System_First;
     Button     Button_System_Exit;
+    Button     Button_System_Win_Enter;
+    Button     Button_System_Win_Leave;
     Button     Button_System_Last;
     Button     Button_Last;
   ]]
@@ -338,9 +340,11 @@ do -- Global Symbol Table
       Last         = libphx.Button_Gamepad_Last,
     },
     System = {
-      First = libphx.Button_System_First,
-      Exit  = libphx.Button_System_Exit,
-      Last  = libphx.Button_System_Last,
+      First       = libphx.Button_System_First,
+      Exit        = libphx.Button_System_Exit,
+      WindowEnter = libphx.Button_System_Win_Enter,
+      WindowLeave = libphx.Button_System_Win_Leave,
+      Last        = libphx.Button_System_Last,
     },
     ToDeviceType = libphx.Button_ToDeviceType,
     ToString     = libphx.Button_ToString,
