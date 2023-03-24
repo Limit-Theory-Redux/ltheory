@@ -22,7 +22,6 @@ do -- Global Symbol Table
     Split             = libphx.Polygon_Split,
     SplitSafe         = libphx.Polygon_SplitSafe,
     GetCentroid       = libphx.Polygon_GetCentroid,
-    ConvexToTriangles = libphx.Polygon_ConvexToTriangles,
     Validate          = libphx.Polygon_Validate,
   }
 
@@ -44,7 +43,6 @@ do -- Metatype for class instances
       split             = libphx.Polygon_Split,
       splitSafe         = libphx.Polygon_SplitSafe,
       getCentroid       = libphx.Polygon_GetCentroid,
-      convexToTriangles = libphx.Polygon_ConvexToTriangles,
       validate          = libphx.Polygon_Validate,
     },
   }

@@ -28,15 +28,11 @@ pub type Lua = lua_State;
 pub type LuaFn = Option<unsafe extern "C" fn(*mut Lua) -> i32>;
 pub type LuaRef = lua_Integer;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct Scheduler {
-    pub elems_size: i32,
-    pub elems_capacity: i32,
-    pub elems_data: *mut SchedulerElem,
-    pub addQueue_size: i32,
-    pub addQueue_capacity: i32,
-    pub addQueue_data: *mut SchedulerElem,
+    pub elems: Vec<SchedulerElem>,
+    pub addQueue: Vec<SchedulerElem>,
     pub now: TimeStamp,
     pub locked: bool,
 }
@@ -51,12 +47,8 @@ pub struct SchedulerElem {
 }
 
 static mut this: Scheduler = Scheduler {
-    elems_size: 0,
-    elems_capacity: 0,
-    elems_data: std::ptr::null_mut(),
-    addQueue_size: 0,
-    addQueue_capacity: 0,
-    addQueue_data: std::ptr::null_mut(),
+    elems: Vec::new(),
+    addQueue: Vec::new(),
     now: 0,
     locked: false,
 };
@@ -80,129 +72,85 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
         tCreated: 0,
         tWake: 0,
     };
-    let mut timeToWake: f64 = lua_tonumber(L, lua_gettop(L));
+
+    let timeToWake: f64 = lua_tonumber(L, lua_gettop(L));
     elem.tCreated = this.now;
     elem.tWake = TimeStamp_GetRelative(this.now, timeToWake);
     lua_settop(L, -1 - 1);
+
     elem.arg = Lua_GetRef(L);
     elem.fn_0 = Lua_GetRef(L);
+
     if this.locked {
-        if (this.addQueue_capacity == this.addQueue_size) as i32 as libc::c_long != 0 {
-            this.addQueue_capacity = if this.addQueue_capacity != 0 {
-                this.addQueue_capacity * 2
-            } else {
-                1
-            };
-            let mut elemSize: usize = std::mem::size_of::<SchedulerElem>();
-            let mut pData: *mut *mut libc::c_void =
-                &mut this.addQueue_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
-            *pData = MemRealloc(
-                this.addQueue_data as *mut _,
-                (this.addQueue_capacity as usize).wrapping_mul(elemSize),
-            );
-        }
-        let fresh0 = this.addQueue_size;
-        this.addQueue_size += 1;
-        *(this.addQueue_data).offset(fresh0 as isize) = elem;
+        this.addQueue.push(elem);
     } else {
-        if (this.elems_capacity == this.elems_size) as libc::c_long != 0 {
-            this.elems_capacity = if this.elems_capacity != 0 {
-                this.elems_capacity * 2
-            } else {
-                1
-            };
-            let mut elemSize_0: usize = std::mem::size_of::<SchedulerElem>();
-            let mut pData_0: *mut *mut libc::c_void =
-                &mut this.elems_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
-            *pData_0 = MemRealloc(
-                this.elems_data as *mut _,
-                (this.elems_capacity as usize).wrapping_mul(elemSize_0),
-            );
-        }
-        let fresh1 = this.elems_size;
-        this.elems_size += 1;
-        *(this.elems_data).offset(fresh1 as isize) = elem;
+        this.elems.push(elem);
     }
+
     0
 }
 
 unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
-    let mut i: i32 = 0;
-    while i < this.elems_size {
-        let mut elem: *mut SchedulerElem = (this.elems_data).offset(i as isize);
+    for elem in this.elems.iter() {
         luaL_unref(L, -10000, (*elem).fn_0 as i32);
         luaL_unref(L, -10000, (*elem).arg as i32);
-        i += 1;
     }
-    this.elems_size = 0;
+
+    this.elems.clear();
+
     0
 }
 
 unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
     this.locked = true;
+
     libc::qsort(
-        this.elems_data as *mut _,
-        this.elems_size as usize,
+        this.elems.as_mut_ptr() as *mut _,
+        this.elems.len(),
         std::mem::size_of::<SchedulerElem>(),
         Some(SortByWake as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
     );
     this.now = TimeStamp_Get();
+
     lua_getfield(
         L,
         -10002,
         b"__error_handler__\0" as *const u8 as *const libc::c_char,
     );
     let mut handler: i32 = lua_gettop(L);
-    while this.elems_size != 0 {
-        let mut elem: *mut SchedulerElem = (this.elems_data)
-            .offset(this.elems_size as isize)
-            .offset(-(1));
+
+    while !this.elems.is_empty() {
+        let elem = this.elems.last().unwrap();
         if this.now < (*elem).tWake {
             break;
         }
+
         let mut dt: f64 = TimeStamp_GetDifference((*elem).tCreated, this.now);
+
         Lua_PushRef(L, (*elem).fn_0);
         Lua_PushNumber(L, dt);
         Lua_PushRef(L, (*elem).arg);
         Lua_Call(L, 2, 0, handler);
+
         Lua_ReleaseRef(L, (*elem).fn_0);
         Lua_ReleaseRef(L, (*elem).arg);
-        this.elems_size -= 1;
+        this.elems.pop();
     }
     lua_settop(L, -1 - 1);
+
     this.locked = false;
-    while this.addQueue_size != 0 {
-        this.addQueue_size -= 1;
-        let mut elem_0: SchedulerElem = *(this.addQueue_data).offset(this.addQueue_size as isize);
-        if (this.elems_capacity == this.elems_size) as libc::c_long != 0 {
-            this.elems_capacity = if this.elems_capacity != 0 {
-                this.elems_capacity * 2
-            } else {
-                1
-            };
-            let mut elemSize: usize = std::mem::size_of::<SchedulerElem>();
-            let mut pData: *mut *mut libc::c_void =
-                &mut this.elems_data as *mut *mut SchedulerElem as *mut *mut libc::c_void;
-            *pData = MemRealloc(
-                this.elems_data as *mut _,
-                (this.elems_capacity as usize).wrapping_mul(elemSize),
-            );
-        }
-        let fresh2 = this.elems_size;
-        this.elems_size += 1;
-        *(this.elems_data).offset(fresh2 as isize) = elem_0;
+    
+    while !this.addQueue.is_empty() {
+        this.elems.push(this.addQueue.pop().unwrap());
     }
+
     0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn LuaScheduler_Init(mut _L: *mut Lua) {
-    this.elems_capacity = 0;
-    this.elems_size = 0;
-    this.elems_data = std::ptr::null_mut();
-    this.addQueue_capacity = 0;
-    this.addQueue_size = 0;
-    this.addQueue_data = std::ptr::null_mut();
+    this.elems = Vec::new();
+    this.addQueue = Vec::new();
     this.now = TimeStamp_Get();
     this.locked = false;
 }

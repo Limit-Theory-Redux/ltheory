@@ -17,7 +17,7 @@ pub type PolygonClassification = u8;
 #[no_mangle]
 pub unsafe extern "C" fn Plane_ClassifyPoint(
     mut plane: *mut Plane,
-    mut p: *mut Vec3,
+    p: *const Vec3,
 ) -> PointClassification {
     let mut _magnitude: f32 = f64::abs((1.0f32 - (*plane).n.length()) as f64) as f32;
     let mut dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
@@ -33,14 +33,13 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
 #[no_mangle]
 pub unsafe extern "C" fn Plane_ClassifyPolygon(
     mut plane: *mut Plane,
-    mut polygon: *mut Polygon,
+    polygon: *const Polygon,
 ) -> PolygonClassification {
     let mut numInFront: i32 = 0;
     let mut numBehind: i32 = 0;
-    let mut i: i32 = 0;
-    while i < (*polygon).vertices_size {
-        let mut vertex: Vec3 = *((*polygon).vertices_data).offset(i as isize);
-        let mut classification: PointClassification = Plane_ClassifyPoint(plane, &mut vertex);
+    let mut i: usize = 0;
+    while i < (*polygon).vertices_size as usize {
+        let mut classification: PointClassification = Plane_ClassifyPoint(plane, (*polygon).vertices_data.offset(i as isize));
         let mut current_block_2: u64;
         match classification as i32 {
             1 => {

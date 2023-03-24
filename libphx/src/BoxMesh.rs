@@ -8,7 +8,7 @@ use libc;
 #[derive(Clone)]
 #[repr(C)]
 pub struct BoxMesh {
-    pub elem: Vec<Box_0>
+    pub elem: Vec<Box_0>,
 }
 
 #[derive(Copy, Clone)]

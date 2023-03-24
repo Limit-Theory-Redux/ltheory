@@ -512,12 +512,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
     if this.is_null() {
         return;
     }
-    let mut stack_size: i32 = 0;
-    let mut stack_capacity: i32 = 0;
-    let mut stack_data: *mut *const libc::c_char = std::ptr::null_mut();
-    stack_capacity = 0;
-    stack_size = 0;
-    stack_data = std::ptr::null_mut();
+    let mut stack: Vec<*const libc::c_char> = Vec::new();
     let mut iStack: i32 = 0;
     loop {
         let mut ar: lua_Debug = lua_Debug {
@@ -565,7 +560,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         if funcName.is_null() {
             funcName = b"<null>\0" as *const u8 as *const libc::c_char;
         }
-        let mut stackFrame: *const libc::c_char = if line > 0 {
+        let stackFrame: *const libc::c_char = if line > 0 {
             StrFormat(
                 b"  #%i %s at %s:%i\0" as *const u8 as *const libc::c_char,
                 iStack,
@@ -581,152 +576,55 @@ pub unsafe extern "C" fn Lua_Backtrace() {
                 fileName,
             )
         };
-        if (stack_capacity == stack_size) as libc::c_long != 0 {
-            stack_capacity = if stack_capacity != 0 {
-                stack_capacity * 2
-            } else {
-                1
-            };
-            let mut elemSize: usize = std::mem::size_of::<*const libc::c_char>();
-            let mut pData: *mut *mut libc::c_void =
-                &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
-            *pData = MemRealloc(
-                stack_data as *mut _,
-                (stack_capacity as usize).wrapping_mul(elemSize),
-            );
-        }
-        let fresh4 = stack_size;
-        stack_size += 1;
-        let ref mut fresh5 = *stack_data.offset(fresh4 as isize);
-        *fresh5 = stackFrame;
+        stack.push(stackFrame);
+
         let mut iUp: i32 = 1;
         loop {
-            let mut name: *const libc::c_char = lua_getupvalue(this, -1, iUp);
+            let name: *const libc::c_char = lua_getupvalue(this, -1, iUp);
             if name.is_null() {
                 break;
             }
+
             if iUp == 1 {
-                if (stack_capacity == stack_size) as libc::c_long != 0 {
-                    stack_capacity = if stack_capacity != 0 {
-                        stack_capacity * 2
-                    } else {
-                        1
-                    };
-                    let mut elemSize_0: usize = std::mem::size_of::<*const libc::c_char>();
-                    let mut pData_0: *mut *mut libc::c_void =
-                        &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
-                    *pData_0 = MemRealloc(
-                        stack_data as *mut _,
-                        (stack_capacity as usize).wrapping_mul(elemSize_0),
-                    );
-                }
-                let fresh6 = stack_size;
-                stack_size += 1;
-                let ref mut fresh7 = *stack_data.offset(fresh6 as isize);
-                *fresh7 = StrDup(b"    [Upvalues]\0" as *const u8 as *const libc::c_char);
+                stack.push(StrDup(b"    [Upvalues]\0" as *const u8 as *const libc::c_char));
             }
-            let mut upValue: *const libc::c_char = Lua_ToString(this, name);
-            if (stack_capacity == stack_size) as libc::c_long != 0 {
-                stack_capacity = if stack_capacity != 0 {
-                    stack_capacity * 2
-                } else {
-                    1
-                };
-                let mut elemSize_1: usize = std::mem::size_of::<*const libc::c_char>();
-                let mut pData_1: *mut *mut libc::c_void =
-                    &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
-                *pData_1 = MemRealloc(
-                    stack_data as *mut _,
-                    (stack_capacity as usize).wrapping_mul(elemSize_1),
-                );
-            }
-            let fresh8 = stack_size;
-            stack_size += 1;
-            let ref mut fresh9 = *stack_data.offset(fresh8 as isize);
-            *fresh9 = upValue;
+
+            let upValue: *const libc::c_char = Lua_ToString(this, name);
+            stack.push(upValue);
             lua_settop(this, -1 - 1);
             variablesPrinted += 1;
             iUp += 1;
         }
+        
         let mut iLocal: i32 = 1;
         loop {
             let mut name_0: *const libc::c_char = lua_getlocal(this, &mut ar, iLocal);
             if name_0.is_null() {
                 break;
             }
+
             if iLocal == 1 {
-                if (stack_capacity == stack_size) as libc::c_long != 0 {
-                    stack_capacity = if stack_capacity != 0 {
-                        stack_capacity * 2
-                    } else {
-                        1
-                    };
-                    let mut elemSize_2: usize = std::mem::size_of::<*const libc::c_char>();
-                    let mut pData_2: *mut *mut libc::c_void =
-                        &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
-                    *pData_2 = MemRealloc(
-                        stack_data as *mut _,
-                        (stack_capacity as usize).wrapping_mul(elemSize_2),
-                    );
-                }
-                let fresh10 = stack_size;
-                stack_size += 1;
-                let ref mut fresh11 = *stack_data.offset(fresh10 as isize);
-                *fresh11 = StrDup(b"    [Locals]\0" as *const u8 as *const libc::c_char);
+                stack.push(StrDup(b"    [Locals]\0" as *const u8 as *const libc::c_char));
             }
-            let mut local: *const libc::c_char = Lua_ToString(this, name_0);
-            if (stack_capacity == stack_size) as libc::c_long != 0 {
-                stack_capacity = if stack_capacity != 0 {
-                    stack_capacity * 2
-                } else {
-                    1
-                };
-                let mut elemSize_3: usize = std::mem::size_of::<*const libc::c_char>();
-                let mut pData_3: *mut *mut libc::c_void =
-                    &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
-                *pData_3 = MemRealloc(
-                    stack_data as *mut _,
-                    (stack_capacity as usize).wrapping_mul(elemSize_3),
-                );
-            }
-            let fresh12 = stack_size;
-            stack_size += 1;
-            let ref mut fresh13 = *stack_data.offset(fresh12 as isize);
-            *fresh13 = local;
+
+            let local: *const libc::c_char = Lua_ToString(this, name_0);
+            stack.push(local);
+
             lua_settop(this, -1 - 1);
             variablesPrinted += 1;
             iLocal += 1;
         }
+
         if variablesPrinted > 0 {
-            if (stack_capacity == stack_size) as libc::c_long != 0 {
-                stack_capacity = if stack_capacity != 0 {
-                    stack_capacity * 2
-                } else {
-                    1
-                };
-                let mut elemSize_4: usize = std::mem::size_of::<*const libc::c_char>();
-                let mut pData_4: *mut *mut libc::c_void =
-                    &mut stack_data as *mut *mut *const libc::c_char as *mut *mut libc::c_void;
-                *pData_4 = MemRealloc(
-                    stack_data as *mut _,
-                    (stack_capacity as usize).wrapping_mul(elemSize_4),
-                );
-            }
-            let fresh14 = stack_size;
-            stack_size += 1;
-            let ref mut fresh15 = *stack_data.offset(fresh14 as isize);
-            *fresh15 = StrDup(b"\0" as *const u8 as *const libc::c_char);
+            stack.push(StrDup(b"\0" as *const u8 as *const libc::c_char));
         }
         lua_settop(this, -1 - 1);
         iStack += 1;
     }
+
     Warn(b"Lua Backtrace:\0" as *const u8 as *const libc::c_char);
-    let mut stackFrame_0: *mut *const libc::c_char = stack_data;
-    let mut __iterend: *mut *const libc::c_char = stack_data.offset(stack_size as isize);
-    while stackFrame_0 < __iterend {
-        Warn(*stackFrame_0);
-        StrFree(*stackFrame_0);
-        stackFrame_0 = stackFrame_0.offset(1);
+    for stackFrame in stack.iter() {
+        Warn(*stackFrame);
+        StrFree(*stackFrame);
     }
-    MemFree(stack_data as *const _);
 }

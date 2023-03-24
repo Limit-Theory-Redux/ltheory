@@ -23,11 +23,18 @@ macro_rules! MemNewArrayZero {
         MemAllocZero(std::mem::size_of::<$x>().wrapping_mul($s as usize)) as *mut $x
     };
 }
+macro_rules! MemDelete {
+    ($v:ident) => {
+        $v.drop_in_place();
+        MemFree($v as *mut _)
+    };
+}
 
 pub(crate) use MemNew;
 pub(crate) use MemNewArray;
 pub(crate) use MemNewArrayZero;
 pub(crate) use MemNewZero;
+pub(crate) use MemDelete;
 
 #[inline]
 pub unsafe extern "C" fn MemAlloc(mut size: usize) -> *mut libc::c_void {

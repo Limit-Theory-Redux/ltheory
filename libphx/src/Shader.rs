@@ -18,7 +18,7 @@ use crate::TexCube::*;
 use crate::GL::gl;
 use libc;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct Shader {
     pub _refCount: u32,
@@ -27,9 +27,7 @@ pub struct Shader {
     pub fs: u32,
     pub program: u32,
     pub texIndex: u32,
-    pub vars_size: i32,
-    pub vars_capacity: i32,
-    pub vars_data: *mut ShaderVar,
+    pub vars: Vec<ShaderVar>,
 }
 
 #[derive(Copy, Clone)]
@@ -279,23 +277,7 @@ unsafe extern "C" fn GLSL_Preprocess(
             }
             var.name = StrDup(varName.as_mut_ptr() as *const libc::c_char);
             var.index = -1;
-            if ((*this).vars_capacity == (*this).vars_size) as i32 as libc::c_long != 0 {
-                (*this).vars_capacity = if (*this).vars_capacity != 0 {
-                    (*this).vars_capacity * 2
-                } else {
-                    1
-                };
-                let mut elemSize: usize = std::mem::size_of::<ShaderVar>();
-                let mut pData: *mut *mut libc::c_void =
-                    &mut (*this).vars_data as *mut *mut ShaderVar as *mut *mut libc::c_void;
-                *pData = MemRealloc(
-                    (*this).vars_data as *mut _,
-                    ((*this).vars_capacity as usize).wrapping_mul(elemSize),
-                );
-            }
-            let fresh13 = (*this).vars_size;
-            (*this).vars_size += 1;
-            *((*this).vars_data).offset(fresh13 as isize) = var;
+            (*this).vars.push(var);
         } else {
             Fatal(
                 b"GLSL_Preprocess: Failed to parse directive:\n  %s\0" as *const u8
@@ -319,8 +301,8 @@ unsafe extern "C" fn GLSL_Preprocess(
 
 unsafe extern "C" fn Shader_BindVariables(mut this: *mut Shader) {
     let mut i: i32 = 0;
-    while i < (*this).vars_size {
-        let mut var: *mut ShaderVar = ((*this).vars_data).offset(i as isize);
+    while i < (*this).vars.len() as i32 {
+        let mut var: &mut ShaderVar = &mut (*this).vars[i as usize];
         (*var).index = gl::GetUniformLocation((*this).program, (*var).name);
         if (*var).index < 0 {
             Warn(
@@ -341,9 +323,7 @@ pub unsafe extern "C" fn Shader_Create(
 ) -> *mut Shader {
     let mut this = MemNew!(Shader);
     (*this)._refCount = 1;
-    (*this).vars_capacity = 0;
-    (*this).vars_size = 0;
-    (*this).vars_data = std::ptr::null_mut();
+    (*this).vars = Vec::new();
     vs = GLSL_Preprocess(
         StrReplace(
             vs,
@@ -381,9 +361,7 @@ pub unsafe extern "C" fn Shader_Load(
 ) -> *mut Shader {
     let mut this = MemNew!(Shader);
     (*this)._refCount = 1;
-    (*this).vars_capacity = 0;
-    (*this).vars_size = 0;
-    (*this).vars_data = std::ptr::null_mut();
+    (*this).vars = Vec::new();
     let mut vs: *const libc::c_char = GLSL_Load(vName, this);
     let mut fs: *const libc::c_char = GLSL_Load(fName, this);
     (*this).vs = CreateGLShader(vs, gl::VERTEX_SHADER);
@@ -413,9 +391,8 @@ pub unsafe extern "C" fn Shader_Free(mut this: *mut Shader) {
         gl::DeleteShader((*this).vs);
         gl::DeleteShader((*this).fs);
         gl::DeleteProgram((*this).program);
-        MemFree((*this).vars_data as *const _);
         StrFree((*this).name);
-        MemFree(this as *const _);
+        MemDelete!(this);
     }
 }
 
@@ -435,8 +412,8 @@ pub unsafe extern "C" fn Shader_Start(mut this: *mut Shader) {
 
     /* Fetch & bind automatic variables from the shader var stack. */
     let mut i: i32 = 0;
-    while i < (*this).vars_size {
-        let mut var: *mut ShaderVar = ((*this).vars_data).offset(i as isize);
+    while i < (*this).vars.len() as i32 {
+        let mut var: &mut ShaderVar = &mut (*this).vars[i as usize];
         if !((*var).index < 0) {
             let mut pValue: *mut libc::c_void = ShaderVar_Get((*var).name, (*var).type_0);
             if pValue.is_null() {

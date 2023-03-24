@@ -43,18 +43,14 @@ extern "C" {
     fn FMOD_System_GetVersion(system: *mut FMOD_SYSTEM, version: *mut u32) -> FMOD_RESULT;
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct Audio {
     pub handle: *mut FMOD_SYSTEM,
     pub descMap: *mut StrMap,
     pub soundPool: *mut MemPool,
-    pub playingSounds_size: i32,
-    pub playingSounds_capacity: i32,
-    pub playingSounds_data: *mut *mut Sound,
-    pub freeingSounds_size: i32,
-    pub freeingSounds_capacity: i32,
-    pub freeingSounds_data: *mut *mut Sound,
+    pub playingSounds: Vec<*mut Sound>,
+    pub freeingSounds: Vec<*mut Sound>,
     pub autoPos: *const Vec3,
     pub autoVel: *const Vec3,
     pub autoFwd: *const Vec3,
@@ -611,12 +607,8 @@ static mut this: Audio = Audio {
     handle: std::ptr::null_mut(),
     descMap: std::ptr::null_mut(),
     soundPool: std::ptr::null_mut(),
-    playingSounds_size: 0,
-    playingSounds_capacity: 0,
-    playingSounds_data: std::ptr::null_mut(),
-    freeingSounds_size: 0,
-    freeingSounds_capacity: 0,
-    freeingSounds_data: std::ptr::null_mut(),
+    playingSounds: Vec::new(),
+    freeingSounds: Vec::new(),
     autoPos: std::ptr::null(),
     autoVel: std::ptr::null(),
     autoFwd: std::ptr::null(),
@@ -705,8 +697,8 @@ pub unsafe extern "C" fn Audio_Free() {
     // );
     StrMap_Free(this.descMap);
     MemPool_Free(this.soundPool);
-    MemFree(this.playingSounds_data as *const _);
-    MemFree(this.freeingSounds_data as *const _);
+    this.playingSounds.clear();
+    this.freeingSounds.clear();
 }
 
 #[no_mangle]
@@ -779,29 +771,24 @@ pub unsafe extern "C" fn Audio_Update() {
     //     (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Audio_Update\0"))
     //         .as_ptr(),
     // );
-    // Audio_SetListenerPos(this.autoPos, this.autoVel, this.autoFwd, this.autoUp);
-    // let mut i: i32 = 0 as i32;
-    // while i < this.playingSounds_size {
-    //     let mut sound: *mut Sound = *(this.playingSounds_data).offset(i as isize);
-    //     if !Sound_IsFreed(sound) && Sound_IsPlaying(sound) as i32 != 0 {
-    //         Sound_Update(sound);
-    //     } else {
-    //         this.playingSounds_size -= 1;
-    //         let fresh0 = i;
-    //         i = i - 1;
-    //         let ref mut fresh1 = *(this.playingSounds_data).offset(fresh0 as isize);
-    //         *fresh1 = *(this.playingSounds_data)
-    //             .offset(this.playingSounds_size as isize);
-    //     }
-    //     i += 1;
-    // }
-    // let mut i_0: i32 = 0 as i32;
-    // while i_0 < this.freeingSounds_size {
-    //     let mut sound_0: *mut Sound = *(this.freeingSounds_data).offset(i_0 as isize);
-    //     Audio_DeallocSound(sound_0);
-    //     i_0 += 1;
-    // }
-    // this.freeingSounds_size = 0 as i32;
+    Audio_SetListenerPos(this.autoPos, this.autoVel, this.autoFwd, this.autoUp);
+
+    let mut soundsToRemove: Vec<usize> = Vec::new();
+    for (i, sound) in this.playingSounds.iter().enumerate() {
+        if !Sound_IsFreed(*sound) && Sound_IsPlaying(*sound) as i32 != 0 {
+            Sound_Update(*sound);
+        } else {
+            soundsToRemove.push(i);
+        }
+    }
+    for i in soundsToRemove.iter() {
+        this.playingSounds.swap_remove(*i);
+    }
+
+    for sound in this.freeingSounds.iter() {
+        Audio_DeallocSound(*sound);
+    }
+    this.freeingSounds.clear();
 }
 
 #[no_mangle]
@@ -813,7 +800,7 @@ pub unsafe extern "C" fn Audio_GetLoadedCount() -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetPlayingCount() -> i32 {
-    this.playingSounds_size
+    this.playingSounds.len() as i32
 }
 
 #[no_mangle]
@@ -856,42 +843,8 @@ pub unsafe extern "C" fn Audio_DeallocSound(mut sound: *mut Sound) {
 #[no_mangle]
 pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
     if Sound_IsFreed(sound) {
-        if (this.freeingSounds_capacity == this.freeingSounds_size) as i32 as libc::c_long != 0 {
-            this.freeingSounds_capacity = if this.freeingSounds_capacity != 0 {
-                this.freeingSounds_capacity * 2
-            } else {
-                1
-            };
-            let mut elemSize: usize = std::mem::size_of::<*mut Sound>();
-            let mut pData: *mut *mut libc::c_void =
-                &mut this.freeingSounds_data as *mut *mut *mut Sound as *mut *mut libc::c_void;
-            *pData = MemRealloc(
-                this.freeingSounds_data as *mut _,
-                (this.freeingSounds_capacity as usize).wrapping_mul(elemSize),
-            );
-        }
-        let fresh2 = this.freeingSounds_size;
-        this.freeingSounds_size += 1;
-        let ref mut fresh3 = *(this.freeingSounds_data).offset(fresh2 as isize);
-        *fresh3 = sound;
+        this.freeingSounds.push(sound);
     } else if Sound_IsPlaying(sound) {
-        if (this.playingSounds_capacity == this.playingSounds_size) as i32 as libc::c_long != 0 {
-            this.playingSounds_capacity = if this.playingSounds_capacity != 0 {
-                this.playingSounds_capacity * 2
-            } else {
-                1
-            };
-            let mut elemSize_0: usize = std::mem::size_of::<*mut Sound>();
-            let mut pData_0: *mut *mut libc::c_void =
-                &mut this.playingSounds_data as *mut *mut *mut Sound as *mut *mut libc::c_void;
-            *pData_0 = MemRealloc(
-                this.playingSounds_data as *mut _,
-                (this.playingSounds_capacity as usize).wrapping_mul(elemSize_0),
-            );
-        }
-        let fresh4 = this.playingSounds_size;
-        this.playingSounds_size += 1;
-        let ref mut fresh5 = *(this.playingSounds_data).offset(fresh4 as isize);
-        *fresh5 = sound;
+        this.playingSounds.push(sound);
     }
 }
