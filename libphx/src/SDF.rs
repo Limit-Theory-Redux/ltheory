@@ -145,8 +145,8 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
                     *indices.offset(cellIndex as isize) = -1;
                 } else {
                     let mut tw: f32 = 0.0f32;
-                    let mut offset: Vec3 = Vec3::new(0.0f32, 0.0f32, 0.0f32);
-                    let mut n: Vec3 = Vec3::new(0.0f32, 0.0f32, 0.0f32);
+                    let mut offset: Vec3 = Vec3::ZERO;
+                    let mut n: Vec3 = Vec3::ZERO;
                     let mut i: i32 = 0;
                     while i < 12 {
                         let mut i0: i32 = edgeTable[i as usize][0];

@@ -51,7 +51,7 @@ pub unsafe extern "C" fn Window_Free(w: Option<Box<Window>>) {
 #[no_mangle]
 pub unsafe extern "C" fn Window_BeginDraw(w: Option<&Window>) {
     let w = unwrap_or_return!(w);
-    let mut size: IVec2 = IVec2::new(0, 0);
+    let mut size: IVec2 = IVec2::ZERO;
     SDL_GL_MakeCurrent(w.handle, w.context);
     Window_GetSize(Some(w), &mut size);
     Viewport_Push(0, 0, size.x, size.y, true);

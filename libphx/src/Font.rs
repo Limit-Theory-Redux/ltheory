@@ -283,7 +283,7 @@ pub unsafe extern "C" fn Font_GetSize(
     text = text.offset(1);
     let mut codepoint: u32 = *fresh5 as u32;
     if codepoint == 0 {
-        *out = IVec4::new(0, 0, 0, 0);
+        *out = IVec4::ZERO;
         return;
     }
     while codepoint != 0 {

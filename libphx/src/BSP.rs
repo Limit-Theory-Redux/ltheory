@@ -686,11 +686,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
     let mut bestScore: f32 = f32::MAX;
     let mut bestPlane: Plane = Plane {
-        n: Vec3 {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        },
+        n: Vec3::ZERO,
         d: 0.,
     };
     let mut bestPolygon: *mut PolygonEx = std::ptr::null_mut();
@@ -715,11 +711,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     
                 if (*polygon).flags as i32 & PolygonFlag_InvalidFaceSplit as i32 == 0 {
                     let mut plane: Plane = Plane {
-                        n: Vec3 {
-                            x: 0.,
-                            y: 0.,
-                            z: 0.,
-                        },
+                        n: Vec3::ZERO,
                         d: 0.,
                     };
                     Polygon_ToPlane(&mut (*polygon).inner, &mut plane);
@@ -793,21 +785,13 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
                     /* TODO : Maybe just save the plane with polygon while build so they're only calculated once? */
                     let mut polygonPlane: Plane = Plane {
-                        n: Vec3 {
-                            x: 0.,
-                            y: 0.,
-                            z: 0.,
-                        },
+                        n: Vec3::ZERO,
                         d: 0.,
                     };
                     Polygon_ToPlane(&mut (*polygon).inner, &mut polygonPlane);
 
                     let mut plane: Plane = Plane {
-                        n: Vec3 {
-                            x: 0.,
-                            y: 0.,
-                            z: 0.,
-                        },
+                        n: Vec3::ZERO,
                         d: 0.,
                     };
                     plane.n = Vec3::cross(edge, polygonPlane.n).normalize();
@@ -982,11 +966,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     // CHECK2(node->id = bsp->nextNodeID++;)
 
     let mut splitPlane: Plane = Plane {
-        n: Vec3 {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        },
+        n: Vec3::ZERO,
         d: 0.,
     };
 
@@ -1093,11 +1073,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
     
         let mut dummy: BSPNode = BSPNode {
             plane: Plane {
-                n: Vec3 {
-                    x: 0.,
-                    y: 0.,
-                    z: 0.,
-                },
+                n: Vec3::ZERO,
                 d: 0.,
             },
             child: [BSPNodeRef {
@@ -1268,11 +1244,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
 
     /* Optimize */
     let mut nullLeaf: Triangle = Triangle {
-        vertices: [Vec3 {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        }; 3],
+        vertices: [Vec3::ZERO; 3],
     };
     (*this).triangles.reserve((bspBuild.triangleCount + 2) as usize);
     (*this).triangles.push(nullLeaf);
@@ -1282,11 +1254,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
 
     let mut nullNode: BSPNode = BSPNode {
         plane: Plane {
-            n: Vec3 {
-                x: 0.,
-                y: 0.,
-                z: 0.,
-            },
+            n: Vec3::ZERO,
             d: 0.,
         },
         child: [BSPNodeRef {

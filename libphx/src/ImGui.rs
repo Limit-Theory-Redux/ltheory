@@ -284,8 +284,8 @@ unsafe extern "C" fn GetData(mut hash: u64) -> *mut ImGuiData {
     let mut data: *mut ImGuiData = HashMap_GetRaw(this.data, hash) as *mut ImGuiData;
     if data.is_null() {
         data = MemNew!(ImGuiData);
-        (*data).size = Vec2::new(0.0f32, 0.0f32);
-        (*data).offset = Vec2::new(0.0f32, 0.0f32);
+        (*data).size = Vec2::ZERO;
+        (*data).offset = Vec2::ZERO;
         (*data).scroll = 0.0f32;
         HashMap_SetRaw(this.data, hash, data as *mut _);
     }
@@ -309,7 +309,7 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
     (*style).buttonColor = Vec4::new(0.1f32, 0.12f32, 0.15f32, 1.0f32);
     (*style).buttonColorFocus = Vec4::new(0.1f32, 0.6f32, 1.0f32, 1.0f32);
     (*style).frameColor = Vec4::new(0.1f32, 0.12f32, 0.15f32, 0.95f32);
-    (*style).textColor = Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32);
+    (*style).textColor = Vec4::ONE;
     (*style).textColorFocus = Vec4::new(0.1f32, 0.1f32, 0.1f32, 1.0f32);
     this.style = style;
 }
@@ -765,7 +765,7 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     if this.dragging != 0 {
         this.focus[FocusType_Mouse as usize] = this.dragging;
     }
-    this.cursor = Vec2::new(0.0f32, 0.0f32);
+    this.cursor = Vec2::ZERO;
     if !(this.layerLast).is_null() {
         ImGuiLayer_Free(this.layerLast);
         this.layerLast = std::ptr::null_mut();
@@ -794,7 +794,7 @@ pub unsafe extern "C" fn ImGui_Begin(mut sx: f32, mut sy: f32) {
     this.mouse.x = mouse.x as f32;
     this.mouse.y = mouse.y as f32;
     this.activate = Input_GetPressed(Button_Mouse_Left);
-    this.forceSize = Vec2::new(0.0f32, 0.0f32);
+    this.forceSize = Vec2::ZERO;
 }
 
 #[no_mangle]
@@ -865,7 +865,7 @@ pub unsafe extern "C" fn ImGui_PopCursor() {
 pub unsafe extern "C" fn ImGui_SetCursor(mut cx: f32, mut cy: f32) {
     TransformPos(&mut cx, &mut cy);
     this.cursor = Vec2::new(cx, cy);
-    (*this.layout).spacing = Vec2::new(0.0f32, 0.0f32);
+    (*this.layout).spacing = Vec2::ZERO;
 }
 
 #[no_mangle]

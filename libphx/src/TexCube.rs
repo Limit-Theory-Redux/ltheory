@@ -42,33 +42,33 @@ pub struct Face {
 static mut kFaces: [Face; 6] = [
     Face {
         face: CubeFace_PX,
-        look: Vec3::new(1.0f32, 0.0f32, 0.0f32),
-        up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        look: Vec3::X,
+        up: Vec3::Y,
     },
     Face {
         face: CubeFace_NX,
-        look: Vec3::new(-1.0f32, 0.0f32, 0.0f32),
-        up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        look: Vec3::NEG_X,
+        up: Vec3::Y,
     },
     Face {
         face: CubeFace_PY,
-        look: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        look: Vec3::Y,
         up: Vec3::new(0.0f32, 0.0f32, -1.0f32),
     },
     Face {
         face: CubeFace_NY,
-        look: Vec3::new(0.0f32, -1.0f32, 0.0f32),
-        up: Vec3::new(0.0f32, 0.0f32, 1.0f32),
+        look: Vec3::NEG_Y,
+        up: Vec3::Z,
     },
     Face {
         face: CubeFace_PZ,
-        look: Vec3::new(0.0f32, 0.0f32, 1.0f32),
-        up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        look: Vec3::Z,
+        up: Vec3::Y,
     },
     Face {
         face: CubeFace_NZ,
         look: Vec3::new(0.0f32, 0.0f32, -1.0f32),
-        up: Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        up: Vec3::Y,
     },
 ];
 

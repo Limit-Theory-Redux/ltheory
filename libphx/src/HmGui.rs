@@ -163,11 +163,11 @@ unsafe extern "C" fn HmGui_InitWidget(mut e: *mut HmGuiWidget, mut type_0: u32) 
         (*e).hash = Hash_FNV64_Init();
     }
     (*e).type_0 = type_0;
-    (*e).pos = Vec2::new(0.0f32, 0.0f32);
-    (*e).size = Vec2::new(0.0f32, 0.0f32);
-    (*e).minSize = Vec2::new(0.0f32, 0.0f32);
-    (*e).align = Vec2::new(0.0f32, 0.0f32);
-    (*e).stretch = Vec2::new(0.0f32, 0.0f32);
+    (*e).pos = Vec2::ZERO;
+    (*e).size = Vec2::ZERO;
+    (*e).minSize = Vec2::ZERO;
+    (*e).align = Vec2::ZERO;
+    (*e).stretch = Vec2::ZERO;
     this.last = e;
 }
 
@@ -179,9 +179,9 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: u32) {
     (*e).layout = layout;
     (*e).children = 0;
     (*e).focusStyle = 0;
-    (*e).paddingLower = Vec2::new(0.0f32, 0.0f32);
-    (*e).paddingUpper = Vec2::new(0.0f32, 0.0f32);
-    (*e).offset = Vec2::new(0.0f32, 0.0f32);
+    (*e).paddingLower = Vec2::ZERO;
+    (*e).paddingUpper = Vec2::ZERO;
+    (*e).offset = Vec2::ZERO;
     (*e).maxSize = Vec2::new(1e30f32, 1e30f32);
     (*e).spacing = (*this.style).spacing;
     (*e).frameOpacity = 0.0f32;
@@ -196,13 +196,13 @@ unsafe extern "C" fn HmGui_BeginGroup(mut layout: u32) {
     this.group = e;
     match layout {
         1 => {
-            (*e).widget.stretch = Vec2::new(1.0f32, 1.0f32);
+            (*e).widget.stretch = Vec2::ONE;
         }
         2 => {
-            (*e).widget.stretch = Vec2::new(1.0f32, 0.0f32);
+            (*e).widget.stretch = Vec2::X;
         }
         3 => {
-            (*e).widget.stretch = Vec2::new(0.0f32, 1.0f32);
+            (*e).widget.stretch = Vec2::Y;
         }
         _ => {}
     };
@@ -237,9 +237,9 @@ unsafe extern "C" fn HmGui_GetData(mut g: *mut HmGuiGroup) -> *mut HmGuiData {
     let mut data: *mut HmGuiData = HashMap_GetRaw(this.data, (*g).widget.hash) as *mut HmGuiData;
     if data.is_null() {
         data = MemNew!(HmGuiData);
-        (*data).offset = Vec2::new(0.0f32, 0.0f32);
-        (*data).minSize = Vec2::new(0.0f32, 0.0f32);
-        (*data).size = Vec2::new(0.0f32, 0.0f32);
+        (*data).offset = Vec2::ZERO;
+        (*data).minSize = Vec2::ZERO;
+        (*data).size = Vec2::ZERO;
         HashMap_SetRaw(this.data, (*g).widget.hash, data as *mut _);
     }
     data
@@ -253,7 +253,7 @@ unsafe extern "C" fn HmGui_ComputeSize(mut g: *mut HmGuiGroup) {
         }
         e = (*e).next;
     }
-    (*g).widget.minSize = Vec2::new(0.0f32, 0.0f32);
+    (*g).widget.minSize = Vec2::ZERO;
     let mut e_0: *mut HmGuiWidget = (*g).head;
     while !e_0.is_null() {
         match (*g).layout {
@@ -563,7 +563,7 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
         (*this.style).spacing = 6.0f32;
         (*this.style).colorPrimary = Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32);
         (*this.style).colorFrame = Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32);
-        (*this.style).colorText = Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32);
+        (*this.style).colorText = Vec4::ONE;
         this.clipRect = std::ptr::null_mut();
         this.data = HashMap_Create(0, 128);
         let mut i: i32 = 0;
@@ -581,7 +581,7 @@ pub unsafe extern "C" fn HmGui_Begin(mut sx: f32, mut sy: f32) {
     this.activate = Input_GetPressed(Button_Mouse_Left);
     HmGui_BeginGroup(0);
     (*this.group).clip = true;
-    (*this.group).widget.pos = Vec2::new(0.0f32, 0.0f32);
+    (*this.group).widget.pos = Vec2::ZERO;
     (*this.group).widget.size = Vec2::new(sx, sy);
     this.root = this.group;
 }
@@ -790,7 +790,7 @@ pub unsafe extern "C" fn HmGui_Image(mut image: *mut Tex2D) {
     let mut e = MemNew!(HmGuiImage);
     HmGui_InitWidget(&mut (*e).widget, 3);
     (*e).image = image;
-    (*e).widget.stretch = Vec2::new(1.0f32, 1.0f32);
+    (*e).widget.stretch = Vec2::ONE;
 }
 
 #[no_mangle]

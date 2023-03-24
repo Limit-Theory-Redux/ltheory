@@ -36,11 +36,7 @@ pub unsafe extern "C" fn Intersect_PointTriangle_Barycentric(
     let mut pv1: Vec3 = *v.offset(1) - *p;
     let mut pv2: Vec3 = *v.offset(2) - *p;
     let mut plane: Plane = Plane {
-        n: Vec3 {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        },
+        n: Vec3::ZERO,
         d: 0.,
     };
     Triangle_ToPlaneFast(tri, &mut plane);
@@ -79,11 +75,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
     mut tHit: *mut f32,
 ) -> bool {
     let mut plane: Plane = Plane {
-        n: Vec3 {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        },
+        n: Vec3::ZERO,
         d: 0.,
     };
     Triangle_ToPlaneFast(tri, &mut plane);

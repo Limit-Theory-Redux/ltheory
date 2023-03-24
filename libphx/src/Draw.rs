@@ -9,7 +9,7 @@ static mut alphaStack: [f32; 16] = [0.; 16];
 
 static mut alphaIndex: i32 = -1;
 
-static mut color: Vec4 = Vec4::new(1.0f32, 1.0f32, 1.0f32, 1.0f32);
+static mut color: Vec4 = Vec4::ONE;
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PushAlpha(mut a: f32) {
@@ -176,9 +176,9 @@ pub unsafe extern "C" fn Draw_LineWidth(width: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Plane(mut p: *const Vec3, mut n: *const Vec3, mut scale: f32) {
     let mut e1: Vec3 = if f64::abs((*n).x as f64) < 0.7f64 {
-        Vec3::new(1.0f32, 0.0f32, 0.0f32)
+        Vec3::X
     } else {
-        Vec3::new(0.0f32, 1.0f32, 0.0f32)
+        Vec3::Y
     };
     e1 = Vec3_Reject(e1, *n).normalize();
     let mut e2: Vec3 = Vec3::cross(*n, e1);

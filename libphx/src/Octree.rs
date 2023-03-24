@@ -53,16 +53,8 @@ pub unsafe extern "C" fn Octree_Free(mut this: *mut Octree) {
 #[no_mangle]
 pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
     let mut meshBox: Box3 = Box3 {
-        lower: Vec3 {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        },
-        upper: Vec3 {
-            x: 0.,
-            y: 0.,
-            z: 0.,
-        },
+        lower: Vec3::ZERO,
+        upper: Vec3::ZERO,
     };
     Mesh_GetBound(mesh, &mut meshBox);
     let mut this: *mut Octree = Octree_Create(meshBox);

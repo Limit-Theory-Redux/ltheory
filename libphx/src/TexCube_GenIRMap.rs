@@ -63,20 +63,20 @@ pub unsafe extern "C" fn TexCube_GenIRMap(
         CubeFace_NZ,
     ];
     let look: [Vec3; 6] = [
-        Vec3::new(1.0f32, 0.0f32, 0.0f32),
-        Vec3::new(-1.0f32, 0.0f32, 0.0f32),
-        Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        Vec3::new(0.0f32, -1.0f32, 0.0f32),
-        Vec3::new(0.0f32, 0.0f32, 1.0f32),
+        Vec3::X,
+        Vec3::NEG_X,
+        Vec3::Y,
+        Vec3::NEG_Y,
+        Vec3::Z,
         Vec3::new(0.0f32, 0.0f32, -1.0f32),
     ];
     let up: [Vec3; 6] = [
-        Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        Vec3::Y,
+        Vec3::Y,
         Vec3::new(0.0f32, 0.0f32, -1.0f32),
-        Vec3::new(0.0f32, 0.0f32, 1.0f32),
-        Vec3::new(0.0f32, 1.0f32, 0.0f32),
-        Vec3::new(0.0f32, 1.0f32, 0.0f32),
+        Vec3::Z,
+        Vec3::Y,
+        Vec3::Y,
     ];
     let mut rng: *mut RNG = RNG_FromTime();
     let mut levels: i32 = 0;

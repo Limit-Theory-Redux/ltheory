@@ -739,7 +739,7 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(mut this: *mut Sound, mut func: *con
         // );
         Sound_SetState(this, 2 as SoundState);
         if Sound_Get3D(this) {
-            let mut zero: Vec3 = Vec3::new(0.0f32, 0.0f32, 0.0f32);
+            let mut zero: Vec3 = Vec3::ZERO;
             Sound_Set3DPos(this, &mut zero, &mut zero);
         }
     }

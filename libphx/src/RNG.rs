@@ -183,7 +183,7 @@ pub unsafe extern "C" fn RNG_GetGaussian(mut this: *mut RNG) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetAxis2(mut this: *mut RNG, mut out: *mut Vec2) {
-    *out = Vec2::new(0.0f32, 0.0f32);
+    *out = Vec2::ZERO;
     let mut axis: i32 = RNG_GetInt(this, 0, 3);
     match axis {
         0 => {

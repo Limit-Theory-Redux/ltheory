@@ -335,16 +335,8 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
 
                 let mut face: *mut VertexIndices = &mut *vertexIndices.as_mut_ptr().offset(i as isize);
                 let mut vertex: Vertex = Vertex {
-                    p: Vec3 {
-                        x: 0.,
-                        y: 0.,
-                        z: 0.,
-                    },
-                    n: Vec3 {
-                        x: 0.,
-                        y: 0.,
-                        z: 0.,
-                    },
+                    p: Vec3::ZERO,
+                    n: Vec3::ZERO,
                     uv: Vec2::ZERO,
                 };
 

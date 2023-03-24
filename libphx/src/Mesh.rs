@@ -407,11 +407,7 @@ pub unsafe extern "C" fn Mesh_Validate(mut this: *mut Mesh) -> Error {
         let mut i1: i32 = *indexData.offset((i + 1) as isize);
         let mut i2: i32 = *indexData.offset((i + 2) as isize);
         let mut triangle: Triangle = Triangle {
-            vertices: [Vec3 {
-                x: 0.,
-                y: 0.,
-                z: 0.,
-            }; 3],
+            vertices: [Vec3::ZERO; 3],
         };
         triangle.vertices[0] = (*vertexData.offset(i0 as isize)).p;
         triangle.vertices[1] = (*vertexData.offset(i1 as isize)).p;
@@ -591,7 +587,7 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(mut this: *mut Mesh) {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_SplitNormals(mut this: *mut Mesh, minDot: f32) {
     for v in (*this).vertex.iter_mut() {
-        (*v).n = Vec3::new(0.0f32, 0.0f32, 0.0f32);
+        (*v).n = Vec3::ZERO;
     }
     for i in (0..(*this).index.len()).step_by(3) {
         let mut index: [&mut i32; 3] = [

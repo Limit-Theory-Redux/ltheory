@@ -47,7 +47,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
         if f64::abs(length as f64) > 1e-6f64 {
             normal /= length;
         } else {
-            normal = Vec3::new(1.0f32, 0.0f32, 0.0f32);
+            normal = Vec3::X;
         }
         let mut center: Vec3 = ((*v1).p + (*v2).p + (*v3).p) / 3.0f32;
         *pointBuffer.offset((i / 3) as isize) = Vec4::new(center.x, center.y, center.z, area);

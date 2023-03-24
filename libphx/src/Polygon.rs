@@ -18,12 +18,7 @@ pub struct Polygon {
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mut Plane) {
     let mut v: &Vec<Vec3> = &(*polygon).vertices;
-    
-    let mut n: DVec3 = DVec3 {
-        x: 0.0,
-        y: 0.,
-        z: 0.,
-    };
+    let mut n: DVec3 = DVec3::ZERO;
     let mut centroid = DVec3::ZERO;
 
     let vCurAsF32 = v[v.len() - 1];
