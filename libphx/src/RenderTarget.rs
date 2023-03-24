@@ -62,7 +62,7 @@ pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
         );
     }
     fboIndex += 1;
-    let mut this: *mut FBO = GetActive();
+    let this: *mut FBO = GetActive();
     (*this).handle = 0;
     (*this).colorIndex = 0;
     (*this).sx = sx;
@@ -114,13 +114,13 @@ pub unsafe extern "C" fn RenderTarget_Pop() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex2D(mut this: *mut Tex2D) {
+pub unsafe extern "C" fn RenderTarget_BindTex2D(this: *mut Tex2D) {
     RenderTarget_BindTex2DLevel(this, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut level: i32) {
-    let mut this: *mut FBO = GetActive();
+    let this: *mut FBO = GetActive();
     let mut handle: u32 = Tex2D_GetHandle(tex);
     if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
         if (*this).colorIndex >= 4 {
@@ -157,7 +157,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex3D(mut this: *mut Tex3D, mut layer: i32) {
+pub unsafe extern "C" fn RenderTarget_BindTex3D(this: *mut Tex3D, mut layer: i32) {
     RenderTarget_BindTex3DLevel(this, layer, 0);
 }
 
@@ -167,7 +167,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
     mut layer: i32,
     mut level: i32,
 ) {
-    let mut this: *mut FBO = GetActive();
+    let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
         Fatal(
             b"RenderTarget_BindTex3D: Max color attachments exceeded\0" as *const u8
@@ -189,7 +189,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTexCube(mut this: *mut TexCube, mut face: CubeFace) {
+pub unsafe extern "C" fn RenderTarget_BindTexCube(this: *mut TexCube, mut face: CubeFace) {
     RenderTarget_BindTexCubeLevel(this, face, 0);
 }
 
@@ -199,7 +199,7 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
     mut face: CubeFace,
     mut level: i32,
 ) {
-    let mut this: *mut FBO = GetActive();
+    let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
         Fatal(
             b"RenderTarget_BindTexCubeLevel: Max color attachments exceeded\0" as *const u8
@@ -220,12 +220,12 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex2D(mut this: *mut Tex2D) {
+pub unsafe extern "C" fn RenderTarget_PushTex2D(this: *mut Tex2D) {
     RenderTarget_PushTex2DLevel(this, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(mut this: *mut Tex2D, mut level: i32) {
+pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: *mut Tex2D, mut level: i32) {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Tex2D_GetSizeLevel(this, &mut size, level);
     RenderTarget_Push(size.x, size.y);
@@ -233,13 +233,13 @@ pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(mut this: *mut Tex2D, mut l
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex3D(mut this: *mut Tex3D, mut layer: i32) {
+pub unsafe extern "C" fn RenderTarget_PushTex3D(this: *mut Tex3D, mut layer: i32) {
     RenderTarget_PushTex3DLevel(this, layer, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex3DLevel(
-    mut this: *mut Tex3D,
+    this: *mut Tex3D,
     mut layer: i32,
     mut level: i32,
 ) {

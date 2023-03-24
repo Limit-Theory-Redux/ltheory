@@ -17,7 +17,7 @@ use libc;
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GenIRMap(
-    mut this: *mut TexCube,
+    this: *mut TexCube,
     mut sampleCount: i32,
 ) -> *mut TexCube {
     let mut size: i32 = TexCube_GetSize(this);

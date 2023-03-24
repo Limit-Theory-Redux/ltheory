@@ -60,7 +60,7 @@ unsafe extern "C" fn ShaderVar_Push(
     mut type_0: ShaderVarType,
     mut value: *const libc::c_void,
 ) {
-    let mut this: *mut VarStack = ShaderVar_GetStack(var, type_0);
+    let this: *mut VarStack = ShaderVar_GetStack(var, type_0);
     if (*this).size == (*this).capacity {
         (*this).capacity *= 2;
         (*this).data = MemRealloc((*this).data, ((*this).capacity * (*this).elemSize) as usize);
@@ -90,7 +90,7 @@ pub unsafe extern "C" fn ShaderVar_Get(
     mut name: *const libc::c_char,
     mut type_0: ShaderVarType,
 ) -> *mut libc::c_void {
-    let mut this: *mut VarStack = ShaderVar_GetStack(name, 0);
+    let this: *mut VarStack = ShaderVar_GetStack(name, 0);
     if this.is_null() || (*this).size == 0 {
         return std::ptr::null_mut();
     }
@@ -178,7 +178,7 @@ pub unsafe extern "C" fn ShaderVar_PushTexCube(mut name: *const libc::c_char, mu
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_Pop(mut name: *const libc::c_char) {
-    let mut this: *mut VarStack = ShaderVar_GetStack(name, 0);
+    let this: *mut VarStack = ShaderVar_GetStack(name, 0);
     if this.is_null() {
         Fatal(
             b"ShaderVar_Pop: Attempting to pop nonexistent stack <%s>\0" as *const u8

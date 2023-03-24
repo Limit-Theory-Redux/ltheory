@@ -82,12 +82,12 @@ pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut Sha
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Acquire(mut this: *mut ShaderState) {
+pub unsafe extern "C" fn ShaderState_Acquire(this: *mut ShaderState) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Free(mut this: *mut ShaderState) {
+pub unsafe extern "C" fn ShaderState_Free(this: *mut ShaderState) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
@@ -120,14 +120,14 @@ pub unsafe extern "C" fn ShaderState_FromShaderLoad(
     mut fragName: *const libc::c_char,
 ) -> *mut ShaderState {
     let mut shader: *mut Shader = Shader_Load(vertName, fragName);
-    let mut this: *mut ShaderState = ShaderState_Create(shader);
+    let this: *mut ShaderState = ShaderState_Create(shader);
     Shader_Free(shader);
     this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: f32,
 ) {
@@ -142,7 +142,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat2(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: f32,
     mut y: f32,
@@ -158,7 +158,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat3(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: f32,
     mut y: f32,
@@ -175,7 +175,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat4(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: f32,
     mut y: f32,
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetInt(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: i32,
 ) {
@@ -208,7 +208,7 @@ pub unsafe extern "C" fn ShaderState_SetInt(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetMatrix(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: *mut Matrix,
 ) {
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex1D(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: *mut Tex1D,
 ) {
@@ -239,7 +239,7 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex2D(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: *mut Tex2D,
 ) {
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex3D(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: *mut Tex3D,
 ) {
@@ -271,7 +271,7 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTexCube(
-    mut this: *mut ShaderState,
+    this: *mut ShaderState,
     mut name: *const libc::c_char,
     mut x: *mut TexCube,
 ) {
@@ -286,7 +286,7 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
+pub unsafe extern "C" fn ShaderState_Start(this: *mut ShaderState) {
     Shader_Start((*this).shader);
     for e in (*this).elems.iter() {
         match (*e).type_0 {
@@ -342,6 +342,6 @@ pub unsafe extern "C" fn ShaderState_Start(mut this: *mut ShaderState) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Stop(mut this: *mut ShaderState) {
+pub unsafe extern "C" fn ShaderState_Stop(this: *mut ShaderState) {
     Shader_Stop((*this).shader);
 }

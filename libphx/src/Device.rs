@@ -17,7 +17,7 @@ pub unsafe extern "C" fn Device_Equal(mut a: *mut Device, mut b: *mut Device) ->
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Device_ToString(mut this: *mut Device) -> *const libc::c_char {
+pub unsafe extern "C" fn Device_ToString(this: *mut Device) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),

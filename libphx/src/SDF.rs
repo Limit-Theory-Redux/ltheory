@@ -56,13 +56,13 @@ pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SDF_Free(mut this: *mut SDF) {
+pub unsafe extern "C" fn SDF_Free(this: *mut SDF) {
     MemFree((*this).data as *const _);
     MemFree(this as *const _);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
+pub unsafe extern "C" fn SDF_ToMesh(this: *mut SDF) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
     let cells: IVec3 = IVec3 {
         x: (*this).size.x - 1,
@@ -203,7 +203,7 @@ pub unsafe extern "C" fn SDF_ToMesh(mut this: *mut SDF) -> *mut Mesh {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
+pub unsafe extern "C" fn SDF_Clear(this: *mut SDF, mut value: f32) {
     let mut size: u64 = ((*this).size.x * (*this).size.y * (*this).size.z) as u64;
     let mut pCell: *mut Cell = (*this).data;
     let mut i: u64 = 0;
@@ -216,7 +216,7 @@ pub unsafe extern "C" fn SDF_Clear(mut this: *mut SDF, mut value: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SDF_ComputeNormals(mut this: *mut SDF) {
+pub unsafe extern "C" fn SDF_ComputeNormals(this: *mut SDF) {
     let stride: IVec3 = IVec3 {
         x: 1,
         y: (*this).size.x,
@@ -254,7 +254,7 @@ pub unsafe extern "C" fn SDF_ComputeNormals(mut this: *mut SDF) {
 
 #[no_mangle]
 pub unsafe extern "C" fn SDF_Set(
-    mut this: *mut SDF,
+    this: *mut SDF,
     mut x: i32,
     mut y: i32,
     mut z: i32,
@@ -266,7 +266,7 @@ pub unsafe extern "C" fn SDF_Set(
 
 #[no_mangle]
 pub unsafe extern "C" fn SDF_SetNormal(
-    mut this: *mut SDF,
+    this: *mut SDF,
     mut x: i32,
     mut y: i32,
     mut z: i32,

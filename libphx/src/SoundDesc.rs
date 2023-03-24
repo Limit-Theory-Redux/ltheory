@@ -753,7 +753,7 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_FinishLoad(
-    mut this: *mut SoundDesc,
+    this: *mut SoundDesc,
     mut func: *const libc::c_char,
 ) {
     let mut warned: bool = false;
@@ -816,7 +816,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
         },
         name,
     );
-    let mut this: *mut SoundDesc = Audio_AllocSoundDesc(mapKey);
+    let this: *mut SoundDesc = Audio_AllocSoundDesc(mapKey);
     StrFree(mapKey);
     if ((*this).name).is_null() {
         let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Sound, name);
@@ -878,12 +878,12 @@ pub unsafe extern "C" fn SoundDesc_Load(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_Acquire(mut this: *mut SoundDesc) {
+pub unsafe extern "C" fn SoundDesc_Acquire(this: *mut SoundDesc) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
+pub unsafe extern "C" fn SoundDesc_Free(this: *mut SoundDesc) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
@@ -909,7 +909,7 @@ pub unsafe extern "C" fn SoundDesc_Free(mut this: *mut SoundDesc) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_GetDuration(mut this: *mut SoundDesc) -> f32 {
+pub unsafe extern "C" fn SoundDesc_GetDuration(this: *mut SoundDesc) -> f32 {
     SoundDesc_FinishLoad(
         this,
         (*std::mem::transmute::<&[u8; 22], &[libc::c_char; 22]>(b"SoundDesc_GetDuration\0"))
@@ -935,17 +935,17 @@ pub unsafe extern "C" fn SoundDesc_GetDuration(mut this: *mut SoundDesc) -> f32 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_GetName(mut this: *mut SoundDesc) -> *const libc::c_char {
+pub unsafe extern "C" fn SoundDesc_GetName(this: *mut SoundDesc) -> *const libc::c_char {
     (*this).name
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_GetPath(mut this: *mut SoundDesc) -> *const libc::c_char {
+pub unsafe extern "C" fn SoundDesc_GetPath(this: *mut SoundDesc) -> *const libc::c_char {
     (*this).path
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_ToFile(mut this: *mut SoundDesc, mut name: *const libc::c_char) {
+pub unsafe extern "C" fn SoundDesc_ToFile(this: *mut SoundDesc, mut name: *const libc::c_char) {
     SoundDesc_FinishLoad(
         this,
         (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"SoundDesc_ToFile\0")).as_ptr(),

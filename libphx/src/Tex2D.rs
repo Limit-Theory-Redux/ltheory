@@ -133,12 +133,12 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Acquire(mut this: *mut Tex2D) {
+pub unsafe extern "C" fn Tex2D_Acquire(this: *mut Tex2D) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Free(mut this: *mut Tex2D) {
+pub unsafe extern "C" fn Tex2D_Free(this: *mut Tex2D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
@@ -154,18 +154,18 @@ pub unsafe extern "C" fn Tex2D_Pop(_: *mut Tex2D) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Push(mut this: *mut Tex2D) {
+pub unsafe extern "C" fn Tex2D_Push(this: *mut Tex2D) {
     RenderTarget_PushTex2D(this);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_PushLevel(mut this: *mut Tex2D, mut level: i32) {
+pub unsafe extern "C" fn Tex2D_PushLevel(this: *mut Tex2D, mut level: i32) {
     RenderTarget_PushTex2DLevel(this, level);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Clear(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut r: f32,
     mut g: f32,
     mut b: f32,
@@ -177,7 +177,7 @@ pub unsafe extern "C" fn Tex2D_Clear(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Clone(mut this: *mut Tex2D) -> *mut Tex2D {
+pub unsafe extern "C" fn Tex2D_Clone(this: *mut Tex2D) -> *mut Tex2D {
     let mut clone: *mut Tex2D = Tex2D_Create((*this).size.x, (*this).size.y, (*this).format);
     RenderTarget_PushTex2D(this);
     gl::BindTexture(gl::TEXTURE_2D, (*clone).handle);
@@ -198,7 +198,7 @@ pub unsafe extern "C" fn Tex2D_Clone(mut this: *mut Tex2D) -> *mut Tex2D {
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Draw(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut x: f32,
     mut y: f32,
     mut sx: f32,
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn Tex2D_Draw(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_DrawEx(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut x0: f32,
     mut y0: f32,
     mut x1: f32,
@@ -249,7 +249,7 @@ pub unsafe extern "C" fn Tex2D_DrawEx(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GenMipmap(mut this: *mut Tex2D) {
+pub unsafe extern "C" fn Tex2D_GenMipmap(this: *mut Tex2D) {
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::GenerateMipmap(gl::TEXTURE_2D);
     gl::BindTexture(gl::TEXTURE_2D, 0);
@@ -257,7 +257,7 @@ pub unsafe extern "C" fn Tex2D_GenMipmap(mut this: *mut Tex2D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_GetData(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut data: *mut libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -276,7 +276,7 @@ pub unsafe extern "C" fn Tex2D_GetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_GetDataBytes(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) -> *mut Bytes {
@@ -290,23 +290,23 @@ pub unsafe extern "C" fn Tex2D_GetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetFormat(mut this: *mut Tex2D) -> TexFormat {
+pub unsafe extern "C" fn Tex2D_GetFormat(this: *mut Tex2D) -> TexFormat {
     (*this).format
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetHandle(mut this: *mut Tex2D) -> u32 {
+pub unsafe extern "C" fn Tex2D_GetHandle(this: *mut Tex2D) -> u32 {
     (*this).handle
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetSize(mut this: *mut Tex2D, mut out: *mut IVec2) {
+pub unsafe extern "C" fn Tex2D_GetSize(this: *mut Tex2D, mut out: *mut IVec2) {
     *out = (*this).size;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_GetSizeLevel(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut out: *mut IVec2,
     mut level: i32,
 ) {
@@ -326,7 +326,7 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: *const libc::c_char) -> *mut Tex2D
     let mut sy: i32 = 0;
     let mut components: i32 = 4;
     let mut data: *mut libc::c_uchar = Tex2D_LoadRaw(path, &mut sx, &mut sy, &mut components);
-    let mut this: *mut Tex2D = Tex2D_Create(sx, sy, TexFormat_RGBA8);
+    let this: *mut Tex2D = Tex2D_Create(sx, sy, TexFormat_RGBA8);
 
     let mut format = if components == 4 {
         gl::RGBA
@@ -359,7 +359,7 @@ pub unsafe extern "C" fn Tex2D_Load(mut name: *const libc::c_char) -> *mut Tex2D
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetAnisotropy(mut this: *mut Tex2D, mut factor: f32) {
+pub unsafe extern "C" fn Tex2D_SetAnisotropy(this: *mut Tex2D, mut factor: f32) {
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
     gl::BindTexture(gl::TEXTURE_2D, 0);
@@ -367,7 +367,7 @@ pub unsafe extern "C" fn Tex2D_SetAnisotropy(mut this: *mut Tex2D, mut factor: f
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetData(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut data: *const libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -389,7 +389,7 @@ pub unsafe extern "C" fn Tex2D_SetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetDataBytes(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut data: *mut Bytes,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -398,14 +398,14 @@ pub unsafe extern "C" fn Tex2D_SetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetMagFilter(mut this: *mut Tex2D, mut filter: TexFilter) {
+pub unsafe extern "C" fn Tex2D_SetMagFilter(this: *mut Tex2D, mut filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetMinFilter(mut this: *mut Tex2D, mut filter: TexFilter) {
+pub unsafe extern "C" fn Tex2D_SetMinFilter(this: *mut Tex2D, mut filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_2D, 0);
@@ -422,7 +422,7 @@ pub unsafe extern "C" fn Tex2D_SetMinFilter(mut this: *mut Tex2D, mut filter: Te
  *        a single mip level. */
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetMipRange(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut minLevel: i32,
     mut maxLevel: i32,
 ) {
@@ -439,7 +439,7 @@ pub unsafe extern "C" fn Tex2D_SetMipRange(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetTexel(
-    mut this: *mut Tex2D,
+    this: *mut Tex2D,
     mut x: i32,
     mut y: i32,
     mut r: f32,
@@ -464,7 +464,7 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetWrapMode(mut this: *mut Tex2D, mut mode: TexWrapMode) {
+pub unsafe extern "C" fn Tex2D_SetWrapMode(this: *mut Tex2D, mut mode: TexWrapMode) {
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode);
     gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode);
@@ -472,7 +472,7 @@ pub unsafe extern "C" fn Tex2D_SetWrapMode(mut this: *mut Tex2D, mut mode: TexWr
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Save(mut this: *mut Tex2D, mut path: *const libc::c_char) {
+pub unsafe extern "C" fn Tex2D_Save(this: *mut Tex2D, mut path: *const libc::c_char) {
     Metric_Inc(0x6);
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
     let mut buffer: *mut libc::c_uchar =

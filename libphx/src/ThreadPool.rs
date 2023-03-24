@@ -46,7 +46,7 @@ pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ThreadPool_Free(mut this: *mut ThreadPool) {
+pub unsafe extern "C" fn ThreadPool_Free(this: *mut ThreadPool) {
     let mut i: i32 = 0;
     while i < (*this).threads {
         if !((*((*this).thread).offset(i as isize)).handle).is_null() {
@@ -63,7 +63,7 @@ pub unsafe extern "C" fn ThreadPool_Free(mut this: *mut ThreadPool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Launch(
-    mut this: *mut ThreadPool,
+    this: *mut ThreadPool,
     mut fn_0: ThreadPoolFn,
     mut data: *mut libc::c_void,
 ) {
@@ -88,7 +88,7 @@ pub unsafe extern "C" fn ThreadPool_Launch(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ThreadPool_Wait(mut this: *mut ThreadPool) {
+pub unsafe extern "C" fn ThreadPool_Wait(this: *mut ThreadPool) {
     let mut i: i32 = 0;
     while i < (*this).threads {
         let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);

@@ -153,13 +153,13 @@ pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
         );
         i += 3;
     }
-    let mut this: *mut KDTree = Partition(boxes, boxCount, 0);
+    let this: *mut KDTree = Partition(boxes, boxCount, 0);
     MemFree(boxes as *const _);
     this
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_Free(mut this: *mut KDTree) {
+pub unsafe extern "C" fn KDTree_Free(this: *mut KDTree) {
     if !((*this).back).is_null() {
         KDTree_Free((*this).back);
     }
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn KDTree_Free(mut this: *mut KDTree) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_GetMemory(mut this: *mut KDTree) -> i32 {
+pub unsafe extern "C" fn KDTree_GetMemory(this: *mut KDTree) -> i32 {
     let mut memory: i32 = std::mem::size_of::<KDTree>() as i32;
     if !((*this).back).is_null() {
         memory += KDTree_GetMemory((*this).back);
@@ -203,7 +203,7 @@ pub unsafe extern "C" fn KDTree_IntersectRay(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_Draw(mut this: *mut KDTree, mut maxDepth: i32) {
+pub unsafe extern "C" fn KDTree_Draw(this: *mut KDTree, mut maxDepth: i32) {
     if maxDepth < 0 {
         return;
     }

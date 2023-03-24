@@ -12,7 +12,7 @@ pub struct LineSegment {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LineSegment_ToRay(mut this: *const LineSegment, mut out: *mut Ray) {
+pub unsafe extern "C" fn LineSegment_ToRay(this: *const LineSegment, mut out: *mut Ray) {
     (*out).p = (*this).p0;
     (*out).dir = (*this).p1 - (*this).p0;
     (*out).tMin = 0.0f32;
@@ -25,7 +25,7 @@ pub unsafe extern "C" fn LineSegment_FromRay(mut ray: *const Ray, mut out: *mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LineSegment_ToString(mut this: *mut LineSegment) -> *const libc::c_char {
+pub unsafe extern "C" fn LineSegment_ToString(this: *mut LineSegment) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),

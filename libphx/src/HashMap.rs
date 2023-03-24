@@ -47,14 +47,14 @@ pub unsafe extern "C" fn HashMap_Create(mut keySize: u32, mut capacity: u32) -> 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_Free(mut this: *mut HashMap) {
+pub unsafe extern "C" fn HashMap_Free(this: *mut HashMap) {
     MemFree((*this).elems as *const _);
     MemFree(this as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Foreach(
-    mut this: *mut HashMap,
+    this: *mut HashMap,
     mut fn_0: ValueForeach,
     mut userData: *mut libc::c_void,
 ) {
@@ -70,7 +70,7 @@ pub unsafe extern "C" fn HashMap_Foreach(
 
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Get(
-    mut this: *mut HashMap,
+    this: *mut HashMap,
     mut key: *const libc::c_void,
 ) -> *mut libc::c_void {
     HashMap_GetRaw(this, Hash(key, (*this).keySize))
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn HashMap_Get(
 
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_GetRaw(
-    mut this: *mut HashMap,
+    this: *mut HashMap,
     mut hash: u64,
 ) -> *mut libc::c_void {
     let mut index: u32 = 0;
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn HashMap_GetRaw(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: u32) {
+pub unsafe extern "C" fn HashMap_Resize(this: *mut HashMap, mut capacity: u32) {
     let mut other: *mut HashMap = HashMap_Create((*this).keySize, capacity);
     let mut i: u32 = 0;
     while i < (*this).capacity {
@@ -112,7 +112,7 @@ pub unsafe extern "C" fn HashMap_Resize(mut this: *mut HashMap, mut capacity: u3
 
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Set(
-    mut this: *mut HashMap,
+    this: *mut HashMap,
     mut key: *const libc::c_void,
     mut value: *mut libc::c_void,
 ) {
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn HashMap_Set(
 
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_SetRaw(
-    mut this: *mut HashMap,
+    this: *mut HashMap,
     mut hash: u64,
     mut value: *mut libc::c_void,
 ) {

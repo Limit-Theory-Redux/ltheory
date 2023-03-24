@@ -86,7 +86,7 @@ static mut activeInstance: *mut Lua = std::ptr::null_mut();
 
 static mut cSignal: Signal = 0;
 
-unsafe extern "C" fn Lua_BacktraceHook(mut this: *mut Lua, _: *mut lua_Debug) {
+unsafe extern "C" fn Lua_BacktraceHook(this: *mut Lua, _: *mut lua_Debug) {
     lua_sethook(this, None, 0, 0);
     luaL_where(this, 0);
     lua_pushstring(
@@ -118,7 +118,7 @@ unsafe extern "C" fn Lua_SignalHandler(mut sig: Signal) {
 }
 
 unsafe extern "C" fn Lua_PCall(
-    mut this: *mut Lua,
+    this: *mut Lua,
     mut args: i32,
     mut rets: i32,
     mut errorHandler: i32,
@@ -154,13 +154,13 @@ unsafe extern "C" fn Lua_PCall(
     activeInstance = prev;
 }
 
-unsafe extern "C" fn Lua_CallBarrier(mut this: *mut Lua) -> i32 {
+unsafe extern "C" fn Lua_CallBarrier(this: *mut Lua) -> i32 {
     let mut args: i32 = lua_gettop(this) - 1;
     lua_call(this, args, -1);
     lua_gettop(this)
 }
 
-unsafe extern "C" fn Lua_InitExtensions(mut this: *mut Lua) {
+unsafe extern "C" fn Lua_InitExtensions(this: *mut Lua) {
     Lua_SetFn(
         this,
         b"Call\0" as *const u8 as *const libc::c_char,
@@ -178,7 +178,7 @@ pub unsafe extern "C" fn Lua_Create() -> *mut Lua {
             Lua_SignalHandler as unsafe extern "C" fn(Signal) -> (),
         ));
     }
-    let mut this: *mut Lua = luaL_newstate();
+    let this: *mut Lua = luaL_newstate();
     luaL_openlibs(this);
     Lua_InitExtensions(this);
     if luaL_loadstring(this, kErrorHandler) != 0 || lua_pcall(this, 0, -1, 0) != 0 {
@@ -188,12 +188,12 @@ pub unsafe extern "C" fn Lua_Create() -> *mut Lua {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_CreateThread(mut this: *mut Lua) -> *mut Lua {
+pub unsafe extern "C" fn Lua_CreateThread(this: *mut Lua) -> *mut Lua {
     lua_newthread(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_Free(mut this: *mut Lua) {
+pub unsafe extern "C" fn Lua_Free(this: *mut Lua) {
     lua_close(this);
 }
 
@@ -203,19 +203,19 @@ pub unsafe extern "C" fn Lua_GetActive() -> *mut Lua {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_DoFile(mut this: *mut Lua, mut name: *const libc::c_char) {
+pub unsafe extern "C" fn Lua_DoFile(this: *mut Lua, mut name: *const libc::c_char) {
     Lua_LoadFile(this, name);
     Lua_PCall(this, 0, 0, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_DoString(mut this: *mut Lua, mut code: *const libc::c_char) {
+pub unsafe extern "C" fn Lua_DoString(this: *mut Lua, mut code: *const libc::c_char) {
     Lua_LoadString(this, code);
     Lua_PCall(this, 0, 0, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_LoadFile(mut this: *mut Lua, mut name: *const libc::c_char) {
+pub unsafe extern "C" fn Lua_LoadFile(this: *mut Lua, mut name: *const libc::c_char) {
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Script, name);
     if luaL_loadfile(this, path) != 0 {
         Fatal(
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn Lua_LoadFile(mut this: *mut Lua, mut name: *const libc:
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_LoadString(mut this: *mut Lua, mut code: *const libc::c_char) {
+pub unsafe extern "C" fn Lua_LoadString(this: *mut Lua, mut code: *const libc::c_char) {
     if luaL_loadstring(this, code) != 0 {
         Fatal(
             b"Lua_LoadString: failed to load string:\n%s\0" as *const u8 as *const libc::c_char,
@@ -238,7 +238,7 @@ pub unsafe extern "C" fn Lua_LoadString(mut this: *mut Lua, mut code: *const lib
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_Call(
-    mut this: *mut Lua,
+    this: *mut Lua,
     mut args: i32,
     mut rets: i32,
     mut errorHandler: i32,
@@ -247,7 +247,7 @@ pub unsafe extern "C" fn Lua_Call(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_PushGlobal(mut this: *mut Lua, mut name: *const libc::c_char) {
+pub unsafe extern "C" fn Lua_PushGlobal(this: *mut Lua, mut name: *const libc::c_char) {
     lua_getfield(this, -10002, name);
     if lua_type(this, lua_gettop(this)) == 0 {
         Fatal(
@@ -258,29 +258,29 @@ pub unsafe extern "C" fn Lua_PushGlobal(mut this: *mut Lua, mut name: *const lib
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_PushNumber(mut this: *mut Lua, mut value: f64) {
+pub unsafe extern "C" fn Lua_PushNumber(this: *mut Lua, mut value: f64) {
     lua_pushnumber(this, value);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_PushPtr(mut this: *mut Lua, mut value: *mut libc::c_void) {
+pub unsafe extern "C" fn Lua_PushPtr(this: *mut Lua, mut value: *mut libc::c_void) {
     lua_pushlightuserdata(this, value);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_PushStr(mut this: *mut Lua, mut value: *const libc::c_char) {
+pub unsafe extern "C" fn Lua_PushStr(this: *mut Lua, mut value: *const libc::c_char) {
     lua_pushstring(this, value);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_PushThread(mut this: *mut Lua, mut thread: *mut Lua) {
+pub unsafe extern "C" fn Lua_PushThread(this: *mut Lua, mut thread: *mut Lua) {
     lua_pushthread(thread);
     lua_xmove(thread, this, 1);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_SetBool(
-    mut this: *mut Lua,
+    this: *mut Lua,
     mut name: *const libc::c_char,
     mut value: bool,
 ) {
@@ -290,7 +290,7 @@ pub unsafe extern "C" fn Lua_SetBool(
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_SetFn(
-    mut this: *mut Lua,
+    this: *mut Lua,
     mut name: *const libc::c_char,
     mut fn_0: LuaFn,
 ) {
@@ -300,7 +300,7 @@ pub unsafe extern "C" fn Lua_SetFn(
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_SetNumber(
-    mut this: *mut Lua,
+    this: *mut Lua,
     mut name: *const libc::c_char,
     mut value: f64,
 ) {
@@ -310,7 +310,7 @@ pub unsafe extern "C" fn Lua_SetNumber(
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_SetPtr(
-    mut this: *mut Lua,
+    this: *mut Lua,
     mut name: *const libc::c_char,
     mut value: *mut libc::c_void,
 ) {
@@ -320,7 +320,7 @@ pub unsafe extern "C" fn Lua_SetPtr(
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_SetStr(
-    mut this: *mut Lua,
+    this: *mut Lua,
     mut name: *const libc::c_char,
     mut value: *const libc::c_char,
 ) {
@@ -334,27 +334,27 @@ pub unsafe extern "C" fn Lua_TransferStack(mut src: *mut Lua, mut dst: *mut Lua,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_GetRef(mut this: *mut Lua) -> LuaRef {
+pub unsafe extern "C" fn Lua_GetRef(this: *mut Lua) -> LuaRef {
     luaL_ref(this, -10000) as LuaRef
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_ReleaseRef(mut this: *mut Lua, mut ref_0: LuaRef) {
+pub unsafe extern "C" fn Lua_ReleaseRef(this: *mut Lua, mut ref_0: LuaRef) {
     luaL_unref(this, -10000, ref_0 as i32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_PushRef(mut this: *mut Lua, mut ref_0: LuaRef) {
+pub unsafe extern "C" fn Lua_PushRef(this: *mut Lua, mut ref_0: LuaRef) {
     lua_rawgeti(this, -10000, ref_0 as i32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_GCFull(mut this: *mut Lua) {
+pub unsafe extern "C" fn Lua_GCFull(this: *mut Lua) {
     lua_gc(this, 2, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_GCSetActive(mut this: *mut Lua, mut active: bool) {
+pub unsafe extern "C" fn Lua_GCSetActive(this: *mut Lua, mut active: bool) {
     if active {
         lua_gc(this, 1, 0);
     } else {
@@ -363,18 +363,18 @@ pub unsafe extern "C" fn Lua_GCSetActive(mut this: *mut Lua, mut active: bool) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_GCStep(mut this: *mut Lua) {
+pub unsafe extern "C" fn Lua_GCStep(this: *mut Lua) {
     lua_gc(this, 5, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Lua_GetMemory(mut this: *mut Lua) -> i32 {
+pub unsafe extern "C" fn Lua_GetMemory(this: *mut Lua) -> i32 {
     lua_gc(this, 3, 0) * 1024 + lua_gc(this, 4, 0)
 }
 
 #[inline]
 unsafe extern "C" fn Lua_ToString(
-    mut this: *mut Lua,
+    this: *mut Lua,
     mut name: *const libc::c_char,
 ) -> *const libc::c_char {
     let mut type_0: i32 = lua_type(this, -1);
@@ -487,7 +487,7 @@ unsafe extern "C" fn Lua_ToString(
 }
 
 // pub unsafe fn Lua_GetCurrentLocation() {
-//     let mut this: *mut Lua = activeInstance;
+//     let this: *mut Lua = activeInstance;
 //     if this.is_null() {
 //         return;
 //     }
@@ -508,7 +508,7 @@ unsafe extern "C" fn Lua_ToString(
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_Backtrace() {
-    let mut this: *mut Lua = activeInstance;
+    let this: *mut Lua = activeInstance;
     if this.is_null() {
         return;
     }

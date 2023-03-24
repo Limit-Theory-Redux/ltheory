@@ -33,7 +33,7 @@ pub unsafe extern "C" fn Octree_Create(mut box_0: Box3) -> *mut Octree {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Octree_Free(mut this: *mut Octree) {
+pub unsafe extern "C" fn Octree_Free(this: *mut Octree) {
     let mut i: i32 = 0;
     while i < 8 {
         if !((*this).child[i as usize]).is_null() {
@@ -57,7 +57,7 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
         upper: Vec3::ZERO,
     };
     Mesh_GetBound(mesh, &mut meshBox);
-    let mut this: *mut Octree = Octree_Create(meshBox);
+    let this: *mut Octree = Octree_Create(meshBox);
     let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
@@ -77,7 +77,7 @@ pub unsafe extern "C" fn Octree_FromMesh(mut mesh: *mut Mesh) -> *mut Octree {
 }
 
 unsafe extern "C" fn Octree_GetAvgLoadImpl(
-    mut this: *mut Octree,
+    this: *mut Octree,
     mut load: *mut f64,
     mut nodes: *mut f64,
 ) {
@@ -97,7 +97,7 @@ unsafe extern "C" fn Octree_GetAvgLoadImpl(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Octree_GetAvgLoad(mut this: *mut Octree) -> f64 {
+pub unsafe extern "C" fn Octree_GetAvgLoad(this: *mut Octree) -> f64 {
     let mut load: f64 = 0.0;
     let mut nodes: f64 = 0.0;
     Octree_GetAvgLoadImpl(this, &mut load, &mut nodes);
@@ -105,7 +105,7 @@ pub unsafe extern "C" fn Octree_GetAvgLoad(mut this: *mut Octree) -> f64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> i32 {
+pub unsafe extern "C" fn Octree_GetMaxLoad(this: *mut Octree) -> i32 {
     let mut load: i32 = 0;
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn Octree_GetMaxLoad(mut this: *mut Octree) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
+pub unsafe extern "C" fn Octree_GetMemory(this: *mut Octree) -> i32 {
     let mut memory: i32 = std::mem::size_of::<Octree>() as i32;
     let mut i: i32 = 0;
     while i < 8 {
@@ -144,7 +144,7 @@ pub unsafe extern "C" fn Octree_GetMemory(mut this: *mut Octree) -> i32 {
 }
 
 unsafe extern "C" fn Octree_IntersectRayImpl(
-    mut this: *mut Octree,
+    this: *mut Octree,
     mut o: Vec3,
     mut di: Vec3,
 ) -> bool {
@@ -172,7 +172,7 @@ unsafe extern "C" fn Octree_IntersectRayImpl(
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_IntersectRay(
-    mut this: *mut Octree,
+    this: *mut Octree,
     mut matrix: *mut Matrix,
     mut ro: *const Vec3,
     mut rd: *const Vec3,
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn Octree_IntersectRay(
     Octree_IntersectRayImpl(this, invRo, invRd.recip())
 }
 
-unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3, mut id: u32) {
+unsafe extern "C" fn Octree_Insert(this: *mut Octree, mut box_0: Box3, mut id: u32) {
     let mut elem = MemNew!(Node);
     (*elem).box_0 = box_0;
     (*elem).id = id as u64;
@@ -195,7 +195,7 @@ unsafe extern "C" fn Octree_Insert(mut this: *mut Octree, mut box_0: Box3, mut i
 }
 
 unsafe extern "C" fn Octree_AddDepth(
-    mut this: *mut Octree,
+    this: *mut Octree,
     mut box_0: Box3,
     mut id: u32,
     mut depth: i32,
@@ -331,12 +331,12 @@ unsafe extern "C" fn Octree_AddDepth(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Octree_Add(mut this: *mut Octree, mut box_0: Box3, mut id: u32) {
+pub unsafe extern "C" fn Octree_Add(this: *mut Octree, mut box_0: Box3, mut id: u32) {
     Octree_AddDepth(this, box_0, id, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Octree_Draw(mut this: *mut Octree) {
+pub unsafe extern "C" fn Octree_Draw(this: *mut Octree) {
     Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
     Draw_Box3(&mut (*this).box_0);
     Draw_Color(0.0f32, 1.0f32, 0.0f32, 1.0f32);

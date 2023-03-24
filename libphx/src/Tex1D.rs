@@ -60,12 +60,12 @@ pub unsafe extern "C" fn Tex1D_Create(mut size: i32, mut format: TexFormat) -> *
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_Acquire(mut this: *mut Tex1D) {
+pub unsafe extern "C" fn Tex1D_Acquire(this: *mut Tex1D) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
+pub unsafe extern "C" fn Tex1D_Free(this: *mut Tex1D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
@@ -77,7 +77,7 @@ pub unsafe extern "C" fn Tex1D_Free(mut this: *mut Tex1D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Draw(
-    mut this: *mut Tex1D,
+    this: *mut Tex1D,
     mut x: f32,
     mut y: f32,
     mut xs: f32,
@@ -97,20 +97,20 @@ pub unsafe extern "C" fn Tex1D_Draw(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GenMipmap(mut this: *mut Tex1D) {
+pub unsafe extern "C" fn Tex1D_GenMipmap(this: *mut Tex1D) {
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
     gl::GenerateMipmap(gl::TEXTURE_1D);
     gl::BindTexture(gl::TEXTURE_1D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetFormat(mut this: *mut Tex1D) -> TexFormat {
+pub unsafe extern "C" fn Tex1D_GetFormat(this: *mut Tex1D) -> TexFormat {
     (*this).format
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetData(
-    mut this: *mut Tex1D,
+    this: *mut Tex1D,
     mut data: *mut libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn Tex1D_GetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_GetDataBytes(
-    mut this: *mut Tex1D,
+    this: *mut Tex1D,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) -> *mut Bytes {
@@ -140,18 +140,18 @@ pub unsafe extern "C" fn Tex1D_GetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetHandle(mut this: *mut Tex1D) -> u32 {
+pub unsafe extern "C" fn Tex1D_GetHandle(this: *mut Tex1D) -> u32 {
     (*this).handle
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetSize(mut this: *mut Tex1D) -> u32 {
+pub unsafe extern "C" fn Tex1D_GetSize(this: *mut Tex1D) -> u32 {
     (*this).size as u32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetData(
-    mut this: *mut Tex1D,
+    this: *mut Tex1D,
     mut data: *const libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -172,7 +172,7 @@ pub unsafe extern "C" fn Tex1D_SetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetDataBytes(
-    mut this: *mut Tex1D,
+    this: *mut Tex1D,
     mut data: *mut Bytes,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -181,14 +181,14 @@ pub unsafe extern "C" fn Tex1D_SetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_SetMagFilter(mut this: *mut Tex1D, mut filter: TexFilter) {
+pub unsafe extern "C" fn Tex1D_SetMagFilter(this: *mut Tex1D, mut filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_1D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_SetMinFilter(mut this: *mut Tex1D, mut filter: TexFilter) {
+pub unsafe extern "C" fn Tex1D_SetMinFilter(this: *mut Tex1D, mut filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MIN_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_1D, 0);
@@ -196,7 +196,7 @@ pub unsafe extern "C" fn Tex1D_SetMinFilter(mut this: *mut Tex1D, mut filter: Te
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetTexel(
-    mut this: *mut Tex1D,
+    this: *mut Tex1D,
     mut x: i32,
     mut r: f32,
     mut g: f32,
@@ -218,7 +218,7 @@ pub unsafe extern "C" fn Tex1D_SetTexel(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_SetWrapMode(mut this: *mut Tex1D, mut mode: TexWrapMode) {
+pub unsafe extern "C" fn Tex1D_SetWrapMode(this: *mut Tex1D, mut mode: TexWrapMode) {
     gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, mode);
     gl::BindTexture(gl::TEXTURE_1D, 0);

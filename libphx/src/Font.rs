@@ -48,7 +48,7 @@ pub static kRcpGamma: f32 = 1.0f32 / kGamma;
 
 static mut ft: FT_Library = std::ptr::null_mut();
 
-unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *mut Glyph {
+unsafe extern "C" fn Font_GetGlyph(this: *mut Font, mut codepoint: u32) -> *mut Glyph {
     if codepoint < 256 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
         return (*this).glyphsAscii[codepoint as usize];
     }
@@ -120,7 +120,7 @@ unsafe extern "C" fn Font_GetGlyph(mut this: *mut Font, mut codepoint: u32) -> *
 }
 
 #[inline]
-unsafe extern "C" fn Font_GetKerning(mut this: *mut Font, mut a: i32, mut b: i32) -> i32 {
+unsafe extern "C" fn Font_GetKerning(this: *mut Font, mut a: i32, mut b: i32) -> i32 {
     let mut kern: FT_Vector = FT_Vector { x: 0, y: 0 };
     FT_Get_Kerning(
         (*this).handle,
@@ -157,12 +157,12 @@ pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_Acquire(mut this: *mut Font) {
+pub unsafe extern "C" fn Font_Acquire(this: *mut Font) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
+pub unsafe extern "C" fn Font_Free(this: *mut Font) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
@@ -174,7 +174,7 @@ pub unsafe extern "C" fn Font_Free(mut this: *mut Font) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_Draw(
-    mut this: *mut Font,
+    this: *mut Font,
     mut text: *const libc::c_char,
     mut x: f32,
     mut y: f32,
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn Font_Draw(
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_DrawShaded(
-    mut this: *mut Font,
+    this: *mut Font,
     mut text: *const libc::c_char,
     mut x: f32,
     mut y: f32,
@@ -261,13 +261,13 @@ pub unsafe extern "C" fn Font_DrawShaded(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetLineHeight(mut this: *mut Font) -> i32 {
+pub unsafe extern "C" fn Font_GetLineHeight(this: *mut Font) -> i32 {
     ((*(*(*this).handle).size).metrics.height >> 6) as i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize(
-    mut this: *mut Font,
+    this: *mut Font,
     mut out: *mut IVec4,
     mut text: *const libc::c_char,
 ) {
@@ -311,7 +311,7 @@ pub unsafe extern "C" fn Font_GetSize(
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize2(
-    mut this: *mut Font,
+    this: *mut Font,
     mut out: *mut IVec2,
     mut text: *const libc::c_char,
 ) {

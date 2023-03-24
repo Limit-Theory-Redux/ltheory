@@ -7,7 +7,7 @@ use libc;
 
 #[inline]
 unsafe extern "C" fn Mesh_AddPlane(
-    mut this: *mut Mesh,
+    this: *mut Mesh,
     mut origin: Vec3,
     mut du: Vec3,
     mut dv: Vec3,
@@ -59,7 +59,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
         Vec3::new(2.0f32, 0.0f32, 0.0f32),
         Vec3::new(0.0f32, 0.0f32, 2.0f32),
     ];
-    let mut this: *mut Mesh = Mesh_Create();
+    let this: *mut Mesh = Mesh_Create();
     let mut i: i32 = 0;
     while i < 6 {
         Mesh_AddPlane(
@@ -77,7 +77,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_BoxSphere(mut res: i32) -> *mut Mesh {
-    let mut this: *mut Mesh = Mesh_Box(res);
+    let this: *mut Mesh = Mesh_Box(res);
     let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
     let mut i: i32 = 0;
@@ -97,7 +97,7 @@ pub unsafe extern "C" fn Mesh_Plane(
     mut resU: i32,
     mut resV: i32,
 ) -> *mut Mesh {
-    let mut this: *mut Mesh = Mesh_Create();
+    let this: *mut Mesh = Mesh_Create();
     Mesh_AddPlane(this, origin, du, dv, resU, resV);
     this
 }

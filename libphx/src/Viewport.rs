@@ -27,7 +27,7 @@ static mut vp: [VP; 16] = [VP {
     isWindow: false,
 }; 16];
 
-unsafe extern "C" fn Viewport_Set(mut this: *const VP) {
+unsafe extern "C" fn Viewport_Set(this: *const VP) {
     gl::Viewport((*this).x, (*this).y, (*this).sx, (*this).sy);
     gl::MatrixMode(gl::PROJECTION);
     gl::LoadIdentity();
@@ -80,7 +80,7 @@ pub unsafe extern "C" fn Viewport_Push(
         );
     }
     vpIndex += 1;
-    let mut this: *mut VP = vp.as_mut_ptr().offset(vpIndex as isize);
+    let this: *mut VP = vp.as_mut_ptr().offset(vpIndex as isize);
     (*this).x = x;
     (*this).y = y;
     (*this).sx = sx;

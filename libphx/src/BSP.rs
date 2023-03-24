@@ -357,7 +357,7 @@ pub static mut rayStack: Vec<DelayRay> = Vec::new();
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectRay(
-    mut this: *mut BSP,
+    this: *mut BSP,
     rayPtr: *const Ray,
     mut tHit: *mut f32,
 ) -> bool {
@@ -484,7 +484,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectLineSegment(
-    mut this: *mut BSP,
+    this: *mut BSP,
     mut lineSegment: *const LineSegment,
     mut pHit: *mut Vec3,
 ) -> bool {
@@ -509,7 +509,7 @@ pub static mut nodeStack: Vec<Delay> = Vec::new();
 
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
-    mut this: *mut BSP,
+    this: *mut BSP,
     mut sphere: *const Sphere,
     mut pHit: *mut Vec3,
 ) -> bool {
@@ -1059,7 +1059,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
 }
 
 unsafe extern "C" fn BSPBuild_OptimizeTree(
-    mut this: *mut BSP,
+    this: *mut BSP,
     mut buildNode: *mut BSPBuild_Node,
 ) -> BSPNodeRef {
     if !((*buildNode).child[BackIndex as usize]).is_null()
@@ -1285,7 +1285,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSP_Free(mut this: *mut BSP) {
+pub unsafe extern "C" fn BSP_Free(this: *mut BSP) {
     if this.is_null() {
         return;
     }
@@ -1294,7 +1294,7 @@ pub unsafe extern "C" fn BSP_Free(mut this: *mut BSP) {
 
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetNode(
-    mut this: *mut BSP,
+    this: *mut BSP,
     mut nodeRef: BSPNodeRef,
     mut relationship: BSPNodeRel,
 ) -> BSPNodeRef {
@@ -1351,7 +1351,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNode(mut this: *mut BSP, mut nodeRef: BSPNodeRef) {
+pub unsafe extern "C" fn BSPDebug_DrawNode(this: *mut BSP, mut nodeRef: BSPNodeRef) {
     // Assert(nodeRef.index);
 
     if nodeRef.index > 0 {
@@ -1368,7 +1368,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(mut this: *mut BSP, mut nodeRef: BSPN
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(mut this: *mut BSP, mut nodeRef: BSPNodeRef) {
+pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: *mut BSP, mut nodeRef: BSPNodeRef) {
     // Assert(nodeRef.index);
 
     RenderState_PushBlendMode(1);
@@ -1433,7 +1433,7 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawSphere(mut this: *mut BSP, mut sphere: *mut Sphere) {
+pub unsafe extern "C" fn BSPDebug_DrawSphere(this: *mut BSP, mut sphere: *mut Sphere) {
     let mut pHit = Vec3::ZERO;
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(false);
@@ -1512,7 +1512,7 @@ pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
 
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
-    mut this: *mut BSP,
+    this: *mut BSP,
     mut sphere: *mut Sphere,
     mut sphereProf: *mut IntersectSphereProfiling,
 ) -> bool {
@@ -1595,7 +1595,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_GetLeaf(mut this: *mut BSP, mut leafIndex: i32) -> BSPNodeRef {
+pub unsafe extern "C" fn BSPDebug_GetLeaf(this: *mut BSP, mut leafIndex: i32) -> BSPNodeRef {
     let mut index: i32 = -1;
     for node in (*this).nodes.iter() {
         if (*node).child[0].index < 0 {

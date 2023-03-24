@@ -61,7 +61,7 @@ unsafe extern "C" fn TransformRect(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ClipRect_Activate(mut this: *mut ClipRect) {
+pub unsafe extern "C" fn ClipRect_Activate(this: *mut ClipRect) {
     if !this.is_null() && (*this).enabled as i32 != 0 {
         let mut vpSize: IVec2 = IVec2 { x: 0, y: 0 };
         Viewport_GetSize(&mut vpSize);

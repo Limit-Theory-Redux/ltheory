@@ -85,7 +85,7 @@ pub unsafe extern "C" fn Draw_Border(mut s: f32, mut x: f32, mut y: f32, mut w: 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Box3(mut this: *const Box3) {
+pub unsafe extern "C" fn Draw_Box3(this: *const Box3) {
     Metric_AddDrawImm(6, 12, 24);
     gl::Begin(gl::QUADS);
     gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);

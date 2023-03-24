@@ -55,13 +55,13 @@ pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxMesh_Free(mut this: *mut BoxMesh) {
+pub unsafe extern "C" fn BoxMesh_Free(this: *mut BoxMesh) {
     MemFree(this as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Add(
-    mut this: *mut BoxMesh,
+    this: *mut BoxMesh,
     p: *const Vec3,
     s: *const Vec3,
     r: *const Vec3,
@@ -76,7 +76,7 @@ pub unsafe extern "C" fn BoxMesh_Add(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxMesh_GetMesh(mut this: *mut BoxMesh, mut res: i32) -> *mut Mesh {
+pub unsafe extern "C" fn BoxMesh_GetMesh(this: *mut BoxMesh, mut res: i32) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
     Mesh_ReserveVertexData(mesh, 6 * res * res * (*this).elem.len() as i32);
     Mesh_ReserveIndexData(mesh, 12 * (res - 1) * (res - 1));

@@ -39,7 +39,7 @@ pub unsafe extern "C" fn BoxTree_Create() -> *mut BoxTree {
     this
 }
 
-unsafe extern "C" fn Node_Free(mut this: *mut Node) {
+unsafe extern "C" fn Node_Free(this: *mut Node) {
     if !((*this).sub[0]).is_null() {
         Node_Free((*this).sub[0]);
     }
@@ -50,7 +50,7 @@ unsafe extern "C" fn Node_Free(mut this: *mut Node) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_Free(mut this: *mut BoxTree) {
+pub unsafe extern "C" fn BoxTree_Free(this: *mut BoxTree) {
     if !((*this).root).is_null() {
         Node_Free((*this).root);
     }
@@ -59,7 +59,7 @@ pub unsafe extern "C" fn BoxTree_Free(mut this: *mut BoxTree) {
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
-    let mut this: *mut BoxTree = BoxTree_Create();
+    let this: *mut BoxTree = BoxTree_Create();
     let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
@@ -88,7 +88,7 @@ unsafe extern "C" fn CostMerge(mut a: Box3, mut b: Box3) -> f32 {
     Cost(Box3::union(a, b))
 }
 
-unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut prev: *mut *mut Node) {
+unsafe extern "C" fn Node_Merge(this: *mut Node, mut src: *mut Node, mut prev: *mut *mut Node) {
     if this.is_null() {
         *prev = src;
         return;
@@ -101,7 +101,7 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
         *prev = parent;
         (*parent).sub[0] = this;
         (*parent).sub[1] = src;
-        this = parent;
+        // this = parent;
         return;
     }
     if Box3::contains((*this).box_0, (*src).box_0) {
@@ -160,14 +160,14 @@ unsafe extern "C" fn Node_Merge(mut this: *mut Node, mut src: *mut Node, mut pre
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Add(
-    mut this: *mut BoxTree,
+    this: *mut BoxTree,
     mut box_0: Box3,
     mut data: *mut libc::c_void,
 ) {
     Node_Merge((*this).root, Node_Create(box_0, data), &mut (*this).root);
 }
 
-unsafe extern "C" fn Node_GetMemory(mut this: *mut Node) -> i32 {
+unsafe extern "C" fn Node_GetMemory(this: *mut Node) -> i32 {
     let mut memory: i32 = std::mem::size_of::<Node>() as i32;
     if !((*this).sub[0]).is_null() {
         memory += Node_GetMemory((*this).sub[0]);
@@ -179,7 +179,7 @@ unsafe extern "C" fn Node_GetMemory(mut this: *mut Node) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_GetMemory(mut this: *mut BoxTree) -> i32 {
+pub unsafe extern "C" fn BoxTree_GetMemory(this: *mut BoxTree) -> i32 {
     let mut memory: i32 = std::mem::size_of::<BoxTree>() as i32;
     if !((*this).root).is_null() {
         memory += Node_GetMemory((*this).root);
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn BoxTree_GetMemory(mut this: *mut BoxTree) -> i32 {
     memory
 }
 
-unsafe extern "C" fn Node_IntersectRay(mut this: *mut Node, mut o: Vec3, mut di: Vec3) -> bool {
+unsafe extern "C" fn Node_IntersectRay(this: *mut Node, mut o: Vec3, mut di: Vec3) -> bool {
     if !(*this).box_0.intersects_ray(o, di) {
         return false;
     }
@@ -206,7 +206,7 @@ unsafe extern "C" fn Node_IntersectRay(mut this: *mut Node, mut o: Vec3, mut di:
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_IntersectRay(
-    mut this: *mut BoxTree,
+    this: *mut BoxTree,
     mut matrix: *mut Matrix,
     mut ro: *const Vec3,
     mut rd: *const Vec3,
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn BoxTree_IntersectRay(
     Node_IntersectRay((*this).root, invRo, invRd.recip())
 }
 
-unsafe extern "C" fn BoxTree_DrawNode(mut this: *mut Node, mut maxDepth: i32) {
+unsafe extern "C" fn BoxTree_DrawNode(this: *mut Node, mut maxDepth: i32) {
     if maxDepth < 0 {
         return;
     }
@@ -243,7 +243,7 @@ unsafe extern "C" fn BoxTree_DrawNode(mut this: *mut Node, mut maxDepth: i32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_Draw(mut this: *mut BoxTree, mut maxDepth: i32) {
+pub unsafe extern "C" fn BoxTree_Draw(this: *mut BoxTree, mut maxDepth: i32) {
     if !((*this).root).is_null() {
         BoxTree_DrawNode((*this).root, maxDepth);
     }

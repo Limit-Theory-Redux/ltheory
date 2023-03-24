@@ -198,12 +198,12 @@ pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) ->
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Acquire(mut this: *mut TexCube) {
+pub unsafe extern "C" fn TexCube_Acquire(this: *mut TexCube) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Clear(mut this: *mut TexCube, r: f32, g: f32, b: f32, a: f32) {
+pub unsafe extern "C" fn TexCube_Clear(this: *mut TexCube, r: f32, g: f32, b: f32, a: f32) {
     for i in 0..6 {
         let mut face: Face = kFaces[i as usize];
         RenderTarget_Push((*this).size, (*this).size);
@@ -214,7 +214,7 @@ pub unsafe extern "C" fn TexCube_Clear(mut this: *mut TexCube, r: f32, g: f32, b
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Free(mut this: *mut TexCube) {
+pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
@@ -315,7 +315,7 @@ pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut Tex
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetData(
-    mut this: *mut TexCube,
+    this: *mut TexCube,
     mut data: *mut libc::c_void,
     mut face: CubeFace,
     mut level: i32,
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn TexCube_GetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetDataBytes(
-    mut this: *mut TexCube,
+    this: *mut TexCube,
     mut face: CubeFace,
     mut level: i32,
     mut pf: PixelFormat,
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn TexCube_GetSize(this: *mut TexCube) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mut ShaderState) {
+pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, mut state: *mut ShaderState) {
     GLMatrix_ModeP();
     GLMatrix_Push();
     GLMatrix_Clear();
@@ -427,7 +427,7 @@ pub unsafe extern "C" fn TexCube_Generate(mut this: *mut TexCube, mut state: *mu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GenMipmap(mut this: *mut TexCube) {
+pub unsafe extern "C" fn TexCube_GenMipmap(this: *mut TexCube) {
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
     gl::GenerateMipmap(gl::TEXTURE_CUBE_MAP);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
@@ -435,7 +435,7 @@ pub unsafe extern "C" fn TexCube_GenMipmap(mut this: *mut TexCube) {
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetData(
-    mut this: *mut TexCube,
+    this: *mut TexCube,
     mut data: *const libc::c_void,
     mut face: CubeFace,
     mut level: i32,
@@ -459,7 +459,7 @@ pub unsafe extern "C" fn TexCube_SetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetDataBytes(
-    mut this: *mut TexCube,
+    this: *mut TexCube,
     mut data: *mut Bytes,
     mut face: CubeFace,
     mut level: i32,
@@ -470,27 +470,27 @@ pub unsafe extern "C" fn TexCube_SetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetMagFilter(mut this: *mut TexCube, mut filter: TexFilter) {
+pub unsafe extern "C" fn TexCube_SetMagFilter(this: *mut TexCube, mut filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetMinFilter(mut this: *mut TexCube, mut filter: TexFilter) {
+pub unsafe extern "C" fn TexCube_SetMinFilter(this: *mut TexCube, mut filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Save(mut this: *mut TexCube, mut path: *const libc::c_char) {
+pub unsafe extern "C" fn TexCube_Save(this: *mut TexCube, mut path: *const libc::c_char) {
     TexCube_SaveLevel(this, path, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SaveLevel(
-    mut this: *mut TexCube,
+    this: *mut TexCube,
     mut path: *const libc::c_char,
     mut level: i32,
 ) {

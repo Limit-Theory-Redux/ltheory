@@ -35,13 +35,13 @@ unsafe extern "C" fn Hash(mut key: *const libc::c_char) -> u64 {
 
 #[inline]
 unsafe extern "C" fn StrMap_GetBucket(
-    mut this: *mut StrMap,
+    this: *mut StrMap,
     mut key: *const libc::c_char,
 ) -> *mut Node {
     ((*this).data).offset((Hash(key)).wrapping_rem((*this).capacity as u64) as isize)
 }
 
-unsafe extern "C" fn StrMap_Grow(mut this: *mut StrMap) {
+unsafe extern "C" fn StrMap_Grow(this: *mut StrMap) {
     let mut newMap: StrMap = StrMap {
         capacity: ((*this).capacity).wrapping_mul(2),
         size: 0,
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn StrMap_Create(mut capacity: u32) -> *mut StrMap {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_Free(mut this: *mut StrMap) {
+pub unsafe extern "C" fn StrMap_Free(this: *mut StrMap) {
     let mut i: u32 = 0;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
@@ -100,7 +100,7 @@ pub unsafe extern "C" fn StrMap_Free(mut this: *mut StrMap) {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_FreeEx(
-    mut this: *mut StrMap,
+    this: *mut StrMap,
     mut freeFn: Option<unsafe extern "C" fn(*const libc::c_char, *mut libc::c_void) -> ()>,
 ) {
     let mut i: u32 = 0;
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn StrMap_FreeEx(
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Get(
-    mut this: *mut StrMap,
+    this: *mut StrMap,
     mut key: *const libc::c_char,
 ) -> *mut libc::c_void {
     let mut node: *mut Node = StrMap_GetBucket(this, key);
@@ -143,12 +143,12 @@ pub unsafe extern "C" fn StrMap_Get(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_GetSize(mut this: *mut StrMap) -> u32 {
+pub unsafe extern "C" fn StrMap_GetSize(this: *mut StrMap) -> u32 {
     (*this).size
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_Remove(mut this: *mut StrMap, mut key: *const libc::c_char) {
+pub unsafe extern "C" fn StrMap_Remove(this: *mut StrMap, mut key: *const libc::c_char) {
     let mut prev: *mut *mut Node = std::ptr::null_mut();
     let mut node: *mut Node = StrMap_GetBucket(this, key);
     while !node.is_null() && !((*node).key).is_null() {
@@ -180,7 +180,7 @@ pub unsafe extern "C" fn StrMap_Remove(mut this: *mut StrMap, mut key: *const li
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Set(
-    mut this: *mut StrMap,
+    this: *mut StrMap,
     mut key: *const libc::c_char,
     mut value: *mut libc::c_void,
 ) {
@@ -211,7 +211,7 @@ pub unsafe extern "C" fn StrMap_Set(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
+pub unsafe extern "C" fn StrMap_Dump(this: *mut StrMap) {
     libc::printf(
         b"StrMap @ %p:\n\0" as *const u8 as *const libc::c_char,
         this,
@@ -249,7 +249,7 @@ pub unsafe extern "C" fn StrMap_Dump(mut this: *mut StrMap) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIter {
+pub unsafe extern "C" fn StrMap_Iterate(this: *mut StrMap) -> *mut StrMapIter {
     let mut it = MemNew!(StrMapIter);
     (*it).map = this;
     (*it).slot = 0;
@@ -269,13 +269,13 @@ pub unsafe extern "C" fn StrMap_Iterate(mut this: *mut StrMap) -> *mut StrMapIte
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrMapIter_Free(mut this: *mut StrMapIter) {
+pub unsafe extern "C" fn StrMapIter_Free(this: *mut StrMapIter) {
     MemFree(this as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMapIter_Advance(mut it: *mut StrMapIter) {
-    let mut this: *mut StrMap = (*it).map;
+    let this: *mut StrMap = (*it).map;
     (*it).node = (*(*it).node).next;
     if !((*it).node).is_null() {
         return;

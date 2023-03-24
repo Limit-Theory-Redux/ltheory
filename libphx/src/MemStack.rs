@@ -21,14 +21,14 @@ pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_Free(mut this: *mut MemStack) {
+pub unsafe extern "C" fn MemStack_Free(this: *mut MemStack) {
     MemFree((*this).data);
     MemFree(this as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Alloc(
-    mut this: *mut MemStack,
+    this: *mut MemStack,
     mut size: u32,
 ) -> *mut libc::c_void {
     if ((*this).size).wrapping_add(size) > (*this).capacity {
@@ -44,12 +44,12 @@ pub unsafe extern "C" fn MemStack_Alloc(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_Clear(mut this: *mut MemStack) {
+pub unsafe extern "C" fn MemStack_Clear(this: *mut MemStack) {
     (*this).size = 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_Dealloc(mut this: *mut MemStack, mut size: u32) {
+pub unsafe extern "C" fn MemStack_Dealloc(this: *mut MemStack, mut size: u32) {
     if (*this).size < size {
         Fatal(
             b"MemStack_Dealloc: Attempt to dealloc more memory than is allocated\0" as *const u8
@@ -60,21 +60,21 @@ pub unsafe extern "C" fn MemStack_Dealloc(mut this: *mut MemStack, mut size: u32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_CanAlloc(mut this: *mut MemStack, mut size: u32) -> bool {
+pub unsafe extern "C" fn MemStack_CanAlloc(this: *mut MemStack, mut size: u32) -> bool {
     ((*this).size).wrapping_add(size) <= (*this).capacity
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_GetSize(mut this: *mut MemStack) -> u32 {
+pub unsafe extern "C" fn MemStack_GetSize(this: *mut MemStack) -> u32 {
     (*this).size
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_GetCapacity(mut this: *mut MemStack) -> u32 {
+pub unsafe extern "C" fn MemStack_GetCapacity(this: *mut MemStack) -> u32 {
     (*this).capacity
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_GetRemaining(mut this: *mut MemStack) -> u32 {
+pub unsafe extern "C" fn MemStack_GetRemaining(this: *mut MemStack) -> u32 {
     ((*this).capacity).wrapping_sub((*this).size)
 }

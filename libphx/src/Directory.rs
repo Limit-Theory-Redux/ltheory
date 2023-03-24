@@ -22,13 +22,13 @@ pub unsafe extern "C" fn Directory_Open(mut path: *const libc::c_char) -> *mut D
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Close(mut this: *mut Directory) {
+pub unsafe extern "C" fn Directory_Close(this: *mut Directory) {
     libc::closedir((*this).handle);
     MemFree(this as *const _);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_GetNext(mut this: *mut Directory) -> *const libc::c_char {
+pub unsafe extern "C" fn Directory_GetNext(this: *mut Directory) -> *const libc::c_char {
     loop {
         let mut ent: *mut libc::dirent = libc::readdir((*this).handle);
         if ent.is_null() {

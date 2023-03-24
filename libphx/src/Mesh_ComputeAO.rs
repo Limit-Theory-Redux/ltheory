@@ -16,7 +16,7 @@ use crate::TexFormat::*;
 use libc;
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
+pub unsafe extern "C" fn Mesh_ComputeAO(this: *mut Mesh, mut radius: f32) {
     let mut indexCount: i32 = Mesh_GetIndexCount(this);
     let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut indexData: *mut i32 = Mesh_GetIndexData(this);
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(mut this: *mut Mesh, mut radius: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ComputeOcclusion(
-    mut this: *mut Mesh,
+    this: *mut Mesh,
     mut sdf: *mut Tex3D,
     mut radius: f32,
 ) {

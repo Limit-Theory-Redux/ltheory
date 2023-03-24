@@ -48,7 +48,7 @@ static mut current: *mut Shader = std::ptr::null_mut();
 
 static mut cache: *mut StrMap = std::ptr::null_mut();
 
-unsafe extern "C" fn GetUniformIndex(mut this: *mut Shader, mut name: *const libc::c_char) -> i32 {
+unsafe extern "C" fn GetUniformIndex(this: *mut Shader, mut name: *const libc::c_char) -> i32 {
     if this.is_null() {
         Fatal(b"GetUniformIndex: No shader is bound\0" as *const u8 as *const libc::c_char);
     }
@@ -130,7 +130,7 @@ unsafe extern "C" fn CreateGLProgram(mut vs: u32, mut fs: u32) -> u32 {
  *       directives, hence cached shaders with custom directives do not work */
 unsafe extern "C" fn GLSL_Load(
     mut name: *const libc::c_char,
-    mut this: *mut Shader,
+    this: *mut Shader,
 ) -> *const libc::c_char {
     if cache.is_null() {
         cache = StrMap_Create(16);
@@ -154,7 +154,7 @@ unsafe extern "C" fn GLSL_Load(
 
 unsafe extern "C" fn GLSL_Preprocess(
     mut code: *const libc::c_char,
-    mut this: *mut Shader,
+    this: *mut Shader,
 ) -> *const libc::c_char {
     let lenInclude: i32 = StrLen(b"#include\0" as *const u8 as *const libc::c_char) as i32;
     let mut begin: *const libc::c_char = std::ptr::null();
@@ -299,7 +299,7 @@ unsafe extern "C" fn GLSL_Preprocess(
     code
 }
 
-unsafe extern "C" fn Shader_BindVariables(mut this: *mut Shader) {
+unsafe extern "C" fn Shader_BindVariables(this: *mut Shader) {
     let mut i: i32 = 0;
     while i < (*this).vars.len() as i32 {
         let mut var: &mut ShaderVar = &mut (*this).vars[i as usize];
@@ -378,12 +378,12 @@ pub unsafe extern "C" fn Shader_Load(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Acquire(mut this: *mut Shader) {
+pub unsafe extern "C" fn Shader_Acquire(this: *mut Shader) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Free(mut this: *mut Shader) {
+pub unsafe extern "C" fn Shader_Free(this: *mut Shader) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
@@ -397,12 +397,12 @@ pub unsafe extern "C" fn Shader_Free(mut this: *mut Shader) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ToShaderState(mut this: *mut Shader) -> *mut ShaderState {
+pub unsafe extern "C" fn Shader_ToShaderState(this: *mut Shader) -> *mut ShaderState {
     ShaderState_Create(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Start(mut this: *mut Shader) {
+pub unsafe extern "C" fn Shader_Start(this: *mut Shader) {
     Profiler_Begin(
         (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Shader_Start\0")).as_ptr(),
     );
@@ -508,13 +508,13 @@ pub unsafe extern "C" fn Shader_ClearCache() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_GetHandle(mut this: *mut Shader) -> u32 {
+pub unsafe extern "C" fn Shader_GetHandle(this: *mut Shader) -> u32 {
     (*this).program
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_GetVariable(
-    mut this: *mut Shader,
+    this: *mut Shader,
     mut name: *const libc::c_char,
 ) -> i32 {
     let mut index: i32 = gl::GetUniformLocation((*this).program, name);
@@ -531,7 +531,7 @@ pub unsafe extern "C" fn Shader_GetVariable(
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_HasVariable(
-    mut this: *mut Shader,
+    this: *mut Shader,
     mut name: *const libc::c_char,
 ) -> bool {
     gl::GetUniformLocation((*this).program, name) > -1

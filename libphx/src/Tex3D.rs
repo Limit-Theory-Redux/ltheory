@@ -73,12 +73,12 @@ pub unsafe extern "C" fn Tex3D_Create(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_Acquire(mut this: *mut Tex3D) {
+pub unsafe extern "C" fn Tex3D_Acquire(this: *mut Tex3D) {
     (*this)._refCount = ((*this)._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_Free(mut this: *mut Tex3D) {
+pub unsafe extern "C" fn Tex3D_Free(this: *mut Tex3D) {
     if !this.is_null() && {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
@@ -94,18 +94,18 @@ pub unsafe extern "C" fn Tex3D_Pop(mut _this: *mut Tex3D) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_Push(mut this: *mut Tex3D, mut layer: i32) {
+pub unsafe extern "C" fn Tex3D_Push(this: *mut Tex3D, mut layer: i32) {
     RenderTarget_PushTex3D(this, layer);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_PushLevel(mut this: *mut Tex3D, mut layer: i32, mut level: i32) {
+pub unsafe extern "C" fn Tex3D_PushLevel(this: *mut Tex3D, mut layer: i32, mut level: i32) {
     RenderTarget_PushTex3DLevel(this, layer, level);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_Draw(
-    mut this: *mut Tex3D,
+    this: *mut Tex3D,
     mut layer: i32,
     mut x: f32,
     mut y: f32,
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn Tex3D_Draw(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GenMipmap(mut this: *mut Tex3D) {
+pub unsafe extern "C" fn Tex3D_GenMipmap(this: *mut Tex3D) {
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::GenerateMipmap(gl::TEXTURE_3D);
     gl::BindTexture(gl::TEXTURE_3D, 0);
@@ -137,7 +137,7 @@ pub unsafe extern "C" fn Tex3D_GenMipmap(mut this: *mut Tex3D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_GetData(
-    mut this: *mut Tex3D,
+    this: *mut Tex3D,
     mut data: *mut libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn Tex3D_GetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_GetDataBytes(
-    mut this: *mut Tex3D,
+    this: *mut Tex3D,
     mut pf: PixelFormat,
     mut df: DataFormat,
 ) -> *mut Bytes {
@@ -169,23 +169,23 @@ pub unsafe extern "C" fn Tex3D_GetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetFormat(mut this: *mut Tex3D) -> TexFormat {
+pub unsafe extern "C" fn Tex3D_GetFormat(this: *mut Tex3D) -> TexFormat {
     (*this).format
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetHandle(mut this: *mut Tex3D) -> u32 {
+pub unsafe extern "C" fn Tex3D_GetHandle(this: *mut Tex3D) -> u32 {
     (*this).handle
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetSize(mut this: *mut Tex3D, mut out: *mut IVec3) {
+pub unsafe extern "C" fn Tex3D_GetSize(this: *mut Tex3D, mut out: *mut IVec3) {
     *out = (*this).size;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_GetSizeLevel(
-    mut this: *mut Tex3D,
+    this: *mut Tex3D,
     mut out: *mut IVec3,
     mut level: i32,
 ) {
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn Tex3D_GetSizeLevel(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_SetData(
-    mut this: *mut Tex3D,
+    this: *mut Tex3D,
     mut data: *const libc::c_void,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn Tex3D_SetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_SetDataBytes(
-    mut this: *mut Tex3D,
+    this: *mut Tex3D,
     mut data: *mut Bytes,
     mut pf: PixelFormat,
     mut df: DataFormat,
@@ -233,21 +233,21 @@ pub unsafe extern "C" fn Tex3D_SetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_SetMagFilter(mut this: *mut Tex3D, mut filter: TexFilter) {
+pub unsafe extern "C" fn Tex3D_SetMagFilter(this: *mut Tex3D, mut filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MAG_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_3D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_SetMinFilter(mut this: *mut Tex3D, mut filter: TexFilter) {
+pub unsafe extern "C" fn Tex3D_SetMinFilter(this: *mut Tex3D, mut filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_MIN_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_3D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_SetWrapMode(mut this: *mut Tex3D, mut mode: TexWrapMode) {
+pub unsafe extern "C" fn Tex3D_SetWrapMode(this: *mut Tex3D, mut mode: TexWrapMode) {
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_S, mode);
     gl::TexParameteri(gl::TEXTURE_3D, gl::TEXTURE_WRAP_T, mode);
