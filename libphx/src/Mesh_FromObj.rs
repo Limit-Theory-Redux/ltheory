@@ -158,7 +158,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
         lineStart: std::ptr::null(),
         lineNumber: 0,
     };
-    
+
     let mut mesh: *mut Mesh = Mesh_Create();
     let mut vertexCount: i32 = 0;
     let mut indexCount: i32 = 0;
@@ -167,7 +167,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
     let mut positions: Vec<Vec3> = Vec::new();
     let mut uvs: Vec<Vec2> = Vec::new();
     let mut normals: Vec<Vec3> = Vec::new();
-    
+
     positions.reserve((0.008f32 * bytesSize as f32) as usize);
     uvs.reserve((0.008f32 * bytesSize as f32) as usize);
     normals.reserve((0.008f32 * bytesSize as f32) as usize);
@@ -183,7 +183,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
         ConsumeWhitespace(&mut s);
         ConsumeToken(token.as_mut_ptr(), 16, &mut s);
         ConsumeWhitespace(&mut s);
-        
+
         if StrEqual(
             token.as_mut_ptr() as *const libc::c_char,
             b"\0" as *const u8 as *const libc::c_char,
@@ -214,7 +214,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                     &mut s,
                 );
             }
-            
+
             positions.push(p);
         } else if StrEqual(
             token.as_mut_ptr() as *const libc::c_char,
@@ -320,7 +320,7 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                     }
                 }
                 vertexIndicesCount += 1;
-                
+
                 ConsumeWhitespace(&mut s);
             }
 
@@ -333,14 +333,19 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                     );
                 }
 
-                let mut face: *mut VertexIndices = &mut *vertexIndices.as_mut_ptr().offset(i as isize);
+                let mut face: *mut VertexIndices =
+                    &mut *vertexIndices.as_mut_ptr().offset(i as isize);
                 let mut vertex: Vertex = Vertex {
                     p: Vec3::ZERO,
                     n: Vec3::ZERO,
                     uv: Vec2::ZERO,
                 };
 
-                (*face).iP += if (*face).iP < 0 { positions.len() as i32 } else { i32::MAX };
+                (*face).iP += if (*face).iP < 0 {
+                    positions.len() as i32
+                } else {
+                    i32::MAX
+                };
                 if (*face).iP < 0 || (*face).iP >= positions.len() as i32 {
                     Obj_Fatal(
                         b"Face vertex index is out of range in .obj data\0" as *const u8
@@ -351,7 +356,11 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
 
                 vertex.p = positions[(*face).iP as usize];
                 if (*face).iN != i32::MIN {
-                    (*face).iN += if (*face).iN < 0 { normals.len() as i32 } else { i32::MAX };
+                    (*face).iN += if (*face).iN < 0 {
+                        normals.len() as i32
+                    } else {
+                        i32::MAX
+                    };
                     if (*face).iN < 0 || (*face).iN >= normals.len() as i32 {
                         Obj_Fatal(
                             b"Face normal index is out of range in .obj data\0" as *const u8
@@ -361,9 +370,13 @@ pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Me
                     }
                     vertex.n = normals[(*face).iN as usize];
                 }
-                
+
                 if (*face).iUV != i32::MIN {
-                    (*face).iUV += if (*face).iUV < 0 { uvs.len() as i32 } else { i32::MAX };
+                    (*face).iUV += if (*face).iUV < 0 {
+                        uvs.len() as i32
+                    } else {
+                        i32::MAX
+                    };
                     if (*face).iUV < 0 || (*face).iUV >= uvs.len() as i32 {
                         Obj_Fatal(
                             b"Face UV index is out of range in .obj data\0" as *const u8

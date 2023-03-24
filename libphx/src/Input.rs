@@ -56,10 +56,18 @@ static mut this: Input = Input {
     lastMousePosition: IVec2 { x: 0, y: 0 },
     autoHideMouse: false,
     deviceLists: [
-        DeviceList { devices: Vec::new() },
-        DeviceList { devices: Vec::new() },
-        DeviceList { devices: Vec::new() },
-        DeviceList { devices: Vec::new() }
+        DeviceList {
+            devices: Vec::new(),
+        },
+        DeviceList {
+            devices: Vec::new(),
+        },
+        DeviceList {
+            devices: Vec::new(),
+        },
+        DeviceList {
+            devices: Vec::new(),
+        },
     ],
     events: Vec::new(),
     downButtons: Vec::new(),
@@ -113,8 +121,7 @@ unsafe extern "C" fn Input_GetDeviceExists(mut device: Device) -> bool {
         .offset(device.type_0 as isize)
         as *mut DeviceList;
     if device.id < (*deviceList).devices.len() as i32 as u32 {
-        let mut deviceState: *mut DeviceState =
-            &mut (*deviceList).devices[device.id as usize];
+        let mut deviceState: *mut DeviceState = &mut (*deviceList).devices[device.id as usize];
         return (*deviceState).isConnected;
     }
     false
@@ -203,7 +210,7 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
             Input_SetActiveDevice(event.device);
         }
     }
-    
+
     if down as i32 != 0 && event.state & State_Released == State_Released {
         (*deviceState).transitions[event.button as usize] += 1;
         (*deviceState).buttons[event.button as usize] = false;
@@ -233,7 +240,7 @@ pub unsafe extern "C" fn Input_Init() {
     if result != SDL_bool::SDL_TRUE {
         Warn(b"Input_Init: SDL_SetHint failed\0" as *const u8 as *const libc::c_char);
     }
-    
+
     let mut iDev: i32 = 0;
     while iDev < 4 {
         let mut device: Device = Device {
@@ -244,7 +251,7 @@ pub unsafe extern "C" fn Input_Init() {
         (*deviceState).isConnected = iDev != DeviceType_Gamepad;
         iDev += 1;
     }
-    
+
     this.events.reserve(16);
     this.downButtons.reserve(16);
     this.autoRelease.reserve(16);

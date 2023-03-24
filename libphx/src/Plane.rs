@@ -14,18 +14,18 @@ pub struct Plane {
 #[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum PointClassification {
-    InFront  = 1,
-    Behind   = 2,
-    Coplanar = 3
+    InFront = 1,
+    Behind = 2,
+    Coplanar = 3,
 }
 
 #[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum PolygonClassification {
-    InFront    = 1,
-    Behind     = 2,
-    Coplanar   = 3,
-    Straddling = 4
+    InFront = 1,
+    Behind = 2,
+    Coplanar = 3,
+    Straddling = 4,
 }
 
 #[no_mangle]
@@ -53,7 +53,8 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
     let mut numBehind: i32 = 0;
     let mut i: usize = 0;
     while i < (*polygon).vertices.len() {
-        let mut classification: PointClassification = Plane_ClassifyPoint(plane, &(*polygon).vertices[i]);
+        let mut classification: PointClassification =
+            Plane_ClassifyPoint(plane, &(*polygon).vertices[i]);
         match classification {
             PointClassification::InFront => {
                 numInFront += 1;
@@ -61,10 +62,9 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
             PointClassification::Behind => {
                 numBehind += 1;
             }
-            PointClassification::Coplanar => {
-            },
+            PointClassification::Coplanar => {}
         }
-        
+
         // TODO : This early out may not make as much sense if the BSP stops cutting triangles.
         if numInFront != 0 && numBehind != 0 {
             return PolygonClassification::Straddling;
@@ -87,7 +87,7 @@ pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
 
     e |= Float_Validate((*plane).d as f64);
     e |= Vec3_Validate((*plane).n);
-    
+
     e
 }
 

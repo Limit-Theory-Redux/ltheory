@@ -266,7 +266,9 @@ pub unsafe extern "C" fn HashGrid_Update(
                                 (*cell).version = vRemove;
                             } else {
                                 if (*cell).version != vRemove {
-                                    if let Some(index) = (*cell).elems.iter().position(|c| *c == elem) {
+                                    if let Some(index) =
+                                        (*cell).elems.iter().position(|c| *c == elem)
+                                    {
                                         (*cell).elems.swap_remove(index);
                                     }
                                 }

@@ -57,7 +57,6 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(mut polygon: *mut Polygon, mut out:
         n.x += (v[i].y - v[j].y) * (v[i].z + v[j].z);
         n.y += (v[i].z - v[j].z) * (v[i].x + v[j].x);
         n.z += (v[i].x - v[j].x) * (v[i].y + v[j].y);
-
         i = j;
         j += 1;
     }
@@ -76,7 +75,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
     front: *mut Polygon,
 ) {
     if (*polygon).vertices.is_empty() {
-        return
+        return;
     }
 
     let mut a: Vec3 = *(*polygon).vertices.last().unwrap();
@@ -120,7 +119,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
             }
             (*front).vertices.push(b);
         }
-        
+
         a = b;
         aSide = bSide;
         j += 1;
@@ -138,8 +137,7 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
 
     let polygons: [*mut Polygon; 2] = [front, back];
     let mut i: i32 = 0;
-    while i < polygons.len() as i32
-    {
+    while i < polygons.len() as i32 {
         let polygonPart: *mut Polygon = polygons[i as usize];
         let v: &Vec<Vec3> = &(*polygonPart).vertices;
 
@@ -190,7 +188,9 @@ pub unsafe extern "C" fn Polygon_GetCentroid(mut polygon: *mut Polygon, mut out:
 pub unsafe fn Polygon_ConvexToTriangles(polygon: &Polygon, triangles: &mut Vec<Triangle>) {
     let v = &(*polygon).vertices;
     for i in 1..(v.len() - 1) {
-        triangles.push(Triangle { vertices: [v[0], v[i], v[i + 1]] });
+        triangles.push(Triangle {
+            vertices: [v[0], v[i], v[i + 1]],
+        });
     }
 }
 

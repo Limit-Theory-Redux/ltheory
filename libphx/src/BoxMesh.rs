@@ -67,7 +67,12 @@ pub unsafe extern "C" fn BoxMesh_Add(
     r: *const Vec3,
     b: *const Vec3,
 ) {
-    (*this).elem.push(Box_0 { p: *p, s: *s, r: *r, b: *b });
+    (*this).elem.push(Box_0 {
+        p: *p,
+        s: *s,
+        r: *r,
+        b: *b,
+    });
 }
 
 #[no_mangle]

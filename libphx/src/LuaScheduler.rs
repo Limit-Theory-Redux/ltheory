@@ -139,7 +139,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
     lua_settop(L, -1 - 1);
 
     this.locked = false;
-    
+
     while !this.addQueue.is_empty() {
         this.elems.push(this.addQueue.pop().unwrap());
     }

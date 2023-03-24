@@ -153,7 +153,9 @@ pub unsafe extern "C" fn Mesh_FromBytes(mut buf: *mut Bytes) -> *mut Mesh {
     let mut indexCount: i32 = Bytes_ReadI32(buf);
     Mesh_ReserveVertexData(this, vertexCount);
     Mesh_ReserveIndexData(this, indexCount);
-    (*this).vertex.resize(vertexCount as usize, Vertex::default());
+    (*this)
+        .vertex
+        .resize(vertexCount as usize, Vertex::default());
     (*this).index.resize(indexCount as usize, 0);
     Bytes_Read(
         buf,
@@ -186,10 +188,7 @@ pub unsafe extern "C" fn Mesh_AddMesh(mut this: *mut Mesh, mut other: *mut Mesh)
         Mesh_AddVertexRaw(this, &mut (*other).vertex[i]);
     }
     for i in 0..(*other).index.len() {
-        Mesh_AddIndex(
-            this,
-            (*other).index[i] + indexOffset,
-        );
+        Mesh_AddIndex(this, (*other).index[i] + indexOffset);
     }
 }
 
@@ -225,8 +224,8 @@ pub unsafe extern "C" fn Mesh_AddVertex(
     v: f32,
 ) {
     (*this).vertex.push(Vertex {
-        p :Vec3::new(px, py, pz),
-        n :Vec3::new(nx, ny, nz),
+        p: Vec3::new(px, py, pz),
+        n: Vec3::new(nx, ny, nz),
         uv: Vec2::new(u, v),
     });
     (*this).version += 1;

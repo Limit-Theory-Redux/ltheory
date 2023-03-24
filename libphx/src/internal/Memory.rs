@@ -30,11 +30,11 @@ macro_rules! MemDelete {
     };
 }
 
+pub(crate) use MemDelete;
 pub(crate) use MemNew;
 pub(crate) use MemNewArray;
 pub(crate) use MemNewArrayZero;
 pub(crate) use MemNewZero;
-pub(crate) use MemDelete;
 
 #[inline]
 pub unsafe extern "C" fn MemAlloc(mut size: usize) -> *mut libc::c_void {

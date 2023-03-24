@@ -586,7 +586,9 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             }
 
             if iUp == 1 {
-                stack.push(StrDup(b"    [Upvalues]\0" as *const u8 as *const libc::c_char));
+                stack.push(StrDup(
+                    b"    [Upvalues]\0" as *const u8 as *const libc::c_char,
+                ));
             }
 
             let upValue: *const libc::c_char = Lua_ToString(this, name);
@@ -595,7 +597,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             variablesPrinted += 1;
             iUp += 1;
         }
-        
+
         let mut iLocal: i32 = 1;
         loop {
             let mut name_0: *const libc::c_char = lua_getlocal(this, &mut ar, iLocal);
@@ -604,7 +606,9 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             }
 
             if iLocal == 1 {
-                stack.push(StrDup(b"    [Locals]\0" as *const u8 as *const libc::c_char));
+                stack.push(StrDup(
+                    b"    [Locals]\0" as *const u8 as *const libc::c_char,
+                ));
             }
 
             let local: *const libc::c_char = Lua_ToString(this, name_0);

@@ -45,8 +45,7 @@ pub unsafe extern "C" fn GLMatrix_LookAt(
     let mut x = DVec3::cross(z, (*up).normalize()).normalize();
     let mut y = DVec3::cross(x, z);
     let mut m: [f64; 16] = [
-        x.x, y.x, -z.x, 0.0, x.y, y.y, -z.y, 0.0, x.z, y.z, -z.z, 0.0, 0.0,
-        0.0, 0.0, 1.0,
+        x.x, y.x, -z.x, 0.0, x.y, y.y, -z.y, 0.0, x.z, y.z, -z.z, 0.0, 0.0, 0.0, 0.0, 1.0,
     ];
     gl::MultMatrixd(m.as_mut_ptr());
     gl::Translated(-(*eye).x, -(*eye).y, -(*eye).z);

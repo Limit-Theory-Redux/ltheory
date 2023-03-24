@@ -201,7 +201,10 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                     binding,
                     (*button).onPressed,
                 );
-                this.downBindings.push(DownBinding { binding: binding, button: button });
+                this.downBindings.push(DownBinding {
+                    binding: binding,
+                    button: button,
+                });
             }
         } else if if isPos as i32 != 0 {
             (axisValue_0 < (*binding).releaseThreshold) as i32
@@ -217,7 +220,8 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(mut binding: *mut InputBind
                 (*button).onReleased,
             );
 
-            this.downBindings.retain(|down| down.binding != binding || down.button != button);
+            this.downBindings
+                .retain(|down| down.binding != binding || down.button != button);
         }
         iBtn += 1;
     }

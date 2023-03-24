@@ -234,7 +234,6 @@ pub struct BSP {
     pub emptyLeaf: BSPNodeRef,
     pub nodes: Vec<BSPNode>,
     pub triangles: Vec<Triangle>,
-
     // BSP_PROFILE (
     //     BSPDebug_Data profilingData;
     // )
@@ -280,7 +279,6 @@ pub struct BSPBuild {
     pub nodeCount: i32,
     pub leafCount: i32,
     pub triangleCount: i32,
-
     // CHECK2 (
     //     int32 nextNodeID;
     //     int32 oversizedNodes;
@@ -294,7 +292,6 @@ pub struct BSPBuild_Node {
     pub plane: Plane,
     pub child: [*mut BSPBuild_Node; 2],
     pub polygons: Vec<PolygonEx>,
-
     // CHECK2 (
     //     int32 id;
     //     BSPBuild_Node* parent;
@@ -475,7 +472,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
             depth = d.depth;
         }
     }
-    
+
     rayStack.clear();
     // BSP_PROFILE (
     //     self->profilingData.ray.count++;
@@ -630,7 +627,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
             }
         }
     }
-    
+
     //k*numStraddling + (1.0f - k)*Abs(numInFront - numBehind);
     Lerp(
         f64::abs((numInFront - numBehind) as f64) as f64,
@@ -645,7 +642,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     mut splitPlane: *mut Plane,
 ) -> bool {
     /* See Realtime Collision Detection pp361-363 */
-  
+
     /* Misc Notes from the Literature
      *  TODO : The number of candidates c selected at each call as a percentage of the
      *  number of faces f lying in the current region is increased as a linear function
@@ -678,7 +675,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
      *  used with the predefined directions.
      *  https://pdfs.semanticscholar.org/8fa2/b73cb14fad3abe749a0da4fba50f18a19e2a.pdf
      */
-  
+
     let mut maxDepth: f32 = 1000.0f32;
     let mut biasedDepth: f32 = (*nodeData).depth as f32 - 100.0f32;
     let mut t: f32 = f64::max((biasedDepth / maxDepth) as f64, 0.0f64) as f32;
@@ -702,13 +699,12 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                 (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
 
             /* OPTIMIZE: This search is duuuuuumb. Maybe We should swap invalid
-            *           polygons to the end of the list so never have to search.
-            */
+             *           polygons to the end of the list so never have to search.
+             */
             let mut j: i32 = 0;
             while j < polygonsLen {
-                let mut polygon: *mut PolygonEx =
-                    &mut (*nodeData).polygons[polygonIndex as usize];
-                    
+                let mut polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
+
                 if (*polygon).flags as i32 & PolygonFlag_InvalidFaceSplit as i32 == 0 {
                     let mut plane: Plane = Plane {
                         n: Vec3::ZERO,
@@ -741,7 +737,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
          * with multiple triangles. When none of those are left, we use the polygon
          * edges as split planes with no penalty for cutting other polygons.
          */
-    
+
         /* EDGE: It's possible to get to a point where all remaining polygons are
          * invalid for auto partitioning, but there are still more triangles than
          * the max leaf size. In this case we need to start dividing the polygons.
@@ -749,12 +745,12 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
          * because we actually end up with quite a few leaves with more triangles
          * than MAX_LEAF_TRIANGLE_COUNT
          */
-    
+
         /* EDGE: With very few polygons BSPBuild_ScoreSplitPlane will prioritize 100%
          * lopsided splits over a split with a single cut. This leads to picking
          * the same, useless general cut again next time.
          */
-    
+
         /* Note that the flags set by these additional splitting steps will be
          * transferred to the resulting pieces if the polygon is ever split. This
          * is currently necessary because if the cut is chosen but this polygon
@@ -764,7 +760,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
          * able to remove this for slightly better splitting (e.g. ending up with
          * fewer oversized leaves because we tried more cuts) but it needs to be
          * done carefully. */
-    
+
         let mut splitFound: bool = false;
 
         /* Try to split any polygons with more than 1 triangle */
@@ -772,8 +768,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
             let mut polygonIndex: i32 =
                 (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
             for i in 0..polygonsLen {
-                let mut polygon: *mut PolygonEx =
-                    &mut (*nodeData).polygons[polygonIndex as usize];
+                let mut polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
                 if (*polygon).flags as i32 & PolygonFlag_InvalidDecompose as i32 != 0 {
                     continue;
                 }
@@ -818,7 +813,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     }
                     //if (--numToCheck == 0) break;
                 }
-                
+
                 if splitFound {
                     break;
                 }
@@ -838,8 +833,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
             let mut polygonIndex: i32 =
                 (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
             for i in 0..polygonsLen {
-                let mut polygon: *mut PolygonEx =
-                    &mut (*nodeData).polygons[polygonIndex as usize];
+                let mut polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
                 if (*polygon).flags as i32 & PolygonFlag_InvalidEdgeSplit as i32 != 0 {
                     continue;
                 }
@@ -901,7 +895,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
                     as PolygonFlag;
             }
         }
-        
+
         // CHECK3 (
         //   /* Still nothing. Fuck it. */
         //   if (!splitFound) {
@@ -1007,8 +1001,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     frontNodeData.depth = ((*nodeData).depth as i32 + 1) as u16;
 
     for polygon in (*nodeData).polygons.iter_mut() {
-        let mut classification =
-            Plane_ClassifyPolygon(&mut splitPlane, &polygon.inner);
+        let mut classification = Plane_ClassifyPolygon(&mut splitPlane, &polygon.inner);
         let mut current_block_37: u64;
         match classification {
             PolygonClassification::Coplanar => {
@@ -1023,13 +1016,17 @@ unsafe extern "C" fn BSPBuild_CreateNode(
             }
             PolygonClassification::Straddling => {
                 let mut backPart = PolygonEx {
-                    inner: Polygon { vertices: Vec::new() },
+                    inner: Polygon {
+                        vertices: Vec::new(),
+                    },
                     flags: 0,
                 };
                 backPart.flags = (*polygon).flags;
 
                 let mut frontPart = PolygonEx {
-                    inner: Polygon { vertices: Vec::new() },
+                    inner: Polygon {
+                        vertices: Vec::new(),
+                    },
                     flags: 0,
                 };
                 frontPart.flags = (*polygon).flags;
@@ -1057,7 +1054,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     //     node->child[BackIndex] ->parent = node;
     //     node->child[FrontIndex]->parent = node;
     // )
-    
+
     node
 }
 
@@ -1070,7 +1067,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
     {
         /* Node */
         // Assert(ArrayList_GetSize(self->nodes) < ArrayList_GetCapacity(self->nodes));
-    
+
         let mut dummy: BSPNode = BSPNode {
             plane: Plane {
                 n: Vec3::ZERO,
@@ -1180,7 +1177,7 @@ static void BSPBuild_AnalyzeTree (BSP* self, Mesh* mesh, BSPNodeRef nodeRef, int
 #[no_mangle]
 pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     // Assert(LEAF_TRIANGLE_COUNT <= MAX_LEAF_TRIANGLE_COUNT);
-  
+
     /* NOTE: This function will use memory proportional to 2x the mesh memory.
      *        There will be one copy of all the polygons & vertices in the initial
      *        list of polygons passed to BSPBuild_CreateNode, which will then create new
@@ -1195,7 +1192,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
      *        assuming that doesn't get too out of hand for now. Since the mesh
      *        stores indices and vertex attributes I expect the proportionality
      *        constant to be in the ballpark of 0.5 */
-  
+
     let mut this = MemNewZero!(BSP);
 
     let mut indexLen: i32 = Mesh_GetIndexCount(mesh);
@@ -1226,7 +1223,9 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
         let mut v2: Vec3 = (*vertexData.offset(i2 as isize)).p;
 
         nodeData.polygons.push(PolygonEx {
-            inner: Polygon { vertices: vec![v0, v1, v2] },
+            inner: Polygon {
+                vertices: vec![v0, v1, v2],
+            },
             flags: 0,
         });
     }
@@ -1246,7 +1245,9 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     let mut nullLeaf: Triangle = Triangle {
         vertices: [Vec3::ZERO; 3],
     };
-    (*this).triangles.reserve((bspBuild.triangleCount + 2) as usize);
+    (*this)
+        .triangles
+        .reserve((bspBuild.triangleCount + 2) as usize);
     (*this).triangles.push(nullLeaf);
     (*this).triangles.push(nullLeaf);
     (*this).emptyLeaf.index = -EmptyLeafIndex;
@@ -1279,7 +1280,7 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
     // Assert(ArrayList_GetSize(self->nodes)     == ArrayList_GetCapacity(self->nodes));
     // Assert(ArrayList_GetSize(self->triangles) == ArrayList_GetCapacity(self->triangles));
     // BSP_PROFILE(BSPBuild_AnalyzeTree(self, mesh, self->rootNode, 0);)
-  
+
     this
 }
 
@@ -1341,7 +1342,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
             relationship as i32,
         )
     }
-    
+
     if newNode.index != 0 {
         newNode
     } else {
@@ -1461,14 +1462,14 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(mut this: *mut BSP, mut sphere: *mu
 // static void BSPDebug_PrintProfilingData (BSP* self, BSPDebug_IntersectionData* data, double totalTime) {
 //     #if ENABLE_BSP_PROFILING
 //       BSPDebug_Data* pd = &self->profilingData;
-  
+
 //       float us = (float) (totalTime * 1000.0 * 1000.0);
 //       float avgus     = (float) us              / data->count;
 //       float avgLeaves = (float) data->leaves    / data->count;
 //       float avgNodes  = (float) data->nodes     / data->count;
 //       float avgTris   = (float) data->triangles / data->count;
 //       float avgDepth  = (float) data->depth     / data->count;
-  
+
 //       char buffer[256];
 //       /*                                            name       tris      mb    bsp mb   mbr    tris   trir     nod   lv    maxd      lvd        ray us    rayl     rayn    rayd    rayt */
 //       snprintf(buffer, (size_t) Array_GetSize(buffer), "* |          |         |      | %5.1f | %4.2f  | %9d | %4.2f  | %9d | %7d |  %3d  |  %5.1f   ||  %4.1f  |  %4.1f  | %5.1f | %5.1f | %5.1f |\n",
@@ -1552,7 +1553,8 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
             (*sphereProf).leaves += 1;
 
             for i in 0..nodeRef.triangleCount {
-                let triangle: *mut Triangle = &mut (*this).triangles[leafIndex as usize + i as usize];
+                let triangle: *mut Triangle =
+                    &mut (*this).triangles[leafIndex as usize + i as usize];
                 (*sphereProf).triangles += 1;
 
                 let mut pHit2 = Vec3::ZERO;
@@ -1586,7 +1588,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
             depth = d.depth;
         }
     }
-    
+
     nodeStack.clear();
 
     hit
