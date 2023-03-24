@@ -108,6 +108,7 @@ end
 
 function Mine:onUpdateActive (e, dt)
   if not Config.game.gamePaused then
+    Profiler.Begin('Actions.Mine.onUpdateActive')
     if not e.jobState then e.jobState = 0 end
     e.jobState = e.jobState + 1
 
@@ -167,6 +168,7 @@ printf("[MINE] %s sold %d units of %s to Trader %s", e:getName(), sold, item:get
       e:popAction()
       e.jobState = nil
     end
+    Profiler.End()
   end
 end
 

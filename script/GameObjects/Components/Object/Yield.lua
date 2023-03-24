@@ -4,8 +4,9 @@ local Entity = require('GameObjects.Entity')
 --        than 'size' (energy-normalized) units of item may be extracted per
 --        unit time from the Entity.
 local Yield = class(function (self, item, size)
-  self.item = item
-  self.size = size
+  self.item        = item
+  self.size        = size
+  self.currentSize = size
 end)
 
 --------------------------------------------------------------------------------
@@ -28,6 +29,11 @@ end
 function Entity:getYield ()
   assert(self.yield)
   return self.yield
+end
+
+function Entity:getYieldSize ()
+  assert(self.yield)
+  return self.yield.currentSize
 end
 
 function Entity:hasYield ()

@@ -87,6 +87,7 @@ end
 
 function Transport:onUpdateActive (e, dt)
   if not Config.game.gamePaused then
+    Profiler.Begin('Actions.Transport.onUpdateActive')
     if not e.jobState then e.jobState = 0 end
     e.jobState = e.jobState + 1
 
@@ -137,6 +138,7 @@ printf("[TRANSPORT] %s sold %d units of %s to Trader %s", e:getName(), sold, sel
       e:popAction()
       e.jobState = nil
     end
+    Profiler.End()
   end
 end
 

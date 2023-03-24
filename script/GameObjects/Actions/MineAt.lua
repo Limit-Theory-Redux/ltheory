@@ -22,6 +22,7 @@ function MineAt:getName ()
 end
 
 function MineAt:onUpdateActive (e, dt)
+  Profiler.Begin('Actions.MineAt.onUpdateActive')
   local item = self.source:getYield().item
   local maxBids = self.target:getTrader():getBidVolumeForAsset(item, e)
 
@@ -82,6 +83,7 @@ function MineAt:onUpdateActive (e, dt)
         self.target:getName())
     e:popAction() -- stop mining if bids expired before asset could finish mining
   end
+  Profiler.End()
 end
 
 return MineAt

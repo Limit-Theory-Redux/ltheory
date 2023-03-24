@@ -53,6 +53,7 @@ end
 
 function Market:update (e, dt)
   if not Config.game.gamePaused then
+    Profiler.Begin('Market.Update')
     for k, v in pairs(self.data) do
       while
         #v.ordersBuy > 0 and
@@ -83,6 +84,7 @@ function Market:update (e, dt)
         if orderSell.count == 0 then table.remove(v.ordersSell) end
       end
     end
+    Profiler.End()
   end
 end
 

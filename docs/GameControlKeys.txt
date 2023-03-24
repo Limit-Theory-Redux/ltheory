@@ -10,7 +10,7 @@ G      -- toggles target lock off (HUD or System Map)
 H      -- speed up time processing (currently 10x, defined in /script/Config/App.lua)
 K      -- toggle the realtime metrics overlay on/off
 M      -- toggle autopilot: click on a target (in world view or System Map), then press this key to fly there
-T      -- toggles target lock on (HUD or System Map)
+T      -- toggles target lock on when hovering over a targetable object in Flight Mode view
 V      -- toggle parts of the HUD off and back on again
 Ctrl-W -- immediately exit game
 Alt-Q  -- immediately exit game

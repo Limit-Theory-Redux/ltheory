@@ -58,7 +58,7 @@ end
 function Entity:updateActions (state)
   if not Config.game.gamePaused then
     if #self.actions == 0 then return end
-    Profiler.Begin('Update Actions')
+    Profiler.Begin('Actions.Update')
     for i, v in ipairs(self.actions) do
       v:onUpdatePassive(self, state.dt)
     end

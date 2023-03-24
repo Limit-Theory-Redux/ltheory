@@ -291,9 +291,9 @@ function HUD:drawPlayerHealth (a)
     'NovaRound',
     playerShip:getName(),
     10,
-    x, y, sx, sy,
+    112, sy - 240, 100, 12,
     1, 1, 1, a,
-    0.077, 0.75
+    0.5, 0.5
   )
 
   -- Draw hologram of player ship
@@ -313,9 +313,9 @@ function HUD:drawPlayerHealth (a)
     'NovaRound',
     playerHealthText,
     10,
-    x, y, sx, sy,
+    112, sy - 34, 100, 12,
     1, 1, 1, a,
-    0.075, 0.97
+    0.5, 0.5
   )
 
   UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
@@ -350,9 +350,9 @@ function HUD:drawTargetHealth (a)
         'NovaRound',
         targetName,
         10,
-        x, y, sx, sy,
+        sx - 208, sy - 240, 100, 12,
         1, 1, 1, a,
-        0.922, 0.75
+        0.5, 0.5
       )
 
       -- Draw hologram of target entity
@@ -368,9 +368,9 @@ function HUD:drawTargetHealth (a)
         'NovaRound',
         targetHealthText,
         10,
-        x, y, sx, sy,
+        sx - 208, sy - 34, 100, 12,
         1, 1, 1, a,
-        0.925, 0.97
+        0.5, 0.5
       )
     end
   end

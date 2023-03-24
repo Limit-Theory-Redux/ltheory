@@ -53,7 +53,7 @@ function LTheoryRedux:onInit ()
 
   DebugControl.ltheory = self
 
-  self.player = Entities.Player("[Human Player Name]")
+  self.player = Entities.Player(Config.game.humanPlayerName)
   Config.game.humanPlayer = self.player
   self:generate()
 
@@ -328,7 +328,7 @@ function LTheoryRedux:createStarSystem ()
 
       -- Add the player's ship
       newShip = self.system:spawnShip(Config.game.humanPlayer)
-      newShip:setName("NSS [Human Player Ship Name]")
+      newShip:setName(format("NSS %s", Config.game.humanPlayerShipName))
 --      newShip:setHealth(1000, 1000, 50) -- extra-healthy version of player ship for surviving testing
       newShip:setHealth(500, 500, 20)
       Config.game.currentShip = newShip

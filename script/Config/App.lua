@@ -100,7 +100,10 @@ Config.game = {
 
   gamePaused = false,
 
-  humanPlayer = nil,
+  humanPlayer         = nil,
+  humanPlayerName     = "[Human Player Name]",
+  humanPlayerShipName = "[Human Player Ship Name]",
+
   currentShip = nil,
 
   mapSystemPos  = Vec3f(0, 0, 0),

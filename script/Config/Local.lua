@@ -14,9 +14,6 @@ Config.gen.nStations  =  30
 Config.gen.scaleFieldAsteroid = Config.gen.scaleAsteroid * 9500
 Config.gen.nBeltSize = function (rng) return 200 end
 
--- Config.gen.nDustClouds = 0
--- Config.gen.nDustFlecks = 2048
-
 Config.ui.uniqueShips = false -- true = generate each ship as a unique mesh (very slow!)
 
 Config.gen.nTurrets   = 1
