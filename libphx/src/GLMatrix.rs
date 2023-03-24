@@ -45,8 +45,8 @@ pub unsafe extern "C" fn GLMatrix_LookAt(
     let mut x = DVec3::cross(z, (*up).normalize()).normalize();
     let mut y = DVec3::cross(x, z);
     let mut m: [f64; 16] = [
-        x.x, y.x, -z.x, 0 as f64, x.y, y.y, -z.y, 0 as f64, x.z, y.z, -z.z, 0 as f64, 0 as f64,
-        0 as f64, 0 as f64, 1_f64,
+        x.x, y.x, -z.x, 0.0, x.y, y.y, -z.y, 0.0, x.z, y.z, -z.z, 0.0, 0.0,
+        0.0, 0.0, 1.0,
     ];
     gl::MultMatrixd(m.as_mut_ptr());
     gl::Translated(-(*eye).x, -(*eye).y, -(*eye).z);
@@ -99,21 +99,21 @@ pub unsafe extern "C" fn GLMatrix_Perspective(
     let mut nf: f64 = -2.0f64 * (z0 * z1) / dz;
     let mut m: [f64; 16] = [
         cot / aspect,
-        0 as f64,
-        0 as f64,
-        0 as f64,
-        0 as f64,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
         cot,
-        0 as f64,
-        0 as f64,
-        0 as f64,
-        0 as f64,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
         -(z0 + z1) / dz,
         -1.0f64,
-        0 as f64,
-        0 as f64,
+        0.0,
+        0.0,
         nf,
-        0 as f64,
+        0.0,
     ];
     gl::MultMatrixd(m.as_mut_ptr());
 }

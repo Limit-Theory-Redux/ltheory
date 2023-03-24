@@ -145,7 +145,7 @@ pub unsafe extern "C" fn RNG_GetRNG(mut this: *mut RNG) -> *mut RNG {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetUniform(mut this: *mut RNG) -> f64 {
-    RNG_Next32(this) as f64 * f64::exp2(-32_f64)
+    RNG_Next32(this) as f64 * f64::exp2(-32.0)
 }
 
 #[no_mangle]
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn RNG_GetUniformRange(
     mut lower: f64,
     mut upper: f64,
 ) -> f64 {
-    let mut t: f64 = RNG_Next32(this) as f64 * f64::exp2(-32_f64);
+    let mut t: f64 = RNG_Next32(this) as f64 * f64::exp2(-32.0);
     lower + t * (upper - lower)
 }
 

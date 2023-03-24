@@ -10,7 +10,7 @@ pub struct Timer {
     pub value: u64,
 }
 
-static mut frequency: f64 = 0 as f64;
+static mut frequency: f64 = 0.0;
 
 #[no_mangle]
 pub unsafe extern "C" fn Timer_Create() -> *mut Timer {

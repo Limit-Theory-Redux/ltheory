@@ -90,7 +90,7 @@ impl Box3 {
         t2 = (rdi.z * (self.upper.z - ro.z)) as f64;
         tMin = f64::max(tMin, f64::min(t1, t2));
         tMax = f64::min(tMax, f64::max(t1, t2));
-        tMax >= tMin && tMax > 0 as f64
+        tMax >= tMin && tMax > 0.0
     }
 
     pub fn intersects_box(a: Box3, b: Box3) -> bool {

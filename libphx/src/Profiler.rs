@@ -134,7 +134,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         b"-- PHX PROFILER -------------------------------------\0" as *const u8
             as *const libc::c_char,
     );
-    let mut cumulative: f64 = 0 as f64;
+    let mut cumulative: f64 = 0.0;
     let mut i_0: i32 = 0;
     while i_0 < this.scopeList.len() as i32 {
         let mut scope: &mut Scope = &mut *this.scopeList[i_0 as usize];

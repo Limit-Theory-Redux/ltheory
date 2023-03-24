@@ -20,7 +20,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mu
     let mut v: &Vec<Vec3> = &(*polygon).vertices;
     
     let mut n: DVec3 = DVec3 {
-        x: 0 as f64,
+        x: 0.0,
         y: 0.,
         z: 0.,
     };

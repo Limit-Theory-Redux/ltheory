@@ -89,10 +89,10 @@ unsafe extern "C" fn Octree_GetAvgLoadImpl(
     mut load: *mut f64,
     mut nodes: *mut f64,
 ) {
-    *nodes += 1_f64;
+    *nodes += 1.0;
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        *load += 1_f64;
+        *load += 1.0;
         elem = (*elem).next;
     }
     let mut i: i32 = 0;
@@ -106,8 +106,8 @@ unsafe extern "C" fn Octree_GetAvgLoadImpl(
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_GetAvgLoad(mut this: *mut Octree) -> f64 {
-    let mut load: f64 = 0 as f64;
-    let mut nodes: f64 = 0 as f64;
+    let mut load: f64 = 0.0;
+    let mut nodes: f64 = 0.0;
     Octree_GetAvgLoadImpl(this, &mut load, &mut nodes);
     load / nodes
 }
