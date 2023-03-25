@@ -111,7 +111,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2D(this: *mut Tex2D) {
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: *mut Tex2D, level: i32) {
     let this: *mut FBO = GetActive();
-    let mut handle: u32 = Tex2D_GetHandle(tex);
+    let handle: u32 = Tex2D_GetHandle(tex);
     if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
         if (*this).colorIndex >= 4 {
             Fatal(c_str!(
@@ -158,7 +158,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: *mut Tex3D, layer: i32
         ));
     }
 
-    let mut handle: u32 = Tex3D_GetHandle(tex);
+    let handle: u32 = Tex3D_GetHandle(tex);
     gl::FramebufferTexture3D(
         gl::FRAMEBUFFER,
         gl::COLOR_ATTACHMENT0 + (*this).colorIndex as u32,
@@ -188,7 +188,7 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
             "RenderTarget_BindTexCubeLevel: Max color attachments exceeded"
         ));
     }
-    let mut handle: u32 = TexCube_GetHandle(tex);
+    let handle: u32 = TexCube_GetHandle(tex);
 
     gl::FramebufferTexture2D(
         gl::FRAMEBUFFER,

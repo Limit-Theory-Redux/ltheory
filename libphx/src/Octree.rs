@@ -26,7 +26,7 @@ pub struct Node {
 
 #[no_mangle]
 pub unsafe extern "C" fn Octree_Create(box_0: Box3) -> *mut Octree {
-    let mut this = MemNew!(Octree);
+    let this = MemNew!(Octree);
     MemZero(this as *mut _, std::mem::size_of::<Octree>());
     (*this).box_0 = box_0;
     this
@@ -43,7 +43,7 @@ pub unsafe extern "C" fn Octree_Free(this: *mut Octree) {
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        let mut next: *mut Node = (*elem).next;
+        let next: *mut Node = (*elem).next;
         MemFree(elem as *const _);
         elem = next;
     }
@@ -58,15 +58,15 @@ pub unsafe extern "C" fn Octree_FromMesh(mesh: *mut Mesh) -> *mut Octree {
     };
     Mesh_GetBound(mesh, &mut meshBox);
     let this: *mut Octree = Octree_Create(meshBox);
-    let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
-    let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
+    let indexCount: i32 = Mesh_GetIndexCount(mesh);
+    let indexData: *const i32 = Mesh_GetIndexData(mesh);
+    let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
     let mut i: i32 = 0;
     while i < indexCount {
-        let mut v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
-        let mut v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let mut v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
-        let mut box_0: Box3 = Box3::new(
+        let v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
+        let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
+        let box_0: Box3 = Box3::new(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
@@ -169,7 +169,7 @@ pub unsafe extern "C" fn Octree_IntersectRay(
     ro: *const Vec3,
     rd: *const Vec3,
 ) -> bool {
-    let mut inv: *mut Matrix = Matrix_Inverse(matrix);
+    let inv: *mut Matrix = Matrix_Inverse(matrix);
     let mut invRo = Vec3::ZERO;
     Matrix_MulPoint(inv, &mut invRo, (*ro).x, (*ro).y, (*ro).z);
     let mut invRd = Vec3::ZERO;
@@ -179,7 +179,7 @@ pub unsafe extern "C" fn Octree_IntersectRay(
 }
 
 unsafe extern "C" fn Octree_Insert(this: *mut Octree, box_0: Box3, id: u32) {
-    let mut elem = MemNew!(Node);
+    let elem = MemNew!(Node);
     (*elem).box_0 = box_0;
     (*elem).id = id as u64;
     (*elem).next = (*this).elems;

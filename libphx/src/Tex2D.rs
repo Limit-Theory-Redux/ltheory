@@ -43,7 +43,7 @@ pub unsafe extern "C" fn Tex2D_Create(sx: i32, sy: i32, format: TexFormat) -> *m
     if !TexFormat_IsValid(format) {
         Fatal(c_str!("Tex2D_Create: Invalid texture format requested"));
     }
-    let mut this = MemNew!(Tex2D);
+    let this = MemNew!(Tex2D);
     (*this)._refCount = 1;
     (*this).size = IVec2::new(sx, sy);
     (*this).format = format;
@@ -74,8 +74,8 @@ pub unsafe extern "C" fn Tex2D_Create(sx: i32, sy: i32, format: TexFormat) -> *m
 pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Viewport_GetSize(&mut size);
-    let mut this = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
-    let mut buf = MemNewArray!(u32, (size.x * size.y));
+    let this = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
+    let buf = MemNewArray!(u32, (size.x * size.y));
     Metric_Inc(0x6);
     gl::ReadPixels(
         0,
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn Tex2D_Clear(this: *mut Tex2D, r: f32, g: f32, b: f32, a
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Clone(this: *mut Tex2D) -> *mut Tex2D {
-    let mut clone: *mut Tex2D = Tex2D_Create((*this).size.x, (*this).size.y, (*this).format);
+    let clone: *mut Tex2D = Tex2D_Create((*this).size.x, (*this).size.y, (*this).format);
     RenderTarget_PushTex2D(this);
     gl::BindTexture(gl::TEXTURE_2D, (*clone).handle);
     gl::CopyTexImage2D(
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn Tex2D_GetDataBytes(
     let mut size: i32 = (*this).size.x * (*this).size.y;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
-    let mut data: *mut Bytes = Bytes_Create(size as u32);
+    let data: *mut Bytes = Bytes_Create(size as u32);
     Tex2D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
     data
@@ -299,14 +299,14 @@ pub unsafe extern "C" fn Tex2D_GetSizeLevel(this: *mut Tex2D, out: *mut IVec2, l
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Load(name: *const libc::c_char) -> *mut Tex2D {
-    let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Tex2D, name);
+    let path: *const libc::c_char = Resource_GetPath(ResourceType_Tex2D, name);
     let mut sx: i32 = 0;
     let mut sy: i32 = 0;
     let mut components: i32 = 4;
-    let mut data: *mut libc::c_uchar = Tex2D_LoadRaw(path, &mut sx, &mut sy, &mut components);
+    let data: *mut libc::c_uchar = Tex2D_LoadRaw(path, &mut sx, &mut sy, &mut components);
     let this: *mut Tex2D = Tex2D_Create(sx, sy, TexFormat_RGBA8);
 
-    let mut format = if components == 4 {
+    let format = if components == 4 {
         gl::RGBA
     } else if components == 3 {
         gl::RGB
@@ -448,7 +448,7 @@ pub unsafe extern "C" fn Tex2D_SetWrapMode(this: *mut Tex2D, mode: TexWrapMode) 
 pub unsafe extern "C" fn Tex2D_Save(this: *mut Tex2D, path: *const libc::c_char) {
     Metric_Inc(0x6);
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
-    let mut buffer: *mut libc::c_uchar =
+    let buffer: *mut libc::c_uchar =
         MemAlloc((4 * (*this).size.x * (*this).size.y) as usize) as *mut libc::c_uchar;
     gl::GetTexImage(
         gl::TEXTURE_2D,

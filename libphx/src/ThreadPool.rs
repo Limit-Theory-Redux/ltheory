@@ -23,18 +23,18 @@ pub struct ThreadData {
 pub type ThreadPoolFn = Option<unsafe extern "C" fn(i32, i32, *mut libc::c_void) -> i32>;
 
 unsafe extern "C" fn ThreadPool_Dispatch(data: *mut libc::c_void) -> i32 {
-    let mut td: *mut ThreadData = data as *mut ThreadData;
+    let td: *mut ThreadData = data as *mut ThreadData;
     ((*td).fn_0).expect("non-null function pointer")((*td).index, (*td).threads, (*td).data)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Create(threads: i32) -> *mut ThreadPool {
-    let mut this = MemNew!(ThreadPool);
+    let this = MemNew!(ThreadPool);
     (*this).threads = threads;
     (*this).thread = MemNewArray!(ThreadData, threads);
     let mut i: i32 = 0;
     while i < threads {
-        let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
+        let td: *mut ThreadData = ((*this).thread).offset(i as isize);
         (*td).handle = std::ptr::null_mut();
         (*td).fn_0 = std::option::Option::None;
         (*td).index = i;
@@ -68,7 +68,7 @@ pub unsafe extern "C" fn ThreadPool_Launch(
 ) {
     let mut i: i32 = 0;
     while i < (*this).threads {
-        let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
+        let td: *mut ThreadData = ((*this).thread).offset(i as isize);
         (*td).fn_0 = fn_0;
         (*td).data = data;
         (*td).handle = SDL_CreateThread(
@@ -87,7 +87,7 @@ pub unsafe extern "C" fn ThreadPool_Launch(
 pub unsafe extern "C" fn ThreadPool_Wait(this: *mut ThreadPool) {
     let mut i: i32 = 0;
     while i < (*this).threads {
-        let mut td: *mut ThreadData = ((*this).thread).offset(i as isize);
+        let td: *mut ThreadData = ((*this).thread).offset(i as isize);
         if !((*td).handle).is_null() {
             let mut ret: i32 = 0;
             SDL_WaitThread((*td).handle, &mut ret);

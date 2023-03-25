@@ -110,8 +110,8 @@ unsafe extern "C" fn Joystick_UpdateSingle(this: *mut Joystick) {
     let mut changed: bool = false;
     let mut i: i32 = 0;
     while i < (*this).axes {
-        let mut state: f64 = Joystick_GetAxis(this, i);
-        let mut delta: f64 = f64::abs(state - *((*this).axisStates).offset(i as isize));
+        let state: f64 = Joystick_GetAxis(this, i);
+        let delta: f64 = f64::abs(state - *((*this).axisStates).offset(i as isize));
         if delta > 0.1f64 {
             changed = true;
             *((*this).axisAlive).offset(i as isize) = true;
@@ -121,7 +121,7 @@ unsafe extern "C" fn Joystick_UpdateSingle(this: *mut Joystick) {
     }
     let mut i_0: i32 = 0;
     while i_0 < (*this).buttons {
-        let mut state_0: bool = Joystick_ButtonDown(this, i_0);
+        let state_0: bool = Joystick_ButtonDown(this, i_0);
         if *((*this).buttonStates).offset(i_0 as isize) as i32 != state_0 as i32 {
             changed = true;
         }
@@ -140,7 +140,7 @@ pub unsafe extern "C" fn Joystick_GetCount() -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_Open(index: i32) -> *mut Joystick {
-    let mut this = MemNew!(Joystick);
+    let this = MemNew!(Joystick);
     if kOpen == kMaxOpen {
         Fatal(c_str!("Cannot open any more gamepad connections."));
     }

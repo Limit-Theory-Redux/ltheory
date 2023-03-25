@@ -60,12 +60,12 @@ unsafe extern "C" fn Mesh_UpdateInfo(this: *mut Mesh) {
         (*this).info.bound.add((*v).p);
     }
 
-    let mut center: Vec3 = (*this).info.bound.center();
+    let center: Vec3 = (*this).info.bound.center();
     let mut r2: f64 = 0.0f64;
     for v in (*this).vertex.iter() {
-        let mut dx: f64 = ((*v).p.x - center.x) as f64;
-        let mut dy: f64 = ((*v).p.y - center.y) as f64;
-        let mut dz: f64 = ((*v).p.z - center.z) as f64;
+        let dx: f64 = ((*v).p.x - center.x) as f64;
+        let dy: f64 = ((*v).p.y - center.y) as f64;
+        let dz: f64 = ((*v).p.z - center.z) as f64;
         r2 = f64::max(r2, dx * dx + dy * dy + dz * dz);
     }
     (*this).info.radius = f64::sqrt(r2) as f32;
@@ -74,7 +74,7 @@ unsafe extern "C" fn Mesh_UpdateInfo(this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Create() -> *mut Mesh {
-    let mut this = MemNew!(Mesh);
+    let this = MemNew!(Mesh);
     (*this)._refCount = 1;
     (*this).vbo = 0;
     (*this).ibo = 0;
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn Mesh_Clone(other: *mut Mesh) -> *mut Mesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Load(name: *const libc::c_char) -> *mut Mesh {
-    let mut bytes: *mut Bytes = Resource_LoadBytes(ResourceType_Mesh, name);
+    let bytes: *mut Bytes = Resource_LoadBytes(ResourceType_Mesh, name);
     let this: *mut Mesh = Mesh_FromBytes(bytes);
     Bytes_Free(bytes);
     this
@@ -123,9 +123,9 @@ pub unsafe extern "C" fn Mesh_Free(this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_ToBytes(mesh: *mut Mesh) -> *mut Bytes {
-    let mut vertexCount: i32 = Mesh_GetVertexCount(mesh);
-    let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let mut size: u32 = 2_usize
+    let vertexCount: i32 = Mesh_GetVertexCount(mesh);
+    let indexCount: i32 = Mesh_GetIndexCount(mesh);
+    let size: u32 = 2_usize
         .wrapping_mul(std::mem::size_of::<i32>())
         .wrapping_add((vertexCount as usize).wrapping_mul(std::mem::size_of::<Vertex>()))
         .wrapping_add((indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()))
@@ -149,8 +149,8 @@ pub unsafe extern "C" fn Mesh_ToBytes(mesh: *mut Mesh) -> *mut Bytes {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_FromBytes(buf: *mut Bytes) -> *mut Mesh {
     let this: *mut Mesh = Mesh_Create();
-    let mut vertexCount: i32 = Bytes_ReadI32(buf);
-    let mut indexCount: i32 = Bytes_ReadI32(buf);
+    let vertexCount: i32 = Bytes_ReadI32(buf);
+    let indexCount: i32 = Bytes_ReadI32(buf);
     Mesh_ReserveVertexData(this, vertexCount);
     Mesh_ReserveIndexData(this, indexCount);
     (*this)
@@ -388,24 +388,24 @@ pub unsafe extern "C" fn Mesh_IncVersion(this: *mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Validate(this: *mut Mesh) -> Error {
-    let mut indexLen: i32 = Mesh_GetIndexCount(this);
-    let mut indexData: *mut i32 = Mesh_GetIndexData(this);
-    let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
+    let indexLen: i32 = Mesh_GetIndexCount(this);
+    let indexData: *mut i32 = Mesh_GetIndexData(this);
+    let vertexData: *mut Vertex = Mesh_GetVertexData(this);
     if indexLen % 3 != 0 {
         return (0x100000 | 0x80) as Error;
     }
     let mut i: i32 = 0;
     while i < indexLen {
-        let mut i0: i32 = *indexData.offset((i + 0) as isize);
-        let mut i1: i32 = *indexData.offset((i + 1) as isize);
-        let mut i2: i32 = *indexData.offset((i + 2) as isize);
+        let i0: i32 = *indexData.offset((i + 0) as isize);
+        let i1: i32 = *indexData.offset((i + 1) as isize);
+        let i2: i32 = *indexData.offset((i + 2) as isize);
         let mut triangle: Triangle = Triangle {
             vertices: [Vec3::ZERO; 3],
         };
         triangle.vertices[0] = (*vertexData.offset(i0 as isize)).p;
         triangle.vertices[1] = (*vertexData.offset(i1 as isize)).p;
         triangle.vertices[2] = (*vertexData.offset(i2 as isize)).p;
-        let mut e: Error = Triangle_Validate(&mut triangle);
+        let e: Error = Triangle_Validate(&mut triangle);
         if e != 0 {
             return 0x400000 | e;
         }
@@ -473,7 +473,7 @@ pub unsafe extern "C" fn Mesh_Invert(this: *mut Mesh) -> *mut Mesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateX(this: *mut Mesh, rads: f32) -> *mut Mesh {
-    let mut matrix: *mut Matrix = Matrix_RotationX(rads);
+    let matrix: *mut Matrix = Matrix_RotationX(rads);
     Mesh_Transform(this, matrix);
     Matrix_Free(matrix);
     this
@@ -481,7 +481,7 @@ pub unsafe extern "C" fn Mesh_RotateX(this: *mut Mesh, rads: f32) -> *mut Mesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateY(this: *mut Mesh, rads: f32) -> *mut Mesh {
-    let mut matrix: *mut Matrix = Matrix_RotationY(rads);
+    let matrix: *mut Matrix = Matrix_RotationY(rads);
     Mesh_Transform(this, matrix);
     Matrix_Free(matrix);
     this
@@ -489,7 +489,7 @@ pub unsafe extern "C" fn Mesh_RotateY(this: *mut Mesh, rads: f32) -> *mut Mesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateZ(this: *mut Mesh, rads: f32) -> *mut Mesh {
-    let mut matrix: *mut Matrix = Matrix_RotationZ(rads);
+    let matrix: *mut Matrix = Matrix_RotationZ(rads);
     Mesh_Transform(this, matrix);
     Matrix_Free(matrix);
     this
@@ -502,7 +502,7 @@ pub unsafe extern "C" fn Mesh_RotateYPR(
     pitch: f32,
     roll: f32,
 ) -> *mut Mesh {
-    let mut matrix: *mut Matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
+    let matrix: *mut Matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
     Mesh_Transform(this, matrix);
     Matrix_Free(matrix);
     this
@@ -573,19 +573,19 @@ pub unsafe extern "C" fn Mesh_SplitNormals(this: *mut Mesh, minDot: f32) {
         (*v).n = Vec3::ZERO;
     }
     for i in (0..(*this).index.len()).step_by(3) {
-        let mut index: [&mut i32; 3] = [
+        let index: [&mut i32; 3] = [
             &mut (*this).index[i + 0],
             &mut (*this).index[i + 1],
             &mut (*this).index[i + 2],
         ];
-        let mut v: [&mut Vertex; 3] = [
+        let v: [&mut Vertex; 3] = [
             &mut (*this).vertex[*index[0] as usize],
             &mut (*this).vertex[*index[1] as usize],
             &mut (*this).vertex[*index[2] as usize],
         ];
-        let mut face: Vec3 = Vec3::cross((*v[1]).p - (*v[0]).p, (*v[2]).p - (*v[0]).p);
+        let face: Vec3 = Vec3::cross((*v[1]).p - (*v[0]).p, (*v[2]).p - (*v[0]).p);
         for j in 0..3 {
-            let mut cn: &mut Vec3 = &mut (*this).vertex[*index[j as usize] as usize].n;
+            let cn: &mut Vec3 = &mut (*this).vertex[*index[j as usize] as usize].n;
             if (*cn).length_squared() > 0.0f32 {
                 let cDot: f32 = Vec3::dot(face.normalize(), (*cn).normalize());
                 if cDot < minDot {

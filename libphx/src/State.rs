@@ -26,14 +26,14 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
     if state == State_Null {
         return c_str!("State_Null");
     }
-    let mut states: [State; 4] = [State_Changed, State_Pressed, State_Down, State_Released];
-    let mut names: [*const libc::c_char; 4] = [
+    let states: [State; 4] = [State_Changed, State_Pressed, State_Down, State_Released];
+    let names: [*const libc::c_char; 4] = [
         c_str!("State_Changed"),
         c_str!("State_Pressed"),
         c_str!("State_Down"),
         c_str!("State_Released"),
     ];
-    let mut start: *mut libc::c_char = buffer.as_mut_ptr();
+    let start: *mut libc::c_char = buffer.as_mut_ptr();
     let mut sep: *const libc::c_char = c_str!("");
     let mut len: i32 = 0;
     let mut i = 0;

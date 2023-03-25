@@ -6,7 +6,7 @@ use libc;
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV32(buf: *const libc::c_void, len: i32) -> u32 {
     let mut curr: *const libc::c_uchar = buf as *const libc::c_uchar;
-    let mut end: *const libc::c_uchar = curr.offset(len as isize);
+    let end: *const libc::c_uchar = curr.offset(len as isize);
     let mut this: u32 = 2166136261;
     while curr < end {
         let fresh0 = curr;
@@ -20,7 +20,7 @@ pub unsafe extern "C" fn Hash_FNV32(buf: *const libc::c_void, len: i32) -> u32 {
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV64(buf: *const libc::c_void, len: i32) -> u64 {
     let mut curr: *const libc::c_uchar = buf as *const libc::c_uchar;
-    let mut end: *const libc::c_uchar = curr.offset(len as isize);
+    let end: *const libc::c_uchar = curr.offset(len as isize);
     let mut this: u64 = 14695981039346656037;
     while curr < end {
         let fresh1 = curr;
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn Hash_FNV64_Incremental(
     len: i32,
 ) -> u64 {
     let mut curr: *const libc::c_uchar = buf as *const libc::c_uchar;
-    let mut end: *const libc::c_uchar = curr.offset(len as isize);
+    let end: *const libc::c_uchar = curr.offset(len as isize);
     while curr < end {
         let fresh4 = curr;
         curr = curr.offset(1);
@@ -94,12 +94,12 @@ unsafe extern "C" fn fmix32(mut h: u32) -> u32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Hash_Murmur3(key: *const libc::c_void, len: i32) -> u32 {
-    let mut data: *const u8 = key as *const u8;
+    let data: *const u8 = key as *const u8;
     let mut h1: u32 = 0xdeadbeef;
     let c1: u32 = 0xcc9e2d51;
     let c2: u32 = 0x1b873593;
     let nblocks: i32 = len / 4;
-    let mut blocks: *const u32 = data.offset((nblocks * 4) as isize) as *const u32;
+    let blocks: *const u32 = data.offset((nblocks * 4) as isize) as *const u32;
     let mut i: i32 = -nblocks;
     while i != 0 {
         let mut k1: u32 = *blocks.offset(i as isize);
@@ -111,7 +111,7 @@ pub unsafe extern "C" fn Hash_Murmur3(key: *const libc::c_void, len: i32) -> u32
         h1 = h1.wrapping_mul(5_u32).wrapping_add(0xe6546b64);
         i += 1;
     }
-    let mut tail: *const u8 = data.offset((nblocks * 4) as isize);
+    let tail: *const u8 = data.offset((nblocks * 4) as isize);
     let mut k1_0: u32 = 0;
     let mut current_block_14: u64;
     match len & 3 {
@@ -176,7 +176,7 @@ unsafe extern "C" fn XXH64_mergeRound(mut acc: u64, val: u64) -> u64 {
 #[no_mangle]
 pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64 {
     let mut p: *const u8 = buf as *const u8;
-    let mut end: *const u8 = p.offset(len as isize);
+    let end: *const u8 = p.offset(len as isize);
     let mut hash: u64 = 0;
     if len >= 32 {
         let limit: *const u8 = end.offset(-(32));

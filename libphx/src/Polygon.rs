@@ -17,7 +17,7 @@ pub struct Polygon {
 
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_ToPlane(polygon: *const Polygon, out: *mut Plane) {
-    let mut v: &Vec<Vec3> = &(*polygon).vertices;
+    let v: &Vec<Vec3> = &(*polygon).vertices;
     let mut n: DVec3 = DVec3::ZERO;
     let mut centroid = DVec3::ZERO;
 
@@ -79,11 +79,10 @@ unsafe extern "C" fn Polygon_SplitImpl(
     }
 
     let mut a: Vec3 = *(*polygon).vertices.last().unwrap();
-    let mut aSide: PointClassification = Plane_ClassifyPoint(&splitPlane, &mut a);
-    let mut j: i32 = 0;
-    while j < (*polygon).vertices.len() as i32 {
+    let mut aSide = Plane_ClassifyPoint(&splitPlane, &mut a);
+    for j in 0..((*polygon).vertices.len() as i32) {
         let mut b: Vec3 = (*polygon).vertices[j as usize];
-        let mut bSide: PointClassification = Plane_ClassifyPoint(&splitPlane, &mut b);
+        let bSide = Plane_ClassifyPoint(&splitPlane, &mut b);
 
         if bSide == PointClassification::InFront {
             if aSide == PointClassification::Behind {
@@ -101,8 +100,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
             if aSide == PointClassification::InFront {
                 let mut i = Vec3::ZERO;
                 let mut lineSegment: LineSegment = LineSegment { p0: a, p1: b };
-                let mut _hit: bool =
-                    Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
+                let _hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
                 (*front).vertices.push(i);
                 (*back).vertices.push(i);
 
@@ -121,7 +119,6 @@ unsafe extern "C" fn Polygon_SplitImpl(
 
         a = b;
         aSide = bSide;
-        j += 1;
     }
 }
 

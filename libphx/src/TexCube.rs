@@ -116,7 +116,7 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
         ));
     }
 
-    let mut this = MemNew!(TexCube);
+    let this = MemNew!(TexCube);
     (*this)._refCount = 1;
     gl::GenTextures(1, &mut (*this).handle);
     (*this).size = size;
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn TexCube_Acquire(this: *mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Clear(this: *mut TexCube, r: f32, g: f32, b: f32, a: f32) {
     for i in 0..6 {
-        let mut face: Face = kFaces[i as usize];
+        let face: Face = kFaces[i as usize];
         RenderTarget_Push((*this).size, (*this).size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(r, g, b, a);
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube {
-    let mut this = MemNew!(TexCube);
+    let this = MemNew!(TexCube);
     gl::GenTextures(1, &mut (*this).handle);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
 
@@ -230,12 +230,11 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
     let mut dataLayout: i32 = 0;
 
     for i in 0..6 {
-        let mut facePath: *const libc::c_char = StrAdd3(path, kFaceExt[i as usize], c_str!(".jpg"));
+        let facePath: *const libc::c_char = StrAdd3(path, kFaceExt[i as usize], c_str!(".jpg"));
         let mut sx: i32 = 0;
         let mut sy: i32 = 0;
         let mut lcomponents: i32 = 0;
-        let mut data: *mut libc::c_uchar =
-            Tex2D_LoadRaw(facePath, &mut sx, &mut sy, &mut lcomponents);
+        let data: *mut libc::c_uchar = Tex2D_LoadRaw(facePath, &mut sx, &mut sy, &mut lcomponents);
         if data.is_null() {
             Fatal(
                 c_str!("TexCube_Load failed to load cubemap face from '%s'"),
@@ -330,7 +329,7 @@ pub unsafe extern "C" fn TexCube_GetDataBytes(
     let mut size: i32 = (*this).size * (*this).size;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
-    let mut data: *mut Bytes = Bytes_Create(size as u32);
+    let data: *mut Bytes = Bytes_Create(size as u32);
     TexCube_GetData(this, Bytes_GetData(data), face, level, pf, df);
     Bytes_Rewind(data);
     data
@@ -363,9 +362,9 @@ pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, state: *mut Shader
     ShaderState_Start(state);
 
     for i in 0..6 {
-        let mut face: Face = kFaces[i as usize];
-        let mut size: i32 = (*this).size;
-        let mut fSize: f32 = (*this).size as f32;
+        let face: Face = kFaces[i as usize];
+        let size: i32 = (*this).size;
+        let fSize: f32 = (*this).size as f32;
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
@@ -376,14 +375,14 @@ pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, state: *mut Shader
         let mut j: i32 = 1;
         let mut jobSize: i32 = 1;
         while j <= size {
-            let mut time: TimeStamp = TimeStamp_Get();
+            let time: TimeStamp = TimeStamp_Get();
             ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, jobSize as f32);
             Draw_Rect(0.0f32, 0.0f32, fSize, fSize);
             Draw_Flush();
             ClipRect_Pop();
 
             j += jobSize;
-            let mut elapsed: f64 = TimeStamp_GetElapsed(time);
+            let elapsed: f64 = TimeStamp_GetElapsed(time);
             jobSize = f64::max(
                 1.0,
                 f64::floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
@@ -470,14 +469,14 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
     path: *const libc::c_char,
     level: i32,
 ) {
-    let mut size: i32 = (*this).size >> level;
+    let size: i32 = (*this).size >> level;
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
-    let mut buffer: *mut libc::c_uchar =
+    let buffer: *mut libc::c_uchar =
         MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4 * size * size) as usize))
             as *mut libc::c_uchar;
     for i in 0..6 {
-        let mut face: CubeFace = kFaces[i as usize].face;
-        let mut facePath: *const libc::c_char = StrAdd3(path, kFaceExt[i as usize], c_str!(".png"));
+        let face: CubeFace = kFaces[i as usize].face;
+        let facePath: *const libc::c_char = StrAdd3(path, kFaceExt[i as usize], c_str!(".png"));
         gl::GetTexImage(
             face as gl::types::GLenum,
             level,

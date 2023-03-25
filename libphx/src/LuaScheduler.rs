@@ -54,8 +54,8 @@ static mut this: Scheduler = Scheduler {
 };
 
 unsafe extern "C" fn SortByWake(pa: *const libc::c_void, pb: *const libc::c_void) -> i32 {
-    let mut a: *const SchedulerElem = pa as *const SchedulerElem;
-    let mut b: *const SchedulerElem = pb as *const SchedulerElem;
+    let a: *const SchedulerElem = pa as *const SchedulerElem;
+    let b: *const SchedulerElem = pb as *const SchedulerElem;
     if (*a).tWake < (*b).tWake {
         1
     } else if (*a).tWake == (*b).tWake {
@@ -113,7 +113,7 @@ unsafe extern "C" fn LuaScheduler_Update(L: *mut Lua) -> i32 {
     this.now = TimeStamp_Get();
 
     lua_getfield(L, -10002, c_str!("__error_handler__"));
-    let mut handler: i32 = lua_gettop(L);
+    let handler: i32 = lua_gettop(L);
 
     while !this.elems.is_empty() {
         let elem = this.elems.last().unwrap();
@@ -121,7 +121,7 @@ unsafe extern "C" fn LuaScheduler_Update(L: *mut Lua) -> i32 {
             break;
         }
 
-        let mut dt: f64 = TimeStamp_GetDifference((*elem).tCreated, this.now);
+        let dt: f64 = TimeStamp_GetDifference((*elem).tCreated, this.now);
 
         Lua_PushRef(L, (*elem).fn_0);
         Lua_PushNumber(L, dt);

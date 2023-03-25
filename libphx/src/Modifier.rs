@@ -23,13 +23,13 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
     if modifier == Modifier_Null {
         return c_str!("Modifier_Null");
     }
-    let mut modifiers: [Modifier; 3] = [Modifier_Alt, Modifier_Ctrl, Modifier_Shift];
-    let mut names: [*const libc::c_char; 3] = [
+    let modifiers: [Modifier; 3] = [Modifier_Alt, Modifier_Ctrl, Modifier_Shift];
+    let names: [*const libc::c_char; 3] = [
         c_str!("Modifier_Alt"),
         c_str!("Modifier_Ctrl"),
         c_str!("Modifier_Shift"),
     ];
-    let mut start: *mut libc::c_char = buffer.as_mut_ptr();
+    let start: *mut libc::c_char = buffer.as_mut_ptr();
     let mut sep: *const libc::c_char = c_str!("");
     let mut len: i32 = 0;
     let mut i: i32 = 0;

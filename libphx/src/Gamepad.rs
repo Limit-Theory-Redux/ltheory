@@ -27,7 +27,7 @@ unsafe extern "C" fn Gamepad_UpdateState(this: *mut Gamepad) {
     let now: TimeStamp = TimeStamp_Get();
     let mut i = GamepadAxis_BEGIN as i32;
     while i <= (GamepadAxis_END as i32) {
-        let mut state: f64 = Gamepad_GetAxis(this, std::mem::transmute(i));
+        let state: f64 = Gamepad_GetAxis(this, std::mem::transmute(i));
         if (*this).axisState[i as usize] != state {
             (*this).lastActive = now;
         }
@@ -37,7 +37,7 @@ unsafe extern "C" fn Gamepad_UpdateState(this: *mut Gamepad) {
     }
     i = GamepadButton_BEGIN as i32;
     while i <= (GamepadButton_END as i32) {
-        let mut state_0: bool = Gamepad_GetButton(this, std::mem::transmute(i));
+        let state_0: bool = Gamepad_GetButton(this, std::mem::transmute(i));
         if (*this).buttonState[i as usize] as i32 != state_0 as i32 {
             (*this).lastActive = now;
         }
@@ -54,11 +54,11 @@ pub unsafe extern "C" fn Gamepad_CanOpen(index: i32) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_Open(index: i32) -> *mut Gamepad {
-    let mut handle: *mut SDL_GameController = SDL_GameControllerOpen(index);
+    let handle: *mut SDL_GameController = SDL_GameControllerOpen(index);
     if handle.is_null() {
         return std::ptr::null_mut();
     }
-    let mut this = MemNewZero!(Gamepad);
+    let this = MemNewZero!(Gamepad);
     (*this).handle = handle;
     (*this).lastActive = TimeStamp_Get();
     (*this).gamepadList_prev = &mut gamepadList;
@@ -88,10 +88,10 @@ pub unsafe extern "C" fn Gamepad_AddMappings(file: *const libc::c_char) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetAxis(this: *mut Gamepad, axis: GamepadAxis) -> f64 {
-    let mut value: f64 = SDL_GameControllerGetAxis((*this).handle, axis as SDL_GameControllerAxis)
+    let value: f64 = SDL_GameControllerGetAxis((*this).handle, axis as SDL_GameControllerAxis)
         as f64
         / 32767.0f64;
-    let mut deadzone: f64 = (*this).deadzone[axis as usize];
+    let deadzone: f64 = (*this).deadzone[axis as usize];
     if value > deadzone {
         return (value - deadzone) / (1.0f64 - deadzone);
     }
@@ -142,7 +142,7 @@ pub unsafe extern "C" fn Gamepad_GetIdleTime(this: *mut Gamepad) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetID(this: *mut Gamepad) -> i32 {
-    let mut joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick((*this).handle);
+    let joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick((*this).handle);
     if joystick.is_null() {
         return -1;
     }

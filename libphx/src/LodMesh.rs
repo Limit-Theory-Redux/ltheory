@@ -22,7 +22,7 @@ pub struct LodMeshEntry {
 
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
-    let mut this = MemNew!(LodMesh);
+    let this = MemNew!(LodMesh);
     (*this)._refCount = 1;
     (*this).head = std::ptr::null_mut();
     this
@@ -41,7 +41,7 @@ pub unsafe extern "C" fn LodMesh_Free(this: *mut LodMesh) {
     } {
         let mut e: *mut LodMeshEntry = (*this).head;
         while !e.is_null() {
-            let mut next: *mut LodMeshEntry = (*e).next;
+            let next: *mut LodMeshEntry = (*e).next;
             Mesh_Free((*e).mesh);
             MemFree(e as *const _);
             e = next;
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn LodMesh_Free(this: *mut LodMesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn LodMesh_Add(this: *mut LodMesh, mesh: *mut Mesh, dMin: f32, dMax: f32) {
-    let mut e = MemNew!(LodMeshEntry);
+    let e = MemNew!(LodMeshEntry);
     (*e).mesh = mesh;
     (*e).dMin = dMin * dMin;
     (*e).dMax = dMax * dMax;

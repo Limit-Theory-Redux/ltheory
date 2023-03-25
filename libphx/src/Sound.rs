@@ -682,7 +682,7 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(this: *mut Sound, func: *const libc:
 #[inline]
 unsafe extern "C" fn Sound_EnsureNotFreedImpl(this: *mut Sound, func: *const libc::c_char) {
     if (*this).state as i32 == 5 {
-        let mut name: *const libc::c_char = if (*(*this).desc)._refCount > 0 {
+        let name: *const libc::c_char = if (*(*this).desc)._refCount > 0 {
             (*(*this).desc).name
         } else {
             c_str!("<SoundDesc has been freed>")
@@ -763,8 +763,8 @@ unsafe extern "C" fn Sound_Create(
     isLooped: bool,
     is3D: bool,
 ) -> *mut Sound {
-    let mut desc: *mut SoundDesc = SoundDesc_Load(name, immediate, isLooped, is3D);
-    let mut this: *mut Sound = Audio_AllocSound();
+    let desc: *mut SoundDesc = SoundDesc_Load(name, immediate, isLooped, is3D);
+    let this: *mut Sound = Audio_AllocSound();
     (*this).desc = desc;
     Sound_SetState(this, 1 as SoundState);
     this
@@ -776,7 +776,7 @@ pub unsafe extern "C" fn Sound_Load(
     isLooped: bool,
     is3D: bool,
 ) -> *mut Sound {
-    let mut this: *mut Sound = Sound_Create(name, true, isLooped, is3D);
+    let this: *mut Sound = Sound_Create(name, true, isLooped, is3D);
     Sound_EnsureLoadedImpl(this, c_str!("Sound_Load"));
     this
 }
@@ -793,7 +793,7 @@ pub unsafe extern "C" fn Sound_LoadAsync(
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Clone(this: *mut Sound) -> *mut Sound {
     Sound_EnsureStateImpl(this, c_str!("Sound_Clone"));
-    let mut clone: *mut Sound = Audio_AllocSound();
+    let clone: *mut Sound = Audio_AllocSound();
     *clone = *this;
     SoundDesc_Acquire((*this).desc);
     (*clone).handle = std::ptr::null_mut();
@@ -854,7 +854,7 @@ pub unsafe extern "C" fn Sound_Rewind(this: *mut Sound) {
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Get3D(this: *mut Sound) -> bool {
     Sound_EnsureStateImpl(this, c_str!("Sound_Get3D"));
-    let mut mode: FMOD_MODE = 0;
+    let mode: FMOD_MODE = 0;
     // FMOD_CheckError(
     //     FMOD_Channel_GetMode((*this).handle, &mut mode),
     //     c_str!("/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
@@ -879,7 +879,7 @@ pub unsafe extern "C" fn Sound_GetLooped(_this: *mut Sound) -> bool {
     //     c_str!("Sound_GetLooped\0"))
     //         .as_ptr(),
     // );
-    let mut mode: FMOD_MODE = 0;
+    let mode: FMOD_MODE = 0;
     // FMOD_CheckError(
     //     FMOD_Channel_GetMode((*this).handle, &mut mode),
     //     c_str!("/Users/dgavedissian/Work/ltheory/libphx/src/Sound.c\0" as *const u8
@@ -917,7 +917,7 @@ pub unsafe extern "C" fn Sound_IsPlaying(this: *mut Sound) -> bool {
 pub unsafe extern "C" fn Sound_IsAudible(this: *mut Sound) -> bool {
     Sound_EnsureStateImpl(this, c_str!("Sound_Set3DLevel"));
 
-    let mut audibility = 0.0f32;
+    let audibility = 0.0f32;
     // FMOD_Channel_GetAudibility((*this).handle, &mut audibility);
     return audibility > 0.0f32;
 }
@@ -996,7 +996,7 @@ pub unsafe extern "C" fn Sound_SetPitch(this: *mut Sound, pitch: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn Sound_SetPlayPos(this: *mut Sound, seconds: f32) {
     Sound_EnsureStateImpl(this, c_str!("Sound_SetPlayPos"));
-    let mut ms: u32 = f64::round((seconds * 1000.0f32) as f64) as u32;
+    let ms: u32 = f64::round((seconds * 1000.0f32) as f64) as u32;
     // FMOD_CheckError(
     //     FMOD_Channel_SetPosition(
     //         (*this).handle,
@@ -1037,20 +1037,20 @@ pub unsafe extern "C" fn Sound_FadeIn(this: *mut Sound, seconds: f32) {
     }
 
     // // Already fading in/out?
-    // let mut numpoints = 0;
+    // let numpoints = 0;
     // FMOD_Channel_GetFadePoints((*this).handle, &mut numpoints, std::ptr::null_mut(), std::ptr::null_mut());
     // if numpoints > 0 {
     //     return;
     // }
 
-    // let mut rate = 0;
+    // let rate = 0;
     // FMOD_System_GetSoftwareFormat(Audio_GetHandle() as *mut _, &mut rate, std::ptr::null_mut(), std::ptr::null_mut());
     // let fadeTime = (rate as f32 * seconds) as u64;
 
-    // let mut volume = 1.0f32;
+    // let volume = 1.0f32;
     // FMOD_Channel_GetVolume((*this).handle, &mut volume);
 
-    // let mut dspClock = 0;
+    // let dspClock = 0;
     // FMOD_Channel_GetDSPClock((*this).handle, std::ptr::null_mut(), &mut dspClock);
 
     // FMOD_Channel_SetDelay((*this).handle, dspClock, 0, 0);
@@ -1065,20 +1065,20 @@ pub unsafe extern "C" fn Sound_FadeOut(this: *mut Sound, seconds: f32) {
     // Assert(seconds >= 0.0f);
 
     // // Already fading in/out?
-    // let mut numpoints = 0;
+    // let numpoints = 0;
     // FMOD_Channel_GetFadePoints((*this).handle, &mut numpoints, std::ptr::null_mut(), std::ptr::null_mut());
     // if numpoints > 0 {
     //     return;
     // }
 
-    // let mut rate = 0;
+    // let rate = 0;
     // FMOD_System_GetSoftwareFormat(Audio_GetHandle() as *mut _, &mut rate, std::ptr::null_mut(), std::ptr::null_mut());
     // let fadeTime = (rate as f32 * seconds) as u64;
 
-    // let mut volume = 1.0f32;
+    // let volume = 1.0f32;
     // FMOD_Channel_GetVolume((*this).handle, &mut volume);
 
-    // let mut dspClock = 0;
+    // let dspClock = 0;
     // FMOD_Channel_GetDSPClock((*this).handle, std::ptr::null_mut(), &mut dspClock);
 
     // FMOD_Channel_AddFadePoint((*this).handle, dspClock, volume);
@@ -1135,7 +1135,7 @@ pub unsafe extern "C" fn Sound_LoadPlayFreeAttached(
 
 #[no_mangle]
 pub unsafe extern "C" fn Sound_ClonePlay(this: *mut Sound) -> *mut Sound {
-    let mut clone: *mut Sound = Sound_Clone(this);
+    let clone: *mut Sound = Sound_Clone(this);
     Sound_Play(clone);
     clone
 }
@@ -1146,7 +1146,7 @@ pub unsafe extern "C" fn Sound_ClonePlayAttached(
     pos: *const Vec3,
     vel: *const Vec3,
 ) -> *mut Sound {
-    let mut clone: *mut Sound = Sound_Clone(this);
+    let clone: *mut Sound = Sound_Clone(this);
     Sound_Attach3DPos(clone, pos, vel);
     Sound_Play(clone);
     clone
@@ -1154,7 +1154,7 @@ pub unsafe extern "C" fn Sound_ClonePlayAttached(
 
 #[no_mangle]
 pub unsafe extern "C" fn Sound_ClonePlayFree(this: *mut Sound) {
-    let mut clone: *mut Sound = Sound_Clone(this);
+    let clone: *mut Sound = Sound_Clone(this);
     Sound_SetFreeOnFinish(clone, true);
     Sound_Play(clone);
 }
@@ -1165,7 +1165,7 @@ pub unsafe extern "C" fn Sound_ClonePlayFreeAttached(
     pos: *const Vec3,
     vel: *const Vec3,
 ) {
-    let mut clone: *mut Sound = Sound_Clone(this);
+    let clone: *mut Sound = Sound_Clone(this);
     Sound_Attach3DPos(clone, pos, vel);
     Sound_SetFreeOnFinish(clone, true);
     Sound_Play(clone);

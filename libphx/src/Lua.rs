@@ -114,9 +114,9 @@ unsafe extern "C" fn Lua_SignalHandler(sig: Signal) {
 }
 
 unsafe extern "C" fn Lua_PCall(this: *mut Lua, args: i32, rets: i32, errorHandler: i32) {
-    let mut prev: *mut Lua = activeInstance;
+    let prev: *mut Lua = activeInstance;
     activeInstance = this;
-    let mut result: i32 = lua_pcall(this, args, rets, errorHandler);
+    let result: i32 = lua_pcall(this, args, rets, errorHandler);
     if result != 0 {
         if result == 4 {
             Fatal(c_str!("Lua_PCall: Lua returned a memory allocation error"));
@@ -125,7 +125,7 @@ unsafe extern "C" fn Lua_PCall(this: *mut Lua, args: i32, rets: i32, errorHandle
                 "Lua_PCall: Lua errored while attempting to run the error handler"
             ));
         } else if result == 2 {
-            let mut error: *const libc::c_char = lua_tolstring(this, -1, std::ptr::null_mut());
+            let error: *const libc::c_char = lua_tolstring(this, -1, std::ptr::null_mut());
             println!("{}", std::ffi::CStr::from_ptr(error).to_str().unwrap());
             Fatal(c_str!("Lua_PCall: Lua returned error message: %s"), error);
         } else {
@@ -138,7 +138,7 @@ unsafe extern "C" fn Lua_PCall(this: *mut Lua, args: i32, rets: i32, errorHandle
 }
 
 unsafe extern "C" fn Lua_CallBarrier(this: *mut Lua) -> i32 {
-    let mut args: i32 = lua_gettop(this) - 1;
+    let args: i32 = lua_gettop(this) - 1;
     lua_call(this, args, -1);
     lua_gettop(this)
 }
@@ -199,7 +199,7 @@ pub unsafe extern "C" fn Lua_DoString(this: *mut Lua, code: *const libc::c_char)
 
 #[no_mangle]
 pub unsafe extern "C" fn Lua_LoadFile(this: *mut Lua, name: *const libc::c_char) {
-    let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Script, name);
+    let path: *const libc::c_char = Resource_GetPath(ResourceType_Script, name);
     if luaL_loadfile(this, path) != 0 {
         Fatal(
             c_str!("Lua_LoadFile: failed to load <%s>:\n%s"),
@@ -343,15 +343,15 @@ unsafe extern "C" fn Lua_ToString(
     this: *mut Lua,
     name: *const libc::c_char,
 ) -> *const libc::c_char {
-    let mut type_0: i32 = lua_type(this, -1);
-    let mut typeName: *const libc::c_char = lua_typename(this, type_0);
+    let type_0: i32 = lua_type(this, -1);
+    let typeName: *const libc::c_char = lua_typename(this, type_0);
     let mut strValue: *const libc::c_char = std::ptr::null();
     let mut isNull: bool = false;
     if luaL_callmeta(this, -1, c_str!("__tostring")) != 0 {
         strValue = StrDup(lua_tolstring(this, -1, std::ptr::null_mut()));
         lua_settop(this, -1 - 1);
     } else {
-        let mut current_block_14: u64;
+        let current_block_14: u64;
         match type_0 {
             0 => {
                 current_block_14 = 12136430868992966025;
@@ -406,12 +406,12 @@ unsafe extern "C" fn Lua_ToString(
             _ => {}
         }
     }
-    let mut pre: *const libc::c_char = if isNull as i32 != 0 {
+    let pre: *const libc::c_char = if isNull as i32 != 0 {
         c_str!("\x1B[91;1m")
     } else {
         c_str!("")
     };
-    let mut app: *const libc::c_char = if isNull as i32 != 0 {
+    let app: *const libc::c_char = if isNull as i32 != 0 {
         c_str!("\x1B[0m")
     } else {
         c_str!("")
@@ -432,7 +432,7 @@ unsafe extern "C" fn Lua_ToString(
 //         return;
 //     }
 
-//     let mut result: i32 = lua_getstack(this, iStack, &mut ar);
+//     let result: i32 = lua_getstack(this, iStack, &mut ar);
 //     if result == 0 {
 //         return;
 //     }
@@ -529,7 +529,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
 
         let mut iLocal: i32 = 1;
         loop {
-            let mut name_0: *const libc::c_char = lua_getlocal(this, &mut ar, iLocal);
+            let name_0: *const libc::c_char = lua_getlocal(this, &mut ar, iLocal);
             if name_0.is_null() {
                 break;
             }

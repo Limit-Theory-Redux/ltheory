@@ -35,7 +35,7 @@ unsafe extern "C" fn Resource_Resolve(
     static mut buffer: [libc::c_char; 256] = [0; 256];
     let mut elem: *mut PathElem = paths[type_0 as usize];
     while !elem.is_null() {
-        let mut res: i32 = libc::snprintf(
+        let res: i32 = libc::snprintf(
             buffer.as_mut_ptr(),
             std::mem::size_of::<[libc::c_char; 256]>(),
             (*elem).format,
@@ -63,7 +63,7 @@ unsafe extern "C" fn Resource_Resolve(
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_AddPath(type_0: ResourceType, format: *const libc::c_char) {
-    let mut this = MemNew!(PathElem);
+    let this = MemNew!(PathElem);
     (*this).format = StrDup(format);
     (*this).next = paths[type_0 as usize];
     paths[type_0 as usize] = this;
@@ -87,8 +87,8 @@ pub unsafe extern "C" fn Resource_LoadBytes(
     type_0: ResourceType,
     name: *const libc::c_char,
 ) -> *mut Bytes {
-    let mut path: *const libc::c_char = Resource_Resolve(type_0, name, true);
-    let mut data: *mut Bytes = File_ReadBytes(path);
+    let path: *const libc::c_char = Resource_Resolve(type_0, name, true);
+    let data: *mut Bytes = File_ReadBytes(path);
     if data.is_null() {
         Fatal(
             c_str!("Resource_LoadBytes: Failed to load %s <%s> at <%s>"),
@@ -105,8 +105,8 @@ pub unsafe extern "C" fn Resource_LoadCstr(
     type_0: ResourceType,
     name: *const libc::c_char,
 ) -> *const libc::c_char {
-    let mut path: *const libc::c_char = Resource_Resolve(type_0, name, true);
-    let mut data: *const libc::c_char = File_ReadCstr(path);
+    let path: *const libc::c_char = Resource_Resolve(type_0, name, true);
+    let data: *const libc::c_char = File_ReadCstr(path);
     if data.is_null() {
         Fatal(
             c_str!("Resource_LoadCstr: Failed to load %s <%s> at <%s>"),

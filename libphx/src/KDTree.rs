@@ -53,7 +53,7 @@ unsafe extern "C" fn compareLowerZ(a: *const libc::c_void, b: *const libc::c_voi
 }
 
 unsafe extern "C" fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mut KDTree {
-    let mut this = MemNew!(KDTree);
+    let this = MemNew!(KDTree);
     if boxCount <= kMaxLeafSize {
         (*this).box_0 = *boxes.offset(0);
         (*this).back = std::ptr::null_mut();
@@ -66,7 +66,7 @@ unsafe extern "C" fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mu
         }
         let mut i_0: i32 = 0;
         while i_0 < boxCount {
-            let mut node = MemNew!(Node);
+            let node = MemNew!(Node);
             (*node).box_0 = *boxes.offset(i_0 as isize);
             (*node).next = (*this).elems;
             (*node).id = 0;
@@ -108,10 +108,10 @@ unsafe extern "C" fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mu
             ),
         );
     }
-    let mut boxCountBack: i32 = boxCount / 2;
-    let mut boxCountFront: i32 = boxCount - boxCountBack;
-    let mut boxesBack: *mut Box3 = MemNewArray!(Box3, boxCountBack);
-    let mut boxesFront: *mut Box3 = MemNewArray!(Box3, boxCountFront);
+    let boxCountBack: i32 = boxCount / 2;
+    let boxCountFront: i32 = boxCount - boxCountBack;
+    let boxesBack: *mut Box3 = MemNewArray!(Box3, boxCountBack);
+    let boxesFront: *mut Box3 = MemNewArray!(Box3, boxCountFront);
     MemCpy(
         boxesBack as *mut _,
         boxes as *const _,
@@ -134,15 +134,15 @@ unsafe extern "C" fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mu
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_FromMesh(mesh: *mut Mesh) -> *mut KDTree {
     let indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
-    let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
+    let indexData: *const i32 = Mesh_GetIndexData(mesh);
+    let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
     let boxCount: i32 = indexCount / 3;
-    let mut boxes: *mut Box3 = MemNewArray!(Box3, boxCount);
+    let boxes: *mut Box3 = MemNewArray!(Box3, boxCount);
     let mut i: i32 = 0;
     while i < indexCount {
-        let mut v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
-        let mut v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let mut v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
+        let v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
+        let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
         *boxes.offset((i / 3) as isize) = Box3::new(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn KDTree_Free(this: *mut KDTree) {
     }
     let mut elem: *mut Node = (*this).elems;
     while !elem.is_null() {
-        let mut next: *mut Node = (*elem).next;
+        let next: *mut Node = (*elem).next;
         MemFree(elem as *const _);
         elem = next;
     }

@@ -40,7 +40,7 @@ pub unsafe extern "C" fn Tex3D_Create(sx: i32, sy: i32, sz: i32, format: TexForm
             "Tex3D_Create: Cannot create 3D texture with depth format"
         ));
     }
-    let mut this = MemNew!(Tex3D);
+    let this = MemNew!(Tex3D);
     (*this)._refCount = 1;
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).format = format;
@@ -104,7 +104,7 @@ pub unsafe extern "C" fn Tex3D_Draw(
     xs: f32,
     ys: f32,
 ) {
-    let mut r: f32 = (layer + 1) as f32 / ((*this).size.z + 1) as f32;
+    let r: f32 = (layer + 1) as f32 / ((*this).size.z + 1) as f32;
     gl::Enable(gl::TEXTURE_3D);
     gl::BindTexture(gl::TEXTURE_3D, (*this).handle);
     gl::Begin(gl::QUADS);
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn Tex3D_GetDataBytes(
     let mut size: i32 = (*this).size.x * (*this).size.y * (*this).size.z;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
-    let mut data: *mut Bytes = Bytes_Create(size as u32);
+    let data: *mut Bytes = Bytes_Create(size as u32);
     Tex3D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
     data

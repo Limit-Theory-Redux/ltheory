@@ -18,7 +18,7 @@ pub unsafe extern "C" fn Thread_Create(
     fn_0: ThreadFn,
     data: *mut libc::c_void,
 ) -> *mut Thread {
-    let mut this = MemNew!(Thread);
+    let this = MemNew!(Thread);
     (*this).handle = SDL_CreateThread(fn_0, name, data);
     if ((*this).handle).is_null() {
         Fatal(c_str!("Thread_Create: Failed to start new thread"));

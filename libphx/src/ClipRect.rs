@@ -46,8 +46,7 @@ static mut rectIndex: i32 = -1;
 #[inline]
 unsafe extern "C" fn TransformRect(x: *mut f32, y: *mut f32, sx: *mut f32, sy: *mut f32) {
     if transformIndex >= 0 {
-        let mut curr: *mut ClipRectTransform =
-            transform.as_mut_ptr().offset(transformIndex as isize);
+        let curr: *mut ClipRectTransform = transform.as_mut_ptr().offset(transformIndex as isize);
         *x = (*curr).sx * *x + (*curr).tx;
         *y = (*curr).sy * *y + (*curr).ty;
         *sx *= (*curr).sx;
@@ -78,7 +77,7 @@ pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
         Fatal(c_str!("ClipRect_Push: Maximum stack depth exceeded"));
     }
     rectIndex += 1;
-    let mut curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
+    let curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
     (*curr).x = x;
     (*curr).y = y;
     (*curr).sx = sx;
@@ -112,7 +111,7 @@ pub unsafe extern "C" fn ClipRect_PushDisabled() {
         Fatal(c_str!("ClipRect_Push: Maximum stack depth exceeded"));
     }
     rectIndex += 1;
-    let mut curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
+    let curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
     (*curr).enabled = false;
     ClipRect_Activate(curr);
 }
@@ -125,7 +124,7 @@ pub unsafe extern "C" fn ClipRect_PushTransform(tx: f32, ty: f32, sx: f32, sy: f
         ));
     }
     transformIndex += 1;
-    let mut curr: *mut ClipRectTransform = transform.as_mut_ptr().offset(transformIndex as isize);
+    let curr: *mut ClipRectTransform = transform.as_mut_ptr().offset(transformIndex as isize);
     (*curr).tx = tx;
     (*curr).ty = ty;
     (*curr).sx = sx;

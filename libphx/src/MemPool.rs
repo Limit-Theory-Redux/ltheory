@@ -18,13 +18,13 @@ pub struct MemPool {
 unsafe extern "C" fn MemPool_Grow(this: *mut MemPool) {
     let fresh0 = (*this).blockCount;
     (*this).blockCount = ((*this).blockCount).wrapping_add(1);
-    let mut newBlockIndex: u16 = fresh0;
+    let newBlockIndex: u16 = fresh0;
     (*this).capacity = (*this).capacity.wrapping_add((*this).blockSize);
     (*this).blocks = MemRealloc(
         (*this).blocks as *mut _,
         ((*this).blockCount as usize).wrapping_mul(std::mem::size_of::<*mut libc::c_void>()),
     ) as *mut *mut libc::c_void;
-    let mut newBlock: *mut libc::c_void =
+    let newBlock: *mut libc::c_void =
         MemAlloc(((*this).cellSize).wrapping_mul((*this).blockSize) as usize);
     let ref mut fresh1 = *((*this).blocks).offset(newBlockIndex as isize);
     *fresh1 = newBlock;
@@ -42,7 +42,7 @@ unsafe extern "C" fn MemPool_Grow(this: *mut MemPool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemPool_Create(cellSize: u32, blockSize: u32) -> *mut MemPool {
-    let mut this = MemNew!(MemPool);
+    let this = MemNew!(MemPool);
     (*this).size = 0;
     (*this).capacity = 0;
     (*this).freeList = std::ptr::null_mut();
@@ -73,7 +73,7 @@ pub unsafe extern "C" fn MemPool_Alloc(this: *mut MemPool) -> *mut libc::c_void 
     if ((*this).size == (*this).capacity) as libc::c_long != 0 {
         MemPool_Grow(this);
     }
-    let mut freeCell: *mut libc::c_void = (*this).freeList;
+    let freeCell: *mut libc::c_void = (*this).freeList;
     (*this).freeList = *(freeCell as *mut *mut libc::c_void);
     (*this).size = ((*this).size).wrapping_add(1);
     MemZero(freeCell, (*this).cellSize as usize);

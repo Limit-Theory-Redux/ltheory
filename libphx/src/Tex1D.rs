@@ -31,7 +31,7 @@ pub unsafe extern "C" fn Tex1D_Create(size: i32, format: TexFormat) -> *mut Tex1
     if !TexFormat_IsValid(format) {
         Fatal(c_str!("Tex1D_Create: Invalid texture format requested"));
     }
-    let mut this = MemNew!(Tex1D);
+    let this = MemNew!(Tex1D);
     (*this)._refCount = 1;
     (*this).size = size;
     (*this).format = format;
@@ -124,8 +124,8 @@ pub unsafe extern "C" fn Tex1D_GetDataBytes(
     pf: PixelFormat,
     df: DataFormat,
 ) -> *mut Bytes {
-    let mut size: i32 = (*this).size * DataFormat_GetSize(df) * PixelFormat_Components(pf);
-    let mut data: *mut Bytes = Bytes_Create(size as u32);
+    let size: i32 = (*this).size * DataFormat_GetSize(df) * PixelFormat_Components(pf);
+    let data: *mut Bytes = Bytes_Create(size as u32);
     Tex1D_GetData(this, Bytes_GetData(data), pf, df);
     Bytes_Rewind(data);
     data

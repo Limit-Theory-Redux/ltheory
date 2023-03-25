@@ -73,7 +73,7 @@ pub static ElemType_TexCube: u32 = 10;
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Create(shader: *mut Shader) -> *mut ShaderState {
-    let mut this = MemNew!(ShaderState);
+    let this = MemNew!(ShaderState);
     (*this)._refCount = 1;
     (*this).elems = Vec::new();
     Shader_Acquire(shader);
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn ShaderState_FromShaderLoad(
     vertName: *const libc::c_char,
     fragName: *const libc::c_char,
 ) -> *mut ShaderState {
-    let mut shader: *mut Shader = Shader_Load(vertName, fragName);
+    let shader: *mut Shader = Shader_Load(vertName, fragName);
     let this: *mut ShaderState = ShaderState_Create(shader);
     Shader_Free(shader);
     this

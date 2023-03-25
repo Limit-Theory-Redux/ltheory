@@ -12,11 +12,11 @@ pub struct Directory {
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Open(path: *const libc::c_char) -> *mut Directory {
-    let mut dir: *mut libc::DIR = libc::opendir(path);
+    let dir: *mut libc::DIR = libc::opendir(path);
     if dir.is_null() {
         return std::ptr::null_mut();
     }
-    let mut this = MemNew!(Directory);
+    let this = MemNew!(Directory);
     (*this).handle = dir;
     this
 }
@@ -30,7 +30,7 @@ pub unsafe extern "C" fn Directory_Close(this: *mut Directory) {
 #[no_mangle]
 pub unsafe extern "C" fn Directory_GetNext(this: *mut Directory) -> *const libc::c_char {
     loop {
-        let mut ent: *mut libc::dirent = libc::readdir((*this).handle);
+        let ent: *mut libc::dirent = libc::readdir((*this).handle);
         if ent.is_null() {
             return std::ptr::null();
         }

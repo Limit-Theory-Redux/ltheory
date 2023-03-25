@@ -24,7 +24,7 @@ pub struct Node {
 
 #[inline]
 unsafe extern "C" fn Node_Create(box_0: Box3, data: *mut libc::c_void) -> *mut Node {
-    let mut this = MemNew!(Node);
+    let this = MemNew!(Node);
     (*this).box_0 = box_0;
     (*this).sub[0] = std::ptr::null_mut();
     (*this).sub[1] = std::ptr::null_mut();
@@ -34,7 +34,7 @@ unsafe extern "C" fn Node_Create(box_0: Box3, data: *mut libc::c_void) -> *mut N
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_Create() -> *mut BoxTree {
-    let mut this = MemNew!(BoxTree);
+    let this = MemNew!(BoxTree);
     (*this).root = std::ptr::null_mut();
     this
 }
@@ -60,15 +60,15 @@ pub unsafe extern "C" fn BoxTree_Free(this: *mut BoxTree) {
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_FromMesh(mesh: *mut Mesh) -> *mut BoxTree {
     let this: *mut BoxTree = BoxTree_Create();
-    let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
-    let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
-    let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
+    let indexCount: i32 = Mesh_GetIndexCount(mesh);
+    let indexData: *const i32 = Mesh_GetIndexData(mesh);
+    let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
     let mut i: i32 = 0;
     while i < indexCount {
-        let mut v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
-        let mut v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
-        let mut v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
-        let mut box_0: Box3 = Box3::new(
+        let v0: *const Vertex = vertexData.offset(*indexData.offset((i + 0) as isize) as isize);
+        let v1: *const Vertex = vertexData.offset(*indexData.offset((i + 1) as isize) as isize);
+        let v2: *const Vertex = vertexData.offset(*indexData.offset((i + 2) as isize) as isize);
+        let box_0: Box3 = Box3::new(
             Vec3::min((*v0).p, Vec3::min((*v1).p, (*v2).p)),
             Vec3::max((*v0).p, Vec3::max((*v1).p, (*v2).p)),
         );
@@ -94,7 +94,7 @@ unsafe extern "C" fn Node_Merge(this: *mut Node, src: *mut Node, prev: *mut *mut
         return;
     }
     if ((*this).sub[0]).is_null() {
-        let mut parent: *mut Node = Node_Create(
+        let parent: *mut Node = Node_Create(
             Box3::union((*this).box_0, (*src).box_0),
             std::ptr::null_mut(),
         );
@@ -105,9 +105,9 @@ unsafe extern "C" fn Node_Merge(this: *mut Node, src: *mut Node, prev: *mut *mut
         return;
     }
     if Box3::contains((*this).box_0, (*src).box_0) {
-        let mut cost0: f32 =
+        let cost0: f32 =
             CostMerge((*(*this).sub[0]).box_0, (*src).box_0) + Cost((*(*this).sub[1]).box_0);
-        let mut cost1: f32 =
+        let cost1: f32 =
             CostMerge((*(*this).sub[1]).box_0, (*src).box_0) + Cost((*(*this).sub[0]).box_0);
         if cost0 < cost1 {
             Node_Merge(
@@ -123,15 +123,15 @@ unsafe extern "C" fn Node_Merge(this: *mut Node, src: *mut Node, prev: *mut *mut
             );
         }
     } else {
-        let mut parent_0: *mut Node = Node_Create(
+        let parent_0: *mut Node = Node_Create(
             Box3::union((*this).box_0, (*src).box_0),
             std::ptr::null_mut(),
         );
         *prev = parent_0;
-        let mut costBase: f32 = Cost((*this).box_0) + Cost((*src).box_0);
-        let mut cost0_0: f32 =
+        let costBase: f32 = Cost((*this).box_0) + Cost((*src).box_0);
+        let cost0_0: f32 =
             CostMerge((*(*this).sub[0]).box_0, (*src).box_0) + Cost((*(*this).sub[1]).box_0);
-        let mut cost1_0: f32 =
+        let cost1_0: f32 =
             CostMerge((*(*this).sub[1]).box_0, (*src).box_0) + Cost((*(*this).sub[0]).box_0);
         if costBase <= cost0_0 && costBase <= cost1_0 {
             (*parent_0).sub[0] = this;
@@ -210,7 +210,7 @@ pub unsafe extern "C" fn BoxTree_IntersectRay(
     if ((*this).root).is_null() {
         return false;
     }
-    let mut inv: *mut Matrix = Matrix_Inverse(matrix);
+    let inv: *mut Matrix = Matrix_Inverse(matrix);
     let mut invRo = Vec3::ZERO;
     Matrix_MulPoint(inv, &mut invRo, (*ro).x, (*ro).y, (*ro).z);
     let mut invRd = Vec3::ZERO;

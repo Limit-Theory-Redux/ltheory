@@ -80,7 +80,7 @@ unsafe extern "C" fn RNG_Init(this: *mut RNG) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_Create(seed: u64) -> *mut RNG {
-    let mut this = MemNew!(RNG);
+    let this = MemNew!(RNG);
     (*this).seed = seed;
     RNG_Init(this);
     this
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn RNG_GetAngle(this: *mut RNG) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetInt(this: *mut RNG, lower: i32, upper: i32) -> i32 {
-    let mut t: f64 = RNG_GetUniform(this);
+    let t: f64 = RNG_GetUniform(this);
     f64::round(lower as f64 + t * (upper - lower) as f64) as i32
 }
 
@@ -150,7 +150,7 @@ pub unsafe extern "C" fn RNG_GetUniform(this: *mut RNG) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetUniformRange(this: *mut RNG, lower: f64, upper: f64) -> f64 {
-    let mut t: f64 = RNG_Next32(this) as f64 * f64::exp2(-32.0);
+    let t: f64 = RNG_Next32(this) as f64 * f64::exp2(-32.0);
     lower + t * (upper - lower)
 }
 
@@ -172,15 +172,15 @@ pub unsafe extern "C" fn RNG_GetExp(this: *mut RNG) -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetGaussian(this: *mut RNG) -> f64 {
-    let mut angle: f64 = RNG_GetAngle(this);
-    let mut radius: f64 = 1.0f64 - RNG_GetUniform(this);
+    let angle: f64 = RNG_GetAngle(this);
+    let radius: f64 = 1.0f64 - RNG_GetUniform(this);
     f64::cos(angle) * f64::sqrt(-2.0f64 * f64::ln(radius))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetAxis2(this: *mut RNG, out: *mut Vec2) {
     *out = Vec2::ZERO;
-    let mut axis: i32 = RNG_GetInt(this, 0, 3);
+    let axis: i32 = RNG_GetInt(this, 0, 3);
     match axis {
         0 => {
             (*out).x = 1.0f32;
@@ -201,7 +201,7 @@ pub unsafe extern "C" fn RNG_GetAxis2(this: *mut RNG, out: *mut Vec2) {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetAxis3(this: *mut RNG, out: *mut Vec3) {
     *out = Vec3::ZERO;
-    let mut axis: i32 = RNG_GetInt(this, 0, 5);
+    let axis: i32 = RNG_GetInt(this, 0, 5);
     match axis {
         0 => {
             (*out).x = 1.0f32;
@@ -227,16 +227,16 @@ pub unsafe extern "C" fn RNG_GetAxis3(this: *mut RNG, out: *mut Vec3) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetDir2(this: *mut RNG, out: *mut Vec2) {
-    let mut angle: f64 = RNG_GetAngle(this);
+    let angle: f64 = RNG_GetAngle(this);
     *out = Vec2::new(f64::cos(angle) as f32, f64::sin(angle) as f32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetDir3(this: *mut RNG, out: *mut Vec3) {
     loop {
-        let mut x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let mut y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let mut z: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let z: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         let mut m2: f64 = x * x + y * y + z * z;
         if m2 <= 1.0f64 && m2 > 1e-6f64 {
             m2 = f64::sqrt(m2);
@@ -251,8 +251,8 @@ pub unsafe extern "C" fn RNG_GetDir3(this: *mut RNG, out: *mut Vec3) {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetDisc(this: *mut RNG, out: *mut Vec2) {
     loop {
-        let mut x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let mut y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         if x * x + y * y <= 1.0f64 {
             (*out).x = x as f32;
             (*out).y = y as f32;
@@ -273,9 +273,9 @@ pub unsafe extern "C" fn RNG_GetSign(this: *mut RNG) -> f64 {
 #[no_mangle]
 pub unsafe extern "C" fn RNG_GetSphere(this: *mut RNG, out: *mut Vec3) {
     loop {
-        let mut x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let mut y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
-        let mut z: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
+        let z: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         if x * x + y * y + z * z <= 1.0f64 {
             (*out).x = x as f32;
             (*out).y = y as f32;
@@ -312,9 +312,9 @@ pub unsafe extern "C" fn RNG_GetQuat(this: *mut RNG, out: *mut Quat) {
     let mut p1 = Vec2::ZERO;
     RNG_GetDisc(this, &mut p0);
     RNG_GetDisc(this, &mut p1);
-    let mut d0 = p0.length_squared() as f64;
-    let mut d1 = p1.length_squared() as f64 + f64::EPSILON;
-    let mut s = f64::sqrt((1.0f64 - d0) / d1);
+    let d0 = p0.length_squared() as f64;
+    let d1 = p1.length_squared() as f64 + f64::EPSILON;
+    let s = f64::sqrt((1.0f64 - d0) / d1);
     (*out).x = p0.y;
     (*out).y = (p1.x as f64 * s) as f32;
     (*out).z = (p1.y as f64 * s) as f32;

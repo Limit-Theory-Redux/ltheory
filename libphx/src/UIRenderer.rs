@@ -144,10 +144,10 @@ unsafe extern "C" fn UIRenderer_DrawLayer(self_1: *const UIRendererLayer) {
         Shader_SetFloat(c_str!("padding"), pad);
         let mut e: *const UIRendererPanel = (*self_1).panelList;
         while !e.is_null() {
-            let mut x: f32 = (*e).pos.x - pad;
-            let mut y: f32 = (*e).pos.y - pad;
-            let mut sx: f32 = (*e).size.x + 2.0f32 * pad;
-            let mut sy: f32 = (*e).size.y + 2.0f32 * pad;
+            let x: f32 = (*e).pos.x - pad;
+            let y: f32 = (*e).pos.y - pad;
+            let sx: f32 = (*e).size.x + 2.0f32 * pad;
+            let sy: f32 = (*e).size.y + 2.0f32 * pad;
             Shader_SetFloat(c_str!("innerAlpha"), (*e).innerAlpha);
             Shader_SetFloat(c_str!("bevel"), (*e).bevel);
             Shader_SetFloat2(c_str!("size"), sx, sy);
@@ -228,7 +228,7 @@ pub unsafe extern "C" fn UIRenderer_Draw() {
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_BeginLayer(x: f32, y: f32, sx: f32, sy: f32, clip: bool) {
-    let mut layer: *mut UIRendererLayer = MemPool_Alloc(this.layerPool) as *mut UIRendererLayer;
+    let layer: *mut UIRendererLayer = MemPool_Alloc(this.layerPool) as *mut UIRendererLayer;
     (*layer).parent = this.layer;
     (*layer).next = std::ptr::null_mut();
     (*layer).children = std::ptr::null_mut();
@@ -253,7 +253,7 @@ pub unsafe extern "C" fn UIRenderer_EndLayer() {
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Image(image: *mut Tex2D, x: f32, y: f32, sx: f32, sy: f32) {
-    let mut e: *mut UIRendererImage = MemPool_Alloc(this.imagePool) as *mut UIRendererImage;
+    let e: *mut UIRendererImage = MemPool_Alloc(this.imagePool) as *mut UIRendererImage;
     (*e).next = (*this.layer).imageList;
     (*e).image = image;
     (*e).pos = Vec2::new(x, y);
@@ -274,7 +274,7 @@ pub unsafe extern "C" fn UIRenderer_Panel(
     bevel: f32,
     innerAlpha: f32,
 ) {
-    let mut e: *mut UIRendererPanel = MemPool_Alloc(this.panelPool) as *mut UIRendererPanel;
+    let e: *mut UIRendererPanel = MemPool_Alloc(this.panelPool) as *mut UIRendererPanel;
     (*e).next = (*this.layer).panelList;
     (*e).pos = Vec2::new(x, y);
     (*e).size = Vec2::new(sx, sy);
@@ -296,7 +296,7 @@ pub unsafe extern "C" fn UIRenderer_Rect(
     a: f32,
     outline: bool,
 ) {
-    let mut e: *mut UIRendererRect = MemPool_Alloc(this.rectPool) as *mut UIRendererRect;
+    let e: *mut UIRendererRect = MemPool_Alloc(this.rectPool) as *mut UIRendererRect;
     (*e).next = (*this.layer).rectList;
     (*e).pos = Vec2::new(x, y);
     (*e).size = Vec2::new(sx, sy);
@@ -316,7 +316,7 @@ pub unsafe extern "C" fn UIRenderer_Text(
     b: f32,
     a: f32,
 ) {
-    let mut e: *mut UIRendererText = MemPool_Alloc(this.textPool) as *mut UIRendererText;
+    let e: *mut UIRendererText = MemPool_Alloc(this.textPool) as *mut UIRendererText;
     (*e).next = (*this.layer).textList;
     (*e).font = font;
     (*e).text = text;

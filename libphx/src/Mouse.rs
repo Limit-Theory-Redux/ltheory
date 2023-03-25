@@ -36,9 +36,9 @@ pub unsafe extern "C" fn Mouse_SetScroll(amount: i32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_Update() {
-    let mut lx: i32 = lastX;
-    let mut ly: i32 = lastY;
-    let mut state: u32 = lastState;
+    let lx: i32 = lastX;
+    let ly: i32 = lastY;
+    let state: u32 = lastState;
     lastState = SDL_GetMouseState(&mut lastX, &mut lastY);
     if lx != lastX || ly != lastY || state != lastState {
         lastAction = SDL_GetPerformanceCounter();
@@ -55,7 +55,7 @@ pub unsafe extern "C" fn Mouse_GetDelta(out: *mut IVec2) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_GetIdleTime() -> f64 {
-    let mut now: u64 = SDL_GetPerformanceCounter();
+    let now: u64 = SDL_GetPerformanceCounter();
     now.wrapping_sub(lastAction) as f64 / SDL_GetPerformanceFrequency() as f64
 }
 

@@ -13,7 +13,7 @@ pub struct MemStack {
 
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Create(capacity: u32) -> *mut MemStack {
-    let mut this = MemNew!(MemStack);
+    let this = MemNew!(MemStack);
     (*this).size = 0;
     (*this).capacity = capacity;
     (*this).data = MemAlloc(capacity as usize);
@@ -33,7 +33,7 @@ pub unsafe extern "C" fn MemStack_Alloc(this: *mut MemStack, size: u32) -> *mut 
             "MemStack_Alloc: Allocation request exceeds remaining capacity"
         ));
     }
-    let mut p: *mut libc::c_void =
+    let p: *mut libc::c_void =
         ((*this).data as *mut libc::c_char).offset((*this).size as isize) as *mut _;
     (*this).size = (*this).size.wrapping_add(size);
     p

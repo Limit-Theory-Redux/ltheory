@@ -127,10 +127,10 @@ unsafe extern "C" fn InputBindings_RaiseCallback(
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding) {
     let mut value = Vec2::ZERO;
-    let mut axisValues: [*mut f32; 2] = [&mut value.x, &mut value.y];
+    let axisValues: [*mut f32; 2] = [&mut value.x, &mut value.y];
     let mut iAxis = 0;
     while iAxis < (*binding).axes.len() {
-        let mut axisValue: *mut f32 = axisValues[iAxis as usize];
+        let axisValue: *mut f32 = axisValues[iAxis as usize];
         let mut iBind: i32 = 0;
         while iBind < BindCount {
             *axisValue += (*binding).rawButtons[(2 * iAxis + 0) as usize][iBind as usize].value;
@@ -146,18 +146,18 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
         ) as f32;
         iAxis += 1;
     }
-    let mut len: f32 = value.length();
+    let len: f32 = value.length();
     if len > 1.0f32 {
         value /= 1.0f32 / len;
     }
-    let mut axis2D: *mut AggregateAxis2D = &mut (*binding).axis2D;
+    let axis2D: *mut AggregateAxis2D = &mut (*binding).axis2D;
     if value != (*axis2D).value {
         (*axis2D).value = value;
         InputBindings_RaiseCallback(c_str!("Changed"), binding, (*axis2D).onChanged);
     }
     let mut iAxis_0 = 0;
     while iAxis_0 < (*binding).axes.len() {
-        let mut axis: *mut AggregateAxis =
+        let axis: *mut AggregateAxis =
             &mut *((*binding).axes).as_mut_ptr().offset(iAxis_0 as isize) as *mut AggregateAxis;
         if *axisValues[iAxis_0 as usize] != (*axis).value {
             (*axis).value = *axisValues[iAxis_0 as usize];
@@ -175,10 +175,10 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
     }
     let mut iBtn = 0;
     while iBtn < (*binding).buttons.len() {
-        let mut button: *mut AggregateButton =
+        let button: *mut AggregateButton =
             &mut *((*binding).buttons).as_mut_ptr().offset(iBtn as isize) as *mut AggregateButton;
-        let mut axisValue_0: f32 = (*binding).axes[(iBtn / 2) as usize].value;
-        let mut isPos: bool = iBtn & 1 == 0;
+        let axisValue_0: f32 = (*binding).axes[(iBtn / 2) as usize].value;
+        let isPos: bool = iBtn & 1 == 0;
         if !((*button).state & State_Down == State_Down) {
             if if isPos as i32 != 0 {
                 (axisValue_0 > (*binding).pressThreshold) as i32
@@ -231,7 +231,7 @@ pub unsafe extern "C" fn InputBindings_Update() {
             while iBtn < (*binding).rawButtons.len() {
                 let mut iBind = 0;
                 while iBind < (*binding).rawButtons[iBtn].len() {
-                    let mut button: *mut RawButton =
+                    let button: *mut RawButton =
                         &mut *(*((*binding).rawButtons).as_mut_ptr().offset(iBtn as isize))
                             .as_mut_ptr()
                             .offset(iBind as isize) as *mut RawButton;
@@ -382,23 +382,23 @@ pub unsafe extern "C" fn InputBinding_SetExponent(
 
 #[inline]
 unsafe extern "C" fn InputBinding_SetInvert(binding: *mut InputBinding, iAxis: i32, invert: bool) {
-    let mut axis: *mut AggregateAxis =
+    let axis: *mut AggregateAxis =
         &mut *((*binding).axes).as_mut_ptr().offset(iAxis as isize) as *mut AggregateAxis;
     if invert as i32 != (*axis).invert as i32 {
         (*axis).invert = invert;
         let mut iBind: i32 = 0;
         while iBind < BindCount {
-            let mut btnPos: *mut RawButton = &mut *(*((*binding).rawButtons)
+            let btnPos: *mut RawButton = &mut *(*((*binding).rawButtons)
                 .as_mut_ptr()
                 .offset((2 * iAxis + 0) as isize))
             .as_mut_ptr()
             .offset(iBind as isize) as *mut RawButton;
-            let mut btnNeg: *mut RawButton = &mut *(*((*binding).rawButtons)
+            let btnNeg: *mut RawButton = &mut *(*((*binding).rawButtons)
                 .as_mut_ptr()
                 .offset((2 * iAxis + 1) as isize))
             .as_mut_ptr()
             .offset(iBind as isize) as *mut RawButton;
-            let mut temp: Button = (*btnPos).button;
+            let temp: Button = (*btnPos).button;
             (*btnPos).button = (*btnNeg).button;
             (*btnNeg).button = temp;
             iBind += 1;

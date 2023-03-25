@@ -140,7 +140,7 @@ pub unsafe extern "C" fn Signal_Free() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_AddHandler(sig: Signal, fn_0: SignalHandler) {
-    let mut e = MemNew!(HandlerElem);
+    let e = MemNew!(HandlerElem);
     (*e).next = handlerTable[sig as usize];
     (*e).fn_0 = fn_0;
     // handlerTable[sig as usize] = e;

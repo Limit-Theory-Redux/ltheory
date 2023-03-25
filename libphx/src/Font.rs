@@ -57,8 +57,8 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
     if !g.is_null() {
         return g;
     }
-    let mut face: FT_Face = (*this).handle;
-    let mut glyph: i32 = FT_Get_Char_Index(face, codepoint as FT_ULong) as i32;
+    let face: FT_Face = (*this).handle;
+    let glyph: i32 = FT_Get_Char_Index(face, codepoint as FT_ULong) as i32;
     if glyph == 0 {
         return std::ptr::null_mut();
     }
@@ -70,7 +70,7 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
     {
         return std::ptr::null_mut();
     }
-    let mut bitmap: *const FT_Bitmap = &mut (*(*face).glyph).bitmap;
+    let bitmap: *const FT_Bitmap = &mut (*(*face).glyph).bitmap;
     let mut pBitmap: *const libc::c_uchar = (*bitmap).buffer;
     g = MemNew!(Glyph);
     (*g).index = glyph;
@@ -81,13 +81,13 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
     (*g).x1 = (*g).x0 + (*g).sx;
     (*g).y1 = (*g).y0 + (*g).sy;
     (*g).advance = ((*(*face).glyph).advance.x >> 6) as i32;
-    let mut buffer = MemNewArray!(Vec4, ((*g).sx * (*g).sy));
+    let buffer = MemNewArray!(Vec4, ((*g).sx * (*g).sy));
     let mut pBuffer = buffer;
     let mut dy: i32 = 0;
     while dy < (*bitmap).rows {
         let mut dx: i32 = 0;
         while dx < (*bitmap).width {
-            let mut a: f32 = f64::powf(
+            let a: f32 = f64::powf(
                 (*pBitmap.offset(dx as isize) as f32 / 255.0f32) as f64,
                 kRcpGamma as f64,
             ) as f32;
@@ -137,8 +137,8 @@ pub unsafe extern "C" fn Font_Load(name: *const libc::c_char, size: i32) -> *mut
     if ft.is_null() {
         FT_Init_FreeType(&mut ft);
     }
-    let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Font, name);
-    let mut this = MemNew!(Font);
+    let path: *const libc::c_char = Resource_GetPath(ResourceType_Font, name);
+    let this = MemNew!(Font);
     (*this)._refCount = 1;
     if FT_New_Face(ft, path, 0 as FT_Long, &mut (*this).handle) != 0 {
         Fatal(
@@ -193,15 +193,15 @@ pub unsafe extern "C" fn Font_Draw(
     RenderState_PushBlendMode(1);
     Draw_Color(r, g, b, a);
     while codepoint != 0 {
-        let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
+        let glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
                 x += Font_GetKerning(this, glyphLast, (*glyph).index) as f32;
             }
-            let mut x0: f32 = x + (*glyph).x0 as f32;
-            let mut y0: f32 = y + (*glyph).y0 as f32;
-            let mut x1: f32 = x + (*glyph).x1 as f32;
-            let mut y1: f32 = y + (*glyph).y1 as f32;
+            let x0: f32 = x + (*glyph).x0 as f32;
+            let y0: f32 = y + (*glyph).y0 as f32;
+            let x1: f32 = x + (*glyph).x1 as f32;
+            let y1: f32 = y + (*glyph).y1 as f32;
             Tex2D_DrawEx((*glyph).tex, x0, y0, x1, y1, 0.0f32, 0.0f32, 1.0f32, 1.0f32);
             x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
@@ -232,15 +232,15 @@ pub unsafe extern "C" fn Font_DrawShaded(
     x = f64::floor(x as f64) as f32;
     y = f64::floor(y as f64) as f32;
     while codepoint != 0 {
-        let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
+        let glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
                 x += Font_GetKerning(this, glyphLast, (*glyph).index) as f32;
             }
-            let mut x0: f32 = x + (*glyph).x0 as f32;
-            let mut y0: f32 = y + (*glyph).y0 as f32;
-            let mut x1: f32 = x + (*glyph).x1 as f32;
-            let mut y1: f32 = y + (*glyph).y1 as f32;
+            let x0: f32 = x + (*glyph).x0 as f32;
+            let y0: f32 = y + (*glyph).y0 as f32;
+            let x1: f32 = x + (*glyph).x1 as f32;
+            let y1: f32 = y + (*glyph).y1 as f32;
             Shader_ResetTexIndex();
             Shader_SetTex2D(c_str!("glyph"), (*glyph).tex);
             Tex2D_DrawEx((*glyph).tex, x0, y0, x1, y1, 0.0f32, 0.0f32, 1.0f32, 1.0f32);
@@ -269,7 +269,7 @@ pub unsafe extern "C" fn Font_GetSize(
 ) {
     Profiler_Begin(c_str!("Font_GetSize"));
     let mut x: i32 = 0;
-    let mut y: i32 = 0;
+    let y: i32 = 0;
     let mut lower = IVec2::new(i32::MAX, i32::MAX);
     let mut upper = IVec2::new(i32::MIN, i32::MIN);
     let mut glyphLast: i32 = 0;
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn Font_GetSize(
         return;
     }
     while codepoint != 0 {
-        let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
+        let glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
                 x += Font_GetKerning(this, glyphLast, (*glyph).index);
@@ -317,7 +317,7 @@ pub unsafe extern "C" fn Font_GetSize2(
     text = text.offset(1);
     let mut codepoint: u32 = *fresh7 as u32;
     while codepoint != 0 {
-        let mut glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
+        let glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
                 (*out).x += Font_GetKerning(this, glyphLast, (*glyph).index);

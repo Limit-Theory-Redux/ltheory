@@ -71,7 +71,7 @@ pub unsafe extern "C" fn Socket_Create(type_0: SocketType) -> *mut Socket {
             "Socket_Create: socket type must be either SocketType_TCP or SocketType_UDP"
         ));
     }
-    let mut this = MemNew!(Socket);
+    let this = MemNew!(Socket);
     (*this).type_0 = type_0;
     (*this).sock = libc::socket(2, if type_0 == SocketType_UDP { 2 } else { 1 }, 0);
     if (*this).sock == -1 {
@@ -109,11 +109,11 @@ pub unsafe extern "C" fn Socket_Accept(this: *mut Socket) -> *mut Socket {
             "Socket_Accept: can only accept connections on TCP sockets"
         ));
     }
-    let mut sock: sock_t = libc::accept((*this).sock, std::ptr::null_mut(), std::ptr::null_mut());
+    let sock: sock_t = libc::accept((*this).sock, std::ptr::null_mut(), std::ptr::null_mut());
     if sock == -1 {
         return std::ptr::null_mut();
     }
-    let mut con = MemNew!(Socket);
+    let con = MemNew!(Socket);
     (*con).type_0 = SocketType_TCP;
     (*con).sock = sock;
     if !Socket_SetNonblocking((*con).sock) {
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn Socket_Listen(this: *mut Socket) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Socket_Read(this: *mut Socket) -> *const libc::c_char {
-    let mut bytes: i32 = Socket_Receive(
+    let bytes: i32 = Socket_Receive(
         (*this).sock,
         ((*this).buffer).as_mut_ptr() as *mut _,
         std::mem::size_of::<[libc::c_char; 2048]>() as libc::c_ulong as i32,
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn Socket_Read(this: *mut Socket) -> *const libc::c_char {
 
 #[no_mangle]
 pub unsafe extern "C" fn Socket_ReadBytes(this: *mut Socket) -> *mut Bytes {
-    let mut bytes: i32 = Socket_Receive(
+    let bytes: i32 = Socket_Receive(
         (*this).sock,
         ((*this).buffer).as_mut_ptr() as *mut _,
         std::mem::size_of::<[libc::c_char; 2048]>() as libc::c_ulong as i32,
@@ -207,7 +207,7 @@ pub unsafe extern "C" fn Socket_ReadBytes(this: *mut Socket) -> *mut Bytes {
     if bytes == 0 {
         return std::ptr::null_mut();
     }
-    let mut data: *mut Bytes = Bytes_Create(bytes as u32);
+    let data: *mut Bytes = Bytes_Create(bytes as u32);
     Bytes_Write(
         data,
         ((*this).buffer).as_mut_ptr() as *const _,
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn Socket_ReceiveFrom(
 ) -> i32 {
     MemZero(data, len);
     let mut addrSize: libc::socklen_t = 0;
-    let mut bytes: i32 = libc::recvfrom(
+    let bytes: i32 = libc::recvfrom(
         (*this).sock,
         data,
         len,
@@ -257,14 +257,14 @@ pub unsafe extern "C" fn Socket_GetAddress(this: *mut Socket) -> *const libc::c_
 
 #[no_mangle]
 pub unsafe extern "C" fn Socket_SetAddress(this: *mut Socket, addr: *const libc::c_char) {
-    let mut colon: *const libc::c_char = StrFind(addr, c_str!(":"));
+    let colon: *const libc::c_char = StrFind(addr, c_str!(":"));
     if colon.is_null() {
         Fatal(c_str!(
             "Socket_SetReceiver: address must be in format a.b.c.d:port format"
         ));
     }
-    let mut ip: *const libc::c_char = StrSubStr(addr, colon);
-    let mut port: *const libc::c_char = StrSubStr(colon.offset(1), addr.add(libc::strlen(addr)));
+    let ip: *const libc::c_char = StrSubStr(addr, colon);
+    let port: *const libc::c_char = StrSubStr(colon.offset(1), addr.add(libc::strlen(addr)));
     (*this).addrSend.sin_family = 2 as libc::sa_family_t;
     (*this).addrSend.sin_port = (if 0 != 0 {
         ((libc::strtol(port, std::ptr::null_mut(), 0) as u16 as u32 & 0xff00) >> 8
@@ -288,7 +288,7 @@ pub unsafe extern "C" fn Socket_SendTo(
     data: *const libc::c_void,
     len: usize,
 ) -> i32 {
-    let mut bytes: i32 = libc::sendto(
+    let bytes: i32 = libc::sendto(
         (*this).sock,
         data,
         len,

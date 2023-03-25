@@ -14,7 +14,7 @@ static mut stateCurr: *mut libc::c_uchar = std::ptr::null_mut();
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_Init() {
     let mut size: i32 = 0;
-    let mut state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
+    let state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
     stateLast = MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul(size as usize))
         as *mut libc::c_uchar;
     stateCurr = MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul(size as usize))
@@ -33,14 +33,14 @@ pub unsafe extern "C" fn Keyboard_Free() {
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_UpdatePre() {
     let mut size: i32 = 0;
-    let mut state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
+    let state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
     MemCpy(stateLast as *mut _, state as *const _, size as usize);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_UpdatePost() {
     let mut size: i32 = 0;
-    let mut state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
+    let state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
     MemCpy(stateCurr as *mut _, state as *const _, size as usize);
     let mut i: i32 = 0;
     while i < size {
@@ -70,7 +70,7 @@ pub unsafe extern "C" fn Keyboard_Released(key: Key) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn Keyboard_GetIdleTime() -> f64 {
-    let mut now: u64 = SDL_GetPerformanceCounter();
+    let now: u64 = SDL_GetPerformanceCounter();
     now.wrapping_sub(lastAction) as f64 / SDL_GetPerformanceFrequency() as f64
 }
 

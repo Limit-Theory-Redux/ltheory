@@ -552,9 +552,9 @@ static mut this: Audio = Audio {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Init() {
-    // let mut flags: FMOD_DEBUG_FLAGS = 0 as i32 as FMOD_DEBUG_FLAGS;
+    // let flags: FMOD_DEBUG_FLAGS = 0 as i32 as FMOD_DEBUG_FLAGS;
     // flags |= 0 as i32 as u32;
-    // let mut res: FMOD_RESULT = FMOD_OK;
+    // let res: FMOD_RESULT = FMOD_OK;
     // res = FMOD_Debug_Initialize(
     //     flags,
     //     FMOD_DEBUG_MODE_FILE,
@@ -581,7 +581,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //     c_str!("Audio_Init\0"))
     //         .as_ptr(),
     // );
-    // let mut version: u32 = 0;
+    // let version: u32 = 0;
     // FMOD_CheckError(
     //     FMOD_System_GetVersion(this.handle, &mut version),
     //     c_str!("/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
@@ -596,7 +596,7 @@ pub unsafe extern "C" fn Audio_Init() {
     //             as *const libc::c_char,
     //     );
     // }
-    // let mut flags_0: FMOD_INITFLAGS = 0 as i32 as FMOD_INITFLAGS;
+    // let flags_0: FMOD_INITFLAGS = 0 as i32 as FMOD_INITFLAGS;
     // flags_0 |= 0 as i32 as u32;
     // flags_0 |= 0x4 as i32 as u32;
     // flags_0 |= 0x200 as i32 as u32;
@@ -725,7 +725,7 @@ pub unsafe extern "C" fn Audio_Update() {
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetLoadedCount() -> i32 {
     0
-    // let mut size: u32 = StrMap_GetSize(this.descMap);
+    // let size: u32 = StrMap_GetSize(this.descMap);
     // return size as i32;
 }
 
@@ -736,7 +736,7 @@ pub unsafe extern "C" fn Audio_GetPlayingCount() -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetTotalCount() -> i32 {
-    let mut size: u32 = MemPool_GetSize(this.soundPool);
+    let size: u32 = MemPool_GetSize(this.soundPool);
     size as i32
 }
 

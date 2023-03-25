@@ -10,8 +10,8 @@ pub unsafe extern "C" fn Tex2D_Save_Png(
     components: i32,
     data: *mut libc::c_uchar,
 ) -> bool {
-    let mut stride: i32 = components * sx;
-    let mut result = stbi_write_png(
+    let stride: i32 = components * sx;
+    let result = stbi_write_png(
         CStr::from_ptr(path),
         sx,
         sy,

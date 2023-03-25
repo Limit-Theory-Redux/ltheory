@@ -45,7 +45,7 @@ static mut this: Profiler = Profiler {
 static mut profiling: bool = false;
 
 unsafe extern "C" fn Scope_Create(name: *const libc::c_char) -> *mut Scope {
-    let mut scope = MemNew!(Scope);
+    let scope = MemNew!(Scope);
     (*scope).name = StrDup(name);
     (*scope).last = 0 as TimeStamp;
     (*scope).frame = 0 as TimeStamp;
@@ -65,8 +65,8 @@ unsafe extern "C" fn Scope_Free(scope: *mut Scope) {
 }
 
 unsafe extern "C" fn SortScopes(pa: *const libc::c_void, pb: *const libc::c_void) -> i32 {
-    let mut a: *const Scope = *(pa as *mut *const Scope);
-    let mut b: *const Scope = *(pb as *mut *const Scope);
+    let a: *const Scope = *(pa as *mut *const Scope);
+    let b: *const Scope = *(pb as *mut *const Scope);
     if (*b).total < (*a).total {
         -1
     } else if (*b).total == (*a).total {
@@ -115,10 +115,10 @@ pub unsafe extern "C" fn Profiler_Disable() {
         ));
     }
     Profiler_End();
-    let mut total: f64 = TimeStamp_GetElapsed(this.start);
+    let total: f64 = TimeStamp_GetElapsed(this.start);
     let mut i: i32 = 0;
     while i < this.scopeList.len() as i32 {
-        let mut scope: &mut Scope = &mut *this.scopeList[i as usize];
+        let scope: &mut Scope = &mut *this.scopeList[i as usize];
         (*scope).var /= (*scope).count - 1.0f64;
         (*scope).var = f64::sqrt((*scope).var);
         i += 1;
@@ -135,8 +135,8 @@ pub unsafe extern "C" fn Profiler_Disable() {
     let mut cumulative: f64 = 0.0;
     let mut i_0: i32 = 0;
     while i_0 < this.scopeList.len() as i32 {
-        let mut scope: &mut Scope = &mut *this.scopeList[i_0 as usize];
-        let mut scopeTotal: f64 = TimeStamp_ToDouble((*scope).total);
+        let scope: &mut Scope = &mut *this.scopeList[i_0 as usize];
+        let scopeTotal: f64 = TimeStamp_ToDouble((*scope).total);
         cumulative += scopeTotal;
         if !(scopeTotal / total < 0.01f64 && (*scope).max < 0.01f64) {
             libc::printf(
@@ -187,15 +187,15 @@ pub unsafe extern "C" fn Profiler_Begin(name: *const libc::c_char) {
         Profiler_Backtrace();
         Fatal(c_str!("Profiler_Begin: Maximum stack depth exceeded"));
     }
-    let mut now: TimeStamp = TimeStamp_Get();
+    let now: TimeStamp = TimeStamp_Get();
     if this.stackIndex >= 0 {
-        let mut prev: *mut Scope = this.stack[this.stackIndex as usize];
+        let prev: *mut Scope = this.stack[this.stackIndex as usize];
         (*prev).frame =
             (*prev).frame.wrapping_add(now.wrapping_sub((*prev).last)) as TimeStamp as TimeStamp;
         (*prev).last = now;
     }
     this.stackIndex += 1;
-    let mut curr: *mut Scope = Profiler_GetScope(name);
+    let curr: *mut Scope = Profiler_GetScope(name);
     this.stack[this.stackIndex as usize] = curr;
     (*curr).last = now;
 }
@@ -209,13 +209,13 @@ pub unsafe extern "C" fn Profiler_End() {
         Profiler_Backtrace();
         Fatal(c_str!("Profiler_End: Attempting to pop an empty stack"));
     }
-    let mut now: TimeStamp = TimeStamp_Get();
-    let mut prev: *mut Scope = this.stack[this.stackIndex as usize];
+    let now: TimeStamp = TimeStamp_Get();
+    let prev: *mut Scope = this.stack[this.stackIndex as usize];
     (*prev).frame =
         (*prev).frame.wrapping_add(now.wrapping_sub((*prev).last)) as TimeStamp as TimeStamp;
     this.stackIndex -= 1;
     if this.stackIndex >= 0 {
-        let mut curr: *mut Scope = this.stack[this.stackIndex as usize];
+        let curr: *mut Scope = this.stack[this.stackIndex as usize];
         (*curr).last = now;
     }
 }
@@ -230,16 +230,16 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
     }
     let mut i: i32 = 0;
     while i < this.scopeList.len() as i32 {
-        let mut scope: &mut Scope = &mut *this.scopeList[i as usize];
+        let scope: &mut Scope = &mut *this.scopeList[i as usize];
         if (*scope).frame as f64 > 0.0f64 {
             (*scope).total = (*scope).total.wrapping_add((*scope).frame) as TimeStamp as TimeStamp;
-            let mut frame: f64 = TimeStamp_ToDouble((*scope).frame);
+            let frame: f64 = TimeStamp_ToDouble((*scope).frame);
             (*scope).min = f64::min((*scope).min, frame);
             (*scope).max = f64::max((*scope).max, frame);
             (*scope).count += 1.0f64;
-            let mut d1: f64 = frame - (*scope).mean;
+            let d1: f64 = frame - (*scope).mean;
             (*scope).mean += d1 / (*scope).count;
-            let mut d2: f64 = frame - (*scope).mean;
+            let d2: f64 = frame - (*scope).mean;
             (*scope).var += d1 * d2;
             (*scope).frame = 0 as TimeStamp;
         }
@@ -255,7 +255,7 @@ pub unsafe extern "C" fn Profiler_Backtrace() {
     libc::puts(c_str!("PHX Profiler Backtrace:"));
     let mut i: i32 = 0;
     while i <= this.stackIndex {
-        let mut index: i32 = this.stackIndex - i;
+        let index: i32 = this.stackIndex - i;
         libc::printf(
             c_str!("  [%i] %s\n"),
             index,

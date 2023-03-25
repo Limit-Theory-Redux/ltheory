@@ -52,7 +52,7 @@ unsafe extern "C" fn StrBuffer_AppendData(
 
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_Create(capacity: u32) -> *mut StrBuffer {
-    let mut this = MemNew!(StrBuffer);
+    let this = MemNew!(StrBuffer);
     (*this).data = MemAllocZero(capacity.wrapping_add(1) as usize) as *mut libc::c_char;
     (*this).size = 0;
     (*this).capacity = capacity;
@@ -61,7 +61,7 @@ pub unsafe extern "C" fn StrBuffer_Create(capacity: u32) -> *mut StrBuffer {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_FromStr(s: *const libc::c_char) -> *mut StrBuffer {
-    let mut len: u32 = StrLen(s) as u32;
+    let len: u32 = StrLen(s) as u32;
     let this: *mut StrBuffer = StrBuffer_Create(len);
     (*this).size = len;
     MemCpy((*this).data as *mut _, s as *const _, len as usize);
@@ -90,7 +90,7 @@ unsafe extern "C" fn StrBuffer_SetImpl(
     format: *const libc::c_char,
     args: va_list,
 ) -> i32 {
-    let mut newSize: i32 = libc::snprintf(
+    let newSize: i32 = libc::snprintf(
         (*this).data,
         ((*this).capacity).wrapping_add(1) as usize,
         format,

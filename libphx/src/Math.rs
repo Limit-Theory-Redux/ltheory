@@ -126,7 +126,7 @@ pub unsafe extern "C" fn Saturate(t: f64) -> f64 {
 
 #[inline]
 pub unsafe extern "C" fn Float_Validatef(x: f32) -> Error {
-    let mut classification: i32 = if std::mem::size_of::<f32>() == std::mem::size_of::<f32>() {
+    let classification: i32 = if std::mem::size_of::<f32>() == std::mem::size_of::<f32>() {
         f32::classify(x) as i32
     } else if std::mem::size_of::<f32>() == std::mem::size_of::<f64>() {
         f64::classify(x as f64) as i32
@@ -147,7 +147,7 @@ pub unsafe extern "C" fn Float_Validatef(x: f32) -> Error {
 
 #[inline]
 pub unsafe extern "C" fn Float_Validate(x: f64) -> Error {
-    let mut classification: i32 = if std::mem::size_of::<f64>() as libc::c_ulong
+    let classification: i32 = if std::mem::size_of::<f64>() as libc::c_ulong
         == std::mem::size_of::<f32>() as libc::c_ulong
     {
         f32::classify(x as f32) as i32
@@ -190,18 +190,18 @@ pub extern "C" fn Vec3_Reject(a: Vec3, b: Vec3) -> Vec3 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_Bezier3(x: f64, y1: f64, y2: f64, y3: f64) -> f64 {
-    let mut y12: f64 = Lerp(y1, y2, x);
-    let mut y23: f64 = Lerp(y2, y3, x);
+    let y12: f64 = Lerp(y1, y2, x);
+    let y23: f64 = Lerp(y2, y3, x);
     Lerp(y12, y23, x)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Math_Bezier4(x: f64, y1: f64, y2: f64, y3: f64, y4: f64) -> f64 {
-    let mut y12: f64 = Lerp(y1, y2, x);
-    let mut y23: f64 = Lerp(y2, y3, x);
-    let mut y34: f64 = Lerp(y3, y4, x);
-    let mut y123: f64 = Lerp(y12, y23, x);
-    let mut y234: f64 = Lerp(y23, y34, x);
+    let y12: f64 = Lerp(y1, y2, x);
+    let y23: f64 = Lerp(y2, y3, x);
+    let y34: f64 = Lerp(y3, y4, x);
+    let y123: f64 = Lerp(y12, y23, x);
+    let y234: f64 = Lerp(y23, y34, x);
     Lerp(y123, y234, x)
 }
 

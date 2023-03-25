@@ -29,14 +29,14 @@ unsafe extern "C" fn Obj_Fatal(message: *const libc::c_char, s: *mut ParseState)
         ch = ch.offset(1);
         len += 1;
     }
-    let mut line: *mut libc::c_char = MemAlloc((len + 1) as usize) as *mut libc::c_char;
+    let line: *mut libc::c_char = MemAlloc((len + 1) as usize) as *mut libc::c_char;
     MemCpy(line as *mut _, (*s).lineStart as *const _, len as usize);
     *line.offset(len as isize) = 0 as libc::c_char;
     Fatal(c_str!("%s Line %i\n%s"), message, (*s).lineNumber, line);
 }
 
 unsafe extern "C" fn ConsumeRestOfLine(s: *mut ParseState) -> bool {
-    let mut oldPosition: *const libc::c_char = (*s).cursor;
+    let oldPosition: *const libc::c_char = (*s).cursor;
     while (*s).cursor < (*s).endOfData
         && *(*s).cursor as i32 != '\r' as i32
         && *(*s).cursor as i32 != '\n' as i32
@@ -70,7 +70,7 @@ unsafe extern "C" fn ConsumeRestOfLine(s: *mut ParseState) -> bool {
 }
 
 unsafe extern "C" fn ConsumeWhitespace(s: *mut ParseState) -> bool {
-    let mut oldPosition: *const libc::c_char = (*s).cursor;
+    let oldPosition: *const libc::c_char = (*s).cursor;
     while (*s).cursor < (*s).endOfData
         && (*(*s).cursor as i32 == ' ' as i32 || *(*s).cursor as i32 == '\t' as i32)
     {
@@ -103,7 +103,7 @@ unsafe extern "C" fn ConsumeToken(
 
 unsafe extern "C" fn ConsumeFloat(value: *mut f32, s: *mut ParseState) -> bool {
     let mut afterFloat: *mut libc::c_char = std::ptr::null_mut();
-    let mut f: f32 = libc::strtof((*s).cursor, &mut afterFloat);
+    let f: f32 = libc::strtof((*s).cursor, &mut afterFloat);
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 {
         Obj_Fatal(c_str!("Parsed float in .obj data is out of range."), s);
     }
@@ -117,7 +117,7 @@ unsafe extern "C" fn ConsumeFloat(value: *mut f32, s: *mut ParseState) -> bool {
 
 unsafe extern "C" fn ConsumeInt(value: *mut i32, s: *mut ParseState) -> bool {
     let mut afterInt: *mut libc::c_char = std::ptr::null_mut();
-    let mut i: i32 = libc::strtol((*s).cursor, &mut afterInt, 10) as i32;
+    let i: i32 = libc::strtol((*s).cursor, &mut afterInt, 10) as i32;
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 {
         Obj_Fatal(c_str!("Parsed int in .obj data is out of range."), s);
     }
@@ -139,7 +139,7 @@ unsafe extern "C" fn ConsumeCharacter(character: libc::c_char, s: *mut ParseStat
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
-    let mut bytesSize: i32 = StrLen(bytes) as i32;
+    let bytesSize: i32 = StrLen(bytes) as i32;
 
     let mut s: ParseState = ParseState {
         cursor: bytes,
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
         lineNumber: 0,
     };
 
-    let mut mesh: *mut Mesh = Mesh_Create();
+    let mesh: *mut Mesh = Mesh_Create();
     let mut vertexCount: i32 = 0;
     let mut indexCount: i32 = 0;
     let mut faceCount: i32 = 0;
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 && *s.cursor != '\r' as libc::c_char
                 && *s.cursor != '\n' as libc::c_char
             {
-                let mut face: *mut VertexIndices = &mut *vertexIndices
+                let face: *mut VertexIndices = &mut *vertexIndices
                     .as_mut_ptr()
                     .offset(vertexIndicesCount as isize)
                     as *mut VertexIndices;
@@ -301,8 +301,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                     );
                 }
 
-                let mut face: *mut VertexIndices =
-                    &mut *vertexIndices.as_mut_ptr().offset(i as isize);
+                let face: *mut VertexIndices = &mut *vertexIndices.as_mut_ptr().offset(i as isize);
                 let mut vertex: Vertex = Vertex {
                     p: Vec3::ZERO,
                     n: Vec3::ZERO,
@@ -360,8 +359,8 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 );
             }
 
-            let mut vertices: *mut Vertex = Mesh_GetVertexData(mesh);
-            let mut verticesLen: i32 = Mesh_GetVertexCount(mesh);
+            let vertices: *mut Vertex = Mesh_GetVertexData(mesh);
+            let verticesLen: i32 = Mesh_GetVertexCount(mesh);
             for i in 0..vertexIndicesCount {
                 for j in (i + 1)..vertexIndicesCount {
                     let p1: Vec3 =

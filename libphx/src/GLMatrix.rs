@@ -13,7 +13,7 @@ pub unsafe extern "C" fn GLMatrix_Clear() {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Load(matrix: *mut Matrix) {
-    let mut m: *mut f32 = matrix as *mut f32;
+    let m: *mut f32 = matrix as *mut f32;
     let mut transpose: [f32; 16] = [
         *m.offset(0),
         *m.offset(4),
@@ -37,9 +37,9 @@ pub unsafe extern "C" fn GLMatrix_Load(matrix: *mut Matrix) {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_LookAt(eye: *const DVec3, at: *const DVec3, up: *const DVec3) {
-    let mut z = (*at - *eye).normalize();
-    let mut x = DVec3::cross(z, (*up).normalize()).normalize();
-    let mut y = DVec3::cross(x, z);
+    let z = (*at - *eye).normalize();
+    let x = DVec3::cross(z, (*up).normalize()).normalize();
+    let y = DVec3::cross(x, z);
     let mut m: [f64; 16] = [
         x.x, y.x, -z.x, 0.0, x.y, y.y, -z.y, 0.0, x.z, y.z, -z.z, 0.0, 0.0, 0.0, 0.0, 1.0,
     ];
@@ -59,7 +59,7 @@ pub unsafe extern "C" fn GLMatrix_ModeWV() {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Mult(matrix: *mut Matrix) {
-    let mut m: *mut f32 = matrix as *mut f32;
+    let m: *mut f32 = matrix as *mut f32;
     let mut transpose: [f32; 16] = [
         *m.offset(0),
         *m.offset(4),
@@ -83,10 +83,10 @@ pub unsafe extern "C" fn GLMatrix_Mult(matrix: *mut Matrix) {
 
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Perspective(fovy: f64, aspect: f64, z0: f64, z1: f64) {
-    let mut rads: f64 = std::f32::consts::PI as f64 * fovy / 360.0f64;
-    let mut cot: f64 = 1.0f64 / f64::tan(rads);
-    let mut dz: f64 = z1 - z0;
-    let mut nf: f64 = -2.0f64 * (z0 * z1) / dz;
+    let rads: f64 = std::f32::consts::PI as f64 * fovy / 360.0f64;
+    let cot: f64 = 1.0f64 / f64::tan(rads);
+    let dz: f64 = z1 - z0;
+    let nf: f64 = -2.0f64 * (z0 * z1) / dz;
     let mut m: [f64; 16] = [
         cot / aspect,
         0.0,
@@ -139,7 +139,7 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
         gl::COLOR | gl::TEXTURE | _ => return std::ptr::null_mut(),
     }
 
-    let mut matrix: *mut Matrix = Matrix_Identity();
+    let matrix: *mut Matrix = Matrix_Identity();
     gl::GetFloatv(matrixMode as gl::types::GLenum, matrix as *mut f32);
     matrix
 }

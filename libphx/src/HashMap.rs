@@ -36,7 +36,7 @@ pub unsafe extern "C" fn HashMap_Create(keySize: u32, mut capacity: u32) -> *mut
         logCapacity = logCapacity.wrapping_add(1);
     }
     capacity = (1 << logCapacity) as u32;
-    let mut this = MemNew!(HashMap);
+    let this = MemNew!(HashMap);
     (*this).elems = MemNewArrayZero!(Node, capacity);
     (*this).size = 0;
     (*this).capacity = capacity;
@@ -60,7 +60,7 @@ pub unsafe extern "C" fn HashMap_Foreach(
 ) {
     let mut i: u32 = 0;
     while i < (*this).capacity {
-        let mut node: *mut Node = ((*this).elems).offset(i as isize);
+        let node: *mut Node = ((*this).elems).offset(i as isize);
         if !((*node).value).is_null() {
             fn_0.expect("non-null function pointer")((*node).value, userData);
         }
@@ -94,10 +94,10 @@ pub unsafe extern "C" fn HashMap_GetRaw(this: *mut HashMap, hash: u64) -> *mut l
 
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Resize(this: *mut HashMap, capacity: u32) {
-    let mut other: *mut HashMap = HashMap_Create((*this).keySize, capacity);
+    let other: *mut HashMap = HashMap_Create((*this).keySize, capacity);
     let mut i: u32 = 0;
     while i < (*this).capacity {
-        let mut node: *mut Node = ((*this).elems).offset(i as isize);
+        let node: *mut Node = ((*this).elems).offset(i as isize);
         if !((*node).value).is_null() {
             HashMap_SetRaw(other, (*node).hash, (*node).value);
         }
