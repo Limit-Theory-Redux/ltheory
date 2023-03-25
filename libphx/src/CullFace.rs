@@ -16,7 +16,7 @@ pub unsafe extern "C" fn CullFace_Pop() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn CullFace_Push(mut cullFace: CullFace) {
+pub unsafe extern "C" fn CullFace_Push(cullFace: CullFace) {
     RenderState_PushCullFace(cullFace);
 }
 

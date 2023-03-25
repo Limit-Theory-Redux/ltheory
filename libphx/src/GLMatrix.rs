@@ -12,7 +12,7 @@ pub unsafe extern "C" fn GLMatrix_Clear() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Load(mut matrix: *mut Matrix) {
+pub unsafe extern "C" fn GLMatrix_Load(matrix: *mut Matrix) {
     let mut m: *mut f32 = matrix as *mut f32;
     let mut transpose: [f32; 16] = [
         *m.offset(0),
@@ -36,11 +36,7 @@ pub unsafe extern "C" fn GLMatrix_Load(mut matrix: *mut Matrix) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_LookAt(
-    mut eye: *const DVec3,
-    mut at: *const DVec3,
-    mut up: *const DVec3,
-) {
+pub unsafe extern "C" fn GLMatrix_LookAt(eye: *const DVec3, at: *const DVec3, up: *const DVec3) {
     let mut z = (*at - *eye).normalize();
     let mut x = DVec3::cross(z, (*up).normalize()).normalize();
     let mut y = DVec3::cross(x, z);
@@ -62,7 +58,7 @@ pub unsafe extern "C" fn GLMatrix_ModeWV() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Mult(mut matrix: *mut Matrix) {
+pub unsafe extern "C" fn GLMatrix_Mult(matrix: *mut Matrix) {
     let mut m: *mut f32 = matrix as *mut f32;
     let mut transpose: [f32; 16] = [
         *m.offset(0),
@@ -86,12 +82,7 @@ pub unsafe extern "C" fn GLMatrix_Mult(mut matrix: *mut Matrix) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Perspective(
-    mut fovy: f64,
-    mut aspect: f64,
-    mut z0: f64,
-    mut z1: f64,
-) {
+pub unsafe extern "C" fn GLMatrix_Perspective(fovy: f64, aspect: f64, z0: f64, z1: f64) {
     let mut rads: f64 = std::f32::consts::PI as f64 * fovy / 360.0f64;
     let mut cot: f64 = 1.0f64 / f64::tan(rads);
     let mut dz: f64 = z1 - z0;
@@ -154,26 +145,26 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_RotateX(mut angle: f64) {
+pub unsafe extern "C" fn GLMatrix_RotateX(angle: f64) {
     gl::Rotated(angle, 1.0f64, 0.0f64, 0.0f64);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_RotateY(mut angle: f64) {
+pub unsafe extern "C" fn GLMatrix_RotateY(angle: f64) {
     gl::Rotated(angle, 0.0f64, 1.0f64, 0.0f64);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_RotateZ(mut angle: f64) {
+pub unsafe extern "C" fn GLMatrix_RotateZ(angle: f64) {
     gl::Rotated(angle, 0.0f64, 0.0f64, 1.0f64);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Scale(mut x: f64, mut y: f64, mut z: f64) {
+pub unsafe extern "C" fn GLMatrix_Scale(x: f64, y: f64, z: f64) {
     gl::Scaled(x, y, z);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Translate(mut x: f64, mut y: f64, mut z: f64) {
+pub unsafe extern "C" fn GLMatrix_Translate(x: f64, y: f64, z: f64) {
     gl::Translated(x, y, z);
 }

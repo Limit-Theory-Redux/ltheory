@@ -125,7 +125,7 @@ pub unsafe extern "C" fn UIRenderer_End() {
     UIRenderer_EndLayer();
 }
 
-unsafe extern "C" fn UIRenderer_DrawLayer(mut self_1: *const UIRendererLayer) {
+unsafe extern "C" fn UIRenderer_DrawLayer(self_1: *const UIRendererLayer) {
     if (*self_1).clip {
         ClipRect_PushCombined(
             (*self_1).pos.x,
@@ -233,13 +233,7 @@ pub unsafe extern "C" fn UIRenderer_Draw() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn UIRenderer_BeginLayer(
-    mut x: f32,
-    mut y: f32,
-    mut sx: f32,
-    mut sy: f32,
-    mut clip: bool,
-) {
+pub unsafe extern "C" fn UIRenderer_BeginLayer(x: f32, y: f32, sx: f32, sy: f32, clip: bool) {
     let mut layer: *mut UIRendererLayer = MemPool_Alloc(this.layerPool) as *mut UIRendererLayer;
     (*layer).parent = this.layer;
     (*layer).next = std::ptr::null_mut();
@@ -264,13 +258,7 @@ pub unsafe extern "C" fn UIRenderer_EndLayer() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn UIRenderer_Image(
-    mut image: *mut Tex2D,
-    mut x: f32,
-    mut y: f32,
-    mut sx: f32,
-    mut sy: f32,
-) {
+pub unsafe extern "C" fn UIRenderer_Image(image: *mut Tex2D, x: f32, y: f32, sx: f32, sy: f32) {
     let mut e: *mut UIRendererImage = MemPool_Alloc(this.imagePool) as *mut UIRendererImage;
     (*e).next = (*this.layer).imageList;
     (*e).image = image;
@@ -281,16 +269,16 @@ pub unsafe extern "C" fn UIRenderer_Image(
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Panel(
-    mut x: f32,
-    mut y: f32,
-    mut sx: f32,
-    mut sy: f32,
-    mut r: f32,
-    mut g: f32,
-    mut b: f32,
-    mut a: f32,
-    mut bevel: f32,
-    mut innerAlpha: f32,
+    x: f32,
+    y: f32,
+    sx: f32,
+    sy: f32,
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+    bevel: f32,
+    innerAlpha: f32,
 ) {
     let mut e: *mut UIRendererPanel = MemPool_Alloc(this.panelPool) as *mut UIRendererPanel;
     (*e).next = (*this.layer).panelList;
@@ -304,15 +292,15 @@ pub unsafe extern "C" fn UIRenderer_Panel(
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Rect(
-    mut x: f32,
-    mut y: f32,
-    mut sx: f32,
-    mut sy: f32,
-    mut r: f32,
-    mut g: f32,
-    mut b: f32,
-    mut a: f32,
-    mut outline: bool,
+    x: f32,
+    y: f32,
+    sx: f32,
+    sy: f32,
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+    outline: bool,
 ) {
     let mut e: *mut UIRendererRect = MemPool_Alloc(this.rectPool) as *mut UIRendererRect;
     (*e).next = (*this.layer).rectList;
@@ -325,14 +313,14 @@ pub unsafe extern "C" fn UIRenderer_Rect(
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Text(
-    mut font: *mut Font,
-    mut text: *const libc::c_char,
-    mut x: f32,
-    mut y: f32,
-    mut r: f32,
-    mut g: f32,
-    mut b: f32,
-    mut a: f32,
+    font: *mut Font,
+    text: *const libc::c_char,
+    x: f32,
+    y: f32,
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
 ) {
     let mut e: *mut UIRendererText = MemPool_Alloc(this.textPool) as *mut UIRendererText;
     (*e).next = (*this.layer).textList;

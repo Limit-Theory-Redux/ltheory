@@ -19,12 +19,12 @@ pub static DeviceType_Keyboard: DeviceType = 0;
 pub static DeviceType_Gamepad: DeviceType = 0;
 
 #[no_mangle]
-pub unsafe extern "C" fn DeviceType_FromButton(mut button: Button) -> DeviceType {
+pub unsafe extern "C" fn DeviceType_FromButton(button: Button) -> DeviceType {
     Button_ToDeviceType(button)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn DeviceType_ToString(mut deviceType: DeviceType) -> *const libc::c_char {
+pub unsafe extern "C" fn DeviceType_ToString(deviceType: DeviceType) -> *const libc::c_char {
     match deviceType {
         0 => b"DeviceType_Null\0" as *const u8 as *const libc::c_char,
         1 => b"DeviceType_Mouse\0" as *const u8 as *const libc::c_char,

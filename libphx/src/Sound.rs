@@ -221,10 +221,10 @@ pub struct FMOD_VECTOR {
 
 #[inline]
 unsafe extern "C" fn FMOD_CheckError(
-    mut result: FMOD_RESULT,
-    mut file: *const libc::c_char,
-    mut line: i32,
-    mut func: *const libc::c_char,
+    result: FMOD_RESULT,
+    file: *const libc::c_char,
+    line: i32,
+    func: *const libc::c_char,
 ) {
     if result != FMOD_OK as i32 as u32 {
         Fatal(
@@ -239,7 +239,7 @@ unsafe extern "C" fn FMOD_CheckError(
 }
 
 #[inline]
-unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> *const libc::c_char {
+unsafe extern "C" fn FMODError_ToString(this: FMOD_RESULT) -> *const libc::c_char {
     match this {
         0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
         1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
@@ -345,7 +345,7 @@ unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> *const libc::c
     b"Unknown Error\0" as *const u8 as *const libc::c_char
 }
 
-unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
+unsafe extern "C" fn FMOD_ErrorString(errcode: FMOD_RESULT) -> *const libc::c_char {
     match errcode {
         0 => b"No errors.\0" as *const u8 as *const libc::c_char,
         1 => {
@@ -659,11 +659,11 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 }
 
 unsafe extern "C" fn Sound_Callback(
-    mut channel: *mut FMOD_CHANNELCONTROL,
-    mut _controlType: FMOD_CHANNELCONTROL_TYPE,
-    mut callbackType: FMOD_CHANNELCONTROL_CALLBACK_TYPE,
-    mut _a: *mut libc::c_void,
-    mut _b: *mut libc::c_void,
+    channel: *mut FMOD_CHANNELCONTROL,
+    _controlType: FMOD_CHANNELCONTROL_TYPE,
+    callbackType: FMOD_CHANNELCONTROL_CALLBACK_TYPE,
+    _a: *mut libc::c_void,
+    _b: *mut libc::c_void,
 ) -> FMOD_RESULT {
     if callbackType == FMOD_CHANNELCONTROL_CALLBACK_END as i32 as u32 {
         let mut this: *mut Sound = std::ptr::null_mut();
@@ -683,7 +683,7 @@ unsafe extern "C" fn Sound_Callback(
 }
 
 #[inline]
-unsafe extern "C" fn Sound_EnsureLoadedImpl(this: *mut Sound, mut func: *const libc::c_char) {
+unsafe extern "C" fn Sound_EnsureLoadedImpl(this: *mut Sound, func: *const libc::c_char) {
     if (*this).state as i32 == 1 {
         SoundDesc_FinishLoad((*this).desc, func);
         // FMOD_CheckError(
@@ -746,7 +746,7 @@ unsafe extern "C" fn Sound_EnsureLoadedImpl(this: *mut Sound, mut func: *const l
 }
 
 #[inline]
-unsafe extern "C" fn Sound_EnsureNotFreedImpl(this: *mut Sound, mut func: *const libc::c_char) {
+unsafe extern "C" fn Sound_EnsureNotFreedImpl(this: *mut Sound, func: *const libc::c_char) {
     if (*this).state as i32 == 5 {
         let mut name: *const libc::c_char = if (*(*this).desc)._refCount > 0 {
             (*(*this).desc).name
@@ -762,12 +762,12 @@ unsafe extern "C" fn Sound_EnsureNotFreedImpl(this: *mut Sound, mut func: *const
 }
 
 #[inline]
-unsafe extern "C" fn Sound_EnsureStateImpl(this: *mut Sound, mut func: *const libc::c_char) {
+unsafe extern "C" fn Sound_EnsureStateImpl(this: *mut Sound, func: *const libc::c_char) {
     Sound_EnsureLoadedImpl(this, func);
     Sound_EnsureNotFreedImpl(this, func);
 }
 
-unsafe extern "C" fn Sound_SetState(this: *mut Sound, mut nextState: SoundState) {
+unsafe extern "C" fn Sound_SetState(this: *mut Sound, nextState: SoundState) {
     if nextState as i32 == (*this).state as i32 {}
     // match nextState as i32 {
     //     3 => {
@@ -828,10 +828,10 @@ unsafe extern "C" fn Sound_SetState(this: *mut Sound, mut nextState: SoundState)
 }
 
 unsafe extern "C" fn Sound_Create(
-    mut name: *const libc::c_char,
-    mut immediate: bool,
-    mut isLooped: bool,
-    mut is3D: bool,
+    name: *const libc::c_char,
+    immediate: bool,
+    isLooped: bool,
+    is3D: bool,
 ) -> *mut Sound {
     let mut desc: *mut SoundDesc = SoundDesc_Load(name, immediate, isLooped, is3D);
     let mut this: *mut Sound = Audio_AllocSound();
@@ -842,9 +842,9 @@ unsafe extern "C" fn Sound_Create(
 
 #[no_mangle]
 pub unsafe extern "C" fn Sound_Load(
-    mut name: *const libc::c_char,
-    mut isLooped: bool,
-    mut is3D: bool,
+    name: *const libc::c_char,
+    isLooped: bool,
+    is3D: bool,
 ) -> *mut Sound {
     let mut this: *mut Sound = Sound_Create(name, true, isLooped, is3D);
     Sound_EnsureLoadedImpl(
@@ -856,9 +856,9 @@ pub unsafe extern "C" fn Sound_Load(
 
 #[no_mangle]
 pub unsafe extern "C" fn Sound_LoadAsync(
-    mut name: *const libc::c_char,
-    mut isLooped: bool,
-    mut is3D: bool,
+    name: *const libc::c_char,
+    isLooped: bool,
+    is3D: bool,
 ) -> *mut Sound {
     Sound_Create(name, false, isLooped, is3D)
 }
@@ -879,7 +879,7 @@ pub unsafe extern "C" fn Sound_Clone(this: *mut Sound) -> *mut Sound {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_ToFile(this: *mut Sound, mut name: *const libc::c_char) {
+pub unsafe extern "C" fn Sound_ToFile(this: *mut Sound, name: *const libc::c_char) {
     Sound_EnsureStateImpl(
         this,
         (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Sound_ToFile\0")).as_ptr(),
@@ -973,7 +973,7 @@ pub unsafe extern "C" fn Sound_GetDuration(this: *mut Sound) -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_GetLooped(mut _this: *mut Sound) -> bool {
+pub unsafe extern "C" fn Sound_GetLooped(_this: *mut Sound) -> bool {
     // Sound_EnsureStateImpl(
     //     this,
     //     (*std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_GetLooped\0"))
@@ -1032,18 +1032,14 @@ pub unsafe extern "C" fn Sound_IsAudible(this: *mut Sound) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_Attach3DPos(
-    this: *mut Sound,
-    mut pos: *const Vec3,
-    mut vel: *const Vec3,
-) {
+pub unsafe extern "C" fn Sound_Attach3DPos(this: *mut Sound, pos: *const Vec3, vel: *const Vec3) {
     Sound_Set3DPos(this, pos, vel);
     (*this).autoPos = pos;
     (*this).autoVel = vel;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_Set3DLevel(this: *mut Sound, mut _level: f32) {
+pub unsafe extern "C" fn Sound_Set3DLevel(this: *mut Sound, _level: f32) {
     Sound_EnsureStateImpl(
         this,
         (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"Sound_Set3DLevel\0")).as_ptr(),
@@ -1062,11 +1058,7 @@ pub unsafe extern "C" fn Sound_Set3DLevel(this: *mut Sound, mut _level: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_Set3DPos(
-    this: *mut Sound,
-    mut pos: *const Vec3,
-    mut vel: *const Vec3,
-) {
+pub unsafe extern "C" fn Sound_Set3DPos(this: *mut Sound, pos: *const Vec3, vel: *const Vec3) {
     Sound_EnsureStateImpl(
         this,
         (*std::mem::transmute::<&[u8; 15], &[libc::c_char; 15]>(b"Sound_Set3DPos\0")).as_ptr(),
@@ -1086,7 +1078,7 @@ pub unsafe extern "C" fn Sound_Set3DPos(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetFreeOnFinish(this: *mut Sound, mut freeOnFinish: bool) {
+pub unsafe extern "C" fn Sound_SetFreeOnFinish(this: *mut Sound, freeOnFinish: bool) {
     (*this).freeOnFinish = freeOnFinish;
 }
 
@@ -1147,7 +1139,7 @@ pub unsafe extern "C" fn Sound_SetPlayPos(this: *mut Sound, seconds: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetVolume(this: *mut Sound, mut volume: f32) {
+pub unsafe extern "C" fn Sound_SetVolume(this: *mut Sound, volume: f32) {
     Sound_EnsureStateImpl(
         this,
         (*std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Sound_SetVolume\0")).as_ptr(),
@@ -1230,9 +1222,9 @@ pub unsafe extern "C" fn Sound_FadeOut(this: *mut Sound, seconds: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Sound_LoadPlay(
-    mut name: *const libc::c_char,
-    mut isLooped: bool,
-    mut is3D: bool,
+    name: *const libc::c_char,
+    isLooped: bool,
+    is3D: bool,
 ) -> *mut Sound {
     let this: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_Play(this);
@@ -1241,11 +1233,11 @@ pub unsafe extern "C" fn Sound_LoadPlay(
 
 #[no_mangle]
 pub unsafe extern "C" fn Sound_LoadPlayAttached(
-    mut name: *const libc::c_char,
-    mut isLooped: bool,
-    mut is3D: bool,
-    mut pos: *const Vec3,
-    mut vel: *const Vec3,
+    name: *const libc::c_char,
+    isLooped: bool,
+    is3D: bool,
+    pos: *const Vec3,
+    vel: *const Vec3,
 ) -> *mut Sound {
     let this: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_Attach3DPos(this, pos, vel);
@@ -1254,11 +1246,7 @@ pub unsafe extern "C" fn Sound_LoadPlayAttached(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_LoadPlayFree(
-    mut name: *const libc::c_char,
-    mut isLooped: bool,
-    mut is3D: bool,
-) {
+pub unsafe extern "C" fn Sound_LoadPlayFree(name: *const libc::c_char, isLooped: bool, is3D: bool) {
     let this: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_SetFreeOnFinish(this, true);
     Sound_Play(this);
@@ -1266,11 +1254,11 @@ pub unsafe extern "C" fn Sound_LoadPlayFree(
 
 #[no_mangle]
 pub unsafe extern "C" fn Sound_LoadPlayFreeAttached(
-    mut name: *const libc::c_char,
-    mut isLooped: bool,
-    mut is3D: bool,
-    mut pos: *const Vec3,
-    mut vel: *const Vec3,
+    name: *const libc::c_char,
+    isLooped: bool,
+    is3D: bool,
+    pos: *const Vec3,
+    vel: *const Vec3,
 ) {
     let this: *mut Sound = Sound_Load(name, isLooped, is3D);
     Sound_Attach3DPos(this, pos, vel);
@@ -1288,8 +1276,8 @@ pub unsafe extern "C" fn Sound_ClonePlay(this: *mut Sound) -> *mut Sound {
 #[no_mangle]
 pub unsafe extern "C" fn Sound_ClonePlayAttached(
     this: *mut Sound,
-    mut pos: *const Vec3,
-    mut vel: *const Vec3,
+    pos: *const Vec3,
+    vel: *const Vec3,
 ) -> *mut Sound {
     let mut clone: *mut Sound = Sound_Clone(this);
     Sound_Attach3DPos(clone, pos, vel);
@@ -1307,8 +1295,8 @@ pub unsafe extern "C" fn Sound_ClonePlayFree(this: *mut Sound) {
 #[no_mangle]
 pub unsafe extern "C" fn Sound_ClonePlayFreeAttached(
     this: *mut Sound,
-    mut pos: *const Vec3,
-    mut vel: *const Vec3,
+    pos: *const Vec3,
+    vel: *const Vec3,
 ) {
     let mut clone: *mut Sound = Sound_Clone(this);
     Sound_Attach3DPos(clone, pos, vel);

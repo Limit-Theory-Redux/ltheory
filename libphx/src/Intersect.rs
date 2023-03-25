@@ -11,7 +11,7 @@ use crate::Triangle::*;
 use libc;
 
 #[no_mangle]
-pub unsafe extern "C" fn Intersect_PointBox(mut src: *mut Matrix, mut dst: *mut Matrix) -> bool {
+pub unsafe extern "C" fn Intersect_PointBox(src: *mut Matrix, dst: *mut Matrix) -> bool {
     let mut inv: *mut Matrix = Matrix_Inverse(dst);
     let mut srcPt = Vec3::ZERO;
     Matrix_GetPos(src, &mut srcPt);
@@ -28,8 +28,8 @@ pub unsafe extern "C" fn Intersect_PointBox(mut src: *mut Matrix, mut dst: *mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_PointTriangle_Barycentric(
-    mut p: *const Vec3,
-    mut tri: *const Triangle,
+    p: *const Vec3,
+    tri: *const Triangle,
 ) -> bool {
     let mut v: *const Vec3 = ((*tri).vertices).as_ptr();
     let mut pv0: Vec3 = *v.offset(0) - *p;
@@ -53,9 +53,9 @@ pub unsafe extern "C" fn Intersect_PointTriangle_Barycentric(
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RayPlane(
-    mut ray: *const Ray,
-    mut plane: *const Plane,
-    mut pHit: *mut Vec3,
+    ray: *const Ray,
+    plane: *const Plane,
+    pHit: *mut Vec3,
 ) -> bool {
     let mut dist: f32 = (*plane).d - Vec3::dot((*plane).n, (*ray).p);
     let mut denom: f32 = Vec3::dot((*plane).n, (*ray).dir);
@@ -69,10 +69,10 @@ pub unsafe extern "C" fn Intersect_RayPlane(
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
-    mut ray: *const Ray,
-    mut tri: *const Triangle,
-    mut tEpsilon: f32,
-    mut tHit: *mut f32,
+    ray: *const Ray,
+    tri: *const Triangle,
+    tEpsilon: f32,
+    tHit: *mut f32,
 ) -> bool {
     let mut plane: Plane = Plane {
         n: Vec3::ZERO,
@@ -115,9 +115,9 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
-    mut ray: *const Ray,
-    mut tri: *const Triangle,
-    mut tHit: *mut f32,
+    ray: *const Ray,
+    tri: *const Triangle,
+    tHit: *mut f32,
 ) -> bool {
     let mut vt: *const Vec3 = ((*tri).vertices).as_ptr();
     let mut edge1: Vec3 = *vt.offset(1) - *vt.offset(0);
@@ -160,9 +160,9 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
-    mut ray: *const Ray,
-    mut tri: *const Triangle,
-    mut tHit: *mut f32,
+    ray: *const Ray,
+    tri: *const Triangle,
+    tHit: *mut f32,
 ) -> bool {
     let mut vt: *const Vec3 = ((*tri).vertices).as_ptr();
     let mut edge1: Vec3 = *vt.offset(1) - *vt.offset(0);
@@ -191,9 +191,9 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller2(
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_LineSegmentPlane(
-    mut lineSegment: *const LineSegment,
-    mut plane: *const Plane,
-    mut pHit: *mut Vec3,
+    lineSegment: *const LineSegment,
+    plane: *const Plane,
+    pHit: *mut Vec3,
 ) -> bool {
     let mut dir: Vec3 = (*lineSegment).p1 - (*lineSegment).p0;
     let mut ray: Ray = Ray {
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn Intersect_LineSegmentPlane(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Intersect_RectRect(mut a: *const Vec4, mut b: *const Vec4) -> bool {
+pub unsafe extern "C" fn Intersect_RectRect(a: *const Vec4, b: *const Vec4) -> bool {
     let mut a2: Vec4 = Vec4::new(
         (*a).x + f32::min((*a).z, 0.0f32),
         (*a).y + f32::min((*a).w, 0.0f32),
@@ -223,7 +223,7 @@ pub unsafe extern "C" fn Intersect_RectRect(mut a: *const Vec4, mut b: *const Ve
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Intersect_RectRectFast(mut a: *const Vec4, mut b: *const Vec4) -> bool {
+pub unsafe extern "C" fn Intersect_RectRectFast(a: *const Vec4, b: *const Vec4) -> bool {
     let mut result: bool = true;
     result = (result as i32 & ((*a).x < (*b).x + (*b).z) as i32) != 0;
     result = (result as i32 & ((*b).x < (*a).x + (*a).z) as i32) != 0;
@@ -233,10 +233,7 @@ pub unsafe extern "C" fn Intersect_RectRectFast(mut a: *const Vec4, mut b: *cons
 }
 
 #[inline]
-unsafe extern "C" fn ClosestPoint_PointToTriangle(
-    mut p: *const Vec3,
-    mut tri: *const Triangle,
-) -> Vec3 {
+unsafe extern "C" fn ClosestPoint_PointToTriangle(p: *const Vec3, tri: *const Triangle) -> Vec3 {
     let mut a: Vec3 = (*tri).vertices[0];
     let mut b: Vec3 = (*tri).vertices[1];
     let mut c: Vec3 = (*tri).vertices[2];
@@ -286,9 +283,9 @@ unsafe extern "C" fn ClosestPoint_PointToTriangle(
 
 #[no_mangle]
 pub unsafe extern "C" fn Intersect_SphereTriangle(
-    mut sphere: *const Sphere,
-    mut triangle: *const Triangle,
-    mut pHit: *mut Vec3,
+    sphere: *const Sphere,
+    triangle: *const Triangle,
+    pHit: *mut Vec3,
 ) -> bool {
     let mut pClosest: Vec3 = ClosestPoint_PointToTriangle(&(*sphere).p, triangle);
     let mut distSq: f32 = (*sphere).p.distance_squared(pClosest);

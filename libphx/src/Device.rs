@@ -12,7 +12,7 @@ pub struct Device {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Device_Equal(mut a: *mut Device, mut b: *mut Device) -> bool {
+pub unsafe extern "C" fn Device_Equal(a: *mut Device, b: *mut Device) -> bool {
     (*a).type_0 == (*b).type_0 && (*a).id == (*b).id
 }
 

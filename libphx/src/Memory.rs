@@ -4,42 +4,42 @@ use crate::Math::Vec3;
 use libc;
 
 #[no_mangle]
-pub unsafe extern "C" fn Memory_Alloc(mut size: usize) -> *mut libc::c_void {
+pub unsafe extern "C" fn Memory_Alloc(size: usize) -> *mut libc::c_void {
     libc::malloc(size)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Memory_Calloc(mut n: usize, mut size: usize) -> *mut libc::c_void {
+pub unsafe extern "C" fn Memory_Calloc(n: usize, size: usize) -> *mut libc::c_void {
     libc::calloc(n, size)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Memory_Free(mut ptr: *mut libc::c_void) {
+pub unsafe extern "C" fn Memory_Free(ptr: *mut libc::c_void) {
     libc::free(ptr);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Memory_MemCopy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: usize,
+    dst: *mut libc::c_void,
+    src: *const libc::c_void,
+    size: usize,
 ) {
     libc::memcpy(dst, src, size);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Memory_MemMove(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: usize,
+    dst: *mut libc::c_void,
+    src: *const libc::c_void,
+    size: usize,
 ) {
     libc::memmove(dst, src, size);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Realloc(
-    mut ptr: *mut libc::c_void,
-    mut newSize: usize,
+    ptr: *mut libc::c_void,
+    newSize: usize,
 ) -> *mut libc::c_void {
     libc::realloc(ptr, newSize)
 }

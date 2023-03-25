@@ -37,68 +37,57 @@ pub(crate) use MemNewArrayZero;
 pub(crate) use MemNewZero;
 
 #[inline]
-pub unsafe extern "C" fn MemAlloc(mut size: usize) -> *mut libc::c_void {
+pub unsafe extern "C" fn MemAlloc(size: usize) -> *mut libc::c_void {
     libc::malloc(size)
 }
 
 #[inline]
-pub unsafe extern "C" fn MemAllocZero(mut size: usize) -> *mut libc::c_void {
+pub unsafe extern "C" fn MemAllocZero(size: usize) -> *mut libc::c_void {
     libc::calloc(1, size)
 }
 
 #[inline]
-pub unsafe extern "C" fn MemFree(mut ptr: *const libc::c_void) {
+pub unsafe extern "C" fn MemFree(ptr: *const libc::c_void) {
     libc::free(ptr as *mut _);
 }
 
 #[inline]
-pub unsafe extern "C" fn MemRealloc(
-    mut ptr: *mut libc::c_void,
-    mut newSize: usize,
-) -> *mut libc::c_void {
+pub unsafe extern "C" fn MemRealloc(ptr: *mut libc::c_void, newSize: usize) -> *mut libc::c_void {
     libc::realloc(ptr, newSize)
 }
 
 #[inline]
-pub unsafe extern "C" fn MemCpy(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: usize,
-) {
+pub unsafe extern "C" fn MemCpy(dst: *mut libc::c_void, src: *const libc::c_void, size: usize) {
     libc::memcpy(dst, src, size);
 }
 
 #[inline]
-pub unsafe extern "C" fn MemMove(
-    mut dst: *mut libc::c_void,
-    mut src: *const libc::c_void,
-    mut size: usize,
-) {
+pub unsafe extern "C" fn MemMove(dst: *mut libc::c_void, src: *const libc::c_void, size: usize) {
     libc::memmove(dst, src, size);
 }
 
 #[inline]
-pub unsafe extern "C" fn MemZero(mut dst: *mut libc::c_void, mut size: usize) {
+pub unsafe extern "C" fn MemZero(dst: *mut libc::c_void, size: usize) {
     libc::memset(dst, 0, size);
 }
 
 #[inline]
-pub unsafe extern "C" fn MemSet(mut dst: *mut libc::c_void, mut value: i32, mut size: usize) {
+pub unsafe extern "C" fn MemSet(dst: *mut libc::c_void, value: i32, size: usize) {
     libc::memset(dst, value, size);
 }
 
 #[inline]
-pub unsafe extern "C" fn StrAlloc(mut len: usize) -> *mut libc::c_char {
+pub unsafe extern "C" fn StrAlloc(len: usize) -> *mut libc::c_char {
     libc::malloc(len) as *mut libc::c_char
 }
 
 #[inline]
-pub unsafe extern "C" fn StrFree(mut s: *const libc::c_char) {
+pub unsafe extern "C" fn StrFree(s: *const libc::c_char) {
     libc::free(s as *mut _);
 }
 
 #[inline]
-pub unsafe extern "C" fn StrDup(mut s: *const libc::c_char) -> *const libc::c_char {
+pub unsafe extern "C" fn StrDup(s: *const libc::c_char) -> *const libc::c_char {
     if s.is_null() {
         return std::ptr::null();
     }
@@ -121,15 +110,12 @@ pub unsafe extern "C" fn StrLen(mut s: *const libc::c_char) -> usize {
 }
 
 #[inline]
-pub unsafe extern "C" fn StrEqual(mut a: *const libc::c_char, mut b: *const libc::c_char) -> bool {
+pub unsafe extern "C" fn StrEqual(a: *const libc::c_char, b: *const libc::c_char) -> bool {
     libc::strcmp(a, b) == 0
 }
 
 #[inline]
-pub unsafe extern "C" fn StrFormat(
-    mut fmt: *const libc::c_char,
-    mut args: ...
-) -> *const libc::c_char {
+pub unsafe extern "C" fn StrFormat(fmt: *const libc::c_char, mut args: ...) -> *const libc::c_char {
     let mut s = String::new();
     let _ = printf_compat::format(
         fmt,
@@ -145,7 +131,7 @@ pub unsafe extern "C" fn StrFormat(
 #[inline]
 pub unsafe extern "C" fn StrReplace(
     mut s: *const libc::c_char,
-    mut search: *const libc::c_char,
+    search: *const libc::c_char,
     mut replace: *const libc::c_char,
 ) -> *const libc::c_char {
     let mut result: *mut libc::c_char = std::ptr::null_mut();
@@ -200,8 +186,8 @@ pub unsafe extern "C" fn StrReplace(
 
 #[inline]
 pub unsafe extern "C" fn StrFind(
-    mut s: *const libc::c_char,
-    mut sub: *const libc::c_char,
+    s: *const libc::c_char,
+    sub: *const libc::c_char,
 ) -> *const libc::c_char {
     libc::strstr(s, sub) as *const libc::c_char
 }
@@ -209,7 +195,7 @@ pub unsafe extern "C" fn StrFind(
 #[inline]
 pub unsafe extern "C" fn StrSubStr(
     mut begin: *const libc::c_char,
-    mut end: *const libc::c_char,
+    end: *const libc::c_char,
 ) -> *const libc::c_char {
     let mut len: usize = end.offset_from(begin) as libc::c_long as usize;
     let mut result: *mut libc::c_char = StrAlloc(len.wrapping_add(1));
@@ -228,7 +214,7 @@ pub unsafe extern "C" fn StrSubStr(
 #[inline]
 pub unsafe extern "C" fn StrSub(
     mut s: *const libc::c_char,
-    mut begin: *const libc::c_char,
+    begin: *const libc::c_char,
     mut end: *const libc::c_char,
     mut replace: *const libc::c_char,
 ) -> *const libc::c_char {

@@ -26,7 +26,7 @@ extern "C" {
 
 pub type cstr = *const libc::c_char;
 pub type Lua = lua_State;
-unsafe fn main_0(mut argc: libc::c_int, mut argv: *mut *mut libc::c_char) -> libc::c_int {
+unsafe fn main_0(argc: libc::c_int, argv: *mut *mut libc::c_char) -> libc::c_int {
     Engine_Init(2 as libc::c_int, 1 as libc::c_int);
     let mut lua: *mut Lua = Lua_Create();
     let mut entryPoint: *const libc::c_char =

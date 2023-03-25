@@ -314,10 +314,10 @@ pub struct FMOD_CREATESOUNDEXINFO {
 
 #[inline]
 unsafe extern "C" fn FMOD_CheckError(
-    mut result: FMOD_RESULT,
-    mut file: *const libc::c_char,
-    mut line: i32,
-    mut func: *const libc::c_char,
+    result: FMOD_RESULT,
+    file: *const libc::c_char,
+    line: i32,
+    func: *const libc::c_char,
 ) {
     if result != FMOD_OK as i32 as u32 {
         Fatal(
@@ -332,7 +332,7 @@ unsafe extern "C" fn FMOD_CheckError(
 }
 
 #[inline]
-unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> *const libc::c_char {
+unsafe extern "C" fn FMODError_ToString(this: FMOD_RESULT) -> *const libc::c_char {
     match this {
         0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
         1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
@@ -438,7 +438,7 @@ unsafe extern "C" fn FMODError_ToString(mut this: FMOD_RESULT) -> *const libc::c
     b"Unknown Error\0" as *const u8 as *const libc::c_char
 }
 
-unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
+unsafe extern "C" fn FMOD_ErrorString(errcode: FMOD_RESULT) -> *const libc::c_char {
     match errcode {
         0 => b"No errors.\0" as *const u8 as *const libc::c_char,
         1 => {
@@ -752,10 +752,7 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_FinishLoad(
-    this: *mut SoundDesc,
-    mut func: *const libc::c_char,
-) {
+pub unsafe extern "C" fn SoundDesc_FinishLoad(this: *mut SoundDesc, func: *const libc::c_char) {
     let mut warned: bool = false;
     let mut openState: FMOD_OPENSTATE = FMOD_OPENSTATE_READY;
     loop {
@@ -803,10 +800,10 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(
 
 #[no_mangle]
 pub unsafe extern "C" fn SoundDesc_Load(
-    mut name: *const libc::c_char,
-    mut immediate: bool,
-    mut isLooped: bool,
-    mut is3D: bool,
+    name: *const libc::c_char,
+    immediate: bool,
+    isLooped: bool,
+    is3D: bool,
 ) -> *mut SoundDesc {
     let mut mapKey: *const libc::c_char = StrAdd(
         if isLooped as i32 != 0 {
@@ -945,7 +942,7 @@ pub unsafe extern "C" fn SoundDesc_GetPath(this: *mut SoundDesc) -> *const libc:
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_ToFile(this: *mut SoundDesc, mut name: *const libc::c_char) {
+pub unsafe extern "C" fn SoundDesc_ToFile(this: *mut SoundDesc, name: *const libc::c_char) {
     SoundDesc_FinishLoad(
         this,
         (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"SoundDesc_ToFile\0")).as_ptr(),

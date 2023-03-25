@@ -335,7 +335,7 @@ pub struct Delay {
 }
 
 #[inline]
-fn Lerp(mut a: f64, mut b: f64, mut t: f64) -> f64 {
+fn Lerp(a: f64, b: f64, t: f64) -> f64 {
     a + t * (b - a)
 }
 
@@ -359,7 +359,7 @@ pub static mut rayStack: Vec<DelayRay> = Vec::new();
 pub unsafe extern "C" fn BSP_IntersectRay(
     this: *mut BSP,
     rayPtr: *const Ray,
-    mut tHit: *mut f32,
+    tHit: *mut f32,
 ) -> bool {
     // Assert(RAY_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
 
@@ -485,8 +485,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectLineSegment(
     this: *mut BSP,
-    mut lineSegment: *const LineSegment,
-    mut pHit: *mut Vec3,
+    lineSegment: *const LineSegment,
+    pHit: *mut Vec3,
 ) -> bool {
     let mut t: f32 = 0.;
     let mut dir: Vec3 = (*lineSegment).p1 - (*lineSegment).p0;
@@ -510,8 +510,8 @@ pub static mut nodeStack: Vec<Delay> = Vec::new();
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
     this: *mut BSP,
-    mut sphere: *const Sphere,
-    mut pHit: *mut Vec3,
+    sphere: *const Sphere,
+    pHit: *mut Vec3,
 ) -> bool {
     // Assert(SPHERE_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
 
@@ -602,9 +602,9 @@ pub static PolygonFlag_InvalidDecompose: PolygonFlag = (1 << 1) as PolygonFlag;
 pub static PolygonFlag_InvalidEdgeSplit: PolygonFlag = (1 << 2) as PolygonFlag;
 
 unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
-    mut nodeData: *mut BSPBuild_NodeData,
-    mut plane: Plane,
-    mut k: f32,
+    nodeData: *mut BSPBuild_NodeData,
+    plane: Plane,
+    k: f32,
 ) -> f32 {
     /* The bigger k is, the more we penalize polygon splitting */
     // Assert(k >= 0.0f && k <= 1.0f);
@@ -614,8 +614,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     let mut numStraddling: i32 = 0;
 
     for polygon in (*nodeData).polygons.iter() {
-        let mut classification = Plane_ClassifyPolygon(&mut plane, &polygon.inner);
-        match classification {
+        match Plane_ClassifyPolygon(&mut plane, &polygon.inner) {
             PolygonClassification::Coplanar | PolygonClassification::Behind => {
                 numBehind += 1;
             }
@@ -637,9 +636,9 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
 }
 
 unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
-    mut bsp: *mut BSPBuild,
-    mut nodeData: *mut BSPBuild_NodeData,
-    mut splitPlane: *mut Plane,
+    bsp: *mut BSPBuild,
+    nodeData: *mut BSPBuild_NodeData,
+    splitPlane: *mut Plane,
 ) -> bool {
     /* See Realtime Collision Detection pp361-363 */
 
@@ -924,7 +923,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
 #[inline]
 unsafe extern "C" fn BSPBuild_AppendPolygon(
-    mut nodeData: *mut BSPBuild_NodeData,
+    nodeData: *mut BSPBuild_NodeData,
     polygon: *const PolygonEx,
 ) {
     //if (nodeData->triangleCount == 0) {
@@ -943,8 +942,8 @@ unsafe extern "C" fn BSPBuild_AppendPolygon(
 }
 
 unsafe extern "C" fn BSPBuild_CreateNode(
-    mut bsp: *mut BSPBuild,
-    mut nodeData: *mut BSPBuild_NodeData,
+    bsp: *mut BSPBuild,
+    nodeData: *mut BSPBuild_NodeData,
 ) -> *mut BSPBuild_Node {
     /* NOTE: This will free the polygons being passed in! This is to prevent all
      *        the temporary allocations from overlapping. */
@@ -1060,7 +1059,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
 
 unsafe extern "C" fn BSPBuild_OptimizeTree(
     this: *mut BSP,
-    mut buildNode: *mut BSPBuild_Node,
+    buildNode: *mut BSPBuild_Node,
 ) -> BSPNodeRef {
     if !((*buildNode).child[BackIndex as usize]).is_null()
         || !((*buildNode).child[FrontIndex as usize]).is_null()
@@ -1118,7 +1117,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
     }
 }
 
-unsafe extern "C" fn BSPBuild_FreeNode(mut node: *mut BSPBuild_Node) {
+unsafe extern "C" fn BSPBuild_FreeNode(node: *mut BSPBuild_Node) {
     if !((*node).child[BackIndex as usize]).is_null()
         || !((*node).child[FrontIndex as usize]).is_null()
     {
@@ -1175,7 +1174,7 @@ static void BSPBuild_AnalyzeTree (BSP* self, Mesh* mesh, BSPNodeRef nodeRef, int
 */
 
 #[no_mangle]
-pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
+pub unsafe extern "C" fn BSP_Create(mesh: *mut Mesh) -> *mut BSP {
     // Assert(LEAF_TRIANGLE_COUNT <= MAX_LEAF_TRIANGLE_COUNT);
 
     /* NOTE: This function will use memory proportional to 2x the mesh memory.
@@ -1193,11 +1192,11 @@ pub unsafe extern "C" fn BSP_Create(mut mesh: *mut Mesh) -> *mut BSP {
      *        stores indices and vertex attributes I expect the proportionality
      *        constant to be in the ballpark of 0.5 */
 
-    let mut this = MemNewZero!(BSP);
+    let this = MemNewZero!(BSP);
 
-    let mut indexLen: i32 = Mesh_GetIndexCount(mesh);
-    let mut indexData: *mut i32 = Mesh_GetIndexData(mesh);
-    let mut vertexData: *mut Vertex = Mesh_GetVertexData(mesh);
+    let indexLen: i32 = Mesh_GetIndexCount(mesh);
+    let indexData: *mut i32 = Mesh_GetIndexData(mesh);
+    let vertexData: *mut Vertex = Mesh_GetVertexData(mesh);
 
     /* TODO : Implement some form of soft abort when the incoming mesh is bad. */
     // CHECK2 (
@@ -1295,8 +1294,8 @@ pub unsafe extern "C" fn BSP_Free(this: *mut BSP) {
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetNode(
     this: *mut BSP,
-    mut nodeRef: BSPNodeRef,
-    mut relationship: BSPNodeRel,
+    nodeRef: BSPNodeRef,
+    relationship: BSPNodeRel,
 ) -> BSPNodeRef {
     if this.is_null() {
         Fatal(b"BSP_GetNode: bsp is null\0" as *const u8 as *const libc::c_char);
@@ -1351,7 +1350,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNode(this: *mut BSP, mut nodeRef: BSPNodeRef) {
+pub unsafe extern "C" fn BSPDebug_DrawNode(this: *mut BSP, nodeRef: BSPNodeRef) {
     // Assert(nodeRef.index);
 
     if nodeRef.index > 0 {
@@ -1368,7 +1367,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNode(this: *mut BSP, mut nodeRef: BSPNodeR
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: *mut BSP, mut nodeRef: BSPNodeRef) {
+pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: *mut BSP, nodeRef: BSPNodeRef) {
     // Assert(nodeRef.index);
 
     RenderState_PushBlendMode(1);
@@ -1412,10 +1411,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: *mut BSP, mut nodeRef: BSP
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
-    mut bsp: *mut BSP,
-    mut lineSegment: *mut LineSegment,
-) {
+pub unsafe extern "C" fn BSPDebug_DrawLineSegment(bsp: *mut BSP, lineSegment: *mut LineSegment) {
     let mut pHit = Vec3::ZERO;
     if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
         Draw_Color(0.0f32, 1.0f32, 0.0f32, 0.1f32);
@@ -1433,7 +1429,7 @@ pub unsafe extern "C" fn BSPDebug_DrawLineSegment(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawSphere(this: *mut BSP, mut sphere: *mut Sphere) {
+pub unsafe extern "C" fn BSPDebug_DrawSphere(this: *mut BSP, sphere: *mut Sphere) {
     let mut pHit = Vec3::ZERO;
     if BSP_IntersectSphere(this, sphere, &mut pHit) {
         RenderState_PushWireframe(false);
@@ -1486,7 +1482,7 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: *mut BSP, mut sphere: *mut Sp
 //   }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(mut _this: *mut BSP, mut _totalTime: f64) {
+pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(_this: *mut BSP, _totalTime: f64) {
     // #if ENABLE_BSP_PROFILING
     //   BSPDebug_PrintProfilingData(self, &self->profilingData.ray, totalTime);
     // #else
@@ -1498,8 +1494,8 @@ pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(mut _this: *mut BSP, mut
 
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
-    mut _this: *mut BSP,
-    mut _totalTime: f64,
+    _this: *mut BSP,
+    _totalTime: f64,
 ) {
     // #if ENABLE_BSP_PROFILING
     //     BSPDebug_PrintProfilingData(self, &self->profilingData.sphere, totalTime);
@@ -1513,8 +1509,8 @@ pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     this: *mut BSP,
-    mut sphere: *mut Sphere,
-    mut sphereProf: *mut IntersectSphereProfiling,
+    sphere: *mut Sphere,
+    sphereProf: *mut IntersectSphereProfiling,
 ) -> bool {
     // Assert(SPHERE_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
 
@@ -1595,7 +1591,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_GetLeaf(this: *mut BSP, mut leafIndex: i32) -> BSPNodeRef {
+pub unsafe extern "C" fn BSPDebug_GetLeaf(this: *mut BSP, leafIndex: i32) -> BSPNodeRef {
     let mut index: i32 = -1;
     for node in (*this).nodes.iter() {
         if (*node).child[0].index < 0 {

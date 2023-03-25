@@ -20,7 +20,7 @@ pub struct InputEvent {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn InputEvent_ToString(mut ie: *mut InputEvent) -> *const libc::c_char {
+pub unsafe extern "C" fn InputEvent_ToString(ie: *mut InputEvent) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     libc::snprintf(
         buffer.as_mut_ptr(),

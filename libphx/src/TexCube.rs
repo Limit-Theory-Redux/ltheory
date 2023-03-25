@@ -106,7 +106,7 @@ unsafe extern "C" fn TexCube_InitParameters() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Create(mut size: i32, mut format: TexFormat) -> *mut TexCube {
+pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut TexCube {
     if !TexFormat_IsValid(format) {
         Fatal(
             b"TexCube_Create: Invalid texture format requested\0" as *const u8
@@ -225,7 +225,7 @@ pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut TexCube {
+pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube {
     let mut this = MemNew!(TexCube);
     gl::GenTextures(1, &mut (*this).handle);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
@@ -316,11 +316,11 @@ pub unsafe extern "C" fn TexCube_Load(mut path: *const libc::c_char) -> *mut Tex
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetData(
     this: *mut TexCube,
-    mut data: *mut libc::c_void,
-    mut face: CubeFace,
-    mut level: i32,
-    mut pf: PixelFormat,
-    mut df: DataFormat,
+    data: *mut libc::c_void,
+    face: CubeFace,
+    level: i32,
+    pf: PixelFormat,
+    df: DataFormat,
 ) {
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
     gl::GetTexImage(
@@ -336,10 +336,10 @@ pub unsafe extern "C" fn TexCube_GetData(
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetDataBytes(
     this: *mut TexCube,
-    mut face: CubeFace,
-    mut level: i32,
-    mut pf: PixelFormat,
-    mut df: DataFormat,
+    face: CubeFace,
+    level: i32,
+    pf: PixelFormat,
+    df: DataFormat,
 ) -> *mut Bytes {
     let mut size: i32 = (*this).size * (*this).size;
     size *= DataFormat_GetSize(df);
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn TexCube_GetSize(this: *mut TexCube) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, mut state: *mut ShaderState) {
+pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, state: *mut ShaderState) {
     GLMatrix_ModeP();
     GLMatrix_Push();
     GLMatrix_Clear();
@@ -436,11 +436,11 @@ pub unsafe extern "C" fn TexCube_GenMipmap(this: *mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetData(
     this: *mut TexCube,
-    mut data: *const libc::c_void,
-    mut face: CubeFace,
-    mut level: i32,
-    mut pf: PixelFormat,
-    mut df: DataFormat,
+    data: *const libc::c_void,
+    face: CubeFace,
+    level: i32,
+    pf: PixelFormat,
+    df: DataFormat,
 ) {
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
     gl::TexImage2D(
@@ -460,39 +460,39 @@ pub unsafe extern "C" fn TexCube_SetData(
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetDataBytes(
     this: *mut TexCube,
-    mut data: *mut Bytes,
-    mut face: CubeFace,
-    mut level: i32,
-    mut pf: PixelFormat,
-    mut df: DataFormat,
+    data: *mut Bytes,
+    face: CubeFace,
+    level: i32,
+    pf: PixelFormat,
+    df: DataFormat,
 ) {
     TexCube_SetData(this, Bytes_GetData(data), face, level, pf, df);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetMagFilter(this: *mut TexCube, mut filter: TexFilter) {
+pub unsafe extern "C" fn TexCube_SetMagFilter(this: *mut TexCube, filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetMinFilter(this: *mut TexCube, mut filter: TexFilter) {
+pub unsafe extern "C" fn TexCube_SetMinFilter(this: *mut TexCube, filter: TexFilter) {
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
     gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Save(this: *mut TexCube, mut path: *const libc::c_char) {
+pub unsafe extern "C" fn TexCube_Save(this: *mut TexCube, path: *const libc::c_char) {
     TexCube_SaveLevel(this, path, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SaveLevel(
     this: *mut TexCube,
-    mut path: *const libc::c_char,
-    mut level: i32,
+    path: *const libc::c_char,
+    level: i32,
 ) {
     let mut size: i32 = (*this).size >> level;
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);

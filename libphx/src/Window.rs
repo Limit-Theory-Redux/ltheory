@@ -65,13 +65,13 @@ pub unsafe extern "C" fn Window_EndDraw(w: Option<&Window>) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_GetSize(w: Option<&Window>, mut out: *mut IVec2) {
+pub unsafe extern "C" fn Window_GetSize(w: Option<&Window>, out: *mut IVec2) {
     let w = unwrap_or_return!(w);
     SDL_GetWindowSize(w.handle, &mut (*out).x, &mut (*out).y);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_GetPosition(w: Option<&Window>, mut out: *mut IVec2) {
+pub unsafe extern "C" fn Window_GetPosition(w: Option<&Window>, out: *mut IVec2) {
     let w = unwrap_or_return!(w);
     SDL_GetWindowPosition(w.handle, &mut (*out).x, &mut (*out).y);
 }
@@ -83,35 +83,31 @@ pub unsafe extern "C" fn Window_GetTitle(w: Option<&Window>) -> *const libc::c_c
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetFullscreen(w: Option<&Window>, mut fs: bool) {
+pub unsafe extern "C" fn Window_SetFullscreen(w: Option<&Window>, fs: bool) {
     let w = unwrap_or_return!(w);
     SDL_SetWindowFullscreen(w.handle, if fs { WindowMode_Fullscreen } else { 0 });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetPosition(
-    w: Option<&Window>,
-    mut x: WindowPos,
-    mut y: WindowPos,
-) {
+pub unsafe extern "C" fn Window_SetPosition(w: Option<&Window>, x: WindowPos, y: WindowPos) {
     let w = unwrap_or_return!(w);
     SDL_SetWindowPosition(w.handle, x, y);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetSize(w: Option<&Window>, mut sx: i32, mut sy: i32) {
+pub unsafe extern "C" fn Window_SetSize(w: Option<&Window>, sx: i32, sy: i32) {
     let w = unwrap_or_return!(w);
     SDL_SetWindowSize(w.handle, sx, sy);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetTitle(w: Option<&Window>, mut title: *const libc::c_char) {
+pub unsafe extern "C" fn Window_SetTitle(w: Option<&Window>, title: *const libc::c_char) {
     let w = unwrap_or_return!(w);
     SDL_SetWindowTitle(w.handle, title);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetVsync(_: Option<&Window>, mut vsync: bool) {
+pub unsafe extern "C" fn Window_SetVsync(_: Option<&Window>, vsync: bool) {
     SDL_GL_SetSwapInterval(if vsync { 1 } else { 0 });
 }
 

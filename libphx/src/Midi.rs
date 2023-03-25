@@ -17,15 +17,15 @@ pub unsafe extern "C" fn MidiDevice_GetCount() -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_Open(mut _index: i32) -> *mut MidiDevice {
+pub unsafe extern "C" fn MidiDevice_Open(_index: i32) -> *mut MidiDevice {
     std::ptr::null_mut()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_Close(mut _this: *mut MidiDevice) {}
+pub unsafe extern "C" fn MidiDevice_Close(_this: *mut MidiDevice) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_GetNameByIndex(mut _index: i32) -> *const libc::c_char {
+pub unsafe extern "C" fn MidiDevice_GetNameByIndex(_index: i32) -> *const libc::c_char {
     std::ptr::null()
 }
 

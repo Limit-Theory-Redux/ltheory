@@ -72,7 +72,7 @@ pub static ElemType_Tex3D: u32 = 9;
 pub static ElemType_TexCube: u32 = 10;
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Create(mut shader: *mut Shader) -> *mut ShaderState {
+pub unsafe extern "C" fn ShaderState_Create(shader: *mut Shader) -> *mut ShaderState {
     let mut this = MemNew!(ShaderState);
     (*this)._refCount = 1;
     (*this).elems = Vec::new();
@@ -116,8 +116,8 @@ pub unsafe extern "C" fn ShaderState_Free(this: *mut ShaderState) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_FromShaderLoad(
-    mut vertName: *const libc::c_char,
-    mut fragName: *const libc::c_char,
+    vertName: *const libc::c_char,
+    fragName: *const libc::c_char,
 ) -> *mut ShaderState {
     let mut shader: *mut Shader = Shader_Load(vertName, fragName);
     let this: *mut ShaderState = ShaderState_Create(shader);
@@ -128,8 +128,8 @@ pub unsafe extern "C" fn ShaderState_FromShaderLoad(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: f32,
+    name: *const libc::c_char,
+    x: f32,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Float,
@@ -143,9 +143,9 @@ pub unsafe extern "C" fn ShaderState_SetFloat(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat2(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: f32,
-    mut y: f32,
+    name: *const libc::c_char,
+    x: f32,
+    y: f32,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Float2,
@@ -159,10 +159,10 @@ pub unsafe extern "C" fn ShaderState_SetFloat2(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat3(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: f32,
-    mut y: f32,
-    mut z: f32,
+    name: *const libc::c_char,
+    x: f32,
+    y: f32,
+    z: f32,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Float3,
@@ -176,11 +176,11 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat4(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: f32,
-    mut y: f32,
-    mut z: f32,
-    mut w: f32,
+    name: *const libc::c_char,
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Float4,
@@ -194,8 +194,8 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetInt(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: i32,
+    name: *const libc::c_char,
+    x: i32,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Int,
@@ -209,8 +209,8 @@ pub unsafe extern "C" fn ShaderState_SetInt(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetMatrix(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: *mut Matrix,
+    name: *const libc::c_char,
+    x: *mut Matrix,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Matrix,
@@ -224,8 +224,8 @@ pub unsafe extern "C" fn ShaderState_SetMatrix(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex1D(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: *mut Tex1D,
+    name: *const libc::c_char,
+    x: *mut Tex1D,
 ) {
     Tex1D_Acquire(x);
     let mut elem: Elem = Elem {
@@ -240,8 +240,8 @@ pub unsafe extern "C" fn ShaderState_SetTex1D(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex2D(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: *mut Tex2D,
+    name: *const libc::c_char,
+    x: *mut Tex2D,
 ) {
     Tex2D_Acquire(x);
     let mut elem: Elem = Elem {
@@ -256,8 +256,8 @@ pub unsafe extern "C" fn ShaderState_SetTex2D(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex3D(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: *mut Tex3D,
+    name: *const libc::c_char,
+    x: *mut Tex3D,
 ) {
     Tex3D_Acquire(x);
     let mut elem: Elem = Elem {
@@ -272,8 +272,8 @@ pub unsafe extern "C" fn ShaderState_SetTex3D(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTexCube(
     this: *mut ShaderState,
-    mut name: *const libc::c_char,
-    mut x: *mut TexCube,
+    name: *const libc::c_char,
+    x: *mut TexCube,
 ) {
     TexCube_Acquire(x);
     let mut elem: Elem = Elem {

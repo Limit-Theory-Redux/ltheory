@@ -35,7 +35,7 @@ pub static ResourceType_Tex3D: ResourceType = 0x8;
 pub static ResourceType_TexCube: ResourceType = 0x9;
 
 #[no_mangle]
-pub unsafe extern "C" fn ResourceType_ToString(mut this: ResourceType) -> *const libc::c_char {
+pub unsafe extern "C" fn ResourceType_ToString(this: ResourceType) -> *const libc::c_char {
     match this {
         0 => return b"Font\0" as *const u8 as *const libc::c_char,
         1 => return b"Mesh\0" as *const u8 as *const libc::c_char,

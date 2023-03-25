@@ -40,7 +40,7 @@ unsafe extern "C" fn GetActive() -> *mut FBO {
 }
 
 #[inline]
-unsafe extern "C" fn SetDrawBuffers(mut count: i32) {
+unsafe extern "C" fn SetDrawBuffers(count: i32) {
     static mut bufs: [gl::types::GLenum; 4] = [
         gl::COLOR_ATTACHMENT0 as gl::types::GLenum,
         gl::COLOR_ATTACHMENT1 as gl::types::GLenum,
@@ -51,7 +51,7 @@ unsafe extern "C" fn SetDrawBuffers(mut count: i32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_Push(mut sx: i32, mut sy: i32) {
+pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
     Profiler_Begin(
         (*std::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"RenderTarget_Push\0")).as_ptr(),
     );
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn RenderTarget_BindTex2D(this: *mut Tex2D) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut level: i32) {
+pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: *mut Tex2D, level: i32) {
     let this: *mut FBO = GetActive();
     let mut handle: u32 = Tex2D_GetHandle(tex);
     if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
@@ -157,16 +157,12 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(mut tex: *mut Tex2D, mut le
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex3D(this: *mut Tex3D, mut layer: i32) {
+pub unsafe extern "C" fn RenderTarget_BindTex3D(this: *mut Tex3D, layer: i32) {
     RenderTarget_BindTex3DLevel(this, layer, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
-    mut tex: *mut Tex3D,
-    mut layer: i32,
-    mut level: i32,
-) {
+pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: *mut Tex3D, layer: i32, level: i32) {
     let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
         Fatal(
@@ -189,15 +185,15 @@ pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_BindTexCube(this: *mut TexCube, mut face: CubeFace) {
+pub unsafe extern "C" fn RenderTarget_BindTexCube(this: *mut TexCube, face: CubeFace) {
     RenderTarget_BindTexCubeLevel(this, face, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
-    mut tex: *mut TexCube,
-    mut face: CubeFace,
-    mut level: i32,
+    tex: *mut TexCube,
+    face: CubeFace,
+    level: i32,
 ) {
     let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
@@ -225,7 +221,7 @@ pub unsafe extern "C" fn RenderTarget_PushTex2D(this: *mut Tex2D) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: *mut Tex2D, mut level: i32) {
+pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: *mut Tex2D, level: i32) {
     let mut size: IVec2 = IVec2 { x: 0, y: 0 };
     Tex2D_GetSizeLevel(this, &mut size, level);
     RenderTarget_Push(size.x, size.y);
@@ -233,16 +229,12 @@ pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: *mut Tex2D, mut level
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex3D(this: *mut Tex3D, mut layer: i32) {
+pub unsafe extern "C" fn RenderTarget_PushTex3D(this: *mut Tex3D, layer: i32) {
     RenderTarget_PushTex3DLevel(this, layer, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderTarget_PushTex3DLevel(
-    this: *mut Tex3D,
-    mut layer: i32,
-    mut level: i32,
-) {
+pub unsafe extern "C" fn RenderTarget_PushTex3DLevel(this: *mut Tex3D, layer: i32, level: i32) {
     let mut size: IVec3 = IVec3 { x: 0, y: 0, z: 0 };
     Tex3D_GetSizeLevel(this, &mut size, level);
     RenderTarget_Push(size.x, size.y);

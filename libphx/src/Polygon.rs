@@ -16,7 +16,7 @@ pub struct Polygon {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mut Plane) {
+pub unsafe extern "C" fn Polygon_ToPlane(polygon: *const Polygon, out: *mut Plane) {
     let mut v: &Vec<Vec3> = &(*polygon).vertices;
     let mut n: DVec3 = DVec3::ZERO;
     let mut centroid = DVec3::ZERO;
@@ -45,7 +45,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(mut polygon: *mut Polygon, mut out: *mu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Polygon_ToPlaneFast(mut polygon: *mut Polygon, mut out: *mut Plane) {
+pub unsafe extern "C" fn Polygon_ToPlaneFast(polygon: *mut Polygon, out: *mut Plane) {
     // NOTE: Doesn't normalize n and uses v[0] as the center.
 
     let v: &Vec<Vec3> = &(*polygon).vertices;
@@ -70,7 +70,7 @@ pub unsafe extern "C" fn Polygon_ToPlaneFast(mut polygon: *mut Polygon, mut out:
 #[inline]
 unsafe extern "C" fn Polygon_SplitImpl(
     polygon: *const Polygon,
-    mut splitPlane: Plane,
+    splitPlane: Plane,
     back: *mut Polygon,
     front: *mut Polygon,
 ) {
@@ -79,18 +79,17 @@ unsafe extern "C" fn Polygon_SplitImpl(
     }
 
     let mut a: Vec3 = *(*polygon).vertices.last().unwrap();
-    let mut aSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut a);
+    let mut aSide: PointClassification = Plane_ClassifyPoint(&splitPlane, &mut a);
     let mut j: i32 = 0;
     while j < (*polygon).vertices.len() as i32 {
         let mut b: Vec3 = (*polygon).vertices[j as usize];
-        let mut bSide: PointClassification = Plane_ClassifyPoint(&mut splitPlane, &mut b);
+        let mut bSide: PointClassification = Plane_ClassifyPoint(&splitPlane, &mut b);
 
         if bSide == PointClassification::InFront {
             if aSide == PointClassification::Behind {
                 let mut i = Vec3::ZERO;
                 let mut lineSegment: LineSegment = LineSegment { p0: b, p1: a };
-                let hit: bool =
-                    Intersect_LineSegmentPlane(&mut lineSegment, &mut splitPlane, &mut i);
+                let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
                 (*front).vertices.push(i);
                 (*back).vertices.push(i);
 
@@ -103,7 +102,7 @@ unsafe extern "C" fn Polygon_SplitImpl(
                 let mut i = Vec3::ZERO;
                 let mut lineSegment: LineSegment = LineSegment { p0: a, p1: b };
                 let mut _hit: bool =
-                    Intersect_LineSegmentPlane(&mut lineSegment, &mut splitPlane, &mut i);
+                    Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
                 (*front).vertices.push(i);
                 (*back).vertices.push(i);
 
@@ -128,10 +127,10 @@ unsafe extern "C" fn Polygon_SplitImpl(
 
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_SplitSafe(
-    mut polygon: *const Polygon,
-    mut splitPlane: Plane,
-    mut back: *mut Polygon,
-    mut front: *mut Polygon,
+    polygon: *const Polygon,
+    splitPlane: Plane,
+    back: *mut Polygon,
+    front: *mut Polygon,
 ) {
     Polygon_SplitImpl(polygon, splitPlane, back, front);
 
@@ -165,16 +164,16 @@ pub unsafe extern "C" fn Polygon_SplitSafe(
 
 #[no_mangle]
 pub unsafe extern "C" fn Polygon_Split(
-    mut polygon: *mut Polygon,
-    mut splitPlane: Plane,
-    mut back: *mut Polygon,
-    mut front: *mut Polygon,
+    polygon: *mut Polygon,
+    splitPlane: Plane,
+    back: *mut Polygon,
+    front: *mut Polygon,
 ) {
     Polygon_SplitImpl(polygon, splitPlane, back, front);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Polygon_GetCentroid(mut polygon: *mut Polygon, mut out: *mut Vec3) {
+pub unsafe extern "C" fn Polygon_GetCentroid(polygon: *mut Polygon, out: *mut Vec3) {
     let mut centroid = Vec3::ZERO;
 
     for v in (*polygon).vertices.iter() {
@@ -195,7 +194,7 @@ pub unsafe fn Polygon_ConvexToTriangles(polygon: &Polygon, triangles: &mut Vec<T
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Polygon_Validate(mut polygon: *mut Polygon) -> Error {
+pub unsafe extern "C" fn Polygon_Validate(polygon: *mut Polygon) -> Error {
     let v: &Vec<Vec3> = &(*polygon).vertices;
 
     let mut vCur: Vec3 = v[v.len() - 1];

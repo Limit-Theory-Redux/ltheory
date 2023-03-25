@@ -8,12 +8,12 @@ pub type Metric = i32;
 static mut valueCurr: [i32; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
 
 #[no_mangle]
-pub unsafe extern "C" fn Metric_Get(mut this: Metric) -> i32 {
+pub unsafe extern "C" fn Metric_Get(this: Metric) -> i32 {
     valueCurr[this as usize]
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Metric_GetName(mut this: Metric) -> *const libc::c_char {
+pub unsafe extern "C" fn Metric_GetName(this: Metric) -> *const libc::c_char {
     match this {
         1 => return b"Draw Calls\0" as *const u8 as *const libc::c_char,
         2 => return b"Draw Calls (Immediate)\0" as *const u8 as *const libc::c_char,
@@ -28,7 +28,7 @@ pub unsafe extern "C" fn Metric_GetName(mut this: Metric) -> *const libc::c_char
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Metric_AddDraw(mut polys: i32, mut tris: i32, mut verts: i32) {
+pub unsafe extern "C" fn Metric_AddDraw(polys: i32, tris: i32, verts: i32) {
     valueCurr[0x1] += 1;
     valueCurr[0x3] += polys;
     valueCurr[0x4] += tris;
@@ -36,7 +36,7 @@ pub unsafe extern "C" fn Metric_AddDraw(mut polys: i32, mut tris: i32, mut verts
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Metric_AddDrawImm(mut polys: i32, mut tris: i32, mut verts: i32) {
+pub unsafe extern "C" fn Metric_AddDrawImm(polys: i32, tris: i32, verts: i32) {
     valueCurr[0x2] += 1;
     valueCurr[0x3] += polys;
     valueCurr[0x4] += tris;
@@ -44,12 +44,12 @@ pub unsafe extern "C" fn Metric_AddDrawImm(mut polys: i32, mut tris: i32, mut ve
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Metric_Inc(mut this: Metric) {
+pub unsafe extern "C" fn Metric_Inc(this: Metric) {
     valueCurr[this as usize] += 1;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Metric_Mod(mut this: Metric, mut delta: i32) {
+pub unsafe extern "C" fn Metric_Mod(this: Metric, delta: i32) {
     valueCurr[this as usize] += delta;
 }
 

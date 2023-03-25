@@ -12,7 +12,7 @@ pub struct MemStack {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_Create(mut capacity: u32) -> *mut MemStack {
+pub unsafe extern "C" fn MemStack_Create(capacity: u32) -> *mut MemStack {
     let mut this = MemNew!(MemStack);
     (*this).size = 0;
     (*this).capacity = capacity;
@@ -27,10 +27,7 @@ pub unsafe extern "C" fn MemStack_Free(this: *mut MemStack) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_Alloc(
-    this: *mut MemStack,
-    mut size: u32,
-) -> *mut libc::c_void {
+pub unsafe extern "C" fn MemStack_Alloc(this: *mut MemStack, size: u32) -> *mut libc::c_void {
     if ((*this).size).wrapping_add(size) > (*this).capacity {
         Fatal(
             b"MemStack_Alloc: Allocation request exceeds remaining capacity\0" as *const u8
@@ -49,7 +46,7 @@ pub unsafe extern "C" fn MemStack_Clear(this: *mut MemStack) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_Dealloc(this: *mut MemStack, mut size: u32) {
+pub unsafe extern "C" fn MemStack_Dealloc(this: *mut MemStack, size: u32) {
     if (*this).size < size {
         Fatal(
             b"MemStack_Dealloc: Attempt to dealloc more memory than is allocated\0" as *const u8
@@ -60,7 +57,7 @@ pub unsafe extern "C" fn MemStack_Dealloc(this: *mut MemStack, mut size: u32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_CanAlloc(this: *mut MemStack, mut size: u32) -> bool {
+pub unsafe extern "C" fn MemStack_CanAlloc(this: *mut MemStack, size: u32) -> bool {
     ((*this).size).wrapping_add(size) <= (*this).capacity
 }
 

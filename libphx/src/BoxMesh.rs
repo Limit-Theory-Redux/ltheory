@@ -76,7 +76,7 @@ pub unsafe extern "C" fn BoxMesh_Add(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxMesh_GetMesh(this: *mut BoxMesh, mut res: i32) -> *mut Mesh {
+pub unsafe extern "C" fn BoxMesh_GetMesh(this: *mut BoxMesh, res: i32) -> *mut Mesh {
     let mut mesh: *mut Mesh = Mesh_Create();
     Mesh_ReserveVertexData(mesh, 6 * res * res * (*this).elem.len() as i32);
     Mesh_ReserveIndexData(mesh, 12 * (res - 1) * (res - 1));

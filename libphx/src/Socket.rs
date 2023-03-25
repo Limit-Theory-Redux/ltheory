@@ -43,37 +43,29 @@ pub static SocketType_UDP: SocketType = 0x1;
 pub static SocketType_TCP: SocketType = 0x2;
 
 #[inline]
-unsafe extern "C" fn Socket_Cleanup(mut this: sock_t) {
+unsafe extern "C" fn Socket_Cleanup(this: sock_t) {
     if this != -1 {
         libc::close(this);
     }
 }
 
 #[inline]
-unsafe extern "C" fn Socket_Receive(
-    mut this: sock_t,
-    mut buf: *mut libc::c_void,
-    mut len: i32,
-) -> i32 {
+unsafe extern "C" fn Socket_Receive(this: sock_t, buf: *mut libc::c_void, len: i32) -> i32 {
     libc::read(this, buf, len as usize) as i32
 }
 
 #[inline]
-unsafe extern "C" fn Socket_Send(
-    mut this: sock_t,
-    mut buf: *const libc::c_void,
-    mut len: i32,
-) -> i32 {
+unsafe extern "C" fn Socket_Send(this: sock_t, buf: *const libc::c_void, len: i32) -> i32 {
     libc::write(this, buf, len as usize) as i32
 }
 
 #[inline]
-unsafe extern "C" fn Socket_SetNonblocking(mut this: sock_t) -> bool {
+unsafe extern "C" fn Socket_SetNonblocking(this: sock_t) -> bool {
     libc::fcntl(this, 4, libc::fcntl(this, 3, 0) | 0x4) >= 0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Socket_Create(mut type_0: SocketType) -> *mut Socket {
+pub unsafe extern "C" fn Socket_Create(type_0: SocketType) -> *mut Socket {
     if type_0 != SocketType_UDP && type_0 != SocketType_TCP {
         Fatal(
             b"Socket_Create: socket type must be either SocketType_TCP or SocketType_UDP\0"
@@ -140,7 +132,7 @@ pub unsafe extern "C" fn Socket_Accept(this: *mut Socket) -> *mut Socket {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Socket_Bind(this: *mut Socket, mut port: i32) {
+pub unsafe extern "C" fn Socket_Bind(this: *mut Socket, port: i32) {
     let mut addr: libc::sockaddr_in = libc::sockaddr_in {
         sin_len: 0,
         sin_family: 0,
@@ -235,8 +227,8 @@ pub unsafe extern "C" fn Socket_ReadBytes(this: *mut Socket) -> *mut Bytes {
 #[no_mangle]
 pub unsafe extern "C" fn Socket_ReceiveFrom(
     this: *mut Socket,
-    mut data: *mut libc::c_void,
-    mut len: usize,
+    data: *mut libc::c_void,
+    len: usize,
 ) -> i32 {
     MemZero(data, len);
     let mut addrSize: libc::socklen_t = 0;
@@ -272,7 +264,7 @@ pub unsafe extern "C" fn Socket_GetAddress(this: *mut Socket) -> *const libc::c_
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Socket_SetAddress(this: *mut Socket, mut addr: *const libc::c_char) {
+pub unsafe extern "C" fn Socket_SetAddress(this: *mut Socket, addr: *const libc::c_char) {
     let mut colon: *const libc::c_char = StrFind(addr, b":\0" as *const u8 as *const libc::c_char);
     if colon.is_null() {
         Fatal(
@@ -303,8 +295,8 @@ pub unsafe extern "C" fn Socket_SetAddress(this: *mut Socket, mut addr: *const l
 #[no_mangle]
 pub unsafe extern "C" fn Socket_SendTo(
     this: *mut Socket,
-    mut data: *const libc::c_void,
-    mut len: usize,
+    data: *const libc::c_void,
+    len: usize,
 ) -> i32 {
     let mut bytes: i32 = libc::sendto(
         (*this).sock,
@@ -321,14 +313,14 @@ pub unsafe extern "C" fn Socket_SendTo(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Socket_Write(this: *mut Socket, mut msg: *const libc::c_char) {
+pub unsafe extern "C" fn Socket_Write(this: *mut Socket, msg: *const libc::c_char) {
     if Socket_Send((*this).sock, msg as *const _, msg as i32) == -1 {
         Fatal(b"Socket_Write: failed to write to socket\0" as *const u8 as *const libc::c_char);
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Socket_WriteBytes(this: *mut Socket, mut msg: *mut Bytes) {
+pub unsafe extern "C" fn Socket_WriteBytes(this: *mut Socket, msg: *mut Bytes) {
     if Socket_Send((*this).sock, Bytes_GetData(msg), Bytes_GetSize(msg) as i32) == -1 {
         Fatal(b"Socket_WriteRaw: failed to write to socket\0" as *const u8 as *const libc::c_char);
     }

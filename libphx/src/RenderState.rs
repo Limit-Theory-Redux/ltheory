@@ -51,7 +51,7 @@ unsafe extern "C" fn RenderState_SetBlendMode(mode: BlendMode) {
 }
 
 #[inline]
-unsafe extern "C" fn RenderState_SetCullFace(mut mode: CullFace) {
+unsafe extern "C" fn RenderState_SetCullFace(mode: CullFace) {
     match mode {
         CullFace_None => {
             gl::Disable(gl::CULL_FACE);
@@ -83,7 +83,7 @@ unsafe extern "C" fn RenderState_SetDepthWritable(enabled: bool) {
 }
 
 #[inline]
-unsafe extern "C" fn RenderState_SetWireframe(mut enabled: bool) {
+unsafe extern "C" fn RenderState_SetWireframe(enabled: bool) {
     if enabled {
         gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
     } else {
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn RenderState_PopWireframe() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderState_PushBlendMode(mut value: BlendMode) {
+pub unsafe extern "C" fn RenderState_PushBlendMode(value: BlendMode) {
     if blendModeIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushBlendMode: Maximum state stack depth exceeded\0" as *const u8
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn RenderState_PopDepthWritable() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderState_PushCullFace(mut value: CullFace) {
+pub unsafe extern "C" fn RenderState_PushCullFace(value: CullFace) {
     if cullFaceIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushCullFace: Maximum state stack depth exceeded\0" as *const u8
@@ -206,7 +206,7 @@ pub unsafe extern "C" fn RenderState_PushCullFace(mut value: CullFace) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderState_PushDepthTest(mut value: bool) {
+pub unsafe extern "C" fn RenderState_PushDepthTest(value: bool) {
     if depthTestIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushDepthTest: Maximum state stack depth exceeded\0" as *const u8
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn RenderState_PushDepthTest(mut value: bool) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderState_PushDepthWritable(mut value: bool) {
+pub unsafe extern "C" fn RenderState_PushDepthWritable(value: bool) {
     if depthWritableIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushDepthWritable: Maximum state stack depth exceeded\0" as *const u8
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn RenderState_PushDepthWritable(mut value: bool) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RenderState_PushWireframe(mut value: bool) {
+pub unsafe extern "C" fn RenderState_PushWireframe(value: bool) {
     if wireframeIndex + 1 >= 16 {
         Fatal(
             b"RenderState_PushWireframe: Maximum state stack depth exceeded\0" as *const u8

@@ -8,11 +8,11 @@ use libc;
 #[inline]
 unsafe extern "C" fn Mesh_AddPlane(
     this: *mut Mesh,
-    mut origin: Vec3,
-    mut du: Vec3,
-    mut dv: Vec3,
-    mut resU: i32,
-    mut resV: i32,
+    origin: Vec3,
+    du: Vec3,
+    dv: Vec3,
+    resU: i32,
+    resV: i32,
 ) {
     let mut n: Vec3 = Vec3::cross(du, dv).normalize();
     let mut iu: i32 = 0;
@@ -34,7 +34,7 @@ unsafe extern "C" fn Mesh_AddPlane(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
+pub unsafe extern "C" fn Mesh_Box(res: i32) -> *mut Mesh {
     let origin: [Vec3; 6] = [
         Vec3::new(-1.0f32, -1.0f32, 1.0f32),
         Vec3::new(-1.0f32, -1.0f32, -1.0f32),
@@ -76,7 +76,7 @@ pub unsafe extern "C" fn Mesh_Box(mut res: i32) -> *mut Mesh {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_BoxSphere(mut res: i32) -> *mut Mesh {
+pub unsafe extern "C" fn Mesh_BoxSphere(res: i32) -> *mut Mesh {
     let this: *mut Mesh = Mesh_Box(res);
     let mut vertexCount: i32 = Mesh_GetVertexCount(this);
     let mut vertexData: *mut Vertex = Mesh_GetVertexData(this);
@@ -91,11 +91,11 @@ pub unsafe extern "C" fn Mesh_BoxSphere(mut res: i32) -> *mut Mesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Plane(
-    mut origin: Vec3,
-    mut du: Vec3,
-    mut dv: Vec3,
-    mut resU: i32,
-    mut resV: i32,
+    origin: Vec3,
+    du: Vec3,
+    dv: Vec3,
+    resU: i32,
+    resV: i32,
 ) -> *mut Mesh {
     let this: *mut Mesh = Mesh_Create();
     Mesh_AddPlane(this, origin, du, dv, resU, resV);

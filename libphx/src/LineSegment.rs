@@ -12,7 +12,7 @@ pub struct LineSegment {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LineSegment_ToRay(this: *const LineSegment, mut out: *mut Ray) {
+pub unsafe extern "C" fn LineSegment_ToRay(this: *const LineSegment, out: *mut Ray) {
     (*out).p = (*this).p0;
     (*out).dir = (*this).p1 - (*this).p0;
     (*out).tMin = 0.0f32;
@@ -20,7 +20,7 @@ pub unsafe extern "C" fn LineSegment_ToRay(this: *const LineSegment, mut out: *m
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LineSegment_FromRay(mut ray: *const Ray, mut out: *mut LineSegment) {
+pub unsafe extern "C" fn LineSegment_FromRay(ray: *const Ray, out: *mut LineSegment) {
     Ray_ToLineSegment(ray, out);
 }
 

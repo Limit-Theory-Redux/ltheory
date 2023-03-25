@@ -22,13 +22,13 @@ pub struct ThreadData {
 }
 pub type ThreadPoolFn = Option<unsafe extern "C" fn(i32, i32, *mut libc::c_void) -> i32>;
 
-unsafe extern "C" fn ThreadPool_Dispatch(mut data: *mut libc::c_void) -> i32 {
+unsafe extern "C" fn ThreadPool_Dispatch(data: *mut libc::c_void) -> i32 {
     let mut td: *mut ThreadData = data as *mut ThreadData;
     ((*td).fn_0).expect("non-null function pointer")((*td).index, (*td).threads, (*td).data)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ThreadPool_Create(mut threads: i32) -> *mut ThreadPool {
+pub unsafe extern "C" fn ThreadPool_Create(threads: i32) -> *mut ThreadPool {
     let mut this = MemNew!(ThreadPool);
     (*this).threads = threads;
     (*this).thread = MemNewArray!(ThreadData, threads);
@@ -64,8 +64,8 @@ pub unsafe extern "C" fn ThreadPool_Free(this: *mut ThreadPool) {
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Launch(
     this: *mut ThreadPool,
-    mut fn_0: ThreadPoolFn,
-    mut data: *mut libc::c_void,
+    fn_0: ThreadPoolFn,
+    data: *mut libc::c_void,
 ) {
     let mut i: i32 = 0;
     while i < (*this).threads {

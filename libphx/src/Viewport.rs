@@ -57,7 +57,7 @@ pub unsafe extern "C" fn Viewport_GetAspect() -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Viewport_GetSize(mut out: *mut IVec2) {
+pub unsafe extern "C" fn Viewport_GetSize(out: *mut IVec2) {
     if vpIndex < 0 {
         Fatal(b"Viewport_GetSize: Viewport stack is empty\0" as *const u8 as *const libc::c_char);
     }
@@ -66,13 +66,7 @@ pub unsafe extern "C" fn Viewport_GetSize(mut out: *mut IVec2) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Viewport_Push(
-    mut x: i32,
-    mut y: i32,
-    mut sx: i32,
-    mut sy: i32,
-    mut isWindow: bool,
-) {
+pub unsafe extern "C" fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindow: bool) {
     if vpIndex + 1 >= 16 {
         Fatal(
             b"Viewport_Push: Maximum viewport stack depth exceeded\0" as *const u8

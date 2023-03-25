@@ -14,7 +14,7 @@ pub unsafe extern "C" fn GUID_Create() -> u64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GUID_Exists(mut id: u64) -> bool {
+pub unsafe extern "C" fn GUID_Exists(id: u64) -> bool {
     id < nextID && id != 0
 }
 

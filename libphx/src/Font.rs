@@ -48,12 +48,12 @@ pub static kRcpGamma: f32 = 1.0f32 / kGamma;
 
 static mut ft: FT_Library = std::ptr::null_mut();
 
-unsafe extern "C" fn Font_GetGlyph(this: *mut Font, mut codepoint: u32) -> *mut Glyph {
+unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyph {
     if codepoint < 256 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
         return (*this).glyphsAscii[codepoint as usize];
     }
     let mut g: *mut Glyph =
-        HashMap_Get((*this).glyphs, &mut codepoint as *mut u32 as *const _) as *mut Glyph;
+        HashMap_Get((*this).glyphs, &codepoint as *const u32 as *const _) as *mut Glyph;
     if !g.is_null() {
         return g;
     }
@@ -112,7 +112,7 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, mut codepoint: u32) -> *mut 
     } else {
         HashMap_Set(
             (*this).glyphs,
-            &mut codepoint as *mut u32 as *const _,
+            &codepoint as *const u32 as *const _,
             g as *mut _,
         );
     }
@@ -120,7 +120,7 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, mut codepoint: u32) -> *mut 
 }
 
 #[inline]
-unsafe extern "C" fn Font_GetKerning(this: *mut Font, mut a: i32, mut b: i32) -> i32 {
+unsafe extern "C" fn Font_GetKerning(this: *mut Font, a: i32, b: i32) -> i32 {
     let mut kern: FT_Vector = FT_Vector { x: 0, y: 0 };
     FT_Get_Kerning(
         (*this).handle,
@@ -133,7 +133,7 @@ unsafe extern "C" fn Font_GetKerning(this: *mut Font, mut a: i32, mut b: i32) ->
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_Load(mut name: *const libc::c_char, mut size: i32) -> *mut Font {
+pub unsafe extern "C" fn Font_Load(name: *const libc::c_char, size: i32) -> *mut Font {
     if ft.is_null() {
         FT_Init_FreeType(&mut ft);
     }
@@ -178,10 +178,10 @@ pub unsafe extern "C" fn Font_Draw(
     mut text: *const libc::c_char,
     mut x: f32,
     mut y: f32,
-    mut r: f32,
-    mut g: f32,
-    mut b: f32,
-    mut a: f32,
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
 ) {
     Profiler_Begin(
         (*std::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"Font_Draw\0")).as_ptr(),
@@ -268,7 +268,7 @@ pub unsafe extern "C" fn Font_GetLineHeight(this: *mut Font) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize(
     this: *mut Font,
-    mut out: *mut IVec4,
+    out: *mut IVec4,
     mut text: *const libc::c_char,
 ) {
     Profiler_Begin(
@@ -312,7 +312,7 @@ pub unsafe extern "C" fn Font_GetSize(
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize2(
     this: *mut Font,
-    mut out: *mut IVec2,
+    out: *mut IVec2,
     mut text: *const libc::c_char,
 ) {
     Profiler_Begin(

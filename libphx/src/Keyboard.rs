@@ -54,17 +54,17 @@ pub unsafe extern "C" fn Keyboard_UpdatePost() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Keyboard_Down(mut key: Key) -> bool {
+pub unsafe extern "C" fn Keyboard_Down(key: Key) -> bool {
     *stateCurr.offset(key as isize) as i32 != 0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Keyboard_Pressed(mut key: Key) -> bool {
+pub unsafe extern "C" fn Keyboard_Pressed(key: Key) -> bool {
     *stateCurr.offset(key as isize) as i32 != 0 && *stateLast.offset(key as isize) == 0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Keyboard_Released(mut key: Key) -> bool {
+pub unsafe extern "C" fn Keyboard_Released(key: Key) -> bool {
     *stateCurr.offset(key as isize) == 0 && *stateLast.offset(key as isize) as i32 != 0
 }
 

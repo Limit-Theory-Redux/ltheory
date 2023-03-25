@@ -17,7 +17,7 @@ pub unsafe extern "C" fn BlendMode_Pop() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BlendMode_Push(mut blendMode: BlendMode) {
+pub unsafe extern "C" fn BlendMode_Push(blendMode: BlendMode) {
     RenderState_PushBlendMode(blendMode);
 }
 

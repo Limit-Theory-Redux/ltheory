@@ -12,7 +12,7 @@ use libc;
 pub type ShaderVarType = i32;
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: *const libc::c_char) -> ShaderVarType {
+pub unsafe extern "C" fn ShaderVarType_FromStr(s: *const libc::c_char) -> ShaderVarType {
     let mut i: ShaderVarType = 0x1;
     while i <= 0xd {
         if StrEqual(s, ShaderVarType_GetGLSLName(i)) {
@@ -24,7 +24,7 @@ pub unsafe extern "C" fn ShaderVarType_FromStr(mut s: *const libc::c_char) -> Sh
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut this: ShaderVarType) -> *const libc::c_char {
+pub unsafe extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *const libc::c_char {
     match this {
         1 => return b"float\0" as *const u8 as *const libc::c_char,
         2 => return b"vec2\0" as *const u8 as *const libc::c_char,
@@ -45,7 +45,7 @@ pub unsafe extern "C" fn ShaderVarType_GetGLSLName(mut this: ShaderVarType) -> *
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> *const libc::c_char {
+pub unsafe extern "C" fn ShaderVarType_GetName(this: ShaderVarType) -> *const libc::c_char {
     match this {
         1 => return b"float\0" as *const u8 as *const libc::c_char,
         2 => return b"float2\0" as *const u8 as *const libc::c_char,
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn ShaderVarType_GetName(mut this: ShaderVarType) -> *cons
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetSize(mut this: ShaderVarType) -> i32 {
+pub unsafe extern "C" fn ShaderVarType_GetSize(this: ShaderVarType) -> i32 {
     match this {
         1 => {
             return std::mem::size_of::<f32>() as i32;

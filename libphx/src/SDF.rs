@@ -24,7 +24,7 @@ pub struct Cell {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SDF_Create(mut sx: i32, mut sy: i32, mut sz: i32) -> *mut SDF {
+pub unsafe extern "C" fn SDF_Create(sx: i32, sy: i32, sz: i32) -> *mut SDF {
     let mut this = MemNew!(SDF);
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).data = MemNewArray!(Cell, (sx * sy * sz));
@@ -39,7 +39,7 @@ pub unsafe extern "C" fn SDF_Create(mut sx: i32, mut sy: i32, mut sz: i32) -> *m
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SDF_FromTex3D(mut tex: *mut Tex3D) -> *mut SDF {
+pub unsafe extern "C" fn SDF_FromTex3D(tex: *mut Tex3D) -> *mut SDF {
     let mut this = MemNew!(SDF);
     Tex3D_GetSize(tex, &mut (*this).size);
     (*this).data = MemAlloc(
@@ -203,7 +203,7 @@ pub unsafe extern "C" fn SDF_ToMesh(this: *mut SDF) -> *mut Mesh {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SDF_Clear(this: *mut SDF, mut value: f32) {
+pub unsafe extern "C" fn SDF_Clear(this: *mut SDF, value: f32) {
     let mut size: u64 = ((*this).size.x * (*this).size.y * (*this).size.z) as u64;
     let mut pCell: *mut Cell = (*this).data;
     let mut i: u64 = 0;
@@ -253,13 +253,7 @@ pub unsafe extern "C" fn SDF_ComputeNormals(this: *mut SDF) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SDF_Set(
-    this: *mut SDF,
-    mut x: i32,
-    mut y: i32,
-    mut z: i32,
-    mut value: f32,
-) {
+pub unsafe extern "C" fn SDF_Set(this: *mut SDF, x: i32, y: i32, z: i32, value: f32) {
     (*((*this).data).offset((x + (*this).size.x * (y + (*this).size.y * z)) as isize)).value =
         value;
 }
@@ -267,10 +261,10 @@ pub unsafe extern "C" fn SDF_Set(
 #[no_mangle]
 pub unsafe extern "C" fn SDF_SetNormal(
     this: *mut SDF,
-    mut x: i32,
-    mut y: i32,
-    mut z: i32,
-    mut normal: *const Vec3,
+    x: i32,
+    y: i32,
+    z: i32,
+    normal: *const Vec3,
 ) {
     (*((*this).data).offset((x + (*this).size.x * (y + (*this).size.y * z)) as isize)).normal =
         *normal;

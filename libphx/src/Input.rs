@@ -76,7 +76,7 @@ static mut this: Input = Input {
 };
 
 #[inline]
-unsafe extern "C" fn Input_EnsureDeviceState(mut device: Device) -> *mut DeviceState {
+unsafe extern "C" fn Input_EnsureDeviceState(device: Device) -> *mut DeviceState {
     let mut deviceList: *mut DeviceList = &mut *(this.deviceLists)
         .as_mut_ptr()
         .offset(device.type_0 as isize)
@@ -94,7 +94,7 @@ unsafe extern "C" fn Input_EnsureDeviceState(mut device: Device) -> *mut DeviceS
 }
 
 #[inline]
-unsafe extern "C" fn Input_GetDeviceState(mut device: Device) -> *mut DeviceState {
+unsafe extern "C" fn Input_GetDeviceState(device: Device) -> *mut DeviceState {
     let mut deviceList: *mut DeviceList = &mut *(this.deviceLists)
         .as_mut_ptr()
         .offset(device.type_0 as isize)
@@ -103,7 +103,7 @@ unsafe extern "C" fn Input_GetDeviceState(mut device: Device) -> *mut DeviceStat
 }
 
 #[inline]
-unsafe extern "C" fn Input_SetActiveDevice(mut device: Device) {
+unsafe extern "C" fn Input_SetActiveDevice(device: Device) {
     this.activeDevice = device;
     if this.autoHideMouse {
         SDL_ShowCursor(if device.type_0 == DeviceType_Mouse {
@@ -115,7 +115,7 @@ unsafe extern "C" fn Input_SetActiveDevice(mut device: Device) {
 }
 
 #[inline]
-unsafe extern "C" fn Input_GetDeviceExists(mut device: Device) -> bool {
+unsafe extern "C" fn Input_GetDeviceExists(device: Device) -> bool {
     let mut deviceList: *mut DeviceList = &mut *(this.deviceLists)
         .as_mut_ptr()
         .offset(device.type_0 as isize)
@@ -128,7 +128,7 @@ unsafe extern "C" fn Input_GetDeviceExists(mut device: Device) -> bool {
 }
 
 #[inline]
-unsafe extern "C" fn Input_GetDevicePressedImpl(mut device: Device, mut button: Button) -> bool {
+unsafe extern "C" fn Input_GetDevicePressedImpl(device: Device, button: Button) -> bool {
     if button < 0 || button > SDL_Scancode::SDL_NUM_SCANCODES as i32 {
         return false;
     }
@@ -141,14 +141,14 @@ unsafe extern "C" fn Input_GetDevicePressedImpl(mut device: Device, mut button: 
 }
 
 #[inline]
-unsafe extern "C" fn Input_GetDeviceDownImpl(mut device: Device, mut button: Button) -> bool {
+unsafe extern "C" fn Input_GetDeviceDownImpl(device: Device, button: Button) -> bool {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
     (*deviceState).buttons[button as usize] as i32 != 0
         || (*deviceState).transitions[button as usize] > 0
 }
 
 #[inline]
-unsafe extern "C" fn Input_GetDeviceReleasedImpl(mut device: Device, mut button: Button) -> bool {
+unsafe extern "C" fn Input_GetDeviceReleasedImpl(device: Device, button: Button) -> bool {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
     if (*deviceState).buttons[button as usize] as i32 != 0 {
         (*deviceState).transitions[button as usize] > 1
@@ -158,19 +158,19 @@ unsafe extern "C" fn Input_GetDeviceReleasedImpl(mut device: Device, mut button:
 }
 
 #[inline]
-unsafe extern "C" fn Input_GetDeviceValueImpl(mut device: Device, mut button: Button) -> f32 {
+unsafe extern "C" fn Input_GetDeviceValueImpl(device: Device, button: Button) -> f32 {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
     (*deviceState).axes[button as usize]
 }
 
 #[inline]
-unsafe extern "C" fn Input_GetDeviceIdleTimeImpl(mut device: Device) -> f32 {
+unsafe extern "C" fn Input_GetDeviceIdleTimeImpl(device: Device) -> f32 {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(device);
     (this.lastTimestamp).wrapping_sub((*deviceState).lastEventTimestamp) as f32 / 1000.0f32
 }
 
 #[inline]
-unsafe extern "C" fn Input_DetermineButtonState(mut event: InputEvent) -> State {
+unsafe extern "C" fn Input_DetermineButtonState(event: InputEvent) -> State {
     let mut buttonState: State = State_Null;
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(event.device);
     let mut down: bool = (*deviceState).buttons[event.button as usize];
@@ -198,7 +198,7 @@ unsafe extern "C" fn Input_InjectEvent(event: InputEvent) {
 }
 
 #[inline]
-unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
+unsafe extern "C" fn Input_SetButton(event: InputEvent) {
     let mut deviceState: *mut DeviceState = Input_GetDeviceState(event.device);
     (*deviceState).axes[event.button as usize] = event.value;
     let mut down: bool = (*deviceState).buttons[event.button as usize];
@@ -604,7 +604,7 @@ pub unsafe extern "C" fn Input_Update() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_LoadGamepadDatabase(mut name: *const libc::c_char) {
+pub unsafe extern "C" fn Input_LoadGamepadDatabase(name: *const libc::c_char) {
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Other, name);
     let mut result: i32 = SDL_GameControllerAddMappingsFromRW(
         SDL_RWFromFile(path, b"rb\0" as *const u8 as *const libc::c_char),
@@ -616,7 +616,7 @@ pub unsafe extern "C" fn Input_LoadGamepadDatabase(mut name: *const libc::c_char
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetPressed(mut button: Button) -> bool {
+pub unsafe extern "C" fn Input_GetPressed(button: Button) -> bool {
     let mut device: Device = Device {
         type_0: Button_ToDeviceType(button),
         id: 0,
@@ -625,7 +625,7 @@ pub unsafe extern "C" fn Input_GetPressed(mut button: Button) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetDown(mut button: Button) -> bool {
+pub unsafe extern "C" fn Input_GetDown(button: Button) -> bool {
     let mut device: Device = Device {
         type_0: Button_ToDeviceType(button),
         id: 0,
@@ -634,7 +634,7 @@ pub unsafe extern "C" fn Input_GetDown(mut button: Button) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetReleased(mut button: Button) -> bool {
+pub unsafe extern "C" fn Input_GetReleased(button: Button) -> bool {
     let mut device: Device = Device {
         type_0: Button_ToDeviceType(button),
         id: 0,
@@ -643,7 +643,7 @@ pub unsafe extern "C" fn Input_GetReleased(mut button: Button) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetValue(mut button: Button) -> f32 {
+pub unsafe extern "C" fn Input_GetValue(button: Button) -> f32 {
     let mut device: Device = Device {
         type_0: Button_ToDeviceType(button),
         id: 0,
@@ -657,7 +657,7 @@ pub unsafe extern "C" fn Input_GetIdleTime() -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetActiveDevice(mut device: *mut Device) {
+pub unsafe extern "C" fn Input_GetActiveDevice(device: *mut Device) {
     *device = this.activeDevice;
 }
 
@@ -677,10 +677,7 @@ pub unsafe extern "C" fn Input_GetActiveDeviceIdleTime() -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetDevicePressed(
-    mut device: *mut Device,
-    mut button: Button,
-) -> bool {
+pub unsafe extern "C" fn Input_GetDevicePressed(device: *mut Device, button: Button) -> bool {
     if !Input_GetDeviceExists(*device) {
         return false;
     }
@@ -688,7 +685,7 @@ pub unsafe extern "C" fn Input_GetDevicePressed(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetDeviceDown(mut device: *mut Device, mut button: Button) -> bool {
+pub unsafe extern "C" fn Input_GetDeviceDown(device: *mut Device, button: Button) -> bool {
     if !Input_GetDeviceExists(*device) {
         return false;
     }
@@ -696,10 +693,7 @@ pub unsafe extern "C" fn Input_GetDeviceDown(mut device: *mut Device, mut button
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetDeviceReleased(
-    mut device: *mut Device,
-    mut button: Button,
-) -> bool {
+pub unsafe extern "C" fn Input_GetDeviceReleased(device: *mut Device, button: Button) -> bool {
     if !Input_GetDeviceExists(*device) {
         return false;
     }
@@ -707,7 +701,7 @@ pub unsafe extern "C" fn Input_GetDeviceReleased(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetDeviceValue(mut device: *mut Device, mut button: Button) -> f32 {
+pub unsafe extern "C" fn Input_GetDeviceValue(device: *mut Device, button: Button) -> f32 {
     if !Input_GetDeviceExists(*device) {
         return 0.0f32;
     }
@@ -715,7 +709,7 @@ pub unsafe extern "C" fn Input_GetDeviceValue(mut device: *mut Device, mut butto
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetDeviceIdleTime(mut device: *mut Device) -> f32 {
+pub unsafe extern "C" fn Input_GetDeviceIdleTime(device: *mut Device) -> f32 {
     if !Input_GetDeviceExists(*device) {
         return f32::MAX;
     }
@@ -723,7 +717,7 @@ pub unsafe extern "C" fn Input_GetDeviceIdleTime(mut device: *mut Device) -> f32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetMouseDelta(mut delta: *mut IVec2) {
+pub unsafe extern "C" fn Input_GetMouseDelta(delta: *mut IVec2) {
     (*delta).x = Input_GetValue(Button_Mouse_X) as i32 - this.lastMousePosition.x;
     (*delta).y = Input_GetValue(Button_Mouse_Y) as i32 - this.lastMousePosition.y;
 }
@@ -738,7 +732,7 @@ pub unsafe extern "C" fn Input_GetMouseIdleTime() -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetMousePosition(mut position: *mut IVec2) {
+pub unsafe extern "C" fn Input_GetMousePosition(position: *mut IVec2) {
     let mut device: Device = Device {
         type_0: DeviceType_Mouse,
         id: 0,
@@ -748,7 +742,7 @@ pub unsafe extern "C" fn Input_GetMousePosition(mut position: *mut IVec2) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetMouseScroll(mut scroll: *mut IVec2) {
+pub unsafe extern "C" fn Input_GetMouseScroll(scroll: *mut IVec2) {
     let mut device: Device = Device {
         type_0: DeviceType_Mouse,
         id: 0,
@@ -758,12 +752,12 @@ pub unsafe extern "C" fn Input_GetMouseScroll(mut scroll: *mut IVec2) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_SetMousePosition(mut position: *mut IVec2) {
+pub unsafe extern "C" fn Input_SetMousePosition(position: *mut IVec2) {
     SDL_WarpMouseInWindow(std::ptr::null_mut(), (*position).x, (*position).y);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_SetMouseVisible(mut visible: bool) {
+pub unsafe extern "C" fn Input_SetMouseVisible(visible: bool) {
     this.autoHideMouse = false;
     SDL_ShowCursor(if visible as i32 != 0 { 1 } else { 0 });
 }
@@ -775,7 +769,7 @@ pub unsafe extern "C" fn Input_SetMouseVisibleAuto() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_SetMouseScroll(mut scroll: *mut IVec2) {
+pub unsafe extern "C" fn Input_SetMouseScroll(scroll: *mut IVec2) {
     let mut timestamp: u32 = SDL_GetTicks();
     let mut device: Device = Device {
         type_0: DeviceType_Mouse,
@@ -816,7 +810,7 @@ pub unsafe extern "C" fn Input_GetKeyboardIdleTime() -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetKeyboardMod(mut modifier: Modifier) -> bool {
+pub unsafe extern "C" fn Input_GetKeyboardMod(modifier: Modifier) -> bool {
     let mut hasMod: bool = true;
     if modifier & Modifier_Alt == Modifier_Alt {
         hasMod = (hasMod as i32 & Input_GetKeyboardAlt() as i32) != 0;
@@ -864,7 +858,7 @@ pub unsafe extern "C" fn Input_GetKeyboardShift() -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetGamepadIdleTime(mut id: u32) -> f32 {
+pub unsafe extern "C" fn Input_GetGamepadIdleTime(id: u32) -> f32 {
     let mut device: Device = Device {
         type_0: DeviceType_Gamepad,
         id: id,
@@ -876,7 +870,7 @@ pub unsafe extern "C" fn Input_GetGamepadIdleTime(mut id: u32) -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetGamepadPressed(mut id: u32, mut button: Button) -> bool {
+pub unsafe extern "C" fn Input_GetGamepadPressed(id: u32, button: Button) -> bool {
     let mut device: Device = Device {
         type_0: DeviceType_Gamepad,
         id: id,
@@ -888,7 +882,7 @@ pub unsafe extern "C" fn Input_GetGamepadPressed(mut id: u32, mut button: Button
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetGamepadDown(mut id: u32, mut button: Button) -> bool {
+pub unsafe extern "C" fn Input_GetGamepadDown(id: u32, button: Button) -> bool {
     let mut device: Device = Device {
         type_0: DeviceType_Gamepad,
         id: id,
@@ -900,7 +894,7 @@ pub unsafe extern "C" fn Input_GetGamepadDown(mut id: u32, mut button: Button) -
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetGamepadReleased(mut id: u32, mut button: Button) -> bool {
+pub unsafe extern "C" fn Input_GetGamepadReleased(id: u32, button: Button) -> bool {
     let mut device: Device = Device {
         type_0: DeviceType_Gamepad,
         id: id,
@@ -912,7 +906,7 @@ pub unsafe extern "C" fn Input_GetGamepadReleased(mut id: u32, mut button: Butto
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetGamepadValue(mut id: u32, mut button: Button) -> f32 {
+pub unsafe extern "C" fn Input_GetGamepadValue(id: u32, button: Button) -> f32 {
     let mut device: Device = Device {
         type_0: DeviceType_Gamepad,
         id: id,
@@ -929,7 +923,7 @@ pub unsafe extern "C" fn Input_GetEventCount() -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Input_GetNextEvent(mut event: *mut InputEvent) -> bool {
+pub unsafe extern "C" fn Input_GetNextEvent(event: *mut InputEvent) -> bool {
     if this.events.is_empty() {
         return false;
     }

@@ -14,9 +14,9 @@ pub type ThreadFn = Option<unsafe extern "C" fn(*mut libc::c_void) -> i32>;
 
 #[no_mangle]
 pub unsafe extern "C" fn Thread_Create(
-    mut name: *const libc::c_char,
-    mut fn_0: ThreadFn,
-    mut data: *mut libc::c_void,
+    name: *const libc::c_char,
+    fn_0: ThreadFn,
+    data: *mut libc::c_void,
 ) -> *mut Thread {
     let mut this = MemNew!(Thread);
     (*this).handle = SDL_CreateThread(fn_0, name, data);
@@ -33,7 +33,7 @@ pub unsafe extern "C" fn Thread_Detach(this: *mut Thread) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Thread_Sleep(mut ms: u32) {
+pub unsafe extern "C" fn Thread_Sleep(ms: u32) {
     SDL_Delay(ms);
 }
 

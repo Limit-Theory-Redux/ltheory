@@ -19,7 +19,7 @@ macro_rules! unwrap_or_return {
 pub(crate) use unwrap_or_return;
 
 #[no_mangle]
-pub unsafe extern "C" fn Fatal(mut format: *const libc::c_char, mut args: ...) -> ! {
+pub unsafe extern "C" fn Fatal(format: *const libc::c_char, mut args: ...) -> ! {
     let mut s = String::new();
     let _ = printf_compat::format(
         format,
@@ -31,7 +31,7 @@ pub unsafe extern "C" fn Fatal(mut format: *const libc::c_char, mut args: ...) -
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Warn(mut format: *const libc::c_char, mut args: ...) {
+pub unsafe extern "C" fn Warn(format: *const libc::c_char, mut args: ...) {
     let mut s = String::new();
     let _ = printf_compat::format(
         format,

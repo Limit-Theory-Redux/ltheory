@@ -51,12 +51,7 @@ pub unsafe extern "C" fn LodMesh_Free(this: *mut LodMesh) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Add(
-    this: *mut LodMesh,
-    mut mesh: *mut Mesh,
-    mut dMin: f32,
-    mut dMax: f32,
-) {
+pub unsafe extern "C" fn LodMesh_Add(this: *mut LodMesh, mesh: *mut Mesh, dMin: f32, dMax: f32) {
     let mut e = MemNew!(LodMeshEntry);
     (*e).mesh = mesh;
     (*e).dMin = dMin * dMin;
@@ -66,7 +61,7 @@ pub unsafe extern "C" fn LodMesh_Add(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Draw(this: *mut LodMesh, mut d2: f32) {
+pub unsafe extern "C" fn LodMesh_Draw(this: *mut LodMesh, d2: f32) {
     let mut e: *mut LodMeshEntry = (*this).head;
     while !e.is_null() {
         if (*e).dMin <= d2 && d2 <= (*e).dMax {
@@ -77,7 +72,7 @@ pub unsafe extern "C" fn LodMesh_Draw(this: *mut LodMesh, mut d2: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Get(this: *mut LodMesh, mut d2: f32) -> *mut Mesh {
+pub unsafe extern "C" fn LodMesh_Get(this: *mut LodMesh, d2: f32) -> *mut Mesh {
     let mut e: *mut LodMeshEntry = (*this).head;
     while !e.is_null() {
         if (*e).dMin <= d2 && d2 <= (*e).dMax {

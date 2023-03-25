@@ -30,6 +30,6 @@ static mut kFaces: [CubeFace; 6] = [
 ];
 
 #[no_mangle]
-pub unsafe extern "C" fn CubeFace_Get(mut index: i32) -> CubeFace {
+pub unsafe extern "C" fn CubeFace_Get(index: i32) -> CubeFace {
     kFaces[index as usize]
 }

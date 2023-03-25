@@ -12,7 +12,7 @@ static mut alphaIndex: i32 = -1;
 static mut color: Vec4 = Vec4::ONE;
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_PushAlpha(mut a: f32) {
+pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
     if alphaIndex + 1 >= 16 {
         Fatal(
             b"Draw_PushAlpha: Maximum alpha stack depth exceeded\0" as *const u8
@@ -49,12 +49,12 @@ pub unsafe extern "C" fn Draw_PopAlpha() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Axes(
-    mut pos: *const Vec3,
-    mut x: *const Vec3,
-    mut y: *const Vec3,
-    mut z: *const Vec3,
-    mut scale: f32,
-    mut _alpha: f32,
+    pos: *const Vec3,
+    x: *const Vec3,
+    y: *const Vec3,
+    z: *const Vec3,
+    scale: f32,
+    _alpha: f32,
 ) {
     let mut left: Vec3 = *pos + (*x) * scale;
     let mut up: Vec3 = *pos + (*y) * scale;
@@ -77,7 +77,7 @@ pub unsafe extern "C" fn Draw_Axes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Border(mut s: f32, mut x: f32, mut y: f32, mut w: f32, mut h: f32) {
+pub unsafe extern "C" fn Draw_Border(s: f32, x: f32, y: f32, w: f32, h: f32) {
     Draw_Rect(x, y, w, s);
     Draw_Rect(x, y + h - s, w, s);
     Draw_Rect(x, y + s, s, h - 2.0f32 * s);
@@ -116,7 +116,7 @@ pub unsafe extern "C" fn Draw_Box3(this: *const Box3) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Clear(mut r: f32, mut g: f32, mut b: f32, mut a: f32) {
+pub unsafe extern "C" fn Draw_Clear(r: f32, g: f32, b: f32, a: f32) {
     let mut status: i32 = gl::CheckFramebufferStatus(gl::FRAMEBUFFER) as i32;
     if status != gl::FRAMEBUFFER_COMPLETE as i32 {
         Warn(
@@ -174,7 +174,7 @@ pub unsafe extern "C" fn Draw_LineWidth(width: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Plane(mut p: *const Vec3, mut n: *const Vec3, mut scale: f32) {
+pub unsafe extern "C" fn Draw_Plane(p: *const Vec3, n: *const Vec3, scale: f32) {
     let mut e1: Vec3 = if f64::abs((*n).x as f64) < 0.7f64 {
         Vec3::X
     } else {
@@ -230,7 +230,7 @@ pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Poly3(mut points: *const Vec3, mut count: i32) {
+pub unsafe extern "C" fn Draw_Poly3(points: *const Vec3, count: i32) {
     Metric_AddDrawImm(1, count - 2, count);
     gl::Begin(gl::POLYGON);
     let mut i: i32 = 0;
@@ -247,10 +247,10 @@ pub unsafe extern "C" fn Draw_Poly3(mut points: *const Vec3, mut count: i32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Quad(
-    mut p1: *const Vec2,
-    mut p2: *const Vec2,
-    mut p3: *const Vec2,
-    mut p4: *const Vec2,
+    p1: *const Vec2,
+    p2: *const Vec2,
+    p3: *const Vec2,
+    p4: *const Vec2,
 ) {
     Metric_AddDrawImm(1, 2, 4);
     gl::Begin(gl::QUADS);
@@ -267,10 +267,10 @@ pub unsafe extern "C" fn Draw_Quad(
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Quad3(
-    mut p1: *const Vec3,
-    mut p2: *const Vec3,
-    mut p3: *const Vec3,
-    mut p4: *const Vec3,
+    p1: *const Vec3,
+    p2: *const Vec3,
+    p3: *const Vec3,
+    p4: *const Vec3,
 ) {
     Metric_AddDrawImm(1, 2, 4);
     gl::Begin(gl::QUADS);
@@ -286,7 +286,7 @@ pub unsafe extern "C" fn Draw_Quad3(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Rect(mut x1: f32, mut y1: f32, mut xs: f32, mut ys: f32) {
+pub unsafe extern "C" fn Draw_Rect(x1: f32, y1: f32, xs: f32, ys: f32) {
     let mut x2: f32 = x1 + xs;
     let mut y2: f32 = y1 + ys;
     Metric_AddDrawImm(1, 2, 4);
@@ -303,7 +303,7 @@ pub unsafe extern "C" fn Draw_Rect(mut x1: f32, mut y1: f32, mut xs: f32, mut ys
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_SmoothLines(mut enabled: bool) {
+pub unsafe extern "C" fn Draw_SmoothLines(enabled: bool) {
     if enabled {
         gl::Enable(gl::LINE_SMOOTH);
         gl::Hint(gl::LINE_SMOOTH_HINT, gl::NICEST);
@@ -314,7 +314,7 @@ pub unsafe extern "C" fn Draw_SmoothLines(mut enabled: bool) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_SmoothPoints(mut enabled: bool) {
+pub unsafe extern "C" fn Draw_SmoothPoints(enabled: bool) {
     if enabled {
         gl::Enable(gl::POINT_SMOOTH);
         gl::Hint(gl::POINT_SMOOTH_HINT, gl::NICEST);
@@ -325,7 +325,7 @@ pub unsafe extern "C" fn Draw_SmoothPoints(mut enabled: bool) {
 }
 
 #[inline]
-unsafe extern "C" fn Spherical(mut r: f32, mut yaw: f32, mut pitch: f32) -> Vec3 {
+unsafe extern "C" fn Spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
     Vec3::new(
         (r as f64 * f64::sin(pitch as f64) * f64::cos(yaw as f64)) as f32,
         (r as f64 * f64::cos(pitch as f64)) as f32,
@@ -334,7 +334,7 @@ unsafe extern "C" fn Spherical(mut r: f32, mut yaw: f32, mut pitch: f32) -> Vec3
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
+pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
     let res: usize = 7;
     let fRes: f32 = res as f32;
 
@@ -409,7 +409,7 @@ pub unsafe extern "C" fn Draw_Sphere(mut p: *const Vec3, mut r: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Tri(mut v1: *const Vec2, mut v2: *const Vec2, mut v3: *const Vec2) {
+pub unsafe extern "C" fn Draw_Tri(v1: *const Vec2, v2: *const Vec2, v3: *const Vec2) {
     Metric_AddDrawImm(1, 1, 3);
     gl::Begin(gl::TRIANGLES);
     gl::TexCoord2f(0.0f32, 0.0f32);
@@ -422,7 +422,7 @@ pub unsafe extern "C" fn Draw_Tri(mut v1: *const Vec2, mut v2: *const Vec2, mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Tri3(mut v1: *const Vec3, mut v2: *const Vec3, mut v3: *const Vec3) {
+pub unsafe extern "C" fn Draw_Tri3(v1: *const Vec3, v2: *const Vec3, v3: *const Vec3) {
     Metric_AddDrawImm(1, 1, 3);
     gl::Begin(gl::TRIANGLES);
     gl::TexCoord2f(0.0f32, 0.0f32);

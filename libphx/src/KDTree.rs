@@ -28,7 +28,7 @@ pub struct Node {
 #[no_mangle]
 pub static kMaxLeafSize: i32 = 64;
 
-unsafe extern "C" fn compareLowerX(mut a: *const libc::c_void, mut b: *const libc::c_void) -> i32 {
+unsafe extern "C" fn compareLowerX(a: *const libc::c_void, b: *const libc::c_void) -> i32 {
     if (*(a as *const Box3)).lower.x < (*(b as *const Box3)).lower.x {
         -1
     } else {
@@ -36,7 +36,7 @@ unsafe extern "C" fn compareLowerX(mut a: *const libc::c_void, mut b: *const lib
     }
 }
 
-unsafe extern "C" fn compareLowerY(mut a: *const libc::c_void, mut b: *const libc::c_void) -> i32 {
+unsafe extern "C" fn compareLowerY(a: *const libc::c_void, b: *const libc::c_void) -> i32 {
     if (*(a as *const Box3)).lower.y < (*(b as *const Box3)).lower.y {
         -1
     } else {
@@ -44,7 +44,7 @@ unsafe extern "C" fn compareLowerY(mut a: *const libc::c_void, mut b: *const lib
     }
 }
 
-unsafe extern "C" fn compareLowerZ(mut a: *const libc::c_void, mut b: *const libc::c_void) -> i32 {
+unsafe extern "C" fn compareLowerZ(a: *const libc::c_void, b: *const libc::c_void) -> i32 {
     if (*(a as *const Box3)).lower.z < (*(b as *const Box3)).lower.z {
         -1
     } else {
@@ -52,11 +52,7 @@ unsafe extern "C" fn compareLowerZ(mut a: *const libc::c_void, mut b: *const lib
     }
 }
 
-unsafe extern "C" fn Partition(
-    mut boxes: *mut Box3,
-    mut boxCount: i32,
-    mut dim: i32,
-) -> *mut KDTree {
+unsafe extern "C" fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mut KDTree {
     let mut this = MemNew!(KDTree);
     if boxCount <= kMaxLeafSize {
         (*this).box_0 = *boxes.offset(0);
@@ -136,7 +132,7 @@ unsafe extern "C" fn Partition(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_FromMesh(mut mesh: *mut Mesh) -> *mut KDTree {
+pub unsafe extern "C" fn KDTree_FromMesh(mesh: *mut Mesh) -> *mut KDTree {
     let indexCount: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
     let mut vertexData: *const Vertex = Mesh_GetVertexData(mesh);
@@ -194,16 +190,16 @@ pub unsafe extern "C" fn KDTree_GetMemory(this: *mut KDTree) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn KDTree_IntersectRay(
-    mut _this: *mut KDTree,
-    mut _m: *mut Matrix,
-    mut _a: *const Vec3,
-    mut _b: *const Vec3,
+    _this: *mut KDTree,
+    _m: *mut Matrix,
+    _a: *const Vec3,
+    _b: *const Vec3,
 ) -> bool {
     false
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_Draw(this: *mut KDTree, mut maxDepth: i32) {
+pub unsafe extern "C" fn KDTree_Draw(this: *mut KDTree, maxDepth: i32) {
     if maxDepth < 0 {
         return;
     }

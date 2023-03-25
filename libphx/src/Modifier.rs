@@ -33,10 +33,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
     let mut sep: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char;
     let mut len: i32 = 0;
     let mut i: i32 = 0;
-    while i
-        < (std::mem::size_of::<[Modifier; 3]>()).wrapping_div(std::mem::size_of::<Modifier>())
-            as i32
-    {
+    while i < modifiers.len() as i32 {
         if modifier & modifiers[i as usize] == modifiers[i as usize] {
             len += libc::snprintf(
                 start.offset(len as isize),

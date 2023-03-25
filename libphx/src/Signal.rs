@@ -80,7 +80,7 @@ static mut handlerTable: [*mut HandlerElem; 32] = [
     std::ptr::null_mut(),
 ];
 
-unsafe extern "C" fn Signal_Handler(mut sig: Signal) {
+unsafe extern "C" fn Signal_Handler(sig: Signal) {
     Warn(
         b"Signal_Handler: Caught %s\0" as *const u8 as *const libc::c_char,
         Signal_ToString(sig),
@@ -142,7 +142,7 @@ pub unsafe extern "C" fn Signal_Free() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Signal_AddHandler(mut sig: Signal, mut fn_0: SignalHandler) {
+pub unsafe extern "C" fn Signal_AddHandler(sig: Signal, fn_0: SignalHandler) {
     let mut e = MemNew!(HandlerElem);
     (*e).next = handlerTable[sig as usize];
     (*e).fn_0 = fn_0;
@@ -150,7 +150,7 @@ pub unsafe extern "C" fn Signal_AddHandler(mut sig: Signal, mut fn_0: SignalHand
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Signal_AddHandlerAll(mut fn_0: SignalHandler) {
+pub unsafe extern "C" fn Signal_AddHandlerAll(fn_0: SignalHandler) {
     Signal_AddHandler(Signal_Int, fn_0);
     Signal_AddHandler(Signal_Ill, fn_0);
     Signal_AddHandler(Signal_Fpe, fn_0);
@@ -160,7 +160,7 @@ pub unsafe extern "C" fn Signal_AddHandlerAll(mut fn_0: SignalHandler) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Signal_RemoveHandler(mut sig: Signal, mut fn_0: SignalHandler) {
+pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, fn_0: SignalHandler) {
     let mut prev: *mut *mut HandlerElem =
         &mut *handlerTable.as_mut_ptr().offset(sig as isize) as *mut *mut HandlerElem;
     let mut curr: *mut HandlerElem = handlerTable[sig as usize];
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn Signal_RemoveHandler(mut sig: Signal, mut fn_0: SignalH
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Signal_RemoveHandlerAll(mut fn_0: SignalHandler) {
+pub unsafe extern "C" fn Signal_RemoveHandlerAll(fn_0: SignalHandler) {
     Signal_RemoveHandler(Signal_Int, fn_0);
     Signal_RemoveHandler(Signal_Ill, fn_0);
     Signal_RemoveHandler(Signal_Fpe, fn_0);
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn Signal_RemoveHandlerAll(mut fn_0: SignalHandler) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Signal_ToString(mut this: Signal) -> *const libc::c_char {
+pub unsafe extern "C" fn Signal_ToString(this: Signal) -> *const libc::c_char {
     match this {
         2 => return b"Interrupt\0" as *const u8 as *const libc::c_char,
         4 => return b"Illegal Instruction\0" as *const u8 as *const libc::c_char,

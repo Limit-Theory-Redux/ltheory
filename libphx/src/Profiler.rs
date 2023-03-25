@@ -44,7 +44,7 @@ static mut this: Profiler = Profiler {
 
 static mut profiling: bool = false;
 
-unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
+unsafe extern "C" fn Scope_Create(name: *const libc::c_char) -> *mut Scope {
     let mut scope = MemNew!(Scope);
     (*scope).name = StrDup(name);
     (*scope).last = 0 as TimeStamp;
@@ -59,12 +59,12 @@ unsafe extern "C" fn Scope_Create(mut name: *const libc::c_char) -> *mut Scope {
     scope
 }
 
-unsafe extern "C" fn Scope_Free(mut scope: *mut Scope) {
+unsafe extern "C" fn Scope_Free(scope: *mut Scope) {
     StrFree((*scope).name);
     MemDelete!(scope);
 }
 
-unsafe extern "C" fn SortScopes(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
+unsafe extern "C" fn SortScopes(pa: *const libc::c_void, pb: *const libc::c_void) -> i32 {
     let mut a: *const Scope = *(pa as *mut *const Scope);
     let mut b: *const Scope = *(pb as *mut *const Scope);
     if (*b).total < (*a).total {
@@ -76,7 +76,7 @@ unsafe extern "C" fn SortScopes(mut pa: *const libc::c_void, mut pb: *const libc
     }
 }
 
-unsafe extern "C" fn Profiler_GetScope(mut name: *const libc::c_char) -> *mut Scope {
+unsafe extern "C" fn Profiler_GetScope(name: *const libc::c_char) -> *mut Scope {
     let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as usize as u64) as *mut Scope;
     if !scope.is_null() {
         return scope;
@@ -86,7 +86,7 @@ unsafe extern "C" fn Profiler_GetScope(mut name: *const libc::c_char) -> *mut Sc
     scope
 }
 
-unsafe extern "C" fn Profiler_SignalHandler(mut _s: Signal) {
+unsafe extern "C" fn Profiler_SignalHandler(_s: Signal) {
     Profiler_Backtrace();
 }
 
@@ -181,7 +181,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Profiler_Begin(mut name: *const libc::c_char) {
+pub unsafe extern "C" fn Profiler_Begin(name: *const libc::c_char) {
     if !profiling {
         return;
     }
@@ -227,7 +227,7 @@ pub unsafe extern "C" fn Profiler_End() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Profiler_SetValue(mut _name: *const libc::c_char, mut _value: i32) {}
+pub unsafe extern "C" fn Profiler_SetValue(_name: *const libc::c_char, _value: i32) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_LoopMarker() {

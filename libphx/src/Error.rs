@@ -6,7 +6,7 @@ use libc;
 pub type Error = u32;
 
 #[no_mangle]
-pub unsafe extern "C" fn Error_Print(mut e: Error) {
+pub unsafe extern "C" fn Error_Print(e: Error) {
     libc::printf(b"ERROR: \0" as *const u8 as *const libc::c_char);
     if e & 0x10000 != 0 {
         libc::printf(b"Stack \0" as *const u8 as *const libc::c_char);

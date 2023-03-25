@@ -23,7 +23,7 @@ pub struct Node {
 }
 
 #[inline]
-unsafe extern "C" fn Node_Create(mut box_0: Box3, mut data: *mut libc::c_void) -> *mut Node {
+unsafe extern "C" fn Node_Create(box_0: Box3, data: *mut libc::c_void) -> *mut Node {
     let mut this = MemNew!(Node);
     (*this).box_0 = box_0;
     (*this).sub[0] = std::ptr::null_mut();
@@ -58,7 +58,7 @@ pub unsafe extern "C" fn BoxTree_Free(this: *mut BoxTree) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
+pub unsafe extern "C" fn BoxTree_FromMesh(mesh: *mut Mesh) -> *mut BoxTree {
     let this: *mut BoxTree = BoxTree_Create();
     let mut indexCount: i32 = Mesh_GetIndexCount(mesh);
     let mut indexData: *const i32 = Mesh_GetIndexData(mesh);
@@ -79,16 +79,16 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mut mesh: *mut Mesh) -> *mut BoxTree {
 }
 
 #[inline]
-unsafe extern "C" fn Cost(mut box_0: Box3) -> f32 {
+unsafe extern "C" fn Cost(box_0: Box3) -> f32 {
     box_0.volume()
 }
 
 #[inline]
-unsafe extern "C" fn CostMerge(mut a: Box3, mut b: Box3) -> f32 {
+unsafe extern "C" fn CostMerge(a: Box3, b: Box3) -> f32 {
     Cost(Box3::union(a, b))
 }
 
-unsafe extern "C" fn Node_Merge(this: *mut Node, mut src: *mut Node, mut prev: *mut *mut Node) {
+unsafe extern "C" fn Node_Merge(this: *mut Node, src: *mut Node, prev: *mut *mut Node) {
     if this.is_null() {
         *prev = src;
         return;
@@ -159,11 +159,7 @@ unsafe extern "C" fn Node_Merge(this: *mut Node, mut src: *mut Node, mut prev: *
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_Add(
-    this: *mut BoxTree,
-    mut box_0: Box3,
-    mut data: *mut libc::c_void,
-) {
+pub unsafe extern "C" fn BoxTree_Add(this: *mut BoxTree, box_0: Box3, data: *mut libc::c_void) {
     Node_Merge((*this).root, Node_Create(box_0, data), &mut (*this).root);
 }
 
@@ -187,7 +183,7 @@ pub unsafe extern "C" fn BoxTree_GetMemory(this: *mut BoxTree) -> i32 {
     memory
 }
 
-unsafe extern "C" fn Node_IntersectRay(this: *mut Node, mut o: Vec3, mut di: Vec3) -> bool {
+unsafe extern "C" fn Node_IntersectRay(this: *mut Node, o: Vec3, di: Vec3) -> bool {
     if !(*this).box_0.intersects_ray(o, di) {
         return false;
     }
@@ -207,9 +203,9 @@ unsafe extern "C" fn Node_IntersectRay(this: *mut Node, mut o: Vec3, mut di: Vec
 #[no_mangle]
 pub unsafe extern "C" fn BoxTree_IntersectRay(
     this: *mut BoxTree,
-    mut matrix: *mut Matrix,
-    mut ro: *const Vec3,
-    mut rd: *const Vec3,
+    matrix: *mut Matrix,
+    ro: *const Vec3,
+    rd: *const Vec3,
 ) -> bool {
     if ((*this).root).is_null() {
         return false;
@@ -223,7 +219,7 @@ pub unsafe extern "C" fn BoxTree_IntersectRay(
     Node_IntersectRay((*this).root, invRo, invRd.recip())
 }
 
-unsafe extern "C" fn BoxTree_DrawNode(this: *mut Node, mut maxDepth: i32) {
+unsafe extern "C" fn BoxTree_DrawNode(this: *mut Node, maxDepth: i32) {
     if maxDepth < 0 {
         return;
     }
@@ -243,7 +239,7 @@ unsafe extern "C" fn BoxTree_DrawNode(this: *mut Node, mut maxDepth: i32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxTree_Draw(this: *mut BoxTree, mut maxDepth: i32) {
+pub unsafe extern "C" fn BoxTree_Draw(this: *mut BoxTree, maxDepth: i32) {
     if !((*this).root).is_null() {
         BoxTree_DrawNode((*this).root, maxDepth);
     }

@@ -166,7 +166,7 @@ pub struct FMOD_VECTOR {
 }
 
 #[inline]
-unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> *const libc::c_char {
+unsafe extern "C" fn FMODError_ToString(self_1: FMOD_RESULT) -> *const libc::c_char {
     match self_1 {
         0 => return b"FMOD_OK\0" as *const u8 as *const libc::c_char,
         1 => return b"FMOD_ERR_BADCOMMAND\0" as *const u8 as *const libc::c_char,
@@ -272,7 +272,7 @@ unsafe extern "C" fn FMODError_ToString(mut self_1: FMOD_RESULT) -> *const libc:
     b"Unknown Error\0" as *const u8 as *const libc::c_char
 }
 
-unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::c_char {
+unsafe extern "C" fn FMOD_ErrorString(errcode: FMOD_RESULT) -> *const libc::c_char {
     match errcode {
         0 => b"No errors.\0" as *const u8 as *const libc::c_char,
         1 => {
@@ -587,10 +587,10 @@ unsafe extern "C" fn FMOD_ErrorString(mut errcode: FMOD_RESULT) -> *const libc::
 
 #[inline]
 unsafe extern "C" fn FMOD_CheckError(
-    mut result: FMOD_RESULT,
-    mut file: *const libc::c_char,
-    mut line: i32,
-    mut func: *const libc::c_char,
+    result: FMOD_RESULT,
+    file: *const libc::c_char,
+    line: i32,
+    func: *const libc::c_char,
 ) {
     if result != FMOD_OK as i32 as u32 {
         Fatal(
@@ -703,10 +703,10 @@ pub unsafe extern "C" fn Audio_Free() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AttachListenerPos(
-    mut _pos: *const Vec3,
-    mut _vel: *const Vec3,
-    mut _fwd: *const Vec3,
-    mut _up: *const Vec3,
+    _pos: *const Vec3,
+    _vel: *const Vec3,
+    _fwd: *const Vec3,
+    _up: *const Vec3,
 ) {
     // this.autoPos = pos;
     // this.autoVel = vel;
@@ -716,11 +716,7 @@ pub unsafe extern "C" fn Audio_AttachListenerPos(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Audio_Set3DSettings(
-    mut _doppler: f32,
-    mut _scale: f32,
-    mut _rolloff: f32,
-) {
+pub unsafe extern "C" fn Audio_Set3DSettings(_doppler: f32, _scale: f32, _rolloff: f32) {
     // FMOD_CheckError(
     //     FMOD_System_Set3DSettings(this.handle, doppler, scale, rolloff),
     //     b"/Users/dgavedissian/Work/ltheory/libphx/src/Audio.c\0" as *const u8
@@ -736,10 +732,10 @@ pub unsafe extern "C" fn Audio_Set3DSettings(
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_SetListenerPos(
-    mut _pos: *const Vec3,
-    mut _vel: *const Vec3,
-    mut _fwd: *const Vec3,
-    mut _up: *const Vec3,
+    _pos: *const Vec3,
+    _vel: *const Vec3,
+    _fwd: *const Vec3,
+    _up: *const Vec3,
 ) {
     // FMOD_CheckError(
     //     FMOD_System_Set3DListenerAttributes(
@@ -815,7 +811,7 @@ pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> *mut SoundDesc {
+pub unsafe extern "C" fn Audio_AllocSoundDesc(name: *const libc::c_char) -> *mut SoundDesc {
     let mut desc: *mut SoundDesc = StrMap_Get(this.descMap, name) as *mut SoundDesc;
     if desc.is_null() {
         desc = MemNewZero!(SoundDesc);
@@ -825,7 +821,7 @@ pub unsafe extern "C" fn Audio_AllocSoundDesc(mut name: *const libc::c_char) -> 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Audio_DeallocSoundDesc(mut desc: *mut SoundDesc) {
+pub unsafe extern "C" fn Audio_DeallocSoundDesc(desc: *mut SoundDesc) {
     StrMap_Remove(this.descMap, (*desc).name);
     MemFree(desc as *const _);
 }
@@ -836,12 +832,12 @@ pub unsafe extern "C" fn Audio_AllocSound() -> *mut Sound {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Audio_DeallocSound(mut sound: *mut Sound) {
+pub unsafe extern "C" fn Audio_DeallocSound(sound: *mut Sound) {
     MemPool_Dealloc(this.soundPool, sound as *mut _);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Audio_SoundStateChanged(mut sound: *mut Sound) {
+pub unsafe extern "C" fn Audio_SoundStateChanged(sound: *mut Sound) {
     if Sound_IsFreed(sound) {
         this.freeingSounds.push(sound);
     } else if Sound_IsPlaying(sound) {

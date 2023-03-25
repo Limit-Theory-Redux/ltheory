@@ -11,7 +11,7 @@ pub struct Directory {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Open(mut path: *const libc::c_char) -> *mut Directory {
+pub unsafe extern "C" fn Directory_Open(path: *const libc::c_char) -> *mut Directory {
     let mut dir: *mut libc::DIR = libc::opendir(path);
     if dir.is_null() {
         return std::ptr::null_mut();
@@ -52,12 +52,12 @@ pub unsafe extern "C" fn Directory_GetNext(this: *mut Directory) -> *const libc:
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Change(mut cwd: *const libc::c_char) -> bool {
+pub unsafe extern "C" fn Directory_Change(cwd: *const libc::c_char) -> bool {
     libc::chdir(cwd) == 0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Create(mut path: *const libc::c_char) -> bool {
+pub unsafe extern "C" fn Directory_Create(path: *const libc::c_char) -> bool {
     libc::mkdir(path, 0o775 as libc::mode_t);
     File_IsDir(path)
 }
@@ -78,6 +78,6 @@ pub unsafe extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Remove(mut path: *const libc::c_char) -> bool {
+pub unsafe extern "C" fn Directory_Remove(path: *const libc::c_char) -> bool {
     libc::rmdir(path) == 0
 }

@@ -16,10 +16,7 @@ use crate::RNG::*;
 use libc;
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GenIRMap(
-    this: *mut TexCube,
-    mut sampleCount: i32,
-) -> *mut TexCube {
+pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) -> *mut TexCube {
     let mut size: i32 = TexCube_GetSize(this);
     let mut format: TexFormat = TexCube_GetFormat(this);
     let mut result: *mut TexCube = TexCube_Create(size, format);

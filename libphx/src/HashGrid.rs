@@ -36,7 +36,7 @@ pub struct HashGridElem {
 }
 
 #[inline]
-unsafe extern "C" fn Maxi(mut a: i32, mut b: i32) -> i32 {
+unsafe extern "C" fn Maxi(a: i32, b: i32) -> i32 {
     if a > b {
         a
     } else {
@@ -45,7 +45,7 @@ unsafe extern "C" fn Maxi(mut a: i32, mut b: i32) -> i32 {
 }
 
 #[inline]
-unsafe extern "C" fn Mini(mut a: i32, mut b: i32) -> i32 {
+unsafe extern "C" fn Mini(a: i32, b: i32) -> i32 {
     if a < b {
         a
     } else {
@@ -54,7 +54,7 @@ unsafe extern "C" fn Mini(mut a: i32, mut b: i32) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashGrid_Create(mut cellSize: f32, mut cellCount: u32) -> *mut HashGrid {
+pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> *mut HashGrid {
     let mut logCount: u32 = 0;
     while cellCount > 1 {
         cellCount = cellCount.wrapping_div(2);
@@ -95,9 +95,9 @@ pub unsafe extern "C" fn HashGrid_Free(this: *mut HashGrid) {
 #[inline]
 unsafe extern "C" fn HashGrid_GetCell(
     this: *mut HashGrid,
-    mut x: i32,
-    mut y: i32,
-    mut z: i32,
+    x: i32,
+    y: i32,
+    z: i32,
 ) -> *mut HashGridCell {
     let mut p: [i32; 3] = [x, y, z];
     let mut hash: u64 = Hash_XX64(
@@ -108,7 +108,7 @@ unsafe extern "C" fn HashGrid_GetCell(
     ((*this).cells).offset((hash & (*this).mask as u64) as isize)
 }
 
-unsafe extern "C" fn HashGrid_AddElem(this: *mut HashGrid, mut elem: *mut HashGridElem) {
+unsafe extern "C" fn HashGrid_AddElem(this: *mut HashGrid, elem: *mut HashGridElem) {
     (*this).version += 1;
     let mut x: i32 = (*elem).lower[0];
     while x <= (*elem).upper[0] {
@@ -129,7 +129,7 @@ unsafe extern "C" fn HashGrid_AddElem(this: *mut HashGrid, mut elem: *mut HashGr
     }
 }
 
-unsafe extern "C" fn HashGrid_RemoveElem(this: *mut HashGrid, mut elem: *mut HashGridElem) {
+unsafe extern "C" fn HashGrid_RemoveElem(this: *mut HashGrid, elem: *mut HashGridElem) {
     (*this).version += 1;
     let mut x: i32 = (*elem).lower[0];
     while x <= (*elem).upper[0] {
@@ -153,15 +153,15 @@ unsafe extern "C" fn HashGrid_RemoveElem(this: *mut HashGrid, mut elem: *mut Has
 }
 
 #[inline]
-unsafe extern "C" fn HashGrid_ToLocal(this: *mut HashGrid, mut x: f32) -> i32 {
+unsafe extern "C" fn HashGrid_ToLocal(this: *mut HashGrid, x: f32) -> i32 {
     f64::floor((x / (*this).cellSize) as f64) as i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Add(
     this: *mut HashGrid,
-    mut object: *mut libc::c_void,
-    mut box_0: *const Box3,
+    object: *mut libc::c_void,
+    box_0: *const Box3,
 ) -> *mut HashGridElem {
     let mut elem: *mut HashGridElem = MemPool_Alloc((*this).elemPool) as *mut HashGridElem;
     (*elem).object = object;
@@ -189,7 +189,7 @@ pub unsafe extern "C" fn HashGrid_Clear(this: *mut HashGrid) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashGrid_Remove(this: *mut HashGrid, mut elem: *mut HashGridElem) {
+pub unsafe extern "C" fn HashGrid_Remove(this: *mut HashGrid, elem: *mut HashGridElem) {
     HashGrid_RemoveElem(this, elem);
     MemPool_Dealloc((*this).elemPool, elem as *mut _);
 }
@@ -197,8 +197,8 @@ pub unsafe extern "C" fn HashGrid_Remove(this: *mut HashGrid, mut elem: *mut Has
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Update(
     this: *mut HashGrid,
-    mut elem: *mut HashGridElem,
-    mut box_0: *const Box3,
+    elem: *mut HashGridElem,
+    box_0: *const Box3,
 ) {
     Profiler_Begin(
         (*std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"HashGrid_Update\0")).as_ptr(),
@@ -299,7 +299,7 @@ pub unsafe extern "C" fn HashGrid_GetResults(this: *mut HashGrid) -> *mut *mut l
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashGrid_QueryBox(this: *mut HashGrid, mut box_0: *const Box3) -> i32 {
+pub unsafe extern "C" fn HashGrid_QueryBox(this: *mut HashGrid, box_0: *const Box3) -> i32 {
     (*this).results.clear();
     (*this).version += 1;
     let mut lower: [i32; 3] = [
@@ -341,7 +341,7 @@ pub unsafe extern "C" fn HashGrid_QueryBox(this: *mut HashGrid, mut box_0: *cons
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashGrid_QueryPoint(this: *mut HashGrid, mut p: *const Vec3) -> i32 {
+pub unsafe extern "C" fn HashGrid_QueryPoint(this: *mut HashGrid, p: *const Vec3) -> i32 {
     (*this).results.clear();
     let mut cell: *mut HashGridCell = HashGrid_GetCell(
         this,

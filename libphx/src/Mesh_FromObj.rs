@@ -22,7 +22,7 @@ pub struct VertexIndices {
     pub iUV: i32,
 }
 
-unsafe extern "C" fn Obj_Fatal(mut message: *const libc::c_char, mut s: *mut ParseState) {
+unsafe extern "C" fn Obj_Fatal(message: *const libc::c_char, s: *mut ParseState) {
     let mut len: i32 = 0;
     let mut ch: *const libc::c_char = (*s).lineStart;
     while ch < (*s).endOfData && *ch as i32 != '\r' as i32 && *ch as i32 != '\n' as i32 {
@@ -40,7 +40,7 @@ unsafe extern "C" fn Obj_Fatal(mut message: *const libc::c_char, mut s: *mut Par
     );
 }
 
-unsafe extern "C" fn ConsumeRestOfLine(mut s: *mut ParseState) -> bool {
+unsafe extern "C" fn ConsumeRestOfLine(s: *mut ParseState) -> bool {
     let mut oldPosition: *const libc::c_char = (*s).cursor;
     while (*s).cursor < (*s).endOfData
         && *(*s).cursor as i32 != '\r' as i32
@@ -74,7 +74,7 @@ unsafe extern "C" fn ConsumeRestOfLine(mut s: *mut ParseState) -> bool {
     (*s).cursor != oldPosition
 }
 
-unsafe extern "C" fn ConsumeWhitespace(mut s: *mut ParseState) -> bool {
+unsafe extern "C" fn ConsumeWhitespace(s: *mut ParseState) -> bool {
     let mut oldPosition: *const libc::c_char = (*s).cursor;
     while (*s).cursor < (*s).endOfData
         && (*(*s).cursor as i32 == ' ' as i32 || *(*s).cursor as i32 == '\t' as i32)
@@ -85,9 +85,9 @@ unsafe extern "C" fn ConsumeWhitespace(mut s: *mut ParseState) -> bool {
 }
 
 unsafe extern "C" fn ConsumeToken(
-    mut token: *mut libc::c_char,
-    mut tokenLen: i32,
-    mut s: *mut ParseState,
+    token: *mut libc::c_char,
+    tokenLen: i32,
+    s: *mut ParseState,
 ) -> bool {
     let mut i: i32 = 0;
     while (*s).cursor < (*s).endOfData
@@ -106,7 +106,7 @@ unsafe extern "C" fn ConsumeToken(
     i != 0
 }
 
-unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -> bool {
+unsafe extern "C" fn ConsumeFloat(value: *mut f32, s: *mut ParseState) -> bool {
     let mut afterFloat: *mut libc::c_char = std::ptr::null_mut();
     let mut f: f32 = libc::strtof((*s).cursor, &mut afterFloat);
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 {
@@ -123,7 +123,7 @@ unsafe extern "C" fn ConsumeFloat(mut value: *mut f32, mut s: *mut ParseState) -
     false
 }
 
-unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> bool {
+unsafe extern "C" fn ConsumeInt(value: *mut i32, s: *mut ParseState) -> bool {
     let mut afterInt: *mut libc::c_char = std::ptr::null_mut();
     let mut i: i32 = libc::strtol((*s).cursor, &mut afterInt, 10) as i32;
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 {
@@ -140,7 +140,7 @@ unsafe extern "C" fn ConsumeInt(mut value: *mut i32, mut s: *mut ParseState) -> 
     false
 }
 
-unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut ParseState) -> bool {
+unsafe extern "C" fn ConsumeCharacter(character: libc::c_char, s: *mut ParseState) -> bool {
     if (*s).cursor < (*s).endOfData && *(*s).cursor as i32 == character as i32 {
         (*s).cursor = ((*s).cursor).offset(1);
         return true;
@@ -149,7 +149,7 @@ unsafe extern "C" fn ConsumeCharacter(mut character: libc::c_char, mut s: *mut P
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_FromObj(mut bytes: *const libc::c_char) -> *mut Mesh {
+pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
     let mut bytesSize: i32 = StrLen(bytes) as i32;
 
     let mut s: ParseState = ParseState {

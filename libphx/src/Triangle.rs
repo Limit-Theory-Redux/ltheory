@@ -12,7 +12,7 @@ pub struct Triangle {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_ToPlane(mut tri: *const Triangle, mut plane: *mut Plane) {
+pub unsafe extern "C" fn Triangle_ToPlane(tri: *const Triangle, plane: *mut Plane) {
     let mut v: *const Vec3 = ((*tri).vertices).as_ptr();
     let mut e1: Vec3 = *v.offset(1) - *v.offset(0);
     let mut e2: Vec3 = *v.offset(2) - *v.offset(0);
@@ -26,10 +26,7 @@ pub unsafe extern "C" fn Triangle_ToPlane(mut tri: *const Triangle, mut plane: *
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_ToPlaneFast(
-    mut triangle: *const Triangle,
-    mut plane: *mut Plane,
-) {
+pub unsafe extern "C" fn Triangle_ToPlaneFast(triangle: *const Triangle, plane: *mut Plane) {
     let mut v: *const Vec3 = ((*triangle).vertices).as_ptr();
     let mut e1: Vec3 = *v.offset(1) - *v.offset(0);
     let mut e2: Vec3 = *v.offset(2) - *v.offset(0);
@@ -39,14 +36,14 @@ pub unsafe extern "C" fn Triangle_ToPlaneFast(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_GetArea(mut tri: *const Triangle) -> f32 {
+pub unsafe extern "C" fn Triangle_GetArea(tri: *const Triangle) -> f32 {
     let mut e1 = (*tri).vertices[1] - (*tri).vertices[0];
     let mut e2 = (*tri).vertices[2] - (*tri).vertices[1];
     0.5f32 * Vec3::cross(e1, e2).length()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_Validate(mut tri: *const Triangle) -> Error {
+pub unsafe extern "C" fn Triangle_Validate(tri: *const Triangle) -> Error {
     let mut v: *const Vec3 = ((*tri).vertices).as_ptr();
     let mut i: i32 = 0;
     while i < 3 {

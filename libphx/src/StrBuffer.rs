@@ -16,7 +16,7 @@ pub struct StrBuffer {
 pub type va_list = __builtin_va_list;
 
 #[inline]
-unsafe extern "C" fn StrBuffer_GrowTo(this: *mut StrBuffer, mut newSize: u32) {
+unsafe extern "C" fn StrBuffer_GrowTo(this: *mut StrBuffer, newSize: u32) {
     if (newSize > (*this).capacity) as libc::c_long != 0 {
         while (*this).capacity < newSize {
             (*this).capacity = (*this).capacity.wrapping_mul(2);
@@ -38,8 +38,8 @@ unsafe extern "C" fn StrBuffer_GrowTo(this: *mut StrBuffer, mut newSize: u32) {
 #[inline]
 unsafe extern "C" fn StrBuffer_AppendData(
     this: *mut StrBuffer,
-    mut data: *const libc::c_void,
-    mut len: u32,
+    data: *const libc::c_void,
+    len: u32,
 ) {
     StrBuffer_GrowTo(this, ((*this).size).wrapping_add(len));
     MemCpy(
@@ -51,7 +51,7 @@ unsafe extern "C" fn StrBuffer_AppendData(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrBuffer_Create(mut capacity: u32) -> *mut StrBuffer {
+pub unsafe extern "C" fn StrBuffer_Create(capacity: u32) -> *mut StrBuffer {
     let mut this = MemNew!(StrBuffer);
     (*this).data = MemAllocZero(capacity.wrapping_add(1) as usize) as *mut libc::c_char;
     (*this).size = 0;
@@ -60,7 +60,7 @@ pub unsafe extern "C" fn StrBuffer_Create(mut capacity: u32) -> *mut StrBuffer {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrBuffer_FromStr(mut s: *const libc::c_char) -> *mut StrBuffer {
+pub unsafe extern "C" fn StrBuffer_FromStr(s: *const libc::c_char) -> *mut StrBuffer {
     let mut len: u32 = StrLen(s) as u32;
     let this: *mut StrBuffer = StrBuffer_Create(len);
     (*this).size = len;
@@ -75,23 +75,20 @@ pub unsafe extern "C" fn StrBuffer_Free(this: *mut StrBuffer) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrBuffer_Append(this: *mut StrBuffer, mut other: *mut StrBuffer) {
+pub unsafe extern "C" fn StrBuffer_Append(this: *mut StrBuffer, other: *mut StrBuffer) {
     StrBuffer_AppendData(this, (*other).data as *const _, (*other).size);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrBuffer_AppendStr(
-    this: *mut StrBuffer,
-    mut other: *const libc::c_char,
-) {
+pub unsafe extern "C" fn StrBuffer_AppendStr(this: *mut StrBuffer, other: *const libc::c_char) {
     StrBuffer_AppendData(this, other as *const _, StrLen(other) as u32);
 }
 
 #[inline]
 unsafe extern "C" fn StrBuffer_SetImpl(
     this: *mut StrBuffer,
-    mut format: *const libc::c_char,
-    mut args: va_list,
+    format: *const libc::c_char,
+    args: va_list,
 ) -> i32 {
     let mut newSize: i32 = libc::snprintf(
         (*this).data,
@@ -110,8 +107,8 @@ unsafe extern "C" fn StrBuffer_SetImpl(
 #[no_mangle]
 pub unsafe extern "C" fn StrBuffer_Set(
     this: *mut StrBuffer,
-    mut format: *const libc::c_char,
-    mut args: ...
+    format: *const libc::c_char,
+    args: ...
 ) {
     let mut args_0: va_list = std::ptr::null_mut();
     args_0 = &args as *const VaListImpl as va_list;
@@ -125,7 +122,7 @@ pub unsafe extern "C" fn StrBuffer_Set(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrBuffer_Clone(mut other: *mut StrBuffer) -> *mut StrBuffer {
+pub unsafe extern "C" fn StrBuffer_Clone(other: *mut StrBuffer) -> *mut StrBuffer {
     let this: *mut StrBuffer = StrBuffer_Create((*other).size);
     MemCpy(
         (*this).data as *mut _,

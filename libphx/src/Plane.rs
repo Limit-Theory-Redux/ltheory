@@ -30,11 +30,11 @@ pub enum PolygonClassification {
 
 #[no_mangle]
 pub unsafe extern "C" fn Plane_ClassifyPoint(
-    mut plane: *mut Plane,
+    plane: *const Plane,
     p: *const Vec3,
 ) -> PointClassification {
-    let mut _magnitude: f32 = f64::abs((1.0f32 - (*plane).n.length()) as f64) as f32;
-    let mut dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
+    let _magnitude: f32 = f64::abs((1.0f32 - (*plane).n.length()) as f64) as f32;
+    let dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
     if dist as f64 > 1e-4f64 {
         PointClassification::InFront
     } else if (dist as f64) < -1e-4f64 {
@@ -46,7 +46,7 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
 
 #[no_mangle]
 pub unsafe extern "C" fn Plane_ClassifyPolygon(
-    mut plane: *mut Plane,
+    plane: *const Plane,
     polygon: *const Polygon,
 ) -> PolygonClassification {
     let mut numInFront: i32 = 0;
@@ -82,7 +82,7 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
+pub unsafe extern "C" fn Plane_Validate(plane: *const Plane) -> Error {
     let mut e: Error = 0 as Error;
 
     e |= Float_Validate((*plane).d as f64);
@@ -92,11 +92,11 @@ pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Plane_FromPolygon(mut polygon: *mut Polygon, mut plane: *mut Plane) {
+pub unsafe extern "C" fn Plane_FromPolygon(polygon: *const Polygon, plane: *mut Plane) {
     Polygon_ToPlane(polygon, plane);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Plane_FromPolygonFast(mut polygon: *mut Polygon, mut plane: *mut Plane) {
+pub unsafe extern "C" fn Plane_FromPolygonFast(polygon: *const Polygon, plane: *mut Plane) {
     Polygon_ToPlaneFast(polygon, plane);
 }

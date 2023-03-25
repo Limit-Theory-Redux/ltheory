@@ -490,7 +490,7 @@ pub static Button_System_Last: Button = Button_System_First + 0;
 pub static Button_Last: Button = Button_System_Last;
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToDeviceType(mut button: Button) -> DeviceType {
+pub unsafe extern "C" fn Button_ToDeviceType(button: Button) -> DeviceType {
     if button == Button_Null {
         DeviceType_Null
     } else if button <= Button_Keyboard_Last {
@@ -510,7 +510,7 @@ pub unsafe extern "C" fn Button_ToDeviceType(mut button: Button) -> DeviceType {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToString(mut button: Button) -> *const libc::c_char {
+pub unsafe extern "C" fn Button_ToString(button: Button) -> *const libc::c_char {
     match button {
         0 => b"Button_Null\0" as *const u8 as *const libc::c_char,
         1 => b"Button_Keyboard_A\0" as *const u8 as *const libc::c_char,
@@ -673,7 +673,7 @@ pub unsafe extern "C" fn Button_ToString(mut button: Button) -> *const libc::c_c
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_IsAutoRelease(mut button: Button) -> bool {
+pub unsafe extern "C" fn Button_IsAutoRelease(button: Button) -> bool {
     match button {
         124 | 125 | 147 => true,
         _ => false,
@@ -681,7 +681,7 @@ pub unsafe extern "C" fn Button_IsAutoRelease(mut button: Button) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_FromSDLScancode(mut scancode: SDL_Scancode) -> Button {
+pub unsafe extern "C" fn Button_FromSDLScancode(scancode: SDL_Scancode) -> Button {
     match scancode as u32 {
         0 => Button_Null,
         4 => Button_Keyboard_A,
@@ -804,7 +804,7 @@ pub unsafe extern "C" fn Button_FromSDLScancode(mut scancode: SDL_Scancode) -> B
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLScancode(mut button: Button) -> SDL_Scancode {
+pub unsafe extern "C" fn Button_ToSDLScancode(button: Button) -> SDL_Scancode {
     match button {
         0 => {}
         1 => return SDL_Scancode::SDL_SCANCODE_A,
@@ -933,7 +933,7 @@ pub unsafe extern "C" fn Button_ToSDLScancode(mut button: Button) -> SDL_Scancod
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: u8) -> Button {
+pub unsafe extern "C" fn Button_FromSDLMouseButton(mouseButton: u8) -> Button {
     match mouseButton as i32 {
         1 => {}
         2 => return Button_Mouse_Middle,
@@ -952,7 +952,7 @@ pub unsafe extern "C" fn Button_FromSDLMouseButton(mut mouseButton: u8) -> Butto
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
+pub unsafe extern "C" fn Button_ToSDLMouseButton(button: Button) -> u8 {
     match button {
         117 => {}
         118 => return 2 as u8,
@@ -972,7 +972,7 @@ pub unsafe extern "C" fn Button_ToSDLMouseButton(mut button: Button) -> u8 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Button_FromSDLControllerAxis(
-    mut controllerAxis: SDL_GameControllerAxis,
+    controllerAxis: SDL_GameControllerAxis,
 ) -> Button {
     match controllerAxis as i32 {
         0 => {}
@@ -993,7 +993,7 @@ pub unsafe extern "C" fn Button_FromSDLControllerAxis(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLControllerAxis(mut button: Button) -> SDL_GameControllerAxis {
+pub unsafe extern "C" fn Button_ToSDLControllerAxis(button: Button) -> SDL_GameControllerAxis {
     match button {
         143 => {}
         144 => return SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTY,
@@ -1014,7 +1014,7 @@ pub unsafe extern "C" fn Button_ToSDLControllerAxis(mut button: Button) -> SDL_G
 
 #[no_mangle]
 pub unsafe extern "C" fn Button_FromSDLControllerButton(
-    mut controllerButton: SDL_GameControllerButton,
+    controllerButton: SDL_GameControllerButton,
 ) -> Button {
     match controllerButton as i32 {
         0 => {}
@@ -1044,9 +1044,7 @@ pub unsafe extern "C" fn Button_FromSDLControllerButton(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLControllerButton(
-    mut button: Button,
-) -> SDL_GameControllerButton {
+pub unsafe extern "C" fn Button_ToSDLControllerButton(button: Button) -> SDL_GameControllerButton {
     match button {
         126 => {}
         127 => return SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_B,

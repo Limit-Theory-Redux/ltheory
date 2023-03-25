@@ -24,12 +24,12 @@ pub struct Node {
 pub type ValueForeach = Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>;
 
 #[inline]
-unsafe extern "C" fn Hash(mut key: *const libc::c_void, mut len: u32) -> u64 {
+unsafe extern "C" fn Hash(key: *const libc::c_void, len: u32) -> u64 {
     Hash_XX64(key, len as i32, 0)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_Create(mut keySize: u32, mut capacity: u32) -> *mut HashMap {
+pub unsafe extern "C" fn HashMap_Create(keySize: u32, mut capacity: u32) -> *mut HashMap {
     let mut logCapacity: u32 = 0;
     while capacity > 1 {
         capacity = capacity.wrapping_div(2);
@@ -55,8 +55,8 @@ pub unsafe extern "C" fn HashMap_Free(this: *mut HashMap) {
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Foreach(
     this: *mut HashMap,
-    mut fn_0: ValueForeach,
-    mut userData: *mut libc::c_void,
+    fn_0: ValueForeach,
+    userData: *mut libc::c_void,
 ) {
     let mut i: u32 = 0;
     while i < (*this).capacity {
@@ -71,16 +71,13 @@ pub unsafe extern "C" fn HashMap_Foreach(
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Get(
     this: *mut HashMap,
-    mut key: *const libc::c_void,
+    key: *const libc::c_void,
 ) -> *mut libc::c_void {
     HashMap_GetRaw(this, Hash(key, (*this).keySize))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_GetRaw(
-    this: *mut HashMap,
-    mut hash: u64,
-) -> *mut libc::c_void {
+pub unsafe extern "C" fn HashMap_GetRaw(this: *mut HashMap, hash: u64) -> *mut libc::c_void {
     let mut index: u32 = 0;
     let mut node: *mut Node =
         ((*this).elems).offset((hash.wrapping_add(index as u64) & (*this).mask as u64) as isize);
@@ -96,7 +93,7 @@ pub unsafe extern "C" fn HashMap_GetRaw(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_Resize(this: *mut HashMap, mut capacity: u32) {
+pub unsafe extern "C" fn HashMap_Resize(this: *mut HashMap, capacity: u32) {
     let mut other: *mut HashMap = HashMap_Create((*this).keySize, capacity);
     let mut i: u32 = 0;
     while i < (*this).capacity {
@@ -113,18 +110,14 @@ pub unsafe extern "C" fn HashMap_Resize(this: *mut HashMap, mut capacity: u32) {
 #[no_mangle]
 pub unsafe extern "C" fn HashMap_Set(
     this: *mut HashMap,
-    mut key: *const libc::c_void,
-    mut value: *mut libc::c_void,
+    key: *const libc::c_void,
+    value: *mut libc::c_void,
 ) {
     HashMap_SetRaw(this, Hash(key, (*this).keySize), value);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashMap_SetRaw(
-    this: *mut HashMap,
-    mut hash: u64,
-    mut value: *mut libc::c_void,
-) {
+pub unsafe extern "C" fn HashMap_SetRaw(this: *mut HashMap, hash: u64, value: *mut libc::c_void) {
     let mut index: u32 = 0;
     let mut node: *mut Node =
         ((*this).elems).offset((hash.wrapping_add(index as u64) & (*this).mask as u64) as isize);

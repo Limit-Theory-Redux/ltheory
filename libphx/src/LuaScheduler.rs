@@ -53,7 +53,7 @@ static mut this: Scheduler = Scheduler {
     locked: false,
 };
 
-unsafe extern "C" fn SortByWake(mut pa: *const libc::c_void, mut pb: *const libc::c_void) -> i32 {
+unsafe extern "C" fn SortByWake(pa: *const libc::c_void, pb: *const libc::c_void) -> i32 {
     let mut a: *const SchedulerElem = pa as *const SchedulerElem;
     let mut b: *const SchedulerElem = pb as *const SchedulerElem;
     if (*a).tWake < (*b).tWake {
@@ -65,7 +65,7 @@ unsafe extern "C" fn SortByWake(mut pa: *const libc::c_void, mut pb: *const libc
     }
 }
 
-unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
+unsafe extern "C" fn LuaScheduler_Add(L: *mut Lua) -> i32 {
     let mut elem: SchedulerElem = SchedulerElem {
         fn_0: 0,
         arg: 0,
@@ -90,7 +90,7 @@ unsafe extern "C" fn LuaScheduler_Add(mut L: *mut Lua) -> i32 {
     0
 }
 
-unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
+unsafe extern "C" fn LuaScheduler_Clear(L: *mut Lua) -> i32 {
     for elem in this.elems.iter() {
         luaL_unref(L, -10000, (*elem).fn_0 as i32);
         luaL_unref(L, -10000, (*elem).arg as i32);
@@ -101,7 +101,7 @@ unsafe extern "C" fn LuaScheduler_Clear(mut L: *mut Lua) -> i32 {
     0
 }
 
-unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
+unsafe extern "C" fn LuaScheduler_Update(L: *mut Lua) -> i32 {
     this.locked = true;
 
     libc::qsort(
@@ -148,7 +148,7 @@ unsafe extern "C" fn LuaScheduler_Update(mut L: *mut Lua) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LuaScheduler_Init(mut _L: *mut Lua) {
+pub unsafe extern "C" fn LuaScheduler_Init(_L: *mut Lua) {
     this.elems = Vec::new();
     this.addQueue = Vec::new();
     this.now = TimeStamp_Get();
@@ -156,7 +156,7 @@ pub unsafe extern "C" fn LuaScheduler_Init(mut _L: *mut Lua) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LuaScheduler_Register(mut L: *mut Lua) {
+pub unsafe extern "C" fn LuaScheduler_Register(L: *mut Lua) {
     Lua_SetFn(
         L,
         b"Schedule\0" as *const u8 as *const libc::c_char,
