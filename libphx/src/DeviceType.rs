@@ -26,16 +26,16 @@ pub unsafe extern "C" fn DeviceType_FromButton(button: Button) -> DeviceType {
 #[no_mangle]
 pub unsafe extern "C" fn DeviceType_ToString(deviceType: DeviceType) -> *const libc::c_char {
     match deviceType {
-        0 => b"DeviceType_Null\0" as *const u8 as *const libc::c_char,
-        1 => b"DeviceType_Mouse\0" as *const u8 as *const libc::c_char,
-        2 => b"DeviceType_Keyboard\0" as *const u8 as *const libc::c_char,
-        3 => b"DeviceType_Gamepad\0" as *const u8 as *const libc::c_char,
+        0 => c_str!("DeviceType_Null"),
+        1 => c_str!("DeviceType_Mouse"),
+        2 => c_str!("DeviceType_Keyboard"),
+        3 => c_str!("DeviceType_Gamepad"),
         _ => {
             static mut buffer: [libc::c_char; 512] = [0; 512];
             libc::snprintf(
                 buffer.as_mut_ptr(),
                 buffer.len(),
-                b"Unknown (%i)\0" as *const u8 as *const libc::c_char,
+                c_str!("Unknown (%i)"),
                 deviceType,
             );
             buffer.as_mut_ptr() as *const libc::c_char

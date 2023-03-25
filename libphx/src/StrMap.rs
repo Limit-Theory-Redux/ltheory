@@ -169,10 +169,7 @@ pub unsafe extern "C" fn StrMap_Remove(this: *mut StrMap, key: *const libc::c_ch
         prev = &mut (*node).next;
         node = (*node).next;
     }
-    Fatal(
-        b"StrMap_Remove: Map does not contain key <%s>\0" as *const u8 as *const libc::c_char,
-        key,
-    );
+    Fatal(c_str!("StrMap_Remove: Map does not contain key <%s>"), key);
 }
 
 #[no_mangle]
@@ -209,31 +206,22 @@ pub unsafe extern "C" fn StrMap_Set(
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Dump(this: *mut StrMap) {
+    libc::printf(c_str!("StrMap @ %p:\n"), this);
+    libc::printf(c_str!("      size: %d\n"), (*this).size);
+    libc::printf(c_str!("  capacity: %d\n"), (*this).capacity);
     libc::printf(
-        b"StrMap @ %p:\n\0" as *const u8 as *const libc::c_char,
-        this,
-    );
-    libc::printf(
-        b"      size: %d\n\0" as *const u8 as *const libc::c_char,
-        (*this).size,
-    );
-    libc::printf(
-        b"  capacity: %d\n\0" as *const u8 as *const libc::c_char,
-        (*this).capacity,
-    );
-    libc::printf(
-        b"      load: %f\n\0" as *const u8 as *const libc::c_char,
+        c_str!("      load: %f\n"),
         ((*this).size as f32 / (*this).capacity as f32) as f64,
     );
-    libc::puts(b"\0" as *const u8 as *const libc::c_char);
+    libc::puts(c_str!(""));
     let mut i: u32 = 0;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
-            libc::printf(b"  [%03i]:\n\0" as *const u8 as *const libc::c_char, i);
+            libc::printf(c_str!("  [%03i]:\n"), i);
             while !node.is_null() {
                 libc::printf(
-                    b"    (%lx) %s -> %p\n\0" as *const u8 as *const libc::c_char,
+                    c_str!("    (%lx) %s -> %p\n"),
                     Hash((*node).key),
                     (*node).key,
                     (*node).value,

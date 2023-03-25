@@ -32,7 +32,7 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
     static mut firstTime: bool = true;
     Signal_Init();
     libc::printf(
-        b"Engine_Init: Requesting GL %d.%d\n\0" as *const u8 as *const libc::c_char,
+        c_str!("Engine_Init: Requesting GL %d.%d\n"),
         glVersionMajor,
         glVersionMinor,
     );
@@ -53,40 +53,31 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
         compiled.patch = 1;
         SDL_GetVersion(&mut linked);
         if compiled.major != linked.major {
-            libc::puts(
-                b"Engine_Init: Detected SDL major version mismatch:\0" as *const u8
-                    as *const libc::c_char,
-            );
+            libc::puts(c_str!("Engine_Init: Detected SDL major version mismatch:"));
             libc::printf(
-                b"  Version (Compiled) : %d.%d.%d\n\0" as *const u8 as *const libc::c_char,
+                c_str!("  Version (Compiled) : %d.%d.%d\n"),
                 compiled.major as i32,
                 compiled.minor as i32,
                 compiled.patch as i32,
             );
             libc::printf(
-                b"  Version (Linked)   : %d.%d.%d\n\0" as *const u8 as *const libc::c_char,
+                c_str!("  Version (Linked)   : %d.%d.%d\n"),
                 linked.major as i32,
                 linked.minor as i32,
                 linked.patch as i32,
             );
-            Fatal(b"Engine_Init: Terminating.\0" as *const u8 as *const libc::c_char);
+            Fatal(c_str!("Engine_Init: Terminating."));
         }
         if SDL_Init(0) != 0 {
-            Fatal(b"Engine_Init: Failed to initialize SDL\0" as *const u8 as *const libc::c_char);
+            Fatal(c_str!("Engine_Init: Failed to initialize SDL"));
         }
-        if !Directory_Create(b"log\0" as *const u8 as *const libc::c_char) {
-            Fatal(
-                b"Engine_Init: Failed to create log directory.\0" as *const u8
-                    as *const libc::c_char,
-            );
+        if !Directory_Create(c_str!("log")) {
+            Fatal(c_str!("Engine_Init: Failed to create log directory."));
         }
         atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
     }
     if SDL_InitSubSystem(subsystems) != 0 {
-        Fatal(
-            b"Engine_Init: Failed to initialize SDL's subsystems\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!("Engine_Init: Failed to initialize SDL's subsystems"));
     }
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, glVersionMajor);
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MINOR_VERSION, glVersionMinor);
@@ -151,9 +142,7 @@ pub unsafe extern "C" fn Engine_Terminate() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Update() {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Engine_Update\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("Engine_Update"));
     Metric_Reset();
     Keyboard_UpdatePre();
     Mouse_Update();

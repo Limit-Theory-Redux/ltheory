@@ -32,12 +32,7 @@ unsafe extern "C" fn Obj_Fatal(message: *const libc::c_char, s: *mut ParseState)
     let mut line: *mut libc::c_char = MemAlloc((len + 1) as usize) as *mut libc::c_char;
     MemCpy(line as *mut _, (*s).lineStart as *const _, len as usize);
     *line.offset(len as isize) = 0 as libc::c_char;
-    Fatal(
-        b"%s Line %i\n%s\0" as *const u8 as *const libc::c_char,
-        message,
-        (*s).lineNumber,
-        line,
-    );
+    Fatal(c_str!("%s Line %i\n%s"), message, (*s).lineNumber, line);
 }
 
 unsafe extern "C" fn ConsumeRestOfLine(s: *mut ParseState) -> bool {
@@ -110,10 +105,7 @@ unsafe extern "C" fn ConsumeFloat(value: *mut f32, s: *mut ParseState) -> bool {
     let mut afterFloat: *mut libc::c_char = std::ptr::null_mut();
     let mut f: f32 = libc::strtof((*s).cursor, &mut afterFloat);
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 {
-        Obj_Fatal(
-            b"Parsed float in .obj data is out of range.\0" as *const u8 as *const libc::c_char,
-            s,
-        );
+        Obj_Fatal(c_str!("Parsed float in .obj data is out of range."), s);
     }
     if afterFloat != (*s).cursor as *mut libc::c_char {
         (*s).cursor = afterFloat;
@@ -127,10 +119,7 @@ unsafe extern "C" fn ConsumeInt(value: *mut i32, s: *mut ParseState) -> bool {
     let mut afterInt: *mut libc::c_char = std::ptr::null_mut();
     let mut i: i32 = libc::strtol((*s).cursor, &mut afterInt, 10) as i32;
     if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 34 {
-        Obj_Fatal(
-            b"Parsed int in .obj data is out of range.\0" as *const u8 as *const libc::c_char,
-            s,
-        );
+        Obj_Fatal(c_str!("Parsed int in .obj data is out of range."), s);
     }
     if afterInt != (*s).cursor as *mut libc::c_char {
         (*s).cursor = afterInt;
@@ -184,21 +173,14 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
         ConsumeToken(token.as_mut_ptr(), 16, &mut s);
         ConsumeWhitespace(&mut s);
 
-        if StrEqual(
-            token.as_mut_ptr() as *const libc::c_char,
-            b"\0" as *const u8 as *const libc::c_char,
-        ) {
+        if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("")) {
             if s.cursor >= s.endOfData {
                 break;
             }
-        } else if StrEqual(
-            token.as_mut_ptr() as *const libc::c_char,
-            b"v\0" as *const u8 as *const libc::c_char,
-        ) {
+        } else if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("v")) {
             if positions.len() == i32::MAX as usize {
                 Obj_Fatal(
-                    b".obj data contains more vertex positions than will fit in a vector.\0"
-                        as *const u8 as *const libc::c_char,
+                    c_str!(".obj data contains more vertex positions than will fit in a vector."),
                     &mut s,
                 );
             }
@@ -209,21 +191,16 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 && ConsumeFloat(&mut p.z, &mut s) as i32 != 0)
             {
                 Obj_Fatal(
-                    b"Failed to parse geometric vertex from .obj data.\0" as *const u8
-                        as *const libc::c_char,
+                    c_str!("Failed to parse geometric vertex from .obj data."),
                     &mut s,
                 );
             }
 
             positions.push(p);
-        } else if StrEqual(
-            token.as_mut_ptr() as *const libc::c_char,
-            b"vt\0" as *const u8 as *const libc::c_char,
-        ) {
+        } else if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("vt")) {
             if uvs.len() == i32::MAX as usize {
                 Obj_Fatal(
-                    b".obj data contains more UVs than will fit in an ArrayList.\0" as *const u8
-                        as *const libc::c_char,
+                    c_str!(".obj data contains more UVs than will fit in an ArrayList."),
                     &mut s,
                 );
             }
@@ -233,21 +210,16 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 && ConsumeFloat(&mut uv.y, &mut s) as i32 != 0)
             {
                 Obj_Fatal(
-                    b"Failed to parse texture vertex from .obj data.\0" as *const u8
-                        as *const libc::c_char,
+                    c_str!("Failed to parse texture vertex from .obj data."),
                     &mut s,
                 );
             }
 
             uvs.push(uv);
-        } else if StrEqual(
-            token.as_mut_ptr() as *const libc::c_char,
-            b"vn\0" as *const u8 as *const libc::c_char,
-        ) {
+        } else if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("vn")) {
             if normals.len() == i32::MAX as usize {
                 Obj_Fatal(
-                    b".obj data contains more normals than will fit in an ArrayList.\0" as *const u8
-                        as *const libc::c_char,
+                    c_str!(".obj data contains more normals than will fit in an ArrayList."),
                     &mut s,
                 );
             }
@@ -258,17 +230,13 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 && ConsumeFloat(&mut n.z, &mut s) as i32 != 0)
             {
                 Obj_Fatal(
-                    b"Failed to parse vertex normal from .obj data.\0" as *const u8
-                        as *const libc::c_char,
+                    c_str!("Failed to parse vertex normal from .obj data."),
                     &mut s,
                 );
             }
 
             normals.push(n);
-        } else if StrEqual(
-            token.as_mut_ptr() as *const libc::c_char,
-            b"f\0" as *const u8 as *const libc::c_char,
-        ) {
+        } else if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("f")) {
             let mut vertexIndicesCount: i32 = 0;
             let mut vertexIndices: [VertexIndices; 4] = [
                 VertexIndices {
@@ -307,8 +275,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
 
                 if !ConsumeInt(&mut (*face).iP, &mut s) {
                     Obj_Fatal(
-                        b"Failed to parse face vertex index from .obj data.\0" as *const u8
-                            as *const libc::c_char,
+                        c_str!("Failed to parse face vertex index from .obj data."),
                         &mut s,
                     );
                 }
@@ -327,8 +294,9 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
             for i in 0..vertexIndicesCount {
                 if vertexCount == i32::MAX {
                     Obj_Fatal(
-                        b".obj data contains more vertex indices than will fit in an ArrayList.\0"
-                            as *const u8 as *const libc::c_char,
+                        c_str!(
+                            ".obj data contains more vertex indices than will fit in an ArrayList."
+                        ),
                         &mut s,
                     );
                 }
@@ -348,8 +316,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 };
                 if (*face).iP < 0 || (*face).iP >= positions.len() as i32 {
                     Obj_Fatal(
-                        b"Face vertex index is out of range in .obj data\0" as *const u8
-                            as *const libc::c_char,
+                        c_str!("Face vertex index is out of range in .obj data"),
                         &mut s,
                     );
                 }
@@ -363,8 +330,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                     };
                     if (*face).iN < 0 || (*face).iN >= normals.len() as i32 {
                         Obj_Fatal(
-                            b"Face normal index is out of range in .obj data\0" as *const u8
-                                as *const libc::c_char,
+                            c_str!("Face normal index is out of range in .obj data"),
                             &mut s,
                         );
                     }
@@ -378,11 +344,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                         i32::MAX
                     };
                     if (*face).iUV < 0 || (*face).iUV >= uvs.len() as i32 {
-                        Obj_Fatal(
-                            b"Face UV index is out of range in .obj data\0" as *const u8
-                                as *const libc::c_char,
-                            &mut s,
-                        );
+                        Obj_Fatal(c_str!("Face UV index is out of range in .obj data"), &mut s);
                     }
                     vertex.uv = uvs[(*face).iUV as usize];
                 }
@@ -393,8 +355,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
 
             if indexCount >= i32::MAX - vertexIndicesCount {
                 Obj_Fatal(
-                    b".obj data contains more vertex indices than will fit in an ArrayList\0"
-                        as *const u8 as *const libc::c_char,
+                    c_str!(".obj data contains more vertex indices than will fit in an ArrayList"),
                     &mut s,
                 );
             }
@@ -408,11 +369,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                     let p2: Vec3 =
                         (*vertices.offset((verticesLen - vertexIndicesCount + j) as isize)).p;
                     if p1 == p2 {
-                        Obj_Fatal(
-                            b".obj data contains a degenerate polygon.\0" as *const u8
-                                as *const libc::c_char,
-                            &mut s,
-                        );
+                        Obj_Fatal(c_str!(".obj data contains a degenerate polygon."), &mut s);
                     }
                 }
             }
@@ -433,71 +390,23 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 );
             } else {
                 Obj_Fatal(
-                    b".obj data has an unexpected number of vertices in a face\0" as *const u8
-                        as *const libc::c_char,
+                    c_str!(".obj data has an unexpected number of vertices in a face"),
                     &mut s,
                 );
             }
-        } else if !(StrEqual(
-            token.as_mut_ptr() as *const libc::c_char,
-            b"#\0" as *const u8 as *const libc::c_char,
-        ) as i32
-            != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"f\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"s\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"p\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"l\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"g\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"o\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"maplib\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"usemap\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"usemtl\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0
-            || StrEqual(
-                token.as_mut_ptr() as *const libc::c_char,
-                b"mtllib\0" as *const u8 as *const libc::c_char,
-            ) as i32
-                != 0)
+        } else if !(StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("#")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("f")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("s")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("p")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("l")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("g")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("o")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("maplib")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("usemap")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("usemtl")) as i32 != 0
+            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("mtllib")) as i32 != 0)
         {
-            Obj_Fatal(
-                b"Unsupported token in .obj data.\0" as *const u8 as *const libc::c_char,
-                &mut s,
-            );
+            Obj_Fatal(c_str!("Unsupported token in .obj data."), &mut s);
         }
         ConsumeRestOfLine(&mut s);
     }

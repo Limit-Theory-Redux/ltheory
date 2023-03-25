@@ -142,7 +142,7 @@ pub unsafe extern "C" fn Font_Load(name: *const libc::c_char, size: i32) -> *mut
     (*this)._refCount = 1;
     if FT_New_Face(ft, path, 0 as FT_Long, &mut (*this).handle) != 0 {
         Fatal(
-            b"Font_Load: Failed to load font <%s> at <%s>\0" as *const u8 as *const libc::c_char,
+            c_str!("Font_Load: Failed to load font <%s> at <%s>"),
             name,
             path,
         );
@@ -183,9 +183,7 @@ pub unsafe extern "C" fn Font_Draw(
     b: f32,
     a: f32,
 ) {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"Font_Draw\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("Font_Draw"));
     let mut glyphLast: i32 = 0;
     let fresh1 = text;
     text = text.offset(1);
@@ -226,9 +224,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
     mut x: f32,
     mut y: f32,
 ) {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"Font_DrawShaded\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("Font_DrawShaded"));
     let mut glyphLast: i32 = 0;
     let fresh3 = text;
     text = text.offset(1);
@@ -246,7 +242,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
             let mut x1: f32 = x + (*glyph).x1 as f32;
             let mut y1: f32 = y + (*glyph).y1 as f32;
             Shader_ResetTexIndex();
-            Shader_SetTex2D(b"glyph\0" as *const u8 as *const libc::c_char, (*glyph).tex);
+            Shader_SetTex2D(c_str!("glyph"), (*glyph).tex);
             Tex2D_DrawEx((*glyph).tex, x0, y0, x1, y1, 0.0f32, 0.0f32, 1.0f32, 1.0f32);
             x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
@@ -271,9 +267,7 @@ pub unsafe extern "C" fn Font_GetSize(
     out: *mut IVec4,
     mut text: *const libc::c_char,
 ) {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Font_GetSize\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("Font_GetSize"));
     let mut x: i32 = 0;
     let mut y: i32 = 0;
     let mut lower = IVec2::new(i32::MAX, i32::MAX);
@@ -315,9 +309,7 @@ pub unsafe extern "C" fn Font_GetSize2(
     out: *mut IVec2,
     mut text: *const libc::c_char,
 ) {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 14], &[libc::c_char; 14]>(b"Font_GetSize2\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("Font_GetSize2"));
     (*out).x = 0;
     (*out).y = 0;
     let mut glyphLast: i32 = 0;

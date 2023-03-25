@@ -30,7 +30,7 @@ pub unsafe extern "C" fn Window_Create(
     let handle = SDL_CreateWindow(title, x, y, sx, sy, modeWithGL);
     let context = SDL_GL_CreateContext(handle);
     if context.is_null() {
-        Fatal(b"Failed to create OpenGL context for window\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Failed to create OpenGL context for window"));
     }
     OpenGL_Init();
 

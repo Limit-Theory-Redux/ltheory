@@ -163,7 +163,7 @@ pub unsafe extern "C" fn HashGrid_Add(
     object: *mut libc::c_void,
     box_0: *const Box3,
 ) -> *mut HashGridElem {
-    let mut elem: *mut HashGridElem = MemPool_Alloc((*this).elemPool) as *mut HashGridElem;
+    let elem: *mut HashGridElem = MemPool_Alloc((*this).elemPool) as *mut HashGridElem;
     (*elem).object = object;
     (*elem).lower[0] = HashGrid_ToLocal(this, (*box_0).lower.x);
     (*elem).lower[1] = HashGrid_ToLocal(this, (*box_0).lower.y);
@@ -200,9 +200,7 @@ pub unsafe extern "C" fn HashGrid_Update(
     elem: *mut HashGridElem,
     box_0: *const Box3,
 ) {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 16], &[libc::c_char; 16]>(b"HashGrid_Update\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("HashGrid_Update"));
     let mut lower: [i32; 3] = [
         HashGrid_ToLocal(this, (*box_0).lower.x),
         HashGrid_ToLocal(this, (*box_0).lower.y),

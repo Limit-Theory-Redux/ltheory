@@ -554,7 +554,7 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32) {
         this.root = std::ptr::null_mut();
         this.style = MemNew!(HmGuiStyle);
         (*this.style).prev = std::ptr::null_mut();
-        (*this.style).font = Font_Load(b"Rajdhani\0" as *const u8 as *const libc::c_char, 14);
+        (*this.style).font = Font_Load(c_str!("Rajdhani"), 14);
         (*this.style).spacing = 6.0f32;
         (*this.style).colorPrimary = Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32);
         (*this.style).colorFrame = Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32);
@@ -583,9 +583,7 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_End() {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 10], &[libc::c_char; 10]>(b"HmGui_End\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("HmGui_End"));
     HmGui_EndGroup();
     HmGui_ComputeSize(this.root);
     HmGui_LayoutGroup(this.root);
@@ -603,9 +601,7 @@ pub unsafe extern "C" fn HmGui_End() {
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Draw() {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 11], &[libc::c_char; 11]>(b"HmGui_Draw\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("HmGui_Draw"));
     RenderState_PushBlendMode(1);
     UIRenderer_Begin();
     HmGui_DrawGroup(this.root);

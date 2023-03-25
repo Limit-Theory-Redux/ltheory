@@ -50,10 +50,9 @@ pub unsafe extern "C" fn ThreadPool_Free(this: *mut ThreadPool) {
     let mut i: i32 = 0;
     while i < (*this).threads {
         if !((*((*this).thread).offset(i as isize)).handle).is_null() {
-            Fatal(
-                b"ThreadPool_Free: Attempting to free pool with active threads\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(c_str!(
+                "ThreadPool_Free: Attempting to free pool with active threads"
+            ));
         }
         i += 1;
     }
@@ -74,14 +73,11 @@ pub unsafe extern "C" fn ThreadPool_Launch(
         (*td).data = data;
         (*td).handle = SDL_CreateThread(
             Some(ThreadPool_Dispatch as unsafe extern "C" fn(*mut libc::c_void) -> i32),
-            b"PHX_ThreadPool\0" as *const u8 as *const libc::c_char,
+            c_str!("PHX_ThreadPool"),
             td as *mut _,
         );
         if ((*td).handle).is_null() {
-            Fatal(
-                b"ThreadPool_Launch: Failed to start new thread\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(c_str!("ThreadPool_Launch: Failed to start new thread"));
         }
         i += 1;
     }

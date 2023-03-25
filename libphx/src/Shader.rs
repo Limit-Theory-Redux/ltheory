@@ -38,11 +38,10 @@ pub struct ShaderVar {
     pub index: i32,
 }
 
-static mut includePath: *const libc::c_char = b"include/\0" as *const u8 as *const libc::c_char;
+static mut includePath: *const libc::c_char = c_str!("include/");
 
 static mut versionString: *const libc::c_char =
-    b"#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n\0"
-        as *const u8 as *const libc::c_char;
+    c_str!("#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n");
 
 static mut current: *mut Shader = std::ptr::null_mut();
 
@@ -50,7 +49,7 @@ static mut cache: *mut StrMap = std::ptr::null_mut();
 
 unsafe extern "C" fn GetUniformIndex(this: *mut Shader, name: *const libc::c_char) -> i32 {
     if this.is_null() {
-        Fatal(b"GetUniformIndex: No shader is bound\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("GetUniformIndex: No shader is bound"));
     }
     let mut index: i32 = gl::GetUniformLocation((*this).program, name);
     index
@@ -79,7 +78,7 @@ unsafe fn CreateGLShader(src: *const libc::c_char, type_0: gl::types::GLenum) ->
             MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
         Fatal(
-            b"CreateGLShader: Failed to compile shader:\n%s\0" as *const u8 as *const libc::c_char,
+            c_str!("CreateGLShader: Failed to compile shader:\n%s"),
             infoLog,
         );
     }
@@ -92,17 +91,9 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
     gl::AttachShader(this, fs);
 
     /* TODO : Replace with custom directives. */
-    gl::BindAttribLocation(
-        this,
-        0,
-        b"vertex_position\0" as *const u8 as *const libc::c_char,
-    );
-    gl::BindAttribLocation(
-        this,
-        1,
-        b"vertex_normal\0" as *const u8 as *const libc::c_char,
-    );
-    gl::BindAttribLocation(this, 2, b"vertex_uv\0" as *const u8 as *const libc::c_char);
+    gl::BindAttribLocation(this, 0, c_str!("vertex_position"));
+    gl::BindAttribLocation(this, 1, c_str!("vertex_normal"));
+    gl::BindAttribLocation(this, 2, c_str!("vertex_uv"));
 
     gl::LinkProgram(this);
 
@@ -116,7 +107,7 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
             MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetProgramInfoLog(this, length, std::ptr::null_mut(), infoLog);
         Fatal(
-            b"CreateGLProgram: Failed to link program:\n%s\0" as *const u8 as *const libc::c_char,
+            c_str!("CreateGLProgram: Failed to link program:\n%s"),
             infoLog,
         );
     }
@@ -134,11 +125,7 @@ unsafe fn GLSL_Load(name: *const libc::c_char, this: *mut Shader) -> *const libc
         return cached as *const libc::c_char;
     }
     let mut rawCode: *const libc::c_char = Resource_LoadCstr(ResourceType_Shader, name);
-    let mut code: *const libc::c_char = StrReplace(
-        rawCode,
-        b"\r\n\0" as *const u8 as *const libc::c_char,
-        b"\n\0" as *const u8 as *const libc::c_char,
-    );
+    let mut code: *const libc::c_char = StrReplace(rawCode, c_str!("\r\n"), c_str!("\n"));
     StrFree(rawCode);
     code = GLSL_Preprocess(code, this);
     /* BUG : Disable GLSL caching until preprocessor cache works. */
@@ -147,17 +134,16 @@ unsafe fn GLSL_Load(name: *const libc::c_char, this: *mut Shader) -> *const libc
 }
 
 unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *const libc::c_char {
-    let lenInclude: i32 = StrLen(b"#include\0" as *const u8 as *const libc::c_char) as i32;
+    let lenInclude: i32 = StrLen(c_str!("#include")) as i32;
     let mut begin: *const libc::c_char = std::ptr::null();
 
     /* Parse Includes. */
     loop {
-        begin = StrFind(code, b"#include\0" as *const u8 as *const libc::c_char);
+        begin = StrFind(code, c_str!("#include"));
         if begin.is_null() {
             break;
         }
-        let mut end: *const libc::c_char =
-            StrFind(begin, b"\n\0" as *const u8 as *const libc::c_char);
+        let mut end: *const libc::c_char = StrFind(begin, c_str!("\n"));
         let mut name: *const libc::c_char =
             StrSubStr(begin.offset(lenInclude as isize).offset(1), end);
         let mut path: *const libc::c_char = StrAdd(includePath, name);
@@ -170,12 +156,11 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *
 
     /* Parse automatic ShaderVar stack bindings. */
     loop {
-        begin = StrFind(code, b"#autovar\0" as *const u8 as *const libc::c_char);
+        begin = StrFind(code, c_str!("#autovar"));
         if begin.is_null() {
             break;
         }
-        let mut end_0: *const libc::c_char =
-            StrFind(begin, b"\n\0" as *const u8 as *const libc::c_char);
+        let mut end_0: *const libc::c_char = StrFind(begin, c_str!("\n"));
         let mut line: *const libc::c_char = StrSubStr(begin, end_0);
         let mut varType: [libc::c_char; 32] = [
             0 as libc::c_char,
@@ -247,7 +232,7 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *
         ];
         if libc::sscanf(
             line,
-            b"#autovar %31s %31s\0" as *const u8 as *const libc::c_char,
+            c_str!("#autovar %31s %31s"),
             varType.as_mut_ptr(),
             varName.as_mut_ptr(),
         ) == 2
@@ -260,8 +245,9 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *
             var.type_0 = ShaderVarType_FromStr(varType.as_mut_ptr() as *const libc::c_char);
             if var.type_0 == 0 {
                 Fatal(
-                    b"GLSL_Preprocess: Unknown shader variable type <%s> in directive:\n  %s\0"
-                        as *const u8 as *const libc::c_char,
+                    c_str!(
+                        "GLSL_Preprocess: Unknown shader variable type <%s> in directive:\n  %s"
+                    ),
                     varType.as_mut_ptr(),
                     line,
                 );
@@ -271,19 +257,13 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *
             (*this).vars.push(var);
         } else {
             Fatal(
-                b"GLSL_Preprocess: Failed to parse directive:\n  %s\0" as *const u8
-                    as *const libc::c_char,
+                c_str!("GLSL_Preprocess: Failed to parse directive:\n  %s"),
                 line,
             );
         }
 
         let mut prev_0: *const libc::c_char = code;
-        code = StrSub(
-            code,
-            begin,
-            end_0,
-            b"\0" as *const u8 as *const libc::c_char,
-        );
+        code = StrSub(code, begin, end_0, c_str!(""));
         StrFree(prev_0);
         StrFree(line);
     }
@@ -297,8 +277,7 @@ unsafe extern "C" fn Shader_BindVariables(this: *mut Shader) {
         (*var).index = gl::GetUniformLocation((*this).program, (*var).name);
         if (*var).index < 0 {
             Warn(
-                b"Shader_BindVariables: Automatic shader variable <%s> does not exist in shader <%s>\0"
-                    as *const u8 as *const libc::c_char,
+                c_str!("Shader_BindVariables: Automatic shader variable <%s> does not exist in shader <%s>"),
                 (*var).name,
                 (*this).name,
             );
@@ -315,30 +294,13 @@ pub unsafe extern "C" fn Shader_Create(
     let mut this = MemNew!(Shader);
     (*this)._refCount = 1;
     (*this).vars = Vec::new();
-    let vs = GLSL_Preprocess(
-        StrReplace(
-            vs,
-            b"\r\n\0" as *const u8 as *const libc::c_char,
-            b"\n\0" as *const u8 as *const libc::c_char,
-        ),
-        this,
-    );
-    let fs = GLSL_Preprocess(
-        StrReplace(
-            fs,
-            b"\r\n\0" as *const u8 as *const libc::c_char,
-            b"\n\0" as *const u8 as *const libc::c_char,
-        ),
-        this,
-    );
+    let vs = GLSL_Preprocess(StrReplace(vs, c_str!("\r\n"), c_str!("\n")), this);
+    let fs = GLSL_Preprocess(StrReplace(fs, c_str!("\r\n"), c_str!("\n")), this);
     (*this).vs = CreateGLShader(vs, gl::VERTEX_SHADER);
     (*this).fs = CreateGLShader(fs, gl::FRAGMENT_SHADER);
     (*this).program = CreateGLProgram((*this).vs, (*this).fs);
     (*this).texIndex = 1;
-    (*this).name = StrFormat(
-        b"[anonymous shader @ %p]\0" as *const u8 as *const libc::c_char,
-        this,
-    );
+    (*this).name = StrFormat(c_str!("[anonymous shader @ %p]"), this);
     StrFree(vs);
     StrFree(fs);
     Shader_BindVariables(this);
@@ -359,11 +321,7 @@ pub unsafe extern "C" fn Shader_Load(
     (*this).fs = CreateGLShader(fs, gl::FRAGMENT_SHADER);
     (*this).program = CreateGLProgram((*this).vs, (*this).fs);
     (*this).texIndex = 1;
-    (*this).name = StrFormat(
-        b"[vs: %s , fs: %s]\0" as *const u8 as *const libc::c_char,
-        vName,
-        fName,
-    );
+    (*this).name = StrFormat(c_str!("[vs: %s , fs: %s]"), vName, fName);
     Shader_BindVariables(this);
     this
 }
@@ -394,9 +352,7 @@ pub unsafe extern "C" fn Shader_ToShaderState(this: *mut Shader) -> *mut ShaderS
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Start(this: *mut Shader) {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Shader_Start\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("Shader_Start"));
     gl::UseProgram((*this).program);
     current = this;
     (*this).texIndex = 1;
@@ -409,8 +365,7 @@ pub unsafe extern "C" fn Shader_Start(this: *mut Shader) {
             let mut pValue: *mut libc::c_void = ShaderVar_Get((*var).name, (*var).type_0);
             if pValue.is_null() {
                 Fatal(
-                    b"Shader_Start: Shader variable stack does not contain variable <%s>\0"
-                        as *const u8 as *const libc::c_char,
+                    c_str!("Shader_Start: Shader variable stack does not contain variable <%s>"),
                     (*var).name,
                 );
             }
@@ -505,8 +460,7 @@ pub unsafe extern "C" fn Shader_GetVariable(this: *mut Shader, name: *const libc
     let mut index: i32 = gl::GetUniformLocation((*this).program, name);
     if index == -1 {
         Fatal(
-            b"Shader_GetVariable: Shader <%s> has no variable <%s>\0" as *const u8
-                as *const libc::c_char,
+            c_str!("Shader_GetVariable: Shader <%s> has no variable <%s>"),
             (*this).name,
             name,
         );

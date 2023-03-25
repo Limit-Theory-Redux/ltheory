@@ -26,19 +26,19 @@ pub unsafe extern "C" fn ShaderVarType_FromStr(s: *const libc::c_char) -> Shader
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *const libc::c_char {
     match this {
-        1 => return b"float\0" as *const u8 as *const libc::c_char,
-        2 => return b"vec2\0" as *const u8 as *const libc::c_char,
-        3 => return b"vec3\0" as *const u8 as *const libc::c_char,
-        4 => return b"vec4\0" as *const u8 as *const libc::c_char,
-        5 => return b"int\0" as *const u8 as *const libc::c_char,
-        6 => return b"ivec2\0" as *const u8 as *const libc::c_char,
-        7 => return b"ivec3\0" as *const u8 as *const libc::c_char,
-        8 => return b"ivec4\0" as *const u8 as *const libc::c_char,
-        9 => return b"mat4\0" as *const u8 as *const libc::c_char,
-        10 => return b"sampler1D\0" as *const u8 as *const libc::c_char,
-        11 => return b"sampler2D\0" as *const u8 as *const libc::c_char,
-        12 => return b"sampler3D\0" as *const u8 as *const libc::c_char,
-        13 => return b"samplerCube\0" as *const u8 as *const libc::c_char,
+        1 => return c_str!("float"),
+        2 => return c_str!("vec2"),
+        3 => return c_str!("vec3"),
+        4 => return c_str!("vec4"),
+        5 => return c_str!("int"),
+        6 => return c_str!("ivec2"),
+        7 => return c_str!("ivec3"),
+        8 => return c_str!("ivec4"),
+        9 => return c_str!("mat4"),
+        10 => return c_str!("sampler1D"),
+        11 => return c_str!("sampler2D"),
+        12 => return c_str!("sampler3D"),
+        13 => return c_str!("samplerCube"),
         _ => {}
     }
     std::ptr::null()
@@ -47,19 +47,19 @@ pub unsafe extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *cons
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVarType_GetName(this: ShaderVarType) -> *const libc::c_char {
     match this {
-        1 => return b"float\0" as *const u8 as *const libc::c_char,
-        2 => return b"float2\0" as *const u8 as *const libc::c_char,
-        3 => return b"float3\0" as *const u8 as *const libc::c_char,
-        4 => return b"float4\0" as *const u8 as *const libc::c_char,
-        5 => return b"int\0" as *const u8 as *const libc::c_char,
-        6 => return b"int2\0" as *const u8 as *const libc::c_char,
-        7 => return b"int3\0" as *const u8 as *const libc::c_char,
-        8 => return b"int4\0" as *const u8 as *const libc::c_char,
-        9 => return b"Matrix\0" as *const u8 as *const libc::c_char,
-        10 => return b"Tex1D\0" as *const u8 as *const libc::c_char,
-        11 => return b"Tex2D\0" as *const u8 as *const libc::c_char,
-        12 => return b"Tex3D\0" as *const u8 as *const libc::c_char,
-        13 => return b"TexCube\0" as *const u8 as *const libc::c_char,
+        1 => return c_str!("float"),
+        2 => return c_str!("float2"),
+        3 => return c_str!("float3"),
+        4 => return c_str!("float4"),
+        5 => return c_str!("int"),
+        6 => return c_str!("int2"),
+        7 => return c_str!("int3"),
+        8 => return c_str!("int4"),
+        9 => return c_str!("Matrix"),
+        10 => return c_str!("Tex1D"),
+        11 => return c_str!("Tex2D"),
+        12 => return c_str!("Tex3D"),
+        13 => return c_str!("TexCube"),
         _ => {}
     }
     std::ptr::null()

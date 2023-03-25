@@ -45,7 +45,7 @@ pub unsafe extern "C" fn Polygon_ToPlane(polygon: *const Polygon, out: *mut Plan
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Polygon_ToPlaneFast(polygon: *mut Polygon, out: *mut Plane) {
+pub unsafe extern "C" fn Polygon_ToPlaneFast(polygon: *const Polygon, out: *mut Plane) {
     // NOTE: Doesn't normalize n and uses v[0] as the center.
 
     let v: &Vec<Vec3> = &(*polygon).vertices;

@@ -67,16 +67,15 @@ unsafe extern "C" fn Socket_SetNonblocking(this: sock_t) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn Socket_Create(type_0: SocketType) -> *mut Socket {
     if type_0 != SocketType_UDP && type_0 != SocketType_TCP {
-        Fatal(
-            b"Socket_Create: socket type must be either SocketType_TCP or SocketType_UDP\0"
-                as *const u8 as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "Socket_Create: socket type must be either SocketType_TCP or SocketType_UDP"
+        ));
     }
     let mut this = MemNew!(Socket);
     (*this).type_0 = type_0;
     (*this).sock = libc::socket(2, if type_0 == SocketType_UDP { 2 } else { 1 }, 0);
     if (*this).sock == -1 {
-        Fatal(b"Socket_Create: failed to open socket\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Socket_Create: failed to open socket"));
     }
     let mut opt: i32 = 1;
     if libc::setsockopt(
@@ -87,16 +86,12 @@ pub unsafe extern "C" fn Socket_Create(type_0: SocketType) -> *mut Socket {
         std::mem::size_of::<i32>() as libc::c_ulong as libc::socklen_t,
     ) != 0
     {
-        Fatal(
-            b"Socket_Create: failed to set socket to reusable\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!("Socket_Create: failed to set socket to reusable"));
     }
     if !Socket_SetNonblocking((*this).sock) {
-        Fatal(
-            b"Socket_Create: failed to set socket to non-blocking\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "Socket_Create: failed to set socket to non-blocking"
+        ));
     }
     this
 }
@@ -110,10 +105,9 @@ pub unsafe extern "C" fn Socket_Free(this: *mut Socket) {
 #[no_mangle]
 pub unsafe extern "C" fn Socket_Accept(this: *mut Socket) -> *mut Socket {
     if (*this).type_0 != SocketType_TCP {
-        Fatal(
-            b"Socket_Accept: can only accept connections on TCP sockets\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "Socket_Accept: can only accept connections on TCP sockets"
+        ));
     }
     let mut sock: sock_t = libc::accept((*this).sock, std::ptr::null_mut(), std::ptr::null_mut());
     if sock == -1 {
@@ -123,10 +117,9 @@ pub unsafe extern "C" fn Socket_Accept(this: *mut Socket) -> *mut Socket {
     (*con).type_0 = SocketType_TCP;
     (*con).sock = sock;
     if !Socket_SetNonblocking((*con).sock) {
-        Fatal(
-            b"Socket_Accept: failed to set socket to non-blocking\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "Socket_Accept: failed to set socket to non-blocking"
+        ));
     }
     con
 }
@@ -162,20 +155,19 @@ pub unsafe extern "C" fn Socket_Bind(this: *mut Socket, port: i32) {
         std::mem::size_of::<libc::sockaddr_in>() as libc::socklen_t,
     ) == -1
     {
-        Fatal(b"Socket_Bind: failed to bind socket\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Socket_Bind: failed to bind socket"));
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Socket_Listen(this: *mut Socket) {
     if (*this).type_0 != SocketType_TCP {
-        Fatal(
-            b"Socket_Listen: can only listen for connections on TCP sockets\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "Socket_Listen: can only listen for connections on TCP sockets"
+        ));
     }
     if libc::listen((*this).sock, 1) == -1 {
-        Fatal(b"Socket_Listen: failed to listen\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Socket_Listen: failed to listen"));
     }
 }
 
@@ -190,7 +182,7 @@ pub unsafe extern "C" fn Socket_Read(this: *mut Socket) -> *const libc::c_char {
         if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 35 {
             return std::ptr::null();
         }
-        Fatal(b"Socket_Read: failed to read from socket\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Socket_Read: failed to read from socket"));
     }
     if bytes == 0 {
         return std::ptr::null();
@@ -210,7 +202,7 @@ pub unsafe extern "C" fn Socket_ReadBytes(this: *mut Socket) -> *mut Bytes {
         if std::io::Error::last_os_error().raw_os_error().unwrap_or(0) == 35 {
             return std::ptr::null_mut();
         }
-        Fatal(b"Socket_ReadRaw: failed to read from socket\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Socket_ReadRaw: failed to read from socket"));
     }
     if bytes == 0 {
         return std::ptr::null_mut();
@@ -252,7 +244,7 @@ pub unsafe extern "C" fn Socket_ReceiveFrom(
 #[no_mangle]
 pub unsafe extern "C" fn Socket_GetAddress(this: *mut Socket) -> *const libc::c_char {
     StrFormat(
-        b"%s:%d\0" as *const u8 as *const libc::c_char,
+        c_str!("%s:%d"),
         inet_ntoa((*this).addrRecv.sin_addr),
         (if 0 != 0 {
             (((*this).addrRecv.sin_port as u32 & 0xff00) >> 8
@@ -265,12 +257,11 @@ pub unsafe extern "C" fn Socket_GetAddress(this: *mut Socket) -> *const libc::c_
 
 #[no_mangle]
 pub unsafe extern "C" fn Socket_SetAddress(this: *mut Socket, addr: *const libc::c_char) {
-    let mut colon: *const libc::c_char = StrFind(addr, b":\0" as *const u8 as *const libc::c_char);
+    let mut colon: *const libc::c_char = StrFind(addr, c_str!(":"));
     if colon.is_null() {
-        Fatal(
-            b"Socket_SetReceiver: address must be in format a.b.c.d:port format\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "Socket_SetReceiver: address must be in format a.b.c.d:port format"
+        ));
     }
     let mut ip: *const libc::c_char = StrSubStr(addr, colon);
     let mut port: *const libc::c_char = StrSubStr(colon.offset(1), addr.add(libc::strlen(addr)));
@@ -283,10 +274,9 @@ pub unsafe extern "C" fn Socket_SetAddress(this: *mut Socket, addr: *const libc:
         _OSSwapInt16(libc::strtol(port, std::ptr::null_mut(), 0) as u16) as i32
     }) as u16;
     if inet_aton(ip, &mut (*this).addrSend.sin_addr) == 0 {
-        Fatal(
-            b"Socket_SetReceiver: failed to interpret network address\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "Socket_SetReceiver: failed to interpret network address"
+        ));
     }
     StrFree(ip);
     StrFree(port);
@@ -315,13 +305,13 @@ pub unsafe extern "C" fn Socket_SendTo(
 #[no_mangle]
 pub unsafe extern "C" fn Socket_Write(this: *mut Socket, msg: *const libc::c_char) {
     if Socket_Send((*this).sock, msg as *const _, msg as i32) == -1 {
-        Fatal(b"Socket_Write: failed to write to socket\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Socket_Write: failed to write to socket"));
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Socket_WriteBytes(this: *mut Socket, msg: *mut Bytes) {
     if Socket_Send((*this).sock, Bytes_GetData(msg), Bytes_GetSize(msg) as i32) == -1 {
-        Fatal(b"Socket_WriteRaw: failed to write to socket\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Socket_WriteRaw: failed to write to socket"));
     }
 }

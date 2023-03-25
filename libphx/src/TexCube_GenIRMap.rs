@@ -46,10 +46,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
     MemFree(buffer);
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
-        shader = Shader_Load(
-            b"vertex/identity\0" as *const u8 as *const libc::c_char,
-            b"fragment/compute/irmap\0" as *const u8 as *const libc::c_char,
-        );
+        shader = Shader_Load(c_str!("vertex/identity"), c_str!("fragment/compute/irmap"));
     }
     let face: [CubeFace; 6] = [
         CubeFace_PX,
@@ -109,16 +106,10 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
         let mut angle: f32 = level as f32 / (levels - 1) as f32;
         angle = angle * angle;
         Shader_ResetTexIndex();
-        Shader_SetFloat(b"angle\0" as *const u8 as *const libc::c_char, angle);
-        Shader_SetTexCube(b"src\0" as *const u8 as *const libc::c_char, this);
-        Shader_SetTex2D(
-            b"sampleBuffer\0" as *const u8 as *const libc::c_char,
-            sampleTex,
-        );
-        Shader_SetInt(
-            b"samples\0" as *const u8 as *const libc::c_char,
-            sampleCount,
-        );
+        Shader_SetFloat(c_str!("angle"), angle);
+        Shader_SetTexCube(c_str!("src"), this);
+        Shader_SetTex2D(c_str!("sampleBuffer"), sampleTex);
+        Shader_SetInt(c_str!("samples"), sampleCount);
         let mut i_2: i32 = 0;
         while i_2 < 6 {
             let mut thisFace: CubeFace = face[i_2 as usize];
@@ -126,18 +117,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
             let mut thisUp: Vec3 = up[i_2 as usize];
             RenderTarget_Push(size, size);
             RenderTarget_BindTexCubeLevel(result, thisFace, level);
-            Shader_SetFloat3(
-                b"cubeLook\0" as *const u8 as *const libc::c_char,
-                thisLook.x,
-                thisLook.y,
-                thisLook.z,
-            );
-            Shader_SetFloat3(
-                b"cubeUp\0" as *const u8 as *const libc::c_char,
-                thisUp.x,
-                thisUp.y,
-                thisUp.z,
-            );
+            Shader_SetFloat3(c_str!("cubeLook"), thisLook.x, thisLook.y, thisLook.z);
+            Shader_SetFloat3(c_str!("cubeUp"), thisUp.x, thisUp.y, thisUp.z);
             Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
             RenderTarget_Pop();
             i_2 += 1;

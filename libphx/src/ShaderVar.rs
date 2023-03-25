@@ -44,8 +44,7 @@ unsafe extern "C" fn ShaderVar_GetStack(
     }
     if type_0 != 0 && (*this).type_0 != type_0 {
         Fatal(
-            b"ShaderVar_GetStack: Attempting to get stack of type <%s> for shader variable <%s> when existing stack has type <%s>\0"
-                as *const u8 as *const libc::c_char,
+            c_str!("ShaderVar_GetStack: Attempting to get stack of type <%s> for shader variable <%s> when existing stack has type <%s>"),
             ShaderVarType_GetName(type_0),
             var,
             ShaderVarType_GetName((*this).type_0),
@@ -96,8 +95,7 @@ pub unsafe extern "C" fn ShaderVar_Get(
     }
     if type_0 != 0 && (*this).type_0 != type_0 {
         Fatal(
-            b"ShaderVar_Get: Attempting to get variable <%s> with type <%s> when existing stack has type <%s>\0"
-                as *const u8 as *const libc::c_char,
+            c_str!("ShaderVar_Get: Attempting to get variable <%s> with type <%s> when existing stack has type <%s>"),
             name,
             ShaderVarType_GetName(type_0),
             ShaderVarType_GetName((*this).type_0),
@@ -172,15 +170,13 @@ pub unsafe extern "C" fn ShaderVar_Pop(name: *const libc::c_char) {
     let this: *mut VarStack = ShaderVar_GetStack(name, 0);
     if this.is_null() {
         Fatal(
-            b"ShaderVar_Pop: Attempting to pop nonexistent stack <%s>\0" as *const u8
-                as *const libc::c_char,
+            c_str!("ShaderVar_Pop: Attempting to pop nonexistent stack <%s>"),
             name,
         );
     }
     if (*this).size == 0 {
         Fatal(
-            b"ShaderVar_Pop: Attempting to pop empty stack <%s>\0" as *const u8
-                as *const libc::c_char,
+            c_str!("ShaderVar_Pop: Attempting to pop empty stack <%s>"),
             name,
         );
     }

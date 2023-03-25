@@ -15,13 +15,13 @@ pub unsafe extern "C" fn Metric_Get(this: Metric) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn Metric_GetName(this: Metric) -> *const libc::c_char {
     match this {
-        1 => return b"Draw Calls\0" as *const u8 as *const libc::c_char,
-        2 => return b"Draw Calls (Immediate)\0" as *const u8 as *const libc::c_char,
-        3 => return b"Polys\0" as *const u8 as *const libc::c_char,
-        4 => return b"Tris\0" as *const u8 as *const libc::c_char,
-        5 => return b"Vertices\0" as *const u8 as *const libc::c_char,
-        6 => return b"Pipeline Flushes\0" as *const u8 as *const libc::c_char,
-        7 => return b"Framebuffer Swaps\0" as *const u8 as *const libc::c_char,
+        1 => return c_str!("Draw Calls"),
+        2 => return c_str!("Draw Calls (Immediate)"),
+        3 => return c_str!("Polys"),
+        4 => return c_str!("Tris"),
+        5 => return c_str!("Vertices"),
+        6 => return c_str!("Pipeline Flushes"),
+        7 => return c_str!("Framebuffer Swaps"),
         _ => {}
     }
     std::ptr::null()

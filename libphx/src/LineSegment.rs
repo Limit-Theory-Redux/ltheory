@@ -30,7 +30,7 @@ pub unsafe extern "C" fn LineSegment_ToString(this: *mut LineSegment) -> *const 
     libc::snprintf(
         buffer.as_mut_ptr(),
         buffer.len(),
-        b"p0:%s p1:%s\0" as *const u8 as *const libc::c_char,
+        c_str!("p0:%s p1:%s"),
         (*this).p0.to_string().as_mut_ptr(),
         (*this).p1.to_string().as_mut_ptr(),
     );

@@ -21,16 +21,16 @@ pub static Modifier_Shift: Modifier = 1 << 2;
 pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     if modifier == Modifier_Null {
-        return b"Modifier_Null\0" as *const u8 as *const libc::c_char;
+        return c_str!("Modifier_Null");
     }
     let mut modifiers: [Modifier; 3] = [Modifier_Alt, Modifier_Ctrl, Modifier_Shift];
     let mut names: [*const libc::c_char; 3] = [
-        b"Modifier_Alt\0" as *const u8 as *const libc::c_char,
-        b"Modifier_Ctrl\0" as *const u8 as *const libc::c_char,
-        b"Modifier_Shift\0" as *const u8 as *const libc::c_char,
+        c_str!("Modifier_Alt"),
+        c_str!("Modifier_Ctrl"),
+        c_str!("Modifier_Shift"),
     ];
     let mut start: *mut libc::c_char = buffer.as_mut_ptr();
-    let mut sep: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char;
+    let mut sep: *const libc::c_char = c_str!("");
     let mut len: i32 = 0;
     let mut i: i32 = 0;
     while i < modifiers.len() as i32 {
@@ -38,11 +38,11 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
             len += libc::snprintf(
                 start.offset(len as isize),
                 (buffer.len() as i32 - len) as usize,
-                b"%s%s\0" as *const u8 as *const libc::c_char,
+                c_str!("%s%s"),
                 sep,
                 names[i as usize],
             );
-            sep = b" | \0" as *const u8 as *const libc::c_char;
+            sep = c_str!(" | ");
             modifier &= !modifiers[i as usize];
         }
         i += 1;
@@ -51,7 +51,7 @@ pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const lib
         len += libc::snprintf(
             start.offset(len as isize),
             (buffer.len() as i32 - len) as usize,
-            b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
+            c_str!("%sUnknown (%i)"),
             sep,
             modifier,
         );

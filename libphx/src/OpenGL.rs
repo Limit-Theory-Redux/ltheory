@@ -51,34 +51,28 @@ pub unsafe extern "C" fn OpenGL_CheckError(file: *const libc::c_char, line: i32)
     match errorID {
         0 => return,
         1280 => {
-            error = b"GL_INVALID_ENUM\0" as *const u8 as *const libc::c_char;
+            error = c_str!("GL_INVALID_ENUM");
         }
         1281 => {
-            error = b"GL_INVALID_VALUE\0" as *const u8 as *const libc::c_char;
+            error = c_str!("GL_INVALID_VALUE");
         }
         1282 => {
-            error = b"GL_INVALID_OPERATION\0" as *const u8 as *const libc::c_char;
+            error = c_str!("GL_INVALID_OPERATION");
         }
         1286 => {
-            error = b"GL_INVALID_FRAMEBUFFER_OPERATION\0" as *const u8 as *const libc::c_char;
+            error = c_str!("GL_INVALID_FRAMEBUFFER_OPERATION");
         }
         1285 => {
-            error = b"GL_OUT_OF_MEMORY\0" as *const u8 as *const libc::c_char;
+            error = c_str!("GL_OUT_OF_MEMORY");
         }
         _ => {
             Fatal(
-                b"OpenGL_CheckError: gl::GetError returned illegal error code %u at %s:%d\0"
-                    as *const u8 as *const libc::c_char,
+                c_str!("OpenGL_CheckError: gl::GetError returned illegal error code %u at %s:%d"),
                 errorID,
                 file,
                 line,
             );
         }
     }
-    Fatal(
-        b"OpenGL_CheckError: %s at %s:%d\0" as *const u8 as *const libc::c_char,
-        error,
-        file,
-        line,
-    );
+    Fatal(c_str!("OpenGL_CheckError: %s at %s:%d"), error, file, line);
 }

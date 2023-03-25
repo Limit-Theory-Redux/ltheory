@@ -614,7 +614,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
     let mut numStraddling: i32 = 0;
 
     for polygon in (*nodeData).polygons.iter() {
-        match Plane_ClassifyPolygon(&mut plane, &polygon.inner) {
+        match Plane_ClassifyPolygon(&plane, &polygon.inner) {
             PolygonClassification::Coplanar | PolygonClassification::Behind => {
                 numBehind += 1;
             }
@@ -1298,7 +1298,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
     relationship: BSPNodeRel,
 ) -> BSPNodeRef {
     if this.is_null() {
-        Fatal(b"BSP_GetNode: bsp is null\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("BSP_GetNode: bsp is null"));
     }
 
     if nodeRef.index == 0 {
@@ -1317,7 +1317,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
     if relationship == BSPNodeRel_Parent {
         if nodeRef.index != 0 {
             for i in 0..((*this).nodes.len() as i32) {
-                let mut nodeToCheck: &mut BSPNode = &mut (*this).nodes[i as usize];
+                let nodeToCheck: &mut BSPNode = &mut (*this).nodes[i as usize];
                 if (*nodeToCheck).child[BackIndex as usize].index == nodeRef.index {
                     newNode.index = i;
                     break;
@@ -1487,8 +1487,7 @@ pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(_this: *mut BSP, _totalT
     //   BSPDebug_PrintProfilingData(self, &self->profilingData.ray, totalTime);
     // #else
     Warn(
-        b"BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.\0"
-            as *const u8 as *const libc::c_char,
+        c_str!("BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function."),
     );
 }
 
@@ -1501,8 +1500,7 @@ pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
     //     BSPDebug_PrintProfilingData(self, &self->profilingData.sphere, totalTime);
     // #else
     Warn(
-        b"BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.\0"
-            as *const u8 as *const libc::c_char,
+        c_str!("BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function."),
     );
 }
 

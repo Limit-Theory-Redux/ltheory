@@ -18,6 +18,13 @@ macro_rules! unwrap_or_return {
 }
 pub(crate) use unwrap_or_return;
 
+macro_rules! c_str {
+    ($s:expr) => {{
+        concat!($s, "\0").as_ptr() as *const i8
+    }};
+}
+pub(crate) use c_str;
+
 #[no_mangle]
 pub unsafe extern "C" fn Fatal(format: *const libc::c_char, mut args: ...) -> ! {
     let mut s = String::new();

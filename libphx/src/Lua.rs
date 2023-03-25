@@ -77,8 +77,7 @@ pub type Signal = i32;
 pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
 
 pub const kErrorHandler: *const libc::c_char =
-    b"function __error_handler__ (e)  return debug.traceback(e, 1)end\0" as *const u8
-        as *const libc::c_char;
+    c_str!("function __error_handler__ (e)  return debug.traceback(e, 1)end");
 
 static mut initialized: bool = false;
 
@@ -91,10 +90,7 @@ unsafe extern "C" fn Lua_BacktraceHook(this: *mut Lua, _: *mut lua_Debug) {
     luaL_where(this, 0);
     lua_pushstring(
         this,
-        StrAdd(
-            b"Received Signal: \0" as *const u8 as *const libc::c_char,
-            Signal_ToString(cSignal),
-        ),
+        StrAdd(c_str!("Received Signal: "), Signal_ToString(cSignal)),
     );
     lua_error(this);
 }
@@ -123,27 +119,19 @@ unsafe extern "C" fn Lua_PCall(this: *mut Lua, args: i32, rets: i32, errorHandle
     let mut result: i32 = lua_pcall(this, args, rets, errorHandler);
     if result != 0 {
         if result == 4 {
-            Fatal(
-                b"Lua_PCall: Lua returned a memory allocation error\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(c_str!("Lua_PCall: Lua returned a memory allocation error"));
         } else if result == 5 {
-            Fatal(
-                b"Lua_PCall: Lua errored while attempting to run the error handler\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(c_str!(
+                "Lua_PCall: Lua errored while attempting to run the error handler"
+            ));
         } else if result == 2 {
             let mut error: *const libc::c_char = lua_tolstring(this, -1, std::ptr::null_mut());
             println!("{}", std::ffi::CStr::from_ptr(error).to_str().unwrap());
-            Fatal(
-                b"Lua_PCall: Lua returned error message: %s\0" as *const u8 as *const libc::c_char,
-                error,
-            );
+            Fatal(c_str!("Lua_PCall: Lua returned error message: %s"), error);
         } else {
-            Fatal(
-                b"Lua_PCall: Lua returned an invalid error code (corruption?)\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(c_str!(
+                "Lua_PCall: Lua returned an invalid error code (corruption?)"
+            ));
         }
     }
     activeInstance = prev;
@@ -158,7 +146,7 @@ unsafe extern "C" fn Lua_CallBarrier(this: *mut Lua) -> i32 {
 unsafe extern "C" fn Lua_InitExtensions(this: *mut Lua) {
     Lua_SetFn(
         this,
-        b"Call\0" as *const u8 as *const libc::c_char,
+        c_str!("Call"),
         Some(Lua_CallBarrier as unsafe extern "C" fn(*mut Lua) -> i32),
     );
     LuaScheduler_Init(this);
@@ -177,7 +165,7 @@ pub unsafe extern "C" fn Lua_Create() -> *mut Lua {
     luaL_openlibs(this);
     Lua_InitExtensions(this);
     if luaL_loadstring(this, kErrorHandler) != 0 || lua_pcall(this, 0, -1, 0) != 0 {
-        Fatal(b"Lua_Create: failed to load error handler\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Lua_Create: failed to load error handler"));
     }
     this
 }
@@ -214,7 +202,7 @@ pub unsafe extern "C" fn Lua_LoadFile(this: *mut Lua, name: *const libc::c_char)
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Script, name);
     if luaL_loadfile(this, path) != 0 {
         Fatal(
-            b"Lua_LoadFile: failed to load <%s>:\n%s\0" as *const u8 as *const libc::c_char,
+            c_str!("Lua_LoadFile: failed to load <%s>:\n%s"),
             path,
             lua_tolstring(this, -1, std::ptr::null_mut()),
         );
@@ -225,7 +213,7 @@ pub unsafe extern "C" fn Lua_LoadFile(this: *mut Lua, name: *const libc::c_char)
 pub unsafe extern "C" fn Lua_LoadString(this: *mut Lua, code: *const libc::c_char) {
     if luaL_loadstring(this, code) != 0 {
         Fatal(
-            b"Lua_LoadString: failed to load string:\n%s\0" as *const u8 as *const libc::c_char,
+            c_str!("Lua_LoadString: failed to load string:\n%s"),
             lua_tolstring(this, -1, std::ptr::null_mut()),
         );
     }
@@ -241,7 +229,7 @@ pub unsafe extern "C" fn Lua_PushGlobal(this: *mut Lua, name: *const libc::c_cha
     lua_getfield(this, -10002, name);
     if lua_type(this, lua_gettop(this)) == 0 {
         Fatal(
-            b"Lua_PushGlobal: failed to find global key <%s>\0" as *const u8 as *const libc::c_char,
+            c_str!("Lua_PushGlobal: failed to find global key <%s>"),
             name,
         );
     }
@@ -359,12 +347,7 @@ unsafe extern "C" fn Lua_ToString(
     let mut typeName: *const libc::c_char = lua_typename(this, type_0);
     let mut strValue: *const libc::c_char = std::ptr::null();
     let mut isNull: bool = false;
-    if luaL_callmeta(
-        this,
-        -1,
-        b"__tostring\0" as *const u8 as *const libc::c_char,
-    ) != 0
-    {
+    if luaL_callmeta(this, -1, c_str!("__tostring")) != 0 {
         strValue = StrDup(lua_tolstring(this, -1, std::ptr::null_mut()));
         lua_settop(this, -1 - 1);
     } else {
@@ -375,9 +358,9 @@ unsafe extern "C" fn Lua_ToString(
             }
             1 => {
                 strValue = if lua_toboolean(this, -1) != 0 {
-                    b"True\0" as *const u8 as *const libc::c_char
+                    c_str!("True")
                 } else {
-                    b"False\0" as *const u8 as *const libc::c_char
+                    c_str!("False")
                 };
                 current_block_14 = 11584701595673473500;
             }
@@ -390,72 +373,51 @@ unsafe extern "C" fn Lua_ToString(
                 current_block_14 = 11584701595673473500;
             }
             2 => {
-                strValue = StrFormat(
-                    b"0x%p\0" as *const u8 as *const libc::c_char,
-                    lua_touserdata(this, -1),
-                );
+                strValue = StrFormat(c_str!("0x%p"), lua_touserdata(this, -1));
                 current_block_14 = 11584701595673473500;
             }
             5 => {
-                strValue = StrFormat(
-                    b"0x%p\0" as *const u8 as *const libc::c_char,
-                    lua_topointer(this, -1),
-                );
+                strValue = StrFormat(c_str!("0x%p"), lua_topointer(this, -1));
                 current_block_14 = 11584701595673473500;
             }
             6 => {
-                strValue = StrFormat(
-                    b"0x%p\0" as *const u8 as *const libc::c_char,
-                    lua_topointer(this, -1),
-                );
+                strValue = StrFormat(c_str!("0x%p"), lua_topointer(this, -1));
                 current_block_14 = 11584701595673473500;
             }
             7 => {
-                strValue = StrFormat(
-                    b"0x%p\0" as *const u8 as *const libc::c_char,
-                    lua_touserdata(this, -1),
-                );
+                strValue = StrFormat(c_str!("0x%p"), lua_touserdata(this, -1));
                 current_block_14 = 11584701595673473500;
             }
             8 => {
-                strValue = StrFormat(
-                    b"0x%p\0" as *const u8 as *const libc::c_char,
-                    lua_topointer(this, -1),
-                );
+                strValue = StrFormat(c_str!("0x%p"), lua_topointer(this, -1));
                 current_block_14 = 11584701595673473500;
             }
             10 => {
-                strValue = StrFormat(
-                    b"0x%p\0" as *const u8 as *const libc::c_char,
-                    lua_topointer(this, -1),
-                );
+                strValue = StrFormat(c_str!("0x%p"), lua_topointer(this, -1));
                 current_block_14 = 11584701595673473500;
             }
-            _ => Fatal(
-                b"Lua_ToString: Unexpected type %i\0" as *const u8 as *const libc::c_char,
-                type_0,
-            ),
+            _ => Fatal(c_str!("Lua_ToString: Unexpected type %i"), type_0),
         }
         match current_block_14 {
             12136430868992966025 => {
-                strValue = b"nil\0" as *const u8 as *const libc::c_char;
+                strValue = c_str!("nil");
                 isNull = true;
             }
             _ => {}
         }
     }
     let mut pre: *const libc::c_char = if isNull as i32 != 0 {
-        b"\x1B[91;1m\0" as *const u8 as *const libc::c_char
+        c_str!("\x1B[91;1m")
     } else {
-        b"\0" as *const u8 as *const libc::c_char
+        c_str!("")
     };
     let mut app: *const libc::c_char = if isNull as i32 != 0 {
-        b"\x1B[0m\0" as *const u8 as *const libc::c_char
+        c_str!("\x1B[0m")
     } else {
-        b"\0" as *const u8 as *const libc::c_char
+        c_str!("")
     };
     StrFormat(
-        b"%s      %-10s %-16s = %s%s\0" as *const u8 as *const libc::c_char,
+        c_str!("%s      %-10s %-16s = %s%s"),
         pre,
         typeName,
         name,
@@ -476,11 +438,11 @@ unsafe extern "C" fn Lua_ToString(
 //     }
 //     result = lua_getinfo(
 //         this,
-//         b"nSluf\0" as *const u8 as *const libc::c_char,
+//         c_str!("nSluf"),
 //         &mut ar,
 //     );
 //     if result == 0 {
-//         Fatal(b"Lua_GetStack: lua_getinfo failed.\0" as *const u8 as *const libc::c_char);
+//         Fatal(c_str!("Lua_GetStack: lua_getinfo failed."));
 //     }
 // }
 
@@ -510,49 +472,40 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         if result == 0 {
             break;
         }
-        result = lua_getinfo(
-            this,
-            b"nSluf\0" as *const u8 as *const libc::c_char,
-            &mut ar,
-        );
+        result = lua_getinfo(this, c_str!("nSluf"), &mut ar);
         if result == 0 {
-            Fatal(b"Lua_GetStack: lua_getinfo failed.\0" as *const u8 as *const libc::c_char);
+            Fatal(c_str!("Lua_GetStack: lua_getinfo failed."));
         }
         let mut variablesPrinted: i32 = 0;
         let mut funcName: *const libc::c_char = ar.name;
         let mut fileName: *const libc::c_char = ar.source;
         let mut line: i32 = ar.currentline;
         if *fileName.offset(0) as i32 != '@' as i32 {
-            fileName = b"<string>\0" as *const u8 as *const libc::c_char;
+            fileName = c_str!("<string>");
             line = -1;
         }
         if *fileName.offset(0) as i32 == '@' as i32 {
             fileName = fileName.offset(1);
         }
-        if StrEqual(ar.what, b"C\0" as *const u8 as *const libc::c_char) {
-            fileName = b"<native>\0" as *const u8 as *const libc::c_char;
+        if StrEqual(ar.what, c_str!("C")) {
+            fileName = c_str!("<native>");
         }
-        if StrEqual(ar.what, b"main\0" as *const u8 as *const libc::c_char) {
-            funcName = b"<main>\0" as *const u8 as *const libc::c_char;
+        if StrEqual(ar.what, c_str!("main")) {
+            funcName = c_str!("<main>");
         }
         if funcName.is_null() {
-            funcName = b"<null>\0" as *const u8 as *const libc::c_char;
+            funcName = c_str!("<null>");
         }
         let stackFrame: *const libc::c_char = if line > 0 {
             StrFormat(
-                b"  #%i %s at %s:%i\0" as *const u8 as *const libc::c_char,
+                c_str!("  #%i %s at %s:%i"),
                 iStack,
                 funcName,
                 fileName,
                 line,
             )
         } else {
-            StrFormat(
-                b"  #%i %s at %s\0" as *const u8 as *const libc::c_char,
-                iStack,
-                funcName,
-                fileName,
-            )
+            StrFormat(c_str!("  #%i %s at %s"), iStack, funcName, fileName)
         };
         stack.push(stackFrame);
 
@@ -564,9 +517,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             }
 
             if iUp == 1 {
-                stack.push(StrDup(
-                    b"    [Upvalues]\0" as *const u8 as *const libc::c_char,
-                ));
+                stack.push(StrDup(c_str!("    [Upvalues]")));
             }
 
             let upValue: *const libc::c_char = Lua_ToString(this, name);
@@ -584,9 +535,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
             }
 
             if iLocal == 1 {
-                stack.push(StrDup(
-                    b"    [Locals]\0" as *const u8 as *const libc::c_char,
-                ));
+                stack.push(StrDup(c_str!("    [Locals]")));
             }
 
             let local: *const libc::c_char = Lua_ToString(this, name_0);
@@ -598,13 +547,13 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         }
 
         if variablesPrinted > 0 {
-            stack.push(StrDup(b"\0" as *const u8 as *const libc::c_char));
+            stack.push(StrDup(c_str!("")));
         }
         lua_settop(this, -1 - 1);
         iStack += 1;
     }
 
-    Warn(b"Lua Backtrace:\0" as *const u8 as *const libc::c_char);
+    Warn(c_str!("Lua Backtrace:"));
     for stackFrame in stack.iter() {
         Warn(*stackFrame);
         StrFree(*stackFrame);

@@ -285,8 +285,8 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
     static mut font: *mut Font = std::ptr::null_mut();
     static mut fontSubheading: *mut Font = std::ptr::null_mut();
     if font.is_null() {
-        font = Font_Load(b"Share\0" as *const u8 as *const libc::c_char, 16);
-        fontSubheading = Font_Load(b"Iceland\0" as *const u8 as *const libc::c_char, 18);
+        font = Font_Load(c_str!("Share"), 16);
+        fontSubheading = Font_Load(c_str!("Iceland"), 18);
     }
     let mut style: *mut ImGuiStyle = MemPool_Alloc(this.stylePool) as *mut ImGuiStyle;
     (*style).prev = this.style;
@@ -585,28 +585,22 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
     if !((*self_1).panelList).is_null() {
         static mut shader: *mut Shader = std::ptr::null_mut();
         if shader.is_null() {
-            shader = Shader_Load(
-                b"vertex/ui\0" as *const u8 as *const libc::c_char,
-                b"fragment/ui/panel\0" as *const u8 as *const libc::c_char,
-            );
+            shader = Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel"));
         }
         let pad: f32 = 64.0f32;
         Shader_Start(shader);
-        Shader_SetFloat(b"padding\0" as *const u8 as *const libc::c_char, pad);
+        Shader_SetFloat(c_str!("padding"), pad);
         let mut e_0: *const ImGuiPanel = (*self_1).panelList;
         while !e_0.is_null() {
             let mut x: f32 = (*e_0).pos.x - pad;
             let mut y: f32 = (*e_0).pos.y - pad;
             let mut sx: f32 = (*e_0).size.x + 2.0f32 * pad;
             let mut sy: f32 = (*e_0).size.y + 2.0f32 * pad;
-            Shader_SetFloat(
-                b"innerAlpha\0" as *const u8 as *const libc::c_char,
-                (*e_0).innerAlpha,
-            );
-            Shader_SetFloat(b"bevel\0" as *const u8 as *const libc::c_char, (*e_0).bevel);
-            Shader_SetFloat2(b"size\0" as *const u8 as *const libc::c_char, sx, sy);
+            Shader_SetFloat(c_str!("innerAlpha"), (*e_0).innerAlpha);
+            Shader_SetFloat(c_str!("bevel"), (*e_0).bevel);
+            Shader_SetFloat2(c_str!("size"), sx, sy);
             Shader_SetFloat4(
-                b"color\0" as *const u8 as *const libc::c_char,
+                c_str!("color"),
                 (*e_0).color.x,
                 (*e_0).color.y,
                 (*e_0).color.z,
@@ -642,10 +636,7 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
         RenderState_PushBlendMode(0);
         static mut shader_0: *mut Shader = std::ptr::null_mut();
         if shader_0.is_null() {
-            shader_0 = Shader_Load(
-                b"vertex/ui\0" as *const u8 as *const libc::c_char,
-                b"fragment/ui/line\0" as *const u8 as *const libc::c_char,
-            );
+            shader_0 = Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/line"));
         }
         let pad_0: f32 = 64.0f32;
         Shader_Start(shader_0);
@@ -661,20 +652,12 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
                 (f64::max((*e_2).p1.y as f64, (*e_2).p2.y as f64) + pad_0 as f64) as f32;
             let mut sx_0: f32 = xMax - xMin;
             let mut sy_0: f32 = yMax - yMin;
-            Shader_SetFloat2(b"origin\0" as *const u8 as *const libc::c_char, xMin, yMin);
-            Shader_SetFloat2(b"size\0" as *const u8 as *const libc::c_char, sx_0, sy_0);
-            Shader_SetFloat2(
-                b"p1\0" as *const u8 as *const libc::c_char,
-                (*e_2).p1.x,
-                (*e_2).p1.y,
-            );
-            Shader_SetFloat2(
-                b"p2\0" as *const u8 as *const libc::c_char,
-                (*e_2).p2.x,
-                (*e_2).p2.y,
-            );
+            Shader_SetFloat2(c_str!("origin"), xMin, yMin);
+            Shader_SetFloat2(c_str!("size"), sx_0, sy_0);
+            Shader_SetFloat2(c_str!("p1"), (*e_2).p1.x, (*e_2).p1.y);
+            Shader_SetFloat2(c_str!("p2"), (*e_2).p2.x, (*e_2).p2.y);
             Shader_SetFloat4(
-                b"color\0" as *const u8 as *const libc::c_char,
+                c_str!("color"),
                 (*e_2).color.x,
                 (*e_2).color.y,
                 (*e_2).color.z,
@@ -787,13 +770,13 @@ pub unsafe extern "C" fn ImGui_End() {
     ImGui_EndWidget();
     ImGui_PopLayout();
     if !(this.layer).is_null() {
-        Fatal(b"ImGui_End: layer stack not empty\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("ImGui_End: layer stack not empty"));
     }
     if !(this.widget).is_null() {
-        Fatal(b"ImGui_End: widget stack not empty\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("ImGui_End: widget stack not empty"));
     }
     if !(this.layout).is_null() {
-        Fatal(b"ImGui_End: layout stack not empty\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("ImGui_End: layout stack not empty"));
     }
 }
 
@@ -1051,10 +1034,7 @@ pub unsafe extern "C" fn ImGui_PushStyleTextColor(r: f32, g: f32, b: f32, a: f32
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PopStyle() {
     if ((*this.style).prev).is_null() {
-        Fatal(
-            b"ImGui_PopStyle: Attempting to pop an empty stack\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!("ImGui_PopStyle: Attempting to pop an empty stack"));
     }
     let mut style: *mut ImGuiStyle = this.style;
     this.style = (*style).prev;

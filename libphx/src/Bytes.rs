@@ -55,10 +55,7 @@ pub unsafe extern "C" fn Bytes_FromData(data: *const libc::c_void, len: u32) -> 
 pub unsafe extern "C" fn Bytes_Load(path: *const libc::c_char) -> *mut Bytes {
     let this: *mut Bytes = File_ReadBytes(path);
     if this.is_null() {
-        Fatal(
-            b"Bytes_Load: Failed to read file '%s'\0" as *const u8 as *const libc::c_char,
-            path,
-        );
+        Fatal(c_str!("Bytes_Load: Failed to read file '%s'"), path);
     }
     this
 }
@@ -87,7 +84,7 @@ pub extern "C" fn Bytes_Compress(bytes: *mut Bytes) -> *mut Bytes {
         unsafe {
             let str = CString::new(e.to_string()).unwrap();
             Fatal(
-                b"Bytes_Compress: Encoding failed: %s\0" as *const u8 as *const libc::c_char,
+                c_str!("Bytes_Compress: Encoding failed: %s"),
                 str.as_ptr() as *const libc::c_char,
             );
         }
@@ -106,7 +103,7 @@ pub unsafe extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
         unsafe {
             let str = CString::new(e.to_string()).unwrap();
             Fatal(
-                b"Bytes_Decompress: Decoding failed: %s\0" as *const u8 as *const libc::c_char,
+                c_str!("Bytes_Decompress: Decoding failed: %s"),
                 str.as_ptr() as *const libc::c_char,
             );
         }
@@ -344,10 +341,7 @@ pub unsafe extern "C" fn Bytes_WriteF64(this: *mut Bytes, value: f64) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Print(this: *mut Bytes) {
-    libc::printf(
-        b"%d bytes:\n\0" as *const u8 as *const libc::c_char,
-        (*this).size,
-    );
+    libc::printf(c_str!("%d bytes:\n"), (*this).size);
     let mut i: u32 = 0;
     while i < (*this).size {
         libc::putchar(*(&mut (*this).data as *mut libc::c_char).offset(i as isize) as i32);
@@ -360,8 +354,7 @@ pub unsafe extern "C" fn Bytes_Save(this: *mut Bytes, path: *const libc::c_char)
     let mut file: *mut File = File_Create(path);
     if file.is_null() {
         Fatal(
-            b"Bytes_Save: Failed to open file '%s' for writing\0" as *const u8
-                as *const libc::c_char,
+            c_str!("Bytes_Save: Failed to open file '%s' for writing"),
             path,
         );
     }

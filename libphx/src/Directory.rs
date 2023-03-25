@@ -36,12 +36,12 @@ pub unsafe extern "C" fn Directory_GetNext(this: *mut Directory) -> *const libc:
         }
         if StrEqual(
             ((*ent).d_name).as_mut_ptr() as *const libc::c_char,
-            b".\0" as *const u8 as *const libc::c_char,
+            c_str!("."),
         ) as i32
             != 0
             || StrEqual(
                 ((*ent).d_name).as_mut_ptr() as *const libc::c_char,
-                b"..\0" as *const u8 as *const libc::c_char,
+                c_str!(".."),
             ) as i32
                 != 0
         {

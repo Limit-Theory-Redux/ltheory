@@ -149,7 +149,7 @@ pub unsafe extern "C" fn StrReplace(
         return std::ptr::null();
     }
     if replace.is_null() {
-        replace = b"\0" as *const u8 as *const libc::c_char;
+        replace = crate::Common::c_str!("");
     }
     len_replace = StrLen(replace);
     ins = s as *mut libc::c_char;

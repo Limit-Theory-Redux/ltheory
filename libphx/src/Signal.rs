@@ -81,10 +81,7 @@ static mut handlerTable: [*mut HandlerElem; 32] = [
 ];
 
 unsafe extern "C" fn Signal_Handler(sig: Signal) {
-    Warn(
-        b"Signal_Handler: Caught %s\0" as *const u8 as *const libc::c_char,
-        Signal_ToString(sig),
-    );
+    Warn(c_str!("Signal_Handler: Caught %s"), Signal_ToString(sig));
     signal(Signal_Int, handlerDefault[Signal_Int as usize]);
     signal(Signal_Ill, handlerDefault[Signal_Ill as usize]);
     signal(Signal_Fpe, handlerDefault[Signal_Fpe as usize]);
@@ -172,7 +169,7 @@ pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, fn_0: SignalHandler) 
         prev = &mut (*curr).next;
         curr = (*curr).next;
     }
-    Fatal(b"Signal_RemoveHandler: No such handler installed\0" as *const u8 as *const libc::c_char);
+    Fatal(c_str!("Signal_RemoveHandler: No such handler installed"));
 }
 
 #[no_mangle]
@@ -188,15 +185,15 @@ pub unsafe extern "C" fn Signal_RemoveHandlerAll(fn_0: SignalHandler) {
 #[no_mangle]
 pub unsafe extern "C" fn Signal_ToString(this: Signal) -> *const libc::c_char {
     match this {
-        2 => return b"Interrupt\0" as *const u8 as *const libc::c_char,
-        4 => return b"Illegal Instruction\0" as *const u8 as *const libc::c_char,
-        8 => return b"FP Exception\0" as *const u8 as *const libc::c_char,
-        11 => return b"Memory Access Violation\0" as *const u8 as *const libc::c_char,
-        15 => return b"Terminate\0" as *const u8 as *const libc::c_char,
-        6 => return b"Abort\0" as *const u8 as *const libc::c_char,
+        2 => return c_str!("Interrupt"),
+        4 => return c_str!("Illegal Instruction"),
+        8 => return c_str!("FP Exception"),
+        11 => return c_str!("Memory Access Violation"),
+        15 => return c_str!("Terminate"),
+        6 => return c_str!("Abort"),
         _ => {}
     }
-    b"<unknown signal>\0" as *const u8 as *const libc::c_char
+    c_str!("<unknown signal>")
 }
 
 #[no_mangle]

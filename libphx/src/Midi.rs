@@ -37,9 +37,7 @@ pub unsafe extern "C" fn MidiDevice_HasMessage(this: *mut MidiDevice) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn MidiDevice_PopMessage(this: *mut MidiDevice) -> IVec2 {
     if (*this).cursor <= 0 {
-        Fatal(
-            b"MidiDevice_PopMessage: device has no messages\0" as *const u8 as *const libc::c_char,
-        );
+        Fatal(c_str!("MidiDevice_PopMessage: device has no messages"));
     }
     (*this).cursor -= 1;
     (*this).buffer[(*this).cursor as usize]

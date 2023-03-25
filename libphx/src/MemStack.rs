@@ -29,10 +29,9 @@ pub unsafe extern "C" fn MemStack_Free(this: *mut MemStack) {
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Alloc(this: *mut MemStack, size: u32) -> *mut libc::c_void {
     if ((*this).size).wrapping_add(size) > (*this).capacity {
-        Fatal(
-            b"MemStack_Alloc: Allocation request exceeds remaining capacity\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "MemStack_Alloc: Allocation request exceeds remaining capacity"
+        ));
     }
     let mut p: *mut libc::c_void =
         ((*this).data as *mut libc::c_char).offset((*this).size as isize) as *mut _;
@@ -48,10 +47,9 @@ pub unsafe extern "C" fn MemStack_Clear(this: *mut MemStack) {
 #[no_mangle]
 pub unsafe extern "C" fn MemStack_Dealloc(this: *mut MemStack, size: u32) {
     if (*this).size < size {
-        Fatal(
-            b"MemStack_Dealloc: Attempt to dealloc more memory than is allocated\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "MemStack_Dealloc: Attempt to dealloc more memory than is allocated"
+        ));
     }
     (*this).size = (*this).size.wrapping_sub(size);
 }

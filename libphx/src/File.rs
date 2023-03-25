@@ -13,7 +13,7 @@ pub struct File {
 
 #[no_mangle]
 pub unsafe extern "C" fn File_Exists(path: *const libc::c_char) -> bool {
-    let mut f: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
+    let mut f: *mut libc::FILE = libc::fopen(path, c_str!("rb"));
     if !f.is_null() {
         libc::fclose(f);
         return true;
@@ -42,12 +42,12 @@ unsafe extern "C" fn File_OpenMode(
 
 #[no_mangle]
 pub unsafe extern "C" fn File_Create(path: *const libc::c_char) -> *mut File {
-    File_OpenMode(path, b"wb\0" as *const u8 as *const libc::c_char)
+    File_OpenMode(path, c_str!("wb"))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn File_Open(path: *const libc::c_char) -> *mut File {
-    File_OpenMode(path, b"ab\0" as *const u8 as *const libc::c_char)
+    File_OpenMode(path, c_str!("ab"))
 }
 
 #[no_mangle]
@@ -58,7 +58,7 @@ pub unsafe extern "C" fn File_Close(this: *mut File) {
 
 #[no_mangle]
 pub unsafe extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes {
-    let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
+    let mut file: *mut libc::FILE = libc::fopen(path, c_str!("rb"));
     if file.is_null() {
         return std::ptr::null_mut();
     }
@@ -68,16 +68,12 @@ pub unsafe extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes
         return std::ptr::null_mut();
     }
     if size < 0 {
-        Fatal(
-            b"File_Read: failed to get size of file '%s'\0" as *const u8 as *const libc::c_char,
-            path,
-        );
+        Fatal(c_str!("File_Read: failed to get size of file '%s'"), path);
     }
     libc::rewind(file);
     if size > sdl2_sys::UINT32_MAX as i64 {
         Fatal(
-            b"File_Read: filesize of '%s' exceeds 32-bit capacity limit\0" as *const u8
-                as *const libc::c_char,
+            c_str!("File_Read: filesize of '%s' exceeds 32-bit capacity limit"),
             path,
         );
     }
@@ -85,8 +81,7 @@ pub unsafe extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes
     let mut result: usize = libc::fread(Bytes_GetData(buffer), size as usize, 1, file);
     if result != 1 {
         Fatal(
-            b"File_Read: failed to read correct number of bytes from '%s'\0" as *const u8
-                as *const libc::c_char,
+            c_str!("File_Read: failed to read correct number of bytes from '%s'"),
             path,
         );
     }
@@ -96,7 +91,7 @@ pub unsafe extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes
 
 #[no_mangle]
 pub unsafe extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc::c_char {
-    let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
+    let mut file: *mut libc::FILE = libc::fopen(path, c_str!("rb"));
     if file.is_null() {
         return std::ptr::null();
     }
@@ -107,8 +102,7 @@ pub unsafe extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc
     }
     if size < 0 {
         Fatal(
-            b"File_ReadAscii: failed to get size of file '%s'\0" as *const u8
-                as *const libc::c_char,
+            c_str!("File_ReadAscii: failed to get size of file '%s'"),
             path,
         );
     }
@@ -119,8 +113,7 @@ pub unsafe extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc
     let mut result: usize = libc::fread(buffer as *mut _, size as usize, 1, file);
     if result != 1 {
         Fatal(
-            b"File_Read: failed to read correct number of bytes from '%s'\0" as *const u8
-                as *const libc::c_char,
+            c_str!("File_Read: failed to read correct number of bytes from '%s'"),
             path,
         );
     }
@@ -131,7 +124,7 @@ pub unsafe extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc
 
 #[no_mangle]
 pub unsafe extern "C" fn File_Size(path: *const libc::c_char) -> i64 {
-    let mut file: *mut libc::FILE = libc::fopen(path, b"rb\0" as *const u8 as *const libc::c_char);
+    let mut file: *mut libc::FILE = libc::fopen(path, c_str!("rb"));
     if file.is_null() {
         return 0;
     }

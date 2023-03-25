@@ -233,12 +233,9 @@ unsafe extern "C" fn Input_SetButton(event: InputEvent) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_Init() {
-    let mut result: SDL_bool = SDL_SetHint(
-        b"SDL_MOUSE_FOCUS_CLICKTHROUGH\0" as *const u8 as *const libc::c_char,
-        b"1\0" as *const u8 as *const libc::c_char,
-    );
+    let mut result: SDL_bool = SDL_SetHint(c_str!("SDL_MOUSE_FOCUS_CLICKTHROUGH"), c_str!("1"));
     if result != SDL_bool::SDL_TRUE {
-        Warn(b"Input_Init: SDL_SetHint failed\0" as *const u8 as *const libc::c_char);
+        Warn(c_str!("Input_Init: SDL_SetHint failed"));
     }
 
     let mut iDev: i32 = 0;
@@ -277,9 +274,7 @@ pub unsafe extern "C" fn Input_Free() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Input_Update() {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 13], &[libc::c_char; 13]>(b"Input_Update\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("Input_Update"));
     this.lastTimestamp = SDL_GetTicks();
     this.lastMousePosition.x = Input_GetValue(Button_Mouse_X) as i32;
     this.lastMousePosition.y = Input_GetValue(Button_Mouse_Y) as i32;
@@ -490,10 +485,7 @@ pub unsafe extern "C" fn Input_Update() {
                     let mut sdlController: *mut SDL_GameController =
                         SDL_GameControllerOpen(sdl.cdevice.which);
                     if sdlController.is_null() {
-                        Warn(
-                            b"Input_Update: SDL_GameControllerOpen failed\0" as *const u8
-                                as *const libc::c_char,
-                        );
+                        Warn(c_str!("Input_Update: SDL_GameControllerOpen failed"));
                     } else {
                         let mut sdlJoystick: *mut SDL_Joystick =
                             SDL_GameControllerGetJoystick(sdlController);
@@ -606,12 +598,10 @@ pub unsafe extern "C" fn Input_Update() {
 #[no_mangle]
 pub unsafe extern "C" fn Input_LoadGamepadDatabase(name: *const libc::c_char) {
     let mut path: *const libc::c_char = Resource_GetPath(ResourceType_Other, name);
-    let mut result: i32 = SDL_GameControllerAddMappingsFromRW(
-        SDL_RWFromFile(path, b"rb\0" as *const u8 as *const libc::c_char),
-        1,
-    );
+    let mut result: i32 =
+        SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(path, c_str!("rb")), 1);
     if result == -1 {
-        Fatal(b"Input_Init: Failed to add gamepad mappings\0" as *const u8 as *const libc::c_char);
+        Fatal(c_str!("Input_Init: Failed to add gamepad mappings"));
     }
 }
 
@@ -927,9 +917,7 @@ pub unsafe extern "C" fn Input_GetNextEvent(event: *mut InputEvent) -> bool {
     if this.events.is_empty() {
         return false;
     }
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 19], &[libc::c_char; 19]>(b"Input_GetNextEvent\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("Input_GetNextEvent"));
     *event = this.events[0];
     this.events.remove(0);
     Profiler_End();

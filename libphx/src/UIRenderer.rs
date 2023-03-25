@@ -137,28 +137,22 @@ unsafe extern "C" fn UIRenderer_DrawLayer(self_1: *const UIRendererLayer) {
     if !((*self_1).panelList).is_null() {
         static mut shader: *mut Shader = std::ptr::null_mut();
         if shader.is_null() {
-            shader = Shader_Load(
-                b"vertex/ui\0" as *const u8 as *const libc::c_char,
-                b"fragment/ui/panel\0" as *const u8 as *const libc::c_char,
-            );
+            shader = Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel"));
         }
         let pad: f32 = 64.0f32;
         Shader_Start(shader);
-        Shader_SetFloat(b"padding\0" as *const u8 as *const libc::c_char, pad);
+        Shader_SetFloat(c_str!("padding"), pad);
         let mut e: *const UIRendererPanel = (*self_1).panelList;
         while !e.is_null() {
             let mut x: f32 = (*e).pos.x - pad;
             let mut y: f32 = (*e).pos.y - pad;
             let mut sx: f32 = (*e).size.x + 2.0f32 * pad;
             let mut sy: f32 = (*e).size.y + 2.0f32 * pad;
-            Shader_SetFloat(
-                b"innerAlpha\0" as *const u8 as *const libc::c_char,
-                (*e).innerAlpha,
-            );
-            Shader_SetFloat(b"bevel\0" as *const u8 as *const libc::c_char, (*e).bevel);
-            Shader_SetFloat2(b"size\0" as *const u8 as *const libc::c_char, sx, sy);
+            Shader_SetFloat(c_str!("innerAlpha"), (*e).innerAlpha);
+            Shader_SetFloat(c_str!("bevel"), (*e).bevel);
+            Shader_SetFloat2(c_str!("size"), sx, sy);
             Shader_SetFloat4(
-                b"color\0" as *const u8 as *const libc::c_char,
+                c_str!("color"),
                 (*e).color.x,
                 (*e).color.y,
                 (*e).color.z,

@@ -24,17 +24,17 @@ pub static State_Released: State = 1 << 3;
 pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char {
     static mut buffer: [libc::c_char; 512] = [0; 512];
     if state == State_Null {
-        return b"State_Null\0" as *const u8 as *const libc::c_char;
+        return c_str!("State_Null");
     }
     let mut states: [State; 4] = [State_Changed, State_Pressed, State_Down, State_Released];
     let mut names: [*const libc::c_char; 4] = [
-        b"State_Changed\0" as *const u8 as *const libc::c_char,
-        b"State_Pressed\0" as *const u8 as *const libc::c_char,
-        b"State_Down\0" as *const u8 as *const libc::c_char,
-        b"State_Released\0" as *const u8 as *const libc::c_char,
+        c_str!("State_Changed"),
+        c_str!("State_Pressed"),
+        c_str!("State_Down"),
+        c_str!("State_Released"),
     ];
     let mut start: *mut libc::c_char = buffer.as_mut_ptr();
-    let mut sep: *const libc::c_char = b"\0" as *const u8 as *const libc::c_char;
+    let mut sep: *const libc::c_char = c_str!("");
     let mut len: i32 = 0;
     let mut i = 0;
     while i < states.len() {
@@ -42,11 +42,11 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
             len += libc::snprintf(
                 start.offset(len as isize),
                 (buffer.len() as i32 - len) as usize,
-                b"%s%s\0" as *const u8 as *const libc::c_char,
+                c_str!("%s%s"),
                 sep,
                 names[i as usize],
             );
-            sep = b" | \0" as *const u8 as *const libc::c_char;
+            sep = c_str!(" | ");
             state &= !states[i as usize];
         }
         i += 1;
@@ -55,7 +55,7 @@ pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char
         len += libc::snprintf(
             start.offset(len as isize),
             (buffer.len() as i32 - len) as usize,
-            b"%sUnknown (%i)\0" as *const u8 as *const libc::c_char,
+            c_str!("%sUnknown (%i)"),
             sep,
             state,
         );

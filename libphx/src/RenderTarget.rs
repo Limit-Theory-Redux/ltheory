@@ -52,14 +52,9 @@ unsafe extern "C" fn SetDrawBuffers(count: i32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 18], &[libc::c_char; 18]>(b"RenderTarget_Push\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("RenderTarget_Push"));
     if fboIndex + 1 >= 16 {
-        Fatal(
-            b"RenderTarget_Push: Maximum stack depth exceeded\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!("RenderTarget_Push: Maximum stack depth exceeded"));
     }
     fboIndex += 1;
     let this: *mut FBO = GetActive();
@@ -77,14 +72,9 @@ pub unsafe extern "C" fn RenderTarget_Push(sx: i32, sy: i32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_Pop() {
-    Profiler_Begin(
-        (*std::mem::transmute::<&[u8; 17], &[libc::c_char; 17]>(b"RenderTarget_Pop\0")).as_ptr(),
-    );
+    Profiler_Begin(c_str!("RenderTarget_Pop"));
     if fboIndex < 0 {
-        Fatal(
-            b"RenderTarget_Pop: Attempting to pop an empty stack\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!("RenderTarget_Pop: Attempting to pop an empty stack"));
     }
     let mut i: u32 = 0;
     while i < 4 {
@@ -124,10 +114,9 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: *mut Tex2D, level: i32
     let mut handle: u32 = Tex2D_GetHandle(tex);
     if TexFormat_IsColor(Tex2D_GetFormat(tex)) {
         if (*this).colorIndex >= 4 {
-            Fatal(
-                b"RenderTarget_BindTex2D: Max color attachments exceeded\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(c_str!(
+                "RenderTarget_BindTex2D: Max color attachments exceeded"
+            ));
         }
         gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
@@ -140,10 +129,9 @@ pub unsafe extern "C" fn RenderTarget_BindTex2DLevel(tex: *mut Tex2D, level: i32
         SetDrawBuffers((*this).colorIndex);
     } else {
         if (*this).depth {
-            Fatal(
-                b"RenderTarget_BindTex2D: Target already has a depth buffer\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(c_str!(
+                "RenderTarget_BindTex2D: Target already has a depth buffer"
+            ));
         }
         gl::FramebufferTexture2D(
             gl::FRAMEBUFFER,
@@ -165,10 +153,9 @@ pub unsafe extern "C" fn RenderTarget_BindTex3D(this: *mut Tex3D, layer: i32) {
 pub unsafe extern "C" fn RenderTarget_BindTex3DLevel(tex: *mut Tex3D, layer: i32, level: i32) {
     let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
-        Fatal(
-            b"RenderTarget_BindTex3D: Max color attachments exceeded\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "RenderTarget_BindTex3D: Max color attachments exceeded"
+        ));
     }
 
     let mut handle: u32 = Tex3D_GetHandle(tex);
@@ -197,10 +184,9 @@ pub unsafe extern "C" fn RenderTarget_BindTexCubeLevel(
 ) {
     let this: *mut FBO = GetActive();
     if (*this).colorIndex >= 4 {
-        Fatal(
-            b"RenderTarget_BindTexCubeLevel: Max color attachments exceeded\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "RenderTarget_BindTexCubeLevel: Max color attachments exceeded"
+        ));
     }
     let mut handle: u32 = TexCube_GetHandle(tex);
 

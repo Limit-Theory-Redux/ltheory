@@ -101,7 +101,7 @@ pub unsafe extern "C" fn Profiler_Enable() {
     this.scopeList.reserve(1024);
     this.stackIndex = -1;
     this.start = TimeStamp_Get();
-    Profiler_Begin(b"[Root]\0" as *const u8 as *const libc::c_char);
+    Profiler_Begin(c_str!("[Root]"));
     Signal_AddHandlerAll(Some(
         Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> (),
     ));
@@ -110,10 +110,9 @@ pub unsafe extern "C" fn Profiler_Enable() {
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Disable() {
     if this.stackIndex != 0 {
-        Fatal(
-            b"Profiler_Disable: Cannot stop profiler from within a profiled section\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "Profiler_Disable: Cannot stop profiler from within a profiled section"
+        ));
     }
     Profiler_End();
     let mut total: f64 = TimeStamp_GetElapsed(this.start);
@@ -130,10 +129,9 @@ pub unsafe extern "C" fn Profiler_Disable() {
         std::mem::size_of::<*mut Scope>(),
         Some(SortScopes as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
     );
-    libc::puts(
-        b"-- PHX PROFILER -------------------------------------\0" as *const u8
-            as *const libc::c_char,
-    );
+    libc::puts(c_str!(
+        "-- PHX PROFILER -------------------------------------"
+    ));
     let mut cumulative: f64 = 0.0;
     let mut i_0: i32 = 0;
     while i_0 < this.scopeList.len() as i32 {
@@ -142,8 +140,9 @@ pub unsafe extern "C" fn Profiler_Disable() {
         cumulative += scopeTotal;
         if !(scopeTotal / total < 0.01f64 && (*scope).max < 0.01f64) {
             libc::printf(
-                b"%*.1f%% %*.0f%% %*.0fms  [%*.2f, %*.2f] %*.2f  / %*.2f  (%*.0f%%)  |  %s\n\0"
-                    as *const u8 as *const libc::c_char,
+                c_str!(
+                    "%*.1f%% %*.0f%% %*.0fms  [%*.2f, %*.2f] %*.2f  / %*.2f  (%*.0f%%)  |  %s\n"
+                ),
                 5,
                 100.0f64 * (scopeTotal / total),
                 4,
@@ -165,10 +164,9 @@ pub unsafe extern "C" fn Profiler_Disable() {
         }
         i_0 += 1;
     }
-    libc::puts(
-        b"-----------------------------------------------------\0" as *const u8
-            as *const libc::c_char,
-    );
+    libc::puts(c_str!(
+        "-----------------------------------------------------"
+    ));
 
     for scope in this.scopeList.iter() {
         Scope_Free(*scope);
@@ -187,9 +185,7 @@ pub unsafe extern "C" fn Profiler_Begin(name: *const libc::c_char) {
     }
     if this.stackIndex + 1 >= 128 {
         Profiler_Backtrace();
-        Fatal(
-            b"Profiler_Begin: Maximum stack depth exceeded\0" as *const u8 as *const libc::c_char,
-        );
+        Fatal(c_str!("Profiler_Begin: Maximum stack depth exceeded"));
     }
     let mut now: TimeStamp = TimeStamp_Get();
     if this.stackIndex >= 0 {
@@ -211,9 +207,7 @@ pub unsafe extern "C" fn Profiler_End() {
     }
     if this.stackIndex < 0 {
         Profiler_Backtrace();
-        Fatal(
-            b"Profiler_End: Attempting to pop an empty stack\0" as *const u8 as *const libc::c_char,
-        );
+        Fatal(c_str!("Profiler_End: Attempting to pop an empty stack"));
     }
     let mut now: TimeStamp = TimeStamp_Get();
     let mut prev: *mut Scope = this.stack[this.stackIndex as usize];
@@ -258,12 +252,12 @@ pub unsafe extern "C" fn Profiler_Backtrace() {
     if !profiling {
         return;
     }
-    libc::puts(b"PHX Profiler Backtrace:\0" as *const u8 as *const libc::c_char);
+    libc::puts(c_str!("PHX Profiler Backtrace:"));
     let mut i: i32 = 0;
     while i <= this.stackIndex {
         let mut index: i32 = this.stackIndex - i;
         libc::printf(
-            b"  [%i] %s\n\0" as *const u8 as *const libc::c_char,
+            c_str!("  [%i] %s\n"),
             index,
             (*this.stack[index as usize]).name,
         );

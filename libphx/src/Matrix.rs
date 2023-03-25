@@ -794,13 +794,10 @@ pub unsafe extern "C" fn Matrix_Print(this: *const Matrix) {
     while i < 4 {
         let mut j: i32 = 0;
         while j < 4 {
-            libc::printf(
-                b"%f \0" as *const u8 as *const libc::c_char,
-                (*this).m[(4 * i + j) as usize] as f64,
-            );
+            libc::printf(c_str!("%f "), (*this).m[(4 * i + j) as usize] as f64);
             j += 1;
         }
-        libc::printf(b"\n\0" as *const u8 as *const libc::c_char);
+        libc::printf(c_str!("\n"));
         i += 1;
     }
 }
@@ -814,8 +811,7 @@ pub unsafe extern "C" fn Matrix_ToString(this: *const Matrix) -> *const libc::c_
         (std::mem::size_of::<[libc::c_char; 512]>())
             .wrapping_div(std::mem::size_of::<libc::c_char>())
            ,
-        b"[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\0"
-            as *const u8 as *const libc::c_char,
+        c_str!("[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]"),
         *m.offset(0) as f64,
         *m.offset(1) as f64,
         *m.offset(2) as f64,

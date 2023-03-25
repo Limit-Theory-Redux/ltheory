@@ -83,10 +83,7 @@ pub unsafe extern "C" fn Gamepad_Close(this: *mut Gamepad) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_AddMappings(file: *const libc::c_char) -> i32 {
-    SDL_GameControllerAddMappingsFromRW(
-        SDL_RWFromFile(file, b"rb\0" as *const u8 as *const libc::c_char),
-        1,
-    )
+    SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(file, c_str!("rb")), 1)
 }
 
 #[no_mangle]

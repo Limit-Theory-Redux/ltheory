@@ -41,9 +41,7 @@ unsafe extern "C" fn Tex2D_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Create(sx: i32, sy: i32, format: TexFormat) -> *mut Tex2D {
     if !TexFormat_IsValid(format) {
-        Fatal(
-            b"Tex2D_Create: Invalid texture format requested\0" as *const u8 as *const libc::c_char,
-        );
+        Fatal(c_str!("Tex2D_Create: Invalid texture format requested"));
     }
     let mut this = MemNew!(Tex2D);
     (*this)._refCount = 1;
@@ -404,8 +402,7 @@ pub unsafe extern "C" fn Tex2D_SetMinFilter(this: *mut Tex2D, filter: TexFilter)
 pub unsafe extern "C" fn Tex2D_SetMipRange(this: *mut Tex2D, minLevel: i32, maxLevel: i32) {
     if minLevel != maxLevel {
         Warn(
-            b"Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs.\0"
-                as *const u8 as *const libc::c_char,
+            c_str!("Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs."),
         );
     }
     gl::BindTexture(gl::TEXTURE_2D, (*this).handle);

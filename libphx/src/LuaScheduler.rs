@@ -112,11 +112,7 @@ unsafe extern "C" fn LuaScheduler_Update(L: *mut Lua) -> i32 {
     );
     this.now = TimeStamp_Get();
 
-    lua_getfield(
-        L,
-        -10002,
-        b"__error_handler__\0" as *const u8 as *const libc::c_char,
-    );
+    lua_getfield(L, -10002, c_str!("__error_handler__"));
     let mut handler: i32 = lua_gettop(L);
 
     while !this.elems.is_empty() {
@@ -159,17 +155,17 @@ pub unsafe extern "C" fn LuaScheduler_Init(_L: *mut Lua) {
 pub unsafe extern "C" fn LuaScheduler_Register(L: *mut Lua) {
     Lua_SetFn(
         L,
-        b"Schedule\0" as *const u8 as *const libc::c_char,
+        c_str!("Schedule"),
         Some(LuaScheduler_Add as unsafe extern "C" fn(*mut Lua) -> i32),
     );
     Lua_SetFn(
         L,
-        b"SchedulerClear\0" as *const u8 as *const libc::c_char,
+        c_str!("SchedulerClear"),
         Some(LuaScheduler_Clear as unsafe extern "C" fn(*mut Lua) -> i32),
     );
     Lua_SetFn(
         L,
-        b"SchedulerUpdate\0" as *const u8 as *const libc::c_char,
+        c_str!("SchedulerUpdate"),
         Some(LuaScheduler_Update as unsafe extern "C" fn(*mut Lua) -> i32),
     );
 }

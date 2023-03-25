@@ -22,7 +22,7 @@ pub unsafe extern "C" fn Device_ToString(this: *mut Device) -> *const libc::c_ch
     libc::snprintf(
         buffer.as_mut_ptr(),
         buffer.len(),
-        b"%s (%u)\0" as *const u8 as *const libc::c_char,
+        c_str!("%s (%u)"),
         DeviceType_ToString((*this).type_0),
         (*this).id,
     );

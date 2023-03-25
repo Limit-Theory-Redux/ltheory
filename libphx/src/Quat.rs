@@ -348,7 +348,7 @@ pub unsafe extern "C" fn Quat_ToString(q: *const Quat) -> *const libc::c_char {
     libc::snprintf(
         buffer.as_mut_ptr(),
         buffer.len(),
-        b"(%.4f, %.4f, %.4f, %.4f)\0" as *const u8 as *const libc::c_char,
+        c_str!("(%.4f, %.4f, %.4f, %.4f)"),
         (*q).x as f64,
         (*q).y as f64,
         (*q).z as f64,

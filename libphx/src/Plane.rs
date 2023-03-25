@@ -51,11 +51,8 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
 ) -> PolygonClassification {
     let mut numInFront: i32 = 0;
     let mut numBehind: i32 = 0;
-    let mut i: usize = 0;
-    while i < (*polygon).vertices.len() {
-        let mut classification: PointClassification =
-            Plane_ClassifyPoint(plane, &(*polygon).vertices[i]);
-        match classification {
+    for i in 0..(*polygon).vertices.len() {
+        match Plane_ClassifyPoint(plane, &(*polygon).vertices[i]) {
             PointClassification::InFront => {
                 numInFront += 1;
             }
@@ -69,7 +66,6 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
         if numInFront != 0 && numBehind != 0 {
             return PolygonClassification::Straddling;
         }
-        i += 1;
     }
 
     if numInFront != 0 {

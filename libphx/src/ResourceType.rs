@@ -37,16 +37,16 @@ pub static ResourceType_TexCube: ResourceType = 0x9;
 #[no_mangle]
 pub unsafe extern "C" fn ResourceType_ToString(this: ResourceType) -> *const libc::c_char {
     match this {
-        0 => return b"Font\0" as *const u8 as *const libc::c_char,
-        1 => return b"Mesh\0" as *const u8 as *const libc::c_char,
-        2 => return b"Other\0" as *const u8 as *const libc::c_char,
-        3 => return b"Script\0" as *const u8 as *const libc::c_char,
-        4 => return b"Shader\0" as *const u8 as *const libc::c_char,
-        5 => return b"Sound\0" as *const u8 as *const libc::c_char,
-        6 => return b"Tex1D\0" as *const u8 as *const libc::c_char,
-        7 => return b"Tex2D\0" as *const u8 as *const libc::c_char,
-        8 => return b"Tex3D\0" as *const u8 as *const libc::c_char,
-        9 => return b"TexCube\0" as *const u8 as *const libc::c_char,
+        0 => return c_str!("Font"),
+        1 => return c_str!("Mesh"),
+        2 => return c_str!("Other"),
+        3 => return c_str!("Script"),
+        4 => return c_str!("Shader"),
+        5 => return c_str!("Sound"),
+        6 => return c_str!("Tex1D"),
+        7 => return c_str!("Tex2D"),
+        8 => return c_str!("Tex3D"),
+        9 => return c_str!("TexCube"),
         _ => {}
     }
     std::ptr::null()

@@ -73,12 +73,12 @@ static mut kFaces: [Face; 6] = [
 ];
 
 static mut kFaceExt: [*const libc::c_char; 6] = [
-    b"px\0" as *const u8 as *const libc::c_char,
-    b"py\0" as *const u8 as *const libc::c_char,
-    b"pz\0" as *const u8 as *const libc::c_char,
-    b"nx\0" as *const u8 as *const libc::c_char,
-    b"ny\0" as *const u8 as *const libc::c_char,
-    b"nz\0" as *const u8 as *const libc::c_char,
+    c_str!("px"),
+    c_str!("py"),
+    c_str!("pz"),
+    c_str!("nx"),
+    c_str!("ny"),
+    c_str!("nz"),
 ];
 
 #[inline]
@@ -108,16 +108,12 @@ unsafe extern "C" fn TexCube_InitParameters() {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut TexCube {
     if !TexFormat_IsValid(format) {
-        Fatal(
-            b"TexCube_Create: Invalid texture format requested\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!("TexCube_Create: Invalid texture format requested"));
     }
     if TexFormat_IsDepth(format) {
-        Fatal(
-            b"TexCube_Create: Cannot create cubemap with depth format\0" as *const u8
-                as *const libc::c_char,
-        );
+        Fatal(c_str!(
+            "TexCube_Create: Cannot create cubemap with depth format"
+        ));
     }
 
     let mut this = MemNew!(TexCube);
@@ -234,11 +230,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
     let mut dataLayout: i32 = 0;
 
     for i in 0..6 {
-        let mut facePath: *const libc::c_char = StrAdd3(
-            path,
-            kFaceExt[i as usize],
-            b".jpg\0" as *const u8 as *const libc::c_char,
-        );
+        let mut facePath: *const libc::c_char = StrAdd3(path, kFaceExt[i as usize], c_str!(".jpg"));
         let mut sx: i32 = 0;
         let mut sy: i32 = 0;
         let mut lcomponents: i32 = 0;
@@ -246,29 +238,23 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
             Tex2D_LoadRaw(facePath, &mut sx, &mut sy, &mut lcomponents);
         if data.is_null() {
             Fatal(
-                b"TexCube_Load failed to load cubemap face from '%s'\0" as *const u8
-                    as *const libc::c_char,
+                c_str!("TexCube_Load failed to load cubemap face from '%s'"),
                 facePath,
             );
         }
         if sx != sy {
-            Fatal(
-                b"TexCube_Load loaded cubemap face is not square\0" as *const u8
-                    as *const libc::c_char,
-            );
+            Fatal(c_str!("TexCube_Load loaded cubemap face is not square"));
         }
         if i != 0 {
             if sx != (*this).size || sy != (*this).size {
-                Fatal(
-                    b"TexCube_Load loaded cubemap faces have different resolutions\0" as *const u8
-                        as *const libc::c_char,
-                );
+                Fatal(c_str!(
+                    "TexCube_Load loaded cubemap faces have different resolutions"
+                ));
             }
             if lcomponents != components {
-                Fatal(
-                    b"TexCube_Load loaded cubemap faces have different number of components\0"
-                        as *const u8 as *const libc::c_char,
-                );
+                Fatal(c_str!(
+                    "TexCube_Load loaded cubemap faces have different number of components"
+                ));
             }
         } else {
             components = lcomponents;
@@ -383,19 +369,9 @@ pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, state: *mut Shader
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
-        Shader_SetFloat3(
-            b"cubeLook\0" as *const u8 as *const libc::c_char,
-            face.look.x,
-            face.look.y,
-            face.look.z,
-        );
-        Shader_SetFloat3(
-            b"cubeUp\0" as *const u8 as *const libc::c_char,
-            face.up.x,
-            face.up.y,
-            face.up.z,
-        );
-        Shader_SetFloat(b"cubeSize\0" as *const u8 as *const libc::c_char, fSize);
+        Shader_SetFloat3(c_str!("cubeLook"), face.look.x, face.look.y, face.look.z);
+        Shader_SetFloat3(c_str!("cubeUp"), face.up.x, face.up.y, face.up.z);
+        Shader_SetFloat(c_str!("cubeSize"), fSize);
 
         let mut j: i32 = 1;
         let mut jobSize: i32 = 1;
@@ -501,11 +477,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
             as *mut libc::c_uchar;
     for i in 0..6 {
         let mut face: CubeFace = kFaces[i as usize].face;
-        let mut facePath: *const libc::c_char = StrAdd3(
-            path,
-            kFaceExt[i as usize],
-            b".png\0" as *const u8 as *const libc::c_char,
-        );
+        let mut facePath: *const libc::c_char = StrAdd3(path, kFaceExt[i as usize], c_str!(".png"));
         gl::GetTexImage(
             face as gl::types::GLenum,
             level,

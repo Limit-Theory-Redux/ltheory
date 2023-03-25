@@ -53,7 +53,7 @@ unsafe extern "C" fn Resource_Resolve(
     }
     if failhard {
         Fatal(
-            b"Resource_Resolve: Failed to find %s <%s>\0" as *const u8 as *const libc::c_char,
+            c_str!("Resource_Resolve: Failed to find %s <%s>"),
             ResourceType_ToString(type_0),
             name,
         );
@@ -91,8 +91,7 @@ pub unsafe extern "C" fn Resource_LoadBytes(
     let mut data: *mut Bytes = File_ReadBytes(path);
     if data.is_null() {
         Fatal(
-            b"Resource_LoadBytes: Failed to load %s <%s> at <%s>\0" as *const u8
-                as *const libc::c_char,
+            c_str!("Resource_LoadBytes: Failed to load %s <%s> at <%s>"),
             ResourceType_ToString(type_0),
             name,
             path,
@@ -110,8 +109,7 @@ pub unsafe extern "C" fn Resource_LoadCstr(
     let mut data: *const libc::c_char = File_ReadCstr(path);
     if data.is_null() {
         Fatal(
-            b"Resource_LoadCstr: Failed to load %s <%s> at <%s>\0" as *const u8
-                as *const libc::c_char,
+            c_str!("Resource_LoadCstr: Failed to load %s <%s> at <%s>"),
             ResourceType_ToString(type_0),
             name,
             path,
@@ -122,196 +120,52 @@ pub unsafe extern "C" fn Resource_LoadCstr(
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_Init() {
-    Resource_AddPath(
-        ResourceType_Font,
-        b"../shared/res/font/%s.ttf\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Font,
-        b"../shared/res/font/%s.otf\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Mesh,
-        b"../shared/res/mesh/%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Mesh,
-        b"../shared/res/mesh/%s.obj\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Other,
-        b"../shared/res/%s\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Script,
-        b"../shared/res/script/%s.lua\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Shader,
-        b"../shared/res/shader/%s.glsl\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"../shared/res/sound/%s.mp3\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"../shared/res/sound/%s.ogg\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"../shared/res/sound/%s.ogx\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"../shared/res/sound/%s.wav\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex1D,
-        b"../shared/res/tex1d/%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex2D,
-        b"../shared/res/tex2d/%s.jpg\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex2D,
-        b"../shared/res/tex2d/%s.png\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex3D,
-        b"../shared/res/tex3d/%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_TexCube,
-        b"../shared/res/texcube/%s\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Font,
-        b"./res/font/%s.ttf\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Font,
-        b"./res/font/%s.otf\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Mesh,
-        b"./res/mesh/%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Mesh,
-        b"./res/mesh/%s.obj\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Other,
-        b"./res/%s\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Script,
-        b"./res/script/%s.lua\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Shader,
-        b"./res/shader/%s.glsl\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"./res/sound/%s.mp3\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"./res/sound/%s.ogg\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"./res/sound/%s.ogx\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"./res/sound/%s.wav\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex1D,
-        b"./res/tex1d/%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex2D,
-        b"./res/tex2d/%s.jpg\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex2D,
-        b"./res/tex2d/%s.png\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex3D,
-        b"./res/tex3d/%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_TexCube,
-        b"./res/texcube/%s\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Font,
-        b"%s.ttf\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Font,
-        b"%s.otf\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Mesh,
-        b"%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Mesh,
-        b"%s.obj\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Other,
-        b"%s\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Script,
-        b"%s.lua\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Shader,
-        b"%s.glsl\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"%s.mp3\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"%s.ogg\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"%s.ogx\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Sound,
-        b"%s.wav\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex1D,
-        b"%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex2D,
-        b"%s.jpg\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex2D,
-        b"%s.png\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_Tex3D,
-        b"%s.bin\0" as *const u8 as *const libc::c_char,
-    );
-    Resource_AddPath(
-        ResourceType_TexCube,
-        b"%s\0" as *const u8 as *const libc::c_char,
-    );
+    Resource_AddPath(ResourceType_Font, c_str!("../shared/res/font/%s.ttf"));
+    Resource_AddPath(ResourceType_Font, c_str!("../shared/res/font/%s.otf"));
+    Resource_AddPath(ResourceType_Mesh, c_str!("../shared/res/mesh/%s.bin"));
+    Resource_AddPath(ResourceType_Mesh, c_str!("../shared/res/mesh/%s.obj"));
+    Resource_AddPath(ResourceType_Other, c_str!("../shared/res/%s"));
+    Resource_AddPath(ResourceType_Script, c_str!("../shared/res/script/%s.lua"));
+    Resource_AddPath(ResourceType_Shader, c_str!("../shared/res/shader/%s.glsl"));
+    Resource_AddPath(ResourceType_Sound, c_str!("../shared/res/sound/%s.mp3"));
+    Resource_AddPath(ResourceType_Sound, c_str!("../shared/res/sound/%s.ogg"));
+    Resource_AddPath(ResourceType_Sound, c_str!("../shared/res/sound/%s.ogx"));
+    Resource_AddPath(ResourceType_Sound, c_str!("../shared/res/sound/%s.wav"));
+    Resource_AddPath(ResourceType_Tex1D, c_str!("../shared/res/tex1d/%s.bin"));
+    Resource_AddPath(ResourceType_Tex2D, c_str!("../shared/res/tex2d/%s.jpg"));
+    Resource_AddPath(ResourceType_Tex2D, c_str!("../shared/res/tex2d/%s.png"));
+    Resource_AddPath(ResourceType_Tex3D, c_str!("../shared/res/tex3d/%s.bin"));
+    Resource_AddPath(ResourceType_TexCube, c_str!("../shared/res/texcube/%s"));
+    Resource_AddPath(ResourceType_Font, c_str!("./res/font/%s.ttf"));
+    Resource_AddPath(ResourceType_Font, c_str!("./res/font/%s.otf"));
+    Resource_AddPath(ResourceType_Mesh, c_str!("./res/mesh/%s.bin"));
+    Resource_AddPath(ResourceType_Mesh, c_str!("./res/mesh/%s.obj"));
+    Resource_AddPath(ResourceType_Other, c_str!("./res/%s"));
+    Resource_AddPath(ResourceType_Script, c_str!("./res/script/%s.lua"));
+    Resource_AddPath(ResourceType_Shader, c_str!("./res/shader/%s.glsl"));
+    Resource_AddPath(ResourceType_Sound, c_str!("./res/sound/%s.mp3"));
+    Resource_AddPath(ResourceType_Sound, c_str!("./res/sound/%s.ogg"));
+    Resource_AddPath(ResourceType_Sound, c_str!("./res/sound/%s.ogx"));
+    Resource_AddPath(ResourceType_Sound, c_str!("./res/sound/%s.wav"));
+    Resource_AddPath(ResourceType_Tex1D, c_str!("./res/tex1d/%s.bin"));
+    Resource_AddPath(ResourceType_Tex2D, c_str!("./res/tex2d/%s.jpg"));
+    Resource_AddPath(ResourceType_Tex2D, c_str!("./res/tex2d/%s.png"));
+    Resource_AddPath(ResourceType_Tex3D, c_str!("./res/tex3d/%s.bin"));
+    Resource_AddPath(ResourceType_TexCube, c_str!("./res/texcube/%s"));
+    Resource_AddPath(ResourceType_Font, c_str!("%s.ttf"));
+    Resource_AddPath(ResourceType_Font, c_str!("%s.otf"));
+    Resource_AddPath(ResourceType_Mesh, c_str!("%s.bin"));
+    Resource_AddPath(ResourceType_Mesh, c_str!("%s.obj"));
+    Resource_AddPath(ResourceType_Other, c_str!("%s"));
+    Resource_AddPath(ResourceType_Script, c_str!("%s.lua"));
+    Resource_AddPath(ResourceType_Shader, c_str!("%s.glsl"));
+    Resource_AddPath(ResourceType_Sound, c_str!("%s.mp3"));
+    Resource_AddPath(ResourceType_Sound, c_str!("%s.ogg"));
+    Resource_AddPath(ResourceType_Sound, c_str!("%s.ogx"));
+    Resource_AddPath(ResourceType_Sound, c_str!("%s.wav"));
+    Resource_AddPath(ResourceType_Tex1D, c_str!("%s.bin"));
+    Resource_AddPath(ResourceType_Tex2D, c_str!("%s.jpg"));
+    Resource_AddPath(ResourceType_Tex2D, c_str!("%s.png"));
+    Resource_AddPath(ResourceType_Tex3D, c_str!("%s.bin"));
+    Resource_AddPath(ResourceType_TexCube, c_str!("%s"));
 }

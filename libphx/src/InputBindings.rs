@@ -121,11 +121,7 @@ unsafe extern "C" fn InputBindings_RaiseCallback(
     binding: *mut InputBinding,
     _callback: LuaRef,
 ) {
-    libc::printf(
-        b"%s - %s\n\0" as *const u8 as *const libc::c_char,
-        event,
-        (*binding).name,
-    );
+    libc::printf(c_str!("%s - %s\n"), event, (*binding).name);
 }
 
 #[no_mangle]
@@ -157,11 +153,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
     let mut axis2D: *mut AggregateAxis2D = &mut (*binding).axis2D;
     if value != (*axis2D).value {
         (*axis2D).value = value;
-        InputBindings_RaiseCallback(
-            b"Changed\0" as *const u8 as *const libc::c_char,
-            binding,
-            (*axis2D).onChanged,
-        );
+        InputBindings_RaiseCallback(c_str!("Changed"), binding, (*axis2D).onChanged);
     }
     let mut iAxis_0 = 0;
     while iAxis_0 < (*binding).axes.len() {
@@ -171,9 +163,9 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
             (*axis).value = *axisValues[iAxis_0 as usize];
             InputBindings_RaiseCallback(
                 if iAxis_0 == 0 {
-                    b"Changed X\0" as *const u8 as *const libc::c_char
+                    c_str!("Changed X")
                 } else {
-                    b"Changed Y\0" as *const u8 as *const libc::c_char
+                    c_str!("Changed Y")
                 },
                 binding,
                 (*axis).onChanged,
@@ -196,11 +188,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
             {
                 (*button).state |= State_Pressed;
                 (*button).state |= State_Down;
-                InputBindings_RaiseCallback(
-                    b"Pressed\0" as *const u8 as *const libc::c_char,
-                    binding,
-                    (*button).onPressed,
-                );
+                InputBindings_RaiseCallback(c_str!("Pressed"), binding, (*button).onPressed);
                 this.downBindings.push(DownBinding {
                     binding: binding,
                     button: button,
@@ -214,11 +202,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
         {
             (*button).state |= State_Released;
             (*button).state &= !State_Down;
-            InputBindings_RaiseCallback(
-                b"Released\0" as *const u8 as *const libc::c_char,
-                binding,
-                (*button).onReleased,
-            );
+            InputBindings_RaiseCallback(c_str!("Released"), binding, (*button).onReleased);
 
             this.downBindings
                 .retain(|down| down.binding != binding || down.button != button);
@@ -231,11 +215,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
 pub unsafe extern "C" fn InputBindings_Update() {
     // Down
     for down in this.downBindings.iter() {
-        InputBindings_RaiseCallback(
-            b"Down\0" as *const u8 as *const libc::c_char,
-            down.binding,
-            (*down.button).onDown,
-        );
+        InputBindings_RaiseCallback(c_str!("Down"), down.binding, (*down.button).onDown);
     }
     let mut event: InputEvent = InputEvent {
         timestamp: 0,
