@@ -19,7 +19,7 @@ local Background = subclass(Entity, function (self, proto)
   self:setDrag(0.75, 4.0)
   self:setScale(proto.scale)
 
-  local mass = 1e8
+  local mass = 40000
   self:setMass(mass)
 end)
 
