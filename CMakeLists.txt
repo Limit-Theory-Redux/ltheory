@@ -8,6 +8,10 @@ add_executable (lt "src/Main.cpp")
 phx_configure_output_dir (lt)
 phx_configure_target_properties (lt)
 
+if (WIN32)
+  target_sources(lt PRIVATE "src/lt.manifest")
+endif ()
+
 target_compile_definitions (lt PRIVATE DEBUG=$<CONFIG:DEBUG>)
 target_link_libraries (lt phx)
 
