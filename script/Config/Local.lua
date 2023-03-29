@@ -7,7 +7,7 @@ Config.render.vsync = false
 Config.audio.bSoundOn = false
 
 Config.gen.nFields    =  10
-Config.gen.nAsteroids = 200
+Config.gen.nAsteroids = 100
 Config.gen.nPlanets   =   1
 Config.gen.nStations  =   1
 
@@ -19,8 +19,8 @@ Config.ui.uniqueShips = false -- true = generate each ship as a unique mesh (ver
 Config.gen.nTurrets   = 1
 Config.gen.nThrusters = 2
 
-Config.gen.nAIPlayers  =   0 -- # of AI players (who manage Economic assets)
-Config.gen.nEconNPCs   =   0 -- total # of ships to be given Economic actions (to be split among AI players)
+Config.gen.nAIPlayers  =   3 -- # of AI players (who manage Economic assets)
+Config.gen.nEconNPCs   =  15 -- total # of ships to be given Economic actions (to be split among AI players)
 Config.gen.nEscortNPCs =  55 -- # of ships to be given the Escort action
 
 Config.debug.instantJobs = false

@@ -437,11 +437,9 @@ function LTheoryRedux:showMainMenu ()
     HmGui.SetAlign(0.18, 0.13)
 
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), Config.gameVersion, 0.2, 0.2, 0.2, 1.0)
-    HmGui.SetAlign(0.012, 0.973)
+    HmGui.SetAlign(0.012, 0.971)
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), Config.gameVersion, 0.9, 0.9, 0.9, 1.0)
-    HmGui.SetAlign(0.011, 0.971)
-
-    HmGui.SetAlign(0.010, 0.970)
+    HmGui.SetAlign(0.011, 0.970)
 
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.2, 0.2, 0.2, 1.0)
     HmGui.SetAlign(0.221, 0.971)
@@ -450,14 +448,14 @@ function LTheoryRedux:showMainMenu ()
 
     self:showMainMenuInner()
 
-    HmGui.SetStretch(0.194, 0.6)
-    HmGui.SetAlign(0.0065, 0.72)
+    HmGui.SetStretch(0.18, 0.5)
+    HmGui.SetAlign(0.0065, 0.8)
   HmGui.EndGroup()
 end
 
 function LTheoryRedux:showMainMenuInner ()
   -- Add Main Menu items
-  local scalefactor = (self.resX / 22) / 72
+  local scalefactor = (self.resX / 24) / 72
 
   HmGui.BeginGroupY()
     HmGui.PushTextColor(0.9, 0.9, 0.9, 1.0)

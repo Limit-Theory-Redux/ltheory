@@ -19,7 +19,7 @@ local Background = subclass(Entity, function (self, proto)
   self:setDrag(0.75, 4.0)
   self:setScale(proto.scale)
 
-  local mass = 50.0 * (self:getRadius() ^ 3.0)
+  local mass = 1e8
   self:setMass(mass)
 end)
 
@@ -27,7 +27,7 @@ end)
 -- Flat: this function, while strictly speaking not needed for an invisible ship that
 --       can only rotate and has no thrust, is retained Just In Case
 function Background:getTopSpeed ()
-  return 100
+  return 1
 end
 
 return Background

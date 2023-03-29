@@ -382,7 +382,7 @@ function System:spawnAsteroidField (count, reduced)
       --   because we want it to go into the area around this AsteroidField (a Zone) we just created
       pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
       if Config.gen.scaleSystem < 5e4 then
-        while pos:distance(Config.gen.origin) > 300000 do -- constrain max extent of small star systems for performance
+        while pos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
           pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
         end
       end

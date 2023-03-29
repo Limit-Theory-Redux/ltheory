@@ -47,23 +47,23 @@ function Entity:setDisposition (target, value)
       -- Generate an integer array index: -1.0 to -0.33332 -> 1, -0.33333 to 0.33332 -> 2, 0.33333 to 1.0 -> 3
       -- NOTE: This section is just debugging, but it's being left here as a "how to" for disposition descriptors
       --       Remove for productionizing
-      local dispoNameIndex = 0
-      if     oldDispo >= Config.game.dispoHostileThreshold  and value <  Config.game.dispoHostileThreshold  then
-        dispoNameIndex = 1
-      elseif oldDispo <  Config.game.dispoHostileThreshold  and value >= Config.game.dispoHostileThreshold  then
-        dispoNameIndex = 2
-      elseif oldDispo >= Config.game.dispoFriendlyThreshold and value <  Config.game.dispoFriendlyThreshold then
-        dispoNameIndex = 2
-      elseif oldDispo <  Config.game.dispoFriendlyThreshold and value >= Config.game.dispoFriendlyThreshold then
-        dispoNameIndex = 3
-      end
-      if dispoNameIndex ~= 0 then
-        local surprise = ""
-        if dispoNameIndex == 1 or dispoNameIndex == 3 then
-          surprise = "!"
-        end
-        printf("%s is now %s to %s%s", self:getName(), Config.game.dispoName[dispoNameIndex], target:getName(), surprise)
-      end
+--      local dispoNameIndex = 0
+--      if     oldDispo >= Config.game.dispoHostileThreshold  and value <  Config.game.dispoHostileThreshold  then
+--        dispoNameIndex = 1
+--      elseif oldDispo <  Config.game.dispoHostileThreshold  and value >= Config.game.dispoHostileThreshold  then
+--        dispoNameIndex = 2
+--      elseif oldDispo >= Config.game.dispoFriendlyThreshold and value <  Config.game.dispoFriendlyThreshold then
+--        dispoNameIndex = 2
+--      elseif oldDispo <  Config.game.dispoFriendlyThreshold and value >= Config.game.dispoFriendlyThreshold then
+--        dispoNameIndex = 3
+--      end
+--      if dispoNameIndex ~= 0 then
+--        local surprise = ""
+--        if dispoNameIndex == 1 or dispoNameIndex == 3 then
+--          surprise = "!"
+--        end
+--        printf("%s is now %s to %s%s", self:getName(), Config.game.dispoName[dispoNameIndex], target:getName(), surprise)
+--      end
     end
   end
 end

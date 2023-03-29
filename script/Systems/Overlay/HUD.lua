@@ -442,8 +442,8 @@ function HUD:onInput (state)
   local camera = self.gameView.camera
   camera:push()
   camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
-  -- camera:modYaw(0.005 * CameraBindings.Yaw:get())
-  -- camera:modPitch(0.005 * CameraBindings.Pitch:get())
+  --camera:modYaw(0.005 * CameraBindings.Yaw:get())     -- only works when cameraOrbit is the current camera
+  --camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
   local e = self.player:getControlling()
   if not e:isDestroyed() then
