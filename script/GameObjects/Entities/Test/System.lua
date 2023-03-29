@@ -156,7 +156,7 @@ function System:place (rng, object)
   if field then
     pos = field:getRandomPos(rng) -- place new object within a random field
   else
-    pos = Vec3f(rng:getInt(50, 250), rng:getInt(50, 250), rng:getInt(50, 250)) -- place new object _near_ the origin
+    pos = Vec3f(rng:getInt(5000, 8000), 0, rng:getInt(5000, 8000)) -- place new object _near_ the origin
   end
   object:setPos(pos)
 

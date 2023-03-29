@@ -277,7 +277,8 @@ function LTheoryRedux:createStarSystem ()
       end
 
       -- Add a space station
-      self.system:spawnStation(Config.game.humanPlayer, nil)
+      local station = self.system:spawnStation(Config.game.humanPlayer, nil)
+--      station:setRot(rng:getQuat()) -- rotate single station from ecliptic in Background Mode
     else
       -- Flight Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
