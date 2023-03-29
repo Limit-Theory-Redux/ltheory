@@ -15,7 +15,7 @@ struct Window {
 
 Window* Window_Create (cstr title, int x, int y, int sx, int sy, WindowMode mode) {
   Window* self = MemNew(Window);
-  mode |= SDL_WINDOW_OPENGL;
+  mode |= (SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
   cstr titleWithBuild = StrAdd(title, " (libphx version " __DATE__ ")");
   self->handle = SDL_CreateWindow(titleWithBuild, x, y, sx, sy, mode);
   StrFree(titleWithBuild);
