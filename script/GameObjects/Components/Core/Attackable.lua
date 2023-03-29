@@ -20,5 +20,5 @@ end
 
 function Entity:setAttackable (attackable)
   assert(self.attackable)
-  self.health = attackable
+  self.attackable = attackable
 end

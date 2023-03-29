@@ -88,7 +88,7 @@ function MasterControl:onInput (state)
     if self.activeControlSet.predicate(self) then
       for i = 1, #self.activeControlSet.controls do
         local control = self.activeControlSet.controls[i]
-        --if Bindings.Controls[i]:get() > 0 then
+        --if Bindings.Controls[i]:get() > 0 then -- TODO: correct the crash when this test is enabled
           self:activateControl(control)
         --end
       end

@@ -1,12 +1,20 @@
 local Test = require('States.Application')
 local Icon = require('UI.Icon')
+local IconButton = require('UI.IconButton')
 local rng = RNG.FromTime()
 local icon
 
 function Test:onInit ()
-  icon = Icon.Create()
-  icon:addPoint(0.5, 0.5)
-  icon:addPoint(0.2, 0.2)
+  Cache.Texture('icon/lbumper', true)
+--  icon = IconButton.Create('icon/lbumper', nil)
+
+  icon = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
+
+  UI.DrawEx.Icon(icon, 100, 100, 100, 100, Color(1,1,1,1))
+
+
+--  icon:addPoint(0.5, 0.5)
+--  icon:addPoint(0.2, 0.2)
 end
 
 function Test:onInput () end

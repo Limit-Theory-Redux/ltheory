@@ -3,6 +3,21 @@ Config.app = 'LTheoryRedux'
 Config.gameTitle   = "Limit Theory Redux"
 Config.gameVersion = "v0.008"
 
+Config.render = {
+  startingHorz = 2000, -- 1600 (default), or 2400 (high DPI)
+  startingVert = 1200, --  900 (default), or 2048 (high DPI)
+  fullscreen   = false,
+  vsync        = true,
+  zNear        = 0.1, -- default: 0.1
+  zFar         = 1e8, -- default: 1e6
+}
+
+Config.audio = {
+  bSoundOn  = false,
+  soundMin  = 0,
+  soundMax  = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+}
+
 Config.paths = {
   soundAmbiance = "./res/sound/system/ambiance/",
 }
@@ -86,7 +101,7 @@ Config.gen = {
   radiusPlanetTrue    =   6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
   radiusAsteroidTrue  =     50000, -- 0.005 km to 450 km
   massStarTrue        = 2e30,  -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
-  massPlanetTrue      = 6e24,  -- 5.97e24 is Earth's mass in kg (1.e10 as a test value)
+  massPlanetTrue      = 6e24,  -- 5.97e24 is Earth's mass in kg (1e10 as a test value)
   massAsteroidTrue    = 5e18,  -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
 
   massAsteroidExp = {4.1,  -- Carbonaceous
@@ -96,7 +111,7 @@ Config.gen = {
 
 Config.game = {
   gameMode = 0, -- used by LTheoryRedux: 0 = undefined (splash screen), 1 = Startup Mode (Main Menu), 2 = Flight Mode
-  flightModeActive = false, -- flag for being in Flight Mode but unable to fly (as when player ship is destroyed)
+  flightModeButInactive = false, -- flag for being in Flight Mode but unable to fly (as when player ship is destroyed)
 
   gamePaused = false,
 
@@ -181,21 +196,6 @@ Config.econ = {
   pickupDistWeightTran = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
   markup   = 1.2, -- change to base value when calculating ask price for selling an item
   markdown = 0.8, -- change to base value when calculating bid price for buying an item
-}
-
-Config.render = {
-  startingHorz = 1800, -- 1600
-  startingVert = 1375, --  900
-  fullscreen   = false,
-  vsync        = true,
-  zNear        = 0.1, -- default: 0.1
-  zFar         = 1e8, -- default: 1e6
-}
-
-Config.audio = {
-  bSoundOn  = false,
-  soundMin  = 0,
-  soundMax  = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
 }
 
 Config.ui = {

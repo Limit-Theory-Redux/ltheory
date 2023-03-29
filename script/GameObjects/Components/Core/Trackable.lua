@@ -20,5 +20,5 @@ end
 
 function Entity:setTrackable (trackable)
   assert(self.trackable)
-  self.health = trackable
+  self.trackable = trackable
 end

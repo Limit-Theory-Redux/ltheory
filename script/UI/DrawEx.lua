@@ -50,9 +50,8 @@ end
 function DrawEx.Hologram (mesh, x, y, sx, sy, color, radius, yaw, pitch)
   local center = mesh:getCenter()
   local eye = center + Math.Spherical(radius, pitch, yaw)
---  local mView = Matrix.ViewLookAt(eye, center, Vec3f(0, 1, 0))
   local mView = Matrix.LookAt(eye, center, Vec3f(0, -1, 0))
-  local mProj = Matrix.Perspective(70, sx / sy, 0.1, 1e6) -- 70
+  local mProj = Matrix.Perspective(70, sx / sy, 0.1, 1e6)
   local shader = Cache.Shader('ui3D', 'ui/hologram')
   local alpha = alphaStack:last() or 1
   BlendMode.PushAdditive()
@@ -71,7 +70,7 @@ function DrawEx.Hologram (mesh, x, y, sx, sy, color, radius, yaw, pitch)
 end
 
 function DrawEx.Icon (icon, x, y, sx, sy, color)
-  print(icon)
+--  print(icon)
   local x, y, sx, sy = padAndCenter(0, x, y, sx, sy)
   local shader = Cache.Shader('ui', 'ui/icon')
   local alpha = alphaStack:last() or 1

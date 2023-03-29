@@ -37,9 +37,10 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
   self.nebula = Nebula(self.rng:get64(), self.starDir)
   self.dust = Dust()
 
+  self.players  = {}
   self.zones    = {}
   self.stations = {}
-  self.players  = {}
+  self.ships    = {}
 
   -- When creating a new system, initialize station subtype options from all production types
   local prodType = Config:getObjectTypeIndex("station_subtypes")
@@ -53,7 +54,8 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
 end)
 
 function System:addExtraFactories (system, planet, aiPlayer, rng)
-  -- Based on what factories were added randomly to stations, a system may need some additional factories
+  -- Based on what factories were added randomly to stations, a system may need some
+  --    additional factories to provide the necessary Input items
   local newStation = nil
   if system:hasProdType(Production.Silver)   or
      system:hasProdType(Production.Gold)     or
@@ -130,8 +132,6 @@ end
 function System:hasProdType (prodtype)
   -- Scan the production types of all factories in this system to see if one has the specified production type
   local hasProdType = false
-
-  local stationList = {}
   for _, station in ipairs(self.stations) do
     if station:hasFactory() then
       if station:getFactory():hasProductionType(prodtype) then
@@ -151,9 +151,13 @@ end
 function System:place (rng, object)
   -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
   -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
-  local pos = Vec3f(0, 0, 0)
+  local pos = Config.gen.origin
   local field = self:sampleZones(rng)
-  if field then pos = field:getRandomPos(rng) end
+  if field then
+    pos = field:getRandomPos(rng) -- place new object within a random field
+  else
+    pos = Vec3f(rng:getInt(50, 250), rng:getInt(50, 250), rng:getInt(50, 250)) -- place new object _near_ the origin
+  end
   object:setPos(pos)
 
   return pos
@@ -372,11 +376,16 @@ function System:spawnAsteroidField (count, reduced)
     -- Set asteroid position
     local pos
     if i == 1 then
-      pos = zone.pos
+      pos = zone.pos -- place first object at zone's center (for non-asteroid field zones)
     else
       -- We place this asteroid directly, rather than using self:place(rng, asteroid) for randomness,
       --   because we want it to go into the area around this AsteroidField (a Zone) we just created
       pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
+      if Config.gen.scaleSystem < 5e4 then
+        while pos:distance(Config.gen.origin) > 300000 do -- constrain max extent of small star systems for performance
+          pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
+        end
+      end
     end
     asteroid:setPos(pos)
 
@@ -539,8 +548,6 @@ function System:spawnAI (shipCount, action, player)
       ship:pushAction(action)
     end
   end
-  insert(self.players, player)
-  return
 end
 
 function System:spawnShip (player)
@@ -613,6 +620,7 @@ function System:spawnBackground ()
 
   local player = Player("Background Player")
   background:setOwner(player)
+  insert(self.players, player)
 
   self:addChild(background)
 

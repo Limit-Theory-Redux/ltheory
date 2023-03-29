@@ -20,5 +20,5 @@ end
 
 function Entity:setMinable (minable)
   assert(self.minable)
-  self.health = minable
+  self.minable = minable
 end
