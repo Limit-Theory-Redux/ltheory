@@ -95,7 +95,7 @@ function Application:run ()
       if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end
 
-      if Input.GetPressed(Bindings.ProfilerToggle) then
+      if Input.GetPressed(Bindings.ToggleProfiler) then
         toggleProfiler = true
       end
 

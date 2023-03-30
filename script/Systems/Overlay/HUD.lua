@@ -536,9 +536,6 @@ function HUD:onDraw (focus, active)
 end
 
 function HUD:onDrawIcon (iconButton, focus, active)
-
-print("Hello? Are you still there?")
-
   local borderColor = iconButton == active
                       and Config.ui.color.controlActive
                       or iconButton == focus
