@@ -80,16 +80,18 @@ function Mine:getBasePayout (e, src, dst)
 end
 
 function Mine:getAdjustedPayout (e, src, dst, basePayout)
-  -- Modify the value of the expected payout by the estimated yield (not enabled until Yield becomes variable)
+  -- Modify the value of the expected payout by the estimated yield
   --   divided by travel time to reach the yield source plus travel time from the source to the destination
   local adjPayout = 0
 
---  local yieldSize = self.src:getYield().size
+  local yieldSize = 1000
+  if src:hasYield() then
+    yieldSize = min(1000, src:getYieldSize() * 10)
+  end
   local pickupTravelTime = self:getShipTravelTime(e, dst)
   local transportTravelTime = self:getTravelTime(e, src, dst)
-  local payoutMod = 1000 / ((pickupTravelTime    / Config.econ.pickupDistWeightMine) +
-                            (transportTravelTime / Config.econ.pickupDistWeightTran))
---  local payoutMod = math.min(10000, yieldSize) / (pickupTravelTime + transportTravelTime)
+  local payoutMod = yieldSize / ((pickupTravelTime    / Config.econ.pickupDistWeightMine) +
+                                 (transportTravelTime / Config.econ.pickupDistWeightTran))
 
   adjPayout = math.max(1, math.floor(basePayout * payoutMod))
 

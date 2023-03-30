@@ -68,6 +68,14 @@ function MineAt:onUpdateActive (e, dt)
               e:getName(), e:getOwner():getName(), e:getItemCount(item), item:getName(), self.source:getName(),
               self.target:getName(), maxBids)
           e:popAction() -- regular: stop mining if asset ran out of cargo capacity for 1 unit of this item
+        else
+          -- Remove 1 unit of item from the source if any remain
+          if not self.source:decreaseYield() then
+            printf("MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s (%s wanted %d), but yield = 0!",
+                e:getName(), e:getOwner():getName(), e:getItemCount(item), item:getName(), self.source:getName(),
+                self.target:getName(), maxBids)
+            e:popAction() -- regular: stop mining if target had no more units of item left to mine
+          end
         end
 
         if e:getItemCount(item) == maxBids then

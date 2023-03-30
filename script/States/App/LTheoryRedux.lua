@@ -136,10 +136,10 @@ function LTheoryRedux:onUpdate (dt)
       -- After that, when we're in Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if menuMode == 0 then
         Config.game.flightModeButInactive = false
-      else
+        menuMode = 2 -- show Flight Mode dialog
+      elseif not bSeedDialogDisplayed then
         Config.game.flightModeButInactive = true
       end
-      menuMode = 2 -- show Flight Mode dialog
     end
   end
 
@@ -181,7 +181,11 @@ function LTheoryRedux:onUpdate (dt)
       LTheoryRedux:showGameLogo()
     elseif menuMode == 1 then
       if not bBackgroundMode then
-        LTheoryRedux:showMainMenu()
+        if bSeedDialogDisplayed then
+          LTheoryRedux:showSeedDialog()
+        else
+          LTheoryRedux:showMainMenu()
+        end
       end
     elseif menuMode == 2 then
       if Config.game.flightModeButInactive then
@@ -278,7 +282,6 @@ function LTheoryRedux:createStarSystem ()
 
       -- Add a space station
       local station = self.system:spawnStation(Config.game.humanPlayer, nil)
---      station:setRot(rng:getQuat()) -- rotate single station from ecliptic in Background Mode
     else
       -- Flight Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
@@ -467,7 +470,6 @@ function LTheoryRedux:showMainMenuInner ()
     end
     if HmGui.Button("LOAD GAME") then
       LTheoryRedux:showSeedDialog()
-      menuMode = 2
     end
     if HmGui.Button("SETTINGS") then
     end
@@ -636,8 +638,10 @@ end
 function LTheoryRedux:freezeTurrets ()
   -- When taking down a dialog, Turret:updateTurret sees the button click input and thinks it means "Fire"
   -- So this routine adds a very brief cooldown to the player ship's turrets
-  for turret in Config.game.currentShip:iterSocketsByType(SocketType.Turret) do
-    turret:addCooldown(2.0)
+  if Config.game.currentShip then
+    for turret in Config.game.currentShip:iterSocketsByType(SocketType.Turret) do
+      turret:addCooldown(2.0)
+    end
   end
 end
 

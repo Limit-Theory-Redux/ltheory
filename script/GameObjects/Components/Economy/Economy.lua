@@ -38,7 +38,7 @@ function Economy:update (dt)
         if e:hasFlows() then insert(self.flows, e) end
         if e:hasMarket() then insert(self.markets, e) end
         if e:hasTrader() then insert(self.traders, e) end
-        if e:hasYield() then insert(self.yields, e) end
+        if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
       end
     end
     Profiler.End()
@@ -50,18 +50,16 @@ function Economy:update (dt)
     local realJobCount = 0
     do -- Cache mining jobs
       for _, src in ipairs(self.yields) do
-        if src:getYieldSize() > 0 then
-          local item = src:getYield().item
-          for _, dst in ipairs(self.markets) do
-            -- Create a Mine job only if the destination trader has a bid for the source item
-            allJobCount = allJobCount + 1
-            local itemBidVol = dst:getTrader():getBidVolume(item)
-            if itemBidVol > 0 then
+        local item = src:getYield().item
+        for _, dst in ipairs(self.markets) do
+          -- Create a Mine job only if the destination trader has a bid for the source item
+          allJobCount = allJobCount + 1
+          local itemBidVol = dst:getTrader():getBidVolume(item)
+          if itemBidVol > 0 then
 --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
 --    src:getName(), dst:getName(), item:getName(), itemBidVol)
-              realJobCount = realJobCount + 1
-              insert(self.jobs, Jobs.Mine(src, dst, item))
-            end
+            realJobCount = realJobCount + 1
+            insert(self.jobs, Jobs.Mine(src, dst, item))
           end
         end
       end

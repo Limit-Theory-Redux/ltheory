@@ -434,7 +434,7 @@ end
 
 function Trader:update ()
   if not Config.game.gamePaused then
-    Profiler.Begin('Trader.onUpdate')
+    Profiler.Begin("Trader.update")
     local rng = self.parent.parent.rng
     for item, data in pairs(self.elems) do
       -- Move asks from asks queue to asks table
