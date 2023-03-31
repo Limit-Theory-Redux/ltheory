@@ -19,8 +19,7 @@ local Background = subclass(Entity, function (self, proto)
   self:setDrag(0.75, 4.0)
   self:setScale(proto.scale)
 
-  local mass = 40000
-  self:setMass(mass)
+  self:setMass(40000) -- mass needed for the Background Mode "invisible ship" to rotate nicely
 end)
 
 -- TODO : Calculate true top speed based on max thrust & drag factor
