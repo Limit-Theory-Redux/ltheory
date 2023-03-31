@@ -29,6 +29,7 @@ function HUD:onEnable ()
 end
 
 function HUD:controlThrust (e)
+  -- TODO: Should this really be here in HUD.lua?
   if not e:hasThrustController() then return end
   local c = e:getThrustController()
   c:setThrust(
@@ -100,7 +101,7 @@ function HUD:drawTargets (a)
 
 --        local disp = target:getOwnerDisposition(player) -- might need to switch back to this version
         local disp = Config.game.dispoNeutral -- disposition to neutral by default
-        if target:hasAttackable() and target:getAttackable() then disp = target:getDisposition(playerShip) end
+        if target:hasAttackable() and target:isAttackable() then disp = target:getDisposition(playerShip) end
 --        local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
         local c = Disposition.GetColor(disp)
 
@@ -117,7 +118,7 @@ function HUD:drawTargets (a)
 
             -- Draw rounded box corners
             --local a = a * (1.0 - exp(-0.5 * max(0.0, max(bsx, bsy) - 2.0)))
-            if target:hasAttackable() and target:getAttackable() then
+            if target:hasAttackable() and target:isAttackable() then
               UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c)
               UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c)
               UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c)
@@ -158,7 +159,15 @@ function HUD:drawTargets (a)
               UI.DrawEx.TextAdditive(
                 'NovaRound',
                 targetName,
-                10,
+                14,
+                (bx1 + bx2) / 2 - targetName:len() / 2 + 1, by1 - 30 + 1, targetName:len(), 20,
+                1 - tcr, 1 - tcg, 1 - tcb, a,
+                0.5, 0.5
+              )
+              UI.DrawEx.TextAlpha(
+                'NovaRound',
+                targetName,
+                14,
                 (bx1 + bx2) / 2 - targetName:len() / 2, by1 - 30, targetName:len(), 20,
                 tcr, tcg, tcb, a,
                 0.5, 0.5
@@ -166,7 +175,7 @@ function HUD:drawTargets (a)
             end
 
             -- Draw target health bar
-            if playerTarget == target and target:hasHealth() then
+            if playerTarget == target and target:hasHealth() and not target:isDestroyed() then
               local targetHealthPct = target:getHealthPercent()
               if targetHealthPct > 0.0 then
                 local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
@@ -209,6 +218,7 @@ function HUD:drawLock (a)
   local center = Vec2f(self.sx / 2, self.sy / 2)
 
   do -- Direction indicator
+    -- TODO: flip direction of arrow when target is in the rear hemisphere relative to player's view (angle-off > 180)
     local r = 96
     local pos = target:getPos()
     local ndc = camera:worldToNDC(pos)
@@ -221,16 +231,16 @@ function HUD:drawLock (a)
       dir:inormalize()
       ss = center + dir:scale(r)
       local a = a * (1.0 - exp(-max(0.0, dist / (r + 16) - 1.0)))
-      UI.DrawEx.Arrow(ss, dir:scale(6), Color(1.0, 0.5, 0.1, a))
+      UI.DrawEx.Arrow(ss, dir:scale(8), Color(1.0, 0.6, 0.2, a))
     end
   end
 
   -- Predictive impact point
   -- Takes into account player's movement, target's movement,
   --   and the speed of the currently selected weapon/projectile
-  -- TEMP: change reference to Config.game.pulseRange from App.lua when multiple weapon types are available
+  -- TODO: change reference to Config.game.pulseRange from App.lua when multiple weapon types are available
   local range = playerShip:getPos():distance(target:getPos())
-  if target:hasAttackable() and target:getAttackable() and range < Config.game.pulseRange then
+  if target:hasAttackable() and target:isAttackable() and range < Config.game.pulseRange then
     if playerShip.socketSpeedMax > 0 then
       local tHit, pHit = Math.Impact(
         playerShip:getPos(),
@@ -290,10 +300,18 @@ function HUD:drawPlayerHealth (a)
   UI.DrawEx.TextAdditive(
     'NovaRound',
     playerShip:getName(),
-    10,
-    x, y, sx, sy,
+    14,
+    112 + 1, sy - 240 + 1, 100, 12,
+    0, 0, 0, a,
+    0.5, 0.5
+  )
+  UI.DrawEx.TextAdditive(
+    'NovaRound',
+    playerShip:getName(),
+    14,
+    112, sy - 240, 100, 12,
     1, 1, 1, a,
-    0.077, 0.75
+    0.5, 0.5
   )
 
   -- Draw hologram of player ship
@@ -312,10 +330,18 @@ function HUD:drawPlayerHealth (a)
   UI.DrawEx.TextAdditive(
     'NovaRound',
     playerHealthText,
-    10,
-    x, y, sx, sy,
+    14,
+    112 + 1, sy - 34 + 1, 100, 12,
+    0, 0, 0, a,
+    0.5, 0.5
+  )
+  UI.DrawEx.TextAdditive(
+    'NovaRound',
+    playerHealthText,
+    14,
+    112, sy - 34, 100, 12,
     1, 1, 1, a,
-    0.075, 0.97
+    0.5, 0.5
   )
 
   UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
@@ -326,7 +352,7 @@ end
 function HUD:drawTargetHealth (a)
   local playerShip = self.player:getControlling()
   local target = playerShip:getTarget()
-  if target and target:hasHealth() then
+  if target and target:hasHealth() and not target:isDestroyed() then
     local cx, cy = self.sx / 2, self.sy / 2
     local x, y, sx, sy = self:getRectGlobal()
     local targetName = target:getName()
@@ -349,10 +375,18 @@ function HUD:drawTargetHealth (a)
       UI.DrawEx.TextAdditive(
         'NovaRound',
         targetName,
-        10,
-        x, y, sx, sy,
+        14,
+        sx - 208 + 1, sy - 240 + 1, 100, 12,
+        0, 0, 0, a,
+        0.5, 0.5
+      )
+      UI.DrawEx.TextAdditive(
+        'NovaRound',
+        targetName,
+        14,
+        sx - 208, sy - 240, 100, 12,
         1, 1, 1, a,
-        0.922, 0.75
+        0.5, 0.5
       )
 
       -- Draw hologram of target entity
@@ -367,10 +401,18 @@ function HUD:drawTargetHealth (a)
       UI.DrawEx.TextAdditive(
         'NovaRound',
         targetHealthText,
-        10,
-        x, y, sx, sy,
+        14,
+        sx - 208 + 1, sy - 34 + 1, 100, 12,
+        0, 0, 0, a,
+        0.5, 0.5
+      )
+      UI.DrawEx.TextAdditive(
+        'NovaRound',
+        targetHealthText,
+        14,
+        sx - 208, sy - 34, 100, 12,
         1, 1, 1, a,
-        0.925, 0.97
+        0.5, 0.5
       )
     end
   end
@@ -400,8 +442,8 @@ function HUD:onInput (state)
   local camera = self.gameView.camera
   camera:push()
   camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
-  -- camera:modYaw(0.005 * CameraBindings.Yaw:get())
-  -- camera:modPitch(0.005 * CameraBindings.Pitch:get())
+  --camera:modYaw(0.005 * CameraBindings.Yaw:get())     -- only works when cameraOrbit is the current camera
+  --camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
   local e = self.player:getControlling()
   if not e:isDestroyed() then
@@ -477,17 +519,19 @@ function HUD:getDockable (self)
 end
 
 function HUD:onDraw (focus, active)
-  local playerShip = self.player:getControlling()
-  if playerShip:isAlive() then
-    if Config.ui.HUDdisplayed then
-      Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetHealth') self:drawTargetHealth(self.enabled) Profiler.End()
-    end
+  if not Config.game.gamePaused then
+    local playerShip = self.player:getControlling()
+    if playerShip:isAlive() then
+      if Config.ui.HUDdisplayed then
+        Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
+        Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
+        Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
+        Profiler.Begin('HUD.DrawTargetHealth') self:drawTargetHealth(self.enabled) Profiler.End()
+      end
 
-    Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
-    Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+    end
   end
 end
 
@@ -523,9 +567,8 @@ function HUD.Create (gameView, player)
 
     target          = nil,
     targets         = Systems.CommandView.TrackingList(player, Entity.isTrackable),
---    targets         = Systems.CommandView.TrackingList(player, Entity.isAlive),
 
-    -- TODO Probably want a reusable prompt thing
+    -- TODO : Probably want a reusable prompt thing
     dockPromptAlpha = 0,
     dockable        = nil,
     dockables       = Systems.CommandView.TrackingList(player, Entity.hasDockable),

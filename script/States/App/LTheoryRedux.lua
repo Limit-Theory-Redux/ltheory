@@ -49,11 +49,11 @@ local guiElements = {
 
 --** MAIN CODE **--
 function LTheoryRedux:onInit ()
-  self.logo = Tex2D.Load("./res/images/LTR_logo1d.png") -- load the LTR logo
+  self.logo = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
 
   DebugControl.ltheory = self
 
-  self.player = Entities.Player("[Human Player Name]")
+  self.player = Entities.Player(Config.game.humanPlayerName)
   Config.game.humanPlayer = self.player
   self:generate()
 
@@ -135,11 +135,11 @@ function LTheoryRedux:onUpdate (dt)
       -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
       -- After that, when we're in Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if menuMode == 0 then
-        Config.game.flightModeActive = false
-      else
-        Config.game.flightModeActive = true
+        Config.game.flightModeButInactive = false
+        menuMode = 2 -- show Flight Mode dialog
+      elseif not bSeedDialogDisplayed then
+        Config.game.flightModeButInactive = true
       end
-      menuMode = 2 -- show Flight Mode dialog
     end
   end
 
@@ -181,15 +181,18 @@ function LTheoryRedux:onUpdate (dt)
       LTheoryRedux:showGameLogo()
     elseif menuMode == 1 then
       if not bBackgroundMode then
-        LTheoryRedux:showMainMenu()
-      end
-    elseif menuMode == 2 then
-      if Config.game.flightModeActive then
-        LTheoryRedux:showFlightDialog()
-      else
         if bSeedDialogDisplayed then
           LTheoryRedux:showSeedDialog()
+        else
+          LTheoryRedux:showMainMenu()
         end
+      end
+    elseif menuMode == 2 then
+      if Config.game.flightModeButInactive then
+        Config.game.gamePaused = true
+        LTheoryRedux:showFlightDialog()
+      elseif bSeedDialogDisplayed then
+        LTheoryRedux:showSeedDialog()
       end
     end
   HmGui.End()
@@ -278,7 +281,7 @@ function LTheoryRedux:createStarSystem ()
       end
 
       -- Add a space station
-      self.system:spawnStation(Config.game.humanPlayer, nil)
+      local station = self.system:spawnStation(Config.game.humanPlayer, nil)
     else
       -- Flight Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
@@ -328,7 +331,7 @@ function LTheoryRedux:createStarSystem ()
 
       -- Add the player's ship
       newShip = self.system:spawnShip(Config.game.humanPlayer)
-      newShip:setName("NSS [Human Player Ship Name]")
+      newShip:setName(format("NSS %s", Config.game.humanPlayerShipName))
 --      newShip:setHealth(1000, 1000, 50) -- extra-healthy version of player ship for surviving testing
       newShip:setHealth(500, 500, 20)
       Config.game.currentShip = newShip
@@ -369,6 +372,7 @@ printf("Player ship position = %s", newShip:getPos())
         for i = 1, Config.gen.nAIPlayers do
           local tradePlayerName = format("AI Trade Player %d", i)
           local tradePlayer = Entities.Player(tradePlayerName)
+          insert(self.system.players, tradePlayer)
 
           -- Give AI Player some starting money
           tradePlayer:addCredits(Config.econ.eStartCredits)
@@ -416,13 +420,13 @@ function LTheoryRedux:showGameLogo ()
   local scaleFactorX = self.resX / 1600
   local scaleFactorY = self.resY /  900
   HmGui.Image(self.logo) -- draw the LTR logo on top of the canvas
-  HmGui.SetStretch(0.74947917 * scaleFactor / scaleFactorX, 0.28 * scaleFactor / scaleFactorY) -- scale logo (width, height)
+  HmGui.SetStretch(0.76 * scaleFactor / scaleFactorX, 0.243 * scaleFactor / scaleFactorY) -- scale logo (width, height)
   HmGui.SetAlign(0.5, 0.5) -- align logo
 end
 
 function LTheoryRedux:showMainMenu ()
   -- Add Main Menu dialog
-  local scalefactor = (self.resX / 25) / 72
+  local scalefactor = (self.resX / 22) / 72
   local scalefactorMenuX = 352.8 / self.resX
   local scalefactorMenuY = 549   / self.resY
 
@@ -436,28 +440,26 @@ function LTheoryRedux:showMainMenu ()
     HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.9, 0.9, 0.9, 1.0)
     HmGui.SetAlign(0.18, 0.13)
 
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.gameVersion, 0.2, 0.2, 0.2, 1.0)
-    HmGui.SetAlign(0.012, 0.973)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), Config.gameVersion, 0.9, 0.9, 0.9, 1.0)
-    HmGui.SetAlign(0.011, 0.971)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), Config.gameVersion, 0.2, 0.2, 0.2, 1.0)
+    HmGui.SetAlign(0.012, 0.971)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), Config.gameVersion, 0.9, 0.9, 0.9, 1.0)
+    HmGui.SetAlign(0.011, 0.970)
 
-    HmGui.SetAlign(0.01, 0.97)
-
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.2, 0.2, 0.2, 1.0)
-    HmGui.SetAlign(0.161, 0.971)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 18 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.9, 0.9, 0.9, 1.0)
-    HmGui.SetAlign(0.16, 0.97)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.2, 0.2, 0.2, 1.0)
+    HmGui.SetAlign(0.221, 0.971)
+    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.9, 0.9, 0.9, 1.0)
+    HmGui.SetAlign(0.220, 0.970)
 
     self:showMainMenuInner()
 
-    HmGui.SetStretch(0.194, 0.6)
-    HmGui.SetAlign(0.0065, 0.72)
+    HmGui.SetStretch(0.18, 0.5)
+    HmGui.SetAlign(0.0065, 0.8)
   HmGui.EndGroup()
 end
 
 function LTheoryRedux:showMainMenuInner ()
   -- Add Main Menu items
-  local scalefactor = (self.resX / 25) / 72
+  local scalefactor = (self.resX / 24) / 72
 
   HmGui.BeginGroupY()
     HmGui.PushTextColor(0.9, 0.9, 0.9, 1.0)
@@ -468,7 +470,6 @@ function LTheoryRedux:showMainMenuInner ()
     end
     if HmGui.Button("LOAD GAME") then
       LTheoryRedux:showSeedDialog()
-      menuMode = 2
     end
     if HmGui.Button("SETTINGS") then
     end
@@ -487,7 +488,7 @@ end
 function LTheoryRedux:showFlightDialog ()
   -- Add Flight Mode dialog menu
   HmGui.BeginWindow("Flight Mode")
-    HmGui.TextEx(Cache.Font('Iceland', 20), 'Flight Mode Controls', 0.3, 0.4, 0.5, 1.0)
+    HmGui.TextEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.4, 0.5, 1.0)
     HmGui.SetAlign(0.5, 0.5)
     HmGui.SetSpacing(16)
     self:showFlightDialogInner()
@@ -499,35 +500,43 @@ function LTheoryRedux:showFlightDialogInner ()
   -- Add Flight Mode dialog menu items
   HmGui.BeginGroupY()
     HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-    HmGui.PushFont(Cache.Font('Exo2Bold', 18))
+    HmGui.PushFont(Cache.Font('Exo2Bold', 26))
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
       if HmGui.Button("Return to Game") then
-        Config.game.flightModeActive = false
+        LTheoryRedux:freezeTurrets()
+        Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
       end
     end
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
       HmGui.SetSpacing(8)
       if HmGui.Button("Save Game") then
-        Config.game.flightModeActive = false
+        -- TODO: Save game state here
+        LTheoryRedux:freezeTurrets()
+        Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
       end
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Load Game") then
+      -- TODO: Show Load Game menu once that's been implemented
+      -- NOTE: For now, just pop up a Seed Menu dialog for creating a new star system
       LTheoryRedux:showSeedDialog()
-      Config.game.flightModeActive = false
+      Config.game.flightModeButInactive = false
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Game Settings") then
-      Config.game.flightModeActive = true
+      -- TODO: Show Game Settings menu once that's been implemented
+      LTheoryRedux:freezeTurrets()
+      Config.game.flightModeButInactive = false
+      Config.game.gamePaused = false
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Exit to Main Menu") then
-      Config.game.flightModeActive = false
-      Config.game.gamePaused = false
+      Config.game.flightModeButInactive = true
       Config.setGameMode(1) -- switch to Startup Mode
       LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode
+      Config.game.gamePaused = false
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Exit Game") then
@@ -541,7 +550,7 @@ function LTheoryRedux:showSeedDialog ()
   -- Add new star system seed selection dialog menu
   bSeedDialogDisplayed = true
   HmGui.BeginWindow(guiElements.name)
-    HmGui.TextEx(Cache.Font('Iceland', 24), 'Choose Seed', 0.3, 0.4, 0.5, 1.0)
+    HmGui.TextEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.4, 0.5, 1.0)
     HmGui.SetAlign(0.5, 0.5)
     HmGui.SetSpacing(16)
     self:showSeedDialogInner()
@@ -553,7 +562,7 @@ function LTheoryRedux:showSeedDialogInner ()
   -- Add new star system seed selection dialog menu items
   HmGui.BeginGroupY()
     HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-    HmGui.PushFont(Cache.Font('Exo2', 16))
+    HmGui.PushFont(Cache.Font('Exo2', 26))
 
     -- Loop through saved seeds (hardcoded for now) and display as checkboxes
     for i = 1, #guiElements[1]["elems"] do
@@ -578,11 +587,12 @@ function LTheoryRedux:showSeedDialogInner ()
 
     HmGui.BeginGroupX()
       HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-      HmGui.PushFont(Cache.Font('Exo2Bold', 18))
+      HmGui.PushFont(Cache.Font('Exo2Bold', 28))
       if HmGui.Button("Cancel") then
         bSeedDialogDisplayed = false
         bNewSSystem = false
         menuMode = Config.getGameMode()
+        LTheoryRedux:freezeTurrets()
         Config.game.gamePaused = false
       end
       HmGui.SetSpacing(16)
@@ -595,6 +605,7 @@ function LTheoryRedux:showSeedDialogInner ()
         bNewSSystem = true
         Config.setGameMode(2) -- switch to Flight Mode
         menuMode = 2
+        Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
       end
       HmGui.SetSpacing(16)
@@ -606,6 +617,7 @@ function LTheoryRedux:showSeedDialogInner ()
         bNewSSystem = true
         Config.setGameMode(2) -- switch to Flight Mode
         menuMode = 2
+        Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
       end
       HmGui.PopStyle(2)
@@ -623,6 +635,16 @@ function LTheoryRedux:exitGame ()
 end
 
 --** SUPPORT FUNCTIONS **--
+function LTheoryRedux:freezeTurrets ()
+  -- When taking down a dialog, Turret:updateTurret sees the button click input and thinks it means "Fire"
+  -- So this routine adds a very brief cooldown to the player ship's turrets
+  if Config.game.currentShip then
+    for turret in Config.game.currentShip:iterSocketsByType(SocketType.Turret) do
+      turret:addCooldown(2.0)
+    end
+  end
+end
+
 function LTheoryRedux:sleep (sec)
   os.execute(package.config:sub(1,1) == "/" and "sleep " .. sec or "timeout " .. sec )
 end

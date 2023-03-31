@@ -6,25 +6,22 @@ Config.render.vsync = false
 
 Config.audio.bSoundOn = false
 
-Config.gen.nFields    =  10
-Config.gen.nAsteroids = 200
+Config.gen.nFields    =   5
+Config.gen.nAsteroids = 100
 Config.gen.nPlanets   =   1
-Config.gen.nStations  =  30
+Config.gen.nStations  =   1
 
 Config.gen.scaleFieldAsteroid = Config.gen.scaleAsteroid * 9500
 Config.gen.nBeltSize = function (rng) return 200 end
-
--- Config.gen.nDustClouds = 0
--- Config.gen.nDustFlecks = 2048
 
 Config.ui.uniqueShips = false -- true = generate each ship as a unique mesh (very slow!)
 
 Config.gen.nTurrets   = 1
 Config.gen.nThrusters = 2
 
-Config.gen.nAIPlayers  =   3 -- # of AI players (who manage Economic assets)
-Config.gen.nEconNPCs   =  45 -- total # of ships to be given Economic actions (to be split among AI players)
-Config.gen.nEscortNPCs =  55 -- # of ships to be given the Escort action
+Config.gen.nAIPlayers  =   0 -- # of AI players (who manage Economic assets)
+Config.gen.nEconNPCs   =   0 -- total # of ships to be given Economic actions (to be split among AI players)
+Config.gen.nEscortNPCs =  50 -- # of ships to be given the Escort action
 
 Config.debug.instantJobs = false
 Config.debug.jobSpeed    = 10000

@@ -21,33 +21,39 @@ end)
 --        asteroid count (Yield) and station/planet count (Market) increase.
 function Economy:update (dt)
   if not Config.game.gamePaused then
-    Profiler.Begin('Economy.Update')
+--    Profiler.Begin('Economy.Update')
+    Profiler.Begin('Economy.Update.tableclear')
     table.clear(self.factories)
     table.clear(self.flows)
     table.clear(self.markets)
     table.clear(self.jobs)
     table.clear(self.traders)
     table.clear(self.yields)
+    Profiler.End()
 
+    Profiler.Begin('Economy.Update.POI')
     do -- Cache points-of-interest
       for _, e in self.parent:iterChildren() do
         if e:hasFactory() then insert(self.factories, e) end
         if e:hasFlows() then insert(self.flows, e) end
         if e:hasMarket() then insert(self.markets, e) end
         if e:hasTrader() then insert(self.traders, e) end
-        if e:hasYield() then insert(self.yields, e) end
+        if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
       end
     end
+    Profiler.End()
 
     -- Cache profitable mining jobs
+    Profiler.Begin('Economy.Update.Mining')
+    -- TODO: This section is an enormous CPU hog due to the number of station - asteroid combinations
     local allJobCount = 0
     local realJobCount = 0
     do -- Cache mining jobs
       for _, src in ipairs(self.yields) do
+        local item = src:getYield().item
         for _, dst in ipairs(self.markets) do
           -- Create a Mine job only if the destination trader has a bid for the source item
           allJobCount = allJobCount + 1
-          local item = src:getYield().item
           local itemBidVol = dst:getTrader():getBidVolume(item)
           if itemBidVol > 0 then
 --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
@@ -58,6 +64,7 @@ function Economy:update (dt)
         end
       end
     end
+    Profiler.End()
 --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
 --    if false then  -- INACTIVE (Josh code)
@@ -77,6 +84,7 @@ function Economy:update (dt)
 --    end
 
     -- Cache profitable trade jobs
+    Profiler.Begin('Economy.Update.Transport')
     local allJobCount = 0
     local realJobCount = 0
     for _, src in ipairs(self.traders) do
@@ -103,8 +111,10 @@ function Economy:update (dt)
         end
       end
     end
+    Profiler.End()
 --printf("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
+    Profiler.Begin('Economy.Update.Flows')
     do -- Compute net flow of entire economy
       -- Clear current flow
       for k, v in pairs(self.parent.flows) do self.parent.flows[k] = 0 end
@@ -116,12 +126,13 @@ function Economy:update (dt)
         end
       end
     end
+    Profiler.End()
 
     do -- Compute commodity metrics
       self.goods = {}
     end
 
-    Profiler.End()
+--    Profiler.End()
   end
 end
 

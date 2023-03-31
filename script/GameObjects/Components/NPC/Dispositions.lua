@@ -38,18 +38,33 @@ end
 function Entity:setDisposition (target, value)
   if self ~= Config.game.currentShip then
     assert(self.dispositions)
-    self.dispositions[target] = value
-printf("Disposition of %s to %s is now %f!", self:getName(), target:getName(), self:getDisposition(target))
 
-  -- generate an integer array index: -1.0 to -0.33332 -> 1, -0.33333 to 0.33332 -> 2, 0.33333 to 1.0 -> 3
-  local dispNameIndex = 2
-  if self:isHostileTo(target) then
-    dispNameIndex = 1
-  elseif self:isFriendlyTo(target) then
-    dispNameIndex = 3
-  end
-printf("%s is now %s to %s.", self:getName(), Config.game.dispoName[dispNameIndex], target:getName())
+    local oldDispo = self:getDisposition(target)
+    if oldDispo ~= value then
+      self.dispositions[target] = value
+--printf("Disposition of %s to %s was %f, is now %f", self:getName(), target:getName(), oldDispo, self.dispositions[target])
 
+      -- Generate an integer array index: -1.0 to -0.33332 -> 1, -0.33333 to 0.33332 -> 2, 0.33333 to 1.0 -> 3
+      -- NOTE: This section is just debugging, but it's being left here as a "how to" for disposition descriptors
+      --       Remove for productionizing
+--      local dispoNameIndex = 0
+--      if     oldDispo >= Config.game.dispoHostileThreshold  and value <  Config.game.dispoHostileThreshold  then
+--        dispoNameIndex = 1
+--      elseif oldDispo <  Config.game.dispoHostileThreshold  and value >= Config.game.dispoHostileThreshold  then
+--        dispoNameIndex = 2
+--      elseif oldDispo >= Config.game.dispoFriendlyThreshold and value <  Config.game.dispoFriendlyThreshold then
+--        dispoNameIndex = 2
+--      elseif oldDispo <  Config.game.dispoFriendlyThreshold and value >= Config.game.dispoFriendlyThreshold then
+--        dispoNameIndex = 3
+--      end
+--      if dispoNameIndex ~= 0 then
+--        local surprise = ""
+--        if dispoNameIndex == 1 or dispoNameIndex == 3 then
+--          surprise = "!"
+--        end
+--        printf("%s is now %s to %s%s", self:getName(), Config.game.dispoName[dispoNameIndex], target:getName(), surprise)
+--      end
+    end
   end
 end
 

@@ -183,6 +183,7 @@ end
 
 function Factory:update (dt)
   if not Config.game.gamePaused then
+    Profiler.Begin('Factory.Update')
     self.time = self.time + dt
     if not self:isBlocked() then self.timeOnline = self.timeOnline + dt end
 
@@ -194,6 +195,7 @@ function Factory:update (dt)
     --        max active orders, leading to stalling the entire game via tens
     --        of thousands of individual energy cell orders...
 --    self:updateTradeOrders(prod, dt)
+    Profiler.End()
   end
 end
 

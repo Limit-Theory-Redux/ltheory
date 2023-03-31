@@ -23,12 +23,20 @@ function Entity:damage (amount, source)
     -- Entity has been damaged to the point of destruction (0 health)
     self.health = 0
     self:clearActions()
+
     -- Also need to process destroyed entity's assets, including credits and cargo
+
     -- Also ALSO need to notify nearby ships
     --    resulting Actions may include Evade, Attack, and/or alert faction members
+
+    -- If this object was dockable, make it undockable
     if self:hasDockable() and self:isDockable() then
-      -- If this object was dockable, make it undockable
       self:setUndockable()
+    end
+
+    -- If this object was attackable, make it unattackable
+    if self:hasAttackable() then
+      self:setAttackable(false)
     end
 
 printf("%s destroyed by %s!", self:getName(), source:getName())
@@ -36,8 +44,7 @@ printf("%s destroyed by %s!", self:getName(), source:getName())
     self:send(Event.Destroyed(source))
 
     if self == Config.game.currentShip then
-      Config.game.flightModeActive = false
---      Config.game.flightModeActive = true
+      Config.game.flightModeButInactive = true
     end
   end
 end

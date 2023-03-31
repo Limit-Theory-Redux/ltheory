@@ -45,7 +45,7 @@ function TestEcon:onInit ()
   self.canvas = UI.Canvas()
   self.system = Entities.Test.System(rng:get64())
 
-  -- Add system-wide AI director
+  -- Add system-wide AI director (but don't insert into system's list of players)
   self.tradeAI = Entities.Player("AI Trade Player")
   self.tradeAI:addCredits(1e10)
 
@@ -56,6 +56,13 @@ function TestEcon:onInit ()
   -- Use fast movement and hyperspeedup for economic testing
   Config.debug.instantJobs     = true
   Config.debug.timeAccelFactor = 100
+
+  -- Add AI Players (these will control assets directly)
+  for i = 1, kPlayers do
+    local tradePlayerName = format("AI Trade Player %d", i)
+    local tradePlayer = Entities.Player(tradePlayerName)
+    insert(self.system.players, player)
+  end
 
   -- Add a planet at the origin
   planet = self.system:spawnPlanet(false)
@@ -94,11 +101,8 @@ function TestEcon:onInit ()
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
   self.system:addExtraFactories(self.system, planet, self.tradeAI, rng)
 
-  -- Add Players and give each one some assets
-  for i = 1, kPlayers do
-    local tradePlayerName = format("AI Trade Player %d", i)
-    local tradePlayer = Entities.Player(tradePlayerName)
-
+  -- Give all AI Players some resources and assets
+  for _, tradePlayer in self.players do
     -- Give player some starting money
     tradePlayer:addCredits(Config.econ.eStartCredits)
 

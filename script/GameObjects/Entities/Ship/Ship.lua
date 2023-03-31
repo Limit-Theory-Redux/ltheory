@@ -8,7 +8,7 @@ local Ship = subclass(Entity, function (self, proto)
   self:addChildren()
   self:addDispositions()
   self:addExplodable()
-  self:addHealth(500, 5)
+  self:addHealth(500, 1)
   self:addInventory(100)
   self:addTrackable(true)
   self:addAttackable(true)
@@ -71,7 +71,13 @@ function Ship:attackedBy (target)
 end
 
 function Ship:setShipDocked (entity)
-  self.shipDockedAt = entity -- remember where we parked
+  self.shipDockedAt = entity -- mark 'entity' (just ships for now) as docked
+
+  -- If the player was targeting a ship that just docked, remove the target lock
+  -- TODO: This check needs to be applied to ALL ships, not just the player's ship
+  if self == Config.game.currentShip:getTarget() then
+    Config.game.currentShip:setTarget(nil)
+  end
 
 --if self.shipDockedAt then
 --  printf("%s docked at Station %s", self:getName(), self.shipDockedAt:getName())

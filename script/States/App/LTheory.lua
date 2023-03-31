@@ -28,6 +28,7 @@ function LTheory:generate ()
     ship:setOwner(self.player)
     self.system:addChild(ship)
     self.player:setControlling(ship)
+    Config.game.currentShip = ship
 
     local ships = {}
     for i = 1, 100 do

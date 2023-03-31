@@ -58,6 +58,10 @@ function Turret:getSocketType ()
   return SocketType.Turret
 end
 
+function Turret:addCooldown (cooldown)
+  self.cooldown = self.cooldown + cooldown
+end
+
 function Turret:aimAt (pos)
   if not Config.game.gamePaused then
     local look = pos - self:getPos()

@@ -136,13 +136,15 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
       -- TODO: This hitEnt nil check fixes a bug in PhysicsTest.lua. For some reason these two objects do not
       --       return anything fromRigidBody for the first few seconds. While this is a good check to do since
       --       we cannot confirm that the hit will have a rigidbody. This is a hotfix for a weird error.
-      if(hitEnt ~= nil) then
+      if (hitEnt ~= nil) then
         -- don't collide with the socket that spawned me
         if hitEnt ~= source then
           -- do damage if the collidee has health
           if hitEnt.health then
-            if source:getHealth() > 0 then
+            if source:isAlive() then
+--            if source:getHealth() > 0 then
               -- If attacked, this entity stops what it's doing and attacks that ship
+              -- TODO: Improve response logic when attacked
               hitEnt:attackedBy(source)
             end
             hitEnt:damage(Config.game.pulseDamage, source)
