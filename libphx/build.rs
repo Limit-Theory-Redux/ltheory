@@ -1,6 +1,5 @@
 #![allow(unused_imports, dead_code)]
 use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
-use http_req::request;
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -10,66 +9,6 @@ use std::path::PathBuf;
 
 extern crate cbindgen;
 extern crate gl_generator;
-// extern crate flate2;
-// extern crate http_req;
-// extern crate tar;
-
-// fn get_install_dir() -> String {
-//     env::var("OUT_DIR").unwrap() + "/installed"
-// }
-
-// fn download(url: &str) -> Cursor<Vec<u8>> {
-//     let response = request::get(url).map_err(|error| error.to_string()).unwrap();
-//     if response.status_code() < 200 || response.status_code() >= 300 {
-//         panic!("Download error: HTTP {}", response.status_code());
-//     }
-//     let resp_body = response.body();
-//     let buffer = resp_body.to_vec();
-//     Cursor::new(buffer)
-// }
-
-// fn get_tarball(url: &str, dir: &str) {
-//     use flate2::read::GzDecoder;
-//     use tar::Archive;
-
-//     // Download gz tarball
-//     let install_dir = get_install_dir();
-//     let lib_install_dir = Path::new(&install_dir).join("lib");
-//     fs::create_dir_all(&lib_install_dir);
-//     let compressed_file = download(url);
-
-//     // Unpack the tarball
-//     let gz_decoder = GzDecoder::new(compressed_file);
-//     let mut archive = Archive::new(gz_decoder);
-
-//     archive.unpack(dir);
-
-//     // Extract just the appropriate version of libsodium.a and headers to the install path
-//     let arch_path = if cfg!(target_pointer_width = "32") {
-//         Path::new("libsodium-win32")
-//     } else if cfg!(target_pointer_width = "64") {
-//         Path::new("libsodium-win64")
-//     } else {
-//         panic!("target_pointer_width not 32 or 64")
-//     };
-
-//     let unpacked_include = arch_path.join("include");
-//     let unpacked_lib = arch_path.join("lib\\libsodium.a");
-//     let entries = unwrap!(archive.entries());
-//     for entry_result in entries {
-//         let mut entry = unwrap!(entry_result);
-//         let entry_path = unwrap!(entry.path()).to_path_buf();
-//         let full_install_path = if entry_path.starts_with(&unpacked_include) {
-//             let include_file = unwrap!(entry_path.strip_prefix(arch_path));
-//             Path::new(&install_dir).join(include_file)
-//         } else if entry_path == unpacked_lib {
-//             lib_install_dir.join("libsodium.a")
-//         } else {
-//             continue;
-//         };
-//         unwrap!(entry.unpack(full_install_path));
-//     }
-// }
 
 fn link_lib_from_cmake(lib: &str, root: &PathBuf, path_segments: &[&str]) {
     let mut path = root.clone();

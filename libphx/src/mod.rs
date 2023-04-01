@@ -10,6 +10,7 @@
 #![feature(extern_types)]
 #![feature(thread_local)]
 
+extern crate fmod_sys;
 extern crate freetype_sys;
 extern crate glam;
 extern crate libc;
