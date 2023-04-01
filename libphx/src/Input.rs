@@ -214,7 +214,7 @@ unsafe extern "C" fn Input_SetButton(mut event: InputEvent) {
                 buttonsToRemove.push(i);
             }
         }
-        for i in buttonsToRemove.iter() {
+        for i in buttonsToRemove.iter().rev() {
             this.downButtons.remove(*i);
         }
     }

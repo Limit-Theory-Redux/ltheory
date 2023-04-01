@@ -781,7 +781,7 @@ pub unsafe extern "C" fn Audio_Update() {
             soundsToRemove.push(i);
         }
     }
-    for i in soundsToRemove.iter() {
+    for i in soundsToRemove.iter().rev() {
         this.playingSounds.swap_remove(*i);
     }
 
