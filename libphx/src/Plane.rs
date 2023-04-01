@@ -11,8 +11,22 @@ pub struct Plane {
     pub d: f32,
 }
 
-pub type PointClassification = u8;
-pub type PolygonClassification = u8;
+#[derive(Copy, Clone, PartialEq)]
+#[repr(u8)]
+pub enum PointClassification {
+    InFront  = 1,
+    Behind   = 2,
+    Coplanar = 3
+}
+
+#[derive(Copy, Clone, PartialEq)]
+#[repr(u8)]
+pub enum PolygonClassification {
+    InFront    = 1,
+    Behind     = 2,
+    Coplanar   = 3,
+    Straddling = 4
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn Plane_ClassifyPoint(
@@ -22,11 +36,11 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
     let mut _magnitude: f32 = f64::abs((1.0f32 - (*plane).n.length()) as f64) as f32;
     let mut dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
     if dist as f64 > 1e-4f64 {
-        1 as PointClassification
+        PointClassification::InFront
     } else if (dist as f64) < -1e-4f64 {
-        return 2 as PointClassification;
+        PointClassification::Behind
     } else {
-        return 3 as PointClassification;
+        PointClassification::Coplanar
     }
 }
 
@@ -38,50 +52,42 @@ pub unsafe extern "C" fn Plane_ClassifyPolygon(
     let mut numInFront: i32 = 0;
     let mut numBehind: i32 = 0;
     let mut i: usize = 0;
-    while i < (*polygon).vertices_size as usize {
-        let mut classification: PointClassification = Plane_ClassifyPoint(plane, (*polygon).vertices_data.offset(i as isize));
-        let mut current_block_2: u64;
-        match classification as i32 {
-            1 => {
-                current_block_2 = 18070553979786946493;
-            }
-            2 => {
-                numBehind += 1;
-                current_block_2 = 14523784380283086299;
-            }
-            3 => {
-                current_block_2 = 14523784380283086299;
-            }
-            _ => Fatal(
-                b"Plane_ClassifyPolygon: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
-                classification as i32,
-            ),
-        }
-        match current_block_2 {
-            18070553979786946493 => {
+    while i < (*polygon).vertices.len() {
+        let mut classification: PointClassification = Plane_ClassifyPoint(plane, &(*polygon).vertices[i]);
+        match classification {
+            PointClassification::InFront => {
                 numInFront += 1;
             }
-            _ => {}
+            PointClassification::Behind => {
+                numBehind += 1;
+            }
+            PointClassification::Coplanar => {
+            },
         }
+        
+        // TODO : This early out may not make as much sense if the BSP stops cutting triangles.
         if numInFront != 0 && numBehind != 0 {
-            return 4 as PolygonClassification;
+            return PolygonClassification::Straddling;
         }
         i += 1;
     }
+
     if numInFront != 0 {
-        return 1 as PolygonClassification;
+        PolygonClassification::InFront
+    } else if numBehind != 0 {
+        PolygonClassification::Behind
+    } else {
+        PolygonClassification::Coplanar
     }
-    if numBehind != 0 {
-        return 2 as PolygonClassification;
-    }
-    3 as PolygonClassification
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Plane_Validate(mut plane: *mut Plane) -> Error {
     let mut e: Error = 0 as Error;
+
     e |= Float_Validate((*plane).d as f64);
     e |= Vec3_Validate((*plane).n);
+    
     e
 }
 
