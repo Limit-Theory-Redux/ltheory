@@ -794,10 +794,10 @@ pub unsafe extern "C" fn Matrix_Print(this: *const Matrix) {
     while i < 4 {
         let mut j: i32 = 0;
         while j < 4 {
-            libc::printf(c_str!("%f "), (*this).m[(4 * i + j) as usize] as f64);
+            CPrintf!("%f ", (*this).m[(4 * i + j) as usize] as f64);
             j += 1;
         }
-        libc::printf(c_str!("\n"));
+        CPrintf!("\n");
         i += 1;
     }
 }

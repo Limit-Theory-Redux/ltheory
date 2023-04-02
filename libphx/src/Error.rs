@@ -7,69 +7,69 @@ pub type Error = u32;
 
 #[no_mangle]
 pub unsafe extern "C" fn Error_Print(e: Error) {
-    libc::printf(c_str!("ERROR: "));
+    CPrintf!("ERROR: ");
     if e & 0x10000 != 0 {
-        libc::printf(c_str!("Stack "));
+        CPrintf!("Stack ");
     }
     if e & 0x20000 != 0 {
-        libc::printf(c_str!("Heap "));
+        CPrintf!("Heap ");
     }
     if e & 0x40000 != 0 {
-        libc::printf(c_str!("Buffer "));
+        CPrintf!("Buffer ");
     }
     if e & 0x80000 != 0 {
-        libc::printf(c_str!("Path "));
+        CPrintf!("Path ");
     }
     if e & 0x100000 != 0 {
-        libc::printf(c_str!("Index "));
+        CPrintf!("Index ");
     }
     if e & 0x200000 != 0 {
-        libc::printf(c_str!("Vertex "));
+        CPrintf!("Vertex ");
     }
     if e & 0x400000 != 0 {
-        libc::printf(c_str!("Vertex Position "));
+        CPrintf!("Vertex Position ");
     }
     if e & 0x800000 != 0 {
-        libc::printf(c_str!("Vertex Normal "));
+        CPrintf!("Vertex Normal ");
     }
     if e & 0x1000000 != 0 {
-        libc::printf(c_str!("Vertex UV "));
+        CPrintf!("Vertex UV ");
     }
     if e & 0x100 != 0 {
-        libc::printf(c_str!("Input "));
+        CPrintf!("Input ");
     }
     if e & 0x200 != 0 {
-        libc::printf(c_str!("Intermediate Value "));
+        CPrintf!("Intermediate Value ");
     }
     if e & 0x400 != 0 {
-        libc::printf(c_str!("Output "));
+        CPrintf!("Output ");
     }
     if e & 0x1 != 0 {
-        libc::printf(c_str!("NULL"));
+        CPrintf!("NULL");
     }
     if e & 0x2 != 0 {
-        libc::printf(c_str!("Invalid"));
+        CPrintf!("Invalid");
     }
     if e & 0x4 != 0 {
-        libc::printf(c_str!("Overflow"));
+        CPrintf!("Overflow");
     }
     if e & 0x8 != 0 {
-        libc::printf(c_str!("Underflow"));
+        CPrintf!("Underflow");
     }
     if e & 0x10 != 0 {
-        libc::printf(c_str!("Empty"));
+        CPrintf!("Empty");
     }
     if e & 0x20 != 0 {
-        libc::printf(c_str!("NaN"));
+        CPrintf!("NaN");
     }
     if e & 0x40 != 0 {
-        libc::printf(c_str!("Degenerate"));
+        CPrintf!("Degenerate");
     }
     if e & 0x80 != 0 {
-        libc::printf(c_str!("Incorrect Count"));
+        CPrintf!("Incorrect Count");
     }
     if e == 0 {
-        libc::printf(c_str!("None!"));
+        CPrintf!("None!");
     }
-    libc::printf(c_str!("\n"));
+    CPrintf!("\n");
 }

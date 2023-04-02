@@ -121,7 +121,7 @@ unsafe extern "C" fn InputBindings_RaiseCallback(
     binding: *mut InputBinding,
     _callback: LuaRef,
 ) {
-    libc::printf(c_str!("%s - %s\n"), event, (*binding).name);
+    CPrintf!("%s - %s\n", event, (*binding).name);
 }
 
 #[no_mangle]

@@ -206,22 +206,22 @@ pub unsafe extern "C" fn StrMap_Set(
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Dump(this: *mut StrMap) {
-    libc::printf(c_str!("StrMap @ %p:\n"), this);
-    libc::printf(c_str!("      size: %d\n"), (*this).size);
-    libc::printf(c_str!("  capacity: %d\n"), (*this).capacity);
-    libc::printf(
-        c_str!("      load: %f\n"),
+    CPrintf!("StrMap @ %p:\n", this);
+    CPrintf!("      size: %d\n", (*this).size);
+    CPrintf!("  capacity: %d\n", (*this).capacity);
+    CPrintf!(
+        "      load: %f\n",
         ((*this).size as f32 / (*this).capacity as f32) as f64,
     );
-    libc::puts(c_str!(""));
+    println!("");
     let mut i: u32 = 0;
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
-            libc::printf(c_str!("  [%03i]:\n"), i);
+            CPrintf!("  [%03i]:\n", i);
             while !node.is_null() {
-                libc::printf(
-                    c_str!("    (%lx) %s -> %p\n"),
+                CPrintf!(
+                    "    (%lx) %s -> %p\n",
                     Hash((*node).key),
                     (*node).key,
                     (*node).value,

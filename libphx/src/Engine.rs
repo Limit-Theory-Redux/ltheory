@@ -31,8 +31,8 @@ static mut initTime: TimeStamp = 0 as TimeStamp;
 pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
     static mut firstTime: bool = true;
     Signal_Init();
-    libc::printf(
-        c_str!("Engine_Init: Requesting GL %d.%d\n"),
+    CPrintf!(
+        "Engine_Init: Requesting GL %d.%d\n",
         glVersionMajor,
         glVersionMinor,
     );
@@ -53,15 +53,15 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
         compiled.patch = 1;
         SDL_GetVersion(&mut linked);
         if compiled.major != linked.major {
-            libc::puts(c_str!("Engine_Init: Detected SDL major version mismatch:"));
-            libc::printf(
-                c_str!("  Version (Compiled) : %d.%d.%d\n"),
+            println!("Engine_Init: Detected SDL major version mismatch:");
+            CPrintf!(
+                "  Version (Compiled) : %d.%d.%d\n",
                 compiled.major as i32,
                 compiled.minor as i32,
                 compiled.patch as i32,
             );
-            libc::printf(
-                c_str!("  Version (Linked)   : %d.%d.%d\n"),
+            CPrintf!(
+                "  Version (Linked)   : %d.%d.%d\n",
                 linked.major as i32,
                 linked.minor as i32,
                 linked.patch as i32,

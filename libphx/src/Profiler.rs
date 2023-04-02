@@ -127,9 +127,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         std::mem::size_of::<*mut Scope>(),
         Some(SortScopes as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
     );
-    libc::puts(c_str!(
-        "-- PHX PROFILER -------------------------------------"
-    ));
+    println!("-- PHX PROFILER -------------------------------------");
     let mut cumulative: f64 = 0.0;
     let mut i_0: i32 = 0;
     while i_0 < this.scopeList.len() as i32 {
@@ -137,10 +135,8 @@ pub unsafe extern "C" fn Profiler_Disable() {
         let scopeTotal: f64 = TimeStamp_ToDouble((*scope).total);
         cumulative += scopeTotal;
         if !(scopeTotal / total < 0.01f64 && (*scope).max < 0.01f64) {
-            libc::printf(
-                c_str!(
-                    "%*.1f%% %*.0f%% %*.0fms  [%*.2f, %*.2f] %*.2f  / %*.2f  (%*.0f%%)  |  %s\n"
-                ),
+            CPrintf!(
+                "%*.1f%% %*.0f%% %*.0fms  [%*.2f, %*.2f] %*.2f  / %*.2f  (%*.0f%%)  |  %s\n",
                 5,
                 100.0f64 * (scopeTotal / total),
                 4,
@@ -162,9 +158,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         }
         i_0 += 1;
     }
-    libc::puts(c_str!(
-        "-----------------------------------------------------"
-    ));
+    println!("-----------------------------------------------------");
 
     for scope in this.scopeList.iter() {
         Scope_Free(*scope);
@@ -250,15 +244,11 @@ pub unsafe extern "C" fn Profiler_Backtrace() {
     if !profiling {
         return;
     }
-    libc::puts(c_str!("PHX Profiler Backtrace:"));
+    println!("PHX Profiler Backtrace:");
     let mut i: i32 = 0;
     while i <= this.stackIndex {
         let index: i32 = this.stackIndex - i;
-        libc::printf(
-            c_str!("  [%i] %s\n"),
-            index,
-            (*this.stack[index as usize]).name,
-        );
+        CPrintf!("  [%i] %s\n", index, (*this.stack[index as usize]).name,);
         i += 1;
     }
     io::stdout().flush().unwrap();

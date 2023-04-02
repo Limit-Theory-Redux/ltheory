@@ -341,7 +341,7 @@ pub unsafe extern "C" fn Bytes_WriteF64(this: *mut Bytes, value: f64) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Print(this: *mut Bytes) {
-    libc::printf(c_str!("%d bytes:\n"), (*this).size);
+    CPrintf!("%d bytes:\n", (*this).size);
     let mut i: u32 = 0;
     while i < (*this).size {
         libc::putchar(*(&mut (*this).data as *mut libc::c_char).offset(i as isize) as i32);
