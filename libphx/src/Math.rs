@@ -115,12 +115,12 @@ pub struct Sphere {
 }
 
 #[inline]
-pub extern "C" fn Lerp(a: f64, b: f64, t: f64) -> f64 {
+pub fn Lerp(a: f64, b: f64, t: f64) -> f64 {
     a + t * (b - a)
 }
 
 #[inline]
-pub extern "C" fn Saturate(t: f64) -> f64 {
+pub fn Saturate(t: f64) -> f64 {
     f64::clamp(t, 0.0f64, 1.0f64)
 }
 

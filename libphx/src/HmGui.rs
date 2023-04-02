@@ -8,6 +8,7 @@ use crate::Input::*;
 use crate::Math::Vec3;
 use crate::Math::Vec4;
 use crate::Math::{IVec2, Vec2};
+use crate::Math::Lerp;
 use crate::Profiler::*;
 use crate::RenderState::*;
 use crate::Tex2D::*;
@@ -113,11 +114,6 @@ pub struct HmGuiImage {
 pub struct HmGuiRect {
     pub widget: HmGuiWidget,
     pub color: Vec4,
-}
-
-#[inline]
-extern "C" fn Lerp(a: f64, b: f64, t: f64) -> f64 {
-    a + t * (b - a)
 }
 
 static mut this: HmGui = HmGui {

@@ -7,6 +7,7 @@ use crate::LineSegment::*;
 use crate::Math::Sphere;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
+use crate::Math::Lerp;
 use crate::Mesh::*;
 use crate::Plane::*;
 use crate::Polygon::*;
@@ -332,11 +333,6 @@ pub struct DelayRay {
 pub struct Delay {
     pub nodeRef: BSPNodeRef,
     pub depth: i32,
-}
-
-#[inline]
-fn Lerp(a: f64, b: f64, t: f64) -> f64 {
-    a + t * (b - a)
 }
 
 #[no_mangle]
