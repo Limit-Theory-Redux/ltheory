@@ -37,10 +37,11 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
   self.nebula = Nebula(self.rng:get64(), self.starDir)
   self.dust = Dust()
 
-  self.players  = {}
-  self.zones    = {}
-  self.stations = {}
-  self.ships    = {}
+  self.players   = {}
+  self.zones     = {}
+  self.stations  = {}
+  self.ships     = {}
+  self.lightList = {}
 
   -- When creating a new system, initialize station subtype options from all production types
   local prodType = Config:getObjectTypeIndex("station_subtypes")
@@ -585,7 +586,7 @@ function System:spawnShip (player)
 
   -- Add as many thrusters as there are thruster plugs for
   while true do
-    local thruster = Ship.Thruster()
+    local thruster = Ship.Thruster(ship)
     thruster:setScale(0.5 * ship:getScale())
     -- TODO : Does this leak a Thruster/RigidBody?
 --printf("ship %s: plug a thruster", ship:getName())

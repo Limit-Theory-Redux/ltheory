@@ -175,6 +175,12 @@ function LTheoryRedux:onUpdate (dt)
     end
   end
 
+  -- If player pressed the "ToggleLights" key in Flight Mode, toggle thruster lighting on/off
+  -- NOTE: Performance is OK for just the player's ship, but adding lights to > 20 NPC ships performs very badly
+  if Input.GetPressed(Bindings.ToggleLights) and menuMode == 2 then
+    Config.render.thrusterLights = not Config.render.thrusterLights
+  end
+
   -- Canvas overlays
   HmGui.Begin(self.resX, self.resY)
     if menuMode == 0 then
@@ -334,8 +340,13 @@ function LTheoryRedux:createStarSystem ()
       newShip:setName(format("NSS %s", Config.game.humanPlayerShipName))
 --      newShip:setHealth(1000, 1000, 50) -- extra-healthy version of player ship for surviving testing
       newShip:setHealth(500, 500, 20)
-      Config.game.currentShip = newShip
+
+      newShip:addLight(0, 0, 0)
+      insert(self.system.lightList, newShip)
+
       LTheoryRedux:insertShip(newShip)
+
+      Config.game.currentShip = newShip
 
       -- Set our ship's starting location within the extent of a random asteroid field
       self.system:place(rng, newShip)
@@ -351,7 +362,9 @@ printf("Player ship position = %s", newShip:getPos())
         escort:setPos(newShip:getPos() + offset)
 
         escort:pushAction(Actions.Escort(newShip, offset))
-        -- escort:pushAction(Actions.Attack(newShip))
+
+--        escort:addLight(0, 0, 0)
+--        insert(self.system.lightList, escort)
 
         insert(ships, escort)
       end

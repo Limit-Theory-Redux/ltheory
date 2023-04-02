@@ -12,6 +12,7 @@ local self = {
   NewBackground    = Button.Keyboard.B,
   TimeAccel        = Button.Keyboard.H,
   ToggleMetrics    = Button.Keyboard.K,
+  ToggleLights     = Button.Keyboard.L,
   MoveTo           = Button.Keyboard.M,
   ToggleHUD        = Button.Keyboard.V,
   ToggleWireframe  = Button.Keyboard.W, -- does nothing
