@@ -115,12 +115,12 @@ pub struct Sphere {
 }
 
 #[inline]
-pub unsafe extern "C" fn Lerp(a: f64, b: f64, t: f64) -> f64 {
+pub extern "C" fn Lerp(a: f64, b: f64, t: f64) -> f64 {
     a + t * (b - a)
 }
 
 #[inline]
-pub unsafe extern "C" fn Saturate(t: f64) -> f64 {
+pub extern "C" fn Saturate(t: f64) -> f64 {
     f64::clamp(t, 0.0f64, 1.0f64)
 }
 
@@ -189,14 +189,14 @@ pub extern "C" fn Vec3_Reject(a: Vec3, b: Vec3) -> Vec3 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_Bezier3(x: f64, y1: f64, y2: f64, y3: f64) -> f64 {
+pub extern "C" fn Math_Bezier3(x: f64, y1: f64, y2: f64, y3: f64) -> f64 {
     let y12: f64 = Lerp(y1, y2, x);
     let y23: f64 = Lerp(y2, y3, x);
     Lerp(y12, y23, x)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_Bezier4(x: f64, y1: f64, y2: f64, y3: f64, y4: f64) -> f64 {
+pub extern "C" fn Math_Bezier4(x: f64, y1: f64, y2: f64, y3: f64, y4: f64) -> f64 {
     let y12: f64 = Lerp(y1, y2, x);
     let y23: f64 = Lerp(y2, y3, x);
     let y34: f64 = Lerp(y3, y4, x);
@@ -206,17 +206,17 @@ pub unsafe extern "C" fn Math_Bezier4(x: f64, y1: f64, y2: f64, y3: f64, y4: f64
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_Clamp(x: f64, a: f64, b: f64) -> f64 {
+pub extern "C" fn Math_Clamp(x: f64, a: f64, b: f64) -> f64 {
     x.clamp(a, b)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_Clamp01(x: f64) -> f64 {
+pub extern "C" fn Math_Clamp01(x: f64) -> f64 {
     x.clamp(0.0, 1.0)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_ClampSafe(x: f64, a: f64, b: f64) -> f64 {
+pub extern "C" fn Math_ClampSafe(x: f64, a: f64, b: f64) -> f64 {
     if b < a {
         x.clamp(b, a)
     } else {
@@ -225,52 +225,52 @@ pub unsafe extern "C" fn Math_ClampSafe(x: f64, a: f64, b: f64) -> f64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_ClampUnit(x: f64) -> f64 {
+pub extern "C" fn Math_ClampUnit(x: f64) -> f64 {
     f64::clamp(x, -1.0f64, 1.0f64)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_ExpMap(x: f64, p: f64) -> f64 {
+pub extern "C" fn Math_ExpMap(x: f64, p: f64) -> f64 {
     1.0f64 - f64::exp(-f64::powf(f64::abs(x), p))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_ExpMapSigned(x: f64, p: f64) -> f64 {
+pub extern "C" fn Math_ExpMapSigned(x: f64, p: f64) -> f64 {
     f64::signum(x) * (1.0f64 - f64::exp(-f64::powf(f64::abs(x), p)))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_ExpMap1(x: f64) -> f64 {
+pub extern "C" fn Math_ExpMap1(x: f64) -> f64 {
     1.0f64 - f64::exp(-f64::abs(x))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_ExpMap1Signed(x: f64) -> f64 {
+pub extern "C" fn Math_ExpMap1Signed(x: f64) -> f64 {
     f64::signum(x) * (1.0f64 - f64::exp(-f64::abs(x)))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_ExpMap2(x: f64) -> f64 {
+pub extern "C" fn Math_ExpMap2(x: f64) -> f64 {
     1.0f64 - f64::exp(-x * x)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_ExpMap2Signed(x: f64) -> f64 {
+pub extern "C" fn Math_ExpMap2Signed(x: f64) -> f64 {
     f64::signum(x) * (1.0f64 - f64::exp(-x * x))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_PowSigned(x: f64, p: f64) -> f64 {
+pub extern "C" fn Math_PowSigned(x: f64, p: f64) -> f64 {
     f64::signum(x) * f64::powf(f64::abs(x), p)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_Round(x: f64) -> f64 {
+pub extern "C" fn Math_Round(x: f64) -> f64 {
     f64::round(x)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Math_Sign(x: f64) -> f64 {
+pub extern "C" fn Math_Sign(x: f64) -> f64 {
     if x > 0.0f64 {
         1.0f64
     } else if x < 0.0f64 {

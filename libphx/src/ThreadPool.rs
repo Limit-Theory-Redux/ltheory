@@ -20,7 +20,7 @@ pub struct ThreadData {
     pub threads: i32,
     pub data: *mut libc::c_void,
 }
-pub type ThreadPoolFn = Option<unsafe extern "C" fn(i32, i32, *mut libc::c_void) -> i32>;
+pub type ThreadPoolFn = Option<extern "C" fn(i32, i32, *mut libc::c_void) -> i32>;
 
 unsafe extern "C" fn ThreadPool_Dispatch(data: *mut libc::c_void) -> i32 {
     let td: *mut ThreadData = data as *mut ThreadData;

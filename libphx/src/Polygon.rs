@@ -181,7 +181,7 @@ pub unsafe extern "C" fn Polygon_GetCentroid(polygon: *mut Polygon, out: *mut Ve
     *out = centroid;
 }
 
-pub unsafe fn Polygon_ConvexToTriangles(polygon: &Polygon, triangles: &mut Vec<Triangle>) {
+pub fn Polygon_ConvexToTriangles(polygon: &Polygon, triangles: &mut Vec<Triangle>) {
     let v = &(*polygon).vertices;
     for i in 1..(v.len() - 1) {
         triangles.push(Triangle {

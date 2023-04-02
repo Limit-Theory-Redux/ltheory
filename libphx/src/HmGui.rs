@@ -116,7 +116,7 @@ pub struct HmGuiRect {
 }
 
 #[inline]
-unsafe extern "C" fn Lerp(a: f64, b: f64, t: f64) -> f64 {
+extern "C" fn Lerp(a: f64, b: f64, t: f64) -> f64 {
     a + t * (b - a)
 }
 

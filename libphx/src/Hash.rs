@@ -56,7 +56,7 @@ pub unsafe extern "C" fn Hash_FNVStr64(mut s: *const libc::c_char) -> u64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Hash_FNV64_Init() -> u64 {
+pub extern "C" fn Hash_FNV64_Init() -> u64 {
     14695981039346656037
 }
 
@@ -78,12 +78,12 @@ pub unsafe extern "C" fn Hash_FNV64_Incremental(
 }
 
 #[inline]
-unsafe extern "C" fn rotl32(x: u32, r: i8) -> u32 {
+extern "C" fn rotl32(x: u32, r: i8) -> u32 {
     x << r as i32 | x >> 32 - r as i32
 }
 
 #[inline]
-unsafe extern "C" fn fmix32(mut h: u32) -> u32 {
+extern "C" fn fmix32(mut h: u32) -> u32 {
     h ^= h >> 16;
     h = h.wrapping_mul(0x85ebca6b);
     h ^= h >> 13;

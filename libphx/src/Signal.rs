@@ -183,7 +183,7 @@ pub unsafe extern "C" fn Signal_RemoveHandlerAll(fn_0: SignalHandler) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Signal_ToString(this: Signal) -> *const libc::c_char {
+pub extern "C" fn Signal_ToString(this: Signal) -> *const libc::c_char {
     match this {
         2 => return c_str!("Interrupt"),
         4 => return c_str!("Illegal Instruction"),

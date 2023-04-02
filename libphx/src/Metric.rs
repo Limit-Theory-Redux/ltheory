@@ -13,7 +13,7 @@ pub unsafe extern "C" fn Metric_Get(this: Metric) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Metric_GetName(this: Metric) -> *const libc::c_char {
+pub extern "C" fn Metric_GetName(this: Metric) -> *const libc::c_char {
     match this {
         1 => return c_str!("Draw Calls"),
         2 => return c_str!("Draw Calls (Immediate)"),

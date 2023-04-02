@@ -21,7 +21,7 @@ pub struct Node {
     pub hash: u64,
     pub value: *mut libc::c_void,
 }
-pub type ValueForeach = Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>;
+pub type ValueForeach = Option<extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> ()>;
 
 #[inline]
 unsafe extern "C" fn Hash(key: *const libc::c_void, len: u32) -> u64 {

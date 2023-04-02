@@ -33,7 +33,7 @@ unsafe extern "C" fn Random_SplitMix64(state: *mut u64) -> u64 {
 }
 
 #[inline]
-unsafe extern "C" fn rotl(x: u64, k: i32) -> u64 {
+extern "C" fn rotl(x: u64, k: i32) -> u64 {
     x << k | x >> 64 - k
 }
 

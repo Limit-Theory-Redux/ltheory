@@ -24,7 +24,7 @@ pub unsafe extern "C" fn ShaderVarType_FromStr(s: *const libc::c_char) -> Shader
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *const libc::c_char {
+pub extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *const libc::c_char {
     match this {
         1 => return c_str!("float"),
         2 => return c_str!("vec2"),
@@ -45,7 +45,7 @@ pub unsafe extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *cons
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetName(this: ShaderVarType) -> *const libc::c_char {
+pub extern "C" fn ShaderVarType_GetName(this: ShaderVarType) -> *const libc::c_char {
     match this {
         1 => return c_str!("float"),
         2 => return c_str!("float2"),
@@ -66,7 +66,7 @@ pub unsafe extern "C" fn ShaderVarType_GetName(this: ShaderVarType) -> *const li
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderVarType_GetSize(this: ShaderVarType) -> i32 {
+pub extern "C" fn ShaderVarType_GetSize(this: ShaderVarType) -> i32 {
     match this {
         1 => {
             return std::mem::size_of::<f32>() as i32;

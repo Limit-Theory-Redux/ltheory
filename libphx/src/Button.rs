@@ -670,7 +670,7 @@ pub unsafe extern "C" fn Button_ToString(button: Button) -> *const libc::c_char 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_IsAutoRelease(button: Button) -> bool {
+pub extern "C" fn Button_IsAutoRelease(button: Button) -> bool {
     match button {
         124 | 125 | 147 => true,
         _ => false,
@@ -678,7 +678,7 @@ pub unsafe extern "C" fn Button_IsAutoRelease(button: Button) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_FromSDLScancode(scancode: SDL_Scancode) -> Button {
+pub extern "C" fn Button_FromSDLScancode(scancode: SDL_Scancode) -> Button {
     match scancode as u32 {
         0 => Button_Null,
         4 => Button_Keyboard_A,

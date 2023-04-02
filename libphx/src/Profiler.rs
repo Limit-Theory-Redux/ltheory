@@ -8,7 +8,7 @@ use libc;
 use std::io::{self, Write};
 
 pub type Signal = i32;
-pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
+pub type SignalHandler = Option<extern "C" fn(Signal) -> ()>;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn Profiler_End() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Profiler_SetValue(_name: *const libc::c_char, _value: i32) {}
+pub extern "C" fn Profiler_SetValue(_name: *const libc::c_char, _value: i32) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_LoopMarker() {

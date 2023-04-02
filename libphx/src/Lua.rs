@@ -69,12 +69,12 @@ pub struct lua_Debug {
     pub short_src: [libc::c_char; 60],
     pub i_ci: i32,
 }
-pub type lua_Hook = Option<unsafe extern "C" fn(*mut lua_State, *mut lua_Debug) -> ()>;
+pub type lua_Hook = Option<extern "C" fn(*mut lua_State, *mut lua_Debug) -> ()>;
 pub type Lua = lua_State;
 pub type LuaFn = Option<unsafe extern "C" fn(*mut Lua) -> i32>;
 pub type LuaRef = lua_Integer;
 pub type Signal = i32;
-pub type SignalHandler = Option<unsafe extern "C" fn(Signal) -> ()>;
+pub type SignalHandler = Option<extern "C" fn(Signal) -> ()>;
 
 pub const kErrorHandler: *const libc::c_char =
     c_str!("function __error_handler__ (e)  return debug.traceback(e, 1)end");
@@ -105,7 +105,7 @@ unsafe extern "C" fn Lua_SignalHandler(sig: Signal) {
     //     cSignal = sig;
     //     lua_sethook(
     //         activeInstance,
-    //         Some(Lua_BacktraceHook as unsafe extern "C" fn(*mut Lua, *mut lua_Debug) -> ()),
+    //         Some(Lua_BacktraceHook as extern "C" fn(*mut Lua, *mut lua_Debug) -> ()),
     //         1 << 0 | 1 << 1 | 1 << 3,
     //         1,
     //     );
@@ -426,7 +426,7 @@ unsafe extern "C" fn Lua_ToString(
     )
 }
 
-// pub unsafe fn Lua_GetCurrentLocation() {
+// pub fn Lua_GetCurrentLocation() {
 //     let this: *mut Lua = activeInstance;
 //     if this.is_null() {
 //         return;

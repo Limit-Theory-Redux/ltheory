@@ -12,20 +12,20 @@ pub struct MidiDevice {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_GetCount() -> i32 {
+pub extern "C" fn MidiDevice_GetCount() -> i32 {
     0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_Open(_index: i32) -> *mut MidiDevice {
+pub extern "C" fn MidiDevice_Open(_index: i32) -> *mut MidiDevice {
     std::ptr::null_mut()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_Close(_this: *mut MidiDevice) {}
+pub extern "C" fn MidiDevice_Close(_this: *mut MidiDevice) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_GetNameByIndex(_index: i32) -> *const libc::c_char {
+pub extern "C" fn MidiDevice_GetNameByIndex(_index: i32) -> *const libc::c_char {
     std::ptr::null()
 }
 

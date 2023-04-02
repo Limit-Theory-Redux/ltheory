@@ -321,7 +321,7 @@ pub unsafe extern "C" fn Draw_SmoothPoints(enabled: bool) {
 }
 
 #[inline]
-unsafe extern "C" fn Spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
+extern "C" fn Spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
     Vec3::new(
         (r as f64 * f64::sin(pitch as f64) * f64::cos(yaw as f64)) as f32,
         (r as f64 * f64::cos(pitch as f64)) as f32,

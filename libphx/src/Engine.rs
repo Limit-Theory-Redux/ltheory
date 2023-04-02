@@ -116,7 +116,7 @@ pub unsafe extern "C" fn Engine_Abort() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Engine_GetBits() -> i32 {
+pub extern "C" fn Engine_GetBits() -> i32 {
     8_usize.wrapping_mul(std::mem::size_of::<*mut libc::c_void>()) as i32
 }
 
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn Engine_GetTime() -> f64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Engine_GetVersion() -> *const libc::c_char {
+pub extern "C" fn Engine_GetVersion() -> *const libc::c_char {
     env!("PHX_VERSION").as_ptr() as *const libc::c_char
 }
 

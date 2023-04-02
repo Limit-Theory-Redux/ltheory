@@ -24,12 +24,12 @@ pub struct Socket {
 pub type SocketType = i32;
 
 #[inline]
-unsafe extern "C" fn _OSSwapInt32(data: u32) -> u32 {
+extern "C" fn _OSSwapInt32(data: u32) -> u32 {
     data.swap_bytes()
 }
 
 #[inline]
-unsafe extern "C" fn _OSSwapInt16(data: u16) -> u16 {
+extern "C" fn _OSSwapInt16(data: u16) -> u16 {
     ((data as i32) << 8 | data as i32 >> 8) as u16
 }
 

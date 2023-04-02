@@ -392,7 +392,7 @@ unsafe extern "C" fn TransformSize(sx: *mut f32, sy: *mut f32) {
 }
 
 #[inline]
-unsafe extern "C" fn RectContains(pos: Vec2, size: Vec2, p: Vec2) -> bool {
+extern "C" fn RectContains(pos: Vec2, size: Vec2, p: Vec2) -> bool {
     pos.x <= p.x && p.x <= pos.x + size.x && pos.y <= p.y && p.y <= pos.y + size.y
 }
 

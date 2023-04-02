@@ -27,7 +27,7 @@ pub unsafe extern "C" fn Mouse_Init() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mouse_Free() {}
+pub extern "C" fn Mouse_Free() {}
 
 #[no_mangle]
 pub unsafe extern "C" fn Mouse_SetScroll(amount: i32) {

@@ -36,7 +36,7 @@ pub struct HashGridElem {
 }
 
 #[inline]
-unsafe extern "C" fn Maxi(a: i32, b: i32) -> i32 {
+extern "C" fn Maxi(a: i32, b: i32) -> i32 {
     if a > b {
         a
     } else {
@@ -45,7 +45,7 @@ unsafe extern "C" fn Maxi(a: i32, b: i32) -> i32 {
 }
 
 #[inline]
-unsafe extern "C" fn Mini(a: i32, b: i32) -> i32 {
+extern "C" fn Mini(a: i32, b: i32) -> i32 {
     if a < b {
         a
     } else {

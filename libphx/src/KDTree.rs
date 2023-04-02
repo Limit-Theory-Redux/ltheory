@@ -189,7 +189,7 @@ pub unsafe extern "C" fn KDTree_GetMemory(this: *mut KDTree) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_IntersectRay(
+pub extern "C" fn KDTree_IntersectRay(
     _this: *mut KDTree,
     _m: *mut Matrix,
     _a: *const Vec3,

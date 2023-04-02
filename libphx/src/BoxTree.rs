@@ -79,12 +79,12 @@ pub unsafe extern "C" fn BoxTree_FromMesh(mesh: *mut Mesh) -> *mut BoxTree {
 }
 
 #[inline]
-unsafe extern "C" fn Cost(box_0: Box3) -> f32 {
+extern "C" fn Cost(box_0: Box3) -> f32 {
     box_0.volume()
 }
 
 #[inline]
-unsafe extern "C" fn CostMerge(a: Box3, b: Box3) -> f32 {
+extern "C" fn CostMerge(a: Box3, b: Box3) -> f32 {
     Cost(Box3::union(a, b))
 }
 

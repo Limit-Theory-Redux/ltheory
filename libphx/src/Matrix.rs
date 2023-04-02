@@ -13,7 +13,7 @@ pub struct Matrix {
 }
 
 #[inline]
-unsafe extern "C" fn Float_ApproximatelyEqual(x: f64, y: f64) -> bool {
+extern "C" fn Float_ApproximatelyEqual(x: f64, y: f64) -> bool {
     f64::abs(x - y) < 1e-3f64
 }
 

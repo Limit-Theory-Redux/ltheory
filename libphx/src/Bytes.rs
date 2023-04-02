@@ -95,7 +95,7 @@ pub extern "C" fn Bytes_Compress(bytes: *mut Bytes) -> *mut Bytes {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
+pub extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
     let input = unsafe { (*bytes).to_slice() };
 
     let mut decoder = ZlibDecoder::new(Vec::new());
