@@ -30,7 +30,7 @@ function Station:attackedBy (target)
   -- TODO: Allow a number of "grace" hits that decay over time
   -- TODO: Improve smarts so that this station can decide which of multiple attackers to target
   if not self:isDestroyed() then
-printf("Station %s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
+--printf("Station %s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
     -- Stations currently have no turrets, so pushing an Attack() action generates an error
     -- If and when stations are armed, modify this method to let the station know whodunnit
     self:modDisposition(target, -0.2)

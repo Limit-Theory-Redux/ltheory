@@ -604,6 +604,9 @@ function System:spawnShip (player)
     end
   end
 
+  ship:addLight(0, 0, 0)
+  insert(self.lightList, ship)
+
 --local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
 --printf("Added Ship (%s) '%s'", subtypeName, ship:getName())
 

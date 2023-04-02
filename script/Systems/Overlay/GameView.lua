@@ -33,18 +33,13 @@ function GameView:draw (focus, active)
   do -- Lighting
     Profiler.Begin('Render.Lighting')
     -- Gather light sources
+    -- Note: Scan only objects with lights attached
     local lights = {}
-    -- Switching from scanning ALL world objects to only objects with lights doesn't help much
     if #world.lightList > 0 then
       for _, v in ipairs(world.lightList) do
         insert(lights, { pos = v:getPos(), color = v:getLight() })
       end
     end
---    for i, v in world:iterChildren() do
---      if v:hasLight() then
---        insert(lights, { pos = v:getPos(), color = v:getLight() })
---      end
---    end
 
     do -- Global lighting (environment)
       self.renderer.buffer2:push()

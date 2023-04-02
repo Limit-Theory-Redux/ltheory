@@ -341,9 +341,6 @@ function LTheoryRedux:createStarSystem ()
 --      newShip:setHealth(1000, 1000, 50) -- extra-healthy version of player ship for surviving testing
       newShip:setHealth(500, 500, 20)
 
-      newShip:addLight(0, 0, 0)
-      insert(self.system.lightList, newShip)
-
       LTheoryRedux:insertShip(newShip)
 
       Config.game.currentShip = newShip
@@ -362,9 +359,6 @@ printf("Player ship position = %s", newShip:getPos())
         escort:setPos(newShip:getPos() + offset)
 
         escort:pushAction(Actions.Escort(newShip, offset))
-
---        escort:addLight(0, 0, 0)
---        insert(self.system.lightList, escort)
 
         insert(ships, escort)
       end
