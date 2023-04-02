@@ -21,7 +21,7 @@ Config.gen.nThrusters = 2
 
 Config.gen.nAIPlayers  =   3 -- # of AI players (who manage Economic assets)
 Config.gen.nEconNPCs   =  45 -- total # of ships to be given Economic actions (to be split among AI players)
-Config.gen.nEscortNPCs =   0 -- # of ships to be given the Escort action
+Config.gen.nEscortNPCs =  10 -- # of ships to be given the Escort action
 
 Config.debug.instantJobs = false
 Config.debug.jobSpeed    = 10000
