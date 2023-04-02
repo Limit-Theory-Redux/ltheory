@@ -15,7 +15,7 @@ crate-type = ["cdylib"]
 libc = "0.2"
 glam = { version = "0.23", features = ["scalar-math"] }
 stb = "0.3"
-sdl2-sys = { version = "0.35", features = ["bundled", "static-link"] }
+sdl2-sys = { git = "https://github.com/hikari-no-yume/rust-sdl2.git", branch = "update-bundled-SDL2", features = ["bundled", "static-link"] }
 memoffset = "0.8"
 printf-compat = "0.1.1"
 rodio = "0.17.0"

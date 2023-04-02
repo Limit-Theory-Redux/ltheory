@@ -66,13 +66,13 @@ pub unsafe extern "C" fn OpenGL_CheckError(file: *const libc::c_char, line: i32)
             error = c_str!("GL_OUT_OF_MEMORY");
         }
         _ => {
-            Fatal(
-                c_str!("OpenGL_CheckError: gl::GetError returned illegal error code %u at %s:%d"),
+            CFatal!(
+                "OpenGL_CheckError: gl::GetError returned illegal error code %u at %s:%d",
                 errorID,
                 file,
                 line,
             );
         }
     }
-    Fatal(c_str!("OpenGL_CheckError: %s at %s:%d"), error, file, line);
+    CFatal!("OpenGL_CheckError: %s at %s:%d", error, file, line);
 }

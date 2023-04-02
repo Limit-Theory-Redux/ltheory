@@ -49,7 +49,7 @@ static mut cache: *mut StrMap = std::ptr::null_mut();
 
 unsafe extern "C" fn GetUniformIndex(this: *mut Shader, name: *const libc::c_char) -> i32 {
     if this.is_null() {
-        Fatal(c_str!("GetUniformIndex: No shader is bound"));
+        CFatal!("GetUniformIndex: No shader is bound");
     }
     let index: i32 = gl::GetUniformLocation((*this).program, name);
     index
@@ -76,10 +76,7 @@ unsafe fn CreateGLShader(src: *const libc::c_char, type_0: gl::types::GLenum) ->
         gl::GetShaderiv(this, gl::INFO_LOG_LENGTH, &mut length);
         let infoLog: *mut libc::c_char = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
-        Fatal(
-            c_str!("CreateGLShader: Failed to compile shader:\n%s"),
-            infoLog,
-        );
+        CFatal!("CreateGLShader: Failed to compile shader:\n%s", infoLog,);
     }
     this
 }
@@ -104,10 +101,7 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
         gl::GetProgramiv(this, gl::INFO_LOG_LENGTH, &mut length);
         let infoLog: *mut libc::c_char = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetProgramInfoLog(this, length, std::ptr::null_mut(), infoLog);
-        Fatal(
-            c_str!("CreateGLProgram: Failed to link program:\n%s"),
-            infoLog,
-        );
+        CFatal!("CreateGLProgram: Failed to link program:\n%s", infoLog,);
     }
     this
 }
@@ -241,10 +235,8 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *
             };
             var.type_0 = ShaderVarType_FromStr(varType.as_mut_ptr() as *const libc::c_char);
             if var.type_0 == 0 {
-                Fatal(
-                    c_str!(
-                        "GLSL_Preprocess: Unknown shader variable type <%s> in directive:\n  %s"
-                    ),
+                CFatal!(
+                    "GLSL_Preprocess: Unknown shader variable type <%s> in directive:\n  %s",
                     varType.as_mut_ptr(),
                     line,
                 );
@@ -253,10 +245,7 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *
             var.index = -1;
             (*this).vars.push(var);
         } else {
-            Fatal(
-                c_str!("GLSL_Preprocess: Failed to parse directive:\n  %s"),
-                line,
-            );
+            CFatal!("GLSL_Preprocess: Failed to parse directive:\n  %s", line,);
         }
 
         let prev_0: *const libc::c_char = code;
@@ -273,8 +262,7 @@ unsafe extern "C" fn Shader_BindVariables(this: *mut Shader) {
         let var: &mut ShaderVar = &mut (*this).vars[i as usize];
         (*var).index = gl::GetUniformLocation((*this).program, (*var).name);
         if (*var).index < 0 {
-            Warn(
-                c_str!("Shader_BindVariables: Automatic shader variable <%s> does not exist in shader <%s>"),
+            CWarn!("Shader_BindVariables: Automatic shader variable <%s> does not exist in shader <%s>",
                 (*var).name,
                 (*this).name,
             );
@@ -361,8 +349,8 @@ pub unsafe extern "C" fn Shader_Start(this: *mut Shader) {
         if !((*var).index < 0) {
             let pValue: *mut libc::c_void = ShaderVar_Get((*var).name, (*var).type_0);
             if pValue.is_null() {
-                Fatal(
-                    c_str!("Shader_Start: Shader variable stack does not contain variable <%s>"),
+                CFatal!(
+                    "Shader_Start: Shader variable stack does not contain variable <%s>",
                     (*var).name,
                 );
             }
@@ -456,8 +444,8 @@ pub unsafe extern "C" fn Shader_GetHandle(this: *mut Shader) -> u32 {
 pub unsafe extern "C" fn Shader_GetVariable(this: *mut Shader, name: *const libc::c_char) -> i32 {
     let index: i32 = gl::GetUniformLocation((*this).program, name);
     if index == -1 {
-        Fatal(
-            c_str!("Shader_GetVariable: Shader <%s> has no variable <%s>"),
+        CFatal!(
+            "Shader_GetVariable: Shader <%s> has no variable <%s>",
             (*this).name,
             name,
         );

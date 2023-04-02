@@ -110,9 +110,7 @@ pub unsafe extern "C" fn Profiler_Enable() {
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Disable() {
     if this.stackIndex != 0 {
-        Fatal(c_str!(
-            "Profiler_Disable: Cannot stop profiler from within a profiled section"
-        ));
+        CFatal!("Profiler_Disable: Cannot stop profiler from within a profiled section");
     }
     Profiler_End();
     let total: f64 = TimeStamp_GetElapsed(this.start);
@@ -185,7 +183,7 @@ pub unsafe extern "C" fn Profiler_Begin(name: *const libc::c_char) {
     }
     if this.stackIndex + 1 >= 128 {
         Profiler_Backtrace();
-        Fatal(c_str!("Profiler_Begin: Maximum stack depth exceeded"));
+        CFatal!("Profiler_Begin: Maximum stack depth exceeded");
     }
     let now: TimeStamp = TimeStamp_Get();
     if this.stackIndex >= 0 {
@@ -207,7 +205,7 @@ pub unsafe extern "C" fn Profiler_End() {
     }
     if this.stackIndex < 0 {
         Profiler_Backtrace();
-        Fatal(c_str!("Profiler_End: Attempting to pop an empty stack"));
+        CFatal!("Profiler_End: Attempting to pop an empty stack");
     }
     let now: TimeStamp = TimeStamp_Get();
     let prev: *mut Scope = this.stack[this.stackIndex as usize];

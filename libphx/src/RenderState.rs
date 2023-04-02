@@ -112,9 +112,7 @@ pub unsafe extern "C" fn RenderState_PopAll() {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopBlendMode() {
     if blendModeIndex < 0 {
-        Fatal(c_str!(
-            "RenderState_PopBlendMode: Attempting to pop an empty state stack"
-        ));
+        CFatal!("RenderState_PopBlendMode: Attempting to pop an empty state stack");
     }
     blendModeIndex -= 1;
     if blendModeIndex >= 0 {
@@ -125,9 +123,7 @@ pub unsafe extern "C" fn RenderState_PopBlendMode() {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopWireframe() {
     if wireframeIndex < 0 {
-        Fatal(c_str!(
-            "RenderState_PopWireframe: Attempting to pop an empty state stack"
-        ));
+        CFatal!("RenderState_PopWireframe: Attempting to pop an empty state stack");
     }
     wireframeIndex -= 1;
     if wireframeIndex >= 0 {
@@ -138,9 +134,7 @@ pub unsafe extern "C" fn RenderState_PopWireframe() {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushBlendMode(value: BlendMode) {
     if blendModeIndex + 1 >= 16 {
-        Fatal(c_str!(
-            "RenderState_PushBlendMode: Maximum state stack depth exceeded"
-        ));
+        CFatal!("RenderState_PushBlendMode: Maximum state stack depth exceeded");
     }
     blendModeIndex += 1;
     blendMode[blendModeIndex as usize] = value;
@@ -150,9 +144,7 @@ pub unsafe extern "C" fn RenderState_PushBlendMode(value: BlendMode) {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopDepthTest() {
     if depthTestIndex < 0 {
-        Fatal(c_str!(
-            "RenderState_PopDepthTest: Attempting to pop an empty state stack"
-        ));
+        CFatal!("RenderState_PopDepthTest: Attempting to pop an empty state stack");
     }
     depthTestIndex -= 1;
     if depthTestIndex >= 0 {
@@ -163,9 +155,7 @@ pub unsafe extern "C" fn RenderState_PopDepthTest() {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopCullFace() {
     if cullFaceIndex < 0 {
-        Fatal(c_str!(
-            "RenderState_PopCullFace: Attempting to pop an empty state stack"
-        ));
+        CFatal!("RenderState_PopCullFace: Attempting to pop an empty state stack");
     }
     cullFaceIndex -= 1;
     if cullFaceIndex >= 0 {
@@ -176,9 +166,7 @@ pub unsafe extern "C" fn RenderState_PopCullFace() {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PopDepthWritable() {
     if depthWritableIndex < 0 {
-        Fatal(c_str!(
-            "RenderState_PopDepthWritable: Attempting to pop an empty state stack"
-        ));
+        CFatal!("RenderState_PopDepthWritable: Attempting to pop an empty state stack");
     }
     depthWritableIndex -= 1;
     if depthWritableIndex >= 0 {
@@ -189,9 +177,7 @@ pub unsafe extern "C" fn RenderState_PopDepthWritable() {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushCullFace(value: CullFace) {
     if cullFaceIndex + 1 >= 16 {
-        Fatal(c_str!(
-            "RenderState_PushCullFace: Maximum state stack depth exceeded"
-        ));
+        CFatal!("RenderState_PushCullFace: Maximum state stack depth exceeded");
     }
     cullFaceIndex += 1;
     cullFace[cullFaceIndex as usize] = value;
@@ -201,9 +187,7 @@ pub unsafe extern "C" fn RenderState_PushCullFace(value: CullFace) {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushDepthTest(value: bool) {
     if depthTestIndex + 1 >= 16 {
-        Fatal(c_str!(
-            "RenderState_PushDepthTest: Maximum state stack depth exceeded"
-        ));
+        CFatal!("RenderState_PushDepthTest: Maximum state stack depth exceeded");
     }
     depthTestIndex += 1;
     depthTest[depthTestIndex as usize] = value;
@@ -213,9 +197,7 @@ pub unsafe extern "C" fn RenderState_PushDepthTest(value: bool) {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushDepthWritable(value: bool) {
     if depthWritableIndex + 1 >= 16 {
-        Fatal(c_str!(
-            "RenderState_PushDepthWritable: Maximum state stack depth exceeded"
-        ));
+        CFatal!("RenderState_PushDepthWritable: Maximum state stack depth exceeded");
     }
     depthWritableIndex += 1;
     depthWritable[depthWritableIndex as usize] = value;
@@ -225,9 +207,7 @@ pub unsafe extern "C" fn RenderState_PushDepthWritable(value: bool) {
 #[no_mangle]
 pub unsafe extern "C" fn RenderState_PushWireframe(value: bool) {
     if wireframeIndex + 1 >= 16 {
-        Fatal(c_str!(
-            "RenderState_PushWireframe: Maximum state stack depth exceeded"
-        ));
+        CFatal!("RenderState_PushWireframe: Maximum state stack depth exceeded");
     }
     wireframeIndex += 1;
     wireframe[wireframeIndex as usize] = value;

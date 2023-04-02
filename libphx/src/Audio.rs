@@ -58,9 +58,7 @@ pub unsafe extern "C" fn Audio_Init() {
     let mut version: u32 = 0;
     FMODCALL(FMOD_System_GetVersion(this.handle, &mut version));
     if version < 0x20208 as i32 as u32 {
-        Fatal(c_str!(
-            "Audio_Create: FMOD library link/compile version mismatch"
-        ));
+        CFatal!("Audio_Create: FMOD library link/compile version mismatch");
     }
 
     /* NOTE : The fake HRTF mentioned in FMOD_INIT_CHANNEL_LOWPASS and

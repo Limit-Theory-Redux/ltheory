@@ -31,9 +31,9 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
                     );
                     memory
                 }
-                None => Fatal(c_str!("Failed to load image from '%s'"), path),
+                None => CFatal!("Failed to load image from '%s'", path),
             }
         }
-        Err(_) => Fatal(c_str!("Failed to load image from '%s'"), path),
+        Err(_) => CFatal!("Failed to load image from '%s'", path),
     }
 }

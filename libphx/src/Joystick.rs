@@ -142,7 +142,7 @@ pub unsafe extern "C" fn Joystick_GetCount() -> i32 {
 pub unsafe extern "C" fn Joystick_Open(index: i32) -> *mut Joystick {
     let this = MemNew!(Joystick);
     if kOpen == kMaxOpen {
-        Fatal(c_str!("Cannot open any more gamepad connections."));
+        CFatal!("Cannot open any more gamepad connections.");
     }
     let mut i: i32 = 0;
     while i < kMaxOpen {

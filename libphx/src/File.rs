@@ -68,20 +68,20 @@ pub unsafe extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes
         return std::ptr::null_mut();
     }
     if size < 0 {
-        Fatal(c_str!("File_Read: failed to get size of file '%s'"), path);
+        CFatal!("File_Read: failed to get size of file '%s'", path);
     }
     libc::rewind(file);
     if size > sdl2_sys::UINT32_MAX as i64 {
-        Fatal(
-            c_str!("File_Read: filesize of '%s' exceeds 32-bit capacity limit"),
+        CFatal!(
+            "File_Read: filesize of '%s' exceeds 32-bit capacity limit",
             path,
         );
     }
     let buffer: *mut Bytes = Bytes_Create(size as u32);
     let result: usize = libc::fread(Bytes_GetData(buffer), size as usize, 1, file);
     if result != 1 {
-        Fatal(
-            c_str!("File_Read: failed to read correct number of bytes from '%s'"),
+        CFatal!(
+            "File_Read: failed to read correct number of bytes from '%s'",
             path,
         );
     }
@@ -101,10 +101,7 @@ pub unsafe extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc
         return std::ptr::null();
     }
     if size < 0 {
-        Fatal(
-            c_str!("File_ReadAscii: failed to get size of file '%s'"),
-            path,
-        );
+        CFatal!("File_ReadAscii: failed to get size of file '%s'", path,);
     }
     libc::rewind(file);
     let buffer: *mut libc::c_char = MemAlloc(
@@ -112,8 +109,8 @@ pub unsafe extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc
     ) as *mut libc::c_char;
     let result: usize = libc::fread(buffer as *mut _, size as usize, 1, file);
     if result != 1 {
-        Fatal(
-            c_str!("File_Read: failed to read correct number of bytes from '%s'"),
+        CFatal!(
+            "File_Read: failed to read correct number of bytes from '%s'",
             path,
         );
     }

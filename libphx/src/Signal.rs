@@ -81,7 +81,7 @@ static mut handlerTable: [*mut HandlerElem; 32] = [
 ];
 
 unsafe extern "C" fn Signal_Handler(sig: Signal) {
-    Warn(c_str!("Signal_Handler: Caught %s"), Signal_ToString(sig));
+    CWarn!("Signal_Handler: Caught %s", Signal_ToString(sig));
     signal(Signal_Int, handlerDefault[Signal_Int as usize]);
     signal(Signal_Ill, handlerDefault[Signal_Ill as usize]);
     signal(Signal_Fpe, handlerDefault[Signal_Fpe as usize]);
@@ -169,7 +169,7 @@ pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, fn_0: SignalHandler) 
         prev = &mut (*curr).next;
         curr = (*curr).next;
     }
-    Fatal(c_str!("Signal_RemoveHandler: No such handler installed"));
+    CFatal!("Signal_RemoveHandler: No such handler installed");
 }
 
 #[no_mangle]

@@ -1294,7 +1294,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
     relationship: BSPNodeRel,
 ) -> BSPNodeRef {
     if this.is_null() {
-        Fatal(c_str!("BSP_GetNode: bsp is null"));
+        CFatal!("BSP_GetNode: bsp is null");
     }
 
     if nodeRef.index == 0 {
@@ -1332,10 +1332,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
             newNode = (*node).child[FrontIndex as usize];
         }
     } else {
-        Fatal(
-            b"BSPDebug_GetNode: Unhandled case: %i\0" as *const u8 as *const libc::c_char,
-            relationship as i32,
-        )
+        CFatal!("BSPDebug_GetNode: Unhandled case: %i", relationship as i32,)
     }
 
     if newNode.index != 0 {
@@ -1482,21 +1479,16 @@ pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(_this: *mut BSP, _totalT
     // #if ENABLE_BSP_PROFILING
     //   BSPDebug_PrintProfilingData(self, &self->profilingData.ray, totalTime);
     // #else
-    Warn(
-        c_str!("BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function."),
+    CWarn!("BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.",
     );
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(
-    _this: *mut BSP,
-    _totalTime: f64,
-) {
+pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(_this: *mut BSP, _totalTime: f64) {
     // #if ENABLE_BSP_PROFILING
     //     BSPDebug_PrintProfilingData(self, &self->profilingData.sphere, totalTime);
     // #else
-    Warn(
-        c_str!("BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function."),
+    CWarn!("BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.",
     );
 }
 

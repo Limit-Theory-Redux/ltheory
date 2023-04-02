@@ -141,11 +141,7 @@ pub unsafe extern "C" fn Font_Load(name: *const libc::c_char, size: i32) -> *mut
     let this = MemNew!(Font);
     (*this)._refCount = 1;
     if FT_New_Face(ft, path, 0 as FT_Long, &mut (*this).handle) != 0 {
-        Fatal(
-            c_str!("Font_Load: Failed to load font <%s> at <%s>"),
-            name,
-            path,
-        );
+        CFatal!("Font_Load: Failed to load font <%s> at <%s>", name, path,);
     }
     FT_Set_Pixel_Sizes((*this).handle, 0 as FT_UInt, size as FT_UInt);
     MemZero(

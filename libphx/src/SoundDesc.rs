@@ -31,8 +31,8 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(this: *mut SoundDesc, func: *const
             std::ptr::null_mut(),
         ));
         if openState == FMOD_OPENSTATE::FMOD_OPENSTATE_ERROR {
-            Fatal(
-                c_str!("%s: Background file load has failed.\n  Path: %s"),
+            CFatal!(
+                "%s: Background file load has failed.\n  Path: %s",
                 func,
                 (*this).path,
             );
@@ -44,8 +44,8 @@ pub unsafe extern "C" fn SoundDesc_FinishLoad(this: *mut SoundDesc, func: *const
         }
         if !warned {
             warned = true;
-            Warn(
-                c_str!("%s: Background file load hasn't finished. Blocking the main thread.\n  Path: %s"),
+            CWarn!(
+                "%s: Background file load hasn't finished. Blocking the main thread.\n  Path: %s",
                 func,
                 (*this).path,
             );
@@ -212,10 +212,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(this: *mut SoundDesc, name: *const lib
     /* Write the file */
     let file: *mut File = File_Create(name);
     if file.is_null() {
-        Fatal(
-            c_str!("SoundDesc_ToFile: Failed to create file.\nPath: %s"),
-            name,
-        );
+        CFatal!("SoundDesc_ToFile: Failed to create file.\nPath: %s", name,);
     }
 
     File_Write(file, c_str!("RIFF") as *const _, 4);

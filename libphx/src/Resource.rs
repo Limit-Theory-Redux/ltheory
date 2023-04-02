@@ -52,8 +52,8 @@ unsafe extern "C" fn Resource_Resolve(
         return name;
     }
     if failhard {
-        Fatal(
-            c_str!("Resource_Resolve: Failed to find %s <%s>"),
+        CFatal!(
+            "Resource_Resolve: Failed to find %s <%s>",
             ResourceType_ToString(type_0),
             name,
         );
@@ -90,8 +90,8 @@ pub unsafe extern "C" fn Resource_LoadBytes(
     let path: *const libc::c_char = Resource_Resolve(type_0, name, true);
     let data: *mut Bytes = File_ReadBytes(path);
     if data.is_null() {
-        Fatal(
-            c_str!("Resource_LoadBytes: Failed to load %s <%s> at <%s>"),
+        CFatal!(
+            "Resource_LoadBytes: Failed to load %s <%s> at <%s>",
             ResourceType_ToString(type_0),
             name,
             path,
@@ -108,8 +108,8 @@ pub unsafe extern "C" fn Resource_LoadCstr(
     let path: *const libc::c_char = Resource_Resolve(type_0, name, true);
     let data: *const libc::c_char = File_ReadCstr(path);
     if data.is_null() {
-        Fatal(
-            c_str!("Resource_LoadCstr: Failed to load %s <%s> at <%s>"),
+        CFatal!(
+            "Resource_LoadCstr: Failed to load %s <%s> at <%s>",
             ResourceType_ToString(type_0),
             name,
             path,

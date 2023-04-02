@@ -89,7 +89,7 @@ unsafe extern "C" fn Sound_EnsureNotFreedImpl(this: *mut Sound, func: *const lib
         } else {
             c_str!("<SoundDesc has been freed>")
         };
-        Fatal(c_str!("%s: Sound has been freed.\n  Name: %s"), func, name);
+        CFatal!("%s: Sound has been freed.\n  Name: %s", func, name);
     }
 }
 
@@ -113,10 +113,7 @@ unsafe extern "C" fn Sound_SetState(this: *mut Sound, nextState: SoundState) {
         }
         1 | 5 => {}
         _ => {
-            Fatal(
-                c_str!("Sound_SetState: Unhandled case: %i"),
-                nextState as i32,
-            );
+            CFatal!("Sound_SetState: Unhandled case: %i", nextState as i32,);
         }
     }
     (*this).state = nextState;

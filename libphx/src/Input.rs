@@ -232,7 +232,7 @@ unsafe extern "C" fn Input_SetButton(event: InputEvent) {
 pub unsafe extern "C" fn Input_Init() {
     let result: SDL_bool = SDL_SetHint(c_str!("SDL_MOUSE_FOCUS_CLICKTHROUGH"), c_str!("1"));
     if result != SDL_bool::SDL_TRUE {
-        Warn(c_str!("Input_Init: SDL_SetHint failed"));
+        CWarn!("Input_Init: SDL_SetHint failed");
     }
 
     let mut iDev: i32 = 0;
@@ -482,7 +482,7 @@ pub unsafe extern "C" fn Input_Update() {
                     let sdlController: *mut SDL_GameController =
                         SDL_GameControllerOpen(sdl.cdevice.which);
                     if sdlController.is_null() {
-                        Warn(c_str!("Input_Update: SDL_GameControllerOpen failed"));
+                        CWarn!("Input_Update: SDL_GameControllerOpen failed");
                     } else {
                         let sdlJoystick: *mut SDL_Joystick =
                             SDL_GameControllerGetJoystick(sdlController);
@@ -597,7 +597,7 @@ pub unsafe extern "C" fn Input_LoadGamepadDatabase(name: *const libc::c_char) {
     let path: *const libc::c_char = Resource_GetPath(ResourceType_Other, name);
     let result: i32 = SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(path, c_str!("rb")), 1);
     if result == -1 {
-        Fatal(c_str!("Input_Init: Failed to add gamepad mappings"));
+        CFatal!("Input_Init: Failed to add gamepad mappings");
     }
 }
 

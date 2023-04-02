@@ -14,7 +14,7 @@ static mut color: Vec4 = Vec4::ONE;
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
     if alphaIndex + 1 >= 16 {
-        Fatal(c_str!("Draw_PushAlpha: Maximum alpha stack depth exceeded"));
+        CFatal!("Draw_PushAlpha: Maximum alpha stack depth exceeded");
     }
     let prevAlpha: f32 = if alphaIndex >= 0 {
         alphaStack[alphaIndex as usize]
@@ -30,9 +30,7 @@ pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PopAlpha() {
     if alphaIndex < 0 {
-        Fatal(c_str!(
-            "Draw_PopAlpha Attempting to pop an empty alpha stack"
-        ));
+        CFatal!("Draw_PopAlpha Attempting to pop an empty alpha stack");
     }
     alphaIndex -= 1;
     let alpha: f32 = if alphaIndex >= 0 {
@@ -115,10 +113,7 @@ pub unsafe extern "C" fn Draw_Box3(this: *const Box3) {
 pub unsafe extern "C" fn Draw_Clear(r: f32, g: f32, b: f32, a: f32) {
     let status: i32 = gl::CheckFramebufferStatus(gl::FRAMEBUFFER) as i32;
     if status != gl::FRAMEBUFFER_COMPLETE as i32 {
-        Warn(
-            c_str!("Framebuffer is incomplete, skipping clear: %d"),
-            status,
-        );
+        CWarn!("Framebuffer is incomplete, skipping clear: %d", status,);
     } else {
         gl::ClearColor(r, g, b, a);
         gl::Clear(gl::COLOR_BUFFER_BIT);

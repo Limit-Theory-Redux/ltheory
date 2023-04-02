@@ -1596,8 +1596,7 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 [[package]]
 name = "sdl2-sys"
 version = "0.35.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3586be2cf6c0a8099a79a12b4084357aa9b3e0b0d7980e3b67aaf7a9d55f9f0"
+source = "git+https://github.com/hikari-no-yume/rust-sdl2.git?branch=update-bundled-SDL2#571085aee601daffc51d543441c983409088fce2"
 dependencies = [
  "cfg-if 1.0.0",
  "cmake",

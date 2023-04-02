@@ -55,7 +55,7 @@ pub unsafe extern "C" fn Bytes_FromData(data: *const libc::c_void, len: u32) -> 
 pub unsafe extern "C" fn Bytes_Load(path: *const libc::c_char) -> *mut Bytes {
     let this: *mut Bytes = File_ReadBytes(path);
     if this.is_null() {
-        Fatal(c_str!("Bytes_Load: Failed to read file '%s'"), path);
+        CFatal!("Bytes_Load: Failed to read file '%s'", path);
     }
     this
 }
@@ -83,8 +83,8 @@ pub extern "C" fn Bytes_Compress(bytes: *mut Bytes) -> *mut Bytes {
     if let Err(e) = encoder.write_all(input) {
         unsafe {
             let str = CString::new(e.to_string()).unwrap();
-            Fatal(
-                c_str!("Bytes_Compress: Encoding failed: %s"),
+            CFatal!(
+                "Bytes_Compress: Encoding failed: %s",
                 str.as_ptr() as *const libc::c_char,
             );
         }
@@ -102,8 +102,8 @@ pub extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
     if let Err(e) = decoder.write_all(input) {
         unsafe {
             let str = CString::new(e.to_string()).unwrap();
-            Fatal(
-                c_str!("Bytes_Decompress: Decoding failed: %s"),
+            CFatal!(
+                "Bytes_Decompress: Decoding failed: %s",
                 str.as_ptr() as *const libc::c_char,
             );
         }
@@ -353,10 +353,7 @@ pub unsafe extern "C" fn Bytes_Print(this: *mut Bytes) {
 pub unsafe extern "C" fn Bytes_Save(this: *mut Bytes, path: *const libc::c_char) {
     let file: *mut File = File_Create(path);
     if file.is_null() {
-        Fatal(
-            c_str!("Bytes_Save: Failed to open file '%s' for writing"),
-            path,
-        );
+        CFatal!("Bytes_Save: Failed to open file '%s' for writing", path,);
     }
     File_Write(
         file,

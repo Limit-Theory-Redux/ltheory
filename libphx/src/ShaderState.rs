@@ -332,7 +332,7 @@ pub unsafe extern "C" fn ShaderState_Start(this: *mut ShaderState) {
                 Shader_ISetTexCube((*e).index, (*e).data.asTexCube);
             }
             _ => {
-                Fatal(c_str!("ShaderState_Start: Encountered invalid opcode"));
+                CFatal!("ShaderState_Start: Encountered invalid opcode");
             }
         }
     }

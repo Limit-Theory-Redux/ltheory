@@ -139,7 +139,7 @@ pub unsafe extern "C" fn Float_Validatef(x: f32) -> Error {
         1 => return 0x20 as Error,
         3 | 4 => return 0 as Error,
         _ => {
-            Fatal(c_str!("Float_Validate: Unhandled case: %i"), classification);
+            CFatal!("Float_Validate: Unhandled case: %i", classification);
         }
     }
     0 as Error
@@ -164,7 +164,7 @@ pub unsafe extern "C" fn Float_Validate(x: f64) -> Error {
         1 => return 0x20 as Error,
         3 | 4 => return 0 as Error,
         _ => {
-            Fatal(c_str!("Float_Validate: Unhandled case: %i"), classification);
+            CFatal!("Float_Validate: Unhandled case: %i", classification);
         }
     }
 }

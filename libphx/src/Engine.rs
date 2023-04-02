@@ -66,18 +66,18 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
                 linked.minor as i32,
                 linked.patch as i32,
             );
-            Fatal(c_str!("Engine_Init: Terminating."));
+            CFatal!("Engine_Init: Terminating.");
         }
         if SDL_Init(0) != 0 {
-            Fatal(c_str!("Engine_Init: Failed to initialize SDL"));
+            CFatal!("Engine_Init: Failed to initialize SDL");
         }
         if !Directory_Create(c_str!("log")) {
-            Fatal(c_str!("Engine_Init: Failed to create log directory."));
+            CFatal!("Engine_Init: Failed to create log directory.");
         }
         atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
     }
     if SDL_InitSubSystem(subsystems) != 0 {
-        Fatal(c_str!("Engine_Init: Failed to initialize SDL's subsystems"));
+        CFatal!("Engine_Init: Failed to initialize SDL's subsystems");
     }
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, glVersionMajor);
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MINOR_VERSION, glVersionMinor);
