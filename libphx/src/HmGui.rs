@@ -5,10 +5,10 @@ use crate::Font::*;
 use crate::Hash::*;
 use crate::HashMap::*;
 use crate::Input::*;
+use crate::Math::Lerp;
 use crate::Math::Vec3;
 use crate::Math::Vec4;
 use crate::Math::{IVec2, Vec2};
-use crate::Math::Lerp;
 use crate::Profiler::*;
 use crate::RenderState::*;
 use crate::Tex2D::*;
@@ -254,14 +254,11 @@ unsafe extern "C" fn HmGui_ComputeSize(g: *mut HmGuiGroup) {
     while !e_0.is_null() {
         match (*g).layout {
             1 => {
-                (*g).widget.minSize.x =
-                    f64::max((*g).widget.minSize.x as f64, (*e_0).minSize.x as f64) as f32;
-                (*g).widget.minSize.y =
-                    f64::max((*g).widget.minSize.y as f64, (*e_0).minSize.y as f64) as f32;
+                (*g).widget.minSize.x = f32::max((*g).widget.minSize.x, (*e_0).minSize.x);
+                (*g).widget.minSize.y = f32::max((*g).widget.minSize.y, (*e_0).minSize.y);
             }
             2 => {
-                (*g).widget.minSize.x =
-                    f64::max((*g).widget.minSize.x as f64, (*e_0).minSize.x as f64) as f32;
+                (*g).widget.minSize.x = f32::max((*g).widget.minSize.x, (*e_0).minSize.x);
                 (*g).widget.minSize.y += (*e_0).minSize.y;
                 if e_0 != (*g).head {
                     (*g).widget.minSize.y += (*g).spacing;
@@ -269,8 +266,7 @@ unsafe extern "C" fn HmGui_ComputeSize(g: *mut HmGuiGroup) {
             }
             3 => {
                 (*g).widget.minSize.x += (*e_0).minSize.x;
-                (*g).widget.minSize.y =
-                    f64::max((*g).widget.minSize.y as f64, (*e_0).minSize.y as f64) as f32;
+                (*g).widget.minSize.y = f32::max((*g).widget.minSize.y, (*e_0).minSize.y);
                 if e_0 != (*g).head {
                     (*g).widget.minSize.x += (*g).spacing;
                 }
@@ -285,8 +281,8 @@ unsafe extern "C" fn HmGui_ComputeSize(g: *mut HmGuiGroup) {
         let data: *mut HmGuiData = HmGui_GetData(g);
         (*data).minSize = (*g).widget.minSize;
     }
-    (*g).widget.minSize.x = f64::min((*g).widget.minSize.x as f64, (*g).maxSize.x as f64) as f32;
-    (*g).widget.minSize.y = f64::min((*g).widget.minSize.y as f64, (*g).maxSize.y as f64) as f32;
+    (*g).widget.minSize.x = f32::min((*g).widget.minSize.x, (*g).maxSize.x);
+    (*g).widget.minSize.y = f32::min((*g).widget.minSize.y, (*g).maxSize.y);
 }
 
 unsafe extern "C" fn HmGui_LayoutWidget(e: *mut HmGuiWidget, pos: Vec2, sx: f32, sy: f32) {

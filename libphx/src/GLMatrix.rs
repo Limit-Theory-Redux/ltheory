@@ -6,6 +6,9 @@ use crate::Matrix::*;
 use crate::GL::gl;
 use libc;
 
+/* NOTE : LoadMatrix expects column-major memory layout, but we use row-major,
+ *        hence the need for transpositions when taking a Matrix*. */
+
 #[no_mangle]
 pub unsafe extern "C" fn GLMatrix_Clear() {
     gl::LoadIdentity();
@@ -40,9 +43,12 @@ pub unsafe extern "C" fn GLMatrix_LookAt(eye: *const DVec3, at: *const DVec3, up
     let z = (*at - *eye).normalize();
     let x = DVec3::cross(z, (*up).normalize()).normalize();
     let y = DVec3::cross(x, z);
+
+  /* TODO : Yet another sign flip. Sigh. */
     let mut m: [f64; 16] = [
         x.x, y.x, -z.x, 0.0, x.y, y.y, -z.y, 0.0, x.z, y.z, -z.z, 0.0, 0.0, 0.0, 0.0, 1.0,
     ];
+    
     gl::MultMatrixd(m.as_mut_ptr());
     gl::Translated(-(*eye).x, -(*eye).y, -(*eye).z);
 }

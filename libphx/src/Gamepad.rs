@@ -14,36 +14,33 @@ pub struct Gamepad {
     pub gamepadList_next: *mut Gamepad,
     pub handle: *mut SDL_GameController,
     pub lastActive: TimeStamp,
-    pub axisState: [f64; 6],
-    pub axisLast: [f64; 6],
-    pub deadzone: [f64; 6],
-    pub buttonState: [bool; 15],
-    pub buttonLast: [bool; 15],
+    pub axisState: [f64; GamepadAxis_SIZE],
+    pub axisLast: [f64; GamepadAxis_SIZE],
+    pub deadzone: [f64; GamepadAxis_SIZE],
+    pub buttonState: [bool; GamepadButton_SIZE],
+    pub buttonLast: [bool; GamepadButton_SIZE],
 }
 
 static mut gamepadList: *mut Gamepad = std::ptr::null_mut();
 
 unsafe extern "C" fn Gamepad_UpdateState(this: *mut Gamepad) {
     let now: TimeStamp = TimeStamp_Get();
-    let mut i = GamepadAxis_BEGIN as i32;
-    while i <= (GamepadAxis_END as i32) {
-        let state: f64 = Gamepad_GetAxis(this, std::mem::transmute(i));
-        if (*this).axisState[i as usize] != state {
+    for i in (GamepadAxis_BEGIN as usize)..=(GamepadAxis_END as usize) {
+        let state: f64 = Gamepad_GetAxis(this, std::mem::transmute(i as u32));
+        if (*this).axisState[i] != state {
             (*this).lastActive = now;
         }
-        (*this).axisLast[i as usize] = (*this).axisState[i as usize];
-        (*this).axisState[i as usize] = state;
-        i += 1;
+        (*this).axisLast[i] = (*this).axisState[i];
+        (*this).axisState[i] = state;
     }
-    i = GamepadButton_BEGIN as i32;
-    while i <= (GamepadButton_END as i32) {
-        let state_0: bool = Gamepad_GetButton(this, std::mem::transmute(i));
-        if (*this).buttonState[i as usize] as i32 != state_0 as i32 {
+    
+    for i in (GamepadButton_BEGIN as usize)..=(GamepadButton_END as usize) {
+        let state: bool = Gamepad_GetButton(this, std::mem::transmute(i as u32));
+        if (*this).buttonState[i] as i32 != state as i32 {
             (*this).lastActive = now;
         }
-        (*this).buttonLast[i as usize] = (*this).buttonState[i as usize];
-        (*this).buttonState[i as usize] = state_0;
-        i += 1;
+        (*this).buttonLast[i] = (*this).buttonState[i];
+        (*this).buttonState[i] = state;
     }
 }
 

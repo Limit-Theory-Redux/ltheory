@@ -25,7 +25,7 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: *mut Mesh, radius: f32) {
     let vDim: i32 = f64::ceil(f64::sqrt(vertexCount as f64)) as i32;
     let surfels: i32 = sDim * sDim;
     let vertices: i32 = vDim * vDim;
-    let bufSize: i32 = f64::max(surfels as f64, vertices as f64) as i32;
+    let bufSize: i32 = i32::max(surfels, vertices);
     let pointBuffer: *mut Vec4 = MemNewArray!(Vec4, bufSize);
     let normalBuffer: *mut Vec4 = MemNewArray!(Vec4, bufSize);
     MemZero(

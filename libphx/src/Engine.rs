@@ -17,6 +17,16 @@ use crate::TimeStamp::*;
 use libc;
 use sdl2_sys::*;
 
+// /* On Windows, request usage of the dedicated GPU if the machine switches
+//  * between on-board and dedicated GPUs dynamically. Only works when exported
+//  * by the exe, not when exported by a dll. */
+//  #if WINDOWS
+//  extern "C" {
+//    __declspec(dllexport) ulong NvOptimusEnablement = 0x00000001;
+//    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+//  }
+// #endif
+
 #[no_mangle]
 pub static subsystems: u32 = SDL_INIT_EVENTS
     | SDL_INIT_VIDEO
@@ -25,32 +35,33 @@ pub static subsystems: u32 = SDL_INIT_EVENTS
     | SDL_INIT_JOYSTICK
     | SDL_INIT_GAMECONTROLLER;
 
-static mut initTime: TimeStamp = 0 as TimeStamp;
+static mut initTime: TimeStamp = 0;
 
 #[no_mangle]
 pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
     static mut firstTime: bool = true;
     Signal_Init();
+
     CPrintf!(
         "Engine_Init: Requesting GL %d.%d\n",
         glVersionMajor,
         glVersionMinor,
     );
+
     if firstTime {
         firstTime = false;
+
+        /* Check SDL version compatibility. */
         let mut compiled: SDL_version = SDL_version {
-            major: 0,
-            minor: 0,
-            patch: 0,
+            major: SDL_MAJOR_VERSION as u8,
+            minor: SDL_MINOR_VERSION as u8,
+            patch: SDL_PATCHLEVEL as u8,
         };
         let mut linked: SDL_version = SDL_version {
             major: 0,
             minor: 0,
             patch: 0,
         };
-        compiled.major = 2;
-        compiled.minor = 26;
-        compiled.patch = 1;
         SDL_GetVersion(&mut linked);
         if compiled.major != linked.major {
             println!("Engine_Init: Detected SDL major version mismatch:");
@@ -68,6 +79,7 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
             );
             CFatal!("Engine_Init: Terminating.");
         }
+
         if SDL_Init(0) != 0 {
             CFatal!("Engine_Init: Failed to initialize SDL");
         }
@@ -76,9 +88,11 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
         }
         atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
     }
+
     if SDL_InitSubSystem(subsystems) != 0 {
         CFatal!("Engine_Init: Failed to initialize SDL's subsystems");
     }
+
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, glVersionMajor);
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MINOR_VERSION, glVersionMinor);
     SDL_GL_SetAttribute(
@@ -91,12 +105,14 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DEPTH_SIZE, 24);
+
     Keyboard_Init();
     Metric_Reset();
     Mouse_Init();
     Input_Init();
     Resource_Init();
     ShaderVar_Init();
+
     initTime = TimeStamp_Get();
 }
 

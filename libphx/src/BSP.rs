@@ -4,10 +4,10 @@ use crate::Common::*;
 use crate::Draw::*;
 use crate::Intersect::*;
 use crate::LineSegment::*;
+use crate::Math::Lerp;
 use crate::Math::Sphere;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
-use crate::Math::Lerp;
 use crate::Mesh::*;
 use crate::Plane::*;
 use crate::Polygon::*;
@@ -399,8 +399,8 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                     earlyIndex = (t < 0.0f32) as i32 ^ nearIndex;
 
                     /* Don't let the ray 'creep past' tMin/tMax */
-                    let min: f32 = f64::max(planeBegin as f64, ray.tMin as f64) as f32;
-                    let max: f32 = f64::min(planeEnd as f64, ray.tMax as f64) as f32;
+                    let min: f32 = f32::max(planeBegin, ray.tMin);
+                    let max: f32 = f32::min(planeEnd, ray.tMax);
 
                     let d: DelayRay = DelayRay {
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
@@ -687,7 +687,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     let polygonsLen: i32 = (*nodeData).polygons.len() as i32;
     if (*nodeData).validPolygonCount > 0 {
         /* Simply score split planes using polygon faces */
-        numToCheck = f64::min(numToCheck as f64, (*nodeData).validPolygonCount as f64) as i32;
+        numToCheck = i32::min(numToCheck, (*nodeData).validPolygonCount);
         let mut i: i32 = 0;
         while i < numToCheck {
             let mut polygonIndex: i32 =

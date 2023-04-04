@@ -5,10 +5,12 @@ use crate::Metric::*;
 use crate::GL::gl;
 use libc;
 
-static mut alphaStack: [f32; 16] = [0.; 16];
+/* TODO JP : Replace all immediates with static VBO/IBOs & glDraw*. */
 
+const MAX_STACK_DEPTH: usize = 16;
+
+static mut alphaStack: [f32; MAX_STACK_DEPTH] = [0.; MAX_STACK_DEPTH];
 static mut alphaIndex: i32 = -1;
-
 static mut color: Vec4 = Vec4::ONE;
 
 #[no_mangle]
@@ -16,6 +18,7 @@ pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
     if alphaIndex + 1 >= 16 {
         CFatal!("Draw_PushAlpha: Maximum alpha stack depth exceeded");
     }
+
     let prevAlpha: f32 = if alphaIndex >= 0 {
         alphaStack[alphaIndex as usize]
     } else {
@@ -32,6 +35,7 @@ pub unsafe extern "C" fn Draw_PopAlpha() {
     if alphaIndex < 0 {
         CFatal!("Draw_PopAlpha Attempting to pop an empty alpha stack");
     }
+
     alphaIndex -= 1;
     let alpha: f32 = if alphaIndex >= 0 {
         alphaStack[alphaIndex as usize]
@@ -64,6 +68,7 @@ pub unsafe extern "C" fn Draw_Axes(
     gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
     gl::Vertex3f(forward.x, forward.y, forward.z);
     gl::End();
+
     gl::Begin(gl::POINTS);
     gl::Color4f(1.0f32, 1.0f32, 1.0f32, _alpha);
     gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
@@ -82,26 +87,37 @@ pub unsafe extern "C" fn Draw_Border(s: f32, x: f32, y: f32, w: f32, h: f32) {
 pub unsafe extern "C" fn Draw_Box3(this: *const Box3) {
     Metric_AddDrawImm(6, 12, 24);
     gl::Begin(gl::QUADS);
+    /* Left. */
     gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
     gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
     gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
     gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
+
+    /* Right. */
     gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
     gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
     gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
     gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
+
+    /* Front. */
     gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
     gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
     gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
     gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
+
+    /* Back. */
     gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
     gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
     gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
     gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
+
+    /* Top. */
     gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
     gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
     gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
     gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
+
+    /* Bottom. */
     gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
     gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
     gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
@@ -111,9 +127,12 @@ pub unsafe extern "C" fn Draw_Box3(this: *const Box3) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Clear(r: f32, g: f32, b: f32, a: f32) {
-    let status: i32 = gl::CheckFramebufferStatus(gl::FRAMEBUFFER) as i32;
-    if status != gl::FRAMEBUFFER_COMPLETE as i32 {
-        CWarn!("Framebuffer is incomplete, skipping clear: %d", status,);
+    let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
+    if status != gl::FRAMEBUFFER_COMPLETE {
+        CWarn!(
+            "Framebuffer is incomplete, skipping clear: %d",
+            status as i32
+        );
     } else {
         gl::ClearColor(r, g, b, a);
         gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -173,10 +192,12 @@ pub unsafe extern "C" fn Draw_Plane(p: *const Vec3, n: *const Vec3, scale: f32) 
     };
     e1 = Vec3_Reject(e1, *n).normalize();
     let e2: Vec3 = Vec3::cross(*n, e1);
+
     let p0: Vec3 = *p + (e1 * -scale) + (e2 * -scale);
     let p1: Vec3 = *p + (e1 * scale) + (e2 * -scale);
     let p2: Vec3 = *p + (e1 * scale) + (e2 * scale);
     let p3: Vec3 = *p + (e1 * -scale) + (e2 * scale);
+
     Metric_AddDrawImm(1, 2, 4);
     gl::Begin(gl::QUADS);
     gl::Vertex3f(p0.x, p0.y, p0.z);
@@ -209,13 +230,8 @@ pub unsafe extern "C" fn Draw_PointSize(size: f32) {
 pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
     Metric_AddDrawImm(1, count - 2, count);
     gl::Begin(gl::POLYGON);
-    let mut i: i32 = 0;
-    while i < count {
-        gl::Vertex2f(
-            (*points.offset(i as isize)).x,
-            (*points.offset(i as isize)).y,
-        );
-        i += 1;
+    for i in 0..(count as isize) {
+        gl::Vertex2f((*points.offset(i)).x, (*points.offset(i)).y);
     }
     gl::End();
 }
@@ -224,14 +240,12 @@ pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
 pub unsafe extern "C" fn Draw_Poly3(points: *const Vec3, count: i32) {
     Metric_AddDrawImm(1, count - 2, count);
     gl::Begin(gl::POLYGON);
-    let mut i: i32 = 0;
-    while i < count {
+    for i in 0..(count as isize) {
         gl::Vertex3f(
-            (*points.offset(i as isize)).x,
-            (*points.offset(i as isize)).y,
-            (*points.offset(i as isize)).z,
+            (*points.offset(i)).x,
+            (*points.offset(i)).y,
+            (*points.offset(i)).z,
         );
-        i += 1;
     }
     gl::End();
 }
@@ -316,7 +330,7 @@ pub unsafe extern "C" fn Draw_SmoothPoints(enabled: bool) {
 }
 
 #[inline]
-extern "C" fn Spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
+fn Spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
     Vec3::new(
         (r as f64 * f64::sin(pitch as f64) * f64::cos(yaw as f64)) as f32,
         (r as f64 * f64::cos(pitch as f64)) as f32,
@@ -324,6 +338,7 @@ extern "C" fn Spherical(r: f32, yaw: f32, pitch: f32) -> Vec3 {
     )
 }
 
+/* TODO JP : Lazy creation of VBO / IBO & glDraw instead of immediate. */
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
     let res: usize = 7;
@@ -335,8 +350,7 @@ pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
     let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
     let phi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
     let tc: Vec3 = *p + Spherical(r, 0.0f32, 0.0f32);
-    let mut iTheta: usize = 0;
-    while iTheta < res {
+    for iTheta in 0..res {
         let theta: f32 = iTheta as f32 / fRes * std::f32::consts::TAU;
         let br: Vec3 = *p + Spherical(r, lastTheta, phi);
         let bl: Vec3 = *p + Spherical(r, theta, phi);
@@ -344,7 +358,6 @@ pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
         gl::Vertex3f(tc.x, tc.y, tc.z);
         gl::Vertex3f(bl.x, bl.y, bl.z);
         lastTheta = theta;
-        iTheta = iTheta.wrapping_add(1);
     }
     gl::End();
 
@@ -356,45 +369,41 @@ pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
     );
     gl::Begin(gl::QUADS);
     let mut lastPhi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
-    let mut lastTheta_0: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
-    let mut iPhi: usize = 2;
-    while iPhi < res {
-        let phi_0: f32 = iPhi as f32 / fRes * std::f32::consts::PI;
-        let mut iTheta_0: usize = 0;
-        while iTheta_0 < res {
-            let theta_0: f32 = iTheta_0 as f32 / fRes * std::f32::consts::TAU;
-            let br_0: Vec3 = *p + Spherical(r, lastTheta_0, phi_0);
-            let tr: Vec3 = *p + Spherical(r, lastTheta_0, lastPhi);
-            let tl: Vec3 = *p + Spherical(r, theta_0, lastPhi);
-            let bl_0: Vec3 = *p + Spherical(r, theta_0, phi_0);
-            gl::Vertex3f(br_0.x, br_0.y, br_0.z);
+    let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
+
+    for iPhi in 2..res {
+        let phi: f32 = iPhi as f32 / fRes * std::f32::consts::PI;
+        for iTheta in 0..res {
+            let theta: f32 = iTheta as f32 / fRes * std::f32::consts::TAU;
+            let br: Vec3 = *p + Spherical(r, lastTheta, phi);
+            let tr: Vec3 = *p + Spherical(r, lastTheta, lastPhi);
+            let tl: Vec3 = *p + Spherical(r, theta, lastPhi);
+            let bl: Vec3 = *p + Spherical(r, theta, phi);
+            gl::Vertex3f(br.x, br.y, br.z);
             gl::Vertex3f(tr.x, tr.y, tr.z);
             gl::Vertex3f(tl.x, tl.y, tl.z);
-            gl::Vertex3f(bl_0.x, bl_0.y, bl_0.z);
-            lastTheta_0 = theta_0;
-            iTheta_0 = iTheta_0.wrapping_add(1);
+            gl::Vertex3f(bl.x, bl.y, bl.z);
+            lastTheta = theta;
         }
-        lastPhi = phi_0;
-        iPhi = iPhi.wrapping_add(1);
+        lastPhi = phi;
     }
     gl::End();
 
     // Bottom Row
     Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32);
     gl::Begin(gl::TRIANGLES);
-    let mut lastTheta_1: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
-    let phi_1: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::PI;
+    let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
+    let phi: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::PI;
     let bc: Vec3 = *p + Spherical(r, 0.0f32, std::f32::consts::PI);
-    let mut iTheta_1: usize = 0;
-    while iTheta_1 < res {
-        let theta_1: f32 = iTheta_1 as f32 / fRes * std::f32::consts::TAU;
-        let tr_0: Vec3 = *p + Spherical(r, lastTheta_1, phi_1);
-        let tl_0: Vec3 = *p + Spherical(r, theta_1, phi_1);
-        gl::Vertex3f(tr_0.x, tr_0.y, tr_0.z);
-        gl::Vertex3f(tl_0.x, tl_0.y, tl_0.z);
+
+    for iTheta in 0..res {
+        let theta: f32 = iTheta as f32 / fRes * std::f32::consts::TAU;
+        let tr: Vec3 = *p + Spherical(r, lastTheta, phi);
+        let tl: Vec3 = *p + Spherical(r, theta, phi);
+        gl::Vertex3f(tr.x, tr.y, tr.z);
+        gl::Vertex3f(tl.x, tl.y, tl.z);
         gl::Vertex3f(bc.x, bc.y, bc.z);
-        lastTheta_1 = theta_1;
-        iTheta_1 = iTheta_1.wrapping_add(1);
+        lastTheta = theta;
     }
     gl::End();
 }

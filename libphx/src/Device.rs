@@ -7,13 +7,13 @@ use libc;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Device {
-    pub type_0: DeviceType,
+    pub ty: DeviceType,
     pub id: u32,
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Device_Equal(a: *mut Device, b: *mut Device) -> bool {
-    (*a).type_0 == (*b).type_0 && (*a).id == (*b).id
+    (*a).ty == (*b).ty && (*a).id == (*b).id
 }
 
 #[no_mangle]
@@ -23,7 +23,7 @@ pub unsafe extern "C" fn Device_ToString(this: *mut Device) -> *const libc::c_ch
         buffer.as_mut_ptr(),
         buffer.len(),
         c_str!("%s (%u)"),
-        DeviceType_ToString((*this).type_0),
+        DeviceType_ToString((*this).ty),
         (*this).id,
     );
     buffer.as_mut_ptr() as *const libc::c_char

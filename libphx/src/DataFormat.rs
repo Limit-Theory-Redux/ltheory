@@ -24,15 +24,13 @@ pub static DataFormat_I32: DataFormat = gl::INT as DataFormat;
 #[no_mangle]
 pub static DataFormat_Float: DataFormat = gl::FLOAT as DataFormat;
 
+// Size in bytes of single element
 #[no_mangle]
 pub extern "C" fn DataFormat_GetSize(this: DataFormat) -> i32 {
-    if this == DataFormat_U8 || this == DataFormat_I8 {
-        1
-    } else if this == DataFormat_U16 || this == DataFormat_I16 {
-        2
-    } else if this == DataFormat_U32 || this == DataFormat_I32 || this == DataFormat_Float {
-        4
-    } else {
-        0
+    match this {
+        df if df == DataFormat_U8 || df == DataFormat_I8 => 1,
+        df if df == DataFormat_U16 || df == DataFormat_I16 => 2,
+        df if df == DataFormat_U32 || df == DataFormat_I32 || df == DataFormat_Float => 4,
+        _ => 0,
     }
 }

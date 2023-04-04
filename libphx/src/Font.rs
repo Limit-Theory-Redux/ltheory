@@ -17,6 +17,13 @@ use crate::TexFormat::*;
 use freetype_sys::*;
 use libc;
 
+/* TODO : Re-implement UTF-8 support */
+/* TODO : Atlas instead of individual textures. */
+
+/* NOTE : Gamma of 1.8 recommended by FreeType */
+const kGamma: f32 = 1.8f32;
+const kRcpGamma: f32 = 1.0f32 / kGamma;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Font {
@@ -40,23 +47,19 @@ pub struct Glyph {
     pub advance: i32,
 }
 
-#[no_mangle]
-pub static kGamma: f32 = 1.8f32;
-
-#[no_mangle]
-pub static kRcpGamma: f32 = 1.0f32 / kGamma;
-
 static mut ft: FT_Library = std::ptr::null_mut();
 
 unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyph {
-    if codepoint < 256 && !((*this).glyphsAscii[codepoint as usize]).is_null() {
+    if codepoint < 256 && !(*this).glyphsAscii[codepoint as usize].is_null() {
         return (*this).glyphsAscii[codepoint as usize];
     }
+
     let mut g: *mut Glyph =
         HashMap_Get((*this).glyphs, &codepoint as *const u32 as *const _) as *mut Glyph;
     if !g.is_null() {
         return g;
     }
+
     let face: FT_Face = (*this).handle;
     let glyph: i32 = FT_Get_Char_Index(face, codepoint as FT_ULong) as i32;
     if glyph == 0 {
@@ -70,8 +73,11 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
     {
         return std::ptr::null_mut();
     }
+
     let bitmap: *const FT_Bitmap = &mut (*(*face).glyph).bitmap;
     let mut pBitmap: *const libc::c_uchar = (*bitmap).buffer;
+
+    /* Create a new glyph and fill out metrics. */
     g = MemNew!(Glyph);
     (*g).index = glyph;
     (*g).x0 = (*(*face).glyph).bitmap_left;
@@ -81,7 +87,10 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
     (*g).x1 = (*g).x0 + (*g).sx;
     (*g).y1 = (*g).y0 + (*g).sy;
     (*g).advance = ((*(*face).glyph).advance.x >> 6) as i32;
+
     let buffer = MemNewArray!(Vec4, ((*g).sx * (*g).sy));
+
+    /* Copy rendered bitmap into buffer. */
     let mut pBuffer = buffer;
     let mut dy: i32 = 0;
     while dy < (*bitmap).rows {
@@ -99,6 +108,8 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
         pBitmap = pBitmap.offset((*bitmap).pitch as isize);
         dy = dy.wrapping_add(1);
     }
+
+     /* Upload to texture. */ 
     (*g).tex = Tex2D_Create((*g).sx, (*g).sy, TexFormat_RGBA8);
     Tex2D_SetData(
         (*g).tex,
@@ -106,7 +117,10 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
         PixelFormat_RGBA,
         DataFormat_Float,
     );
+
     MemFree(buffer as *const _);
+
+  /* Add to glyph cache. */
     if codepoint < 256 {
         (*this).glyphsAscii[codepoint as usize] = g;
     } else {
@@ -137,13 +151,16 @@ pub unsafe extern "C" fn Font_Load(name: *const libc::c_char, size: i32) -> *mut
     if ft.is_null() {
         FT_Init_FreeType(&mut ft);
     }
+
     let path: *const libc::c_char = Resource_GetPath(ResourceType_Font, name);
     let this = MemNew!(Font);
     (*this)._refCount = 1;
+
     if FT_New_Face(ft, path, 0 as FT_Long, &mut (*this).handle) != 0 {
         CFatal!("Font_Load: Failed to load font <%s> at <%s>", name, path,);
     }
     FT_Set_Pixel_Sizes((*this).handle, 0 as FT_UInt, size as FT_UInt);
+
     MemZero(
         ((*this).glyphsAscii).as_mut_ptr() as *mut _,
         std::mem::size_of::<[*mut Glyph; 256]>(),
@@ -163,6 +180,7 @@ pub unsafe extern "C" fn Font_Free(this: *mut Font) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
+        /* TODO : Free glyphs! */
         FT_Done_Face((*this).handle);
         MemFree(this as *const _);
     }
@@ -188,6 +206,7 @@ pub unsafe extern "C" fn Font_Draw(
     y = f64::floor(y as f64) as f32;
     RenderState_PushBlendMode(1);
     Draw_Color(r, g, b, a);
+
     while codepoint != 0 {
         let glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
@@ -208,6 +227,7 @@ pub unsafe extern "C" fn Font_Draw(
         text = text.offset(1);
         codepoint = *fresh2 as u32;
     }
+
     Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
     RenderState_PopBlendMode();
     Profiler_End();
@@ -227,6 +247,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
     let mut codepoint: u32 = *fresh3 as u32;
     x = f64::floor(x as f64) as f32;
     y = f64::floor(y as f64) as f32;
+
     while codepoint != 0 {
         let glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
@@ -249,6 +270,7 @@ pub unsafe extern "C" fn Font_DrawShaded(
         text = text.offset(1);
         codepoint = *fresh4 as u32;
     }
+
     Profiler_End();
 }
 
@@ -268,6 +290,7 @@ pub unsafe extern "C" fn Font_GetSize(
     let y: i32 = 0;
     let mut lower = IVec2::new(i32::MAX, i32::MAX);
     let mut upper = IVec2::new(i32::MIN, i32::MIN);
+
     let mut glyphLast: i32 = 0;
     let fresh5 = text;
     text = text.offset(1);
@@ -276,28 +299,40 @@ pub unsafe extern "C" fn Font_GetSize(
         *out = IVec4::ZERO;
         return;
     }
+
     while codepoint != 0 {
         let glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
                 x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
-            lower.x = f64::min(lower.x as f64, (x + (*glyph).x0) as f64) as i32;
-            lower.y = f64::min(lower.y as f64, (y + (*glyph).y0) as f64) as i32;
-            upper.x = f64::max(upper.x as f64, (x + (*glyph).x1) as f64) as i32;
-            upper.y = f64::max(upper.y as f64, (y + (*glyph).y1) as f64) as i32;
+            lower.x = i32::min(lower.x, (x + (*glyph).x0));
+            lower.y = i32::min(lower.y, (y + (*glyph).y0));
+            upper.x = i32::max(upper.x, (x + (*glyph).x1));
+            upper.y = i32::max(upper.y, (y + (*glyph).y1));
             x += (*glyph).advance;
             glyphLast = (*glyph).index;
         } else {
             glyphLast = 0;
         }
-        let fresh6 = text;
+        codepoint = *text as u32;
         text = text.offset(1);
-        codepoint = *fresh6 as u32;
     }
+
     *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
     Profiler_End();
 }
+
+/* NOTE : The height returned here is the maximal *ascender* height for the
+ *        string. This allows easy centering of text while still allowing
+ *        descending characters to look correct.
+ *
+ *        To correctly center text, first compute bounds via this function,
+ *        then draw it at:
+ *
+ *           pos.x - (size.x - bound.x) / 2
+ *           pos.y - (size.y + bound.y) / 2
+ */
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize2(
@@ -308,6 +343,7 @@ pub unsafe extern "C" fn Font_GetSize2(
     Profiler_Begin(c_str!("Font_GetSize2"));
     (*out).x = 0;
     (*out).y = 0;
+
     let mut glyphLast: i32 = 0;
     let fresh7 = text;
     text = text.offset(1);
@@ -319,7 +355,7 @@ pub unsafe extern "C" fn Font_GetSize2(
                 (*out).x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
             (*out).x += (*glyph).advance;
-            (*out).y = f64::max((*out).y as f64, (-(*glyph).y0 + 1) as f64) as i32;
+            (*out).y = i32::max((*out).y, (-(*glyph).y0 + 1));
             glyphLast = (*glyph).index;
         } else {
             glyphLast = 0;
@@ -328,5 +364,6 @@ pub unsafe extern "C" fn Font_GetSize2(
         text = text.offset(1);
         codepoint = *fresh8 as u32;
     }
+    
     Profiler_End();
 }

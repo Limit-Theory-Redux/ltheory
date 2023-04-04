@@ -26,10 +26,10 @@ pub unsafe extern "C" fn DeviceType_FromButton(button: Button) -> DeviceType {
 #[no_mangle]
 pub unsafe extern "C" fn DeviceType_ToString(deviceType: DeviceType) -> *const libc::c_char {
     match deviceType {
-        0 => c_str!("DeviceType_Null"),
-        1 => c_str!("DeviceType_Mouse"),
-        2 => c_str!("DeviceType_Keyboard"),
-        3 => c_str!("DeviceType_Gamepad"),
+        dt if dt == DeviceType_Null => c_str!("DeviceType_Null"),
+        dt if dt == DeviceType_Mouse => c_str!("DeviceType_Mouse"),
+        dt if dt == DeviceType_Keyboard => c_str!("DeviceType_Keyboard"),
+        dt if dt == DeviceType_Gamepad => c_str!("DeviceType_Gamepad"),
         _ => {
             static mut buffer: [libc::c_char; 512] = [0; 512];
             libc::snprintf(

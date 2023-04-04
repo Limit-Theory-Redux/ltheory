@@ -6,6 +6,7 @@
 #![allow(unused_assignments)]
 #![allow(unused_mut)]
 #![allow(unused_imports)]
+#![allow(unused_unsafe)]
 #![feature(c_variadic)]
 #![feature(extern_types)]
 #![feature(thread_local)]

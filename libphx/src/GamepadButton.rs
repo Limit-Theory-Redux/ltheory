@@ -67,3 +67,5 @@ pub static GamepadButton_Right: GamepadButton =
 #[no_mangle]
 pub static GamepadButton_END: GamepadButton =
     SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+
+pub const GamepadButton_SIZE: usize = 15;

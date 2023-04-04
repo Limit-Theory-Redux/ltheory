@@ -310,10 +310,10 @@ unsafe extern "C" fn ImGui_PushClipRect(pos: Vec2, size: Vec2) {
     (*rect).p1 = pos;
     (*rect).p2 = pos + size;
     if !prev.is_null() {
-        (*rect).p1.x = f64::max((*rect).p1.x as f64, (*prev).p1.x as f64) as f32;
-        (*rect).p1.y = f64::max((*rect).p1.y as f64, (*prev).p1.y as f64) as f32;
-        (*rect).p2.x = f64::min((*rect).p2.x as f64, (*prev).p2.x as f64) as f32;
-        (*rect).p2.y = f64::min((*rect).p2.y as f64, (*prev).p2.y as f64) as f32;
+        (*rect).p1.x = f32::max((*rect).p1.x, (*prev).p1.x);
+        (*rect).p1.y = f32::max((*rect).p1.y, (*prev).p1.y);
+        (*rect).p2.x = f32::min((*rect).p2.x, (*prev).p2.x);
+        (*rect).p2.y = f32::min((*rect).p2.y, (*prev).p2.y);
     }
     this.clipRect = rect;
 }
@@ -642,14 +642,10 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
         Shader_Start(shader_0);
         let mut e_2: *const ImGuiLine = (*self_1).lineList;
         while !e_2.is_null() {
-            let xMin: f32 =
-                (f64::min((*e_2).p1.x as f64, (*e_2).p2.x as f64) - pad_0 as f64) as f32;
-            let yMin: f32 =
-                (f64::min((*e_2).p1.y as f64, (*e_2).p2.y as f64) - pad_0 as f64) as f32;
-            let xMax: f32 =
-                (f64::max((*e_2).p1.x as f64, (*e_2).p2.x as f64) + pad_0 as f64) as f32;
-            let yMax: f32 =
-                (f64::max((*e_2).p1.y as f64, (*e_2).p2.y as f64) + pad_0 as f64) as f32;
+            let xMin: f32 = (f32::min((*e_2).p1.x, (*e_2).p2.x) - pad_0);
+            let yMin: f32 = (f32::min((*e_2).p1.y, (*e_2).p2.y) - pad_0);
+            let xMax: f32 = (f32::max((*e_2).p1.x, (*e_2).p2.x) + pad_0);
+            let yMax: f32 = (f32::max((*e_2).p1.y, (*e_2).p2.y) + pad_0);
             let sx_0: f32 = xMax - xMin;
             let sy_0: f32 = yMax - yMin;
             Shader_SetFloat2(c_str!("origin"), xMin, yMin);

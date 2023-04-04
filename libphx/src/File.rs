@@ -5,6 +5,8 @@ use crate::Math::Vec3;
 use libc;
 use std::fs;
 
+// TODO: Rewrite this using Rust.
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct File {

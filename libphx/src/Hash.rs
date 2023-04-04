@@ -3,6 +3,7 @@ use crate::Common::*;
 use crate::Math::Vec3;
 use libc;
 
+// Fowler–Noll–Vo
 #[no_mangle]
 pub unsafe extern "C" fn Hash_FNV32(buf: *const libc::c_void, len: i32) -> u32 {
     let mut curr: *const libc::c_uchar = buf as *const libc::c_uchar;
@@ -77,6 +78,8 @@ pub unsafe extern "C" fn Hash_FNV64_Incremental(
     this
 }
 
+/* --- Murmur3 -------------------------------------------------------------- */
+
 #[inline]
 extern "C" fn rotl32(x: u32, r: i8) -> u32 {
     x << r as i32 | x >> 32 - r as i32
@@ -98,54 +101,40 @@ pub unsafe extern "C" fn Hash_Murmur3(key: *const libc::c_void, len: i32) -> u32
     let mut h1: u32 = 0xdeadbeef;
     let c1: u32 = 0xcc9e2d51;
     let c2: u32 = 0x1b873593;
+
     let nblocks: i32 = len / 4;
     let blocks: *const u32 = data.offset((nblocks * 4) as isize) as *const u32;
+    
     let mut i: i32 = -nblocks;
     while i != 0 {
         let mut k1: u32 = *blocks.offset(i as isize);
         k1 = k1.wrapping_mul(c1);
         k1 = rotl32(k1, 15 as i8);
         k1 = k1.wrapping_mul(c2);
+
         h1 ^= k1;
         h1 = rotl32(h1, 13 as i8);
         h1 = h1.wrapping_mul(5_u32).wrapping_add(0xe6546b64);
         i += 1;
     }
+
     let tail: *const u8 = data.offset((nblocks * 4) as isize);
-    let mut k1_0: u32 = 0;
-    let mut current_block_14: u64;
-    match len & 3 {
-        3 => {
-            k1_0 ^= ((*tail.offset(2) as i32) << 16) as u32;
-            current_block_14 = 1337185109221498832;
-        }
-        2 => {
-            current_block_14 = 1337185109221498832;
-        }
-        1 => {
-            current_block_14 = 15333892231877469626;
-        }
-        _ => {
-            current_block_14 = 12039483399334584727;
-        }
+    let mut k1: u32 = 0;
+
+    if len & 3 == 3 {
+        k1 ^= ((*tail.offset(2) as i32) << 16) as u32;
     }
-    match current_block_14 {
-        1337185109221498832 => {
-            k1_0 ^= ((*tail.offset(1) as i32) << 8) as u32;
-            current_block_14 = 15333892231877469626;
-        }
-        _ => {}
+    if len & 3 >= 2 {
+        k1 ^= ((*tail.offset(1) as i32) << 8) as u32;
     }
-    match current_block_14 {
-        15333892231877469626 => {
-            k1_0 ^= *tail.offset(0) as u32;
-            k1_0 = k1_0.wrapping_mul(c1);
-            k1_0 = rotl32(k1_0, 15 as i8);
-            k1_0 = k1_0.wrapping_mul(c2);
-            h1 ^= k1_0;
-        }
-        _ => {}
+    if len & 3 >= 1 {
+        k1 ^= *tail.offset(0) as u32;
+        k1 = k1.wrapping_mul(c1);
+        k1 = rotl32(k1, 15 as i8);
+        k1 = k1.wrapping_mul(c2);
+        h1 ^= k1;
     }
+
     h1 ^= len as u32;
     h1 = fmix32(h1);
     h1

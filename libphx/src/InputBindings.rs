@@ -7,11 +7,8 @@ use crate::InputEvent::*;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::State::*;
+use crate::Lua::{Lua, LuaRef};
 use libc;
-
-extern "C" {
-    pub type lua_State;
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -36,8 +33,6 @@ pub struct AggregateAxis2D {
     pub value: Vec2,
     pub onChanged: LuaRef,
 }
-pub type LuaRef = lua_Integer;
-pub type lua_Integer = libc::ptrdiff_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -56,7 +51,6 @@ pub struct AggregateButton {
     pub onReleased: LuaRef,
 }
 pub type State = i32;
-pub type Lua = lua_State;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -219,7 +213,7 @@ pub unsafe extern "C" fn InputBindings_Update() {
     }
     let mut event: InputEvent = InputEvent {
         timestamp: 0,
-        device: Device { type_0: 0, id: 0 },
+        device: Device { ty: 0, id: 0 },
         button: 0,
         value: 0.,
         state: 0,

@@ -6,6 +6,8 @@ use crate::Viewport::*;
 use crate::GL::gl;
 use libc;
 
+const MAX_STACK_DEPTH: i32 = 128;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ClipRect {
@@ -73,7 +75,7 @@ pub unsafe extern "C" fn ClipRect_Activate(this: *mut ClipRect) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
-    if rectIndex + 1 >= 128 {
+    if rectIndex + 1 >= MAX_STACK_DEPTH {
         CFatal!("ClipRect_Push: Maximum stack depth exceeded");
     }
     rectIndex += 1;
@@ -92,13 +94,14 @@ pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32)
     if rectIndex >= 0 && (*curr).enabled as i32 != 0 {
         let maxX: f32 = x + sx;
         let maxY: f32 = y + sy;
-        let x = f64::max(x as f64, (*curr).x as f64) as f32;
-        let y = f64::max(y as f64, (*curr).y as f64) as f32;
+        let x = f32::max(x, (*curr).x);
+        let y = f32::max(y, (*curr).y);
+
         ClipRect_Push(
             x,
             y,
-            (f64::min(maxX as f64, ((*curr).x + (*curr).sx) as f64) - x as f64) as f32,
-            (f64::min(maxY as f64, ((*curr).y + (*curr).sy) as f64) - y as f64) as f32,
+            f32::min(maxX, (*curr).x + (*curr).sx) - x,
+            f32::min(maxY, (*curr).y + (*curr).sy) - y,
         );
     } else {
         ClipRect_Push(x, y, sx, sy);
@@ -107,9 +110,10 @@ pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32)
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushDisabled() {
-    if rectIndex + 1 >= 128 {
+    if rectIndex + 1 >= MAX_STACK_DEPTH {
         CFatal!("ClipRect_Push: Maximum stack depth exceeded");
     }
+
     rectIndex += 1;
     let curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
     (*curr).enabled = false;
@@ -118,7 +122,7 @@ pub unsafe extern "C" fn ClipRect_PushDisabled() {
 
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushTransform(tx: f32, ty: f32, sx: f32, sy: f32) {
-    if transformIndex + 1 >= 128 {
+    if transformIndex + 1 >= MAX_STACK_DEPTH {
         CFatal!("ClipRect_PushTransform: Maximum stack depth exceeded");
     }
     transformIndex += 1;

@@ -10,6 +10,8 @@ pub struct Directory {
     pub handle: *mut libc::DIR,
 }
 
+// TODO: Convert this to use Rust std lib.
+
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Open(path: *const libc::c_char) -> *mut Directory {
     let dir: *mut libc::DIR = libc::opendir(path);

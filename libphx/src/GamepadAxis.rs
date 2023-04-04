@@ -31,3 +31,5 @@ pub static GamepadAxis_RTrigger: GamepadAxis =
 
 #[no_mangle]
 pub static GamepadAxis_END: GamepadAxis = SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
+
+pub const GamepadAxis_SIZE: usize = 6;

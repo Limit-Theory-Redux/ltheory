@@ -22,15 +22,15 @@ pub unsafe extern "C" fn CullFace_Push(cullFace: CullFace) {
 
 #[no_mangle]
 pub unsafe extern "C" fn CullFace_PushNone() {
-    RenderState_PushCullFace(0);
+    RenderState_PushCullFace(CullFace_None);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn CullFace_PushBack() {
-    RenderState_PushCullFace(1);
+    RenderState_PushCullFace(CullFace_Back);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn CullFace_PushFront() {
-    RenderState_PushCullFace(2);
+    RenderState_PushCullFace(CullFace_Front);
 }

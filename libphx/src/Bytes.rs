@@ -90,6 +90,7 @@ pub extern "C" fn Bytes_Compress(bytes: *mut Bytes) -> *mut Bytes {
         }
     }
 
+    /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
     let result = encoder.finish().unwrap();
     unsafe { Bytes_FromData(result.as_ptr() as *const _, result.len() as u32) }
 }
@@ -109,6 +110,7 @@ pub extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
         }
     }
 
+    /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
     let result = decoder.finish().unwrap();
     unsafe { Bytes_FromData(result.as_ptr() as *const _, result.len() as u32) }
 }
@@ -340,12 +342,10 @@ pub unsafe extern "C" fn Bytes_WriteF64(this: *mut Bytes, value: f64) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Print(this: *mut Bytes) {
+pub unsafe extern "C" fn Bytes_Print(this: *const Bytes) {
     CPrintf!("%d bytes:\n", (*this).size);
-    let mut i: u32 = 0;
-    while i < (*this).size {
-        libc::putchar(*(&mut (*this).data as *mut libc::c_char).offset(i as isize) as i32);
-        i = i.wrapping_add(1);
+    for i in 0..(*this).size {
+        libc::putchar(*(&(*this).data as *const libc::c_char).offset(i as isize) as i32);
     }
 }
 

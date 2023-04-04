@@ -8,6 +8,9 @@ use crate::StrMap::*;
 use fmod_sys::*;
 use libc;
 
+const AUDIO_CHANNELS: i32 = 1024;
+const SOUNDPOOL_BLOCK_SIZE: u32 = 128;
+
 #[derive(Clone)]
 #[repr(C)]
 pub struct Audio {
@@ -37,7 +40,7 @@ static mut this: Audio = Audio {
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Init() {
     /* Initialize Debugging. */
-    let mut flags: FMOD_DEBUG_FLAGS = 0 as i32 as FMOD_DEBUG_FLAGS;
+    let mut flags: FMOD_DEBUG_FLAGS = 0;
     flags |= FMOD_DEBUG_LEVEL_NONE;
     // CHECK1(flags |= FMOD_DEBUG_LEVEL_ERROR);
     // CHECK1(flags |= FMOD_DEBUG_LEVEL_WARNING);
@@ -54,31 +57,32 @@ pub unsafe extern "C" fn Audio_Init() {
     }
 
     /* Initialize FMOD. */
-    FMODCALL(FMOD_System_Create(&mut this.handle, 0x20208 as i32 as u32));
+    FMODCALL(FMOD_System_Create(&mut this.handle, FMOD_VERSION));
+
     let mut version: u32 = 0;
     FMODCALL(FMOD_System_GetVersion(this.handle, &mut version));
-    if version < 0x20208 as i32 as u32 {
+    if version < FMOD_VERSION {
         CFatal!("Audio_Create: FMOD library link/compile version mismatch");
     }
 
     /* NOTE : The fake HRTF mentioned in FMOD_INIT_CHANNEL_LOWPASS and
      *        FMOD_ADVANCEDSETTINGS has been removed from FMOD.
      *        http://www.fmod.org/questions/question/hrtf-does-not-appear-to-work/ */
-    let mut flags: FMOD_INITFLAGS = 0 as i32 as FMOD_INITFLAGS;
-    flags |= 0 as i32 as u32;
-    flags |= 0x4 as i32 as u32;
-    flags |= 0x200 as i32 as u32;
+    let mut flags: FMOD_INITFLAGS = 0;
+    flags |= FMOD_INIT_NORMAL;
+    flags |= FMOD_INIT_3D_RIGHTHANDED;
+    flags |= FMOD_INIT_CHANNEL_DISTANCEFILTER;
+    // CHECK2(flags |= FMOD_INIT_PROFILE_ENABLE);
     FMODCALL(FMOD_System_Init(
         this.handle,
-        1024 as i32,
+        AUDIO_CHANNELS,
         flags,
         std::ptr::null_mut(),
     ));
-    this.descMap = StrMap_Create(128 as i32 as u32);
-    this.soundPool = MemPool_Create(
-        std::mem::size_of::<Sound>() as usize as u32,
-        128 as i32 as u32,
-    );
+
+    /* Initialize audio instance data. */
+    this.descMap = StrMap_Create(SOUNDPOOL_BLOCK_SIZE);
+    this.soundPool = MemPool_Create(std::mem::size_of::<Sound>() as u32, SOUNDPOOL_BLOCK_SIZE);
 }
 
 #[no_mangle]
@@ -121,13 +125,18 @@ pub unsafe extern "C" fn Audio_SetListenerPos(
     fwd: *const Vec3,
     up: *const Vec3,
 ) {
+    //   Assert(sizeof(*pos) == sizeof(FMOD_VECTOR));
+    //   Assert(!fwd || Approx(Vec3f_Length(*fwd), 1));
+    //   Assert(!up || Approx(Vec3f_Length(*up), 1));
+    //   Assert(!fwd || !up || Approx(Vec3f_Dot(*fwd, *up), 0));
+
     FMODCALL(FMOD_System_Set3DListenerAttributes(
         this.handle,
-        0 as i32,
-        pos as *mut FMOD_VECTOR,
-        vel as *mut FMOD_VECTOR,
-        fwd as *mut FMOD_VECTOR,
-        up as *mut FMOD_VECTOR,
+        0,
+        pos as *const FMOD_VECTOR,
+        vel as *const FMOD_VECTOR,
+        fwd as *const FMOD_VECTOR,
+        up as *const FMOD_VECTOR,
     ));
 }
 
@@ -138,6 +147,7 @@ pub unsafe extern "C" fn Audio_Update() {
 
     let mut soundsToRemove: Vec<usize> = Vec::new();
     for (i, sound) in this.playingSounds.iter().enumerate() {
+        /* TODO : Refine the API to make this less awkward */
         if !Sound_IsFreed(*sound) && Sound_IsPlaying(*sound) as i32 != 0 {
             Sound_Update(*sound);
         } else {
@@ -157,6 +167,7 @@ pub unsafe extern "C" fn Audio_Update() {
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetLoadedCount() -> i32 {
     let size: u32 = StrMap_GetSize(this.descMap);
+    // Assert(size <= INT32_MAX);
     return size as i32;
 }
 
@@ -168,6 +179,7 @@ pub unsafe extern "C" fn Audio_GetPlayingCount() -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetTotalCount() -> i32 {
     let size: u32 = MemPool_GetSize(this.soundPool);
+    // Assert(size <= INT32_MAX);
     size as i32
 }
 
@@ -208,5 +220,9 @@ pub unsafe extern "C" fn Audio_SoundStateChanged(sound: *mut Sound) {
         this.freeingSounds.push(sound);
     } else if Sound_IsPlaying(sound) {
         this.playingSounds.push(sound);
+        // CHECK1(
+        //   if (ArrayList_GetSize(self.playingSounds) == AUDIO_CHANNELS + 1)
+        //     Warn("Audio: Exceeded the number of available sound channels (%i)", AUDIO_CHANNELS);
+        // )
     }
 }
