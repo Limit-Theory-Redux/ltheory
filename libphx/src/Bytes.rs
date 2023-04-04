@@ -81,13 +81,11 @@ pub extern "C" fn Bytes_Compress(bytes: *mut Bytes) -> *mut Bytes {
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     if let Err(e) = encoder.write_all(input) {
-        unsafe {
-            let str = CString::new(e.to_string()).unwrap();
-            CFatal!(
-                "Bytes_Compress: Encoding failed: %s",
-                str.as_ptr() as *const libc::c_char,
-            );
-        }
+        let str = CString::new(e.to_string()).unwrap();
+        CFatal!(
+            "Bytes_Compress: Encoding failed: %s",
+            str.as_ptr() as *const libc::c_char,
+        );
     }
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
@@ -101,13 +99,11 @@ pub extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
 
     let mut decoder = ZlibDecoder::new(Vec::new());
     if let Err(e) = decoder.write_all(input) {
-        unsafe {
-            let str = CString::new(e.to_string()).unwrap();
-            CFatal!(
-                "Bytes_Decompress: Decoding failed: %s",
-                str.as_ptr() as *const libc::c_char,
-            );
-        }
+        let str = CString::new(e.to_string()).unwrap();
+        CFatal!(
+            "Bytes_Decompress: Decoding failed: %s",
+            str.as_ptr() as *const libc::c_char,
+        );
     }
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */

@@ -19,7 +19,7 @@ pub static DeviceType_Keyboard: DeviceType = 0;
 pub static DeviceType_Gamepad: DeviceType = 0;
 
 #[no_mangle]
-pub unsafe extern "C" fn DeviceType_FromButton(button: Button) -> DeviceType {
+pub extern "C" fn DeviceType_FromButton(button: Button) -> DeviceType {
     Button_ToDeviceType(button)
 }
 

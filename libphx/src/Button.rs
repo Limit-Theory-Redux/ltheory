@@ -804,7 +804,7 @@ pub extern "C" fn Button_FromSDLScancode(scancode: SDL_Scancode) -> Button {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLScancode(button: Button) -> SDL_Scancode {
+pub extern "C" fn Button_ToSDLScancode(button: Button) -> SDL_Scancode {
     match button {
         b if b == Button_Null => SDL_Scancode::SDL_SCANCODE_UNKNOWN,
         b if b == Button_Keyboard_A => SDL_Scancode::SDL_SCANCODE_A,
@@ -929,7 +929,7 @@ pub unsafe extern "C" fn Button_ToSDLScancode(button: Button) -> SDL_Scancode {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_FromSDLMouseButton(mouseButton: u8) -> Button {
+pub extern "C" fn Button_FromSDLMouseButton(mouseButton: u8) -> Button {
     match mouseButton as u32 {
         mb if mb == SDL_BUTTON_LEFT => Button_Mouse_Left,
         mb if mb == SDL_BUTTON_MIDDLE => Button_Mouse_Middle,
@@ -946,7 +946,7 @@ pub unsafe extern "C" fn Button_FromSDLMouseButton(mouseButton: u8) -> Button {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLMouseButton(button: Button) -> u8 {
+pub extern "C" fn Button_ToSDLMouseButton(button: Button) -> u8 {
     match button {
         mb if mb == Button_Mouse_Left => SDL_BUTTON_LEFT as u8,
         mb if mb == Button_Mouse_Middle => SDL_BUTTON_MIDDLE as u8,
@@ -960,7 +960,7 @@ pub unsafe extern "C" fn Button_ToSDLMouseButton(button: Button) -> u8 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_FromSDLControllerAxis(
+pub extern "C" fn Button_FromSDLControllerAxis(
     controllerAxis: SDL_GameControllerAxis,
 ) -> Button {
     match controllerAxis {
@@ -980,7 +980,7 @@ pub unsafe extern "C" fn Button_FromSDLControllerAxis(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLControllerAxis(button: Button) -> SDL_GameControllerAxis {
+pub extern "C" fn Button_ToSDLControllerAxis(button: Button) -> SDL_GameControllerAxis {
     match button {
         b if b == Button_Gamepad_LStickX => SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTX,
         b if b == Button_Gamepad_LStickY => SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTY,
@@ -999,7 +999,7 @@ pub unsafe extern "C" fn Button_ToSDLControllerAxis(button: Button) -> SDL_GameC
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_FromSDLControllerButton(
+pub extern "C" fn Button_FromSDLControllerButton(
     controllerButton: SDL_GameControllerButton,
 ) -> Button {
     match controllerButton {
@@ -1028,7 +1028,7 @@ pub unsafe extern "C" fn Button_FromSDLControllerButton(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToSDLControllerButton(button: Button) -> SDL_GameControllerButton {
+pub extern "C" fn Button_ToSDLControllerButton(button: Button) -> SDL_GameControllerButton {
     match button {
         b if b == Button_Gamepad_A => SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_A,
         b if b == Button_Gamepad_B => SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_B,

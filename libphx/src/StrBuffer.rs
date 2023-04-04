@@ -115,8 +115,8 @@ pub unsafe extern "C" fn StrBuffer_Set(
     let mut neededSpace: i32 = StrBuffer_SetImpl(this, format, args_0);
     if (neededSpace > 0) as libc::c_long != 0 {
         StrBuffer_GrowTo(this, ((*this).capacity).wrapping_add(neededSpace as u32));
-        let mut args2: va_list = std::ptr::null_mut();
-        args2 = &args as *const VaListImpl as va_list;
+        // let mut args2: va_list = std::ptr::null_mut();
+        // args2 = &args as *const VaListImpl as va_list;
         neededSpace = StrBuffer_SetImpl(this, format, args_0);
     }
 }

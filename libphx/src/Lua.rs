@@ -95,7 +95,7 @@ unsafe extern "C" fn Lua_BacktraceHook(this: *mut Lua, _: *mut lua_Debug) {
     lua_error(this);
 }
 
-unsafe extern "C" fn Lua_SignalHandler(sig: Signal) {
+unsafe extern "C" fn Lua_SignalHandler(_sig: Signal) {
     if activeInstance.is_null() {
         return;
     }

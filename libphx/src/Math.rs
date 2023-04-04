@@ -125,7 +125,7 @@ pub fn Saturate(t: f64) -> f64 {
 }
 
 #[inline]
-pub unsafe extern "C" fn Float_Validatef(x: f32) -> Error {
+pub extern "C" fn Float_Validatef(x: f32) -> Error {
     let classification: i32 = if std::mem::size_of::<f32>() == std::mem::size_of::<f32>() {
         f32::classify(x) as i32
     } else if std::mem::size_of::<f32>() == std::mem::size_of::<f64>() {
@@ -146,7 +146,7 @@ pub unsafe extern "C" fn Float_Validatef(x: f32) -> Error {
 }
 
 #[inline]
-pub unsafe extern "C" fn Float_Validate(x: f64) -> Error {
+pub extern "C" fn Float_Validate(x: f64) -> Error {
     let classification: i32 = if std::mem::size_of::<f64>() as libc::c_ulong
         == std::mem::size_of::<f32>() as libc::c_ulong
     {
@@ -170,7 +170,7 @@ pub unsafe extern "C" fn Float_Validate(x: f64) -> Error {
 }
 
 #[inline]
-pub unsafe extern "C" fn Vec3_Validate(v: Vec3) -> Error {
+pub extern "C" fn Vec3_Validate(v: Vec3) -> Error {
     let mut e: Error = 0 as Error;
     e |= Float_Validatef(v.x);
     e |= Float_Validatef(v.y);

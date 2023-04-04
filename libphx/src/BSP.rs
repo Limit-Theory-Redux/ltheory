@@ -762,7 +762,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
         if !splitFound {
             let mut polygonIndex: i32 =
                 (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
-            for i in 0..polygonsLen {
+            for _ in 0..polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
                 if (*polygon).flags as i32 & PolygonFlag_InvalidDecompose as i32 != 0 {
                     continue;
@@ -827,7 +827,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
         if !splitFound {
             let mut polygonIndex: i32 =
                 (RNG_Get32((*bsp).rng)).wrapping_rem(polygonsLen as u32) as i32;
-            for i in 0..polygonsLen {
+            for _ in 0..polygonsLen {
                 let polygon: *mut PolygonEx = &mut (*nodeData).polygons[polygonIndex as usize];
                 if (*polygon).flags as i32 & PolygonFlag_InvalidEdgeSplit as i32 != 0 {
                     continue;
@@ -997,7 +997,6 @@ unsafe extern "C" fn BSPBuild_CreateNode(
 
     for polygon in (*nodeData).polygons.iter_mut() {
         let classification = Plane_ClassifyPolygon(&mut splitPlane, &polygon.inner);
-        let current_block_37: u64;
         match classification {
             PolygonClassification::Coplanar => {
                 (*polygon).flags =
@@ -1475,7 +1474,7 @@ pub unsafe extern "C" fn BSPDebug_DrawSphere(this: *mut BSP, sphere: *mut Sphere
 //   }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(_this: *mut BSP, _totalTime: f64) {
+pub extern "C" fn BSPDebug_PrintRayProfilingData(_this: *mut BSP, _totalTime: f64) {
     // #if ENABLE_BSP_PROFILING
     //   BSPDebug_PrintProfilingData(self, &self->profilingData.ray, totalTime);
     // #else
@@ -1484,7 +1483,7 @@ pub unsafe extern "C" fn BSPDebug_PrintRayProfilingData(_this: *mut BSP, _totalT
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_PrintSphereProfilingData(_this: *mut BSP, _totalTime: f64) {
+pub extern "C" fn BSPDebug_PrintSphereProfilingData(_this: *mut BSP, _totalTime: f64) {
     // #if ENABLE_BSP_PROFILING
     //     BSPDebug_PrintProfilingData(self, &self->profilingData.sphere, totalTime);
     // #else

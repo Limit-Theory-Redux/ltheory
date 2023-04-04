@@ -88,10 +88,10 @@ unsafe extern "C" fn Polygon_SplitImpl(
             if aSide == PointClassification::Behind {
                 let mut i = Vec3::ZERO;
                 let mut lineSegment: LineSegment = LineSegment { p0: b, p1: a };
-                let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
                 (*front).vertices.push(i);
                 (*back).vertices.push(i);
 
+                // let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
                 // Assert(hit); UNUSED(hit);
                 // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
             }
@@ -100,10 +100,10 @@ unsafe extern "C" fn Polygon_SplitImpl(
             if aSide == PointClassification::InFront {
                 let mut i = Vec3::ZERO;
                 let mut lineSegment: LineSegment = LineSegment { p0: a, p1: b };
-                let _hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
                 (*front).vertices.push(i);
                 (*back).vertices.push(i);
 
+                // let hit: bool = Intersect_LineSegmentPlane(&mut lineSegment, &splitPlane, &mut i);
                 // Assert(hit); UNUSED(hit);
                 // Assert(Plane_ClassifyPoint(&splitPlane, &i) == PointClassification_Coplanar);
             } else if aSide == PointClassification::Coplanar {

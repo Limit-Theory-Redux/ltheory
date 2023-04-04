@@ -110,7 +110,7 @@ pub unsafe extern "C" fn InputBindings_Free() {
     this.downBindings.clear();
 }
 
-unsafe extern "C" fn InputBindings_RaiseCallback(
+extern "C" fn InputBindings_RaiseCallback(
     event: *const libc::c_char,
     binding: *mut InputBinding,
     _callback: LuaRef,

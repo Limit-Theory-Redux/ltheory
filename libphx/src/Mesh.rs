@@ -42,7 +42,7 @@ pub struct Computed {
 }
 
 #[inline]
-unsafe extern "C" fn Vec2_Validate(v: Vec2) -> Error {
+extern "C" fn Vec2_Validate(v: Vec2) -> Error {
     let mut e: Error = 0 as Error;
     e |= Float_Validatef(v.x);
     e |= Float_Validatef(v.y);

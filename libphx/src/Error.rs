@@ -54,7 +54,7 @@ const Error_VertNorm: Error = 0x00800000;
 const Error_VertUV: Error = 0x01000000;
 
 #[no_mangle]
-pub unsafe extern "C" fn Error_Print(e: Error) {
+pub extern "C" fn Error_Print(e: Error) {
     CPrintf!("ERROR: ");
     if e & Error_Stack != 0 {
         CPrintf!("Stack ");

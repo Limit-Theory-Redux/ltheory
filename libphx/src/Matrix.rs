@@ -789,7 +789,7 @@ pub unsafe extern "C" fn Matrix_ToQuat(this: *const Matrix, q: *mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Print(this: *const Matrix) {
+pub extern "C" fn Matrix_Print(this: *const Matrix) {
     let mut i: i32 = 0;
     while i < 4 {
         let mut j: i32 = 0;
