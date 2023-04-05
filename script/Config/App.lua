@@ -4,12 +4,13 @@ Config.gameTitle   = "Limit Theory Redux"
 Config.gameVersion = "v0.008"
 
 Config.render = {
-  startingHorz = 2000, -- 1600 (default), or 2400 (high DPI)
-  startingVert = 1200, --  900 (default), or 2048 (high DPI)
-  fullscreen   = false,
-  vsync        = true,
-  zNear        = 0.1, -- default: 0.1
-  zFar         = 1e8, -- default: 1e6
+  startingHorz   = 1600, -- 1600 (default), or 2400 (high DPI)
+  startingVert   =  900, --  900 (default), or 2048 (high DPI)
+  fullscreen     = false,
+  vsync          = true,
+  zNear          = 0.1, -- default: 0.1
+  zFar           = 1e8, -- default: 1e6
+  thrusterLights = true
 }
 
 Config.audio = {

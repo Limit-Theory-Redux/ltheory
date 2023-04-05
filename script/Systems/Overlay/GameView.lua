@@ -25,16 +25,18 @@ function GameView:draw (focus, active)
   do -- Opaque Pass
     Profiler.Begin('Render.Opaque')
     self.renderer:start(self.sx, self.sy, ss)
-    world:render(Event.Render(BlendMode.Disabled, eye))
+    world:render(Event.Render(BlendMode.Disabled, eye)) -- significant performance point
     self.renderer:stop()
     Profiler.End()
   end
 
   do -- Lighting
+    Profiler.Begin('Render.Lighting')
     -- Gather light sources
+    -- Note: Scan only objects with lights attached
     local lights = {}
-    for i, v in world:iterChildren() do
-      if v:hasLight() then
+    if #world.lightList > 0 then
+      for _, v in ipairs(world.lightList) do
         insert(lights, { pos = v:getPos(), color = v:getLight() })
       end
     end
@@ -51,7 +53,7 @@ function GameView:draw (focus, active)
       self.renderer.buffer2:pop()
     end
 
-    do -- Local lighting
+    do -- Local lighting (TODO: performance issues?)
       self.renderer.buffer2:push()
       BlendMode.PushAdditive()
       local shader = Cache.Shader('worldray', 'light/point')
@@ -82,15 +84,19 @@ function GameView:draw (focus, active)
     end
 
     self.renderer.buffer0, self.renderer.buffer1 = self.renderer.buffer1, self.renderer.buffer0
+    Profiler.End()
   end
 
   if true then -- Alpha (Additive) Pass
+    Profiler.Begin('Render.Additive')
     self.renderer:startAlpha(BlendMode.Additive)
-      world:render(Event.Render(BlendMode.Additive, eye))
+      world:render(Event.Render(BlendMode.Additive, eye)) -- significant performance point
     self.renderer:stopAlpha()
+    Profiler.End()
   end
 
   if true then -- Alpha Pass
+    Profiler.Begin('Render.AlphaDebug')
     self.renderer:startAlpha(BlendMode.Alpha)
       world:render(Event.Render(BlendMode.Alpha, eye))
 
@@ -130,12 +136,14 @@ function GameView:draw (focus, active)
         mat:stop()
       end
     self.renderer:stopAlpha()
+    Profiler.End()
   end
 
   world:endRender()
   self.camera:endDraw()
 
   if true then -- Composited UI Pass
+    Profiler.Begin('Render.CompositedUI')
     self.renderer:startUI()
       Viewport.Push(0, 0, ss * self.sx, ss * self.sy, true)
       ClipRect.PushTransform(0, 0, ss, ss)
@@ -148,11 +156,13 @@ function GameView:draw (focus, active)
       ClipRect.PopTransform()
       Viewport.Pop()
     self.renderer:stopUI()
+    Profiler.End()
   end
 
   if false or Settings.get('render.showBuffers') then
     self.renderer:presentAll(x, y, sx, sy)
   else
+    Profiler.Begin('Render.PostEffects')
     self.renderer:startPostEffects()
     if Settings.get('postfx.bloom.enable') then self.renderer:bloom(Settings.get('postfx.bloom.radius')) end
     if Settings.get('postfx.tonemap.enable') then self.renderer:tonemap() end
@@ -170,6 +180,7 @@ function GameView:draw (focus, active)
       self.renderer:sharpen(2, 1, 1)
     end
     self.renderer:present(x, y, sx, sy, ss > 2)
+    Profiler.End()
   end
 
   --[[

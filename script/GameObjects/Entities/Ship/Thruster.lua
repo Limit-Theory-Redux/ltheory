@@ -7,7 +7,7 @@ local meshJet
 local rng = RNG.FromTime()
 
 local Thruster
-Thruster = subclass(Entity, function (self)
+Thruster = subclass(Entity, function (self, parentShip)
   if not mesh then
     mesh = Gen.ShipFighter.EngineSingle(rng)
     mesh:computeNormals()
@@ -18,6 +18,7 @@ Thruster = subclass(Entity, function (self)
   self:addRigidBody(true, mesh)
   self:addVisibleMesh(mesh, Material.Debug())
 
+  self.parentShip = parentShip
   self.activation = 0
   self.activationT = 0
   self.boost = 0
@@ -53,6 +54,14 @@ function Thruster:update (state)
   self.activation = Math.Lerp(self.activation, self.activationT, t)
   self.boost = Math.Lerp(self.boost, self.boostT, t)
   self.time = self.time + state.dt
+
+  -- Add local lighting based on ship's thruster activation
+  if Config.render.thrusterLights and self.parentShip:hasLight() then
+    self.parentShip:setLight((0.2 + (1.9 * self.boost)) * abs(self.activation) * 10,
+                             (0.8 + (0.3 * self.boost)) * abs(self.activation) * 10,
+                             (3.0 - (2.4 * self.boost)) * abs(self.activation) * 10)
+  end
 end
 
 return Thruster
+
