@@ -44,6 +44,7 @@ function TestEcon:onInit ()
   -- Generate new universe for economic testing
   self.canvas = UI.Canvas()
   self.system = Entities.Test.System(rng:get64())
+  Config.game.currentSystem = self.system
 
   -- Add system-wide AI director (but don't insert into system's list of players)
   self.tradeAI = Entities.Player("AI Trade Player")
@@ -53,7 +54,8 @@ function TestEcon:onInit ()
   self.tradeShip = Entity()
   self.tradeShip:setOwner(self.tradeAI)
 
-  -- Use fast movement and hyperspeedup for economic testing
+  -- Use repeat ship builds, fast movement, and hyperspeedup for economic testing
+  Config.ui.uniqueShips        = false
   Config.debug.instantJobs     = true
   Config.debug.timeAccelFactor = 100
 
@@ -61,7 +63,7 @@ function TestEcon:onInit ()
   for i = 1, kPlayers do
     local tradePlayerName = format("AI Trade Player %d", i)
     local tradePlayer = Entities.Player(tradePlayerName)
-    insert(self.system.players, player)
+    insert(self.system.players, tradePlayer)
   end
 
   -- Add a planet at the origin
@@ -74,11 +76,11 @@ function TestEcon:onInit ()
   -- Add Station objects
   -- Every system gets one "free" solar plant
   local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
-  self.system:place(rng, newStation)
+  self.system:place(newStation)
 
   -- Every system gets one "free" waste recycler
   newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
-  self.system:place(rng, newStation)
+  self.system:place(newStation)
 
   -- Now maybe add some additional stations
   for i = 3, kStations do
@@ -90,29 +92,29 @@ function TestEcon:onInit ()
     local ownerNum = rng:getInt(1, kPlayers)
     for i, v in ipairs(self.system.players) do
       if i == ownerNum then
-        printf("New station %s should have owner %s", newStation:getName(), v:getName())
+--        printf("New station %s should have owner %s", newStation:getName(), v:getName())
 --        newStation:setOwner(v) -- causes an infinite loop somewhere
-        printf("New station %s actually has owner %s", newStation:getName(), newStation:getOwner():getName())
+--        printf("New station %s actually has owner %s", newStation:getName(), newStation:getOwner():getName())
         break
       end
     end
   end
 
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
-  self.system:addExtraFactories(self.system, planet, self.tradeAI, rng)
+  self.system:addExtraFactories(self.system, planet, self.tradeAI)
 
   -- Give all AI Players some resources and assets
-  for _, tradePlayer in self.players do
+  for _, tradePlayer in ipairs(self.system.players) do
     -- Give player some starting money
     tradePlayer:addCredits(Config.econ.eStartCredits)
 
     -- Create assets (ships)
     self.system:spawnAI(kAssets, Actions.Wait(1), tradePlayer)
-    printf("%d assets added to %s", kAssets, tradePlayerName)
+    printf("%d assets added to %s", kAssets, tradePlayer:getName())
 
     -- Configure assets
     for asset in tradePlayer:iterAssets() do
-      self.system:place(rng, asset)
+      self.system:place(asset)
     end
 
     -- Tell AI player to start using the Think action

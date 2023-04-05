@@ -51,7 +51,7 @@ function SystemMap:onDraw (state)
   Draw.SmoothPoints(true)
 --printf("------------------------------")
   for _, e in self.system:iterChildren() do
-    -- Check to make sure this isn't a ship that has exploded
+    -- Check to make sure this is an actual object with a body
     if e.body ~= nil then
 --printf("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
       local p = e:getPos()
@@ -62,9 +62,9 @@ function SystemMap:onDraw (state)
       Draw.PointSize(3.0)
 
       if e:hasActions() then
-        local entAction = e:getCurrentAction()
 --printf("Action: %s", e:getName())
         if Config.game.currentShip == e then
+          Draw.PointSize(5.0)
           Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
           if playerTarget then
             local tp = playerTarget:getPos()
@@ -72,16 +72,21 @@ function SystemMap:onDraw (state)
             local ty = tp.z - dy
             tx = self.x + tx * Config.game.mapSystemZoom + hx
             ty = self.y + ty * Config.game.mapSystemZoom + hy
-            UI.DrawEx.Line(x, y, tx, ty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 })
+            UI.DrawEx.Line(x, y, tx, ty, { r = 0.9, g = 0.8, b = 1.0, a = 1.0 })
           end
         else
+          local entAction = e:getCurrentAction()
           if entAction ~= nil then
 --printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
+            if string.match(Config:getObjectInfo("object_types", e:getType()), "Ship") and e.usesBoost then
+              -- Draw the dot for ships that are aces larger than regular ships
+              Draw.PointSize(5.0)
+            end
             if string.find(entAction:getName(), "Attack") and entAction.target == Config.game.currentShip then
               -- TODO: draw in color based on Disposition toward player
-              Draw.Color(1.0, 0.3, 0.3, 1.0) -- other ship, hostile (has a current action of "Attack player's ship")
+              Draw.Color(1.0, 0.3, 0.3, 1.0) -- other object, hostile (has a current action of "Attack player's ship")
             else
-              Draw.Color(0.2, 0.6, 1.0, 1.0) -- other ship, non-hostile
+              Draw.Color(0.2, 0.6, 1.0, 1.0) -- other object, non-hostile
             end
             local focusedTarget = e:getTarget()
             if focusedTarget then
@@ -90,7 +95,11 @@ function SystemMap:onDraw (state)
               local fty = ftp.z - dy
               ftx = self.x + ftx * Config.game.mapSystemZoom + hx
               fty = self.y + fty * Config.game.mapSystemZoom + hy
-              UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 })
+              if string.find(entAction:getName(), "Attack") then
+                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 })
+              else
+                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 })
+              end
             end
           else
             Draw.Color(1.0, 1.0, 1.0, 1.0) -- some other object that suddenly has no actions
@@ -162,9 +171,11 @@ function SystemMap:onDraw (state)
       local objval = 0
       local objemit = ""
       local boomtext = ""
+      local acetext = ""
       if self.focus:isDestroyed() then boomtext = " (destroyed)" end
+      if string.match(objtype, "Ship") and self.focus.usesBoost then acetext = " [Ace]" end
       dbg:text("")
-      dbg:text("--- %s %s %s%s ---", objsubtype, objtype, self.focus:getName(), boomtext)
+      dbg:text("--- %s %s %s%s%s ---", objsubtype, objtype, self.focus:getName(), acetext, boomtext)
       dbg:indent()
       if owner ~= nil then
         dbg:text("Owner: %s", owner:getName())
@@ -174,21 +185,26 @@ function SystemMap:onDraw (state)
       else
         dbg:text("Owner: [None]")
       end
-      objval = self.focus:getRadius()
-      if string.match(objtype, "Station") then
-        local docked = self.focus:getDocked()
-        if docked and #docked > 0 then
-          table.sort(docked, function (a, b) return a:getName() < b:getName() end)
-          dbg:indent()
-          dbg:text("Docked here:")
-          dbg:indent()
-            for _, v in ipairs(docked) do
-              dbg:text("%s", v:getName())
-            end
-          dbg:undent()
-          dbg:undent()
+      if not self.focus:isDestroyed() then
+        if self.focus:hasHealth()then
+          dbg:text("Health: %d%%", self.focus:getHealthPercent())
+        end
+        if string.match(objtype, "Station") and self.focus:hasDockable() then
+          local docked = self.focus:getDocked()
+          if docked and #docked > 0 then
+            table.sort(docked, function (a, b) return a:getName() < b:getName() end)
+            dbg:indent()
+            dbg:text("Docked here:")
+            dbg:indent()
+              for _, v in ipairs(docked) do
+                dbg:text("%s", v:getName())
+              end
+            dbg:undent()
+            dbg:undent()
+          end
         end
       end
+      objval = self.focus:getRadius()
       if string.match(objtype, "Planet") then
         objval = objval * 9 -- planets need to be a certain radius for the game currently, so fake their reported radius for printing
       end
@@ -247,11 +263,11 @@ function SystemMap:onInput (state)
   --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
   --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
   Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-  Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (kPanSpeed / Config.game.mapSystemZoom) * (
+  Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (0.2 * kPanSpeed / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-  Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (kPanSpeed / Config.game.mapSystemZoom) * (
+  Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (0.2 * kPanSpeed / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
-  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(10.0 * kZoomSpeed * (
+  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(0.1 * kZoomSpeed * (
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
 end
 

@@ -25,7 +25,7 @@ function GameView:draw (focus, active)
   do -- Opaque Pass
     Profiler.Begin('Render.Opaque')
     self.renderer:start(self.sx, self.sy, ss)
-    world:render(Event.Render(BlendMode.Disabled, eye)) -- significant performance point
+    world:render(Event.Render(BlendMode.Disabled, eye)) -- significant performance point with ss
     self.renderer:stop()
     Profiler.End()
   end
@@ -36,8 +36,10 @@ function GameView:draw (focus, active)
     -- Note: Scan only objects with lights attached
     local lights = {}
     if #world.lightList > 0 then
+--print("---------")
       for _, v in ipairs(world.lightList) do
         insert(lights, { pos = v:getPos(), color = v:getLight() })
+--printf("light @ %s, %s", v:getPos(), v:getLight())
       end
     end
 

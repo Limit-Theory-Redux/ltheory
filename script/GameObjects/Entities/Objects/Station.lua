@@ -11,7 +11,7 @@ local Station = subclass(Entity, function (self, seed)
   self:addDockable()
   self:addExplodable()
   self:addFlows()
-  self:addHealth(10000, 20)
+  self:addHealth(100, 20) -- 10000, 20
   self:addInventory(1e8)
   self:addMinable(false)
   self:addRigidBody(true, mesh)
@@ -26,19 +26,21 @@ local Station = subclass(Entity, function (self, seed)
 end)
 
 function Station:attackedBy (target)
-  -- This station has been attacked
+  -- This station has been attacked, probably by a band of ragtag rebel scum who pose no threat
   -- TODO: Allow a number of "grace" hits that decay over time
-  -- TODO: Improve smarts so that this station can decide which of multiple attackers to target
+  -- TODO: If and when stations are armed, modify this method to let the station shoot back
   if not self:isDestroyed() then
---printf("Station %s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
+--printf("Station %s (health at %3.2f%%) attacked by %s", self:getName(), self:getHealthPercent(), target:getName())
     -- Stations currently have no turrets, so pushing an Attack() action generates an error
-    -- If and when stations are armed, modify this method to let the station know whodunnit
+
+    -- Nobody enjoys getting shot
     self:modDisposition(target, -0.2)
 
-    if self:hasDockable() then
-      if self:isHostileTo(target) and self:isDockable() then
-        -- If this object was dockable, make it undockable
-        self:setUndockable()
+    -- Possibly make this station undockable to its attacker
+    if self:hasDockable() and self:isDockable() then
+      if self:isHostileTo(target) and not self:isBanned(target) then
+        self:addBannedShip(target)
+printf("Station %s bans attacker %s", self:getName(), target:getName())
       end
     end
   end

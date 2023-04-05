@@ -53,13 +53,15 @@ function Economy:update (dt)
         local item = src:getYield().item
         for _, dst in ipairs(self.markets) do
           -- Create a Mine job only if the destination trader has a bid for the source item
-          allJobCount = allJobCount + 1
-          local itemBidVol = dst:getTrader():getBidVolume(item)
-          if itemBidVol > 0 then
+          if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
+            allJobCount = allJobCount + 1
+            local itemBidVol = dst:getTrader():getBidVolume(item)
+            if itemBidVol > 0 then
 --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
 --    src:getName(), dst:getName(), item:getName(), itemBidVol)
-            realJobCount = realJobCount + 1
-            insert(self.jobs, Jobs.Mine(src, dst, item))
+              realJobCount = realJobCount + 1
+              insert(self.jobs, Jobs.Mine(src, dst, item))
+            end
           end
         end
       end
@@ -88,22 +90,26 @@ function Economy:update (dt)
     local allJobCount = 0
     local realJobCount = 0
     for _, src in ipairs(self.traders) do
-      for item, data in pairs(src:getTrader().elems) do
-        if src:getTrader():getAskVolume(item) > 0 then
-          local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
+      if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
+        for item, data in pairs(src:getTrader().elems) do
+          if src:getTrader():getAskVolume(item) > 0 then
+            local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
 --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
-          if buyPrice > 0 then
-            for _, dst in ipairs(self.traders) do
-              if src ~= dst then
-                allJobCount = allJobCount + 1
-                local sellPrice = dst:getTrader():getSellToPrice(item, 1)
+            if buyPrice > 0 then
+              for _, dst in ipairs(self.traders) do
+                if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
+                  if src ~= dst then
+                    allJobCount = allJobCount + 1
+                    local sellPrice = dst:getTrader():getSellToPrice(item, 1)
 --printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-                if buyPrice < sellPrice then
+                    if buyPrice < sellPrice then
 --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-                  realJobCount = realJobCount + 1
-                  insert(self.jobs, Jobs.Transport(src, dst, item))
+                      realJobCount = realJobCount + 1
+                      insert(self.jobs, Jobs.Transport(src, dst, item))
+                    end
+                  end
                 end
               end
             end

@@ -3,7 +3,7 @@ local Action = require('GameObjects.Action')
 local rng = RNG.FromTime()
 
 -- TODO : Dock range should be specified by the dockable component
-local kDockRange = 250
+local kDockRange = 350 -- ships are getting "stuck" at 250
 
 local DockAt = subclass(Action, function (self, target)
   self.target = target
@@ -32,26 +32,31 @@ function DockAt:onUpdateActive (e, dt)
 
   -- Within range of the target object?
   if (e:getPos() - tp):length() <= kDockRange then
-    self.target:addDocked(e)
+    if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
+      self.target:addDocked(e)
+    end
     e:popAction()
-
-    return -- within range, so end flight
-  end
-
-  -- Use the "target" metaphor to store where this ship is moving to
-  e:setTarget(self.target)
-
-  if Config.debug.instantJobs then
-    local p = e:getPos()
-    local dp = tp - p
-    e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * Config.debug.jobSpeed)))
   else
-    local tf = self.target:getForward()
-    local tu = self.target:getUp()
-    self:flyToward(e, tp, -tf, tu)
+    -- Use the "target" metaphor to store where this ship is moving to
+    if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
+      e:setTarget(self.target)
+
+      if Config.debug.instantJobs then
+        local p = e:getPos()
+        local dp = tp - p
+        e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * Config.debug.jobSpeed)))
+      else
+        local tf = self.target:getForward()
+        local tu = self.target:getUp()
+        self:flyToward(e, tp, -tf, tu)
+      end
+    else
+      -- Station is no longer available for docking, so stop this DockAt action
+      e:popAction()
+    end
   end
 end
 
--- TODO : Update this when we have real dock positions.
+-- TODO : Update this when we have real dock positions
 
 return DockAt

@@ -31,7 +31,7 @@ local guiElements = {
     name = "Choose Seed",
     elems = {
       { nil, 5022463494542550306ULL,  false },
-      { nil, 15054808765102574876ULL, false },
+      { nil, 5012768293123392491ULL,  false },
       { nil, 1777258448479734603ULL,  false },
       { nil, 9770135211012317023ULL,  false },
       { nil, 13415752391947803947ULL, false },
@@ -133,11 +133,11 @@ function LTheoryRedux:onUpdate (dt)
       menuMode = 1 -- show Main Menu
     else
       -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
-      -- After that, when we're in Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
+      -- After that, in active Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if menuMode == 0 then
         Config.game.flightModeButInactive = false
         menuMode = 2 -- show Flight Mode dialog
-      elseif not bSeedDialogDisplayed then
+      elseif menuMode == 2 and not bSeedDialogDisplayed then
         Config.game.flightModeButInactive = true
       end
     end
@@ -175,10 +175,11 @@ function LTheoryRedux:onUpdate (dt)
     end
   end
 
-  -- If player pressed the "ToggleLights" key in Flight Mode, toggle thruster lighting on/off
-  -- NOTE: Performance is OK for just the player's ship, but adding lights to > 20 NPC ships performs very badly
+  -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
+  -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
   if Input.GetPressed(Bindings.ToggleLights) and menuMode == 2 then
     Config.render.thrusterLights = not Config.render.thrusterLights
+    Config.render.pulseLights    = not Config.render.pulseLights
   end
 
   -- Canvas overlays
@@ -262,6 +263,7 @@ function LTheoryRedux:createStarSystem ()
 
   -- Spawn a new star system
   self.system = System(self.seed)
+  Config.game.currentSystem = self.system -- remember the player's current star system
 
   do
     if Config.getGameMode() == 1 then
@@ -303,8 +305,9 @@ function LTheoryRedux:createStarSystem ()
       self.tradeShip:setOwner(self.tradeAI)
 
       -- Add planets
+      local planet = nil -- remember the last planet created (TODO: remember ALL the planets)
       for i = 1, Config.gen.nPlanets do
-        self.system:spawnPlanet(false)
+        planet = self.system:spawnPlanet(false)
       end
 
       -- Add asteroid fields
@@ -317,59 +320,62 @@ function LTheoryRedux:createStarSystem ()
       -- Add space stations with random factories
       -- Every system gets one "free" solar plant
       local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
-      self.system:place(rng, newStation)
+      self.system:place(newStation)
 
       if Config.gen.nAIPlayers > 0 and Config.gen.nEconNPCs > 0 then
         -- Add the "extra" stations only if there are economic ships to use them
-        -- Add a free Water Melter station
-        newStation = self.system:spawnStation(self.tradeAI, Production.WaterMelter)
-        self.system:place(rng, newStation)
-
         -- Add a free Waste Recycler station
         newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
-        self.system:place(rng, newStation)
+        self.system:place(newStation)
       end
 
-      for i = 4, Config.gen.nStations do
+      for i = 3, Config.gen.nStations do
         -- Create Stations within randomly selected AsteroidField Zones
         self.system:spawnStation(self.tradeAI, nil)
       end
 
+      -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
+      self.system:addExtraFactories(self.system, planet, self.tradeAI)
+
       -- Add the player's ship
       newShip = self.system:spawnShip(Config.game.humanPlayer)
-      newShip:setName(format("NSS %s", Config.game.humanPlayerShipName))
---      newShip:setHealth(1000, 1000, 50) -- extra-healthy version of player ship for surviving testing
-      newShip:setHealth(500, 500, 20)
+      newShip:setName(Config.game.humanPlayerShipName)
+      newShip:setHealth(500, 500, 10) -- make the player's ship healthier than the default NPC ship
 
       LTheoryRedux:insertShip(newShip)
 
       Config.game.currentShip = newShip
 
       -- Set our ship's starting location within the extent of a random asteroid field
-      self.system:place(rng, newShip)
-printf("Player ship position = %s", newShip:getPos())
-
-      printf("Added our ship, the '%s'", newShip:getName())
+      self.system:place(newShip)
+printf("Added our ship, the '%s', at pos %s", newShip:getName(), newShip:getPos())
 
       -- TESTING: ADD SHIPS WITH ESCORT BEHAVIOR ENABLED
       local ships = {}
       for i = 1, Config.gen.nEscortNPCs do
         local escort = self.system:spawnShip(nil)
-        local offset = rng:getSphere():scale(100)
+        local offset = self.system.rng:getSphere():scale(100)
         escort:setPos(newShip:getPos() + offset)
 
         escort:pushAction(Actions.Escort(newShip, offset))
 
+        -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
+        --       These will be dogfighting challenges!
+        if rng:getInt(0, 100) < 20 then
+          escort:setHealth(100, 100, 0.2)
+          escort.usesBoost = true
+        end
+
         insert(ships, escort)
       end
-      if Config.gen.nEscortNPCs > 0 then
-        printf("Added %d escort ships", Config.gen.nEscortNPCs)
-      end
+if Config.gen.nEscortNPCs > 0 then
+  printf("Added %d escort ships", Config.gen.nEscortNPCs)
+end
 
       -- TESTING: MAKE SHIPS CHASE EACH OTHER!
---      for i = 1, #ships - 1 do
---        ships[i]:pushAction(Actions.Attack(ships[i+1]))
---      end
+      for i = 1, #ships - 1 do
+        ships[i]:pushAction(Actions.Attack(ships[i+1]))
+      end
 
       -- TESTING: ADD SHIPS WITH ECONOMIC BEHAVIOR ENABLED
       -- Add AI Players and give each one some assets
@@ -386,17 +392,14 @@ printf("Player ship position = %s", newShip:getPos())
 
           -- Create multiple assets (ships) assigned to this AI Player
           self.system:spawnAI(econShipsPerAI, Actions.Wait(1), tradePlayer)
-          printf("%d assets added to %s", econShipsPerAI, tradePlayerName)
+printf("%d assets added to %s", econShipsPerAI, tradePlayerName)
+        end
+printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nAIPlayers)
 
-          -- Configure assets
-          for asset in tradePlayer:iterAssets() do
-            self.system:place(rng, asset)
-          end
-
-          -- Tell AI player to start using the Think action
+        for _, tradePlayer in ipairs(self.system.players) do
+          -- Tell each AI player to start using the Think action
           tradePlayer:pushAction(Actions.Think())
         end
-        printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nAIPlayers)
       end
 
     end
@@ -473,7 +476,6 @@ function LTheoryRedux:showMainMenuInner ()
     HmGui.PushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
     if HmGui.Button("NEW GAME") then
       LTheoryRedux:showSeedDialog()
-      menuMode = 2
     end
     if HmGui.Button("LOAD GAME") then
       LTheoryRedux:showSeedDialog()

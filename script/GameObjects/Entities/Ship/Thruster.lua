@@ -57,11 +57,10 @@ function Thruster:update (state)
 
   -- Add local lighting based on ship's thruster activation
   if Config.render.thrusterLights and self.parentShip:hasLight() then
-    self.parentShip:setLight((0.2 + (1.9 * self.boost)) * abs(self.activation) * 10,
-                             (0.8 + (0.3 * self.boost)) * abs(self.activation) * 10,
-                             (3.0 - (2.4 * self.boost)) * abs(self.activation) * 10)
+    self.parentShip:setLight((0.2 + (1.9 * self.boost)) * abs(self.activation) * 2,
+                             (0.8 + (0.3 * self.boost)) * abs(self.activation) * 2,
+                             (3.0 - (2.4 * self.boost)) * abs(self.activation) * 2)
   end
 end
 
 return Thruster
-

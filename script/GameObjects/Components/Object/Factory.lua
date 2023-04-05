@@ -231,6 +231,13 @@ function Entity:hasFactory ()
   return self.factory ~= nil
 end
 
+function Entity:removeFactory ()
+  assert(self.factory)
+  self:unregister(Event.Update, Entity.updateFactory)
+  self:unregister(Event.Debug, Entity.debugFactory)
+  self.factory = nil
+end
+
 function Entity:updateFactory (state)
   self.factory:update(state.dt)
 end

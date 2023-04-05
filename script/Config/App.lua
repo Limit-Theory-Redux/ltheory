@@ -10,7 +10,8 @@ Config.render = {
   vsync          = true,
   zNear          = 0.1, -- default: 0.1
   zFar           = 1e8, -- default: 1e6
-  thrusterLights = true
+  thrusterLights = false,
+  pulseLights    = false,
 }
 
 Config.audio = {
@@ -120,7 +121,8 @@ Config.game = {
   humanPlayerName     = "[Human Player Name]",
   humanPlayerShipName = "[Human Player Ship Name]",
 
-  currentShip = nil,
+  currentShip   = nil,
+  currentSystem = nil,
 
   mapSystemPos  = Vec3f(0, 0, 0),
   mapSystemZoom = 0.0001,
@@ -133,9 +135,15 @@ Config.game = {
   autoTarget             = false,
   pulseDamage            = 2,
   pulseSize              = 64,
-  pulseSpeed             = 6e2,
+  pulseSpeed             = 1e3, -- was 6e2
   pulseRange             = 1000,
   pulseSpread            = 0.01,
+  pulseColorBodyR        = 0.3,
+  pulseColorBodyG        = 0.8,
+  pulseColorBodyB        = 2.0,
+  pulseColorLightR       = 0.3,
+  pulseColorLightG       = 0.9,
+  pulseColorLightB       = 3.0,
 
   shipBuildTime          = 10,
   shipEnergy             = 100,
@@ -154,7 +162,6 @@ Config.game = {
   timeScaleShipEditor    = 0.0,
   invertPitch            = false,
 
-  aiUsesBoost            = true,
   aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
 
   playerMoving           = false,

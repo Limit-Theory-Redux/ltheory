@@ -78,7 +78,7 @@ if true then -- Use payout, not flow
           bestPayout = payout
           bestJob = job
         else
-printf("THINK ***: tried to pick action: %s %s with payout = %d but jcount = 0!",
+printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
 asset:getName(), job:getName(), payout)
         end
       end
@@ -87,21 +87,29 @@ asset:getName(), job:getName(), payout)
     -- Maybe assign a new or reassign an old job
     if bestJob and bestPayout > 0 then -- if asset has no capacity left, bestPayout should be 0
       asset.job = bestJob
-printf("THINK: pushing action: %s %s with bestPayout = %d", asset:getName(), asset.job:getName(), bestPayout)
-      asset:pushAction(bestJob)
-      -- Place offer for the best job's bids to reserve them
-      asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
-      -- If buying, place offer for the best job's asks to reserve them (must be after addBidOffer() to use asset.job.jcount)
-      if string.find(asset.job:getName(), "Transport") then -- ugly way to insure this is a job whose source is a Trader
-        asset.job.src:getTrader():addAskOffer(asset)
-      end
+      -- Don't assign an old job if it can no longer be completed because a required station was destroyed
+      if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
+          (not string.find(asset.job:getName(), "Transport") or
+          (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
+printf("THINK: pushing job '%s' to %s with bestPayout = %d", asset.job:getName(), asset:getName(), bestPayout)
+        asset:pushAction(bestJob)
+        -- Place offer for the best job's bids to reserve them
+        asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
+        -- If buying, place offer for the best job's asks to reserve them (must be after addBidOffer() to use asset.job.jcount)
+        if string.find(asset.job:getName(), "Transport") then -- ugly way to insure this is a job whose source is a Trader
+          asset.job.src:getTrader():addAskOffer(asset)
+        end
 
-      -- Wake up asset if it was sleeping and make sure it undocks
-      local station = asset:isShipDocked()
-      if station then
-printf("THINK +++: Asset '%s' (owner %s) wakes up at Station '%s'",
+        -- Wake up asset if it was sleeping and make sure it undocks
+        local station = asset:isShipDocked()
+        if station then
+printf("THINK +++: Asset %s (owner %s) wakes up at Station %s",
 asset:getName(), asset:getOwner():getName(), station:getName())
-        asset:pushAction(Actions.Undock())
+          asset:pushAction(Actions.Undock())
+        end
+      else
+        -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
+printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())
       end
     end
 
@@ -114,7 +122,7 @@ asset:getName(), asset:getOwner():getName(), station:getName())
       if #stations > 0 and stations[1] ~= nil then
         local station = stations[1].stationRef
 
-printf("THINK ---: Asset '%s' (owner %s), with capacity %d has no more jobs available; docking at Station '%s'",
+printf("THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
 asset:getName(), asset:getOwner():getName(), asset:getInventoryFree(), station:getName())
         asset:clearActions()
         asset:pushAction(Actions.DockAt(station))
