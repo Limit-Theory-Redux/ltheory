@@ -1,13 +1,13 @@
 local Entity = require('GameObjects.Entity')
 
 local Pulse = CType.Struct('Pulse')
-Pulse:add(CType.Int32,   'source' )
-Pulse:add(CType.Vec3f,   'pos'    )
-Pulse:add(CType.Vec3f,   'vel'    )
-Pulse:add(CType.Vec3f,   'dir'    )
-Pulse:add(CType.Float32, 'lifeMax')
-Pulse:add(CType.Float32, 'life'   )
-Pulse:add(CType.Float32, 'dist'   )
+Pulse:add(CType.Int32,      'source' )
+Pulse:add(CType.Vec3f,      'pos'    )
+Pulse:add(CType.Vec3f,      'vel'    )
+Pulse:add(CType.Vec3f,      'dir'    )
+Pulse:add(CType.Float32,    'lifeMax')
+Pulse:add(CType.Float32,    'life'   )
+Pulse:add(CType.Float32,    'dist'   )
 Pulse:add(CType.Pointer(CType.Matrix),  'matrix' )
 
 local cacheHead
@@ -22,7 +22,7 @@ Preload.Add (function ()
   meshHead = Gen.Primitive.Billboard(-1, -1, 1, 1)
   meshTail = Gen.Primitive.Billboard(-1, -1, 1, 0)
   shaderHead = Cache.Shader('billboard/quad', 'effect/pulsehead')
-  shaderTail = Cache.Shader('billboard/axisInvert', 'effect/pulsetail')
+  shaderTail = Cache.Shader('billboard/axis', 'effect/pulsetail')
   cacheHead = ShaderVarCache(shaderHead, { 'size', 'alpha', 'mWorld' })
   cacheTail = ShaderVarCache(shaderTail, { 'alpha', 'size', 'axis', 'mWorld' })
 end)
@@ -45,7 +45,7 @@ end
 
 function Pulse:refreshMatrix ()
   self.matrix:free()
-  self.matrix = Matrix.LookUp(self.pos, self.dir, Math.OrthoVector(self.dir))
+  self.matrix = Matrix.LookUp(self.pos, -self.dir, Math.OrthoVector(self.dir))
 end
 
 function Pulse.Render (ents, state)
@@ -54,10 +54,19 @@ function Pulse.Render (ents, state)
       Profiler.Begin('Pulse.RenderAdditive.Head')
       local shader = shaderHead
       shader:start()
-      Shader.SetFloat3('color', 1.0, 1.3, 2.0)
       meshHead:drawBind()
       for i = 1, #ents do
-        local self = ents[i]
+        local self = ents[i].effect
+        local proj = ents[i].projectile
+        if proj then
+          Shader.SetFloat3('color', proj.pColorR,
+                                    proj.pColorG,
+                                    proj.pColorB)
+        else
+          Shader.SetFloat3('color', Config.game.pulseColorBodyR,
+                                    Config.game.pulseColorBodyG,
+                                    Config.game.pulseColorBodyB)
+        end
         Shader.ISetFloat(cacheHead.size, 16)
         Shader.ISetFloat(cacheHead.alpha, self.life / self.lifeMax)
         Shader.ISetMatrix(cacheHead.mWorld, self.matrix)
@@ -72,12 +81,21 @@ function Pulse.Render (ents, state)
       Profiler.Begin('Pulse.RenderAdditive.Tail')
       local shader = shaderTail
       shader:start()
-      Shader.SetFloat3('color', 1.0, 1.3, 2.0)
       meshTail:drawBind()
       for i = 1, #ents do
-        local self = ents[i]
+        local self = ents[i].effect
+        local proj = ents[i].projectile
+        if proj then
+          Shader.SetFloat3('color', proj.pColorR,
+                                    proj.pColorG,
+                                    proj.pColorB)
+        else
+          Shader.SetFloat3('color', Config.game.pulseColorBodyR,
+                                    Config.game.pulseColorBodyG,
+                                    Config.game.pulseColorBodyB)
+        end
         Shader.ISetFloat(cacheTail.alpha, self.life / self.lifeMax)
-        Shader.ISetFloat2(cacheTail.size, 16, min(Config.game.pulseSize, 2.0 * self.dist))
+        Shader.ISetFloat2(cacheTail.size, 16, min(Config.game.pulseSize, 1.5 * self.dist))
         Shader.ISetFloat3(cacheTail.axis, self.dir.x, self.dir.y, self.dir.z)
         Shader.ISetMatrix(cacheTail.mWorld, self.matrix)
         meshTail:drawBound()
@@ -93,17 +111,27 @@ function Pulse.UpdatePrePhysics (system, ents, dt)
   Profiler.Begin('Pulse.UpdatePre')
   local t = 1.0 - exp(-dt)
   for i = #ents, 1, -1 do
-    local self = ents[i]
+    local proj = ents[i].projectile
+    local self = ents[i].effect
     self.life = self.life - dt
     if self.life <= 0 then
+--printf("PULSE: projectile delete on expiration = %s", ents[i].projectile:getName())
+      if proj then
+        proj:deleteLight(proj)
+      end
       ents[i] = ents[#ents]
       ents[#ents] = nil
       self:delete()
     else
       self.pos:imadds(self.vel, dt)
-      self.dir:ilerp(self.vel:normalize(), t)
+      self.dir:ilerp(self.vel:normalize(), t) -- not needed for dumb-fire projectiles, but retained
       self.dist = self.dist + dt * Config.game.pulseSpeed
       self:refreshMatrix()
+      if proj then
+        proj:setPos(self.pos)
+        proj.dir  = self.dir
+        proj.dist = self.dist
+      end
     end
   end
   Profiler.End()
@@ -117,7 +145,7 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
   ray.tMax = 1
 
   for i = #ents, 1, -1 do
-    local self = ents[i]
+    local self = ents[i].effect
 
     -- raycast
     ray.px = self.pos.x
@@ -141,8 +169,7 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
         if hitEnt ~= source then
           -- do damage if the collidee has health
           if hitEnt.health then
-            if source:isAlive() then
---            if source:getHealth() > 0 then
+            if not source:isDestroyed() then
               -- If attacked, this entity stops what it's doing and attacks that ship
               -- TODO: Improve response logic when attacked
               hitEnt:attackedBy(source)
@@ -151,6 +178,10 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
           end
 
           -- remove projectile
+--printf("PULSE: projectile delete on hit = %s", ents[i].projectile:getName())
+          if ents[i].projectile then
+            ents[i].projectile:deleteLight(ents[i].projectile)
+          end
           ents[i] = ents[#ents]
           ents[#ents] = nil
           self:delete()

@@ -147,6 +147,10 @@ function HUD:drawTargets (a)
                 targetName = "Station " .. target:getName()
               elseif target:getType() == Config:getObjectTypeByName("object_types", "Jumpgate") then
                 targetName = "Jumpgate " .. target:getName()
+              elseif target:getType() == Config:getObjectTypeByName("object_types", "Ship") then
+                if target.usesBoost then
+                  targetName = targetName .. " [Ace]"
+                end
               end
               local tcr = 1
               local tcg = 1
@@ -156,6 +160,7 @@ function HUD:drawTargets (a)
                 tcg = 0
                 tcb = 0
               end
+
               UI.DrawEx.TextAdditive(
                 'NovaRound',
                 targetName,
@@ -301,7 +306,7 @@ function HUD:drawPlayerHealth (a)
     'NovaRound',
     playerShip:getName(),
     14,
-    112 + 1, sy - 240 + 1, 100, 12,
+    112 + 1, sy - 266 + 1, 100, 12,
     0, 0, 0, a,
     0.5, 0.5
   )
@@ -309,7 +314,7 @@ function HUD:drawPlayerHealth (a)
     'NovaRound',
     playerShip:getName(),
     14,
-    112, sy - 240, 100, 12,
+    112, sy - 266, 100, 12,
     1, 1, 1, a,
     0.5, 0.5
   )
@@ -323,15 +328,15 @@ function HUD:drawPlayerHealth (a)
   hc.r = Config.ui.color.healthColor[playerHealthCI].r
   hc.g = Config.ui.color.healthColor[playerHealthCI].g
   hc.b = Config.ui.color.healthColor[playerHealthCI].b
-  hc.a = 1.0
-  UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 260, 260, 260, hc, playerRadius / 1.7, -1.5, 0.0)
+  hc.a = 0.7
+  UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 286, 260, 260, hc, playerRadius / 1.7, -1.5, 0.0)
 
   -- Draw text of player ship health
   UI.DrawEx.TextAdditive(
     'NovaRound',
     playerHealthText,
     14,
-    112 + 1, sy - 34 + 1, 100, 12,
+    112 + 1, sy - 60 + 1, 100, 12,
     0, 0, 0, a,
     0.5, 0.5
   )
@@ -339,11 +344,12 @@ function HUD:drawPlayerHealth (a)
     'NovaRound',
     playerHealthText,
     14,
-    112, sy - 34, 100, 12,
+    112, sy - 60, 100, 12,
     1, 1, 1, a,
     0.5, 0.5
   )
 
+  -- TEMP: Also draw the player ship's health bar under the central reticle
   UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
   UI.DrawEx.Rect(cx - 20, cy + 20, 40, 4, Config.ui.color.healthColor[playerHealthCI])
 
@@ -365,6 +371,9 @@ function HUD:drawTargetHealth (a)
 
       if target:getType() == Config:getObjectTypeByName("object_types", "Ship")    then
         targetRadiusAdj = 5.9
+        if target.usesBoost then
+          targetName = targetName .. " [Ace]"
+        end
       end
       if target:getType() == Config:getObjectTypeByName("object_types", "Station") then
         targetRadiusAdj = 26
@@ -376,7 +385,7 @@ function HUD:drawTargetHealth (a)
         'NovaRound',
         targetName,
         14,
-        sx - 208 + 1, sy - 240 + 1, 100, 12,
+        sx - 208 + 1, sy - 266 + 1, 100, 12,
         0, 0, 0, a,
         0.5, 0.5
       )
@@ -384,7 +393,7 @@ function HUD:drawTargetHealth (a)
         'NovaRound',
         targetName,
         14,
-        sx - 208, sy - 240, 100, 12,
+        sx - 208, sy - 266, 100, 12,
         1, 1, 1, a,
         0.5, 0.5
       )
@@ -394,15 +403,15 @@ function HUD:drawTargetHealth (a)
       hc.r = Config.ui.color.healthColor[targetHealthCI].r
       hc.g = Config.ui.color.healthColor[targetHealthCI].g
       hc.b = Config.ui.color.healthColor[targetHealthCI].b
-      hc.a = 1.0
-      UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 260, 260, 260, hc, targetRadiusAdj, -1.5, 0.0)
+      hc.a = 0.7
+      UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 286, 260, 260, hc, targetRadiusAdj, -1.5, 0.0)
 
       -- Draw text of target health
       UI.DrawEx.TextAdditive(
         'NovaRound',
         targetHealthText,
         14,
-        sx - 208 + 1, sy - 34 + 1, 100, 12,
+        sx - 208 + 1, sy - 60 + 1, 100, 12,
         0, 0, 0, a,
         0.5, 0.5
       )
@@ -410,10 +419,34 @@ function HUD:drawTargetHealth (a)
         'NovaRound',
         targetHealthText,
         14,
-        sx - 208, sy - 34, 100, 12,
+        sx - 208, sy - 60, 100, 12,
         1, 1, 1, a,
         0.5, 0.5
       )
+
+      -- Draw current action (if any) of target name
+      if target:hasActions() then
+        local targetAction = target:getCurrentAction()
+        if targetAction then
+          local targetActionName = targetAction:getName()
+          UI.DrawEx.TextAdditive(
+            'NovaRound',
+            targetActionName,
+            14,
+            sx - 208 + 1, sy - 40 + 1, 100, 12,
+            0, 0, 0, a,
+            0.5, 0.5
+          )
+          UI.DrawEx.TextAdditive(
+            'NovaRound',
+            targetActionName,
+            14,
+            sx - 208, sy - 40, 100, 12,
+            1, 1, 1, a,
+            0.5, 0.5
+          )
+        end
+      end
     end
   end
 end
@@ -455,8 +488,9 @@ function HUD:onInput (state)
   camera:pop()
 
   if self.dockable then
---printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()), self.dockable:getName(), self.dockable:isDockable())
-    if self.dockable:isDockable() then
+--printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()),
+--                                 self.dockable:getName(), self.dockable:isDockable())
+    if self.dockable:isDockable() and not self.dockable:isBanned(e) then
       if not Config.game.gamePaused and ShipBindings.Dock:get() > 0 then
         -- TODO: migrate this action outside the HUD
         e:pushAction(Actions.DockAt(self.dockable))
@@ -480,12 +514,13 @@ function HUD:onUpdate (state)
     local f = 1.0 - exp(-state.dt * 8.0)
     local alphaT = 0
     if self.dockable then
-      if self.dockable:isDockable() then
+      if self.dockable:isDockable() and not self.dockable:isBanned(self.player:getControlling()) then
         dockingAllowed = true
         alphaT = 1
       else
         dockingAllowed = false
-        if not self.dockable:isDestroyed() and self.dockable:isHostileTo(self.player:getControlling()) then
+        if not self.dockable:isDestroyed() then
+--        if not self.dockable:isDestroyed() and self.dockable:isHostileTo(self.player:getControlling()) then
           alphaT = 1
         else
           alphaT = 0

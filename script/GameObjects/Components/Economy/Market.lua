@@ -120,6 +120,13 @@ function Entity:hasMarket ()
   return self.market ~= nil
 end
 
+function Entity:removeMarket ()
+  assert(self.market)
+  self:unregister(Event.Debug, Entity.debugMarket)
+  self:unregister(Event.Update, Entity.updateMarket)
+  self.market = nil
+end
+
 function Entity:updateMarket (state)
   self.market:update(self, state.dt)
 end

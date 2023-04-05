@@ -54,7 +54,7 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
 
 end)
 
-function System:addExtraFactories (system, planet, aiPlayer, rng)
+function System:addExtraFactories (system, planet, aiPlayer)
   -- Based on what factories were added randomly to stations, a system may need some
   --    additional factories to provide the necessary Input items
   local newStation = nil
@@ -64,35 +64,35 @@ function System:addExtraFactories (system, planet, aiPlayer, rng)
     -- Add a Copper Refinery station if one doesn't already exist (to create Item.AnodeSludge)
     if not system:hasProdType(Production.Copper) then
       newStation = system:spawnStation(aiPlayer, Production.Copper)
-      system:place(rng, newStation)
+      system:place(newStation)
     end
   end
   if system:hasProdType(Production.EnergyNuclear) then
     -- Add an Isotope Factory station if one doesn't already exist (to create Item.Isotopes)
     if not system:hasProdType(Production.Isotopes) then
       newStation = system:spawnStation(aiPlayer, Production.Isotopes)
-      system:place(rng, newStation)
+      system:place(newStation)
     end
   end
   if system:hasProdType(Production.Isotopes) then
     -- Add a Thorium Refinery station if one doesn't already exist (to create Item.Thorium)
     if not system:hasProdType(Production.Thorium) then
       newStation = system:spawnStation(aiPlayer, Production.Thorium)
-      system:place(rng, newStation)
+      system:place(newStation)
     end
   end
   if system:hasProdType(Production.EnergyFusion) then
     -- Add a Water Melter station if one doesn't already exist (to create Item.WaterLiquid)
     if not system:hasProdType(Production.WaterMelter) then
       newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
-      system:place(rng, newStation)
+      system:place(newStation)
     end
   end
   if planet then
     -- Add a Petroleum Refinery station if one doesn't already exist
     if not system:hasProdType(Production.Petroleum) then
       newStation = system:spawnStation(aiPlayer, Production.Petroleum)
-      system:place(rng, newStation)
+      system:place(newStation)
     end
   end
 end
@@ -122,7 +122,9 @@ function System:getStationsByDistance (ship)
   local stationList = {}
   for _, station in ipairs(self.stations) do
     local stationStruct = {stationRef = station, stationDist = ship:getDistance(station)}
-    insert(stationList, stationStruct)
+    if station:hasDockable() and station:isDockable() and not station:isBanned(ship) then
+      insert(stationList, stationStruct)
+    end
   end
 
   table.sort(stationList, function (a, b) return a.stationDist < b.stationDist end)
@@ -149,15 +151,20 @@ function System:sampleStations (rng)
   return rng:choose(self.stations)
 end
 
-function System:place (rng, object)
+function System:place (object)
   -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
   -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
   local pos = Config.gen.origin
-  local field = self:sampleZones(rng)
+  local field = self:sampleZones(self.rng)
   if field then
-    pos = field:getRandomPos(rng) -- place new object within a random field
+    pos = field:getRandomPos(self.rng) -- place new object within a random field
+    if Config.gen.scaleSystem < 5e4 then
+      while pos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
+        pos = field:getRandomPos(self.rng)
+      end
+    end
   else
-    pos = Vec3f(rng:getInt(5000, 8000), 0, rng:getInt(5000, 8000)) -- place new object _near_ the origin
+    pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
   end
   object:setPos(pos)
 
@@ -192,7 +199,7 @@ function System:update (dt)
     for _, player in ipairs(self.players) do player:send(event) end
     Profiler.End()
 
-    self:send(event)
+--    self:send(event) -- unnecessary extra event?
     Profiler.Begin('Broadcast Update')
     self:send(Event.Broadcast(event))
     Profiler.End()
@@ -379,7 +386,7 @@ function System:spawnAsteroidField (count, reduced)
     if i == 1 then
       pos = zone.pos -- place first object at zone's center (for non-asteroid field zones)
     else
-      -- We place this asteroid directly, rather than using self:place(rng, asteroid) for randomness,
+      -- We place this asteroid directly, rather than using self:place(asteroid) for randomness,
       --   because we want it to go into the area around this AsteroidField (a Zone) we just created
       pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
       if Config.gen.scaleSystem < 5e4 then
@@ -461,7 +468,7 @@ function System:spawnStation (player, prodType)
   station:setName(Words.getCoolName(rng))
 
   -- Set station location within the extent of a randomly selected asteroid field
-  self:place(rng, station)
+  self:place(station)
 
   -- Set station scale
   station:setScale(Config.gen.scaleStation)
@@ -574,9 +581,14 @@ function System:spawnShip (player)
   end
   ship:setOwner(shipPlayer)
 
-  -- TODO: make sure spawn position for player ship is well outside any planetary volume
---  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * 500.0))
-  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp())))
+  -- TODO: make sure spawn position for ship is well outside any planetary volume
+  local shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
+  if Config.gen.scaleSystem < 5e4 then
+    while shipPos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
+      shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
+    end
+  end
+  ship:setPos(shipPos)
 
   -- TODO: replace Config.econ.eInventory with actual cargo hold capacity based on ship role plug assignments
   ship:setInventoryCapacity(Config.econ.eInventory)
@@ -604,8 +616,17 @@ function System:spawnShip (player)
     end
   end
 
+  -- The ship's thruster gets its own color(s)
   ship:addLight(0, 0, 0)
-  insert(self.lightList, ship)
+
+  -- TODO: The weapon installed in each turret/bay should dictate its base emission or thruster color
+  --       For now, every weapon per ship gets the same pulse weapon color effect
+  ship.projColorR = self.rng:getUniformRange(0.1, 1.2)
+  ship.projColorG = self.rng:getUniformRange(0.1, 1.2)
+  ship.projColorB = self.rng:getUniformRange(0.1, 1.2)
+
+  -- Add ship to list of ships active in this star system
+  insert(self.ships, ship)
 
 --local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
 --printf("Added Ship (%s) '%s'", subtypeName, ship:getName())

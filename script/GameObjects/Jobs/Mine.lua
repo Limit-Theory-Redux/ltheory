@@ -33,10 +33,13 @@ end
 function Mine:getPayout (e)
   self.jcount = 0
   local payout = 0
-  local bcount, basePayout = Mine:getBasePayout(e, self.src, self.dst)
-  if bcount > 0 and basePayout > 0 then
-    payout = Mine:getAdjustedPayout(e, self.src, self.dst, basePayout)
-    self.jcount = bcount
+  -- Only stations that are dockable and not destroyed have traders that can offer payouts
+  if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
+    local bcount, basePayout = Mine:getBasePayout(e, self.src, self.dst)
+    if bcount > 0 and basePayout > 0 then
+      payout = Mine:getAdjustedPayout(e, self.src, self.dst, basePayout)
+      self.jcount = bcount
+    end
   end
 
 --local capacity = e:getInventoryFree()
@@ -130,7 +133,8 @@ end
       local mcount = math.min(itemBidVol, ccount)
       if mcount == 0 then
         -- Can't do this Mine job! End this job (owning player should seek a new sale for existing inventory)
-        e.jobState = 6 -- end MINE action
+        e:popAction()
+        e.jobState = nil
       else
         self.jcount = mcount
 
@@ -142,27 +146,44 @@ itemBidVol, profit, dt)
         e:pushAction(Actions.MoveTo(self.src, 150)) -- TODO: convert static arrival range to dynamic based on target scale
       end
     elseif e.jobState == 2 then
-      local miningTimePerItem = 5
-      e:pushAction(Actions.MineAt(self.src, self.dst, miningTimePerItem)) -- TODO: create a miningTime() function
+      local miningTimePerItem = 5 -- TODO: create a miningTime() function based on item's rarity
+      e:pushAction(Actions.MineAt(self.src, self.dst, miningTimePerItem))
     elseif e.jobState == 3 then
       if e:getItemCount(self.item) == 0 then
 printf("[MINE] *** NO SALE *** %s was unable to mine any units of %s for Trader %s, ending MINE action",
 e:getName(), self.item:getName(), self.dst:getName())
-        e.jobState = 6 -- end MINE action
+        e:popAction()
+        e.jobState = nil
       else
-        e:pushAction(Actions.DockAt(self.dst))
+        if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
+          e:pushAction(Actions.DockAt(self.dst))
+        else
+          -- Destination station no longer exists, so terminate this entire job
+printf("[TRANSPORT] *** Destination station %s no longer exists for %s DockAt; terminating mining job", self.dst:getName(), e:getName())
+          e:popAction()
+          e.jobState = nil
+        end
       end
     elseif e.jobState == 4 then
-      local item = self.item
+      if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
+        local item = self.item
 --printf("[MINE] %s offers to sell %d units of %s to Trader %s",
 --e:getName(), e:getItemCount(item), item:getName(), self.dst:getName())
-      local sold = 0
-      while e:getItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
-        sold = sold + 1
-      end
+        local sold = 0
+        while e:getItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
+          sold = sold + 1
+        end
 printf("[MINE] %s sold %d units of %s to Trader %s", e:getName(), sold, item:getName(), self.dst:getName())
+      else
+        -- Destination station no longer exists, so terminate this entire job
+printf("[TRANSPORT] *** Destination station %s no longer exists for %s item sale; terminating mining job", self.dst:getName(), e:getName())
+        e:popAction()
+        e.jobState = nil
+      end
     elseif e.jobState == 5 then
-      e:pushAction(Actions.Undock())
+      if e:isShipDocked() then
+        e:pushAction(Actions.Undock())
+      end
     elseif e.jobState == 6 then
       -- TODO : This is just a quick hack to force AI to re-evaluate job
       --        decisions. In reality, AI should 'pre-empt' the job, which

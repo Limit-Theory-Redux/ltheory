@@ -28,4 +28,14 @@ function Entity:send (event)
   end
 end
 
+function Entity:unregister (eventType, handler)
+  assert(self.handlers[eventType])
+  for i, v in ipairs(self.handlers[eventType]) do
+    if v == handler then
+      remove(self.handlers[eventType], i)
+      break
+    end
+  end
+end
+
 return Entity

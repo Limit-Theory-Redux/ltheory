@@ -27,6 +27,30 @@ function Entity:debugActions (state)
   end
 end
 
+function Entity:deleteAction (actionName)
+  assert(self.actions)
+  for i, action in ipairs(self.actions) do
+    if action:getName() == actionName then
+      action:onStop(self)
+      remove(self.actions, i)
+      break
+    end
+  end
+end
+
+function Entity:findAction (actionName)
+  assert(self.actions)
+  local actionRef = nil
+  for _, action in ipairs(self.actions) do
+    if action:getName() == actionName then
+      actionRef = action
+      break
+    end
+  end
+
+  return actionRef
+end
+
 function Entity:getCurrentAction ()
   assert(self.actions)
   return self.actions[#self.actions]

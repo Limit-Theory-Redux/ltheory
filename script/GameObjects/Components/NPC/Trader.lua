@@ -458,17 +458,17 @@ function Trader:update ()
       end
 
       -- Possibly decrease ask to increase chance that someone will sell this item to the trader
-      if rng:getInt(0, 1000) < 5 then
+      if rng:getInt(0, 1000) < 3 then
         for i = 1, #data.asks do
           data.asks[i] = math.max(1, data.asks[i] - 1) -- lower price on all asks for this item
         end
       end
 
       -- Possibly increase bid to increase chance that someone will buy this item from the trader
-      if rng:getInt(0, 100) < 1 then
+      if rng:getInt(0, 100) < 10 then
         local raisedPrice = 1
-        if rng:getInt(0, 100) < 3 then
-          local windfall = 100
+        if rng:getInt(0, 100) < 5 then
+          local windfall = rng:getInt(80, 125)
           if data.bids and #data.bids > 0 then
             local windfall = math.max(windfall, data.bids[1])
           end
@@ -530,6 +530,13 @@ end
 
 function Entity:hasTrader ()
   return self.trader ~= nil
+end
+
+function Entity:removeTrader ()
+  assert(self.trader)
+  self:unregister(Event.Debug, Entity.debugTrader)
+  self:unregister(Event.Update, Entity.updateTrader)
+  self.trader = nil
 end
 
 function Entity:updateTrader (state)

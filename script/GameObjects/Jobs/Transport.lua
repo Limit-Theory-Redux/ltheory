@@ -46,26 +46,30 @@ end
 function Transport:getPayout (e)
   self.jcount = 0
   local payout = 0
-  local capacity = e:getInventoryFree()
-  local maxCount = math.floor(capacity / self.item:getMass())
+  -- Only stations that are dockable and not destroyed have traders that can offer payouts
+  if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) and
+     self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
+    local capacity = e:getInventoryFree()
+    local maxCount = math.floor(capacity / self.item:getMass())
 
-  if maxCount > 0 then
-    -- Calculate trade count and profit of available bids
-    local srcTrader = self.src:getTrader()
-    local dstTrader = self.dst:getTrader()
-    local itemAskVol = srcTrader:getAskVolume(self.item)
-    local itemBidVol = dstTrader:getBidVolume(self.item)
-    if itemAskVol and itemAskVol > 0 and itemBidVol and itemBidVol > 0 then
-      local count, profit = srcTrader:computeTrade(self.item, maxCount, dstTrader, nil)
+    if maxCount > 0 then
+      -- Calculate trade count and profit of available bids
+      local srcTrader = self.src:getTrader()
+      local dstTrader = self.dst:getTrader()
+      local itemAskVol = srcTrader:getAskVolume(self.item)
+      local itemBidVol = dstTrader:getBidVolume(self.item)
+      if itemAskVol and itemAskVol > 0 and itemBidVol and itemBidVol > 0 then
+        local count, profit = srcTrader:computeTrade(self.item, maxCount, dstTrader, nil)
 
-      if count > 0 then
-        -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
-        local pickupTravelTime = self:getShipTravelTime(e, self.dst)
-        local transportTravelTime = self:getTravelTime(e)
-        local payoutMod = 10000 / ((pickupTravelTime    / Config.econ.pickupDistWeightMine) +
-                                   (transportTravelTime / Config.econ.pickupDistWeightTran))
-        payout = math.max(1, math.floor(profit * payoutMod))
-        self.jcount = count
+        if count > 0 then
+          -- Modify the value of the expected payout by the estimated yield divided by travel time to get there
+          local pickupTravelTime = self:getShipTravelTime(e, self.dst)
+          local transportTravelTime = self:getTravelTime(e)
+          local payoutMod = 10000 / ((pickupTravelTime    / Config.econ.pickupDistWeightMine) +
+                                     (transportTravelTime / Config.econ.pickupDistWeightTran))
+          payout = math.max(1, math.floor(profit * payoutMod))
+          self.jcount = count
+        end
       end
     end
   end
@@ -100,40 +104,72 @@ e:getName(), count, self.item:getName(), self.src:getName(), self.dst:getName(),
       self.jcount = count
       e.count = count
       if count > 0 then
-        e:pushAction(Actions.DockAt(self.src))
+        if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) then
+          e:pushAction(Actions.DockAt(self.src))
+        else
+          -- Source station no longer exists, so terminate this entire job
+printf("[TRANSPORT] *** Source station %s no longer exists for %s DockAt; terminating transport job", self.src:getName(), e:getName())
+          e:popAction()
+          e.jobState = nil
+        end
       else
 printf("[TRANSPORT OFFER FAIL ***] No trade of 0 %s from %s -> %s", self.item:getName(), self.src:getName(), self.dst:getName())
         e:popAction()
         e.jobState = nil
       end
     elseif e.jobState == 2 then
+      if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) then
 printf("[TRANSPORT] %s offers to buy %d units of %s from Trader %s", e:getName(), e.count, self.item:getName(), self.src:getName())
-      local bought = 0
-      for i = 1, e.count do
-        if self.src:getTrader():sell(e, self.item) then
-          bought = bought + 1
+        local bought = 0
+        for i = 1, e.count do
+          if self.src:getTrader():sell(e, self.item) then
+            bought = bought + 1
+          end
         end
-      end
-      if bought == 0 then
+        if bought == 0 then
 printf("[TRANSPORT BUY FAIL ***] %s bought 0 %s from %s!", e:getName(), self.item:getName(), self.src:getName())
+          e:popAction()
+          e.jobState = nil
+        else
+printf("[TRANSPORT] %s bought %d units of %s from Trader %s", e:getName(), bought, self.item:getName(), self.src:getName())
+        end
+      else
+        -- Source station no longer exists, so terminate this entire job
+printf("[TRANSPORT] *** Source station %s no longer exists for %s item purchase; terminating transport job", self.src:getName(), e:getName())
         e:popAction()
         e.jobState = nil
-      else
-printf("[TRANSPORT] %s bought %d units of %s from Trader %s", e:getName(), bought, self.item:getName(), self.src:getName())
       end
     elseif e.jobState == 3 then
-      e:pushAction(Actions.Undock())
-    elseif e.jobState == 4 then
-      e:pushAction(Actions.DockAt(self.dst))
-    elseif e.jobState == 5 then
---printf("[TRANSPORT] %s offers to sell %d units of %s to Trader %s", e:getName(), e.count, self.item:getName(), self.dst:getName())
-      local sold = 0
-      while self.dst:getTrader():buy(e, self.item) do
-        sold = sold + 1
+      if e:isShipDocked() then
+        e:pushAction(Actions.Undock())
       end
+    elseif e.jobState == 4 then
+      if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
+        e:pushAction(Actions.DockAt(self.dst))
+      else
+        -- Destination station no longer exists, so terminate this entire job
+printf("[TRANSPORT] *** Destination station %s no longer exists for %s DockAt; terminating transport job", self.dst:getName(), e:getName())
+        e:popAction()
+        e.jobState = nil
+      end
+    elseif e.jobState == 5 then
+      if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
+printf("[TRANSPORT] %s offers to sell %d units of %s to Trader %s", e:getName(), e.count, self.item:getName(), self.dst:getName())
+        local sold = 0
+        while self.dst:getTrader():buy(e, self.item) do
+          sold = sold + 1
+        end
 printf("[TRANSPORT] %s sold %d units of %s to Trader %s", e:getName(), sold, self.item:getName(), self.dst:getName())
+      else
+        -- Destination station no longer exists, so terminate this entire job
+printf("[TRANSPORT] *** Destination station %s no longer exists for %s item sale; terminating transport job", self.dst:getName(), e:getName())
+        e:popAction()
+        e.jobState = nil
+      end
     elseif e.jobState == 6 then
-      e:pushAction(Actions.Undock())
+      if e:isShipDocked() then
+        e:pushAction(Actions.Undock())
+      end
     elseif e.jobState == 7 then
       e:popAction()
       e.jobState = nil
