@@ -231,6 +231,9 @@ function Canvas.Create ()
 
   self.state = State.Create(self)
   self:setEState(Container.EState.Enabled)
+
+--  Input.SetMouseVisible(false)
+
   return self
 end
 

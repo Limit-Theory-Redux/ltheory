@@ -18,10 +18,24 @@ Config.audio = {
   bSoundOn  = false,
   soundMin  = 0,
   soundMax  = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+
+  backLoop1      = "LTR_Parallax_Universe_loop.ogg",
+  backLoop2      = "LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg",
+  backLoop3      = "LTR_Explortation_Doodle.mp3",
+
+  pulseFireName      = "LaunchMissile.mp3",
+  pulseFire          = nil,
+  pulseHitName       = "",
+  pulseHit           = nil,
+  explodeShipName    = "ExplosionShip.mp3",
+  explodeShip        = nil,
+  explodeStationName = "ExplosionStation.mp3",
+  explodeStation     = nil,
 }
 
 Config.paths = {
   soundAmbiance = "./res/sound/system/ambiance/",
+  soundEffects  = "./res/sound/system/effects/",
 }
 
 Config.debug = {
@@ -312,24 +326,48 @@ function Config.getGameMode()
   return Config.game.gameMode
 end
 
+-- Enumerations for job states
+Config.Enums = {
+  JobStatesTransport = {
+    None             = 0,
+    DockingAtSrc     = 1,
+    BuyingItems      = 2,
+    UndockingFromSrc = 3,
+    DockingAtDst     = 4,
+    SellingItems     = 5,
+    UndockingFromDst = 6,
+    JobFinished      = 7,
+  },
+  JobStatesMine = {
+    None             = 0,
+    MovingToAsteroid = 1,
+    MiningAsteroid   = 2,
+    DockingAtDst     = 3,
+    SellingItems     = 4,
+    UndockingFromDst = 5,
+    JobFinished      = 6,
+  },
+}
+
+-- Static object type names and data
 Config.objectInfo = {
   {
     ID = "object_types",
     name = "Object Types",
     elems = {
       -- NOTE: If you change these, you must also change autonavRanges!
-      { 1, "Unknown", ""},
-      { 2, "Reserved", ""},
+      { 1, "Unknown",     ""},
+      { 2, "Reserved",    ""},
       { 3, "Star Sector", ""},
       { 4, "Star System", ""},
-      { 5, "Zone", "zone_subtypes"},
-      { 6, "Star", "star_subtypes"},
-      { 7, "Planet", "planet_subtypes"},
-      { 8, "Asteroid", "asteroid_subtypes"},
-      { 9, "Jumpgate", "jumpgate_subtypes"},
-      {10, "Station", "station_subtypes"},
-      {11, "Ship", "ship_subtypes"},
-      {12, "Colony", "colony_subtypes"},
+      { 5, "Zone",        "zone_subtypes"},
+      { 6, "Star",        "star_subtypes"},
+      { 7, "Planet",      "planet_subtypes"},
+      { 8, "Asteroid",    "asteroid_subtypes"},
+      { 9, "Jumpgate",    "jumpgate_subtypes"},
+      {10, "Station",     "station_subtypes"},
+      {11, "Ship",        "ship_subtypes"},
+      {12, "Colony",      "colony_subtypes"},
     }
   },
   {

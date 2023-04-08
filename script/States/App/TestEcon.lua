@@ -15,7 +15,7 @@ local kFields = 10
 local kFieldCount = 200
 local kStations = 30
 local kPlayers = 3
-local kAssets = 15
+local kAssets = 50
 
 local planet = false -- needs to be here for any function to access
 
@@ -101,7 +101,7 @@ function TestEcon:onInit ()
   end
 
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
-  self.system:addExtraFactories(self.system, planet, self.tradeAI)
+  self.system:addExtraFactories(self.system, 1, self.tradeAI)
 
   -- Give all AI Players some resources and assets
   for _, tradePlayer in ipairs(self.system.players) do

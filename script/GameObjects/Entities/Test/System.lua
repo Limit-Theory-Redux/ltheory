@@ -54,44 +54,56 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
 
 end)
 
-function System:addExtraFactories (system, planet, aiPlayer)
+function System:addExtraFactories (system, planetCount, aiPlayer)
   -- Based on what factories were added randomly to stations, a system may need some
   --    additional factories to provide the necessary Input items
-  local newStation = nil
-  if system:hasProdType(Production.Silver)   or
-     system:hasProdType(Production.Gold)     or
-     system:hasProdType(Production.Platinum) then
-    -- Add a Copper Refinery station if one doesn't already exist (to create Item.AnodeSludge)
-    if not system:hasProdType(Production.Copper) then
+  if Config.gen.nEconNPCs > 0 then
+    local newStation = nil
+    local prodTypeCount = 0
+
+    prodTypeCount = prodTypeCount + system:countProdType(Production.Silver)
+    prodTypeCount = prodTypeCount + system:countProdType(Production.Gold)
+    prodTypeCount = prodTypeCount + system:countProdType(Production.Platinum)
+    for i = 1, prodTypeCount do
+      -- Add a Copper Refinery station (to create Item.AnodeSludge)
       newStation = system:spawnStation(aiPlayer, Production.Copper)
       system:place(newStation)
     end
-  end
-  if system:hasProdType(Production.EnergyNuclear) then
-    -- Add an Isotope Factory station if one doesn't already exist (to create Item.Isotopes)
-    if not system:hasProdType(Production.Isotopes) then
+
+    prodTypeCount = system:countProdType(Production.EnergyNuclear)
+    for i = 1, prodTypeCount do
+      -- Add an Isotope Factory station (to create Item.Isotopes)
       newStation = system:spawnStation(aiPlayer, Production.Isotopes)
       system:place(newStation)
     end
-  end
-  if system:hasProdType(Production.Isotopes) then
-    -- Add a Thorium Refinery station if one doesn't already exist (to create Item.Thorium)
-    if not system:hasProdType(Production.Thorium) then
+
+    prodTypeCount = system:countProdType(Production.Isotopes)
+    for i = 1, prodTypeCount do
+      -- Add a Thorium Refinery station (to create Item.Thorium)
       newStation = system:spawnStation(aiPlayer, Production.Thorium)
       system:place(newStation)
     end
-  end
-  if system:hasProdType(Production.EnergyFusion) then
-    -- Add a Water Melter station if one doesn't already exist (to create Item.WaterLiquid)
-    if not system:hasProdType(Production.WaterMelter) then
+
+    prodTypeCount = system:countProdType(Production.EnergyFusion)
+    for i = 1, prodTypeCount do
+      -- Add 2 Water Melter stations (to create Item.WaterLiquid)
+      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
+      system:place(newStation)
       newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
       system:place(newStation)
     end
-  end
-  if planet then
-    -- Add a Petroleum Refinery station if one doesn't already exist
-    if not system:hasProdType(Production.Petroleum) then
+
+    for i = 1, planetCount do
+      -- Add a Petroleum Refinery station
+      -- TODO: only add refineries for each planet that has a Trader
       newStation = system:spawnStation(aiPlayer, Production.Petroleum)
+      system:place(newStation)
+    end
+
+    prodTypeCount = system:countProdType(Production.Petroleum)
+    for i = 1, prodTypeCount do
+      -- Add a Plastics Factory station (to create Item.Plastic)
+      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
       system:place(newStation)
     end
   end
@@ -145,6 +157,20 @@ function System:hasProdType (prodtype)
   end
 
   return hasProdType
+end
+
+function System:countProdType (prodtype)
+  -- Scan the production types of all factories in this system to see how many of the specified production type exist
+  local numProdType = 0
+  for _, station in ipairs(self.stations) do
+    if station:hasFactory() then
+      if station:getFactory():hasProductionType(prodtype) then
+        numProdType = numProdType + 1
+      end
+    end
+  end
+
+  return numProdType
 end
 
 function System:sampleStations (rng)
@@ -453,7 +479,6 @@ function System:setAsteroidYield (rng, asteroid)
       itemType = Item.Silicates
     end
     asteroid:addYield(itemType, math.max(1, math.floor(rng:getUniformRange(amass / 2, amass))))
---    asteroid:addYield(itemType, math.max(1, rng:getInt(amass / 2, amass)))
   end
 end
 

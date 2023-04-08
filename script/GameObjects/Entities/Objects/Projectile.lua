@@ -21,6 +21,10 @@ end
 function Entity:addProjectile (source)
   assert(self.projectiles)
 
+  -- TODO: Extend projectile types to non-pulse effects
+
+  if Config.audio.pulseFire then Sound.Play(Config.audio.pulseFire) end
+
   local e = Pulse:new()
   e.source = IncRef(source)
 
