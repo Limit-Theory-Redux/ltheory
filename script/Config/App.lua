@@ -34,8 +34,8 @@ Config.audio = {
 }
 
 Config.paths = {
-  soundAmbiance = "./res/sound/system/ambiance/",
-  soundEffects  = "./res/sound/system/effects/",
+  soundAmbiance = "./res/sound/system/audio/",
+  soundEffects  = "./res/sound/system/audio/",
 }
 
 Config.debug = {
