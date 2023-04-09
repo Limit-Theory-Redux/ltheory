@@ -26,7 +26,7 @@ local self = {
     Control.GamepadAxis(Button.Gamepad.RStickX)),
 
   Pitch = Control.Or(
-    Control.MouseY():invert(),
+    Control.MouseY(),
     Control.GamepadAxis(Button.Gamepad.RStickY):invert()),
 
   Boost = Control.Or(

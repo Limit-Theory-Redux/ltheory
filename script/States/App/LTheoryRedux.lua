@@ -30,24 +30,21 @@ local guiElements = {
   {
     name = "Choose Seed",
     elems = {
-      { nil, 5022463494542550306ULL,  false },  -- KEEP black
-      { nil, 5012768293123392491ULL,  false },  -- KEEP red
-      { nil, 4933876146649964811ULL,  false },  -- KEEP blue and milky white
-      { nil, 2008422628673393673ULL,  false },  -- MAYBE orange-ish
-      { nil, 5712598467986491931ULL,  false },  -- KEEP gold-yellow
-      { nil, 14169804077813660835ULL, false },  -- KEEP bluish-green with a bright gold star
-      { nil, 9806676695553338612ULL,  false },  -- KEEP violet
-      { nil, 14600758714913275339ULL, false },  -- KEEP blue
-      { nil, 11589761683708427350ULL, false },  -- KEEP bright green
-      { nil, 3432712644463072838ULL,  false },  -- KEEP blue-red-orange
-      { nil, 10630444862697458122ULL, false },  -- MAYBE "Hubble palette"
-      { nil, 5199604093543988311ULL,  false },  -- KEEP even bluish-white with a bright yellow star
-      { nil, 9471911754066691691ULL,  false },  -- KEEP completely dark with one small blue star
+      { nil, 5022463494542550306ULL,  false },
+      { nil, 5012768293123392491ULL,  false },
+      { nil, 1777258448479734603ULL,  false },
+      { nil, 9770135211012317023ULL,  false },
+      { nil, 13415752391947803947ULL, false },
+      { nil, 18346913580697132292ULL, false },
+      { nil, 8788869510796381519ULL,  false },
+      { nil, 8668067427585514558ULL,  false },
+      { nil, 3806448947569663889ULL,  false },
+      { nil, 2509601882259751919ULL,  false },
+      { nil, 12145308173506787001ULL, false },
+      { nil, 7450823138892184048ULL,  false }
     }
   }
 }
-
-
 
 
 --** MAIN CODE **--
@@ -67,10 +64,8 @@ function LTheoryRedux:onInit ()
   Audio.Init()
   Audio.Set3DSettings(0.0, 10, 2);
 
-  if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
-
   -- Music courtesy of MesoTroniK
-  newSound = Sound.Load(Config.paths.soundAmbiance .. Config.audio.backLoop1, true, false)
+  newSound = Sound.Load(Config.paths.soundAmbiance .. "LTR_Parallax_Universe_loop.ogg", true, false)
   if Config.audio.bSoundOn then
     Sound.SetVolume(newSound, Config.audio.soundMax)
   else
@@ -157,7 +152,7 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Engage autopilot if we're in flight mode
-  if Input.GetPressed(Bindings.AutoNav) and menuMode == 2 then
+  if Input.GetPressed(Bindings.MoveTo) and menuMode == 2 then
     if playerShip ~= nil then
       local target = playerShip:getTarget()
       if target == nil then target = self.focus end
@@ -175,7 +170,7 @@ function LTheoryRedux:onUpdate (dt)
 
   -- Disengage autopilot (require a 1-second delay, otherwise keypress turns autopilot on then off instantly)
   if Config.game.playerMoving then
-    if Input.GetPressed(Bindings.AutoNav) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
+    if Input.GetPressed(Bindings.MoveTo) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
       Config.game.playerMoving = false
     end
   end
@@ -340,7 +335,7 @@ function LTheoryRedux:createStarSystem ()
       end
 
       -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
-      self.system:addExtraFactories(self.system, Config.gen.nPlanets, self.tradeAI)
+      self.system:addExtraFactories(self.system, planet, self.tradeAI)
 
       -- Add the player's ship
       newShip = self.system:spawnShip(Config.game.humanPlayer)

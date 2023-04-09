@@ -32,25 +32,16 @@ function HUD:controlThrust (e)
   -- TODO: Should this really be here in HUD.lua?
   if not e:hasThrustController() then return end
   local c = e:getThrustController()
-
-  -- Create a small (square) dead zone in the center of the aiming reticle
-  -- TODO: make dead zone circular and a sloping cutoff instead of sharp
-  local yaw   = ShipBindings.Yaw:get()
-  if abs(yaw) < 0.004 then yaw = 0 end
-  local pitch = ShipBindings.Pitch:get() -- make negative if ShipBindings.Pitch is not :invert()
-  if abs(pitch) < 0.008 then pitch = 0 end
-
   c:setThrust(
     ShipBindings.ThrustZ:get(),
     ShipBindings.ThrustX:get(),
     0,
-    yaw,
-    pitch,
+    ShipBindings.Yaw:get(),
+   -ShipBindings.Pitch:get(),
     ShipBindings.Roll:get(),
     ShipBindings.Boost:get())
   self.aimX = c.yaw
   self.aimY = c.pitch
---printf("yaw = %f, pitch = %f", c.yaw, c.pitch)
 end
 
 function HUD:controlTurrets (e)
@@ -126,22 +117,19 @@ function HUD:drawTargets (a)
             by2 = by2 - 40
 
             -- Draw rounded box corners
+            --local a = a * (1.0 - exp(-0.5 * max(0.0, max(bsx, bsy) - 2.0)))
             if target:hasAttackable() and target:isAttackable() then
-              -- Innermost box shows trackable object's disposition to player
-              --     (red = enemy, blue = neutral, green = friendly)
               UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c)
               UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c)
               UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c)
               UI.DrawEx.Wedge(bx2, by2, 4, 4, 0.875, 0.2, c)
             end
             if playerTarget == target then
-              -- Middle box indicates lockable target
               UI.DrawEx.Wedge(bx2, by1, 12, 12, 0.125, 0.3, cLock)
               UI.DrawEx.Wedge(bx1, by1, 12, 12, 0.375, 0.3, cLock)
               UI.DrawEx.Wedge(bx1, by2, 12, 12, 0.625, 0.3, cLock)
               UI.DrawEx.Wedge(bx2, by2, 12, 12, 0.875, 0.3, cLock)
             elseif self.target == target then
-              -- Outermost box indicates locked target
               UI.DrawEx.Wedge(bx2, by1, 8, 8, 0.125, 0.2, cTarget)
               UI.DrawEx.Wedge(bx1, by1, 8, 8, 0.375, 0.2, cTarget)
               UI.DrawEx.Wedge(bx1, by2, 8, 8, 0.625, 0.2, cTarget)
@@ -381,7 +369,7 @@ function HUD:drawTargetHealth (a)
       local targetRadius = target:getRadius()
       local targetRadiusAdj = targetRadius
 
-      if target:getType() == Config:getObjectTypeByName("object_types", "Ship") then
+      if target:getType() == Config:getObjectTypeByName("object_types", "Ship")    then
         targetRadiusAdj = 5.9
         if target.usesBoost then
           targetName = targetName .. " [Ace]"
@@ -484,30 +472,29 @@ function HUD:drawDockPrompt (a)
 end
 
 function HUD:onInput (state)
-  if not Config.game.gamePaused then
-    local camera = self.gameView.camera
-    camera:push()
-    camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
-    --camera:modYaw(0.005 * CameraBindings.Yaw:get())     -- only works when cameraOrbit is the current camera
-    --camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
+  local camera = self.gameView.camera
+  camera:push()
+  camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
+  --camera:modYaw(0.005 * CameraBindings.Yaw:get())     -- only works when cameraOrbit is the current camera
+  --camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
-    local e = self.player:getControlling()
-    if not e:isDestroyed() then
-      self:controlThrust(e)
-      self:controlTurrets(e)
-      self:controlTargetLock(e)
-    end
-    camera:pop()
+  local e = self.player:getControlling()
+  if not e:isDestroyed() then
+    self:controlThrust(e)
+    self:controlTurrets(e)
+    self:controlTargetLock(e)
+  end
 
-    if self.dockable then
+  camera:pop()
+
+  if self.dockable then
 --printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()),
 --                                 self.dockable:getName(), self.dockable:isDockable())
-      if self.dockable:isDockable() and not self.dockable:isBanned(e) then
-        if ShipBindings.Dock:get() > 0 then
-          -- TODO: migrate this action outside the HUD
-          e:pushAction(Actions.DockAt(self.dockable))
-          self.dockable = nil
-        end
+    if self.dockable:isDockable() and not self.dockable:isBanned(e) then
+      if not Config.game.gamePaused and ShipBindings.Dock:get() > 0 then
+        -- TODO: migrate this action outside the HUD
+        e:pushAction(Actions.DockAt(self.dockable))
+        self.dockable = nil
       end
     end
   end
@@ -533,6 +520,7 @@ function HUD:onUpdate (state)
       else
         dockingAllowed = false
         if not self.dockable:isDestroyed() then
+--        if not self.dockable:isDestroyed() and self.dockable:isHostileTo(self.player:getControlling()) then
           alphaT = 1
         else
           alphaT = 0
@@ -551,15 +539,14 @@ function HUD:getDockable (self)
   self.dockable = nil
   for i = 1, #self.dockables.tracked do
     local dockable = self.dockables.tracked[i]
-    if Config:getObjectInfo("object_types", dockable:getType()) ~= "Planet" then -- player's ship can't dock at planets
-      local dPos = dockable:getPos()
-      local dRad = dockable:getRadius()
-      local dist = pPos:distance(dPos) - pRad - dRad
-      if dist < Config.game.dockRange then
-        -- return the Entity instance of the first dockable object found (might not be closest if several are within range)
-        dockableObj = dockable
-        break
-      end
+
+    local dPos = dockable:getPos()
+    local dRad = dockable:getRadius()
+    local dist = pPos:distance(dPos) - pRad - dRad
+    if dist < Config.game.dockRange then
+      -- return the Entity instance of the first dockable object found (might not be closest if several are within range)
+      dockableObj = dockable
+      break
     end
   end
 
@@ -567,17 +554,19 @@ function HUD:getDockable (self)
 end
 
 function HUD:onDraw (focus, active)
-  local playerShip = self.player:getControlling()
-  if playerShip:isAlive() then
-    if Config.ui.HUDdisplayed then
-      Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetHealth') self:drawTargetHealth(self.enabled) Profiler.End()
-    end
+  if not Config.game.gamePaused then
+    local playerShip = self.player:getControlling()
+    if playerShip:isAlive() then
+      if Config.ui.HUDdisplayed then
+        Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
+        Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
+        Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()
+        Profiler.Begin('HUD.DrawTargetHealth') self:drawTargetHealth(self.enabled) Profiler.End()
+      end
 
-    Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
-    Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawReticle') self:drawReticle   (self.enabled) Profiler.End()
+      Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+    end
   end
 end
 

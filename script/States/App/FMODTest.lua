@@ -4,8 +4,8 @@ local Bindings = require('States.ApplicationBindings')
 local FMODTest = require('States.Application')
 
 local Music = {
-  MainTheme = './res/sound/system/audio/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade',
-  AltTheme  = './res/sound/system/audio/LTR_Parallax_Universe_loop'
+  MainTheme = './res/sound/system/ambiance/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade',
+  AltTheme = './res/sound/system/ambiance/LTR_Parallax_Universe_loop'
 }
 
 local SFX = {

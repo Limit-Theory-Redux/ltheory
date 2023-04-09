@@ -18,24 +18,10 @@ Config.audio = {
   bSoundOn  = false,
   soundMin  = 0,
   soundMax  = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
-
-  backLoop1      = "LTR_Parallax_Universe_loop.ogg",
-  backLoop2      = "LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg",
-  backLoop3      = "LTR_Explortation_Doodle.mp3",
-
-  pulseFireName      = "",
-  pulseFire          = nil,
-  pulseHitName       = "",
-  pulseHit           = nil,
-  explodeShipName    = "",
-  explodeShip        = nil,
-  explodeStationName = "",
-  explodeStation     = nil,
 }
 
 Config.paths = {
-  soundAmbiance = "./res/sound/system/audio/",
-  soundEffects  = "./res/sound/system/audio/",
+  soundAmbiance = "./res/sound/system/ambiance/",
 }
 
 Config.debug = {
@@ -326,25 +312,24 @@ function Config.getGameMode()
   return Config.game.gameMode
 end
 
--- Static object type names and data
 Config.objectInfo = {
   {
     ID = "object_types",
     name = "Object Types",
     elems = {
       -- NOTE: If you change these, you must also change autonavRanges!
-      { 1, "Unknown",     ""},
-      { 2, "Reserved",    ""},
+      { 1, "Unknown", ""},
+      { 2, "Reserved", ""},
       { 3, "Star Sector", ""},
       { 4, "Star System", ""},
-      { 5, "Zone",        "zone_subtypes"},
-      { 6, "Star",        "star_subtypes"},
-      { 7, "Planet",      "planet_subtypes"},
-      { 8, "Asteroid",    "asteroid_subtypes"},
-      { 9, "Jumpgate",    "jumpgate_subtypes"},
-      {10, "Station",     "station_subtypes"},
-      {11, "Ship",        "ship_subtypes"},
-      {12, "Colony",      "colony_subtypes"},
+      { 5, "Zone", "zone_subtypes"},
+      { 6, "Star", "star_subtypes"},
+      { 7, "Planet", "planet_subtypes"},
+      { 8, "Asteroid", "asteroid_subtypes"},
+      { 9, "Jumpgate", "jumpgate_subtypes"},
+      {10, "Station", "station_subtypes"},
+      {11, "Ship", "ship_subtypes"},
+      {12, "Colony", "colony_subtypes"},
     }
   },
   {
