@@ -92,10 +92,10 @@ end
 function Transport:onUpdateActive (e, dt)
   if not Config.game.gamePaused then
     Profiler.Begin('Actions.Transport.onUpdateActive')
-    if not e.jobState then e.jobState = Config.Enums.JobStatesTransport.None end
+    if not e.jobState then e.jobState = Enums.JobStateTransport.None end
     e.jobState = e.jobState + 1
 
-    if e.jobState == Config.Enums.JobStatesTransport.DockingAtSrc then
+    if e.jobState == Enums.JobStateTransport.DockingAtSrc then
       local capacity = e:getInventoryFree()
       local capCount = math.floor(capacity / self.item:getMass())
       local count, profit = self.src:getTrader():computeTrade(self.item, capCount, self.dst:getTrader(), e)
@@ -117,7 +117,7 @@ printf("[TRANSPORT OFFER FAIL ***] No trade of 0 %s from %s -> %s", self.item:ge
         e:popAction()
         e.jobState = nil
       end
-    elseif e.jobState == Config.Enums.JobStatesTransport.BuyingItems then
+    elseif e.jobState == Enums.JobStateTransport.BuyingItems then
       if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) then
 printf("[TRANSPORT 2] %s offers to buy %d units of %s from Trader %s", e:getName(), e.count, self.item:getName(), self.src:getName())
         local bought = 0
@@ -139,12 +139,12 @@ printf("[TRANSPORT 2] *** Source station %s no longer exists for %s item purchas
         e:popAction()
         e.jobState = nil
       end
-    elseif e.jobState == Config.Enums.JobStatesTransport.UndockingFromSrc then
+    elseif e.jobState == Enums.JobStateTransport.UndockingFromSrc then
       if e:isShipDocked() then
 printf("[TRANSPORT 3] %s undocking from Trader %s", e:getName(), self.src:getName())
         e:pushAction(Actions.Undock())
       end
-    elseif e.jobState == Config.Enums.JobStatesTransport.DockingAtDst then
+    elseif e.jobState == Enums.JobStateTransport.DockingAtDst then
 printf("[TRANSPORT 4] %s to move to %s", e:getName(), self.dst:getName())
       if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
         e:pushAction(Actions.DockAt(self.dst))
@@ -154,7 +154,7 @@ printf("[TRANSPORT 4] *** Destination station %s no longer exists for %s DockAt;
         e:popAction()
         e.jobState = nil
       end
-    elseif e.jobState == Config.Enums.JobStatesTransport.SellingItems then
+    elseif e.jobState == Enums.JobStateTransport.SellingItems then
       if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
 printf("[TRANSPORT 5] %s offers to sell %d units of %s to Trader %s", e:getName(), e.count, self.item:getName(), self.dst:getName())
         local sold = 0
@@ -168,11 +168,11 @@ printf("[TRANSPORT 5] *** Destination station %s no longer exists for %s item sa
         e:popAction()
         e.jobState = nil
       end
-    elseif e.jobState == Config.Enums.JobStatesTransport.UndockingFromDst then
+    elseif e.jobState == Enums.JobStateTransport.UndockingFromDst then
       if e:isShipDocked() then
         e:pushAction(Actions.Undock())
       end
-    elseif e.jobState == Config.Enums.JobStatesTransport.JobFinished then
+    elseif e.jobState == Enums.JobStateTransport.JobFinished then
       e:popAction()
       e.jobState = nil
     end

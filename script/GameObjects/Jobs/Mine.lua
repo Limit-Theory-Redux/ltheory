@@ -114,10 +114,10 @@ end
 function Mine:onUpdateActive (e, dt)
   if not Config.game.gamePaused then
     Profiler.Begin('Actions.Mine.onUpdateActive')
-    if not e.jobState then e.jobState = Config.Enums.JobStatesMine.None end
+    if not e.jobState then e.jobState = Enums.JobStateMine.None end
     e.jobState = e.jobState + 1
 
-    if e.jobState == Config.Enums.JobStatesMine.MovingToAsteroid then
+    if e.jobState == Enums.JobStateMine.MovingToAsteroid then
       local item = self.item
       local capacity = e:getInventoryFree()
       local ccount = math.floor(capacity / item:getMass())
@@ -145,10 +145,10 @@ self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(), sel
 itemBidVol, profit, dt)
         e:pushAction(Actions.MoveTo(self.src, 150)) -- TODO: convert static arrival range to dynamic based on target scale
       end
-    elseif e.jobState == Config.Enums.JobStatesMine.MiningAsteroid then
+    elseif e.jobState == Enums.JobStateMine.MiningAsteroid then
       local miningTimePerItem = 5 -- TODO: create a miningTime() function based on item's rarity
       e:pushAction(Actions.MineAt(self.src, self.dst, miningTimePerItem))
-    elseif e.jobState == Config.Enums.JobStatesMine.DockingAtDst then
+    elseif e.jobState == Enums.JobStateMine.DockingAtDst then
       if e:getItemCount(self.item) == 0 then
 printf("[MINE 3] *** NO SALE *** %s was unable to mine any units of %s for Trader %s, ending MINE action",
 e:getName(), self.item:getName(), self.dst:getName())
@@ -164,7 +164,7 @@ printf("[MINE 3] *** Destination station %s no longer exists for %s DockAt; term
           e.jobState = nil
         end
       end
-    elseif e.jobState == Config.Enums.JobStatesMine.SellingItems then
+    elseif e.jobState == Enums.JobStateMine.SellingItems then
       if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
         local item = self.item
 --printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
@@ -180,11 +180,11 @@ printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; t
         e:popAction()
         e.jobState = nil
       end
-    elseif e.jobState == Config.Enums.JobStatesMine.UndockingFromDst then
+    elseif e.jobState == Enums.JobStateMine.UndockingFromDst then
       if e:isShipDocked() then
         e:pushAction(Actions.Undock())
       end
-    elseif e.jobState == Config.Enums.JobStatesMine.JobFinished then
+    elseif e.jobState == Enums.JobStateMine.JobFinished then
       -- TODO : This is just a quick hack to force AI to re-evaluate job
       --        decisions. In reality, AI should 'pre-empt' the job, which
       --        should otherwise loop indefinitely by default
