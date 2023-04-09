@@ -38,7 +38,15 @@ function Entity:damage (amount, source)
       self:deleteLight(self)
     end
 
-printf("%s destroyed by %s!", self:getName(), source:getName())
+local thisShipName      = self:getName()
+local attackingShipName = source:getName()
+if self.usesBoost then
+  thisShipName = thisShipName .. " [Ace]"
+end
+if source.usesBoost then
+  attackingShipName = attackingShipName .. " [Ace]"
+end
+printf("%s destroyed by %s!", thisShipName, attackingShipName)
 
     -- Remove destroyed ship from system's list of active ships
     for i, ship in ipairs(Config.game.currentSystem.ships) do

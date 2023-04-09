@@ -6,8 +6,8 @@ Config.render.vsync = false
 
 Config.audio.bSoundOn = false
 
-Config.gen.nFields    =   5
-Config.gen.nAsteroids = 100
+Config.gen.nFields    =   8
+Config.gen.nAsteroids = 150
 Config.gen.nPlanets   =   1
 Config.gen.nStations  =   0
 

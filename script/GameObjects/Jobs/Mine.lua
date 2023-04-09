@@ -114,17 +114,17 @@ end
 function Mine:onUpdateActive (e, dt)
   if not Config.game.gamePaused then
     Profiler.Begin('Actions.Mine.onUpdateActive')
-    if not e.jobState then e.jobState = 0 end
+    if not e.jobState then e.jobState = Enums.JobStateMine.None end
     e.jobState = e.jobState + 1
 
-    if e.jobState == 1 then
+    if e.jobState == Enums.JobStateMine.MovingToAsteroid then
       local item = self.item
       local capacity = e:getInventoryFree()
       local ccount = math.floor(capacity / item:getMass())
       local itemBidVol = self.dst:getTrader():getBidVolumeForAsset(item, e)
 
 if ccount == 0 or itemBidVol == 0 then
-printf("*** MINE FAIL *** [e:%s (%s)] %d x %s from %s (travel: %d) -> %s (travel: %d), %d bid (dt = %f)",
+printf("*** MINE FAIL 1 *** [e:%s (%s)] %d x %s from %s (travel: %d) -> %s (travel: %d), %d bid (dt = %f)",
 e:getName(), e:getOwner():getName(), ccount, item:getName(),
 self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(), self:getTravelTime(e, self.src, self.dst),
 itemBidVol, dt)
@@ -139,18 +139,18 @@ end
         self.jcount = mcount
 
         local profit = self.dst:getTrader():getSellToPriceForAsset(item, self.jcount, e)
-printf("[MINE] [e:%s (%s)] %d x %s from %s (travel: %d) -> %s (travel: %d), %d bid, expect %d profit (dt = %f)",
+printf("[MINE 1] [e:%s (%s)] %d x %s from %s (travel: %d) -> %s (travel: %d), %d bid, expect %d profit (dt = %f)",
 e:getName(), e:getOwner():getName(), self.jcount, item:getName(),
 self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(), self:getTravelTime(e, self.src, self.dst),
 itemBidVol, profit, dt)
         e:pushAction(Actions.MoveTo(self.src, 150)) -- TODO: convert static arrival range to dynamic based on target scale
       end
-    elseif e.jobState == 2 then
+    elseif e.jobState == Enums.JobStateMine.MiningAsteroid then
       local miningTimePerItem = 5 -- TODO: create a miningTime() function based on item's rarity
       e:pushAction(Actions.MineAt(self.src, self.dst, miningTimePerItem))
-    elseif e.jobState == 3 then
+    elseif e.jobState == Enums.JobStateMine.DockingAtDst then
       if e:getItemCount(self.item) == 0 then
-printf("[MINE] *** NO SALE *** %s was unable to mine any units of %s for Trader %s, ending MINE action",
+printf("[MINE 3] *** NO SALE *** %s was unable to mine any units of %s for Trader %s, ending MINE action",
 e:getName(), self.item:getName(), self.dst:getName())
         e:popAction()
         e.jobState = nil
@@ -159,32 +159,32 @@ e:getName(), self.item:getName(), self.dst:getName())
           e:pushAction(Actions.DockAt(self.dst))
         else
           -- Destination station no longer exists, so terminate this entire job
-printf("[TRANSPORT] *** Destination station %s no longer exists for %s DockAt; terminating mining job", self.dst:getName(), e:getName())
+printf("[MINE 3] *** Destination station %s no longer exists for %s DockAt; terminating mining job", self.dst:getName(), e:getName())
           e:popAction()
           e.jobState = nil
         end
       end
-    elseif e.jobState == 4 then
+    elseif e.jobState == Enums.JobStateMine.SellingItems then
       if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
         local item = self.item
---printf("[MINE] %s offers to sell %d units of %s to Trader %s",
+--printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
 --e:getName(), e:getItemCount(item), item:getName(), self.dst:getName())
         local sold = 0
         while e:getItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
           sold = sold + 1
         end
-printf("[MINE] %s sold %d units of %s to Trader %s", e:getName(), sold, item:getName(), self.dst:getName())
+printf("[MINE 4] %s sold %d units of %s to Trader %s", e:getName(), sold, item:getName(), self.dst:getName())
       else
         -- Destination station no longer exists, so terminate this entire job
-printf("[TRANSPORT] *** Destination station %s no longer exists for %s item sale; terminating mining job", self.dst:getName(), e:getName())
+printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job", self.dst:getName(), e:getName())
         e:popAction()
         e.jobState = nil
       end
-    elseif e.jobState == 5 then
+    elseif e.jobState == Enums.JobStateMine.UndockingFromDst then
       if e:isShipDocked() then
         e:pushAction(Actions.Undock())
       end
-    elseif e.jobState == 6 then
+    elseif e.jobState == Enums.JobStateMine.JobFinished then
       -- TODO : This is just a quick hack to force AI to re-evaluate job
       --        decisions. In reality, AI should 'pre-empt' the job, which
       --        should otherwise loop indefinitely by default
