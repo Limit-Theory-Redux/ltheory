@@ -67,7 +67,6 @@ function LTheoryRedux:onInit ()
   Audio.Init()
   Audio.Set3DSettings(0.0, 10, 2);
 
---  Config.audio.pulseFire = Sound.Load(Config.paths.soundEffects .. Config.audio.pulseFireName, true, false)
   if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
 
   -- Music courtesy of MesoTroniK

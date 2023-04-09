@@ -23,13 +23,13 @@ Config.audio = {
   backLoop2      = "LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg",
   backLoop3      = "LTR_Explortation_Doodle.mp3",
 
-  pulseFireName      = "LaunchMissile.mp3",
+  pulseFireName      = "",
   pulseFire          = nil,
   pulseHitName       = "",
   pulseHit           = nil,
-  explodeShipName    = "ExplosionShip.mp3",
+  explodeShipName    = "",
   explodeShip        = nil,
-  explodeStationName = "ExplosionStation.mp3",
+  explodeStationName = "",
   explodeStation     = nil,
 }
 
