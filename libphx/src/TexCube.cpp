@@ -19,9 +19,7 @@
 #include "PhxString.h"
 #include "TexCube.h"
 #include "TexFormat.h"
-
-extern uchar* Tex2D_LoadRaw(cstr path, int* sx, int* sy, int* components);
-extern bool Tex2D_Save_Png(cstr path, int sx, int sy, int components, uchar* data);
+#include "Tex2D.h"
 
 struct Face {
   CubeFace face;
