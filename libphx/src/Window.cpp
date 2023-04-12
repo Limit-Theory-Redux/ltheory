@@ -82,7 +82,7 @@ void Window_SetVsync (Window*, bool vsync) {
   SDL_GL_SetSwapInterval(vsync ? 1 : 0);
 }
 
-void Window_SetCursor(Window* self, cstr name,int hotx, int hoty) {
+void Window_SetCursor(Window* self, cstr name, int hotx, int hoty) {
   //self->cursor = SDL_CreateSystemCursor(SDL_SystemCursor::SDL_SYSTEM_CURSOR_CROSSHAIR);
 
   SDL_FreeCursor(self->cursor);   // Can take NULL
@@ -92,8 +92,8 @@ void Window_SetCursor(Window* self, cstr name,int hotx, int hoty) {
   int width, height, components;
   uchar* data = Tex2D_LoadRaw(path, &width, &height, &components);
 
-	SDL_PixelFormatEnum format = (components == 3) ? SDL_PIXELFORMAT_RGB24 : SDL_PIXELFORMAT_RGBA32;
-	SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormatFrom(data, width, height, components * 8, width * components, format);
+  SDL_PixelFormatEnum format = (components == 3) ? SDL_PIXELFORMAT_RGB24 : SDL_PIXELFORMAT_RGBA32;
+  SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormatFrom(data, width, height, components * 8, width * components, format);
   if (!surface)
     Fatal("Failed to create custom cursor surface for window");
 
