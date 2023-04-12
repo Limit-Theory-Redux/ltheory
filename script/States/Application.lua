@@ -42,6 +42,7 @@ function Application:run ()
 
   self.exit = false
   self.window:setVsync(Config.render.vsync)
+  self.window:setCursor('cursor/Simple_Cursor', 0, 0)
 
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 

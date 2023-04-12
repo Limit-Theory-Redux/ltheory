@@ -17,6 +17,7 @@ do -- C Definitions
     void    Window_SetSize          (Window*, int, int);
     void    Window_SetTitle         (Window*, cstr);
     void    Window_SetVsync         (Window*, bool);
+    void    Window_SetCursor        (Window*, cstr name, int hotx, int hoty);
     void    Window_ToggleFullscreen (Window*);
     void    Window_Hide             (Window*);
     void    Window_Show             (Window*);
@@ -37,6 +38,7 @@ do -- Global Symbol Table
     SetSize          = libphx.Window_SetSize,
     SetTitle         = libphx.Window_SetTitle,
     SetVsync         = libphx.Window_SetVsync,
+    SetCursor        = libphx.Window_SetCursor,
     ToggleFullscreen = libphx.Window_ToggleFullscreen,
     Hide             = libphx.Window_Hide,
     Show             = libphx.Window_Show,
@@ -62,6 +64,7 @@ do -- Metatype for class instances
       setSize          = libphx.Window_SetSize,
       setTitle         = libphx.Window_SetTitle,
       setVsync         = libphx.Window_SetVsync,
+      setCursor        = libphx.Window_SetCursor,
       toggleFullscreen = libphx.Window_ToggleFullscreen,
       hide             = libphx.Window_Hide,
       show             = libphx.Window_Show,
