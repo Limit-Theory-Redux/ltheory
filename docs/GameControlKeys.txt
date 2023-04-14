@@ -1,4 +1,4 @@
-`      -- switch between graphics monitor/control panel and game (not quite working)
+`      -- [backquote] enable flight mode overlay panels (currently switches to Debug panel by default)
 Space  -- pause and unpause the game (flight mode)
 Tab    -- toggle star system tactical map on/off
 Enter  -- toggle audio on/off

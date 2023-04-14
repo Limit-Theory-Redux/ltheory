@@ -8,6 +8,7 @@ local Actions = requireAll('GameObjects.Actions')
 local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
+local InitFiles = require('Systems.Files.InitFiles')
 
 local LTheoryRedux = require('States.Application')
 
@@ -52,16 +53,13 @@ local guiElements = {
 
 --** MAIN CODE **--
 function LTheoryRedux:onInit ()
+  --* Value initializations *--
   self.logo = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
 
   DebugControl.ltheory = self
 
-  self.player = Entities.Player(Config.game.humanPlayerName)
-  Config.game.humanPlayer = self.player
-  self:generate()
-
-  --* Value initializations *--
-
+  -- Read user-defined values and update game variables
+  InitFiles:readUserInits()
 
   --* Audio initializations *--
   Audio.Init()
@@ -77,14 +75,27 @@ function LTheoryRedux:onInit ()
     Sound.SetVolume(newSound, Config.audio.soundMin)
   end
   Sound.Play(newSound)
+
+  --* Game initializations *--
+  self.window:setSize(Config.render.startingHorz, Config.render.startingVert)
+  Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
+  if Config.render.fullscreen then
+    self.window:toggleFullscreen()
+  end
+
+  self.player = Entities.Player(Config.game.humanPlayerName)
+  Config.game.humanPlayer = self.player
+  self:generate()
 end
 
 function LTheoryRedux:toggleSound ()
   if Config.audio.bSoundOn then
     Sound.SetVolume(newSound, Config.audio.soundMin)
+    Sound.Pause(newSound)
     Config.audio.bSoundOn = false
   else
     Sound.SetVolume(newSound, Config.audio.soundMax)
+    Sound.FadeIn(newSound, 2.0)
     Config.audio.bSoundOn = true
   end
 end
@@ -100,6 +111,7 @@ function LTheoryRedux:onDraw ()
       self.canvas:remove(self.gameView)
       self.canvas:add(smap)
       bSMapAdded = true
+      Input.SetMouseVisible(true)
     end
   else
     if smap ~= nil then
@@ -107,6 +119,7 @@ function LTheoryRedux:onDraw ()
       self.canvas:add(self.gameView)
       bSMapAdded = false
       smap = nil
+      Input.SetMouseVisible(false)
     end
   end
 
@@ -131,9 +144,10 @@ function LTheoryRedux:onUpdate (dt)
     menuMode = 1 -- show Main Menu
   end
 
-  -- Add basic Game Control menu
+  -- Manage game control screens
   if menuMode ~= 0 and Input.GetPressed(Bindings.Escape) then
     bBackgroundMode = false
+    Input.SetMouseVisible(true)
     if Config.getGameMode() == 1 then
       menuMode = 1 -- show Main Menu
     else
@@ -187,26 +201,26 @@ function LTheoryRedux:onUpdate (dt)
     Config.render.pulseLights    = not Config.render.pulseLights
   end
 
-  -- Canvas overlays
+  -- Decide which game controls screens (if any) to display on top of the canvas
   HmGui.Begin(self.resX, self.resY)
-    if menuMode == 0 then
-      LTheoryRedux:showGameLogo()
-    elseif menuMode == 1 then
-      if not bBackgroundMode then
-        if bSeedDialogDisplayed then
-          LTheoryRedux:showSeedDialog()
-        else
-          LTheoryRedux:showMainMenu()
-        end
-      end
-    elseif menuMode == 2 then
-      if Config.game.flightModeButInactive then
-        Config.game.gamePaused = true
-        LTheoryRedux:showFlightDialog()
-      elseif bSeedDialogDisplayed then
+  if menuMode == 0 then
+    LTheoryRedux:showGameLogo()
+  elseif menuMode == 1 then
+    if not bBackgroundMode then
+      if bSeedDialogDisplayed then
         LTheoryRedux:showSeedDialog()
+      else
+        LTheoryRedux:showMainMenu()
       end
     end
+  elseif menuMode == 2 then
+    if Config.game.flightModeButInactive then
+      Config.game.gamePaused = true
+      LTheoryRedux:showFlightDialog()
+    elseif bSeedDialogDisplayed then
+      LTheoryRedux:showSeedDialog()
+    end
+  end
   HmGui.End()
 
   -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
@@ -520,6 +534,7 @@ function LTheoryRedux:showFlightDialogInner ()
         LTheoryRedux:freezeTurrets()
         Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
+        Input.SetMouseVisible(false)
       end
     end
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
@@ -529,6 +544,7 @@ function LTheoryRedux:showFlightDialogInner ()
         LTheoryRedux:freezeTurrets()
         Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
+        Input.SetMouseVisible(false)
       end
     end
     HmGui.SetSpacing(8)
@@ -544,6 +560,7 @@ function LTheoryRedux:showFlightDialogInner ()
       LTheoryRedux:freezeTurrets()
       Config.game.flightModeButInactive = false
       Config.game.gamePaused = false
+      Input.SetMouseVisible(false)
     end
     HmGui.SetSpacing(8)
     if HmGui.Button("Exit to Main Menu") then
@@ -608,6 +625,9 @@ function LTheoryRedux:showSeedDialogInner ()
         menuMode = Config.getGameMode()
         LTheoryRedux:freezeTurrets()
         Config.game.gamePaused = false
+        if menuMode == 2 then
+          Input.SetMouseVisible(false)
+        end
       end
       HmGui.SetSpacing(16)
       if HmGui.Button("Random Seed") then
@@ -621,6 +641,7 @@ function LTheoryRedux:showSeedDialogInner ()
         menuMode = 2
         Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
+        Input.SetMouseVisible(false)
       end
       HmGui.SetSpacing(16)
       if HmGui.Button("Use Seed") then
@@ -633,6 +654,7 @@ function LTheoryRedux:showSeedDialogInner ()
         menuMode = 2
         Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
+        Input.SetMouseVisible(false)
       end
       HmGui.PopStyle(2)
     HmGui.EndGroup()
@@ -644,6 +666,9 @@ end
 function LTheoryRedux:exitGame ()
   -- Shut down game and exit
   Sound.SetVolume(newSound, 0.0)
+
+  -- Write player-specific game variables to preserve them across gameplay sessions
+  InitFiles:writeUserInits(self.window)
 
   LTheoryRedux:quit()
 end

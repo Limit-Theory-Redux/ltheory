@@ -1,31 +1,56 @@
 local Bindings = require('Systems.Controls.Bindings.DebugBindings')
+local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 
 local DebugControl = {}
 DebugControl.__index = DebugControl
 setmetatable(DebugControl, UI.Panel)
 
-DebugControl.name      = 'DebugControl'
+DebugControl.name = 'DebugControl'
 DebugControl.focusable = true
 DebugControl.ltheory   = nil
 DebugControl:setPadUniform(8)
 
+local mFocus = nil
+
 function DebugControl:onEnable ()
-  self.gameView:setOrbit(true)
-  self.gameView.camera:warp()
+  local pCamera = self.gameView.camera
+  local camera = self.gameView.camera
+
+  self.gameView:setOrbit(false)
+
+  camera:warp()
+  camera:lerpFrom(pCamera.pos, pCamera.rot)
+
+  if not self.debugWindow:isEnabled() then
+    self.debugWindow:setEnabled(true)
+  end
 end
 
 function DebugControl:onDisable ()
+  if not self.debugWindow:isEnabled() then
+    self.debugWindow:setEnabled(true)
+  end
 end
 
 function DebugControl:onInput (state)
   local camera = self.gameView.camera
   camera:push()
 
-  if Input.GetPressed(Bindings.ToggleDebugWindow) then
-    self.debugWindow:toggleEnabled()
+  if Bindings.ToggleDebugWindow and Input.GetReleased(Bindings.ToggleDebugWindow) then
+    if not self.debugWindow:isEnabled() then
+      self.debugWindow:setEnabled(true)
+      if state.modalFocus then
+        mFocus = state.modalFocus
+        state.modalFocus:cancel()
+      end
+    else
+        state.modalFocus = mFocus
+      self.debugWindow:setEnabled(false)
+        state.modalFocus = mFocus
+    end
   end
 
-  if Input.GetPressed(Bindings.InspectWidget) then
+  if Bindings.InspectWidget and Input.GetPressed(Bindings.InspectWidget) then
     if state.focus then
       self:createWidgetInspector(state.focus)
     end
@@ -37,7 +62,7 @@ end
 function DebugControl:onDraw (focus, active)
   if false then -- Underlay
     local a = UI.DrawEx.GetAlpha()
-    Draw.Color(0.1, 0.1, 0.1, a * 0.25)
+    Draw.Color(0.1, 0.1, 0.1, a)
     Draw.Rect(self.x, self.y, self.sx, self.sy)
     Draw.Color(1, 1, 1, 1)
   end
@@ -56,6 +81,7 @@ function DebugControl:onDraw (focus, active)
 end
 
 function DebugControl:onDrawIcon (iconButton, focus, active)
+  -- Draw Debug icon
   local borderColor = iconButton == active
                       and Config.ui.color.controlActive
                       or iconButton == focus
@@ -67,11 +93,10 @@ function DebugControl:onDrawIcon (iconButton, focus, active)
 
   local x, y, sx, sy = iconButton:getRectGlobal()
   UI.DrawEx.RectOutline(x, y, sx, sy, borderColor)
-
   UI.DrawEx.RectOutline(x + 16, y + 8, sx - 32, sy - 16, contentColor)
   for y = y + 8 + 4, y + sy - 8 - 4, 6 do
-    UI.DrawEx.Line(x + 16,      y, x + 10,      y, contentColor)
-    UI.DrawEx.Line(x + sx - 16, y, x + sx - 10, y, contentColor)
+    UI.DrawEx.Line(x + 16,      y, x + 10,      y, contentColor, false)
+    UI.DrawEx.Line(x + sx - 16, y, x + sx - 10, y, contentColor, false)
   end
 end
 

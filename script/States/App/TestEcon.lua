@@ -55,7 +55,7 @@ function TestEcon:onInit ()
   self.tradeShip:setOwner(self.tradeAI)
 
   -- Use repeat ship builds, fast movement, and hyperspeedup for economic testing
-  Config.ui.uniqueShips        = false
+  Config.gen.uniqueShips       = false
   Config.debug.instantJobs     = true
   Config.debug.timeAccelFactor = 100
 

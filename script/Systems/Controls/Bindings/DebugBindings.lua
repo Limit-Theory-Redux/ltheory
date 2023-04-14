@@ -1,7 +1,8 @@
 local self = {
-  InspectWidget     = Button.Keyboard.F1, --Button.Mouse.Middle
+  -- Disable separate Debug panel controls for now
+--  ToggleDebugWindow = Button.Keyboard.Backtick, --Button.Gamepad.Start
+--  InspectWidget     = Button.Keyboard.F1, --Button.Mouse.Middle
   RegenerateSystem  = Button.Keyboard.R,
-  ToggleDebugWindow = Button.Keyboard.Backtick, --Button.Gamepad.Start
 }
 
 return self

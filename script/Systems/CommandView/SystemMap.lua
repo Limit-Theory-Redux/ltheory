@@ -72,7 +72,7 @@ function SystemMap:onDraw (state)
             local ty = tp.z - dy
             tx = self.x + tx * Config.game.mapSystemZoom + hx
             ty = self.y + ty * Config.game.mapSystemZoom + hy
-            UI.DrawEx.Line(x, y, tx, ty, { r = 0.9, g = 0.8, b = 1.0, a = 1.0 })
+            UI.DrawEx.Line(x, y, tx, ty, { r = 0.9, g = 0.8, b = 1.0, a = 1.0 }, true)
           end
         else
           local entAction = e:getCurrentAction()
@@ -96,9 +96,9 @@ function SystemMap:onDraw (state)
               ftx = self.x + ftx * Config.game.mapSystemZoom + hx
               fty = self.y + fty * Config.game.mapSystemZoom + hy
               if string.find(entAction:getName(), "Attack") then
-                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 })
+                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, true)
               else
-                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 })
+                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, true)
               end
             end
           else
@@ -112,17 +112,17 @@ function SystemMap:onDraw (state)
 
       if e:hasFlows() and not e:isDestroyed() then
 --printf("Flow: %s", e:getName())
-        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale() * 10, { r = 0.1, g = 0.5, b = 1.0, a = 1.0 })
+        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale() * 10, { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
       end
 
       if e:hasYield() then
 --printf("Yield: %s", e:getName())
-        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 })
+        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 }, true)
       end
 
       if self.focus == e then
 --printf("Focus: %s", e:getName())
-        UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 })
+        UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 }, true)
       end
 
       -- Select the nearest object
@@ -142,7 +142,7 @@ function SystemMap:onDraw (state)
 --      Draw.PointSize(2.0)
 --      Draw.Color(1.0, 1.0, 1.0, 1)
 --      Draw.Point(x, y)
---      --UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 })
+--      --UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 0.8, g = 0.3, b = 0.8, a = 0.7 }, true)
     end
   end
   Draw.Color(1, 1, 1, 1)
@@ -267,7 +267,7 @@ function SystemMap:onInput (state)
     Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
   Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (0.2 * kPanSpeed / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
-  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(0.1 * kZoomSpeed * (
+  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * (
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
 end
 
@@ -275,6 +275,9 @@ function SystemMap.Create (system)
   local self = setmetatable(UI.Window('System Map', false), SystemMap)
   self:setStretch(1, 1)
   self.system = system
+
+  kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
+printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
 
   if Config.game.currentShip ~= nil then
     if Config.game.mapSystemPos == nil then

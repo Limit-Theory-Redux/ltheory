@@ -57,12 +57,6 @@ local self = {
     Control.GamepadButton(Button.Gamepad.A))
     :delta(),
 
-  Stabilize = Control.Or(
-    Control.Key(Button.Keyboard.C),
-    Control.MouseButton(Button.Mouse.X1),
-    Control.GamepadButton(Button.Gamepad.Guide))
-    :delta(),
-
   SquadAttackTarget = Control.GamepadButton(Button.Gamepad.Up):delta(),
   SquadScramble     = Control.GamepadButton(Button.Gamepad.Down):delta(),
 }

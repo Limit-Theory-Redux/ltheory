@@ -41,8 +41,16 @@ function Application:run ()
     self:getWindowMode())
 
   self.exit = false
+
   self.window:setVsync(Config.render.vsync)
+
+  -- When the function to get an environment-agnostic path for storing/loading
+  --     game files becomes available, use it here to set that path value
+--  Config.paths.files = SDL_GetPrefPath(Config.org, Config.app)
+
+  -- Set the default game control cursor
   self.window:setCursor('cursor/Simple_Cursor', 0, 0)
+--  self.window:setCursor('cursor/cursor1-small', 1, 1)
 
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -79,6 +87,10 @@ function Application:run ()
       if size.x ~= self.resX or size.y ~= self.resY then
         self.resX = size.x
         self.resY = size.y
+        if not Config.render.fullscreen then
+          Config.render.resXnew = self.resX
+          Config.render.resYnew = self.resY
+        end
         self:onResize(self.resX, self.resY)
       end
       Profiler.End()
@@ -110,6 +122,7 @@ function Application:run ()
 
       if Input.GetPressed(Bindings.ToggleFullscreen) then
         self.window:toggleFullscreen()
+        Config.render.fullscreen = not Config.render.fullscreen
       end
 
       if Input.GetPressed(Bindings.Reload) then
@@ -174,6 +187,29 @@ function Application:run ()
       Profiler.End()
     end
 
+    if Config.getGameMode() ~= 1 then
+      UI.DrawEx.TextAdditive(
+        'NovaRound',
+        "EXPERIMENTAL BUILD - NOT FINAL!",
+        20,
+        0, 0, self.resX, self.resY,
+        1, 1, 1, 1,
+        0.50, 0.07
+      )
+
+      if Config.game.gamePaused then
+        UI.DrawEx.TextAdditive(
+          'NovaRound',
+          "[PAUSED]",
+          24,
+          0, 0, self.resX, self.resY,
+          1, 1, 1, 1,
+          0.5, 0.99
+        )
+      end
+    end
+
+    -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
     if doScreenshot then
       ScreenCap()
       if self.prevSS then
@@ -204,28 +240,6 @@ function Application:run ()
           y = y - 12
         end
         BlendMode.Pop()
-      end
-    end
-
-    if Config.getGameMode() ~= 1 then
-      UI.DrawEx.TextAdditive(
-        'NovaRound',
-        "EXPERIMENTAL BUILD - NOT FINAL!",
-        20,
-        0, 0, self.resX, self.resY,
-        1, 1, 1, 1,
-        0.50, 0.01
-      )
-
-      if Config.game.gamePaused then
-        UI.DrawEx.TextAdditive(
-          'NovaRound',
-          "[PAUSED]",
-          24,
-          0, 0, self.resX, self.resY,
-          1, 1, 1, 1,
-          0.5, 0.99
-        )
       end
     end
 

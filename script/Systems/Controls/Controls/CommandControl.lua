@@ -73,6 +73,8 @@ function CommandControl:onEnable ()
   end
   self.camera:setTarget(nil)
   self.camera:setRelative(false)
+
+  self.gameView:setOrbit(false)
   self.camera:warp()
   self.camera:lerpFrom(pCamera.pos, pCamera.rot)
 end
@@ -467,6 +469,7 @@ function CommandControl:onDraw (focus, active)
 end
 
 function CommandControl:onDrawIcon (iconButton, focus, active)
+  -- Draw Command Control icon
   local borderColor = iconButton == active
                       and Config.ui.color.controlActive
                       or iconButton == focus
@@ -478,7 +481,6 @@ function CommandControl:onDrawIcon (iconButton, focus, active)
 
   local x, y, sx, sy = iconButton:getRectGlobal()
   UI.DrawEx.RectOutline(x, y, sx, sy, borderColor)
-
   local xSize = 4
   UI.DrawEx.Cross(x + sx/2,      y + xSize + 6,      xSize, contentColor)
   UI.DrawEx.Cross(x + sx/2 +  8, y + xSize + 6 + 14, xSize, contentColor)
