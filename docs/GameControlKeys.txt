@@ -1,7 +1,13 @@
 `      -- [backquote] enable flight mode overlay panels (currently switches to Debug panel by default)
 Space  -- pause and unpause the game (flight mode)
 Tab    -- toggle star system tactical map on/off
-Enter  -- toggle audio on/off
+Return -- Activate the overly mode for the icon currently focused on
+F1     -- [TBD] Activate Flight Mode
+F2     -- [TBD] Activate Debug Mode
+F3     -- [TBD] Activate Fleet Command Mode
+F4     -- [TBD] Activate Background Mode
+F5     -- [TBD] Activate Dock Mode
+F8     -- toggle audio on/off
 F10    -- toggle profiler on, then toggle off and display stats
 F11    -- toggle between fullscreen and windowed
 F12    -- take a screenshot (*.png) and save it to ./screenshot folder

@@ -136,7 +136,8 @@ Config.game = {
   gameMode = 0, -- used by LTheoryRedux: 0 = undefined (splash screen), 1 = Startup Mode (Main Menu), 2 = Flight Mode
   flightModeButInactive = false, -- flag for being in Flight Mode but unable to fly (as when player ship is destroyed)
 
-  gamePaused = false,
+  gamePaused  = false,
+  panelActive = false, -- indicates whether MasterControl panel is enabled or not
 
   humanPlayer         = nil,
   humanPlayerName     = "[Human Player Name]",

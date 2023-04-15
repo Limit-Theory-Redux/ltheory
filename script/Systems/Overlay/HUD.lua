@@ -300,17 +300,18 @@ function HUD:drawReticle (a)
     end
 
     -- Flight mode cursor
-    -- TODO: Remove or replace once the game cursor can be replaced
-    local c = Config.ui.color.ctrlCursor
---    local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
-    local x = cx + 0.5 * self.sx * self.aimX
-    local y = cy - 0.5 * self.sy * self.aimY
-    local csize = 16
-    UI.DrawEx.Ring(x, y, csize, c, false)
-    UI.DrawEx.Line(x - csize, y, x - 2, y, c, true)
-    UI.DrawEx.Line(x, y - csize, x, y - 2, c, true)
-    UI.DrawEx.Line(x + csize, y, x + 2, y, c, true)
-    UI.DrawEx.Line(x, y + csize, x, y + 2, c, true)
+    if not Config.game.panelActive then
+      local c = Config.ui.color.ctrlCursor
+--      local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
+      local x = cx + 0.5 * self.sx * self.aimX
+      local y = cy - 0.5 * self.sy * self.aimY
+      local csize = 16
+      UI.DrawEx.Ring(x, y, csize, c, false)
+      UI.DrawEx.Line(x - csize, y, x - 2, y, c, true)
+      UI.DrawEx.Line(x, y - csize, x, y - 2, c, true)
+      UI.DrawEx.Line(x + csize, y, x + 2, y, c, true)
+      UI.DrawEx.Line(x, y + csize, x, y + 2, c, true)
+    end
   end
 end
 
@@ -518,7 +519,7 @@ function HUD:drawDockPrompt (a)
 end
 
 function HUD:onInput (state)
-  if not Config.game.gamePaused then
+  if not Config.game.gamePaused and not Config.game.panelActive then
     local camera = self.gameView.camera
     camera:push()
     camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))

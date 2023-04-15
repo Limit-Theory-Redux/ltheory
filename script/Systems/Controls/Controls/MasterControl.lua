@@ -65,7 +65,7 @@ local ControlSets = {
     container  = nil,
     controls   = List(
       {
-        name       = "Dock",
+        name       = "Undock",
         ctor       = DockControl,
         panel      = nil,
         iconButton = nil,
@@ -76,37 +76,26 @@ local ControlSets = {
 
 function MasterControl:onInput (state)
   if Config.getGameMode() == 2 and Bindings.TogglePanel:get() > 0 then
+    if not Config.game.gamePaused then
 --print("----------------------")
---printf("Panel mode toggled")
-    self.panel:toggleEnabled()
-    if self.panel:isEnabled() and self.activeControlDef then
-      local state = self:getState()
---printf("Panel enabled: activeControlDef = %s", self.activeControlDef.name)
-      if state then
-        Input.SetMouseVisible(true) -- TODO: Replace with switch to Flight mode cursor
+      self.panel:toggleEnabled()
+      if self.panel:isEnabled() then
+--printf("Panel enabled")
+        Config.game.panelActive = true -- TODO: find where MasterControl handle is exposed and use mc:isEnabled()
+        Input.SetMouseVisible(true)
+      else
+--printf("Panel disabled")
+        Config.game.panelActive = false
+        -- Switch back to active Flight Mode with HUD control
         if self.activeControlSet.predicate(self) then
-          Config.ui.defaultControl = "Debug" -- enable debug mode
+          Config.ui.defaultControl = "Ship" -- enable flight mode
           for i = 1, #self.activeControlSet.controls do
             local control = self.activeControlSet.controls[i]
-            --if Bindings.Controls[i]:get() > 0 then -- TODO: correct the crash when this test is enabled
             if control.name == Config.ui.defaultControl then
               self:activateControl(control)
+              Input.SetMouseVisible(false)
+              break
             end
-          end
-        end
-        state:setFocus(self.activeControlDef.iconButton)
-      end
-    else
---printf("Panel disabled")
-      -- This is where we need to switch back to HUD control
-      if self.activeControlSet.predicate(self) then
-        Config.ui.defaultControl = "Ship" -- enable flight mode
-        for i = 1, #self.activeControlSet.controls do
-          local control = self.activeControlSet.controls[i]
-          if control.name == Config.ui.defaultControl then
-            self:activateControl(control)
-            Input.SetMouseVisible(false) -- TODO: Replace with switch to Flight mode cursor
-            break
           end
         end
       end
@@ -142,8 +131,16 @@ function MasterControl:onUpdate (state)
 end
 
 function MasterControl:activateControl (controlDef)
-  if controlDef == self.activeControlDef then return end
+  if controlDef == self.activeControlDef then
+    if controlDef.name == "Ship" then
+      self.panel:disable()
+      Config.game.panelActive = false
+      Input.SetMouseVisible(false)
+    end
+    return
+  end
 
+  -- Disable previously active control
   if self.activeControlDef then
     self.activeControlDef.panel:disable()
   end
@@ -152,7 +149,10 @@ function MasterControl:activateControl (controlDef)
 
   if self.activeControlDef then
 --printf("MasterControl:activateControl(): self.activeControlDef = %s", self.activeControlDef.name)
+    Config.ui.defaultControl = self.activeControlDef.name
     if self.activeControlDef.name == "Ship" then
+      self.panel:disable()
+      Config.game.panelActive = false
       Input.SetMouseVisible(false)
       printf("*** Switching to Flight mode")
     elseif self.activeControlDef.name == "Background" then
@@ -161,11 +161,14 @@ function MasterControl:activateControl (controlDef)
       printf("*** Switching to Debug mode")
     elseif self.activeControlDef.name == "Command" then
       printf("*** Switching to Fleet Command mode")
-    elseif self.activeControlDef.name == "Dock" then
+    elseif self.activeControlDef.name == "Undock" then
+      self.panel:enable()
+      Config.game.panelActive = true
       Input.SetMouseVisible(true)
       printf("*** Docking (manual)!")
     end
 
+    -- Enable new active control
     self.activeControlDef.panel:enable()
 
     local state = self:getState()
@@ -217,11 +220,13 @@ function MasterControl.Create (gameView, player)
       local controlDef = set.controls[j]
 
       controlDef.iconButton = UI.IconButton(controlDef.panel.icon, function (button)
-        self:activateControl(controlDef)
-        if controlDef.name == "Dock" then
-          printf("*** Undocking (icon)!")
-          Config.game.currentShip:getParent():removeDocked(Config.game.currentShip)
-          Input.SetMouseVisible(false)
+        if not Config.game.gamePaused then
+          self:activateControl(controlDef)
+          if controlDef.name == "Undock" then
+            printf("*** Undocking (icon)!")
+            Config.game.currentShip:getParent():removeDocked(Config.game.currentShip)
+            Input.SetMouseVisible(false)
+          end
         end
       end):setSize(barHeight, barHeight):setAlignX(0.5)
       controlDef.iconButton.name = format('Control Button %i', i)

@@ -311,6 +311,12 @@ function LTheoryRedux:createStarSystem ()
       local station = self.system:spawnStation(Config.game.humanPlayer, nil)
     else
       -- Flight Mode
+
+      -- Reset variables used between star systems
+      Config.game.gamePaused   = false
+      Config.game.panelActive  = false
+      Config.game.playerMoving = false
+
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, a visible pilotable ship, and possibly some NPC ships
       local afield = nil
@@ -531,10 +537,14 @@ function LTheoryRedux:showFlightDialogInner ()
     HmGui.PushFont(Cache.Font('Exo2Bold', 26))
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
       if HmGui.Button("Return to Game") then
+--printf("panelActive = %s, defaultControl = %s", Config.game.panelActive, Config.ui.defaultControl)
         LTheoryRedux:freezeTurrets()
         Config.game.flightModeButInactive = false
         Config.game.gamePaused = false
-        Input.SetMouseVisible(false)
+        Config.game.panelActive = false
+        if Config.ui.defaultControl == "Ship" then
+          Input.SetMouseVisible(false)
+        end
       end
     end
     if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then

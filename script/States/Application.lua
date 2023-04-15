@@ -49,8 +49,8 @@ function Application:run ()
 --  Config.paths.files = SDL_GetPrefPath(Config.org, Config.app)
 
   -- Set the default game control cursor
-  self.window:setCursor('cursor/Simple_Cursor', 0, 0)
---  self.window:setCursor('cursor/cursor1-small', 1, 1)
+--  self.window:setCursor('cursor/Simple_Cursor', 0, 0)
+  self.window:setCursor('cursor/cursor1-small', 1, 1)
 
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -103,7 +103,8 @@ function Application:run ()
       Profiler.SetValue('gcmem', GC.GetMemory())
       Profiler.Begin('App.onInput')
 
-       -- TODO : Remove this once bindings are fixed
+      -- Immediately quit game without saving
+      -- TODO : Remove this once bindings are fixed
       if Input.GetKeyboardCtrl() and Input.GetPressed(Button.Keyboard.W) then self:quit() end
       if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end
@@ -116,7 +117,7 @@ function Application:run ()
         doScreenshot = true
         if Settings.exists('render.superSample') then
           self.prevSS = Settings.get('render.superSample')
-          Settings.set('render.superSample', 2)
+--          Settings.set('render.superSample', 2)
         end
       end
 
@@ -133,11 +134,15 @@ function Application:run ()
         Profiler.End()
       end
 
-      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() ~= 1 then
+      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() == 2 then
         if Config.game.gamePaused then
           Config.game.gamePaused = false
+          if not Config.game.panelActive then
+            Input.SetMouseVisible(false)
+          end
         else
           Config.game.gamePaused = true
+          Input.SetMouseVisible(true)
         end
       end
 
@@ -213,7 +218,7 @@ function Application:run ()
     if doScreenshot then
       ScreenCap()
       if self.prevSS then
-        Settings.set('render.superSample', self.prevSS)
+--        Settings.set('render.superSample', self.prevSS)
         self.prevSS = nil
       end
     end
