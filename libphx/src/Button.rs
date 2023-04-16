@@ -960,9 +960,7 @@ pub extern "C" fn Button_ToSDLMouseButton(button: Button) -> u8 {
 }
 
 #[no_mangle]
-pub extern "C" fn Button_FromSDLControllerAxis(
-    controllerAxis: SDL_GameControllerAxis,
-) -> Button {
+pub extern "C" fn Button_FromSDLControllerAxis(controllerAxis: SDL_GameControllerAxis) -> Button {
     match controllerAxis {
         SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTX => Button_Gamepad_LStickX,
         SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTY => Button_Gamepad_LStickY,

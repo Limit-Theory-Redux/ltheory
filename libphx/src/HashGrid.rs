@@ -1,5 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
+use crate::Hash;
 use crate::Hash::*;
 use crate::Math::Box3;
 use crate::Math::Vec3;
@@ -11,7 +12,7 @@ use libc;
 #[repr(C)]
 pub struct HashGrid {
     pub version: u64,
-    pub cells: *mut HashGridCell,
+    pub cells: Vec<HashGridCell>,
     pub elemPool: *mut MemPool,
     pub cellCount: u32,
     pub cellSize: f32,
@@ -35,24 +36,6 @@ pub struct HashGridElem {
     pub upper: [i32; 3],
 }
 
-#[inline]
-extern "C" fn Maxi(a: i32, b: i32) -> i32 {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-#[inline]
-extern "C" fn Mini(a: i32, b: i32) -> i32 {
-    if a < b {
-        a
-    } else {
-        b
-    }
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> *mut HashGrid {
     let mut logCount: u32 = 0;
@@ -61,9 +44,17 @@ pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> *
         logCount = logCount.wrapping_add(1);
     }
     cellCount = (1 << logCount) as u32;
+
     let this = MemNew!(HashGrid);
     (*this).version = 0;
-    (*this).cells = MemNewArrayZero!(HashGridCell, cellCount);
+    (*this).cells = Vec::new();
+    (*this).cells.resize(
+        cellCount as usize,
+        HashGridCell {
+            version: 0,
+            elems: Vec::new(),
+        },
+    );
     (*this).elemPool = MemPool_Create(
         std::mem::size_of::<HashGridElem>() as u32,
         (0x1000_usize).wrapping_div(std::mem::size_of::<HashGridElem>()) as u32,
@@ -72,23 +63,14 @@ pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> *
     (*this).cellSize = cellSize;
     (*this).mask = ((1 << logCount) - 1) as u32;
     (*this).results = Vec::new();
-    let mut i: u32 = 0;
-    while i < cellCount {
-        (*((*this).cells).offset(i as isize)).elems = Vec::new();
-        i = i.wrapping_add(1);
-    }
+
     this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Free(this: *mut HashGrid) {
-    let mut i: u32 = 0;
-    while i < (*this).cellCount {
-        ((*this).cells).offset(i as isize).drop_in_place();
-        i += 1;
-    }
+    (*this).cells.clear();
     MemPool_Free((*this).elemPool);
-    MemFree((*this).cells as *const _);
     MemDelete!(this);
 }
 
@@ -102,41 +84,38 @@ unsafe extern "C" fn HashGrid_GetCell(
     let mut p: [i32; 3] = [x, y, z];
     let hash: u64 = Hash_XX64(
         p.as_mut_ptr() as *const _,
-        std::mem::size_of::<[i32; 3]>() as libc::c_ulong as i32,
+        std::mem::size_of::<[i32; 3]>() as i32,
         0,
     );
-    ((*this).cells).offset((hash & (*this).mask as u64) as isize)
+    (*this)
+        .cells
+        .get_unchecked_mut((hash & (*this).mask as u64) as usize) as *mut _
 }
 
 unsafe extern "C" fn HashGrid_AddElem(this: *mut HashGrid, elem: *mut HashGridElem) {
     (*this).version += 1;
-    let mut x: i32 = (*elem).lower[0];
-    while x <= (*elem).upper[0] {
-        let mut y: i32 = (*elem).lower[1];
-        while y <= (*elem).upper[1] {
-            let mut z: i32 = (*elem).lower[2];
-            while z <= (*elem).upper[2] {
+    for x in (*elem).lower[0]..=(*elem).upper[0] {
+        for y in (*elem).lower[1]..=(*elem).upper[1] {
+            for z in (*elem).lower[2]..=(*elem).upper[2] {
                 let cell: *mut HashGridCell = HashGrid_GetCell(this, x, y, z);
+
+                /* If cell version is out-of-date, we need to insert. Otherwise, we have
+                 * already inserted into this cell (e.g., we have encountered a modulus
+                 * hash collision) and should not insert a duplicate. */
                 if (*cell).version != (*this).version {
                     (*cell).version = (*this).version;
                     (*cell).elems.push(elem);
                 }
-                z += 1;
             }
-            y += 1;
         }
-        x += 1;
     }
 }
 
 unsafe extern "C" fn HashGrid_RemoveElem(this: *mut HashGrid, elem: *mut HashGridElem) {
     (*this).version += 1;
-    let mut x: i32 = (*elem).lower[0];
-    while x <= (*elem).upper[0] {
-        let mut y: i32 = (*elem).lower[1];
-        while y <= (*elem).upper[1] {
-            let mut z: i32 = (*elem).lower[2];
-            while z <= (*elem).upper[2] {
+    for x in (*elem).lower[0]..=(*elem).upper[0] {
+        for y in (*elem).lower[1]..=(*elem).upper[1] {
+            for z in (*elem).lower[2]..=(*elem).upper[2] {
                 let cell: *mut HashGridCell = HashGrid_GetCell(this, x, y, z);
                 if (*cell).version != (*this).version {
                     (*cell).version = (*this).version;
@@ -144,17 +123,14 @@ unsafe extern "C" fn HashGrid_RemoveElem(this: *mut HashGrid, elem: *mut HashGri
                         (*cell).elems.swap_remove(index);
                     }
                 }
-                z += 1;
             }
-            y += 1;
         }
-        x += 1;
     }
 }
 
 #[inline]
-unsafe extern "C" fn HashGrid_ToLocal(this: *mut HashGrid, x: f32) -> i32 {
-    f64::floor((x / (*this).cellSize) as f64) as i32
+unsafe extern "C" fn HashGrid_ToLocal(this: *const HashGrid, x: f32) -> i32 {
+    f32::floor(x / (*this).cellSize) as i32
 }
 
 #[no_mangle]
@@ -178,11 +154,9 @@ pub unsafe extern "C" fn HashGrid_Add(
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_Clear(this: *mut HashGrid) {
     (*this).version = 0;
-    let mut i: u32 = 0;
-    while i < (*this).cellCount {
-        (*((*this).cells).offset(i as isize)).elems.clear();
-        (*((*this).cells).offset(i as isize)).version = 0;
-        i = i.wrapping_add(1);
+    for i in 0..(*this).cellCount {
+        (*this).cells[i as usize].elems.clear();
+        (*this).cells[i as usize].version = 0;
     }
     MemPool_Clear((*this).elemPool);
     (*this).results.clear();
@@ -206,11 +180,13 @@ pub unsafe extern "C" fn HashGrid_Update(
         HashGrid_ToLocal(this, (*box_0).lower.y),
         HashGrid_ToLocal(this, (*box_0).lower.z),
     ];
+
     let upper: [i32; 3] = [
         HashGrid_ToLocal(this, (*box_0).upper.x),
         HashGrid_ToLocal(this, (*box_0).upper.y),
         HashGrid_ToLocal(this, (*box_0).upper.z),
     ];
+
     if lower[0] == (*elem).lower[0]
         && upper[0] == (*elem).upper[0]
         && lower[1] == (*elem).lower[1]
@@ -221,66 +197,79 @@ pub unsafe extern "C" fn HashGrid_Update(
         Profiler_End();
         return;
     }
+
     let lowerUnion: [i32; 3] = [
-        Mini(lower[0], (*elem).lower[0]),
-        Mini(lower[1], (*elem).lower[1]),
-        Mini(lower[2], (*elem).lower[2]),
+        i32::min(lower[0], (*elem).lower[0]),
+        i32::min(lower[1], (*elem).lower[1]),
+        i32::min(lower[2], (*elem).lower[2]),
     ];
+
     let upperUnion: [i32; 3] = [
-        Maxi(upper[0], (*elem).upper[0]),
-        Maxi(upper[1], (*elem).upper[1]),
-        Maxi(upper[2], (*elem).upper[2]),
+        i32::max(upper[0], (*elem).upper[0]),
+        i32::max(upper[1], (*elem).upper[1]),
+        i32::max(upper[2], (*elem).upper[2]),
     ];
+
     (*this).version += 1;
     let vRemove: u64 = (*this).version;
     (*this).version += 1;
     let vAdd: u64 = (*this).version;
-    let mut x: i32 = lowerUnion[0];
-    while x <= upperUnion[0] {
-        let mut y: i32 = lowerUnion[1];
-        while y <= upperUnion[1] {
-            let mut z: i32 = lowerUnion[2];
-            while z <= upperUnion[2] {
+
+    for x in lowerUnion[0]..=upperUnion[0] {
+        for y in lowerUnion[1]..=upperUnion[1] {
+            for z in lowerUnion[2]..=upperUnion[2] {
                 let inPrev: bool = (*elem).lower[0] <= x
                     && (*elem).lower[1] <= y
                     && (*elem).lower[2] <= z
                     && x <= (*elem).upper[0]
                     && y <= (*elem).upper[1]
                     && z <= (*elem).upper[2];
+
                 let inCurr: bool = lower[0] <= x
                     && lower[1] <= y
                     && lower[2] <= z
                     && x <= upper[0]
                     && y <= upper[1]
                     && z <= upper[2];
-                if !(inPrev as i32 != 0 && inCurr as i32 != 0) {
-                    let cell: *mut HashGridCell = HashGrid_GetCell(this, x, y, z);
-                    if !((*cell).version == vAdd) {
-                        if !((*cell).version == vRemove && inPrev as i32 != 0) {
-                            if inPrev {
-                                if let Some(index) = (*cell).elems.iter().position(|c| *c == elem) {
-                                    (*cell).elems.swap_remove(index);
-                                }
-                                (*cell).version = vRemove;
-                            } else {
-                                if (*cell).version != vRemove {
-                                    if let Some(index) =
-                                        (*cell).elems.iter().position(|c| *c == elem)
-                                    {
-                                        (*cell).elems.swap_remove(index);
-                                    }
-                                }
-                                (*cell).elems.push(elem);
-                                (*cell).version = vAdd;
-                            }
-                        }
+
+                /* Early out: cell is part of both previous and new bounding box, no change
+                 * required. */
+                if inPrev as i32 != 0 && inCurr as i32 != 0 {
+                    continue;
+                }
+
+                let cell: *mut HashGridCell = HashGrid_GetCell(this, x, y, z);
+
+                /* Early out: cell has already had elem inserted, no update required. */
+                if (*cell).version == vAdd {
+                    continue;
+                }
+
+                /* Early out: cell has already had elem removed and this is not part of the
+                 * insertion frontier. */
+                if (*cell).version == vRemove && inPrev as i32 != 0 {
+                    continue;
+                }
+
+                /* inPrev but not inCurr -> remove elem and mark cell as having removed. */
+                if inPrev {
+                    if let Some(index) = (*cell).elems.iter().position(|c| *c == elem) {
+                        (*cell).elems.swap_remove(index);
+                    }
+                    (*cell).version = vRemove;
+                    continue;
+                }
+
+                /* Final case: insertion frontier. We must add the elem to this cell. */
+                if (*cell).version != vRemove {
+                    if let Some(index) = (*cell).elems.iter().position(|c| *c == elem) {
+                        (*cell).elems.swap_remove(index);
                     }
                 }
-                z += 1;
+                (*cell).elems.push(elem);
+                (*cell).version = vAdd;
             }
-            y += 1;
         }
-        x += 1;
     }
     (*elem).lower[0] = lower[0];
     (*elem).lower[1] = lower[1];
@@ -288,6 +277,7 @@ pub unsafe extern "C" fn HashGrid_Update(
     (*elem).upper[0] = upper[0];
     (*elem).upper[1] = upper[1];
     (*elem).upper[2] = upper[2];
+
     Profiler_End();
 }
 
@@ -300,58 +290,55 @@ pub unsafe extern "C" fn HashGrid_GetResults(this: *mut HashGrid) -> *mut *mut l
 pub unsafe extern "C" fn HashGrid_QueryBox(this: *mut HashGrid, box_0: *const Box3) -> i32 {
     (*this).results.clear();
     (*this).version += 1;
+
     let lower: [i32; 3] = [
         HashGrid_ToLocal(this, (*box_0).lower.x),
         HashGrid_ToLocal(this, (*box_0).lower.y),
         HashGrid_ToLocal(this, (*box_0).lower.z),
     ];
+
     let upper: [i32; 3] = [
         HashGrid_ToLocal(this, (*box_0).upper.x),
         HashGrid_ToLocal(this, (*box_0).upper.y),
         HashGrid_ToLocal(this, (*box_0).upper.z),
     ];
-    let mut x: i32 = lower[0];
-    while x <= upper[0] {
-        let mut y: i32 = lower[1];
-        while y <= upper[1] {
-            let mut z: i32 = lower[2];
-            while z <= upper[2] {
+
+    for x in lower[0]..=upper[0] {
+        for y in lower[1]..=upper[1] {
+            for z in lower[2]..=upper[2] {
                 let cell: *mut HashGridCell = HashGrid_GetCell(this, x, y, z);
                 if (*cell).version != (*this).version {
                     (*cell).version = (*this).version;
-                    let mut i: i32 = 0;
-                    while i < (*cell).elems.len() as i32 {
-                        let elem: *mut HashGridElem = (*cell).elems[i as usize];
-                        if (*elem).version != (*this).version {
-                            (*elem).version = (*this).version;
-                            (*this).results.push((*elem).object);
+
+                    for elem in (*cell).elems.iter() {
+                        if (**elem).version != (*this).version {
+                            (**elem).version = (*this).version;
+                            (*this).results.push((**elem).object);
                         }
-                        i += 1;
                     }
                 }
-                z += 1;
             }
-            y += 1;
         }
-        x += 1;
     }
+
     (*this).results.len() as i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HashGrid_QueryPoint(this: *mut HashGrid, p: *const Vec3) -> i32 {
+    /* Since a point query is restricted to a single cell, we don't need to use
+     * versioning here. */
     (*this).results.clear();
+
     let cell: *mut HashGridCell = HashGrid_GetCell(
         this,
         HashGrid_ToLocal(this, (*p).x),
         HashGrid_ToLocal(this, (*p).y),
         HashGrid_ToLocal(this, (*p).z),
     );
-    let mut i: i32 = 0;
-    while i < (*cell).elems.len() as i32 {
-        let elem: *mut HashGridElem = (*cell).elems[i as usize];
-        (*this).results.push((*elem).object);
-        i += 1;
+
+    for elem in (*cell).elems.iter() {
+        (*this).results.push((**elem).object);
     }
     (*this).results.len() as i32
 }

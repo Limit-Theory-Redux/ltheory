@@ -4,10 +4,10 @@ use crate::Common::*;
 use crate::Device::*;
 use crate::Input::*;
 use crate::InputEvent::*;
+use crate::Lua::{Lua, LuaRef};
 use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::State::*;
-use crate::Lua::{Lua, LuaRef};
 use libc;
 
 #[derive(Copy, Clone)]

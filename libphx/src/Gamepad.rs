@@ -33,7 +33,7 @@ unsafe extern "C" fn Gamepad_UpdateState(this: *mut Gamepad) {
         (*this).axisLast[i] = (*this).axisState[i];
         (*this).axisState[i] = state;
     }
-    
+
     for i in (GamepadButton_BEGIN as usize)..=(GamepadButton_END as usize) {
         let state: bool = Gamepad_GetButton(this, std::mem::transmute(i as u32));
         if (*this).buttonState[i] as i32 != state as i32 {

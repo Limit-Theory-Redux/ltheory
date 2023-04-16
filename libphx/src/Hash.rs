@@ -104,7 +104,7 @@ pub unsafe extern "C" fn Hash_Murmur3(key: *const libc::c_void, len: i32) -> u32
 
     let nblocks: i32 = len / 4;
     let blocks: *const u32 = data.offset((nblocks * 4) as isize) as *const u32;
-    
+
     let mut i: i32 = -nblocks;
     while i != 0 {
         let mut k1: u32 = *blocks.offset(i as isize);
@@ -139,24 +139,25 @@ pub unsafe extern "C" fn Hash_Murmur3(key: *const libc::c_void, len: i32) -> u32
     h1 = fmix32(h1);
     h1
 }
-static mut PRIME64_1: u64 = 11400714785074694791;
 
-static mut PRIME64_2: u64 = 14029467366897019727;
+/* --- XXHASH64 --------------------------------------------------------------
+ *   https://github.com/Cyan4973/xxHash/blob/dev/xxhash.c
+ * -------------------------------------------------------------------------- */
 
-static mut PRIME64_3: u64 = 1609587929392839161;
+const PRIME64_1: u64 = 11400714785074694791;
+const PRIME64_2: u64 = 14029467366897019727;
+const PRIME64_3: u64 = 1609587929392839161;
+const PRIME64_4: u64 = 9650029242287828579;
+const PRIME64_5: u64 = 2870177450012600261;
 
-static mut PRIME64_4: u64 = 9650029242287828579;
-
-static mut PRIME64_5: u64 = 2870177450012600261;
-
-unsafe extern "C" fn XXH64_round(mut acc: u64, val: u64) -> u64 {
+fn XXH64_round(mut acc: u64, val: u64) -> u64 {
     acc = acc.wrapping_add(val.wrapping_mul(PRIME64_2));
     acc = acc << 31 | acc >> 64 - 31;
     acc = acc.wrapping_mul(PRIME64_1);
     acc
 }
 
-unsafe extern "C" fn XXH64_mergeRound(mut acc: u64, val: u64) -> u64 {
+fn XXH64_mergeRound(mut acc: u64, val: u64) -> u64 {
     acc ^= XXH64_round(0, val);
     acc = acc.wrapping_mul(PRIME64_1).wrapping_add(PRIME64_4);
     acc
@@ -167,12 +168,14 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
     let mut p: *const u8 = buf as *const u8;
     let end: *const u8 = p.offset(len as isize);
     let mut hash: u64 = 0;
+
     if len >= 32 {
         let limit: *const u8 = end.offset(-(32));
         let mut v1: u64 = seed.wrapping_add(PRIME64_1).wrapping_add(PRIME64_2);
         let mut v2: u64 = seed.wrapping_add(PRIME64_2);
         let mut v3: u64 = seed.wrapping_add(0);
         let mut v4: u64 = seed.wrapping_sub(PRIME64_1);
+
         loop {
             v1 = XXH64_round(v1, *(p as *const u64));
             p = p.offset(8);
@@ -182,7 +185,7 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
             p = p.offset(8);
             v4 = XXH64_round(v4, *(p as *const u64));
             p = p.offset(8);
-            if !(p <= limit) {
+            if p > limit {
                 break;
             }
         }
@@ -197,7 +200,9 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
     } else {
         hash = seed.wrapping_add(PRIME64_5);
     }
+
     hash = hash.wrapping_add(len as u64);
+
     while p.offset(8) <= end {
         let k1: u64 = XXH64_round(0, *(p as *const u64));
         hash ^= k1;
@@ -206,6 +211,7 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
             .wrapping_add(PRIME64_4);
         p = p.offset(8);
     }
+
     if p.offset(4) <= end {
         hash ^= (*(p as *mut u32) as u64).wrapping_mul(PRIME64_1);
         hash = (hash << 23 | hash >> 64 - 23)
@@ -213,11 +219,13 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
             .wrapping_add(PRIME64_3);
         p = p.offset(4);
     }
+
     while p < end {
         hash ^= (*p as u64).wrapping_mul(PRIME64_5);
         hash = (hash << 11 | hash >> 64 - 11_i32).wrapping_mul(PRIME64_1);
         p = p.offset(1);
     }
+
     hash ^= hash >> 33;
     hash = hash.wrapping_mul(PRIME64_2);
     hash ^= hash >> 29;

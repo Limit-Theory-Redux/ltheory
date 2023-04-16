@@ -1,32 +1,33 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
-use libc;
-pub type HatDir = i32;
+use sdl2_sys::*;
+
+pub type HatDir = u32;
 
 #[no_mangle]
-pub static HatDir_Centered: HatDir = 0;
+pub static HatDir_Centered: HatDir = SDL_HAT_CENTERED;
 
 #[no_mangle]
-pub static HatDir_Up: HatDir = 0x1;
+pub static HatDir_Up: HatDir = SDL_HAT_UP;
 
 #[no_mangle]
-pub static HatDir_Right: HatDir = 0x2;
+pub static HatDir_Right: HatDir = SDL_HAT_RIGHT;
 
 #[no_mangle]
-pub static HatDir_Down: HatDir = 0x4;
+pub static HatDir_Down: HatDir = SDL_HAT_DOWN;
 
 #[no_mangle]
-pub static HatDir_Left: HatDir = 0x8;
+pub static HatDir_Left: HatDir = SDL_HAT_LEFT;
 
 #[no_mangle]
-pub static HatDir_RightUp: HatDir = 0x2 | 0x1;
+pub static HatDir_RightUp: HatDir = SDL_HAT_RIGHTUP;
 
 #[no_mangle]
-pub static HatDir_RightDown: HatDir = 0x2 | 0x4;
+pub static HatDir_RightDown: HatDir = SDL_HAT_RIGHTDOWN;
 
 #[no_mangle]
-pub static HatDir_LeftUp: HatDir = 0x8 | 0x1;
+pub static HatDir_LeftUp: HatDir = SDL_HAT_LEFTUP;
 
 #[no_mangle]
-pub static HatDir_LeftDown: HatDir = 0x8 | 0x4;
+pub static HatDir_LeftDown: HatDir = SDL_HAT_LEFTDOWN;

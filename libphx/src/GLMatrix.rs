@@ -44,11 +44,11 @@ pub unsafe extern "C" fn GLMatrix_LookAt(eye: *const DVec3, at: *const DVec3, up
     let x = DVec3::cross(z, (*up).normalize()).normalize();
     let y = DVec3::cross(x, z);
 
-  /* TODO : Yet another sign flip. Sigh. */
+    /* TODO : Yet another sign flip. Sigh. */
     let mut m: [f64; 16] = [
         x.x, y.x, -z.x, 0.0, x.y, y.y, -z.y, 0.0, x.z, y.z, -z.z, 0.0, 0.0, 0.0, 0.0, 1.0,
     ];
-    
+
     gl::MultMatrixd(m.as_mut_ptr());
     gl::Translated(-(*eye).x, -(*eye).y, -(*eye).z);
 }

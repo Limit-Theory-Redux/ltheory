@@ -109,7 +109,7 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
         dy = dy.wrapping_add(1);
     }
 
-     /* Upload to texture. */ 
+    /* Upload to texture. */
     (*g).tex = Tex2D_Create((*g).sx, (*g).sy, TexFormat_RGBA8);
     Tex2D_SetData(
         (*g).tex,
@@ -120,7 +120,7 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
 
     MemFree(buffer as *const _);
 
-  /* Add to glyph cache. */
+    /* Add to glyph cache. */
     if codepoint < 256 {
         (*this).glyphsAscii[codepoint as usize] = g;
     } else {
@@ -364,6 +364,6 @@ pub unsafe extern "C" fn Font_GetSize2(
         text = text.offset(1);
         codepoint = *fresh8 as u32;
     }
-    
+
     Profiler_End();
 }
