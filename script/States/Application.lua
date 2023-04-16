@@ -49,8 +49,8 @@ function Application:run ()
 --  Config.paths.files = SDL_GetPrefPath(Config.org, Config.app)
 
   -- Set the default game control cursor
---  self.window:setCursor('cursor/Simple_Cursor', 0, 0)
-  self.window:setCursor('cursor/cursor1-small', 1, 1)
+  self.window:setCursor('cursor/Simple_Cursor', 0, 0)
+--  self.window:setCursor('cursor/cursor1-small', 1, 1)
 
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
