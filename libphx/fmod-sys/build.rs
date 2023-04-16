@@ -22,9 +22,18 @@ fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     // Download FMOD package from GitHub.
-    let fmod_path = out_path.join("fmod");
-    let bin_archive = download("https://github.com/Limit-Theory-Redux/ltheory/releases/download/v0.0.1-pre/fmod-2.02.08.zip");
-    zip_extract::extract(Cursor::new(bin_archive), fmod_path.as_path(), true).unwrap();
+    let fmod_package = "fmod-2.02.08";
+    let fmod_path = out_path.join(fmod_package);
+    if !fmod_path.is_dir() {
+        let bin_archive = download(
+            format!(
+                "https://github.com/Limit-Theory-Redux/ltheory/releases/download/v0.0.1-pre/{}.zip",
+                fmod_package
+            )
+            .as_str(),
+        );
+        zip_extract::extract(Cursor::new(bin_archive), fmod_path.as_path(), true).unwrap();
+    }
 
     // Link against it.
     println!(
