@@ -15,8 +15,8 @@ function BackgroundControl:controlThrust (e)
     0,
     0,
     0,
-    0.03,       --Flat: spin the invisible ship
-    -0.01,      --      ever so slightly
+    0.03,       -- spin the invisible ship
+    -0.01,      -- ever so slightly
     0,
     0)
   self.aimX = c.yaw
@@ -32,6 +32,24 @@ function BackgroundControl:onInput (state)
   camera:pop()
 end
 
+function BackgroundControl:onDrawIcon (iconButton, focus, active)
+  -- Draw Background Control icon
+  local borderColor = iconButton == active
+                      and Config.ui.color.controlActive
+                      or iconButton == focus
+                         and Config.ui.color.controlFocused
+                         or Config.ui.color.control
+  local contentColor = self:isEnabled()
+                       and Config.ui.color.controlFocused
+                       or Config.ui.color.control
+
+  local x, y, sx, sy = iconButton:getRectGlobal()
+  UI.DrawEx.RectOutline(x, y, sx, sy, borderColor)
+  UI.DrawEx.Ring(x + sx/2, y + 22, 15, contentColor, false)
+  UI.DrawEx.Ring(x + sx/2, y + 22, 10, contentColor, false)
+  UI.DrawEx.Ring(x + sx/2, y + 22,  5, contentColor, false)
+end
+
 function BackgroundControl.Create (gameView, player)
   local self = setmetatable({
     gameView        = gameView,
@@ -40,6 +58,10 @@ function BackgroundControl.Create (gameView, player)
 
     children  = List(),
   }, BackgroundControl)
+
+  self.icon:setOnDraw(function (ib, focus, active)
+    self:onDrawIcon(ib, focus, active)
+  end)
 
   return self
 end

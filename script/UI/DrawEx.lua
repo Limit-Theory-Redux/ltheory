@@ -4,7 +4,7 @@ local function padOffCenter (pad, x, y, sx, sy)
   return x - pad, y - pad, sx + 2 * pad, sy + 2 * pad
 end
 
-local function padAndCenter (pad, x, y ,sx, sy)
+local function padAndCenter (pad, x, y, sx, sy)
   return x - 0.5 * sx - pad, y - 0.5 * sy - pad, sx + 2 * pad, sy + 2 * pad
 end
 
@@ -25,8 +25,8 @@ function DrawEx.Arrow (p, n, color)
 end
 
 function DrawEx.Cross (x, y, r, color)
-  DrawEx.Line(x - r, y - r, x + r, y + r, color)
-  DrawEx.Line(x - r, y + r, x + r, y - r, color)
+  DrawEx.Line(x - r, y - r, x + r, y + r, color, false)
+  DrawEx.Line(x - r, y + r, x + r, y - r, color, false)
 end
 
 function DrawEx.GetAlpha ()
@@ -83,7 +83,9 @@ function DrawEx.Icon (icon, x, y, sx, sy, color)
   BlendMode.Pop()
 end
 
-function DrawEx.Line (x1, y1, x2, y2, color)
+function DrawEx.Line (x1, y1, x2, y2, color, fade)
+  local fadeval = 0
+  if fade then fadeval = 1 end -- insure we pass the correct Int to the shader (expects bool)
   local xMin = min(x1, x2) - padLine
   local yMin = min(y1, y2) - padLine
   local xMax = max(x1, x2) + padLine
@@ -99,6 +101,7 @@ function DrawEx.Line (x1, y1, x2, y2, color)
     Shader.SetFloat2('p1', x1, y1)
     Shader.SetFloat2('p2', x2, y2)
     Shader.SetFloat4('color', color.r, color.g, color.b, color.a * alpha)
+    Shader.SetInt('fade', fadeval)
     Draw.Rect(xMin, yMin, sx, sy)
   shader:stop()
   BlendMode.Pop()
@@ -180,13 +183,15 @@ function DrawEx.RectOutline (x, y, sx, sy, color)
   local p = 1.5
   local lx, rx = x, x + sx
   local ty, by = y, y + sy
-  DrawEx.Line(lx + p, ty,     rx - p, ty,     color)
-  DrawEx.Line(rx,     ty + p, rx,     by - p, color)
-  DrawEx.Line(rx - p, by,     lx + p, by,     color)
-  DrawEx.Line(lx,     by - p, lx,     ty + p, color)
+  DrawEx.Line(lx + p, ty,     rx - p, ty,     color, false)
+  DrawEx.Line(rx,     ty + p, rx,     by - p, color, false)
+  DrawEx.Line(rx - p, by,     lx + p, by,     color, false)
+  DrawEx.Line(lx,     by - p, lx,     ty + p, color, false)
 end
 
-function DrawEx.Ring (x, y, r, c)
+function DrawEx.Ring (x, y, r, c, glow)
+  local glowval = 0
+  if glow then glowval = 1 end -- insure we pass the correct Int to the shader (expects bool)
   local x, y, sx, sy = padAndCenter(padRing, x, y, r, r)
   local shader = Cache.Shader('ui', 'ui/ring')
   local alpha = alphaStack:last() or 1
@@ -195,6 +200,7 @@ function DrawEx.Ring (x, y, r, c)
     Shader.SetFloat('radius', r)
     Shader.SetFloat2('size', sx, sy)
     Shader.SetFloat4('color', c.r, c.g, c.b, c.a * alpha)
+    Shader.SetInt('glow', glowval)
     Draw.Rect(x, y, sx, sy)
   shader:stop()
   BlendMode.Pop()

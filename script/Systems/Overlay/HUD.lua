@@ -235,15 +235,19 @@ function HUD:drawLock (a)
   local center = Vec2f(self.sx / 2, self.sy / 2)
 
   do -- Direction indicator
-    -- TODO: flip direction of arrow when target is in the rear hemisphere relative to player's view (angle-off > 180)
     local r = 96
     local pos = target:getPos()
     local ndc = camera:worldToNDC(pos)
     local ndcMax = max(abs(ndc.x), abs(ndc.y))
-    if ndcMax > 1 or ndc.z <= 0 then ndc:idivs(ndcMax) end
+
+    -- NOTE: flip arrow direction arrow when target in rear hemisphere relative to player view
+    if ndc.z <= 0 then ndc:idivs(-ndcMax) end
+--    if ndcMax > 1 or ndc.z <= 0 then ndc:idivs(ndcMax) end
+
     local ss = camera:ndcToScreen(ndc)
     local dir = ss - center
     local dist = dir:length()
+
     if dist > 1 then
       dir:inormalize()
       ss = center + dir:scale(r)
@@ -271,7 +275,7 @@ function HUD:drawLock (a)
         local ndcMax = max(abs(ndc.x), abs(ndc.y))
         if ndcMax <= 1 and ndc.z > 0 then
           local ss = camera:ndcToScreen(ndc)
-          UI.DrawEx.Ring(ss.x, ss.y, 10, Color(1.0, 0.3, 0.3, a))
+          UI.DrawEx.Ring(ss.x, ss.y, 10, Color(1.0, 0.3, 0.3, a), true)
         end
       end
     end
@@ -282,7 +286,8 @@ function HUD:drawReticle (a)
   local cx, cy = self.sx / 2, self.sy / 2
   do -- Reticle
     do -- Central Crosshair
-      local c = Color(0.1, 0.5, 1.0, a)
+      local c = Config.ui.color.reticle
+      c.a = a
       local phase = 0.125
       local r1 = 24
       local r2 = 28
@@ -290,16 +295,22 @@ function HUD:drawReticle (a)
       for i = 0, n - 1 do
         local angle = -(Math.Pi2 + (i / n) * Math.Tau)
         local dx, dy = cos(angle), sin(angle)
-        UI.DrawEx.Line(cx + r1 * dx, cy + r1 * dy, cx + r2 * dx, cy + r2 * dy, c)
+        UI.DrawEx.Line(cx + r1 * dx, cy + r1 * dy, cx + r2 * dx, cy + r2 * dy, c, true)
       end
     end
 
-    if false then -- Aim (not terribly useful now, but preserved in case we can improve it)
-      local c = Color(0.1, 0.5, 1.0, a)
-      local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
+    -- Flight mode cursor
+    if not Config.game.panelActive then
+      local c = Config.ui.color.ctrlCursor
+--      local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
       local x = cx + 0.5 * self.sx * self.aimX
       local y = cy - 0.5 * self.sy * self.aimY
-      UI.DrawEx.Ring(x, y, 16, c)
+      local csize = 16
+      UI.DrawEx.Ring(x, y, csize, c, false)
+      UI.DrawEx.Line(x - csize, y, x - 2, y, c, true)
+      UI.DrawEx.Line(x, y - csize, x, y - 2, c, true)
+      UI.DrawEx.Line(x + csize, y, x + 2, y, c, true)
+      UI.DrawEx.Line(x, y + csize, x, y + 2, c, true)
     end
   end
 end
@@ -362,7 +373,7 @@ function HUD:drawPlayerHealth (a)
   )
 
   -- TEMP: Also draw the player ship's health bar under the central reticle
-  UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderBright)
+  UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderDim)
   UI.DrawEx.Rect(cx - 20, cy + 20, 40, 4, Config.ui.color.healthColor[playerHealthCI])
 
 end
@@ -373,6 +384,12 @@ function HUD:drawTargetHealth (a)
   if target and target:hasHealth() and not target:isDestroyed() then
     local cx, cy = self.sx / 2, self.sy / 2
     local x, y, sx, sy = self:getRectGlobal()
+    local targetRangeText = ""
+    if playerShip:getDistance(target) >= 1000 then
+      targetRangeText = format("Range: %d km", floor(playerShip:getDistance(target) / 1000 + 0.5))
+    else
+      targetRangeText = format("Range: %d m", floor(playerShip:getDistance(target) + 0.5))
+    end
     local targetName = target:getName()
     local targetHealthPct = target:getHealthPercent()
     if targetHealthPct > 0.0 then
@@ -391,6 +408,24 @@ function HUD:drawTargetHealth (a)
         targetRadiusAdj = 26
         targetName = "Station " .. target:getName()
       end
+
+      -- Draw range to target
+      UI.DrawEx.TextAdditive(
+        'NovaRound',
+        targetRangeText,
+        14,
+        sx - 208 + 1, sy - 290 + 1, 100, 12,
+        0, 0, 0, a,
+        0.5, 0.5
+      )
+      UI.DrawEx.TextAdditive(
+        'NovaRound',
+        targetRangeText,
+        14,
+        sx - 208, sy - 290, 100, 12,
+        1, 1, 1, a,
+        0.5, 0.5
+      )
 
       -- Draw text of target name
       UI.DrawEx.TextAdditive(
@@ -484,7 +519,7 @@ function HUD:drawDockPrompt (a)
 end
 
 function HUD:onInput (state)
-  if not Config.game.gamePaused then
+  if not Config.game.gamePaused and not Config.game.panelActive then
     local camera = self.gameView.camera
     camera:push()
     camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
@@ -582,6 +617,7 @@ function HUD:onDraw (focus, active)
 end
 
 function HUD:onDrawIcon (iconButton, focus, active)
+  -- Draw Flight Mode icon
   local borderColor = iconButton == active
                       and Config.ui.color.controlActive
                       or iconButton == focus
@@ -598,11 +634,11 @@ function HUD:onDrawIcon (iconButton, focus, active)
   local w1y, w1sx, w1sy = 10, 10, 8
   local w2y, w2sx, w2sy =  0,  5, 4
   local ty, by = y + 8, y + sy - 12
-  UI.DrawEx.Line(cx,     ty,       cx,        by,              contentColor)
-  UI.DrawEx.Line(cx + 2, ty + w1y, cx + w1sx, ty + w1y + w1sy, contentColor)
-  UI.DrawEx.Line(cx - 2, ty + w1y, cx - w1sx, ty + w1y + w1sy, contentColor)
-  UI.DrawEx.Line(cx + 2, by,       cx + w2sx, by + w2y + w2sy, contentColor)
-  UI.DrawEx.Line(cx - 2, by,       cx - w2sx, by + w2y + w2sy, contentColor)
+  UI.DrawEx.Line(cx,     ty,       cx,        by,              contentColor, false)
+  UI.DrawEx.Line(cx + 2, ty + w1y, cx + w1sx, ty + w1y + w1sy, contentColor, false)
+  UI.DrawEx.Line(cx - 2, ty + w1y, cx - w1sx, ty + w1y + w1sy, contentColor, false)
+  UI.DrawEx.Line(cx + 2, by,       cx + w2sx, by + w2y + w2sy, contentColor, false)
+  UI.DrawEx.Line(cx - 2, by,       cx - w2sx, by + w2y + w2sy, contentColor, false)
 end
 
 function HUD.Create (gameView, player)
@@ -628,8 +664,10 @@ function HUD.Create (gameView, player)
   self.icon:setOnDraw(function (ib, focus, active)
     self:onDrawIcon(ib, focus, active)
   end)
+
   self.targets:update()
   self.dockables:update()
+
   return self
 end
 

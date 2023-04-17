@@ -76,6 +76,8 @@ function LTheory:onInit ()
   self.canvas
     :add(self.gameView
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
+
+  Input.SetMouseVisible(false)
 end
 
 function LTheory:onInput ()

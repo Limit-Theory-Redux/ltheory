@@ -1,11 +1,16 @@
+Config.org = 'LTheoryRedux'
 Config.app = 'LTheoryRedux'
 
 Config.gameTitle   = "Limit Theory Redux"
 Config.gameVersion = "v0.008"
 
+Config.userInitFilename = "user.ini"
+
 Config.render = {
   startingHorz   = 1600, -- 1600 (default), or 2400 (high DPI)
   startingVert   =  900, --  900 (default), or 2048 (high DPI)
+  resXnew        = 1600,
+  resYnew        =  900,
   fullscreen     = false,
   vsync          = true,
   zNear          = 0.1, -- default: 0.1
@@ -34,6 +39,7 @@ Config.audio = {
 }
 
 Config.paths = {
+  files         = "./", -- base directory until environment-agnostic path is available
   soundAmbiance = "./res/sound/system/audio/",
   soundEffects  = "./res/sound/system/audio/",
 }
@@ -89,6 +95,7 @@ Config.gen = {
   nEconNPCs   = 0,  -- # of ships to be given Economic actions (managed by AI players)
   nEscortNPCs = 0,  -- # of ships to be given the Escort action
 
+  uniqueShips    = false,
   playerShipSize = 4,
   nThrusters     = 1,
   nTurrets       = 2,
@@ -129,7 +136,8 @@ Config.game = {
   gameMode = 0, -- used by LTheoryRedux: 0 = undefined (splash screen), 1 = Startup Mode (Main Menu), 2 = Flight Mode
   flightModeButInactive = false, -- flag for being in Flight Mode but unable to fly (as when player ship is destroyed)
 
-  gamePaused = false,
+  gamePaused  = false,
+  panelActive = false, -- indicates whether MasterControl panel is enabled or not
 
   humanPlayer         = nil,
   humanPlayerName     = "[Human Player Name]",
@@ -225,7 +233,6 @@ Config.ui = {
   showTrackers     = true,
   controlBarHeight = 48,
   HUDdisplayed     = true,
-  uniqueShips      = false,
 }
 
 Config.ui.color = {
@@ -235,20 +242,26 @@ Config.ui.color = {
   active            = Color(0.70, 0.00, 0.21, 1.0),
   background        = Color(0.15, 0.15, 0.15, 1.0),
   backgroundInvert  = Color(0.85, 0.85, 0.85, 1.0),
-  border            = Color(0.12, 0.12, 0.12, 1.0),
+  border            = Color(0.00, 0.40, 1.00, 0.3),
   fill              = Color(0.60, 0.60, 0.60, 1.0),
   textNormal        = Color(0.75, 0.75, 0.75, 1.0),
   textNormalFocused = Color(0.00, 0.00, 0.00, 1.0),
   textInvert        = Color(0.25, 0.25, 0.25, 1.0),
   textInvertFocused = Color(0.00, 0.00, 0.00, 1.0),
-  textTitle         = Color(0.60, 0.60, 0.60, 1.0),
-  debugRect         = Color(0.50, 1.00, 0.50, 0.05),
+  textTitle         = Color(0.80, 0.80, 0.80, 0.8),
+  debugRect         = Color(0.50, 1.00, 0.50, 0.1),
   selection         = Color(1.00, 0.50, 0.10, 1.0),
-  control           = Color(0.20, 0.60, 1.00, 0.3),
-  controlFocused    = Color(0.20, 1.00, 0.20, 0.4),
-  controlActive     = Color(0.14, 0.70, 0.14, 0.4),
+  control           = Color(0.20, 0.90, 1.00, 0.7),
+  controlFocused    = Color(0.20, 1.00, 0.20, 0.6),
+  controlActive     = Color(0.14, 0.70, 0.14, 0.7),
   hologram          = Color(0.30, 0.40, 1.00, 0.8),
   borderBright      = Color(1.00, 1.00, 1.00, 0.6),
+  borderDim         = Color(0.50, 0.50, 0.50, 0.4),
+  ctrlCursor        = Color(0.20, 0.50, 1.00, 0.7),
+  reticle           = Color(0.10, 0.30, 1.00, 0.6),
+  windowBackground  = Color(0.00, 0.40, 1.00, 0.2),
+  clientBackground  = Color(0.30, 0.30, 0.30, 0.0),
+
 
   healthColor = {
     --     R    G    B    A
@@ -316,9 +329,9 @@ function Config.setGameMode(gm)
   Config.game.gameMode = gm
 
   if Config.game.gameMode == 1 then
-    Config.ui.defaultControl = 'Background' -- enable game startup mode
+    Config.ui.defaultControl = "Background" -- enable game startup mode
   else
-    Config.ui.defaultControl = 'Ship' -- enable flight mode
+    Config.ui.defaultControl = "Ship" -- enable flight mode
   end
 end
 

@@ -11,8 +11,8 @@ void main() {
   float alpha = 1.0;
   alpha *= uv.x;
   alpha *= 1.0 - abs(dot(N, V));
-  alpha *= 1.0 - 0.1 * log(1.0 - noise(vec3(gl_FragCoord.xy, time)));
+  alpha *= 1.0 - 0.2 * log(1.0 - noise(vec3(gl_FragCoord.xy, time)));
   alpha *= 1.0 + 0.2 * sin(radians(180.0) * gl_FragCoord.y);
-  vec3 c = 2.0 * color.xyz;
+  vec3 c = 1.5 * color.xyz;
   gl_FragColor = alpha * color.w * vec4(c, 1.0);
 }

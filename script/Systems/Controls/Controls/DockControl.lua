@@ -23,7 +23,9 @@ end
 
 function DockControl:onInput (state)
   if not Config.game.gamePaused and ShipBindings.Undock:get() > 0 then
+    printf("*** Undocking (manual)!")
     self.player:getControlling():pushAction(Actions.Undock())
+    Input.SetMouseVisible(false)
   end
 end
 
@@ -41,6 +43,7 @@ function DockControl:onDraw (focus, active)
 end
 
 function DockControl:onDrawIcon (iconButton, focus, active)
+  -- Draw Dock Control icon
   local borderColor = iconButton == active
                       and Config.ui.color.controlActive
                       or iconButton == focus
@@ -52,10 +55,9 @@ function DockControl:onDrawIcon (iconButton, focus, active)
 
   local x, y, sx, sy = iconButton:getRectGlobal()
   UI.DrawEx.RectOutline(x, y, sx, sy, borderColor)
-
-  UI.DrawEx.Ring(x + sx/2, y + 10,      14, contentColor)
-  UI.DrawEx.Ring(x + sx/2, y + 10 + 12, 10, contentColor)
-  UI.DrawEx.Ring(x + sx/2, y + 10 + 20,  6, contentColor)
+  UI.DrawEx.Ring(x + sx/2, y + 10 +  8, 12, contentColor, false)
+  UI.DrawEx.Ring(x + sx/2, y + 10 + 14,  9, contentColor, false)
+  UI.DrawEx.Ring(x + sx/2, y + 10 + 20,  6, contentColor, false)
 end
 
 function DockControl.Create (gameView, player)
@@ -71,6 +73,7 @@ function DockControl.Create (gameView, player)
   self.icon:setOnDraw(function (ib, focus, active)
     self:onDrawIcon(ib, focus, active)
   end)
+
   return self
 end
 

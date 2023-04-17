@@ -65,11 +65,11 @@ end
 function Window:onDraw (focus, active)
    -- Full window background
   local x, y, sx, sy = self:getRectGlobal()
-  DrawEx.Panel(x, y, sx, sy, Color(0.2, 0.2, 0.2, 1.0), 1.0)
+  DrawEx.Panel(x, y, sx, sy, Config.ui.color.windowBackground, 0.8)
 
-  -- Client rect background
+  -- Client rect background (fully transparent for the moment)
   local px, py, psx, psy = self:getRectPadGlobal()
-  DrawEx.Panel(px, py, psx, psy, Color(0.3, 0.3, 0.3, 1.0), 0.25)
+  DrawEx.Panel(px, py, psx, psy, Config.ui.color.clientBackground, 0.0)
 
   -- Title
   local font  = Config.ui.font.title

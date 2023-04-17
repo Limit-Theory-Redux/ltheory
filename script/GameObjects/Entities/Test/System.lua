@@ -585,7 +585,7 @@ end
 
 function System:spawnShip (player)
   -- Spawn a new ship (with a new ship type)
-  if Config.ui.uniqueShips or not self.shipType then
+  if Config.gen.uniqueShips or not self.shipType then
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
   end
   local ship = self.shipType:instantiate()
