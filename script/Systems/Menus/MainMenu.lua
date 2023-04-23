@@ -26,50 +26,50 @@ local guiElements = {
 }
 
 function MainMenu:OnInit()
-	self.enabled = true
+    self.enabled = true
     self.currentMode = Enums.MenuMode.Splashscreen
     self.inBackgroundMode = false
     self.seedDialogDisplayed = false
-	self.dt = 0
-	self.lastActionDelta = 0
-	self.returnToSplashDelta = 0
-	printf("Initialize MainMenu")
+    self.dt = 0
+    self.lastActionDelta = 0
+    self.returnToSplashDelta = 0
+    printf("Initialize MainMenu")
 end
 
 function MainMenu:ActionRegistered()
-	self.lastActionDelta = self.dt
+    self.lastActionDelta = self.dt
 end
 
 function MainMenu:OnUpdate(dt)
-	if not self.dt or not dt then return end
+    if not self.dt or not dt then return end
 
-	self.dt = self.dt + dt
+    self.dt = self.dt + dt
 
-	if self.enabled and self.currentMode == Enums.MenuMode.MainMenu and not MainMenu.inBackgroundMode then
-		if self.lastActionDelta then
-			self.returnToSplashDelta = self.lastActionDelta + Config.timeToResetToSplashscreen
-		end
-
-		if self.returnToSplashDelta ~= 0 and self.dt >= self.returnToSplashDelta then
-			self:SetMenuMode(Enums.MenuMode.Splashscreen)
-			self.lastActionDelta = 0
-			self.returnToSplashDelta = 0
-		end
-
-		--printf("dt:".. self.dt)
-		--printf("lastAction: " .. self.lastActionDelta)
-		--printf("returnToSplashDelta: " .. self.returnToSplashDelta)
-		--printf(Config.timeToResetToSplashscreen)
-	else
-		self.lastActionDelta = 0
-		self.returnToSplashDelta = 0
-	end
+    if self.enabled and self.currentMode == Enums.MenuMode.MainMenu and not MainMenu.inBackgroundMode then
+        if self.lastActionDelta then
+            self.returnToSplashDelta = self.lastActionDelta + Config.timeToResetToSplashscreen
+        end
+    
+        if self.returnToSplashDelta ~= 0 and self.dt >= self.returnToSplashDelta then
+            self:SetMenuMode(Enums.MenuMode.Splashscreen)
+            self.lastActionDelta = 0
+            self.returnToSplashDelta = 0
+        end
+    
+        --printf("dt:".. self.dt)
+        --printf("lastAction: " .. self.lastActionDelta)
+        --printf("returnToSplashDelta: " .. self.returnToSplashDelta)
+        --printf(Config.timeToResetToSplashscreen)
+    else
+        self.lastActionDelta = 0
+        self.returnToSplashDelta = 0
+    end
 end
 
 function MainMenu:Open()
-	if not self.enabled then
-    	self:OnInit()
-	end
+    if not self.enabled then
+        self:OnInit()
+    end
 
     mainMenuMusic = Sound.Load(Config.paths.soundAmbiance .. Config.audio.mainMenu, true, false)
 
@@ -83,7 +83,7 @@ end
 function MainMenu:Close()
     self.enabled = false
     Sound.Pause(mainMenuMusic)
-	printf("Closing Main Menu.")
+    printf("Closing Main Menu.")
 end
 
 function MainMenu:SetBackgroundMode(enabled)
@@ -173,153 +173,153 @@ end
 function MainMenu:ShowSeedDialogInner()
     -- Add new star system seed selection dialog menu items
     HmGui.BeginGroupY()
-      	HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-      	HmGui.PushFont(Cache.Font('Exo2', 26))
+        HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
+        HmGui.PushFont(Cache.Font('Exo2', 26))
 
-      	-- Loop through saved seeds (hardcoded for now) and display as checkboxes
-      	for i = 1, #guiElements[1]["elems"] do
-        	-- Create the new checkbox and save a reference to its current state (T/F)
-        	guiElements[1]["elems"][i][3] = HmGui.Checkbox(tostring(guiElements[1]["elems"][i][2]), guiElements[1]["elems"][i][3])
-        	if guiElements[1]["elems"][i][3] then
-          		-- Checkbox was selected
-          		-- Reset all other checkboxes (so that these checkboxes will work like radio buttons, where only one can be active)
-          		for j = 1, #guiElements[1]["elems"] do
-            		if j ~= i then
-            		  guiElements[1]["elems"][j][3] = false
-            		end
-          		end
-          	-- Save the star system seed associated with it
-          		LTheoryRedux.seed = guiElements[1]["elems"][i][2]
-        	end
-        	HmGui.SetSpacing(8)
-      	end
-      	HmGui.SetSpacing(16)
-
-      	HmGui.BeginGroupX()
-        	HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-        	HmGui.PushFont(Cache.Font('Exo2Bold', 28))
-
-        	if HmGui.Button("Cancel") then
-          		self.seedDialogDisplayed = false
-		  		self:SetMenuMode(Config.getGameMode())
-          		LTheoryRedux:freezeTurrets()
-          		Config.game.gamePaused = false
-
-          		if MainMenu.currentMode == Enums.MenuMode.Dialog then
-          		  Input.SetMouseVisible(false)
-          		end
-        	end
-        	HmGui.SetSpacing(16)
-
-        	if HmGui.Button("Random Seed") then
-			  	LTheoryRedux:generateNewSeed()
-        	  	self.seedDialogDisplayed = false
-
-        	  	for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
-        	  	  guiElements[1]["elems"][i][3] = false
-        	  	end
-        	  	Config.setGameMode(2) -- switch to Flight Mode
-			  	self:SetMenuMode(Enums.MenuMode.Dialog)
-        	  	Config.game.flightModeButInactive = false
-        	  	Config.game.gamePaused = false
-        	  	Input.SetMouseVisible(false)
-			  	LTheoryRedux:createStarSystem()
-        	end
-        	HmGui.SetSpacing(16)
-
-        	if HmGui.Button("Use Seed") then
-        	  	self.seedDialogDisplayed = false
-        	  	for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
-        	  	  guiElements[1]["elems"][i][3] = false
-        	  	end
-        	  	Config.setGameMode(2) -- switch to Flight Mode
-			  	self:SetMenuMode(Enums.MenuMode.Dialog)
-        	  	Config.game.flightModeButInactive = false
-        	  	Config.game.gamePaused = false
-        	  	Input.SetMouseVisible(false)
-			  	LTheoryRedux:createStarSystem()
-        	end
-        	HmGui.PopStyle(2)
-      	HmGui.EndGroup()
-      	HmGui.SetAlign(0.5, 0.5)
-      	HmGui.PopStyle(2)
+        -- Loop through saved seeds (hardcoded for now) and display as checkboxes
+        for i = 1, #guiElements[1]["elems"] do
+            -- Create the new checkbox and save a reference to its current state (T/F)
+            guiElements[1]["elems"][i][3] = HmGui.Checkbox(tostring(guiElements[1]["elems"][i][2]), guiElements[1]["elems"][i][3])
+            if guiElements[1]["elems"][i][3] then
+                -- Checkbox was selected
+                -- Reset all other checkboxes (so that these checkboxes will work like radio buttons, where only one can be active)
+                for j = 1, #guiElements[1]["elems"] do
+                    if j ~= i then
+                        guiElements[1]["elems"][j][3] = false
+                    end
+                end
+            -- Save the star system seed associated with it
+                LTheoryRedux.seed = guiElements[1]["elems"][i][2]
+            end
+            HmGui.SetSpacing(8)
+        end
+        HmGui.SetSpacing(16)
+    
+        HmGui.BeginGroupX()
+            HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
+            HmGui.PushFont(Cache.Font('Exo2Bold', 28))
+    
+            if HmGui.Button("Cancel") then
+                self.seedDialogDisplayed = false
+                self:SetMenuMode(Config.getGameMode())
+                LTheoryRedux:freezeTurrets()
+                Config.game.gamePaused = false
+            
+                if MainMenu.currentMode == Enums.MenuMode.Dialog then
+                    Input.SetMouseVisible(false)
+                end
+            end
+            HmGui.SetSpacing(16)
+        
+            if HmGui.Button("Random Seed") then
+                LTheoryRedux:generateNewSeed()
+                self.seedDialogDisplayed = false
+            
+                for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
+                    guiElements[1]["elems"][i][3] = false
+                end
+                Config.setGameMode(2) -- switch to Flight Mode
+                self:SetMenuMode(Enums.MenuMode.Dialog)
+                Config.game.flightModeButInactive = false
+                Config.game.gamePaused = false
+                Input.SetMouseVisible(false)
+                LTheoryRedux:createStarSystem()
+            end
+            HmGui.SetSpacing(16)
+        
+            if HmGui.Button("Use Seed") then
+                self.seedDialogDisplayed = false
+                for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
+                    guiElements[1]["elems"][i][3] = false
+                end
+                Config.setGameMode(2) -- switch to Flight Mode
+                self:SetMenuMode(Enums.MenuMode.Dialog)
+                Config.game.flightModeButInactive = false
+                Config.game.gamePaused = false
+                Input.SetMouseVisible(false)
+                LTheoryRedux:createStarSystem()
+            end
+            HmGui.PopStyle(2)
+        HmGui.EndGroup()
+        HmGui.SetAlign(0.5, 0.5)
+        HmGui.PopStyle(2)
     HmGui.EndGroup()
 end
 
 function MainMenu:ShowFlightDialog()
-  	-- Add Flight Mode dialog menu
-  	HmGui.BeginWindow("Flight Mode")
-  	  	HmGui.TextEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.4, 0.5, 1.0)
-  	  	HmGui.SetAlign(0.5, 0.5)
-  	  	HmGui.SetSpacing(16)
-  	  	self:ShowFlightDialogInner()
-  	HmGui.EndWindow()
-  	HmGui.SetAlign(0.5, 0.5)
+    -- Add Flight Mode dialog menu
+    HmGui.BeginWindow("Flight Mode")
+        HmGui.TextEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.4, 0.5, 1.0)
+        HmGui.SetAlign(0.5, 0.5)
+        HmGui.SetSpacing(16)
+        self:ShowFlightDialogInner()
+    HmGui.EndWindow()
+    HmGui.SetAlign(0.5, 0.5)
 end
 
 function MainMenu:ShowFlightDialogInner()
-  	-- Add Flight Mode dialog menu items
-  	HmGui.BeginGroupY()
-  	  	HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-  	  	HmGui.PushFont(Cache.Font('Exo2Bold', 26))
+    -- Add Flight Mode dialog menu items
+    HmGui.BeginGroupY()
+        HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
+        HmGui.PushFont(Cache.Font('Exo2Bold', 26))
 
-  	  	if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
-  	    	if HmGui.Button("Return to Game") then
-				--printf("panelActive = %s, defaultControl = %s", Config.game.panelActive, Config.ui.defaultControl)
-        		LTheoryRedux:freezeTurrets()
-        		Config.game.flightModeButInactive = false
-        		Config.game.gamePaused = false
-        		Config.game.panelActive = false
-
-        		if Config.ui.defaultControl == "Ship" then
-          			Input.SetMouseVisible(false)
-       			end
-      		end
-    	end
-
-    	if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
-    	  	HmGui.SetSpacing(8)
-
-    	  	if HmGui.Button("Save Game") then
-    	    	-- TODO: Save game state here
-    	    	LTheoryRedux:freezeTurrets()
-    	    	Config.game.flightModeButInactive = false
-    	    	Config.game.gamePaused = false
-    	    	Input.SetMouseVisible(false)
-    	  	end
-    	end
-   		HmGui.SetSpacing(8)
-
-    	if HmGui.Button("Load Game") then
-    	  -- TODO: Show Load Game menu once that's been implemented
-    	  -- NOTE: For now, just pop up a Seed Menu dialog for creating a new star system
-    	  self:ShowSeedDialog()
-    	  Config.game.flightModeButInactive = false
-    	end
-    	HmGui.SetSpacing(8)
-
-    	if HmGui.Button("Game Settings") then
-    	  -- TODO: Show Game Settings menu once that's been implemented
-    	  LTheoryRedux:freezeTurrets()
-    	  Config.game.flightModeButInactive = false
-    	  Config.game.gamePaused = false
-    	  Input.SetMouseVisible(false)
-    	end
-    	HmGui.SetSpacing(8)
-
-    	if HmGui.Button("Exit to Main Menu") then
-    	  Config.game.flightModeButInactive = true
-    	  Config.setGameMode(1) -- switch to Startup Mode
-    	  LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode
-    	  Config.game.gamePaused = false
-    	end
-    	HmGui.SetSpacing(8)
-
-    	if HmGui.Button("Exit Game") then
-    	  LTheoryRedux:exitGame()
-    	end
-    	HmGui.PopStyle(2)
-  	HmGui.EndGroup()
+        if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
+            if HmGui.Button("Return to Game") then
+                --printf("panelActive = %s, defaultControl = %s", Config.game.panelActive, Config.ui.defaultControl)
+                LTheoryRedux:freezeTurrets()
+                Config.game.flightModeButInactive = false
+                Config.game.gamePaused = false
+                Config.game.panelActive = false
+            
+                if Config.ui.defaultControl == "Ship" then
+                    Input.SetMouseVisible(false)
+                end
+            end
+        end
+    
+        if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
+            HmGui.SetSpacing(8)
+        
+            if HmGui.Button("Save Game") then
+                -- TODO: Save game state here
+                LTheoryRedux:freezeTurrets()
+                Config.game.flightModeButInactive = false
+                Config.game.gamePaused = false
+                Input.SetMouseVisible(false)
+            end
+        end
+        HmGui.SetSpacing(8)
+    
+        if HmGui.Button("Load Game") then
+            -- TODO: Show Load Game menu once that's been implemented
+            -- NOTE: For now, just pop up a Seed Menu dialog for creating a new star system
+            self:ShowSeedDialog()
+            Config.game.flightModeButInactive = false
+        end
+        HmGui.SetSpacing(8)
+    
+        if HmGui.Button("Game Settings") then
+            -- TODO: Show Game Settings menu once that's been implemented
+            LTheoryRedux:freezeTurrets()
+            Config.game.flightModeButInactive = false
+            Config.game.gamePaused = false
+            Input.SetMouseVisible(false)
+        end
+        HmGui.SetSpacing(8)
+    
+        if HmGui.Button("Exit to Main Menu") then
+            Config.game.flightModeButInactive = true
+            Config.setGameMode(1) -- switch to Startup Mode
+            LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode
+            Config.game.gamePaused = false
+        end
+        HmGui.SetSpacing(8)
+    
+        if HmGui.Button("Exit Game") then
+            LTheoryRedux:exitGame()
+        end
+        HmGui.PopStyle(2)
+    HmGui.EndGroup()
 end
 
 return MainMenu
