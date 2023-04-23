@@ -147,7 +147,7 @@ function MainMenu:ShowMainMenuInner()
         if HmGui.Button("CREDITS") then
         end
         if HmGui.Button("BACKGROUND") then
-            self.inBackgroundMode = true
+            self:SetBackgroundMode(true)
         end
         if HmGui.Button("EXIT GAME") then
             LTheoryRedux:exitGame()
