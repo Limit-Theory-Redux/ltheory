@@ -98,8 +98,10 @@ function LTheoryRedux:onDraw ()
 end
 
 function LTheoryRedux:onUpdate (dt)
+  -- Routes
   self.player:getRoot():update(dt)
   self.canvas:update(dt)
+  MainMenu:OnUpdate(dt)
 
   -- TODO: Confirm whether this is still needed
   local playerShip = self.player
@@ -107,10 +109,13 @@ function LTheoryRedux:onUpdate (dt)
     playerShip = Config.game.currentShip
   end
 
-  -- Take down splash text if pretty much any key is pressed
-  if MainMenu.currentMode == Enums.MenuMode.Splashscreen and Bindings.All:get() == 1 then
-    MainMenu:SetBackgroundMode(false)
-    MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
+  if Bindings.All:get() == 1 then
+    -- Take down splash text if pretty much any key is pressed
+    if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
+      MainMenu:SetBackgroundMode(false)
+      MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
+    end
+    MainMenu:ActionRegistered()
   end
 
   if not MainMenu.enabled and MainMenu.currentMode == Enums.MenuMode.MainMenu then
@@ -410,8 +415,10 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
   -- Enable Background Music (temporary until the music system is created)
   -- Music courtesy of MesoTroniK
   newSound = Sound.Load(Config.paths.soundAmbiance .. Config.audio.backLoop1, true, false)
-  if Config.audio.bSoundOn and MainMenu.currentMode == Enums.MenuMode.Dialog then
-    Sound.SetVolume(newSound, Config.audio.soundMax)
+  if Config.audio.bSoundOn then
+    if MainMenu.currentMode == Enums.MenuMode.Dialog then
+      Sound.SetVolume(newSound, Config.audio.soundMax)
+    end
   else
     Sound.SetVolume(newSound, Config.audio.soundMin)
   end

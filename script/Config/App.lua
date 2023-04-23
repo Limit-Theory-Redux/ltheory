@@ -6,6 +6,8 @@ Config.gameVersion = "v0.008"
 
 Config.userInitFilename = "user.ini"
 
+Config.timeToResetToSplashscreen = 60
+
 Config.render = {
   startingHorz   = 1600, -- 1600 (default), or 2400 (high DPI)
   startingVert   =  900, --  900 (default), or 2048 (high DPI)

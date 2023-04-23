@@ -1,5 +1,7 @@
 local MainMenu = class(function (self) end)
 
+local Bindings = require('States.ApplicationBindings')
+
 local mainMenuMusic = nil
 
 local guiElements = {
@@ -23,16 +25,51 @@ local guiElements = {
     }
 }
 
-function MainMenu:__init()
-    self.enabled = false
-    self.lastAction = 0
+function MainMenu:OnInit()
+	self.enabled = true
     self.currentMode = Enums.MenuMode.Splashscreen
     self.inBackgroundMode = false
     self.seedDialogDisplayed = false
+	self.dt = 0
+	self.lastActionDelta = 0
+	self.returnToSplashDelta = 0
+	printf("Initialize MainMenu")
+end
+
+function MainMenu:ActionRegistered()
+	self.lastActionDelta = self.dt
+end
+
+function MainMenu:OnUpdate(dt)
+	if not self.dt or not dt then return end
+
+	self.dt = self.dt + dt
+
+	if self.enabled and self.currentMode == Enums.MenuMode.MainMenu and not MainMenu.inBackgroundMode then
+		if self.lastActionDelta then
+			self.returnToSplashDelta = self.lastActionDelta + Config.timeToResetToSplashscreen
+		end
+
+		if self.returnToSplashDelta ~= 0 and self.dt >= self.returnToSplashDelta then
+			self:SetMenuMode(Enums.MenuMode.Splashscreen)
+			self.lastActionDelta = 0
+			self.returnToSplashDelta = 0
+		end
+
+		--printf("dt:".. self.dt)
+		--printf("lastAction: " .. self.lastActionDelta)
+		--printf("returnToSplashDelta: " .. self.returnToSplashDelta)
+		--printf(Config.timeToResetToSplashscreen)
+	else
+		self.lastActionDelta = 0
+		self.returnToSplashDelta = 0
+	end
 end
 
 function MainMenu:Open()
-    self.enabled = true
+	if not self.enabled then
+    	self:OnInit()
+	end
 
     mainMenuMusic = Sound.Load(Config.paths.soundAmbiance .. Config.audio.mainMenu, true, false)
 
