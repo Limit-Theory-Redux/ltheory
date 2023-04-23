@@ -10,6 +10,7 @@ local Item = require('Systems.Economy.Item')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 local InitFiles = require('Systems.Files.InitFiles')
 local MainMenu = require('Systems.Menus.MainMenu')
+local MusicPlayer = require('Systems.SFX.MusicPlayer')
 
 LTheoryRedux = require('States.Application')
 
@@ -41,6 +42,7 @@ function LTheoryRedux:onInit ()
   if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
 
   -- Open Main Menu
+  MusicPlayer:Init()
   MainMenu:Open()
 
   --* Game initializations *--
@@ -56,14 +58,12 @@ function LTheoryRedux:onInit ()
 end
 
 function LTheoryRedux:toggleSound ()
-  if Config.audio.bSoundOn and MainMenu.currentMode == Enums.MenuMode.Dialog then
-    Sound.SetVolume(newSound, Config.audio.soundMin)
-    Sound.Pause(newSound)
-    Config.audio.bSoundOn = false
-  elseif MainMenu.currentMode == Enums.MenuMode.Dialog then
-    Sound.SetVolume(newSound, Config.audio.soundMax)
-    Sound.FadeIn(newSound, 2.0)
-    Config.audio.bSoundOn = true
+  Config.audio.bSoundOn = not Config.audio.bSoundOn
+
+  if Config.audio.bSoundOn then
+    MusicPlayer:SetVolume(1)
+  else
+    MusicPlayer:SetVolume(0)
   end
 end
 
@@ -102,6 +102,7 @@ function LTheoryRedux:onUpdate (dt)
   self.player:getRoot():update(dt)
   self.canvas:update(dt)
   MainMenu:OnUpdate(dt)
+  MusicPlayer:OnUpdate(dt)
 
   -- TODO: Confirm whether this is still needed
   local playerShip = self.player
@@ -121,7 +122,7 @@ function LTheoryRedux:onUpdate (dt)
   if not MainMenu.enabled and MainMenu.currentMode == Enums.MenuMode.MainMenu then
     MainMenu:Open()
   elseif MainMenu.enabled and MainMenu.currentMode == Enums.MenuMode.Dialog then
-    MainMenu:Close()
+    MainMenu:Close(true)
   end
 
   -- Manage game control screens
@@ -412,18 +413,10 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
     )
 
-  -- Enable Background Music (temporary until the music system is created)
-  -- Music courtesy of MesoTroniK
-  newSound = Sound.Load(Config.paths.soundAmbiance .. Config.audio.backLoop1, true, false)
-  if Config.audio.bSoundOn then
-    if MainMenu.currentMode == Enums.MenuMode.Dialog then
-      Sound.SetVolume(newSound, Config.audio.soundMax)
+    -- temporary until game states are properly introduced
+    if Config.getGameMode() == 2 then
+      MusicPlayer:PlayAmbient()
     end
-  else
-    Sound.SetVolume(newSound, Config.audio.soundMin)
-  end
-
-  Sound.Play(newSound)
 end
 
 function LTheoryRedux:insertShip(ourShip)

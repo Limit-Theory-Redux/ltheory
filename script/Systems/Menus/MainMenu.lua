@@ -1,5 +1,6 @@
 local MainMenu = class(function (self) end)
 
+local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local Bindings = require('States.ApplicationBindings')
 
 local mainMenuMusic = nil
@@ -27,12 +28,16 @@ local guiElements = {
 
 function MainMenu:OnInit()
   self.enabled = true
-  self.currentMode = Enums.MenuMode.Splashscreen
   self.inBackgroundMode = false
   self.seedDialogDisplayed = false
   self.dt = 0
   self.lastActionDelta = 0
   self.returnToSplashDelta = 0
+
+  if not self.keepState then
+    self.currentMode = Enums.MenuMode.Splashscreen
+    self.keepState = false
+  end
   printf("Initialize MainMenu")
 end
 
@@ -71,18 +76,17 @@ function MainMenu:Open()
     self:OnInit()
   end
 
-  mainMenuMusic = Sound.Load(Config.paths.soundAmbiance .. Config.audio.mainMenu, true, false)
+  mainMenuMusic = MusicPlayer:QueueTrack(Config.audio.mainMenu, true)
 
-  if mainMenuMusic and Config.audio.mainMenuMusicEnabled then
-    Sound.SetVolume(mainMenuMusic, 0.7)
-    Sound.Play(mainMenuMusic)
-  end
   printf("Opening Main Menu.")
 end
 
-function MainMenu:Close()
+function MainMenu:Close(keepState)
   self.enabled = false
-  Sound.Pause(mainMenuMusic)
+  self.keepState = keepState
+
+  MusicPlayer:StopTrack(mainMenuMusic)
+
   printf("Closing Main Menu.")
 end
 
@@ -318,7 +322,7 @@ function MainMenu:ShowFlightDialogInner()
   if HmGui.Button("Exit to Main Menu") then
     Config.game.flightModeButInactive = true
     Config.setGameMode(1) -- switch to Startup Mode
-    LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode
+    LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
     Config.game.gamePaused = false
   end
   HmGui.SetSpacing(8)
