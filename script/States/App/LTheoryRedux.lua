@@ -9,47 +9,20 @@ local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 local InitFiles = require('Systems.Files.InitFiles')
+local MainMenu = require('Systems.Menus.MainMenu')
 
-local LTheoryRedux = require('States.Application')
+LTheoryRedux = require('States.Application')
 
 --** LOCAL VARIABLES **--
 local newSound = nil
 local newSeed = 0ULL
 local newShip = nil
-local menuMode = 0 -- 0 = splash screen, 1 = Main Menu, 2 = either Flight dialog or Seed dialog (New Game / Load Game menus TBD)
 local bNewSSystem = false
-local bSeedDialogDisplayed = false
-local bBackgroundMode = false
 local bShowSystemMap = false
 local bSMapAdded = false
 local smap = nil
 
 local rng = RNG.FromTime()
-
-
-local guiElements = {
-  {
-    name = "Choose Seed",
-    elems = {
-      { nil, 5022463494542550306ULL,  false },  -- KEEP black
-      { nil, 5012768293123392491ULL,  false },  -- KEEP red
-      { nil, 4933876146649964811ULL,  false },  -- KEEP blue and milky white
-      { nil, 2008422628673393673ULL,  false },  -- MAYBE orange-ish
-      { nil, 5712598467986491931ULL,  false },  -- KEEP gold-yellow
-      { nil, 14169804077813660835ULL, false },  -- KEEP bluish-green with a bright gold star
-      { nil, 9806676695553338612ULL,  false },  -- KEEP violet
-      { nil, 14600758714913275339ULL, false },  -- KEEP blue
-      { nil, 11589761683708427350ULL, false },  -- KEEP bright green
-      { nil, 3432712644463072838ULL,  false },  -- KEEP blue-red-orange
-      { nil, 10630444862697458122ULL, false },  -- MAYBE "Hubble palette"
-      { nil, 5199604093543988311ULL,  false },  -- KEEP even bluish-white with a bright yellow star
-      { nil, 9471911754066691691ULL,  false },  -- KEEP completely dark with one small blue star
-    }
-  }
-}
-
-
-
 
 --** MAIN CODE **--
 function LTheoryRedux:onInit ()
@@ -67,14 +40,8 @@ function LTheoryRedux:onInit ()
 
   if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
 
-  -- Music courtesy of MesoTroniK
-  newSound = Sound.Load(Config.paths.soundAmbiance .. Config.audio.backLoop1, true, false)
-  if Config.audio.bSoundOn then
-    Sound.SetVolume(newSound, Config.audio.soundMax)
-  else
-    Sound.SetVolume(newSound, Config.audio.soundMin)
-  end
-  Sound.Play(newSound)
+  -- Open Main Menu
+  MainMenu:Open()
 
   --* Game initializations *--
   self.window:setSize(Config.render.startingHorz, Config.render.startingVert)
@@ -89,11 +56,11 @@ function LTheoryRedux:onInit ()
 end
 
 function LTheoryRedux:toggleSound ()
-  if Config.audio.bSoundOn then
+  if Config.audio.bSoundOn and MainMenu.currentMode == Enums.MenuMode.Dialog then
     Sound.SetVolume(newSound, Config.audio.soundMin)
     Sound.Pause(newSound)
     Config.audio.bSoundOn = false
-  else
+  elseif MainMenu.currentMode == Enums.MenuMode.Dialog then
     Sound.SetVolume(newSound, Config.audio.soundMax)
     Sound.FadeIn(newSound, 2.0)
     Config.audio.bSoundOn = true
@@ -112,6 +79,7 @@ function LTheoryRedux:onDraw ()
       self.canvas:add(smap)
       bSMapAdded = true
       Input.SetMouseVisible(true)
+      print("Draw System View")
     end
   else
     if smap ~= nil then
@@ -120,6 +88,7 @@ function LTheoryRedux:onDraw ()
       bSMapAdded = false
       smap = nil
       Input.SetMouseVisible(false)
+      print("Draw Game View")
     end
   end
 
@@ -139,31 +108,38 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Take down splash text if pretty much any key is pressed
-  if menuMode == 0 and Bindings.All:get() == 1 then
-    bBackgroundMode = false
-    menuMode = 1 -- show Main Menu
+  if MainMenu.currentMode == Enums.MenuMode.Splashscreen and Bindings.All:get() == 1 then
+    MainMenu:SetBackgroundMode(false)
+    MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
+  end
+
+  if not MainMenu.enabled and MainMenu.currentMode == Enums.MenuMode.MainMenu then
+    MainMenu:Open()
+  elseif MainMenu.enabled and MainMenu.currentMode == Enums.MenuMode.Dialog then
+    MainMenu:Close()
   end
 
   -- Manage game control screens
-  if menuMode ~= 0 and Input.GetPressed(Bindings.Escape) then
-    bBackgroundMode = false
+  if MainMenu.currentMode ~= Enums.MenuMode.Splashscreen and Input.GetPressed(Bindings.Escape) then
+    MainMenu:SetBackgroundMode(false)
     Input.SetMouseVisible(true)
     if Config.getGameMode() == 1 then
-      menuMode = 1 -- show Main Menu
+      MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
     else
       -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
       -- After that, in active Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
-      if menuMode == 0 then
+      if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
         Config.game.flightModeButInactive = false
-        menuMode = 2 -- show Flight Mode dialog
-      elseif menuMode == 2 and not bSeedDialogDisplayed then
-        Config.game.flightModeButInactive = true
+        MainMenu:SetMenuMode(Enums.MenuMode.Dialog) -- show Flight Mode dialog
+      elseif MainMenu.currentMode == Enums.MenuMode.Dialog and not MainMenu.seedDialogDisplayed then
+        Config.game.flightModeButInactive = not Config.game.flightModeButInactive
+        Config.game.gamePaused = Config.game.flightModeButInactive
       end
     end
   end
 
   -- If player pressed the "System Map" key in Flight Mode, toggle the system map's visibility
-  if Input.GetPressed(Bindings.SystemMap) and menuMode == 2 then
+  if Input.GetPressed(Bindings.SystemMap) and MainMenu.currentMode == Enums.MenuMode.Dialog then
     bShowSystemMap = not bShowSystemMap
     if smap == nil then
       smap = Systems.CommandView.SystemMap(self.system)
@@ -171,7 +147,7 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Engage autopilot if we're in flight mode
-  if Input.GetPressed(Bindings.AutoNav) and menuMode == 2 then
+  if Input.GetPressed(Bindings.AutoNav) and MainMenu.currentMode == Enums.MenuMode.Dialog then
     if playerShip ~= nil then
       local target = playerShip:getTarget()
       if target == nil then target = self.focus end
@@ -196,47 +172,36 @@ function LTheoryRedux:onUpdate (dt)
 
   -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
   -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
-  if Input.GetPressed(Bindings.ToggleLights) and menuMode == 2 then
+  if Input.GetPressed(Bindings.ToggleLights) and MainMenu.currentMode == Enums.MenuMode.Dialog then
     Config.render.thrusterLights = not Config.render.thrusterLights
     Config.render.pulseLights    = not Config.render.pulseLights
   end
 
   -- Decide which game controls screens (if any) to display on top of the canvas
   HmGui.Begin(self.resX, self.resY)
-  if menuMode == 0 then
+
+  if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
     LTheoryRedux:showGameLogo()
-  elseif menuMode == 1 then
-    if not bBackgroundMode then
-      if bSeedDialogDisplayed then
-        LTheoryRedux:showSeedDialog()
+  elseif MainMenu.currentMode == Enums.MenuMode.MainMenu then
+    if not MainMenu.inBackgroundMode then
+      if MainMenu.seedDialogDisplayed then
+        MainMenu:ShowSeedDialog()
       else
-        LTheoryRedux:showMainMenu()
+        MainMenu:ShowGui()
       end
     end
-  elseif menuMode == 2 then
+  elseif MainMenu.currentMode == Enums.MenuMode.Dialog then
     if Config.game.flightModeButInactive then
-      Config.game.gamePaused = true
-      LTheoryRedux:showFlightDialog()
-    elseif bSeedDialogDisplayed then
-      LTheoryRedux:showSeedDialog()
+      MainMenu:ShowFlightDialog()
+    elseif MainMenu.seedDialogDisplayed then
+      MainMenu:ShowSeedDialog()
     end
   end
   HmGui.End()
 
   -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
-  if Input.GetPressed(Bindings.NewBackground) and menuMode == 1 then
+  if Input.GetPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then
     bNewSSystem = true
-  end
-
-  if bNewSSystem then
-    bNewSSystem = false
-    if newSeed ~= 0ULL then
-      self.seed = newSeed
-      newSeed = 0ULL
-    else
-      self.seed = rng:get64()
-    end
-    LTheoryRedux:createStarSystem()
   end
 
   -- If player pressed the "toggle audio" key, turn it off if it's on or on if it's off
@@ -245,19 +210,23 @@ function LTheoryRedux:onUpdate (dt)
   end
 end
 
+function LTheoryRedux:generateNewSeed ()
+  self.seed = rng:get64()
+end
+
 function LTheoryRedux:generate ()
   Config.setGameMode(1) -- start off in Startup Mode
 
   -- Use random seed for new background star system, and stay in "display game logo" startup mode
-  LTheoryRedux:seedStarsystem(0)
+  LTheoryRedux:seedStarsystem(Enums.MenuMode.Splashscreen)
 end
 
-function LTheoryRedux:seedStarsystem (changeMenuMode)
+function LTheoryRedux:seedStarsystem (menuMode)
   self.seed = rng:get64()
 
   LTheoryRedux:createStarSystem()
 
-  menuMode = changeMenuMode
+  MainMenu:SetMenuMode(menuMode)
 end
 
 function LTheoryRedux:createStarSystem ()
@@ -437,6 +406,17 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
     :add(self.gameView
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
     )
+
+  -- Enable Background Music (temporary until the music system is created)
+  -- Music courtesy of MesoTroniK
+  newSound = Sound.Load(Config.paths.soundAmbiance .. Config.audio.backLoop1, true, false)
+  if Config.audio.bSoundOn and MainMenu.currentMode == Enums.MenuMode.Dialog then
+    Sound.SetVolume(newSound, Config.audio.soundMax)
+  else
+    Sound.SetVolume(newSound, Config.audio.soundMin)
+  end
+
+  Sound.Play(newSound)
 end
 
 function LTheoryRedux:insertShip(ourShip)
@@ -457,220 +437,6 @@ function LTheoryRedux:showGameLogo ()
   HmGui.Image(self.logo) -- draw the LTR logo on top of the canvas
   HmGui.SetStretch(0.76 * scaleFactor / scaleFactorX, 0.243 * scaleFactor / scaleFactorY) -- scale logo (width, height)
   HmGui.SetAlign(0.5, 0.5) -- align logo
-end
-
-function LTheoryRedux:showMainMenu ()
-  -- Add Main Menu dialog
-  local scalefactor = (self.resX / 22) / 72
-  local scalefactorMenuX = 352.8 / self.resX
-  local scalefactorMenuY = 549   / self.resY
-
-  HmGui.BeginGroupStack()
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 72 * scalefactor), 'LIMIT THEORY', 0.2, 0.2, 0.2, 1.0)
-    HmGui.SetAlign(0.031, 0.042)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 72 * scalefactor), 'LIMIT THEORY', 0.9, 0.9, 0.9, 1.0)
-    HmGui.SetAlign(0.03, 0.04)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.2, 0.2, 0.2, 1.0)
-    HmGui.SetAlign(0.181, 0.132)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 58 * scalefactor), 'REDUX', 0.9, 0.9, 0.9, 1.0)
-    HmGui.SetAlign(0.18, 0.13)
-
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), Config.gameVersion, 0.2, 0.2, 0.2, 1.0)
-    HmGui.SetAlign(0.012, 0.971)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), Config.gameVersion, 0.9, 0.9, 0.9, 1.0)
-    HmGui.SetAlign(0.011, 0.970)
-
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.2, 0.2, 0.2, 1.0)
-    HmGui.SetAlign(0.221, 0.971)
-    HmGui.TextEx(Cache.Font('RajdhaniSemiBold', 12 * scalefactor), 'Resolution = '..self.resX..' x '..self.resY, 0.9, 0.9, 0.9, 1.0)
-    HmGui.SetAlign(0.220, 0.970)
-
-    self:showMainMenuInner()
-
-    HmGui.SetStretch(0.18, 0.5)
-    HmGui.SetAlign(0.0065, 0.8)
-  HmGui.EndGroup()
-end
-
-function LTheoryRedux:showMainMenuInner ()
-  -- Add Main Menu items
-  local scalefactor = (self.resX / 24) / 72
-
-  HmGui.BeginGroupY()
-    HmGui.PushTextColor(0.9, 0.9, 0.9, 1.0)
-    HmGui.PushFont(Cache.Font('RajdhaniSemiBold', 36 * scalefactor))
-    if HmGui.Button("NEW GAME") then
-      LTheoryRedux:showSeedDialog()
-    end
-    if HmGui.Button("LOAD GAME") then
-      LTheoryRedux:showSeedDialog()
-    end
-    if HmGui.Button("SETTINGS") then
-    end
-    if HmGui.Button("CREDITS") then
-    end
-    if HmGui.Button("BACKGROUND") then
-      bBackgroundMode = true
-    end
-    if HmGui.Button("EXIT GAME") then
-      LTheoryRedux:exitGame()
-    end
-    HmGui.PopStyle(2)
-  HmGui.EndGroup()
-end
-
-function LTheoryRedux:showFlightDialog ()
-  -- Add Flight Mode dialog menu
-  HmGui.BeginWindow("Flight Mode")
-    HmGui.TextEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.4, 0.5, 1.0)
-    HmGui.SetAlign(0.5, 0.5)
-    HmGui.SetSpacing(16)
-    self:showFlightDialogInner()
-  HmGui.EndWindow()
-  HmGui.SetAlign(0.5, 0.5)
-end
-
-function LTheoryRedux:showFlightDialogInner ()
-  -- Add Flight Mode dialog menu items
-  HmGui.BeginGroupY()
-    HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-    HmGui.PushFont(Cache.Font('Exo2Bold', 26))
-    if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
-      if HmGui.Button("Return to Game") then
---printf("panelActive = %s, defaultControl = %s", Config.game.panelActive, Config.ui.defaultControl)
-        LTheoryRedux:freezeTurrets()
-        Config.game.flightModeButInactive = false
-        Config.game.gamePaused = false
-        Config.game.panelActive = false
-        if Config.ui.defaultControl == "Ship" then
-          Input.SetMouseVisible(false)
-        end
-      end
-    end
-    if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
-      HmGui.SetSpacing(8)
-      if HmGui.Button("Save Game") then
-        -- TODO: Save game state here
-        LTheoryRedux:freezeTurrets()
-        Config.game.flightModeButInactive = false
-        Config.game.gamePaused = false
-        Input.SetMouseVisible(false)
-      end
-    end
-    HmGui.SetSpacing(8)
-    if HmGui.Button("Load Game") then
-      -- TODO: Show Load Game menu once that's been implemented
-      -- NOTE: For now, just pop up a Seed Menu dialog for creating a new star system
-      LTheoryRedux:showSeedDialog()
-      Config.game.flightModeButInactive = false
-    end
-    HmGui.SetSpacing(8)
-    if HmGui.Button("Game Settings") then
-      -- TODO: Show Game Settings menu once that's been implemented
-      LTheoryRedux:freezeTurrets()
-      Config.game.flightModeButInactive = false
-      Config.game.gamePaused = false
-      Input.SetMouseVisible(false)
-    end
-    HmGui.SetSpacing(8)
-    if HmGui.Button("Exit to Main Menu") then
-      Config.game.flightModeButInactive = true
-      Config.setGameMode(1) -- switch to Startup Mode
-      LTheoryRedux:seedStarsystem(1) -- use random seed for new background star system and display it in Main Menu mode
-      Config.game.gamePaused = false
-    end
-    HmGui.SetSpacing(8)
-    if HmGui.Button("Exit Game") then
-      LTheoryRedux:exitGame()
-    end
-    HmGui.PopStyle(2)
-  HmGui.EndGroup()
-end
-
-function LTheoryRedux:showSeedDialog ()
-  -- Add new star system seed selection dialog menu
-  bSeedDialogDisplayed = true
-  HmGui.BeginWindow(guiElements.name)
-    HmGui.TextEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.4, 0.5, 1.0)
-    HmGui.SetAlign(0.5, 0.5)
-    HmGui.SetSpacing(16)
-    self:showSeedDialogInner()
-  HmGui.EndWindow()
-  HmGui.SetAlign(0.5, 0.5)
-end
-
-function LTheoryRedux:showSeedDialogInner ()
-  -- Add new star system seed selection dialog menu items
-  HmGui.BeginGroupY()
-    HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-    HmGui.PushFont(Cache.Font('Exo2', 26))
-
-    -- Loop through saved seeds (hardcoded for now) and display as checkboxes
-    for i = 1, #guiElements[1]["elems"] do
-      -- Create the new checkbox and save a reference to its current state (T/F)
-      guiElements[1]["elems"][i][3] = HmGui.Checkbox(tostring(guiElements[1]["elems"][i][2]), guiElements[1]["elems"][i][3])
-      if guiElements[1]["elems"][i][3] then
-        -- Checkbox was selected
-        -- Reset all other checkboxes (so that these checkboxes will work like radio buttons, where only one can be active)
-        for j = 1, #guiElements[1]["elems"] do
-          if j ~= i then
-            guiElements[1]["elems"][j][3] = false
-          end
-        end
-        -- Save the star system seed associated with it
-        newSeed = guiElements[1]["elems"][i][2]
-      end
-
-      HmGui.SetSpacing(8)
-    end
-
-    HmGui.SetSpacing(16)
-
-    HmGui.BeginGroupX()
-      HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
-      HmGui.PushFont(Cache.Font('Exo2Bold', 28))
-      if HmGui.Button("Cancel") then
-        bSeedDialogDisplayed = false
-        bNewSSystem = false
-        menuMode = Config.getGameMode()
-        LTheoryRedux:freezeTurrets()
-        Config.game.gamePaused = false
-        if menuMode == 2 then
-          Input.SetMouseVisible(false)
-        end
-      end
-      HmGui.SetSpacing(16)
-      if HmGui.Button("Random Seed") then
-        newSeed = rng:get64() -- get a random seed value
-        bSeedDialogDisplayed = false
-        for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
-          guiElements[1]["elems"][i][3] = false
-        end
-        bNewSSystem = true
-        Config.setGameMode(2) -- switch to Flight Mode
-        menuMode = 2
-        Config.game.flightModeButInactive = false
-        Config.game.gamePaused = false
-        Input.SetMouseVisible(false)
-      end
-      HmGui.SetSpacing(16)
-      if HmGui.Button("Use Seed") then
-        bSeedDialogDisplayed = false
-        for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
-          guiElements[1]["elems"][i][3] = false
-        end
-        bNewSSystem = true
-        Config.setGameMode(2) -- switch to Flight Mode
-        menuMode = 2
-        Config.game.flightModeButInactive = false
-        Config.game.gamePaused = false
-        Input.SetMouseVisible(false)
-      end
-      HmGui.PopStyle(2)
-    HmGui.EndGroup()
-    HmGui.SetAlign(0.5, 0.5)
-    HmGui.PopStyle(2)
-  HmGui.EndGroup()
 end
 
 function LTheoryRedux:exitGame ()

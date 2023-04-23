@@ -11,6 +11,8 @@ Core.Call(function ()
 
   dofile('./script/Config/App.lua')
   dofile('./script/Enums/JobEnums.lua')
+  dofile('./script/Enums/MenuEnums.lua')
+
   if io.exists ('./script/Config/Local.lua') then dofile('./script/Config/Local.lua') end
 
   Namespace.Load('UI')

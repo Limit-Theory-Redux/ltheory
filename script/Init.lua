@@ -28,6 +28,9 @@ Render = {}
 Config = {}
 Enums = {}
 
+-- Application
+LTheoryRedux = {}
+
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
 require('Config.Aliases')
 require('Core.LuaExtensions.ToString')
