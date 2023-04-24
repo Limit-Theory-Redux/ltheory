@@ -441,7 +441,7 @@ end
 
 function LTheoryRedux:exitGame ()
   -- Shut down game and exit
-  Sound.SetVolume(newSound, 0.0)
+  MusicPlayer:SetVolume(0)
 
   -- Write player-specific game variables to preserve them across gameplay sessions
   InitFiles:writeUserInits(self.window)
