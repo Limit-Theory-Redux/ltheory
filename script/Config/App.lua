@@ -33,6 +33,7 @@ Config.audio = {
   backLoop1      = "LTR_Parallax_Universe_loop.ogg",
   backLoop2      = "LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg",
   backLoop3      = "LTR_Explortation_Doodle.mp3",
+  backLoop4      = "LTR_Harmonic_Universe_Redux_Ambient.ogg",
 
   pulseFireName      = "",
   pulseFire          = nil,
@@ -181,10 +182,13 @@ Config.game = {
 
   playerDamageResistance = 1.0,
 
+  weaponGroup            = 1,
+
   enemies                = 0,
   friendlies             = 0,
   squadSizeEnemy         = 8,
   squadSizeFriendly      = 8,
+
   spawnDistance          = 2000,
   friendlySpawnCount     = 10,
   timeScaleShipEditor    = 0.0,
@@ -235,10 +239,16 @@ Config.econ = {
 }
 
 Config.ui = {
-  defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
+  defaultControl   = "Ship", -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
   controlBarHeight = 48,
-  HUDdisplayed     = true,
+  HudDisplayed     = 0,
+  SensorsDisplayed = true,
+  cursorSmooth     = "cursor/cursor1-small",
+  cursorSimple     = "cursor/Simple_Cursor",
+  cursor           = "cursor/Simple_Cursor",
+  cursorX          = 1,
+  cursorY          = 1,
 }
 
 Config.ui.color = {
@@ -249,6 +259,8 @@ Config.ui.color = {
   background        = Color(0.15, 0.15, 0.15, 1.0),
   backgroundInvert  = Color(0.85, 0.85, 0.85, 1.0),
   border            = Color(0.00, 0.40, 1.00, 0.3),
+  borderBright      = Color(1.00, 1.00, 1.00, 0.6),
+  borderDim         = Color(0.50, 0.50, 0.50, 0.4),
   fill              = Color(0.60, 0.60, 0.60, 1.0),
   textNormal        = Color(0.75, 0.75, 0.75, 1.0),
   textNormalFocused = Color(0.00, 0.00, 0.00, 1.0),
@@ -257,16 +269,18 @@ Config.ui.color = {
   textTitle         = Color(0.80, 0.80, 0.80, 0.8),
   debugRect         = Color(0.50, 1.00, 0.50, 0.1),
   selection         = Color(1.00, 0.50, 0.10, 1.0),
-  control           = Color(0.20, 0.90, 1.00, 0.7),
+  control           = Color(0.20, 0.90, 1.00, 1.0),
   controlFocused    = Color(0.20, 1.00, 0.20, 0.6),
   controlActive     = Color(0.14, 0.70, 0.14, 0.7),
   hologram          = Color(0.30, 0.40, 1.00, 0.8),
-  borderBright      = Color(1.00, 1.00, 1.00, 0.6),
-  borderDim         = Color(0.50, 0.50, 0.50, 0.4),
   ctrlCursor        = Color(0.20, 0.50, 1.00, 0.7),
   reticle           = Color(0.10, 0.30, 1.00, 0.6),
   windowBackground  = Color(0.00, 0.40, 1.00, 0.2),
   clientBackground  = Color(0.30, 0.30, 0.30, 0.0),
+  meterBar          = Color(0.10, 0.60, 1.00, 0.7),
+  meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
+  remainingBoost    = Color(0.70, 0.60, 0.10, 0.7),
+  remainingEnergy   = Color(1.00, 0.00, 0.00, 0.6),
 
 
   healthColor = {
@@ -460,6 +474,20 @@ Config.objectInfo = {
     }
   },
   {
+    ID = "station_classes",
+    name = "Station Classes",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Reserved"},
+      { 3, "Trade"},
+      { 4, "Market"},
+      { 5, "Depot"},
+      { 6, "Outpost"},
+      { 7, "Base"},
+      { 8, "Control"},
+    }
+  },
+  {
     ID = "ship_subtypes",
     name = "Ship Types",
     elems = {
@@ -468,22 +496,33 @@ Config.objectInfo = {
       { 3, "Fighter"},
       { 4, "Corvette"},
       { 5, "Frigate"},
-      { 6, "Monitor"},
-      { 7, "Destroyer"},
-      { 8, "Cruiser"},
-      { 9, "Battleship"},
-      {10, "Battlecruiser"},
-      {11, "Carrier"},
-      {12, "Yacht"},
-      {13, "Liner"},
-      {14, "Scout"},
-      {15, "Laboratory"},
-      {16, "Merchanter"},
-      {17, "Miner"},
-      {18, "Tanker"},
-      {19, "Transport"},
-      {20, "Ferry"},
-      {21, "Tug"},
+      { 6, "Destroyer"},
+      { 7, "Cruiser"},
+      { 8, "Battleship"},
+      { 9, "Courier"},
+      {10, "Trader"},
+      {11, "Merchanter"},
+      {12, "Freighter"},
+      {13, "BulkFreighter"},
+      {14, "FreighterMax"},
+      {15, "Miner"},
+      {16, "Prospector"},
+      {17, "Digger"},
+      {18, "Driller"},
+      {19, "Dredger"},
+      {20, "Excavator"},
+      {21, "Scout"},
+      {22, "Ranger"},
+      {23, "Seeker"},
+      {24, "Explorer"},
+      {25, "Wayfinder"},
+      {26, "Surveyor"},
+      {27, "Boat"},
+      {28, "Runabout"},
+      {29, "CabinCruiser"},
+      {30, "Sloop"},
+      {31, "Yacht"},
+      {32, "Liner"},
     }
   },
   {

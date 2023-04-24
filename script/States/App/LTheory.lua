@@ -21,6 +21,8 @@ function LTheory:generate ()
   self.system = System(self.seed)
   Config.game.currentSystem = self.system
 
+  Config.ui.HudDisplayed = Enums.HudModes.Tight
+
   local ship
   do -- Player Ship
     ship = self.system:spawnShip(self.player)
@@ -89,6 +91,25 @@ function LTheory:onUpdate (dt)
   -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
   if Input.GetPressed(Bindings.ToggleLights) then
     Config.render.pulseLights = not Config.render.pulseLights
+  end
+
+  -- Enable switching between weapon groups
+  if Input.GetPressed(Button.Keyboard.N1) and Config.game.weaponGroup ~= 1 then
+    Config.game.weaponGroup = 1
+  elseif Input.GetPressed(Button.Keyboard.N2) and Config.game.weaponGroup ~= 2 then
+    Config.game.weaponGroup = 2
+  elseif Input.GetPressed(Button.Keyboard.N3) and Config.game.weaponGroup ~= 3 then
+    Config.game.weaponGroup = 3
+  elseif Input.GetPressed(Button.Keyboard.N4) and Config.game.weaponGroup ~= 4 then
+    Config.game.weaponGroup = 4
+  elseif Input.GetPressed(Button.Keyboard.N5) and Config.game.weaponGroup ~= 5 then
+    Config.game.weaponGroup = 5
+  elseif Input.GetPressed(Button.Keyboard.N6) and Config.game.weaponGroup ~= 6 then
+    Config.game.weaponGroup = 6
+  elseif Input.GetPressed(Button.Keyboard.N7) and Config.game.weaponGroup ~= 7 then
+    Config.game.weaponGroup = 7
+  elseif Input.GetPressed(Button.Keyboard.N8) and Config.game.weaponGroup ~= 8 then
+    Config.game.weaponGroup = 8
   end
 
   self.player:getRoot():update(dt)

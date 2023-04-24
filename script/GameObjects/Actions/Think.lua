@@ -56,6 +56,7 @@ if true then -- Use payout, not flow
     local root = asset:getRoot()
     local bestPayout = 0
     local bestJob = nil
+    local jobAssigned = false
 
     -- Consider re-running last job
     if asset.job then
@@ -86,18 +87,27 @@ asset:getName(), job:getName(), payout)
 
     -- Maybe assign a new or reassign an old job
     if bestJob and bestPayout > 0 then -- if asset has no capacity left, bestPayout should be 0
-      asset.job = bestJob
       -- Don't assign an old job if it can no longer be completed because a required station was destroyed
+      asset.job = bestJob
       if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
           (not string.find(asset.job:getName(), "Transport") or
           (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
 printf("THINK: pushing job '%s' to %s with bestPayout = %d", asset.job:getName(), asset:getName(), bestPayout)
         asset:pushAction(bestJob)
+        jobAssigned = true
+
         -- Place offer for the best job's bids to reserve them
         asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
-        -- If buying, place offer for the best job's asks to reserve them (must be after addBidOffer() to use asset.job.jcount)
-        if string.find(asset.job:getName(), "Transport") then -- ugly way to insure this is a job whose source is a Trader
+
+        -- Make some updates based on the type of job being assigned to this asset
+        if string.find(asset.job:getName(), "Transport") then
+          -- Job is a Trade job
+          -- Reserve best job's asks (must be after addBidOffer() to use asset.job.jcount)
           asset.job.src:getTrader():addAskOffer(asset)
+          asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Trader"))
+        elseif string.find(asset.job:getName(), "Mine") then
+          -- Job is a Mine job
+          asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Miner"))
         end
 
         -- Wake up asset if it was sleeping and make sure it undocks
@@ -110,6 +120,7 @@ asset:getName(), asset:getOwner():getName(), station:getName())
       else
         -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
 printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())
+        asset.job = nil
       end
     end
 
@@ -127,6 +138,11 @@ asset:getName(), asset:getOwner():getName(), asset:getInventoryFree(), station:g
         asset:clearActions()
         asset:pushAction(Actions.DockAt(station))
       end
+    end
+
+    if not jobAssigned then
+      -- Asset has no job, so revert to default role and store in ship subtype
+      asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Fighter"))
     end
   end
 end

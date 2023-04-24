@@ -1,7 +1,8 @@
 `      -- [backquote] enable flight mode overlay panels (currently switches to Debug panel by default)
 Space  -- pause and unpause the game (flight mode)
 Tab    -- toggle star system tactical map on/off
-Return -- Activate the overly mode for the icon currently focused on
+Return -- Activate the overlay mode for the icon currently focused on
+1 - 8  -- select a weapon group (can't change what's in a group yet, this is just selection)
 F1     -- [TBD] Activate Flight Mode
 F2     -- [TBD] Activate Debug Mode
 F3     -- [TBD] Activate Fleet Command Mode
@@ -18,6 +19,7 @@ K      -- toggle the realtime metrics overlay on/off
 L      -- toggle the dynamic lighting on/off (default is OFF, heavy performance cost)
 M      -- toggle autopilot: click on a target (in world view or System Map), then press this key to fly there
 T      -- toggles target lock on when hovering over a targetable object in Flight Mode view
-V      -- toggle parts of the HUD off and back on again
+V      -- toggle the HUD off and back on again
+Z      -- toggle sensors display on/off
 Ctrl-W -- immediately exit game
 Alt-Q  -- immediately exit game

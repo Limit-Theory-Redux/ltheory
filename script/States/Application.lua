@@ -49,8 +49,7 @@ function Application:run ()
 --  Config.paths.files = SDL_GetPrefPath(Config.org, Config.app)
 
   -- Set the default game control cursor
-  self.window:setCursor('cursor/Simple_Cursor', 0, 0)
---  self.window:setCursor('cursor/cursor1-small', 1, 1)
+  self.window:setCursor(Config.ui.cursor, Config.ui.cursorX, Config.ui.cursorY)
 
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -104,7 +103,6 @@ function Application:run ()
       Profiler.Begin('App.onInput')
 
       -- Immediately quit game without saving
-      -- TODO : Remove this once bindings are fixed
       if Input.GetKeyboardCtrl() and Input.GetPressed(Button.Keyboard.W) then self:quit() end
       if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end

@@ -10,6 +10,9 @@ Core.Call(function ()
   GlobalRestrict.On()
 
   dofile('./script/Config/App.lua')
+  dofile('./script/Enums/MusicEnums.lua')
+  dofile('./script/Enums/HudEnums.lua')
+  dofile('./script/Enums/RoleClassEnums.lua')
   dofile('./script/Enums/JobEnums.lua')
   dofile('./script/Enums/MenuEnums.lua')
 

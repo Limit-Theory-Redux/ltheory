@@ -126,6 +126,24 @@ function InitFiles:readUserInits ()
           data = stringToBoolean[text]
           Config.gen.uniqueShips = data
         end
+      elseif string.find(string.lower(line), "cursor") then
+        eIndex = string.find(line, "=")
+        if eIndex then
+          text = string.lower(string.sub(line, eIndex + 1))
+          text = string.gsub(text, "^%s*(.-)%s*$", "%1")
+          if string.match(text, "simple") then
+            Config.ui.cursor = Config.ui.cursorSimple
+          elseif string.match(text, "smooth") then
+            Config.ui.cursor = Config.ui.cursorSmooth
+          end
+        end
+      elseif string.find(string.lower(line), "shipname") then
+        eIndex = string.find(line, "=")
+        if eIndex then
+          text = string.sub(line, eIndex + 1)
+          text = string.gsub(text, "^%s*(.-)%s*$", "%1")
+          Config.game.humanPlayerShipName = text
+        end
       end
     end
   end
@@ -137,6 +155,13 @@ function InitFiles:writeUserInits (window)
   local filename = Config.userInitFilename
   local filepath = Config.paths.files
   local file = io.open(filepath .. filename, "w")
+
+  -- NOTE: Update this section as new cursors are added
+  -- TODO: Functionalize this with config values
+  local cursorType = "simple"
+  if Config.ui.cursor == Config.ui.cursorSmooth then
+    cursorType = "smooth"
+  end
 
   -- Sets the input file for writing
   io.output(file)
@@ -160,6 +185,11 @@ function InitFiles:writeUserInits (window)
   io.write(format("nEconNPCs=%s",    Config.gen.nEconNPCs), "\n")
   io.write(format("nEscortNPCs=%s",  Config.gen.nEscortNPCs), "\n")
   io.write(format("uniqueShips=%s",  Config.gen.uniqueShips), "\n")
+  io.write("[UI]", "\n")
+  io.write(format("cursor=%s",       cursorType), "\n")
+  io.write(format("hud=%s",          "tight"), "\n")
+  io.write("[Game]", "\n")
+  io.write(format("shipname=%s",     Config.game.humanPlayerShipName), "\n")
 
   -- Closes the open file
   io.close(file)
