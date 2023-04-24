@@ -6,6 +6,8 @@ Config.gameVersion = "v0.008"
 
 Config.userInitFilename = "user.ini"
 
+Config.timeToResetToSplashscreen = 60
+
 Config.render = {
   startingHorz   = 1600, -- 1600 (default), or 2400 (high DPI)
   startingVert   =  900, --  900 (default), or 2048 (high DPI)
@@ -20,10 +22,12 @@ Config.render = {
 }
 
 Config.audio = {
+  mainMenuMusicEnabled = true,
   bSoundOn  = false,
   soundMin  = 0,
   soundMax  = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
 
+  mainMenu       = "LTR_Main_Menu.ogg",
   backLoop1      = "LTR_Parallax_Universe_loop.ogg",
   backLoop2      = "LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg",
   backLoop3      = "LTR_Explortation_Doodle.mp3",
@@ -40,8 +44,8 @@ Config.audio = {
 
 Config.paths = {
   files         = "./", -- base directory until environment-agnostic path is available
-  soundAmbiance = "./res/sound/system/audio/",
-  soundEffects  = "./res/sound/system/audio/",
+  soundAmbiance = "./res/sound/system/audio/music/",
+  soundEffects  = "./res/sound/system/audio/fx/",
 }
 
 Config.debug = {
