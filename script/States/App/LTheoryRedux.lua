@@ -417,6 +417,8 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
     if Config.getGameMode() == 2 then
       MusicPlayer:PlayAmbient()
     end
+
+    Mouse.SetPosition(self.resX / 2, self.resY / 2)
 end
 
 function LTheoryRedux:insertShip(ourShip)
