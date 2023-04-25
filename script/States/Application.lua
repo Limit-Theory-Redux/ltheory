@@ -52,9 +52,6 @@ function Application:run ()
   self.window:setCursor('cursor/Simple_Cursor', 0, 0)
 --  self.window:setCursor('cursor/cursor1-small', 1, 1)
 
-  -- confine mouse to window
-  self.window:setWindowGrab(true)
-
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
   Preload.Run()
@@ -69,6 +66,10 @@ function Application:run ()
   if Config.jit.dumpasm then Jit.StartDump() end
   if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
   if Config.jit.verbose then Jit.StartVerbose() end
+
+  -- confine mouse to window
+  self.window:setMousePosition(self.resX / 2, self.resY / 2)
+  self.window:setWindowGrab(true)
 
   local profiling = false
   local toggleProfiler = false
