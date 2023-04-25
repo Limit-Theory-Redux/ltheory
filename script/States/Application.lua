@@ -6,7 +6,7 @@ local Application = class(function (self) end)
 
 function Application:getDefaultSize ()
 --  return 1600, 900
-  return Config.render.startingHorz, Config.render.startingVert
+  return Config.render.defaultResX, Config.render.defaultResY
 end
 
 function Application:getTitle () return
@@ -42,7 +42,7 @@ function Application:run ()
 
   self.exit = false
 
-  self.window:setVsync(Config.render.vsync)
+  self.window:setVsync(GameState.render.vsync)
 
   -- When the function to get an environment-agnostic path for storing/loading
   --     game files becomes available, use it here to set that path value
@@ -87,9 +87,9 @@ function Application:run ()
       if size.x ~= self.resX or size.y ~= self.resY then
         self.resX = size.x
         self.resY = size.y
-        if not Config.render.fullscreen then
-          Config.render.resXnew = self.resX
-          Config.render.resYnew = self.resY
+        if not GameState.render.fullscreen then
+          GameState.render.resX = self.resX
+          GameState.render.resY = self.resY
         end
         self:onResize(self.resX, self.resY)
       end
@@ -123,7 +123,7 @@ function Application:run ()
 
       if Input.GetPressed(Bindings.ToggleFullscreen) then
         self.window:toggleFullscreen()
-        Config.render.fullscreen = not Config.render.fullscreen
+        GameState.render.fullscreen = not GameState.render.fullscreen
       end
 
       if Input.GetPressed(Bindings.Reload) then
@@ -134,14 +134,14 @@ function Application:run ()
         Profiler.End()
       end
 
-      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() == 2 then
-        if Config.game.gamePaused then
-          Config.game.gamePaused = false
-          if not Config.game.panelActive then
+      if Input.GetPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
+        if GameState.paused then
+          GameState.paused = false
+          if not GameState.panelActive then
             Input.SetMouseVisible(false)
           end
         else
-          Config.game.gamePaused = true
+          GameState.paused = true
           Input.SetMouseVisible(true)
         end
       end
@@ -152,7 +152,7 @@ function Application:run ()
 --        Config.game.gamePaused = true
 --      end
 
-      if Config.game.gamePaused then
+      if GameState.paused then
         timeScale = 0.0
       else
         timeScale = 1.0
@@ -167,7 +167,7 @@ function Application:run ()
       end
 
       if Input.GetPressed(Bindings.ToggleMetrics) then
-        Config.debug.metrics = not Config.debug.metrics
+        GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
       end
 
       self:onInput()
@@ -192,7 +192,7 @@ function Application:run ()
       Profiler.End()
     end
 
-    if Config.getGameMode() ~= 1 then
+    if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
       UI.DrawEx.TextAdditive(
         'NovaRound',
         "EXPERIMENTAL BUILD - NOT FINAL!",
@@ -202,7 +202,7 @@ function Application:run ()
         0.50, 0.07
       )
 
-      if Config.game.gamePaused then
+      if GameState.paused then
         UI.DrawEx.TextAdditive(
           'NovaRound',
           "[PAUSED]",
@@ -224,7 +224,7 @@ function Application:run ()
     end
 
     do -- Metrics display
-      if Config.debug.metrics then -- Metrics Display
+      if GameState.debug.metricsEnabled then -- Metrics Display
         local s = string.format(
           '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
           1000.0 * self.dt,

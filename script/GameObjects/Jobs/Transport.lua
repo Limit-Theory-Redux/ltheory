@@ -90,7 +90,7 @@ function Transport:getTravelTime (e)
 end
 
 function Transport:onUpdateActive (e, dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     Profiler.Begin('Actions.Transport.onUpdateActive')
     if not e.jobState then e.jobState = Enums.JobStateTransport.None end
     e.jobState = e.jobState + 1

@@ -19,12 +19,12 @@ function LTheory:generate ()
 
   if self.system then self.system:delete() end
   self.system = System(self.seed)
-  Config.game.currentSystem = self.system
+  GameState.world.currentSystem = self.system
 
   local ship
   do -- Player Ship
     ship = self.system:spawnShip(self.player)
-    ship:setName(Config.game.humanPlayerShipName)
+    ship:setName(GameState.player.humanPlayerShipName)
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)
@@ -32,7 +32,7 @@ function LTheory:generate ()
     ship:setHealth(400, 400, 10)
     self.system:addChild(ship)
     self.player:setControlling(ship)
-    Config.game.currentShip = ship
+    GameState.player.currentShip = ship
 
     local ships = {}
     for i = 1, 100 do
@@ -67,6 +67,10 @@ function LTheory:generate ()
 end
 
 function LTheory:onInit ()
+  --* Audio initializations *--
+  Audio.Init()
+  Audio.Set3DSettings(0.0, 10, 2);
+
   self.player = Player("LTheory Player")
   self:generate()
 
@@ -88,7 +92,7 @@ function LTheory:onUpdate (dt)
   -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
   -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
   if Input.GetPressed(Bindings.ToggleLights) then
-    Config.render.pulseLights = not Config.render.pulseLights
+    GameState.render.pulseLights = not GameState.render.pulseLights
   end
 
   self.player:getRoot():update(dt)

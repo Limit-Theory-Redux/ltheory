@@ -20,7 +20,7 @@ end)
 -- NOTE : In particular, the evaluation of Mining jobs becomes very expensive as
 --        asteroid count (Yield) and station/planet count (Market) increase.
 function Economy:update (dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
 --    Profiler.Begin('Economy.Update')
     Profiler.Begin('Economy.Update.tableclear')
     table.clear(self.factories)

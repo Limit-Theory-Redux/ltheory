@@ -56,7 +56,7 @@ function Thruster:update (state)
   self.time = self.time + state.dt
 
   -- Add local lighting based on ship's thruster activation
-  if Config.render.thrusterLights and self.parentShip:hasLight() then
+  if GameState.render.thrusterLights and self.parentShip:hasLight() then
     self.parentShip:setLight((0.2 + (1.9 * self.boost)) * abs(self.activation) * 2,
                              (0.8 + (0.3 * self.boost)) * abs(self.activation) * 2,
                              (3.0 - (2.4 * self.boost)) * abs(self.activation) * 2)

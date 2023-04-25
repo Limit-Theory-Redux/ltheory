@@ -15,7 +15,7 @@ end)
 
 function Yield:update (dt)
   -- Gradually increase yield by 1 after a cooldown timer expires
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     Profiler.Begin("Yield.update")
     if self.size < self.maxSize then
       -- Someone has mined from here, so start the cooldown timer for respawning item

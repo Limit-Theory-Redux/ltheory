@@ -34,25 +34,23 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1)) -- get all text after the equals sign and lowercase it
           text = string.gsub(text, "^%s*(.-)%s*$", "%1") -- in a non-Lua language, this would be "trim whitespace"
           data = stringToBoolean[text]
-          Config.audio.bSoundOn = data
+          GameState.audio.enabled = data
         end
-      elseif string.find(string.lower(line), "startinghorz") then
+      elseif string.find(string.lower(line), "defaultResX") then
         eIndex = string.find(line, "=")
         if eIndex then
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.render.startingHorz = data
-          Config.render.resXnew = data
+          GameState.render.resX = data
         end
-      elseif string.find(string.lower(line), "startingvert") then
+      elseif string.find(string.lower(line), "defaultResY") then
         eIndex = string.find(line, "=")
         if eIndex then
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.render.startingVert = data
-          Config.render.resYnew = data
+          GameState.render.resY = data
         end
       elseif string.find(string.lower(line), "fullscreen") then
         eIndex = string.find(line, "=")
@@ -60,7 +58,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = stringToBoolean[text]
-          Config.render.fullscreen = data
+          GameState.render.fullscreen = data
         end
       elseif string.find(string.lower(line), "nfields") then
         eIndex = string.find(line, "=")
@@ -146,11 +144,11 @@ function InitFiles:writeUserInits (window)
   -- TODO: convert this into a table-driven process
   local size = window:getSize()
   io.write("[Audio]", "\n")
-  io.write(format("sound=%s",        Config.audio.bSoundOn), "\n")
+  io.write(format("sound=%s",        GameState.audio.enabled), "\n")
   io.write("[Graphics]", "\n")
-  io.write(format("startingHorz=%s", Config.render.resXnew), "\n")
-  io.write(format("startingVert=%s", Config.render.resYnew), "\n")
-  io.write(format("fullscreen=%s",   Config.render.fullscreen), "\n")
+  io.write(format("startingHorz=%s", GameState.render.resX), "\n")
+  io.write(format("startingVert=%s", GameState.render.resY), "\n")
+  io.write(format("fullscreen=%s",   GameState.render.fullscreen), "\n")
   io.write("[Generation]", "\n")
   io.write(format("nFields=%s",      Config.gen.nFields), "\n")
   io.write(format("nAsteroids=%s",   Config.gen.nAsteroids), "\n")

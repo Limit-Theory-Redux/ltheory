@@ -44,7 +44,7 @@ function TestEcon:onInit ()
   -- Generate new universe for economic testing
   self.canvas = UI.Canvas()
   self.system = Entities.Test.System(rng:get64())
-  Config.game.currentSystem = self.system
+  GameState.world.currentSystem = self.system
 
   -- Add system-wide AI director (but don't insert into system's list of players)
   self.tradeAI = Entities.Player("AI Trade Player")
@@ -56,8 +56,8 @@ function TestEcon:onInit ()
 
   -- Use repeat ship builds, fast movement, and hyperspeedup for economic testing
   Config.gen.uniqueShips       = false
-  Config.debug.instantJobs     = true
-  Config.debug.timeAccelFactor = 100
+  GameState.debug.instantJobs  = true
+  GameState.debug.timeAccelFactor = 100
 
   -- Add AI Players (these will control assets directly)
   for i = 1, kPlayers do

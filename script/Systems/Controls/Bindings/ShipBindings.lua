@@ -61,7 +61,7 @@ local self = {
   SquadScramble     = Control.GamepadButton(Button.Gamepad.Down):delta(),
 }
 
-if Config.game.invertPitch then
+if GameState.input.invertPitch then
   self.Pitch = self.Pitch:invert()
 end
 

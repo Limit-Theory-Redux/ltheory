@@ -27,6 +27,7 @@ Core = {}
 Render = {}
 Config = {}
 Enums = {}
+GameState = {}
 
 -- Application
 LTheoryRedux = {}

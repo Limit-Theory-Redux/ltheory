@@ -86,7 +86,7 @@ function HUD:controlTargetLock (e)
 end
 
 function HUD:drawTargets (a)
-  if not Config.ui.showTrackers then return end
+  if not GameState.ui.showTrackers then return end
   local camera = self.gameView.camera
 
   local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
@@ -300,7 +300,7 @@ function HUD:drawReticle (a)
     end
 
     -- Flight mode cursor
-    if not Config.game.panelActive then
+    if not GameState.panelActive then
       local c = Config.ui.color.ctrlCursor
 --      local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
       local x = cx + 0.5 * self.sx * self.aimX
@@ -519,7 +519,7 @@ function HUD:drawDockPrompt (a)
 end
 
 function HUD:onInput (state)
-  if not Config.game.gamePaused and not Config.game.panelActive then
+  if not GameState.paused and not GameState.panelActive then
     local camera = self.gameView.camera
     camera:push()
     camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
@@ -549,9 +549,9 @@ function HUD:onInput (state)
 end
 
 function HUD:onUpdate (state)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     if Input.GetPressed(Bindings.ToggleHUD) then
-      Config.ui.HUDdisplayed = not Config.ui.HUDdisplayed
+      GameState.ui.displayHUD = not GameState.ui.displayHUD
     end
 
     self.targets:update()
@@ -604,7 +604,7 @@ end
 function HUD:onDraw (focus, active)
   local playerShip = self.player:getControlling()
   if playerShip:isAlive() then
-    if Config.ui.HUDdisplayed then
+    if GameState.ui.displayHUD then
       Profiler.Begin('HUD.DrawTargets')      self:drawTargets     (self.enabled) Profiler.End()
       Profiler.Begin('HUD.DrawLock')         self:drawLock        (self.enabled) Profiler.End()
       Profiler.Begin('HUD.DrawPlayerHealth') self:drawPlayerHealth(self.enabled) Profiler.End()

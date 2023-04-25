@@ -132,7 +132,7 @@ asset:getName(), asset:getOwner():getName(), asset:getInventoryFree(), station:g
 end
 
 function Think:onUpdateActive (e, dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     Profiler.Begin('Action.Think')
     do -- manage assets
       -- TODO: route planning for efficiency (but avoid TSP!)
