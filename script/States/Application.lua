@@ -19,11 +19,10 @@ end
 
 function Application:onInit         ()       end
 function Application:onDraw         ()       end
-function Application:onResize       (sx, sy) 
+function Application:onResize       (sx, sy)
   self.window:setWindowGrab(true)
   self.window:setMousePosition(self.resX / 2, self.resY / 2)
 end
-function Application:onResizeEnd    (sx, sy) end
 function Application:onUpdate       (dt)     end
 function Application:onExit         ()       end
 function Application:onInput        ()       end
