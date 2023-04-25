@@ -82,7 +82,7 @@ void Window_SetVsync (Window*, bool vsync) {
 }
 
 void Window_SetWindowGrab (Window* self, bool grabbed) {
-  SDL_SetWindowGrab(self->handle, grabbed)
+  SDL_SetWindowGrab(self->handle, grabbed ? 1 : 0);
 }
 
 void Window_SetCursor(Window* self, cstr name, int hotx, int hoty) {
