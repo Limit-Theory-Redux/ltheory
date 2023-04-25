@@ -413,10 +413,12 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
     )
 
-    -- temporary until game states are properly introduced
-    if Config.getGameMode() == 2 then
-      MusicPlayer:PlayAmbient()
-    end
+  -- temporary until game states are properly introduced
+  if Config.getGameMode() == 2 then
+    MusicPlayer:PlayAmbient()
+  end
+
+  Input.SetMousePosition(self.resX / 2, self.resY / 2)
 end
 
 function LTheoryRedux:insertShip(ourShip)
