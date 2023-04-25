@@ -12,10 +12,6 @@ do -- C Definitions
     int    Mouse_GetScroll         ();
     void   Mouse_SetPosition       (int, int);
     void   Mouse_SetVisible        (bool);
-
-    bool   Mouse_Down              (MouseButton);
-    bool   Mouse_Pressed           (MouseButton);
-    bool   Mouse_Released          (MouseButton);
   ]]
 end
 
@@ -28,9 +24,6 @@ do -- Global Symbol Table
     GetScroll = libphx.Mouse_GetScroll,
     SetPosition = libphx.Mouse_SetPosition,
     SetVisible = libphx.Mouse_SetVisible,
-    MouseDown = libphx.Mouse_Down,
-    MousePressed = libphx.Mouse_Pressed,
-    MouseReleased = libphx.Mouse_Released,
   }
 
   if onDef_Mouse then onDef_Mouse(Mouse, mt) end
