@@ -52,6 +52,9 @@ function Application:run ()
   self.window:setCursor('cursor/Simple_Cursor', 0, 0)
 --  self.window:setCursor('cursor/cursor1-small', 1, 1)
 
+  -- confine mouse to window
+  self.window:setWindowGrab(true)
+
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
   Preload.Run()
