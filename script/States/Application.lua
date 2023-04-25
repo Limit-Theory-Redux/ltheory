@@ -20,6 +20,10 @@ end
 function Application:onInit         ()       end
 function Application:onDraw         ()       end
 function Application:onResize       (sx, sy) end
+function Application:onResizeEnd    (sx, sy)
+  self.window:setWindowGrab(true)
+  self.window:setMousePosition(self.resX / 2, self.resY / 2)
+end
 function Application:onUpdate       (dt)     end
 function Application:onExit         ()       end
 function Application:onInput        ()       end
@@ -88,14 +92,21 @@ function Application:run ()
       Profiler.SetValue('gcmem', GC.GetMemory())
       Profiler.Begin('App.onResize')
       local size = self.window:getSize()
-      if size.x ~= self.resX or size.y ~= self.resY then
+      self.window:setWindowGrab(false)
+      while size.x ~= self.resX and Input.GetDown(Button.Mouse.Left) or size.y ~= self.resY and Input.GetDown(Button.Mouse.Left) do
         self.resX = size.x
         self.resY = size.y
+        self.resizing = true
         if not Config.render.fullscreen then
           Config.render.resXnew = self.resX
           Config.render.resYnew = self.resY
         end
         self:onResize(self.resX, self.resY)
+      end
+      if self.resizing and not Input.GetDown(Button.Mouse.Left) and size.x == self.resX
+      and not Input.GetDown(Button.Mouse.Left) and size.y == self.resY then
+        self.resizing = false
+        self:onResizeEnd(self.resX, self.resY)
       end
       Profiler.End()
     end
@@ -138,7 +149,7 @@ function Application:run ()
         Profiler.End()
       end
 
-      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() == 2 then
+      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() == 2 and not Config.game.flightModeButInactive then
         if Config.game.gamePaused then
           Config.game.gamePaused = false
           if not Config.game.panelActive then
@@ -158,8 +169,10 @@ function Application:run ()
 
       if Config.game.gamePaused then
         timeScale = 0.0
+        self.window:setWindowGrab(false)
       else
         timeScale = 1.0
+        self.window:setWindowGrab(true)
       end
 
       if Input.GetDown(Bindings.TimeAccel) then
