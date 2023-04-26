@@ -77,10 +77,8 @@ cstr Directory_GetPrefPath (cstr orgStr, cstr appStr) {
   const char *org = orgStr;
   const char *app = appStr;
   const char *path = SDL_GetPrefPath(org, app);
-  static char buffer[512];
-  snprintf(buffer, (size_t) Array_GetSize(buffer), path);
 
-  return buffer;
+  return path;
 }
 
 bool Directory_Remove (cstr path) {
