@@ -128,7 +128,6 @@ function LTheoryRedux:onUpdate (dt)
   -- Manage game control screens
   if MainMenu.currentMode ~= Enums.MenuMode.Splashscreen and Input.GetPressed(Bindings.Escape) then
     MainMenu:SetBackgroundMode(false)
-    Input.SetMouseVisible(true)
     if Config.getGameMode() == 1 then
       MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
     else
@@ -139,7 +138,13 @@ function LTheoryRedux:onUpdate (dt)
         MainMenu:SetMenuMode(Enums.MenuMode.Dialog) -- show Flight Mode dialog
       elseif MainMenu.currentMode == Enums.MenuMode.Dialog and not MainMenu.seedDialogDisplayed then
         Config.game.flightModeButInactive = not Config.game.flightModeButInactive
-        Config.game.gamePaused = Config.game.flightModeButInactive
+        Input.SetMouseVisible(Config.game.flightModeButInactive)
+
+        if Config.game.flightModeButInactive then
+          Config.game.gamePaused = true
+        else
+          Config.game.gamePaused = false
+        end
       end
     end
   end
@@ -413,10 +418,12 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
     )
 
-    -- temporary until game states are properly introduced
-    if Config.getGameMode() == 2 then
-      MusicPlayer:PlayAmbient()
-    end
+  -- temporary until game states are properly introduced
+  if Config.getGameMode() == 2 then
+    MusicPlayer:PlayAmbient()
+  end
+
+  Input.SetMousePosition(self.resX / 2, self.resY / 2)
 end
 
 function LTheoryRedux:insertShip(ourShip)

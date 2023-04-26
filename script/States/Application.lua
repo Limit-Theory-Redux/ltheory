@@ -19,7 +19,10 @@ end
 
 function Application:onInit         ()       end
 function Application:onDraw         ()       end
-function Application:onResize       (sx, sy) end
+function Application:onResize       (sx, sy)
+  self.window:setWindowGrab(true)
+  self.window:setMousePosition(self.resX / 2, self.resY / 2)
+end
 function Application:onUpdate       (dt)     end
 function Application:onExit         ()       end
 function Application:onInput        ()       end
@@ -67,6 +70,10 @@ function Application:run ()
   if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
   if Config.jit.verbose then Jit.StartVerbose() end
 
+  -- confine mouse to window
+  self.window:setMousePosition(self.resX / 2, self.resY / 2)
+  self.window:setWindowGrab(true)
+
   local profiling = false
   local toggleProfiler = false
   while not self.exit do
@@ -84,6 +91,7 @@ function Application:run ()
       Profiler.SetValue('gcmem', GC.GetMemory())
       Profiler.Begin('App.onResize')
       local size = self.window:getSize()
+      self.window:setWindowGrab(false)
       if size.x ~= self.resX or size.y ~= self.resY then
         self.resX = size.x
         self.resY = size.y
@@ -134,7 +142,7 @@ function Application:run ()
         Profiler.End()
       end
 
-      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() == 2 then
+      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() == 2 and not Config.game.flightModeButInactive then
         if Config.game.gamePaused then
           Config.game.gamePaused = false
           if not Config.game.panelActive then
@@ -154,8 +162,10 @@ function Application:run ()
 
       if Config.game.gamePaused then
         timeScale = 0.0
+        self.window:setWindowGrab(false)
       else
         timeScale = 1.0
+        self.window:setWindowGrab(true)
       end
 
       if Input.GetDown(Bindings.TimeAccel) then
