@@ -45,7 +45,7 @@ Config.audio = {
 }
 
 Config.paths = {
-  files         = "./", -- base directory until environment-agnostic path is available
+  files         = Directory.GetPrefPath(Config.org, Config.app), -- base directory until environment-agnostic path is available
   soundAmbiance = "./res/sound/system/audio/music/",
   soundEffects  = "./res/sound/system/audio/fx/",
 }
