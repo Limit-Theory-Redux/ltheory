@@ -46,7 +46,7 @@ function Application:run ()
 
   -- When the function to get an environment-agnostic path for storing/loading
   --     game files becomes available, use it here to set that path value
---  Config.paths.files = SDL_GetPrefPath(Config.org, Config.app)
+  Config.paths.files = tostring(Directory.GetPrefPath(Config.org, Config.app)):gsub('%"', '')
 
   -- Set the default game control cursor
   self.window:setCursor('cursor/Simple_Cursor', 0, 0)
