@@ -212,7 +212,7 @@ function LTheoryRedux:onUpdate (dt)
 
   -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
   if Input.GetPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then
-    bNewSSystem = true
+    LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu)
   end
 
   -- If player pressed the "toggle audio" key, turn it off if it's on or on if it's off
