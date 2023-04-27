@@ -142,11 +142,11 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           if string.match(text, "tight") then
-            Config.ui.hudDisplayed = Enums.HudModes.Tight
+            GameState.ui.displayHUD = Enums.HudModes.Tight
           elseif string.match(text, "balanced") then
-            Config.ui.hudDisplayed = Enums.HudModes.Balanced
+            GameState.ui.displayHUD = Enums.HudModes.Balanced
           elseif string.match(text, "wide") then
-            Config.ui.hudDisplayed = Enums.HudModes.Wide
+            GameState.ui.displayHUD = Enums.HudModes.Wide
           end
         end
       elseif string.find(string.lower(line), "shipname") then

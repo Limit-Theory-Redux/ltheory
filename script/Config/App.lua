@@ -45,9 +45,7 @@ Config.audio = {
 }
 
 Config.paths = {
-  files         = "./", -- base directory until environment-agnostic path is available
-  enums         = "./script/Enums/",
-  types         = "./script/Types/",
+  files         = Directory.GetPrefPath(Config.org, Config.app), -- base directory using environment-agnostic path
   soundAmbiance = "./res/sound/system/audio/music/",
   soundEffects  = "./res/sound/system/audio/fx/",
 }
@@ -229,7 +227,13 @@ Config.ui = {
   defaultControl   = "Background", -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
   controlBarHeight = 48,
-  displayHUD       = true,
+  displayHUD       = Enums.HudModes.Wide,
+  displaySensors   = true,
+  cursorSmooth     = "cursor/cursor1-small",
+  cursorSimple     = "cursor/Simple_Cursor",
+  cursor           = "cursor/Simple_Cursor",
+  cursorX          = 1,
+  cursorY          = 1,
 }
 
 Config.ui.color = {
@@ -260,7 +264,6 @@ Config.ui.color = {
   clientBackground  = Color(0.30, 0.30, 0.30, 0.0),
   meterBar          = Color(0.10, 0.60, 1.00, 0.7),
   meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
-  meterBarOver      = Color(1.00, 0.30, 0.00, 0.6),
   remainingBoost    = Color(1.00, 0.50, 0.00, 0.7),
   remainingEnergy   = Color(0.50, 0.00, 1.00, 0.7),
 

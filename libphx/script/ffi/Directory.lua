@@ -18,14 +18,13 @@ end
 
 do -- Global Symbol Table
   Directory = {
-    Open          = libphx.Directory_Open,
-    Close         = libphx.Directory_Close,
-    GetNext       = libphx.Directory_GetNext,
-    Change        = libphx.Directory_Change,
-    Create        = libphx.Directory_Create,
-    GetCurrent    = libphx.Directory_GetCurrent,
-    GetPrefPath   = libphx.Directory_GetPrefPath,
-    Remove        = libphx.Directory_Remove,
+    Open       = libphx.Directory_Open,
+    Close      = libphx.Directory_Close,
+    GetNext    = libphx.Directory_GetNext,
+    Change     = libphx.Directory_Change,
+    Create     = libphx.Directory_Create,
+    GetCurrent = libphx.Directory_GetCurrent,
+    Remove     = libphx.Directory_Remove,
   }
 
   if onDef_Directory then onDef_Directory(Directory, mt) end
