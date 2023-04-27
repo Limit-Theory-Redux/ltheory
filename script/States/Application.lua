@@ -47,10 +47,6 @@ function Application:run ()
 
   self.window:setVsync(Config.render.vsync)
 
-  -- When the function to get an environment-agnostic path for storing/loading
-  --     game files becomes available, use it here to set that path value
---  Config.paths.files = SDL_GetPrefPath(Config.org, Config.app)
-
   -- Set the default game control cursor
   self.window:setCursor('cursor/Simple_Cursor', 0, 0)
 --  self.window:setCursor('cursor/cursor1-small', 1, 1)

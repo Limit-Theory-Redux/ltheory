@@ -5,20 +5,21 @@ function InitFiles:readUserInits ()
   -- TODO: Encase io.xxx functions in local wrappers for security/safety
   local filename = Config.userInitFilename
   local filepath = Config.paths.files
-  local file = io.open(filepath .. filename, "r")
-  if file then
+  local openedFile = io.open(filepath..filename, "r")
+
+  if openedFile then
     local lines = {}
 
     -- Sets the input file for reading
-    io.input(file)
+    io.input(openedFile)
 
     -- Reads all lines from the file
-    for line in io.lines(filename) do
+    for line in openedFile.lines(openedFile) do
       lines[#lines + 1] = line
     end
 
     -- Closes the open file
-    io.close(file)
+    io.close(openedFile)
 
     -- Scan all lines and apply values to matched game values
     -- NOTE: This is a naive early implementation -- not intended to be production-ready

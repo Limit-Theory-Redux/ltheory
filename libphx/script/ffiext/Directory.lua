@@ -61,4 +61,6 @@ function onDef_Directory (t, mt)
     dir:close()
     return elems
   end
+
+  t.GetPrefPath = function (org, app) local path = libphx.Directory_GetPrefPath (org, app) return tostring(path):gsub('"', '') end
 end
