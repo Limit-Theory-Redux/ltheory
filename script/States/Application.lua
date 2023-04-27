@@ -82,6 +82,7 @@ function Application:run ()
       Profiler.SetValue('gcmem', GC.GetMemory())
       Profiler.Begin('App.onResize')
       local size = self.window:getSize()
+      self.window:setWindowGrab(false)
       if size.x ~= self.resX or size.y ~= self.resY then
         self.resX = size.x
         self.resY = size.y
@@ -133,7 +134,7 @@ function Application:run ()
         Profiler.End()
       end
 
-      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() == 2 then
+      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() == 2 and not Config.game.flightModeButInactive then
         if Config.game.gamePaused then
           Config.game.gamePaused = false
           if not Config.game.panelActive then
@@ -153,8 +154,10 @@ function Application:run ()
 
       if Config.game.gamePaused then
         timeScale = 0.0
+        self.window:setWindowGrab(false)
       else
         timeScale = 1.0
+        self.window:setWindowGrab(true)
       end
 
       if Input.GetDown(Bindings.TimeAccel) then
