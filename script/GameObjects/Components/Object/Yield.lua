@@ -81,6 +81,11 @@ function Entity:getYieldMax ()
   return self.yield.maxSize
 end
 
+function Entity:getYieldName ()
+  assert(self.yield)
+  return self.yield.item:getName()
+end
+
 function Entity:getYieldSize ()
   assert(self.yield)
   return self.yield.size

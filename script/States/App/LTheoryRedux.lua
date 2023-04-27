@@ -52,6 +52,9 @@ function LTheoryRedux:onInit ()
     self.window:toggleFullscreen()
   end
 
+  -- Set the default game control cursor
+  self.window:setCursor(Config.ui.cursor, Config.ui.cursorX, Config.ui.cursorY)
+
   self.player = Entities.Player(Config.game.humanPlayerName)
   Config.game.humanPlayer = self.player
   self:generate()
@@ -157,7 +160,7 @@ function LTheoryRedux:onUpdate (dt)
     end
   end
 
-  -- Engage autopilot if we're in flight mode
+  -- If in flight mode, engage autopilot
   if Input.GetPressed(Bindings.AutoNav) and MainMenu.currentMode == Enums.MenuMode.Dialog then
     if playerShip ~= nil then
       local target = playerShip:getTarget()
@@ -296,6 +299,7 @@ function LTheoryRedux:createStarSystem ()
       Config.game.gamePaused   = false
       Config.game.panelActive  = false
       Config.game.playerMoving = false
+      Config.game.weaponGroup  = 1
 
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, a visible pilotable ship, and possibly some NPC ships
@@ -406,7 +410,6 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
           tradePlayer:pushAction(Actions.Think())
         end
       end
-
     end
   end
 
@@ -418,12 +421,15 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
     )
 
-  -- temporary until game states are properly introduced
+  -- Temporary until game states are properly introduced
   if Config.getGameMode() == 2 then
     MusicPlayer:PlayAmbient()
   end
 
+  -- Set the initial mouse position when Flight mode begins to the center of the game window
+  self.window:setWindowGrab(true)
   Input.SetMousePosition(self.resX / 2, self.resY / 2)
+  self.window:setWindowGrab(false)
 end
 
 function LTheoryRedux:insertShip(ourShip)
@@ -451,7 +457,7 @@ function LTheoryRedux:exitGame ()
   MusicPlayer:SetVolume(0)
 
   -- Write player-specific game variables to preserve them across gameplay sessions
-  InitFiles:writeUserInits(self.window)
+  InitFiles:writeUserInits()
 
   LTheoryRedux:quit()
 end

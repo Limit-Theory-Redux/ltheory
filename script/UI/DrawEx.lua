@@ -12,16 +12,30 @@ end
 local padBox = 32
 local padLine = 64
 local padPanel = 64
+local padCircle = 64 -- limits circle size to a maximum radius of about 110 without clipping box border
 local padPoint = 32
---local padRing = 1024 -- doesn't clip ring borders at 3840 x 2160 native resolution, but murders the frame rate
-local padRing = 256 -- 128 clips the borders of rings when blended
+local padRing = 256 -- 128 clips rings when zooming; 1024 doesn't clip at 3840x2160, but murders the frame rate
 local padTri = 32
 local padWedge = 32
 local alphaStack = List()
 
 function DrawEx.Arrow (p, n, color)
-  local t = Vec2f(-n.y, n.x)
+  local t = Vec2f(-n.y / 2, n.x / 2) -- divide by 2 to make directional arrow more clearly pointed
   DrawEx.TriV(p + n, p - n + t, p - n - t, color)
+end
+
+function DrawEx.Circle (x, y, r, color)
+  local x, y, sx, sy = padAndCenter(padCircle, x, y, r, r)
+  local shader = Cache.Shader('ui', 'ui/circle')
+  local alpha = alphaStack:last() or 1
+  BlendMode.PushAdditive()
+  shader:start()
+    Shader.SetFloat('radius', r)
+    Shader.SetFloat2('size', sx, sy)
+    Shader.SetFloat4('color', color.r, color.g, color.b, color.a * alpha)
+    Draw.Rect(x, y, sx, sy)
+  shader:stop()
+  BlendMode.Pop()
 end
 
 function DrawEx.Cross (x, y, r, color)
@@ -31,6 +45,19 @@ end
 
 function DrawEx.GetAlpha ()
   return alphaStack:last() or 1
+end
+
+function DrawEx.Grid (x, y, sx, sy, c)
+  local x, y, sx, sy = padOffCenter(padPanel, x, y, sx, sy)
+  local shader = Cache.Shader('ui', 'ui/grid')
+  local alpha = alphaStack:last() or 1
+  BlendMode.PushAdditive()
+  shader:start()
+    Shader.SetFloat2('size', sx, sy)
+    Shader.SetFloat4('color', c.r, c.g, c.b, c.a * alpha)
+    Draw.Rect(x, y, sx, sy)
+  shader:stop()
+  BlendMode.Pop()
 end
 
 function DrawEx.Hex (x, y, r, c)
@@ -107,6 +134,42 @@ function DrawEx.Line (x1, y1, x2, y2, color, fade)
   BlendMode.Pop()
 end
 
+function DrawEx.Meter (x, y, sx, sy, color, spacing, total, level, direction)
+  -- NOTE: There must be a more elegant way to do this, but brain will not brain today
+  local filled = level
+  if direction == -1 then
+    filled = total - level
+    for i = 1, total do
+      if i <= filled then
+        DrawEx.PanelGlow(x, y, sx, sy, color)
+      else
+        DrawEx.Rect(x, y, sx, sy, color)
+      end
+      x = x + sx + spacing
+    end
+  else
+    for i = 1, total do
+      if i <= filled then
+        DrawEx.Rect(x, y, sx, sy, color)
+      else
+        DrawEx.PanelGlow(x, y, sx, sy, color)
+      end
+      x = x + sx + spacing
+    end
+  end
+end
+
+function DrawEx.MeterV (x, y, sx, sy, color, spacing, total, level)
+  for i = 1, total do
+    if i <= level then
+      DrawEx.Rect(x, y, sx, sy, color)
+    else
+      DrawEx.PanelGlow(x, y, sx, sy, color)
+    end
+    y = y - (sy + spacing)
+  end
+end
+
 function DrawEx.Panel (x, y, sx, sy, color, innerAlpha)
   local color = color or Color(0.2, 0.2, 0.2, 1.0)
   local innerAlpha = innerAlpha or 1
@@ -141,7 +204,7 @@ end
 function DrawEx.Point (x, y, r, color)
   local x, y, sx, sy = padAndCenter(padPoint, x, y, r, r)
   BlendMode.PushAdditive()
-  local shader = Cache.Shader('ui', 'ui/circle')
+  local shader = Cache.Shader('ui', 'ui/point') -- previously used 'ui/circle-old' shader
   local alpha = alphaStack:last() or 1
   shader:start()
     Shader.SetFloat2('size', sx, sy)
@@ -157,13 +220,6 @@ end
 
 function DrawEx.PopAlpha ()
   alphaStack:pop()
-end
-
-function DrawEx.Meter (x, y, sx, sy, color, spacing, level)
-  for i = 1, level do
-    DrawEx.Rect(x, y, sx, sy, color)
-    x = x + sx + spacing
-  end
 end
 
 function DrawEx.Rect (x, y, sx, sy, color)

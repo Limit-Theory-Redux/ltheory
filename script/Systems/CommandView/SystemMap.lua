@@ -263,9 +263,9 @@ function SystemMap:onInput (state)
   --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
   --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
   Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-  Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (0.2 * kPanSpeed / Config.game.mapSystemZoom) * (
+  Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (0.5 * kPanSpeed / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-  Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (0.2 * kPanSpeed / Config.game.mapSystemZoom) * (
+  Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (0.5 * kPanSpeed / Config.game.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
   Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * (
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
@@ -277,7 +277,7 @@ function SystemMap.Create (system)
   self.system = system
 
   kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
-printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
+--printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
 
   if Config.game.currentShip ~= nil then
     if Config.game.mapSystemPos == nil then

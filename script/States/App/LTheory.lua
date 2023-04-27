@@ -21,6 +21,8 @@ function LTheory:generate ()
   self.system = System(self.seed)
   Config.game.currentSystem = self.system
 
+  Config.ui.hudDisplayed = Enums.HudModes.Tight
+
   local ship
   do -- Player Ship
     ship = self.system:spawnShip(self.player)
@@ -76,8 +78,6 @@ function LTheory:onInit ()
   self.canvas
     :add(self.gameView
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
-
-  Input.SetMouseVisible(false)
 end
 
 function LTheory:onInput ()

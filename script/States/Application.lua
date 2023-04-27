@@ -19,10 +19,7 @@ end
 
 function Application:onInit         ()       end
 function Application:onDraw         ()       end
-function Application:onResize       (sx, sy)
-  self.window:setWindowGrab(true)
-  self.window:setMousePosition(self.resX / 2, self.resY / 2)
-end
+function Application:onResize       (sx, sy) self.window:setMousePosition(self.resX / 2, self.resY / 2) end
 function Application:onUpdate       (dt)     end
 function Application:onExit         ()       end
 function Application:onInput        ()       end
@@ -43,13 +40,11 @@ function Application:run ()
     self.resY,
     self:getWindowMode())
 
+  Config.render.gameWindow = self.window
+
   self.exit = false
 
   self.window:setVsync(Config.render.vsync)
-
-  -- Set the default game control cursor
-  self.window:setCursor('cursor/Simple_Cursor', 0, 0)
---  self.window:setCursor('cursor/cursor1-small', 1, 1)
 
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -66,9 +61,9 @@ function Application:run ()
   if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
   if Config.jit.verbose then Jit.StartVerbose() end
 
-  -- confine mouse to window
-  self.window:setMousePosition(self.resX / 2, self.resY / 2)
   self.window:setWindowGrab(true)
+  self.window:setMousePosition(self.resX / 2, self.resY / 2)
+  self.window:setWindowGrab(false)
 
   local profiling = false
   local toggleProfiler = false
@@ -108,7 +103,6 @@ function Application:run ()
       Profiler.Begin('App.onInput')
 
       -- Immediately quit game without saving
-      -- TODO : Remove this once bindings are fixed
       if Input.GetKeyboardCtrl() and Input.GetPressed(Button.Keyboard.W) then self:quit() end
       if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end
@@ -128,6 +122,8 @@ function Application:run ()
       if Input.GetPressed(Bindings.ToggleFullscreen) then
         self.window:toggleFullscreen()
         Config.render.fullscreen = not Config.render.fullscreen
+        local size = self.window:getSize()
+        self:onResize(size.x, size.y)
       end
 
       if Input.GetPressed(Bindings.Reload) then
@@ -203,9 +199,9 @@ function Application:run ()
         'NovaRound',
         "EXPERIMENTAL BUILD - NOT FINAL!",
         20,
-        0, 0, self.resX, self.resY,
+        self.resX / 2 - 24, 62, 40, 20,
         1, 1, 1, 1,
-        0.50, 0.07
+        0.5, 0.5
       )
 
       if Config.game.gamePaused then
