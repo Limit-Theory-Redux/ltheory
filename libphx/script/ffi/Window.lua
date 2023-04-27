@@ -18,6 +18,8 @@ do -- C Definitions
     void    Window_SetTitle         (Window*, cstr);
     void    Window_SetVsync         (Window*, bool);
     void    Window_SetCursor        (Window*, cstr name, int hotx, int hoty);
+    void    Window_SetMousePosition (Window*, Vec2i*);
+    void    Window_SetWindowGrab    (Window*, bool);
     void    Window_ToggleFullscreen (Window*);
     void    Window_Hide             (Window*);
     void    Window_Show             (Window*);
@@ -39,6 +41,8 @@ do -- Global Symbol Table
     SetTitle         = libphx.Window_SetTitle,
     SetVsync         = libphx.Window_SetVsync,
     SetCursor        = libphx.Window_SetCursor,
+    SetMousePosition = libphx.Window_SetMousePosition,
+    SetWindowGrab    = libphx.Window_SetWindowGrab,
     ToggleFullscreen = libphx.Window_ToggleFullscreen,
     Hide             = libphx.Window_Hide,
     Show             = libphx.Window_Show,
@@ -65,6 +69,8 @@ do -- Metatype for class instances
       setTitle         = libphx.Window_SetTitle,
       setVsync         = libphx.Window_SetVsync,
       setCursor        = libphx.Window_SetCursor,
+      setMousePosition = libphx.Window_SetMousePosition,
+      setWindowGrab    = libphx.Window_SetWindowGrab,
       toggleFullscreen = libphx.Window_ToggleFullscreen,
       hide             = libphx.Window_Hide,
       show             = libphx.Window_Show,

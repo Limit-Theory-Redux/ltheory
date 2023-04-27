@@ -21,5 +21,6 @@ PHX_API bool        Directory_Change      (cstr cwd);
 PHX_API bool        Directory_Create      (cstr path);
 PHX_API cstr        Directory_GetCurrent  ();
 PHX_API bool        Directory_Remove      (cstr path);
+PHX_API cstr        Directory_GetPrefPath (cstr orgStr, cstr appStr);
 
 #endif

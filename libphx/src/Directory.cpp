@@ -2,6 +2,8 @@
 #include "File.h"
 #include "PhxMemory.h"
 #include "PhxString.h"
+#include "Array.h"
+#include "SDLext.h"
 
 #include <stdio.h>
 
@@ -69,6 +71,14 @@ cstr Directory_GetCurrent () {
     return 0;
   buffer[sizeof(buffer) - 1] = 0;
   return buffer;
+}
+
+cstr Directory_GetPrefPath (cstr orgStr, cstr appStr) {
+  const char *org = orgStr;
+  const char *app = appStr;
+  const char *path = SDL_GetPrefPath(org, app);
+
+  return path;
 }
 
 bool Directory_Remove (cstr path) {

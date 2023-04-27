@@ -19,7 +19,7 @@ end
 
 function Application:onInit         ()       end
 function Application:onDraw         ()       end
-function Application:onResize       (sx, sy) end
+function Application:onResize       (sx, sy) self.window:setMousePosition(self.resX / 2, self.resY / 2) end
 function Application:onUpdate       (dt)     end
 function Application:onExit         ()       end
 function Application:onInput        ()       end
@@ -40,16 +40,11 @@ function Application:run ()
     self.resY,
     self:getWindowMode())
 
+  Config.render.gameWindow = self.window
+
   self.exit = false
 
   self.window:setVsync(Config.render.vsync)
-
-  -- When the function to get an environment-agnostic path for storing/loading
-  --     game files becomes available, use it here to set that path value
---  Config.paths.files = SDL_GetPrefPath(Config.org, Config.app)
-
-  -- Set the default game control cursor
-  self.window:setCursor(Config.ui.cursor, Config.ui.cursorX, Config.ui.cursorY)
 
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -65,6 +60,10 @@ function Application:run ()
   if Config.jit.dumpasm then Jit.StartDump() end
   if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
   if Config.jit.verbose then Jit.StartVerbose() end
+
+  self.window:setWindowGrab(true)
+  self.window:setMousePosition(self.resX / 2, self.resY / 2)
+  self.window:setWindowGrab(false)
 
   local profiling = false
   local toggleProfiler = false
@@ -122,6 +121,8 @@ function Application:run ()
       if Input.GetPressed(Bindings.ToggleFullscreen) then
         self.window:toggleFullscreen()
         Config.render.fullscreen = not Config.render.fullscreen
+        local size = self.window:getSize()
+        self:onResize(size.x, size.y)
       end
 
       if Input.GetPressed(Bindings.Reload) then
@@ -195,9 +196,9 @@ function Application:run ()
         'NovaRound',
         "EXPERIMENTAL BUILD - NOT FINAL!",
         20,
-        0, 0, self.resX, self.resY,
+        self.resX / 2 - 24, 62, 40, 20,
         1, 1, 1, 1,
-        0.50, 0.07
+        0.5, 0.5
       )
 
       if Config.game.gamePaused then

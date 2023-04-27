@@ -9,6 +9,7 @@ Config.userInitFilename = "user.ini"
 Config.timeToResetToSplashscreen = 60
 
 Config.render = {
+  gameWindow     = nil,
   startingHorz   = 1600, -- 1600 (default), or 2400 (high DPI)
   startingVert   =  900, --  900 (default), or 2048 (high DPI)
   resXnew        = 1600,
@@ -46,7 +47,7 @@ Config.audio = {
 }
 
 Config.paths = {
-  files         = "./", -- base directory until environment-agnostic path is available
+  files         = Directory.GetPrefPath(Config.org, Config.app), -- base directory using environment-agnostic path
   soundAmbiance = "./res/sound/system/audio/music/",
   soundEffects  = "./res/sound/system/audio/fx/",
 }
@@ -242,7 +243,7 @@ Config.ui = {
   defaultControl   = "Ship", -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
   controlBarHeight = 48,
-  HudDisplayed     = 0,
+  hudDisplayed     = 0,
   SensorsDisplayed = true,
   cursorSmooth     = "cursor/cursor1-small",
   cursorSimple     = "cursor/Simple_Cursor",
@@ -274,13 +275,13 @@ Config.ui.color = {
   controlActive     = Color(0.14, 0.70, 0.14, 0.7),
   hologram          = Color(0.30, 0.40, 1.00, 0.8),
   ctrlCursor        = Color(0.20, 0.50, 1.00, 0.7),
-  reticle           = Color(0.10, 0.30, 1.00, 0.6),
+  reticle           = Color(0.10, 0.30, 1.00, 3.0),
   windowBackground  = Color(0.00, 0.40, 1.00, 0.2),
   clientBackground  = Color(0.30, 0.30, 0.30, 0.0),
   meterBar          = Color(0.10, 0.60, 1.00, 0.7),
   meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
-  remainingBoost    = Color(0.70, 0.60, 0.10, 0.7),
-  remainingEnergy   = Color(1.00, 0.00, 0.00, 0.6),
+  remainingBoost    = Color(1.00, 0.50, 0.00, 0.7),
+  remainingEnergy   = Color(0.50, 0.00, 1.00, 0.7),
 
 
   healthColor = {

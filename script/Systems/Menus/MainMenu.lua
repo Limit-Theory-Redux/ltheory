@@ -172,7 +172,7 @@ function MainMenu:ShowSeedDialog()
   self.seedDialogDisplayed = true
 
   HmGui.BeginWindow(guiElements.name)
-  HmGui.TextEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.4, 0.5, 1.0)
+  HmGui.TextEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
   HmGui.SetAlign(0.5, 0.5)
   HmGui.SetSpacing(16)
   self:ShowSeedDialogInner()
@@ -261,7 +261,7 @@ end
 function MainMenu:ShowFlightDialog()
   -- Add Flight Mode dialog menu
   HmGui.BeginWindow("Flight Mode")
-  HmGui.TextEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.4, 0.5, 1.0)
+  HmGui.TextEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
   HmGui.SetAlign(0.5, 0.5)
   HmGui.SetSpacing(16)
   self:ShowFlightDialogInner()

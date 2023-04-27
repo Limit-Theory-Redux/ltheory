@@ -17,98 +17,32 @@ local dockingAllowed = true
 local hudFontSize = 14
 local lockTimer = 0
 
-function HUD:onEnable ()
-  -- TODO : Wtf does this do? Who wrote this?? WHY.
-  local pCamera = self.gameView.camera
-  local camera = self.gameView.camera
-
-  -- Lock camera back to player ship when HUD is enabled!
-  -- (e.g., changing from "Dock" control -> "Ship" control in MasterControl.lua)
-  self.gameView:setOrbit(false)
-
-  camera:warp()
-  camera:lerpFrom(pCamera.pos, pCamera.rot)
-end
-
-function HUD:controlThrust (e)
-  -- TODO: Should this really be here in HUD.lua?
-  if not e:hasThrustController() then return end
-  local c = e:getThrustController()
-
-  -- Create a small (square) dead zone in the center of the aiming reticle
-  -- TODO: make dead zone circular and a sloping cutoff instead of sharp
-  local yaw   = ShipBindings.Yaw:get()
-  if abs(yaw) < 0.004 then yaw = 0 end
-  local pitch = ShipBindings.Pitch:get() -- make negative if ShipBindings.Pitch is not :invert()
-  if abs(pitch) < 0.008 then pitch = 0 end
-
-  c:setThrust(
-    ShipBindings.ThrustZ:get(),
-    ShipBindings.ThrustX:get(),
-    0,
-    yaw,
-    pitch,
-    ShipBindings.Roll:get(),
-    ShipBindings.Boost:get())
-  self.aimX = c.yaw
-  self.aimY = c.pitch
---printf("yaw = %f, pitch = %f", c.yaw, c.pitch)
-end
-
-function HUD:controlTurrets (e)
-  -- TODO: Should this really be here in HUD.lua?
-  local targetPos, targetVel
-  local target = e:getTarget()
-
-  if target and target:getOwnerDisposition(self.player) <= 0.0 then
-    targetPos = target:getPos()
-    targetVel = target:getVelocity()
-  end
-
-  local firing   = ShipBindings.Fire:get() > 0 and 1 or 0
-  local camera   = self.gameView.camera
-  local ndc      = Vec3f(self.aimX, self.aimY)
-  local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin)
-
-  -- Compute a firing solution separately for each turret to support
-  -- different projectile velocities & ranges
-  for turret in e:iterSocketsByType(SocketType.Turret) do
-    if Config.game.autoTarget and targetPos then
-      turret:aimAtTarget(target, fallback)
-    else
-      turret:aimAt(fallback)
-    end
-    turret.firing = firing
-  end
-end
-
-function HUD:controlTargetLock (e)
-  if ShipBindings.LockTarget:get() > 0.5 then e:setTarget(self.target) end
-  if ShipBindings.ClearTarget:get() > 0.5 then e:setTarget(nil) end
-end
-
 function HUD:drawSystemText (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
   local hudX = 0
   local hudY = 0
-  if Config.ui.HudDisplayed == Enums.HudModes.Wide then
-    hudX = 60
-    hudY = 60
-  elseif Config.ui.HudDisplayed == Enums.HudModes.Balanced then
-    hudX = floor(cx / 3)
-    hudY = floor(cy / 3)
-  elseif Config.ui.HudDisplayed == Enums.HudModes.Tight then
-    hudX = cx - floor(cx / 4) + floor(cx / 50)
-    hudY = cy - floor(cy / 2)
+  local hudFsize = hudFontSize
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    hudX = 40
+    hudY = floor(self.sy / 16)
+    hudFsize = hudFontSize + 12
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    hudX = cx - floor(cx / 2)
+    hudY = floor(self.sy / 8)
+    hudFsize = hudFontSize + 6
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudX = cx - 300
+    hudY = cy - 280
+    hudFsize = hudFontSize
   end
 
   local text1 = format("System: %s", Config.game.currentSystem:getName())
   local text2 = format("Location: %s", "XXX")
 
   -- Draw system name and location
-  HUD:drawHudTextDouble(hudX, hudY - 24, a, 0.0, text1)
-  HUD:drawHudTextDouble(hudX, hudY, a, 0.0, text2)
+  HUD:drawHudTextDouble(hudX, hudY - 32, Config.ui.color.meterBar, hudFsize, 0.0, text1)
+  HUD:drawHudTextDouble(hudX, hudY,      Config.ui.color.meterBar, hudFsize, 0.0, text2)
 end
 
 function HUD:drawTargetText (a)
@@ -124,19 +58,38 @@ function HUD:drawTargetText (a)
       subtypetext = Config:getObjectInfo("station_subtypes", playerTarget:getSubType()) .. " "
     end
 
-    local text1 = format("Target Faction: %s", "XXX")
-    local text2 = format("Target ID: %s", subtypetext .. playerTarget:getName())
+    local text1 = format("Target ID: %s", subtypetext .. playerTarget:getName())
+    local text2 = format("Target Faction: %s", "XXX")
 
     if playerTarget.usesBoost then
-      text2 = text2 .. " [Ace]"
+      text1 = text1 .. " [Ace]"
     end
     if playerTarget:isDestroyed() then
-      text2 = text2 .. " [destroyed]"
+      text1 = text1 .. " [destroyed]"
+    end
+
+    local longestText = max(#text1, #text2)
+
+    local hudX = 0
+    local hudY = 0
+    local hudFsize = hudFontSize
+    if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+      hudX = self.sx - (longestText * 19)
+      hudY = floor(self.sy / 16)
+      hudFsize = hudFontSize + 12
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+      hudX = cx + floor(cx / 4)
+      hudY = floor(self.sy / 8)
+      hudFsize = hudFontSize + 6
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+      hudX = cx + 100
+      hudY = cy - 280
+      hudFsize = hudFontSize
     end
 
     -- Draw target faction name and ID
-    HUD:drawHudTextDouble(cx + floor(cx / 10), cy - floor(cy / 2) - 24, a, 0.0, text1)
-    HUD:drawHudTextDouble(cx + floor(cx / 10), cy - floor(cy / 2), a, 0.0, text2)
+    HUD:drawHudTextDouble(hudX, hudY - 32, Config.ui.color.meterBar, hudFsize, 0.0, text1)
+    HUD:drawHudTextDouble(hudX, hudY,      Config.ui.color.meterBar, hudFsize, 0.0, text2)
   end
 end
 
@@ -147,11 +100,31 @@ function HUD:drawBoostEnergy (a)
   local mvHeight  =  8
   local mvSpacing = 10
   local mvLevels  = 10
-  local mvX       = cx - 300
   local mvYtot    = (mvHeight + mvSpacing) * mvLevels
 
-  UI.DrawEx.RectOutline(mvX - 6, cy - mvYtot + 10, mvWidth + 12, mvYtot + 4, Config.ui.color.borderBright)
-  UI.DrawEx.MeterV(mvX, cy, mvWidth, 8, Config.ui.color.remainingBoost, mvSpacing, mvLevels, 7)
+  local hudX = 0
+  local hudY = 0
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    mvWidth   = 36
+    mvHeight  = 16
+    mvSpacing = 10
+    mvYtot    = (mvHeight + mvSpacing) * mvLevels
+    hudX      = 60
+    hudY      = cy + floor(cy / 10)
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    mvWidth   = 32
+    mvHeight  = 12
+    mvSpacing = 10
+    mvYtot    = (mvHeight + mvSpacing) * mvLevels
+    hudX      = floor(cx / 3)
+    hudY      = cy + floor(cy / 10)
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudX      = cx - 300
+    hudY      = cy
+  end
+
+  UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderBright)
+  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.remainingBoost, mvSpacing, mvLevels, 7)
 end
 
 function HUD:drawWeaponEnergy (a)
@@ -161,11 +134,189 @@ function HUD:drawWeaponEnergy (a)
   local mvHeight  =  8
   local mvSpacing = 10
   local mvLevels  = 10
-  local mvX       = cx + (300 - mvWidth)
   local mvYtot    = (mvHeight + mvSpacing) * mvLevels
 
-  UI.DrawEx.RectOutline(mvX - 6, cy - mvYtot + 10, mvWidth + 12, mvYtot + 4, Config.ui.color.borderBright)
-  UI.DrawEx.MeterV(mvX, cy, mvWidth, 8, Config.ui.color.remainingEnergy, mvSpacing, mvLevels, 9)
+  local hudX = 0
+  local hudY = 0
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    mvWidth   = 36
+    mvHeight  = 16
+    mvSpacing = 10
+    mvYtot    = (mvHeight + mvSpacing) * mvLevels
+    hudX      = self.sx - 60 - mvWidth
+    hudY      = cy + floor(cy / 10)
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    mvWidth   = 32
+    mvHeight  = 12
+    mvSpacing = 10
+    mvYtot    = (mvHeight + mvSpacing) * mvLevels
+    hudX      = self.sx - floor(cx / 3) - mvWidth
+    hudY      = cy + floor(cy / 10)
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudX      = cx + (300 - mvWidth)
+    hudY      = cy
+  end
+
+  UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderBright)
+  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.remainingEnergy, mvSpacing, mvLevels, 9)
+end
+
+function HUD:drawTargetType (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+  local playerTarget = playerShip:getTarget()
+
+  if playerTarget then
+    local cx, cy = self.sx / 2, self.sy / 2
+
+    local hudX = 0
+    local hudY = 0
+    local hudFsize = hudFontSize
+    if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+      hudX = cx - 100
+      hudY = 120
+      hudFsize = hudFontSize
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+      hudX = cx - 100
+      hudY = cy - floor(cy / 2) - 72
+      hudFsize = hudFontSize
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+      hudX = cx - 100
+      hudY = cy - 224
+      hudFsize = hudFontSize
+    end
+
+    -- Draw target type
+    local text = format("%s", Config:getObjectInfo("object_types", playerTarget:getType()))
+    HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+  end
+end
+
+function HUD:drawTargetRange (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+  local playerTarget = playerShip:getTarget()
+
+  if playerTarget then
+    local cx, cy = self.sx / 2, self.sy / 2
+
+    local hudX = 0
+    local hudY = 0
+    local hudFsize = hudFontSize
+    if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+      hudX = cx +  70
+      hudY = 120
+      hudFsize = hudFontSize
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+      hudX = cx +  70
+      hudY = floor(cy / 2) - 72
+      hudFsize = hudFontSize
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+      hudX = cx +  70
+      hudY = cy - 224
+      hudFsize = hudFontSize
+    end
+
+    -- Draw distance from player ship to target
+    local text = ""
+    if playerShip:getDistance(playerTarget) >= 1000 then
+      text = format("Range: %d km", floor(playerShip:getDistance(playerTarget) / 1000 + 0.5))
+    else
+      text = format("Range: %d m", floor(playerShip:getDistance(playerTarget) + 0.5))
+    end
+
+    HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+  end
+end
+
+function HUD:drawTargetSubtype (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+  local playerTarget = playerShip:getTarget()
+
+  if playerTarget then
+    local targetType = playerTarget:getType()
+    local cx, cy = self.sx / 2, self.sy / 2
+
+    local hudX = 0
+    local hudY = 0
+    local hudFsize = hudFontSize
+    if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+      hudX = cx - 100
+      hudY = 150
+      hudFsize = hudFontSize
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+      hudX = cx - 100
+      hudY = floor(cy / 2) - 48
+      hudFsize = hudFontSize
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+      hudX = cx - 100
+      hudY = cy - 200
+      hudFsize = hudFontSize
+    end
+
+    if targetType == Config:getObjectTypeByName("object_types", "Ship") or
+       targetType == Config:getObjectTypeByName("object_types", "Station") then
+      if not playerTarget:isDestroyed() then
+        local textSubtype = "Trade" -- default to Station subtype; TODO: use action Station roles/classes
+        -- Draw target subtype
+        if targetType == Config:getObjectTypeByName("object_types", "Ship") then
+          textSubtype = Config:getObjectInfo("ship_subtypes", playerTarget:getSubType())
+        end
+        local text = format("%s", textSubtype)
+        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+      end
+    elseif targetType == Config:getObjectTypeByName("object_types", "Asteroid") then
+      -- Draw asteroid yield type
+      if playerTarget:hasYield() then
+        local text = playerTarget:getYieldName()
+        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+      end
+    end
+  end
+end
+
+function HUD:drawTargetSpeed (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+  local playerTarget = playerShip:getTarget()
+
+  if playerTarget then
+    local targetType = playerTarget:getType()
+    local cx, cy = self.sx / 2, self.sy / 2
+
+    local hudX = 0
+    local hudY = 0
+    local hudFsize = hudFontSize
+    if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+      hudX = cx +  70
+      hudY = 150
+      hudFsize = hudFontSize
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+      hudX = cx +  70
+      hudY = floor(cy / 2) - 48
+      hudFsize = hudFontSize
+    elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+      hudX = cx +  70
+      hudY = cy - 200
+      hudFsize = hudFontSize
+    end
+
+    if targetType == Config:getObjectTypeByName("object_types", "Ship") or
+       targetType == Config:getObjectTypeByName("object_types", "Station") then
+      if not playerTarget:isDestroyed() then
+        -- Draw target speed
+        local text = format("Speed: %s kph", floor(playerTarget:getSpeed() + 0.5))
+        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+      end
+    elseif targetType == Config:getObjectTypeByName("object_types", "Asteroid") then
+      -- Draw asteroid yield size
+      if playerTarget:hasYield() then
+        local text = format("Yield: %d", playerTarget:getYieldSize())
+        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+      end
+    end
+  end
 end
 
 function HUD:drawTargetMission (a)
@@ -183,7 +334,25 @@ function HUD:drawTargetMission (a)
           if targetAction then
             local targetActionName = targetAction:getName()
             local cx, cy = self.sx / 2, self.sy / 2
-            HUD:drawHudTextDouble(cx - 50, cy - floor(cy / 3) - 24, a, 0.5, targetActionName)
+
+            local hudX = 0
+            local hudY = 0
+            local hudFsize = hudFontSize
+            if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+              hudX = cx
+              hudY = 180
+              hudFsize = hudFontSize
+            elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+              hudX = cx
+              hudY = floor(cy / 2) - 24
+              hudFsize = hudFontSize
+            elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+              hudX = cx
+              hudY = cy - 170
+              hudFsize = hudFontSize
+            end
+
+            HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, targetActionName)
           end
         end
       end
@@ -191,7 +360,7 @@ function HUD:drawTargetMission (a)
   end
 end
 
-function HUD:drawTargetSubtype (a)
+function HUD:drawTargetShieldsHullArmor (a)
   local player = self.player
   local playerShip = player:getControlling()
   local playerTarget = playerShip:getTarget()
@@ -202,177 +371,110 @@ function HUD:drawTargetSubtype (a)
        targetType == Config:getObjectTypeByName("object_types", "Station") then
       if not playerTarget:isDestroyed() then
         local cx, cy = self.sx / 2, self.sy / 2
+        local text = ""
 
-        local textSubtype = "Trade" -- default to Station subtype; TODO: use action Station roles/classes
-        if targetType == Config:getObjectTypeByName("object_types", "Ship") then
-          textSubtype = Config:getObjectInfo("ship_subtypes", playerTarget:getSubType())
+        local hudXs = 0
+        local hudXh = 0
+        local hudXa = 0
+        local hudY  = 0
+        local hudFsize = hudFontSize
+        if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+          hudXs = cx - 100
+          hudXh = cx
+          hudXa = cx + 100
+          hudY  = 220
+          hudFsize = hudFontSize
+        elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+          hudXs = cx - 100
+          hudXh = cx
+          hudXa = cx + 100
+          hudY  = floor(cy / 2)
+          hudFsize = hudFontSize
+        elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+          hudXs = cx - 100
+          hudXh = cx
+          hudXa = cx + 100
+          hudY  = cy - 130
+          hudFsize = hudFontSize
         end
 
-        local text = format("%s", textSubtype)
-
-        -- Draw target subtype
-        HUD:drawHudTextDouble(cx - floor(cx / 5) + floor(cx / 50), cy - floor(cy / 3), a, 0.0, text)
-      end
-    end
-  end
-end
-
-function HUD:drawTargetType (a)
-  local player = self.player
-  local playerShip = player:getControlling()
-  local playerTarget = playerShip:getTarget()
-
-  if playerTarget then
-    local cx, cy = self.sx / 2, self.sy / 2
-
-    local text = format("%s", Config:getObjectInfo("object_types", playerTarget:getType()))
-
-    -- Draw target type
-    HUD:drawHudTextDouble(cx - 50, cy - floor(cy / 3), a, 0.5, text)
-  end
-end
-
-function HUD:drawTargetRange (a)
-  local player = self.player
-  local playerShip = player:getControlling()
-  local playerTarget = playerShip:getTarget()
-
-  if playerTarget then
-    local cx, cy = self.sx / 2, self.sy / 2
-
-    local text = ""
-    if playerShip:getDistance(playerTarget) >= 1000 then
-      text = format("Range: %d km", floor(playerShip:getDistance(playerTarget) / 1000 + 0.5))
-    else
-      text = format("Range: %d m", floor(playerShip:getDistance(playerTarget) + 0.5))
-    end
-
-    -- Draw distance from player ship to target
-    HUD:drawHudTextDouble(cx + floor(cx / 12), cy - floor(cy / 3), a, 0.5, text)
-  end
-end
-
-function HUD:drawTargetShields (a)
-  local player = self.player
-  local playerShip = player:getControlling()
-  local playerTarget = playerShip:getTarget()
-
-  if playerTarget then
-    local targetType = playerTarget:getType()
-    if targetType == Config:getObjectTypeByName("object_types", "Ship") or
-       targetType == Config:getObjectTypeByName("object_types", "Station") then
-      if not playerTarget:isDestroyed() then
-        local cx, cy = self.sx / 2, self.sy / 2
-
-        local targetShieldsPct = 0 -- TODO: get current _integer_ shield power of target
-
-        local text = format("Shields: %d%%", targetShieldsPct)
-
         -- Draw target shields info
-        HUD:drawHudTextDouble(cx - floor(cx / 8) + floor(cx / 50), cy - floor(cy / 4), a, 0.5, text)
-      end
-    end
-  end
-end
-
-function HUD:drawTargetHull (a)
-  local player = self.player
-  local playerShip = player:getControlling()
-  local playerTarget = playerShip:getTarget()
-
-  if playerTarget then
-    local targetType = playerTarget:getType()
-    if targetType == Config:getObjectTypeByName("object_types", "Ship") or
-       targetType == Config:getObjectTypeByName("object_types", "Station") then
-      if not playerTarget:isDestroyed() then
-        local cx, cy = self.sx / 2, self.sy / 2
-
-        local targetHealthPct = floor(playerTarget:getHealthPercent() + 0.5)
-
-        local text = format("Hull: %d%%", targetHealthPct)
+        text = format("Shields")
+        HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+        local targetShieldsPct = 0 -- TODO: get current _integer_ shield power of target
+        text = format("%d%%", targetShieldsPct)
+        HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
         -- Draw target hull info
-        HUD:drawHudTextDouble(cx + floor(cx / 24), cy - floor(cy / 4), a, 0.5, text)
+        text = format("Hull")
+        HUD:drawHudTextDouble(hudXh, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+        local targetHealthPct = floor(playerTarget:getHealthPercent() + 0.5)
+        text = format("%d%%", targetHealthPct)
+        HUD:drawHudTextDouble(hudXh, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
+
+        -- Draw target hull armor info
+        text = format("Armor")
+        HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+        local targetArmorPct = 0 -- TODO: get current _integer_ armor value of target
+        text = format("%d%%", targetArmorPct)
+        HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
       end
     end
   end
 end
 
-function HUD:drawTargetSpeed (a)
-  local player = self.player
-  local playerShip = player:getControlling()
-  local playerTarget = playerShip:getTarget()
-
-  if playerTarget then
-    local targetType = playerTarget:getType()
-    if targetType == Config:getObjectTypeByName("object_types", "Ship") or
-       targetType == Config:getObjectTypeByName("object_types", "Station") then
-      if not playerTarget:isDestroyed() then
-        local cx, cy = self.sx / 2, self.sy / 2
-
-        local text = format("Speed: %s kph", floor(playerTarget:getSpeed() + 0.5))
-
-        -- Draw target speed
-        HUD:drawHudTextDouble(cx - 50, cy - floor(cy / 5), a, 0.5, text)
-      end
-    end
-  end
-end
-
-function HUD:drawPlayerShields (a)
+function HUD:drawPlayerShieldsHullArmor (a)
   local player = self.player
   local playerShip = player:getControlling()
 
   local cx, cy = self.sx / 2, self.sy / 2
+  local text = ""
 
-  local playerShieldsPct = 0 -- TODO: get current _integer_ shield power of player's ship
-  local text = format("Shields: %d%%", playerShieldsPct)
+  local hudXs = 0
+  local hudXh = 0
+  local hudXa = 0
+  local hudY  = 0
+  local hudFsize = hudFontSize
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    hudXs = cx - 100
+    hudXh = cx
+    hudXa = cx + 100
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 74
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    hudXs = cx - 100
+    hudXh = cx
+    hudXa = cx + 100
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 74
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudXs = cx - 100
+    hudXh = cx
+    hudXa = cx + 100
+    hudY  = cy + 26
+    hudFsize = hudFontSize
+  end
 
   -- Draw player ship shields info
-  HUD:drawHudTextDouble(cx - floor(cx / 10) + floor(cx / 50), cy + floor(cy / 20), a, 0.5, text)
-end
-
-function HUD:drawPlayerHull (a)
-  local player = self.player
-  local playerShip = player:getControlling()
-
-  local cx, cy = self.sx / 2, self.sy / 2
-
-  local playerHealthPct = floor(playerShip:getHealthPercent() + 0.5)
-  local text = format("Hull: %d%%", playerHealthPct)
+  text = format("Shields")
+  HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
+  local playerShieldsPct = 0 -- TODO: get current _integer_ shield power of player's ship
+  text = format("%d%%", playerShieldsPct)
+  HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
   -- Draw player ship hull info
-  HUD:drawHudTextDouble(cx + floor(cx / 48), cy + floor(cy / 20), a, 0.5, text)
-end
+  text = format("Hull")
+  HUD:drawHudTextDouble(hudXh, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
+  local playerHealthPct = floor(playerShip:getHealthPercent() + 0.5)
+  text = format("%d%%", playerHealthPct)
+  HUD:drawHudTextDouble(hudXh, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
-function HUD:drawPlayerSpeed (a)
-  local player = self.player
-  local playerShip = player:getControlling()
-
-  local cx, cy = self.sx / 2, self.sy / 2
-
-  local text = format("Speed: %d kph", floor(playerShip:getSpeed() + 0.5))
-
-  -- Draw player ship speed
-  HUD:drawHudTextDouble(cx - 50, cy + floor(cy / 12), a, 0.5, text)
-end
-
-function HUD:drawWeaponGroups (a)
-  local cx, cy = self.sx / 2, self.sy / 2
-
-  local fontsize = 14
-  local wgx = {cx - 250, cx - 210, cx - 170, cx - 130, cx + 130, cx + 170, cx + 210, cx + 250}
-  local wgy = cy + floor(cy / 11)
-
-  for i = 1, 8 do
-    if Config.game.weaponGroup == i then
-      UI.DrawEx.Circle(wgx[i], wgy + 18, 10, Config.ui.color.meterBar, true)
-      HUD:drawHudText("UbuntuBold", fontsize + 2, wgx[i] - floor(fontsize / 2) - 1, wgy + 10, tostring(i), Config.ui.color.borderBright)
-    else
-      UI.DrawEx.Ring(wgx[i], wgy + 18, 10, Config.ui.color.meterBar, false)
-      HUD:drawHudText("Ubuntu", fontsize, wgx[i] - floor(fontsize / 2), wgy + 11, tostring(i), Config.ui.color.meterBar)
-    end
-  end
+  -- Draw player ship hull armor info
+  text = format("Armor")
+  HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
+  local playerArmorPct = 0 -- TODO: get current _integer_ armor value
+  text = format("%d%%", playerArmorPct)
+  HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 end
 
 function HUD:drawMissilesLeft (a)
@@ -381,12 +483,55 @@ function HUD:drawMissilesLeft (a)
 
   local cx, cy = self.sx / 2, self.sy / 2
 
-  local missileCount = 0 -- TODO: get current count of missiles aboard player's ship
-
-  local text = format("Missiles: %d", missileCount)
+  local hudX = 0
+  local hudY = 0
+  local hudFsize = hudFontSize
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    hudX = cx - 150
+    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    hudX = cx - 150
+    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudX = cx - 150
+    hudY = cy + 70
+    hudFsize = hudFontSize
+  end
 
   -- Draw player missiles remaining
-  HUD:drawHudTextDouble(cx - 140, cy + floor(cy / 6), a, 0.0, text)
+  local missileCount = 0 -- TODO: get current count of missiles aboard player's ship
+  local text = format("Missiles: %d", missileCount)
+  HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+end
+
+function HUD:drawPlayerSpeed (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+
+  local cx, cy = self.sx / 2, self.sy / 2
+
+  local hudX = 0
+  local hudY = 0
+  local hudFsize = hudFontSize
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    hudX = cx
+    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    hudX = cx
+    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudX = cx
+    hudY = cy + 68
+    hudFsize = hudFontSize
+  end
+
+  -- Draw player ship speed
+  local text = format("Speed: %d kph", floor(playerShip:getSpeed() + 0.5))
+  HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
 end
 
 function HUD:drawChaffLeft (a)
@@ -395,12 +540,27 @@ function HUD:drawChaffLeft (a)
 
   local cx, cy = self.sx / 2, self.sy / 2
 
-  local chaffCount = 0 -- TODO: get current count of chaff aboard player's ship
-
-  local text = format("Chaff: %d", chaffCount)
+  local hudX = 0
+  local hudY = 0
+  local hudFsize = hudFontSize
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    hudX = cx + 150
+    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    hudX = cx + 150
+    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudX = cx + 150
+    hudY = cy + 70
+    hudFsize = hudFontSize
+  end
 
   -- Draw player chaff remaining
-  HUD:drawHudTextDouble(cx + 40, cy + floor(cy / 6), a, 0.5, text)
+  local chaffCount = 0 -- TODO: get current count of chaff aboard player's ship
+  local text = format("Chaff: %d", chaffCount)
+  HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
 end
 
 function HUD:drawLockWarning (a)
@@ -409,6 +569,23 @@ function HUD:drawLockWarning (a)
 
   local cx, cy = self.sx / 2, self.sy / 2
   local c = Color(1.0, 0.1, 0.1, a)
+
+  local hudX = 0
+  local hudY = 0
+  local hudFsize = hudFontSize
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    hudX = cx
+    hudY = cy + 40
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    hudX = cx
+    hudY = cy + 40
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudX = cx
+    hudY = cy + 120
+    hudFsize = hudFontSize
+  end
 
   -- Draw incoming missile lock on player's ship
   for _, ship in ipairs(Config.game.currentSystem.ships) do
@@ -419,22 +596,65 @@ function HUD:drawLockWarning (a)
       if floor((lockTimer * 10) % 3) == 0 then
         -- TODO: Flash missile lock graphic ~3 times per second
         -- TODO: round those triangle corners!
-        UI.DrawEx.Line(cx     , cy + (cy / 5) - 10, cx + 28, cy + (cy / 5) + 30, c, false)
-        UI.DrawEx.Line(cx - 28, cy + (cy / 5) + 30, cx + 28, cy + (cy / 5) + 30, c, false)
-        UI.DrawEx.Line(cx - 28, cy + (cy / 5) + 30, cx     , cy + (cy / 5) - 10, c, false)
+        UI.DrawEx.Line(hudX     , hudY - 10, hudX + 28, hudY + 30, c, false)
+        UI.DrawEx.Line(hudX - 28, hudY + 30, hudX + 28, hudY + 30, c, false)
+        UI.DrawEx.Line(hudX - 28, hudY + 30, hudX     , hudY - 10, c, false)
 
-        UI.DrawEx.Line(cx     , cy + (cy / 5) -  2, cx     , cy + (cy / 5) + 26, c, true)
-        UI.DrawEx.Point(cx, cy + (cy / 5) + 22, 100, c)
+        UI.DrawEx.Line(hudX, hudY - 2, hudX, hudY + 26, c, true)
+        UI.DrawEx.Point(hudX, hudY + 22, 100, c)
 
         UI.DrawEx.TextAdditive(
           "UbuntuBold",
           "LOCK DETECTED",
           hudFontSize - 5,
-          cx - 50, cy + (cy / 5) + 34, 100, hudFontSize,
+          hudX - 50, hudY + 34, 100, hudFontSize,
           1.0, 0.2, 0.0, a,
           0.5, 0.5
         )
       end
+    end
+  end
+end
+
+function HUD:drawWeaponGroups (a)
+  local cx, cy = self.sx / 2, self.sy / 2
+
+  local hudMode = 1
+  local hudFsize = hudFontSize
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    hudMode = 1
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    hudMode = 2
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudMode = 3
+    hudFsize = hudFontSize
+  end
+
+  local fontsize = 14
+  local wgx = {{cx - 280, cx - 240, cx - 200, cx - 160, cx + 160, cx + 200, cx + 240, cx + 280},
+               {cx - 400, cx - 360, cx - 320, cx - 280, cx + 280, cx + 320, cx + 360, cx + 400},
+               {cx - 220, cx - 180, cx - 140, cx - 100, cx + 100, cx + 140, cx + 180, cx + 220}}
+  local wgy = {self.sy - 120,
+               self.sy - 160 - floor(self.sy / 9) - 44,
+               cy + 96}
+
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    HUD:drawHudTextDouble(cx - 220, self.sy - 140, Config.ui.color.meterBar, hudFontSize, 0.5, "Weapon Groups A")
+    HUD:drawHudTextDouble(cx + 220, self.sy - 140, Config.ui.color.meterBar, hudFontSize, 0.5, "Weapon Groups B")
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    HUD:drawHudTextDouble(cx - 340, self.sy - 160 - floor(self.sy / 9) - 66, Config.ui.color.meterBar, hudFontSize, 0.5, "Weapon Groups A")
+    HUD:drawHudTextDouble(cx + 340, self.sy - 160 - floor(self.sy / 9) - 66, Config.ui.color.meterBar, hudFontSize, 0.5, "Weapon Groups B")
+  end
+
+  for i = 1, 8 do
+    if Config.game.weaponGroup == i then
+      UI.DrawEx.Circle(wgx[hudMode][i], wgy[hudMode] + 18, 10, Config.ui.color.meterBar, true)
+      HUD:drawHudText("UbuntuBold", fontsize + 2, wgx[hudMode][i] - floor(fontsize / 2) - 1, wgy[hudMode] + 10, tostring(i), Config.ui.color.borderBright)
+    else
+      UI.DrawEx.Ring(wgx[hudMode][i], wgy[hudMode] + 18, 10, Config.ui.color.meterBar, false)
+      HUD:drawHudText("Ubuntu", fontsize, wgx[hudMode][i] - floor(fontsize / 2), wgy[hudMode] + 11, tostring(i), Config.ui.color.meterBar)
     end
   end
 end
@@ -445,16 +665,57 @@ function HUD:drawPowerDistro (a)
 
   local cx, cy = self.sx / 2, self.sy / 2
 
-  -- Draw player power distribution
-  HUD:drawHudTextDouble(cx - 280, cy + floor(cy / 3) - 16, a, 0.0, "Engines")
-  HUD:drawHudTextDouble(cx - 280, cy + floor(cy / 3) +  6, a, 0.0, "Shields")
-  HUD:drawHudTextDouble(cx + 220, cy + floor(cy / 3) - 16, a, 0.0, "Computer")
-  HUD:drawHudTextDouble(cx + 220, cy + floor(cy / 3) +  6, a, 0.0, "Sensors")
+  local hudXLt = 0
+  local hudXLm = 0
+  local hudXRt = 0
+  local hudXRm = 0
+  local hudYAt = 0
+  local hudYAm = 0
+  local hudYBt = 0
+  local hudYBm = 0
+  local hudFsize = hudFontSize
+  if Config.ui.hudDisplayed == Enums.HudModes.Wide then
+    hudXLm = cx - 300
+    hudXLt = hudXLm - 80
+    hudXRm = cx + 140
+    hudXRt = hudXRm + 180
+    hudYAt = self.sy - 64
+    hudYAm = self.sy - 56
+    hudYBt = self.sy - 40
+    hudYBm = self.sy - 32
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
+    hudXLm = cx - 300
+    hudXLt = hudXLm - 80
+    hudXRm = cx + 140
+    hudXRt = hudXRm + 180
+    hudYAt = self.sy - 100
+    hudYAm = self.sy -  92
+    hudYBt = self.sy -  76
+    hudYBm = self.sy -  68
+    hudFsize = hudFontSize
+  elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
+    hudXLm = cx - 240
+    hudXLt = hudXLm - 80
+    hudXRm = cx +  80
+    hudXRt = hudXRm + 180
+    hudYAt = cy + 150 - 16
+    hudYAm = cy + 150 -  8
+    hudYBt = cy + 150 +  6
+    hudYBm = cy + 150 + 14
+    hudFsize = hudFontSize
+  end
 
-  UI.DrawEx.Meter(cx - 200, cy + floor(cy / 3) -  8, 32, 8, Config.ui.color.meterBar, 10, 4, 4, 1)
-  UI.DrawEx.Meter(cx - 200, cy + floor(cy / 3) + 14, 32, 8, Config.ui.color.meterBar, 10, 4, 2, 1)
-  UI.DrawEx.Meter(cx +  40, cy + floor(cy / 3) -  8, 32, 8, Config.ui.color.meterBar, 10, 4, 1, -1)
-  UI.DrawEx.Meter(cx +  40, cy + floor(cy / 3) + 14, 32, 8, Config.ui.color.meterBar, 10, 4, 1, -1)
+  -- Draw player power distribution
+  HUD:drawHudTextDouble(hudXLt, hudYAt, Config.ui.color.meterBar, hudFsize, 0.0, "Engines")
+  HUD:drawHudTextDouble(hudXLt, hudYBt, Config.ui.color.meterBar, hudFsize, 0.0, "Shields")
+  HUD:drawHudTextDouble(hudXRt, hudYAt, Config.ui.color.meterBar, hudFsize, 0.0, "Computer")
+  HUD:drawHudTextDouble(hudXRt, hudYBt, Config.ui.color.meterBar, hudFsize, 0.0, "Sensors")
+
+  UI.DrawEx.Meter(hudXLm, hudYAm, 32, 8, Config.ui.color.meterBar, 10, 4, 4, 1)
+  UI.DrawEx.Meter(hudXLm, hudYBm, 32, 8, Config.ui.color.meterBar, 10, 4, 2, 1)
+  UI.DrawEx.Meter(hudXRm, hudYAm, 32, 8, Config.ui.color.meterBar, 10, 4, 1, -1)
+  UI.DrawEx.Meter(hudXRm, hudYBm, 32, 8, Config.ui.color.meterBar, 10, 4, 1, -1)
 end
 
 function HUD:drawSensors (a)
@@ -464,8 +725,8 @@ function HUD:drawSensors (a)
     -- Draw sensor readouts
     local xleft = floor(cx / 2)
     local xlength = cx
-    local ytop = floor(self.sy * 12 / 17)
-    local ylength = self.sy - floor(self.sy * 12 / 17) - 166
+    local ylength = floor(self.sy / 9)
+    local ytop = self.sy - 160 - ylength
     UI.DrawEx.Panel(xleft, ytop, xlength, ylength, Config.ui.color.meterBar, 0.3)
     UI.DrawEx.Rect(xleft, ytop + floor(0.8 * ylength), xlength, 6, Config.ui.color.meterBarDark)
   end
@@ -686,10 +947,8 @@ function HUD:drawReticle (a)
   do -- Reticle
     do -- Central Crosshair
       local c = Config.ui.color.reticle
-      c.a = a
-      local phase = 0.125
       local r1 = 24
-      local r2 = 28
+      local r2 = 36
       local n = 3
       for i = 0, n - 1 do
         local angle = -(Math.Pi2 + (i / n) * Math.Tau)
@@ -731,7 +990,7 @@ function HUD:drawPlayerHealth (a)
   hc.a = 0.7
 
   -- Draw text of player ship name
-  HUD:drawHudTextDouble(104, sy - 270, a, 0.5, playerShip:getName())
+  HUD:drawHudTextDouble(164, sy - 270, Config.ui.color.meterBar, hudFontSize, 0.5, playerShip:getName())
 
   -- Draw hologram of player ship on a grid background
 --local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
@@ -743,7 +1002,7 @@ function HUD:drawPlayerHealth (a)
   UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 286, 260, 260, Config.ui.color.hologram, playerRadius / 1.7, -1.5, 0.0)
 
   -- Draw text of player ship health
-  HUD:drawHudTextDouble(112, sy - 60, a, 0.5, playerHealthText)
+  HUD:drawHudTextDouble(164, sy - 60, Config.ui.color.meterBar, hudFontSize, 0.5, playerHealthText)
 
   -- Draw player ship health as a meter
   UI.DrawEx.RectOutline(66, sy - 36, 202, 22, Config.ui.color.borderBright)
@@ -782,7 +1041,7 @@ function HUD:drawTargetHealth (a)
       hc.a = 0.7
 
       if target:getType() == Config:getObjectTypeByName("object_types", "Ship") then
-        targetRadiusAdj = 5.9
+        targetRadiusAdj = targetRadius / 1.7
         if target.usesBoost then
           targetName = targetName .. " [Ace]"
         end
@@ -793,14 +1052,14 @@ function HUD:drawTargetHealth (a)
       end
 
       -- Draw text of target name
-      HUD:drawHudTextDouble(sx - 214, sy - 270, a, 0.5, targetName)
+      HUD:drawHudTextDouble(sx - 160, sy - 270, Config.ui.color.meterBar, hudFontSize, 0.5, targetName)
 
       -- Draw hologram of target entity on a grid background
       UI.DrawEx.Grid(sx - 206, sy - 181, 100, 55, Config.ui.color.meterBar)
       UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 286, 260, 260, Config.ui.color.hologram, targetRadiusAdj, -1.5, 0.0)
 
       -- Draw text of target health
-      HUD:drawHudTextDouble(sx - 208, sy - 60, a, 0.5, targetHealthText)
+      HUD:drawHudTextDouble(sx - 160, sy - 60, Config.ui.color.meterBar, hudFontSize, 0.5, targetHealthText)
 
       -- Draw target health as a meter
       UI.DrawEx.RectOutline(sx - 254, sy - 36, 202, 22, Config.ui.color.borderBright)
@@ -870,9 +1129,9 @@ end
 function HUD:onUpdate (state)
   if not Config.game.gamePaused then
     if Input.GetPressed(Bindings.ToggleHUD) then
-      Config.ui.HudDisplayed = Config.ui.HudDisplayed + 1
-      if Config.ui.HudDisplayed > Enums.HudModes.Tight then
-        Config.ui.HudDisplayed = Enums.HudModes.None
+      Config.ui.hudDisplayed = Config.ui.hudDisplayed + 1
+      if Config.ui.hudDisplayed > Enums.HudModes.Tight then
+        Config.ui.hudDisplayed = Enums.HudModes.None
       end
     end
 
@@ -934,36 +1193,34 @@ end
 function HUD:onDraw (focus, active)
   local playerShip = self.player:getControlling()
   if playerShip:isAlive() then
-    if Config.ui.HudDisplayed ~= Enums.HudModes.None then
-      Profiler.Begin('HUD.DrawSystemText')    self:drawSystemText   (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetText')    self:drawTargetText   (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawBoostEnergy')   self:drawBoostEnergy  (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawWeaponEnergy')  self:drawWeaponEnergy (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetMission') self:drawTargetMission(self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetType')    self:drawTargetType   (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetSubtype') self:drawTargetSubtype(self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetRange')   self:drawTargetRange  (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetHull')    self:drawTargetHull   (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetShields') self:drawTargetShields(self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetSpeed')   self:drawTargetSpeed  (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawPlayerSpeed')   self:drawPlayerSpeed  (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawPlayerHull')    self:drawPlayerHull   (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawPlayerShields') self:drawPlayerShields(self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawWeaponGroups')  self:drawWeaponGroups (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawMissilesLeft')  self:drawMissilesLeft (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawChaffLeft')     self:drawChaffLeft    (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawLockWarning')   self:drawLockWarning  (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawPowerDistro')   self:drawPowerDistro  (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawSensors')       self:drawSensors      (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTacticalMap')   self:drawTacticalMap  (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargets')       self:drawTargets      (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawLock')          self:drawLock         (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawPlayerHealth')  self:drawPlayerHealth (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawTargetHealth')  self:drawTargetHealth (self.enabled) Profiler.End()
-      Profiler.Begin('HUD.DrawReticle')       self:drawReticle      (self.enabled) Profiler.End()
+    if Config.ui.hudDisplayed ~= Enums.HudModes.None then
+      self:drawSystemText            (self.enabled)
+      self:drawTargetText            (self.enabled)
+      self:drawBoostEnergy           (self.enabled)
+      self:drawWeaponEnergy          (self.enabled)
+      self:drawTargetMission         (self.enabled)
+      self:drawTargetType            (self.enabled)
+      self:drawTargetRange           (self.enabled)
+      self:drawTargetSubtype         (self.enabled)
+      self:drawTargetSpeed           (self.enabled)
+      self:drawTargetShieldsHullArmor(self.enabled)
+      self:drawPlayerShieldsHullArmor(self.enabled)
+      self:drawMissilesLeft          (self.enabled)
+      self:drawPlayerSpeed           (self.enabled)
+      self:drawChaffLeft             (self.enabled)
+      self:drawLockWarning           (self.enabled)
+      self:drawWeaponGroups          (self.enabled)
+      self:drawPowerDistro           (self.enabled)
+      self:drawSensors               (self.enabled)
+      self:drawTacticalMap           (self.enabled)
+      self:drawTargets               (self.enabled)
+      self:drawLock                  (self.enabled)
+      self:drawPlayerHealth          (self.enabled)
+      self:drawTargetHealth          (self.enabled)
+      self:drawReticle               (self.enabled)
     end
 
-    Profiler.Begin('HUD.DrawPrompt')  self:drawDockPrompt(self.enabled) Profiler.End()
+    self:drawDockPrompt(self.enabled)
   end
 end
 
@@ -990,6 +1247,112 @@ function HUD:onDrawIcon (iconButton, focus, active)
   UI.DrawEx.Line(cx - 2, ty + w1y, cx - w1sx, ty + w1y + w1sy, contentColor, false)
   UI.DrawEx.Line(cx + 2, by,       cx + w2sx, by + w2y + w2sy, contentColor, false)
   UI.DrawEx.Line(cx - 2, by,       cx - w2sx, by + w2y + w2sy, contentColor, false)
+end
+
+function HUD:onEnable ()
+  -- TODO : Wtf does this do? Who wrote this?? WHY.
+  local pCamera = self.gameView.camera
+  local camera = self.gameView.camera
+
+  -- Lock camera back to player ship when HUD is enabled!
+  -- (e.g., changing from "Dock" control -> "Ship" control in MasterControl.lua)
+  self.gameView:setOrbit(false)
+
+  camera:warp()
+  camera:lerpFrom(pCamera.pos, pCamera.rot)
+
+  -- Set the mouse position when the Flight mode HUD is activated to the center of the game window
+  Config.render.gameWindow:setWindowGrab(true)
+  local x, y, sx, sy = self:getRectGlobal()
+  Input.SetMousePosition(sx / 2, sy / 2)
+  Config.render.gameWindow:setWindowGrab(false)
+end
+
+function HUD:controlThrust (e)
+  -- TODO: Should this really be here in HUD.lua?
+  if not e:hasThrustController() then return end
+  local c = e:getThrustController()
+
+  -- Create a small (square) dead zone in the center of the aiming reticle
+  -- TODO: make dead zone circular and a sloping cutoff instead of sharp
+  local yaw   = ShipBindings.Yaw:get()
+  if abs(yaw) < 0.004 then yaw = 0 end
+  local pitch = ShipBindings.Pitch:get() -- make negative if ShipBindings.Pitch is not :invert()
+  if abs(pitch) < 0.008 then pitch = 0 end
+
+  c:setThrust(
+    ShipBindings.ThrustZ:get(),
+    ShipBindings.ThrustX:get(),
+    0,
+    yaw,
+    pitch,
+    ShipBindings.Roll:get(),
+    ShipBindings.Boost:get())
+  self.aimX = c.yaw
+  self.aimY = c.pitch
+--printf("yaw = %f, pitch = %f", c.yaw, c.pitch)
+end
+
+function HUD:controlTurrets (e)
+  -- TODO: Should this really be here in HUD.lua?
+  local targetPos, targetVel
+  local target = e:getTarget()
+
+  if target and target:getOwnerDisposition(self.player) <= 0.0 then
+    targetPos = target:getPos()
+    targetVel = target:getVelocity()
+  end
+
+  local firing   = ShipBindings.Fire:get() > 0 and 1 or 0
+  local camera   = self.gameView.camera
+  local ndc      = Vec3f(self.aimX, self.aimY)
+  local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin)
+
+  -- Compute a firing solution separately for each turret to support
+  -- different projectile velocities & ranges
+  for turret in e:iterSocketsByType(SocketType.Turret) do
+    if Config.game.autoTarget and targetPos then
+      turret:aimAtTarget(target, fallback)
+    else
+      turret:aimAt(fallback)
+    end
+    turret.firing = firing
+  end
+end
+
+function HUD:controlTargetLock (e)
+  if ShipBindings.LockTarget:get() > 0.5 then e:setTarget(self.target) end
+  if ShipBindings.ClearTarget:get() > 0.5 then e:setTarget(nil) end
+end
+
+function HUD:drawHudText (font, fontsize, x, y, text, c)
+  UI.DrawEx.TextAdditive(
+    font,
+    text,
+    fontsize,
+    x, y, fontsize, fontsize,
+    c.r, c.g, c.b, 1.0,
+    0.5, 0.5
+  )
+end
+
+function HUD:drawHudTextDouble (x, y, color, size, horJust, text)
+  UI.DrawEx.TextAdditive(
+    "UbuntuBold",
+    text,
+    size,
+    x + 1, y + 1, 1, size,
+    0, 0, 0, 1.0,
+    horJust, 0.5
+  )
+  UI.DrawEx.TextAdditive(
+    "UbuntuBold",
+    text,
+    size,
+    x, y, 1, size,
+    color.r, color.g, color.b, 1.0,
+    horJust, 0.5
+  )
 end
 
 function HUD.Create (gameView, player)
@@ -1020,36 +1383,6 @@ function HUD.Create (gameView, player)
   self.dockables:update()
 
   return self
-end
-
-function HUD:drawHudText (font, fontsize, x, y, text, c)
-  UI.DrawEx.TextAdditive(
-    font,
-    text,
-    fontsize,
-    x, y, fontsize, fontsize,
-    c.r, c.g, c.b, 1.0,
-    0.5, 0.5
-  )
-end
-
-function HUD:drawHudTextDouble (x, y, alpha, horJust, text)
-  UI.DrawEx.TextAdditive(
-    "UbuntuBold",
-    text,
-    hudFontSize,
-    x + 1, y + 1, 120, hudFontSize,
-    0, 0, 0, alpha,
-    horJust, 0.5
-  )
-  UI.DrawEx.TextAdditive(
-    "UbuntuBold",
-    text,
-    hudFontSize,
-    x, y, 120, hudFontSize,
-    Config.ui.color.meterBar.r, Config.ui.color.meterBar.g, Config.ui.color.meterBar.b, 1.0,
-    horJust, 0.5
-  )
 end
 
 return HUD

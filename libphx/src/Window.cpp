@@ -81,9 +81,17 @@ void Window_SetVsync (Window*, bool vsync) {
   SDL_GL_SetSwapInterval(vsync ? 1 : 0);
 }
 
+void Window_SetWindowGrab (Window* self, bool grabbed) {
+  SDL_SetWindowGrab(self->handle, grabbed ? SDL_TRUE : SDL_FALSE);
+}
+
+void Window_SetMousePosition (Window* self, Vec2i* position) {
+  SDL_WarpMouseInWindow(self->handle, position->x, position->y);
+}
+
 void Window_SetCursor(Window* self, cstr name, int hotx, int hoty) {
   SDL_FreeCursor(self->cursor);   // Can take NULL
-  
+
   cstr path = Resource_GetPath(ResourceType_Tex2D, name);
 
   int width, height, components;

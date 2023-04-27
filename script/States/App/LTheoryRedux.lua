@@ -52,6 +52,9 @@ function LTheoryRedux:onInit ()
     self.window:toggleFullscreen()
   end
 
+  -- Set the default game control cursor
+  self.window:setCursor(Config.ui.cursor, Config.ui.cursorX, Config.ui.cursorY)
+
   self.player = Entities.Player(Config.game.humanPlayerName)
   Config.game.humanPlayer = self.player
   self:generate()
@@ -228,7 +231,7 @@ function LTheoryRedux:onUpdate (dt)
 
   -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
   if Input.GetPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then
-    bNewSSystem = true
+    LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu)
   end
 
   -- If player pressed the "toggle audio" key, turn it off if it's on or on if it's off
@@ -313,7 +316,6 @@ function LTheoryRedux:createStarSystem ()
       Config.game.panelActive  = false
       Config.game.playerMoving = false
       Config.game.weaponGroup  = 1
-      Config.ui.HudDisplayed = Enums.HudModes.Tight
 
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, a visible pilotable ship, and possibly some NPC ships
@@ -424,7 +426,6 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
           tradePlayer:pushAction(Actions.Think())
         end
       end
-
     end
   end
 
@@ -436,10 +437,15 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
     )
 
-    -- temporary until game states are properly introduced
-    if Config.getGameMode() == 2 then
-      MusicPlayer:PlayAmbient()
-    end
+  -- Temporary until game states are properly introduced
+  if Config.getGameMode() == 2 then
+    MusicPlayer:PlayAmbient()
+  end
+
+  -- Set the initial mouse position when Flight mode begins to the center of the game window
+  self.window:setWindowGrab(true)
+  Input.SetMousePosition(self.resX / 2, self.resY / 2)
+  self.window:setWindowGrab(false)
 end
 
 function LTheoryRedux:insertShip(ourShip)
@@ -467,7 +473,7 @@ function LTheoryRedux:exitGame ()
   MusicPlayer:SetVolume(0)
 
   -- Write player-specific game variables to preserve them across gameplay sessions
-  InitFiles:writeUserInits(self.window)
+  InitFiles:writeUserInits()
 
   LTheoryRedux:quit()
 end
