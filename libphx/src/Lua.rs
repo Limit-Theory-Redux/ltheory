@@ -47,9 +47,7 @@ extern "C" {
     fn luaL_openlibs(L: *mut lua_State);
     fn luaL_newstate() -> *mut lua_State;
 }
-pub type __builtin_va_list = *mut libc::c_char;
-pub type ResourceType = i32;
-pub type va_list = __builtin_va_list;
+pub type va_list = *mut libc::c_char;
 pub type lua_CFunction = Option<unsafe extern "C" fn(*mut lua_State) -> i32>;
 pub type lua_Number = f64;
 pub type lua_Integer = libc::ptrdiff_t;
@@ -100,13 +98,17 @@ unsafe extern "C" fn Lua_SignalHandler(_sig: Signal) {
         return;
     }
     // if sig == Signal_Abrt || sig == Signal_Segv {
+    /* NOTE : The implementation of abort() causes the program to forcefully
+     *        exit as soon as the signal handler returns. Thus Lua_BacktraceHook
+     *        will never get a chance to be called and we have to dump a trace
+     *        now. */
     Lua_Backtrace();
     // } else {
     //     cSignal = sig;
     //     lua_sethook(
     //         activeInstance,
     //         Some(Lua_BacktraceHook as extern "C" fn(*mut Lua, *mut lua_Debug) -> ()),
-    //         1 << 0 | 1 << 1 | 1 << 3,
+    //         LUA_MASKCALL | LUA_MASKRET | LUA_MASKCOUNT,
     //         1,
     //     );
     //     Signal_IgnoreDefault();

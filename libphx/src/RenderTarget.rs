@@ -200,7 +200,7 @@ pub unsafe extern "C" fn RenderTarget_PushTex2D(this: *mut Tex2D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn RenderTarget_PushTex2DLevel(this: *mut Tex2D, level: i32) {
-    let mut size: IVec2 = IVec2 { x: 0, y: 0 };
+    let mut size: IVec2 = IVec2::ZERO;
     Tex2D_GetSizeLevel(this, &mut size, level);
     RenderTarget_Push(size.x, size.y);
     RenderTarget_BindTex2DLevel(this, level);

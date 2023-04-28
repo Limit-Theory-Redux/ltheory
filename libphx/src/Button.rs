@@ -484,7 +484,13 @@ pub static Button_System_First: Button = Button_Gamepad_Last + 1;
 pub static Button_System_Exit: Button = Button_System_First + 0;
 
 #[no_mangle]
-pub static Button_System_Last: Button = Button_System_First + 0;
+pub static Button_System_Win_Enter: Button = Button_System_First + 1;
+
+#[no_mangle]
+pub static Button_System_Win_Leave: Button = Button_System_First + 2;
+
+#[no_mangle]
+pub static Button_System_Last: Button = Button_System_First + 2;
 
 #[no_mangle]
 pub static Button_Last: Button = Button_System_Last;

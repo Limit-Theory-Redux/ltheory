@@ -42,13 +42,11 @@ pub unsafe extern "C" fn Keyboard_UpdatePost() {
     let mut size: i32 = 0;
     let state: *const libc::c_uchar = SDL_GetKeyboardState(&mut size);
     MemCpy(stateCurr as *mut _, state as *const _, size as usize);
-    let mut i: i32 = 0;
-    while i < size {
+
+    for i in 0..size {
         if *stateCurr.offset(i as isize) as i32 != *stateLast.offset(i as isize) as i32 {
             lastAction = SDL_GetPerformanceCounter();
             break;
-        } else {
-            i += 1;
         }
     }
 }
@@ -76,18 +74,18 @@ pub unsafe extern "C" fn Keyboard_GetIdleTime() -> f64 {
 
 #[no_mangle]
 pub unsafe extern "C" fn KeyMod_Alt() -> bool {
-    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LALT as i32 as isize) as i32 != 0
-        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RALT as i32 as isize) as i32 != 0
+    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LALT as isize) as i32 != 0
+        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RALT as isize) as i32 != 0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn KeyMod_Ctrl() -> bool {
-    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LCTRL as i32 as isize) as i32 != 0
-        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RCTRL as i32 as isize) as i32 != 0
+    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LCTRL as isize) as i32 != 0
+        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RCTRL as isize) as i32 != 0
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn KeyMod_Shift() -> bool {
-    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LSHIFT as i32 as isize) as i32 != 0
-        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RSHIFT as i32 as isize) as i32 != 0
+    *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_LSHIFT as isize) as i32 != 0
+        || *stateCurr.offset(SDL_Scancode::SDL_SCANCODE_RSHIFT as isize) as i32 != 0
 }

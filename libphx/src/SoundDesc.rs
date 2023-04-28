@@ -201,7 +201,7 @@ pub unsafe extern "C" fn SoundDesc_ToFile(this: *mut SoundDesc, name: *const lib
     let mut len2: u32 = 0;
     FMODCALL(FMOD_Sound_Lock(
         (*this).handle,
-        0 as i32 as u32,
+        0 as u32,
         length,
         &mut ptr1,
         &mut ptr2,

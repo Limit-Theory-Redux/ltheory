@@ -10,17 +10,39 @@ use crate::Math::Vec3;
 use crate::State::*;
 use libc;
 
+const BindCount: usize = 4;
+
+#[no_mangle]
+pub static InputBindings_DefaultMaxValue: f32 = 0.;
+
+#[no_mangle]
+pub static InputBindings_DefaultMinValue: f32 = 0.;
+
+#[no_mangle]
+pub static InputBindings_DefaultDeadzone: f32 = 0.;
+
+#[no_mangle]
+pub static InputBindings_DefaultExponent: f32 = 0.;
+
+#[no_mangle]
+pub static InputBindings_DefaultReleaseThreshold: f32 = 0.;
+
+#[no_mangle]
+pub static InputBindings_DefaultPressThreshold: f32 = 0.;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct InputBinding {
     pub name: *const libc::c_char,
-    pub rawButtons: [[RawButton; 4]; 4],
+    pub rawButtons: [[RawButton; 4]; BindCount],
+
     pub pressThreshold: f32,
     pub releaseThreshold: f32,
     pub exponent: f32,
     pub deadzone: f32,
     pub minValue: f32,
     pub maxValue: f32,
+
     pub luaInstance: *mut Lua,
     pub buttons: [AggregateButton; 4],
     pub axes: [AggregateAxis; 2],
@@ -69,29 +91,10 @@ pub struct DownBinding {
 #[derive(Clone)]
 #[repr(C)]
 pub struct InputBindings {
+    //ArrayList(InputBinding, inactiveBindings);
     pub activeBindings: Vec<InputBinding>,
     pub downBindings: Vec<DownBinding>,
 }
-
-#[no_mangle]
-pub static InputBindings_DefaultMaxValue: f32 = 0.;
-
-#[no_mangle]
-pub static InputBindings_DefaultMinValue: f32 = 0.;
-
-#[no_mangle]
-pub static InputBindings_DefaultDeadzone: f32 = 0.;
-
-#[no_mangle]
-pub static InputBindings_DefaultExponent: f32 = 0.;
-
-#[no_mangle]
-pub static InputBindings_DefaultReleaseThreshold: f32 = 0.;
-
-#[no_mangle]
-pub static InputBindings_DefaultPressThreshold: f32 = 0.;
-
-static mut BindCount: i32 = 4;
 
 static mut this: InputBindings = InputBindings {
     activeBindings: Vec::new(),
@@ -100,12 +103,14 @@ static mut this: InputBindings = InputBindings {
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Init() {
+    //ArrayList_Reserve(self.inactiveBindings, 64);
     this.activeBindings.reserve(64);
     this.downBindings.reserve(8);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_Free() {
+    //ArrayList_Free(self.inactiveBindings);
     this.activeBindings.clear();
     this.downBindings.clear();
 }
@@ -116,47 +121,50 @@ extern "C" fn InputBindings_RaiseCallback(
     _callback: LuaRef,
 ) {
     CPrintf!("%s - %s\n", event, (*binding).name);
+    /* TODO : Decide what all we want to pass to the callbacks (values, states, ...?) */
+    //if (callback) {
+    //  Lua_PushRef(binding->luaInstance, callback);
+    //  Lua_PushPtr(binding->luaInstance, binding);
+    //  Lua_Call(binding->luaInstance, 1, 0, 0);
+    //}
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding) {
     let mut value = Vec2::ZERO;
     let axisValues: [*mut f32; 2] = [&mut value.x, &mut value.y];
-    let mut iAxis = 0;
-    while iAxis < (*binding).axes.len() {
-        let axisValue: *mut f32 = axisValues[iAxis as usize];
-        let mut iBind: i32 = 0;
-        while iBind < BindCount {
-            *axisValue += (*binding).rawButtons[(2 * iAxis + 0) as usize][iBind as usize].value;
-            *axisValue -= (*binding).rawButtons[(2 * iAxis + 1) as usize][iBind as usize].value;
-            iBind += 1;
+
+    // Update Value
+    for iAxis in (0..(*binding).axes.len()) {
+        let axisValue: *mut f32 = axisValues[iAxis];
+        for iBind in (0..BindCount) {
+            *axisValue += (*binding).rawButtons[(2 * iAxis + 0) as usize][iBind].value;
+            *axisValue -= (*binding).rawButtons[(2 * iAxis + 1) as usize][iBind].value;
         }
         *axisValue = (*axisValue - (*binding).deadzone) / (1.0f32 - (*binding).deadzone);
-        *axisValue = f64::powf(*axisValue as f64, (*binding).exponent as f64) as f32;
-        *axisValue = f64::clamp(
-            *axisValue as f64,
-            (*binding).minValue as f64,
-            (*binding).maxValue as f64,
-        ) as f32;
-        iAxis += 1;
+        *axisValue = f32::powf(*axisValue, (*binding).exponent);
+        *axisValue = f32::clamp(*axisValue, (*binding).minValue, (*binding).maxValue);
     }
     let len: f32 = value.length();
     if len > 1.0f32 {
         value /= 1.0f32 / len;
     }
+
+    // Axis2D
     let axis2D: *mut AggregateAxis2D = &mut (*binding).axis2D;
     if value != (*axis2D).value {
         (*axis2D).value = value;
         InputBindings_RaiseCallback(c_str!("Changed"), binding, (*axis2D).onChanged);
     }
-    let mut iAxis_0 = 0;
-    while iAxis_0 < (*binding).axes.len() {
+
+    // Axes
+    for iAxis in (0..(*binding).axes.len()) {
         let axis: *mut AggregateAxis =
-            &mut *((*binding).axes).as_mut_ptr().offset(iAxis_0 as isize) as *mut AggregateAxis;
-        if *axisValues[iAxis_0 as usize] != (*axis).value {
-            (*axis).value = *axisValues[iAxis_0 as usize];
+            &mut *((*binding).axes).as_mut_ptr().offset(iAxis as isize) as *mut AggregateAxis;
+        if *axisValues[iAxis as usize] != (*axis).value {
+            (*axis).value = *axisValues[iAxis as usize];
             InputBindings_RaiseCallback(
-                if iAxis_0 == 0 {
+                if iAxis == 0 {
                     c_str!("Changed X")
                 } else {
                     c_str!("Changed Y")
@@ -165,35 +173,36 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
                 (*axis).onChanged,
             );
         }
-        iAxis_0 += 1;
     }
-    let mut iBtn = 0;
-    while iBtn < (*binding).buttons.len() {
-        let button: *mut AggregateButton =
-            &mut *((*binding).buttons).as_mut_ptr().offset(iBtn as isize) as *mut AggregateButton;
-        let axisValue_0: f32 = (*binding).axes[(iBtn / 2) as usize].value;
+
+    // Buttons
+    for iBtn in (0..(*binding).buttons.len()) {
+        let button: &mut AggregateButton = &mut (*binding).buttons[iBtn];
+        let axisValue: f32 = (*binding).axes[(iBtn / 2) as usize].value;
         let isPos: bool = iBtn & 1 == 0;
+
         if !((*button).state & State_Down == State_Down) {
+            // Pressed
             if if isPos as i32 != 0 {
-                (axisValue_0 > (*binding).pressThreshold) as i32
+                axisValue > (*binding).pressThreshold
             } else {
-                (axisValue_0 < -(*binding).pressThreshold) as i32
-            } != 0
-            {
+                axisValue < -(*binding).pressThreshold
+            } {
                 (*button).state |= State_Pressed;
                 (*button).state |= State_Down;
                 InputBindings_RaiseCallback(c_str!("Pressed"), binding, (*button).onPressed);
+
                 this.downBindings.push(DownBinding {
                     binding: binding,
                     button: button,
                 });
             }
         } else if if isPos as i32 != 0 {
-            (axisValue_0 < (*binding).releaseThreshold) as i32
+            // Released
+            axisValue < (*binding).releaseThreshold
         } else {
-            (axisValue_0 > -(*binding).releaseThreshold) as i32
-        } != 0
-        {
+            axisValue > -(*binding).releaseThreshold
+        } {
             (*button).state |= State_Released;
             (*button).state &= !State_Down;
             InputBindings_RaiseCallback(c_str!("Released"), binding, (*button).onReleased);
@@ -201,7 +210,6 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
             this.downBindings
                 .retain(|down| down.binding != binding || down.button != button);
         }
-        iBtn += 1;
     }
 }
 
@@ -211,6 +219,7 @@ pub unsafe extern "C" fn InputBindings_Update() {
     for down in this.downBindings.iter() {
         InputBindings_RaiseCallback(c_str!("Down"), down.binding, (*down.button).onDown);
     }
+
     let mut event: InputEvent = InputEvent {
         timestamp: 0,
         device: Device { ty: 0, id: 0 },
@@ -221,43 +230,89 @@ pub unsafe extern "C" fn InputBindings_Update() {
     while Input_GetNextEvent(&mut event) {
         // Match
         for binding in this.activeBindings.iter_mut().rev() {
-            let mut iBtn = 0;
-            while iBtn < (*binding).rawButtons.len() {
-                let mut iBind = 0;
-                while iBind < (*binding).rawButtons[iBtn].len() {
-                    let button: *mut RawButton =
-                        &mut *(*((*binding).rawButtons).as_mut_ptr().offset(iBtn as isize))
-                            .as_mut_ptr()
-                            .offset(iBind as isize) as *mut RawButton;
+            for iBtn in (0..(*binding).rawButtons.len()) {
+                for iBind in (0..(*binding).rawButtons[iBtn].len()) {
+                    let button: &mut RawButton = &mut (*binding).rawButtons[iBtn][iBind];
+
                     if event.button == (*button).button {
                         (*button).value = event.value;
                         InputBindings_UpdateBinding(binding);
                     }
-                    iBind += 1;
                 }
-                iBtn += 1;
             }
         }
     }
 }
-static mut iXPos: i32 = 0;
 
-static mut iXNeg: i32 = 1;
+// void InputBindings_Register (InputBinding* binding) {
+//     //Lua* lua = Lua_GetActive();
+//     //if (!lua)
+//     //  Fatal("InputBinding_Register: No Lua instance is active");
 
-static mut iYPos: i32 = 2;
+//     InputBinding binding = {};
+//     binding.states[Idx_xPos].button = binding->xPos;
+//     binding.states[Idx_xNeg].button = binding->xNeg;
+//     binding.states[Idx_yPos].button = binding->yPos;
+//     binding.states[Idx_yNeg].button = binding->yNeg;
+//     binding.pressThreshold          = binding->pressThreshold;
+//     binding.releaseThreshold        = binding->releaseThreshold;
+//     binding.exponent                = binding->exponent;
 
-static mut iYNeg: i32 = 3;
+//     //registeredBinding.luaInstance = lua;
+//     //registeredBinding.onPressed   = Lua_GetRef(lua);
+//     //registeredBinding.onDown      = Lua_GetRef(lua);
+//     //registeredBinding.onReleased  = Lua_GetRef(lua);
+//     //registeredBinding.onChanged   = Lua_GetRef(lua);
 
-static mut iX: i32 = 0;
+//     ArrayList_Append(self.activeBindings, binding);
+//   }
 
-static mut iY: i32 = 1;
+//   void InputBindings_Unregister (InputBinding* binding) {
+//     ArrayList_ForEachIReverse(self.downBindings, i) {
+//       RegisteredBinding* downBinding = ArrayList_Get(self.downBindings, i);
+//       if (StrEqual(binding->name, downBinding->name)) {
+//         ArrayList_RemoveAt(self.downBindings, i);
+//       }
+//     }
+
+//     ArrayList_ForEachIReverse(self.activeBindings, i) {
+//       RegisteredBinding* binding2 = ArrayList_GetPtr(self.activeBindings, i);
+//       if (StrEqual(binding->name, binding2->name)) {
+//         //Lua_ReleaseRef(binding2->luaInstance, binding2->onPressed);
+//         //Lua_ReleaseRef(binding2->luaInstance, binding2->onDown);
+//         //Lua_ReleaseRef(binding2->luaInstance, binding2->onReleased);
+//         //Lua_ReleaseRef(binding2->luaInstance, binding2->onChanged);
+//         ArrayList_RemoveAt(self.activeBindings, i);
+//       }
+//     }
+//   }
+
+//   const float InputBindings_DefaultPressThreshold   =  0.5f;
+//   const float InputBindings_DefaultReleaseThreshold =  0.3f;
+//   const float InputBindings_DefaultExponent         =  1.0f;
+//   const float InputBindings_DefaultDeadzone         =  0.2f;
+//   const float InputBindings_DefaultMinValue         = -FLT_MAX;
+//   const float InputBindings_DefaultMaxValue         =  FLT_MAX;
+
+//   void InputBindings_RegisterAll (InputBinding* binding, int count) {
+//     for (int i = 0; i < count; i++)
+//       InputBindings_Register(&binding[i]);
+//   }
+
+//   void InputBindings_UnregisterAll (InputBinding* binding, int count) {
+//     for (int i = 0; i < count; i++)
+//       InputBindings_Unregister(&binding[i]);
+//   }
+
+const iXPos: i32 = 0;
+const iXNeg: i32 = 1;
+const iYPos: i32 = 2;
+const iYNeg: i32 = 3;
+const iX: i32 = 0;
+const iY: i32 = 1;
 
 #[inline]
-unsafe extern "C" fn InputBinding_GetButtonState(
-    binding: *mut InputBinding,
-    iBtn: i32,
-    state: State,
-) -> bool {
+unsafe fn InputBinding_GetButtonState(binding: *mut InputBinding, iBtn: i32, state: State) -> bool {
     (*binding).buttons[iBtn as usize].state & state == state
 }
 
@@ -375,27 +430,20 @@ pub unsafe extern "C" fn InputBinding_SetExponent(
 }
 
 #[inline]
-unsafe extern "C" fn InputBinding_SetInvert(binding: *mut InputBinding, iAxis: i32, invert: bool) {
-    let axis: *mut AggregateAxis =
-        &mut *((*binding).axes).as_mut_ptr().offset(iAxis as isize) as *mut AggregateAxis;
-    if invert as i32 != (*axis).invert as i32 {
+unsafe fn InputBinding_SetInvert(binding: *mut InputBinding, iAxis: i32, invert: bool) {
+    let axis: &mut AggregateAxis = &mut (*binding).axes[iAxis as usize];
+    if invert != (*axis).invert {
         (*axis).invert = invert;
-        let mut iBind: i32 = 0;
-        while iBind < BindCount {
-            let btnPos: *mut RawButton = &mut *(*((*binding).rawButtons)
-                .as_mut_ptr()
-                .offset((2 * iAxis + 0) as isize))
-            .as_mut_ptr()
-            .offset(iBind as isize) as *mut RawButton;
-            let btnNeg: *mut RawButton = &mut *(*((*binding).rawButtons)
-                .as_mut_ptr()
-                .offset((2 * iAxis + 1) as isize))
-            .as_mut_ptr()
-            .offset(iBind as isize) as *mut RawButton;
+
+        for iBind in (0..BindCount) {
+            let btnPos: &mut RawButton =
+                &mut (*binding).rawButtons[(2 * iAxis + 0) as usize][iBind];
+            let btnNeg: &mut RawButton =
+                &mut (*binding).rawButtons[(2 * iAxis + 1) as usize][iBind];
+
             let temp: Button = (*btnPos).button;
             (*btnPos).button = (*btnNeg).button;
             (*btnNeg).button = temp;
-            iBind += 1;
         }
     }
 }
@@ -439,3 +487,7 @@ pub unsafe extern "C" fn InputBinding_SetThresholds(
     (*binding).releaseThreshold = release;
     binding
 }
+
+/* TODO : Probably easier to aggregate values to point to top level Vec2f
+ *        instead of juggling indicies and shit. */
+/* TODO : What happens if you change binding settings while down? */

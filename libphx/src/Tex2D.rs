@@ -72,7 +72,7 @@ pub unsafe extern "C" fn Tex2D_Create(sx: i32, sy: i32, format: TexFormat) -> *m
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
-    let mut size: IVec2 = IVec2 { x: 0, y: 0 };
+    let mut size: IVec2 = IVec2::ZERO;
     Viewport_GetSize(&mut size);
     let this = Tex2D_Create(size.x, size.y, TexFormat_RGBA8);
     let buf = MemNewArray!(u32, (size.x * size.y));

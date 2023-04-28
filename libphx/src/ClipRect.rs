@@ -59,7 +59,7 @@ unsafe extern "C" fn TransformRect(x: *mut f32, y: *mut f32, sx: *mut f32, sy: *
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Activate(this: *mut ClipRect) {
     if !this.is_null() && (*this).enabled as i32 != 0 {
-        let mut vpSize: IVec2 = IVec2 { x: 0, y: 0 };
+        let mut vpSize: IVec2 = IVec2::ZERO;
         Viewport_GetSize(&mut vpSize);
         gl::Enable(gl::SCISSOR_TEST);
         let mut x: f32 = (*this).x;

@@ -324,7 +324,7 @@ unsafe extern "C" fn HmGui_LayoutGroup(g: *mut HmGuiGroup) {
     let mut size = (*g).widget.size;
     let mut extra: f32 = 0.0f32;
     let mut totalStretch: f32 = 0.0f32;
-    
+
     pos.x += (*g).paddingLower.x + (*g).offset.x;
     pos.y += (*g).paddingLower.y + (*g).offset.y;
     size.x -= (*g).paddingLower.x + (*g).paddingUpper.x;
@@ -387,7 +387,7 @@ unsafe extern "C" fn HmGui_LayoutGroup(g: *mut HmGuiGroup) {
 
         e = (*e).next;
     }
-    
+
     if (*g).storeSize {
         let data: *mut HmGuiData = HmGui_GetData(g);
         (*data).size = (*g).widget.size;
@@ -429,10 +429,10 @@ unsafe extern "C" fn HmGui_CheckFocus(g: *mut HmGuiGroup) {
 }
 
 unsafe extern "C" fn HmGui_DrawText(e: *mut HmGuiText) {
-// #if HMGUI_DRAW_GROUP_FRAMES
-//   Draw_Color(0.5f, 0.2f, 0.2f, 0.5f);
-//   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
-//#endif
+    // #if HMGUI_DRAW_GROUP_FRAMES
+    //   Draw_Color(0.5f, 0.2f, 0.2f, 0.5f);
+    //   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
+    //#endif
 
     UIRenderer_Text(
         (*e).font,
@@ -471,10 +471,10 @@ unsafe extern "C" fn HmGui_DrawImage(e: *mut HmGuiImage) {
 }
 
 unsafe extern "C" fn HmGui_DrawGroup(g: *mut HmGuiGroup) {
-// #if HMGUI_DRAW_GROUP_FRAMES
-//   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
-//   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
-// #endif
+    // #if HMGUI_DRAW_GROUP_FRAMES
+    //   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
+    //   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
+    // #endif
 
     UIRenderer_BeginLayer(
         (*g).widget.pos.x,
@@ -627,7 +627,7 @@ pub unsafe extern "C" fn HmGui_End() {
     HmGui_EndGroup();
     HmGui_ComputeSize(this.root);
     HmGui_LayoutGroup(this.root);
-    
+
     for i in 0..FocusType_SIZE {
         this.focus[i as usize] = 0;
     }
@@ -751,8 +751,8 @@ pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char) {
     (*this.group).clip = true;
     HmGui_SetPadding(8.0f32, 8.0f32);
     HmGui_SetStretch(1.0f32, 1.0f32);
-  // HmGui_TextColored(title, 1.0f, 1.0f, 1.0f, 0.3f);
-  // HmGui_SetAlign(0.5f, 0.0f);
+    // HmGui_TextColored(title, 1.0f, 1.0f, 1.0f, 0.3f);
+    // HmGui_SetAlign(0.5f, 0.0f);
 }
 
 #[no_mangle]

@@ -1,5 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
+use crate::Intersect::*;
 use crate::Math::*;
 use crate::Polygon::*;
 use libc;
@@ -35,9 +36,9 @@ pub unsafe extern "C" fn Plane_ClassifyPoint(
 ) -> PointClassification {
     let _magnitude: f32 = f64::abs((1.0f32 - (*plane).n.length()) as f64) as f32;
     let dist: f32 = Vec3::dot((*plane).n, *p) - (*plane).d;
-    if dist as f64 > 1e-4f64 {
+    if dist > PLANE_THICKNESS_EPSILON {
         PointClassification::InFront
-    } else if (dist as f64) < -1e-4f64 {
+    } else if dist < -PLANE_THICKNESS_EPSILON {
         PointClassification::Behind
     } else {
         PointClassification::Coplanar

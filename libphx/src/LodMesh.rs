@@ -4,6 +4,21 @@ use crate::Math::Vec3;
 use crate::Mesh::*;
 use libc;
 
+/* --- LodMesh -----------------------------------------------------------------
+ *
+ *   A basic container for abstracting LOD rendering behavior. LodMesh consists
+ *   of any number of (Mesh, distMin, distMax) tuples. Drawing a requires
+ *   passing a *distance squared* argument that is used to determine which
+ *   component(s) of the LodMesh to draw.
+ *
+ *   This type is REFERENCE-COUNTED. See ../doc/RefCounted.txt for details.
+ *
+ * -------------------------------------------------------------------------- */
+
+/* TODO : Merge meshes into single IBO/VBO so that we can skip all the rebinds
+ *        (profiling shows that they are a huge perf drain in the rendering
+ *         pipeline) */
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct LodMesh {

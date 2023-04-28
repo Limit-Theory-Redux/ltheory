@@ -18,6 +18,8 @@ pub static DeviceType_Keyboard: DeviceType = 0;
 #[no_mangle]
 pub static DeviceType_Gamepad: DeviceType = 0;
 
+pub const DeviceType_COUNT: usize = 4;
+
 #[no_mangle]
 pub extern "C" fn DeviceType_FromButton(button: Button) -> DeviceType {
     Button_ToDeviceType(button)
