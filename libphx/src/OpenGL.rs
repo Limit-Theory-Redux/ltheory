@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Math::Vec3;
 use crate::RenderState::*;
 use crate::GL::gl;
-use libc;
 use sdl2_sys::*;
 use std::ffi::CString;
 

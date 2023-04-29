@@ -5,7 +5,6 @@ use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::Math::Vec4;
 use crate::TimeStamp::*;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -49,28 +48,28 @@ unsafe extern "C" fn Random_Xoroshiro128(state0: *mut u64, state1: *mut u64) -> 
 }
 
 #[inline]
-unsafe extern "C" fn RNG_Next64(this: *mut RNG) -> u64 {
+unsafe extern "C" fn RNG_Next64(this: &mut RNG) -> u64 {
     Random_Xoroshiro128(
-        &mut *((*this).state).as_mut_ptr().offset(0),
-        &mut *((*this).state).as_mut_ptr().offset(1),
+        &mut *(this.state).as_mut_ptr().offset(0),
+        &mut *(this.state).as_mut_ptr().offset(1),
     )
 }
 
 #[inline]
-unsafe extern "C" fn RNG_Next32(this: *mut RNG) -> u32 {
+unsafe extern "C" fn RNG_Next32(this: &mut RNG) -> u32 {
     (RNG_Next64(this) & 0xffffffff) as u32
 }
 
 #[inline]
-unsafe extern "C" fn RNG_Init(this: *mut RNG) {
-    let mut seed: u64 = (*this).seed;
+unsafe extern "C" fn RNG_Init(this: &mut RNG) {
+    let mut seed: u64 = this.seed;
     let mut i: i32 = 0;
     while i < 64 {
         seed = Random_SplitMix64(&mut seed);
         i += 1;
     }
-    (*this).state[0] = Random_SplitMix64(&mut seed);
-    (*this).state[1] = Random_SplitMix64(&mut seed);
+    this.state[0] = Random_SplitMix64(&mut seed);
+    this.state[1] = Random_SplitMix64(&mut seed);
     let mut i_0: i32 = 0;
     while i_0 < 64 {
         RNG_Next64(this);
@@ -79,83 +78,83 @@ unsafe extern "C" fn RNG_Init(this: *mut RNG) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Create(seed: u64) -> *mut RNG {
-    let this = MemNew!(RNG);
-    (*this).seed = seed;
-    RNG_Init(this);
+pub unsafe extern "C" fn RNG_Create(seed: u64) -> Box<RNG> {
+    let mut this = Box::new(RNG {
+        seed,
+        state: [0u64; 2],
+    });
+    RNG_Init(this.as_mut());
     this
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_FromStr(s: *const libc::c_char) -> *mut RNG {
+pub unsafe extern "C" fn RNG_FromStr(s: *const libc::c_char) -> Box<RNG> {
     RNG_Create(Hash_XX64(s as *const _, StrLen(s) as i32, 0))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_FromTime() -> *mut RNG {
+pub unsafe extern "C" fn RNG_FromTime() -> Box<RNG> {
     RNG_Create(TimeStamp_Get())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Free(this: *mut RNG) {
-    MemFree(this as *const _);
-}
+pub unsafe extern "C" fn RNG_Free(_: Option<Box<RNG>>) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Rewind(this: *mut RNG) {
+pub unsafe extern "C" fn RNG_Rewind(this: &mut RNG) {
     RNG_Init(this);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Chance(this: *mut RNG, probability: f64) -> bool {
+pub unsafe extern "C" fn RNG_Chance(this: &mut RNG, probability: f64) -> bool {
     RNG_GetUniform(this) < probability
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Get31(this: *mut RNG) -> i32 {
+pub unsafe extern "C" fn RNG_Get31(this: &mut RNG) -> i32 {
     let mut i: u32 = RNG_Next32(this) & 0x7fffffff;
     *(&mut i as *mut u32 as *mut i32)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Get32(this: *mut RNG) -> u32 {
+pub unsafe extern "C" fn RNG_Get32(this: &mut RNG) -> u32 {
     RNG_Next32(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Get64(this: *mut RNG) -> u64 {
+pub unsafe extern "C" fn RNG_Get64(this: &mut RNG) -> u64 {
     RNG_Next64(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetAngle(this: *mut RNG) -> f64 {
+pub unsafe extern "C" fn RNG_GetAngle(this: &mut RNG) -> f64 {
     std::f64::consts::TAU * RNG_GetUniform(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetInt(this: *mut RNG, lower: i32, upper: i32) -> i32 {
+pub unsafe extern "C" fn RNG_GetInt(this: &mut RNG, lower: i32, upper: i32) -> i32 {
     let t: f64 = RNG_GetUniform(this);
     f64::round(lower as f64 + t * upper.wrapping_sub(lower) as f64) as i32
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetRNG(this: *mut RNG) -> *mut RNG {
+pub unsafe extern "C" fn RNG_GetRNG(this: &mut RNG) -> Box<RNG> {
     RNG_Create(RNG_Get64(this))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetUniform(this: *mut RNG) -> f64 {
+pub unsafe extern "C" fn RNG_GetUniform(this: &mut RNG) -> f64 {
     RNG_Next32(this) as f64 * f64::exp2(-32.0)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetUniformRange(this: *mut RNG, lower: f64, upper: f64) -> f64 {
+pub unsafe extern "C" fn RNG_GetUniformRange(this: &mut RNG, lower: f64, upper: f64) -> f64 {
     let t: f64 = RNG_Next32(this) as f64 * f64::exp2(-32.0);
     lower + t * (upper - lower)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetErlang(this: *mut RNG, k: i32) -> f64 {
+pub unsafe extern "C" fn RNG_GetErlang(this: &mut RNG, k: i32) -> f64 {
     let mut sum: f64 = 0.0f64;
     let mut i: i32 = 0;
     while i < k {
@@ -166,19 +165,19 @@ pub unsafe extern "C" fn RNG_GetErlang(this: *mut RNG, k: i32) -> f64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetExp(this: *mut RNG) -> f64 {
+pub unsafe extern "C" fn RNG_GetExp(this: &mut RNG) -> f64 {
     -f64::ln(f64::max(1.0f64 - RNG_GetUniform(this), f64::EPSILON))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetGaussian(this: *mut RNG) -> f64 {
+pub unsafe extern "C" fn RNG_GetGaussian(this: &mut RNG) -> f64 {
     let angle: f64 = RNG_GetAngle(this);
     let radius: f64 = 1.0f64 - RNG_GetUniform(this);
     f64::cos(angle) * f64::sqrt(-2.0f64 * f64::ln(radius))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetAxis2(this: *mut RNG, out: *mut Vec2) {
+pub unsafe extern "C" fn RNG_GetAxis2(this: &mut RNG, out: *mut Vec2) {
     *out = Vec2::ZERO;
     let axis: i32 = RNG_GetInt(this, 0, 3);
     match axis {
@@ -199,40 +198,40 @@ pub unsafe extern "C" fn RNG_GetAxis2(this: *mut RNG, out: *mut Vec2) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetAxis3(this: *mut RNG, out: *mut Vec3) {
+pub unsafe extern "C" fn RNG_GetAxis3(this: &mut RNG, out: &mut Vec3) {
     *out = Vec3::ZERO;
     let axis: i32 = RNG_GetInt(this, 0, 5);
     match axis {
         0 => {
-            (*out).x = 1.0f32;
+            out.x = 1.0f32;
         }
         1 => {
-            (*out).x = -1.0f32;
+            out.x = -1.0f32;
         }
         2 => {
-            (*out).y = 1.0f32;
+            out.y = 1.0f32;
         }
         3 => {
-            (*out).y = -1.0f32;
+            out.y = -1.0f32;
         }
         4 => {
-            (*out).z = 1.0f32;
+            out.z = 1.0f32;
         }
         5 => {
-            (*out).z = -1.0f32;
+            out.z = -1.0f32;
         }
         _ => {}
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetDir2(this: *mut RNG, out: *mut Vec2) {
+pub unsafe extern "C" fn RNG_GetDir2(this: &mut RNG, out: *mut Vec2) {
     let angle: f64 = RNG_GetAngle(this);
     *out = Vec2::new(f64::cos(angle) as f32, f64::sin(angle) as f32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetDir3(this: *mut RNG, out: *mut Vec3) {
+pub unsafe extern "C" fn RNG_GetDir3(this: &mut RNG, out: *mut Vec3) {
     loop {
         let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
@@ -249,7 +248,7 @@ pub unsafe extern "C" fn RNG_GetDir3(this: *mut RNG, out: *mut Vec3) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetDisc(this: *mut RNG, out: *mut Vec2) {
+pub unsafe extern "C" fn RNG_GetDisc(this: &mut RNG, out: *mut Vec2) {
     loop {
         let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
@@ -262,7 +261,7 @@ pub unsafe extern "C" fn RNG_GetDisc(this: *mut RNG, out: *mut Vec2) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetSign(this: *mut RNG) -> f64 {
+pub unsafe extern "C" fn RNG_GetSign(this: &mut RNG) -> f64 {
     if RNG_GetUniform(this) > 0.5f64 {
         1.0f64
     } else {
@@ -271,7 +270,7 @@ pub unsafe extern "C" fn RNG_GetSign(this: *mut RNG) -> f64 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetSphere(this: *mut RNG, out: *mut Vec3) {
+pub unsafe extern "C" fn RNG_GetSphere(this: &mut RNG, out: *mut Vec3) {
     loop {
         let x: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
         let y: f64 = 2.0f64 * RNG_GetUniform(this) - 1.0f64;
@@ -286,20 +285,20 @@ pub unsafe extern "C" fn RNG_GetSphere(this: *mut RNG, out: *mut Vec3) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetVec2(this: *mut RNG, out: *mut Vec2, lower: f64, upper: f64) {
+pub unsafe extern "C" fn RNG_GetVec2(this: &mut RNG, out: *mut Vec2, lower: f64, upper: f64) {
     (*out).x = RNG_GetUniformRange(this, lower, upper) as f32;
     (*out).y = RNG_GetUniformRange(this, lower, upper) as f32;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetVec3(this: *mut RNG, out: *mut Vec3, lower: f64, upper: f64) {
+pub unsafe extern "C" fn RNG_GetVec3(this: &mut RNG, out: *mut Vec3, lower: f64, upper: f64) {
     (*out).x = RNG_GetUniformRange(this, lower, upper) as f32;
     (*out).y = RNG_GetUniformRange(this, lower, upper) as f32;
     (*out).z = RNG_GetUniformRange(this, lower, upper) as f32;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetVec4(this: *mut RNG, out: *mut Vec4, lower: f64, upper: f64) {
+pub unsafe extern "C" fn RNG_GetVec4(this: &mut RNG, out: *mut Vec4, lower: f64, upper: f64) {
     (*out).x = RNG_GetUniformRange(this, lower, upper) as f32;
     (*out).y = RNG_GetUniformRange(this, lower, upper) as f32;
     (*out).z = RNG_GetUniformRange(this, lower, upper) as f32;
@@ -307,7 +306,7 @@ pub unsafe extern "C" fn RNG_GetVec4(this: *mut RNG, out: *mut Vec4, lower: f64,
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_GetQuat(this: *mut RNG, out: *mut Quat) {
+pub unsafe extern "C" fn RNG_GetQuat(this: &mut RNG, out: *mut Quat) {
     let mut p0 = Vec2::ZERO;
     let mut p1 = Vec2::ZERO;
     RNG_GetDisc(this, &mut p0);

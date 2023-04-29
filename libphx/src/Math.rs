@@ -1,6 +1,5 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
-use libc;
 
 // Re-export glam types.
 pub use glam::{DVec2, DVec3, DVec4};

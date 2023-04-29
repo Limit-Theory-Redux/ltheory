@@ -8,7 +8,6 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use libc;
 pub type ShaderVarType = i32;
 
 #[no_mangle]

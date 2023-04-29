@@ -1,7 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -15,26 +14,26 @@ pub struct MemPool {
     pub blocks: *mut *mut libc::c_void,
 }
 
-unsafe extern "C" fn MemPool_Grow(this: *mut MemPool) {
-    let fresh0 = (*this).blockCount;
-    (*this).blockCount = ((*this).blockCount).wrapping_add(1);
+unsafe extern "C" fn MemPool_Grow(this: &mut MemPool) {
+    let fresh0 = this.blockCount;
+    this.blockCount = (this.blockCount).wrapping_add(1);
     let newBlockIndex: u16 = fresh0;
-    (*this).capacity = (*this).capacity.wrapping_add((*this).blockSize);
-    (*this).blocks = MemRealloc(
-        (*this).blocks as *mut _,
-        ((*this).blockCount as usize).wrapping_mul(std::mem::size_of::<*mut libc::c_void>()),
+    this.capacity = this.capacity.wrapping_add(this.blockSize);
+    this.blocks = MemRealloc(
+        this.blocks as *mut _,
+        (this.blockCount as usize).wrapping_mul(std::mem::size_of::<*mut libc::c_void>()),
     ) as *mut *mut libc::c_void;
     let newBlock: *mut libc::c_void =
-        MemAlloc(((*this).cellSize).wrapping_mul((*this).blockSize) as usize);
-    let ref mut fresh1 = *((*this).blocks).offset(newBlockIndex as isize);
+        MemAlloc((this.cellSize).wrapping_mul(this.blockSize) as usize);
+    let ref mut fresh1 = *(this.blocks).offset(newBlockIndex as isize);
     *fresh1 = newBlock;
-    let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
+    let mut prev: *mut *mut libc::c_void = &mut this.freeList;
     let mut pCurr: *mut libc::c_char = newBlock as *mut libc::c_char;
     let mut i: u32 = 0;
-    while i < (*this).blockSize {
+    while i < this.blockSize {
         *prev = pCurr as *mut _;
         prev = pCurr as *mut *mut libc::c_void;
-        pCurr = pCurr.offset((*this).cellSize as isize);
+        pCurr = pCurr.offset(this.cellSize as isize);
         i = i.wrapping_add(1);
     }
     *prev = std::ptr::null_mut();
@@ -69,31 +68,30 @@ pub unsafe extern "C" fn MemPool_Free(this: *mut MemPool) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_Alloc(this: *mut MemPool) -> *mut libc::c_void {
-    if ((*this).size == (*this).capacity) as libc::c_long != 0 {
+pub unsafe extern "C" fn MemPool_Alloc(this: &mut MemPool) -> *mut libc::c_void {
+    if (this.size == this.capacity) as libc::c_long != 0 {
         MemPool_Grow(this);
     }
-    let freeCell: *mut libc::c_void = (*this).freeList;
-    (*this).freeList = *(freeCell as *mut *mut libc::c_void);
-    (*this).size = ((*this).size).wrapping_add(1);
-    MemZero(freeCell, (*this).cellSize as usize);
+    let freeCell: *mut libc::c_void = this.freeList;
+    this.freeList = *(freeCell as *mut *mut libc::c_void);
+    this.size = (this.size).wrapping_add(1);
+    MemZero(freeCell, this.cellSize as usize);
     freeCell
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_Clear(this: *mut MemPool) {
-    (*this).size = 0;
-    (*this).freeList = std::ptr::null_mut();
-    let mut prev: *mut *mut libc::c_void = &mut (*this).freeList;
+pub unsafe extern "C" fn MemPool_Clear(this: &mut MemPool) {
+    this.size = 0;
+    this.freeList = std::ptr::null_mut();
+    let mut prev: *mut *mut libc::c_void = &mut this.freeList;
     let mut i: u32 = 0;
-    while i < (*this).blockCount as u32 {
-        let mut pCurr: *mut libc::c_char =
-            *((*this).blocks).offset(i as isize) as *mut libc::c_char;
+    while i < this.blockCount as u32 {
+        let mut pCurr: *mut libc::c_char = *(this.blocks).offset(i as isize) as *mut libc::c_char;
         let mut j: u32 = 0;
-        while j < (*this).blockSize {
+        while j < this.blockSize {
             *prev = pCurr as *mut _;
             prev = pCurr as *mut *mut libc::c_void;
-            pCurr = pCurr.offset((*this).cellSize as isize);
+            pCurr = pCurr.offset(this.cellSize as isize);
             j = j.wrapping_add(1);
         }
         i = i.wrapping_add(1);
@@ -102,19 +100,19 @@ pub unsafe extern "C" fn MemPool_Clear(this: *mut MemPool) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_Dealloc(this: *mut MemPool, ptr: *mut libc::c_void) {
+pub unsafe extern "C" fn MemPool_Dealloc(this: &mut MemPool, ptr: *mut libc::c_void) {
     let ref mut fresh2 = *(ptr as *mut *mut libc::c_void);
-    *fresh2 = (*this).freeList;
-    (*this).freeList = ptr;
-    (*this).size = ((*this).size).wrapping_sub(1);
+    *fresh2 = this.freeList;
+    this.freeList = ptr;
+    this.size = (this.size).wrapping_sub(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_GetCapacity(this: *mut MemPool) -> u32 {
-    (*this).capacity
+pub unsafe extern "C" fn MemPool_GetCapacity(this: &mut MemPool) -> u32 {
+    this.capacity
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_GetSize(this: *mut MemPool) -> u32 {
-    (*this).size
+pub unsafe extern "C" fn MemPool_GetSize(this: &mut MemPool) -> u32 {
+    this.size
 }

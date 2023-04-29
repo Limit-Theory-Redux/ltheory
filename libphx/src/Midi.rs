@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::IVec2;
 use crate::Math::Vec3;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -22,7 +21,7 @@ pub extern "C" fn MidiDevice_Open(_index: i32) -> *mut MidiDevice {
 }
 
 #[no_mangle]
-pub extern "C" fn MidiDevice_Close(_this: *mut MidiDevice) {}
+pub extern "C" fn MidiDevice_Close(_this: &mut MidiDevice) {}
 
 #[no_mangle]
 pub extern "C" fn MidiDevice_GetNameByIndex(_index: i32) -> *const libc::c_char {
@@ -30,15 +29,15 @@ pub extern "C" fn MidiDevice_GetNameByIndex(_index: i32) -> *const libc::c_char 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_HasMessage(this: *mut MidiDevice) -> bool {
-    (*this).cursor > 0
+pub unsafe extern "C" fn MidiDevice_HasMessage(this: &mut MidiDevice) -> bool {
+    this.cursor > 0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_PopMessage(this: *mut MidiDevice) -> IVec2 {
-    if (*this).cursor <= 0 {
+pub unsafe extern "C" fn MidiDevice_PopMessage(this: &mut MidiDevice) -> IVec2 {
+    if this.cursor <= 0 {
         CFatal!("MidiDevice_PopMessage: device has no messages");
     }
-    (*this).cursor -= 1;
-    (*this).buffer[(*this).cursor as usize]
+    this.cursor -= 1;
+    this.buffer[this.cursor as usize]
 }

@@ -1,7 +1,6 @@
 use crate::internal::ffi;
 use crate::Common::*;
 use crate::Math::Vec3;
-use libc;
 
 pub type State = i32;
 

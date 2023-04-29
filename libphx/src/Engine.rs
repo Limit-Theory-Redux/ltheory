@@ -14,7 +14,6 @@ use crate::ResourceType::*;
 use crate::ShaderVar::*;
 use crate::Signal::*;
 use crate::TimeStamp::*;
-use libc;
 use sdl2_sys::*;
 
 // /* On Windows, request usage of the dedicated GPU if the machine switches

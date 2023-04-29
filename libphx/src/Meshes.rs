@@ -3,11 +3,10 @@ use crate::Common::*;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::Mesh::*;
-use libc;
 
 #[inline]
 unsafe extern "C" fn Mesh_AddPlane(
-    this: *mut Mesh,
+    this: &mut Mesh,
     origin: Vec3,
     du: Vec3,
     dv: Vec3,
@@ -63,7 +62,7 @@ pub unsafe extern "C" fn Mesh_Box(res: i32) -> *mut Mesh {
     let mut i: i32 = 0;
     while i < 6 {
         Mesh_AddPlane(
-            this,
+            &mut *this,
             origin[i as usize],
             du[i as usize],
             dv[i as usize],
@@ -78,8 +77,8 @@ pub unsafe extern "C" fn Mesh_Box(res: i32) -> *mut Mesh {
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_BoxSphere(res: i32) -> *mut Mesh {
     let this: *mut Mesh = Mesh_Box(res);
-    let vertexCount: i32 = Mesh_GetVertexCount(this);
-    let vertexData: *mut Vertex = Mesh_GetVertexData(this);
+    let vertexCount: i32 = Mesh_GetVertexCount(&mut *this);
+    let vertexData: *mut Vertex = Mesh_GetVertexData(&mut *this);
     let mut i: i32 = 0;
     while i < vertexCount {
         let vertex: *mut Vertex = vertexData.offset(i as isize);
@@ -98,6 +97,6 @@ pub unsafe extern "C" fn Mesh_Plane(
     resV: i32,
 ) -> *mut Mesh {
     let this: *mut Mesh = Mesh_Create();
-    Mesh_AddPlane(this, origin, du, dv, resU, resV);
+    Mesh_AddPlane(&mut *this, origin, du, dv, resU, resV);
     this
 }

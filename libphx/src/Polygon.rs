@@ -7,7 +7,6 @@ use crate::Math::Vec3;
 use crate::Math::Vec3_Validate;
 use crate::Plane::*;
 use crate::Triangle::*;
-use libc;
 
 #[derive(Clone)]
 #[repr(C)]

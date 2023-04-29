@@ -75,43 +75,43 @@ pub unsafe extern "C" fn Physics_Create() -> *mut Physics {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_Free(this: *mut Physics) {
+pub unsafe extern "C" fn Physics_Free(this: &mut Physics) {
     _cppPhysics_Free(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_AddRigidBody(this: *mut Physics, rb: *mut RigidBody) {
+pub unsafe extern "C" fn Physics_AddRigidBody(this: &mut Physics, rb: *mut RigidBody) {
     _cppPhysics_AddRigidBody(this, rb)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_RemoveRigidBody(this: *mut Physics, rb: *mut RigidBody) {
+pub unsafe extern "C" fn Physics_RemoveRigidBody(this: &mut Physics, rb: *mut RigidBody) {
     _cppPhysics_RemoveRigidBody(this, rb)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_AddTrigger(this: *mut Physics, t: *mut Trigger) {
+pub unsafe extern "C" fn Physics_AddTrigger(this: &mut Physics, t: *mut Trigger) {
     _cppPhysics_AddTrigger(this, t)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_RemoveTrigger(this: *mut Physics, t: *mut Trigger) {
+pub unsafe extern "C" fn Physics_RemoveTrigger(this: &mut Physics, t: *mut Trigger) {
     _cppPhysics_RemoveTrigger(this, t)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_GetNextCollision(this: *mut Physics, c: *mut Collision) -> bool {
+pub unsafe extern "C" fn Physics_GetNextCollision(this: &mut Physics, c: *mut Collision) -> bool {
     _cppPhysics_GetNextCollision(this, c)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_Update(this: *mut Physics, dt: f32) {
+pub unsafe extern "C" fn Physics_Update(this: &mut Physics, dt: f32) {
     _cppPhysics_Update(this, dt)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_RayCast(
-    this: *mut Physics,
+    this: &mut Physics,
     ray: *mut Ray,
     result: *mut RayCastResult,
 ) {
@@ -120,7 +120,7 @@ pub unsafe extern "C" fn Physics_RayCast(
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_SphereCast(
-    this: *mut Physics,
+    this: &mut Physics,
     sphere: *mut Sphere,
     result: *mut ShapeCastResult,
 ) {
@@ -129,7 +129,7 @@ pub unsafe extern "C" fn Physics_SphereCast(
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_BoxCast(
-    this: *mut Physics,
+    this: &mut Physics,
     pos: *mut Vec3,
     rot: *mut Quat,
     halfExtents: *mut Vec3,
@@ -139,13 +139,13 @@ pub unsafe extern "C" fn Physics_BoxCast(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_SphereOverlap(this: *mut Physics, sphere: *mut Sphere) -> bool {
+pub unsafe extern "C" fn Physics_SphereOverlap(this: &mut Physics, sphere: *mut Sphere) -> bool {
     _cppPhysics_SphereOverlap(this, sphere)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_BoxOverlap(
-    this: *mut Physics,
+    this: &mut Physics,
     pos: *mut Vec3,
     rot: *mut Quat,
     halfExtents: *mut Vec3,
@@ -154,26 +154,26 @@ pub unsafe extern "C" fn Physics_BoxOverlap(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_PrintProfiling(this: *mut Physics) {
+pub unsafe extern "C" fn Physics_PrintProfiling(this: &mut Physics) {
     _cppPhysics_PrintProfiling(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_DrawBoundingBoxesLocal(this: *mut Physics) {
+pub unsafe extern "C" fn Physics_DrawBoundingBoxesLocal(this: &mut Physics) {
     _cppPhysics_DrawBoundingBoxesLocal(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_DrawBoundingBoxesWorld(this: *mut Physics) {
+pub unsafe extern "C" fn Physics_DrawBoundingBoxesWorld(this: &mut Physics) {
     _cppPhysics_DrawBoundingBoxesWorld(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_DrawTriggers(this: *mut Physics) {
+pub unsafe extern "C" fn Physics_DrawTriggers(this: &mut Physics) {
     _cppPhysics_DrawTriggers(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_DrawWireframes(this: *mut Physics) {
+pub unsafe extern "C" fn Physics_DrawWireframes(this: &mut Physics) {
     _cppPhysics_DrawWireframes(this)
 }

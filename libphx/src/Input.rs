@@ -11,7 +11,6 @@ use crate::Profiler::*;
 use crate::Resource::*;
 use crate::ResourceType::*;
 use crate::State::*;
-use libc;
 use sdl2_sys::*;
 
 const Threshold_Pressed: f32 = 0.5f32;

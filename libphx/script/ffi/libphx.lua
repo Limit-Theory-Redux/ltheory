@@ -89,7 +89,6 @@ do -- Opaque Structs
     typedef struct Socket       {} Socket;
     typedef struct Sound        {} Sound;
     typedef struct SoundDesc    {} SoundDesc;
-    typedef struct StrBuffer    {} StrBuffer;
     typedef struct StrMap       {} StrMap;
     typedef struct StrMapIter   {} StrMapIter;
     typedef struct Tex1D        {} Tex1D;
@@ -131,7 +130,6 @@ do -- Opaque Structs
     'Socket',
     'Sound',
     'SoundDesc',
-    'StrBuffer',
     'StrMap',
     'StrMapIter',
     'Tex1D',

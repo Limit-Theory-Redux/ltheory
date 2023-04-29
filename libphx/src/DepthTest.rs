@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
 use crate::RenderState::*;
-use libc;
 
 #[no_mangle]
 pub unsafe extern "C" fn DepthTest_Pop() {

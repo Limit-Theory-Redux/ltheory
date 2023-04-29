@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Lua::*;
 use crate::Math::Vec3;
 use crate::TimeStamp::*;
-use libc;
 
 extern "C" {
     fn lua_gettop(L: *mut lua_State) -> i32;

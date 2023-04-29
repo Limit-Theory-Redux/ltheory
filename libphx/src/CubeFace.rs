@@ -1,5 +1,4 @@
 use crate::GL::gl;
-use libc;
 pub type CubeFace = i32;
 
 #[no_mangle]

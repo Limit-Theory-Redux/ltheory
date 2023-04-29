@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
 use crate::Mesh::*;
-use libc;
 
 /* --- LodMesh -----------------------------------------------------------------
  *
@@ -44,8 +43,8 @@ pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Acquire(this: *mut LodMesh) {
-    (*this)._refCount = ((*this)._refCount).wrapping_add(1);
+pub unsafe extern "C" fn LodMesh_Acquire(this: &mut LodMesh) {
+    this._refCount = (this._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
@@ -57,7 +56,7 @@ pub unsafe extern "C" fn LodMesh_Free(this: *mut LodMesh) {
         let mut e: *mut LodMeshEntry = (*this).head;
         while !e.is_null() {
             let next: *mut LodMeshEntry = (*e).next;
-            Mesh_Free((*e).mesh);
+            Mesh_Free(&mut *(*e).mesh);
             MemFree(e as *const _);
             e = next;
         }
@@ -66,29 +65,29 @@ pub unsafe extern "C" fn LodMesh_Free(this: *mut LodMesh) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Add(this: *mut LodMesh, mesh: *mut Mesh, dMin: f32, dMax: f32) {
+pub unsafe extern "C" fn LodMesh_Add(this: &mut LodMesh, mesh: *mut Mesh, dMin: f32, dMax: f32) {
     let e = MemNew!(LodMeshEntry);
     (*e).mesh = mesh;
     (*e).dMin = dMin * dMin;
     (*e).dMax = dMax * dMax;
-    (*e).next = (*this).head;
-    (*this).head = e;
+    (*e).next = this.head;
+    this.head = e;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Draw(this: *mut LodMesh, d2: f32) {
-    let mut e: *mut LodMeshEntry = (*this).head;
+pub unsafe extern "C" fn LodMesh_Draw(this: &mut LodMesh, d2: f32) {
+    let mut e: *mut LodMeshEntry = this.head;
     while !e.is_null() {
         if (*e).dMin <= d2 && d2 <= (*e).dMax {
-            Mesh_Draw((*e).mesh);
+            Mesh_Draw(&mut *(*e).mesh);
         }
         e = (*e).next;
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Get(this: *mut LodMesh, d2: f32) -> *mut Mesh {
-    let mut e: *mut LodMeshEntry = (*this).head;
+pub unsafe extern "C" fn LodMesh_Get(this: &mut LodMesh, d2: f32) -> *mut Mesh {
+    let mut e: *mut LodMeshEntry = this.head;
     while !e.is_null() {
         if (*e).dMin <= d2 && d2 <= (*e).dMax {
             return (*e).mesh;

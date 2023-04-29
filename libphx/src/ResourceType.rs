@@ -1,7 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
-use libc;
 pub type ResourceType = i32;
 
 #[no_mangle]

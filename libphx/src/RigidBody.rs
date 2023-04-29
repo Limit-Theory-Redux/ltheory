@@ -63,48 +63,48 @@ extern "C" {
     fn _cppRigidBody_CreateSphere() -> *mut RigidBody;
     fn _cppRigidBody_CreateSphereFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
     fn _cppRigidBody_CreateHullFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
-    fn _cppRigidBody_Free(this: *mut RigidBody);
-    fn _cppRigidBody_ApplyForce(this: *mut RigidBody, force: *mut Vec3);
-    fn _cppRigidBody_ApplyTorque(this: *mut RigidBody, torque: *mut Vec3);
+    fn _cppRigidBody_Free(this: &mut RigidBody);
+    fn _cppRigidBody_ApplyForce(this: &mut RigidBody, force: *mut Vec3);
+    fn _cppRigidBody_ApplyTorque(this: &mut RigidBody, torque: *mut Vec3);
     fn _cppRigidBody_Attach(
-        this: *mut RigidBody,
+        this: &mut RigidBody,
         other: *mut RigidBody,
         offset: *mut Vec3,
         rot: *mut Quat,
     );
-    fn _cppRigidBody_Detach(this: *mut RigidBody, other: *mut RigidBody);
-    fn _cppRigidBody_GetBoundingBox(this: *mut RigidBody, out: *mut Box3);
-    fn _cppRigidBody_GetBoundingBoxCompound(this: *mut RigidBody, out: *mut Box3);
-    fn _cppRigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out: *mut Box3);
-    fn _cppRigidBody_GetBoundingBoxLocalCompound(this: *mut RigidBody, out: *mut Box3);
-    fn _cppRigidBody_GetBoundingRadius(this: *mut RigidBody) -> f32;
-    fn _cppRigidBody_GetBoundingRadiusCompound(this: *mut RigidBody) -> f32;
-    fn _cppRigidBody_GetParentBody(this: *mut RigidBody) -> *mut RigidBody;
-    fn _cppRigidBody_GetSpeed(this: *mut RigidBody) -> f32;
-    fn _cppRigidBody_GetToLocalMatrix(this: *mut RigidBody) -> *mut Matrix;
-    fn _cppRigidBody_GetToWorldMatrix(this: *mut RigidBody) -> *mut Matrix;
-    fn _cppRigidBody_GetVelocity(this: *mut RigidBody, out: *mut Vec3);
-    fn _cppRigidBody_GetVelocityA(this: *mut RigidBody, out: *mut Vec3);
-    fn _cppRigidBody_SetCollidable(this: *mut RigidBody, collidable: bool);
-    fn _cppRigidBody_SetCollisionGroup(this: *mut RigidBody, group: i32);
-    fn _cppRigidBody_SetCollisionMask(this: *mut RigidBody, mask: i32);
-    fn _cppRigidBody_SetDrag(this: *mut RigidBody, linear: f32, angular: f32);
-    fn _cppRigidBody_SetFriction(this: *mut RigidBody, friction: f32);
-    fn _cppRigidBody_SetKinematic(this: *mut RigidBody, kinematic: bool);
-    fn _cppRigidBody_SetRestitution(this: *mut RigidBody, restitution: f32);
-    fn _cppRigidBody_SetSleepThreshold(this: *mut RigidBody, linear: f32, angular: f32);
-    fn _cppRigidBody_GetMass(this: *mut RigidBody) -> f32;
-    fn _cppRigidBody_SetMass(this: *mut RigidBody, mass: f32);
-    fn _cppRigidBody_GetPos(this: *mut RigidBody, out: *mut Vec3);
-    fn _cppRigidBody_GetPosLocal(this: *mut RigidBody, out: *mut Vec3);
-    fn _cppRigidBody_SetPos(this: *mut RigidBody, pos: *mut Vec3);
-    fn _cppRigidBody_SetPosLocal(this: *mut RigidBody, pos: *mut Vec3);
-    fn _cppRigidBody_GetRot(this: *mut RigidBody, out: *mut Quat);
-    fn _cppRigidBody_GetRotLocal(this: *mut RigidBody, out: *mut Quat);
-    fn _cppRigidBody_SetRot(this: *mut RigidBody, rot: *mut Quat);
-    fn _cppRigidBody_SetRotLocal(this: *mut RigidBody, rot: *mut Quat);
-    fn _cppRigidBody_GetScale(this: *mut RigidBody) -> f32;
-    fn _cppRigidBody_SetScale(this: *mut RigidBody, scale: f32);
+    fn _cppRigidBody_Detach(this: &mut RigidBody, other: *mut RigidBody);
+    fn _cppRigidBody_GetBoundingBox(this: &mut RigidBody, out: *mut Box3);
+    fn _cppRigidBody_GetBoundingBoxCompound(this: &mut RigidBody, out: *mut Box3);
+    fn _cppRigidBody_GetBoundingBoxLocal(this: &mut RigidBody, out: *mut Box3);
+    fn _cppRigidBody_GetBoundingBoxLocalCompound(this: &mut RigidBody, out: *mut Box3);
+    fn _cppRigidBody_GetBoundingRadius(this: &mut RigidBody) -> f32;
+    fn _cppRigidBody_GetBoundingRadiusCompound(this: &mut RigidBody) -> f32;
+    fn _cppRigidBody_GetParentBody(this: &mut RigidBody) -> *mut RigidBody;
+    fn _cppRigidBody_GetSpeed(this: &mut RigidBody) -> f32;
+    fn _cppRigidBody_GetToLocalMatrix(this: &mut RigidBody) -> *mut Matrix;
+    fn _cppRigidBody_GetToWorldMatrix(this: &mut RigidBody) -> *mut Matrix;
+    fn _cppRigidBody_GetVelocity(this: &mut RigidBody, out: *mut Vec3);
+    fn _cppRigidBody_GetVelocityA(this: &mut RigidBody, out: *mut Vec3);
+    fn _cppRigidBody_SetCollidable(this: &mut RigidBody, collidable: bool);
+    fn _cppRigidBody_SetCollisionGroup(this: &mut RigidBody, group: i32);
+    fn _cppRigidBody_SetCollisionMask(this: &mut RigidBody, mask: i32);
+    fn _cppRigidBody_SetDrag(this: &mut RigidBody, linear: f32, angular: f32);
+    fn _cppRigidBody_SetFriction(this: &mut RigidBody, friction: f32);
+    fn _cppRigidBody_SetKinematic(this: &mut RigidBody, kinematic: bool);
+    fn _cppRigidBody_SetRestitution(this: &mut RigidBody, restitution: f32);
+    fn _cppRigidBody_SetSleepThreshold(this: &mut RigidBody, linear: f32, angular: f32);
+    fn _cppRigidBody_GetMass(this: &mut RigidBody) -> f32;
+    fn _cppRigidBody_SetMass(this: &mut RigidBody, mass: f32);
+    fn _cppRigidBody_GetPos(this: &mut RigidBody, out: *mut Vec3);
+    fn _cppRigidBody_GetPosLocal(this: &mut RigidBody, out: *mut Vec3);
+    fn _cppRigidBody_SetPos(this: &mut RigidBody, pos: *mut Vec3);
+    fn _cppRigidBody_SetPosLocal(this: &mut RigidBody, pos: *mut Vec3);
+    fn _cppRigidBody_GetRot(this: &mut RigidBody, out: *mut Quat);
+    fn _cppRigidBody_GetRotLocal(this: &mut RigidBody, out: *mut Quat);
+    fn _cppRigidBody_SetRot(this: &mut RigidBody, rot: *mut Quat);
+    fn _cppRigidBody_SetRotLocal(this: &mut RigidBody, rot: *mut Quat);
+    fn _cppRigidBody_GetScale(this: &mut RigidBody) -> f32;
+    fn _cppRigidBody_SetScale(this: &mut RigidBody, scale: f32);
 }
 
 #[no_mangle]
@@ -133,23 +133,23 @@ pub unsafe extern "C" fn RigidBody_CreateHullFromMesh(mesh: *mut Mesh) -> *mut R
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_Free(this: *mut RigidBody) {
+pub unsafe extern "C" fn RigidBody_Free(this: &mut RigidBody) {
     _cppRigidBody_Free(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_ApplyForce(this: *mut RigidBody, force: *mut Vec3) {
+pub unsafe extern "C" fn RigidBody_ApplyForce(this: &mut RigidBody, force: *mut Vec3) {
     _cppRigidBody_ApplyForce(this, force)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_ApplyTorque(this: *mut RigidBody, torque: *mut Vec3) {
+pub unsafe extern "C" fn RigidBody_ApplyTorque(this: &mut RigidBody, torque: *mut Vec3) {
     _cppRigidBody_ApplyTorque(this, torque)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RigidBody_Attach(
-    this: *mut RigidBody,
+    this: &mut RigidBody,
     other: *mut RigidBody,
     offset: *mut Vec3,
     rot: *mut Quat,
@@ -158,111 +158,111 @@ pub unsafe extern "C" fn RigidBody_Attach(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_Detach(this: *mut RigidBody, other: *mut RigidBody) {
+pub unsafe extern "C" fn RigidBody_Detach(this: &mut RigidBody, other: *mut RigidBody) {
     _cppRigidBody_Detach(this, other)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBox(this: *mut RigidBody, out: *mut Box3) {
+pub unsafe extern "C" fn RigidBody_GetBoundingBox(this: &mut RigidBody, out: *mut Box3) {
     _cppRigidBody_GetBoundingBox(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBoxCompound(this: *mut RigidBody, out: *mut Box3) {
+pub unsafe extern "C" fn RigidBody_GetBoundingBoxCompound(this: &mut RigidBody, out: *mut Box3) {
     _cppRigidBody_GetBoundingBoxCompound(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocal(this: *mut RigidBody, out: *mut Box3) {
+pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocal(this: &mut RigidBody, out: *mut Box3) {
     _cppRigidBody_GetBoundingBoxLocal(this, out)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocalCompound(
-    this: *mut RigidBody,
+    this: &mut RigidBody,
     out: *mut Box3,
 ) {
     _cppRigidBody_GetBoundingBoxLocalCompound(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingRadius(this: *mut RigidBody) -> f32 {
+pub unsafe extern "C" fn RigidBody_GetBoundingRadius(this: &mut RigidBody) -> f32 {
     _cppRigidBody_GetBoundingRadius(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingRadiusCompound(this: *mut RigidBody) -> f32 {
+pub unsafe extern "C" fn RigidBody_GetBoundingRadiusCompound(this: &mut RigidBody) -> f32 {
     _cppRigidBody_GetBoundingRadiusCompound(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetParentBody(this: *mut RigidBody) -> *mut RigidBody {
+pub unsafe extern "C" fn RigidBody_GetParentBody(this: &mut RigidBody) -> *mut RigidBody {
     _cppRigidBody_GetParentBody(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetSpeed(this: *mut RigidBody) -> f32 {
+pub unsafe extern "C" fn RigidBody_GetSpeed(this: &mut RigidBody) -> f32 {
     _cppRigidBody_GetSpeed(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetToLocalMatrix(this: *mut RigidBody) -> *mut Matrix {
+pub unsafe extern "C" fn RigidBody_GetToLocalMatrix(this: &mut RigidBody) -> *mut Matrix {
     _cppRigidBody_GetToLocalMatrix(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetToWorldMatrix(this: *mut RigidBody) -> *mut Matrix {
+pub unsafe extern "C" fn RigidBody_GetToWorldMatrix(this: &mut RigidBody) -> *mut Matrix {
     _cppRigidBody_GetToWorldMatrix(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetVelocity(this: *mut RigidBody, out: *mut Vec3) {
+pub unsafe extern "C" fn RigidBody_GetVelocity(this: &mut RigidBody, out: *mut Vec3) {
     _cppRigidBody_GetVelocity(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetVelocityA(this: *mut RigidBody, out: *mut Vec3) {
+pub unsafe extern "C" fn RigidBody_GetVelocityA(this: &mut RigidBody, out: *mut Vec3) {
     _cppRigidBody_GetVelocityA(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetCollidable(this: *mut RigidBody, collidable: bool) {
+pub unsafe extern "C" fn RigidBody_SetCollidable(this: &mut RigidBody, collidable: bool) {
     _cppRigidBody_SetCollidable(this, collidable)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetCollisionGroup(this: *mut RigidBody, group: i32) {
+pub unsafe extern "C" fn RigidBody_SetCollisionGroup(this: &mut RigidBody, group: i32) {
     _cppRigidBody_SetCollisionGroup(this, group)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetCollisionMask(this: *mut RigidBody, mask: i32) {
+pub unsafe extern "C" fn RigidBody_SetCollisionMask(this: &mut RigidBody, mask: i32) {
     _cppRigidBody_SetCollisionMask(this, mask)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetDrag(this: *mut RigidBody, linear: f32, angular: f32) {
+pub unsafe extern "C" fn RigidBody_SetDrag(this: &mut RigidBody, linear: f32, angular: f32) {
     _cppRigidBody_SetDrag(this, linear, angular)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetFriction(this: *mut RigidBody, friction: f32) {
+pub unsafe extern "C" fn RigidBody_SetFriction(this: &mut RigidBody, friction: f32) {
     _cppRigidBody_SetFriction(this, friction)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetKinematic(this: *mut RigidBody, kinematic: bool) {
+pub unsafe extern "C" fn RigidBody_SetKinematic(this: &mut RigidBody, kinematic: bool) {
     _cppRigidBody_SetKinematic(this, kinematic)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetRestitution(this: *mut RigidBody, restitution: f32) {
+pub unsafe extern "C" fn RigidBody_SetRestitution(this: &mut RigidBody, restitution: f32) {
     _cppRigidBody_SetRestitution(this, restitution)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RigidBody_SetSleepThreshold(
-    this: *mut RigidBody,
+    this: &mut RigidBody,
     linear: f32,
     angular: f32,
 ) {
@@ -270,61 +270,61 @@ pub unsafe extern "C" fn RigidBody_SetSleepThreshold(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetMass(this: *mut RigidBody) -> f32 {
+pub unsafe extern "C" fn RigidBody_GetMass(this: &mut RigidBody) -> f32 {
     _cppRigidBody_GetMass(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetMass(this: *mut RigidBody, mass: f32) {
+pub unsafe extern "C" fn RigidBody_SetMass(this: &mut RigidBody, mass: f32) {
     _cppRigidBody_SetMass(this, mass)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetPos(this: *mut RigidBody, out: *mut Vec3) {
+pub unsafe extern "C" fn RigidBody_GetPos(this: &mut RigidBody, out: *mut Vec3) {
     _cppRigidBody_GetPos(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetPosLocal(this: *mut RigidBody, out: *mut Vec3) {
+pub unsafe extern "C" fn RigidBody_GetPosLocal(this: &mut RigidBody, out: *mut Vec3) {
     _cppRigidBody_GetPosLocal(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetPos(this: *mut RigidBody, pos: *mut Vec3) {
+pub unsafe extern "C" fn RigidBody_SetPos(this: &mut RigidBody, pos: *mut Vec3) {
     _cppRigidBody_SetPos(this, pos)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetPosLocal(this: *mut RigidBody, pos: *mut Vec3) {
+pub unsafe extern "C" fn RigidBody_SetPosLocal(this: &mut RigidBody, pos: *mut Vec3) {
     _cppRigidBody_SetPosLocal(this, pos)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetRot(this: *mut RigidBody, out: *mut Quat) {
+pub unsafe extern "C" fn RigidBody_GetRot(this: &mut RigidBody, out: *mut Quat) {
     _cppRigidBody_GetRot(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetRotLocal(this: *mut RigidBody, out: *mut Quat) {
+pub unsafe extern "C" fn RigidBody_GetRotLocal(this: &mut RigidBody, out: *mut Quat) {
     _cppRigidBody_GetRotLocal(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetRot(this: *mut RigidBody, rot: *mut Quat) {
+pub unsafe extern "C" fn RigidBody_SetRot(this: &mut RigidBody, rot: *mut Quat) {
     _cppRigidBody_SetRot(this, rot)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetRotLocal(this: *mut RigidBody, rot: *mut Quat) {
+pub unsafe extern "C" fn RigidBody_SetRotLocal(this: &mut RigidBody, rot: *mut Quat) {
     _cppRigidBody_SetRotLocal(this, rot)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetScale(this: *mut RigidBody) -> f32 {
+pub unsafe extern "C" fn RigidBody_GetScale(this: &mut RigidBody) -> f32 {
     _cppRigidBody_GetScale(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetScale(this: *mut RigidBody, scale: f32) {
+pub unsafe extern "C" fn RigidBody_SetScale(this: &mut RigidBody, scale: f32) {
     _cppRigidBody_SetScale(this, scale)
 }

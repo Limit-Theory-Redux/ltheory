@@ -4,7 +4,6 @@ use crate::Common::*;
 use crate::CullFace::*;
 use crate::Math::Vec3;
 use crate::GL::gl;
-use libc;
 
 static mut wireframe: [bool; 16] = [false; 16];
 

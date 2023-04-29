@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Intersect::*;
 use crate::Math::*;
 use crate::Polygon::*;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

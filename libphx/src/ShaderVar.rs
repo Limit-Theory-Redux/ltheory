@@ -10,7 +10,6 @@ use crate::Tex1D::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -29,7 +28,7 @@ unsafe extern "C" fn ShaderVar_GetStack(
     var: *const libc::c_char,
     type_0: ShaderVarType,
 ) -> *mut VarStack {
-    let mut this: *mut VarStack = StrMap_Get(varMap, var) as *mut VarStack;
+    let mut this: *mut VarStack = StrMap_Get(&mut *varMap, var) as *mut VarStack;
     if this.is_null() {
         if type_0 == 0 {
             return std::ptr::null_mut();
@@ -40,7 +39,7 @@ unsafe extern "C" fn ShaderVar_GetStack(
         (*this).capacity = 4;
         (*this).elemSize = ShaderVarType_GetSize(type_0);
         (*this).data = MemAlloc(((*this).capacity * (*this).elemSize) as usize);
-        StrMap_Set(varMap, var, this as *mut _);
+        StrMap_Set(&mut *varMap, var, this as *mut _);
     }
     if type_0 != 0 && (*this).type_0 != type_0 {
         CFatal!("ShaderVar_GetStack: Attempting to get stack of type <%s> for shader variable <%s> when existing stack has type <%s>",

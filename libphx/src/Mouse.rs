@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Math::IVec2;
 use crate::Math::Vec3;
 use crate::MouseButton::*;
-use libc;
 use sdl2_sys::*;
 
 #[no_mangle]

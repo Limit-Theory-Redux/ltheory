@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Math::Vec3;
 use crate::Matrix::*;
 use crate::Mesh::*;
-use libc;
 
 #[derive(Clone)]
 #[repr(C)]
@@ -61,13 +60,13 @@ pub unsafe extern "C" fn BoxMesh_Free(this: *mut BoxMesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn BoxMesh_Add(
-    this: *mut BoxMesh,
+    this: &mut BoxMesh,
     p: *const Vec3,
     s: *const Vec3,
     r: *const Vec3,
     b: *const Vec3,
 ) {
-    (*this).elem.push(Box_0 {
+    this.elem.push(Box_0 {
         p: *p,
         s: *s,
         r: *r,
@@ -76,12 +75,12 @@ pub unsafe extern "C" fn BoxMesh_Add(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxMesh_GetMesh(this: *mut BoxMesh, res: i32) -> *mut Mesh {
+pub unsafe extern "C" fn BoxMesh_GetMesh(this: &mut BoxMesh, res: i32) -> *mut Mesh {
     let mesh: *mut Mesh = Mesh_Create();
-    Mesh_ReserveVertexData(mesh, 6 * res * res * (*this).elem.len() as i32);
-    Mesh_ReserveIndexData(mesh, 12 * (res - 1) * (res - 1));
+    Mesh_ReserveVertexData(&mut *mesh, 6 * res * res * this.elem.len() as i32);
+    Mesh_ReserveIndexData(&mut *mesh, 12 * (res - 1) * (res - 1));
 
-    for box3 in (*this).elem.iter() {
+    for box3 in this.elem.iter() {
         let lower: Vec3 = Vec3::new(
             (*box3).b.x - 1.0f32,
             (*box3).b.y - 1.0f32,
@@ -110,19 +109,19 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(this: *mut BoxMesh, res: i32) -> *mut M
                     p = clamped + (proj.normalize() * (*box3).b);
                     p *= (*box3).s;
                     let mut rp = Vec3::ZERO;
-                    Matrix_MulPoint(rot, &mut rp, p.x, p.y, p.z);
+                    Matrix_MulPoint(&mut *rot, &mut rp, p.x, p.y, p.z);
                     p = rp + (*box3).p;
 
                     if iu != 0 && iv != 0 {
-                        let off: i32 = Mesh_GetVertexCount(mesh);
-                        Mesh_AddQuad(mesh, off, off - res, off - res - 1, off - 1);
+                        let off: i32 = Mesh_GetVertexCount(&mut *mesh);
+                        Mesh_AddQuad(&mut *mesh, off, off - res, off - res - 1, off - 1);
                     }
-                    Mesh_AddVertex(mesh, p.x, p.y, p.z, n.x, n.y, n.z, u, v);
+                    Mesh_AddVertex(&mut *mesh, p.x, p.y, p.z, n.x, n.y, n.z, u, v);
                 }
             }
         }
 
-        Matrix_Free(rot);
+        Matrix_Free(&mut *rot);
     }
 
     mesh

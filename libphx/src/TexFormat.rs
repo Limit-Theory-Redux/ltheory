@@ -2,7 +2,6 @@ use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
 use crate::GL::gl;
-use libc;
 pub type TexFormat = i32;
 
 #[no_mangle]

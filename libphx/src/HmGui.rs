@@ -13,7 +13,6 @@ use crate::Profiler::*;
 use crate::RenderState::*;
 use crate::Tex2D::*;
 use crate::UIRenderer::*;
-use libc;
 
 pub const Layout_None: u32 = 0;
 pub const Layout_Stack: u32 = 1;
@@ -879,7 +878,7 @@ pub unsafe extern "C" fn HmGui_TextEx(
     (*e).text = StrDup(text);
     (*e).color = Vec4::new(r, g, b, a);
     let mut size = IVec2::ZERO;
-    Font_GetSize2((*e).font, &mut size, (*e).text);
+    Font_GetSize2(&mut *(*e).font, &mut size, (*e).text);
     (*e).widget.minSize = Vec2::new(size.x as f32, size.y as f32);
     HmGui_SetAlign(0.0f32, 1.0f32);
 }

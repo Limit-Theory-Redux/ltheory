@@ -8,7 +8,6 @@ use crate::Lua::{Lua, LuaRef};
 use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::State::*;
-use libc;
 
 const BindCount: usize = 4;
 

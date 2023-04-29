@@ -4,7 +4,6 @@ use crate::Math::IVec2;
 use crate::Math::Vec3;
 use crate::Viewport::*;
 use crate::GL::gl;
-use libc;
 
 const MAX_STACK_DEPTH: i32 = 128;
 
@@ -57,20 +56,21 @@ unsafe extern "C" fn TransformRect(x: *mut f32, y: *mut f32, sx: *mut f32, sy: *
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ClipRect_Activate(this: *mut ClipRect) {
-    if !this.is_null() && (*this).enabled as i32 != 0 {
-        let mut vpSize: IVec2 = IVec2::ZERO;
-        Viewport_GetSize(&mut vpSize);
-        gl::Enable(gl::SCISSOR_TEST);
-        let mut x: f32 = (*this).x;
-        let mut y: f32 = (*this).y;
-        let mut sx: f32 = (*this).sx;
-        let mut sy: f32 = (*this).sy;
-        TransformRect(&mut x, &mut y, &mut sx, &mut sy);
-        gl::Scissor(x as i32, vpSize.y - (y + sy) as i32, sx as i32, sy as i32);
-    } else {
-        gl::Disable(gl::SCISSOR_TEST);
-    };
+pub unsafe extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
+    match this {
+        Some(this) => {
+            let mut vpSize: IVec2 = IVec2::ZERO;
+            Viewport_GetSize(&mut vpSize);
+            gl::Enable(gl::SCISSOR_TEST);
+            let mut x: f32 = this.x;
+            let mut y: f32 = this.y;
+            let mut sx: f32 = this.sx;
+            let mut sy: f32 = this.sy;
+            TransformRect(&mut x, &mut y, &mut sx, &mut sy);
+            gl::Scissor(x as i32, vpSize.y - (y + sy) as i32, sx as i32, sy as i32);
+        }
+        None => gl::Disable(gl::SCISSOR_TEST),
+    }
 }
 
 #[no_mangle]
@@ -85,7 +85,7 @@ pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
     (*curr).sx = sx;
     (*curr).sy = sy;
     (*curr).enabled = true;
-    ClipRect_Activate(curr);
+    ClipRect_Activate(Some(&mut *curr));
 }
 
 #[no_mangle]
@@ -117,7 +117,7 @@ pub unsafe extern "C" fn ClipRect_PushDisabled() {
     rectIndex += 1;
     let curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
     (*curr).enabled = false;
-    ClipRect_Activate(curr);
+    ClipRect_Activate(Some(&mut *curr));
 }
 
 #[no_mangle]
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn ClipRect_PushTransform(tx: f32, ty: f32, sx: f32, sy: f
     (*curr).sx = sx;
     (*curr).sy = sy;
     if rectIndex >= 0 {
-        ClipRect_Activate(rect.as_mut_ptr().offset(rectIndex as isize));
+        ClipRect_Activate(Some(&mut *rect.as_mut_ptr().offset(rectIndex as isize)));
     }
 }
 
@@ -143,9 +143,9 @@ pub unsafe extern "C" fn ClipRect_Pop() {
     }
     rectIndex -= 1;
     ClipRect_Activate(if rectIndex >= 0 {
-        rect.as_mut_ptr().offset(rectIndex as isize)
+        Some(&mut *rect.as_mut_ptr().offset(rectIndex as isize))
     } else {
-        std::ptr::null_mut()
+        None
     });
 }
 
@@ -156,6 +156,6 @@ pub unsafe extern "C" fn ClipRect_PopTransform() {
     }
     transformIndex -= 1;
     if rectIndex >= 0 {
-        ClipRect_Activate(rect.as_mut_ptr().offset(rectIndex as isize));
+        ClipRect_Activate(Some(&mut *rect.as_mut_ptr().offset(rectIndex as isize)));
     }
 }

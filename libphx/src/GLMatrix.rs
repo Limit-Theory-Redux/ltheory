@@ -4,7 +4,6 @@ use crate::Math::DVec3;
 use crate::Math::Vec3;
 use crate::Matrix::*;
 use crate::GL::gl;
-use libc;
 
 /* NOTE : LoadMatrix expects column-major memory layout, but we use row-major,
  *        hence the need for transpositions when taking a Matrix*. */

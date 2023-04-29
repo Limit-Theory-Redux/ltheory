@@ -6,7 +6,6 @@ use crate::Sound::*;
 use crate::SoundDesc::*;
 use crate::StrMap::*;
 use fmod_sys::*;
-use libc;
 
 const AUDIO_CHANNELS: i32 = 1024;
 const SOUNDPOOL_BLOCK_SIZE: u32 = 128;
@@ -88,8 +87,8 @@ pub unsafe extern "C" fn Audio_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn Audio_Free() {
     FMODCALL(FMOD_System_Release(this.handle));
-    StrMap_Free(this.descMap);
-    MemPool_Free(this.soundPool);
+    StrMap_Free(&mut *this.descMap);
+    MemPool_Free(&mut *this.soundPool);
     this.playingSounds.clear();
     this.freeingSounds.clear();
 }
@@ -148,8 +147,8 @@ pub unsafe extern "C" fn Audio_Update() {
     let mut soundsToRemove: Vec<usize> = Vec::new();
     for (i, sound) in this.playingSounds.iter().enumerate() {
         /* TODO : Refine the API to make this less awkward */
-        if !Sound_IsFreed(*sound) && Sound_IsPlaying(*sound) as i32 != 0 {
-            Sound_Update(*sound);
+        if !Sound_IsFreed(&mut **sound) && Sound_IsPlaying(&mut **sound) as i32 != 0 {
+            Sound_Update(&mut **sound);
         } else {
             soundsToRemove.push(i);
         }
@@ -166,7 +165,7 @@ pub unsafe extern "C" fn Audio_Update() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetLoadedCount() -> i32 {
-    let size: u32 = StrMap_GetSize(this.descMap);
+    let size: u32 = StrMap_GetSize(&mut *this.descMap);
     // Assert(size <= INT32_MAX);
     return size as i32;
 }
@@ -178,7 +177,7 @@ pub unsafe extern "C" fn Audio_GetPlayingCount() -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_GetTotalCount() -> i32 {
-    let size: u32 = MemPool_GetSize(this.soundPool);
+    let size: u32 = MemPool_GetSize(&mut *this.soundPool);
     // Assert(size <= INT32_MAX);
     size as i32
 }
@@ -190,32 +189,32 @@ pub unsafe extern "C" fn Audio_GetHandle() -> *mut libc::c_void {
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AllocSoundDesc(name: *const libc::c_char) -> *mut SoundDesc {
-    let mut desc: *mut SoundDesc = StrMap_Get(this.descMap, name) as *mut SoundDesc;
+    let mut desc: *mut SoundDesc = StrMap_Get(&mut *this.descMap, name) as *mut SoundDesc;
     if desc.is_null() {
         desc = MemNewZero!(SoundDesc);
-        StrMap_Set(this.descMap, name, desc as *mut _);
+        StrMap_Set(&mut *this.descMap, name, desc as *mut _);
     }
     desc
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_DeallocSoundDesc(desc: *mut SoundDesc) {
-    StrMap_Remove(this.descMap, (*desc).name);
+    StrMap_Remove(&mut *this.descMap, (*desc).name);
     MemFree(desc as *const _);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_AllocSound() -> *mut Sound {
-    MemPool_Alloc(this.soundPool) as *mut Sound
+    MemPool_Alloc(&mut *this.soundPool) as *mut Sound
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Audio_DeallocSound(sound: *mut Sound) {
-    MemPool_Dealloc(this.soundPool, sound as *mut _);
+    MemPool_Dealloc(&mut *this.soundPool, sound as *mut _);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Audio_SoundStateChanged(sound: *mut Sound) {
+pub unsafe extern "C" fn Audio_SoundStateChanged(sound: &mut Sound) {
     if Sound_IsFreed(sound) {
         this.freeingSounds.push(sound);
     } else if Sound_IsPlaying(sound) {

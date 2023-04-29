@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::Mesh::*;
-use libc;
 use std::ffi::CString;
 
 #[derive(Copy, Clone)]
@@ -170,8 +169,8 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
     positions.reserve((0.008f32 * bytesSize as f32) as usize);
     uvs.reserve((0.008f32 * bytesSize as f32) as usize);
     normals.reserve((0.008f32 * bytesSize as f32) as usize);
-    Mesh_ReserveIndexData(mesh, (0.050f32 * bytesSize as f32) as i32);
-    Mesh_ReserveVertexData(mesh, (0.050f32 * bytesSize as f32) as i32);
+    Mesh_ReserveIndexData(&mut *mesh, (0.050f32 * bytesSize as f32) as i32);
+    Mesh_ReserveVertexData(&mut *mesh, (0.050f32 * bytesSize as f32) as i32);
 
     loop {
         s.lineStart = s.cursor;
@@ -339,7 +338,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 }
 
                 vertexCount += 1;
-                Mesh_AddVertexRaw(mesh, &mut vertex);
+                Mesh_AddVertexRaw(&mut *mesh, &mut vertex);
             }
 
             if indexCount >= i32::MAX - vertexIndicesCount {
@@ -349,8 +348,8 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                 );
             }
 
-            let vertices: *mut Vertex = Mesh_GetVertexData(mesh);
-            let verticesLen: i32 = Mesh_GetVertexCount(mesh);
+            let vertices: *mut Vertex = Mesh_GetVertexData(&mut *mesh);
+            let verticesLen: i32 = Mesh_GetVertexCount(&mut *mesh);
             for i in 0..vertexIndicesCount {
                 for j in (i + 1)..vertexIndicesCount {
                     let p1: Vec3 =
@@ -366,12 +365,17 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
             if vertexIndicesCount == 3 {
                 faceCount += 1;
                 indexCount += vertexIndicesCount;
-                Mesh_AddTri(mesh, vertexCount - 3, vertexCount - 2, vertexCount - 1);
+                Mesh_AddTri(
+                    &mut *mesh,
+                    vertexCount - 3,
+                    vertexCount - 2,
+                    vertexCount - 1,
+                );
             } else if vertexIndicesCount == 4 {
                 faceCount += 2;
                 indexCount += vertexIndicesCount;
                 Mesh_AddQuad(
-                    mesh,
+                    &mut *mesh,
                     vertexCount - 4,
                     vertexCount - 3,
                     vertexCount - 2,

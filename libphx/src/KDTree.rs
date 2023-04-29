@@ -6,7 +6,6 @@ use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::Matrix::*;
 use crate::Mesh::*;
-use libc;
 
 const kMaxLeafSize: i32 = 64;
 
@@ -134,7 +133,7 @@ unsafe fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mut KDTree {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_FromMesh(mesh: *mut Mesh) -> *mut KDTree {
+pub unsafe extern "C" fn KDTree_FromMesh(mesh: &mut Mesh) -> *mut KDTree {
     let indexCount: i32 = Mesh_GetIndexCount(mesh);
     let indexData: *const i32 = Mesh_GetIndexData(mesh);
     let vertexData: *const Vertex = Mesh_GetVertexData(mesh);
@@ -175,15 +174,15 @@ pub unsafe extern "C" fn KDTree_Free(this: *mut KDTree) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_GetMemory(this: *mut KDTree) -> i32 {
+pub unsafe extern "C" fn KDTree_GetMemory(this: &mut KDTree) -> i32 {
     let mut memory: i32 = std::mem::size_of::<KDTree>() as i32;
-    if !((*this).back).is_null() {
-        memory += KDTree_GetMemory((*this).back);
+    if !(this.back).is_null() {
+        memory += KDTree_GetMemory(&mut *this.back);
     }
-    if !((*this).front).is_null() {
-        memory += KDTree_GetMemory((*this).front);
+    if !(this.front).is_null() {
+        memory += KDTree_GetMemory(&mut *this.front);
     }
-    let mut elem: *mut Node = (*this).elems;
+    let mut elem: *mut Node = this.elems;
     while !elem.is_null() {
         memory = (memory as usize).wrapping_add(std::mem::size_of::<Node>()) as i32;
         elem = (*elem).next;
@@ -193,7 +192,7 @@ pub unsafe extern "C" fn KDTree_GetMemory(this: *mut KDTree) -> i32 {
 
 #[no_mangle]
 pub extern "C" fn KDTree_IntersectRay(
-    _this: *mut KDTree,
+    _this: &mut KDTree,
     _m: *mut Matrix,
     _a: *const Vec3,
     _b: *const Vec3,
@@ -202,17 +201,17 @@ pub extern "C" fn KDTree_IntersectRay(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn KDTree_Draw(this: *mut KDTree, maxDepth: i32) {
+pub unsafe extern "C" fn KDTree_Draw(this: &mut KDTree, maxDepth: i32) {
     if maxDepth < 0 {
         return;
     }
     Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-    Draw_Box3(&mut (*this).box_0);
-    if !((*this).back).is_null() {
-        KDTree_Draw((*this).back, maxDepth - 1);
+    Draw_Box3(&mut this.box_0);
+    if !(this.back).is_null() {
+        KDTree_Draw(&mut *this.back, maxDepth - 1);
     }
-    if !((*this).front).is_null() {
-        KDTree_Draw((*this).front, maxDepth - 1);
+    if !(this.front).is_null() {
+        KDTree_Draw(&mut *this.front, maxDepth - 1);
     }
     // #if 0
     //   Draw_Color(0, 1, 0, 1);

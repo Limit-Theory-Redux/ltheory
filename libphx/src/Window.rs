@@ -6,15 +6,22 @@ use crate::OpenGL::*;
 use crate::Viewport::*;
 use crate::WindowMode::*;
 use crate::WindowPos::WindowPos;
-use libc;
 use sdl2_sys::*;
 
-#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Window {
     pub handle: *mut SDL_Window,
     pub context: SDL_GLContext,
     pub mode: WindowMode,
+}
+
+impl Drop for Window {
+    fn drop(&mut self) {
+        unsafe {
+            SDL_GL_DeleteContext(self.context);
+            SDL_DestroyWindow(self.handle);
+        }
+    }
 }
 
 #[no_mangle]
@@ -42,67 +49,54 @@ pub unsafe extern "C" fn Window_Create(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_Free(w: Option<Box<Window>>) {
-    let w = unwrap_or_return!(w);
-    SDL_GL_DeleteContext(w.context);
-    SDL_DestroyWindow(w.handle);
-}
+pub extern "C" fn Window_Free(_: Option<Box<Window>>) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_BeginDraw(w: Option<&Window>) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_BeginDraw(w: &Window) {
     let mut size: IVec2 = IVec2::ZERO;
     SDL_GL_MakeCurrent(w.handle, w.context);
-    Window_GetSize(Some(w), &mut size);
+    Window_GetSize(w, &mut size);
     Viewport_Push(0, 0, size.x, size.y, true);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_EndDraw(w: Option<&Window>) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_EndDraw(w: &Window) {
     Viewport_Pop();
     SDL_GL_SwapWindow(w.handle);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_GetSize(w: Option<&Window>, out: *mut IVec2) {
-    let w = unwrap_or_return!(w);
-    SDL_GetWindowSize(w.handle, &mut (*out).x, &mut (*out).y);
+pub unsafe extern "C" fn Window_GetSize(w: &Window, out: &mut IVec2) {
+    SDL_GetWindowSize(w.handle, &mut out.x, &mut out.y);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_GetPosition(w: Option<&Window>, out: *mut IVec2) {
-    let w = unwrap_or_return!(w);
-    SDL_GetWindowPosition(w.handle, &mut (*out).x, &mut (*out).y);
+pub unsafe extern "C" fn Window_GetPosition(w: &Window, out: &mut IVec2) {
+    SDL_GetWindowPosition(w.handle, &mut out.x, &mut out.y);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_GetTitle(w: Option<&Window>) -> *const libc::c_char {
-    let w = unwrap_or_return!(w, std::ptr::null());
+pub unsafe extern "C" fn Window_GetTitle(w: &Window) -> *const libc::c_char {
     SDL_GetWindowTitle(w.handle)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetFullscreen(w: Option<&Window>, fs: bool) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_SetFullscreen(w: &Window, fs: bool) {
     SDL_SetWindowFullscreen(w.handle, if fs { WindowMode_Fullscreen } else { 0 });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetPosition(w: Option<&Window>, x: WindowPos, y: WindowPos) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_SetPosition(w: &Window, x: WindowPos, y: WindowPos) {
     SDL_SetWindowPosition(w.handle, x, y);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetSize(w: Option<&Window>, sx: i32, sy: i32) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_SetSize(w: &Window, sx: i32, sy: i32) {
     SDL_SetWindowSize(w.handle, sx, sy);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_SetTitle(w: Option<&Window>, title: *const libc::c_char) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_SetTitle(w: &Window, title: *const libc::c_char) {
     SDL_SetWindowTitle(w.handle, title);
 }
 
@@ -112,8 +106,7 @@ pub unsafe extern "C" fn Window_SetVsync(_: Option<&Window>, vsync: bool) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_ToggleFullscreen(w: Option<&mut Window>) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_ToggleFullscreen(w: &mut Window) {
     if w.mode & WindowMode_Fullscreen != 0 {
         SDL_SetWindowFullscreen(w.handle, 0);
     } else {
@@ -123,13 +116,11 @@ pub unsafe extern "C" fn Window_ToggleFullscreen(w: Option<&mut Window>) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_Hide(w: Option<&Window>) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_Hide(w: &Window) {
     SDL_HideWindow(w.handle);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Window_Show(w: Option<&Window>) {
-    let w = unwrap_or_return!(w);
+pub unsafe extern "C" fn Window_Show(w: &Window) {
     SDL_ShowWindow(w.handle);
 }

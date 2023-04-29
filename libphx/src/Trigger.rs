@@ -23,15 +23,15 @@ extern "C" {
     pub type RigidBody;
     pub type Box3;
     fn _cppTrigger_CreateBox(halfExtents: *mut Vec3) -> *mut Trigger;
-    fn _cppTrigger_Free(this: *mut Trigger);
-    fn _cppTrigger_Attach(this: *mut Trigger, rb: *mut RigidBody, offset: *mut Vec3);
-    fn _cppTrigger_Detach(this: *mut Trigger, rb: *mut RigidBody);
-    fn _cppTrigger_GetBoundingBox(this: *mut Trigger, out: *mut Box3);
-    fn _cppTrigger_GetContentsCount(this: *mut Trigger) -> i32;
-    fn _cppTrigger_GetContents(this: *mut Trigger, i: i32) -> *mut RigidBody;
-    fn _cppTrigger_SetCollisionMask(this: *mut Trigger, i: i32);
-    fn _cppTrigger_SetPos(this: *mut Trigger, pos: *mut Vec3);
-    fn _cppTrigger_SetPosLocal(this: *mut Trigger, pos: *mut Vec3);
+    fn _cppTrigger_Free(this: &mut Trigger);
+    fn _cppTrigger_Attach(this: &mut Trigger, rb: *mut RigidBody, offset: *mut Vec3);
+    fn _cppTrigger_Detach(this: &mut Trigger, rb: *mut RigidBody);
+    fn _cppTrigger_GetBoundingBox(this: &mut Trigger, out: *mut Box3);
+    fn _cppTrigger_GetContentsCount(this: &mut Trigger) -> i32;
+    fn _cppTrigger_GetContents(this: &mut Trigger, i: i32) -> *mut RigidBody;
+    fn _cppTrigger_SetCollisionMask(this: &mut Trigger, i: i32);
+    fn _cppTrigger_SetPos(this: &mut Trigger, pos: *mut Vec3);
+    fn _cppTrigger_SetPosLocal(this: &mut Trigger, pos: *mut Vec3);
 }
 
 #[no_mangle]
@@ -40,46 +40,46 @@ pub unsafe extern "C" fn Trigger_CreateBox(halfExtents: *mut Vec3) -> *mut Trigg
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_Free(this: *mut Trigger) {
+pub unsafe extern "C" fn Trigger_Free(this: &mut Trigger) {
     _cppTrigger_Free(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_Attach(this: *mut Trigger, rb: *mut RigidBody, offset: *mut Vec3) {
+pub unsafe extern "C" fn Trigger_Attach(this: &mut Trigger, rb: *mut RigidBody, offset: *mut Vec3) {
     _cppTrigger_Attach(this, rb, offset)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_Detach(this: *mut Trigger, rb: *mut RigidBody) {
+pub unsafe extern "C" fn Trigger_Detach(this: &mut Trigger, rb: *mut RigidBody) {
     _cppTrigger_Detach(this, rb)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_GetBoundingBox(this: *mut Trigger, out: *mut Box3) {
+pub unsafe extern "C" fn Trigger_GetBoundingBox(this: &mut Trigger, out: *mut Box3) {
     _cppTrigger_GetBoundingBox(this, out)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_GetContentsCount(this: *mut Trigger) -> i32 {
+pub unsafe extern "C" fn Trigger_GetContentsCount(this: &mut Trigger) -> i32 {
     _cppTrigger_GetContentsCount(this)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_GetContents(this: *mut Trigger, i: i32) -> *mut RigidBody {
+pub unsafe extern "C" fn Trigger_GetContents(this: &mut Trigger, i: i32) -> *mut RigidBody {
     _cppTrigger_GetContents(this, i)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_SetCollisionMask(this: *mut Trigger, i: i32) {
+pub unsafe extern "C" fn Trigger_SetCollisionMask(this: &mut Trigger, i: i32) {
     _cppTrigger_SetCollisionMask(this, i)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_SetPos(this: *mut Trigger, pos: *mut Vec3) {
+pub unsafe extern "C" fn Trigger_SetPos(this: &mut Trigger, pos: *mut Vec3) {
     _cppTrigger_SetPos(this, pos)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Trigger_SetPosLocal(this: *mut Trigger, pos: *mut Vec3) {
+pub unsafe extern "C" fn Trigger_SetPosLocal(this: &mut Trigger, pos: *mut Vec3) {
     _cppTrigger_SetPosLocal(this, pos)
 }

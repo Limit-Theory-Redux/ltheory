@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Math::IVec2;
 use crate::Math::Vec3;
 use crate::GL::gl;
-use libc;
 
 /* TODO : This is a low-level mechanism and probably not for use outside of
  *        RenderTarget. Should likely be folded into RenderTarget. */
@@ -27,24 +26,16 @@ static mut vp: [VP; 16] = [VP {
     isWindow: false,
 }; 16];
 
-unsafe extern "C" fn Viewport_Set(this: *const VP) {
-    gl::Viewport((*this).x, (*this).y, (*this).sx, (*this).sy);
+unsafe extern "C" fn Viewport_Set(this: &VP) {
+    gl::Viewport(this.x, this.y, this.sx, this.sy);
     gl::MatrixMode(gl::PROJECTION);
     gl::LoadIdentity();
-    if (*this).isWindow {
+    if this.isWindow {
         gl::Translatef(-1.0f32, 1.0f32, 0.0f32);
-        gl::Scalef(
-            2.0f32 / (*this).sx as f32,
-            -2.0f32 / (*this).sy as f32,
-            1.0f32,
-        );
+        gl::Scalef(2.0f32 / this.sx as f32, -2.0f32 / this.sy as f32, 1.0f32);
     } else {
         gl::Translatef(-1.0f32, -1.0f32, 0.0f32);
-        gl::Scalef(
-            2.0f32 / (*this).sx as f32,
-            2.0f32 / (*this).sy as f32,
-            1.0f32,
-        );
+        gl::Scalef(2.0f32 / this.sx as f32, 2.0f32 / this.sy as f32, 1.0f32);
     };
 }
 
@@ -77,7 +68,7 @@ pub unsafe extern "C" fn Viewport_Push(x: i32, y: i32, sx: i32, sy: i32, isWindo
     (*this).sx = sx;
     (*this).sy = sy;
     (*this).isWindow = isWindow;
-    Viewport_Set(this);
+    Viewport_Set(&mut *this);
 }
 
 #[no_mangle]
@@ -87,6 +78,6 @@ pub unsafe extern "C" fn Viewport_Pop() {
     }
     vpIndex -= 1;
     if vpIndex >= 0 {
-        Viewport_Set(vp.as_mut_ptr().offset(vpIndex as isize));
+        Viewport_Set(&mut *vp.as_mut_ptr().offset(vpIndex as isize));
     }
 }

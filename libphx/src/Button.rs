@@ -2,7 +2,6 @@ use crate::internal::ffi;
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::DeviceType::*;
-use libc;
 use sdl2_sys::*;
 
 pub type Button = i32;

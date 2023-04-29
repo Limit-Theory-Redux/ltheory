@@ -4,7 +4,6 @@ use crate::Common::*;
 use crate::File::*;
 use crate::Math::Vec3;
 use crate::ResourceType::*;
-use libc;
 
 static mut paths: [Vec<fn(String) -> String>; ResourceType_COUNT] = [
     Vec::new(),

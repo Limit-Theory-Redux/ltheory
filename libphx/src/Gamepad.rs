@@ -4,7 +4,6 @@ use crate::GamepadAxis::*;
 use crate::GamepadButton::*;
 use crate::Math::Vec3;
 use crate::TimeStamp::*;
-use libc;
 use sdl2_sys::*;
 
 #[derive(Copy, Clone)]
@@ -23,24 +22,24 @@ pub struct Gamepad {
 
 static mut gamepadList: *mut Gamepad = std::ptr::null_mut();
 
-unsafe extern "C" fn Gamepad_UpdateState(this: *mut Gamepad) {
+unsafe extern "C" fn Gamepad_UpdateState(this: &mut Gamepad) {
     let now: TimeStamp = TimeStamp_Get();
     for i in (GamepadAxis_BEGIN as usize)..=(GamepadAxis_END as usize) {
         let state: f64 = Gamepad_GetAxis(this, std::mem::transmute(i as u32));
-        if (*this).axisState[i] != state {
-            (*this).lastActive = now;
+        if this.axisState[i] != state {
+            this.lastActive = now;
         }
-        (*this).axisLast[i] = (*this).axisState[i];
-        (*this).axisState[i] = state;
+        this.axisLast[i] = this.axisState[i];
+        this.axisState[i] = state;
     }
 
     for i in (GamepadButton_BEGIN as usize)..=(GamepadButton_END as usize) {
         let state: bool = Gamepad_GetButton(this, std::mem::transmute(i as u32));
-        if (*this).buttonState[i] as i32 != state as i32 {
-            (*this).lastActive = now;
+        if this.buttonState[i] as i32 != state as i32 {
+            this.lastActive = now;
         }
-        (*this).buttonLast[i] = (*this).buttonState[i];
-        (*this).buttonState[i] = state;
+        this.buttonLast[i] = this.buttonState[i];
+        this.buttonState[i] = state;
     }
 }
 
@@ -64,7 +63,7 @@ pub unsafe extern "C" fn Gamepad_Open(index: i32) -> *mut Gamepad {
         (*gamepadList).gamepadList_prev = &mut (*this).gamepadList_next;
     }
     gamepadList = this;
-    Gamepad_UpdateState(this);
+    Gamepad_UpdateState(&mut *this);
     this
 }
 
@@ -84,11 +83,10 @@ pub unsafe extern "C" fn Gamepad_AddMappings(file: *const libc::c_char) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetAxis(this: *mut Gamepad, axis: GamepadAxis) -> f64 {
-    let value: f64 = SDL_GameControllerGetAxis((*this).handle, axis as SDL_GameControllerAxis)
-        as f64
-        / 32767.0f64;
-    let deadzone: f64 = (*this).deadzone[axis as usize];
+pub unsafe extern "C" fn Gamepad_GetAxis(this: &mut Gamepad, axis: GamepadAxis) -> f64 {
+    let value: f64 =
+        SDL_GameControllerGetAxis(this.handle, axis as SDL_GameControllerAxis) as f64 / 32767.0f64;
+    let deadzone: f64 = this.deadzone[axis as usize];
     if value > deadzone {
         return (value - deadzone) / (1.0f64 - deadzone);
     }
@@ -99,21 +97,21 @@ pub unsafe extern "C" fn Gamepad_GetAxis(this: *mut Gamepad, axis: GamepadAxis) 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetAxisDelta(this: *mut Gamepad, axis: GamepadAxis) -> f64 {
-    (*this).axisState[axis as usize] - (*this).axisLast[axis as usize]
+pub unsafe extern "C" fn Gamepad_GetAxisDelta(this: &mut Gamepad, axis: GamepadAxis) -> f64 {
+    this.axisState[axis as usize] - this.axisLast[axis as usize]
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetButton(this: *mut Gamepad, button: GamepadButton) -> bool {
-    SDL_GameControllerGetButton((*this).handle, button as SDL_GameControllerButton) as i32 == 1
+pub unsafe extern "C" fn Gamepad_GetButton(this: &mut Gamepad, button: GamepadButton) -> bool {
+    SDL_GameControllerGetButton(this.handle, button as SDL_GameControllerButton) as i32 == 1
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetButtonPressed(
-    this: *mut Gamepad,
+    this: &mut Gamepad,
     button: GamepadButton,
 ) -> f64 {
-    if (*this).buttonState[button as usize] as i32 != 0 && !(*this).buttonLast[button as usize] {
+    if this.buttonState[button as usize] as i32 != 0 && !this.buttonLast[button as usize] {
         1.0f64
     } else {
         0.0f64
@@ -122,10 +120,10 @@ pub unsafe extern "C" fn Gamepad_GetButtonPressed(
 
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetButtonReleased(
-    this: *mut Gamepad,
+    this: &mut Gamepad,
     button: GamepadButton,
 ) -> f64 {
-    if !(*this).buttonState[button as usize] && (*this).buttonLast[button as usize] as i32 != 0 {
+    if !this.buttonState[button as usize] && this.buttonLast[button as usize] as i32 != 0 {
         1.0f64
     } else {
         0.0f64
@@ -133,13 +131,13 @@ pub unsafe extern "C" fn Gamepad_GetButtonReleased(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetIdleTime(this: *mut Gamepad) -> f64 {
-    TimeStamp_GetElapsed((*this).lastActive)
+pub unsafe extern "C" fn Gamepad_GetIdleTime(this: &mut Gamepad) -> f64 {
+    TimeStamp_GetElapsed(this.lastActive)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetID(this: *mut Gamepad) -> i32 {
-    let joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick((*this).handle);
+pub unsafe extern "C" fn Gamepad_GetID(this: &mut Gamepad) -> i32 {
+    let joystick: *mut SDL_Joystick = SDL_GameControllerGetJoystick(this.handle);
     if joystick.is_null() {
         return -1;
     }
@@ -147,25 +145,25 @@ pub unsafe extern "C" fn Gamepad_GetID(this: *mut Gamepad) -> i32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetName(this: *mut Gamepad) -> *const libc::c_char {
-    SDL_GameControllerName((*this).handle)
+pub unsafe extern "C" fn Gamepad_GetName(this: &mut Gamepad) -> *const libc::c_char {
+    SDL_GameControllerName(this.handle)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_IsConnected(this: *mut Gamepad) -> bool {
-    SDL_GameControllerGetAttached((*this).handle) == SDL_bool::SDL_TRUE
+pub unsafe extern "C" fn Gamepad_IsConnected(this: &mut Gamepad) -> bool {
+    SDL_GameControllerGetAttached(this.handle) == SDL_bool::SDL_TRUE
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_SetDeadzone(this: *mut Gamepad, axis: GamepadAxis, deadzone: f64) {
-    (*this).deadzone[axis as usize] = deadzone;
+pub unsafe extern "C" fn Gamepad_SetDeadzone(this: &mut Gamepad, axis: GamepadAxis, deadzone: f64) {
+    this.deadzone[axis as usize] = deadzone;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_Update() {
     let mut this: *mut Gamepad = gamepadList;
     while !this.is_null() {
-        Gamepad_UpdateState(this);
+        Gamepad_UpdateState(&mut *this);
         this = (*this).gamepadList_next;
     }
 }

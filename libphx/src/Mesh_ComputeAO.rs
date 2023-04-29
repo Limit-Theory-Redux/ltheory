@@ -13,10 +13,9 @@ use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexFormat::*;
-use libc;
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_ComputeAO(this: *mut Mesh, radius: f32) {
+pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     let indexCount: i32 = Mesh_GetIndexCount(this);
     let vertexCount: i32 = Mesh_GetVertexCount(this);
     let indexData: *mut i32 = Mesh_GetIndexData(this);
@@ -57,13 +56,13 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: *mut Mesh, radius: f32) {
     let texSPoints: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);
     let texSNormals: *mut Tex2D = Tex2D_Create(sDim, sDim, TexFormat_RGBA32F);
     Tex2D_SetData(
-        texSPoints,
+        &mut *texSPoints,
         pointBuffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
     Tex2D_SetData(
-        texSNormals,
+        &mut *texSNormals,
         normalBuffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
@@ -86,13 +85,13 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: *mut Mesh, radius: f32) {
     let texVPoints: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     let texVNormals: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_RGBA32F);
     Tex2D_SetData(
-        texVPoints,
+        &mut *texVPoints,
         pointBuffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
     );
     Tex2D_SetData(
-        texVNormals,
+        &mut *texVNormals,
         normalBuffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
@@ -108,21 +107,21 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: *mut Mesh, radius: f32) {
         );
     }
     RenderState_PushAllDefaults();
-    RenderTarget_PushTex2D(texOutput);
-    Shader_Start(shader);
+    RenderTarget_PushTex2D(&mut *texOutput);
+    Shader_Start(&mut *shader);
     Shader_SetInt(c_str!("sDim"), sDim);
     Shader_SetFloat(c_str!("radius"), radius);
-    Shader_SetTex2D(c_str!("sPointBuffer"), texSPoints);
-    Shader_SetTex2D(c_str!("sNormalBuffer"), texSNormals);
-    Shader_SetTex2D(c_str!("vPointBuffer"), texVPoints);
-    Shader_SetTex2D(c_str!("vNormalBuffer"), texVNormals);
+    Shader_SetTex2D(c_str!("sPointBuffer"), &mut *texSPoints);
+    Shader_SetTex2D(c_str!("sNormalBuffer"), &mut *texSNormals);
+    Shader_SetTex2D(c_str!("vPointBuffer"), &mut *texVPoints);
+    Shader_SetTex2D(c_str!("vNormalBuffer"), &mut *texVNormals);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
     Shader_Stop(shader);
     RenderTarget_Pop();
     RenderState_PopAll();
     let result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
     Tex2D_GetData(
-        texOutput,
+        &mut *texOutput,
         result as *mut _,
         PixelFormat_Red,
         DataFormat_Float,
@@ -133,15 +132,15 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: *mut Mesh, radius: f32) {
         i_1 += 1;
     }
     MemFree(result as *const _);
-    Tex2D_Free(texOutput);
-    Tex2D_Free(texSPoints);
-    Tex2D_Free(texSNormals);
-    Tex2D_Free(texVPoints);
-    Tex2D_Free(texVNormals);
+    Tex2D_Free(&mut *texOutput);
+    Tex2D_Free(&mut *texSPoints);
+    Tex2D_Free(&mut *texSNormals);
+    Tex2D_Free(&mut *texVPoints);
+    Tex2D_Free(&mut *texVNormals);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: *mut Mesh, sdf: *mut Tex3D, radius: f32) {
+pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: &mut Mesh, sdf: *mut Tex3D, radius: f32) {
     let vertexCount: i32 = Mesh_GetVertexCount(this);
     let vertexData: *mut Vertex = Mesh_GetVertexData(this);
     let vDim: i32 = f64::ceil(f64::sqrt(vertexCount as f64)) as i32;
@@ -154,7 +153,7 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: *mut Mesh, sdf: *mut Tex3D,
         i += 1;
     }
     Tex2D_SetData(
-        texPoints,
+        &mut *texPoints,
         pointBuffer as *const _,
         PixelFormat_RGB,
         DataFormat_Float,
@@ -168,18 +167,18 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: *mut Mesh, sdf: *mut Tex3D,
         );
     }
     RenderState_PushAllDefaults();
-    RenderTarget_PushTex2D(texOutput);
-    Shader_Start(shader);
+    RenderTarget_PushTex2D(&mut *texOutput);
+    Shader_Start(&mut *shader);
     Shader_SetFloat(c_str!("radius"), radius);
-    Shader_SetTex2D(c_str!("points"), texPoints);
-    Shader_SetTex3D(c_str!("sdf"), sdf);
+    Shader_SetTex2D(c_str!("points"), &mut *texPoints);
+    Shader_SetTex3D(c_str!("sdf"), &mut *sdf);
     Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
     Shader_Stop(shader);
     RenderTarget_Pop();
     RenderState_PopAll();
     let result: *mut f32 = MemNewArray!(f32, (vDim * vDim));
     Tex2D_GetData(
-        texOutput,
+        &mut *texOutput,
         result as *mut _,
         PixelFormat_Red,
         DataFormat_Float,
@@ -190,6 +189,6 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: *mut Mesh, sdf: *mut Tex3D,
         i_0 += 1;
     }
     MemFree(result as *const _);
-    Tex2D_Free(texPoints);
-    Tex2D_Free(texOutput);
+    Tex2D_Free(&mut *texPoints);
+    Tex2D_Free(&mut *texOutput);
 }

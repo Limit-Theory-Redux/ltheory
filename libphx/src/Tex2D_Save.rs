@@ -1,4 +1,3 @@
-use libc;
 use stb::image_write::stbi_write_png;
 use std::ffi::CStr;
 

@@ -10,7 +10,6 @@ use crate::RenderState::*;
 use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::Viewport::*;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -109,11 +108,11 @@ pub unsafe extern "C" fn UIRenderer_Begin() {
     UIRenderer_Init();
     this.root = std::ptr::null_mut();
     this.layer = std::ptr::null_mut();
-    MemPool_Clear(this.layerPool);
-    MemPool_Clear(this.imagePool);
-    MemPool_Clear(this.panelPool);
-    MemPool_Clear(this.rectPool);
-    MemPool_Clear(this.textPool);
+    MemPool_Clear(&mut *this.layerPool);
+    MemPool_Clear(&mut *this.imagePool);
+    MemPool_Clear(&mut *this.panelPool);
+    MemPool_Clear(&mut *this.rectPool);
+    MemPool_Clear(&mut *this.textPool);
     let mut vp: IVec2 = IVec2::ZERO;
     Viewport_GetSize(&mut vp);
     UIRenderer_BeginLayer(0.0f32, 0.0f32, vp.x as f32, vp.y as f32, true);
@@ -140,7 +139,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(self_1: *const UIRendererLayer) {
             shader = Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel"));
         }
         let pad: f32 = 64.0f32;
-        Shader_Start(shader);
+        Shader_Start(&mut *shader);
         Shader_SetFloat(c_str!("padding"), pad);
         let mut e: *const UIRendererPanel = (*self_1).panelList;
         while !e.is_null() {
@@ -166,7 +165,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(self_1: *const UIRendererLayer) {
     let mut e_0: *const UIRendererImage = (*self_1).imageList;
     while !e_0.is_null() {
         Tex2D_Draw(
-            (*e_0).image,
+            &mut *(*e_0).image,
             (*e_0).pos.x,
             (*e_0).pos.y,
             (*e_0).size.x,
@@ -198,7 +197,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(self_1: *const UIRendererLayer) {
     let mut e_2: *const UIRendererText = (*self_1).textList;
     while !e_2.is_null() {
         Font_Draw(
-            (*e_2).font,
+            &mut *(*e_2).font,
             (*e_2).text,
             (*e_2).pos.x,
             (*e_2).pos.y,
@@ -228,7 +227,7 @@ pub unsafe extern "C" fn UIRenderer_Draw() {
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_BeginLayer(x: f32, y: f32, sx: f32, sy: f32, clip: bool) {
-    let layer: *mut UIRendererLayer = MemPool_Alloc(this.layerPool) as *mut UIRendererLayer;
+    let layer: *mut UIRendererLayer = MemPool_Alloc(&mut *this.layerPool) as *mut UIRendererLayer;
     (*layer).parent = this.layer;
     (*layer).next = std::ptr::null_mut();
     (*layer).children = std::ptr::null_mut();
@@ -253,7 +252,7 @@ pub unsafe extern "C" fn UIRenderer_EndLayer() {
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Image(image: *mut Tex2D, x: f32, y: f32, sx: f32, sy: f32) {
-    let e: *mut UIRendererImage = MemPool_Alloc(this.imagePool) as *mut UIRendererImage;
+    let e: *mut UIRendererImage = MemPool_Alloc(&mut *this.imagePool) as *mut UIRendererImage;
     (*e).next = (*this.layer).imageList;
     (*e).image = image;
     (*e).pos = Vec2::new(x, y);
@@ -274,7 +273,7 @@ pub unsafe extern "C" fn UIRenderer_Panel(
     bevel: f32,
     innerAlpha: f32,
 ) {
-    let e: *mut UIRendererPanel = MemPool_Alloc(this.panelPool) as *mut UIRendererPanel;
+    let e: *mut UIRendererPanel = MemPool_Alloc(&mut *this.panelPool) as *mut UIRendererPanel;
     (*e).next = (*this.layer).panelList;
     (*e).pos = Vec2::new(x, y);
     (*e).size = Vec2::new(sx, sy);
@@ -296,7 +295,7 @@ pub unsafe extern "C" fn UIRenderer_Rect(
     a: f32,
     outline: bool,
 ) {
-    let e: *mut UIRendererRect = MemPool_Alloc(this.rectPool) as *mut UIRendererRect;
+    let e: *mut UIRendererRect = MemPool_Alloc(&mut *this.rectPool) as *mut UIRendererRect;
     (*e).next = (*this.layer).rectList;
     (*e).pos = Vec2::new(x, y);
     (*e).size = Vec2::new(sx, sy);
@@ -316,7 +315,7 @@ pub unsafe extern "C" fn UIRenderer_Text(
     b: f32,
     a: f32,
 ) {
-    let e: *mut UIRendererText = MemPool_Alloc(this.textPool) as *mut UIRendererText;
+    let e: *mut UIRendererText = MemPool_Alloc(&mut *this.textPool) as *mut UIRendererText;
     (*e).next = (*this.layer).textList;
     (*e).font = font;
     (*e).text = text;

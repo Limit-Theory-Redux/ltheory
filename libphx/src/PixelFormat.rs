@@ -1,7 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::GL::gl;
-use libc;
 pub type PixelFormat = i32;
 
 #[no_mangle]

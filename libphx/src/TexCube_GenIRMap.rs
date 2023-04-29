@@ -13,10 +13,9 @@ use crate::TexCube::*;
 use crate::TexFilter::*;
 use crate::TexFormat::*;
 use crate::RNG::*;
-use libc;
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) -> *mut TexCube {
+pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) -> *mut TexCube {
     let mut size: i32 = TexCube_GetSize(this);
     let format: TexFormat = TexCube_GetFormat(this);
     let result: *mut TexCube = TexCube_Create(size, format);
@@ -39,10 +38,10 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
     let mut i: i32 = 0;
     while i < 6 {
         TexCube_GetData(this, buffer, CubeFace_Get(i), 0, pf, df);
-        TexCube_SetData(result, buffer, CubeFace_Get(i), 0, pf, df);
+        TexCube_SetData(&mut *result, buffer, CubeFace_Get(i), 0, pf, df);
         i += 1;
     }
-    TexCube_GenMipmap(result);
+    TexCube_GenMipmap(&mut *result);
     MemFree(buffer);
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
@@ -72,14 +71,14 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
         Vec3::Y,
         Vec3::Y,
     ];
-    let rng: *mut RNG = RNG_FromTime();
+    let mut rng: Box<RNG> = RNG_FromTime();
     let mut levels: i32 = 0;
     let mut i_0: i32 = size;
     while i_0 > 0 {
         levels += 1;
         i_0 /= 2;
     }
-    Shader_Start(shader);
+    Shader_Start(&mut *shader);
     let mut level: i32 = 0;
     while size > 1 {
         size /= 2;
@@ -90,15 +89,15 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
         let sampleTex = Tex2D_Create(sampleCount, 1, TexFormat_RG16F);
         let mut i_1: i32 = 0;
         while i_1 < sampleCount {
-            let e1: f64 = RNG_GetUniform(rng);
-            let e2: f64 = RNG_GetUniform(rng);
+            let e1: f64 = RNG_GetUniform(rng.as_mut());
+            let e2: f64 = RNG_GetUniform(rng.as_mut());
             let pitch: f64 = f64::atan2(ggxWidth * f64::sqrt(e1), f64::sqrt(1.0f64 - e1));
             let yaw: f64 = std::f64::consts::TAU * e2;
             *sampleBuffer.offset(i_1 as isize) = Vec2::new(pitch as f32, yaw as f32);
             i_1 += 1;
         }
         Tex2D_SetData(
-            sampleTex,
+            &mut *sampleTex,
             sampleBuffer as *const _,
             PixelFormat_RG,
             DataFormat_Float,
@@ -108,7 +107,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
         Shader_ResetTexIndex();
         Shader_SetFloat(c_str!("angle"), angle);
         Shader_SetTexCube(c_str!("src"), this);
-        Shader_SetTex2D(c_str!("sampleBuffer"), sampleTex);
+        Shader_SetTex2D(c_str!("sampleBuffer"), &mut *sampleTex);
         Shader_SetInt(c_str!("samples"), sampleCount);
         let mut i_2: i32 = 0;
         while i_2 < 6 {
@@ -116,7 +115,7 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
             let thisLook: Vec3 = look[i_2 as usize];
             let thisUp: Vec3 = up[i_2 as usize];
             RenderTarget_Push(size, size);
-            RenderTarget_BindTexCubeLevel(result, thisFace, level);
+            RenderTarget_BindTexCubeLevel(&mut *result, thisFace, level);
             Shader_SetFloat3(c_str!("cubeLook"), thisLook.x, thisLook.y, thisLook.z);
             Shader_SetFloat3(c_str!("cubeUp"), thisUp.x, thisUp.y, thisUp.z);
             Draw_Rect(-1.0f32, -1.0f32, 2.0f32, 2.0f32);
@@ -126,9 +125,8 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: *mut TexCube, sampleCount: i32) 
         MemFree(sampleBuffer as *const _);
         Tex2D_Free(sampleTex);
     }
-    RNG_Free(rng);
     Shader_Stop(shader);
-    TexCube_SetMagFilter(result, TexFilter_Linear);
-    TexCube_SetMinFilter(result, TexFilter_LinearMipLinear);
+    TexCube_SetMagFilter(&mut *result, TexFilter_Linear);
+    TexCube_SetMinFilter(&mut *result, TexFilter_LinearMipLinear);
     result
 }

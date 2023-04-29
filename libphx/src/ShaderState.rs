@@ -8,7 +8,6 @@ use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
 use crate::GL::gl;
-use libc;
 
 #[derive(Clone)]
 #[repr(C)]
@@ -72,7 +71,7 @@ pub static ElemType_Tex3D: u32 = 9;
 pub static ElemType_TexCube: u32 = 10;
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Create(shader: *mut Shader) -> *mut ShaderState {
+pub unsafe extern "C" fn ShaderState_Create(shader: &mut Shader) -> *mut ShaderState {
     let this = MemNew!(ShaderState);
     (*this)._refCount = 1;
     (*this).elems = Vec::new();
@@ -82,8 +81,8 @@ pub unsafe extern "C" fn ShaderState_Create(shader: *mut Shader) -> *mut ShaderS
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Acquire(this: *mut ShaderState) {
-    (*this)._refCount = ((*this)._refCount).wrapping_add(1);
+pub unsafe extern "C" fn ShaderState_Acquire(this: &mut ShaderState) {
+    this._refCount = (this._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
@@ -95,16 +94,16 @@ pub unsafe extern "C" fn ShaderState_Free(this: *mut ShaderState) {
         for e in (*this).elems.iter() {
             match (*e).type_0 {
                 7 => {
-                    Tex1D_Free((*e).data.asTex1D);
+                    Tex1D_Free(&mut *(*e).data.asTex1D);
                 }
                 8 => {
-                    Tex2D_Free((*e).data.asTex2D);
+                    Tex2D_Free(&mut *(*e).data.asTex2D);
                 }
                 9 => {
-                    Tex3D_Free((*e).data.asTex3D);
+                    Tex3D_Free(&mut *(*e).data.asTex3D);
                 }
                 10 => {
-                    TexCube_Free((*e).data.asTexCube);
+                    TexCube_Free(&mut *(*e).data.asTexCube);
                 }
                 _ => {}
             }
@@ -120,45 +119,45 @@ pub unsafe extern "C" fn ShaderState_FromShaderLoad(
     fragName: *const libc::c_char,
 ) -> *mut ShaderState {
     let shader: *mut Shader = Shader_Load(vertName, fragName);
-    let this: *mut ShaderState = ShaderState_Create(shader);
+    let this: *mut ShaderState = ShaderState_Create(&mut *shader);
     Shader_Free(shader);
     this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
     x: f32,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Float,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asFloat = x;
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat2(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
     x: f32,
     y: f32,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Float2,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asFloat2 = Vec2::new(x, y);
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat3(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
     x: f32,
     y: f32,
@@ -166,16 +165,16 @@ pub unsafe extern "C" fn ShaderState_SetFloat3(
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Float3,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asFloat3 = Vec3::new(x, y, z);
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetFloat4(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
     x: f32,
     y: f32,
@@ -184,111 +183,111 @@ pub unsafe extern "C" fn ShaderState_SetFloat4(
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Float4,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asFloat4 = Vec4::new(x, y, z, w);
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetInt(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
     x: i32,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Int,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asInt = x;
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetMatrix(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
     x: *mut Matrix,
 ) {
     let mut elem: Elem = Elem {
         type_0: ElemType_Matrix,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asMatrix = x;
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex1D(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
-    x: *mut Tex1D,
+    x: &mut Tex1D,
 ) {
     Tex1D_Acquire(x);
     let mut elem: Elem = Elem {
         type_0: ElemType_Tex1D,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asTex1D = x;
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex2D(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
-    x: *mut Tex2D,
+    x: &mut Tex2D,
 ) {
     Tex2D_Acquire(x);
     let mut elem: Elem = Elem {
         type_0: ElemType_Tex2D,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asTex2D = x;
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTex3D(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
-    x: *mut Tex3D,
+    x: &mut Tex3D,
 ) {
     Tex3D_Acquire(x);
     let mut elem: Elem = Elem {
         type_0: ElemType_Tex3D,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asTex3D = x;
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_SetTexCube(
-    this: *mut ShaderState,
+    this: &mut ShaderState,
     name: *const libc::c_char,
-    x: *mut TexCube,
+    x: &mut TexCube,
 ) {
     TexCube_Acquire(x);
     let mut elem: Elem = Elem {
         type_0: ElemType_TexCube,
-        index: Shader_GetVariable((*this).shader, name),
+        index: Shader_GetVariable(&mut *this.shader, name),
         data: C2RustUnnamed { asFloat: 0. },
     };
     elem.data.asTexCube = x;
-    (*this).elems.push(elem);
+    this.elems.push(elem);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Start(this: *mut ShaderState) {
-    Shader_Start((*this).shader);
-    for e in (*this).elems.iter() {
+pub unsafe extern "C" fn ShaderState_Start(this: &mut ShaderState) {
+    Shader_Start(&mut *this.shader);
+    for e in this.elems.iter() {
         match (*e).type_0 {
             1 => {
                 gl::Uniform1f((*e).index, (*e).data.asFloat);
@@ -317,19 +316,19 @@ pub unsafe extern "C" fn ShaderState_Start(this: *mut ShaderState) {
                 gl::Uniform1i((*e).index, (*e).data.asInt);
             }
             6 => {
-                Shader_ISetMatrix((*e).index, (*e).data.asMatrix);
+                Shader_ISetMatrix((*e).index, &mut *(*e).data.asMatrix);
             }
             7 => {
-                Shader_ISetTex1D((*e).index, (*e).data.asTex1D);
+                Shader_ISetTex1D((*e).index, &mut *(*e).data.asTex1D);
             }
             8 => {
-                Shader_ISetTex2D((*e).index, (*e).data.asTex2D);
+                Shader_ISetTex2D((*e).index, &mut *(*e).data.asTex2D);
             }
             9 => {
-                Shader_ISetTex3D((*e).index, (*e).data.asTex3D);
+                Shader_ISetTex3D((*e).index, &mut *(*e).data.asTex3D);
             }
             10 => {
-                Shader_ISetTexCube((*e).index, (*e).data.asTexCube);
+                Shader_ISetTexCube((*e).index, &mut *(*e).data.asTexCube);
             }
             _ => {
                 CFatal!("ShaderState_Start: Encountered invalid opcode");
@@ -339,6 +338,6 @@ pub unsafe extern "C" fn ShaderState_Start(this: *mut ShaderState) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Stop(this: *mut ShaderState) {
-    Shader_Stop((*this).shader);
+pub unsafe extern "C" fn ShaderState_Stop(this: &mut ShaderState) {
+    Shader_Stop(this.shader);
 }

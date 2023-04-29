@@ -1,7 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
-use libc;
 use sdl2_sys::*;
 
 #[derive(Copy, Clone)]
@@ -60,13 +59,13 @@ pub unsafe extern "C" fn ThreadPool_Free(this: *mut ThreadPool) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ThreadPool_Launch(
-    this: *mut ThreadPool,
+    this: &mut ThreadPool,
     fn_0: ThreadPoolFn,
     data: *mut libc::c_void,
 ) {
     let mut i: i32 = 0;
-    while i < (*this).threads {
-        let td: *mut ThreadData = ((*this).thread).offset(i as isize);
+    while i < this.threads {
+        let td: *mut ThreadData = (this.thread).offset(i as isize);
         (*td).fn_0 = fn_0;
         (*td).data = data;
         (*td).handle = SDL_CreateThread(
@@ -82,10 +81,10 @@ pub unsafe extern "C" fn ThreadPool_Launch(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ThreadPool_Wait(this: *mut ThreadPool) {
+pub unsafe extern "C" fn ThreadPool_Wait(this: &mut ThreadPool) {
     let mut i: i32 = 0;
-    while i < (*this).threads {
-        let td: *mut ThreadData = ((*this).thread).offset(i as isize);
+    while i < this.threads {
+        let td: *mut ThreadData = (this.thread).offset(i as isize);
         if !((*td).handle).is_null() {
             let mut ret: i32 = 0;
             SDL_WaitThread((*td).handle, &mut ret);

@@ -30,12 +30,12 @@ pub unsafe extern "C" fn Directory_Close(this: *mut Directory) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_GetNext(this: *mut Directory) -> *const libc::c_char {
-    match (*this).iterator.next() {
+pub unsafe extern "C" fn Directory_GetNext(this: &mut Directory) -> *const libc::c_char {
+    match this.iterator.next() {
         Some(Ok(dir)) => {
-            (*this).lastEntry =
+            this.lastEntry =
                 Some(ffi::CString::new(dir.file_name().to_str().unwrap_or_default()).unwrap());
-            (*this).lastEntry.as_ref().unwrap().as_ptr()
+            this.lastEntry.as_ref().unwrap().as_ptr()
         }
         _ => std::ptr::null(),
     }

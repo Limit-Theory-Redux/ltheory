@@ -5,9 +5,10 @@ use crate::File::*;
 use crate::Math::Vec3;
 use flate2::write::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;
-use libc;
 use std::ffi::CString;
 use std::io::Write;
+use std::ptr::slice_from_raw_parts;
+use std::slice;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -44,11 +45,21 @@ pub unsafe extern "C" fn Bytes_Create(size: u32) -> *mut Bytes {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_FromData(data: *const libc::c_void, len: u32) -> *mut Bytes {
-    let this: *mut Bytes = Bytes_Create(len);
-    Bytes_Write(this, data, len);
-    Bytes_Rewind(this);
-    this
+pub extern "C" fn Bytes_FromData(data: *const libc::c_void, len: u32) -> *mut Bytes {
+    unsafe {
+        let this: *mut Bytes = Bytes_Create(len);
+        Bytes_Write(&mut *this, data, len);
+        Bytes_Rewind(&mut *this);
+        this
+    }
+}
+
+pub fn Bytes_FromVec(data: Vec<u8>) -> *mut Bytes {
+    Bytes_FromSlice(data.as_slice())
+}
+
+pub fn Bytes_FromSlice(data: &[u8]) -> *mut Bytes {
+    Bytes_FromData(data.as_ptr() as *const _, data.len() as u32)
 }
 
 #[no_mangle]
@@ -66,13 +77,13 @@ pub unsafe extern "C" fn Bytes_Free(this: *mut Bytes) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_GetData(this: *mut Bytes) -> *mut libc::c_void {
-    &mut (*this).data as *mut libc::c_char as *mut _
+pub unsafe extern "C" fn Bytes_GetData(this: &mut Bytes) -> *mut libc::c_void {
+    &mut this.data as *mut libc::c_char as *mut _
 }
 
 #[no_mangle]
-pub extern "C" fn Bytes_GetSize(this: *mut Bytes) -> u32 {
-    unsafe { (*this).size }
+pub extern "C" fn Bytes_GetSize(this: &mut Bytes) -> u32 {
+    unsafe { this.size }
 }
 
 #[no_mangle]
@@ -112,249 +123,242 @@ pub extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_GetCursor(this: *mut Bytes) -> u32 {
-    (*this).cursor
+pub unsafe extern "C" fn Bytes_GetCursor(this: &mut Bytes) -> u32 {
+    this.cursor
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Rewind(this: *mut Bytes) {
-    (*this).cursor = 0;
+pub unsafe extern "C" fn Bytes_Rewind(this: &mut Bytes) {
+    this.cursor = 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_SetCursor(this: *mut Bytes, cursor: u32) {
-    (*this).cursor = cursor;
+pub unsafe extern "C" fn Bytes_SetCursor(this: &mut Bytes, cursor: u32) {
+    this.cursor = cursor;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Read(this: *mut Bytes, data: *mut libc::c_void, len: u32) {
+pub unsafe extern "C" fn Bytes_Read(this: &mut Bytes, data: *mut libc::c_void, len: u32) {
     MemCpy(
         data,
-        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *const _,
+        (&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *const _,
         len as usize,
     );
-    (*this).cursor = (*this).cursor.wrapping_add(len);
+    this.cursor = this.cursor.wrapping_add(len);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Write(this: *mut Bytes, data: *const libc::c_void, len: u32) {
+pub unsafe extern "C" fn Bytes_Write(this: &mut Bytes, data: *const libc::c_void, len: u32) {
     MemCpy(
-        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut _,
+        (&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut _,
         data,
         len as usize,
     );
-    (*this).cursor = (*this).cursor.wrapping_add(len);
+    this.cursor = this.cursor.wrapping_add(len);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteStr(this: *mut Bytes, data: *const libc::c_char) {
+pub unsafe extern "C" fn Bytes_WriteStr(this: &mut Bytes, data: *const libc::c_char) {
     let len: usize = StrLen(data);
     MemCpy(
-        (&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut _,
+        (&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut _,
         data as *const _,
         len,
     );
-    (*this).cursor = (*this).cursor.wrapping_add(len as u32);
+    this.cursor = this.cursor.wrapping_add(len as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadU64(this: *mut Bytes) -> u64 {
+pub unsafe extern "C" fn Bytes_ReadU64(this: &mut Bytes) -> u64 {
     let value: u64 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut u64);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut u64);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<u64>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadI8(this: *mut Bytes) -> i8 {
+pub unsafe extern "C" fn Bytes_ReadI8(this: &mut Bytes) -> i8 {
     let value: i8 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut i8);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut i8);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<i8>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteI8(this: *mut Bytes, value: i8) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut i8) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteI8(this: &mut Bytes, value: i8) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut i8) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<i8>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteI16(this: *mut Bytes, value: i16) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut i16) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteI16(this: &mut Bytes, value: i16) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut i16) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<i16>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadU8(this: *mut Bytes) -> u8 {
+pub unsafe extern "C" fn Bytes_ReadU8(this: &mut Bytes) -> u8 {
     let value: u8 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut u8);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut u8);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<u8>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteI32(this: *mut Bytes, value: i32) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut i32) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteI32(this: &mut Bytes, value: i32) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut i32) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<i32>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteI64(this: *mut Bytes, value: i64) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut i64) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteI64(this: &mut Bytes, value: i64) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut i64) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<i64>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteF32(this: *mut Bytes, value: f32) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut f32) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteF32(this: &mut Bytes, value: f32) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut f32) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<f32>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteU16(this: *mut Bytes, value: u16) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut u16) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteU16(this: &mut Bytes, value: u16) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut u16) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<u16>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteU32(this: *mut Bytes, value: u32) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut u32) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteU32(this: &mut Bytes, value: u32) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut u32) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<u32>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteU8(this: *mut Bytes, value: u8) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut u8) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteU8(this: &mut Bytes, value: u8) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut u8) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<u8>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadF32(this: *mut Bytes) -> f32 {
+pub unsafe extern "C" fn Bytes_ReadF32(this: &mut Bytes) -> f32 {
     let value: f32 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut f32);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut f32);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<f32>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadU16(this: *mut Bytes) -> u16 {
+pub unsafe extern "C" fn Bytes_ReadU16(this: &mut Bytes) -> u16 {
     let value: u16 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut u16);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut u16);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<u16>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadU32(this: *mut Bytes) -> u32 {
+pub unsafe extern "C" fn Bytes_ReadU32(this: &mut Bytes) -> u32 {
     let value: u32 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut u32);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut u32);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<u32>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadI64(this: *mut Bytes) -> i64 {
+pub unsafe extern "C" fn Bytes_ReadI64(this: &mut Bytes) -> i64 {
     let value: i64 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut i64);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut i64);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<i64>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadF64(this: *mut Bytes) -> f64 {
+pub unsafe extern "C" fn Bytes_ReadF64(this: &mut Bytes) -> f64 {
     let value: f64 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut f64);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut f64);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<f64>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteU64(this: *mut Bytes, value: u64) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut u64) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteU64(this: &mut Bytes, value: u64) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut u64) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<u64>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadI16(this: *mut Bytes) -> i16 {
+pub unsafe extern "C" fn Bytes_ReadI16(this: &mut Bytes) -> i16 {
     let value: i16 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut i16);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut i16);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<i16>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_ReadI32(this: *mut Bytes) -> i32 {
+pub unsafe extern "C" fn Bytes_ReadI32(this: &mut Bytes) -> i32 {
     let value: i32 =
-        *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut i32);
-    (*this).cursor = (*this)
+        *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut i32);
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<i32>() as libc::c_ulong as u32);
     value
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_WriteF64(this: *mut Bytes, value: f64) {
-    *((&mut (*this).data as *mut libc::c_char).offset((*this).cursor as isize) as *mut f64) = value;
-    (*this).cursor = (*this)
+pub unsafe extern "C" fn Bytes_WriteF64(this: &mut Bytes, value: f64) {
+    *((&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut f64) = value;
+    this.cursor = this
         .cursor
         .wrapping_add(std::mem::size_of::<f64>() as libc::c_ulong as u32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Print(this: *const Bytes) {
-    CPrintf!("%d bytes:\n", (*this).size);
-    for i in 0..(*this).size {
-        libc::putchar(*(&(*this).data as *const libc::c_char).offset(i as isize) as i32);
+pub unsafe extern "C" fn Bytes_Print(this: &Bytes) {
+    CPrintf!("%d bytes:\n", this.size);
+    for i in 0..this.size {
+        libc::putchar(*(&this.data as *const libc::c_char).offset(i as isize) as i32);
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Save(this: *mut Bytes, path: *const libc::c_char) {
-    let file: *mut File = File_Create(path);
-    if file.is_null() {
-        CFatal!("Bytes_Save: Failed to open file '%s' for writing", path,);
-    }
-    File_Write(
-        file,
-        &mut (*this).data as *mut libc::c_char as *const _,
-        (*this).size,
-    );
-    File_Close(file);
+pub extern "C" fn Bytes_Save(this: &Bytes, path: *const libc::c_char) {
+    let mut file = File_Create(path)
+        .unwrap_or_else(|| CFatal!("Bytes_Save: Failed to open file '%s' for writing", path));
+    let _ = file.file.write_all(this.to_slice());
 }

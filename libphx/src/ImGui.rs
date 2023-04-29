@@ -14,7 +14,6 @@ use crate::MemPool::*;
 use crate::RenderState::*;
 use crate::Shader::*;
 use crate::Tex2D::*;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -218,7 +217,7 @@ static mut this: ImGui = ImGui {
 
 #[inline]
 unsafe extern "C" fn EmitLine(color: Vec4, p1: Vec2, p2: Vec2) {
-    let e: *mut ImGuiLine = MemPool_Alloc(this.linePool) as *mut ImGuiLine;
+    let e: *mut ImGuiLine = MemPool_Alloc(&mut *this.linePool) as *mut ImGuiLine;
     (*e).color = color;
     (*e).p1 = p1;
     (*e).p2 = p2;
@@ -228,7 +227,7 @@ unsafe extern "C" fn EmitLine(color: Vec4, p1: Vec2, p2: Vec2) {
 
 #[inline]
 unsafe extern "C" fn EmitPanel(color: Vec4, pos: Vec2, size: Vec2, innerAlpha: f32, bevel: f32) {
-    let e: *mut ImGuiPanel = MemPool_Alloc(this.panelPool) as *mut ImGuiPanel;
+    let e: *mut ImGuiPanel = MemPool_Alloc(&mut *this.panelPool) as *mut ImGuiPanel;
     (*e).color = color;
     (*e).pos = pos;
     (*e).size = size;
@@ -240,7 +239,7 @@ unsafe extern "C" fn EmitPanel(color: Vec4, pos: Vec2, size: Vec2, innerAlpha: f
 
 #[inline]
 unsafe extern "C" fn EmitRect(color: Vec4, pos: Vec2, size: Vec2, outline: bool) {
-    let e: *mut ImGuiRect = MemPool_Alloc(this.rectPool) as *mut ImGuiRect;
+    let e: *mut ImGuiRect = MemPool_Alloc(&mut *this.rectPool) as *mut ImGuiRect;
     (*e).color = color;
     (*e).pos = pos;
     (*e).size = size;
@@ -251,7 +250,7 @@ unsafe extern "C" fn EmitRect(color: Vec4, pos: Vec2, size: Vec2, outline: bool)
 
 #[inline]
 unsafe extern "C" fn EmitTex2D(tex: *mut Tex2D, pos: Vec2, size: Vec2) {
-    let e: *mut ImGuiTex2D = MemPool_Alloc(this.tex2DPool) as *mut ImGuiTex2D;
+    let e: *mut ImGuiTex2D = MemPool_Alloc(&mut *this.tex2DPool) as *mut ImGuiTex2D;
     (*e).tex = tex;
     (*e).pos = pos;
     (*e).size = size;
@@ -261,7 +260,7 @@ unsafe extern "C" fn EmitTex2D(tex: *mut Tex2D, pos: Vec2, size: Vec2) {
 
 #[inline]
 unsafe extern "C" fn EmitText(font: *mut Font, color: Vec4, pos: Vec2, text: *const libc::c_char) {
-    let e: *mut ImGuiText = MemPool_Alloc(this.textPool) as *mut ImGuiText;
+    let e: *mut ImGuiText = MemPool_Alloc(&mut *this.textPool) as *mut ImGuiText;
     (*e).font = font;
     (*e).color = color;
     (*e).pos = pos;
@@ -291,7 +290,7 @@ unsafe extern "C" fn ImGui_PushDefaultStyle() {
         fontSubheading = Font_Load(c_str!("Iceland"), 18);
     }
 
-    let style: *mut ImGuiStyle = MemPool_Alloc(this.stylePool) as *mut ImGuiStyle;
+    let style: *mut ImGuiStyle = MemPool_Alloc(&mut *this.stylePool) as *mut ImGuiStyle;
     (*style).prev = this.style;
     (*style).font = font;
     (*style).fontSubheading = fontSubheading;
@@ -409,7 +408,7 @@ unsafe extern "C" fn Spacing() {
 
 unsafe extern "C" fn ImGui_PushLayout(mut sx: f32, mut sy: f32, horizontal: bool) {
     TransformSize(&mut sx, &mut sy);
-    let layout: *mut ImGuiLayout = MemPool_Alloc(this.layoutPool) as *mut ImGuiLayout;
+    let layout: *mut ImGuiLayout = MemPool_Alloc(&mut *this.layoutPool) as *mut ImGuiLayout;
     (*layout).prev = this.layout;
     (*layout).lower = this.cursor;
     (*layout).upper = Vec2::new(this.cursor.x + sx, this.cursor.y + sy);
@@ -425,7 +424,7 @@ unsafe extern "C" fn ImGui_PopLayout() {
         ImGui_PopStyle();
     }
     this.layout = (*layout).prev;
-    MemPool_Dealloc(this.layoutPool, layout as *mut _);
+    MemPool_Dealloc(&mut *this.layoutPool, layout as *mut _);
 }
 
 #[inline]
@@ -458,7 +457,7 @@ unsafe extern "C" fn ImGui_Unpad(mx: f32, my: f32) {
 unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
     Spacing();
     TransformSize(&mut sx, &mut sy);
-    let widget: *mut ImGuiWidget = MemPool_Alloc(this.widgetPool) as *mut _;
+    let widget: *mut ImGuiWidget = MemPool_Alloc(&mut *this.widgetPool) as *mut _;
 
     (*widget).prev = this.widget;
     (*widget).index = 0;
@@ -482,7 +481,7 @@ unsafe extern "C" fn ImGui_BeginWidget(mut sx: f32, mut sy: f32) {
 
 unsafe extern "C" fn ImGui_EndWidget() {
     if !(this.widgetLast).is_null() {
-        MemPool_Dealloc(this.widgetPool, this.widgetLast as *mut _);
+        MemPool_Dealloc(&mut *this.widgetPool, this.widgetLast as *mut _);
     }
     this.cursor = (*this.widget).pos;
     this.widgetLast = this.widget;
@@ -589,7 +588,13 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
     let mut e: *const ImGuiTex2D = (*self_1).tex2DList;
     while !e.is_null() {
         Draw_Color(1.0f32, 1.0f32, 1.0f32, 1.0f32);
-        Tex2D_Draw((*e).tex, (*e).pos.x, (*e).pos.y, (*e).size.x, (*e).size.y);
+        Tex2D_Draw(
+            &mut *(*e).tex,
+            (*e).pos.x,
+            (*e).pos.y,
+            (*e).size.x,
+            (*e).size.y,
+        );
         e = (*e).next;
     }
 
@@ -600,7 +605,7 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
         }
 
         let pad: f32 = 64.0f32;
-        Shader_Start(shader);
+        Shader_Start(&mut *shader);
         Shader_SetFloat(c_str!("padding"), pad);
 
         let mut e: *const ImGuiPanel = (*self_1).panelList;
@@ -645,7 +650,7 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
             shader = Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/line"));
         }
         let pad: f32 = 64.0f32;
-        Shader_Start(shader);
+        Shader_Start(&mut *shader);
         let mut e: *const ImGuiLine = (*self_1).lineList;
         while !e.is_null() {
             let xMin: f32 = f32::min((*e).p1.x, (*e).p2.x) - pad;
@@ -675,7 +680,7 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
     let mut e: *const ImGuiText = (*self_1).textList;
     while !e.is_null() {
         Font_Draw(
-            (*e).font,
+            &mut *(*e).font,
             (*e).text,
             (*e).pos.x,
             (*e).pos.y,
@@ -748,16 +753,16 @@ pub unsafe extern "C" fn ImGui_Begin(sx: f32, sy: f32) {
         this.layerLast = std::ptr::null_mut();
     }
 
-    MemPool_Clear(this.layoutPool);
-    MemPool_Clear(this.widgetPool);
-    MemPool_Clear(this.stylePool);
-    MemPool_Clear(this.clipRectPool);
-    MemPool_Clear(this.cursorPool);
-    MemPool_Clear(this.tex2DPool);
-    MemPool_Clear(this.panelPool);
-    MemPool_Clear(this.rectPool);
-    MemPool_Clear(this.textPool);
-    MemPool_Clear(this.linePool);
+    MemPool_Clear(&mut *this.layoutPool);
+    MemPool_Clear(&mut *this.widgetPool);
+    MemPool_Clear(&mut *this.stylePool);
+    MemPool_Clear(&mut *this.clipRectPool);
+    MemPool_Clear(&mut *this.cursorPool);
+    MemPool_Clear(&mut *this.tex2DPool);
+    MemPool_Clear(&mut *this.panelPool);
+    MemPool_Clear(&mut *this.rectPool);
+    MemPool_Clear(&mut *this.textPool);
+    MemPool_Clear(&mut *this.linePool);
 
     this.style = std::ptr::null_mut();
     ImGui_PushDefaultStyle();
@@ -826,7 +831,7 @@ pub unsafe extern "C" fn ImGui_GetCursorY() -> f32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PushCursor() {
-    let cursor: *mut ImGuiCursor = MemPool_Alloc(this.cursorPool) as *mut ImGuiCursor;
+    let cursor: *mut ImGuiCursor = MemPool_Alloc(&mut *this.cursorPool) as *mut ImGuiCursor;
     (*cursor).prev = this.cursorStack;
     (*cursor).pos = this.cursor;
     this.cursorStack = cursor;
@@ -837,7 +842,7 @@ pub unsafe extern "C" fn ImGui_PopCursor() {
     let cursor: *mut ImGuiCursor = this.cursorStack;
     this.cursor = (*cursor).pos;
     this.cursorStack = (*cursor).prev;
-    MemPool_Dealloc(this.cursorPool, cursor as *mut _);
+    MemPool_Dealloc(&mut *this.cursorPool, cursor as *mut _);
 }
 
 #[no_mangle]
@@ -1020,7 +1025,7 @@ pub unsafe extern "C" fn ImGui_SetNextHeight(sy: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PushStyle() {
-    let style: *mut ImGuiStyle = MemPool_Alloc(this.stylePool) as *mut ImGuiStyle;
+    let style: *mut ImGuiStyle = MemPool_Alloc(&mut *this.stylePool) as *mut ImGuiStyle;
     MemCpy(
         style as *mut _,
         this.style as *const _,
@@ -1061,7 +1066,7 @@ pub unsafe extern "C" fn ImGui_PopStyle() {
     }
     let style: *mut ImGuiStyle = this.style;
     this.style = (*style).prev;
-    MemPool_Dealloc(this.stylePool, style as *mut _);
+    MemPool_Dealloc(&mut *this.stylePool, style as *mut _);
 }
 
 #[no_mangle]
@@ -1099,7 +1104,7 @@ pub unsafe extern "C" fn ImGui_ButtonEx(label: *const libc::c_char, sx: f32, sy:
     );
 
     let mut bound: IVec2 = IVec2::ZERO;
-    Font_GetSize2((*this.style).font, &mut bound, label);
+    Font_GetSize2(&mut *(*this.style).font, &mut bound, label);
     let labelPos = Vec2::new(
         (*this.widget).pos.x + 0.5f32 * ((*this.widget).size.x - bound.x as f32),
         (*this.widget).pos.y + 0.5f32 * ((*this.widget).size.y - bound.y as f32),
@@ -1194,7 +1199,7 @@ pub unsafe extern "C" fn ImGui_Divider() {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Selectable(label: *const libc::c_char) -> bool {
     let mut bound: IVec2 = IVec2::ZERO;
-    Font_GetSize2((*this.style).font, &mut bound, label);
+    Font_GetSize2(&mut *(*this.style).font, &mut bound, label);
     ImGui_BeginWidget(
         if (*this.layout).horizontal {
             bound.x as f32 + 4.0f32
@@ -1204,7 +1209,7 @@ pub unsafe extern "C" fn ImGui_Selectable(label: *const libc::c_char) -> bool {
         if (*this.layout).horizontal {
             0.0f32
         } else {
-            4.0f32 + Font_GetLineHeight((*this.style).font) as f32
+            4.0f32 + Font_GetLineHeight(&mut *(*this.style).font) as f32
         },
     );
 
@@ -1241,7 +1246,7 @@ pub unsafe extern "C" fn ImGui_Selectable(label: *const libc::c_char) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_Tex2D(tex: *mut Tex2D) {
     let mut size: IVec2 = IVec2::ZERO;
-    Tex2D_GetSize(tex, &mut size);
+    Tex2D_GetSize(&mut *tex, &mut size);
     let sizef = Vec2::new(size.x as f32, size.y as f32);
     ImGui_BeginWidget(size.x as f32, size.y as f32);
     EmitTex2D(tex, this.cursor, sizef);
@@ -1281,13 +1286,13 @@ pub unsafe extern "C" fn ImGui_TextEx(
     a: f32,
 ) {
     let mut bound: IVec2 = IVec2::ZERO;
-    Font_GetSize2((*this.style).font, &mut bound, text);
+    Font_GetSize2(&mut *(*this.style).font, &mut bound, text);
     ImGui_BeginWidget(
         bound.x as f32,
         if (*this.layout).horizontal {
             0.0f32
         } else {
-            Font_GetLineHeight((*this.style).font) as f32
+            Font_GetLineHeight(&mut *(*this.style).font) as f32
         },
     );
     EmitText(

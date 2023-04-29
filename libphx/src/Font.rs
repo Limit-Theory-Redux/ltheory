@@ -15,7 +15,6 @@ use crate::Shader::*;
 use crate::Tex2D::*;
 use crate::TexFormat::*;
 use freetype_sys::*;
-use libc;
 
 /* TODO : Re-implement UTF-8 support */
 /* TODO : Atlas instead of individual textures. */
@@ -49,18 +48,18 @@ pub struct Glyph {
 
 static mut ft: FT_Library = std::ptr::null_mut();
 
-unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyph {
-    if codepoint < 256 && !(*this).glyphsAscii[codepoint as usize].is_null() {
-        return (*this).glyphsAscii[codepoint as usize];
+unsafe extern "C" fn Font_GetGlyph(this: &mut Font, codepoint: u32) -> *mut Glyph {
+    if codepoint < 256 && !this.glyphsAscii[codepoint as usize].is_null() {
+        return this.glyphsAscii[codepoint as usize];
     }
 
     let mut g: *mut Glyph =
-        HashMap_Get((*this).glyphs, &codepoint as *const u32 as *const _) as *mut Glyph;
+        HashMap_Get(this.glyphs, &codepoint as *const u32 as *const _) as *mut Glyph;
     if !g.is_null() {
         return g;
     }
 
-    let face: FT_Face = (*this).handle;
+    let face: FT_Face = this.handle;
     let glyph: i32 = FT_Get_Char_Index(face, codepoint as FT_ULong) as i32;
     if glyph == 0 {
         return std::ptr::null_mut();
@@ -112,7 +111,7 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
     /* Upload to texture. */
     (*g).tex = Tex2D_Create((*g).sx, (*g).sy, TexFormat_RGBA8);
     Tex2D_SetData(
-        (*g).tex,
+        &mut *(*g).tex,
         buffer as *const _,
         PixelFormat_RGBA,
         DataFormat_Float,
@@ -122,10 +121,10 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
 
     /* Add to glyph cache. */
     if codepoint < 256 {
-        (*this).glyphsAscii[codepoint as usize] = g;
+        this.glyphsAscii[codepoint as usize] = g;
     } else {
         HashMap_Set(
-            (*this).glyphs,
+            this.glyphs,
             &codepoint as *const u32 as *const _,
             g as *mut _,
         );
@@ -134,10 +133,10 @@ unsafe extern "C" fn Font_GetGlyph(this: *mut Font, codepoint: u32) -> *mut Glyp
 }
 
 #[inline]
-unsafe extern "C" fn Font_GetKerning(this: *mut Font, a: i32, b: i32) -> i32 {
+unsafe extern "C" fn Font_GetKerning(this: &mut Font, a: i32, b: i32) -> i32 {
     let mut kern: FT_Vector = FT_Vector { x: 0, y: 0 };
     FT_Get_Kerning(
-        (*this).handle,
+        this.handle,
         a as FT_UInt,
         b as FT_UInt,
         FT_KERNING_DEFAULT as i32 as FT_UInt,
@@ -170,8 +169,8 @@ pub unsafe extern "C" fn Font_Load(name: *const libc::c_char, size: i32) -> *mut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_Acquire(this: *mut Font) {
-    (*this)._refCount = ((*this)._refCount).wrapping_add(1);
+pub unsafe extern "C" fn Font_Acquire(this: &mut Font) {
+    this._refCount = (this._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
@@ -188,7 +187,7 @@ pub unsafe extern "C" fn Font_Free(this: *mut Font) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_Draw(
-    this: *mut Font,
+    this: &mut Font,
     mut text: *const libc::c_char,
     mut x: f32,
     mut y: f32,
@@ -217,7 +216,17 @@ pub unsafe extern "C" fn Font_Draw(
             let y0: f32 = y + (*glyph).y0 as f32;
             let x1: f32 = x + (*glyph).x1 as f32;
             let y1: f32 = y + (*glyph).y1 as f32;
-            Tex2D_DrawEx((*glyph).tex, x0, y0, x1, y1, 0.0f32, 0.0f32, 1.0f32, 1.0f32);
+            Tex2D_DrawEx(
+                &mut *(*glyph).tex,
+                x0,
+                y0,
+                x1,
+                y1,
+                0.0f32,
+                0.0f32,
+                1.0f32,
+                1.0f32,
+            );
             x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
         } else {
@@ -235,7 +244,7 @@ pub unsafe extern "C" fn Font_Draw(
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_DrawShaded(
-    this: *mut Font,
+    this: &mut Font,
     mut text: *const libc::c_char,
     mut x: f32,
     mut y: f32,
@@ -259,8 +268,18 @@ pub unsafe extern "C" fn Font_DrawShaded(
             let x1: f32 = x + (*glyph).x1 as f32;
             let y1: f32 = y + (*glyph).y1 as f32;
             Shader_ResetTexIndex();
-            Shader_SetTex2D(c_str!("glyph"), (*glyph).tex);
-            Tex2D_DrawEx((*glyph).tex, x0, y0, x1, y1, 0.0f32, 0.0f32, 1.0f32, 1.0f32);
+            Shader_SetTex2D(c_str!("glyph"), &mut *(*glyph).tex);
+            Tex2D_DrawEx(
+                &mut *(*glyph).tex,
+                x0,
+                y0,
+                x1,
+                y1,
+                0.0f32,
+                0.0f32,
+                1.0f32,
+                1.0f32,
+            );
             x += (*glyph).advance as f32;
             glyphLast = (*glyph).index;
         } else {
@@ -275,13 +294,13 @@ pub unsafe extern "C" fn Font_DrawShaded(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_GetLineHeight(this: *mut Font) -> i32 {
-    ((*(*(*this).handle).size).metrics.height >> 6) as i32
+pub unsafe extern "C" fn Font_GetLineHeight(this: &mut Font) -> i32 {
+    ((*(*this.handle).size).metrics.height >> 6) as i32
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize(
-    this: *mut Font,
+    this: &mut Font,
     out: *mut IVec4,
     mut text: *const libc::c_char,
 ) {
@@ -336,7 +355,7 @@ pub unsafe extern "C" fn Font_GetSize(
 
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize2(
-    this: *mut Font,
+    this: &mut Font,
     out: *mut IVec2,
     mut text: *const libc::c_char,
 ) {

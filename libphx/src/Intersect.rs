@@ -8,7 +8,6 @@ use crate::Matrix::*;
 use crate::Plane::*;
 use crate::Ray::*;
 use crate::Triangle::*;
-use libc;
 
 /* --- Intersect ---------------------------------------------------------------
  *
@@ -48,13 +47,13 @@ pub const SPHERE_INTERSECTION_EPSILON: f32 = 2.0f32 * PLANE_THICKNESS_EPSILON;
 /* TODO : Need to handle epsilons properly in these intersection tests */
 
 #[no_mangle]
-pub unsafe extern "C" fn Intersect_PointBox(src: *mut Matrix, dst: *mut Matrix) -> bool {
+pub unsafe extern "C" fn Intersect_PointBox(src: &mut Matrix, dst: &mut Matrix) -> bool {
     let inv: *mut Matrix = Matrix_Inverse(dst);
     let mut srcPt = Vec3::ZERO;
     Matrix_GetPos(src, &mut srcPt);
     let mut dstPt = Vec3::ZERO;
-    Matrix_MulPoint(inv, &mut dstPt, srcPt.x, srcPt.y, srcPt.z);
-    Matrix_Free(inv);
+    Matrix_MulPoint(&mut *inv, &mut dstPt, srcPt.x, srcPt.y, srcPt.z);
+    Matrix_Free(&mut *inv);
     -1.0f32 < dstPt.x
         && dstPt.x < 1.0f32
         && -1.0f32 < dstPt.y
@@ -140,7 +139,7 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Barycentric(
         if t > (*ray).tMin - tEpsilon && t < (*ray).tMax + tEpsilon {
             let v: &[Vec3; 3] = &(*tri).vertices;
             let mut p = Vec3::ZERO;
-            Ray_GetPoint(ray, t, &mut p);
+            Ray_GetPoint(&*ray, t, &mut p);
 
             let pv0: Vec3 = v[0] - p;
             let pv1: Vec3 = v[1] - p;

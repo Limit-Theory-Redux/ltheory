@@ -1,6 +1,5 @@
 use crate::internal::Memory::*;
 use crate::Math::Vec3;
-use libc;
 
 macro_rules! unwrap_or_return {
     ($value: ident) => {

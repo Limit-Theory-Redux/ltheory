@@ -5,7 +5,6 @@ use crate::LineSegment::*;
 use crate::Math::Vec3;
 use crate::Plane::*;
 use crate::Triangle::*;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -17,13 +16,13 @@ pub struct Ray {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Ray_GetPoint(this: *const Ray, t: f32, out: *mut Vec3) {
-    *out = (*this).p + ((*this).dir * t);
+pub unsafe extern "C" fn Ray_GetPoint(this: &Ray, t: f32, out: *mut Vec3) {
+    *out = this.p + (this.dir * t);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectPlane(
-    this: *const Ray,
+    this: &Ray,
     plane: *const Plane,
     pHit: *mut Vec3,
 ) -> bool {
@@ -32,7 +31,7 @@ pub unsafe extern "C" fn Ray_IntersectPlane(
 
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
-    this: *const Ray,
+    this: &Ray,
     tri: *const Triangle,
     tEpsilon: f32,
     tHit: *mut f32,
@@ -42,7 +41,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
 
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
-    this: *const Ray,
+    this: &Ray,
     tri: *const Triangle,
     tHit: *mut f32,
 ) -> bool {
@@ -51,7 +50,7 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
 
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
-    this: *const Ray,
+    this: &Ray,
     tri: *const Triangle,
     tHit: *mut f32,
 ) -> bool {
@@ -59,12 +58,12 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Ray_ToLineSegment(this: *const Ray, lineSegment: *mut LineSegment) {
-    Ray_GetPoint(this, (*this).tMin, &mut (*lineSegment).p0);
-    Ray_GetPoint(this, (*this).tMax, &mut (*lineSegment).p1);
+pub unsafe extern "C" fn Ray_ToLineSegment(this: &Ray, lineSegment: &mut LineSegment) {
+    Ray_GetPoint(this, this.tMin, &mut lineSegment.p0);
+    Ray_GetPoint(this, this.tMax, &mut lineSegment.p1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Ray_FromLineSegment(lineSegment: *const LineSegment, this: *mut Ray) {
+pub unsafe extern "C" fn Ray_FromLineSegment(lineSegment: &LineSegment, this: &mut Ray) {
     LineSegment_ToRay(lineSegment, this);
 }

@@ -20,7 +20,6 @@ use crate::TexFormat::*;
 use crate::TexWrapMode::*;
 use crate::TimeStamp::*;
 use crate::GL::gl;
-use libc;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -192,12 +191,12 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Acquire(this: *mut TexCube) {
-    (*this)._refCount = ((*this)._refCount).wrapping_add(1);
+pub unsafe extern "C" fn TexCube_Acquire(this: &mut TexCube) {
+    this._refCount = (this._refCount).wrapping_add(1);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Clear(this: *mut TexCube, r: f32, g: f32, b: f32, a: f32) {
+pub unsafe extern "C" fn TexCube_Clear(this: &mut TexCube, r: f32, g: f32, b: f32, a: f32) {
     for i in 0..6 {
         let face: Face = kFaces[i as usize];
         RenderTarget_Push((*this).size, (*this).size);
@@ -294,14 +293,14 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetData(
-    this: *mut TexCube,
+    this: &mut TexCube,
     data: *mut libc::c_void,
     face: CubeFace,
     level: i32,
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
+    gl::BindTexture(gl::TEXTURE_CUBE_MAP, this.handle);
     gl::GetTexImage(
         face as gl::types::GLenum,
         level,
@@ -314,38 +313,38 @@ pub unsafe extern "C" fn TexCube_GetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_GetDataBytes(
-    this: *mut TexCube,
+    this: &mut TexCube,
     face: CubeFace,
     level: i32,
     pf: PixelFormat,
     df: DataFormat,
 ) -> *mut Bytes {
-    let mut size: i32 = (*this).size * (*this).size;
+    let mut size: i32 = this.size * this.size;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
     let data: *mut Bytes = Bytes_Create(size as u32);
-    TexCube_GetData(this, Bytes_GetData(data), face, level, pf, df);
-    Bytes_Rewind(data);
+    TexCube_GetData(this, Bytes_GetData(&mut *data), face, level, pf, df);
+    Bytes_Rewind(&mut *data);
     data
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GetFormat(this: *mut TexCube) -> TexFormat {
-    (*this).format
+pub unsafe extern "C" fn TexCube_GetFormat(this: &mut TexCube) -> TexFormat {
+    this.format
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GetHandle(this: *mut TexCube) -> u32 {
-    (*this).handle
+pub unsafe extern "C" fn TexCube_GetHandle(this: &mut TexCube) -> u32 {
+    this.handle
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GetSize(this: *mut TexCube) -> i32 {
-    (*this).size
+pub unsafe extern "C" fn TexCube_GetSize(this: &mut TexCube) -> i32 {
+    this.size
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, state: *mut ShaderState) {
+pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut ShaderState) {
     GLMatrix_ModeP();
     GLMatrix_Push();
     GLMatrix_Clear();
@@ -357,8 +356,8 @@ pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, state: *mut Shader
 
     for i in 0..6 {
         let face: Face = kFaces[i as usize];
-        let size: i32 = (*this).size;
-        let fSize: f32 = (*this).size as f32;
+        let size: i32 = this.size;
+        let fSize: f32 = this.size as f32;
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
@@ -396,28 +395,28 @@ pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, state: *mut Shader
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GenMipmap(this: *mut TexCube) {
-    gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
+pub unsafe extern "C" fn TexCube_GenMipmap(this: &mut TexCube) {
+    gl::BindTexture(gl::TEXTURE_CUBE_MAP, this.handle);
     gl::GenerateMipmap(gl::TEXTURE_CUBE_MAP);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetData(
-    this: *mut TexCube,
+    this: &mut TexCube,
     data: *const libc::c_void,
     face: CubeFace,
     level: i32,
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
+    gl::BindTexture(gl::TEXTURE_CUBE_MAP, this.handle);
     gl::TexImage2D(
         face as gl::types::GLenum,
         level,
-        (*this).format,
-        (*this).size,
-        (*this).size,
+        this.format,
+        this.size,
+        this.size,
         0,
         pf as gl::types::GLenum,
         df as gl::types::GLenum,
@@ -428,8 +427,8 @@ pub unsafe extern "C" fn TexCube_SetData(
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SetDataBytes(
-    this: *mut TexCube,
-    data: *mut Bytes,
+    this: &mut TexCube,
+    data: &mut Bytes,
     face: CubeFace,
     level: i32,
     pf: PixelFormat,
@@ -439,32 +438,32 @@ pub unsafe extern "C" fn TexCube_SetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetMagFilter(this: *mut TexCube, filter: TexFilter) {
-    gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
+pub unsafe extern "C" fn TexCube_SetMagFilter(this: &mut TexCube, filter: TexFilter) {
+    gl::BindTexture(gl::TEXTURE_CUBE_MAP, this.handle);
     gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetMinFilter(this: *mut TexCube, filter: TexFilter) {
-    gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
+pub unsafe extern "C" fn TexCube_SetMinFilter(this: &mut TexCube, filter: TexFilter) {
+    gl::BindTexture(gl::TEXTURE_CUBE_MAP, this.handle);
     gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, filter);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Save(this: *mut TexCube, path: *const libc::c_char) {
+pub unsafe extern "C" fn TexCube_Save(this: &mut TexCube, path: *const libc::c_char) {
     TexCube_SaveLevel(this, path, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_SaveLevel(
-    this: *mut TexCube,
+    this: &mut TexCube,
     path: *const libc::c_char,
     level: i32,
 ) {
-    let size: i32 = (*this).size >> level;
-    gl::BindTexture(gl::TEXTURE_CUBE_MAP, (*this).handle);
+    let size: i32 = this.size >> level;
+    gl::BindTexture(gl::TEXTURE_CUBE_MAP, this.handle);
     let buffer: *mut libc::c_uchar =
         MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4 * size * size) as usize))
             as *mut libc::c_uchar;

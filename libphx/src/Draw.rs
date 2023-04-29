@@ -3,7 +3,6 @@ use crate::Common::*;
 use crate::Math::*;
 use crate::Metric::*;
 use crate::GL::gl;
-use libc;
 
 /* TODO JP : Replace all immediates with static VBO/IBOs & glDraw*. */
 
@@ -84,44 +83,44 @@ pub unsafe extern "C" fn Draw_Border(s: f32, x: f32, y: f32, w: f32, h: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Box3(this: *const Box3) {
+pub unsafe extern "C" fn Draw_Box3(this: &Box3) {
     Metric_AddDrawImm(6, 12, 24);
     gl::Begin(gl::QUADS);
     /* Left. */
-    gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
-    gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
-    gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
-    gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
+    gl::Vertex3f(this.lower.x, this.lower.y, this.lower.z);
+    gl::Vertex3f(this.lower.x, this.lower.y, this.upper.z);
+    gl::Vertex3f(this.lower.x, this.upper.y, this.upper.z);
+    gl::Vertex3f(this.lower.x, this.upper.y, this.lower.z);
 
     /* Right. */
-    gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
-    gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
-    gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
-    gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
+    gl::Vertex3f(this.upper.x, this.lower.y, this.lower.z);
+    gl::Vertex3f(this.upper.x, this.upper.y, this.lower.z);
+    gl::Vertex3f(this.upper.x, this.upper.y, this.upper.z);
+    gl::Vertex3f(this.upper.x, this.lower.y, this.upper.z);
 
     /* Front. */
-    gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
-    gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
-    gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
-    gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
+    gl::Vertex3f(this.lower.x, this.lower.y, this.upper.z);
+    gl::Vertex3f(this.upper.x, this.lower.y, this.upper.z);
+    gl::Vertex3f(this.upper.x, this.upper.y, this.upper.z);
+    gl::Vertex3f(this.lower.x, this.upper.y, this.upper.z);
 
     /* Back. */
-    gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
-    gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
-    gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
-    gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
+    gl::Vertex3f(this.lower.x, this.lower.y, this.lower.z);
+    gl::Vertex3f(this.lower.x, this.upper.y, this.lower.z);
+    gl::Vertex3f(this.upper.x, this.upper.y, this.lower.z);
+    gl::Vertex3f(this.upper.x, this.lower.y, this.lower.z);
 
     /* Top. */
-    gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).lower.z);
-    gl::Vertex3f((*this).lower.x, (*this).upper.y, (*this).upper.z);
-    gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).upper.z);
-    gl::Vertex3f((*this).upper.x, (*this).upper.y, (*this).lower.z);
+    gl::Vertex3f(this.lower.x, this.upper.y, this.lower.z);
+    gl::Vertex3f(this.lower.x, this.upper.y, this.upper.z);
+    gl::Vertex3f(this.upper.x, this.upper.y, this.upper.z);
+    gl::Vertex3f(this.upper.x, this.upper.y, this.lower.z);
 
     /* Bottom. */
-    gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).lower.z);
-    gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).lower.z);
-    gl::Vertex3f((*this).upper.x, (*this).lower.y, (*this).upper.z);
-    gl::Vertex3f((*this).lower.x, (*this).lower.y, (*this).upper.z);
+    gl::Vertex3f(this.lower.x, this.lower.y, this.lower.z);
+    gl::Vertex3f(this.upper.x, this.lower.y, this.lower.z);
+    gl::Vertex3f(this.upper.x, this.lower.y, this.upper.z);
+    gl::Vertex3f(this.lower.x, this.lower.y, this.upper.z);
     gl::End();
 }
 
@@ -184,8 +183,8 @@ pub unsafe extern "C" fn Draw_LineWidth(width: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_Plane(p: *const Vec3, n: *const Vec3, scale: f32) {
-    let mut e1: Vec3 = if f64::abs((*n).x as f64) < 0.7f64 {
+pub unsafe extern "C" fn Draw_Plane(p: &Vec3, n: &Vec3, scale: f32) {
+    let mut e1: Vec3 = if f64::abs(n.x as f64) < 0.7f64 {
         Vec3::X
     } else {
         Vec3::Y

@@ -1,7 +1,6 @@
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Vec3;
-use libc;
 
 #[no_mangle]
 pub unsafe extern "C" fn Memory_Alloc(size: usize) -> *mut libc::c_void {
