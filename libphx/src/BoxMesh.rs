@@ -91,7 +91,7 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(this: &mut BoxMesh, res: i32) -> *mut M
             1.0f32 - (*box3).b.y,
             1.0f32 - (*box3).b.z,
         );
-        let rot: *mut Matrix = Matrix_YawPitchRoll((*box3).r.x, (*box3).r.y, (*box3).r.z);
+        let rot: Box<Matrix> = Matrix_YawPitchRoll((*box3).r.x, (*box3).r.y, (*box3).r.z);
 
         for face in 0..6 {
             let o: Vec3 = kFaceOrigin[face as usize];
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(this: &mut BoxMesh, res: i32) -> *mut M
                     p = clamped + (proj.normalize() * (*box3).b);
                     p *= (*box3).s;
                     let mut rp = Vec3::ZERO;
-                    Matrix_MulPoint(&mut *rot, &mut rp, p.x, p.y, p.z);
+                    Matrix_MulPoint(rot.as_ref(), &mut rp, p.x, p.y, p.z);
                     p = rp + (*box3).p;
 
                     if iu != 0 && iv != 0 {
@@ -120,8 +120,6 @@ pub unsafe extern "C" fn BoxMesh_GetMesh(this: &mut BoxMesh, res: i32) -> *mut M
                 }
             }
         }
-
-        Matrix_Free(&mut *rot);
     }
 
     mesh

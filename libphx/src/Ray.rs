@@ -16,25 +16,21 @@ pub struct Ray {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Ray_GetPoint(this: &Ray, t: f32, out: *mut Vec3) {
+pub unsafe extern "C" fn Ray_GetPoint(this: &Ray, t: f32, out: &mut Vec3) {
     *out = this.p + (this.dir * t);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Ray_IntersectPlane(
-    this: &Ray,
-    plane: *const Plane,
-    pHit: *mut Vec3,
-) -> bool {
+pub unsafe extern "C" fn Ray_IntersectPlane(this: &Ray, plane: &Plane, pHit: &mut Vec3) -> bool {
     Intersect_RayPlane(this, plane, pHit)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
     this: &Ray,
-    tri: *const Triangle,
+    tri: &Triangle,
     tEpsilon: f32,
-    tHit: *mut f32,
+    tHit: &mut f32,
 ) -> bool {
     Intersect_RayTriangle_Barycentric(this, tri, tEpsilon, tHit)
 }
@@ -42,8 +38,8 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Barycentric(
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
     this: &Ray,
-    tri: *const Triangle,
-    tHit: *mut f32,
+    tri: &Triangle,
+    tHit: &mut f32,
 ) -> bool {
     Intersect_RayTriangle_Moller1(this, tri, tHit)
 }
@@ -51,8 +47,8 @@ pub unsafe extern "C" fn Ray_IntersectTriangle_Moller1(
 #[no_mangle]
 pub unsafe extern "C" fn Ray_IntersectTriangle_Moller2(
     this: &Ray,
-    tri: *const Triangle,
-    tHit: *mut f32,
+    tri: &Triangle,
+    tHit: &mut f32,
 ) -> bool {
     Intersect_RayTriangle_Moller2(this, tri, tHit)
 }

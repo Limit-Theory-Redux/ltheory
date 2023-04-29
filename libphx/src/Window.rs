@@ -42,8 +42,8 @@ pub unsafe extern "C" fn Window_Create(
     OpenGL_Init();
 
     Box::new(Window {
-        handle: handle,
-        context: context,
+        handle,
+        context,
         mode: modeWithGL,
     })
 }

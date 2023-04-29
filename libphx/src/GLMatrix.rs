@@ -130,7 +130,7 @@ pub unsafe extern "C" fn GLMatrix_PushClear() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
+pub unsafe extern "C" fn GLMatrix_Get() -> Option<Box<Matrix>> {
     let mut matrixMode: gl::types::GLint = 0;
     gl::GetIntegerv(gl::MATRIX_MODE, &mut matrixMode);
 
@@ -141,12 +141,12 @@ pub unsafe extern "C" fn GLMatrix_Get() -> *mut Matrix {
         gl::PROJECTION => {
             matrixMode = gl::PROJECTION_MATRIX as i32;
         }
-        gl::COLOR | gl::TEXTURE | _ => return std::ptr::null_mut(),
+        gl::COLOR | gl::TEXTURE | _ => return None,
     }
 
-    let matrix: *mut Matrix = Matrix_Identity();
-    gl::GetFloatv(matrixMode as gl::types::GLenum, matrix as *mut f32);
-    matrix
+    let mut matrix: Box<Matrix> = Matrix_Identity();
+    gl::GetFloatv(matrixMode as gl::types::GLenum, matrix.m.as_mut_ptr());
+    Some(matrix)
 }
 
 #[no_mangle]

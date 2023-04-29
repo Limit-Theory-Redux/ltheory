@@ -435,7 +435,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 
             let mut i: u8 = 0 as u8;
             while (i as i32) < nodeRef.triangleCount as i32 {
-                let triangle: *const Triangle = &this.triangles[leafIndex as usize + i as usize];
+                let triangle = &this.triangles[leafIndex as usize + i as usize];
                 // BSP_PROFILE(self->profilingData.ray.triangles++;)
 
                 let mut t: f32 = 0.;
@@ -479,13 +479,13 @@ pub unsafe extern "C" fn BSP_IntersectRay(
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectLineSegment(
     this: &mut BSP,
-    lineSegment: *const LineSegment,
-    pHit: *mut Vec3,
+    lineSegment: &LineSegment,
+    pHit: &mut Vec3,
 ) -> bool {
     let mut t: f32 = 0.;
-    let dir: Vec3 = (*lineSegment).p1 - (*lineSegment).p0;
+    let dir: Vec3 = lineSegment.p1 - lineSegment.p0;
     let mut ray: Ray = Ray {
-        p: (*lineSegment).p0,
+        p: lineSegment.p0,
         dir: dir,
         tMin: 0.0f32,
         tMax: 1.0f32,
@@ -504,8 +504,8 @@ pub static mut nodeStack: Vec<Delay> = Vec::new();
 #[no_mangle]
 pub unsafe extern "C" fn BSP_IntersectSphere(
     this: &mut BSP,
-    sphere: *const Sphere,
-    pHit: *mut Vec3,
+    sphere: &Sphere,
+    pHit: &mut Vec3,
 ) -> bool {
     // Assert(SPHERE_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
 
@@ -545,7 +545,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
 
             let mut i: u8 = 0 as u8;
             while (i as i32) < nodeRef.triangleCount as i32 {
-                let triangle: *const Triangle = &this.triangles[leafIndex as usize + i as usize];
+                let triangle = &this.triangles[leafIndex as usize + i as usize];
                 // BSP_PROFILE(self->profilingData.sphere.triangles++;)
 
                 let mut pHit2 = Vec3::ZERO;
@@ -1398,7 +1398,7 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BSPDebug_DrawLineSegment(bsp: &mut BSP, lineSegment: *mut LineSegment) {
+pub unsafe extern "C" fn BSPDebug_DrawLineSegment(bsp: &mut BSP, lineSegment: &mut LineSegment) {
     let mut pHit = Vec3::ZERO;
     if BSP_IntersectLineSegment(bsp, lineSegment, &mut pHit) {
         Draw_Color(0.0f32, 1.0f32, 0.0f32, 0.1f32);
@@ -1489,8 +1489,8 @@ pub extern "C" fn BSPDebug_PrintSphereProfilingData(_this: &mut BSP, _totalTime:
 #[no_mangle]
 pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
     this: &mut BSP,
-    sphere: *mut Sphere,
-    sphereProf: *mut IntersectSphereProfiling,
+    sphere: &mut Sphere,
+    sphereProf: &mut IntersectSphereProfiling,
 ) -> bool {
     // Assert(SPHERE_INTERSECTION_EPSILON > PLANE_THICKNESS_EPSILON);
 
@@ -1529,7 +1529,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
             (*sphereProf).leaves += 1;
 
             for i in 0..nodeRef.triangleCount {
-                let triangle: *mut Triangle = &mut this.triangles[leafIndex as usize + i as usize];
+                let triangle = &mut this.triangles[leafIndex as usize + i as usize];
                 (*sphereProf).triangles += 1;
 
                 let mut pHit2 = Vec3::ZERO;

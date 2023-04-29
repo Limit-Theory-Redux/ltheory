@@ -472,25 +472,22 @@ pub extern "C" fn Mesh_Invert(this: &mut Mesh) -> *mut Mesh {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateX(this: &mut Mesh, rads: f32) -> *mut Mesh {
-    let matrix: *mut Matrix = Matrix_RotationX(rads);
-    Mesh_Transform(this, &mut *matrix);
-    Matrix_Free(matrix);
+    let matrix = Matrix_RotationX(rads);
+    Mesh_Transform(this, matrix.as_ref());
     this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateY(this: &mut Mesh, rads: f32) -> *mut Mesh {
-    let matrix: *mut Matrix = Matrix_RotationY(rads);
-    Mesh_Transform(this, &mut *matrix);
-    Matrix_Free(matrix);
+    let matrix = Matrix_RotationY(rads);
+    Mesh_Transform(this, matrix.as_ref());
     this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateZ(this: &mut Mesh, rads: f32) -> *mut Mesh {
-    let matrix: *mut Matrix = Matrix_RotationZ(rads);
-    Mesh_Transform(this, &mut *matrix);
-    Matrix_Free(matrix);
+    let matrix = Matrix_RotationZ(rads);
+    Mesh_Transform(this, matrix.as_ref());
     this
 }
 
@@ -501,9 +498,8 @@ pub unsafe extern "C" fn Mesh_RotateYPR(
     pitch: f32,
     roll: f32,
 ) -> *mut Mesh {
-    let matrix: *mut Matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
-    Mesh_Transform(this, &mut *matrix);
-    Matrix_Free(matrix);
+    let matrix = Matrix_YawPitchRoll(yaw, pitch, roll);
+    Mesh_Transform(this, matrix.as_ref());
     this
 }
 
@@ -536,7 +532,7 @@ pub unsafe extern "C" fn Mesh_Translate(this: &mut Mesh, x: f32, y: f32, z: f32)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_Transform(this: &mut Mesh, matrix: &mut Matrix) -> *mut Mesh {
+pub unsafe extern "C" fn Mesh_Transform(this: &mut Mesh, matrix: &Matrix) -> *mut Mesh {
     for v in this.vertex.iter_mut() {
         let prev_p = v.p;
         Matrix_MulPoint(matrix, &mut v.p, prev_p.x, prev_p.y, prev_p.z);

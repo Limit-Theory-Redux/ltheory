@@ -11,8 +11,8 @@ pub struct Triangle {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_ToPlane(tri: *const Triangle, plane: *mut Plane) {
-    let v: *const Vec3 = ((*tri).vertices).as_ptr();
+pub unsafe extern "C" fn Triangle_ToPlane(tri: &Triangle, plane: &mut Plane) {
+    let v: *const Vec3 = (tri.vertices).as_ptr();
     let e1: Vec3 = *v.offset(1) - *v.offset(0);
     let e2: Vec3 = *v.offset(2) - *v.offset(0);
     let n: Vec3 = Vec3::cross(e1, e2).normalize();
@@ -20,30 +20,30 @@ pub unsafe extern "C" fn Triangle_ToPlane(tri: *const Triangle, plane: *mut Plan
     centroid += *v.offset(1);
     centroid += *v.offset(2);
     centroid /= 3.0f32;
-    (*plane).n = n;
-    (*plane).d = Vec3::dot(centroid, n);
+    plane.n = n;
+    plane.d = Vec3::dot(centroid, n);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_ToPlaneFast(triangle: *const Triangle, plane: *mut Plane) {
-    let v: *const Vec3 = ((*triangle).vertices).as_ptr();
+pub unsafe extern "C" fn Triangle_ToPlaneFast(triangle: &Triangle, plane: &mut Plane) {
+    let v: *const Vec3 = (triangle.vertices).as_ptr();
     let e1: Vec3 = *v.offset(1) - *v.offset(0);
     let e2: Vec3 = *v.offset(2) - *v.offset(0);
     let n: Vec3 = Vec3::cross(e1, e2);
-    (*plane).n = n;
-    (*plane).d = Vec3::dot(*v.offset(0), n);
+    plane.n = n;
+    plane.d = Vec3::dot(*v.offset(0), n);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_GetArea(tri: *const Triangle) -> f32 {
-    let e1 = (*tri).vertices[1] - (*tri).vertices[0];
-    let e2 = (*tri).vertices[2] - (*tri).vertices[1];
+pub unsafe extern "C" fn Triangle_GetArea(tri: &Triangle) -> f32 {
+    let e1 = tri.vertices[1] - tri.vertices[0];
+    let e2 = tri.vertices[2] - tri.vertices[1];
     0.5f32 * Vec3::cross(e1, e2).length()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_Validate(tri: *const Triangle) -> Error {
-    let v: *const Vec3 = ((*tri).vertices).as_ptr();
+pub unsafe extern "C" fn Triangle_Validate(tri: &Triangle) -> Error {
+    let v: *const Vec3 = (tri.vertices).as_ptr();
     let mut i: i32 = 0;
     while i < 3 {
         let e: Error = Vec3_Validate(*v.offset(i as isize));
