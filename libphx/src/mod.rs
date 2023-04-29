@@ -110,7 +110,6 @@ pub mod ShaderState;
 pub mod ShaderVar;
 pub mod ShaderVarType;
 pub mod Signal;
-pub mod Socket;
 pub mod Sound;
 pub mod SoundDesc;
 pub mod State;
