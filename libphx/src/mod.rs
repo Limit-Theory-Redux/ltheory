@@ -12,6 +12,7 @@
 #![feature(thread_local)]
 
 extern crate core;
+extern crate chrono;
 extern crate fmod_sys;
 extern crate freetype_sys;
 extern crate glam;

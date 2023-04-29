@@ -1,6 +1,5 @@
-use crate::internal::Memory::*;
-use crate::Common::*;
-use crate::Math::Vec3;
+use chrono::{DateTime, Utc, Local, TimeZone, Timelike, Datelike};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -15,42 +14,33 @@ pub struct Time {
     pub year: i32,
 }
 
-#[inline]
-unsafe extern "C" fn Time_Convert(t: *const libc::tm) -> Time {
-    let mut result: Time = Time {
-        second: 0,
-        minute: 0,
-        hour: 0,
-        dayOfWeek: 0,
-        dayOfMonth: 0,
-        dayOfYear: 0,
-        month: 0,
-        year: 0,
-    };
-    result.second = (*t).tm_sec;
-    result.minute = (*t).tm_min;
-    result.hour = (*t).tm_hour;
-    result.dayOfWeek = (*t).tm_wday + 1;
-    result.dayOfMonth = (*t).tm_mday;
-    result.dayOfYear = (*t).tm_yday + 1;
-    result.month = (*t).tm_mon + 1;
-    result.year = (*t).tm_year + 1900;
-    result
+pub fn TimeFromChrono<T: TimeZone>(dt: DateTime<T>) -> Time {
+    let time = dt.time();
+    let date = dt.date_naive();
+    Time {
+        second: time.second() as i32,
+        minute: time.minute() as i32,
+        hour: time.hour() as i32,
+        dayOfWeek: date.weekday().num_days_from_sunday() as i32,
+        dayOfMonth: date.day() as i32,
+        dayOfYear: date.ordinal() as i32,
+        month: date.month() as i32,
+        year: date.year() as i32,
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Time_GetLocal() -> Time {
-    let mut t: libc::time_t = libc::time(std::ptr::null_mut());
-    Time_Convert(libc::localtime(&mut t))
+pub extern "C" fn Time_GetLocal() -> Time {
+    TimeFromChrono(Local::now())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Time_GetUTC() -> Time {
-    let mut t: libc::time_t = libc::time(std::ptr::null_mut());
-    Time_Convert(libc::gmtime(&mut t))
+pub extern "C" fn Time_GetUTC() -> Time {
+    TimeFromChrono(Utc::now())
 }
 
+// Seconds since epoch.
 #[no_mangle]
-pub unsafe extern "C" fn Time_GetRaw() -> u32 {
-    (libc::time(std::ptr::null_mut()) % 0xffffffff as libc::c_long) as u32
+pub extern "C" fn Time_GetRaw() -> u32 {
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as u32
 }
