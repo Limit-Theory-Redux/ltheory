@@ -1,3 +1,4 @@
+use crate::internal::ffi;
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::DeviceType::*;
@@ -18,13 +19,9 @@ pub unsafe extern "C" fn Device_Equal(a: *mut Device, b: *mut Device) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn Device_ToString(this: *mut Device) -> *const libc::c_char {
-    static mut buffer: [libc::c_char; 512] = [0; 512];
-    libc::snprintf(
-        buffer.as_mut_ptr(),
-        buffer.len(),
-        c_str!("%s (%u)"),
-        DeviceType_ToString((*this).ty),
-        (*this).id,
-    );
-    buffer.as_mut_ptr() as *const libc::c_char
+    ffi::StaticString!(format!(
+        "{} ({})",
+        ffi::PtrAsSlice(DeviceType_ToString((*this).ty)),
+        (*this).id
+    ))
 }

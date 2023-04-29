@@ -24,6 +24,7 @@ extern crate stb;
 
 pub mod internal {
     pub mod Memory;
+    pub mod ffi;
 }
 pub mod Audio;
 pub mod BSP;
@@ -112,7 +113,6 @@ pub mod Socket;
 pub mod Sound;
 pub mod SoundDesc;
 pub mod State;
-pub mod StrBuffer;
 pub mod StrMap;
 pub mod Tex1D;
 pub mod Tex2D;

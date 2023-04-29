@@ -245,7 +245,7 @@ pub unsafe extern "C" fn Input_Init() {
         CWarn!("Input_Init: SDL_SetHint failed");
     }
 
-    for iDev in (0..DeviceType_COUNT as i32) {
+    for iDev in 0..DeviceType_COUNT as i32 {
         let device: Device = Device { ty: iDev, id: 0 };
         let deviceState: *mut DeviceState = Input_EnsureDeviceState(device);
         (*deviceState).isConnected = iDev != DeviceType_Gamepad;
@@ -284,7 +284,7 @@ pub unsafe extern "C" fn Input_Update() {
     this.lastMousePosition.x = Input_GetValue(Button_Mouse_X) as i32;
     this.lastMousePosition.y = Input_GetValue(Button_Mouse_Y) as i32;
 
-    for iDev in (0..DeviceType_COUNT) {
+    for iDev in 0..DeviceType_COUNT {
         for deviceState in this.deviceLists[iDev].devices.iter_mut() {
             MemSet(
                 ((*deviceState).transitions).as_mut_ptr() as *mut _,
@@ -486,7 +486,7 @@ pub unsafe extern "C" fn Input_Update() {
                     id: sdl.caxis.which as u32,
                 };
                 let mut value: f32 =
-                    f32::clamp((sdl.caxis.value as f32 / 32767.0f32), -1.0f32, 1.0f32);
+                    f32::clamp(sdl.caxis.value as f32 / 32767.0f32, -1.0f32, 1.0f32);
                 let axis: SDL_GameControllerAxis = std::mem::transmute(sdl.caxis.axis as i32);
                 if axis == SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_LEFTY
                     || axis == SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_RIGHTY
@@ -547,7 +547,7 @@ pub unsafe extern "C" fn Input_Update() {
                 };
                 let deviceState: *mut DeviceState = Input_GetDeviceState(device);
 
-                for iBtn in (Button_Gamepad_Button_First..=Button_Gamepad_Button_Last) {
+                for iBtn in Button_Gamepad_Button_First..=Button_Gamepad_Button_Last {
                     let value: f32 = SDL_GameControllerGetButton(
                         sdlController,
                         Button_ToSDLControllerButton(iBtn),
@@ -562,7 +562,7 @@ pub unsafe extern "C" fn Input_Update() {
                     }
                 }
 
-                for iAxis in (Button_Gamepad_Axis_First..=Button_Gamepad_Axis_Last) {
+                for iAxis in Button_Gamepad_Axis_First..=Button_Gamepad_Axis_Last {
                     let mut value: f32 =
                         SDL_GameControllerGetAxis(sdlController, Button_ToSDLControllerAxis(iAxis))
                             as f32;

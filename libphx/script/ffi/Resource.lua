@@ -5,7 +5,6 @@ local Resource
 
 do -- C Definitions
   ffi.cdef [[
-    void   Resource_AddPath   (ResourceType, cstr format);
     bool   Resource_Exists    (ResourceType, cstr name);
     cstr   Resource_GetPath   (ResourceType, cstr name);
     Bytes* Resource_LoadBytes (ResourceType, cstr name);
@@ -15,7 +14,6 @@ end
 
 do -- Global Symbol Table
   Resource = {
-    AddPath   = libphx.Resource_AddPath,
     Exists    = libphx.Resource_Exists,
     GetPath   = libphx.Resource_GetPath,
     LoadBytes = libphx.Resource_LoadBytes,

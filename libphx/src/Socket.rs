@@ -178,7 +178,7 @@ pub unsafe extern "C" fn Socket_Read(this: *mut Socket) -> *const libc::c_char {
         return std::ptr::null();
     }
     (*this).buffer[bytes as usize] = 0 as libc::c_char;
-    ((*this).buffer).as_mut_ptr() as *const libc::c_char
+    ((*this).buffer).as_ptr()
 }
 
 #[no_mangle]

@@ -1,4 +1,4 @@
-use crate::internal::Memory::*;
+use crate::internal::ffi;
 use crate::Bytes::*;
 use crate::Common::*;
 use crate::File::*;
@@ -6,47 +6,31 @@ use crate::Math::Vec3;
 use crate::ResourceType::*;
 use libc;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct PathElem {
-    pub format: *const libc::c_char,
-    pub next: *mut PathElem,
-}
-
-static mut paths: [*mut PathElem; 10] = [
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
-    std::ptr::null_mut(),
+static mut paths: [Vec<fn(String) -> String>; ResourceType_COUNT] = [
+    Vec::new(),
+    Vec::new(),
+    Vec::new(),
+    Vec::new(),
+    Vec::new(),
+    Vec::new(),
+    Vec::new(),
+    Vec::new(),
+    Vec::new(),
+    Vec::new(),
 ];
 
 #[inline]
 unsafe extern "C" fn Resource_Resolve(
-    type_0: ResourceType,
+    ty: ResourceType,
     name: *const libc::c_char,
     failhard: bool,
 ) -> *const libc::c_char {
-    static mut buffer: [libc::c_char; 256] = [0; 256];
-    let mut elem: *mut PathElem = paths[type_0 as usize];
-    while !elem.is_null() {
-        let res: i32 = libc::snprintf(
-            buffer.as_mut_ptr(),
-            std::mem::size_of::<[libc::c_char; 256]>(),
-            (*elem).format,
-            name,
-        );
-        if res > 0 && res < std::mem::size_of::<[libc::c_char; 256]>() as libc::c_ulong as i32 {
-            if File_Exists(buffer.as_mut_ptr() as *const libc::c_char) {
-                return buffer.as_mut_ptr() as *const libc::c_char;
-            }
+    for formatter in paths[ty as usize].iter() {
+        let path = formatter(ffi::PtrAsString(name));
+        let path_cstr = ffi::NewCString(path);
+        if File_Exists(path_cstr.as_ptr()) {
+            return ffi::StaticCString!(path_cstr);
         }
-        elem = (*elem).next;
     }
     if !name.is_null() && File_Exists(name) as i32 != 0 {
         return name;
@@ -54,45 +38,41 @@ unsafe extern "C" fn Resource_Resolve(
     if failhard {
         CFatal!(
             "Resource_Resolve: Failed to find %s <%s>",
-            ResourceType_ToString(type_0),
+            ResourceType_ToString(ty),
             name,
         );
     }
     std::ptr::null()
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Resource_AddPath(type_0: ResourceType, format: *const libc::c_char) {
-    let this = MemNew!(PathElem);
-    (*this).format = StrDup(format);
-    (*this).next = paths[type_0 as usize];
-    paths[type_0 as usize] = this;
+pub unsafe fn Resource_AddPath(ty: ResourceType, formatter: fn(String) -> String) {
+    paths[ty as usize].push(formatter);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Resource_Exists(type_0: ResourceType, name: *const libc::c_char) -> bool {
-    !(Resource_Resolve(type_0, name, false)).is_null()
+pub unsafe extern "C" fn Resource_Exists(ty: ResourceType, name: *const libc::c_char) -> bool {
+    !(Resource_Resolve(ty, name, false)).is_null()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_GetPath(
-    type_0: ResourceType,
+    ty: ResourceType,
     name: *const libc::c_char,
 ) -> *const libc::c_char {
-    Resource_Resolve(type_0, name, true)
+    Resource_Resolve(ty, name, true)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_LoadBytes(
-    type_0: ResourceType,
+    ty: ResourceType,
     name: *const libc::c_char,
 ) -> *mut Bytes {
-    let path: *const libc::c_char = Resource_Resolve(type_0, name, true);
+    let path: *const libc::c_char = Resource_Resolve(ty, name, true);
     let data: *mut Bytes = File_ReadBytes(path);
     if data.is_null() {
         CFatal!(
             "Resource_LoadBytes: Failed to load %s <%s> at <%s>",
-            ResourceType_ToString(type_0),
+            ResourceType_ToString(ty),
             name,
             path,
         );
@@ -102,15 +82,15 @@ pub unsafe extern "C" fn Resource_LoadBytes(
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_LoadCstr(
-    type_0: ResourceType,
+    ty: ResourceType,
     name: *const libc::c_char,
 ) -> *const libc::c_char {
-    let path: *const libc::c_char = Resource_Resolve(type_0, name, true);
+    let path: *const libc::c_char = Resource_Resolve(ty, name, true);
     let data: *const libc::c_char = File_ReadCstr(path);
     if data.is_null() {
         CFatal!(
             "Resource_LoadCstr: Failed to load %s <%s> at <%s>",
-            ResourceType_ToString(type_0),
+            ResourceType_ToString(ty),
             name,
             path,
         );
@@ -120,52 +100,82 @@ pub unsafe extern "C" fn Resource_LoadCstr(
 
 #[no_mangle]
 pub unsafe extern "C" fn Resource_Init() {
-    Resource_AddPath(ResourceType_Font, c_str!("../shared/res/font/%s.ttf"));
-    Resource_AddPath(ResourceType_Font, c_str!("../shared/res/font/%s.otf"));
-    Resource_AddPath(ResourceType_Mesh, c_str!("../shared/res/mesh/%s.bin"));
-    Resource_AddPath(ResourceType_Mesh, c_str!("../shared/res/mesh/%s.obj"));
-    Resource_AddPath(ResourceType_Other, c_str!("../shared/res/%s"));
-    Resource_AddPath(ResourceType_Script, c_str!("../shared/res/script/%s.lua"));
-    Resource_AddPath(ResourceType_Shader, c_str!("../shared/res/shader/%s.glsl"));
-    Resource_AddPath(ResourceType_Sound, c_str!("../shared/res/sound/%s.mp3"));
-    Resource_AddPath(ResourceType_Sound, c_str!("../shared/res/sound/%s.ogg"));
-    Resource_AddPath(ResourceType_Sound, c_str!("../shared/res/sound/%s.ogx"));
-    Resource_AddPath(ResourceType_Sound, c_str!("../shared/res/sound/%s.wav"));
-    Resource_AddPath(ResourceType_Tex1D, c_str!("../shared/res/tex1d/%s.bin"));
-    Resource_AddPath(ResourceType_Tex2D, c_str!("../shared/res/tex2d/%s.jpg"));
-    Resource_AddPath(ResourceType_Tex2D, c_str!("../shared/res/tex2d/%s.png"));
-    Resource_AddPath(ResourceType_Tex3D, c_str!("../shared/res/tex3d/%s.bin"));
-    Resource_AddPath(ResourceType_TexCube, c_str!("../shared/res/texcube/%s"));
-    Resource_AddPath(ResourceType_Font, c_str!("./res/font/%s.ttf"));
-    Resource_AddPath(ResourceType_Font, c_str!("./res/font/%s.otf"));
-    Resource_AddPath(ResourceType_Mesh, c_str!("./res/mesh/%s.bin"));
-    Resource_AddPath(ResourceType_Mesh, c_str!("./res/mesh/%s.obj"));
-    Resource_AddPath(ResourceType_Other, c_str!("./res/%s"));
-    Resource_AddPath(ResourceType_Script, c_str!("./res/script/%s.lua"));
-    Resource_AddPath(ResourceType_Shader, c_str!("./res/shader/%s.glsl"));
-    Resource_AddPath(ResourceType_Sound, c_str!("./res/sound/%s.mp3"));
-    Resource_AddPath(ResourceType_Sound, c_str!("./res/sound/%s.ogg"));
-    Resource_AddPath(ResourceType_Sound, c_str!("./res/sound/%s.ogx"));
-    Resource_AddPath(ResourceType_Sound, c_str!("./res/sound/%s.wav"));
-    Resource_AddPath(ResourceType_Tex1D, c_str!("./res/tex1d/%s.bin"));
-    Resource_AddPath(ResourceType_Tex2D, c_str!("./res/tex2d/%s.jpg"));
-    Resource_AddPath(ResourceType_Tex2D, c_str!("./res/tex2d/%s.png"));
-    Resource_AddPath(ResourceType_Tex3D, c_str!("./res/tex3d/%s.bin"));
-    Resource_AddPath(ResourceType_TexCube, c_str!("./res/texcube/%s"));
-    Resource_AddPath(ResourceType_Font, c_str!("%s.ttf"));
-    Resource_AddPath(ResourceType_Font, c_str!("%s.otf"));
-    Resource_AddPath(ResourceType_Mesh, c_str!("%s.bin"));
-    Resource_AddPath(ResourceType_Mesh, c_str!("%s.obj"));
-    Resource_AddPath(ResourceType_Other, c_str!("%s"));
-    Resource_AddPath(ResourceType_Script, c_str!("%s.lua"));
-    Resource_AddPath(ResourceType_Shader, c_str!("%s.glsl"));
-    Resource_AddPath(ResourceType_Sound, c_str!("%s.mp3"));
-    Resource_AddPath(ResourceType_Sound, c_str!("%s.ogg"));
-    Resource_AddPath(ResourceType_Sound, c_str!("%s.ogx"));
-    Resource_AddPath(ResourceType_Sound, c_str!("%s.wav"));
-    Resource_AddPath(ResourceType_Tex1D, c_str!("%s.bin"));
-    Resource_AddPath(ResourceType_Tex2D, c_str!("%s.jpg"));
-    Resource_AddPath(ResourceType_Tex2D, c_str!("%s.png"));
-    Resource_AddPath(ResourceType_Tex3D, c_str!("%s.bin"));
-    Resource_AddPath(ResourceType_TexCube, c_str!("%s"));
+    Resource_AddPath(ResourceType_Font, |s| {
+        format!("../shared/res/font/{}.ttf", s)
+    });
+    Resource_AddPath(ResourceType_Font, |s| {
+        format!("../shared/res/font/{}.otf", s)
+    });
+    Resource_AddPath(ResourceType_Mesh, |s| {
+        format!("../shared/res/mesh/{}.bin", s)
+    });
+    Resource_AddPath(ResourceType_Mesh, |s| {
+        format!("../shared/res/mesh/{}.obj", s)
+    });
+    Resource_AddPath(ResourceType_Other, |s| format!("../shared/res/{}", s));
+    Resource_AddPath(ResourceType_Script, |s| {
+        format!("../shared/res/script/{}.lua", s)
+    });
+    Resource_AddPath(ResourceType_Shader, |s| {
+        format!("../shared/res/shader/{}.glsl", s)
+    });
+    Resource_AddPath(ResourceType_Sound, |s| {
+        format!("../shared/res/sound/{}.mp3", s)
+    });
+    Resource_AddPath(ResourceType_Sound, |s| {
+        format!("../shared/res/sound/{}.ogg", s)
+    });
+    Resource_AddPath(ResourceType_Sound, |s| {
+        format!("../shared/res/sound/{}.ogx", s)
+    });
+    Resource_AddPath(ResourceType_Sound, |s| {
+        format!("../shared/res/sound/{}.wav", s)
+    });
+    Resource_AddPath(ResourceType_Tex1D, |s| {
+        format!("../shared/res/tex1d/{}.bin", s)
+    });
+    Resource_AddPath(ResourceType_Tex2D, |s| {
+        format!("../shared/res/tex2d/{}.jpg", s)
+    });
+    Resource_AddPath(ResourceType_Tex2D, |s| {
+        format!("../shared/res/tex2d/{}.png", s)
+    });
+    Resource_AddPath(ResourceType_Tex3D, |s| {
+        format!("../shared/res/tex3d/{}.bin", s)
+    });
+    Resource_AddPath(ResourceType_TexCube, |s| {
+        format!("../shared/res/texcube/{}", s)
+    });
+    Resource_AddPath(ResourceType_Font, |s| format!("./res/font/{}.ttf", s));
+    Resource_AddPath(ResourceType_Font, |s| format!("./res/font/{}.otf", s));
+    Resource_AddPath(ResourceType_Mesh, |s| format!("./res/mesh/{}.bin", s));
+    Resource_AddPath(ResourceType_Mesh, |s| format!("./res/mesh/{}.obj", s));
+    Resource_AddPath(ResourceType_Other, |s| format!("./res/{}", s));
+    Resource_AddPath(ResourceType_Script, |s| format!("./res/script/{}.lua", s));
+    Resource_AddPath(ResourceType_Shader, |s| format!("./res/shader/{}.glsl", s));
+    Resource_AddPath(ResourceType_Sound, |s| format!("./res/sound/{}.mp3", s));
+    Resource_AddPath(ResourceType_Sound, |s| format!("./res/sound/{}.ogg", s));
+    Resource_AddPath(ResourceType_Sound, |s| format!("./res/sound/{}.ogx", s));
+    Resource_AddPath(ResourceType_Sound, |s| format!("./res/sound/{}.wav", s));
+    Resource_AddPath(ResourceType_Tex1D, |s| format!("./res/tex1d/{}.bin", s));
+    Resource_AddPath(ResourceType_Tex2D, |s| format!("./res/tex2d/{}.jpg", s));
+    Resource_AddPath(ResourceType_Tex2D, |s| format!("./res/tex2d/{}.png", s));
+    Resource_AddPath(ResourceType_Tex3D, |s| format!("./res/tex3d/{}.bin", s));
+    Resource_AddPath(ResourceType_TexCube, |s| format!("./res/texcube/{}", s));
+    Resource_AddPath(ResourceType_Font, |s| format!("{}.ttf", s));
+    Resource_AddPath(ResourceType_Font, |s| format!("{}.otf", s));
+    Resource_AddPath(ResourceType_Mesh, |s| format!("{}.bin", s));
+    Resource_AddPath(ResourceType_Mesh, |s| format!("{}.obj", s));
+    Resource_AddPath(ResourceType_Other, |s| format!("{}", s));
+    Resource_AddPath(ResourceType_Script, |s| format!("{}.lua", s));
+    Resource_AddPath(ResourceType_Shader, |s| format!("{}.glsl", s));
+    Resource_AddPath(ResourceType_Sound, |s| format!("{}.mp3", s));
+    Resource_AddPath(ResourceType_Sound, |s| format!("{}.ogg", s));
+    Resource_AddPath(ResourceType_Sound, |s| format!("{}.ogx", s));
+    Resource_AddPath(ResourceType_Sound, |s| format!("{}.wav", s));
+    Resource_AddPath(ResourceType_Tex1D, |s| format!("{}.bin", s));
+    Resource_AddPath(ResourceType_Tex2D, |s| format!("{}.jpg", s));
+    Resource_AddPath(ResourceType_Tex2D, |s| format!("{}.png", s));
+    Resource_AddPath(ResourceType_Tex3D, |s| format!("{}.bin", s));
+    Resource_AddPath(ResourceType_TexCube, |s| format!("{}", s));
 }

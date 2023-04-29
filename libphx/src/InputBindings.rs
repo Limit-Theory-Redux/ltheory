@@ -135,9 +135,9 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
     let axisValues: [*mut f32; 2] = [&mut value.x, &mut value.y];
 
     // Update Value
-    for iAxis in (0..(*binding).axes.len()) {
+    for iAxis in 0..(*binding).axes.len() {
         let axisValue: *mut f32 = axisValues[iAxis];
-        for iBind in (0..BindCount) {
+        for iBind in 0..BindCount {
             *axisValue += (*binding).rawButtons[(2 * iAxis + 0) as usize][iBind].value;
             *axisValue -= (*binding).rawButtons[(2 * iAxis + 1) as usize][iBind].value;
         }
@@ -158,7 +158,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
     }
 
     // Axes
-    for iAxis in (0..(*binding).axes.len()) {
+    for iAxis in 0..(*binding).axes.len() {
         let axis: *mut AggregateAxis =
             &mut *((*binding).axes).as_mut_ptr().offset(iAxis as isize) as *mut AggregateAxis;
         if *axisValues[iAxis as usize] != (*axis).value {
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
     }
 
     // Buttons
-    for iBtn in (0..(*binding).buttons.len()) {
+    for iBtn in 0..(*binding).buttons.len() {
         let button: &mut AggregateButton = &mut (*binding).buttons[iBtn];
         let axisValue: f32 = (*binding).axes[(iBtn / 2) as usize].value;
         let isPos: bool = iBtn & 1 == 0;
@@ -230,8 +230,8 @@ pub unsafe extern "C" fn InputBindings_Update() {
     while Input_GetNextEvent(&mut event) {
         // Match
         for binding in this.activeBindings.iter_mut().rev() {
-            for iBtn in (0..(*binding).rawButtons.len()) {
-                for iBind in (0..(*binding).rawButtons[iBtn].len()) {
+            for iBtn in 0..(*binding).rawButtons.len() {
+                for iBind in 0..(*binding).rawButtons[iBtn].len() {
                     let button: &mut RawButton = &mut (*binding).rawButtons[iBtn][iBind];
 
                     if event.button == (*button).button {
@@ -435,7 +435,7 @@ unsafe fn InputBinding_SetInvert(binding: *mut InputBinding, iAxis: i32, invert:
     if invert != (*axis).invert {
         (*axis).invert = invert;
 
-        for iBind in (0..BindCount) {
+        for iBind in 0..BindCount {
             let btnPos: &mut RawButton =
                 &mut (*binding).rawButtons[(2 * iAxis + 0) as usize][iBind];
             let btnNeg: &mut RawButton =

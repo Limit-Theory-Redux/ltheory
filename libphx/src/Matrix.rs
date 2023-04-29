@@ -1,3 +1,4 @@
+use crate::internal::ffi;
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Box3;
@@ -804,30 +805,27 @@ pub extern "C" fn Matrix_Print(this: *const Matrix) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Matrix_ToString(this: *const Matrix) -> *const libc::c_char {
-    static mut buffer: [libc::c_char; 512] = [0; 512];
-    let m: *const f32 = ((*this).m).as_ptr();
-    libc::snprintf(
-        buffer.as_mut_ptr(),
-        (std::mem::size_of::<[libc::c_char; 512]>())
-            .wrapping_div(std::mem::size_of::<libc::c_char>())
-           ,
-        c_str!("[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]\n[%+.2f, %+.2f, %+.2f, %+.2f]"),
-        *m.offset(0) as f64,
-        *m.offset(1) as f64,
-        *m.offset(2) as f64,
-        *m.offset(3) as f64,
-        *m.offset(4) as f64,
-        *m.offset(5) as f64,
-        *m.offset(6) as f64,
-        *m.offset(7) as f64,
-        *m.offset(8) as f64,
-        *m.offset(9) as f64,
-        *m.offset(10) as f64,
-        *m.offset(11) as f64,
-        *m.offset(12) as f64,
-        *m.offset(13) as f64,
-        *m.offset(14) as f64,
-        *m.offset(15) as f64,
-    );
-    buffer.as_mut_ptr() as *const libc::c_char
+    let m = &(*this).m;
+    ffi::StaticString!(format!(
+        "[{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\
+            [{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\
+            [{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\
+            [{:+.2}, {:+.2}, {:+.2}, {:+.2}]",
+        m[0],
+        m[1],
+        m[2],
+        m[3],
+        m[4],
+        m[5],
+        m[6],
+        m[7],
+        m[8],
+        m[9],
+        m[10],
+        m[11],
+        m[12],
+        m[13],
+        m[14],
+        m[15],
+    ))
 }

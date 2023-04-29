@@ -421,7 +421,7 @@ unsafe extern "C" fn ImGui_PushLayout(mut sx: f32, mut sy: f32, horizontal: bool
 
 unsafe extern "C" fn ImGui_PopLayout() {
     let layout: *mut ImGuiLayout = this.layout;
-    for _ in (0..(*layout).styleVars) {
+    for _ in 0..(*layout).styleVars {
         ImGui_PopStyle();
     }
     this.layout = (*layout).prev;
@@ -640,35 +640,35 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
 
     if !((*self_1).lineList).is_null() {
         RenderState_PushBlendMode(0);
-        static mut shader_0: *mut Shader = std::ptr::null_mut();
-        if shader_0.is_null() {
-            shader_0 = Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/line"));
+        static mut shader: *mut Shader = std::ptr::null_mut();
+        if shader.is_null() {
+            shader = Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/line"));
         }
-        let pad_0: f32 = 64.0f32;
-        Shader_Start(shader_0);
-        let mut e_2: *const ImGuiLine = (*self_1).lineList;
-        while !e_2.is_null() {
-            let xMin: f32 = (f32::min((*e_2).p1.x, (*e_2).p2.x) - pad_0);
-            let yMin: f32 = (f32::min((*e_2).p1.y, (*e_2).p2.y) - pad_0);
-            let xMax: f32 = (f32::max((*e_2).p1.x, (*e_2).p2.x) + pad_0);
-            let yMax: f32 = (f32::max((*e_2).p1.y, (*e_2).p2.y) + pad_0);
+        let pad: f32 = 64.0f32;
+        Shader_Start(shader);
+        let mut e: *const ImGuiLine = (*self_1).lineList;
+        while !e.is_null() {
+            let xMin: f32 = f32::min((*e).p1.x, (*e).p2.x) - pad;
+            let yMin: f32 = f32::min((*e).p1.y, (*e).p2.y) - pad;
+            let xMax: f32 = f32::max((*e).p1.x, (*e).p2.x) + pad;
+            let yMax: f32 = f32::max((*e).p1.y, (*e).p2.y) + pad;
             let sx_0: f32 = xMax - xMin;
             let sy_0: f32 = yMax - yMin;
             Shader_SetFloat2(c_str!("origin"), xMin, yMin);
             Shader_SetFloat2(c_str!("size"), sx_0, sy_0);
-            Shader_SetFloat2(c_str!("p1"), (*e_2).p1.x, (*e_2).p1.y);
-            Shader_SetFloat2(c_str!("p2"), (*e_2).p2.x, (*e_2).p2.y);
+            Shader_SetFloat2(c_str!("p1"), (*e).p1.x, (*e).p1.y);
+            Shader_SetFloat2(c_str!("p2"), (*e).p2.x, (*e).p2.y);
             Shader_SetFloat4(
                 c_str!("color"),
-                (*e_2).color.x,
-                (*e_2).color.y,
-                (*e_2).color.z,
-                (*e_2).color.w,
+                (*e).color.x,
+                (*e).color.y,
+                (*e).color.z,
+                (*e).color.w,
             );
             Draw_Rect(xMin, yMin, sx_0, sy_0);
-            e_2 = (*e_2).next;
+            e = (*e).next;
         }
-        Shader_Stop(shader_0);
+        Shader_Stop(shader);
         RenderState_PopBlendMode();
     }
 
@@ -730,7 +730,7 @@ unsafe extern "C" fn ImGui_Init() {
 pub unsafe extern "C" fn ImGui_Begin(sx: f32, sy: f32) {
     ImGui_Init();
 
-    for i in (0..FocusType_SIZE) {
+    for i in 0..FocusType_SIZE {
         this.focus[i as usize] = 0;
     }
 

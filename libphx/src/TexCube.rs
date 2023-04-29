@@ -381,7 +381,7 @@ pub unsafe extern "C" fn TexCube_Generate(this: *mut TexCube, state: *mut Shader
                 1.0,
                 f64::floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
             ) as i32;
-            jobSize = i32::min(jobSize, (size - j + 1));
+            jobSize = i32::min(jobSize, size - j + 1);
         }
 
         RenderTarget_Pop();

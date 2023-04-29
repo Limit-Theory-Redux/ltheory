@@ -233,7 +233,7 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *
                 name: std::ptr::null(),
                 index: 0,
             };
-            var.type_0 = ShaderVarType_FromStr(varType.as_mut_ptr() as *const libc::c_char);
+            var.type_0 = ShaderVarType_FromStr(varType.as_ptr());
             if var.type_0 == 0 {
                 CFatal!(
                     "GLSL_Preprocess: Unknown shader variable type <%s> in directive:\n  %s",
@@ -241,7 +241,7 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: *mut Shader) -> *
                     line,
                 );
             }
-            var.name = StrDup(varName.as_mut_ptr() as *const libc::c_char);
+            var.name = StrDup(varName.as_ptr());
             var.index = -1;
             (*this).vars.push(var);
         } else {

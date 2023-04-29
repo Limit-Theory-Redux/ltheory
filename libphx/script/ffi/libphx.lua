@@ -71,7 +71,6 @@ do -- Opaque Structs
     typedef struct Font         {} Font;
     typedef struct HashGrid     {} HashGrid;
     typedef struct HashGridElem {} HashGridElem;
-    typedef struct HashMap      {} HashMap;
     typedef struct InputBinding {} InputBinding;
     typedef struct KDTree       {} KDTree;
     typedef struct LodMesh      {} LodMesh;
@@ -114,7 +113,6 @@ do -- Opaque Structs
     'Font',
     'HashGrid',
     'HashGridElem',
-    'HashMap',
     'InputBinding',
     'KDTree',
     'LodMesh',

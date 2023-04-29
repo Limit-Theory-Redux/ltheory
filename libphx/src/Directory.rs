@@ -1,85 +1,78 @@
+use crate::internal::ffi;
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::File::*;
 use crate::Math::Vec3;
-use libc;
+use std::io::ErrorKind;
+use std::{env, fs};
 
-#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Directory {
-    pub handle: *mut libc::DIR,
+    pub iterator: fs::ReadDir,
+    pub lastEntry: Option<ffi::CString>,
 }
-
-// TODO: Convert this to use Rust std lib.
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Open(path: *const libc::c_char) -> *mut Directory {
-    let dir: *mut libc::DIR = libc::opendir(path);
-    if dir.is_null() {
-        return std::ptr::null_mut();
+    match fs::read_dir(ffi::PtrAsSlice(path)) {
+        Ok(dir) => {
+            let this = MemNew!(Directory);
+            (*this).iterator = dir;
+            this
+        }
+        Err(_) => std::ptr::null_mut(),
     }
-    let this = MemNew!(Directory);
-    (*this).handle = dir;
-    this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Close(this: *mut Directory) {
-    libc::closedir((*this).handle);
-    MemFree(this as *const _);
+    MemDelete!(this);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_GetNext(this: *mut Directory) -> *const libc::c_char {
-    loop {
-        let ent: *mut libc::dirent = libc::readdir((*this).handle);
-        if ent.is_null() {
-            return std::ptr::null();
+    match (*this).iterator.next() {
+        Some(Ok(dir)) => {
+            (*this).lastEntry =
+                Some(ffi::CString::new(dir.file_name().to_str().unwrap_or_default()).unwrap());
+            (*this).lastEntry.as_ref().unwrap().as_ptr()
         }
-        if StrEqual(
-            ((*ent).d_name).as_mut_ptr() as *const libc::c_char,
-            c_str!("."),
-        ) as i32
-            != 0
-            || StrEqual(
-                ((*ent).d_name).as_mut_ptr() as *const libc::c_char,
-                c_str!(".."),
-            ) as i32
-                != 0
-        {
-            continue;
-        }
-        return ((*ent).d_name).as_mut_ptr() as *const libc::c_char;
+        _ => std::ptr::null(),
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Change(cwd: *const libc::c_char) -> bool {
-    libc::chdir(cwd) == 0
+pub extern "C" fn Directory_Change(cwd: *const libc::c_char) -> bool {
+    env::set_current_dir(ffi::PtrAsSlice(cwd)).is_ok()
 }
 
+// This will create the directory if it doesn't exist, or do nothing if it exists already.
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Create(path: *const libc::c_char) -> bool {
-    libc::mkdir(path, 0o775 as libc::mode_t);
-    File_IsDir(path)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
-    static mut buffer: [libc::c_char; 1024] = [0; 1024];
-    if !(libc::getcwd(
-        buffer.as_mut_ptr(),
-        std::mem::size_of::<[libc::c_char; 1024]>(),
-    ))
-    .is_null()
-    {
-        return std::ptr::null();
+pub extern "C" fn Directory_Create(path: *const libc::c_char) -> bool {
+    match fs::create_dir(ffi::PtrAsSlice(path)) {
+        Ok(()) => true,
+        Err(err) => match err.kind() {
+            ErrorKind::AlreadyExists => true,
+            _ => {
+                println!("Directory_Create: Failed to create directory: {}", err);
+                false
+            }
+        },
     }
-    buffer[(std::mem::size_of::<[libc::c_char; 1024]>()).wrapping_sub(1)] = 0 as libc::c_char;
-    buffer.as_mut_ptr() as *const libc::c_char
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_Remove(path: *const libc::c_char) -> bool {
-    libc::rmdir(path) == 0
+pub extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
+    match env::current_dir() {
+        Ok(path) => match path.to_str() {
+            Some(path_str) => ffi::StaticString!(path_str),
+            None => std::ptr::null(),
+        },
+        Err(_) => std::ptr::null(),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Directory_Remove(path: *const libc::c_char) -> bool {
+    fs::remove_dir(ffi::PtrAsSlice(path)).is_ok()
 }

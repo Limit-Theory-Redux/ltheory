@@ -959,7 +959,7 @@ pub unsafe extern "C" fn HmGui_PushTextColor(r: f32, g: f32, b: f32, a: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PopStyle(depth: i32) {
-    for _ in (0..depth) {
+    for _ in 0..depth {
         let style: *mut HmGuiStyle = this.style;
         this.style = (*style).prev;
         MemFree(style as *const _);

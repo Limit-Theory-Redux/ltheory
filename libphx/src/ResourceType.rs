@@ -34,6 +34,8 @@ pub static ResourceType_Tex3D: ResourceType = 0x8;
 #[no_mangle]
 pub static ResourceType_TexCube: ResourceType = 0x9;
 
+pub const ResourceType_COUNT: usize = 10;
+
 #[no_mangle]
 pub extern "C" fn ResourceType_ToString(this: ResourceType) -> *const libc::c_char {
     match this {

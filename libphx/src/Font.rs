@@ -306,10 +306,10 @@ pub unsafe extern "C" fn Font_GetSize(
             if glyphLast != 0 {
                 x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
-            lower.x = i32::min(lower.x, (x + (*glyph).x0));
-            lower.y = i32::min(lower.y, (y + (*glyph).y0));
-            upper.x = i32::max(upper.x, (x + (*glyph).x1));
-            upper.y = i32::max(upper.y, (y + (*glyph).y1));
+            lower.x = i32::min(lower.x, x + (*glyph).x0);
+            lower.y = i32::min(lower.y, y + (*glyph).y0);
+            upper.x = i32::max(upper.x, x + (*glyph).x1);
+            upper.y = i32::max(upper.y, y + (*glyph).y1);
             x += (*glyph).advance;
             glyphLast = (*glyph).index;
         } else {
@@ -355,7 +355,7 @@ pub unsafe extern "C" fn Font_GetSize2(
                 (*out).x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
             (*out).x += (*glyph).advance;
-            (*out).y = i32::max((*out).y, (-(*glyph).y0 + 1));
+            (*out).y = i32::max((*out).y, -(*glyph).y0 + 1);
             glyphLast = (*glyph).index;
         } else {
             glyphLast = 0;

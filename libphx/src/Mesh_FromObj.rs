@@ -183,11 +183,11 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
         ConsumeToken(token.as_mut_ptr(), 16, &mut s);
         ConsumeWhitespace(&mut s);
 
-        if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("")) {
+        if StrEqual(token.as_ptr(), c_str!("")) {
             if s.cursor >= s.endOfData {
                 break;
             }
-        } else if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("v")) {
+        } else if StrEqual(token.as_ptr(), c_str!("v")) {
             if positions.len() == i32::MAX as usize {
                 Obj_Fatal(
                     ".obj data contains more vertex positions than will fit in a vector.",
@@ -204,7 +204,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
             }
 
             positions.push(p);
-        } else if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("vt")) {
+        } else if StrEqual(token.as_ptr(), c_str!("vt")) {
             if uvs.len() == i32::MAX as usize {
                 Obj_Fatal(
                     ".obj data contains more UVs than will fit in an ArrayList.",
@@ -220,7 +220,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
             }
 
             uvs.push(uv);
-        } else if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("vn")) {
+        } else if StrEqual(token.as_ptr(), c_str!("vn")) {
             if normals.len() == i32::MAX as usize {
                 Obj_Fatal(
                     ".obj data contains more normals than will fit in an ArrayList.",
@@ -237,7 +237,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
             }
 
             normals.push(n);
-        } else if StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("f")) {
+        } else if StrEqual(token.as_ptr(), c_str!("f")) {
             let mut vertexIndicesCount: i32 = 0;
             let mut vertexIndices: [VertexIndices; 4] = [
                 VertexIndices {
@@ -383,17 +383,17 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> *mut Mesh {
                     &mut s,
                 );
             }
-        } else if !(StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("#")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("f")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("s")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("p")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("l")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("g")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("o")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("maplib")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("usemap")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("usemtl")) as i32 != 0
-            || StrEqual(token.as_mut_ptr() as *const libc::c_char, c_str!("mtllib")) as i32 != 0)
+        } else if !(StrEqual(token.as_ptr(), c_str!("#")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("f")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("s")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("p")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("l")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("g")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("o")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("maplib")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("usemap")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("usemtl")) as i32 != 0
+            || StrEqual(token.as_ptr(), c_str!("mtllib")) as i32 != 0)
         {
             Obj_Fatal("Unsupported token in .obj data.", &mut s);
         }

@@ -1,3 +1,4 @@
+use crate::internal::ffi;
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::DeviceType::*;
@@ -663,14 +664,7 @@ pub unsafe extern "C" fn Button_ToString(button: Button) -> *const libc::c_char 
         146 => c_str!("Button_Gamepad_RStickY"),
         147 => c_str!("Button_System_Exit"),
         _ => {
-            static mut buffer: [libc::c_char; 512] = [0; 512];
-            libc::snprintf(
-                buffer.as_mut_ptr(),
-                buffer.len(),
-                c_str!("Unknown (%i)"),
-                button,
-            );
-            buffer.as_mut_ptr() as *const libc::c_char
+            ffi::StaticString!(format!("Unknown ({})", button))
         }
     }
 }

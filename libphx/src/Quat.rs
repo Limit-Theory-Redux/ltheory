@@ -1,3 +1,4 @@
+use crate::internal::ffi;
 use crate::internal::Memory::*;
 use crate::Common::*;
 use crate::Math::Float_Validate;
@@ -344,17 +345,13 @@ pub unsafe extern "C" fn Quat_ISlerp(q: *mut Quat, p: *const Quat, t: f32) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Quat_ToString(q: *const Quat) -> *const libc::c_char {
-    static mut buffer: [libc::c_char; 512] = [0; 512];
-    libc::snprintf(
-        buffer.as_mut_ptr(),
-        buffer.len(),
-        c_str!("(%.4f, %.4f, %.4f, %.4f)"),
-        (*q).x as f64,
-        (*q).y as f64,
-        (*q).z as f64,
-        (*q).w as f64,
-    );
-    buffer.as_mut_ptr() as *const libc::c_char
+    ffi::StaticString!(format!(
+        "({:.4}, {:.4}, {:.4}, {:.4})",
+        (*q).x,
+        (*q).y,
+        (*q).z,
+        (*q).w
+    ))
 }
 
 #[no_mangle]

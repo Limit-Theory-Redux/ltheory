@@ -1,4 +1,4 @@
-use crate::internal::Memory::*;
+use crate::internal::ffi;
 use crate::Common::*;
 use crate::Math::Vec3;
 use crate::Ray::*;
@@ -26,13 +26,9 @@ pub unsafe extern "C" fn LineSegment_FromRay(ray: *const Ray, out: *mut LineSegm
 
 #[no_mangle]
 pub unsafe extern "C" fn LineSegment_ToString(this: *mut LineSegment) -> *const libc::c_char {
-    static mut buffer: [libc::c_char; 512] = [0; 512];
-    libc::snprintf(
-        buffer.as_mut_ptr(),
-        buffer.len(),
-        c_str!("p0:%s p1:%s"),
-        (*this).p0.to_string().as_mut_ptr(),
-        (*this).p1.to_string().as_mut_ptr(),
-    );
-    buffer.as_mut_ptr() as *const libc::c_char
+    ffi::StaticString!(format!(
+        "p0:{} p1:{}",
+        (*this).p0.to_string(),
+        (*this).p1.to_string(),
+    ))
 }
