@@ -90,12 +90,6 @@ fn main() {
         &deps_root,
         &["bullet-build", "src", "LinearMath"],
     );
-    // if cfg!(target_os = "macos") {
-    //     link_lib_from_cmake("fmod", &deps_root, &["fmod-src", "lib", "macos"]);
-    // } else if cfg!(target_os = "linux") {
-    //     link_lib_from_cmake("fmod", &deps_root, &["fmod-src", "lib", "linux", "x86_64"]);
-    // }
-    // println!("cargo:rustc-link-lib={}", "fmod");
 
     println!("cargo:rustc-link-lib={}", "z");
     if cfg!(target_os = "macos") {
@@ -105,6 +99,7 @@ fn main() {
     if cfg!(target_os = "macos") {
         println!("cargo:rustc-link-arg=-Wl,-keep_dwarf_unwind");
         println!("cargo:rustc-link-arg=-Wl,-no_compact_unwind");
+        println!("cargo:rustc-link-arg=-Wl,-install_name,@rpath/libphx.dylib");
     }
     // panic!();
 }
