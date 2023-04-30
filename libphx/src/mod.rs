@@ -13,10 +13,10 @@
 
 extern crate chrono;
 extern crate core;
-extern crate image;
 extern crate fmod_sys;
 extern crate freetype_sys;
 extern crate glam;
+extern crate image;
 extern crate libc;
 extern crate memoffset;
 extern crate mlua;

@@ -1,11 +1,13 @@
 use crate::internal::ffi;
 use crate::internal::Memory::*;
-use image::{GenericImageView, ImageBuffer, Rgba};
+use crate::Common::*;
+use image::io::Reader as ImageReader;
+use image::{DynamicImage, GenericImageView};
 use std::ffi::CStr;
 use std::fs::File;
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_LoadRaw(
+pub extern "C" fn Tex2D_LoadRaw(
     path: *const libc::c_char,
     sx: &mut i32,
     sy: &mut i32,
@@ -31,29 +33,39 @@ pub unsafe extern "C" fn Tex2D_LoadRaw(
     //     },
     //     Err(_) => CFatal!("Failed to load image from '%s'", path),
     // }
-    let img = image::open(ffi::PtrToSlice(path)).unwrap();
+    let reader = ImageReader::open(ffi::PtrAsSlice(path))
+        .unwrap_or_else(|_| CFatal!("Failed to load image from '%s', unable to open file", path));
+    let img = reader
+        .decode()
+        .unwrap_or_else(|_| CFatal!("Failed to load image from '%s', decode failed", path));
     let (width, height) = img.dimensions();
 
     *sx = width as i32;
     *sy = height as i32;
 
     let data = match img {
-        ImageBuffer::<Rgba<u8>, _>(buf) => {
-            let mut raw_data: Vec<u8> = vec![0; (width * height * 4) as usize];
-            for (i, rgba) in buf.into_raw().iter().enumerate() {
-                raw_data[i] = *rgba;
-            }
+        DynamicImage::ImageRgba8(buf) => {
             *components = 4;
-            raw_data
+            buf.into_raw()
         }
-        _ => panic!("Unsupported color type"),
+        DynamicImage::ImageRgb8(buf) => {
+            *components = 3;
+            buf.into_raw()
+        }
+        _ => CFatal!(
+            "Failed to load image from '%s', unsupported image format",
+            path
+        ),
     };
 
-    let memory: *mut libc::c_uchar = MemAlloc(data.len()) as *mut libc::c_uchar;
-    MemCpy(
-        memory as *mut _,
-        data.as_slice().as_ptr() as *mut _,
-        data.len(),
-    );
-    memory
+    // Copy the data to a malloc allocated buffer.
+    unsafe {
+        let memory: *mut libc::c_uchar = MemAlloc(data.len()) as *mut libc::c_uchar;
+        MemCpy(
+            memory as *mut _,
+            data.as_slice().as_ptr() as *mut _,
+            data.len(),
+        );
+        memory
+    }
 }

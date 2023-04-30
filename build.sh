@@ -30,10 +30,12 @@ fi
 
 if [[ $debug = 1 ]]; then
     cargo build
-    cp target/debug/ltr$binsuffix bin/lt64d$binsuffix
-    cp target/debug/deps/foo bin/phx$libsuffix
+    cp target/debug/ltr${binsuffix} bin/lt64d${binsuffix}
+    cp target/debug/deps/${libprefix}phx${libsuffix} bin/${libprefix}phx${libsuffix}
+    cp target/debug/deps/${libprefix}fmod${libsuffix} bin/${libprefix}fmod${libsuffix}
 else
     cargo build --release
-    cp target/release/ltr$binsuffix bin/lt64$binsuffix
-    cp target/release/deps/foo bin/phx$libsuffix
+    cp target/release/ltr${binsuffix} bin/lt64${binsuffix}
+    cp target/release/deps/${libprefix}phx${libsuffix} bin/${libprefix}phx${libsuffix}
+    cp target/release/deps/${libprefix}fmod${libsuffix} bin/${libprefix}fmod${libsuffix}
 fi
