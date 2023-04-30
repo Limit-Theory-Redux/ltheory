@@ -36,7 +36,7 @@ fn main() {
         zip_extract::extract(Cursor::new(bin_archive), fmod_dir.as_path(), true).unwrap();
     }
 
-    // Copy the binary to target/<cfg>/deps.
+    // Link against the library, and copy it to target/<cfg>/deps.
     //
     // out_dir will be in the form <ltheory>/target/<cfg>/build/fmod-sys-1ac366e3920adf45/out
     // Move 3 directories out, then copy the fmod library there.
@@ -50,33 +50,39 @@ fn main() {
         .join("deps");
 
     if cfg!(target_os = "windows") {
-        let src = fmod_dir
-            .join("lib")
-            .join("win")
-            .join("x86_64")
-            .join("fmod.dll");
+        let lib_dir = fmod_dir
+        .join("lib")
+        .join("win")
+        .join("x86_64");
+        let src = lib_dir.join("fmod.dll");
         let dest = deps_dir.join("fmod.dll");
         fs::copy(src, dest).unwrap();
+        println!(
+            "cargo:rustc-link-search={}",
+            lib_dir.display()
+        );
     } else if cfg!(target_os = "macos") {
-        let src = fmod_dir.join("lib").join("macos").join("libfmod.dylib");
+        let lib_dir = fmod_dir.join("lib").join("macos");
+        let src = lib_dir.join("libfmod.dylib");
         let dest = deps_dir.join("libfmod.dylib");
         fs::copy(src, dest).unwrap();
+        println!(
+            "cargo:rustc-link-search={}",
+            lib_dir.display()
+        );
     } else if cfg!(target_os = "linux") {
-        let src = fmod_dir
-            .join("lib")
-            .join("linux")
-            .join("x86_64")
-            .join("libfmod.so.13.8");
+        let lib_dir = fmod_dir
+        .join("lib")
+        .join("linux")
+        .join("x86_64");
+        let src = lib_dir.join("libfmod.so.13.8");
         let dest = deps_dir.join("libfmod.so.13.8");
         fs::copy(src, dest).unwrap();
+        println!(
+            "cargo:rustc-link-search={}",
+            lib_dir.display()
+        );
     }
-    println!("cargo:rustc-link-lib={}", "fmod");
-
-    // Link against it.
-    println!(
-        "cargo:rustc-link-search={}",
-        fmod_dir.join("lib").join("macos").display()
-    );
     println!("cargo:rustc-link-lib=fmod");
     println!("cargo:rerun-if-changed=wrapper.h");
 
