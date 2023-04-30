@@ -7,15 +7,16 @@ use std::path::Path;
 use std::path::PathBuf;
 
 extern crate bindgen;
-extern crate reqwest;
+extern crate ureq;
 extern crate zip_extract;
 
 fn download(url: &str) -> Vec<u8> {
-    reqwest::blocking::get(url)
-        .unwrap()
-        .bytes()
-        .unwrap()
-        .to_vec()
+    let response = ureq::get(url).call().unwrap();
+    assert!(response.has("Content-Length"));
+    let len: usize = response.header("Content-Length").unwrap().parse().unwrap();
+    let mut bytes: Vec<u8> = Vec::with_capacity(len);
+    response.into_reader().read_to_end(&mut bytes).unwrap();
+    bytes
 }
 
 fn main() {

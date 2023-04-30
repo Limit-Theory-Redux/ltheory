@@ -14,18 +14,26 @@ To build Limit Theory, you'll need a few standard developer tools. All of them a
 
 ### Windows
 
-Install the following tools:
+To work on any of the Lua scripts, the following tools are required:
 - Git: https://git-scm.com/downloads
 
 You may want to install a GUI for Git, such as GitHub for Desktop: https://desktop.github.com/
 
-If you would like to made changes to the libphx engine, you will also need:
+#### Optional dependencies
+
+Optionally, if you would like to made changes to the libphx engine, you will also need:
 - Visual Studio Community: https://visualstudio.microsoft.com/vs/
 - CMake: https://cmake.org/download/
+- LLVM: https://releases.llvm.org/download.html (download the latest Windows installer by going to the GitHub releases page, and downloading LLVM-xx.x.x-win64.exe)
+- Rust: https://www.rust-lang.org/tools/install (use rustup-init.exe, then type 1 and press Enter in the terminal window)
+
+Everything other than Visual Studio can be installed using [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) if you're on Windows 10 1709 or later:
+
+- `winget install Kitware.CMake LLVM.LLVM Rustlang.Rustup`
 
 ### macOS
 
-Users on macOS will need to install Git, CMake and Xcode.
+Users on macOS will need to install Git, CMake, Xcode, Rust and LLVM.
 
 First, install Xcode using the Mac App store: https://apps.apple.com/us/app/xcode/id497799835
 
@@ -33,15 +41,15 @@ To install the remaining dependencies, we recommend first installing the Homebre
 
 Once Homebrew is installed, open a **Terminal** window and run the following one-liner:
 
-- `brew install git cmake`
+- `brew install git cmake rust llvm`
 
 ### Linux
 
-You should install Git and a C++ toolchain using your distro's package manager. OpenGL, GLU and ALSA development libraries are also required.
+You should install Git, CMake, a C++ toolchain, Cargo, Rust and LLVM using your distro's package manager. OpenGL, GLU and ALSA development libraries are also required.
 
 For example, if using Ubuntu 22.04, open a terminal and install the following packages:
 
-- `sudo apt install -y git build-essential cmake libgl1-mesa-dev libglu1-mesa-dev libasound2-dev`
+- `sudo apt install -y git build-essential cmake libgl1-mesa-dev libglu1-mesa-dev libasound2-dev cargo llvm-dev libclang-dev clang`
 
 # Setting up
 
@@ -73,7 +81,7 @@ Once you've completed these steps, you can skip straight to [Running a Lua App](
 
 ### Option 2: Compiling libphx manually
 
-> As mentioned in [Prerequisites](#prerequisites), both [CMake](https://cmake.org/download/) and [Visual Studio Community](https://visualstudio.microsoft.com/vs/) are required to be installed to compile libphx.
+> As mentioned in [Prerequisites](#prerequisites), the additional optional dependencies are required to compile libphx manually.
 
 Once you have the repository, the build process consists of two steps (as with other CMake projects): generating the build files, and then building. There is a Python script `configure.py` at the top level of the repository to help you do this easily.
 

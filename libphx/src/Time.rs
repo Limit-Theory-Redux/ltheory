@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc, Local, TimeZone, Timelike, Datelike};
+use chrono::{DateTime, Datelike, Local, TimeZone, Timelike, Utc};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Copy, Clone)]
@@ -42,5 +42,8 @@ pub extern "C" fn Time_GetUTC() -> Time {
 // Seconds since epoch.
 #[no_mangle]
 pub extern "C" fn Time_GetRaw() -> u32 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as u32
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as u32
 }

@@ -11,8 +11,9 @@
 #![feature(extern_types)]
 #![feature(thread_local)]
 
-extern crate core;
 extern crate chrono;
+extern crate core;
+extern crate image;
 extern crate fmod_sys;
 extern crate freetype_sys;
 extern crate glam;
@@ -22,7 +23,6 @@ extern crate mlua;
 extern crate printf_compat;
 extern crate rodio;
 extern crate sdl2_sys;
-extern crate stb;
 
 pub mod internal {
     pub mod Memory;
