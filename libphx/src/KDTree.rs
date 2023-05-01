@@ -6,6 +6,9 @@ use crate::Math::Vec2;
 use crate::Math::Vec3;
 use crate::Matrix::*;
 use crate::Mesh::*;
+use std::cmp::Ordering;
+use std::ptr::slice_from_raw_parts_mut;
+use std::slice;
 
 const kMaxLeafSize: i32 = 64;
 
@@ -24,30 +27,6 @@ pub struct Node {
     pub next: *mut Node,
     pub id: u64,
     pub box_0: Box3,
-}
-
-unsafe extern "C" fn compareLowerX(a: *const libc::c_void, b: *const libc::c_void) -> i32 {
-    if (*(a as *const Box3)).lower.x < (*(b as *const Box3)).lower.x {
-        -1
-    } else {
-        1
-    }
-}
-
-unsafe extern "C" fn compareLowerY(a: *const libc::c_void, b: *const libc::c_void) -> i32 {
-    if (*(a as *const Box3)).lower.y < (*(b as *const Box3)).lower.y {
-        -1
-    } else {
-        1
-    }
-}
-
-unsafe extern "C" fn compareLowerZ(a: *const libc::c_void, b: *const libc::c_void) -> i32 {
-    if (*(a as *const Box3)).lower.z < (*(b as *const Box3)).lower.z {
-        -1
-    } else {
-        1
-    }
 }
 
 unsafe fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mut KDTree {
@@ -71,41 +50,12 @@ unsafe fn Partition(boxes: *mut Box3, boxCount: i32, dim: i32) -> *mut KDTree {
         return this;
     }
 
-    if dim == 0 {
-        libc::qsort(
-            boxes as *mut _,
-            boxCount as usize,
-            std::mem::size_of::<Box3>(),
-            Some(
-                compareLowerX
-                    as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
-            ),
-        );
-    }
-
-    if dim == 1 {
-        libc::qsort(
-            boxes as *mut _,
-            boxCount as usize,
-            std::mem::size_of::<Box3>(),
-            Some(
-                compareLowerY
-                    as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
-            ),
-        );
-    }
-
-    if dim == 2 {
-        libc::qsort(
-            boxes as *mut _,
-            boxCount as usize,
-            std::mem::size_of::<Box3>(),
-            Some(
-                compareLowerZ
-                    as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32,
-            ),
-        );
-    }
+    let sortFn = match dim {
+        0 => |a: &Box3, b: &Box3| a.lower.x.partial_cmp(&b.lower.x).unwrap_or(Ordering::Equal),
+        1 => |a: &Box3, b: &Box3| a.lower.y.partial_cmp(&b.lower.y).unwrap_or(Ordering::Equal),
+        _ => |a: &Box3, b: &Box3| a.lower.z.partial_cmp(&b.lower.z).unwrap_or(Ordering::Equal),
+    };
+    slice::from_raw_parts_mut(boxes, boxCount as usize).sort_by(sortFn);
 
     let boxCountBack: i32 = boxCount / 2;
     let boxCountFront: i32 = boxCount - boxCountBack;

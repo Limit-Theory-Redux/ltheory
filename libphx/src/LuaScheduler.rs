@@ -52,18 +52,6 @@ static mut this: Scheduler = Scheduler {
     locked: false,
 };
 
-unsafe extern "C" fn SortByWake(pa: *const libc::c_void, pb: *const libc::c_void) -> i32 {
-    let a: *const SchedulerElem = pa as *const SchedulerElem;
-    let b: *const SchedulerElem = pb as *const SchedulerElem;
-    if (*a).tWake < (*b).tWake {
-        1
-    } else if (*a).tWake == (*b).tWake {
-        0
-    } else {
-        -1
-    }
-}
-
 unsafe extern "C" fn LuaScheduler_Add(L: *mut Lua) -> i32 {
     let mut elem: SchedulerElem = SchedulerElem {
         fn_0: 0,
@@ -103,12 +91,7 @@ unsafe extern "C" fn LuaScheduler_Clear(L: *mut Lua) -> i32 {
 unsafe extern "C" fn LuaScheduler_Update(L: *mut Lua) -> i32 {
     this.locked = true;
 
-    libc::qsort(
-        this.elems.as_mut_ptr() as *mut _,
-        this.elems.len(),
-        std::mem::size_of::<SchedulerElem>(),
-        Some(SortByWake as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
-    );
+    this.elems.sort_by(|a: &SchedulerElem, b: &SchedulerElem| a.tWake.cmp(&b.tWake));
     this.now = TimeStamp_Get();
 
     lua_getfield(L, -10002, c_str!("__error_handler__"));

@@ -4,6 +4,7 @@ use crate::HashMap::*;
 use crate::Math::Vec3;
 use crate::Signal::*;
 use crate::TimeStamp::*;
+use std::cmp::Ordering;
 use std::io::{self, Write};
 
 pub type Signal = i32;
@@ -63,18 +64,6 @@ unsafe extern "C" fn Scope_Free(scope: *mut Scope) {
     MemDelete!(scope);
 }
 
-unsafe extern "C" fn SortScopes(pa: *const libc::c_void, pb: *const libc::c_void) -> i32 {
-    let a: *const Scope = *(pa as *mut *const Scope);
-    let b: *const Scope = *(pb as *mut *const Scope);
-    if (*b).total < (*a).total {
-        -1
-    } else if (*b).total == (*a).total {
-        0
-    } else {
-        1
-    }
-}
-
 unsafe extern "C" fn Profiler_GetScope(name: *const libc::c_char) -> *mut Scope {
     let mut scope: *mut Scope = HashMap_GetRaw(this.map, name as usize as u64) as *mut Scope;
     if !scope.is_null() {
@@ -120,12 +109,10 @@ pub unsafe extern "C" fn Profiler_Disable() {
         (*scope).var = f64::sqrt((*scope).var);
         i += 1;
     }
-    libc::qsort(
-        this.scopeList.as_mut_ptr() as *mut _,
-        this.scopeList.len() as i32 as usize,
-        std::mem::size_of::<*mut Scope>(),
-        Some(SortScopes as unsafe extern "C" fn(*const libc::c_void, *const libc::c_void) -> i32),
-    );
+    this.scopeList.sort_by(|pa: &*mut Scope, pb: &*mut Scope| {
+        let (a, b) = (&**pa, &**pb);
+        b.total.cmp(&a.total)
+    });
     println!("-- PHX PROFILER -------------------------------------");
     let mut cumulative: f64 = 0.0;
     let mut i_0: i32 = 0;
