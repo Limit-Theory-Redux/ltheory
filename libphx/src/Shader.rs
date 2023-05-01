@@ -16,6 +16,7 @@ use crate::Tex2D::*;
 use crate::Tex3D::*;
 use crate::TexCube::*;
 use crate::GL::gl;
+use crate::internal::ffi;
 
 #[derive(Clone)]
 #[repr(C)]
@@ -152,81 +153,12 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: &mut Shader) -> *
         }
         let end_0: *const libc::c_char = StrFind(begin, c_str!("\n"));
         let line: *const libc::c_char = StrSubStr(begin, end_0);
-        let mut varType: [libc::c_char; 32] = [
-            0 as libc::c_char,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-        ];
-        let mut varName: [libc::c_char; 32] = [
-            0 as libc::c_char,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-        ];
-        if libc::sscanf(
-            line,
-            c_str!("#autovar %31s %31s"),
-            varType.as_mut_ptr(),
-            varName.as_mut_ptr(),
-        ) == 2
-        {
+
+        let lineStr = ffi::PtrAsString(line);
+        let lineTokens: Vec<&str> = lineStr.split(" ").collect();
+        if lineTokens.len() == 3 && lineTokens[0] == "#autovar" {
+            let varType = ffi::NewCString(lineTokens[1].to_string());
+            let varName = ffi::NewCString(lineTokens[2].to_string());
             let mut var: ShaderVar = ShaderVar {
                 type_0: 0,
                 name: std::ptr::null(),
@@ -236,7 +168,7 @@ unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: &mut Shader) -> *
             if var.type_0 == 0 {
                 CFatal!(
                     "GLSL_Preprocess: Unknown shader variable type <%s> in directive:\n  %s",
-                    varType.as_mut_ptr(),
+                    varType.as_ptr(),
                     line,
                 );
             }
