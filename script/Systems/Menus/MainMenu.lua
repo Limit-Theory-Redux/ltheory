@@ -26,10 +26,23 @@ local guiElements = {
   }
 }
 
+local guiSettings = {
+  { false, nil }, -- checkbox for audio toggle
+  { false, nil }, -- checkbox for unique ships toggle
+  { 0, nil }, -- value for number of asteroid fields
+  { 0, nil }, -- value for number of asteroids per field
+  { 0, nil }, -- value for number of planets
+  { 0, nil }, -- value for number of stations
+  { 0, nil }, -- value for number of AI Players
+  { 0, nil }, -- value for number of EconNPCs
+  { 0, nil }, -- value for number of EscortNPCs
+}
+
 function MainMenu:OnInit()
   self.enabled = true
   self.inBackgroundMode = false
   self.seedDialogDisplayed = false
+  self.settingsScreenDisplayed = false
   self.dt = 0
   self.lastActionDelta = 0
   self.returnToSplashDelta = 0
@@ -150,6 +163,7 @@ function MainMenu:ShowMainMenuInner()
   end
 
   if HmGui.Button("SETTINGS") then
+    self:ShowSettingsScreen()
   end
 
   if HmGui.Button("CREDITS") then
@@ -220,6 +234,7 @@ function MainMenu:ShowSeedDialogInner()
       Input.SetMouseVisible(false)
     end
   end
+
   HmGui.SetSpacing(16)
 
   if HmGui.Button("Random Seed") then
@@ -236,6 +251,7 @@ function MainMenu:ShowSeedDialogInner()
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
+
   HmGui.SetSpacing(16)
 
   if HmGui.Button("Use Seed") then
@@ -251,8 +267,307 @@ function MainMenu:ShowSeedDialogInner()
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
+
   HmGui.PopStyle(2)
   HmGui.EndGroup()
+  HmGui.SetAlign(0.5, 0.5)
+  HmGui.PopStyle(2)
+  HmGui.EndGroup()
+end
+
+function MainMenu:ShowSettingsScreen()
+  -- Add new star system seed selection dialog menu
+  self.settingsScreenDisplayed = true
+
+  HmGui.BeginWindow(guiElements.name)
+  HmGui.TextEx(Cache.Font('Iceland', 42), 'Settings', 0.3, 0.6, 1.0, 1.0)
+  HmGui.SetAlign(0.5, 0.5)
+  HmGui.SetSpacing(16)
+  self:ShowSettingsScreenInner()
+  HmGui.EndWindow()
+  HmGui.SetAlign(0.5, 0.5)
+end
+
+function MainMenu:ShowSettingsScreenInner()
+  -- Add new star system seed selection dialog menu items
+  HmGui.BeginGroupY()
+  HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
+  HmGui.PushFont(Cache.Font('Exo2', 24))
+
+  -- Show Settings options
+  HmGui.BeginGroupY()
+
+  -- Create the new checkbox and save a reference to its current state (T/F)
+  HmGui.TextEx(Cache.Font('Exo2', 24), "----- Audio -----", 0.3, 0.6, 1.0, 1.0)
+  guiSettings[1][1] = Config.audio.bSoundOn
+  if guiSettings[1][2] == nil then
+    guiSettings[1][2] = Config.audio.bSoundOn
+  end
+  guiSettings[1][1] = HmGui.Checkbox("Music On/Off", guiSettings[1][1])
+  if guiSettings[1][1] then
+    -- Checkbox was selected
+    if not Config.audio.bSoundOn then
+      LTheoryRedux:SoundOn()
+    end
+  else
+    if Config.audio.bSoundOn then
+      LTheoryRedux:SoundOff()
+    end
+  end
+
+  if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
+    -- Don't display game generation settings when viewing Settings in Flight mode
+    HmGui.SetSpacing(16)
+    HmGui.TextEx(Cache.Font('Exo2', 24), "--- Generation ---", 0.3, 0.6, 1.0, 1.0)
+
+    HmGui.SetSpacing(8)
+    guiSettings[2][1] = Config.gen.uniqueShips
+    if guiSettings[2][2] == nil then
+      guiSettings[2][2] = Config.gen.uniqueShips
+    end
+    guiSettings[2][1] = HmGui.Checkbox("Unique Ships", guiSettings[2][1])
+    if guiSettings[2][1] then
+      -- Checkbox was selected
+      if not Config.gen.uniqueShips then
+        Config.gen.uniqueShips = true
+      end
+    else
+      if Config.gen.uniqueShips then
+        Config.gen.uniqueShips = false
+      end
+    end
+
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), "Asteroid Fields: ", 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[3][2] == nil then
+      guiSettings[3][1] = Config.gen.nFields
+      guiSettings[3][2] = Config.gen.nFields
+    end
+    if HmGui.Button("-") and guiSettings[3][1] > 0 then
+      guiSettings[3][1] = guiSettings[3][1] - 1
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[3][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[3][1] < 20 then
+      guiSettings[3][1] = guiSettings[3][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), "Asteroids per field: ", 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[4][2] == nil then
+      guiSettings[4][1] = Config.gen.nAsteroids
+      guiSettings[4][2] = Config.gen.nAsteroids
+    end
+    if HmGui.Button("-") and guiSettings[4][1] > 1 then
+      guiSettings[4][1] = guiSettings[4][1] - 1
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[4][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[4][1] < 200 then
+      guiSettings[4][1] = guiSettings[4][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), "Planets: ", 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[5][2] == nil then
+      guiSettings[5][1] = Config.gen.nPlanets
+      guiSettings[5][2] = Config.gen.nPlanets
+    end
+    if HmGui.Button("-") and guiSettings[5][1] > 0 then
+      guiSettings[5][1] = guiSettings[5][1] - 1
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[5][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[5][1] < 1 then
+      guiSettings[5][1] = guiSettings[5][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), "Space Stations: ", 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[6][2] == nil then
+      guiSettings[6][1] = Config.gen.nStations
+      guiSettings[6][2] = Config.gen.nStations
+    end
+    if HmGui.Button("-") and guiSettings[6][1] > 0 then
+      guiSettings[6][1] = guiSettings[6][1] - 1
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[6][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[6][1] < 50 then
+      guiSettings[6][1] = guiSettings[6][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), "AI Players: ", 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[7][2] == nil then
+      guiSettings[7][1] = Config.gen.nAIPlayers
+      guiSettings[7][2] = Config.gen.nAIPlayers
+    end
+    if HmGui.Button("-") and guiSettings[7][1] > 0 then
+      guiSettings[7][1] = guiSettings[7][1] - 1
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[7][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[7][1] < 20 then
+      guiSettings[7][1] = guiSettings[7][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), "Economic NPCs: ", 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[8][2] == nil then
+      guiSettings[8][1] = Config.gen.nEconNPCs
+      guiSettings[8][2] = Config.gen.nEconNPCs
+    end
+    if HmGui.Button("-") and guiSettings[8][1] > 0 then
+      guiSettings[8][1] = guiSettings[8][1] - 1
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[8][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[8][1] < 100 then
+      guiSettings[8][1] = guiSettings[8][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), "Escort NPCs: ", 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[9][2] == nil then
+      guiSettings[9][1] = Config.gen.nEscortNPCs
+      guiSettings[9][2] = Config.gen.nEscortNPCs
+    end
+    if HmGui.Button("-") and guiSettings[9][1] > 0 then
+      guiSettings[9][1] = guiSettings[9][1] - 1
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[9][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[9][1] < 50 then
+      guiSettings[9][1] = guiSettings[9][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
+  end
+
+  HmGui.EndGroup()
+
+  -- Show Settings control buttons
+  HmGui.SetSpacing(16)
+  HmGui.BeginGroupX()
+  HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
+  HmGui.PushFont(Cache.Font('Exo2Bold', 28))
+
+  if HmGui.Button("Cancel") then
+    -- Revert to the pre-Settings values of each setting
+    if guiSettings[1][2] then
+      LTheoryRedux:SoundOn()
+    else
+      LTheoryRedux:SoundOff()
+    end
+
+    if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
+      if guiSettings[2][2] then
+        Config.gen.uniqueShips = true
+      else
+        Config.gen.uniqueShips = false
+      end
+      Config.gen.nFields     = guiSettings[3][2]
+      Config.gen.nAsteroids  = guiSettings[4][2]
+      Config.gen.nPlanets    = guiSettings[5][2]
+      Config.gen.nStations   = guiSettings[6][2]
+      Config.gen.nAIPlayers  = guiSettings[7][2]
+      Config.gen.nEconNPCs   = guiSettings[8][2]
+      Config.gen.nEscortNPCs = guiSettings[9][2]
+    end
+
+    guiSettings[1][2] = nil
+    guiSettings[2][2] = nil
+    guiSettings[3][2] = nil
+    guiSettings[4][2] = nil
+    guiSettings[5][2] = nil
+    guiSettings[6][2] = nil
+    guiSettings[7][2] = nil
+    guiSettings[8][2] = nil
+    guiSettings[9][2] = nil
+
+    self.settingsScreenDisplayed = false
+    Config.game.gamePaused = false
+
+    if MainMenu.currentMode == Enums.MenuMode.Dialog then
+      LTheoryRedux:freezeTurrets()
+      Config.setGameMode(2) -- return to Flight Mode
+      Config.game.flightModeButInactive = false
+      Input.SetMouseVisible(false)
+    end
+  end
+
+  HmGui.SetSpacing(16)
+
+  if HmGui.Button("Use") then
+    self.settingsScreenDisplayed = false
+    Config.game.gamePaused = false
+
+    if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
+      Config.gen.nFields     = guiSettings[3][1]
+      Config.gen.nAsteroids  = guiSettings[4][1]
+      Config.gen.nPlanets    = guiSettings[5][1]
+      Config.gen.nStations   = guiSettings[6][1]
+      Config.gen.nAIPlayers  = guiSettings[7][1]
+      Config.gen.nEconNPCs   = guiSettings[8][1]
+      Config.gen.nEscortNPCs = guiSettings[9][1]
+    end
+
+    guiSettings[1][2] = nil
+    guiSettings[2][2] = nil
+    guiSettings[3][2] = nil
+    guiSettings[4][2] = nil
+    guiSettings[5][2] = nil
+    guiSettings[6][2] = nil
+    guiSettings[7][2] = nil
+    guiSettings[8][2] = nil
+    guiSettings[9][2] = nil
+
+    if MainMenu.currentMode == Enums.MenuMode.Dialog then
+      LTheoryRedux:freezeTurrets()
+      Config.setGameMode(2) -- return to Flight Mode
+      Config.game.flightModeButInactive = false
+      Input.SetMouseVisible(false)
+    end
+  end
+
+  HmGui.PopStyle(2)
+  HmGui.EndGroup()
+
   HmGui.SetAlign(0.5, 0.5)
   HmGui.PopStyle(2)
   HmGui.EndGroup()
@@ -311,11 +626,9 @@ function MainMenu:ShowFlightDialogInner()
   HmGui.SetSpacing(8)
 
   if HmGui.Button("Game Settings") then
-    -- TODO: Show Game Settings menu once that's been implemented
-    LTheoryRedux:freezeTurrets()
+    -- Show Game Settings menu
+    self:ShowSettingsScreen()
     Config.game.flightModeButInactive = false
-    Config.game.gamePaused = false
-    Input.SetMouseVisible(false)
   end
   HmGui.SetSpacing(8)
 
@@ -332,6 +645,24 @@ function MainMenu:ShowFlightDialogInner()
   end
   HmGui.PopStyle(2)
   HmGui.EndGroup()
+end
+
+function MainMenu:utf8 (decimal)
+  local bytemarkers = { {0x7FF,192}, {0xFFFF,224}, {0x1FFFFF,240} }
+  if decimal<128 then return string.char(decimal) end
+  local charbytes = {}
+  for bytes,vals in ipairs(bytemarkers) do
+    if decimal<=vals[1] then
+      for b=bytes+1,2,-1 do
+        local mod = decimal%64
+        decimal = (decimal-mod)/64
+        charbytes[b] = string.char(128+mod)
+      end
+      charbytes[1] = string.char(vals[2]+decimal)
+      break
+    end
+  end
+  return table.concat(charbytes)
 end
 
 return MainMenu

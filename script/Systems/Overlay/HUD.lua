@@ -127,7 +127,7 @@ function HUD:drawBoostEnergy (a)
   UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.remainingBoost, mvSpacing, mvLevels, 7)
 end
 
-function HUD:drawWeaponEnergy (a)
+function HUD:drawCapacitorEnergy (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
   local mvWidth   = 24
@@ -157,8 +157,12 @@ function HUD:drawWeaponEnergy (a)
     hudY      = cy
   end
 
+  local player = self.player
+  local playerShip = player:getControlling()
+  local capacitorPctBar = floor(playerShip:getChargePercent() / 10)
+
   UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderBright)
-  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.remainingEnergy, mvSpacing, mvLevels, 9)
+  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.remainingEnergy, mvSpacing, mvLevels, capacitorPctBar)
 end
 
 function HUD:drawTargetType (a)
@@ -430,6 +434,11 @@ function HUD:drawPlayerShieldsHullArmor (a)
   local cx, cy = self.sx / 2, self.sy / 2
   local text = ""
 
+  local sensorsHeight = 0
+  if Config.ui.sensorsDisplayed then
+    sensorsHeight = floor(self.sy / 9)
+  end
+
   local hudXs = 0
   local hudXh = 0
   local hudXa = 0
@@ -439,7 +448,7 @@ function HUD:drawPlayerShieldsHullArmor (a)
     hudXs = cx - 100
     hudXh = cx
     hudXa = cx + 100
-    hudY  = self.sy - 160 - floor(self.sy / 9) - 74
+    hudY  = self.sy - 160 - sensorsHeight - 74
     hudFsize = hudFontSize
   elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
     hudXs = cx - 100
@@ -483,16 +492,21 @@ function HUD:drawMissilesLeft (a)
 
   local cx, cy = self.sx / 2, self.sy / 2
 
+  local sensorsHeight = 0
+  if Config.ui.sensorsDisplayed then
+    sensorsHeight = floor(self.sy / 9)
+  end
+
   local hudX = 0
   local hudY = 0
   local hudFsize = hudFontSize
   if Config.ui.hudDisplayed == Enums.HudModes.Wide then
     hudX = cx - 150
-    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudY = self.sy - 160 - sensorsHeight - 24
     hudFsize = hudFontSize
   elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
     hudX = cx - 150
-    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 24
     hudFsize = hudFontSize
   elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
     hudX = cx - 150
@@ -512,16 +526,21 @@ function HUD:drawPlayerSpeed (a)
 
   local cx, cy = self.sx / 2, self.sy / 2
 
+  local sensorsHeight = 0
+  if Config.ui.sensorsDisplayed then
+    sensorsHeight = floor(self.sy / 9)
+  end
+
   local hudX = 0
   local hudY = 0
   local hudFsize = hudFontSize
   if Config.ui.hudDisplayed == Enums.HudModes.Wide then
     hudX = cx
-    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudY = self.sy - 160 - sensorsHeight - 24
     hudFsize = hudFontSize
   elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
     hudX = cx
-    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 24
     hudFsize = hudFontSize
   elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
     hudX = cx
@@ -540,16 +559,21 @@ function HUD:drawChaffLeft (a)
 
   local cx, cy = self.sx / 2, self.sy / 2
 
+  local sensorsHeight = 0
+  if Config.ui.sensorsDisplayed then
+    sensorsHeight = floor(self.sy / 9)
+  end
+
   local hudX = 0
   local hudY = 0
   local hudFsize = hudFontSize
   if Config.ui.hudDisplayed == Enums.HudModes.Wide then
     hudX = cx + 150
-    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudY = self.sy - 160 - sensorsHeight - 24
     hudFsize = hudFontSize
   elseif Config.ui.hudDisplayed == Enums.HudModes.Balanced then
     hudX = cx + 150
-    hudY = self.sy - 160 - floor(self.sy / 9) - 24
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 24
     hudFsize = hudFontSize
   elseif Config.ui.hudDisplayed == Enums.HudModes.Tight then
     hudX = cx + 150
@@ -708,18 +732,18 @@ function HUD:drawPowerDistro (a)
 
   -- Draw player power distribution
   HUD:drawHudTextDouble(hudXLt, hudYAt, Config.ui.color.meterBar, hudFsize, 0.0, "Engines")
-  HUD:drawHudTextDouble(hudXLt, hudYBt, Config.ui.color.meterBar, hudFsize, 0.0, "Shields")
-  HUD:drawHudTextDouble(hudXRt, hudYAt, Config.ui.color.meterBar, hudFsize, 0.0, "Computer")
-  HUD:drawHudTextDouble(hudXRt, hudYBt, Config.ui.color.meterBar, hudFsize, 0.0, "Sensors")
+  HUD:drawHudTextDouble(hudXLt, hudYBt, Config.ui.color.meterBar, hudFsize, 0.0, "Sensors")
+  HUD:drawHudTextDouble(hudXRt, hudYAt, Config.ui.color.meterBar, hudFsize, 0.0, "Weapons")
+  HUD:drawHudTextDouble(hudXRt, hudYBt, Config.ui.color.meterBar, hudFsize, 0.0, "Shields")
 
-  UI.DrawEx.Meter(hudXLm, hudYAm, 32, 8, Config.ui.color.meterBar, 10, 4, 4, 1)
-  UI.DrawEx.Meter(hudXLm, hudYBm, 32, 8, Config.ui.color.meterBar, 10, 4, 2, 1)
-  UI.DrawEx.Meter(hudXRm, hudYAm, 32, 8, Config.ui.color.meterBar, 10, 4, 1, -1)
-  UI.DrawEx.Meter(hudXRm, hudYBm, 32, 8, Config.ui.color.meterBar, 10, 4, 1, -1)
+  UI.DrawEx.Meter(hudXLm, hudYAm, 32, 8, Config.ui.color.meterBar, 10, 4, 4, true, Config.ui.color.meterBarOver,  1)
+  UI.DrawEx.Meter(hudXLm, hudYBm, 32, 8, Config.ui.color.meterBar, 10, 4, 1, true, Config.ui.color.meterBarOver,  1)
+  UI.DrawEx.Meter(hudXRm, hudYAm, 32, 8, Config.ui.color.meterBar, 10, 4, 4, true, Config.ui.color.meterBarOver, -1)
+  UI.DrawEx.Meter(hudXRm, hudYBm, 32, 8, Config.ui.color.meterBar, 10, 4, 3, true, Config.ui.color.meterBarOver, -1)
 end
 
 function HUD:drawSensors (a)
-  if Config.ui.SensorsDisplayed then
+  if Config.ui.sensorsDisplayed then
     local cx, cy = self.sx / 2, self.sy / 2
 
     -- Draw sensor readouts
@@ -735,6 +759,7 @@ end
 function HUD:drawTacticalMap (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
+  -- Draw tactical map
   UI.DrawEx.Ring(cx     , self.sy - 76, 70, Config.ui.color.meterBar, true)
   UI.DrawEx.Ring(cx     , self.sy - 76, 44, Config.ui.color.meterBar, false)
 
@@ -900,9 +925,8 @@ function HUD:drawLock (a)
     local ndc = camera:worldToNDC(pos)
     local ndcMax = max(abs(ndc.x), abs(ndc.y))
 
-    -- NOTE: flip arrow direction arrow when target in rear hemisphere relative to player view
+    -- NOTE: invert direction arrow when target in rear hemisphere relative to player view
     if ndc.z <= 0 then ndc:idivs(-ndcMax) end
---    if ndcMax > 1 or ndc.z <= 0 then ndc:idivs(ndcMax) end
 
     local ss = camera:ndcToScreen(ndc)
     local dir = ss - center
@@ -975,8 +999,8 @@ function HUD:drawReticle (a)
 end
 
 function HUD:drawPlayerHealth (a)
-  local cx, cy = self.sx / 2, self.sy / 2
   local x, y, sx, sy = self:getRectGlobal()
+  local cx, cy = sx / 2, sy / 2
   local playerShip = self.player:getControlling()
   local playerRadius = playerShip:getRadius()
   local playerHealthPct = playerShip:getHealthPercent()
@@ -1006,7 +1030,7 @@ function HUD:drawPlayerHealth (a)
 
   -- Draw player ship health as a meter
   UI.DrawEx.RectOutline(66, sy - 36, 202, 22, Config.ui.color.borderBright)
-  UI.DrawEx.Meter(72, sy - 30, 10, 10, hc, 10, 10, floor(playerHealthPct / 10), 1)
+  UI.DrawEx.Meter(72, sy - 30, 10, 10, hc, 10, 10, floor(playerHealthPct / 10), false, nil, 1)
 
   -- TEMP: Also draw the player ship's health bar under the central reticle
 --  UI.DrawEx.RectOutline(cx - 22, cy + 18, 44, 8, Config.ui.color.borderDim)
@@ -1018,8 +1042,8 @@ function HUD:drawTargetHealth (a)
   local playerShip = self.player:getControlling()
   local target = playerShip:getTarget()
   if target and target:hasHealth() and not target:isDestroyed() then
-    local cx, cy = self.sx / 2, self.sy / 2
     local x, y, sx, sy = self:getRectGlobal()
+    local cx, cy = sx / 2, sy / 2
     local targetRangeText = ""
     if playerShip:getDistance(target) >= 1000 then
       targetRangeText = format("Range: %d km", floor(playerShip:getDistance(target) / 1000 + 0.5))
@@ -1063,13 +1087,14 @@ function HUD:drawTargetHealth (a)
 
       -- Draw target health as a meter
       UI.DrawEx.RectOutline(sx - 254, sy - 36, 202, 22, Config.ui.color.borderBright)
-      UI.DrawEx.Meter(sx - 250, sy - 30, 10, 10, hc, 10, 10, floor(targetHealthPct / 10), 1)
+      UI.DrawEx.Meter(sx - 250, sy - 30, 10, 10, hc, 10, 10, floor(targetHealthPct / 10), false, nil, 1)
     end
   end
 end
 
 function HUD:drawDockPrompt (a)
   local x, y, sx, sy = self:getRectGlobal()
+  local cx, cy = sx / 2, sy / 2
   local dockText = nil
 
   if dockingAllowed then
@@ -1081,18 +1106,18 @@ function HUD:drawDockPrompt (a)
   UI.DrawEx.TextAdditive(
     "NovaMono",
     dockText,
-    16,
-    x, y, sx, sy,
+    24,
+    cx, cy - 68, 1, 1,
     0, 0, 0, self.dockPromptAlpha * a,
-    0.5, 0.96
+    0.5, 0.5
   )
   UI.DrawEx.TextAdditive(
     "NovaMono",
     dockText,
-    16,
-    x, y, sx, sy,
+    24,
+    cx, cy - 68, 1, 1,
     1, 1, 1, self.dockPromptAlpha * a,
-    0.5, 0.96
+    0.5, 0.5
   )
 end
 
@@ -1155,7 +1180,7 @@ function HUD:onUpdate (state)
     end
 
     if Input.GetPressed(Bindings.ToggleSensors) then
-      Config.ui.SensorsDisplayed = not Config.ui.SensorsDisplayed
+      Config.ui.sensorsDisplayed = not Config.ui.sensorsDisplayed
     end
 
     self.targets:update()
@@ -1216,7 +1241,7 @@ function HUD:onDraw (focus, active)
       self:drawSystemText            (self.enabled)
       self:drawTargetText            (self.enabled)
       self:drawBoostEnergy           (self.enabled)
-      self:drawWeaponEnergy          (self.enabled)
+      self:drawCapacitorEnergy       (self.enabled)
       self:drawTargetMission         (self.enabled)
       self:drawTargetType            (self.enabled)
       self:drawTargetRange           (self.enabled)

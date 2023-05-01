@@ -32,13 +32,25 @@ end
 function DockControl:onDraw (focus, active)
   -- TODO : Unify this with HUD
   local x, y, sx, sy = self:getRectGlobal()
+  local cx, cy = sx / 2, sy / 2
+
+  local dockText = "Press J to Undock" -- TODO: Connect Undocking input to bindings
+
   UI.DrawEx.TextAdditive(
-    'NovaMono',
-    'Press J to Undock', -- TODO: connect Undocking input to bindings
-    16,
-    x, y, sx, sy,
+    "NovaMono",
+    dockText,
+    24,
+    cx, cy - 68, 1, 1,
+    0, 0, 0, 1,
+    0.5, 0.5
+  )
+  UI.DrawEx.TextAdditive(
+    "NovaMono",
+    dockText,
+    24,
+    cx, cy - 68, 1, 1,
     1, 1, 1, 1,
-    0.5, 0.96
+    0.5, 0.5
   )
 end
 

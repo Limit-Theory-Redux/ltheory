@@ -93,7 +93,7 @@ function Turret:aimAtTarget (target, fallback)
 end
 
 function Turret:canFire ()
-  return not Config.game.gamePaused and self.cooldown <= 0
+  return not Config.game.gamePaused and self.cooldown <= 0 and self:getParent():getCharge() >= Config.game.pulseCharge
 end
 
 function Turret:fire ()
@@ -108,6 +108,10 @@ function Turret:fire ()
   assert(effect.dir:length() >= 0.9)
   effect.lifeMax = self.projLife
   effect.life = effect.lifeMax
+
+  -- Reduce capacitor charge if energy weapon
+  -- TODO: extend to different weapon types
+  self:getParent():discharge(Config.game.pulseCharge)
 
   if projectile then
     projectile.pos  = effect.pos
