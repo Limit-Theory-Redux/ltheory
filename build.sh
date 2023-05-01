@@ -18,16 +18,19 @@ elif [[ "$OSTYPE" == "msys" ]]; then
     libprefix=""
     libsuffix=".dll"
     binsuffix=".exe"
-    if [[ -d "/c/Program Files/LLVM/bin" ]]; then
-        export LIBCLANG_PATH="/c/Program Files/LLVM/bin"
-    elif [[ -d "/c/Program Files (x86)/LLVM/bin" ]]; then
-        export LIBCLANG_PATH="/c/Program Files (x86)/LLVM/bin"
-    else
-        echo "Please the environment variable LIBCLANG_PATH to the path containing clang.exe in your LLVM installation directory, i.e. C:\Program Files\LLVM\bin"
-        exit 1
+    if [[ -z "$LIBCLANG_PATH" ]]; then
+        if [[ -d "/c/Program Files/LLVM/bin" ]]; then
+            export LIBCLANG_PATH="/c/Program Files/LLVM/bin"
+        elif [[ -d "/c/Program Files (x86)/LLVM/bin" ]]; then
+            export LIBCLANG_PATH="/c/Program Files (x86)/LLVM/bin"
+        else
+            echo "Set the environment variable LIBCLANG_PATH to the path containing clang.exe in your LLVM installation directory, i.e. C:\Program Files\LLVM\bin"
+            exit 1
+        fi
     fi
 fi
 
+mkdir -p bin
 if [[ $debug = 1 ]]; then
     cargo build
     cp target/debug/ltr${binsuffix} bin/lt64d${binsuffix}
