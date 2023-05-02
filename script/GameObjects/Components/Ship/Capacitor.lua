@@ -40,7 +40,7 @@ function Entity:getChargeNormalized ()
 end
 
 function Entity:getChargePercent ()
-  assert(self.health)
+  assert(self.charge)
   return 100.0 * self.charge / self.chargeMax
 end
 
