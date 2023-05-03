@@ -9,20 +9,11 @@
 )]
 #![feature(extern_types)]
 
-extern "C" {
-    pub type lua_State;
-    fn Directory_Change(cwd: cstr) -> bool;
-    fn Fatal(_: cstr, _: ...);
-    fn Engine_Init(glVersionMajor: libc::c_int, glVersionMinor: libc::c_int);
-    fn Engine_Free();
-    fn File_Exists(path: cstr) -> bool;
-    fn Lua_Create() -> *mut Lua;
-    fn Lua_Free(_: *mut Lua);
-    fn Lua_DoFile(_: *mut Lua, name: cstr);
-    fn Lua_SetBool(_: *mut Lua, name: cstr, _: bool);
-    fn Lua_SetNumber(_: *mut Lua, name: cstr, _: libc::c_double);
-    fn Lua_SetStr(_: *mut Lua, name: cstr, _: cstr);
-}
+use phx::Lua::*;
+use phx::Engine::*;
+use phx::File::*;
+use phx::Directory::*;
+use phx::Common::common_impl::Fatal;
 
 pub type cstr = *const libc::c_char;
 pub type Lua = lua_State;

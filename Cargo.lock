@@ -1067,8 +1067,22 @@ dependencies = [
 name = "ltheory"
 version = "0.0.0"
 dependencies = [
+ "cbindgen",
+ "cc",
+ "chrono",
+ "cmake",
+ "flate2",
+ "fmod-sys",
+ "freetype-sys",
+ "gl_generator",
+ "glam",
+ "image",
  "libc",
- "phx",
+ "memoffset",
+ "mlua",
+ "printf-compat",
+ "rodio",
+ "sdl2-sys",
 ]
 
 [[package]]
@@ -1392,28 +1406,6 @@ name = "percent-encoding"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
-
-[[package]]
-name = "phx"
-version = "0.0.0"
-dependencies = [
- "cbindgen",
- "cc",
- "chrono",
- "cmake",
- "flate2",
- "fmod-sys",
- "freetype-sys",
- "gl_generator",
- "glam",
- "image",
- "libc",
- "memoffset",
- "mlua",
- "printf-compat",
- "rodio",
- "sdl2-sys",
-]
 
 [[package]]
 name = "pin-project"
