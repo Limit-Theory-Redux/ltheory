@@ -7,17 +7,18 @@
     unused_assignments,
     unused_mut
 )]
+#![feature(c_variadic)]
 #![feature(extern_types)]
+#![feature(thread_local)]
+
+pub mod phx;
 
 use phx::Lua::*;
 use phx::Engine::*;
 use phx::File::*;
 use phx::Directory::*;
 use phx::Common::common_impl::Fatal;
-pub use phx::Audio::*;
 
-pub type cstr = *const libc::c_char;
-pub type Lua = lua_State;
 unsafe fn main_0(argc: libc::c_int, argv: *mut *mut libc::c_char) -> libc::c_int {
     Engine_Init(2 as libc::c_int, 1 as libc::c_int);
     let mut lua: *mut Lua = Lua_Create();
@@ -51,7 +52,7 @@ unsafe fn main_0(argc: libc::c_int, argv: *mut *mut libc::c_char) -> libc::c_int
         Lua_SetStr(
             lua,
             b"__app__\0" as *const u8 as *const libc::c_char,
-            *argv.offset(1 as libc::c_int as isize) as cstr,
+            *argv.offset(1 as libc::c_int as isize) as *const libc::c_char,
         );
     }
     Lua_DoFile(lua, b"./script/Main\0" as *const u8 as *const libc::c_char);
