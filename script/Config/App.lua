@@ -264,6 +264,7 @@ Config.ui.color = {
   clientBackground  = Color(0.30, 0.30, 0.30, 0.0),
   meterBar          = Color(0.10, 0.60, 1.00, 0.7),
   meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
+  meterBarOver      = Color(1.00, 0.30, 0.00, 0.6),
   remainingBoost    = Color(1.00, 0.50, 0.00, 0.7),
   remainingEnergy   = Color(0.50, 0.00, 1.00, 0.7),
 

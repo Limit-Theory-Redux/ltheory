@@ -35,6 +35,7 @@ GameState.ui = {
   showTrackers          = Config.ui.showTrackers,
   controlBarHeight      = Config.ui.controlBarHeight,
   displayHUD            = Config.ui.displayHUD,
+  displaySensors        = Config.ui.displaySensors
 }
 
 GameState.player = {
