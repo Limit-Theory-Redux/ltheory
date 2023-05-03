@@ -14,6 +14,7 @@ use phx::Engine::*;
 use phx::File::*;
 use phx::Directory::*;
 use phx::Common::common_impl::Fatal;
+pub use phx::Audio::*;
 
 pub type cstr = *const libc::c_char;
 pub type Lua = lua_State;

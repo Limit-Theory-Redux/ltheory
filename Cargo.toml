@@ -10,6 +10,9 @@ publish = false
 edition = "2021"
 autobins = false
 
+[profile.dev]
+lto = "thin"
+
 [[bin]]
 name = "ltr"
 path = "src/Main.rs"

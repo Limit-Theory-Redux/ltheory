@@ -397,10 +397,11 @@ do -- Transparent Structs
 end
 
 do -- Load Library
-  local debug = __debug__ and 'd' or ''
-  local path = string.format('phx%s', debug)
-  libphx.lib = ffi.load(path, false)
-  assert(libphx.lib, 'Failed to load %s', path)
+  libphx.lib = ffi.C
+  -- local debug = __debug__ and 'd' or ''
+  -- local path = string.format('phx%s', debug)
+  -- libphx.lib = ffi.load(path, false)
+  -- assert(libphx.lib, 'Failed to load %s', path)
 end
 
 return libphx

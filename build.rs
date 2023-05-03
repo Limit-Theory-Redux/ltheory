@@ -29,6 +29,8 @@ fn gen_bindings() {
 fn main() {
     println!("cargo:rustc-env=PHX_VERSION=0.0.1");
 
+    println!("cargo:rustc-link-arg=-rdynamic");
+
     use std::str::FromStr;
 
     // Generate GL bindings.
