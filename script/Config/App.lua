@@ -87,9 +87,9 @@ Config.gen = {
 
   nFields    = 20,
   nFieldSize = function (rng) return 200 * (rng:getExp() + 1.0) end,
-  nStations  = 0,
-  nPlanets   = 0,
   nAsteroids = 200, -- asteroids per asteroid field (smaller = less CPU hit)
+  nPlanets   = 0,
+  nStations  = 0,
   nBeltSize  = function (rng) return 0 end, -- asteroids per planetary belt
 
   nDustFlecks = 1024,
@@ -168,6 +168,7 @@ Config.game = {
   pulseSpeed             = 1e3, -- was 6e2
   pulseRange             = 1000,
   pulseSpread            = 0.01,
+  pulseCharge            = 2.0, -- default amount of capacitor charge used by each shot
   pulseColorBodyR        = 0.3,
   pulseColorBodyG        = 0.8,
   pulseColorBodyB        = 2.0,
@@ -244,7 +245,7 @@ Config.ui = {
   showTrackers     = true,
   controlBarHeight = 48,
   hudDisplayed     = 0,
-  SensorsDisplayed = true,
+  sensorsDisplayed = true,
   cursorSmooth     = "cursor/cursor1-small",
   cursorSimple     = "cursor/Simple_Cursor",
   cursor           = "cursor/Simple_Cursor",
@@ -280,6 +281,7 @@ Config.ui.color = {
   clientBackground  = Color(0.30, 0.30, 0.30, 0.0),
   meterBar          = Color(0.10, 0.60, 1.00, 0.7),
   meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
+  meterBarOver      = Color(1.00, 0.30, 0.00, 0.6),
   remainingBoost    = Color(1.00, 0.50, 0.00, 0.7),
   remainingEnergy   = Color(0.50, 0.00, 1.00, 0.7),
 

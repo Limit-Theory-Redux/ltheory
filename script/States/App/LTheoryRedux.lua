@@ -70,6 +70,16 @@ function LTheoryRedux:toggleSound ()
   end
 end
 
+function LTheoryRedux:SoundOn ()
+  Config.audio.bSoundOn = true
+  MusicPlayer:SetVolume(1)
+end
+
+function LTheoryRedux:SoundOff ()
+  Config.audio.bSoundOn = false
+  MusicPlayer:SetVolume(0)
+end
+
 function LTheoryRedux:onInput ()
   self.canvas:input()
 end
@@ -200,6 +210,8 @@ function LTheoryRedux:onUpdate (dt)
     if not MainMenu.inBackgroundMode then
       if MainMenu.seedDialogDisplayed then
         MainMenu:ShowSeedDialog()
+      elseif MainMenu.settingsScreenDisplayed then
+        MainMenu:ShowSettingsScreen()
       else
         MainMenu:ShowGui()
       end
@@ -209,6 +221,8 @@ function LTheoryRedux:onUpdate (dt)
       MainMenu:ShowFlightDialog()
     elseif MainMenu.seedDialogDisplayed then
       MainMenu:ShowSeedDialog()
+    elseif MainMenu.settingsScreenDisplayed then
+      MainMenu:ShowSettingsScreen()
     end
   end
   HmGui.End()

@@ -154,10 +154,8 @@ function Application:run ()
 
       if Config.game.gamePaused then
         timeScale = 0.0
-        self.window:setWindowGrab(false)
       else
         timeScale = 1.0
-        self.window:setWindowGrab(true)
       end
 
       if Input.GetDown(Bindings.TimeAccel) then

@@ -134,7 +134,7 @@ function DrawEx.Line (x1, y1, x2, y2, color, fade)
   BlendMode.Pop()
 end
 
-function DrawEx.Meter (x, y, sx, sy, color, spacing, total, level, direction)
+function DrawEx.Meter (x, y, sx, sy, color, spacing, total, level, overcharge, overchargeColor, direction)
   -- NOTE: There must be a more elegant way to do this, but brain will not brain today
   local filled = level
   if direction == -1 then
@@ -143,14 +143,22 @@ function DrawEx.Meter (x, y, sx, sy, color, spacing, total, level, direction)
       if i <= filled then
         DrawEx.PanelGlow(x, y, sx, sy, color)
       else
-        DrawEx.Rect(x, y, sx, sy, color)
+        if overcharge and i == 1 then
+          DrawEx.Rect(x, y, sx, sy, overchargeColor)
+        else
+          DrawEx.Rect(x, y, sx, sy, color)
+        end
       end
       x = x + sx + spacing
     end
   else
     for i = 1, total do
       if i <= filled then
-        DrawEx.Rect(x, y, sx, sy, color)
+        if overcharge and i == total then
+          DrawEx.Rect(x, y, sx, sy, overchargeColor)
+        else
+          DrawEx.Rect(x, y, sx, sy, color)
+        end
       else
         DrawEx.PanelGlow(x, y, sx, sy, color)
       end
