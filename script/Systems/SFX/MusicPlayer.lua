@@ -24,39 +24,49 @@ function MusicPlayer:SetVolume(volume)
   self.volume = volume
   GameState.audio.musicVolume = volume
 
-  for index, soundObject in ipairs(self.trackList) do
+  for _, soundObject in ipairs(self.trackList) do
+printf("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
     Sound.SetVolume(soundObject.sound, volume)
   end
 end
 
 function MusicPlayer:OnUpdate(dt)
+  local rng = RNG.FromTime()
   if self.currentlyPlaying then
     if not self.currentlyPlaying:IsPlaying() then
       self.currentlyPlaying = nil
     end
   elseif not self.currentlyPlaying and #self.queue > 0 then
-    self.currentlyPlaying = self.queue[1]
+    local trackNum = rng:getInt(1, #self.queue)
+    local track = self.queue[trackNum]
+    self.currentlyPlaying = track -- randomly pick one of the queued tracks
+printf("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
     self.currentlyPlaying:Play()
+    track:SetVolume(self.volume)
   end
 end
 
 function MusicPlayer:PlayAmbient()
-  local queueClear = false
-  for index, soundObject in pairs(self.trackList) do
+  -- Queue all tracks except Main Menu track
+  MusicPlayer:ClearQueue()
+
+  for index, soundObject in ipairs(self.trackList) do
     if not string.match(soundObject.name, Config.audio.mainMenu) then
       -- ignore main menu
       -- replace this with music types later
-      if not queueClear then
-        MusicPlayer:QueueTrack(soundObject, true)
-        queueClear = true
-      else
-        MusicPlayer:QueueTrack(soundObject, false)
-      end
+printf("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
+      MusicPlayer:QueueTrack(soundObject, false)
     end
   end
+
+  -- Randomly select a track loaded to the queue and start playing it
+  local trackNum = RNG.FromTime():getInt(1, #self.queue)
+  MusicPlayer:StartTrack(self.queue[trackNum])
 end
 
 function MusicPlayer:QueueTrack(query, clearQueue)
+  -- Add a track to the queue (possibly deleting all queued tracks first)
+  -- Note: This just adds tracks to the queue; it doesn't start playing any of them
   local track = self:FindTrack(query)
 
   if not track then
@@ -64,28 +74,60 @@ function MusicPlayer:QueueTrack(query, clearQueue)
     return
   end
 
-  if clearQueue and #self.queue > 0 then
-    self.queue = {}
-    self.currentlyPlaying:Pause()
-    self.currentlyPlaying:Rewind()
-    self.currentlyPlaying = nil
+  if clearQueue then
+    MusicPlayer:ClearQueue()
   end
 
   table.insert(self.queue, track)
 
-  if not self.currentlyPlaying then
+--  printf("Queuing Track: " .. track.name)
+  return track
+end
+
+function MusicPlayer:ClearQueue()
+  if #self.queue > 0 then
+--printf("MusicPlayer:ClearQueue: clearing entire queue")
+    self.queue = {}
+    if self.currentlyPlaying then
+      self.currentlyPlaying:Pause()
+      self.currentlyPlaying:Rewind()
+      self.currentlyPlaying = nil
+    end
+  end
+end
+
+function MusicPlayer:ClearQueueTrack(query)
+  if #self.queue > 0 then
+    if self.currentlyPlaying and self.currentlyPlaying == query then
+      self.currentlyPlaying:Pause()
+      self.currentlyPlaying:Rewind()
+      self.currentlyPlaying = nil
+    end
+    for i, track in ipairs(self.queue) do
+      if track == query then
+printf("MusicPlayer:ClearQueueTrack: clearing queued track '%s'", query.name)
+        table.remove(self.queue, i)
+        break
+      end
+    end
+  end
+end
+
+function MusicPlayer:StartTrack(query)
+  local track = self:FindTrack(query)
+  if self.currentlyPlaying ~= track then
+printf("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
     track:Rewind()
-    track:SetVolume(self.volume)
     track:Play()
+    track:SetVolume(self.volume)
     self.currentlyPlaying = track
   end
-  printf("Queuing Track: " .. track.name)
-  return track
 end
 
 function MusicPlayer:StopTrack(query)
   local track = self:FindTrack(query)
   if track and self.currentlyPlaying == track then
+printf("MusicPlayer:StopTrack: stopping track '%s'", track.name)
     track:Pause()
     track:Rewind()
     self.currentlyPlaying = nil
@@ -93,7 +135,7 @@ function MusicPlayer:StopTrack(query)
 end
 
 function MusicPlayer:FindTrack(query)
-  for index, soundObject in pairs(self.trackList) do
+  for _, soundObject in pairs(self.trackList) do
     if type(query) == "string" then
       if string.find(soundObject.name, query) then
         return soundObject
@@ -102,7 +144,7 @@ function MusicPlayer:FindTrack(query)
         return soundObject
     end
   end
-  printf("Couldn´t find track")
+  printf("Couldn't find track")
   return nil
 end
 

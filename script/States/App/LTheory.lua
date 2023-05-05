@@ -20,8 +20,7 @@ function LTheory:generate ()
   if self.system then self.system:delete() end
   self.system = System(self.seed)
   GameState.world.currentSystem = self.system
-
-  GameState.ui.displayHUD = Enums.HudModes.Tight
+  GameState.ui.hudStyle = Enums.HudStyles.Tight
 
   local ship
   do -- Player Ship

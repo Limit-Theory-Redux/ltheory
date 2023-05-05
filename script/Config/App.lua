@@ -23,16 +23,11 @@ Config.audio = {
   enabled = true,
   supportedFormats = {".ogg"},
   mainMenuMusicEnabled = true,
-  soundMin  = 0,
-  soundMax  = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
-  fxVolume = 0.75,
-  musicVolume = 0.75,
-
-  mainMenu       = "LTR_Main_Menu.ogg",
-  backLoop1      = "LTR_Parallax_Universe_loop.ogg",
-  backLoop2      = "LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg",
-  backLoop3      = "LTR_Explortation_Doodle.mp3",
-  backLoop4      = "LTR_Harmonic_Universe_Redux_Ambient.ogg",
+  bSoundOn    = false,
+  soundMin    = 0,
+  soundMax    = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+  musicVolume = 1, -- current volume
+  mainMenu    = "LTR_Main_Menu.ogg",
 
   pulseFireName      = "",
   pulseFire          = nil,
@@ -229,11 +224,13 @@ Config.ui = {
   defaultControl   = "Ship", -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
   controlBarHeight = 48,
-  displayHUD       = 1,
   displaySensors   = true,
+  hudStyle         = 1,
+  sensorsDisplayed = true,
   cursorSmooth     = "cursor/cursor1-small",
   cursorSimple     = "cursor/Simple_Cursor",
   cursor           = "cursor/Simple_Cursor",
+  cursorStyle      = 0,
   cursorX          = 1,
   cursorY          = 1,
 }
