@@ -245,11 +245,11 @@ function MainMenu:ShowSeedDialogInner()
     self.seedDialogDisplayed = false
     --self:SetMenuMode(GameState:GetCurrentState())
     LTheoryRedux:freezeTurrets()
-    GameState.paused = false
+    GameState:Unpause()
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
       GameState.panelActive = false
-      Input.SetMouseVisible(false)
+      Input.SetMouseVisible(true)
     end
   end
 
@@ -294,6 +294,7 @@ end
 
 function MainMenu:ShowSettingsScreen()
   -- Add new star system seed selection dialog menu
+  self.dialogDisplayed = false
   self.settingsScreenDisplayed = true
 
   HmGui.BeginWindow(guiElements.name)
@@ -616,15 +617,12 @@ function MainMenu:ShowSettingsScreenInner()
       guiSettings[i][2] = nil
     end
 
+    self.dialogDisplayed = true
     self.settingsScreenDisplayed = false
-    GameState.paused = false
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
       LTheoryRedux:freezeTurrets()
-      GameState:SetState(Enums.GameState.InGame) -- return to Flight Mode
-      Config.game.flightModeButInactive = false
-      GameState.panelActive = false
-      Input.SetMouseVisible(false)
+      Input.SetMouseVisible(true)
     end
   end
 
@@ -632,8 +630,8 @@ function MainMenu:ShowSettingsScreenInner()
 
   if HmGui.Button("Use") then
     -- Return to the game using the selected values of each setting
+    self.dialogDisplayed = true
     self.settingsScreenDisplayed = false
-    GameState.paused = false
 
     GameState.ui.cursorStyle = guiSettings[3][1]
     GameState.ui.hudStyle = guiSettings[4][1]
@@ -654,10 +652,7 @@ function MainMenu:ShowSettingsScreenInner()
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
       LTheoryRedux:freezeTurrets()
-      GameState:SetState(Enums.GameState.InGame) -- return to Flight Mode
-      Config.game.flightModeButInactive = false
-      GameState.panelActive = false
-      Input.SetMouseVisible(false)
+      Input.SetMouseVisible(true)
     end
   end
 
@@ -690,9 +685,10 @@ function MainMenu:ShowFlightDialogInner()
     if HmGui.Button("Return to Game") then
       --printf("panelActive = %s, defaultControl = %s", Config.game.panelActive, Config.ui.defaultControl)
       LTheoryRedux:freezeTurrets()
-      Config.game.flightModeButInactive = false
-      GameState.paused = false
+      GameState:SetState(Enums.GameStates.InGame)
+      GameState:Unpause()
       GameState.panelActive = false
+      self.dialogDisplayed = false
 
       if GameState.ui.currentControl == "Ship" then
         Input.SetMouseVisible(false)
@@ -706,8 +702,7 @@ function MainMenu:ShowFlightDialogInner()
     if HmGui.Button("Save Game") then
       -- TODO: Save game state here
       LTheoryRedux:freezeTurrets()
-      Config.game.flightModeButInactive = false
-      GameState.paused = false
+      GameState:Unpause()
       GameState.panelActive = false
       Input.SetMouseVisible(false)
     end
@@ -718,16 +713,14 @@ function MainMenu:ShowFlightDialogInner()
     -- TODO: Show Load Game menu once that's been implemented
     -- NOTE: For now, just pop up a Seed Menu dialog for creating a new star system
     self:ShowSeedDialog()
-    Config.game.flightModeButInactive = false
   end
   HmGui.SetSpacing(8)
 
   if HmGui.Button("Game Settings") then
     -- Show Game Settings menu
     self:ShowSettingsScreen()
-    Config.game.flightModeButInactive = false
-    GameState.paused = false
-    Input.SetMouseVisible(false)
+    GameState:Pause()
+    Input.SetMouseVisible(true)
   end
   HmGui.SetSpacing(8)
 
@@ -735,7 +728,7 @@ function MainMenu:ShowFlightDialogInner()
     Config.game.flightModeButInactive = true
     GameState:SetState(Enums.GameStates.MainMenu) -- switch to Startup Mode
     LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
-    GameState.paused = false
+    GameState:Unpause()
   end
   HmGui.SetSpacing(8)
 

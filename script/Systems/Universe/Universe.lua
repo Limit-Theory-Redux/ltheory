@@ -102,7 +102,8 @@ function Universe:AddFaction(name, type, players)
 end
 
 function Universe:AddSystemEconomy(system)
-
+  -- do other stuff here too
+  UniverseEconomy:AddSystem(system)
 end
 
 return Universe

@@ -684,9 +684,12 @@ function System:spawnBackground ()
   -- For a star system background only (no ship), spawn an invisible ship
   --   (because System.lua needs a thing with mass, scale, drag, and thrust
   --   in order to rotate around a camera viewpoint)
-  local shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
-  local backgroundShip = shipType:instantiate()
+  if not self.shipType then
+    self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
+  end
+  local backgroundShip = self.shipType:instantiate()
   local player = Player("Background Player")
+  self:addChild(backgroundShip)
   insert(self.players, player)
 
   -- Insert ship into this star system

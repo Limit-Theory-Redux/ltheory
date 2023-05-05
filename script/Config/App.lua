@@ -92,7 +92,7 @@ Config.gen = {
   nStars      = function (rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
 
   shipRes     = 8,
-  nebulaRes   = 1024,
+  nebulaRes   = 2048,
 
   nAIPlayers  = 0,  -- # of AI players (who manage Economic assets)
   nEconNPCs   = 0,  -- # of ships to be given Economic actions (managed by AI players)
