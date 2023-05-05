@@ -48,36 +48,53 @@ function LTheoryRedux:onInit ()
   --* Game initializations *--
   self.window:setSize(Config.render.startingHorz, Config.render.startingVert)
   Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
-  if Config.render.fullscreen then
-    self.window:toggleFullscreen()
-  end
+  LTheoryRedux:SetFullscreen(Config.render.fullscreen)
 
   -- Set the default game control cursor
-  self.window:setCursor(Config.ui.cursor, Config.ui.cursorX, Config.ui.cursorY)
+  LTheoryRedux:setCursor(Enums.CursorFilenames[Config.ui.cursorStyle], Config.ui.cursorX, Config.ui.cursorY)
 
   self.player = Entities.Player(Config.game.humanPlayerName)
   Config.game.humanPlayer = self.player
   self:generate()
 end
 
+function LTheoryRedux:setCursor (cursorStyle, cursorX, cursorY)
+  -- Set the game control cursor
+  self.window:setCursor(cursorStyle, cursorX, cursorY)
+end
+
 function LTheoryRedux:toggleSound ()
   Config.audio.bSoundOn = not Config.audio.bSoundOn
 
   if Config.audio.bSoundOn then
+--printf("LTheoryRedux:toggleSound: volume set to 1")
     MusicPlayer:SetVolume(1)
   else
+--printf("LTheoryRedux:toggleSound: volume set to 0")
     MusicPlayer:SetVolume(0)
   end
 end
 
 function LTheoryRedux:SoundOn ()
   Config.audio.bSoundOn = true
+--printf("LTheoryRedux:SoundOn: volume set to 1")
   MusicPlayer:SetVolume(1)
 end
 
 function LTheoryRedux:SoundOff ()
   Config.audio.bSoundOn = false
+--printf("LTheoryRedux:SoundOff: volume set to 0")
   MusicPlayer:SetVolume(0)
+end
+
+function LTheoryRedux:ToggleFullscreen ()
+  Config.render.fullscreen = not Config.render.fullscreen
+  self.window:setFullscreen(Config.render.fullscreen)
+end
+
+function LTheoryRedux:SetFullscreen (fullscreen)
+  Config.render.fullscreen = fullscreen
+  self.window:setFullscreen(fullscreen)
 end
 
 function LTheoryRedux:onInput ()
@@ -156,6 +173,7 @@ function LTheoryRedux:onUpdate (dt)
         if Config.game.flightModeButInactive then
           Config.game.gamePaused = true
         else
+          Config.game.panelActive = false
           Config.game.gamePaused = false
         end
       end
@@ -232,10 +250,14 @@ function LTheoryRedux:onUpdate (dt)
     LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu)
   end
 
-  -- If player pressed the "toggle audio" key, turn it off if it's on or on if it's off
-  if Input.GetPressed(Bindings.ToggleSound) then
-    LTheoryRedux:toggleSound()
-  end
+  -- If player pressed the "toggle audio" key (currently F8), turn audio off if it's on or on if it's off
+  -- NOTE: This is now disabled as we can use Settings to control Audio on/off, but I'm
+  --       preserving it temporarily in case we want it back for some reason
+  -- NOTE 2: This is currently the only place that calls LTheoryRedux:toggleSound(), so it might also be
+  --         a candidate for deletion if we do decide to yank the key-based audio toggle
+--  if Input.GetPressed(Bindings.ToggleSound) then
+--    LTheoryRedux:toggleSound()
+--  end
 end
 
 function LTheoryRedux:generateNewSeed ()
@@ -437,6 +459,7 @@ printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nA
 
   -- Temporary until game states are properly introduced
   if Config.getGameMode() == 2 then
+printf("LTheoryRedux: PlayAmbient")
     MusicPlayer:PlayAmbient()
   end
 

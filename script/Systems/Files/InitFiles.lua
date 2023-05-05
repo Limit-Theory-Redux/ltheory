@@ -132,10 +132,11 @@ function InitFiles:readUserInits ()
         if eIndex then
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
-          if string.match(text, "simple") then
-            Config.ui.cursor = Config.ui.cursorSimple
-          elseif string.match(text, "smooth") then
-            Config.ui.cursor = Config.ui.cursorSmooth
+          for cursorStyle = 1, Enums.CursorStyleCount do
+            if string.match(text, string.lower(Enums.CursorStyleNames[cursorStyle])) then
+              Config.ui.cursorStyle = cursorStyle
+              break
+            end
           end
         end
       elseif string.find(string.lower(line), "hudstyle") then
@@ -143,12 +144,11 @@ function InitFiles:readUserInits ()
         if eIndex then
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
-          if string.match(text, "tight") then
-            Config.ui.hudDisplayed = Enums.HudModes.Tight
-          elseif string.match(text, "balanced") then
-            Config.ui.hudDisplayed = Enums.HudModes.Balanced
-          elseif string.match(text, "wide") then
-            Config.ui.hudDisplayed = Enums.HudModes.Wide
+          for hudStyle = 1, Enums.HudStyleCount do
+            if string.match(text, string.lower(Enums.HudStyleNames[hudStyle])) then
+              Config.ui.hudStyle = hudStyle
+              break
+            end
           end
         end
       elseif string.find(string.lower(line), "shipname") then
@@ -170,18 +170,9 @@ function InitFiles:writeUserInits ()
   local filepath = Config.paths.files
   local openedFile = io.open(filepath .. filename, "w")
 
-  -- NOTE: Update this section as new cursors are added
-  -- TODO: Functionalize this with config values
-  local cursorType = "simple"
-  if Config.ui.cursor == Config.ui.cursorSmooth then
-    cursorType = "smooth"
-  end
-  local hudType = "tight"
-  if Config.ui.hudDisplayed == Enums.HudModes.Balanced then
-    hudType = "balanced"
-  elseif Config.ui.hudDisplayed == Enums.HudModes.Wide then
-    hudType = "wide"
-  end
+  local cursorType = string.lower(Enums.CursorStyleNames[Config.ui.cursorStyle])
+
+  local hudType = string.lower(Enums.HudStyleNames[Config.ui.hudStyle])
 
   -- Sets the input file for writing
   io.output(openedFile)

@@ -1,7 +1,16 @@
 -- Enumerations for HUD modes
-Enums.HudModes = {
-  None     =  0,
-  Wide     =  1,
-  Balanced =  2,
-  Tight    =  3,
+Enums.HudStyleCount = 4
+
+Enums.HudStyles = {
+  None     = 1,
+  Wide     = 2,
+  Balanced = 3,
+  Tight    = 4,
+}
+
+Enums.HudStyleNames = {
+  "None",
+  "Wide",
+  "Balanced",
+  "Tight",
 }

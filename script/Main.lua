@@ -11,6 +11,7 @@ Core.Call(function ()
 
   dofile('./script/Config/App.lua')
   dofile('./script/Enums/MusicEnums.lua')
+  dofile('./script/Enums/CursorEnums.lua')
   dofile('./script/Enums/HudEnums.lua')
   dofile('./script/Enums/RoleClassEnums.lua')
   dofile('./script/Enums/JobEnums.lua')
