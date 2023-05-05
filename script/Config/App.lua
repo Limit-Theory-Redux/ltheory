@@ -221,10 +221,12 @@ Config.econ = {
   pickupDistWeightTran    = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
   markup                  = 1.2, -- change to base value when calculating ask price for selling an item
   markdown                = 0.8, -- change to base value when calculating bid price for buying an item
+
+  lowAttentionUpdateRate = 5,
 }
 
 Config.ui = {
-  defaultControl   = "Ship", -- enable flight mode as default so that LTheory.lua still works
+  defaultControl   = "Background", -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
   controlBarHeight = 48,
   displayHUD       = true,

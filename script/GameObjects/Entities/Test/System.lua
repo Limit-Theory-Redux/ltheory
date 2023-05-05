@@ -623,7 +623,7 @@ function System:spawnShip (player)
     shipPlayer = player
   else
     shipPlayer = Player(format("Ship Player for %s", ship:getName()))
-    insert(self.aiPlayers, shipPlayer)
+    insert(self.players, shipPlayer)
   end
   ship:setOwner(shipPlayer)
 
@@ -684,18 +684,22 @@ function System:spawnBackground ()
   -- For a star system background only (no ship), spawn an invisible ship
   --   (because System.lua needs a thing with mass, scale, drag, and thrust
   --   in order to rotate around a camera viewpoint)
-  if not self.shipType then
-    self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
-  end
-  local background = self.shipType:instantiate()
-
+  local shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
+  local backgroundShip = shipType:instantiate()
+  print("Spawn invisible")
   local player = Player("Background Player")
-  background:setOwner(player)
+  backgroundShip:setOwner(player)
   insert(self.players, player)
 
-  self:addChild(background)
+  self:addChild(backgroundShip)
 
-  return background
+  -- Insert ship into this star system
+  backgroundShip:setPos(Config.gen.origin)
+  backgroundShip:setFriction(0)
+  backgroundShip:setSleepThreshold(0, 0)
+  backgroundShip:setOwner(GameState.player.humanPlayer)
+  self:addChild(backgroundShip)
+  GameState.player.humanPlayer:setControlling(backgroundShip)
 end
 
 return System

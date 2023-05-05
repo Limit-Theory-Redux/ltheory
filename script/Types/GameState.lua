@@ -46,6 +46,7 @@ GameState.player = {
   playerMoving        = false,
 
   currentShip         = nil,
+  weaponGroup         = 1,
 
   mapSystemPos        = Vec3f(0, 0, 0),
   mapSystemZoom       = 0.0001,

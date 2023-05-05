@@ -14,10 +14,7 @@ local Universe = require('Systems.Universe.Universe')
 LTheoryRedux = require('States.Application')
 
 --** LOCAL VARIABLES **--
-local newSound = nil
-local newSeed = 0ULL
 local newShip = nil
-local bNewSSystem = false
 local bShowSystemMap = false
 local bSMapAdded = false
 local smap = nil
@@ -40,6 +37,9 @@ function LTheoryRedux:onInit ()
 
   if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
 
+  -- Initialize Universe
+  Universe:Init()
+
   -- Open Main Menu
   MusicPlayer:Init()
   MainMenu:Open()
@@ -51,8 +51,8 @@ function LTheoryRedux:onInit ()
     self.window:toggleFullscreen()
   end
 
-  self.player = Entities.Player(GameState.player.humanPlayerName)
-  GameState.player.humanPlayer = self.player
+  local humanPlayer = Entities.Player(GameState.player.humanPlayerName)
+  GameState.player.humanPlayer = humanPlayer
   self:generate()
 end
 
@@ -108,14 +108,14 @@ end
 
 function LTheoryRedux:onUpdate (dt)
   -- Routes
-  self.player:getRoot():update(dt)
+  GameState.player.humanPlayer:getRoot():update(dt)
   self.canvas:update(dt)
   MainMenu:OnUpdate(dt)
   MusicPlayer:OnUpdate(dt)
-  UniverseEconomy:OnUpdate(dt)
+  Universe:OnUpdate(dt)
 
   -- TODO: Confirm whether this is still needed
-  local playerShip = self.player
+  local playerShip = GameState.player.humanPlayer
   if playerShip ~= nil then
     playerShip = GameState.player.currentShip
   end
@@ -164,7 +164,7 @@ function LTheoryRedux:onUpdate (dt)
   if Input.GetPressed(Bindings.SystemMap) and MainMenu.currentMode == Enums.MenuMode.Dialog then
     bShowSystemMap = not bShowSystemMap
     if smap == nil then
-      smap = Systems.CommandView.SystemMap(self.system)
+      smap = Systems.CommandView.SystemMap(GameState.world.currentSystem)
     end
   end
 
@@ -275,21 +275,19 @@ function LTheoryRedux:createStarSystem ()
     Config.render.zFar        = Config.gen.zFarReal
   end
 
-  -- Spawn a new star system
-  self.system = System(self.seed)
-  GameState.world.currentSystem = self.system -- remember the player's current star system
-
   do
-    if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
+    if GameState:GetCurrentState() == Enums.GameStates.MainMenu or GameState:GetCurrentState() == Enums.GameStates.Splashscreen then
+      -- Spawn a new star system
+      local backgroundSystem = System(self.seed)
+      GameState.world.currentSystem = backgroundSystem -- remember the player's current star system
       -- Background Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, and an invisible rotating ship
-      newShip = self.system:spawnBackground() -- spawn an invisible ship
-      LTheoryRedux:insertShip(newShip)
+      backgroundSystem:spawnBackground() -- spawn an invisible ship
 
       -- Add a planet
       for i = 1, 1 do
-        local planet = self.system:spawnPlanet(false) -- no planetary asteroid belt
+        local planet = backgroundSystem:spawnPlanet(false) -- no planetary asteroid belt
         local ppos = planet:getPos()
         ppos.x = ppos.x * 2
         ppos.y = ppos.y * 2
@@ -299,74 +297,26 @@ function LTheoryRedux:createStarSystem ()
       -- Add an asteroid field
       -- Must add BEFORE space stations
       for i = 1, rng:getInt(0, 1) do -- 50/50 chance of having asteroids
-        self.system:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
+        backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
       end
 
       -- Add a space station
-      local station = self.system:spawnStation(Config.game.humanPlayer, nil)
+      local station = backgroundSystem:spawnStation(Config.game.humanPlayer, nil)
     else
-      -- Flight Mode
-
-      -- Reset variables used between star systems
-      GameState.paused   = false
-      GameState.panelActive  = false
-      GameState.player.playerMoving = false
-
-      -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-      --   a space station, a visible pilotable ship, and possibly some NPC ships
-      local afield = nil
-
-      -- Add planets
-      local planet = nil -- remember the last planet created (TODO: remember ALL the planets)
-      for i = 1, Config.gen.nPlanets do
-        planet = self.system:spawnPlanet(false)
-      end
-
-      -- Add asteroid fields
-      -- Must add BEFORE space stations
-      for i = 1, Config.gen.nFields do
-        afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, false)
-        printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
-      end
-
-      -- Add the player's ship
-      newShip = self.system:spawnShip(GameState.player.humanPlayer)
-      newShip:setName(GameState.player.humanPlayerShipName)
-      newShip:setHealth(500, 500, 10) -- make the player's ship healthier than the default NPC ship
-
-      LTheoryRedux:insertShip(newShip)
-
-      GameState.player.currentShip = newShip
-
-      -- Set our ship's starting location within the extent of a random asteroid field
-      self.system:place(newShip)
-printf("Added our ship, the '%s', at pos %s", newShip:getName(), newShip:getPos())
-
-      -- Add System to the UniverseEconomy
-      Universe:AddStarSystem(self.system)
+      Universe:CreateStarSystem(self.seed)
     end
   end
   -- Insert the game view into the application canvas to make it visible
-  self.gameView = Systems.Overlay.GameView(self.player)
+  self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
   self.canvas = UI.Canvas()
   self.canvas
     :add(self.gameView
-      :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
+      :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
     )
 
     if GameState.GetCurrentState == Enums.GameStates.InGame then
       MusicPlayer:PlayAmbient()
     end
-end
-
-function LTheoryRedux:insertShip(ourShip)
-  -- Insert ship into this star system
-  ourShip:setPos(Config.gen.origin)
-  ourShip:setFriction(0)
-  ourShip:setSleepThreshold(0, 0)
-  ourShip:setOwner(self.player)
-  self.system:addChild(ourShip)
-  self.player:setControlling(ourShip)
 end
 
 function LTheoryRedux:showGameLogo ()

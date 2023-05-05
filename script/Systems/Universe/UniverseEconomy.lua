@@ -5,7 +5,7 @@ local rng = RNG.FromTime()
 
 local UniverseEconomy = class(function (self) end)
 
-function UniverseEconomy:OnInit()
+function UniverseEconomy:Init()
   self.systems = {
       highAttention = {},
       lowAttention = {}

@@ -5,27 +5,31 @@ local rng = RNG.FromTime()
 
 local Universe = class(function (self) end)
 
-function Universe:OnInit()
+function Universe:Init()
   self.systems = {}
   self.players = {}
   self.aiPlayers = {}
   self.factions = {}
-  self.economy = UniverseEconomy:OnInit()
+  self.economy = UniverseEconomy:Init()
 end
 
-function Universe:AddStarSystem(seed)
+function Universe:OnUpdate(dt)
+  UniverseEconomy:OnUpdate(dt)
+end
+
+function Universe:CreateStarSystem(seed)
   -- Spawn a new star system
-  local system = System(self.seed)
-  Config.game.currentSystem = self.system -- remember the player's current star system
+  local system = System(seed)
+  GameState.world.currentSystem = system -- remember the player's current star system
 
   do
     -- Flight Mode
 
     -- Reset variables used between star systems
-    Config.game.gamePaused   = false
-    Config.game.panelActive  = false
-    Config.game.playerMoving = false
-    Config.game.weaponGroup  = 1
+    GameState.gamePaused          = false
+    GameState.panelActive         = false
+    GameState.player.playerMoving = false
+    GameState.player.weaponGroup  = 1
 
     -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
     --   a space station, a visible pilotable ship, and possibly some NPC ships
@@ -34,31 +38,32 @@ function Universe:AddStarSystem(seed)
     -- Add planets
     local planet = nil -- remember the last planet created (TODO: remember ALL the planets)
     for i = 1, Config.gen.nPlanets do
-      planet = self.system:spawnPlanet(false)
+      planet = system:spawnPlanet(false)
     end
 
     -- Add asteroid fields
     -- Must add BEFORE space stations
     for i = 1, Config.gen.nFields do
-      afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, false)
+      afield = system:spawnAsteroidField(Config.gen.nAsteroids, false)
       printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
     end
 
     -- Add the player's ship
-    local playerShip = self.system:spawnShip(Config.game.humanPlayer)
-    playerShip:setName(Config.game.humanPlayerShipName)
+    local playerShip = system:spawnShip(GameState.player.humanPlayer)
+    playerShip:setName(GameState.player.humanPlayerShipName)
     playerShip:setHealth(500, 500, 10) -- make the player's ship healthier than the default NPC ship
 
     LTheoryRedux:insertShip(playerShip)
 
-    Config.game.currentShip = playerShip
+    GameState.player.currentShip = playerShip
 
     -- Set our ship's starting location within the extent of a random asteroid field
-    self.system:place(playerShip)
+    system:place(playerShip)
     printf("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
 
-    -- Add System to the UniverseEconomy
-    Universe:AddStarSystem(self.system)
+    -- Add System to the Universe
+    table.insert(self.systems, system)
+    printf("Added System: " .. system:getName() .. " to the Universe.")
   end
   self:AddSystemEconomy(system)
 end
