@@ -339,7 +339,7 @@ function LTheoryRedux:createStarSystem ()
       :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
     )
 
-  if GameState.GetCurrentState == Enums.GameStates.InGame then
+  if GameState:GetCurrentState() == Enums.GameStates.InGame then
     -- TODO: replace with gamestate event system
 printf("LTheoryRedux: PlayAmbient")
     MusicPlayer:PlayAmbient()
