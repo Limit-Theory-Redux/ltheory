@@ -83,7 +83,7 @@ printf("%s destroyed by %s!", thisShipName, attackingShipName)
     end
 
     if self == GameState.player.currentShip then
-      Config.game.flightModeButInactive = true --TODO: REPLACE THIS
+      GameState:Pause()
     end
   end
 end

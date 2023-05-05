@@ -164,17 +164,17 @@ function LTheoryRedux:onUpdate (dt)
       -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
       -- After that, in active Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
-        Config.game.flightModeButInactive = false
+        GameState:Unpause()
         MainMenu:SetMenuMode(Enums.MenuMode.Dialog) -- show Flight Mode dialog
       elseif MainMenu.currentMode == Enums.MenuMode.Dialog and not MainMenu.seedDialogDisplayed then
-        Config.game.flightModeButInactive = not Config.game.flightModeButInactive
-        Input.SetMouseVisible(Config.game.flightModeButInactive)
+        MainMenu.dialogDisplayed = not MainMenu.dialogDisplayed
+        Input.SetMouseVisible(MainMenu.dialogDisplayed)
 
-        if Config.game.flightModeButInactive then
-          GameState.paused = true
+        if MainMenu.dialogDisplayed then
+          GameState:Pause()
         else
           GameState.panelActive = false
-          GameState.paused = false
+          GameState:Unpause()
         end
       end
     end
@@ -235,7 +235,7 @@ function LTheoryRedux:onUpdate (dt)
       end
     end
   elseif MainMenu.currentMode == Enums.MenuMode.Dialog then
-    if Config.game.flightModeButInactive then
+    if MainMenu.dialogDisplayed then
       MainMenu:ShowFlightDialog()
     elseif MainMenu.seedDialogDisplayed then
       MainMenu:ShowSeedDialog()
@@ -325,7 +325,7 @@ function LTheoryRedux:createStarSystem ()
       end
 
       -- Add a space station
-      local station = self.backgroundSystem:spawnStation(Config.game.humanPlayer, nil)
+      local station = self.backgroundSystem:spawnStation(GameState.player.humanPlayer, nil)
     else
       GameState:SetState(Enums.GameStates.InGame)
       Universe:CreateStarSystem(self.seed)

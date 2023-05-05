@@ -221,7 +221,7 @@ Config.econ = {
 }
 
 Config.ui = {
-  defaultControl   = "Ship", -- enable flight mode as default so that LTheory.lua still works
+  defaultControl   = "Background",
   showTrackers     = true,
   controlBarHeight = 48,
   displaySensors   = true,

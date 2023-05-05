@@ -44,6 +44,7 @@ local guiSettings = {
 function MainMenu:OnInit()
   self.enabled = true
   self.inBackgroundMode = false
+  self.dialogDisplayed = false
   self.seedDialogDisplayed = false
   self.settingsScreenDisplayed = false
   self.dt = 0
@@ -119,7 +120,14 @@ end
 function MainMenu:SetMenuMode(mode)
   printf("Set Menu Mode to: " .. mode)
   self.currentMode = mode
-  GameState:SetState(Enums.GameStates.MainMenu)
+
+  if mode == Enums.MenuMode.Splashscreen then
+    GameState:SetState(Enums.GameStates.Splashscreen)
+  elseif mode == Enums.MenuMode.MainMenu then
+    GameState:SetState(Enums.GameStates.MainMenu)
+  elseif mode == Enums.MenuMode.Dialog then
+    GameState:SetState(Enums.GameStates.InGame)
+  end
 end
 
 function MainMenu:ShowGui()
@@ -254,11 +262,9 @@ function MainMenu:ShowSeedDialogInner()
     for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
       guiElements[1]["elems"][i][3] = false
     end
-    GameState:SetState(Enums.GameStates.InGame) -- switch to Flight Mode
+
     self:SetMenuMode(Enums.MenuMode.Dialog)
-    Config.game.flightModeButInactive = false
-    GameState.paused = false
-    GameState.ui.currentControl = "Ship"
+    GameState:Unpause()
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
@@ -271,10 +277,9 @@ function MainMenu:ShowSeedDialogInner()
     for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
       guiElements[1]["elems"][i][3] = false
     end
-    GameState:SetState(Enums.GameStates.InGame) -- switch to Flight Mode
+
     self:SetMenuMode(Enums.MenuMode.Dialog)
-    Config.game.flightModeButInactive = false
-    GameState.paused = false
+    GameState:Unpause()
     GameState.ui.currentControl = "Ship"
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()

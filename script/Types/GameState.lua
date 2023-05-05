@@ -66,13 +66,21 @@ GameState.world = {
 function GameState:SetState(state)
   self.state = state
 
-  if self.state == Enums.GameStates.MainMenu then
-    self.ui.defaultControl = "Background" -- enable game startup mode
+  if self.state == Enums.GameStates.MainMenu or self.state == Enums.GameStates.Splashscreen then
+    self.ui.currentControl = "Background" -- enable game startup mode
   else
-    self.ui.defaultControl = "Ship" -- enable flight mode
+    self.ui.currentControl = "Ship" -- enable flight mode
   end
 end
 
 function GameState:GetCurrentState()
   return self.state
+end
+
+function GameState:Pause()
+  self.paused = true
+end
+
+function GameState:Unpause()
+  self.paused = false
 end

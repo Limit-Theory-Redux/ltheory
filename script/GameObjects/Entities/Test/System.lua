@@ -687,16 +687,13 @@ function System:spawnBackground ()
   local shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
   local backgroundShip = shipType:instantiate()
   local player = Player("Background Player")
-  backgroundShip:setOwner(player)
   insert(self.players, player)
-
-  self:addChild(backgroundShip)
 
   -- Insert ship into this star system
   backgroundShip:setPos(Config.gen.origin)
   backgroundShip:setFriction(0)
   backgroundShip:setSleepThreshold(0, 0)
-  backgroundShip:setOwner(GameState.player.humanPlayer)
+  backgroundShip:setOwner(player)
   self:addChild(backgroundShip)
   GameState.player.humanPlayer:setControlling(backgroundShip)
 end
