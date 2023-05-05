@@ -81,7 +81,7 @@ pub unsafe extern "C" fn ShaderState_Create(shader: &mut Shader) -> *mut ShaderS
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Acquire(this: &mut ShaderState) {
+pub extern "C" fn ShaderState_Acquire(this: &mut ShaderState) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 

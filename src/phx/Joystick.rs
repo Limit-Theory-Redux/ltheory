@@ -117,7 +117,7 @@ pub unsafe extern "C" fn Joystick_Close(this: *mut Joystick) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetGUID(this: &mut Joystick) -> *const libc::c_char {
+pub extern "C" fn Joystick_GetGUID(this: &mut Joystick) -> *const libc::c_char {
     this.guid
 }
 
@@ -137,22 +137,22 @@ pub unsafe extern "C" fn Joystick_GetNameByIndex(index: i32) -> *const libc::c_c
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetAxisCount(this: &mut Joystick) -> i32 {
+pub extern "C" fn Joystick_GetAxisCount(this: &mut Joystick) -> i32 {
     this.axes
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetBallCount(this: &mut Joystick) -> i32 {
+pub extern "C" fn Joystick_GetBallCount(this: &mut Joystick) -> i32 {
     this.balls
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetButtonCount(this: &mut Joystick) -> i32 {
+pub extern "C" fn Joystick_GetButtonCount(this: &mut Joystick) -> i32 {
     this.buttons
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Joystick_GetHatCount(this: &mut Joystick) -> i32 {
+pub extern "C" fn Joystick_GetHatCount(this: &mut Joystick) -> i32 {
     this.hats
 }
 

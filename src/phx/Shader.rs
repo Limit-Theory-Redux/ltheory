@@ -243,7 +243,7 @@ pub unsafe extern "C" fn Shader_Load(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_Acquire(this: &mut Shader) {
+pub extern "C" fn Shader_Acquire(this: &mut Shader) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 
@@ -367,7 +367,7 @@ pub unsafe extern "C" fn Shader_ClearCache() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_GetHandle(this: &mut Shader) -> u32 {
+pub extern "C" fn Shader_GetHandle(this: &mut Shader) -> u32 {
     this.program
 }
 

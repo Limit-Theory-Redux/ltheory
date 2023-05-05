@@ -126,7 +126,7 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_Acquire(this: &mut Tex2D) {
+pub extern "C" fn Tex2D_Acquire(this: &mut Tex2D) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 
@@ -271,12 +271,12 @@ pub unsafe extern "C" fn Tex2D_GetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetFormat(this: &mut Tex2D) -> TexFormat {
+pub extern "C" fn Tex2D_GetFormat(this: &mut Tex2D) -> TexFormat {
     this.format
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GetHandle(this: &mut Tex2D) -> u32 {
+pub extern "C" fn Tex2D_GetHandle(this: &mut Tex2D) -> u32 {
     this.handle
 }
 

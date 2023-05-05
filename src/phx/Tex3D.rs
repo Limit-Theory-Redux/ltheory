@@ -62,7 +62,7 @@ pub unsafe extern "C" fn Tex3D_Create(sx: i32, sy: i32, sz: i32, format: TexForm
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_Acquire(this: &mut Tex3D) {
+pub extern "C" fn Tex3D_Acquire(this: &mut Tex3D) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 
@@ -158,22 +158,22 @@ pub unsafe extern "C" fn Tex3D_GetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetFormat(this: &mut Tex3D) -> TexFormat {
+pub extern "C" fn Tex3D_GetFormat(this: &mut Tex3D) -> TexFormat {
     this.format
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetHandle(this: &mut Tex3D) -> u32 {
+pub extern "C" fn Tex3D_GetHandle(this: &mut Tex3D) -> u32 {
     this.handle
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetSize(this: &mut Tex3D, out: *mut IVec3) {
+pub extern "C" fn Tex3D_GetSize(this: &mut Tex3D, out: &mut IVec3) {
     *out = this.size;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetSizeLevel(this: &mut Tex3D, out: &mut IVec3, level: i32) {
+pub extern "C" fn Tex3D_GetSizeLevel(this: &mut Tex3D, out: &mut IVec3, level: i32) {
     *out = this.size;
     let mut i: i32 = 0;
     while i < level {

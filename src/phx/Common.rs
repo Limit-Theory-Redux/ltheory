@@ -26,7 +26,7 @@ pub(crate) use c_str;
 
 macro_rules! CFatal {
     ($fmt:expr) => (
-        unsafe { common_impl::Fatal(c_str!($fmt)) }
+        { common_impl::Fatal(c_str!($fmt)) }
     );
     ($fmt:expr, $($args:expr),* $(,)?) => (
         unsafe { common_impl::Fatal(c_str!($fmt), $($args),*) }
@@ -36,7 +36,7 @@ pub(crate) use CFatal;
 
 macro_rules! CWarn {
     ($fmt:expr) => (
-        unsafe { common_impl::Warn(c_str!($fmt)) }
+        { common_impl::Warn(c_str!($fmt)) }
     );
     ($fmt:expr, $($args:expr),* $(,)?) => (
         unsafe { common_impl::Warn(c_str!($fmt), $($args),*) }

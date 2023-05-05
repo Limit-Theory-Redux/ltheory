@@ -105,7 +105,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_Acquire(this: &mut SoundDesc) {
+pub extern "C" fn SoundDesc_Acquire(this: &mut SoundDesc) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 
@@ -138,12 +138,12 @@ pub unsafe extern "C" fn SoundDesc_GetDuration(this: &mut SoundDesc) -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_GetName(this: &mut SoundDesc) -> *const libc::c_char {
+pub extern "C" fn SoundDesc_GetName(this: &mut SoundDesc) -> *const libc::c_char {
     this.name
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn SoundDesc_GetPath(this: &mut SoundDesc) -> *const libc::c_char {
+pub extern "C" fn SoundDesc_GetPath(this: &mut SoundDesc) -> *const libc::c_char {
     this.path
 }
 

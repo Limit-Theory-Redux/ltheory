@@ -247,12 +247,12 @@ pub unsafe extern "C" fn Sound_GetPath(this: &mut Sound) -> *const libc::c_char 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_IsFinished(this: &mut Sound) -> bool {
+pub extern "C" fn Sound_IsFinished(this: &mut Sound) -> bool {
     this.state as i32 == 4
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_IsPlaying(this: &mut Sound) -> bool {
+pub extern "C" fn Sound_IsPlaying(this: &mut Sound) -> bool {
     this.state as i32 == 3
 }
 
@@ -289,7 +289,7 @@ pub unsafe extern "C" fn Sound_Set3DPos(this: &mut Sound, pos: *const Vec3, vel:
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_SetFreeOnFinish(this: &mut Sound, freeOnFinish: bool) {
+pub extern "C" fn Sound_SetFreeOnFinish(this: &mut Sound, freeOnFinish: bool) {
     this.freeOnFinish = freeOnFinish;
 }
 
@@ -388,7 +388,7 @@ pub unsafe extern "C" fn Sound_FadeOut(this: &mut Sound, seconds: f32) {
         std::ptr::null_mut(),
         std::ptr::null_mut(),
     );
-    let mut fadeTime = (rate as f32 * seconds) as u64;
+    let fadeTime = (rate as f32 * seconds) as u64;
 
     let mut volume = 1.0f32;
     FMOD_Channel_GetVolume(this.handle, &mut volume);
@@ -497,6 +497,6 @@ pub unsafe extern "C" fn Sound_Update(this: &mut Sound) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Sound_IsFreed(this: &mut Sound) -> bool {
+pub extern "C" fn Sound_IsFreed(this: &mut Sound) -> bool {
     this.state as i32 == 5
 }

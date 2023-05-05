@@ -92,7 +92,7 @@ pub unsafe extern "C" fn Intersect_PointTriangle_Barycentric(p: &Vec3, tri: &Tri
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Intersect_RayPlane(ray: &Ray, plane: &Plane, pHit: &mut Vec3) -> bool {
+pub extern "C" fn Intersect_RayPlane(ray: &Ray, plane: &Plane, pHit: &mut Vec3) -> bool {
     /* TODO : Shouldn't we handle denom == 0? */
     let dist: f32 = (*plane).d - Vec3::dot((*plane).n, ray.p);
     let denom: f32 = Vec3::dot((*plane).n, ray.dir);

@@ -139,7 +139,7 @@ pub unsafe extern "C" fn StrMap_Get(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn StrMap_GetSize(this: &mut StrMap) -> u32 {
+pub extern "C" fn StrMap_GetSize(this: &mut StrMap) -> u32 {
     this.size
 }
 

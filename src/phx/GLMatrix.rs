@@ -14,27 +14,27 @@ pub unsafe extern "C" fn GLMatrix_Clear() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Load(matrix: *mut Matrix) {
-    let m: *mut f32 = matrix as *mut f32;
-    let mut transpose: [f32; 16] = [
-        *m.offset(0),
-        *m.offset(4),
-        *m.offset(8),
-        *m.offset(12),
-        *m.offset(1),
-        *m.offset(5),
-        *m.offset(9),
-        *m.offset(13),
-        *m.offset(2),
-        *m.offset(6),
-        *m.offset(10),
-        *m.offset(14),
-        *m.offset(3),
-        *m.offset(7),
-        *m.offset(11),
-        *m.offset(15),
+pub unsafe extern "C" fn GLMatrix_Load(matrix: &mut Matrix) {
+    let m: &[f32; 16] = &matrix.m;
+    let transpose: [f32; 16] = [
+        m[0],
+        m[4],
+        m[8],
+        m[12],
+        m[1],
+        m[5],
+        m[9],
+        m[13],
+        m[2],
+        m[6],
+        m[10],
+        m[14],
+        m[3],
+        m[7],
+        m[11],
+        m[15],
     ];
-    gl::LoadMatrixf(transpose.as_mut_ptr());
+    gl::LoadMatrixf(transpose.as_ptr());
 }
 
 #[no_mangle]
@@ -63,27 +63,27 @@ pub unsafe extern "C" fn GLMatrix_ModeWV() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Mult(matrix: *mut Matrix) {
-    let m: *mut f32 = matrix as *mut f32;
-    let mut transpose: [f32; 16] = [
-        *m.offset(0),
-        *m.offset(4),
-        *m.offset(8),
-        *m.offset(12),
-        *m.offset(1),
-        *m.offset(5),
-        *m.offset(9),
-        *m.offset(13),
-        *m.offset(2),
-        *m.offset(6),
-        *m.offset(10),
-        *m.offset(14),
-        *m.offset(3),
-        *m.offset(7),
-        *m.offset(11),
-        *m.offset(15),
+pub unsafe extern "C" fn GLMatrix_Mult(matrix: &mut Matrix) {
+    let m: &[f32; 16] = &matrix.m;
+    let transpose: [f32; 16] = [
+        m[0],
+        m[4],
+        m[8],
+        m[12],
+        m[1],
+        m[5],
+        m[9],
+        m[13],
+        m[2],
+        m[6],
+        m[10],
+        m[14],
+        m[3],
+        m[7],
+        m[11],
+        m[15],
     ];
-    gl::MultMatrixf(transpose.as_mut_ptr());
+    gl::MultMatrixf(transpose.as_ptr());
 }
 
 #[no_mangle]

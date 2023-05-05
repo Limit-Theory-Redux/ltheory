@@ -29,7 +29,7 @@ pub extern "C" fn MidiDevice_GetNameByIndex(_index: i32) -> *const libc::c_char 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MidiDevice_HasMessage(this: &mut MidiDevice) -> bool {
+pub extern "C" fn MidiDevice_HasMessage(this: &mut MidiDevice) -> bool {
     this.cursor > 0
 }
 

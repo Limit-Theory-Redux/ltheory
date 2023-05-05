@@ -35,7 +35,7 @@ pub unsafe extern "C" fn Triangle_ToPlaneFast(triangle: &Triangle, plane: &mut P
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Triangle_GetArea(tri: &Triangle) -> f32 {
+pub extern "C" fn Triangle_GetArea(tri: &Triangle) -> f32 {
     let e1 = tri.vertices[1] - tri.vertices[0];
     let e2 = tri.vertices[2] - tri.vertices[1];
     0.5f32 * Vec3::cross(e1, e2).length()

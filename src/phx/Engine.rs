@@ -51,7 +51,7 @@ pub unsafe extern "C" fn Engine_Init(glVersionMajor: i32, glVersionMinor: i32) {
         firstTime = false;
 
         /* Check SDL version compatibility. */
-        let mut compiled: SDL_version = SDL_version {
+        let compiled: SDL_version = SDL_version {
             major: SDL_MAJOR_VERSION as u8,
             minor: SDL_MINOR_VERSION as u8,
             patch: SDL_PATCHLEVEL as u8,

@@ -17,7 +17,7 @@ pub static Modifier_Ctrl: Modifier = 1 << 1;
 pub static Modifier_Shift: Modifier = 1 << 2;
 
 #[no_mangle]
-pub unsafe extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
+pub extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
     if modifier == Modifier_Null {
         return c_str!("Modifier_Null");
     }

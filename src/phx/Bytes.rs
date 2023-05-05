@@ -63,7 +63,7 @@ pub fn Bytes_FromSlice(data: &[u8]) -> *mut Bytes {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Load(path: *const libc::c_char) -> *mut Bytes {
+pub extern "C" fn Bytes_Load(path: *const libc::c_char) -> *mut Bytes {
     let this: *mut Bytes = File_ReadBytes(path);
     if this.is_null() {
         CFatal!("Bytes_Load: Failed to read file '%s'", path);
@@ -77,18 +77,18 @@ pub unsafe extern "C" fn Bytes_Free(this: *mut Bytes) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_GetData(this: &mut Bytes) -> *mut libc::c_void {
+pub extern "C" fn Bytes_GetData(this: &mut Bytes) -> *mut libc::c_void {
     &mut this.data as *mut libc::c_char as *mut _
 }
 
 #[no_mangle]
 pub extern "C" fn Bytes_GetSize(this: &mut Bytes) -> u32 {
-    unsafe { this.size }
+    this.size
 }
 
 #[no_mangle]
-pub extern "C" fn Bytes_Compress(bytes: *mut Bytes) -> *mut Bytes {
-    let input = unsafe { (*bytes).to_slice() };
+pub extern "C" fn Bytes_Compress(bytes: &mut Bytes) -> *mut Bytes {
+    let input = bytes.to_slice();
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     if let Err(e) = encoder.write_all(input) {
@@ -101,12 +101,12 @@ pub extern "C" fn Bytes_Compress(bytes: *mut Bytes) -> *mut Bytes {
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
     let result = encoder.finish().unwrap();
-    unsafe { Bytes_FromData(result.as_ptr() as *const _, result.len() as u32) }
+    Bytes_FromData(result.as_ptr() as *const _, result.len() as u32)
 }
 
 #[no_mangle]
-pub extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
-    let input = unsafe { (*bytes).to_slice() };
+pub extern "C" fn Bytes_Decompress(bytes: &mut Bytes) -> *mut Bytes {
+    let input = bytes.to_slice();
 
     let mut decoder = ZlibDecoder::new(Vec::new());
     if let Err(e) = decoder.write_all(input) {
@@ -119,21 +119,21 @@ pub extern "C" fn Bytes_Decompress(bytes: *mut Bytes) -> *mut Bytes {
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
     let result = decoder.finish().unwrap();
-    unsafe { Bytes_FromData(result.as_ptr() as *const _, result.len() as u32) }
+    Bytes_FromData(result.as_ptr() as *const _, result.len() as u32)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_GetCursor(this: &mut Bytes) -> u32 {
+pub extern "C" fn Bytes_GetCursor(this: &mut Bytes) -> u32 {
     this.cursor
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_Rewind(this: &mut Bytes) {
+pub extern "C" fn Bytes_Rewind(this: &mut Bytes) {
     this.cursor = 0;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Bytes_SetCursor(this: &mut Bytes, cursor: u32) {
+pub extern "C" fn Bytes_SetCursor(this: &mut Bytes, cursor: u32) {
     this.cursor = cursor;
 }
 

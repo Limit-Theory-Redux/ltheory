@@ -12,7 +12,7 @@ pub struct File {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn File_Exists(path: *const libc::c_char) -> bool {
+pub extern "C" fn File_Exists(path: *const libc::c_char) -> bool {
     match fs::metadata(ffi::PtrAsSlice(path)) {
         Ok(metadata) => metadata.is_file(),
         Err(_) => false,
@@ -20,7 +20,7 @@ pub unsafe extern "C" fn File_Exists(path: *const libc::c_char) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn File_IsDir(path: *const libc::c_char) -> bool {
+pub extern "C" fn File_IsDir(path: *const libc::c_char) -> bool {
     match fs::metadata(ffi::PtrAsSlice(path)) {
         Ok(metadata) => metadata.is_dir(),
         Err(_) => false,

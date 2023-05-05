@@ -169,7 +169,7 @@ pub unsafe extern "C" fn Font_Load(name: *const libc::c_char, size: i32) -> *mut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Font_Acquire(this: &mut Font) {
+pub extern "C" fn Font_Acquire(this: &mut Font) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 
@@ -301,7 +301,7 @@ pub unsafe extern "C" fn Font_GetLineHeight(this: &mut Font) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize(
     this: &mut Font,
-    out: *mut IVec4,
+    out: &mut IVec4,
     mut text: *const libc::c_char,
 ) {
     Profiler_Begin(c_str!("Font_GetSize"));
@@ -356,12 +356,12 @@ pub unsafe extern "C" fn Font_GetSize(
 #[no_mangle]
 pub unsafe extern "C" fn Font_GetSize2(
     this: &mut Font,
-    out: *mut IVec2,
+    out: &mut IVec2,
     mut text: *const libc::c_char,
 ) {
     Profiler_Begin(c_str!("Font_GetSize2"));
-    (*out).x = 0;
-    (*out).y = 0;
+    out.x = 0;
+    out.y = 0;
 
     let mut glyphLast: i32 = 0;
     let fresh7 = text;
@@ -371,10 +371,10 @@ pub unsafe extern "C" fn Font_GetSize2(
         let glyph: *mut Glyph = Font_GetGlyph(this, codepoint);
         if !glyph.is_null() {
             if glyphLast != 0 {
-                (*out).x += Font_GetKerning(this, glyphLast, (*glyph).index);
+                out.x += Font_GetKerning(this, glyphLast, (*glyph).index);
             }
-            (*out).x += (*glyph).advance;
-            (*out).y = i32::max((*out).y, -(*glyph).y0 + 1);
+            out.x += (*glyph).advance;
+            out.y = i32::max(out.y, -(*glyph).y0 + 1);
             glyphLast = (*glyph).index;
         } else {
             glyphLast = 0;

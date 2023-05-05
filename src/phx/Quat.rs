@@ -24,7 +24,7 @@ pub extern "C" fn Quat_Create(x: f32, y: f32, z: f32, w: f32) -> Quat {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_GetAxisX(q: &Quat, out: &mut Vec3) {
+pub extern "C" fn Quat_GetAxisX(q: &Quat, out: &mut Vec3) {
     // out = q.
     out.x = 1.0f32 - 2.0f32 * (q.y * q.y + q.z * q.z);
     out.y = 2.0f32 * (q.x * q.y + q.z * q.w);
@@ -32,21 +32,21 @@ pub unsafe extern "C" fn Quat_GetAxisX(q: &Quat, out: &mut Vec3) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_GetAxisY(q: &Quat, out: &mut Vec3) {
+pub extern "C" fn Quat_GetAxisY(q: &Quat, out: &mut Vec3) {
     out.x = 2.0f32 * (q.x * q.y - q.z * q.w);
     out.y = 1.0f32 - 2.0f32 * (q.x * q.x + q.z * q.z);
     out.z = 2.0f32 * (q.y * q.z + q.x * q.w);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_GetAxisZ(q: &Quat, out: &mut Vec3) {
+pub extern "C" fn Quat_GetAxisZ(q: &Quat, out: &mut Vec3) {
     out.x = 2.0f32 * (q.x * q.z + q.y * q.w);
     out.y = 2.0f32 * (q.y * q.z - q.x * q.w);
     out.z = 1.0f32 - 2.0f32 * (q.x * q.x + q.y * q.y);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_GetForward(q: &Quat, out: &mut Vec3) {
+pub extern "C" fn Quat_GetForward(q: &Quat, out: &mut Vec3) {
     Quat_GetAxisZ(q, out);
     out.x = -out.x;
     out.y = -out.y;
@@ -54,17 +54,17 @@ pub unsafe extern "C" fn Quat_GetForward(q: &Quat, out: &mut Vec3) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_GetRight(q: &Quat, out: &mut Vec3) {
+pub extern "C" fn Quat_GetRight(q: &Quat, out: &mut Vec3) {
     Quat_GetAxisX(q, out);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_GetUp(q: &Quat, out: &mut Vec3) {
+pub extern "C" fn Quat_GetUp(q: &Quat, out: &mut Vec3) {
     Quat_GetAxisY(q, out);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Identity(out: &mut Quat) {
+pub extern "C" fn Quat_Identity(out: &mut Quat) {
     out.x = 0.0f32;
     out.y = 0.0f32;
     out.z = 0.0f32;
@@ -72,7 +72,7 @@ pub unsafe extern "C" fn Quat_Identity(out: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Canonicalize(q: &Quat, out: &mut Quat) {
+pub extern "C" fn Quat_Canonicalize(q: &Quat, out: &mut Quat) {
     let value: f32 = if !Float_ApproximatelyEqual(q.w as f64, 0.0f64) {
         q.w
     } else if !Float_ApproximatelyEqual(q.z as f64, 0.0f64) {
@@ -98,7 +98,7 @@ pub unsafe extern "C" fn Quat_Canonicalize(q: &Quat, out: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ICanonicalize(q: &mut Quat) {
+pub extern "C" fn Quat_ICanonicalize(q: &mut Quat) {
     let value: f32 = if !Float_ApproximatelyEqual(q.w as f64, 0.0f64) {
         q.w
     } else if !Float_ApproximatelyEqual(q.z as f64, 0.0f64) {
@@ -119,12 +119,12 @@ pub unsafe extern "C" fn Quat_ICanonicalize(q: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Dot(q: &Quat, p: &Quat) -> f32 {
+pub extern "C" fn Quat_Dot(q: &Quat, p: &Quat) -> f32 {
     q.x * p.x + q.y * p.y + q.z * p.z + q.w * p.w
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Equal(q: &Quat, p: &Quat) -> bool {
+pub extern "C" fn Quat_Equal(q: &Quat, p: &Quat) -> bool {
     let mut cq = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Canonicalize(q, &mut cq);
     let mut cp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
@@ -133,7 +133,7 @@ pub unsafe extern "C" fn Quat_Equal(q: &Quat, p: &Quat) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ApproximatelyEqual(q: &Quat, p: &Quat) -> bool {
+pub extern "C" fn Quat_ApproximatelyEqual(q: &Quat, p: &Quat) -> bool {
     let mut cq = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Canonicalize(q, &mut cq);
     let mut cp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
@@ -145,7 +145,7 @@ pub unsafe extern "C" fn Quat_ApproximatelyEqual(q: &Quat, p: &Quat) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Inverse(q: &Quat, out: &mut Quat) {
+pub extern "C" fn Quat_Inverse(q: &Quat, out: &mut Quat) {
     let magSq: f32 = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
     out.x = -q.x / magSq;
     out.y = -q.y / magSq;
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn Quat_Inverse(q: &Quat, out: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_IInverse(q: &mut Quat) {
+pub extern "C" fn Quat_IInverse(q: &mut Quat) {
     let magSq: f32 = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
     q.x = -q.x / magSq;
     q.y = -q.y / magSq;
@@ -163,7 +163,7 @@ pub unsafe extern "C" fn Quat_IInverse(q: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Lerp(q: &Quat, p: &Quat, t: f32, out: &mut Quat) {
+pub extern "C" fn Quat_Lerp(q: &Quat, p: &Quat, t: f32, out: &mut Quat) {
     let d: f32 = Quat_Dot(p, q);
     let mut dp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     if d < 0.0f32 {
@@ -186,7 +186,7 @@ pub unsafe extern "C" fn Quat_Lerp(q: &Quat, p: &Quat, t: f32, out: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ILerp(q: &mut Quat, p: &Quat, t: f32) {
+pub extern "C" fn Quat_ILerp(q: &mut Quat, p: &Quat, t: f32) {
     let d: f32 = Quat_Dot(p, q);
     let mut dp = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     if d < 0.0f32 {
@@ -209,7 +209,7 @@ pub unsafe extern "C" fn Quat_ILerp(q: &mut Quat, p: &Quat, t: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Mul(q: &Quat, p: &Quat, out: &mut Quat) {
+pub extern "C" fn Quat_Mul(q: &Quat, p: &Quat, out: &mut Quat) {
     let qv: Vec3 = Vec3::new(q.x, q.y, q.z);
     let pv: Vec3 = Vec3::new(p.x, p.y, p.z);
     let rv: Vec3 = (qv * p.w) + (pv * q.w) + Vec3::cross(qv, pv);
@@ -220,7 +220,7 @@ pub unsafe extern "C" fn Quat_Mul(q: &Quat, p: &Quat, out: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_IMul(q: &mut Quat, p: &Quat) {
+pub extern "C" fn Quat_IMul(q: &mut Quat, p: &Quat) {
     let qv: Vec3 = Vec3::new(q.x, q.y, q.z);
     let pv: Vec3 = Vec3::new(p.x, p.y, p.z);
     let rv: Vec3 = (qv * p.w) + (pv * q.w) + Vec3::cross(qv, pv);
@@ -231,7 +231,7 @@ pub unsafe extern "C" fn Quat_IMul(q: &mut Quat, p: &Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_MulV(q: &Quat, v: &Vec3, out: &mut Vec3) {
+pub extern "C" fn Quat_MulV(q: &Quat, v: &Vec3, out: &mut Vec3) {
     let u: Vec3 = Vec3::new(q.x, q.y, q.z);
     let w: f32 = q.w;
     let t: Vec3 = Vec3::cross(u, *v);
@@ -239,7 +239,7 @@ pub unsafe extern "C" fn Quat_MulV(q: &Quat, v: &Vec3, out: &mut Vec3) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Normalize(q: &Quat, out: &mut Quat) {
+pub extern "C" fn Quat_Normalize(q: &Quat, out: &mut Quat) {
     let mag = f32::sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
     out.x = q.x / mag;
     out.y = q.y / mag;
@@ -248,7 +248,7 @@ pub unsafe extern "C" fn Quat_Normalize(q: &Quat, out: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_INormalize(q: &mut Quat) {
+pub extern "C" fn Quat_INormalize(q: &mut Quat) {
     let mag = f32::sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
     q.x /= mag;
     q.y /= mag;
@@ -257,7 +257,7 @@ pub unsafe extern "C" fn Quat_INormalize(q: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Scale(q: &Quat, scale: f32, out: &mut Quat) {
+pub extern "C" fn Quat_Scale(q: &Quat, scale: f32, out: &mut Quat) {
     out.x = scale * q.x;
     out.y = scale * q.y;
     out.z = scale * q.z;
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn Quat_Scale(q: &Quat, scale: f32, out: &mut Quat) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_IScale(q: &mut Quat, scale: f32) {
+pub extern "C" fn Quat_IScale(q: &mut Quat, scale: f32) {
     q.x *= scale;
     q.y *= scale;
     q.z *= scale;
@@ -273,7 +273,7 @@ pub unsafe extern "C" fn Quat_IScale(q: &mut Quat, scale: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Slerp(q: &Quat, p: &Quat, t: f32, out: &mut Quat) {
+pub extern "C" fn Quat_Slerp(q: &Quat, p: &Quat, t: f32, out: &mut Quat) {
     let mut np = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Normalize(p, &mut np);
     let mut d: f32 = Quat_Dot(q, p);
@@ -301,7 +301,7 @@ pub unsafe extern "C" fn Quat_Slerp(q: &Quat, p: &Quat, t: f32, out: &mut Quat) 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ISlerp(q: &mut Quat, p: &Quat, t: f32) {
+pub extern "C" fn Quat_ISlerp(q: &mut Quat, p: &Quat, t: f32) {
     let mut np = Quat_Create(0.0f32, 0.0f32, 0.0f32, 0.0f32);
     Quat_Normalize(p, &mut np);
     let mut d: f32 = Quat_Dot(q, p);
@@ -329,12 +329,12 @@ pub unsafe extern "C" fn Quat_ISlerp(q: &mut Quat, p: &Quat, t: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_ToString(q: &Quat) -> *const libc::c_char {
+pub extern "C" fn Quat_ToString(q: &Quat) -> *const libc::c_char {
     ffi::StaticString!(format!("({:.4}, {:.4}, {:.4}, {:.4})", q.x, q.y, q.z, q.w))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_Validate(q: &Quat) -> Error {
+pub extern "C" fn Quat_Validate(q: &Quat) -> Error {
     let mut e: Error = 0 as Error;
     e |= Float_Validate(q.x as f64);
     e |= Float_Validate(q.y as f64);
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn Quat_Validate(q: &Quat) -> Error {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_FromAxisAngle(axis: &Vec3, radians: f32, out: &mut Quat) {
+pub extern "C" fn Quat_FromAxisAngle(axis: &Vec3, radians: f32, out: &mut Quat) {
     let v: Vec3 = *axis * f32::sin(radians * 0.5);
     out.x = v.x;
     out.y = v.y;
@@ -353,7 +353,7 @@ pub unsafe extern "C" fn Quat_FromAxisAngle(axis: &Vec3, radians: f32, out: &mut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3, out: &mut Quat) {
+pub extern "C" fn Quat_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3, out: &mut Quat) {
     let r: f32 = x.x + y.y + z.z;
     if r > 0.0f32 {
         out.w = (f64::sqrt((r + 1.0f32) as f64) * 0.5f64) as f32;
@@ -383,7 +383,7 @@ pub unsafe extern "C" fn Quat_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3, out: &mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_FromLookUp(look: &Vec3, up: &Vec3, out: &mut Quat) {
+pub extern "C" fn Quat_FromLookUp(look: &Vec3, up: &Vec3, out: &mut Quat) {
     let mut z: Vec3 = (*look * -1.0f32).normalize();
     let mut x: Vec3 = Vec3::cross(*up, z).normalize();
     let mut y: Vec3 = Vec3::cross(z, x);
@@ -391,7 +391,7 @@ pub unsafe extern "C" fn Quat_FromLookUp(look: &Vec3, up: &Vec3, out: &mut Quat)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Quat_FromRotateTo(from: &Vec3, to: &Vec3, out: &mut Quat) {
+pub extern "C" fn Quat_FromRotateTo(from: &Vec3, to: &Vec3, out: &mut Quat) {
     let mut axis: Vec3 = Vec3::cross((*from).normalize(), (*to).normalize());
     let angle = f32::asin(axis.length());
     Quat_FromAxisAngle(&mut axis, angle, out);

@@ -157,7 +157,7 @@ unsafe extern "C" fn Matrix_IOTranspose(in_0: &Matrix, out: &mut Matrix) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Equal(a: &Matrix, b: &Matrix) -> bool {
+pub extern "C" fn Matrix_Equal(a: &Matrix, b: &Matrix) -> bool {
     let mut i: i32 = 0;
     while i < 16 {
         if (*a).m[i as usize] != (*b).m[i as usize] {
@@ -169,7 +169,7 @@ pub unsafe extern "C" fn Matrix_Equal(a: &Matrix, b: &Matrix) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_ApproximatelyEqual(a: &Matrix, b: &Matrix) -> bool {
+pub extern "C" fn Matrix_ApproximatelyEqual(a: &Matrix, b: &Matrix) -> bool {
     let mut i: i32 = 0;
     while i < 16 {
         if !Float_ApproximatelyEqual((*a).m[i as usize] as f64, (*b).m[i as usize] as f64) {
@@ -197,7 +197,7 @@ pub unsafe extern "C" fn Matrix_InverseTranspose(this: &Matrix) -> Box<Matrix> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Sum(a: &Matrix, b: &Matrix) -> Box<Matrix> {
+pub extern "C" fn Matrix_Sum(a: &Matrix, b: &Matrix) -> Box<Matrix> {
     let mut result: Matrix = Matrix { m: [0.; 16] };
     let mut i: i32 = 0;
     while i < 16 {
@@ -243,7 +243,7 @@ pub unsafe extern "C" fn Matrix_ITranspose(this: &mut Matrix) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Identity() -> Box<Matrix> {
+pub extern "C" fn Matrix_Identity() -> Box<Matrix> {
     let identity: Matrix = Matrix {
         m: [
             1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
@@ -254,11 +254,11 @@ pub unsafe extern "C" fn Matrix_Identity() -> Box<Matrix> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_LookAt(pos: &Vec3, at: &Vec3, up: &Vec3) -> Box<Matrix> {
+pub extern "C" fn Matrix_LookAt(pos: &Vec3, at: &Vec3, up: &Vec3) -> Box<Matrix> {
     let z: Vec3 = (*pos - *at).normalize();
     let x: Vec3 = Vec3::cross(*up, z).normalize();
     let y: Vec3 = Vec3::cross(z, x);
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
             0.0f32, 1.0f32,
@@ -268,11 +268,11 @@ pub unsafe extern "C" fn Matrix_LookAt(pos: &Vec3, at: &Vec3, up: &Vec3) -> Box<
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_LookUp(pos: &Vec3, look: &Vec3, up: &Vec3) -> Box<Matrix> {
+pub extern "C" fn Matrix_LookUp(pos: &Vec3, look: &Vec3, up: &Vec3) -> Box<Matrix> {
     let z: Vec3 = (*look * -1.0f32).normalize();
     let x: Vec3 = Vec3::cross(*up, z).normalize();
     let y: Vec3 = Vec3::cross(z, x);
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
             0.0f32, 1.0f32,
@@ -282,7 +282,7 @@ pub unsafe extern "C" fn Matrix_LookUp(pos: &Vec3, look: &Vec3, up: &Vec3) -> Bo
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Perspective(
+pub extern "C" fn Matrix_Perspective(
     degreesFovy: f32,
     aspect: f32,
     N: f32,
@@ -290,7 +290,7 @@ pub unsafe extern "C" fn Matrix_Perspective(
 ) -> Box<Matrix> {
     let rads: f64 = (std::f32::consts::PI * degreesFovy) as f64 / 360.0f64;
     let cot: f64 = 1.0f64 / f64::tan(rads);
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             (cot / aspect as f64) as f32,
             0.0f32,
@@ -338,10 +338,10 @@ pub unsafe extern "C" fn Matrix_Product(a: &Matrix, b: &Matrix) -> Box<Matrix> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_RotationX(rads: f32) -> Box<Matrix> {
+pub extern "C" fn Matrix_RotationX(rads: f32) -> Box<Matrix> {
     let c: f32 = f64::cos(rads as f64) as f32;
     let s: f32 = f64::sin(rads as f64) as f32;
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, c, -s, 0.0f32, 0.0f32, s, c, 0.0f32, 0.0f32,
             0.0f32, 0.0f32, 1.0f32,
@@ -351,10 +351,10 @@ pub unsafe extern "C" fn Matrix_RotationX(rads: f32) -> Box<Matrix> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_RotationY(rads: f32) -> Box<Matrix> {
+pub extern "C" fn Matrix_RotationY(rads: f32) -> Box<Matrix> {
     let c: f32 = f64::cos(rads as f64) as f32;
     let s: f32 = f64::sin(rads as f64) as f32;
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             c, 0.0f32, s, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, -s, 0.0f32, c, 0.0f32, 0.0f32,
             0.0f32, 0.0f32, 1.0f32,
@@ -364,10 +364,10 @@ pub unsafe extern "C" fn Matrix_RotationY(rads: f32) -> Box<Matrix> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_RotationZ(rads: f32) -> Box<Matrix> {
+pub extern "C" fn Matrix_RotationZ(rads: f32) -> Box<Matrix> {
     let c: f32 = f64::cos(rads as f64) as f32;
     let s: f32 = f64::sin(rads as f64) as f32;
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             c, -s, 0.0f32, 0.0f32, s, c, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32,
             0.0f32, 0.0f32, 1.0f32,
@@ -377,8 +377,8 @@ pub unsafe extern "C" fn Matrix_RotationZ(rads: f32) -> Box<Matrix> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Scaling(sx: f32, sy: f32, sz: f32) -> Box<Matrix> {
-    let mut result: Matrix = Matrix {
+pub extern "C" fn Matrix_Scaling(sx: f32, sy: f32, sz: f32) -> Box<Matrix> {
+    let result: Matrix = Matrix {
         m: [
             sx, 0.0f32, 0.0f32, 0.0f32, 0.0f32, sy, 0.0f32, 0.0f32, 0.0f32, 0.0f32, sz, 0.0f32,
             0.0f32, 0.0f32, 0.0f32, 1.0f32,
@@ -408,8 +408,8 @@ pub unsafe extern "C" fn Matrix_SRT(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Translation(tx: f32, ty: f32, tz: f32) -> Box<Matrix> {
-    let mut result: Matrix = Matrix {
+pub extern "C" fn Matrix_Translation(tx: f32, ty: f32, tz: f32) -> Box<Matrix> {
+    let result: Matrix = Matrix {
         m: [
             1.0f32, 0.0f32, 0.0f32, tx, 0.0f32, 1.0f32, 0.0f32, ty, 0.0f32, 0.0f32, 1.0f32, tz,
             0.0f32, 0.0f32, 0.0f32, 1.0f32,
@@ -419,14 +419,14 @@ pub unsafe extern "C" fn Matrix_Translation(tx: f32, ty: f32, tz: f32) -> Box<Ma
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_YawPitchRoll(yaw: f32, pitch: f32, roll: f32) -> Box<Matrix> {
+pub extern "C" fn Matrix_YawPitchRoll(yaw: f32, pitch: f32, roll: f32) -> Box<Matrix> {
     let ca: f32 = f64::cos(roll as f64) as f32;
     let sa: f32 = f64::sin(roll as f64) as f32;
     let cb: f32 = f64::cos(yaw as f64) as f32;
     let sb: f32 = f64::sin(yaw as f64) as f32;
     let cy: f32 = f64::cos(pitch as f64) as f32;
     let sy: f32 = f64::sin(pitch as f64) as f32;
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             ca * cb,
             ca * sb * sy - sa * cy,
@@ -545,35 +545,35 @@ pub unsafe extern "C" fn Matrix_MulVec(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetForward(this: &Matrix, out: &mut Vec3) {
+pub extern "C" fn Matrix_GetForward(this: &Matrix, out: &mut Vec3) {
     out.x = -this.m[2];
     out.y = -this.m[6];
     out.z = -this.m[10];
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetRight(this: &Matrix, out: &mut Vec3) {
+pub extern "C" fn Matrix_GetRight(this: &Matrix, out: &mut Vec3) {
     out.x = this.m[0];
     out.y = this.m[4];
     out.z = this.m[8];
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetUp(this: &Matrix, out: &mut Vec3) {
+pub extern "C" fn Matrix_GetUp(this: &Matrix, out: &mut Vec3) {
     out.x = this.m[1];
     out.y = this.m[5];
     out.z = this.m[9];
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetPos(this: &Matrix, out: &mut Vec3) {
+pub extern "C" fn Matrix_GetPos(this: &Matrix, out: &mut Vec3) {
     out.x = this.m[3];
     out.y = this.m[7];
     out.z = this.m[11];
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_GetRow(this: &Matrix, out: &mut Vec4, row: i32) {
+pub extern "C" fn Matrix_GetRow(this: &Matrix, out: &mut Vec4, row: i32) {
     out.x = this.m[(4 * row + 0) as usize];
     out.y = this.m[(4 * row + 1) as usize];
     out.z = this.m[(4 * row + 2) as usize];
@@ -581,8 +581,8 @@ pub unsafe extern "C" fn Matrix_GetRow(this: &Matrix, out: &mut Vec4, row: i32) 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3) -> Box<Matrix> {
-    let mut result: Matrix = Matrix {
+pub extern "C" fn Matrix_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3) -> Box<Matrix> {
+    let result: Matrix = Matrix {
         m: [
             x.x, y.x, z.x, 0.0f32, x.y, y.y, z.y, 0.0f32, x.z, y.z, z.z, 0.0f32, 0.0f32, 0.0f32,
             0.0f32, 1.0f32,
@@ -592,14 +592,14 @@ pub unsafe extern "C" fn Matrix_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3) -> Box<M
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_FromPosRot(pos: &Vec3, rot: &Quat) -> Box<Matrix> {
+pub extern "C" fn Matrix_FromPosRot(pos: &Vec3, rot: &Quat) -> Box<Matrix> {
     let mut x = Vec3::ZERO;
     Quat_GetAxisX(rot, &mut x);
     let mut y = Vec3::ZERO;
     Quat_GetAxisY(rot, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(rot, &mut z);
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
             0.0f32, 1.0f32,
@@ -609,14 +609,14 @@ pub unsafe extern "C" fn Matrix_FromPosRot(pos: &Vec3, rot: &Quat) -> Box<Matrix
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_FromPosRotScale(pos: &Vec3, rot: &Quat, scale: f32) -> Box<Matrix> {
+pub extern "C" fn Matrix_FromPosRotScale(pos: &Vec3, rot: &Quat, scale: f32) -> Box<Matrix> {
     let mut x = Vec3::ZERO;
     Quat_GetAxisX(rot, &mut x);
     let mut y = Vec3::ZERO;
     Quat_GetAxisY(rot, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(rot, &mut z);
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             scale * x.x,
             scale * y.x,
@@ -640,13 +640,13 @@ pub unsafe extern "C" fn Matrix_FromPosRotScale(pos: &Vec3, rot: &Quat, scale: f
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_FromPosBasis(
+pub extern "C" fn Matrix_FromPosBasis(
     pos: &Vec3,
     x: &Vec3,
     y: &Vec3,
     z: &Vec3,
 ) -> Box<Matrix> {
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
             0.0f32, 1.0f32,
@@ -656,14 +656,14 @@ pub unsafe extern "C" fn Matrix_FromPosBasis(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_FromQuat(q: &Quat) -> Box<Matrix> {
+pub extern "C" fn Matrix_FromQuat(q: &Quat) -> Box<Matrix> {
     let mut x = Vec3::ZERO;
     Quat_GetAxisX(q, &mut x);
     let mut y = Vec3::ZERO;
     Quat_GetAxisY(q, &mut y);
     let mut z = Vec3::ZERO;
     Quat_GetAxisZ(q, &mut z);
-    let mut result: Matrix = Matrix {
+    let result: Matrix = Matrix {
         m: [
             x.x, y.x, z.x, 0.0f32, x.y, y.y, z.y, 0.0f32, x.z, y.z, z.z, 0.0f32, 0.0f32, 0.0f32,
             0.0f32, 1.0f32,
@@ -696,7 +696,7 @@ pub extern "C" fn Matrix_Print(this: &Matrix) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_ToString(this: &Matrix) -> *const libc::c_char {
+pub extern "C" fn Matrix_ToString(this: &Matrix) -> *const libc::c_char {
     let m = &this.m;
     ffi::StaticString!(format!(
         "[{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\

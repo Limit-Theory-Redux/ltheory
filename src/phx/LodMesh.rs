@@ -43,7 +43,7 @@ pub unsafe extern "C" fn LodMesh_Create() -> *mut LodMesh {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn LodMesh_Acquire(this: &mut LodMesh) {
+pub extern "C" fn LodMesh_Acquire(this: &mut LodMesh) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 

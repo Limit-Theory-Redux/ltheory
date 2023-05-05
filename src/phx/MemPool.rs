@@ -108,11 +108,11 @@ pub unsafe extern "C" fn MemPool_Dealloc(this: &mut MemPool, ptr: *mut libc::c_v
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_GetCapacity(this: &mut MemPool) -> u32 {
+pub extern "C" fn MemPool_GetCapacity(this: &mut MemPool) -> u32 {
     this.capacity
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemPool_GetSize(this: &mut MemPool) -> u32 {
+pub extern "C" fn MemPool_GetSize(this: &mut MemPool) -> u32 {
     this.size
 }

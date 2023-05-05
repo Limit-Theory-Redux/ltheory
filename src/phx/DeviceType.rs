@@ -26,7 +26,7 @@ pub extern "C" fn DeviceType_FromButton(button: Button) -> DeviceType {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn DeviceType_ToString(deviceType: DeviceType) -> *const libc::c_char {
+pub extern "C" fn DeviceType_ToString(deviceType: DeviceType) -> *const libc::c_char {
     match deviceType {
         dt if dt == DeviceType_Null => c_str!("DeviceType_Null"),
         dt if dt == DeviceType_Mouse => c_str!("DeviceType_Mouse"),

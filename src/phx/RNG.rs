@@ -98,7 +98,7 @@ pub unsafe extern "C" fn RNG_FromTime() -> Box<RNG> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RNG_Free(_: Option<Box<RNG>>) {}
+pub extern "C" fn RNG_Free(_: Option<Box<RNG>>) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_Rewind(this: &mut RNG) {

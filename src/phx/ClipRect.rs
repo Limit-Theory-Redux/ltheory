@@ -45,7 +45,7 @@ static mut rect: [ClipRect; 128] = [ClipRect {
 static mut rectIndex: i32 = -1;
 
 #[inline]
-unsafe extern "C" fn TransformRect(x: *mut f32, y: *mut f32, sx: *mut f32, sy: *mut f32) {
+unsafe extern "C" fn TransformRect(x: &mut f32, y: &mut f32, sx: &mut f32, sy: &mut f32) {
     if transformIndex >= 0 {
         let curr: *mut ClipRectTransform = transform.as_mut_ptr().offset(transformIndex as isize);
         *x = (*curr).sx * *x + (*curr).tx;

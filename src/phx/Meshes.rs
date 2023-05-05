@@ -5,7 +5,7 @@ use crate::phx::Math::Vec3;
 use crate::phx::Mesh::*;
 
 #[inline]
-unsafe extern "C" fn Mesh_AddPlane(
+extern "C" fn Mesh_AddPlane(
     this: &mut Mesh,
     origin: Vec3,
     du: Vec3,

@@ -57,7 +57,7 @@ pub unsafe extern "C" fn Tex1D_Create(size: i32, format: TexFormat) -> *mut Tex1
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_Acquire(this: &mut Tex1D) {
+pub extern "C" fn Tex1D_Acquire(this: &mut Tex1D) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 
@@ -95,7 +95,7 @@ pub unsafe extern "C" fn Tex1D_GenMipmap(this: &mut Tex1D) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetFormat(this: &mut Tex1D) -> TexFormat {
+pub extern "C" fn Tex1D_GetFormat(this: &mut Tex1D) -> TexFormat {
     this.format
 }
 
@@ -131,12 +131,12 @@ pub unsafe extern "C" fn Tex1D_GetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetHandle(this: &mut Tex1D) -> u32 {
+pub extern "C" fn Tex1D_GetHandle(this: &mut Tex1D) -> u32 {
     this.handle
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetSize(this: &mut Tex1D) -> u32 {
+pub extern "C" fn Tex1D_GetSize(this: &mut Tex1D) -> u32 {
     this.size as u32
 }
 

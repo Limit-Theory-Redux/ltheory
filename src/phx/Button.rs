@@ -513,7 +513,7 @@ pub extern "C" fn Button_ToDeviceType(button: Button) -> DeviceType {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Button_ToString(button: Button) -> *const libc::c_char {
+pub extern "C" fn Button_ToString(button: Button) -> *const libc::c_char {
     match button {
         0 => c_str!("Button_Null"),
         1 => c_str!("Button_Keyboard_A"),

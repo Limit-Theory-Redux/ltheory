@@ -37,7 +37,7 @@ pub unsafe extern "C" fn MemStack_Alloc(this: &mut MemStack, size: u32) -> *mut 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_Clear(this: &mut MemStack) {
+pub extern "C" fn MemStack_Clear(this: &mut MemStack) {
     this.size = 0;
 }
 
@@ -50,21 +50,21 @@ pub unsafe extern "C" fn MemStack_Dealloc(this: &mut MemStack, size: u32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_CanAlloc(this: &mut MemStack, size: u32) -> bool {
+pub extern "C" fn MemStack_CanAlloc(this: &mut MemStack, size: u32) -> bool {
     (this.size).wrapping_add(size) <= this.capacity
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_GetSize(this: &mut MemStack) -> u32 {
+pub extern "C" fn MemStack_GetSize(this: &mut MemStack) -> u32 {
     this.size
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_GetCapacity(this: &mut MemStack) -> u32 {
+pub extern "C" fn MemStack_GetCapacity(this: &mut MemStack) -> u32 {
     this.capacity
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn MemStack_GetRemaining(this: &mut MemStack) -> u32 {
+pub extern "C" fn MemStack_GetRemaining(this: &mut MemStack) -> u32 {
     (this.capacity).wrapping_sub(this.size)
 }

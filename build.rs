@@ -59,7 +59,7 @@ fn main() {
         .build();
     let deps_root = cmake_root.join("build").join("_deps");
 
-    gen_bindings();
+    // gen_bindings();
 
     // Build C++ files which haven't been ported yet.
     cc::Build::new()

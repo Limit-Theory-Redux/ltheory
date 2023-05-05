@@ -85,8 +85,8 @@ unsafe extern "C" fn Polygon_SplitImpl(
 
         if bSide == PointClassification::InFront {
             if aSide == PointClassification::Behind {
-                let mut i = Vec3::ZERO;
-                let mut lineSegment: LineSegment = LineSegment { p0: b, p1: a };
+                let i = Vec3::ZERO;
+                let lineSegment: LineSegment = LineSegment { p0: b, p1: a };
                 (*front).vertices.push(i);
                 (*back).vertices.push(i);
 
@@ -97,8 +97,8 @@ unsafe extern "C" fn Polygon_SplitImpl(
             (*front).vertices.push(b)
         } else if bSide == PointClassification::Behind {
             if aSide == PointClassification::InFront {
-                let mut i = Vec3::ZERO;
-                let mut lineSegment: LineSegment = LineSegment { p0: a, p1: b };
+                let i = Vec3::ZERO;
+                let lineSegment: LineSegment = LineSegment { p0: a, p1: b };
                 (*front).vertices.push(i);
                 (*back).vertices.push(i);
 

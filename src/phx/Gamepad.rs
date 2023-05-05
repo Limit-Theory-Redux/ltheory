@@ -97,7 +97,7 @@ pub unsafe extern "C" fn Gamepad_GetAxis(this: &mut Gamepad, axis: GamepadAxis) 
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetAxisDelta(this: &mut Gamepad, axis: GamepadAxis) -> f64 {
+pub extern "C" fn Gamepad_GetAxisDelta(this: &mut Gamepad, axis: GamepadAxis) -> f64 {
     this.axisState[axis as usize] - this.axisLast[axis as usize]
 }
 
@@ -107,7 +107,7 @@ pub unsafe extern "C" fn Gamepad_GetButton(this: &mut Gamepad, button: GamepadBu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetButtonPressed(
+pub extern "C" fn Gamepad_GetButtonPressed(
     this: &mut Gamepad,
     button: GamepadButton,
 ) -> f64 {
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn Gamepad_GetButtonPressed(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_GetButtonReleased(
+pub extern "C" fn Gamepad_GetButtonReleased(
     this: &mut Gamepad,
     button: GamepadButton,
 ) -> f64 {
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn Gamepad_IsConnected(this: &mut Gamepad) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Gamepad_SetDeadzone(this: &mut Gamepad, axis: GamepadAxis, deadzone: f64) {
+pub extern "C" fn Gamepad_SetDeadzone(this: &mut Gamepad, axis: GamepadAxis, deadzone: f64) {
     this.deadzone[axis as usize] = deadzone;
 }
 

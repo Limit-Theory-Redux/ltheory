@@ -48,12 +48,12 @@ pub unsafe extern "C" fn Viewport_GetAspect() -> f32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Viewport_GetSize(out: *mut IVec2) {
+pub unsafe extern "C" fn Viewport_GetSize(out: &mut IVec2) {
     if vpIndex < 0 {
         CFatal!("Viewport_GetSize: Viewport stack is empty");
     }
-    (*out).x = vp[vpIndex as usize].sx;
-    (*out).y = vp[vpIndex as usize].sy;
+    out.x = vp[vpIndex as usize].sx;
+    out.y = vp[vpIndex as usize].sy;
 }
 
 #[no_mangle]

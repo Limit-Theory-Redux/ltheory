@@ -30,7 +30,7 @@ pub unsafe extern "C" fn Directory_Close(this: *mut Directory) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Directory_GetNext(this: &mut Directory) -> *const libc::c_char {
+pub extern "C" fn Directory_GetNext(this: &mut Directory) -> *const libc::c_char {
     match this.iterator.next() {
         Some(Ok(dir)) => {
             this.lastEntry =

@@ -20,7 +20,7 @@ pub static State_Down: State = 1 << 2;
 pub static State_Released: State = 1 << 3;
 
 #[no_mangle]
-pub unsafe extern "C" fn State_ToString(mut state: State) -> *const libc::c_char {
+pub extern "C" fn State_ToString(mut state: State) -> *const libc::c_char {
     if state == State_Null {
         return c_str!("State_Null");
     }

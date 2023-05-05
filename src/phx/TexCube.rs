@@ -191,7 +191,7 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_Acquire(this: &mut TexCube) {
+pub extern "C" fn TexCube_Acquire(this: &mut TexCube) {
     this._refCount = (this._refCount).wrapping_add(1);
 }
 
@@ -329,17 +329,17 @@ pub unsafe extern "C" fn TexCube_GetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GetFormat(this: &mut TexCube) -> TexFormat {
+pub extern "C" fn TexCube_GetFormat(this: &mut TexCube) -> TexFormat {
     this.format
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GetHandle(this: &mut TexCube) -> u32 {
+pub extern "C" fn TexCube_GetHandle(this: &mut TexCube) -> u32 {
     this.handle
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GetSize(this: &mut TexCube) -> i32 {
+pub extern "C" fn TexCube_GetSize(this: &mut TexCube) -> i32 {
     this.size
 }
 
