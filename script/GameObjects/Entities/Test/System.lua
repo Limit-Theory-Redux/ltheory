@@ -195,11 +195,26 @@ function System:place (object)
 
     -- Stations
     if typeName == "Station" then
-      for _, station in ipairs(self.stations) do
-        while pos:distance(station:getPos()) < Config.gen.stationMinimumDistance do
-          print("Station closer than " .. Config.gen.stationMinimumDistance .. "(".. math.floor(pos:distance(station:getPos())) ..") to station: '" .. station:getName() .. "'. Regenerating.")
+      -- TODO: inefficient way of doing this. replace later.
+      local validSpawn = false
+      while not validSpawn do
+        local stations = self.stations
+
+        local function checkDistanceToAllStations(pos)
+          for _, station in ipairs(stations) do
+            if pos:distance(station:getPos()) < Config.gen.stationMinimumDistance then
+              print("New Station closer than " .. Config.gen.stationMinimumDistance .. "(".. math.floor(pos:distance(station:getPos())) ..") to station: '" .. station:getName() .. "'. Finding New Position.")
+              return false
+            end
+          end
+          return true
+        end
+
+        while not checkDistanceToAllStations(pos) do
           pos = field:getRandomPos(self.rng)
         end
+        printf("Found Position to Spawn: %s", pos)
+        validSpawn = true
       end
     end
 
