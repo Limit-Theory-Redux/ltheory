@@ -38,6 +38,7 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
   self.dust = Dust()
 
   self.players   = {}
+  self.aiPlayers = nil
   self.zones     = {}
   self.stations  = {}
   self.ships     = {}
@@ -180,6 +181,8 @@ end
 function System:place (object)
   -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
   -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
+  local typeName = Config:getObjectInfo("object_types", object:getType())
+
   local pos = Config.gen.origin
   local field = self:sampleZones(self.rng)
   if field then
@@ -188,6 +191,21 @@ function System:place (object)
       while pos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
         pos = field:getRandomPos(self.rng)
       end
+    end
+
+    -- Stations
+    if typeName == "Station" then
+      for _, station in ipairs(self.stations) do
+        while pos:distance(station:getPos()) < Config.gen.stationMinimumDistance do
+          print("Station closer than " .. Config.gen.stationMinimumDistance .. "(".. math.floor(pos:distance(station:getPos())) ..") to station: '" .. station:getName() .. "'. Regenerating.")
+          pos = field:getRandomPos(self.rng)
+        end
+      end
+    end
+
+    -- Ships
+    if typeName == "Ship" then
+
     end
   else
     pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
@@ -222,6 +240,9 @@ function System:update (dt)
     -- pre-physics update
     local event = Event.Update(dt)
     Profiler.Begin('AI Update')
+    if self.aiPlayers and #self.aiPlayers > 0 then
+      for _, player in ipairs(self.aiPlayers) do player:send(event) end
+    end
     for _, player in ipairs(self.players) do player:send(event) end
     Profiler.End()
 
@@ -602,7 +623,7 @@ function System:spawnShip (player)
     shipPlayer = player
   else
     shipPlayer = Player(format("Ship Player for %s", ship:getName()))
-    insert(self.players, shipPlayer)
+    insert(self.aiPlayers, shipPlayer)
   end
   ship:setOwner(shipPlayer)
 

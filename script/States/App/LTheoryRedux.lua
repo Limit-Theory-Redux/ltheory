@@ -5,12 +5,11 @@ local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Bindings = require('States.ApplicationBindings')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 local Actions = requireAll('GameObjects.Actions')
-local Production = require('Systems.Economy.Production')
-local Item = require('Systems.Economy.Item')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 local InitFiles = require('Systems.Files.InitFiles')
 local MainMenu = require('Systems.Menus.MainMenu')
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
+local Universe = require('Systems.Universe.Universe')
 
 LTheoryRedux = require('States.Application')
 
@@ -116,6 +115,7 @@ function LTheoryRedux:onUpdate (dt)
   self.canvas:update(dt)
   MainMenu:OnUpdate(dt)
   MusicPlayer:OnUpdate(dt)
+  UniverseEconomy:OnUpdate(dt)
 
   -- TODO: Confirm whether this is still needed
   local playerShip = self.player
@@ -319,14 +319,6 @@ function LTheoryRedux:createStarSystem ()
       --   a space station, a visible pilotable ship, and possibly some NPC ships
       local afield = nil
 
-      -- Add system-wide AI director
-      self.tradeAI = Entities.Player("AI Trade Player")
-      self.tradeAI:addCredits(1e10)
-
-      -- Add a generic ship-like entity to serve as the imaginary player ship
-      self.tradeShip = Entity()
-      self.tradeShip:setOwner(self.tradeAI)
-
       -- Add planets
       local planet = nil -- remember the last planet created (TODO: remember ALL the planets)
       for i = 1, Config.gen.nPlanets do
@@ -339,26 +331,6 @@ function LTheoryRedux:createStarSystem ()
         afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, false)
         printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
       end
-
-      -- Add space stations with random factories
-      -- Every system gets one "free" solar plant
-      local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
-      self.system:place(newStation)
-
-      if Config.gen.nAIPlayers > 0 and Config.gen.nEconNPCs > 0 then
-        -- Add the "extra" stations only if there are economic ships to use them
-        -- Add a free Waste Recycler station
-        newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
-        self.system:place(newStation)
-      end
-
-      for i = 3, Config.gen.nStations do
-        -- Create Stations within randomly selected AsteroidField Zones
-        self.system:spawnStation(self.tradeAI, nil)
-      end
-
-      -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
-      self.system:addExtraFactories(self.system, Config.gen.nPlanets, self.tradeAI)
 
       -- Add the player's ship
       newShip = self.system:spawnShip(Config.game.humanPlayer)
@@ -373,60 +345,10 @@ function LTheoryRedux:createStarSystem ()
       self.system:place(newShip)
 printf("Added our ship, the '%s', at pos %s", newShip:getName(), newShip:getPos())
 
-      -- TESTING: ADD SHIPS WITH ESCORT BEHAVIOR ENABLED
-      local ships = {}
-      for i = 1, Config.gen.nEscortNPCs do
-        local escort = self.system:spawnShip(nil)
-        local offset = self.system.rng:getSphere():scale(100)
-        escort:setPos(newShip:getPos() + offset)
-
-        escort:pushAction(Actions.Escort(newShip, offset))
-
-        -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
-        --       These will be dogfighting challenges!
-        if rng:getInt(0, 100) < 20 then
-          escort:setHealth(100, 100, 0.2)
-          escort.usesBoost = true
-        end
-
-        insert(ships, escort)
-      end
-if Config.gen.nEscortNPCs > 0 then
-  printf("Added %d escort ships", Config.gen.nEscortNPCs)
-end
-
-      -- TESTING: MAKE SHIPS CHASE EACH OTHER!
-      for i = 1, #ships - 1 do
-        ships[i]:pushAction(Actions.Attack(ships[i+1]))
-      end
-
-      -- TESTING: ADD SHIPS WITH ECONOMIC BEHAVIOR ENABLED
-      -- Add AI Players and give each one some assets
-      if Config.gen.nAIPlayers > 0 and Config.gen.nEconNPCs > 0 then
-        local econShipsPerAI = math.floor(Config.gen.nEconNPCs / Config.gen.nAIPlayers)
-        local econShipsAdded = econShipsPerAI * Config.gen.nAIPlayers
-        for i = 1, Config.gen.nAIPlayers do
-          local tradePlayerName = format("AI Trade Player %d", i)
-          local tradePlayer = Entities.Player(tradePlayerName)
-          insert(self.system.players, tradePlayer)
-
-          -- Give AI Player some starting money
-          tradePlayer:addCredits(Config.econ.eStartCredits)
-
-          -- Create multiple assets (ships) assigned to this AI Player
-          self.system:spawnAI(econShipsPerAI, Actions.Wait(1), tradePlayer)
-printf("%d assets added to %s", econShipsPerAI, tradePlayerName)
-        end
-printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nAIPlayers)
-
-        for _, tradePlayer in ipairs(self.system.players) do
-          -- Tell each AI player to start using the Think action
-          tradePlayer:pushAction(Actions.Think())
-        end
-      end
+      -- Add System to the UniverseEconomy
+      Universe:AddStarSystem(self.system)
     end
   end
-
   -- Insert the game view into the application canvas to make it visible
   self.gameView = Systems.Overlay.GameView(self.player)
   self.canvas = UI.Canvas()

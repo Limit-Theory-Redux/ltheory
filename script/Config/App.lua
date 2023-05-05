@@ -138,6 +138,8 @@ Config.gen = {
   massAsteroidExp = {4.1,  -- Carbonaceous
                      5.9,  -- Metallic
                      3.2}, -- Silicaceous
+
+  stationMinimumDistance = 25000, -- minimum distance between stations
 }
 
 Config.game = {
@@ -238,6 +240,8 @@ Config.econ = {
   pickupDistWeightTran = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
   markup   = 1.2, -- change to base value when calculating ask price for selling an item
   markdown = 0.8, -- change to base value when calculating bid price for buying an item
+
+  lowAttentionUpdateRate = 5
 }
 
 Config.ui = {
