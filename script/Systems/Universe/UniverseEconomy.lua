@@ -75,6 +75,7 @@ function UniverseEconomy:OnUpdate(dt)
         -- Add AI Player to the system
         table.insert(system.aiPlayers, aiPlayer)
       end
+      print("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
     end
     -- Handle High Attention Systems
     self:HandleHighAttention(system)
