@@ -182,7 +182,7 @@ function Factory:updateTradeOrders (prod, dt)
 end
 
 function Factory:update (dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     Profiler.Begin('Factory.Update')
     self.time = self.time + dt
     if not self:isBlocked() then self.timeOnline = self.timeOnline + dt end

@@ -57,7 +57,7 @@ function Ship:attackedBy (target)
     -- Ignore hits on ships that have already been destroyed
 --printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
     self:modDisposition(target, -0.2)
-    if self ~= Config.game.currentShip and self:isHostileTo(target) then
+    if self ~= GameState.player.currentShip and self:isHostileTo(target) then
       -- If this non-player-controlled ship is not currently attacking its attacker,
       --    add an action to Attack its attacker
       if self:hasActions() then
@@ -85,8 +85,8 @@ function Ship:setShipDocked (entity)
 
   -- If the player was targeting a ship that just docked, remove the target lock
   -- TODO: This check needs to be applied to ALL ships, not just the player's ship
-  if Config.game.currentShip and self == Config.game.currentShip:getTarget() then
-    Config.game.currentShip:setTarget(nil)
+  if GameState.player.currentShip and self == GameState.player.currentShip:getTarget() then
+    GameState.player.currentShip:setTarget(nil)
   end
 
 --if self.shipDockedAt then

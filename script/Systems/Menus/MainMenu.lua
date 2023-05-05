@@ -226,9 +226,9 @@ function MainMenu:ShowSeedDialogInner()
 
   if HmGui.Button("Cancel") then
     self.seedDialogDisplayed = false
-    self:SetMenuMode(Config.getGameMode())
+    --self:SetMenuMode(GameState:GetCurrentState())
     LTheoryRedux:freezeTurrets()
-    Config.game.gamePaused = false
+    GameState.paused = false
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
       Input.SetMouseVisible(false)
@@ -244,10 +244,10 @@ function MainMenu:ShowSeedDialogInner()
     for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
       guiElements[1]["elems"][i][3] = false
     end
-    Config.setGameMode(2) -- switch to Flight Mode
+    GameState:SetState(Enums.GameStates.InGame) -- switch to Flight Mode
     self:SetMenuMode(Enums.MenuMode.Dialog)
     Config.game.flightModeButInactive = false
-    Config.game.gamePaused = false
+    GameState.paused = false
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
@@ -260,10 +260,10 @@ function MainMenu:ShowSeedDialogInner()
     for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
       guiElements[1]["elems"][i][3] = false
     end
-    Config.setGameMode(2) -- switch to Flight Mode
+    GameState:SetState(Enums.GameStates.InGame) -- switch to Flight Mode
     self:SetMenuMode(Enums.MenuMode.Dialog)
     Config.game.flightModeButInactive = false
-    Config.game.gamePaused = false
+    GameState.paused = false
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
@@ -590,28 +590,28 @@ function MainMenu:ShowFlightDialogInner()
   HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
   HmGui.PushFont(Cache.Font('Exo2Bold', 26))
 
-  if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
+  if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
     if HmGui.Button("Return to Game") then
       --printf("panelActive = %s, defaultControl = %s", Config.game.panelActive, Config.ui.defaultControl)
       LTheoryRedux:freezeTurrets()
       Config.game.flightModeButInactive = false
-      Config.game.gamePaused = false
-      Config.game.panelActive = false
+      GameState.paused = false
+      GameState.panelActive = false
 
-      if Config.ui.defaultControl == "Ship" then
+      if GameState.ui.currentControl == "Ship" then
         Input.SetMouseVisible(false)
       end
     end
   end
 
-  if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
+  if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
     HmGui.SetSpacing(8)
 
     if HmGui.Button("Save Game") then
       -- TODO: Save game state here
       LTheoryRedux:freezeTurrets()
       Config.game.flightModeButInactive = false
-      Config.game.gamePaused = false
+      GameState.paused = false
       Input.SetMouseVisible(false)
     end
   end
@@ -629,14 +629,16 @@ function MainMenu:ShowFlightDialogInner()
     -- Show Game Settings menu
     self:ShowSettingsScreen()
     Config.game.flightModeButInactive = false
+    GameState.paused = false
+    Input.SetMouseVisible(false)
   end
   HmGui.SetSpacing(8)
 
   if HmGui.Button("Exit to Main Menu") then
     Config.game.flightModeButInactive = true
-    Config.setGameMode(1) -- switch to Startup Mode
+    GameState:SetState(Enums.GameStates.MainMenu) -- switch to Startup Mode
     LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
-    Config.game.gamePaused = false
+    GameState.paused = false
   end
   HmGui.SetSpacing(8)
 

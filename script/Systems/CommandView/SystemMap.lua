@@ -20,7 +20,7 @@ function SystemMap:onDraw (state)
 
   Draw.Color(0, 1, 0, 1)
   local hx, hy = sx / 2, sy / 2
-  local dx, dy = Config.game.mapSystemPos.x + hx, Config.game.mapSystemPos.y + hy
+  local dx, dy = GameState.player.mapSystemPos.x + hx, GameState.player.mapSystemPos.y + hy
 
   local c = {
     r = 0.1,
@@ -34,7 +34,7 @@ function SystemMap:onDraw (state)
   local mp = Input.GetMousePosition()
 
   -- If an object is target locked in flight view (via HUD), give it focus in the System Map
-  local playerShip = Config.game.currentShip
+  local playerShip = GameState.player.currentShip
   local playerTarget = nil
   if playerShip ~= nil then
     if self.focus == playerShip then
@@ -57,21 +57,21 @@ function SystemMap:onDraw (state)
       local p = e:getPos()
       local x = p.x - dx
       local y = p.z - dy
-      x = self.x + x * Config.game.mapSystemZoom + hx
-      y = self.y + y * Config.game.mapSystemZoom + hy
+      x = self.x + x * GameState.player.mapSystemZoom + hx
+      y = self.y + y * GameState.player.mapSystemZoom + hy
       Draw.PointSize(3.0)
 
       if e:hasActions() then
 --printf("Action: %s", e:getName())
-        if Config.game.currentShip == e then
+        if GameState.player.currentShip == e then
           Draw.PointSize(5.0)
           Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
           if playerTarget then
             local tp = playerTarget:getPos()
             local tx = tp.x - dx
             local ty = tp.z - dy
-            tx = self.x + tx * Config.game.mapSystemZoom + hx
-            ty = self.y + ty * Config.game.mapSystemZoom + hy
+            tx = self.x + tx * GameState.player.mapSystemZoom + hx
+            ty = self.y + ty * GameState.player.mapSystemZoom + hy
             UI.DrawEx.Line(x, y, tx, ty, { r = 0.9, g = 0.8, b = 1.0, a = 1.0 }, true)
           end
         else
@@ -82,7 +82,7 @@ function SystemMap:onDraw (state)
               -- Draw the dot for ships that are aces larger than regular ships
               Draw.PointSize(5.0)
             end
-            if string.find(entAction:getName(), "Attack") and entAction.target == Config.game.currentShip then
+            if string.find(entAction:getName(), "Attack") and entAction.target == GameState.player.currentShip then
               -- TODO: draw in color based on Disposition toward player
               Draw.Color(1.0, 0.3, 0.3, 1.0) -- other object, hostile (has a current action of "Attack player's ship")
             else
@@ -93,8 +93,8 @@ function SystemMap:onDraw (state)
               local ftp = focusedTarget:getPos()
               local ftx = ftp.x - dx
               local fty = ftp.z - dy
-              ftx = self.x + ftx * Config.game.mapSystemZoom + hx
-              fty = self.y + fty * Config.game.mapSystemZoom + hy
+              ftx = self.x + ftx * GameState.player.mapSystemZoom + hx
+              fty = self.y + fty * GameState.player.mapSystemZoom + hy
               if string.find(entAction:getName(), "Attack") then
                 UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, true)
               else
@@ -112,12 +112,12 @@ function SystemMap:onDraw (state)
 
       if e:hasFlows() and not e:isDestroyed() then
 --printf("Flow: %s", e:getName())
-        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale() * 10, { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
+        UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale() * 10, { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
       end
 
       if e:hasYield() then
 --printf("Yield: %s", e:getName())
-        UI.DrawEx.Ring(x, y, Config.game.mapSystemZoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 }, true)
+        UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 }, true)
       end
 
       if self.focus == e then
@@ -152,8 +152,8 @@ function SystemMap:onDraw (state)
   if Input.GetDown(Button.Mouse.Left) then
     self.focus = best
     -- Set focused-on object in the System Map as the player ship's current target
-    if Config.game.currentShip ~= nil and Config.game.currentShip ~= self.focus then
-      Config.game.currentShip:setTarget(self.focus)
+    if GameState.player.currentShip ~= nil and GameState.player.currentShip ~= self.focus then
+      GameState.player.currentShip:setTarget(self.focus)
     end
   end
 
@@ -236,8 +236,8 @@ function SystemMap:onDraw (state)
         objemit = "Mass: %0.1f kt"
       end
       dbg:text(objemit, objval)
-      if Config.game.currentShip then
-        local posMe = Config.game.currentShip:getPos()
+      if GameState.player.currentShip then
+        local posMe = GameState.player.currentShip:getPos()
         local posIt = self.focus:getPos()
         objval = posMe:distance(posIt)
         -- TODO: Add check here to see if our ship is docked to the target, and set displayed range to 0 if so
@@ -262,12 +262,12 @@ function SystemMap:onInput (state)
   -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
   --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
   --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
-  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-  Config.game.mapSystemPos.x = Config.game.mapSystemPos.x + (0.5 * kPanSpeed / Config.game.mapSystemZoom) * (
+  GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
+  GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x + (0.2 * kPanSpeed / GameState.player.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-  Config.game.mapSystemPos.y = Config.game.mapSystemPos.y + (0.5 * kPanSpeed / Config.game.mapSystemZoom) * (
+    GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y + (0.2 * kPanSpeed / GameState.player.mapSystemZoom) * (
     Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
-  Config.game.mapSystemZoom = Config.game.mapSystemZoom * exp(kZoomSpeed * (
+    GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * (
     Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
 end
 
@@ -279,17 +279,17 @@ function SystemMap.Create (system)
   kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
 --printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
 
-  if Config.game.currentShip ~= nil then
-    if Config.game.mapSystemPos == nil then
+  if GameState.player.currentShip ~= nil then
+    if GameState.player.mapSystemPos == nil then
       -- Initialize system map starting position only if not already initialized
-      Config.game.mapSystemPos = Config.game.currentShip:getPos()
+      GameState.player.mapSystemPos = GameState.player.currentShip:getPos()
     end
   else
-    Config.game.mapSystemPos = Vec3f(0, 0, 0)
+    GameState.player.mapSystemPos = Vec3f(0, 0, 0)
   end
-  if Config.game.mapSystemZoom == nil then
+  if GameState.player.mapSystemZoom == nil then
     -- Initialize system map zoom level only if not already initialized
-    Config.game.mapSystemZoom = 0.0001
+    GameState.player.mapSystemZoom = 0.0001
   end
   return self
 end

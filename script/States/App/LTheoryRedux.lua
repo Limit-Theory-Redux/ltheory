@@ -45,24 +45,21 @@ function LTheoryRedux:onInit ()
   MainMenu:Open()
 
   --* Game initializations *--
-  self.window:setSize(Config.render.startingHorz, Config.render.startingVert)
+  self.window:setSize(GameState.render.resX, GameState.render.resY)
   Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
-  if Config.render.fullscreen then
+  if GameState.render.fullscreen then
     self.window:toggleFullscreen()
   end
 
-  -- Set the default game control cursor
-  self.window:setCursor(Config.ui.cursor, Config.ui.cursorX, Config.ui.cursorY)
-
-  self.player = Entities.Player(Config.game.humanPlayerName)
-  Config.game.humanPlayer = self.player
+  self.player = Entities.Player(GameState.player.humanPlayerName)
+  GameState.player.humanPlayer = self.player
   self:generate()
 end
 
 function LTheoryRedux:toggleSound ()
-  Config.audio.bSoundOn = not Config.audio.bSoundOn
+  GameState.audio.enabled = not GameState.audio.enabled
 
-  if Config.audio.bSoundOn then
+  if GameState.audio.enabled then
     MusicPlayer:SetVolume(1)
   else
     MusicPlayer:SetVolume(0)
@@ -120,7 +117,7 @@ function LTheoryRedux:onUpdate (dt)
   -- TODO: Confirm whether this is still needed
   local playerShip = self.player
   if playerShip ~= nil then
-    playerShip = Config.game.currentShip
+    playerShip = GameState.player.currentShip
   end
 
   if Bindings.All:get() == 1 then
@@ -141,7 +138,8 @@ function LTheoryRedux:onUpdate (dt)
   -- Manage game control screens
   if MainMenu.currentMode ~= Enums.MenuMode.Splashscreen and Input.GetPressed(Bindings.Escape) then
     MainMenu:SetBackgroundMode(false)
-    if Config.getGameMode() == 1 then
+    Input.SetMouseVisible(true)
+    if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
       MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
     else
       -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
@@ -179,8 +177,8 @@ function LTheoryRedux:onUpdate (dt)
         if playerShip:getCurrentAction() == nil or not string.find(playerShip:getCurrentAction():getName(),"MoveTo") then
           -- Move undestroyed, undocked player ship to area of selected target
           local autodistance = Config.game.autonavRanges[target:getType()]
-          Config.game.autonavTimestamp = Config.getCurrentTimestamp()
-          Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+          GameState.player.autonavTimestamp = Config.getCurrentTimestamp()
+          GameState.player.playerMoving = true -- must be set to true before pushing the MoveTo action
           playerShip:pushAction(Actions.MoveTo(target, autodistance))
         end
       end
@@ -188,17 +186,17 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Disengage autopilot (require a 1-second delay, otherwise keypress turns autopilot on then off instantly)
-  if Config.game.playerMoving then
-    if Input.GetPressed(Bindings.AutoNav) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
-      Config.game.playerMoving = false
+  if GameState.player.playerMoving then
+    if Input.GetPressed(Bindings.AutoNav) and Config.getCurrentTimestamp() - GameState.player.autonavTimestamp > 1 then
+      GameState.player.playerMoving = false
     end
   end
 
   -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
   -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
   if Input.GetPressed(Bindings.ToggleLights) and MainMenu.currentMode == Enums.MenuMode.Dialog then
-    Config.render.thrusterLights = not Config.render.thrusterLights
-    Config.render.pulseLights    = not Config.render.pulseLights
+    GameState.render.thrusterLights = not GameState.render.thrusterLights
+    GameState.render.pulseLights    = not GameState.render.pulseLights
   end
 
   -- Decide which game controls screens (if any) to display on top of the canvas
@@ -243,7 +241,7 @@ function LTheoryRedux:generateNewSeed ()
 end
 
 function LTheoryRedux:generate ()
-  Config.setGameMode(1) -- start off in Startup Mode
+  GameState:SetState(Enums.GameStates.Splashscreen) -- start off in Startup Mode
 
   -- Use random seed for new background star system, and stay in "display game logo" startup mode
   LTheoryRedux:seedStarsystem(Enums.MenuMode.Splashscreen)
@@ -261,7 +259,7 @@ function LTheoryRedux:createStarSystem ()
   if self.system then self.system:delete() end
 
   print("------------------------")
-  if Config.getGameMode() == 1 then
+  if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
     -- Use custom system generation sizes for a nice background star system
     Config.gen.scaleSystem    = Config.gen.scaleSystemBack
     Config.gen.scalePlanet    = Config.gen.scalePlanetBack
@@ -279,10 +277,10 @@ function LTheoryRedux:createStarSystem ()
 
   -- Spawn a new star system
   self.system = System(self.seed)
-  Config.game.currentSystem = self.system -- remember the player's current star system
+  GameState.world.currentSystem = self.system -- remember the player's current star system
 
   do
-    if Config.getGameMode() == 1 then
+    if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
       -- Background Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, and an invisible rotating ship
@@ -310,10 +308,9 @@ function LTheoryRedux:createStarSystem ()
       -- Flight Mode
 
       -- Reset variables used between star systems
-      Config.game.gamePaused   = false
-      Config.game.panelActive  = false
-      Config.game.playerMoving = false
-      Config.game.weaponGroup  = 1
+      GameState.paused   = false
+      GameState.panelActive  = false
+      GameState.player.playerMoving = false
 
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, a visible pilotable ship, and possibly some NPC ships
@@ -333,13 +330,13 @@ function LTheoryRedux:createStarSystem ()
       end
 
       -- Add the player's ship
-      newShip = self.system:spawnShip(Config.game.humanPlayer)
-      newShip:setName(Config.game.humanPlayerShipName)
+      newShip = self.system:spawnShip(GameState.player.humanPlayer)
+      newShip:setName(GameState.player.humanPlayerShipName)
       newShip:setHealth(500, 500, 10) -- make the player's ship healthier than the default NPC ship
 
       LTheoryRedux:insertShip(newShip)
 
-      Config.game.currentShip = newShip
+      GameState.player.currentShip = newShip
 
       -- Set our ship's starting location within the extent of a random asteroid field
       self.system:place(newShip)
@@ -357,15 +354,9 @@ printf("Added our ship, the '%s', at pos %s", newShip:getName(), newShip:getPos(
       :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
     )
 
-  -- Temporary until game states are properly introduced
-  if Config.getGameMode() == 2 then
-    MusicPlayer:PlayAmbient()
-  end
-
-  -- Set the initial mouse position when Flight mode begins to the center of the game window
-  self.window:setWindowGrab(true)
-  Input.SetMousePosition(self.resX / 2, self.resY / 2)
-  self.window:setWindowGrab(false)
+    if GameState.GetCurrentState == Enums.GameStates.InGame then
+      MusicPlayer:PlayAmbient()
+    end
 end
 
 function LTheoryRedux:insertShip(ourShip)
@@ -402,8 +393,8 @@ end
 function LTheoryRedux:freezeTurrets ()
   -- When taking down a dialog, Turret:updateTurret sees the button click input and thinks it means "Fire"
   -- So this routine adds a very brief cooldown to the player ship's turrets
-  if Config.game.currentShip then
-    for turret in Config.game.currentShip:iterSocketsByType(SocketType.Turret) do
+  if GameState.player.currentShip then
+    for turret in GameState.player.currentShip:iterSocketsByType(SocketType.Turret) do
       turret:addCooldown(2.0)
     end
   end

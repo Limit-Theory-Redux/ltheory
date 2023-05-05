@@ -7,8 +7,8 @@ function MusicPlayer:Init()
   self.queue = {}
   self.currentlyPlaying = nil
 
-  if Config.audio.bSoundOn then
-    self.volume = Config.audio.musicVolume
+  if GameState.audio.enabled then
+    self.volume = GameState.audio.musicVolume
   else
     self.volume = 0
   end
@@ -22,7 +22,7 @@ function MusicPlayer:SetVolume(volume)
   end
 
   self.volume = volume
-  Config.audio.musicVolume = volume
+  GameState.audio.musicVolume = volume
 
   for index, soundObject in ipairs(self.trackList) do
     Sound.SetVolume(soundObject.sound, volume)
@@ -42,7 +42,7 @@ end
 
 function MusicPlayer:PlayAmbient()
   local queueClear = false
-  for index, soundObject in ipairs(self.trackList) do
+  for index, soundObject in pairs(self.trackList) do
     if not string.match(soundObject.name, Config.audio.mainMenu) then
       -- ignore main menu
       -- replace this with music types later
@@ -126,7 +126,7 @@ function MusicPlayer:LoadMusic()
         name = fname,
         path = path,
         volume = self.volume,
-        isLooping = true
+        isLooping = true -- temporary
       }
 
       printf("VOLUME: " .. self.volume)

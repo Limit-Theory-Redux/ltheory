@@ -236,7 +236,7 @@ function System:endRender ()
 end
 
 function System:update (dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     -- pre-physics update
     local event = Event.Update(dt)
     Profiler.Begin('AI Update')
