@@ -34,7 +34,10 @@ GameState.audio = {
 GameState.ui = {
   showTrackers          = Config.ui.showTrackers,
   controlBarHeight      = Config.ui.controlBarHeight,
-  displayHUD            = Config.ui.displayHUD,
+  hudStyle              = Config.ui.hudStyle,
+  cursorStyle           = Config.ui.cursorStyle,
+  cursorX               = Config.ui.cursorX,
+  cursorY               = Config.ui.cursorY,
   displaySensors        = Config.ui.displaySensors
 }
 

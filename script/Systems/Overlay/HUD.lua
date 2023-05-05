@@ -1130,21 +1130,21 @@ function HUD:onInput (state)
     --camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
     -- Select a weapon group
-    if Input.GetPressed(Button.Keyboard.N1) and Config.game.weaponGroup ~= 1 then
+    if Input.GetPressed(Button.Keyboard.N1) and GameState.player.weaponGroup ~= 1 then
       Config.game.weaponGroup = 1
-    elseif Input.GetPressed(Button.Keyboard.N2) and Config.game.weaponGroup ~= 2 then
+    elseif Input.GetPressed(Button.Keyboard.N2) and GameState.player.weaponGroup ~= 2 then
       Config.game.weaponGroup = 2
-    elseif Input.GetPressed(Button.Keyboard.N3) and Config.game.weaponGroup ~= 3 then
+    elseif Input.GetPressed(Button.Keyboard.N3) and GameState.player.weaponGroup ~= 3 then
       Config.game.weaponGroup = 3
-    elseif Input.GetPressed(Button.Keyboard.N4) and Config.game.weaponGroup ~= 4 then
+    elseif Input.GetPressed(Button.Keyboard.N4) and GameState.player.weaponGroup ~= 4 then
       Config.game.weaponGroup = 4
-    elseif Input.GetPressed(Button.Keyboard.N5) and Config.game.weaponGroup ~= 5 then
+    elseif Input.GetPressed(Button.Keyboard.N5) and GameState.player.weaponGroup ~= 5 then
       Config.game.weaponGroup = 5
-    elseif Input.GetPressed(Button.Keyboard.N6) and Config.game.weaponGroup ~= 6 then
+    elseif Input.GetPressed(Button.Keyboard.N6) and GameState.player.weaponGroup ~= 6 then
       Config.game.weaponGroup = 6
-    elseif Input.GetPressed(Button.Keyboard.N7) and Config.game.weaponGroup ~= 7 then
+    elseif Input.GetPressed(Button.Keyboard.N7) and GameState.player.weaponGroup ~= 7 then
       Config.game.weaponGroup = 7
-    elseif Input.GetPressed(Button.Keyboard.N8) and Config.game.weaponGroup ~= 8 then
+    elseif Input.GetPressed(Button.Keyboard.N8) and GameState.player.weaponGroup ~= 8 then
       Config.game.weaponGroup = 8
     end
 
@@ -1175,7 +1175,7 @@ function HUD:onUpdate (state)
     if Input.GetPressed(Bindings.ToggleHUD) then
       GameState.ui.hudStyle = GameState.ui.hudStyle + 1
       if GameState.ui.hudStyle > Enums.HudStyles.Tight then
-        GameState.ui.hudStyle = Enums.HudModes.None
+        GameState.ui.hudStyle = Enums.HudStyles.None
       end
     end
 
@@ -1237,7 +1237,7 @@ end
 function HUD:onDraw (focus, active)
   local playerShip = self.player:getControlling()
   if playerShip:isAlive() then
-    if GameState.ui.hudStyle ~= Enums.HudModes.None then
+    if GameState.ui.hudStyle ~= Enums.HudStyles.None then
       self:drawSystemText            (self.enabled)
       self:drawTargetText            (self.enabled)
       self:drawBoostEnergy           (self.enabled)

@@ -47,23 +47,25 @@ function Universe:CreateStarSystem(seed)
       printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
     end
 
-    -- Add the player's ship
-    local playerShip = system:spawnShip(GameState.player.humanPlayer)
-    playerShip:setName(GameState.player.humanPlayerShipName)
-    playerShip:setHealth(500, 500, 10) -- make the player's ship healthier than the default NPC ship
+    local shipObject = {
+      owner = GameState.player.humanPlayer,
+      shipName = GameState.player.humanPlayerShipName,
+      health = {
+        [1] = 500,
+        [2] = 500,
+        [3] = 1
+      },
+      friction = 0,
+      sleepThreshold = {
+        [1] = 0,
+        [2] = 0
+      }
+    }
 
-    -- Insert ship into this star system
-    playerShip:setPos(Config.gen.origin)
-    playerShip:setFriction(0)
-    playerShip:setSleepThreshold(0, 0)
-    playerShip:setOwner(GameState.player.humanPlayer)
-    system:addChild(playerShip)
-    GameState.player.humanPlayer:setControlling(playerShip)
+    local playerShip = self:CreateShip(system, nil, shipObject)
 
     GameState.player.currentShip = playerShip
 
-    -- Set our ship's starting location within the extent of a random asteroid field
-    system:place(playerShip)
     printf("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
 
     -- Add System to the Universe
@@ -71,6 +73,28 @@ function Universe:CreateStarSystem(seed)
     printf("Added System: " .. system:getName() .. " to the Universe.")
   end
   self:AddSystemEconomy(system)
+end
+
+function Universe:CreateShip(system, pos, shipObject)
+    -- Add the player's ship
+    local ship = system:spawnShip(shipObject.owner)
+    ship:setName(shipObject.shipName)
+    ship:setHealth(shipObject.health[1], shipObject.health[2], shipObject.health[3]) -- make the player's ship healthier than the default NPC ship
+
+    -- Insert ship into this star system
+    local spawnPosition = pos or Config.gen.origin
+    ship:setPos(spawnPosition)
+    ship:setFriction(shipObject.friction)
+    ship:setSleepThreshold(shipObject.sleepThreshold[1], shipObject.sleepThreshold[2])
+    ship:setOwner(shipObject.owner)
+    system:addChild(ship)
+    shipObject.owner:setControlling(ship)
+
+    -- Set our ship's starting location within the extent of a random asteroid field
+    -- TODO: allow custom position
+    system:place(ship)
+
+    return ship
 end
 
 function Universe:AddFaction(name, type, players)

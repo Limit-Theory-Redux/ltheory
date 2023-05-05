@@ -230,7 +230,7 @@ Config.ui = {
   cursorSmooth     = "cursor/cursor1-small",
   cursorSimple     = "cursor/Simple_Cursor",
   cursor           = "cursor/Simple_Cursor",
-  cursorStyle      = 0,
+  cursorStyle      = 1,
   cursorX          = 1,
   cursorY          = 1,
 }

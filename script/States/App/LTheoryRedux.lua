@@ -47,13 +47,13 @@ function LTheoryRedux:onInit ()
   --* Game initializations *--
   self.window:setSize(GameState.render.resX, GameState.render.resY)
   Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
-  LTheoryRedux:SetFullscreen(Config.render.fullscreen)
+  LTheoryRedux:SetFullscreen(GameState.render.fullscreen)
 
   -- Set the default game control cursor
-  LTheoryRedux:setCursor(Enums.CursorFilenames[Config.ui.cursorStyle], Config.ui.cursorX, Config.ui.cursorY)
+  LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
 
-  self.player = Entities.Player(Config.game.humanPlayerName)
-  Config.game.humanPlayer = self.player
+  self.player = Entities.Player(GameState.player.humanPlayerName)
+  GameState.player.humanPlayer = self.player
   self:generate()
 end
 
@@ -74,24 +74,24 @@ function LTheoryRedux:toggleSound ()
 end
 
 function LTheoryRedux:SoundOn ()
-  Config.audio.bSoundOn = true
+  GameState.audio.enabled = true
 --printf("LTheoryRedux:SoundOn: volume set to 1")
   MusicPlayer:SetVolume(1)
 end
 
 function LTheoryRedux:SoundOff ()
-  Config.audio.bSoundOn = false
+  GameState.audio.enabled = false
 --printf("LTheoryRedux:SoundOff: volume set to 0")
   MusicPlayer:SetVolume(0)
 end
 
 function LTheoryRedux:ToggleFullscreen ()
-  Config.render.fullscreen = not Config.render.fullscreen
-  self.window:setFullscreen(Config.render.fullscreen)
+  GameState.render.fullscreen = not GameState.render.fullscreen
+  self.window:setFullscreen(GameState.render.fullscreen)
 end
 
 function LTheoryRedux:SetFullscreen (fullscreen)
-  Config.render.fullscreen = fullscreen
+  GameState.render.fullscreen = fullscreen
   self.window:setFullscreen(fullscreen)
 end
 
@@ -171,10 +171,10 @@ function LTheoryRedux:onUpdate (dt)
         Input.SetMouseVisible(Config.game.flightModeButInactive)
 
         if Config.game.flightModeButInactive then
-          Config.game.gamePaused = true
+          GameState.paused = true
         else
-          Config.game.panelActive = false
-          Config.game.gamePaused = false
+          GameState.panelActive = false
+          GameState.paused = false
         end
       end
     end
@@ -327,6 +327,7 @@ function LTheoryRedux:createStarSystem ()
       -- Add a space station
       local station = self.backgroundSystem:spawnStation(Config.game.humanPlayer, nil)
     else
+      GameState:SetState(Enums.GameStates.InGame)
       Universe:CreateStarSystem(self.seed)
     end
   end

@@ -240,7 +240,7 @@ function MainMenu:ShowSeedDialogInner()
     GameState.paused = false
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
-      Config.game.panelActive = false
+      GameState.panelActive = false
       Input.SetMouseVisible(false)
     end
   end
@@ -315,18 +315,18 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(0.0, 0.0)
   HmGui.SetAlign(0.5, 0.5)
 
-  guiSettings[1][1] = Config.audio.bSoundOn
+  guiSettings[1][1] = GameState.audio.enabled
   if guiSettings[1][2] == nil then
-    guiSettings[1][2] = Config.audio.bSoundOn
+    guiSettings[1][2] = GameState.audio.enabled
   end
   guiSettings[1][1] = HmGui.Checkbox(guiSettings[1][3], guiSettings[1][1])
   if guiSettings[1][1] then
     -- Checkbox was selected
-    if not Config.audio.bSoundOn then
+    if not GameState.audio.enabled then
       LTheoryRedux:SoundOn()
     end
   else
-    if Config.audio.bSoundOn then
+    if GameState.audio.enabled then
       LTheoryRedux:SoundOff()
     end
   end
@@ -336,18 +336,18 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(0.0, 0.0)
   HmGui.SetAlign(0.5, 0.5)
 
-  guiSettings[2][1] = Config.render.fullscreen
+  guiSettings[2][1] = GameState.render.fullscreen
   if guiSettings[2][2] == nil then
-    guiSettings[2][2] = Config.render.fullscreen
+    guiSettings[2][2] = GameState.render.fullscreen
   end
   guiSettings[2][1] = HmGui.Checkbox(guiSettings[2][3], guiSettings[2][1])
   if guiSettings[2][1] then
     -- Checkbox was selected
-    if not Config.render.fullscreen then
+    if not GameState.render.fullscreen then
       LTheoryRedux:SetFullscreen(true)
     end
   else
-    if Config.render.fullscreen then
+    if GameState.render.fullscreen then
       LTheoryRedux:SetFullscreen(false)
     end
   end
@@ -363,17 +363,17 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(1.0, 0.0)
   HmGui.BeginGroupX()
   if guiSettings[3][2] == nil then
-    guiSettings[3][1] = Config.ui.cursorStyle
-    guiSettings[3][2] = Config.ui.cursorStyle
+    guiSettings[3][1] = GameState.ui.cursorStyle
+    guiSettings[3][2] = GameState.ui.cursorStyle
   end
   if HmGui.Button("-") and guiSettings[3][1] > 1 then
     guiSettings[3][1] = guiSettings[3][1] - 1
-    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], Config.ui.cursorX, Config.ui.cursorY)
+    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], GameState.ui.cursorX, GameState.ui.cursorY)
   end
   HmGui.TextEx(Cache.Font("Ubuntu", 20), Enums.CursorStyleNames[guiSettings[3][1]], 0.3, 1.0, 0.4, 1.0)
   if HmGui.Button("+") and guiSettings[3][1] < Enums.CursorStyleCount then
     guiSettings[3][1] = guiSettings[3][1] + 1
-    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], Config.ui.cursorX, Config.ui.cursorY)
+    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], GameState.ui.cursorX, GameState.ui.cursorY)
   end
   HmGui.EndGroup()
   HmGui.EndGroup()
@@ -385,8 +385,8 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(1.0, 0.0)
   HmGui.BeginGroupX()
   if guiSettings[4][2] == nil then
-    guiSettings[4][1] = Config.ui.hudStyle
-    guiSettings[4][2] = Config.ui.hudStyle
+    guiSettings[4][1] = GameState.ui.hudStyle
+    guiSettings[4][2] = GameState.ui.hudStyle
   end
   if HmGui.Button("-") and guiSettings[4][1] > 1 then
     guiSettings[4][1] = guiSettings[4][1] - 1
@@ -586,10 +586,10 @@ function MainMenu:ShowSettingsScreenInner()
 
     LTheoryRedux:SetFullscreen(guiSettings[2][2])
 
-    Config.ui.cursorStyle = guiSettings[3][2]
-    LTheoryRedux:setCursor(Enums.CursorFilenames[Config.ui.cursorStyle], Config.ui.cursorX, Config.ui.cursorY)
+    GameState.ui.cursorStyle = guiSettings[3][2]
+    LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
 
-    Config.ui.hudStyle = guiSettings[4][2]
+    GameState.ui.hudStyle = guiSettings[4][2]
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
       if guiSettings[5][2] then
@@ -612,13 +612,13 @@ function MainMenu:ShowSettingsScreenInner()
     end
 
     self.settingsScreenDisplayed = false
-    Config.game.gamePaused = false
+    GameState.paused = false
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
       LTheoryRedux:freezeTurrets()
-      Config.setGameMode(2) -- return to Flight Mode
+      GameState:SetState(Enums.GameState.InGame) -- return to Flight Mode
       Config.game.flightModeButInactive = false
-      Config.game.panelActive = false
+      GameState.panelActive = false
       Input.SetMouseVisible(false)
     end
   end
@@ -628,11 +628,10 @@ function MainMenu:ShowSettingsScreenInner()
   if HmGui.Button("Use") then
     -- Return to the game using the selected values of each setting
     self.settingsScreenDisplayed = false
-    Config.game.gamePaused = false
+    GameState.paused = false
 
-    Config.ui.cursorStyle = guiSettings[3][1]
-
-    Config.ui.hudStyle = guiSettings[4][1]
+    GameState.ui.cursorStyle = guiSettings[3][1]
+    GameState.ui.hudStyle = guiSettings[4][1]
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
       Config.gen.nFields     = guiSettings[ 6][1]
@@ -650,9 +649,9 @@ function MainMenu:ShowSettingsScreenInner()
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
       LTheoryRedux:freezeTurrets()
-      Config.setGameMode(2) -- return to Flight Mode
+      GameState:SetState(Enums.GameState.InGame) -- return to Flight Mode
       Config.game.flightModeButInactive = false
-      Config.game.panelActive = false
+      GameState.panelActive = false
       Input.SetMouseVisible(false)
     end
   end
