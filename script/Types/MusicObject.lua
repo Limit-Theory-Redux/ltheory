@@ -3,7 +3,7 @@ MusicObject.__index = MusicObject
 
 function MusicObject:Create(arg)
   if not arg.name or not arg.path or not arg.volume then print("error") return end
-  printf("create new sound: " .. arg.name)
+  printf("MusicObject: create new sound: " .. arg.name)
 
   local object = {}
   object.name = arg.name

@@ -21,7 +21,7 @@ function LTheory:generate ()
   self.system = System(self.seed)
   Config.game.currentSystem = self.system
 
-  Config.ui.hudDisplayed = Enums.HudModes.Tight
+  Config.ui.hudStyle = Enums.HudStyles.Tight
 
   local ship
   do -- Player Ship
