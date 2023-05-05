@@ -1306,10 +1306,10 @@ function HUD:onEnable ()
   camera:lerpFrom(pCamera.pos, pCamera.rot)
 
   -- Set the mouse position when the Flight mode HUD is activated to the center of the game window
-  Config.render.gameWindow:setWindowGrab(true)
-  local x, y, sx, sy = self:getRectGlobal()
-  Input.SetMousePosition(sx / 2, sy / 2)
-  Config.render.gameWindow:setWindowGrab(false)
+  GameState.render.gameWindow:setWindowGrab(true)
+  local size = GameState.render.gameWindow:getSize()
+  Input.SetMousePosition(size.x / 2, size.y / 2)
+  GameState.render.gameWindow:setWindowGrab(false)
 end
 
 function HUD:controlThrust (e)

@@ -24,6 +24,7 @@ do -- Global Symbol Table
     Change     = libphx.Directory_Change,
     Create     = libphx.Directory_Create,
     GetCurrent = libphx.Directory_GetCurrent,
+    GetPrefPath = libphx.Directory_GetPrefPath,
     Remove     = libphx.Directory_Remove,
   }
 

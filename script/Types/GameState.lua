@@ -16,6 +16,7 @@ GameState.debug = {
 
 GameState.render = {
   fullscreen            = Config.render.fullscreen,
+  gameWindow            = nil,
   resX                  = Config.render.defaultResX,
   resY                  = Config.render.defaultResY,
   vsync                 = Config.render.vsync,

@@ -40,7 +40,7 @@ function Application:run ()
     self.resY,
     self:getWindowMode())
 
-  Config.render.gameWindow = self.window
+  GameState.render.gameWindow = self.window
 
   self.exit = false
 
