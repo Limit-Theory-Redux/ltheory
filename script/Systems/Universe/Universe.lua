@@ -24,7 +24,6 @@ function Universe:CreateStarSystem(seed)
 
   do
     -- Flight Mode
-
     -- Reset variables used between star systems
     GameState.gamePaused          = false
     GameState.panelActive         = false
@@ -53,7 +52,13 @@ function Universe:CreateStarSystem(seed)
     playerShip:setName(GameState.player.humanPlayerShipName)
     playerShip:setHealth(500, 500, 10) -- make the player's ship healthier than the default NPC ship
 
-    LTheoryRedux:insertShip(playerShip)
+    -- Insert ship into this star system
+    playerShip:setPos(Config.gen.origin)
+    playerShip:setFriction(0)
+    playerShip:setSleepThreshold(0, 0)
+    playerShip:setOwner(GameState.player.humanPlayer)
+    system:addChild(playerShip)
+    GameState.player.humanPlayer:setControlling(playerShip)
 
     GameState.player.currentShip = playerShip
 

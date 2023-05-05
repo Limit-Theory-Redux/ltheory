@@ -48,6 +48,8 @@ Config.paths = {
   files         = Directory.GetPrefPath(Config.org, Config.app), -- base directory using environment-agnostic path
   soundAmbiance = "./res/sound/system/audio/music/",
   soundEffects  = "./res/sound/system/audio/fx/",
+  enums         = "./script/Enums/",
+  types         = "./script/Types/"
 }
 
 Config.debug = {
@@ -224,10 +226,10 @@ Config.econ = {
 }
 
 Config.ui = {
-  defaultControl   = "Background", -- enable flight mode as default so that LTheory.lua still works
+  defaultControl   = "Ship", -- enable flight mode as default so that LTheory.lua still works
   showTrackers     = true,
   controlBarHeight = 48,
-  displayHUD       = Enums.HudModes.Wide,
+  displayHUD       = 1,
   displaySensors   = true,
   cursorSmooth     = "cursor/cursor1-small",
   cursorSimple     = "cursor/Simple_Cursor",

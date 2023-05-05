@@ -91,7 +91,7 @@ function MasterControl:onInput (state)
           GameState.ui.currentControl = "Ship" -- enable flight mode
           for i = 1, #self.activeControlSet.controls do
             local control = self.activeControlSet.controls[i]
-            if control.name == Config.ui.defaultControl then
+            if control.name == GameState.ui.currentControl then
               self:activateControl(control)
               Input.SetMouseVisible(false)
               break
@@ -257,7 +257,7 @@ function MasterControl.Create (gameView, player)
       local default
       for j = 1, #set.controls do
         local control = set.controls[j]
-        if control.name == Config.ui.defaultControl then
+        if control.name == GameState.ui.currentControl then
           default = control
           break
         end

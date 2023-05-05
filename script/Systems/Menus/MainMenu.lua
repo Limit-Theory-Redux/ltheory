@@ -46,10 +46,14 @@ function MainMenu:OnInit()
   self.dt = 0
   self.lastActionDelta = 0
   self.returnToSplashDelta = 0
+  GameState.ui.currentControl = "Background"
 
   if not self.keepState then
+    GameState:SetState(Enums.GameStates.Splashscreen)
     self.currentMode = Enums.MenuMode.Splashscreen
     self.keepState = false
+  else
+    GameState:SetState(Enums.GameStates.MainMenu)
   end
   printf("Initialize MainMenu")
 end
@@ -111,6 +115,7 @@ end
 function MainMenu:SetMenuMode(mode)
   printf("Set Menu Mode to: " .. mode)
   self.currentMode = mode
+  GameState:SetState(Enums.GameStates.MainMenu)
 end
 
 function MainMenu:ShowGui()
@@ -248,6 +253,7 @@ function MainMenu:ShowSeedDialogInner()
     self:SetMenuMode(Enums.MenuMode.Dialog)
     Config.game.flightModeButInactive = false
     GameState.paused = false
+    GameState.ui.currentControl = "Ship"
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
@@ -264,6 +270,7 @@ function MainMenu:ShowSeedDialogInner()
     self:SetMenuMode(Enums.MenuMode.Dialog)
     Config.game.flightModeButInactive = false
     GameState.paused = false
+    GameState.ui.currentControl = "Ship"
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end

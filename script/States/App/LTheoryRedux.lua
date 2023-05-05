@@ -256,7 +256,7 @@ function LTheoryRedux:seedStarsystem (menuMode)
 end
 
 function LTheoryRedux:createStarSystem ()
-  if self.system then self.system:delete() end
+  if self.backgroundSystem then self.backgroundSystem:delete() end
 
   print("------------------------")
   if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
@@ -278,16 +278,16 @@ function LTheoryRedux:createStarSystem ()
   do
     if GameState:GetCurrentState() == Enums.GameStates.MainMenu or GameState:GetCurrentState() == Enums.GameStates.Splashscreen then
       -- Spawn a new star system
-      local backgroundSystem = System(self.seed)
-      GameState.world.currentSystem = backgroundSystem -- remember the player's current star system
+      self.backgroundSystem = System(self.seed)
+      GameState.world.currentSystem = self.backgroundSystem -- remember the player's current star system
       -- Background Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, and an invisible rotating ship
-      backgroundSystem:spawnBackground() -- spawn an invisible ship
+      self.backgroundSystem:spawnBackground() -- spawn an invisible ship
 
       -- Add a planet
       for i = 1, 1 do
-        local planet = backgroundSystem:spawnPlanet(false) -- no planetary asteroid belt
+        local planet = self.backgroundSystem:spawnPlanet(false) -- no planetary asteroid belt
         local ppos = planet:getPos()
         ppos.x = ppos.x * 2
         ppos.y = ppos.y * 2
@@ -297,11 +297,11 @@ function LTheoryRedux:createStarSystem ()
       -- Add an asteroid field
       -- Must add BEFORE space stations
       for i = 1, rng:getInt(0, 1) do -- 50/50 chance of having asteroids
-        backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
+        self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
       end
 
       -- Add a space station
-      local station = backgroundSystem:spawnStation(Config.game.humanPlayer, nil)
+      local station = self.backgroundSystem:spawnStation(Config.game.humanPlayer, nil)
     else
       Universe:CreateStarSystem(self.seed)
     end
@@ -314,9 +314,9 @@ function LTheoryRedux:createStarSystem ()
       :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
     )
 
-    if GameState.GetCurrentState == Enums.GameStates.InGame then
-      MusicPlayer:PlayAmbient()
-    end
+  if GameState.GetCurrentState == Enums.GameStates.InGame then
+    MusicPlayer:PlayAmbient()
+  end
 end
 
 function LTheoryRedux:showGameLogo ()
