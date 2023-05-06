@@ -21,8 +21,6 @@ Core.Call(function ()
     dofile(Config.paths.types .. fname)
   end
 
-  if io.exists ('./script/Config/Local.lua') then dofile('./script/Config/Local.lua') end
-
   Namespace.Load('UI')
   Namespace.LoadInline('Systems')
   Namespace.LoadInline('GameObjects')
