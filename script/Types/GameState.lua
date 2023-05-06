@@ -1,3 +1,4 @@
+-- For dynamic states
 GameState = {
   state                 = Enums.GameStates.Splashscreen, -- previously gamemode
   paused                = false,
@@ -20,14 +21,14 @@ GameState.render = {
   resX                  = Config.render.defaultResX,
   resY                  = Config.render.defaultResY,
   vsync                 = Config.render.vsync,
-  zNear                 = Config.render.zNear, -- default: 0.1
-  zFar                  = Config.render.zFar, -- default: 1e6
+  zNear                 = Config.render.zNear,
+  zFar                  = Config.render.zFar,
   thrusterLights        = Config.render.thrusterLights,
   pulseLights           = Config.render.pulseLights,
 }
 
 GameState.audio = {
-  enabled               = Config.audio.enabled,
+  soundEnabled          = Config.audio.soundEnabled,
   fxVolume              = Config.audio.fxVolume,
   musicVolume           = Config.audio.musicVolume,
 }
@@ -43,25 +44,39 @@ GameState.ui = {
 }
 
 GameState.player = {
-  humanPlayer         = nil,
-  humanPlayerName     = "[Human Player Name]",
-  humanPlayerShipName = "[Human Player Ship Name]",
+  humanPlayer           = nil,
+  humanPlayerName       = "[Human Player Name]",
+  humanPlayerShipName   = "[Human Player Ship Name]",
 
-  currentControl      = Config.ui.defaultControl,
-  playerMoving        = false,
+  currentControl        = Config.ui.defaultControl,
+  playerMoving          = false,
 
-  currentShip         = nil,
-  weaponGroup         = 1,
+  currentShip           = nil,
+  weaponGroup           = 1,
 
-  mapSystemPos        = Vec3f(0, 0, 0),
-  mapSystemZoom       = 0.0001,
+  mapSystemPos          = Vec3f(0, 0, 0),
+  mapSystemZoom         = 0.001,
 
-  autonavTimestamp    = nil,
+  autonavTimestamp      = nil,
 }
 
 GameState.world = {
   -- world related states here later (system state, ai, economy etc)
   currentSystem         = nil,
+}
+
+GameState.gen = {
+  nFields               = Config.gen.nStations,
+  nAsteroids            = Config.gen.nAsteroids,
+  nPlanets              = Config.gen.nPlanets,
+  nStations             = Config.gen.nStations,
+  nAIPlayers            = Config.gen.nAIPlayers,
+  randomizeAIPlayers    = Config.gen.randomizeAIPlayers,
+  nEconNPCs             = Config.gen.nEconNPCs,
+  randomizeEconNPCs     = Config.gen.randomizeEconNPCs,
+  nEscortNPCs           = Config.gen.nEscortNPCs,
+  randomizeEscortNPCs   = Config.gen.randomizeEscortNPCs,
+  uniqueShips           = Config.gen.uniqueShips
 }
 
 function GameState:SetState(state)

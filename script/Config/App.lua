@@ -20,7 +20,7 @@ Config.render = {
 }
 
 Config.audio = {
-  enabled = true,
+  soundEnabled = true,
   supportedFormats = {".ogg"},
   mainMenuMusicEnabled = true,
   bSoundOn    = false,
@@ -94,9 +94,12 @@ Config.gen = {
   shipRes     = 8,
   nebulaRes   = 2048,
 
-  nAIPlayers  = 0,  -- # of AI players (who manage Economic assets)
-  nEconNPCs   = 0,  -- # of ships to be given Economic actions (managed by AI players)
-  nEscortNPCs = 0,  -- # of ships to be given the Escort action
+  nAIPlayers          = 0,  -- # of AI players (who manage Economic assets)
+  randomizeAIPlayers    = false,
+  nEconNPCs           = 0,  -- # of ships to be given Economic actions (managed by AI players)
+  randomizeEconNPCs   = false,
+  nEscortNPCs         = 0,  -- # of ships to be given the Escort action
+  randomizeEscortNPCs = false,
 
   uniqueShips    = false,
   playerShipSize = 4,
@@ -119,7 +122,7 @@ Config.gen = {
   scaleStar          = 1e6,
   scalePlanet        = 5e3,
   scalePlanetMod     = 7e4,  -- 7e4
-  scaleFieldAsteroid = 10000, -- overwritten in Local.lua
+  scaleFieldAsteroid = 10000,
   scaleAsteroid      = 7.0,
   scaleStation       = 70,
 
@@ -134,7 +137,7 @@ Config.gen = {
                      5.9,  -- Metallic
                      3.2}, -- Silicaceous
 
-  stationMinimumDistance = 25000, -- minimum distance between stations
+  stationMinimumDistance = 5000, -- minimum distance between stations
 }
 
 Config.game = {

@@ -7,7 +7,7 @@ function MusicPlayer:Init()
   self.queue = {}
   self.currentlyPlaying = nil
 
-  if GameState.audio.enabled then
+  if GameState.audio.soundEnabled then
     self.volume = GameState.audio.musicVolume
   else
     self.volume = 0

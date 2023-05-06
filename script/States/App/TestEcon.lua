@@ -58,6 +58,7 @@ function TestEcon:onInit ()
   Config.gen.uniqueShips       = false
   GameState.debug.instantJobs  = true
   GameState.debug.timeAccelFactor = 100
+  GameState:SetState(Enums.GameStates.InGame)
 
   -- Add AI Players (these will control assets directly)
   for i = 1, kPlayers do
