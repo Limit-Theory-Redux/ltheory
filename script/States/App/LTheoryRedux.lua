@@ -357,9 +357,6 @@ function LTheoryRedux:showGameLogo ()
 end
 
 function LTheoryRedux:exitGame ()
-  -- Shut down game and exit
-  MusicPlayer:SetVolume(0)
-
   -- Write player-specific game variables to preserve them across gameplay sessions
   InitFiles:writeUserInits()
 
