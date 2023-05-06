@@ -27,14 +27,14 @@ local function AddSystemGenerics(system)
   local newStation = system:spawnStation(tradeAi, Production.EnergySolar)
   system:place(newStation)
 
-  if Config.gen.nAIPlayers > 0 and Config.gen.nEconNPCs > 0 then
+  if GameState.gen.nAIPlayers > 0 and GameState.gen.nEconNPCs > 0 then
       -- Add the "extra" stations only if there are economic ships to use them
       -- Add a free Waste Recycler station
       system:spawnStation(tradeAi, Production.Recycler)
       system:place(newStation)
   end
 
-  local aiStationCount = rng:getInt(1, Config.gen.nStations)
+  local aiStationCount = rng:getInt(1, GameState.gen.nStations)
 
   print("Spawn " .. aiStationCount .. " Stations for: " .. tradeAi:getName())
   for i=1, aiStationCount do
@@ -42,7 +42,7 @@ local function AddSystemGenerics(system)
     system:spawnStation(tradeAi, nil)
   end
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
-  system:addExtraFactories(system, Config.gen.nPlanets, tradeAi)
+  system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
 end
 
 function UniverseEconomy:OnUpdate(dt)
@@ -53,12 +53,34 @@ function UniverseEconomy:OnUpdate(dt)
     if not system.aiPlayers then
       -- create table for aiPlayers
       system.aiPlayers = {}
-      for i=1, rng:getInt(1, 3) do
+      local aiPlayerCount
+
+      if GameState.randomizeAIPlayers then
+        if GameState.gen.nAIPlayers <= 0 then
+          aiPlayerCount = 0
+        else
+          aiPlayerCount = rng:getInt(1, GameState.gen.nAIPlayers)
+        end
+      else
+        aiPlayerCount = GameState.gen.nAIPlayers
+      end
+
+      for i=1, aiPlayerCount do
         -- temp name until we have rnd names
         local aiPlayer = Entities.Player("AI Trade Player " .. i)
         aiPlayer:addCredits(Config.econ.eStartCredits)
         -- Create assets (ships)
-        local aiAssetCount = rng:getInt(10, Config.gen.nEconNPCs)
+        local aiAssetCount
+
+        if GameState.gen.randomizeEconNPCs then
+          if GameState.gen.nEconNPCs <= 0 then
+            aiAssetCount = 0
+          else
+            aiAssetCount = rng:getInt(1, GameState.gen.nEconNPCs)
+          end
+        else
+          aiAssetCount = GameState.gen.nEconNPCs
+        end
         system:spawnAI(aiAssetCount, Actions.Wait(1), aiPlayer)
         printf("%d assets added to %s", aiAssetCount, aiPlayer:getName())
         -- Configure assets

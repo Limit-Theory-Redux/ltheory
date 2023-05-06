@@ -71,8 +71,11 @@ GameState.gen = {
   nPlanets              = Config.gen.nPlanets,
   nStations             = Config.gen.nStations,
   nAIPlayers            = Config.gen.nAIPlayers,
+  randomizeAIPlayers    = Config.gen.randomizeAIPlayers,
   nEconNPCs             = Config.gen.nEconNPCs,
+  randomizeEconNPCs     = Config.gen.randomizeEconNPCs,
   nEscortNPCs           = Config.gen.nEscortNPCs,
+  randomizeEscortNPCs   = Config.gen.randomizeEscortNPCs,
   uniqueShips           = Config.gen.uniqueShips
 }
 

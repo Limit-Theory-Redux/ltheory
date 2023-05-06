@@ -36,15 +36,15 @@ function Universe:CreateStarSystem(seed)
 
     -- Add planets
     local planet = nil -- remember the last planet created (TODO: remember ALL the planets)
-    for i = 1, Config.gen.nPlanets do
+    for i = 1, GameState.gen.nPlanets do
       planet = system:spawnPlanet(false)
     end
 
     -- Add asteroid fields
     -- Must add BEFORE space stations
-    for i = 1, Config.gen.nFields do
-      afield = system:spawnAsteroidField(Config.gen.nAsteroids, false)
-      printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
+    for i = 1, GameState.gen.nFields do
+      afield = system:spawnAsteroidField(GameState.gen.nAsteroids, false)
+      printf("Added %s asteroids to %s", GameState.gen.nAsteroids, afield:getName())
     end
 
     local shipObject = {

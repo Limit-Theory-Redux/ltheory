@@ -418,19 +418,19 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetAlign(0.5, 0.5)
 
     HmGui.SetSpacing(8)
-    guiSettings[5][1] = Config.gen.uniqueShips
+    guiSettings[5][1] = GameState.gen.uniqueShips
     if guiSettings[5][2] == nil then
-      guiSettings[5][2] = Config.gen.uniqueShips
+      guiSettings[5][2] = GameState.gen.uniqueShips
     end
     guiSettings[5][1] = HmGui.Checkbox(guiSettings[5][3], guiSettings[5][1])
     if guiSettings[5][1] then
       -- Checkbox was selected
-      if not Config.gen.uniqueShips then
-        Config.gen.uniqueShips = true
+      if not GameState.gen.uniqueShips then
+        GameState.gen.uniqueShips = true
       end
     else
-      if Config.gen.uniqueShips then
-        Config.gen.uniqueShips = false
+      if GameState.gen.uniqueShips then
+        GameState.gen.uniqueShips = false
       end
     end
 
@@ -443,8 +443,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[6][2] == nil then
-      guiSettings[6][1] = Config.gen.nFields
-      guiSettings[6][2] = Config.gen.nFields
+      guiSettings[6][1] = GameState.gen.nFields
+      guiSettings[6][2] = GameState.gen.nFields
     end
     if HmGui.Button("-") and guiSettings[6][1] > 0 then
       guiSettings[6][1] = guiSettings[6][1] - 1
@@ -463,8 +463,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[7][2] == nil then
-      guiSettings[7][1] = Config.gen.nAsteroids
-      guiSettings[7][2] = Config.gen.nAsteroids
+      guiSettings[7][1] = GameState.gen.nAsteroids
+      guiSettings[7][2] = GameState.gen.nAsteroids
     end
     if HmGui.Button("-") and guiSettings[7][1] > 1 then
       guiSettings[7][1] = guiSettings[7][1] - 1
@@ -483,8 +483,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[8][2] == nil then
-      guiSettings[8][1] = Config.gen.nPlanets
-      guiSettings[8][2] = Config.gen.nPlanets
+      guiSettings[8][1] = GameState.gen.nPlanets
+      guiSettings[8][2] = GameState.gen.nPlanets
     end
     if HmGui.Button("-") and guiSettings[8][1] > 0 then
       guiSettings[8][1] = guiSettings[8][1] - 1
@@ -503,8 +503,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[9][2] == nil then
-      guiSettings[9][1] = Config.gen.nStations
-      guiSettings[9][2] = Config.gen.nStations
+      guiSettings[9][1] = GameState.gen.nStations
+      guiSettings[9][2] = GameState.gen.nStations
     end
     if HmGui.Button("-") and guiSettings[9][1] > 0 then
       guiSettings[9][1] = guiSettings[9][1] - 1
@@ -523,8 +523,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[10][2] == nil then
-      guiSettings[10][1] = Config.gen.nAIPlayers
-      guiSettings[10][2] = Config.gen.nAIPlayers
+      guiSettings[10][1] = GameState.gen.nAIPlayers
+      guiSettings[10][2] = GameState.gen.nAIPlayers
     end
     if HmGui.Button("-") and guiSettings[10][1] > 0 then
       guiSettings[10][1] = guiSettings[10][1] - 1
@@ -543,8 +543,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[11][2] == nil then
-      guiSettings[11][1] = Config.gen.nEconNPCs
-      guiSettings[11][2] = Config.gen.nEconNPCs
+      guiSettings[11][1] = GameState.gen.nEconNPCs
+      guiSettings[11][2] = GameState.gen.nEconNPCs
     end
     if HmGui.Button("-") and guiSettings[11][1] > 0 then
       guiSettings[11][1] = guiSettings[11][1] - 1
@@ -563,8 +563,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[12][2] == nil then
-      guiSettings[12][1] = Config.gen.nEscortNPCs
-      guiSettings[12][2] = Config.gen.nEscortNPCs
+      guiSettings[12][1] = GameState.gen.nEscortNPCs
+      guiSettings[12][2] = GameState.gen.nEscortNPCs
     end
     if HmGui.Button("-") and guiSettings[12][1] > 0 then
       guiSettings[12][1] = guiSettings[12][1] - 1
@@ -604,18 +604,18 @@ function MainMenu:ShowSettingsScreenInner()
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
       if guiSettings[5][2] then
-        Config.gen.uniqueShips = true
+        GameState.gen.uniqueShips = true
       else
-        Config.gen.uniqueShips = false
+        GameState.gen.uniqueShips = false
       end
 
-      Config.gen.nFields     = guiSettings[ 6][2]
-      Config.gen.nAsteroids  = guiSettings[ 7][2]
-      Config.gen.nPlanets    = guiSettings[ 8][2]
-      Config.gen.nStations   = guiSettings[ 9][2]
-      Config.gen.nAIPlayers  = guiSettings[10][2]
-      Config.gen.nEconNPCs   = guiSettings[11][2]
-      Config.gen.nEscortNPCs = guiSettings[12][2]
+      GameState.gen.nFields     = guiSettings[ 6][2]
+      GameState.gen.nAsteroids  = guiSettings[ 7][2]
+      GameState.gen.nPlanets    = guiSettings[ 8][2]
+      GameState.gen.nStations   = guiSettings[ 9][2]
+      GameState.gen.nAIPlayers  = guiSettings[10][2]
+      GameState.gen.nEconNPCs   = guiSettings[11][2]
+      GameState.gen.nEscortNPCs = guiSettings[12][2]
     end
 
     for i = 1, #guiSettings do
@@ -642,13 +642,13 @@ function MainMenu:ShowSettingsScreenInner()
     GameState.ui.hudStyle = guiSettings[4][1]
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
-      Config.gen.nFields     = guiSettings[ 6][1]
-      Config.gen.nAsteroids  = guiSettings[ 7][1]
-      Config.gen.nPlanets    = guiSettings[ 8][1]
-      Config.gen.nStations   = guiSettings[ 9][1]
-      Config.gen.nAIPlayers  = guiSettings[10][1]
-      Config.gen.nEconNPCs   = guiSettings[11][1]
-      Config.gen.nEscortNPCs = guiSettings[12][1]
+      GameState.gen.nFields     = guiSettings[ 6][1]
+      GameState.gen.nAsteroids  = guiSettings[ 7][1]
+      GameState.gen.nPlanets    = guiSettings[ 8][1]
+      GameState.gen.nStations   = guiSettings[ 9][1]
+      GameState.gen.nAIPlayers  = guiSettings[10][1]
+      GameState.gen.nEconNPCs   = guiSettings[11][1]
+      GameState.gen.nEscortNPCs = guiSettings[12][1]
     end
 
     for i = 1, #guiSettings do
@@ -688,7 +688,6 @@ function MainMenu:ShowFlightDialogInner()
 
   if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
     if HmGui.Button("Return to Game") then
-      --printf("panelActive = %s, defaultControl = %s", Config.game.panelActive, Config.ui.defaultControl)
       LTheoryRedux:freezeTurrets()
       GameState:SetState(Enums.GameStates.InGame)
       GameState:Unpause()
@@ -730,7 +729,6 @@ function MainMenu:ShowFlightDialogInner()
   HmGui.SetSpacing(8)
 
   if HmGui.Button("Exit to Main Menu") then
-    Config.game.flightModeButInactive = true
     GameState:SetState(Enums.GameStates.MainMenu) -- switch to Startup Mode
     LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
     GameState:Unpause()

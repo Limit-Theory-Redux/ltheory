@@ -94,9 +94,12 @@ Config.gen = {
   shipRes     = 8,
   nebulaRes   = 2048,
 
-  nAIPlayers  = 0,  -- # of AI players (who manage Economic assets)
-  nEconNPCs   = 0,  -- # of ships to be given Economic actions (managed by AI players)
-  nEscortNPCs = 0,  -- # of ships to be given the Escort action
+  nAIPlayers          = 0,  -- # of AI players (who manage Economic assets)
+  randomizeAIPlayers    = false,
+  nEconNPCs           = 0,  -- # of ships to be given Economic actions (managed by AI players)
+  randomizeEconNPCs   = false,
+  nEscortNPCs         = 0,  -- # of ships to be given the Escort action
+  randomizeEscortNPCs = false,
 
   uniqueShips    = false,
   playerShipSize = 4,
