@@ -185,14 +185,9 @@ function System:place (object)
 
   local pos = Config.gen.origin
   local field = self:sampleZones(self.rng)
+
   if field then
     pos = field:getRandomPos(self.rng) -- place new object within a random field
-    if Config.gen.scaleSystem < 5e4 then
-      while pos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
-        pos = field:getRandomPos(self.rng)
-      end
-    end
-
     -- Stations
     if typeName == "Station" then
       -- TODO: inefficient way of doing this. replace later.
@@ -210,11 +205,26 @@ function System:place (object)
           return true
         end
 
-        while not checkDistanceToAllStations(pos) do
-          pos = field:getRandomPos(self.rng)
+        local function checkIfInSystem(pos)
+          if Config.gen.scaleSystem < 5e4 then
+            local distanceFromOrigin = pos:distance(Config.gen.origin)
+            -- TODO: replace later with actual system size
+            if distanceFromOrigin > 200000 then
+              print("New Station too far away from system core: " .. math.floor(distanceFromOrigin) ..". Finding New Position.")
+              return false
+            end
+            return true
+          end
         end
-        printf("Found Position to Spawn: %s", pos)
-        validSpawn = true
+
+        do
+          if not checkIfInSystem(pos) or not checkDistanceToAllStations(pos) then
+            pos = field:getRandomPos(self.rng)
+          else
+            printf("Found Position to Spawn: %s", pos)
+            validSpawn = true
+          end
+        end
       end
     end
 

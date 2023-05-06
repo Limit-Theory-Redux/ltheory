@@ -137,7 +137,7 @@ Config.gen = {
                      5.9,  -- Metallic
                      3.2}, -- Silicaceous
 
-  stationMinimumDistance = 5000, -- minimum distance between stations
+  stationMinimumDistance = 20000, -- minimum distance between stations
 }
 
 Config.game = {

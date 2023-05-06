@@ -116,10 +116,6 @@ function Universe:CreateShip(system, pos, shipObject)
     system:addChild(ship)
     shipObject.owner:setControlling(ship)
 
-    -- Set our ship's starting location within the extent of a random asteroid field
-    -- TODO: allow custom position
-    system:place(ship)
-
     return ship
 end
 

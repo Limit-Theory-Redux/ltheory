@@ -24,14 +24,12 @@ local function AddSystemGenerics(system)
   system.tradeShip = Entity()
   system.tradeShip:setOwner(tradeAi)
   -- Every systen gets one "free" solar plant
-  local newStation = system:spawnStation(tradeAi, Production.EnergySolar)
-  system:place(newStation)
+  system:spawnStation(tradeAi, Production.EnergySolar)
 
   if GameState.gen.nAIPlayers > 0 and GameState.gen.nEconNPCs > 0 then
       -- Add the "extra" stations only if there are economic ships to use them
       -- Add a free Waste Recycler station
       system:spawnStation(tradeAi, Production.Recycler)
-      system:place(newStation)
   end
 
   local aiStationCount = rng:getInt(1, GameState.gen.nStations)
