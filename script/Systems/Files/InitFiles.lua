@@ -169,7 +169,6 @@ function InitFiles:writeUserInits ()
   local openedFile = io.open(filepath .. filename, "w")
 
   local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
-
   local hudType = string.lower(Enums.HudStyleNames[GameState.ui.hudStyle])
 
   -- Sets the input file for writing
@@ -214,6 +213,11 @@ function InitFiles:writeUserInits ()
       or pass and type(l_Value) == "boolean"
       or pass and type(l_Value) == "number" then
         do
+          if l_Variable == "cursorStyle" then
+            l_Value = cursorType
+          elseif l_Variable == "hudStyle" then
+            l_Value = hudType
+          end
           printf("writing %s: %s", l_Variable, l_Value)
           io.write(format("%s=%s", tostring(l_Variable), tostring(l_Value)), "\n")
         end
