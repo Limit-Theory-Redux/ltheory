@@ -160,8 +160,13 @@ function SystemMap:onDraw (state)
   do -- Debug Info
     local dbg = DebugContext(16, 16)
     dbg:text("--- System ---")
+
     dbg:indent()
-    self.system:send(Event.Debug(dbg))
+      dbg:text("General")
+      dbg:indent()
+        dbg:text("Ships in System: " .. #self.system.ships)
+      dbg:undent()
+      self.system:send(Event.Debug(dbg))
     dbg:undent()
 
     if self.focus then
