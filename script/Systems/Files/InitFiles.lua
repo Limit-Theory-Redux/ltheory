@@ -67,7 +67,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.gen.nFields = data
+          GameState.gen.nFields = data
         end
       elseif string.find(string.lower(line), "nasteroids") then
         eIndex = string.find(line, "=")
@@ -75,7 +75,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.gen.nAsteroids = data
+          GameState.gen.nAsteroids = data
         end
       elseif string.find(string.lower(line), "nplanets") then
         eIndex = string.find(line, "=")
@@ -83,7 +83,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.gen.nPlanets = data
+          GameState.gen.nPlanets = data
         end
       elseif string.find(string.lower(line), "nstations") then
         eIndex = string.find(line, "=")
@@ -91,7 +91,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.gen.nStations = data
+          GameState.gen.nStations = data
         end
       elseif string.find(string.lower(line), "naiplayers") then
         eIndex = string.find(line, "=")
@@ -99,7 +99,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.gen.nAIPlayers = data
+          GameState.gen.nAIPlayers = data
         end
       elseif string.find(string.lower(line), "neconnpcs") then
         eIndex = string.find(line, "=")
@@ -107,7 +107,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.gen.nEconNPCs = data
+          GameState.gen.nEconNPCs = data
         end
       elseif string.find(string.lower(line), "nescortnpcs") then
         eIndex = string.find(line, "=")
@@ -115,7 +115,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = tonumber(text)
-          Config.gen.nEscortNPCs = data
+          GameState.gen.nEscortNPCs = data
         end
       elseif string.find(string.lower(line), "uniqueships") then
         eIndex = string.find(line, "=")
@@ -123,7 +123,7 @@ function InitFiles:readUserInits ()
           text = string.lower(string.sub(line, eIndex + 1))
           text = string.gsub(text, "^%s*(.-)%s*$", "%1")
           data = stringToBoolean[text]
-          Config.gen.uniqueShips = data
+          GameState.gen.uniqueShips = data
         end
       elseif string.find(string.lower(line), "cursor") then
         eIndex = string.find(line, "=")
@@ -168,36 +168,79 @@ function InitFiles:writeUserInits ()
   local filepath = Config.paths.files
   local openedFile = io.open(filepath .. filename, "w")
 
-  local cursorType = string.lower(Enums.CursorStyleNames[Config.ui.cursorStyle])
+  local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
 
-  local hudType = string.lower(Enums.HudStyleNames[Config.ui.hudStyle])
+  local hudType = string.lower(Enums.HudStyleNames[GameState.ui.hudStyle])
 
   -- Sets the input file for writing
   io.output(openedFile)
 
-  -- Write individual values to user initialization file in standard order with groups
-  -- NOTE: This is a naive early implementation -- not intended to be production-ready
-  -- TODO: convert this into a table-driven process
-  io.write("[Audio]", "\n")
-  io.write(format("sound=%s",        GameState.audio.enabled), "\n")
-  io.write("[Graphics]", "\n")
-  io.write(format("startingHorz=%s", GameState.render.resX), "\n")
-  io.write(format("startingVert=%s", GameState.render.resY), "\n")
-  io.write(format("fullscreen=%s",   GameState.render.fullscreen), "\n")
-  io.write("[Generation]", "\n")
-  io.write(format("nFields=%s",      Config.gen.nFields), "\n")
-  io.write(format("nAsteroids=%s",   Config.gen.nAsteroids), "\n")
-  io.write(format("nPlanets=%s",     Config.gen.nPlanets), "\n")
-  io.write(format("nStations=%s",    Config.gen.nStations), "\n")
-  io.write(format("nAIPlayers=%s",   Config.gen.nAIPlayers), "\n")
-  io.write(format("nEconNPCs=%s",    Config.gen.nEconNPCs), "\n")
-  io.write(format("nEscortNPCs=%s",  Config.gen.nEscortNPCs), "\n")
-  io.write(format("uniqueShips=%s",  Config.gen.uniqueShips), "\n")
-  io.write("[UI]", "\n")
-  io.write(format("cursorStyle=%s",  cursorType), "\n")
-  io.write(format("hudStyle=%s",     hudType), "\n")
-  io.write("[Game]", "\n")
-  io.write(format("shipname=%s",     Config.game.humanPlayerShipName), "\n")
+  -- Clean up GameState table
+  local noFunctions = {}
+
+  for l_Index, l_Value in pairs(GameState) do
+    if type(l_Value) == "table" then
+      noFunctions[l_Index] = l_Value
+    end
+  end
+
+  local function pairsByKeys (t, f)
+    local a = {}
+    for n in pairs(t) do table.insert(a, n) end
+    table.sort(a, f)
+    local i = 0      -- iterator variable
+    local iter = function ()   -- iterator function
+      i = i + 1
+      if a[i] == nil then return nil
+      else return a[i], t[a[i]]
+      end
+    end
+    return iter
+  end
+
+  for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
+    -- this is dirty for now, but it´s the only category without anything we need to save
+    if l_Category ~= "world" then
+      io.write(format("[%s]", tostring(l_Category)), "\n")
+    end
+
+    for l_Variable, l_Value in pairsByKeys(l_CategoryTable) do
+      local pass = true
+      if string.match(l_Variable, "current") then
+        pass = false
+      end
+      -- don´t allow any other than string, boolean and numbers also ignore "current" variables
+      if pass and type(l_Value) == "string"
+      or pass and type(l_Value) == "boolean"
+      or pass and type(l_Value) == "number" then
+        do
+          printf("writing %s: %s", l_Variable, l_Value)
+          io.write(format("%s=%s", tostring(l_Variable), tostring(l_Value)), "\n")
+        end
+      end
+    end
+  end
+
+  --io.write("[Audio]", "\n")
+  --io.write(format("sound=%s",        GameState.audio.enabled), "\n")
+  --io.write("[Graphics]", "\n")
+  --io.write(format("startingHorz=%s", GameState.render.resX), "\n")
+  --io.write(format("startingVert=%s", GameState.render.resY), "\n")
+  --io.write(format("fullscreen=%s",   GameState.render.fullscreen), "\n")
+  --io.write("[Generation]", "\n")
+  --io.write(format("nFields=%s",      GameState.gen.nFields), "\n")
+  --io.write(format("nAsteroids=%s",   GameState.gen.nAsteroids), "\n")
+  --io.write(format("nPlanets=%s",     GameState.gen.nPlanets), "\n")
+  --io.write(format("nStations=%s",    GameState.gen.nStations), "\n")
+  --io.write(format("nAIPlayers=%s",   GameState.gen.nAIPlayers), "\n")
+  --io.write(format("nEconNPCs=%s",    GameState.gen.nEconNPCs), "\n")
+  --io.write(format("nEscortNPCs=%s",  GameState.gen.nEscortNPCs), "\n")
+  --io.write(format("uniqueShips=%s",  GameState.gen.uniqueShips), "\n")
+  --io.write("[UI]", "\n")
+  --io.write(format("cursorStyle=%s",  cursorType), "\n")
+  --io.write(format("hudStyle=%s",     hudType), "\n")
+  --io.write("[Game]", "\n")
+  --io.write(format("shipname=%s",     GameState.player.humanPlayerShipName), "\n")
 
   -- Closes the open file
   io.close(openedFile)
