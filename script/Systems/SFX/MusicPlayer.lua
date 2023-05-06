@@ -171,7 +171,7 @@ function MusicPlayer:LoadMusic()
         isLooping = true -- temporary
       }
 
-      printf("VOLUME: " .. self.volume)
+      --printf("VOLUME: " .. self.volume)
       if newSoundObject then
         table.insert(self.trackList, newSoundObject)
       end
