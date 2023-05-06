@@ -550,7 +550,7 @@ function MainMenu:ShowSettingsScreenInner()
       guiSettings[11][1] = guiSettings[11][1] - 1
     end
     HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[11][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[11][1] < Config.gen.nEconNPCs then
+    if HmGui.Button("+") and guiSettings[11][1] < 100 then
       guiSettings[11][1] = guiSettings[11][1] + 1
     end
     HmGui.EndGroup()
