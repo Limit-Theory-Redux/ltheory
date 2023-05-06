@@ -9,6 +9,7 @@ local guiElements = {
   {
     name = "Choose Seed",
     elems = {
+      -- TODO: replace with proper list
       { nil, 5022463494542550306ULL,  false },  -- KEEP black
       { nil, 5012768293123392491ULL,  false },  -- KEEP red
       { nil, 4933876146649964811ULL,  false },  -- KEEP blue and milky white
@@ -22,6 +23,9 @@ local guiElements = {
       { nil, 10630444862697458122ULL, false },  -- MAYBE "Hubble palette"
       { nil, 5199604093543988311ULL,  false },  -- KEEP even bluish-white with a bright yellow star
       { nil, 9471911754066691691ULL,  false },  -- KEEP completely dark with one small blue star
+      { nil, 15887563511063255006ULL, false },  -- looks pretty cool
+      { nil, 976665863517979971ULL,   false }   -- looks pretty cool too
+      -- 17682038400513250095ULL
     }
   }
 }
@@ -121,6 +125,7 @@ function MainMenu:SetMenuMode(mode)
   printf("Set Menu Mode to: " .. mode)
   self.currentMode = mode
 
+  -- TODO: this can be improved
   if mode == Enums.MenuMode.Splashscreen then
     GameState:SetState(Enums.GameStates.Splashscreen)
   elseif mode == Enums.MenuMode.MainMenu then
@@ -545,7 +550,7 @@ function MainMenu:ShowSettingsScreenInner()
       guiSettings[11][1] = guiSettings[11][1] - 1
     end
     HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[11][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[11][1] < 100 then
+    if HmGui.Button("+") and guiSettings[11][1] < Config.gen.nEconNPCs then
       guiSettings[11][1] = guiSettings[11][1] + 1
     end
     HmGui.EndGroup()
