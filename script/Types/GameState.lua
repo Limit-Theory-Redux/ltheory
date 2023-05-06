@@ -28,7 +28,7 @@ GameState.render = {
 }
 
 GameState.audio = {
-  enabled               = Config.audio.enabled,
+  soundEnabled          = Config.audio.soundEnabled,
   fxVolume              = Config.audio.fxVolume,
   musicVolume           = Config.audio.musicVolume,
 }

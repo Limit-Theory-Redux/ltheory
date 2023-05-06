@@ -63,9 +63,9 @@ function LTheoryRedux:setCursor (cursorStyle, cursorX, cursorY)
 end
 
 function LTheoryRedux:toggleSound ()
-  GameState.audio.enabled = not GameState.audio.enabled
+  GameState.audio.soundEnabled = not GameState.audio.soundEnabled
 
-  if GameState.audio.enabled then
+  if GameState.audio.soundEnabled then
     MusicPlayer:SetVolume(1)
   else
 --printf("LTheoryRedux:toggleSound: volume set to 0")
@@ -74,13 +74,13 @@ function LTheoryRedux:toggleSound ()
 end
 
 function LTheoryRedux:SoundOn ()
-  GameState.audio.enabled = true
+  GameState.audio.soundEnabled = true
 --printf("LTheoryRedux:SoundOn: volume set to 1")
   MusicPlayer:SetVolume(1)
 end
 
 function LTheoryRedux:SoundOff ()
-  GameState.audio.enabled = false
+  GameState.audio.soundEnabled = false
 --printf("LTheoryRedux:SoundOff: volume set to 0")
   MusicPlayer:SetVolume(0)
 end

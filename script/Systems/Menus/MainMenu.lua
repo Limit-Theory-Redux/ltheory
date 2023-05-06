@@ -326,18 +326,18 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(0.0, 0.0)
   HmGui.SetAlign(0.5, 0.5)
 
-  guiSettings[1][1] = GameState.audio.enabled
+  guiSettings[1][1] = GameState.audio.soundEnabled
   if guiSettings[1][2] == nil then
-    guiSettings[1][2] = GameState.audio.enabled
+    guiSettings[1][2] = GameState.audio.soundEnabled
   end
   guiSettings[1][1] = HmGui.Checkbox(guiSettings[1][3], guiSettings[1][1])
   if guiSettings[1][1] then
     -- Checkbox was selected
-    if not GameState.audio.enabled then
+    if not GameState.audio.soundEnabled then
       LTheoryRedux:SoundOn()
     end
   else
-    if GameState.audio.enabled then
+    if GameState.audio.soundEnabled then
       LTheoryRedux:SoundOff()
     end
   end

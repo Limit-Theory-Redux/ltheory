@@ -20,7 +20,7 @@ Config.render = {
 }
 
 Config.audio = {
-  enabled = true,
+  soundEnabled = true,
   supportedFormats = {".ogg"},
   mainMenuMusicEnabled = true,
   bSoundOn    = false,
