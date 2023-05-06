@@ -175,8 +175,14 @@ function InitFiles:writeUserInits ()
 
     for l_Variable, l_Value in pairsByKeys(l_CategoryTable) do
       local pass = true
-      if string.match(l_Variable, "current") or string.match(l_Variable, "weaponGroup") then
-        pass = false
+      -- excluded
+      if string.match(l_Variable, "current")
+      or string.match(l_Variable, "weaponGroup")
+      or string.match(l_Variable, "autonavTimestamp")
+      or string.match(l_Variable, "mapSystemZoom") then
+        do
+          pass = false
+        end
       end
       -- don´t allow any other than string, boolean and numbers also ignore "current" variables
       if pass and type(l_Value) == "string"

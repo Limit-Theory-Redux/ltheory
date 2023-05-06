@@ -299,7 +299,9 @@ end
 
 function MainMenu:ShowSettingsScreen()
   -- Add new star system seed selection dialog menu
-  self.dialogDisplayed = false
+  if GameState:GetCurrentState() == Enums.GameStates.InGame then
+    self.dialogDisplayed = false
+  end
   self.settingsScreenDisplayed = true
 
   HmGui.BeginWindow(guiElements.name)
@@ -622,7 +624,9 @@ function MainMenu:ShowSettingsScreenInner()
       guiSettings[i][2] = nil
     end
 
-    self.dialogDisplayed = true
+    if GameState:GetCurrentState() == Enums.GameStates.InGame then
+      self.dialogDisplayed = true
+    end
     self.settingsScreenDisplayed = false
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
@@ -635,7 +639,9 @@ function MainMenu:ShowSettingsScreenInner()
 
   if HmGui.Button("Use") then
     -- Return to the game using the selected values of each setting
-    self.dialogDisplayed = true
+    if GameState:GetCurrentState() == Enums.GameStates.InGame then
+      self.dialogDisplayed = true
+    end
     self.settingsScreenDisplayed = false
 
     GameState.ui.cursorStyle = guiSettings[3][1]
