@@ -1,6 +1,6 @@
-use crate::phx::internal::Memory::*;
+
 use crate::phx::Common::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::RenderState::*;
 use crate::phx::GL::gl;
 use sdl2_sys::*;

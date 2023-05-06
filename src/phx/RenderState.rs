@@ -1,8 +1,8 @@
-use crate::phx::internal::Memory::*;
+
 use crate::phx::BlendMode::*;
 use crate::phx::Common::*;
 use crate::phx::CullFace::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::GL::gl;
 
 static mut wireframe: [bool; 16] = [false; 16];

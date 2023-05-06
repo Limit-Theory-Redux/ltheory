@@ -3,7 +3,7 @@ use crate::phx::Bytes::*;
 use crate::phx::Common::*;
 use crate::phx::DataFormat::*;
 use crate::phx::Math::IVec3;
-use crate::phx::Math::Vec3;
+
 use crate::phx::PixelFormat::*;
 use crate::phx::RenderTarget::*;
 use crate::phx::TexFilter::*;

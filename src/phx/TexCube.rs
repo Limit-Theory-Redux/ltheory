@@ -12,12 +12,12 @@ use crate::phx::RenderState::*;
 use crate::phx::RenderTarget::*;
 use crate::phx::Shader::*;
 use crate::phx::ShaderState::*;
-use crate::phx::Tex2D::*;
+
 use crate::phx::Tex2D_Load::*;
 use crate::phx::Tex2D_Save::*;
 use crate::phx::TexFilter::*;
 use crate::phx::TexFormat::*;
-use crate::phx::TexWrapMode::*;
+
 use crate::phx::TimeStamp::*;
 use crate::phx::GL::gl;
 

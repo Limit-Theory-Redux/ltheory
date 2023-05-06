@@ -1,11 +1,11 @@
 use crate::phx::internal::ffi;
-use crate::phx::internal::Memory::*;
+
 use crate::phx::Button::*;
-use crate::phx::Button::*;
-use crate::phx::Common::*;
+
+
 use crate::phx::Device::*;
-use crate::phx::DeviceType::*;
-use crate::phx::Math::Vec3;
+
+
 use crate::phx::State::*;
 
 #[derive(Copy, Clone)]

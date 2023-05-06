@@ -1,8 +1,8 @@
 use crate::phx::internal::ffi;
-use crate::phx::internal::Memory::*;
+
 use crate::phx::Button::*;
 use crate::phx::Common::*;
-use crate::phx::Math::Vec3;
+
 
 pub type DeviceType = i32;
 

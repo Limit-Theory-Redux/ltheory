@@ -1,10 +1,10 @@
-use crate::phx::internal::Memory::*;
+
 use crate::phx::Audio::*;
 use crate::phx::Common::*;
 use crate::phx::Math::Vec3;
 use crate::phx::SoundDesc::*;
 use fmod_sys::*;
-use std::ffi::CString;
+
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -31,7 +31,7 @@ pub fn FMODCALL(result: FMOD_RESULT) {
 
 unsafe extern "C" fn Sound_Callback(
     channel: *mut FMOD_CHANNELCONTROL,
-    controlType: FMOD_CHANNELCONTROL_TYPE,
+    _controlType: FMOD_CHANNELCONTROL_TYPE,
     callbackType: FMOD_CHANNELCONTROL_CALLBACK_TYPE,
     _a: *mut libc::c_void,
     _b: *mut libc::c_void,

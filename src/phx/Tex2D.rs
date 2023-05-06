@@ -2,13 +2,13 @@ use crate::phx::internal::Memory::*;
 use crate::phx::Bytes::*;
 use crate::phx::Common::*;
 use crate::phx::DataFormat::*;
-use crate::phx::DataFormat::*;
+
 use crate::phx::Draw::*;
 use crate::phx::Math::IVec2;
-use crate::phx::Math::Vec3;
+
 use crate::phx::Metric::*;
 use crate::phx::PixelFormat::*;
-use crate::phx::PixelFormat::*;
+
 use crate::phx::RenderTarget::*;
 use crate::phx::Resource::*;
 use crate::phx::ResourceType::*;

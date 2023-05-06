@@ -1,7 +1,7 @@
 use crate::phx::internal::Memory::*;
 use crate::phx::Common::*;
 use crate::phx::LuaScheduler::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::Resource::*;
 use crate::phx::ResourceType::*;
 use crate::phx::Signal::*;

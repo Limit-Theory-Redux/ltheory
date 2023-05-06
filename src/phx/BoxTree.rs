@@ -1,8 +1,8 @@
 use crate::phx::internal::Memory::*;
-use crate::phx::Common::*;
+
 use crate::phx::Draw::*;
 use crate::phx::Math::Box3;
-use crate::phx::Math::Vec2;
+
 use crate::phx::Math::Vec3;
 use crate::phx::Matrix::*;
 use crate::phx::Mesh::*;

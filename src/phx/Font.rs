@@ -3,7 +3,7 @@ use crate::phx::Common::*;
 use crate::phx::DataFormat::*;
 use crate::phx::Draw::*;
 use crate::phx::HashMap::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::Math::Vec4;
 use crate::phx::Math::{IVec2, IVec4};
 use crate::phx::PixelFormat::*;

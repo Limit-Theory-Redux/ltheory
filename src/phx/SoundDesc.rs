@@ -2,7 +2,7 @@ use crate::phx::internal::Memory::*;
 use crate::phx::Audio::*;
 use crate::phx::Common::*;
 use crate::phx::File::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::Resource::*;
 use crate::phx::ResourceType::*;
 use crate::phx::Sound::FMODCALL;

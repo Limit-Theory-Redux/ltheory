@@ -2,7 +2,7 @@ use crate::phx::internal::Memory::*;
 use crate::phx::Bytes::*;
 use crate::phx::Common::*;
 use crate::phx::DataFormat::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::PixelFormat::*;
 use crate::phx::TexFilter::*;
 use crate::phx::TexFormat::*;

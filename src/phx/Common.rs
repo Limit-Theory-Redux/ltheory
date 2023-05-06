@@ -1,5 +1,3 @@
-use crate::phx::internal::Memory::*;
-use crate::phx::Math::Vec3;
 
 macro_rules! unwrap_or_return {
     ($value: ident) => {
@@ -15,7 +13,7 @@ macro_rules! unwrap_or_return {
         }
     };
 }
-pub(crate) use unwrap_or_return;
+
 
 macro_rules! c_str {
     ($s:expr) => {{

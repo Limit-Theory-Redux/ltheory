@@ -1,6 +1,6 @@
 use crate::phx::internal::ffi;
 use crate::phx::Common::*;
-use image::{DynamicImage, ImageBuffer, ImageOutputFormat};
+use image::{DynamicImage, ImageBuffer};
 
 #[no_mangle]
 pub extern "C" fn Tex2D_Save_Png(

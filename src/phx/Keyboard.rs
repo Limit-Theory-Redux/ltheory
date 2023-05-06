@@ -1,7 +1,7 @@
 use crate::phx::internal::Memory::*;
-use crate::phx::Common::*;
+
 use crate::phx::Key::*;
-use crate::phx::Math::Vec3;
+
 use sdl2_sys::*;
 
 static mut lastAction: u64 = 0;

@@ -1,7 +1,7 @@
-use crate::phx::internal::Memory::*;
+
 use crate::phx::Common::*;
 use crate::phx::CubeFace::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::Math::{IVec2, IVec3};
 use crate::phx::Metric::*;
 use crate::phx::Profiler::*;
@@ -9,7 +9,7 @@ use crate::phx::Tex2D::*;
 use crate::phx::Tex3D::*;
 use crate::phx::TexCube::*;
 use crate::phx::TexFormat::*;
-use crate::phx::TexFormat::*;
+
 use crate::phx::Viewport::*;
 use crate::phx::GL::gl;
 

@@ -7,7 +7,7 @@ use crate::phx::Font::*;
 use crate::phx::Hash::*;
 use crate::phx::HashMap::*;
 use crate::phx::Input::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::Math::Vec4;
 use crate::phx::Math::{IVec2, Vec2};
 use crate::phx::MemPool::*;

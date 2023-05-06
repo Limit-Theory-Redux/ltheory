@@ -1,8 +1,8 @@
 use crate::phx::internal::ffi;
-use crate::phx::internal::Memory::*;
-use crate::phx::Common::*;
+
+
 use crate::phx::DeviceType::*;
-use crate::phx::Math::Vec3;
+
 
 #[derive(Copy, Clone)]
 #[repr(C)]

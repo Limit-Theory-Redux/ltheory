@@ -5,7 +5,7 @@ use crate::phx::Device::*;
 use crate::phx::DeviceType::*;
 use crate::phx::InputEvent::*;
 use crate::phx::Math::IVec2;
-use crate::phx::Math::Vec3;
+
 use crate::phx::Modifier::*;
 use crate::phx::Profiler::*;
 use crate::phx::Resource::*;

@@ -1,7 +1,7 @@
 use crate::phx::internal::Memory::*;
 use crate::phx::Common::*;
 use crate::phx::HatDir::*;
-use crate::phx::Math::Vec3;
+
 use crate::phx::TimeStamp::*;
 use sdl2_sys::*;
 

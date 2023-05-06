@@ -1,6 +1,6 @@
 use crate::phx::internal::Memory::*;
 use crate::phx::Bytes::*;
-use crate::phx::Common::*;
+
 use crate::phx::Math::*;
 use crate::phx::Matrix::*;
 use crate::phx::Metric::*;
@@ -9,7 +9,7 @@ use crate::phx::ResourceType::*;
 use crate::phx::Triangle::*;
 use crate::phx::GL::gl;
 use crate::phx::SDF::*;
-use memoffset::{offset_of, span_of};
+use memoffset::{offset_of};
 
 #[derive(Clone)]
 #[repr(C)]

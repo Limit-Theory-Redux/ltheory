@@ -1,4 +1,4 @@
-use crate::phx::internal::Memory::*;
+
 use crate::phx::Button::*;
 use crate::phx::Common::*;
 use crate::phx::Device::*;
@@ -6,7 +6,7 @@ use crate::phx::Input::*;
 use crate::phx::InputEvent::*;
 use crate::phx::Lua::{Lua, LuaRef};
 use crate::phx::Math::Vec2;
-use crate::phx::Math::Vec3;
+
 use crate::phx::State::*;
 
 const BindCount: usize = 4;
