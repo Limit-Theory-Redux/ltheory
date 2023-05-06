@@ -1,5 +1,6 @@
 local Actions = requireAll('GameObjects.Actions')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
+local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
 
 local DockControl = {}
 DockControl.__index = DockControl
@@ -27,6 +28,12 @@ function DockControl:onInput (state)
     self.player:getControlling():pushAction(Actions.Undock())
     Input.SetMouseVisible(false)
   end
+
+  self.camera:push()
+  self.camera:modYaw(        0.005 * CameraBindings.Yaw:get())
+  self.camera:modPitch(      0.005 * CameraBindings.Pitch:get())
+  self.camera:modRadius(exp(-0.1  * CameraBindings.Zoom:get()))
+  self.camera:pop()
 end
 
 function DockControl:onDraw (focus, active)
