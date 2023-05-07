@@ -288,15 +288,15 @@ function LTheoryRedux:createStarSystem ()
     Config.gen.scaleSystem    = Config.gen.scaleSystemBack
     Config.gen.scalePlanet    = Config.gen.scalePlanetBack
     Config.gen.scalePlanetMod = Config.gen.scalePlanetModBack
-    Config.render.zNear       = Config.gen.zNearBack
-    Config.render.zFar        = Config.gen.zFarBack
+    GameState.render.zNear    = Config.gen.zNearBack
+    GameState.render.zFar     = Config.gen.zFarBack
   else
     -- Use the "real" system generation sizes for a gameplay star system
     Config.gen.scaleSystem    = Config.gen.scaleSystemReal
     Config.gen.scalePlanet    = Config.gen.scalePlanetReal
     Config.gen.scalePlanetMod = Config.gen.scalePlanetModReal
-    Config.render.zNear       = Config.gen.zNearReal
-    Config.render.zFar        = Config.gen.zFarReal
+    GameState.render.zNear    = Config.gen.zNearReal
+    GameState.render.zFar     = Config.gen.zFarReal
   end
 
   do

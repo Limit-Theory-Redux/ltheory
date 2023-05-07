@@ -673,7 +673,7 @@ function HUD:drawWeaponGroups (a)
   end
 
   for i = 1, 8 do
-    if Config.game.weaponGroup == i then
+    if GameState.player.weaponGroup == i then
       UI.DrawEx.Circle(wgx[hudMode][i], wgy[hudMode] + 18, 10, Config.ui.color.meterBar, true)
       HUD:drawHudText("UbuntuBold", fontsize + 2, wgx[hudMode][i] - floor(fontsize / 2) - 1, wgy[hudMode] + 10, tostring(i), Config.ui.color.borderBright)
     else
@@ -1130,22 +1130,22 @@ function HUD:onInput (state)
     --camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
     -- Select a weapon group
-    if Input.GetPressed(Button.Keyboard.N1) and Config.game.weaponGroup ~= 1 then
-      Config.game.weaponGroup = 1
-    elseif Input.GetPressed(Button.Keyboard.N2) and Config.game.weaponGroup ~= 2 then
-      Config.game.weaponGroup = 2
-    elseif Input.GetPressed(Button.Keyboard.N3) and Config.game.weaponGroup ~= 3 then
-      Config.game.weaponGroup = 3
-    elseif Input.GetPressed(Button.Keyboard.N4) and Config.game.weaponGroup ~= 4 then
-      Config.game.weaponGroup = 4
-    elseif Input.GetPressed(Button.Keyboard.N5) and Config.game.weaponGroup ~= 5 then
-      Config.game.weaponGroup = 5
-    elseif Input.GetPressed(Button.Keyboard.N6) and Config.game.weaponGroup ~= 6 then
-      Config.game.weaponGroup = 6
-    elseif Input.GetPressed(Button.Keyboard.N7) and Config.game.weaponGroup ~= 7 then
-      Config.game.weaponGroup = 7
-    elseif Input.GetPressed(Button.Keyboard.N8) and Config.game.weaponGroup ~= 8 then
-      Config.game.weaponGroup = 8
+    if Input.GetPressed(Button.Keyboard.N1) and GameState.player.weaponGroup ~= 1 then
+      GameState.player.weaponGroup = 1
+    elseif Input.GetPressed(Button.Keyboard.N2) and GameState.player.weaponGroup ~= 2 then
+      GameState.player.weaponGroup = 2
+    elseif Input.GetPressed(Button.Keyboard.N3) and GameState.player.weaponGroup ~= 3 then
+      GameState.player.weaponGroup = 3
+    elseif Input.GetPressed(Button.Keyboard.N4) and GameState.player.weaponGroup ~= 4 then
+      GameState.player.weaponGroup = 4
+    elseif Input.GetPressed(Button.Keyboard.N5) and GameState.player.weaponGroup ~= 5 then
+      GameState.player.weaponGroup = 5
+    elseif Input.GetPressed(Button.Keyboard.N6) and GameState.player.weaponGroup ~= 6 then
+      GameState.player.weaponGroup = 6
+    elseif Input.GetPressed(Button.Keyboard.N7) and GameState.player.weaponGroup ~= 7 then
+      GameState.player.weaponGroup = 7
+    elseif Input.GetPressed(Button.Keyboard.N8) and GameState.player.weaponGroup ~= 8 then
+      GameState.player.weaponGroup = 8
     end
 
     local e = self.player:getControlling()

@@ -14,7 +14,7 @@ Config.render = {
   fullscreen      = false,
   vsync           = true,
   zNear           = 0.1, -- default: 0.1
-  zFar            = 1e8, -- default: 1e6
+  zFar            = 1e6, -- default: 1e6
   thrusterLights  = false,
   pulseLights     = false,
 }
@@ -103,8 +103,8 @@ Config.gen = {
 
   uniqueShips    = false,
   playerShipSize = 4,
-  nThrusters     = 1,
-  nTurrets       = 2,
+  nThrusters     = 2,
+  nTurrets       = 1,
 
   zNearBack          = 0.1,
   zNearReal          = 0.1, -- 0.1
@@ -153,7 +153,7 @@ Config.game = {
   pulseSpeed             = 1e3, -- was 6e2
   pulseRange             = 1000,
   pulseSpread            = 0.01,
-  pulseCharge            = 2.0, -- default amount of capacitor charge used by each shot
+  pulseCharge            = 1.0, -- default amount of capacitor charge used by each shot
   pulseColorBodyR        = 0.3,
   pulseColorBodyG        = 0.8,
   pulseColorBodyB        = 2.0,
