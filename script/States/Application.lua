@@ -157,7 +157,7 @@ function Application:run ()
       end
 
       if Input.GetDown(Bindings.TimeAccel) then
-        timeScale = Config.debug.timeAccelFactor
+        timeScale = GameState.debug.timeAccelFactor
       end
 
       if Input.GetPressed(Bindings.ToggleWireframe) then

@@ -208,7 +208,7 @@ function MasterControl.Create (gameView, player)
   end
 
   -- Create Panel
-  local barHeight = Config.ui.controlBarHeight
+  local barHeight = GameState.ui.controlBarHeight
   -- TODO : Will the NavGroup behave well with disabled sets?
   local navGroup  = UI.NavGroup()
   for i = 1, #ControlSets do

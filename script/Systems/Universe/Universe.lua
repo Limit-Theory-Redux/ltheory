@@ -1,5 +1,6 @@
 local UniverseEconomy = require('Systems.Universe.UniverseEconomy')
 local System = require('GameObjects.Entities.Test.System')
+local Actions = requireAll('GameObjects.Actions')
 
 local rng = RNG.FromTime()
 
@@ -68,6 +69,31 @@ function Universe:CreateStarSystem(seed)
 
     printf("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
 
+    -- Escort Ships for Testing
+    local escortShips = {}
+    if GameState.gen.nEscortNPCs > 0 then
+      for i = 1, GameState.gen.nEscortNPCs do
+        local escort = system:spawnShip(nil)
+        local offset = system.rng:getSphere():scale(100)
+        escort:setPos(playerShip:getPos() + offset)
+        escort:pushAction(Actions.Escort(playerShip, offset))
+
+        -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
+        --       These will be dogfighting challenges!
+        if rng:getInt(0, 100) < 20 then
+          escort:setHealth(100, 100, 0.2)
+          escort.usesBoost = true
+        end
+
+        insert(escortShips, escort)
+      end
+      -- TESTING: MAKE SHIPS CHASE EACH OTHER!
+      for i = 1, #escortShips - 1 do
+        escortShips[i]:pushAction(Actions.Attack(escortShips[i+1]))
+      end
+      printf("Added %d escort ships", GameState.gen.nEscortNPCs)
+    end
+
     -- Add System to the Universe
     table.insert(self.systems, system)
     printf("Added System: " .. system:getName() .. " to the Universe.")
@@ -89,10 +115,6 @@ function Universe:CreateShip(system, pos, shipObject)
     ship:setOwner(shipObject.owner)
     system:addChild(ship)
     shipObject.owner:setControlling(ship)
-
-    -- Set our ship's starting location within the extent of a random asteroid field
-    -- TODO: allow custom position
-    system:place(ship)
 
     return ship
 end
