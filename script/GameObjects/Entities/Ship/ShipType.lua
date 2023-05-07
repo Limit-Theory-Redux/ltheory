@@ -41,8 +41,9 @@ local ShipType = class(function (self, seed, generator, scale)
   rng:free()
 end)
 
+-- TODO: change how this works and create a generalized code structure for creating ships as this is b***shit
 function ShipType:instantiate ()
-  if Config.game.gameMode == 1 then
+  if GameState:GetCurrentState() < Enums.GameStates.InGame then
     return ShipI(self) -- enable game startup mode
   else
     return Ship(self) -- enable flight mode

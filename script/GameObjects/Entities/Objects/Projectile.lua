@@ -28,7 +28,7 @@ function Entity:addProjectile (source)
 
   local newProjectile = nil
 
-  if Config.render.pulseLights then
+  if GameState.render.pulseLights then
     newProjectile = Projectile(source.projColorR, source.projColorG, source.projColorB)
 
     local mesh = Gen.Primitive.IcoSphere(5):managed()

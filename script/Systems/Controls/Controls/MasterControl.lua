@@ -75,23 +75,23 @@ local ControlSets = {
 }
 
 function MasterControl:onInput (state)
-  if Config.getGameMode() == 2 and Bindings.TogglePanel:get() > 0 then
-    if not Config.game.gamePaused then
+  if GameState:GetCurrentState() == Enums.GameStates.InGame and Bindings.TogglePanel:get() > 0 then
+    if not GameState.paused then
 --print("----------------------")
       self.panel:toggleEnabled()
       if self.panel:isEnabled() then
 --printf("Panel enabled")
-        Config.game.panelActive = true -- TODO: find where MasterControl handle is exposed and use mc:isEnabled()
+        GameState.panelActive = true -- TODO: find where MasterControl handle is exposed and use mc:isEnabled()
         Input.SetMouseVisible(true)
       else
 --printf("Panel disabled")
-        Config.game.panelActive = false
+        GameState.panelActive = false
         -- Switch back to active Flight Mode with HUD control
         if self.activeControlSet.predicate(self) then
-          Config.ui.defaultControl = "Ship" -- enable flight mode
+          GameState.ui.currentControl = "Ship" -- enable flight mode
           for i = 1, #self.activeControlSet.controls do
             local control = self.activeControlSet.controls[i]
-            if control.name == Config.ui.defaultControl then
+            if control.name == GameState.ui.currentControl then
               self:activateControl(control)
               Input.SetMouseVisible(false)
               break
@@ -134,7 +134,7 @@ function MasterControl:activateControl (controlDef)
   if controlDef == self.activeControlDef then
     if controlDef.name == "Ship" then
       self.panel:disable()
-      Config.game.panelActive = false
+      GameState.panelActive = false
       Input.SetMouseVisible(false)
     end
     return
@@ -149,10 +149,10 @@ function MasterControl:activateControl (controlDef)
 
   if self.activeControlDef then
 --printf("MasterControl:activateControl(): self.activeControlDef = %s", self.activeControlDef.name)
-    Config.ui.defaultControl = self.activeControlDef.name
+    GameState.ui.currentControl = self.activeControlDef.name
     if self.activeControlDef.name == "Ship" then
       self.panel:disable()
-      Config.game.panelActive = false
+      GameState.panelActive = false
       Input.SetMouseVisible(false)
       printf("*** Switching to Flight mode")
     elseif self.activeControlDef.name == "Background" then
@@ -163,7 +163,7 @@ function MasterControl:activateControl (controlDef)
       printf("*** Switching to Fleet Command mode")
     elseif self.activeControlDef.name == "Undock" then
       self.panel:enable()
-      Config.game.panelActive = true
+      GameState.panelActive = true
       Input.SetMouseVisible(true)
       printf("*** Docking (manual)!")
     end
@@ -208,7 +208,7 @@ function MasterControl.Create (gameView, player)
   end
 
   -- Create Panel
-  local barHeight = Config.ui.controlBarHeight
+  local barHeight = GameState.ui.controlBarHeight
   -- TODO : Will the NavGroup behave well with disabled sets?
   local navGroup  = UI.NavGroup()
   for i = 1, #ControlSets do
@@ -220,11 +220,11 @@ function MasterControl.Create (gameView, player)
       local controlDef = set.controls[j]
 
       controlDef.iconButton = UI.IconButton(controlDef.panel.icon, function (button)
-        if not Config.game.gamePaused then
+        if not GameState.paused then
           self:activateControl(controlDef)
           if controlDef.name == "Undock" then
             printf("*** Undocking (icon)!")
-            Config.game.currentShip:getParent():removeDocked(Config.game.currentShip)
+            GameState.player.currentShip:getParent():removeDocked(GameState.player.currentShip)
             Input.SetMouseVisible(false)
           end
         end
@@ -257,7 +257,7 @@ function MasterControl.Create (gameView, player)
       local default
       for j = 1, #set.controls do
         local control = set.controls[j]
-        if control.name == Config.ui.defaultControl then
+        if control.name == GameState.ui.currentControl then
           default = control
           break
         end

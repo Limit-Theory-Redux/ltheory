@@ -52,7 +52,7 @@ function Market:addSell (...)
 end
 
 function Market:update (e, dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     Profiler.Begin('Market.Update')
     for k, v in pairs(self.data) do
       while

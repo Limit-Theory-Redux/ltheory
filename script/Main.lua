@@ -10,14 +10,16 @@ Core.Call(function ()
   GlobalRestrict.On()
 
   dofile('./script/Config/App.lua')
-  dofile('./script/Enums/MusicEnums.lua')
-  dofile('./script/Enums/CursorEnums.lua')
-  dofile('./script/Enums/HudEnums.lua')
-  dofile('./script/Enums/RoleClassEnums.lua')
-  dofile('./script/Enums/JobEnums.lua')
-  dofile('./script/Enums/MenuEnums.lua')
 
-  if io.exists ('./script/Config/Local.lua') then dofile('./script/Config/Local.lua') end
+  -- Load Enums
+  for _, fname in ipairs(io.listdirex(Config.paths.enums)) do
+    dofile(Config.paths.enums .. fname)
+  end
+
+  -- Load Types
+  for _, fname in ipairs(io.listdirex(Config.paths.types)) do
+    dofile(Config.paths.types .. fname)
+  end
 
   Namespace.Load('UI')
   Namespace.LoadInline('Systems')

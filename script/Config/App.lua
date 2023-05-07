@@ -9,20 +9,18 @@ Config.userInitFilename = "user.ini"
 Config.timeToResetToSplashscreen = 60
 
 Config.render = {
-  gameWindow     = nil,
-  startingHorz   = 1600, -- 1600 (default), or 2400 (high DPI)
-  startingVert   =  900, --  900 (default), or 2048 (high DPI)
-  resXnew        = 1600,
-  resYnew        =  900,
-  fullscreen     = false,
-  vsync          = true,
-  zNear          = 0.1, -- default: 0.1
-  zFar           = 1e8, -- default: 1e6
-  thrusterLights = false,
-  pulseLights    = false,
+  defaultResX     = 1600,
+  defaultResY     = 900,
+  fullscreen      = false,
+  vsync           = true,
+  zNear           = 0.1, -- default: 0.1
+  zFar            = 1e8, -- default: 1e6
+  thrusterLights  = false,
+  pulseLights     = false,
 }
 
 Config.audio = {
+  soundEnabled = true,
   supportedFormats = {".ogg"},
   mainMenuMusicEnabled = true,
   bSoundOn    = false,
@@ -45,10 +43,12 @@ Config.paths = {
   files         = Directory.GetPrefPath(Config.org, Config.app), -- base directory using environment-agnostic path
   soundAmbiance = "./res/sound/system/audio/music/",
   soundEffects  = "./res/sound/system/audio/fx/",
+  enums         = "./script/Enums/",
+  types         = "./script/Types/"
 }
 
 Config.debug = {
-  metrics         = true,
+  metricsEnabled  = true,
   window          = true, -- Debug window visible by default at launch?
   windowSection   = nil,  -- Set to the name of a debug window section to
                           -- collapse all others by default
@@ -92,11 +92,14 @@ Config.gen = {
   nStars      = function (rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
 
   shipRes     = 8,
-  nebulaRes   = 1024,
+  nebulaRes   = 2048,
 
-  nAIPlayers  = 0,  -- # of AI players (who manage Economic assets)
-  nEconNPCs   = 0,  -- # of ships to be given Economic actions (managed by AI players)
-  nEscortNPCs = 0,  -- # of ships to be given the Escort action
+  nAIPlayers          = 0,  -- # of AI players (who manage Economic assets)
+  randomizeAIPlayers    = false,
+  nEconNPCs           = 0,  -- # of ships to be given Economic actions (managed by AI players)
+  randomizeEconNPCs   = false,
+  nEscortNPCs         = 0,  -- # of ships to be given the Escort action
+  randomizeEscortNPCs = false,
 
   uniqueShips    = false,
   playerShipSize = 4,
@@ -119,7 +122,7 @@ Config.gen = {
   scaleStar          = 1e6,
   scalePlanet        = 5e3,
   scalePlanetMod     = 7e4,  -- 7e4
-  scaleFieldAsteroid = 10000, -- overwritten in Local.lua
+  scaleFieldAsteroid = 10000,
   scaleAsteroid      = 7.0,
   scaleStation       = 70,
 
@@ -133,25 +136,12 @@ Config.gen = {
   massAsteroidExp = {4.1,  -- Carbonaceous
                      5.9,  -- Metallic
                      3.2}, -- Silicaceous
+
+  stationMinimumDistance = 20000, -- minimum distance between stations
+  minimumDistancePlacementMaxTries = 100
 }
 
 Config.game = {
-  gameMode = 0, -- used by LTheoryRedux: 0 = undefined (splash screen), 1 = Startup Mode (Main Menu), 2 = Flight Mode
-  flightModeButInactive = false, -- flag for being in Flight Mode but unable to fly (as when player ship is destroyed)
-
-  gamePaused  = false,
-  panelActive = false, -- indicates whether MasterControl panel is enabled or not
-
-  humanPlayer         = nil,
-  humanPlayerName     = "[Human Player Name]",
-  humanPlayerShipName = "[Human Player Ship Name]",
-
-  currentShip   = nil,
-  currentSystem = nil,
-
-  mapSystemPos  = Vec3f(0, 0, 0),
-  mapSystemZoom = 0.0001,
-
   boostCost = 10,
   rateOfFire = 10,
 
@@ -189,12 +179,9 @@ Config.game = {
   spawnDistance          = 2000,
   friendlySpawnCount     = 10,
   timeScaleShipEditor    = 0.0,
-  invertPitch            = false,
 
   aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
 
-  playerMoving           = false,
-  autonavTimestamp       = nil,
   autonavRanges          = {  200,  -- Unknown
                                 0,  -- Reserved
                                 0,  -- Star Sector
@@ -220,31 +207,34 @@ Config.game = {
 }
 
 Config.econ = {
-  pStartCredits = 10000,   -- player starting credits
-  eStartCredits = 1000000, -- NPC player starting credits
+  pStartCredits           = 10000,   -- player starting credits
+  eStartCredits           = 1000000, -- NPC player starting credits
 
-  eInventory = 100, -- starting number of inventory slots
+  eInventory              = 100, -- starting number of inventory slots
 
-  jobIterations = 4000, -- how many randomly-chosen jobs an asset will consider before picking
+  jobIterations           = 4000, -- how many randomly-chosen jobs an asset will consider before picking
 
-  inputBacklog = 1, -- multiplier of number of units a factory can bid for on each input
+  inputBacklog            = 1, -- multiplier of number of units a factory can bid for on each input
 
-  pickupDistWeightMine = 1.0, -- importance of pickup distance for a Mine job (smaller = more important)
-  pickupDistWeightTran = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
-  markup   = 1.2, -- change to base value when calculating ask price for selling an item
-  markdown = 0.8, -- change to base value when calculating bid price for buying an item
+  pickupDistWeightMine    = 1.0, -- importance of pickup distance for a Mine job (smaller = more important)
+  pickupDistWeightTran    = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
+  markup                  = 1.2, -- change to base value when calculating ask price for selling an item
+  markdown                = 0.8, -- change to base value when calculating bid price for buying an item
+
+  lowAttentionUpdateRate = 5,
 }
 
 Config.ui = {
-  defaultControl   = "Ship", -- enable flight mode as default so that LTheory.lua still works
+  defaultControl   = "Background",
   showTrackers     = true,
   controlBarHeight = 48,
+  displaySensors   = true,
   hudStyle         = 1,
   sensorsDisplayed = true,
   cursorSmooth     = "cursor/cursor1-small",
   cursorSimple     = "cursor/Simple_Cursor",
   cursor           = "cursor/Simple_Cursor",
-  cursorStyle      = 0,
+  cursorStyle      = 1,
   cursorX          = 1,
   cursorY          = 1,
 }
@@ -343,20 +333,6 @@ Config.ui.font = {
   title      = Cache.Font('Exo2Bold', 10),
   titleSize  = 10,
 }
-
-function Config.setGameMode(gm)
-  Config.game.gameMode = gm
-
-  if Config.game.gameMode == 1 then
-    Config.ui.defaultControl = "Background" -- enable game startup mode
-  else
-    Config.ui.defaultControl = "Ship" -- enable flight mode
-  end
-end
-
-function Config.getGameMode()
-  return Config.game.gameMode
-end
 
 -- Static object type names and data
 Config.objectInfo = {

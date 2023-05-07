@@ -9,6 +9,7 @@ local guiElements = {
   {
     name = "Choose Seed",
     elems = {
+      -- TODO: replace with proper list
       { nil, 5022463494542550306ULL,  false },  -- KEEP black
       { nil, 5012768293123392491ULL,  false },  -- KEEP red
       { nil, 4933876146649964811ULL,  false },  -- KEEP blue and milky white
@@ -22,6 +23,9 @@ local guiElements = {
       { nil, 10630444862697458122ULL, false },  -- MAYBE "Hubble palette"
       { nil, 5199604093543988311ULL,  false },  -- KEEP even bluish-white with a bright yellow star
       { nil, 9471911754066691691ULL,  false },  -- KEEP completely dark with one small blue star
+      { nil, 15887563511063255006ULL, false },  -- looks pretty cool
+      { nil, 976665863517979971ULL,   false }   -- looks pretty cool too
+      -- 17682038400513250095ULL
     }
   }
 }
@@ -44,15 +48,20 @@ local guiSettings = {
 function MainMenu:OnInit()
   self.enabled = true
   self.inBackgroundMode = false
+  self.dialogDisplayed = false
   self.seedDialogDisplayed = false
   self.settingsScreenDisplayed = false
   self.dt = 0
   self.lastActionDelta = 0
   self.returnToSplashDelta = 0
+  GameState.ui.currentControl = "Background"
 
   if not self.keepState then
+    GameState:SetState(Enums.GameStates.Splashscreen)
     self.currentMode = Enums.MenuMode.Splashscreen
     self.keepState = false
+  else
+    GameState:SetState(Enums.GameStates.MainMenu)
   end
   printf("Initialize MainMenu")
 end
@@ -115,6 +124,15 @@ end
 function MainMenu:SetMenuMode(mode)
   printf("Set Menu Mode to: " .. mode)
   self.currentMode = mode
+
+  -- TODO: this can be improved
+  if mode == Enums.MenuMode.Splashscreen then
+    GameState:SetState(Enums.GameStates.Splashscreen)
+  elseif mode == Enums.MenuMode.MainMenu then
+    GameState:SetState(Enums.GameStates.MainMenu)
+  elseif mode == Enums.MenuMode.Dialog then
+    GameState:SetState(Enums.GameStates.InGame)
+  end
 end
 
 function MainMenu:ShowGui()
@@ -187,6 +205,7 @@ end
 
 function MainMenu:ShowSeedDialog()
   -- Add new star system seed selection dialog menu
+  self.dialogDisplayed = false
   self.seedDialogDisplayed = true
 
   HmGui.BeginWindow(guiElements.name)
@@ -229,15 +248,10 @@ function MainMenu:ShowSeedDialogInner()
   HmGui.PushFont(Cache.Font('Exo2Bold', 28))
 
   if HmGui.Button("Cancel") then
-    self.seedDialogDisplayed = false
-    self:SetMenuMode(Config.getGameMode())
-    LTheoryRedux:freezeTurrets()
-    Config.game.gamePaused = false
-
-    if MainMenu.currentMode == Enums.MenuMode.Dialog then
-      Config.game.panelActive = false
-      Input.SetMouseVisible(false)
+    if GameState:GetCurrentState() == Enums.GameStates.InGame then
+      self.dialogDisplayed = true
     end
+    self.seedDialogDisplayed = false
   end
 
   HmGui.SetSpacing(16)
@@ -249,10 +263,9 @@ function MainMenu:ShowSeedDialogInner()
     for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
       guiElements[1]["elems"][i][3] = false
     end
-    Config.setGameMode(2) -- switch to Flight Mode
+
     self:SetMenuMode(Enums.MenuMode.Dialog)
-    Config.game.flightModeButInactive = false
-    Config.game.gamePaused = false
+    GameState:Unpause()
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
@@ -265,10 +278,10 @@ function MainMenu:ShowSeedDialogInner()
     for i = 1, #guiElements[1]["elems"] do -- reset all seed selection checkboxes
       guiElements[1]["elems"][i][3] = false
     end
-    Config.setGameMode(2) -- switch to Flight Mode
+
     self:SetMenuMode(Enums.MenuMode.Dialog)
-    Config.game.flightModeButInactive = false
-    Config.game.gamePaused = false
+    GameState:Unpause()
+    GameState.ui.currentControl = "Ship"
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
@@ -282,6 +295,9 @@ end
 
 function MainMenu:ShowSettingsScreen()
   -- Add new star system seed selection dialog menu
+  if GameState:GetCurrentState() == Enums.GameStates.InGame then
+    self.dialogDisplayed = false
+  end
   self.settingsScreenDisplayed = true
 
   HmGui.BeginWindow(guiElements.name)
@@ -308,18 +324,18 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(0.0, 0.0)
   HmGui.SetAlign(0.5, 0.5)
 
-  guiSettings[1][1] = Config.audio.bSoundOn
+  guiSettings[1][1] = GameState.audio.soundEnabled
   if guiSettings[1][2] == nil then
-    guiSettings[1][2] = Config.audio.bSoundOn
+    guiSettings[1][2] = GameState.audio.soundEnabled
   end
   guiSettings[1][1] = HmGui.Checkbox(guiSettings[1][3], guiSettings[1][1])
   if guiSettings[1][1] then
     -- Checkbox was selected
-    if not Config.audio.bSoundOn then
+    if not GameState.audio.soundEnabled then
       LTheoryRedux:SoundOn()
     end
   else
-    if Config.audio.bSoundOn then
+    if GameState.audio.soundEnabled then
       LTheoryRedux:SoundOff()
     end
   end
@@ -329,18 +345,18 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(0.0, 0.0)
   HmGui.SetAlign(0.5, 0.5)
 
-  guiSettings[2][1] = Config.render.fullscreen
+  guiSettings[2][1] = GameState.render.fullscreen
   if guiSettings[2][2] == nil then
-    guiSettings[2][2] = Config.render.fullscreen
+    guiSettings[2][2] = GameState.render.fullscreen
   end
   guiSettings[2][1] = HmGui.Checkbox(guiSettings[2][3], guiSettings[2][1])
   if guiSettings[2][1] then
     -- Checkbox was selected
-    if not Config.render.fullscreen then
+    if not GameState.render.fullscreen then
       LTheoryRedux:SetFullscreen(true)
     end
   else
-    if Config.render.fullscreen then
+    if GameState.render.fullscreen then
       LTheoryRedux:SetFullscreen(false)
     end
   end
@@ -356,17 +372,17 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(1.0, 0.0)
   HmGui.BeginGroupX()
   if guiSettings[3][2] == nil then
-    guiSettings[3][1] = Config.ui.cursorStyle
-    guiSettings[3][2] = Config.ui.cursorStyle
+    guiSettings[3][1] = GameState.ui.cursorStyle
+    guiSettings[3][2] = GameState.ui.cursorStyle
   end
   if HmGui.Button("-") and guiSettings[3][1] > 1 then
     guiSettings[3][1] = guiSettings[3][1] - 1
-    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], Config.ui.cursorX, Config.ui.cursorY)
+    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], GameState.ui.cursorX, GameState.ui.cursorY)
   end
   HmGui.TextEx(Cache.Font("Ubuntu", 20), Enums.CursorStyleNames[guiSettings[3][1]], 0.3, 1.0, 0.4, 1.0)
   if HmGui.Button("+") and guiSettings[3][1] < Enums.CursorStyleCount then
     guiSettings[3][1] = guiSettings[3][1] + 1
-    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], Config.ui.cursorX, Config.ui.cursorY)
+    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], GameState.ui.cursorX, GameState.ui.cursorY)
   end
   HmGui.EndGroup()
   HmGui.EndGroup()
@@ -378,8 +394,8 @@ function MainMenu:ShowSettingsScreenInner()
   HmGui.SetStretch(1.0, 0.0)
   HmGui.BeginGroupX()
   if guiSettings[4][2] == nil then
-    guiSettings[4][1] = Config.ui.hudStyle
-    guiSettings[4][2] = Config.ui.hudStyle
+    guiSettings[4][1] = GameState.ui.hudStyle
+    guiSettings[4][2] = GameState.ui.hudStyle
   end
   if HmGui.Button("-") and guiSettings[4][1] > 1 then
     guiSettings[4][1] = guiSettings[4][1] - 1
@@ -400,19 +416,19 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetAlign(0.5, 0.5)
 
     HmGui.SetSpacing(8)
-    guiSettings[5][1] = Config.gen.uniqueShips
+    guiSettings[5][1] = GameState.gen.uniqueShips
     if guiSettings[5][2] == nil then
-      guiSettings[5][2] = Config.gen.uniqueShips
+      guiSettings[5][2] = GameState.gen.uniqueShips
     end
     guiSettings[5][1] = HmGui.Checkbox(guiSettings[5][3], guiSettings[5][1])
     if guiSettings[5][1] then
       -- Checkbox was selected
-      if not Config.gen.uniqueShips then
-        Config.gen.uniqueShips = true
+      if not GameState.gen.uniqueShips then
+        GameState.gen.uniqueShips = true
       end
     else
-      if Config.gen.uniqueShips then
-        Config.gen.uniqueShips = false
+      if GameState.gen.uniqueShips then
+        GameState.gen.uniqueShips = false
       end
     end
 
@@ -425,8 +441,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[6][2] == nil then
-      guiSettings[6][1] = Config.gen.nFields
-      guiSettings[6][2] = Config.gen.nFields
+      guiSettings[6][1] = GameState.gen.nFields
+      guiSettings[6][2] = GameState.gen.nFields
     end
     if HmGui.Button("-") and guiSettings[6][1] > 0 then
       guiSettings[6][1] = guiSettings[6][1] - 1
@@ -445,8 +461,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[7][2] == nil then
-      guiSettings[7][1] = Config.gen.nAsteroids
-      guiSettings[7][2] = Config.gen.nAsteroids
+      guiSettings[7][1] = GameState.gen.nAsteroids
+      guiSettings[7][2] = GameState.gen.nAsteroids
     end
     if HmGui.Button("-") and guiSettings[7][1] > 1 then
       guiSettings[7][1] = guiSettings[7][1] - 1
@@ -465,8 +481,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[8][2] == nil then
-      guiSettings[8][1] = Config.gen.nPlanets
-      guiSettings[8][2] = Config.gen.nPlanets
+      guiSettings[8][1] = GameState.gen.nPlanets
+      guiSettings[8][2] = GameState.gen.nPlanets
     end
     if HmGui.Button("-") and guiSettings[8][1] > 0 then
       guiSettings[8][1] = guiSettings[8][1] - 1
@@ -485,8 +501,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[9][2] == nil then
-      guiSettings[9][1] = Config.gen.nStations
-      guiSettings[9][2] = Config.gen.nStations
+      guiSettings[9][1] = GameState.gen.nStations
+      guiSettings[9][2] = GameState.gen.nStations
     end
     if HmGui.Button("-") and guiSettings[9][1] > 0 then
       guiSettings[9][1] = guiSettings[9][1] - 1
@@ -505,8 +521,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[10][2] == nil then
-      guiSettings[10][1] = Config.gen.nAIPlayers
-      guiSettings[10][2] = Config.gen.nAIPlayers
+      guiSettings[10][1] = GameState.gen.nAIPlayers
+      guiSettings[10][2] = GameState.gen.nAIPlayers
     end
     if HmGui.Button("-") and guiSettings[10][1] > 0 then
       guiSettings[10][1] = guiSettings[10][1] - 1
@@ -525,8 +541,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[11][2] == nil then
-      guiSettings[11][1] = Config.gen.nEconNPCs
-      guiSettings[11][2] = Config.gen.nEconNPCs
+      guiSettings[11][1] = GameState.gen.nEconNPCs
+      guiSettings[11][2] = GameState.gen.nEconNPCs
     end
     if HmGui.Button("-") and guiSettings[11][1] > 0 then
       guiSettings[11][1] = guiSettings[11][1] - 1
@@ -545,8 +561,8 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[12][2] == nil then
-      guiSettings[12][1] = Config.gen.nEscortNPCs
-      guiSettings[12][2] = Config.gen.nEscortNPCs
+      guiSettings[12][1] = GameState.gen.nEscortNPCs
+      guiSettings[12][2] = GameState.gen.nEscortNPCs
     end
     if HmGui.Button("-") and guiSettings[12][1] > 0 then
       guiSettings[12][1] = guiSettings[12][1] - 1
@@ -579,40 +595,39 @@ function MainMenu:ShowSettingsScreenInner()
 
     LTheoryRedux:SetFullscreen(guiSettings[2][2])
 
-    Config.ui.cursorStyle = guiSettings[3][2]
-    LTheoryRedux:setCursor(Enums.CursorFilenames[Config.ui.cursorStyle], Config.ui.cursorX, Config.ui.cursorY)
+    GameState.ui.cursorStyle = guiSettings[3][2]
+    LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
 
-    Config.ui.hudStyle = guiSettings[4][2]
+    GameState.ui.hudStyle = guiSettings[4][2]
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
       if guiSettings[5][2] then
-        Config.gen.uniqueShips = true
+        GameState.gen.uniqueShips = true
       else
-        Config.gen.uniqueShips = false
+        GameState.gen.uniqueShips = false
       end
 
-      Config.gen.nFields     = guiSettings[ 6][2]
-      Config.gen.nAsteroids  = guiSettings[ 7][2]
-      Config.gen.nPlanets    = guiSettings[ 8][2]
-      Config.gen.nStations   = guiSettings[ 9][2]
-      Config.gen.nAIPlayers  = guiSettings[10][2]
-      Config.gen.nEconNPCs   = guiSettings[11][2]
-      Config.gen.nEscortNPCs = guiSettings[12][2]
+      GameState.gen.nFields     = guiSettings[ 6][2]
+      GameState.gen.nAsteroids  = guiSettings[ 7][2]
+      GameState.gen.nPlanets    = guiSettings[ 8][2]
+      GameState.gen.nStations   = guiSettings[ 9][2]
+      GameState.gen.nAIPlayers  = guiSettings[10][2]
+      GameState.gen.nEconNPCs   = guiSettings[11][2]
+      GameState.gen.nEscortNPCs = guiSettings[12][2]
     end
 
     for i = 1, #guiSettings do
       guiSettings[i][2] = nil
     end
 
+    if GameState:GetCurrentState() == Enums.GameStates.InGame then
+      self.dialogDisplayed = true
+    end
     self.settingsScreenDisplayed = false
-    Config.game.gamePaused = false
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
       LTheoryRedux:freezeTurrets()
-      Config.setGameMode(2) -- return to Flight Mode
-      Config.game.flightModeButInactive = false
-      Config.game.panelActive = false
-      Input.SetMouseVisible(false)
+      Input.SetMouseVisible(true)
     end
   end
 
@@ -620,21 +635,22 @@ function MainMenu:ShowSettingsScreenInner()
 
   if HmGui.Button("Use") then
     -- Return to the game using the selected values of each setting
+    if GameState:GetCurrentState() == Enums.GameStates.InGame then
+      self.dialogDisplayed = true
+    end
     self.settingsScreenDisplayed = false
-    Config.game.gamePaused = false
 
-    Config.ui.cursorStyle = guiSettings[3][1]
-
-    Config.ui.hudStyle = guiSettings[4][1]
+    GameState.ui.cursorStyle = guiSettings[3][1]
+    GameState.ui.hudStyle = guiSettings[4][1]
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
-      Config.gen.nFields     = guiSettings[ 6][1]
-      Config.gen.nAsteroids  = guiSettings[ 7][1]
-      Config.gen.nPlanets    = guiSettings[ 8][1]
-      Config.gen.nStations   = guiSettings[ 9][1]
-      Config.gen.nAIPlayers  = guiSettings[10][1]
-      Config.gen.nEconNPCs   = guiSettings[11][1]
-      Config.gen.nEscortNPCs = guiSettings[12][1]
+      GameState.gen.nFields     = guiSettings[ 6][1]
+      GameState.gen.nAsteroids  = guiSettings[ 7][1]
+      GameState.gen.nPlanets    = guiSettings[ 8][1]
+      GameState.gen.nStations   = guiSettings[ 9][1]
+      GameState.gen.nAIPlayers  = guiSettings[10][1]
+      GameState.gen.nEconNPCs   = guiSettings[11][1]
+      GameState.gen.nEscortNPCs = guiSettings[12][1]
     end
 
     for i = 1, #guiSettings do
@@ -643,10 +659,7 @@ function MainMenu:ShowSettingsScreenInner()
 
     if MainMenu.currentMode == Enums.MenuMode.Dialog then
       LTheoryRedux:freezeTurrets()
-      Config.setGameMode(2) -- return to Flight Mode
-      Config.game.flightModeButInactive = false
-      Config.game.panelActive = false
-      Input.SetMouseVisible(false)
+      Input.SetMouseVisible(true)
     end
   end
 
@@ -675,29 +688,28 @@ function MainMenu:ShowFlightDialogInner()
   HmGui.PushTextColor(1.0, 1.0, 1.0, 1.0)
   HmGui.PushFont(Cache.Font('Exo2Bold', 26))
 
-  if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
+  if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
     if HmGui.Button("Return to Game") then
-      --printf("panelActive = %s, defaultControl = %s", Config.game.panelActive, Config.ui.defaultControl)
       LTheoryRedux:freezeTurrets()
-      Config.game.flightModeButInactive = false
-      Config.game.gamePaused = false
-      Config.game.panelActive = false
+      GameState:SetState(Enums.GameStates.InGame)
+      GameState:Unpause()
+      GameState.panelActive = false
+      self.dialogDisplayed = false
 
-      if Config.ui.defaultControl == "Ship" then
+      if GameState.ui.currentControl == "Ship" then
         Input.SetMouseVisible(false)
       end
     end
   end
 
-  if Config.game.currentShip ~= nil and not Config.game.currentShip:isDestroyed() then
+  if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
     HmGui.SetSpacing(8)
 
     if HmGui.Button("Save Game") then
       -- TODO: Save game state here
       LTheoryRedux:freezeTurrets()
-      Config.game.flightModeButInactive = false
-      Config.game.gamePaused = false
-      Config.game.panelActive = false
+      GameState:Unpause()
+      GameState.panelActive = false
       Input.SetMouseVisible(false)
     end
   end
@@ -707,22 +719,21 @@ function MainMenu:ShowFlightDialogInner()
     -- TODO: Show Load Game menu once that's been implemented
     -- NOTE: For now, just pop up a Seed Menu dialog for creating a new star system
     self:ShowSeedDialog()
-    Config.game.flightModeButInactive = false
   end
   HmGui.SetSpacing(8)
 
   if HmGui.Button("Game Settings") then
     -- Show Game Settings menu
     self:ShowSettingsScreen()
-    Config.game.flightModeButInactive = false
+    GameState:Pause()
+    Input.SetMouseVisible(true)
   end
   HmGui.SetSpacing(8)
 
   if HmGui.Button("Exit to Main Menu") then
-    Config.game.flightModeButInactive = true
-    Config.setGameMode(1) -- switch to Startup Mode
+    GameState:SetState(Enums.GameStates.MainMenu) -- switch to Startup Mode
     LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
-    Config.game.gamePaused = false
+    GameState:Unpause()
   end
   HmGui.SetSpacing(8)
 

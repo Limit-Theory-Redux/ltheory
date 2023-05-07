@@ -260,13 +260,6 @@ function GameView:setOrbit (orbit)
 end
 
 function GameView.Create (player)
-  -- TODO : Should Audio be handled in App/LTheory??
-  if Config.game.gameMode == 0 then
-    print("Initializing FMOD audio")
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
-  end
-
   local self = setmetatable({
     player      = player,
     renderer    = Renderer(),

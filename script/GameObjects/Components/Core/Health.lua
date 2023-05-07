@@ -49,14 +49,14 @@ end
 printf("%s destroyed by %s!", thisShipName, attackingShipName)
 
     -- Remove destroyed ship from system's list of active ships
-    for i, ship in ipairs(Config.game.currentSystem.ships) do
+    for i, ship in ipairs(GameState.world.currentSystem.ships) do
       if ship == self then
-        remove(Config.game.currentSystem.ships, i)
+        remove(GameState.world.currentSystem.ships, i)
       end
     end
 
     -- Any active ship still targeting this destroyed ship should lose it as a current target
-    for _, ship in ipairs(Config.game.currentSystem.ships) do
+    for _, ship in ipairs(GameState.world.currentSystem.ships) do
       if ship:getTarget() == self then
         ship:setTarget(nil)
       end
@@ -82,8 +82,8 @@ printf("%s destroyed by %s!", thisShipName, attackingShipName)
       self:setUndockable()
     end
 
-    if self == Config.game.currentShip then
-      Config.game.flightModeButInactive = true
+    if self == GameState.player.currentShip then
+      GameState:Pause()
     end
   end
 end

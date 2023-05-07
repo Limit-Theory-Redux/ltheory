@@ -41,10 +41,10 @@ function DockAt:onUpdateActive (e, dt)
     if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
       e:setTarget(self.target)
 
-      if Config.debug.instantJobs then
+      if GameState.debug.instantJobs then
         local p = e:getPos()
         local dp = tp - p
-        e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * Config.debug.jobSpeed)))
+        e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * GameState.debug.jobSpeed)))
       else
         local tf = self.target:getForward()
         local tu = self.target:getUp()
