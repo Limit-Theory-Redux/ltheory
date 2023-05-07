@@ -228,7 +228,6 @@ Config.ui = {
   defaultControl   = "Background",
   showTrackers     = true,
   controlBarHeight = 48,
-  displaySensors   = true,
   hudStyle         = 1,
   sensorsDisplayed = true,
   cursorSmooth     = "cursor/cursor1-small",

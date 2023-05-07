@@ -72,6 +72,12 @@ function Settings.getEntry (key)
   return self
 end
 
+function Settings.getEnumValName (key, val)
+  local self = varMap[key]
+  if not self then Log.Error('Attempting to get nonexistent setting <%s>', key) end
+  return self.elems[val]
+end
+
 function Settings.getAll ()
   return varList
 end

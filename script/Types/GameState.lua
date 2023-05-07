@@ -41,7 +41,7 @@ GameState.ui = {
   cursorStyle           = Config.ui.cursorStyle,
   cursorX               = Config.ui.cursorX,
   cursorY               = Config.ui.cursorY,
-  displaySensors        = Config.ui.displaySensors
+  sensorsDisplayed      = Config.ui.sensorsDisplayed,
 }
 
 GameState.player = {

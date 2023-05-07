@@ -435,7 +435,7 @@ function HUD:drawPlayerShieldsHullArmor (a)
   local text = ""
 
   local sensorsHeight = 0
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     sensorsHeight = floor(self.sy / 9)
   end
 
@@ -493,7 +493,7 @@ function HUD:drawMissilesLeft (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
   local sensorsHeight = 0
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     sensorsHeight = floor(self.sy / 9)
   end
 
@@ -527,7 +527,7 @@ function HUD:drawPlayerSpeed (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
   local sensorsHeight = 0
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     sensorsHeight = floor(self.sy / 9)
   end
 
@@ -560,7 +560,7 @@ function HUD:drawChaffLeft (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
   local sensorsHeight = 0
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     sensorsHeight = floor(self.sy / 9)
   end
 
@@ -743,7 +743,7 @@ function HUD:drawPowerDistro (a)
 end
 
 function HUD:drawSensors (a)
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     local cx, cy = self.sx / 2, self.sy / 2
 
     -- Draw sensor readouts
@@ -1130,21 +1130,21 @@ function HUD:onInput (state)
     --camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
     -- Select a weapon group
-    if Input.GetPressed(Button.Keyboard.N1) and GameState.player.weaponGroup ~= 1 then
+    if Input.GetPressed(Button.Keyboard.N1) and Config.game.weaponGroup ~= 1 then
       Config.game.weaponGroup = 1
-    elseif Input.GetPressed(Button.Keyboard.N2) and GameState.player.weaponGroup ~= 2 then
+    elseif Input.GetPressed(Button.Keyboard.N2) and Config.game.weaponGroup ~= 2 then
       Config.game.weaponGroup = 2
-    elseif Input.GetPressed(Button.Keyboard.N3) and GameState.player.weaponGroup ~= 3 then
+    elseif Input.GetPressed(Button.Keyboard.N3) and Config.game.weaponGroup ~= 3 then
       Config.game.weaponGroup = 3
-    elseif Input.GetPressed(Button.Keyboard.N4) and GameState.player.weaponGroup ~= 4 then
+    elseif Input.GetPressed(Button.Keyboard.N4) and Config.game.weaponGroup ~= 4 then
       Config.game.weaponGroup = 4
-    elseif Input.GetPressed(Button.Keyboard.N5) and GameState.player.weaponGroup ~= 5 then
+    elseif Input.GetPressed(Button.Keyboard.N5) and Config.game.weaponGroup ~= 5 then
       Config.game.weaponGroup = 5
-    elseif Input.GetPressed(Button.Keyboard.N6) and GameState.player.weaponGroup ~= 6 then
+    elseif Input.GetPressed(Button.Keyboard.N6) and Config.game.weaponGroup ~= 6 then
       Config.game.weaponGroup = 6
-    elseif Input.GetPressed(Button.Keyboard.N7) and GameState.player.weaponGroup ~= 7 then
+    elseif Input.GetPressed(Button.Keyboard.N7) and Config.game.weaponGroup ~= 7 then
       Config.game.weaponGroup = 7
-    elseif Input.GetPressed(Button.Keyboard.N8) and GameState.player.weaponGroup ~= 8 then
+    elseif Input.GetPressed(Button.Keyboard.N8) and Config.game.weaponGroup ~= 8 then
       Config.game.weaponGroup = 8
     end
 
@@ -1180,7 +1180,7 @@ function HUD:onUpdate (state)
     end
 
     if Input.GetPressed(Bindings.ToggleSensors) then
-      Config.ui.sensorsDisplayed = not Config.ui.sensorsDisplayed
+      GameState.ui.sensorsDisplayed = not GameState.ui.sensorsDisplayed
     end
 
     self.targets:update()
