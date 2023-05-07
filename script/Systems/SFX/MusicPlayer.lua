@@ -22,7 +22,6 @@ function MusicPlayer:SetVolume(volume)
   end
 
   self.volume = volume
-  GameState.audio.musicVolume = volume
 
   for _, soundObject in ipairs(self.trackList) do
 printf("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)

@@ -65,7 +65,7 @@ end
 function LTheoryRedux:toggleSound ()
   GameState.audio.soundEnabled = not GameState.audio.soundEnabled
 
-  if GameState.audio.enabled then
+  if GameState.audio.soundEnabled then
     MusicPlayer:SetVolume(GameState.audio.musicVolume)
   else
 --printf("LTheoryRedux:toggleSound: volume set to 0")
