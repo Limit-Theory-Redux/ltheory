@@ -26,7 +26,7 @@ Config.audio = {
   bSoundOn    = false,
   soundMin    = 0,
   soundMax    = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
-  musicVolume = 1, -- current volume
+  musicVolume = 0.75, -- current volume
   mainMenu    = "LTR_Main_Menu.ogg",
 
   pulseFireName      = "",
