@@ -185,6 +185,7 @@ function System:place (object)
 
   local pos = Config.gen.origin
   local field = self:sampleZones(self.rng)
+  local counter = 1
 
   if field then
     pos = field:getRandomPos(self.rng) -- place new object within a random field
@@ -218,8 +219,12 @@ function System:place (object)
         end
 
         do
-          if not checkIfInSystem(pos) or not checkDistanceToAllStations(pos) then
+          if counter >= Config.gen.minimumDistancePlacementMaxTries then
+            printf("Exceeded max placement tries, placing at last random position: %s", pos)
+            validSpawn = true
+          elseif not checkIfInSystem(pos) or not checkDistanceToAllStations(pos) then
             pos = field:getRandomPos(self.rng)
+            counter = counter + 1
           else
             printf("Found Position to Spawn: %s", pos)
             validSpawn = true

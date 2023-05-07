@@ -168,7 +168,7 @@ function InitFiles:writeUserInits ()
   end
 
   for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
-    -- this is dirty for now, but it´s the only category without anything we need to save
+    -- this is dirty for now, but its the only category without anything we need to save
     if l_Category ~= "world" then
       io.write(format("[%s]", tostring(l_Category)), "\n")
     end
@@ -184,7 +184,7 @@ function InitFiles:writeUserInits ()
           pass = false
         end
       end
-      -- don´t allow any other than string, boolean and numbers also ignore "current" variables
+      -- dont allow any other than string, boolean and numbers also ignore "current" variables
       if pass and type(l_Value) == "string"
       or pass and type(l_Value) == "boolean"
       or pass and type(l_Value) == "number" then

@@ -138,6 +138,7 @@ Config.gen = {
                      3.2}, -- Silicaceous
 
   stationMinimumDistance = 20000, -- minimum distance between stations
+  minimumDistancePlacementMaxTries = 100
 }
 
 Config.game = {
