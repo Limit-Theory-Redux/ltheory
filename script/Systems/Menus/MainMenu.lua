@@ -33,6 +33,7 @@ local guiElements = {
 local guiSettings = {
   { false, nil, "Audio"              }, -- checkbox for audio toggle
   { false, nil, "Fullscreen"         }, -- checkbox for fullscreen toggle
+  { 0,     nil, "Supersampling"      }, -- value for enum of supersampling (anti-aliasing) mode
   { 0,     nil, "Cursor Style"       }, -- value for enum of cursor style
   { 0,     nil, "HUD Style"          }, -- value for enum of HUD style
   { false, nil, "Unique Ships"       }, -- checkbox for unique ships toggle
@@ -361,6 +362,28 @@ function MainMenu:ShowSettingsScreenInner()
     end
   end
 
+  HmGui.SetSpacing(8)
+  HmGui.BeginGroupX()
+  HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[3][3], 1.0, 1.0, 1.0, 1.0)
+  HmGui.SetStretch(1.0, 0.0)
+  HmGui.BeginGroupX()
+  if guiSettings[3][2] == nil then
+    guiSettings[3][1] = Settings.get('render.superSample')
+    guiSettings[3][2] = Settings.get('render.superSample')
+  end
+  if HmGui.Button("-") and guiSettings[3][1] > 1 then
+    guiSettings[3][1] = guiSettings[3][1] - 1
+    Settings.set('render.superSample', guiSettings[3][1])
+  end
+  HmGui.TextEx(Cache.Font("Ubuntu", 20), Settings.getEnumValName('render.superSample', guiSettings[3][1]), 0.3, 1.0, 0.4, 1.0)
+  if HmGui.Button("+") and guiSettings[3][1] < 3 then
+    guiSettings[3][1] = guiSettings[3][1] + 1
+    Settings.set('render.superSample', guiSettings[3][1])
+  end
+  HmGui.EndGroup()
+  HmGui.EndGroup()
+  HmGui.SetStretch(1.0, 0.0)
+
   HmGui.SetSpacing(16)
   HmGui.TextEx(Cache.Font('Exo2', 24), "--- Interface ---", 0.3, 0.6, 1.0, 1.0)
   HmGui.SetStretch(0.0, 0.0)
@@ -368,21 +391,21 @@ function MainMenu:ShowSettingsScreenInner()
 
   HmGui.SetSpacing(8)
   HmGui.BeginGroupX()
-  HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[3][3], 1.0, 1.0, 1.0, 1.0)
+  HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[4][3], 1.0, 1.0, 1.0, 1.0)
   HmGui.SetStretch(1.0, 0.0)
   HmGui.BeginGroupX()
-  if guiSettings[3][2] == nil then
-    guiSettings[3][1] = GameState.ui.cursorStyle
-    guiSettings[3][2] = GameState.ui.cursorStyle
+  if guiSettings[4][2] == nil then
+    guiSettings[4][1] = GameState.ui.cursorStyle
+    guiSettings[4][2] = GameState.ui.cursorStyle
   end
-  if HmGui.Button("-") and guiSettings[3][1] > 1 then
-    guiSettings[3][1] = guiSettings[3][1] - 1
-    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], GameState.ui.cursorX, GameState.ui.cursorY)
+  if HmGui.Button("-") and guiSettings[4][1] > 1 then
+    guiSettings[4][1] = guiSettings[4][1] - 1
+    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[4][1]], GameState.ui.cursorX, GameState.ui.cursorY)
   end
-  HmGui.TextEx(Cache.Font("Ubuntu", 20), Enums.CursorStyleNames[guiSettings[3][1]], 0.3, 1.0, 0.4, 1.0)
-  if HmGui.Button("+") and guiSettings[3][1] < Enums.CursorStyleCount then
-    guiSettings[3][1] = guiSettings[3][1] + 1
-    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[3][1]], GameState.ui.cursorX, GameState.ui.cursorY)
+  HmGui.TextEx(Cache.Font("Ubuntu", 20), Enums.CursorStyleNames[guiSettings[4][1]], 0.3, 1.0, 0.4, 1.0)
+  if HmGui.Button("+") and guiSettings[4][1] < Enums.CursorStyleCount then
+    guiSettings[4][1] = guiSettings[4][1] + 1
+    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[4][1]], GameState.ui.cursorX, GameState.ui.cursorY)
   end
   HmGui.EndGroup()
   HmGui.EndGroup()
@@ -390,19 +413,19 @@ function MainMenu:ShowSettingsScreenInner()
 
   HmGui.SetSpacing(8)
   HmGui.BeginGroupX()
-  HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[4][3], 1.0, 1.0, 1.0, 1.0)
+  HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[5][3], 1.0, 1.0, 1.0, 1.0)
   HmGui.SetStretch(1.0, 0.0)
   HmGui.BeginGroupX()
-  if guiSettings[4][2] == nil then
-    guiSettings[4][1] = GameState.ui.hudStyle
-    guiSettings[4][2] = GameState.ui.hudStyle
+  if guiSettings[5][2] == nil then
+    guiSettings[5][1] = GameState.ui.hudStyle
+    guiSettings[5][2] = GameState.ui.hudStyle
   end
-  if HmGui.Button("-") and guiSettings[4][1] > 1 then
-    guiSettings[4][1] = guiSettings[4][1] - 1
+  if HmGui.Button("-") and guiSettings[5][1] > 1 then
+    guiSettings[5][1] = guiSettings[5][1] - 1
   end
-  HmGui.TextEx(Cache.Font("Ubuntu", 20), Enums.HudStyleNames[guiSettings[4][1]], 0.3, 1.0, 0.4, 1.0)
-  if HmGui.Button("+") and guiSettings[4][1] < Enums.HudStyleCount then
-    guiSettings[4][1] = guiSettings[4][1] + 1
+  HmGui.TextEx(Cache.Font("Ubuntu", 20), Enums.HudStyleNames[guiSettings[5][1]], 0.3, 1.0, 0.4, 1.0)
+  if HmGui.Button("+") and guiSettings[5][1] < Enums.HudStyleCount then
+    guiSettings[5][1] = guiSettings[5][1] + 1
   end
   HmGui.EndGroup()
   HmGui.EndGroup()
@@ -416,12 +439,12 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetAlign(0.5, 0.5)
 
     HmGui.SetSpacing(8)
-    guiSettings[5][1] = GameState.gen.uniqueShips
-    if guiSettings[5][2] == nil then
-      guiSettings[5][2] = GameState.gen.uniqueShips
+    guiSettings[6][1] = GameState.gen.uniqueShips
+    if guiSettings[6][2] == nil then
+      guiSettings[6][2] = GameState.gen.uniqueShips
     end
-    guiSettings[5][1] = HmGui.Checkbox(guiSettings[5][3], guiSettings[5][1])
-    if guiSettings[5][1] then
+    guiSettings[6][1] = HmGui.Checkbox(guiSettings[6][3], guiSettings[6][1])
+    if guiSettings[6][1] then
       -- Checkbox was selected
       if not GameState.gen.uniqueShips then
         GameState.gen.uniqueShips = true
@@ -437,38 +460,18 @@ function MainMenu:ShowSettingsScreenInner()
 
     HmGui.SetSpacing(8)
     HmGui.BeginGroupX()
-    HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[6][3], 1.0, 1.0, 1.0, 1.0)
-    HmGui.SetStretch(1.0, 0.0)
-    HmGui.BeginGroupX()
-    if guiSettings[6][2] == nil then
-      guiSettings[6][1] = GameState.gen.nFields
-      guiSettings[6][2] = GameState.gen.nFields
-    end
-    if HmGui.Button("-") and guiSettings[6][1] > 0 then
-      guiSettings[6][1] = guiSettings[6][1] - 1
-    end
-    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[6][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[6][1] < 20 then
-      guiSettings[6][1] = guiSettings[6][1] + 1
-    end
-    HmGui.EndGroup()
-    HmGui.EndGroup()
-    HmGui.SetStretch(1.0, 0.0)
-
-    HmGui.SetSpacing(8)
-    HmGui.BeginGroupX()
     HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[7][3], 1.0, 1.0, 1.0, 1.0)
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[7][2] == nil then
-      guiSettings[7][1] = GameState.gen.nAsteroids
-      guiSettings[7][2] = GameState.gen.nAsteroids
+      guiSettings[7][1] = GameState.gen.nFields
+      guiSettings[7][2] = GameState.gen.nFields
     end
-    if HmGui.Button("-") and guiSettings[7][1] > 1 then
+    if HmGui.Button("-") and guiSettings[7][1] > 0 then
       guiSettings[7][1] = guiSettings[7][1] - 1
     end
     HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[7][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[7][1] < 200 then
+    if HmGui.Button("+") and guiSettings[7][1] < 20 then
       guiSettings[7][1] = guiSettings[7][1] + 1
     end
     HmGui.EndGroup()
@@ -481,14 +484,14 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[8][2] == nil then
-      guiSettings[8][1] = GameState.gen.nPlanets
-      guiSettings[8][2] = GameState.gen.nPlanets
+      guiSettings[8][1] = GameState.gen.nAsteroids
+      guiSettings[8][2] = GameState.gen.nAsteroids
     end
-    if HmGui.Button("-") and guiSettings[8][1] > 0 then
+    if HmGui.Button("-") and guiSettings[8][1] > 1 then
       guiSettings[8][1] = guiSettings[8][1] - 1
     end
     HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[8][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[8][1] < 1 then
+    if HmGui.Button("+") and guiSettings[8][1] < 200 then
       guiSettings[8][1] = guiSettings[8][1] + 1
     end
     HmGui.EndGroup()
@@ -501,14 +504,14 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[9][2] == nil then
-      guiSettings[9][1] = GameState.gen.nStations
-      guiSettings[9][2] = GameState.gen.nStations
+      guiSettings[9][1] = GameState.gen.nPlanets
+      guiSettings[9][2] = GameState.gen.nPlanets
     end
     if HmGui.Button("-") and guiSettings[9][1] > 0 then
       guiSettings[9][1] = guiSettings[9][1] - 1
     end
     HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[9][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[9][1] < 50 then
+    if HmGui.Button("+") and guiSettings[9][1] < 1 then
       guiSettings[9][1] = guiSettings[9][1] + 1
     end
     HmGui.EndGroup()
@@ -521,14 +524,14 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[10][2] == nil then
-      guiSettings[10][1] = GameState.gen.nAIPlayers
-      guiSettings[10][2] = GameState.gen.nAIPlayers
+      guiSettings[10][1] = GameState.gen.nStations
+      guiSettings[10][2] = GameState.gen.nStations
     end
     if HmGui.Button("-") and guiSettings[10][1] > 0 then
       guiSettings[10][1] = guiSettings[10][1] - 1
     end
     HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[10][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[10][1] < 20 then
+    if HmGui.Button("+") and guiSettings[10][1] < 50 then
       guiSettings[10][1] = guiSettings[10][1] + 1
     end
     HmGui.EndGroup()
@@ -541,14 +544,14 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[11][2] == nil then
-      guiSettings[11][1] = GameState.gen.nEconNPCs
-      guiSettings[11][2] = GameState.gen.nEconNPCs
+      guiSettings[11][1] = GameState.gen.nAIPlayers
+      guiSettings[11][2] = GameState.gen.nAIPlayers
     end
     if HmGui.Button("-") and guiSettings[11][1] > 0 then
       guiSettings[11][1] = guiSettings[11][1] - 1
     end
     HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[11][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[11][1] < 100 then
+    if HmGui.Button("+") and guiSettings[11][1] < 20 then
       guiSettings[11][1] = guiSettings[11][1] + 1
     end
     HmGui.EndGroup()
@@ -561,15 +564,35 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.BeginGroupX()
     if guiSettings[12][2] == nil then
-      guiSettings[12][1] = GameState.gen.nEscortNPCs
-      guiSettings[12][2] = GameState.gen.nEscortNPCs
+      guiSettings[12][1] = GameState.gen.nEconNPCs
+      guiSettings[12][2] = GameState.gen.nEconNPCs
     end
     if HmGui.Button("-") and guiSettings[12][1] > 0 then
       guiSettings[12][1] = guiSettings[12][1] - 1
     end
     HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[12][1]), 0.3, 1.0, 0.4, 1.0)
-    if HmGui.Button("+") and guiSettings[12][1] < 50 then
+    if HmGui.Button("+") and guiSettings[12][1] < 100 then
       guiSettings[12][1] = guiSettings[12][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[13][3], 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[13][2] == nil then
+      guiSettings[13][1] = GameState.gen.nEscortNPCs
+      guiSettings[13][2] = GameState.gen.nEscortNPCs
+    end
+    if HmGui.Button("-") and guiSettings[13][1] > 0 then
+      guiSettings[13][1] = guiSettings[13][1] - 1
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[13][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[13][1] < 50 then
+      guiSettings[13][1] = guiSettings[13][1] + 1
     end
     HmGui.EndGroup()
     HmGui.EndGroup()
@@ -595,25 +618,27 @@ function MainMenu:ShowSettingsScreenInner()
 
     LTheoryRedux:SetFullscreen(guiSettings[2][2])
 
-    GameState.ui.cursorStyle = guiSettings[3][2]
+    Settings.set('render.superSample', guiSettings[3][2])
+
+    GameState.ui.cursorStyle = guiSettings[4][2]
     LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
 
-    GameState.ui.hudStyle = guiSettings[4][2]
+    GameState.ui.hudStyle = guiSettings[5][2]
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
-      if guiSettings[5][2] then
+      if guiSettings[6][2] then
         GameState.gen.uniqueShips = true
       else
         GameState.gen.uniqueShips = false
       end
 
-      GameState.gen.nFields     = guiSettings[ 6][2]
-      GameState.gen.nAsteroids  = guiSettings[ 7][2]
-      GameState.gen.nPlanets    = guiSettings[ 8][2]
-      GameState.gen.nStations   = guiSettings[ 9][2]
-      GameState.gen.nAIPlayers  = guiSettings[10][2]
-      GameState.gen.nEconNPCs   = guiSettings[11][2]
-      GameState.gen.nEscortNPCs = guiSettings[12][2]
+      GameState.gen.nFields     = guiSettings[ 7][2]
+      GameState.gen.nAsteroids  = guiSettings[ 8][2]
+      GameState.gen.nPlanets    = guiSettings[ 9][2]
+      GameState.gen.nStations   = guiSettings[10][2]
+      GameState.gen.nAIPlayers  = guiSettings[11][2]
+      GameState.gen.nEconNPCs   = guiSettings[12][2]
+      GameState.gen.nEscortNPCs = guiSettings[13][2]
     end
 
     for i = 1, #guiSettings do
@@ -640,17 +665,17 @@ function MainMenu:ShowSettingsScreenInner()
     end
     self.settingsScreenDisplayed = false
 
-    GameState.ui.cursorStyle = guiSettings[3][1]
-    GameState.ui.hudStyle = guiSettings[4][1]
+    GameState.ui.cursorStyle = guiSettings[4][1]
+    GameState.ui.hudStyle = guiSettings[5][1]
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
-      GameState.gen.nFields     = guiSettings[ 6][1]
-      GameState.gen.nAsteroids  = guiSettings[ 7][1]
-      GameState.gen.nPlanets    = guiSettings[ 8][1]
-      GameState.gen.nStations   = guiSettings[ 9][1]
-      GameState.gen.nAIPlayers  = guiSettings[10][1]
-      GameState.gen.nEconNPCs   = guiSettings[11][1]
-      GameState.gen.nEscortNPCs = guiSettings[12][1]
+      GameState.gen.nFields     = guiSettings[ 7][1]
+      GameState.gen.nAsteroids  = guiSettings[ 8][1]
+      GameState.gen.nPlanets    = guiSettings[ 9][1]
+      GameState.gen.nStations   = guiSettings[10][1]
+      GameState.gen.nAIPlayers  = guiSettings[11][1]
+      GameState.gen.nEconNPCs   = guiSettings[12][1]
+      GameState.gen.nEscortNPCs = guiSettings[13][1]
     end
 
     for i = 1, #guiSettings do

@@ -1,7 +1,7 @@
 local Camera = require('Systems.Camera.Camera')
 
 local CameraChase = subclass(Camera, function (self)
-  self.posRel    = Vec3f(0, 4,-10)
+  self.posRel    = Vec3f(0, 2.5, -10)
   self.lookAtRel = Vec3f(0, 0, 1000)
   self.target    = nil
   self.radius    = 1

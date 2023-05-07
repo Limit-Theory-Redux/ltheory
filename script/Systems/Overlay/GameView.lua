@@ -35,9 +35,11 @@ function GameView:draw (focus, active)
     -- Gather light sources
     -- Note: Scan only objects with lights attached
     local lights = {}
-    if #world.lightList > 0 then
+    if #GameState.world.currentSystem.lightList > 0 then
+--    if #world.lightList > 0 then
 --print("---------")
-      for _, v in ipairs(world.lightList) do
+      for _, v in ipairs(GameState.world.currentSystem.lightList) do
+--      for _, v in ipairs(world.lightList) do
         insert(lights, { pos = v:getPos(), color = v:getLight() })
 --printf("light @ %s, %s", v:getPos(), v:getLight())
       end

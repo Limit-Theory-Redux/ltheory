@@ -304,6 +304,7 @@ function LTheoryRedux:createStarSystem ()
       -- Spawn a new star system
       self.backgroundSystem = System(self.seed)
       GameState.world.currentSystem = self.backgroundSystem -- remember the player's current star system
+
       -- Background Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, and an invisible rotating ship
