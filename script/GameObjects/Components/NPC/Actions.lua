@@ -80,7 +80,7 @@ function Entity:pushAction (action)
 end
 
 function Entity:updateActions (state)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     if #self.actions == 0 then return end
     Profiler.Begin('Actions.Update')
     for i, v in ipairs(self.actions) do

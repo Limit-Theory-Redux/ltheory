@@ -23,21 +23,21 @@ function HUD:drawSystemText (a)
   local hudX = 0
   local hudY = 0
   local hudFsize = hudFontSize
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     hudX = 40
     hudY = floor(self.sy / 16)
     hudFsize = hudFontSize + 12
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     hudX = cx - floor(cx / 2)
     hudY = floor(self.sy / 8)
     hudFsize = hudFontSize + 6
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudX = cx - 300
     hudY = cy - 280
     hudFsize = hudFontSize
   end
 
-  local text1 = format("System: %s", Config.game.currentSystem:getName())
+  local text1 = format("System: %s", GameState.world.currentSystem:getName())
   local text2 = format("Location: %s", "XXX")
 
   -- Draw system name and location
@@ -73,15 +73,15 @@ function HUD:drawTargetText (a)
     local hudX = 0
     local hudY = 0
     local hudFsize = hudFontSize
-    if Config.ui.hudStyle == Enums.HudStyles.Wide then
+    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
       hudX = self.sx - (longestText * 19)
       hudY = floor(self.sy / 16)
       hudFsize = hudFontSize + 12
-    elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
       hudX = cx + floor(cx / 4)
       hudY = floor(self.sy / 8)
       hudFsize = hudFontSize + 6
-    elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight  then
       hudX = cx + 100
       hudY = cy - 280
       hudFsize = hudFontSize
@@ -104,21 +104,21 @@ function HUD:drawBoostEnergy (a)
 
   local hudX = 0
   local hudY = 0
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     mvWidth   = 36
     mvHeight  = 16
     mvSpacing = 10
     mvYtot    = (mvHeight + mvSpacing) * mvLevels
     hudX      = 60
     hudY      = cy + floor(cy / 10)
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     mvWidth   = 32
     mvHeight  = 12
     mvSpacing = 10
     mvYtot    = (mvHeight + mvSpacing) * mvLevels
     hudX      = floor(cx / 3)
     hudY      = cy + floor(cy / 10)
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudX      = cx - 300
     hudY      = cy
   end
@@ -138,21 +138,21 @@ function HUD:drawCapacitorEnergy (a)
 
   local hudX = 0
   local hudY = 0
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     mvWidth   = 36
     mvHeight  = 16
     mvSpacing = 10
     mvYtot    = (mvHeight + mvSpacing) * mvLevels
     hudX      = self.sx - 60 - mvWidth
     hudY      = cy + floor(cy / 10)
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     mvWidth   = 32
     mvHeight  = 12
     mvSpacing = 10
     mvYtot    = (mvHeight + mvSpacing) * mvLevels
     hudX      = self.sx - floor(cx / 3) - mvWidth
     hudY      = cy + floor(cy / 10)
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudX      = cx + (300 - mvWidth)
     hudY      = cy
   end
@@ -176,15 +176,15 @@ function HUD:drawTargetType (a)
     local hudX = 0
     local hudY = 0
     local hudFsize = hudFontSize
-    if Config.ui.hudStyle == Enums.HudStyles.Wide then
+    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
       hudX = cx - 100
       hudY = 120
       hudFsize = hudFontSize
-    elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
       hudX = cx - 100
       hudY = cy - floor(cy / 2) - 72
       hudFsize = hudFontSize
-    elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
       hudX = cx - 100
       hudY = cy - 224
       hudFsize = hudFontSize
@@ -207,15 +207,15 @@ function HUD:drawTargetRange (a)
     local hudX = 0
     local hudY = 0
     local hudFsize = hudFontSize
-    if Config.ui.hudStyle == Enums.HudStyles.Wide then
+    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
       hudX = cx +  70
       hudY = 120
       hudFsize = hudFontSize
-    elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
       hudX = cx +  70
       hudY = floor(cy / 2) - 72
       hudFsize = hudFontSize
-    elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
       hudX = cx +  70
       hudY = cy - 224
       hudFsize = hudFontSize
@@ -245,15 +245,15 @@ function HUD:drawTargetSubtype (a)
     local hudX = 0
     local hudY = 0
     local hudFsize = hudFontSize
-    if Config.ui.hudStyle == Enums.HudStyles.Wide then
+    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
       hudX = cx - 100
       hudY = 150
       hudFsize = hudFontSize
-    elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
       hudX = cx - 100
       hudY = floor(cy / 2) - 48
       hudFsize = hudFontSize
-    elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
       hudX = cx - 100
       hudY = cy - 200
       hudFsize = hudFontSize
@@ -292,15 +292,15 @@ function HUD:drawTargetSpeed (a)
     local hudX = 0
     local hudY = 0
     local hudFsize = hudFontSize
-    if Config.ui.hudStyle == Enums.HudStyles.Wide then
+    if GameState.ui.hudStyle == Enums.HudStyles.Wide then
       hudX = cx +  70
       hudY = 150
       hudFsize = hudFontSize
-    elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
       hudX = cx +  70
       hudY = floor(cy / 2) - 48
       hudFsize = hudFontSize
-    elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+    elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
       hudX = cx +  70
       hudY = cy - 200
       hudFsize = hudFontSize
@@ -342,15 +342,15 @@ function HUD:drawTargetMission (a)
             local hudX = 0
             local hudY = 0
             local hudFsize = hudFontSize
-            if Config.ui.hudStyle == Enums.HudStyles.Wide then
+            if GameState.ui.hudStyle == Enums.HudStyles.Wide then
               hudX = cx
               hudY = 180
               hudFsize = hudFontSize
-            elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+            elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
               hudX = cx
               hudY = floor(cy / 2) - 24
               hudFsize = hudFontSize
-            elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+            elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
               hudX = cx
               hudY = cy - 170
               hudFsize = hudFontSize
@@ -382,19 +382,19 @@ function HUD:drawTargetShieldsHullArmor (a)
         local hudXa = 0
         local hudY  = 0
         local hudFsize = hudFontSize
-        if Config.ui.hudStyle == Enums.HudStyles.Wide then
+        if GameState.ui.hudStyle == Enums.HudStyles.Wide then
           hudXs = cx - 100
           hudXh = cx
           hudXa = cx + 100
           hudY  = 220
           hudFsize = hudFontSize
-        elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+        elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
           hudXs = cx - 100
           hudXh = cx
           hudXa = cx + 100
           hudY  = floor(cy / 2)
           hudFsize = hudFontSize
-        elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+        elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
           hudXs = cx - 100
           hudXh = cx
           hudXa = cx + 100
@@ -435,7 +435,7 @@ function HUD:drawPlayerShieldsHullArmor (a)
   local text = ""
 
   local sensorsHeight = 0
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     sensorsHeight = floor(self.sy / 9)
   end
 
@@ -444,19 +444,19 @@ function HUD:drawPlayerShieldsHullArmor (a)
   local hudXa = 0
   local hudY  = 0
   local hudFsize = hudFontSize
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     hudXs = cx - 100
     hudXh = cx
     hudXa = cx + 100
     hudY  = self.sy - 160 - sensorsHeight - 74
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     hudXs = cx - 100
     hudXh = cx
     hudXa = cx + 100
     hudY  = self.sy - 160 - floor(self.sy / 9) - 74
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudXs = cx - 100
     hudXh = cx
     hudXa = cx + 100
@@ -493,22 +493,22 @@ function HUD:drawMissilesLeft (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
   local sensorsHeight = 0
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     sensorsHeight = floor(self.sy / 9)
   end
 
   local hudX = 0
   local hudY = 0
   local hudFsize = hudFontSize
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     hudX = cx - 150
     hudY = self.sy - 160 - sensorsHeight - 24
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     hudX = cx - 150
     hudY  = self.sy - 160 - floor(self.sy / 9) - 24
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudX = cx - 150
     hudY = cy + 70
     hudFsize = hudFontSize
@@ -527,22 +527,22 @@ function HUD:drawPlayerSpeed (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
   local sensorsHeight = 0
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     sensorsHeight = floor(self.sy / 9)
   end
 
   local hudX = 0
   local hudY = 0
   local hudFsize = hudFontSize
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     hudX = cx
     hudY = self.sy - 160 - sensorsHeight - 24
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     hudX = cx
     hudY  = self.sy - 160 - floor(self.sy / 9) - 24
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudX = cx
     hudY = cy + 68
     hudFsize = hudFontSize
@@ -560,22 +560,22 @@ function HUD:drawChaffLeft (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
   local sensorsHeight = 0
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     sensorsHeight = floor(self.sy / 9)
   end
 
   local hudX = 0
   local hudY = 0
   local hudFsize = hudFontSize
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     hudX = cx + 150
     hudY = self.sy - 160 - sensorsHeight - 24
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     hudX = cx + 150
     hudY  = self.sy - 160 - floor(self.sy / 9) - 24
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudX = cx + 150
     hudY = cy + 70
     hudFsize = hudFontSize
@@ -597,22 +597,22 @@ function HUD:drawLockWarning (a)
   local hudX = 0
   local hudY = 0
   local hudFsize = hudFontSize
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     hudX = cx
     hudY = cy + 40
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     hudX = cx
     hudY = cy + 40
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudX = cx
     hudY = cy + 120
     hudFsize = hudFontSize
   end
 
   -- Draw incoming missile lock on player's ship
-  for _, ship in ipairs(Config.game.currentSystem.ships) do
+  for _, ship in ipairs(GameState.world.currentSystem.ships) do
     -- TEMP: Rather than missile lock, check to see whether player's ship is currently targeted by any other ship
     -- TODO: Change to missile lock only if a missile is locked onto the player's ship
     local shipTarget = ship:getTarget()
@@ -645,13 +645,13 @@ function HUD:drawWeaponGroups (a)
 
   local hudMode = 1
   local hudFsize = hudFontSize
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     hudMode = 1
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     hudMode = 2
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudMode = 3
     hudFsize = hudFontSize
   end
@@ -664,10 +664,10 @@ function HUD:drawWeaponGroups (a)
                self.sy - 160 - floor(self.sy / 9) - 44,
                cy + 96}
 
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     HUD:drawHudTextDouble(cx - 220, self.sy - 140, Config.ui.color.meterBar, hudFontSize, 0.5, "Weapon Groups A")
     HUD:drawHudTextDouble(cx + 220, self.sy - 140, Config.ui.color.meterBar, hudFontSize, 0.5, "Weapon Groups B")
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     HUD:drawHudTextDouble(cx - 340, self.sy - 160 - floor(self.sy / 9) - 66, Config.ui.color.meterBar, hudFontSize, 0.5, "Weapon Groups A")
     HUD:drawHudTextDouble(cx + 340, self.sy - 160 - floor(self.sy / 9) - 66, Config.ui.color.meterBar, hudFontSize, 0.5, "Weapon Groups B")
   end
@@ -698,7 +698,7 @@ function HUD:drawPowerDistro (a)
   local hudYBt = 0
   local hudYBm = 0
   local hudFsize = hudFontSize
-  if Config.ui.hudStyle == Enums.HudStyles.Wide then
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
     hudXLm = cx - 300
     hudXLt = hudXLm - 80
     hudXRm = cx + 140
@@ -708,7 +708,7 @@ function HUD:drawPowerDistro (a)
     hudYBt = self.sy - 40
     hudYBm = self.sy - 32
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Balanced then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     hudXLm = cx - 300
     hudXLt = hudXLm - 80
     hudXRm = cx + 140
@@ -718,7 +718,7 @@ function HUD:drawPowerDistro (a)
     hudYBt = self.sy -  76
     hudYBm = self.sy -  68
     hudFsize = hudFontSize
-  elseif Config.ui.hudStyle == Enums.HudStyles.Tight then
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
     hudXLm = cx - 240
     hudXLt = hudXLm - 80
     hudXRm = cx +  80
@@ -743,7 +743,7 @@ function HUD:drawPowerDistro (a)
 end
 
 function HUD:drawSensors (a)
-  if Config.ui.sensorsDisplayed then
+  if GameState.ui.sensorsDisplayed then
     local cx, cy = self.sx / 2, self.sy / 2
 
     -- Draw sensor readouts
@@ -771,7 +771,7 @@ function HUD:drawTacticalMap (a)
 end
 
 function HUD:drawTargets (a)
-  if not Config.ui.showTrackers then return end
+  if not GameState.ui.showTrackers then return end
   local camera = self.gameView.camera
 
   local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
@@ -982,7 +982,7 @@ function HUD:drawReticle (a)
     end
 
     -- Flight mode cursor
-    if not Config.game.panelActive then
+    if not GameState.panelActive then
       local c = Config.ui.color.ctrlCursor
 --      local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
       local x = cx + 0.5 * self.sx * self.aimX
@@ -1122,7 +1122,7 @@ function HUD:drawDockPrompt (a)
 end
 
 function HUD:onInput (state)
-  if not Config.game.gamePaused and not Config.game.panelActive then
+  if not GameState.paused and not GameState.panelActive then
     local camera = self.gameView.camera
     camera:push()
     camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
@@ -1171,16 +1171,16 @@ function HUD:onInput (state)
 end
 
 function HUD:onUpdate (state)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     if Input.GetPressed(Bindings.ToggleHUD) then
-      Config.ui.hudStyle = Config.ui.hudStyle + 1
-      if Config.ui.hudStyle > Enums.HudStyles.Tight then
-        Config.ui.hudStyle = Enums.HudStyles.None
+      GameState.ui.hudStyle = GameState.ui.hudStyle + 1
+      if GameState.ui.hudStyle > Enums.HudStyles.Tight then
+        GameState.ui.hudStyle = Enums.HudStyles.None
       end
     end
 
     if Input.GetPressed(Bindings.ToggleSensors) then
-      Config.ui.sensorsDisplayed = not Config.ui.sensorsDisplayed
+      GameState.ui.sensorsDisplayed = not GameState.ui.sensorsDisplayed
     end
 
     self.targets:update()
@@ -1237,7 +1237,7 @@ end
 function HUD:onDraw (focus, active)
   local playerShip = self.player:getControlling()
   if playerShip:isAlive() then
-    if Config.ui.hudStyle ~= Enums.HudStyles.None then
+    if GameState.ui.hudStyle ~= Enums.HudStyles.None then
       self:drawSystemText            (self.enabled)
       self:drawTargetText            (self.enabled)
       self:drawBoostEnergy           (self.enabled)
@@ -1306,10 +1306,10 @@ function HUD:onEnable ()
   camera:lerpFrom(pCamera.pos, pCamera.rot)
 
   -- Set the mouse position when the Flight mode HUD is activated to the center of the game window
-  Config.render.gameWindow:setWindowGrab(true)
-  local x, y, sx, sy = self:getRectGlobal()
-  Input.SetMousePosition(sx / 2, sy / 2)
-  Config.render.gameWindow:setWindowGrab(false)
+  GameState.render.gameWindow:setWindowGrab(true)
+  local size = GameState.render.gameWindow:getSize()
+  Input.SetMousePosition(size.x / 2, size.y / 2)
+  GameState.render.gameWindow:setWindowGrab(false)
 end
 
 function HUD:controlThrust (e)

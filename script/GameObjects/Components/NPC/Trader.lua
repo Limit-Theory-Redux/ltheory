@@ -433,7 +433,7 @@ local function sortBids (a, b)
 end
 
 function Trader:update ()
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     Profiler.Begin("Trader.update")
     local rng = self.parent.parent.rng
     for item, data in pairs(self.elems) do

@@ -23,7 +23,7 @@ function DockControl:onEnable ()
 end
 
 function DockControl:onInput (state)
-  if not Config.game.gamePaused and ShipBindings.Undock:get() > 0 then
+  if not GameState.paused and ShipBindings.Undock:get() > 0 then
     printf("*** Undocking (manual)!")
     self.player:getControlling():pushAction(Actions.Undock())
     Input.SetMouseVisible(false)

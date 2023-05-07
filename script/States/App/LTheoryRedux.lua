@@ -5,20 +5,16 @@ local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Bindings = require('States.ApplicationBindings')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
 local Actions = requireAll('GameObjects.Actions')
-local Production = require('Systems.Economy.Production')
-local Item = require('Systems.Economy.Item')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 local InitFiles = require('Systems.Files.InitFiles')
 local MainMenu = require('Systems.Menus.MainMenu')
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
+local Universe = require('Systems.Universe.Universe')
 
 LTheoryRedux = require('States.Application')
 
 --** LOCAL VARIABLES **--
-local newSound = nil
-local newSeed = 0ULL
 local newShip = nil
-local bNewSSystem = false
 local bShowSystemMap = false
 local bSMapAdded = false
 local smap = nil
@@ -41,20 +37,23 @@ function LTheoryRedux:onInit ()
 
   if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
 
+  -- Initialize Universe
+  Universe:Init()
+
   -- Open Main Menu
   MusicPlayer:Init()
   MainMenu:Open()
 
   --* Game initializations *--
-  self.window:setSize(Config.render.startingHorz, Config.render.startingVert)
+  self.window:setSize(GameState.render.resX, GameState.render.resY)
   Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
-  LTheoryRedux:SetFullscreen(Config.render.fullscreen)
+  LTheoryRedux:SetFullscreen(GameState.render.fullscreen)
 
   -- Set the default game control cursor
-  LTheoryRedux:setCursor(Enums.CursorFilenames[Config.ui.cursorStyle], Config.ui.cursorX, Config.ui.cursorY)
+  LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
 
-  self.player = Entities.Player(Config.game.humanPlayerName)
-  Config.game.humanPlayer = self.player
+  self.player = Entities.Player(GameState.player.humanPlayerName)
+  GameState.player.humanPlayer = self.player
   self:generate()
 end
 
@@ -64,11 +63,10 @@ function LTheoryRedux:setCursor (cursorStyle, cursorX, cursorY)
 end
 
 function LTheoryRedux:toggleSound ()
-  Config.audio.bSoundOn = not Config.audio.bSoundOn
+  GameState.audio.soundEnabled = not GameState.audio.soundEnabled
 
-  if Config.audio.bSoundOn then
---printf("LTheoryRedux:toggleSound: volume set to 1")
-    MusicPlayer:SetVolume(1)
+  if GameState.audio.soundEnabled then
+    MusicPlayer:SetVolume(GameState.audio.musicVolume)
   else
 --printf("LTheoryRedux:toggleSound: volume set to 0")
     MusicPlayer:SetVolume(0)
@@ -76,24 +74,24 @@ function LTheoryRedux:toggleSound ()
 end
 
 function LTheoryRedux:SoundOn ()
-  Config.audio.bSoundOn = true
+  GameState.audio.soundEnabled = true
 --printf("LTheoryRedux:SoundOn: volume set to 1")
-  MusicPlayer:SetVolume(1)
+  MusicPlayer:SetVolume(GameState.audio.musicVolume)
 end
 
 function LTheoryRedux:SoundOff ()
-  Config.audio.bSoundOn = false
+  GameState.audio.soundEnabled = false
 --printf("LTheoryRedux:SoundOff: volume set to 0")
   MusicPlayer:SetVolume(0)
 end
 
 function LTheoryRedux:ToggleFullscreen ()
-  Config.render.fullscreen = not Config.render.fullscreen
-  self.window:setFullscreen(Config.render.fullscreen)
+  GameState.render.fullscreen = not GameState.render.fullscreen
+  self.window:setFullscreen(GameState.render.fullscreen)
 end
 
 function LTheoryRedux:SetFullscreen (fullscreen)
-  Config.render.fullscreen = fullscreen
+  GameState.render.fullscreen = fullscreen
   self.window:setFullscreen(fullscreen)
 end
 
@@ -129,15 +127,16 @@ end
 
 function LTheoryRedux:onUpdate (dt)
   -- Routes
-  self.player:getRoot():update(dt)
+  GameState.player.humanPlayer:getRoot():update(dt)
   self.canvas:update(dt)
   MainMenu:OnUpdate(dt)
   MusicPlayer:OnUpdate(dt)
+  Universe:OnUpdate(dt)
 
   -- TODO: Confirm whether this is still needed
-  local playerShip = self.player
+  local playerShip = GameState.player.humanPlayer
   if playerShip ~= nil then
-    playerShip = Config.game.currentShip
+    playerShip = GameState.player.currentShip
   end
 
   if Bindings.All:get() == 1 then
@@ -158,23 +157,24 @@ function LTheoryRedux:onUpdate (dt)
   -- Manage game control screens
   if MainMenu.currentMode ~= Enums.MenuMode.Splashscreen and Input.GetPressed(Bindings.Escape) then
     MainMenu:SetBackgroundMode(false)
-    if Config.getGameMode() == 1 then
+    Input.SetMouseVisible(true)
+    if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
       MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
     else
       -- First time here, menuMode should be 0 (just starting game), so don't pop up the Flight Mode dialog box
       -- After that, in active Flight Mode, do pop up the Flight Mode dialog box when the player presses ESC
       if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
-        Config.game.flightModeButInactive = false
+        GameState:Unpause()
         MainMenu:SetMenuMode(Enums.MenuMode.Dialog) -- show Flight Mode dialog
       elseif MainMenu.currentMode == Enums.MenuMode.Dialog and not MainMenu.seedDialogDisplayed then
-        Config.game.flightModeButInactive = not Config.game.flightModeButInactive
-        Input.SetMouseVisible(Config.game.flightModeButInactive)
+        MainMenu.dialogDisplayed = not MainMenu.dialogDisplayed
+        Input.SetMouseVisible(MainMenu.dialogDisplayed)
 
-        if Config.game.flightModeButInactive then
-          Config.game.gamePaused = true
+        if MainMenu.dialogDisplayed then
+          GameState:Pause()
         else
-          Config.game.panelActive = false
-          Config.game.gamePaused = false
+          GameState.panelActive = false
+          GameState:Unpause()
         end
       end
     end
@@ -184,7 +184,7 @@ function LTheoryRedux:onUpdate (dt)
   if Input.GetPressed(Bindings.SystemMap) and MainMenu.currentMode == Enums.MenuMode.Dialog then
     bShowSystemMap = not bShowSystemMap
     if smap == nil then
-      smap = Systems.CommandView.SystemMap(self.system)
+      smap = Systems.CommandView.SystemMap(GameState.world.currentSystem)
     end
   end
 
@@ -197,8 +197,8 @@ function LTheoryRedux:onUpdate (dt)
         if playerShip:getCurrentAction() == nil or not string.find(playerShip:getCurrentAction():getName(),"MoveTo") then
           -- Move undestroyed, undocked player ship to area of selected target
           local autodistance = Config.game.autonavRanges[target:getType()]
-          Config.game.autonavTimestamp = Config.getCurrentTimestamp()
-          Config.game.playerMoving = true -- must be set to true before pushing the MoveTo action
+          GameState.player.autonavTimestamp = Config.getCurrentTimestamp()
+          GameState.player.playerMoving = true -- must be set to true before pushing the MoveTo action
           playerShip:pushAction(Actions.MoveTo(target, autodistance))
         end
       end
@@ -206,17 +206,17 @@ function LTheoryRedux:onUpdate (dt)
   end
 
   -- Disengage autopilot (require a 1-second delay, otherwise keypress turns autopilot on then off instantly)
-  if Config.game.playerMoving then
-    if Input.GetPressed(Bindings.AutoNav) and Config.getCurrentTimestamp() - Config.game.autonavTimestamp > 1 then
-      Config.game.playerMoving = false
+  if GameState.player.playerMoving then
+    if Input.GetPressed(Bindings.AutoNav) and Config.getCurrentTimestamp() - GameState.player.autonavTimestamp > 1 then
+      GameState.player.playerMoving = false
     end
   end
 
   -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
   -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
   if Input.GetPressed(Bindings.ToggleLights) and MainMenu.currentMode == Enums.MenuMode.Dialog then
-    Config.render.thrusterLights = not Config.render.thrusterLights
-    Config.render.pulseLights    = not Config.render.pulseLights
+    GameState.render.thrusterLights = not GameState.render.thrusterLights
+    GameState.render.pulseLights    = not GameState.render.pulseLights
   end
 
   -- Decide which game controls screens (if any) to display on top of the canvas
@@ -235,7 +235,7 @@ function LTheoryRedux:onUpdate (dt)
       end
     end
   elseif MainMenu.currentMode == Enums.MenuMode.Dialog then
-    if Config.game.flightModeButInactive then
+    if MainMenu.dialogDisplayed then
       MainMenu:ShowFlightDialog()
     elseif MainMenu.seedDialogDisplayed then
       MainMenu:ShowSeedDialog()
@@ -265,7 +265,7 @@ function LTheoryRedux:generateNewSeed ()
 end
 
 function LTheoryRedux:generate ()
-  Config.setGameMode(1) -- start off in Startup Mode
+  GameState:SetState(Enums.GameStates.Splashscreen) -- start off in Startup Mode
 
   -- Use random seed for new background star system, and stay in "display game logo" startup mode
   LTheoryRedux:seedStarsystem(Enums.MenuMode.Splashscreen)
@@ -280,10 +280,10 @@ function LTheoryRedux:seedStarsystem (menuMode)
 end
 
 function LTheoryRedux:createStarSystem ()
-  if self.system then self.system:delete() end
+  if self.backgroundSystem then self.backgroundSystem:delete() end
 
   print("------------------------")
-  if Config.getGameMode() == 1 then
+  if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
     -- Use custom system generation sizes for a nice background star system
     Config.gen.scaleSystem    = Config.gen.scaleSystemBack
     Config.gen.scalePlanet    = Config.gen.scalePlanetBack
@@ -299,21 +299,20 @@ function LTheoryRedux:createStarSystem ()
     Config.render.zFar        = Config.gen.zFarReal
   end
 
-  -- Spawn a new star system
-  self.system = System(self.seed)
-  Config.game.currentSystem = self.system -- remember the player's current star system
-
   do
-    if Config.getGameMode() == 1 then
+    if GameState:GetCurrentState() == Enums.GameStates.MainMenu or GameState:GetCurrentState() == Enums.GameStates.Splashscreen then
+      -- Spawn a new star system
+      self.backgroundSystem = System(self.seed)
+      GameState.world.currentSystem = self.backgroundSystem -- remember the player's current star system
+
       -- Background Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, and an invisible rotating ship
-      newShip = self.system:spawnBackground() -- spawn an invisible ship
-      LTheoryRedux:insertShip(newShip)
+      self.backgroundSystem:spawnBackground() -- spawn an invisible ship
 
       -- Add a planet
       for i = 1, 1 do
-        local planet = self.system:spawnPlanet(false) -- no planetary asteroid belt
+        local planet = self.backgroundSystem:spawnPlanet(false) -- no planetary asteroid belt
         local ppos = planet:getPos()
         ppos.x = ppos.x * 2
         ppos.y = ppos.y * 2
@@ -323,160 +322,29 @@ function LTheoryRedux:createStarSystem ()
       -- Add an asteroid field
       -- Must add BEFORE space stations
       for i = 1, rng:getInt(0, 1) do -- 50/50 chance of having asteroids
-        self.system:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
+        self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
       end
 
       -- Add a space station
-      local station = self.system:spawnStation(Config.game.humanPlayer, nil)
+      local station = self.backgroundSystem:spawnStation(GameState.player.humanPlayer, nil)
     else
-      -- Flight Mode
-
-      -- Reset variables used between star systems
-      Config.game.gamePaused   = false
-      Config.game.panelActive  = false
-      Config.game.playerMoving = false
-      Config.game.weaponGroup  = 1
-
-      -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-      --   a space station, a visible pilotable ship, and possibly some NPC ships
-      local afield = nil
-
-      -- Add system-wide AI director
-      self.tradeAI = Entities.Player("AI Trade Player")
-      self.tradeAI:addCredits(1e10)
-
-      -- Add a generic ship-like entity to serve as the imaginary player ship
-      self.tradeShip = Entity()
-      self.tradeShip:setOwner(self.tradeAI)
-
-      -- Add planets
-      local planet = nil -- remember the last planet created (TODO: remember ALL the planets)
-      for i = 1, Config.gen.nPlanets do
-        planet = self.system:spawnPlanet(false)
-      end
-
-      -- Add asteroid fields
-      -- Must add BEFORE space stations
-      for i = 1, Config.gen.nFields do
-        afield = self.system:spawnAsteroidField(Config.gen.nAsteroids, false)
-        printf("Added %s asteroids to %s", Config.gen.nAsteroids, afield:getName())
-      end
-
-      -- Add space stations with random factories
-      -- Every system gets one "free" solar plant
-      local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
-      self.system:place(newStation)
-
-      if Config.gen.nAIPlayers > 0 and Config.gen.nEconNPCs > 0 then
-        -- Add the "extra" stations only if there are economic ships to use them
-        -- Add a free Waste Recycler station
-        newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
-        self.system:place(newStation)
-      end
-
-      for i = 3, Config.gen.nStations do
-        -- Create Stations within randomly selected AsteroidField Zones
-        self.system:spawnStation(self.tradeAI, nil)
-      end
-
-      -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
-      self.system:addExtraFactories(self.system, Config.gen.nPlanets, self.tradeAI)
-
-      -- Add the player's ship
-      newShip = self.system:spawnShip(Config.game.humanPlayer)
-      newShip:setName(Config.game.humanPlayerShipName)
-      newShip:setHealth(500, 500, 10) -- make the player's ship healthier than the default NPC ship
-
-      LTheoryRedux:insertShip(newShip)
-
-      Config.game.currentShip = newShip
-
-      -- Set our ship's starting location within the extent of a random asteroid field
-      self.system:place(newShip)
-printf("Added our ship, the '%s', at pos %s", newShip:getName(), newShip:getPos())
-
-      -- TESTING: ADD SHIPS WITH ESCORT BEHAVIOR ENABLED
-      local ships = {}
-      for i = 1, Config.gen.nEscortNPCs do
-        local escort = self.system:spawnShip(nil)
-        local offset = self.system.rng:getSphere():scale(100)
-        escort:setPos(newShip:getPos() + offset)
-
-        escort:pushAction(Actions.Escort(newShip, offset))
-
-        -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
-        --       These will be dogfighting challenges!
-        if rng:getInt(0, 100) < 20 then
-          escort:setHealth(100, 100, 0.2)
-          escort.usesBoost = true
-        end
-
-        insert(ships, escort)
-      end
-if Config.gen.nEscortNPCs > 0 then
-  printf("Added %d escort ships", Config.gen.nEscortNPCs)
-end
-
-      -- TESTING: MAKE SHIPS CHASE EACH OTHER!
-      for i = 1, #ships - 1 do
-        ships[i]:pushAction(Actions.Attack(ships[i+1]))
-      end
-
-      -- TESTING: ADD SHIPS WITH ECONOMIC BEHAVIOR ENABLED
-      -- Add AI Players and give each one some assets
-      if Config.gen.nAIPlayers > 0 and Config.gen.nEconNPCs > 0 then
-        local econShipsPerAI = math.floor(Config.gen.nEconNPCs / Config.gen.nAIPlayers)
-        local econShipsAdded = econShipsPerAI * Config.gen.nAIPlayers
-        for i = 1, Config.gen.nAIPlayers do
-          local tradePlayerName = format("AI Trade Player %d", i)
-          local tradePlayer = Entities.Player(tradePlayerName)
-          insert(self.system.players, tradePlayer)
-
-          -- Give AI Player some starting money
-          tradePlayer:addCredits(Config.econ.eStartCredits)
-
-          -- Create multiple assets (ships) assigned to this AI Player
-          self.system:spawnAI(econShipsPerAI, Actions.Wait(1), tradePlayer)
-printf("%d assets added to %s", econShipsPerAI, tradePlayerName)
-        end
-printf("Added %d economic ships to %d AI players", econShipsAdded, Config.gen.nAIPlayers)
-
-        for _, tradePlayer in ipairs(self.system.players) do
-          -- Tell each AI player to start using the Think action
-          tradePlayer:pushAction(Actions.Think())
-        end
-      end
+      GameState:SetState(Enums.GameStates.InGame)
+      Universe:CreateStarSystem(self.seed)
     end
   end
-
   -- Insert the game view into the application canvas to make it visible
-  self.gameView = Systems.Overlay.GameView(self.player)
+  self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
   self.canvas = UI.Canvas()
   self.canvas
     :add(self.gameView
-      :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player))
+      :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
     )
 
-  -- Temporary until game states are properly introduced
-  if Config.getGameMode() == 2 then
+  if GameState:GetCurrentState() == Enums.GameStates.InGame then
+    -- TODO: replace with gamestate event system
 printf("LTheoryRedux: PlayAmbient")
     MusicPlayer:PlayAmbient()
   end
-
-  -- Set the initial mouse position when Flight mode begins to the center of the game window
-  self.window:setWindowGrab(true)
-  Input.SetMousePosition(self.resX / 2, self.resY / 2)
-  self.window:setWindowGrab(false)
-end
-
-function LTheoryRedux:insertShip(ourShip)
-  -- Insert ship into this star system
-  ourShip:setPos(Config.gen.origin)
-  ourShip:setFriction(0)
-  ourShip:setSleepThreshold(0, 0)
-  ourShip:setOwner(self.player)
-  self.system:addChild(ourShip)
-  self.player:setControlling(ourShip)
 end
 
 function LTheoryRedux:showGameLogo ()
@@ -490,9 +358,6 @@ function LTheoryRedux:showGameLogo ()
 end
 
 function LTheoryRedux:exitGame ()
-  -- Shut down game and exit
-  MusicPlayer:SetVolume(0)
-
   -- Write player-specific game variables to preserve them across gameplay sessions
   InitFiles:writeUserInits()
 
@@ -503,8 +368,8 @@ end
 function LTheoryRedux:freezeTurrets ()
   -- When taking down a dialog, Turret:updateTurret sees the button click input and thinks it means "Fire"
   -- So this routine adds a very brief cooldown to the player ship's turrets
-  if Config.game.currentShip then
-    for turret in Config.game.currentShip:iterSocketsByType(SocketType.Turret) do
+  if GameState.player.currentShip then
+    for turret in GameState.player.currentShip:iterSocketsByType(SocketType.Turret) do
       turret:addCooldown(2.0)
     end
   end

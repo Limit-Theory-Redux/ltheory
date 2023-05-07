@@ -38,6 +38,7 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
   self.dust = Dust()
 
   self.players   = {}
+  self.aiPlayers = nil
   self.zones     = {}
   self.stations  = {}
   self.ships     = {}
@@ -180,14 +181,61 @@ end
 function System:place (object)
   -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
   -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
+  local typeName = Config:getObjectInfo("object_types", object:getType())
+
   local pos = Config.gen.origin
   local field = self:sampleZones(self.rng)
+  local counter = 1
+
   if field then
     pos = field:getRandomPos(self.rng) -- place new object within a random field
-    if Config.gen.scaleSystem < 5e4 then
-      while pos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
-        pos = field:getRandomPos(self.rng)
+    -- Stations
+    if typeName == "Station" then
+      -- TODO: inefficient way of doing this. replace later.
+      local validSpawn = false
+      while not validSpawn do
+        local stations = self.stations
+
+        local function checkDistanceToAllStations(pos)
+          for _, station in ipairs(stations) do
+            if pos:distance(station:getPos()) < Config.gen.stationMinimumDistance then
+              print("New Station closer than " .. Config.gen.stationMinimumDistance .. "(".. math.floor(pos:distance(station:getPos())) ..") to station: '" .. station:getName() .. "'. Finding New Position.")
+              return false
+            end
+          end
+          return true
+        end
+
+        local function checkIfInSystem(pos)
+          if Config.gen.scaleSystem < 5e4 then
+            local distanceFromOrigin = pos:distance(Config.gen.origin)
+            -- TODO: replace later with actual system size
+            if distanceFromOrigin > 200000 then
+              print("New Station too far away from system core: " .. math.floor(distanceFromOrigin) ..". Finding New Position.")
+              return false
+            end
+            return true
+          end
+        end
+
+        do
+          if counter >= Config.gen.minimumDistancePlacementMaxTries then
+            printf("Exceeded max placement tries, placing at last random position: %s", pos)
+            validSpawn = true
+          elseif not checkIfInSystem(pos) or not checkDistanceToAllStations(pos) then
+            pos = field:getRandomPos(self.rng)
+            counter = counter + 1
+          else
+            printf("Found Position to Spawn: %s", pos)
+            validSpawn = true
+          end
+        end
       end
+    end
+
+    -- Ships
+    if typeName == "Ship" then
+
     end
   else
     pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
@@ -218,10 +266,13 @@ function System:endRender ()
 end
 
 function System:update (dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     -- pre-physics update
     local event = Event.Update(dt)
     Profiler.Begin('AI Update')
+    if self.aiPlayers and #self.aiPlayers > 0 then
+      for _, player in ipairs(self.aiPlayers) do player:send(event) end
+    end
     for _, player in ipairs(self.players) do player:send(event) end
     Profiler.End()
 
@@ -585,7 +636,7 @@ end
 
 function System:spawnShip (player)
   -- Spawn a new ship (with a new ship type)
-  if Config.gen.uniqueShips or not self.shipType then
+  if GameState.gen.uniqueShips or not self.shipType then
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
   end
   local ship = self.shipType:instantiate()
@@ -666,15 +717,18 @@ function System:spawnBackground ()
   if not self.shipType then
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
   end
-  local background = self.shipType:instantiate()
-
+  local backgroundShip = self.shipType:instantiate()
   local player = Player("Background Player")
-  background:setOwner(player)
+  self:addChild(backgroundShip)
   insert(self.players, player)
 
-  self:addChild(background)
-
-  return background
+  -- Insert ship into this star system
+  backgroundShip:setPos(Config.gen.origin)
+  backgroundShip:setFriction(0)
+  backgroundShip:setSleepThreshold(0, 0)
+  backgroundShip:setOwner(player)
+  self:addChild(backgroundShip)
+  GameState.player.humanPlayer:setControlling(backgroundShip)
 end
 
 return System

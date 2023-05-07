@@ -112,7 +112,7 @@ function Mine:getTravelTime (e, src, dst)
 end
 
 function Mine:onUpdateActive (e, dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     Profiler.Begin('Actions.Mine.onUpdateActive')
     if not e.jobState then e.jobState = Enums.JobStateMine.None end
     e.jobState = e.jobState + 1

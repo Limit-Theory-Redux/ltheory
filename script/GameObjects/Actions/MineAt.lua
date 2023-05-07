@@ -30,7 +30,7 @@ function MineAt:onUpdateActive (e, dt)
     -- Mine 1 unit of item every [duration in seconds as specified when pushing the MineAt action]
     --    (unless instantJobs is true)
     if maxBids > 0 then
-      if Config.debug.instantJobs then
+      if GameState.debug.instantJobs then
         -- Immediately mine as many units as are bid or as the asset has capacity for
         local addedCount = 0
         for i = 1, maxBids do

@@ -64,7 +64,7 @@ function Turret:addCooldown (cooldown)
 end
 
 function Turret:aimAt (pos)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     local look = pos - self:getPos()
     local up   = self:getParent():getUp()
     self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)

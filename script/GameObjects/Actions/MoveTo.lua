@@ -30,13 +30,13 @@ function MoveTo:onUpdateActive (e, dt)
   local tp = getTargetPos(e, self.target)
 
   -- Within range of the target object?
-  if (e:getPos() - tp):length() <= self.range or (e == Config.game.currentShip and not Config.game.playerMoving) then
+  if (e:getPos() - tp):length() <= self.range or (e == GameState.player.currentShip and not GameState.player.playerMoving) then
     -- MoveTo is complete, remove movement action from entity's Action queue
 --printf("-> %s ended", e:getCurrentAction():getName())
     e:popAction()
 
-    if e == Config.game.currentShip and Config.game.playerMoving then
-      Config.game.playerMoving = false
+    if e == GameState.player.currentShip and GameState.player.playerMoving then
+      GameState.player.playerMoving = false
     end
 
     return -- within range, so end flight
@@ -45,10 +45,10 @@ function MoveTo:onUpdateActive (e, dt)
   -- Use the "target" metaphor to store where this ship is moving to
   e:setTarget(self.target)
 
-  if Config.debug.instantJobs then
+  if GameState.debug.instantJobs then
     local p = e:getPos()
     local dp = tp - p
-    e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * Config.debug.jobSpeed)))
+    e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * GameState.debug.jobSpeed)))
   else
     local tf = self.target:getForward()
     local tu = self.target:getUp()

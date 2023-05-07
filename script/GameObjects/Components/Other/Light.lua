@@ -6,15 +6,15 @@ if self.light then
 end
   assert(not self.light)
   self.light = Vec3f(r, g, b)
-  insert(Config.game.currentSystem.lightList, self)
+  insert(GameState.world.currentSystem.lightList, self)
 end
 
 function Entity:deleteLight (lightRef)
-  assert(Config.game.currentSystem.lightList)
+  assert(GameState.world.currentSystem.lightList)
 --printf("LIGHT: trying to delete light on %s", lightRef:getName())
-  for i, light in ipairs(Config.game.currentSystem.lightList) do
+  for i, light in ipairs(GameState.world.currentSystem.lightList) do
     if light == lightRef then
-      remove(Config.game.currentSystem.lightList, i)
+      remove(GameState.world.currentSystem.lightList, i)
       break
     end
   end
