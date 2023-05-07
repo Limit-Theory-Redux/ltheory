@@ -99,12 +99,13 @@ pub unsafe extern "C" fn Mesh_ComputeAO(this: &mut Mesh, radius: f32) {
     MemFree(pointBuffer as *const _);
     MemFree(normalBuffer as *const _);
     let texOutput: *mut Tex2D = Tex2D_Create(vDim, vDim, TexFormat_R32F);
+    // TODO: Store shader properly
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
-        shader = Shader_Load(
+        shader = Box::into_raw(Shader_Load(
             c_str!("vertex/identity"),
             c_str!("fragment/compute/occlusion"),
-        );
+        ));
     }
     RenderState_PushAllDefaults();
     RenderTarget_PushTex2D(&mut *texOutput);
@@ -159,12 +160,13 @@ pub unsafe extern "C" fn Mesh_ComputeOcclusion(this: &mut Mesh, sdf: *mut Tex3D,
         DataFormat_Float,
     );
     MemFree(pointBuffer as *const _);
+    // TODO: Store shader properly.
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
-        shader = Shader_Load(
+        shader = Box::into_raw(Shader_Load(
             c_str!("vertex/identity"),
             c_str!("fragment/compute/occlusion_sdf"),
-        );
+        ));
     }
     RenderState_PushAllDefaults();
     RenderTarget_PushTex2D(&mut *texOutput);

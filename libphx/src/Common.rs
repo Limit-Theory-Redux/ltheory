@@ -20,9 +20,21 @@ macro_rules! c_str {
 }
 pub(crate) use c_str;
 
+macro_rules! Fatal {
+    ($fmt:expr) => (
+        println!(fmt);
+        libc::abort()
+    );
+    ($fmt:expr, $($args:expr),* $(,)?) => (
+        println!($fmt, $($args),*);
+        libc::abort()
+    );
+}
+pub(crate) use Fatal;
+
 macro_rules! CFatal {
     ($fmt:expr) => (
-        { common_impl::Fatal(c_str!($fmt)) }
+        unsafe { common_impl::Fatal(c_str!($fmt)) }
     );
     ($fmt:expr, $($args:expr),* $(,)?) => (
         unsafe { common_impl::Fatal(c_str!($fmt), $($args),*) }
@@ -30,9 +42,19 @@ macro_rules! CFatal {
 }
 pub(crate) use CFatal;
 
+macro_rules! Warn {
+    ($fmt:expr) => (
+        println!($fmt)
+    );
+    ($fmt:expr, $($args:expr),* $(,)?) => (
+        println!($fmt, $($args),*)
+    );
+}
+pub(crate) use Warn;
+
 macro_rules! CWarn {
     ($fmt:expr) => (
-        { common_impl::Warn(c_str!($fmt)) }
+        unsafe { common_impl::Warn(c_str!($fmt)) }
     );
     ($fmt:expr, $($args:expr),* $(,)?) => (
         unsafe { common_impl::Warn(c_str!($fmt), $($args),*) }

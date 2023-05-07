@@ -71,13 +71,12 @@ pub static ElemType_Tex3D: u32 = 9;
 pub static ElemType_TexCube: u32 = 10;
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Create(shader: &mut Shader) -> *mut ShaderState {
-    let this = MemNew!(ShaderState);
-    (*this)._refCount = 1;
-    (*this).elems = Vec::new();
-    Shader_Acquire(shader);
-    (*this).shader = shader;
-    this
+pub unsafe extern "C" fn ShaderState_Create(shader: &mut Shader) -> Box<ShaderState> {
+    Box::new(ShaderState {
+        _refCount: 1,
+        shader: { Shader_Acquire(shader); shader as *mut _ },
+        elems: Vec::new(),
+    })
 }
 
 #[no_mangle]
@@ -109,7 +108,7 @@ pub unsafe extern "C" fn ShaderState_Free(this: *mut ShaderState) {
             }
         }
         Shader_Free((*this).shader);
-        MemDelete!(this);
+        drop(Box::from_raw(this));
     }
 }
 
@@ -117,11 +116,9 @@ pub unsafe extern "C" fn ShaderState_Free(this: *mut ShaderState) {
 pub unsafe extern "C" fn ShaderState_FromShaderLoad(
     vertName: *const libc::c_char,
     fragName: *const libc::c_char,
-) -> *mut ShaderState {
-    let shader: *mut Shader = Shader_Load(vertName, fragName);
-    let this: *mut ShaderState = ShaderState_Create(&mut *shader);
-    Shader_Free(shader);
-    this
+) -> Box<ShaderState> {
+    let mut shader = Shader_Load(vertName, fragName);
+    ShaderState_Create(shader.as_mut())
 }
 
 #[no_mangle]

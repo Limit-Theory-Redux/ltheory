@@ -47,24 +47,23 @@ static mut kFaceV: [Vec3; 6] = [
 ];
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxMesh_Create() -> *mut BoxMesh {
-    let this = MemNew!(BoxMesh);
-    (*this).elem = Vec::new();
-    this
+pub extern "C" fn BoxMesh_Create() -> Box<BoxMesh> {
+    Box::new(BoxMesh{
+        elem: Vec::new()
+    })
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxMesh_Free(this: *mut BoxMesh) {
-    MemFree(this as *const _);
+pub extern "C" fn BoxMesh_Free(_: Box<BoxMesh>) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn BoxMesh_Add(
+pub extern "C" fn BoxMesh_Add(
     this: &mut BoxMesh,
-    p: *const Vec3,
-    s: *const Vec3,
-    r: *const Vec3,
-    b: *const Vec3,
+    p: &Vec3,
+    s: &Vec3,
+    r: &Vec3,
+    b: &Vec3,
 ) {
     this.elem.push(Box_0 {
         p: *p,
