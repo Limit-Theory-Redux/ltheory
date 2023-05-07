@@ -50,40 +50,27 @@ fn main() {
         .join("deps");
 
     if cfg!(target_os = "windows") {
-        let lib_dir = fmod_dir
-        .join("lib")
-        .join("win")
-        .join("x86_64");
+        let lib_dir = fmod_dir.join("lib").join("win").join("x86_64");
         let src = lib_dir.join("fmod.dll");
         let dest = deps_dir.join("fmod.dll");
         fs::copy(src, dest).unwrap();
-        println!(
-            "cargo:rustc-link-search={}",
-            lib_dir.display()
-        );
+        println!("cargo:rustc-link-search={}", lib_dir.display());
+        println!("cargo:rustc-link-lib=fmod_vc");
     } else if cfg!(target_os = "macos") {
         let lib_dir = fmod_dir.join("lib").join("macos");
         let src = lib_dir.join("libfmod.dylib");
         let dest = deps_dir.join("libfmod.dylib");
         fs::copy(src, dest).unwrap();
-        println!(
-            "cargo:rustc-link-search={}",
-            lib_dir.display()
-        );
+        println!("cargo:rustc-link-search={}", lib_dir.display());
+        println!("cargo:rustc-link-lib=fmod");
     } else if cfg!(target_os = "linux") {
-        let lib_dir = fmod_dir
-        .join("lib")
-        .join("linux")
-        .join("x86_64");
+        let lib_dir = fmod_dir.join("lib").join("linux").join("x86_64");
         let src = lib_dir.join("libfmod.so.13.8");
         let dest = deps_dir.join("libfmod.so.13.8");
         fs::copy(src, dest).unwrap();
-        println!(
-            "cargo:rustc-link-search={}",
-            lib_dir.display()
-        );
+        println!("cargo:rustc-link-search={}", lib_dir.display());
+        println!("cargo:rustc-link-lib=fmod");
     }
-    println!("cargo:rustc-link-lib=fmod");
     println!("cargo:rerun-if-changed=wrapper.h");
 
     let bindings = bindgen::Builder::default()
