@@ -55,6 +55,8 @@ GameState.player = {
   currentShip           = nil,
   weaponGroup           = 1,
 
+  currentCamera         = Enums.CameraMode.FirstPerson,
+
   mapSystemPos          = Vec3f(0, 0, 0),
   mapSystemZoom         = 0.001,
 

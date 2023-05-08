@@ -97,6 +97,22 @@ end
 
 function LTheoryRedux:onInput ()
   self.canvas:input()
+
+  if GameState:GetCurrentState() == Enums.GameStates.InGame then
+    if Input.GetPressed(Bindings.CameraFirstPerson) then
+      if GameState.player.currentCamera ~= Enums.CameraMode.FirstPerson then
+        self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
+      end
+    elseif Input.GetPressed(Bindings.CameraChase) then
+      if GameState.player.currentCamera ~= Enums.CameraMode.Chase then
+        self.gameView:setCameraMode(Enums.CameraMode.Chase)
+      end
+    elseif Input.GetPressed(Bindings.CameraOrbit) then
+      --if GameState.player.currentCamera ~= Enums.CameraMode.Orbit then
+      --  self.gameView:setCameraMode(Enums.CameraMode.Orbit)
+      --end
+    end
+  end
 end
 
 function LTheoryRedux:onDraw ()

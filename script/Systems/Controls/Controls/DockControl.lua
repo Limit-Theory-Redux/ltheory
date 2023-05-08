@@ -8,7 +8,7 @@ setmetatable(DockControl, UI.Panel)
 
 function DockControl:onEnable ()
   local pCamera = self.gameView.camera
-  self.gameView:setOrbit(true)
+  self.gameView:setCameraMode(Enums.CameraMode.Orbit)
 
   local station = self.player:getControlling():getParent()
 

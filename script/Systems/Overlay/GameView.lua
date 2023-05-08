@@ -245,11 +245,21 @@ function GameView:onLayoutSizeChildren ()
   self.camera:pop()
 end
 
-function GameView:setOrbit (orbit)
+function GameView:setCameraMode (cameraMode)
   local lastCamera = self.camera
 
-  self.orbit = orbit
-  self.camera = self.orbit and self.cameraOrbit or self.cameraChase
+  if cameraMode == Enums.CameraMode.FirstPerson then
+    self.camera = self.cameraFirstPerson
+  elseif cameraMode == Enums.CameraMode.Chase then
+    self.camera = self.cameraChase
+  elseif cameraMode == Enums.CameraMode.Orbit then
+    self.camera = self.cameraOrbit
+    self.camera:setRelative(true)
+  else
+    error("Invalid camera mode passed")
+  end
+
+  GameState.player.currentCamera = cameraMode
   self.camera:setTarget(self.player:getControlling())
 
   -- NOTE : We're assuming that no one else could have pushed a camera
@@ -258,12 +268,14 @@ function GameView:setOrbit (orbit)
     lastCamera:pop()
     self.camera:push()
   end
+  return self.camera
 end
 
 function GameView.Create (player)
   local self = setmetatable({
     player      = player,
     renderer    = Renderer(),
+    cameraFirstPerson = Systems.Camera.CameraFirstPerson(),
     cameraChase = Systems.Camera.CameraChase(),
     cameraOrbit = Systems.Camera.CameraOrbit(),
     camera      = nil,
@@ -272,7 +284,7 @@ function GameView.Create (player)
     children    = List(),
   }, GameView)
 
-  self:setOrbit(false)
+  self:setCameraMode(GameState.player.currentCamera)
   self.eyeLast = self.camera.pos:clone()
   self.eyeVel  = self.player:getControlling():getVelocity():clone()
   return self
