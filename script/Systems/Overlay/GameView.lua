@@ -254,14 +254,14 @@ function GameView:setCameraMode (cameraMode)
 
     if GameState.player.currentShip then
       -- hide ship mesh
-      GameState.player.currentShip:setRenderVisibleMesh(false)
+      GameState.player.currentShip:setRenderVisibleMesh(false, true)
     end
   elseif cameraMode == Enums.CameraMode.Chase then
     self.camera = self.cameraChase
 
     if GameState.player.currentShip then
       -- hide ship mesh
-      GameState.player.currentShip:setRenderVisibleMesh(true)
+      GameState.player.currentShip:setRenderVisibleMesh(true, false)
     end
   elseif cameraMode == Enums.CameraMode.Orbit then
     self.camera = self.cameraOrbit
@@ -269,7 +269,7 @@ function GameView:setCameraMode (cameraMode)
 
     if GameState.player.currentShip then
       -- hide ship mesh
-      GameState.player.currentShip:setRenderVisibleMesh(true)
+      GameState.player.currentShip:setRenderVisibleMesh(true, false)
     end
   else
     error("Invalid camera mode passed")

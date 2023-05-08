@@ -26,6 +26,10 @@ GameState.render = {
   zFar                  = Config.render.zFar,
   thrusterLights        = Config.render.thrusterLights,
   pulseLights           = Config.render.pulseLights,
+  renderDistances       = {
+    Ship = 10000,
+    Station = 50000
+  }
 }
 
 GameState.audio = {

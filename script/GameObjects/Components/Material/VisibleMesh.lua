@@ -7,9 +7,11 @@ function Entity:addVisibleMesh (mesh, material)
   self.mesh = mesh
   self.material = material
   self:setRenderVisibleMesh(true)
+  self:register(Event.Update, Entity.handleMeshCulling)
 end
 
-function Entity:setRenderVisibleMesh (enabled)
+function Entity:setRenderVisibleMesh (enabled, cullingLock)
+  self.cullingLock = cullingLock
   if enabled and not self.visibleMesh then
     self:register(Event.Render, Entity.renderVisibleMesh)
 
@@ -36,6 +38,28 @@ function Entity:setRenderVisibleMesh (enabled)
       end
     end
     self.visibleMesh = false
+  end
+end
+
+function Entity:handleMeshCulling()
+  -- culling
+  if GameState:GetCurrentState() == Enums.GameStates.InGame and GameState.player.currentShip then
+    local objectType = Config:getObjectInfo("object_types", self:getType())
+    local distanceToEntity = self:getPos():distance(GameState.player.currentShip:getPos())
+
+    -- Cull Entities (temp: without subtypes until that works properly)
+    if objectType then
+        --printf("%s: %s, %s", self.visibleMesh, distanceToEntity, self:getName())
+        local renderDistance = GameState.render.renderDistances[objectType]
+
+        if renderDistance then
+          if not self.visibleMesh and not self.cullingLock and distanceToEntity < renderDistance then
+            self:setRenderVisibleMesh(true)
+          elseif self.visibleMesh and not self.cullingLock and distanceToEntity > renderDistance then
+            self:setRenderVisibleMesh(false)
+          end
+        end
+    end
   end
 end
 

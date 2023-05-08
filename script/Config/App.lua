@@ -579,12 +579,20 @@ function Config:getObjectTypeByIDVal(objIDnum, objtypename)
 end
 
 function Config:getObjectInfo(objIDname, objtypenum)
-  return Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][2]
+  if Config.objectInfo[Config:getObjectTypeIndex(objIDname)] then
+    if Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum] then
+      return Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][2]
+    end
+  end
 end
 
 function Config:getObjectSubInfo(objIDname, objtypenum, objsubtypenum)
-  local subtypename = Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][3]
-  return Config.objectInfo[Config:getObjectTypeIndex(subtypename)]["elems"][objsubtypenum][2]
+  if Config.objectInfo[Config:getObjectTypeIndex(objIDname)] then
+    if Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum] then
+      local subtypename = Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][3]
+      return Config.objectInfo[Config:getObjectTypeIndex(subtypename)]["elems"][objsubtypenum][2]
+    end
+  end
 end
 
 function Config.getCurrentTimestamp()
