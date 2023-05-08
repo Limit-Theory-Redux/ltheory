@@ -13,6 +13,16 @@ local self = {
       Control.Key(Button.Keyboard.S)),
     Control.GamepadAxis(Button.Gamepad.LStickY)),
 
+  ThrustY = Control.Or(
+    Control.Pair(
+      Control.Key(Button.Keyboard.Space),
+      Control.Or(
+        Control.Key(Button.Keyboard.LCtrl),
+        Control.Key(Button.Keyboard.RCtrl))),
+    Control.Pair(
+      Control.GamepadAxis(Button.Gamepad.Up),
+      Control.GamepadAxis(Button.Gamepad.Down))),
+
   Roll = Control.Or(
     Control.Pair(
       Control.Key(Button.Keyboard.E),
@@ -57,8 +67,8 @@ local self = {
     Control.GamepadButton(Button.Gamepad.A))
     :delta(),
 
-  SquadAttackTarget = Control.GamepadButton(Button.Gamepad.Up):delta(),
-  SquadScramble     = Control.GamepadButton(Button.Gamepad.Down):delta(),
+  SquadAttackTarget = Control.GamepadButton(Button.Gamepad.Back):delta(),
+  SquadScramble     = Control.GamepadButton(Button.Gamepad.Guide):delta(),
 }
 
 if GameState.input.invertPitch then

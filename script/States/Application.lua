@@ -115,13 +115,12 @@ function Application:run ()
         doScreenshot = true
         if Settings.exists('render.superSample') then
           self.prevSS = Settings.get('render.superSample')
---          Settings.set('render.superSample', 2)
         end
       end
 
       if Input.GetPressed(Bindings.ToggleFullscreen) then
-        self.window:toggleFullscreen()
         GameState.render.fullscreen = not GameState.render.fullscreen
+        self.window:setFullscreen(GameState.render.fullscreen)
       end
 
       if Input.GetPressed(Bindings.Reload) then
