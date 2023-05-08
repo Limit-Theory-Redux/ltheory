@@ -60,6 +60,7 @@ GameState.player = {
 
   mapSystemPos          = Vec3f(0, 0, 0),
   mapSystemZoom         = 0.001,
+  mapSystemPan          = 20.0,
 
   autonavTimestamp      = nil,
 }

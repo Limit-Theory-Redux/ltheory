@@ -20,10 +20,13 @@ local function AddSystemGenerics(system)
   system.tradeAI = Entities.Player("AI Trade Player")
   local tradeAi = system.tradeAI
   tradeAi:addCredits(1e10)
+
   -- Add a generic ship-like entity to serve as the imaginary player ship
   system.tradeShip = Entity()
   system.tradeShip:setOwner(tradeAi)
-  -- Every systen gets one "free" solar plant
+
+  -- Every inhabited star system gets one "free" solar plant
+  -- TODO: Don't do this step for star systems that are not inhabited
   system:spawnStation(tradeAi, Production.EnergySolar)
 
   if GameState.gen.nAIPlayers > 0 and GameState.gen.nEconNPCs > 0 then
@@ -32,13 +35,13 @@ local function AddSystemGenerics(system)
       system:spawnStation(tradeAi, Production.Recycler)
   end
 
-  local aiStationCount = rng:getInt(1, GameState.gen.nStations)
-
-  print("Spawn " .. aiStationCount .. " Stations for: " .. tradeAi:getName())
-  for i=1, aiStationCount do
+  -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
+  for i = 2, GameState.gen.nStations do
     -- Create Stations within randomly selected AsteroidField Zones
     system:spawnStation(tradeAi, nil)
   end
+  print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, tradeAi:getName())
+
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
   system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
 end

@@ -127,7 +127,7 @@ function InitFiles:readUserInits ()
       categoryTable.vars = findValuesForCategory(categoryTable)
       -- do whatever with vars if needed
     end
-    print("Finished loading config.ini")
+    printf("Finished loading %s", Config.userInitFilename)
   end
 end
 
