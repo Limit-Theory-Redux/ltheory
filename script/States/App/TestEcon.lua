@@ -10,11 +10,14 @@ local SystemMap = require('Systems.CommandView.SystemMap')
 local rng = RNG.FromTime()
 --local rng = RNG.Create(10) -- for when the same seed is needed
 
+-- Manage system and NPC numbers locally, rather than through App.lua or Local.lua
 local kFields = 10
-local kFieldCount = 300
-local kStations = 22
+local kFieldCount = 200
+local kStations = 30
 local kPlayers = 3
-local kAssets = 10
+local kAssets = 50
+
+local planet = false -- needs to be here for any function to access
 
 function TestEcon:getWindowMode ()
   return Bit.Or32(WindowMode.Shown, WindowMode.Resizable)
@@ -35,6 +38,93 @@ end
 
 function TestEcon:onDraw ()
   self.canvas:draw(self.resX, self.resY)
+end
+
+function TestEcon:onInit ()
+  -- Generate new universe for economic testing
+  self.canvas = UI.Canvas()
+  self.system = Entities.Test.System(rng:get64())
+  GameState.world.currentSystem = self.system
+
+  -- Add system-wide AI director (but don't insert into system's list of players)
+  self.tradeAI = Entities.Player("AI Trade Player")
+  self.tradeAI:addCredits(1e10)
+
+  -- Add a generic ship-like entity to serve as the imaginary player ship
+  self.tradeShip = Entity()
+  self.tradeShip:setOwner(self.tradeAI)
+
+  -- Use repeat ship builds, fast movement, and hyperspeedup for economic testing
+  GameState.gen.uniqueShips       = false
+  GameState.debug.instantJobs     = true
+  GameState.debug.timeAccelFactor = 100
+  GameState:SetState(Enums.GameStates.InGame)
+
+  -- Add AI Players (these will control assets directly)
+  for i = 1, kPlayers do
+    local tradePlayerName = format("AI Trade Player %d", i)
+    local tradePlayer = Entities.Player(tradePlayerName)
+    insert(self.system.players, tradePlayer)
+  end
+
+  -- Add a planet at the origin
+  planet = self.system:spawnPlanet(false)
+  planet:setPos(Vec3f(0, 0, 0)) -- move planet to origin
+
+  -- Add Asteroid Field (and Asteroid) objects
+  for i = 1, kFields do self.system:spawnAsteroidField(kFieldCount, false) end
+
+  -- Add Station objects
+  -- Every system gets one "free" solar plant
+  local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
+  self.system:place(newStation)
+
+  -- Every system gets one "free" waste recycler
+  newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
+  self.system:place(newStation)
+
+  -- Now maybe add some additional stations
+  for i = 3, kStations do
+    -- Create a station, owned by this system's AI player, within a random AsteroidField Zone
+    local newStation = self.system:spawnStation(self.tradeAI, nil)
+
+    -- Assign the new Station to a randomly-selected AI player/owner
+    -- TODO: figure out the nasty infinite loop when assigning station to a non-system-level AI player
+    local ownerNum = rng:getInt(1, kPlayers)
+    for i, v in ipairs(self.system.players) do
+      if i == ownerNum then
+--        printf("New station %s should have owner %s", newStation:getName(), v:getName())
+--        newStation:setOwner(v) -- causes an infinite loop somewhere
+--        printf("New station %s actually has owner %s", newStation:getName(), newStation:getOwner():getName())
+        break
+      end
+    end
+  end
+
+  -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
+  self.system:addExtraFactories(self.system, 1, self.tradeAI)
+
+  -- Give all AI Players some resources and assets
+  for _, tradePlayer in ipairs(self.system.players) do
+    -- Give player some starting money
+    tradePlayer:addCredits(Config.econ.eStartCredits)
+
+    -- Create assets (ships)
+    self.system:spawnAI(kAssets, Actions.Wait(1), tradePlayer)
+    printf("%d assets added to %s", kAssets, tradePlayer:getName())
+
+    -- Configure assets
+    for asset in tradePlayer:iterAssets() do
+      self.system:place(asset)
+    end
+
+    -- Tell AI player to start using the Think action
+    tradePlayer:pushAction(Actions.Think())
+  end
+
+  self.canvas:add(SystemMap(self.system))
+
+  TestEcon:showStatus()
 end
 
 function TestEcon:showStatus ()
@@ -76,91 +166,11 @@ function TestEcon:showStatus ()
           ctx:undent()
         end
         ctx:undent()
-        ctx:undent()
       end
       ctx:undent()
       ctx:undent()
     end
   end)
-end
-
-function TestEcon:onInit ()
-  -- Generate new universe for economic testing
-  self.canvas = UI.Canvas()
-  self.system = Entities.Test.System(rng:get64())
-
-  -- Add system-wide AI director
-  self.tradeAI = Entities.Player("AI Trade Player")
-  self.tradeAI:addCredits(1e10)
-
-  -- Add a generic ship-like entity to serve as the imaginary player ship
-  self.tradeShip = Entity()
-  self.tradeShip:setOwner(self.tradeAI)
-
-  -- Use fast movement and hyperspeedup for economic testing
-  Config.debug.instantJobs     = true
-  Config.debug.timeAccelFactor = 100
-
-  -- Add a planet at the origin
-  local planet = self.system:spawnPlanet(false)
-  planet:setPos(Vec3f(0, 0, 0)) -- move planet to origin
-
-  -- Add Asteroid Field (and Asteroid) objects
-  for i = 1, kFields do self.system:spawnAsteroidField(kFieldCount, false) end
-
-  -- Add Station objects
-  -- Must have one "free" solar energy generating station per star system
-  local newStation = self.system:spawnStation(self.tradeAI, Production.Solar())
-  newStation:setPos(rng:getDir3():scale(1.0 * Config.gen.scaleSystem * (1 + rng:getExp()))) -- move station
-  for i = 1, 200 do
-    -- Add some units of Energy for sale as a starting inventory
-    -- (Be aware they will immediately be removed and accounted for in the Asks escrow counter)
-    newStation:addItem(Item.Energy, 1)
-    newStation.trader:addAsk(Item.Energy, math.floor(Item.Energy.energy * Config.econ.markup))
-  end
-
-  -- Now maybe add some additional stations
-  for i = 2, kStations do
-    -- Create a station, owned by this system's AI player, within a random AsteroidField Zone
-    local newStation = self.system:spawnStation(self.tradeAI, nil)
-
-    -- Assign the new Station to a randomly-selected AI player/owner
-    -- TODO: figure out the nasty infinite loop when assigning station to a non-system-level AI player
-    local ownerNum = rng:getInt(1, kPlayers)
-    for i, v in ipairs(self.system.players) do
-      if i == ownerNum then
-        printf("New station %s should have owner %s", newStation:getName(), v:getName())
---        newStation:setOwner(v) -- causes an infinite loop somewhere
-        printf("New station %s actually has owner %s", newStation:getName(), newStation:getOwner():getName())
-        break
-      end
-    end
-  end
-
-  -- Add Players and give each one some assets
-  for i = 1, kPlayers do
-    local tradePlayerName = format("AI Trade Player %d", i)
-    local tradePlayer = Entities.Player(tradePlayerName)
-
-    -- Give player some starting money
-    tradePlayer:addCredits(Config.game.eStartCredits)
-
-    -- Create assets (ships)
-    self.system:spawnAI(kAssets, Actions.Wait(1), tradePlayer)
-    printf("%d assets added to %s", kAssets, tradePlayerName)
-
-    -- Configure assets
-    for asset in tradePlayer:iterAssets() do
-      self.system:place(rng, asset)
-    end
-
-    -- Tell AI player to start using the Think action
-    tradePlayer:pushAction(Actions.Think())
-  end
-
-  self.canvas:add(SystemMap(self.system))
-
-  TestEcon:showStatus()
 end
 
 return TestEcon

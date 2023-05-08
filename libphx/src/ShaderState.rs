@@ -74,7 +74,10 @@ pub static ElemType_TexCube: u32 = 10;
 pub unsafe extern "C" fn ShaderState_Create(shader: &mut Shader) -> Box<ShaderState> {
     Box::new(ShaderState {
         _refCount: 1,
-        shader: { Shader_Acquire(shader); shader as *mut _ },
+        shader: {
+            Shader_Acquire(shader);
+            shader as *mut _
+        },
         elems: Vec::new(),
     })
 }

@@ -602,7 +602,10 @@ unsafe extern "C" fn ImGui_DrawLayer(self_1: *const ImGuiLayer) {
         // TODO: Store shader properly
         static mut shader: *mut Shader = std::ptr::null_mut();
         if shader.is_null() {
-            shader = Box::into_raw(Shader_Load(c_str!("vertex/ui"), c_str!("fragment/ui/panel")));
+            shader = Box::into_raw(Shader_Load(
+                c_str!("vertex/ui"),
+                c_str!("fragment/ui/panel"),
+            ));
         }
 
         let pad: f32 = 64.0f32;

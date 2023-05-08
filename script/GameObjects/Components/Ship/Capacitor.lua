@@ -39,6 +39,11 @@ function Entity:getChargeNormalized ()
   return self.charge / self.chargeMax
 end
 
+function Entity:getChargePercent ()
+  assert(self.charge)
+  return 100.0 * self.charge / self.chargeMax
+end
+
 function Entity:hasCharge ()
   return self.charge ~= nil
 end

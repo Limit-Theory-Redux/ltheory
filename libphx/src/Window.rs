@@ -1,7 +1,9 @@
 use crate::Common::*;
 use crate::Math::IVec2;
-
 use crate::OpenGL::*;
+use crate::Resource::*;
+use crate::ResourceType::*;
+use crate::Tex2D_Load::*;
 use crate::Viewport::*;
 use crate::WindowMode::*;
 use crate::WindowPos::WindowPos;
@@ -12,11 +14,13 @@ pub struct Window {
     pub handle: *mut SDL_Window,
     pub context: SDL_GLContext,
     pub mode: WindowMode,
+    pub cursor: *mut SDL_Cursor,
 }
 
 impl Drop for Window {
     fn drop(&mut self) {
         unsafe {
+            SDL_FreeCursor(self.cursor); // Can take null.
             SDL_GL_DeleteContext(self.context);
             SDL_DestroyWindow(self.handle);
         }
@@ -32,8 +36,10 @@ pub unsafe extern "C" fn Window_Create(
     sy: i32,
     mode: WindowMode,
 ) -> Box<Window> {
-    let modeWithGL = mode | SDL_WindowFlags::SDL_WINDOW_OPENGL as WindowMode;
-    let handle = SDL_CreateWindow(title, x, y, sx, sy, modeWithGL);
+    let modeComplete = mode
+        | SDL_WindowFlags::SDL_WINDOW_OPENGL as WindowMode
+        | SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as WindowMode;
+    let handle = SDL_CreateWindow(title, x, y, sx, sy, modeComplete);
     let context = SDL_GL_CreateContext(handle);
     if context.is_null() {
         CFatal!("Failed to create OpenGL context for window");
@@ -43,7 +49,8 @@ pub unsafe extern "C" fn Window_Create(
     Box::new(Window {
         handle,
         context,
-        mode: modeWithGL,
+        mode: modeComplete,
+        cursor: std::ptr::null_mut(),
     })
 }
 
@@ -102,6 +109,66 @@ pub unsafe extern "C" fn Window_SetTitle(w: &Window, title: *const libc::c_char)
 #[no_mangle]
 pub unsafe extern "C" fn Window_SetVsync(_: Option<&Window>, vsync: bool) {
     SDL_GL_SetSwapInterval(if vsync { 1 } else { 0 });
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Window_SetWindowGrab(w: &Window, grabbed: bool) {
+    SDL_SetWindowGrab(
+        w.handle,
+        if grabbed {
+            SDL_bool::SDL_TRUE
+        } else {
+            SDL_bool::SDL_FALSE
+        },
+    );
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Window_SetMousePosition(w: &Window, position: &IVec2) {
+    SDL_WarpMouseInWindow(w.handle, position.x, position.y);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Window_SetCursor(
+    w: &mut Window,
+    name: *const libc::c_char,
+    hotx: i32,
+    hoty: i32,
+) {
+    SDL_FreeCursor(w.cursor); // Can take null.
+
+    let path = Resource_GetPath(ResourceType_Tex2D, name);
+
+    let mut width: i32 = 0;
+    let mut height: i32 = 0;
+    let mut components: i32 = 0;
+    let data = Tex2D_LoadRaw(path, &mut width, &mut height, &mut components);
+
+    let pixelFormat = if components == 3 {
+        SDL_PixelFormatEnum::SDL_PIXELFORMAT_RGB24
+    } else {
+        SDL_PixelFormatEnum::SDL_PIXELFORMAT_ABGR8888
+    };
+    let surface = SDL_CreateRGBSurfaceWithFormatFrom(
+        data as *mut _,
+        width,
+        height,
+        components * 8,
+        width * components,
+        pixelFormat as u32,
+    );
+    if surface.is_null() {
+        CFatal!("Failed to create custom cursor surface for window");
+    }
+
+    w.cursor = SDL_CreateColorCursor(surface, hotx, hoty);
+    if w.cursor.is_null() {
+        SDL_FreeSurface(surface);
+        CFatal!("Failed to create custom cursor for window");
+    }
+
+    SDL_FreeSurface(surface);
+    SDL_SetCursor(w.cursor);
 }
 
 #[no_mangle]

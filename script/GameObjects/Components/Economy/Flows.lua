@@ -17,10 +17,10 @@ end
 function Entity:debugFlows (state)
   if not self:isDestroyed() then
     local ctx = state.context
-    ctx:text('Economic Flows')
+    ctx:text("Economic Flows")
     ctx:indent()
     for k, v in pairs(self.flows) do
-      ctx:text('%s : %.2f', k:getName(), v)
+      ctx:text("%s : %.2f", k:getName(), v)
     end
     ctx:undent()
   end

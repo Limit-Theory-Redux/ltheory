@@ -20,7 +20,7 @@
 // #endif
 
 #[cfg_attr(not(windows), link(name = "phx", kind = "dylib"))]
-#[cfg_attr(windows, link(name = "phx.dll", kind="dylib"))]
+#[cfg_attr(windows, link(name = "phx.dll", kind = "dylib"))]
 extern "C" {
     fn Engine_Entry(argc: i32, argv: *mut *mut libc::c_char) -> i32;
 }

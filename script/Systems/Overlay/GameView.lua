@@ -18,24 +18,29 @@ function GameView:draw (focus, active)
   self.camera:setViewport(x, y, sx, sy)
   self.camera:beginDraw()
 
-  local world = self.player:getRoot()
+  local system = GameState.world.currentSystem
+--  local system = self.player:getRoot()
   local eye = self.camera.pos
-  world:beginRender()
+  system:beginRender()
 
   do -- Opaque Pass
     Profiler.Begin('Render.Opaque')
     self.renderer:start(self.sx, self.sy, ss)
-    world:render(Event.Render(BlendMode.Disabled, eye))
+    system:render(Event.Render(BlendMode.Disabled, eye)) -- significant performance point with ss
     self.renderer:stop()
     Profiler.End()
   end
 
   do -- Lighting
+    Profiler.Begin('Render.Lighting')
     -- Gather light sources
+    -- Note: Scan only objects with lights attached
     local lights = {}
-    for i, v in world:iterChildren() do
-      if v:hasLight() then
+    if #system.lightList > 0 then
+--print("---------")
+      for _, v in ipairs(system.lightList) do
         insert(lights, { pos = v:getPos(), color = v:getLight() })
+--printf("light @ %s, %s", v:getPos(), v:getLight())
       end
     end
 
@@ -51,7 +56,7 @@ function GameView:draw (focus, active)
       self.renderer.buffer2:pop()
     end
 
-    do -- Local lighting
+    do -- Local lighting (TODO: performance issues?)
       self.renderer.buffer2:push()
       BlendMode.PushAdditive()
       local shader = Cache.Shader('worldray', 'light/point')
@@ -82,17 +87,21 @@ function GameView:draw (focus, active)
     end
 
     self.renderer.buffer0, self.renderer.buffer1 = self.renderer.buffer1, self.renderer.buffer0
+    Profiler.End()
   end
 
   if true then -- Alpha (Additive) Pass
+    Profiler.Begin('Render.Additive')
     self.renderer:startAlpha(BlendMode.Additive)
-      world:render(Event.Render(BlendMode.Additive, eye))
+      system:render(Event.Render(BlendMode.Additive, eye)) -- significant performance point
     self.renderer:stopAlpha()
+    Profiler.End()
   end
 
   if true then -- Alpha Pass
+    Profiler.Begin('Render.AlphaDebug')
     self.renderer:startAlpha(BlendMode.Alpha)
-      world:render(Event.Render(BlendMode.Alpha, eye))
+      system:render(Event.Render(BlendMode.Alpha, eye))
 
       -- TODO : This should be moved into a render pass
       if Config.debug.physics.drawBoundingBoxesLocal or
@@ -104,38 +113,40 @@ function GameView:draw (focus, active)
         mat:start()
         if Config.debug.physics.drawBoundingBoxesLocal then
           Shader.SetFloat4('color', 0, 0, 1, 0.5)
-          world.physics:drawBoundingBoxesLocal()
+          system.physics:drawBoundingBoxesLocal()
         end
         if Config.debug.physics.drawBoundingBoxesWorld then
           Shader.SetMatrix ('mWorld',   Matrix.Identity())
           Shader.SetMatrixT('mWorldIT', Matrix.Identity())
           Shader.SetFloat('scale', 1)
           Shader.SetFloat4('color', 1, 0, 0, 0.5)
-          world.physics:drawBoundingBoxesWorld()
+          system.physics:drawBoundingBoxesWorld()
         end
         if Config.debug.physics.drawTriggers then
           Shader.SetMatrix ('mWorld',   Matrix.Identity())
           Shader.SetMatrixT('mWorldIT', Matrix.Identity())
           Shader.SetFloat('scale', 1)
           Shader.SetFloat4('color', 1, 0.5, 0, 0.5)
-          world.physics:drawTriggers()
+          system.physics:drawTriggers()
         end
         if Config.debug.physics.drawWireframes then
           Shader.SetMatrix ('mWorld',   Matrix.Identity())
           Shader.SetMatrixT('mWorldIT', Matrix.Identity())
           Shader.SetFloat('scale', 1)
           Shader.SetFloat4('color', 0, 1, 0, 0.5)
-          world.physics:drawWireframes()
+          system.physics:drawWireframes()
         end
         mat:stop()
       end
     self.renderer:stopAlpha()
+    Profiler.End()
   end
 
-  world:endRender()
+  system:endRender()
   self.camera:endDraw()
 
   if true then -- Composited UI Pass
+    Profiler.Begin('Render.CompositedUI')
     self.renderer:startUI()
       Viewport.Push(0, 0, ss * self.sx, ss * self.sy, true)
       ClipRect.PushTransform(0, 0, ss, ss)
@@ -148,11 +159,13 @@ function GameView:draw (focus, active)
       ClipRect.PopTransform()
       Viewport.Pop()
     self.renderer:stopUI()
+    Profiler.End()
   end
 
   if false or Settings.get('render.showBuffers') then
     self.renderer:presentAll(x, y, sx, sy)
   else
+    Profiler.Begin('Render.PostEffects')
     self.renderer:startPostEffects()
     if Settings.get('postfx.bloom.enable') then self.renderer:bloom(Settings.get('postfx.bloom.radius')) end
     if Settings.get('postfx.tonemap.enable') then self.renderer:tonemap() end
@@ -170,6 +183,7 @@ function GameView:draw (focus, active)
       self.renderer:sharpen(2, 1, 1)
     end
     self.renderer:present(x, y, sx, sy, ss > 2)
+    Profiler.End()
   end
 
   --[[
@@ -247,13 +261,6 @@ function GameView:setOrbit (orbit)
 end
 
 function GameView.Create (player)
-  -- TODO : Should Audio be handled in App/LTheory??
-  if Config.game.gameMode == 0 then
-    print("Initializing FMOD audio")
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
-  end
-
   local self = setmetatable({
     player      = player,
     renderer    = Renderer(),

@@ -3,17 +3,19 @@ local Control = require('Systems.Controls.Control')
 local self = {
   Escape           = Button.Keyboard.Escape,
   Pause            = Button.Keyboard.Space,
-  ToggleSound      = Button.Keyboard.Return,
   SystemMap        = Button.Keyboard.Tab,
-  Reload           = Button.Keyboard.F5,
-  ProfilerToggle   = Button.Keyboard.F10,
+  Reload           = Button.Keyboard.F7,
+  ToggleSound      = Button.Keyboard.F8,
+  ToggleProfiler   = Button.Keyboard.F10,
   ToggleFullscreen = Button.Keyboard.F11,
   Screenshot       = Button.Keyboard.F12,
   NewBackground    = Button.Keyboard.B,
   TimeAccel        = Button.Keyboard.H,
   ToggleMetrics    = Button.Keyboard.K,
-  MoveTo           = Button.Keyboard.M,
-  ToggleHUD        = Button.Keyboard.V,
+  ToggleLights     = Button.Keyboard.L,
+  AutoNav          = Button.Keyboard.M, -- TODO: move to ShipBindings.lua
+  ToggleHUD        = Button.Keyboard.V, -- TODO: move to ShipBindings.lua
+  ToggleSensors    = Button.Keyboard.Z, -- TODO: move to ShipBindings.lua
   ToggleWireframe  = Button.Keyboard.W, -- does nothing
   ScoreNebulaBad   = Button.Keyboard.Minus, -- does nothing
   ScoreNebulaGood  = Button.Keyboard.Equals, -- does nothing
@@ -27,7 +29,6 @@ local self = {
     Control.Key(Button.Keyboard.E         ),
     Control.Key(Button.Keyboard.F         ),
     Control.Key(Button.Keyboard.G         ),
-    Control.Key(Button.Keyboard.H         ),
     Control.Key(Button.Keyboard.I         ),
     Control.Key(Button.Keyboard.J         ),
     Control.Key(Button.Keyboard.K         ),
@@ -56,18 +57,6 @@ local self = {
     Control.Key(Button.Keyboard.N7        ),
     Control.Key(Button.Keyboard.N8        ),
     Control.Key(Button.Keyboard.N9        ),
-    Control.Key(Button.Keyboard.F1        ),
-    Control.Key(Button.Keyboard.F2        ),
-    Control.Key(Button.Keyboard.F3        ),
-    Control.Key(Button.Keyboard.F4        ),
-    Control.Key(Button.Keyboard.F5        ),
-    Control.Key(Button.Keyboard.F6        ),
-    Control.Key(Button.Keyboard.F7        ),
-    Control.Key(Button.Keyboard.F8        ),
-    Control.Key(Button.Keyboard.F9        ),
-    Control.Key(Button.Keyboard.F10       ),
-    Control.Key(Button.Keyboard.F11       ),
-    Control.Key(Button.Keyboard.F12       ),
     Control.Key(Button.Keyboard.KP0       ),
     Control.Key(Button.Keyboard.KP1       ),
     Control.Key(Button.Keyboard.KP2       ),

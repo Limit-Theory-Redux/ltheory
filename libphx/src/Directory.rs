@@ -1,6 +1,6 @@
 use crate::internal::ffi;
 use crate::internal::Memory::*;
-
+use sdl2_sys::SDL_GetPrefPath;
 use std::io::ErrorKind;
 use std::{env, fs};
 
@@ -68,6 +68,14 @@ pub extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
         },
         Err(_) => std::ptr::null(),
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Directory_GetPrefPath(
+    org: *const libc::c_char,
+    app: *const libc::c_char,
+) -> *const libc::c_char {
+    unsafe { SDL_GetPrefPath(org, app) }
 }
 
 #[no_mangle]

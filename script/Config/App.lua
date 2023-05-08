@@ -1,21 +1,62 @@
+Config.org = 'LTheoryRedux'
 Config.app = 'LTheoryRedux'
 
 Config.gameTitle   = "Limit Theory Redux"
 Config.gameVersion = "v0.008"
 
+Config.userInitFilename = "user.ini"
+
+Config.timeToResetToSplashscreen = 60
+
+Config.render = {
+  defaultResX     = 1600,
+  defaultResY     = 900,
+  fullscreen      = false,
+  vsync           = true,
+  zNear           = 0.1, -- default: 0.1
+  zFar            = 1e6, -- default: 1e6
+  thrusterLights  = false,
+  pulseLights     = false,
+}
+
+Config.audio = {
+  soundEnabled = true,
+  supportedFormats = {".ogg"},
+  mainMenuMusicEnabled = true,
+  bSoundOn    = false,
+  soundMin    = 0,
+  soundMax    = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+  musicVolume = 0.75, -- current volume
+  mainMenu    = "LTR_Main_Menu.ogg",
+
+  pulseFireName      = "",
+  pulseFire          = nil,
+  pulseHitName       = "",
+  pulseHit           = nil,
+  explodeShipName    = "",
+  explodeShip        = nil,
+  explodeStationName = "",
+  explodeStation     = nil,
+}
+
 Config.paths = {
-  soundAmbiance = "./res/sound/system/ambiance/",
+  files         = Directory.GetPrefPath(Config.org, Config.app), -- base directory using environment-agnostic path
+  soundAmbiance = "./res/sound/system/audio/music/",
+  soundEffects  = "./res/sound/system/audio/fx/",
+  enums         = "./script/Enums/",
+  types         = "./script/Types/"
 }
 
 Config.debug = {
-  metrics         = true,
+  metricsEnabled  = true,
   window          = true, -- Debug window visible by default at launch?
   windowSection   = nil,  -- Set to the name of a debug window section to
                           -- collapse all others by default
 
   instantJobs     = false, -- set to true to speed up economic testing
+  jobSpeed        = 10000, -- acceleration rate for instant jobs (in MineAt, DockAt)
 
-  timeAccelFactor = 10,
+  timeAccelFactor = 10, -- acceleration rate when holding "TimeAccel" input
 }
 
 Config.debug.physics = {
@@ -37,18 +78,13 @@ Config.gen = {
   seedGlobal = nil, -- Set to force deterministic global RNG
   seedSystem = nil, -- Set to force deterministic system generation
 
-  playerShipSize = 4,
-  nThrusters     = 1,
-  nTurrets       = 2,
-
   origin     = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
+
   nFields    = 20,
   nFieldSize = function (rng) return 200 * (rng:getExp() + 1.0) end,
-  nStations  = 0,
-  nNPCs      = 0,
-  nNPCsNew   = 0,
+  nAsteroids = 200, -- asteroids per asteroid field (smaller = less CPU hit)
   nPlanets   = 0,
-  nAsteroids = 500, -- asteroids per asteroid field
+  nStations  = 0,
   nBeltSize  = function (rng) return 0 end, -- asteroids per planetary belt
 
   nDustFlecks = 1024,
@@ -56,7 +92,19 @@ Config.gen = {
   nStars      = function (rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
 
   shipRes     = 8,
-  nebulaRes   = 1024,
+  nebulaRes   = 2048,
+
+  nAIPlayers          = 0,  -- # of AI players (who manage Economic assets)
+  randomizeAIPlayers    = false,
+  nEconNPCs           = 0,  -- # of ships to be given Economic actions (managed by AI players)
+  randomizeEconNPCs   = false,
+  nEscortNPCs         = 0,  -- # of ships to be given the Escort action
+  randomizeEscortNPCs = false,
+
+  uniqueShips    = false,
+  playerShipSize = 4,
+  nThrusters     = 2,
+  nTurrets       = 1,
 
   zNearBack          = 0.1,
   zNearReal          = 0.1, -- 0.1
@@ -74,7 +122,7 @@ Config.gen = {
   scaleStar          = 1e6,
   scalePlanet        = 5e3,
   scalePlanetMod     = 7e4,  -- 7e4
-  scaleFieldAsteroid = 10000, -- overwritten in Local.lua
+  scaleFieldAsteroid = 10000,
   scaleAsteroid      = 7.0,
   scaleStation       = 70,
 
@@ -82,33 +130,18 @@ Config.gen = {
   radiusPlanetTrue    =   6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
   radiusAsteroidTrue  =     50000, -- 0.005 km to 450 km
   massStarTrue        = 2e30,  -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
-  massPlanetTrue      = 6e24,  -- 5.97e24 is Earth's mass in kg (1.e10 as a test value)
+  massPlanetTrue      = 6e24,  -- 5.97e24 is Earth's mass in kg (1e10 as a test value)
   massAsteroidTrue    = 5e18,  -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
 
   massAsteroidExp = {4.1,  -- Carbonaceous
                      5.9,  -- Metallic
                      3.2}, -- Silicaceous
+
+  stationMinimumDistance = 20000, -- minimum distance between stations
+  minimumDistancePlacementMaxTries = 100
 }
 
 Config.game = {
-  gameMode = 0,
-  bFlightModeInactive = false,
-
-  gamePaused = false,
-
-  humanPlayer = nil,
-  currentShip = nil,
-  currentPlanet = nil,
-
-  mapSystemPos  = Vec3f(0, 0, 0),
-  mapSystemZoom = 0.0001,
-
-  pStartCredits = 10000,
-  eStartCredits = 1000000,
-
-  eInventory = 100,
-  inputBacklog = 3,
-
   boostCost = 10,
   rateOfFire = 10,
 
@@ -117,9 +150,16 @@ Config.game = {
   autoTarget             = false,
   pulseDamage            = 2,
   pulseSize              = 64,
-  pulseSpeed             = 6e2,
+  pulseSpeed             = 1e3, -- was 6e2
   pulseRange             = 1000,
   pulseSpread            = 0.01,
+  pulseCharge            = 1.0, -- default amount of capacitor charge used by each shot
+  pulseColorBodyR        = 0.3,
+  pulseColorBodyG        = 0.8,
+  pulseColorBodyB        = 2.0,
+  pulseColorLightR       = 0.3,
+  pulseColorLightG       = 0.9,
+  pulseColorLightB       = 3.0,
 
   shipBuildTime          = 10,
   shipEnergy             = 100,
@@ -129,20 +169,19 @@ Config.game = {
 
   playerDamageResistance = 1.0,
 
+  weaponGroup            = 1,
+
   enemies                = 0,
   friendlies             = 0,
   squadSizeEnemy         = 8,
   squadSizeFriendly      = 8,
+
   spawnDistance          = 2000,
   friendlySpawnCount     = 10,
   timeScaleShipEditor    = 0.0,
-  invertPitch            = false,
 
-  aiUsesBoost            = true,
   aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
 
-  playerMoving           = false,
-  autonavTimestamp       = nil,
   autonavRanges          = {  200,  -- Unknown
                                 0,  -- Reserved
                                 0,  -- Star Sector
@@ -168,33 +207,35 @@ Config.game = {
 }
 
 Config.econ = {
-  pickupDistWeightMine = 0.1, -- importance of pickup distance for a Mine job (smaller = more important)
-  pickupDistWeightTran = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
-  markup   = 1.4, -- change to base value when calculating bid price for selling an item
-  markdown = 0.7, -- change to base value when calculating ask price for buying an item
-}
+  pStartCredits           = 10000,   -- player starting credits
+  eStartCredits           = 1000000, -- NPC player starting credits
 
-Config.render = {
-  startingHorz = 1600,
-  startingVert =  900,
-  fullscreen   = false,
-  vsync        = true,
-  zNear        = 0.1, -- default: 0.1
-  zFar         = 1e8, -- default: 1e6
-}
+  eInventory              = 100, -- starting number of inventory slots
 
-Config.audio = {
-  bSoundOn  = false,
-  soundMin  = 0,
-  soundMax  = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+  jobIterations           = 4000, -- how many randomly-chosen jobs an asset will consider before picking
+
+  inputBacklog            = 1, -- multiplier of number of units a factory can bid for on each input
+
+  pickupDistWeightMine    = 1.0, -- importance of pickup distance for a Mine job (smaller = more important)
+  pickupDistWeightTran    = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
+  markup                  = 1.2, -- change to base value when calculating ask price for selling an item
+  markdown                = 0.8, -- change to base value when calculating bid price for buying an item
+
+  lowAttentionUpdateRate = 5,
 }
 
 Config.ui = {
-  defaultControl   = 'Ship', -- enable flight mode as default so that LTheory.lua still works
+  defaultControl   = "Background",
   showTrackers     = true,
   controlBarHeight = 48,
-  HUDdisplayed     = true,
-  uniqueShips      = false,
+  hudStyle         = 1,
+  sensorsDisplayed = true,
+  cursorSmooth     = "cursor/cursor1-small",
+  cursorSimple     = "cursor/Simple_Cursor",
+  cursor           = "cursor/Simple_Cursor",
+  cursorStyle      = 1,
+  cursorX          = 1,
+  cursorY          = 1,
 }
 
 Config.ui.color = {
@@ -204,20 +245,31 @@ Config.ui.color = {
   active            = Color(0.70, 0.00, 0.21, 1.0),
   background        = Color(0.15, 0.15, 0.15, 1.0),
   backgroundInvert  = Color(0.85, 0.85, 0.85, 1.0),
-  border            = Color(0.12, 0.12, 0.12, 1.0),
+  border            = Color(0.00, 0.40, 1.00, 0.3),
+  borderBright      = Color(1.00, 1.00, 1.00, 0.6),
+  borderDim         = Color(0.50, 0.50, 0.50, 0.4),
   fill              = Color(0.60, 0.60, 0.60, 1.0),
   textNormal        = Color(0.75, 0.75, 0.75, 1.0),
   textNormalFocused = Color(0.00, 0.00, 0.00, 1.0),
   textInvert        = Color(0.25, 0.25, 0.25, 1.0),
   textInvertFocused = Color(0.00, 0.00, 0.00, 1.0),
-  textTitle         = Color(0.60, 0.60, 0.60, 1.0),
-  debugRect         = Color(0.50, 1.00, 0.50, 0.05),
+  textTitle         = Color(0.80, 0.80, 0.80, 0.8),
+  debugRect         = Color(0.50, 1.00, 0.50, 0.1),
   selection         = Color(1.00, 0.50, 0.10, 1.0),
-  control           = Color(0.20, 0.60, 1.00, 0.3),
-  controlFocused    = Color(0.20, 1.00, 0.20, 0.4),
-  controlActive     = Color(0.14, 0.70, 0.14, 0.4),
+  control           = Color(0.20, 0.90, 1.00, 1.0),
+  controlFocused    = Color(0.20, 1.00, 0.20, 0.6),
+  controlActive     = Color(0.14, 0.70, 0.14, 0.7),
   hologram          = Color(0.30, 0.40, 1.00, 0.8),
-  borderBright      = Color(1.00, 1.00, 1.00, 0.6),
+  ctrlCursor        = Color(0.20, 0.50, 1.00, 0.7),
+  reticle           = Color(0.10, 0.30, 1.00, 3.0),
+  windowBackground  = Color(0.00, 0.40, 1.00, 0.2),
+  clientBackground  = Color(0.30, 0.30, 0.30, 0.0),
+  meterBar          = Color(0.10, 0.60, 1.00, 0.7),
+  meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
+  meterBarOver      = Color(1.00, 0.30, 0.00, 0.6),
+  remainingBoost    = Color(1.00, 0.50, 0.00, 0.7),
+  remainingEnergy   = Color(0.50, 0.00, 1.00, 0.7),
+
 
   healthColor = {
     --     R    G    B    A
@@ -281,38 +333,25 @@ Config.ui.font = {
   titleSize  = 10,
 }
 
-function Config.setGameMode(gm)
-  Config.game.gameMode = gm
-
-  if Config.game.gameMode == 1 then
-    Config.ui.defaultControl = 'Background' -- enable game startup mode
-  else
-    Config.ui.defaultControl = 'Ship' -- enable flight mode
-  end
-end
-
-function Config.getGameMode()
-  return Config.game.gameMode
-end
-
+-- Static object type names and data
 Config.objectInfo = {
   {
     ID = "object_types",
     name = "Object Types",
     elems = {
       -- NOTE: If you change these, you must also change autonavRanges!
-      { 1, "Unknown", ""},
-      { 2, "Reserved", ""},
+      { 1, "Unknown",     ""},
+      { 2, "Reserved",    ""},
       { 3, "Star Sector", ""},
       { 4, "Star System", ""},
-      { 5, "Zone", "zone_subtypes"},
-      { 6, "Star", "star_subtypes"},
-      { 7, "Planet", "planet_subtypes"},
-      { 8, "Asteroid", "asteroid_subtypes"},
-      { 9, "Jumpgate", "jumpgate_subtypes"},
-      {10, "Station", "station_subtypes"},
-      {11, "Ship", "ship_subtypes"},
-      {12, "Colony", "colony_subtypes"},
+      { 5, "Zone",        "zone_subtypes"},
+      { 6, "Star",        "star_subtypes"},
+      { 7, "Planet",      "planet_subtypes"},
+      { 8, "Asteroid",    "asteroid_subtypes"},
+      { 9, "Jumpgate",    "jumpgate_subtypes"},
+      {10, "Station",     "station_subtypes"},
+      {11, "Ship",        "ship_subtypes"},
+      {12, "Colony",      "colony_subtypes"},
     }
   },
   {
@@ -409,6 +448,20 @@ Config.objectInfo = {
     }
   },
   {
+    ID = "station_classes",
+    name = "Station Classes",
+    elems = {
+      { 1, "Unknown"},
+      { 2, "Reserved"},
+      { 3, "Trade"},
+      { 4, "Market"},
+      { 5, "Depot"},
+      { 6, "Outpost"},
+      { 7, "Base"},
+      { 8, "Control"},
+    }
+  },
+  {
     ID = "ship_subtypes",
     name = "Ship Types",
     elems = {
@@ -417,22 +470,33 @@ Config.objectInfo = {
       { 3, "Fighter"},
       { 4, "Corvette"},
       { 5, "Frigate"},
-      { 6, "Monitor"},
-      { 7, "Destroyer"},
-      { 8, "Cruiser"},
-      { 9, "Battleship"},
-      {10, "Battlecruiser"},
-      {11, "Carrier"},
-      {12, "Yacht"},
-      {13, "Liner"},
-      {14, "Scout"},
-      {15, "Laboratory"},
-      {16, "Merchanter"},
-      {17, "Miner"},
-      {18, "Tanker"},
-      {19, "Transport"},
-      {20, "Ferry"},
-      {21, "Tug"},
+      { 6, "Destroyer"},
+      { 7, "Cruiser"},
+      { 8, "Battleship"},
+      { 9, "Courier"},
+      {10, "Trader"},
+      {11, "Merchanter"},
+      {12, "Freighter"},
+      {13, "BulkFreighter"},
+      {14, "FreighterMax"},
+      {15, "Miner"},
+      {16, "Prospector"},
+      {17, "Digger"},
+      {18, "Driller"},
+      {19, "Dredger"},
+      {20, "Excavator"},
+      {21, "Scout"},
+      {22, "Ranger"},
+      {23, "Seeker"},
+      {24, "Explorer"},
+      {25, "Wayfinder"},
+      {26, "Surveyor"},
+      {27, "Boat"},
+      {28, "Runabout"},
+      {29, "CabinCruiser"},
+      {30, "Sloop"},
+      {31, "Yacht"},
+      {32, "Liner"},
     }
   },
   {

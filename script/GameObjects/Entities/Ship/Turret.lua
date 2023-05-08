@@ -1,6 +1,7 @@
 local Entity = require('GameObjects.Entity')
 local Material = require('GameObjects.Material')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
+local Objects = requireAll('GameObjects.Entities.Objects')
 
 -- TODO : Constraints
 
@@ -58,11 +59,15 @@ function Turret:getSocketType ()
   return SocketType.Turret
 end
 
+function Turret:addCooldown (cooldown)
+  self.cooldown = self.cooldown + cooldown
+end
+
 function Turret:aimAt (pos)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     local look = pos - self:getPos()
     local up   = self:getParent():getUp()
-     self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
+    self.aim:iLerp(Quat.FromLookUp(look, up), 0.1)
     self.aim = Quat.FromLookUp(look, up)
     -- TODO : Isn't this already normalized?
     self.aim:iNormalize()
@@ -88,20 +93,33 @@ function Turret:aimAtTarget (target, fallback)
 end
 
 function Turret:canFire ()
-  return not Config.game.gamePaused and self.cooldown <= 0
+  return not Config.game.gamePaused and self.cooldown <= 0 and self:getParent():getCharge() >= Config.game.pulseCharge
 end
 
 function Turret:fire ()
---printf("%s firing!", self:getParent():getName())
   if not self:canFire() then return end
-  local e = self:getRoot():addProjectile(self:getParent())
+--printf("%s firing!", self:getParent():getName())
+
+  local projectile, effect = self:getRoot():addProjectile(self:getParent())
   local dir = (self:getForward() + rng:getDir3():scale(self.projSpread * rng:getExp())):normalize()
-  e.pos = self:toWorld(Vec3f(0, 0, 0))
-  e.vel = dir:scale(self.projSpeed) + self:getParent():getVelocity()
-  e.dir = dir
-  assert(e.dir:length() >= 0.9)
-  e.lifeMax = self.projLife
-  e.life = e.lifeMax
+  effect.pos = self:toWorld(Vec3f(0, 0, 0))
+  effect.vel = dir:scale(self.projSpeed) + self:getParent():getVelocity()
+  effect.dir = dir
+  assert(effect.dir:length() >= 0.9)
+  effect.lifeMax = self.projLife
+  effect.life = effect.lifeMax
+
+  -- Reduce capacitor charge if energy weapon
+  -- TODO: extend to different weapon types
+  self:getParent():discharge(Config.game.pulseCharge)
+
+  if projectile then
+    projectile.pos  = effect.pos
+    projectile.vel  = effect.vel
+    projectile.dir  = effect.dir
+    projectile.dist = 0
+--printf("TURRET: %s pos %s", projectile:getName(), projectile.pos)
+  end
 
   -- NOTE : In the future, it may be beneficial to store the actual turret
   --        rather than the parent. It would allow, for example, data-driven

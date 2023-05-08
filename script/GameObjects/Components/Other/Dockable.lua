@@ -12,19 +12,26 @@ local function destroyed (self, source)
     local e = children[i]
     e:damage(10, source)
     self:removeDocked(e)
+printf("%s forcibly undocked from Station %s", e:getName(), self:getName())
   end
+end
+
+function Entity:addBannedShip (e)
+  assert(self.dockable)
+  insert(self.bannedShips, e)
 end
 
 function Entity:addDockable ()
   assert(not self.dockable)
   self.dockable = true
+  self.bannedShips = {}
   self:register(Event.Destroyed, destroyed)
 end
 
 function Entity:addDocked (e)
   assert(self.dockable)
   self:addChild(e)
-  e:setShipDocked(true) -- mark ship as docked
+  e:setShipDocked(self) -- mark ship as docked to this entity
 end
 
 function Entity:getDockable ()
@@ -39,6 +46,20 @@ end
 
 function Entity:hasDockable ()
   return self.dockable ~= nil
+end
+
+function Entity:isBanned (e)
+  local isBanned = false
+
+  -- TODO: Extend this to cover whether an entire faction (and all its ships) is banned
+  for _, ship in ipairs(self.bannedShips) do
+    if ship == e then
+      isBanned = true
+      break
+    end
+  end
+
+  return isBanned
 end
 
 function Entity:isDockable ()
@@ -58,5 +79,6 @@ end
 function Entity:removeDocked (e)
   assert(self.dockable)
   self:getParent():addChild(e)
-  e:setShipDocked(false) -- mark ship as undocked
+  e:setShipDocked(nil) -- mark ship as undocked
+  e:setPos(self:getPos())
 end

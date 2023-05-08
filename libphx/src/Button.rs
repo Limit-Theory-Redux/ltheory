@@ -662,6 +662,8 @@ pub extern "C" fn Button_ToString(button: Button) -> *const libc::c_char {
         145 => c_str!("Button_Gamepad_RStickX"),
         146 => c_str!("Button_Gamepad_RStickY"),
         147 => c_str!("Button_System_Exit"),
+        _ if button == Button_System_Win_Enter => c_str!("Button_System_Win_Enter"),
+        _ if button == Button_System_Win_Leave => c_str!("Button_System_Win_Leave"),
         _ => {
             ffi::StaticString!(format!("Unknown ({})", button))
         }
@@ -671,7 +673,12 @@ pub extern "C" fn Button_ToString(button: Button) -> *const libc::c_char {
 #[no_mangle]
 pub extern "C" fn Button_IsAutoRelease(button: Button) -> bool {
     match button {
-        b if b == Button_Mouse_ScrollX || b == Button_Mouse_ScrollY || b == Button_System_Exit => {
+        b if b == Button_Mouse_ScrollX
+            || b == Button_Mouse_ScrollY
+            || b == Button_System_Exit
+            || b == Button_System_Win_Enter
+            || b == Button_System_Win_Leave =>
+        {
             true
         }
         _ => false,

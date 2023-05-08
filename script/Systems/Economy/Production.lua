@@ -14,17 +14,17 @@ function Production.All ()
   return all
 end
 
-function Production.Solar ()
-  local solarplant = nil
-  for i = 1, #all do
-    if string.match(all[i]:getName(), "Solar Energy Array") then
-      solarplant = all[i]
-      break
-    end
-  end
-
-  return solarplant
-end
+--function Production.Solar ()
+--  local solarplant = nil
+--  for i = 1, #all do
+--    if string.match(all[i]:getName(), "Solar Energy Array") then
+--      solarplant = all[i]
+--      break
+--    end
+--  end
+--
+--  return solarplant
+--end
 
 function Production:addInput (item, count)
   assert(item)

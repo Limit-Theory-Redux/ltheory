@@ -231,6 +231,7 @@ function Canvas.Create ()
 
   self.state = State.Create(self)
   self:setEState(Container.EState.Enabled)
+
   return self
 end
 

@@ -8,13 +8,15 @@ local Ship = subclass(Entity, function (self, proto)
   self:addChildren()
   self:addDispositions()
   self:addExplodable()
-  self:addHealth(500, 5)
+  self:addHealth(50, 0.05)
   self:addInventory(100)
   self:addTrackable(true)
   self:addAttackable(true)
   self:addMinable(false)
 
   self.explosionSize = 64 -- ships get the default explosion size
+
+  self.usesBoost = false -- default ships fly at only the normal speed
 
   -- TODO : This will create a duplicate BSP because proto & RigidBody do not
   --        share the same BSP cache. Need unified cache.
@@ -25,7 +27,7 @@ local Ship = subclass(Entity, function (self, proto)
   self:addThrustController()
 
   -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
-  --        better for ShipType et al
+  --        better for ShipType etc.
   for type, elems in pairs(proto.sockets) do
     for i, pos in ipairs(elems) do
       self:addSocket(type, pos, true)
@@ -39,7 +41,7 @@ local Ship = subclass(Entity, function (self, proto)
   local mass = 1000.0 + (self:getRadius() * 2000) -- (fully loaded F-15 = 20,000 kg, but Josh's mass calc gets sluggish x 10)
   self:setMass(mass) -- lower mass is related to the ship "wobble" problem
 
-  local shipDocked = false
+  local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
 end)
 
 -- TODO : Calculate true top speed based on max thrust & drag factor
@@ -55,35 +57,47 @@ function Ship:attackedBy (target)
     -- Ignore hits on ships that have already been destroyed
 --printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
     self:modDisposition(target, -0.2)
-    if self ~= Config.game.currentShip and self:isHostileTo(target) then
-      -- If this non-player-controlled ship is not yet attacking its attacker, empty its Action queue and add the Attack action
+    if self ~= GameState.player.currentShip and self:isHostileTo(target) then
+      -- If this non-player-controlled ship is not currently attacking its attacker,
+      --    add an action to Attack its attacker
       if self:hasActions() then
-        local currAction = self:getCurrentAction()
-        if currAction
-            --and not string.find(currAction:getName(), "Attack")
-            then
-          self:clearActions()
+        local actionName = format("Attack %s", target:getName()) -- must match namegen in Attack.lua
+        local attackAction = self:findAction(actionName)
+        if attackAction then
+          if attackAction ~= self:getCurrentAction(actionName) then
+            -- If the action to attack the attacker exists in this entity's Actions queue but isn't the current
+            --     action, delete the old Attack action and push a new instance to the top of the Actions queue
+            self:deleteAction(actionName)
+            self:pushAction(Actions.Attack(target))
+          end
+        else
+          self:pushAction(Actions.Attack(target))
         end
+      else
+        self:pushAction(Actions.Attack(target))
       end
-      self:pushAction(Actions.Attack(target))
     end
   end
 end
 
-function Ship:setShipDocked (bDocked)
-  self.shipDocked = bDocked
+function Ship:setShipDocked (entity)
+  self.shipDockedAt = entity -- mark 'entity' (just ships for now) as docked
 
-  -- Debugging
---local station = self:getParent()
---if self.shipDocked then
---  printf("%s docked at Station %s", self:getName(), station:getName())
+  -- If the player was targeting a ship that just docked, remove the target lock
+  -- TODO: This check needs to be applied to ALL ships, not just the player's ship
+  if GameState.player.currentShip and self == GameState.player.currentShip:getTarget() then
+    GameState.player.currentShip:setTarget(nil)
+  end
+
+--if self.shipDockedAt then
+--  printf("%s docked at Station %s", self:getName(), self.shipDockedAt:getName())
 --else
---  printf("%s undocked from Station %s", self:getName(), station:getName())
+--  printf("%s undocked from Station %s", self:getName(), self.shipDockedAt:getName())
 --end
 end
 
 function Ship:isShipDocked ()
-  return self.shipDocked
+  return self.shipDockedAt
 end
 
 return Ship

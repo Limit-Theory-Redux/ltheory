@@ -20,7 +20,6 @@ local Planet = subclass(Entity, function (self, seed)
   -- TODO: Generate planetary mass based on type, size, and composition
   self:setMass(Config.gen.massPlanetTrue) -- TODO: change from Earth's actual mass value
 
-  -- Enable market/production on planets
   -- TODO: Replace with 0 - N colonies, each of which has its own distinct
   --       market/production/research capabilities
   self:addActions()
@@ -28,7 +27,7 @@ local Planet = subclass(Entity, function (self, seed)
   self:addDockable() -- TODO: rethink how "docking with planets" should work
   self:addFlows()
   self:addInventory(1e10)
-  self:addMinable(false)
+  self:addMinable(false) -- TODO: should be 'true' temporarily (planets have Yield), but will change with Colonies
   self:addTrackable(true)
 
   self.mesh = mesh

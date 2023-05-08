@@ -26,7 +26,7 @@ local self = {
     Control.GamepadAxis(Button.Gamepad.RStickX)),
 
   Pitch = Control.Or(
-    Control.MouseY(),
+    Control.MouseY():invert(),
     Control.GamepadAxis(Button.Gamepad.RStickY):invert()),
 
   Boost = Control.Or(
@@ -61,7 +61,7 @@ local self = {
   SquadScramble     = Control.GamepadButton(Button.Gamepad.Down):delta(),
 }
 
-if Config.game.invertPitch then
+if GameState.input.invertPitch then
   self.Pitch = self.Pitch:invert()
 end
 

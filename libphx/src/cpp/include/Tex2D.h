@@ -42,4 +42,9 @@ PHX_API void       Tex2D_SetWrapMode    (Tex2D*, TexWrapMode);
 
 PHX_API void       Tex2D_Save           (Tex2D*, cstr path);
 
+
+// PRIVATE Helpers
+PRIVATE uchar* Tex2D_LoadRaw(cstr path, int* sx, int* sy, int* components);
+PRIVATE bool Tex2D_Save_Png(cstr path, int sx, int sy, int components, uchar* data);
+
 #endif

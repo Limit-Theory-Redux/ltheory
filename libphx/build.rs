@@ -85,7 +85,7 @@ fn main() {
         link_lib_from_cmake("BulletCollision", &lib_root, &[]);
         link_lib_from_cmake("LinearMath", &lib_root, &[]);
     } else {
-        link_lib_from_cmake("freetype", &cmake_root, &["freetype-build"]);
+        link_lib_from_cmake("freetype", &deps_root, &["freetype-build"]);
         link_lib_from_cmake(
             "BulletDynamics",
             &deps_root,

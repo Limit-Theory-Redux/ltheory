@@ -596,7 +596,7 @@ pub unsafe extern "C" fn Input_Update() {
             }
             SDL_EventType::SDL_WINDOWEVENT => {
                 if sdl.window.event == SDL_WindowEventID::SDL_WINDOWEVENT_ENTER as u8 {
-                    let device: Device = Device {
+                    let device = Device {
                         ty: DeviceType_Null,
                         id: 0,
                     };
@@ -610,7 +610,7 @@ pub unsafe extern "C" fn Input_Update() {
                 }
 
                 if sdl.window.event == SDL_WindowEventID::SDL_WINDOWEVENT_FOCUS_LOST as u8 {
-                    let device: Device = Device {
+                    let device = Device {
                         ty: DeviceType_Null,
                         id: 0,
                     };
@@ -627,9 +627,9 @@ pub unsafe extern "C" fn Input_Update() {
                     /* OPTIMIZE : Do this without incurring the cost of the search and
                      *            removes in SetButton */
                     for down in this.downButtons.iter_mut() {
-                        (*down).timestamp = sdl.common.timestamp;
-                        (*down).value = 0.0f32;
-                        (*down).state = State_Changed | Input_DetermineButtonState(event);
+                        down.timestamp = sdl.common.timestamp;
+                        down.value = 0.0f32;
+                        down.state = State_Changed | Input_DetermineButtonState(event);
                         Input_SetButton(*down);
                         Input_AppendEvent(*down);
                     }

@@ -8,7 +8,7 @@ end)
 local rng = RNG.FromTime()
 
 function Attack:getName ()
-  return format('Attack %s', self.target:getName())
+  return format("Attack %s", self.target:getName())
 end
 
 function Attack:onStart (e)
@@ -41,32 +41,23 @@ function Attack:onUpdateActive (e, dt)
       rng:getUniformRange(0, 1) ^ 2.0)
   end
 
---  local targetPos =
---      target:getPos() + self.offset:scale(self.radius) +
---      target:getVelocity():scale(kVelFactor)
-  local targetPos = target:getPos()
+  local targetPos = target:getPos() + self.offset:scale(self.radius) + target:getVelocity():scale(kVelFactor)
 
   local course   = targetPos - e:getPos()
-  local dist     = course:length()
-  self.dist = dist
-  local courseN  = course:normalize()
-
+  self.dist      = course:length()
   local forward  = course:normalize()
   local yawPitch = e:getForward():cross(forward)
   local roll     = e:getUp():cross(target:getUp())
 
-  self:flyToward(e, targetPos, forward, target:getUp())
---  self:flyToward(e, targetPos, e:getForward(), target:getUp())
+  self:flyToward(e, targetPos, e:getForward(), target:getUp())
 end
 
 function Attack:onUpdatePassive (e, dt)
+  local distance = e:getDistance(self.target)
   local align = (self.target:getPos() - e:getPos()):normalize():dot(e:getForward())
---printf("Attack:onUpdatePassive by %s, align = %s", e:getName(), align)
-  if align < 0.25 then return end
---  local firing = Config.game.aiFire(dt, rng)
-  local firing = true
+  if align < 0.25 or distance > Config.game.pulseRange then return end -- TODO: extend range check to other weapon type ranges
+  local firing = Config.game.aiFire(dt, rng)
   for turret in e:iterSocketsByType(SocketType.Turret) do
---printf("%s firing turret %s!", e:getName(), turret)
     turret:aimAtTarget(self.target, self.target:getPos())
     if firing then turret:fire() end
   end

@@ -37,9 +37,12 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
   self.nebula = Nebula(self.rng:get64(), self.starDir)
   self.dust = Dust()
 
-  self.zones    = {}
-  self.stations = {}
-  self.players  = {}
+  self.players   = {}
+  self.aiPlayers = nil
+  self.zones     = {}
+  self.stations  = {}
+  self.ships     = {}
+  self.lightList = {}
 
   -- When creating a new system, initialize station subtype options from all production types
   local prodType = Config:getObjectTypeIndex("station_subtypes")
@@ -51,6 +54,61 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
   end
 
 end)
+
+function System:addExtraFactories (system, planetCount, aiPlayer)
+  -- Based on what factories were added randomly to stations, a system may need some
+  --    additional factories to provide the necessary Input items
+  if Config.gen.nEconNPCs > 0 then
+    local newStation = nil
+    local prodTypeCount = 0
+
+    prodTypeCount = prodTypeCount + system:countProdType(Production.Silver)
+    prodTypeCount = prodTypeCount + system:countProdType(Production.Gold)
+    prodTypeCount = prodTypeCount + system:countProdType(Production.Platinum)
+    for i = 1, prodTypeCount do
+      -- Add a Copper Refinery station (to create Item.AnodeSludge)
+      newStation = system:spawnStation(aiPlayer, Production.Copper)
+      system:place(newStation)
+    end
+
+    prodTypeCount = system:countProdType(Production.EnergyNuclear)
+    for i = 1, prodTypeCount do
+      -- Add an Isotope Factory station (to create Item.Isotopes)
+      newStation = system:spawnStation(aiPlayer, Production.Isotopes)
+      system:place(newStation)
+    end
+
+    prodTypeCount = system:countProdType(Production.Isotopes)
+    for i = 1, prodTypeCount do
+      -- Add a Thorium Refinery station (to create Item.Thorium)
+      newStation = system:spawnStation(aiPlayer, Production.Thorium)
+      system:place(newStation)
+    end
+
+    prodTypeCount = system:countProdType(Production.EnergyFusion)
+    for i = 1, prodTypeCount do
+      -- Add 2 Water Melter stations (to create Item.WaterLiquid)
+      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
+      system:place(newStation)
+      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
+      system:place(newStation)
+    end
+
+    for i = 1, planetCount do
+      -- Add a Petroleum Refinery station
+      -- TODO: only add refineries for each planet that has a Trader
+      newStation = system:spawnStation(aiPlayer, Production.Petroleum)
+      system:place(newStation)
+    end
+
+    prodTypeCount = system:countProdType(Production.Petroleum)
+    for i = 1, prodTypeCount do
+      -- Add a Plastics Factory station (to create Item.Plastic)
+      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
+      system:place(newStation)
+    end
+  end
+end
 
 function System:addZone (zone)
   insert(self.zones, zone)
@@ -73,11 +131,13 @@ function System:getStations ()
 end
 
 function System:getStationsByDistance (ship)
+  -- Return a table of stations sorted by nearest first
   local stationList = {}
-
   for _, station in ipairs(self.stations) do
     local stationStruct = {stationRef = station, stationDist = ship:getDistance(station)}
-    insert(stationList, stationStruct)
+    if station:hasDockable() and station:isDockable() and not station:isBanned(ship) then
+      insert(stationList, stationStruct)
+    end
   end
 
   table.sort(stationList, function (a, b) return a.stationDist < b.stationDist end)
@@ -85,16 +145,101 @@ function System:getStationsByDistance (ship)
   return stationList
 end
 
+function System:hasProdType (prodtype)
+  -- Scan the production types of all factories in this system to see if one has the specified production type
+  local hasProdType = false
+  for _, station in ipairs(self.stations) do
+    if station:hasFactory() then
+      if station:getFactory():hasProductionType(prodtype) then
+        hasProdType = true
+        break
+      end
+    end
+  end
+
+  return hasProdType
+end
+
+function System:countProdType (prodtype)
+  -- Scan the production types of all factories in this system to see how many of the specified production type exist
+  local numProdType = 0
+  for _, station in ipairs(self.stations) do
+    if station:hasFactory() then
+      if station:getFactory():hasProductionType(prodtype) then
+        numProdType = numProdType + 1
+      end
+    end
+  end
+
+  return numProdType
+end
+
 function System:sampleStations (rng)
   return rng:choose(self.stations)
 end
 
-function System:place (rng, object)
+function System:place (object)
   -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
   -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
-  local pos = Vec3f(0, 0, 0)
-  local field = self:sampleZones(rng)
-  if field then pos = field:getRandomPos(rng) end
+  local typeName = Config:getObjectInfo("object_types", object:getType())
+
+  local pos = Config.gen.origin
+  local field = self:sampleZones(self.rng)
+  local counter = 1
+
+  if field then
+    pos = field:getRandomPos(self.rng) -- place new object within a random field
+    -- Stations
+    if typeName == "Station" then
+      -- TODO: inefficient way of doing this. replace later.
+      local validSpawn = false
+      while not validSpawn do
+        local stations = self.stations
+
+        local function checkDistanceToAllStations(pos)
+          for _, station in ipairs(stations) do
+            if pos:distance(station:getPos()) < Config.gen.stationMinimumDistance then
+              print("New Station closer than " .. Config.gen.stationMinimumDistance .. "(".. math.floor(pos:distance(station:getPos())) ..") to station: '" .. station:getName() .. "'. Finding New Position.")
+              return false
+            end
+          end
+          return true
+        end
+
+        local function checkIfInSystem(pos)
+          if Config.gen.scaleSystem < 5e4 then
+            local distanceFromOrigin = pos:distance(Config.gen.origin)
+            -- TODO: replace later with actual system size
+            if distanceFromOrigin > 200000 then
+              print("New Station too far away from system core: " .. math.floor(distanceFromOrigin) ..". Finding New Position.")
+              return false
+            end
+            return true
+          end
+        end
+
+        do
+          if counter >= Config.gen.minimumDistancePlacementMaxTries then
+            printf("Exceeded max placement tries, placing at last random position: %s", pos)
+            validSpawn = true
+          elseif not checkIfInSystem(pos) or not checkDistanceToAllStations(pos) then
+            pos = field:getRandomPos(self.rng)
+            counter = counter + 1
+          else
+            printf("Found Position to Spawn: %s", pos)
+            validSpawn = true
+          end
+        end
+      end
+    end
+
+    -- Ships
+    if typeName == "Ship" then
+
+    end
+  else
+    pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
+  end
   object:setPos(pos)
 
   return pos
@@ -121,14 +266,17 @@ function System:endRender ()
 end
 
 function System:update (dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
     -- pre-physics update
     local event = Event.Update(dt)
     Profiler.Begin('AI Update')
+    if self.aiPlayers and #self.aiPlayers > 0 then
+      for _, player in ipairs(self.aiPlayers) do player:send(event) end
+    end
     for _, player in ipairs(self.players) do player:send(event) end
     Profiler.End()
 
-    self:send(event)
+--    self:send(event) -- unnecessary extra event?
     Profiler.Begin('Broadcast Update')
     self:send(Event.Broadcast(event))
     Profiler.End()
@@ -179,18 +327,41 @@ function System:spawnPlanet (bAddBelt)
 
   -- Planets have enormous trading capacity
   planet:addTrader()
-  planet:addCredits(Config.game.eStartCredits * 1000)
+  planet:addCredits(Config.econ.eStartCredits * 1000)
 
   -- Let the planet bid for selected item types it wants
   -- TODO: generate better bid prices; this is just for testing the "payout" model
+  local price = 0    -- base price
+  local dprice = 0   -- desire price
+  local bidCount = 0 -- number of bids to offer
+  -- NOTE: bid prices are being generated higher than all of the ask prices for these items when they're
+  --       produced. This is temporary to insure there's always a profit in trading factory-produced goods.
+  -- TODO: generate prices based on the item's "energy," but enable random "high demand" bids and/or
+  --       locally higher-than-normal bid prices.
+  -- TODO: Add AI to station/trader/factory owners to let them set the prices for their bids and asks (bidding wars!)
   for _, v in pairs(Item.T1) do
-    planet.trader:addBid(v, rng:getInt(50, 200)) -- add a bid for a single unit of each item in this group
+    bidCount = rng:getInt(1000, 10000)
+    for i = 1, bidCount do
+      dprice = v.energy * Config.econ.markup * 2
+      price = dprice + rng:getInt(math.max(1, math.floor(dprice / 10)), math.max(1, math.floor(dprice / 2)))
+      planet.trader:addBid(v, price) -- add a bid for a single unit of each item in the Information group
+    end
   end
   for _, v in pairs(Item.T5) do
-    planet.trader:addBid(v, rng:getInt(1550, 10000)) -- add a bid for a single unit of each item in this group
+    bidCount = rng:getInt(300, 2000)
+    for i = 1, bidCount do
+      dprice = v.energy * Config.econ.markup * 2
+      price = dprice + rng:getInt(math.max(1, math.floor(dprice / 10)), math.max(1, math.floor(dprice / 2)))
+      planet.trader:addBid(v, price) -- add a bid for a single unit of each item in the General Products group
+    end
   end
   for _, v in pairs(Item.T6) do
-    planet.trader:addBid(v, rng:getInt(2450, 48000)) -- add a bid for a single unit of each item in this group
+    bidCount = rng:getInt(150, 800)
+    for i = 1, bidCount do
+      dprice = v.energy * Config.econ.markup * 2
+      price = dprice + rng:getInt(math.max(1, math.floor(dprice / 10)), math.max(1, math.floor(dprice / 2)))
+      planet.trader:addBid(v, price) -- add a bid for a single unit of each item in the General Products group
+    end
   end
 
   -- Planets have significant manufacturing capacity
@@ -210,7 +381,6 @@ function System:spawnPlanet (bAddBelt)
       local h = 0.1 * rw * rng:getGaussian()
       local dir = rng:getDir2()
 
---      local scale = Config.gen.scaleAsteroid
       local scale = Config.gen.scaleAsteroid * (1.0 + rng:getExp() ^ 2.0)
 
       local asteroid = Objects.Asteroid(rng:get31(), scale)
@@ -240,7 +410,6 @@ local typeName = Config:getObjectInfo("object_types", planet:getType())
 local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
 printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
 
-  Config.game.currentPlanet = planet
   return planet
 end
 
@@ -292,11 +461,16 @@ function System:spawnAsteroidField (count, reduced)
     -- Set asteroid position
     local pos
     if i == 1 then
-      pos = zone.pos
+      pos = zone.pos -- place first object at zone's center (for non-asteroid field zones)
     else
-      -- We place this asteroid directly, rather than using self:place(rng, asteroid) for randomness,
+      -- We place this asteroid directly, rather than using self:place(asteroid) for randomness,
       --   because we want it to go into the area around this AsteroidField (a Zone) we just created
       pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
+      if Config.gen.scaleSystem < 5e4 then
+        while pos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
+          pos = zone.pos + rng:getDir3():scale((0.1 * zone:getExtent()) * rng:getExp() ^ rng:getExp())
+        end
+      end
     end
     asteroid:setPos(pos)
 
@@ -337,9 +511,25 @@ end
 
 function System:setAsteroidYield (rng, asteroid)
   -- TODO: Replace with actual system for generating minable materials in asteroids
+  -- Start with a 70% chance that an asteroid will have any yield at all
   if rng:getInt(0, 100) < 70 then
     local amass = math.floor(asteroid:getMass() / 1000)
-    asteroid:addYield(rng:choose(Item.T2), math.max(1, rng:getInt(amass / 2, amass)))
+    local itemT2 = Item.T2
+    table.sort(itemT2, function (a, b) return a.distribution < b.distribution end)
+    local itemType = nil
+    local ichance = 0.0
+    local uval = rng:getUniformRange(0.00, 1.00)
+    for i, item in ipairs(itemT2) do
+      ichance = ichance + item.distribution
+      if uval < ichance then -- pick a minable material based on distribution %
+        itemType = item
+        break
+      end
+    end
+    if itemType == nil then
+      itemType = Item.Silicates
+    end
+    asteroid:addYield(itemType, math.max(1, math.floor(rng:getUniformRange(amass / 2, amass))))
   end
 end
 
@@ -354,7 +544,7 @@ function System:spawnStation (player, prodType)
   station:setName(Words.getCoolName(rng))
 
   -- Set station location within the extent of a randomly selected asteroid field
-  self:place(rng, station)
+  self:place(station)
 
   -- Set station scale
   station:setScale(Config.gen.scaleStation)
@@ -362,7 +552,7 @@ function System:spawnStation (player, prodType)
   -- Stations have market capacity
   station:addMarket()
   for _, v in pairs(Item.T2) do
-    -- TODO: generate better bid price; this is just for testing the "payout" model in Think.lua
+    -- TODO: generate better bid price; this is just for testing the flow-based "payout" model in Think.lua
     local flowval = self.rng:getUniformRange(-1000, 0)
     station:setFlow(v, flowval) -- TEMP
 --printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
@@ -377,27 +567,44 @@ function System:spawnStation (player, prodType)
   station:addFactory()
   local prod = prodType
   if not prodType then
-    prod = rng:choose(Production.P1) -- if no production type is provided, randomly choose a refinery
---    prod = rng:choose(Production.All()) -- if no production type is provided, choose one randomly
+    -- No specific production type provided, so pick one randomly
+--      prod = rng:choose(Production.All()) -- if no production type is provided, choose anything randomly
+    local rint = rng:getInt(0, 100)
+    if rint > 80 then
+      prod = rng:choose(Production.P0) -- small chance for a powerplant
+    elseif rint > 25 then
+      prod = rng:choose(Production.P1) -- good chance for a powerplant
+    else
+      prod = rng:choose(Production.P2) -- good chance for a factory
+    end
   end
   station:addProduction(prod)
   station:setSubType(Config:getObjectTypeByName("station_subtypes", prod:getName()))
 
   -- Station starts with some credits and some energy (energy Item must exist before bid is offered!)
-  station:addCredits(Config.game.eStartCredits * 100)
+  station:addCredits(Config.econ.eStartCredits * 100)
 
   -- The station sets asks for selling items its facility produces as outputs,
   --     and sets bids for buying items its facility wants as inputs
   -- Ask prices (for selling) are calculated as the item's base price times a markup value
   -- Bid prices (for buying) are calculated as the item's base price times a markdown value
   for _, input in prod:iterInputs() do
-    for i = 1, input.count * Config.game.inputBacklog do
-      station.trader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33))) -- 33
+    for i = 1, input.count * 3 do -- multiply initial bids to stimulate early star system production
+      -- TODO: Change magic number 33 for "I want..." bids to a multiplier connected to this system's flows
+      if input.item == Item.Energy then
+        station.trader:addBid(input.item, 100 + rng:getInt(25, 100)) -- make sure Energy-requiring factories bid well
+      else
+        station.trader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33)))
+      end
     end
   end
-  for _, output in prod:iterOutputs () do
+  for _, output in prod:iterOutputs() do
     for i = 1, output.count do
-      station.trader:addAsk(output.item, math.floor(output.item.energy * Config.econ.markup))
+      if output.item == Item.Energy then
+        station.trader:addAsk(output.item, 1) -- Energy starts out cheap!
+      else
+        station.trader:addAsk(output.item, math.floor(output.item.energy * Config.econ.markup))
+      end
     end
   end
 
@@ -425,13 +632,11 @@ function System:spawnAI (shipCount, action, player)
       ship:pushAction(action)
     end
   end
-  insert(self.players, player)
-  return
 end
 
 function System:spawnShip (player)
   -- Spawn a new ship (with a new ship type)
-  if Config.ui.uniqueShips or not self.shipType then
+  if GameState.gen.uniqueShips or not self.shipType then
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
   end
   local ship = self.shipType:instantiate()
@@ -452,19 +657,24 @@ function System:spawnShip (player)
   end
   ship:setOwner(shipPlayer)
 
-  -- TODO: make sure spawn position for player ship is well outside any planetary volume
---  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * 500.0))
-  ship:setPos(self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp())))
+  -- TODO: make sure spawn position for ship is well outside any planetary volume
+  local shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
+  if Config.gen.scaleSystem < 5e4 then
+    while shipPos:distance(Config.gen.origin) > 200000 do -- constrain max extent of small star systems for performance
+      shipPos = self.rng:getDir3():scale(Config.gen.scaleSystem * (1.0 + self.rng:getExp()))
+    end
+  end
+  ship:setPos(shipPos)
 
-  -- TODO: replace Config.game.eInventory with actual cargo hold capacity based on ship role plug assignments
-  ship:setInventoryCapacity(Config.game.eInventory)
+  -- TODO: replace Config.econ.eInventory with actual cargo hold capacity based on ship role plug assignments
+  ship:setInventoryCapacity(Config.econ.eInventory)
 
   -- NOTE: a new ship must be added to a star system BEFORE thrusters and turrets are attached!
   self:addChild(ship)
 
   -- Add as many thrusters as there are thruster plugs for
   while true do
-    local thruster = Ship.Thruster()
+    local thruster = Ship.Thruster(ship)
     thruster:setScale(0.5 * ship:getScale())
     -- TODO : Does this leak a Thruster/RigidBody?
 --printf("ship %s: plug a thruster", ship:getName())
@@ -482,6 +692,18 @@ function System:spawnShip (player)
     end
   end
 
+  -- The ship's thruster gets its own color(s)
+  ship:addLight(0, 0, 0)
+
+  -- TODO: The weapon installed in each turret/bay should dictate its base emission or thruster color
+  --       For now, every weapon per ship gets the same pulse weapon color effect
+  ship.projColorR = self.rng:getUniformRange(0.1, 1.2)
+  ship.projColorG = self.rng:getUniformRange(0.1, 1.2)
+  ship.projColorB = self.rng:getUniformRange(0.1, 1.2)
+
+  -- Add ship to list of ships active in this star system
+  insert(self.ships, ship)
+
 --local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
 --printf("Added Ship (%s) '%s'", subtypeName, ship:getName())
 
@@ -495,14 +717,18 @@ function System:spawnBackground ()
   if not self.shipType then
     self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
   end
-  local background = self.shipType:instantiate()
-
+  local backgroundShip = self.shipType:instantiate()
   local player = Player("Background Player")
-  background:setOwner(player)
+  self:addChild(backgroundShip)
+  insert(self.players, player)
 
-  self:addChild(background)
-
-  return background
+  -- Insert ship into this star system
+  backgroundShip:setPos(Config.gen.origin)
+  backgroundShip:setFriction(0)
+  backgroundShip:setSleepThreshold(0, 0)
+  backgroundShip:setOwner(player)
+  self:addChild(backgroundShip)
+  GameState.player.humanPlayer:setControlling(backgroundShip)
 end
 
 return System

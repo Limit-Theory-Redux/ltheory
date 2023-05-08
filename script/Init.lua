@@ -26,6 +26,11 @@ end
 Core = {}
 Render = {}
 Config = {}
+Enums = {}
+GameState = {}
+
+-- Application
+LTheoryRedux = {}
 
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
 require('Config.Aliases')

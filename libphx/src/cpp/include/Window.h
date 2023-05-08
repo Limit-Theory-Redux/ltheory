@@ -18,6 +18,9 @@ PHX_API void     Window_SetPosition       (Window*, WindowPos, WindowPos);
 PHX_API void     Window_SetSize           (Window*, int, int);
 PHX_API void     Window_SetTitle          (Window*, cstr);
 PHX_API void     Window_SetVsync          (Window*, bool);
+PHX_API void     Window_SetCursor         (Window*, cstr name, int hotx, int hoty);
+PHX_API void     Window_SetMousePosition  (Window*, Vec2i*);
+PHX_API void     Window_SetWindowGrab     (Window*, bool);
 
 PHX_API void     Window_ToggleFullscreen  (Window*);
 

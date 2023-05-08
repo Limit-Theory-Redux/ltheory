@@ -52,7 +52,8 @@ function Market:addSell (...)
 end
 
 function Market:update (e, dt)
-  if not Config.game.gamePaused then
+  if not GameState.paused then
+    Profiler.Begin('Market.Update')
     for k, v in pairs(self.data) do
       while
         #v.ordersBuy > 0 and
@@ -83,6 +84,7 @@ function Market:update (e, dt)
         if orderSell.count == 0 then table.remove(v.ordersSell) end
       end
     end
+    Profiler.End()
   end
 end
 
@@ -97,11 +99,11 @@ end
 
 function Entity:debugMarket (state)
   local ctx = state.context
-  ctx:text('Market')
+  ctx:text("Market")
   ctx:indent()
   for k, v in pairs(self.market.data) do
     ctx:text(
-      '%s : %d/%d buy/sell orders',
+      "%s : %d/%d buy/sell orders",
       k:getName(),
       #v.ordersBuy,
       #v.ordersSell)
@@ -116,6 +118,13 @@ end
 
 function Entity:hasMarket ()
   return self.market ~= nil
+end
+
+function Entity:removeMarket ()
+  assert(self.market)
+  self:unregister(Event.Debug, Entity.debugMarket)
+  self:unregister(Event.Update, Entity.updateMarket)
+  self.market = nil
 end
 
 function Entity:updateMarket (state)

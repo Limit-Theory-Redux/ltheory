@@ -23,20 +23,67 @@ function Entity:damage (amount, source)
     -- Entity has been damaged to the point of destruction (0 health)
     self.health = 0
     self:clearActions()
+
     -- Also need to process destroyed entity's assets, including credits and cargo
+
     -- Also ALSO need to notify nearby ships
     --    resulting Actions may include Evade, Attack, and/or alert faction members
-    if self:hasDockable() and self:isDockable() then
-      -- If this object was dockable, make it undockable
-      self:setUndockable()
+
+    -- If this object was attackable, make it unattackable
+    if self:hasAttackable() then
+      self:setAttackable(false)
     end
 
-printf("%s destroyed by %s!", self:getName(), source:getName())
+    if self:hasLight() then
+      self:deleteLight(self)
+    end
+
+local thisShipName      = self:getName()
+local attackingShipName = source:getName()
+if self.usesBoost then
+  thisShipName = thisShipName .. " [Ace]"
+end
+if source.usesBoost then
+  attackingShipName = attackingShipName .. " [Ace]"
+end
+printf("%s destroyed by %s!", thisShipName, attackingShipName)
+
+    -- Remove destroyed ship from system's list of active ships
+    for i, ship in ipairs(GameState.world.currentSystem.ships) do
+      if ship == self then
+        remove(GameState.world.currentSystem.ships, i)
+      end
+    end
+
+    -- Any active ship still targeting this destroyed ship should lose it as a current target
+    for _, ship in ipairs(GameState.world.currentSystem.ships) do
+      if ship:getTarget() == self then
+        ship:setTarget(nil)
+      end
+    end
 
     self:send(Event.Destroyed(source))
 
-    if self == Config.game.currentShip then
-      Config.game.bFlightModeInactive = true
+    -- Remove economic capabilities
+    -- TODO: What happens to the inventory items and credits held by the factory and trader?
+    if self:hasMarket() then
+      self:removeMarket()
+    end
+    if self:hasFactory() then
+      self:removeFactory()
+    end
+    if self:hasTrader() then
+      self:removeTrader()
+    end
+
+    -- If this object was dockable, make it undockable
+    -- NOTE: This must come last, as removing docked ships includes a self.dockable assertion
+    if self:hasDockable() and self:isDockable() then
+      self:setUndockable()
+    end
+
+    if self == GameState.player.currentShip then
+      GameState:Pause()
     end
   end
 end

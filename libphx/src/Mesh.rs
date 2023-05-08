@@ -69,14 +69,17 @@ extern "C" fn Mesh_UpdateInfo(this: &mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_Create() -> Box<Mesh> {
-    Box::new(Mesh{
+    Box::new(Mesh {
         _refCount: 0,
         vbo: 0,
         ibo: 0,
         version: 1,
         versionBuffers: 0,
         versionInfo: 0,
-        info: Computed{bound: Box3::default(), radius: 0.0},
+        info: Computed {
+            bound: Box3::default(),
+            radius: 0.0,
+        },
         vertex: Vec::new(),
         index: Vec::new(),
     })

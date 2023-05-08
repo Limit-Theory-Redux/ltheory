@@ -58,7 +58,7 @@ function Action:flyToward (e, targetPos, targetForward, targetUp)
   c.pitch = expMap(10.0 * e:getRight():dot(yawPitch))
   c.roll = expMap(-10.0 * e:getForward():dot(roll))
 
-  if Config.game.aiUsesBoost then
+  if e == GameState.player.currentShip or e.usesBoost then
     c.boost = 1.0 - exp(-max(0.0, (dist / 150.0) - 1.0))
   end
 end

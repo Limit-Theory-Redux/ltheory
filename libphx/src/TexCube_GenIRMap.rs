@@ -46,7 +46,10 @@ pub unsafe extern "C" fn TexCube_GenIRMap(this: &mut TexCube, sampleCount: i32) 
     // TODO: Store the shader somewhere and use the Box correctly.
     static mut shader: *mut Shader = std::ptr::null_mut();
     if shader.is_null() {
-        shader = Box::into_raw(Shader_Load(c_str!("vertex/identity"), c_str!("fragment/compute/irmap")));
+        shader = Box::into_raw(Shader_Load(
+            c_str!("vertex/identity"),
+            c_str!("fragment/compute/irmap"),
+        ));
     }
     let face: [CubeFace; 6] = [
         CubeFace_PX,

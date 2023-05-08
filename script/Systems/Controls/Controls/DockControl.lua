@@ -1,5 +1,6 @@
 local Actions = requireAll('GameObjects.Actions')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
+local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
 
 local DockControl = {}
 DockControl.__index = DockControl
@@ -22,25 +23,46 @@ function DockControl:onEnable ()
 end
 
 function DockControl:onInput (state)
-  if not Config.game.gamePaused and ShipBindings.Undock:get() > 0 then
+  if not GameState.paused and ShipBindings.Undock:get() > 0 then
+    printf("*** Undocking (manual)!")
     self.player:getControlling():pushAction(Actions.Undock())
+    Input.SetMouseVisible(false)
   end
+
+  self.camera:push()
+  self.camera:modYaw(        0.005 * CameraBindings.Yaw:get())
+  self.camera:modPitch(      0.005 * CameraBindings.Pitch:get())
+  self.camera:modRadius(exp(-0.1  * CameraBindings.Zoom:get()))
+  self.camera:pop()
 end
 
 function DockControl:onDraw (focus, active)
   -- TODO : Unify this with HUD
   local x, y, sx, sy = self:getRectGlobal()
+  local cx, cy = sx / 2, sy / 2
+
+  local dockText = "Press J to Undock" -- TODO: Connect Undocking input to bindings
+
   UI.DrawEx.TextAdditive(
-    'NovaMono',
-    'Press J to Undock', -- TODO: connect Undocking input to bindings
-    16,
-    x, y, sx, sy,
+    "NovaMono",
+    dockText,
+    24,
+    cx, cy - 68, 1, 1,
+    0, 0, 0, 1,
+    0.5, 0.5
+  )
+  UI.DrawEx.TextAdditive(
+    "NovaMono",
+    dockText,
+    24,
+    cx, cy - 68, 1, 1,
     1, 1, 1, 1,
-    0.5, 0.96
+    0.5, 0.5
   )
 end
 
 function DockControl:onDrawIcon (iconButton, focus, active)
+  -- Draw Dock Control icon
   local borderColor = iconButton == active
                       and Config.ui.color.controlActive
                       or iconButton == focus
@@ -52,10 +74,9 @@ function DockControl:onDrawIcon (iconButton, focus, active)
 
   local x, y, sx, sy = iconButton:getRectGlobal()
   UI.DrawEx.RectOutline(x, y, sx, sy, borderColor)
-
-  UI.DrawEx.Ring(x + sx/2, y + 10,      14, contentColor)
-  UI.DrawEx.Ring(x + sx/2, y + 10 + 12, 10, contentColor)
-  UI.DrawEx.Ring(x + sx/2, y + 10 + 20,  6, contentColor)
+  UI.DrawEx.Ring(x + sx/2, y + 10 +  8, 12, contentColor, false)
+  UI.DrawEx.Ring(x + sx/2, y + 10 + 14,  9, contentColor, false)
+  UI.DrawEx.Ring(x + sx/2, y + 10 + 20,  6, contentColor, false)
 end
 
 function DockControl.Create (gameView, player)
@@ -71,6 +92,7 @@ function DockControl.Create (gameView, player)
   self.icon:setOnDraw(function (ib, focus, active)
     self:onDrawIcon(ib, focus, active)
   end)
+
   return self
 end
 

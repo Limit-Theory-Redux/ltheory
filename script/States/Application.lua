@@ -6,7 +6,7 @@ local Application = class(function (self) end)
 
 function Application:getDefaultSize ()
 --  return 1600, 900
-  return Config.render.startingHorz, Config.render.startingVert
+  return Config.render.defaultResX, Config.render.defaultResY
 end
 
 function Application:getTitle () return
@@ -19,7 +19,7 @@ end
 
 function Application:onInit         ()       end
 function Application:onDraw         ()       end
-function Application:onResize       (sx, sy) end
+function Application:onResize       (sx, sy) self.window:setMousePosition(self.resX / 2, self.resY / 2) end
 function Application:onUpdate       (dt)     end
 function Application:onExit         ()       end
 function Application:onInput        ()       end
@@ -40,8 +40,11 @@ function Application:run ()
     self.resY,
     self:getWindowMode())
 
+  GameState.render.gameWindow = self.window
+
   self.exit = false
-  self.window:setVsync(Config.render.vsync)
+
+  self.window:setVsync(GameState.render.vsync)
 
   if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -57,6 +60,10 @@ function Application:run ()
   if Config.jit.dumpasm then Jit.StartDump() end
   if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
   if Config.jit.verbose then Jit.StartVerbose() end
+
+  self.window:setWindowGrab(true)
+  self.window:setMousePosition(self.resX / 2, self.resY / 2)
+  self.window:setWindowGrab(false)
 
   local profiling = false
   local toggleProfiler = false
@@ -75,9 +82,14 @@ function Application:run ()
       Profiler.SetValue('gcmem', GC.GetMemory())
       Profiler.Begin('App.onResize')
       local size = self.window:getSize()
+      self.window:setWindowGrab(false)
       if size.x ~= self.resX or size.y ~= self.resY then
         self.resX = size.x
         self.resY = size.y
+        if not GameState.render.fullscreen then
+          GameState.render.resX = self.resX
+          GameState.render.resY = self.resY
+        end
         self:onResize(self.resX, self.resY)
       end
       Profiler.End()
@@ -90,12 +102,12 @@ function Application:run ()
       Profiler.SetValue('gcmem', GC.GetMemory())
       Profiler.Begin('App.onInput')
 
-       -- TODO : Remove this once bindings are fixed
+      -- Immediately quit game without saving
       if Input.GetKeyboardCtrl() and Input.GetPressed(Button.Keyboard.W) then self:quit() end
       if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end
 
-      if Input.GetPressed(Bindings.ProfilerToggle) then
+      if Input.GetPressed(Bindings.ToggleProfiler) then
         toggleProfiler = true
       end
 
@@ -103,12 +115,13 @@ function Application:run ()
         doScreenshot = true
         if Settings.exists('render.superSample') then
           self.prevSS = Settings.get('render.superSample')
-          Settings.set('render.superSample', 2)
+--          Settings.set('render.superSample', 2)
         end
       end
 
       if Input.GetPressed(Bindings.ToggleFullscreen) then
         self.window:toggleFullscreen()
+        GameState.render.fullscreen = not GameState.render.fullscreen
       end
 
       if Input.GetPressed(Bindings.Reload) then
@@ -119,22 +132,32 @@ function Application:run ()
         Profiler.End()
       end
 
-      if Input.GetPressed(Bindings.Pause) and Config.getGameMode() ~= 1 then
-        if Config.game.gamePaused then
-          Config.game.gamePaused = false
+      if Input.GetPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
+        if GameState.paused then
+          GameState.paused = false
+          if not GameState.panelActive then
+            Input.SetMouseVisible(false)
+          end
         else
-          Config.game.gamePaused = true
+          GameState.paused = true
+          Input.SetMouseVisible(true)
         end
       end
 
-      if Config.game.gamePaused then
+      -- Preserving this in case we need to be able to automatically pause on window exit again
+      -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
+--      if Input.GetPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+--        Config.game.gamePaused = true
+--      end
+
+      if GameState.paused then
         timeScale = 0.0
       else
         timeScale = 1.0
       end
 
       if Input.GetDown(Bindings.TimeAccel) then
-        timeScale = Config.debug.timeAccelFactor
+        timeScale = GameState.debug.timeAccelFactor
       end
 
       if Input.GetPressed(Bindings.ToggleWireframe) then
@@ -142,7 +165,7 @@ function Application:run ()
       end
 
       if Input.GetPressed(Bindings.ToggleMetrics) then
-        Config.debug.metrics = not Config.debug.metrics
+        GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
       end
 
       self:onInput()
@@ -167,16 +190,39 @@ function Application:run ()
       Profiler.End()
     end
 
+    if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
+      UI.DrawEx.TextAdditive(
+        'NovaRound',
+        "EXPERIMENTAL BUILD - NOT FINAL!",
+        20,
+        self.resX / 2 - 24, 62, 40, 20,
+        1, 1, 1, 1,
+        0.5, 0.5
+      )
+
+      if GameState.paused then
+        UI.DrawEx.TextAdditive(
+          'NovaRound',
+          "[PAUSED]",
+          24,
+          0, 0, self.resX, self.resY,
+          1, 1, 1, 1,
+          0.5, 0.99
+        )
+      end
+    end
+
+    -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
     if doScreenshot then
       ScreenCap()
       if self.prevSS then
-        Settings.set('render.superSample', self.prevSS)
+--        Settings.set('render.superSample', self.prevSS)
         self.prevSS = nil
       end
     end
 
     do -- Metrics display
-      if Config.debug.metrics then -- Metrics Display
+      if GameState.debug.metricsEnabled then -- Metrics Display
         local s = string.format(
           '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
           1000.0 * self.dt,
@@ -197,28 +243,6 @@ function Application:run ()
           y = y - 12
         end
         BlendMode.Pop()
-      end
-    end
-
-    if Config.getGameMode() ~= 1 then
-      UI.DrawEx.TextAdditive(
-        'NovaRound',
-        "EXPERIMENTAL BUILD - NOT FINAL!",
-        20,
-        0, 0, self.resX, self.resY,
-        1, 1, 1, 1,
-        0.50, 0.01
-      )
-
-      if Config.game.gamePaused then
-        UI.DrawEx.TextAdditive(
-          'NovaRound',
-          "[PAUSED]",
-          24,
-          0, 0, self.resX, self.resY,
-          1, 1, 1, 1,
-          0.5, 0.99
-        )
       end
     end
 
