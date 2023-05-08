@@ -34,25 +34,25 @@ local ControlSets = {
     container = nil,
     controls  = List(
       {
-        name       = "Ship",
+        name       = Enums.ControlModes.Ship,
         ctor       = HUD,
         panel      = nil,
         iconButton = nil,
       },
       {
-        name       = "Debug",
+        name       = Enums.ControlModes.Debug,
         ctor       = DebugControl,
         panel      = nil,
         iconButton = nil,
       },
       {
-        name       = "Command",
+        name       = Enums.ControlModes.Command,
         ctor       = CommandControl,
         panel      = nil,
         iconButton = nil,
       },
       {
-        name       = "Background",
+        name       = Enums.ControlModes.Background,
         ctor       = BackgroundControl,
         panel      = nil,
         iconButton = nil,
@@ -65,7 +65,7 @@ local ControlSets = {
     container  = nil,
     controls   = List(
       {
-        name       = "Undock",
+        name       = Enums.ControlModes.Undock,
         ctor       = DockControl,
         panel      = nil,
         iconButton = nil,
@@ -88,10 +88,10 @@ function MasterControl:onInput (state)
         GameState.panelActive = false
         -- Switch back to active Flight Mode with HUD control
         if self.activeControlSet.predicate(self) then
-          GameState.ui.currentControl = "Ship" -- enable flight mode
+          GameState.player.currentControl = Enums.ControlModes.Ship -- enable flight mode
           for i = 1, #self.activeControlSet.controls do
             local control = self.activeControlSet.controls[i]
-            if control.name == GameState.ui.currentControl then
+            if control.name == GameState.player.currentControl then
               self:activateControl(control)
               Input.SetMouseVisible(false)
               break
@@ -132,7 +132,7 @@ end
 
 function MasterControl:activateControl (controlDef)
   if controlDef == self.activeControlDef then
-    if controlDef.name == "Ship" then
+    if controlDef.name == Enums.ControlModes.Ship then
       self.panel:disable()
       GameState.panelActive = false
       Input.SetMouseVisible(false)
@@ -149,19 +149,19 @@ function MasterControl:activateControl (controlDef)
 
   if self.activeControlDef then
 --printf("MasterControl:activateControl(): self.activeControlDef = %s", self.activeControlDef.name)
-    GameState.ui.currentControl = self.activeControlDef.name
-    if self.activeControlDef.name == "Ship" then
+    GameState.player.currentControl = self.activeControlDef.name
+    if self.activeControlDef.name == Enums.ControlModes.Ship then
       self.panel:disable()
       GameState.panelActive = false
       Input.SetMouseVisible(false)
       printf("*** Switching to Flight mode")
-    elseif self.activeControlDef.name == "Background" then
+    elseif self.activeControlDef.name == Enums.ControlModes.Background then
       printf("*** Switching to Background mode")
-    elseif self.activeControlDef.name == "Debug" then
+    elseif self.activeControlDef.name == Enums.ControlModes.Debug then
       printf("*** Switching to Debug mode")
-    elseif self.activeControlDef.name == "Command" then
+    elseif self.activeControlDef.name == Enums.ControlModes.Command then
       printf("*** Switching to Fleet Command mode")
-    elseif self.activeControlDef.name == "Undock" then
+    elseif self.activeControlDef.name == Enums.ControlModes.Undock then
       self.panel:enable()
       GameState.panelActive = true
       Input.SetMouseVisible(true)
@@ -222,7 +222,7 @@ function MasterControl.Create (gameView, player)
       controlDef.iconButton = UI.IconButton(controlDef.panel.icon, function (button)
         if not GameState.paused then
           self:activateControl(controlDef)
-          if controlDef.name == "Undock" then
+          if controlDef.name == Enums.ControlModes.Undock then
             printf("*** Undocking (icon)!")
             GameState.player.currentShip:getParent():removeDocked(GameState.player.currentShip)
             Input.SetMouseVisible(false)
@@ -257,7 +257,7 @@ function MasterControl.Create (gameView, player)
       local default
       for j = 1, #set.controls do
         local control = set.controls[j]
-        if control.name == GameState.ui.currentControl then
+        if control.name == GameState.player.currentControl then
           default = control
           break
         end

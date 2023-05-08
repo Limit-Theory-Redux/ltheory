@@ -98,7 +98,7 @@ end
 function LTheoryRedux:onInput ()
   self.canvas:input()
 
-  if GameState:GetCurrentState() == Enums.GameStates.InGame then
+  if GameState:GetCurrentState() == Enums.GameStates.InGame and GameState.player.currentControl == Enums.ControlModes.Ship then
     if Input.GetPressed(Bindings.CameraFirstPerson) then
       if GameState.player.currentCamera ~= Enums.CameraMode.FirstPerson then
         self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)

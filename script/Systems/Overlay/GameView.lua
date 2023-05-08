@@ -247,14 +247,30 @@ end
 
 function GameView:setCameraMode (cameraMode)
   local lastCamera = self.camera
+  GameState.player.lastCamera = GameState.player.currentCamera
 
   if cameraMode == Enums.CameraMode.FirstPerson then
     self.camera = self.cameraFirstPerson
+
+    if GameState.player.currentShip then
+      -- hide ship mesh
+      GameState.player.currentShip:setRenderVisibleMesh(false)
+    end
   elseif cameraMode == Enums.CameraMode.Chase then
     self.camera = self.cameraChase
+
+    if GameState.player.currentShip then
+      -- hide ship mesh
+      GameState.player.currentShip:setRenderVisibleMesh(true)
+    end
   elseif cameraMode == Enums.CameraMode.Orbit then
     self.camera = self.cameraOrbit
     self.camera:setRelative(true)
+
+    if GameState.player.currentShip then
+      -- hide ship mesh
+      GameState.player.currentShip:setRenderVisibleMesh(true)
+    end
   else
     error("Invalid camera mode passed")
   end

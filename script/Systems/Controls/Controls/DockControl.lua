@@ -26,6 +26,7 @@ function DockControl:onInput (state)
   if not GameState.paused and ShipBindings.Undock:get() > 0 then
     printf("*** Undocking (manual)!")
     self.player:getControlling():pushAction(Actions.Undock())
+    self.gameView:setCameraMode(GameState.player.lastCamera)
     Input.SetMouseVisible(false)
   end
 
