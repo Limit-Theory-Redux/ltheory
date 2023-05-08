@@ -79,6 +79,7 @@ function CommandControl:onEnable ()
 end
 
 function CommandControl:onDisable ()
+  self.gameView:setCameraMode(GameState.player.lastCamera)
 end
 
 function CommandControl:findSelection (sx, sy, ssx, ssy)
