@@ -74,27 +74,3 @@ CPMAddPackage(
 if (Bullet_ADDED)
   target_include_directories(BulletDynamics PUBLIC ${Bullet_SOURCE_DIR}/src)
 endif ()
-
-CPMAddPackage(
-  NAME FreeType
-  URL https://github.com/freetype/freetype/archive/refs/tags/VER-2-12-1.tar.gz
-  VERSION 2.12.1
-  OPTIONS
-  "FT_DISABLE_HARFBUZZ ON"
-  "FT_DISABLE_PNG ON"
-  "FT_DISABLE_BZIP2 ON"
-  "FT_DISABLE_BROTLI ON"
-)
-
-if(WIN32)
-  CPMAddPackage(
-    NAME windirent
-    URL https://github.com/tronkko/dirent/archive/328e7fca1497f1d990d8b55b3cec39c869e3a6a8.tar.gz
-    VERSION 328e7fca1497f1d990d8b55b3cec39c869e3a6a8
-    DOWNLOAD_ONLY TRUE
-  )
-  if (windirent_ADDED)
-    add_library(windirent INTERFACE)
-    target_include_directories(windirent INTERFACE ${windirent_SOURCE_DIR}/include)
-  endif()
-endif()

@@ -11,7 +11,5 @@ if(NOT TARGET libphx-external)
   add_dependencies(libphx-external
     BulletCollision
     BulletDynamics
-    LinearMath
-#    fmod
-    freetype)
+    LinearMath)
 endif()

@@ -80,12 +80,10 @@ fn main() {
     // Link dependencies.
     if cfg!(target_os = "windows") {
         let lib_root = cmake_root.join("build").join("lib").join("Release");
-        link_lib_from_cmake("freetype", &lib_root, &[]);
         link_lib_from_cmake("BulletDynamics", &lib_root, &[]);
         link_lib_from_cmake("BulletCollision", &lib_root, &[]);
         link_lib_from_cmake("LinearMath", &lib_root, &[]);
     } else {
-        link_lib_from_cmake("freetype", &deps_root, &["freetype-build"]);
         link_lib_from_cmake(
             "BulletDynamics",
             &deps_root,

@@ -1,10 +1,13 @@
+use std::path::Path;
+use std::env;
+
 fn main() {
-    // let lib = if cfg!(target_os = "windows") {
-    //     "phx.dll"
-    // } else {
-    //     "phx"
-    // };
-    // println!("cargo:rustc-link-lib=dylib={}", lib);
+    if env::var("TARGET").expect("target").ends_with("windows-msvc") {
+        let manifest = Path::new("src/ltr.exe.manifest").canonicalize().unwrap();
+        println!("cargo:rustc-link-arg-bins=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg-bins=/MANIFESTINPUT:{}", manifest.display());
+        println!("cargo:rerun-if-changed=src/ltr.exe.manifest");
+    }
 
     if cfg!(target_os = "linux") {
         println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN");
