@@ -19,6 +19,10 @@ fn download(url: &str) -> Vec<u8> {
     bytes
 }
 
+fn extract(archive: Vec<u8>, path: &Path) {
+    zip_extract::extract(Cursor::new(archive), path, true).unwrap()
+}
+
 fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
@@ -26,14 +30,16 @@ fn main() {
     let fmod_package = "fmod-2.02.08";
     let fmod_dir = out_dir.join(fmod_package);
     if !fmod_dir.is_dir() {
-        let bin_archive = download(
-            format!(
+        extract(
+            download(
+                format!(
                 "https://github.com/Limit-Theory-Redux/ltheory/releases/download/v0.0.1-pre/{}.zip",
                 fmod_package
             )
-            .as_str(),
+                .as_str(),
+            ),
+            fmod_dir.as_path(),
         );
-        zip_extract::extract(Cursor::new(bin_archive), fmod_dir.as_path(), true).unwrap();
     }
 
     // Link against the library, and copy it to target/<cfg>/deps.
@@ -66,10 +72,10 @@ fn main() {
     } else if cfg!(target_os = "linux") {
         let lib_dir = fmod_dir.join("lib").join("linux").join("x86_64");
         let src = lib_dir.join("libfmod.so.13.8");
-        let dest = deps_dir.join("libfmod.so.13.8");
+        let dest = deps_dir.join("libfmod.so.13");
         fs::copy(src, dest).unwrap();
-        println!("cargo:rustc-link-search={}", lib_dir.display());
-        println!("cargo:rustc-link-lib=fmod");
+        println!("cargo:rustc-link-search={}", deps_dir.display());
+        println!("cargo:rustc-link-lib=dylib:+verbatim=libfmod.so.13");
     }
     println!("cargo:rerun-if-changed=wrapper.h");
 
