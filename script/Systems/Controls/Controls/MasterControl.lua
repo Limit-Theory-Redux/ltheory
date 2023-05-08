@@ -225,6 +225,7 @@ function MasterControl.Create (gameView, player)
           if controlDef.name == Enums.ControlModes.Undock then
             printf("*** Undocking (icon)!")
             GameState.player.currentShip:getParent():removeDocked(GameState.player.currentShip)
+            self.gameView:setCameraMode(GameState.player.lastCamera)
             Input.SetMouseVisible(false)
           end
         end
