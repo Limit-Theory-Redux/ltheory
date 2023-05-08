@@ -272,13 +272,24 @@ function SystemMap:onInput (state)
   -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
   --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
   --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
+  if Input.GetValue(Button.Keyboard.Minus) == 1 then
+    GameState.player.mapSystemPan = floor(GameState.player.mapSystemPan / 1.2)
+  end
+  if Input.GetValue(Button.Keyboard.Equals) == 1 then
+    GameState.player.mapSystemPan = floor(GameState.player.mapSystemPan * 1.2)
+    if GameState.player.mapSystemPan > 150 then
+      GameState.player.mapSystemPan = 150
+    end
+  end
+
   GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-  GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x + (0.2 * kPanSpeed / GameState.player.mapSystemZoom) * (
-    Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-    GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y + (0.2 * kPanSpeed / GameState.player.mapSystemZoom) * (
-    Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
-    GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * (
-    Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+  GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
+      exp(kZoomSpeed * (Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+
+  GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x + (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
+      Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
+  GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y + (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
+      Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
 end
 
 function SystemMap.Create (system)
@@ -286,21 +297,25 @@ function SystemMap.Create (system)
   self:setStretch(1, 1)
   self.system = system
 
-  kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
---printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
-
+  -- Initialize system map starting position only if not already initialized
   if GameState.player.currentShip ~= nil then
     if GameState.player.mapSystemPos == nil then
-      -- Initialize system map starting position only if not already initialized
       GameState.player.mapSystemPos = GameState.player.currentShip:getPos()
     end
   else
     GameState.player.mapSystemPos = Vec3f(0, 0, 0)
   end
+
+  -- Initialize system map zoom and pan levels only if not already initialized
+  kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
+--printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
   if GameState.player.mapSystemZoom == nil then
-    -- Initialize system map zoom level only if not already initialized
     GameState.player.mapSystemZoom = 0.0001
   end
+  if GameState.player.mapSystemPan == nil then
+    GameState.player.mapSystemPan = kPanSpeed
+  end
+
   return self
 end
 

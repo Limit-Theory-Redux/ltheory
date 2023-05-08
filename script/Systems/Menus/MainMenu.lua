@@ -10,11 +10,12 @@ local guiElements = {
     name = "Choose Seed",
     elems = {
       -- TODO: replace with proper list
-      { nil, 5022463494542550306ULL,  false },  -- KEEP black
+      { nil, 5022463494542550306ULL,  false },  -- KEEP black (good for testing dynamic lighting)
       { nil, 5012768293123392491ULL,  false },  -- KEEP red
       { nil, 4933876146649964811ULL,  false },  -- KEEP blue and milky white
       { nil, 2008422628673393673ULL,  false },  -- MAYBE orange-ish
       { nil, 5712598467986491931ULL,  false },  -- KEEP gold-yellow
+      { nil, 8272263000674654607ULL,  false },  -- KEEP milky-white and light blue (really pretty)
       { nil, 14169804077813660835ULL, false },  -- KEEP bluish-green with a bright gold star
       { nil, 9806676695553338612ULL,  false },  -- KEEP violet
       { nil, 14600758714913275339ULL, false },  -- KEEP blue

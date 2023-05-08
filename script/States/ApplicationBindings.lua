@@ -2,7 +2,6 @@ local Control = require('Systems.Controls.Control')
 
 local self = {
   Escape           = Button.Keyboard.Escape,
-  Pause            = Button.Keyboard.Space,
   SystemMap        = Button.Keyboard.Tab,
   Reload           = Button.Keyboard.F7,
   ToggleSound      = Button.Keyboard.F8,
@@ -14,6 +13,7 @@ local self = {
   ToggleMetrics    = Button.Keyboard.K,
   ToggleLights     = Button.Keyboard.L,
   AutoNav          = Button.Keyboard.M, -- TODO: move to ShipBindings.lua
+  Pause            = Button.Keyboard.P,
   ToggleHUD        = Button.Keyboard.V, -- TODO: move to ShipBindings.lua
   ToggleSensors    = Button.Keyboard.Z, -- TODO: move to ShipBindings.lua
   ToggleWireframe  = Button.Keyboard.W, -- does nothing

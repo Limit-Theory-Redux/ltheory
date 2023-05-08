@@ -1327,10 +1327,10 @@ function HUD:controlThrust (e)
   c:setThrust(
     ShipBindings.ThrustZ:get(),
     ShipBindings.ThrustX:get(),
-    0,
+    ShipBindings.ThrustY:get() * 2.0,
     yaw,
     pitch,
-    ShipBindings.Roll:get(),
+    ShipBindings.Roll:get() * 0.3,
     ShipBindings.Boost:get())
   self.aimX = c.yaw
   self.aimY = c.pitch

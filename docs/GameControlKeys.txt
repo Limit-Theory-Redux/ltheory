@@ -1,25 +1,37 @@
-`      -- [backquote] enable flight mode overlay panels (currently switches to Debug panel by default)
-Space  -- pause and unpause the game (flight mode)
-Tab    -- toggle star system tactical map on/off
-Return -- Activate the overlay mode for the icon currently focused on
-1 - 8  -- select a weapon group (can't change what's in a group yet, this is just selection)
-F1     -- [TBD] Activate Flight Mode
-F2     -- [TBD] Activate Debug Mode
-F3     -- [TBD] Activate Fleet Command Mode
-F4     -- [TBD] Activate Background Mode
-F5     -- [TBD] Activate Dock Mode
-F8     -- toggle audio on/off
-F10    -- toggle profiler on, then toggle off and display stats
-F11    -- toggle between fullscreen and windowed
-F12    -- take a screenshot (*.png) and save it to ./screenshot folder
-B      -- when in startup mode (not flight mode), generate a new background star system
+These are the controls for Limit Theory Redux.
+(Gamepad controls will be documented in an update.)
+
+*** MOVEMENT CONTROLS ***
+W, S   -- moves your ship forward and backward
+A, D   -- moves your ship left and right
+Ctrl   -- moves your ship down
+Space  -- moves your ship up
+
+*** HUD, MAP, AND PANEL CONTROLS ***
+`      -- [backquote] enable flight mode overlay panels
+-, =   -- decrease/increase panning speed in System Map
+1 - 8  -- select a weapon group (can't change what's in a group yet, this is just group selection)
+Tab    -- toggle System Map on/off
+Return -- Activate the overlay panel for the currently focused panel icon
+F1     -- [TBD] Activate Flight Mode panel
+F2     -- [TBD] Activate Debug Mode panel
+F3     -- [TBD] Activate Fleet Command Mode panel
+F4     -- [TBD] Activate Background Mode panel
+F5     -- [TBD] Activate Dock Mode panel
 G      -- toggles target lock off (HUD or System Map)
-H      -- speed up time processing (currently 10x, defined in /script/Config/App.lua)
-K      -- toggle the realtime metrics overlay on/off
-L      -- toggle the dynamic lighting on/off (default is OFF, heavy performance cost)
-M      -- toggle autopilot: click on a target (in world view or System Map), then press this key to fly there
 T      -- toggles target lock on when hovering over a targetable object in Flight Mode view
 V      -- toggle the HUD off and back on again
 Z      -- toggle sensors display on/off
+
+*** OTHER CONTROLS ***
+F10    -- toggle profiler on, then toggle off and display stats
+F11    -- toggle fullscreen on/off
+F12    -- take a screenshot (*.png) and save it to ./screenshot folder
+B      -- when in startup mode (not flight mode), generate a new background star system
+H      -- while held down, increase game processing speed
+K      -- toggle the realtime metrics overlay on/off
+L      -- toggle the dynamic lighting on/off (default is OFF, heavy performance cost!)
+M      -- toggle autopilot: click on target (world view or System Map), then press this key to fly there
+P      -- pause and unpause the game (flight mode)
 Ctrl-W -- immediately exit game
 Alt-Q  -- immediately exit game
