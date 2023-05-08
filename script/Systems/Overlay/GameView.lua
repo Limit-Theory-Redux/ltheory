@@ -18,14 +18,15 @@ function GameView:draw (focus, active)
   self.camera:setViewport(x, y, sx, sy)
   self.camera:beginDraw()
 
-  local world = self.player:getRoot()
+  local system = GameState.world.currentSystem
+--  local system = self.player:getRoot()
   local eye = self.camera.pos
-  world:beginRender()
+  system:beginRender()
 
   do -- Opaque Pass
     Profiler.Begin('Render.Opaque')
     self.renderer:start(self.sx, self.sy, ss)
-    world:render(Event.Render(BlendMode.Disabled, eye)) -- significant performance point with ss
+    system:render(Event.Render(BlendMode.Disabled, eye)) -- significant performance point with ss
     self.renderer:stop()
     Profiler.End()
   end
@@ -35,11 +36,9 @@ function GameView:draw (focus, active)
     -- Gather light sources
     -- Note: Scan only objects with lights attached
     local lights = {}
-    if #GameState.world.currentSystem.lightList > 0 then
---    if #world.lightList > 0 then
+    if #system.lightList > 0 then
 --print("---------")
-      for _, v in ipairs(GameState.world.currentSystem.lightList) do
---      for _, v in ipairs(world.lightList) do
+      for _, v in ipairs(system.lightList) do
         insert(lights, { pos = v:getPos(), color = v:getLight() })
 --printf("light @ %s, %s", v:getPos(), v:getLight())
       end
@@ -94,7 +93,7 @@ function GameView:draw (focus, active)
   if true then -- Alpha (Additive) Pass
     Profiler.Begin('Render.Additive')
     self.renderer:startAlpha(BlendMode.Additive)
-      world:render(Event.Render(BlendMode.Additive, eye)) -- significant performance point
+      system:render(Event.Render(BlendMode.Additive, eye)) -- significant performance point
     self.renderer:stopAlpha()
     Profiler.End()
   end
@@ -102,7 +101,7 @@ function GameView:draw (focus, active)
   if true then -- Alpha Pass
     Profiler.Begin('Render.AlphaDebug')
     self.renderer:startAlpha(BlendMode.Alpha)
-      world:render(Event.Render(BlendMode.Alpha, eye))
+      system:render(Event.Render(BlendMode.Alpha, eye))
 
       -- TODO : This should be moved into a render pass
       if Config.debug.physics.drawBoundingBoxesLocal or
@@ -114,28 +113,28 @@ function GameView:draw (focus, active)
         mat:start()
         if Config.debug.physics.drawBoundingBoxesLocal then
           Shader.SetFloat4('color', 0, 0, 1, 0.5)
-          world.physics:drawBoundingBoxesLocal()
+          system.physics:drawBoundingBoxesLocal()
         end
         if Config.debug.physics.drawBoundingBoxesWorld then
           Shader.SetMatrix ('mWorld',   Matrix.Identity())
           Shader.SetMatrixT('mWorldIT', Matrix.Identity())
           Shader.SetFloat('scale', 1)
           Shader.SetFloat4('color', 1, 0, 0, 0.5)
-          world.physics:drawBoundingBoxesWorld()
+          system.physics:drawBoundingBoxesWorld()
         end
         if Config.debug.physics.drawTriggers then
           Shader.SetMatrix ('mWorld',   Matrix.Identity())
           Shader.SetMatrixT('mWorldIT', Matrix.Identity())
           Shader.SetFloat('scale', 1)
           Shader.SetFloat4('color', 1, 0.5, 0, 0.5)
-          world.physics:drawTriggers()
+          system.physics:drawTriggers()
         end
         if Config.debug.physics.drawWireframes then
           Shader.SetMatrix ('mWorld',   Matrix.Identity())
           Shader.SetMatrixT('mWorldIT', Matrix.Identity())
           Shader.SetFloat('scale', 1)
           Shader.SetFloat4('color', 0, 1, 0, 0.5)
-          world.physics:drawWireframes()
+          system.physics:drawWireframes()
         end
         mat:stop()
       end
@@ -143,7 +142,7 @@ function GameView:draw (focus, active)
     Profiler.End()
   end
 
-  world:endRender()
+  system:endRender()
   self.camera:endDraw()
 
   if true then -- Composited UI Pass
