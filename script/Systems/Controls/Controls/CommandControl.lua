@@ -61,9 +61,8 @@ local ContextEntries = {
 }
 
 function CommandControl:onEnable ()
-  self.gameView:setCameraMode(Enums.CameraMode.Orbit)
   local pCamera = self.gameView.camera
-  self.camera = self.gameView.camera
+  self.camera = self.gameView:setCameraMode(Enums.CameraMode.Orbit)
 
   if self.firstRun then
     self.firstRun = false
@@ -79,6 +78,7 @@ function CommandControl:onEnable ()
 end
 
 function CommandControl:onDisable ()
+  self.gameView:setCameraMode(GameState.player.lastCamera)
 end
 
 function CommandControl:findSelection (sx, sy, ssx, ssy)

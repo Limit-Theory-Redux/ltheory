@@ -13,7 +13,6 @@ DebugControl:setPadUniform(8)
 local mFocus = nil
 
 function DebugControl:onEnable ()
-  self.gameView:setCameraMode(Enums.CameraMode.Orbit)
   local pCamera = self.gameView.camera
   local camera = self.gameView.camera
 
