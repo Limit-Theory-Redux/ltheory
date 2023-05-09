@@ -122,7 +122,7 @@ Config.gen = {
   scaleStar          = 1e6,
   scalePlanet        = 5e3,
   scalePlanetMod     = 7e4,  -- 7e4
-  scaleFieldAsteroid = 10000,
+  scaleFieldAsteroid = 40000,
   scaleAsteroid      = 7.0,
   scaleStation       = 70,
 
@@ -137,7 +137,7 @@ Config.gen = {
                      5.9,  -- Metallic
                      3.2}, -- Silicaceous
 
-  stationMinimumDistance = 20000, -- minimum distance between stations
+  stationMinimumDistance = 2000, -- minimum distance between stations
   minimumDistancePlacementMaxTries = 100
 }
 
@@ -579,12 +579,20 @@ function Config:getObjectTypeByIDVal(objIDnum, objtypename)
 end
 
 function Config:getObjectInfo(objIDname, objtypenum)
-  return Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][2]
+  if Config.objectInfo[Config:getObjectTypeIndex(objIDname)] then
+    if Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum] then
+      return Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][2]
+    end
+  end
 end
 
 function Config:getObjectSubInfo(objIDname, objtypenum, objsubtypenum)
-  local subtypename = Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][3]
-  return Config.objectInfo[Config:getObjectTypeIndex(subtypename)]["elems"][objsubtypenum][2]
+  if Config.objectInfo[Config:getObjectTypeIndex(objIDname)] then
+    if Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum] then
+      local subtypename = Config.objectInfo[Config:getObjectTypeIndex(objIDname)]["elems"][objtypenum][3]
+      return Config.objectInfo[Config:getObjectTypeIndex(subtypename)]["elems"][objsubtypenum][2]
+    end
+  end
 end
 
 function Config.getCurrentTimestamp()

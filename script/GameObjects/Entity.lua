@@ -3,6 +3,7 @@ local id = 1
 local Entity = class(function (self)
   self.id = id
   self.handlers = {}
+  self.visibleMesh = nil
   id = id + 1
 end)
 

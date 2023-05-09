@@ -26,6 +26,10 @@ GameState.render = {
   zFar                  = Config.render.zFar,
   thrusterLights        = Config.render.thrusterLights,
   pulseLights           = Config.render.pulseLights,
+  renderDistances       = {
+    Ship = 10000,
+    Station = 100000
+  }
 }
 
 GameState.audio = {
@@ -55,8 +59,12 @@ GameState.player = {
   currentShip           = nil,
   weaponGroup           = 1,
 
+  currentCamera         = Enums.CameraMode.FirstPerson,
+  lastCamera            = nil,
+
   mapSystemPos          = Vec3f(0, 0, 0),
   mapSystemZoom         = 0.001,
+  mapSystemPan          = 20.0,
 
   autonavTimestamp      = nil,
 }
@@ -84,9 +92,9 @@ function GameState:SetState(state)
   self.state = state
 
   if self.state == Enums.GameStates.MainMenu or self.state == Enums.GameStates.Splashscreen then
-    self.ui.currentControl = "Background" -- enable game startup mode
+    self.player.currentControl = Enums.ControlModes.Background -- enable game startup mode
   else
-    self.ui.currentControl = "Ship" -- enable flight mode
+    self.player.currentControl = Enums.ControlModes.Ship -- enable flight mode
   end
 end
 

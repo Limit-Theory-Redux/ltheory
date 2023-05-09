@@ -50,7 +50,7 @@ function InitFiles:readUserInits ()
           }
           table.insert(categories, categoryTable)
         else
-          error("Could not find game state for config category: " .. categoryName)
+          Log.Warning("Could not find game state for config category: " .. categoryName)
         end
       end
     end
@@ -82,7 +82,7 @@ function InitFiles:readUserInits ()
         if categoryTable.gameState[var] ~= nil then
           categoryTable.gameState[var] = val
         else
-          error(format("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var, val))
+          Log.Warning("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var, val)
         end
       end
 
@@ -127,7 +127,7 @@ function InitFiles:readUserInits ()
       categoryTable.vars = findValuesForCategory(categoryTable)
       -- do whatever with vars if needed
     end
-    print("Finished loading config.ini")
+    printf("Finished loading %s", Config.userInitFilename)
   end
 end
 

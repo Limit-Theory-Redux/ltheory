@@ -1,25 +1,28 @@
 local Control = require('Systems.Controls.Control')
 
 local self = {
-  Escape           = Button.Keyboard.Escape,
-  Pause            = Button.Keyboard.Space,
-  SystemMap        = Button.Keyboard.Tab,
-  Reload           = Button.Keyboard.F7,
-  ToggleSound      = Button.Keyboard.F8,
-  ToggleProfiler   = Button.Keyboard.F10,
-  ToggleFullscreen = Button.Keyboard.F11,
-  Screenshot       = Button.Keyboard.F12,
-  NewBackground    = Button.Keyboard.B,
-  TimeAccel        = Button.Keyboard.H,
-  ToggleMetrics    = Button.Keyboard.K,
-  ToggleLights     = Button.Keyboard.L,
-  AutoNav          = Button.Keyboard.M, -- TODO: move to ShipBindings.lua
-  ToggleHUD        = Button.Keyboard.V, -- TODO: move to ShipBindings.lua
-  ToggleSensors    = Button.Keyboard.Z, -- TODO: move to ShipBindings.lua
-  ToggleWireframe  = Button.Keyboard.W, -- does nothing
-  ScoreNebulaBad   = Button.Keyboard.Minus, -- does nothing
-  ScoreNebulaGood  = Button.Keyboard.Equals, -- does nothing
-  Exit             = Button.System.Exit, -- Modifier.Ctrl + Button.W or Modifier.Alt + Button.Q
+  Escape              = Button.Keyboard.Escape,
+  SystemMap           = Button.Keyboard.Tab,
+  Reload              = Button.Keyboard.F7,
+  ToggleSound         = Button.Keyboard.F8,
+  ToggleProfiler      = Button.Keyboard.F10,
+  ToggleFullscreen    = Button.Keyboard.F11,
+  Screenshot          = Button.Keyboard.F12,
+  NewBackground       = Button.Keyboard.B,
+  TimeAccel           = Button.Keyboard.H,
+  ToggleMetrics       = Button.Keyboard.K,
+  ToggleLights        = Button.Keyboard.L,
+  AutoNav             = Button.Keyboard.M, -- TODO: move to ShipBindings.lua
+  Pause               = Button.Keyboard.P,
+  ToggleHUD           = Button.Keyboard.V, -- TODO: move to ShipBindings.lua
+  ToggleSensors       = Button.Keyboard.Z, -- TODO: move to ShipBindings.lua
+  ToggleWireframe     = Button.Keyboard.W, -- does nothing
+  ScoreNebulaBad      = Button.Keyboard.Minus, -- does nothing
+  ScoreNebulaGood     = Button.Keyboard.Equals, -- does nothing
+  CameraFirstPerson   = Button.Keyboard.F1,
+  CameraChase         = Button.Keyboard.F2,
+  CameraOrbit         = Button.Keyboard.F3,
+  Exit                = Button.System.Exit, -- Modifier.Ctrl + Button.W or Modifier.Alt + Button.Q
 
   All = Control.Or(
     Control.Key(Button.Keyboard.A         ),

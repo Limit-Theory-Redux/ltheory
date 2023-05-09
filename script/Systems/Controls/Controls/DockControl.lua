@@ -8,7 +8,7 @@ setmetatable(DockControl, UI.Panel)
 
 function DockControl:onEnable ()
   local pCamera = self.gameView.camera
-  self.gameView:setOrbit(true)
+  self.gameView:setCameraMode(Enums.CameraMode.Orbit)
 
   local station = self.player:getControlling():getParent()
 
@@ -26,6 +26,7 @@ function DockControl:onInput (state)
   if not GameState.paused and ShipBindings.Undock:get() > 0 then
     printf("*** Undocking (manual)!")
     self.player:getControlling():pushAction(Actions.Undock())
+    self.gameView:setCameraMode(GameState.player.lastCamera)
     Input.SetMouseVisible(false)
   end
 

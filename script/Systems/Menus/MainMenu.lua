@@ -10,11 +10,12 @@ local guiElements = {
     name = "Choose Seed",
     elems = {
       -- TODO: replace with proper list
-      { nil, 5022463494542550306ULL,  false },  -- KEEP black
+      { nil, 5022463494542550306ULL,  false },  -- KEEP black (good for testing dynamic lighting)
       { nil, 5012768293123392491ULL,  false },  -- KEEP red
       { nil, 4933876146649964811ULL,  false },  -- KEEP blue and milky white
       { nil, 2008422628673393673ULL,  false },  -- MAYBE orange-ish
       { nil, 5712598467986491931ULL,  false },  -- KEEP gold-yellow
+      { nil, 8272263000674654607ULL,  false },  -- KEEP milky-white and light blue (really pretty)
       { nil, 14169804077813660835ULL, false },  -- KEEP bluish-green with a bright gold star
       { nil, 9806676695553338612ULL,  false },  -- KEEP violet
       { nil, 14600758714913275339ULL, false },  -- KEEP blue
@@ -55,7 +56,7 @@ function MainMenu:OnInit()
   self.dt = 0
   self.lastActionDelta = 0
   self.returnToSplashDelta = 0
-  GameState.ui.currentControl = "Background"
+  GameState.player.currentControl = Enums.ControlModes.Background
 
   if not self.keepState then
     GameState:SetState(Enums.GameStates.Splashscreen)
@@ -282,7 +283,7 @@ function MainMenu:ShowSeedDialogInner()
 
     self:SetMenuMode(Enums.MenuMode.Dialog)
     GameState:Unpause()
-    GameState.ui.currentControl = "Ship"
+    GameState.player.currentControl = Enums.ControlModes.Ship
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
@@ -721,7 +722,7 @@ function MainMenu:ShowFlightDialogInner()
       GameState.panelActive = false
       self.dialogDisplayed = false
 
-      if GameState.ui.currentControl == "Ship" then
+      if GameState.player.currentControl == Enums.ControlModes.Ship then
         Input.SetMouseVisible(false)
       end
     end

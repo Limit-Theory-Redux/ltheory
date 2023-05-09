@@ -6,8 +6,6 @@
 /out/
 /target/
 
-/libphx/src/cpp/include/bindings.h
-
 # IDEs
 /.vs/
 /.vscode/

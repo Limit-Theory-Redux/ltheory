@@ -199,7 +199,8 @@ function System:place (object)
         local function checkDistanceToAllStations(pos)
           for _, station in ipairs(stations) do
             if pos:distance(station:getPos()) < Config.gen.stationMinimumDistance then
-              print("New Station closer than " .. Config.gen.stationMinimumDistance .. "(".. math.floor(pos:distance(station:getPos())) ..") to station: '" .. station:getName() .. "'. Finding New Position.")
+              print("New Station closer than " .. Config.gen.stationMinimumDistance .. " (".. math.floor(pos:distance(station:getPos())) ..
+                  ") to station: '" .. station:getName() .. "'. Finding New Position.")
               return false
             end
           end
@@ -432,7 +433,7 @@ function System:spawnAsteroidField (count, reduced)
     zone.pos = Vec3f(200, 0, 200)
     count = 500
   else
-    zone.pos = rng:getDir3():scale(1.0 * Config.gen.scaleSystem * (1 + rng:getExp()))
+    zone.pos = rng:getDir3():scale(1.0 * Config.gen.scaleSystem * (2 + rng:getExp()))
   end
 
   -- Set the extent (scale) of the asteroid field within a spherical (3D) volume
@@ -496,17 +497,17 @@ printf("Added %s - %s '%s'", typeName, subtypeName, zone:getName())
 end
 
 function System:getAsteroidName (self, rng)
-  local aName = Words.getCoolName(self.rng)
+  local aNum = ""
   local namernd = rng:getInt(0, 100)
   if namernd < 60 then
-    aName = aName .. " " .. tostring(rng:getInt(11, 99))
+    aNum = tostring(rng:getInt(11, 99)) .. " "
   elseif namernd < 85 then
-    aName = aName .. " " .. tostring(rng:getInt(101, 999))
+    aNum = tostring(rng:getInt(101, 999)) .. " "
   else
-    aName = aName .. " " .. tostring(rng:getInt(1001, 9999))
+    aNum = tostring(rng:getInt(1001, 9999)) .. " "
   end
 
-  return aName
+  return (aNum .. Words.getCoolName(self.rng))
 end
 
 function System:setAsteroidYield (rng, asteroid)
