@@ -71,7 +71,6 @@ do -- Opaque Structs
     typedef struct Font         {} Font;
     typedef struct HashGrid     {} HashGrid;
     typedef struct HashGridElem {} HashGridElem;
-    typedef struct HashMap      {} HashMap;
     typedef struct InputBinding {} InputBinding;
     typedef struct KDTree       {} KDTree;
     typedef struct LodMesh      {} LodMesh;
@@ -90,7 +89,6 @@ do -- Opaque Structs
     typedef struct Socket       {} Socket;
     typedef struct Sound        {} Sound;
     typedef struct SoundDesc    {} SoundDesc;
-    typedef struct StrBuffer    {} StrBuffer;
     typedef struct StrMap       {} StrMap;
     typedef struct StrMapIter   {} StrMapIter;
     typedef struct Tex1D        {} Tex1D;
@@ -114,7 +112,6 @@ do -- Opaque Structs
     'Font',
     'HashGrid',
     'HashGridElem',
-    'HashMap',
     'InputBinding',
     'KDTree',
     'LodMesh',
@@ -133,7 +130,6 @@ do -- Opaque Structs
     'Socket',
     'Sound',
     'SoundDesc',
-    'StrBuffer',
     'StrMap',
     'StrMapIter',
     'Tex1D',
@@ -401,11 +397,11 @@ do -- Transparent Structs
 end
 
 do -- Load Library
-  local debug = __debug__ and 'd' or ''
-  local arch = jit.arch == 'x86' and '32' or '64'
-  local path = string.format('libphx%s%s', arch, debug)
-  libphx.lib = ffi.load(path, false)
-  assert(libphx.lib, 'Failed to load %s', path)
+  libphx.lib = ffi.C
+  -- local debug = __debug__ and 'd' or ''
+  -- local path = string.format('phx%s', debug)
+  -- libphx.lib = ffi.load(path, false)
+  -- assert(libphx.lib, 'Failed to load %s', path)
 end
 
 return libphx

@@ -1,0 +1,20 @@
+[workspace]
+members = [
+]
+
+[package]
+name = "ltheory"
+authors = ["Limit Theory Redux Team"]
+version = "0.0.0"
+publish = false
+edition = "2021"
+autobins = false
+
+[[bin]]
+path = "src/Main.rs"
+name = "ltr"
+
+[dependencies]
+libc = "0.2"
+phx = { path = "libphx" }
+

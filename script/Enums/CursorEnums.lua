@@ -14,7 +14,7 @@ Enums.CursorStyleNames = {
 }
 
 Enums.CursorFilenames = {
-  "cursor/Simple_Cursor",
+  "cursor/simple_cursor",
   "cursor/cursor1-small",
   "cursor/whitecursor32x32",
 }
