@@ -16,8 +16,6 @@ function DebugControl:onEnable ()
   local pCamera = self.gameView.camera
   local camera = self.gameView.camera
 
-  self.gameView:setOrbit(false)
-
   camera:warp()
   camera:lerpFrom(pCamera.pos, pCamera.rot)
 
