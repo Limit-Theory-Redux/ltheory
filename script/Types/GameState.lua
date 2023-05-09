@@ -28,7 +28,7 @@ GameState.render = {
   pulseLights           = Config.render.pulseLights,
   renderDistances       = {
     Ship = 10000,
-    Station = 50000
+    Station = 100000
   }
 }
 
