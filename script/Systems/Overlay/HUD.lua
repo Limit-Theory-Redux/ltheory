@@ -1125,7 +1125,10 @@ function HUD:onInput (state)
   if not GameState.paused and not GameState.panelActive then
     local camera = self.gameView.camera
     camera:push()
-    camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
+
+    if camera.modRadius then
+      camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
+    end
     --camera:modYaw(0.005 * CameraBindings.Yaw:get())     -- only works when cameraOrbit is the current camera
     --camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
@@ -1297,10 +1300,6 @@ function HUD:onEnable ()
   -- TODO : Wtf does this do? Who wrote this?? WHY.
   local pCamera = self.gameView.camera
   local camera = self.gameView.camera
-
-  -- Lock camera back to player ship when HUD is enabled!
-  -- (e.g., changing from "Dock" control -> "Ship" control in MasterControl.lua)
-  self.gameView:setOrbit(false)
 
   camera:warp()
   camera:lerpFrom(pCamera.pos, pCamera.rot)

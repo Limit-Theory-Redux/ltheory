@@ -26,7 +26,11 @@ end
 function BackgroundControl:onInput (state)
   local camera = self.gameView.camera
   camera:push()
-  camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
+
+  if camera.modRadius then
+    camera:modRadius(exp(-0.1 * CameraBindings.Zoom:get()))
+  end
+
   local e = self.player:getControlling()
   self:controlThrust(e)
   camera:pop()
@@ -58,6 +62,8 @@ function BackgroundControl.Create (gameView, player)
 
     children  = List(),
   }, BackgroundControl)
+
+  self.gameView:setCameraMode(Enums.CameraMode.Chase)
 
   self.icon:setOnDraw(function (ib, focus, active)
     self:onDrawIcon(ib, focus, active)

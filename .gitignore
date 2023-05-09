@@ -4,6 +4,7 @@
 /log/
 /screenshot/
 /out/
+/target/
 
 # IDEs
 /.vs/

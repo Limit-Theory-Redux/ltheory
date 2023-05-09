@@ -56,7 +56,7 @@ function MainMenu:OnInit()
   self.dt = 0
   self.lastActionDelta = 0
   self.returnToSplashDelta = 0
-  GameState.ui.currentControl = "Background"
+  GameState.player.currentControl = Enums.ControlModes.Background
 
   if not self.keepState then
     GameState:SetState(Enums.GameStates.Splashscreen)
@@ -283,7 +283,7 @@ function MainMenu:ShowSeedDialogInner()
 
     self:SetMenuMode(Enums.MenuMode.Dialog)
     GameState:Unpause()
-    GameState.ui.currentControl = "Ship"
+    GameState.player.currentControl = Enums.ControlModes.Ship
     Input.SetMouseVisible(false)
     LTheoryRedux:createStarSystem()
   end
@@ -722,7 +722,7 @@ function MainMenu:ShowFlightDialogInner()
       GameState.panelActive = false
       self.dialogDisplayed = false
 
-      if GameState.ui.currentControl == "Ship" then
+      if GameState.player.currentControl == Enums.ControlModes.Ship then
         Input.SetMouseVisible(false)
       end
     end

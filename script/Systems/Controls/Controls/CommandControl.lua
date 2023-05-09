@@ -62,9 +62,8 @@ local ContextEntries = {
 
 function CommandControl:onEnable ()
   local pCamera = self.gameView.camera
-  self.gameView:setOrbit(true)
+  self.camera = self.gameView:setCameraMode(Enums.CameraMode.Orbit)
 
-  self.camera = self.gameView.camera
   if self.firstRun then
     self.firstRun = false
     self.camera:setYaw(-Math.Pi2)
@@ -74,12 +73,12 @@ function CommandControl:onEnable ()
   self.camera:setTarget(nil)
   self.camera:setRelative(false)
 
-  self.gameView:setOrbit(false)
   self.camera:warp()
   self.camera:lerpFrom(pCamera.pos, pCamera.rot)
 end
 
 function CommandControl:onDisable ()
+  self.gameView:setCameraMode(GameState.player.lastCamera)
 end
 
 function CommandControl:findSelection (sx, sy, ssx, ssy)
@@ -273,7 +272,10 @@ function CommandControl:onInput (state)
   self.camera:push()
   self.camera:modYaw(        0.005 * CameraBindings.Yaw:get())
   self.camera:modPitch(      0.005 * CameraBindings.Pitch:get())
-  self.camera:modRadius(exp(-0.1  * CameraBindings.Zoom:get()))
+
+  if self.camera.modRadius then
+    self.camera:modRadius(exp(-0.1  * CameraBindings.Zoom:get()))
+  end
 
   self.moveDir = Vec3f(
     CameraBindings.TranslateX:get(), 0,
