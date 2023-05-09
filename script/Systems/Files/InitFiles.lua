@@ -5,7 +5,8 @@ function InitFiles:readUserInits ()
   -- TODO: Encase io.xxx functions in local wrappers for security/safety
   local filename = Config.userInitFilename
   local filepath = Config.paths.files
-  local openedFile = io.open(filepath .. filename, "r")
+  local configPath = filepath .. filename
+  local openedFile = io.open(configPath, "r")
 
   if openedFile then
     local lines = {}
@@ -127,7 +128,7 @@ function InitFiles:readUserInits ()
       categoryTable.vars = findValuesForCategory(categoryTable)
       -- do whatever with vars if needed
     end
-    printf("Finished loading %s", Config.userInitFilename)
+    printf("Loaded configuration from %s", configPath)
   end
 end
 

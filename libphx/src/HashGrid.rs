@@ -74,7 +74,7 @@ pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> B
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashGrid_Free(mut this: Box<HashGrid>) {}
+pub extern "C" fn HashGrid_Free(_: Box<HashGrid>) {}
 
 #[inline]
 unsafe extern "C" fn HashGrid_GetCell(
