@@ -160,7 +160,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
     let mut mesh = Mesh_Create();
     let mut vertexCount: i32 = 0;
     let mut indexCount: i32 = 0;
-    let mut faceCount: i32 = 0;
+    let mut _faceCount: i32 = 0;
 
     let mut positions: Vec<Vec3> = Vec::new();
     let mut uvs: Vec<Vec2> = Vec::new();
@@ -363,7 +363,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
             }
 
             if vertexIndicesCount == 3 {
-                faceCount += 1;
+                _faceCount += 1;
                 indexCount += vertexIndicesCount;
                 Mesh_AddTri(
                     &mut *mesh,
@@ -372,7 +372,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
                     vertexCount - 1,
                 );
             } else if vertexIndicesCount == 4 {
-                faceCount += 2;
+                _faceCount += 2;
                 indexCount += vertexIndicesCount;
                 Mesh_AddQuad(
                     &mut *mesh,

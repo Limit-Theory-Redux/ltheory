@@ -1,4 +1,4 @@
-macro_rules! unwrap_or_return {
+macro_rules! _unwrap_or_return {
     ($value: ident) => {
         match $value {
             Some(v) => v,
