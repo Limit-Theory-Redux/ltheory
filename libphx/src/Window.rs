@@ -36,9 +36,8 @@ pub unsafe extern "C" fn Window_Create(
     sy: i32,
     mode: WindowMode,
 ) -> Box<Window> {
-    let modeComplete = mode
-        | SDL_WindowFlags::SDL_WINDOW_OPENGL as WindowMode;
-        // | SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as WindowMode;
+    let modeComplete = mode | SDL_WindowFlags::SDL_WINDOW_OPENGL as WindowMode;
+    // | SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as WindowMode;
     let handle = SDL_CreateWindow(title, x, y, sx, sy, modeComplete);
     let context = SDL_GL_CreateContext(handle);
     if context.is_null() {

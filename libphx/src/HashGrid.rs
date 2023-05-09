@@ -19,6 +19,15 @@ pub struct HashGrid {
     pub results: Vec<*mut libc::c_void>,
 }
 
+impl Drop for HashGrid {
+    fn drop(&mut self) {
+        self.cells.clear();
+        unsafe {
+            MemPool_Free(&mut *self.elemPool);
+        }
+    }
+}
+
 #[derive(Clone)]
 #[repr(C)]
 pub struct HashGridCell {
@@ -36,7 +45,7 @@ pub struct HashGridElem {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> *mut HashGrid {
+pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> Box<HashGrid> {
     let mut logCount: u32 = 0;
     while cellCount > 1 {
         cellCount = cellCount.wrapping_div(2);
@@ -44,34 +53,28 @@ pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> *
     }
     cellCount = (1 << logCount) as u32;
 
-    let this = MemNew!(HashGrid);
-    (*this).version = 0;
-    (*this).cells = Vec::new();
-    (*this).cells.resize(
-        cellCount as usize,
-        HashGridCell {
-            version: 0,
-            elems: Vec::new(),
-        },
-    );
-    (*this).elemPool = MemPool_Create(
-        std::mem::size_of::<HashGridElem>() as u32,
-        (0x1000_usize).wrapping_div(std::mem::size_of::<HashGridElem>()) as u32,
-    );
-    (*this).cellCount = cellCount;
-    (*this).cellSize = cellSize;
-    (*this).mask = ((1 << logCount) - 1) as u32;
-    (*this).results = Vec::new();
-
-    this
+    Box::new(HashGrid {
+        version: 0,
+        cells: vec![
+            HashGridCell {
+                version: 0,
+                elems: Vec::new(),
+            };
+            cellCount as usize
+        ],
+        elemPool: MemPool_Create(
+            std::mem::size_of::<HashGridElem>() as u32,
+            (0x1000_usize).wrapping_div(std::mem::size_of::<HashGridElem>()) as u32,
+        ),
+        cellCount: cellCount,
+        cellSize: cellSize,
+        mask: ((1 << logCount) - 1) as u32,
+        results: Vec::new(),
+    })
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HashGrid_Free(this: *mut HashGrid) {
-    (*this).cells.clear();
-    MemPool_Free(&mut *(*this).elemPool);
-    MemDelete!(this);
-}
+pub unsafe extern "C" fn HashGrid_Free(mut this: Box<HashGrid>) {}
 
 #[inline]
 unsafe extern "C" fn HashGrid_GetCell(
