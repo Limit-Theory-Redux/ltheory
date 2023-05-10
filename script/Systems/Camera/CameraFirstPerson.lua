@@ -1,8 +1,7 @@
 local Camera = require('Systems.Camera.Camera')
 
 local CameraFirstPerson = subclass(Camera, function (self)
-  self.posRel    = Vec3f(5, 0, 10) -- adjust for Background mode (TODO: use ship size when big ships are implemented)
---  self.posRel    = Vec3f(10, 0, 3)
+  self.posRel    = Vec3f(10, 0, 3)
   self.lookAtRel = Vec3f(0, 0, 1000)
   self.target    = nil
   self.radius    = 1

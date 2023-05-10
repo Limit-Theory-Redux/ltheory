@@ -324,7 +324,7 @@ function LTheoryRedux:createStarSystem ()
       -- Background Mode
       -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
       --   a space station, and an invisible rotating ship
-      self.backgroundSystem:spawnBackground() -- spawn an invisible ship (TODO: replace with call to regular ship)
+      self.backgroundSystem:spawnBackground() -- spawn a ship that can't be seen
 
       -- Add a planet
       for i = 1, 1 do

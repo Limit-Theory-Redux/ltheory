@@ -730,6 +730,7 @@ function System:spawnBackground ()
   backgroundShip:setSleepThreshold(0, 0)
   backgroundShip:setOwner(player)
   self:addChild(backgroundShip)
+  GameState.player.currentShip = backgroundShip
   GameState.player.humanPlayer:setControlling(backgroundShip)
 end
 
