@@ -1,6 +1,5 @@
 local ShipFighter   = require('Systems.Gen.ShipFighter')
 local ShipCapital   = require('Systems.Gen.ShipCapital')
-local ShipInvisible = require('Systems.Gen.ShipInvisible')
 
 local Ship = {}
 
@@ -28,14 +27,6 @@ end
 function Ship.ShipCapital(seed, res)
   local rng = RNG.Create(seed)
   return ShipCapital.Sausage(rng)
-end
-
-function Ship.ShipInvisible(seed, res)
-  local rng = RNG.Create(seed)
-  Profiler.Begin('Gen.ShipInvisible.Standard')
-  local result = ShipInvisible.Standard(rng)
-  Profiler.End()
-  return result
 end
 
 return Ship

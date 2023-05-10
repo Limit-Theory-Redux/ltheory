@@ -190,16 +190,16 @@ function Application:run ()
       Profiler.End()
     end
 
-    if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
-      UI.DrawEx.TextAdditive(
-        'NovaRound',
-        "EXPERIMENTAL BUILD - NOT FINAL!",
-        20,
-        self.resX / 2 - 24, 62, 40, 20,
-        1, 1, 1, 1,
-        0.5, 0.5
-      )
+    UI.DrawEx.TextAdditive(
+      'NovaRound',
+      "EXPERIMENTAL BUILD - NOT FINAL!",
+      20,
+      self.resX / 2 - 24, 62, 40, 20,
+      1, 1, 1, 1,
+      0.5, 0.5
+    )
 
+    if GameState:GetCurrentState() ~= Enums.GameStates.MainMenu then
       if GameState.paused then
         UI.DrawEx.TextAdditive(
           'NovaRound',
