@@ -21,6 +21,7 @@ memoffset = "0.8"
 printf-compat = "0.1.1"
 rodio = "0.17.0"
 flate2 = "1.0.25"
+rapier3d = { version = "0.17.2", features = [ "simd-stable" ] }
 mlua = { version = "0.8", features = ["luajit", "vendored"] }
 freetype-sys = "0.17"
 fmod-sys = { path = "fmod-sys" }

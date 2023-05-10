@@ -1,120 +1,142 @@
-/*
-
-PHX_API Physics*  _cppPhysics_Create                  ();
-PHX_API void      _cppPhysics_Free                    (Physics*);
-
-PHX_API void      _cppPhysics_AddRigidBody            (Physics*, RigidBody*);
-PHX_API void      _cppPhysics_RemoveRigidBody         (Physics*, RigidBody*);
-PHX_API void      _cppPhysics_AddTrigger              (Physics*, Trigger*);
-PHX_API void      _cppPhysics_RemoveTrigger           (Physics*, Trigger*);
-
-PHX_API bool      _cppPhysics_GetNextCollision        (Physics*, Collision*);
-PHX_API void      _cppPhysics_Update                  (Physics*, float dt);
-
-PHX_API void      _cppPhysics_RayCast                 (Physics*, Ray*, RayCastResult*);
-PHX_API void      _cppPhysics_SphereCast              (Physics*, Sphere*, ShapeCastResult*);
-PHX_API void      _cppPhysics_BoxCast                 (Physics*, Vec3f* pos, Quat* rot, Vec3f* halfExtents, ShapeCastResult*);
-PHX_API bool      _cppPhysics_SphereOverlap           (Physics*, Sphere*);
-PHX_API bool      _cppPhysics_BoxOverlap              (Physics*, Vec3f* pos, Quat* rot, Vec3f* halfExtents);
-
-PHX_API void      _cppPhysics_PrintProfiling          (Physics*);
-PHX_API void      _cppPhysics_DrawBoundingBoxesLocal  (Physics*);
-PHX_API void      _cppPhysics_DrawBoundingBoxesWorld  (Physics*);
-PHX_API void      _cppPhysics_DrawTriggers            (Physics*);
-PHX_API void      _cppPhysics_DrawWireframes          (Physics*);
-
- */
-
 use crate::Math::Vec3;
 use crate::Ray::*;
+use crate::Quat::*;
+use crate::Trigger::*;
+use rapier3d::prelude as rp;
+use rapier3d::prelude::nalgebra;
 
-extern "C" {
-    pub type Physics;
-    pub type RigidBody;
-    pub type Trigger;
-    pub type Collision;
-    pub type Sphere;
-    pub type RayCastResult;
-    pub type ShapeCastResult;
-    pub type Quat;
-    fn _cppPhysics_Create() -> *mut Physics;
-    fn _cppPhysics_Free(_: *mut Physics);
-    fn _cppPhysics_AddRigidBody(_: *mut Physics, _: *mut RigidBody);
-    fn _cppPhysics_RemoveRigidBody(_: *mut Physics, _: *mut RigidBody);
-    fn _cppPhysics_AddTrigger(_: *mut Physics, _: *mut Trigger);
-    fn _cppPhysics_RemoveTrigger(_: *mut Physics, _: *mut Trigger);
-    fn _cppPhysics_GetNextCollision(_: *mut Physics, _: *mut Collision) -> bool;
-    fn _cppPhysics_Update(_: *mut Physics, dt: f32);
-    fn _cppPhysics_RayCast(_: *mut Physics, _: *mut Ray, _: *mut RayCastResult);
-    fn _cppPhysics_SphereCast(_: *mut Physics, _: *mut Sphere, _: *mut ShapeCastResult);
-    fn _cppPhysics_BoxCast(
-        _: *mut Physics,
-        pos: *mut Vec3,
-        rot: *mut Quat,
-        halfExtents: *mut Vec3,
-        _: *mut ShapeCastResult,
-    );
-    fn _cppPhysics_SphereOverlap(_: *mut Physics, _: *mut Sphere) -> bool;
-    fn _cppPhysics_BoxOverlap(
-        _: *mut Physics,
-        pos: *mut Vec3,
-        rot: *mut Quat,
-        halfExtents: *mut Vec3,
-    ) -> bool;
-    fn _cppPhysics_PrintProfiling(_: *mut Physics);
-    fn _cppPhysics_DrawBoundingBoxesLocal(_: *mut Physics);
-    fn _cppPhysics_DrawBoundingBoxesWorld(_: *mut Physics);
-    fn _cppPhysics_DrawTriggers(_: *mut Physics);
-    fn _cppPhysics_DrawWireframes(_: *mut Physics);
+pub struct Physics {
+    pub rigidBodySet: rp::RigidBodySet,
+    pub colliderSet: rp::ColliderSet,
+
+    pub integrationParameters: rp::IntegrationParameters,
+    pub physicsPipeline: rp::PhysicsPipeline,
+    pub queryPipeline: rp::QueryPipeline,
+    pub islandManager: rp::IslandManager,
+    pub broadphase: rp::BroadPhase,
+    pub narrowphase: rp::NarrowPhase,
+    pub impulseJointSet: rp::ImpulseJointSet,
+    pub multibodyJointSet: rp::MultibodyJointSet,
+    pub ccdSolve: rp::CCDSolver,
+
+    pub triggers: Vec<Trigger>,
+}
+
+pub struct Collision {
+    index: i32,
+    count: i32,
+    body0: RigidBody,
+    body1: RigidBody,
+}
+  
+pub struct RayCastResult {
+    body: RigidBody,
+    norm: Vec3,
+    pos: Vec3,
+    t: f32,
+}
+  
+pub struct ShapeCastResult {
+    hits: Vec<RigidBody>
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_Create() -> *mut Physics {
-    _cppPhysics_Create()
+pub unsafe extern "C" fn Physics_Create() -> Box<Physics> {
+    Box::new(Physics {
+        integrationParameters: rp::IntegrationParameters::default(),
+        rigidBodySet: rp::RigidBodySet::new(),
+        colliderSet: rp::ColliderSet::new(),
+        physicsPipeline: rp::PhysicsPipeline::new(),
+        queryPipeline: rp::QueryPipeline::new(),
+        islandManager: rp::IslandManager::new(),
+        broadphase: rp::BroadPhase::new(),
+        narrowphase: rp::NarrowPhase::new(),
+        impulseJointSet: rp::ImpulseJointSet::new(),
+        multibodyJointSet: rp::MultibodyJointSet::new(),
+        ccdSolve: rp::CCDSolver::new(),
+        triggers: Vec::new(),
+    })
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_Free(this: &mut Physics) {
-    _cppPhysics_Free(this)
+pub unsafe extern "C" fn Physics_Free(_: Box<Physics>) {
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_AddRigidBody(this: &mut Physics, rb: *mut RigidBody) {
-    _cppPhysics_AddRigidBody(this, rb)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_RemoveRigidBody(this: &mut Physics, rb: *mut RigidBody) {
-    _cppPhysics_RemoveRigidBody(this, rb)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_AddTrigger(this: &mut Physics, t: *mut Trigger) {
-    _cppPhysics_AddTrigger(this, t)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_RemoveTrigger(this: &mut Physics, t: *mut Trigger) {
-    _cppPhysics_RemoveTrigger(this, t)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_GetNextCollision(this: &mut Physics, c: *mut Collision) -> bool {
-    _cppPhysics_GetNextCollision(this, c)
+    false
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_Update(this: &mut Physics, dt: f32) {
-    _cppPhysics_Update(this, dt)
+    for trigger in this.triggers.iter() {
+        Trigger_Update(trigger);
+    }
+
+    let gravity = rp::vector![0.0, 0.0, 0.0];
+    let physics_hooks = ();
+    let event_handler = ();
+
+    let mut integrationParameters = this.integrationParameters;
+    integrationParameters.dt = dt;
+    this.physicsPipeline.step(
+      &gravity,
+      &integrationParameters,
+      &mut this.islandManager,
+      &mut this.broadphase,
+      &mut this.narrowphase,
+      &mut this.rigidBodySet,
+      &mut this.colliderSet,
+      &mut this.impulseJointSet,
+      &mut this.multibodyJointSet,
+      &mut this.ccdSolver,
+      None,
+      &physics_hooks,
+      &event_handler,
+    );
+    this.queryPipeline.update(&this.rigidBodySet, &this.colliderSet);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_RayCast(
     this: &mut Physics,
-    ray: *mut Ray,
-    result: *mut RayCastResult,
+    ray: &mut Ray,
+    result: &mut RayCastResult,
 ) {
-    _cppPhysics_RayCast(this, ray, result)
+    let from = {
+        let mut data = Vec3::ZERO;
+        Ray_GetPoint(ray, ray.tMin, &mut data);
+        rp::Point::new(data.x, data.y, data.z)
+    };
+    let to = {
+        let mut data = Vec3::ZERO;
+        Ray_GetPoint(ray, ray.tMax, &mut data);
+        rp::Point::new(data.x, data.y, data.z)
+    };
+    let dir = to - from;
+    let length = dir.norm();
+
+    let ray = rp::Ray::new(from, dir / length);
+    let filter = rp::QueryFilter::default();
+    if let Some((handle, toi)) = this.queryPipeline.cast_ray(&this.rigidBodySet, &this.colliderSet, &ray, length, true, filter) {
+        
+    }
 }
 
 #[no_mangle]
@@ -123,7 +145,6 @@ pub unsafe extern "C" fn Physics_SphereCast(
     sphere: *mut Sphere,
     result: *mut ShapeCastResult,
 ) {
-    _cppPhysics_SphereCast(this, sphere, result)
 }
 
 #[no_mangle]
@@ -134,12 +155,11 @@ pub unsafe extern "C" fn Physics_BoxCast(
     halfExtents: *mut Vec3,
     result: *mut ShapeCastResult,
 ) {
-    _cppPhysics_BoxCast(this, pos, rot, halfExtents, result)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_SphereOverlap(this: &mut Physics, sphere: *mut Sphere) -> bool {
-    _cppPhysics_SphereOverlap(this, sphere)
+    false
 }
 
 #[no_mangle]
@@ -149,30 +169,25 @@ pub unsafe extern "C" fn Physics_BoxOverlap(
     rot: *mut Quat,
     halfExtents: *mut Vec3,
 ) -> bool {
-    _cppPhysics_BoxOverlap(this, pos, rot, halfExtents)
+    false
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_PrintProfiling(this: &mut Physics) {
-    _cppPhysics_PrintProfiling(this)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_DrawBoundingBoxesLocal(this: &mut Physics) {
-    _cppPhysics_DrawBoundingBoxesLocal(this)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_DrawBoundingBoxesWorld(this: &mut Physics) {
-    _cppPhysics_DrawBoundingBoxesWorld(this)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_DrawTriggers(this: &mut Physics) {
-    _cppPhysics_DrawTriggers(this)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_DrawWireframes(this: &mut Physics) {
-    _cppPhysics_DrawWireframes(this)
 }

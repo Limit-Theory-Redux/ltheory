@@ -21,6 +21,7 @@ extern crate libc;
 extern crate memoffset;
 extern crate mlua;
 extern crate printf_compat;
+extern crate rapier3d;
 extern crate rodio;
 extern crate sdl2_sys;
 
