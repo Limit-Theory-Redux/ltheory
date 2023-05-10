@@ -1,4 +1,5 @@
 local Entity = require('GameObjects.Entity')
+local Bindings = require('States.ApplicationBindings')
 
 function Entity:addHealth (max, rate)
   assert(not self.health)
@@ -83,7 +84,9 @@ printf("%s destroyed by %s!", thisShipName, attackingShipName)
     end
 
     if self == GameState.player.currentShip then
-      GameState:Pause()
+      -- TODO: Do any unloading/savegame/etc actions required upon player ship destruction
+      -- NOTE: The "Game Over" message is displayed in Application.lua
+printf("Player ship %s has been destroyed, game over!", self:getName())
     end
   end
 end
@@ -128,6 +131,15 @@ end
 
 function Entity:updateHealth (state)
   if not self:isDestroyed() then
-    self.health = min(self.healthMax, self.health + state.dt * self.healthRate)
+    local timeScale = 1.0
+    if GameState.paused then
+      timeScale = 0.0
+    end
+
+    if Input.GetDown(Bindings.TimeAccel) then
+      timeScale = GameState.debug.timeAccelFactor
+    end
+
+    self.health = min(self.healthMax, self.health + (timeScale * state.dt) * self.healthRate)
   end
 end

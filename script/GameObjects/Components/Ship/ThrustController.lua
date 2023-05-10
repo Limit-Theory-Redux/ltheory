@@ -38,9 +38,9 @@ end
 
 function ThrustController:update (e, dt)
   local boost = 0.0
-  if e:discharge(dt * self.boost * Config.game.boostCost) then
+--  if self.boost > 0 and e:discharge(dt * self.boost * Config.game.boostCost) then -- disabled for now
     boost = self.boost
-  end
+--  end
 
   local mult = 1.0 + 2.0 * boost
 

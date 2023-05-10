@@ -1,4 +1,5 @@
 local Bindings = require('States.ApplicationBindings')
+local MainMenu = require('Systems.Menus.MainMenu')
 
 local Application = class(function (self) end)
 
@@ -209,13 +210,27 @@ function Application:run ()
           0.5, 0.99
         )
       end
+
+      if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
+        if not MainMenu or not MainMenu.dialogDisplayed then
+          UI.DrawEx.TextAdditive(
+            'NovaRound',
+            "[GAME OVER]",
+            32,
+            0, 0, self.resX, self.resY,
+            1, 1, 1, 1,
+            0.5, 0.5
+          )
+        end
+      end
     end
 
     -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
     if doScreenshot then
+--        Settings.set('render.superSample', 2) -- turn on mild supersampling
       ScreenCap()
       if self.prevSS then
---        Settings.set('render.superSample', self.prevSS)
+--        Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
         self.prevSS = nil
       end
     end

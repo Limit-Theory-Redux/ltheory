@@ -23,7 +23,6 @@ function InitFiles:readUserInits ()
     io.close(openedFile)
 
     -- Scan all lines and apply values to matched game values
-    -- NOTE: This is a naive early implementation -- not intended to be production-ready
     local stringToBoolean = { ["true"] = true, ["false"] = false }
 
     local function findCategory(line)
@@ -178,6 +177,8 @@ function InitFiles:writeUserInits ()
       local pass = true
       -- excluded
       if string.match(l_Variable, "current")
+      or string.match(l_Variable, "lastCamera")
+      or string.match(l_Variable, "playerMoving")
       or string.match(l_Variable, "weaponGroup")
       or string.match(l_Variable, "autonavTimestamp")
       or string.match(l_Variable, "mapSystemZoom") then

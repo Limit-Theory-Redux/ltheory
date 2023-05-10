@@ -16,9 +16,7 @@ local self = {
   ThrustY = Control.Or(
     Control.Pair(
       Control.Key(Button.Keyboard.Space),
-      Control.Or(
-        Control.Key(Button.Keyboard.LCtrl),
-        Control.Key(Button.Keyboard.RCtrl))),
+      Control.Ctrl()),
     Control.Pair(
       Control.GamepadAxis(Button.Gamepad.Up),
       Control.GamepadAxis(Button.Gamepad.Down))),
@@ -40,7 +38,7 @@ local self = {
     Control.GamepadAxis(Button.Gamepad.RStickY):invert()),
 
   Boost = Control.Or(
-    Control.Key(Button.Keyboard.LShift),
+    Control.Shift(),
     Control.GamepadAxis(Button.Gamepad.LTrigger)),
 
   Fire = Control.Or(
@@ -55,6 +53,11 @@ local self = {
   ClearTarget = Control.Or(
     Control.Key(Button.Keyboard.G),
     Control.GamepadButton(Button.Gamepad.B))
+    :delta(),
+
+  NearestTarget = Control.Or(
+    Control.Key(Button.Keyboard.N),
+    Control.GamepadButton(Button.Gamepad.X))
     :delta(),
 
   Dock = Control.Or(
