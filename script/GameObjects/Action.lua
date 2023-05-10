@@ -51,15 +51,19 @@ function Action:flyToward (e, targetPos, targetForward, targetUp)
   local yawPitch = e:getForward():cross(forward)
   local roll     = e:getUp():cross(targetUp)
 
-  c.forward = expMap(2.0 * e:getForward():dot(forward))
-  c.right = expMap(2.0 * e:getRight():dot(forward))
-  c.up = expMap(2.0 * e:getUp():dot(forward))
-  c.yaw = expMap(-10.0 * e:getUp():dot(yawPitch))
-  c.pitch = expMap(10.0 * e:getRight():dot(yawPitch))
-  c.roll = expMap(-10.0 * e:getForward():dot(roll))
+  c.forward = expMap(  2.0 * e:getForward():dot(forward))
+  c.right   = expMap(  2.0 * e:getRight():dot(forward))
+  c.up      = expMap(  2.0 * e:getUp():dot(forward))
+  c.yaw     = expMap(-10.0 * e:getUp():dot(yawPitch))
+  c.pitch   = expMap( 10.0 * e:getRight():dot(yawPitch))
+  c.roll    = expMap(-10.0 * e:getForward():dot(roll))
 
   if e == GameState.player.currentShip or e.usesBoost then
-    c.boost = 1.0 - exp(-max(0.0, (dist / 150.0) - 1.0))
+    c.boost = 0.0
+    local newBoost = 1.0 - exp(-max(0.0, (dist / 150.0) - 1.0))
+--    if newBoost > 0 and e:discharge(newBoost) then -- applies without normal boostCost (disabled for now)
+      c.boost = newBoost
+--    end
   end
 end
 

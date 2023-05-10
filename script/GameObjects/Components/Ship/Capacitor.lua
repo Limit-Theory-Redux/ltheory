@@ -3,8 +3,13 @@
 --        entity should be stored in a kind of 'energy inventory' -- to be used
 --        by shields, armor, hull, capacitor, and anything else that uses a
 --        similar 'virtual currency'
+-- NOTE: The above "TODO" came from Josh -- we may want to rethink it. It makes sense
+--           that things using energy -- energy weapons, shield generators -- should
+--           take that energy from a capacitor. But physical objects, such as hull and
+--           armor, don't need to take energy and should have their own "health" values.
 
 local Entity = require('GameObjects.Entity')
+local Bindings = require('States.ApplicationBindings')
 
 function Entity:addCapacitor (max, rate)
   assert(not self.charge)
@@ -20,6 +25,7 @@ function Entity:discharge (value)
   if not self.charge then return false end
   if self.charge < value then return false end
   self.charge = self.charge - value
+--printf("Entity %s discharges %s, %s remaining", self:getName(), value, self.charge)
   return true
 end
 
@@ -56,6 +62,16 @@ function Entity:setCharge (value, max, rate)
 end
 
 function Entity:updateCapacitor (state)
-  if self:isDestroyed() then return end
-  self.charge = min(self.chargeMax, self.charge + state.dt * self.chargeRate)
+  if not self:isDestroyed() then
+    local timeScale = 1.0
+    if GameState.paused then
+      timeScale = 0.0
+    end
+
+    if Input.GetDown(Bindings.TimeAccel) then
+      timeScale = GameState.debug.timeAccelFactor
+    end
+
+    self.charge = min(self.chargeMax, self.charge + (timeScale * state.dt) * self.chargeRate)
+  end
 end

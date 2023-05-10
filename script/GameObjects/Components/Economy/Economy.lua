@@ -69,7 +69,7 @@ function Economy:update (dt)
     Profiler.End()
 --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
---    if false then  -- INACTIVE (Josh code)
+--    if false then  -- INACTIVE (Josh code - preserve this for when we switch back to Flow model)
 --      do -- Cache trade jobs from positive to negative flow
 --        for _, src in ipairs(self.markets) do
 --          for item, srcFlow in pairs(src:getFlows()) do

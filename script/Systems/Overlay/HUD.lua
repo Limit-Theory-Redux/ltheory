@@ -93,10 +93,10 @@ function HUD:drawTargetText (a)
   end
 end
 
-function HUD:drawBoostEnergy (a)
+function HUD:drawHullIntegrity (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
-  local mvWidth   = 24
+  local mvWidth   = 18
   local mvHeight  =  8
   local mvSpacing = 10
   local mvLevels  = 10
@@ -123,14 +123,18 @@ function HUD:drawBoostEnergy (a)
     hudY      = cy
   end
 
+  local player = self.player
+  local playerShip = player:getControlling()
+  local playerHealthDecPct = floor((playerShip:getHealthPercent() + 0.5) / 10)
+
   UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderBright)
-  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.remainingBoost, mvSpacing, mvLevels, 7)
+  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.hullIntegrity, mvSpacing, mvLevels, playerHealthDecPct)
 end
 
 function HUD:drawCapacitorEnergy (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
-  local mvWidth   = 24
+  local mvWidth   = 18
   local mvHeight  =  8
   local mvSpacing = 10
   local mvLevels  = 10
@@ -615,8 +619,7 @@ function HUD:drawLockWarning (a)
   for _, ship in ipairs(GameState.world.currentSystem.ships) do
     -- TEMP: Rather than missile lock, check to see whether player's ship is currently targeted by any other ship
     -- TODO: Change to missile lock only if a missile is locked onto the player's ship
-    local shipTarget = ship:getTarget()
-    if shipTarget == playerShip then
+    if ship:getTarget() == playerShip then
       if floor((lockTimer * 10) % 3) == 0 then
         -- TODO: Flash missile lock graphic ~3 times per second
         -- TODO: round those triangle corners!
@@ -799,38 +802,33 @@ function HUD:drawTargets (a)
 --        local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
         local c = Disposition.GetColor(disp)
 
-        c.a = a * c.a
         if ndcMax <= 1.0 and ndc.z > 0 then
           do
             -- Get tracker box extents based on object size, and adjust inward slightly
             local bx1, by1, bsx, bsy = camera:entityToScreenRect(target)
-            bx1 = bx1 + 20
-            by1 = by1 + 20
             local bx2, by2 = bx1 + bsx, by1 + bsy
-            bx2 = bx2 - 40
-            by2 = by2 - 40
 
             -- Draw rounded box corners
             if target:hasAttackable() and target:isAttackable() then
               -- Innermost box shows trackable object's disposition to player
               --     (red = enemy, blue = neutral, green = friendly)
-              UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c)
-              UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c)
-              UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c)
-              UI.DrawEx.Wedge(bx2, by2, 4, 4, 0.875, 0.2, c)
+              UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c, c.a)
+              UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c, c.a)
+              UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c, c.a)
+              UI.DrawEx.Wedge(bx2, by2, 4, 4, 0.875, 0.2, c, c.a)
             end
             if playerTarget == target then
-              -- Middle box indicates lockable target
-              UI.DrawEx.Wedge(bx2, by1, 12, 12, 0.125, 0.3, cLock)
-              UI.DrawEx.Wedge(bx1, by1, 12, 12, 0.375, 0.3, cLock)
-              UI.DrawEx.Wedge(bx1, by2, 12, 12, 0.625, 0.3, cLock)
-              UI.DrawEx.Wedge(bx2, by2, 12, 12, 0.875, 0.3, cLock)
-            elseif self.target == target then
               -- Outermost box indicates locked target
-              UI.DrawEx.Wedge(bx2, by1, 8, 8, 0.125, 0.2, cTarget)
-              UI.DrawEx.Wedge(bx1, by1, 8, 8, 0.375, 0.2, cTarget)
-              UI.DrawEx.Wedge(bx1, by2, 8, 8, 0.625, 0.2, cTarget)
-              UI.DrawEx.Wedge(bx2, by2, 8, 8, 0.875, 0.2, cTarget)
+              UI.DrawEx.Wedge(bx2, by1, 12, 12, 0.125, 0.3, cLock, a)
+              UI.DrawEx.Wedge(bx1, by1, 12, 12, 0.375, 0.3, cLock, a)
+              UI.DrawEx.Wedge(bx1, by2, 12, 12, 0.625, 0.3, cLock, a)
+              UI.DrawEx.Wedge(bx2, by2, 12, 12, 0.875, 0.3, cLock, a)
+            elseif self.target == target then
+              -- Middle box indicates lockable target
+              UI.DrawEx.Wedge(bx2, by1, 8, 8, 0.125, 0.2, cTarget, a)
+              UI.DrawEx.Wedge(bx1, by1, 8, 8, 0.375, 0.2, cTarget, a)
+              UI.DrawEx.Wedge(bx1, by2, 8, 8, 0.625, 0.2, cTarget, a)
+              UI.DrawEx.Wedge(bx2, by2, 8, 8, 0.875, 0.2, cTarget, a)
             end
 
             -- Draw target name
@@ -1243,7 +1241,7 @@ function HUD:onDraw (focus, active)
     if GameState.ui.hudStyle ~= Enums.HudStyles.None then
       self:drawSystemText            (self.enabled)
       self:drawTargetText            (self.enabled)
-      self:drawBoostEnergy           (self.enabled)
+      self:drawHullIntegrity           (self.enabled)
       self:drawCapacitorEnergy       (self.enabled)
       self:drawTargetMission         (self.enabled)
       self:drawTargetType            (self.enabled)
@@ -1329,7 +1327,7 @@ function HUD:controlThrust (e)
     ShipBindings.ThrustY:get() * 2.0,
     yaw,
     pitch,
-    ShipBindings.Roll:get() * 0.3,
+    ShipBindings.Roll:get() * 0.5,
     ShipBindings.Boost:get())
   self.aimX = c.yaw
   self.aimY = c.pitch
@@ -1364,8 +1362,29 @@ function HUD:controlTurrets (e)
 end
 
 function HUD:controlTargetLock (e)
+  -- Lock target under the player ship's reticle
   if ShipBindings.LockTarget:get() > 0.5 then e:setTarget(self.target) end
+
+  -- Clear any currently locked target
   if ShipBindings.ClearTarget:get() > 0.5 then e:setTarget(nil) end
+
+  -- Lock the nearest ship that is currently targeting the player's ship
+  if ShipBindings.NearestTarget:get() > 0.5 then
+    local player = self.player
+    local playerShip = player:getControlling()
+    local nearestTargeting = nil
+    local nearestDistance = 1e10
+    for _, targetingShip in ipairs(GameState.world.currentSystem.ships) do
+      if targetingShip:getTarget() == playerShip then
+        local targetingDistance = targetingShip:getDistance(playerShip)
+        if targetingDistance < nearestDistance then
+          nearestTargeting = targetingShip
+          nearestDistance = targetingDistance
+        end
+      end
+    end
+    if nearestTargeting then e:setTarget(nearestTargeting) end
+  end
 end
 
 function HUD:drawHudText (font, fontsize, x, y, text, c)

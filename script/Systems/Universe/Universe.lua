@@ -98,6 +98,7 @@ function Universe:CreateStarSystem(seed)
     table.insert(self.systems, system)
     printf("Added System: " .. system:getName() .. " to the Universe.")
   end
+
   self:AddSystemEconomy(system)
 end
 
