@@ -13,16 +13,17 @@ Space  -- moves your ship up
 1 - 8  -- select a weapon group (can't change what's in a group yet, this is just group selection)
 Tab    -- toggle System Map on/off
 Return -- Activate the overlay panel for the currently focused panel icon
-G      -- disable target lock (HUD or System Map)
-N      -- target the nearest ship that is targeting the player's ship
-T      -- enable target lock on when the reticle is over a targetable object in Flight Mode view
+F1     -- [TBD] Activate Flight Mode panel
+F2     -- [TBD] Activate Debug Mode panel
+F3     -- [TBD] Activate Fleet Command Mode panel
+F4     -- [TBD] Activate Background Mode panel
+F5     -- [TBD] Activate Dock Mode panel
+G      -- toggles target lock off (HUD or System Map)
+T      -- toggles target lock on when hovering over a targetable object in Flight Mode view
 V      -- toggle the HUD off and back on again
 Z      -- toggle sensors display on/off
 
 *** OTHER CONTROLS ***
-F1     -- switch to first-person camera
-F2     -- switch to chase camera
-F3     -- switch to orbiting camera (mostly useful when not actively flying)
 F10    -- toggle profiler on, then toggle off and display stats
 F11    -- toggle fullscreen on/off
 F12    -- take a screenshot (*.png) and save it to ./screenshot folder

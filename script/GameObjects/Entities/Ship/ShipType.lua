@@ -6,7 +6,6 @@
 ----------------------------------------------------------------------------]]--
 
 local Ship = require('GameObjects.Entities.Ship.Ship')
-local ShipI = require('GameObjects.Entities.Ship.ShipInvis')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local ShipType = class(function (self, seed, generator, scale)
@@ -43,11 +42,7 @@ end)
 
 -- TODO: change how this works and create a generalized code structure for creating ships as this is b***shit
 function ShipType:instantiate ()
-  if GameState:GetCurrentState() < Enums.GameStates.InGame then
-    return ShipI(self) -- enable game startup mode
-  else
-    return Ship(self) -- enable flight mode
-  end
+  return Ship(self)
 end
 
 return ShipType

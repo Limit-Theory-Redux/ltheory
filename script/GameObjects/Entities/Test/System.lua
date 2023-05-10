@@ -9,6 +9,7 @@ local Item = require('Systems.Economy.Item')
 local Dust = require('GameObjects.Entities.Effects.Dust')
 local Nebula = require('GameObjects.Entities.Objects.Nebula')
 local Words = require('Systems.Gen.Words')
+local HUD = require('Systems.Overlay.HUD')
 
 local System = subclass(Entity, function (self, seed)
   self.rng = RNG.Create(seed):managed()
@@ -716,7 +717,7 @@ function System:spawnBackground ()
   --   (because System.lua needs a thing with mass, scale, drag, and thrust
   --   in order to rotate around a camera viewpoint)
   if not self.shipType then
-    self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipInvisible, 4)
+    self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
   end
   local backgroundShip = self.shipType:instantiate()
   local player = Player("Background Player")
