@@ -27,7 +27,6 @@ function Orbit:onUpdateActive (e, dt)
 
   self.currentTime = self.currentTime + dt
   local target = self.target
-  local targetPos = target:getPos()
 
   local vector = Vec3f()
   -- define 2 axis orbits
