@@ -74,7 +74,7 @@ function Universe:CreateStarSystem(seed)
     if GameState.gen.nEscortNPCs > 0 then
       for i = 1, GameState.gen.nEscortNPCs do
         local escort = system:spawnShip(nil)
-        local offset = system.rng:getSphere():scale(50)
+        local offset = system.rng:getSphere():scale(100)
         escort:setPos(playerShip:getPos() + offset)
 
         if i > GameState.gen.nEscortNPCs / 2 then
