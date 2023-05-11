@@ -76,7 +76,12 @@ function Universe:CreateStarSystem(seed)
         local escort = system:spawnShip(nil)
         local offset = system.rng:getSphere():scale(100)
         escort:setPos(playerShip:getPos() + offset)
-        escort:pushAction(Actions.Escort(playerShip, offset))
+
+        if i > GameState.gen.nEscortNPCs / 2 then
+          escort:pushAction(Actions.Orbit(playerShip, rng:getInt(4, 10)*10, rng:getInt(10, 40)))
+        else
+          escort:pushAction(Actions.Escort(playerShip, offset))
+        end
 
         -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
         --       These will be dogfighting challenges!
@@ -88,9 +93,9 @@ function Universe:CreateStarSystem(seed)
         insert(escortShips, escort)
       end
       -- TESTING: MAKE SHIPS CHASE EACH OTHER!
-      for i = 1, #escortShips - 1 do
-        escortShips[i]:pushAction(Actions.Attack(escortShips[i+1]))
-      end
+      --for i = 1, #escortShips - 1 do
+      --  escortShips[i]:pushAction(Actions.Attack(escortShips[i+1]))
+      --end
       printf("Added %d escort ships", GameState.gen.nEscortNPCs)
     end
 
