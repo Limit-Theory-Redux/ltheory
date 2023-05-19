@@ -93,26 +93,28 @@ unsafe extern "C" fn Lua_BacktraceHook(this: *mut Lua, _: *mut lua_Debug) {
     lua_error(this);
 }
 
-unsafe extern "C" fn Lua_SignalHandler(_sig: Signal) {
-    if activeInstance.is_null() {
-        return;
+extern "C" fn Lua_SignalHandler(_sig: Signal) {
+    unsafe {
+        if activeInstance.is_null() {
+            return;
+        }
+        // if sig == Signal_Abrt || sig == Signal_Segv {
+        /* NOTE : The implementation of abort() causes the program to forcefully
+         *        exit as soon as the signal handler returns. Thus Lua_BacktraceHook
+         *        will never get a chance to be called and we have to dump a trace
+         *        now. */
+        Lua_Backtrace();
+        // } else {
+        //     cSignal = sig;
+        //     lua_sethook(
+        //         activeInstance,
+        //         Some(Lua_BacktraceHook as extern "C" fn(*mut Lua, *mut lua_Debug) -> ()),
+        //         LUA_MASKCALL | LUA_MASKRET | LUA_MASKCOUNT,
+        //         1,
+        //     );
+        //     Signal_IgnoreDefault();
+        // };
     }
-    // if sig == Signal_Abrt || sig == Signal_Segv {
-    /* NOTE : The implementation of abort() causes the program to forcefully
-     *        exit as soon as the signal handler returns. Thus Lua_BacktraceHook
-     *        will never get a chance to be called and we have to dump a trace
-     *        now. */
-    Lua_Backtrace();
-    // } else {
-    //     cSignal = sig;
-    //     lua_sethook(
-    //         activeInstance,
-    //         Some(Lua_BacktraceHook as extern "C" fn(*mut Lua, *mut lua_Debug) -> ()),
-    //         LUA_MASKCALL | LUA_MASKRET | LUA_MASKCOUNT,
-    //         1,
-    //     );
-    //     Signal_IgnoreDefault();
-    // };
 }
 
 unsafe extern "C" fn Lua_PCall(this: *mut Lua, args: i32, rets: i32, errorHandler: i32) {
@@ -155,9 +157,7 @@ unsafe extern "C" fn Lua_InitExtensions(this: *mut Lua) {
 pub unsafe extern "C" fn Lua_Create() -> *mut Lua {
     if !initialized {
         initialized = true;
-        Signal_AddHandlerAll(Some(
-            Lua_SignalHandler as unsafe extern "C" fn(Signal) -> (),
-        ));
+        Signal_AddHandlerAll(Lua_SignalHandler);
     }
     let this: *mut Lua = luaL_newstate();
     luaL_openlibs(this);
