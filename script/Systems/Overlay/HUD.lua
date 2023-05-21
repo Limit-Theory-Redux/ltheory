@@ -1,7 +1,7 @@
 local Bindings = require('States.ApplicationBindings')
 local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
 local ShipBindings = require('Systems.Controls.Bindings.ShipBindings')
-local Disposition = require('GameObjects.Components.NPC.Dispositions')
+local Disposition = require('GameObjects.Elements.NPC.Dispositions')
 local Entity = require('GameObjects.Entity')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
@@ -93,6 +93,44 @@ function HUD:drawTargetText (a)
   end
 end
 
+function HUD:drawArmorIntegrity (a)
+  local cx, cy = self.sx / 2, self.sy / 2
+
+  local mvWidth   = 18
+  local mvHeight  =  8
+  local mvSpacing = 10
+  local mvLevels  = 10
+  local mvYtot    = (mvHeight + mvSpacing) * mvLevels
+
+  local hudX = 0
+  local hudY = 0
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
+    mvWidth   = 36
+    mvHeight  = 16
+    mvSpacing = 10
+    mvYtot    = (mvHeight + mvSpacing) * mvLevels
+    hudX      = 30
+    hudY      = cy + floor(cy / 10)
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
+    mvWidth   = 32
+    mvHeight  = 12
+    mvSpacing = 10
+    mvYtot    = (mvHeight + mvSpacing) * mvLevels
+    hudX      = floor(cx / 3) - 60
+    hudY      = cy + floor(cy / 10)
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
+    hudX      = cx - 300 - 40
+    hudY      = cy
+  end
+
+  local player = self.player
+  local playerShip = player:getControlling()
+  local playerArmorDecPct = floor((playerShip:getArmorPercent() + 0.5) / 10)
+
+  UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
+  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.armorIntegrity, mvSpacing, mvLevels, playerArmorDecPct)
+end
+
 function HUD:drawHullIntegrity (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
@@ -109,7 +147,7 @@ function HUD:drawHullIntegrity (a)
     mvHeight  = 16
     mvSpacing = 10
     mvYtot    = (mvHeight + mvSpacing) * mvLevels
-    hudX      = 60
+    hudX      = 100
     hudY      = cy + floor(cy / 10)
   elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     mvWidth   = 32
@@ -127,7 +165,7 @@ function HUD:drawHullIntegrity (a)
   local playerShip = player:getControlling()
   local playerHealthDecPct = floor((playerShip:getHealthPercent() + 0.5) / 10)
 
-  UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderBright)
+  UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
   UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.hullIntegrity, mvSpacing, mvLevels, playerHealthDecPct)
 end
 
@@ -147,7 +185,7 @@ function HUD:drawCapacitorEnergy (a)
     mvHeight  = 16
     mvSpacing = 10
     mvYtot    = (mvHeight + mvSpacing) * mvLevels
-    hudX      = self.sx - 60 - mvWidth
+    hudX      = self.sx - 100 - mvWidth
     hudY      = cy + floor(cy / 10)
   elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
     mvWidth   = 32
@@ -163,10 +201,48 @@ function HUD:drawCapacitorEnergy (a)
 
   local player = self.player
   local playerShip = player:getControlling()
-  local capacitorPctBar = floor(playerShip:getChargePercent() / 10)
+  local capacitorDecPct = floor((playerShip:getChargePercent() + 0.5) / 10)
 
-  UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderBright)
-  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.remainingEnergy, mvSpacing, mvLevels, capacitorPctBar)
+  UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
+  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.capacitorEnergy, mvSpacing, mvLevels, capacitorDecPct)
+end
+
+function HUD:drawShieldStrength (a)
+  local cx, cy = self.sx / 2, self.sy / 2
+
+  local mvWidth   = 18
+  local mvHeight  =  8
+  local mvSpacing = 10
+  local mvLevels  = 10
+  local mvYtot    = (mvHeight + mvSpacing) * mvLevels
+
+  local hudX = 0
+  local hudY = 0
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
+    mvWidth   = 36
+    mvHeight  = 16
+    mvSpacing = 10
+    mvYtot    = (mvHeight + mvSpacing) * mvLevels
+    hudX      = self.sx - 30 - mvWidth
+    hudY      = cy + floor(cy / 10)
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
+    mvWidth   = 32
+    mvHeight  = 12
+    mvSpacing = 10
+    mvYtot    = (mvHeight + mvSpacing) * mvLevels
+    hudX      = self.sx - floor(cx / 3) - mvWidth + 60
+    hudY      = cy + floor(cy / 10)
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
+    hudX      = cx + (300 - mvWidth) + 40
+    hudY      = cy
+  end
+
+  local player = self.player
+  local playerShip = player:getControlling()
+  local shieldDecPct = floor((playerShip:getShieldPercent() + 0.5) / 10)
+
+  UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
+  UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.shieldStrength, mvSpacing, mvLevels, shieldDecPct)
 end
 
 function HUD:drawTargetType (a)
@@ -266,7 +342,7 @@ function HUD:drawTargetSubtype (a)
     if targetType == Config:getObjectTypeByName("object_types", "Ship") or
        targetType == Config:getObjectTypeByName("object_types", "Station") then
       if not playerTarget:isDestroyed() then
-        local textSubtype = "Trade" -- default to Station subtype; TODO: use action Station roles/classes
+        local textSubtype = "Trade" -- default to Station subtype; TODO: use Station hulls/roles
         -- Draw target subtype
         if targetType == Config:getObjectTypeByName("object_types", "Ship") then
           textSubtype = Config:getObjectInfo("ship_subtypes", playerTarget:getSubType())
@@ -409,7 +485,7 @@ function HUD:drawTargetShieldsHullArmor (a)
         -- Draw target shields info
         text = format("Shields")
         HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
-        local targetShieldsPct = 0 -- TODO: get current _integer_ shield power of target
+        local targetShieldsPct = floor(playerTarget:getShieldPercent() + 0.5)
         text = format("%d%%", targetShieldsPct)
         HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
@@ -423,7 +499,7 @@ function HUD:drawTargetShieldsHullArmor (a)
         -- Draw target hull armor info
         text = format("Armor")
         HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
-        local targetArmorPct = 0 -- TODO: get current _integer_ armor value of target
+        local targetArmorPct = floor(playerTarget:getArmorPercent() + 0.5)
         text = format("%d%%", targetArmorPct)
         HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
       end
@@ -471,7 +547,7 @@ function HUD:drawPlayerShieldsHullArmor (a)
   -- Draw player ship shields info
   text = format("Shields")
   HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
-  local playerShieldsPct = 0 -- TODO: get current _integer_ shield power of player's ship
+  local playerShieldsPct = floor(playerShip:getShieldPercent() + 0.5)
   text = format("%d%%", playerShieldsPct)
   HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
@@ -485,7 +561,7 @@ function HUD:drawPlayerShieldsHullArmor (a)
   -- Draw player ship hull armor info
   text = format("Armor")
   HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
-  local playerArmorPct = 0 -- TODO: get current _integer_ armor value
+  local playerArmorPct = floor(playerShip:getArmorPercent() + 0.5)
   text = format("%d%%", playerArmorPct)
   HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 end
@@ -996,13 +1072,14 @@ function HUD:drawReticle (a)
   end
 end
 
-function HUD:drawPlayerHealth (a)
+function HUD:drawPlayerHullInteg (a)
   local x, y, sx, sy = self:getRectGlobal()
   local cx, cy = sx / 2, sy / 2
   local playerShip = self.player:getControlling()
-  local playerRadius = playerShip:getRadius()
+  local playerZoom = playerShip:getRadius() / (playerShip:getScale() / 4)
+  local playerShieldPct = playerShip:getShieldPercent()
+  local playerArmorPct  = playerShip:getArmorPercent()
   local playerHealthPct = playerShip:getHealthPercent()
-  local playerHealthText = format("Health: %3.2f%%", playerHealthPct)
   local playerHealthCI = math.min(50, math.floor((playerHealthPct / 2.0) + 0.5) + 1)
 
   local hc = Color(1, 1, 1, 1)
@@ -1011,22 +1088,26 @@ function HUD:drawPlayerHealth (a)
   hc.b = Config.ui.color.healthColor[playerHealthCI].b
   hc.a = 0.7
 
-  -- Draw text of player ship name
-  HUD:drawHudTextDouble(164, sy - 270, Config.ui.color.meterBar, hudFontSize, 0.5, playerShip:getName())
-
-  -- Draw hologram of player ship on a grid background
+--if not GameState.paused then
+--local radius, mass = playerShip:getRadius(), playerShip:getMass()
 --local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
 --printf("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
---printf("radius = %3.2f, yaw = %3.2f, pitch = %3.2f", radius, yaw, pitch)
---printf("radius = %3.2f, radius / 1.7 = %3.2f", radius, radius / 1.7)
+--printf("mass = %s, radius = %3.2f, yaw = %3.2f, pitch = %3.2f", mass, radius, yaw, pitch)
+--printf("mass = %s, radius = %3.2f, radius / 1.7 = %3.2f", mass, radius, radius / 1.7)
+--end
 
-  UI.DrawEx.Grid(114, sy - 181, 100, 55, Config.ui.color.meterBar)
-  UI.DrawEx.Hologram(playerShip.mesh, 20, sy - 286, 260, 260, Config.ui.color.hologram, playerRadius / 1.7, -1.5, 0.0)
+  -- Draw text of player ship name
+  HUD:drawHudTextDouble(164, sy - 320, Config.ui.color.meterBar, hudFontSize, 0.5, playerShip:getName())
 
-  -- Draw text of player ship health
-  HUD:drawHudTextDouble(164, sy - 60, Config.ui.color.meterBar, hudFontSize, 0.5, playerHealthText)
+  -- Draw hologram of player ship on a grid background
+  UI.DrawEx.Grid(114, sy - 231, 100, 55, Config.ui.color.meterBar)
+  UI.DrawEx.Hologram(playerShip.mesh, 34, sy - 336, 260, 260, Config.ui.color.hologram, playerZoom / 1.7, -1.57, 0.0)
 
-  -- Draw player ship health as a meter
+  -- Draw player ship data as meters
+  UI.DrawEx.RectOutline(66, sy - 96, 202, 22, Config.ui.color.borderBright)
+  UI.DrawEx.Meter(72, sy - 90, 10, 10, Config.ui.color.shieldStrength, 10, 10, floor(playerShieldPct / 10), false, nil, 1)
+  UI.DrawEx.RectOutline(66, sy - 66, 202, 22, Config.ui.color.borderBright)
+  UI.DrawEx.Meter(72, sy - 60, 10, 10, Config.ui.color.armorIntegrity, 10, 10, floor(playerArmorPct / 10), false, nil, 1)
   UI.DrawEx.RectOutline(66, sy - 36, 202, 22, Config.ui.color.borderBright)
   UI.DrawEx.Meter(72, sy - 30, 10, 10, hc, 10, 10, floor(playerHealthPct / 10), false, nil, 1)
 
@@ -1036,7 +1117,7 @@ function HUD:drawPlayerHealth (a)
 
 end
 
-function HUD:drawTargetHealth (a)
+function HUD:drawTargetHullInteg (a)
   local playerShip = self.player:getControlling()
   local target = playerShip:getTarget()
   if target and target:hasHealth() and not target:isDestroyed() then
@@ -1051,10 +1132,11 @@ function HUD:drawTargetHealth (a)
     local targetName = target:getName()
     local targetHealthPct = target:getHealthPercent()
     if targetHealthPct > 0.0 then
-      local targetHealthText = format("Health: %3.2f%%", targetHealthPct)
+      local targetShieldPct = target:getShieldPercent()
+      local targetArmorPct  = target:getArmorPercent()
       local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
-      local targetRadius = target:getRadius()
-      local targetRadiusAdj = targetRadius
+      local targetZoom = target:getRadius() / (target:getScale() / 4)
+      local targetZoomAdj = targetZoom
 
       local hc = Color(1, 1, 1, 1)
       hc.r = Config.ui.color.healthColor[targetHealthCI].r
@@ -1063,27 +1145,28 @@ function HUD:drawTargetHealth (a)
       hc.a = 0.7
 
       if target:getType() == Config:getObjectTypeByName("object_types", "Ship") then
-        targetRadiusAdj = targetRadius / 1.7
+        targetZoomAdj = targetZoom / 1.7
         if target.usesBoost then
           targetName = targetName .. " [Ace]"
         end
       end
       if target:getType() == Config:getObjectTypeByName("object_types", "Station") then
-        targetRadiusAdj = 26
+        targetZoomAdj = 26 -- probably station radius (default: 100) / station scale (default: 4)
         targetName = "Station " .. target:getName()
       end
 
       -- Draw text of target name
-      HUD:drawHudTextDouble(sx - 160, sy - 270, Config.ui.color.meterBar, hudFontSize, 0.5, targetName)
+      HUD:drawHudTextDouble(sx - 160, sy - 320, Config.ui.color.meterBar, hudFontSize, 0.5, targetName)
 
       -- Draw hologram of target entity on a grid background
-      UI.DrawEx.Grid(sx - 206, sy - 181, 100, 55, Config.ui.color.meterBar)
-      UI.DrawEx.Hologram(target.mesh, sx - 300, sy - 286, 260, 260, Config.ui.color.hologram, targetRadiusAdj, -1.5, 0.0)
-
-      -- Draw text of target health
-      HUD:drawHudTextDouble(sx - 160, sy - 60, Config.ui.color.meterBar, hudFontSize, 0.5, targetHealthText)
+      UI.DrawEx.Grid(sx - 206, sy - 231, 100, 55, Config.ui.color.meterBar)
+      UI.DrawEx.Hologram(target.mesh, sx - 287, sy - 336, 260, 260, Config.ui.color.hologram, targetZoomAdj, -1.57, 0.0)
 
       -- Draw target health as a meter
+      UI.DrawEx.RectOutline(sx - 254, sy - 96, 202, 22, Config.ui.color.borderBright)
+      UI.DrawEx.Meter(sx - 250, sy - 90, 10, 10, Config.ui.color.shieldStrength, 10, 10, floor(targetShieldPct / 10), false, nil, 1)
+      UI.DrawEx.RectOutline(sx - 254, sy - 66, 202, 22, Config.ui.color.borderBright)
+      UI.DrawEx.Meter(sx - 250, sy - 60, 10, 10, Config.ui.color.armorIntegrity, 10, 10, floor(targetArmorPct / 10), false, nil, 1)
       UI.DrawEx.RectOutline(sx - 254, sy - 36, 202, 22, Config.ui.color.borderBright)
       UI.DrawEx.Meter(sx - 250, sy - 30, 10, 10, hc, 10, 10, floor(targetHealthPct / 10), false, nil, 1)
     end
@@ -1241,8 +1324,10 @@ function HUD:onDraw (focus, active)
     if GameState.ui.hudStyle ~= Enums.HudStyles.None then
       self:drawSystemText            (self.enabled)
       self:drawTargetText            (self.enabled)
-      self:drawHullIntegrity           (self.enabled)
+      self:drawArmorIntegrity        (self.enabled)
+      self:drawHullIntegrity         (self.enabled)
       self:drawCapacitorEnergy       (self.enabled)
+      self:drawShieldStrength        (self.enabled)
       self:drawTargetMission         (self.enabled)
       self:drawTargetType            (self.enabled)
       self:drawTargetRange           (self.enabled)
@@ -1260,8 +1345,8 @@ function HUD:onDraw (focus, active)
       self:drawTacticalMap           (self.enabled)
       self:drawTargets               (self.enabled)
       self:drawLock                  (self.enabled)
-      self:drawPlayerHealth          (self.enabled)
-      self:drawTargetHealth          (self.enabled)
+      self:drawPlayerHullInteg       (self.enabled)
+      self:drawTargetHullInteg       (self.enabled)
       self:drawReticle               (self.enabled)
     end
 
@@ -1323,8 +1408,8 @@ function HUD:controlThrust (e)
 
   c:setThrust(
     ShipBindings.ThrustZ:get(),
-    ShipBindings.ThrustX:get(),
-    ShipBindings.ThrustY:get() * 2.0,
+    ShipBindings.ThrustX:get() * 0.5,
+    ShipBindings.ThrustY:get(),
     yaw,
     pitch,
     ShipBindings.Roll:get() * 0.5,

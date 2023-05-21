@@ -197,7 +197,7 @@ function SystemMap:onDraw (state)
       end
       if not self.focus:isDestroyed() then
         if self.focus:hasHealth()then
-          dbg:text("Health: %d%%", self.focus:getHealthPercent())
+          dbg:text("Hull Integrity: %d%%", self.focus:getHealthPercent())
         end
         if string.match(objtype, "Station") and self.focus:hasDockable() then
           local docked = self.focus:getDocked()

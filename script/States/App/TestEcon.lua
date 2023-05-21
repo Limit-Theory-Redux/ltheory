@@ -76,17 +76,17 @@ function TestEcon:onInit ()
 
   -- Add Station objects
   -- Every system gets one "free" solar plant
-  local newStation = self.system:spawnStation(self.tradeAI, Production.EnergySolar)
+  local newStation = self.system:spawnStation(Enums.StationHulls.Small, self.tradeAI, Production.EnergySolar)
   self.system:place(newStation)
 
   -- Every system gets one "free" waste recycler
-  newStation = self.system:spawnStation(self.tradeAI, Production.Recycler)
+  newStation = self.system:spawnStation(Enums.StationHulls.Small, self.tradeAI, Production.Recycler)
   self.system:place(newStation)
 
   -- Now maybe add some additional stations
   for i = 3, kStations do
     -- Create a station, owned by this system's AI player, within a random AsteroidField Zone
-    local newStation = self.system:spawnStation(self.tradeAI, nil)
+    local newStation = self.system:spawnStation(Enums.StationHulls.Small, self.tradeAI, nil)
 
     -- Assign the new Station to a randomly-selected AI player/owner
     -- TODO: figure out the nasty infinite loop when assigning station to a non-system-level AI player

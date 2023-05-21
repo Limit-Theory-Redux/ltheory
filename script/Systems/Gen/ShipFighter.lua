@@ -219,7 +219,7 @@ function ShipFighter.WingMounts(rng, bodyAABB, res)
   return mount
 end
 
-function ShipFighter.HullStandard(rng)
+function ShipFighter.HullStandard(rng, hull)
   -- settings
   local length, cxy, r, res
   if Settings.get('genship.override') then
@@ -279,7 +279,7 @@ function ShipFighter.HullStandard(rng)
   return shape
 end
 
-function ShipFighter.HullSurreal(rng, res)
+function ShipFighter.HullSurreal(rng, hull, res)
   local shape
 
   local hullSize
@@ -698,9 +698,9 @@ end
 
 -- SHIPS [
 
-function ShipFighter.Surreal (rng)
+function ShipFighter.Surreal (rng, hull)
   local res = rng:choose({3, 4, 6, 8, 10, 20})
-  local shape = ShipFighter.HullSurreal(rng, res)
+  local shape = ShipFighter.HullSurreal(rng, hull, res)
 
   -- other parts
   local bodyAABB = shape:getAABB()
@@ -713,10 +713,10 @@ function ShipFighter.Surreal (rng)
   return shape:finalize()
 end
 
-function ShipFighter.Standard (rng)
+function ShipFighter.Standard (rng, hull)
   -- hull
   local res = rng:choose({3, 4, 6, 8, 10, 20})
-  local shape = ShipFighter.HullStandard(rng)
+  local shape = ShipFighter.HullStandard(rng, hull)
 
   local bodyAABB = shape:getAABB()
 

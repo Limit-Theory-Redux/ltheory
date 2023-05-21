@@ -157,7 +157,7 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
     local hit = system.physics:rayCast(ray).body
 
     if hit ~= nil then
-      -- get parent rigid body
+      -- Get parent rigid body
       while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
       local hitEnt = Entity.fromRigidBody(hit)
       local source = Deref(self.source)
@@ -165,16 +165,16 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
       --       return anything fromRigidBody for the first few seconds. While this is a good check to do since
       --       we cannot confirm that the hit will have a rigidbody. This is a hotfix for a weird error.
       if (hitEnt ~= nil) then
-        -- don't collide with the socket that spawned me
+        -- Don't collide with the socket that spawned me
         if hitEnt ~= source then
-          -- do damage if the collidee has health
+          -- Do damage if the collidee has health
           if hitEnt.health then
             if not source:isDestroyed() then
               -- If attacked, this entity stops what it's doing and attacks that ship
               -- TODO: Improve response logic when attacked
               hitEnt:attackedBy(source)
             end
-            hitEnt:damage(Config.game.pulseDamage, source)
+            hitEnt:applyDamage(Config.game.pulseDamage, source)
           end
 
           -- remove projectile

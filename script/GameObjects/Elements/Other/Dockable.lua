@@ -10,9 +10,11 @@ local function destroyed (self, source)
   local children = self:getChildren()
   for i = #children, 1, -1 do
     local e = children[i]
-    e:damage(10, source)
-    self:removeDocked(e)
+    if e:getType() and Config:getObjectInfo("object_types", e:getType()) == "Ship" then
+      e:damage(10, source)
+      self:removeDocked(e)
 printf("%s forcibly undocked from Station %s", e:getName(), self:getName())
+    end
   end
 end
 

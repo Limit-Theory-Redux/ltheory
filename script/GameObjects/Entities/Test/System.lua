@@ -68,44 +68,44 @@ function System:addExtraFactories (system, planetCount, aiPlayer)
     prodTypeCount = prodTypeCount + system:countProdType(Production.Platinum)
     for i = 1, prodTypeCount do
       -- Add a Copper Refinery station (to create Item.AnodeSludge)
-      newStation = system:spawnStation(aiPlayer, Production.Copper)
+      newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Copper)
       system:place(newStation)
     end
 
     prodTypeCount = system:countProdType(Production.EnergyNuclear)
     for i = 1, prodTypeCount do
       -- Add an Isotope Factory station (to create Item.Isotopes)
-      newStation = system:spawnStation(aiPlayer, Production.Isotopes)
+      newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Isotopes)
       system:place(newStation)
     end
 
     prodTypeCount = system:countProdType(Production.Isotopes)
     for i = 1, prodTypeCount do
       -- Add a Thorium Refinery station (to create Item.Thorium)
-      newStation = system:spawnStation(aiPlayer, Production.Thorium)
+      newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Thorium)
       system:place(newStation)
     end
 
     prodTypeCount = system:countProdType(Production.EnergyFusion)
     for i = 1, prodTypeCount do
       -- Add 2 Water Melter stations (to create Item.WaterLiquid)
-      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
+      newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
       system:place(newStation)
-      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
+      newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
       system:place(newStation)
     end
 
     for i = 1, planetCount do
       -- Add a Petroleum Refinery station
       -- TODO: only add refineries for each planet that has a Trader
-      newStation = system:spawnStation(aiPlayer, Production.Petroleum)
+      newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Petroleum)
       system:place(newStation)
     end
 
     prodTypeCount = system:countProdType(Production.Petroleum)
     for i = 1, prodTypeCount do
       -- Add a Plastics Factory station (to create Item.Plastic)
-      newStation = system:spawnStation(aiPlayer, Production.WaterMelter)
+      newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
       system:place(newStation)
     end
   end
@@ -535,11 +535,11 @@ function System:setAsteroidYield (rng, asteroid)
   end
 end
 
-function System:spawnStation (player, prodType)
+function System:spawnStation (hullSize, player, prodType)
   local rng = self.rng
 
   -- Spawn a new space station
-  local station = Objects.Station(self.rng:get31())
+  local station = Objects.Station(self.rng:get31(), hullSize)
   station:setType(Config:getObjectTypeByName("object_types", "Station"))
 
   -- Give the station a name
@@ -547,9 +547,6 @@ function System:spawnStation (player, prodType)
 
   -- Set station location within the extent of a randomly selected asteroid field
   self:place(station)
-
-  -- Set station scale
-  station:setScale(Config.gen.scaleStation)
 
   -- Stations have market capacity
   station:addMarket()
@@ -616,6 +613,18 @@ function System:spawnStation (player, prodType)
   -- Add the station to this star system
   self:addChild(station)
 
+  -- Add as many turrets as there are turret plugs for
+  -- NOTE: Components must be added to socket plugs AFTER their parent is added as a child to the star system!
+  while true do
+    local turret = Ship.Turret()
+    turret:setScale(0.8 * station:getScale())
+    -- TODO : Does this leak a Turret/RigidBody?
+--printf("Station %s: plug a turret", station:getName())
+    if not station:plug(turret) then
+      break
+    end
+  end
+
 local typeName = Config:getObjectInfo("object_types", station:getType())
 local subtypeName = Config:getObjectInfo("station_subtypes", station:getSubType())
 printf("Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(), prod:getName())
@@ -627,8 +636,9 @@ end
 
 function System:spawnAI (shipCount, action, player)
   -- Spawn a number of independent AI-controlled ships
+  local rng = self.rng
   for i = 1, shipCount do
-    local ship = self:spawnShip(player)
+    local ship = self:spawnShip(rng:choose({1, 2, 3, 4, 5, 6}), player)
     ship:setOwner(player)
     if action then
       ship:pushAction(action)
@@ -636,14 +646,24 @@ function System:spawnAI (shipCount, action, player)
   end
 end
 
-function System:spawnShip (player)
+function System:spawnShip (hullSize, player)
   -- Spawn a new ship (with a new ship type)
+  local shipHull = hullSize
+  local shipRole = Enums.ShipRoles.Combat
   if GameState.gen.uniqueShips or not self.shipType then
-    self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
+    if hullSize == Enums.ShipHulls.Solo then
+      self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, shipHull)
+    elseif hullSize == Enums.ShipHulls.VeryLarge then
+      self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipBasic,   shipHull)
+    else
+      self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipCapital, shipHull)
+    end
   end
-  local ship = self.shipType:instantiate()
+  local ship = self.shipType:instantiate(shipHull)
   ship:setType(Config:getObjectTypeByName("object_types", "Ship"))
-  ship:setSubType(Config:getObjectTypeByName("ship_subtypes", "Fighter"))
+  ship:setSubType(3 + (shipRole * 6) + (shipHull - 1))
+  ship:setHull(shipHull)
+  ship:setRole(shipRole)
 
   -- Give the ship a name
   local shipName = Words.getCoolName(self.rng)
@@ -671,10 +691,11 @@ function System:spawnShip (player)
   -- TODO: replace Config.econ.eInventory with actual cargo hold capacity based on ship role plug assignments
   ship:setInventoryCapacity(Config.econ.eInventory)
 
-  -- NOTE: a new ship must be added to a star system BEFORE thrusters and turrets are attached!
+  -- Add the ship to this star system
   self:addChild(ship)
 
   -- Add as many thrusters as there are thruster plugs for
+  -- NOTE: Components must be added to socket plugs AFTER their parent is added as a child to the star system!
   while true do
     local thruster = Ship.Thruster(ship)
     thruster:setScale(0.5 * ship:getScale())
@@ -684,9 +705,14 @@ function System:spawnShip (player)
   end
 
   -- Add as many turrets as there are turret plugs for
+  -- NOTE: Components must be added to socket plugs AFTER their parent is added as a child to the star system!
   while true do
     local turret = Ship.Turret()
-    turret:setScale(2 * ship:getScale())
+    if hullSize == Enums.ShipHulls.VeryLarge then
+      turret:setScale(20 * ship:getScale())
+    else
+      turret:setScale(2 * ship:getScale())
+    end
     -- TODO : Does this leak a Turret/RigidBody?
 --printf("ship %s: plug a turret", ship:getName())
     if not ship:plug(turret) then
@@ -717,9 +743,9 @@ function System:spawnBackground ()
   --   (because System.lua needs a thing with mass, scale, drag, and thrust
   --   in order to rotate around a camera viewpoint)
   if not self.shipType then
-    self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, 4)
+    self.shipType = Ship.ShipType(self.rng:get31(), Gen.Ship.ShipFighter, Enums.ShipHulls.Solo)
   end
-  local backgroundShip = self.shipType:instantiate()
+  local backgroundShip = self.shipType:instantiate(Enums.ShipHulls.Solo)
   local player = Player("Background Player")
   self:addChild(backgroundShip)
   insert(self.players, player)

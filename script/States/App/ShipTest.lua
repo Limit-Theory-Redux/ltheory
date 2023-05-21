@@ -21,7 +21,7 @@ function ShipTest:generate ()
 
   local ship
   do -- Player Ship
-    ship = self.system:spawnShip(self.player)
+    ship = self.system:spawnShip(Enums.ShipHulls.Solo, self.player)
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)

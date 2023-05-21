@@ -16,6 +16,7 @@ local Turret
 Turret = subclass(Entity, function (self)
   if not shared then
     shared = {}
+--    shared.mesh = Gen.ShipBasic.TurretSingle(rng)
     shared.mesh = Gen.ShipFighter.TurretSingle(rng)
     shared.mesh:computeNormals()
     shared.mesh:computeAO(0.1)

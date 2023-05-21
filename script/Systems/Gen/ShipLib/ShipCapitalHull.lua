@@ -13,7 +13,7 @@ local Parametric   = require('Systems.Gen.ShapeLib.Parametric')
 
 local ShipCapitalHull = {}
 
-function ShipCapitalHull.Hull (rng)
+function ShipCapitalHull.Hull (rng, hull)
   local shape
 
   -- settings

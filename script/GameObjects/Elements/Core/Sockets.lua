@@ -4,9 +4,8 @@ local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local function iterateSocketsByType (s)
   s.i = s.i + 1
---printf("1: s.entity = %s, s.type = %s", s.entity:getName(), s.type)
+--printf("Sockets: s.entity = %s, s.type = %s", s.entity:getName(), s.type)
   while s.entity.sockets[s.i] do
---printf("2")
     if s.entity.sockets[s.i].child and
        s.entity.sockets[s.i].type == s.type then
        break
@@ -44,7 +43,7 @@ function Entity:hasSockets ()
 end
 
 function Entity:iterSocketsByType (type)
---printf("%s: iterSocketsByType(%s)", self:getName(), type)
+--printf("Sockets: [%s] iterSocketsByType(%s)", self:getName(), type)
   assert(self.sockets)
   return iterateSocketsByType, { entity = self, type = type, i = 0 }
 end
@@ -56,6 +55,8 @@ function Entity:plug (child)
   for i, socket in ipairs(self.sockets) do
     if socket.type == type and socket.child == nil then
       socket.child = child
+--printf("Sockets (%s): Checking socket %d to attach child %s of type %s at pos %s",
+--    self:getName(), i, child, type, socket.pos)
       self:attach(child, socket.pos, Quat.Identity())
 
       if type == SocketType.Turret then

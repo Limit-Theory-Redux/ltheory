@@ -65,7 +65,7 @@ function LTheory:generate ()
 
   local ship
   do -- Player Ship
-    ship = self.system:spawnShip(self.player)
+    ship = self.system:spawnShip(Enums.ShipHulls.Solo, self.player)
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)
@@ -89,10 +89,10 @@ function LTheory:generate ()
       local asteroid = Entities.Objects.Asteroid(1234, 20)
       asteroid:setPos(Vec3f(20, 0, -100))
       self.system:addChild(asteroid)
-      local ship = self.system:spawnShip()
+      local ship = self.system:spawnShip(Enums.ShipHulls.Solo, nil)
       ship:setPos(Vec3f(-20, 0, -100))
 
-      local ship = self.system:spawnShip()
+      local ship = self.system:spawnShip(Enums.ShipHulls.Solo, nil)
       local mat = Matrix.YawPitchRoll(0, 0, math.pi/4)
       local rot = mat:toQuat()
       mat:free()

@@ -342,7 +342,7 @@ function LTheoryRedux:createStarSystem ()
       end
 
       -- Add a space station
-      local station = self.backgroundSystem:spawnStation(GameState.player.humanPlayer, nil)
+      local station = self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
     else
       GameState:SetState(Enums.GameStates.InGame)
       Universe:CreateStarSystem(self.seed)

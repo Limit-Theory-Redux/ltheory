@@ -1,33 +1,48 @@
 local Entity = require('GameObjects.Entity')
 local Material = require('GameObjects.Material')
 
-local Ship = subclass(Entity, function (self, proto)
-
-  self:addActions()
-  self:addCapacitor(100, 10)
-  self:addChildren()
-  self:addDispositions()
-  self:addExplodable()
-  self:addHealth(50, 0.05)
-  self:addInventory(100)
-  self:addTrackable(true)
-  self:addAttackable(true)
-  self:addMinable(false)
-
-  self.explosionSize = 64 -- ships get the default explosion size
-
-  self.usesBoost = false -- default ships fly at only the normal speed
-
+local Ship = subclass(Entity, function (self, proto, hull)
+printf("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
   -- TODO : This will create a duplicate BSP because proto & RigidBody do not
   --        share the same BSP cache. Need unified cache.
   self:addRigidBody(true, proto.mesh) -- required
-
-  self:addSockets()
   self:addVisibleMesh(proto.mesh, Material.Metal())
+
+  self:addActions()
+  self:addAttackable(true)
+  self:addChildren()
+  self:addDispositions()
+  self:addExplodable()
+  self:addMinable(false)
+  self:addTrackable(true)
+
+  -- TEMP: give each ship the maximum number of every component
+  self.countHull      = proto.countHull
+  self.countComputer  = proto.countComputer
+  self.countSensor    = proto.countSensor
+  self.countLife      = proto.countLife
+  self.countCapacitor = proto.countCapacitor
+  self.countThruster  = proto.countThruster
+  self.countTurret    = proto.countTurret
+  self.countBay       = proto.countBay
+  self.countCargo     = proto.countCargo
+  self.countDrone     = proto.countDrone
+  self.countShield    = proto.countShield
+  self.countArmor     = proto.countArmor
+
+  self:addHealth   (Config.gen.compHullStats.health          * self.countHull)
+  self:addCapacitor(Config.gen.compCapacitorStats.chargeMax  * self.countCapacitor,
+                    Config.gen.compCapacitorStats.chargeRate * self.countCapacitor)
+  self:addInventory(Config.gen.compCargoStats.cargoUnits     * self.countCargo)
+  self:addShield   (Config.gen.compShieldStats.strengthMax   * self.countShield,
+                    Config.gen.compShieldStats.reviveRate    * self.countShield)
+  self:addArmor    (Config.gen.compArmorStats.strength       * self.countArmor)
+
   self:addThrustController()
 
   -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
   --        better for ShipType etc.
+  self:addSockets()
   for type, elems in pairs(proto.sockets) do
     for i, pos in ipairs(elems) do
       self:addSocket(type, pos, true)
@@ -35,12 +50,18 @@ local Ship = subclass(Entity, function (self, proto)
   end
 
   self:setDrag(0.75, 4.0)
-  self:setScale(proto.scale)
+--  self:setScale(Config.gen.shipHullScale[hull])
+--  if hull ~= Enums.ShipHulls.VeryLarge then
+    self:setScale(proto.scale)
+--  end
 
-  -- TODO: Use mass values from the ship hull class
-  local mass = 1000.0 + (self:getRadius() * 2000) -- (fully loaded F-15 = 20,000 kg, but Josh's mass calc gets sluggish x 10)
-  self:setMass(mass) -- lower mass is related to the ship "wobble" problem
+  -- TODO: Use mass values from the ship hull class _and_ installed components
+  -- NOTE: a fully loaded F-15 ~= 20,000 kg
+  self:setMass(Config.gen.shipHullMass[hull]) -- lower mass is related to the ship "wobble" problem
+printf("@@@ Entities:Ship - final radius = %s, mass = %s", self:getRadius(), self:getMass())
 
+  self.explosionSize = 64 -- ships get the default explosion size
+  self.usesBoost = false -- default ships fly at only the normal speed
   local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
 end)
 

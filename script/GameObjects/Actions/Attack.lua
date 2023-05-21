@@ -30,26 +30,31 @@ function Attack:onUpdateActive (e, dt)
 
   e:setTarget(target)
 
-  self.timer = self.timer - dt
-  if self.timer <= 0 or self.dist < e:getSpeed() then
-    self.offset = rng:getDir3()
-    self.offset:iscale(Math.Sign(self.offset:dot(e:getPos() - self.target:getPos())))
-    self.timer = rng:getUniformRange(5, 10)
-    self.radius = Math.Lerp(
-      self.radiusMin,
-      self.radiusMax,
-      rng:getUniformRange(0, 1) ^ 2.0)
+  -- If attacking vessel has thrusters, try to fly toward the target
+  local thrusterCount = 0
+  for thruster in e:iterSocketsByType(SocketType.Thruster) do thrusterCount = thrusterCount + 1 end
+  if thrusterCount > 0 then
+    self.timer = self.timer - dt
+    if self.timer <= 0 or self.dist < e:getSpeed() then
+      self.offset = rng:getDir3()
+      self.offset:iscale(Math.Sign(self.offset:dot(e:getPos() - self.target:getPos())))
+      self.timer = rng:getUniformRange(5, 10)
+      self.radius = Math.Lerp(
+        self.radiusMin,
+        self.radiusMax,
+        rng:getUniformRange(0, 1) ^ 2.0)
+    end
+
+    local targetPos = target:getPos() + self.offset:scale(self.radius) + target:getVelocity():scale(kVelFactor)
+
+    local course   = targetPos - e:getPos()
+    self.dist      = course:length()
+    local forward  = course:normalize()
+    local yawPitch = e:getForward():cross(forward)
+    local roll     = e:getUp():cross(target:getUp())
+
+    self:flyToward(e, targetPos, e:getForward(), target:getUp())
   end
-
-  local targetPos = target:getPos() + self.offset:scale(self.radius) + target:getVelocity():scale(kVelFactor)
-
-  local course   = targetPos - e:getPos()
-  self.dist      = course:length()
-  local forward  = course:normalize()
-  local yawPitch = e:getForward():cross(forward)
-  local roll     = e:getUp():cross(target:getUp())
-
-  self:flyToward(e, targetPos, e:getForward(), target:getUp())
 end
 
 function Attack:onUpdatePassive (e, dt)
