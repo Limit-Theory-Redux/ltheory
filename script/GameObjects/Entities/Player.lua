@@ -1,6 +1,7 @@
 local Entity = require('GameObjects.Entity')
 
 local Player = subclass(Entity, function (self, name)
+  self:addGuid()
   self:setName(name)
 
   self:addActions() -- needed for Think() action
