@@ -53,6 +53,8 @@ GameState.player = {
   humanPlayerName       = "[Human Player Name]",
   humanPlayerShipName   = "[Human Player Ship Name]",
 
+  playerFactionName     = "[Human Player Faction]",
+
   currentControl        = Config.ui.defaultControl,
   playerMoving          = false,
 

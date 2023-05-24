@@ -90,6 +90,9 @@ function Universe:CreateStarSystem(seed)
           escort.usesBoost = true
         end
 
+        -- set player as owner
+        escort:setOwner(GameState.player.humanPlayer)
+
         insert(escortShips, escort)
       end
       -- TESTING: MAKE SHIPS CHASE EACH OTHER!

@@ -10,5 +10,5 @@ end
 
 function Entity:getFactionTypeName()
     return Enums.FactionTypeNames[self.factionType] or format('Entity @ %p', self)
-  end
+end
 

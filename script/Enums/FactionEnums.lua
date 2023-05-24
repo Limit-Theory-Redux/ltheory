@@ -1,4 +1,5 @@
 Enums.FactionType = {
+    Player = 0,
     Corporation = 1,
     TradingGuild = 2,
     Kingdom = 3,
