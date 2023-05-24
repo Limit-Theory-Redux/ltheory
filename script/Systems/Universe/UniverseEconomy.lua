@@ -1,6 +1,7 @@
 local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
 local Actions = requireAll('GameObjects.Actions')
+local Words = require('Systems.Gen.Words')
 local rng = RNG.FromTime()
 
 local UniverseEconomy = class(function (self) end)
@@ -70,6 +71,28 @@ function UniverseEconomy:OnUpdate(dt)
         -- temp name until we have rnd names
         local aiPlayer = Entities.Player("AI Trade Player " .. i)
         aiPlayer:addCredits(Config.econ.eStartCredits)
+
+        local factionType = math.random(1, #Enums.FactionTypeNames)
+        local factionName
+
+        -- TODO: TRAITS & CHANCES -> BASE FACTION TYPE ON OWNER TRAITS / OWNER BIRTHPLACE TRAITS
+
+        if factionType == Enums.FactionType.Corporation or
+          factionType == Enums.FactionType.TradingGuild or
+          factionType == Enums.FactionType.Empire then
+          do
+            factionName = Words.getCoolName(rng) .. " " .. Enums.FactionTypeNames[factionType]
+          end
+        else
+          factionName = Enums.FactionTypeNames[factionType] .. " " .. Words.getCoolName(rng)
+        end
+
+        local playerFaction = Entities.Faction({
+          name = factionName,
+          type = factionType,
+          owner = aiPlayer
+        })
+
         -- Create assets (ships)
         local aiAssetCount
 
@@ -82,11 +105,15 @@ function UniverseEconomy:OnUpdate(dt)
         else
           aiAssetCount = GameState.gen.nEconNPCs
         end
+
         system:spawnAI(aiAssetCount, Actions.Wait(1), aiPlayer)
         printf("%d assets added to %s", aiAssetCount, aiPlayer:getName())
         -- Configure assets
         for asset in aiPlayer:iterAssets() do
-          system:place(asset)
+          if asset.type ~= Enums.EntityType.Faction then
+            asset:setFaction(playerFaction)
+            system:place(asset)
+          end
         end
 
         -- Tell AI player to start using the Think action
