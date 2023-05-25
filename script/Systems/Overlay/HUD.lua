@@ -17,6 +17,9 @@ local dockingAllowed = true
 local hudFontSize = 14
 local lockTimer = 0
 
+local targetsHudPositions = {}
+local deltaTime = 0
+
 function HUD:drawSystemText (a)
   local cx, cy = self.sx / 2, self.sy / 2
 
@@ -773,139 +776,277 @@ function HUD:drawTacticalMap (a)
   UI.DrawEx.Line(cx + 48, self.sy - 124, cx,      self.sy -  78, Config.ui.color.meterBar, false)
 end
 
+local updateTargetsInterval = 1 / 60
+local lastTargetsUpdate = 0
+local deltaTimer = 0
+
+local function getPosObject(def)
+  local object = {}
+  object.c = def.c
+  object.a = def.a
+  object.curve = def.curve
+  object.size1 = def.size1
+  object.size2 = def.size2
+  object.bx = def.bx
+  object.by = def.by
+  object.offset = def.offset
+  return object
+end
+
 function HUD:drawTargets (a)
-  if not GameState.ui.showTrackers then return end
-  local camera = self.gameView.camera
 
-  local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
-  local cLock =   Color(1.0, 0.5, 0.1, 1.0 * a)
-
-  local player = self.player
-  local playerShip = player:getControlling()
-  local playerTarget = playerShip:getTarget()
-
-  local closest = nil
-  local minDist = 128
-  local center = Vec2f(self.sx / 2, self.sy / 2)
-
-  for i = 1, #self.targets.tracked do
-    local target = self.targets.tracked[i]
-    if target and target ~= playerShip then
-      if target:getTrackable() then
-        local pos = target:getPos()
-        local ndc = camera:worldToNDC(pos)
-        local ndcMax = max(abs(ndc.x), abs(ndc.y))
-
---        local disp = target:getOwnerDisposition(player) -- might need to switch back to this version
-        local disp = Config.game.dispoNeutral -- disposition to neutral by default
-        if target:hasAttackable() and target:isAttackable() then disp = target:getDisposition(playerShip) end
---        local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
-        local c = Disposition.GetColor(disp)
-
-        if ndcMax <= 1.0 and ndc.z > 0 then
-          do
-            -- Get tracker box extents based on object size, and adjust inward slightly
-            local bx1, by1, bsx, bsy = camera:entityToScreenRect(target)
-            local bx2, by2 = bx1 + bsx, by1 + bsy
-
-            -- Draw rounded box corners
-            if target:hasAttackable() and target:isAttackable() then
-              -- Innermost box shows trackable object's disposition to player
-              --     (red = enemy, blue = neutral, green = friendly)
-              UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c, c.a)
-              UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c, c.a)
-              UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c, c.a)
-              UI.DrawEx.Wedge(bx2, by2, 4, 4, 0.875, 0.2, c, c.a)
-            end
-            if playerTarget == target then
-              -- Outermost box indicates locked target
-              UI.DrawEx.Wedge(bx2, by1, 12, 12, 0.125, 0.3, cLock, a)
-              UI.DrawEx.Wedge(bx1, by1, 12, 12, 0.375, 0.3, cLock, a)
-              UI.DrawEx.Wedge(bx1, by2, 12, 12, 0.625, 0.3, cLock, a)
-              UI.DrawEx.Wedge(bx2, by2, 12, 12, 0.875, 0.3, cLock, a)
-            elseif self.target == target then
-              -- Middle box indicates lockable target
-              UI.DrawEx.Wedge(bx2, by1, 8, 8, 0.125, 0.2, cTarget, a)
-              UI.DrawEx.Wedge(bx1, by1, 8, 8, 0.375, 0.2, cTarget, a)
-              UI.DrawEx.Wedge(bx1, by2, 8, 8, 0.625, 0.2, cTarget, a)
-              UI.DrawEx.Wedge(bx2, by2, 8, 8, 0.875, 0.2, cTarget, a)
-            end
-
-            -- Draw target name
-            if playerTarget == target then
-              local targetName = target:getName()
-              if target:getType() == Config:getObjectTypeByName("object_types", "Planet") then
-                targetName = "Planet " .. target:getName()
-              elseif target:getType() == Config:getObjectTypeByName("object_types", "Asteroid") then
-                targetName = "Asteroid " .. target:getName()
-              elseif target:getType() == Config:getObjectTypeByName("object_types", "Station") then
-                targetName = "Station " .. target:getName()
-              elseif target:getType() == Config:getObjectTypeByName("object_types", "Jumpgate") then
-                targetName = "Jumpgate " .. target:getName()
-              elseif target:getType() == Config:getObjectTypeByName("object_types", "Ship") then
-                if target.usesBoost then
-                  targetName = targetName .. " [Ace]"
+  deltaTimer = deltaTimer + deltaTime
+  if deltaTimer > lastTargetsUpdate + updateTargetsInterval then
+    if not GameState.ui.showTrackers then return end
+    local camera = self.gameView.camera
+  
+    local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
+    local cLock =   Color(1.0, 0.5, 0.1, 1.0 * a)
+  
+    local player = self.player
+    local playerShip = player:getControlling()
+    local playerTarget = playerShip:getTarget()
+  
+    local closest = nil
+    local minDist = 128
+    local center = Vec2f(self.sx / 2, self.sy / 2)
+    targetsHudPositions = {}
+  
+    for i = 1, #self.targets.tracked do
+      local target = self.targets.tracked[i]
+      if target and target ~= playerShip then
+        if target:getTrackable() then
+          local pos = target:getPos()
+          local ndc = camera:worldToNDC(pos)
+          local ndcMax = max(abs(ndc.x), abs(ndc.y))
+  
+  --        local disp = target:getOwnerDisposition(player) -- might need to switch back to this version
+          local disp = Config.game.dispoNeutral -- disposition to neutral by default
+          if target:hasAttackable() and target:isAttackable() then disp = target:getDisposition(playerShip) end
+  --        local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+          local c = Disposition.GetColor(disp)
+  
+          if ndcMax <= 1.0 and ndc.z > 0 then
+            do
+              -- Get tracker box extents based on object size, and adjust inward slightly
+              local bx1, by1, bsx, bsy = camera:entityToScreenRect(target)
+              local bx2, by2 = bx1 + bsx, by1 + bsy
+  
+              -- Draw rounded box corners
+              if target:hasAttackable() and target:isAttackable() and target:getDistance(playerShip) <= 25000 then
+                -- Innermost box shows trackable object's disposition to player
+                --     (red = enemy, blue = neutral, green = friendly)
+                table.insert(targetsHudPositions, getPosObject({
+                  c = c,
+                  a = c.a,
+                  curve = 0.2,
+                  size1 = 4,
+                  size2 = 4,
+                  bx = bx2,
+                  by = by1,
+                  offset = 0.125
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = c,
+                  a = c.a,
+                  curve = 0.2,
+                  size1 = 4,
+                  size2 = 4,
+                  bx = bx1,
+                  by = by1,
+                  offset = 0.375
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = c,
+                  a = c.a,
+                  curve = 0.2,
+                  size1 = 4,
+                  size2 = 4,
+                  bx = bx1,
+                  by = by2,
+                  offset = 0.625
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = c,
+                  a = c.a,
+                  curve = 0.2,
+                  size1 = 4,
+                  size2 = 4,
+                  bx = bx2,
+                  by = by2,
+                  offset = 0.875
+                }))
+              elseif playerTarget == target then
+                table.insert(targetsHudPositions, getPosObject({
+                  c = cLock,
+                  a = a,
+                  curve = 0.3,
+                  size1 = 12,
+                  size2 = 12,
+                  bx = bx2,
+                  by = by1,
+                  offset = 0.125
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = cLock,
+                  a = a,
+                  curve = 0.3,
+                  size1 = 12,
+                  size2 = 12,
+                  bx = bx1,
+                  by = by1,
+                  offset = 0.375
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = cLock,
+                  a = a,
+                  curve = 0.3,
+                  size1 = 12,
+                  size2 = 12,
+                  bx = bx1,
+                  by = by2,
+                  offset = 0.625
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = cLock,
+                  a = a,
+                  curve = 0.3,
+                  size1 = 12,
+                  size2 = 12,
+                  bx = bx2,
+                  by = by2,
+                  offset = 0.875
+                }))
+              elseif self.target == target then
+                table.insert(targetsHudPositions, getPosObject({
+                  c = cTarget,
+                  a = a,
+                  curve = 0.2,
+                  size1 = 8,
+                  size2 = 8,
+                  bx = bx2,
+                  by = by1,
+                  offset = 0.125
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = cTarget,
+                  a = a,
+                  curve = 0.2,
+                  size1 = 8,
+                  size2 = 8,
+                  bx = bx1,
+                  by = by1,
+                  offset = 0.375
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = cTarget,
+                  a = a,
+                  curve = 0.2,
+                  size1 = 8,
+                  size2 = 8,
+                  bx = bx1,
+                  by = by2,
+                  offset = 0.625
+                }))
+                table.insert(targetsHudPositions, getPosObject({
+                  c = cTarget,
+                  a = a,
+                  curve = 0.2,
+                  size1 = 8,
+                  size2 = 8,
+                  bx = bx2,
+                  by = by2,
+                  offset = 0.875
+                }))
+              elseif target:hasAttackable() and target:isAttackable() and target:getDistance(playerShip) >= 25000 then
+                table.insert(targetsHudPositions, {bx1 = bx1, by1 = by1, bx2 = bx2, by2 = by2, c = c})
+              end
+  
+              -- Draw target name
+              if playerTarget == target then
+                local targetName = target:getName()
+                if target:getType() == Config:getObjectTypeByName("object_types", "Planet") then
+                  targetName = "Planet " .. target:getName()
+                elseif target:getType() == Config:getObjectTypeByName("object_types", "Asteroid") then
+                  targetName = "Asteroid " .. target:getName()
+                elseif target:getType() == Config:getObjectTypeByName("object_types", "Station") then
+                  targetName = "Station " .. target:getName()
+                elseif target:getType() == Config:getObjectTypeByName("object_types", "Jumpgate") then
+                  targetName = "Jumpgate " .. target:getName()
+                elseif target:getType() == Config:getObjectTypeByName("object_types", "Ship") then
+                  if target.usesBoost then
+                    targetName = targetName .. " [Ace]"
+                  end
                 end
+                local tcr = 1
+                local tcg = 1
+                local tcb = 1
+                if target:isDestroyed() then
+                  tcr = 0
+                  tcg = 0
+                  tcb = 0
+                end
+                table.insert(targetsHudPositions, {bx1 = bx1, by1 = by1, bx2 = bx2, by2 = by2, tcr = tcr, tcg = tcg, tcb = tcb, a = a, targetName = targetName})
               end
-              local tcr = 1
-              local tcg = 1
-              local tcb = 1
-              if target:isDestroyed() then
-                tcr = 0
-                tcg = 0
-                tcb = 0
-              end
-
-              UI.DrawEx.TextAdditive(
-                "UbuntuBold",
-                targetName,
-                14,
-                (bx1 + bx2) / 2 - targetName:len() / 2 + 1, by1 - 30 + 1, targetName:len(), 20,
-                1 - tcr, 1 - tcg, 1 - tcb, a,
-                0.5, 0.5
-              )
-              UI.DrawEx.TextAlpha(
-                "UbuntuBold",
-                targetName,
-                14,
-                (bx1 + bx2) / 2 - targetName:len() / 2, by1 - 30, targetName:len(), 20,
-                tcr, tcg, tcb, a,
-                0.5, 0.5
-              )
             end
-
-            -- TEMP: Draw target health bar
---            if playerTarget == target and target:hasHealth() and not target:isDestroyed() then
---              local targetHealthPct = target:getHealthPercent()
---              if targetHealthPct > 0.0 then
---                local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
---                UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
---                UI.DrawEx.Rect(bx1 + 3, by2 - 1, (bx2 - bx1) - 8, 4, Config.ui.color.healthColor[targetHealthCI])
---              end
---            end
-          end
-
-          local ss = camera:ndcToScreen(ndc)
-          local dist = ss:distance(center)
-          if disp < 0.5 and dist < minDist then
-            closest = target
-            minDist = dist
-          end
-        else
-          ndc.x = ndc.x / ((1 + 16/camera.sx) * ndcMax)
-          ndc.y = ndc.y / ((1 + 16/camera.sy) * ndcMax)
-          local x = ( ndc.x + 1)/2 * camera.sx
-          local y = (-ndc.y + 1)/2 * camera.sy
-          if disp < 0.0 then
-            c.a = c.a * 0.5
-            UI.DrawEx.Point(x, y, 64, c)
+  
+              -- TEMP: Draw target health bar
+  --            if playerTarget == target and target:hasHealth() and not target:isDestroyed() then
+  --              local targetHealthPct = target:getHealthPercent()
+  --              if targetHealthPct > 0.0 then
+  --                local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
+  --                UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
+  --                UI.DrawEx.Rect(bx1 + 3, by2 - 1, (bx2 - bx1) - 8, 4, Config.ui.color.healthColor[targetHealthCI])
+  --              end
+  --            end
+  
+            local ss = camera:ndcToScreen(ndc)
+            local dist = ss:distance(center)
+            if disp < 0.5 and dist < minDist then
+              closest = target
+              minDist = dist
+            end
+          else
+            ndc.x = ndc.x / ((1 + 16/camera.sx) * ndcMax)
+            ndc.y = ndc.y / ((1 + 16/camera.sy) * ndcMax)
+            local x = ( ndc.x + 1)/2 * camera.sx
+            local y = (-ndc.y + 1)/2 * camera.sy
+            if disp < 0.0 then
+              c.a = c.a * 0.5
+              UI.DrawEx.Point(x, y, 64, c)
+            end
           end
         end
       end
     end
+    lastTargetsUpdate = deltaTimer
+    self.target = closest
   end
 
-  self.target = closest
+  for index, targetHud in ipairs(targetsHudPositions) do
+    if targetHud.bx1 and not targetHud.tcr then
+      UI.DrawEx.Point(targetHud.bx2-((targetHud.bx2-targetHud.bx1)/2), targetHud.by2-((targetHud.by2-targetHud.by1)/2), 128, targetHud.c)
+    elseif targetHud.tcr then
+      UI.DrawEx.TextAdditive(
+        "UbuntuBold",
+        targetHud.targetName,
+        14,
+        (targetHud.bx1 + targetHud.bx2) / 2 - targetHud.targetName:len() / 2 + 1, targetHud.by1 - 30 + 1, targetHud.targetName:len(), 20,
+        1 - targetHud.tcr, 1 - targetHud.tcg, 1 - targetHud.tcb, targetHud.a,
+        0.5, 0.5
+      )
+      UI.DrawEx.TextAlpha(
+        "UbuntuBold",
+        targetHud.targetName,
+        14,
+        (targetHud.bx1 + targetHud.bx2) / 2 - targetHud.targetName:len() / 2, targetHud.by1 - 30, targetHud.targetName:len(), 20,
+        targetHud.tcr, targetHud.tcg, targetHud.tcb, targetHud.a,
+        0.5, 0.5
+      )
+    else
+      UI.DrawEx.Wedge(targetHud.bx, targetHud.by, targetHud.size1, targetHud.size2, targetHud.offset, targetHud.curve, targetHud.c, targetHud.a)
+    end
+  end
 end
 
 function HUD:drawLock (a)
@@ -1192,6 +1333,7 @@ function HUD:onUpdate (state)
     hudFontSize = 14 + (floor(self.sx / 900) - 1) * 2
 
     lockTimer = lockTimer + state.dt
+    deltaTime = state.dt
 
     local f = 1.0 - exp(-state.dt * 8.0)
     local alphaT = 0

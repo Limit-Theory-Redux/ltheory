@@ -114,6 +114,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         b.total.cmp(&a.total)
     });
     println!("-- PHX PROFILER -------------------------------------");
+    println!("-- Measured timespan: {}ms", total);
     let mut cumulative: f64 = 0.0;
     let mut i_0: i32 = 0;
     while i_0 < this.scopeList.len() as i32 {
