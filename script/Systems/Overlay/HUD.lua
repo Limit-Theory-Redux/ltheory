@@ -1382,6 +1382,7 @@ function HUD:onDraw (focus, active)
   if playerShip:isAlive() then
     if GameState.ui.hudStyle == Enums.HudStyles.Minimal then
       self:drawTargets                  (self.enabled)
+      self:drawReticle                  (self.enabled)
     elseif GameState.ui.hudStyle ~= Enums.HudStyles.None then
       self:drawSystemText               (self.enabled)
       self:drawTargetText               (self.enabled)
