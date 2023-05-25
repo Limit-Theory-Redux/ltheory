@@ -829,12 +829,12 @@ function HUD:drawTargets (a)
               if target:getDistance(playerShip) >= 15000 then
                 UI.DrawEx.Point(bx2-((bx2-bx1)/2), by2-((by2-by1)/2), 128, c)
               else
-              -- Innermost box shows trackable object's disposition to player
-              --     (red = enemy, blue = neutral, green = friendly)
-              UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c, c.a)
-              UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c, c.a)
-              UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c, c.a)
-              UI.DrawEx.Wedge(bx2, by2, 4, 4, 0.875, 0.2, c, c.a)
+                -- Innermost box shows trackable object's disposition to player
+                --     (red = enemy, blue = neutral, green = friendly)
+                UI.DrawEx.Wedge(bx2, by1, 4, 4, 0.125, 0.2, c, c.a)
+                UI.DrawEx.Wedge(bx1, by1, 4, 4, 0.375, 0.2, c, c.a)
+                UI.DrawEx.Wedge(bx1, by2, 4, 4, 0.625, 0.2, c, c.a)
+                UI.DrawEx.Wedge(bx2, by2, 4, 4, 0.875, 0.2, c, c.a)
               end
             end
             if playerTarget == target then
