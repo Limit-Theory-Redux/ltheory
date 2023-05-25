@@ -832,7 +832,7 @@ function HUD:drawTargets (a)
               local bx1, by1, bsx, bsy = camera:entityToScreenRect(target)
               local bx2, by2 = bx1 + bsx, by1 + bsy
 
-              local function drawTrackable()
+              local function drawAttackable()
                 table.insert(targetsHudPositions, getPosObject({
                   c = c,
                   a = c.a,
@@ -966,7 +966,7 @@ function HUD:drawTargets (a)
                 if target:hasAttackable() and target:isAttackable() then
                   -- Innermost box shows trackable object's disposition to player
                   --     (red = enemy, blue = neutral, green = friendly)
-                  drawTrackable()
+                  drawAttackable()
                 end
 
                 if playerTarget == target then
