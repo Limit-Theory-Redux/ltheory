@@ -816,10 +816,8 @@ function HUD:drawTargets (a)
       local target = self.targets.tracked[i]
       local targetDistance = target:getDistance(playerShip)
 
-      -- return if target is out of trackingRange
-      if targetDistance >= GameState.ui.maxTrackingRange then
-        return
-      end
+      -- if target is out of trackingRange
+      if targetDistance >= GameState.ui.maxTrackingRange then break end
 
       if target and target ~= playerShip then
         if target:getTrackable() then
@@ -832,6 +830,7 @@ function HUD:drawTargets (a)
           if target:hasAttackable() and target:isAttackable() then disp = target:getDisposition(playerShip) end
   --        local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
           local c = Disposition.GetColor(disp)
+          c.a = 1 - ( targetDistance / GameState.ui.maxTrackingRange )
 
           if ndcMax <= 1.0 and ndc.z > 0 then
             do
