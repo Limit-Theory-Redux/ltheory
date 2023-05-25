@@ -46,6 +46,16 @@ GameState.ui = {
   cursorX               = Config.ui.cursorX,
   cursorY               = Config.ui.cursorY,
   sensorsDisplayed      = Config.ui.sensorsDisplayed,
+
+  maxTrackingRange = 500000,
+  trackerBracketingRenderDistances = {
+    Planet    = 500000,
+    Asteroid  = 25000,
+    Jumpgate  = 50000,
+    Station   = 50000,
+    Ship      = 25000,
+    Colony    = 200000,
+  }
 }
 
 GameState.player = {

@@ -814,6 +814,13 @@ function HUD:drawTargets (a)
 
     for i = 1, #self.targets.tracked do
       local target = self.targets.tracked[i]
+      local targetDistance = target:getDistance(playerShip)
+
+      -- return if target is out of trackingRange
+      if targetDistance >= GameState.ui.maxTrackingRange then
+        return
+      end
+
       if target and target ~= playerShip then
         if target:getTrackable() then
           local pos = target:getPos()
@@ -961,8 +968,11 @@ function HUD:drawTargets (a)
                 }))
               end
 
+              local type = Config:getObjectInfo("object_types", target:getType())
+              local renderDistance = GameState.ui.trackerBracketingRenderDistances[type] or 25000
+
               -- Draw rounded box corners
-              if target:getDistance(playerShip) <= 25000 then
+              if targetDistance <= renderDistance then
                 if target:hasAttackable() and target:isAttackable() then
                   -- Innermost box shows trackable object's disposition to player
                   --     (red = enemy, blue = neutral, green = friendly)
@@ -976,7 +986,7 @@ function HUD:drawTargets (a)
                 if self.target == target then
                   drawTarget()
                 end
-              elseif target:hasAttackable() and target:isAttackable() and target:getDistance(playerShip) >= 25000 then
+              elseif target:hasAttackable() and target:isAttackable() and targetDistance >= renderDistance then
                 table.insert(targetsHudPositions, {bx1 = bx1, by1 = by1, bx2 = bx2, by2 = by2, c = c})
 
                 if playerTarget == target then
