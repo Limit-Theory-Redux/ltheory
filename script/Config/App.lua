@@ -226,7 +226,6 @@ Config.econ = {
 
 Config.ui = {
   defaultControl   = "Background",
-  showTrackers     = true,
   controlBarHeight = 48,
   hudStyle         = 1,
   sensorsDisplayed = true,
@@ -236,6 +235,18 @@ Config.ui = {
   cursorStyle      = 1,
   cursorX          = 1,
   cursorY          = 1,
+
+  -- Trackers
+  showTrackers     = true,
+  maxTrackingRange = 500000,
+  trackerBracketingRenderDistances = {
+    Planet    = 500000,
+    Asteroid  = 25000,
+    Jumpgate  = 50000,
+    Station   = 50000,
+    Ship      = 25000,
+    Colony    = 200000,
+  }
 }
 
 Config.ui.color = {

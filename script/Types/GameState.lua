@@ -39,7 +39,6 @@ GameState.audio = {
 }
 
 GameState.ui = {
-  showTrackers          = Config.ui.showTrackers,
   controlBarHeight      = Config.ui.controlBarHeight,
   hudStyle              = Config.ui.hudStyle,
   cursorStyle           = Config.ui.cursorStyle,
@@ -47,14 +46,16 @@ GameState.ui = {
   cursorY               = Config.ui.cursorY,
   sensorsDisplayed      = Config.ui.sensorsDisplayed,
 
-  maxTrackingRange = 500000,
+  -- Trackers
+  showTrackers          = Config.ui.showTrackers,
+  maxTrackingRange      = Config.ui.maxTrackingRange,
   trackerBracketingRenderDistances = {
-    Planet    = 500000,
-    Asteroid  = 25000,
-    Jumpgate  = 50000,
-    Station   = 50000,
-    Ship      = 25000,
-    Colony    = 200000,
+    Planet              = Config.ui.trackerBracketingRenderDistances.Planet,
+    Asteroid            = Config.ui.trackerBracketingRenderDistances.Asteroid,
+    Jumpgate            = Config.ui.trackerBracketingRenderDistances.Jumpgate,
+    Station             = Config.ui.trackerBracketingRenderDistances.Station,
+    Ship                = Config.ui.trackerBracketingRenderDistances.Ship,
+    Colony              = Config.ui.trackerBracketingRenderDistances.Colony,
   }
 }
 
