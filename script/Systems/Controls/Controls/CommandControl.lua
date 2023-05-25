@@ -432,6 +432,7 @@ function CommandControl:onDraw (focus, active)
   if #self.unitRects ~= #self.units.tracked then return end
 
   local player = self.player
+  local playerShip = GameState.player.currentShip
 
   -- Unit Icons
   for i = 1, #self.units.tracked do
@@ -440,7 +441,8 @@ function CommandControl:onDraw (focus, active)
     if unit:isAlive() then
       local rect = self.unitRects[i]
       local ndc = self.unitNDCs[i]
-      local rel = unit:getOwnerDisposition(player)
+      -- TODO: replace with faction relation
+      local rel = unit:getDisposition(playerShip)
       local color = Disposition.GetColor(rel)
       self:drawUnitRect(rect, ndc, color, 4, self.camera)
     end

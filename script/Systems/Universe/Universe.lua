@@ -93,6 +93,10 @@ function Universe:CreateStarSystem(seed)
         -- set player as owner
         escort:setOwner(GameState.player.humanPlayer)
 
+        -- temporary
+        -- TODO: replace with faction relation
+        escort:setDisposition(playerShip, Config.game.dispoMax)
+
         insert(escortShips, escort)
       end
       -- TESTING: MAKE SHIPS CHASE EACH OTHER!
