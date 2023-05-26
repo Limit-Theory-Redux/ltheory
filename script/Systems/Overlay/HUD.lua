@@ -816,10 +816,10 @@ function HUD:drawTargets (a)
       local target = self.targets.tracked[i]
       local targetDistance = target:getDistance(playerShip)
 
-      -- if target is out of trackingRange
-      if targetDistance >= GameState.ui.maxTrackingRange then break end
+      if target and targetDistance and target ~= playerShip then
+        -- if target is out of trackingRange
+        if targetDistance > GameState.ui.maxTrackingRange then break end
 
-      if target and target ~= playerShip then
         if target:getTrackable() then
           local pos = target:getPos()
           local ndc = camera:worldToNDC(pos)
