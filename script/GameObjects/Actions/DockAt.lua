@@ -3,7 +3,7 @@ local Action = require('GameObjects.Action')
 local rng = RNG.FromTime()
 
 -- TODO : Dock range should be specified by the dockable component
-local kDockRange = 350 -- ships are getting "stuck" at 250
+local kDockRange = 2000 -- ships are getting "stuck" at 250
 
 local DockAt = subclass(Action, function (self, target)
   self.target = target
