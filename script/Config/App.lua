@@ -62,6 +62,8 @@ Config.debug = {
   jobSpeed        = 10000, -- acceleration rate for instant jobs (in MineAt, DockAt)
 
   timeAccelFactor = 10, -- acceleration rate when holding "TimeAccel" input
+
+  printConfig = false
 }
 
 Config.debug.physics = {

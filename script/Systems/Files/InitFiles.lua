@@ -130,8 +130,14 @@ function InitFiles:readUserInits ()
       local vars = {}
       local currentLine = lines[iterator]
 
-      --printf("[%s]", categoryTable.name)
-      while currentLine and not string.match(currentLine, "%[") and not string.match(currentLine, "#") do
+      while currentLine and not string.match(currentLine, "%[") do
+        -- skip comments
+        if string.match(currentLine, "#") then
+          iterator = iterator + 1
+          currentLine = lines[iterator]
+          goto skipLine
+        end
+
         -- parse vars
         local eIndex = string.find(currentLine, "=")
         --printf("Line %s: %s", iterator, currentLine)
@@ -164,6 +170,7 @@ function InitFiles:readUserInits ()
         iterator = iterator + 1
         currentLine = lines[iterator]
         --printf("Setting var to gamestate: %s with value: %s", var, val)
+        ::skipLine::
       end
       return vars
     end
@@ -173,6 +180,12 @@ function InitFiles:readUserInits ()
       -- do whatever with vars if needed
     end
     printf("Loaded configuration from %s", configPath)
+
+    if GameState.debug.printConfig then
+      print("---------- Configuration File ----------")
+      for _, line in pairs(lines) do if not string.match(line, "#") then print(line) end end
+      print("----------------------------------------")
+    end
   end
 end
 
