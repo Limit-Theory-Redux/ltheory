@@ -39,13 +39,24 @@ GameState.audio = {
 }
 
 GameState.ui = {
-  showTrackers          = Config.ui.showTrackers,
   controlBarHeight      = Config.ui.controlBarHeight,
   hudStyle              = Config.ui.hudStyle,
   cursorStyle           = Config.ui.cursorStyle,
   cursorX               = Config.ui.cursorX,
   cursorY               = Config.ui.cursorY,
   sensorsDisplayed      = Config.ui.sensorsDisplayed,
+
+  -- Trackers
+  showTrackers          = Config.ui.showTrackers,
+  maxTrackingRange      = Config.ui.maxTrackingRange,
+  trackerBracketingRenderDistances = {
+    Planet              = Config.ui.trackerBracketingRenderDistances.Planet,
+    Asteroid            = Config.ui.trackerBracketingRenderDistances.Asteroid,
+    Jumpgate            = Config.ui.trackerBracketingRenderDistances.Jumpgate,
+    Station             = Config.ui.trackerBracketingRenderDistances.Station,
+    Ship                = Config.ui.trackerBracketingRenderDistances.Ship,
+    Colony              = Config.ui.trackerBracketingRenderDistances.Colony,
+  }
 }
 
 GameState.player = {

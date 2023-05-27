@@ -33,6 +33,7 @@ function DockAt:onUpdateActive (e, dt)
   -- Within range of the target object?
   if (e:getPos() - tp):length() <= kDockRange then
     if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
+      e:getThrustController():clear()
       self.target:addDocked(e)
     end
     e:popAction()
