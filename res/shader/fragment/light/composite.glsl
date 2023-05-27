@@ -20,7 +20,7 @@ void main() {
 
   vec3 c = albedo * light;
 
-  vec3 ambientColor = vec3(0.002, 0.002, 0.002);
+  vec3 ambientColor = vec3(0.0025, 0.0025, 0.0025);
   vec3 ambientLighting = ambientColor * albedo;
 
   float fog = 1.0 - exp(-depth / 7000.0);

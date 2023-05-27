@@ -90,6 +90,7 @@ Config.gen = {
   nDustFlecks = 256,
   nDustClouds = 8,
   nStars      = function (rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
+  nebulaBrightnessScale = 1.0,
 
   shipRes     = 8,
   nebulaRes   = 2048,

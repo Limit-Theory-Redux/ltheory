@@ -17,6 +17,8 @@ local function generateNebulaIFS (rng, res, starDir)
     ss:setFloat3('color', r, g, b)
   end
 
+  ss:setFloat('brightnessScale', GameState.gen.nebulaBrightnessScale)
+
   local roughness = 0.65 + 0.05 * rng:getSign() * rng:getUniform()^2
   ss:setFloat('roughness', roughness)
 

@@ -14,6 +14,7 @@ uniform sampler1D lutG;
 uniform sampler1D lutB;
 uniform float roughness;
 uniform float seed;
+uniform float brightnessScale;
 
 const float kScale      = 0.040;
 const float kSamples    = 128.00;
@@ -42,7 +43,7 @@ float magic(vec3 p) {
 }
 
 float bgDensity(vec3 p) {
-  return kBrightConstant + kBrightCell * fSmoothNoise(p * 4.0 + seed, 8, 2.0);
+  return (kBrightConstant * brightnessScale) + (kBrightCell * brightnessScale) * fSmoothNoise(p * 4.0 + seed, 8, 2.0);
 }
 
 vec4 generate(vec3 dir) {

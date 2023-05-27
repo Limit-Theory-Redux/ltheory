@@ -32,19 +32,20 @@ local guiElements = {
 }
 
 local guiSettings = {
-  { false, nil, "Audio"              }, -- checkbox for audio toggle
-  { false, nil, "Fullscreen"         }, -- checkbox for fullscreen toggle
-  { 0,     nil, "Supersampling"      }, -- value for enum of supersampling (anti-aliasing) mode
-  { 0,     nil, "Cursor Style"       }, -- value for enum of cursor style
-  { 0,     nil, "HUD Style"          }, -- value for enum of HUD style
-  { false, nil, "Unique Ships"       }, -- checkbox for unique ships toggle
-  { 0,     nil, "Asteroid Fields"    }, -- value for number of asteroid fields
-  { 0,     nil, "Asteroids per Field"}, -- value for number of asteroids per field
-  { 0,     nil, "Planets"            }, -- value for number of planets
-  { 0,     nil, "Stations"           }, -- value for number of stations
-  { 0,     nil, "AI Players"         }, -- value for number of AI Players
-  { 0,     nil, "EconNPCs"           }, -- value for number of EconNPCs
-  { 0,     nil, "EscortNPCs"         }, -- value for number of EscortNPCs
+  { false, nil, "Audio"                     }, -- checkbox for audio toggle
+  { false, nil, "Fullscreen"                }, -- checkbox for fullscreen toggle
+  { 0,     nil, "Supersampling"             }, -- value for enum of supersampling (anti-aliasing) mode
+  { 0,     nil, "Cursor Style"              }, -- value for enum of cursor style
+  { 0,     nil, "HUD Style"                 }, -- value for enum of HUD style
+  { false, nil, "Unique Ships"              }, -- checkbox for unique ships toggle
+  { 0,     nil, "Asteroid Fields"           }, -- value for number of asteroid fields
+  { 0,     nil, "Asteroids per Field"       }, -- value for number of asteroids per field
+  { 0,     nil, "Planets"                   }, -- value for number of planets
+  { 0,     nil, "Stations"                  }, -- value for number of stations
+  { 0,     nil, "AI Players"                }, -- value for number of AI Players
+  { 0,     nil, "EconNPCs"                  }, -- value for number of EconNPCs
+  { 0,     nil, "EscortNPCs"                }, -- value for number of EscortNPCs
+  { 1,     nil, "Nebula Brightness Scale"   }, -- value for brightness scale of background nebula
 }
 
 function MainMenu:OnInit()
@@ -599,6 +600,26 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.EndGroup()
     HmGui.SetStretch(1.0, 0.0)
 
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[14][3], 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[14][2] == nil then
+      guiSettings[14][1] = GameState.gen.nebulaBrightnessScale
+      guiSettings[14][2] = GameState.gen.nebulaBrightnessScale
+    end
+    if HmGui.Button("-") and guiSettings[14][1] > 0.25 then
+      guiSettings[14][1] = guiSettings[14][1] - 0.25
+    end
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), tostring(guiSettings[14][1]), 0.3, 1.0, 0.4, 1.0)
+    if HmGui.Button("+") and guiSettings[14][1] < 10 then
+      guiSettings[14][1] = guiSettings[14][1] + 0.25
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
   end
 
   HmGui.EndGroup()
@@ -670,13 +691,14 @@ function MainMenu:ShowSettingsScreenInner()
     GameState.ui.hudStyle = guiSettings[5][1]
 
     if MainMenu.currentMode ~= Enums.MenuMode.Dialog then
-      GameState.gen.nFields     = guiSettings[ 7][1]
-      GameState.gen.nAsteroids  = guiSettings[ 8][1]
-      GameState.gen.nPlanets    = guiSettings[ 9][1]
-      GameState.gen.nStations   = guiSettings[10][1]
-      GameState.gen.nAIPlayers  = guiSettings[11][1]
-      GameState.gen.nEconNPCs   = guiSettings[12][1]
-      GameState.gen.nEscortNPCs = guiSettings[13][1]
+      GameState.gen.nFields               = guiSettings[ 7][1]
+      GameState.gen.nAsteroids            = guiSettings[ 8][1]
+      GameState.gen.nPlanets              = guiSettings[ 9][1]
+      GameState.gen.nStations             = guiSettings[10][1]
+      GameState.gen.nAIPlayers            = guiSettings[11][1]
+      GameState.gen.nEconNPCs             = guiSettings[12][1]
+      GameState.gen.nEscortNPCs           = guiSettings[13][1]
+      GameState.gen.nebulaBrightnessScale = guiSettings[14][1]
     end
 
     for i = 1, #guiSettings do

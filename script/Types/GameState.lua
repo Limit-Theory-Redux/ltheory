@@ -85,7 +85,8 @@ GameState.gen = {
   randomizeEconNPCs     = Config.gen.randomizeEconNPCs,
   nEscortNPCs           = Config.gen.nEscortNPCs,
   randomizeEscortNPCs   = Config.gen.randomizeEscortNPCs,
-  uniqueShips           = Config.gen.uniqueShips
+  uniqueShips           = Config.gen.uniqueShips,
+  nebulaBrightnessScale = Config.gen.nebulaBrightnessScale
 }
 
 function GameState:SetState(state)
