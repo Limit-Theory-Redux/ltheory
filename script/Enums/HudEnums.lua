@@ -2,11 +2,11 @@
 Enums.HudStyleCount = 5
 
 Enums.HudStyles = {
-  None     = 0,
-  Minimal  = 1,
-  Wide     = 2,
-  Balanced = 3,
-  Tight    = 4,
+  None     = 1,
+  Minimal  = 2,
+  Wide     = 3,
+  Balanced = 4,
+  Tight    = 5,
 }
 
 Enums.HudStyleNames = {
