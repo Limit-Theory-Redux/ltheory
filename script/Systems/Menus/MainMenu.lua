@@ -2,6 +2,7 @@ local MainMenu = class(function (self) end)
 
 local MusicPlayer = require('Systems.SFX.MusicPlayer')
 local Bindings = require('States.ApplicationBindings')
+local InitFiles = require('Systems.Files.InitFiles')
 
 local mainMenuMusic = nil
 
@@ -709,6 +710,9 @@ function MainMenu:ShowSettingsScreenInner()
       LTheoryRedux:freezeTurrets()
       Input.SetMouseVisible(true)
     end
+
+    -- Write player-specific game variables to preserve them across gameplay sessions
+    InitFiles:writeUserInits()
   end
 
   HmGui.PopStyle(2)

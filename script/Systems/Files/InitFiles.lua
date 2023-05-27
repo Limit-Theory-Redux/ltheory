@@ -1,5 +1,10 @@
 local InitFiles = {}
 
+local function comment(commentTable)
+  -- Config Desc
+  for _, headerLine in ipairs(commentTable) do io.write(format("# %s\n", headerLine)) end
+end
+
 function InitFiles:readUserInits ()
   -- Reads user initialization values from file
   -- TODO: Encase io.xxx functions in local wrappers for security/safety
@@ -35,11 +40,27 @@ function InitFiles:readUserInits ()
     local categories = {}
 
     for index, line in ipairs(lines) do
+      -- Skip comments
+      if string.sub(line, 1, 1) == "#" then
+        goto skip
+      end
+
       if findCategory(line) then
         local categoryName
+        local subCategoryName
         categoryName = string.gsub(line, "%[", "")
         categoryName = string.gsub(categoryName, "%]", "")
+
+        if string.match(categoryName, "%.") then
+          subCategoryName = string.gsub(categoryName, ".*%.", "")
+          categoryName = string.gsub(categoryName, "%..*", "")
+        end
+
         local gameStateTable = GameState[categoryName]
+
+        if subCategoryName then
+          gameStateTable = GameState[categoryName][subCategoryName]
+        end
 
         if gameStateTable then
           local categoryTable = {
@@ -53,34 +74,53 @@ function InitFiles:readUserInits ()
           Log.Warning("Could not find game state for config category: " .. categoryName)
         end
       end
+      ::skip::
     end
 
     local function findValuesForCategory(categoryTable)
       local function checkIfCursorStyle(val)
         for cursorStyle = 1, Enums.CursorStyleCount do
           if string.match(string.lower(val), string.lower(Enums.CursorStyleNames[cursorStyle])) then
-            return true, cursorStyle
+            return cursorStyle
           end
         end
-        return false
+        return nil
       end
 
       local function checkIfHudStyle(val)
         for hudStyle = 1, Enums.HudStyleCount do
           if string.match(string.lower(val), string.lower(Enums.HudStyleNames[hudStyle])) then
-            return true, hudStyle
+            return hudStyle
           end
         end
-        return false
+        return nil
+      end
+
+      local function checkIfCameraMode(val)
+        for cameraMode = 1, Enums.CameraModeCount do
+          if string.match(string.lower(val), string.lower(Enums.CameraModeNames[cameraMode])) then
+            return cameraMode
+          end
+        end
+        return nil
       end
 
       local function firstToLower(string)
         return (string:gsub("^%L", string.lower))
       end
 
+      local function firstToUpper(string)
+        return (string:gsub("^%l", string.upper))
+      end
+
       local function setValue(var, val)
-        if categoryTable.gameState[var] ~= nil then
-          categoryTable.gameState[var] = val
+        local lower = firstToLower(var)
+        local upper = firstToUpper(var)
+
+        if categoryTable.gameState[lower] ~= nil then
+          categoryTable.gameState[lower] = val
+        elseif categoryTable.gameState[upper] ~= nil then
+          categoryTable.gameState[upper] = val
         else
           Log.Warning("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var, val)
         end
@@ -91,12 +131,12 @@ function InitFiles:readUserInits ()
       local currentLine = lines[iterator]
 
       --printf("[%s]", categoryTable.name)
-      while currentLine and not string.match(currentLine, "%[") do
+      while currentLine and not string.match(currentLine, "%[") and not string.match(currentLine, "#") do
         -- parse vars
         local eIndex = string.find(currentLine, "=")
-        --printf("Current line: %s", currentLine)
+        --printf("Line %s: %s", iterator, currentLine)
         --printf("Current eIndex: %s", eIndex)
-        local var = firstToLower(string.sub(currentLine, 1, eIndex - 1))
+        local var = string.sub(currentLine, 1, eIndex - 1)
         local val = string.sub(currentLine, eIndex + 1)
         val = string.gsub(val, "^%s*(.-)%s*$", "%1")
 
@@ -106,16 +146,21 @@ function InitFiles:readUserInits ()
         elseif tonumber(val) then
           setValue(var, tonumber(val))
         elseif checkIfCursorStyle(val) then
-          local _, style = checkIfCursorStyle(val)
+          local style = checkIfCursorStyle(val)
           setValue(var, style)
           val = tostring(style)
         elseif checkIfHudStyle(val) then
-          local _, style = checkIfHudStyle(val)
+          local style = checkIfHudStyle(val)
           setValue(var, style)
           val = tostring(style)
+        elseif checkIfCameraMode(val) then
+          local mode = checkIfCameraMode(val)
+          setValue(var, mode)
+          val = tostring(mode)
         else
           setValue(var, val)
         end
+
         iterator = iterator + 1
         currentLine = lines[iterator]
         --printf("Setting var to gamestate: %s with value: %s", var, val)
@@ -140,6 +185,7 @@ function InitFiles:writeUserInits ()
 
   local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
   local hudType = string.lower(Enums.HudStyleNames[GameState.ui.hudStyle])
+  local startupCameraMode = string.lower(Enums.CameraModeNames[GameState.player.currentCamera])
 
   -- Sets the input file for writing
   io.output(openedFile)
@@ -167,11 +213,38 @@ function InitFiles:writeUserInits ()
     return iter
   end
 
+  local function writeSubCat(cat, var, val)
+    io.write(format("[%s]", tostring(cat) .. "." .. tostring(var)), "\n")
+    for l_SubCat, l_SubTable in pairsByKeys(val) do
+      io.write(format("%s=%s", tostring(l_SubCat), tostring(l_SubTable)), "\n")
+    end
+  end
+
+  local function writeOptions(optionTitle, optionTable, optionDesc)
+    local optionString = string.lower(table.concat(optionTable, ", "))
+
+    comment{
+      optionTitle .. "Options: <" .. optionString .. ">",
+      optionDesc
+    }
+  end
+
+  comment{
+    "Hello World! This is the Limit Theory Redux Configuration File",
+    "Support the LTR project by discussing, contributing or silent participation:",
+    "GitHub: " .. Config.orgInfo.repository,
+    "Discord: " .. Config.orgInfo.discord
+  }
+
   for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
     -- this is dirty for now, but its the only category without anything we need to save
     if l_Category ~= "world" then
       io.write(format("[%s]", tostring(l_Category)), "\n")
     end
+
+    local cacheSubCat
+    local cacheSubCatVar
+    local cacheSubCatVal
 
     for l_Variable, l_Value in pairsByKeys(l_CategoryTable) do
       local pass = true
@@ -193,13 +266,26 @@ function InitFiles:writeUserInits ()
         do
           if l_Variable == "cursorStyle" then
             l_Value = cursorType
+            writeOptions("cursorStyle", Enums.CursorStyleNames, "The game`s currently used cursor style.")
           elseif l_Variable == "hudStyle" then
             l_Value = hudType
+            writeOptions("hudStyle", Enums.HudStyleNames, "The game`s currently used hud style.")
+          elseif l_Variable == "startupCamera" then
+            l_Value = startupCameraMode
+            writeOptions("startupCamera", Enums.CameraModeNames, "The camera mode the game starts up with.")
           end
           --printf("writing %s: %s", l_Variable, l_Value)
           io.write(format("%s=%s", tostring(l_Variable), tostring(l_Value)), "\n")
         end
+      elseif pass and type(l_Value) == "table" and not string.match(l_Variable, "humanPlayer") then
+        cacheSubCat = l_Category
+        cacheSubCatVar = l_Variable
+        cacheSubCatVal = l_Value
       end
+    end
+
+    if cacheSubCat and cacheSubCatVar and cacheSubCatVal then
+      writeSubCat(cacheSubCat, cacheSubCatVar, cacheSubCatVal)
     end
   end
   -- Closes the open file
