@@ -87,8 +87,8 @@ Config.gen = {
   nStations  = 0,
   nBeltSize  = function (rng) return 0 end, -- asteroids per planetary belt
 
-  nDustFlecks = 1024,
-  nDustClouds = 1024,
+  nDustFlecks = 256,
+  nDustClouds = 8,
   nStars      = function (rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
 
   shipRes     = 8,
