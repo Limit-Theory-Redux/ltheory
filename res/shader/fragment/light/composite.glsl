@@ -23,8 +23,11 @@ void main() {
   vec3 ambientColor = vec3(0.002, 0.002, 0.002);
   vec3 ambientLighting = ambientColor * albedo;
 
-  float fog = 1.0 - exp(-depth / 1000.0);
-  fog *= 0.0;
+  float fog = 1.0 - exp(-depth / 7000.0);
+  float fogScale = 0.0675;
+
+  fog *= fogScale;
+  //fog *= 0.0;
 
   vec3 bg = linear(textureCubeLod(irMap, worldDir, 3.0 + 6.0 * (1.0 - fog)).xyz);
   c = mix(c, bg, fog);
