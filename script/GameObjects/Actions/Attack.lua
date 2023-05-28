@@ -23,7 +23,7 @@ local expMap = Core.FFI.Math.ExpMap1Signed
 
 function Attack:onUpdateActive (e, dt)
   local target = self.target
-  if not target:isAlive() or target:isDestroyed() then
+  if not target:isAlive() or target:isDestroyed() or target:isShipDocked() then
     e:popAction()
     return
   end

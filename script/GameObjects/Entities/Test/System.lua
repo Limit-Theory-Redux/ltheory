@@ -179,7 +179,7 @@ function System:sampleStations (rng)
   return rng:choose(self.stations)
 end
 
-function System:place (object)
+function System:place (object, spawnOutOfAsteroidZone)
   -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
   -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
   local typeName = Config:getObjectInfo("object_types", object:getType())
@@ -188,7 +188,7 @@ function System:place (object)
   local field = self:sampleZones(self.rng)
   local counter = 1
 
-  if field then
+  if field and not spawnOutOfAsteroidZone then
     pos = field:getRandomPos(self.rng) -- place new object within a random field
     -- Stations
     if typeName == "Station" then
@@ -239,6 +239,9 @@ function System:place (object)
     if typeName == "Ship" then
 
     end
+  elseif spawnOutOfAsteroidZone then
+    local minPirateStationSpawnPositionScale = math.floor(Config.gen.scaleSystem * 0.9)
+    pos = Vec3f(self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem), 0, self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem)) -- place new object _near_ the origin
   else
     pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
   end
@@ -619,6 +622,33 @@ function System:spawnStation (player, prodType)
 local typeName = Config:getObjectInfo("object_types", station:getType())
 local subtypeName = Config:getObjectInfo("station_subtypes", station:getSubType())
 printf("Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(), prod:getName())
+
+  self:addStation(station)
+
+  return station
+end
+
+function System:spawnPirateStation (player)
+  local rng = self.rng
+  -- Spawn a new space station
+  local station = Objects.Station(self.rng:get31())
+  station:setType(Config:getObjectTypeByName("object_types", "Station"))
+  station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate"))
+
+  -- Give the station a name
+  station:setName(Words.getCoolName(rng) .. " Pirate Station")
+
+  -- Set station location outside the astroid field
+  self:place(station, true)
+
+  -- Set station scale
+  station:setScale(Config.gen.scaleStation)
+
+  -- Assign the station to an owner
+  station:setOwner(player)
+
+  -- Add the station to this star system
+  self:addChild(station)
 
   self:addStation(station)
 
