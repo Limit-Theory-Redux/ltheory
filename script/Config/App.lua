@@ -144,7 +144,7 @@ Config.gen = {
 
 Config.game = {
   boostCost              = 20,
-  rateOfFire             = 10,
+  rateOfFire             = 7,
 
   explosionSize          = 64,
 

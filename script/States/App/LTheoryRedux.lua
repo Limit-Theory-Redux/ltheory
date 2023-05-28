@@ -35,6 +35,8 @@ function LTheoryRedux:onInit ()
   Audio.Init()
   Audio.Set3DSettings(0.0, 10, 2);
 
+  Sound.LoadAsync("./res/sound/system/audio/fx/blaster.ogg", false, true)
+
   if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
 
   -- Initialize Universe
