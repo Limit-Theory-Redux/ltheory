@@ -247,7 +247,8 @@ Config.ui = {
     Station   = math.huge,
     Ship      = 25000,
     Colony    = 200000,
-  }
+  },
+  trackerObjectOcclusion  = 0.1
 }
 
 Config.ui.color = {

@@ -54,7 +54,7 @@ function Patrol:onUpdateActive(e, dt)
       self.attackTarget = checkForViableTarget(self, e, 10000)
       if self.attackTarget then
         e:pushAction(Actions.Attack(self.attackTarget))
-        print(e:getName() .. " is attacking: " .. self.attackTarget:getName())
+        --print(e:getName() .. " is attacking: " .. self.attackTarget:getName())
         self.wasAttacking = true
       else
         -- reset

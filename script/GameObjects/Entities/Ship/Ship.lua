@@ -89,7 +89,7 @@ function Ship:distressCall (target, range)
 
       if currentAction and not string.find(currentAction:getName(),"Attack") then
         asset:pushAction(Actions.Attack(target))
-        print(asset:getName() .. " answering distress call of " .. self:getName())
+        --print(asset:getName() .. " answering distress call of " .. self:getName())
       end
     end
   end

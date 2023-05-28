@@ -103,7 +103,7 @@ function Universe:CreateStarSystem(seed)
     local pirateShips = {}
     local piratePlayer = Entities.Player("Pirate")
     local pirateStation = system:spawnPirateStation(piratePlayer)
-    for i = 1, 100 do
+    for i = 1, 50 do
       local pirate = system:spawnShip(piratePlayer)
       local offset = system.rng:getSphere():scale(5000)
       pirate:setPos(pirateStation:getPos() + offset)
@@ -141,7 +141,6 @@ function Universe:CreateShip(system, pos, shipObject)
     ship:setFriction(shipObject.friction)
     ship:setSleepThreshold(shipObject.sleepThreshold[1], shipObject.sleepThreshold[2])
     ship:setOwner(shipObject.owner)
-    system:addChild(ship)
     shipObject.owner:setControlling(ship)
 
     return ship
