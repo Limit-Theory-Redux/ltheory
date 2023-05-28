@@ -166,7 +166,7 @@ Config.game = {
   shipEnergy             = 100,
   shipEnergyRecharge     = 10,
   shipHealth             = 150,
-  shipHealthRegen        = 0.5,
+  shipHealthRegen        = 0.1,
 
   playerDamageResistance = 1.0,
 

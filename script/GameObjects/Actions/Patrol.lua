@@ -7,7 +7,7 @@ local Patrol = subclass(Action, function(self, target, radius)
   self.system = nil
   self.patrolZone = nil
   self.attackTarget = nil
-  self.wasAttacking = nil
+  self.wasAttacking = false
 end)
 
 function Patrol:clone()
@@ -18,7 +18,7 @@ function Patrol:getName()
   return 'Patrol'
 end
 
-local function findClosestTarget (self, e, radius)
+local function findClosestTarget(self, e, radius)
   local closestDistance = math.huge
   local closestShip = nil
   for index, ship in ipairs(self.system.ships) do
@@ -39,7 +39,7 @@ local function checkForViableTarget(self, e, radius)
   end
 end
 
-function Patrol:onUpdateActive (e, dt)
+function Patrol:onUpdateActive(e, dt)
   if not self.system then
     self.system = GameState.world.currentSystem
   end
@@ -48,24 +48,28 @@ function Patrol:onUpdateActive (e, dt)
     self.patrolZone = self.system:sampleZones(self.system.rng)
   end
 
-  if self.targetPosition then
-    if self.wasAttacking then
-      self.attackTarget = checkForViableTarget(self, e, 10000)
-
-      if self.attackTarget then
-        e:pushAction(Actions.Attack(self.attackTarget))
-        print(e:getName() .. " is attacking: " .. self.attackTarget:getName())
-        self.wasAttacking = true
-      else
-        -- reset
-        self.targetPosition = nil
-        self.wasAttacking = false
-      end
-    else
-      self:flyToward(e, self.targetPosition, e:getForward(), e:getUp())
-    end
-  elseif not self.targetPosition and self.patrolZone then
+  if not self.targetPosition then
     self.targetPosition = self.patrolZone:getRandomPos(self.system.rng)
+  end
+
+  if self.attackTarget then
+
+    if not self.attackTarget:isAlive() or self.attackTarget:isDestroyed() then --If target is destroyed, look for nearby targets
+      self.attackTarget = checkForViableTarget(self, e, 5000)
+      if not self.attackTarget then return end
+    end
+
+    local actionName = format("Attack %s", self.attackTarget:getName())
+    local attackAction = e:findAction(actionName)
+    if attackAction ~= e:getCurrentAction(actionName) then
+      e:pushAction(Actions.Attack(self.attackTarget))
+      print(e:getName() .. " is attacking: " .. self.attackTarget:getName())
+    end
+  elseif e:getPos():distance(self.targetPosition) < 2000 then
+    self.targetPosition = self.patrolZone:getRandomPos(self.system.rng)
+    self.attackTarget = checkForViableTarget(self, e, 10000)
+  else
+    self:flyToward(e, self.targetPosition, e:getForward(), e:getUp())
   end
 end
 
