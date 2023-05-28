@@ -817,7 +817,7 @@ function HUD:drawTargets (a)
 
       if target and targetDistance and target ~= playerShip then
         -- if target is out of trackingRange
-        if targetDistance > GameState.ui.maxTrackingRange then break end
+        if targetDistance > GameState.ui.maxTrackingRange then goto skipTarget end
 
         if target:getTrackable() then
           local pos = target:getPos()

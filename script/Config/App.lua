@@ -239,7 +239,7 @@ Config.ui = {
 
   -- Trackers
   showTrackers     = true,
-  maxTrackingRange = 500000,
+  maxTrackingRange = 150000,
   trackerBracketingRenderDistances = {
     Planet    = math.huge,
     Asteroid  = 25000,
