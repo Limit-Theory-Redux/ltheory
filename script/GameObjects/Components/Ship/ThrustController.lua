@@ -2,13 +2,13 @@ local Entity = require('GameObjects.Entity')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local thrustMult        = 1
-local thrustForwardMax  = 8e6 * thrustMult
-local thrustBackwardMax = 2e6 * thrustMult
-local thrustRightMax    = 8e6 * thrustMult
-local thrustUpMax       = 2e6 * thrustMult
-local thrustPitchMax    = 1e7 * thrustMult
-local thrustYawMax      = 1e7 * thrustMult
-local thrustRollMax     = 2e7 * thrustMult
+local thrustForwardMax  = 4e6 * thrustMult
+local thrustBackwardMax = 1e6 * thrustMult
+local thrustRightMax    = 4e6 * thrustMult
+local thrustUpMax       = 1e6 * thrustMult
+local thrustPitchMax    = 0.5e7 * thrustMult
+local thrustYawMax      = 0.5e7 * thrustMult
+local thrustRollMax     = 1e7 * thrustMult
 
 --------------------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ function ThrustController:update (e, dt)
     boost = self.boost
 --  end
 
-  local mult = 1.0 + 2.0 * boost
+  local mult = 1.0 + 3.5 * boost
 
   -- TODO : Push this branching into the physics engine instead; engine
   --        should ignore impulses / torques below certain threshold

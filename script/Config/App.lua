@@ -123,7 +123,7 @@ Config.gen = {
   scaleStar          = 1e6,
   scalePlanet        = 5e3,
   scalePlanetMod     = 7e4,  -- 7e4
-  scaleFieldAsteroid = 40000,
+  scaleFieldAsteroid = 60000,
   scaleAsteroid      = 7.0,
   scaleStation       = 70,
 
@@ -148,12 +148,12 @@ Config.game = {
 
   explosionSize          = 64,
 
-  autoTarget             = false,
+  autoTarget             = true,
   pulseDamage            = 2,
   pulseSize              = 64,
   pulseSpeed             = 1e3, -- was 6e2
   pulseRange             = 5000,
-  pulseSpread            = 0.02,
+  pulseSpread            = 0.01,
   pulseCharge            = 1.0, -- default amount of capacitor charge used by each shot
   pulseColorBodyR        = 0.3,
   pulseColorBodyG        = 0.8,
@@ -165,8 +165,8 @@ Config.game = {
   shipBuildTime          = 10,
   shipEnergy             = 100,
   shipEnergyRecharge     = 10,
-  shipHealth             = 200,
-  shipHealthRegen        = 2,
+  shipHealth             = 150,
+  shipHealthRegen        = 0.5,
 
   playerDamageResistance = 1.0,
 
