@@ -32,8 +32,8 @@ local function findClosestTarget (self, e, radius)
   return closestShip
 end
 
-local function checkForViableTarget(self, e)
-  local attackTarget = findClosestTarget(self, e, 15000)
+local function checkForViableTarget(self, e, radius)
+  local attackTarget = findClosestTarget(self, e, radius)
   if attackTarget and attackTarget:isAlive() and not attackTarget:isDestroyed() then
     return attackTarget
   end
@@ -49,8 +49,8 @@ function Patrol:onUpdateActive (e, dt)
   end
 
   if self.targetPosition then
-    if e:getPos():distance(self.targetPosition) < 2000 or self.wasAttacking then
-      self.attackTarget = checkForViableTarget(self, e)
+    if self.wasAttacking then
+      self.attackTarget = checkForViableTarget(self, e, 10000)
 
       if self.attackTarget then
         e:pushAction(Actions.Attack(self.attackTarget))
