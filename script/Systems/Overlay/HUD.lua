@@ -834,7 +834,7 @@ function HUD:drawTargets (a)
             while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
             local hitEnt = Entity.fromRigidBody(hit)
 --
-            if hitEnt ~= target then
+            if hitEnt ~= target and target ~= playerTarget then
               alphaOverwrite = math.max(0, math.min(GameState.ui.trackerObjectOcclusion, 1.0))
             end
           end
