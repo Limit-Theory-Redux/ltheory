@@ -103,7 +103,7 @@ function Universe:CreateStarSystem(seed)
     local pirateShips = {}
     local piratePlayer = Entities.Player("Pirate")
     local pirateStation = system:spawnPirateStation(piratePlayer)
-    for i = 1, 24 do
+    for i = 1, 100 do
       local pirate = system:spawnShip(piratePlayer)
       local offset = system.rng:getSphere():scale(5000)
       pirate:setPos(pirateStation:getPos() + offset)

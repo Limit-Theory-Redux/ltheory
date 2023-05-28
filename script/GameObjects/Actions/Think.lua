@@ -164,7 +164,7 @@ function Think:onUpdateActive (e, dt)
     do -- manage assets
       -- TODO: route planning for efficiency (but avoid TSP!)
       for asset in e:iterAssets() do
-        if asset:getRoot():hasEconomy() and asset:isIdle() then
+        if asset:getRoot():hasEconomy() and asset:isIdle() and asset:getType() ~= Config:getObjectTypeByName("object_types", "Station") then
           self:manageAsset(asset)
         end
       end

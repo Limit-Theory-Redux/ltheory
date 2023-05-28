@@ -518,7 +518,7 @@ function System:setAsteroidYield (rng, asteroid)
   -- TODO: Replace with actual system for generating minable materials in asteroids
   -- Start with a 70% chance that an asteroid will have any yield at all
   if rng:getInt(0, 100) < 70 then
-    local amass = math.floor(asteroid:getMass() / 1000)
+    local amass = math.floor(asteroid:getMass())
     local itemT2 = Item.T2
     table.sort(itemT2, function (a, b) return a.distribution < b.distribution end)
     local itemType = nil
@@ -534,7 +534,7 @@ function System:setAsteroidYield (rng, asteroid)
     if itemType == nil then
       itemType = Item.Silicates
     end
-    asteroid:addYield(itemType, math.max(1, math.floor(rng:getUniformRange(amass / 2, amass))))
+    asteroid:addYield(itemType, math.max(1, math.floor(rng:getUniformRange(amass * 0.001, amass * 0.002))))
   end
 end
 

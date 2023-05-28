@@ -64,7 +64,7 @@ function Ship:attackedBy (target)
         local actionName = format("Attack %s", target:getName()) -- must match namegen in Attack.lua
         local attackAction = self:findAction(actionName)
         if attackAction then
-          if attackAction ~= self:getCurrentAction(actionName) then
+          if attackAction ~= self:getCurrentAction() then
             -- If the action to attack the attacker exists in this entity's Actions queue but isn't the current
             --     action, delete the old Attack action and push a new instance to the top of the Actions queue
             self:deleteAction(actionName)
@@ -73,8 +73,23 @@ function Ship:attackedBy (target)
         else
           self:pushAction(Actions.Attack(target))
         end
+        self:distressCall(target, 15000)
       else
         self:pushAction(Actions.Attack(target))
+      end
+    end
+  end
+end
+
+function Ship:distressCall (target, range)
+  local owner = self:getOwner()
+  for asset in  owner:iterAssets() do
+    if asset:getType() == Config:getObjectTypeByName("object_types", "Ship") and self:getDistance(asset) < range then
+      local currentAction = asset:getCurrentAction()
+
+      if currentAction and not string.find(currentAction:getName(),"Attack") then
+        asset:pushAction(Actions.Attack(target))
+        print(asset:getName() .. " answering distress call of " .. self:getName())
       end
     end
   end

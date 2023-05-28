@@ -35,13 +35,6 @@ local function AddSystemGenerics(system)
       system:spawnStation(tradeAi, Production.Recycler)
   end
 
-  -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
-  for i = 2, GameState.gen.nStations do
-    -- Create Stations within randomly selected AsteroidField Zones
-    system:spawnStation(tradeAi, nil)
-  end
-  print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, tradeAi:getName())
-
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
   system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
 end
@@ -94,6 +87,13 @@ function UniverseEconomy:OnUpdate(dt)
 
         -- Temporary
         AddSystemGenerics(system)
+
+        -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
+      for i = 2, GameState.gen.nStations do
+        -- Create Stations within randomly selected AsteroidField Zones
+        system:spawnStation(aiPlayer, nil)
+      end
+      print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, aiPlayer:getName())
 
         -- Add AI Player to the system
         table.insert(system.aiPlayers, aiPlayer)

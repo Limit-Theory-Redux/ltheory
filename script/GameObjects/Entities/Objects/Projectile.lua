@@ -20,8 +20,9 @@ function Entity:addProjectile (source)
   assert(self.projectiles)
 
   -- TODO: Extend projectile types to non-pulse effects
-
-  if Config.audio.pulseFire then Sound.Play(Config.audio.pulseFire) end
+  local sound = Sound.Load("./res/system/audio/fx/blaster.ogg", false, true)
+  Sound.SetVolume(sound, Config.audio.soundMax)
+  if sound then Sound.Play(sound) else print("Sound is nil!") end
 
   local e = Pulse:new()
   e.source = IncRef(source)
