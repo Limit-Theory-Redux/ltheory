@@ -108,6 +108,7 @@ function Universe:CreateStarSystem(seed)
       local offset = system.rng:getSphere():scale(5000)
       pirate:setPos(pirateStation:getPos() + offset)
       pirate:pushAction(Actions.Patrol(nil, nil))
+      pirate:setDisposition(playerShip, Config.game.dispoMin)
 
       -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
       --       These will be dogfighting challenges!
