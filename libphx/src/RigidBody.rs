@@ -1,330 +1,390 @@
+use crate::CollisionShape::*;
+use crate::Common::*;
+use crate::Math::{Box3, Vec3};
+use crate::Matrix::Matrix;
+use crate::Mesh::*;
+use crate::Physics::*;
+use crate::Quat::Quat;
+use rapier3d::prelude as rp;
+use rapier3d::prelude::nalgebra as na;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+pub enum PhysicsType {
+    Null,
+    RigidBody,
+    Trigger,
+}
+
+enum RigidBodyState {
+    Detached {
+        rb: rp::RigidBody,
+        collider: rp::Collider,
+    },
+    Attached {
+        rb: rp::RigidBodyHandle,
+        collider: rp::ColliderHandle,
+        world: Rc<RefCell<Physics>>,
+    },
+}
+
 /*
-PHX_API RigidBody*  _cppRigidBody_CreateBox                    ();
-PHX_API RigidBody*  _cppRigidBody_CreateBoxFromMesh            (Mesh*);
-PHX_API RigidBody*  _cppRigidBody_CreateSphere                 ();
-PHX_API RigidBody*  _cppRigidBody_CreateSphereFromMesh         (Mesh*);
-PHX_API RigidBody*  _cppRigidBody_CreateHullFromMesh           (Mesh*);
-PHX_API void        _cppRigidBody_Free                         (RigidBody*);
+struct RigidBody {
+  PhysicsType  type;
+  btRigidBody* handle;         // Always references *this* object, even when part of a compound
+  int          iShape;         // Always references *this* object, even when part of a compound
+  int          collisionGroup; // Which group this object is part of
+  int          collisionMask;  // Which other groups this object collides with
+  float        mass;           // For GetMass and calculating inertia (mass is not stored in btRigidBody)
 
-PHX_API void        _cppRigidBody_ApplyForce                   (RigidBody*, Vec3f*);
-PHX_API void        _cppRigidBody_ApplyTorque                  (RigidBody*, Vec3f*);
+  int          iCompound;      // The index within the compound (-1 when not a compound)
+  int          iCompoundShape; // The compound shape (-1 when not a compound)
+  RigidBody*   parent;         // The parent object in the compound (null when not a compound)
+  RigidBody*   next;           // The next object in the compound (null when this is the last child or not a compound)
 
-PHX_API void        _cppRigidBody_Attach                       (RigidBody*, RigidBody* other, Vec3f*, Quat*);
-PHX_API void        _cppRigidBody_Detach                       (RigidBody*, RigidBody* other);
+  Physics*     physics;
+  Trigger*     triggers;
+  Matrix       mat;
+};
 
-PHX_API void        _cppRigidBody_GetBoundingBox               (RigidBody*, Box3*);
-PHX_API void        _cppRigidBody_GetBoundingBoxCompound       (RigidBody*, Box3*);
-PHX_API void        _cppRigidBody_GetBoundingBoxLocal          (RigidBody*, Box3*);
-PHX_API void        _cppRigidBody_GetBoundingBoxLocalCompound  (RigidBody*, Box3*);
-PHX_API float       _cppRigidBody_GetBoundingRadius            (RigidBody*);
-PHX_API float       _cppRigidBody_GetBoundingRadiusCompound    (RigidBody*);
+ */
 
-PHX_API RigidBody*  _cppRigidBody_GetParentBody                (RigidBody*);
-PHX_API float       _cppRigidBody_GetSpeed                     (RigidBody*);
-PHX_API Matrix*     _cppRigidBody_GetToLocalMatrix             (RigidBody*);
-PHX_API Matrix*     _cppRigidBody_GetToWorldMatrix             (RigidBody*);
-PHX_API void        _cppRigidBody_GetVelocity                  (RigidBody*, Vec3f*);
-PHX_API void        _cppRigidBody_GetVelocityA                 (RigidBody*, Vec3f*);
+pub struct RigidBody {
+    ty: PhysicsType,
+    handle: RigidBodyState,
+    collidable: bool,
+    collisionGroup: rp::InteractionGroups,
+    mass: f32,
+}
 
-PHX_API void        _cppRigidBody_SetCollidable                (RigidBody*, bool);
-PHX_API void        _cppRigidBody_SetCollisionGroup            (RigidBody*, int);
-PHX_API void        _cppRigidBody_SetCollisionMask             (RigidBody*, int);
-PHX_API void        _cppRigidBody_SetDrag                      (RigidBody*, float linear, float angular);
-PHX_API void        _cppRigidBody_SetFriction                  (RigidBody*, float);
-PHX_API void        _cppRigidBody_SetKinematic                 (RigidBody*, bool);
-PHX_API void        _cppRigidBody_SetRestitution               (RigidBody*, float);
-PHX_API void        _cppRigidBody_SetSleepThreshold            (RigidBody*, float linear, float angular);
+impl RigidBody {
+    pub fn new(shape: CollisionShape) -> RigidBody {
+        let rigidBody = rp::RigidBodyBuilder::dynamic().build();
+        RigidBody {
+            ty: PhysicsType::RigidBody,
+            handle: RigidBodyState::Detached {
+                rb: rigidBody,
+                collider: shape.collider,
+            },
+            collidable: true,
+            collisionGroup: rp::InteractionGroups::default(),
+            mass: 1.0,
+        }
+    }
 
-PHX_API float       _cppRigidBody_GetMass                      (RigidBody*);
-PHX_API void        _cppRigidBody_SetMass                      (RigidBody*, float);
-PHX_API void        _cppRigidBody_GetPos                       (RigidBody*, Vec3f*);
-PHX_API void        _cppRigidBody_GetPosLocal                  (RigidBody*, Vec3f*);
-PHX_API void        _cppRigidBody_SetPos                       (RigidBody*, Vec3f*);
-PHX_API void        _cppRigidBody_SetPosLocal                  (RigidBody*, Vec3f*);
-PHX_API void        _cppRigidBody_GetRot                       (RigidBody*, Quat*);
-PHX_API void        _cppRigidBody_GetRotLocal                  (RigidBody*, Quat*);
-PHX_API void        _cppRigidBody_SetRot                       (RigidBody*, Quat*);
-PHX_API void        _cppRigidBody_SetRotLocal                  (RigidBody*, Quat*);
-PHX_API float       _cppRigidBody_GetScale                     (RigidBody*);
-PHX_API void        _cppRigidBody_SetScale                     (RigidBody*, float);
+    pub fn isChild(&self) -> bool {
+        false
+    }
 
-*/
+    /// Executes a function f with a reference to the RigidBody associated with this object.
+    pub fn withRigidBody<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&rp::RigidBody) -> R,
+    {
+        match &self.handle {
+            RigidBodyState::Detached { rb, collider: _ } => f(rb),
+            RigidBodyState::Attached {
+                rb,
+                collider: _,
+                world,
+            } => f(world.borrow().rigidBodySet.get(*rb).unwrap()),
+        }
+    }
 
-use crate::Math::Vec3;
+    /// Executes a function f with a mutable reference to the RigidBody associated with this object.
+    pub fn withRigidBodyMut<F, R>(&mut self, f: F) -> R
+    where
+        F: FnOnce(&mut rp::RigidBody) -> R,
+    {
+        match &mut self.handle {
+            RigidBodyState::Detached { rb, collider: _ } => f(rb),
+            RigidBodyState::Attached {
+                rb,
+                collider: _,
+                world,
+            } => f(world.borrow_mut().rigidBodySet.get_mut(*rb).unwrap()),
+        }
+    }
 
-extern "C" {
-    pub type RigidBody;
-    pub type Mesh;
-    pub type Quat;
-    pub type Box3;
-    pub type Matrix;
-    fn _cppRigidBody_CreateBox() -> *mut RigidBody;
-    fn _cppRigidBody_CreateBoxFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
-    fn _cppRigidBody_CreateSphere() -> *mut RigidBody;
-    fn _cppRigidBody_CreateSphereFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
-    fn _cppRigidBody_CreateHullFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
-    fn _cppRigidBody_Free(this: &mut RigidBody);
-    fn _cppRigidBody_ApplyForce(this: &mut RigidBody, force: *mut Vec3);
-    fn _cppRigidBody_ApplyTorque(this: &mut RigidBody, torque: *mut Vec3);
-    fn _cppRigidBody_Attach(
-        this: &mut RigidBody,
-        other: *mut RigidBody,
-        offset: *mut Vec3,
-        rot: *mut Quat,
-    );
-    fn _cppRigidBody_Detach(this: &mut RigidBody, other: *mut RigidBody);
-    fn _cppRigidBody_GetBoundingBox(this: &mut RigidBody, out: *mut Box3);
-    fn _cppRigidBody_GetBoundingBoxCompound(this: &mut RigidBody, out: *mut Box3);
-    fn _cppRigidBody_GetBoundingBoxLocal(this: &mut RigidBody, out: *mut Box3);
-    fn _cppRigidBody_GetBoundingBoxLocalCompound(this: &mut RigidBody, out: *mut Box3);
-    fn _cppRigidBody_GetBoundingRadius(this: &mut RigidBody) -> f32;
-    fn _cppRigidBody_GetBoundingRadiusCompound(this: &mut RigidBody) -> f32;
-    fn _cppRigidBody_GetParentBody(this: &mut RigidBody) -> *mut RigidBody;
-    fn _cppRigidBody_GetSpeed(this: &mut RigidBody) -> f32;
-    fn _cppRigidBody_GetToLocalMatrix(this: &mut RigidBody) -> *mut Matrix;
-    fn _cppRigidBody_GetToWorldMatrix(this: &mut RigidBody) -> *mut Matrix;
-    fn _cppRigidBody_GetVelocity(this: &mut RigidBody, out: *mut Vec3);
-    fn _cppRigidBody_GetVelocityA(this: &mut RigidBody, out: *mut Vec3);
-    fn _cppRigidBody_SetCollidable(this: &mut RigidBody, collidable: bool);
-    fn _cppRigidBody_SetCollisionGroup(this: &mut RigidBody, group: i32);
-    fn _cppRigidBody_SetCollisionMask(this: &mut RigidBody, mask: i32);
-    fn _cppRigidBody_SetDrag(this: &mut RigidBody, linear: f32, angular: f32);
-    fn _cppRigidBody_SetFriction(this: &mut RigidBody, friction: f32);
-    fn _cppRigidBody_SetKinematic(this: &mut RigidBody, kinematic: bool);
-    fn _cppRigidBody_SetRestitution(this: &mut RigidBody, restitution: f32);
-    fn _cppRigidBody_SetSleepThreshold(this: &mut RigidBody, linear: f32, angular: f32);
-    fn _cppRigidBody_GetMass(this: &mut RigidBody) -> f32;
-    fn _cppRigidBody_SetMass(this: &mut RigidBody, mass: f32);
-    fn _cppRigidBody_GetPos(this: &mut RigidBody, out: *mut Vec3);
-    fn _cppRigidBody_GetPosLocal(this: &mut RigidBody, out: *mut Vec3);
-    fn _cppRigidBody_SetPos(this: &mut RigidBody, pos: *mut Vec3);
-    fn _cppRigidBody_SetPosLocal(this: &mut RigidBody, pos: *mut Vec3);
-    fn _cppRigidBody_GetRot(this: &mut RigidBody, out: *mut Quat);
-    fn _cppRigidBody_GetRotLocal(this: &mut RigidBody, out: *mut Quat);
-    fn _cppRigidBody_SetRot(this: &mut RigidBody, rot: *mut Quat);
-    fn _cppRigidBody_SetRotLocal(this: &mut RigidBody, rot: *mut Quat);
-    fn _cppRigidBody_GetScale(this: &mut RigidBody) -> f32;
-    fn _cppRigidBody_SetScale(this: &mut RigidBody, scale: f32);
+    /// Executes a function f with a reference to the collider associated with this object.
+    pub fn withCollider<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&rp::Collider) -> R,
+    {
+        match &self.handle {
+            RigidBodyState::Detached { rb: _, collider } => f(collider),
+            RigidBodyState::Attached {
+                rb: _,
+                collider,
+                world,
+            } => f(world.borrow().colliderSet.get(*collider).unwrap()),
+        }
+    }
+
+    /// Executes a function f with a mutable reference to the collider associated with this object.
+    pub fn withColliderMut<F, R>(&mut self, f: F) -> R
+    where
+        F: FnOnce(&mut rp::Collider) -> R,
+    {
+        match &mut self.handle {
+            RigidBodyState::Detached { rb: _, collider } => f(collider),
+            RigidBodyState::Attached {
+                rb: _,
+                collider,
+                world,
+            } => f(world.borrow_mut().colliderSet.get_mut(*collider).unwrap()),
+        }
+    }
+}
+
+pub fn RigidBody_Create(shape: Box<CollisionShape>) -> Box<RigidBody> {
+    Box::new(RigidBody::new(*shape))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_CreateBox() -> *mut RigidBody {
-    _cppRigidBody_CreateBox()
+pub extern "C" fn RigidBody_CreateBox() -> Box<RigidBody> {
+    RigidBody_Create(CollisionShape::newBox(&Vec3::ONE))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_CreateBoxFromMesh(mesh: *mut Mesh) -> *mut RigidBody {
-    _cppRigidBody_CreateBoxFromMesh(mesh)
+pub extern "C" fn RigidBody_CreateBoxFromMesh(mesh: &mut Mesh) -> Box<RigidBody> {
+    RigidBody_Create(CollisionShape::newBoxFromMesh(mesh))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_CreateSphere() -> *mut RigidBody {
-    _cppRigidBody_CreateSphere()
+pub extern "C" fn RigidBody_CreateSphere() -> Box<RigidBody> {
+    RigidBody_Create(CollisionShape::newSphere(1.0))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_CreateSphereFromMesh(mesh: *mut Mesh) -> *mut RigidBody {
-    _cppRigidBody_CreateSphereFromMesh(mesh)
+pub extern "C" fn RigidBody_CreateSphereFromMesh(mesh: &mut Mesh) -> Box<RigidBody> {
+    RigidBody_Create(CollisionShape::newSphereFromMesh(mesh))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_CreateHullFromMesh(mesh: *mut Mesh) -> *mut RigidBody {
-    _cppRigidBody_CreateHullFromMesh(mesh)
+pub extern "C" fn RigidBody_CreateHullFromMesh(mesh: &mut Mesh) -> Box<RigidBody> {
+    RigidBody_Create(CollisionShape::newHullFromMesh(mesh))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_Free(this: &mut RigidBody) {
-    _cppRigidBody_Free(this)
+pub extern "C" fn RigidBody_Free(_: Box<RigidBody>) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_ApplyForce(this: &mut RigidBody, force: &Vec3) {
+    if this.isChild() {
+        Fatal!("RigidBody_ApplyForce: Not supported on children.");
+    }
+    this.withRigidBodyMut(|rb| rb.add_force(force.toNA(), true))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_ApplyForce(this: &mut RigidBody, force: *mut Vec3) {
-    _cppRigidBody_ApplyForce(this, force)
+pub extern "C" fn RigidBody_ApplyTorque(this: &mut RigidBody, torque: &Vec3) {
+    if this.isChild() {
+        Fatal!("RigidBody_ApplyTorque: Not supported on children.");
+    }
+    this.withRigidBodyMut(|rb| rb.add_torque(torque.toNA(), true))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_ApplyTorque(this: &mut RigidBody, torque: *mut Vec3) {
-    _cppRigidBody_ApplyTorque(this, torque)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_Attach(
+pub extern "C" fn RigidBody_Attach(
     this: &mut RigidBody,
-    other: *mut RigidBody,
-    offset: *mut Vec3,
-    rot: *mut Quat,
+    child: &mut RigidBody,
+    offset: &Vec3,
+    rot: &Quat,
 ) {
-    _cppRigidBody_Attach(this, other, offset, rot)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_Detach(this: &mut RigidBody, other: *mut RigidBody) {
-    _cppRigidBody_Detach(this, other)
+pub extern "C" fn RigidBody_Detach(this: &mut RigidBody, other: *mut RigidBody) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_GetBoundingBox(this: &mut RigidBody, out: &mut Box3) {
+    let aabb = this.withCollider(|c| c.compute_aabb());
+    out.lower = Vec3::fromNAPoint(&aabb.mins);
+    out.upper = Vec3::fromNAPoint(&aabb.maxs);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBox(this: &mut RigidBody, out: *mut Box3) {
-    _cppRigidBody_GetBoundingBox(this, out)
+pub extern "C" fn RigidBody_GetBoundingBoxCompound(this: &mut RigidBody, out: &mut Box3) {
+    // TODO: Get the AABB of the compound shape i.e. the root of a compound tree.
+    let aabb = this.withCollider(|c| c.compute_aabb());
+    out.lower = Vec3::fromNAPoint(&aabb.mins);
+    out.upper = Vec3::fromNAPoint(&aabb.maxs);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBoxCompound(this: &mut RigidBody, out: *mut Box3) {
-    _cppRigidBody_GetBoundingBoxCompound(this, out)
+pub extern "C" fn RigidBody_GetBoundingBoxLocal(this: &mut RigidBody, out: &mut Box3) {
+    let aabb = this.withCollider(|c| c.shape().compute_local_aabb());
+    out.lower = Vec3::fromNAPoint(&aabb.mins);
+    out.upper = Vec3::fromNAPoint(&aabb.maxs);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocal(this: &mut RigidBody, out: *mut Box3) {
-    _cppRigidBody_GetBoundingBoxLocal(this, out)
+pub extern "C" fn RigidBody_GetBoundingBoxLocalCompound(this: &mut RigidBody, out: &mut Box3) {
+    // TODO: Get the AABB of the compound shape i.e. the root of a compound tree.
+    let aabb = this.withCollider(|c| c.shape().compute_local_aabb());
+    out.lower = Vec3::fromNAPoint(&aabb.mins);
+    out.upper = Vec3::fromNAPoint(&aabb.maxs);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingBoxLocalCompound(
-    this: &mut RigidBody,
-    out: *mut Box3,
-) {
-    _cppRigidBody_GetBoundingBoxLocalCompound(this, out)
+pub extern "C" fn RigidBody_GetBoundingRadius(this: &mut RigidBody) -> f32 {
+    this.withCollider(|c| c.shape().compute_local_bounding_sphere().radius)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingRadius(this: &mut RigidBody) -> f32 {
-    _cppRigidBody_GetBoundingRadius(this)
+pub extern "C" fn RigidBody_GetBoundingRadiusCompound(this: &mut RigidBody) -> f32 {
+    // TODO: Get the AABB of the compound shape i.e. the root of a compound tree.
+    this.withCollider(|c| c.shape().compute_local_bounding_sphere().radius)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetBoundingRadiusCompound(this: &mut RigidBody) -> f32 {
-    _cppRigidBody_GetBoundingRadiusCompound(this)
+pub extern "C" fn RigidBody_GetParentBody(this: &mut RigidBody) -> Option<&mut RigidBody> {
+    None
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetParentBody(this: &mut RigidBody) -> *mut RigidBody {
-    _cppRigidBody_GetParentBody(this)
+pub extern "C" fn RigidBody_GetSpeed(this: &RigidBody) -> f32 {
+    if this.isChild() {
+        Fatal!("RigidBody_GetSpeed: Not supported on children.");
+    }
+    this.withRigidBody(|rb| rb.linvel().norm())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetSpeed(this: &mut RigidBody) -> f32 {
-    _cppRigidBody_GetSpeed(this)
+pub extern "C" fn RigidBody_GetToLocalMatrix(this: &mut RigidBody) -> *mut Matrix {
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetToLocalMatrix(this: &mut RigidBody) -> *mut Matrix {
-    _cppRigidBody_GetToLocalMatrix(this)
+pub extern "C" fn RigidBody_GetToWorldMatrix(this: &mut RigidBody) -> *mut Matrix {
+    std::ptr::null_mut()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetToWorldMatrix(this: &mut RigidBody) -> *mut Matrix {
-    _cppRigidBody_GetToWorldMatrix(this)
+pub extern "C" fn RigidBody_GetVelocity(this: &mut RigidBody, out: &mut Vec3) {
+    if this.isChild() {
+        Fatal!("RigidBody_GetVelocity: Not supported on children.");
+    }
+    this.withRigidBody(|rb| *out = Vec3::fromNA(rb.linvel()))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetVelocity(this: &mut RigidBody, out: *mut Vec3) {
-    _cppRigidBody_GetVelocity(this, out)
+pub extern "C" fn RigidBody_GetVelocityA(this: &mut RigidBody, out: &mut Vec3) {
+    if this.isChild() {
+        Fatal!("RigidBody_GetVelocityA: Not supported on children.");
+    }
+    this.withRigidBody(|rb| *out = Vec3::fromNA(rb.angvel()))
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetVelocityA(this: &mut RigidBody, out: *mut Vec3) {
-    _cppRigidBody_GetVelocityA(this, out)
+pub extern "C" fn RigidBody_SetCollidable(this: &mut RigidBody, collidable: bool) {
+    this.collidable = collidable;
+    let collisionGroup = if this.collidable {
+        this.collisionGroup
+    } else {
+        rp::InteractionGroups::none()
+    };
+    this.withColliderMut(|c| c.set_collision_groups(collisionGroup));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetCollidable(this: &mut RigidBody, collidable: bool) {
-    _cppRigidBody_SetCollidable(this, collidable)
+pub extern "C" fn RigidBody_SetCollisionGroup(this: &mut RigidBody, group: u32) {
+    this.collisionGroup.memberships = group.into();
+    let collisionGroup = if this.collidable {
+        this.collisionGroup
+    } else {
+        rp::InteractionGroups::none()
+    };
+    this.withColliderMut(|c| c.set_collision_groups(collisionGroup));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetCollisionGroup(this: &mut RigidBody, group: i32) {
-    _cppRigidBody_SetCollisionGroup(this, group)
+pub extern "C" fn RigidBody_SetCollisionMask(this: &mut RigidBody, mask: u32) {
+    this.collisionGroup.filter = mask.into();
+    let collisionGroup = if this.collidable {
+        this.collisionGroup
+    } else {
+        rp::InteractionGroups::none()
+    };
+    this.withColliderMut(|c| c.set_collision_groups(collisionGroup));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetCollisionMask(this: &mut RigidBody, mask: i32) {
-    _cppRigidBody_SetCollisionMask(this, mask)
+pub extern "C" fn RigidBody_SetDrag(this: &mut RigidBody, linear: f32, angular: f32) {
+    this.withRigidBodyMut(|rb| {
+        rb.set_linear_damping(linear);
+        rb.set_angular_damping(angular);
+    });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetDrag(this: &mut RigidBody, linear: f32, angular: f32) {
-    _cppRigidBody_SetDrag(this, linear, angular)
+pub extern "C" fn RigidBody_SetFriction(this: &mut RigidBody, friction: f32) {
+    this.withColliderMut(|c| c.set_friction(friction));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetFriction(this: &mut RigidBody, friction: f32) {
-    _cppRigidBody_SetFriction(this, friction)
+pub extern "C" fn RigidBody_SetKinematic(this: &mut RigidBody, kinematic: bool) {
+    this.withRigidBodyMut(|rb| {
+        if kinematic {
+            rb.set_body_type(rp::RigidBodyType::KinematicPositionBased, true);
+        } else {
+            rb.set_body_type(rp::RigidBodyType::Dynamic, true);
+        }
+    });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetKinematic(this: &mut RigidBody, kinematic: bool) {
-    _cppRigidBody_SetKinematic(this, kinematic)
+pub extern "C" fn RigidBody_SetRestitution(this: &mut RigidBody, restitution: f32) {
+    this.withColliderMut(|c| c.set_restitution(restitution));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetRestitution(this: &mut RigidBody, restitution: f32) {
-    _cppRigidBody_SetRestitution(this, restitution)
+pub extern "C" fn RigidBody_SetSleepThreshold(this: &mut RigidBody, linear: f32, angular: f32) {
+    this.withRigidBodyMut(|rb| {
+        rb.activation_mut().linear_threshold = linear;
+        rb.activation_mut().angular_threshold = angular;
+    });
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetSleepThreshold(
-    this: &mut RigidBody,
-    linear: f32,
-    angular: f32,
-) {
-    _cppRigidBody_SetSleepThreshold(this, linear, angular)
+pub extern "C" fn RigidBody_GetMass(this: &RigidBody) -> f32 {
+    this.withRigidBody(|rb| rb.mass())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetMass(this: &mut RigidBody) -> f32 {
-    _cppRigidBody_GetMass(this)
+pub extern "C" fn RigidBody_SetMass(this: &mut RigidBody, mass: f32) {
+    this.withRigidBodyMut(|rb| rb.set_additional_mass(mass, true));
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetMass(this: &mut RigidBody, mass: f32) {
-    _cppRigidBody_SetMass(this, mass)
+pub extern "C" fn RigidBody_GetPos(this: &mut RigidBody, out: &mut Vec3) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_GetPosLocal(this: &mut RigidBody, out: &mut Vec3) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetPos(this: &mut RigidBody, pos: *mut Vec3) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetPosLocal(this: &mut RigidBody, pos: *mut Vec3) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_GetRot(this: &mut RigidBody, out: *mut Quat) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_GetRotLocal(this: &mut RigidBody, out: *mut Quat) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetRot(this: &mut RigidBody, rot: *mut Quat) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetRotLocal(this: &mut RigidBody, rot: *mut Quat) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_GetScale(this: &mut RigidBody) -> f32 {
+    0.0
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetPos(this: &mut RigidBody, out: *mut Vec3) {
-    _cppRigidBody_GetPos(this, out)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetPosLocal(this: &mut RigidBody, out: *mut Vec3) {
-    _cppRigidBody_GetPosLocal(this, out)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetPos(this: &mut RigidBody, pos: *mut Vec3) {
-    _cppRigidBody_SetPos(this, pos)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetPosLocal(this: &mut RigidBody, pos: *mut Vec3) {
-    _cppRigidBody_SetPosLocal(this, pos)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetRot(this: &mut RigidBody, out: *mut Quat) {
-    _cppRigidBody_GetRot(this, out)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetRotLocal(this: &mut RigidBody, out: *mut Quat) {
-    _cppRigidBody_GetRotLocal(this, out)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetRot(this: &mut RigidBody, rot: *mut Quat) {
-    _cppRigidBody_SetRot(this, rot)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetRotLocal(this: &mut RigidBody, rot: *mut Quat) {
-    _cppRigidBody_SetRotLocal(this, rot)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_GetScale(this: &mut RigidBody) -> f32 {
-    _cppRigidBody_GetScale(this)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn RigidBody_SetScale(this: &mut RigidBody, scale: f32) {
-    _cppRigidBody_SetScale(this, scale)
-}
+pub extern "C" fn RigidBody_SetScale(this: &mut RigidBody, scale: f32) {}

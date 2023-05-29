@@ -1,9 +1,10 @@
-use crate::Math::Vec3;
-use crate::Ray::*;
+use crate::Math::{Sphere, Vec3};
 use crate::Quat::*;
+use crate::Ray::*;
+use crate::RigidBody::*;
 use crate::Trigger::*;
 use rapier3d::prelude as rp;
-use rapier3d::prelude::nalgebra;
+use rapier3d::prelude::nalgebra as na;
 
 pub struct Physics {
     pub rigidBodySet: rp::RigidBodySet,
@@ -17,7 +18,7 @@ pub struct Physics {
     pub narrowphase: rp::NarrowPhase,
     pub impulseJointSet: rp::ImpulseJointSet,
     pub multibodyJointSet: rp::MultibodyJointSet,
-    pub ccdSolve: rp::CCDSolver,
+    pub ccdSolver: rp::CCDSolver,
 
     pub triggers: Vec<Trigger>,
 }
@@ -28,16 +29,38 @@ pub struct Collision {
     body0: RigidBody,
     body1: RigidBody,
 }
-  
+
 pub struct RayCastResult {
     body: RigidBody,
     norm: Vec3,
     pos: Vec3,
     t: f32,
 }
-  
+
 pub struct ShapeCastResult {
-    hits: Vec<RigidBody>
+    hits: Vec<RigidBody>,
+}
+
+pub trait NalgebraInterop {
+    fn toNA(&self) -> na::Vector3<f32>;
+    fn toNAPoint(&self) -> na::Point3<f32>;
+    fn fromNA(_: &na::Vector3<f32>) -> Self;
+    fn fromNAPoint(_: &na::Point3<f32>) -> Self;
+}
+
+impl NalgebraInterop for Vec3 {
+    fn toNA(&self) -> na::Vector3<f32> {
+        na::Vector3::new(self.x, self.y, self.z)
+    }
+    fn toNAPoint(&self) -> na::Point3<f32> {
+        na::Point3::new(self.x, self.y, self.z)
+    }
+    fn fromNA(v: &na::Vector3<f32>) -> Vec3 {
+        Vec3::new(v.x, v.y, v.z)
+    }
+    fn fromNAPoint(v: &na::Point3<f32>) -> Vec3 {
+        Vec3::new(v.x, v.y, v.z)
+    }
 }
 
 #[no_mangle]
@@ -53,30 +76,29 @@ pub unsafe extern "C" fn Physics_Create() -> Box<Physics> {
         narrowphase: rp::NarrowPhase::new(),
         impulseJointSet: rp::ImpulseJointSet::new(),
         multibodyJointSet: rp::MultibodyJointSet::new(),
-        ccdSolve: rp::CCDSolver::new(),
+        ccdSolver: rp::CCDSolver::new(),
         triggers: Vec::new(),
     })
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_Free(_: Box<Physics>) {
+pub unsafe extern "C" fn Physics_Free(_: Box<Physics>) {}
+
+#[no_mangle]
+pub unsafe extern "C" fn Physics_AddRigidBody(this: &mut Physics, rb: &mut RigidBody) {
+    // this.rigidBodySet.insert(rb)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_AddRigidBody(this: &mut Physics, rb: *mut RigidBody) {
+pub unsafe extern "C" fn Physics_RemoveRigidBody(this: &mut Physics, rb: &mut RigidBody) {
+    // this.rigidBodySet.remove()
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_RemoveRigidBody(this: &mut Physics, rb: *mut RigidBody) {
-}
+pub unsafe extern "C" fn Physics_AddTrigger(this: &mut Physics, t: *mut Trigger) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_AddTrigger(this: &mut Physics, t: *mut Trigger) {
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Physics_RemoveTrigger(this: &mut Physics, t: *mut Trigger) {
-}
+pub unsafe extern "C" fn Physics_RemoveTrigger(this: &mut Physics, t: *mut Trigger) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_GetNextCollision(this: &mut Physics, c: *mut Collision) -> bool {
@@ -85,32 +107,33 @@ pub unsafe extern "C" fn Physics_GetNextCollision(this: &mut Physics, c: *mut Co
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_Update(this: &mut Physics, dt: f32) {
-    for trigger in this.triggers.iter() {
+    for trigger in this.triggers.iter_mut() {
         Trigger_Update(trigger);
     }
 
-    let gravity = rp::vector![0.0, 0.0, 0.0];
+    let gravity = Vec3::ZERO.toNA();
     let physics_hooks = ();
     let event_handler = ();
 
     let mut integrationParameters = this.integrationParameters;
     integrationParameters.dt = dt;
     this.physicsPipeline.step(
-      &gravity,
-      &integrationParameters,
-      &mut this.islandManager,
-      &mut this.broadphase,
-      &mut this.narrowphase,
-      &mut this.rigidBodySet,
-      &mut this.colliderSet,
-      &mut this.impulseJointSet,
-      &mut this.multibodyJointSet,
-      &mut this.ccdSolver,
-      None,
-      &physics_hooks,
-      &event_handler,
+        &gravity,
+        &integrationParameters,
+        &mut this.islandManager,
+        &mut this.broadphase,
+        &mut this.narrowphase,
+        &mut this.rigidBodySet,
+        &mut this.colliderSet,
+        &mut this.impulseJointSet,
+        &mut this.multibodyJointSet,
+        &mut this.ccdSolver,
+        None,
+        &physics_hooks,
+        &event_handler,
     );
-    this.queryPipeline.update(&this.rigidBodySet, &this.colliderSet);
+    this.queryPipeline
+        .update(&this.rigidBodySet, &this.colliderSet);
 }
 
 #[no_mangle]
@@ -122,20 +145,28 @@ pub unsafe extern "C" fn Physics_RayCast(
     let from = {
         let mut data = Vec3::ZERO;
         Ray_GetPoint(ray, ray.tMin, &mut data);
-        rp::Point::new(data.x, data.y, data.z)
+        data.toNAPoint()
     };
     let to = {
         let mut data = Vec3::ZERO;
         Ray_GetPoint(ray, ray.tMax, &mut data);
-        rp::Point::new(data.x, data.y, data.z)
+        data.toNAPoint()
     };
     let dir = to - from;
     let length = dir.norm();
 
     let ray = rp::Ray::new(from, dir / length);
     let filter = rp::QueryFilter::default();
-    if let Some((handle, toi)) = this.queryPipeline.cast_ray(&this.rigidBodySet, &this.colliderSet, &ray, length, true, filter) {
-        
+    if let Some((handle, toi)) = this.queryPipeline.cast_ray(
+        &this.rigidBodySet,
+        &this.colliderSet,
+        &ray,
+        length,
+        true,
+        filter,
+    ) {
+        // TODO: Fill out RayCastResult data structure.
+        // result.body;
     }
 }
 
@@ -173,21 +204,16 @@ pub unsafe extern "C" fn Physics_BoxOverlap(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_PrintProfiling(this: &mut Physics) {
-}
+pub unsafe extern "C" fn Physics_PrintProfiling(this: &mut Physics) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_DrawBoundingBoxesLocal(this: &mut Physics) {
-}
+pub unsafe extern "C" fn Physics_DrawBoundingBoxesLocal(this: &mut Physics) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_DrawBoundingBoxesWorld(this: &mut Physics) {
-}
+pub unsafe extern "C" fn Physics_DrawBoundingBoxesWorld(this: &mut Physics) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_DrawTriggers(this: &mut Physics) {
-}
+pub unsafe extern "C" fn Physics_DrawTriggers(this: &mut Physics) {}
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_DrawWireframes(this: &mut Physics) {
-}
+pub unsafe extern "C" fn Physics_DrawWireframes(this: &mut Physics) {}

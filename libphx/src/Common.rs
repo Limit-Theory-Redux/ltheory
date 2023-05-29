@@ -21,20 +21,20 @@ macro_rules! c_str {
 pub(crate) use c_str;
 
 macro_rules! Fatal {
-    ($fmt:expr) => (
-        println!(fmt);
-        libc::abort()
+    ($s:expr) => (
+        print!("{}", $s);
+        unsafe { libc::abort() }
     );
     ($fmt:expr, $($args:expr),* $(,)?) => (
         println!($fmt, $($args),*);
-        libc::abort()
+        unsafe { libc::abort() }
     );
 }
 pub(crate) use Fatal;
 
 macro_rules! CFatal {
-    ($fmt:expr) => (
-        unsafe { common_impl::Fatal(c_str!($fmt)) }
+    ($s:expr) => (
+        unsafe { common_impl::Fatal(c_str!($s)) }
     );
     ($fmt:expr, $($args:expr),* $(,)?) => (
         unsafe { common_impl::Fatal(c_str!($fmt), $($args),*) }

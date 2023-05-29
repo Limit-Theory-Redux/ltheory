@@ -27,7 +27,5 @@ freetype-sys = "0.17"
 fmod-sys = { path = "fmod-sys" }
 
 [build-dependencies]
-cmake = "0.1"
-cc = { version = "1.0", features = ["parallel"] }
 cbindgen = "0.24"
 gl_generator = "0.14"

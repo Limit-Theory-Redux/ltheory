@@ -1529,9 +1529,7 @@ name = "phx"
 version = "0.0.0"
 dependencies = [
  "cbindgen",
- "cc",
  "chrono",
- "cmake",
  "flate2",
  "fmod-sys",
  "freetype-sys",
