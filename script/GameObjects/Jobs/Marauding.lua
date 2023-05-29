@@ -42,12 +42,14 @@ function Marauding:onUpdateActive(e, dt)
       else
         e:popAction()
       end
-
     elseif e.jobState == Enums.JobStateMarauding.MovingToArea then
 
-      self.targetPosition = self.maraudingArea:getRandomPos(self.system.rng)
-      e:pushAction(Actions.MoveToPos(self.targetPosition, 2000))
-
+      if self.maraudingArea then
+        self.targetPosition = self.maraudingArea:getRandomPos(self.system.rng)
+        e:pushAction(Actions.MoveToPos(self.targetPosition, 2000))
+      else
+        e:popAction()
+      end
     elseif e.jobState == Enums.JobStateMarauding.Marauding then
       e:pushAction(Actions.MaraudAt(self.maraudingArea, 10000))
     elseif e.jobState == Enums.JobStateMarauding.FindBlackMarket then

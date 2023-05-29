@@ -29,7 +29,7 @@ Config.audio = {
   musicVolume = 0.75, -- current volume
   mainMenu    = "LTR_Main_Menu.ogg",
 
-  pulseFireName      = "blaster.ogg",
+  pulseFireName      = "",
   pulseFire          = nil,
   pulseHitName       = "",
   pulseHit           = nil,
@@ -144,16 +144,17 @@ Config.gen = {
 
 Config.game = {
   boostCost              = 20,
-  rateOfFire             = 50,
+  weaponRPM              = 450, -- RPM: rounds per minute
+  weaponRPMDeviation     = 0.02, -- RPM: rounds per minute deviation
 
   explosionSize          = 64,
 
   autoTarget             = true,
   pulseDamage            = 2,
   pulseSize              = 64,
-  pulseSpeed             = 3e3, -- was 6e2
-  pulseRange             = 3000,
-  pulseSpread            = 0.015,
+  pulseSpeed             = 4e3, -- was 6e2
+  pulseRange             = 5000,
+  pulseSpread            = 0.01,
   pulseCharge            = 1.0, -- default amount of capacitor charge used by each shot
   pulseColorBodyR        = 0.3,
   pulseColorBodyG        = 0.8,
@@ -165,7 +166,7 @@ Config.game = {
   shipBuildTime          = 10,
   shipEnergy             = 100,
   shipEnergyRecharge     = 10,
-  shipHealth             = 1,
+  shipHealth             = 100,
   shipHealthRegen        = 0.1,
 
   playerDamageResistance = 1.0,

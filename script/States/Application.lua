@@ -104,7 +104,7 @@ function Application:run ()
       Profiler.Begin('App.onInput')
 
       -- Immediately quit game without saving
-      if Input.GetKeyboardCtrl() and Input.GetPressed(Button.Keyboard.W) then self:quit() end
+      if Input.GetKeyboardAlt() and Input.GetPressed(Button.Keyboard.F4) then self:quit() end
       if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
       if Input.GetPressed(Bindings.Exit) then self:quit() end
 

@@ -22,15 +22,6 @@ function Entity:addProjectile (source)
   assert(self.projectiles)
 
   -- TODO: Extend projectile types to non-pulse effects
-  local sound
-  if not sound then
-    sound = Sound.Load("./res/sound/system/audio/fx/blaster.ogg", false, true)
-    sound:setVolume(Math.Lerp(0.6, 0.8, self.rng:getUniform() ^ 2.0))
-    sound:set3DPos(source:getPos() - source:getForward(), Vec3f(0, 0, 0))
-    sound:play()
-    sound = nil
-  end
-
   local e = Pulse:new()
   e.source = IncRef(source)
 

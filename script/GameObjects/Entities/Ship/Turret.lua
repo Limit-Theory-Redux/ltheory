@@ -96,7 +96,7 @@ function Turret:canFire ()
   return not Config.game.gamePaused and self.cooldown <= 0 and self:getParent():getCharge() >= Config.game.pulseCharge
 end
 
-function Turret:fire ()
+function Turret:fire (dt)
   if not self:canFire() then return end
 --printf("%s firing!", self:getParent():getName())
 
@@ -126,7 +126,8 @@ function Turret:fire ()
   --        AI threat analysis by keeping track of which weapons have caused
   --        the most real damage to it, allowing for optimal sub-system
   --        targetting.
-  self.cooldown = 1.0
+  local rpmDeviation = Config.game.weaponRPM - Config.game.weaponRPM * rng:getUniformRange(Config.game.weaponRPMDeviation, 0)
+  self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
   self.heat = self.heat + 1
 end
 
@@ -152,9 +153,9 @@ function Turret:updateTurret (state)
   self:setRotLocal(self:getParent():getRot():inverse() * self.aim)
   if self.firing > 0 then
     self.firing = 0
-    if self.cooldown <= 0 then self:fire() end
+    if self.cooldown <= 0 then self:fire(state.dt) end
   end
-  self.cooldown = max(0, self.cooldown - state.dt * Config.game.rateOfFire)
+  self.cooldown = max(0, self.cooldown - state.dt)
   self.heat = self.heat * decay
 end
 
