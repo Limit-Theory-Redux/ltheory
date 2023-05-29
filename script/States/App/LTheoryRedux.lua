@@ -359,8 +359,10 @@ function LTheoryRedux:createStarSystem ()
 
   if GameState:GetCurrentState() == Enums.GameStates.InGame then
     -- TODO: replace with gamestate event system
-printf("LTheoryRedux: PlayAmbient")
+    printf("LTheoryRedux: PlayAmbient")
     MusicPlayer:PlayAmbient()
+
+    self.gameView:setCameraMode(GameState.player.startupCamera)
   else
     self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
   end
@@ -377,6 +379,8 @@ function LTheoryRedux:showGameLogo ()
 end
 
 function LTheoryRedux:exitGame ()
+  -- Update Session vars ; temporary until we have a save state
+  GameState.player.startupCamera = GameState.player.currentCamera
   -- Write player-specific game variables to preserve them across gameplay sessions
   InitFiles:writeUserInits()
 
