@@ -1,11 +1,18 @@
 local Action = require('GameObjects.Action')
 
+local kLeadTime = 1.0
+local orbitTime = 15
+
 local MineAt = subclass(Action, function (self, source, target, miningTimePerItem)
   assert(source:hasYield())
   self.source = source
   self.target = target
   self.duration = math.floor(miningTimePerItem)
   self.etimer = 0.0
+  self.currentTime = RNG.FromTime():getInt(1, orbitTime)
+  self.orbitTime = orbitTime
+  self.orbitRadius = source:getRadius() * 1.1
+  self.rAxis = RNG.FromTime():getInt(1,2)
 --printf("MineAt %s from %s to %s", self.source:getYield().item:getName(), self.source:getName(), self.target:getName())
 end)
 
@@ -23,6 +30,28 @@ end
 
 function MineAt:onUpdateActive (e, dt)
   Profiler.Begin('Actions.MineAt.onUpdateActive')
+  -- orbit
+  self.currentTime = self.currentTime + dt
+  local orbitTarget = self.source
+
+  local vector = Vec3f()
+  -- define 2 axis orbits
+  if self.rAxis == 1 then
+    vector.x = (math.cos(2*math.pi*self.currentTime / self.orbitTime) * self.orbitRadius)
+    vector.y = 0
+    vector.z = (math.sin(2*math.pi*self.currentTime / self.orbitTime) * self.orbitRadius)
+  elseif self.rAxis == 2 then
+    vector.x = (math.cos(2*math.pi*self.currentTime / self.orbitTime) * self.orbitRadius)
+    vector.y = (math.sin(2*math.pi*self.currentTime / self.orbitTime) * self.orbitRadius)
+    vector.z = 0
+  end
+
+  self:flyToward(e,
+    orbitTarget:toWorldScaled(vector) + orbitTarget:getVelocity():scale(kLeadTime),
+    orbitTarget:getForward(),
+    orbitTarget:getUp())
+
+  -- mine
   if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) and self.target:hasTrader() then
     local item = self.source:getYield().item
     local maxBids = self.target:getTrader():getBidVolumeForAsset(item, e)
@@ -81,8 +110,6 @@ function MineAt:onUpdateActive (e, dt)
 
           if e:getItemCount(item) == maxBids then
             e:popAction() -- regular: stop mining if asset has mined 1 unit of item for each bid
-          else
-            e:pushAction(Actions.MoveTo(self.source, 150)) -- move back to within range!
           end
         end
       end

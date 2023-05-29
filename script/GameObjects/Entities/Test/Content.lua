@@ -173,8 +173,8 @@ Production.WaterMelter = Production("Water Melter")
 insert(Production.P1, Production.WaterMelter)
 
 Production.Silicon = Production("Silicon Refinery")
-  :addInput(Item.Energy, 2000)
-  :addInput(Item.Silicates, 10000)
+  :addInput(Item.Energy, 2000) -- change back later
+  :addInput(Item.Silicates, 10000) -- change back later
   :addOutput(Item.Silicon, 1)
   :addOutput(Item.Waste, 6)
   :setDuration(12.0)
