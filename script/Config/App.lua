@@ -138,7 +138,7 @@ Config.gen = {
                      5.9,  -- Metallic
                      3.2}, -- Silicaceous
 
-  stationMinimumDistance = 2000, -- minimum distance between stations
+  stationMinimumDistance = 15000, -- minimum distance between stations
   minimumDistancePlacementMaxTries = 100
 }
 
