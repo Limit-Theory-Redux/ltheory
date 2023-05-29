@@ -7,9 +7,6 @@ local SystemMap = {}
 SystemMap.__index  = SystemMap
 setmetatable(SystemMap, UI.Container)
 
-local kPanSpeed = 20 -- NOTE: may be dependent on player's CPU, needs testing
-local kZoomSpeed = 0.1
-
 SystemMap.scrollable = true
 SystemMap.focusable  = true
 SystemMap:setPadUniform(0)
@@ -21,7 +18,7 @@ function SystemMap:onDraw (state)
 
   Draw.Color(0, 1, 0, 1)
   local hx, hy = sx / 2, sy / 2
-  local dx, dy = GameState.player.mapSystemPos.x + hx, GameState.player.mapSystemPos.y + hy
+  local dx, dy = GameState.player.currentMapSystemPos.x + hx, GameState.player.currentMapSystemPos.y + hy
 
   local c = {
     r = 0.1,
@@ -58,8 +55,8 @@ function SystemMap:onDraw (state)
       local p = e:getPos()
       local x = p.x - dx
       local y = p.z - dy
-      x = self.x + x * GameState.player.mapSystemZoom + hx
-      y = self.y + y * GameState.player.mapSystemZoom + hy
+      x = self.x + x * GameState.player.currentMapSystemZoom + hx
+      y = self.y + y * GameState.player.currentMapSystemZoom + hy
       Draw.PointSize(3.0)
 
       if e:hasActions() then
@@ -71,8 +68,8 @@ function SystemMap:onDraw (state)
             local tp = playerTarget:getPos()
             local tx = tp.x - dx
             local ty = tp.z - dy
-            tx = self.x + tx * GameState.player.mapSystemZoom + hx
-            ty = self.y + ty * GameState.player.mapSystemZoom + hy
+            tx = self.x + tx * GameState.player.currentMapSystemZoom + hx
+            ty = self.y + ty * GameState.player.currentMapSystemZoom + hy
             UI.DrawEx.Line(x, y, tx, ty, { r = 0.9, g = 0.8, b = 1.0, a = 1.0 }, true)
           end
         else
@@ -101,12 +98,15 @@ function SystemMap:onDraw (state)
               local ftp = focusedTarget:getPos()
               local ftx = ftp.x - dx
               local fty = ftp.z - dy
-              ftx = self.x + ftx * GameState.player.mapSystemZoom + hx
-              fty = self.y + fty * GameState.player.mapSystemZoom + hy
-              if string.find(entAction:getName(), "Attack") then
-                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, true)
-              else
-                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, true)
+              ftx = self.x + ftx * GameState.player.currentMapSystemZoom + hx
+              fty = self.y + fty * GameState.player.currentMapSystemZoom + hy
+
+              if e == playerTarget then
+                if string.find(entAction:getName(), "Attack") then
+                  UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, false)
+                else
+                  UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 0.5 }, false)
+                end
               end
             end
           else
@@ -120,17 +120,19 @@ function SystemMap:onDraw (state)
 
       if e:hasFlows() and not e:isDestroyed() then
 --printf("Flow: %s", e:getName())
-        UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale() * 10, { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
+        UI.DrawEx.Ring(x, y, GameState.player.currentMapSystemZoom * e:getScale() * 10, { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
       end
 
       if e:hasYield() then
+        if e:getType() == Config:getObjectTypeByName("object_types", "Planet") or GameState.player.currentMapSystemZoom >= 0.02 then
 --printf("Yield: %s", e:getName())
-        UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 }, true)
+          UI.DrawEx.Ring(x, y, GameState.player.currentMapSystemZoom * e:getScale(), { r = 1.0, g = 0.5, b = 0.1, a = 0.5 }, true)
+        end
       end
 
       if self.focus == e then
 --printf("Focus: %s", e:getName())
-        UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 }, true)
+        UI.DrawEx.Ring(x, y, GameState.player.currentMapSystemZoom * e:getScale(), { r = 1.0, g = 0.0, b = 0.3, a = 1.0 }, true)
       end
 
       -- Select the nearest object
@@ -280,24 +282,29 @@ function SystemMap:onInput (state)
   -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
   --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
   --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
-  if Input.GetValue(Button.Keyboard.Minus) == 1 then
-    GameState.player.mapSystemPan = floor(GameState.player.mapSystemPan / 1.2)
-  end
-  if Input.GetValue(Button.Keyboard.Equals) == 1 then
-    GameState.player.mapSystemPan = floor(GameState.player.mapSystemPan * 1.2)
-    if GameState.player.mapSystemPan > 150 then
-      GameState.player.mapSystemPan = 150
-    end
+  if state.dt and state.dt ~= 0 then
+    self.lastDt = state.dt
   end
 
-  GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-  GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
-      exp(kZoomSpeed * (Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+  if state.dt > 0 then
+    GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * state.dt
+  else
+    GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * self.lastDt -- temp fix for -> see NOTE above
+  end
 
-  GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x + (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-      Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-  GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y + (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-      Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+  if Input.GetValue(Button.Keyboard.LShift) == 1 then
+    GameState.player.currentMapSystemPan = GameState.player.currentMapSystemPan * 2
+  end
+
+  GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom * exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
+  GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
+      exp(GameState.ui.mapSystemZoomSpeed * (Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+
+  GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x + GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
+    Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
+  GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y + GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
+    Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+
 end
 
 function SystemMap.Create (system)
@@ -307,21 +314,11 @@ function SystemMap.Create (system)
 
   -- Initialize system map starting position only if not already initialized
   if GameState.player.currentShip ~= nil then
-    if GameState.player.mapSystemPos == nil then
-      GameState.player.mapSystemPos = GameState.player.currentShip:getPos()
+    if GameState.player.currentMapSystemPos == nil then
+      GameState.player.currentMapSystemPos = GameState.player.currentShip:getPos()
     end
   else
-    GameState.player.mapSystemPos = Vec3f(0, 0, 0)
-  end
-
-  -- Initialize system map zoom and pan levels only if not already initialized
-  kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
---printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
-  if GameState.player.mapSystemZoom == nil then
-    GameState.player.mapSystemZoom = 0.0001
-  end
-  if GameState.player.mapSystemPan == nil then
-    GameState.player.mapSystemPan = kPanSpeed
+    GameState.player.currentMapSystemPos = Vec3f(0, 0, 0)
   end
 
   return self

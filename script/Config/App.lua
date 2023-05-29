@@ -227,16 +227,18 @@ Config.econ = {
 }
 
 Config.ui = {
-  defaultControl   = "Background",
-  controlBarHeight = 48,
-  hudStyle         = 1,
-  sensorsDisplayed = true,
-  cursorSmooth     = "cursor/cursor1-small",
-  cursorSimple     = "cursor/simple_cursor",
-  cursor           = "cursor/simple_cursor",
-  cursorStyle      = 1,
-  cursorX          = 1,
-  cursorY          = 1,
+  defaultControl        = "Background",
+  controlBarHeight      = 48,
+  hudStyle              = 1,
+  sensorsDisplayed      = true,
+  cursorSmooth          = "cursor/cursor1-small",
+  cursorSimple          = "cursor/simple_cursor",
+  cursor                = "cursor/simple_cursor",
+  cursorStyle           = 1,
+  cursorX               = 1,
+  cursorY               = 1,
+  mapSystemZoomSpeed    = 0.1,
+  mapSystemPanSpeed     = 1,
 
   -- Trackers
   showTrackers     = true,

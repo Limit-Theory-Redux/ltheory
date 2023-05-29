@@ -180,8 +180,7 @@ function InitFiles:writeUserInits ()
       or string.match(l_Variable, "lastCamera")
       or string.match(l_Variable, "playerMoving")
       or string.match(l_Variable, "weaponGroup")
-      or string.match(l_Variable, "autonavTimestamp")
-      or string.match(l_Variable, "mapSystemZoom") then
+      or string.match(l_Variable, "autonavTimestamp") then
         do
           pass = false
         end

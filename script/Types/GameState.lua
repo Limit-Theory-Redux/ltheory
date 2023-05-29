@@ -33,22 +33,26 @@ GameState.render = {
 }
 
 GameState.audio = {
-  soundEnabled          = Config.audio.soundEnabled,
-  fxVolume              = Config.audio.fxVolume,
-  musicVolume           = Config.audio.musicVolume,
+  soundEnabled            = Config.audio.soundEnabled,
+  fxVolume                = Config.audio.fxVolume,
+  musicVolume             = Config.audio.musicVolume,
 }
 
 GameState.ui = {
-  controlBarHeight      = Config.ui.controlBarHeight,
-  hudStyle              = Config.ui.hudStyle,
-  cursorStyle           = Config.ui.cursorStyle,
-  cursorX               = Config.ui.cursorX,
-  cursorY               = Config.ui.cursorY,
-  sensorsDisplayed      = Config.ui.sensorsDisplayed,
+  controlBarHeight        = Config.ui.controlBarHeight,
+  hudStyle                = Config.ui.hudStyle,
+  cursorStyle             = Config.ui.cursorStyle,
+  cursorX                 = Config.ui.cursorX,
+  cursorY                 = Config.ui.cursorY,
+  sensorsDisplayed        = Config.ui.sensorsDisplayed,
+
+  mapSystemZoomSpeed      = Config.ui.mapSystemZoomSpeed,
+  mapSystemPanSpeed       = Config.ui.mapSystemPanSpeed,
 
   -- Trackers
   showTrackers            = Config.ui.showTrackers,
   maxTrackingRange        = Config.ui.maxTrackingRange,
+  trackerObjectOcclusion  = Config.ui.trackerObjectOcclusion,
   trackerBracketingRenderDistances = {
     Planet                = Config.ui.trackerBracketingRenderDistances.Planet,
     Asteroid              = Config.ui.trackerBracketingRenderDistances.Asteroid,
@@ -56,50 +60,49 @@ GameState.ui = {
     Station               = Config.ui.trackerBracketingRenderDistances.Station,
     Ship                  = Config.ui.trackerBracketingRenderDistances.Ship,
     Colony                = Config.ui.trackerBracketingRenderDistances.Colony,
-  },
-  trackerObjectOcclusion  = Config.ui.trackerObjectOcclusion
+  }
 }
 
 GameState.player = {
-  humanPlayer           = nil,
-  humanPlayerName       = "[Human Player Name]",
-  humanPlayerShipName   = "[Human Player Ship Name]",
+  humanPlayer             = nil,
+  humanPlayerName         = "[Human Player Name]",
+  humanPlayerShipName     = "[Human Player Ship Name]",
 
-  currentControl        = Config.ui.defaultControl,
-  playerMoving          = false,
+  currentControl          = Config.ui.defaultControl,
+  playerMoving            = false,
 
-  currentShip           = nil,
-  weaponGroup           = 1,
+  currentShip             = nil,
+  weaponGroup             = 1,
 
-  currentCamera         = Enums.CameraMode.FirstPerson,
-  lastCamera            = nil,
+  currentCamera           = Enums.CameraMode.FirstPerson,
+  lastCamera              = nil,
 
-  mapSystemPos          = Vec3f(0, 0, 0),
-  mapSystemZoom         = 0.001,
-  mapSystemPan          = 40.0,
+  currentMapSystemPos     = Vec3f(0, 0, 0),
+  currentMapSystemZoom    = 0.001,
+  currentMapSystemPan     = 40.0,
 
-  autonavTimestamp      = nil,
+  autonavTimestamp        = nil,
 }
 
 GameState.world = {
   -- world related states here later (system state, ai, economy etc)
-  currentSystem         = nil,
+  currentSystem           = nil,
 }
 
 GameState.gen = {
-  nFields               = Config.gen.nStations,
-  nAsteroids            = Config.gen.nAsteroids,
-  nPlanets              = Config.gen.nPlanets,
-  nStations             = Config.gen.nStations,
-  nAIPlayers            = Config.gen.nAIPlayers,
-  randomizeAIPlayers    = Config.gen.randomizeAIPlayers,
-  nEconNPCs             = Config.gen.nEconNPCs,
-  randomizeEconNPCs     = Config.gen.randomizeEconNPCs,
-  nEscortNPCs           = Config.gen.nEscortNPCs,
-  randomizeEscortNPCs   = Config.gen.randomizeEscortNPCs,
-  uniqueShips           = Config.gen.uniqueShips,
-  nebulaBrightnessScale = Config.gen.nebulaBrightnessScale
-}
+  nFields                 = Config.gen.nStations,
+  nAsteroids              = Config.gen.nAsteroids,
+  nPlanets                = Config.gen.nPlanets,
+  nStations               = Config.gen.nStations,
+  nAIPlayers              = Config.gen.nAIPlayers,
+  randomizeAIPlayers      = Config.gen.randomizeAIPlayers,
+  nEconNPCs               = Config.gen.nEconNPCs,
+  randomizeEconNPCs       = Config.gen.randomizeEconNPCs,
+  nEscortNPCs             = Config.gen.nEscortNPCs,
+  randomizeEscortNPCs     = Config.gen.randomizeEscortNPCs,
+  uniqueShips             = Config.gen.uniqueShips,
+  nebulaBrightnessScale   = Config.gen.nebulaBrightnessScale
+} 
 
 function GameState:SetState(state)
   self.state = state
