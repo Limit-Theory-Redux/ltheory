@@ -41,6 +41,7 @@ function Action:flyToward (e, targetPos, targetForward, targetUp)
   local c = e:getThrustController()
   if not c then return end
 
+  local ePos = e:getPos()
   local course = targetPos - e:getPos()
   local dist = course:length()
   if dist < 1e-6 then return end

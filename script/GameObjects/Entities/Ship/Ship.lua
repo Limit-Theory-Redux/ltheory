@@ -25,6 +25,7 @@ local Ship = subclass(Entity, function (self, proto)
   self:addSockets()
   self:addVisibleMesh(proto.mesh, Material.Metal())
   self:addThrustController()
+  self:addCredits(1000)
 
   -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
   --        better for ShipType etc.

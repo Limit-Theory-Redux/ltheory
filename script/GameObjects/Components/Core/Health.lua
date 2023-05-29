@@ -1,7 +1,8 @@
 local Entity = require('GameObjects.Entity')
 local Bindings = require('States.ApplicationBindings')
+local rng = RNG.FromTime()
 
-function Entity:addHealth (max, rate)
+function Entity:addHealth(max, rate)
   assert(not self.health)
   assert(max)
   assert(rate)
@@ -11,7 +12,7 @@ function Entity:addHealth (max, rate)
   self:register(Event.Update, Entity.updateHealth)
 end
 
-function Entity:damage (amount, source)
+function Entity:damage(amount, source)
   assert(self.health)
 
   if self.health <= 0 then return end
@@ -39,15 +40,25 @@ function Entity:damage (amount, source)
       self:deleteLight(self)
     end
 
-local thisShipName      = self:getName()
-local attackingShipName = source:getName()
-if self.usesBoost then
-  thisShipName = thisShipName .. " [Ace]"
-end
-if source.usesBoost then
-  attackingShipName = attackingShipName .. " [Ace]"
-end
-printf("%s destroyed by %s!", thisShipName, attackingShipName)
+    local thisShipName      = self:getName()
+    local attackingShipName = source:getName()
+    if self.usesBoost then
+      thisShipName = thisShipName .. " [Ace]"
+    end
+    if source.usesBoost then
+      attackingShipName = attackingShipName .. " [Ace]"
+    end
+
+    for item, count in pairs(self:getInventory()) do
+      if rng:getInt(0, 100) < 100 then
+        source:addItem(item, count)
+        self:removeItem(item, count)
+        print("Transported item!")
+      end
+    end
+    source:addCredits(self:getCredits() * 0.25)
+
+    printf("%s destroyed by %s!", thisShipName, attackingShipName)
 
     -- Remove destroyed ship from system's list of active ships
     for i, ship in ipairs(GameState.world.currentSystem.ships) do
@@ -86,27 +97,27 @@ printf("%s destroyed by %s!", thisShipName, attackingShipName)
     if self == GameState.player.currentShip then
       -- TODO: Do any unloading/savegame/etc actions required upon player ship destruction
       -- NOTE: The "Game Over" message is displayed in Application.lua
-printf("Player ship %s has been destroyed, game over!", self:getName())
+      printf("Player ship %s has been destroyed, game over!", self:getName())
     end
   end
 end
 
-function Entity:getHealth ()
+function Entity:getHealth()
   assert(self.health)
   return self.health
 end
 
-function Entity:getHealthNormalized ()
+function Entity:getHealthNormalized()
   assert(self.health)
   return self.health / self.healthMax
 end
 
-function Entity:getHealthPercent ()
+function Entity:getHealthPercent()
   assert(self.health)
   return 100.0 * self.health / self.healthMax
 end
 
-function Entity:hasHealth ()
+function Entity:hasHealth()
   return self.health ~= nil
 end
 
@@ -114,22 +125,22 @@ end
 --           complementary! An asteroid is not alive, but neither has it been
 --           destroyed. Both 'alive' and 'destroyed' require health to be true.
 
-function Entity:isAlive ()
+function Entity:isAlive()
   return self.health and self.health > 0
 end
 
-function Entity:isDestroyed ()
+function Entity:isDestroyed()
   return self.health and self.health <= 0
 end
 
-function Entity:setHealth (value, max, rate)
+function Entity:setHealth(value, max, rate)
   assert(self.health)
   self.health = value
   self.healthMax = max
   self.healthRate = rate
 end
 
-function Entity:updateHealth (state)
+function Entity:updateHealth(state)
   if not self:isDestroyed() then
     local timeScale = 1.0
     if GameState.paused then

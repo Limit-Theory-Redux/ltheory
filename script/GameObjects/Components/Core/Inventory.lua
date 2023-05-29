@@ -28,6 +28,7 @@ end
 function Entity:debugInventory (state)
   if not self:isDestroyed() then
     local ctx = state.context
+    ctx:text("Credits on board: %d", self:getCredits())
     ctx:text("Inventory (capacity: %d/%d)", self:getInventoryFree(), self:getInventoryCapacity())
     ctx:indent()
     for k, v in pairs(self.inventory) do

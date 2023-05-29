@@ -47,13 +47,14 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
 
   -- When creating a new system, initialize station subtype options from all production types
   local prodType = Config:getObjectTypeIndex("station_subtypes")
+  local subTypesTable = Config.objectInfo[prodType]["elems"]
+
   for i, prod in ipairs(Production.All()) do
-    Config.objectInfo[prodType]["elems"][i+2] = {
-      i + 2,
+    subTypesTable[#subTypesTable + 1] = {
+      #subTypesTable + 1,
       prod:getName()
     }
   end
-
 end)
 
 function System:addExtraFactories (system, planetCount, aiPlayer)
@@ -633,10 +634,10 @@ function System:spawnPirateStation (player)
   -- Spawn a new space station
   local station = Objects.Station(self.rng:get31())
   station:setType(Config:getObjectTypeByName("object_types", "Station"))
-  station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate"))
+  station:setSubType(5)
 
   -- Give the station a name
-  station:setName(Words.getCoolName(rng) .. " Pirate Station")
+  station:setName(Words.getCoolName(rng) .. " Pirates")
 
   -- Set station location outside the astroid field
   self:place(station, true)
@@ -646,6 +647,10 @@ function System:spawnPirateStation (player)
 
   -- Assign the station to an owner
   station:setOwner(player)
+
+  -- Add the black market
+  station:addBlackMarket()
+  station:addBlackMarketTrader()
 
   -- Add the station to this star system
   self:addChild(station)
