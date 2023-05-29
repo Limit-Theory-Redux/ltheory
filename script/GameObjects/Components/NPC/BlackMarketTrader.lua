@@ -356,7 +356,7 @@ function BlackMarketTrader:buy (asset, item)
           self.parent:addItem(item, 1)
 
           self.parent:removeCredits(price)
-          player:addCredits(price)
+          asset:addCredits(price)
 
 --printf("BUY: Trader parent %s buys 1 unit of item %s from Asset %s (Owner %s) at price %d",
 --self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
@@ -402,7 +402,7 @@ function BlackMarketTrader:sell (asset, item)
 --printf("Trader %s now has %d units of item %s",
 --    self.parent:getName(), self.parent:getItemCount(item), item:getName())
 
-        player:removeCredits(price)
+        asset:removeCredits(price)
         self.parent:addCredits(price)
 
         data.totalAsk = data.totalAsk - 1
