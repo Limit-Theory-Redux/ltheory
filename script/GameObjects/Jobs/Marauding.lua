@@ -22,6 +22,13 @@ function Marauding:getName()
     self.base:getName())
 end
 
+function Marauding:reset()
+  self.maraudingArea = nil
+  self.attackTarget = nil
+  self.targetPosition = nil
+  self.blackMarketTarget = nil
+end
+
 function Marauding:onUpdateActive(e, dt)
   if not GameState.paused then
     Profiler.Begin('Actions.Marauding.onUpdateActive')
@@ -38,11 +45,11 @@ function Marauding:onUpdateActive(e, dt)
 
     elseif e.jobState == Enums.JobStateMarauding.MovingToArea then
 
-      self.targetPosition = self.patrolZone:getRandomPos(self.system.rng)
+      self.targetPosition = self.maraudingArea:getRandomPos(self.system.rng)
       e:pushAction(Actions.MoveToPos(self.targetPosition, 2000))
 
     elseif e.jobState == Enums.JobStateMarauding.Marauding then
-      e:pushAction(Actions.MaraudAt(self.system, 10000))
+      e:pushAction(Actions.MaraudAt(self.maraudingArea, 10000))
     elseif e.jobState == Enums.JobStateMarauding.FindBlackMarket then
       if not self.blackMarketTarget then
         self.blackMarketTarget = self.base --Needs to find a marketplace
@@ -56,11 +63,13 @@ function Marauding:onUpdateActive(e, dt)
         e.jobState = nil
       end
     elseif e.jobState == Enums.JobStateMarauding.SellingItems then
-      if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
+      if self.blackMarketTarget:hasDockable() and self.blackMarketTarget:isDockable() and not self.blackMarketTarget:isBanned(e) then
         local sold = 0
-        for index, item in ipairs(e.inventory) do
-          while e:getItemCount(item) > 0 and self.blackMarketTarget:getTrader():buy(e, item) do
-            sold = sold + 1
+        for item, count in pairs(e.inventory) do
+          for i=1, count do
+            if self.blackMarketTarget:getBlackMarketTrader():buy(e, item) then
+              sold = sold + 1
+            end
           end
           printf("[MARAUDER] %s sold %d units of %s to Black Market %s", e:getName(), sold, item:getName(), self.blackMarketTarget:getName())
         end
@@ -73,8 +82,8 @@ function Marauding:onUpdateActive(e, dt)
         e:pushAction(Actions.Undock())
       end
     elseif e.jobState == Enums.JobStateMarauding.JobFinished then
-      e:popAction()
       e.jobState = nil
+      self:reset() --Temporary until Pirate
     end
 
     --end of update

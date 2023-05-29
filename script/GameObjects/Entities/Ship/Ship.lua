@@ -74,7 +74,7 @@ function Ship:attackedBy (target)
         else
           self:pushAction(Actions.Attack(target))
         end
-        self:distressCall(target, 15000)
+        self:distressCall(target, 10000)
       else
         self:pushAction(Actions.Attack(target))
       end

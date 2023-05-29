@@ -1,10 +1,10 @@
 local Action = require('GameObjects.Action')
 
-local MaraudAt = subclass(Action, function(self, system, radius)
+local MaraudAt = subclass(Action, function(self, zone, radius)
   self.radius = radius
   self.targetPosition = nil
-  self.system = system
-  self.patrolZone = nil
+  self.system = nil
+  self.patrolZone = zone
   self.attackTarget = nil
   self.wasAttacking = false
   self.searchAttempts = 0
@@ -34,7 +34,8 @@ end
 
 local function checkForViableTarget(self, e, radius)
   local attackTarget = findClosestTarget(self, e, radius)
-  if attackTarget and attackTarget:isAlive() and not attackTarget:isDestroyed() then
+  if attackTarget and attackTarget:isAlive() and not attackTarget:isDestroyed() 
+  and attackTarget:hasInventory() and attackTarget:getInventoryFree() ~= attackTarget:getInventoryCapacity() then
     return attackTarget
   end
   return nil
@@ -42,12 +43,16 @@ end
 
 function MaraudAt:onUpdateActive(e, dt)
 
-  if self:getInventoryFree() < 1 or self.searchAttempts > 32 then
+  if e:getInventoryFree() < 1 or self.searchAttempts >= 32 then
     e:popAction()
   end
 
+  if not self.system then
+    self.system = e:getRoot() or GameState.world.currentSystem
+  end
+
   if self.targetPosition then
-    if e:getPos():distance(self.targetPosition) < 2000 or self.wasAttacking then
+    if e:getPos():distance(self.targetPosition) < 2500 or self.wasAttacking then
       self.attackTarget = checkForViableTarget(self, e, self.radius)
       if self.attackTarget then
         e:pushAction(Actions.Attack(self.attackTarget))
@@ -59,7 +64,7 @@ function MaraudAt:onUpdateActive(e, dt)
         self.wasAttacking = false
       end
     else
-      self:flyToward(e, self.targetPosition, e:getForward(), e:getUp())
+      e:pushAction(Actions.MoveToPos(self.targetPosition, 2000))
     end
   elseif not self.targetPosition and self.patrolZone then
     self.targetPosition = self.patrolZone:getRandomPos(self.system.rng)
