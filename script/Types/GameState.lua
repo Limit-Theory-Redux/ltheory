@@ -13,7 +13,8 @@ GameState.debug = {
   metricsEnabled        = Config.debug.metricsEnabled,
   instantJobs           = Config.debug.instantJobs,
   jobSpeed              = Config.debug.jobSpeed,
-  timeAccelFactor       = Config.debug.timeAccelFactor
+  timeAccelFactor       = Config.debug.timeAccelFactor,
+  printConfig           = Config.debug.printConfig
 }
 
 GameState.render = {
@@ -72,6 +73,7 @@ GameState.player = {
 
   currentCamera         = Enums.CameraMode.FirstPerson,
   lastCamera            = nil,
+  startupCamera         = Enums.CameraMode.FirstPerson,
 
   mapSystemPos          = Vec3f(0, 0, 0),
   mapSystemZoom         = 0.001,

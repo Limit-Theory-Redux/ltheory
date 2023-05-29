@@ -1,6 +1,11 @@
 Config.org = 'LTheoryRedux'
 Config.app = 'LTheoryRedux'
 
+Config.orgInfo = {
+  repository = "https://github.com/Limit-Theory-Redux/ltheory",
+  discord = "https://discord.gg/MrfRR5ytJF",
+}
+
 Config.gameTitle   = "Limit Theory Redux"
 Config.gameVersion = "v0.008"
 
@@ -57,6 +62,8 @@ Config.debug = {
   jobSpeed        = 10000, -- acceleration rate for instant jobs (in MineAt, DockAt)
 
   timeAccelFactor = 10, -- acceleration rate when holding "TimeAccel" input
+
+  printConfig = false
 }
 
 Config.debug.physics = {
