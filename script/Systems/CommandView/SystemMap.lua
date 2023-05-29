@@ -1,6 +1,7 @@
 local DebugContext = require('Systems.CommandView.DebugContext')
 local Bindings = require('States.ApplicationBindings')
 local Player = require('GameObjects.Entities.Player')
+local Disposition = require('GameObjects.Components.NPC.Dispositions')
 
 local SystemMap = {}
 SystemMap.__index  = SystemMap
@@ -86,7 +87,14 @@ function SystemMap:onDraw (state)
               -- TODO: draw in color based on Disposition toward player
               Draw.Color(1.0, 0.3, 0.3, 1.0) -- other object, hostile (has a current action of "Attack player's ship")
             else
-              Draw.Color(0.2, 0.6, 1.0, 1.0) -- other object, non-hostile
+              local disp = e:getDisposition(GameState.player.currentShip)
+              local dispColor = Disposition.GetColor(disp)
+
+              if dispColor then
+                Draw.Color(dispColor.r, dispColor.g, dispColor.b, dispColor.a)
+              else
+                Draw.Color(0.2, 0.6, 1.0, 1.0)
+              end
             end
             local focusedTarget = e:getTarget()
             if focusedTarget then

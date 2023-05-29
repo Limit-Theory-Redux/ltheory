@@ -641,6 +641,7 @@ function HUD:drawLockWarning (a)
           1.0, 0.2, 0.0, a,
           0.5, 0.5
         )
+        break
       end
     end
   end

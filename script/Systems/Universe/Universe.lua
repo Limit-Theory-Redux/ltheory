@@ -92,6 +92,8 @@ function Universe:CreateStarSystem(seed)
           escort.usesBoost = true
         end
 
+        escort:setDisposition(playerShip, Config.game.dispoMax)
+
         insert(escortShips, escort)
       end
       -- TESTING: MAKE SHIPS CHASE EACH OTHER!
@@ -107,6 +109,7 @@ function Universe:CreateStarSystem(seed)
     local pirateStation = system:spawnPirateStation(piratePlayer)
     pirateStation:addCredits(Config.econ.eStartCredits * 100)
     piratePlayer:addCredits(Config.econ.eStartCredits * 100)
+    pirateStation:setDisposition(playerShip, Config.game.dispoMin)
     for i = 1, 48 do
       local pirate = system:spawnShip(piratePlayer)
       local offset = system.rng:getSphere():scale(5000)
