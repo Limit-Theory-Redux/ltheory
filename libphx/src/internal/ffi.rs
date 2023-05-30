@@ -1,10 +1,11 @@
-use crate::internal::Memory::*;
+use crate::*;
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::str;
 
 pub use std::ffi::{CStr, CString};
 
+/*
 pub fn NewCString(s: String) -> CString {
     CString::new(s).unwrap()
 }
@@ -32,7 +33,7 @@ macro_rules! StaticString {
         fn get_key_for<T: 'static>(_: T) -> std::any::TypeId {
             std::any::TypeId::of::<T>()
         }
-        crate::internal::ffi::StaticCStringKey(
+        crate::ffi::StaticCStringKey(
             get_key_for(f),
             std::ffi::CString::new($str).unwrap(),
         )
@@ -46,7 +47,7 @@ macro_rules! StaticCString {
         fn get_key_for<T: 'static>(_: T) -> std::any::TypeId {
             std::any::TypeId::of::<T>()
         }
-        crate::internal::ffi::StaticCStringKey(get_key_for(f), $str.into())
+        crate::ffi::StaticCStringKey(get_key_for(f), $str.into())
     }};
 }
 pub(crate) use StaticCString;
@@ -59,3 +60,4 @@ pub fn StaticCStringKey(key: TypeId, s: CString) -> *const libc::c_char {
         STRINGS_MAP.as_ref().unwrap().get(&key).unwrap().as_ptr()
     }
 }
+*/
