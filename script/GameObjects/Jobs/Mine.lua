@@ -184,7 +184,7 @@ function Mine:onUpdateActive(e, dt)
           self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(),
           self:getTravelTime(e, self.src, self.dst),
           itemBidVol, profit, dt)
-        e:pushAction(Actions.MoveTo(self.src, 150)) -- TODO: convert static arrival range to dynamic based on target scale
+        e:pushAction(Actions.MoveTo(self.src, 500, true)) -- TODO: convert static arrival range to dynamic based on target scale
       end
     elseif e.jobState == Enums.JobStateMine.MiningAsteroid then
       local miningTimePerItem = 5 -- TODO: create a miningTime() function based on item's rarity

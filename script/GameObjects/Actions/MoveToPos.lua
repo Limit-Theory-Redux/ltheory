@@ -2,10 +2,13 @@ local Action = require('GameObjects.Action')
 --local Bindings = require('States.ApplicationBindings')
 
 local rng = RNG.FromTime()
+local timeUntilTravelDrive = 20 -- temporary local setting
 
-local MoveToPos = subclass(Action, function (self, targetPos, radius)
+local MoveToPos = subclass(Action, function (self, targetPos, range, useTravelDrive)
   self.targetPos = targetPos
-  self.radius = radius
+  self.range = range
+  self.useTravelDrive = useTravelDrive
+  self.travelDriveTimer = 0
 end)
 
 function MoveToPos:clone ()
@@ -16,13 +19,22 @@ function MoveToPos:getName ()
   return format("MoveTo '%s'", tostring(self.targetPos))
 end
 
-
 function MoveToPos:onUpdateActive (e, dt)
-    if e:getPos():distance(self.targetPos) < self.radius then
-        e:popAction()
-    else
-        self:flyToward(e, self.targetPos, e:getForward(), e:getUp())
+  if e:getPos():distance(self.targetPos) < self.range then
+    e:popAction()
+    e.travelDriveActive = false
+    self.travelDriveTimer = 0i
+  else
+    if self.useTravelDrive then
+      if not e.travelDriveActive and self.travelDriveTimer >= timeUntilTravelDrive then
+        e.travelDriveActive = true
+      else
+        self.travelDriveTimer = self.travelDriveTimer + dt
+      end
     end
+
+    self:flyToward(e, self.targetPos, e:getForward(), e:getUp())
+  end
 end
 
 return MoveToPos

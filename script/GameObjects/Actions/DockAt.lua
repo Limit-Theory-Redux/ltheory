@@ -47,9 +47,7 @@ function DockAt:onUpdateActive (e, dt)
         local dp = tp - p
         e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * GameState.debug.jobSpeed)))
       else
-        local tf = self.target:getForward()
-        local tu = self.target:getUp()
-        self:flyToward(e, tp, -tf, tu)
+        e:pushAction(Actions.MoveTo(self.target, 500, true))
       end
     else
       -- Station is no longer available for docking, so stop this DockAt action
