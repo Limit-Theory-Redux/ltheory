@@ -79,19 +79,19 @@ function Economy:update(dt)
       local realJobCount = 0
       do -- Cache mining jobs
         for _, src in ipairs(self.yields) do
+          local yieldSize = src:getYield().size
           local item = src:getYield().item
 
-          if Config:getObjectInfo("object_types", src:getType()) ~= 'Planet' and #src:getClaims() < 1 then --TODO: not hardcode this but integrate with factions & claims system
+          if yieldSize > 0 and Config:getObjectInfo("object_types", src:getType()) ~= 'Planet' and src:getClaimsCount() < 1 then --TODO: not hardcode this but integrate with factions & claims system
             for _, dst in ipairs(self.markets) do
               -- Create a Mine job only if the destination trader has a bid for the source item
-              if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
+              if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() and src:getClaimsCount() < 1 then
                 allJobCount = allJobCount + 1
                 local itemBidVol = dst:getTrader():getBidVolume(item)
                 if itemBidVol > 0 then
                   --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
                   --    src:getName(), dst:getName(), item:getName(), itemBidVol)
                   realJobCount = realJobCount + 1
-                  src:addClaim(dst:getTrader()) -- temp, for now claims are made by the trader
                   insert(self.jobs[Enums.Jobs.Mining], Jobs.Mine(src, dst, item))
                 end
               end
@@ -221,8 +221,13 @@ end
 function Economy:debug(ctx)
   ctx:text("Economy")
   ctx:indent()
-  ctx:text("%d jobs", #self.jobs)
   ctx:text("%d markets", #self.markets)
+  ctx:text("Jobs")
+  ctx:indent()
+  for jobType, job in ipairs(self.jobs) do
+    ctx:text("%s: %d", Enums.JobNames[jobType], #self.jobs[jobType])
+  end
+  ctx:undent()
   for item, data in pairs(self.goods) do
     ctx:text("%s", item:getName())
     ctx:indent()

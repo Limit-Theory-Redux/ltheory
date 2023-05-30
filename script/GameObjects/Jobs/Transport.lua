@@ -36,6 +36,10 @@ function Transport:getFlows(e)
   }
 end
 
+function Transport:getType()
+  return Enums.Jobs.Transport
+end
+
 function Transport:getName()
   return format('Transport %d x %s from %s to %s',
     self.jcount,

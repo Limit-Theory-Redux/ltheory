@@ -68,32 +68,50 @@ if true then -- Use payout, not flow
     end
 
     -- Consider changing to a new job
-    for i = 1, math.min(Config.econ.jobIterations, #root:getEconomy().jobs * 2) do
+    for _ = 1, math.min(Config.econ.jobIterations, #root:getEconomy().jobs * 2) do
       -- TODO : KnowsAbout check (information economy + AI load reduction)
-        local jobType = self.rng:choose(root:getEconomy().jobs)
-        local job
+      local jobType = self.rng:choose(root:getEconomy().jobs)
+      local job
 
-        if jobType then
+      if jobType then
+        for _ = 1, math.min(Config.econ.jobIterations, #jobType * 2) do
           job = self.rng:choose(jobType)
-        end
-        if not job then break end
-      
-        local payout = job:getPayout(asset)
-        if payout > bestPayout then
-          if job.jcount > 0 then
-            bestPayout = payout
-            bestJob = job
-          else
-printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-asset:  getName(), job:getName(), payout)
+          if not job then break end
+
+          if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
+            if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
+              goto skipJob
+            end
+          end
+
+          local payout = job:getPayout(asset)
+          if payout > bestPayout then
+            if job.jcount > 0 then
+              bestPayout = payout
+              bestJob = job
+            else
+              printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+              asset:  getName(), job:getName(), payout)
+            end
           end
         end
+      end
+      ::skipJob::
     end
 
     -- Maybe assign a new or reassign an old job
     if bestJob and bestPayout > 0 then -- if asset has no capacity left, bestPayout should be 0
       -- Don't assign an old job if it can no longer be completed because a required station was destroyed
       asset.job = bestJob
+
+      if asset.job.workers and #asset.job.workers < asset.job.maxWorkers then -- temporary allow only one worker, this should depend on the job later (e.g. asteroid suze --> max workers)
+        asset.job:addWorker(asset)
+      end
+
+      if asset.job.workers and not asset.job:isWorker(asset) then
+        return
+      end
+
       if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
           (not string.find(asset.job:getName(), "Transport") or
           (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
