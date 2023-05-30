@@ -151,10 +151,10 @@ unsafe extern "C" fn Octree_IntersectRayImpl(this: &mut Octree, o: Vec3, di: Vec
     }
     let mut i: i32 = 0;
     while i < 8 {
-        if !(this.child[i as usize]).is_null() {
-            if Octree_IntersectRayImpl(&mut *this.child[i as usize], o, di) {
-                return true;
-            }
+        if !(this.child[i as usize]).is_null()
+            && Octree_IntersectRayImpl(&mut *this.child[i as usize], o, di)
+        {
+            return true;
         }
         i += 1;
     }

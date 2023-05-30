@@ -190,10 +190,7 @@ pub unsafe extern "C" fn InputBindings_UpdateBinding(binding: *mut InputBinding)
                 (*button).state |= State_Down;
                 InputBindings_RaiseCallback(c_str!("Pressed"), binding, (*button).onPressed);
 
-                this.downBindings.push(DownBinding {
-                    binding: binding,
-                    button: button,
-                });
+                this.downBindings.push(DownBinding { binding, button });
             }
         } else if if isPos as i32 != 0 {
             // Released

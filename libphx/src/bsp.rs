@@ -404,7 +404,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
                         tMin: min,
                         tMax: ray.tMax,
-                        depth: depth,
+                        depth,
                     };
                     rayStack.push(d);
 
@@ -419,7 +419,7 @@ pub unsafe extern "C" fn BSP_IntersectRay(
                         nodeRef: (*node).child[(1 ^ earlyIndex) as usize],
                         tMin: ray.tMin,
                         tMax: ray.tMax,
-                        depth: depth,
+                        depth,
                     };
                     rayStack.push(d);
                 } else {
@@ -532,7 +532,7 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
                 /* Straddling the thick plane */
                 let d: Delay = Delay {
                     nodeRef: (*node).child[BackIndex as usize],
-                    depth: depth,
+                    depth,
                 };
                 nodeStack.push(d);
                 nodeRef = (*node).child[FrontIndex as usize];
@@ -1517,7 +1517,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 /* Straddling the thick plane */
                 let d: Delay = Delay {
                     nodeRef: (*node).child[BackIndex as usize],
-                    depth: depth,
+                    depth,
                 };
                 nodeStack.push(d);
                 nodeRef = (*node).child[FrontIndex as usize];
@@ -1535,7 +1535,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 let mut pHit2 = Vec3::ZERO;
                 if Intersect_SphereTriangle(sphere, triangle, &mut pHit2) {
                     let t: TriangleTest = TriangleTest {
-                        triangle: triangle,
+                        triangle,
                         hit: true,
                     };
                     (*sphereProf).triangleTests.push(t);
@@ -1544,7 +1544,7 @@ pub unsafe extern "C" fn BSPDebug_GetIntersectSphereTriangles(
                 }
 
                 let t: TriangleTest = TriangleTest {
-                    triangle: triangle,
+                    triangle,
                     hit: false,
                 };
                 (*sphereProf).triangleTests.push(t);

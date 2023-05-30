@@ -66,8 +66,8 @@ pub unsafe extern "C" fn HashGrid_Create(cellSize: f32, mut cellCount: u32) -> B
             std::mem::size_of::<HashGridElem>() as u32,
             (0x1000_usize).wrapping_div(std::mem::size_of::<HashGridElem>()) as u32,
         ),
-        cellCount: cellCount,
-        cellSize: cellSize,
+        cellCount,
+        cellSize,
         mask: ((1 << logCount) - 1) as u32,
         results: Vec::new(),
     })

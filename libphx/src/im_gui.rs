@@ -492,10 +492,11 @@ unsafe extern "C" fn ImGui_EndWidget() {
 }
 
 unsafe extern "C" fn ImGui_Focus(widget: *mut ImGuiWidget, focusType: i32) -> bool {
-    if this.focus[focusType as usize] == 0 {
-        if !IsClipped(this.mouse) && RectContains((*widget).pos, (*widget).size, this.mouse) {
-            this.focus[focusType as usize] = (*widget).hash;
-        }
+    if this.focus[focusType as usize] == 0
+        && !IsClipped(this.mouse)
+        && RectContains((*widget).pos, (*widget).size, this.mouse)
+    {
+        this.focus[focusType as usize] = (*widget).hash;
     }
     this.focus[focusType as usize] == (*widget).hash
 }
@@ -946,14 +947,15 @@ pub unsafe extern "C" fn ImGui_EndWindow() {
     this.cursor.x -= (*data).offset.x;
     this.cursor.y -= (*data).offset.y;
 
-    if ImGui_FocusLast(FocusType_Mouse) {
-        if Input_GetDown(Button_Mouse_Left) {
-            let mut delta: IVec2 = IVec2::ZERO;
-            Input_GetMouseDelta(&mut delta);
-            (*data).offset.x += delta.x as f32;
-            (*data).offset.y += delta.y as f32;
-            this.dragging = (*this.widgetLast).hash;
-        }
+    if ImGui_FocusLast(FocusType_Mouse) && Input_GetDown(Button_Mouse_Left) {
+        let mut delta: IVec2 = IVec2::ZERO;
+
+        Input_GetMouseDelta(&mut delta);
+
+        (*data).offset.x += delta.x as f32;
+        (*data).offset.y += delta.y as f32;
+
+        this.dragging = (*this.widgetLast).hash;
     }
 }
 

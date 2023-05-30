@@ -299,7 +299,7 @@ pub unsafe extern "C" fn Intersect_LineSegmentPlane(
     let dir: Vec3 = (*lineSegment).p1 - (*lineSegment).p0;
     let mut ray: Ray = Ray {
         p: (*lineSegment).p0,
-        dir: dir,
+        dir,
         tMin: 0.0f32,
         tMax: 1.0f32,
     };

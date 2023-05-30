@@ -416,14 +416,14 @@ unsafe extern "C" fn HmGui_CheckFocus(g: *mut HmGuiGroup) {
     }
 
     for i in 0..FocusType_SIZE {
-        if this.focus[i as usize] == 0 && (*g).focusable[i as usize] as i32 != 0 {
-            if (*g).widget.pos.x <= this.focusPos.x
-                && (*g).widget.pos.y <= this.focusPos.y
-                && this.focusPos.x <= (*g).widget.pos.x + (*g).widget.size.x
-                && this.focusPos.y <= (*g).widget.pos.y + (*g).widget.size.y
-            {
-                this.focus[i as usize] = (*g).widget.hash;
-            }
+        if this.focus[i as usize] == 0
+            && (*g).focusable[i as usize] as i32 != 0
+            && (*g).widget.pos.x <= this.focusPos.x
+            && (*g).widget.pos.y <= this.focusPos.y
+            && this.focusPos.x <= (*g).widget.pos.x + (*g).widget.size.x
+            && this.focusPos.y <= (*g).widget.pos.y + (*g).widget.size.y
+        {
+            this.focus[i as usize] = (*g).widget.hash;
         }
     }
 }
@@ -732,16 +732,17 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
 pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char) {
     HmGui_BeginGroupStack();
     HmGui_SetStretch(0.0f32, 0.0f32);
+
     (*this.group).focusStyle = FocusStyle_None;
     (*this.group).frameOpacity = 0.95f32;
+
     let data: *mut HmGuiData = HmGui_GetData(this.group);
-    if HmGui_GroupHasFocus(0) {
-        if Input_GetDown(Button_Mouse_Left) {
-            let mut md = IVec2::ZERO;
-            Input_GetMouseDelta(&mut md);
-            (*data).offset.x += md.x as f32;
-            (*data).offset.y += md.y as f32;
-        }
+
+    if HmGui_GroupHasFocus(0) && Input_GetDown(Button_Mouse_Left) {
+        let mut md = IVec2::ZERO;
+        Input_GetMouseDelta(&mut md);
+        (*data).offset.x += md.x as f32;
+        (*data).offset.y += md.y as f32;
     }
 
     (*this.group).widget.pos.x += (*data).offset.x;

@@ -115,7 +115,7 @@ pub unsafe extern "C" fn SDF_ToMesh(this: &mut Sdf) -> Box<Mesh> {
             let mut x: i32 = 0;
             while x < cells.x {
                 let x0: f32 = x as f32 / cells.x as f32;
-                let mut cell: IVec3 = IVec3 { x: x, y: y, z: z };
+                let mut cell: IVec3 = IVec3 { x, y, z };
                 let cellIndex = IVec3::dot(cellStride, IVec3::new(x, y, z));
                 let base: *const Cell =
                     (this.data).offset(IVec3::dot(stride, IVec3::new(x, y, z)) as isize);

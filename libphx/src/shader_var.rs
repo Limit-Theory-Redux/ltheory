@@ -115,7 +115,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat2(name: *const libc::c_char, x: f32,
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushFloat3(name: *const libc::c_char, x: f32, y: f32, z: f32) {
-    let mut value: Vec3 = Vec3 { x: x, y: y, z: z };
+    let mut value: Vec3 = Vec3 { x, y, z };
     ShaderVar_Push(name, 0x3, &mut value as *mut Vec3 as *const _);
 }
 

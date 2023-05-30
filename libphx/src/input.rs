@@ -512,7 +512,7 @@ pub unsafe extern "C" fn Input_Update() {
                         let id: u32 = SDL_JoystickInstanceID(sdlJoystick) as u32;
                         let device: Device = Device {
                             ty: DeviceType_Gamepad,
-                            id: id,
+                            id,
                         };
                         let deviceState: *mut DeviceState = Input_EnsureDeviceState(device);
                         (*deviceState).isConnected = true;
@@ -912,7 +912,7 @@ pub unsafe extern "C" fn Input_GetKeyboardShift() -> bool {
 pub unsafe extern "C" fn Input_GetGamepadIdleTime(id: u32) -> f32 {
     let device: Device = Device {
         ty: DeviceType_Gamepad,
-        id: id,
+        id,
     };
     if !Input_GetDeviceExists(device) {
         return f32::MAX;
@@ -924,7 +924,7 @@ pub unsafe extern "C" fn Input_GetGamepadIdleTime(id: u32) -> f32 {
 pub unsafe extern "C" fn Input_GetGamepadPressed(id: u32, button: Button) -> bool {
     let device: Device = Device {
         ty: DeviceType_Gamepad,
-        id: id,
+        id,
     };
     if !Input_GetDeviceExists(device) {
         return false;
@@ -936,7 +936,7 @@ pub unsafe extern "C" fn Input_GetGamepadPressed(id: u32, button: Button) -> boo
 pub unsafe extern "C" fn Input_GetGamepadDown(id: u32, button: Button) -> bool {
     let device: Device = Device {
         ty: DeviceType_Gamepad,
-        id: id,
+        id,
     };
     if !Input_GetDeviceExists(device) {
         return false;
@@ -948,7 +948,7 @@ pub unsafe extern "C" fn Input_GetGamepadDown(id: u32, button: Button) -> bool {
 pub unsafe extern "C" fn Input_GetGamepadReleased(id: u32, button: Button) -> bool {
     let device: Device = Device {
         ty: DeviceType_Gamepad,
-        id: id,
+        id,
     };
     if !Input_GetDeviceExists(device) {
         return false;
@@ -960,7 +960,7 @@ pub unsafe extern "C" fn Input_GetGamepadReleased(id: u32, button: Button) -> bo
 pub unsafe extern "C" fn Input_GetGamepadValue(id: u32, button: Button) -> f32 {
     let device: Device = Device {
         ty: DeviceType_Gamepad,
-        id: id,
+        id,
     };
     if !Input_GetDeviceExists(device) {
         return 0.0f32;
