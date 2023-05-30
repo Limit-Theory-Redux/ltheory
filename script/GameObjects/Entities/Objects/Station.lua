@@ -5,7 +5,6 @@ local function damaged (self, event)
   local shipEntry = self:findInDamageList(event.source)
   if shipEntry ~= nil then
     shipEntry.damage = shipEntry.damage + event.amount
-    print("Damage done: " .. shipEntry.damage)
   else
     shipEntry = {
       ship = event.source,
