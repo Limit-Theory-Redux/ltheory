@@ -23,7 +23,7 @@ local function damaged (self, event)
       if self:hasDockable() and self:isDockable() then
         if self:isHostileTo(shipEntry.ship) and not self:isBanned(shipEntry.ship) then
           self:distressCall(shipEntry.ship, 15000)
-          self:undockAndAttack(shipEntry.ship)
+          --self:undockAndAttack(shipEntry.ship)
           self:addBannedShip(shipEntry.ship)
   printf("Station %s bans attacker %s", self:getName(), shipEntry.ship:getName())
         end
@@ -44,7 +44,6 @@ local Station = subclass(Entity, function (self, seed)
   self:addExplodable()
   self:addFlows()
   self:addHealth(1000, 10) -- 10000, 20
-  print("Station health: " .. self:getHealth())
   self:addInventory(1e8)
   self:addMinable(false)
   self:addRigidBody(true, mesh)
