@@ -271,6 +271,12 @@ function SystemMap:onDraw (state)
         end
         dbg:text(objemit, objval)
       end
+      if self.focus:getSpeed() then
+        dbg:text("Ship speed: %d m/s", self.focus:getSpeed())
+      end
+      if self.focus.travelDriveActive ~= nil then
+        dbg:text("Travel-drive active: %s", self.focus.travelDriveActive)
+      end
       self.focus:send(Event.Debug(dbg))
       dbg:undent()
     end

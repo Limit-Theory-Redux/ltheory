@@ -317,7 +317,7 @@ function HUD:drawTargetSpeed (a)
        targetType == Config:getObjectTypeByName("object_types", "Station") then
       if not playerTarget:isDestroyed() then
         -- Draw target speed
-        local text = format("Speed: %s kph", floor(playerTarget:getSpeed() + 0.5))
+        local text = format("Speed: %s m/s", playerTarget:getSpeed())
         HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
       end
     elseif targetType == Config:getObjectTypeByName("object_types", "Asteroid") then
@@ -556,7 +556,7 @@ function HUD:drawPlayerSpeed (a)
   end
 
   -- Draw player ship speed
-  local text = format("Speed: %d kph", floor(playerShip:getSpeed() + 0.5))
+  local text = format("Speed: %d m/s", playerShip:getSpeed())
   HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
 end
 

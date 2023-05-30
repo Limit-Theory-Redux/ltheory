@@ -17,6 +17,7 @@ local Ship = subclass(Entity, function (self, proto)
   self.explosionSize = 64 -- ships get the default explosion size
 
   self.usesBoost = false -- default ships fly at only the normal speed
+  self.travelDriveActive = false
 
   -- TODO : This will create a duplicate BSP because proto & RigidBody do not
   --        share the same BSP cache. Need unified cache.
