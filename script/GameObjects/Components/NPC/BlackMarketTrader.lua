@@ -443,12 +443,11 @@ function BlackMarketTrader:update ()
     local rng = self.parent.parent.rng
 
     if not bid then
-      --for _, v in ipairs(Item.All()) do
-      --  for i=1, 99999 do
-      --    self:addBid(v, 100)
-      --  end
-      --end
-      self:addBid(Item.Energy, 10000000)
+      for _, v in ipairs(Item.All()) do
+       for i=1, 99999 do
+         self:addBid(v, 100)
+       end
+      end
       bid = true
     end
 
