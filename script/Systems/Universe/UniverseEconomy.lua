@@ -16,7 +16,8 @@ function UniverseEconomy:Init()
   self.nextUpdate = 0
 end
 
-local function AddSystemGenerics(system)
+local function addSystemGenerics(system)
+  -- Market
   -- Add system-wide AI director
   system.tradeAI = Entities.Player("AI Trade Player")
   local tradeAi = system.tradeAI
@@ -31,13 +32,87 @@ local function AddSystemGenerics(system)
   system:spawnStation(tradeAi, Production.EnergySolar)
 
   if GameState.gen.nAIPlayers > 0 and GameState.gen.nEconNPCs > 0 then
-      -- Add the "extra" stations only if there are economic ships to use them
-      -- Add a free Waste Recycler station
-      system:spawnStation(tradeAi, Production.Recycler)
+    -- Add the "extra" stations only if there are economic ships to use them
+    -- Add a free Waste Recycler station
+    system:spawnStation(tradeAi, Production.Recycler)
   end
-  system:spawnStation(tradeAi, Production.Silicon)
+  system:spawnStation(tradeAi, Production.Silicon) -- temp to boost economy
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
   system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
+end
+
+local function addMarket(system)
+  -- create table for aiPlayers
+  system.aiPlayers = {}
+  local aiPlayerCount
+
+  if GameState.randomizeAIPlayers then
+    if GameState.gen.nAIPlayers <= 0 then
+      aiPlayerCount = 0
+    else
+      aiPlayerCount = rng:getInt(1, GameState.gen.nAIPlayers)
+    end
+  else
+    aiPlayerCount = GameState.gen.nAIPlayers
+  end
+
+  for i=1, aiPlayerCount do
+    -- temp name until we have rnd names
+    local aiPlayer = Entities.Player("AI Trade Player " .. i)
+    aiPlayer:addCredits(Config.econ.eStartCredits)
+    -- Create assets (ships)
+    local aiAssetCount
+
+    if GameState.gen.randomizeEconNPCs then
+      if GameState.gen.nEconNPCs <= 0 then
+        aiAssetCount = 0
+      else
+        aiAssetCount = rng:getInt(1, GameState.gen.nEconNPCs)
+      end
+    else
+      aiAssetCount = GameState.gen.nEconNPCs
+    end
+    system:spawnAI(aiAssetCount, Actions.Wait(1), aiPlayer)
+    printf("%d assets added to %s", aiAssetCount, aiPlayer:getName())
+    -- Configure assets
+    for asset in aiPlayer:iterAssets() do
+      system:place(asset)
+    end
+
+    -- Tell AI player to start using the Think action
+    aiPlayer:pushAction(Actions.Think())
+    -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
+    for i = 2, GameState.gen.nStations do
+      -- Create Stations within randomly selected AsteroidField Zones
+      system:spawnStation(aiPlayer, nil)
+    end
+    print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, aiPlayer:getName())
+    -- Add AI Player to the system
+    table.insert(system.aiPlayers, aiPlayer)
+  end
+end
+
+local function addBlackMarket(system)
+  local piratesCount = 12
+  local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
+  piratePlayer:addCredits(Config.econ.eStartCredits)
+  system.pirateStation = system:spawnPirateStation(piratePlayer)
+  system.pirateStation:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
+  GameState.player.humanPlayer:getControlling():setDisposition(system.pirateStation, Config.game.dispoMin)
+
+  system:spawnAI(piratesCount, Actions.Wait(1), piratePlayer)
+  printf("%d assets added to %s", piratesCount, piratePlayer:getName())
+  -- Configure assets
+  for asset in piratePlayer:iterAssets() do
+    asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
+    GameState.player.humanPlayer:getControlling():setDisposition(asset, Config.game.dispoMin)
+    asset:setHealth(100, 100, 0.2)
+    asset.usesBoost = true
+    system:place(asset)
+  end
+
+  piratePlayer:pushAction(Actions.CriminalThink())
+  table.insert(system.aiPlayers, piratePlayer)
 end
 
 function UniverseEconomy:OnUpdate(dt)
@@ -46,91 +121,9 @@ function UniverseEconomy:OnUpdate(dt)
   for _, system in ipairs(self.systems.highAttention) do
     -- generate aiPlayers
     if not system.aiPlayers then
-      -- create table for aiPlayers
-      system.aiPlayers = {}
-      local aiPlayerCount
-
-      if GameState.randomizeAIPlayers then
-        if GameState.gen.nAIPlayers <= 0 then
-          aiPlayerCount = 0
-        else
-          aiPlayerCount = rng:getInt(1, GameState.gen.nAIPlayers)
-        end
-      else
-        aiPlayerCount = GameState.gen.nAIPlayers
-      end
-
-      for i=1, aiPlayerCount do
-        -- temp name until we have rnd names
-        local aiPlayer = Entities.Player("AI Trade Player " .. i)
-        aiPlayer:addCredits(Config.econ.eStartCredits)
-        -- Create assets (ships)
-        local aiAssetCount
-
-        if GameState.gen.randomizeEconNPCs then
-          if GameState.gen.nEconNPCs <= 0 then
-            aiAssetCount = 0
-          else
-            aiAssetCount = rng:getInt(1, GameState.gen.nEconNPCs)
-          end
-        else
-          aiAssetCount = GameState.gen.nEconNPCs
-        end
-        system:spawnAI(aiAssetCount, Actions.Wait(1), aiPlayer)
-        printf("%d assets added to %s", aiAssetCount, aiPlayer:getName())
-        -- Configure assets
-        for asset in aiPlayer:iterAssets() do
-          system:place(asset)
-        end
-
-        -- Tell AI player to start using the Think action
-        aiPlayer:pushAction(Actions.Think())
-
-        -- Temporary
-        AddSystemGenerics(system)
-
-        -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
-      for i = 2, GameState.gen.nStations do
-        -- Create Stations within randomly selected AsteroidField Zones
-        system:spawnStation(aiPlayer, nil)
-      end
-        print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, aiPlayer:getName())
-        -- Add AI Player to the system
-        table.insert(system.aiPlayers, aiPlayer)
-      end
-
-      do
-        --Adds pirate ships | for testing
-        local piratesCount = 32
-        local pirateShips = {}
-        local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
-        piratePlayer:addCredits(Config.econ.eStartCredits * 100)
-        self.pirate = piratePlayer
-
-        local pirateStation = system:spawnPirateStation(piratePlayer)
-        pirateStation:addCredits(Config.econ.eStartCredits * 100)
-        pirateStation:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
-        GameState.player.humanPlayer:getControlling():setDisposition(pirateStation, Config.game.dispoMin)
-
-        for i=1, piratesCount do
-          local pirate = system:spawnShip(piratePlayer)
-          local offset = system.rng:getSphere():scale(5000)
-          pirate:setPos(pirateStation:getPos() + offset)
-          pirate:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
-          GameState.player.humanPlayer:getControlling():setDisposition(pirate, Config.game.dispoMin)
-          pirate:pushAction(Actions.Wait(1))
-        
-          -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
-          --       These will be dogfighting challenges!
-          if rng:getInt(0, 100) < 20 then
-            pirate:setHealth(100, 100, 0.2)
-            pirate.usesBoost = true
-          end
-
-          insert(pirateShips, pirate)
-        end
-        piratePlayer:pushAction(Actions.CriminalThink())
-      end
+      addMarket(system)
+      addBlackMarket(system)
+      addSystemGenerics(system)
       print("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
     end
     -- Handle High Attention Systems

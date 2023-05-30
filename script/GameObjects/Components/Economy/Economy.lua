@@ -31,6 +31,9 @@ function Economy:update(dt)
     table.clear(self.markets)
     table.clear(self.jobs)
     table.clear(self.traders)
+    table.clear(self.blackMarketTraders)
+    table.clear(self.blackMarkets)
+    table.clear(self.blackMarketJobs)
     table.clear(self.yields)
     Profiler.End()
 
@@ -41,6 +44,8 @@ function Economy:update(dt)
         if e:hasFlows() then insert(self.flows, e) end
         if e:hasMarket() then insert(self.markets, e) end
         if e:hasTrader() then insert(self.traders, e) end
+        if e:hasBlackMarket() then insert(self.blackMarkets, e) end
+        if e:hasBlackMarketTrader() then insert(self.blackMarketTraders, e) end
         if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
       end
     end
@@ -126,19 +131,15 @@ function Economy:update(dt)
     Profiler.Begin('Economy.Update.Marauding')
     local allJobCount = 0
     local realJobCount = 0
-    for _, src in ipairs(self.blackMarketTraders) do
+    for i, src in ipairs(self.blackMarketTraders) do
       if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
         for item, data in pairs(src:getBlackMarketTrader().elems) do
-          if src:getBlackMarketTrader():getAskVolume(item) > 0 then
-            local buyPrice = src:getBlackMarketTrader():getBuyFromPrice(item, 1)
-            --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
-            if buyPrice > 0 then
-              allJobCount = allJobCount + 1
-              --printf("Marauding job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
-              --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-              realJobCount = realJobCount + 1
-              insert(self.jobs, Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems. 
-            end
+          allJobCount = allJobCount + 1
+          local itemBidVol = src:getBlackMarketTrader():getBidVolume(item)
+
+          if itemBidVol > 0 then
+            realJobCount = realJobCount + 1
+            insert(self.blackMarketJobs, Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems. (once impl)
           end
         end
       end

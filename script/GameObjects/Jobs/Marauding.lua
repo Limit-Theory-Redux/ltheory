@@ -13,7 +13,7 @@ local Marauding = subclass(Job, function(self, base, system)
 end)
 
 function Marauding:clone()
-  return Marauding(self.src, self.dst, self.item)
+  return Marauding(self.base, self.system)
 end
 
 function Marauding:getName()
@@ -29,6 +29,13 @@ function Marauding:reset()
   self.blackMarketTarget = nil
 end
 
+function Marauding:getPayout(e)
+  -- TODO: black market demand and threat based potential payout
+  self.jcount = self.jcount + 1 -- temp until proper jcount setting
+  local payout = 1000
+  return payout
+end
+
 function Marauding:onUpdateActive(e, dt)
   if not GameState.paused then
     Profiler.Begin('Actions.Marauding.onUpdateActive')
@@ -36,8 +43,8 @@ function Marauding:onUpdateActive(e, dt)
     e.jobState = e.jobState + 1
 
     if e.jobState == Enums.JobStateMarauding.SelectArea then
-    
-      if self.system then
+
+      if self.base and self.system then
         self.maraudingArea = self.system:sampleZones(self.system.rng)
       else
         e:popAction()
@@ -54,18 +61,18 @@ function Marauding:onUpdateActive(e, dt)
       e:pushAction(Actions.MaraudAt(self.maraudingArea, 10000))
     elseif e.jobState == Enums.JobStateMarauding.FindBlackMarket then
       if not self.blackMarketTarget then
-        self.blackMarketTarget = self.base --Needs to find a marketplace
+        self.blackMarketTarget = self.base --TODO: Needs to find a marketplace
       end
       e:pushAction(Actions.MoveTo(self.blackMarketTarget, 150))
     elseif e.jobState == Enums.JobStateMarauding.DockingAtStation then
-      if self.blackMarketTarget:hasDockable() and self.blackMarketTarget:isDockable() and not self.blackMarketTarget:isBanned(e) then
+      if self.blackMarketTarget and self.blackMarketTarget:hasDockable() and self.blackMarketTarget:isDockable() and not self.blackMarketTarget:isBanned(e) then
         e:pushAction(Actions.DockAt(self.blackMarketTarget))
       else
         e:popAction()
         e.jobState = nil
       end
     elseif e.jobState == Enums.JobStateMarauding.SellingItems then
-      if self.blackMarketTarget:hasDockable() and self.blackMarketTarget:isDockable() and not self.blackMarketTarget:isBanned(e) then
+      if self.blackMarketTarget and self.blackMarketTarget:hasDockable() and self.blackMarketTarget:isDockable() and not self.blackMarketTarget:isBanned(e) then
         local sold = 0
         for item, count in pairs(e.inventory) do
           for i=1, count do
@@ -84,8 +91,8 @@ function Marauding:onUpdateActive(e, dt)
         e:pushAction(Actions.Undock())
       end
     elseif e.jobState == Enums.JobStateMarauding.JobFinished then
+      e:popAction()
       e.jobState = nil
-      self:reset() --Temporary until Pirate
     end
 
     --end of update
