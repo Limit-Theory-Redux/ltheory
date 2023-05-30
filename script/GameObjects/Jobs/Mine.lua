@@ -7,10 +7,46 @@ local Mine = subclass(Job, function(self, src, dst, item)
   self.dst = dst
   self.item = item
   self.jcount = 0
+  self.workers = {}
+  self.maxWorkers = 2 -- should depend on asteroid size etc.
 end)
+
+function Mine:cancelJob(e)
+  self:removeWorker(e)
+  e:popAction()
+  e.jobState = nil
+end
 
 function Mine:clone()
   return Mine(self.src, self.dst, self.item)
+end
+
+function Mine:isWorker(asset)
+  assert(asset)
+  for _, worker in ipairs(self.workers) do
+    if worker == asset then
+      return true
+    end
+  end
+  return false
+end
+
+function Mine:addWorker(asset)
+  assert(asset)
+  self.src:addClaim(asset)
+  table.insert(self.workers, asset)
+  return false
+end
+
+function Mine:removeWorker(asset)
+  assert(asset)
+  for i, worker in ipairs(self.workers) do
+    if worker == asset then
+      table.remove(self.workers, i)
+    end
+  end
+  self.src:removeClaim(asset)
+  return false
 end
 
 function Mine:getFlows(e)
@@ -19,6 +55,10 @@ function Mine:getFlows(e)
   local item = self.item
   local rate = math.floor(capacity / item:getMass()) / duration
   return { Flow(item, rate, self.dst) }
+end
+
+function Mine:getType()
+  return Enums.Jobs.Mining
 end
 
 function Mine:getName()
@@ -133,8 +173,7 @@ function Mine:onUpdateActive(e, dt)
       local mcount = math.min(itemBidVol, ccount)
       if mcount == 0 then
         -- Can't do this Mine job! End this job (owning player should seek a new sale for existing inventory)
-        e:popAction()
-        e.jobState = nil
+        self:cancelJob(e)
       else
         self.jcount = mcount
 
@@ -154,8 +193,7 @@ function Mine:onUpdateActive(e, dt)
       if e:getItemCount(self.item) == 0 then
         printf("[MINE 3] *** NO SALE *** %s was unable to mine any units of %s for Trader %s, ending MINE action",
           e:getName(), self.item:getName(), self.dst:getName())
-        e:popAction()
-        e.jobState = nil
+        self:cancelJob(e)
       else
         if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
           e:pushAction(Actions.DockAt(self.dst))
@@ -163,12 +201,9 @@ function Mine:onUpdateActive(e, dt)
           -- Destination station no longer exists, so terminate this entire job
           printf("[MINE 3] *** Destination station %s no longer exists for %s DockAt; terminating mining job",
             self.dst:getName(), e:getName())
-          e:popAction()
-          e.jobState = nil
+          self:cancelJob(e)
         end
       end
-      -- temp claims by traders
-      self.src:removeClaim(self.dst:getTrader())
     elseif e.jobState == Enums.JobStateMine.SellingItems then
       if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
         local item = self.item
@@ -183,8 +218,7 @@ function Mine:onUpdateActive(e, dt)
         -- Destination station no longer exists, so terminate this entire job
         printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
           self.dst:getName(), e:getName())
-        e:popAction()
-        e.jobState = nil
+        self:cancelJob(e)
       end
     elseif e.jobState == Enums.JobStateMine.UndockingFromDst then
       if e:isShipDocked() then
@@ -194,8 +228,7 @@ function Mine:onUpdateActive(e, dt)
       -- TODO : This is just a quick hack to force AI to re-evaluate job
       --        decisions. In reality, AI should 'pre-empt' the job, which
       --        should otherwise loop indefinitely by default
-      e:popAction()
-      e.jobState = nil
+      self:cancelJob(e)
     end
     Profiler.End()
   end

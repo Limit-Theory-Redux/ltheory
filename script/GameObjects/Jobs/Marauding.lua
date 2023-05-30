@@ -16,6 +16,10 @@ function Marauding:clone()
   return Marauding(self.base, self.system)
 end
 
+function Marauding:getType()
+  return Enums.Jobs.Marauding
+end
+
 function Marauding:getName()
   return format('Marauding %d for base %s',
     self.jcount,
