@@ -11,7 +11,7 @@ local MineAt = subclass(Action, function (self, source, target, miningTimePerIte
   self.etimer = 0.0
   self.currentTime = RNG.FromTime():getInt(1, orbitTime)
   self.orbitTime = orbitTime
-  self.orbitRadius = source:getRadius() * 1.1
+  self.orbitRadius = source:getRadius() * 1.1 --TODO: replace with mining laser range later
   self.rAxis = RNG.FromTime():getInt(1,2)
 --printf("MineAt %s from %s to %s", self.source:getYield().item:getName(), self.source:getName(), self.target:getName())
 end)
@@ -46,11 +46,6 @@ function MineAt:onUpdateActive (e, dt)
     vector.z = 0
   end
 
-  self:flyToward(e,
-    orbitTarget:toWorldScaled(vector) + orbitTarget:getVelocity():scale(kLeadTime),
-    orbitTarget:getForward(),
-    orbitTarget:getUp())
-
   -- mine
   if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) and self.target:hasTrader() then
     local item = self.source:getYield().item
@@ -83,6 +78,12 @@ function MineAt:onUpdateActive (e, dt)
 
         e:popAction() -- instant: stop mining when any attempt to mine all units for available bids has completed
       else
+        -- Orbit
+        self:flyToward(e,
+        orbitTarget:toWorldScaled(vector) + orbitTarget:getVelocity():scale(kLeadTime),
+        orbitTarget:getForward(),
+        orbitTarget:getUp())
+
         -- Mine 1 unit only when the duration timer for mining this type of item has expired
         self.etimer = self.etimer + dt
         if self.etimer > self.duration then

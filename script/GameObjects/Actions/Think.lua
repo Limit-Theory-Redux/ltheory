@@ -70,19 +70,24 @@ if true then -- Use payout, not flow
     -- Consider changing to a new job
     for i = 1, math.min(Config.econ.jobIterations, #root:getEconomy().jobs * 2) do
       -- TODO : KnowsAbout check (information economy + AI load reduction)
-      local job = self.rng:choose(root:getEconomy().jobs)
-      if not job then break end
+        local jobType = self.rng:choose(root:getEconomy().jobs)
+        local job
 
-      local payout = job:getPayout(asset)
-      if payout > bestPayout then
-        if job.jcount > 0 then
-          bestPayout = payout
-          bestJob = job
-        else
-printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-asset:getName(), job:getName(), payout)
+        if jobType then
+          job = self.rng:choose(jobType)
         end
-      end
+        if not job then break end
+      
+        local payout = job:getPayout(asset)
+        if payout > bestPayout then
+          if job.jcount > 0 then
+            bestPayout = payout
+            bestJob = job
+          else
+printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+asset:  getName(), job:getName(), payout)
+          end
+        end
     end
 
     -- Maybe assign a new or reassign an old job

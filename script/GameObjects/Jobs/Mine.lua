@@ -167,6 +167,8 @@ function Mine:onUpdateActive(e, dt)
           e.jobState = nil
         end
       end
+      -- temp claims by traders
+      self.src:removeClaim(self.dst:getTrader())
     elseif e.jobState == Enums.JobStateMine.SellingItems then
       if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
         local item = self.item

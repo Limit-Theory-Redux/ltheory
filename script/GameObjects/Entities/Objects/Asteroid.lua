@@ -17,6 +17,7 @@ local Asteroid = subclass(Entity, function (self, seed, scale)
   self:addVisibleLodMesh(mesh, Material.Rock())
   self:addTrackable(true)
   self:addMinable(true)
+  self:addClaimable()
 
   -- NOTE: scale must be set before the radius will be reported correctly
   -- may be updated by the caller

@@ -1,6 +1,9 @@
 local Action = require('GameObjects.Action')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
+-- temp settings
+local outOfRangeCancel = 30
+
 local Attack = subclass(Action, function (self, target)
   self.target = target
 end)
@@ -15,6 +18,7 @@ function Attack:onStart (e)
   self.radiusMin = 2.0 * self.target:getRadius() + e:getRadius()
   self.radiusMax = e.socketRangeMin
   self.timer = 0
+  self.cancelTimer = 0
   self.dist = 0
 end
 
@@ -50,6 +54,22 @@ function Attack:onUpdateActive (e, dt)
   local roll     = e:getUp():cross(target:getUp())
 
   self:flyToward(e, targetPos, e:getForward(), target:getUp())
+
+  if target == GameState.player.humanPlayer:getControlling() then
+    local distance = e:getDistance(target)
+    -- Cancel action if out of range
+    if distance > Config.game.pulseRange * 3 then
+      self.cancelTimer = self.cancelTimer + dt
+    else
+      self.cancelTimer = 0
+    end
+
+    print(self.cancelTimer, outOfRangeCancel)
+
+    if self.cancelTimer >= outOfRangeCancel then
+      e:popAction()
+    end
+  end
 end
 
 function Attack:onUpdatePassive (e, dt)
@@ -59,7 +79,9 @@ function Attack:onUpdatePassive (e, dt)
   local firing = Config.game.aiFire(dt, rng)
   for turret in e:iterSocketsByType(SocketType.Turret) do
     turret:aimAtTarget(self.target, self.target:getPos())
-    if firing then turret:fire() end
+    if firing then
+      turret:fire()
+    end
   end
 end
 
