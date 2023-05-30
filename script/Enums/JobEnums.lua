@@ -1,13 +1,19 @@
 Enums.Jobs = {
   Mining = 1,
-  Transport = 2,
-  Marauding = 3
+  Transport = 2
 }
 
 Enums.JobNames = {
   [1] = "Mining",
   [2] = "Transport",
-  [3] = "Marauding"
+}
+
+Enums.BlackMarketJobs = {
+  Marauding = 1
+}
+
+Enums.BlackMarketJobNames = {
+  [1] = "Marauding"
 }
 
 Enums.JobStateTransport = {

@@ -169,10 +169,10 @@ function Economy:update(dt)
       -- Cache profitable trade jobs
       Profiler.Begin('Economy.Update.Marauding')
 
-      if self.jobs[Enums.Jobs.Marauding] then
-        table.clear(self.blackMarketJobs[Enums.Jobs.Marauding])
+      if self.blackMarketJobs[Enums.BlackMarketJobs.Marauding] then
+        table.clear(self.blackMarketJobs[Enums.BlackMarketJobs.Marauding])
       else
-        self.blackMarketJobs[Enums.Jobs.Marauding] = {}
+        self.blackMarketJobs[Enums.BlackMarketJobs.Marauding] = {}
       end
 
       local allJobCount = 0
@@ -185,7 +185,7 @@ function Economy:update(dt)
 
             if itemBidVol > 0 then
               realJobCount = realJobCount + 1
-              insert(self.blackMarketJobs[Enums.Jobs.Marauding], Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems. (once impl)
+              insert(self.blackMarketJobs[Enums.BlackMarketJobs.Marauding], Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems. (once impl)
             end
           end
         end
@@ -226,6 +226,12 @@ function Economy:debug(ctx)
   ctx:indent()
   for jobType, job in ipairs(self.jobs) do
     ctx:text("%s: %d", Enums.JobNames[jobType], #self.jobs[jobType])
+  end
+  ctx:undent()
+  ctx:text("Black Market")
+  ctx:indent()
+  for jobType, job in ipairs(self.blackMarketJobs) do
+    ctx:text("%s: %d", Enums.BlackMarketJobNames[jobType], #self.blackMarketJobs[jobType])
   end
   ctx:undent()
   for item, data in pairs(self.goods) do
