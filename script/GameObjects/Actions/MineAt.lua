@@ -11,7 +11,7 @@ local MineAt = subclass(Action, function (self, source, target, miningTimePerIte
   self.etimer = 0.0
   self.currentTime = RNG.FromTime():getInt(1, orbitTime)
   self.orbitTime = orbitTime
-  self.orbitRadius = source:getRadius() * 1.1 --TODO: replace with mining laser range later
+  self.orbitRadius = source:getRadius() --TODO: replace with mining laser range later
   self.rAxis = RNG.FromTime():getInt(1,2)
 --printf("MineAt %s from %s to %s", self.source:getYield().item:getName(), self.source:getName(), self.target:getName())
 end)
