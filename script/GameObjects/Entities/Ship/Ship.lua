@@ -74,7 +74,7 @@ function Ship:attackedBy (target)
         else
           self:pushAction(Actions.Attack(target))
         end
-        self:distressCall(target, 15000)
+        self:distressCall(target, 12500)
       else
         self:pushAction(Actions.Attack(target))
       end
@@ -84,11 +84,11 @@ end
 
 function Ship:distressCall (target, range)
   local owner = self:getOwner()
-  for asset in  owner:iterAssets() do
-    if asset:getType() == Config:getObjectTypeByName("object_types", "Ship") and self:getDistance(asset) < range then
+  for asset in owner:iterAssets() do
+    if asset:getType() == Config:getObjectTypeByName("object_types", "Ship") and self:isHostileTo(target) and self:getDistance(asset) < range then
       local currentAction = asset:getCurrentAction()
 
-      if currentAction and not string.find(currentAction:getName(),"Attack") then
+      if (currentAction and not string.find(currentAction:getName(),"Attack")) or not currentAction then
         asset:pushAction(Actions.Attack(target))
         --print(asset:getName() .. " answering distress call of " .. self:getName())
       end

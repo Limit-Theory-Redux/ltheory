@@ -15,7 +15,11 @@ function Attack:getName ()
 end
 
 function Attack:onStart (e)
-  self.radiusMin = 2.0 * self.target:getRadius() + e:getRadius()
+  local eRadius = e:getRadius()
+  local tRadius = self.target:getRadius()
+  if not eRadius then eRadius = 0 end
+  if not tRadius then tRadius = 0 end
+  self.radiusMin = 2.0 * tRadius + eRadius
   self.radiusMax = e.socketRangeMin
   self.timer = 0
   self.cancelTimer = 0
@@ -63,8 +67,6 @@ function Attack:onUpdateActive (e, dt)
     else
       self.cancelTimer = 0
     end
-
-    print(self.cancelTimer, outOfRangeCancel)
 
     if self.cancelTimer >= outOfRangeCancel then
       e:popAction()

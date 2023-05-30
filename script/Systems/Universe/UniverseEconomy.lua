@@ -93,7 +93,7 @@ local function addMarket(system)
 end
 
 local function addBlackMarket(system)
-  local piratesCount = 12
+  local piratesCount = 24
   local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
   piratePlayer:addCredits(Config.econ.eStartCredits)
   system.pirateStation = system:spawnPirateStation(piratePlayer)
@@ -106,8 +106,11 @@ local function addBlackMarket(system)
   for asset in piratePlayer:iterAssets() do
     asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
     GameState.player.humanPlayer:getControlling():setDisposition(asset, Config.game.dispoMin)
-    asset:setHealth(100, 100, 0.2)
-    asset.usesBoost = true
+    if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
+      asset:setHealth(100, 100, 0.2)
+      asset.usesBoost = true
+      print("Set ship health!")
+    end
     system:place(asset)
   end
 
