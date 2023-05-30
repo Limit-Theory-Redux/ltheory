@@ -59,15 +59,15 @@ function Action:flyToward (e, targetPos, targetForward, targetUp)
   c.pitch   = expMap( 1.0 * e:getRight():dot(yawPitch))
   c.roll    = expMap(-1.0 * e:getForward():dot(roll))
 
-  if e == GameState.player.currentShip or e.usesBoost then
-    c.boost = 0.0
-    local newBoost = 1.0 - exp(-max(0.0, (dist / 150.0) - 1.0))
---  if newBoost > 0 and e:discharge(newBoost) then -- applies without normal boostCost (disabled for now)
-    c.boost = newBoost
---  end
-  end
-
-  if e.travelDriveActive then
+  if not e.travelDriveActive then
+    if e == GameState.player.currentShip or e.usesBoost then
+      c.boost = 0.0
+      local newBoost = 1.0 - exp(-max(0.0, (dist / 150.0) - 1.0))
+--    if newBoost > 0 and e:discharge(newBoost) then -- applies without normal boostCost (disabled for now)
+      c.boost = newBoost
+--    end
+    end
+  elseif e.travelDriveActive then
     c.boost = 2
   end
 end
