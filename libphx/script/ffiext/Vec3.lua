@@ -227,7 +227,11 @@ local function defineVec3_t (t, mt)
 
   function mt.__index.normalize (v)
     local l = math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z)
-    assert(l > 1e-12, 'Attempting to normalize vector with near-zero length')
+    if l < 1e-12 then
+      print("[Vec3] Returning zero vector!")
+      return Vec3(0, 0, 0)
+    end
+    --assert(l > 1e-12, 'Attempting to normalize vector with near-zero length')
     return (Vec3(v.x / l, v.y / l, v.z / l))
   end
 
