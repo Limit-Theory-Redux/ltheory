@@ -521,6 +521,8 @@ Config.objectInfo = {
       {30, "Sloop"},
       {31, "Yacht"},
       {32, "Liner"},
+      {33, "Marauder"},
+      {34, "Smuggler"},
     }
   },
   {

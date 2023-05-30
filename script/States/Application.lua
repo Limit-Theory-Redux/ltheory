@@ -145,7 +145,7 @@ function Application:run ()
       end
 
       -- Preserving this in case we need to be able to automatically pause on window exit again
-      -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
+      -- TODO: Re-enable this and connect it to a Settings option s who want this mode
 --      if Input.GetPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
 --        Config.game.gamePaused = true
 --      end

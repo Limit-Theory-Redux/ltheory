@@ -1,7 +1,6 @@
 local UniverseEconomy = require('Systems.Universe.UniverseEconomy')
 local System = require('GameObjects.Entities.Test.System')
 local Actions = requireAll('GameObjects.Actions')
-local Words = require('Systems.Gen.Words')
 local Jobs = requireAll('GameObjects.Jobs')
 
 local rng = RNG.FromTime()
@@ -102,37 +101,10 @@ function Universe:CreateStarSystem(seed)
       --end
       printf("Added %d escort ships", GameState.gen.nEscortNPCs)
     end
-
-    --Adds pirate ships
-    local pirateShips = {}
-    local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
-    local pirateStation = system:spawnPirateStation(piratePlayer)
-    pirateStation:addCredits(Config.econ.eStartCredits * 100)
-    piratePlayer:addCredits(Config.econ.eStartCredits * 100)
-    pirateStation:setDisposition(playerShip, Config.game.dispoMin)
-    for i = 1, 48 do
-      local pirate = system:spawnShip(piratePlayer)
-      local offset = system.rng:getSphere():scale(5000)
-      pirate:setPos(pirateStation:getPos() + offset)
-      pirate:pushAction(Jobs.Marauding(pirateStation, system))
-      pirate:setDisposition(playerShip, Config.game.dispoMin)
-
-      -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
-      --       These will be dogfighting challenges!
-      if rng:getInt(0, 100) < 20 then
-        pirate:setHealth(100, 100, 0.2)
-        pirate.usesBoost = true
-      end
-
-      insert(pirateShips, pirate)
-    end
-
     -- Add System to the Universe
     table.insert(self.systems, system)
-    printf("Pirate! Yarrrrr!")
     printf("Added System: " .. system:getName() .. " to the Universe.")
   end
-
   self:AddSystemEconomy(system)
 end
 

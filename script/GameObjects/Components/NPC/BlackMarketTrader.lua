@@ -441,11 +441,12 @@ function BlackMarketTrader:update ()
     local rng = self.parent.parent.rng
 
     if not bid then
-      for _, v in ipairs(Item.All()) do
-        for i=1, 99999 do
-          self:addBid(v, 100)
-        end
-      end
+      --for _, v in ipairs(Item.All()) do
+      --  for i=1, 99999 do
+      --    self:addBid(v, 100)
+      --  end
+      --end
+      self:addBid(Item.Energy, 10000)
       bid = true
     end
 
@@ -455,9 +456,6 @@ function BlackMarketTrader:update ()
         for i, v in ipairs(data.asksQueue) do insert(data.asks, v) end
         table.clear(data.asksQueue)
         table.sort(data.asks, sortAsks)
---for i = 1, #data.asks do
---  printf("ask[%d] = %d", i, data.asks[i])
---end
       end
 
       -- Move bids from bids queue to bids table
@@ -465,34 +463,6 @@ function BlackMarketTrader:update ()
         for i, v in ipairs(data.bidsQueue) do insert(data.bids, v) end
         table.clear(data.bidsQueue)
         table.sort(data.bids, sortBids)
---for i = 1, #data.bids do
---  printf("bid[%d] = %d", i, data.bids[i])
---end
-      end
-
-      -- Possibly decrease ask to increase chance that someone will sell this item to the trader
-      if rng:getInt(0, 1000) < 3 then
-        for i = 1, #data.asks do
-          data.asks[i] = math.max(1, data.asks[i] - 1) -- lower price on all asks for this item
-        end
-      end
-
-      -- Possibly increase bid to increase chance that someone will buy this item from the trader
-      if rng:getInt(0, 100) < 10 then
-        local raisedPrice = 1
-        if rng:getInt(0, 100) < 5 then
-          local windfall = rng:getInt(80, 125)
-          if data.bids and #data.bids > 0 then
-            local windfall = math.max(windfall, data.bids[1])
-          end
-          raisedPrice = windfall -- rare windfall price
-        end
-        if self.parent:hasCredits(data.totalBidPrice + raisedPrice) then
-          -- Trader can cover the increased price
-          if data.bids and #data.bids < 0 then
-            data.bids[1] = data.bids[1] + raisedPrice -- raise price on only the top bid for this item
-          end
-        end
       end
     end
     Profiler.End()

@@ -1,6 +1,7 @@
 local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
 local Actions = requireAll('GameObjects.Actions')
+local Words = require('Systems.Gen.Words')
 local rng = RNG.FromTime()
 
 local UniverseEconomy = class(function (self) end)
@@ -34,7 +35,7 @@ local function AddSystemGenerics(system)
       -- Add a free Waste Recycler station
       system:spawnStation(tradeAi, Production.Recycler)
   end
-
+  system:spawnStation(tradeAi, Production.Silicon)
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
   system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
 end
@@ -93,10 +94,42 @@ function UniverseEconomy:OnUpdate(dt)
         -- Create Stations within randomly selected AsteroidField Zones
         system:spawnStation(aiPlayer, nil)
       end
-      print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, aiPlayer:getName())
-
+        print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, aiPlayer:getName())
         -- Add AI Player to the system
         table.insert(system.aiPlayers, aiPlayer)
+      end
+
+      do
+        --Adds pirate ships | for testing
+        local piratesCount = 32
+        local pirateShips = {}
+        local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
+        piratePlayer:addCredits(Config.econ.eStartCredits * 100)
+        self.pirate = piratePlayer
+
+        local pirateStation = system:spawnPirateStation(piratePlayer)
+        pirateStation:addCredits(Config.econ.eStartCredits * 100)
+        pirateStation:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
+        GameState.player.humanPlayer:getControlling():setDisposition(pirateStation, Config.game.dispoMin)
+
+        for i=1, piratesCount do
+          local pirate = system:spawnShip(piratePlayer)
+          local offset = system.rng:getSphere():scale(5000)
+          pirate:setPos(pirateStation:getPos() + offset)
+          pirate:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
+          GameState.player.humanPlayer:getControlling():setDisposition(pirate, Config.game.dispoMin)
+          pirate:pushAction(Actions.Wait(1))
+        
+          -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
+          --       These will be dogfighting challenges!
+          if rng:getInt(0, 100) < 20 then
+            pirate:setHealth(100, 100, 0.2)
+            pirate.usesBoost = true
+          end
+
+          insert(pirateShips, pirate)
+        end
+        piratePlayer:pushAction(Actions.CriminalThink())
       end
       print("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
     end

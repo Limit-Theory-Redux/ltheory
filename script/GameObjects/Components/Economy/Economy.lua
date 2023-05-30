@@ -4,7 +4,7 @@ local Mine = require('GameObjects.Jobs.Mine')
 
 --------------------------------------------------------------------------------
 
-local Economy = class(function (self, parent)
+local Economy = class(function(self, parent)
   self.parent = parent
   self.factories = {}
   self.flows = {}
@@ -12,6 +12,9 @@ local Economy = class(function (self, parent)
   self.jobs = {}
   self.markets = {}
   self.traders = {}
+  self.blackMarketTraders = {}
+  self.blackMarkets = {}
+  self.blackMarketJobs = {}
   self.yields = {}
 end)
 
@@ -19,9 +22,9 @@ end)
 --        spread over many frames.
 -- NOTE : In particular, the evaluation of Mining jobs becomes very expensive as
 --        asteroid count (Yield) and station/planet count (Market) increase.
-function Economy:update (dt)
+function Economy:update(dt)
   if not GameState.paused then
---    Profiler.Begin('Economy.Update')
+    --    Profiler.Begin('Economy.Update')
     Profiler.Begin('Economy.Update.tableclear')
     table.clear(self.factories)
     table.clear(self.flows)
@@ -57,8 +60,8 @@ function Economy:update (dt)
             allJobCount = allJobCount + 1
             local itemBidVol = dst:getTrader():getBidVolume(item)
             if itemBidVol > 0 then
---printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
---    src:getName(), dst:getName(), item:getName(), itemBidVol)
+              --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
+              --    src:getName(), dst:getName(), item:getName(), itemBidVol)
               realJobCount = realJobCount + 1
               insert(self.jobs, Jobs.Mine(src, dst, item))
             end
@@ -67,23 +70,23 @@ function Economy:update (dt)
       end
     end
     Profiler.End()
---printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
+    --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
---    if false then  -- INACTIVE (Josh code - preserve this for when we switch back to Flow model)
---      do -- Cache trade jobs from positive to negative flow
---        for _, src in ipairs(self.markets) do
---          for item, srcFlow in pairs(src:getFlows()) do
---            if srcFlow > 0 then
---              for _, dst in ipairs(self.markets) do
---                if dst:getFlow(item) < 0 then
---                  insert(self.jobs, Jobs.Transport(src, dst, item))
---                end
---              end
---            end
---          end
---        end
---      end
---    end
+    --    if false then  -- INACTIVE (Josh code - preserve this for when we switch back to Flow model)
+    --      do -- Cache trade jobs from positive to negative flow
+    --        for _, src in ipairs(self.markets) do
+    --          for item, srcFlow in pairs(src:getFlows()) do
+    --            if srcFlow > 0 then
+    --              for _, dst in ipairs(self.markets) do
+    --                if dst:getFlow(item) < 0 then
+    --                  insert(self.jobs, Jobs.Transport(src, dst, item))
+    --                end
+    --              end
+    --            end
+    --          end
+    --        end
+    --      end
+    --    end
 
     -- Cache profitable trade jobs
     Profiler.Begin('Economy.Update.Transport')
@@ -94,18 +97,18 @@ function Economy:update (dt)
         for item, data in pairs(src:getTrader().elems) do
           if src:getTrader():getAskVolume(item) > 0 then
             local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
---printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
+            --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
             if buyPrice > 0 then
               for _, dst in ipairs(self.traders) do
                 if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
                   if src ~= dst then
                     allJobCount = allJobCount + 1
                     local sellPrice = dst:getTrader():getSellToPrice(item, 1)
---printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
---    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+                    --printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
+                    --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                     if buyPrice < sellPrice then
---printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
---    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+                      --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
+                      --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                       realJobCount = realJobCount + 1
                       insert(self.jobs, Jobs.Transport(src, dst, item))
                     end
@@ -118,7 +121,30 @@ function Economy:update (dt)
       end
     end
     Profiler.End()
---printf("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
+
+    -- Cache profitable trade jobs
+    Profiler.Begin('Economy.Update.Marauding')
+    local allJobCount = 0
+    local realJobCount = 0
+    for _, src in ipairs(self.blackMarketTraders) do
+      if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
+        for item, data in pairs(src:getBlackMarketTrader().elems) do
+          if src:getBlackMarketTrader():getAskVolume(item) > 0 then
+            local buyPrice = src:getBlackMarketTrader():getBuyFromPrice(item, 1)
+            --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
+            if buyPrice > 0 then
+              allJobCount = allJobCount + 1
+              --printf("Marauding job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
+              --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+              realJobCount = realJobCount + 1
+              insert(self.jobs, Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems. 
+            end
+          end
+        end
+      end
+    end
+    Profiler.End()
+    --printf("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
     Profiler.Begin('Economy.Update.Flows')
     do -- Compute net flow of entire economy
@@ -138,11 +164,11 @@ function Economy:update (dt)
       self.goods = {}
     end
 
---    Profiler.End()
+    --    Profiler.End()
   end
 end
 
-function Economy:debug (ctx)
+function Economy:debug(ctx)
   ctx:text("Economy")
   ctx:indent()
   ctx:text("%d jobs", #self.jobs)
@@ -159,27 +185,27 @@ end
 
 --------------------------------------------------------------------------------
 
-function Entity:addEconomy ()
+function Entity:addEconomy()
   assert(not self.economy)
   self.economy = Economy(self)
   self:register(Event.Debug, Entity.debugEconomy)
   self:register(Event.Update, Entity.updateEconomy)
 end
 
-function Entity:debugEconomy (state)
+function Entity:debugEconomy(state)
   self.economy:debug(state.context)
 end
 
-function Entity:getEconomy ()
+function Entity:getEconomy()
   assert(self.economy)
   return self.economy
 end
 
-function Entity:hasEconomy ()
+function Entity:hasEconomy()
   return self.economy ~= nil
 end
 
-function Entity:updateEconomy (state)
+function Entity:updateEconomy(state)
   self.economy:update(state.dt)
 end
 
