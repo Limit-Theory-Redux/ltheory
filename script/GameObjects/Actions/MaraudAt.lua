@@ -22,7 +22,8 @@ local function findClosestTarget(self, e, radius)
   local closestDistance = math.huge
   local closestShip = nil
   for index, ship in ipairs(self.system.ships) do
-    if e:getOwner() ~= ship:getOwner() and not ship:isShipDocked() then
+    local subType = Config:getObjectInfo("ship_subtypes", ship:getSubType())
+    if e:getOwner() ~= ship:getOwner() and not ship:isShipDocked()  and (subType == "Trader" or subType == "Miner") then
       local distance = ship:getDistance(e)
       if distance < closestDistance and distance < radius then
         closestShip = ship
