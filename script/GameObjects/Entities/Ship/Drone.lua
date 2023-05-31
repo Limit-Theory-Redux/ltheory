@@ -11,12 +11,12 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Turret
-Turret = subclass(Entity, function (self)
+local Drone
+Drone = subclass(Entity, function (self)
   if not shared then
     shared = {}
---    shared.mesh = Gen.ShipBasic.TurretSingle(rng)
-    shared.mesh = Gen.ShipFighter.TurretSingle(rng)
+--    shared.mesh = Gen.ShipBasic.DroneSingle(rng)
+    shared.mesh = Gen.ShipFighter.DroneSingle(rng)
     shared.mesh:computeNormals()
     shared.mesh:computeAO(0.1)
     mesh = Gen.Primitive.Billboard(-1, -1, 1, 1)
@@ -40,37 +40,40 @@ Turret = subclass(Entity, function (self)
 
   self:addRigidBody(true, shared.mesh)
   self:addVisibleMesh(shared.mesh, material)
-
   -- TODO : Tracking Component
 
-  self.name         = Config.gen.compTurretPulseStats.name
-  self.healthCurr   = Config.gen.compTurretPulseStats.healthCurr
-  self.healthMax    = Config.gen.compTurretPulseStats.healthMax
-  self.projSpread   = Config.gen.compTurretPulseStats.spread
-  self.projRange    = Config.gen.compTurretPulseStats.range
-  self.projSpeed    = Config.gen.compTurretPulseStats.speed
-  self.projLife     = self.projRange / self.projSpeed
+  self.name         = Config.gen.compDroneStats.name
+  self.healthCurr   = Config.gen.compDroneStats.healthCurr
+  self.healthMax    = Config.gen.compDroneStats.healthMax
+  self.droneType    = Config.gen.compDroneStats.droneType -- each drone rack launches a specific type of drone
+  self.dronesCurr   = Config.gen.compDroneStats.dronesCurr
+  self.dronesActive = Config.gen.compDroneStats.dronesActive
+  self.dronesMax    = Config.gen.compDroneStats.dronesMax
+  self.reloadTime   = Config.gen.compDroneStats.reloadTime
+  self.projRange    = Config.gen.compDroneStats.droneRange
+  self.projSpeed    = Config.gen.compDroneStats.droneSpeed
+  self.projLife     = self.projRange / self.projSpeed -- TEMP: remove when actual drone functionality is added
 
   self.aim      = Quat.Identity()
   self.mesh     = shared.mesh
 
   self.firing   = 0
-  self.heat     = 0
   self.cooldown = 0
+  self.heat     = 0
 
---printf("Register: Turret name = %s, type = %s, handler = %s", self.name, Event.Update, Turret.updateTurret)
-  self:register(Event.Update, Turret.updateTurret)
+--printf("Register: Drone name = %s, type = %s, handler = %s", self.name, Event.Update, Drone.updateDrone)
+  self:register(Event.Update, Drone.updateDrone)
 end)
 
-function Turret:getSocketType ()
-  return SocketType.Turret
+function Drone:getSocketType ()
+  return SocketType.Drone
 end
 
-function Turret:addCooldown (cooldown)
+function Drone:addCooldown (cooldown)
   self.cooldown = self.cooldown + cooldown
 end
 
-function Turret:aimAt (pos)
+function Drone:aimAt (pos)
   if not GameState.paused then
     local look = pos - self:getPos()
     local up   = self:getParent():getUp()
@@ -81,7 +84,7 @@ function Turret:aimAt (pos)
   end
 end
 
-function Turret:aimAtTarget (target, fallback)
+function Drone:aimAtTarget (target, fallback)
     local tHit, pHit = Math.Impact(
       self:getPos(),
       target:getPos(),
@@ -99,22 +102,13 @@ function Turret:aimAtTarget (target, fallback)
   return false
 end
 
-function Turret:canFire ()
-  return not Config.game.gamePaused and self.cooldown <= 0 and
-         self:getParent():mgrCapacitorGetCharge() >= Config.gen.compTurretPulseStats.charge
+function Drone:canFire ()
+  return not Config.game.gamePaused and self.cooldown <= 0
 end
 
-function Turret:fire (dt)
+function Drone:fire ()
   if not self:canFire() then return end
---printf("%s firing!", self:getParent():getName())
-
-  self:getParent().projColorR = Config.gen.compTurretPulseStats.colorBodyR
-  self:getParent().projColorG = Config.gen.compTurretPulseStats.colorBodyG
-  self:getParent().projColorB = Config.gen.compTurretPulseStats.colorBodyB
-
-  Config.game.pulseColorBodyR = Config.gen.compTurretPulseStats.colorBodyR
-  Config.game.pulseColorBodyG = Config.gen.compTurretPulseStats.colorBodyG
-  Config.game.pulseColorBodyB = Config.gen.compTurretPulseStats.colorBodyB
+printf("%s launching drone!", self:getParent():getName())
 
   local projectile, effect = self:getRoot():addProjectile(self:getParent())
   local dir = (self:getForward() + rng:getDir3():scale(self.projSpread * rng:getExp())):normalize()
@@ -125,32 +119,24 @@ function Turret:fire (dt)
   effect.lifeMax = self.projLife
   effect.life = effect.lifeMax
 
-  -- Discharge capacitor if turret holds an energy weapon
-  -- TODO: extend to different weapon types
-  self:getParent():mgrCapacitorDischarge(Config.gen.compTurretPulseStats.charge)
-
   if projectile then
     projectile.pos  = effect.pos
     projectile.vel  = effect.vel
     projectile.dir  = effect.dir
     projectile.dist = 0
---printf("TURRET: %s pos %s", projectile:getName(), projectile.pos)
+--printf("DRONE: %s pos %s", projectile:getName(), projectile.pos)
   end
 
-  -- NOTE : In the future, it may be beneficial to store the actual turret
+  -- NOTE : In the future, it may be beneficial to store the actual drone
   --        rather than the parent. It would allow, for example, data-driven
   --        AI threat analysis by keeping track of which weapons have caused
   --        the most real damage to it, allowing for optimal sub-system
   --        targetting.
-  local rpmDeviation = Config.gen.compTurretPulseStats.roundsPerMinute - Config.gen.compTurretPulseStats.roundsPerMinute * rng:getUniformRange(Config.game.rpmDeviation, 0)
-  self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
+  self.cooldown = 1.0
   self.heat = self.heat + 1
-
-  -- Event to parent
-  self:getParent():send(Event.FiredTurret(self, projectile, effect))
 end
 
-function Turret:render (state)
+function Drone:render (state)
   if state.mode == BlendMode.Additive then
     shader:start()
     Shader.ISetFloat3(varCache.color, 1.0, 1.3, 2.0)
@@ -167,16 +153,16 @@ function Turret:render (state)
   end
 end
 
-function Turret:updateTurret (state)
+function Drone:updateDrone (state)
 --printf("name = %s", self.name)
   local decay = exp(-16.0 * state.dt)
   self:setRotLocal(self:getParent():getRot():inverse() * self.aim)
   if self.firing > 0 then
     self.firing = 0
-    if self.cooldown <= 0 then self:fire(state.dt) end
+    if self.cooldown <= 0 then self:fire() end
   end
-  self.cooldown = max(0, self.cooldown - state.dt)
+  self.cooldown = max(0, self.cooldown - state.dt * Config.gen.compDroneStats.rateOfFire)
   self.heat = self.heat * decay
 end
 
-return Turret
+return Drone

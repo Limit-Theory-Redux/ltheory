@@ -1,50 +1,75 @@
 local Entity = require('GameObjects.Entity')
 local Material = require('GameObjects.Material')
+local Components = requireAll('GameObjects.Elements.Components')
 
-local Ship = subclass(Entity, function (self, proto)
-
-  self:addActions()
-  self:addCapacitor(100, 10)
-  self:addChildren()
-  self:addDispositions()
-  self:addExplodable()
-  self:addHealth(50, 0.05)
-  self:addInventory(100)
-  self:addTrackable(true)
-  self:addAttackable(true)
-  self:addMinable(false)
-
-  self.explosionSize = 64 -- ships get the default explosion size
-
-  self.usesBoost = false -- default ships fly at only the normal speed
-  self.travelDriveActive = false
-  self.travelDriveTimer = 0
-
+local Ship = subclass(Entity, function (self, proto, hull)
+printf("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
   -- TODO : This will create a duplicate BSP because proto & RigidBody do not
   --        share the same BSP cache. Need unified cache.
   self:addRigidBody(true, proto.mesh) -- required
-
-  self:addSockets()
   self:addVisibleMesh(proto.mesh, Material.Metal())
-  self:addThrustController()
+
+  self:addActions()
+  self:addAttackable(true)
+  self:addChildren()
+  self:addDispositions()
+  self:addExplodable()
+  self:addMinable(false)
+  self:addTrackable(true)
+
+  self:addVisibleMesh(proto.mesh, Material.Metal())
   self:addCredits(1000)
 
+  -- TEMP: give each ship the maximum number of every component
+  -- TODO: Load each ship's component sockets with:
+  --       a) default loadout for ships never encountered
+  --       b) defined loadout from ships in a save file (including the player's ship)
+  --       c) nothing loaded for a ship newly built in a factory or in a trader's inventory
+  self.countHull        = proto.countHull
+  self.countComputer    = proto.countComputer
+  self.countSensor      = proto.countSensor
+  self.countLifeSupport = proto.countLifeSupport
+  self.countCapacitor   = proto.countCapacitor
+  self.countThruster    = proto.countThruster
+  self.countTurret      = proto.countTurret
+  self.countBay         = proto.countBay
+  self.countInventory   = proto.countInventory
+  self.countDrone       = proto.countDrone
+  self.countShield      = proto.countShield
+  self.countArmor       = proto.countArmor
+
+  self:addComponents()
+
+  -- Add all sockets to parent
   -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
   --        better for ShipType etc.
+  self:addSockets()
+
   for type, elems in pairs(proto.sockets) do
     for i, pos in ipairs(elems) do
       self:addSocket(type, pos, true)
     end
   end
 
+  self:addThrustController()
+
   self:setDrag(0.75, 4.0)
+--  self:setScale(Config.gen.shipHullScale[hull])
+--  if hull ~= Enums.ShipHulls.VeryLarge then
   self:setScale(proto.scale)
+--  end
 
-  -- TODO: Use mass values from the ship hull class
-  local mass = 1000.0 + (self:getRadius() * 2000) -- (fully loaded F-15 = 20,000 kg, but Josh's mass calc gets sluggish x 10)
-  self:setMass(mass) -- lower mass is related to the ship "wobble" problem
+  -- TODO: Use mass values from the ship hull class _and_ installed components
+  -- NOTE: a fully loaded F-15 ~= 20,000 kg
+  self:setMass(Config.gen.shipHullMass[hull]) -- lower mass is related to the ship "wobble" problem
+  printf("@@@ Entities:Ship - final radius = %s, mass = %s", self:getRadius(), self:getMass())
 
-  local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
+
+  self.travelDriveActive = false
+  self.travelDriveTimer = 0
+  self.explosionSize = 64 -- ships get the default explosion size
+  self.usesBoost = false -- default ships fly at only the normal speed
+  self.shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
 
   -- Events
   self:register(Event.Damaged, self.wasDamaged)
@@ -82,7 +107,7 @@ function Ship:attackedBy (target)
   -- TODO: Improve smarts so that this ship can decide which of multiple attackers to target
   if not self:isDestroyed() then
     -- Ignore hits on ships that have already been destroyed
---printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
+--printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:mgrHullGetHullPercent(), target:getName())
     self:modDisposition(target, -0.2)
     if self ~= GameState.player.currentShip and self:isHostileTo(target) then
       -- If this non-player-controlled ship is not currently attacking its attacker,

@@ -14,11 +14,17 @@ end
 function Entity:register (eventType, handler)
   if not self.handlers[eventType] then self.handlers[eventType] = {} end
   insert(self.handlers[eventType], handler)
+--if eventType == Event.Debug then
+--printf("Entity:register() - '%s' eventType = %s, handler = %s", self:getName(), eventType, handler)
+--end
 end
 
 function Entity:send (event)
   if self.handlers[event.type] then
     for i, v in ipairs(self.handlers[event.type]) do
+--if event.type == Event.Debug then
+--printf("Entity:send() - '%s' eventType = %s, context = %s", self:getName(), event.type, event.context)
+--end
       v(self, event)
     end
   end

@@ -52,12 +52,16 @@ function Action:flyToward (e, targetPos, targetForward, targetUp)
   local yawPitch = e:getForward():cross(forward)
   local roll     = e:getUp():cross(targetUp)
 
-  c.forward = expMap(  2.0 * e:getForward():dot(forward))
+  -- TODO: Instead of reducing NPC ship max speed, need to tie speed and maneuverability
+  --       to ship's mass (currently radius... or scale... or both....) and reduce pitch
+  --       and yaw as z-axis (length) increases in the larger ship hulls.
+  c.forward = expMap(  2.0 * e:getForward():dot(forward)) / 3
+--  c.forward = expMap(  2.0 * e:getForward():dot(forward))
   c.right   = expMap(  2.0 * e:getRight():dot(forward))
   c.up      = expMap(  2.0 * e:getUp():dot(forward))
-  c.yaw     = expMap(-1.0 * e:getUp():dot(yawPitch))
-  c.pitch   = expMap( 1.0 * e:getRight():dot(yawPitch))
-  c.roll    = expMap(-1.0 * e:getForward():dot(roll))
+  c.yaw     = expMap( -1.0 * e:getUp():dot(yawPitch))
+  c.pitch   = expMap(  1.0 * e:getRight():dot(yawPitch))
+  c.roll    = expMap( -1.0 * e:getForward():dot(roll))
 
   if not e.travelDriveActive then
     if e == GameState.player.currentShip or e.usesBoost then

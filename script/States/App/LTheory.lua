@@ -7,6 +7,9 @@ local Bindings = require('States.ApplicationBindings')
 local LTheory = require('States.Application')
 local rng = RNG.FromTime()
 
+local ships = {}
+local escortShips = 20
+
 function LTheory:generate ()
   self.seed = rng:get64()
   if true then
@@ -19,52 +22,60 @@ function LTheory:generate ()
 
   if self.system then self.system:delete() end
   self.system = System(self.seed)
+
   GameState.world.currentSystem = self.system
   GameState.ui.hudStyle = Enums.HudStyles.Wide
   GameState:SetState(Enums.GameStates.InGame)
 
-  local ship
-  do -- Player Ship
-    ship = self.system:spawnShip(self.player)
-    ship:setName(GameState.player.humanPlayerShipName)
-    ship:setPos(Config.gen.origin)
-    ship:setFriction(0)
-    ship:setSleepThreshold(0, 0)
-    ship:setOwner(self.player)
-    ship:setHealth(400, 400, 10)
-    self.system:addChild(ship)
-    self.player:setControlling(ship)
-    GameState.player.currentShip = ship
-
-    local ships = {}
-    for i = 1, 100 do
-      local escort = self.system:spawnShip()
-      local offset = rng:getSphere():scale(100)
-      escort:setPos(ship:getPos() + offset)
-      escort:setOwner(self.player)
-      if rng:getInt(0, 100) < 20 then
-        escort:setHealth(100, 100, 0.3)
-        escort.usesBoost = true
-      end
-      escort:pushAction(Actions.Escort(ship, offset))
-      insert(ships, escort)
-    end
-  end
-
-  for i = 1, 1 do
-    local station = self.system:spawnStation()
-  end
-
-  for i = 1, 0 do
-    self.system:spawnAI(100, Actions.Wait(5), self.player)
-  end
-
-  for i = 1, 1 do
-    self.system:spawnAsteroidField(500, 10)
-  end
-
+  -- Generate planets (no more than 1 for now)
   for i = 1, 0 do
     self.system:spawnPlanet()
+  end
+
+  -- Generate asteroid fields and asteroids
+  for i = 1, 10 do
+    self.system:spawnAsteroidField(200, 10)
+  end
+
+  -- Generate space stations (in asteroid fiels)
+  for i = 1, 10 do
+    local station = self.system:spawnStation(Enums.StationHulls.Small, self.player, nil)
+  end
+
+  -- Generate the player's ship
+  local shipSize = Enums.ShipHulls.Large
+  local ship
+  ship = self.system:spawnShip(shipSize, self.player)
+  ship:setName(GameState.player.humanPlayerShipName)
+  ship:setPos(Config.gen.origin)
+  ship:setFriction(0)
+  ship:setSleepThreshold(0, 0)
+  ship:setOwner(self.player)
+  self.player:setControlling(ship)
+  GameState.player.currentShip = ship
+
+  -- Generate escort ships for testing
+  for i = 1, escortShips do
+    shipSize = rng:choose({Enums.ShipHulls.Solo,
+                           Enums.ShipHulls.Small,
+                           Enums.ShipHulls.Compact,
+                           Enums.ShipHulls.Medium,
+                           Enums.ShipHulls.Large,
+                           Enums.ShipHulls.VeryLarge})
+    local escort = self.system:spawnShip(shipSize, nil)
+    local offset = rng:getSphere():scale(300)
+    escort:setPos(ship:getPos() + offset)
+    escort:setOwner(self.player)
+    if rng:getInt(0, 100) < 20 then
+      escort.usesBoost = true
+    end
+    escort:pushAction(Actions.Escort(ship, offset))
+    insert(ships, escort)
+  end
+
+  -- Optional: make the escort ships start out attacking each other
+  for i = 1, #ships - 1 do
+    ships[i]:pushAction(Actions.Attack(ships[i+1]))
   end
 end
 
@@ -97,10 +108,14 @@ function LTheory:onUpdate (dt)
 
   self.player:getRoot():update(dt)
   self.canvas:update(dt)
+
+  HmGui.Begin(self.resX, self.resY) -- required for HmGui.Draw() to work without crashing
+  HmGui.End()
 end
 
 function LTheory:onDraw ()
   self.canvas:draw(self.resX, self.resY)
+  HmGui.Draw() -- post-Rust, required for game universe to be displayed
 end
 
 return LTheory

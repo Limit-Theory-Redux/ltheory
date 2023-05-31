@@ -1,4 +1,9 @@
 local Entity = require('GameObjects.Entity')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
+
+function Entity:getSocketType ()
+  return SocketType.Inventory
+end
 
 function Entity:addInventory (capacity)
   assert(not self.inventory)
@@ -6,6 +11,7 @@ function Entity:addInventory (capacity)
   self.inventory = {}
   self.inventoryCapacity = capacity
   self.inventoryFree = capacity
+--printf("Register: Inventory type = %s, handler = %s", Event.Debug, Entity.debugInventory)
   self:register(Event.Debug, Entity.debugInventory)
 end
 

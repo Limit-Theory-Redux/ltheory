@@ -33,12 +33,12 @@ end
 function Trader:addAsk (item, price)
   local askAdded = false
 
-  if self.parent:hasItem(item, 1) then
+  if self.parent:mgrInventoryHasItem(item, 1) then
     -- Offer an ask only if trader has at least 1 unit of the item in stock
     local data = self:getData(item)
 
     -- Go ahead and remove the item now (at Ask creation time) to keep asks only at the number of items in stock
-    self.parent:removeItem(item, 1)
+    self.parent:mgrInventoryRemoveItem(item, 1)
     data.escrow = data.escrow + 1
 
     data.totalAsk = data.totalAsk + 1
@@ -53,11 +53,13 @@ function Trader:addAsk (item, price)
 end
 
 function Trader:addAskOffer (bidder)
-  local count = bidder.job.jcount
   local item = bidder.job.item
+  local count = bidder:mgrInventoryGetFreeMax(item:getMass())
+--  local count = bidder.job.jcount
   local data = self:getData(item)
   local askOffersAdded = 0
 
+  -- TODO: Check to confirm trader's owning player has enough money to cover each ask
   for i = 1, count do
     if #data.askOffers < data.totalAsk then
       insert(data.askOffers, bidder)
@@ -88,24 +90,29 @@ function Trader:addBid (item, price)
 end
 
 function Trader:addBidOffer (bidder)
-  local count = bidder.job.jcount
   local item = bidder.job.item
+  local count = bidder:mgrInventoryGetFreeMax(item:getMass())
+--  local count = bidder.job.jcount
   local data = self:getData(item)
   local offersAdded = 0
 
+  -- TODO: Check to confirm bidder's owning player has enough money to cover each bid
   for i = 1, count do
     if #data.bidOffers < data.totalBid then
       insert(data.bidOffers, bidder)
       offersAdded = offersAdded + 1
+    else
+      break
     end
   end
 
   if offersAdded > 0 then
-    printf("TRADER: Added %d bid offers from %s to supply %d units of %s to %s | bids = %d, offers = %d",
-        offersAdded, bidder:getName(), count, item:getName(), self.parent:getName(), data.totalBid, #data.bidOffers)
+    printf("TRADER: Added %d bid offers from %s (cap: %s) to supply %d units of %s (mass = %s) to %s | bids = %d, offers = %d",
+        offersAdded, bidder:getName(), bidder:mgrInventoryGetFreeMax(item:getMass()), count, item:getName(),
+        item:getMass(), self.parent:getName(), data.totalBid, #data.bidOffers)
   else
-    printf("TRADER ***: Couldn't add any bid offers from %s to supply %d units of %s to %s | bids = %d, offers = %d",
-        bidder:getName(), count, item:getName(), self.parent:getName(), data.totalBid, #data.bidOffers)
+    printf("TRADER ***: Couldn't add any bid offers from %s to supply %d units of %s (mass = %s) to %s | bids = %d, offers = %d",
+        bidder:getName(), count, item:getName(), item:getMass(), self.parent:getName(), data.totalBid, #data.bidOffers)
   end
 
   return offersAdded
@@ -350,9 +357,9 @@ function Trader:buy (asset, item)
     local price = data.bids[1]
 
     if self.parent:hasCredits(price) then
-      if self.parent:getInventoryFree() >= item:getMass() then
-        if asset:removeItem(item, 1) then
-          self.parent:addItem(item, 1)
+      if self.parent:mgrInventoryGetFreeMax(item:getMass()) >= item:getMass() then
+        if asset:mgrInventoryRemoveItem(item, 1) then
+          self.parent:mgrInventoryAddItem(item, 1)
 
           self.parent:removeCredits(price)
           player:addCredits(price)
@@ -391,15 +398,15 @@ function Trader:sell (asset, item)
 
     local price = data.asks[1]
     if price > 0 and player:hasCredits(price) then
-      if asset:getInventoryFree() >= item:getMass() then
-        -- Note that we don't have to remove the item from the trader's owner; that was
+      if asset:mgrInventoryGetFreeMax(item:getMass()) >= item:getMass() then
+        -- Note that we don't have to remove the item from the trader's owner's inventory; that was
         --     done when the ask was made and the escrow count was incremented
-        asset:addItem(item, 1)
+        asset:mgrInventoryAddItem(item, 1)
 --printf("SELL: Trader parent %s sells 1 unit of item %s to Asset %s (Owner %s) at price %d",
 --    self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
 
 --printf("Trader %s now has %d units of item %s",
---    self.parent:getName(), self.parent:getItemCount(item), item:getName())
+--    self.parent:getName(), self.parent:mgrInventoryGetItemCount(item), item:getName())
 
         player:removeCredits(price)
         self.parent:addCredits(price)

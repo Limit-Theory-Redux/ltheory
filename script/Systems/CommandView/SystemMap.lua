@@ -206,8 +206,8 @@ function SystemMap:onDraw (state)
         dbg:text("Owner: [None]")
       end
       if not self.focus:isDestroyed() then
-        if self.focus:hasHealth()then
-          dbg:text("Health: %d%%", self.focus:getHealthPercent())
+        if self.focus:isAlive() then
+          dbg:text("Hull Integrity: %d%%", self.focus:mgrHullGetHullPercent())
         end
         if string.match(objtype, "Station") and self.focus:hasDockable() then
           local docked = self.focus:getDocked()
@@ -310,7 +310,25 @@ function SystemMap:onInput (state)
     Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
   GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y + GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
     Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+  --       Meanwhile, the Minus and Equals keys will slow down and speed up zooming, respectively
+  if Input.GetValue(Button.Keyboard.Minus) == 1 then
+    GameState.player.mapSystemPan = GameState.player.mapSystemPan / 1.2
+    if GameState.player.mapSystemPan < 1 then
+      GameState.player.mapSystemPan = 1
+    end
+--printf("mapSystemPan - = %s", GameState.player.mapSystemPan)
+  end
+  if Input.GetValue(Button.Keyboard.Equals) == 1 then
+    GameState.player.mapSystemPan = GameState.player.mapSystemPan * 1.2
+    if GameState.player.mapSystemPan > 150 then
+      GameState.player.mapSystemPan = 150
+    end
+--printf("mapSystemPan + = %s", GameState.player.mapSystemPan)
+  end
 
+  GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
+  GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
+      exp(GameState.ui.mapSystemZoomSpeed * (Input.GetValue(Button.Keyboard.RBracket) - Input.GetValue(Button.Keyboard.LBracket)))
 end
 
 function SystemMap.Create (system)

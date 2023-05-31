@@ -52,11 +52,6 @@ function Universe:CreateStarSystem(seed)
     local shipObject = {
       owner = GameState.player.humanPlayer,
       shipName = GameState.player.humanPlayerShipName,
-      health = {
-        [1] = 500,
-        [2] = 500,
-        [3] = 1
-      },
       friction = 0,
       sleepThreshold = {
         [1] = 0,
@@ -70,11 +65,11 @@ function Universe:CreateStarSystem(seed)
 
     printf("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
 
-    -- Escort Ships for Testing
+    -- Escort ships for testing
     local escortShips = {}
     if GameState.gen.nEscortNPCs > 0 then
       for i = 1, GameState.gen.nEscortNPCs do
-        local escort = system:spawnShip(nil)
+        local escort = system:spawnShip(rng:choose({1, 2, 3, 4, 5, 6}), nil)
         local offset = system.rng:getSphere():scale(100)
         escort:setPos(playerShip:getPos() + offset)
 
@@ -87,7 +82,8 @@ function Universe:CreateStarSystem(seed)
         -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
         --       These will be dogfighting challenges!
         if rng:getInt(0, 100) < 20 then
-          escort:setHealth(100, 100, 0.2)
+          local escortHullInteg = escort:mgrHullGetHullMax()
+          escort:mgrHullSetHull(floor(escortHullInteg * 1.5), floor(escortHullInteg * 1.5))
           escort.usesBoost = true
         end
 
@@ -110,9 +106,13 @@ end
 
 function Universe:CreateShip(system, pos, shipObject)
     -- Add the player's ship
-    local ship = system:spawnShip(shipObject.owner)
+    -- TODO: Integrate this with loading a saved ship
+
+    -- TEMP: Read player's ship hull size from user settings
+    local shipSize = GameState.player.shipHull
+
+    local ship = system:spawnShip(shipSize, shipObject.owner)
     ship:setName(shipObject.shipName)
-    ship:setHealth(shipObject.health[1], shipObject.health[2], shipObject.health[3]) -- make the player's ship healthier than the default NPC ship
 
     -- Insert ship into this star system
     local spawnPosition = pos or Config.gen.origin

@@ -53,7 +53,10 @@ function Mine:getFlows(e)
   local capacity = e:getInventoryFree()
   local duration = self:getTravelTime(e, self.src, self.dst) -- TODO : + miningTime (from miningTime() function)
   local item = self.item
-  local rate = math.floor(capacity / item:getMass()) / duration
+  local mass = item:getMass()
+  local capacity = e:mgrInventoryGetFreeMax(mass)
+  local duration = self:getTravelTime(e, self.src, self.dst) -- TODO : + miningTime (from miningTime() function)
+  local rate = floor(capacity / mass) / duration
   return { Flow(item, rate, self.dst) }
 end
 
@@ -65,6 +68,7 @@ function Mine:getName()
   return format('Mine %d x %s at %s, drop off at %s (distance = %d)',
     self.jcount,
     self.item:getName(),
+    self.item:getMass(),
     self.src:getName(),
     self.dst:getName(),
     self.src:getDistance(self.dst))
@@ -79,18 +83,18 @@ function Mine:getPayout(e)
     if bcount > 0 and basePayout > 0 then
       payout = Mine:getAdjustedPayout(e, self.src, self.dst, basePayout)
       self.jcount = bcount
+    else
+      self.jcount = 0
     end
   end
-
-  --local capacity = e:getInventoryFree()
   --local item = self.item
+  --local capacity = e:mgrInventoryGetFreeMax(item:getMass())
   --local pstr1 = "Mine PAYOUT-ADJU [%s (%s)]: count = %d, item = %s, src = %s, dest = %s, "
   --local pstr2 = "base payout = %d, adjusted payout = %d"
   --local pstr  = pstr1 .. pstr2
   --printf(pstr,
   --e:getName(), e:getOwner():getName(), self.jcount, item:getName(), self.src:getName(), self.dst:getName(),
   --basePayout, payout)
-
   return payout
 end
 
@@ -101,13 +105,14 @@ function Mine:getBasePayout(e, src, dst)
   local baseCount = 0
   local item = src:getYield().item
   self.item = item
+  local mass = item:getMass()
   local itemBidVol = dst:getTrader():getBidVolume(item)
   if itemBidVol and itemBidVol > 0 then
     -- Mine only as many units as the destination has bids for
     --    or as many as we can carry
     --    or as many as are still minable
-    local capacity = e:getInventoryFree()
-    baseCount = math.min(itemBidVol, math.floor(capacity / item:getMass()))
+    local capacity = e:mgrInventoryGetFreeMax(mass)
+    baseCount = math.min(itemBidVol, floor(capacity / mass))
     basePayout = dst:getTrader():getSellToPrice(item, baseCount)
 
     --local pstr1 = "Mine PAYOUT-BASE [%s (%s)]: baseCount = %d, item = %s, src = %s, dest = %s, "
@@ -118,7 +123,7 @@ function Mine:getBasePayout(e, src, dst)
     --basePayout)
   end
 
-  return baseCount, math.floor(basePayout)
+  return baseCount, floor(basePayout)
 end
 
 function Mine:getAdjustedPayout(e, src, dst, basePayout)
@@ -135,9 +140,9 @@ function Mine:getAdjustedPayout(e, src, dst, basePayout)
   local payoutMod = yieldSize / ((pickupTravelTime / Config.econ.pickupDistWeightMine) +
     (transportTravelTime / Config.econ.pickupDistWeightTran))
 
-  adjPayout = math.max(1, math.floor(basePayout * payoutMod))
+  adjPayout = math.max(1, floor(basePayout * payoutMod))
 
-  return math.floor(adjPayout)
+  return floor(adjPayout)
 end
 
 function Mine:getShipTravelTime(e, dst)
@@ -158,8 +163,9 @@ function Mine:onUpdateActive(e, dt)
 
     if e.jobState == Enums.JobStateMine.MovingToAsteroid then
       local item = self.item
-      local capacity = e:getInventoryFree()
-      local ccount = math.floor(capacity / item:getMass())
+      local mass = item:getMass()
+      local capacity = e:mgrInventoryGetFreeMax(mass)
+      local ccount = floor(capacity / mass)
       local itemBidVol = self.dst:getTrader():getBidVolumeForAsset(item, e)
 
       if ccount == 0 or itemBidVol == 0 then
@@ -176,6 +182,7 @@ function Mine:onUpdateActive(e, dt)
         self:cancelJob(e)
       else
         self.jcount = mcount
+        printf("MINE 1: jcount = %d", self.jcount)
 
         local profit = self.dst:getTrader():getSellToPriceForAsset(item, self.jcount, e)
         printf(
@@ -208,12 +215,13 @@ function Mine:onUpdateActive(e, dt)
       if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
         local item = self.item
         --printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
-        --e:getName(), e:getItemCount(item), item:getName(), self.dst:getName())
+        --e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
         local sold = 0
-        while e:getItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
+        while e:mgrInventoryGetItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
           sold = sold + 1
         end
-        printf("[MINE 4] %s sold %d units of %s to Trader %s", e:getName(), sold, item:getName(), self.dst:getName())
+        printf("[MINE {%d}] %s sold %d units of %s to Trader %s",
+        e.jobState, e:getName(), sold, item:getName(), self.dst:getName())
       else
         -- Destination station no longer exists, so terminate this entire job
         printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
@@ -222,12 +230,14 @@ function Mine:onUpdateActive(e, dt)
       end
     elseif e.jobState == Enums.JobStateMine.UndockingFromDst then
       if e:isShipDocked() then
+        printf("[MINE {%d}] %s pushing action Undock", e.jobState, e:getName())
         e:pushAction(Actions.Undock())
       end
     elseif e.jobState == Enums.JobStateMine.JobFinished then
-      -- TODO : This is just a quick hack to force AI to re-evaluate job
-      --        decisions. In reality, AI should 'pre-empt' the job, which
-      --        should otherwise loop indefinitely by default
+      local eact = e:getCurrentAction()
+      if eact then
+        printf("[MINE {%d}] %s pops remaining action: '%s'", e.jobState, e:getName(), eact:getName())
+      end
       self:cancelJob(e)
     end
     Profiler.End()

@@ -342,7 +342,7 @@ function LTheoryRedux:createStarSystem ()
       end
 
       -- Add a space station
-      local station = self.backgroundSystem:spawnStation(GameState.player.humanPlayer, nil)
+      local station = self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
     else
       GameState:SetState(Enums.GameStates.InGame)
       Universe:CreateStarSystem(9356427830726706953ULL)
@@ -394,6 +394,9 @@ function LTheoryRedux:freezeTurrets ()
   if GameState.player.currentShip then
     for turret in GameState.player.currentShip:iterSocketsByType(SocketType.Turret) do
       turret:addCooldown(2.0)
+    end
+    for bay in GameState.player.currentShip:iterSocketsByType(SocketType.Bay) do
+      bay:addCooldown(2.0)
     end
   end
 end

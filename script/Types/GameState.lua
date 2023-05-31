@@ -73,11 +73,12 @@ GameState.player = {
   playerMoving            = false,
 
   currentShip             = nil,
+  shipHull                = Enums.ShipHulls.Solo,
   weaponGroup             = 1,
 
-  currentCamera         = Enums.CameraMode.FirstPerson,
-  lastCamera            = nil,
-  startupCamera         = Enums.CameraMode.FirstPerson,
+  currentCamera           = Enums.CameraMode.FirstPerson,
+  lastCamera              = nil,
+  startupCamera           = Enums.CameraMode.FirstPerson,
 
   currentMapSystemPos     = Vec3f(0, 0, 0),
   currentMapSystemZoom    = 0.001,
@@ -87,8 +88,8 @@ GameState.player = {
 }
 
 GameState.world = {
-  -- world related states here later (system state, ai, economy etc)
-  currentSystem           = nil,
+  -- TODO: World related states here later (system state, ai, economy etc)
+  currentSystem         = nil,
 }
 
 GameState.gen = {

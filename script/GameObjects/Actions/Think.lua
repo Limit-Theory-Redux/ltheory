@@ -33,7 +33,7 @@ end
 --    if pressure < bestPressure then
 --      bestPressure = pressure
 --      bestJob = job
-----printf("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName())
+----printf("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
 --    end
 --  end
 --
@@ -51,7 +51,7 @@ end
 --  end
 --end
 
-if true then -- Use payout, not flow
+  -- Use payout, not flow
   function Think:manageAsset (asset)
     local root = asset:getRoot()
     local bestPayout = 0
@@ -113,22 +113,26 @@ if true then -- Use payout, not flow
       end
 
       if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
-          (not string.find(asset.job:getName(), "Transport") or
+          (not string.find(asset.job:getName(asset), "Transport") or
           (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
-printf("THINK: pushing job '%s' to %s with bestPayout = %d", asset.job:getName(), asset:getName(), bestPayout)
+        -- Place offer for the best job's bids to reserve them
+        -- Note that this also sets the job's count of items to be moved
+        asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
+        asset.job.bids = asset.job.jcount
+
+        -- Push job to asset's Action queue
+printf("THINK: pushing job %s '%s' to %s with jcount = %d, bids = %d, bestPayout = %d",
+asset.job, asset.job:getName(asset), asset:getName(), asset.job.jcount, asset.job.bids, bestPayout)
         asset:pushAction(bestJob)
         jobAssigned = true
 
-        -- Place offer for the best job's bids to reserve them
-        asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
-
         -- Make some updates based on the type of job being assigned to this asset
-        if string.find(asset.job:getName(), "Transport") then
+        if string.find(asset.job:getName(asset), "Transport") then
           -- Job is a Trade job
-          -- Reserve best job's asks (must be after addBidOffer() to use asset.job.jcount)
+          -- Reserve best job's asks
           asset.job.src:getTrader():addAskOffer(asset)
           asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Trader"))
-        elseif string.find(asset.job:getName(), "Mine") then
+        elseif string.find(asset.job:getName(asset), "Mine") then
           -- Job is a Mine job
           asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Miner"))
         end
@@ -136,13 +140,21 @@ printf("THINK: pushing job '%s' to %s with bestPayout = %d", asset.job:getName()
         -- Wake up asset if it was sleeping and make sure it undocks
         local station = asset:isShipDocked()
         if station then
-printf("THINK +++: Asset %s (owner %s) wakes up at Station %s",
-asset:getName(), asset:getOwner():getName(), station:getName())
+printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
+asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
+for i, v in ipairs(asset.actions) do
+  printf("  Actions %d : %s", i, v:getName(asset))
+end
           asset:pushAction(Actions.Undock())
+printf("THINK +++ 2: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
+asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
+for i, v in ipairs(asset.actions) do
+  printf("  Actions %d : %s", i, v:getName(asset))
+end
         end
       else
         -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
-printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())
+printf("THINK: canceling job '%s' for asset %s", asset.job:getName(asset), asset:getName())
         asset.job = nil
       end
     end
@@ -179,7 +191,6 @@ printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getN
       asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Fighter"))
     end
   end
-end
 
 function Think:onUpdateActive (e, dt)
   if not GameState.paused then
