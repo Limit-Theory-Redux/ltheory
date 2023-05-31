@@ -56,10 +56,10 @@ function Entity:plug (child)
     if socket.type == type and socket.child == nil then
       socket.child = child
 --printf("Sockets (%s): Checking socket %d to attach child %s of type %s at pos %s",
---    self:getName(), i, child, type, socket.pos)
+--self:getName(), i, child, type, socket.pos)
       self:attach(child, socket.pos, Quat.Identity())
 
-      if type == SocketType.Turret then
+      if type == SocketType.Turret or type == SocketType.Bay then
         self.socketRangeMin = min(self.socketRangeMin, child.projRange)
         self.socketRangeMax = max(self.socketRangeMax, child.projRange)
         self.socketSpeedMin = min(self.socketSpeedMin, child.projSpeed)

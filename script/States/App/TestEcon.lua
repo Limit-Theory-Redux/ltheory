@@ -55,7 +55,7 @@ function TestEcon:onInit ()
   self.tradeShip:setOwner(self.tradeAI)
 
   -- Use repeat ship builds, fast movement, and hyperspeedup for economic testing
-  GameState.gen.uniqueShips       = false
+  GameState.gen.uniqueShips       = true
   GameState.debug.instantJobs     = true
   GameState.debug.timeAccelFactor = 100
   GameState:SetState(Enums.GameStates.InGame)

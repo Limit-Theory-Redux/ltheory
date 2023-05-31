@@ -2,37 +2,8 @@ local Entity = require('GameObjects.Entity')
 
 function Entity:applyDamage (amount, source)
   local damageRemaining = amount
-  local shieldRemaining = self:getShield()
-  local armorRemaining  = self:getArmor()
-
-  self:send(Event.Damaged(amount, source))
-
-  if shieldRemaining > 0 then
-    -- Reduce this ship's shield protection (doesn't actually damage the shield generator)
-    self:damageShield(amount)
-    damageRemaining = amount - shieldRemaining
-  end
-
-  if damageRemaining > 0 then
-    if armorRemaining > 0 then
-      -- Some damage made it through the shields, so damage any armor plating installed
-      self:damageArmor(damageRemaining)
-      damageRemaining = damageRemaining - armorRemaining
-    end
-  end
-
-  if damageRemaining > 0 then
-    -- Some damage made it through the armor, so damage the hull
-    self:damageHealth(damageRemaining)
-
-    if self:getHealth() > 0 then
-      -- Randomly damage some internal components, too
-    end
-  end
-
-  if self:isDestroyed() and self:hasAttackable() and self:isAttackable() then
-    -- Entity has been damaged to the point of destruction (0 hull integrity)
-    self:clearActions()
+  local shieldRemaining = self:mgrShieldGetShield()
+  local armorRemaining  = self:mgrArmorGetArmor()
 
 local thisShipName      = self:getName()
 local attackingShipName = source:getName()
@@ -42,9 +13,42 @@ end
 if source.usesBoost then
   attackingShipName = attackingShipName .. " [Ace]"
 end
+
+--printf("hit on '%s' from '%s' for %s damage", thisShipName, attackingShipName, amount)
+
+  self:send(Event.Damaged(amount, source))
+
+  if shieldRemaining > 0 then
+    -- Reduce this ship's shield protection (doesn't actually damage the shield generator)
+    self:mgrShieldReduceShield(amount)
+    damageRemaining = amount - shieldRemaining
+  end
+
+  if damageRemaining > 0 then
+    if armorRemaining > 0 then
+      -- Some damage made it through the shields, so damage any armor plating installed
+      self:mgrArmorReduceArmor(damageRemaining)
+      damageRemaining = damageRemaining - armorRemaining
+    end
+  end
+
+  if damageRemaining > 0 then
+    -- Some damage made it through the armor, so damage the hull
+    self:mgrHullReduceHull(damageRemaining)
+
+    if self:mgrHullGetHull() > 0 then
+      -- Randomly damage some internal components, too
+    end
+  end
+
+  if self:isDestroyed() and self:hasAttackable() and self:isAttackable() then
+    -- Entity has been damaged to the point of destruction (0 hull integrity)
+    self:clearActions()
+
 printf("%s destroyed by %s!", thisShipName, attackingShipName)
 
-    -- Also need to process destroyed entity's assets, including credits and cargo
+    -- Also need to process the formerly "isAlive()" entity's assets, including credits and cargo
+    self:unregister(Event.Debug, Entity.mgrInventoryDebug)
 
     -- Also ALSO need to notify nearby ships
     --    resulting Actions may include Evade, Attack, and/or alert faction members

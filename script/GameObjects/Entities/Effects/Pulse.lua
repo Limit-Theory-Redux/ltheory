@@ -95,7 +95,7 @@ function Pulse.Render (ents, state)
                                     Config.game.pulseColorBodyB)
         end
         Shader.ISetFloat(cacheTail.alpha, self.life / self.lifeMax)
-        Shader.ISetFloat2(cacheTail.size, 16, min(Config.game.pulseSize, 1.5 * self.dist))
+        Shader.ISetFloat2(cacheTail.size, 16, min(Config.gen.compTurretPulseStats.size, 1.5 * self.dist))
         Shader.ISetFloat3(cacheTail.axis, self.dir.x, self.dir.y, self.dir.z)
         Shader.ISetMatrix(cacheTail.mWorld, self.matrix)
         meshTail:drawBound()
@@ -125,7 +125,7 @@ function Pulse.UpdatePrePhysics (system, ents, dt)
     else
       self.pos:imadds(self.vel, dt)
       self.dir:ilerp(self.vel:normalize(), t) -- not needed for dumb-fire projectiles, but retained
-      self.dist = self.dist + dt * Config.game.pulseSpeed
+      self.dist = self.dist + dt * Config.gen.compTurretPulseStats.speed
       self:refreshMatrix()
       if proj then
         proj:setPos(self.pos)
@@ -139,7 +139,7 @@ end
 
 function Pulse.UpdatePostPhysics (system, ents, dt)
   Profiler.Begin('Pulse.UpdatePostPhysics')
-  local restitution = 0.4 * Config.game.pulseSize
+  local restitution = 0.4 * Config.gen.compTurretPulseStats.size
   local ray = Ray()
   ray.tMin = 0
   ray.tMax = 1
@@ -168,13 +168,14 @@ function Pulse.UpdatePostPhysics (system, ents, dt)
         -- Don't collide with the socket that spawned me
         if hitEnt ~= source then
           -- Do damage if the collidee has health
-          if hitEnt.health then
+          if hitEnt:isAlive() then
             if not source:isDestroyed() then
               -- If attacked, this entity stops what it's doing and attacks that ship
               -- TODO: Improve response logic when attacked
               hitEnt:attackedBy(source)
             end
-            hitEnt:applyDamage(Config.game.pulseDamage, source)
+            -- TODO: Get damage type and amount from the pulse
+            hitEnt:applyDamage(Config.gen.compTurretPulseStats.damage, source)
           end
 
           -- remove projectile

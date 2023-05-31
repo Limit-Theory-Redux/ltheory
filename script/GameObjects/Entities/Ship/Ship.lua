@@ -1,5 +1,6 @@
 local Entity = require('GameObjects.Entity')
 local Material = require('GameObjects.Material')
+local Components = requireAll('GameObjects.Elements.Components')
 
 local Ship = subclass(Entity, function (self, proto, hull)
 printf("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
@@ -17,37 +18,37 @@ printf("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
   self:addTrackable(true)
 
   -- TEMP: give each ship the maximum number of every component
-  self.countHull      = proto.countHull
-  self.countComputer  = proto.countComputer
-  self.countSensor    = proto.countSensor
-  self.countLife      = proto.countLife
-  self.countCapacitor = proto.countCapacitor
-  self.countThruster  = proto.countThruster
-  self.countTurret    = proto.countTurret
-  self.countBay       = proto.countBay
-  self.countCargo     = proto.countCargo
-  self.countDrone     = proto.countDrone
-  self.countShield    = proto.countShield
-  self.countArmor     = proto.countArmor
+  -- TODO: Load each ship's component sockets with:
+  --       a) default loadout for ships never encountered
+  --       b) defined loadout from ships in a save file (including the player's ship)
+  --       c) nothing loaded for a ship newly built in a factory or in a trader's inventory
+  self.countHull        = proto.countHull
+  self.countComputer    = proto.countComputer
+  self.countSensor      = proto.countSensor
+  self.countLifeSupport = proto.countLifeSupport
+  self.countCapacitor   = proto.countCapacitor
+  self.countThruster    = proto.countThruster
+  self.countTurret      = proto.countTurret
+  self.countBay         = proto.countBay
+  self.countInventory   = proto.countInventory
+  self.countDrone       = proto.countDrone
+  self.countShield      = proto.countShield
+  self.countArmor       = proto.countArmor
 
-  self:addHealth   (Config.gen.compHullStats.health          * self.countHull)
-  self:addCapacitor(Config.gen.compCapacitorStats.chargeMax  * self.countCapacitor,
-                    Config.gen.compCapacitorStats.chargeRate * self.countCapacitor)
-  self:addInventory(Config.gen.compCargoStats.cargoUnits     * self.countCargo)
-  self:addShield   (Config.gen.compShieldStats.strengthMax   * self.countShield,
-                    Config.gen.compShieldStats.reviveRate    * self.countShield)
-  self:addArmor    (Config.gen.compArmorStats.strength       * self.countArmor)
+  self:addComponents()
 
-  self:addThrustController()
-
+  -- Add all sockets to parent
   -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
   --        better for ShipType etc.
   self:addSockets()
+
   for type, elems in pairs(proto.sockets) do
     for i, pos in ipairs(elems) do
       self:addSocket(type, pos, true)
     end
   end
+
+  self:addThrustController()
 
   self:setDrag(0.75, 4.0)
 --  self:setScale(Config.gen.shipHullScale[hull])
@@ -76,7 +77,7 @@ function Ship:attackedBy (target)
   -- TODO: Improve smarts so that this ship can decide which of multiple attackers to target
   if not self:isDestroyed() then
     -- Ignore hits on ships that have already been destroyed
---printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
+--printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:mgrHullGetHullPercent(), target:getName())
     self:modDisposition(target, -0.2)
     if self ~= GameState.player.currentShip and self:isHostileTo(target) then
       -- If this non-player-controlled ship is not currently attacking its attacker,

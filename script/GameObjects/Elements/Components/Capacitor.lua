@@ -9,69 +9,137 @@
 --           armor, don't need to take energy and should have their own "health" values.
 
 local Entity = require('GameObjects.Entity')
+local BasicShapes  = require('Systems.Gen.ShapeLib.BasicShapes')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 local Bindings = require('States.ApplicationBindings')
 
-function Entity:addCapacitor (max, rate)
-  assert(not self.charge)
-  assert(max)
-  assert(rate)
-  self.charge = max
-  self.chargeMax = max
-  self.chargeRate = rate
-  self:register(Event.Update, Entity.updateCapacitor)
+local shared
+local rng = RNG.FromTime()
+
+local Capacitor
+Capacitor = subclass(Entity, function (self)
+
+  -- All of this crap is completely worthless, but updateCapacitor() will not be called without it
+  if not shared then
+    shared = {}
+    shared.mesh = BasicShapes.Prism(2, 3):finalize()
+    shared.mesh:computeNormals()
+    shared.mesh:computeAO(0.1)
+  end
+  self:addRigidBody(true, shared.mesh)
+  self:addVisibleMesh(shared.mesh, Material.Debug())
+
+  -- OK, back now to what Capacitor actually requires
+  self.name       = Config.gen.compCapacitorStats.name
+  self.healthCurr = Config.gen.compCapacitorStats.healthCurr
+  self.healthMax  = Config.gen.compCapacitorStats.healthMax
+  self.chargeCurr = Config.gen.compCapacitorStats.chargeCurr
+  self.chargeMax  = Config.gen.compCapacitorStats.chargeMax
+  self.chargeRate = Config.gen.compCapacitorStats.chargeRate
+--printf("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, Capacitor.updateCapacitor)
+  self:register(Event.Update, Capacitor.updateCapacitor)
+end)
+
+function Capacitor:getSocketType ()
+  return SocketType.Capacitor
 end
 
-function Entity:discharge (value)
-  if not self.charge then return false end
-  if self.charge < value then return false end
-  self.charge = self.charge - value
---printf("Entity %s discharges %s, %s remaining", self:getName(), value, self.charge)
-  return true
+function Capacitor:getName ()
+  return self.name
 end
 
-function Entity:getCharge ()
-  assert(self.charge)
-  return self.charge or 0
+function Capacitor:setName (newName)
+  self.name = newName
 end
 
-function Entity:getChargeMax ()
-  assert(self.charge)
+function Capacitor:damageHealth (amount)
+  if self.healthCurr - amount < 1e-6 then
+    self.healthCurr = 0.0
+  else
+    self.healthCurr = self.healthCurr - amount
+  end
+--printf("Vessel %s capacitor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+
+  -- Reduce maximum possible charge due to damage
+  -- We could also reduce the charge rate, but let's be nice for now
+  local maxCharge = self.chargeMax * (self.health/self.healthMax)
+  if self.chargeCurr > maxCharge then self.chargeCurr = maxCharge end
+  Capacitor:setCharge(self.chargeCurr, maxCharge, self.chargeRate)
+end
+
+function Capacitor:getHealth ()
+  return self.healthCurr or 0.0
+end
+
+function Capacitor:getHealthMax ()
+  return self.healthMax or 0.0
+end
+
+function Capacitor:getHealthPercent ()
+  if self.healthMax < 1e-6 then return 0.0 end
+  return 100.0 * self.healthCurr / self.healthMax
+end
+
+function Capacitor:setHealth (value, max)
+  self.healthCurr = value
+  self.healthMax = floor(max)
+end
+
+function Capacitor:discharge (value)
+  local undischargedAmount = 0
+  local chargeRemaining = self.chargeCurr
+  local newCharge = chargeRemaining - value
+
+  if newCharge < 0 then
+    undischargedAmount = 0 - newCharge
+    newCharge = 0.0
+  else
+    undischargedAmount = 0
+  end
+
+  self.chargeCurr = newCharge
+--printf("Entity %s discharges %s, %s charge remaining, %s undischarged",
+--self:getName(), value, self.chargeCurr, undischargedAmount)
+  return undischargedAmount
+end
+
+function Capacitor:getCharge ()
+  return self.chargeCurr or 0
+end
+
+function Capacitor:getChargeMax ()
   return self.chargeMax or 0
 end
 
-function Entity:getChargeNormalized ()
-  assert(self.charge)
-  if not self.charge then return 0 end
-  return self.charge / self.chargeMax
+function Capacitor:getChargeRate ()
+  return self.chargeRate or 0
 end
 
-function Entity:getChargePercent ()
-  assert(self.charge)
-  return 100.0 * self.charge / self.chargeMax
+function Capacitor:getChargePercent ()
+  return 100.0 * self.chargeCurr / self.chargeMax
 end
 
-function Entity:hasCharge ()
-  return self.charge ~= nil
-end
-
-function Entity:setCharge (value, max, rate)
-  assert(self.charge)
-  self.charge = value
+function Capacitor:setCharge (value, max, rate)
+  self.chargeCurr = value
   self.chargeMax = max
   self.chargeRate = rate
 end
 
-function Entity:updateCapacitor (state)
-  if not self:isDestroyed() then
-    local timeScale = 1.0
-    if GameState.paused then
-      timeScale = 0.0
-    end
+function Capacitor:updateCapacitor (state)
+  if not self:getParent():isDestroyed() then
+    if self.chargeCurr < self.chargeMax then
+      local timeScale = 1.0
+      if GameState.paused then
+        timeScale = 0.0
+      end
+      if Input.GetDown(Bindings.TimeAccel) then
+        timeScale = GameState.debug.timeAccelFactor
+      end
 
-    if Input.GetDown(Bindings.TimeAccel) then
-      timeScale = GameState.debug.timeAccelFactor
+      self.chargeCurr = min(self.chargeMax, self.chargeCurr + (timeScale * state.dt) * self.chargeRate)
+--printf("CAPACITOR: %s - curr = %s, max = %s, rate = %s", self:getName(), self.chargeCurr, self.chargeMax, self.chargeRate)
     end
-
-    self.charge = min(self.chargeMax, self.charge + (timeScale * state.dt) * self.chargeRate)
   end
 end
+
+return Capacitor

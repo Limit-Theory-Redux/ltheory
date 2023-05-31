@@ -53,7 +53,7 @@ function Action:flyToward (e, targetPos, targetForward, targetUp)
 
   -- TODO: Instead of reducing NPC ship max speed, need to tie speed and maneuverability
   --       to ship's mass (currently radius... or scale... or both....) and reduce pitch
-  --       and yaw relative to z-axis speed.
+  --       and yaw as z-axis (length) increases in the larger ship hulls.
   c.forward = expMap(  2.0 * e:getForward():dot(forward)) / 3
 --  c.forward = expMap(  2.0 * e:getForward():dot(forward))
   c.right   = expMap(  2.0 * e:getRight():dot(forward))
@@ -65,7 +65,7 @@ function Action:flyToward (e, targetPos, targetForward, targetUp)
   if e == GameState.player.currentShip or e.usesBoost then
     c.boost = 0.0
     local newBoost = 1.0 - exp(-max(0.0, (dist / 150.0) - 1.0))
---    if newBoost > 0 and e:discharge(newBoost) then -- for now, boost has zero cost
+--    if newBoost > 0 and e:mgrCapacitorDischarge(newBoost) then -- for now, boost has zero cost
       c.boost = newBoost
 --    end
   end

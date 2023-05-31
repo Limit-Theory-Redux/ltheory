@@ -168,7 +168,7 @@ function ShipFighter.TurretSingle(rng)
   turret:scale(r, r, r)
   turret:rotate(0, math.pi/2, 0)
 
-  -- extrude to create gun shape
+  -- extrude to create weapon turret shape
   local pi = turret:getPolyWithNormal(Vec3d(0, 0, 1))
   local t = math.pi*1.05
   local l = rng:getUniformRange(0.05, 0.5)
@@ -192,6 +192,72 @@ function ShipFighter.TurretSingle(rng)
 
   turret:center()
   return turret:finalize()
+end
+
+function ShipFighter.BaySingle(rng)
+  local res = rng:choose({3, 4, 6, 8, 10, 20})
+  local r = rng:getUniformRange(0.1, 0.3)
+  local bay = BasicShapes.Prism(2, res)
+  bay:scale(r, r, r)
+  bay:rotate(0, math.pi/2, 0)
+
+  -- extrude to create weapon bay shape
+  local pi = bay:getPolyWithNormal(Vec3d(0, 0, 1))
+  local t = math.pi*1.05
+  local l = rng:getUniformRange(0.05, 0.5)
+  r = rng:getUniformRange(0.05, 0.5)
+  bay:extrudePoly(pi, l,
+         Vec3d(r, r, r),
+         Vec3d(0, math.sin(t), -math.cos(t)))
+
+  local aabb = bay:getAABB()
+  local z = math.abs(aabb.upper.z - aabb.lower.z)
+  bay:center(0, 0, -z/2.0)
+
+  -- extrude backward-facing face so that it looks more 'attached' to the ship
+  local pi = bay:getPolyWithNormal(Vec3d(0, 0, -1))
+  local t = math.pi*1.05
+  local l = 0.1
+  r = 0.25
+  bay:extrudePoly(pi, l,
+         Vec3d(r, r, r),
+         Vec3d(0, math.sin(t), math.cos(t)))
+
+  bay:center()
+  return bay:finalize()
+end
+
+function ShipFighter.DroneSingle(rng)
+  local res = rng:choose({3, 4, 6, 8, 10, 20})
+  local r = rng:getUniformRange(0.4, 0.6)
+  local drone = BasicShapes.Prism(2, res)
+  drone:scale(r, r, r)
+  drone:rotate(0, math.pi/2, 0)
+
+  -- extrude to create drone rack shape
+  local pi = drone:getPolyWithNormal(Vec3d(0, 0, 1))
+  local t = math.pi*1.05
+  local l = rng:getUniformRange(0.05, 0.5)
+  r = rng:getUniformRange(0.05, 0.5)
+  drone:extrudePoly(pi, l,
+           Vec3d(r, r, r),
+           Vec3d(0, math.sin(t), -math.cos(t)))
+
+  local aabb = drone:getAABB()
+  local z = math.abs(aabb.upper.z - aabb.lower.z)
+  drone:center(0, 0, -z/2.0)
+
+  -- extrude backward-facing face so that it looks more 'attached' to the ship
+  local pi = drone:getPolyWithNormal(Vec3d(0, 0, -1))
+  local t = math.pi*1.05
+  local l = 0.1
+  r = 0.25
+  drone:extrudePoly(pi, l,
+           Vec3d(r, r, r),
+           Vec3d(0, math.sin(t), math.cos(t)))
+
+  drone:center()
+  return drone:finalize()
 end
 
 function ShipFighter.WingMounts(rng, bodyAABB, res)

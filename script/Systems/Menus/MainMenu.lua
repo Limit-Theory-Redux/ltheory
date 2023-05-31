@@ -45,6 +45,7 @@ local guiSettings = {
   { 0,     nil, "AI Players"         }, -- value for number of AI Players
   { 0,     nil, "EconNPCs"           }, -- value for number of EconNPCs
   { 0,     nil, "EscortNPCs"         }, -- value for number of EscortNPCs
+  { 0,     nil, "Ship Size"          }, -- value for hull type of player's ship
 }
 
 function MainMenu:OnInit()
@@ -599,6 +600,28 @@ function MainMenu:ShowSettingsScreenInner()
     HmGui.EndGroup()
     HmGui.SetStretch(1.0, 0.0)
 
+    HmGui.SetSpacing(8)
+    HmGui.BeginGroupX()
+    HmGui.TextEx(Cache.Font('Exo2', 24), guiSettings[14][3], 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetStretch(1.0, 0.0)
+    HmGui.BeginGroupX()
+    if guiSettings[14][2] == nil then
+      guiSettings[14][1] = GameState.player.shipHull
+      guiSettings[14][2] = GameState.player.shipHull
+    end
+    if HmGui.Button("-") and guiSettings[14][1] > Enums.ShipHulls.Solo then
+      guiSettings[14][1] = guiSettings[14][1] - 1
+    end
+    local hullSizeName = Config:getObjectInfo("ship_subtypes", 3 + (guiSettings[14][1] - 1))
+    HmGui.TextEx(Cache.Font("Ubuntu", 20), hullSizeName, 0.3, 1.0, 0.4, 1.0)
+
+    if HmGui.Button("+") and guiSettings[14][1] < Enums.ShipHulls.VeryLarge then
+      guiSettings[14][1] = guiSettings[14][1] + 1
+    end
+    HmGui.EndGroup()
+    HmGui.EndGroup()
+    HmGui.SetStretch(1.0, 0.0)
+
   end
 
   HmGui.EndGroup()
@@ -640,6 +663,7 @@ function MainMenu:ShowSettingsScreenInner()
       GameState.gen.nAIPlayers  = guiSettings[11][2]
       GameState.gen.nEconNPCs   = guiSettings[12][2]
       GameState.gen.nEscortNPCs = guiSettings[13][2]
+      GameState.player.shipHull = guiSettings[14][2]
     end
 
     for i = 1, #guiSettings do
@@ -677,6 +701,7 @@ function MainMenu:ShowSettingsScreenInner()
       GameState.gen.nAIPlayers  = guiSettings[11][1]
       GameState.gen.nEconNPCs   = guiSettings[12][1]
       GameState.gen.nEscortNPCs = guiSettings[13][1]
+      GameState.player.shipHull = guiSettings[14][1]
     end
 
     for i = 1, #guiSettings do

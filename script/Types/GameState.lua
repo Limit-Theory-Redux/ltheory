@@ -57,6 +57,7 @@ GameState.player = {
   playerMoving          = false,
 
   currentShip           = nil,
+  shipHull              = Enums.ShipHulls.Solo,
   weaponGroup           = 1,
 
   currentCamera         = Enums.CameraMode.FirstPerson,
@@ -70,7 +71,7 @@ GameState.player = {
 }
 
 GameState.world = {
-  -- world related states here later (system state, ai, economy etc)
+  -- TODO: World related states here later (system state, ai, economy etc)
   currentSystem         = nil,
 }
 

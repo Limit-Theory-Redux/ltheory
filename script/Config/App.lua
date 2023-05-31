@@ -111,6 +111,18 @@ Config.gen = {
                      30000,
                      42000,
                      70000},
+  shipHullTranM  = { 0.8, -- left/right/up/down translation speed based on hull size
+                     0.2,
+                     0.1,
+                     0.06,
+                     0.03,
+                     0.0},
+  shipHullManuM  = { 0.8, -- pitch/roll/yaw speed based on hull size
+                     0.5,
+                     0.35,
+                     0.25,
+                     0.16,
+                     4.0}, -- radius is already slowing maneuvering
   shipComponents = {                           -- Sockets available for (ComponentEnums.lua):
                      { 1,  2,  4,  6, 10, 20}, -- hull integrity
                      { 1,  2,  2,  3,  4,  6}, -- computers
@@ -118,14 +130,15 @@ Config.gen = {
                      { 1,  1,  2,  3,  3,  5}, -- life support
                      { 1,  2,  3,  4,  6,  8}, -- capacitors
                      { 1,  2,  4,  5,  6,  8}, -- thrusters * 2 (bilateral)
-                     { 1,  2,  4,  6, 10, 16}, -- turret weapons * 2 (bilateral)
+                     { 2,  4,  6,  8, 10, 16}, -- turret weapons * 2 (bilateral)
                      { 0,  0,  0,  1,  2,  4}, -- bay weapons
-                     { 1,  2,  3,  5,  7, 10}, -- cargo pods (* 100 inventory each)
+                     { 1,  2,  3,  5,  7, 10}, -- cargo pods (* shipInventorySize inventory each)
                      { 1,  2,  4,  7, 12, 20}, -- drone racks (* 2 drones each)
                      { 0,  1,  2,  5,  8, 12}, -- shield generators
                      { 0,  0,  1,  3,  5,  8}, -- armor plates
                    },
-
+  shipInventorySize    =  10,
+  stationInventorySize = 100,
   stationHullMass   = { 112000,
                         242000,
                         575000},
@@ -138,7 +151,7 @@ Config.gen = {
                         {   0,   0,   0,   0,   0,   0}, -- thrusters (none on stations)
                         {  16,  24,  32,  64, 128, 256}, -- turret weapons
                         {   4,   8,  16,  12,  32,  64}, -- bay weapons
-                        {  24,  50, 100,   4,  10,  16}, -- cargo pods (* 100 inventory each)
+                        {  24,  50, 100,   4,  10,  16}, -- cargo pods (* stationInventorySize inventory each)
                         {   0,   0,   0,  24,  48,  64}, -- drone racks (* 2 drones each)
                         {  16,  24,  32,  24,  40,  64}, -- shield generators
                         {   8,  16,  32,  24,  48,  96}, -- armor plates
@@ -146,11 +159,13 @@ Config.gen = {
 
   compHullStats      = {
                          name          = "Hull Structure",
-                         health        = 100,
+                         healthCurr    = 100,
+                         healthMax     = 100,
                        },
   compComputerStats  = {
                          name          = "Computer",
-                         health        = 100,
+                         healthCurr    = 100,
+                         healthMax     = 100,
                          cpuCount      = 1,
                          mappingSpeed  = 1,
                          lockCount     = 1,
@@ -158,73 +173,84 @@ Config.gen = {
                        },
   compSensorStats    = {
                          name          = "Sensor",
-                         health        = 100,
+                         healthCurr    = 100,
+                         healthMax     = 100,
                          mappingRange  = 2000,
                          scanSpeed     = 10,
                          scanDetail    = 1,
                          lockBreaking  = 1,
                        },
-  compLifeSuppStats  = {
+  compLifeSupportStats = {
                          name          = "Life Support",
-                         health        = 100,
+                         healthCurr    = 100,
+                         healthMax     = 100,
                          pods          = 2, -- number of cargo pods given life support
                        },
   compCapacitorStats = {
                          name          = "Capacitor",
-                         health        = 100,
-                         chargeMax     = 100,
-                         chargeCurr    = 100,
-                         chargeRate    = 10,
+                         healthCurr    = 100,
+                         healthMax     = 100,
+                         chargeCurr    = 200,
+                         chargeMax     = 200,
+                         chargeRate    = 12,
                        },
   compThrusterStats  = {
                          name          = "Thruster",
-                         health        = 100,
+                         healthCurr    = 100,
+                         healthMax     = 100,
                          speedMax      = 1000,
                          maneuverMax   = 100,
                        },
-  compCargoStats     = {
-                         name          = "Cargo Pod",
-                         health        = 100,
-                         cargoUnits    = 10,
+  compInventoryStats = {
+                         name          = "Transport Pod",
+                         healthCurr    = 100,
+                         healthMax     = 100,
+                         capacity      = 10,
                          stateroom     = false,
                        },
   compDroneStats     = {
                          name          = "Drone Rack",
-                         health        = 100,
+                         healthCurr    = 100,
+                         healthMax     = 100,
+                         rateOfFire    = 10,
                          droneType     = 1, -- 1 = mining (1 beam turret), 2 = combat (1 pulse turret)
-                         dronesMax     = 2,
                          dronesCurr    = 2,
                          dronesActive  = 0,
+                         dronesMax     = 2,
+                         droneRange    = 8000,
+                         droneSpeed    = 40,
                          reloadTime    = 5,
                        },
   compShieldStats    = {
                          name          = "Shield Generator",
-                         health        = 100,
-                         strengthMax   = 100,
+                         healthCurr    = 100,
+                         healthMax     = 100,
                          strengthCurr  = 100,
+                         strengthMax   = 100,
                          reviveRate    = 2,
-                         type          = 1, -- 1 = energy, 2 = kinetic, 3 = explosive, 4 = radiation
+                         resistances   = {85, 10, 5, 15}, -- Energy, Kinetic, Explosive, Radiation (percentage scale)
                          colorR        = 0.3,
                          colorG        = 0.8,
                          colorB        = 2.0,
                        },
   compArmorStats     = {
                          name          = "Armor Plating",
-                         strength      = 100,
+                         healthCurr    = 1000,
+                         healthMax     = 1000,
                        },
 
   compTurretPulseStats = {
                            name         = "Pulse Turret",
-                           health       = 100,
+                           healthCurr   = 100,
+                           healthMax    = 100,
                            autoTarget   = false,
-                           heat         = 1,
-                           cooldown     = 1,
+                           rateOfFire   = 10,
                            damageType   = 1,
-                           damage       = 3,
+                           damage       = 2,
                            size         = 64,
-                           speed        = 1000, -- was 600
-                           range        = 600,
                            spread       = 0.01,
+                           range        = 1000,
+                           speed        = 1000,
                            charge       = 1.0,
                            colorBodyR   = 0.3,
                            colorBodyG   = 0.8,
@@ -235,8 +261,10 @@ Config.gen = {
                          },
   compTurretBeamStats  = {
                            name         = "Beam Turret",
-                           health       = 100,
+                           healthCurr   = 100,
+                           healthMax    = 100,
                            autoTarget   = false,
+                           rateOfFire   = 10,
                            heat         = 1,
                            cooldown     = 1,
                            damageType   = 1,
@@ -250,8 +278,10 @@ Config.gen = {
                          },
   compTurretRailStats  = {
                            name         = "Railgun Turret",
-                           health       = 100,
+                           healthCurr   = 100,
+                           healthMax    = 100,
                            autoTarget   = false,
+                           rateOfFire   = 10,
                            heat         = 1,
                            cooldown     = 1,
                            damageType   = 2,
@@ -264,8 +294,10 @@ Config.gen = {
                          },
   compTurretProjStats  = {
                            name         = "Launcher Turret",
-                           health       = 100,
-                           type         = 1, -- 1 = missile,
+                           healthCurr   = 100,
+                           healthMax    = 100,
+                           rateOfFire   = 10,
+                           type         = 1, -- 1 = missile only
                            guidanceType = 1,
                            damageType   = 3,
                            damage       = 10,
@@ -274,28 +306,32 @@ Config.gen = {
                          },
   compBayPulseStats    = {
                            name         = "Pulse Bay",
-                           health       = 100,
+                           healthCurr   = 100,
+                           healthMax    = 100,
                            autoTarget   = false,
+                           rateOfFire   = 10,
                            heat         = 1,
                            cooldown     = 1,
                            damageType   = 1,
-                           damage       = 12,
+                           damage       = 15,
                            size         = 128,
-                           speed        = 800,
-                           range        = 700,
                            spread       = 0.02,
+                           range        = 1200,
+                           speed        = 800,
                            charge       = 8.0,
-                           colorBodyR   = 0.3,
+                           colorBodyR   = 1.5,
                            colorBodyG   = 0.8,
-                           colorBodyB   = 2.0,
-                           colorLightR  = 0.3,
+                           colorBodyB   = 0.4,
+                           colorLightR  = 2.0,
                            colorLightG  = 0.9,
-                           colorLightB  = 3.0,
+                           colorLightB  = 0.6,
                          },
   compBayBeamStats     = {
                            name         = "Beam Bay",
-                           health       = 100,
+                           healthCurr   = 100,
+                           healthMax    = 100,
                            autoTarget   = false,
+                           rateOfFire   = 10,
                            heat         = 1,
                            cooldown     = 1,
                            damageType   = 1,
@@ -309,8 +345,10 @@ Config.gen = {
                          },
   compBayRailStats     = {
                            name         = "Railgun Bay",
-                           health       = 100,
+                           healthCurr   = 100,
+                           healthMax    = 100,
                            autoTarget   = false,
+                           rateOfFire   = 10,
                            heat         = 1,
                            cooldown     = 1,
                            damageType   = 2,
@@ -323,8 +361,10 @@ Config.gen = {
                          },
   compBayCannonStats   = {
                            name         = "Cannon Bay",
-                           health       = 100,
+                           healthCurr   = 100,
+                           healthMax    = 100,
                            autoTarget   = false,
+                           rateOfFire   = 10,
                            heat         = 1,
                            cooldown     = 1,
                            damageType   = 1,
@@ -338,7 +378,9 @@ Config.gen = {
                          },
   compBayProjStats     = {
                            name         = "Launcher Bay",
-                           health       = 100,
+                           healthCurr   = 100,
+                           healthMax    = 100,
+                           rateOfFire   = 10,
                            type         = 1, -- 1 = missile, 2 = torpedo
                            guidanceType = 1,
                            damageType   = 3,
@@ -393,23 +435,36 @@ Config.gen = {
 
 Config.game = {
   boostCost              = 20,
-  rateOfFire             = 10,
 
   explosionSize          = 64,
 
   autoTarget             = false,
-  pulseDamage            = 2,
-  pulseSize              = 64,
-  pulseSpeed             = 1e3, -- was 6e2
-  pulseRange             = 1000,
-  pulseSpread            = 0.01,
-  pulseCharge            = 1.0, -- default amount of capacitor charge used by each shot
+
   pulseColorBodyR        = 0.3,
   pulseColorBodyG        = 0.8,
   pulseColorBodyB        = 2.0,
   pulseColorLightR       = 0.3,
   pulseColorLightG       = 0.9,
   pulseColorLightB       = 3.0,
+
+  droneType              = 1, -- 1 = mining drone, 2 = combat drone
+  droneDamage            = 10,
+  droneTarget            = nil,
+  droneSize              = 75,
+  droneSpeed             = 50,
+  droneRange             = 5000,
+
+  missileDamage          = 80,
+  missileTarget          = nil,
+  missileSize            = 100,
+  missileSpeed           = 100,
+  missileRange           = 10000,
+
+  torpedoDamage          = 250,
+  torpedoTarget          = nil,
+  torpedoSize            = 64,
+  torpedoSpeed           = 30,
+  torpedoRange           = 14000,
 
   weaponGroup            = 1,
 

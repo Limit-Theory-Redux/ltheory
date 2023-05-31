@@ -39,7 +39,7 @@ function MineAt:onUpdateActive (e, dt)
 --    maxBids)
 
           -- Try to add 1 unit of the item (note that item size is its mass, not necessarily 1 unit of cargo space)
-          if not e:addItem(item, 1) then
+          if not e:mgrInventoryAddItem(item, 1) then
             break
           else
             addedCount = addedCount + 1
@@ -48,7 +48,7 @@ function MineAt:onUpdateActive (e, dt)
 
         if addedCount < maxBids then
           printf("MineAt STOP (instant): [%s (%s)] has mined %d total units of %s from %s, but %s has %s bids!",
-              e:getName(), e:getOwner():getName(), e:getItemCount(item), item:getName(), self.source:getName(),
+              e:getName(), e:getOwner():getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.source:getName(),
               self.target:getName(), maxBids)
         end
 
@@ -59,27 +59,27 @@ function MineAt:onUpdateActive (e, dt)
         if self.etimer > self.duration then
           self.etimer = 0
 
---printf("MineAt MINE (regular): [%s (%s)] mining 1 unit of %s from %s, delivering to %s (wants %d)",
---    e:getName(), e:getOwner():getName(), item:getName(), self.source:getName(), self.target:getName(),
---    maxBids)
+printf("MineAt MINE (regular): [%s (%s)] mining 1 unit of %s (mass = %s) from %s, delivering to %s (wants %d)",
+    e:getName(), e:getOwner():getName(), item:getName(), item:getMass(), self.source:getName(), self.target:getName(),
+    maxBids)
 
           -- Try to add 1 unit of the item (note that item size is its mass, not necessarily 1 unit of cargo space)
-          if not e:addItem(item, 1) then
+          if not e:mgrInventoryAddItem(item, 1) then
             printf("MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s, but %s wanted %d units!",
-                e:getName(), e:getOwner():getName(), e:getItemCount(item), item:getName(), self.source:getName(),
+                e:getName(), e:getOwner():getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.source:getName(),
                 self.target:getName(), maxBids)
             e:popAction() -- regular: stop mining if asset ran out of cargo capacity for 1 unit of this item
           else
             -- Remove 1 unit of item from the source if any remain
             if not self.source:decreaseYield() then
               printf("MineAt STOP (regular): [%s (%s)] mined %d units of %s from %s (%s wanted %d), but yield = 0!",
-                  e:getName(), e:getOwner():getName(), e:getItemCount(item), item:getName(), self.source:getName(),
+                  e:getName(), e:getOwner():getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.source:getName(),
                   self.target:getName(), maxBids)
               e:popAction() -- regular: stop mining if target had no more units of item left to mine
             end
           end
 
-          if e:getItemCount(item) == maxBids then
+          if e:mgrInventoryGetItemCount(item) == maxBids then
             e:popAction() -- regular: stop mining if asset has mined 1 unit of item for each bid
           else
             e:pushAction(Actions.MoveTo(self.source, 150)) -- move back to within range!
@@ -88,7 +88,7 @@ function MineAt:onUpdateActive (e, dt)
       end
     else
       printf("MineAt STOP: [%s (%s)] has mined %d total units of %s from %s, but %s has no bids!",
-          e:getName(), e:getOwner():getName(), e:getItemCount(item), item:getName(), self.source:getName(),
+          e:getName(), e:getOwner():getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.source:getName(),
           self.target:getName())
       e:popAction() -- stop mining if bids expired before asset could finish mining
     end

@@ -60,11 +60,22 @@ end
 function Attack:onUpdatePassive (e, dt)
   local distance = e:getDistance(self.target)
   local align = (self.target:getPos() - e:getPos()):normalize():dot(e:getForward())
-  if align < 0.25 or distance > Config.game.pulseRange then return end -- TODO: extend range check to other weapon type ranges
-  local firing = Config.game.aiFire(dt, rng)
-  for turret in e:iterSocketsByType(SocketType.Turret) do
-    turret:aimAtTarget(self.target, self.target:getPos())
-    if firing then turret:fire() end
+  if align < 0.25 then return end
+
+  -- TODO: extend range check to other weapon type ranges
+  if distance <= Config.gen.compTurretPulseStats.range then
+    local firing = Config.game.aiFire(dt, rng)
+    for turret in e:iterSocketsByType(SocketType.Turret) do
+      turret:aimAtTarget(self.target, self.target:getPos())
+      if firing then turret:fire() end
+    end
+  end
+  if distance <= Config.gen.compBayPulseStats.range then
+    local firing = Config.game.aiFire(dt, rng)
+    for bay in e:iterSocketsByType(SocketType.Bay) do
+      bay:aimAtTarget(self.target, self.target:getPos())
+      if firing then bay:fire() end
+    end
   end
 end
 

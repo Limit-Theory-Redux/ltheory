@@ -15,7 +15,7 @@ function Job:getName ()
 end
 
 function Job:getPayout (e)
-printf("Job:payout = nil")
+printf("??? JOB:payout = nil")
   assert(false, 'NYI @ Job.getPayout')
 end
 

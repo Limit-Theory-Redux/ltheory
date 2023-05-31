@@ -50,11 +50,14 @@ end
 
 function ThrustController:update (e, dt)
   local boost = 0.0
---  if self.boost > 0 and e:discharge(dt * self.boost * Config.game.boostCost) then -- disabled for now
+--  if self.boost > 0 and e:mgrCapacitorDischarge(dt * self.boost * Config.game.boostCost) then -- disabled for now
     boost = self.boost
 --  end
 
+  -- Large ships should have much less lateral/vertical movement and somewhat less maneuverability
   local mult = 1.0 + 2.0 * boost
+  local translateMult = Config.gen.shipHullTranM[e:getHull()] or 1
+  local maneuverMult  = Config.gen.shipHullManuM[e:getHull()] or 1
 
   assert(e.countThruster)
   ThrustController:updateThrustMax(e.countThruster)
@@ -68,18 +71,18 @@ function ThrustController:update (e, dt)
   end
 
   if abs(self.right) > 1e-6 then
-    e:applyForce(e:getRight():scale(self.right * thrustRightMax))
+    e:applyForce(e:getRight():scale(self.right * thrustRightMax * translateMult))
   end
 
   if abs(self.up) > 1e-6 then
-    e:applyForce(e:getUp():scale(self.up * thrustUpMax))
+    e:applyForce(e:getUp():scale(self.up * thrustUpMax * translateMult))
   end
 
   if max(max(abs(self.pitch), abs(self.yaw)), abs(self.roll)) > 1e-6 then
     e:applyTorqueLocal(Vec3f(
-      self.pitch * thrustPitchMax,
-      -self.yaw  * thrustYawMax,
-      -self.roll * thrustRollMax))
+      self.pitch * thrustPitchMax * maneuverMult,
+      -self.yaw  * thrustYawMax   * maneuverMult,
+      -self.roll * thrustRollMax  * maneuverMult))
   end
 
   -- TODO : This is terrible.

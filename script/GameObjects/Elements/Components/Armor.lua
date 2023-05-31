@@ -1,53 +1,49 @@
 local Entity = require('GameObjects.Entity')
-local Bindings = require('States.ApplicationBindings')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
-function Entity:addArmor (max)
-  assert(not self.armor)
-  assert(max)
-  self.armor = floor(max)
-  self.armorMax = floor(max)
+local Armor = subclass(Entity, function (self)
+  self.name         = Config.gen.compArmorStats.name
+  self.healthCurr   = Config.gen.compArmorStats.healthCurr
+  self.healthMax    = Config.gen.compArmorStats.healthMax
+end)
+
+function Armor:getSocketType ()
+  return SocketType.Armor
 end
 
-function Entity:damageArmor (value)
-  if not self.armor then return false end
-  if self.armor - value < 1e-6 then
-    self.armor = 0.0
-    return false
+function Armor:damageHealth (amount)
+  if self.healthCurr - amount < 1e-6 then
+    self.healthCurr = 0.0
+  else
+    self.healthCurr = self.healthCurr - amount
   end
-  self.armor = self.armor - value
---printf("Entity %s armor takes %s damage, %s remaining", self:getName(), value, self.armor)
-  return true
+--printf("Vessel %s armor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
-function Entity:getArmor ()
-  assert(self.armor)
-  return self.armor or 0.0
+function Armor:getHealth ()
+  return self.healthCurr or 0.0
 end
 
-function Entity:getArmorMax ()
-  assert(self.armor)
-  return self.armorMax or 0.0
+function Armor:getHealthMax ()
+  return self.healthMax or 0.0
 end
 
-function Entity:getArmorNormalized ()
-  assert(self.armor)
-  if not self.armor then return 0.0 end
-  if self.armorMax < 1e-6 then return 0.0 end
-  return self.armor / self.armorMax
+function Armor:getHealthPercent ()
+  if self.healthMax < 1e-6 then return 0.0 end
+  return 100.0 * self.healthCurr / self.healthMax
 end
 
-function Entity:getArmorPercent ()
-  assert(self.armor)
-  if self.armorMax < 1e-6 then return 0.0 end
-  return 100.0 * self.armor / self.armorMax
+function Armor:getName ()
+  return self.name
 end
 
-function Entity:hasArmor ()
-  return self.armor ~= nil
+function Armor:setHealth (value, max)
+  self.healthCurr = value
+  self.healthMax = floor(max)
 end
 
-function Entity:setArmor (value, max)
-  assert(self.armor)
-  self.armor = value
-  self.armorMax = floor(max)
+function Armor:setName (newName)
+  self.name = newName
 end
+
+return Armor

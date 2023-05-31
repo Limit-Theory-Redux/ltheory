@@ -19,26 +19,32 @@ local Transport = subclass(Job, function (self, src, dst, item)
   self.dst = dst
   self.item = item
   self.jcount = 0
+  self.bids = 0
 end)
 
 function Transport:clone ()
-  return Transport(self.src, self.dst, self.item)
+  return Transport(self.src, self.dst, self.item, self.jcount)
 end
 
 function Transport:getFlows (e)
-  local capacity = e:getInventoryFree()
+  local mass = self.item:getMass()
+  local capacity = e:mgrInventoryGetFreeMax(mass)
   local duration = self:getTravelTime(e)
-  local count = math.floor(capacity / self.item:getMass())
+  local count = floor(capacity / mass)
   return {
     Flow(self.item, -count / duration, self.src),
     Flow(self.item,  count / duration, self.dst)
   }
 end
 
-function Transport:getName ()
-  return format('Transport %d x %s from %s to %s',
+function Transport:getName (actor)
+  if self.jcount == 0 then
+    self.jcount = self.bids
+  end
+  return format('Transport %d x %s (mass = %s) from %s to %s',
     self.jcount,
     self.item:getName(),
+    self.item:getMass(),
     self.src:getName(),
     self.dst:getName())
 end
@@ -49,8 +55,9 @@ function Transport:getPayout (e)
   -- Only stations that are dockable and not destroyed have traders that can offer payouts
   if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) and
      self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
-    local capacity = e:getInventoryFree()
-    local maxCount = math.floor(capacity / self.item:getMass())
+    local mass = self.item:getMass()
+    local capacity = e:mgrInventoryGetFreeMax(mass)
+    local maxCount = floor(capacity / mass)
 
     if maxCount > 0 then
       -- Calculate trade count and profit of available bids
@@ -67,8 +74,9 @@ function Transport:getPayout (e)
           local transportTravelTime = self:getTravelTime(e)
           local payoutMod = 10000 / ((pickupTravelTime    / Config.econ.pickupDistWeightMine) +
                                      (transportTravelTime / Config.econ.pickupDistWeightTran))
-          payout = math.max(1, math.floor(profit * payoutMod))
+          payout = math.max(1, floor(profit * payoutMod))
           self.jcount = count
+--printf("2 TRANSPORT: jcount = %s", self.jcount)
         end
       end
     end
@@ -96,12 +104,14 @@ function Transport:onUpdateActive (e, dt)
     e.jobState = e.jobState + 1
 
     if e.jobState == Enums.JobStateTransport.DockingAtSrc then
-      local capacity = e:getInventoryFree()
-      local capCount = math.floor(capacity / self.item:getMass())
+      local mass = self.item:getMass()
+      local capacity = e:mgrInventoryGetFreeMax(mass)
+      local capCount = floor(capacity / mass)
       local count, profit = self.src:getTrader():computeTrade(self.item, capCount, self.dst:getTrader(), e)
 printf("[TRANSPORT 1] %s to move %d x %s from %s -> %s, expect %d profit (oldCount = %d)",
 e:getName(), count, self.item:getName(), self.src:getName(), self.dst:getName(), profit, self.jcount)
       self.jcount = count
+--printf("3 TRANSPORT: jcount = %s", self.jcount)
       e.count = count
       if count > 0 then
         if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) then

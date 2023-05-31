@@ -7,11 +7,12 @@ local Entity = require('GameObjects.Entity')
 local function destroyed (self, source)
   if self:getOwner() then self:getOwner():removeAsset(self) end
 
+  -- Damage all ships docked here (and tell them who did it), then undock them
   local children = self:getChildren()
   for i = #children, 1, -1 do
     local e = children[i]
     if e:getType() and Config:getObjectInfo("object_types", e:getType()) == "Ship" then
-      e:damage(10, source)
+      e:applyDamage(10, source)
       self:removeDocked(e)
 printf("%s forcibly undocked from Station %s", e:getName(), self:getName())
     end
@@ -32,7 +33,18 @@ end
 
 function Entity:addDocked (e)
   assert(self.dockable)
+
+for i, v in ipairs(e.actions) do
+  printf("Pre-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
+end
+
+  self:getParent():removeChild(e)
   self:addChild(e)
+
+for i, v in ipairs(e.actions) do
+  printf("Post-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
+end
+
   e:setShipDocked(self) -- mark ship as docked to this entity
 end
 
@@ -68,6 +80,24 @@ function Entity:isDockable ()
   return self.dockable
 end
 
+function Entity:removeDocked (e)
+  assert(self.dockable)
+
+for i, v in ipairs(e.actions) do
+  printf("Pre-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
+end
+
+  self:removeChild(e)
+  self:getParent():addChild(e)
+
+for i, v in ipairs(e.actions) do
+  printf("Post-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
+end
+
+  e:setShipDocked(nil) -- mark ship as undocked
+  e:setPos(self:getPos())
+end
+
 function Entity:setDockable ()
   self.dockable = true
 printf("%s %s is now dockable", Config:getObjectInfo("object_types", self:getType()), self:getName())
@@ -76,11 +106,4 @@ end
 function Entity:setUndockable ()
   self.dockable = false
 printf("%s %s is now undockable", Config:getObjectInfo("object_types", self:getType()), self:getName())
-end
-
-function Entity:removeDocked (e)
-  assert(self.dockable)
-  self:getParent():addChild(e)
-  e:setShipDocked(nil) -- mark ship as undocked
-  e:setPos(self:getPos())
 end

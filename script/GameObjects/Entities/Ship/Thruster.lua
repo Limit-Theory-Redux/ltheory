@@ -1,6 +1,6 @@
 local Entity = require('GameObjects.Entity')
-local Material = require('GameObjects.Material')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
+local Material = require('GameObjects.Material')
 
 local mesh
 local material
@@ -41,7 +41,9 @@ Thruster = subclass(Entity, function (self, parentShip)
   self.boostT = 0
   self.time = rng:getUniformRange(0, 1000)
 
+--printf("Register: Thruster type = %s, handler = %s", Event.Render, Thruster.render)
   self:register(Event.Render, Thruster.render)
+--printf("Register: Thruster type = %s, handler = %s", Event.Update, Thruster.update)
   self:register(Event.Update, Thruster.update)
 end)
 

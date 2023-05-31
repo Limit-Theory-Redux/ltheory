@@ -125,7 +125,7 @@ function HUD:drawArmorIntegrity (a)
 
   local player = self.player
   local playerShip = player:getControlling()
-  local playerArmorDecPct = floor((playerShip:getArmorPercent() + 0.5) / 10)
+  local playerArmorDecPct = floor((playerShip:mgrArmorGetArmorPercent() + 0.5) / 10)
 
   UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
   UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.armorIntegrity, mvSpacing, mvLevels, playerArmorDecPct)
@@ -163,7 +163,7 @@ function HUD:drawHullIntegrity (a)
 
   local player = self.player
   local playerShip = player:getControlling()
-  local playerHealthDecPct = floor((playerShip:getHealthPercent() + 0.5) / 10)
+  local playerHealthDecPct = floor((playerShip:mgrHullGetHullPercent() + 0.5) / 10)
 
   UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
   UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.hullIntegrity, mvSpacing, mvLevels, playerHealthDecPct)
@@ -201,7 +201,7 @@ function HUD:drawCapacitorEnergy (a)
 
   local player = self.player
   local playerShip = player:getControlling()
-  local capacitorDecPct = floor((playerShip:getChargePercent() + 0.5) / 10)
+  local capacitorDecPct = floor((playerShip:mgrCapacitorGetChargePercent() + 0.5) / 10)
 
   UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
   UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.capacitorEnergy, mvSpacing, mvLevels, capacitorDecPct)
@@ -239,7 +239,7 @@ function HUD:drawShieldStrength (a)
 
   local player = self.player
   local playerShip = player:getControlling()
-  local shieldDecPct = floor((playerShip:getShieldPercent() + 0.5) / 10)
+  local shieldDecPct = floor((playerShip:mgrShieldGetShieldPercent() + 0.5) / 10)
 
   UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
   UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.shieldStrength, mvSpacing, mvLevels, shieldDecPct)
@@ -485,21 +485,21 @@ function HUD:drawTargetShieldsHullArmor (a)
         -- Draw target shields info
         text = format("Shields")
         HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
-        local targetShieldsPct = floor(playerTarget:getShieldPercent() + 0.5)
+        local targetShieldsPct = floor(playerTarget:mgrShieldGetShieldPercent() + 0.5)
         text = format("%d%%", targetShieldsPct)
         HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
         -- Draw target hull info
         text = format("Hull")
         HUD:drawHudTextDouble(hudXh, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
-        local targetHealthPct = floor(playerTarget:getHealthPercent() + 0.5)
+        local targetHealthPct = floor(playerTarget:mgrHullGetHullPercent() + 0.5)
         text = format("%d%%", targetHealthPct)
         HUD:drawHudTextDouble(hudXh, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
         -- Draw target hull armor info
         text = format("Armor")
         HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
-        local targetArmorPct = floor(playerTarget:getArmorPercent() + 0.5)
+        local targetArmorPct = floor(playerTarget:mgrArmorGetArmorPercent() + 0.5)
         text = format("%d%%", targetArmorPct)
         HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
       end
@@ -547,21 +547,21 @@ function HUD:drawPlayerShieldsHullArmor (a)
   -- Draw player ship shields info
   text = format("Shields")
   HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
-  local playerShieldsPct = floor(playerShip:getShieldPercent() + 0.5)
+  local playerShieldsPct = floor(playerShip:mgrShieldGetShieldPercent() + 0.5)
   text = format("%d%%", playerShieldsPct)
   HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
   -- Draw player ship hull info
   text = format("Hull")
   HUD:drawHudTextDouble(hudXh, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
-  local playerHealthPct = floor(playerShip:getHealthPercent() + 0.5)
+  local playerHealthPct = floor(playerShip:mgrHullGetHullPercent() + 0.5)
   text = format("%d%%", playerHealthPct)
   HUD:drawHudTextDouble(hudXh, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 
   -- Draw player ship hull armor info
   text = format("Armor")
   HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
-  local playerArmorPct = floor(playerShip:getArmorPercent() + 0.5)
+  local playerArmorPct = floor(playerShip:mgrArmorGetArmorPercent() + 0.5)
   text = format("%d%%", playerArmorPct)
   HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
 end
@@ -951,8 +951,8 @@ function HUD:drawTargets (a)
             end
 
             -- TEMP: Draw target health bar
---            if playerTarget == target and target:hasHealth() and not target:isDestroyed() then
---              local targetHealthPct = target:getHealthPercent()
+--            if playerTarget == target and target:isAlive() and not target:isDestroyed() then
+--              local targetHealthPct = target:mgrHullGetHullPercent()
 --              if targetHealthPct > 0.0 then
 --                local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
 --                UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
@@ -1017,9 +1017,9 @@ function HUD:drawLock (a)
   -- Predictive impact point
   -- Takes into account player's movement, target's movement,
   --   and the speed of the currently selected weapon/projectile
-  -- TODO: change reference to Config.game.pulseRange from App.lua when multiple weapon types are available
+  -- TODO: change reference to Config.gen.compTurretPulseStats.range from App.lua when multiple weapon types are available
   local range = playerShip:getPos():distance(target:getPos())
-  if target:hasAttackable() and target:isAttackable() and range < Config.game.pulseRange then
+  if target:hasAttackable() and target:isAttackable() and range < Config.gen.compTurretPulseStats.range then
     if playerShip.socketSpeedMax > 0 then
       local tHit, pHit = Math.Impact(
         playerShip:getPos(),
@@ -1077,9 +1077,9 @@ function HUD:drawPlayerHullInteg (a)
   local cx, cy = sx / 2, sy / 2
   local playerShip = self.player:getControlling()
   local playerZoom = playerShip:getRadius() / (playerShip:getScale() / 4)
-  local playerShieldPct = playerShip:getShieldPercent()
-  local playerArmorPct  = playerShip:getArmorPercent()
-  local playerHealthPct = playerShip:getHealthPercent()
+  local playerShieldPct = playerShip:mgrShieldGetShieldPercent()
+  local playerArmorPct  = playerShip:mgrArmorGetArmorPercent()
+  local playerHealthPct = playerShip:mgrHullGetHullPercent()
   local playerHealthCI = math.min(50, math.floor((playerHealthPct / 2.0) + 0.5) + 1)
 
   local hc = Color(1, 1, 1, 1)
@@ -1120,7 +1120,7 @@ end
 function HUD:drawTargetHullInteg (a)
   local playerShip = self.player:getControlling()
   local target = playerShip:getTarget()
-  if target and target:hasHealth() and not target:isDestroyed() then
+  if target and target:isAlive() and not target:isDestroyed() then
     local x, y, sx, sy = self:getRectGlobal()
     local cx, cy = sx / 2, sy / 2
     local targetRangeText = ""
@@ -1130,10 +1130,10 @@ function HUD:drawTargetHullInteg (a)
       targetRangeText = format("Range: %d m", floor(playerShip:getDistance(target) + 0.5))
     end
     local targetName = target:getName()
-    local targetHealthPct = target:getHealthPercent()
+    local targetHealthPct = target:mgrHullGetHullPercent()
     if targetHealthPct > 0.0 then
-      local targetShieldPct = target:getShieldPercent()
-      local targetArmorPct  = target:getArmorPercent()
+      local targetShieldPct = target:mgrShieldGetShieldPercent()
+      local targetArmorPct  = target:mgrArmorGetArmorPercent()
       local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
       local targetZoom = target:getRadius() / (target:getScale() / 4)
       local targetZoomAdj = targetZoom
@@ -1236,6 +1236,7 @@ function HUD:onInput (state)
     if not e:isDestroyed() then
       self:controlThrust(e)
       self:controlTurrets(e)
+      self:controlBays(e)
       self:controlTargetLock(e)
     end
     camera:pop()
@@ -1443,6 +1444,33 @@ function HUD:controlTurrets (e)
       turret:aimAt(fallback)
     end
     turret.firing = firing
+  end
+end
+
+function HUD:controlBays (e)
+  -- TODO: Should this really be here in HUD.lua?
+  local targetPos, targetVel
+  local target = e:getTarget()
+
+  if target and target:getOwnerDisposition(self.player) <= 0.0 then
+    targetPos = target:getPos()
+    targetVel = target:getVelocity()
+  end
+
+  local firing   = ShipBindings.Fire:get() > 0 and 1 or 0
+  local camera   = self.gameView.camera
+  local ndc      = Vec3f(self.aimX, self.aimY)
+  local fallback = camera:mouseToRay(1):getPoint(e.socketRangeMin)
+
+  -- Compute a firing solution separately for each turret to support
+  -- different projectile velocities & ranges
+  for bay in e:iterSocketsByType(SocketType.Bay) do
+    if Config.game.autoTarget and targetPos then
+      bay:aimAtTarget(target, fallback)
+    else
+      bay:aimAt(fallback)
+    end
+    bay.firing = firing
   end
 end
 

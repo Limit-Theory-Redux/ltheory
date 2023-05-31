@@ -391,6 +391,9 @@ function LTheoryRedux:freezeTurrets ()
     for turret in GameState.player.currentShip:iterSocketsByType(SocketType.Turret) do
       turret:addCooldown(2.0)
     end
+    for bay in GameState.player.currentShip:iterSocketsByType(SocketType.Bay) do
+      bay:addCooldown(2.0)
+    end
   end
 end
 

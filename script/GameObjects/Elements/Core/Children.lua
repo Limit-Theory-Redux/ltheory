@@ -30,8 +30,15 @@ function Entity:addChildren ()
 end
 
 function Entity:getChildren ()
+  -- Return non-component children
   assert(self.children)
-  return self.children
+  local realChildren = {}
+  for _, child in ipairs(self.children) do
+    if child:hasTrackable() and child:isTrackable() then
+      insert(realChildren, child)
+    end
+  end
+  return realChildren
 end
 
 function Entity:getParent ()
@@ -51,8 +58,15 @@ function Entity:hasChildren ()
 end
 
 function Entity:iterChildren ()
+  -- Return iterated non-component children
   assert(self.children)
-  return ipairs(self.children)
+  local realChildren = {}
+  for _, child in ipairs(self.children) do
+    if child:hasTrackable() and child:isTrackable() then
+      insert(realChildren, child)
+    end
+  end
+  return ipairs(realChildren)
 end
 
 function Entity:removeChild (child)

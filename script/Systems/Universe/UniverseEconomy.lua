@@ -40,7 +40,7 @@ local function AddSystemGenerics(system)
     -- Create Stations within randomly selected AsteroidField Zones
     system:spawnStation(Enums.StationHulls.Small, tradeAi, nil)
   end
-  print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, tradeAi:getName())
+  printf("Spawned %d Stations for AI Player '%s'", GameState.gen.nStations, tradeAi:getName())
 
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
   system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
