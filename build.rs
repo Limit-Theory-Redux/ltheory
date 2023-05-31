@@ -9,8 +9,9 @@ fn main() {
     {
         // App Icon
         WindowsResource::new()
-        .set_icon("res/images/LTR-Icon.ico")
-        .compile().unwrap();
+            .set_icon("res/images/LTR-Icon.ico")
+            .compile()
+            .unwrap();
 
         let manifest = Path::new("src/ltr.exe.manifest").canonicalize().unwrap();
         println!("cargo:rustc-link-arg-bins=/MANIFEST:EMBED");
