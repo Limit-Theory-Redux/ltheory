@@ -38,15 +38,16 @@ function ShipTest:generate ()
   GameState:SetState(Enums.GameStates.InGame)
 
   self:spawnShip()
-
-  --* Audio initializations *--
-  Audio.Init()
-  Audio.Set3DSettings(0.0, 10, 2);
 end
 
 function ShipTest:onInit ()
   self.player = Player()
   GameState.player.humanPlayer = self.player
+
+  --* Audio initializations *--
+  Audio.Init()
+  Audio.Set3DSettings(0.0, 10, 2);
+  
   self:generate()
 
   DebugControl.ltheory = self

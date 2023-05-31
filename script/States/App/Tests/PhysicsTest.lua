@@ -62,6 +62,9 @@ function LTheory:generate ()
 
   if self.system then self.system:delete() end
   self.system = Entities.Test.System(self.seed)
+  GameState.world.currentSystem = self.system
+  GameState.gen.uniqueShips = true
+  GameState:SetState(Enums.GameStates.InGame)
 
   local ship
   do -- Player Ship
@@ -126,6 +129,12 @@ end
 
 function LTheory:onInit ()
   self.player = Entities.Player()
+  GameState.player.humanPlayer = self.player
+
+  --* Audio initializations *--
+  Audio.Init()
+  Audio.Set3DSettings(0.0, 10, 2);
+
   self:generate()
 
   DebugControl.ltheory = self
@@ -230,10 +239,14 @@ function LTheory:onUpdate (dt)
       self.trigger2:getContents(i - 1)
     end
   end
+
+  HmGui.Begin(self.resX, self.resY)
+  HmGui.End()
 end
 
 function LTheory:onDraw ()
   self.canvas:draw(self.resX, self.resY)
+  HmGui.Draw()
 end
 
 return LTheory

@@ -37,15 +37,16 @@ function StationTest:generate ()
   GameState:SetState(Enums.GameStates.InGame)
 
   self:spawnStation()
-
-  --* Audio initializations *--
-  Audio.Init()
-  Audio.Set3DSettings(0.0, 10, 2);
 end
 
 function StationTest:onInit ()
   self.player = Player()
   GameState.player.humanPlayer = self.player
+
+  --* Audio initializations *--
+  Audio.Init()
+  Audio.Set3DSettings(0.0, 10, 2);
+
   self:generate()
 
   DebugControl.ltheory = self
