@@ -35,7 +35,7 @@ pub struct ShaderVar {
     pub index: i32,
 }
 
-static mut includePath: *const libc::c_char = c_str!("include/");
+const INCLUDE_PATH: &str = "include/";
 
 static mut versionString: *const libc::c_char =
     c_str!("#version 120\n#define texture2DLod texture2D\n#define textureCubeLod textureCube\n");
@@ -53,6 +53,8 @@ unsafe extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const lib
 }
 
 unsafe fn CreateGLShader(src: *const libc::c_char, type_0: gl::types::GLenum) -> u32 {
+    // println!("CreateGLShader: {}", src.convert());
+
     let this: u32 = gl::CreateShader(type_0);
 
     let mut srcs: [*const libc::c_char; 2] = [versionString, src];
@@ -67,12 +69,18 @@ unsafe fn CreateGLShader(src: *const libc::c_char, type_0: gl::types::GLenum) ->
 
     /* Check for compile errors. */
     let mut status: i32 = 0;
+
     gl::GetShaderiv(this, gl::COMPILE_STATUS, &mut status);
+
     if status == 0 {
         let mut length: i32 = 0;
+
         gl::GetShaderiv(this, gl::INFO_LOG_LENGTH, &mut length);
-        let infoLog: *mut libc::c_char = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
+
+        let infoLog = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
+
         gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
+
         CFatal!("CreateGLShader: Failed to compile shader:\n%s", infoLog,);
     }
     this
@@ -115,72 +123,73 @@ unsafe fn GLSL_Load(name: *const libc::c_char, this: &mut Shader) -> *const libc
     }
     let rawCode = Resource_LoadCstr(ResourceType_Shader, name).convert();
     let code = rawCode.replace("\r\n", "\n");
-    let c_code = GLSL_Preprocess(code.convert(), this);
+    let c_code = glsl_preprocess(&code, this);
     /* BUG : Disable GLSL caching until preprocessor cache works. */
     // StrMap_Set(cache, name, (void*)code);
-    c_code
+    c_code.convert()
 }
 
-unsafe fn GLSL_Preprocess(mut code: *const libc::c_char, this: &mut Shader) -> *const libc::c_char {
-    let lenInclude: i32 = "#include".len() as i32;
-    let mut begin: *const libc::c_char = std::ptr::null();
+unsafe fn glsl_preprocess(code: &str, this: &mut Shader) -> String {
+    let mut result = String::new();
 
-    /* Parse Includes. */
-    loop {
-        begin = StrFind(code, c_str!("#include"));
-        if begin.is_null() {
-            break;
-        }
-        let end: *const libc::c_char = StrFind(begin, c_str!("\n"));
-        let name: *const libc::c_char = StrSubStr(begin.offset(lenInclude as isize).offset(1), end);
-        let path: *const libc::c_char = StrAdd(includePath, name);
-        let prev: *const libc::c_char = code;
-        code = StrSub(code, begin, end, GLSL_Load(path, this));
-        StrFree(prev);
-        StrFree(path);
-        StrFree(name);
-    }
+    for line in code.lines() {
+        if let Some(include_val) = line.strip_prefix("#include ") {
+            let include_data = parse_include(include_val, this);
 
-    /* Parse automatic ShaderVar stack bindings. */
-    loop {
-        begin = StrFind(code, c_str!("#autovar"));
-        if begin.is_null() {
-            break;
-        }
-        let end_0: *const libc::c_char = StrFind(begin, c_str!("\n"));
-        let line: *const libc::c_char = StrSubStr(begin, end_0);
+            // result += "// ";
+            // result += line;
+            // result += "\n";
 
-        let lineStr = ffi::PtrAsString(line);
-        let lineTokens: Vec<&str> = lineStr.split(" ").collect();
-        if lineTokens.len() == 3 && lineTokens[0] == "#autovar" {
-            let varType = ffi::NewCString(lineTokens[1].to_string());
-            let varName = ffi::NewCString(lineTokens[2].to_string());
-            let mut var: ShaderVar = ShaderVar {
-                type_0: 0,
-                name: ffi::NewCString("".to_string()),
-                index: 0,
-            };
-            var.type_0 = ShaderVarType_FromStr(varType.as_ptr());
-            if var.type_0 == 0 {
-                CFatal!(
-                    "GLSL_Preprocess: Unknown shader variable type <%s> in directive:\n  %s",
-                    varType.as_ptr(),
-                    line,
-                );
-            }
-            var.name = varName;
-            var.index = -1;
-            this.vars.push(var);
+            result += &include_data;
+            result += "\n";
+        } else if let Some(autovar_val) = line.strip_prefix("#autovar ") {
+            parse_autovar(autovar_val, this);
+
+            // result += "// ";
+            // result += line;
+            // result += "\n";
         } else {
-            CFatal!("GLSL_Preprocess: Failed to parse directive:\n  %s", line,);
+            result += line;
+            result += "\n";
+        }
+    }
+
+    result
+}
+
+unsafe fn parse_include(val: &str, this: &mut Shader) -> String {
+    let path = format!("{INCLUDE_PATH}{val}");
+
+    GLSL_Load(path.convert(), this).convert()
+}
+
+unsafe fn parse_autovar(val: &str, this: &mut Shader) {
+    let line_tokens: Vec<_> = val.split(" ").collect();
+
+    if line_tokens.len() == 2 {
+        let var_type = line_tokens[0];
+        let var_name = line_tokens[1];
+        let var = ShaderVar {
+            type_0: ShaderVarType_FromStr(var_type.convert()),
+            name: var_name.into(),
+            index: -1,
+        };
+
+        if var.type_0 == 0 {
+            CFatal!(
+                "GLSL_Preprocess: Unknown shader variable type <%s> in autovar directive:\n  %s",
+                var_type,
+                val,
+            );
         }
 
-        let prev_0: *const libc::c_char = code;
-        code = StrSub(code, begin, end_0, c_str!(""));
-        StrFree(prev_0);
-        StrFree(line);
+        this.vars.push(var);
+    } else {
+        CFatal!(
+            "GLSL_Preprocess: Failed to parse autovar directive:\n  %s",
+            val
+        );
     }
-    code
 }
 
 unsafe extern "C" fn Shader_BindVariables(this: &mut Shader) {
@@ -203,20 +212,27 @@ pub unsafe extern "C" fn Shader_Create(
     vs: *const libc::c_char,
     fs: *const libc::c_char,
 ) -> Box<Shader> {
+    shader_create(&vs.convert(), &fs.convert())
+}
+
+pub unsafe fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
     let mut this = Box::new(Shader::default());
+
     this._refCount = 1;
     this.vars = Vec::new();
-    let vs = GLSL_Preprocess(StrReplace(vs, c_str!("\r\n"), c_str!("\n")), this.as_mut());
-    let fs = GLSL_Preprocess(StrReplace(fs, c_str!("\r\n"), c_str!("\n")), this.as_mut());
-    this.vs = CreateGLShader(vs, gl::VERTEX_SHADER);
-    this.fs = CreateGLShader(fs, gl::FRAGMENT_SHADER);
+
+    // TODO: do we need replace? test without it
+    let vs = glsl_preprocess(&vs.replace("\r\n", "\n"), this.as_mut());
+    let fs = glsl_preprocess(&fs.replace("\r\n", "\n"), this.as_mut());
+
+    this.vs = CreateGLShader(vs.convert(), gl::VERTEX_SHADER);
+    this.fs = CreateGLShader(fs.convert(), gl::FRAGMENT_SHADER);
     this.program = CreateGLProgram(this.vs, this.fs);
     this.texIndex = 1;
-    this.name = ffi::PtrAsString(StrFormat(c_str!("[anonymous shader @ %p]"), &*this));
-    StrFree(vs);
-    StrFree(fs);
+    this.name = format!("[anonymous shader @ {:p}]", &*this);
+
     Shader_BindVariables(this.as_mut());
-    // Box::into_raw(this)
+
     this
 }
 
@@ -234,7 +250,7 @@ pub unsafe extern "C" fn Shader_Load(
     this.fs = CreateGLShader(fs, gl::FRAGMENT_SHADER);
     this.program = CreateGLProgram(this.vs, this.fs);
     this.texIndex = 1;
-    this.name = ffi::PtrAsString(StrFormat(c_str!("[vs: %s , fs: %s]"), vName, fName));
+    this.name = format!("[vs: {} , fs: {}]", vName.convert(), fName.convert());
     Shader_BindVariables(this.as_mut());
     this
 }

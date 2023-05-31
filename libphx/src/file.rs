@@ -98,7 +98,9 @@ pub extern "C" fn File_Write(this: &mut File, data: *const libc::c_void, len: u3
 
 #[no_mangle]
 pub extern "C" fn File_WriteStr(this: &mut File, data: *const libc::c_char) {
-    let buffer = data.convert().as_bytes();
+    let data_str = data.convert();
+    let buffer = data_str.as_bytes();
+
     let _ = this.file.write(buffer);
 }
 

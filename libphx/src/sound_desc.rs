@@ -117,6 +117,7 @@ pub unsafe extern "C" fn SoundDesc_Free(this: *mut SoundDesc) {
         let path: *const libc::c_char = (*this).path;
 
         FMODCALL(FMOD_Sound_Release((*this).handle));
+
         Audio_DeallocSoundDesc(this);
         // FIXME: memory leak
         // StrFree(name);

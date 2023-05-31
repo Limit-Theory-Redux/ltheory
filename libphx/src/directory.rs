@@ -32,6 +32,7 @@ pub extern "C" fn Directory_GetNext(this: &mut Directory) -> *const libc::c_char
         Some(Ok(dir)) => {
             this.lastEntry = dir.file_name().to_str().map(|s| s.into());
             this.lastEntry
+                .clone()
                 .expect("Cannot get directory entry")
                 .convert()
         }
