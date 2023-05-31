@@ -109,7 +109,6 @@ local function addBlackMarket(system)
     if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
       asset:setHealth(100, 100, 0.2)
       asset.usesBoost = true
-      print("Set ship health!")
     end
     system:place(asset)
   end

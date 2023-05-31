@@ -68,7 +68,7 @@ function Action:flyToward (e, targetPos, targetForward, targetUp)
 --    end
     end
   elseif e.travelDriveActive then
-    c.boost = 2
+    c.boost = 3 -- could also draw lots of energy from capacitor here if we want that
   end
 end
 

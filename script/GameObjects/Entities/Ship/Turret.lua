@@ -129,6 +129,9 @@ function Turret:fire (dt)
   local rpmDeviation = Config.game.weaponRPM - Config.game.weaponRPM * rng:getUniformRange(Config.game.weaponRPMDeviation, 0)
   self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
   self.heat = self.heat + 1
+
+  -- Event to parent
+  self:getParent():send(Event.FiredTurret(self, projectile, effect))
 end
 
 function Turret:render (state)
