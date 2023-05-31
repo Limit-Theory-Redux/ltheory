@@ -353,7 +353,7 @@ function BlackMarketTrader:buy (asset, item)
     local price = data.bids[1]
 
     if self.parent:hasCredits(price) then
-      if self.parent:getInventoryFree() >= item:getMass() then
+      if self.parent:mgrInventoryGetFreeTotal() >= item:getMass() then
         if asset:removeItem(item, 1) then
           self.parent:addItem(item, 1)
 
@@ -394,7 +394,7 @@ function BlackMarketTrader:sell (asset, item)
 
     local price = data.asks[1]
     if price > 0 and player:hasCredits(price) then
-      if asset:getInventoryFree() >= item:getMass() then
+      if asset:mgrInventoryGetFreeTotal() >= item:getMass() then
         -- Note that we don't have to remove the item from the trader's owner; that was
         --     done when the ask was made and the escrow count was incremented
         asset:addItem(item, 1)

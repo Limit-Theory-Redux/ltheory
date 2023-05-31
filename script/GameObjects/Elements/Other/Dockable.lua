@@ -83,16 +83,16 @@ end
 function Entity:removeDocked (e)
   assert(self.dockable)
 
-for i, v in ipairs(e.actions) do
-  printf("Pre-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
-end
+--for i, v in ipairs(e.actions) do
+--  printf("Pre-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
+--end
 
   self:removeChild(e)
   self:getParent():addChild(e)
 
-for i, v in ipairs(e.actions) do
-  printf("Post-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
-end
+--for i, v in ipairs(e.actions) do
+--  printf("Post-Undock %s Actions %d : %s", e:getName(), i, v:getName(e))
+--end
 
   e:setShipDocked(nil) -- mark ship as undocked
   e:setPos(self:getPos())

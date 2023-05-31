@@ -96,7 +96,7 @@ local function addBlackMarket(system)
   local piratesCount = 24
   local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
   piratePlayer:addCredits(Config.econ.eStartCredits)
-  system.pirateStation = system:spawnPirateStation(piratePlayer)
+  system.pirateStation = system:spawnPirateStation(Enums.StationHulls.Small, piratePlayer)
   system.pirateStation:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
   GameState.player.humanPlayer:getControlling():setDisposition(system.pirateStation, Config.game.dispoMin)
 
@@ -106,10 +106,6 @@ local function addBlackMarket(system)
   for asset in piratePlayer:iterAssets() do
     asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
     GameState.player.humanPlayer:getControlling():setDisposition(asset, Config.game.dispoMin)
-    if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
-      asset:setHealth(100, 100, 0.2)
-      asset.usesBoost = true
-    end
     system:place(asset)
   end
 
@@ -124,7 +120,7 @@ function UniverseEconomy:OnUpdate(dt)
     -- generate aiPlayers
     if not system.aiPlayers then
       addMarket(system)
-      addBlackMarket(system)
+      --addBlackMarket(system)
       addSystemGenerics(system)
       print("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
     end

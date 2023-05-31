@@ -36,15 +36,14 @@ end
 local function checkForViableTarget(self, e, radius)
   local attackTarget = findClosestTarget(self, e, radius)
   if attackTarget and attackTarget:isAlive() and not attackTarget:isDestroyed() 
-  and attackTarget:hasInventory() and attackTarget:getInventoryFree() ~= attackTarget:getInventoryCapacity() then
+  and attackTarget:hasInventory() and attackTarget:mgrInventoryGetFreeTotal()() ~= attackTarget:mgrInventoryGetCapacity() then
     return attackTarget
   end
   return nil
 end
 
 function MaraudAt:onUpdateActive(e, dt)
-
-  if e:getInventoryFree() < 1 or self.searchAttempts >= 64 then
+  if e:mgrInventoryGetFreeTotal() < 1 or self.searchAttempts >= 64 then
     e:popAction()
   end
 

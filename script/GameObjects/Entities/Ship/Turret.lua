@@ -142,7 +142,8 @@ function Turret:fire (dt)
   --        AI threat analysis by keeping track of which weapons have caused
   --        the most real damage to it, allowing for optimal sub-system
   --        targetting.
-  local rpmDeviation = Config.gen.compTurretPulseStats.roundsPerMinute - Config.gen.compTurretPulseStats.roundsPerMinute * rng:getUniformRange(Config.game.rpmDeviation, 0)
+  local rpmDeviation = Config.gen.compTurretPulseStats.roundsPerMinute - Config.gen.compTurretPulseStats.roundsPerMinute *
+    rng:getUniformRange(Config.gen.compTurretPulseStats.rpmDeviation, 0)
   self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
   self.heat = self.heat + 1
 

@@ -1,7 +1,7 @@
 local DebugContext = require('Systems.CommandView.DebugContext')
 local Bindings = require('States.ApplicationBindings')
 local Player = require('GameObjects.Entities.Player')
-local Disposition = require('GameObjects.Components.NPC.Dispositions')
+local Disposition = require('GameObjects.Elements.NPC.Dispositions')
 
 local SystemMap = {}
 SystemMap.__index  = SystemMap
@@ -326,8 +326,8 @@ function SystemMap:onInput (state)
 --printf("mapSystemPan + = %s", GameState.player.mapSystemPan)
   end
 
-  GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
-  GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
+  GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom * exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
+  GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
       exp(GameState.ui.mapSystemZoomSpeed * (Input.GetValue(Button.Keyboard.RBracket) - Input.GetValue(Button.Keyboard.LBracket)))
 end
 

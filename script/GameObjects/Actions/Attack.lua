@@ -61,19 +61,20 @@ function Attack:onUpdateActive (e, dt)
     local yawPitch = e:getForward():cross(forward)
     local roll     = e:getUp():cross(target:getUp())
 
-  self:flyToward(e, targetPos, e:getForward(), target:getUp())
+    self:flyToward(e, targetPos, e:getForward(), target:getUp())
 
-  if target == GameState.player.humanPlayer:getControlling() then
-    local distance = e:getDistance(target)
-    -- Cancel action if out of range
-    if distance > Config.game.pulseRange * 3 then
-      self.cancelTimer = self.cancelTimer + dt
-    else
-      self.cancelTimer = 0
-    end
+    if target == GameState.player.humanPlayer:getControlling() then
+      local distance = e:getDistance(target)
+      -- Cancel action if out of range
+      if distance > Config.game.pulseRange * 3 then
+        self.cancelTimer = self.cancelTimer + dt
+      else
+        self.cancelTimer = 0
+      end
 
-    if self.cancelTimer >= outOfRangeCancel then
-      e:popAction()
+      if self.cancelTimer >= outOfRangeCancel then
+        e:popAction()
+      end
     end
   end
 end

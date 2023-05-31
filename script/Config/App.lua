@@ -147,9 +147,9 @@ Config.gen = {
                    },
   shipInventorySize    =  10,
   stationInventorySize = 100,
-  stationHullMass   = { 112000,
-                        242000,
-                        575000},
+  stationHullMass   = { 11200000,
+                        24200000,
+                        57500000},
   stationComponents = {    -- trade ---   --- mil ----   -- Sockets available for (ComponentEnums.lua):
                         {  30,  80, 130,  45, 100, 250}, -- hull integrity
                         {  12,  16,  24,  20,  32,  48}, -- computers

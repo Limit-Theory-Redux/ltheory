@@ -52,145 +52,145 @@ end
 --end
 
   -- Use payout, not flow
-  function Think:manageAsset (asset)
-    local root = asset:getRoot()
-    local bestPayout = 0
-    local bestJob = nil
-    local jobAssigned = false
+function Think:manageAsset (asset)
+  local root = asset:getRoot()
+  local bestPayout = 0
+  local bestJob = nil
+  local jobAssigned = false
 
-    -- Consider re-running last job
-    if asset.job then
-      local payout = asset.job:getPayout(asset)
-      if payout > bestPayout then
-        bestPayout = payout
-        bestJob = asset.job
-      end
-    end
-
-    -- Consider changing to a new job
-    for _ = 1, math.min(Config.econ.jobIterations, #root:getEconomy().jobs * 2) do
-      -- TODO : KnowsAbout check (information economy + AI load reduction)
-      local jobType = self.rng:choose(root:getEconomy().jobs)
-      local job
-
-      if jobType then
-        for _ = 1, math.min(Config.econ.jobIterations, #jobType * 2) do
-          job = self.rng:choose(jobType)
-          if not job then break end
-
-          if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
-            if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
-              goto skipJob
-            end
-          end
-
-          local payout = job:getPayout(asset)
-          if payout > bestPayout then
-            if job.jcount > 0 then
-              bestPayout = payout
-              bestJob = job
-            else
-              printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-              asset:  getName(), job:getName(), payout)
-            end
-          end
-        end
-      end
-      ::skipJob::
-    end
-
-    -- Maybe assign a new or reassign an old job
-    if bestJob and bestPayout > 0 then -- if asset has no capacity left, bestPayout should be 0
-      -- Don't assign an old job if it can no longer be completed because a required station was destroyed
-      asset.job = bestJob
-
-      if asset.job.workers and #asset.job.workers < asset.job.maxWorkers then -- temporary allow only one worker, this should depend on the job later (e.g. asteroid suze --> max workers)
-        asset.job:addWorker(asset)
-      end
-
-      if asset.job.workers and not asset.job:isWorker(asset) then
-        return
-      end
-
-      if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
-          (not string.find(asset.job:getName(asset), "Transport") or
-          (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
-        -- Place offer for the best job's bids to reserve them
-        -- Note that this also sets the job's count of items to be moved
-        asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
-        asset.job.bids = asset.job.jcount
-
-        -- Push job to asset's Action queue
-printf("THINK: pushing job %s '%s' to %s with jcount = %d, bids = %d, bestPayout = %d",
-asset.job, asset.job:getName(asset), asset:getName(), asset.job.jcount, asset.job.bids, bestPayout)
-        asset:pushAction(bestJob)
-        jobAssigned = true
-
-        -- Make some updates based on the type of job being assigned to this asset
-        if string.find(asset.job:getName(asset), "Transport") then
-          -- Job is a Trade job
-          -- Reserve best job's asks
-          asset.job.src:getTrader():addAskOffer(asset)
-          asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Trader"))
-        elseif string.find(asset.job:getName(asset), "Mine") then
-          -- Job is a Mine job
-          asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Miner"))
-        end
-
-        -- Wake up asset if it was sleeping and make sure it undocks
-        local station = asset:isShipDocked()
-        if station then
-printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
-for i, v in ipairs(asset.actions) do
-  printf("  Actions %d : %s", i, v:getName(asset))
-end
-          asset:pushAction(Actions.Undock())
-printf("THINK +++ 2: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
-for i, v in ipairs(asset.actions) do
-  printf("  Actions %d : %s", i, v:getName(asset))
-end
-        end
-      else
-        -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
-printf("THINK: canceling job '%s' for asset %s", asset.job:getName(asset), asset:getName())
-        asset.job = nil
-      end
-    end
-
-    if asset:isIdle() and asset:isShipDocked() == nil then
-      -- No more jobs available; send asset to nearest station to sleep
-      -- TODO: Make sure this is only done at the AI player's direction for ECONOMIC ships (miners and transports)!
-      local system = asset.parent
-
-      local stations = system:getStationsByDistance(asset)
-      
-      if #stations > 0 then
-        local i = 1
-        -- don´t dock at hostile stations
-        while stations[i] and stations[i].stationRef:getOwner() ~= asset:getOwner() do
-          i = i + 1
-        end
-
-        if stations[i] then
-          local station = stations[i].stationRef
-          printf("THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
-          asset:getName(), asset:getOwner():getName(), asset:getInventoryFree(), station:getName())
-          asset:clearActions()
-          asset:pushAction(Actions.DockAt(station))
-        else
-          -- do nothing
-          asset:clearActions()
-        end
-      end
-    end
-
-    if not jobAssigned then
-      -- Asset has no job, so revert to default role and store in ship subtype
-      asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Fighter"))
+  -- Consider re-running last job
+  if asset.job then
+    local payout = asset.job:getPayout(asset)
+    if payout > bestPayout then
+      bestPayout = payout
+      bestJob = asset.job
     end
   end
+
+  -- Consider changing to a new job
+  for _ = 1, math.min(Config.econ.jobIterations, #root:getEconomy().jobs * 2) do
+    -- TODO : KnowsAbout check (information economy + AI load reduction)
+    local jobType = self.rng:choose(root:getEconomy().jobs)
+    local job
+
+    if jobType then
+      for _ = 1, math.min(Config.econ.jobIterations, #jobType * 2) do
+        job = self.rng:choose(jobType)
+        if not job then break end
+
+        if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
+          if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
+            goto skipJob
+          end
+        end
+
+        local payout = job:getPayout(asset)
+        if payout > bestPayout then
+          if job.jcount > 0 then
+            bestPayout = payout
+            bestJob = job
+          else
+            printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+            asset:  getName(), job:getName(), payout)
+          end
+        end
+      end
+    end
+    ::skipJob::
+  end
+
+  -- Maybe assign a new or reassign an old job
+  if bestJob and bestPayout > 0 then -- if asset has no capacity left, bestPayout should be 0
+    -- Don't assign an old job if it can no longer be completed because a required station was destroyed
+    asset.job = bestJob
+
+    if asset.job.workers and #asset.job.workers < asset.job.maxWorkers then -- temporary allow only one worker, this should depend on the job later (e.g. asteroid suze --> max workers)
+      asset.job:addWorker(asset)
+    end
+
+    if asset.job.workers and not asset.job:isWorker(asset) then
+      return
+    end
+
+    if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
+        (not string.find(asset.job:getName(), "Transport") or
+        (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
+      -- Place offer for the best job's bids to reserve them
+      -- Note that this also sets the job's count of items to be moved
+      asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
+      asset.job.bids = asset.job.jcount
+
+      -- Push job to asset's Action queue
+      printf("THINK: pushing job %s '%s' to %s with jcount = %d, bids = %d, bestPayout = %d",
+      asset.job, asset.job:getName(), asset:getName(), asset.job.jcount, asset.job.bids, bestPayout)
+      asset:pushAction(bestJob)
+      jobAssigned = true
+
+      -- Make some updates based on the type of job being assigned to this asset
+      if string.match(asset.job:getName(), "Transport") then
+        -- Job is a Trade job
+        -- Reserve best job's asks
+        asset.job.src:getTrader():addAskOffer(asset)
+        asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Trader"))
+      elseif string.find(asset.job:getName(asset), "Mine") then
+        -- Job is a Mine job
+        asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Miner"))
+      end
+
+      -- Wake up asset if it was sleeping and make sure it undocks
+      local station = asset:isShipDocked()
+      if station then
+        printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
+        asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
+        for i, v in ipairs(asset.actions) do
+          printf("  Actions %d : %s", i, v:getName(asset))
+        end
+        asset:pushAction(Actions.Undock())
+        printf("THINK +++ 2: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
+        asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
+        for i, v in ipairs(asset.actions) do
+          printf("  Actions %d : %s", i, v:getName(asset))
+        end
+      end
+    else
+      -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
+      printf("THINK: canceling job '%s' for asset %s", asset.job:getName(asset), asset:getName())
+      asset.job = nil
+    end
+  end
+
+  if asset:isIdle() and asset:isShipDocked() == nil then
+    -- No more jobs available; send asset to nearest station to sleep
+    -- TODO: Make sure this is only done at the AI player's direction for ECONOMIC ships (miners and transports)!
+    local system = asset.parent
+
+    local stations = system:getStationsByDistance(asset)
+    
+    if #stations > 0 then
+      local i = 1
+      -- don´t dock at hostile stations
+      while stations[i] and stations[i].stationRef:getOwner() ~= asset:getOwner() do
+        i = i + 1
+      end
+
+      if stations[i] then
+        local station = stations[i].stationRef
+        printf("THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
+        asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(), station:getName())
+        asset:clearActions()
+        asset:pushAction(Actions.DockAt(station))
+      else
+        -- do nothing
+        asset:clearActions()
+      end
+    end
+  end
+
+  if not jobAssigned then
+    -- Asset has no job, so revert to default role and store in ship subtype
+    asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Fighter"))
+  end
+end
 
 function Think:onUpdateActive (e, dt)
   if not GameState.paused then

@@ -50,8 +50,6 @@ function Mine:removeWorker(asset)
 end
 
 function Mine:getFlows(e)
-  local capacity = e:getInventoryFree()
-  local duration = self:getTravelTime(e, self.src, self.dst) -- TODO : + miningTime (from miningTime() function)
   local item = self.item
   local mass = item:getMass()
   local capacity = e:mgrInventoryGetFreeMax(mass)
@@ -64,8 +62,8 @@ function Mine:getType()
   return Enums.Jobs.Mining
 end
 
-function Mine:getName()
-  return format('Mine %d x %s at %s, drop off at %s (distance = %d)',
+function Mine:getName(actor)
+  return format('Mine %d x %s (mass = %s) at %s, drop off at %s (distance = %d)',
     self.jcount,
     self.item:getName(),
     self.item:getMass(),
@@ -176,13 +174,14 @@ function Mine:onUpdateActive(e, dt)
           itemBidVol, dt)
       end
 
+      printf("<<<<<<< %d, %d >>>>>>>>", itemBidVol, ccount)
       local mcount = math.min(itemBidVol, ccount)
       if mcount == 0 then
         -- Can't do this Mine job! End this job (owning player should seek a new sale for existing inventory)
         self:cancelJob(e)
       else
         self.jcount = mcount
-        printf("MINE 1: jcount = %d", self.jcount)
+        --printf("MINE 1: jcount = %d", self.jcount)
 
         local profit = self.dst:getTrader():getSellToPriceForAsset(item, self.jcount, e)
         printf(
@@ -197,7 +196,7 @@ function Mine:onUpdateActive(e, dt)
       local miningTimePerItem = 5 -- TODO: create a miningTime() function based on item's rarity
       e:pushAction(Actions.MineAt(self.src, self.dst, miningTimePerItem))
     elseif e.jobState == Enums.JobStateMine.DockingAtDst then
-      if e:getItemCount(self.item) == 0 then
+      if e:mgrInventoryGetItemCount(self.item) == 0 then
         printf("[MINE 3] *** NO SALE *** %s was unable to mine any units of %s for Trader %s, ending MINE action",
           e:getName(), self.item:getName(), self.dst:getName())
         self:cancelJob(e)

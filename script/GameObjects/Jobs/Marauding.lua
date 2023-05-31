@@ -20,7 +20,7 @@ function Marauding:getType()
   return Enums.Jobs.Marauding
 end
 
-function Marauding:getName()
+function Marauding:getName(actor)
   return format('Marauding %d for base %s',
     self.jcount,
     self.base:getName())
@@ -78,7 +78,7 @@ function Marauding:onUpdateActive(e, dt)
     elseif e.jobState == Enums.JobStateMarauding.SellingItems then
       if self.blackMarketTarget and self.blackMarketTarget:hasDockable() and self.blackMarketTarget:isDockable() and not self.blackMarketTarget:isBanned(e) then
         local sold = 0
-        for item, count in pairs(e.inventory) do
+        for item, count in pairs(e:mgrInventoryGetItems()) do
           for i=1, count do
             if self.blackMarketTarget:getBlackMarketTrader():buy(e, item) then
               sold = sold + 1

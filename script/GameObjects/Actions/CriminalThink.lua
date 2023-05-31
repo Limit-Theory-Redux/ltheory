@@ -118,7 +118,7 @@ function CriminalThink:manageAsset (asset)
       if stations[i] then
         local station = stations[i].stationRef
         printf("CRIMINAL THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
-        asset:getName(), asset:getOwner():getName(), asset:getInventoryFree(), station:getName())
+        asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(), station:getName())
         asset:clearActions()
         asset:pushAction(Actions.DockAt(station))
       else

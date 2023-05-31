@@ -16,8 +16,6 @@ printf("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
   self:addExplodable()
   self:addMinable(false)
   self:addTrackable(true)
-
-  self:addVisibleMesh(proto.mesh, Material.Metal())
   self:addCredits(1000)
 
   -- TEMP: give each ship the maximum number of every component

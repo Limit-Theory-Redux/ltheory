@@ -42,8 +42,8 @@ function Transport:getType()
   return Enums.Jobs.Transport
 end
 
-function Transport:getName()
-  return format('Transport %d x %s from %s to %s',
+function Transport:getName(actor)
+  return format('Transport %d x %s (mass = %s) from %s to %s',
     self.jcount,
     self.item:getName(),
     self.item:getMass(),

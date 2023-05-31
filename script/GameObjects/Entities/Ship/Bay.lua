@@ -142,8 +142,13 @@ function Bay:fire ()
   --        AI threat analysis by keeping track of which weapons have caused
   --        the most real damage to it, allowing for optimal sub-system
   --        targetting.
-  self.cooldown = 1.0
+  local rpmDeviation = Config.gen.compBayPulseStats.roundsPerMinute - Config.gen.compBayPulseStats.roundsPerMinute *
+    rng:getUniformRange(Config.gen.compTurretPulseStats.rpmDeviation, 0)
+  self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
   self.heat = self.heat + 1
+
+  -- Event to parent
+  self:getParent():send(Event.FiredTurret(self, projectile, effect))
 end
 
 function Bay:render (state)
@@ -171,7 +176,7 @@ function Bay:updateBay (state)
     self.firing = 0
     if self.cooldown <= 0 then self:fire() end
   end
-  self.cooldown = max(0, self.cooldown - state.dt * Config.gen.compBayPulseStats.rateOfFire)
+  self.cooldown = max(0, self.cooldown - state.dt)
   self.heat = self.heat * decay
 end
 
