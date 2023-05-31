@@ -8,7 +8,6 @@ local MoveToPos = subclass(Action, function (self, targetPos, range, useTravelDr
   self.targetPos = targetPos
   self.range = range
   self.useTravelDrive = useTravelDrive
-  self.travelDriveTimer = 0
 end)
 
 function MoveToPos:clone ()
@@ -23,13 +22,13 @@ function MoveToPos:onUpdateActive (e, dt)
   if e:getPos():distance(self.targetPos) < self.range then
     e:popAction()
     e.travelDriveActive = false
-    self.travelDriveTimer = 0i
+    e.travelDriveTimer = 0
   else
     if self.useTravelDrive then
-      if not e.travelDriveActive and self.travelDriveTimer >= timeUntilTravelDrive then
+      if not e.travelDriveActive and e.travelDriveTimer >= timeUntilTravelDrive then
         e.travelDriveActive = true
       else
-        self.travelDriveTimer = self.travelDriveTimer + dt
+        e.travelDriveTimer = e.travelDriveTimer + dt
       end
     end
 

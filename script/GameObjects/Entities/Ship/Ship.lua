@@ -18,6 +18,7 @@ local Ship = subclass(Entity, function (self, proto)
 
   self.usesBoost = false -- default ships fly at only the normal speed
   self.travelDriveActive = false
+  self.travelDriveTimer = 0
 
   -- TODO : This will create a duplicate BSP because proto & RigidBody do not
   --        share the same BSP cache. Need unified cache.
@@ -55,6 +56,7 @@ function Ship:wasDamaged (event)
     -- disable travel mode on damage, this should later be dependant on some kind of value e.g.
     -- only after shield is down on dmg to hull cancel travel drive
     if self.travelDriveActive then
+      self.travelDriveTimer = 0
       self.travelDriveActive = false
     end
   end
@@ -63,6 +65,7 @@ end
 function Ship:turretFired (event)
   if event.turret then
     if self.travelDriveActive then
+      self.travelDriveTimer = 0
       self.travelDriveActive = false
     end
   end
@@ -97,7 +100,10 @@ function Ship:attackedBy (target)
         else
           self:pushAction(Actions.Attack(target))
         end
-        self:distressCall(target, 12500)
+
+        if self:getOwner() ~= target:getOwner() then
+          self:distressCall(target, 12500)
+        end
       else
         self:pushAction(Actions.Attack(target))
       end
