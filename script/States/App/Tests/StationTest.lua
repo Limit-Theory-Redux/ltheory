@@ -3,25 +3,25 @@ local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
 
-local ShipTest = require('States.Application')
+local StationTest = require('States.Application')
 local rng = RNG.FromTime()
 
-function ShipTest:spawnShip ()
-  local ship
+function StationTest:spawnStation ()
+  local station
   do -- Player Ship
-    local currentShip = self.player:getControlling()
-    if currentShip then currentShip:delete() end
-    ship = self.system:spawnShip(self.player)
-    ship:setPos(Config.gen.origin)
-    ship:setFriction(0)
-    ship:setSleepThreshold(0, 0)
-    ship:setOwner(self.player)
+    local currentStation = self.player:getControlling()
+    if currentStation then currentStation:delete() end
+    station = self.system:spawnStation(self.player)
+    station:setPos(Config.gen.origin)
+    station:setFriction(0)
+    station:setSleepThreshold(0, 0)
+    station:setOwner(self.player)
     --self.system:addChild(ship)
-    self.player:setControlling(ship)
+    self.player:setControlling(station)
   end
 end
 
-function ShipTest:generate ()
+function StationTest:generate ()
   self.seed = rng:get64()
   if true then
     -- self.seed = 7035008865122330386ULL
@@ -34,17 +34,16 @@ function ShipTest:generate ()
   if self.system then self.system:delete() end
   self.system = System(self.seed)
   GameState.world.currentSystem = self.system
-  GameState.gen.uniqueShips = true
   GameState:SetState(Enums.GameStates.InGame)
 
-  self:spawnShip()
+  self:spawnStation()
 
   --* Audio initializations *--
   Audio.Init()
   Audio.Set3DSettings(0.0, 10, 2);
 end
 
-function ShipTest:onInit ()
+function StationTest:onInit ()
   self.player = Player()
   GameState.player.humanPlayer = self.player
   self:generate()
@@ -57,24 +56,24 @@ function ShipTest:onInit ()
       :add(Systems.Controls.Controls.GenTestControl(self.gameView, self.player)))
 end
 
-function ShipTest:onInput ()
+function StationTest:onInput ()
   self.canvas:input()
 
   if Input.GetPressed(Button.Keyboard.B) then
-    self:spawnShip()
+    self:spawnStation()
   end
 end
 
-function ShipTest:onUpdate (dt)
+function StationTest:onUpdate (dt)
   self.player:getRoot():update(dt)
   self.canvas:update(dt)
   HmGui.Begin(self.resX, self.resY)
   HmGui.End()
 end
 
-function ShipTest:onDraw ()
+function StationTest:onDraw ()
   self.canvas:draw(self.resX, self.resY)
   HmGui.Draw()
 end
 
-return ShipTest
+return StationTest
