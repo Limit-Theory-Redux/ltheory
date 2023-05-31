@@ -7,19 +7,8 @@ local GenTestControl = {}
 GenTestControl.__index = GenTestControl
 setmetatable(GenTestControl, UI.Panel)
 
-GenTestControl.name      = 'Command Control'
-GenTestControl.focusable = true
-GenTestControl.draggable = true
+GenTestControl.name      = 'Gen Test Control'
 GenTestControl:setPadUniform(8)
-
-local selectionPredicate = function (unit) return unit:isAlive() end
-
-local SelectionMode = {
-  Replace = 1,
-  Toggle  = 2,
-  Add     = 3,
-  Remove  = 4,
-}
 
 function GenTestControl:onEnable ()
   local pCamera = self.gameView.camera
@@ -29,7 +18,7 @@ function GenTestControl:onEnable ()
     self.firstRun = false
     self.camera:setYaw(-Math.Pi2)
     self.camera:setPitch(Math.Pi2)
-    self.camera:setRadius(1000)
+    self.camera:setRadius(GameState.player.humanPlayer:getControlling():getRadius() * 4)
   end
   self.camera:setTarget(GameState.player.humanPlayer:getControlling())
   self.camera:setRelative(false)
