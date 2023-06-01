@@ -1,6 +1,6 @@
 local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
 local CommandBindings = require('Systems.Controls.Bindings.CommandBindings')
-local Disposition = require('GameObjects.Components.NPC.Dispositions')
+local Disposition = require('GameObjects.Elements.NPC.Dispositions')
 local Entity = require('GameObjects.Entity')
 
 local GenTestControl = {}
