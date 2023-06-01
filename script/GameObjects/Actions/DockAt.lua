@@ -3,7 +3,7 @@ local Action = require('GameObjects.Action')
 local rng = RNG.FromTime()
 
 -- TODO : Dock range should be specified by the dockable component
-local kDockRange = 350 -- ships are getting "stuck" at 250
+local kDockRange = 2000 -- ships are getting "stuck" at 250
 
 local DockAt = subclass(Action, function (self, target)
   self.target = target
@@ -33,6 +33,7 @@ function DockAt:onUpdateActive (e, dt)
   -- Within range of the target object?
   if (e:getPos() - tp):length() <= kDockRange then
     if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
+      e:getThrustController():clear()
       self.target:addDocked(e)
     end
     e:popAction()

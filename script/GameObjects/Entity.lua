@@ -8,7 +8,11 @@ local Entity = class(function (self)
 end)
 
 function Entity:delete ()
+  if self:getRoot() ~= self then
+    self:getRoot():removeChild(self)
+  end
   self.deleted = true
+  self = nil
 end
 
 function Entity:register (eventType, handler)

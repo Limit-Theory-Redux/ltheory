@@ -13,7 +13,8 @@ GameState.debug = {
   metricsEnabled        = Config.debug.metricsEnabled,
   instantJobs           = Config.debug.instantJobs,
   jobSpeed              = Config.debug.jobSpeed,
-  timeAccelFactor       = Config.debug.timeAccelFactor
+  timeAccelFactor       = Config.debug.timeAccelFactor,
+  printConfig           = Config.debug.printConfig
 }
 
 GameState.render = {
@@ -39,13 +40,24 @@ GameState.audio = {
 }
 
 GameState.ui = {
-  showTrackers          = Config.ui.showTrackers,
   controlBarHeight      = Config.ui.controlBarHeight,
   hudStyle              = Config.ui.hudStyle,
   cursorStyle           = Config.ui.cursorStyle,
   cursorX               = Config.ui.cursorX,
   cursorY               = Config.ui.cursorY,
   sensorsDisplayed      = Config.ui.sensorsDisplayed,
+
+  -- Trackers
+  showTrackers          = Config.ui.showTrackers,
+  maxTrackingRange      = Config.ui.maxTrackingRange,
+  trackerBracketingRenderDistances = {
+    Planet              = Config.ui.trackerBracketingRenderDistances.Planet,
+    Asteroid            = Config.ui.trackerBracketingRenderDistances.Asteroid,
+    Jumpgate            = Config.ui.trackerBracketingRenderDistances.Jumpgate,
+    Station             = Config.ui.trackerBracketingRenderDistances.Station,
+    Ship                = Config.ui.trackerBracketingRenderDistances.Ship,
+    Colony              = Config.ui.trackerBracketingRenderDistances.Colony,
+  }
 }
 
 GameState.player = {
@@ -62,6 +74,7 @@ GameState.player = {
 
   currentCamera         = Enums.CameraMode.FirstPerson,
   lastCamera            = nil,
+  startupCamera         = Enums.CameraMode.FirstPerson,
 
   mapSystemPos          = Vec3f(0, 0, 0),
   mapSystemZoom         = 0.001,
@@ -86,7 +99,8 @@ GameState.gen = {
   randomizeEconNPCs     = Config.gen.randomizeEconNPCs,
   nEscortNPCs           = Config.gen.nEscortNPCs,
   randomizeEscortNPCs   = Config.gen.randomizeEscortNPCs,
-  uniqueShips           = Config.gen.uniqueShips
+  uniqueShips           = Config.gen.uniqueShips,
+  nebulaBrightnessScale = Config.gen.nebulaBrightnessScale
 }
 
 function GameState:SetState(state)

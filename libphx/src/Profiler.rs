@@ -74,8 +74,10 @@ unsafe extern "C" fn Profiler_GetScope(name: *const libc::c_char) -> *mut Scope 
     scope
 }
 
-unsafe extern "C" fn Profiler_SignalHandler(_s: Signal) {
-    Profiler_Backtrace();
+extern "C" fn Profiler_SignalHandler(_: Signal) {
+    unsafe {
+        Profiler_Backtrace();
+    }
 }
 
 #[no_mangle]
@@ -90,9 +92,7 @@ pub unsafe extern "C" fn Profiler_Enable() {
     this.stackIndex = -1;
     this.start = TimeStamp_Get();
     Profiler_Begin(c_str!("[Root]"));
-    Signal_AddHandlerAll(Some(
-        Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> (),
-    ));
+    Signal_AddHandlerAll(Profiler_SignalHandler);
 }
 
 #[no_mangle]
@@ -114,6 +114,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         b.total.cmp(&a.total)
     });
     println!("-- PHX PROFILER -------------------------------------");
+    println!("-- Measured timespan: {}ms", total);
     let mut cumulative: f64 = 0.0;
     let mut i_0: i32 = 0;
     while i_0 < this.scopeList.len() as i32 {
@@ -151,9 +152,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
     }
     HashMap_Free(this.map);
     profiling = false;
-    Signal_RemoveHandlerAll(Some(
-        Profiler_SignalHandler as unsafe extern "C" fn(Signal) -> (),
-    ));
+    Signal_RemoveHandlerAll(Profiler_SignalHandler);
 }
 
 #[no_mangle]

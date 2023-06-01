@@ -1,6 +1,11 @@
 Config.org = 'LTheoryRedux'
 Config.app = 'LTheoryRedux'
 
+Config.orgInfo = {
+  repository = "https://github.com/Limit-Theory-Redux/ltheory",
+  discord = "https://discord.gg/MrfRR5ytJF",
+}
+
 Config.gameTitle   = "Limit Theory Redux"
 Config.gameVersion = "v0.008"
 
@@ -57,6 +62,8 @@ Config.debug = {
   jobSpeed        = 10000, -- acceleration rate for instant jobs (in MineAt, DockAt)
 
   timeAccelFactor = 10, -- acceleration rate when holding "TimeAccel" input
+
+  printConfig = false
 }
 
 Config.debug.physics = {
@@ -87,9 +94,10 @@ Config.gen = {
   nStations  = 0,
   nBeltSize  = function (rng) return 0 end, -- asteroids per planetary belt
 
-  nDustFlecks = 1024,
-  nDustClouds = 1024,
+  nDustFlecks = 256,
+  nDustClouds = 8,
   nStars      = function (rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
+  nebulaBrightnessScale = 1.0,
 
   uniqueShips   = true,
   shipRes       = 8,
@@ -543,7 +551,6 @@ Config.econ = {
 
 Config.ui = {
   defaultControl   = "Background",
-  showTrackers     = true,
   controlBarHeight = 48,
   hudStyle         = 1,
   sensorsDisplayed = false,
@@ -553,6 +560,18 @@ Config.ui = {
   cursorStyle      = 1,
   cursorX          = 1,
   cursorY          = 1,
+
+  -- Trackers
+  showTrackers     = true,
+  maxTrackingRange = 500000,
+  trackerBracketingRenderDistances = {
+    Planet    = 500000,
+    Asteroid  = 25000,
+    Jumpgate  = 50000,
+    Station   = 50000,
+    Ship      = 25000,
+    Colony    = 200000,
+  }
 }
 
 Config.ui.color = {
