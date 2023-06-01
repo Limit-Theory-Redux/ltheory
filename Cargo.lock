@@ -1069,6 +1069,7 @@ version = "0.0.0"
 dependencies = [
  "libc",
  "phx",
+ "winres",
 ]
 
 [[package]]
@@ -2385,6 +2386,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5617da7e1f97bf363947d767b91aaf3c2bbc19db7fda9c65af1278713d58e0a2"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "winres"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b68db261ef59e9e52806f688020631e987592bd83619edccda9c47d42cde4f6c"
+dependencies = [
+ "toml",
 ]
 
 [[package]]
