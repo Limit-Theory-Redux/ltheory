@@ -143,18 +143,10 @@ unsafe fn glsl_preprocess(code: &str, this: &mut Shader) -> String {
         if let Some(include_val) = line.strip_prefix("#include ") {
             let include_data = parse_include(include_val, this);
 
-            // result += "// ";
-            // result += line;
-            // result += "\n";
-
             result += &include_data;
             result += "\n";
         } else if let Some(autovar_val) = line.strip_prefix("#autovar ") {
             parse_autovar(autovar_val, this);
-
-            // result += "// ";
-            // result += line;
-            // result += "\n";
         } else {
             result += line;
             result += "\n";

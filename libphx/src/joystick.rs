@@ -82,7 +82,7 @@ pub unsafe extern "C" fn Joystick_Open(index: i32) -> *mut Joystick {
     }
 
     (*this).handle = SDL_JoystickOpen(index);
-    (*this).guid = ConvertGUID(SDL_JoystickGetGUID((*this).handle)) as *const libc::c_char;
+    (*this).guid = StrDup(ConvertGUID(SDL_JoystickGetGUID((*this).handle)) as *const libc::c_char);
     (*this).axes = SDL_JoystickNumAxes((*this).handle);
     (*this).balls = SDL_JoystickNumBalls((*this).handle);
     (*this).buttons = SDL_JoystickNumButtons((*this).handle);
