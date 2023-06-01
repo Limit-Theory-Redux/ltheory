@@ -93,7 +93,7 @@ local function addMarket(system)
 end
 
 local function addBlackMarket(system)
-  local piratesCount = 24
+  local piratesCount = 32
   local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
   piratePlayer:addCredits(Config.econ.eStartCredits)
   system.pirateStation = system:spawnPirateStation(piratePlayer)

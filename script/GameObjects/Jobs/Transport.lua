@@ -26,6 +26,11 @@ function Transport:clone()
   return Transport(self.src, self.dst, self.item)
 end
 
+function Transport:cancelJob(e)
+  e:popAction()
+  e.jobState = nil
+end
+
 function Transport:getFlows(e)
   local capacity = e:getInventoryFree()
   local duration = self:getTravelTime(e)
@@ -94,6 +99,15 @@ function Transport:getTravelTime(e)
   return 2.0 * self.src:getDistance(self.dst) / e:getTopSpeed()
 end
 
+function Transport:getThreatLevel()
+  local zone = self.src:getZone()
+  if zone then
+    return zone.threatLevel
+  else
+    return 0
+  end
+end
+
 function Transport:onUpdateActive(e, dt)
   if not GameState.paused then
     Profiler.Begin('Actions.Transport.onUpdateActive')
@@ -115,14 +129,12 @@ function Transport:onUpdateActive(e, dt)
           -- Source station no longer exists, so terminate this entire job
           printf("[TRANSPORT 1] *** Source station %s no longer exists for %s DockAt; terminating transport job",
             self.src:getName(), e:getName())
-          e:popAction()
-          e.jobState = nil
+            self:cancelJob(e)
         end
       else
         printf("[TRANSPORT OFFER FAIL ***] No trade of 0 %s from %s -> %s", self.item:getName(), self.src:getName(),
           self.dst:getName())
-        e:popAction()
-        e.jobState = nil
+          self:cancelJob(e)
       end
     elseif e.jobState == Enums.JobStateTransport.BuyingItems then
       if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) then
@@ -137,8 +149,7 @@ function Transport:onUpdateActive(e, dt)
         if bought == 0 then
           printf("[TRANSPORT 2 BUY FAIL ***] %s bought 0 %s from %s!", e:getName(), self.item:getName(),
             self.src:getName())
-          e:popAction()
-          e.jobState = nil
+            self:cancelJob(e)
         else
           printf("[TRANSPORT 2] %s bought %d units of %s from Trader %s", e:getName(), bought, self.item:getName(),
             self.src:getName())
@@ -147,8 +158,7 @@ function Transport:onUpdateActive(e, dt)
         -- Source station no longer exists, so terminate this entire job
         printf("[TRANSPORT 2] *** Source station %s no longer exists for %s item purchase; terminating transport job",
           self.src:getName(), e:getName())
-        e:popAction()
-        e.jobState = nil
+          self:cancelJob(e)
       end
     elseif e.jobState == Enums.JobStateTransport.UndockingFromSrc then
       if e:isShipDocked() then
@@ -163,13 +173,12 @@ function Transport:onUpdateActive(e, dt)
         -- Destination station no longer exists, so terminate this entire job
         printf("[TRANSPORT 4] *** Destination station %s no longer exists for %s DockAt; terminating transport job",
           self.dst:getName(), e:getName())
-        e:popAction()
-        e.jobState = nil
+          self:cancelJob(e)
       end
     elseif e.jobState == Enums.JobStateTransport.SellingItems then
-      if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
-        printf("[TRANSPORT 5] %s offers to sell %d units of %s to Trader %s", e:getName(), e.count, self.item:getName(),
-          self.dst:getName())
+      if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) and self.item then
+        -- printf("[TRANSPORT 5] %s offers to sell %d units of %s to Trader %s", e:getName(), e.count, self.item:getName(),
+        --   self.dst:getName())
         local sold = 0
         while self.dst:getTrader():buy(e, self.item) do
           sold = sold + 1
@@ -180,16 +189,19 @@ function Transport:onUpdateActive(e, dt)
         -- Destination station no longer exists, so terminate this entire job
         printf("[TRANSPORT 5] *** Destination station %s no longer exists for %s item sale; terminating transport job",
           self.dst:getName(), e:getName())
-        e:popAction()
-        e.jobState = nil
+          self:cancelJob(e)
       end
     elseif e.jobState == Enums.JobStateTransport.UndockingFromDst then
       if e:isShipDocked() then
         e:pushAction(Actions.Undock())
       end
     elseif e.jobState == Enums.JobStateTransport.JobFinished then
-      e:popAction()
-      e.jobState = nil
+      if self.jcount <= 0 then
+        self:cancelJob(e)
+      else
+        -- repeat until job is done
+        e.jobState = Enums.JobStateTransport.None
+      end
     end
     Profiler.End()
   end

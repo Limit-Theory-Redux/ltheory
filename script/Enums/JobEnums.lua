@@ -54,8 +54,6 @@ Enums.JobStateMarauding = {
 Enums.JobStatePatrolling = {
   None             = 0,
   Patrolling       = 1,
-  DockingAtStation = 2,
-  Undocking        = 3,
-  JobFinished      = 4,
+  JobFinished      = 2,
 }
 

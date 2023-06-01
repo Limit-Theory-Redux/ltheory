@@ -10,7 +10,8 @@ local maxUpdateRateDeviation = 0.2
 local updateRates = {
   [1] = 2, -- Mining
   [2] = 2, -- Transport
-  [3] = 2  -- Marauding
+  [3] = 2, -- Marauding
+  [4] = 2  -- Patrolling
 }
 
 local Economy = class(function(self, parent)
@@ -29,7 +30,8 @@ local Economy = class(function(self, parent)
   self.nextUpdates = {
     [1] = 0,  -- Mining
     [2] = 0,  -- Transport
-    [3] = 0   -- Marauding
+    [3] = 0,  -- Marauding
+    [4] = 0,  -- Patrolling
   }
 
   self.timer = 0
@@ -194,6 +196,39 @@ function Economy:update(dt)
       self.nextUpdates[3] = self.timer + updateRates[3] + rng:getUniformRange(0, maxUpdateRateDeviation)
       Profiler.End()
     end
+
+    if self.timer >= self.nextUpdates[4] then
+      -- Cache profitable trade jobs
+      Profiler.Begin('Economy.Update.Patrolling')
+
+      if self.jobs[Enums.Jobs.Patrolling] then
+        table.clear(self.jobs[Enums.Jobs.Patrolling])
+      else
+        self.jobs[Enums.Jobs.Patrolling] = {}
+      end
+
+      local allJobCount = 0
+      local realJobCount = 0
+      for _, src in ipairs(self.traders) do
+        if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
+          local system = src:getRoot()
+          local zone = src:getZone()
+          allJobCount = allJobCount + 1
+            if zone and zone.threatLevel > 5 then
+              realJobCount = realJobCount + 1
+              local patrolPoints = {}
+              for i = 1, 10, 1 do
+                table.insert(patrolPoints, zone:getRandomPos(system.rng))
+              end
+              insert(self.jobs[Enums.Jobs.Patrolling], Jobs.Patrolling(src, system, patrolPoints))
+            end
+          
+        end
+      end
+      self.nextUpdates[4] = self.timer + updateRates[4] + rng:getUniformRange(0, maxUpdateRateDeviation)
+      Profiler.End()
+    end
+
     --printf("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
     Profiler.Begin('Economy.Update.Flows')

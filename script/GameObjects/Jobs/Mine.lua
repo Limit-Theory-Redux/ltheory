@@ -150,6 +150,15 @@ function Mine:getTravelTime(e, src, dst)
   return 2.0 * src:getDistance(dst) / e:getTopSpeed()
 end
 
+function Mine:getThreatLevel()
+  local zone = self.src:getZone()
+  if zone then
+    return zone.threatLevel
+  else
+    return 0
+  end
+end
+
 function Mine:onUpdateActive(e, dt)
   if not GameState.paused then
     Profiler.Begin('Actions.Mine.onUpdateActive')
@@ -225,10 +234,12 @@ function Mine:onUpdateActive(e, dt)
         e:pushAction(Actions.Undock())
       end
     elseif e.jobState == Enums.JobStateMine.JobFinished then
-      -- TODO : This is just a quick hack to force AI to re-evaluate job
-      --        decisions. In reality, AI should 'pre-empt' the job, which
-      --        should otherwise loop indefinitely by default
-      self:cancelJob(e)
+      if self.jcount <= 0 then
+        self:cancelJob(e)
+      else
+        -- repeat until job is done
+        e.jobState = Enums.JobStateMine.None
+      end
     end
     Profiler.End()
   end

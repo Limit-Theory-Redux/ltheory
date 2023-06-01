@@ -15,17 +15,7 @@ function Patrol:getName()
 end
 
 function Patrol:onUpdateActive(e, dt)
-  if not self.system then
-    self.system = e:getRoot() or GameState.world.currentSystem
-  end
-  if self.patrolNodes[self.patrolCurrentNodeIndex] then
-    if e:getPos():distance(self.targetPosition) < 2000 or self.wasAttacking then
-      self.patrolCurrentNodeIndex = self.patrolCurrentNodeIndex + 1
-      e:pushAction(Actions.MoveTo(self.patrolNodes[self.patrolCurrentNodeIndex]))
-    end
-  else
-    e:popAction()
-  end
+  
 end
 
 return Patrol

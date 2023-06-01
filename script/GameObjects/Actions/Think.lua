@@ -55,6 +55,7 @@ if true then -- Use payout, not flow
   function Think:manageAsset (asset)
     local root = asset:getRoot()
     local bestPayout = 0
+    local lowestThreatLevel = math.huge
     local bestJob = nil
     local jobAssigned = false
 
@@ -72,6 +73,7 @@ if true then -- Use payout, not flow
       -- TODO : KnowsAbout check (information economy + AI load reduction)
       local jobType = self.rng:choose(root:getEconomy().jobs)
       local job
+      local threatLevel = 0
 
       if jobType then
         for _ = 1, math.min(Config.econ.jobIterations, #jobType * 2) do
@@ -79,19 +81,23 @@ if true then -- Use payout, not flow
           if not job then break end
 
           if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
+            threatLevel = job:getThreatLevel()
             if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
               goto skipJob
             end
           end
 
           local payout = job:getPayout(asset)
-          if payout > bestPayout then
+          
+          -- TODO needs better evaluation of risk versus reward
+          if payout >= bestPayout and threatLevel <= lowestThreatLevel then
             if job.jcount > 0 then
               bestPayout = payout
+              lowestThreatLevel = threatLevel
               bestJob = job
             else
-              printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-              asset:  getName(), job:getName(), payout)
+              -- printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+              -- asset:  getName(), job:getName(), payout)
             end
           end
         end
@@ -112,9 +118,9 @@ if true then -- Use payout, not flow
         return
       end
 
-      if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
+      if (asset.job.dst and asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
           (not string.find(asset.job:getName(), "Transport") or
-          (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
+          (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) and not string.find(asset.job:getName(), "Patrolling") then
 printf("THINK: pushing job '%s' to %s with bestPayout = %d", asset.job:getName(), asset:getName(), bestPayout)
         asset:pushAction(bestJob)
         jobAssigned = true
@@ -140,6 +146,10 @@ printf("THINK +++: Asset %s (owner %s) wakes up at Station %s",
 asset:getName(), asset:getOwner():getName(), station:getName())
           asset:pushAction(Actions.Undock())
         end
+      elseif string.find(asset.job:getName(), "Patrolling") and not asset.job.src:isDestroyed() then
+        asset:pushAction(bestJob)
+        jobAssigned = true
+        asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Patrol"))
       else
         -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
 printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())

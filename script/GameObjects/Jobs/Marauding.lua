@@ -40,6 +40,15 @@ function Marauding:getPayout(e)
   return payout
 end
 
+function Marauding:getThreatLevel()
+  local zone = self.maraudingArea:getZone()
+  if zone then
+    return zone.threatLevel
+  else
+    return 0
+  end
+end
+
 function Marauding:onUpdateActive(e, dt)
   if not GameState.paused then
     Profiler.Begin('Actions.Marauding.onUpdateActive')

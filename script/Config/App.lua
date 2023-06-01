@@ -523,6 +523,7 @@ Config.objectInfo = {
       {32, "Liner"},
       {33, "Marauder"},
       {34, "Smuggler"},
+      {35, "Patrol"},
     }
   },
   {

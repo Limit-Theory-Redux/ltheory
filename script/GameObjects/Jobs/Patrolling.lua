@@ -3,24 +3,25 @@ local Flow = require('Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
 local Patrolling = subclass(Job, function(self, base, system, patrolNodes)
-  self.base = base
+  self.src = base
   self.jcount = 0
-  self.system = system
+  self.system = base:getRoot()
   self.patrolNodes = patrolNodes
+  self.attackTarget = nil
 end)
 
 function Patrolling:clone()
-  return Patrolling(self.base, self.system)
+  return Patrolling(self.src, self.system)
 end
 
 function Patrolling:getType()
-  return Enums.Jobs.Marauding
+  return Enums.Jobs.Patrolling
 end
 
 function Patrolling:getName()
-  return format('Marauding %d for base %s',
+  return format('Patrolling %d for station %s',
     self.jcount,
-    self.base:getName())
+    self.src:getName())
 end
 
 function Patrolling:reset()
@@ -28,19 +29,19 @@ function Patrolling:reset()
 end
 
 function Patrolling:cancelJob(e)
-  e:popAction()
-  e.jobState = nil
+  self:popAction()()
+  self.jobState = nil
 end
 
 function Patrolling:getPayout(e)
   -- TODO: black market demand and threat based potential payout
   self.jcount = self.jcount + 1 -- temp until proper jcount setting
-  local payout = 1000
+  local payout = 9999
   return payout
 end
 
 function Patrolling:getThreatLevel()
-  local zone = self.base:getZone()
+  local zone = self.src:getZone()
   if zone then
     return zone.threatLevel
   else
@@ -48,32 +49,72 @@ function Patrolling:getThreatLevel()
   end
 end
 
+local function findClosestTarget(self, e, radius)
+  local closestDistance = math.huge
+  local closestShip = nil
+
+  if not self.system then
+    self.system = GameState.world.currentSystem
+  end
+
+  for index, ship in ipairs(self.system.ships) do
+    if self:getOwner() ~= ship:getOwner() and self:isHostileTo(ship) and not ship:isShipDocked() then
+      local distance = ship:getDistance(e)
+      if distance < closestDistance and distance < radius then
+        closestShip = ship
+      end
+    end
+  end
+  return closestShip
+end
+
+local function checkForViableTarget(self, e, radius)
+  local attackTarget = findClosestTarget(self, e, radius)
+  if attackTarget and attackTarget:isAlive() and not attackTarget:isDestroyed() then
+    return attackTarget
+  end
+  return nil
+end
+
 function Patrolling:onUpdateActive(e, dt)
   if not GameState.paused then
     Profiler.Begin('Actions.Patrolling.onUpdateActive')
-    if not e.jobState then e.jobState = Enums.JobStatePatrolling.None end
-    e.jobState = e.jobState + 1
-
-    if e.jobState == Enums.JobStatePatrolling.Patrolling then
-      for i = 1, #self.patrolNodes, 1 do
+    if not self.jobState then self.jobState = Enums.JobStatePatrolling.None end
+    self.jobState = self.jobState + 1
+    if self.jobState == Enums.JobStatePatrolling.Patrolling then
+      if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) then
+        e:pushAction(Actions.DockAt(self.src))
+      else
+        -- Source station no longer exists, so terminate this entire job
+        printf("[PATROL 1] *** Source station %s no longer exists for %s DockAt; terminating transport job",
+          self.src:getName(), e:getName())
+          self:cancelJob(e)
+      end
+      printf("[PATROL 2] *** %s has started patrolling for station %s",
+          e:getName(), self.src:getName())
+      for i = 1, #self.patrolNodes do
+        local useTravelDrive = false
+        if i == i then useTravelDrive = true end
         if self.patrolNodes[i] then
-          e:pushAction(Actions.MoveTo(self.patrolNodes[i]))
+          self.attackTarget = checkForViableTarget(e, 10000)
+          if self.attackTarget then
+            e:pushAction(Actions.Attack(self.attackTarget))
+          else
+            e:pushAction(Actions.MoveToPos(self.patrolNodes[i], 2500, useTravelDrive))
+            i = i + 1
+          end
+          
         end
       end
-    elseif e.jobState == Enums.JobStatePatrolling.DockingAtStation then
-      e:pushAction(Actions.MoveTo(self.base, 150))
-      e:pushAction(Actions.DockAt(self.base))
-    elseif e.jobState == Enums.JobStatePatrolling.Undocking then
-      if e:isShipDocked() then
-        e:pushAction(Actions.Undock())
-      end
-    elseif e.jobState == Enums.JobStatePatrolling.JobFinished then
-      e:getPayout()
+    elseif self.jobState == Enums.JobStatePatrolling.JobFinished then
+      self:getPayout()
       if self.jcount <= 0 then
         self:cancelJob(e)
+        printf("[PATROL 3] *** %s has finished it's patrol job for station %s",
+          e:getName(), self.src:getName())
       else
         -- repeat until job is done
-        e.jobState = Enums.JobStatePatrolling.None
+        self.jobState = Enums.JobStatePatrolling.None
       end
     end
 
