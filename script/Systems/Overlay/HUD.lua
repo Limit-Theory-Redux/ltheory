@@ -986,7 +986,7 @@ function HUD:drawTargets (a)
               local renderDistance = GameState.ui.trackerBracketingRenderDistances[type] or 25000
 
               -- Draw rounded box corners
-              if targetDistance <= renderDistance then
+              if targetDistance <= renderDistance or playerTarget == target then
                 if target:hasAttackable() and target:isAttackable() then
                   -- Innermost box shows trackable object's disposition to player
                   --     (red = enemy, blue = neutral, green = friendly)
