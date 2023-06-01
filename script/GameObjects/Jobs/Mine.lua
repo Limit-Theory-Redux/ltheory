@@ -216,9 +216,13 @@ local eact = e:getCurrentAction()
 if eact then
 printf("[MINE {%d}] %s pops remaining action: '%s'", e.jobState, e:getName(), eact:getName())
 end
-      e:popAction()
-      e.jobState = nil
-      e.job = nil
+      if self.jcount <= 0 then
+        e:popAction()
+        e.jobState = nil
+      else
+        -- Repeat until job is done
+        e.jobState = Enums.JobStateMine.None
+      end
     end
     Profiler.End()
   end

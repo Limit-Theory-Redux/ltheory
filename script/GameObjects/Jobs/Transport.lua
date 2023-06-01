@@ -183,8 +183,13 @@ printf("[TRANSPORT 5] *** Destination station %s no longer exists for %s item sa
         e:pushAction(Actions.Undock())
       end
     elseif e.jobState == Enums.JobStateTransport.JobFinished then
-      e:popAction()
-      e.jobState = nil
+      if self.jcount <= 0 then
+        e:popAction()
+        e.jobState = nil
+      else
+        -- Repeat until job is done
+        e.jobState = Enums.JobStateMine.None
+      end
     end
     Profiler.End()
   end

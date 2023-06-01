@@ -18,12 +18,12 @@ end
 
   self:send(Event.Damaged(amount, source))
 
+  -- Apply damage first to shields (if any), then armor (if any), then hull
   if shieldRemaining > 0 then
     -- Reduce this ship's shield protection (doesn't actually damage the shield generator)
     self:mgrShieldReduceShield(amount)
     damageRemaining = amount - shieldRemaining
   end
-
   if damageRemaining > 0 then
     if armorRemaining > 0 then
       -- Some damage made it through the shields, so damage any armor plating installed
@@ -31,7 +31,6 @@ end
       damageRemaining = damageRemaining - armorRemaining
     end
   end
-
   if damageRemaining > 0 then
     -- Some damage made it through the armor, so damage the hull
     self:mgrHullReduceHull(damageRemaining)
@@ -41,8 +40,9 @@ end
     end
   end
 
+  -- Check whether hull health has reached 0; if so, process the vessel's destruction
   if self:isDestroyed() and self:hasAttackable() and self:isAttackable() then
-    -- Entity has been damaged to the point of destruction (0 hull integrity)
+    -- Vessel has been damaged to the point of destruction (0 hull integrity)
     self:clearActions()
 
 printf("%s destroyed by %s!", thisShipName, attackingShipName)
@@ -95,6 +95,9 @@ printf("%s destroyed by %s!", thisShipName, attackingShipName)
     if self:hasDockable() and self:isDockable() then
       self:setUndockable()
     end
+
+    -- TODO: Replace the vessel's RigidBody with an appropriate destroyed object
+    --       Also create a temporary debris field (zone + numerous small objects)
 
     if self == GameState.player.currentShip then
       -- TODO: Do any unloading/savegame/etc actions required upon player ship destruction

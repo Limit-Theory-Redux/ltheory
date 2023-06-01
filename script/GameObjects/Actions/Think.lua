@@ -95,7 +95,7 @@ asset:getName(), job:getName(asset), payout)
         -- Place offer for the best job's bids to reserve them
         -- Note that this also sets the job's count of items to be moved
         asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
-        asset.job.bids = asset.job.jcount
+        asset.job.bids = asset.job.jcount -- terrible hack for when jcount is mysteriously set to 0
 
         -- Push job to asset's Action queue
 printf("THINK: pushing job %s '%s' to %s with jcount = %d, bids = %d, bestPayout = %d",
