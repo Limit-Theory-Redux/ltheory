@@ -31,10 +31,8 @@ pub extern "C" fn Directory_GetNext(this: &mut Directory) -> *const libc::c_char
     match this.iterator.next() {
         Some(Ok(dir)) => {
             this.lastEntry = dir.file_name().to_str().map(|s| s.into());
-            this.lastEntry
-                .clone()
-                .expect("Cannot get directory entry")
-                .convert()
+
+            static_string!(this.lastEntry.clone().expect("Cannot get directory entry"))
         }
         _ => std::ptr::null(),
     }
@@ -64,7 +62,7 @@ pub extern "C" fn Directory_Create(path: *const libc::c_char) -> bool {
 pub extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
     match env::current_dir() {
         Ok(path) => match path.to_str() {
-            Some(path_str) => path_str.convert(),
+            Some(path_str) => static_string!(path_str),
             None => std::ptr::null(),
         },
         Err(_) => std::ptr::null(),

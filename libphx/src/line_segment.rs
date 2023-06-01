@@ -1,5 +1,5 @@
 use crate::math::Vec3;
-use crate::{ray::*, Convert};
+use crate::{ray::*, static_string, Convert};
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -29,5 +29,5 @@ pub extern "C" fn LineSegment_FromRay(ray: &Ray, out: &mut LineSegment) {
 
 #[no_mangle]
 pub extern "C" fn LineSegment_ToString(this: &mut LineSegment) -> *const libc::c_char {
-    this.to_string().convert()
+    static_string!(this.to_string())
 }

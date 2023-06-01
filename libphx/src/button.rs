@@ -2,6 +2,7 @@ use std::ffi::CString;
 
 use crate::common::*;
 use crate::device_type::*;
+use crate::static_string;
 use crate::Convert;
 use sdl2_sys::*;
 
@@ -517,7 +518,7 @@ pub extern "C" fn Button_ToDeviceType(button: Button) -> DeviceType {
 pub extern "C" fn Button_ToString(button: Button) -> *const libc::c_char {
     let res = button_to_string(button);
 
-    res.convert()
+    static_string!(res)
 }
 
 pub fn button_to_string(button: Button) -> String {

@@ -87,17 +87,22 @@ pub unsafe extern "C" fn ShaderVar_Get(
     name: *const libc::c_char,
     type_0: ShaderVarType,
 ) -> *mut libc::c_void {
-    let this: *mut VarStack = ShaderVar_GetStack(name, 0);
+    let this = ShaderVar_GetStack(name, 0);
+
     if this.is_null() || (*this).size == 0 {
         return std::ptr::null_mut();
     }
+
     if type_0 != 0 && (*this).type_0 != type_0 {
-        CFatal!("ShaderVar_Get: Attempting to get variable <%s> with type <%s> when existing stack has type <%s>",
+        CFatal!("ShaderVar_Get: Attempting to get variable <%s> with type <%s:%d> when existing stack has type <%s:%d>",
             name,
             ShaderVarType_GetName(type_0),
+            type_0,
             ShaderVarType_GetName((*this).type_0),
+            (*this).type_0,
         );
     }
+
     ((*this).data as *mut libc::c_char).offset(((*this).elemSize * ((*this).size - 1)) as isize)
         as *mut _
 }

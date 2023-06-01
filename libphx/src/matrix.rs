@@ -3,6 +3,7 @@ use crate::math::Box3;
 use crate::math::Vec3;
 use crate::math::Vec4;
 use crate::quat::*;
+use crate::static_string;
 use crate::Convert;
 
 #[derive(Copy, Clone)]
@@ -714,5 +715,5 @@ pub extern "C" fn Matrix_Print(this: &Matrix) {
 
 #[no_mangle]
 pub extern "C" fn Matrix_ToString(this: &Matrix) -> *const libc::c_char {
-    this.to_string().convert()
+    static_string!(this.to_string())
 }

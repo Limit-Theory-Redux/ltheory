@@ -1,5 +1,6 @@
 use crate::button::*;
 use crate::common::*;
+use crate::static_string;
 use crate::Convert;
 
 pub type DeviceType = i32;
@@ -25,7 +26,7 @@ pub extern "C" fn DeviceType_FromButton(button: Button) -> DeviceType {
 
 #[no_mangle]
 pub extern "C" fn DeviceType_ToString(deviceType: DeviceType) -> *const libc::c_char {
-    device_type_to_string(deviceType).convert()
+    static_string!(device_type_to_string(deviceType))
 }
 
 pub fn device_type_to_string(deviceType: DeviceType) -> String {

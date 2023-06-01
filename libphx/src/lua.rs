@@ -84,11 +84,12 @@ static mut activeInstance: *mut Lua = std::ptr::null_mut();
 static mut cSignal: Signal = 0;
 
 unsafe extern "C" fn Lua_BacktraceHook(this: *mut Lua, _: *mut lua_Debug) {
-    let msg = format!("Received Signal: {}", signal_to_string(cSignal));
+    let msg = CString::new(format!("Received Signal: {}", signal_to_string(cSignal))).unwrap();
 
     lua_sethook(this, None, 0, 0);
     luaL_where(this, 0);
-    lua_pushstring(this, msg.convert());
+    // TODO: check this doesn't cause memory double free bug, do 'forget' if it is
+    lua_pushstring(this, msg.as_ptr());
     lua_error(this);
 }
 
@@ -337,7 +338,7 @@ unsafe extern "C" fn Lua_ToString(
     this: *mut Lua,
     name: *const libc::c_char,
 ) -> *const libc::c_char {
-    lua_to_string(this, &name.convert()).convert()
+    static_string!(lua_to_string(this, &name.convert()))
 }
 
 unsafe fn lua_to_string(this: *mut Lua, name: &str) -> String {

@@ -220,25 +220,29 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
     let mut dataLayout: i32 = 0;
 
     for i in 0..6 {
-        let facePath = format!("{}{}.jpg", path.convert(), K_FACE_EXT[i as usize]);
+        let face_path = format!("{}{}.jpg", path.convert(), K_FACE_EXT[i as usize]);
         let mut sx: i32 = 0;
         let mut sy: i32 = 0;
         let mut lcomponents: i32 = 0;
         let data: *mut libc::c_uchar =
-            Tex2D_LoadRaw(facePath.convert(), &mut sx, &mut sy, &mut lcomponents);
+            tex2d_load_raw(&face_path, &mut sx, &mut sy, &mut lcomponents);
+
         if data.is_null() {
             CFatal!(
                 "TexCube_Load failed to load cubemap face from '%s'",
-                facePath,
+                face_path,
             );
         }
+
         if sx != sy {
             CFatal!("TexCube_Load loaded cubemap face is not square");
         }
+
         if i != 0 {
             if sx != (*this).size || sy != (*this).size {
                 CFatal!("TexCube_Load loaded cubemap faces have different resolutions");
             }
+
             if lcomponents != components {
                 CFatal!("TexCube_Load loaded cubemap faces have different number of components");
             }
@@ -254,6 +258,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
             } else {
                 TexFormat_R8
             };
+
             dataLayout = if components == 4 {
                 gl::RGBA
             } else if components == 3 {
@@ -281,7 +286,9 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
     }
 
     TexCube_InitParameters();
+
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
+
     this
 }
 
@@ -457,13 +464,17 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
     level: i32,
 ) {
     let size: i32 = this.size >> level;
+
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, this.handle);
+
     let buffer: *mut libc::c_uchar =
         MemAlloc((std::mem::size_of::<libc::c_uchar>()).wrapping_mul((4 * size * size) as usize))
             as *mut libc::c_uchar;
+
     for i in 0..6 {
         let face: CubeFace = kFaces[i as usize].face;
-        let facePath = format!("{}{}.png", path.convert(), K_FACE_EXT[i as usize]);
+        let face_path = format!("{}{}.png", path.convert(), K_FACE_EXT[i as usize]);
+
         gl::GetTexImage(
             face as gl::types::GLenum,
             level,
@@ -471,8 +482,11 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
             gl::UNSIGNED_BYTE,
             buffer as *mut _,
         );
-        Tex2D_Save_Png(facePath.convert(), size, size, 4, buffer);
+
+        tex2d_save_png(&face_path, size, size, 4, buffer);
     }
+
     MemFree(buffer as *const _);
+
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, 0);
 }

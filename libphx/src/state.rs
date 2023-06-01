@@ -1,4 +1,5 @@
 use crate::common::*;
+use crate::static_string;
 use crate::Convert;
 
 pub type State = i32;
@@ -20,7 +21,7 @@ pub static State_Released: State = 1 << 3;
 
 #[no_mangle]
 pub extern "C" fn State_ToString(mut state: State) -> *const libc::c_char {
-    state_to_string(state).convert()
+    static_string!(state_to_string(state))
 }
 
 pub fn state_to_string(mut state: State) -> String {

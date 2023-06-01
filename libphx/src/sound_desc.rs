@@ -64,8 +64,8 @@ pub unsafe extern "C" fn SoundDesc_Load(
     } else {
         "UNLOOPED:"
     };
-    let mapKey = format!("{looped_str}{}", name.convert(),);
-    let this: *mut SoundDesc = Audio_AllocSoundDesc(mapKey.convert());
+    let mapKey = static_string!(format!("{looped_str}{}", name.convert()));
+    let this: *mut SoundDesc = Audio_AllocSoundDesc(mapKey);
 
     if ((*this).name).is_null() {
         let path: *const libc::c_char = Resource_GetPath(ResourceType_Sound, name);
@@ -90,8 +90,8 @@ pub unsafe extern "C" fn SoundDesc_Load(
             &mut (*this).handle,
         ));
         FMODCALL(FMOD_Sound_SetUserData((*this).handle, this as *mut _));
-        (*this).name = name.convert().convert();
-        (*this).path = path.convert().convert();
+        (*this).name = StrDup(name);
+        (*this).path = StrDup(path);
         (*this)._refCount = 1;
     } else {
         (*this)._refCount = ((*this)._refCount).wrapping_add(1);
@@ -119,9 +119,8 @@ pub unsafe extern "C" fn SoundDesc_Free(this: *mut SoundDesc) {
         FMODCALL(FMOD_Sound_Release((*this).handle));
 
         Audio_DeallocSoundDesc(this);
-        // FIXME: memory leak
-        // StrFree(name);
-        // StrFree(path);
+        StrFree(name);
+        StrFree(path);
         MemZero(this as *mut _, std::mem::size_of::<SoundDesc>());
     }
 }

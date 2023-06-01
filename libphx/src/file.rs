@@ -1,5 +1,5 @@
 use crate::bytes::Bytes;
-use crate::{bytes::*, Convert};
+use crate::{bytes::*, static_string, Convert};
 
 use std::fs;
 use std::io::{Read, Write};
@@ -65,12 +65,18 @@ pub extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes {
 
 #[no_mangle]
 pub extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc::c_char {
-    match fs::read_to_string(path.convert()) {
+    file_read_cstr(&path.convert())
+        .map(|val| static_string!(val))
+        .unwrap_or(std::ptr::null())
+}
+
+pub fn file_read_cstr(path: &str) -> Option<String> {
+    match fs::read_to_string(path) {
         Ok(str) => {
             // Allocates a C string, and releases ownership of it.
-            str.convert()
+            Some(str.into())
         }
-        _ => std::ptr::null(),
+        _ => None,
     }
 }
 

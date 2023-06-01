@@ -46,7 +46,7 @@ static mut profiling: bool = false;
 
 unsafe extern "C" fn Scope_Create(name: *const libc::c_char) -> *mut Scope {
     let scope = MemNew!(Scope);
-    (*scope).name = name.convert().convert();
+    (*scope).name = StrDup(name);
     (*scope).last = 0 as TimeStamp;
     (*scope).frame = 0 as TimeStamp;
     (*scope).total = 0 as TimeStamp;
@@ -60,8 +60,7 @@ unsafe extern "C" fn Scope_Create(name: *const libc::c_char) -> *mut Scope {
 }
 
 unsafe extern "C" fn Scope_Free(scope: *mut Scope) {
-    // FIXME: memory leak
-    // StrFree((*scope).name);
+    StrFree((*scope).name);
     MemDelete!(scope);
 }
 

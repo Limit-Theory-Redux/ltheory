@@ -48,14 +48,12 @@ unsafe extern "C" fn StrMap_Grow(this: &mut StrMap) {
         let mut node: *mut Node = (this.data).offset(i as isize);
         if !((*node).key).is_null() {
             StrMap_Set(&mut newMap, (*node).key, (*node).value);
-            // FIXME: memory leak
-            // StrFree((*node).key);
+            StrFree((*node).key);
             node = (*node).next;
             while !node.is_null() {
                 let next: *mut Node = (*node).next;
                 StrMap_Set(&mut newMap, (*node).key, (*node).value);
-                // FIXME: memory leak
-                // StrFree((*node).key);
+                StrFree((*node).key);
                 MemFree(node as *const _);
                 node = next;
             }
@@ -80,13 +78,11 @@ pub unsafe extern "C" fn StrMap_Free(this: *mut StrMap) {
     while i < (*this).capacity {
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
-            // FIXME: memory leak
-            // StrFree((*node).key);
+            StrFree((*node).key);
             node = (*node).next;
             while !node.is_null() {
                 let next: *mut Node = (*node).next;
-                // FIXME: memory leak
-                // StrFree((*node).key);
+                StrFree((*node).key);
                 MemFree(node as *const _);
                 node = next;
             }
@@ -107,14 +103,12 @@ pub unsafe extern "C" fn StrMap_FreeEx(
         let mut node: *mut Node = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
             freeFn.expect("non-null function pointer")((*node).key, (*node).value);
-            // FIXME: memory leak
-            // StrFree((*node).key);
+            StrFree((*node).key);
             node = (*node).next;
             while !node.is_null() {
                 let next: *mut Node = (*node).next;
                 freeFn.expect("non-null function pointer")((*node).key, (*node).value);
-                // FIXME: memory leak
-                // StrFree((*node).key);
+                StrFree((*node).key);
                 MemFree(node as *const _);
                 node = next;
             }
@@ -154,8 +148,7 @@ pub unsafe extern "C" fn StrMap_Remove(this: &mut StrMap, key: *const libc::c_ch
     let mut node: *mut Node = StrMap_GetBucket(this, key);
     while !node.is_null() && !((*node).key).is_null() {
         if (*node).key.convert() == key.convert() {
-            // FIXME: memory leak
-            // StrFree((*node).key);
+            StrFree((*node).key);
             let next: *mut Node = (*node).next;
             if !next.is_null() {
                 (*node).key = (*next).key;
@@ -189,7 +182,7 @@ pub unsafe extern "C" fn StrMap_Set(
     }
     let mut node: *mut Node = StrMap_GetBucket(this, key);
     if ((*node).key).is_null() {
-        (*node).key = key.convert().convert();
+        (*node).key = StrDup(key);
         (*node).value = value;
         return;
     }
@@ -203,7 +196,7 @@ pub unsafe extern "C" fn StrMap_Set(
         node = (*node).next;
     }
     node = MemNew!(Node);
-    (*node).key = key.convert().convert();
+    (*node).key = StrDup(key);
     (*node).value = value;
     (*node).next = std::ptr::null_mut();
     *prev = node;

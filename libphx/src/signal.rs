@@ -127,7 +127,7 @@ pub unsafe extern "C" fn Signal_RemoveHandlerAll(handler: SignalHandler) {
 
 #[no_mangle]
 pub extern "C" fn Signal_ToString(this: Signal) -> *const libc::c_char {
-    signal_to_string(this).convert()
+    static_string!(signal_to_string(this))
 }
 
 pub fn signal_to_string(this: Signal) -> String {

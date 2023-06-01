@@ -338,7 +338,7 @@ pub extern "C" fn Quat_ISlerp(q: &mut Quat, p: &Quat, t: f32) {
 
 #[no_mangle]
 pub extern "C" fn Quat_ToString(q: &Quat) -> *const libc::c_char {
-    q.to_string().convert()
+    static_string!(q.to_string())
 }
 
 #[no_mangle]

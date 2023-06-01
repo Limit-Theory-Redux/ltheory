@@ -10,7 +10,16 @@ pub extern "C" fn Tex2D_LoadRaw(
     sy: &mut i32,
     components: &mut i32,
 ) -> *mut libc::c_uchar {
-    let reader = ImageReader::open(path.convert())
+    tex2d_load_raw(&path.convert(), sx, sy, components)
+}
+
+pub fn tex2d_load_raw(
+    path: &str,
+    sx: &mut i32,
+    sy: &mut i32,
+    components: &mut i32,
+) -> *mut libc::c_uchar {
+    let reader = ImageReader::open(path)
         .unwrap_or_else(|_| CFatal!("Failed to load image from '%s', unable to open file", path));
     let img = reader
         .decode()
@@ -38,11 +47,13 @@ pub extern "C" fn Tex2D_LoadRaw(
     // Copy the data to a malloc allocated buffer.
     unsafe {
         let memory: *mut libc::c_uchar = MemAlloc(data.len()) as *mut libc::c_uchar;
+
         MemCpy(
             memory as *mut _,
             data.as_slice().as_ptr() as *mut _,
             data.len(),
         );
+
         memory
     }
 }

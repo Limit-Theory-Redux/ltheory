@@ -223,10 +223,9 @@ unsafe extern "C" fn HmGui_BeginGroup(layout: u32) {
     };
 }
 
-unsafe extern "C" fn HmGui_FreeText(_e: *mut HmGuiText) {
-    // FIXME: memory leak, fix this
-    // StrFree((*e).text);
-    // MemFree(e as *const _);
+unsafe extern "C" fn HmGui_FreeText(e: *mut HmGuiText) {
+    StrFree((*e).text);
+    MemFree(e as *const _);
 }
 
 unsafe extern "C" fn HmGui_FreeGroup(g: *mut HmGuiGroup) {
@@ -880,7 +879,7 @@ pub unsafe extern "C" fn HmGui_TextEx(
     HmGui_InitWidget(&mut (*e).widget, Widget_Text);
 
     (*e).font = font;
-    (*e).text = text_str.convert();
+    (*e).text = StrDup(text);
     (*e).color = Vec4::new(r, g, b, a);
 
     let mut size = IVec2::ZERO;

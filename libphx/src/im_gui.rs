@@ -266,7 +266,7 @@ unsafe extern "C" fn EmitText(font: *mut Font, color: Vec4, pos: Vec2, text: *co
     (*e).font = font;
     (*e).color = color;
     (*e).pos = pos;
-    (*e).text = text_str.convert();
+    (*e).text = StrDup(text);
     (*e).next = (*this.layer).textList;
     (*this.layer).textList = e;
 }
@@ -534,8 +534,7 @@ unsafe extern "C" fn ImGuiLayer_Free(self_1: *mut ImGuiLayer) {
     /* TODO : Stack allocation for strs. */
     let mut e: *mut ImGuiText = (*self_1).textList;
     while !e.is_null() {
-        // FIXME: memory leak
-        // StrFree((*e).text);
+        StrFree((*e).text);
         e = (*e).next;
     }
     MemFree(self_1 as *const _);

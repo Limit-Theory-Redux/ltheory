@@ -1,4 +1,4 @@
-use crate::{common::*, Convert};
+use crate::{common::*, static_string, Convert};
 
 pub type Modifier = i32;
 
@@ -16,7 +16,7 @@ pub static Modifier_Shift: Modifier = 1 << 2;
 
 #[no_mangle]
 pub extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
-    modifier_to_string(modifier).convert()
+    static_string!(modifier_to_string(modifier))
 }
 
 pub fn modifier_to_string(mut modifier: Modifier) -> String {

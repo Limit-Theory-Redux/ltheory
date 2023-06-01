@@ -1,6 +1,7 @@
 use crate::bytes::*;
 use crate::common::*;
 use crate::file::*;
+use crate::static_string;
 use crate::Convert;
 
 use crate::resource_type::*;
@@ -24,16 +25,24 @@ unsafe extern "C" fn Resource_Resolve(
     name: *const libc::c_char,
     fail_hard: bool,
 ) -> *const libc::c_char {
+    resource_resolve(ty, &name.convert(), fail_hard)
+        .map(|val| static_string!(val))
+        .unwrap_or(std::ptr::null())
+}
+
+unsafe fn resource_resolve(ty: ResourceType, name: &str, fail_hard: bool) -> Option<String> {
     for formatter in paths[ty as usize].iter() {
-        let path = formatter(name.convert());
+        let path = formatter(name.into());
 
         if file_exists(&path) {
-            return path.convert();
+            return Some(path);
         }
     }
-    if !name.is_null() && File_Exists(name) as i32 != 0 {
-        return name;
+
+    if !name.is_empty() && file_exists(name) as i32 != 0 {
+        return Some(name.into());
     }
+
     if fail_hard {
         CFatal!(
             "Resource_Resolve: Failed to find %s <%s>",
@@ -41,7 +50,8 @@ unsafe extern "C" fn Resource_Resolve(
             name,
         );
     }
-    std::ptr::null()
+
+    None
 }
 
 pub unsafe fn Resource_AddPath(ty: ResourceType, formatter: fn(String) -> String) {
@@ -84,9 +94,16 @@ pub unsafe extern "C" fn Resource_LoadCstr(
     ty: ResourceType,
     name: *const libc::c_char,
 ) -> *const libc::c_char {
-    let path: *const libc::c_char = Resource_Resolve(ty, name, true);
-    let data: *const libc::c_char = File_ReadCstr(path);
-    if data.is_null() {
+    resource_load_cstr(ty, &name.convert())
+        .map(|val| static_string!(val))
+        .unwrap_or(std::ptr::null())
+}
+
+pub unsafe fn resource_load_cstr(ty: ResourceType, name: &str) -> Option<String> {
+    let path = resource_resolve(ty, name, true)?;
+    let data = file_read_cstr(&path)?;
+
+    if data.is_empty() {
         CFatal!(
             "Resource_LoadCstr: Failed to load %s <%s> at <%s>",
             ResourceType_ToString(ty),
@@ -94,7 +111,8 @@ pub unsafe extern "C" fn Resource_LoadCstr(
             path,
         );
     }
-    data
+
+    Some(data)
 }
 
 #[no_mangle]

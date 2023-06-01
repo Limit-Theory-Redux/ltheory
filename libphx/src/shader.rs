@@ -52,12 +52,13 @@ unsafe extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const lib
     index
 }
 
-unsafe fn CreateGLShader(src: *const libc::c_char, type_0: gl::types::GLenum) -> u32 {
-    // println!("CreateGLShader: {}", src.convert());
+unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
+    // println!("CreateGLShader:\n{src}");
 
     let this: u32 = gl::CreateShader(type_0);
+    let c_src = CString::new(src).unwrap();
 
-    let mut srcs: [*const libc::c_char; 2] = [versionString, src];
+    let mut srcs: [*const libc::c_char; 2] = [versionString, c_src.as_ptr()];
 
     gl::ShaderSource(
         this,
@@ -81,7 +82,7 @@ unsafe fn CreateGLShader(src: *const libc::c_char, type_0: gl::types::GLenum) ->
 
         gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
 
-        CFatal!("CreateGLShader: Failed to compile shader:\n%s", infoLog,);
+        CFatal!("CreateGLShader: Failed to compile shader:\n%s", infoLog);
     }
     this
 }
@@ -113,20 +114,26 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
 
 /* BUG : Cache does not contain information about custom preprocessor
  *       directives, hence cached shaders with custom directives do not work */
-unsafe fn GLSL_Load(name: *const libc::c_char, this: &mut Shader) -> *const libc::c_char {
+unsafe fn glsl_load(name: &str, this: &mut Shader) -> String {
     if cache.is_null() {
         cache = StrMap_Create(16);
     }
-    let cached: *mut libc::c_void = StrMap_Get(&mut *cache, name);
+
+    let c_name = CString::new(name).unwrap();
+    let cached: *mut libc::c_void = StrMap_Get(&mut *cache, c_name.as_ptr());
+
     if !cached.is_null() {
-        return cached as *const libc::c_char;
+        return (cached as *const libc::c_char).convert();
     }
-    let rawCode = Resource_LoadCstr(ResourceType_Shader, name).convert();
+
+    let rawCode = Resource_LoadCstr(ResourceType_Shader, c_name.as_ptr()).convert();
     let code = rawCode.replace("\r\n", "\n");
     let c_code = glsl_preprocess(&code, this);
+
     /* BUG : Disable GLSL caching until preprocessor cache works. */
     // StrMap_Set(cache, name, (void*)code);
-    c_code.convert()
+
+    c_code
 }
 
 unsafe fn glsl_preprocess(code: &str, this: &mut Shader) -> String {
@@ -160,17 +167,17 @@ unsafe fn glsl_preprocess(code: &str, this: &mut Shader) -> String {
 unsafe fn parse_include(val: &str, this: &mut Shader) -> String {
     let path = format!("{INCLUDE_PATH}{val}");
 
-    GLSL_Load(path.convert(), this).convert()
+    glsl_load(&path, this)
 }
 
-unsafe fn parse_autovar(val: &str, this: &mut Shader) {
+fn parse_autovar(val: &str, this: &mut Shader) {
     let line_tokens: Vec<_> = val.split(" ").collect();
 
     if line_tokens.len() == 2 {
         let var_type = line_tokens[0];
         let var_name = line_tokens[1];
         let var = ShaderVar {
-            type_0: ShaderVarType_FromStr(var_type.convert()),
+            type_0: shader_var_type_from_str(var_type),
             name: var_name.into(),
             index: -1,
         };
@@ -194,15 +201,20 @@ unsafe fn parse_autovar(val: &str, this: &mut Shader) {
 
 unsafe extern "C" fn Shader_BindVariables(this: &mut Shader) {
     let mut i: i32 = 0;
+
     while i < this.vars.len() as i32 {
-        let var: &mut ShaderVar = &mut this.vars[i as usize];
-        (*var).index = gl::GetUniformLocation(this.program, (*var).name.convert());
+        let var = &mut this.vars[i as usize];
+        let c_name = static_string!((*var).name.as_str());
+
+        (*var).index = gl::GetUniformLocation(this.program, c_name);
+
         if (*var).index < 0 {
             Warn!("Shader_BindVariables: Automatic shader variable <{:?}> does not exist in shader <{}>",
                 (*var).name,
                 this.name,
             );
         }
+
         i += 1;
     }
 }
@@ -225,8 +237,8 @@ pub unsafe fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
     let vs = glsl_preprocess(&vs.replace("\r\n", "\n"), this.as_mut());
     let fs = glsl_preprocess(&fs.replace("\r\n", "\n"), this.as_mut());
 
-    this.vs = CreateGLShader(vs.convert(), gl::VERTEX_SHADER);
-    this.fs = CreateGLShader(fs.convert(), gl::FRAGMENT_SHADER);
+    this.vs = create_gl_shader(&vs, gl::VERTEX_SHADER);
+    this.fs = create_gl_shader(&fs, gl::FRAGMENT_SHADER);
     this.program = CreateGLProgram(this.vs, this.fs);
     this.texIndex = 1;
     this.name = format!("[anonymous shader @ {:p}]", &*this);
@@ -242,16 +254,21 @@ pub unsafe extern "C" fn Shader_Load(
     fName: *const libc::c_char,
 ) -> Box<Shader> {
     let mut this = Box::new(Shader::default());
+
     this._refCount = 1;
     this.vars = Vec::new();
-    let vs: *const libc::c_char = GLSL_Load(vName, this.as_mut());
-    let fs: *const libc::c_char = GLSL_Load(fName, this.as_mut());
-    this.vs = CreateGLShader(vs, gl::VERTEX_SHADER);
-    this.fs = CreateGLShader(fs, gl::FRAGMENT_SHADER);
+
+    let vs = glsl_load(&vName.convert(), this.as_mut());
+    let fs = glsl_load(&fName.convert(), this.as_mut());
+
+    this.vs = create_gl_shader(&vs, gl::VERTEX_SHADER);
+    this.fs = create_gl_shader(&fs, gl::FRAGMENT_SHADER);
     this.program = CreateGLProgram(this.vs, this.fs);
     this.texIndex = 1;
     this.name = format!("[vs: {} , fs: {}]", vName.convert(), fName.convert());
+
     Shader_BindVariables(this.as_mut());
+
     this
 }
 
@@ -281,7 +298,9 @@ pub unsafe extern "C" fn Shader_ToShaderState(this: &mut Shader) -> Box<ShaderSt
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
     Profiler_Begin(c_str!("Shader_Start"));
+
     gl::UseProgram(this.program);
+
     current = this;
     this.texIndex = 1;
 
@@ -289,8 +308,11 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
     let mut i: i32 = 0;
     while i < this.vars.len() as i32 {
         let var: &mut ShaderVar = &mut this.vars[i as usize];
+
         if !((*var).index < 0) {
-            let pValue: *mut libc::c_void = ShaderVar_Get((*var).name.convert(), (*var).type_0);
+            let c_name = static_string!((*var).name.as_str());
+            let pValue: *mut libc::c_void = ShaderVar_Get(c_name, (*var).type_0);
+
             if pValue.is_null() {
                 CFatal!(
                     "Shader_Start: Shader variable stack does not contain variable <%s>",
@@ -351,6 +373,7 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
         }
         i += 1;
     }
+
     Profiler_End();
 }
 

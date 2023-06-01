@@ -71,7 +71,7 @@ pub static ElemType_Tex3D: u32 = 9;
 pub static ElemType_TexCube: u32 = 10;
 
 #[no_mangle]
-pub unsafe extern "C" fn ShaderState_Create(shader: &mut Shader) -> Box<ShaderState> {
+pub extern "C" fn ShaderState_Create(shader: &mut Shader) -> Box<ShaderState> {
     Box::new(ShaderState {
         _refCount: 1,
         shader: {

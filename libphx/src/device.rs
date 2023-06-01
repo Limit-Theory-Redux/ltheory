@@ -1,4 +1,4 @@
-use crate::{device_type::*, Convert};
+use crate::{device_type::*, static_string, Convert};
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -20,5 +20,5 @@ pub extern "C" fn Device_Equal(a: &Device, b: &Device) -> bool {
 
 #[no_mangle]
 pub extern "C" fn Device_ToString(this: &mut Device) -> *const libc::c_char {
-    this.to_string().convert()
+    static_string!(this.to_string())
 }
