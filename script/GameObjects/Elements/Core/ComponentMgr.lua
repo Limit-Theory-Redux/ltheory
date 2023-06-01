@@ -26,6 +26,12 @@ function Entity:addComponents ()
                     }
 end
 
+-- TODO: Function interfaces for:
+--         Computers
+--         Sensors
+--         Life Support
+--         Drones
+
 function Entity:isAlive ()
 --printf("isAlive() self = %s", self:getName())
   if self.components and self.components.hull and #self.components.hull > 0 then

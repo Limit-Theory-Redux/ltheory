@@ -28,7 +28,7 @@ function LTheory:generate ()
   GameState:SetState(Enums.GameStates.InGame)
 
   -- Generate planets (no more than 1 for now)
-  for i = 1, 0 do
+  for i = 1, 1 do
     self.system:spawnPlanet()
   end
 

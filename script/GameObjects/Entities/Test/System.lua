@@ -49,7 +49,8 @@ printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
   -- When creating a new system, initialize station subtype options from all production types
   local prodType = Config:getObjectTypeIndex("station_subtypes")
   for i, prod in ipairs(Production.All()) do
-    Config.objectInfo[prodType]["elems"][i+2] = {
+    Config.objectInfo[prodType]["elems"][i+2] =
+    {
       i + 2,
       prod:getName()
     }
@@ -321,6 +322,49 @@ function System:spawnPlanet (bAddBelt)
   planet:setScale(scale)
 --printf("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
 
+  self:addChild(planet)
+
+  -- Add all applicable components to this planet
+  -- TODO: For now, every socket gets one of the appropriate components. Later, this must be replaced by:
+  --       1) default components (for planets created when a new star system is generated)
+  --       2) loaded components (for planets recreated when the player loads a saved game)
+  -- NOTE: Components must be instantiated AFTER their parent is added as a child to the star system!
+
+  -- Add as many computers as there are computer plugs for
+  for i = 1, planet.countComputer do
+    local computer = Components.Computer()
+    computer:setName(planet:getName() .. ": " .. "Babbage's " .. computer:getName() .. " " .. tostring(i))
+    insert(planet.components.computer, computer)
+    planet:plug(computer)
+  end
+
+  -- Add as many sensors as there are sensor plugs for
+  for i = 1, planet.countSensor do
+    local sensor = Components.Sensor()
+    sensor:setName(planet:getName() .. ": " .. "April's " .. sensor:getName() .. " " .. tostring(i))
+    insert(planet.components.sensor, sensor)
+--    planet:plug(sensor)
+  end
+
+  -- Add transport pods to every inventory plug
+  for i = 1, planet.countInventory do
+    local inventory = Components.Inventory()
+    inventory:setName(planet:getName() .. ": " .. inventory:getName() .. "(" .. Config.gen.planetInventorySize .. ") " .. tostring(i))
+    inventory:setInventoryCapacity(Config.gen.planetInventorySize)
+    insert(planet.components.inventory, inventory)
+    planet:plug(inventory)
+  end
+
+  -- Add as many shield generators as there are shield plugs for
+  for i = 1, planet.countShield do
+    local shield = Components.Shield()
+    shield:setName(planet:getName() .. ": " .. "Magma " .. shield:getName() .. " " .. tostring(i))
+    local shieldStrength = shield:getShieldMax() * 20 -- planetary shields are stronger than station shields
+    shield:setShield(shieldStrength, shieldStrength, shield:getReviveRate() * 2)
+    insert(planet.components.shield, shield)
+    planet:plug(shield)
+  end
+
   -- Planets produce lots of plants and animals (just go with it)
   planet:addYield(Item.Biomass, rng:getInt(100000, 10000000))
 
@@ -406,8 +450,6 @@ function System:spawnPlanet (bAddBelt)
       self:addChild(asteroid)
     end
   end
-
-  self:addChild(planet)
 
 local typeName = Config:getObjectInfo("object_types", planet:getType())
 local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
@@ -630,7 +672,7 @@ function System:spawnStation (hullSize, player, prodType)
     station:plug(inventory)
   end
   if station.countInventory > 0 then
-printf("SYSTEM(station): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
+--printf("SYSTEM(station): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
     station:register(Event.Debug, Entity.mgrInventoryDebug)
   end
 
@@ -880,7 +922,7 @@ function System:spawnShip (hullSize, player)
     ship:plug(inventory)
   end
   if ship.countInventory > 0 then
-printf("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
+--printf("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
     ship:register(Event.Debug, Entity.mgrInventoryDebug)
   end
 

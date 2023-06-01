@@ -137,8 +137,9 @@ Config.gen = {
                      { 0,  1,  2,  5,  8, 12}, -- shield generators
                      { 0,  0,  1,  3,  5,  8}, -- armor plates
                    },
-  shipInventorySize    =  10,
-  stationInventorySize = 100,
+  shipInventorySize    =    10,
+  stationInventorySize =   100,
+  planetInventorySize  = 10000,
   stationHullMass   = { 112000,
                         242000,
                         575000},
@@ -155,6 +156,21 @@ Config.gen = {
                         {   0,   0,   0,  24,  48,  64}, -- drone racks (* 2 drones each)
                         {  16,  24,  32,  24,  40,  64}, -- shield generators
                         {   8,  16,  32,  24,  48,  96}, -- armor plates
+                      },
+
+  planetComponents  = {  --  S     M     L   -- Sockets available for (ComponentEnums.lua):
+                        {    0,    0,    0}, -- hull integrity
+                        { 1000, 8000,20000}, -- computers
+                        {   50,  120,  500}, -- sensors
+                        {    0,    0,    0}, -- life support
+                        {    0,    0,    0}, -- capacitors
+                        {    0,    0,    0}, -- thrusters (none on stations)
+                        {    0,    0,    0}, -- turret weapons
+                        {    0,    0,    0}, -- bay weapons
+                        { 1000, 7500,48000}, -- cargo pods (* planetInventorySize inventory each)
+                        {    0,    0,    0}, -- drone racks (* 2 drones each)
+                        {  500, 1200,10000}, -- shield generators
+                        {    0,    0,    0}, -- armor plates
                       },
 
   compHullStats      = {
@@ -417,6 +433,8 @@ Config.gen = {
   scaleFieldAsteroid = 40000,
   scaleAsteroid      = 7.0,
   scaleStation       = 70,
+
+  sizePlanet         = 2, -- 1 = small, 2 = medium, 3 = large
 
   radiusStarTrue      = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
   radiusPlanetTrue    =   6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km

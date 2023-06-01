@@ -38,10 +38,10 @@ function Mine:getName (actor)
     self.src:getName(),
     self.dst:getName(),
     self.src:getDistance(self.dst))
-if self.jcount == 0 then
-printf("1 MINE:getName - jcount = 0, bids = %d!!!: %s", self.bids, mineName)
-printf("1 MINE:getName - jcount = 0!!!: %s", self:bonk()) -- this is intended to crash the game for debugging purposes ***
-end
+--if self.jcount == 0 then
+--printf("1 MINE:getName - jcount = 0, bids = %d!!!: %s", self.bids, mineName)
+--printf("1 MINE:getName - jcount = 0!!!: %s", self:bonk()) -- this is intended to crash the game for debugging purposes ***
+--end
 
   return mineName
 end
@@ -158,7 +158,7 @@ printf("[MINE 1 FAIL] *** %s: itemBidVol = %d, ccount = %d; terminating mining j
         e.jobState = nil
       else
         self.jcount = mcount
-printf("MINE 1: jcount = %d", self.jcount)
+--printf("MINE 1: jcount = %d", self.jcount)
 
         local profit = self.dst:getTrader():getSellToPriceForAsset(item, self.jcount, e)
 printf("[MINE 1] [e:%s (%s)] %d x %s from %s (travel: %d) -> %s (travel: %d), %d bid, expect %d profit (dt = %f)",
@@ -195,8 +195,8 @@ printf("[MINE 3] *** Destination station %s no longer exists for %s DockAt; term
         while e:mgrInventoryGetItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
           sold = sold + 1
         end
-printf("[MINE {%d}] %s sold %d units of %s to Trader %s",
-e.jobState, e:getName(), sold, item:getName(), self.dst:getName())
+printf("[MINE 4] %s sold %d units of %s to Trader %s",
+e:getName(), sold, item:getName(), self.dst:getName())
       else
         -- Destination station no longer exists, so terminate this entire job
 printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job", self.dst:getName(), e:getName())
@@ -205,17 +205,13 @@ printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; t
       end
     elseif e.jobState == Enums.JobStateMine.UndockingFromDst then
       if e:isShipDocked() then
-printf("[MINE {%d}] %s pushing action Undock", e.jobState, e:getName())
+printf("[MINE 5] %s pushing action Undock", e:getName())
         e:pushAction(Actions.Undock())
       end
     elseif e.jobState == Enums.JobStateMine.JobFinished then
       -- TODO : This is just a quick hack to force AI to re-evaluate job
       --        decisions. In reality, AI should 'pre-empt' the job, which
       --        should otherwise loop indefinitely by default
-local eact = e:getCurrentAction()
-if eact then
-printf("[MINE {%d}] %s pops remaining action: '%s'", e.jobState, e:getName(), eact:getName())
-end
       if self.jcount <= 0 then
         e:popAction()
         e.jobState = nil
