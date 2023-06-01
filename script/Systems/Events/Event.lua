@@ -45,6 +45,14 @@ function Event.FiredTurret (turret, projectile, effect)
   }
 end
 
+function Event.Collision (collision, collidedWith)
+  return {
+    type = Event.Collision,
+    collision = collision,
+    collidedWith = collidedWith
+  }
+end
+
 function Event.Debug (context)
   return {
     type = Event.Debug,

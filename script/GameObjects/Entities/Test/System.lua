@@ -289,6 +289,17 @@ function System:update (dt)
 
     Profiler.Begin('Physics Update')
     self.physics:update(dt)
+    local collision = Collision()
+    while (self.physics:getNextCollision(collision)) do
+      local entity1 = Entity.fromRigidBody(collision.body0)
+      local entity2 = Entity.fromRigidBody(collision.body1)
+
+      if entity1 and entity2 then
+        entity1:send(Event.Collision(collision, entity2))
+        entity2:send(Event.Collision(collision, entity1))
+      end
+      --print('', collision.index, collision.body0, collision.body1)
+    end
     Profiler.End()
 
     -- post-physics update
@@ -488,11 +499,14 @@ function System:spawnAsteroidField (count, reduced)
 
     -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
     -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
-    zone:add(asteroid)
+    zone:addChild(asteroid)
+    asteroid.zone = zone
     self:addChild(asteroid)
   end
 
   self:addZone(zone)
+  -- TODO: Event update should be sent to zones and their children aswell instead of only the system
+  self:addChild(zone)
 
 local typeName = Config:getObjectInfo("object_types", zone:getType())
 local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())

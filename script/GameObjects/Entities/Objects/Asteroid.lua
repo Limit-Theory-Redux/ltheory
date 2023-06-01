@@ -18,6 +18,7 @@ local Asteroid = subclass(Entity, function (self, seed, scale)
   self:addTrackable(true)
   self:addMinable(true)
   self:addClaimable()
+  self.zone = nil
 
   -- NOTE: scale must be set before the radius will be reported correctly
   -- may be updated by the caller
