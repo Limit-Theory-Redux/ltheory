@@ -16,15 +16,9 @@ function PlanetTest:spawnPlanet ()
   end
 end
 
-function PlanetTest:generate ()
+function PlanetTest:newSystem()
   self.seed = rng:get64()
   self.currentPlanet = nil
-  if true then
-    -- self.seed = 7035008865122330386ULL
-     self.seed = 9356427830726706953ULL
-    -- self.seed = 1777258448479734603ULL
-    -- self.seed = 5023726954312599969ULL
-  end
   printf('Seed: %s', self.seed)
 
   if self.system then self.system:delete() end
@@ -33,6 +27,10 @@ function PlanetTest:generate ()
   GameState:SetState(Enums.GameStates.InGame)
 
   self:spawnPlanet()
+end
+
+function PlanetTest:generate ()
+  self:newSystem()
 end
 
 function PlanetTest:onInit ()
@@ -56,7 +54,9 @@ end
 function PlanetTest:onInput ()
   self.canvas:input()
 
-  if Input.GetPressed(Button.Keyboard.B) then
+  if Input.GetKeyboardShift() and Input.GetPressed(Button.Keyboard.B) then
+    self:newSystem()
+  elseif Input.GetPressed(Button.Keyboard.B) then
     self:spawnPlanet()
   end
 end

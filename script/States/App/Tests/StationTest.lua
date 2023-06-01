@@ -9,7 +9,7 @@ local rng = RNG.FromTime()
 function StationTest:spawnStation ()
   local station
   do -- Player Ship
-    local currentStation = self.player:getControlling()
+    local currentStation = self.currentStation or self.player:getControlling()
     if currentStation then currentStation:delete() end
     station = self.system:spawnStation(self.player)
     station:setPos(Config.gen.origin)
@@ -18,17 +18,12 @@ function StationTest:spawnStation ()
     station:setOwner(self.player)
     --self.system:addChild(ship)
     self.player:setControlling(station)
+    self.currentStation = station
   end
 end
 
-function StationTest:generate ()
+function StationTest:newSystem()
   self.seed = rng:get64()
-  if true then
-    -- self.seed = 7035008865122330386ULL
-     self.seed = 9356427830726706953ULL
-    -- self.seed = 1777258448479734603ULL
-    -- self.seed = 5023726954312599969ULL
-  end
   printf('Seed: %s', self.seed)
 
   if self.system then self.system:delete() end
@@ -37,6 +32,10 @@ function StationTest:generate ()
   GameState:SetState(Enums.GameStates.InGame)
 
   self:spawnStation()
+end
+
+function StationTest:generate ()
+  self:newSystem()
 end
 
 function StationTest:onInit ()
@@ -60,7 +59,9 @@ end
 function StationTest:onInput ()
   self.canvas:input()
 
-  if Input.GetPressed(Button.Keyboard.B) then
+  if Input.GetKeyboardShift() and Input.GetPressed(Button.Keyboard.B) then
+    self:newSystem()
+  elseif Input.GetPressed(Button.Keyboard.B) then
     self:spawnStation()
   end
 end
