@@ -156,8 +156,11 @@ function Application:run ()
         timeScale = 1.0
       end
 
-      if Input.GetDown(Bindings.TimeAccel) then
+      if not GameState.debug.timeAccelActive and Input.GetDown(Bindings.TimeAccel) then
+        GameState.debug.timeAccelActive = true
         timeScale = GameState.debug.timeAccelFactor
+      elseif GameState.debug.timeAccelActive then
+        GameState.debug.timeAccelActive = false
       end
 
       if Input.GetPressed(Bindings.ToggleWireframe) then

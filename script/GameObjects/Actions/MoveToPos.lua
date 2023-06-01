@@ -2,7 +2,7 @@ local Action = require('GameObjects.Action')
 --local Bindings = require('States.ApplicationBindings')
 
 local rng = RNG.FromTime()
-local timeUntilTravelDrive = 15 -- temporary local setting
+local timeUntilTravelDrive = 30 -- temporary local setting
 
 local MoveToPos = subclass(Action, function (self, targetPos, range, useTravelDrive)
   self.targetPos = targetPos

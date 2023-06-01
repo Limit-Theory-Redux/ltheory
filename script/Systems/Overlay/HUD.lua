@@ -1541,8 +1541,6 @@ function HUD:onDraw (focus, active)
       self:drawTacticalMap              (self.enabled)
       self:drawTargets                  (self.enabled)
       self:drawLock                     (self.enabled)
-      self:drawPlayerHealth             (self.enabled)
-      self:drawTargetHealth             (self.enabled)
       self:drawReticle                  (self.enabled)
     end
 

@@ -34,16 +34,16 @@ end
 function Entity:addDocked (e)
   assert(self.dockable)
 
-for i, v in ipairs(e.actions) do
-  printf("Pre-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
-end
+  --for i, v in ipairs(e.actions) do
+  --  printf("Pre-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
+  --end
 
   self:getParent():removeChild(e)
   self:addChild(e)
 
-for i, v in ipairs(e.actions) do
-  printf("Post-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
-end
+  --for i, v in ipairs(e.actions) do
+  --  printf("Post-Dock %s Actions %d : %s", e:getName(), i, v:getName(e))
+  --end
 
   e:setShipDocked(self) -- mark ship as docked to this entity
 end

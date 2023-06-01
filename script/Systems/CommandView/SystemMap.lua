@@ -292,11 +292,18 @@ function SystemMap:onInput (state)
     self.lastDt = state.dt
   end
 
+  local adjustedDt
   if state.dt > 0 then
-    GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * state.dt
-  elseif self.lastDt then
-    GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * self.lastDt -- temp fix for -> see NOTE above
+    adjustedDt = state.dt
+  else
+    adjustedDt = self.lastDt or 0
   end
+
+  if GameState.debug.timeAccelActive then
+    adjustedDt = adjustedDt / GameState.debug.timeAccelFactor
+  end
+
+  GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * adjustedDt -- temp fix for -> see NOTE above
 
   if Input.GetValue(Button.Keyboard.LShift) == 1 then
     GameState.player.currentMapSystemPan = GameState.player.currentMapSystemPan * 2

@@ -197,8 +197,13 @@ function Transport:onUpdateActive(e, dt)
         e:pushAction(Actions.Undock())
       end
     elseif e.jobState == Enums.JobStateTransport.JobFinished then
-      e:popAction()
-      e.jobState = nil
+      if self.jcount <= 0 then
+        e:popAction()
+        e.jobState = nil
+      else
+        -- repeat until job is done
+        e.jobState = Enums.JobStateMine.None
+      end
     end
     Profiler.End()
   end

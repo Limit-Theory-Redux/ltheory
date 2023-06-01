@@ -174,7 +174,7 @@ local Station = subclass(Entity, function (self, seed, hull)
     end
   end
 
-  self:setDrag(10, 10) -- fix station in place
+  self:setDrag(100, 100) -- fix station in place
   self:setScale(Config.gen.scaleStation)
   self:setMass(Config.gen.stationHullMass[hull])
 

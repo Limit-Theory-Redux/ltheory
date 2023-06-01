@@ -79,7 +79,7 @@ function Think:manageAsset (asset)
         if not job then break end
 
         if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
-          if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
+          if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here
             goto skipJob
           end
         end
@@ -141,16 +141,16 @@ function Think:manageAsset (asset)
       local station = asset:isShipDocked()
       if station then
         printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-        asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
-        for i, v in ipairs(asset.actions) do
-          printf("  Actions %d : %s", i, v:getName(asset))
-        end
+        asset:getName(), asset:getOwner():getName(), station:getName(), asset.job:getName(asset), asset.job.jcount, asset.job.bids)
+        --for i, v in ipairs(asset.actions) do
+        --  printf("  Actions %d : %s", i, v:getName(asset))
+        --end
         asset:pushAction(Actions.Undock())
         printf("THINK +++ 2: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-        asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
-        for i, v in ipairs(asset.actions) do
-          printf("  Actions %d : %s", i, v:getName(asset))
-        end
+        asset:getName(), asset:getOwner():getName(), station:getName(), asset.job:getName(asset), asset.job.jcount, asset.job.bids)
+        --for i, v in ipairs(asset.actions) do
+        --  printf("  Actions %d : %s", i, v:getName(asset))
+        --end
       end
     else
       -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
@@ -199,7 +199,23 @@ function Think:onUpdateActive (e, dt)
       -- TODO: route planning for efficiency (but avoid TSP!)
       for asset in e:iterAssets() do
         if asset:getRoot():hasEconomy() and asset:isIdle() and asset:getType() ~= Config:getObjectTypeByName("object_types", "Station") then
-          self:manageAsset(asset)
+          -- add randomized "thinking time" (so player 1 doesn´t get all jobs)
+          if not self.thinking then
+            self.thinking = true
+            self.thinkTimer = 0
+            self.thinkTime = self.rng:getUniformRange(0.1, 10)
+            --printf("%s Thinking.. - Time: %d", e:getName(), self.thinkTime)
+          end
+
+          if self.thinking then
+            self.thinkTimer = self.thinkTimer + dt
+
+            if self.thinkTimer >= self.thinkTime then
+              --printf("%s Thinking Done", e:getName(), self.thinkTime)
+              self:manageAsset(asset)
+              self.thinking = false
+            end
+          end
         end
       end
     end

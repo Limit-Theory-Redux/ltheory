@@ -174,7 +174,6 @@ function Mine:onUpdateActive(e, dt)
           itemBidVol, dt)
       end
 
-      printf("<<<<<<< %d, %d >>>>>>>>", itemBidVol, ccount)
       local mcount = math.min(itemBidVol, ccount)
       if mcount == 0 then
         -- Can't do this Mine job! End this job (owning player should seek a new sale for existing inventory)
@@ -190,7 +189,7 @@ function Mine:onUpdateActive(e, dt)
           self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(),
           self:getTravelTime(e, self.src, self.dst),
           itemBidVol, profit, dt)
-        e:pushAction(Actions.MoveTo(self.src, 500, true)) -- TODO: convert static arrival range to dynamic based on target scale
+        e:pushAction(Actions.MoveTo(self.src, 5000, true)) -- TODO: convert static arrival range to dynamic based on target scale
       end
     elseif e.jobState == Enums.JobStateMine.MiningAsteroid then
       local miningTimePerItem = 5 -- TODO: create a miningTime() function based on item's rarity
@@ -237,7 +236,13 @@ function Mine:onUpdateActive(e, dt)
       if eact then
         printf("[MINE {%d}] %s pops remaining action: '%s'", e.jobState, e:getName(), eact:getName())
       end
-      self:cancelJob(e)
+
+      if self.jcount <= 0 then
+        self:cancelJob(e)
+      else
+        -- repeat until job is done
+        e.jobState = Enums.JobStateMine.None
+      end
     end
     Profiler.End()
   end

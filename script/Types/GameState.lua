@@ -13,6 +13,7 @@ GameState.debug = {
   metricsEnabled        = Config.debug.metricsEnabled,
   instantJobs           = Config.debug.instantJobs,
   jobSpeed              = Config.debug.jobSpeed,
+  timeAccelActive       = false,
   timeAccelFactor       = Config.debug.timeAccelFactor,
   printConfig           = Config.debug.printConfig
 }

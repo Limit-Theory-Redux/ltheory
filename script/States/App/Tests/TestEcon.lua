@@ -55,7 +55,7 @@ function TestEcon:onInit ()
   self.tradeShip:setOwner(self.tradeAI)
 
   -- Use repeat ship builds, fast movement, and hyperspeedup for economic testing
-  GameState.gen.uniqueShips       = true
+  GameState.gen.uniqueShips       = false
   GameState.debug.instantJobs     = true
   GameState.debug.timeAccelFactor = 100
   GameState:SetState(Enums.GameStates.InGame)
@@ -86,7 +86,7 @@ function TestEcon:onInit ()
   -- Now maybe add some additional stations
   for i = 3, kStations do
     -- Create a station, owned by this system's AI player, within a random AsteroidField Zone
-    local newStation = self.system:spawnStation(Enums.StationHulls.Small, self.tradeAI, nil)
+    local newStation = self.system:spawnStation(Enums.StationHulls.Small, self.tradeAI, Production.Silicon)
 
     -- Assign the new Station to a randomly-selected AI player/owner
     -- TODO: figure out the nasty infinite loop when assigning station to a non-system-level AI player

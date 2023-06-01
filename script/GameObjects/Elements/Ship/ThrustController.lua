@@ -19,13 +19,13 @@ end)
 function ThrustController:updateThrustMax (newThrustMult)
   thrustMult = newThrustMult
 
-  thrustForwardMax  = 8e6 * thrustMult / 2
-  thrustBackwardMax = 2e6 * thrustMult / 2
-  thrustRightMax    = 8e6 * thrustMult
-  thrustUpMax       = 2e6 * thrustMult
-  thrustPitchMax    = 1e7 * thrustMult
-  thrustYawMax      = 1e7 * thrustMult
-  thrustRollMax     = 2e7 * thrustMult
+  thrustForwardMax  = 4e6 * thrustMult
+  thrustBackwardMax = 1e6 * thrustMult
+  thrustRightMax    = 4e6 * thrustMult
+  thrustUpMax       = 1e6 * thrustMult
+  thrustPitchMax    = 0.5e7 * thrustMult
+  thrustYawMax      = 0.5e7 * thrustMult
+  thrustRollMax     = 1e7 * thrustMult
 end
 
 function ThrustController:clear ()
@@ -55,7 +55,7 @@ function ThrustController:update (e, dt)
 --  end
 
   -- Large ships should have much less lateral/vertical movement and somewhat less maneuverability
-  local mult = 1.0 + 2.0 * boost
+  local mult = 1.0 + 3.5 * boost
   local translateMult = Config.gen.shipHullTranM[e:getHull()] or 1
   local maneuverMult  = Config.gen.shipHullManuM[e:getHull()] or 1
 

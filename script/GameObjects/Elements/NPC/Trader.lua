@@ -364,8 +364,8 @@ function Trader:buy (asset, item)
           self.parent:removeCredits(price)
           player:addCredits(price)
 
---printf("BUY: Trader parent %s buys 1 unit of item %s from Asset %s (Owner %s) at price %d",
---self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
+          --printf("BUY: Trader parent %s buys 1 unit of item %s from Asset %s (Owner %s) at price %d",
+          --self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
 
           data.totalBid = data.totalBid - 1
           if data.totalBid < 0 then data.totalBid = 0 end
@@ -373,7 +373,6 @@ function Trader:buy (asset, item)
           if data.totalBidPrice < 0 then data.totalBidPrice = 0 end
 
           removeBidOffer(data, asset)
-
           remove(data.bids, 1)
 
           madePurch = true

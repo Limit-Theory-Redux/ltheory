@@ -67,7 +67,7 @@ function Marauding:onUpdateActive(e, dt)
       if not self.blackMarketTarget then
         self.blackMarketTarget = self.base --TODO: Needs to find a marketplace
       end
-      e:pushAction(Actions.MoveTo(self.blackMarketTarget, 150))
+      e:pushAction(Actions.MoveTo(self.blackMarketTarget, 2000))
     elseif e.jobState == Enums.JobStateMarauding.DockingAtStation then
       if self.blackMarketTarget and self.blackMarketTarget:hasDockable() and self.blackMarketTarget:isDockable() and not self.blackMarketTarget:isBanned(e) then
         e:pushAction(Actions.DockAt(self.blackMarketTarget))
