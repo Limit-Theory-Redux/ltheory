@@ -3,29 +3,28 @@ pub use crate::error::Error;
 #[macro_export]
 macro_rules! MemNew {
     ($x:ty) => {
-        crate::internal::MemAlloc(std::mem::size_of::<$x>()) as *mut $x
+        MemAlloc(std::mem::size_of::<$x>()) as *mut $x
     };
 }
 
 #[macro_export]
 macro_rules! MemNewZero {
     ($x:ty) => {
-        crate::internal::MemAllocZero(std::mem::size_of::<$x>()) as *mut $x
+        MemAllocZero(std::mem::size_of::<$x>()) as *mut $x
     };
 }
 
 #[macro_export]
 macro_rules! MemNewArray {
     ($x:ty, $s:expr) => {
-        crate::internal::MemAlloc(std::mem::size_of::<$x>().wrapping_mul($s as usize)) as *mut $x
+        MemAlloc(std::mem::size_of::<$x>().wrapping_mul($s as usize)) as *mut $x
     };
 }
 
 #[macro_export]
 macro_rules! MemNewArrayZero {
     ($x:ty, $s:expr) => {
-        crate::internal::MemAllocZero(std::mem::size_of::<$x>().wrapping_mul($s as usize))
-            as *mut $x
+        MemAllocZero(std::mem::size_of::<$x>().wrapping_mul($s as usize)) as *mut $x
     };
 }
 
@@ -33,7 +32,7 @@ macro_rules! MemNewArrayZero {
 macro_rules! MemDelete {
     ($v:ident) => {
         $v.drop_in_place();
-        crate::internal::MemFree($v as *mut _)
+        MemFree($v as *mut _)
     };
 }
 

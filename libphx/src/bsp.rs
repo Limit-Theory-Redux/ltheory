@@ -2,10 +2,10 @@ use crate::common::*;
 use crate::*;
 
 use crate::draw::*;
+use crate::internal::*;
 use crate::intersect::*;
 use crate::line_segment::*;
-use crate::math::Lerp;
-use crate::math::Sphere;
+use crate::math::*;
 
 use crate::math::Vec3;
 use crate::mesh::*;
