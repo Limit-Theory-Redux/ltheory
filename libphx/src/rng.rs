@@ -88,7 +88,7 @@ pub unsafe extern "C" fn RNG_Create(seed: u64) -> Box<Rng> {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_FromStr(s: *const libc::c_char) -> Box<Rng> {
-    RNG_Create(Hash_XX64(s as *const _, s.convert().len() as i32, 0))
+    RNG_Create(Hash_XX64(s as *const _, s.as_str().len() as i32, 0))
 }
 
 #[no_mangle]

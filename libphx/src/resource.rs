@@ -24,7 +24,7 @@ unsafe extern "C" fn Resource_Resolve(
     name: *const libc::c_char,
     fail_hard: bool,
 ) -> *const libc::c_char {
-    resource_resolve(ty, &name.convert(), fail_hard)
+    resource_resolve(ty, &name.as_str(), fail_hard)
         .map(|val| static_string!(val))
         .unwrap_or(std::ptr::null())
 }
@@ -93,7 +93,7 @@ pub unsafe extern "C" fn Resource_LoadCstr(
     ty: ResourceType,
     name: *const libc::c_char,
 ) -> *const libc::c_char {
-    resource_load_cstr(ty, &name.convert())
+    resource_load_cstr(ty, &name.as_str())
         .map(|val| static_string!(val))
         .unwrap_or(std::ptr::null())
 }

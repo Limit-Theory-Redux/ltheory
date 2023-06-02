@@ -29,7 +29,7 @@ pub struct StrMapIter {
 
 #[inline]
 unsafe extern "C" fn Hash(key: *const libc::c_char) -> u64 {
-    Hash_XX64(key as *const _, key.convert().len() as i32, 0)
+    Hash_XX64(key as *const _, key.as_str().len() as i32, 0)
 }
 
 #[inline]
@@ -130,7 +130,7 @@ pub unsafe extern "C" fn StrMap_Get(
         return std::ptr::null_mut();
     }
     while !node.is_null() {
-        if (*node).key.convert() == key.convert() {
+        if (*node).key.as_str() == key.as_str() {
             return (*node).value;
         }
         node = (*node).next;
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn StrMap_Remove(this: &mut StrMap, key: *const libc::c_ch
     let mut prev: *mut *mut Node = std::ptr::null_mut();
     let mut node: *mut Node = StrMap_GetBucket(this, key);
     while !node.is_null() && !((*node).key).is_null() {
-        if (*node).key.convert() == key.convert() {
+        if (*node).key.as_str() == key.as_str() {
             StrFree((*node).key);
             let next: *mut Node = (*node).next;
             if !next.is_null() {
@@ -189,7 +189,7 @@ pub unsafe extern "C" fn StrMap_Set(
     }
     let mut prev: *mut *mut Node = std::ptr::null_mut();
     while !node.is_null() {
-        if (*node).key.convert() == key.convert() {
+        if (*node).key.as_str() == key.as_str() {
             (*node).value = value;
             return;
         }

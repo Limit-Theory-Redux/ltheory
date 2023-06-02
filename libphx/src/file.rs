@@ -11,7 +11,7 @@ pub struct File {
 
 #[no_mangle]
 pub extern "C" fn File_Exists(path: *const libc::c_char) -> bool {
-    file_exists(&path.convert())
+    file_exists(&path.as_str())
 }
 
 pub fn file_exists(path: &str) -> bool {
@@ -23,7 +23,7 @@ pub fn file_exists(path: &str) -> bool {
 
 #[no_mangle]
 pub extern "C" fn File_IsDir(path: *const libc::c_char) -> bool {
-    match fs::metadata(path.convert()) {
+    match fs::metadata(path.as_str()) {
         Ok(metadata) => metadata.is_dir(),
         Err(_) => false,
     }
@@ -35,7 +35,7 @@ pub extern "C" fn File_Create(path: *const libc::c_char) -> Option<Box<File>> {
         .create(true)
         .write(true)
         .truncate(true)
-        .open(path.convert())
+        .open(path.as_str())
         .ok()?;
     Some(Box::new(File { file }))
 }
@@ -45,7 +45,7 @@ pub extern "C" fn File_Open(path: *const libc::c_char) -> Option<Box<File>> {
     let file = fs::File::options()
         .create(true)
         .append(true)
-        .open(path.convert())
+        .open(path.as_str())
         .ok()?;
     Some(Box::new(File { file }))
 }
@@ -57,7 +57,7 @@ pub extern "C" fn File_Close(_: Option<Box<File>>) {
 
 #[no_mangle]
 pub extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes {
-    match fs::read(path.convert()) {
+    match fs::read(path.as_str()) {
         Ok(bytes) => Bytes_FromVec(bytes),
         _ => std::ptr::null_mut(),
     }
@@ -65,7 +65,7 @@ pub extern "C" fn File_ReadBytes(path: *const libc::c_char) -> *mut Bytes {
 
 #[no_mangle]
 pub extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc::c_char {
-    file_read_cstr(&path.convert())
+    file_read_cstr(&path.as_str())
         .map(|val| static_string!(val))
         .unwrap_or(std::ptr::null())
 }
@@ -76,7 +76,7 @@ pub fn file_read_cstr(path: &str) -> Option<String> {
 
 #[no_mangle]
 pub extern "C" fn File_Size(path: *const libc::c_char) -> i64 {
-    if let Ok(file) = fs::File::open(path.convert()) {
+    if let Ok(file) = fs::File::open(path.as_str()) {
         if let Ok(metadata) = file.metadata() {
             return metadata.len() as i64;
         }
@@ -98,7 +98,7 @@ pub extern "C" fn File_Write(this: &mut File, data: *const libc::c_void, len: u3
 
 #[no_mangle]
 pub extern "C" fn File_WriteStr(this: &mut File, data: *const libc::c_char) {
-    let data_str = data.convert();
+    let data_str = data.as_str();
     let buffer = data_str.as_bytes();
 
     let _ = this.file.write(buffer);

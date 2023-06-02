@@ -221,7 +221,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
     let mut dataLayout: i32 = 0;
 
     for i in 0..6 {
-        let face_path = format!("{}{}.jpg", path.convert(), K_FACE_EXT[i as usize]);
+        let face_path = format!("{}{}.jpg", path.as_str(), K_FACE_EXT[i as usize]);
         let mut sx: i32 = 0;
         let mut sy: i32 = 0;
         let mut lcomponents: i32 = 0;
@@ -474,7 +474,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
 
     for i in 0..6 {
         let face: CubeFace = kFaces[i as usize].face;
-        let face_path = format!("{}{}.png", path.convert(), K_FACE_EXT[i as usize]);
+        let face_path = format!("{}{}.png", path.as_str(), K_FACE_EXT[i as usize]);
 
         gl::GetTexImage(
             face as gl::types::GLenum,

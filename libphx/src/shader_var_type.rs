@@ -44,7 +44,7 @@ const SHADER_VAR_INFO: [ShaderVarInfo; 13] = [
 
 #[no_mangle]
 pub extern "C" fn ShaderVarType_FromStr(name: *const libc::c_char) -> ShaderVarType {
-    shader_var_type_from_str(&name.convert())
+    shader_var_type_from_str(&name.as_str())
 }
 
 pub fn shader_var_type_from_str(name: &str) -> ShaderVarType {

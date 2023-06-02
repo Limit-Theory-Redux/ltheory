@@ -4,20 +4,10 @@ use std::ffi::CString;
 
 pub use c2rust::*;
 
-/// Convert one type to another.
-/// Simplified version of the From crate to convert C data to Rust.
-///
-/// Rust GAT in action!
-pub trait Convert {
-    type T<'a>
-    where
-        Self: 'a;
+pub trait ConvertIntoString {
+    fn as_str(&self) -> &str;
 
-    fn convert(&self) -> Self::T<'_>;
-}
-
-pub trait ConvertToOwned {
-    type T;
-
-    fn to_owned_value(&self) -> Self::T;
+    fn as_string(&self) -> String {
+        self.as_str().to_string()
+    }
 }

@@ -158,7 +158,7 @@ pub unsafe extern "C" fn Bytes_Write(this: &mut Bytes, data: *const libc::c_void
 
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_WriteStr(this: &mut Bytes, data: *const libc::c_char) {
-    let len: usize = data.convert().len();
+    let len: usize = data.as_str().len();
     MemCpy(
         (&mut this.data as *mut libc::c_char).offset(this.cursor as isize) as *mut _,
         data as *const _,

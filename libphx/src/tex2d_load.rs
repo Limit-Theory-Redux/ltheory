@@ -12,7 +12,7 @@ pub extern "C" fn Tex2D_LoadRaw(
     sy: &mut i32,
     components: &mut i32,
 ) -> *mut libc::c_uchar {
-    tex2d_load_raw(&path.convert(), sx, sy, components)
+    tex2d_load_raw(&path.as_str(), sx, sy, components)
 }
 
 pub fn tex2d_load_raw(

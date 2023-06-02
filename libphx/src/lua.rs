@@ -338,17 +338,17 @@ unsafe extern "C" fn Lua_ToString(
     this: *mut Lua,
     name: *const libc::c_char,
 ) -> *const libc::c_char {
-    static_string!(lua_to_string(this, &name.convert()))
+    static_string!(lua_to_string(this, &name.as_str()))
 }
 
 unsafe fn lua_to_string(this: *mut Lua, name: &str) -> String {
     let type_0: i32 = lua_type(this, -1);
-    let type_name = lua_typename(this, type_0).to_owned_value();
+    let type_name = lua_typename(this, type_0).as_string();
     let mut str_value = String::new();
     let mut is_null: bool = false;
 
     if luaL_callmeta(this, -1, c_str!("__tostring")) != 0 {
-        str_value = lua_tolstring(this, -1, std::ptr::null_mut()).to_owned_value();
+        str_value = lua_tolstring(this, -1, std::ptr::null_mut()).as_string();
         lua_settop(this, -1 - 1);
     } else {
         let current_block_14: u64;
@@ -366,11 +366,11 @@ unsafe fn lua_to_string(this: *mut Lua, name: &str) -> String {
                 current_block_14 = 11584701595673473500;
             }
             3 => {
-                str_value = lua_tolstring(this, -1, std::ptr::null_mut()).to_owned_value();
+                str_value = lua_tolstring(this, -1, std::ptr::null_mut()).as_string();
                 current_block_14 = 11584701595673473500;
             }
             4 => {
-                str_value = lua_tolstring(this, -1, std::ptr::null_mut()).to_owned_value();
+                str_value = lua_tolstring(this, -1, std::ptr::null_mut()).as_string();
                 current_block_14 = 11584701595673473500;
             }
             2 => {
@@ -475,8 +475,8 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         }
 
         let mut variablesPrinted: i32 = 0;
-        let mut func_name = ar.name.convert();
-        let mut file_name = ar.source.to_owned_value();
+        let mut func_name = ar.name.as_str();
+        let mut file_name = ar.source.as_string();
         let mut line: i32 = ar.currentline;
 
         if !file_name.starts_with('@') {
@@ -486,10 +486,10 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         if file_name.starts_with('@') {
             file_name.remove(0);
         }
-        if ar.what.convert() == "C" {
+        if ar.what.as_str() == "C" {
             file_name = "<native>".into();
         }
-        if ar.what.convert() == "main" {
+        if ar.what.as_str() == "main" {
             func_name = "<main>".into();
         }
         if func_name.is_empty() {
@@ -505,7 +505,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
 
         let mut i_up: i32 = 1;
         loop {
-            let name = lua_getupvalue(this, -1, i_up).to_owned_value();
+            let name = lua_getupvalue(this, -1, i_up).as_string();
 
             if name.is_empty() {
                 break;
@@ -527,7 +527,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
 
         let mut i_local: i32 = 1;
         loop {
-            let name_0 = lua_getlocal(this, &mut ar, i_local).to_owned_value();
+            let name_0 = lua_getlocal(this, &mut ar, i_local).as_string();
             if name_0.is_empty() {
                 break;
             }

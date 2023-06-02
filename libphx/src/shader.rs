@@ -117,10 +117,10 @@ unsafe fn glsl_load(name: &str, this: &mut Shader) -> String {
     let cached: *mut libc::c_void = StrMap_Get(&mut *cache, c_name.as_ptr());
 
     if !cached.is_null() {
-        return (cached as *const libc::c_char).convert().into();
+        return (cached as *const libc::c_char).as_string();
     }
 
-    let rawCode = Resource_LoadCstr(ResourceType_Shader, c_name.as_ptr()).to_owned_value();
+    let rawCode = Resource_LoadCstr(ResourceType_Shader, c_name.as_ptr()).as_string();
     let code = rawCode.replace("\r\n", "\n");
     let c_code = glsl_preprocess(&code, this);
 
@@ -210,7 +210,7 @@ pub unsafe extern "C" fn Shader_Create(
     vs: *const libc::c_char,
     fs: *const libc::c_char,
 ) -> Box<Shader> {
-    shader_create(&vs.convert(), &fs.convert())
+    shader_create(&vs.as_str(), &fs.as_str())
 }
 
 pub unsafe fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
@@ -243,14 +243,14 @@ pub unsafe extern "C" fn Shader_Load(
     this._refCount = 1;
     this.vars = Vec::new();
 
-    let vs = glsl_load(&vName.convert(), this.as_mut());
-    let fs = glsl_load(&fName.convert(), this.as_mut());
+    let vs = glsl_load(&vName.as_str(), this.as_mut());
+    let fs = glsl_load(&fName.as_str(), this.as_mut());
 
     this.vs = create_gl_shader(&vs, gl::VERTEX_SHADER);
     this.fs = create_gl_shader(&fs, gl::FRAGMENT_SHADER);
     this.program = CreateGLProgram(this.vs, this.fs);
     this.texIndex = 1;
-    this.name = format!("[vs: {} , fs: {}]", vName.convert(), fName.convert());
+    this.name = format!("[vs: {} , fs: {}]", vName.as_str(), fName.as_str());
 
     Shader_BindVariables(this.as_mut());
 
@@ -399,7 +399,7 @@ pub unsafe extern "C" fn Shader_GetVariable(this: &mut Shader, name: *const libc
         Fatal!(
             "Shader_GetVariable: Shader <{}> has no variable <{}>",
             this.name,
-            name.convert(),
+            name.as_str(),
         );
     }
     index

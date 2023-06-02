@@ -13,7 +13,7 @@ pub struct Directory {
 
 #[no_mangle]
 pub unsafe extern "C" fn Directory_Open(path: *const libc::c_char) -> *mut Directory {
-    match fs::read_dir(path.convert()) {
+    match fs::read_dir(path.as_str()) {
         Ok(dir) => {
             let this = MemNew!(Directory);
             (*this).iterator = dir;
@@ -43,13 +43,13 @@ pub extern "C" fn Directory_GetNext(this: &mut Directory) -> *const libc::c_char
 
 #[no_mangle]
 pub extern "C" fn Directory_Change(cwd: *const libc::c_char) -> bool {
-    env::set_current_dir(cwd.convert()).is_ok()
+    env::set_current_dir(cwd.as_str()).is_ok()
 }
 
 // This will create the directory if it doesn't exist, or do nothing if it exists already.
 #[no_mangle]
 pub extern "C" fn Directory_Create(path: *const libc::c_char) -> bool {
-    match fs::create_dir(path.convert()) {
+    match fs::create_dir(path.as_str()) {
         Ok(()) => true,
         Err(err) => match err.kind() {
             ErrorKind::AlreadyExists => true,
@@ -82,5 +82,5 @@ pub extern "C" fn Directory_GetPrefPath(
 
 #[no_mangle]
 pub extern "C" fn Directory_Remove(path: *const libc::c_char) -> bool {
-    fs::remove_dir(path.convert()).is_ok()
+    fs::remove_dir(path.as_str()).is_ok()
 }

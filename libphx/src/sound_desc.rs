@@ -66,7 +66,7 @@ pub unsafe extern "C" fn SoundDesc_Load(
     } else {
         "UNLOOPED:"
     };
-    let mapKey = static_string!(format!("{looped_str}{}", name.convert()));
+    let mapKey = static_string!(format!("{looped_str}{}", name.as_str()));
     let this: *mut SoundDesc = Audio_AllocSoundDesc(mapKey);
 
     if ((*this).name).is_null() {

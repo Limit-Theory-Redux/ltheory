@@ -150,7 +150,7 @@ unsafe extern "C" fn ConsumeCharacter(character: libc::c_char, s: *mut ParseStat
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
-    let bytesSize: i32 = bytes.convert().len() as i32;
+    let bytesSize: i32 = bytes.as_str().len() as i32;
 
     let mut s: ParseState = ParseState {
         cursor: bytes,
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
         ConsumeToken(token.as_mut_ptr(), 16, &mut s);
         ConsumeWhitespace(&mut s);
 
-        let token_str = token.as_ptr().to_owned_value();
+        let token_str = token.as_ptr().as_string();
 
         if token_str == "" {
             if s.cursor >= s.endOfData {
