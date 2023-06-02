@@ -120,9 +120,7 @@ unsafe fn glsl_load(name: &str, this: &mut Shader) -> String {
         return (cached as *const libc::c_char).convert().into();
     }
 
-    let rawCode = Resource_LoadCstr(ResourceType_Shader, c_name.as_ptr())
-        .convert()
-        .to_string();
+    let rawCode = Resource_LoadCstr(ResourceType_Shader, c_name.as_ptr()).to_owned_value();
     let code = rawCode.replace("\r\n", "\n");
     let c_code = glsl_preprocess(&code, this);
 

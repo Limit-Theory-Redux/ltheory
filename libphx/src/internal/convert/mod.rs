@@ -15,3 +15,9 @@ pub trait Convert {
 
     fn convert(&self) -> Self::T<'_>;
 }
+
+pub trait ConvertToOwned {
+    type T;
+
+    fn to_owned_value(&self) -> Self::T;
+}
