@@ -10,8 +10,8 @@ use std::path::PathBuf;
 extern crate cbindgen;
 extern crate gl_generator;
 
-fn link_lib_from_cmake(lib: &str, root: &PathBuf, path_segments: &[&str]) {
-    let mut path = root.clone();
+fn link_lib_from_cmake(lib: &str, root: &Path, path_segments: &[&str]) {
+    let mut path = root.to_path_buf();
     path.extend(path_segments);
     println!("cargo:rustc-link-search=native={}", path.display());
     println!("cargo:rustc-link-lib={}", lib);
@@ -33,7 +33,7 @@ fn main() {
 
     // Generate GL bindings.
     let dest = env::var("OUT_DIR").unwrap();
-    let mut file = File::create(&Path::new(&dest).join("bindings.rs")).unwrap();
+    let mut file = File::create(Path::new(&dest).join("bindings.rs")).unwrap();
     Registry::new(
         Api::Gl,
         (2, 1),
@@ -54,10 +54,10 @@ fn main() {
 
     // Link dependencies.
     if !cfg!(target_os = "windows") {
-        println!("cargo:rustc-link-lib={}", "z");
+        println!("cargo:rustc-link-lib=z");
     }
     if cfg!(target_os = "macos") {
-        println!("cargo:rustc-link-lib=framework={}", "CoreHaptics");
+        println!("cargo:rustc-link-lib=framework=CoreHaptics");
     }
 
     if cfg!(target_os = "macos") {

@@ -1,11 +1,18 @@
 use std::env;
 use std::path::Path;
+use winres::WindowsResource;
 
 fn main() {
     if env::var("TARGET")
         .expect("target")
         .ends_with("windows-msvc")
     {
+        // App Icon
+        WindowsResource::new()
+            .set_icon("res/images/LTR-Icon.ico")
+            .compile()
+            .unwrap();
+
         let manifest = Path::new("src/ltr.exe.manifest").canonicalize().unwrap();
         println!("cargo:rustc-link-arg-bins=/MANIFEST:EMBED");
         println!(
