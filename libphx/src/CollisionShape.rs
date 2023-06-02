@@ -1,3 +1,5 @@
+use std::rc::{Rc, Weak};
+
 use crate::Math::{Box3, Vec3};
 use crate::Mesh::*;
 use rapier3d::prelude::nalgebra as na;
@@ -14,67 +16,81 @@ pub const CollisionMask_Null: CollisionMask = 0 << 0;
 pub const CollisionMask_All: CollisionMask = !CollisionGroup_Null;
 pub const CollisionMask_NoTriggers: CollisionMask = !CollisionGroup_Trigger;
 
+#[derive(Clone)]
 pub enum CollisionShapeType {
     Box { halfExtents: Vec3 },
     Sphere { radius: f32 },
-    Hull { b: Box<Mesh> },
+    Hull { mesh: Weak<Mesh> },
     Compound(),
 }
 
 pub struct CollisionShape {
-    pub cacheIndex: i32,
     pub scale: f32,
     pub shape: CollisionShapeType,
     pub collider: rp::Collider,
 }
 
 impl CollisionShape {
-    fn new(spec: CollisionShapeType) -> Box<CollisionShape> {
-        let builder = match spec {
-            CollisionShapeType::Box { halfExtents } => {
-                ColliderBuilder::cuboid(halfExtents.x, halfExtents.y, halfExtents.z)
-            }
-            CollisionShapeType::Sphere { radius } => ColliderBuilder::ball(radius),
+    pub(crate) fn new(scale: f32, shape: CollisionShapeType) -> Box<CollisionShape> {
+        let builder = match shape {
+            CollisionShapeType::Box { halfExtents } => ColliderBuilder::cuboid(
+                halfExtents.x * scale,
+                halfExtents.y * scale,
+                halfExtents.z * scale,
+            ),
+            CollisionShapeType::Sphere { radius } => ColliderBuilder::ball(radius * scale),
             _ => ColliderBuilder::ball(1.0), // TODO: Implement remaining types.
         };
         Box::new(CollisionShape {
-            cacheIndex: 0,
-            scale: 0.0,
-            shape: spec,
+            scale: scale,
+            shape: shape,
             collider: builder.build(),
         })
     }
 
     pub fn newBox(halfExtents: &Vec3) -> Box<CollisionShape> {
-        Self::new(CollisionShapeType::Box {
-            halfExtents: *halfExtents,
-        })
+        Self::new(
+            1.0,
+            CollisionShapeType::Box {
+                halfExtents: *halfExtents,
+            },
+        )
     }
 
     pub fn newBoxFromMesh(mesh: &mut Mesh) -> Box<CollisionShape> {
         let mut bounds = Box3::default();
         unsafe { Mesh_GetBound(mesh, &mut bounds) };
-        Self::new(CollisionShapeType::Box {
-            halfExtents: Vec3::new(
-                f32::max(f32::abs(bounds.upper.x), f32::abs(bounds.lower.x)),
-                f32::max(f32::abs(bounds.upper.y), f32::abs(bounds.lower.y)),
-                f32::max(f32::abs(bounds.upper.z), f32::abs(bounds.lower.z)),
-            ),
-        })
+        Self::new(
+            1.0,
+            CollisionShapeType::Box {
+                halfExtents: Vec3::new(
+                    f32::max(f32::abs(bounds.upper.x), f32::abs(bounds.lower.x)),
+                    f32::max(f32::abs(bounds.upper.y), f32::abs(bounds.lower.y)),
+                    f32::max(f32::abs(bounds.upper.z), f32::abs(bounds.lower.z)),
+                ),
+            },
+        )
     }
 
     pub fn newSphere(radius: f32) -> Box<CollisionShape> {
-        Self::new(CollisionShapeType::Sphere { radius: radius })
+        Self::new(1.0, CollisionShapeType::Sphere { radius: radius })
     }
 
     pub fn newSphereFromMesh(mesh: &mut Mesh) -> Box<CollisionShape> {
-        Self::new(CollisionShapeType::Sphere {
-            radius: Mesh_GetRadius(mesh),
-        })
+        Self::new(
+            1.0,
+            CollisionShapeType::Sphere {
+                radius: Mesh_GetRadius(mesh),
+            },
+        )
     }
 
-    pub fn newHullFromMesh(mesh: &mut Mesh) -> Box<CollisionShape> {
-        // TODO
-        Self::new(CollisionShapeType::Sphere { radius: 1.0f32 })
+    pub fn newHullFromMesh(mesh: Rc<Mesh>) -> Box<CollisionShape> {
+        Self::new(
+            1.0,
+            CollisionShapeType::Hull {
+                mesh: Rc::downgrade(&mesh),
+            },
+        )
     }
 }

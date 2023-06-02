@@ -41,14 +41,14 @@ pub struct ShapeCastResult {
     hits: Vec<RigidBody>,
 }
 
-pub trait NalgebraInterop {
+pub trait NalgebraVec3Interop {
     fn toNA(&self) -> na::Vector3<f32>;
     fn toNAPoint(&self) -> na::Point3<f32>;
     fn fromNA(_: &na::Vector3<f32>) -> Self;
     fn fromNAPoint(_: &na::Point3<f32>) -> Self;
 }
 
-impl NalgebraInterop for Vec3 {
+impl NalgebraVec3Interop for Vec3 {
     fn toNA(&self) -> na::Vector3<f32> {
         na::Vector3::new(self.x, self.y, self.z)
     }
@@ -60,6 +60,20 @@ impl NalgebraInterop for Vec3 {
     }
     fn fromNAPoint(v: &na::Point3<f32>) -> Vec3 {
         Vec3::new(v.x, v.y, v.z)
+    }
+}
+
+pub trait NalgebraQuatInterop {
+    fn toNA(&self) -> na::UnitQuaternion<f32>;
+    fn fromNA(_: &na::UnitQuaternion<f32>) -> Self;
+}
+
+impl NalgebraQuatInterop for Quat {
+    fn toNA(&self) -> na::UnitQuaternion<f32> {
+        na::UnitQuaternion::from_quaternion(na::Quaternion::new(self.w, self.x, self.y, self.z))
+    }
+    fn fromNA(v: &na::UnitQuaternion<f32>) -> Quat {
+        Quat_Create(v.i, v.j, v.k, v.w)
     }
 }
 

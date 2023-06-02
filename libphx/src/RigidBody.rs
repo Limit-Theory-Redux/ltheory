@@ -9,6 +9,7 @@ use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub enum PhysicsType {
     Null,
@@ -51,7 +52,14 @@ struct RigidBody {
 
 pub struct RigidBody {
     ty: PhysicsType,
+
+    // Stores the rigid body / collider state.
     handle: RigidBodyState,
+
+    // Fields to allow us to reconstruct the collision shape object.
+    shapeType: CollisionShapeType,
+    shapeScale: f32,
+
     collidable: bool,
     collisionGroup: rp::InteractionGroups,
     mass: f32,
@@ -66,6 +74,8 @@ impl RigidBody {
                 rb: rigidBody,
                 collider: shape.collider,
             },
+            shapeType: shape.shape,
+            shapeScale: shape.scale,
             collidable: true,
             collisionGroup: rp::InteractionGroups::default(),
             mass: 1.0,
@@ -75,6 +85,43 @@ impl RigidBody {
     pub fn isChild(&self) -> bool {
         false
     }
+
+    /// Replaces the collider of this rigid body in the physics world it's contained within.
+    // pub fn replaceCollider(&mut self, collider: rp::Collider) {
+    //     self.handle = match self.handle {
+    //         RigidBodyState::Detached { rb, collider: _ } => {
+    //             RigidBodyState::Detached { rb, collider }
+    //         }
+    //         RigidBodyState::Attached {
+    //             rb,
+    //             collider: currentColliderHandle,
+    //             world,
+    //         } => {
+    //             let newHandle = {
+    //                 let mut worldMut = world.borrow_mut();
+    //                 let mut colliderSet = &mut worldMut.colliderSet;
+    //                 let mut islandManager = &mut worldMut.islandManager;
+    //                 let mut rigidBodySet = &mut worldMut.rigidBodySet;
+    //                 colliderSet.remove(
+    //                     currentColliderHandle,
+    //                     islandManager, 
+    //                     rigidBodySet,
+    //                     true,
+    //                 );
+    //                 colliderSet.insert_with_parent(
+    //                     collider,
+    //                     rb,
+    //                     rigidBodySet,
+    //                 )
+    //             };
+    //             RigidBodyState::Attached {
+    //                 rb,
+    //                 collider: newHandle,
+    //                 world,
+    //             }
+    //         }
+    //     }
+    // }
 
     /// Executes a function f with a reference to the RigidBody associated with this object.
     pub fn withRigidBody<F, R>(&self, f: F) -> R
@@ -162,7 +209,7 @@ pub extern "C" fn RigidBody_CreateSphereFromMesh(mesh: &mut Mesh) -> Box<RigidBo
 }
 
 #[no_mangle]
-pub extern "C" fn RigidBody_CreateHullFromMesh(mesh: &mut Mesh) -> Box<RigidBody> {
+pub extern "C" fn RigidBody_CreateHullFromMesh(mesh: Rc<Mesh>) -> Box<RigidBody> {
     RigidBody_Create(CollisionShape::newHullFromMesh(mesh))
 }
 
@@ -358,33 +405,51 @@ pub extern "C" fn RigidBody_SetMass(this: &mut RigidBody, mass: f32) {
 }
 
 #[no_mangle]
-pub extern "C" fn RigidBody_GetPos(this: &mut RigidBody, out: &mut Vec3) {}
-
-#[no_mangle]
-pub extern "C" fn RigidBody_GetPosLocal(this: &mut RigidBody, out: &mut Vec3) {}
-
-#[no_mangle]
-pub extern "C" fn RigidBody_SetPos(this: &mut RigidBody, pos: *mut Vec3) {}
-
-#[no_mangle]
-pub extern "C" fn RigidBody_SetPosLocal(this: &mut RigidBody, pos: *mut Vec3) {}
-
-#[no_mangle]
-pub extern "C" fn RigidBody_GetRot(this: &mut RigidBody, out: *mut Quat) {}
-
-#[no_mangle]
-pub extern "C" fn RigidBody_GetRotLocal(this: &mut RigidBody, out: *mut Quat) {}
-
-#[no_mangle]
-pub extern "C" fn RigidBody_SetRot(this: &mut RigidBody, rot: *mut Quat) {}
-
-#[no_mangle]
-pub extern "C" fn RigidBody_SetRotLocal(this: &mut RigidBody, rot: *mut Quat) {}
-
-#[no_mangle]
-pub extern "C" fn RigidBody_GetScale(this: &mut RigidBody) -> f32 {
-    0.0
+pub extern "C" fn RigidBody_GetPos(this: &RigidBody, out: &mut Vec3) {
+    this.withRigidBody(|rb| *out = Vec3::fromNA(rb.translation()));
 }
 
 #[no_mangle]
-pub extern "C" fn RigidBody_SetScale(this: &mut RigidBody, scale: f32) {}
+pub extern "C" fn RigidBody_GetPosLocal(this: &RigidBody, out: &mut Vec3) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetPos(this: &mut RigidBody, pos: &mut Vec3) {
+    this.withRigidBodyMut(|rb| rb.set_translation(pos.toNA(), true));
+}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetPosLocal(this: &mut RigidBody, pos: &mut Vec3) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_GetRot(this: &RigidBody, out: &mut Quat) {
+    this.withRigidBody(|rb| *out = Quat::fromNA(rb.rotation()));
+}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_GetRotLocal(this: &mut RigidBody, out: &mut Quat) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetRot(this: &mut RigidBody, rot: &mut Quat) {
+    this.withRigidBodyMut(|rb| rb.set_rotation(rot.toNA(), true));
+}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetRotLocal(this: &mut RigidBody, rot: &mut Quat) {}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_GetScale(this: &RigidBody) -> f32 {
+    this.shapeScale
+}
+
+#[no_mangle]
+pub extern "C" fn RigidBody_SetScale(this: &mut RigidBody, scale: f32) {
+    let scaledShape = CollisionShape::new(scale, this.shapeType.clone());
+    this.withColliderMut(|c| {
+        // Replace the shape of the current collider by cloning the reference counted Shape object.
+        c.set_shape(rp::SharedShape(
+            scaledShape.collider.shared_shape().0.clone(),
+        ));
+    });
+    this.shapeType = scaledShape.shape;
+    this.shapeScale = scale;
+}
