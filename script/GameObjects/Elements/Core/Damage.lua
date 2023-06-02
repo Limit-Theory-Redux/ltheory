@@ -5,14 +5,16 @@ function Entity:applyDamage (amount, source)
   local shieldRemaining = self:mgrShieldGetShield()
   local armorRemaining  = self:mgrArmorGetArmor()
 
-local thisShipName      = self:getName()
-local attackingShipName = source:getName()
-if self.usesBoost then
-  thisShipName = thisShipName .. " [Ace]"
-end
-if source.usesBoost then
-  attackingShipName = attackingShipName .. " [Ace]"
-end
+  -- TEMP: Modify the names of NPC ships to indicate their higher threat level
+  -- TODO: Assign and display "Ace" status in a more formally managed way
+  local thisShipName      = self:getName()
+  local attackingShipName = source:getName()
+  if self.usesBoost then
+    thisShipName = thisShipName .. " [Ace]"
+  end
+  if source.usesBoost then
+    attackingShipName = attackingShipName .. " [Ace]"
+  end
 
 --printf("hit on '%s' from '%s' for %s damage", thisShipName, attackingShipName, amount)
 
