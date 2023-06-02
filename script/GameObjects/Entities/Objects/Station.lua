@@ -57,6 +57,7 @@ local Station = subclass(Entity, function (self, seed)
   self.shipDamageList = {}
   self.lastClearDamageTime = 0
   self.timer = 0
+  self.stationPatrolJobs = 0
   self:register(Event.Update, Entity.updateStation)
   self:register(Event.Damaged, damaged)
 end)
@@ -85,10 +86,10 @@ function Station:distressCall (target, range)
 end
 
 function Station:undockAndAttack(target)
-  for key, ship in pairs(self:getDocked(self)) do
-    self:removeDocked(ship)
-    ship:pushAction(Actions.Attack(target))
-  end
+  --for key, ship in pairs(self:getDocked(self)) do
+  --  self:removeDocked(ship)
+  --  ship:pushAction(Actions.Attack(target))
+  --end
 end
 
 function Station:attackedBy (target)

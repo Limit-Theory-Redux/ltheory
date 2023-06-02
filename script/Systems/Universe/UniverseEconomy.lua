@@ -105,6 +105,9 @@ local function addBlackMarket(system)
   -- Configure assets
   for asset in piratePlayer:iterAssets() do
     asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
+    for key, ship in pairs(system.ships) do
+      ship:setDisposition(asset, Config.game.dispoMin)
+    end
     GameState.player.humanPlayer:getControlling():setDisposition(asset, Config.game.dispoMin)
     if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
       asset:setHealth(100, 100, 0.2)

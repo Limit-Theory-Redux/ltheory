@@ -214,15 +214,18 @@ function Economy:update(dt)
           local system = src:getRoot()
           local zone = src:getZone()
           allJobCount = allJobCount + 1
-            if zone and zone.threatLevel > 5 then
+          if zone and src.stationPatrolJobs then
+            print("Patrolling job spots: " .. tostring(max(0, min(floor(zone.threatLevel / 10), #self.traders * 10) - src.stationPatrolJobs)) .. " out of " .. tostring(max(0, min(floor(zone.threatLevel / 10), #self.traders * 10))))
+            for i = 1, max(0, min(floor(zone.threatLevel / 10), 10) - src.stationPatrolJobs) do
               realJobCount = realJobCount + 1
               local patrolPoints = {}
-              for i = 1, 10, 1 do
-                table.insert(patrolPoints, zone:getRandomPos(system.rng))
+              for i2 = 1, 10 do
+                table.insert(patrolPoints, zone:getRandomPos(rng))
               end
               insert(self.jobs[Enums.Jobs.Patrolling], Jobs.Patrolling(src, system, patrolPoints))
+              src.stationPatrolJobs = src.stationPatrolJobs + 1
             end
-          
+          end
         end
       end
       self.nextUpdates[4] = self.timer + updateRates[4] + rng:getUniformRange(0, maxUpdateRateDeviation)

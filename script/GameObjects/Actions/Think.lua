@@ -82,9 +82,9 @@ if true then -- Use payout, not flow
 
           if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
             threatLevel = job:getThreatLevel()
-            if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
-              goto skipJob
-            end
+          end
+          if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
+            goto skipJob
           end
 
           local payout = job:getPayout(asset)
@@ -150,6 +150,13 @@ asset:getName(), asset:getOwner():getName(), station:getName())
         asset:pushAction(bestJob)
         jobAssigned = true
         asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Patrol"))
+
+        local station = asset:isShipDocked()
+        if station then
+printf("THINK +++: Asset %s (owner %s) wakes up at Station %s",
+asset:getName(), asset:getOwner():getName(), station:getName())
+          asset:pushAction(Actions.Undock())
+        end
       else
         -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
 printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())
