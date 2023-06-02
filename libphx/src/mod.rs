@@ -24,9 +24,7 @@ extern crate printf_compat;
 extern crate rodio;
 extern crate sdl2_sys;
 
-mod internal;
-
-pub use internal::*;
+pub mod internal;
 
 pub mod audio;
 pub mod bit;

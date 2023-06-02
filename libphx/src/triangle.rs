@@ -1,7 +1,7 @@
 use crate::*;
 
-use crate::math::Vec3;
-use crate::math::Vec3_Validate;
+use crate::internal::*;
+use crate::math::*;
 use crate::plane::*;
 
 #[derive(Copy, Clone)]

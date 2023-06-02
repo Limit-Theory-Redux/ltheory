@@ -1,7 +1,6 @@
 use crate::button::*;
 use crate::common::*;
-use crate::static_string;
-use crate::Convert;
+use crate::internal::*;
 
 pub type DeviceType = i32;
 

@@ -1,5 +1,6 @@
 use crate::*;
 
+use crate::internal::*;
 use crate::key::*;
 
 use sdl2_sys::*;

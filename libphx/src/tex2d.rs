@@ -1,10 +1,11 @@
 use crate::bytes::*;
 use crate::common::*;
 use crate::data_format::*;
+use crate::internal::*;
 use crate::*;
 
 use crate::draw::*;
-use crate::math::IVec2;
+use crate::math::*;
 
 use crate::metric::*;
 use crate::pixel_format::*;

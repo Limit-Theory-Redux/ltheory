@@ -1,8 +1,7 @@
 use crate::bytes::*;
 use crate::common::*;
 use crate::file::*;
-use crate::static_string;
-use crate::Convert;
+use crate::internal::*;
 
 use crate::resource_type::*;
 

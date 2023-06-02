@@ -1,4 +1,5 @@
-use crate::{device_type::*, static_string, Convert};
+use crate::device_type::*;
+use crate::internal::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

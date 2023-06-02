@@ -1,10 +1,10 @@
 use crate::common::*;
+use crate::internal::*;
 use crate::math::Vec3;
 use crate::mem_pool::*;
 use crate::sound::*;
 use crate::sound_desc::*;
 use crate::str_map::*;
-use crate::MemFree;
 use crate::MemNewZero;
 use crate::*;
 use fmod_sys::*;

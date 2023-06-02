@@ -1,5 +1,6 @@
+use crate::internal::*;
 use crate::math::Vec3;
-use crate::{ray::*, static_string, Convert};
+use crate::ray::*;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

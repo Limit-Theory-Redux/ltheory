@@ -1,8 +1,7 @@
 use crate::button::*;
 use crate::device::*;
+use crate::internal::*;
 use crate::state::*;
-use crate::static_string;
-use crate::Convert;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

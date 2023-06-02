@@ -1,4 +1,4 @@
-use crate::Convert;
+use crate::internal::Convert;
 
 impl Convert for *const libc::c_char {
     type T<'a> = &'a str where Self: 'a;

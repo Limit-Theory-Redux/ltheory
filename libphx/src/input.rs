@@ -3,6 +3,7 @@ use crate::common::*;
 use crate::device::*;
 use crate::device_type::*;
 use crate::input_event::*;
+use crate::internal::*;
 use crate::math::IVec2;
 use crate::*;
 

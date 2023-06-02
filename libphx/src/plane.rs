@@ -1,5 +1,6 @@
 use crate::*;
 
+use crate::internal::*;
 use crate::intersect::*;
 use crate::math::*;
 use crate::polygon::*;

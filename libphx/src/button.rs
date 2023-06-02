@@ -2,8 +2,7 @@ use std::ffi::CString;
 
 use crate::common::*;
 use crate::device_type::*;
-use crate::static_string;
-use crate::Convert;
+use crate::internal::*;
 use sdl2_sys::*;
 
 pub type Button = i32;

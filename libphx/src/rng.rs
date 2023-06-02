@@ -1,9 +1,8 @@
 use crate::*;
 
 use crate::hash::*;
-use crate::math::Vec2;
-use crate::math::Vec3;
-use crate::math::Vec4;
+use crate::internal::*;
+use crate::math::*;
 use crate::time_stamp::*;
 
 #[derive(Copy, Clone)]

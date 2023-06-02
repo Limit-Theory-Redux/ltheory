@@ -1,11 +1,13 @@
 use crate::audio::*;
 use crate::common::*;
 use crate::file::*;
+use crate::internal::*;
 use crate::*;
 
 use crate::resource::*;
 use crate::resource_type::*;
 use crate::sound::FMODCALL;
+
 use fmod_sys::*;
 
 #[derive(Copy, Clone)]

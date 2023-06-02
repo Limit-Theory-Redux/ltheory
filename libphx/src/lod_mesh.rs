@@ -1,5 +1,6 @@
 use crate::*;
 
+use crate::internal::*;
 use crate::mesh::*;
 
 /* --- LodMesh -----------------------------------------------------------------

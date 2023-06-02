@@ -1,9 +1,8 @@
 use crate::*;
 
+use crate::internal::*;
 use crate::line_segment::*;
-use crate::math::DVec3;
-use crate::math::Vec3;
-use crate::math::Vec3_Validate;
+use crate::math::*;
 use crate::plane::*;
 use crate::triangle::*;
 

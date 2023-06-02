@@ -1,5 +1,8 @@
+use crate::internal::*;
 use crate::*;
+
 use sdl2_sys::SDL_GetPrefPath;
+
 use std::io::ErrorKind;
 use std::{env, fs};
 

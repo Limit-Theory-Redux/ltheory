@@ -1,7 +1,8 @@
 use crate::bytes::*;
 use crate::common::*;
 use crate::data_format::*;
-use crate::math::IVec3;
+use crate::internal::*;
+use crate::math::*;
 use crate::*;
 
 use crate::gl::gl;

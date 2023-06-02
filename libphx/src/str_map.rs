@@ -1,5 +1,6 @@
 use crate::common::*;
 use crate::hash::*;
+use crate::internal::*;
 use crate::*;
 
 #[derive(Copy, Clone)]

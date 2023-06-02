@@ -1,4 +1,6 @@
-use crate::{common::*, Convert};
+use crate::common::*;
+use crate::internal::*;
+
 use image::{DynamicImage, ImageBuffer};
 
 #[no_mangle]

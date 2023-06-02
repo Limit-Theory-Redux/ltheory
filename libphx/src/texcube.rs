@@ -5,6 +5,7 @@ use crate::cube_face::*;
 use crate::data_format::*;
 use crate::draw::*;
 use crate::gl_matrix::*;
+use crate::internal::*;
 use crate::math::Vec3;
 use crate::pixel_format::*;
 use crate::render_state::*;

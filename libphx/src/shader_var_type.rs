@@ -1,7 +1,6 @@
 use crate::common::*;
-use crate::math::Vec3;
-use crate::math::Vec4;
-use crate::math::{IVec2, IVec3, IVec4, Vec2};
+use crate::internal::*;
+use crate::math::*;
 use crate::matrix::*;
 use crate::tex1d::*;
 use crate::tex2d::*;

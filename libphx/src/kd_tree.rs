@@ -1,9 +1,8 @@
 use crate::*;
 
 use crate::draw::*;
-use crate::math::Box3;
-
-use crate::math::Vec3;
+use crate::internal::*;
+use crate::math::*;
 use crate::matrix::*;
 use crate::mesh::*;
 use std::cmp::Ordering;

@@ -1,6 +1,7 @@
 use crate::common::*;
 use crate::gamepad_axis::*;
 use crate::gamepad_button::*;
+use crate::internal::*;
 use crate::*;
 
 use crate::time_stamp::TimeStamp;
