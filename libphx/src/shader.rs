@@ -14,7 +14,7 @@ use crate::str_map::*;
 use crate::tex1d::*;
 use crate::tex2d::*;
 use crate::tex3d::*;
-use crate::tex_cube::*;
+use crate::texcube::*;
 use crate::*;
 
 #[derive(Default)]
@@ -53,8 +53,6 @@ unsafe extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const lib
 }
 
 unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
-    // println!("CreateGLShader:\n{src}");
-
     let this: u32 = gl::CreateShader(type_0);
     let c_src = CString::new(src).unwrap();
 
@@ -70,16 +68,13 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
 
     /* Check for compile errors. */
     let mut status: i32 = 0;
-
     gl::GetShaderiv(this, gl::COMPILE_STATUS, &mut status);
 
     if status == 0 {
         let mut length: i32 = 0;
-
         gl::GetShaderiv(this, gl::INFO_LOG_LENGTH, &mut length);
 
         let infoLog = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
-
         gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
 
         CFatal!("CreateGLShader: Failed to compile shader:\n%s", infoLog);
@@ -107,7 +102,7 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
         gl::GetProgramiv(this, gl::INFO_LOG_LENGTH, &mut length);
         let infoLog: *mut libc::c_char = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetProgramInfoLog(this, length, std::ptr::null_mut(), infoLog);
-        CFatal!("CreateGLProgram: Failed to link program:\n%s", infoLog,);
+        CFatal!("CreateGLProgram: Failed to link program:\n%s", infoLog);
     }
     this
 }
@@ -123,10 +118,12 @@ unsafe fn glsl_load(name: &str, this: &mut Shader) -> String {
     let cached: *mut libc::c_void = StrMap_Get(&mut *cache, c_name.as_ptr());
 
     if !cached.is_null() {
-        return (cached as *const libc::c_char).convert();
+        return (cached as *const libc::c_char).convert().into();
     }
 
-    let rawCode = Resource_LoadCstr(ResourceType_Shader, c_name.as_ptr()).convert();
+    let rawCode = Resource_LoadCstr(ResourceType_Shader, c_name.as_ptr())
+        .convert()
+        .to_string();
     let code = rawCode.replace("\r\n", "\n");
     let c_code = glsl_preprocess(&code, this);
 
@@ -225,7 +222,6 @@ pub unsafe fn shader_create(vs: &str, fs: &str) -> Box<Shader> {
     this._refCount = 1;
     this.vars = Vec::new();
 
-    // TODO: do we need replace? test without it
     let vs = glsl_preprocess(&vs.replace("\r\n", "\n"), this.as_mut());
     let fs = glsl_preprocess(&fs.replace("\r\n", "\n"), this.as_mut());
 
@@ -299,11 +295,12 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
     /* Fetch & bind automatic variables from the shader var stack. */
     let mut i: i32 = 0;
     while i < this.vars.len() as i32 {
-        let var: &mut ShaderVar = &mut this.vars[i as usize];
+        let var = &mut this.vars[i as usize];
 
         if !((*var).index < 0) {
+            // TODO: investigate why pinning is needed here
             let c_name = static_string!((*var).name.as_str());
-            let pValue: *mut libc::c_void = ShaderVar_Get(c_name, (*var).type_0);
+            let pValue = ShaderVar_Get(c_name, (*var).type_0);
 
             if pValue.is_null() {
                 CFatal!(

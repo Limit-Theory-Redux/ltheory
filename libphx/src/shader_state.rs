@@ -6,7 +6,7 @@ use crate::shader::*;
 use crate::tex1d::*;
 use crate::tex2d::*;
 use crate::tex3d::*;
-use crate::tex_cube::*;
+use crate::texcube::*;
 use crate::*;
 
 #[derive(Clone)]

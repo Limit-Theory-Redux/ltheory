@@ -8,7 +8,7 @@ use crate::str_map::*;
 use crate::tex1d::*;
 use crate::tex2d::*;
 use crate::tex3d::*;
-use crate::tex_cube::*;
+use crate::texcube::*;
 use crate::*;
 
 #[derive(Copy, Clone)]
@@ -120,7 +120,7 @@ pub unsafe extern "C" fn ShaderVar_PushFloat2(name: *const libc::c_char, x: f32,
 
 #[no_mangle]
 pub unsafe extern "C" fn ShaderVar_PushFloat3(name: *const libc::c_char, x: f32, y: f32, z: f32) {
-    let mut value: Vec3 = Vec3 { x, y, z };
+    let mut value = Vec3::new(x, y, z);
     ShaderVar_Push(name, 0x3, &mut value as *mut Vec3 as *const _);
 }
 

@@ -9,9 +9,9 @@ use crate::render_target::*;
 use crate::rng::*;
 use crate::shader::*;
 use crate::tex2d::*;
-use crate::tex_cube::*;
 use crate::tex_filter::*;
 use crate::tex_format::*;
+use crate::texcube::*;
 use crate::*;
 
 #[no_mangle]

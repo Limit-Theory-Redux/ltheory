@@ -19,6 +19,6 @@ pub extern "C" fn Device_Equal(a: &Device, b: &Device) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn Device_ToString(this: &mut Device) -> *const libc::c_char {
+pub extern "C" fn Device_ToString(this: &Device) -> *const libc::c_char {
     static_string!(this.to_string())
 }

@@ -6,8 +6,8 @@ use crate::metric::*;
 use crate::profiler::*;
 use crate::tex2d::*;
 use crate::tex3d::*;
-use crate::tex_cube::*;
 use crate::tex_format::*;
+use crate::texcube::*;
 
 use crate::gl::gl;
 use crate::viewport::*;

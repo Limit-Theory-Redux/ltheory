@@ -873,7 +873,6 @@ pub unsafe extern "C" fn HmGui_TextEx(
     b: f32,
     a: f32,
 ) {
-    let text_str = text.convert();
     let e = MemNew!(HmGuiText);
 
     HmGui_InitWidget(&mut (*e).widget, Widget_Text);

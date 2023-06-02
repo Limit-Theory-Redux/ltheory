@@ -71,13 +71,7 @@ pub extern "C" fn File_ReadCstr(path: *const libc::c_char) -> *const libc::c_cha
 }
 
 pub fn file_read_cstr(path: &str) -> Option<String> {
-    match fs::read_to_string(path) {
-        Ok(str) => {
-            // Allocates a C string, and releases ownership of it.
-            Some(str.into())
-        }
-        _ => None,
-    }
+    fs::read_to_string(path).ok().map(|data| data.into())
 }
 
 #[no_mangle]

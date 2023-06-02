@@ -6,25 +6,41 @@ use crate::matrix::*;
 use crate::tex1d::*;
 use crate::tex2d::*;
 use crate::tex3d::*;
-use crate::tex_cube::*;
+use crate::texcube::*;
 use crate::*;
 
 pub type ShaderVarType = i32;
 
-const SHADER_VAR_TYPE_GLSL_NAMES: [&str; 13] = [
-    "float",
-    "vec2",
-    "vec3",
-    "vec4",
-    "int",
-    "ivec2",
-    "ivec3",
-    "ivec4",
-    "mat4",
-    "sampler1D",
-    "sampler2D",
-    "sampler3D",
-    "samplerCube",
+struct ShaderVarInfo {
+    glsl_name: &'static str,
+    name: &'static str,
+    size: i32,
+}
+
+impl ShaderVarInfo {
+    const fn new<T>(glsl_name: &'static str, name: &'static str) -> Self {
+        Self {
+            glsl_name,
+            name,
+            size: std::mem::size_of::<T>() as i32,
+        }
+    }
+}
+
+const SHADER_VAR_INFO: [ShaderVarInfo; 13] = [
+    ShaderVarInfo::new::<f32>("float", "float"),
+    ShaderVarInfo::new::<Vec2>("vec2", "float2"),
+    ShaderVarInfo::new::<Vec3>("vec3", "float3"),
+    ShaderVarInfo::new::<Vec4>("vec4", "float4"),
+    ShaderVarInfo::new::<i32>("int", "int"),
+    ShaderVarInfo::new::<IVec2>("ivec2", "int2"),
+    ShaderVarInfo::new::<IVec3>("ivec3", "int3"),
+    ShaderVarInfo::new::<IVec4>("ivec4", "int4"),
+    ShaderVarInfo::new::<*mut Matrix>("mat4", "Matrix"),
+    ShaderVarInfo::new::<*mut Tex1D>("sampler1D", "Tex1D"),
+    ShaderVarInfo::new::<*mut Tex2D>("sampler2D", "Tex2D"),
+    ShaderVarInfo::new::<*mut Tex3D>("sampler3D", "Tex3D"),
+    ShaderVarInfo::new::<*mut TexCube>("samplerCube", "TexCube"),
 ];
 
 #[no_mangle]
@@ -33,10 +49,10 @@ pub extern "C" fn ShaderVarType_FromStr(name: *const libc::c_char) -> ShaderVarT
 }
 
 pub fn shader_var_type_from_str(name: &str) -> ShaderVarType {
-    SHADER_VAR_TYPE_GLSL_NAMES
+    SHADER_VAR_INFO
         .iter()
         .enumerate()
-        .find(|(_, n)| &name == *n)
+        .find(|(_, info)| name == info.glsl_name)
         .map(|(i, _)| i + 1)
         .unwrap_or(0) as ShaderVarType
 }
@@ -49,48 +65,23 @@ pub extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *const libc:
 }
 
 pub fn shader_var_type_get_glsl_name(this: ShaderVarType) -> Option<String> {
-    SHADER_VAR_TYPE_GLSL_NAMES
+    SHADER_VAR_INFO
         .get(this as usize - 1)
-        .map(|name| (*name).into())
+        .map(|name| name.glsl_name.into())
 }
 
 #[no_mangle]
 pub extern "C" fn ShaderVarType_GetName(this: ShaderVarType) -> *const libc::c_char {
-    match this {
-        1 => return c_str!("float"),
-        2 => return c_str!("float2"),
-        3 => return c_str!("float3"),
-        4 => return c_str!("float4"),
-        5 => return c_str!("int"),
-        6 => return c_str!("int2"),
-        7 => return c_str!("int3"),
-        8 => return c_str!("int4"),
-        9 => return c_str!("Matrix"),
-        10 => return c_str!("Tex1D"),
-        11 => return c_str!("Tex2D"),
-        12 => return c_str!("Tex3D"),
-        13 => return c_str!("TexCube"),
-        _ => {}
-    }
-    std::ptr::null()
+    SHADER_VAR_INFO
+        .get(this as usize - 1)
+        .map(|info| info.name.as_ptr() as *const libc::c_char)
+        .unwrap_or(std::ptr::null())
 }
 
 #[no_mangle]
 pub extern "C" fn ShaderVarType_GetSize(this: ShaderVarType) -> i32 {
-    match this {
-        1 => std::mem::size_of::<f32>() as i32,
-        2 => std::mem::size_of::<Vec2>() as i32,
-        3 => std::mem::size_of::<Vec3>() as i32,
-        4 => std::mem::size_of::<Vec4>() as i32,
-        5 => std::mem::size_of::<i32>() as i32,
-        6 => std::mem::size_of::<IVec2>() as i32,
-        7 => std::mem::size_of::<IVec3>() as i32,
-        8 => std::mem::size_of::<IVec4>() as i32,
-        9 => std::mem::size_of::<*mut Matrix>() as i32,
-        10 => std::mem::size_of::<*mut Tex1D>() as i32,
-        11 => std::mem::size_of::<*mut Tex2D>() as i32,
-        12 => std::mem::size_of::<*mut Tex3D>() as i32,
-        13 => std::mem::size_of::<*mut TexCube>() as i32,
-        _ => 0,
-    }
+    SHADER_VAR_INFO
+        .get(this as usize - 1)
+        .map(|info| info.size)
+        .unwrap_or(0)
 }

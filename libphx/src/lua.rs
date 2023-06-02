@@ -88,7 +88,6 @@ unsafe extern "C" fn Lua_BacktraceHook(this: *mut Lua, _: *mut lua_Debug) {
 
     lua_sethook(this, None, 0, 0);
     luaL_where(this, 0);
-    // TODO: check this doesn't cause memory double free bug, do 'forget' if it is
     lua_pushstring(this, msg.as_ptr());
     lua_error(this);
 }
@@ -343,12 +342,14 @@ unsafe extern "C" fn Lua_ToString(
 
 unsafe fn lua_to_string(this: *mut Lua, name: &str) -> String {
     let type_0: i32 = lua_type(this, -1);
-    let type_name = lua_typename(this, type_0).convert();
+    let type_name = lua_typename(this, type_0).convert().to_string();
     let mut str_value = String::new();
     let mut is_null: bool = false;
 
     if luaL_callmeta(this, -1, c_str!("__tostring")) != 0 {
-        str_value = lua_tolstring(this, -1, std::ptr::null_mut()).convert();
+        str_value = lua_tolstring(this, -1, std::ptr::null_mut())
+            .convert()
+            .to_string();
         lua_settop(this, -1 - 1);
     } else {
         let current_block_14: u64;
@@ -366,11 +367,15 @@ unsafe fn lua_to_string(this: *mut Lua, name: &str) -> String {
                 current_block_14 = 11584701595673473500;
             }
             3 => {
-                str_value = lua_tolstring(this, -1, std::ptr::null_mut()).convert();
+                str_value = lua_tolstring(this, -1, std::ptr::null_mut())
+                    .convert()
+                    .to_string();
                 current_block_14 = 11584701595673473500;
             }
             4 => {
-                str_value = lua_tolstring(this, -1, std::ptr::null_mut()).convert();
+                str_value = lua_tolstring(this, -1, std::ptr::null_mut())
+                    .convert()
+                    .to_string();
                 current_block_14 = 11584701595673473500;
             }
             2 => {
@@ -476,7 +481,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
 
         let mut variablesPrinted: i32 = 0;
         let mut func_name = ar.name.convert();
-        let mut file_name = ar.source.convert();
+        let mut file_name = ar.source.convert().to_string();
         let mut line: i32 = ar.currentline;
 
         if !file_name.starts_with('@') {
@@ -505,7 +510,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
 
         let mut i_up: i32 = 1;
         loop {
-            let name = lua_getupvalue(this, -1, i_up).convert();
+            let name = lua_getupvalue(this, -1, i_up).convert().to_string();
 
             if name.is_empty() {
                 break;
@@ -527,7 +532,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
 
         let mut i_local: i32 = 1;
         loop {
-            let name_0 = lua_getlocal(this, &mut ar, i_local).convert();
+            let name_0 = lua_getlocal(this, &mut ar, i_local).convert().to_string();
             if name_0.is_empty() {
                 break;
             }

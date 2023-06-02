@@ -260,7 +260,6 @@ unsafe extern "C" fn EmitTex2D(tex: *mut Tex2D, pos: Vec2, size: Vec2) {
 
 #[inline]
 unsafe extern "C" fn EmitText(font: *mut Font, color: Vec4, pos: Vec2, text: *const libc::c_char) {
-    let text_str = text.convert();
     let e: *mut ImGuiText = MemPool_Alloc(&mut *this.textPool) as *mut ImGuiText;
 
     (*e).font = font;

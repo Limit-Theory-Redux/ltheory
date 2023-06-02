@@ -182,7 +182,7 @@ pub unsafe extern "C" fn Mesh_FromObj(bytes: *const libc::c_char) -> Box<Mesh> {
         ConsumeToken(token.as_mut_ptr(), 16, &mut s);
         ConsumeWhitespace(&mut s);
 
-        let token_str = token.as_ptr().convert();
+        let token_str = token.as_ptr().convert().to_string();
 
         if token_str == "" {
             if s.cursor >= s.endOfData {

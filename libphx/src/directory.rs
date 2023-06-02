@@ -6,7 +6,6 @@ use std::{env, fs};
 #[repr(C)]
 pub struct Directory {
     pub iterator: fs::ReadDir,
-    pub lastEntry: Option<String>,
 }
 
 #[no_mangle]
@@ -29,11 +28,12 @@ pub unsafe extern "C" fn Directory_Close(this: *mut Directory) {
 #[no_mangle]
 pub extern "C" fn Directory_GetNext(this: &mut Directory) -> *const libc::c_char {
     match this.iterator.next() {
-        Some(Ok(dir)) => {
-            this.lastEntry = dir.file_name().to_str().map(|s| s.into());
-
-            static_string!(this.lastEntry.clone().expect("Cannot get directory entry"))
-        }
+        Some(Ok(dir)) => dir
+            .file_name()
+            .to_str()
+            .map(|s| s.to_string())
+            .map(|s| static_string!(s))
+            .unwrap_or(std::ptr::null()),
         _ => std::ptr::null(),
     }
 }
