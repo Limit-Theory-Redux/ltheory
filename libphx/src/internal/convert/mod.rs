@@ -1,7 +1,5 @@
 mod c2rust;
 
-use std::ffi::CString;
-
 pub use c2rust::*;
 
 pub trait ConvertIntoString {
