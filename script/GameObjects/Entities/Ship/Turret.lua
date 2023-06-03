@@ -11,8 +11,7 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Turret
-Turret = subclass(Entity, function (self)
+local Turret = subclass(Entity, function (self)
   if not shared then
     shared = {}
 --    shared.mesh = Gen.ShipBasic.TurretSingle(rng)
@@ -58,8 +57,8 @@ Turret = subclass(Entity, function (self)
   self.heat     = 0
   self.cooldown = 0
 
---printf("Register: Turret name = %s, type = %s, handler = %s", self.name, Event.Update, Turret.updateTurret)
-  self:register(Event.Update, Turret.updateTurret)
+--printf("Register: Turret name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateTurret)
+  self:register(Event.Update, self.updateTurret)
 end)
 
 function Turret:getSocketType ()

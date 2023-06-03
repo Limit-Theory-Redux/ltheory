@@ -11,8 +11,7 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Bay
-Bay = subclass(Entity, function (self)
+local Bay = subclass(Entity, function (self)
   if not shared then
     shared = {}
 --    shared.mesh = Gen.ShipBasic.BaySingle(rng)
@@ -58,8 +57,8 @@ Bay = subclass(Entity, function (self)
   self.cooldown = 0
   self.heat     = 0
 
---printf("Register: Bay name = %s, type = %s, handler = %s", self.name, Event.Update, Bay.updateBay)
-  self:register(Event.Update, Bay.updateBay)
+--printf("Register: Bay name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateBay)
+  self:register(Event.Update, self.updateBay)
 end)
 
 function Bay:getSocketType ()

@@ -7,8 +7,7 @@ local material
 local meshJet
 local rng = RNG.FromTime()
 
-local Thruster
-Thruster = subclass(Entity, function (self, parentShip)
+local Thruster = subclass(Entity, function (self, parentShip)
   if not mesh then
     local parentHullSize = parentShip:getHull()
     if parentHullSize == Enums.ShipHulls.Solo then
@@ -41,10 +40,10 @@ Thruster = subclass(Entity, function (self, parentShip)
   self.boostT = 0
   self.time = rng:getUniformRange(0, 1000)
 
---printf("Register: Thruster type = %s, handler = %s", Event.Render, Thruster.render)
-  self:register(Event.Render, Thruster.render)
---printf("Register: Thruster type = %s, handler = %s", Event.Update, Thruster.update)
-  self:register(Event.Update, Thruster.update)
+--printf("Register: Thruster type = %s, handler = %s", Event.Render, self.render)
+  self:register(Event.Render, self.render)
+--printf("Register: Thruster type = %s, handler = %s", Event.Update, self.update)
+  self:register(Event.Update, self.update)
 end)
 
 function Thruster:getSocketType ()

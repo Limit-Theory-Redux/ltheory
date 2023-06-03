@@ -5,8 +5,7 @@ local SocketType = require('GameObjects.Entities.Ship.SocketType')
 local shared
 local rng = RNG.FromTime()
 
-local LifeSupport
-LifeSupport = subclass(Entity, function (self)
+local LifeSupport = subclass(Entity, function (self)
   -- All of this crap is completely worthless, but updateLifeSupport() will not be called without it
   if not shared then
     shared = {}
@@ -22,8 +21,8 @@ LifeSupport = subclass(Entity, function (self)
   self.healthCurr   = Config.gen.compLifeSupportStats.healthCurr
   self.healthMax    = Config.gen.compLifeSupportStats.healthMax
   self.pods         = Config.gen.compLifeSupportStats.pods
---printf("Register: Sensor name = '%s', type = %s, handler = %s", self.name, Event.Update, LifeSupport.updateLifeSupport)
-  self:register(Event.Update, LifeSupport.updateLifeSupport)
+--printf("Register: Sensor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateLifeSupport)
+  self:register(Event.Update, self.updateLifeSupport)
 end)
 
 function LifeSupport:getSocketType ()

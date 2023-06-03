@@ -11,8 +11,7 @@ local shared
 local varCache
 local rng = RNG.FromTime()
 
-local Drone
-Drone = subclass(Entity, function (self)
+local Drone = subclass(Entity, function (self)
   if not shared then
     shared = {}
 --    shared.mesh = Gen.ShipBasic.DroneSingle(rng)
@@ -61,8 +60,8 @@ Drone = subclass(Entity, function (self)
   self.cooldown = 0
   self.heat     = 0
 
---printf("Register: Drone name = %s, type = %s, handler = %s", self.name, Event.Update, Drone.updateDrone)
-  self:register(Event.Update, Drone.updateDrone)
+--printf("Register: Drone name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateDrone)
+  self:register(Event.Update, self.updateDrone)
 end)
 
 function Drone:getSocketType ()

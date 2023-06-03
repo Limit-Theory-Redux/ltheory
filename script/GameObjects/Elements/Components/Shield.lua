@@ -16,8 +16,7 @@ local Bindings = require('States.ApplicationBindings')
 local shared
 local rng = RNG.FromTime()
 
-local Shield
-Shield = subclass(Entity, function (self)
+local Shield = subclass(Entity, function (self)
 
   -- All of this crap is completely worthless, but updateShield() will not be called without it
   if not shared then
@@ -40,8 +39,8 @@ Shield = subclass(Entity, function (self)
   self.colorR       = Config.gen.compShieldStats.colorR
   self.colorG       = Config.gen.compShieldStats.colorG
   self.colorB       = Config.gen.compShieldStats.colorB
---printf("Register: Shield type = %s, handler = %s", Event.Update, Shield.updateShield)
-  self:register(Event.Update, Shield.updateShield)
+--printf("Register: Shield type = %s, handler = %s", Event.Update, self.updateShield)
+  self:register(Event.Update, self.updateShield)
 end)
 
 function Shield:getSocketType ()

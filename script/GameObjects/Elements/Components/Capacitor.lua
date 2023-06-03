@@ -16,8 +16,7 @@ local Bindings = require('States.ApplicationBindings')
 local shared
 local rng = RNG.FromTime()
 
-local Capacitor
-Capacitor = subclass(Entity, function (self)
+local Capacitor = subclass(Entity, function (self)
 
   -- All of this crap is completely worthless, but updateCapacitor() will not be called without it
   if not shared then
@@ -36,8 +35,8 @@ Capacitor = subclass(Entity, function (self)
   self.chargeCurr = Config.gen.compCapacitorStats.chargeCurr
   self.chargeMax  = Config.gen.compCapacitorStats.chargeMax
   self.chargeRate = Config.gen.compCapacitorStats.chargeRate
---printf("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, Capacitor.updateCapacitor)
-  self:register(Event.Update, Capacitor.updateCapacitor)
+--printf("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCapacitor)
+  self:register(Event.Update, self.updateCapacitor)
 end)
 
 function Capacitor:getSocketType ()
