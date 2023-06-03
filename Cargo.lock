@@ -1091,6 +1091,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "luajit_ffi_gen"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.15",
+]
+
+[[package]]
 name = "mach2"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1409,6 +1418,7 @@ dependencies = [
  "glam",
  "image",
  "libc",
+ "luajit_ffi_gen",
  "memoffset",
  "mlua",
  "printf-compat",
