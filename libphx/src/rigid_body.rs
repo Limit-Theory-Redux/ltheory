@@ -1,7 +1,7 @@
 use crate::collision_shape::*;
 use crate::common::*;
 use crate::math::{Box3, Vec3};
-use crate::matrix::Matrix;
+use crate::matrix::*;
 use crate::mesh::*;
 use crate::physics::*;
 use crate::quat::Quat;
@@ -86,43 +86,6 @@ impl RigidBody {
         false
     }
 
-    /// Replaces the collider of this rigid body in the physics world it's contained within.
-    // pub fn replaceCollider(&mut self, collider: rp::Collider) {
-    //     self.handle = match self.handle {
-    //         RigidBodyState::Detached { rb, collider: _ } => {
-    //             RigidBodyState::Detached { rb, collider }
-    //         }
-    //         RigidBodyState::Attached {
-    //             rb,
-    //             collider: currentColliderHandle,
-    //             world,
-    //         } => {
-    //             let newHandle = {
-    //                 let mut worldMut = world.borrow_mut();
-    //                 let mut colliderSet = &mut worldMut.colliderSet;
-    //                 let mut islandManager = &mut worldMut.islandManager;
-    //                 let mut rigidBodySet = &mut worldMut.rigidBodySet;
-    //                 colliderSet.remove(
-    //                     currentColliderHandle,
-    //                     islandManager,
-    //                     rigidBodySet,
-    //                     true,
-    //                 );
-    //                 colliderSet.insert_with_parent(
-    //                     collider,
-    //                     rb,
-    //                     rigidBodySet,
-    //                 )
-    //             };
-    //             RigidBodyState::Attached {
-    //                 rb,
-    //                 collider: newHandle,
-    //                 world,
-    //             }
-    //         }
-    //     }
-    // }
-
     /// Executes a function f with a reference to the RigidBody associated with this object.
     pub fn withRigidBody<F, R>(&self, f: F) -> R
     where
@@ -182,6 +145,11 @@ impl RigidBody {
             } => f(world.borrow_mut().colliderSet.get_mut(*collider).unwrap()),
         }
     }
+}
+
+fn matrix_from_transform(transform: &rp::Isometry<f32>, scale: f32) -> Matrix {
+    let rp_matrix = transform.to_matrix();
+    Matrix::from_slice(rp_matrix.as_slice()).scaled(scale)
 }
 
 pub fn RigidBody_Create(shape: Box<CollisionShape>) -> Box<RigidBody> {
@@ -299,13 +267,15 @@ pub extern "C" fn RigidBody_GetSpeed(this: &RigidBody) -> f32 {
 }
 
 #[no_mangle]
-pub extern "C" fn RigidBody_GetToLocalMatrix(this: &mut RigidBody) -> *mut Matrix {
-    std::ptr::null_mut()
+pub extern "C" fn RigidBody_GetToLocalMatrix(this: &mut RigidBody) -> Box<Matrix> {
+    let scale = RigidBody_GetScale(this);
+    this.withRigidBody(|rb| Box::new(matrix_from_transform(rb.position(), scale).inverted()))
 }
 
 #[no_mangle]
-pub extern "C" fn RigidBody_GetToWorldMatrix(this: &mut RigidBody) -> *mut Matrix {
-    std::ptr::null_mut()
+pub extern "C" fn RigidBody_GetToWorldMatrix(this: &mut RigidBody) -> Box<Matrix> {
+    let scale = RigidBody_GetScale(this);
+    this.withRigidBody(|rb| Box::new(matrix_from_transform(rb.position(), scale)))
 }
 
 #[no_mangle]

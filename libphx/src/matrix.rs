@@ -12,6 +12,35 @@ pub struct Matrix {
 }
 
 impl Matrix {
+    /// All zeroes.
+    pub const ZERO: Self = Matrix { m: [0.; 16] };
+
+    /// Identity.
+    pub const IDENTITY: Self = Matrix {
+        m: [
+            1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
+            0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
+        ],
+    };
+
+    pub fn from_slice(slice: &[f32]) -> Matrix {
+        Matrix {
+            m: slice.try_into().expect("slice with incorrect length"),
+        }
+    }
+
+    pub fn look_at(pos: &Vec3, at: &Vec3, up: &Vec3) -> Matrix {
+        let z: Vec3 = (*pos - *at).normalize();
+        let x: Vec3 = Vec3::cross(*up, z).normalize();
+        let y: Vec3 = Vec3::cross(z, x);
+        Matrix {
+            m: [
+                x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
+                0.0f32, 1.0f32,
+            ],
+        }
+    }
+
     pub fn to_string(&self) -> String {
         format!(
             "[{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\
@@ -36,6 +65,167 @@ impl Matrix {
             self.m[15],
         )
     }
+
+    pub fn scale(&mut self, scale: f32) {
+        let m: *mut f32 = (self.m).as_mut_ptr();
+        unsafe {
+            *m.offset(0) *= scale;
+            *m.offset(1) *= scale;
+            *m.offset(2) *= scale;
+            *m.offset(4) *= scale;
+            *m.offset(5) *= scale;
+            *m.offset(6) *= scale;
+            *m.offset(8) *= scale;
+            *m.offset(9) *= scale;
+            *m.offset(10) *= scale;
+        }
+    }
+
+    pub fn scaled(&self, scale: f32) -> Matrix {
+        let mut matrix = self.clone();
+        matrix.scale(scale);
+        matrix
+    }
+
+    pub fn inverted(&self) -> Matrix {
+        let mut out = Matrix::ZERO;
+        let src: *const f32 = self.m.as_ptr();
+        let dst: *mut f32 = out.m.as_mut_ptr();
+        unsafe {
+            *dst.offset(0) = *src.offset(5) * *src.offset(10) * *src.offset(15)
+                - *src.offset(5) * *src.offset(11) * *src.offset(14)
+                - *src.offset(9) * *src.offset(6) * *src.offset(15)
+                + *src.offset(9) * *src.offset(7) * *src.offset(14)
+                + *src.offset(13) * *src.offset(6) * *src.offset(11)
+                - *src.offset(13) * *src.offset(7) * *src.offset(10);
+            *dst.offset(4) = -*src.offset(4) * *src.offset(10) * *src.offset(15)
+                + *src.offset(4) * *src.offset(11) * *src.offset(14)
+                + *src.offset(8) * *src.offset(6) * *src.offset(15)
+                - *src.offset(8) * *src.offset(7) * *src.offset(14)
+                - *src.offset(12) * *src.offset(6) * *src.offset(11)
+                + *src.offset(12) * *src.offset(7) * *src.offset(10);
+            *dst.offset(8) = *src.offset(4) * *src.offset(9) * *src.offset(15)
+                - *src.offset(4) * *src.offset(11) * *src.offset(13)
+                - *src.offset(8) * *src.offset(5) * *src.offset(15)
+                + *src.offset(8) * *src.offset(7) * *src.offset(13)
+                + *src.offset(12) * *src.offset(5) * *src.offset(11)
+                - *src.offset(12) * *src.offset(7) * *src.offset(9);
+            *dst.offset(12) = -*src.offset(4) * *src.offset(9) * *src.offset(14)
+                + *src.offset(4) * *src.offset(10) * *src.offset(13)
+                + *src.offset(8) * *src.offset(5) * *src.offset(14)
+                - *src.offset(8) * *src.offset(6) * *src.offset(13)
+                - *src.offset(12) * *src.offset(5) * *src.offset(10)
+                + *src.offset(12) * *src.offset(6) * *src.offset(9);
+            *dst.offset(1) = -*src.offset(1) * *src.offset(10) * *src.offset(15)
+                + *src.offset(1) * *src.offset(11) * *src.offset(14)
+                + *src.offset(9) * *src.offset(2) * *src.offset(15)
+                - *src.offset(9) * *src.offset(3) * *src.offset(14)
+                - *src.offset(13) * *src.offset(2) * *src.offset(11)
+                + *src.offset(13) * *src.offset(3) * *src.offset(10);
+            *dst.offset(5) = *src.offset(0) * *src.offset(10) * *src.offset(15)
+                - *src.offset(0) * *src.offset(11) * *src.offset(14)
+                - *src.offset(8) * *src.offset(2) * *src.offset(15)
+                + *src.offset(8) * *src.offset(3) * *src.offset(14)
+                + *src.offset(12) * *src.offset(2) * *src.offset(11)
+                - *src.offset(12) * *src.offset(3) * *src.offset(10);
+            *dst.offset(9) = -*src.offset(0) * *src.offset(9) * *src.offset(15)
+                + *src.offset(0) * *src.offset(11) * *src.offset(13)
+                + *src.offset(8) * *src.offset(1) * *src.offset(15)
+                - *src.offset(8) * *src.offset(3) * *src.offset(13)
+                - *src.offset(12) * *src.offset(1) * *src.offset(11)
+                + *src.offset(12) * *src.offset(3) * *src.offset(9);
+            *dst.offset(13) = *src.offset(0) * *src.offset(9) * *src.offset(14)
+                - *src.offset(0) * *src.offset(10) * *src.offset(13)
+                - *src.offset(8) * *src.offset(1) * *src.offset(14)
+                + *src.offset(8) * *src.offset(2) * *src.offset(13)
+                + *src.offset(12) * *src.offset(1) * *src.offset(10)
+                - *src.offset(12) * *src.offset(2) * *src.offset(9);
+            *dst.offset(2) = *src.offset(1) * *src.offset(6) * *src.offset(15)
+                - *src.offset(1) * *src.offset(7) * *src.offset(14)
+                - *src.offset(5) * *src.offset(2) * *src.offset(15)
+                + *src.offset(5) * *src.offset(3) * *src.offset(14)
+                + *src.offset(13) * *src.offset(2) * *src.offset(7)
+                - *src.offset(13) * *src.offset(3) * *src.offset(6);
+            *dst.offset(6) = -*src.offset(0) * *src.offset(6) * *src.offset(15)
+                + *src.offset(0) * *src.offset(7) * *src.offset(14)
+                + *src.offset(4) * *src.offset(2) * *src.offset(15)
+                - *src.offset(4) * *src.offset(3) * *src.offset(14)
+                - *src.offset(12) * *src.offset(2) * *src.offset(7)
+                + *src.offset(12) * *src.offset(3) * *src.offset(6);
+            *dst.offset(10) = *src.offset(0) * *src.offset(5) * *src.offset(15)
+                - *src.offset(0) * *src.offset(7) * *src.offset(13)
+                - *src.offset(4) * *src.offset(1) * *src.offset(15)
+                + *src.offset(4) * *src.offset(3) * *src.offset(13)
+                + *src.offset(12) * *src.offset(1) * *src.offset(7)
+                - *src.offset(12) * *src.offset(3) * *src.offset(5);
+            *dst.offset(14) = -*src.offset(0) * *src.offset(5) * *src.offset(14)
+                + *src.offset(0) * *src.offset(6) * *src.offset(13)
+                + *src.offset(4) * *src.offset(1) * *src.offset(14)
+                - *src.offset(4) * *src.offset(2) * *src.offset(13)
+                - *src.offset(12) * *src.offset(1) * *src.offset(6)
+                + *src.offset(12) * *src.offset(2) * *src.offset(5);
+            *dst.offset(3) = -*src.offset(1) * *src.offset(6) * *src.offset(11)
+                + *src.offset(1) * *src.offset(7) * *src.offset(10)
+                + *src.offset(5) * *src.offset(2) * *src.offset(11)
+                - *src.offset(5) * *src.offset(3) * *src.offset(10)
+                - *src.offset(9) * *src.offset(2) * *src.offset(7)
+                + *src.offset(9) * *src.offset(3) * *src.offset(6);
+            *dst.offset(7) = *src.offset(0) * *src.offset(6) * *src.offset(11)
+                - *src.offset(0) * *src.offset(7) * *src.offset(10)
+                - *src.offset(4) * *src.offset(2) * *src.offset(11)
+                + *src.offset(4) * *src.offset(3) * *src.offset(10)
+                + *src.offset(8) * *src.offset(2) * *src.offset(7)
+                - *src.offset(8) * *src.offset(3) * *src.offset(6);
+            *dst.offset(11) = -*src.offset(0) * *src.offset(5) * *src.offset(11)
+                + *src.offset(0) * *src.offset(7) * *src.offset(9)
+                + *src.offset(4) * *src.offset(1) * *src.offset(11)
+                - *src.offset(4) * *src.offset(3) * *src.offset(9)
+                - *src.offset(8) * *src.offset(1) * *src.offset(7)
+                + *src.offset(8) * *src.offset(3) * *src.offset(5);
+            *dst.offset(15) = *src.offset(0) * *src.offset(5) * *src.offset(10)
+                - *src.offset(0) * *src.offset(6) * *src.offset(9)
+                - *src.offset(4) * *src.offset(1) * *src.offset(10)
+                + *src.offset(4) * *src.offset(2) * *src.offset(9)
+                + *src.offset(8) * *src.offset(1) * *src.offset(6)
+                - *src.offset(8) * *src.offset(2) * *src.offset(5);
+            let det: f32 = 1.0f32
+                / (*src.offset(0) * *dst.offset(0)
+                    + *src.offset(1) * *dst.offset(4)
+                    + *src.offset(2) * *dst.offset(8)
+                    + *src.offset(3) * *dst.offset(12));
+            let mut i: i32 = 0;
+            while i < 16 {
+                *dst.offset(i as isize) *= det;
+                i += 1;
+            }
+        }
+        out
+    }
+
+    pub fn transposed(&self) -> Matrix {
+        let mut out = Matrix::ZERO;
+        let src: *const f32 = self.m.as_ptr();
+        let dst: *mut f32 = out.m.as_mut_ptr();
+        unsafe {
+            *dst.offset(0) = *src.offset(0);
+            *dst.offset(1) = *src.offset(4);
+            *dst.offset(2) = *src.offset(8);
+            *dst.offset(3) = *src.offset(12);
+            *dst.offset(4) = *src.offset(1);
+            *dst.offset(5) = *src.offset(5);
+            *dst.offset(6) = *src.offset(9);
+            *dst.offset(7) = *src.offset(13);
+            *dst.offset(8) = *src.offset(2);
+            *dst.offset(9) = *src.offset(6);
+            *dst.offset(10) = *src.offset(10);
+            *dst.offset(11) = *src.offset(14);
+            *dst.offset(12) = *src.offset(3);
+            *dst.offset(13) = *src.offset(7);
+            *dst.offset(14) = *src.offset(11);
+            *dst.offset(15) = *src.offset(15);
+        }
+        out
+    }
 }
 
 #[inline]
@@ -50,138 +240,6 @@ pub extern "C" fn Matrix_Clone(this: &Matrix) -> Box<Matrix> {
 
 #[no_mangle]
 pub extern "C" fn Matrix_Free(_: Option<Box<Matrix>>) {}
-
-unsafe extern "C" fn Matrix_IOInverse(in_0: &Matrix, out: &mut Matrix) {
-    let src: *const f32 = in_0 as *const Matrix as *const f32;
-    let dst: *mut f32 = out as *mut Matrix as *mut f32;
-    *dst.offset(0) = *src.offset(5) * *src.offset(10) * *src.offset(15)
-        - *src.offset(5) * *src.offset(11) * *src.offset(14)
-        - *src.offset(9) * *src.offset(6) * *src.offset(15)
-        + *src.offset(9) * *src.offset(7) * *src.offset(14)
-        + *src.offset(13) * *src.offset(6) * *src.offset(11)
-        - *src.offset(13) * *src.offset(7) * *src.offset(10);
-    *dst.offset(4) = -*src.offset(4) * *src.offset(10) * *src.offset(15)
-        + *src.offset(4) * *src.offset(11) * *src.offset(14)
-        + *src.offset(8) * *src.offset(6) * *src.offset(15)
-        - *src.offset(8) * *src.offset(7) * *src.offset(14)
-        - *src.offset(12) * *src.offset(6) * *src.offset(11)
-        + *src.offset(12) * *src.offset(7) * *src.offset(10);
-    *dst.offset(8) = *src.offset(4) * *src.offset(9) * *src.offset(15)
-        - *src.offset(4) * *src.offset(11) * *src.offset(13)
-        - *src.offset(8) * *src.offset(5) * *src.offset(15)
-        + *src.offset(8) * *src.offset(7) * *src.offset(13)
-        + *src.offset(12) * *src.offset(5) * *src.offset(11)
-        - *src.offset(12) * *src.offset(7) * *src.offset(9);
-    *dst.offset(12) = -*src.offset(4) * *src.offset(9) * *src.offset(14)
-        + *src.offset(4) * *src.offset(10) * *src.offset(13)
-        + *src.offset(8) * *src.offset(5) * *src.offset(14)
-        - *src.offset(8) * *src.offset(6) * *src.offset(13)
-        - *src.offset(12) * *src.offset(5) * *src.offset(10)
-        + *src.offset(12) * *src.offset(6) * *src.offset(9);
-    *dst.offset(1) = -*src.offset(1) * *src.offset(10) * *src.offset(15)
-        + *src.offset(1) * *src.offset(11) * *src.offset(14)
-        + *src.offset(9) * *src.offset(2) * *src.offset(15)
-        - *src.offset(9) * *src.offset(3) * *src.offset(14)
-        - *src.offset(13) * *src.offset(2) * *src.offset(11)
-        + *src.offset(13) * *src.offset(3) * *src.offset(10);
-    *dst.offset(5) = *src.offset(0) * *src.offset(10) * *src.offset(15)
-        - *src.offset(0) * *src.offset(11) * *src.offset(14)
-        - *src.offset(8) * *src.offset(2) * *src.offset(15)
-        + *src.offset(8) * *src.offset(3) * *src.offset(14)
-        + *src.offset(12) * *src.offset(2) * *src.offset(11)
-        - *src.offset(12) * *src.offset(3) * *src.offset(10);
-    *dst.offset(9) = -*src.offset(0) * *src.offset(9) * *src.offset(15)
-        + *src.offset(0) * *src.offset(11) * *src.offset(13)
-        + *src.offset(8) * *src.offset(1) * *src.offset(15)
-        - *src.offset(8) * *src.offset(3) * *src.offset(13)
-        - *src.offset(12) * *src.offset(1) * *src.offset(11)
-        + *src.offset(12) * *src.offset(3) * *src.offset(9);
-    *dst.offset(13) = *src.offset(0) * *src.offset(9) * *src.offset(14)
-        - *src.offset(0) * *src.offset(10) * *src.offset(13)
-        - *src.offset(8) * *src.offset(1) * *src.offset(14)
-        + *src.offset(8) * *src.offset(2) * *src.offset(13)
-        + *src.offset(12) * *src.offset(1) * *src.offset(10)
-        - *src.offset(12) * *src.offset(2) * *src.offset(9);
-    *dst.offset(2) = *src.offset(1) * *src.offset(6) * *src.offset(15)
-        - *src.offset(1) * *src.offset(7) * *src.offset(14)
-        - *src.offset(5) * *src.offset(2) * *src.offset(15)
-        + *src.offset(5) * *src.offset(3) * *src.offset(14)
-        + *src.offset(13) * *src.offset(2) * *src.offset(7)
-        - *src.offset(13) * *src.offset(3) * *src.offset(6);
-    *dst.offset(6) = -*src.offset(0) * *src.offset(6) * *src.offset(15)
-        + *src.offset(0) * *src.offset(7) * *src.offset(14)
-        + *src.offset(4) * *src.offset(2) * *src.offset(15)
-        - *src.offset(4) * *src.offset(3) * *src.offset(14)
-        - *src.offset(12) * *src.offset(2) * *src.offset(7)
-        + *src.offset(12) * *src.offset(3) * *src.offset(6);
-    *dst.offset(10) = *src.offset(0) * *src.offset(5) * *src.offset(15)
-        - *src.offset(0) * *src.offset(7) * *src.offset(13)
-        - *src.offset(4) * *src.offset(1) * *src.offset(15)
-        + *src.offset(4) * *src.offset(3) * *src.offset(13)
-        + *src.offset(12) * *src.offset(1) * *src.offset(7)
-        - *src.offset(12) * *src.offset(3) * *src.offset(5);
-    *dst.offset(14) = -*src.offset(0) * *src.offset(5) * *src.offset(14)
-        + *src.offset(0) * *src.offset(6) * *src.offset(13)
-        + *src.offset(4) * *src.offset(1) * *src.offset(14)
-        - *src.offset(4) * *src.offset(2) * *src.offset(13)
-        - *src.offset(12) * *src.offset(1) * *src.offset(6)
-        + *src.offset(12) * *src.offset(2) * *src.offset(5);
-    *dst.offset(3) = -*src.offset(1) * *src.offset(6) * *src.offset(11)
-        + *src.offset(1) * *src.offset(7) * *src.offset(10)
-        + *src.offset(5) * *src.offset(2) * *src.offset(11)
-        - *src.offset(5) * *src.offset(3) * *src.offset(10)
-        - *src.offset(9) * *src.offset(2) * *src.offset(7)
-        + *src.offset(9) * *src.offset(3) * *src.offset(6);
-    *dst.offset(7) = *src.offset(0) * *src.offset(6) * *src.offset(11)
-        - *src.offset(0) * *src.offset(7) * *src.offset(10)
-        - *src.offset(4) * *src.offset(2) * *src.offset(11)
-        + *src.offset(4) * *src.offset(3) * *src.offset(10)
-        + *src.offset(8) * *src.offset(2) * *src.offset(7)
-        - *src.offset(8) * *src.offset(3) * *src.offset(6);
-    *dst.offset(11) = -*src.offset(0) * *src.offset(5) * *src.offset(11)
-        + *src.offset(0) * *src.offset(7) * *src.offset(9)
-        + *src.offset(4) * *src.offset(1) * *src.offset(11)
-        - *src.offset(4) * *src.offset(3) * *src.offset(9)
-        - *src.offset(8) * *src.offset(1) * *src.offset(7)
-        + *src.offset(8) * *src.offset(3) * *src.offset(5);
-    *dst.offset(15) = *src.offset(0) * *src.offset(5) * *src.offset(10)
-        - *src.offset(0) * *src.offset(6) * *src.offset(9)
-        - *src.offset(4) * *src.offset(1) * *src.offset(10)
-        + *src.offset(4) * *src.offset(2) * *src.offset(9)
-        + *src.offset(8) * *src.offset(1) * *src.offset(6)
-        - *src.offset(8) * *src.offset(2) * *src.offset(5);
-    let det: f32 = 1.0f32
-        / (*src.offset(0) * *dst.offset(0)
-            + *src.offset(1) * *dst.offset(4)
-            + *src.offset(2) * *dst.offset(8)
-            + *src.offset(3) * *dst.offset(12));
-    let mut i: i32 = 0;
-    while i < 16 {
-        *dst.offset(i as isize) *= det;
-        i += 1;
-    }
-}
-
-unsafe extern "C" fn Matrix_IOTranspose(in_0: &Matrix, out: &mut Matrix) {
-    let src: *const f32 = in_0 as *const Matrix as *const f32;
-    let dst: *mut f32 = out as *mut Matrix as *mut f32;
-    *dst.offset(0) = *src.offset(0);
-    *dst.offset(1) = *src.offset(4);
-    *dst.offset(2) = *src.offset(8);
-    *dst.offset(3) = *src.offset(12);
-    *dst.offset(4) = *src.offset(1);
-    *dst.offset(5) = *src.offset(5);
-    *dst.offset(6) = *src.offset(9);
-    *dst.offset(7) = *src.offset(13);
-    *dst.offset(8) = *src.offset(2);
-    *dst.offset(9) = *src.offset(6);
-    *dst.offset(10) = *src.offset(10);
-    *dst.offset(11) = *src.offset(14);
-    *dst.offset(12) = *src.offset(3);
-    *dst.offset(13) = *src.offset(7);
-    *dst.offset(14) = *src.offset(11);
-    *dst.offset(15) = *src.offset(15);
-}
 
 #[no_mangle]
 pub extern "C" fn Matrix_Equal(a: &Matrix, b: &Matrix) -> bool {
@@ -208,76 +266,49 @@ pub extern "C" fn Matrix_ApproximatelyEqual(a: &Matrix, b: &Matrix) -> bool {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Inverse(this: &Matrix) -> Box<Matrix> {
-    let mut result: Matrix = Matrix { m: [0.; 16] };
-    Matrix_IOInverse(this, &mut result);
-    Matrix_Clone(&result)
+pub extern "C" fn Matrix_Inverse(this: &Matrix) -> Box<Matrix> {
+    Box::new(this.inverted())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_InverseTranspose(this: &Matrix) -> Box<Matrix> {
-    let mut inverse: Matrix = Matrix { m: [0.; 16] };
-    let mut result: Matrix = Matrix { m: [0.; 16] };
-    Matrix_IOInverse(this, &mut inverse);
-    Matrix_IOTranspose(&mut inverse, &mut result);
-    Matrix_Clone(&result)
+pub extern "C" fn Matrix_InverseTranspose(this: &Matrix) -> Box<Matrix> {
+    Box::new(this.inverted().transposed())
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Sum(a: &Matrix, b: &Matrix) -> Box<Matrix> {
-    let mut result: Matrix = Matrix { m: [0.; 16] };
+    let mut result: Matrix = Matrix::ZERO;
     let mut i: i32 = 0;
     while i < 16 {
         result.m[i as usize] = (*a).m[i as usize] + (*b).m[i as usize];
         i += 1;
     }
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Transpose(this: &Matrix) -> Box<Matrix> {
-    let mut result: Matrix = Matrix { m: [0.; 16] };
-    Matrix_IOTranspose(this, &mut result);
-    Matrix_Clone(&result)
+pub extern "C" fn Matrix_Transpose(this: &Matrix) -> Box<Matrix> {
+    Box::new(this.transposed())
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_IInverse(this: &mut Matrix) {
-    let mut result: Matrix = Matrix { m: [0.; 16] };
-    Matrix_IOInverse(this, &mut result);
-    *this = result;
+pub extern "C" fn Matrix_IInverse(this: &mut Matrix) {
+    *this = this.inverted();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_IScale(this: &mut Matrix, scale: f32) {
-    let m: *mut f32 = (this.m).as_mut_ptr();
-    *m.offset(0) *= scale;
-    *m.offset(1) *= scale;
-    *m.offset(2) *= scale;
-    *m.offset(4) *= scale;
-    *m.offset(5) *= scale;
-    *m.offset(6) *= scale;
-    *m.offset(8) *= scale;
-    *m.offset(9) *= scale;
-    *m.offset(10) *= scale;
+pub extern "C" fn Matrix_IScale(this: &mut Matrix, scale: f32) {
+    this.scale(scale)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_ITranspose(this: &mut Matrix) {
-    let mut result: Matrix = Matrix { m: [0.; 16] };
-    Matrix_IOTranspose(this, &mut result);
-    *this = result;
+pub extern "C" fn Matrix_ITranspose(this: &mut Matrix) {
+    *this = this.transposed();
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Identity() -> Box<Matrix> {
-    let identity: Matrix = Matrix {
-        m: [
-            1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
-            0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
-        ],
-    };
-    Matrix_Clone(&identity)
+    Box::new(Matrix::IDENTITY)
 }
 
 #[no_mangle]
@@ -291,7 +322,7 @@ pub extern "C" fn Matrix_LookAt(pos: &Vec3, at: &Vec3, up: &Vec3) -> Box<Matrix>
             0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -305,7 +336,7 @@ pub extern "C" fn Matrix_LookUp(pos: &Vec3, look: &Vec3, up: &Vec3) -> Box<Matri
             0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -332,12 +363,12 @@ pub extern "C" fn Matrix_Perspective(degreesFovy: f32, aspect: f32, N: f32, F: f
             0.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_Product(a: &Matrix, b: &Matrix) -> Box<Matrix> {
-    let mut result: Matrix = Matrix { m: [0.; 16] };
+pub extern "C" fn Matrix_Product(a: &Matrix, b: &Matrix) -> Box<Matrix> {
+    let mut result: Matrix = Matrix::ZERO;
     let mut pResult: *mut f32 = (result.m).as_mut_ptr();
     let mut i: i32 = 0;
     while i < 4 {
@@ -349,14 +380,16 @@ pub unsafe extern "C" fn Matrix_Product(a: &Matrix, b: &Matrix) -> Box<Matrix> {
                 sum += (*a).m[(4 * i + k) as usize] * (*b).m[(4 * k + j) as usize];
                 k += 1;
             }
-            let fresh0 = pResult;
-            pResult = pResult.offset(1);
-            *fresh0 = sum;
+            unsafe {
+                let fresh0 = pResult;
+                pResult = pResult.offset(1);
+                *fresh0 = sum;
+            }
             j += 1;
         }
         i += 1;
     }
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -369,7 +402,7 @@ pub extern "C" fn Matrix_RotationX(rads: f32) -> Box<Matrix> {
             0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -382,7 +415,7 @@ pub extern "C" fn Matrix_RotationY(rads: f32) -> Box<Matrix> {
             0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -395,7 +428,7 @@ pub extern "C" fn Matrix_RotationZ(rads: f32) -> Box<Matrix> {
             0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -406,11 +439,11 @@ pub extern "C" fn Matrix_Scaling(sx: f32, sy: f32, sz: f32) -> Box<Matrix> {
             0.0f32, 0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_SRT(
+pub extern "C" fn Matrix_SRT(
     sx: f32,
     sy: f32,
     sz: f32,
@@ -437,7 +470,7 @@ pub extern "C" fn Matrix_Translation(tx: f32, ty: f32, tz: f32) -> Box<Matrix> {
             0.0f32, 0.0f32, 0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -468,51 +501,51 @@ pub extern "C" fn Matrix_YawPitchRoll(yaw: f32, pitch: f32, roll: f32) -> Box<Ma
             1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_MulBox(this: &Matrix, out: &mut Box3, in_0: &Box3) {
+pub extern "C" fn Matrix_MulBox(this: &Matrix, out: &mut Box3, in_0: &Box3) {
     let corners: [Vec3; 8] = [
         Vec3 {
-            x: (*in_0).lower.x,
-            y: (*in_0).lower.y,
-            z: (*in_0).lower.z,
+            x: in_0.lower.x,
+            y: in_0.lower.y,
+            z: in_0.lower.z,
         },
         Vec3 {
-            x: (*in_0).upper.x,
-            y: (*in_0).lower.y,
-            z: (*in_0).lower.z,
+            x: in_0.upper.x,
+            y: in_0.lower.y,
+            z: in_0.lower.z,
         },
         Vec3 {
-            x: (*in_0).lower.x,
-            y: (*in_0).upper.y,
-            z: (*in_0).lower.z,
+            x: in_0.lower.x,
+            y: in_0.upper.y,
+            z: in_0.lower.z,
         },
         Vec3 {
-            x: (*in_0).upper.x,
-            y: (*in_0).upper.y,
-            z: (*in_0).lower.z,
+            x: in_0.upper.x,
+            y: in_0.upper.y,
+            z: in_0.lower.z,
         },
         Vec3 {
-            x: (*in_0).lower.x,
-            y: (*in_0).lower.y,
-            z: (*in_0).upper.z,
+            x: in_0.lower.x,
+            y: in_0.lower.y,
+            z: in_0.upper.z,
         },
         Vec3 {
-            x: (*in_0).upper.x,
-            y: (*in_0).lower.y,
-            z: (*in_0).upper.z,
+            x: in_0.upper.x,
+            y: in_0.lower.y,
+            z: in_0.upper.z,
         },
         Vec3 {
-            x: (*in_0).lower.x,
-            y: (*in_0).upper.y,
-            z: (*in_0).upper.z,
+            x: in_0.lower.x,
+            y: in_0.upper.y,
+            z: in_0.upper.z,
         },
         Vec3 {
-            x: (*in_0).upper.x,
-            y: (*in_0).upper.y,
-            z: (*in_0).upper.z,
+            x: in_0.upper.x,
+            y: in_0.upper.y,
+            z: in_0.upper.z,
         },
     ];
     let mut result = Vec3::ZERO;
@@ -535,35 +568,34 @@ pub unsafe extern "C" fn Matrix_MulBox(this: &Matrix, out: &mut Box3, in_0: &Box
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_MulDir(this: &Matrix, out: &mut Vec3, x: f32, y: f32, z: f32) {
+pub extern "C" fn Matrix_MulDir(this: &Matrix, out: &mut Vec3, x: f32, y: f32, z: f32) {
     let m: *const f32 = (this.m).as_ptr();
-    out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z;
-    out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z;
-    out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z;
+    unsafe {
+        out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z;
+        out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z;
+        out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z;
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_MulPoint(this: &Matrix, out: &mut Vec3, x: f32, y: f32, z: f32) {
+pub extern "C" fn Matrix_MulPoint(this: &Matrix, out: &mut Vec3, x: f32, y: f32, z: f32) {
     let m: *const f32 = (this.m).as_ptr();
-    out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z + *m.offset(3);
-    out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z + *m.offset(7);
-    out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z + *m.offset(11);
+    unsafe {
+        out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z + *m.offset(3);
+        out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z + *m.offset(7);
+        out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z + *m.offset(11);
+    }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_MulVec(
-    this: &Matrix,
-    out: &mut Vec4,
-    x: f32,
-    y: f32,
-    z: f32,
-    w: f32,
-) {
+pub extern "C" fn Matrix_MulVec(this: &Matrix, out: &mut Vec4, x: f32, y: f32, z: f32, w: f32) {
     let m: *const f32 = (this.m).as_ptr();
-    out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z + *m.offset(3) * w;
-    out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z + *m.offset(7) * w;
-    out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z + *m.offset(11) * w;
-    out.w = *m.offset(12) * x + *m.offset(13) * y + *m.offset(14) * z + *m.offset(15) * w;
+    unsafe {
+        out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z + *m.offset(3) * w;
+        out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z + *m.offset(7) * w;
+        out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z + *m.offset(11) * w;
+        out.w = *m.offset(12) * x + *m.offset(13) * y + *m.offset(14) * z + *m.offset(15) * w;
+    }
 }
 
 #[no_mangle]
@@ -610,7 +642,7 @@ pub extern "C" fn Matrix_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3) -> Box<Matrix> 
             0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -627,7 +659,7 @@ pub extern "C" fn Matrix_FromPosRot(pos: &Vec3, rot: &Quat) -> Box<Matrix> {
             0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -658,7 +690,7 @@ pub extern "C" fn Matrix_FromPosRotScale(pos: &Vec3, rot: &Quat, scale: f32) -> 
             1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -669,7 +701,7 @@ pub extern "C" fn Matrix_FromPosBasis(pos: &Vec3, x: &Vec3, y: &Vec3, z: &Vec3) 
             0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
@@ -686,16 +718,18 @@ pub extern "C" fn Matrix_FromQuat(q: &Quat) -> Box<Matrix> {
             0.0f32, 1.0f32,
         ],
     };
-    Matrix_Clone(&result)
+    Box::new(result)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Matrix_ToQuat(this: &Matrix, q: &mut Quat) {
+pub extern "C" fn Matrix_ToQuat(this: &Matrix, q: &mut Quat) {
     let m: *const f32 = this as *const Matrix as *const f32;
-    let mut x: Vec3 = Vec3::new(*m.offset(0), *m.offset(4), *m.offset(8));
-    let mut y: Vec3 = Vec3::new(*m.offset(1), *m.offset(5), *m.offset(9));
-    let mut z: Vec3 = Vec3::new(*m.offset(2), *m.offset(6), *m.offset(10));
-    Quat_FromBasis(&mut x, &mut y, &mut z, q);
+    unsafe {
+        let mut x: Vec3 = Vec3::new(*m.offset(0), *m.offset(4), *m.offset(8));
+        let mut y: Vec3 = Vec3::new(*m.offset(1), *m.offset(5), *m.offset(9));
+        let mut z: Vec3 = Vec3::new(*m.offset(2), *m.offset(6), *m.offset(10));
+        Quat_FromBasis(&mut x, &mut y, &mut z, q);
+    }
 }
 
 #[no_mangle]
