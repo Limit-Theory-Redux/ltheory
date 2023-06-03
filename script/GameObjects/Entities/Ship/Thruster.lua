@@ -1,22 +1,37 @@
 local Entity = require('GameObjects.Entity')
-local Material = require('GameObjects.Material')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
+local Material = require('GameObjects.Material')
 
 local mesh
+local material
 local meshJet
 local rng = RNG.FromTime()
 
-local Thruster
-Thruster = subclass(Entity, function (self, parentShip)
+local Thruster = subclass(Entity, function (self, parentShip)
   if not mesh then
-    mesh = Gen.ShipFighter.EngineSingle(rng)
+    local parentHullSize = parentShip:getHull()
+    if parentHullSize == Enums.ShipHulls.Solo then
+      mesh = Gen.ShipFighter.EngineSingle(rng)
+    elseif parentHullSize == Enums.ShipHulls.VeryLarge then
+      mesh = Gen.ShipBasic.EngineSingle(rng, parentHullSize)
+    else
+      mesh = Gen.ShipCapital.EngineSingle(rng)
+    end
     mesh:computeNormals()
     mesh:computeAO(0.1)
     meshJet = Gen.Primitive.Billboard(-1, 0, 1, 1)
   end
 
+  if not material then
+    material = Material.Create(
+      'material/metal',
+      Cache.Texture('metal/02_d_gray'),
+      Cache.Texture('metal/02_n'),
+      Cache.Texture('metal/02_s'))
+  end
+
   self:addRigidBody(true, mesh)
-  self:addVisibleMesh(mesh, Material.Debug())
+  self:addVisibleMesh(mesh, material)
 
   self.parentShip = parentShip
   self.activation = 0
@@ -25,8 +40,10 @@ Thruster = subclass(Entity, function (self, parentShip)
   self.boostT = 0
   self.time = rng:getUniformRange(0, 1000)
 
-  self:register(Event.Render, Thruster.render)
-  self:register(Event.Update, Thruster.update)
+--printf("Register: Thruster type = %s, handler = %s", Event.Render, self.render)
+  self:register(Event.Render, self.render)
+--printf("Register: Thruster type = %s, handler = %s", Event.Update, self.update)
+  self:register(Event.Update, self.update)
 end)
 
 function Thruster:getSocketType ()

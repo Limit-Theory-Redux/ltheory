@@ -1,4 +1,5 @@
 local Entity = require('GameObjects.Entity')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local genColor = function (rng)
   local h = rng:getUniformRange(0, 0.5)
@@ -10,6 +11,9 @@ end
 
 local Planet = subclass(Entity, function (self, seed)
   local rng = RNG.Create(seed):managed()
+
+  -- TODO: Improve planet size generation
+  local planetSizeType = Config.gen.sizePlanet
 
   -- TODO : Had to lower quality to 2 because RigidBody is automatically
   --        building BSP, and sphere is pathological case for BSPs. Need
@@ -26,7 +30,6 @@ local Planet = subclass(Entity, function (self, seed)
   self:addChildren()
   self:addDockable() -- TODO: rethink how "docking with planets" should work
   self:addFlows()
-  self:addInventory(1e10)
   self:addMinable(false) -- TODO: should be 'true' temporarily (planets have Yield), but will change with Colonies
   self:addTrackable(true)
 
@@ -50,6 +53,53 @@ local Planet = subclass(Entity, function (self, seed)
   self.color2 = genColor(rng)
   self.color3 = genColor(rng)
   self.color4 = genColor(rng)
+
+  -- TEMP: give each planet the maximum number of every applicable component
+  self.countComputer    = Config.gen.stationComponents[Enums.PlanetComponents.Computer ][planetSizeType]
+  self.countSensor      = Config.gen.stationComponents[Enums.PlanetComponents.Sensor   ][planetSizeType]
+  self.countInventory   = Config.gen.stationComponents[Enums.PlanetComponents.Inventory][planetSizeType]
+  self.countShield      = Config.gen.stationComponents[Enums.PlanetComponents.Shield   ][planetSizeType]
+
+  self:addComponents()
+
+  -- Add all the _positions_ for socketable components (the components are added later)
+  self.positions = {
+    [SocketType.Computer]    = {},
+    [SocketType.Sensor]      = {},
+    [SocketType.Inventory]   = {},
+    [SocketType.Shield]      = {},
+  }
+
+  -- Computer sockets
+  for i = 1, self.countComputer do
+    insert(self.positions[SocketType.Computer], Vec3f(1, 1, 1))
+  end
+
+  -- Sensor sockets
+  for i = 1, self.countSensor do
+    insert(self.positions[SocketType.Sensor], Vec3f(1, 1, 1))
+  end
+
+  -- Inventory sockets
+  for i = 1, self.countInventory do
+    insert(self.positions[SocketType.Inventory], Vec3f(1, 1, 1))
+  end
+
+  -- Shield sockets
+  for i = 1, self.countShield do
+    insert(self.positions[SocketType.Shield], Vec3f(1, 1, 1))
+  end
+
+  -- Add all sockets to parent
+  -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
+  --        better for ShipType etc.
+  self:addSockets()
+
+  for type, elems in pairs(self.positions) do
+    for i, pos in ipairs(elems) do
+      self:addSocket(type, pos, true)
+    end
+  end
 
   self:setDrag(10, 10) -- fix planet in place
 

@@ -1,5 +1,5 @@
 local CameraBindings = require('Systems.Controls.Bindings.CameraBindings')
-local Disposition = require('GameObjects.Components.NPC.Dispositions')
+local Disposition = require('GameObjects.Elements.NPC.Dispositions')
 
 local BackgroundControl = {}
 BackgroundControl.__index = BackgroundControl

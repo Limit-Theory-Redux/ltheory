@@ -65,6 +65,7 @@ end
 
 function Entity:renderVisibleMesh (state)
   if state.mode == BlendMode.Disabled then
+--printf("Entity:renderVisibleMesh() - self = %s", self:getName())
     self.material:start()
     self.material:setState(self)
     self.mesh:draw()

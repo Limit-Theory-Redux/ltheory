@@ -196,8 +196,8 @@ function SystemMap:onDraw (state)
         dbg:text("Owner: [None]")
       end
       if not self.focus:isDestroyed() then
-        if self.focus:hasHealth()then
-          dbg:text("Health: %d%%", self.focus:getHealthPercent())
+        if self.focus:isAlive() then
+          dbg:text("Hull Integrity: %d%%", self.focus:mgrHullGetHullPercent())
         end
         if string.match(objtype, "Station") and self.focus:hasDockable() then
           local docked = self.focus:getDocked()
@@ -272,19 +272,25 @@ function SystemMap:onInput (state)
   -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
   --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
   --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
+  --       Meanwhile, the Minus and Equals keys will slow down and speed up zooming, respectively
   if Input.GetValue(Button.Keyboard.Minus) == 1 then
-    GameState.player.mapSystemPan = floor(GameState.player.mapSystemPan / 1.2)
+    GameState.player.mapSystemPan = GameState.player.mapSystemPan / 1.2
+    if GameState.player.mapSystemPan < 1 then
+      GameState.player.mapSystemPan = 1
+    end
+--printf("mapSystemPan - = %s", GameState.player.mapSystemPan)
   end
   if Input.GetValue(Button.Keyboard.Equals) == 1 then
-    GameState.player.mapSystemPan = floor(GameState.player.mapSystemPan * 1.2)
+    GameState.player.mapSystemPan = GameState.player.mapSystemPan * 1.2
     if GameState.player.mapSystemPan > 150 then
       GameState.player.mapSystemPan = 150
     end
+--printf("mapSystemPan + = %s", GameState.player.mapSystemPan)
   end
 
   GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
   GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
-      exp(kZoomSpeed * (Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+      exp(kZoomSpeed * (Input.GetValue(Button.Keyboard.RBracket) - Input.GetValue(Button.Keyboard.LBracket)))
 
   GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x + (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
       Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))

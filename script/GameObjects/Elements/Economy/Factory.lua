@@ -73,7 +73,7 @@ function Factory:updateProduction (prod, dt)
   if not prod.active then
     -- Check inventory for presence of required inputs
     for _, input in prod.type:iterInputs() do
-      if not self.parent:hasItem(input.item, input.count) then
+      if not self.parent:mgrInventoryHasItem(input.item, input.count) then
         prod.blocked = true
         return
       end
@@ -83,7 +83,7 @@ function Factory:updateProduction (prod, dt)
 
     -- Entity has all the necessary inputs, let's start a round of production
     for _, input in prod.type:iterInputs() do
-      self.parent:removeItem(input.item, input.count)
+      self.parent:mgrInventoryRemoveItem(input.item, input.count)
     end
 
     prod.active = true
@@ -97,14 +97,18 @@ function Factory:updateProduction (prod, dt)
       for i, output in prod.type:iterOutputs() do
         -- TODO : How to handle failure when a factory finishes a production
         --        for which the output inventory has insufficient capacity?
-        assert(self.parent:addItem(output.item, output.count))
-if output.item ~= Item.Energy then
-printf("FACTORY %s produced %d units of %s", self.parent:getName(), output.count, output.item:getName())
-end
+        if self.parent:mgrInventoryAddItem(output.item, output.count) then
+          if output.item ~= Item.Energy then
+            printf("FACTORY %s produced %d units of %s", self.parent:getName(), output.count, output.item:getName())
+          end
+        else
+          printf("FACTORY %s produced %d units of %s but could not store them all",
+              self.parent:getName(), output.count, output.item:getName())
+        end
       end
 
       -- TODO: Make factory trade order timers work
-      --       Until then, after a production run respawn bids and asks per factory inputs and outputs
+      --       Until then, after a production run, respawn bids and asks per factory inputs and outputs
       for _, input in prod.type:iterInputs() do
         for i = 1, input.count * Config.econ.inputBacklog do
           if input.item == Item.Energy then

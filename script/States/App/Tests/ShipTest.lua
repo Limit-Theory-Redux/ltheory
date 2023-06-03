@@ -9,9 +9,13 @@ local rng = RNG.FromTime()
 function ShipTest:spawnShip ()
   local ship
   do -- Player Ship
+<<<<<<< HEAD:script/States/App/ShipTest.lua
+    ship = self.system:spawnShip(Enums.ShipHulls.Solo, self.player)
+=======
     local currentShip = self.currentShip or self.player:getControlling()
     if currentShip then currentShip:delete() end
     ship = self.system:spawnShip(self.player)
+>>>>>>> main:script/States/App/Tests/ShipTest.lua
     ship:setPos(Config.gen.origin)
     ship:setFriction(0)
     ship:setSleepThreshold(0, 0)

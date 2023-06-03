@@ -41,7 +41,7 @@ function ShipCapital.EngineSingle (rng)
   return engine:finalize()
 end
 
-function ShipCapital.Sausage (rng)
+function ShipCapital.Sausage (rng, hull)
   local shape = Shape()
 
   -- settings
@@ -60,7 +60,7 @@ function ShipCapital.Sausage (rng)
   local segments = rng:getInt(minSegments, maxSegments)
   shape:add(ShipHull.Hull(rng))
   for i = 1, segments - 1 do
-    local seg = ShipHull.Hull (rng)
+    local seg = ShipHull.Hull (rng, hull)
 
     local overlap = rng:chance(0.5)
     if overlap then

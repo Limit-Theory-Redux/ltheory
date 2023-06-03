@@ -27,20 +27,20 @@ local function AddSystemGenerics(system)
 
   -- Every inhabited star system gets one "free" solar plant
   -- TODO: Don't do this step for star systems that are not inhabited
-  system:spawnStation(tradeAi, Production.EnergySolar)
+  system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.EnergySolar)
 
   if GameState.gen.nAIPlayers > 0 and GameState.gen.nEconNPCs > 0 then
       -- Add the "extra" stations only if there are economic ships to use them
       -- Add a free Waste Recycler station
-      system:spawnStation(tradeAi, Production.Recycler)
+      system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.Recycler)
   end
 
   -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
   for i = 2, GameState.gen.nStations do
     -- Create Stations within randomly selected AsteroidField Zones
-    system:spawnStation(tradeAi, nil)
+    system:spawnStation(Enums.StationHulls.Small, tradeAi, nil)
   end
-  print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, tradeAi:getName())
+  printf("Spawned %d Stations for AI Player '%s'", GameState.gen.nStations, tradeAi:getName())
 
   -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
   system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
