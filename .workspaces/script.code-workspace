@@ -5,6 +5,10 @@
 			"name": "Workspaces"
 		},
 		{
+			"path": "../bin",
+			"name": "Executable"
+		},
+		{
 			"path": "../libphx/script",
 			"name": "Engine Scripts"
 		},
