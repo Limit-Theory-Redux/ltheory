@@ -4,7 +4,7 @@
   and unifying the CTypes API. As always, powertools like this should be used
   only where required, not as a kludge.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local Type    = {}
 local byName  = {}
 local byID    = {}

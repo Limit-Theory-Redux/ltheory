@@ -2,7 +2,7 @@
   Event Manager object for writing event-driven logic. Use multiple event
   manager objects to separate events based on logical application boundaries.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local EventManagerT   = {}
 EventManagerT.__index = {}
 

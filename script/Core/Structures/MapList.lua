@@ -11,7 +11,7 @@
          are stored in the hash part of the MapList. :get is for *map lookup*,
          not for indexing (indexing is, again, simply mapList[i]).
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local MapList = {}
 
 local function mapListGet(self, k)

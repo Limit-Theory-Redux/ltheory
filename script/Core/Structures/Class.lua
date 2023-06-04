@@ -22,7 +22,7 @@
     function Carrier:addHangar (unit) insert(self.hangar, unit) end
     function Carrier:getHangar () return self.hangar end
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 function class(ctor)
     local cls = {}

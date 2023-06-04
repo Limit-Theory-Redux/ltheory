@@ -10,7 +10,7 @@
     - Need to use stochastic sampling here, going to have to abandon exhaustive
       search for sure
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 local Flow = require('Systems.Economy.Flow')
 local Job = require('GameObjects.Job')
@@ -120,7 +120,7 @@ function Transport:onUpdateActive(e, dt)
                 else
                     -- Source station no longer exists, so terminate this entire job
                     printf(
-                    "[TRANSPORT 1] *** Source station %s no longer exists for %s DockAt; terminating transport job",
+                        "[TRANSPORT 1] *** Source station %s no longer exists for %s DockAt; terminating transport job",
                         self.src:getName(), e:getName())
                     e:popAction()
                     e.jobState = nil
@@ -153,7 +153,7 @@ function Transport:onUpdateActive(e, dt)
             else
                 -- Source station no longer exists, so terminate this entire job
                 printf(
-                "[TRANSPORT 2] *** Source station %s no longer exists for %s item purchase; terminating transport job",
+                    "[TRANSPORT 2] *** Source station %s no longer exists for %s item purchase; terminating transport job",
                     self.src:getName(), e:getName())
                 e:popAction()
                 e.jobState = nil
@@ -170,7 +170,7 @@ function Transport:onUpdateActive(e, dt)
             else
                 -- Destination station no longer exists, so terminate this entire job
                 printf(
-                "[TRANSPORT 4] *** Destination station %s no longer exists for %s DockAt; terminating transport job",
+                    "[TRANSPORT 4] *** Destination station %s no longer exists for %s DockAt; terminating transport job",
                     self.dst:getName(), e:getName())
                 e:popAction()
                 e.jobState = nil
@@ -188,7 +188,7 @@ function Transport:onUpdateActive(e, dt)
             else
                 -- Destination station no longer exists, so terminate this entire job
                 printf(
-                "[TRANSPORT 5] *** Destination station %s no longer exists for %s item sale; terminating transport job",
+                    "[TRANSPORT 5] *** Destination station %s no longer exists for %s item sale; terminating transport job",
                     self.dst:getName(), e:getName())
                 e:popAction()
                 e.jobState = nil

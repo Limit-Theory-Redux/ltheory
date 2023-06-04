@@ -28,7 +28,7 @@ local Planet = subclass(Entity, function(self, seed)
     --       market/production/research capabilities
     self:addActions()
     self:addChildren()
-    self:addDockable()   -- TODO: rethink how "docking with planets" should work
+    self:addDockable()     -- TODO: rethink how "docking with planets" should work
     self:addFlows()
     self:addMinable(false) -- TODO: should be 'true' temporarily (planets have Yield), but will change with Colonies
     self:addTrackable(true)

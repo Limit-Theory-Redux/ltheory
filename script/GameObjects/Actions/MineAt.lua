@@ -87,7 +87,7 @@ function MineAt:onUpdateActive(e, dt)
                     end
 
                     if e:mgrInventoryGetItemCount(item) == maxBids then
-                        e:popAction()                      -- regular: stop mining if asset has mined 1 unit of item for each bid
+                        e:popAction()                                  -- regular: stop mining if asset has mined 1 unit of item for each bid
                     else
                         e:pushAction(Actions.MoveTo(self.source, 150)) -- move back to within range!
                     end

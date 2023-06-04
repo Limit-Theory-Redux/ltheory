@@ -181,7 +181,7 @@ function MusicPlayer:LoadMusic()
     printf("Load Music: ")
     for index, soundObject in ipairs(self.trackList) do
         printf("[" .. index .. "] " .. soundObject.name .. " (path: " ..
-        tostring(Sound.GetPath(soundObject.sound)) .. ")")
+            tostring(Sound.GetPath(soundObject.sound)) .. ")")
     end
 end
 

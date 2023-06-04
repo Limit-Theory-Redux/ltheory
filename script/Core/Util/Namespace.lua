@@ -7,7 +7,7 @@
   The keySource table, which knows from which module global keys originated,
   could be used to provide additional debug information in the future.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local Log = require('Core.Util.Log')
 
 local Namespace = {}

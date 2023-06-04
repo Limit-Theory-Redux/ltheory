@@ -106,7 +106,7 @@ function ShipFighter.SurfaceDetail(rng, shape)
             )
         elseif rng:chance(0.05) then
             shape:greeble(rng,
-                1, -- tessellations
+                1,         -- tessellations
                 0.01, 0.03 -- low, high size
             )
         else

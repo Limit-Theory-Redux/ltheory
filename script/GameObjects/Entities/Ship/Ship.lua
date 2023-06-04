@@ -61,8 +61,8 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self:setMass(Config.gen.shipHullMass[hull]) -- lower mass is related to the ship "wobble" problem
     printf("@@@ Entities:Ship - final radius = %s, mass = %s", self:getRadius(), self:getMass())
 
-    self.explosionSize = 64 -- ships get the default explosion size
-    self.usesBoost = false -- default ships fly at only the normal speed
+    self.explosionSize = 64  -- ships get the default explosion size
+    self.usesBoost = false   -- default ships fly at only the normal speed
     local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
 end)
 

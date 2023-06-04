@@ -4,7 +4,7 @@
   - Now that entities are well-unified, these metatypes should be unified as
     well; we only need one 'prototype' class.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 local Ship = require('GameObjects.Entities.Ship.Ship')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')

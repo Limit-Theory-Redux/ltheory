@@ -43,7 +43,7 @@ local function GenerateColorLUT(rng, iterations, variation, rough)
         points:add(interp[1])
     end
 
-    do                                      -- Write the output into a byte buffer and transfer to texture
+    do                                          -- Write the output into a byte buffer and transfer to texture
         local bytes = Bytes.Create(256 * 3 * 4) -- Transfer in RGB32F format
         for i = 1, #points do
             local point = points[i]

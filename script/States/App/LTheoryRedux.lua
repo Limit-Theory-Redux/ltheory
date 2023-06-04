@@ -337,7 +337,7 @@ function LTheoryRedux:createStarSystem()
 
             -- Add an asteroid field
             -- Must add BEFORE space stations
-            for i = 1, rng:getInt(0, 1) do                 -- 50/50 chance of having asteroids
+            for i = 1, rng:getInt(0, 1) do                         -- 50/50 chance of having asteroids
                 self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
             end
 
@@ -374,9 +374,9 @@ function LTheoryRedux:showGameLogo()
     local scaleFactor = ((self.resX * self.resY) / (1600 * 900)) ^ 0.5
     local scaleFactorX = self.resX / 1600
     local scaleFactorY = self.resY / 900
-    HmGui.Image(self.logo)                                                                -- draw the LTR logo on top of the canvas
+    HmGui.Image(self.logo)                                                                  -- draw the LTR logo on top of the canvas
     HmGui.SetStretch(0.76 * scaleFactor / scaleFactorX, 0.243 * scaleFactor / scaleFactorY) -- scale logo (width, height)
-    HmGui.SetAlign(0.5, 0.5)                                                              -- align logo
+    HmGui.SetAlign(0.5, 0.5)                                                                -- align logo
 end
 
 function LTheoryRedux:exitGame()

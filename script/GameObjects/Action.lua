@@ -12,7 +12,7 @@
 
   onUpdatePassive : Called for every action in the stack
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 local Action = class(function(self) end)
 

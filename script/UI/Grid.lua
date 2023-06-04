@@ -9,7 +9,7 @@
   of rows causes the Grid to position children vertically until the desired
   number of rows have been reached before automatically advancing.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local Container = require('UI.Container')
 
 local Grid = {}

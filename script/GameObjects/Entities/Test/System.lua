@@ -217,7 +217,7 @@ function System:place(object)
                         -- TODO: replace later with actual system size
                         if distanceFromOrigin > 200000 then
                             print("New Station too far away from system core: " ..
-                            math.floor(distanceFromOrigin) .. ". Finding New Position.")
+                                math.floor(distanceFromOrigin) .. ". Finding New Position.")
                             return false
                         end
                         return true
@@ -352,7 +352,7 @@ function System:spawnPlanet(bAddBelt)
     for i = 1, planet.countInventory do
         local inventory = Components.Inventory()
         inventory:setName(planet:getName() ..
-        ": " .. inventory:getName() .. "(" .. Config.gen.planetInventorySize .. ") " .. tostring(i))
+            ": " .. inventory:getName() .. "(" .. Config.gen.planetInventorySize .. ") " .. tostring(i))
         inventory:setInventoryCapacity(Config.gen.planetInventorySize)
         insert(planet.components.inventory, inventory)
         planet:plug(inventory)
@@ -381,8 +381,8 @@ function System:spawnPlanet(bAddBelt)
 
     -- Let the planet bid for selected item types it wants
     -- TODO: generate better bid prices; this is just for testing the "payout" model
-    local price = 0  -- base price
-    local dprice = 0 -- desire price
+    local price = 0    -- base price
+    local dprice = 0   -- desire price
     local bidCount = 0 -- number of bids to offer
     -- NOTE: bid prices are being generated higher than all of the ask prices for these items when they're
     --       produced. This is temporary to insure there's always a profit in trading factory-produced goods.
@@ -670,7 +670,7 @@ function System:spawnStation(hullSize, player, prodType)
     for i = 1, station.countInventory do
         local inventory = Components.Inventory()
         inventory:setName(station:getName() ..
-        ": " .. inventory:getName() .. "(" .. Config.gen.stationInventorySize .. ") " .. tostring(i))
+            ": " .. inventory:getName() .. "(" .. Config.gen.stationInventorySize .. ") " .. tostring(i))
         inventory:setInventoryCapacity(Config.gen.stationInventorySize)
         insert(station.components.inventory, inventory)
         station:plug(inventory)
@@ -922,7 +922,7 @@ function System:spawnShip(hullSize, player)
     for i = 1, ship.countInventory do
         local inventory = Components.Inventory()
         inventory:setName(ship:getName() ..
-        ": " .. inventory:getName() .. "(" .. Config.gen.shipInventorySize .. ") " .. tostring(i))
+            ": " .. inventory:getName() .. "(" .. Config.gen.shipInventorySize .. ") " .. tostring(i))
         inventory:setInventoryCapacity(Config.gen.shipInventorySize)
         insert(ship.components.inventory, inventory)
         ship:plug(inventory)

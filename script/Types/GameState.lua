@@ -1,8 +1,8 @@
 -- For dynamic states
 GameState = {
-    state       = Enums.GameStates.Splashscreen,         -- previously gamemode
+    state       = Enums.GameStates.Splashscreen, -- previously gamemode
     paused      = false,
-    panelActive = false,                                 -- indicates whether MasterControl panel is enabled or not
+    panelActive = false,                         -- indicates whether MasterControl panel is enabled or not
 }
 
 GameState.input = {
@@ -109,7 +109,7 @@ function GameState:SetState(state)
     if self.state == Enums.GameStates.MainMenu or self.state == Enums.GameStates.Splashscreen then
         self.player.currentControl = Enums.ControlModes.Background -- enable game startup mode
     else
-        self.player.currentControl = Enums.ControlModes.Ship   -- enable flight mode
+        self.player.currentControl = Enums.ControlModes.Ship       -- enable flight mode
     end
 end
 

@@ -28,18 +28,18 @@ function BasicShapes.Box(res)
     end
 
     local self = Shape()
-    self:addVertex(-1, 1, -1) -- 0
-    self:addVertex(1, 1, -1) -- 1
-    self:addVertex(-1, 1, 1) -- 2
-    self:addVertex(1, 1, 1)  -- 3
+    self:addVertex(-1, 1, -1)  -- 0
+    self:addVertex(1, 1, -1)   -- 1
+    self:addVertex(-1, 1, 1)   -- 2
+    self:addVertex(1, 1, 1)    -- 3
 
     self:addVertex(-1, -1, -1) -- 4
-    self:addVertex(1, -1, -1) -- 5
-    self:addVertex(-1, -1, 1) -- 6
-    self:addVertex(1, -1, 1) -- 7
+    self:addVertex(1, -1, -1)  -- 5
+    self:addVertex(-1, -1, 1)  -- 6
+    self:addVertex(1, -1, 1)   -- 7
 
-    self:addQuad(0, 2, 3, 1) -- top
-    self:addQuad(4, 5, 7, 6) -- bottom
+    self:addQuad(0, 2, 3, 1)   -- top
+    self:addQuad(4, 5, 7, 6)   -- bottom
     self:addQuad(3, 7, 5, 1)
     self:addQuad(0, 4, 6, 2)
     self:addQuad(2, 6, 7, 3)
@@ -112,7 +112,7 @@ function BasicShapes.Pyramid()
     local self = Shape()
 
     self
-        :addVertex(0, 0, 0)   -- center bottom
+        :addVertex(0, 0, 0)      -- center bottom
         :addVertex(-0.5, 0, 0.5) -- bottom 4 verticies
         :addVertex(-0.5, 0, -0.5)
         :addVertex(0.5, 0, -0.5)
@@ -121,7 +121,7 @@ function BasicShapes.Pyramid()
 
     self
         :addQuad(1, 2, 3, 4) -- bottom
-        :addTri(5, 2, 1) -- 4 sides
+        :addTri(5, 2, 1)     -- 4 sides
         :addTri(5, 1, 4)
         :addTri(5, 4, 3)
         :addTri(5, 3, 2)
@@ -277,7 +277,7 @@ function BasicShapes.Torus(outerFn, innerFn, rOuter, rInner, stacks, slices)
     if slices < 3 then slices = 3 end
 
     local self = Shape()
-    do                                                 -- Vertices
+    do                                                       -- Vertices
         for stack = 0, stacks - 1 do
             local theta = (2.0 * math.pi) * (stack / stacks) -- Outer angle (stacks)
             local pOuter = outerFn(theta)

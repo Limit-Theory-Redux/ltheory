@@ -4,7 +4,7 @@
   targets, stored navigation information, AND did automatic caching of nearby
   obstacles.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 local Entity = require('GameObjects.Entity')
 

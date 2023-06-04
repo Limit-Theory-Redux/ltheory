@@ -2,7 +2,7 @@
   Convenience mechanism for easy creation of wrappers that use ffi.metatype to
   add functionality to raw C types.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local Type  = require('Core.CFFI.Type')
 local CType = require('Core.CFFI.CType')
 

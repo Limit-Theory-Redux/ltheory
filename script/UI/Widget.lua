@@ -2,7 +2,7 @@
   Base metatable for all UI widgets. Provides default property values and basic
   widget functions.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local Rect        = require('UI.Rect')
 
 local Widget      = {}
@@ -270,7 +270,7 @@ end
   Widget:setPadUniform             (pad)
 
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 function Widget:applyColor(focus, active, normalColor, alpha)
     if active == self then

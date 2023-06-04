@@ -5,7 +5,7 @@
   to maintain a list of all active jobs contributing to a given node's flow
   such that we can recompute periodically.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 local Entity = require('GameObjects.Entity')
 

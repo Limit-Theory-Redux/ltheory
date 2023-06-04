@@ -8,7 +8,7 @@
   NOTE : CReference is NOT for use with engine-level types, and will not work
          for automatically managing, for example, Meshes or Tex2Ds.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local Type = require('Core.CFFI.Type')
 local cache = {}
 

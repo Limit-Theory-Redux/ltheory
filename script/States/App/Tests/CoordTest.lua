@@ -7,36 +7,36 @@ local bases = {
     -- NOTE : Euler angles are wrong. They were written before math was fixed.
 
     -- Rotate Around X (y chases z)
-    { z = Vec3f(0, 0, 1),     y = Vec3f(0, 1, 0),     x = Vec3f(1, 0, 0), --[[ ex =   0, ]]         axis = Vec3f(1, 0, 0) },
-    { z = Vec3f(0, -1, 0),    y = Vec3f(0, 0, 1),     x = Vec3f(1, 0, 0), --[[ ex =  90, ]]         axis = Vec3f(1, 0, 0) },
-    { z = Vec3f(0, 0, -1),    y = Vec3f(0, -1, 0),    x = Vec3f(1, 0, 0), --[[ ex = 180, ]]         axis = Vec3f(1, 0, 0) },
-    { z = Vec3f(0, 1, 0),     y = Vec3f(0, 0, -1),    x = Vec3f(1, 0, 0), --[[ ex = 270, ]]         axis = Vec3f(1, 0, 0) },
-    { z = Vec3f(0, -r2, r2),  y = Vec3f(0, r2, r2),   x = Vec3f(1, 0, 0), --[[ ex =  45, ]]         axis = Vec3f(1, 0, 0) },
-    { z = Vec3f(0, -r2, -r2), y = Vec3f(0, -r2, r2),  x = Vec3f(1, 0, 0), --[[ ex = 135, ]]         axis = Vec3f(1, 0, 0) },
-    { z = Vec3f(0, r2, -r2),  y = Vec3f(0, -r2, -r2), x = Vec3f(1, 0, 0), --[[ ex = 225, ]]         axis = Vec3f(1, 0, 0) },
-    { z = Vec3f(0, r2, r2),   y = Vec3f(0, r2, -r2),  x = Vec3f(1, 0, 0), --[[ ex = 315, ]]         axis = Vec3f(1, 0, 0) },
+    { z = Vec3f(0, 0, 1),     y = Vec3f(0, 1, 0),     x = Vec3f(1, 0, 0), --[[ ex =   0, ]] axis = Vec3f(1, 0, 0) },
+    { z = Vec3f(0, -1, 0),    y = Vec3f(0, 0, 1),     x = Vec3f(1, 0, 0), --[[ ex =  90, ]] axis = Vec3f(1, 0, 0) },
+    { z = Vec3f(0, 0, -1),    y = Vec3f(0, -1, 0),    x = Vec3f(1, 0, 0), --[[ ex = 180, ]] axis = Vec3f(1, 0, 0) },
+    { z = Vec3f(0, 1, 0),     y = Vec3f(0, 0, -1),    x = Vec3f(1, 0, 0), --[[ ex = 270, ]] axis = Vec3f(1, 0, 0) },
+    { z = Vec3f(0, -r2, r2),  y = Vec3f(0, r2, r2),   x = Vec3f(1, 0, 0), --[[ ex =  45, ]] axis = Vec3f(1, 0, 0) },
+    { z = Vec3f(0, -r2, -r2), y = Vec3f(0, -r2, r2),  x = Vec3f(1, 0, 0), --[[ ex = 135, ]] axis = Vec3f(1, 0, 0) },
+    { z = Vec3f(0, r2, -r2),  y = Vec3f(0, -r2, -r2), x = Vec3f(1, 0, 0), --[[ ex = 225, ]] axis = Vec3f(1, 0, 0) },
+    { z = Vec3f(0, r2, r2),   y = Vec3f(0, r2, -r2),  x = Vec3f(1, 0, 0), --[[ ex = 315, ]] axis = Vec3f(1, 0, 0) },
 
 
     -- Rotate Around Y (z chases x)
-    { z = Vec3f(0, 0, 1),     x = Vec3f(1, 0, 0),     y = Vec3f(0, 1, 0), --[[ ey =   0, ]]         axis = Vec3f(0, 1, 0) },
-    { z = Vec3f(-1, 0, 0),    x = Vec3f(0, 0, 1),     y = Vec3f(0, 1, 0), --[[ ey =  90, ]]         axis = Vec3f(0, 1, 0) },
-    { z = Vec3f(0, 0, -1),    x = Vec3f(-1, 0, 0),    y = Vec3f(0, 1, 0), --[[ ey = 180, ]]         axis = Vec3f(0, 1, 0) },
-    { z = Vec3f(1, 0, 0),     x = Vec3f(0, 0, -1),    y = Vec3f(0, 1, 0), --[[ ey = 270, ]]         axis = Vec3f(0, 1, 0) },
-    { z = Vec3f(-r2, 0, r2),  x = Vec3f(r2, 0, r2),   y = Vec3f(0, 1, 0), --[[ ey =  45, ]]         axis = Vec3f(0, 1, 0) },
-    { z = Vec3f(-r2, 0, -r2), x = Vec3f(-r2, 0, r2),  y = Vec3f(0, 1, 0), --[[ ey = 135, ]]         axis = Vec3f(0, 1, 0) },
-    { z = Vec3f(r2, 0, -r2),  x = Vec3f(-r2, 0, -r2), y = Vec3f(0, 1, 0), --[[ ey = 225, ]]         axis = Vec3f(0, 1, 0) },
-    { z = Vec3f(r2, 0, r2),   x = Vec3f(r2, 0, -r2),  y = Vec3f(0, 1, 0), --[[ ey = 315, ]]         axis = Vec3f(0, 1, 0) },
+    { z = Vec3f(0, 0, 1),     x = Vec3f(1, 0, 0),     y = Vec3f(0, 1, 0), --[[ ey =   0, ]] axis = Vec3f(0, 1, 0) },
+    { z = Vec3f(-1, 0, 0),    x = Vec3f(0, 0, 1),     y = Vec3f(0, 1, 0), --[[ ey =  90, ]] axis = Vec3f(0, 1, 0) },
+    { z = Vec3f(0, 0, -1),    x = Vec3f(-1, 0, 0),    y = Vec3f(0, 1, 0), --[[ ey = 180, ]] axis = Vec3f(0, 1, 0) },
+    { z = Vec3f(1, 0, 0),     x = Vec3f(0, 0, -1),    y = Vec3f(0, 1, 0), --[[ ey = 270, ]] axis = Vec3f(0, 1, 0) },
+    { z = Vec3f(-r2, 0, r2),  x = Vec3f(r2, 0, r2),   y = Vec3f(0, 1, 0), --[[ ey =  45, ]] axis = Vec3f(0, 1, 0) },
+    { z = Vec3f(-r2, 0, -r2), x = Vec3f(-r2, 0, r2),  y = Vec3f(0, 1, 0), --[[ ey = 135, ]] axis = Vec3f(0, 1, 0) },
+    { z = Vec3f(r2, 0, -r2),  x = Vec3f(-r2, 0, -r2), y = Vec3f(0, 1, 0), --[[ ey = 225, ]] axis = Vec3f(0, 1, 0) },
+    { z = Vec3f(r2, 0, r2),   x = Vec3f(r2, 0, -r2),  y = Vec3f(0, 1, 0), --[[ ey = 315, ]] axis = Vec3f(0, 1, 0) },
 
 
     -- Rotate Around Z (x chases y)
-    { y = Vec3f(0, 1, 0),     x = Vec3f(1, 0, 0),     z = Vec3f(0, 0, 1), --[[ ez =   0, ]]         axis = Vec3f(0, 0, 1) },
-    { y = Vec3f(-1, 0, 0),    x = Vec3f(0, 1, 0),     z = Vec3f(0, 0, 1), --[[ ez =  90, ]]         axis = Vec3f(0, 0, 1) },
-    { y = Vec3f(0, -1, 0),    x = Vec3f(-1, 0, 0),    z = Vec3f(0, 0, 1), --[[ ez = 180, ]]         axis = Vec3f(0, 0, 1) },
-    { y = Vec3f(1, 0, 0),     x = Vec3f(0, -1, 0),    z = Vec3f(0, 0, 1), --[[ ez = 270, ]]         axis = Vec3f(0, 0, 1) },
-    { y = Vec3f(-r2, r2, 0),  x = Vec3f(r2, r2, 0),   z = Vec3f(0, 0, 1), --[[ ez =  45, ]]         axis = Vec3f(0, 0, 1) },
-    { y = Vec3f(-r2, -r2, 0), x = Vec3f(-r2, r2, 0),  z = Vec3f(0, 0, 1), --[[ ez = 135, ]]         axis = Vec3f(0, 0, 1) },
-    { y = Vec3f(r2, -r2, 0),  x = Vec3f(-r2, -r2, 0), z = Vec3f(0, 0, 1), --[[ ez = 225, ]]         axis = Vec3f(0, 0, 1) },
-    { y = Vec3f(r2, r2, 0),   x = Vec3f(r2, -r2, 0),  z = Vec3f(0, 0, 1), --[[ ez = 315, ]]         axis = Vec3f(0, 0, 1) },
+    { y = Vec3f(0, 1, 0),     x = Vec3f(1, 0, 0),     z = Vec3f(0, 0, 1), --[[ ez =   0, ]] axis = Vec3f(0, 0, 1) },
+    { y = Vec3f(-1, 0, 0),    x = Vec3f(0, 1, 0),     z = Vec3f(0, 0, 1), --[[ ez =  90, ]] axis = Vec3f(0, 0, 1) },
+    { y = Vec3f(0, -1, 0),    x = Vec3f(-1, 0, 0),    z = Vec3f(0, 0, 1), --[[ ez = 180, ]] axis = Vec3f(0, 0, 1) },
+    { y = Vec3f(1, 0, 0),     x = Vec3f(0, -1, 0),    z = Vec3f(0, 0, 1), --[[ ez = 270, ]] axis = Vec3f(0, 0, 1) },
+    { y = Vec3f(-r2, r2, 0),  x = Vec3f(r2, r2, 0),   z = Vec3f(0, 0, 1), --[[ ez =  45, ]] axis = Vec3f(0, 0, 1) },
+    { y = Vec3f(-r2, -r2, 0), x = Vec3f(-r2, r2, 0),  z = Vec3f(0, 0, 1), --[[ ez = 135, ]] axis = Vec3f(0, 0, 1) },
+    { y = Vec3f(r2, -r2, 0),  x = Vec3f(-r2, -r2, 0), z = Vec3f(0, 0, 1), --[[ ez = 225, ]] axis = Vec3f(0, 0, 1) },
+    { y = Vec3f(r2, r2, 0),   x = Vec3f(r2, -r2, 0),  z = Vec3f(0, 0, 1), --[[ ez = 315, ]] axis = Vec3f(0, 0, 1) },
 }
 for i = 1, #bases do
     local b = bases[i]
@@ -237,7 +237,7 @@ local function test_quat_getdir()
         local uExpected = b.y
         local fExpected = b.z:inverse()
         local result    = r:approximatelyEqual(rExpected) and u:approximatelyEqual(uExpected) and
-        f:approximatelyEqual(fExpected)
+            f:approximatelyEqual(fExpected)
         printResult(name, result,
             string.format('\n\t\tx: %s\n\t\ty: %s\n\t\tz: %s', rExpected, uExpected, fExpected),
             string.format('\n\t\tx: %s\n\t\ty: %s\n\t\tz: %s', r, u, f)
@@ -259,7 +259,7 @@ local function test_matrix_getdir()
         local uExpected = b.y
         local fExpected = b.z:inverse()
         local result    = r:approximatelyEqual(rExpected) and u:approximatelyEqual(uExpected) and
-        f:approximatelyEqual(fExpected)
+            f:approximatelyEqual(fExpected)
         printResult(name, result,
             string.format('\n\t\tx: %s\n\t\ty: %s\n\t\tz: %s', rExpected, uExpected, fExpected),
             string.format('\n\t\tx: %s\n\t\ty: %s\n\t\tz: %s', r, u, f)

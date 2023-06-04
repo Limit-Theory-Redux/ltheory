@@ -137,7 +137,7 @@ function Factory:updateProduction(prod, dt)
                             end
                         end
                         askPrice = math.floor(math.max(askPrice, output.item.energy) * Config.econ.markup) * output
-                        .count
+                            .count
                         self.parent.trader:addAsk(output.item, askPrice)
                     end
                 end

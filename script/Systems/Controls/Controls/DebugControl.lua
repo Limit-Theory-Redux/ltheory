@@ -124,8 +124,10 @@ function DebugControl:createWidgetInspector(widget)
                     :add(UI.Label('Name'))
                     :add(UI.Label():setPollFn(function() return w.name end))
                     :add(UI.Label('Rect'))
-                    :add(UI.Label():setPollFn(function() return string.format('%.1f, %.1f, %.1f, %.1f', w.x, w.y, w.sx,
-                            w.sy) end))
+                    :add(UI.Label():setPollFn(function()
+                        return string.format('%.1f, %.1f, %.1f, %.1f', w.x, w.y, w.sx,
+                            w.sy)
+                    end))
                     :add(UI.Label('Origin X'))
                     :add(UI.Label():setPollFn(function() return w.originX end))
                     :add(UI.Label('Origin Y'))
@@ -137,8 +139,10 @@ function DebugControl:createWidgetInspector(widget)
                     :add(UI.Label('Auto-align'))
                     :add(UI.Label():setPollFn(function() return w.align end))
                     :add(UI.Label('Padding'))
-                    :add(UI.Label():setPollFn(function() return string.format('Min: %.1f, %.1f; Max: %.1f, %.1f',
-                            w.padMinX, w.padMinY, w.padMaxX, w.padMaxX) end))
+                    :add(UI.Label():setPollFn(function()
+                        return string.format('Min: %.1f, %.1f; Max: %.1f, %.1f',
+                            w.padMinX, w.padMinY, w.padMaxX, w.padMaxX)
+                    end))
                     :add(UI.Label('Desired Size'))
                     :add(UI.Label():setPollFn(function() return string.format('%.1f, %.1f', w.desiredSX, w.desiredSY) end))
                     :add(UI.Label('Min Size'))
@@ -146,8 +150,10 @@ function DebugControl:createWidgetInspector(widget)
                     :add(UI.Label('Max Size'))
                     :add(UI.Label():setPollFn(function() return string.format('%.1f, %.1f', w.maxSX, w.maxSY) end))
                     :add(UI.Label('Fixed Size'))
-                    :add(UI.Label():setPollFn(function() return string.format('%.1f, %.1f', w.fixedSX or 0,
-                            w.fixedSY or 0) end))
+                    :add(UI.Label():setPollFn(function()
+                        return string.format('%.1f, %.1f', w.fixedSX or 0,
+                            w.fixedSY or 0)
+                    end))
                     :add(UI.Label('Align X'))
                     :add(UI.Slider(
                         function() return w.alignX end,

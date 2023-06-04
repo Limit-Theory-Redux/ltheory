@@ -241,7 +241,7 @@ function Application:run()
             end
         end
 
-        do                                   -- Metrics display
+        do                                         -- Metrics display
             if GameState.debug.metricsEnabled then -- Metrics Display
                 local s = string.format(
                     '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',

@@ -9,9 +9,9 @@ function Scaffolding.BasicScaffoldingBlock(res, bar)
     res = res or 0
     bar = bar or 0.05
     local side = 0.5
-    local hs = side                       --/ 2.0 -- half side length
+    local hs = side                             --/ 2.0 -- half side length
     local hyp = sqrt(side * side + side * side) -- hypotenuse
-    local rot = math.pi / 4.0             -- rotation
+    local rot = math.pi / 4.0                   -- rotation
 
     local self = Shape()
 

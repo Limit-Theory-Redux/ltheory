@@ -8,7 +8,7 @@ function onDef_Math(t, mt)
     t.Pi6           = 0.52359877559829881566
     t.Infinity      = math.huge
 
-    t.Float32MaxInt = 16777216       -- 2^24
+    t.Float32MaxInt = 16777216         -- 2^24
     t.Float64MaxInt = 9007199254740992 -- 2^53
 
     t.ToRadians     = rad

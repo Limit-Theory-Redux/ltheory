@@ -4,7 +4,7 @@
       0.0 = total neutrality
      +1.0 = maximal friendliness
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 local Entity = require('GameObjects.Entity')
 

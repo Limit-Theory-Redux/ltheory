@@ -27,7 +27,7 @@ Config.debug.physics.drawWireframes         = true
 
   A trigger box is positioned at the origin and content count is printed.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 
 local compoundTest        = true
 local collisionTest       = true

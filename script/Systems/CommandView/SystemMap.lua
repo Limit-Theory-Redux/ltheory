@@ -219,7 +219,7 @@ function SystemMap:onDraw(state)
             objval = self.focus:getRadius()
             if string.match(objtype, "Planet") then
                 objval = objval *
-                9           -- planets need to be a certain radius for the game currently, so fake their reported radius for printing
+                    9 -- planets need to be a certain radius for the game currently, so fake their reported radius for printing
             end
             objemit = "Radius: %d m"
             if objval > 120000000000 then
@@ -296,11 +296,11 @@ function SystemMap:onInput(state)
         exp(kZoomSpeed * (Input.GetValue(Button.Keyboard.RBracket) - Input.GetValue(Button.Keyboard.LBracket)))
 
     GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x +
-    (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-        Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
+        (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
+            Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
     GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y +
-    (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-        Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+        (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
+            Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
 end
 
 function SystemMap.Create(system)

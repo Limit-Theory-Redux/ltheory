@@ -74,7 +74,7 @@ function Test:showMenuDropInner()
     HmGui.EndGroup()
     HmGui.SetStretch(0.7, 0.0)
     HmGui.BeginGroupX()
-    if station_options == 1 then     -- Station services: Marketplace
+    if station_options == 1 then -- Station services: Marketplace
         if station_options_market == 1 then
             HmGui.PushFont(Cache.Font('RajdhaniBold', 24))
             HmGui.PushTextColor(0.9, 0.2, 0.8, 1.0)
@@ -111,7 +111,7 @@ function Test:showMenuDropInner()
         end
         if HmGui.Button("BLANK") then station_options_market = 4 end
         HmGui.PopStyle(2)
-    elseif station_options == 2 then     -- Station services: ship config
+    elseif station_options == 2 then -- Station services: ship config
         if station_options_config == 1 then
             HmGui.PushFont(Cache.Font('RajdhaniBold', 24))
             HmGui.PushTextColor(0.9, 0.8, 0.2, 1.0)
@@ -148,7 +148,7 @@ function Test:showMenuDropInner()
         end
         if HmGui.Button("SHIPYARD") then station_options_config = 4 end
         HmGui.PopStyle(2)
-    elseif station_options == 3 then     -- Station services: Occupational
+    elseif station_options == 3 then -- Station services: Occupational
         if station_options_occupy == 1 then
             HmGui.PushFont(Cache.Font('RajdhaniBold', 24))
             HmGui.PushTextColor(0.9, 0.2, 0.2, 1.0)
@@ -200,8 +200,8 @@ function Test:showMenuDropInner()
     HmGui.SetStretch(1.0, 0.0)
     HmGui.SetSpacing(16)
 
-    HmGui.BeginGroupX()   -- lower group, 2 windows: 1) Station buttons, 2) selected top button details
-    HmGui.BeginGroupX()   -- Station buttons
+    HmGui.BeginGroupX() -- lower group, 2 windows: 1) Station buttons, 2) selected top button details
+    HmGui.BeginGroupX() -- Station buttons
     HmGui.SetAlign(0.0, 0.0)
     HmGui.SetStretch(0.1, 1.0)
     HmGui.BeginGroupY()
@@ -255,7 +255,7 @@ function Test:showMenuDropInner()
     HmGui.SetStretch(0.1, 1.0)
     HmGui.EndGroup()
 
-    HmGui.BeginGroupY()   -- selected station service details: name and info
+    HmGui.BeginGroupY() -- selected station service details: name and info
     if station_options_market == 1 then
         HmGui.TextEx(Cache.Font('Iceland', 24), 'COMMODITY EXCHANGE', 1.0, 1.0, 1.0, 1.0)
     elseif station_options_market == 2 then
@@ -270,10 +270,10 @@ function Test:showMenuDropInner()
 
     HmGui.SetSpacing(16)
 
-    HmGui.BeginGroupX()                       -- selected station service details
-    if station_options_market == 1 then       -- Commodities Screen
+    HmGui.BeginGroupX()                 -- selected station service details
+    if station_options_market == 1 then -- Commodities Screen
         HmGui.BeginGroupX()
-        HmGui.BeginGroupStack()               -- Commodity Panel
+        HmGui.BeginGroupStack()         -- Commodity Panel
         -- Create a nice border
         HmGui.Rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         HmGui.SetStretch(1.0, 1.0)
@@ -281,8 +281,8 @@ function Test:showMenuDropInner()
         HmGui.SetStretch(0.992, 0.997)
         HmGui.SetAlign(0.5, 0.5)
 
-        HmGui.BeginGroupY()           -- Commodity Window Panel
-        HmGui.BeginGroupX()           -- Commodity Window Panel; search filter
+        HmGui.BeginGroupY() -- Commodity Window Panel
+        HmGui.BeginGroupX() -- Commodity Window Panel; search filter
         HmGui.TextEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         HmGui.SetStretch(0.5, 0.0)
         HmGui.SetAlign(0.5, 0.6)
@@ -311,7 +311,7 @@ function Test:showMenuDropInner()
         HmGui.SetStretch(0.995, 0.05)
         HmGui.SetAlign(0.5, 1.0)
 
-        HmGui.BeginGroupX()           -- Commodity Window Panel; commodity search textbox
+        HmGui.BeginGroupX() -- Commodity Window Panel; commodity search textbox
         HmGui.BeginGroupStack()
         HmGui.Rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         HmGui.SetStretch(0.98, 1.0)
@@ -331,7 +331,7 @@ function Test:showMenuDropInner()
         HmGui.BeginGroupStack()
         HmGui.Rect(1.0, 1.0, 0.15, 0.15, 0.15, 1.0);
 
-        HmGui.BeginGroupStack()             -- Commodity List Panel
+        HmGui.BeginGroupStack() -- Commodity List Panel
         -- The BeginScroll() calculation is a hack to keep the length of the scrollable area
         -- inside the bound of its enclosing GroupStack. It glitches when the full game window
         -- is vertically resized too far (but not all the way to the full vertical extent).
@@ -395,12 +395,12 @@ function Test:showMenuDropInner()
         HmGui.EndScroll()
         HmGui.EndGroup()
         HmGui.EndGroup()
-        HmGui.EndGroup()         -- end Commodity Window Panel
+        HmGui.EndGroup() -- end Commodity Window Panel
         HmGui.SetStretch(1.0, 1.0)
-        HmGui.EndGroup()         -- end Commodity Panel
+        HmGui.EndGroup() -- end Commodity Panel
         HmGui.SetStretch(1.0, 1.0)
 
-        HmGui.BeginGroupY()       -- Construction Materials Table Panel
+        HmGui.BeginGroupY() -- Construction Materials Table Panel
         HmGui.BeginGroupX()
         HmGui.TextEx(Cache.Font('Exo2', 18), 'Construction Materials', 1.0, 1.0, 1.0, 1.0)
         HmGui.SetStretch(0.5, 0.0)
@@ -414,7 +414,7 @@ function Test:showMenuDropInner()
         HmGui.SetStretch(0.965, 0.0)
         HmGui.SetAlign(0.5, 0.0)
 
-        HmGui.BeginGroupStack()         -- Construction Materials Panel
+        HmGui.BeginGroupStack() -- Construction Materials Panel
         -- Create a nice border with internal borders
         HmGui.Rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         HmGui.SetStretch(1.0, 1.0)
@@ -460,7 +460,7 @@ function Test:showMenuDropInner()
         HmGui.SetStretch(0.965, 0.0)
         HmGui.SetAlign(0.5, 1.0)
 
-        HmGui.BeginGroupStack()             -- Commodity List Panel
+        HmGui.BeginGroupStack() -- Commodity List Panel
         -- The BeginScroll() calculation is a hack to keep the length of the scrollable area
         -- inside the bound of its enclosing GroupStack. It glitches when the full game window
         -- is vertically resized too far (but not all the way to the full vertical extent).
@@ -560,13 +560,13 @@ function Test:showMenuDropInner()
         HmGui.EndGroup()
         HmGui.SetStretch(0.95, 0.9)
         HmGui.SetAlign(0.1, 0.05)
-        HmGui.EndGroup()         -- end Commodity Window Panel
+        HmGui.EndGroup() -- end Commodity Window Panel
         --                HmGui.SetStretch(1.0, 1.0)
         --                HmGui.SetAlign(0.5, 1.0)
-        HmGui.EndGroup()       -- end Construction Materials Panel
+        HmGui.EndGroup() -- end Construction Materials Panel
         HmGui.SetStretch(1.0, 1.0)
 
-        HmGui.BeginGroupStack()       -- Order Book (offers/requests) Panel
+        HmGui.BeginGroupStack() -- Order Book (offers/requests) Panel
         -- Create a nice border
         HmGui.Rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         HmGui.SetStretch(1.0, 1.0)
@@ -574,8 +574,8 @@ function Test:showMenuDropInner()
         HmGui.SetStretch(0.992, 0.997)
         HmGui.SetAlign(0.5, 0.5)
 
-        HmGui.BeginGroupY()           -- Commodity Window Panel
-        HmGui.BeginGroupX()           -- Commodity Window Panel; search filter
+        HmGui.BeginGroupY() -- Commodity Window Panel
+        HmGui.BeginGroupX() -- Commodity Window Panel; search filter
         HmGui.TextEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         HmGui.SetStretch(0.5, 0.0)
         HmGui.SetAlign(0.5, 0.49)
@@ -602,7 +602,7 @@ function Test:showMenuDropInner()
         HmGui.SetStretch(0.995, 0.05)
         HmGui.SetAlign(0.5, 0.0)
 
-        HmGui.BeginGroupX()           -- Commodity Window Panel; commodity search textbox
+        HmGui.BeginGroupX() -- Commodity Window Panel; commodity search textbox
         HmGui.BeginGroupStack()
         HmGui.Rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         HmGui.SetStretch(0.98, 0.9)
@@ -622,7 +622,7 @@ function Test:showMenuDropInner()
         HmGui.BeginGroupStack()
         HmGui.Rect(1.0, 1.0, 0.15, 0.15, 0.15, 1.0);
 
-        HmGui.BeginGroupStack()             -- Commodity List Panel
+        HmGui.BeginGroupStack() -- Commodity List Panel
         -- The BeginScroll() calculation is a hack to keep the length of the scrollable area
         -- inside the bound of its enclosing GroupStack. It glitches when the full game window
         -- is vertically resized too far (but not all the way to the full vertical extent).
@@ -686,12 +686,12 @@ function Test:showMenuDropInner()
         HmGui.EndScroll()
         HmGui.EndGroup()
         HmGui.EndGroup()
-        HmGui.EndGroup()         -- end Commodity Window Panel
+        HmGui.EndGroup() -- end Commodity Window Panel
         HmGui.SetStretch(1.0, 1.0)
-        HmGui.EndGroup()         -- Order Book (offers/requests) Panel
+        HmGui.EndGroup() -- Order Book (offers/requests) Panel
         HmGui.SetStretch(1.0, 1.0)
 
-        HmGui.BeginGroupStack()       -- Place Order Panel
+        HmGui.BeginGroupStack() -- Place Order Panel
         -- Create a nice border
         HmGui.Rect(1.0, 1.0, 0.7, 0.7, 0.7, 1.0);
         HmGui.SetStretch(1.0, 1.0)
@@ -699,8 +699,8 @@ function Test:showMenuDropInner()
         HmGui.SetStretch(0.992, 0.997)
         HmGui.SetAlign(0.5, 0.5)
 
-        HmGui.BeginGroupY()           -- Commodity Window Panel
-        HmGui.BeginGroupX()           -- Commodity Window Panel; search filter
+        HmGui.BeginGroupY() -- Commodity Window Panel
+        HmGui.BeginGroupX() -- Commodity Window Panel; search filter
         HmGui.TextEx(Cache.Font('Exo2', 20), 'Search:', 1.0, 1.0, 1.0, 1.0)
         HmGui.SetStretch(0.5, 0.0)
         HmGui.SetAlign(0.5, 0.49)
@@ -727,7 +727,7 @@ function Test:showMenuDropInner()
         HmGui.SetStretch(0.995, 0.05)
         HmGui.SetAlign(0.5, 0.0)
 
-        HmGui.BeginGroupX()           -- Commodity Window Panel; commodity search textbox
+        HmGui.BeginGroupX() -- Commodity Window Panel; commodity search textbox
         HmGui.BeginGroupStack()
         HmGui.Rect(1.0, 1.0, 0.2, 0.2, 0.2, 1.0);
         HmGui.SetStretch(0.98, 0.9)
@@ -747,7 +747,7 @@ function Test:showMenuDropInner()
         HmGui.BeginGroupStack()
         HmGui.Rect(1.0, 1.0, 0.15, 0.15, 0.15, 1.0);
 
-        HmGui.BeginGroupStack()             -- Commodity List Panel
+        HmGui.BeginGroupStack() -- Commodity List Panel
         -- The BeginScroll() calculation is a hack to keep the length of the scrollable area
         -- inside the bound of its enclosing GroupStack. It glitches when the full game window
         -- is vertically resized too far (but not all the way to the full vertical extent).
@@ -811,28 +811,28 @@ function Test:showMenuDropInner()
         HmGui.EndScroll()
         HmGui.EndGroup()
         HmGui.EndGroup()
-        HmGui.EndGroup()         -- end Commodity Window Panel
+        HmGui.EndGroup() -- end Commodity Window Panel
         HmGui.SetStretch(1.0, 1.0)
-        HmGui.EndGroup()         -- end Place Order Panel
+        HmGui.EndGroup() -- end Place Order Panel
         HmGui.SetStretch(1.0, 1.0)
 
-        HmGui.EndGroup()                          -- end Commodity Screen
+        HmGui.EndGroup()                    -- end Commodity Screen
         HmGui.SetStretch(1.0, 1.0)
-    elseif station_options_market == 2 then       -- Data/Intel Screen
+    elseif station_options_market == 2 then -- Data/Intel Screen
         HmGui.BeginScroll(200)
         HmGui.Checkbox("Thing1", true)
         HmGui.Checkbox("Thing2", false)
-        HmGui.EndScroll()                         -- end Data/Intel Screen
-    elseif station_options_market == 3 then       -- Exchange Orders Screen
+        HmGui.EndScroll()                   -- end Data/Intel Screen
+    elseif station_options_market == 3 then -- Exchange Orders Screen
         HmGui.BeginScroll(200)
         HmGui.Button("Parnellite")
         HmGui.Button("Glorboscite")
         HmGui.Button("Lonsdaleite")
         HmGui.Button("Ketracel White")
-        HmGui.EndScroll()                         -- end Exchange Orders Screen
-    elseif station_options_market == 4 then       -- Blank Screen
+        HmGui.EndScroll()                   -- end Exchange Orders Screen
+    elseif station_options_market == 4 then -- Blank Screen
         HmGui.BeginScroll(200)
-        HmGui.EndScroll()                         -- end Blank Screen
+        HmGui.EndScroll()                   -- end Blank Screen
     end
     HmGui.EndGroup()
     HmGui.SetStretch(1.0, 1.0)

@@ -30,7 +30,7 @@ Config.audio                     = {
     mainMenuMusicEnabled = true,
     bSoundOn             = false,
     soundMin             = 0,
-    soundMax             = 1, -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+    soundMax             = 1,    -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
     musicVolume          = 0.75, -- current volume
     mainMenu             = "LTR_Main_Menu.ogg",
 
@@ -55,13 +55,13 @@ Config.paths                     = {
 Config.debug                     = {
     metricsEnabled  = false,
     window          = true, -- Debug window visible by default at launch?
-    windowSection   = nil, -- Set to the name of a debug window section to
+    windowSection   = nil,  -- Set to the name of a debug window section to
     -- collapse all others by default
 
     instantJobs     = false, -- set to true to speed up economic testing
     jobSpeed        = 10000, -- acceleration rate for instant jobs (in MineAt, DockAt)
 
-    timeAccelFactor = 10,  -- acceleration rate when holding "TimeAccel" input
+    timeAccelFactor = 10,    -- acceleration rate when holding "TimeAccel" input
 
     printConfig     = false
 }
@@ -82,8 +82,8 @@ local goodSeeds                  = {
 }
 
 Config.gen                       = {
-    seedGlobal                       = nil, -- Set to force deterministic global RNG
-    seedSystem                       = nil, -- Set to force deterministic system generation
+    seedGlobal                       = nil,            -- Set to force deterministic global RNG
+    seedSystem                       = nil,            -- Set to force deterministic system generation
 
     origin                           = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
 
@@ -102,11 +102,11 @@ Config.gen                       = {
     uniqueShips                      = true,
     shipRes                          = 8,
     shipHullScale                    = { 4, -- Solo
-        7,              -- Small
-        10,             -- Compact
-        14,             -- Medium
-        19,             -- Large
-        24 },           -- Very Large
+        7,                                  -- Small
+        10,                                 -- Compact
+        14,                                 -- Medium
+        19,                                 -- Large
+        24 },                               -- Very Large
     shipHullRadius                   = { 12,
         15,
         19,
@@ -130,20 +130,20 @@ Config.gen                       = {
         0.35,
         0.25,
         0.16,
-        4.0 },                                 -- radius is already slowing maneuvering
-    shipComponents                   = {       -- Sockets available for (ComponentEnums.lua):
-        { 1, 2, 4, 6, 10, 20 },                -- hull integrity
-        { 1, 2, 2, 3, 4,  6 },                 -- computers
-        { 1, 2, 3, 4, 5,  6 },                 -- sensors
-        { 1, 1, 2, 3, 3,  5 },                 -- life support
-        { 1, 2, 3, 4, 6,  8 },                 -- capacitors
-        { 1, 2, 4, 5, 6,  8 },                 -- thrusters * 2 (bilateral)
-        { 2, 4, 6, 8, 10, 16 },                -- turret weapons * 2 (bilateral)
-        { 0, 0, 0, 1, 2,  4 },                 -- bay weapons
-        { 1, 2, 3, 5, 7,  10 },                -- cargo pods (* shipInventorySize inventory each)
-        { 1, 2, 4, 7, 12, 20 },                -- drone racks (* 2 drones each)
-        { 0, 1, 2, 5, 8,  12 },                -- shield generators
-        { 0, 0, 1, 3, 5,  8 },                 -- armor plates
+        4.0 },                           -- radius is already slowing maneuvering
+    shipComponents                   = { -- Sockets available for (ComponentEnums.lua):
+        { 1, 2, 4, 6, 10, 20 },          -- hull integrity
+        { 1, 2, 2, 3, 4,  6 },           -- computers
+        { 1, 2, 3, 4, 5,  6 },           -- sensors
+        { 1, 1, 2, 3, 3,  5 },           -- life support
+        { 1, 2, 3, 4, 6,  8 },           -- capacitors
+        { 1, 2, 4, 5, 6,  8 },           -- thrusters * 2 (bilateral)
+        { 2, 4, 6, 8, 10, 16 },          -- turret weapons * 2 (bilateral)
+        { 0, 0, 0, 1, 2,  4 },           -- bay weapons
+        { 1, 2, 3, 5, 7,  10 },          -- cargo pods (* shipInventorySize inventory each)
+        { 1, 2, 4, 7, 12, 20 },          -- drone racks (* 2 drones each)
+        { 0, 1, 2, 5, 8,  12 },          -- shield generators
+        { 0, 0, 1, 3, 5,  8 },           -- armor plates
     },
     shipInventorySize                = 10,
     stationInventorySize             = 100,
@@ -151,34 +151,34 @@ Config.gen                       = {
     stationHullMass                  = { 112000,
         242000,
         575000 },
-    stationComponents                = {                 -- trade ---   --- mil ----   -- Sockets available for (ComponentEnums.lua):
-        { 30, 80, 130, 45, 100, 250 },                   -- hull integrity
-        { 12, 16, 24,  20, 32,  48 },                    -- computers
-        { 8,  10, 16,  12, 16,  24 },                    -- sensors
-        { 8,  12, 16,  12, 16,  20 },                    -- life support
-        { 8,  16, 24,  16, 24,  36 },                    -- capacitors
-        { 0,  0,  0,   0,  0,   0 },                     -- thrusters (none on stations)
-        { 16, 24, 32,  64, 128, 256 },                   -- turret weapons
-        { 4,  8,  16,  12, 32,  64 },                    -- bay weapons
-        { 24, 50, 100, 4,  10,  16 },                    -- cargo pods (* stationInventorySize inventory each)
-        { 0,  0,  0,   24, 48,  64 },                    -- drone racks (* 2 drones each)
-        { 16, 24, 32,  24, 40,  64 },                    -- shield generators
-        { 8,  16, 32,  24, 48,  96 },                    -- armor plates
+    stationComponents                = { -- trade ---   --- mil ----   -- Sockets available for (ComponentEnums.lua):
+        { 30, 80, 130, 45, 100, 250 },   -- hull integrity
+        { 12, 16, 24,  20, 32,  48 },    -- computers
+        { 8,  10, 16,  12, 16,  24 },    -- sensors
+        { 8,  12, 16,  12, 16,  20 },    -- life support
+        { 8,  16, 24,  16, 24,  36 },    -- capacitors
+        { 0,  0,  0,   0,  0,   0 },     -- thrusters (none on stations)
+        { 16, 24, 32,  64, 128, 256 },   -- turret weapons
+        { 4,  8,  16,  12, 32,  64 },    -- bay weapons
+        { 24, 50, 100, 4,  10,  16 },    -- cargo pods (* stationInventorySize inventory each)
+        { 0,  0,  0,   24, 48,  64 },    -- drone racks (* 2 drones each)
+        { 16, 24, 32,  24, 40,  64 },    -- shield generators
+        { 8,  16, 32,  24, 48,  96 },    -- armor plates
     },
 
-    planetComponents                 = {     --  S     M     L   -- Sockets available for (ComponentEnums.lua):
-        { 0,    0,    0 },                   -- hull integrity
-        { 1000, 8000, 20000 },               -- computers
-        { 50,   120,  500 },                 -- sensors
-        { 0,    0,    0 },                   -- life support
-        { 0,    0,    0 },                   -- capacitors
-        { 0,    0,    0 },                   -- thrusters (none on stations)
-        { 0,    0,    0 },                   -- turret weapons
-        { 0,    0,    0 },                   -- bay weapons
-        { 1000, 7500, 48000 },               -- cargo pods (* planetInventorySize inventory each)
-        { 0,    0,    0 },                   -- drone racks (* 2 drones each)
-        { 500,  1200, 10000 },               -- shield generators
-        { 0,    0,    0 },                   -- armor plates
+    planetComponents                 = { --  S     M     L   -- Sockets available for (ComponentEnums.lua):
+        { 0,    0,    0 },               -- hull integrity
+        { 1000, 8000, 20000 },           -- computers
+        { 50,   120,  500 },             -- sensors
+        { 0,    0,    0 },               -- life support
+        { 0,    0,    0 },               -- capacitors
+        { 0,    0,    0 },               -- thrusters (none on stations)
+        { 0,    0,    0 },               -- turret weapons
+        { 0,    0,    0 },               -- bay weapons
+        { 1000, 7500, 48000 },           -- cargo pods (* planetInventorySize inventory each)
+        { 0,    0,    0 },               -- drone racks (* 2 drones each)
+        { 500,  1200, 10000 },           -- shield generators
+        { 0,    0,    0 },               -- armor plates
     },
 
     compHullStats                    = {
@@ -208,7 +208,7 @@ Config.gen                       = {
         name       = "Life Support",
         healthCurr = 100,
         healthMax  = 100,
-        pods       = 2,                     -- number of cargo pods given life support
+        pods       = 2, -- number of cargo pods given life support
     },
     compCapacitorStats               = {
         name       = "Capacitor",
@@ -237,7 +237,7 @@ Config.gen                       = {
         healthCurr   = 100,
         healthMax    = 100,
         rateOfFire   = 10,
-        droneType    = 1,                   -- 1 = mining (1 beam turret), 2 = combat (1 pulse turret)
+        droneType    = 1, -- 1 = mining (1 beam turret), 2 = combat (1 pulse turret)
         dronesCurr   = 2,
         dronesActive = 0,
         dronesMax    = 2,
@@ -252,7 +252,7 @@ Config.gen                       = {
         strengthCurr = 100,
         strengthMax  = 100,
         reviveRate   = 2,
-        resistances  = { 85, 10, 5, 15 },                 -- Energy, Kinetic, Explosive, Radiation (percentage scale)
+        resistances  = { 85, 10, 5, 15 }, -- Energy, Kinetic, Explosive, Radiation (percentage scale)
         colorR       = 0.3,
         colorG       = 0.8,
         colorB       = 2.0,
@@ -321,7 +321,7 @@ Config.gen                       = {
         healthCurr   = 100,
         healthMax    = 100,
         rateOfFire   = 10,
-        type         = 1,                    -- 1 = missile only
+        type         = 1, -- 1 = missile only
         guidanceType = 1,
         damageType   = 3,
         damage       = 10,
@@ -405,7 +405,7 @@ Config.gen                       = {
         healthCurr   = 100,
         healthMax    = 100,
         rateOfFire   = 10,
-        type         = 1,                    -- 1 = missile, 2 = torpedo
+        type         = 1, -- 1 = missile, 2 = torpedo
         guidanceType = 1,
         damageType   = 3,
         damage       = 55,
@@ -415,11 +415,11 @@ Config.gen                       = {
 
     nebulaRes                        = 1024, -- 2048 sometimes creates nebulae with stright-line edges
 
-    nAIPlayers                       = 0, -- # of AI players (who manage Economic assets)
+    nAIPlayers                       = 0,    -- # of AI players (who manage Economic assets)
     randomizeAIPlayers               = false,
-    nEconNPCs                        = 0, -- # of ships to be given Economic actions (managed by AI players)
+    nEconNPCs                        = 0,    -- # of ships to be given Economic actions (managed by AI players)
     randomizeEconNPCs                = false,
-    nEscortNPCs                      = 0, -- # of ships to be given the Escort action
+    nEscortNPCs                      = 0,    -- # of ships to be given the Escort action
     randomizeEscortNPCs              = false,
 
     zNearBack                        = 0.1,
@@ -428,13 +428,13 @@ Config.gen                       = {
     zFarReal                         = 1e4, -- 1e6
 
     scaleSystemBack                  = 2e5,
-    scaleSystemReal                  = 2e4, -- 2e9 maximum, but anything bigger than 5e4 currently introduces a horrible "wobble"
+    scaleSystemReal                  = 2e4,  -- 2e9 maximum, but anything bigger than 5e4 currently introduces a horrible "wobble"
     scalePlanetBack                  = 120000,
     scalePlanetReal                  = 8000, -- 15000
     scalePlanetModBack               = 7e4,
-    scalePlanetModReal               = 1, -- 4e5
+    scalePlanetModReal               = 1,    -- 4e5
 
-    scaleSystem                      = 1e6, -- this needs to be extended massively; see also zFar and zNear
+    scaleSystem                      = 1e6,  -- this needs to be extended massively; see also zFar and zNear
     scaleStar                        = 1e6,
     scalePlanet                      = 5e3,
     scalePlanetMod                   = 7e4, -- 7e4
@@ -442,20 +442,20 @@ Config.gen                       = {
     scaleAsteroid                    = 7.0,
     scaleStation                     = 70,
 
-    sizePlanet                       = 2, -- 1 = small, 2 = medium, 3 = large
+    sizePlanet                       = 2,         -- 1 = small, 2 = medium, 3 = large
 
     radiusStarTrue                   = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
-    radiusPlanetTrue                 = 6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
-    radiusAsteroidTrue               = 50000, -- 0.005 km to 450 km
-    massStarTrue                     = 2e30, -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
-    massPlanetTrue                   = 6e24, -- 5.97e24 is Earth's mass in kg (1e10 as a test value)
-    massAsteroidTrue                 = 5e18, -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
+    radiusPlanetTrue                 = 6371000,   -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
+    radiusAsteroidTrue               = 50000,     -- 0.005 km to 450 km
+    massStarTrue                     = 2e30,      -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
+    massPlanetTrue                   = 6e24,      -- 5.97e24 is Earth's mass in kg (1e10 as a test value)
+    massAsteroidTrue                 = 5e18,      -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
 
-    massAsteroidExp                  = { 4.1, -- Carbonaceous
-        5.9,                       -- Metallic
-        3.2 },                     -- Silicaceous
+    massAsteroidExp                  = { 4.1,     -- Carbonaceous
+        5.9,                                      -- Metallic
+        3.2 },                                    -- Silicaceous
 
-    stationMinimumDistance           = 2000, -- minimum distance between stations
+    stationMinimumDistance           = 2000,      -- minimum distance between stations
     minimumDistancePlacementMaxTries = 100
 }
 
@@ -532,19 +532,19 @@ Config.game                      = {
 }
 
 Config.econ                      = {
-    pStartCredits          = 10000,  -- player starting credits
+    pStartCredits          = 10000,   -- player starting credits
     eStartCredits          = 1000000, -- NPC player starting credits
 
-    eInventory             = 100,    -- starting number of inventory slots
+    eInventory             = 100,     -- starting number of inventory slots
 
-    jobIterations          = 4000,   -- how many randomly-chosen jobs an asset will consider before picking
+    jobIterations          = 4000,    -- how many randomly-chosen jobs an asset will consider before picking
 
-    inputBacklog           = 1,      -- multiplier of number of units a factory can bid for on each input
+    inputBacklog           = 1,       -- multiplier of number of units a factory can bid for on each input
 
-    pickupDistWeightMine   = 1.0,    -- importance of pickup distance for a Mine job (smaller = more important)
-    pickupDistWeightTran   = 3.0,    -- importance of pickup distance for a Transport job (smaller = more important)
-    markup                 = 1.2,    -- change to base value when calculating ask price for selling an item
-    markdown               = 0.8,    -- change to base value when calculating bid price for buying an item
+    pickupDistWeightMine   = 1.0,     -- importance of pickup distance for a Mine job (smaller = more important)
+    pickupDistWeightTran   = 3.0,     -- importance of pickup distance for a Transport job (smaller = more important)
+    markup                 = 1.2,     -- change to base value when calculating ask price for selling an item
+    markdown               = 0.8,     -- change to base value when calculating bid price for buying an item
 
     lowAttentionUpdateRate = 5,
 }
@@ -757,7 +757,7 @@ Config.objectInfo                = {
     },
     {
         ID = "asteroid_subtypes", -- if you change these, also change massAsteroidExp
-        name = "Asteroid Types", -- until reference functions access the values from here
+        name = "Asteroid Types",  -- until reference functions access the values from here
         elems = {
             { 1, "Unknown",      0.0 },
             { 2, "Reserved",     0.0 },

@@ -1103,8 +1103,17 @@ function HUD:drawTargets(a)
                                     tcb = 0
                                 end
                                 table.insert(targetsHudPositions,
-                                    { bx1 = bx1, by1 = by1, bx2 = bx2, by2 = by2, tcr = tcr, tcg = tcg, tcb = tcb, a = a,
-                                        targetName = targetName })
+                                    {
+                                        bx1 = bx1,
+                                        by1 = by1,
+                                        bx2 = bx2,
+                                        by2 = by2,
+                                        tcr = tcr,
+                                        tcg = tcg,
+                                        tcb = tcb,
+                                        a = a,
+                                        targetName = targetName
+                                    })
                             end
                         end
 
@@ -1229,7 +1238,7 @@ end
 
 function HUD:drawReticle(a)
     local cx, cy = self.sx / 2, self.sy / 2
-    do -- Reticle
+    do     -- Reticle
         do -- Central Crosshair
             local c = Config.ui.color.reticle
             local r1 = 24

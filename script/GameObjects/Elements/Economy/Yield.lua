@@ -8,7 +8,7 @@ local Yield = class(function(self, item, size)
     self.size     = size
     self.maxSize  = size
     self.cooldown = 300 -- number of seconds after which to start respawning mineable item
-    self.duration = 5 -- number of seconds between respawning one unit of item
+    self.duration = 5   -- number of seconds between respawning one unit of item
     self.ctimer   = 0.0 -- accumulator for ore respawn cooldown timer (time until respawn starts)
     self.dtimer   = 0.0 -- accumulator for ore respawn duration timer (time between each unit respawning)
 end)

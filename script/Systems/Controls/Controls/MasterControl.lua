@@ -3,7 +3,7 @@
   as the HUD/ShipControl, CommandControl, ResearchControl, ConstructionControl,
   etc.
 ----------------------------------------------------------------------------]]
-                                                                               --
+--
 local BackgroundControl = require('Systems.Controls.Controls.BackgroundControl')
 local CommandControl    = require('Systems.Controls.Controls.CommandControl')
 local DebugControl      = require('Systems.Controls.Controls.DebugControl')
