@@ -2,19 +2,19 @@
 Enums.CursorStyleCount = 3
 
 Enums.CursorStyles = {
-  Simple = 1,
-  Smooth = 2,
-  White = 3,
+    Simple = 1,
+    Smooth = 2,
+    White = 3,
 }
 
 Enums.CursorStyleNames = {
-  "Simple",
-  "Smooth",
-  "White",
+    "Simple",
+    "Smooth",
+    "White",
 }
 
 Enums.CursorFilenames = {
-  "cursor/simple_cursor",
-  "cursor/cursor1-small",
-  "cursor/whitecursor32x32",
+    "cursor/simple_cursor",
+    "cursor/cursor1-small",
+    "cursor/whitecursor32x32",
 }
