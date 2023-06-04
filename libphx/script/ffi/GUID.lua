@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local GUID
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     uint64 GUID_Create ();
     bool   GUID_Exists (uint64);
     void   GUID_Reset  ();
@@ -12,14 +12,14 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  GUID = {
-    Create = libphx.GUID_Create,
-    Exists = libphx.GUID_Exists,
-    Reset  = libphx.GUID_Reset,
-  }
+    GUID = {
+        Create = libphx.GUID_Create,
+        Exists = libphx.GUID_Exists,
+        Reset  = libphx.GUID_Reset,
+    }
 
-  if onDef_GUID then onDef_GUID(GUID, mt) end
-  GUID = setmetatable(GUID, mt)
+    if onDef_GUID then onDef_GUID(GUID, mt) end
+    GUID = setmetatable(GUID, mt)
 end
 
 return GUID

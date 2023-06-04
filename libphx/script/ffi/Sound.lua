@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Sound
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void   Sound_Acquire               (Sound*);
     void   Sound_Free                  (Sound*);
     Sound* Sound_Load                  (cstr name, bool isLooped, bool is3D);
@@ -44,87 +44,87 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Sound = {
-    Acquire               = libphx.Sound_Acquire,
-    Free                  = libphx.Sound_Free,
-    Load                  = libphx.Sound_Load,
-    LoadAsync             = libphx.Sound_LoadAsync,
-    Clone                 = libphx.Sound_Clone,
-    ToFile                = libphx.Sound_ToFile,
-    Pause                 = libphx.Sound_Pause,
-    Play                  = libphx.Sound_Play,
-    Rewind                = libphx.Sound_Rewind,
-    Get3D                 = libphx.Sound_Get3D,
-    GetDuration           = libphx.Sound_GetDuration,
-    GetLooped             = libphx.Sound_GetLooped,
-    GetName               = libphx.Sound_GetName,
-    GetPath               = libphx.Sound_GetPath,
-    IsFinished            = libphx.Sound_IsFinished,
-    IsPlaying             = libphx.Sound_IsPlaying,
-    IsAudible             = libphx.Sound_IsAudible,
-    Attach3DPos           = libphx.Sound_Attach3DPos,
-    Set3DLevel            = libphx.Sound_Set3DLevel,
-    Set3DPos              = libphx.Sound_Set3DPos,
-    SetFreeOnFinish       = libphx.Sound_SetFreeOnFinish,
-    SetPan                = libphx.Sound_SetPan,
-    SetPitch              = libphx.Sound_SetPitch,
-    SetPlayPos            = libphx.Sound_SetPlayPos,
-    SetVolume             = libphx.Sound_SetVolume,
-    FadeIn                = libphx.Sound_FadeIn,
-    FadeOut               = libphx.Sound_FadeOut,
-    LoadPlay              = libphx.Sound_LoadPlay,
-    LoadPlayAttached      = libphx.Sound_LoadPlayAttached,
-    LoadPlayFree          = libphx.Sound_LoadPlayFree,
-    LoadPlayFreeAttached  = libphx.Sound_LoadPlayFreeAttached,
-    ClonePlay             = libphx.Sound_ClonePlay,
-    ClonePlayAttached     = libphx.Sound_ClonePlayAttached,
-    ClonePlayFree         = libphx.Sound_ClonePlayFree,
-    ClonePlayFreeAttached = libphx.Sound_ClonePlayFreeAttached,
-  }
+    Sound = {
+        Acquire               = libphx.Sound_Acquire,
+        Free                  = libphx.Sound_Free,
+        Load                  = libphx.Sound_Load,
+        LoadAsync             = libphx.Sound_LoadAsync,
+        Clone                 = libphx.Sound_Clone,
+        ToFile                = libphx.Sound_ToFile,
+        Pause                 = libphx.Sound_Pause,
+        Play                  = libphx.Sound_Play,
+        Rewind                = libphx.Sound_Rewind,
+        Get3D                 = libphx.Sound_Get3D,
+        GetDuration           = libphx.Sound_GetDuration,
+        GetLooped             = libphx.Sound_GetLooped,
+        GetName               = libphx.Sound_GetName,
+        GetPath               = libphx.Sound_GetPath,
+        IsFinished            = libphx.Sound_IsFinished,
+        IsPlaying             = libphx.Sound_IsPlaying,
+        IsAudible             = libphx.Sound_IsAudible,
+        Attach3DPos           = libphx.Sound_Attach3DPos,
+        Set3DLevel            = libphx.Sound_Set3DLevel,
+        Set3DPos              = libphx.Sound_Set3DPos,
+        SetFreeOnFinish       = libphx.Sound_SetFreeOnFinish,
+        SetPan                = libphx.Sound_SetPan,
+        SetPitch              = libphx.Sound_SetPitch,
+        SetPlayPos            = libphx.Sound_SetPlayPos,
+        SetVolume             = libphx.Sound_SetVolume,
+        FadeIn                = libphx.Sound_FadeIn,
+        FadeOut               = libphx.Sound_FadeOut,
+        LoadPlay              = libphx.Sound_LoadPlay,
+        LoadPlayAttached      = libphx.Sound_LoadPlayAttached,
+        LoadPlayFree          = libphx.Sound_LoadPlayFree,
+        LoadPlayFreeAttached  = libphx.Sound_LoadPlayFreeAttached,
+        ClonePlay             = libphx.Sound_ClonePlay,
+        ClonePlayAttached     = libphx.Sound_ClonePlayAttached,
+        ClonePlayFree         = libphx.Sound_ClonePlayFree,
+        ClonePlayFreeAttached = libphx.Sound_ClonePlayFreeAttached,
+    }
 
-  if onDef_Sound then onDef_Sound(Sound, mt) end
-  Sound = setmetatable(Sound, mt)
+    if onDef_Sound then onDef_Sound(Sound, mt) end
+    Sound = setmetatable(Sound, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('Sound')
-  local mt = {
-    __index = {
-      managed               = function (self) return ffi.gc(self, libphx.Sound_Free) end,
-      acquire               = libphx.Sound_Acquire,
-      free                  = libphx.Sound_Free,
-      clone                 = libphx.Sound_Clone,
-      toFile                = libphx.Sound_ToFile,
-      pause                 = libphx.Sound_Pause,
-      play                  = libphx.Sound_Play,
-      rewind                = libphx.Sound_Rewind,
-      get3D                 = libphx.Sound_Get3D,
-      getDuration           = libphx.Sound_GetDuration,
-      getLooped             = libphx.Sound_GetLooped,
-      getName               = libphx.Sound_GetName,
-      getPath               = libphx.Sound_GetPath,
-      isFinished            = libphx.Sound_IsFinished,
-      isPlaying             = libphx.Sound_IsPlaying,
-      isAudible             = libphx.Sound_IsAudible,
-      attach3DPos           = libphx.Sound_Attach3DPos,
-      set3DLevel            = libphx.Sound_Set3DLevel,
-      set3DPos              = libphx.Sound_Set3DPos,
-      setFreeOnFinish       = libphx.Sound_SetFreeOnFinish,
-      setPan                = libphx.Sound_SetPan,
-      setPitch              = libphx.Sound_SetPitch,
-      setPlayPos            = libphx.Sound_SetPlayPos,
-      setVolume             = libphx.Sound_SetVolume,
-      fadeIn                = libphx.Sound_FadeIn,
-      fadeOut               = libphx.Sound_FadeOut,
-      clonePlay             = libphx.Sound_ClonePlay,
-      clonePlayAttached     = libphx.Sound_ClonePlayAttached,
-      clonePlayFree         = libphx.Sound_ClonePlayFree,
-      clonePlayFreeAttached = libphx.Sound_ClonePlayFreeAttached,
-    },
-  }
+    local t  = ffi.typeof('Sound')
+    local mt = {
+        __index = {
+            managed               = function(self) return ffi.gc(self, libphx.Sound_Free) end,
+            acquire               = libphx.Sound_Acquire,
+            free                  = libphx.Sound_Free,
+            clone                 = libphx.Sound_Clone,
+            toFile                = libphx.Sound_ToFile,
+            pause                 = libphx.Sound_Pause,
+            play                  = libphx.Sound_Play,
+            rewind                = libphx.Sound_Rewind,
+            get3D                 = libphx.Sound_Get3D,
+            getDuration           = libphx.Sound_GetDuration,
+            getLooped             = libphx.Sound_GetLooped,
+            getName               = libphx.Sound_GetName,
+            getPath               = libphx.Sound_GetPath,
+            isFinished            = libphx.Sound_IsFinished,
+            isPlaying             = libphx.Sound_IsPlaying,
+            isAudible             = libphx.Sound_IsAudible,
+            attach3DPos           = libphx.Sound_Attach3DPos,
+            set3DLevel            = libphx.Sound_Set3DLevel,
+            set3DPos              = libphx.Sound_Set3DPos,
+            setFreeOnFinish       = libphx.Sound_SetFreeOnFinish,
+            setPan                = libphx.Sound_SetPan,
+            setPitch              = libphx.Sound_SetPitch,
+            setPlayPos            = libphx.Sound_SetPlayPos,
+            setVolume             = libphx.Sound_SetVolume,
+            fadeIn                = libphx.Sound_FadeIn,
+            fadeOut               = libphx.Sound_FadeOut,
+            clonePlay             = libphx.Sound_ClonePlay,
+            clonePlayAttached     = libphx.Sound_ClonePlayAttached,
+            clonePlayFree         = libphx.Sound_ClonePlayFree,
+            clonePlayFreeAttached = libphx.Sound_ClonePlayFreeAttached,
+        },
+    }
 
-  if onDef_Sound_t then onDef_Sound_t(t, mt) end
-  Sound_t = ffi.metatype(t, mt)
+    if onDef_Sound_t then onDef_Sound_t(t, mt) end
+    Sound_t = ffi.metatype(t, mt)
 end
 
 return Sound

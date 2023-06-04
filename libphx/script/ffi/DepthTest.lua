@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local DepthTest
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void DepthTest_Pop          ();
     void DepthTest_Push         (bool);
     void DepthTest_PushDisabled ();
@@ -13,15 +13,15 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  DepthTest = {
-    Pop          = libphx.DepthTest_Pop,
-    Push         = libphx.DepthTest_Push,
-    PushDisabled = libphx.DepthTest_PushDisabled,
-    PushEnabled  = libphx.DepthTest_PushEnabled,
-  }
+    DepthTest = {
+        Pop          = libphx.DepthTest_Pop,
+        Push         = libphx.DepthTest_Push,
+        PushDisabled = libphx.DepthTest_PushDisabled,
+        PushEnabled  = libphx.DepthTest_PushEnabled,
+    }
 
-  if onDef_DepthTest then onDef_DepthTest(DepthTest, mt) end
-  DepthTest = setmetatable(DepthTest, mt)
+    if onDef_DepthTest then onDef_DepthTest(DepthTest, mt) end
+    DepthTest = setmetatable(DepthTest, mt)
 end
 
 return DepthTest

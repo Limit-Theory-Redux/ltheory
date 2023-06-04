@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Memory
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void* Memory_Alloc   (size_t);
     void* Memory_Calloc  (size_t n, size_t size);
     void  Memory_Free    (void* ptr);
@@ -15,17 +15,17 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Memory = {
-    Alloc   = libphx.Memory_Alloc,
-    Calloc  = libphx.Memory_Calloc,
-    Free    = libphx.Memory_Free,
-    MemCopy = libphx.Memory_MemCopy,
-    MemMove = libphx.Memory_MemMove,
-    Realloc = libphx.Memory_Realloc,
-  }
+    Memory = {
+        Alloc   = libphx.Memory_Alloc,
+        Calloc  = libphx.Memory_Calloc,
+        Free    = libphx.Memory_Free,
+        MemCopy = libphx.Memory_MemCopy,
+        MemMove = libphx.Memory_MemMove,
+        Realloc = libphx.Memory_Realloc,
+    }
 
-  if onDef_Memory then onDef_Memory(Memory, mt) end
-  Memory = setmetatable(Memory, mt)
+    if onDef_Memory then onDef_Memory(Memory, mt) end
+    Memory = setmetatable(Memory, mt)
 end
 
 return Memory

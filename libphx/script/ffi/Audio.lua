@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Audio
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void  Audio_Init              ();
     void  Audio_Free              ();
     void  Audio_AttachListenerPos (Vec3f const* pos, Vec3f const* vel, Vec3f const* fwd, Vec3f const* up);
@@ -18,20 +18,20 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Audio = {
-    Init              = libphx.Audio_Init,
-    Free              = libphx.Audio_Free,
-    AttachListenerPos = libphx.Audio_AttachListenerPos,
-    Set3DSettings     = libphx.Audio_Set3DSettings,
-    SetListenerPos    = libphx.Audio_SetListenerPos,
-    Update            = libphx.Audio_Update,
-    GetLoadedCount    = libphx.Audio_GetLoadedCount,
-    GetPlayingCount   = libphx.Audio_GetPlayingCount,
-    GetTotalCount     = libphx.Audio_GetTotalCount,
-  }
+    Audio = {
+        Init              = libphx.Audio_Init,
+        Free              = libphx.Audio_Free,
+        AttachListenerPos = libphx.Audio_AttachListenerPos,
+        Set3DSettings     = libphx.Audio_Set3DSettings,
+        SetListenerPos    = libphx.Audio_SetListenerPos,
+        Update            = libphx.Audio_Update,
+        GetLoadedCount    = libphx.Audio_GetLoadedCount,
+        GetPlayingCount   = libphx.Audio_GetPlayingCount,
+        GetTotalCount     = libphx.Audio_GetTotalCount,
+    }
 
-  if onDef_Audio then onDef_Audio(Audio, mt) end
-  Audio = setmetatable(Audio, mt)
+    if onDef_Audio then onDef_Audio(Audio, mt) end
+    Audio = setmetatable(Audio, mt)
 end
 
 return Audio

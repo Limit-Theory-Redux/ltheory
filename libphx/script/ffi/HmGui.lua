@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local HmGui
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void  HmGui_Begin            (float sx, float sy);
     void  HmGui_End              ();
     void  HmGui_Draw             ();
@@ -42,44 +42,44 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  HmGui = {
-    Begin            = libphx.HmGui_Begin,
-    End              = libphx.HmGui_End,
-    Draw             = libphx.HmGui_Draw,
-    BeginGroupX      = libphx.HmGui_BeginGroupX,
-    BeginGroupY      = libphx.HmGui_BeginGroupY,
-    BeginGroupStack  = libphx.HmGui_BeginGroupStack,
-    EndGroup         = libphx.HmGui_EndGroup,
-    BeginScroll      = libphx.HmGui_BeginScroll,
-    EndScroll        = libphx.HmGui_EndScroll,
-    BeginWindow      = libphx.HmGui_BeginWindow,
-    EndWindow        = libphx.HmGui_EndWindow,
-    Button           = libphx.HmGui_Button,
-    Checkbox         = libphx.HmGui_Checkbox,
-    Slider           = libphx.HmGui_Slider,
-    Rect             = libphx.HmGui_Rect,
-    Image            = libphx.HmGui_Image,
-    Text             = libphx.HmGui_Text,
-    TextColored      = libphx.HmGui_TextColored,
-    TextEx           = libphx.HmGui_TextEx,
-    SetAlign         = libphx.HmGui_SetAlign,
-    SetPadding       = libphx.HmGui_SetPadding,
-    SetPaddingEx     = libphx.HmGui_SetPaddingEx,
-    SetPaddingLeft   = libphx.HmGui_SetPaddingLeft,
-    SetPaddingTop    = libphx.HmGui_SetPaddingTop,
-    SetPaddingRight  = libphx.HmGui_SetPaddingRight,
-    SetPaddingBottom = libphx.HmGui_SetPaddingBottom,
-    SetSpacing       = libphx.HmGui_SetSpacing,
-    SetStretch       = libphx.HmGui_SetStretch,
-    GroupHasFocus    = libphx.HmGui_GroupHasFocus,
-    PushStyle        = libphx.HmGui_PushStyle,
-    PushFont         = libphx.HmGui_PushFont,
-    PushTextColor    = libphx.HmGui_PushTextColor,
-    PopStyle         = libphx.HmGui_PopStyle,
-  }
+    HmGui = {
+        Begin            = libphx.HmGui_Begin,
+        End              = libphx.HmGui_End,
+        Draw             = libphx.HmGui_Draw,
+        BeginGroupX      = libphx.HmGui_BeginGroupX,
+        BeginGroupY      = libphx.HmGui_BeginGroupY,
+        BeginGroupStack  = libphx.HmGui_BeginGroupStack,
+        EndGroup         = libphx.HmGui_EndGroup,
+        BeginScroll      = libphx.HmGui_BeginScroll,
+        EndScroll        = libphx.HmGui_EndScroll,
+        BeginWindow      = libphx.HmGui_BeginWindow,
+        EndWindow        = libphx.HmGui_EndWindow,
+        Button           = libphx.HmGui_Button,
+        Checkbox         = libphx.HmGui_Checkbox,
+        Slider           = libphx.HmGui_Slider,
+        Rect             = libphx.HmGui_Rect,
+        Image            = libphx.HmGui_Image,
+        Text             = libphx.HmGui_Text,
+        TextColored      = libphx.HmGui_TextColored,
+        TextEx           = libphx.HmGui_TextEx,
+        SetAlign         = libphx.HmGui_SetAlign,
+        SetPadding       = libphx.HmGui_SetPadding,
+        SetPaddingEx     = libphx.HmGui_SetPaddingEx,
+        SetPaddingLeft   = libphx.HmGui_SetPaddingLeft,
+        SetPaddingTop    = libphx.HmGui_SetPaddingTop,
+        SetPaddingRight  = libphx.HmGui_SetPaddingRight,
+        SetPaddingBottom = libphx.HmGui_SetPaddingBottom,
+        SetSpacing       = libphx.HmGui_SetSpacing,
+        SetStretch       = libphx.HmGui_SetStretch,
+        GroupHasFocus    = libphx.HmGui_GroupHasFocus,
+        PushStyle        = libphx.HmGui_PushStyle,
+        PushFont         = libphx.HmGui_PushFont,
+        PushTextColor    = libphx.HmGui_PushTextColor,
+        PopStyle         = libphx.HmGui_PopStyle,
+    }
 
-  if onDef_HmGui then onDef_HmGui(HmGui, mt) end
-  HmGui = setmetatable(HmGui, mt)
+    if onDef_HmGui then onDef_HmGui(HmGui, mt) end
+    HmGui = setmetatable(HmGui, mt)
 end
 
 return HmGui

@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Shader
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     Shader*      Shader_Create        (cstr vertCode, cstr fragCode);
     Shader*      Shader_Load          (cstr vertName, cstr fragName);
     void         Shader_Acquire       (Shader*);
@@ -42,64 +42,64 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Shader = {
-    Create        = libphx.Shader_Create,
-    Load          = libphx.Shader_Load,
-    Acquire       = libphx.Shader_Acquire,
-    Free          = libphx.Shader_Free,
-    ToShaderState = libphx.Shader_ToShaderState,
-    Start         = libphx.Shader_Start,
-    Stop          = libphx.Shader_Stop,
-    GetHandle     = libphx.Shader_GetHandle,
-    GetVariable   = libphx.Shader_GetVariable,
-    HasVariable   = libphx.Shader_HasVariable,
-    ClearCache    = libphx.Shader_ClearCache,
-    SetFloat      = libphx.Shader_SetFloat,
-    SetFloat2     = libphx.Shader_SetFloat2,
-    SetFloat3     = libphx.Shader_SetFloat3,
-    SetFloat4     = libphx.Shader_SetFloat4,
-    SetInt        = libphx.Shader_SetInt,
-    SetMatrix     = libphx.Shader_SetMatrix,
-    SetMatrixT    = libphx.Shader_SetMatrixT,
-    SetTex1D      = libphx.Shader_SetTex1D,
-    SetTex2D      = libphx.Shader_SetTex2D,
-    SetTex3D      = libphx.Shader_SetTex3D,
-    SetTexCube    = libphx.Shader_SetTexCube,
-    ISetFloat     = libphx.Shader_ISetFloat,
-    ISetFloat2    = libphx.Shader_ISetFloat2,
-    ISetFloat3    = libphx.Shader_ISetFloat3,
-    ISetFloat4    = libphx.Shader_ISetFloat4,
-    ISetInt       = libphx.Shader_ISetInt,
-    ISetMatrix    = libphx.Shader_ISetMatrix,
-    ISetMatrixT   = libphx.Shader_ISetMatrixT,
-    ISetTex1D     = libphx.Shader_ISetTex1D,
-    ISetTex2D     = libphx.Shader_ISetTex2D,
-    ISetTex3D     = libphx.Shader_ISetTex3D,
-    ISetTexCube   = libphx.Shader_ISetTexCube,
-  }
+    Shader = {
+        Create        = libphx.Shader_Create,
+        Load          = libphx.Shader_Load,
+        Acquire       = libphx.Shader_Acquire,
+        Free          = libphx.Shader_Free,
+        ToShaderState = libphx.Shader_ToShaderState,
+        Start         = libphx.Shader_Start,
+        Stop          = libphx.Shader_Stop,
+        GetHandle     = libphx.Shader_GetHandle,
+        GetVariable   = libphx.Shader_GetVariable,
+        HasVariable   = libphx.Shader_HasVariable,
+        ClearCache    = libphx.Shader_ClearCache,
+        SetFloat      = libphx.Shader_SetFloat,
+        SetFloat2     = libphx.Shader_SetFloat2,
+        SetFloat3     = libphx.Shader_SetFloat3,
+        SetFloat4     = libphx.Shader_SetFloat4,
+        SetInt        = libphx.Shader_SetInt,
+        SetMatrix     = libphx.Shader_SetMatrix,
+        SetMatrixT    = libphx.Shader_SetMatrixT,
+        SetTex1D      = libphx.Shader_SetTex1D,
+        SetTex2D      = libphx.Shader_SetTex2D,
+        SetTex3D      = libphx.Shader_SetTex3D,
+        SetTexCube    = libphx.Shader_SetTexCube,
+        ISetFloat     = libphx.Shader_ISetFloat,
+        ISetFloat2    = libphx.Shader_ISetFloat2,
+        ISetFloat3    = libphx.Shader_ISetFloat3,
+        ISetFloat4    = libphx.Shader_ISetFloat4,
+        ISetInt       = libphx.Shader_ISetInt,
+        ISetMatrix    = libphx.Shader_ISetMatrix,
+        ISetMatrixT   = libphx.Shader_ISetMatrixT,
+        ISetTex1D     = libphx.Shader_ISetTex1D,
+        ISetTex2D     = libphx.Shader_ISetTex2D,
+        ISetTex3D     = libphx.Shader_ISetTex3D,
+        ISetTexCube   = libphx.Shader_ISetTexCube,
+    }
 
-  if onDef_Shader then onDef_Shader(Shader, mt) end
-  Shader = setmetatable(Shader, mt)
+    if onDef_Shader then onDef_Shader(Shader, mt) end
+    Shader = setmetatable(Shader, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('Shader')
-  local mt = {
-    __index = {
-      managed       = function (self) return ffi.gc(self, libphx.Shader_Free) end,
-      acquire       = libphx.Shader_Acquire,
-      free          = libphx.Shader_Free,
-      toShaderState = libphx.Shader_ToShaderState,
-      start         = libphx.Shader_Start,
-      stop          = libphx.Shader_Stop,
-      getHandle     = libphx.Shader_GetHandle,
-      getVariable   = libphx.Shader_GetVariable,
-      hasVariable   = libphx.Shader_HasVariable,
-    },
-  }
+    local t  = ffi.typeof('Shader')
+    local mt = {
+        __index = {
+            managed       = function(self) return ffi.gc(self, libphx.Shader_Free) end,
+            acquire       = libphx.Shader_Acquire,
+            free          = libphx.Shader_Free,
+            toShaderState = libphx.Shader_ToShaderState,
+            start         = libphx.Shader_Start,
+            stop          = libphx.Shader_Stop,
+            getHandle     = libphx.Shader_GetHandle,
+            getVariable   = libphx.Shader_GetVariable,
+            hasVariable   = libphx.Shader_HasVariable,
+        },
+    }
 
-  if onDef_Shader_t then onDef_Shader_t(t, mt) end
-  Shader_t = ffi.metatype(t, mt)
+    if onDef_Shader_t then onDef_Shader_t(t, mt) end
+    Shader_t = ffi.metatype(t, mt)
 end
 
 return Shader

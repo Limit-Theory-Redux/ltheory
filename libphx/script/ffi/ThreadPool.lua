@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local ThreadPool
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     ThreadPool* ThreadPool_Create (int threads);
     void        ThreadPool_Free   (ThreadPool*);
     void        ThreadPool_Launch (ThreadPool*, ThreadPoolFn, void* data);
@@ -13,30 +13,30 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  ThreadPool = {
-    Create = libphx.ThreadPool_Create,
-    Free   = libphx.ThreadPool_Free,
-    Launch = libphx.ThreadPool_Launch,
-    Wait   = libphx.ThreadPool_Wait,
-  }
+    ThreadPool = {
+        Create = libphx.ThreadPool_Create,
+        Free   = libphx.ThreadPool_Free,
+        Launch = libphx.ThreadPool_Launch,
+        Wait   = libphx.ThreadPool_Wait,
+    }
 
-  if onDef_ThreadPool then onDef_ThreadPool(ThreadPool, mt) end
-  ThreadPool = setmetatable(ThreadPool, mt)
+    if onDef_ThreadPool then onDef_ThreadPool(ThreadPool, mt) end
+    ThreadPool = setmetatable(ThreadPool, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('ThreadPool')
-  local mt = {
-    __index = {
-      managed = function (self) return ffi.gc(self, libphx.ThreadPool_Free) end,
-      free   = libphx.ThreadPool_Free,
-      launch = libphx.ThreadPool_Launch,
-      wait   = libphx.ThreadPool_Wait,
-    },
-  }
+    local t  = ffi.typeof('ThreadPool')
+    local mt = {
+        __index = {
+            managed = function(self) return ffi.gc(self, libphx.ThreadPool_Free) end,
+            free    = libphx.ThreadPool_Free,
+            launch  = libphx.ThreadPool_Launch,
+            wait    = libphx.ThreadPool_Wait,
+        },
+    }
 
-  if onDef_ThreadPool_t then onDef_ThreadPool_t(t, mt) end
-  ThreadPool_t = ffi.metatype(t, mt)
+    if onDef_ThreadPool_t then onDef_ThreadPool_t(t, mt) end
+    ThreadPool_t = ffi.metatype(t, mt)
 end
 
 return ThreadPool

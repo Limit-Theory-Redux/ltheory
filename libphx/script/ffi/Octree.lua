@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Octree
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     Octree* Octree_Create       (Box3f bound);
     Octree* Octree_FromMesh     (Mesh*);
     void    Octree_Free         (Octree*);
@@ -18,39 +18,39 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Octree = {
-    Create       = libphx.Octree_Create,
-    FromMesh     = libphx.Octree_FromMesh,
-    Free         = libphx.Octree_Free,
-    Add          = libphx.Octree_Add,
-    Draw         = libphx.Octree_Draw,
-    GetAvgLoad   = libphx.Octree_GetAvgLoad,
-    GetMaxLoad   = libphx.Octree_GetMaxLoad,
-    GetMemory    = libphx.Octree_GetMemory,
-    IntersectRay = libphx.Octree_IntersectRay,
-  }
+    Octree = {
+        Create       = libphx.Octree_Create,
+        FromMesh     = libphx.Octree_FromMesh,
+        Free         = libphx.Octree_Free,
+        Add          = libphx.Octree_Add,
+        Draw         = libphx.Octree_Draw,
+        GetAvgLoad   = libphx.Octree_GetAvgLoad,
+        GetMaxLoad   = libphx.Octree_GetMaxLoad,
+        GetMemory    = libphx.Octree_GetMemory,
+        IntersectRay = libphx.Octree_IntersectRay,
+    }
 
-  if onDef_Octree then onDef_Octree(Octree, mt) end
-  Octree = setmetatable(Octree, mt)
+    if onDef_Octree then onDef_Octree(Octree, mt) end
+    Octree = setmetatable(Octree, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('Octree')
-  local mt = {
-    __index = {
-      managed      = function (self) return ffi.gc(self, libphx.Octree_Free) end,
-      free         = libphx.Octree_Free,
-      add          = libphx.Octree_Add,
-      draw         = libphx.Octree_Draw,
-      getAvgLoad   = libphx.Octree_GetAvgLoad,
-      getMaxLoad   = libphx.Octree_GetMaxLoad,
-      getMemory    = libphx.Octree_GetMemory,
-      intersectRay = libphx.Octree_IntersectRay,
-    },
-  }
+    local t  = ffi.typeof('Octree')
+    local mt = {
+        __index = {
+            managed      = function(self) return ffi.gc(self, libphx.Octree_Free) end,
+            free         = libphx.Octree_Free,
+            add          = libphx.Octree_Add,
+            draw         = libphx.Octree_Draw,
+            getAvgLoad   = libphx.Octree_GetAvgLoad,
+            getMaxLoad   = libphx.Octree_GetMaxLoad,
+            getMemory    = libphx.Octree_GetMemory,
+            intersectRay = libphx.Octree_IntersectRay,
+        },
+    }
 
-  if onDef_Octree_t then onDef_Octree_t(t, mt) end
-  Octree_t = ffi.metatype(t, mt)
+    if onDef_Octree_t then onDef_Octree_t(t, mt) end
+    Octree_t = ffi.metatype(t, mt)
 end
 
 return Octree

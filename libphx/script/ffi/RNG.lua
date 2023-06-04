@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local RNG
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     RNG*   RNG_Create          (uint64 seed);
     RNG*   RNG_FromStr         (cstr);
     RNG*   RNG_FromTime        ();
@@ -37,76 +37,76 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  RNG = {
-    Create          = libphx.RNG_Create,
-    FromStr         = libphx.RNG_FromStr,
-    FromTime        = libphx.RNG_FromTime,
-    Free            = libphx.RNG_Free,
-    Rewind          = libphx.RNG_Rewind,
-    Chance          = libphx.RNG_Chance,
-    Get31           = libphx.RNG_Get31,
-    Get32           = libphx.RNG_Get32,
-    Get64           = libphx.RNG_Get64,
-    GetAngle        = libphx.RNG_GetAngle,
-    GetErlang       = libphx.RNG_GetErlang,
-    GetExp          = libphx.RNG_GetExp,
-    GetGaussian     = libphx.RNG_GetGaussian,
-    GetInt          = libphx.RNG_GetInt,
-    GetRNG          = libphx.RNG_GetRNG,
-    GetSign         = libphx.RNG_GetSign,
-    GetUniform      = libphx.RNG_GetUniform,
-    GetUniformRange = libphx.RNG_GetUniformRange,
-    GetAxis2        = libphx.RNG_GetAxis2,
-    GetAxis3        = libphx.RNG_GetAxis3,
-    GetDir2         = libphx.RNG_GetDir2,
-    GetDir3         = libphx.RNG_GetDir3,
-    GetDisc         = libphx.RNG_GetDisc,
-    GetSphere       = libphx.RNG_GetSphere,
-    GetVec2         = libphx.RNG_GetVec2,
-    GetVec3         = libphx.RNG_GetVec3,
-    GetVec4         = libphx.RNG_GetVec4,
-    GetQuat         = libphx.RNG_GetQuat,
-  }
+    RNG = {
+        Create          = libphx.RNG_Create,
+        FromStr         = libphx.RNG_FromStr,
+        FromTime        = libphx.RNG_FromTime,
+        Free            = libphx.RNG_Free,
+        Rewind          = libphx.RNG_Rewind,
+        Chance          = libphx.RNG_Chance,
+        Get31           = libphx.RNG_Get31,
+        Get32           = libphx.RNG_Get32,
+        Get64           = libphx.RNG_Get64,
+        GetAngle        = libphx.RNG_GetAngle,
+        GetErlang       = libphx.RNG_GetErlang,
+        GetExp          = libphx.RNG_GetExp,
+        GetGaussian     = libphx.RNG_GetGaussian,
+        GetInt          = libphx.RNG_GetInt,
+        GetRNG          = libphx.RNG_GetRNG,
+        GetSign         = libphx.RNG_GetSign,
+        GetUniform      = libphx.RNG_GetUniform,
+        GetUniformRange = libphx.RNG_GetUniformRange,
+        GetAxis2        = libphx.RNG_GetAxis2,
+        GetAxis3        = libphx.RNG_GetAxis3,
+        GetDir2         = libphx.RNG_GetDir2,
+        GetDir3         = libphx.RNG_GetDir3,
+        GetDisc         = libphx.RNG_GetDisc,
+        GetSphere       = libphx.RNG_GetSphere,
+        GetVec2         = libphx.RNG_GetVec2,
+        GetVec3         = libphx.RNG_GetVec3,
+        GetVec4         = libphx.RNG_GetVec4,
+        GetQuat         = libphx.RNG_GetQuat,
+    }
 
-  if onDef_RNG then onDef_RNG(RNG, mt) end
-  RNG = setmetatable(RNG, mt)
+    if onDef_RNG then onDef_RNG(RNG, mt) end
+    RNG = setmetatable(RNG, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('RNG')
-  local mt = {
-    __index = {
-      managed         = function (self) return ffi.gc(self, libphx.RNG_Free) end,
-      free            = libphx.RNG_Free,
-      rewind          = libphx.RNG_Rewind,
-      chance          = libphx.RNG_Chance,
-      get31           = libphx.RNG_Get31,
-      get32           = libphx.RNG_Get32,
-      get64           = libphx.RNG_Get64,
-      getAngle        = libphx.RNG_GetAngle,
-      getErlang       = libphx.RNG_GetErlang,
-      getExp          = libphx.RNG_GetExp,
-      getGaussian     = libphx.RNG_GetGaussian,
-      getInt          = libphx.RNG_GetInt,
-      getRNG          = libphx.RNG_GetRNG,
-      getSign         = libphx.RNG_GetSign,
-      getUniform      = libphx.RNG_GetUniform,
-      getUniformRange = libphx.RNG_GetUniformRange,
-      getAxis2        = libphx.RNG_GetAxis2,
-      getAxis3        = libphx.RNG_GetAxis3,
-      getDir2         = libphx.RNG_GetDir2,
-      getDir3         = libphx.RNG_GetDir3,
-      getDisc         = libphx.RNG_GetDisc,
-      getSphere       = libphx.RNG_GetSphere,
-      getVec2         = libphx.RNG_GetVec2,
-      getVec3         = libphx.RNG_GetVec3,
-      getVec4         = libphx.RNG_GetVec4,
-      getQuat         = libphx.RNG_GetQuat,
-    },
-  }
+    local t  = ffi.typeof('RNG')
+    local mt = {
+        __index = {
+            managed         = function(self) return ffi.gc(self, libphx.RNG_Free) end,
+            free            = libphx.RNG_Free,
+            rewind          = libphx.RNG_Rewind,
+            chance          = libphx.RNG_Chance,
+            get31           = libphx.RNG_Get31,
+            get32           = libphx.RNG_Get32,
+            get64           = libphx.RNG_Get64,
+            getAngle        = libphx.RNG_GetAngle,
+            getErlang       = libphx.RNG_GetErlang,
+            getExp          = libphx.RNG_GetExp,
+            getGaussian     = libphx.RNG_GetGaussian,
+            getInt          = libphx.RNG_GetInt,
+            getRNG          = libphx.RNG_GetRNG,
+            getSign         = libphx.RNG_GetSign,
+            getUniform      = libphx.RNG_GetUniform,
+            getUniformRange = libphx.RNG_GetUniformRange,
+            getAxis2        = libphx.RNG_GetAxis2,
+            getAxis3        = libphx.RNG_GetAxis3,
+            getDir2         = libphx.RNG_GetDir2,
+            getDir3         = libphx.RNG_GetDir3,
+            getDisc         = libphx.RNG_GetDisc,
+            getSphere       = libphx.RNG_GetSphere,
+            getVec2         = libphx.RNG_GetVec2,
+            getVec3         = libphx.RNG_GetVec3,
+            getVec4         = libphx.RNG_GetVec4,
+            getQuat         = libphx.RNG_GetQuat,
+        },
+    }
 
-  if onDef_RNG_t then onDef_RNG_t(t, mt) end
-  RNG_t = ffi.metatype(t, mt)
+    if onDef_RNG_t then onDef_RNG_t(t, mt) end
+    RNG_t = ffi.metatype(t, mt)
 end
 
 return RNG

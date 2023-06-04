@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local TimeStamp
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     TimeStamp TimeStamp_Get           ();
     double    TimeStamp_GetDifference (TimeStamp start, TimeStamp end);
     double    TimeStamp_GetElapsed    (TimeStamp start);
@@ -16,18 +16,18 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  TimeStamp = {
-    Get           = libphx.TimeStamp_Get,
-    GetDifference = libphx.TimeStamp_GetDifference,
-    GetElapsed    = libphx.TimeStamp_GetElapsed,
-    GetElapsedMs  = libphx.TimeStamp_GetElapsedMs,
-    GetFuture     = libphx.TimeStamp_GetFuture,
-    GetRelative   = libphx.TimeStamp_GetRelative,
-    ToDouble      = libphx.TimeStamp_ToDouble,
-  }
+    TimeStamp = {
+        Get           = libphx.TimeStamp_Get,
+        GetDifference = libphx.TimeStamp_GetDifference,
+        GetElapsed    = libphx.TimeStamp_GetElapsed,
+        GetElapsedMs  = libphx.TimeStamp_GetElapsedMs,
+        GetFuture     = libphx.TimeStamp_GetFuture,
+        GetRelative   = libphx.TimeStamp_GetRelative,
+        ToDouble      = libphx.TimeStamp_ToDouble,
+    }
 
-  if onDef_TimeStamp then onDef_TimeStamp(TimeStamp, mt) end
-  TimeStamp = setmetatable(TimeStamp, mt)
+    if onDef_TimeStamp then onDef_TimeStamp(TimeStamp, mt) end
+    TimeStamp = setmetatable(TimeStamp, mt)
 end
 
 return TimeStamp

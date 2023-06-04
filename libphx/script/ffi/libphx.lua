@@ -3,7 +3,7 @@ local jit = require('jit')
 
 local libphx = {}
 do -- Basic Typedefs
-  ffi.cdef [[
+    ffi.cdef [[
     typedef unsigned long  ulong;
     typedef unsigned int   uint;
     typedef unsigned short ushort;
@@ -53,7 +53,7 @@ do -- Basic Typedefs
 end
 
 do -- Function Pointer Typedefs
-  ffi.cdef [[
+    ffi.cdef [[
     typedef void (*ValueForeach) (void* value, void* userData);
     typedef int  (*ThreadFn    ) (void* data);
     typedef int  (*ThreadPoolFn) (int threadIndex, int threadCount, void* data);
@@ -61,7 +61,7 @@ do -- Function Pointer Typedefs
 end
 
 do -- Opaque Structs
-  ffi.cdef [[
+    ffi.cdef [[
     typedef struct BSP          {} BSP;
     typedef struct BoxMesh      {} BoxMesh;
     typedef struct BoxTree      {} BoxTree;
@@ -102,50 +102,50 @@ do -- Opaque Structs
     typedef struct Window       {} Window;
   ]]
 
-  libphx.Opaques = {
-    'BSP',
-    'BoxMesh',
-    'BoxTree',
-    'Bytes',
-    'Directory',
-    'File',
-    'Font',
-    'HashGrid',
-    'HashGridElem',
-    'InputBinding',
-    'KDTree',
-    'LodMesh',
-    'MemPool',
-    'MemStack',
-    'Mesh',
-    'MidiDevice',
-    'Octree',
-    'Physics',
-    'RNG',
-    'RigidBody',
-    'RmGui',
-    'SDF',
-    'Shader',
-    'ShaderState',
-    'Socket',
-    'Sound',
-    'SoundDesc',
-    'StrMap',
-    'StrMapIter',
-    'Tex1D',
-    'Tex2D',
-    'Tex3D',
-    'TexCube',
-    'Thread',
-    'ThreadPool',
-    'Timer',
-    'Trigger',
-    'Window',
-  }
+    libphx.Opaques = {
+        'BSP',
+        'BoxMesh',
+        'BoxTree',
+        'Bytes',
+        'Directory',
+        'File',
+        'Font',
+        'HashGrid',
+        'HashGridElem',
+        'InputBinding',
+        'KDTree',
+        'LodMesh',
+        'MemPool',
+        'MemStack',
+        'Mesh',
+        'MidiDevice',
+        'Octree',
+        'Physics',
+        'RNG',
+        'RigidBody',
+        'RmGui',
+        'SDF',
+        'Shader',
+        'ShaderState',
+        'Socket',
+        'Sound',
+        'SoundDesc',
+        'StrMap',
+        'StrMapIter',
+        'Tex1D',
+        'Tex2D',
+        'Tex3D',
+        'TexCube',
+        'Thread',
+        'ThreadPool',
+        'Timer',
+        'Trigger',
+        'Window',
+    }
 end
 
 do -- Transparent Structs
-  ffi.cdef [[
+    ffi.cdef [[
     typedef struct BSPNodeRef {
       int32 index;
       uint8 triangleCount;
@@ -362,46 +362,46 @@ do -- Transparent Structs
     } Vertex;
   ]]
 
-  libphx.Structs = {
-    'BSPNodeRef',
-    'Box3d',
-    'Box3f',
-    'Box3i',
-    'Collision',
-    'Device',
-    'InputEvent',
-    'IntersectSphereProfiling',
-    'LineSegment',
-    'Matrix',
-    'Plane',
-    'Polygon',
-    'Quat',
-    'Ray',
-    'RayCastResult',
-    'ShapeCastResult',
-    'Sphere',
-    'Time',
-    'Vec3f',
-    'Triangle',
-    'TriangleTest',
-    'Vec2d',
-    'Vec2f',
-    'Vec2i',
-    'Vec3d',
-    'Vec3i',
-    'Vec4d',
-    'Vec4f',
-    'Vec4i',
-    'Vertex',
-  }
+    libphx.Structs = {
+        'BSPNodeRef',
+        'Box3d',
+        'Box3f',
+        'Box3i',
+        'Collision',
+        'Device',
+        'InputEvent',
+        'IntersectSphereProfiling',
+        'LineSegment',
+        'Matrix',
+        'Plane',
+        'Polygon',
+        'Quat',
+        'Ray',
+        'RayCastResult',
+        'ShapeCastResult',
+        'Sphere',
+        'Time',
+        'Vec3f',
+        'Triangle',
+        'TriangleTest',
+        'Vec2d',
+        'Vec2f',
+        'Vec2i',
+        'Vec3d',
+        'Vec3i',
+        'Vec4d',
+        'Vec4f',
+        'Vec4i',
+        'Vertex',
+    }
 end
 
 do -- Load Library
-  libphx.lib = ffi.C
-  -- local debug = __debug__ and 'd' or ''
-  -- local path = string.format('phx%s', debug)
-  -- libphx.lib = ffi.load(path, false)
-  -- assert(libphx.lib, 'Failed to load %s', path)
+    libphx.lib = ffi.C
+    -- local debug = __debug__ and 'd' or ''
+    -- local path = string.format('phx%s', debug)
+    -- libphx.lib = ffi.load(path, false)
+    -- assert(libphx.lib, 'Failed to load %s', path)
 end
 
 return libphx

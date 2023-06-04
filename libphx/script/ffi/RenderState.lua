@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local RenderState
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void RenderState_PushAllDefaults   ();
     void RenderState_PushBlendMode     (BlendMode);
     void RenderState_PushCullFace      (CullFace);
@@ -21,23 +21,23 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  RenderState = {
-    PushAllDefaults   = libphx.RenderState_PushAllDefaults,
-    PushBlendMode     = libphx.RenderState_PushBlendMode,
-    PushCullFace      = libphx.RenderState_PushCullFace,
-    PushDepthTest     = libphx.RenderState_PushDepthTest,
-    PushDepthWritable = libphx.RenderState_PushDepthWritable,
-    PushWireframe     = libphx.RenderState_PushWireframe,
-    PopAll            = libphx.RenderState_PopAll,
-    PopBlendMode      = libphx.RenderState_PopBlendMode,
-    PopCullFace       = libphx.RenderState_PopCullFace,
-    PopDepthTest      = libphx.RenderState_PopDepthTest,
-    PopDepthWritable  = libphx.RenderState_PopDepthWritable,
-    PopWireframe      = libphx.RenderState_PopWireframe,
-  }
+    RenderState = {
+        PushAllDefaults   = libphx.RenderState_PushAllDefaults,
+        PushBlendMode     = libphx.RenderState_PushBlendMode,
+        PushCullFace      = libphx.RenderState_PushCullFace,
+        PushDepthTest     = libphx.RenderState_PushDepthTest,
+        PushDepthWritable = libphx.RenderState_PushDepthWritable,
+        PushWireframe     = libphx.RenderState_PushWireframe,
+        PopAll            = libphx.RenderState_PopAll,
+        PopBlendMode      = libphx.RenderState_PopBlendMode,
+        PopCullFace       = libphx.RenderState_PopCullFace,
+        PopDepthTest      = libphx.RenderState_PopDepthTest,
+        PopDepthWritable  = libphx.RenderState_PopDepthWritable,
+        PopWireframe      = libphx.RenderState_PopWireframe,
+    }
 
-  if onDef_RenderState then onDef_RenderState(RenderState, mt) end
-  RenderState = setmetatable(RenderState, mt)
+    if onDef_RenderState then onDef_RenderState(RenderState, mt) end
+    RenderState = setmetatable(RenderState, mt)
 end
 
 return RenderState
