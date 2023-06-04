@@ -1,0 +1,30 @@
+{
+	"folders": [
+		{
+			"path": "./script"
+		}
+	],
+	"settings": {
+		"Lua.workspace.maxPreload": 10000,
+		"Lua.diagnostics.libraryFiles": "Disable",
+		"Lua.runtime.version": "LuaJIT",
+		"Lua.format.enable": true,
+		"Lua.format.defaultConfig":{
+			"indent_style":"space",
+			"indent_size":"4"
+		},
+		"Lua.misc.parameters": [
+			"--preview"
+		],
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": true
+		},
+		"eslint.format.enable": true,
+		"Lua.completion.callSnippet": "Disable"
+	},
+	"extensions": {
+		"recommendations": [
+			"sumneko.lua"
+		]
+	}
+}
