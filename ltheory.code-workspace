@@ -20,7 +20,11 @@
 			"source.fixAll.eslint": true
 		},
 		"eslint.format.enable": true,
-		"Lua.completion.callSnippet": "Disable"
+		"Lua.completion.callSnippet": "Disable",
+		"workbench.colorCustomizations": {
+			"minimap.background": "#00000000",
+			"scrollbar.shadow": "#00000000"
+		}
 	},
 	"extensions": {
 		"recommendations": [
