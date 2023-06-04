@@ -30,7 +30,11 @@
 	"extensions": {
 		"recommendations": [
 			"sumneko.lua",
-			"rust-lang.rust-analyzer"
+			"rust-lang.rust-analyzer",
+			"serayuzgur.crates",
+			"vadimcn.vscode-lldb",
+			"tamasfe.even-better-toml",
+			"yzhang.markdown-all-in-one"
 		]
 	}
 }
