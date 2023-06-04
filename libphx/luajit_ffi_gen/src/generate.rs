@@ -2,11 +2,10 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
-use crate::{
-    args::Args,
-    method_info::{MethodInfo, ParamInfo, TypeInfo, TypeVariant},
-    parse::Item,
-};
+use crate::args::*;
+use crate::method_info::*;
+use crate::parse::*;
+use crate::util::*;
 
 pub fn generate(item: Item, args: Args) -> TokenStream {
     match item {
@@ -37,8 +36,8 @@ fn wrap_methods(self_name: &str, method: &MethodInfo) -> TokenStream {
     let method_name = method
         .bind_args
         .as_ref()
-        .map(|args| &args.name)
-        .unwrap_or(&method.name);
+        .map(|args| args.name.clone())
+        .unwrap_or(as_camel_case(&method.name));
     let func_name = format!("{self_name}_{}", method_name);
     let func_ident = format_ident!("{func_name}");
     let self_ident = format_ident!("{self_name}");

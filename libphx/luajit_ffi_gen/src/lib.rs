@@ -3,6 +3,7 @@ mod generate;
 mod impl_info;
 mod method_info;
 mod parse;
+mod util;
 
 use crate::args::Args;
 use crate::generate::generate;

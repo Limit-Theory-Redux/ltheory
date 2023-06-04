@@ -28,6 +28,7 @@ pub struct TypeInfo {
 }
 
 pub enum TypeVariant {
+    Bool,
     I8,
     U8,
     I16,
@@ -46,6 +47,7 @@ pub enum TypeVariant {
 impl TypeVariant {
     pub fn from_str(type_name: &str) -> Option<Self> {
         let res = match type_name {
+            "bool" => Self::Bool,
             "i8" => Self::I8,
             "u8" => Self::U8,
             "i16" => Self::I16,
@@ -66,19 +68,20 @@ impl TypeVariant {
 
     pub fn as_string(&self) -> String {
         match self {
-            TypeVariant::I8 => "i8",
-            TypeVariant::U8 => "u8",
-            TypeVariant::I16 => "i16",
-            TypeVariant::U16 => "u16",
-            TypeVariant::I32 => "i32",
-            TypeVariant::U32 => "u32",
-            TypeVariant::I64 => "i64",
-            TypeVariant::U64 => "u64",
-            TypeVariant::F32 => "f32",
-            TypeVariant::F64 => "f64",
-            TypeVariant::Str => "str",
-            TypeVariant::String => "String",
-            TypeVariant::Custom(val) => return val.clone(),
+            Self::Bool => "bool",
+            Self::I8 => "i8",
+            Self::U8 => "u8",
+            Self::I16 => "i16",
+            Self::U16 => "u16",
+            Self::I32 => "i32",
+            Self::U32 => "u32",
+            Self::I64 => "i64",
+            Self::U64 => "u64",
+            Self::F32 => "f32",
+            Self::F64 => "f64",
+            Self::Str => "str",
+            Self::String => "String",
+            Self::Custom(val) => return val.clone(),
         }
         .into()
     }

@@ -18,7 +18,7 @@ impl MyStruct {
     pub fn func1(&self) {}
     pub fn func2(&mut self) {}
 
-    #[bind = "Func3"]
+    #[bind = "FUNC3"]
     pub fn func3() {}
 
     pub fn set_u32(&mut self, val: u32) {
@@ -64,16 +64,16 @@ fn basic_test() {
     ms2.func2();
     MyStruct::func3();
 
-    MyStruct_func1(&ms);
-    MyStruct_func2(&mut ms2);
-    MyStruct_Func3();
+    MyStruct_Func1(&ms);
+    MyStruct_Func2(&mut ms2);
+    MyStruct_FUNC3();
 
-    MyStruct_set_u32(&mut ms2, 33);
-    assert_eq!(MyStruct_get_u32(&mut ms2), 33);
+    MyStruct_SetU32(&mut ms2, 33);
+    assert_eq!(MyStruct_GetU32(&mut ms2), 33);
 
-    MyStruct_set_f32(&mut ms2, 33.0);
-    assert_eq!(MyStruct_get_f32(&mut ms2), 33.0);
+    MyStruct_SetF32(&mut ms2, 33.0);
+    assert_eq!(MyStruct_GetF32(&mut ms2), 33.0);
 
-    MyStruct_set_data(&mut ms2, &Data::default());
-    assert!(MyStruct_get_data(&mut ms2).val);
+    MyStruct_SetData(&mut ms2, &Data::default());
+    assert!(MyStruct_GetData(&mut ms2).val);
 }
