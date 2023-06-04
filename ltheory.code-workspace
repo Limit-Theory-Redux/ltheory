@@ -1,7 +1,12 @@
 {
 	"folders": [
 		{
-			"path": "./script"
+			"path": "./libphx/script",
+			"name": "Engine Scripts"
+		},
+		{
+			"path": "./script",
+			"name": "LTR Scripts"
 		}
 	],
 	"settings": {
