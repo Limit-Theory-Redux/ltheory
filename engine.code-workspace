@@ -30,6 +30,7 @@
 	"extensions": {
 		"recommendations": [
 			"sumneko.lua",
+			"gruntfuggly.todo-tree",
 			"rust-lang.rust-analyzer",
 			"serayuzgur.crates",
 			"vadimcn.vscode-lldb",

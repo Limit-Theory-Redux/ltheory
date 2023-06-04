@@ -33,7 +33,8 @@
 	},
 	"extensions": {
 		"recommendations": [
-			"sumneko.lua"
+			"sumneko.lua",
+			"gruntfuggly.todo-tree"
 		]
 	}
 }
