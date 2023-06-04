@@ -121,7 +121,7 @@ impl TypeVariant {
             Self::F32 => "float",
             Self::F64 => "double",
             Self::Str => "cstr",
-            Self::String => "cst",
+            Self::String => "cstr",
             Self::Custom(val) => return format!("{val}*"),
         }
         .into()

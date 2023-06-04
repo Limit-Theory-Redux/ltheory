@@ -6,7 +6,6 @@ use crate::args::*;
 use crate::lua_ffi::generate_ffi;
 use crate::method_info::*;
 use crate::parse::*;
-use crate::util::*;
 
 pub fn generate(item: Item, args: Args) -> TokenStream {
     match item {

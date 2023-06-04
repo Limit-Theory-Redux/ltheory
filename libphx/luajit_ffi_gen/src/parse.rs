@@ -1,6 +1,6 @@
-use proc_macro2::Span;
 use quote::quote;
 use syn::parse::{Error, Parse, ParseStream, Result};
+use syn::spanned::Spanned;
 use syn::{
     Attribute, Expr, FnArg, ImplItem, ItemImpl, Lit, Meta, Pat, Path, ReturnType, Token, Type,
 };
@@ -44,7 +44,7 @@ fn get_impl_self_name(ty: &Type) -> Result<String> {
         // TODO: do we really have to support a reference? Example: impl MyTrait for &MyStruct {...}
         Type::Reference(ty_ref) => get_impl_self_name(&ty_ref.elem),
         _ => Err(Error::new(
-            Span::call_site(),
+            ty.span(),
             "expected an impl for type or type reference",
         )),
     }
@@ -53,7 +53,7 @@ fn get_impl_self_name(ty: &Type) -> Result<String> {
 fn get_path_last_name(path: &Path) -> Result<String> {
     let Some(last_seg) = path.segments.last() else {
         return Err(Error::new(
-            Span::call_site(),
+            path.span(),
             "expected a type identifier",
         ));
     };
@@ -112,7 +112,7 @@ fn get_bind_args(attrs: &mut Vec<Attribute>) -> Result<Option<BindArgs>> {
 
         if attr_name == "bind" {
             return Err(Error::new(
-                Span::call_site(),
+                attr.span(),
                 "expected #[bind = \"lua_method_name\"] attribute format",
             ));
         }
@@ -136,7 +136,7 @@ fn get_string_expr(expr: &Expr) -> Result<String> {
     }
 
     Err(Error::new(
-        Span::call_site(),
+        expr.span(),
         "expected a string value in bind literal",
     ))
 }
@@ -151,10 +151,7 @@ fn parse_params<'a>(
         match param {
             FnArg::Receiver(receiver) => {
                 if receiver.reference.is_none() {
-                    return Err(Error::new(
-                        Span::call_site(),
-                        "expected only &self or &mut self",
-                    ));
+                    return Err(Error::new(param.span(), "expected only &self or &mut self"));
                 }
 
                 self_param_info = Some(SelfType {
@@ -180,10 +177,7 @@ fn get_arg_name(pat: &Pat) -> Result<String> {
         return Ok(format!("{}", pat_ident.ident));
     }
 
-    Err(Error::new(
-        Span::call_site(),
-        "expected a method argument name",
-    ))
+    Err(Error::new(pat.span(), "expected a method argument name"))
 }
 
 fn parse_type(ty: &Type) -> Result<TypeInfo> {
@@ -218,7 +212,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             Ok(type_info)
         }
         _ => Err(Error::new(
-            Span::call_site(),
+            ty.span(),
             "expected a type, reference to type or mutable reference to type",
         )),
     }
