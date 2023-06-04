@@ -1,9 +1,17 @@
+use crate::util::as_camel_case;
+
 pub struct MethodInfo {
     pub bind_args: Option<BindArgs>,
     pub name: String,
     pub self_param: Option<SelfType>,
     pub params: Vec<ParamInfo>,
     pub ret: Option<TypeInfo>,
+}
+
+impl MethodInfo {
+    pub fn as_ffi_name(&self) -> String {
+        as_camel_case(&self.name)
+    }
 }
 
 pub struct BindArgs {
@@ -19,6 +27,19 @@ pub struct SelfType {
 pub struct ParamInfo {
     pub name: String,
     pub ty: TypeInfo,
+}
+
+impl ParamInfo {
+    pub fn as_ffi_name(&self) -> String {
+        let res = as_camel_case(&self.name);
+
+        if let Some(c) = res.get(..1) {
+            // First character of the FFI variable should be lowercase
+            format!("{}{}", c.to_lowercase(), res.get(1..).unwrap_or(""))
+        } else {
+            res
+        }
+    }
 }
 
 pub struct TypeInfo {
@@ -82,6 +103,26 @@ impl TypeVariant {
             Self::Str => "str",
             Self::String => "String",
             Self::Custom(val) => return val.clone(),
+        }
+        .into()
+    }
+
+    pub fn as_ffi_string(&self) -> String {
+        match self {
+            Self::Bool => "bool",
+            Self::I8 => "int8",
+            Self::U8 => "uint8",
+            Self::I16 => "int16",
+            Self::U16 => "uint16",
+            Self::I32 => "int",
+            Self::U32 => "uint32",
+            Self::I64 => "int64",
+            Self::U64 => "uint64",
+            Self::F32 => "float",
+            Self::F64 => "double",
+            Self::Str => "cstr",
+            Self::String => "cst",
+            Self::Custom(val) => return format!("{val}*"),
         }
         .into()
     }

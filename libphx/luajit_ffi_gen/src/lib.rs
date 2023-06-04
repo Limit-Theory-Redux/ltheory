@@ -1,6 +1,7 @@
 mod args;
 mod generate;
 mod impl_info;
+mod lua_ffi;
 mod method_info;
 mod parse;
 mod util;

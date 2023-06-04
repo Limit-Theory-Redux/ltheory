@@ -41,9 +41,16 @@ impl Parse for Arg {
                         value: name.value(),
                     })
                 }
+                "no_lua_ffi" => {
+                    let name = input.parse::<LitStr>()?;
+                    Ok(Self {
+                        name: "no_lua_ffi".into(),
+                        value: name.value(),
+                    })
+                }
                 _ => Err(Error::new(
                     Span::call_site(),
-                    "expected a one of the supported parameters: name",
+                    "expected a one of the supported parameters: name, no_lua_ffi",
                 )),
             }
         } else {

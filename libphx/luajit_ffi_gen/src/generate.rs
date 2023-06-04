@@ -3,6 +3,7 @@ use quote::{format_ident, quote};
 use syn::Ident;
 
 use crate::args::*;
+use crate::lua_ffi::generate_ffi;
 use crate::method_info::*;
 use crate::parse::*;
 use crate::util::*;
@@ -17,8 +18,10 @@ pub fn generate(item: Item, args: Args) -> TokenStream {
                 .map(|method| wrap_methods(&impl_info.name, method))
                 .collect();
 
-            // TODO: generate Lua ffi
-            let _ffi_name = args.params.get("name").unwrap_or(&impl_info.name);
+            if !args.params.contains_key("no_lua_ffi") {
+                let module_name = args.params.get("name").unwrap_or(&impl_info.name);
+                generate_ffi(&module_name, &impl_info);
+            }
 
             // let methods_str = format!("{:#?}", method_tokens);
             // std::fs::write("dump.txt", methods_str.as_bytes()).unwrap();
@@ -37,7 +40,7 @@ fn wrap_methods(self_name: &str, method: &MethodInfo) -> TokenStream {
         .bind_args
         .as_ref()
         .map(|args| args.name.clone())
-        .unwrap_or(as_camel_case(&method.name));
+        .unwrap_or(method.as_ffi_name());
     let func_name = format!("{self_name}_{}", method_name);
     let func_ident = format_ident!("{func_name}");
     let self_ident = format_ident!("{self_name}");

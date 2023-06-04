@@ -13,7 +13,8 @@ pub struct MyStruct {
     val_data: Data,
 }
 
-#[luajit_ffi(name = "My_Struct")]
+// NOTE: remove 'no_lua_ffi' parameter to see generated Lua file. Do not commit it!!!
+#[luajit_ffi(name = "My_Struct", no_lua_ffi = "")]
 impl MyStruct {
     pub fn func1(&self) {}
     pub fn func2(&mut self) {}

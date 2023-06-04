@@ -1,3 +1,9 @@
+/// Convert snake case string into a camel case one.
+///
+/// Rules:
+/// - make first letter an upper case
+/// - remove underscore and make after that the first letter upper case
+/// - make first letter after digit an upper case
 pub fn as_camel_case(s: &str) -> String {
     let mut res = String::new();
     let mut to_upper = true;
@@ -35,6 +41,12 @@ mod tests {
     #[test]
     fn test_as_camel_case2() {
         let res = as_camel_case("set2d");
+        assert_eq!(res, "Set2D")
+    }
+
+    #[test]
+    fn test_as_camel_case3() {
+        let res = as_camel_case("set_2d");
         assert_eq!(res, "Set2D")
     }
 }
