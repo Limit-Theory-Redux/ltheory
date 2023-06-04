@@ -2,7 +2,15 @@
 	"folders": [
 		{
 			"path": "./",
-			"name": "Limit Theory Redux"
+			"name": "Workspaces"
+		},
+		{
+			"path": "../libphx/script",
+			"name": "Engine Scripts"
+		},
+		{
+			"path": "../script",
+			"name": "LTR Scripts"
 		}
 	],
 	"settings": {
@@ -30,12 +38,7 @@
 	"extensions": {
 		"recommendations": [
 			"sumneko.lua",
-			"gruntfuggly.todo-tree",
-			"rust-lang.rust-analyzer",
-			"serayuzgur.crates",
-			"vadimcn.vscode-lldb",
-			"tamasfe.even-better-toml",
-			"yzhang.markdown-all-in-one"
+			"gruntfuggly.todo-tree"
 		]
 	}
 }
