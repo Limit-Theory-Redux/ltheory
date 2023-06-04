@@ -3,7 +3,7 @@ local Widget      = require('UI.Widget')
 
 local Container   = {}
 Container.__index = Container
-Container.__call  = function(t, ...) return t.Create(...) end
+Container.__call  = function (t, ...) return t.Create(...) end
 setmetatable(Container, Widget)
 
 Container.EState      = {
@@ -24,47 +24,26 @@ Container.name        = 'Container'
 -- Container Functions ---------------------------------------------------------
 
 function Container:onFindMouseFocusChildren(mx, my, foci) end
-
 function Container:onInputChildren(state) end
-
 function Container:onUpdateChildren(state) end
-
 function Container:onLayoutSizeChildren() end
-
 function Container:onLayoutPosChildren() end
-
 function Container:onDrawChildren(focus, active) end
-
 function Container:onDrawDebugChildren(focus, active) end
-
 function Container:setEState(eState) end
-
 function Container:setEnabled(enabled, speed) end
-
 function Container:toggleEnabled(speed) end
-
 function Container:isEnabled() end
-
 function Container:enable(speed) end
-
 function Container:disable(speed) end
-
 function Container:completeFade() end
-
 function Container:onEnable() end
-
 function Container:onEnableDone() end
-
 function Container:onDisable() end
-
 function Container:onDisableDone() end
-
 function Container:add(child, enabled) end
-
 function Container:remove(child) end
-
 function Container:addImmediate(child) end
-
 function Container:removeImmediate(child) end
 
 -- Default Implementations -----------------------------------------------------
