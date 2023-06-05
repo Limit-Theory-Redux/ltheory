@@ -31,7 +31,7 @@ pub struct CollisionShape {
 }
 
 impl CollisionShape {
-    pub(crate) fn new(scale: f32, shape: CollisionShapeType) -> Box<CollisionShape> {
+    pub(crate) fn new(scale: f32, shape: CollisionShapeType) -> CollisionShape {
         let builder = match shape {
             CollisionShapeType::Box { halfExtents } => ColliderBuilder::cuboid(
                 halfExtents.x * scale,
@@ -41,14 +41,14 @@ impl CollisionShape {
             CollisionShapeType::Sphere { radius } => ColliderBuilder::ball(radius * scale),
             _ => ColliderBuilder::ball(1.0), // TODO: Implement remaining types.
         };
-        Box::new(CollisionShape {
+        CollisionShape {
             scale: scale,
             shape: shape,
             collider: builder.build(),
-        })
+        }
     }
 
-    pub fn newBox(halfExtents: &Vec3) -> Box<CollisionShape> {
+    pub fn new_box(halfExtents: &Vec3) -> CollisionShape {
         Self::new(
             1.0,
             CollisionShapeType::Box {
@@ -57,7 +57,7 @@ impl CollisionShape {
         )
     }
 
-    pub fn newBoxFromMesh(mesh: &mut Mesh) -> Box<CollisionShape> {
+    pub fn new_box_from_mesh(mesh: &mut Mesh) -> CollisionShape {
         let mut bounds = Box3::default();
         unsafe { Mesh_GetBound(mesh, &mut bounds) };
         Self::new(
@@ -72,11 +72,11 @@ impl CollisionShape {
         )
     }
 
-    pub fn newSphere(radius: f32) -> Box<CollisionShape> {
+    pub fn new_sphere(radius: f32) -> CollisionShape {
         Self::new(1.0, CollisionShapeType::Sphere { radius: radius })
     }
 
-    pub fn newSphereFromMesh(mesh: &mut Mesh) -> Box<CollisionShape> {
+    pub fn new_sphere_from_mesh(mesh: &mut Mesh) -> CollisionShape {
         Self::new(
             1.0,
             CollisionShapeType::Sphere {
@@ -85,7 +85,7 @@ impl CollisionShape {
         )
     }
 
-    pub fn newHullFromMesh(mesh: Rc<Mesh>) -> Box<CollisionShape> {
+    pub fn new_hull_from_mesh(mesh: Rc<Mesh>) -> CollisionShape {
         Self::new(
             1.0,
             CollisionShapeType::Hull {

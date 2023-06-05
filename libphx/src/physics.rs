@@ -5,23 +5,9 @@ use crate::rigid_body::*;
 use crate::trigger::*;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
-
-pub struct Physics {
-    pub rigidBodySet: rp::RigidBodySet,
-    pub colliderSet: rp::ColliderSet,
-
-    pub integrationParameters: rp::IntegrationParameters,
-    pub physicsPipeline: rp::PhysicsPipeline,
-    pub queryPipeline: rp::QueryPipeline,
-    pub islandManager: rp::IslandManager,
-    pub broadphase: rp::BroadPhase,
-    pub narrowphase: rp::NarrowPhase,
-    pub impulseJointSet: rp::ImpulseJointSet,
-    pub multibodyJointSet: rp::MultibodyJointSet,
-    pub ccdSolver: rp::CCDSolver,
-
-    pub triggers: Vec<Trigger>,
-}
+use std::cell::RefCell;
+use std::mem::replace;
+use std::rc::Rc;
 
 pub struct Collision {
     index: i32,
@@ -77,22 +63,97 @@ impl NalgebraQuatInterop for Quat {
     }
 }
 
+pub(crate) struct PhysicsWorld {
+    pub(crate) rigid_body_set: rp::RigidBodySet,
+    pub(crate) collider_set: rp::ColliderSet,
+}
+
+pub struct Physics {
+    world: Rc<RefCell<PhysicsWorld>>,
+
+    integration_parameters: rp::IntegrationParameters,
+    physics_pipeline: rp::PhysicsPipeline,
+    query_pipeline: rp::QueryPipeline,
+    island_manager: rp::IslandManager,
+    broadphase: rp::BroadPhase,
+    narrowphase: rp::NarrowPhase,
+    impulse_joint_set: rp::ImpulseJointSet,
+    multibody_joint_set: rp::MultibodyJointSet,
+    ccd_solver: rp::CCDSolver,
+
+    triggers: Vec<Trigger>,
+}
+
+impl Physics {
+    pub fn new() -> Physics {
+        Physics {
+            world: Rc::new(RefCell::new(PhysicsWorld {
+                rigid_body_set: rp::RigidBodySet::new(),
+                collider_set: rp::ColliderSet::new(),
+            })),
+            integration_parameters: rp::IntegrationParameters::default(),
+            physics_pipeline: rp::PhysicsPipeline::new(),
+            query_pipeline: rp::QueryPipeline::new(),
+            island_manager: rp::IslandManager::new(),
+            broadphase: rp::BroadPhase::new(),
+            narrowphase: rp::NarrowPhase::new(),
+            impulse_joint_set: rp::ImpulseJointSet::new(),
+            multibody_joint_set: rp::MultibodyJointSet::new(),
+            ccd_solver: rp::CCDSolver::new(),
+            triggers: Vec::new(),
+        }
+    }
+
+    /// Adds this rigid body to this physics world.
+    pub fn add(&mut self, rigid_body: &mut RigidBody) {
+        rigid_body.state =
+            replace(&mut rigid_body.state, RigidBodyState::None).add_to_world(&self.world);
+    }
+
+    /// Removes this rigid body from this physics world.
+    pub fn remove(&mut self, rigid_body: &mut RigidBody) {
+        rigid_body.state = replace(&mut rigid_body.state, RigidBodyState::None).remove_from_world(
+            &mut self.island_manager,
+            &mut self.impulse_joint_set,
+            &mut self.multibody_joint_set,
+        );
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        for trigger in self.triggers.iter_mut() {
+            Trigger_Update(trigger);
+        }
+
+        let gravity = Vec3::ZERO.toNA();
+        let physics_hooks = ();
+        let event_handler = ();
+
+        let mut integration_parameters = self.integration_parameters;
+        integration_parameters.dt = dt;
+        let mut world = &mut *self.world.borrow_mut();
+        self.physics_pipeline.step(
+            &gravity,
+            &integration_parameters,
+            &mut self.island_manager,
+            &mut self.broadphase,
+            &mut self.narrowphase,
+            &mut world.rigid_body_set,
+            &mut world.collider_set,
+            &mut self.impulse_joint_set,
+            &mut self.multibody_joint_set,
+            &mut self.ccd_solver,
+            None,
+            &physics_hooks,
+            &event_handler,
+        );
+        self.query_pipeline
+            .update(&world.rigid_body_set, &world.collider_set);
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn Physics_Create() -> Box<Physics> {
-    Box::new(Physics {
-        integrationParameters: rp::IntegrationParameters::default(),
-        rigidBodySet: rp::RigidBodySet::new(),
-        colliderSet: rp::ColliderSet::new(),
-        physicsPipeline: rp::PhysicsPipeline::new(),
-        queryPipeline: rp::QueryPipeline::new(),
-        islandManager: rp::IslandManager::new(),
-        broadphase: rp::BroadPhase::new(),
-        narrowphase: rp::NarrowPhase::new(),
-        impulseJointSet: rp::ImpulseJointSet::new(),
-        multibodyJointSet: rp::MultibodyJointSet::new(),
-        ccdSolver: rp::CCDSolver::new(),
-        triggers: Vec::new(),
-    })
+    Box::new(Physics::new())
 }
 
 #[no_mangle]
@@ -100,12 +161,12 @@ pub unsafe extern "C" fn Physics_Free(_: Box<Physics>) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_AddRigidBody(this: &mut Physics, rb: &mut RigidBody) {
-    // this.rigidBodySet.insert(rb)
+    this.add(rb);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_RemoveRigidBody(this: &mut Physics, rb: &mut RigidBody) {
-    // this.rigidBodySet.remove()
+    this.remove(rb);
 }
 
 #[no_mangle]
@@ -121,33 +182,7 @@ pub unsafe extern "C" fn Physics_GetNextCollision(this: &mut Physics, c: *mut Co
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_Update(this: &mut Physics, dt: f32) {
-    for trigger in this.triggers.iter_mut() {
-        Trigger_Update(trigger);
-    }
-
-    let gravity = Vec3::ZERO.toNA();
-    let physics_hooks = ();
-    let event_handler = ();
-
-    let mut integrationParameters = this.integrationParameters;
-    integrationParameters.dt = dt;
-    this.physicsPipeline.step(
-        &gravity,
-        &integrationParameters,
-        &mut this.islandManager,
-        &mut this.broadphase,
-        &mut this.narrowphase,
-        &mut this.rigidBodySet,
-        &mut this.colliderSet,
-        &mut this.impulseJointSet,
-        &mut this.multibodyJointSet,
-        &mut this.ccdSolver,
-        None,
-        &physics_hooks,
-        &event_handler,
-    );
-    this.queryPipeline
-        .update(&this.rigidBodySet, &this.colliderSet);
+    this.update(dt);
 }
 
 #[no_mangle]
@@ -171,9 +206,9 @@ pub unsafe extern "C" fn Physics_RayCast(
 
     let ray = rp::Ray::new(from, dir / length);
     let filter = rp::QueryFilter::default();
-    if let Some((handle, toi)) = this.queryPipeline.cast_ray(
-        &this.rigidBodySet,
-        &this.colliderSet,
+    if let Some((handle, toi)) = this.query_pipeline.cast_ray(
+        &this.world.borrow().rigid_body_set,
+        &this.world.borrow().collider_set,
         &ray,
         length,
         true,
