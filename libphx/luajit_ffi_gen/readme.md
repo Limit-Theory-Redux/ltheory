@@ -5,6 +5,11 @@ To expand attribute macro to see i.e. window.rs expansion, run:
 cargo expand -p phx window
 ```
 
+for test:
+```bash
+cargo expand -p luajit_ffi_gen --test basic_test
+```
+
 ## Type mapping
 
 | Rust                | Wrapper in               | Wrapper out              | Lua ffi.cdef              |

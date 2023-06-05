@@ -50,4 +50,13 @@ do -- Global Symbol Table
   Window = setmetatable(Window, mt)
 end
 
+do -- Metatype for class instances
+  local t  = ffi.typeof('Window')
+  local mt = {
+  }
+
+  if onDef_Window_t then onDef_Window_t(t, mt) end
+  Window_t = ffi.metatype(t, mt)
+end
+
 return Window

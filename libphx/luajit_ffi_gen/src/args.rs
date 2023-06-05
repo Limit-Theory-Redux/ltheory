@@ -5,7 +5,42 @@ use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::{LitStr, Token};
 
 pub struct Args {
-    pub params: HashMap<String, String>,
+    params: HashMap<String, String>,
+    span: Span,
+}
+
+impl Args {
+    pub fn empty(span: Span) -> Self {
+        Self {
+            params: HashMap::new(),
+            span,
+        }
+    }
+
+    pub fn get(&self, name: &str) -> Option<String> {
+        self.params
+            .iter()
+            .find(|(param_name, _)| *param_name == name)
+            .map(|(_, value)| value.clone())
+    }
+
+    pub fn validate(&self, expected_params: &[&str]) -> Result<()> {
+        if self
+            .params
+            .iter()
+            .any(|(name, _)| !expected_params.contains(&name.as_str()))
+        {
+            Err(Error::new(
+                self.span,
+                format!(
+                    "expected a one of the supported parameters: {}",
+                    expected_params.join(", ")
+                ),
+            ))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl Parse for Args {
@@ -17,6 +52,7 @@ impl Parse for Args {
                 .into_iter()
                 .map(|arg| (arg.name, arg.value))
                 .collect(),
+            span: input.span(),
         })
     }
 }
@@ -29,35 +65,18 @@ pub struct Arg {
 impl Parse for Arg {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.peek2(Token![=]) {
-            let param_name = format!("{}", input.parse::<Ident>()?);
+            let name = format!("{}", input.parse::<Ident>()?);
 
             input.parse::<Token![=]>()?;
 
-            match param_name.as_ref() {
-                "name" => {
-                    let name = input.parse::<LitStr>()?;
-                    Ok(Self {
-                        name: "name".into(),
-                        value: name.value(),
-                    })
-                }
-                "no_lua_ffi" => {
-                    let name = input.parse::<LitStr>()?;
-                    Ok(Self {
-                        name: "no_lua_ffi".into(),
-                        value: name.value(),
-                    })
-                }
-                _ => Err(Error::new(
-                    Span::call_site(),
-                    "expected a one of the supported parameters: name, no_lua_ffi",
-                )),
-            }
+            let value = input.parse::<LitStr>()?;
+
+            Ok(Self {
+                name,
+                value: value.value(),
+            })
         } else {
-            Err(Error::new(
-                Span::call_site(),
-                "expected a 'key = value' pairs",
-            ))
+            Err(Error::new(input.span(), "expected a 'key = value' pairs"))
         }
     }
 }

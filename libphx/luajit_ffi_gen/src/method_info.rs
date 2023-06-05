@@ -1,4 +1,4 @@
-use crate::util::as_camel_case;
+use crate::{args::Args, util::as_camel_case};
 
 const REGISTERED_TYPES: [(&str, &str); 3] = [
     ("IVec2", "Vec2i"),
@@ -7,7 +7,7 @@ const REGISTERED_TYPES: [(&str, &str); 3] = [
 ];
 
 pub struct MethodInfo {
-    pub bind_args: Option<BindArgs>,
+    pub bind_args: Args,
     pub name: String,
     pub self_param: Option<SelfType>,
     pub params: Vec<ParamInfo>,
@@ -17,14 +17,9 @@ pub struct MethodInfo {
 impl MethodInfo {
     pub fn as_ffi_name(&self) -> String {
         self.bind_args
-            .as_ref()
-            .map(|args| args.name.clone())
+            .get("name")
             .unwrap_or_else(|| as_camel_case(&self.name))
     }
-}
-
-pub struct BindArgs {
-    pub name: String,
 }
 
 /// Type of the method receiver.

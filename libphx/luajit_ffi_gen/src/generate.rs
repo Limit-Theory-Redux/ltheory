@@ -7,19 +7,19 @@ use crate::lua_ffi::generate_ffi;
 use crate::method_info::*;
 use crate::parse::*;
 
-pub fn generate(item: Item, args: Args) -> TokenStream {
+pub fn generate(item: Item, attr_args: Args) -> TokenStream {
     match item {
         Item::Impl(impl_info) => {
             let source = &impl_info.source;
-            let module_name = args.params.get("name").unwrap_or(&impl_info.name);
+            let module_name = attr_args.get("name").unwrap_or(impl_info.name.clone());
             let method_tokens: Vec<_> = impl_info
                 .methods
                 .iter()
                 .map(|method| wrap_methods(&impl_info.name, &module_name, method))
                 .collect();
 
-            if !args.params.contains_key("no_lua_ffi") {
-                generate_ffi(&module_name, &impl_info);
+            if attr_args.get("no_lua_ffi").is_none() {
+                generate_ffi(&module_name, &impl_info, attr_args.get("meta").is_some());
             }
 
             // let methods_str = format!("{:#?}", method_tokens);

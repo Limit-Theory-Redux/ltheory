@@ -1,12 +1,12 @@
+use proc_macro2::Span;
 use quote::quote;
 use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::spanned::Spanned;
-use syn::{
-    Attribute, Expr, FnArg, ImplItem, ItemImpl, Lit, Meta, Pat, Path, ReturnType, Token, Type,
-};
+use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, Path, ReturnType, Token, Type};
 
+use crate::args::Args;
 use crate::impl_info::ImplInfo;
-use crate::method_info::{BindArgs, MethodInfo, ParamInfo, SelfType, TypeInfo, TypeVariant};
+use crate::method_info::{MethodInfo, ParamInfo, SelfType, TypeInfo, TypeVariant};
 
 pub enum Item {
     Impl(ImplInfo),
@@ -69,7 +69,7 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
             let (self_param, params) = parse_params(fn_item.sig.inputs.iter())?;
 
             methods.push(MethodInfo {
-                bind_args: get_bind_args(&mut fn_item.attrs)?,
+                bind_args: get_bind_args(fn_item.span(), &mut fn_item.attrs)?,
                 name: format!("{}", fn_item.sig.ident),
                 self_param,
                 params,
@@ -85,60 +85,37 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
 ///
 /// Expected format:
 /// ```
-/// #[bind = "lua_function_name"]
+/// #[bind(name = "lua_function_name")]
 /// fm my_cool_method(...) {...}
 /// ```
-fn get_bind_args(attrs: &mut Vec<Attribute>) -> Result<Option<BindArgs>> {
+fn get_bind_args(span: Span, attrs: &mut Vec<Attribute>) -> Result<Args> {
     let mut res = None;
 
     for (i, attr) in attrs.iter().enumerate() {
-        let attr_name = match &attr.meta {
-            Meta::Path(path) => get_path_last_name(path)?,
-            Meta::List(meta_list) => get_path_last_name(&meta_list.path)?,
-            Meta::NameValue(val) => {
-                let attr_name = get_path_last_name(&val.path)?;
+        let attr_name = get_path_last_name(attr.meta.path())?;
 
-                if attr_name == "bind" {
-                    let name = get_string_expr(&val.value)?;
-
-                    res = Some((i, BindArgs { name }));
-
-                    break;
-                }
-
-                continue;
-            }
-        };
-
-        if attr_name == "bind" {
-            return Err(Error::new(
-                attr.span(),
-                "expected #[bind = \"lua_method_name\"] attribute format",
-            ));
+        if attr_name != "bind" {
+            continue;
         }
+
+        let meta_list = attr.meta.require_list()?;
+        let args = meta_list.parse_args_with(Args::parse)?;
+
+        args.validate(&["name"])?;
+
+        res = Some((i, args));
+
+        break;
     }
 
     if let Some((i, args)) = res {
         // Remove #[bind] attribute so it won't break compilation
         attrs.remove(i);
 
-        Ok(Some(args))
+        Ok(args)
     } else {
-        Ok(None)
+        Ok(Args::empty(span))
     }
-}
-
-fn get_string_expr(expr: &Expr) -> Result<String> {
-    if let Expr::Lit(expr_lit) = expr {
-        if let Lit::Str(lit_str) = &expr_lit.lit {
-            return Ok(lit_str.value());
-        }
-    }
-
-    Err(Error::new(
-        expr.span(),
-        "expected a string value in bind literal",
-    ))
 }
 
 fn parse_params<'a>(

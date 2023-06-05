@@ -7,7 +7,7 @@ const LUAJIT_FFI_GEN_DIR: &str = "../script/ffi";
 // TODO: change to 4 spaces after Lua code refactoring
 const IDENT: &str = "  ";
 
-pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo) {
+pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo, with_meta: bool) {
     let luajit_ffi_gen_dir = match std::env::var(LUAJIT_FFI_GEN_DIR_ENV) {
         Ok(var) => {
             if !var.is_empty() {
@@ -66,7 +66,6 @@ pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo) {
 
     writeln!(&mut file, "{IDENT}}}\n").unwrap();
 
-    // Footer
     writeln!(
         &mut file,
         "{IDENT}if onDef_{module_name} then onDef_{module_name}({module_name}, mt) end"
@@ -78,6 +77,27 @@ pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo) {
     )
     .unwrap();
     writeln!(&mut file, "end\n").unwrap();
+
+    // Metatype for class instances
+    if with_meta {
+        // TODO:
+        writeln!(&mut file, "do -- Metatype for class instances").unwrap();
+        writeln!(&mut file, "{IDENT}local t  = ffi.typeof('{module_name}')").unwrap();
+        writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
+
+        // write_global_sym_table(&mut file, module_name, impl_info, max_method_name_len);
+
+        writeln!(&mut file, "{IDENT}}}\n").unwrap();
+
+        writeln!(
+            &mut file,
+            "{IDENT}if onDef_{module_name}_t then onDef_{module_name}_t(t, mt) end"
+        )
+        .unwrap();
+        writeln!(&mut file, "{IDENT}{module_name}_t = ffi.metatype(t, mt)").unwrap();
+        writeln!(&mut file, "end\n").unwrap();
+    }
+
     writeln!(&mut file, "return {module_name}").unwrap();
 }
 

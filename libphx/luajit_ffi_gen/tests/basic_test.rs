@@ -19,7 +19,7 @@ impl MyStruct {
     pub fn func1(&self) {}
     pub fn func2(&mut self) {}
 
-    #[bind = "FUNC3"]
+    #[bind(name = "FUNC3")]
     pub fn func3() {}
 
     pub fn set_u32(&mut self, val: u32) {
@@ -51,8 +51,8 @@ impl MyStruct {
         self.val_data.val = true;
     }
 
-    pub fn get_data(&self) -> &Data {
-        &self.val_data
+    pub fn get_data(&self) -> Data {
+        self.val_data.clone()
     }
 }
 
