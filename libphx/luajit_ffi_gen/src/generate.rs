@@ -11,14 +11,14 @@ pub fn generate(item: Item, args: Args) -> TokenStream {
     match item {
         Item::Impl(impl_info) => {
             let source = &impl_info.source;
+            let module_name = args.params.get("name").unwrap_or(&impl_info.name);
             let method_tokens: Vec<_> = impl_info
                 .methods
                 .iter()
-                .map(|method| wrap_methods(&impl_info.name, method))
+                .map(|method| wrap_methods(&impl_info.name, &module_name, method))
                 .collect();
 
             if !args.params.contains_key("no_lua_ffi") {
-                let module_name = args.params.get("name").unwrap_or(&impl_info.name);
                 generate_ffi(&module_name, &impl_info);
             }
 
@@ -34,12 +34,8 @@ pub fn generate(item: Item, args: Args) -> TokenStream {
     }
 }
 
-fn wrap_methods(self_name: &str, method: &MethodInfo) -> TokenStream {
-    let method_name = method
-        .bind_args
-        .as_ref()
-        .map(|args| args.name.clone())
-        .unwrap_or(method.as_ffi_name());
+fn wrap_methods(self_name: &str, module_name: &str, method: &MethodInfo) -> TokenStream {
+    let method_name = method.as_ffi_name();
     let func_name = format!("{self_name}_{}", method_name);
     let func_ident = format_ident!("{func_name}");
     let self_ident = format_ident!("{self_name}");
@@ -57,11 +53,11 @@ fn wrap_methods(self_name: &str, method: &MethodInfo) -> TokenStream {
     let param_tokens: Vec<_> = method
         .params
         .iter()
-        .map(|param| wrap_param(param))
+        .map(|param| wrap_param(&module_name, param))
         .collect();
 
     let ret_token = if let Some(ty) = &method.ret {
-        let ty_token = wrap_type(&ty);
+        let ty_token = wrap_type(module_name, &ty, true);
 
         quote! { -> #ty_token }
     } else {
@@ -73,20 +69,19 @@ fn wrap_methods(self_name: &str, method: &MethodInfo) -> TokenStream {
     quote! {
         #[no_mangle]
         pub extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
-            println!(#func_name);
             #func_body
         }
     }
 }
 
-fn wrap_param(param: &ParamInfo) -> TokenStream {
+fn wrap_param(module_name: &str, param: &ParamInfo) -> TokenStream {
     let param_name_ident = format_ident!("{}", param.name);
-    let param_type_token = wrap_type(&param.ty);
+    let param_type_token = wrap_type(module_name, &param.ty, false);
 
     quote! { #param_name_ident: #param_type_token }
 }
 
-fn wrap_type(ty: &TypeInfo) -> TokenStream {
+fn wrap_type(module_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
     match &ty.variant {
         TypeVariant::Str | TypeVariant::String => quote! { *const libc::c_char },
         TypeVariant::Custom(ty_name) => {
@@ -95,8 +90,19 @@ fn wrap_type(ty: &TypeInfo) -> TokenStream {
             if ty.is_mutable {
                 // Mutable is always with reference
                 quote! { &mut #ty_ident }
+            } else if TypeInfo::is_registered(&ty_name) && !ty.is_reference {
+                quote! { #ty_ident }
+            } else if ret {
+                // We always send unregistered return type boxed
+                if ty.is_self() {
+                    let ty_ident = format_ident!("{module_name}");
+
+                    quote! { Box<#ty_ident> }
+                } else {
+                    quote! { Box<#ty_ident> }
+                }
             } else {
-                // We cannot send custom type by value
+                // We always send unregistered type by reference
                 quote! { &#ty_ident }
             }
         }
@@ -135,7 +141,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 TypeVariant::Custom(_) => quote! { #name_ident },
                 _ => {
                     if param.ty.is_mutable {
-                        quote! { &mut #name_ident }
+                        quote! { #name_ident }
                     } else if param.ty.is_reference {
                         quote! { &#name_ident }
                     } else {
@@ -147,10 +153,17 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         .collect();
 
     if let Some(ty) = &method.ret {
-        match ty.variant {
+        match &ty.variant {
             TypeVariant::Str | TypeVariant::String => quote! {
                 static_string!(#accessor_token(#(#param_tokens),*))
             },
+            TypeVariant::Custom(custom_ty)
+                if ty.is_self() || !TypeInfo::is_registered(&custom_ty) =>
+            {
+                quote! {
+                    #accessor_token(#(#param_tokens),*).into()
+                }
+            }
             _ => quote! {
                 #accessor_token(#(#param_tokens),*)
             },

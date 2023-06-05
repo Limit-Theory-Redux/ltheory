@@ -91,6 +91,7 @@ impl Engine {
                     minor: 0,
                     patch: 0,
                 };
+
                 SDL_GetVersion(&mut linked);
                 if compiled.major != linked.major {
                     println!("Engine_Init: Detected SDL major version mismatch:");

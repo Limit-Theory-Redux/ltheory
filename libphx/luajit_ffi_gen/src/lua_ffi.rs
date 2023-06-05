@@ -89,7 +89,14 @@ fn write_c_defs(file: &mut File, module_name: &str, impl_info: &ImplInfo) -> usi
         let len = method
             .ret
             .as_ref()
-            .map(|ret| ret.variant.as_ffi_string().len())
+            .map(|ret| {
+                if ret.is_self() {
+                    format!("{module_name}*")
+                } else {
+                    ret.as_ffi_string()
+                }
+                .len()
+            })
             .unwrap_or("void".len());
 
         max_ret_len = std::cmp::max(max_ret_len, len);
@@ -97,28 +104,38 @@ fn write_c_defs(file: &mut File, module_name: &str, impl_info: &ImplInfo) -> usi
     });
 
     impl_info.methods.iter().for_each(|method| {
+        let method_name = method.as_ffi_name();
         let ret_ty_str = method
             .ret
             .as_ref()
-            .map(|ret| ret.variant.as_ffi_string())
+            .map(|ret| {
+                if ret.is_self() {
+                    format!("{module_name}*")
+                } else {
+                    ret.as_ffi_string()
+                }
+            })
             .unwrap_or("void".into());
 
         let params_str: Vec<_> = method
             .params
             .iter()
-            .map(|param| {
-                format!(
-                    "{} {}",
-                    param.ty.variant.as_ffi_string(),
-                    param.as_ffi_name()
-                )
-            })
+            .map(|param| format!("{} {}", param.ty.as_ffi_string(), param.as_ffi_name()))
             .collect();
+
+        let self_str = if let Some(_) = &method.self_param {
+            if params_str.is_empty() {
+                format!("{module_name}*")
+            } else {
+                format!("{module_name}*, ")
+            }
+        } else {
+            "".into()
+        };
 
         writeln!(
             file,
-            "{IDENT}{IDENT}{ret_ty_str:<2$} {module_name}_{:<3$} ({});",
-            method.as_ffi_name(),
+            "{IDENT}{IDENT}{ret_ty_str:<1$} {module_name}_{method_name:<2$} ({self_str}{});",
             params_str.join(", "),
             max_ret_len,
             max_method_name_len

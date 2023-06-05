@@ -1,5 +1,11 @@
 use crate::util::as_camel_case;
 
+const REGISTERED_TYPES: [(&str, &str); 3] = [
+    ("IVec2", "Vec2i"),
+    ("WindowPos", "WindowPos"),
+    ("WindowMode", "WindowMode"),
+];
+
 pub struct MethodInfo {
     pub bind_args: Option<BindArgs>,
     pub name: String,
@@ -10,7 +16,10 @@ pub struct MethodInfo {
 
 impl MethodInfo {
     pub fn as_ffi_name(&self) -> String {
-        as_camel_case(&self.name)
+        self.bind_args
+            .as_ref()
+            .map(|args| args.name.clone())
+            .unwrap_or_else(|| as_camel_case(&self.name))
     }
 }
 
@@ -48,6 +57,48 @@ pub struct TypeInfo {
     pub variant: TypeVariant,
 }
 
+impl TypeInfo {
+    pub fn is_self(&self) -> bool {
+        if let TypeVariant::Custom(ty) = &self.variant {
+            if ty == "Self" {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn is_registered(ty: &str) -> bool {
+        REGISTERED_TYPES
+            .iter()
+            .find(|(rust_ty, _)| *rust_ty == ty)
+            .is_some()
+    }
+
+    pub fn as_ffi_string(&self) -> String {
+        let res = self.variant.as_ffi_string();
+
+        let res = if self.variant.is_custom() {
+            let registered_ty = REGISTERED_TYPES.iter().find(|(rust_ty, _)| *rust_ty == res);
+
+            if let Some((_, ffi_ty)) = registered_ty {
+                (*ffi_ty).into()
+            } else {
+                res
+            }
+        } else {
+            res
+        };
+
+        if self.is_reference && self.variant != TypeVariant::Str {
+            format!("{}*", res)
+        } else {
+            res
+        }
+    }
+}
+
+#[derive(PartialEq, Eq)]
 pub enum TypeVariant {
     Bool,
     I8,
@@ -66,6 +117,10 @@ pub enum TypeVariant {
 }
 
 impl TypeVariant {
+    pub fn is_custom(&self) -> bool {
+        matches!(self, Self::Custom(_))
+    }
+
     pub fn from_str(type_name: &str) -> Option<Self> {
         let res = match type_name {
             "bool" => Self::Bool,
@@ -107,7 +162,7 @@ impl TypeVariant {
         .into()
     }
 
-    pub fn as_ffi_string(&self) -> String {
+    fn as_ffi_string(&self) -> String {
         match self {
             Self::Bool => "bool",
             Self::I8 => "int8",
@@ -122,7 +177,7 @@ impl TypeVariant {
             Self::F64 => "double",
             Self::Str => "cstr",
             Self::String => "cstr",
-            Self::Custom(val) => return format!("{val}*"),
+            Self::Custom(val) => return val.clone(),
         }
         .into()
     }

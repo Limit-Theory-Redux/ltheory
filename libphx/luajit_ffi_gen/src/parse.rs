@@ -192,7 +192,6 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                     variant,
                 }
             } else {
-                // NOTE: non-referential types should implement Clone since in the generated wrapping function it will be a reference to it
                 TypeInfo {
                     is_reference: false,
                     is_mutable: false,
