@@ -1,10 +1,7 @@
 use crate::{args::Args, util::as_camel_case};
 
-const REGISTERED_TYPES: [(&str, &str); 3] = [
-    ("IVec2", "Vec2i"),
-    ("WindowPos", "WindowPos"),
-    ("WindowMode", "WindowMode"),
-];
+const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 1] = [("IVec2", "Vec2i")];
+const COPY_TYPES: [&str; 3] = ["IVec2", "WindowPos", "WindowMode"];
 
 pub struct MethodInfo {
     pub bind_args: Args,
@@ -63,26 +60,21 @@ impl TypeInfo {
         false
     }
 
-    pub fn is_registered(ty: &str) -> bool {
-        REGISTERED_TYPES
-            .iter()
-            .find(|(rust_ty, _)| *rust_ty == ty)
-            .is_some()
+    pub fn is_copyable(ty: &str) -> bool {
+        COPY_TYPES.contains(&ty)
     }
 
     pub fn as_ffi_string(&self) -> String {
-        let res = self.variant.as_ffi_string();
+        let ffi_ty = self.variant.as_ffi_string();
 
         let res = if self.variant.is_custom() {
-            let registered_ty = REGISTERED_TYPES.iter().find(|(rust_ty, _)| *rust_ty == res);
-
-            if let Some((_, ffi_ty)) = registered_ty {
-                (*ffi_ty).into()
-            } else {
-                res
-            }
+            RUST_TO_LUA_TYPE_MAP
+                .iter()
+                .find(|(r_ty, _)| *r_ty == ffi_ty)
+                .map(|(_, l_ty)| l_ty.to_string())
+                .unwrap_or(ffi_ty)
         } else {
-            res
+            ffi_ty
         };
 
         if self.is_reference && self.variant != TypeVariant::Str {

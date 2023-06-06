@@ -90,7 +90,7 @@ fn wrap_type(module_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
             if ty.is_mutable {
                 // Mutable is always with reference
                 quote! { &mut #ty_ident }
-            } else if TypeInfo::is_registered(&ty_name) && !ty.is_reference {
+            } else if TypeInfo::is_copyable(&ty_name) && !ty.is_reference {
                 quote! { #ty_ident }
             } else if ret {
                 // We always send unregistered return type boxed
@@ -158,7 +158,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 static_string!(#accessor_token(#(#param_tokens),*))
             },
             TypeVariant::Custom(custom_ty)
-                if ty.is_self() || !TypeInfo::is_registered(&custom_ty) =>
+                if ty.is_self() || !TypeInfo::is_copyable(&custom_ty) =>
             {
                 quote! {
                     #accessor_token(#(#param_tokens),*).into()
