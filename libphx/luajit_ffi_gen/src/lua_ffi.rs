@@ -239,6 +239,13 @@ fn write_metatype(
             "managed", max_method_name_len
         )
         .unwrap();
+
+        writeln!(
+            file,
+            "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_Free,",
+            "free", max_method_name_len
+        )
+        .unwrap();
     }
 
     impl_info
@@ -248,8 +255,9 @@ fn write_metatype(
         .for_each(|method| {
             writeln!(
                 file,
-                "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
+                "{IDENT}{IDENT}{IDENT}{:<2$} = libphx.{module_name}_{},",
                 method.as_ffi_var(),
+                method.as_ffi_name(),
                 max_method_name_len
             )
             .unwrap();
