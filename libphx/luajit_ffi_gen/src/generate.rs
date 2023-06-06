@@ -19,10 +19,11 @@ pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
             let free_method_token = if attr_args.is_managed() {
                 let module_name = attr_args.name().unwrap_or(impl_info.name.clone());
                 let free_method_ident = format_ident!("{module_name}_Free");
+                let module_ident = format_ident!("{}", impl_info.name);
 
                 quote! {
                     #[no_mangle]
-                    pub extern "C" fn #free_method_ident(_: Box<Window>) {}
+                    pub extern "C" fn #free_method_ident(_: Box<#module_ident>) {}
                 }
             } else {
                 quote! {}

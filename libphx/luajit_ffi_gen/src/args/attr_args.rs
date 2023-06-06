@@ -9,6 +9,8 @@ pub struct AttrArgs {
     name: Option<String>,
     meta: bool,
     managed: bool,
+    clone: bool,
+
     no_lua_ffi: bool,
 }
 
@@ -28,6 +30,11 @@ impl AttrArgs {
     /// <module-name>_Free C Api function and Lua FFI 'managed' binding will be generated.
     pub fn is_managed(&self) -> bool {
         self.managed
+    }
+
+    /// If true then adds `__call` method to Global Symbol Table section and `clone` method to metattype section.
+    pub fn is_clone(&self) -> bool {
+        self.clone
     }
 
     /// TEST ONLY!
@@ -74,6 +81,16 @@ impl Parse for AttrArgs {
                         ));
                     }
                 }
+                "clone" => {
+                    if let Lit::Bool(val) = &param.value.lit {
+                        res.clone = val.value();
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'clone' attribute parameter as bool literal",
+                        ));
+                    }
+                }
                 "no_lua_ffi" => {
                     if let Lit::Bool(val) = &param.value.lit {
                         res.no_lua_ffi = val.value();
@@ -88,7 +105,7 @@ impl Parse for AttrArgs {
                     return Err(Error::new(
                         param.name.span(),
                         // NOTE: do not show no_lua_ffi since it is test only
-                        format!("expected attribute parameter value: name, meta, managed"),
+                        format!("expected attribute parameter value: name, meta, managed, clone"),
                     ));
                 }
             }

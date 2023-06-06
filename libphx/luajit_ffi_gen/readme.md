@@ -44,7 +44,8 @@ In all other cases types are following these rules:
 
 - **name** [string] - set user defined name of the module
 - **meta** [bool] - generate Metatype section in the Lua FFI file
-- **managed** [bool] - generate `Free` C API function and add `managed` and `free` metatype bindings
+- **managed** [bool] - generate **`**Free**`** C API function and add **`**managed**`** and **`**free**`** metatype bindings
+- **clone** [bool] - adds **`**__call**`** method to Global Symbol Table section and **`**clone**`** method to metattype section
 - **no_lua_ffi** [bool] - this is used in tests only to disable Lua FFI file generation
 
 ### bind

@@ -74,6 +74,16 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
 
     writeln!(&mut file, "{IDENT}}}\n").unwrap();
 
+    if attr_args.with_meta() && attr_args.is_clone() {
+        writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
+        writeln!(
+            &mut file,
+            "{IDENT}{IDENT}__call  = function (t, ...) return {module_name}_t(...) end,"
+        )
+        .unwrap();
+        writeln!(&mut file, "{IDENT}}}\n").unwrap();
+    }
+
     writeln!(
         &mut file,
         "{IDENT}if onDef_{module_name} then onDef_{module_name}({module_name}, mt) end"
@@ -88,10 +98,23 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
 
     // Metatype for class instances
     if attr_args.with_meta() {
-        // TODO:
         writeln!(&mut file, "do -- Metatype for class instances").unwrap();
         writeln!(&mut file, "{IDENT}local t  = ffi.typeof('{module_name}')").unwrap();
         writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
+
+        if let Some(method) = impl_info
+            .methods
+            .iter()
+            .find(|method| method.bind_args.is_to_string())
+        {
+            writeln!(
+                &mut file,
+                "{IDENT}{IDENT}__tostring = function (self) return ffi.string(libphx.{module_name}_{}(self)) end,",
+                method.as_ffi_name()
+            )
+            .unwrap();
+        }
+
         writeln!(&mut file, "{IDENT}{IDENT}__index = {{").unwrap();
 
         write_metatype(
@@ -99,7 +122,7 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
             &module_name,
             impl_info,
             max_method_name_len,
-            attr_args.is_managed(),
+            attr_args,
         );
 
         writeln!(&mut file, "{IDENT}{IDENT}}},").unwrap();
@@ -228,11 +251,28 @@ fn write_metatype(
     module_name: &str,
     impl_info: &ImplInfo,
     max_method_name_len: usize,
-    is_managed: bool,
+    attr_args: &AttrArgs,
 ) {
-    let max_method_name_len = std::cmp::max(max_method_name_len, "managed".len());
+    let max_method_name_len = if attr_args.is_managed() {
+        std::cmp::max(max_method_name_len, "managed".len())
+    } else if attr_args.is_clone() {
+        std::cmp::max(max_method_name_len, "clone".len())
+    } else {
+        max_method_name_len
+    };
 
-    if is_managed {
+    // Add clone method if requested
+    if attr_args.is_clone() {
+        writeln!(
+            file,
+            "{IDENT}{IDENT}{IDENT}{0:<1$} = function (x) return {module_name}_t(x) end,",
+            "clone", max_method_name_len
+        )
+        .unwrap();
+    }
+
+    // Add managed method if requested
+    if attr_args.is_managed() {
         writeln!(
             file,
             "{IDENT}{IDENT}{IDENT}{0:<1$} = function (self) return ffi.gc(self, libphx.{module_name}_Free) end,",
