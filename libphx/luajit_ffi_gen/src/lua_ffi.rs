@@ -1,13 +1,14 @@
 use std::{env::VarError, fs::File, io::Write, path::PathBuf};
 
-use crate::impl_info::ImplInfo;
+use crate::{args::AttrArgs, impl_info::ImplInfo};
 
 const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
 const LUAJIT_FFI_GEN_DIR: &str = "../script/ffi";
 // TODO: change to 4 spaces after Lua code refactoring
 const IDENT: &str = "  ";
 
-pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo, with_meta: bool) {
+pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
+    let module_name = attr_args.name().unwrap_or(impl_info.name.clone());
     let luajit_ffi_gen_dir = match std::env::var(LUAJIT_FFI_GEN_DIR_ENV) {
         Ok(var) => {
             if !var.is_empty() {
@@ -53,7 +54,8 @@ pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo, with_meta: bool) {
     writeln!(&mut file, "do -- C Definitions").unwrap();
     writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
 
-    let max_method_name_len = write_c_defs(&mut file, module_name, impl_info);
+    let max_method_name_len =
+        write_c_defs(&mut file, &module_name, impl_info, attr_args.is_managed());
 
     writeln!(&mut file, "{IDENT}]]").unwrap();
     writeln!(&mut file, "end\n").unwrap();
@@ -62,7 +64,13 @@ pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo, with_meta: bool) {
     writeln!(&mut file, "do -- Global Symbol Table").unwrap();
     writeln!(&mut file, "{IDENT}{module_name} = {{").unwrap();
 
-    write_global_sym_table(&mut file, module_name, impl_info, max_method_name_len);
+    write_global_sym_table(
+        &mut file,
+        &module_name,
+        impl_info,
+        max_method_name_len,
+        attr_args.is_managed(),
+    );
 
     writeln!(&mut file, "{IDENT}}}\n").unwrap();
 
@@ -79,14 +87,22 @@ pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo, with_meta: bool) {
     writeln!(&mut file, "end\n").unwrap();
 
     // Metatype for class instances
-    if with_meta {
+    if attr_args.with_meta() {
         // TODO:
         writeln!(&mut file, "do -- Metatype for class instances").unwrap();
         writeln!(&mut file, "{IDENT}local t  = ffi.typeof('{module_name}')").unwrap();
         writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
+        writeln!(&mut file, "{IDENT}{IDENT}__index = {{").unwrap();
 
-        // write_global_sym_table(&mut file, module_name, impl_info, max_method_name_len);
+        write_metatype(
+            &mut file,
+            &module_name,
+            impl_info,
+            max_method_name_len,
+            attr_args.is_managed(),
+        );
 
+        writeln!(&mut file, "{IDENT}{IDENT}}},").unwrap();
         writeln!(&mut file, "{IDENT}}}\n").unwrap();
 
         writeln!(
@@ -101,9 +117,14 @@ pub fn generate_ffi(module_name: &str, impl_info: &ImplInfo, with_meta: bool) {
     writeln!(&mut file, "return {module_name}").unwrap();
 }
 
-fn write_c_defs(file: &mut File, module_name: &str, impl_info: &ImplInfo) -> usize {
-    let mut max_method_name_len = 0;
-    let mut max_ret_len = 0;
+fn write_c_defs(
+    file: &mut File,
+    module_name: &str,
+    impl_info: &ImplInfo,
+    is_managed: bool,
+) -> usize {
+    let mut max_method_name_len = if is_managed { "void".len() } else { 0 };
+    let mut max_ret_len = if is_managed { "Free".len() } else { 0 };
 
     impl_info.methods.iter().for_each(|method| {
         let len = method
@@ -122,6 +143,15 @@ fn write_c_defs(file: &mut File, module_name: &str, impl_info: &ImplInfo) -> usi
         max_ret_len = std::cmp::max(max_ret_len, len);
         max_method_name_len = std::cmp::max(max_method_name_len, method.as_ffi_name().len());
     });
+
+    if is_managed {
+        writeln!(
+            file,
+            "{IDENT}{IDENT}{:<2$} {module_name}_{:<3$} ({module_name}*);",
+            "void", "Free", max_ret_len, max_method_name_len
+        )
+        .unwrap();
+    }
 
     impl_info.methods.iter().for_each(|method| {
         let method_name = method.as_ffi_name();
@@ -171,7 +201,17 @@ fn write_global_sym_table(
     module_name: &str,
     impl_info: &ImplInfo,
     max_method_name_len: usize,
+    is_managed: bool,
 ) {
+    if is_managed {
+        writeln!(
+            file,
+            "{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
+            "Free", max_method_name_len
+        )
+        .unwrap();
+    }
+
     impl_info.methods.iter().for_each(|method| {
         writeln!(
             file,
@@ -181,4 +221,37 @@ fn write_global_sym_table(
         )
         .unwrap();
     });
+}
+
+fn write_metatype(
+    file: &mut File,
+    module_name: &str,
+    impl_info: &ImplInfo,
+    max_method_name_len: usize,
+    is_managed: bool,
+) {
+    let max_method_name_len = std::cmp::max(max_method_name_len, "managed".len());
+
+    if is_managed {
+        writeln!(
+            file,
+            "{IDENT}{IDENT}{IDENT}{0:<1$} = function (self) return ffi.gc(self, libphx.{module_name}_Free) end,",
+            "managed", max_method_name_len
+        )
+        .unwrap();
+    }
+
+    impl_info
+        .methods
+        .iter()
+        .filter(|method| !method.bind_args.is_constructor())
+        .for_each(|method| {
+            writeln!(
+                file,
+                "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
+                method.as_ffi_var(),
+                max_method_name_len
+            )
+            .unwrap();
+        });
 }

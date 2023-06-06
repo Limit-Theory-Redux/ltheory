@@ -1,6 +1,6 @@
 # Attribute macro for LuaJIT FFI binding generation
 
-To expand attribute macro to see i.e. window.rs expansion, run:
+To expand attribute macro and see i.e. window.rs expansion, run:
 ```bash
 cargo expand -p phx window
 ```

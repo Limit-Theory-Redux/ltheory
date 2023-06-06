@@ -15,7 +15,21 @@ impl MethodInfo {
     pub fn as_ffi_name(&self) -> String {
         self.bind_args
             .name()
-            .unwrap_or_else(|| as_camel_case(&self.name))
+            .unwrap_or_else(|| as_camel_case(&self.name, true))
+    }
+
+    pub fn as_ffi_var(&self) -> String {
+        self.bind_args
+            .name()
+            .map(|name| {
+                if let Some(c) = name.get(..1) {
+                    // First character of the FFI variable should be lowercase
+                    format!("{}{}", c.to_lowercase(), name.get(1..).unwrap_or(""))
+                } else {
+                    name
+                }
+            })
+            .unwrap_or_else(|| as_camel_case(&self.name, false))
     }
 }
 
@@ -32,14 +46,7 @@ pub struct ParamInfo {
 
 impl ParamInfo {
     pub fn as_ffi_name(&self) -> String {
-        let res = as_camel_case(&self.name);
-
-        if let Some(c) = res.get(..1) {
-            // First character of the FFI variable should be lowercase
-            format!("{}{}", c.to_lowercase(), res.get(1..).unwrap_or(""))
-        } else {
-            res
-        }
+        as_camel_case(&self.name, false)
     }
 }
 

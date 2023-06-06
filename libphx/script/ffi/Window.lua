@@ -5,6 +5,7 @@ local Window
 
 do -- C Definitions
   ffi.cdef [[
+    void    Window_Free             (Window*);
     Window* Window_Create           (cstr title, WindowPos x, WindowPos y, int sx, int sy, WindowMode mode);
     void    Window_BeginDraw        (Window*);
     void    Window_EndDraw          (Window*);
@@ -27,6 +28,7 @@ end
 
 do -- Global Symbol Table
   Window = {
+    Free             = libphx.Window_Free,
     Create           = libphx.Window_Create,
     BeginDraw        = libphx.Window_BeginDraw,
     EndDraw          = libphx.Window_EndDraw,
@@ -53,6 +55,25 @@ end
 do -- Metatype for class instances
   local t  = ffi.typeof('Window')
   local mt = {
+    __index = {
+      managed          = function (self) return ffi.gc(self, libphx.Window_Free) end,
+      beginDraw        = libphx.Window_beginDraw,
+      endDraw          = libphx.Window_endDraw,
+      getPosition      = libphx.Window_getPosition,
+      getSize          = libphx.Window_getSize,
+      getTitle         = libphx.Window_getTitle,
+      setFullscreen    = libphx.Window_setFullscreen,
+      setPosition      = libphx.Window_setPosition,
+      setSize          = libphx.Window_setSize,
+      setTitle         = libphx.Window_setTitle,
+      setVsync         = libphx.Window_setVsync,
+      setCursor        = libphx.Window_setCursor,
+      setMousePosition = libphx.Window_setMousePosition,
+      setWindowGrab    = libphx.Window_setWindowGrab,
+      toggleFullscreen = libphx.Window_toggleFullscreen,
+      hide             = libphx.Window_hide,
+      show             = libphx.Window_show,
+    },
   }
 
   if onDef_Window_t then onDef_Window_t(t, mt) end

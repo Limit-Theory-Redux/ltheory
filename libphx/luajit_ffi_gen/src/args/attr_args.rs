@@ -9,19 +9,31 @@ pub struct AttrArgs {
     name: Option<String>,
     no_lua_ffi: bool,
     meta: bool,
+    managed: bool,
 }
 
 impl AttrArgs {
+    /// If exists returns the name of the module used in C Api and Lua FFI,
+    /// otherwise Rust type name is used.
     pub fn name(&self) -> Option<String> {
         self.name.clone()
     }
 
-    pub fn no_lua_ffi(&self) -> bool {
+    /// TEST ONLY!
+    /// If true then Lua FFI file won't be generated
+    pub fn is_no_lua_ffi(&self) -> bool {
         self.no_lua_ffi
     }
 
-    pub fn meta(&self) -> bool {
+    /// Generate metatype section in Lua FFI file
+    pub fn with_meta(&self) -> bool {
         self.meta
+    }
+
+    /// If true then Lua will be responsible for cleaning object memory.
+    /// <module-name>_Free C Api function and Lua FFI 'managed' binding will be generated.
+    pub fn is_managed(&self) -> bool {
+        self.managed
     }
 }
 
@@ -62,11 +74,21 @@ impl Parse for AttrArgs {
                         ));
                     }
                 }
+                "managed" => {
+                    if let Lit::Bool(val) = &param.value.lit {
+                        res.managed = val.value();
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'managed' attribute parameter as bool literal",
+                        ));
+                    }
+                }
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
                         // NOTE: do not show no_lua_ffi since it is test only
-                        format!("expected attribute parameter value: name, meta"),
+                        format!("expected attribute parameter value: name, meta, managed"),
                     ));
                 }
             }

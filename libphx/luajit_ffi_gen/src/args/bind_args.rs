@@ -6,19 +6,19 @@ use syn::{Lit, Token};
 use super::arg::Arg;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-pub enum BindMethodType {
+pub enum BindMethodRole {
     Constructor,
     ToString,
 }
 
-impl BindMethodType {
+impl BindMethodRole {
     fn try_from(value: String, span: Span) -> std::result::Result<Self, Error> {
         match value.as_str() {
             "constructor" => Ok(Self::Constructor),
             "to_string" => Ok(Self::ToString),
             _ => Err(Error::new(
                 span,
-                "expected 'type' bind attribute parameter value: constructor, to_string",
+                "expected 'role' bind attribute parameter value: constructor, to_string",
             )),
         }
     }
@@ -27,22 +27,28 @@ impl BindMethodType {
 #[derive(Default)]
 pub struct BindArgs {
     name: Option<String>,
-    bind_method_type: Option<BindMethodType>,
+    bind_method_role: Option<BindMethodRole>,
 }
 
 impl BindArgs {
+    /// If exists returns the name of the function used in C Api and Lua FFI,
+    /// otherwise Rust method name is used.
     pub fn name(&self) -> Option<String> {
         self.name.clone()
     }
 
+    /// If true then the function constructs an object.
+    /// It won't be added to the metatype section of the Lua FFI file.
     pub fn is_constructor(&self) -> bool {
-        let Some(ty) = self.bind_method_type else { return false; };
-        ty == BindMethodType::Constructor
+        let Some(ty) = self.bind_method_role else { return false; };
+        ty == BindMethodRole::Constructor
     }
 
+    /// If true then the function return string representation of the object.
+    /// 'tostring' binding will be added to the metatype sectionof the Lua FFI file.
     pub fn is_to_string(&self) -> bool {
-        let Some(ty) = self.bind_method_type else { return false; };
-        ty == BindMethodType::ToString
+        let Some(ty) = self.bind_method_role else { return false; };
+        ty == BindMethodRole::ToString
     }
 }
 
@@ -63,10 +69,10 @@ impl Parse for BindArgs {
                         ));
                     }
                 }
-                "type" => {
+                "role" => {
                     if let Lit::Str(val) = &param.value.lit {
-                        let ty = BindMethodType::try_from(val.value(), param.value.span())?;
-                        res.bind_method_type = Some(ty);
+                        let ty = BindMethodRole::try_from(val.value(), param.value.span())?;
+                        res.bind_method_role = Some(ty);
                     } else {
                         return Err(Error::new(
                             param.value.span(),
@@ -77,7 +83,7 @@ impl Parse for BindArgs {
                 _ => {
                     return Err(Error::new(
                         param.value.span(),
-                        format!("expected bind attribute parameter: name, type"),
+                        format!("expected bind attribute parameter: name, role"),
                     ))
                 }
             }

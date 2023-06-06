@@ -11,15 +11,25 @@ pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
     match item {
         Item::Impl(impl_info) => {
             let source = &impl_info.source;
-            let module_name = attr_args.name().unwrap_or(impl_info.name.clone());
             let method_tokens: Vec<_> = impl_info
                 .methods
                 .iter()
-                .map(|method| wrap_methods(&impl_info.name, &module_name, method))
+                .map(|method| wrap_methods(&attr_args, &impl_info.name, method))
                 .collect();
+            let free_method_token = if attr_args.is_managed() {
+                let module_name = attr_args.name().unwrap_or(impl_info.name.clone());
+                let free_method_ident = format_ident!("{module_name}_Free");
 
-            if !attr_args.no_lua_ffi() {
-                generate_ffi(&module_name, &impl_info, attr_args.meta());
+                quote! {
+                    #[no_mangle]
+                    pub extern "C" fn #free_method_ident(_: Box<Window>) {}
+                }
+            } else {
+                quote! {}
+            };
+
+            if !attr_args.is_no_lua_ffi() {
+                generate_ffi(&attr_args, &impl_info);
             }
 
             // let methods_str = format!("{:#?}", method_tokens);
@@ -28,13 +38,15 @@ pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
             quote! {
                 #source
 
+                #free_method_token
                 #(#method_tokens)*
             }
         }
     }
 }
 
-fn wrap_methods(self_name: &str, module_name: &str, method: &MethodInfo) -> TokenStream {
+fn wrap_methods(attr_args: &AttrArgs, self_name: &str, method: &MethodInfo) -> TokenStream {
+    let module_name = attr_args.name().unwrap_or(self_name.into());
     let method_name = method.as_ffi_name();
     let func_name = format!("{self_name}_{}", method_name);
     let func_ident = format_ident!("{func_name}");
@@ -57,7 +69,7 @@ fn wrap_methods(self_name: &str, module_name: &str, method: &MethodInfo) -> Toke
         .collect();
 
     let ret_token = if let Some(ty) = &method.ret {
-        let ty_token = wrap_type(module_name, &ty, true);
+        let ty_token = wrap_type(&module_name, &ty, true);
 
         quote! { -> #ty_token }
     } else {

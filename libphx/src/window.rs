@@ -29,12 +29,9 @@ impl Drop for Window {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn Window_Free(_: Option<Box<Window>>) {}
-
-#[luajit_ffi_gen::luajit_ffi(meta = true)]
+#[luajit_ffi_gen::luajit_ffi(meta = true, managed = true)]
 impl Window {
-    #[bind(name = "Create")]
+    #[bind(name = "Create", role = "constructor")]
     pub fn new(
         title: &str,
         x: WindowPos,
