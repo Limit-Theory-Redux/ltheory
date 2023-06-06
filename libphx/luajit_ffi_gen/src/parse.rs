@@ -1,16 +1,14 @@
-use proc_macro2::Span;
 use quote::quote;
 use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::spanned::Spanned;
 use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, Path, ReturnType, Token, Type};
 
-use crate::args::Args;
+use crate::args::BindArgs;
 use crate::impl_info::ImplInfo;
 use crate::method_info::{MethodInfo, ParamInfo, SelfType, TypeInfo, TypeVariant};
 
 pub enum Item {
     Impl(ImplInfo),
-    // TODO: implement for structs and enums
 }
 
 impl Parse for Item {
@@ -69,7 +67,7 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
             let (self_param, params) = parse_params(fn_item.sig.inputs.iter())?;
 
             methods.push(MethodInfo {
-                bind_args: get_bind_args(fn_item.span(), &mut fn_item.attrs)?,
+                bind_args: get_bind_args(&mut fn_item.attrs)?,
                 name: format!("{}", fn_item.sig.ident),
                 self_param,
                 params,
@@ -88,7 +86,7 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
 /// #[bind(name = "lua_function_name")]
 /// fm my_cool_method(...) {...}
 /// ```
-fn get_bind_args(span: Span, attrs: &mut Vec<Attribute>) -> Result<Args> {
+fn get_bind_args(attrs: &mut Vec<Attribute>) -> Result<BindArgs> {
     let mut res = None;
 
     for (i, attr) in attrs.iter().enumerate() {
@@ -99,9 +97,7 @@ fn get_bind_args(span: Span, attrs: &mut Vec<Attribute>) -> Result<Args> {
         }
 
         let meta_list = attr.meta.require_list()?;
-        let args = meta_list.parse_args_with(Args::parse)?;
-
-        args.validate(&["name"])?;
+        let args = meta_list.parse_args_with(BindArgs::parse)?;
 
         res = Some((i, args));
 
@@ -114,7 +110,7 @@ fn get_bind_args(span: Span, attrs: &mut Vec<Attribute>) -> Result<Args> {
 
         Ok(args)
     } else {
-        Ok(Args::empty(span))
+        Ok(BindArgs::default())
     }
 }
 

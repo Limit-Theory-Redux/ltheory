@@ -14,7 +14,7 @@ pub struct MyStruct {
 }
 
 // NOTE: remove 'no_lua_ffi' parameter to see generated Lua file. Do not commit it!!!
-#[luajit_ffi(name = "My_Struct", no_lua_ffi = "")]
+#[luajit_ffi(name = "My_Struct", no_lua_ffi = true)]
 impl MyStruct {
     pub fn func1(&self) {}
     pub fn func2(&mut self) {}

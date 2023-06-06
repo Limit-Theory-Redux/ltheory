@@ -2,24 +2,24 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
-use crate::args::*;
+use crate::args::AttrArgs;
 use crate::lua_ffi::generate_ffi;
 use crate::method_info::*;
 use crate::parse::*;
 
-pub fn generate(item: Item, attr_args: Args) -> TokenStream {
+pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
     match item {
         Item::Impl(impl_info) => {
             let source = &impl_info.source;
-            let module_name = attr_args.get("name").unwrap_or(impl_info.name.clone());
+            let module_name = attr_args.name().unwrap_or(impl_info.name.clone());
             let method_tokens: Vec<_> = impl_info
                 .methods
                 .iter()
                 .map(|method| wrap_methods(&impl_info.name, &module_name, method))
                 .collect();
 
-            if attr_args.get("no_lua_ffi").is_none() {
-                generate_ffi(&module_name, &impl_info, attr_args.get("meta").is_some());
+            if !attr_args.no_lua_ffi() {
+                generate_ffi(&module_name, &impl_info, attr_args.meta());
             }
 
             // let methods_str = format!("{:#?}", method_tokens);

@@ -1,10 +1,10 @@
-use crate::{args::Args, util::as_camel_case};
+use crate::{args::BindArgs, util::as_camel_case};
 
 const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 1] = [("IVec2", "Vec2i")];
 const COPY_TYPES: [&str; 3] = ["IVec2", "WindowPos", "WindowMode"];
 
 pub struct MethodInfo {
-    pub bind_args: Args,
+    pub bind_args: BindArgs,
     pub name: String,
     pub self_param: Option<SelfType>,
     pub params: Vec<ParamInfo>,
@@ -14,7 +14,7 @@ pub struct MethodInfo {
 impl MethodInfo {
     pub fn as_ffi_name(&self) -> String {
         self.bind_args
-            .get("name")
+            .name()
             .unwrap_or_else(|| as_camel_case(&self.name))
     }
 }

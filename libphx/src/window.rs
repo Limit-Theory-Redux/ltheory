@@ -32,7 +32,7 @@ impl Drop for Window {
 #[no_mangle]
 pub extern "C" fn Window_Free(_: Option<Box<Window>>) {}
 
-#[luajit_ffi_gen::luajit_ffi(meta = "")]
+#[luajit_ffi_gen::luajit_ffi(meta = true)]
 impl Window {
     #[bind(name = "Create")]
     pub fn new(
