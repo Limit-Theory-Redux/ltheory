@@ -27,7 +27,7 @@ impl BindMethodRole {
 #[derive(Default)]
 pub struct BindArgs {
     name: Option<String>,
-    bind_method_role: Option<BindMethodRole>,
+    role: Option<BindMethodRole>,
 }
 
 impl BindArgs {
@@ -40,14 +40,14 @@ impl BindArgs {
     /// If true then the function constructs an object.
     /// It won't be added to the metatype section of the Lua FFI file.
     pub fn is_constructor(&self) -> bool {
-        let Some(ty) = self.bind_method_role else { return false; };
+        let Some(ty) = self.role else { return false; };
         ty == BindMethodRole::Constructor
     }
 
     /// If true then the function return string representation of the object.
     /// 'tostring' binding will be added to the metatype sectionof the Lua FFI file.
     pub fn is_to_string(&self) -> bool {
-        let Some(ty) = self.bind_method_role else { return false; };
+        let Some(ty) = self.role else { return false; };
         ty == BindMethodRole::ToString
     }
 }
@@ -72,7 +72,7 @@ impl Parse for BindArgs {
                 "role" => {
                     if let Lit::Str(val) = &param.value.lit {
                         let ty = BindMethodRole::try_from(val.value(), param.value.span())?;
-                        res.bind_method_role = Some(ty);
+                        res.role = Some(ty);
                     } else {
                         return Err(Error::new(
                             param.value.span(),

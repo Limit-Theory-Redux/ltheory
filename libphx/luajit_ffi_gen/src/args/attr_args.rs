@@ -7,9 +7,9 @@ use super::arg::Arg;
 #[derive(Default)]
 pub struct AttrArgs {
     name: Option<String>,
-    no_lua_ffi: bool,
     meta: bool,
     managed: bool,
+    no_lua_ffi: bool,
 }
 
 impl AttrArgs {
@@ -17,12 +17,6 @@ impl AttrArgs {
     /// otherwise Rust type name is used.
     pub fn name(&self) -> Option<String> {
         self.name.clone()
-    }
-
-    /// TEST ONLY!
-    /// If true then Lua FFI file won't be generated
-    pub fn is_no_lua_ffi(&self) -> bool {
-        self.no_lua_ffi
     }
 
     /// Generate metatype section in Lua FFI file
@@ -34,6 +28,12 @@ impl AttrArgs {
     /// <module-name>_Free C Api function and Lua FFI 'managed' binding will be generated.
     pub fn is_managed(&self) -> bool {
         self.managed
+    }
+
+    /// TEST ONLY!
+    /// If true then Lua FFI file won't be generated
+    pub fn is_no_lua_ffi(&self) -> bool {
+        self.no_lua_ffi
     }
 }
 
@@ -54,16 +54,6 @@ impl Parse for AttrArgs {
                         ));
                     }
                 }
-                "no_lua_ffi" => {
-                    if let Lit::Bool(val) = &param.value.lit {
-                        res.no_lua_ffi = val.value();
-                    } else {
-                        return Err(Error::new(
-                            param.value.span(),
-                            "expected 'no_lua_ffi' attribute parameter as bool literal",
-                        ));
-                    }
-                }
                 "meta" => {
                     if let Lit::Bool(val) = &param.value.lit {
                         res.meta = val.value();
@@ -81,6 +71,16 @@ impl Parse for AttrArgs {
                         return Err(Error::new(
                             param.value.span(),
                             "expected 'managed' attribute parameter as bool literal",
+                        ));
+                    }
+                }
+                "no_lua_ffi" => {
+                    if let Lit::Bool(val) = &param.value.lit {
+                        res.no_lua_ffi = val.value();
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'no_lua_ffi' attribute parameter as bool literal",
                         ));
                     }
                 }
