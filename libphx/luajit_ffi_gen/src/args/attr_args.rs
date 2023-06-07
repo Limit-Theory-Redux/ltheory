@@ -4,6 +4,7 @@ use syn::{Lit, Token};
 
 use super::arg::Arg;
 
+/// Arguments of the `luajit_ffi` attribute.
 #[derive(Default)]
 pub struct AttrArgs {
     name: Option<String>,
@@ -32,7 +33,7 @@ impl AttrArgs {
         self.managed
     }
 
-    /// If true then adds `__call` method to Global Symbol Table section and `clone` method to metattype section.
+    /// If true then adds `__call` method to Global Symbol Table section and `clone` method to metatype section.
     pub fn is_clone(&self) -> bool {
         self.clone
     }

@@ -7,6 +7,7 @@ use crate::args::BindArgs;
 use crate::impl_info::ImplInfo;
 use crate::method_info::{MethodInfo, ParamInfo, SelfType, TypeInfo, TypeVariant};
 
+/// Information about parsed target: impl block
 pub enum Item {
     Impl(ImplInfo),
 }

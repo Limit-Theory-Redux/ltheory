@@ -24,6 +24,7 @@ impl BindMethodRole {
     }
 }
 
+/// Arguments of the `bind` attribute.
 #[derive(Default)]
 pub struct BindArgs {
     name: Option<String>,
@@ -82,7 +83,7 @@ impl Parse for BindArgs {
                 }
                 _ => {
                     return Err(Error::new(
-                        param.value.span(),
+                        param.name.span(),
                         format!("expected bind attribute parameter: name, role"),
                     ))
                 }

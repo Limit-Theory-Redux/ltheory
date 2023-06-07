@@ -7,15 +7,19 @@ use crate::lua_ffi::generate_ffi;
 use crate::method_info::*;
 use crate::parse::*;
 
+/// Generate C API and Lua FFI.
 pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
     match item {
         Item::Impl(impl_info) => {
+            // Original impl source code (with removed `bind` attributes)
             let source = &impl_info.source;
+            // C API wrapper functions
             let method_tokens: Vec<_> = impl_info
                 .methods
                 .iter()
                 .map(|method| wrap_methods(&attr_args, &impl_info.name, method))
                 .collect();
+            // Additional Free C API wrapper if requested
             let free_method_token = if attr_args.is_managed() {
                 let module_name = attr_args.name().unwrap_or(impl_info.name.clone());
                 let free_method_ident = format_ident!("{module_name}_Free");
@@ -32,9 +36,6 @@ pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
             if !attr_args.is_no_lua_ffi() {
                 generate_ffi(&attr_args, &impl_info);
             }
-
-            // let methods_str = format!("{:#?}", method_tokens);
-            // std::fs::write("dump.txt", methods_str.as_bytes()).unwrap();
 
             quote! {
                 #source

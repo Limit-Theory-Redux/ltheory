@@ -3,11 +3,17 @@ use crate::{args::BindArgs, util::as_camel_case};
 const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 1] = [("IVec2", "Vec2i")];
 const COPY_TYPES: [&str; 3] = ["IVec2", "WindowPos", "WindowMode"];
 
+/// `Impl` method information
 pub struct MethodInfo {
+    /// `#[bind]` attribute arguments
     pub bind_args: BindArgs,
+    /// Method name
     pub name: String,
+    /// Information about `self` method parameter if present
     pub self_param: Option<SelfType>,
+    /// Other method parameters info
     pub params: Vec<ParamInfo>,
+    /// Return type info if present
     pub ret: Option<TypeInfo>,
 }
 

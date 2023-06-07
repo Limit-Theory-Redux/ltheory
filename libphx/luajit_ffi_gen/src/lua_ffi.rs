@@ -7,6 +7,7 @@ const LUAJIT_FFI_GEN_DIR: &str = "../script/ffi";
 // TODO: change to 4 spaces after Lua code refactoring
 const IDENT: &str = "  ";
 
+/// Generate Lua FFI file
 pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
     let module_name = attr_args.name().unwrap_or(impl_info.name.clone());
     let luajit_ffi_gen_dir = match std::env::var(LUAJIT_FFI_GEN_DIR_ENV) {

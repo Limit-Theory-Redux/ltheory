@@ -4,6 +4,7 @@ use syn::{
     Error, ExprLit, Result, Token,
 };
 
+/// Parse `key = value` pairs of the attribute arguments.
 pub struct Arg {
     pub name: String,
     pub value: ExprLit,
