@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Modifier
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     cstr     Modifier_ToString (Modifier);
     Modifier Modifier_Null;
     Modifier Modifier_Alt;
@@ -14,16 +14,16 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Modifier = {
-    Null  = libphx.Modifier_Null,
-    Alt   = libphx.Modifier_Alt,
-    Ctrl  = libphx.Modifier_Ctrl,
-    Shift = libphx.Modifier_Shift,
-    ToString = libphx.Modifier_ToString,
-  }
+    Modifier = {
+        Null     = libphx.Modifier_Null,
+        Alt      = libphx.Modifier_Alt,
+        Ctrl     = libphx.Modifier_Ctrl,
+        Shift    = libphx.Modifier_Shift,
+        ToString = libphx.Modifier_ToString,
+    }
 
-  if onDef_Modifier then onDef_Modifier(Modifier, mt) end
-  Modifier = setmetatable(Modifier, mt)
+    if onDef_Modifier then onDef_Modifier(Modifier, mt) end
+    Modifier = setmetatable(Modifier, mt)
 end
 
 return Modifier

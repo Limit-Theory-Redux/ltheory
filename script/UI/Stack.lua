@@ -6,8 +6,8 @@ setmetatable(Stack, Container)
 
 Stack.name = 'Stack'
 
-function Stack.Create ()
-  return setmetatable({ children = List() }, Stack)
+function Stack.Create()
+    return setmetatable({ children = List() }, Stack)
 end
 
 return Stack

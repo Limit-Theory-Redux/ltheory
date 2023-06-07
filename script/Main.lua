@@ -5,49 +5,49 @@ package.path = package.path .. ';./script/?.ffi.lua'
 
 require('Init')
 
-Core.Call(function ()
-  local app = __app__ or 'LTheoryRedux'
-  GlobalRestrict.On()
+Core.Call(function()
+    local app = __app__ or 'LTheoryRedux'
+    GlobalRestrict.On()
 
-  dofile('./script/Config/App.lua')
+    dofile('./script/Config/App.lua')
 
-  -- Load Enums
-  for _, fname in ipairs(io.listdirex(Config.paths.enums)) do
-    dofile(Config.paths.enums .. fname)
-  end
+    -- Load Enums
+    for _, fname in ipairs(io.listdirex(Config.paths.enums)) do
+        dofile(Config.paths.enums .. fname)
+    end
 
-  -- Load Types
-  for _, fname in ipairs(io.listdirex(Config.paths.types)) do
-    dofile(Config.paths.types .. fname)
-  end
+    -- Load Types
+    for _, fname in ipairs(io.listdirex(Config.paths.types)) do
+        dofile(Config.paths.types .. fname)
+    end
 
-  Namespace.Load('UI')
-  Namespace.LoadInline('Systems')
-  Namespace.LoadInline('GameObjects')
+    Namespace.Load('UI')
+    Namespace.LoadInline('Systems')
+    Namespace.LoadInline('GameObjects')
 
-  jit.opt.start(
-    format('maxtrace=%d',   Config.jit.tune.maxTrace),
-    format('maxrecord=%d',  Config.jit.tune.maxRecord),
-    format('maxirconst=%d', Config.jit.tune.maxConst),
-    format('maxside=%d',    Config.jit.tune.maxSide),
-    format('maxsnap=%d',    Config.jit.tune.maxSnap),
-    format('hotloop=%d',    Config.jit.tune.hotLoop),
-    format('hotexit=%d',    Config.jit.tune.hotExit),
-    format('tryside=%d',    Config.jit.tune.trySide),
-    format('instunroll=%d', Config.jit.tune.instUnroll),
-    format('loopunroll=%d', Config.jit.tune.loopUnroll),
-    format('callunroll=%d', Config.jit.tune.callUnroll),
-    format('recunroll=%d',  Config.jit.tune.recUnroll),
-    format('sizemcode=%d',  Config.jit.tune.sizeMCode),
-    format('maxmcode=%d',   Config.jit.tune.maxMCode)
-  )
+    jit.opt.start(
+        format('maxtrace=%d', Config.jit.tune.maxTrace),
+        format('maxrecord=%d', Config.jit.tune.maxRecord),
+        format('maxirconst=%d', Config.jit.tune.maxConst),
+        format('maxside=%d', Config.jit.tune.maxSide),
+        format('maxsnap=%d', Config.jit.tune.maxSnap),
+        format('hotloop=%d', Config.jit.tune.hotLoop),
+        format('hotexit=%d', Config.jit.tune.hotExit),
+        format('tryside=%d', Config.jit.tune.trySide),
+        format('instunroll=%d', Config.jit.tune.instUnroll),
+        format('loopunroll=%d', Config.jit.tune.loopUnroll),
+        format('callunroll=%d', Config.jit.tune.callUnroll),
+        format('recunroll=%d', Config.jit.tune.recUnroll),
+        format('sizemcode=%d', Config.jit.tune.sizeMCode),
+        format('maxmcode=%d', Config.jit.tune.maxMCode)
+    )
 
-  --local logG = io.open("_g.log", "w+")
-  --io.output(logG)
-  --io.write(Inspect(_G))
-  --io.close(logG)
-  local foundState, state = pcall(require, 'States.App.' .. app)
-  local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
-  if foundState then state:run() elseif foundTest then test:run() end
-  GlobalRestrict.Off()
+    --local logG = io.open("_g.log", "w+")
+    --io.output(logG)
+    --io.write(Inspect(_G))
+    --io.close(logG)
+    local foundState, state = pcall(require, 'States.App.' .. app)
+    local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
+    if foundState then state:run() elseif foundTest then test:run() end
+    GlobalRestrict.Off()
 end)

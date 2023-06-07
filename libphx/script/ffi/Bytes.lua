@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Bytes
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     Bytes* Bytes_Create     (uint32 len);
     Bytes* Bytes_FromData   (void const* data, uint32 len);
     Bytes* Bytes_Load       (cstr path);
@@ -45,92 +45,92 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Bytes = {
-    Create     = libphx.Bytes_Create,
-    FromData   = libphx.Bytes_FromData,
-    Load       = libphx.Bytes_Load,
-    Free       = libphx.Bytes_Free,
-    GetData    = libphx.Bytes_GetData,
-    GetSize    = libphx.Bytes_GetSize,
-    Compress   = libphx.Bytes_Compress,
-    Decompress = libphx.Bytes_Decompress,
-    GetCursor  = libphx.Bytes_GetCursor,
-    Rewind     = libphx.Bytes_Rewind,
-    SetCursor  = libphx.Bytes_SetCursor,
-    Read       = libphx.Bytes_Read,
-    ReadU8     = libphx.Bytes_ReadU8,
-    ReadU16    = libphx.Bytes_ReadU16,
-    ReadU32    = libphx.Bytes_ReadU32,
-    ReadU64    = libphx.Bytes_ReadU64,
-    ReadI8     = libphx.Bytes_ReadI8,
-    ReadI16    = libphx.Bytes_ReadI16,
-    ReadI32    = libphx.Bytes_ReadI32,
-    ReadI64    = libphx.Bytes_ReadI64,
-    ReadF32    = libphx.Bytes_ReadF32,
-    ReadF64    = libphx.Bytes_ReadF64,
-    Write      = libphx.Bytes_Write,
-    WriteStr   = libphx.Bytes_WriteStr,
-    WriteU8    = libphx.Bytes_WriteU8,
-    WriteU16   = libphx.Bytes_WriteU16,
-    WriteU32   = libphx.Bytes_WriteU32,
-    WriteU64   = libphx.Bytes_WriteU64,
-    WriteI8    = libphx.Bytes_WriteI8,
-    WriteI16   = libphx.Bytes_WriteI16,
-    WriteI32   = libphx.Bytes_WriteI32,
-    WriteI64   = libphx.Bytes_WriteI64,
-    WriteF32   = libphx.Bytes_WriteF32,
-    WriteF64   = libphx.Bytes_WriteF64,
-    Print      = libphx.Bytes_Print,
-    Save       = libphx.Bytes_Save,
-  }
+    Bytes = {
+        Create     = libphx.Bytes_Create,
+        FromData   = libphx.Bytes_FromData,
+        Load       = libphx.Bytes_Load,
+        Free       = libphx.Bytes_Free,
+        GetData    = libphx.Bytes_GetData,
+        GetSize    = libphx.Bytes_GetSize,
+        Compress   = libphx.Bytes_Compress,
+        Decompress = libphx.Bytes_Decompress,
+        GetCursor  = libphx.Bytes_GetCursor,
+        Rewind     = libphx.Bytes_Rewind,
+        SetCursor  = libphx.Bytes_SetCursor,
+        Read       = libphx.Bytes_Read,
+        ReadU8     = libphx.Bytes_ReadU8,
+        ReadU16    = libphx.Bytes_ReadU16,
+        ReadU32    = libphx.Bytes_ReadU32,
+        ReadU64    = libphx.Bytes_ReadU64,
+        ReadI8     = libphx.Bytes_ReadI8,
+        ReadI16    = libphx.Bytes_ReadI16,
+        ReadI32    = libphx.Bytes_ReadI32,
+        ReadI64    = libphx.Bytes_ReadI64,
+        ReadF32    = libphx.Bytes_ReadF32,
+        ReadF64    = libphx.Bytes_ReadF64,
+        Write      = libphx.Bytes_Write,
+        WriteStr   = libphx.Bytes_WriteStr,
+        WriteU8    = libphx.Bytes_WriteU8,
+        WriteU16   = libphx.Bytes_WriteU16,
+        WriteU32   = libphx.Bytes_WriteU32,
+        WriteU64   = libphx.Bytes_WriteU64,
+        WriteI8    = libphx.Bytes_WriteI8,
+        WriteI16   = libphx.Bytes_WriteI16,
+        WriteI32   = libphx.Bytes_WriteI32,
+        WriteI64   = libphx.Bytes_WriteI64,
+        WriteF32   = libphx.Bytes_WriteF32,
+        WriteF64   = libphx.Bytes_WriteF64,
+        Print      = libphx.Bytes_Print,
+        Save       = libphx.Bytes_Save,
+    }
 
-  if onDef_Bytes then onDef_Bytes(Bytes, mt) end
-  Bytes = setmetatable(Bytes, mt)
+    if onDef_Bytes then onDef_Bytes(Bytes, mt) end
+    Bytes = setmetatable(Bytes, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('Bytes')
-  local mt = {
-    __index = {
-      managed    = function (self) return ffi.gc(self, libphx.Bytes_Free) end,
-      free       = libphx.Bytes_Free,
-      getData    = libphx.Bytes_GetData,
-      getSize    = libphx.Bytes_GetSize,
-      compress   = libphx.Bytes_Compress,
-      decompress = libphx.Bytes_Decompress,
-      getCursor  = libphx.Bytes_GetCursor,
-      rewind     = libphx.Bytes_Rewind,
-      setCursor  = libphx.Bytes_SetCursor,
-      read       = libphx.Bytes_Read,
-      readU8     = libphx.Bytes_ReadU8,
-      readU16    = libphx.Bytes_ReadU16,
-      readU32    = libphx.Bytes_ReadU32,
-      readU64    = libphx.Bytes_ReadU64,
-      readI8     = libphx.Bytes_ReadI8,
-      readI16    = libphx.Bytes_ReadI16,
-      readI32    = libphx.Bytes_ReadI32,
-      readI64    = libphx.Bytes_ReadI64,
-      readF32    = libphx.Bytes_ReadF32,
-      readF64    = libphx.Bytes_ReadF64,
-      write      = libphx.Bytes_Write,
-      writeStr   = libphx.Bytes_WriteStr,
-      writeU8    = libphx.Bytes_WriteU8,
-      writeU16   = libphx.Bytes_WriteU16,
-      writeU32   = libphx.Bytes_WriteU32,
-      writeU64   = libphx.Bytes_WriteU64,
-      writeI8    = libphx.Bytes_WriteI8,
-      writeI16   = libphx.Bytes_WriteI16,
-      writeI32   = libphx.Bytes_WriteI32,
-      writeI64   = libphx.Bytes_WriteI64,
-      writeF32   = libphx.Bytes_WriteF32,
-      writeF64   = libphx.Bytes_WriteF64,
-      print      = libphx.Bytes_Print,
-      save       = libphx.Bytes_Save,
-    },
-  }
+    local t  = ffi.typeof('Bytes')
+    local mt = {
+        __index = {
+            managed    = function(self) return ffi.gc(self, libphx.Bytes_Free) end,
+            free       = libphx.Bytes_Free,
+            getData    = libphx.Bytes_GetData,
+            getSize    = libphx.Bytes_GetSize,
+            compress   = libphx.Bytes_Compress,
+            decompress = libphx.Bytes_Decompress,
+            getCursor  = libphx.Bytes_GetCursor,
+            rewind     = libphx.Bytes_Rewind,
+            setCursor  = libphx.Bytes_SetCursor,
+            read       = libphx.Bytes_Read,
+            readU8     = libphx.Bytes_ReadU8,
+            readU16    = libphx.Bytes_ReadU16,
+            readU32    = libphx.Bytes_ReadU32,
+            readU64    = libphx.Bytes_ReadU64,
+            readI8     = libphx.Bytes_ReadI8,
+            readI16    = libphx.Bytes_ReadI16,
+            readI32    = libphx.Bytes_ReadI32,
+            readI64    = libphx.Bytes_ReadI64,
+            readF32    = libphx.Bytes_ReadF32,
+            readF64    = libphx.Bytes_ReadF64,
+            write      = libphx.Bytes_Write,
+            writeStr   = libphx.Bytes_WriteStr,
+            writeU8    = libphx.Bytes_WriteU8,
+            writeU16   = libphx.Bytes_WriteU16,
+            writeU32   = libphx.Bytes_WriteU32,
+            writeU64   = libphx.Bytes_WriteU64,
+            writeI8    = libphx.Bytes_WriteI8,
+            writeI16   = libphx.Bytes_WriteI16,
+            writeI32   = libphx.Bytes_WriteI32,
+            writeI64   = libphx.Bytes_WriteI64,
+            writeF32   = libphx.Bytes_WriteF32,
+            writeF64   = libphx.Bytes_WriteF64,
+            print      = libphx.Bytes_Print,
+            save       = libphx.Bytes_Save,
+        },
+    }
 
-  if onDef_Bytes_t then onDef_Bytes_t(t, mt) end
-  Bytes_t = ffi.metatype(t, mt)
+    if onDef_Bytes_t then onDef_Bytes_t(t, mt) end
+    Bytes_t = ffi.metatype(t, mt)
 end
 
 return Bytes

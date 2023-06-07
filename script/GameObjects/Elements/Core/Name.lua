@@ -1,13 +1,13 @@
 local Entity = require('GameObjects.Entity')
 
-function Entity:getName ()
-  return self.name or format('Entity @ %p', self)
+function Entity:getName()
+    return self.name or format('Entity @ %p', self)
 end
 
-function Entity:setName (name)
-  self.name = name
+function Entity:setName(name)
+    self.name = name
 end
 
-function Entity:__tostring ()
-  return self:getName()
+function Entity:__tostring()
+    return self:getName()
 end

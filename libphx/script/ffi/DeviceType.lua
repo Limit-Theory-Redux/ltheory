@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local DeviceType
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     DeviceType DeviceType_FromButton (Button);
     cstr       DeviceType_ToString   (DeviceType);
     DeviceType DeviceType_Null;
@@ -15,18 +15,18 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  DeviceType = {
-    Null     = libphx.DeviceType_Null,
-    Mouse    = libphx.DeviceType_Mouse,
-    Keyboard = libphx.DeviceType_Keyboard,
-    Gamepad  = libphx.DeviceType_Gamepad,
-    COUNT    = 4,
-    FromButton = libphx.DeviceType_FromButton,
-    ToString   = libphx.DeviceType_ToString,
-  }
+    DeviceType = {
+        Null       = libphx.DeviceType_Null,
+        Mouse      = libphx.DeviceType_Mouse,
+        Keyboard   = libphx.DeviceType_Keyboard,
+        Gamepad    = libphx.DeviceType_Gamepad,
+        COUNT      = 4,
+        FromButton = libphx.DeviceType_FromButton,
+        ToString   = libphx.DeviceType_ToString,
+    }
 
-  if onDef_DeviceType then onDef_DeviceType(DeviceType, mt) end
-  DeviceType = setmetatable(DeviceType, mt)
+    if onDef_DeviceType then onDef_DeviceType(DeviceType, mt) end
+    DeviceType = setmetatable(DeviceType, mt)
 end
 
 return DeviceType

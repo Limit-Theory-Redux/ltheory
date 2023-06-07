@@ -1,16 +1,16 @@
 local Entity = require('GameObjects.Entity')
 
-function Entity:addMessage (fmt, ...)
-  assert(self.messages)
-  insert(self.messages, format(fmt, ...))
+function Entity:addMessage(fmt, ...)
+    assert(self.messages)
+    insert(self.messages, format(fmt, ...))
 end
 
-function Entity:addMessages ()
-  assert(not self.messages)
-  self.messages = {}
+function Entity:addMessages()
+    assert(not self.messages)
+    self.messages = {}
 end
 
-function Entity:getMessages ()
-  assert(self.messages)
-  return self.messages
+function Entity:getMessages()
+    assert(self.messages)
+    return self.messages
 end

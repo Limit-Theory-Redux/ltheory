@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Draw
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void Draw_Clear        (float r, float g, float b, float a);
     void Draw_ClearDepth   (float d);
     void Draw_Color        (float r, float g, float b, float a);
@@ -35,37 +35,37 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Draw = {
-    Clear        = libphx.Draw_Clear,
-    ClearDepth   = libphx.Draw_ClearDepth,
-    Color        = libphx.Draw_Color,
-    Flush        = libphx.Draw_Flush,
-    LineWidth    = libphx.Draw_LineWidth,
-    PointSize    = libphx.Draw_PointSize,
-    PushAlpha    = libphx.Draw_PushAlpha,
-    PopAlpha     = libphx.Draw_PopAlpha,
-    SmoothLines  = libphx.Draw_SmoothLines,
-    SmoothPoints = libphx.Draw_SmoothPoints,
-    Border       = libphx.Draw_Border,
-    Line         = libphx.Draw_Line,
-    Point        = libphx.Draw_Point,
-    Poly         = libphx.Draw_Poly,
-    Quad         = libphx.Draw_Quad,
-    Rect         = libphx.Draw_Rect,
-    Tri          = libphx.Draw_Tri,
-    Axes         = libphx.Draw_Axes,
-    Box3         = libphx.Draw_Box3,
-    Line3        = libphx.Draw_Line3,
-    Plane        = libphx.Draw_Plane,
-    Point3       = libphx.Draw_Point3,
-    Poly3        = libphx.Draw_Poly3,
-    Quad3        = libphx.Draw_Quad3,
-    Sphere       = libphx.Draw_Sphere,
-    Tri3         = libphx.Draw_Tri3,
-  }
+    Draw = {
+        Clear        = libphx.Draw_Clear,
+        ClearDepth   = libphx.Draw_ClearDepth,
+        Color        = libphx.Draw_Color,
+        Flush        = libphx.Draw_Flush,
+        LineWidth    = libphx.Draw_LineWidth,
+        PointSize    = libphx.Draw_PointSize,
+        PushAlpha    = libphx.Draw_PushAlpha,
+        PopAlpha     = libphx.Draw_PopAlpha,
+        SmoothLines  = libphx.Draw_SmoothLines,
+        SmoothPoints = libphx.Draw_SmoothPoints,
+        Border       = libphx.Draw_Border,
+        Line         = libphx.Draw_Line,
+        Point        = libphx.Draw_Point,
+        Poly         = libphx.Draw_Poly,
+        Quad         = libphx.Draw_Quad,
+        Rect         = libphx.Draw_Rect,
+        Tri          = libphx.Draw_Tri,
+        Axes         = libphx.Draw_Axes,
+        Box3         = libphx.Draw_Box3,
+        Line3        = libphx.Draw_Line3,
+        Plane        = libphx.Draw_Plane,
+        Point3       = libphx.Draw_Point3,
+        Poly3        = libphx.Draw_Poly3,
+        Quad3        = libphx.Draw_Quad3,
+        Sphere       = libphx.Draw_Sphere,
+        Tri3         = libphx.Draw_Tri3,
+    }
 
-  if onDef_Draw then onDef_Draw(Draw, mt) end
-  Draw = setmetatable(Draw, mt)
+    if onDef_Draw then onDef_Draw(Draw, mt) end
+    Draw = setmetatable(Draw, mt)
 end
 
 return Draw

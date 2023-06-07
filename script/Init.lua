@@ -1,9 +1,9 @@
 --[[
     If Flags not set in Main.cpp set them to false or 0
 ]]
-if __debug__      == nil then __debug__      = false end
-if __checklevel__ == nil then __checklevel__ = 0     end
-if __embedded__   == nil then __embedded__   = false end
+if __debug__ == nil then __debug__ = false end
+if __checklevel__ == nil then __checklevel__ = 0 end
+if __embedded__ == nil then __embedded__ = false end
 
 --[[
     Import both libphx ffi, jit and lfs into global library.
@@ -17,9 +17,9 @@ lfs = require('ffi.lfs_ffi')
     into Global Table.
 ]]
 for k, v in pairs(math) do
-  if type(v) == 'function' then
-    _G[k] = v
-  end
+    if type(v) == 'function' then
+        _G[k] = v
+    end
 end
 
 ---- Will be the global variable to access all functions and classes within Core/
@@ -71,59 +71,59 @@ Namespace.Inline(Core.FFI.CFFI, 'Core.FFI.CFFI')
 
 -- Builtins registered with Type library
 local builtins = {
-  'int8_t',
-  'int16_t',
-  'int32_t',
-  'int64_t',
-  'uint8_t',
-  'uint16_t',
-  'uint32_t',
-  'uint64_t',
-  'float',
-  'double',
-  'cstr',
+    'int8_t',
+    'int16_t',
+    'int32_t',
+    'int64_t',
+    'uint8_t',
+    'uint16_t',
+    'uint32_t',
+    'uint64_t',
+    'float',
+    'double',
+    'cstr',
 }
 
 -- Typedefs registered with Type library
 local lua_typedefs = {
-  { 'int8_t',   'Int8'    },
-  { 'int16_t',  'Int16'   },
-  { 'int32_t',  'Int32'   },
-  { 'int64_t',  'Int64'   },
-  { 'uint8_t',  'Uint8'   },
-  { 'uint16_t', 'Uint16'  },
-  { 'uint32_t', 'Uint32'  },
-  { 'uint64_t', 'Uint64'  },
-  { 'float',    'Float32' },
-  { 'double',   'Float64' },
-  { 'cstr',     'String'  },
+    { 'int8_t',   'Int8' },
+    { 'int16_t',  'Int16' },
+    { 'int32_t',  'Int32' },
+    { 'int64_t',  'Int64' },
+    { 'uint8_t',  'Uint8' },
+    { 'uint16_t', 'Uint16' },
+    { 'uint32_t', 'Uint32' },
+    { 'uint64_t', 'Uint64' },
+    { 'float',    'Float32' },
+    { 'double',   'Float64' },
+    { 'cstr',     'String' },
 }
 
 for i = 1, #builtins do
-  Type.Create(builtins[i], true)
+    Type.Create(builtins[i], true)
 end
 
 for i = 1, #lua_typedefs do
-  local src = lua_typedefs[i][1]
-  local dst = lua_typedefs[i][2]
-  Type.Alias(src, dst)
-  CType[dst] = Type.Get(src)
+    local src = lua_typedefs[i][1]
+    local dst = lua_typedefs[i][2]
+    Type.Alias(src, dst)
+    CType[dst] = Type.Get(src)
 end
 
 for i = 1, #Core.FFI.Lib.Opaques do
-  local name = Core.FFI.Lib.Opaques[i]
-  local wrapperName = format('Opaque_%s', name)
-  ffi.cdef(format('typedef %s %s;', name, wrapperName));
-  local type = Type.Create(wrapperName, true)
-  local ptr  = CType.Pointer(type)
-  Type.Alias(ptr.name, name)
-  CType[name] = ptr
+    local name = Core.FFI.Lib.Opaques[i]
+    local wrapperName = format('Opaque_%s', name)
+    ffi.cdef(format('typedef %s %s;', name, wrapperName));
+    local type = Type.Create(wrapperName, true)
+    local ptr  = CType.Pointer(type)
+    Type.Alias(ptr.name, name)
+    CType[name] = ptr
 end
 
 for i = 1, #Core.FFI.Lib.Structs do
-  local name = Core.FFI.Lib.Structs[i]
-  local type = Type.Create(name, true)
-  CType[name] = type
+    local name = Core.FFI.Lib.Structs[i]
+    local type = Type.Create(name, true)
+    CType[name] = type
 end
 
 ---- Load Renderer into Global Space
@@ -132,6 +132,6 @@ Namespace.Inline(Render, 'Render')
 
 -- Call Function for Running main with errorHandler
 function Core.Call(fn)
-  local _, err = xpcall(fn, ErrorHandler)
-  if err then print(err) end
+    local _, err = xpcall(fn, ErrorHandler)
+    if err then print(err) end
 end

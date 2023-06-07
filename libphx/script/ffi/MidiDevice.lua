@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local MidiDevice
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     int         MidiDevice_GetCount       ();
     MidiDevice* MidiDevice_Open           (int index);
     void        MidiDevice_Close          (MidiDevice*);
@@ -15,31 +15,31 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  MidiDevice = {
-    GetCount       = libphx.MidiDevice_GetCount,
-    Open           = libphx.MidiDevice_Open,
-    Close          = libphx.MidiDevice_Close,
-    GetNameByIndex = libphx.MidiDevice_GetNameByIndex,
-    HasMessage     = libphx.MidiDevice_HasMessage,
-    PopMessage     = libphx.MidiDevice_PopMessage,
-  }
+    MidiDevice = {
+        GetCount       = libphx.MidiDevice_GetCount,
+        Open           = libphx.MidiDevice_Open,
+        Close          = libphx.MidiDevice_Close,
+        GetNameByIndex = libphx.MidiDevice_GetNameByIndex,
+        HasMessage     = libphx.MidiDevice_HasMessage,
+        PopMessage     = libphx.MidiDevice_PopMessage,
+    }
 
-  if onDef_MidiDevice then onDef_MidiDevice(MidiDevice, mt) end
-  MidiDevice = setmetatable(MidiDevice, mt)
+    if onDef_MidiDevice then onDef_MidiDevice(MidiDevice, mt) end
+    MidiDevice = setmetatable(MidiDevice, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('MidiDevice')
-  local mt = {
-    __index = {
-      close          = libphx.MidiDevice_Close,
-      hasMessage     = libphx.MidiDevice_HasMessage,
-      popMessage     = libphx.MidiDevice_PopMessage,
-    },
-  }
+    local t  = ffi.typeof('MidiDevice')
+    local mt = {
+        __index = {
+            close      = libphx.MidiDevice_Close,
+            hasMessage = libphx.MidiDevice_HasMessage,
+            popMessage = libphx.MidiDevice_PopMessage,
+        },
+    }
 
-  if onDef_MidiDevice_t then onDef_MidiDevice_t(t, mt) end
-  MidiDevice_t = ffi.metatype(t, mt)
+    if onDef_MidiDevice_t then onDef_MidiDevice_t(t, mt) end
+    MidiDevice_t = ffi.metatype(t, mt)
 end
 
 return MidiDevice
