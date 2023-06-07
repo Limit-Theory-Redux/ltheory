@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local UIRenderer
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void UIRenderer_Begin      ();
     void UIRenderer_End        ();
     void UIRenderer_Draw       ();
@@ -18,20 +18,20 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  UIRenderer = {
-    Begin      = libphx.UIRenderer_Begin,
-    End        = libphx.UIRenderer_End,
-    Draw       = libphx.UIRenderer_Draw,
-    BeginLayer = libphx.UIRenderer_BeginLayer,
-    EndLayer   = libphx.UIRenderer_EndLayer,
-    Image      = libphx.UIRenderer_Image,
-    Panel      = libphx.UIRenderer_Panel,
-    Rect       = libphx.UIRenderer_Rect,
-    Text       = libphx.UIRenderer_Text,
-  }
+    UIRenderer = {
+        Begin      = libphx.UIRenderer_Begin,
+        End        = libphx.UIRenderer_End,
+        Draw       = libphx.UIRenderer_Draw,
+        BeginLayer = libphx.UIRenderer_BeginLayer,
+        EndLayer   = libphx.UIRenderer_EndLayer,
+        Image      = libphx.UIRenderer_Image,
+        Panel      = libphx.UIRenderer_Panel,
+        Rect       = libphx.UIRenderer_Rect,
+        Text       = libphx.UIRenderer_Text,
+    }
 
-  if onDef_UIRenderer then onDef_UIRenderer(UIRenderer, mt) end
-  UIRenderer = setmetatable(UIRenderer, mt)
+    if onDef_UIRenderer then onDef_UIRenderer(UIRenderer, mt) end
+    UIRenderer = setmetatable(UIRenderer, mt)
 end
 
 return UIRenderer

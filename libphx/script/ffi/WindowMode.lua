@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local WindowMode
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     WindowMode WindowMode_AlwaysOnTop;
     WindowMode WindowMode_Borderless;
     WindowMode WindowMode_Fullscreen;
@@ -17,19 +17,19 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  WindowMode = {
-    AlwaysOnTop = libphx.WindowMode_AlwaysOnTop,
-    Borderless  = libphx.WindowMode_Borderless,
-    Fullscreen  = libphx.WindowMode_Fullscreen,
-    Hidden      = libphx.WindowMode_Hidden,
-    Maximized   = libphx.WindowMode_Maximized,
-    Minimized   = libphx.WindowMode_Minimized,
-    Resizable   = libphx.WindowMode_Resizable,
-    Shown       = libphx.WindowMode_Shown,
-  }
+    WindowMode = {
+        AlwaysOnTop = libphx.WindowMode_AlwaysOnTop,
+        Borderless  = libphx.WindowMode_Borderless,
+        Fullscreen  = libphx.WindowMode_Fullscreen,
+        Hidden      = libphx.WindowMode_Hidden,
+        Maximized   = libphx.WindowMode_Maximized,
+        Minimized   = libphx.WindowMode_Minimized,
+        Resizable   = libphx.WindowMode_Resizable,
+        Shown       = libphx.WindowMode_Shown,
+    }
 
-  if onDef_WindowMode then onDef_WindowMode(WindowMode, mt) end
-  WindowMode = setmetatable(WindowMode, mt)
+    if onDef_WindowMode then onDef_WindowMode(WindowMode, mt) end
+    WindowMode = setmetatable(WindowMode, mt)
 end
 
 return WindowMode

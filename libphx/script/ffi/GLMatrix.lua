@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local GLMatrix
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void    GLMatrix_Clear       ();
     void    GLMatrix_LookAt      (Vec3d const* eye, Vec3d const* at, Vec3d const* up);
     void    GLMatrix_Load        (Matrix* matrix);
@@ -25,27 +25,27 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  GLMatrix = {
-    Clear       = libphx.GLMatrix_Clear,
-    LookAt      = libphx.GLMatrix_LookAt,
-    Load        = libphx.GLMatrix_Load,
-    ModeP       = libphx.GLMatrix_ModeP,
-    ModeWV      = libphx.GLMatrix_ModeWV,
-    Get         = libphx.GLMatrix_Get,
-    Mult        = libphx.GLMatrix_Mult,
-    Perspective = libphx.GLMatrix_Perspective,
-    Pop         = libphx.GLMatrix_Pop,
-    Push        = libphx.GLMatrix_Push,
-    PushClear   = libphx.GLMatrix_PushClear,
-    RotateX     = libphx.GLMatrix_RotateX,
-    RotateY     = libphx.GLMatrix_RotateY,
-    RotateZ     = libphx.GLMatrix_RotateZ,
-    Scale       = libphx.GLMatrix_Scale,
-    Translate   = libphx.GLMatrix_Translate,
-  }
+    GLMatrix = {
+        Clear       = libphx.GLMatrix_Clear,
+        LookAt      = libphx.GLMatrix_LookAt,
+        Load        = libphx.GLMatrix_Load,
+        ModeP       = libphx.GLMatrix_ModeP,
+        ModeWV      = libphx.GLMatrix_ModeWV,
+        Get         = libphx.GLMatrix_Get,
+        Mult        = libphx.GLMatrix_Mult,
+        Perspective = libphx.GLMatrix_Perspective,
+        Pop         = libphx.GLMatrix_Pop,
+        Push        = libphx.GLMatrix_Push,
+        PushClear   = libphx.GLMatrix_PushClear,
+        RotateX     = libphx.GLMatrix_RotateX,
+        RotateY     = libphx.GLMatrix_RotateY,
+        RotateZ     = libphx.GLMatrix_RotateZ,
+        Scale       = libphx.GLMatrix_Scale,
+        Translate   = libphx.GLMatrix_Translate,
+    }
 
-  if onDef_GLMatrix then onDef_GLMatrix(GLMatrix, mt) end
-  GLMatrix = setmetatable(GLMatrix, mt)
+    if onDef_GLMatrix then onDef_GLMatrix(GLMatrix, mt) end
+    GLMatrix = setmetatable(GLMatrix, mt)
 end
 
 return GLMatrix

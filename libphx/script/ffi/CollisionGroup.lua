@@ -4,11 +4,11 @@ local libphx = require('ffi.libphx').lib
 local CollisionGroup
 
 do -- Global Symbol Table
-  CollisionGroup = {
-  }
+    CollisionGroup = {
+    }
 
-  if onDef_CollisionGroup then onDef_CollisionGroup(CollisionGroup, mt) end
-  CollisionGroup = setmetatable(CollisionGroup, mt)
+    if onDef_CollisionGroup then onDef_CollisionGroup(CollisionGroup, mt) end
+    CollisionGroup = setmetatable(CollisionGroup, mt)
 end
 
 return CollisionGroup

@@ -4,20 +4,20 @@ local libphx = require('ffi.libphx').lib
 local WindowPos
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     WindowPos WindowPos_Centered;
     WindowPos WindowPos_Default;
   ]]
 end
 
 do -- Global Symbol Table
-  WindowPos = {
-    Centered = libphx.WindowPos_Centered,
-    Default  = libphx.WindowPos_Default,
-  }
+    WindowPos = {
+        Centered = libphx.WindowPos_Centered,
+        Default  = libphx.WindowPos_Default,
+    }
 
-  if onDef_WindowPos then onDef_WindowPos(WindowPos, mt) end
-  WindowPos = setmetatable(WindowPos, mt)
+    if onDef_WindowPos then onDef_WindowPos(WindowPos, mt) end
+    WindowPos = setmetatable(WindowPos, mt)
 end
 
 return WindowPos

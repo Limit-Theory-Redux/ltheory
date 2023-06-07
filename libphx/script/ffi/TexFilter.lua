@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local TexFilter
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     TexFilter TexFilter_Point;
     TexFilter TexFilter_PointMipPoint;
     TexFilter TexFilter_PointMipLinear;
@@ -15,17 +15,17 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  TexFilter = {
-    Point           = libphx.TexFilter_Point,
-    PointMipPoint   = libphx.TexFilter_PointMipPoint,
-    PointMipLinear  = libphx.TexFilter_PointMipLinear,
-    Linear          = libphx.TexFilter_Linear,
-    LinearMipPoint  = libphx.TexFilter_LinearMipPoint,
-    LinearMipLinear = libphx.TexFilter_LinearMipLinear,
-  }
+    TexFilter = {
+        Point           = libphx.TexFilter_Point,
+        PointMipPoint   = libphx.TexFilter_PointMipPoint,
+        PointMipLinear  = libphx.TexFilter_PointMipLinear,
+        Linear          = libphx.TexFilter_Linear,
+        LinearMipPoint  = libphx.TexFilter_LinearMipPoint,
+        LinearMipLinear = libphx.TexFilter_LinearMipLinear,
+    }
 
-  if onDef_TexFilter then onDef_TexFilter(TexFilter, mt) end
-  TexFilter = setmetatable(TexFilter, mt)
+    if onDef_TexFilter then onDef_TexFilter(TexFilter, mt) end
+    TexFilter = setmetatable(TexFilter, mt)
 end
 
 return TexFilter

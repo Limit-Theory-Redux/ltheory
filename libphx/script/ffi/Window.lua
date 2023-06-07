@@ -48,37 +48,37 @@ do -- Global Symbol Table
     Show             = libphx.Window_Show,
   }
 
-  if onDef_Window then onDef_Window(Window, mt) end
-  Window = setmetatable(Window, mt)
+    if onDef_Window then onDef_Window(Window, mt) end
+    Window = setmetatable(Window, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('Window')
-  local mt = {
-    __index = {
-      managed          = function (self) return ffi.gc(self, libphx.Window_Free) end,
-      free             = libphx.Window_Free,
-      beginDraw        = libphx.Window_BeginDraw,
-      endDraw          = libphx.Window_EndDraw,
-      getPosition      = libphx.Window_GetPosition,
-      getSize          = libphx.Window_GetSize,
-      getTitle         = libphx.Window_GetTitle,
-      setFullscreen    = libphx.Window_SetFullscreen,
-      setPosition      = libphx.Window_SetPosition,
-      setSize          = libphx.Window_SetSize,
-      setTitle         = libphx.Window_SetTitle,
-      setVsync         = libphx.Window_SetVsync,
-      setCursor        = libphx.Window_SetCursor,
-      setMousePosition = libphx.Window_SetMousePosition,
-      setWindowGrab    = libphx.Window_SetWindowGrab,
-      toggleFullscreen = libphx.Window_ToggleFullscreen,
-      hide             = libphx.Window_Hide,
-      show             = libphx.Window_Show,
-    },
-  }
+    local t  = ffi.typeof('Window')
+    local mt = {
+        __index = {
+            managed          = function(self) return ffi.gc(self, libphx.Window_Free) end,
+            free             = libphx.Window_Free,
+            beginDraw        = libphx.Window_BeginDraw,
+            endDraw          = libphx.Window_EndDraw,
+            getPosition      = libphx.Window_GetPosition,
+            getSize          = libphx.Window_GetSize,
+            getTitle         = libphx.Window_GetTitle,
+            setFullscreen    = libphx.Window_SetFullscreen,
+            setPosition      = libphx.Window_SetPosition,
+            setSize          = libphx.Window_SetSize,
+            setTitle         = libphx.Window_SetTitle,
+            setVsync         = libphx.Window_SetVsync,
+            setCursor        = libphx.Window_SetCursor,
+            setMousePosition = libphx.Window_SetMousePosition,
+            setWindowGrab    = libphx.Window_SetWindowGrab,
+            toggleFullscreen = libphx.Window_ToggleFullscreen,
+            hide             = libphx.Window_Hide,
+            show             = libphx.Window_Show,
+        },
+    }
 
-  if onDef_Window_t then onDef_Window_t(t, mt) end
-  Window_t = ffi.metatype(t, mt)
+    if onDef_Window_t then onDef_Window_t(t, mt) end
+    Window_t = ffi.metatype(t, mt)
 end
 
 return Window

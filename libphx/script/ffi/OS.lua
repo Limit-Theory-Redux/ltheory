@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local OS
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     cstr OS_GetClipboard   ();
     int  OS_GetCPUCount    ();
     cstr OS_GetVideoDriver ();
@@ -13,15 +13,15 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  OS = {
-    GetClipboard   = libphx.OS_GetClipboard,
-    GetCPUCount    = libphx.OS_GetCPUCount,
-    GetVideoDriver = libphx.OS_GetVideoDriver,
-    SetClipboard   = libphx.OS_SetClipboard,
-  }
+    OS = {
+        GetClipboard   = libphx.OS_GetClipboard,
+        GetCPUCount    = libphx.OS_GetCPUCount,
+        GetVideoDriver = libphx.OS_GetVideoDriver,
+        SetClipboard   = libphx.OS_SetClipboard,
+    }
 
-  if onDef_OS then onDef_OS(OS, mt) end
-  OS = setmetatable(OS, mt)
+    if onDef_OS then onDef_OS(OS, mt) end
+    OS = setmetatable(OS, mt)
 end
 
 return OS
