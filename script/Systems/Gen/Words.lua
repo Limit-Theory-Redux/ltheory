@@ -33,36 +33,36 @@ cons:add('pp', 0.2)
 cons:add('cc', 0.3)
 
 local vowels = Distribution()
-vowels:add('a',  8.2)
+vowels:add('a', 8.2)
 vowels:add('e', 12.7)
-vowels:add('i',  7.0)
-vowels:add('o',  7.5)
-vowels:add('u',  2.8)
-vowels:add('y',  2.0)
+vowels:add('i', 7.0)
+vowels:add('o', 7.5)
+vowels:add('u', 2.8)
+vowels:add('y', 2.0)
 
-vowels:add('ee',  1.2)
-vowels:add('oo',  0.7)
+vowels:add('ee', 1.2)
+vowels:add('oo', 0.7)
 
-function Words.genName (rng)
-  -- Word generator
-  local name = {}
-  for i = 1, rng:getInt(2, 5) do
-    insert(name, cons:sample(rng))
-    insert(name, vowels:sample(rng))
-  end
-  name[1] = name[1]:upper()
-  name = join(name)
-  return name
+function Words.genName(rng)
+    -- Word generator
+    local name = {}
+    for i = 1, rng:getInt(2, 5) do
+        insert(name, cons:sample(rng))
+        insert(name, vowels:sample(rng))
+    end
+    name[1] = name[1]:upper()
+    name = join(name)
+    return name
 end
 
-function Words.getCoolName (rngv)
-  -- Create an object name that, if the first name is short, adds a second name for presumed uniqueness
-  local name  = Words.genName(rngv)
-  local name2 = Words.genName(rngv)
-  if name:len() < 7 and rngv:getInt(0, 100) < (40 + ((7 - name:len()) * 20)) then
-    name = name .. " " .. name2
-  end
-  return name
+function Words.getCoolName(rngv)
+    -- Create an object name that, if the first name is short, adds a second name for presumed uniqueness
+    local name  = Words.genName(rngv)
+    local name2 = Words.genName(rngv)
+    if name:len() < 7 and rngv:getInt(0, 100) < (40 + ((7 - name:len()) * 20)) then
+        name = name .. " " .. name2
+    end
+    return name
 end
 
 return Words

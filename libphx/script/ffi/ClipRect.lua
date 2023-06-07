@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local ClipRect
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void ClipRect_Push          (float x, float y, float sx, float sy);
     void ClipRect_PushCombined  (float x, float y, float sx, float sy);
     void ClipRect_PushDisabled  ();
@@ -15,17 +15,17 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  ClipRect = {
-    Push          = libphx.ClipRect_Push,
-    PushCombined  = libphx.ClipRect_PushCombined,
-    PushDisabled  = libphx.ClipRect_PushDisabled,
-    PushTransform = libphx.ClipRect_PushTransform,
-    Pop           = libphx.ClipRect_Pop,
-    PopTransform  = libphx.ClipRect_PopTransform,
-  }
+    ClipRect = {
+        Push          = libphx.ClipRect_Push,
+        PushCombined  = libphx.ClipRect_PushCombined,
+        PushDisabled  = libphx.ClipRect_PushDisabled,
+        PushTransform = libphx.ClipRect_PushTransform,
+        Pop           = libphx.ClipRect_Pop,
+        PopTransform  = libphx.ClipRect_PopTransform,
+    }
 
-  if onDef_ClipRect then onDef_ClipRect(ClipRect, mt) end
-  ClipRect = setmetatable(ClipRect, mt)
+    if onDef_ClipRect then onDef_ClipRect(ClipRect, mt) end
+    ClipRect = setmetatable(ClipRect, mt)
 end
 
 return ClipRect

@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local ImGui
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void  ImGui_Begin              (float sx, float sy);
     void  ImGui_End                ();
     void  ImGui_Draw               ();
@@ -50,52 +50,52 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  ImGui = {
-    Begin              = libphx.ImGui_Begin,
-    End                = libphx.ImGui_End,
-    Draw               = libphx.ImGui_Draw,
-    AlignCursor        = libphx.ImGui_AlignCursor,
-    GetCursorX         = libphx.ImGui_GetCursorX,
-    GetCursorY         = libphx.ImGui_GetCursorY,
-    PushCursor         = libphx.ImGui_PushCursor,
-    PopCursor          = libphx.ImGui_PopCursor,
-    SetCursor          = libphx.ImGui_SetCursor,
-    SetCursorX         = libphx.ImGui_SetCursorX,
-    SetCursorY         = libphx.ImGui_SetCursorY,
-    Indent             = libphx.ImGui_Indent,
-    Undent             = libphx.ImGui_Undent,
-    Button             = libphx.ImGui_Button,
-    ButtonEx           = libphx.ImGui_ButtonEx,
-    Checkbox           = libphx.ImGui_Checkbox,
-    Divider            = libphx.ImGui_Divider,
-    Selectable         = libphx.ImGui_Selectable,
-    Tex2D              = libphx.ImGui_Tex2D,
-    Text               = libphx.ImGui_Text,
-    TextColored        = libphx.ImGui_TextColored,
-    TextEx             = libphx.ImGui_TextEx,
-    BeginGroupX        = libphx.ImGui_BeginGroupX,
-    BeginGroupY        = libphx.ImGui_BeginGroupY,
-    EndGroup           = libphx.ImGui_EndGroup,
-    BeginPanel         = libphx.ImGui_BeginPanel,
-    EndPanel           = libphx.ImGui_EndPanel,
-    BeginWindow        = libphx.ImGui_BeginWindow,
-    EndWindow          = libphx.ImGui_EndWindow,
-    BeginScrollFrame   = libphx.ImGui_BeginScrollFrame,
-    EndScrollFrame     = libphx.ImGui_EndScrollFrame,
-    PushStyle          = libphx.ImGui_PushStyle,
-    PushStyleFont      = libphx.ImGui_PushStyleFont,
-    PushStylePadding   = libphx.ImGui_PushStylePadding,
-    PushStyleSpacing   = libphx.ImGui_PushStyleSpacing,
-    PushStyleTextColor = libphx.ImGui_PushStyleTextColor,
-    PopStyle           = libphx.ImGui_PopStyle,
-    SetFont            = libphx.ImGui_SetFont,
-    SetSpacing         = libphx.ImGui_SetSpacing,
-    SetNextWidth       = libphx.ImGui_SetNextWidth,
-    SetNextHeight      = libphx.ImGui_SetNextHeight,
-  }
+    ImGui = {
+        Begin              = libphx.ImGui_Begin,
+        End                = libphx.ImGui_End,
+        Draw               = libphx.ImGui_Draw,
+        AlignCursor        = libphx.ImGui_AlignCursor,
+        GetCursorX         = libphx.ImGui_GetCursorX,
+        GetCursorY         = libphx.ImGui_GetCursorY,
+        PushCursor         = libphx.ImGui_PushCursor,
+        PopCursor          = libphx.ImGui_PopCursor,
+        SetCursor          = libphx.ImGui_SetCursor,
+        SetCursorX         = libphx.ImGui_SetCursorX,
+        SetCursorY         = libphx.ImGui_SetCursorY,
+        Indent             = libphx.ImGui_Indent,
+        Undent             = libphx.ImGui_Undent,
+        Button             = libphx.ImGui_Button,
+        ButtonEx           = libphx.ImGui_ButtonEx,
+        Checkbox           = libphx.ImGui_Checkbox,
+        Divider            = libphx.ImGui_Divider,
+        Selectable         = libphx.ImGui_Selectable,
+        Tex2D              = libphx.ImGui_Tex2D,
+        Text               = libphx.ImGui_Text,
+        TextColored        = libphx.ImGui_TextColored,
+        TextEx             = libphx.ImGui_TextEx,
+        BeginGroupX        = libphx.ImGui_BeginGroupX,
+        BeginGroupY        = libphx.ImGui_BeginGroupY,
+        EndGroup           = libphx.ImGui_EndGroup,
+        BeginPanel         = libphx.ImGui_BeginPanel,
+        EndPanel           = libphx.ImGui_EndPanel,
+        BeginWindow        = libphx.ImGui_BeginWindow,
+        EndWindow          = libphx.ImGui_EndWindow,
+        BeginScrollFrame   = libphx.ImGui_BeginScrollFrame,
+        EndScrollFrame     = libphx.ImGui_EndScrollFrame,
+        PushStyle          = libphx.ImGui_PushStyle,
+        PushStyleFont      = libphx.ImGui_PushStyleFont,
+        PushStylePadding   = libphx.ImGui_PushStylePadding,
+        PushStyleSpacing   = libphx.ImGui_PushStyleSpacing,
+        PushStyleTextColor = libphx.ImGui_PushStyleTextColor,
+        PopStyle           = libphx.ImGui_PopStyle,
+        SetFont            = libphx.ImGui_SetFont,
+        SetSpacing         = libphx.ImGui_SetSpacing,
+        SetNextWidth       = libphx.ImGui_SetNextWidth,
+        SetNextHeight      = libphx.ImGui_SetNextHeight,
+    }
 
-  if onDef_ImGui then onDef_ImGui(ImGui, mt) end
-  ImGui = setmetatable(ImGui, mt)
+    if onDef_ImGui then onDef_ImGui(ImGui, mt) end
+    ImGui = setmetatable(ImGui, mt)
 end
 
 return ImGui

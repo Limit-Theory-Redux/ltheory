@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local BSPNodeRel
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     BSPNodeRel BSPNodeRel_Parent;
     BSPNodeRel BSPNodeRel_Back;
     BSPNodeRel BSPNodeRel_Front;
@@ -12,14 +12,14 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  BSPNodeRel = {
-    Parent = libphx.BSPNodeRel_Parent,
-    Back   = libphx.BSPNodeRel_Back,
-    Front  = libphx.BSPNodeRel_Front,
-  }
+    BSPNodeRel = {
+        Parent = libphx.BSPNodeRel_Parent,
+        Back   = libphx.BSPNodeRel_Back,
+        Front  = libphx.BSPNodeRel_Front,
+    }
 
-  if onDef_BSPNodeRel then onDef_BSPNodeRel(BSPNodeRel, mt) end
-  BSPNodeRel = setmetatable(BSPNodeRel, mt)
+    if onDef_BSPNodeRel then onDef_BSPNodeRel(BSPNodeRel, mt) end
+    BSPNodeRel = setmetatable(BSPNodeRel, mt)
 end
 
 return BSPNodeRel

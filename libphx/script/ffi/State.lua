@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local State
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     cstr  State_ToString (State);
     State State_Null;
     State State_Changed;
@@ -15,17 +15,17 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  State = {
-    Null     = libphx.State_Null,
-    Changed  = libphx.State_Changed,
-    Pressed  = libphx.State_Pressed,
-    Down     = libphx.State_Down,
-    Released = libphx.State_Released,
-    ToString = libphx.State_ToString,
-  }
+    State = {
+        Null     = libphx.State_Null,
+        Changed  = libphx.State_Changed,
+        Pressed  = libphx.State_Pressed,
+        Down     = libphx.State_Down,
+        Released = libphx.State_Released,
+        ToString = libphx.State_ToString,
+    }
 
-  if onDef_State then onDef_State(State, mt) end
-  State = setmetatable(State, mt)
+    if onDef_State then onDef_State(State, mt) end
+    State = setmetatable(State, mt)
 end
 
 return State

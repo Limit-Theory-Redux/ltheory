@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Font
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     Font* Font_Load          (cstr name, int size);
     void  Font_Acquire       (Font*);
     void  Font_Free          (Font*);
@@ -17,38 +17,38 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Font = {
-    Load          = libphx.Font_Load,
-    Acquire       = libphx.Font_Acquire,
-    Free          = libphx.Font_Free,
-    Draw          = libphx.Font_Draw,
-    DrawShaded    = libphx.Font_DrawShaded,
-    GetLineHeight = libphx.Font_GetLineHeight,
-    GetSize       = libphx.Font_GetSize,
-    GetSize2      = libphx.Font_GetSize2,
-  }
+    Font = {
+        Load          = libphx.Font_Load,
+        Acquire       = libphx.Font_Acquire,
+        Free          = libphx.Font_Free,
+        Draw          = libphx.Font_Draw,
+        DrawShaded    = libphx.Font_DrawShaded,
+        GetLineHeight = libphx.Font_GetLineHeight,
+        GetSize       = libphx.Font_GetSize,
+        GetSize2      = libphx.Font_GetSize2,
+    }
 
-  if onDef_Font then onDef_Font(Font, mt) end
-  Font = setmetatable(Font, mt)
+    if onDef_Font then onDef_Font(Font, mt) end
+    Font = setmetatable(Font, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('Font')
-  local mt = {
-    __index = {
-      managed       = function (self) return ffi.gc(self, libphx.Font_Free) end,
-      acquire       = libphx.Font_Acquire,
-      free          = libphx.Font_Free,
-      draw          = libphx.Font_Draw,
-      drawShaded    = libphx.Font_DrawShaded,
-      getLineHeight = libphx.Font_GetLineHeight,
-      getSize       = libphx.Font_GetSize,
-      getSize2      = libphx.Font_GetSize2,
-    },
-  }
+    local t  = ffi.typeof('Font')
+    local mt = {
+        __index = {
+            managed       = function(self) return ffi.gc(self, libphx.Font_Free) end,
+            acquire       = libphx.Font_Acquire,
+            free          = libphx.Font_Free,
+            draw          = libphx.Font_Draw,
+            drawShaded    = libphx.Font_DrawShaded,
+            getLineHeight = libphx.Font_GetLineHeight,
+            getSize       = libphx.Font_GetSize,
+            getSize2      = libphx.Font_GetSize2,
+        },
+    }
 
-  if onDef_Font_t then onDef_Font_t(t, mt) end
-  Font_t = ffi.metatype(t, mt)
+    if onDef_Font_t then onDef_Font_t(t, mt) end
+    Font_t = ffi.metatype(t, mt)
 end
 
 return Font

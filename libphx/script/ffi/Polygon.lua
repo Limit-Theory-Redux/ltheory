@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local Polygon
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void  Polygon_ToPlane           (Polygon*, Plane*);
     void  Polygon_ToPlaneFast       (Polygon*, Plane*);
     void  Polygon_Split             (Polygon*, Plane splitPlane, Polygon* back, Polygon* front);
@@ -16,39 +16,39 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  Polygon = {
-    ToPlane           = libphx.Polygon_ToPlane,
-    ToPlaneFast       = libphx.Polygon_ToPlaneFast,
-    Split             = libphx.Polygon_Split,
-    SplitSafe         = libphx.Polygon_SplitSafe,
-    GetCentroid       = libphx.Polygon_GetCentroid,
-    Validate          = libphx.Polygon_Validate,
-  }
+    Polygon = {
+        ToPlane     = libphx.Polygon_ToPlane,
+        ToPlaneFast = libphx.Polygon_ToPlaneFast,
+        Split       = libphx.Polygon_Split,
+        SplitSafe   = libphx.Polygon_SplitSafe,
+        GetCentroid = libphx.Polygon_GetCentroid,
+        Validate    = libphx.Polygon_Validate,
+    }
 
-  local mt = {
-    __call  = function (t, ...) return Polygon_t(...) end,
-  }
+    local mt = {
+        __call = function(t, ...) return Polygon_t(...) end,
+    }
 
-  if onDef_Polygon then onDef_Polygon(Polygon, mt) end
-  Polygon = setmetatable(Polygon, mt)
+    if onDef_Polygon then onDef_Polygon(Polygon, mt) end
+    Polygon = setmetatable(Polygon, mt)
 end
 
 do -- Metatype for class instances
-  local t  = ffi.typeof('Polygon')
-  local mt = {
-    __index = {
-      clone             = function (x) return Polygon_t(x) end,
-      toPlane           = libphx.Polygon_ToPlane,
-      toPlaneFast       = libphx.Polygon_ToPlaneFast,
-      split             = libphx.Polygon_Split,
-      splitSafe         = libphx.Polygon_SplitSafe,
-      getCentroid       = libphx.Polygon_GetCentroid,
-      validate          = libphx.Polygon_Validate,
-    },
-  }
+    local t  = ffi.typeof('Polygon')
+    local mt = {
+        __index = {
+            clone       = function(x) return Polygon_t(x) end,
+            toPlane     = libphx.Polygon_ToPlane,
+            toPlaneFast = libphx.Polygon_ToPlaneFast,
+            split       = libphx.Polygon_Split,
+            splitSafe   = libphx.Polygon_SplitSafe,
+            getCentroid = libphx.Polygon_GetCentroid,
+            validate    = libphx.Polygon_Validate,
+        },
+    }
 
-  if onDef_Polygon_t then onDef_Polygon_t(t, mt) end
-  Polygon_t = ffi.metatype(t, mt)
+    if onDef_Polygon_t then onDef_Polygon_t(t, mt) end
+    Polygon_t = ffi.metatype(t, mt)
 end
 
 return Polygon

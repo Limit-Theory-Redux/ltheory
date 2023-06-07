@@ -3,14 +3,15 @@
   feature. Remember in LTC++, you had a 'Computer' component that tracked
   targets, stored navigation information, AND did automatic caching of nearby
   obstacles.
-----------------------------------------------------------------------------]]--
+----------------------------------------------------------------------------]]
+--
 
 local Entity = require('GameObjects.Entity')
 
-function Entity:getTarget ()
-  return self.target
+function Entity:getTarget()
+    return self.target
 end
 
-function Entity:setTarget (target)
-  self.target = target
+function Entity:setTarget(target)
+    self.target = target
 end

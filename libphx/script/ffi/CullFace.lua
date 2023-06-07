@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local CullFace
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     void CullFace_Pop       ();
     void CullFace_Push      (CullFace);
     void CullFace_PushNone  ();
@@ -14,19 +14,19 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  CullFace = {
-    None  = 0,
-    Back  = 1,
-    Front = 2,
-    Pop       = libphx.CullFace_Pop,
-    Push      = libphx.CullFace_Push,
-    PushNone  = libphx.CullFace_PushNone,
-    PushBack  = libphx.CullFace_PushBack,
-    PushFront = libphx.CullFace_PushFront,
-  }
+    CullFace = {
+        None      = 0,
+        Back      = 1,
+        Front     = 2,
+        Pop       = libphx.CullFace_Pop,
+        Push      = libphx.CullFace_Push,
+        PushNone  = libphx.CullFace_PushNone,
+        PushBack  = libphx.CullFace_PushBack,
+        PushFront = libphx.CullFace_PushFront,
+    }
 
-  if onDef_CullFace then onDef_CullFace(CullFace, mt) end
-  CullFace = setmetatable(CullFace, mt)
+    if onDef_CullFace then onDef_CullFace(CullFace, mt) end
+    CullFace = setmetatable(CullFace, mt)
 end
 
 return CullFace

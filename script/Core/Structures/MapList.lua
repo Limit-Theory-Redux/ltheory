@@ -10,24 +10,25 @@
          iterated over in the usual manner for lists. The map and constructor
          are stored in the hash part of the MapList. :get is for *map lookup*,
          not for indexing (indexing is, again, simply mapList[i]).
-----------------------------------------------------------------------------]]--
+----------------------------------------------------------------------------]]
+--
 local MapList = {}
 
-local function mapListGet (self, k)
-  local v = self.__map[k]
-  if v then return v end
-  v = self.__constructor(k)
-  self.__map[k] = v
-  self[#self + 1] = v
-  return v
+local function mapListGet(self, k)
+    local v = self.__map[k]
+    if v then return v end
+    v = self.__constructor(k)
+    self.__map[k] = v
+    self[#self + 1] = v
+    return v
 end
 
-local function MapList (constructor)
-  return setmetatable({
-    get = mapListGet,
-    __constructor = constructor,
-    __map = {},
-  }, MapList)
+local function MapList(constructor)
+    return setmetatable({
+        get = mapListGet,
+        __constructor = constructor,
+        __map = {},
+    }, MapList)
 end
 
 return MapList

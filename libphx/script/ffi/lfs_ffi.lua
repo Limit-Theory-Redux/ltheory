@@ -9,7 +9,7 @@ local ffi_str = ffi.string
 local concat = table.concat
 local has_table_new, new_tab = pcall(require, "table.new")
 if not has_table_new or type(new_tab) ~= "function" then
-    new_tab = function () return {} end
+    new_tab = function() return {} end
 end
 
 
@@ -78,7 +78,6 @@ if OS == 'Windows' then
         end
         return wcs
     end
-
 elseif OS == 'Linux' then
     MAXPATH = 4096
 else
@@ -131,11 +130,11 @@ if OS == "Windows" then
         int _fileno(struct FILE *stream);
         int _setmode(int fd, int mode);
     ]])
-    
+
     ffi.cdef([[
     size_t wcslen(const wchar_t *str);
     wchar_t *wcsncpy(wchar_t *strDest, const wchar_t *strSource, size_t count);
-    
+
     int WideCharToMultiByte(
         unsigned int     CodePage,
         DWORD    dwFlags,
@@ -145,7 +144,7 @@ if OS == "Windows" then
         int      cbMultiByte,
         const char*   lpDefaultChar,
         int*   lpUsedDefaultChar);
-    
+
     int MultiByteToWideChar(
         unsigned int     CodePage,
         DWORD    dwFlags,
@@ -153,10 +152,10 @@ if OS == "Windows" then
         int      cbMultiByte,
         wchar_t*   lpWideCharStr,
         int      cchWideChar);
-    
+
     ]])
-    ffi.cdef[[
-        
+    ffi.cdef [[
+
         uint32_t GetLastError();
         uint32_t FormatMessageA(
             uint32_t dwFlags,
@@ -171,7 +170,7 @@ if OS == "Windows" then
     -- Some helper functions
     local function error_win(lvl)
         local errcode = ffi.C.GetLastError()
-        local str = ffi.new("char[?]",1024)
+        local str = ffi.new("char[?]", 1024)
         local FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
         local FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
         local numout = ffi.C.FormatMessageA(bit.bor(FORMAT_MESSAGE_FROM_SYSTEM,
@@ -179,43 +178,46 @@ if OS == "Windows" then
         if numout == 0 then
             error("Windows Error: (Error calling FormatMessage)", lvl)
         else
-            error("Windows Error: "..ffi.string(str, numout), lvl)
+            error("Windows Error: " .. ffi.string(str, numout), lvl)
         end
     end
-    local CP_UTF8 = 65001
+    local CP_UTF8              = 65001
     local WC_ERR_INVALID_CHARS = 0x00000080
-    local MB_ERR_INVALID_CHARS  = 0x00000008
+    local MB_ERR_INVALID_CHARS = 0x00000008
     function win_utf8_to_unicode(szUtf8)
         local dwFlags = _M.unicode_errors and MB_ERR_INVALID_CHARS or 0
-        local nLenWchar = lib.MultiByteToWideChar(CP_UTF8, dwFlags, szUtf8, -1, nil, 0 );
-        if nLenWchar ==0 then error_win(2) end
-        local szUnicode = ffi.new("wchar_t[?]",nLenWchar)
+        local nLenWchar = lib.MultiByteToWideChar(CP_UTF8, dwFlags, szUtf8, -1, nil, 0);
+        if nLenWchar == 0 then error_win(2) end
+        local szUnicode = ffi.new("wchar_t[?]", nLenWchar)
         nLenWchar = lib.MultiByteToWideChar(CP_UTF8, dwFlags, szUtf8, -1, szUnicode, nLenWchar);
-        if nLenWchar ==0 then error_win(2) end
+        if nLenWchar == 0 then error_win(2) end
         return szUnicode, nLenWchar
     end
+
     _M.win_utf8_to_unicode = win_utf8_to_unicode
-    function win_unicode_to_utf8( szUnicode)
+    function win_unicode_to_utf8(szUnicode)
         local dwFlags = _M.unicode_errors and WC_ERR_INVALID_CHARS or 0
         local nLen = lib.WideCharToMultiByte(CP_UTF8, dwFlags, szUnicode, -1, nil, 0, nil, nil);
-        if nLen ==0 then error_win(2) end
-        local str = ffi.new("char[?]",nLen)
+        if nLen == 0 then error_win(2) end
+        local str = ffi.new("char[?]", nLen)
         nLen = lib.WideCharToMultiByte(CP_UTF8, dwFlags, szUnicode, -1, str, nLen, nil, nil);
-        if nLen ==0 then error_win(2) end
+        if nLen == 0 then error_win(2) end
         return str
     end
+
     _M.win_unicode_to_utf8 = win_unicode_to_utf8
     local CP_ACP = 0
     function _M.win_utf8_to_acp(utf)
         local szUnicode = win_utf8_to_unicode(utf)
         local dwFlags = _M.unicode_errors and WC_ERR_INVALID_CHARS or 0
         local nLen = lib.WideCharToMultiByte(CP_ACP, dwFlags, szUnicode, -1, nil, 0, nil, nil);
-        if nLen ==0 then error_win(2) end
-        local str = ffi.new("char[?]",nLen)
+        if nLen == 0 then error_win(2) end
+        local str = ffi.new("char[?]", nLen)
         nLen = lib.WideCharToMultiByte(CP_ACP, dwFlags, szUnicode, -1, str, nLen, nil, nil);
-        if nLen ==0 then error_win(2) end
+        if nLen == 0 then error_win(2) end
         return ffi_str(str)
     end
+
     function _M.chdir(path)
         if _M.unicode then
             local uncstr = win_utf8_to_unicode(path)
@@ -233,25 +235,25 @@ if OS == "Windows" then
 
     function _M.currentdir()
         if _M.unicode then
-            local buf = ffi.new("wchar_t[?]",MAXPATH_UNC)
+            local buf = ffi.new("wchar_t[?]", MAXPATH_UNC)
             if lib._wgetcwd(buf, MAXPATH_UNC) ~= nil then
                 local buf_utf = win_unicode_to_utf8(buf)
                 return ffi_str(buf_utf)
             end
             error("error in currentdir")
         else
-        local size = MAXPATH
-        while true do
-            local buf = ffi.new("char[?]", size)
-            if lib._getcwd(buf, size) ~= nil then
-                return ffi_str(buf)
+            local size = MAXPATH
+            while true do
+                local buf = ffi.new("char[?]", size)
+                if lib._getcwd(buf, size) ~= nil then
+                    return ffi_str(buf)
+                end
+                local err = errno()
+                if err ~= ERANGE then
+                    return nil, err
+                end
+                size = size * 2
             end
-            local err = errno()
-            if err ~= ERANGE then
-                return nil, err
-            end
-            size = size * 2
-        end
         end
     end
 
@@ -293,8 +295,8 @@ if OS == "Windows" then
         local buf
 
         if type(actime) == "number" then
-            modtime = modtime or actime
-            buf = ffi.new("utimebuf")
+            modtime     = modtime or actime
+            buf         = ffi.new("utimebuf")
             buf.actime  = actime
             buf.modtime = modtime
         end
@@ -349,7 +351,7 @@ if OS == "Windows" then
                 uint64_t  time_access;
                 uint64_t  time_write;
                 uint64_t  size;
-                char      name[]] .. MAXPATH ..[[];
+                char      name[]] .. MAXPATH .. [[];
             } _finddata_t;
             intptr_t _findfirst64(const char *filespec, _finddata_t *fileinfo);
             int _findnext64(intptr_t handle, _finddata_t *fileinfo);
@@ -360,11 +362,11 @@ if OS == "Windows" then
                 uint64_t  time_access;
                 uint64_t  time_write;
                 uint64_t  size;
-                wchar_t      name[]] .. MAXPATH ..[[];
+                wchar_t      name[]] .. MAXPATH .. [[];
             } _wfinddata_t;
-            intptr_t _wfindfirst64(const wchar_t *filespec, struct _wfinddata_t *fileinfo);  
-            int _wfindnext64(intptr_t handle,struct _wfinddata_t *fileinfo);  
-                                                              
+            intptr_t _wfindfirst64(const wchar_t *filespec, struct _wfinddata_t *fileinfo);
+            int _wfindnext64(intptr_t handle,struct _wfinddata_t *fileinfo);
+
         ]])
         findfirst = lib._findfirst64
         findnext = lib._findnext64
@@ -378,51 +380,51 @@ if OS == "Windows" then
                 uint32_t  time_access;
                 uint32_t  time_write;
                 uint32_t  size;
-                char      name[]] .. MAXPATH ..[[];
+                char      name[]] .. MAXPATH .. [[];
             } _finddata_t;
             intptr_t _findfirst32(const char* filespec, _finddata_t* fileinfo);
             int _findnext32(intptr_t handle, _finddata_t *fileinfo);
-            
+
             intptr_t _findfirst(const char* filespec, _finddata_t* fileinfo);
             int _findnext(intptr_t handle, _finddata_t *fileinfo);
-            
+
             typedef struct _wfinddata_t {
                 uint32_t  attrib;
                 uint32_t  time_create;
                 uint32_t  time_access;
                 uint32_t  time_write;
                 uint32_t  size;
-                wchar_t      name[]] .. MAXPATH ..[[];
+                wchar_t      name[]] .. MAXPATH .. [[];
             } _wfinddata_t;
-            intptr_t _wfindfirst(  
-            const wchar_t *filespec,  
-            struct _wfinddata_t *fileinfo   
+            intptr_t _wfindfirst(
+            const wchar_t *filespec,
+            struct _wfinddata_t *fileinfo
             );
-            intptr_t _wfindfirst32(  
-                const wchar_t *filespec,  
+            intptr_t _wfindfirst32(
+                const wchar_t *filespec,
                 struct _wfinddata_t *fileinfo
-            );  
-            
-            int _wfindnext(  
-                intptr_t handle,  
-                struct _wfinddata_t *fileinfo   
-            );  
-            int _wfindnext32(  
-                intptr_t handle,  
-                struct _wfinddata_t *fileinfo   
-            );  
+            );
+
+            int _wfindnext(
+                intptr_t handle,
+                struct _wfinddata_t *fileinfo
+            );
+            int _wfindnext32(
+                intptr_t handle,
+                struct _wfinddata_t *fileinfo
+            );
             int _findclose(intptr_t handle);
         ]])
         local ok
-        ok,findfirst = pcall(function() return lib._findfirst32 end)
+        ok, findfirst = pcall(function() return lib._findfirst32 end)
         if not ok then findfirst = lib._findfirst end
-        ok,findnext = pcall(function() return lib._findnext32 end)
+        ok, findnext = pcall(function() return lib._findnext32 end)
         if not ok then findnext = lib._findnext end
-        ok,wfindfirst = pcall(function() return lib._wfindfirst end)
-        if not ok then ok,wfindfirst = pcall(function() return lib._wfindfirst32 end) end
+        ok, wfindfirst = pcall(function() return lib._wfindfirst end)
+        if not ok then ok, wfindfirst = pcall(function() return lib._wfindfirst32 end) end
         if not ok then HAVE_WFINDFIRST = false end
-        ok,wfindnext = pcall(function() return lib._wfindnext end)
-        if not ok then ok,wfindnext = pcall(function() return lib._wfindnext32 end) end
+        ok, wfindnext = pcall(function() return lib._wfindnext end)
+        if not ok then ok, wfindnext = pcall(function() return lib._wfindnext32 end) end
     end
 
     local function findclose(dentry)
@@ -460,7 +462,7 @@ if OS == "Windows" then
         close(dir)
         return nil
     end
-    
+
     local function witerator(dir)
         if dir.closed ~= false then error("closed directory") end
         local entry = ffi.new("_wfinddata_t")
@@ -472,50 +474,54 @@ if OS == "Windows" then
                 dir.closed = true
                 return nil, errno()
             end
-            local szName = win_unicode_to_utf8(entry.name)--, -1, szName, 512);
+            local szName = win_unicode_to_utf8(entry.name) --, -1, szName, 512);
             return ffi_str(szName)
         end
 
         if wfindnext(dir._dentry.handle, entry) == 0 then
-            local szName = win_unicode_to_utf8(entry.name)--, -1, szName, 512);
+            local szName = win_unicode_to_utf8(entry.name) --, -1, szName, 512);
             return ffi_str(szName)
         end
         close(dir)
         return nil
     end
 
-    local dirmeta = {__index = {
-        next = iterator,
-        close = close,
-    }}
+    local dirmeta = {
+        __index = {
+            next = iterator,
+            close = close,
+        }
+    }
 
     function _M.sdir(path)
         if #path > MAXPATH - 2 then
             error('path too long: ' .. path)
         end
         local dir_obj = setmetatable({
-            _pattern = path..'/*',
-            closed  = false,
+            _pattern = path .. '/*',
+            closed   = false,
         }, dirmeta)
         return iterator, dir_obj
     end
-    
-    local wdirmeta = {__index = {
-        next = witerator,
-        close = close,
-    }}
+
+    local wdirmeta = {
+        __index = {
+            next = witerator,
+            close = close,
+        }
+    }
 
     function _M.wdir(path)
         if #path > MAXPATH - 2 then
             error('path too long: ' .. path)
         end
         local dir_obj = setmetatable({
-            _pattern = path..'/*',
-            closed  = false,
+            _pattern = path .. '/*',
+            closed   = false,
         }, wdirmeta)
         return witerator, dir_obj
     end
-    
+
     function _M.dir(path)
         if _M.unicode then
             return _M.wdir(path)
@@ -523,7 +529,7 @@ if OS == "Windows" then
             return _M.sdir(path)
         end
     end
-    
+
     ffi.cdef([[
         int _fileno(struct FILE *stream);
         int fseek(struct FILE *stream, long offset, int origin);
@@ -641,8 +647,8 @@ else
         local buf
 
         if type(actime) == "number" then
-            modtime = modtime or actime
-            buf = ffi.new("struct utimebuf")
+            modtime     = modtime or actime
+            buf         = ffi.new("struct utimebuf")
             buf.actime  = actime
             buf.modtime = modtime
         end
@@ -736,16 +742,18 @@ else
             bool closed;
         }
     ]],
-    {__index = {
-        next = iterator,
-        close = close,
-    }, __gc = close
-    })
+        {
+            __index = {
+                next = iterator,
+                close = close,
+            },
+            __gc = close
+        })
 
     function _M.dir(path)
         local dentry = lib.opendir(path)
         if dentry == nil then
-            error("cannot open "..path.." : "..errno())
+            error("cannot open " .. path .. " : " .. errno())
         end
         local dir_obj = ffi.new(dir_obj_type)
         dir_obj._dentry = dentry
@@ -789,7 +797,7 @@ else
         }
     end
 
-    ffi.cdef(flock_def..[[
+    ffi.cdef(flock_def .. [[
         int fileno(struct FILE *stream);
         int fcntl(int fd, int cmd, ... /* arg */ );
         int unlink(const char *path);
@@ -870,7 +878,7 @@ if OS == 'Windows' then
     function create_lockfile(dir_lock, _, lockname)
         lockname = wchar_t(lockname)
         dir_lock.lockname = lib.CreateFileW(lockname, GENERIC_WRITE, 0, nil, CREATE_NEW,
-                FILE_NORMAL_DELETE_ON_CLOSE, nil)
+            FILE_NORMAL_DELETE_ON_CLOSE, nil)
         return dir_lock.lockname ~= ffi.cast('void*', -1)
     end
 
@@ -899,12 +907,14 @@ local function unlock_dir(dir_lock)
 end
 
 local dir_lock_type = ffi.metatype(dir_lock_struct,
-    {__gc = unlock_dir,
-    __index = {
-        free = unlock_dir,
-        create_lockfile = create_lockfile,
-        delete_lockfile = delete_lockfile,
-    }}
+    {
+        __gc = unlock_dir,
+        __index = {
+            free = unlock_dir,
+            create_lockfile = create_lockfile,
+            delete_lockfile = delete_lockfile,
+        }
+    }
 )
 
 function _M.lock_dir(path, _)
@@ -1119,7 +1129,7 @@ elseif OS == 'Windows' then
             __time64_t          st_ctime;
         } lfs_stat;
         int _stat64(const char *path, lfs_stat *buffer);
-        int _wstat64(const wchar_t *path, lfs_stat *buffer);      
+        int _wstat64(const wchar_t *path, lfs_stat *buffer);
     ]])
 
     stat_func = function(filepath, buf)
@@ -1231,8 +1241,8 @@ local function mode_to_perm(mode)
     while i > 0 do
         local perm_bit = band(perm_bits, 7)
         perm[i] = (band(perm_bit, 1) > 0 and 'x' or '-')
-        perm[i-1] = (band(perm_bit, 2) > 0 and 'w' or '-')
-        perm[i-2] = (band(perm_bit, 4) > 0 and 'r' or '-')
+        perm[i - 1] = (band(perm_bit, 2) > 0 and 'w' or '-')
+        perm[i - 2] = (band(perm_bit, 4) > 0 and 'r' or '-')
         i = i - 3
         perm_bits = rshift(perm_bits, 3)
     end
@@ -1276,10 +1286,9 @@ local get_link_target_path
 if OS == 'Windows' then
     local ENOSYS = 40
     function get_link_target_path()
-        return nil, "could not obtain link target: Function not implemented ",ENOSYS
+        return nil, "could not obtain link target: Function not implemented ", ENOSYS
     end
 else
-
     ffi.cdef('ssize_t readlink(const char *path, char *buf, size_t bufsize);')
     local EINVAL = 22
     function get_link_target_path(link_path, statbuf)
@@ -1288,10 +1297,10 @@ else
         local buf = ffi.new('char[?]', size + 1)
         local read = lib.readlink(link_path, buf, size)
         if read == -1 then
-            return nil, "could not obtain link target: "..errno(), ffi.errno()
+            return nil, "could not obtain link target: " .. errno(), ffi.errno()
         end
         if read > size then
-            return nil, "not enought size for readlink: "..errno(), ffi.errno()
+            return nil, "not enought size for readlink: " .. errno(), ffi.errno()
         end
         buf[size] = 0
         return ffi_str(buf)
@@ -1302,7 +1311,8 @@ local buf = ffi.new(stat_type)
 local function attributes(filepath, attr, follow_symlink)
     local func = follow_symlink and stat_func or lstat_func
     if func(filepath, buf) == -1 then
-        return nil, string.format("cannot obtain information from file '%s' : %s",tostring(filepath),errno()), ffi.errno()
+        return nil, string.format("cannot obtain information from file '%s' : %s", tostring(filepath), errno()),
+            ffi.errno()
     end
 
     local atype = type(attr)

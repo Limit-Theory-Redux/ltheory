@@ -4,7 +4,7 @@ local libphx = require('ffi.libphx').lib
 local BSPDebug
 
 do -- C Definitions
-  ffi.cdef [[
+    ffi.cdef [[
     BSPNodeRef BSPDebug_GetNode                     (BSP*, BSPNodeRef, BSPNodeRel);
     void       BSPDebug_DrawNode                    (BSP*, BSPNodeRef);
     void       BSPDebug_DrawNodeSplit               (BSP*, BSPNodeRef);
@@ -18,20 +18,20 @@ do -- C Definitions
 end
 
 do -- Global Symbol Table
-  BSPDebug = {
-    GetNode                     = libphx.BSPDebug_GetNode,
-    DrawNode                    = libphx.BSPDebug_DrawNode,
-    DrawNodeSplit               = libphx.BSPDebug_DrawNodeSplit,
-    DrawLineSegment             = libphx.BSPDebug_DrawLineSegment,
-    DrawSphere                  = libphx.BSPDebug_DrawSphere,
-    PrintRayProfilingData       = libphx.BSPDebug_PrintRayProfilingData,
-    PrintSphereProfilingData    = libphx.BSPDebug_PrintSphereProfilingData,
-    GetIntersectSphereTriangles = libphx.BSPDebug_GetIntersectSphereTriangles,
-    GetLeaf                     = libphx.BSPDebug_GetLeaf,
-  }
+    BSPDebug = {
+        GetNode                     = libphx.BSPDebug_GetNode,
+        DrawNode                    = libphx.BSPDebug_DrawNode,
+        DrawNodeSplit               = libphx.BSPDebug_DrawNodeSplit,
+        DrawLineSegment             = libphx.BSPDebug_DrawLineSegment,
+        DrawSphere                  = libphx.BSPDebug_DrawSphere,
+        PrintRayProfilingData       = libphx.BSPDebug_PrintRayProfilingData,
+        PrintSphereProfilingData    = libphx.BSPDebug_PrintSphereProfilingData,
+        GetIntersectSphereTriangles = libphx.BSPDebug_GetIntersectSphereTriangles,
+        GetLeaf                     = libphx.BSPDebug_GetLeaf,
+    }
 
-  if onDef_BSPDebug then onDef_BSPDebug(BSPDebug, mt) end
-  BSPDebug = setmetatable(BSPDebug, mt)
+    if onDef_BSPDebug then onDef_BSPDebug(BSPDebug, mt) end
+    BSPDebug = setmetatable(BSPDebug, mt)
 end
 
 return BSPDebug
