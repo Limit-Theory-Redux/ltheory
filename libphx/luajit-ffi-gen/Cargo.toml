@@ -1,5 +1,5 @@
 [package]
-name = "luajit_ffi_gen"
+name = "luajit-ffi-gen"
 version = "0.1.0"
 edition = "2021"
 
