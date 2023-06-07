@@ -5,15 +5,15 @@ local Bit
 
 do -- C Definitions
     ffi.cdef [[
-    uint32 Bit_And32 (uint32 x, uint32 y);
-    uint32 Bit_Or32  (uint32 x, uint32 y);
-    uint32 Bit_Xor32 (uint32 x, uint32 y);
-    bool   Bit_Has32 (uint32 x, uint32 y);
-    uint64 Bit_And64 (uint64 x, uint64 y);
-    uint64 Bit_Or64  (uint64 x, uint64 y);
-    uint64 Bit_Xor64 (uint64 x, uint64 y);
-    bool   Bit_Has64 (uint64 x, uint64 y);
-  ]]
+        uint32 Bit_And32 (uint32 x, uint32 y);
+        uint32 Bit_Or32  (uint32 x, uint32 y);
+        uint32 Bit_Xor32 (uint32 x, uint32 y);
+        bool   Bit_Has32 (uint32 x, uint32 y);
+        uint64 Bit_And64 (uint64 x, uint64 y);
+        uint64 Bit_Or64  (uint64 x, uint64 y);
+        uint64 Bit_Xor64 (uint64 x, uint64 y);
+        bool   Bit_Has64 (uint64 x, uint64 y);
+    ]]
 end
 
 do -- Global Symbol Table

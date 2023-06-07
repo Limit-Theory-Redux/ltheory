@@ -4,11 +4,11 @@ local libphx = require('ffi.libphx').lib
 local LineSegment
 
 do -- C Definitions
-  ffi.cdef [[
-    void LineSegment_ToRay    (LineSegment*, Ray* out);
-    void LineSegment_FromRay  (Ray* ray, LineSegment* out);
-    cstr LineSegment_ToString (LineSegment*);
-  ]]
+    ffi.cdef [[
+        void LineSegment_ToRay    (LineSegment*, Ray* out);
+        void LineSegment_FromRay  (Ray* ray, LineSegment* out);
+        cstr LineSegment_ToString (LineSegment*);
+    ]]
 end
 
 do -- Global Symbol Table

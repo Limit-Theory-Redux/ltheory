@@ -5,16 +5,16 @@ local Engine
 
 do -- C Definitions
     ffi.cdef [[
-    void   Engine_Init          (int glVersionMajor, int glVersionMinor);
-    void   Engine_Free          ();
-    void   Engine_Abort         ();
-    int    Engine_GetBits       ();
-    double Engine_GetTime       ();
-    cstr   Engine_GetVersion    ();
-    bool   Engine_IsInitialized ();
-    void   Engine_Terminate     ();
-    void   Engine_Update        ();
-  ]]
+        void   Engine_Init          (int glVersionMajor, int glVersionMinor);
+        void   Engine_Free          ();
+        void   Engine_Abort         ();
+        int    Engine_GetBits       ();
+        double Engine_GetTime       ();
+        cstr   Engine_GetVersion    ();
+        bool   Engine_IsInitialized ();
+        void   Engine_Terminate     ();
+        void   Engine_Update        ();
+    ]]
 end
 
 do -- Global Symbol Table

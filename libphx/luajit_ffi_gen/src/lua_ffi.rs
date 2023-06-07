@@ -5,7 +5,7 @@ use crate::{args::AttrArgs, impl_info::ImplInfo};
 const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
 const LUAJIT_FFI_GEN_DIR: &str = "../script/ffi";
 // TODO: change to 4 spaces after Lua code refactoring
-const IDENT: &str = "  ";
+const IDENT: &str = "    ";
 
 /// Generate Lua FFI file
 pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
@@ -79,7 +79,7 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
         writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
         writeln!(
             &mut file,
-            "{IDENT}{IDENT}__call  = function (t, ...) return {module_name}_t(...) end,"
+            "{IDENT}{IDENT}__call = function(t, ...) return {module_name}_t(...) end,"
         )
         .unwrap();
         writeln!(&mut file, "{IDENT}}}\n").unwrap();
@@ -110,7 +110,7 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
         {
             writeln!(
                 &mut file,
-                "{IDENT}{IDENT}__tostring = function (self) return ffi.string(libphx.{module_name}_{}(self)) end,",
+                "{IDENT}{IDENT}__tostring = function(self) return ffi.string(libphx.{module_name}_{}(self)) end,",
                 method.as_ffi_name()
             )
             .unwrap();
@@ -266,7 +266,7 @@ fn write_metatype(
     if attr_args.is_clone() {
         writeln!(
             file,
-            "{IDENT}{IDENT}{IDENT}{0:<1$} = function (x) return {module_name}_t(x) end,",
+            "{IDENT}{IDENT}{IDENT}{0:<1$} = function(x) return {module_name}_t(x) end,",
             "clone", max_method_name_len
         )
         .unwrap();
@@ -276,7 +276,7 @@ fn write_metatype(
     if attr_args.is_managed() {
         writeln!(
             file,
-            "{IDENT}{IDENT}{IDENT}{0:<1$} = function (self) return ffi.gc(self, libphx.{module_name}_Free) end,",
+            "{IDENT}{IDENT}{IDENT}{0:<1$} = function(self) return ffi.gc(self, libphx.{module_name}_Free) end,",
             "managed", max_method_name_len
         )
         .unwrap();
