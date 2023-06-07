@@ -62,7 +62,7 @@ end
 return My_Struct
 ```
 
-By default function names are converted to camel case but it is possible to set a user defined names. See **Attribute parameters** section below.
+By default function names are converted to camel case but it is possible to set a user defined names. See **Attribute parameters** section below for details.
 
 There are 2 lists in [src/method_info.rs] file that contain additional configuration:
 - **RUST_TO_LUA_TYPE_MAP** - maps Rust types to Lua ones
@@ -71,7 +71,7 @@ There are 2 lists in [src/method_info.rs] file that contain additional configura
 Extend these lists with necessary data.
 
 In all other cases types are following these rules:
-- **bool** and **number** types  are passed always by value unless it's ```&mut```
+- **bool** and **number** types  are passed always by value unless it's **&mut**
 - **&str**/**String** is converted to **\*const libc::c_char**
 - all other types are accepted either as **&** or **&mut** into the C wrapper, and are boxed (**Box\<T\>**) as outer
 
