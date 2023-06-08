@@ -75,7 +75,7 @@ In all other cases types are following these rules:
 - **&str**/**String** is converted to **\*const libc::c_char**
 - all other types are accepted either as **&** or **&mut** into the C wrapper, and are boxed (**Box\<T\>**) as outer
 
-By default all generated Lua code created in the **libphx/script/ffi** folder. User can manually set this folder via **LUAJIT_FFI_GEN_DIR** environment variable. Path should be either absolute or relative to the **libphx/luajit_ffi_gen** folder.
+By default all generated Lua code created in the **phx/script/ffi** folder. User can manually set this folder via **LUAJIT_FFI_GEN_DIR** environment variable. Path should be either absolute or relative to the **libphx/luajit_ffi_gen** folder.
 
 ## Attribute parameters
 

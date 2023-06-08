@@ -1,0 +1,37 @@
+[package]
+name = "phx"
+# TODO: do we really need these 2 fields?
+# publish = false
+# autobins = false
+
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# workspace crates
+fmod-sys.workspace = true
+luajit-ffi-gen.workspace = true
+
+# release crates
+chrono = { workspace = true, features = ["clock", "std", "wasmbind"] }
+flate2 = { workspace = true, features = ["rust_backend"] }
+freetype-sys.workspace = true
+glam = { workspace = true, features = ["std", "scalar-math"] }
+image = { workspace = true, features = ["jpeg", "png"] }
+libc.workspace = true
+memoffset.workspace = true
+mlua = { workspace = true, features = ["luajit52", "vendored"] }
+printf-compat.workspace = true
+rodio.workspace = true
+sdl2-sys = { workspace = true, features = ["bundled", "static-link"] }
+
+[build-dependencies]
+cmake.workspace = true
+cc = { workspace = true, features = ["parallel"] }
+cbindgen.workspace = true
+gl_generator.workspace = true

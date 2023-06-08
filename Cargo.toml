@@ -1,21 +1,44 @@
 [workspace]
-members = []
+resolver = "2"
+members = ["engine/bin/*", "engine/lib/*"]
 
-[package]
-name = "ltheory"
-authors = ["Limit Theory Redux Team"]
+[workspace.package]
 version = "0.1.0"
-publish = false
+authors = ["Limit Theory Redux Team"]
 edition = "2021"
+license = "Unlicense"
+# TODO: do we really need these 2 fields?
+publish = false
 autobins = false
 
-[[bin]]
-path = "src/Main.rs"
-name = "ltr"
+[workspace.dependencies]
+# workspace bin crates
+ltr = { path = "engine/bin/ltr" }
 
-[dependencies]
-libc = "0.2"
-phx = { path = "libphx" }
+# workspace lib crates
+phx = { path = "engine/lib/phx" }
+fmod-sys = { path = "engine/lib/fmod-sys" }
+luajit-ffi-gen = { path = "engine/lib/luajit-ffi-gen" }
 
-[build-dependencies]
-winres = "0.1.12"
+# release crates
+chrono = { version = "0.4.24", default-features = false }
+flate2 = { version = "1.0.25", default-features = false }
+freetype-sys = { version = "0.17", default-features = false }
+glam = { version = "0.24", default-features = false }
+image = { version = "0.24.6", default-features = false }
+libc = { version = "0.2.146", default-features = false }
+memoffset = { version = "0.9.0", default-features = false }
+mlua = { version = "0.8", default-features = false }
+printf-compat = { version = "0.1.1", default-features = false }
+rodio = { version = "0.17.0", default-features = false }
+sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "master", default-features = false }
+proc-macro2 = { version = "1.0", default-features = false }
+quote = { version = "1.0", default-features = false }
+syn = { version = "2.0", default-features = false }
+
+# test / development crates
+cmake = { version = "0.1", default-features = false }
+cc = { version = "1.0", default-features = false }
+cbindgen = { version = "0.24", default-features = false }
+gl_generator = { version = "0.14", default-features = false }
+winres = { version = "0.1.12", default-features = false }

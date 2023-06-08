@@ -3,7 +3,7 @@ use std::{env::VarError, fs::File, io::Write, path::PathBuf};
 use crate::{args::AttrArgs, impl_info::ImplInfo};
 
 const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
-const LUAJIT_FFI_GEN_DIR: &str = "../script/ffi";
+const LUAJIT_FFI_GEN_DIR: &str = "../phx/script/ffi";
 // TODO: change to 4 spaces after Lua code refactoring
 const IDENT: &str = "    ";
 
