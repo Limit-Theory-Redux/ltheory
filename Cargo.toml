@@ -8,8 +8,8 @@ authors = ["Limit Theory Redux Team"]
 edition = "2021"
 license = "Unlicense"
 # TODO: do we really need these 2 fields?
-publish = false
-autobins = false
+# publish = false
+# autobins = false
 
 [workspace.dependencies]
 # workspace bin crates
