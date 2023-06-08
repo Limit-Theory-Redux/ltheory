@@ -9,7 +9,7 @@ fn main() {
     {
         // App Icon
         WindowsResource::new()
-            .set_icon("res/images/LTR-Icon.ico")
+            .set_icon("../../../res/images/LTR-Icon.ico")
             .compile()
             .unwrap();
 
