@@ -1551,6 +1551,9 @@ function HUD:onDraw(focus, active)
             self:drawTacticalMap(self.enabled)
             self:drawPlayerHullInteg(self.enabled)
             self:drawTargetHullInteg(self.enabled)
+            self:drawTargets(self.enabled)
+            self:drawReticle(self.enabled)
+            self:drawLock(self.enabled)
         end
 
         self:drawDockPrompt(self.enabled)
