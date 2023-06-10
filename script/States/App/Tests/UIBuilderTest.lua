@@ -7,7 +7,7 @@ local Button = require('Types.UI.Button')
 local rng = RNG.FromTime()
 
 local useRenderer = true
-local testGroup = rng:choose({"X", "Y"})
+local testGroup = rng:choose({ "X", "Y" })
 
 local time = 0
 local debugTestShowInS = 1
@@ -30,87 +30,55 @@ local function testCallback3()
 end
 
 -- remove later
-local testContainer = function() return {
-    padding = { 10, 10 },
-    align = { 0.5, 0.5 },
-    group = testGroup,
-    [1] = Text:new {
-        font = "Exo2Bold",
-        size = 14,
-        color = { r = 1, g = 1, b = 1, a = 1 },
-        text = "Hello World!"
-    },
-    [2] = Spacer:new {
-        size = 16
-    },
-    [3] = Text:new {
-        font = "Exo2Bold",
-        size = 12,
-        color = { r = 1, g = .4, b = .4, a = 1 },
-        text = "Horizontal!"
-    },
-    [4] = Button:new {
-        title = "Button",
-        callback = testCallback
+local testContainer = function ()
+    return {
+        padding = { 10, 10 },
+        align = { 0.5, 0.5 },
+        group = testGroup,
+        contents = {
+            [1] = Text:new { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+                text = "Hello World!" },
+            [2] = Spacer:new { size = 16 },
+            [3] = Text:new { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey!" },
+            [4] = Button:new { title = "Button", callback = testCallback }
+        }
     }
-} end
+end
 
 -- remove later
-local testContainer2 = function() return {
-    align = { 0.5, 0.5 },
-    padding = { 10, 10 },
-    group = testGroup,
-    [1] = Text:new {
-        font = "Exo2Bold",
-        size = 14,
-        color = { r = 1, g = 1, b = 1, a = 1 },
-        text = "Hello World 2!"
-    },
-    [2] = Spacer:new {
-        size = 16
-    },
-    [3] = Text:new {
-        group = "X",
-        font = "Exo2Bold",
-        size = 12,
-        color = { r = 1, g = .4, b = .4, a = 1 },
-        text = "Vertical!"
-    },
-    [4] = Button:new {
-        title = "Button",
-        callback = testCallback2
+local testContainer2 = function ()
+    return {
+        align = { 0.5, 0.5 },
+        padding = { 10, 10 },
+        group = testGroup,
+        contents = {
+            [1] = Text:new { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+                text = "Hello World 2!" },
+            [2] = Spacer:new { size = 16 },
+            [3] = Text:new { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 2!" },
+            [4] = Button:new { title = "Button", callback = testCallback2 }
+        }
     }
-} end
+end
 
 -- remove later
-local testContainer3 = function() return {
-    align = { 0.5, 0.5 },
-    padding = { 10, 10 },
-    group = testGroup,
-    [1] = Text:new {
-        font = "Exo2Bold",
-        size = 14,
-        color = { r = 1, g = 1, b = 1, a = 1 },
-        text = "Hello World 3!"
-    },
-    [2] = Spacer:new {
-        size = 16
-    },
-    [3] = Text:new {
-        group = "X",
-        font = "Exo2Bold",
-        size = 12,
-        color = { r = 1, g = .4, b = .4, a = 1 },
-        text = "Vertical!"
-    },
-    [4] = Button:new {
-        title = "Button",
-        callback = testCallback3
+local testContainer3 = function ()
+    return {
+        align = { 0.5, 0.5 },
+        padding = { 10, 10 },
+        group = testGroup,
+        contents = {
+            [1] = Text:new { font = "Exo2Bold", size = 14, color = { r = 1, g = 1, b = 1, a = 1 },
+                text = "Hello World 3!" },
+            [2] = Spacer:new { size = 16 },
+            [3] = Text:new { font = "Exo2Bold", size = 12, color = { r = 1, g = .4, b = .4, a = 1 }, text = "Hey 3!" },
+            [4] = Button:new { title = "Button", callback = testCallback3 }
+        }
     }
-} end
+end
 
 local function createWindow()
-    testGroup = rng:choose({"X", "Y"})
+    testGroup = rng:choose({ "X", "Y" })
 
     local testWindow = UIBuilder:buildWindow {
         title = "UI Builder Test",
@@ -126,15 +94,16 @@ local function createWindow()
     Test.page[testWindow.guid] = testWindow
 end
 
-local createWindowContainer = function() return {
-    align = { 0.5, 0.5 },
-    padding = { 10, 10 },
-    group = testGroup,
-    [1] = Button:new{
-        title = "Create Window",
-        callback = createWindow
+local createWindowContainer = function ()
+    return {
+        align = { 0.5, 0.5 },
+        padding = { 10, 10 },
+        group = testGroup,
+        contents = {
+            [1] = Button:new { title = "Create Window", callback = createWindow }
+        }
     }
-} end
+end
 
 function Test:onInit()
     --* Audio initializations *--
@@ -146,7 +115,7 @@ function Test:onInit()
 
     local uiBuilderWindow = UIBuilder:buildWindow {
         title = "UI Builder Test Tools",
-        group = rng:choose({"X", "Y"}),
+        group = rng:choose({ "X", "Y" }),
         containers = {
             createWindowContainer()
         }

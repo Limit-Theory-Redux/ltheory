@@ -55,16 +55,16 @@ function UIBuilder:buildWindow(args)
             end
 
             -- render content
-            for _, content in ipairs(container) do
+            for _, element in ipairs(container.contents) do
                 -- temp until i figure out how to do groups properly
-                if not content.group or content.group == "X" then
+                if not element.group or element.group == "X" then
                     HmGui.BeginGroupX()
-                elseif content.group == "Y" then
+                elseif element.group == "Y" then
                     HmGui.BeginGroupY()
                 end
                 HmGui.SetAlign(0.5, 0.5)
 
-                content.render()
+                element.render()
                 HmGui.EndGroup()
             end
 
