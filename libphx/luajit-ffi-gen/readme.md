@@ -97,6 +97,11 @@ By default all generated Lua code created in the **libphx/script/ffi** folder. U
 
 ## Macro expansion
 
+Install **cargo-expand**:
+```bash
+cargo install cargo-expand
+```
+
 To expand attribute macro and see i.e. window.rs expansion, run:
 ```bash
 cargo expand -p phx window
