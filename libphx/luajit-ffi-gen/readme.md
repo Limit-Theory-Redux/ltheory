@@ -64,6 +64,8 @@ return My_Struct
 
 By default function names are converted to camel case but it is possible to set a user defined names. See **Attribute parameters** section below for details.
 
+If same structure needs other methods that should not be exposed as C API, just put them in another **impl** block.
+
 There are 2 lists in [src/method_info.rs] file that contain additional configuration:
 - **RUST_TO_LUA_TYPE_MAP** - maps Rust types to Lua ones
 - **COPY_TYPES** - types that are passed as is in and out of C function bindings
@@ -102,5 +104,5 @@ cargo expand -p phx window
 
 for test:
 ```bash
-cargo expand -p luajit_ffi_gen --test basic_test
+cargo expand -p luajit-ffi-gen --test basic_test
 ```
