@@ -13,6 +13,7 @@ function Text:new(args)
     end
 
     local newText = {}
+    newText.group = args.group
     newText.font = args.font or "Exo2Bold"
     newText.size = args.size or 14
     newText.color = args.color or { 1, 1, 1, 1 }

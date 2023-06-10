@@ -11,16 +11,22 @@ function UIBuilder:buildWindow(args)
     end
 
     local newWindow = {
+        guid = guidToKey(GUID.Create()),
         title = args.title,
         group = args.group,
+        canClose = args.canClose,
         containers = {},
         page = {}
     }
+
+    newWindow.close = false
 
     newWindow.containers = args.containers
 
     newWindow.render = function()
         HmGui.BeginWindow(newWindow.title)
+        HmGui.PushFont(Cache.Font("Exo2Bold", 12))
+        HmGui.TextColored(newWindow.title, 1, 1, 1, 0.25)
 
         -- temp until i figure out how to do groups properly
         if newWindow.group == "Y" or not newWindow.group then
@@ -50,8 +56,14 @@ function UIBuilder:buildWindow(args)
 
             -- render content
             for _, content in ipairs(container) do
-                HmGui.BeginGroupY()
+                -- temp until i figure out how to do groups properly
+                if not content.group or content.group == "X" then
+                    HmGui.BeginGroupX()
+                elseif content.group == "Y" then
+                    HmGui.BeginGroupY()
+                end
                 HmGui.SetAlign(0.5, 0.5)
+
                 content.render()
                 HmGui.EndGroup()
             end
@@ -62,6 +74,10 @@ function UIBuilder:buildWindow(args)
         end
 
         HmGui.EndGroup()
+
+        if args.canClose then
+            if HmGui.Button("Close") then newWindow.close = true end
+        end
         HmGui.EndWindow()
     end
 

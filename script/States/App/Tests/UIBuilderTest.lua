@@ -9,8 +9,8 @@ local rng = RNG.FromTime()
 local useRenderer = true
 
 local time = 0
-local debugTestShowInS = 2
-function Test:testCallback()
+local debugTestShowInS = 1
+local function testCallback()
     print("Executed Callback")
     Test.callbackTest = true
     time = 0
@@ -41,8 +41,8 @@ local testContainer = function() return {
         text = "Horizontal!"
     },
     [4] = Button:new {
-        title = "A button",
-        callback = Test.testCallback
+        title = "Button",
+        callback = testCallback
     }
 } end
 
@@ -61,13 +61,14 @@ local testContainer2 = function() return {
         size = 16
     },
     [3] = Text:new {
+        group = "X",
         font = "Exo2Bold",
         size = 12,
         color = { r = 1, g = .4, b = .4, a = 1 },
         text = "Vertical!"
     },
     [4] = Button:new {
-        title = "A button",
+        title = "Button",
         callback = testCallback2
     }
 } end
@@ -87,14 +88,40 @@ local testContainer3 = function() return {
         size = 16
     },
     [3] = Text:new {
+        group = "X",
         font = "Exo2Bold",
         size = 12,
         color = { r = 1, g = .4, b = .4, a = 1 },
         text = "Vertical!"
     },
     [4] = Button:new {
-        title = "A button",
-        callback = Test.testCallback
+        title = "Button",
+        callback = testCallback
+    }
+} end
+
+local function createWindow()
+    local testWindow = UIBuilder:buildWindow {
+        title = "UI Builder Test",
+        group = "X",
+        canClose = true,
+        containers = {
+            testContainer(),
+            testContainer2(),
+            testContainer3()
+        }
+    }
+
+    Test.page[testWindow.guid] = testWindow
+end
+
+local createWindowContainer = function() return {
+    align = { 0.5, 0.5 },
+    padding = { 10, 10 },
+    group = "Y",
+    [1] = Button:new{
+        title = "Create Window",
+        callback = createWindow
     }
 } end
 
@@ -105,17 +132,16 @@ function Test:onInit()
     self.renderer = Renderer()
 
     self.page = {}
-    local testWindow = UIBuilder:buildWindow {
-        title = "UI Builder Test",
-        group = "X",
+
+    local uiBuilderWindow = UIBuilder:buildWindow {
+        title = "UI Builder Tools",
+        group = "Y",
         containers = {
-            testContainer(),
-            testContainer2(),
-            testContainer3()
+            createWindowContainer()
         }
     }
 
-    table.insert(self.page, testWindow)
+    Test.page[uiBuilderWindow.guid] = uiBuilderWindow
 end
 
 function Test:onInput()
@@ -127,8 +153,14 @@ function Test:onUpdate(dt)
     end
 
     HmGui.Begin(self.resX, self.resY)
-    for _, window in ipairs(self.page) do
+    for guid, window in pairs(self.page) do
+        if window.close then
+            self.page[guid] = nil
+            goto skip
+        end
+
         window.render()
+        ::skip::
     end
     HmGui.End()
 end
