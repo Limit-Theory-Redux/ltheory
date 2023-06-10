@@ -7,6 +7,7 @@ local Button = require('Types.UI.Button')
 local rng = RNG.FromTime()
 
 local useRenderer = true
+local testGroup = rng:choose({"X", "Y"})
 
 local time = 0
 local debugTestShowInS = 1
@@ -18,13 +19,21 @@ end
 
 local function testCallback2()
     print("Executed Callback 2")
+    Test.callbackTest = true
+    time = 0
+end
+
+local function testCallback3()
+    print("Executed Callback 3")
+    Test.callbackTest = true
+    time = 0
 end
 
 -- remove later
 local testContainer = function() return {
     padding = { 10, 10 },
     align = { 0.5, 0.5 },
-    group = "X",
+    group = testGroup,
     [1] = Text:new {
         font = "Exo2Bold",
         size = 14,
@@ -50,7 +59,7 @@ local testContainer = function() return {
 local testContainer2 = function() return {
     align = { 0.5, 0.5 },
     padding = { 10, 10 },
-    group = "Y",
+    group = testGroup,
     [1] = Text:new {
         font = "Exo2Bold",
         size = 14,
@@ -77,7 +86,7 @@ local testContainer2 = function() return {
 local testContainer3 = function() return {
     align = { 0.5, 0.5 },
     padding = { 10, 10 },
-    group = "Y",
+    group = testGroup,
     [1] = Text:new {
         font = "Exo2Bold",
         size = 14,
@@ -96,14 +105,16 @@ local testContainer3 = function() return {
     },
     [4] = Button:new {
         title = "Button",
-        callback = testCallback
+        callback = testCallback3
     }
 } end
 
 local function createWindow()
+    testGroup = rng:choose({"X", "Y"})
+
     local testWindow = UIBuilder:buildWindow {
         title = "UI Builder Test",
-        group = "X",
+        group = testGroup,
         canClose = true,
         containers = {
             testContainer(),
@@ -118,7 +129,7 @@ end
 local createWindowContainer = function() return {
     align = { 0.5, 0.5 },
     padding = { 10, 10 },
-    group = "Y",
+    group = testGroup,
     [1] = Button:new{
         title = "Create Window",
         callback = createWindow
@@ -134,8 +145,8 @@ function Test:onInit()
     self.page = {}
 
     local uiBuilderWindow = UIBuilder:buildWindow {
-        title = "UI Builder Tools",
-        group = "Y",
+        title = "UI Builder Test Tools",
+        group = rng:choose({"X", "Y"}),
         containers = {
             createWindowContainer()
         }
