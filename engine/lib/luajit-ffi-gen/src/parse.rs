@@ -83,9 +83,9 @@ fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
 /// Look for the bind attribute an extract its parameters.
 ///
 /// Expected format:
-/// ```
+/// ```ignore
 /// #[bind(name = "lua_function_name")]
-/// fm my_cool_method(...) {...}
+/// fn my_cool_method(...) {...}
 /// ```
 fn get_bind_args(attrs: &mut Vec<Attribute>) -> Result<BindArgs> {
     let mut res = None;

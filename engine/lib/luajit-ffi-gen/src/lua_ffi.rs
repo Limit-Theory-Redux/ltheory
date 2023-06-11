@@ -4,7 +4,6 @@ use crate::{args::AttrArgs, impl_info::ImplInfo};
 
 const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
 const LUAJIT_FFI_GEN_DIR: &str = "../phx/script/ffi";
-// TODO: change to 4 spaces after Lua code refactoring
 const IDENT: &str = "    ";
 
 /// Generate Lua FFI file
@@ -38,6 +37,12 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
         "Cannot create file: {luajit_ffi_module_path:?}\nCurrent folder: {:?}",
         std::env::current_dir()
     ));
+
+    // Generate metatype section only if there is at least one method with `self` parameter
+    let gen_metatype = impl_info
+        .methods
+        .iter()
+        .any(|method| method.self_param.is_some());
 
     // Header
     writeln!(
@@ -75,7 +80,7 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
 
     writeln!(&mut file, "{IDENT}}}\n").unwrap();
 
-    if attr_args.with_meta() && attr_args.is_clone() {
+    if gen_metatype && attr_args.is_clone() {
         writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
         writeln!(
             &mut file,
@@ -98,11 +103,12 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
     writeln!(&mut file, "end\n").unwrap();
 
     // Metatype for class instances
-    if attr_args.with_meta() {
+    if gen_metatype {
         writeln!(&mut file, "do -- Metatype for class instances").unwrap();
         writeln!(&mut file, "{IDENT}local t  = ffi.typeof('{module_name}')").unwrap();
         writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
 
+        // Add tostring implementation if declared
         if let Some(method) = impl_info
             .methods
             .iter()
@@ -150,6 +156,7 @@ fn write_c_defs(
     let mut max_method_name_len = if is_managed { "void".len() } else { 0 };
     let mut max_ret_len = if is_managed { "Free".len() } else { 0 };
 
+    // Calculate max len of method return parameters and method names to use them in formatting
     impl_info.methods.iter().for_each(|method| {
         let len = method
             .ret
@@ -197,11 +204,13 @@ fn write_c_defs(
             .map(|param| format!("{} {}", param.ty.as_ffi_string(), param.as_ffi_name()))
             .collect();
 
-        let self_str = if let Some(_) = &method.self_param {
+        let self_str = if let Some(self_type) = &method.self_param {
+            let const_str = if !self_type.is_mutable { " const" } else { "" };
+
             if params_str.is_empty() {
-                format!("{module_name}*")
+                format!("{module_name}{const_str}*")
             } else {
-                format!("{module_name}*, ")
+                format!("{module_name}{const_str}*, ")
             }
         } else {
             "".into()
@@ -217,6 +226,7 @@ fn write_c_defs(
         .unwrap();
     });
 
+    // Return max len of the method names to avoid recalculation in the next step
     max_method_name_len
 }
 
@@ -292,7 +302,7 @@ fn write_metatype(
     impl_info
         .methods
         .iter()
-        .filter(|method| !method.bind_args.is_constructor())
+        .filter(|method| method.self_param.is_some())
         .for_each(|method| {
             writeln!(
                 file,

@@ -7,18 +7,16 @@ use super::arg::Arg;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum BindMethodRole {
-    Constructor,
     ToString,
 }
 
 impl BindMethodRole {
     fn try_from(value: String, span: Span) -> std::result::Result<Self, Error> {
         match value.as_str() {
-            "constructor" => Ok(Self::Constructor),
             "to_string" => Ok(Self::ToString),
             _ => Err(Error::new(
                 span,
-                "expected 'role' bind attribute parameter value: constructor, to_string",
+                "expected 'role' bind attribute parameter value: to_string",
             )),
         }
     }
@@ -38,17 +36,11 @@ impl BindArgs {
         self.name.clone()
     }
 
-    /// If true then the function constructs an object.
-    /// It won't be added to the metatype section of the Lua FFI file.
-    pub fn is_constructor(&self) -> bool {
-        let Some(ty) = self.role else { return false; };
-        ty == BindMethodRole::Constructor
-    }
-
     /// If true then the function return string representation of the object.
-    /// 'tostring' binding will be added to the metatype sectionof the Lua FFI file.
+    /// 'tostring' binding will be added to the metatype section of the Lua FFI file.
     pub fn is_to_string(&self) -> bool {
         let Some(ty) = self.role else { return false; };
+
         ty == BindMethodRole::ToString
     }
 }

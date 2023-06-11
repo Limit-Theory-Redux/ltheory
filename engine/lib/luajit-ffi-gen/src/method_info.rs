@@ -91,7 +91,11 @@ impl TypeInfo {
         };
 
         if self.is_reference && self.variant != TypeVariant::Str {
-            format!("{}*", res)
+            if self.is_mutable {
+                format!("{}*", res)
+            } else {
+                format!("{} const*", res)
+            }
         } else {
             res
         }
@@ -113,6 +117,7 @@ pub enum TypeVariant {
     F64,
     Str,
     String,
+    CString,
     Custom(String),
 }
 
@@ -136,6 +141,7 @@ impl TypeVariant {
             "f64" => Self::F64,
             "str" => Self::Str,
             "String" => Self::String,
+            "CString" => Self::CString,
             _ => return None,
         };
 
@@ -157,6 +163,7 @@ impl TypeVariant {
             Self::F64 => "f64",
             Self::Str => "str",
             Self::String => "String",
+            Self::CString => "CString",
             Self::Custom(val) => return val.clone(),
         }
         .into()
@@ -175,8 +182,7 @@ impl TypeVariant {
             Self::U64 => "uint64",
             Self::F32 => "float",
             Self::F64 => "double",
-            Self::Str => "cstr",
-            Self::String => "cstr",
+            Self::Str | Self::String | Self::CString => "cstr",
             Self::Custom(val) => return val.clone(),
         }
         .into()
