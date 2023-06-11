@@ -97,7 +97,9 @@ fn wrap_param(module_name: &str, param: &ParamInfo) -> TokenStream {
 
 fn wrap_type(module_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
     match &ty.variant {
-        TypeVariant::Str | TypeVariant::String => quote! { *const libc::c_char },
+        TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
+            quote! { *const libc::c_char }
+        }
         TypeVariant::Custom(ty_name) => {
             let ty_ident = format_ident!("{ty_name}");
 
@@ -150,8 +152,8 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
 
             match param.ty.variant {
                 TypeVariant::Str => quote! { #name_ident.as_str() },
-                // TODO: do we accept &String?
                 TypeVariant::String => quote! { #name_ident.as_string() },
+                TypeVariant::CString => quote! { #name_ident.as_cstring() },
                 TypeVariant::Custom(_) => quote! { #name_ident },
                 _ => {
                     if param.ty.is_mutable {
@@ -170,6 +172,9 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         match &ty.variant {
             TypeVariant::Str | TypeVariant::String => quote! {
                 static_string!(#accessor_token(#(#param_tokens),*))
+            },
+            TypeVariant::CString => quote! {
+                static_cstring!(#accessor_token(#(#param_tokens),*))
             },
             TypeVariant::Custom(custom_ty)
                 if ty.is_self() || !TypeInfo::is_copyable(&custom_ty) =>
