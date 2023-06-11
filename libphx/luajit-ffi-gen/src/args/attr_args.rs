@@ -8,7 +8,6 @@ use super::arg::Arg;
 #[derive(Default)]
 pub struct AttrArgs {
     name: Option<String>,
-    meta: bool,
     managed: bool,
     clone: bool,
 
@@ -20,11 +19,6 @@ impl AttrArgs {
     /// otherwise Rust type name is used.
     pub fn name(&self) -> Option<String> {
         self.name.clone()
-    }
-
-    /// Generate metatype section in Lua FFI file
-    pub fn with_meta(&self) -> bool {
-        self.meta
     }
 
     /// If true then Lua will be responsible for cleaning object memory.
@@ -62,16 +56,6 @@ impl Parse for AttrArgs {
                         ));
                     }
                 }
-                "meta" => {
-                    if let Lit::Bool(val) = &param.value.lit {
-                        res.meta = val.value();
-                    } else {
-                        return Err(Error::new(
-                            param.value.span(),
-                            "expected 'meta' attribute parameter as bool literal",
-                        ));
-                    }
-                }
                 "managed" => {
                     if let Lit::Bool(val) = &param.value.lit {
                         res.managed = val.value();
@@ -106,7 +90,7 @@ impl Parse for AttrArgs {
                     return Err(Error::new(
                         param.name.span(),
                         // NOTE: do not show no_lua_ffi since it is test only
-                        format!("expected attribute parameter value: name, meta, managed, clone"),
+                        format!("expected attribute parameter value: name, managed, clone"),
                     ));
                 }
             }

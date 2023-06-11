@@ -38,6 +38,12 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
         std::env::current_dir()
     ));
 
+    // Generate metatype section only if there is at leas one method with self parameter
+    let gen_metatype = impl_info
+        .methods
+        .iter()
+        .any(|method| method.self_param.is_some());
+
     // Header
     writeln!(
         &mut file,
@@ -74,7 +80,7 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
 
     writeln!(&mut file, "{IDENT}}}\n").unwrap();
 
-    if attr_args.with_meta() && attr_args.is_clone() {
+    if gen_metatype && attr_args.is_clone() {
         writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
         writeln!(
             &mut file,
@@ -97,11 +103,12 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
     writeln!(&mut file, "end\n").unwrap();
 
     // Metatype for class instances
-    if attr_args.with_meta() {
+    if gen_metatype {
         writeln!(&mut file, "do -- Metatype for class instances").unwrap();
         writeln!(&mut file, "{IDENT}local t  = ffi.typeof('{module_name}')").unwrap();
         writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
 
+        // Add tostring implementation if declared
         if let Some(method) = impl_info
             .methods
             .iter()
@@ -295,7 +302,7 @@ fn write_metatype(
     impl_info
         .methods
         .iter()
-        .filter(|method| !method.bind_args.is_constructor())
+        .filter(|method| method.self_param.is_some())
         .for_each(|method| {
             writeln!(
                 file,

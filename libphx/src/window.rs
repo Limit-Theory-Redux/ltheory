@@ -29,9 +29,9 @@ impl Drop for Window {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(meta = true, managed = true)]
+#[luajit_ffi_gen::luajit_ffi(managed = true)]
 impl Window {
-    #[bind(name = "Create", role = "constructor")]
+    #[bind(name = "Create")]
     pub fn new(
         title: &str,
         x: WindowPos,
