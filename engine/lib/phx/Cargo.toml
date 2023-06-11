@@ -33,5 +33,4 @@ sdl2-sys = { workspace = true, features = ["bundled", "static-link"] }
 [build-dependencies]
 cmake.workspace = true
 cc = { workspace = true, features = ["parallel"] }
-cbindgen.workspace = true
 gl_generator.workspace = true

@@ -1,4 +1,4 @@
-# NOTE: we don't use workspace referenses here since fmod-sys will be replaced with crates.io equivalent
+# NOTE: we don't use workspace references here since fmod-sys will be replaced with crates.io equivalent
 [package]
 name = "fmod-sys"
 authors = ["Limit Theory Redux Team"]
