@@ -7,22 +7,22 @@ do -- C Definitions
     ffi.cdef [[
         void    Window_Free             (Window*);
         Window* Window_Create           (cstr title, WindowPos x, WindowPos y, int sx, int sy, WindowMode mode);
-        void    Window_BeginDraw        (Window*);
-        void    Window_EndDraw          (Window*);
-        void    Window_GetPosition      (Window*, Vec2i* out);
-        void    Window_GetSize          (Window*, Vec2i* out);
-        cstr    Window_GetTitle         (Window*);
-        void    Window_SetFullscreen    (Window*, bool fs);
-        void    Window_SetPosition      (Window*, WindowPos x, WindowPos y);
-        void    Window_SetSize          (Window*, int sx, int sy);
-        void    Window_SetTitle         (Window*, cstr title);
-        void    Window_SetVsync         (Window*, bool vsync);
+        void    Window_BeginDraw        (Window const*);
+        void    Window_EndDraw          (Window const*);
+        void    Window_GetPosition      (Window const*, Vec2i* out);
+        void    Window_GetSize          (Window const*, Vec2i* out);
+        cstr    Window_GetTitle         (Window const*);
+        void    Window_SetFullscreen    (Window const*, bool fs);
+        void    Window_SetPosition      (Window const*, WindowPos x, WindowPos y);
+        void    Window_SetSize          (Window const*, int sx, int sy);
+        void    Window_SetTitle         (Window const*, cstr title);
+        void    Window_SetVsync         (Window const*, bool vsync);
         void    Window_SetCursor        (Window*, cstr name, int hotx, int hoty);
-        void    Window_SetMousePosition (Window*, Vec2i* position);
-        void    Window_SetWindowGrab    (Window*, bool grabbed);
+        void    Window_SetMousePosition (Window const*, Vec2i const* position);
+        void    Window_SetWindowGrab    (Window const*, bool grabbed);
         void    Window_ToggleFullscreen (Window*);
-        void    Window_Hide             (Window*);
-        void    Window_Show             (Window*);
+        void    Window_Hide             (Window const*);
+        void    Window_Show             (Window const*);
     ]]
 end
 

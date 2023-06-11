@@ -91,7 +91,11 @@ impl TypeInfo {
         };
 
         if self.is_reference && self.variant != TypeVariant::Str {
-            format!("{}*", res)
+            if self.is_mutable {
+                format!("{}*", res)
+            } else {
+                format!("{} const*", res)
+            }
         } else {
             res
         }

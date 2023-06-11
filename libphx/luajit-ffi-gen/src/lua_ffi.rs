@@ -149,6 +149,7 @@ fn write_c_defs(
     let mut max_method_name_len = if is_managed { "void".len() } else { 0 };
     let mut max_ret_len = if is_managed { "Free".len() } else { 0 };
 
+    // Calculate max len of method return parameters and method names to use them in formatting
     impl_info.methods.iter().for_each(|method| {
         let len = method
             .ret
@@ -196,11 +197,13 @@ fn write_c_defs(
             .map(|param| format!("{} {}", param.ty.as_ffi_string(), param.as_ffi_name()))
             .collect();
 
-        let self_str = if let Some(_) = &method.self_param {
+        let self_str = if let Some(self_type) = &method.self_param {
+            let const_str = if !self_type.is_mutable { " const" } else { "" };
+
             if params_str.is_empty() {
-                format!("{module_name}*")
+                format!("{module_name}{const_str}*")
             } else {
-                format!("{module_name}*, ")
+                format!("{module_name}{const_str}*, ")
             }
         } else {
             "".into()
@@ -216,6 +219,7 @@ fn write_c_defs(
         .unwrap();
     });
 
+    // Return max len of the method names to avoid recalculation in the next step
     max_method_name_len
 }
 

@@ -5,9 +5,9 @@ local LineSegment
 
 do -- C Definitions
     ffi.cdef [[
-        void LineSegment_ToRay    (LineSegment*, Ray* out);
-        void LineSegment_FromRay  (Ray* ray, LineSegment* out);
-        cstr LineSegment_ToString (LineSegment*);
+        void LineSegment_ToRay    (LineSegment const*, Ray* out);
+        void LineSegment_FromRay  (Ray const* ray, LineSegment* out);
+        cstr LineSegment_ToString (LineSegment const*);
     ]]
 end
 
