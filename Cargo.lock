@@ -1013,7 +1013,7 @@ checksum = "518ef76f2f87365916b142844c16d8fefd85039bc5699050210a7778ee1cd1de"
 
 [[package]]
 name = "ltheory"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "libc",
  "phx",
@@ -1027,6 +1027,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cb00c1380f1b4b4928dd211c07301ffa34872a239e590bd3219d9e5b213face"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "luajit-ffi-gen"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.18",
 ]
 
 [[package]]
@@ -1342,6 +1351,7 @@ dependencies = [
  "glam",
  "image",
  "libc",
+ "luajit-ffi-gen",
  "memoffset",
  "mlua",
  "printf-compat",

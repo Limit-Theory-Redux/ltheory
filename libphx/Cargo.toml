@@ -16,7 +16,10 @@ libc = "0.2"
 chrono = "0.4.24"
 glam = { version = "0.24", features = ["scalar-math"] }
 image = "0.24.6"
-sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "master", features = ["bundled", "static-link"] }
+sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "master", features = [
+    "bundled",
+    "static-link",
+] }
 memoffset = "0.8"
 printf-compat = "0.1.1"
 rodio = "0.17.0"
@@ -24,6 +27,7 @@ flate2 = "1.0.25"
 mlua = { version = "0.8", features = ["luajit52", "vendored"] }
 freetype-sys = "0.17"
 fmod-sys = { path = "fmod-sys" }
+luajit-ffi-gen = { path = "luajit-ffi-gen" }
 
 [build-dependencies]
 cmake = "0.1"

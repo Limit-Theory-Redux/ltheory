@@ -1,11 +1,10 @@
 [workspace]
-members = [
-]
+members = []
 
 [package]
 name = "ltheory"
 authors = ["Limit Theory Redux Team"]
-version = "0.0.0"
+version = "0.1.0"
 publish = false
 edition = "2021"
 autobins = false
@@ -20,4 +19,3 @@ phx = { path = "libphx" }
 
 [build-dependencies]
 winres = "0.1.12"
-

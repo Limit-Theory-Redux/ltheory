@@ -5,31 +5,31 @@ local Window
 
 do -- C Definitions
     ffi.cdef [[
-    Window* Window_Create           (cstr title, WindowPos x, WindowPos y, int sx, int sy, WindowMode mode);
-    void    Window_Free             (Window*);
-    void    Window_BeginDraw        (Window*);
-    void    Window_EndDraw          (Window*);
-    void    Window_GetPosition      (Window*, Vec2i* out);
-    void    Window_GetSize          (Window*, Vec2i* out);
-    cstr    Window_GetTitle         (Window*);
-    void    Window_SetFullscreen    (Window*, bool);
-    void    Window_SetPosition      (Window*, WindowPos, WindowPos);
-    void    Window_SetSize          (Window*, int, int);
-    void    Window_SetTitle         (Window*, cstr);
-    void    Window_SetVsync         (Window*, bool);
-    void    Window_SetCursor        (Window*, cstr name, int hotx, int hoty);
-    void    Window_SetMousePosition (Window*, Vec2i*);
-    void    Window_SetWindowGrab    (Window*, bool);
-    void    Window_ToggleFullscreen (Window*);
-    void    Window_Hide             (Window*);
-    void    Window_Show             (Window*);
-  ]]
+        void    Window_Free             (Window*);
+        Window* Window_Create           (cstr title, WindowPos x, WindowPos y, int sx, int sy, WindowMode mode);
+        void    Window_BeginDraw        (Window const*);
+        void    Window_EndDraw          (Window const*);
+        void    Window_GetPosition      (Window const*, Vec2i* out);
+        void    Window_GetSize          (Window const*, Vec2i* out);
+        cstr    Window_GetTitle         (Window const*);
+        void    Window_SetFullscreen    (Window const*, bool fs);
+        void    Window_SetPosition      (Window const*, WindowPos x, WindowPos y);
+        void    Window_SetSize          (Window const*, int sx, int sy);
+        void    Window_SetTitle         (Window const*, cstr title);
+        void    Window_SetVsync         (Window const*, bool vsync);
+        void    Window_SetCursor        (Window*, cstr name, int hotx, int hoty);
+        void    Window_SetMousePosition (Window const*, Vec2i const* position);
+        void    Window_SetWindowGrab    (Window const*, bool grabbed);
+        void    Window_ToggleFullscreen (Window*);
+        void    Window_Hide             (Window const*);
+        void    Window_Show             (Window const*);
+    ]]
 end
 
 do -- Global Symbol Table
     Window = {
-        Create           = libphx.Window_Create,
         Free             = libphx.Window_Free,
+        Create           = libphx.Window_Create,
         BeginDraw        = libphx.Window_BeginDraw,
         EndDraw          = libphx.Window_EndDraw,
         GetPosition      = libphx.Window_GetPosition,
