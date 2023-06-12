@@ -7,7 +7,6 @@ use std::io::Cursor;
 use std::path::Path;
 use std::path::PathBuf;
 
-extern crate cbindgen;
 extern crate gl_generator;
 
 fn link_lib_from_cmake(lib: &str, root: &Path, path_segments: &[&str]) {
@@ -15,15 +14,6 @@ fn link_lib_from_cmake(lib: &str, root: &Path, path_segments: &[&str]) {
     path.extend(path_segments);
     println!("cargo:rustc-link-search=native={}", path.display());
     println!("cargo:rustc-link-lib={}", lib);
-}
-
-fn gen_bindings() {
-    let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    cbindgen::Builder::new()
-        .with_crate(crate_dir)
-        .generate()
-        .expect("Error generating bindings.")
-        .write_to_file("src/cpp/include/bindings.h");
 }
 
 fn main() {
@@ -56,8 +46,6 @@ fn main() {
         .build_target("libphx-external")
         .build();
     let deps_root = cmake_root.join("build").join("_deps");
-
-    // gen_bindings();
 
     // Build C++ files which haven't been ported yet.
     cc::Build::new()

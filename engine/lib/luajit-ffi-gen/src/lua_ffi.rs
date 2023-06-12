@@ -3,7 +3,7 @@ use std::{env::VarError, fs::File, io::Write, path::PathBuf};
 use crate::{args::AttrArgs, impl_info::ImplInfo};
 
 const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
-const LUAJIT_FFI_GEN_DIR: &str = "../script/ffi";
+const LUAJIT_FFI_GEN_DIR: &str = "../phx/script/ffi";
 const IDENT: &str = "    ";
 
 /// Generate Lua FFI file
@@ -38,7 +38,7 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
         std::env::current_dir()
     ));
 
-    // Generate metatype section only if there is at leas one method with self parameter
+    // Generate metatype section only if there is at least one method with `self` parameter
     let gen_metatype = impl_info
         .methods
         .iter()

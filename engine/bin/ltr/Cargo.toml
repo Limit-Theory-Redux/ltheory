@@ -1,0 +1,17 @@
+[package]
+name = "ltr"
+
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+# workspace crates
+phx.workspace = true
+
+# release crates
+libc = "0.2.146"
+
+[build-dependencies]
+winres = "0.1.12"
