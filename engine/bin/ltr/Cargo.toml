@@ -14,7 +14,7 @@ edition.workspace = true
 phx.workspace = true
 
 # release crates
-libc.workspace = true
+libc = "0.2.146"
 
 [build-dependencies]
-winres.workspace = true
+winres = "0.1.12"
