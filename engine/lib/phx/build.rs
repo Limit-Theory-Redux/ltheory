@@ -1,5 +1,6 @@
 #![allow(unused_imports, dead_code)]
 use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
+
 use std::env;
 use std::fs;
 use std::fs::File;

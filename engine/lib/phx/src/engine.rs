@@ -1,20 +1,9 @@
 use crate::common::*;
-use crate::directory::*;
-use crate::file::*;
-use crate::gamepad::*;
 use crate::input::*;
 use crate::internal::*;
-use crate::joystick::*;
-use crate::keyboard::*;
-use crate::metric::*;
-use crate::mouse::*;
-use crate::profiler::*;
-use crate::resource::*;
-
 use crate::lua::*;
-use crate::shader_var::*;
-use crate::signal::*;
-use crate::time_stamp::*;
+use crate::render::*;
+use crate::system::*;
 
 use sdl2_sys::*;
 
