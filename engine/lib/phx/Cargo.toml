@@ -1,8 +1,5 @@
 [package]
 name = "phx"
-# TODO: do we really need these 2 fields?
-# publish = false
-# autobins = false
 
 version.workspace = true
 authors.workspace = true
