@@ -6,10 +6,6 @@ use std::io::Cursor;
 use std::path::Path;
 use std::path::PathBuf;
 
-extern crate bindgen;
-extern crate ureq;
-extern crate zip_extract;
-
 fn download(url: &str) -> Vec<u8> {
     let response = ureq::get(url).call().unwrap();
     assert!(response.has("Content-Length"));

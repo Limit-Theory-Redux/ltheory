@@ -8,8 +8,6 @@ use std::io::Cursor;
 use std::path::Path;
 use std::path::PathBuf;
 
-extern crate gl_generator;
-
 fn link_lib_from_cmake(lib: &str, root: &Path, path_segments: &[&str]) {
     let mut path = root.to_path_buf();
     path.extend(path_segments);
