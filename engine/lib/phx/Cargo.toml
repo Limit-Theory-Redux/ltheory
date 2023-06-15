@@ -18,7 +18,7 @@ luajit-ffi-gen.workspace = true
 chrono = "0.4.24"
 flate2 = "1.0.25"
 freetype-sys = "0.17.0"
-glam = "0.24.0"
+glam = { version = "0.24.0", features = ["scalar-math"] }
 image = "0.24.6"
 libc = "0.2.146"
 memoffset = "0.9.0"
