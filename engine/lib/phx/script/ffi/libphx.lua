@@ -62,7 +62,7 @@ end
 
 do -- Opaque Structs
     ffi.cdef [[
-    typedef struct Audio2       {} Audio2;
+    typedef struct Audio        {} Audio;
     typedef struct BSP          {} BSP;
     typedef struct BoxMesh      {} BoxMesh;
     typedef struct BoxTree      {} BoxTree;
@@ -87,7 +87,7 @@ do -- Opaque Structs
     typedef struct Shader       {} Shader;
     typedef struct ShaderState  {} ShaderState;
     typedef struct Socket       {} Socket;
-    typedef struct Sound2       {} Sound2;
+    typedef struct Sound        {} Sound;
     typedef struct SoundDesc    {} SoundDesc;
     typedef struct StrMap       {} StrMap;
     typedef struct StrMapIter   {} StrMapIter;
@@ -103,7 +103,7 @@ do -- Opaque Structs
   ]]
 
     libphx.Opaques = {
-        'Audio2',
+        'Audio',
         'BSP',
         'BoxMesh',
         'BoxTree',
@@ -128,7 +128,7 @@ do -- Opaque Structs
         'Shader',
         'ShaderState',
         'Socket',
-        'Sound2',
+        'Sound',
         'SoundDesc',
         'StrMap',
         'StrMapIter',

@@ -37,10 +37,6 @@ function PlanetTest:onInit()
     self.player = Player()
     GameState.player.humanPlayer = self.player
 
-    --* Audio initializations *--
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
-
     self:generate()
 
     DebugControl.ltheory = self

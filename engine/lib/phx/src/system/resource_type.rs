@@ -42,7 +42,7 @@ pub extern "C" fn ResourceType_ToString(this: ResourceType) -> *const libc::c_ch
         2 => return c_str!("Other"),
         3 => return c_str!("Script"),
         4 => return c_str!("Shader"),
-        5 => return c_str!("Sound2"),
+        5 => return c_str!("Sound"),
         6 => return c_str!("Tex1D"),
         7 => return c_str!("Tex2D"),
         8 => return c_str!("Tex3D"),

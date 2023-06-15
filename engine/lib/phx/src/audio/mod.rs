@@ -1,5 +1,5 @@
-mod audio2;
-mod sound2;
+mod audio;
+mod sound;
 
-pub use audio2::*;
-pub use sound2::*;
+pub use audio::*;
+pub use sound::*;

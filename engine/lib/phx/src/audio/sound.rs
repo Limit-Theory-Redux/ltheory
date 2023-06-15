@@ -25,13 +25,13 @@ impl PlayData {
     }
 }
 
-pub struct Sound2 {
+pub struct Sound {
     path: String,
     sound_data: StaticSoundData,
     play_data: Option<PlayData>,
 }
 
-impl Sound2 {
+impl Sound {
     pub fn sound_data(&self) -> &StaticSoundData {
         &self.sound_data
     }
@@ -43,7 +43,7 @@ impl Sound2 {
 }
 
 #[luajit_ffi_gen::luajit_ffi(managed = true)]
-impl Sound2 {
+impl Sound {
     #[bind(name = "Load")]
     pub fn new(path: &str, is_looping: bool) -> Self {
         let mut settings = StaticSoundSettings::new();

@@ -11,7 +11,7 @@ function MusicObject:Create(arg)
     local object = {}
     object.name = arg.name
     object.path = arg.path
-    object.sound = Sound2.Load(arg.path, arg.isLooping)
+    object.sound = Sound.Load(arg.path, arg.isLooping)
     object.volume = arg.volume
     setmetatable(object, MusicObject)
     return object

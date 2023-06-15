@@ -47,7 +47,7 @@ function Application:run()
         self.resY,
         self:getWindowMode())
 
-    self.audio = Audio2.Create()
+    self.audio = Audio.Create()
 
     GameState.render.gameWindow = self.window
 

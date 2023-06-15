@@ -21,7 +21,7 @@ function Entity:addProjectile(source)
 
     -- TODO: Extend projectile types to non-pulse effects
 
-    if Config.audio.pulseFire then Sound.Play(Config.audio.pulseFire) end
+    if Config.audio.pulseFire then LTheoryRedux.audio:play(Config.audio.pulseFire) end
 
     local e = Pulse:new()
     e.source = IncRef(source)

@@ -31,7 +31,7 @@ function LTheoryRedux:onInit()
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()
 
-    if Config.audio.pulseFire then Sound.SetVolume(Config.audio.pulseFire, Config.audio.soundMax) end
+    if Config.audio.pulseFire then Config.audio.pulseFire:setVolume(Config.audio.soundMax) end
 
     -- Initialize Universe
     Universe:Init()

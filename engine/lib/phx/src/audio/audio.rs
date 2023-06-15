@@ -6,16 +6,16 @@ use kira::tween::Tween;
 
 use crate::math::*;
 
-use super::{PlayData, Sound2};
+use super::{PlayData, Sound};
 
-pub struct Audio2 {
+pub struct Audio {
     audio_manager: AudioManager,
     spatial_scene: SpatialSceneHandle,
     listener: ListenerHandle,
 }
 
 #[luajit_ffi_gen::luajit_ffi(managed = true)]
-impl Audio2 {
+impl Audio {
     #[bind(name = "Create")]
     pub fn new() -> Self {
         let settings = AudioManagerSettings::default();
@@ -39,7 +39,7 @@ impl Audio2 {
         }
     }
 
-    pub fn play(&mut self, sound: &mut Sound2) {
+    pub fn play(&mut self, sound: &mut Sound) {
         let handle = self
             .audio_manager
             .play(sound.sound_data().clone())
