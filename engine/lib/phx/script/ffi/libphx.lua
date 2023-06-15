@@ -78,7 +78,6 @@ do -- Opaque Structs
     typedef struct MemPool      {} MemPool;
     typedef struct MemStack     {} MemStack;
     typedef struct Mesh         {} Mesh;
-    typedef struct MidiDevice   {} MidiDevice;
     typedef struct Octree       {} Octree;
     typedef struct Physics      {} Physics;
     typedef struct RNG          {} RNG;
@@ -88,7 +87,6 @@ do -- Opaque Structs
     typedef struct Shader       {} Shader;
     typedef struct ShaderState  {} ShaderState;
     typedef struct Socket       {} Socket;
-    typedef struct Sound        {} Sound;
     typedef struct Sound2       {} Sound2;
     typedef struct SoundDesc    {} SoundDesc;
     typedef struct StrMap       {} StrMap;
@@ -121,7 +119,6 @@ do -- Opaque Structs
         'MemPool',
         'MemStack',
         'Mesh',
-        'MidiDevice',
         'Octree',
         'Physics',
         'RNG',
@@ -131,7 +128,6 @@ do -- Opaque Structs
         'Shader',
         'ShaderState',
         'Socket',
-        'Sound',
         'Sound2',
         'SoundDesc',
         'StrMap',

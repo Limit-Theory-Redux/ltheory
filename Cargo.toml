@@ -14,5 +14,4 @@ ltr = { path = "engine/bin/ltr" }
 
 # workspace lib crates
 phx = { path = "engine/lib/phx" }
-fmod-sys = { path = "engine/lib/fmod-sys" }
 luajit-ffi-gen = { path = "engine/lib/luajit-ffi-gen" }
