@@ -104,7 +104,7 @@ cargo install cargo-expand
 
 To expand attribute macro and see i.e. window.rs expansion, run:
 ```bash
-cargo expand -p phx window
+cargo expand -p phx system::window
 ```
 
 for test:

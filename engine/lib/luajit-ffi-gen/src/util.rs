@@ -8,8 +8,7 @@ pub fn as_camel_case(s: &str, first_upper: bool) -> String {
     let mut res = String::new();
     let mut to_upper = first_upper;
 
-    // TODO: do we need special treatment if string starting with '_'?
-    for c in s.chars() {
+    for c in s.trim_start_matches('_').chars() {
         if c == '_' {
             // Skip underscores
             to_upper = true;

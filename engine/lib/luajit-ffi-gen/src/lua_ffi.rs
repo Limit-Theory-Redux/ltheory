@@ -39,10 +39,12 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
     ));
 
     // Generate metatype section only if there is at least one method with `self` parameter
-    let gen_metatype = impl_info
-        .methods
-        .iter()
-        .any(|method| method.self_param.is_some());
+    // or managed parameter is set
+    let gen_metatype = attr_args.is_managed()
+        || impl_info
+            .methods
+            .iter()
+            .any(|method| method.self_param.is_some());
 
     // Header
     writeln!(
