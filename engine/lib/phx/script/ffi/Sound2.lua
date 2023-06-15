@@ -7,6 +7,8 @@ do -- C Definitions
     ffi.cdef [[
         void    Sound2_Free          (Sound2*);
         Sound2* Sound2_Load          (cstr path, bool isLooping);
+        cstr    Sound2_GetPath       (Sound2 const*);
+        bool    Sound2_IsPlaying     (Sound2 const*);
         void    Sound2_SetVolume     (Sound2*, double volume);
         void    Sound2_Pause         (Sound2*, uint64 duration);
         void    Sound2_Resume        (Sound2*, uint64 duration);
@@ -21,6 +23,8 @@ do -- Global Symbol Table
     Sound2 = {
         Free          = libphx.Sound2_Free,
         Load          = libphx.Sound2_Load,
+        GetPath       = libphx.Sound2_GetPath,
+        IsPlaying     = libphx.Sound2_IsPlaying,
         SetVolume     = libphx.Sound2_SetVolume,
         Pause         = libphx.Sound2_Pause,
         Resume        = libphx.Sound2_Resume,
@@ -40,6 +44,8 @@ do -- Metatype for class instances
         __index = {
             managed       = function(self) return ffi.gc(self, libphx.Sound2_Free) end,
             free          = libphx.Sound2_Free,
+            getPath       = libphx.Sound2_GetPath,
+            isPlaying     = libphx.Sound2_IsPlaying,
             setVolume     = libphx.Sound2_SetVolume,
             pause         = libphx.Sound2_Pause,
             resume        = libphx.Sound2_Resume,

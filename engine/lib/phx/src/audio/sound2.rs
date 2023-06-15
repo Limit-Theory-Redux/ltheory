@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::internal::ConvertIntoString;
+use crate::internal::*;
 use crate::math::*;
 
 use kira::{
@@ -26,6 +26,7 @@ impl PlayData {
 }
 
 pub struct Sound2 {
+    path: String,
     sound_data: StaticSoundData,
     play_data: Option<PlayData>,
 }
@@ -57,9 +58,19 @@ impl Sound2 {
         let sound_data = StaticSoundData::from_file(path, settings).expect("Cannot load sound");
 
         Self {
+            path: path.into(),
             sound_data,
             play_data: None,
         }
+    }
+
+    pub fn get_path(&self) -> String {
+        self.path.clone()
+    }
+
+    pub fn is_playing(&self) -> bool {
+        // TODO: properly process pause and stop states
+        self.play_data.is_some()
     }
 
     pub fn set_volume(&mut self, volume: f64) {

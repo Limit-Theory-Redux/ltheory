@@ -35,3 +35,31 @@ sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "maste
 cmake = "0.1.50"
 cc = { version = "1.0.79", features = ["parallel"] }
 gl_generator = "0.14.0"
+
+# Speed up sound files loading in dev mode. See: https://docs.rs/kira/0.8.3/kira/#performance-using-the-dev-profile
+[profile.dev.package.kira]
+opt-level = 3
+
+[profile.dev.package.cpal]
+opt-level = 3
+
+[profile.dev.package.symphonia]
+opt-level = 3
+
+[profile.dev.package.symphonia-bundle-mp3]
+opt-level = 3
+
+[profile.dev.package.symphonia-format-ogg]
+opt-level = 3
+
+[profile.dev.package.symphonia-codec-vorbis]
+opt-level = 3
+
+[profile.dev.package.symphonia-bundle-flac]
+opt-level = 3
+
+[profile.dev.package.symphonia-format-wav]
+opt-level = 3
+
+[profile.dev.package.symphonia-codec-pcm]
+opt-level = 3
