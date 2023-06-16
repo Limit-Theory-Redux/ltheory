@@ -10,8 +10,8 @@ do -- C Definitions
         void   Audio_Play            (Audio*, Sound* sound);
         void   Audio_SetListenerPos  (Audio*, Vec3f const* pos, Quat const* rot);
         uint64 Audio_GetLoadedCount  (Audio const*);
-        uint64 Audio_GetTotalCount   (Audio const*);
         uint64 Audio_GetPlayingCount (Audio const*);
+        uint64 Audio_GetTotalCount   (Audio const*);
     ]]
 end
 
@@ -22,8 +22,8 @@ do -- Global Symbol Table
         Play            = libphx.Audio_Play,
         SetListenerPos  = libphx.Audio_SetListenerPos,
         GetLoadedCount  = libphx.Audio_GetLoadedCount,
-        GetTotalCount   = libphx.Audio_GetTotalCount,
         GetPlayingCount = libphx.Audio_GetPlayingCount,
+        GetTotalCount   = libphx.Audio_GetTotalCount,
     }
 
     if onDef_Audio then onDef_Audio(Audio, mt) end
@@ -39,8 +39,8 @@ do -- Metatype for class instances
             play            = libphx.Audio_Play,
             setListenerPos  = libphx.Audio_SetListenerPos,
             getLoadedCount  = libphx.Audio_GetLoadedCount,
-            getTotalCount   = libphx.Audio_GetTotalCount,
             getPlayingCount = libphx.Audio_GetPlayingCount,
+            getTotalCount   = libphx.Audio_GetTotalCount,
         },
     }
 

@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::internal::*;
 use crate::math::*;
 
+use kira::sound::PlaybackState;
 use kira::{
     modulator::lfo::LfoHandle,
     sound::{
@@ -14,31 +15,30 @@ use kira::{
     StartTime,
 };
 
-pub struct PlayData {
-    handle: StaticSoundHandle,
-    emitter: EmitterHandle,
-}
-
-impl PlayData {
-    pub fn new(handle: StaticSoundHandle, emitter: EmitterHandle) -> Self {
-        Self { handle, emitter }
-    }
-}
-
 pub struct Sound {
     path: String,
     sound_data: StaticSoundData,
-    play_data: Option<PlayData>,
+    emitter: Option<EmitterHandle>,
+    sound_handle: Option<StaticSoundHandle>,
 }
 
 impl Sound {
+    pub fn has_sound_handle(&self) -> bool {
+        self.sound_handle.is_some()
+    }
+
     pub fn sound_data(&self) -> &StaticSoundData {
         &self.sound_data
     }
 
-    pub fn set_play_data(&mut self, play_data: PlayData) {
-        // TODO: check if play data is already set?
-        self.play_data = Some(play_data);
+    pub fn set_emitter(&mut self, emitter: EmitterHandle) {
+        // FIXME: for some reason adding emitter kills the sound
+        // self.sound_data.settings.output_destination = emitter.id().into();
+        self.emitter = Some(emitter);
+    }
+
+    pub fn set_sound_handle(&mut self, sound_handle: StaticSoundHandle) {
+        self.sound_handle = Some(sound_handle);
     }
 }
 
@@ -49,6 +49,7 @@ impl Sound {
         let mut settings = StaticSoundSettings::new();
 
         if is_looping {
+            // Loop over whole audio
             settings = settings.loop_region(Region {
                 start: PlaybackPosition::Seconds(0.0),
                 end: EndPosition::EndOfAudio,
@@ -60,7 +61,8 @@ impl Sound {
         Self {
             path: path.into(),
             sound_data,
-            play_data: None,
+            emitter: None,
+            sound_handle: None,
         }
     }
 
@@ -69,48 +71,63 @@ impl Sound {
     }
 
     pub fn is_playing(&self) -> bool {
-        // TODO: properly process pause and stop states
-        self.play_data.is_some()
+        if let Some(sound_handle) = &self.sound_handle {
+            sound_handle.state() == PlaybackState::Playing
+        } else {
+            false
+        }
+    }
+
+    pub fn is_paused(&self) -> bool {
+        if let Some(sound_handle) = &self.sound_handle {
+            sound_handle.state() == PlaybackState::Paused
+        } else {
+            false
+        }
+    }
+
+    pub fn is_stopped(&self) -> bool {
+        if let Some(sound_handle) = &self.sound_handle {
+            sound_handle.state() == PlaybackState::Stopped
+        } else {
+            false
+        }
     }
 
     pub fn set_volume(&mut self, volume: f64) {
         self.sound_data.settings.volume = volume.into();
     }
 
-    pub fn pause(&mut self, duration: u64) {
-        if let Some(play_data) = &mut self.play_data {
-            play_data
-                .handle
+    pub fn pause(&mut self, fade_millis: u64) {
+        if let Some(sound_handle) = &mut self.sound_handle {
+            sound_handle
                 .pause(Tween {
                     start_time: StartTime::Immediate,
-                    duration: Duration::from_millis(duration),
+                    duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
                 })
                 .expect("Cannot pause sound");
         }
     }
 
-    pub fn resume(&mut self, duration: u64) {
-        if let Some(play_data) = &mut self.play_data {
-            play_data
-                .handle
+    pub fn resume(&mut self, fade_millis: u64) {
+        if let Some(sound_handle) = &mut self.sound_handle {
+            sound_handle
                 .resume(Tween {
                     start_time: StartTime::Immediate,
-                    duration: Duration::from_millis(duration),
+                    duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
                 })
                 .expect("Cannot resume sound");
         }
     }
 
-    pub fn stop(&mut self, duration: u64) {
-        // TODO: should we set play_data = None here?
-        if let Some(play_data) = &mut self.play_data {
-            play_data
-                .handle
+    pub fn stop(&mut self, fade_millis: u64) {
+        if let Some(sound_handle) = &mut self.sound_handle {
+            sound_handle
                 .stop(Tween {
                     start_time: StartTime::Immediate,
-                    duration: Duration::from_millis(duration),
+                    duration: Duration::from_millis(fade_millis),
                     easing: Easing::Linear,
                 })
                 .expect("Cannot stop sound");
@@ -118,28 +135,25 @@ impl Sound {
     }
 
     pub fn set_play_pos(&mut self, position: f64) {
-        if let Some(play_data) = &mut self.play_data {
-            play_data
-                .handle
+        if let Some(sound_handle) = &mut self.sound_handle {
+            sound_handle
                 .seek_to(position)
                 .expect("Cannot set sound position");
         }
     }
 
     pub fn move_play_pos(&mut self, offset: f64) {
-        if let Some(play_data) = &mut self.play_data {
-            play_data
-                .handle
+        if let Some(sound_handle) = &mut self.sound_handle {
+            sound_handle
                 .seek_by(offset)
                 .expect("Cannot set sound position");
         }
     }
 
-    pub fn set_emitter_pos(&mut self, pos: &Vec3) {
-        if let Some(play_data) = &mut self.play_data {
-            play_data
-                .emitter
-                .set_position(*pos, Tween::default())
+    pub fn set_emitter_pos(&mut self, position: &Vec3) {
+        if let Some(emitter) = &mut self.emitter {
+            emitter
+                .set_position(*position, Tween::default())
                 .expect("Cannot set sound emitter position");
         }
     }

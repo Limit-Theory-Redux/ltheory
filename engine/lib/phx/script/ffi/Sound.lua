@@ -9,13 +9,15 @@ do -- C Definitions
         Sound* Sound_Load          (cstr path, bool isLooping);
         cstr   Sound_GetPath       (Sound const*);
         bool   Sound_IsPlaying     (Sound const*);
+        bool   Sound_IsPaused      (Sound const*);
+        bool   Sound_IsStopped     (Sound const*);
         void   Sound_SetVolume     (Sound*, double volume);
-        void   Sound_Pause         (Sound*, uint64 duration);
-        void   Sound_Resume        (Sound*, uint64 duration);
-        void   Sound_Stop          (Sound*, uint64 duration);
+        void   Sound_Pause         (Sound*, uint64 fadeMillis);
+        void   Sound_Resume        (Sound*, uint64 fadeMillis);
+        void   Sound_Stop          (Sound*, uint64 fadeMillis);
         void   Sound_SetPlayPos    (Sound*, double position);
         void   Sound_MovePlayPos   (Sound*, double offset);
-        void   Sound_SetEmitterPos (Sound*, Vec3f const* pos);
+        void   Sound_SetEmitterPos (Sound*, Vec3f const* position);
     ]]
 end
 
@@ -25,6 +27,8 @@ do -- Global Symbol Table
         Load          = libphx.Sound_Load,
         GetPath       = libphx.Sound_GetPath,
         IsPlaying     = libphx.Sound_IsPlaying,
+        IsPaused      = libphx.Sound_IsPaused,
+        IsStopped     = libphx.Sound_IsStopped,
         SetVolume     = libphx.Sound_SetVolume,
         Pause         = libphx.Sound_Pause,
         Resume        = libphx.Sound_Resume,
@@ -46,6 +50,8 @@ do -- Metatype for class instances
             free          = libphx.Sound_Free,
             getPath       = libphx.Sound_GetPath,
             isPlaying     = libphx.Sound_IsPlaying,
+            isPaused      = libphx.Sound_IsPaused,
+            isStopped     = libphx.Sound_IsStopped,
             setVolume     = libphx.Sound_SetVolume,
             pause         = libphx.Sound_Pause,
             resume        = libphx.Sound_Resume,
