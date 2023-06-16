@@ -66,6 +66,10 @@ impl Sound {
         }
     }
 
+    pub fn get_duration(&self) -> f32 {
+        self.sound_data.duration().as_secs_f32()
+    }
+
     pub fn get_path(&self) -> String {
         self.path.clone()
     }

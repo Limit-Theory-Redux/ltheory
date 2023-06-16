@@ -7,6 +7,7 @@ do -- C Definitions
     ffi.cdef [[
         void   Sound_Free          (Sound*);
         Sound* Sound_Load          (cstr path, bool isLooping);
+        float  Sound_GetDuration   (Sound const*);
         cstr   Sound_GetPath       (Sound const*);
         bool   Sound_IsPlaying     (Sound const*);
         bool   Sound_IsPaused      (Sound const*);
@@ -25,6 +26,7 @@ do -- Global Symbol Table
     Sound = {
         Free          = libphx.Sound_Free,
         Load          = libphx.Sound_Load,
+        GetDuration   = libphx.Sound_GetDuration,
         GetPath       = libphx.Sound_GetPath,
         IsPlaying     = libphx.Sound_IsPlaying,
         IsPaused      = libphx.Sound_IsPaused,
@@ -48,6 +50,7 @@ do -- Metatype for class instances
         __index = {
             managed       = function(self) return ffi.gc(self, libphx.Sound_Free) end,
             free          = libphx.Sound_Free,
+            getDuration   = libphx.Sound_GetDuration,
             getPath       = libphx.Sound_GetPath,
             isPlaying     = libphx.Sound_IsPlaying,
             isPaused      = libphx.Sound_IsPaused,
