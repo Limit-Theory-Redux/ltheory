@@ -44,23 +44,22 @@ pub unsafe extern "C" fn OpenGL_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_CheckError(file: *const libc::c_char, line: i32) {
     let errorID: gl::types::GLenum = gl::GetError();
-    let mut error: *const libc::c_char = std::ptr::null();
-    match errorID {
+    let error = match errorID {
         0 => return,
         1280 => {
-            error = c_str!("GL_INVALID_ENUM");
+            c_str!("GL_INVALID_ENUM");
         }
         1281 => {
-            error = c_str!("GL_INVALID_VALUE");
+            c_str!("GL_INVALID_VALUE");
         }
         1282 => {
-            error = c_str!("GL_INVALID_OPERATION");
+            c_str!("GL_INVALID_OPERATION");
         }
         1286 => {
-            error = c_str!("GL_INVALID_FRAMEBUFFER_OPERATION");
+            c_str!("GL_INVALID_FRAMEBUFFER_OPERATION");
         }
         1285 => {
-            error = c_str!("GL_OUT_OF_MEMORY");
+            c_str!("GL_OUT_OF_MEMORY");
         }
         _ => {
             CFatal!(
@@ -70,6 +69,7 @@ pub unsafe extern "C" fn OpenGL_CheckError(file: *const libc::c_char, line: i32)
                 line,
             );
         }
-    }
+    };
+
     CFatal!("OpenGL_CheckError: %s at %s:%d", error, file, line);
 }

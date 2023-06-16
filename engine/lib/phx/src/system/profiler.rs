@@ -7,7 +7,7 @@ use crate::*;
 use std::io::{self, Write};
 
 pub type Signal = i32;
-pub type SignalHandler = Option<extern "C" fn(Signal) -> ()>;
+// pub type SignalHandler = Option<extern "C" fn(Signal) -> ()>;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

@@ -168,10 +168,6 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
     let edge1: Vec3 = vt[1] - vt[0];
     let edge2: Vec3 = vt[2] - vt[0];
 
-    let mut u: f32 = 0.;
-    let mut v: f32 = 0.;
-    let mut qvec = Vec3::ZERO;
-
     /* Begin calculating determinant - also used to calculate U parameter. */
     let pvec: Vec3 = Vec3::cross(ray.dir, edge2);
 
@@ -180,48 +176,52 @@ pub unsafe extern "C" fn Intersect_RayTriangle_Moller1(
 
     /* If determinant is near zero, ray lies in plane of triangle. */
     let det: f32 = Vec3::dot(edge1, pvec);
-    if det > epsilon {
+    let qvec = if det > epsilon {
         /* Calculate distance from vert0 to ray origin. */
         let tvec: Vec3 = ray.p - vt[0];
 
         /* Calculate U parameter and test bounds. */
-        u = Vec3::dot(tvec, pvec);
+        let u = Vec3::dot(tvec, pvec);
         if (u as f64) < 0.0f64 || u > det {
             return false;
         }
 
         /* Prepare to test V parameter. */
-        qvec = Vec3::cross(tvec, edge1);
+        let qvec = Vec3::cross(tvec, edge1);
 
         /* Calculate V parameter and test bounds. */
-        v = Vec3::dot(ray.dir, qvec);
+        let v = Vec3::dot(ray.dir, qvec);
 
         if (v as f64) < 0.0f64 || u + v > det {
             return false;
         }
+
+        qvec
     } else if det < -epsilon {
         /* Calculate distance from vert0 to ray origin. */
         let tvec: Vec3 = ray.p - vt[0];
 
         /* Calculate U parameter and test bounds. */
-        u = Vec3::dot(tvec, pvec);
+        let u = Vec3::dot(tvec, pvec);
         if u as f64 > 0.0f64 || u < det {
             return false;
         }
 
         /* Prepare to test V parameter. */
-        qvec = Vec3::cross(tvec, edge1);
+        let qvec = Vec3::cross(tvec, edge1);
 
         /* Calculate V parameter and test bounds. */
-        v = Vec3::dot(ray.dir, qvec);
+        let v = Vec3::dot(ray.dir, qvec);
 
         if v as f64 > 0.0f64 || u + v < det {
             return false;
         }
+
+        qvec
     } else {
         /* Ray is parallel to the plane of the triangle */
         return false;
-    }
+    };
 
     let inv_det: f32 = 1.0f32 / det;
 

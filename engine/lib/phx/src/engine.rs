@@ -23,8 +23,8 @@ pub extern "C" fn Engine_Entry(argc: i32, argv: *mut *mut libc::c_char) -> i32 {
     unsafe {
         Engine::init(2, 1);
 
-        let mut lua: *mut Lua = Lua_Create();
-        let mut entryPoint = c_str!("./script/Main.lua");
+        let lua: *mut Lua = Lua_Create();
+        let entryPoint = c_str!("./script/Main.lua");
 
         if !File_Exists(entryPoint) {
             Directory_Change(c_str!("../"));

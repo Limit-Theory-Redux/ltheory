@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::*;
 use crate::common::*;
 use crate::internal::*;
@@ -19,9 +21,9 @@ extern "C" {
     fn lua_tolstring(L: *mut lua_State, idx: i32, len: *mut usize) -> *const libc::c_char;
     fn lua_touserdata(L: *mut lua_State, idx: i32) -> *mut libc::c_void;
     fn lua_topointer(L: *mut lua_State, idx: i32) -> *const libc::c_void;
-    fn lua_pushnumber(L: *mut lua_State, n: lua_Number);
+    fn lua_pushnumber(L: *mut lua_State, n: LuaNumber);
     fn lua_pushstring(L: *mut lua_State, s: *const libc::c_char);
-    fn lua_pushcclosure(L: *mut lua_State, fn_0: lua_CFunction, n: i32);
+    fn lua_pushcclosure(L: *mut lua_State, fn_0: LuaCfunction, n: i32);
     fn lua_pushboolean(L: *mut lua_State, b: i32);
     fn lua_pushlightuserdata(L: *mut lua_State, p: *mut libc::c_void);
     fn lua_pushthread(L: *mut lua_State) -> i32;
@@ -36,7 +38,7 @@ extern "C" {
     fn lua_getinfo(L: *mut lua_State, what: *const libc::c_char, ar: *mut lua_Debug) -> i32;
     fn lua_getlocal(L: *mut lua_State, ar: *const lua_Debug, n: i32) -> *const libc::c_char;
     fn lua_getupvalue(L: *mut lua_State, funcindex: i32, n: i32) -> *const libc::c_char;
-    fn lua_sethook(L: *mut lua_State, func: lua_Hook, mask: i32, count: i32) -> i32;
+    fn lua_sethook(L: *mut lua_State, func: LuaHook, mask: i32, count: i32) -> i32;
     fn luaL_loadstring(L: *mut lua_State, s: *const libc::c_char) -> i32;
     fn luaL_callmeta(L: *mut lua_State, obj: i32, e: *const libc::c_char) -> i32;
     fn luaL_where(L: *mut lua_State, lvl: i32);
@@ -46,10 +48,10 @@ extern "C" {
     fn luaL_openlibs(L: *mut lua_State);
     fn luaL_newstate() -> *mut lua_State;
 }
-pub type va_list = *mut libc::c_char;
-pub type lua_CFunction = Option<unsafe extern "C" fn(*mut lua_State) -> i32>;
-pub type lua_Number = f64;
-pub type lua_Integer = libc::ptrdiff_t;
+pub type VaList = *mut libc::c_char;
+pub type LuaCfunction = Option<unsafe extern "C" fn(*mut lua_State) -> i32>;
+pub type LuaNumber = f64;
+pub type LuaInteger = libc::ptrdiff_t;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -66,10 +68,10 @@ pub struct lua_Debug {
     pub short_src: [libc::c_char; 60],
     pub i_ci: i32,
 }
-pub type lua_Hook = Option<extern "C" fn(*mut lua_State, *mut lua_Debug) -> ()>;
+pub type LuaHook = Option<extern "C" fn(*mut lua_State, *mut lua_Debug) -> ()>;
 pub type Lua = lua_State;
 pub type LuaFn = Option<unsafe extern "C" fn(*mut Lua) -> i32>;
-pub type LuaRef = lua_Integer;
+pub type LuaRef = LuaInteger;
 pub type Signal = i32;
 pub type SignalHandler = Option<extern "C" fn(Signal) -> ()>;
 

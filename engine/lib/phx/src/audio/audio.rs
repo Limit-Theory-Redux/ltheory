@@ -24,7 +24,7 @@ impl Audio {
         let mut spatial_scene = audio_manager
             .add_spatial_scene(SpatialSceneSettings::default())
             .expect("Cannot add spatial scene");
-        let mut listener = spatial_scene
+        let listener = spatial_scene
             .add_listener(
                 [0.0, 0.0, 0.0],      // TODO: fix this
                 [0.0, 0.0, 0.0, 0.0], // TODO: fix this
