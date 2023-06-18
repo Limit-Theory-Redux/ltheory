@@ -1,11 +1,15 @@
 use quote::quote;
 use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::spanned::Spanned;
-use syn::{Attribute, FnArg, ImplItem, ItemImpl, Pat, Path, ReturnType, Token, Type};
+use syn::{
+    Attribute, FnArg, GenericArgument, ImplItem, ItemImpl, Pat, Path, PathArguments, ReturnType,
+    Token, Type,
+};
 
 use crate::args::BindArgs;
 use crate::impl_info::ImplInfo;
-use crate::method_info::{MethodInfo, ParamInfo, SelfType, TypeInfo, TypeVariant};
+use crate::method_info::{MethodInfo, ParamInfo, SelfType};
+use crate::type_info::{TypeInfo, TypeVariant};
 
 /// Information about parsed target: impl block
 pub enum Item {
@@ -50,6 +54,19 @@ fn get_impl_self_name(ty: &Type) -> Result<String> {
 }
 
 fn get_path_last_name(path: &Path) -> Result<String> {
+    let (name, generics) = get_path_last_name_with_generics(path)?;
+
+    if !generics.is_empty() {
+        Err(Error::new(
+            path.span(),
+            "expected a type name without generic arguments",
+        ))
+    } else {
+        Ok(name)
+    }
+}
+
+fn get_path_last_name_with_generics(path: &Path) -> Result<(String, Vec<Type>)> {
     let Some(last_seg) = path.segments.last() else {
         return Err(Error::new(
             path.span(),
@@ -57,7 +74,23 @@ fn get_path_last_name(path: &Path) -> Result<String> {
         ));
     };
 
-    Ok(format!("{}", last_seg.ident))
+    let generic_types = if let PathArguments::AngleBracketed(generic_args) = &last_seg.arguments {
+        generic_args
+            .args
+            .iter()
+            .filter_map(|arg| {
+                if let GenericArgument::Type(ty) = arg {
+                    Some(ty.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+
+    Ok((format!("{}", last_seg.ident), generic_types))
 }
 
 fn parse_methods(items: &mut Vec<ImplItem>) -> Result<Vec<MethodInfo>> {
@@ -157,16 +190,37 @@ fn get_arg_name(pat: &Pat) -> Result<String> {
 fn parse_type(ty: &Type) -> Result<TypeInfo> {
     match ty {
         Type::Path(type_path) => {
-            let type_name = get_path_last_name(&type_path.path)?;
+            let (type_name, generics) = get_path_last_name_with_generics(&type_path.path)?;
+
+            if type_name == "Option" {
+                if generics.len() != 1 {
+                    return Err(Error::new(
+                        type_path.span(),
+                        format!(
+                            "expected an Option with 1 generic argument but was {}",
+                            generics.len()
+                        ),
+                    ));
+                }
+
+                let mut type_info = parse_type(&generics[0])?;
+
+                type_info.is_option = true;
+
+                return Ok(type_info);
+            }
+
             let variant = TypeVariant::from_str(&type_name);
             let res = if let Some(variant) = variant {
                 TypeInfo {
+                    is_option: false,
                     is_reference: false,
                     is_mutable: false,
                     variant,
                 }
             } else {
                 TypeInfo {
+                    is_option: false,
                     is_reference: false,
                     is_mutable: false,
                     // TODO: are we going to support full path to type? I.e. std::path::PathBuf

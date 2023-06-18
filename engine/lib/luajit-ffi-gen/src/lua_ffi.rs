@@ -44,7 +44,7 @@ pub fn generate_ffi(attr_args: &AttrArgs, impl_info: &ImplInfo) {
         || impl_info
             .methods
             .iter()
-            .any(|method| method.self_param.is_some());
+            .any(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some());
 
     // Header
     writeln!(
@@ -159,23 +159,27 @@ fn write_c_defs(
     let mut max_ret_len = if is_managed { "Free".len() } else { 0 };
 
     // Calculate max len of method return parameters and method names to use them in formatting
-    impl_info.methods.iter().for_each(|method| {
-        let len = method
-            .ret
-            .as_ref()
-            .map(|ret| {
-                if ret.is_self() {
-                    format!("{module_name}*")
-                } else {
-                    ret.as_ffi_string()
-                }
-                .len()
-            })
-            .unwrap_or("void".len());
+    impl_info
+        .methods
+        .iter()
+        .filter(|method| method.bind_args.gen_lua_ffi())
+        .for_each(|method| {
+            let len = method
+                .ret
+                .as_ref()
+                .map(|ret| {
+                    if ret.is_self() {
+                        format!("{module_name}*")
+                    } else {
+                        ret.as_ffi_string()
+                    }
+                    .len()
+                })
+                .unwrap_or("void".len());
 
-        max_ret_len = std::cmp::max(max_ret_len, len);
-        max_method_name_len = std::cmp::max(max_method_name_len, method.as_ffi_name().len());
-    });
+            max_ret_len = std::cmp::max(max_ret_len, len);
+            max_method_name_len = std::cmp::max(max_method_name_len, method.as_ffi_name().len());
+        });
 
     if is_managed {
         writeln!(
@@ -186,47 +190,51 @@ fn write_c_defs(
         .unwrap();
     }
 
-    impl_info.methods.iter().for_each(|method| {
-        let method_name = method.as_ffi_name();
-        let ret_ty_str = method
-            .ret
-            .as_ref()
-            .map(|ret| {
-                if ret.is_self() {
-                    format!("{module_name}*")
+    impl_info
+        .methods
+        .iter()
+        .filter(|method| method.bind_args.gen_lua_ffi())
+        .for_each(|method| {
+            let method_name = method.as_ffi_name();
+            let ret_ty_str = method
+                .ret
+                .as_ref()
+                .map(|ret| {
+                    if ret.is_self() {
+                        format!("{module_name}*")
+                    } else {
+                        ret.as_ffi_string()
+                    }
+                })
+                .unwrap_or("void".into());
+
+            let params_str: Vec<_> = method
+                .params
+                .iter()
+                .map(|param| format!("{} {}", param.ty.as_ffi_string(), param.as_ffi_name()))
+                .collect();
+
+            let self_str = if let Some(self_type) = &method.self_param {
+                let const_str = if !self_type.is_mutable { " const" } else { "" };
+
+                if params_str.is_empty() {
+                    format!("{module_name}{const_str}*")
                 } else {
-                    ret.as_ffi_string()
+                    format!("{module_name}{const_str}*, ")
                 }
-            })
-            .unwrap_or("void".into());
-
-        let params_str: Vec<_> = method
-            .params
-            .iter()
-            .map(|param| format!("{} {}", param.ty.as_ffi_string(), param.as_ffi_name()))
-            .collect();
-
-        let self_str = if let Some(self_type) = &method.self_param {
-            let const_str = if !self_type.is_mutable { " const" } else { "" };
-
-            if params_str.is_empty() {
-                format!("{module_name}{const_str}*")
             } else {
-                format!("{module_name}{const_str}*, ")
-            }
-        } else {
-            "".into()
-        };
+                "".into()
+            };
 
-        writeln!(
-            file,
-            "{IDENT}{IDENT}{ret_ty_str:<1$} {module_name}_{method_name:<2$} ({self_str}{});",
-            params_str.join(", "),
-            max_ret_len,
-            max_method_name_len
-        )
-        .unwrap();
-    });
+            writeln!(
+                file,
+                "{IDENT}{IDENT}{ret_ty_str:<1$} {module_name}_{method_name:<2$} ({self_str}{});",
+                params_str.join(", "),
+                max_ret_len,
+                max_method_name_len
+            )
+            .unwrap();
+        });
 
     // Return max len of the method names to avoid recalculation in the next step
     max_method_name_len
@@ -248,15 +256,19 @@ fn write_global_sym_table(
         .unwrap();
     }
 
-    impl_info.methods.iter().for_each(|method| {
-        writeln!(
-            file,
-            "{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
-            method.as_ffi_name(),
-            max_method_name_len
-        )
-        .unwrap();
-    });
+    impl_info
+        .methods
+        .iter()
+        .filter(|method| method.bind_args.gen_lua_ffi())
+        .for_each(|method| {
+            writeln!(
+                file,
+                "{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
+                method.as_ffi_name(),
+                max_method_name_len
+            )
+            .unwrap();
+        });
 }
 
 fn write_metatype(
@@ -304,7 +316,7 @@ fn write_metatype(
     impl_info
         .methods
         .iter()
-        .filter(|method| method.self_param.is_some())
+        .filter(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some())
         .for_each(|method| {
             writeln!(
                 file,

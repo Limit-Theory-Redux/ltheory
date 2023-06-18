@@ -9,26 +9,45 @@
 //  }
 // #endif
 
+use std::ffi::CString;
+
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long, default_value = "./script/Main.lua")]
+    entry_point: String,
+    #[arg(short, long)]
+    app_name: Option<String>,
+}
+
 #[cfg_attr(not(windows), link(name = "phx", kind = "dylib"))]
 #[cfg_attr(windows, link(name = "phx.dll", kind = "dylib"))]
 extern "C" {
-    fn Engine_Entry(argc: i32, argv: *mut *mut libc::c_char) -> i32;
+    fn Engine_Entry(entry_point: *const libc::c_char, app_name: *mut *const libc::c_char);
 }
 
 pub fn main() {
-    let mut args: Vec<*mut libc::c_char> = Vec::new();
-    for arg in ::std::env::args() {
-        args.push(
-            (::std::ffi::CString::new(arg))
-                .expect("Failed to convert argument into CString.")
-                .into_raw(),
-        );
-    }
-    args.push(::core::ptr::null_mut());
-    unsafe {
-        ::std::process::exit(Engine_Entry(
-            (args.len() - 1) as i32,
-            args.as_mut_ptr() as *mut *mut libc::c_char,
-        ))
-    }
+    let cli = Cli::parse();
+
+    let entry_point = CString::new(cli.entry_point)
+        .expect("Failed to convert entry_point argument into CString.")
+        .into_raw();
+
+    if let Some(app_name) = cli.app_name {
+        let mut cstr = CString::new(app_name)
+            .expect("Failed to convert app_name argument into CString.")
+            .into_raw() as *const libc::c_char;
+        let cstr_ptr: *mut *const libc::c_char = &mut cstr;
+
+        unsafe { Engine_Entry(entry_point as *const libc::c_char, cstr_ptr) }
+    } else {
+        unsafe {
+            Engine_Entry(
+                entry_point as *const libc::c_char,
+                std::ptr::null_mut::<*const libc::c_char>(),
+            )
+        }
+    };
 }

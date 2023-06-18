@@ -4,6 +4,7 @@ mod impl_info;
 mod lua_ffi;
 mod method_info;
 mod parse;
+mod type_info;
 mod util;
 
 use crate::args::AttrArgs;
