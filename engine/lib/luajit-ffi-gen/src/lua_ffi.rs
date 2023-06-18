@@ -155,6 +155,7 @@ fn write_c_defs(
     impl_info: &ImplInfo,
     is_managed: bool,
 ) -> usize {
+    // Tof managed we add 'void Free' method
     let mut max_method_name_len = if is_managed { "void".len() } else { 0 };
     let mut max_ret_len = if is_managed { "Free".len() } else { 0 };
 

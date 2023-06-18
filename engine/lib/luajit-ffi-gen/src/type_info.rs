@@ -48,7 +48,7 @@ impl TypeInfo {
                 format!("{res} const*{opt}")
             }
         } else {
-            res
+            format!("{res}{opt}")
         }
     }
 }
