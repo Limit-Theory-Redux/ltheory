@@ -62,10 +62,10 @@ impl Audio {
 
     pub fn set_listener_pos(&mut self, pos: &Vec3, rot: &Quat) {
         self.listener
-            .set_position(*pos, Tween::default()) // TODO: set correct tween
+            .set_position(*pos, Tween::default())
             .expect("Cannot set listener position");
         self.listener
-            .set_orientation([rot.x, rot.y, rot.z, rot.w], Tween::default()) // TODO: set correct tween
+            .set_orientation([rot.x, rot.y, rot.z, rot.w], Tween::default())
             .expect("Cannot set listener position");
     }
 

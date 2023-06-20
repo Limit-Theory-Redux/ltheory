@@ -56,7 +56,8 @@ impl Sound {
             });
         }
 
-        let sound_data = StaticSoundData::from_file(path, settings).expect("Cannot load sound");
+        let sound_data = StaticSoundData::from_file(path, settings)
+            .expect(&format!("Cannot load sound: {path}"));
 
         Self {
             path: path.into(),
