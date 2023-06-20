@@ -19,15 +19,14 @@ struct Cli {
     /// Application starting Lua script
     #[arg(short, long, default_value = "./script/Main.lua")]
     entry_point: String,
-    /// Optional application name
-    #[arg(short, long)]
-    app_name: Option<String>,
     /// Specify if console log should be shown
     #[arg(short, long, default_value_t = true)]
     console_log: bool,
     /// Log will be written into the log file if log_dir is specified
     #[arg(short, long)]
     log_dir: Option<String>,
+    /// Optional application name
+    app_name: Option<String>,
 }
 
 #[cfg_attr(not(windows), link(name = "phx", kind = "dylib"))]
