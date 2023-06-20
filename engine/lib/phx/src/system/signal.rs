@@ -1,3 +1,5 @@
+use tracing::warn;
+
 use crate::common::*;
 use crate::internal::*;
 use crate::*;
@@ -35,7 +37,7 @@ fn Signal(signal: Signal, handler: SignalHandler) -> SignalHandler {
 
 extern "C" fn Signal_Handler(sig: Signal) {
     unsafe {
-        Warn!(
+        warn!(
             "Signal_Handler: Caught {:?}",
             CStr::from_ptr(Signal_ToString(sig))
         );

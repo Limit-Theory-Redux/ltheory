@@ -7,6 +7,7 @@ use crate::system::*;
 use crate::*;
 
 use libc;
+use tracing::warn;
 
 extern "C" {
     pub type lua_State;
@@ -556,8 +557,8 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         i_stack += 1;
     }
 
-    Warn!("Lua Backtrace:");
+    warn!("Lua Backtrace:");
     for stack_frame in stack {
-        Warn!("{stack_frame}");
+        warn!("{stack_frame}");
     }
 }

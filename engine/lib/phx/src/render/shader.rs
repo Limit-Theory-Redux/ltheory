@@ -1,3 +1,5 @@
+use tracing::warn;
+
 use super::*;
 use crate::common::*;
 use crate::internal::*;
@@ -185,7 +187,7 @@ unsafe extern "C" fn Shader_BindVariables(this: &mut Shader) {
         (*var).index = gl::GetUniformLocation(this.program, c_name);
 
         if (*var).index < 0 {
-            Warn!("Shader_BindVariables: Automatic shader variable <{}> does not exist in shader <{}>",
+            warn!("Shader_BindVariables: Automatic shader variable <{}> does not exist in shader <{}>",
                 var.name,
                 this.name,
             );

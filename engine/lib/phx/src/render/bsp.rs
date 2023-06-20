@@ -1,3 +1,5 @@
+use tracing::warn;
+
 use super::*;
 use crate::common::*;
 use crate::internal::*;
@@ -1460,8 +1462,7 @@ pub extern "C" fn BSPDebug_PrintRayProfilingData(_this: &mut BSP, _totalTime: f6
     // #if ENABLE_BSP_PROFILING
     //   BSPDebug_PrintProfilingData(self, &self->profilingData.ray, totalTime);
     // #else
-    Warn!("BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.",
-    );
+    warn!("BSP_PrintRayProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
 }
 
 #[no_mangle]
@@ -1469,8 +1470,7 @@ pub extern "C" fn BSPDebug_PrintSphereProfilingData(_this: &mut BSP, _totalTime:
     // #if ENABLE_BSP_PROFILING
     //     BSPDebug_PrintProfilingData(self, &self->profilingData.sphere, totalTime);
     // #else
-    Warn!("BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.",
-    );
+    warn!("BSP_PrintSphereProfilingData: BSP profiling is not enabled. Set ENABLE_BSP_PROFILING to enable this function.");
 }
 
 #[no_mangle]

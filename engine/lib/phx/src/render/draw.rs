@@ -1,3 +1,5 @@
+use tracing::warn;
+
 use super::gl;
 use crate::common::*;
 use crate::math::*;
@@ -127,7 +129,7 @@ pub unsafe extern "C" fn Draw_Box3(this: &Box3) {
 pub unsafe extern "C" fn Draw_Clear(r: f32, g: f32, b: f32, a: f32) {
     let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
     if status != gl::FRAMEBUFFER_COMPLETE {
-        Warn!(
+        warn!(
             "Framebuffer is incomplete, skipping clear: {}",
             status as i32
         );

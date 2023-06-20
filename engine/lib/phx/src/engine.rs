@@ -9,6 +9,7 @@ use crate::render::*;
 use crate::system::*;
 
 use sdl2_sys::*;
+use tracing::info;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use tracing_subscriber::EnvFilter;
@@ -72,7 +73,7 @@ impl Engine {
             static mut firstTime: bool = true;
             Signal_Init();
 
-            Printf!("Engine_Init: Requesting GL {gl_version_major}.{gl_version_minor}");
+            info!("Engine_Init: Requesting GL {gl_version_major}.{gl_version_minor}");
 
             if firstTime {
                 firstTime = false;
@@ -91,18 +92,14 @@ impl Engine {
 
                 SDL_GetVersion(&mut linked);
                 if compiled.major != linked.major {
-                    println!("Engine_Init: Detected SDL major version mismatch:");
-                    Printf!(
+                    info!("Engine_Init: Detected SDL major version mismatch:");
+                    info!(
                         "  Version (Compiled) : {}.{}.{}",
-                        compiled.major,
-                        compiled.minor,
-                        compiled.patch,
+                        compiled.major, compiled.minor, compiled.patch,
                     );
-                    Printf!(
+                    info!(
                         "  Version (Linked)   : {}.{}.{}",
-                        linked.major,
-                        linked.minor,
-                        linked.patch,
+                        linked.major, linked.minor, linked.patch,
                     );
                     Fatal!("Engine_Init: Terminating.");
                 }

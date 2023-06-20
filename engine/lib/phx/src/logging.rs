@@ -36,7 +36,7 @@ impl Write for MessageCleaner {
 }
 
 pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
-    // Use either RUST_LOG or 'info' log level directives
+    // Use either RUST_LOG environment variable or 'info' log level directives
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
         .expect("Cannot create log env filter layer");

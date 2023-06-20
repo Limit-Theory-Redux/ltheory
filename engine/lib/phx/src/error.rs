@@ -1,3 +1,5 @@
+use tracing::error;
+
 use crate::common::*;
 
 /* --- Error -------------------------------------------------------------------
@@ -53,7 +55,7 @@ const Error_VertUV: Error = 0x01000000;
 #[no_mangle]
 pub extern "C" fn Error_Print(e: Error) {
     if e == Error_None {
-        Printf!("ERROR: None!");
+        error!("None!");
         return;
     }
 
@@ -109,5 +111,5 @@ pub extern "C" fn Error_Print(e: Error) {
         ""
     };
 
-    Printf!("ERROR: {err_source}{err_type}{err_value}");
+    error!("{err_source}{err_type}{err_value}");
 }

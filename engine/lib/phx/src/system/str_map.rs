@@ -1,3 +1,5 @@
+use tracing::info;
+
 use super::*;
 use crate::common::*;
 use crate::internal::*;
@@ -209,21 +211,22 @@ pub unsafe extern "C" fn StrMap_Set(
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Dump(this: &mut StrMap) {
-    Printf!("StrMap @ {:X?}:", this as *mut StrMap);
-    Printf!("      size: {}", this.size);
-    Printf!("  capacity: {}", this.capacity);
-    Printf!(
+    info!("StrMap @ {:X?}:", this as *mut StrMap);
+    info!("      size: {}", this.size);
+    info!("  capacity: {}", this.capacity);
+    info!(
         "      load: {}",
         (this.size as f32 / this.capacity as f32) as f64,
     );
-    println!("");
+    info!("");
+
     let mut i: u32 = 0;
     while i < this.capacity {
         let mut node: *mut Node = (this.data).offset(i as isize);
         if !((*node).key).is_null() {
-            Printf!("  [{i:03}]:");
+            info!("  [{i:03}]:");
             while !node.is_null() {
-                Printf!(
+                info!(
                     "    ({:x}) {:?} -> {:X?}",
                     Hash((*node).key),
                     (*node).key,

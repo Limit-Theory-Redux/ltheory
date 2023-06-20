@@ -1,3 +1,5 @@
+use tracing::warn;
+
 use super::*;
 use crate::common::*;
 use crate::internal::*;
@@ -385,8 +387,7 @@ pub unsafe extern "C" fn Tex2D_SetMinFilter(this: &mut Tex2D, filter: TexFilter)
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_SetMipRange(this: &mut Tex2D, minLevel: i32, maxLevel: i32) {
     if minLevel != maxLevel {
-        Warn!("Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs.",
-        );
+        warn!("Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs.");
     }
     gl::BindTexture(gl::TEXTURE_2D, this.handle);
     gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, minLevel);

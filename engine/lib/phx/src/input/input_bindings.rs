@@ -1,5 +1,7 @@
 use std::ffi::CStr;
 
+use tracing::info;
+
 use super::*;
 use crate::common::*;
 use crate::lua::*;
@@ -116,7 +118,7 @@ extern "C" fn InputBindings_RaiseCallback(
     _callback: LuaRef,
 ) {
     unsafe {
-        Printf!(
+        info!(
             "{:?} - {:?}",
             CStr::from_ptr(event),
             CStr::from_ptr((*binding).name)

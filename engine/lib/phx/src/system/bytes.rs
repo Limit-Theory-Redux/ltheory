@@ -5,6 +5,7 @@ use crate::*;
 
 use flate2::write::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;
+use tracing::info;
 
 use std::ffi::CString;
 use std::io::Write;
@@ -347,7 +348,8 @@ pub unsafe extern "C" fn Bytes_WriteF64(this: &mut Bytes, value: f64) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Print(this: &Bytes) {
-    Printf!("{} bytes:", this.size);
+    info!("{} bytes:", this.size);
+
     for i in 0..this.size {
         libc::putchar(*(&this.data as *const libc::c_char).offset(i as isize) as i32);
     }
