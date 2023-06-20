@@ -49,11 +49,12 @@ function Entity:applyDamage(amount, source)
 
         printf("%s destroyed by %s!", thisShipName, attackingShipName)
 
-        -- Also need to process the formerly "isAlive()" entity's assets, including credits and cargo
+        -- Unregister debug events for the destroyed entity
         self:unregister(Event.Debug, Entity.mgrInventoryDebug)
 
-        -- Also ALSO need to notify nearby ships
-        --    resulting Actions may include Evade, Attack, and/or alert faction members
+        -- TODO: process the formerly "isAlive()" entity's assets, including credits and cargo
+        -- TODO: notify nearby ships that entity has been destroyed
+        --       resulting Actions may include Evade, Attack, and/or alert faction members
 
         -- If this object was attackable, make it unattackable
         if self:hasAttackable() then

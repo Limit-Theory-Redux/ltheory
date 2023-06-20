@@ -315,39 +315,36 @@ function LTheoryRedux:createStarSystem()
         GameState.render.zFar     = Config.gen.zFarReal
     end
 
-    do
-        if GameState:GetCurrentState() == Enums.GameStates.MainMenu or GameState:GetCurrentState() == Enums.GameStates.Splashscreen then
-            -- Spawn a new star system
-            self.backgroundSystem = System(self.seed)
-            GameState.world.currentSystem = self.backgroundSystem -- remember the player's current star system
+    if GameState:GetCurrentState() == Enums.GameStates.MainMenu or GameState:GetCurrentState() == Enums.GameStates.Splashscreen then
+        -- Spawn a new star system
+        self.backgroundSystem = System(self.seed)
+        GameState.world.currentSystem = self.backgroundSystem -- remember the player's current star system
 
-            -- Background Mode
-            -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
-            --   a space station, and an invisible rotating ship
-            self.backgroundSystem:spawnBackground() -- spawn a ship that can't be seen
+        -- Background Mode
+        -- Generate a new star system with nebulae/dust, a planet, an asteroid field,
+        --   a space station, and an invisible rotating ship
+        self.backgroundSystem:spawnBackground() -- spawn a ship that can't be seen
 
-            -- Add a planet
-            for i = 1, 1 do
-                local planet = self.backgroundSystem:spawnPlanet(false) -- no planetary asteroid belt
-                local ppos = planet:getPos()
-                ppos.x = ppos.x * 2
-                ppos.y = ppos.y * 2
-                planet:setPos(ppos) -- move planet away from origin for background
-            end
-
-            -- Add an asteroid field
-            -- Must add BEFORE space stations
-            for i = 1, rng:getInt(0, 1) do                         -- 50/50 chance of having asteroids
-                self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
-            end
-
-            -- Add a space station
-            local station = self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer,
-                nil)
-        else
-            GameState:SetState(Enums.GameStates.InGame)
-            Universe:CreateStarSystem(self.seed)
+        -- Add a planet
+        for i = 1, 1 do
+            local planet = self.backgroundSystem:spawnPlanet(false) -- no planetary asteroid belt
+            local ppos = planet:getPos()
+            ppos.x = ppos.x * 2
+            ppos.y = ppos.y * 2
+            planet:setPos(ppos) -- move planet away from origin for background
         end
+
+        -- Add an asteroid field
+        -- Must add BEFORE space stations
+        for i = 1, rng:getInt(0, 1) do                         -- 50/50 chance of having asteroids
+            self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
+        end
+
+        -- Add a space station
+        self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
+    else
+        GameState:SetState(Enums.GameStates.InGame)
+        Universe:CreateStarSystem(self.seed)
     end
 
     -- Insert the game view into the application canvas to make it visible
