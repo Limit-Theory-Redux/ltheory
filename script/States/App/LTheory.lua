@@ -76,10 +76,6 @@ end
 function LTheory:onInit()
     DebugControl.ltheory = self
 
-    --* Audio initializations *--
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
-
     self.player = Player("LTheory Player")
 
     self:generate()

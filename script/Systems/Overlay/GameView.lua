@@ -220,12 +220,9 @@ function GameView:onUpdate(state)
         self.eyeLast:setv(eye)
     end
 
-    Audio.SetListenerPos(
+    LTheoryRedux.audio:setListenerPos(
         self.camera.pos,
-        self.eyeVel,
-        self.camera.rot:getForward(),
-        self.camera.rot:getUp())
-    Audio.Update()
+        self.camera.rot)
 
     self.camera:pop()
 end

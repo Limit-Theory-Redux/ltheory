@@ -62,6 +62,7 @@ end
 
 do -- Opaque Structs
     ffi.cdef [[
+    typedef struct Audio        {} Audio;
     typedef struct BSP          {} BSP;
     typedef struct BoxMesh      {} BoxMesh;
     typedef struct BoxTree      {} BoxTree;
@@ -77,7 +78,6 @@ do -- Opaque Structs
     typedef struct MemPool      {} MemPool;
     typedef struct MemStack     {} MemStack;
     typedef struct Mesh         {} Mesh;
-    typedef struct MidiDevice   {} MidiDevice;
     typedef struct Octree       {} Octree;
     typedef struct Physics      {} Physics;
     typedef struct RNG          {} RNG;
@@ -103,6 +103,7 @@ do -- Opaque Structs
   ]]
 
     libphx.Opaques = {
+        'Audio',
         'BSP',
         'BoxMesh',
         'BoxTree',
@@ -118,7 +119,6 @@ do -- Opaque Structs
         'MemPool',
         'MemStack',
         'Mesh',
-        'MidiDevice',
         'Octree',
         'Physics',
         'RNG',

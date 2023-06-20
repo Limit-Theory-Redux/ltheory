@@ -1,7 +1,7 @@
 -- DOES NOT WORK USES DEPRICATED WAY OF GETTING KEY
 local Bindings = require('States.ApplicationBindings')
 
-local FMODTest = require('States.Application')
+local AudioTest = require('States.Application')
 
 local Music = {
     MainTheme = './res/sound/system/audio/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade',
@@ -15,14 +15,11 @@ local SFX = {
 
 local kMoveSpeed = 100.0
 
-function FMODTest:getTitle()
-    return 'FMOD Test'
+function AudioTest:getTitle()
+    return 'Audio Test'
 end
 
-function FMODTest:onInit()
-    Audio.Init()
-    Audio.Set3DSettings(1, 10, 2);
-
+function AudioTest:onInit()
     self.emitters = {
         --  { file = 'cantina', image = 'image/cantinaband', x = 128, y = 100 },
         --  { file = 'Imperial_March', image = 'image/vader', x = 256, y = 600 },
@@ -48,7 +45,7 @@ function FMODTest:onInit()
 
     do -- Start async preload of effects
         for k, v in pairs(SFX) do
-            Sound.LoadAsync(v, false, true)
+            Sound.Load(v, false)
         end
     end
 
@@ -56,8 +53,8 @@ function FMODTest:onInit()
 
     self.musicToggle = 0
     self.music = {}
-    self.music[0] = Sound.Load(Music.MainTheme, true, false)
-    self.music[1] = Sound.Load(Music.AltTheme, true, false)
+    self.music[0] = Sound.Load(Music.MainTheme, true)
+    self.music[1] = Sound.Load(Music.AltTheme, true)
     self.music[self.musicToggle]:play()
 
     for i = 1, #self.emitters do
@@ -67,7 +64,7 @@ function FMODTest:onInit()
         e.tex:setMagFilter(TexFilter.Linear)
         e.tex:setMinFilter(TexFilter.LinearMipLinear)
 
-        e.sound = Sound.Load(e.file, true, true)
+        e.sound = Sound.Load(e.file, true)
         e.sound:set3DPos(Vec3f(e.x, 0, e.y), Vec3f(0, 0, 0))
         --e.sound:setPlayPos(e.sound:getDuration() - 10*i)
         e.sound:play()
@@ -97,7 +94,7 @@ function FMODTest:onInit()
     -- }
 end
 
-function FMODTest:onInput()
+function AudioTest:onInput()
     if Input.GetPressed(Bindings.Exit) then
         self:quit()
     end
@@ -136,7 +133,7 @@ function FMODTest:onInput()
     -- end
 end
 
-function FMODTest:onDraw()
+function AudioTest:onDraw()
     BlendMode.PushAlpha()
     Draw.Clear(0.1, 0.1, 0.1, 1.0)
     for i = 1, #self.emitters do
@@ -164,7 +161,7 @@ function FMODTest:onDraw()
     BlendMode.Pop()
 end
 
-function FMODTest:onUpdate(dt)
+function AudioTest:onUpdate(dt)
     self.pos = self.pos + self.vel:scale(dt)
     self.vel:iscale(exp(-dt))
 
@@ -199,8 +196,7 @@ function FMODTest:onUpdate(dt)
         end
     end
 
-    Audio.SetListenerPos(self.pos, self.vel, Vec3f(0, 0, -1), Vec3f(0, 1, 0))
-    Audio.Update()
+    self.audio:setListenerPos(self.pos, Quat(0, 0, -1, 0)) -- TODO: fix quat
 
     --[[
   for i = 1, #self.emitters do
@@ -211,11 +207,11 @@ function FMODTest:onUpdate(dt)
 --]]
 end
 
-function FMODTest:onExit()
-    Audio.Free()
+function AudioTest:onExit()
+    self.audio:free()
 end
 
-return FMODTest
+return AudioTest
 
 -- TODO : Push Audio handling from LTheory up into Appliction?
 -- TODO : Where is CoInitialize being called? I don't see a warning from FMOD

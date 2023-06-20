@@ -1,6 +1,6 @@
 use crate::{args::BindArgs, util::as_camel_case};
 
-const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 1] = [("IVec2", "Vec2i")];
+const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 2] = [("IVec2", "Vec2i"), ("Vec3", "Vec3f")];
 const COPY_TYPES: [&str; 3] = ["IVec2", "WindowPos", "WindowMode"];
 
 /// `Impl` method information

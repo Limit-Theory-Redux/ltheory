@@ -11,7 +11,7 @@ function MusicObject:Create(arg)
     local object = {}
     object.name = arg.name
     object.path = arg.path
-    object.sound = Sound.Load(arg.path, arg.isLooping, false)
+    object.sound = Sound.Load(arg.path, arg.isLooping)
     object.volume = arg.volume
     setmetatable(object, MusicObject)
     return object
@@ -19,24 +19,24 @@ end
 
 function MusicObject:Play(volume)
     local vol = volume or self.volume
-    Sound.SetVolume(self.sound, vol)
-    Sound.Play(self.sound)
+    self.sound:setVolume(vol)
+    LTheoryRedux.audio:play(self.sound)
 end
 
 function MusicObject:Pause()
-    Sound.Pause(self.sound)
+    self.sound:pause(0)
 end
 
 function MusicObject:Rewind()
-    Sound.Rewind(self.sound)
+    self.sound:setPlayPos(0)
 end
 
 function MusicObject:SetVolume(volume)
-    Sound.SetVolume(self.sound, volume)
+    self.sound:setVolume(volume)
 end
 
 function MusicObject:IsPlaying()
-    return Sound.IsPlaying(self.sound)
+    return self.sound:isPlaying()
 end
 
 return MusicObject

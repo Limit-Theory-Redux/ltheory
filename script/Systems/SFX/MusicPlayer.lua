@@ -26,7 +26,7 @@ function MusicPlayer:SetVolume(volume)
 
     for _, soundObject in ipairs(self.trackList) do
         printf("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
-        Sound.SetVolume(soundObject.sound, volume)
+        soundObject.sound:setVolume(volume)
     end
 end
 
@@ -181,7 +181,7 @@ function MusicPlayer:LoadMusic()
     printf("Load Music: ")
     for index, soundObject in ipairs(self.trackList) do
         printf("[" .. index .. "] " .. soundObject.name .. " (path: " ..
-            tostring(Sound.GetPath(soundObject.sound)) .. ")")
+            tostring(soundObject.sound:getPath()) .. ")")
     end
 end
 
