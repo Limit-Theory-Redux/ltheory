@@ -402,8 +402,7 @@ pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
         i += 3;
     }
     for v in this.vertex.iter() {
-        let mut e_0: Error = 0;
-        e_0 = Vec3_Validate((*v).p);
+        let mut e_0 = Vec3_Validate((*v).p);
         if e_0 != 0 {
             return 0x400000 | e_0;
         }

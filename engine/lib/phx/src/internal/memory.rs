@@ -97,8 +97,8 @@ pub unsafe extern "C" fn StrDup(s: *const libc::c_char) -> *const libc::c_char {
     if s.is_null() {
         return std::ptr::null();
     }
-    let mut len: usize = (StrLen(s)).wrapping_add(1);
-    let mut buf: *mut libc::c_char = StrAlloc(len);
+    let len: usize = (StrLen(s)).wrapping_add(1);
+    let buf: *mut libc::c_char = StrAlloc(len);
     libc::memcpy(buf as *mut _, s as *const _, len);
     buf as *const libc::c_char
 }
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn StrLen(mut s: *const libc::c_char) -> usize {
     if s.is_null() {
         return 0;
     }
-    let mut begin: *const libc::c_char = s;
+    let begin: *const libc::c_char = s;
     while *s != 0 {
         s = s.offset(1);
     }

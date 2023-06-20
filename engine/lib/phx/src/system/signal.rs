@@ -106,7 +106,7 @@ pub unsafe extern "C" fn Signal_AddHandlerAll(handler: SignalHandler) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, handler: SignalHandler) {
-    let mut handlers = HandlerTable(sig);
+    let handlers = HandlerTable(sig);
     if let Some(pos) = handlers.iter().position(|f| *f == handler) {
         handlers.remove(pos);
     } else {

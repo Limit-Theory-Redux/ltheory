@@ -344,7 +344,6 @@ unsafe extern "C" fn HmGui_LayoutGroup(g: *mut HmGuiGroup) {
         }
     }
 
-    let mut s: f32 = 0.;
     let mut e: *mut HmGuiWidget = (*g).head;
     while !e.is_null() {
         match (*g).layout {
@@ -355,7 +354,7 @@ unsafe extern "C" fn HmGui_LayoutGroup(g: *mut HmGuiGroup) {
                 HmGui_LayoutWidget(e, pos, size.x, size.y);
             }
             Layout_Vertical => {
-                s = (*e).minSize.y;
+                let mut s = (*e).minSize.y;
                 if extra > 0.0f32 {
                     s += (*e).stretch.y * extra;
                 }
@@ -363,7 +362,7 @@ unsafe extern "C" fn HmGui_LayoutGroup(g: *mut HmGuiGroup) {
                 pos.y += (*e).size.y + (*g).spacing;
             }
             Layout_Horizontal => {
-                s = (*e).minSize.x;
+                let mut s = (*e).minSize.x;
                 if extra > 0.0f32 {
                     s += (*e).stretch.x * extra;
                 }

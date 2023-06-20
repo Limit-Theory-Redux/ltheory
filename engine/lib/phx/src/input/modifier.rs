@@ -16,7 +16,7 @@ pub static Modifier_Ctrl: Modifier = 1 << 1;
 pub static Modifier_Shift: Modifier = 1 << 2;
 
 #[no_mangle]
-pub extern "C" fn Modifier_ToString(mut modifier: Modifier) -> *const libc::c_char {
+pub extern "C" fn Modifier_ToString(modifier: Modifier) -> *const libc::c_char {
     static_string!(modifier_to_string(modifier))
 }
 

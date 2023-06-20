@@ -5,7 +5,7 @@ use crate::system::*;
 extern "C" {
     fn lua_gettop(L: *mut lua_State) -> i32;
     fn lua_settop(L: *mut lua_State, idx: i32);
-    fn lua_tonumber(L: *mut lua_State, idx: i32) -> lua_Number;
+    fn lua_tonumber(L: *mut lua_State, idx: i32) -> LuaNumber;
     fn lua_getfield(L: *mut lua_State, idx: i32, k: *const libc::c_char);
     fn luaL_unref(L: *mut lua_State, t: i32, ref_0: i32);
     fn Lua_PushRef(_: *mut Lua, _: LuaRef);
@@ -19,11 +19,11 @@ extern "C" {
     fn TimeStamp_GetRelative(start: TimeStamp, seconds: f64) -> TimeStamp;
 }
 
-pub type lua_Number = f64;
-pub type lua_Integer = libc::ptrdiff_t;
+pub type LuaNumber = f64;
+pub type LuaInteger = libc::ptrdiff_t;
 pub type Lua = lua_State;
 pub type LuaFn = Option<unsafe extern "C" fn(*mut Lua) -> i32>;
-pub type LuaRef = lua_Integer;
+pub type LuaRef = LuaInteger;
 
 #[derive(Clone)]
 #[repr(C)]

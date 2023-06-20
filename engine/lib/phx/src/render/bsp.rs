@@ -568,8 +568,8 @@ pub unsafe extern "C" fn BSP_IntersectSphere(
     hit
 }
 
-const DEFAULT_TRIANGLE_SPLIT_COST: f32 = 0.85;
-const LEAF_TRIANGLE_COUNT: i32 = 12;
+// const DEFAULT_TRIANGLE_SPLIT_COST: f32 = 0.85;
+// const LEAF_TRIANGLE_COUNT: i32 = 12;
 
 #[no_mangle]
 pub static PolygonFlag_None: PolygonFlag = (0 << 0) as PolygonFlag;
@@ -1362,10 +1362,9 @@ pub unsafe extern "C" fn BSPDebug_DrawNodeSplit(this: &mut BSP, nodeRef: BSPNode
         BSPDebug_DrawNode(this, (*node).child[FrontIndex as usize]);
 
         /* Plane */
-        let mut closestPoint = Vec3::ZERO;
         let origin: Vec3 = Vec3::new(0., 0., 0.);
         let t: f32 = Vec3::dot((*node).plane.n, origin) - (*node).plane.d;
-        closestPoint = origin - ((*node).plane.n * t);
+        let mut closestPoint = origin - ((*node).plane.n * t);
         RenderState_PushWireframe(false);
         Draw_Color(0.3f32, 0.5f32, 0.3f32, 0.4f32);
         Draw_Plane(&closestPoint, &(*node).plane.n, 2.0f32);

@@ -24,6 +24,7 @@ impl Bytes {
         };
     }
 
+    #[allow(dead_code)]
     fn to_slice_mut(&mut self) -> &mut [u8] {
         return unsafe {
             std::slice::from_raw_parts_mut(&mut self.data as *mut i8 as *mut u8, self.size as usize)

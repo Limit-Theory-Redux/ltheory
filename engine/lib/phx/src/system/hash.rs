@@ -162,9 +162,7 @@ fn XXH64_mergeRound(mut acc: u64, val: u64) -> u64 {
 pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64) -> u64 {
     let mut p: *const u8 = buf as *const u8;
     let end: *const u8 = p.offset(len as isize);
-    let mut hash: u64 = 0;
-
-    if len >= 32 {
+    let mut hash = if len >= 32 {
         let limit: *const u8 = end.offset(-(32));
         let mut v1: u64 = seed.wrapping_add(PRIME64_1).wrapping_add(PRIME64_2);
         let mut v2: u64 = seed.wrapping_add(PRIME64_2);
@@ -184,17 +182,17 @@ pub unsafe extern "C" fn Hash_XX64(buf: *const libc::c_void, len: i32, seed: u64
                 break;
             }
         }
-        hash = (v1 << 1 | v1 >> 64 - 1)
+        let mut hash = (v1 << 1 | v1 >> 64 - 1)
             .wrapping_add(v2 << 7 | v2 >> 64 - 7)
             .wrapping_add(v3 << 12 | v3 >> 64 - 12)
             .wrapping_add(v4 << 18 | v4 >> 64 - 18);
         hash = XXH64_mergeRound(hash, v1);
         hash = XXH64_mergeRound(hash, v2);
         hash = XXH64_mergeRound(hash, v3);
-        hash = XXH64_mergeRound(hash, v4);
+        XXH64_mergeRound(hash, v4)
     } else {
-        hash = seed.wrapping_add(PRIME64_5);
-    }
+        seed.wrapping_add(PRIME64_5)
+    };
 
     hash = hash.wrapping_add(len as u64);
 

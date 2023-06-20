@@ -1,13 +1,3 @@
-#![allow(
-    dead_code,
-    mutable_transmutes,
-    non_camel_case_types,
-    non_snake_case,
-    non_upper_case_globals,
-    unused_assignments,
-    unused_mut
-)]
-
 // TODO: https://users.rust-lang.org/t/question-how-to-dllexport-nvoptimusenablement-symbol-to-auto-select-dedicated-nvidia-gpu/8617/3
 // /* On Windows, request usage of the dedicated GPU if the machine switches
 //  * between on-board and dedicated GPUs dynamically. Only works when exported

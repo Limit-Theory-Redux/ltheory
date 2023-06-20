@@ -19,7 +19,7 @@ pub static State_Down: State = 1 << 2;
 pub static State_Released: State = 1 << 3;
 
 #[no_mangle]
-pub extern "C" fn State_ToString(mut state: State) -> *const libc::c_char {
+pub extern "C" fn State_ToString(state: State) -> *const libc::c_char {
     static_string!(state_to_string(state))
 }
 
