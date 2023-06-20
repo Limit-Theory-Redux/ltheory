@@ -29,14 +29,11 @@ local function AddSystemGenerics(system)
     -- TODO: Don't do this step for star systems that are not inhabited
     system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.EnergySolar)
 
-    if GameState.gen.nAIPlayers > 0 and GameState.gen.nEconNPCs > 0 then
-        -- Add the "extra" stations only if there are economic ships to use them
-        -- Add a free Waste Recycler station
-        system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.Recycler)
-    end
+    -- Add a free Waste Recycler station
+    system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.Recycler)
 
     -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
-    for i = 2, GameState.gen.nStations do
+    for i = 3, GameState.gen.nStations do
         -- Create Stations within randomly selected AsteroidField Zones
         system:spawnStation(Enums.StationHulls.Small, tradeAi, nil)
     end
@@ -92,9 +89,6 @@ function UniverseEconomy:OnUpdate(dt)
                 -- Tell AI player to start using the Think action
                 aiPlayer:pushAction(Actions.Think())
 
-                -- Temporary
-                AddSystemGenerics(system)
-
                 -- Add AI Player to the system
                 table.insert(system.aiPlayers, aiPlayer)
             end
@@ -116,6 +110,10 @@ end
 
 function UniverseEconomy:AddSystem(system)
     print("Adding a new system to universe economy: " .. system:getName())
+
+    -- Add star system's AI Director and space stations only once per system
+    AddSystemGenerics(system)
+
     table.insert(self.systems.highAttention, system)
 end
 

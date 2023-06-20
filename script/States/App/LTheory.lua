@@ -3,6 +3,7 @@ local System = require('GameObjects.Entities.Test.System')
 local DebugControl = require('Systems.Controls.Controls.DebugControl')
 local Actions = requireAll('GameObjects.Actions')
 local Bindings = require('States.ApplicationBindings')
+local MainMenu = require('Systems.Menus.MainMenu')
 
 local LTheory = require('States.Application')
 local rng = RNG.FromTime()
@@ -12,19 +13,12 @@ local escortShips = 20
 
 function LTheory:generate()
     self.seed = rng:get64()
-    if true then
-        -- self.seed = 7035008865122330386ULL
-        -- self.seed = 15054808765102574876ULL
-        -- self.seed = 1777258448479734603ULL
-        -- self.seed = 5023726954312599969ULL
-    end
     printf('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)
 
     GameState.world.currentSystem = self.system
-    GameState.ui.hudStyle = Enums.HudStyles.Wide
     GameState:SetState(Enums.GameStates.InGame)
 
     -- Generate planets (no more than 1 for now)
@@ -80,19 +74,30 @@ function LTheory:generate()
 end
 
 function LTheory:onInit()
+    DebugControl.ltheory = self
+
     --* Audio initializations *--
     Audio.Init()
     Audio.Set3DSettings(0.0, 10, 2);
 
     self.player = Player("LTheory Player")
+
     self:generate()
 
-    DebugControl.ltheory = self
+    GameState.ui.hudStyle = Enums.HudStyles.Wide
+    GameState.ui.sensorsDisplayed = true
+    GameState.ui.showTrackers = true
+    GameState.player.humanPlayer = self.player
+
     self.gameView = Systems.Overlay.GameView(self.player)
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView
             :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
+
+    self.window:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
+    MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
+
 end
 
 function LTheory:onInput()
