@@ -27,10 +27,10 @@ function Entity:addComponents()
 end
 
 -- TODO: Function interfaces for:
---         Computers
---         Sensors
---         Life Support
---         Drones
+--         Computer
+--         Sensor
+--         Drone
+--         Cloak (formerly Life Support)
 
 function Entity:isAlive()
     --printf("isAlive() self = %s", self:getName())

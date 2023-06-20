@@ -1,19 +1,19 @@
-Config.org                       = 'LTheoryRedux'
-Config.app                       = 'LTheoryRedux'
+Config.org = 'LTheoryRedux'
+Config.app = 'LTheoryRedux'
 
-Config.orgInfo                   = {
+Config.orgInfo = {
     repository = "https://github.com/Limit-Theory-Redux/ltheory",
     discord = "https://discord.gg/MrfRR5ytJF",
 }
 
-Config.gameTitle                 = "Limit Theory Redux"
-Config.gameVersion               = "v0.008"
+Config.gameTitle   = "Limit Theory Redux"
+Config.gameVersion = "v0.008"
 
-Config.userInitFilename          = "user.ini"
+Config.userInitFilename = "user.ini"
 
 Config.timeToResetToSplashscreen = 60
 
-Config.render                    = {
+Config.render = {
     defaultResX    = 1600,
     defaultResY    = 900,
     fullscreen     = false,
@@ -24,14 +24,14 @@ Config.render                    = {
     pulseLights    = false,
 }
 
-Config.audio                     = {
+Config.audio = {
     soundEnabled         = true,
     supportedFormats     = { ".ogg" },
     mainMenuMusicEnabled = true,
     bSoundOn             = false,
     soundMin             = 0,
-    soundMax             = 1,    -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
-    musicVolume          = 0.75, -- current volume
+    soundMax             = 1,   -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+    musicVolume          = 0.0, -- current volume
     mainMenu             = "LTR_Main_Menu.ogg",
 
     pulseFireName        = "",
@@ -44,7 +44,7 @@ Config.audio                     = {
     explodeStation       = nil,
 }
 
-Config.paths                     = {
+Config.paths = {
     files         = Directory.GetPrefPath(Config.org, Config.app), -- base directory using environment-agnostic path
     soundAmbiance = "./res/sound/system/audio/music/",
     soundEffects  = "./res/sound/system/audio/fx/",
@@ -52,7 +52,7 @@ Config.paths                     = {
     types         = "./script/Types/"
 }
 
-Config.debug                     = {
+Config.debug = {
     metricsEnabled  = false,
     window          = true, -- Debug window visible by default at launch?
     windowSection   = nil,  -- Set to the name of a debug window section to
@@ -66,13 +66,13 @@ Config.debug                     = {
     printConfig     = false
 }
 
-Config.debug.physics             = {
+Config.debug.physics = {
     drawWireframes         = false,
     drawBoundingBoxesLocal = false,
     drawBoundingBoxesworld = false,
 }
 
-local goodSeeds                  = {
+local goodSeeds = {
     14589938814258111262ULL,
     15297218883250103974ULL,
     1842258441393851360ULL,
@@ -81,23 +81,23 @@ local goodSeeds                  = {
     638780708004697442ULL,
 }
 
-Config.gen                       = {
+Config.gen = {
     seedGlobal                       = nil,            -- Set to force deterministic global RNG
     seedSystem                       = nil,            -- Set to force deterministic system generation
 
     origin                           = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
 
-    nFields                          = 20,
+    nFields                          = 10,
     nFieldSize                       = function(rng) return 200 * (rng:getExp() + 1.0) end,
-    nAsteroids                       = 200, -- asteroids per asteroid field (smaller = less CPU hit)
-    nPlanets                         = 0,
-    nStations                        = 0,
+    nAsteroids                       = 150, -- asteroids per asteroid field (smaller = less CPU hit)
+    nPlanets                         = 1,
+    nStations                        = 20,
     nBeltSize                        = function(rng) return 0 end, -- asteroids per planetary belt
 
     nDustFlecks                      = 256,
     nDustClouds                      = 8,
     nStars                           = function(rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
-    nebulaBrightnessScale            = 1.0,
+    nebulaBrightnessScale            = 4.0,
 
     uniqueShips                      = true,
     shipRes                          = 8,
@@ -145,12 +145,12 @@ Config.gen                       = {
         { 0, 1, 2, 5, 8,  12 },          -- shield generators
         { 0, 0, 1, 3, 5,  8 },           -- armor plates
     },
-    shipInventorySize                = 10,
-    stationInventorySize             = 100,
-    planetInventorySize              = 10000,
-    stationHullMass                  = { 112000,
-        242000,
-        575000 },
+    shipInventorySize    = 10,
+    stationInventorySize = 100,
+    planetInventorySize  = 10000,
+    stationHullMass      = { 112000,
+                             242000,
+                             575000 },
     stationComponents                = { -- trade ---   --- mil ----   -- Sockets available for (ComponentEnums.lua):
         { 30, 80, 130, 45, 100, 250 },   -- hull integrity
         { 12, 16, 24,  20, 32,  48 },    -- computers
@@ -166,19 +166,20 @@ Config.gen                       = {
         { 8,  16, 32,  24, 48,  96 },    -- armor plates
     },
 
-    planetComponents                 = { --  S     M     L   -- Sockets available for (ComponentEnums.lua):
-        { 0,    0,    0 },               -- hull integrity
-        { 1000, 8000, 20000 },           -- computers
-        { 50,   120,  500 },             -- sensors
-        { 0,    0,    0 },               -- life support
-        { 0,    0,    0 },               -- capacitors
-        { 0,    0,    0 },               -- thrusters (none on stations)
-        { 0,    0,    0 },               -- turret weapons
-        { 0,    0,    0 },               -- bay weapons
-        { 1000, 7500, 48000 },           -- cargo pods (* planetInventorySize inventory each)
-        { 0,    0,    0 },               -- drone racks (* 2 drones each)
-        { 500,  1200, 10000 },           -- shield generators
-        { 0,    0,    0 },               -- armor plates
+    planetComponents = {
+         --  S      M      L     -- Sockets available for (ComponentEnums.lua):
+        {    0,     0,     0 },  -- hull integrity
+        { 1000,  8000, 20000 },  -- computers
+        {   50,   120,   500 },  -- sensors
+        {    0,     0,     0 },  -- life support
+        {    0,     0,     0 },  -- capacitors
+        {    0,     0,     0 },  -- thrusters (none on stations)
+        {    0,     0,     0 },  -- turret weapons
+        {    0,     0,     0 },  -- bay weapons
+        { 1000,  7500, 48000 },  -- cargo pods (* planetInventorySize inventory each)
+        {    0,     0,     0 },  -- drone racks (* 2 drones each)
+        {  500,  1200, 10000 },  -- shield generators
+        {    0,     0,     0 },  -- armor plates
     },
 
     compHullStats                    = {
@@ -413,111 +414,163 @@ Config.gen                       = {
         range        = 20000,
     },
 
-    nebulaRes                        = 1024, -- 2048 sometimes creates nebulae with stright-line edges
+    objectEmissions = {
+    -- STAR  PLANET  STATION  SHIP  THRUSTER PULSE  BEAM  JUMP  CLOAK
+    {     5,     21,      10,   16,       0,     0,    0,    9,    -5},    --              |   1  Hz
+    {    10,     13,      27,   10,       0,     0,    0,   37,    -5},    --              |   5  Hz
+    {    13,      7,      30,    8,       0,     0,    4,   11,     0},    --              |  10  Hz > Audio
+    {    36,      1,      11,    3,       6,     0,   22,    1,     0},    --              |  50  Hz > Audio
+    {    11,      0,      24,    7,      17,     0,   67,    0,     0},    --              | 100  Hz > Audio
+    {     8,      0,      11,   15,       4,     3,   19,    0,   -10},    --              | 500  Hz > Audio
+    {     3,      0,      19,   28,       1,    17,    2,    0,   -10},    --              |   1 kHz > Audio
+    {    14,      0,      25,   35,       0,    61,    0,    0,   -20},    --  Low-band    |   5 kHz > Audio
+    {     3,      0,      32,   43,       0,    11,    0,    0,   -30},    --              |  10 kHz > Audio
+    {    18,      5,      45,   50,       0,     0,    0,    0,   -40},    --              |  50 kHz
+    {    19,     32,      54,   62,       0,     0,    0,    0,   -40},    --              | 100 khz
+    {    26,     73,      71,   21,       0,     0,    0,    0,   -10},    --              | 500 khz > AM radio
+    {    20,     84,      59,    5,       0,     0,    0,    0,     0},    --              |   1 MHz > AM radio     > Ultrasound
+    {    11,     60,      46,   18,       0,     0,    0,    0,    -5},    --              |   5 MHz > AM radio     > Ultrasound
+    {     9,     31,      30,   27,       0,     0,    0,    2,   -10},    --              |  10 MHz                > Ultrasound
+    {     3,     57,      18,   22,       0,     0,    0,   13,   -10},    --             ||  50 Mhz > TV
+    {    12,     22,       6,   10,       4,     0,    0,   41,    -5},    --             || 100 Mhz > TV           > FM radio
+    {     5,     36,      18,   13,      23,     0,    0,    7,    -5},    --             || 500 Mhz > Microwaves
+    {     9,     39,      32,   16,      13,     0,    0,    0,   -10},    --             ||   1 GHz > Microwaves   > Mobile phones
+    {    19,     47,      37,   21,       2,     0,    0,    0,   -15},    --             ||   5 GHz > Microwaves   > WiFi
+    {     7,     51,      43,   33,       0,     0,    0,    0,   -20},    --             ||  10 GHz > Microwaves   > Radar
+    {     1,     42,      40,   17,       0,     0,    0,    0,   -10},    --             ||  50 GHz > Microwaves   > Radar
+    {     4,     26,      21,   16,       0,     0,    0,    0,   -10},    --             || 100 GHz > Microwaves   > Radar
+    {     9,     54,      31,   35,       0,     0,    0,    0,   -20},    --  Mid-band   || 500 GHz > Bio-imaging
+    {    19,     71,      70,   12,       0,     0,    0,    0,   -10},    --             ||   1 THz > Bio-imaging  > Infrared
+    {    29,     79,      87,    8,       1,     0,    0,    3,    -5},    --             ||   5 THz > Bio-imaging  > Infrared
+    {    57,     68,      61,   15,       5,     0,    8,   14,    -5},    --             ||  10 THz > Bio-imaging  > Infrared
+    {    66,     28,      46,   22,      12,    10,   17,   26,   -10},    --             ||  50 THz > Bio-imaging  > Infrared
+    {    78,     20,      33,   51,      51,    72,   54,   70,   -30},    --             || 100 THz                > Infrared
+    {   100,     12,      29,   20,      90,    82,   89,   79,   -10},    --             || 500 THz > Visible light
+    {    81,      3,      29,   32,      72,    41,   37,    8,   -15},    --             ||   1 PHz > Ultraviolet
+    {    66,      6,      35,   19,      59,    90,    6,    0,    -5},    --             ||   5 PHz > Ultraviolet
+    {    41,      1,      24,    6,      21,    21,    8,    0,     0},    --             ||  10 PHz > Ultraviolet
+    {    51,      0,       8,    1,       5,     3,   26,    0,     0},    --            |||  50 PHz > Soft X-ray
+    {    45,      0,       0,    0,       0,     0,   74,    0,     0},    --            ||| 100 PHz > Soft X-ray
+    {    36,      0,       0,    0,       2,     0,   61,    0,     0},    --            ||| 500 PHz > Soft X-ray
+    {    28,      0,       0,    0,       8,     0,   14,    0,     0},    --            |||   1 EHz > Soft X-ray
+    {    23,      0,       1,    0,      17,     0,    2,    0,     0},    --            |||   5 EHz > Soft X-ray
+    {    17,      1,       3,    0,      31,     0,    0,    0,     0},    --            |||  10 EHz > Soft X-ray
+    {    25,      0,       3,    0,      11,     0,    0,    0,     0},    --  High-band |||  50 EHz > Hard X-ray
+    {    18,      0,       2,    0,       3,     0,    0,    0,     0},    --            ||| 100 EHz > Hard X-ray
+    {    16,      0,       1,    0,       1,     0,    0,    0,     0},    --            ||| 500 EHz > Gamma
+    {    24,      0,       0,    0,       0,     0,    0,    0,     0},    --            |||   1 ZHz > Gamma
+    {    17,      1,       0,    0,       0,     0,    0,    0,     0},    --            |||   5 ZHz > Gamma
+    {     9,      7,       2,    0,       0,     0,    0,    0,     0},    --            |||  10 ZHz
+    {     2,      2,       1,    0,       0,     0,    0,    7,     0},    --            |||  50 ZHz
+    {     1,      0,       0,    0,       0,     0,    0,   88,     0},    --            ||| 100 ZHz # Jump wave
+    {     0,      0,       0,    0,       0,     0,    0,    1,     0},    --            ||| 500 ZHz
+    },
 
-    nAIPlayers                       = 0,    -- # of AI players (who manage Economic assets)
-    randomizeAIPlayers               = false,
-    nEconNPCs                        = 0,    -- # of ships to be given Economic actions (managed by AI players)
-    randomizeEconNPCs                = false,
-    nEscortNPCs                      = 0,    -- # of ships to be given the Escort action
-    randomizeEscortNPCs              = false,
+    nebulaRes           = 1024, -- 2048 sometimes creates nebulae with stright-line edges
 
-    zNearBack                        = 0.1,
-    zNearReal                        = 0.1, -- 0.1
-    zFarBack                         = 1e6,
-    zFarReal                         = 1e4, -- 1e6
+    nAIPlayers          = 0,   -- # of AI players (who manage Economic assets)
+    randomizeAIPlayers  = false,
+    nEconNPCs           = 0,   -- # of ships to be given Economic actions (managed by AI players)
+    randomizeEconNPCs   = false,
+    nEscortNPCs         = 20,  -- # of ships to be given the Escort action
+    randomizeEscortNPCs = false,
 
-    scaleSystemBack                  = 2e5,
-    scaleSystemReal                  = 2e4,  -- 2e9 maximum, but anything bigger than 5e4 currently introduces a horrible "wobble"
-    scalePlanetBack                  = 120000,
-    scalePlanetReal                  = 8000, -- 15000
-    scalePlanetModBack               = 7e4,
-    scalePlanetModReal               = 1,    -- 4e5
+    zNearBack           = 0.1,
+    zNearReal           = 0.1, -- 0.1
+    zFarBack            = 1e6,
+    zFarReal            = 1e4, -- 1e6
 
-    scaleSystem                      = 1e6,  -- this needs to be extended massively; see also zFar and zNear
-    scaleStar                        = 1e6,
-    scalePlanet                      = 5e3,
-    scalePlanetMod                   = 7e4, -- 7e4
-    scaleFieldAsteroid               = 40000,
-    scaleAsteroid                    = 7.0,
-    scaleStation                     = 70,
+    scaleSystemBack     = 2e5,
+    scaleSystemReal     = 2e4,  -- 2e9 maximum, but anything bigger than 5e4 currently introduces a horrible "wobble"
+    scalePlanetBack     = 120000,
+    scalePlanetReal     = 8000, -- 15000
+    scalePlanetModBack  = 7e4,
+    scalePlanetModReal  = 1,    -- 4e5
 
-    sizePlanet                       = 2,         -- 1 = small, 2 = medium, 3 = large
+    scaleSystem         = 1e6,  -- this needs to be extended massively; see also zFar and zNear
+    scaleStar           = 1e6,
+    scalePlanet         = 5e3,
+    scalePlanetMod      = 7e4, -- 7e4
+    scaleFieldAsteroid  = 40000,
+    scaleAsteroid       = 7.0,
+    scaleStation        = 70,
 
-    radiusStarTrue                   = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
-    radiusPlanetTrue                 = 6371000,   -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
-    radiusAsteroidTrue               = 50000,     -- 0.005 km to 450 km
-    massStarTrue                     = 2e30,      -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
-    massPlanetTrue                   = 6e24,      -- 5.97e24 is Earth's mass in kg (1e10 as a test value)
-    massAsteroidTrue                 = 5e18,      -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
+    sizePlanet          = 2,         -- 1 = small, 2 = medium, 3 = large
 
-    massAsteroidExp                  = { 4.1,     -- Carbonaceous
-        5.9,                                      -- Metallic
-        3.2 },                                    -- Silicaceous
+    radiusStarTrue      = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
+    radiusPlanetTrue    = 6371000,   -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
+    radiusAsteroidTrue  = 50000,     -- 0.005 km to 450 km
+    massStarTrue        = 2e30,      -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
+    massPlanetTrue      = 6e24,      -- 5.97e24 is Earth's mass in kg (1e10 as a test value)
+    massAsteroidTrue    = 5e18,      -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
 
-    stationMinimumDistance           = 2000,      -- minimum distance between stations
+    massAsteroidExp     = { 4.1,     -- Carbonaceous
+                            5.9,     -- Metallic
+                            3.2 },   -- Silicaceous
+
+    stationMinimumDistance           = 2000, -- minimum distance between stations
     minimumDistancePlacementMaxTries = 100
 }
 
-Config.game                      = {
-    boostCost              = 20,
+Config.game = {
+    boostCost           = 20,
 
-    explosionSize          = 64,
+    explosionSize       = 64,
 
-    autoTarget             = false,
+    autoTarget          = false,
 
-    pulseColorBodyR        = 0.3,
-    pulseColorBodyG        = 0.8,
-    pulseColorBodyB        = 2.0,
-    pulseColorLightR       = 0.3,
-    pulseColorLightG       = 0.9,
-    pulseColorLightB       = 3.0,
+    pulseColorBodyR     = 0.3,
+    pulseColorBodyG     = 0.8,
+    pulseColorBodyB     = 2.0,
+    pulseColorLightR    = 0.3,
+    pulseColorLightG    = 0.9,
+    pulseColorLightB    = 3.0,
 
-    droneType              = 1, -- 1 = mining drone, 2 = combat drone
-    droneDamage            = 10,
-    droneTarget            = nil,
-    droneSize              = 75,
-    droneSpeed             = 50,
-    droneRange             = 5000,
+    droneType   = 1, -- 1 = mining drone, 2 = combat drone
+    droneDamage = 10,
+    droneTarget = nil,
+    droneSize   = 75,
+    droneSpeed  = 50,
+    droneRange  = 5000,
 
-    missileDamage          = 80,
-    missileTarget          = nil,
-    missileSize            = 100,
-    missileSpeed           = 100,
-    missileRange           = 10000,
+    missileDamage = 80,
+    missileTarget = nil,
+    missileSize   = 100,
+    missileSpeed  = 100,
+    missileRange  = 10000,
 
-    torpedoDamage          = 250,
-    torpedoTarget          = nil,
-    torpedoSize            = 64,
-    torpedoSpeed           = 30,
-    torpedoRange           = 14000,
+    torpedoDamage = 250,
+    torpedoTarget = nil,
+    torpedoSize   = 64,
+    torpedoSpeed  = 30,
+    torpedoRange  = 14000,
 
-    weaponGroup            = 1,
+    weaponGroup = 1,
 
-    shieldColor            = Color(0.2, 0.5, 1.0, 1.0),
+    shieldColor = Color(0.2, 0.5, 1.0, 1.0),
 
-    enemies                = 0,
-    friendlies             = 0,
-    squadSizeEnemy         = 8,
-    squadSizeFriendly      = 8,
+    enemies          = 0,
+    friendlies       = 0,
+    squadSizeEnemy   = 8,
+    squadSizeFriendly= 8,
 
-    spawnDistance          = 2000,
-    friendlySpawnCount     = 10,
-    timeScaleShipEditor    = 0.0,
+    spawnDistance       = 2000,
+    friendlySpawnCount  = 10,
+    timeScaleShipEditor = 0.0,
 
-    aiFire                 = function(dt, rng) return rng:getExp() ^ 2 < dt end,
+    aiFire              = function(dt, rng) return rng:getExp() ^ 2 < dt end,
 
-    autonavRanges          = { 200, -- Unknown
-        0,                          -- Reserved
-        0,                          -- Star Sector
-        0,                          -- Star System
-        2000,                       -- Zone
-        1e7,                        -- Star (TODO: radius + offset)
-        10000,                      -- Planet (TODO: radius + offset)
-        300,                        -- Asteroid
-        500,                        -- Jumpgate
-        2000,                       -- Station
-        100 },                      -- Ship
+    autonavRanges = { 200, -- Unknown
+        0,                 -- Reserved
+        0,                 -- Star Sector
+        0,                 -- Star System
+        2000,              -- Zone
+        1e7,               -- Star (TODO: radius + offset)
+        10000,             -- Planet (TODO: radius + offset)
+        300,               -- Asteroid
+        500,               -- Jumpgate
+        2000,              -- Station
+        100 },             -- Ship
 
     dockRange              = 50,
 
@@ -531,39 +584,39 @@ Config.game                      = {
         "friendly" },
 }
 
-Config.econ                      = {
-    pStartCredits          = 10000,   -- player starting credits
-    eStartCredits          = 1000000, -- NPC player starting credits
+Config.econ = {
+    pStartCredits = 10000,   -- player starting credits
+    eStartCredits = 1000000, -- NPC player starting credits
 
-    eInventory             = 100,     -- starting number of inventory slots
+    eInventory = 100,     -- starting number of inventory slots
 
-    jobIterations          = 4000,    -- how many randomly-chosen jobs an asset will consider before picking
+    jobIterations = 4000,    -- how many randomly-chosen jobs an asset will consider before picking
 
-    inputBacklog           = 1,       -- multiplier of number of units a factory can bid for on each input
+    inputBacklog = 1,       -- multiplier of number of units a factory can bid for on each input
 
-    pickupDistWeightMine   = 1.0,     -- importance of pickup distance for a Mine job (smaller = more important)
-    pickupDistWeightTran   = 3.0,     -- importance of pickup distance for a Transport job (smaller = more important)
-    markup                 = 1.2,     -- change to base value when calculating ask price for selling an item
-    markdown               = 0.8,     -- change to base value when calculating bid price for buying an item
+    pickupDistWeightMine = 1.0,     -- importance of pickup distance for a Mine job (smaller = more important)
+    pickupDistWeightTran = 3.0,     -- importance of pickup distance for a Transport job (smaller = more important)
+    markup               = 1.2,     -- change to base value when calculating ask price for selling an item
+    markdown             = 0.8,     -- change to base value when calculating bid price for buying an item
 
     lowAttentionUpdateRate = 5,
 }
 
-Config.ui                        = {
-    defaultControl                   = "Background",
-    controlBarHeight                 = 48,
-    hudStyle                         = 1,
-    sensorsDisplayed                 = false,
-    cursorSmooth                     = "cursor/cursor1-small",
-    cursorSimple                     = "cursor/simple_cursor",
-    cursor                           = "cursor/simple_cursor",
-    cursorStyle                      = 1,
-    cursorX                          = 1,
-    cursorY                          = 1,
+Config.ui = {
+    defaultControl   = "Background",
+    controlBarHeight = 48,
+    hudStyle         = 1,
+    sensorsDisplayed = false,
+    cursorSmooth     = "cursor/cursor1-small",
+    cursorSimple     = "cursor/simple_cursor",
+    cursor           = "cursor/simple_cursor",
+    cursorStyle      = 1,
+    cursorX          = 1,
+    cursorY          = 1,
 
     -- Trackers
-    showTrackers                     = true,
-    maxTrackingRange                 = 500000,
+    showTrackers     = true,
+    maxTrackingRange = 500000,
     trackerBracketingRenderDistances = {
         Planet   = 500000,
         Asteroid = 25000,
@@ -574,8 +627,8 @@ Config.ui                        = {
     }
 }
 
-Config.ui.color                  = {
-    --     R     G     B     A
+Config.ui.color = {
+                        --     R     G     B     A
     accent            = Color(1.00, 0.00, 0.30, 1.0),
     focused           = Color(1.00, 0.00, 0.30, 1.0),
     active            = Color(0.70, 0.00, 0.21, 1.0),
@@ -601,9 +654,10 @@ Config.ui.color                  = {
     reticle           = Color(0.10, 0.30, 1.00, 3.0),
     windowBackground  = Color(0.00, 0.40, 1.00, 0.2),
     clientBackground  = Color(0.30, 0.30, 0.30, 0.0),
-    meterBar          = Color(0.10, 0.60, 1.00, 0.7),
-    meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
     meterBarOver      = Color(1.00, 0.30, 0.00, 0.6),
+    meterBarLight     = Color(0.10, 0.60, 1.00, 0.7),
+    meterBarDark      = Color(0.00, 0.30, 0.70, 0.1),
+    meterBarBright    = Color(0.00, 0.20, 0.70, 0.3),
     hullIntegrity     = Color(0.20, 0.25, 0.30, 0.9),
     armorIntegrity    = Color(0.80, 0.75, 0.30, 0.6),
     shieldStrength    = Color(0.20, 0.50, 1.00, 0.7),
@@ -665,7 +719,7 @@ Config.ui.color                  = {
     },
 }
 
-Config.ui.font                   = {
+Config.ui.font = {
     normal     = Cache.Font('Share', 14),
     normalSize = 14,
     title      = Cache.Font('Exo2Bold', 10),
@@ -673,7 +727,7 @@ Config.ui.font                   = {
 }
 
 -- Static object type names and data
-Config.objectInfo                = {
+Config.objectInfo = {
     {
         ID = "object_types",
         name = "Object Types",
