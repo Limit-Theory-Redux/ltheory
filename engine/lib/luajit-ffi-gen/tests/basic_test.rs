@@ -73,6 +73,14 @@ impl MyStruct {
             *val = 0;
         }
     }
+
+    pub fn ret_res_val() -> Result<u8, u8> {
+        Ok(42)
+    }
+
+    pub fn ret_res_err() -> Result<u8, u8> {
+        Err(13)
+    }
 }
 
 #[test]
@@ -96,4 +104,13 @@ fn basic_test() {
 
     MyStruct_SetData(&mut ms2, &Data::default());
     assert!(MyStruct_GetData(&mut ms2).val);
+
+    let val = MyStruct_RetResVal();
+    assert_eq!(val, 42)
+}
+
+#[test]
+#[should_panic]
+fn test_return_error() {
+    MyStruct_RetResErr();
 }

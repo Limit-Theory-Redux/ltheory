@@ -7,10 +7,10 @@ pub(crate) use c_str;
 
 macro_rules! Fatal {
     ($fmt:expr) => (
-        { tracing::error!($fmt); std::process::exit(1); }
+        panic!($fmt)
     );
     ($fmt:expr, $($args:expr),* $(,)?) => (
-        { tracing::error!($fmt, $($args),*); std::process::exit(1); }
+        panic!($fmt, $($args),*)
     );
 }
 pub(crate) use Fatal;

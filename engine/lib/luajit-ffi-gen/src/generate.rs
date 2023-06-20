@@ -80,11 +80,13 @@ fn wrap_methods(attr_args: &AttrArgs, self_name: &str, method: &MethodInfo) -> T
         quote! {}
     };
 
+    let func_ident_str = format!("{func_ident}");
     let func_body = gen_func_body(&self_ident, method);
 
     quote! {
         #[no_mangle]
         pub extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
+            tracing::trace!("Calling: {}", #func_ident_str);
             #func_body
         }
     }
@@ -188,23 +190,32 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         .collect();
 
     if let Some(ty) = &method.ret {
+        let method_call = if ty.is_result {
+            let method_call_str = format!("{}::{}", self_ident, method.name);
+
+            quote! {
+                match #accessor_token(#(#param_tokens),*) {
+                    Ok(res) => res,
+                    Err(err) => {
+                        panic!("Error on calling method '{}': {}", #method_call_str, err);
+                    }
+                }
+            }
+        } else {
+            quote! { #accessor_token(#(#param_tokens),*) }
+        };
+
         match &ty.variant {
-            TypeVariant::Str | TypeVariant::String => quote! {
-                static_string!(#accessor_token(#(#param_tokens),*))
-            },
-            TypeVariant::CString => quote! {
-                static_cstring!(#accessor_token(#(#param_tokens),*))
-            },
+            TypeVariant::Str | TypeVariant::String => {
+                quote! { let res = #method_call; static_string!(res) }
+            }
+            TypeVariant::CString => quote! { let res = #method_call; static_cstring!(res) },
             TypeVariant::Custom(custom_ty)
                 if ty.is_self() || !TypeInfo::is_copyable(&custom_ty) =>
             {
-                quote! {
-                    #accessor_token(#(#param_tokens),*).into()
-                }
+                quote! { let res = #method_call; res.into() }
             }
-            _ => quote! {
-                #accessor_token(#(#param_tokens),*)
-            },
+            _ => quote! { #method_call },
         }
     } else {
         quote! {
