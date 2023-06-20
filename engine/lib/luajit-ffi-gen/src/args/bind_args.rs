@@ -54,7 +54,7 @@ impl BindArgs {
         ty == BindMethodRole::ToString
     }
 
-    /// If true then the function will be added to the generated Lua FFI file.
+    /// If true then corresponding functions will be added to the generated Lua FFI file.
     /// Default: true
     pub fn gen_lua_ffi(&self) -> bool {
         self.lua_ffi

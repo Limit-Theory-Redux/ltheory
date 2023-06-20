@@ -4,7 +4,7 @@ use regex::Regex;
 use tracing_appender::{non_blocking::WorkerGuard, rolling::RollingFileAppender};
 use tracing_subscriber::{prelude::*, EnvFilter};
 
-/// Clean messages from coloring ASCII instructions before writing to file.
+/// Clean messages from coloring ASCII instructions before writing to the file.
 struct MessageCleaner {
     appender: RollingFileAppender,
     re: Regex,
@@ -36,14 +36,18 @@ impl Write for MessageCleaner {
 }
 
 pub fn init_log(console_log: bool, log_dir: &str) -> Option<WorkerGuard> {
+    // Use either RUST_LOG or 'info' log level directives
     let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("debug"))
+        .or_else(|_| EnvFilter::try_new("info"))
         .expect("Cannot create log env filter layer");
     let registry = tracing_subscriber::registry().with(filter_layer);
 
     let guard = if !log_dir.is_empty() {
+        // Create a log files in the specified directory with the 'ltr' prefix
         let file_appender = tracing_appender::rolling::daily(log_dir, "ltr");
+        // Remove ASCII coloring commands from the message (used to color text in the console) before writing it to the file
         let message_cleaner = MessageCleaner::new(file_appender);
+        // Do not block main thread while generating and writing log messages
         let (non_blocking, guard) = tracing_appender::non_blocking(message_cleaner);
 
         let file_output_layer = tracing_subscriber::fmt::layer()

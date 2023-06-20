@@ -61,6 +61,6 @@ pub fn main() {
             app_name as *const libc::c_char,
             cli.console_log,
             log_dir as *const libc::c_char,
-        )
+        );
     }
 }

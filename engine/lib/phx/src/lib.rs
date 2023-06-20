@@ -2,7 +2,6 @@
 #![allow(non_upper_case_globals)]
 #![allow(unused_imports)]
 #![allow(unused_unsafe)]
-// #![feature(c_variadic)]
 #![feature(extern_types)]
 
 pub mod internal;
