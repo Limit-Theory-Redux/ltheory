@@ -3,11 +3,15 @@ use std::path::PathBuf;
 use crate::common::*;
 use crate::input::*;
 use crate::internal::*;
+use crate::logging::init_log;
 use crate::lua::*;
 use crate::render::*;
 use crate::system::*;
 
 use sdl2_sys::*;
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::EnvFilter;
 
 #[no_mangle]
 pub static subsystems: u32 = SDL_INIT_EVENTS
@@ -24,7 +28,10 @@ pub struct Engine;
 #[luajit_ffi_gen::luajit_ffi]
 impl Engine {
     #[bind(lua_ffi = false)]
-    pub fn entry(entry_point: &str, app_name: Option<&str>) {
+    pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
+        // Keep log till the end of the execution
+        let _log = init_log(console_log, log_dir);
+
         Engine::init(2, 1);
 
         let entry_point_path = PathBuf::new().join(entry_point);
@@ -45,7 +52,7 @@ impl Engine {
             Lua_SetBool(lua, c_str!("__embedded__"), true);
             Lua_SetNumber(lua, c_str!("__checklevel__"), 0 as f64);
 
-            if let Some(app_name) = app_name {
+            if !app_name.is_empty() {
                 let an = static_string!(app_name);
 
                 Lua_SetStr(lua, c_str!("__app__"), an);
@@ -65,11 +72,7 @@ impl Engine {
             static mut firstTime: bool = true;
             Signal_Init();
 
-            CPrintf!(
-                "Engine_Init: Requesting GL %d.%d\n",
-                gl_version_major,
-                gl_version_minor,
-            );
+            Printf!("Engine_Init: Requesting GL {gl_version_major}.{gl_version_minor}");
 
             if firstTime {
                 firstTime = false;
@@ -89,32 +92,32 @@ impl Engine {
                 SDL_GetVersion(&mut linked);
                 if compiled.major != linked.major {
                     println!("Engine_Init: Detected SDL major version mismatch:");
-                    CPrintf!(
-                        "  Version (Compiled) : %d.%d.%d\n",
-                        compiled.major as i32,
-                        compiled.minor as i32,
-                        compiled.patch as i32,
+                    Printf!(
+                        "  Version (Compiled) : {}.{}.{}",
+                        compiled.major,
+                        compiled.minor,
+                        compiled.patch,
                     );
-                    CPrintf!(
-                        "  Version (Linked)   : %d.%d.%d\n",
-                        linked.major as i32,
-                        linked.minor as i32,
-                        linked.patch as i32,
+                    Printf!(
+                        "  Version (Linked)   : {}.{}.{}",
+                        linked.major,
+                        linked.minor,
+                        linked.patch,
                     );
-                    CFatal!("Engine_Init: Terminating.");
+                    Fatal!("Engine_Init: Terminating.");
                 }
 
                 if SDL_Init(0) != 0 {
-                    CFatal!("Engine_Init: Failed to initialize SDL");
+                    Fatal!("Engine_Init: Failed to initialize SDL");
                 }
                 if !Directory_Create(c_str!("log")) {
-                    CFatal!("Engine_Init: Failed to create log directory.");
+                    Fatal!("Engine_Init: Failed to create log directory.");
                 }
                 atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
             }
 
             if SDL_InitSubSystem(subsystems) != 0 {
-                CFatal!("Engine_Init: Failed to initialize SDL's subsystems");
+                Fatal!("Engine_Init: Failed to initialize SDL's subsystems");
             }
 
             SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, gl_version_major);

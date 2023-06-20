@@ -2,7 +2,7 @@ use super::*;
 use crate::common::*;
 
 use sdl2_sys::*;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 
 #[no_mangle]
 pub unsafe extern "C" fn OpenGL_Init() {
@@ -46,30 +46,21 @@ pub unsafe extern "C" fn OpenGL_CheckError(file: *const libc::c_char, line: i32)
     let errorID: gl::types::GLenum = gl::GetError();
     let error = match errorID {
         0 => return,
-        1280 => {
-            c_str!("GL_INVALID_ENUM");
-        }
-        1281 => {
-            c_str!("GL_INVALID_VALUE");
-        }
-        1282 => {
-            c_str!("GL_INVALID_OPERATION");
-        }
-        1286 => {
-            c_str!("GL_INVALID_FRAMEBUFFER_OPERATION");
-        }
-        1285 => {
-            c_str!("GL_OUT_OF_MEMORY");
-        }
+        1280 => "GL_INVALID_ENUM",
+        1281 => "GL_INVALID_VALUE",
+        1282 => "GL_INVALID_OPERATION",
+        1286 => "GL_INVALID_FRAMEBUFFER_OPERATION",
+        1285 => "GL_OUT_OF_MEMORY",
         _ => {
-            CFatal!(
-                "OpenGL_CheckError: gl::GetError returned illegal error code %u at %s:%d",
-                errorID,
-                file,
-                line,
+            Fatal!(
+                "OpenGL_CheckError: gl::GetError returned illegal error code {errorID} at {:?}:{line}",
+                CStr::from_ptr(file),
             );
         }
     };
 
-    CFatal!("OpenGL_CheckError: %s at %s:%d", error, file, line);
+    Fatal!(
+        "OpenGL_CheckError: {error} at {:?}:{line}",
+        CStr::from_ptr(file)
+    );
 }

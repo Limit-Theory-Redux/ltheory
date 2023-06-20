@@ -34,7 +34,7 @@ static mut cache: *mut StrMap = std::ptr::null_mut();
 
 unsafe extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_char) -> i32 {
     if this.is_none() {
-        CFatal!("GetUniformIndex: No shader is bound");
+        Fatal!("GetUniformIndex: No shader is bound");
     }
     let index: i32 = gl::GetUniformLocation(this.unwrap().program, name);
     index
@@ -65,7 +65,10 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
         let infoLog = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
 
-        CFatal!("CreateGLShader: Failed to compile shader:\n%s", infoLog);
+        Fatal!(
+            "CreateGLShader: Failed to compile shader:\n{:?}",
+            CStr::from_ptr(infoLog)
+        );
     }
     this
 }
@@ -90,7 +93,10 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
         gl::GetProgramiv(this, gl::INFO_LOG_LENGTH, &mut length);
         let infoLog: *mut libc::c_char = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetProgramInfoLog(this, length, std::ptr::null_mut(), infoLog);
-        CFatal!("CreateGLProgram: Failed to link program:\n%s", infoLog);
+        Fatal!(
+            "CreateGLProgram: Failed to link program:\n{:?}",
+            CStr::from_ptr(infoLog)
+        );
     }
     this
 }
@@ -152,25 +158,20 @@ fn parse_autovar(val: &str, this: &mut Shader) {
         let var_type = line_tokens[0];
         let var_name = line_tokens[1];
         let var = ShaderVar {
-            type_0: shader_var_type_from_str(var_type),
+            type_0: ShaderVarType::from_str(var_type),
             name: var_name.into(),
             index: -1,
         };
 
-        if var.type_0 == 0 {
-            CFatal!(
-                "GLSL_Preprocess: Unknown shader variable type <%s> in autovar directive:\n  %s",
-                var_type,
-                val,
+        if var.type_0 == ShaderVarType::UNKNOWN {
+            Fatal!(
+                "GLSL_Preprocess: Unknown shader variable type <{var_type}> in autovar directive:\n  {val}"
             );
         }
 
         this.vars.push(var);
     } else {
-        CFatal!(
-            "GLSL_Preprocess: Failed to parse autovar directive:\n  %s",
-            val
-        );
+        Fatal!("GLSL_Preprocess: Failed to parse autovar directive:\n  {val}");
     }
 }
 
@@ -184,8 +185,8 @@ unsafe extern "C" fn Shader_BindVariables(this: &mut Shader) {
         (*var).index = gl::GetUniformLocation(this.program, c_name);
 
         if (*var).index < 0 {
-            Warn!("Shader_BindVariables: Automatic shader variable <{:?}> does not exist in shader <{}>",
-                (*var).name,
+            Warn!("Shader_BindVariables: Automatic shader variable <{}> does not exist in shader <{}>",
+                var.name,
                 this.name,
             );
         }
@@ -289,13 +290,13 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
             let pValue = ShaderVar_Get(c_name, (*var).type_0);
 
             if pValue.is_null() {
-                CFatal!(
-                    "Shader_Start: Shader variable stack does not contain variable <%s>",
-                    (*var).name.as_ptr(),
+                Fatal!(
+                    "Shader_Start: Shader variable stack does not contain variable <{}>",
+                    (*var).name,
                 );
             }
 
-            match (*var).type_0 {
+            match (*var).type_0.value() {
                 1 => {
                     let value: f32 = *(pValue as *mut f32);
                     gl::Uniform1f((*var).index, value);

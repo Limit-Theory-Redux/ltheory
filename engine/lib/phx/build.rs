@@ -49,6 +49,7 @@ fn main() {
     // Build C++ files which haven't been ported yet.
     cc::Build::new()
         .cpp(true)
+        .file("src/cpp/Common.cpp")
         .file("src/cpp/CollisionShape.cpp")
         .file("src/cpp/Physics.cpp")
         .file("src/cpp/RigidBody.cpp")

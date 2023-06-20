@@ -2,7 +2,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(unused_imports)]
 #![allow(unused_unsafe)]
-#![feature(c_variadic)]
+// #![feature(c_variadic)]
 #![feature(extern_types)]
 
 pub mod internal;
@@ -12,6 +12,7 @@ pub mod common;
 pub mod engine;
 pub mod error;
 pub mod input;
+pub mod logging;
 pub mod lua;
 pub mod math;
 pub mod physics;

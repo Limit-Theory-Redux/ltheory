@@ -35,7 +35,10 @@ fn Signal(signal: Signal, handler: SignalHandler) -> SignalHandler {
 
 extern "C" fn Signal_Handler(sig: Signal) {
     unsafe {
-        CWarn!("Signal_Handler: Caught %s", Signal_ToString(sig));
+        Warn!(
+            "Signal_Handler: Caught {:?}",
+            CStr::from_ptr(Signal_ToString(sig))
+        );
 
         /* Re-install default handlers. */
         Signal(Signal_Int, HandlerDefault(Signal_Int));

@@ -701,10 +701,10 @@ pub extern "C" fn Matrix_Print(this: &Matrix) {
     while i < 4 {
         let mut j: i32 = 0;
         while j < 4 {
-            CPrintf!("%f ", this.m[(4 * i + j) as usize] as f64);
+            Printf!("{} ", this.m[(4 * i + j) as usize] as f64);
             j += 1;
         }
-        CPrintf!("\n");
+        Printf!("\n");
         i += 1;
     }
 }

@@ -66,7 +66,12 @@ pub fn Bytes_FromSlice(data: &[u8]) -> *mut Bytes {
 pub extern "C" fn Bytes_Load(path: *const libc::c_char) -> *mut Bytes {
     let this: *mut Bytes = File_ReadBytes(path);
     if this.is_null() {
-        CFatal!("Bytes_Load: Failed to read file '%s'", path);
+        unsafe {
+            Fatal!(
+                "Bytes_Load: Failed to read file '{:?}'",
+                CStr::from_ptr(path)
+            );
+        }
     }
     this
 }
@@ -92,11 +97,7 @@ pub extern "C" fn Bytes_Compress(bytes: &mut Bytes) -> *mut Bytes {
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     if let Err(e) = encoder.write_all(input) {
-        let str = CString::new(e.to_string()).unwrap();
-        CFatal!(
-            "Bytes_Compress: Encoding failed: %s",
-            str.as_ptr() as *const libc::c_char,
-        );
+        Fatal!("Bytes_Compress: Encoding failed: {e}");
     }
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
@@ -110,11 +111,7 @@ pub extern "C" fn Bytes_Decompress(bytes: &mut Bytes) -> *mut Bytes {
 
     let mut decoder = ZlibDecoder::new(Vec::new());
     if let Err(e) = decoder.write_all(input) {
-        let str = CString::new(e.to_string()).unwrap();
-        CFatal!(
-            "Bytes_Decompress: Decoding failed: %s",
-            str.as_ptr() as *const libc::c_char,
-        );
+        Fatal!("Bytes_Decompress: Decoding failed: {e}");
     }
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
@@ -350,7 +347,7 @@ pub unsafe extern "C" fn Bytes_WriteF64(this: &mut Bytes, value: f64) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Bytes_Print(this: &Bytes) {
-    CPrintf!("%d bytes:\n", this.size);
+    Printf!("{} bytes:", this.size);
     for i in 0..this.size {
         libc::putchar(*(&this.data as *const libc::c_char).offset(i as isize) as i32);
     }
@@ -358,7 +355,11 @@ pub unsafe extern "C" fn Bytes_Print(this: &Bytes) {
 
 #[no_mangle]
 pub extern "C" fn Bytes_Save(this: &Bytes, path: *const libc::c_char) {
-    let mut file = File_Create(path)
-        .unwrap_or_else(|| CFatal!("Bytes_Save: Failed to open file '%s' for writing", path));
+    let mut file = File_Create(path).unwrap_or_else(|| unsafe {
+        Fatal!(
+            "Bytes_Save: Failed to open file '{:?}' for writing",
+            CStr::from_ptr(path)
+        )
+    });
     let _ = file.file.write_all(this.to_slice());
 }

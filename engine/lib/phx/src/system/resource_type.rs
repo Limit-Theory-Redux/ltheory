@@ -1,4 +1,4 @@
-use crate::common::*;
+use crate::{common::*, internal::static_string};
 
 pub type ResourceType = i32;
 
@@ -36,18 +36,23 @@ pub const ResourceType_COUNT: usize = 10;
 
 #[no_mangle]
 pub extern "C" fn ResourceType_ToString(this: ResourceType) -> *const libc::c_char {
-    match this {
-        0 => return c_str!("Font"),
-        1 => return c_str!("Mesh"),
-        2 => return c_str!("Other"),
-        3 => return c_str!("Script"),
-        4 => return c_str!("Shader"),
-        5 => return c_str!("Sound"),
-        6 => return c_str!("Tex1D"),
-        7 => return c_str!("Tex2D"),
-        8 => return c_str!("Tex3D"),
-        9 => return c_str!("TexCube"),
-        _ => {}
-    }
-    std::ptr::null()
+    resource_type_to_string(this)
+        .map(|name| static_string!(name))
+        .unwrap_or(std::ptr::null())
+}
+
+pub fn resource_type_to_string(this: ResourceType) -> Option<&'static str> {
+    Some(match this {
+        0 => "Font",
+        1 => "Mesh",
+        2 => "Other",
+        3 => "Script",
+        4 => "Shader",
+        5 => "Sound",
+        6 => "Tex1D",
+        7 => "Tex2D",
+        8 => "Tex3D",
+        9 => "TexCube",
+        _ => return None,
+    })
 }

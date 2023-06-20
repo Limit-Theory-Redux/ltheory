@@ -16,16 +16,29 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    /// Application starting Lua script
     #[arg(short, long, default_value = "./script/Main.lua")]
     entry_point: String,
+    /// Optional application name
     #[arg(short, long)]
     app_name: Option<String>,
+    /// Specify if console log should be shown
+    #[arg(short, long, default_value_t = true)]
+    console_log: bool,
+    /// Log will be written into the log file if log_dir is specified
+    #[arg(short, long)]
+    log_dir: Option<String>,
 }
 
 #[cfg_attr(not(windows), link(name = "phx", kind = "dylib"))]
 #[cfg_attr(windows, link(name = "phx.dll", kind = "dylib"))]
 extern "C" {
-    fn Engine_Entry(entry_point: *const libc::c_char, app_name: *mut *const libc::c_char);
+    fn Engine_Entry(
+        entry_point: *const libc::c_char,
+        app_name: *const libc::c_char,
+        console_log: bool,
+        log_dir: *const libc::c_char,
+    );
 }
 
 pub fn main() {
@@ -34,20 +47,21 @@ pub fn main() {
     let entry_point = CString::new(cli.entry_point)
         .expect("Failed to convert entry_point argument into CString.")
         .into_raw();
+    let app_name_str = cli.app_name.clone().unwrap_or("".into());
+    let app_name = CString::new(app_name_str)
+        .expect("Failed to convert app_name argument into CString.")
+        .into_raw();
+    let log_dir_str = cli.log_dir.clone().unwrap_or("".into());
+    let log_dir = CString::new(log_dir_str)
+        .expect("Failed to convert log_dir argument into CString.")
+        .into_raw();
 
-    if let Some(app_name) = cli.app_name {
-        let mut cstr = CString::new(app_name)
-            .expect("Failed to convert app_name argument into CString.")
-            .into_raw() as *const libc::c_char;
-        let cstr_ptr: *mut *const libc::c_char = &mut cstr;
-
-        unsafe { Engine_Entry(entry_point as *const libc::c_char, cstr_ptr) }
-    } else {
-        unsafe {
-            Engine_Entry(
-                entry_point as *const libc::c_char,
-                std::ptr::null_mut::<*const libc::c_char>(),
-            )
-        }
-    };
+    unsafe {
+        Engine_Entry(
+            entry_point as *const libc::c_char,
+            app_name as *const libc::c_char,
+            cli.console_log,
+            log_dir as *const libc::c_char,
+        )
+    }
 }

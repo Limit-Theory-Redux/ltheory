@@ -21,7 +21,7 @@ pub unsafe extern "C" fn Thread_Create(
     let this = MemNew!(Thread);
     (*this).handle = SDL_CreateThread(fn_0, name, data);
     if ((*this).handle).is_null() {
-        CFatal!("Thread_Create: Failed to start new thread");
+        Fatal!("Thread_Create: Failed to start new thread");
     }
     this
 }
