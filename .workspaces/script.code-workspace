@@ -9,7 +9,7 @@
 			"name": "Executable"
 		},
 		{
-			"path": "../libphx/script",
+			"path": "../engine/lib/phx/script",
 			"name": "Engine Scripts"
 		},
 		{
@@ -22,9 +22,9 @@
 		"Lua.diagnostics.libraryFiles": "Disable",
 		"Lua.runtime.version": "LuaJIT",
 		"Lua.format.enable": true,
-		"Lua.format.defaultConfig":{
-			"indent_style":"space",
-			"indent_size":"4"
+		"Lua.format.defaultConfig": {
+			"indent_style": "space",
+			"indent_size": "4"
 		},
 		"Lua.misc.parameters": [
 			"--preview"

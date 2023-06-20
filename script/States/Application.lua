@@ -1,7 +1,7 @@
 local Bindings = require('States.ApplicationBindings')
 local MainMenu = require('Systems.Menus.MainMenu')
 
-local Application = class(function(self) end)
+local Application = class(function (self) end)
 
 -- Virtual ---------------------------------------------------------------------
 
@@ -218,15 +218,20 @@ function Application:run()
             end
 
             if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
-                if not MainMenu or not MainMenu.dialogDisplayed then
-                    UI.DrawEx.TextAdditive(
-                        'NovaRound',
-                        "[GAME OVER]",
-                        32,
-                        0, 0, self.resX, self.resY,
-                        1, 1, 1, 1,
-                        0.5, 0.5
-                    )
+                --TODO: replace this with a general "is alive" game state here and in LTR, the whole process needs to be improved
+                if MainMenu and not MainMenu.dialogDisplayed and
+                    not MainMenu.seedDialogDisplayed and
+                    not MainMenu.settingsScreenDisplayed then
+                    do
+                        UI.DrawEx.TextAdditive(
+                            'NovaRound',
+                            "[GAME OVER]",
+                            32,
+                            0, 0, self.resX, self.resY,
+                            1, 1, 1, 1,
+                            0.5, 0.5
+                        )
+                    end
                 end
             end
         end

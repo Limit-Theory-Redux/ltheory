@@ -34,7 +34,7 @@ jobs:
             ${{github.workspace}}/bin/*
             !${{github.workspace}}/bin/*.pdb
             ${{github.workspace}}/docs/*
-            ${{github.workspace}}/libphx/script/*
+            ${{github.workspace}}/engine/lib/phx/script/*
             ${{github.workspace}}/res/*
             ${{github.workspace}}/script/*
             ${{github.workspace}}/LICENSE

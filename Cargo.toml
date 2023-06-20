@@ -1,23 +1,18 @@
 [workspace]
-members = [
-]
+resolver = "2"
+members = ["engine/bin/*", "engine/lib/*"]
 
-[package]
-name = "ltheory"
+[workspace.package]
+version = "0.1.0"
 authors = ["Limit Theory Redux Team"]
-version = "0.0.0"
-publish = false
 edition = "2021"
-autobins = false
+license = "Unlicense"
 
-[[bin]]
-path = "src/Main.rs"
-name = "ltr"
+[workspace.dependencies]
+# workspace bin crates
+ltr = { path = "engine/bin/ltr" }
 
-[dependencies]
-libc = "0.2"
-phx = { path = "libphx" }
-
-[build-dependencies]
-winres = "0.1.12"
-
+# workspace lib crates
+phx = { path = "engine/lib/phx" }
+fmod-sys = { path = "engine/lib/fmod-sys" }
+luajit-ffi-gen = { path = "engine/lib/luajit-ffi-gen" }

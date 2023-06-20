@@ -1,0 +1,36 @@
+[package]
+name = "phx"
+
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# workspace crates
+fmod-sys.workspace = true
+luajit-ffi-gen.workspace = true
+
+# release crates
+chrono = "0.4.24"
+flate2 = "1.0.25"
+freetype-sys = "0.17.0"
+glam = { version = "0.24.0", features = ["scalar-math"] }
+image = "0.24.6"
+libc = "0.2.146"
+memoffset = "0.9.0"
+mlua = { version = "0.8.9", features = ["luajit52", "vendored"] }
+printf-compat = "0.1.1"
+rodio = "0.17.0"
+sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "master", features = [
+    "bundled",
+    "static-link",
+] }
+
+[build-dependencies]
+cmake = "0.1.50"
+cc = { version = "1.0.79", features = ["parallel"] }
+gl_generator = "0.14.0"
