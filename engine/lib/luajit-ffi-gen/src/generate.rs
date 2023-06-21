@@ -101,7 +101,7 @@ fn wrap_param(module_name: &str, param: &ParamInfo) -> TokenStream {
 
 fn wrap_type(module_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
     let opt_item = if ty.is_option {
-        quote! {*mut }
+        quote! { *mut }
     } else {
         quote! {}
     };
