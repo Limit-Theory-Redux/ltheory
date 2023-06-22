@@ -174,7 +174,7 @@ If compilation time significantly increases after utilising the **luajit_ffi_gen
 
 ### Stage 1. Regenerate Lua FFI only if Rust code changes
 
-To avoid unnecessary Lua FFI files regeneration we can calculate hash of the [ImplInfo] structure (actually only name and methods fields) and store it in a file. So before generating Lua FFI file we can check if it's hash changed and do regeneration only if it does.
+To avoid unnecessary Lua FFI files regeneration we can calculate the hash of the [ImplInfo] structure and store it in a file. So before generating the Lua FFI code, we can check to see if it's hash changed first before regenerating.
 
 File with a hash can be stored either in **target** folder subfolder or in a git. For the former improvement will be visible only for the incremental build. The latter will help CI as well.
 
