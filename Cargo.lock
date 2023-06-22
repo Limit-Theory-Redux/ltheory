@@ -916,6 +916,7 @@ dependencies = [
 name = "luajit-ffi-gen"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "proc-macro2",
  "quote",
  "syn 2.0.18",

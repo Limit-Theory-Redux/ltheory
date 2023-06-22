@@ -81,12 +81,19 @@ By default all generated Lua code created in the **phx/script/ffi** folder. User
 
 ## Attribute parameters
 
-### luajit_ffi
+### luajit_ffi for `impl` block
 
-- **name** [string, default = None] - set user defined name of the module
-- **managed** [bool, default = false] - generate **Free** C API function and add **managed** and **free** metatype bindings
-- **clone** [bool, default = false] - adds **__call** method to Global Symbol Table section and **clone** method to metatype section
-- **lua_ffi** [bool, default = true] - specify if Lua FFI file should be generated or only C API
+- **name** \[string, default = None]: set user defined name of the module
+- **managed** \[bool, default = false]: generate **Free** C API function and add **managed** and **free** metatype bindings
+- **clone** \[bool, default = false]: adds **__call** method to Global Symbol Table section and **clone** method to metatype section
+- **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API
+
+### luajit_ffi for `enum` block
+
+- **name** \[string, default = None]: optional object name. If not specified then name is taken from the `impl` definition.
+- **repr** \[string, default = None]: specify what type will be used in `#[repr(...)]` attribute that will be added to the enum definition. If not set then type will be deducted from the maximal discriminant: u8, u16, u32 or u64.
+- **start_index** \[int, default = None]: set starting index for discriminant values. Ignored if enum already has discriminants. Default: 0.
+- **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API. Default: true.
 
 ### bind
 - **name** [string] - set user defined name of the function
@@ -108,7 +115,7 @@ cargo expand -p phx system::window
 
 for test:
 ```bash
-cargo expand -p luajit-ffi-gen --test basic_test
+cargo expand -p luajit-ffi-gen --test test_impl
 ```
 
 ## Supported types
