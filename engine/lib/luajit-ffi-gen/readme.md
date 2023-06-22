@@ -182,6 +182,6 @@ The hash file can be stored either in a subfolder of the **target** directory, o
 
 If the optimization steps from the stage 1 is not enough, a similar approach can be applied to the generated C API code.
 
-In this case it should not be put in the same file where **luajit_ffi_gen** was added but in a separate one.
+In this case it should be placed in a different location to the hash of the Lua FFI code. 
 
-Here we also do regeneration of the C API file only if hash of the [ImplInfo] structure was changed.
+Here we also do regeneration of the C API file only if the hash of the [ImplInfo] structure was changed.
