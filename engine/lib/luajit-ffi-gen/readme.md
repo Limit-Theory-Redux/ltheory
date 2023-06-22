@@ -124,15 +124,15 @@ cargo expand -p luajit-ffi-gen --test test_impl
 
 Following table shows representation of Rust types in the generated code.
 
-| Rust type                            | extern "C" interface         | C type |
-| ------------------------------------ | ------------------- | ---------- |
-| Immutable reference (&T)             | &T                  | T const*   |
-| Mutable reference (&mut T)           | &mut T              | T *        |
-| Self (in return position)            | Box\<T>             | T *        |
-| Basic and copy types (T)             | T                   | T          |
-| String, str                          | *const libc::c_char | cstr       |
-| Option\<T>                           | *mut T              | T *        |
-| Result\<T, E> (only return position) | T, panic on error   | T          |
+| Rust type                            | extern "C" interface | C type   |
+| ------------------------------------ | -------------------- | -------- |
+| Immutable reference (&T)             | &T                   | T const* |
+| Mutable reference (&mut T)           | &mut T               | T *      |
+| Self (in return position)            | Box\<T>              | T *      |
+| Basic and copy types (T)             | T                    | T        |
+| String, str                          | *const libc::c_char  | cstr     |
+| Option\<T>                           | *mut T               | T *      |
+| Result\<T, E> (only return position) | T, panic on error    | T        |
 
 ### (Mutable) references
 
@@ -177,11 +177,11 @@ This way it will be much easier to spot the place of the problem.
 
 ## Optimization ideas
 
-If compilation time significantly increases after utilising the **luajit_ffi_gen** attribute, code generation can be optimized in 2 stages:
+If compilation time significantly increases after utilizing the **luajit_ffi_gen** attribute, code generation can be optimized in 2 stages:
 
 ### Stage 1. Regenerate Lua FFI only if Rust code changes
 
-To avoid unnecessary Lua FFI files regeneration we can calculate the hash of the [ImplInfo] structure and store it in a file. So before generating the Lua FFI code, we can check to see if it's hash changed first before regenerating.
+To avoid unnecessary Lua FFI files regeneration we can calculate the hash of the [ImplInfo] and [EnumInfo] structures and store it in a file. So before generating the Lua FFI code, we can check to see if it's hash changed first before regenerating.
 
 The hash file can be stored either in a subfolder of the **target** directory, or in git. In the former case, improvement will be visible only during an incremental build, but the latter will help during CI as well.
 
@@ -189,6 +189,6 @@ The hash file can be stored either in a subfolder of the **target** directory, o
 
 If the optimization steps from the stage 1 is not enough, a similar approach can be applied to the generated C API code.
 
-In this case it should be placed in a different location to the hash of the Lua FFI code. 
+In this case it should be placed in a different location to the hash of the Lua FFI code.
 
-Here we also do regeneration of the C API file only if the hash of the [ImplInfo] structure was changed.
+Here we also do regeneration of the C API file only if the hash of the [ImplInfo] and [EnumInfo] structures were changed.
