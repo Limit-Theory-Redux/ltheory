@@ -149,7 +149,7 @@ When returning, Rust strings are converted to CStr and copied to a static scoped
 
 ### User defined types (non copyable)
 
-User types in method parameters position are sent by reference or mutable reference. In the return position type is boxed to transfer ownership to caller (Lua).
+User types in method parameters position are sent by reference or mutable reference. When returning, the type is boxed to transfer ownership to the caller (Lua).
 
 **TODO**: should we accept user types in parameters position boxed as well?
 
