@@ -2,6 +2,8 @@ const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 2] = [("IVec2", "Vec2i"), ("Vec3", "V
 const COPY_TYPES: [&str; 3] = ["IVec2", "WindowPos", "WindowMode"];
 
 pub struct TypeInfo {
+    /// Result type. Can be used only in the return position
+    pub is_result: bool,
     /// Option type: Option<T>, Option<&T>, Option<&mut T>
     /// Option<Option<T>> is not supported
     pub is_option: bool,

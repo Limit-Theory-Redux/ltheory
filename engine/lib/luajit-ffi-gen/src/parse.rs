@@ -158,7 +158,10 @@ fn parse_params<'a>(
         match param {
             FnArg::Receiver(receiver) => {
                 if receiver.reference.is_none() {
-                    return Err(Error::new(param.span(), "expected only &self or &mut self"));
+                    return Err(Error::new(
+                        receiver.span(),
+                        "expected only &self or &mut self",
+                    ));
                 }
 
                 self_param_info = Some(SelfType {
@@ -166,10 +169,17 @@ fn parse_params<'a>(
                 });
             }
             FnArg::Typed(pat_type) => {
-                let param_info = ParamInfo {
-                    name: get_arg_name(&pat_type.pat)?,
-                    ty: parse_type(&pat_type.ty)?,
-                };
+                let name = get_arg_name(&pat_type.pat)?;
+                let ty = parse_type(&pat_type.ty)?;
+
+                if ty.is_result {
+                    return Err(Error::new(
+                        pat_type.ty.span(),
+                        "result as input parameter is not supported",
+                    ));
+                }
+
+                let param_info = ParamInfo { name, ty };
 
                 params_info.push(param_info);
             }
@@ -192,7 +202,30 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
         Type::Path(type_path) => {
             let (type_name, generics) = get_path_last_name_with_generics(&type_path.path)?;
 
-            if type_name == "Option" {
+            if type_name == "Result" {
+                if generics.len() != 1 && generics.len() != 2 {
+                    return Err(Error::new(
+                        type_path.span(),
+                        format!(
+                            "expected an Result with 1 or 2 generic arguments but was {}",
+                            generics.len()
+                        ),
+                    ));
+                }
+
+                let mut type_info = parse_type(&generics[0])?;
+
+                if type_info.is_result {
+                    return Err(Error::new(
+                        type_path.span(),
+                        format!("nested result is not supported"),
+                    ));
+                }
+
+                type_info.is_result = true;
+
+                return Ok(type_info);
+            } else if type_name == "Option" {
                 if generics.len() != 1 {
                     return Err(Error::new(
                         type_path.span(),
@@ -205,6 +238,20 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
 
                 let mut type_info = parse_type(&generics[0])?;
 
+                if type_info.is_option {
+                    return Err(Error::new(
+                        type_path.span(),
+                        format!("nested option is not supported"),
+                    ));
+                }
+
+                if type_info.is_result {
+                    return Err(Error::new(
+                        type_path.span(),
+                        format!("result nested in option is not supported"),
+                    ));
+                }
+
                 type_info.is_option = true;
 
                 return Ok(type_info);
@@ -213,6 +260,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
             let variant = TypeVariant::from_str(&type_name);
             let res = if let Some(variant) = variant {
                 TypeInfo {
+                    is_result: false,
                     is_option: false,
                     is_reference: false,
                     is_mutable: false,
@@ -220,6 +268,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 }
             } else {
                 TypeInfo {
+                    is_result: false,
                     is_option: false,
                     is_reference: false,
                     is_mutable: false,
