@@ -124,7 +124,7 @@ cargo expand -p luajit-ffi-gen --test test_impl
 
 Following table shows representation of Rust types in the generated code.
 
-| Rust type                            | C API               | Lua c_defs |
+| Rust type                            | extern "C" interface         | C type |
 | ------------------------------------ | ------------------- | ---------- |
 | Immutable reference (&T)             | &T                  | T const*   |
 | Mutable reference (&mut T)           | &mut T              | T *        |
@@ -146,23 +146,23 @@ In the return position **Self** is boxed: Box\<T>.
 
 ### Basic and copy types
 
-Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map) are sent as is via C API.
+Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map) are sent as is via the C API.
 
 ### Strings
 
-To avoid additional copy C strings in method parameter position is converted unsafely to Rust string.
+To avoid additional copies, C strings in the method parameter position is converted unsafely to a Rust string.
 
-In return position Rust string is converted to CStr and copied to a static scoped buffer. Pointer to this buffer is returned via C API.
+When returning, Rust strings are converted to CStr and copied to a static scoped buffer. A pointer to this buffer is returned via the C API.
 
 ### User defined types (non copyable)
 
-User types in method parameters position are sent by reference or mutable reference. In the return position type is boxed to transfer ownership to caller (Lua).
+User types in method parameters position are sent by reference or mutable reference. When returning, the type is boxed to transfer ownership to the caller (Lua).
 
 **TODO**: should we accept user types in parameters position boxed as well?
 
 ### Option
 
-Transferred as **\*mut T** and **None** interpreted as **NULL** pointer.
+Returned as a **\*mut T**, and **None** is nterpreted as **NULL** pointer.
 
 ### Result
 
@@ -177,18 +177,18 @@ This way it will be much easier to spot the place of the problem.
 
 ## Optimization ideas
 
-If after converting engine to use **luajit_ffi_gen** attribute everywhere compilation time significantly increases, code generation can be optimized in 2 stages.
+If compilation time significantly increases after utilising the **luajit_ffi_gen** attribute, code generation can be optimized in 2 stages:
 
 ### Stage 1. Regenerate Lua FFI only if Rust code changes
 
-To avoid unnecessary Lua FFI files regeneration we can calculate hash of the [ImplInfo] structure (actually only name and methods fields) and store it in a file. So before generating Lua FFI file we can check if it's hash changed and do regeneration only if it does.
+To avoid unnecessary Lua FFI files regeneration we can calculate the hash of the [ImplInfo] structure and store it in a file. So before generating the Lua FFI code, we can check to see if it's hash changed first before regenerating.
 
-File with a hash can be stored either in **target** folder subfolder or in a git. For the former improvement will be visible only for the incremental build. The latter will help CI as well.
+The hash file can be stored either in a subfolder of the **target** directory, or in git. In the former case, improvement will be visible only during an incremental build, but the latter will help during CI as well.
 
 ### Stage 2. Regenerate C API bindings only if Rust code changes
 
-If optimization from the stage 1 is not enough similar approach can be applied to the generated C API code.
+If the optimization steps from the stage 1 is not enough, a similar approach can be applied to the generated C API code.
 
-In this case it should not be put in the same file where **luajit_ffi_gen** was added but in a separate one.
+In this case it should be placed in a different location to the hash of the Lua FFI code. 
 
-Here we also do regeneration of the C API file only if hash of the [ImplInfo] structure was changed.
+Here we also do regeneration of the C API file only if the hash of the [ImplInfo] structure was changed.
