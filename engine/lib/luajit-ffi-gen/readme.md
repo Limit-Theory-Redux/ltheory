@@ -170,7 +170,7 @@ This way it will be much easier to spot the place of the problem.
 
 ## Optimization ideas
 
-If after converting engine to use **luajit_ffi_gen** attribute everywhere compilation time significantly increases, code generation can be optimized in 2 stages.
+If compilation time significantly increases after utilising the **luajit_ffi_gen** attribute, code generation can be optimized in 2 stages:
 
 ### Stage 1. Regenerate Lua FFI only if Rust code changes
 
