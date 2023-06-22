@@ -139,7 +139,7 @@ In the return position **Self** is boxed: Box\<T>.
 
 ### Basic and copy types
 
-Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map) are sent as is via C API.
+Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map) are sent as is via the C API.
 
 ### Strings
 
