@@ -143,7 +143,7 @@ Basic (bool, i32, u64, f32, etc.) and copy types (defined in **COPY_TYPES** map)
 
 ### Strings
 
-To avoid additional copy C strings in method parameter position is converted unsafely to Rust string.
+To avoid additional copies, C strings in the method parameter position is converted unsafely to a Rust string.
 
 In return position Rust string is converted to CStr and copied to a static scoped buffer. Pointer to this buffer is returned via C API.
 
