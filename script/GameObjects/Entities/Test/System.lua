@@ -41,6 +41,8 @@ local System = subclass(Entity, function(self, seed)
 
     self.players    = {}
     self.aiPlayers  = nil
+    self.stars      = {}
+    self.planets    = {}
     self.zones      = {}
     self.stations   = {}
     self.ships      = {}
@@ -56,6 +58,98 @@ local System = subclass(Entity, function(self, seed)
         }
     end
 end)
+
+function System:addStar(star)
+    insert(self.stars, star)
+end
+
+function System:getStars()
+    return self.stars
+end
+
+function System:addPlanet(planet)
+    insert(self.planets, planet)
+end
+
+function System:getPlanets()
+    return self.planets
+end
+
+function System:addZone(zone)
+    insert(self.zones, zone)
+end
+
+function System:getZones()
+    return self.zones
+end
+
+function System:sampleZones(rng)
+    return rng:choose(self.zones)
+end
+
+function System:addStation(station)
+    insert(self.stations, station)
+end
+
+function System:getStations()
+    return self.stations
+end
+
+function System:getStationsByDistance(ship)
+    -- Return a table of stations sorted by nearest first
+    local stationList = {}
+    for _, station in ipairs(self.stations) do
+        local stationStruct = { stationRef = station, stationDist = ship:getDistance(station) }
+        if station:hasDockable() and station:isDockable() and not station:isBanned(ship) then
+            insert(stationList, stationStruct)
+        end
+    end
+
+    table.sort(stationList, function(a, b) return a.stationDist < b.stationDist end)
+
+    return stationList
+end
+
+function System:sampleStations(rng)
+    return rng:choose(self.stations)
+end
+
+function System:addShip(ship)
+    insert(self.ships, ship)
+end
+
+function System:getShips()
+    return self.ships
+end
+
+function System:hasProdType(prodtype)
+    -- Scan the production types of all factories in this system to see if one has the specified production type
+    local hasProdType = false
+    for _, station in ipairs(self.stations) do
+        if station:hasFactory() then
+            if station:getFactory():hasProductionType(prodtype) then
+                hasProdType = true
+                break
+            end
+        end
+    end
+
+    return hasProdType
+end
+
+function System:countProdType(prodtype)
+    -- Scan the production types of all factories in this system to see how many of the specified production type exist
+    local numProdType = 0
+    for _, station in ipairs(self.stations) do
+        if station:hasFactory() then
+            if station:getFactory():hasProductionType(prodtype) then
+                numProdType = numProdType + 1
+            end
+        end
+    end
+
+    return numProdType
+end
 
 function System:addExtraFactories(system, planetCount, aiPlayer)
     -- Based on what factories were added randomly to stations, a system may need some
@@ -110,74 +204,6 @@ function System:addExtraFactories(system, planetCount, aiPlayer)
             system:place(newStation)
         end
     end
-end
-
-function System:addZone(zone)
-    insert(self.zones, zone)
-end
-
-function System:getZones()
-    return self.zones
-end
-
-function System:sampleZones(rng)
-    return rng:choose(self.zones)
-end
-
-function System:addStation(station)
-    insert(self.stations, station)
-end
-
-function System:getStations()
-    return self.stations
-end
-
-function System:getStationsByDistance(ship)
-    -- Return a table of stations sorted by nearest first
-    local stationList = {}
-    for _, station in ipairs(self.stations) do
-        local stationStruct = { stationRef = station, stationDist = ship:getDistance(station) }
-        if station:hasDockable() and station:isDockable() and not station:isBanned(ship) then
-            insert(stationList, stationStruct)
-        end
-    end
-
-    table.sort(stationList, function(a, b) return a.stationDist < b.stationDist end)
-
-    return stationList
-end
-
-function System:hasProdType(prodtype)
-    -- Scan the production types of all factories in this system to see if one has the specified production type
-    local hasProdType = false
-    for _, station in ipairs(self.stations) do
-        if station:hasFactory() then
-            if station:getFactory():hasProductionType(prodtype) then
-                hasProdType = true
-                break
-            end
-        end
-    end
-
-    return hasProdType
-end
-
-function System:countProdType(prodtype)
-    -- Scan the production types of all factories in this system to see how many of the specified production type exist
-    local numProdType = 0
-    for _, station in ipairs(self.stations) do
-        if station:hasFactory() then
-            if station:getFactory():hasProductionType(prodtype) then
-                numProdType = numProdType + 1
-            end
-        end
-    end
-
-    return numProdType
-end
-
-function System:sampleStations(rng)
-    return rng:choose(self.stations)
 end
 
 function System:place(object)
@@ -453,6 +479,8 @@ function System:spawnPlanet(bAddBelt)
             self:addChild(asteroid)
         end
     end
+
+    self:addPlanet(planet)
 
     local typeName = Config:getObjectInfo("object_types", planet:getType())
     local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
@@ -967,7 +995,7 @@ function System:spawnShip(hullSize, player)
     ship.projColorB = self.rng:getUniformRange(0.1, 1.2)
 
     -- Add ship to list of ships active in this star system
-    insert(self.ships, ship)
+    self:addShip(ship)
 
     --local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
     --printf("SYSTEM(ship) - Added %s '%s'", subtypeName, ship:getName())
