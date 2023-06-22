@@ -1,0 +1,48 @@
+{
+	"folders": [
+		{
+			"path": "./",
+			"name": "Workspaces"
+		},
+		{
+			"path": "../bin",
+			"name": "Executable"
+		},
+		{
+			"path": "../engine/lib/phx/script",
+			"name": "Engine Scripts"
+		},
+		{
+			"path": "../script",
+			"name": "LTR Scripts"
+		}
+	],
+	"settings": {
+		"Lua.workspace.maxPreload": 10000,
+		"Lua.diagnostics.libraryFiles": "Disable",
+		"Lua.runtime.version": "LuaJIT",
+		"Lua.format.enable": true,
+		"Lua.format.defaultConfig": {
+			"indent_style": "space",
+			"indent_size": "4"
+		},
+		"Lua.misc.parameters": [
+			"--preview"
+		],
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": true
+		},
+		"eslint.format.enable": true,
+		"Lua.completion.callSnippet": "Disable",
+		"workbench.colorCustomizations": {
+			"minimap.background": "#00000000",
+			"scrollbar.shadow": "#00000000"
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"sumneko.lua",
+			"gruntfuggly.todo-tree"
+		]
+	}
+}

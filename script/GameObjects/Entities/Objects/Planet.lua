@@ -1,107 +1,157 @@
 local Entity = require('GameObjects.Entity')
+local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
-local genColor = function (rng)
-  local h = rng:getUniformRange(0, 0.5)
-  local l = Math.Saturate(rng:getUniformRange(0.2, 0.3) + 0.05 * rng:getExp())
-  local s = rng:getUniformRange(0.1, 0.3)
-  local c = Color.FromHSL(h, s, l)
-  return Vec3f(c.r, c.g, c.b)
+local genColor = function(rng)
+    local h = rng:getUniformRange(0, 0.5)
+    local l = Math.Saturate(rng:getUniformRange(0.2, 0.3) + 0.05 * rng:getExp())
+    local s = rng:getUniformRange(0.1, 0.3)
+    local c = Color.FromHSL(h, s, l)
+    return Vec3f(c.r, c.g, c.b)
 end
 
-local Planet = subclass(Entity, function (self, seed)
-  local rng = RNG.Create(seed):managed()
+local Planet = subclass(Entity, function(self, seed)
+    local rng = RNG.Create(seed):managed()
 
-  -- TODO : Had to lower quality to 2 because RigidBody is automatically
-  --        building BSP, and sphere is pathological case for BSPs. Need
-  --        generalized CollisionShape.
-  local mesh = Gen.Primitive.IcoSphere(5):managed()
-  self:addRigidBody(true, mesh)
+    -- TODO: Improve planet size generation
+    local planetSizeType = Config.gen.sizePlanet
 
-  -- TODO: Generate planetary mass based on type, size, and composition
-  self:setMass(Config.gen.massPlanetTrue) -- TODO: change from Earth's actual mass value
+    -- TODO : Had to lower quality to 2 because RigidBody is automatically
+    --        building BSP, and sphere is pathological case for BSPs. Need
+    --        generalized CollisionShape.
+    local mesh = Gen.Primitive.IcoSphere(5):managed()
+    self:addRigidBody(true, mesh)
 
-  -- TODO: Replace with 0 - N colonies, each of which has its own distinct
-  --       market/production/research capabilities
-  self:addActions()
-  self:addChildren()
-  self:addDockable() -- TODO: rethink how "docking with planets" should work
-  self:addFlows()
-  self:addInventory(1e10)
-  self:addMinable(false) -- TODO: should be 'true' temporarily (planets have Yield), but will change with Colonies
-  self:addTrackable(true)
+    -- TODO: Generate planetary mass based on type, size, and composition
+    self:setMass(Config.gen.massPlanetTrue) -- TODO: change from Earth's actual mass value
 
-  self.mesh = mesh
-  self.meshAtmo = Gen.Primitive.IcoSphere(5):managed()
-  self.meshAtmo:computeNormals()
-  self.meshAtmo:invert()
+    -- TODO: Replace with 0 - N colonies, each of which has its own distinct
+    --       market/production/research capabilities
+    self:addActions()
+    self:addChildren()
+    self:addDockable()     -- TODO: rethink how "docking with planets" should work
+    self:addFlows()
+    self:addMinable(false) -- TODO: should be 'true' temporarily (planets have Yield), but will change with Colonies
+    self:addTrackable(true)
 
-  self.texSurface = Gen.GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
-    seed = rng:getUniform(),
-    freq = 4 + rng:getExp(),
-    power = 1 + 0.5 * rng:getExp(),
-    coef = (rng:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize()
-  }):managed()
+    self.mesh = mesh
+    self.meshAtmo = Gen.Primitive.IcoSphere(5):managed()
+    self.meshAtmo:computeNormals()
+    self.meshAtmo:invert()
 
-  self.cloudLevel = rng:getUniformRange(-0.2, 0.15)
-  self.oceanLevel = rng:getUniform() ^ 1.5
-  self.atmoScale = 1.1
+    self.texSurface     = Gen.GenUtil.ShaderToTexCube(2048, TexFormat.RGBA16F, 'gen/planet', {
+        seed = rng:getUniform(),
+        freq = 4 + rng:getExp(),
+        power = 1 + 0.5 * rng:getExp(),
+        coef = (rng:getVec4(0.05, 1.00) ^ Vec4f(2, 2, 2, 2)):normalize()
+    }):managed()
 
-  self.color1 = genColor(rng)
-  self.color2 = genColor(rng)
-  self.color3 = genColor(rng)
-  self.color4 = genColor(rng)
+    self.cloudLevel     = rng:getUniformRange(-0.2, 0.15)
+    self.oceanLevel     = rng:getUniform() ^ 1.5
+    self.atmoScale      = 1.1
 
-  self:setDrag(10, 10) -- fix planet in place
+    self.color1         = genColor(rng)
+    self.color2         = genColor(rng)
+    self.color3         = genColor(rng)
+    self.color4         = genColor(rng)
 
-  self:register(Event.Render, self.render)
-end)
+    -- TEMP: give each planet the maximum number of every applicable component
+    self.countComputer  = Config.gen.stationComponents[Enums.PlanetComponents.Computer][planetSizeType]
+    self.countSensor    = Config.gen.stationComponents[Enums.PlanetComponents.Sensor][planetSizeType]
+    self.countInventory = Config.gen.stationComponents[Enums.PlanetComponents.Inventory][planetSizeType]
+    self.countShield    = Config.gen.stationComponents[Enums.PlanetComponents.Shield][planetSizeType]
 
-function Planet:render (state)
-  if state.mode == BlendMode.Disabled then
-    local shader = Cache.Shader('wvp', 'material/planet')
-    shader:start()
-    Shader.SetFloat('heightMult', 1.0)
-    Shader.SetFloat('oceanLevel', self.oceanLevel)
-    Shader.SetFloat('rPlanet', self:getScale())
-    Shader.SetFloat('rAtmo', self:getScale() * self.atmoScale)
-    Shader.SetFloat3('color1', self.color1.x, self.color1.y, self.color1.z)
-    Shader.SetFloat3('color2', self.color2.x, self.color2.y, self.color2.z)
-    Shader.SetFloat3('color3', self.color3.x, self.color3.y, self.color3.z)
-    Shader.SetFloat3('color4', self.color4.x, self.color4.y, self.color4.z)
-    local pos = self:getPos()
-    Shader.SetFloat3('origin', pos.x, pos.y, pos.z)
-    Shader.SetFloat3('starColor', 1.0, 0.5, 0.1)
-    Shader.SetMatrix('mWorld', self:getToWorldMatrix())
-    Shader.SetMatrixT('mWorldIT', self:getToLocalMatrix())
-    Shader.SetTexCube('surface', self.texSurface)
-    self.mesh:draw()
-    shader:stop()
-  elseif state.mode == BlendMode.Alpha then
-    CullFace.Push(CullFace.Back)
-    BlendMode.Push(BlendMode.PreMultAlpha)
-    local shader = Cache.Shader('wvp', 'material/atmosphere')
-    shader:start()
-    do -- TODO : Scale the atmosphere mesh in shader...
-      local mScale = Matrix.Scaling(1.5, 1.5, 1.5)
-      local mWorld = self:getToWorldMatrix():product(mScale)
-      Shader.SetMatrix('mWorld', mWorld)
-      mScale:free()
-      mWorld:free()
+    self:addComponents()
+
+    -- Add all the _positions_ for socketable components (the components are added later)
+    self.positions = {
+        [SocketType.Computer]  = {},
+        [SocketType.Sensor]    = {},
+        [SocketType.Inventory] = {},
+        [SocketType.Shield]    = {},
+    }
+
+    -- Computer sockets
+    for i = 1, self.countComputer do
+        insert(self.positions[SocketType.Computer], Vec3f(1, 1, 1))
     end
 
-    Shader.SetMatrixT('mWorldIT', self:getToLocalMatrix())
-    local scale = self:getScale()
-    Shader.SetFloat('rAtmo', scale * self.atmoScale)
-    Shader.SetFloat('rPlanet', scale)
-    local pos = self:getPos()
-    Shader.SetFloat3('origin', pos.x, pos.y, pos.z)
-    Shader.SetFloat3('scale', scale, scale, scale)
-    Shader.SetFloat3('starColor', 1.0, 0.5, 0.1)
-    self.meshAtmo:draw()
-    shader:stop()
-    BlendMode.Pop()
-    CullFace.Pop()
-  end
+    -- Sensor sockets
+    for i = 1, self.countSensor do
+        insert(self.positions[SocketType.Sensor], Vec3f(1, 1, 1))
+    end
+
+    -- Inventory sockets
+    for i = 1, self.countInventory do
+        insert(self.positions[SocketType.Inventory], Vec3f(1, 1, 1))
+    end
+
+    -- Shield sockets
+    for i = 1, self.countShield do
+        insert(self.positions[SocketType.Shield], Vec3f(1, 1, 1))
+    end
+
+    -- Add all sockets to parent
+    -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
+    --        better for ShipType etc.
+    self:addSockets()
+
+    for type, elems in pairs(self.positions) do
+        for i, pos in ipairs(elems) do
+            self:addSocket(type, pos, true)
+        end
+    end
+
+    self:setDrag(10, 10) -- fix planet in place
+
+    self:register(Event.Render, self.render)
+end)
+
+function Planet:render(state)
+    if state.mode == BlendMode.Disabled then
+        local shader = Cache.Shader('wvp', 'material/planet')
+        shader:start()
+        Shader.SetFloat('heightMult', 1.0)
+        Shader.SetFloat('oceanLevel', self.oceanLevel)
+        Shader.SetFloat('rPlanet', self:getScale())
+        Shader.SetFloat('rAtmo', self:getScale() * self.atmoScale)
+        Shader.SetFloat3('color1', self.color1.x, self.color1.y, self.color1.z)
+        Shader.SetFloat3('color2', self.color2.x, self.color2.y, self.color2.z)
+        Shader.SetFloat3('color3', self.color3.x, self.color3.y, self.color3.z)
+        Shader.SetFloat3('color4', self.color4.x, self.color4.y, self.color4.z)
+        local pos = self:getPos()
+        Shader.SetFloat3('origin', pos.x, pos.y, pos.z)
+        Shader.SetFloat3('starColor', 1.0, 0.5, 0.1)
+        Shader.SetMatrix('mWorld', self:getToWorldMatrix())
+        Shader.SetMatrixT('mWorldIT', self:getToLocalMatrix())
+        Shader.SetTexCube('surface', self.texSurface)
+        self.mesh:draw()
+        shader:stop()
+    elseif state.mode == BlendMode.Alpha then
+        CullFace.Push(CullFace.Back)
+        BlendMode.Push(BlendMode.PreMultAlpha)
+        local shader = Cache.Shader('wvp', 'material/atmosphere')
+        shader:start()
+        do -- TODO : Scale the atmosphere mesh in shader...
+            local mScale = Matrix.Scaling(1.5, 1.5, 1.5)
+            local mWorld = self:getToWorldMatrix():product(mScale)
+            Shader.SetMatrix('mWorld', mWorld)
+            mScale:free()
+            mWorld:free()
+        end
+
+        Shader.SetMatrixT('mWorldIT', self:getToLocalMatrix())
+        local scale = self:getScale()
+        Shader.SetFloat('rAtmo', scale * self.atmoScale)
+        Shader.SetFloat('rPlanet', scale)
+        local pos = self:getPos()
+        Shader.SetFloat3('origin', pos.x, pos.y, pos.z)
+        Shader.SetFloat3('scale', scale, scale, scale)
+        Shader.SetFloat3('starColor', 1.0, 0.5, 0.1)
+        self.meshAtmo:draw()
+        shader:stop()
+        BlendMode.Pop()
+        CullFace.Pop()
+    end
 end
 
 return Planet

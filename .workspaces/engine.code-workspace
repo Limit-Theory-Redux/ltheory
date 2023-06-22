@@ -1,0 +1,45 @@
+{
+	"folders": [
+		{
+			"path": "./",
+			"name": "Workspaces"
+		},
+		{
+			"path": "../",
+			"name": "Limit Theory Redux"
+		}
+	],
+	"settings": {
+		"Lua.workspace.maxPreload": 10000,
+		"Lua.diagnostics.libraryFiles": "Disable",
+		"Lua.runtime.version": "LuaJIT",
+		"Lua.format.enable": true,
+		"Lua.format.defaultConfig":{
+			"indent_style":"space",
+			"indent_size":"4"
+		},
+		"Lua.misc.parameters": [
+			"--preview"
+		],
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": true
+		},
+		"eslint.format.enable": true,
+		"Lua.completion.callSnippet": "Disable",
+		"workbench.colorCustomizations": {
+			"minimap.background": "#00000000",
+			"scrollbar.shadow": "#00000000"
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"sumneko.lua",
+			"gruntfuggly.todo-tree",
+			"rust-lang.rust-analyzer",
+			"serayuzgur.crates",
+			"vadimcn.vscode-lldb",
+			"tamasfe.even-better-toml",
+			"yzhang.markdown-all-in-one"
+		]
+	}
+}

@@ -9,7 +9,8 @@ Space  -- moves your ship up
 
 *** HUD, MAP, AND PANEL CONTROLS ***
 `      -- [backquote] enable flight mode overlay panels
--, =   -- decrease/increase panning speed in System Map
+-, =   -- in System Map, decrease/increase panning speed
+[, ]   -- in System Map, zoom in/out
 1 - 8  -- select a weapon group (can't change what's in a group yet, this is just group selection)
 Tab    -- toggle System Map on/off
 Return -- Activate the overlay panel for the currently focused panel icon
