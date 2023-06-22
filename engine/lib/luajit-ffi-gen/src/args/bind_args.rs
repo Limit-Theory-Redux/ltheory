@@ -23,10 +23,20 @@ impl BindMethodRole {
 }
 
 /// Arguments of the `bind` attribute.
-#[derive(Default)]
 pub struct BindArgs {
     name: Option<String>,
     role: Option<BindMethodRole>,
+    lua_ffi: bool,
+}
+
+impl Default for BindArgs {
+    fn default() -> Self {
+        Self {
+            name: None,
+            role: None,
+            lua_ffi: true,
+        }
+    }
 }
 
 impl BindArgs {
@@ -42,6 +52,12 @@ impl BindArgs {
         let Some(ty) = self.role else { return false; };
 
         ty == BindMethodRole::ToString
+    }
+
+    /// If true then corresponding functions will be added to the generated Lua FFI file.
+    /// Default: true
+    pub fn gen_lua_ffi(&self) -> bool {
+        self.lua_ffi
     }
 }
 
@@ -73,10 +89,20 @@ impl Parse for BindArgs {
                         ));
                     }
                 }
+                "lua_ffi" => {
+                    if let Lit::Bool(val) = &param.value.lit {
+                        res.lua_ffi = val.value();
+                    } else {
+                        return Err(Error::new(
+                            param.value.span(),
+                            "expected 'lua_ffi' bind attribute parameter as boolean literal",
+                        ));
+                    }
+                }
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        format!("expected bind attribute parameter: name, role"),
+                        format!("expected bind attribute parameter: name, role, lua_ffi"),
                     ))
                 }
             }

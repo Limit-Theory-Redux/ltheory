@@ -2,6 +2,7 @@ use crate::internal::*;
 use crate::*;
 
 use sdl2_sys::SDL_GetPrefPath;
+use tracing::error;
 
 use std::io::ErrorKind;
 use std::{env, fs};
@@ -54,7 +55,8 @@ pub extern "C" fn Directory_Create(path: *const libc::c_char) -> bool {
         Err(err) => match err.kind() {
             ErrorKind::AlreadyExists => true,
             _ => {
-                println!("Directory_Create: Failed to create directory: {}", err);
+                error!("Directory_Create: Failed to create directory: {err}");
+
                 false
             }
         },

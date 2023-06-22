@@ -1,3 +1,5 @@
+use tracing::info;
+
 use super::*;
 use crate::common::*;
 use crate::internal::*;
@@ -97,9 +99,10 @@ pub unsafe extern "C" fn Profiler_Enable() {
 #[no_mangle]
 pub unsafe extern "C" fn Profiler_Disable() {
     if this.stackIndex != 0 {
-        CFatal!("Profiler_Disable: Cannot stop profiler from within a profiled section");
+        Fatal!("Profiler_Disable: Cannot stop profiler from within a profiled section");
     }
     Profiler_End();
+
     let total: f64 = TimeStamp_GetElapsed(this.start);
     let mut i: i32 = 0;
     while i < this.scopeList.len() as i32 {
@@ -112,8 +115,10 @@ pub unsafe extern "C" fn Profiler_Disable() {
         let (a, b) = (&**pa, &**pb);
         b.total.cmp(&a.total)
     });
-    println!("-- PHX PROFILER -------------------------------------");
-    println!("-- Measured timespan: {}ms", total);
+
+    info!("-- PHX PROFILER -------------------------------------");
+    info!("-- Measured timespan: {total}ms");
+
     let mut cumulative: f64 = 0.0;
     let mut i_0: i32 = 0;
     while i_0 < this.scopeList.len() as i32 {
@@ -121,13 +126,12 @@ pub unsafe extern "C" fn Profiler_Disable() {
         let scopeTotal: f64 = TimeStamp_ToDouble((*scope).total);
         cumulative += scopeTotal;
         if !(scopeTotal / total < 0.01f64 && (*scope).max < 0.01f64) {
-            CPrintf!(
-                "%*.1f%% %*.0f%% %*.0fms  [%*.2f, %*.2f] %*.2f  / %*.2f  (%*.0f%%)  |  %s\n",
-                5,
+            info!(
+                "{0:1$.1}% {2:3$.0}% {4:5$.0}ms  [{6:7$.2}, {8:9$.2}] {10:11$.2}  / {12:13$.2}  ({14:15$.0}%)  |  {16:?}",
                 100.0f64 * (scopeTotal / total),
-                4,
+                5,
                 100.0f64 * (cumulative / total),
-                6,
+                4,
                 1000.0f64 * scopeTotal,
                 6,
                 1000.0f64 * (*scope).min,
@@ -135,16 +139,17 @@ pub unsafe extern "C" fn Profiler_Disable() {
                 1000.0f64 * (*scope).max,
                 6,
                 1000.0f64 * (*scope).mean,
-                5,
+                6,
                 1000.0f64 * (*scope).var,
-                4,
+                5,
                 100.0f64 * ((*scope).var / (*scope).mean),
-                (*scope).name,
+                4,
+                CStr::from_ptr((*scope).name),
             );
         }
         i_0 += 1;
     }
-    println!("-----------------------------------------------------");
+    info!("-----------------------------------------------------");
 
     for scope in this.scopeList.iter() {
         Scope_Free(*scope);
@@ -161,7 +166,7 @@ pub unsafe extern "C" fn Profiler_Begin(name: *const libc::c_char) {
     }
     if this.stackIndex + 1 >= 128 {
         Profiler_Backtrace();
-        CFatal!("Profiler_Begin: Maximum stack depth exceeded");
+        Fatal!("Profiler_Begin: Maximum stack depth exceeded");
     }
     let now: TimeStamp = TimeStamp_Get();
     if this.stackIndex >= 0 {
@@ -183,7 +188,7 @@ pub unsafe extern "C" fn Profiler_End() {
     }
     if this.stackIndex < 0 {
         Profiler_Backtrace();
-        CFatal!("Profiler_End: Attempting to pop an empty stack");
+        Fatal!("Profiler_End: Attempting to pop an empty stack");
     }
     let now: TimeStamp = TimeStamp_Get();
     let prev: *mut Scope = this.stack[this.stackIndex as usize];
@@ -228,12 +233,18 @@ pub unsafe extern "C" fn Profiler_Backtrace() {
     if !profiling {
         return;
     }
-    println!("PHX Profiler Backtrace:");
+
+    info!("PHX Profiler Backtrace:");
+
     let mut i: i32 = 0;
     while i <= this.stackIndex {
         let index: i32 = this.stackIndex - i;
-        CPrintf!("  [%i] %s\n", index, (*this.stack[index as usize]).name,);
+
+        info!(
+            "  [{index}] {:?}",
+            CStr::from_ptr((*this.stack[index as usize]).name)
+        );
+
         i += 1;
     }
-    io::stdout().flush().unwrap();
 }

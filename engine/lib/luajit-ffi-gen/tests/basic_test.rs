@@ -13,8 +13,8 @@ pub struct MyStruct {
     val_data: Data,
 }
 
-// NOTE: remove 'no_lua_ffi' parameter to see generated Lua file. Do not commit it!!!
-#[luajit_ffi(name = "My_Struct", no_lua_ffi = true)]
+// NOTE: remove 'lua_ffi' parameter to see generated Lua file. Do not commit it!!!
+#[luajit_ffi(name = "My_Struct", lua_ffi = false)]
 impl MyStruct {
     pub fn func1(&self) {}
     pub fn func2(&mut self) {}
@@ -53,6 +53,25 @@ impl MyStruct {
 
     pub fn get_data(&self) -> Data {
         self.val_data.clone()
+    }
+
+    pub fn set_opt(&mut self, val: Option<u32>) {
+        if let Some(val) = val {
+            self.val_u32 = val;
+        }
+    }
+
+    pub fn set_opt_ref(&mut self, val: Option<&u32>) {
+        if let Some(val) = val {
+            self.val_u32 = *val;
+        }
+    }
+
+    pub fn set_opt_mut(&mut self, val: Option<&mut u32>) {
+        if let Some(val) = val {
+            self.val_u32 = *val;
+            *val = 0;
+        }
     }
 }
 

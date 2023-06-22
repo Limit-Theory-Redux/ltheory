@@ -1,3 +1,5 @@
+use tracing::info;
+
 use super::*;
 use crate::common::*;
 use crate::internal::*;
@@ -169,7 +171,10 @@ pub unsafe extern "C" fn StrMap_Remove(this: &mut StrMap, key: *const libc::c_ch
         prev = &mut (*node).next;
         node = (*node).next;
     }
-    CFatal!("StrMap_Remove: Map does not contain key <%s>", key);
+    Fatal!(
+        "StrMap_Remove: Map does not contain key <{:?}>",
+        CStr::from_ptr(key)
+    );
 }
 
 #[no_mangle]
@@ -206,22 +211,23 @@ pub unsafe extern "C" fn StrMap_Set(
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Dump(this: &mut StrMap) {
-    CPrintf!("StrMap @ %p:\n", &this);
-    CPrintf!("      size: %d\n", this.size);
-    CPrintf!("  capacity: %d\n", this.capacity);
-    CPrintf!(
-        "      load: %f\n",
+    info!("StrMap @ {:X?}:", this as *mut StrMap);
+    info!("      size: {}", this.size);
+    info!("  capacity: {}", this.capacity);
+    info!(
+        "      load: {}",
         (this.size as f32 / this.capacity as f32) as f64,
     );
-    println!("");
+    info!("");
+
     let mut i: u32 = 0;
     while i < this.capacity {
         let mut node: *mut Node = (this.data).offset(i as isize);
         if !((*node).key).is_null() {
-            CPrintf!("  [%03i]:\n", i);
+            info!("  [{i:03}]:");
             while !node.is_null() {
-                CPrintf!(
-                    "    (%lx) %s -> %p\n",
+                info!(
+                    "    ({:x}) {:?} -> {:X?}",
                     Hash((*node).key),
                     (*node).key,
                     (*node).value,

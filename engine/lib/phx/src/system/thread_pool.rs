@@ -50,7 +50,7 @@ pub unsafe extern "C" fn ThreadPool_Free(this: *mut ThreadPool) {
     let mut i: i32 = 0;
     while i < (*this).threads {
         if !((*((*this).thread).offset(i as isize)).handle).is_null() {
-            CFatal!("ThreadPool_Free: Attempting to free pool with active threads");
+            Fatal!("ThreadPool_Free: Attempting to free pool with active threads");
         }
         i += 1;
     }
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn ThreadPool_Launch(
             td as *mut _,
         );
         if ((*td).handle).is_null() {
-            CFatal!("ThreadPool_Launch: Failed to start new thread");
+            Fatal!("ThreadPool_Launch: Failed to start new thread");
         }
         i += 1;
     }

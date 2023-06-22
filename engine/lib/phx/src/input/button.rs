@@ -510,7 +510,7 @@ pub extern "C" fn Button_ToDeviceType(button: Button) -> DeviceType {
     } else if button <= Button_System_Last {
         return DeviceType_Null;
     } else {
-        CFatal!("Button_ToDeviceType: Unknown Button: %i", button);
+        Fatal!("Button_ToDeviceType: Unknown Button: {button}");
     }
 }
 
@@ -938,7 +938,7 @@ pub extern "C" fn Button_ToSDLScancode(button: Button) -> SDL_Scancode {
         b if b == Button_Keyboard_RAlt => SDL_Scancode::SDL_SCANCODE_RALT,
         b if b == Button_Keyboard_RMeta => SDL_Scancode::SDL_SCANCODE_RGUI,
         _ => {
-            CFatal!("Button_ToSDLScancode: Unhandled case: %i", button);
+            Fatal!("Button_ToSDLScancode: Unhandled case: {button}");
         }
     }
 }
@@ -952,10 +952,7 @@ pub extern "C" fn Button_FromSDLMouseButton(mouseButton: u8) -> Button {
         mb if mb == SDL_BUTTON_X1 => Button_Mouse_X1,
         mb if mb == SDL_BUTTON_X2 => Button_Mouse_X2,
         _ => {
-            CFatal!(
-                "Button_FromSDLMouseButton: Unhandled case: %i",
-                mouseButton as i32,
-            );
+            Fatal!("Button_FromSDLMouseButton: Unhandled case: {mouseButton}",);
         }
     }
 }
@@ -969,7 +966,7 @@ pub extern "C" fn Button_ToSDLMouseButton(button: Button) -> u8 {
         mb if mb == Button_Mouse_X1 => SDL_BUTTON_X1 as u8,
         mb if mb == Button_Mouse_X2 => SDL_BUTTON_X2 as u8,
         _ => {
-            CFatal!("Button_ToSDLMouseButton: Unhandled case: %i", button,);
+            Fatal!("Button_ToSDLMouseButton: Unhandled case: {button}");
         }
     }
 }
@@ -984,8 +981,8 @@ pub extern "C" fn Button_FromSDLControllerAxis(controllerAxis: SDL_GameControlle
         SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERLEFT => Button_Gamepad_LTrigger,
         SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERRIGHT => Button_Gamepad_RTrigger,
         _ => {
-            CFatal!(
-                "Button_FromSDLControllerAxis: Unhandled case: %i",
+            Fatal!(
+                "Button_FromSDLControllerAxis: Unhandled case: {}",
                 controllerAxis as i32,
             );
         }
@@ -1006,7 +1003,7 @@ pub extern "C" fn Button_ToSDLControllerAxis(button: Button) -> SDL_GameControll
             SDL_GameControllerAxis::SDL_CONTROLLER_AXIS_TRIGGERRIGHT
         }
         _ => {
-            CFatal!("Button_ToSDLControllerAxis: Unhandled case: %i", button,);
+            Fatal!("Button_ToSDLControllerAxis: Unhandled case: {button}");
         }
     }
 }
@@ -1032,8 +1029,8 @@ pub extern "C" fn Button_FromSDLControllerButton(
         SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_LEFT => Button_Gamepad_Left,
         SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_RIGHT => Button_Gamepad_Right,
         _ => {
-            CFatal!(
-                "Button_FromSDLControllerButton: Unhandled case: %i",
+            Fatal!(
+                "Button_FromSDLControllerButton: Unhandled case: {}",
                 controllerButton as i32,
             );
         }
@@ -1069,7 +1066,7 @@ pub extern "C" fn Button_ToSDLControllerButton(button: Button) -> SDL_GameContro
             SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_DPAD_RIGHT
         }
         _ => {
-            CFatal!("Button_ToSDLControllerButton: Unhandled case: %i", button,);
+            Fatal!("Button_ToSDLControllerButton: Unhandled case: {button}");
         }
     }
 }

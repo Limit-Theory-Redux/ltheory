@@ -1,3 +1,5 @@
+use tracing::info;
+
 use crate::common::*;
 use crate::internal::*;
 use crate::math::*;
@@ -697,15 +699,11 @@ pub unsafe extern "C" fn Matrix_ToQuat(this: &Matrix, q: &mut Quat) {
 
 #[no_mangle]
 pub extern "C" fn Matrix_Print(this: &Matrix) {
-    let mut i: i32 = 0;
-    while i < 4 {
-        let mut j: i32 = 0;
-        while j < 4 {
-            CPrintf!("%f ", this.m[(4 * i + j) as usize] as f64);
-            j += 1;
-        }
-        CPrintf!("\n");
-        i += 1;
+    for i in 0..4 {
+        let v = &this.m[i * 4..(i + 1) * 4];
+        let s: Vec<_> = v.iter().map(|v| format!("{v}")).collect();
+
+        info!("{}", s.join(" "));
     }
 }
 

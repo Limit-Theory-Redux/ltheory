@@ -84,10 +84,10 @@ unsafe extern "C" fn TexCube_InitParameters() {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut TexCube {
     if !TexFormat_IsValid(format) {
-        CFatal!("TexCube_Create: Invalid texture format requested");
+        Fatal!("TexCube_Create: Invalid texture format requested");
     }
     if TexFormat_IsDepth(format) {
-        CFatal!("TexCube_Create: Cannot create cubemap with depth format");
+        Fatal!("TexCube_Create: Cannot create cubemap with depth format");
     }
 
     let this = MemNew!(TexCube);
@@ -212,23 +212,20 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
             tex2d_load_raw(&face_path, &mut sx, &mut sy, &mut lcomponents);
 
         if data.is_null() {
-            CFatal!(
-                "TexCube_Load failed to load cubemap face from '%s'",
-                face_path,
-            );
+            Fatal!("TexCube_Load failed to load cubemap face from '{face_path}'",);
         }
 
         if sx != sy {
-            CFatal!("TexCube_Load loaded cubemap face is not square");
+            Fatal!("TexCube_Load loaded cubemap face is not square");
         }
 
         if i != 0 {
             if sx != (*this).size || sy != (*this).size {
-                CFatal!("TexCube_Load loaded cubemap faces have different resolutions");
+                Fatal!("TexCube_Load loaded cubemap faces have different resolutions");
             }
 
             if lcomponents != components {
-                CFatal!("TexCube_Load loaded cubemap faces have different number of components");
+                Fatal!("TexCube_Load loaded cubemap faces have different number of components");
             }
         } else {
             components = lcomponents;

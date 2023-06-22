@@ -4,8 +4,6 @@ use crate::internal::*;
 use crate::math::*;
 use crate::*;
 
-pub type ShaderVarType = i32;
-
 struct ShaderVarInfo {
     glsl_name: &'static str,
     name: &'static str,
@@ -38,45 +36,91 @@ const SHADER_VAR_INFO: [ShaderVarInfo; 13] = [
     ShaderVarInfo::new::<*mut TexCube>("samplerCube", "TexCube"),
 ];
 
-#[no_mangle]
-pub extern "C" fn ShaderVarType_FromStr(name: *const libc::c_char) -> ShaderVarType {
-    shader_var_type_from_str(&name.as_str())
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+pub struct ShaderVarType(i32);
+
+impl std::fmt::Display for ShaderVarType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
-pub fn shader_var_type_from_str(name: &str) -> ShaderVarType {
-    SHADER_VAR_INFO
-        .iter()
-        .enumerate()
-        .find(|(_, info)| name == info.glsl_name)
-        .map(|(i, _)| i + 1)
-        .unwrap_or(0) as ShaderVarType
+impl From<i32> for ShaderVarType {
+    fn from(value: i32) -> Self {
+        Self(value)
+    }
+}
+
+impl From<usize> for ShaderVarType {
+    fn from(value: usize) -> Self {
+        Self(value as i32)
+    }
+}
+
+impl ShaderVarType {
+    pub const UNKNOWN: ShaderVarType = ShaderVarType(0);
+
+    pub const fn new(value: i32) -> Self {
+        Self(value)
+    }
+
+    pub fn value(&self) -> i32 {
+        self.0
+    }
+}
+
+impl ShaderVarType {
+    pub fn from_str(name: &str) -> ShaderVarType {
+        SHADER_VAR_INFO
+            .iter()
+            .enumerate()
+            .find(|(_, info)| name == info.glsl_name)
+            .map(|(i, _)| i + 1)
+            .unwrap_or(0)
+            .into()
+    }
+
+    pub fn get_glsl_name(this: ShaderVarType) -> Option<String> {
+        SHADER_VAR_INFO
+            .get(this.0 as usize - 1)
+            .map(|name| name.glsl_name.into())
+    }
+
+    pub fn get_name(this: ShaderVarType) -> Option<String> {
+        SHADER_VAR_INFO
+            .get(this.0 as usize - 1)
+            .map(|info| info.name.into())
+    }
+
+    pub fn get_size(this: ShaderVarType) -> i32 {
+        SHADER_VAR_INFO
+            .get(this.0 as usize - 1)
+            .map(|info| info.size)
+            .unwrap_or(0)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn ShaderVarType_FromStr(name: *const libc::c_char) -> ShaderVarType {
+    ShaderVarType::from_str(&name.as_str())
 }
 
 #[no_mangle]
 pub extern "C" fn ShaderVarType_GetGLSLName(this: ShaderVarType) -> *const libc::c_char {
-    shader_var_type_get_glsl_name(this)
+    ShaderVarType::get_glsl_name(this)
         .map(|name| static_string!(name))
         .unwrap_or(std::ptr::null())
 }
 
-pub fn shader_var_type_get_glsl_name(this: ShaderVarType) -> Option<String> {
-    SHADER_VAR_INFO
-        .get(this as usize - 1)
-        .map(|name| name.glsl_name.into())
-}
-
 #[no_mangle]
 pub extern "C" fn ShaderVarType_GetName(this: ShaderVarType) -> *const libc::c_char {
-    SHADER_VAR_INFO
-        .get(this as usize - 1)
-        .map(|info| info.name.as_ptr() as *const libc::c_char)
+    ShaderVarType::get_name(this)
+        .map(|name| static_string!(name))
         .unwrap_or(std::ptr::null())
 }
 
 #[no_mangle]
 pub extern "C" fn ShaderVarType_GetSize(this: ShaderVarType) -> i32 {
-    SHADER_VAR_INFO
-        .get(this as usize - 1)
-        .map(|info| info.size)
-        .unwrap_or(0)
+    ShaderVarType::get_size(this)
 }

@@ -9,26 +9,58 @@
 //  }
 // #endif
 
+use std::ffi::CString;
+
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Application starting Lua script
+    #[arg(short, long, default_value = "./script/Main.lua")]
+    entry_point: String,
+    /// Specify if console log should be shown
+    #[arg(short, long, default_value_t = true)]
+    console_log: bool,
+    /// Log will be written into the log file if log_dir is specified
+    #[arg(short, long)]
+    log_dir: Option<String>,
+    /// Optional application name
+    app_name: Option<String>,
+}
+
 #[cfg_attr(not(windows), link(name = "phx", kind = "dylib"))]
 #[cfg_attr(windows, link(name = "phx.dll", kind = "dylib"))]
 extern "C" {
-    fn Engine_Entry(argc: i32, argv: *mut *mut libc::c_char) -> i32;
+    fn Engine_Entry(
+        entry_point: *const libc::c_char,
+        app_name: *const libc::c_char,
+        console_log: bool,
+        log_dir: *const libc::c_char,
+    );
 }
 
 pub fn main() {
-    let mut args: Vec<*mut libc::c_char> = Vec::new();
-    for arg in ::std::env::args() {
-        args.push(
-            (::std::ffi::CString::new(arg))
-                .expect("Failed to convert argument into CString.")
-                .into_raw(),
-        );
-    }
-    args.push(::core::ptr::null_mut());
+    let cli = Cli::parse();
+
+    let entry_point = CString::new(cli.entry_point)
+        .expect("Failed to convert entry_point argument into CString.")
+        .into_raw();
+    let app_name_str = cli.app_name.clone().unwrap_or("".into());
+    let app_name = CString::new(app_name_str)
+        .expect("Failed to convert app_name argument into CString.")
+        .into_raw();
+    let log_dir_str = cli.log_dir.clone().unwrap_or("".into());
+    let log_dir = CString::new(log_dir_str)
+        .expect("Failed to convert log_dir argument into CString.")
+        .into_raw();
+
     unsafe {
-        ::std::process::exit(Engine_Entry(
-            (args.len() - 1) as i32,
-            args.as_mut_ptr() as *mut *mut libc::c_char,
-        ))
+        Engine_Entry(
+            entry_point as *const libc::c_char,
+            app_name as *const libc::c_char,
+            cli.console_log,
+            log_dir as *const libc::c_char,
+        );
     }
 }

@@ -35,12 +35,10 @@ fn Obj_Fatal(message: &str, s: *mut ParseState) {
         MemCpy(line as *mut _, (*s).lineStart as *const _, len as usize);
         *line.offset(len as isize) = 0 as libc::c_char;
 
-        let messageAsCStr = CString::new(message).unwrap();
-        CFatal!(
-            "%s Line %i\n%s",
-            messageAsCStr.as_ptr(),
+        Fatal!(
+            "{message}. Line {}\n{:?}",
             (*s).lineNumber,
-            line
+            CStr::from_ptr(line)
         );
     }
 }

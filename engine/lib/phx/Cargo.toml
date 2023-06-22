@@ -24,11 +24,15 @@ libc = "0.2.146"
 memoffset = "0.9.0"
 mlua = { version = "0.8.9", features = ["luajit52", "vendored"] }
 printf-compat = "0.1.1"
+regex = "1.8.4"
 rodio = "0.17.0"
 sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "master", features = [
     "bundled",
     "static-link",
 ] }
+tracing = "0.1.37"
+tracing-appender = "0.2.2"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 
 [build-dependencies]
 cmake = "0.1.50"

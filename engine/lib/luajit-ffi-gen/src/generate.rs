@@ -6,6 +6,8 @@ use crate::args::AttrArgs;
 use crate::lua_ffi::generate_ffi;
 use crate::method_info::*;
 use crate::parse::*;
+use crate::type_info::TypeInfo;
+use crate::type_info::TypeVariant;
 
 /// Generate C API and Lua FFI.
 pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
@@ -33,7 +35,7 @@ pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
                 quote! {}
             };
 
-            if !attr_args.is_no_lua_ffi() {
+            if attr_args.gen_lua_ffi() {
                 generate_ffi(&attr_args, &impl_info);
             }
 
@@ -96,30 +98,36 @@ fn wrap_param(module_name: &str, param: &ParamInfo) -> TokenStream {
 }
 
 fn wrap_type(module_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
+    let opt_item = if ty.is_option {
+        quote! {*mut }
+    } else {
+        quote! {}
+    };
+
     match &ty.variant {
         TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
-            quote! { *const libc::c_char }
+            quote! { #opt_item *const libc::c_char }
         }
         TypeVariant::Custom(ty_name) => {
             let ty_ident = format_ident!("{ty_name}");
 
             if ty.is_mutable {
                 // Mutable is always with reference
-                quote! { &mut #ty_ident }
+                quote! { #opt_item &mut #ty_ident }
             } else if TypeInfo::is_copyable(&ty_name) && !ty.is_reference {
-                quote! { #ty_ident }
+                quote! { #opt_item #ty_ident }
             } else if ret {
                 // We always send unregistered return type boxed
                 if ty.is_self() {
                     let ty_ident = format_ident!("{module_name}");
 
-                    quote! { Box<#ty_ident> }
+                    quote! { Box<#opt_item #ty_ident> }
                 } else {
-                    quote! { Box<#ty_ident> }
+                    quote! { Box<#opt_item #ty_ident> }
                 }
             } else {
                 // We always send unregistered type by reference
-                quote! { &#ty_ident }
+                quote! { #opt_item &#ty_ident }
             }
         }
         _ => {
@@ -127,10 +135,10 @@ fn wrap_type(module_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
 
             if ty.is_mutable {
                 // Mutable is always with reference
-                quote! { &mut #ty_ident }
+                quote! { #opt_item &mut #ty_ident }
             } else {
                 // We don't care if there is reference on the numeric type - just accept it by value
-                quote! { #ty_ident }
+                quote! { #opt_item #ty_ident }
             }
         }
     }
@@ -149,21 +157,32 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         .iter()
         .map(|param| {
             let name_ident = format_ident!("{}", param.name);
+            let name_accessor = if param.ty.is_option {
+                quote! { (*#name_ident) }
+            } else {
+                quote! { #name_ident }
+            };
 
-            match param.ty.variant {
-                TypeVariant::Str => quote! { #name_ident.as_str() },
-                TypeVariant::String => quote! { #name_ident.as_string() },
-                TypeVariant::CString => quote! { #name_ident.as_cstring() },
-                TypeVariant::Custom(_) => quote! { #name_ident },
+            let param_item = match param.ty.variant {
+                TypeVariant::Str => quote! { #name_accessor.as_str() },
+                TypeVariant::String => quote! { #name_accessor.as_string() },
+                TypeVariant::CString => quote! { #name_accessor.as_cstring() },
+                TypeVariant::Custom(_) => quote! { #name_accessor },
                 _ => {
                     if param.ty.is_mutable {
-                        quote! { #name_ident }
+                        quote! { #name_accessor }
                     } else if param.ty.is_reference {
-                        quote! { &#name_ident }
+                        quote! { &#name_accessor }
                     } else {
-                        quote! { #name_ident }
+                        quote! { #name_accessor }
                     }
                 }
+            };
+
+            if param.ty.is_option {
+                quote! {if #name_ident != std::ptr::null_mut() { unsafe { Some(#param_item) } } else { Option::None }}
+            } else {
+                param_item
             }
         })
         .collect();

@@ -7,6 +7,7 @@ use crate::*;
 use crate::system::*;
 
 use sdl2_sys::*;
+use tracing::warn;
 
 const Threshold_Pressed: f32 = 0.5f32;
 const Threshold_Released: f32 = 0.4f32;
@@ -236,7 +237,7 @@ pub unsafe extern "C" fn Input_Init() {
      *        https://bugzilla.libsdl.org/show_bug.cgi?id=4165 */
     let result: SDL_bool = SDL_SetHint(c_str!("SDL_MOUSE_FOCUS_CLICKTHROUGH"), c_str!("1"));
     if result != SDL_bool::SDL_TRUE {
-        CWarn!("Input_Init: SDL_SetHint failed");
+        warn!("Input_Init: SDL_SetHint failed");
     }
 
     for iDev in 0..DeviceType_COUNT as i32 {
@@ -500,7 +501,7 @@ pub unsafe extern "C" fn Input_Update() {
                     let sdlController: *mut SDL_GameController =
                         SDL_GameControllerOpen(sdl.cdevice.which);
                     if sdlController.is_null() {
-                        CWarn!("Input_Update: SDL_GameControllerOpen failed");
+                        warn!("Input_Update: SDL_GameControllerOpen failed");
                     } else {
                         let sdlJoystick: *mut SDL_Joystick =
                             SDL_GameControllerGetJoystick(sdlController);
@@ -642,7 +643,7 @@ pub unsafe extern "C" fn Input_LoadGamepadDatabase(name: *const libc::c_char) {
     let path: *const libc::c_char = Resource_GetPath(ResourceType_Other, name);
     let result: i32 = SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(path, c_str!("rb")), 1);
     if result == -1 {
-        CFatal!("Input_Init: Failed to add gamepad mappings");
+        Fatal!("Input_Init: Failed to add gamepad mappings");
     }
 }
 

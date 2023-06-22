@@ -5,13 +5,23 @@ use syn::{Lit, Token};
 use super::arg::Arg;
 
 /// Arguments of the `luajit_ffi` attribute.
-#[derive(Default)]
 pub struct AttrArgs {
     name: Option<String>,
     managed: bool,
     clone: bool,
 
-    no_lua_ffi: bool,
+    lua_ffi: bool,
+}
+
+impl Default for AttrArgs {
+    fn default() -> Self {
+        Self {
+            name: None,
+            managed: false,
+            clone: false,
+            lua_ffi: true,
+        }
+    }
 }
 
 impl AttrArgs {
@@ -32,10 +42,9 @@ impl AttrArgs {
         self.clone
     }
 
-    /// TEST ONLY!
-    /// If true then Lua FFI file won't be generated
-    pub fn is_no_lua_ffi(&self) -> bool {
-        self.no_lua_ffi
+    /// Specify if Lua FFI file should be generated or only C API.
+    pub fn gen_lua_ffi(&self) -> bool {
+        self.lua_ffi
     }
 }
 
@@ -76,21 +85,22 @@ impl Parse for AttrArgs {
                         ));
                     }
                 }
-                "no_lua_ffi" => {
+                "lua_ffi" => {
                     if let Lit::Bool(val) = &param.value.lit {
-                        res.no_lua_ffi = val.value();
+                        res.lua_ffi = val.value();
                     } else {
                         return Err(Error::new(
                             param.value.span(),
-                            "expected 'no_lua_ffi' attribute parameter as bool literal",
+                            "expected 'lua_ffi' attribute parameter as bool literal",
                         ));
                     }
                 }
                 _ => {
                     return Err(Error::new(
                         param.name.span(),
-                        // NOTE: do not show no_lua_ffi since it is test only
-                        format!("expected attribute parameter value: name, managed, clone"),
+                        format!(
+                            "expected attribute parameter value: name, managed, clone, lua_ffi"
+                        ),
                     ));
                 }
             }

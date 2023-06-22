@@ -1,3 +1,7 @@
+use std::ffi::CStr;
+
+use tracing::info;
+
 use super::*;
 use crate::common::*;
 use crate::lua::*;
@@ -113,7 +117,13 @@ extern "C" fn InputBindings_RaiseCallback(
     binding: *mut InputBinding,
     _callback: LuaRef,
 ) {
-    CPrintf!("%s - %s\n", event, (*binding).name);
+    unsafe {
+        info!(
+            "{:?} - {:?}",
+            CStr::from_ptr(event),
+            CStr::from_ptr((*binding).name)
+        );
+    }
     /* TODO : Decide what all we want to pass to the callbacks (values, states, ...?) */
     //if (callback) {
     //  Lua_PushRef(binding->luaInstance, callback);

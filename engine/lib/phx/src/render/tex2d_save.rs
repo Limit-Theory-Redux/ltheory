@@ -20,10 +20,7 @@ pub fn tex2d_save_png(path: &str, sx: i32, sy: i32, components: i32, data: *mut 
     let img: DynamicImage = match components {
         3 => DynamicImage::ImageRgb8(ImageBuffer::from_raw(sx as u32, sy as u32, buffer).unwrap()),
         4 => DynamicImage::ImageRgba8(ImageBuffer::from_raw(sx as u32, sy as u32, buffer).unwrap()),
-        _ => CFatal!(
-            "Tex2D_Save_Png: Unexpected number of components %d",
-            components
-        ),
+        _ => Fatal!("Tex2D_Save_Png: Unexpected number of components {components}"),
     };
 
     img.save(path).is_ok()

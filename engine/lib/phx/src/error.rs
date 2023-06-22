@@ -1,3 +1,5 @@
+use tracing::error;
+
 use crate::common::*;
 
 /* --- Error -------------------------------------------------------------------
@@ -52,72 +54,62 @@ const Error_VertUV: Error = 0x01000000;
 
 #[no_mangle]
 pub extern "C" fn Error_Print(e: Error) {
-    CPrintf!("ERROR: ");
-    if e & Error_Stack != 0 {
-        CPrintf!("Stack ");
-    }
-    if e & Error_Heap != 0 {
-        CPrintf!("Heap ");
-    }
-    if e & Error_Buffer != 0 {
-        CPrintf!("Buffer ");
-    }
-    if e & Error_Path != 0 {
-        CPrintf!("Path ");
-    }
-    if e & Error_Index != 0 {
-        CPrintf!("Index ");
-    }
-    if e & Error_Vertex != 0 {
-        CPrintf!("Vertex ");
-    }
-    if e & Error_VertPos != 0 {
-        CPrintf!("Vertex Position ");
-    }
-    if e & Error_VertNorm != 0 {
-        CPrintf!("Vertex Normal ");
-    }
-    if e & Error_VertUV != 0 {
-        CPrintf!("Vertex UV ");
-    }
-
-    if e & Error_Input != 0 {
-        CPrintf!("Input ");
-    }
-    if e & Error_Intermediate != 0 {
-        CPrintf!("Intermediate Value ");
-    }
-    if e & Error_Output != 0 {
-        CPrintf!("Output ");
-    }
-
-    if e & Error_Null != 0 {
-        CPrintf!("NULL");
-    }
-    if e & Error_Invalid != 0 {
-        CPrintf!("Invalid");
-    }
-    if e & Error_Overflow != 0 {
-        CPrintf!("Overflow");
-    }
-    if e & Error_Underflow != 0 {
-        CPrintf!("Underflow");
-    }
-    if e & Error_Empty != 0 {
-        CPrintf!("Empty");
-    }
-    if e & Error_NaN != 0 {
-        CPrintf!("NaN");
-    }
-    if e & Error_Degenerate != 0 {
-        CPrintf!("Degenerate");
-    }
-    if e & Error_BadCount != 0 {
-        CPrintf!("Incorrect Count");
-    }
-
     if e == Error_None {
-        CPrintf!("None!");
+        error!("None!");
+        return;
     }
-    CPrintf!("\n");
+
+    let err_source = if e & Error_Stack != 0 {
+        "Stack "
+    } else if e & Error_Heap != 0 {
+        "Heap "
+    } else if e & Error_Buffer != 0 {
+        "Buffer "
+    } else if e & Error_Path != 0 {
+        "Path "
+    } else if e & Error_Index != 0 {
+        "Index "
+    } else if e & Error_Vertex != 0 {
+        "Vertex "
+    } else if e & Error_VertPos != 0 {
+        "Vertex Position "
+    } else if e & Error_VertNorm != 0 {
+        "Vertex Normal "
+    } else if e & Error_VertUV != 0 {
+        "Vertex UV "
+    } else {
+        ""
+    };
+
+    let err_type = if e & Error_Input != 0 {
+        "Input "
+    } else if e & Error_Intermediate != 0 {
+        "Intermediate Value "
+    } else if e & Error_Output != 0 {
+        "Output "
+    } else {
+        ""
+    };
+
+    let err_value = if e & Error_Null != 0 {
+        "NULL"
+    } else if e & Error_Invalid != 0 {
+        "Invalid"
+    } else if e & Error_Overflow != 0 {
+        "Overflow"
+    } else if e & Error_Underflow != 0 {
+        "Underflow"
+    } else if e & Error_Empty != 0 {
+        "Empty"
+    } else if e & Error_NaN != 0 {
+        "NaN"
+    } else if e & Error_Degenerate != 0 {
+        "Degenerate"
+    } else if e & Error_BadCount != 0 {
+        "Incorrect Count"
+    } else {
+        ""
+    };
+
+    error!("{err_source}{err_type}{err_value}");
 }
