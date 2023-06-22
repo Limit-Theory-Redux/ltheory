@@ -117,7 +117,7 @@ cargo expand -p luajit-ffi-gen --test basic_test
 
 Following table shows representation of Rust types in the generated code.
 
-| Rust type                            | C API               | Lua c_defs |
+| Rust type                            | extern "C" interface         | C type |
 | ------------------------------------ | ------------------- | ---------- |
 | Immutable reference (&T)             | &T                  | T const*   |
 | Mutable reference (&mut T)           | &mut T              | T *        |
