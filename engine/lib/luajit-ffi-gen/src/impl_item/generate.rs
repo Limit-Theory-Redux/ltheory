@@ -8,12 +8,6 @@ use super::method_info::*;
 use super::type_info::*;
 use super::ImplInfo;
 
-impl ToString for ImplInfo {
-    fn to_string(&self) -> String {
-        todo!()
-    }
-}
-
 impl ImplInfo {
     /// Generate C API and Lua FFI.
     pub fn generate(&self, attr_args: ImplAttrArgs) -> TokenStream {
