@@ -140,7 +140,6 @@ function Think:manageAsset(asset)
         -- No more jobs available; send asset to nearest station to sleep
         -- TODO: Make sure this is only done at the AI player's direction for ECONOMIC ships (miners and transports)!
         local system = asset.parent
-
         local stations = system:getStationsByDistance(asset)
         if #stations > 0 and stations[1] ~= nil then
             local station = stations[1].stationRef

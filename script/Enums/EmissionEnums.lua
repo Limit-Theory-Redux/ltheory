@@ -11,4 +11,5 @@ Enums.Emitters = {
     Pulse    = 6,
     Beam     = 7,
     Jump     = 8,
+    Cloak    = 9,
 }
