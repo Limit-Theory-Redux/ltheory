@@ -180,7 +180,7 @@ The hash file can be stored either in a subfolder of the **target** directory, o
 
 ### Stage 2. Regenerate C API bindings only if Rust code changes
 
-If optimization from the stage 1 is not enough similar approach can be applied to the generated C API code.
+If the optimization steps from the stage 1 is not enough, a similar approach can be applied to the generated C API code.
 
 In this case it should not be put in the same file where **luajit_ffi_gen** was added but in a separate one.
 
