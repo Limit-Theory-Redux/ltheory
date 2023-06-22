@@ -155,7 +155,7 @@ User types in method parameters position are sent by reference or mutable refere
 
 ### Option
 
-Transferred as **\*mut T** and **None** interpreted as **NULL** pointer.
+Returned as a **\*mut T**, and **None** is nterpreted as **NULL** pointer.
 
 ### Result
 
