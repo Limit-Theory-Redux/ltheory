@@ -414,6 +414,11 @@ Config.gen = {
         range        = 20000,
     },
 
+    objectEmissionsDropoff = {1e8,   -- star
+                              1e6,   -- planet
+                              20000, -- station
+                              5000,  -- ship
+                             },
     objectEmissions = {
     -- STAR  PLANET  STATION  SHIP  THRUSTER PULSE  BEAM  JUMP  CLOAK
     {     5,     21,      10,   16,       0,     0,    0,    9,    -5},    --              |   1  Hz
@@ -445,7 +450,7 @@ Config.gen = {
     {    57,     68,      61,   15,       5,     0,    8,   14,    -5},    --             ||  10 THz > Bio-imaging  > Infrared
     {    66,     28,      46,   22,      12,    10,   17,   26,   -10},    --             ||  50 THz > Bio-imaging  > Infrared
     {    78,     20,      33,   51,      51,    72,   54,   70,   -30},    --             || 100 THz                > Infrared
-    {   100,     12,      29,   20,      90,    82,   89,   79,   -10},    --             || 500 THz > Visible light
+    {   100,     12,      29,   25,      90,    82,   89,   79,   -15},    --             || 500 THz > Visible light
     {    81,      3,      29,   32,      72,    41,   37,    8,   -15},    --             ||   1 PHz > Ultraviolet
     {    66,      6,      35,   19,      59,    90,    6,    0,    -5},    --             ||   5 PHz > Ultraviolet
     {    41,      1,      24,    6,      21,    21,    8,    0,     0},    --             ||  10 PHz > Ultraviolet
@@ -466,7 +471,7 @@ Config.gen = {
     {     0,      0,       0,    0,       0,     0,    0,    1,     0},    --            ||| 500 ZHz
     },
 
-    nebulaRes           = 1024, -- 2048 sometimes creates nebulae with stright-line edges
+    nebulaRes           = 2048,
 
     nAIPlayers          = 0,   -- # of AI players (who manage Economic assets)
     randomizeAIPlayers  = false,
