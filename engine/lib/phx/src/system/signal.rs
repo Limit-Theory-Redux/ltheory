@@ -1,7 +1,6 @@
-use tracing::warn;
-
 use crate::common::*;
 use crate::internal::*;
+use crate::logging::warn;
 use crate::*;
 
 use std::collections::HashMap;

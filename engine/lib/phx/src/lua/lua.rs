@@ -3,11 +3,11 @@
 use super::*;
 use crate::common::*;
 use crate::internal::*;
+use crate::logging::warn;
 use crate::system::*;
 use crate::*;
 
 use libc;
-use tracing::warn;
 
 extern "C" {
     pub type lua_State;

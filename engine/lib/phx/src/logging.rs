@@ -4,6 +4,8 @@ use regex::Regex;
 use tracing_appender::{non_blocking::WorkerGuard, rolling::RollingFileAppender};
 use tracing_subscriber::{prelude::*, EnvFilter};
 
+pub use tracing::{error, info, warn};
+
 /// Clean messages from coloring ASCII instructions before writing to the file.
 struct MessageCleaner {
     appender: RollingFileAppender,

@@ -1,7 +1,6 @@
-use tracing::warn;
-
 use super::gl;
 use crate::common::*;
+use crate::logging::warn;
 use crate::math::*;
 use crate::system::*;
 
