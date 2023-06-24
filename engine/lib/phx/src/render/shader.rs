@@ -35,7 +35,7 @@ static mut cache: *mut StrMap = std::ptr::null_mut();
 
 unsafe extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_char) -> i32 {
     if this.is_none() {
-        Fatal!("GetUniformIndex: No shader is bound");
+        panic!("GetUniformIndex: No shader is bound");
     }
     let index: i32 = gl::GetUniformLocation(this.unwrap().program, name);
     index
@@ -66,7 +66,7 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
         let infoLog = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
 
-        Fatal!(
+        panic!(
             "CreateGLShader: Failed to compile shader:\n{:?}",
             CStr::from_ptr(infoLog)
         );
@@ -94,7 +94,7 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
         gl::GetProgramiv(this, gl::INFO_LOG_LENGTH, &mut length);
         let infoLog: *mut libc::c_char = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
         gl::GetProgramInfoLog(this, length, std::ptr::null_mut(), infoLog);
-        Fatal!(
+        panic!(
             "CreateGLProgram: Failed to link program:\n{:?}",
             CStr::from_ptr(infoLog)
         );
@@ -165,14 +165,14 @@ fn parse_autovar(val: &str, this: &mut Shader) {
         };
 
         if var.type_0 == ShaderVarType::UNKNOWN {
-            Fatal!(
+            panic!(
                 "GLSL_Preprocess: Unknown shader variable type <{var_type}> in autovar directive:\n  {val}"
             );
         }
 
         this.vars.push(var);
     } else {
-        Fatal!("GLSL_Preprocess: Failed to parse autovar directive:\n  {val}");
+        panic!("GLSL_Preprocess: Failed to parse autovar directive:\n  {val}");
     }
 }
 
@@ -291,7 +291,7 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
             let pValue = ShaderVar_Get(c_name, (*var).type_0);
 
             if pValue.is_null() {
-                Fatal!(
+                panic!(
                     "Shader_Start: Shader variable stack does not contain variable <{}>",
                     (*var).name,
                 );
@@ -387,7 +387,7 @@ pub extern "C" fn Shader_GetHandle(this: &mut Shader) -> u32 {
 pub unsafe extern "C" fn Shader_GetVariable(this: &mut Shader, name: *const libc::c_char) -> i32 {
     let index: i32 = gl::GetUniformLocation(this.program, name);
     if index == -1 {
-        Fatal!(
+        panic!(
             "Shader_GetVariable: Shader <{}> has no variable <{}>",
             this.name,
             name.as_str(),

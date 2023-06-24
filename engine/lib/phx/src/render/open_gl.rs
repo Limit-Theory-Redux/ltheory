@@ -52,14 +52,14 @@ pub unsafe extern "C" fn OpenGL_CheckError(file: *const libc::c_char, line: i32)
         1286 => "GL_INVALID_FRAMEBUFFER_OPERATION",
         1285 => "GL_OUT_OF_MEMORY",
         _ => {
-            Fatal!(
+            panic!(
                 "OpenGL_CheckError: gl::GetError returned illegal error code {errorID} at {:?}:{line}",
                 CStr::from_ptr(file),
             );
         }
     };
 
-    Fatal!(
+    panic!(
         "OpenGL_CheckError: {error} at {:?}:{line}",
         CStr::from_ptr(file)
     );

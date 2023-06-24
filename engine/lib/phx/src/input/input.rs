@@ -643,7 +643,7 @@ pub unsafe extern "C" fn Input_LoadGamepadDatabase(name: *const libc::c_char) {
     let path: *const libc::c_char = Resource_GetPath(ResourceType_Other, name);
     let result: i32 = SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(path, c_str!("rb")), 1);
     if result == -1 {
-        Fatal!("Input_Init: Failed to add gamepad mappings");
+        panic!("Input_Init: Failed to add gamepad mappings");
     }
 }
 

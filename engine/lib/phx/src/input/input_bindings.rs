@@ -247,7 +247,7 @@ pub unsafe extern "C" fn InputBindings_Update() {
 // void InputBindings_Register (InputBinding* binding) {
 //     //Lua* lua = Lua_GetActive();
 //     //if (!lua)
-//     //  Fatal("InputBinding_Register: No Lua instance is active");
+//     //  panic("InputBinding_Register: No Lua instance is active");
 
 //     InputBinding binding = {};
 //     binding.states[Idx_xPos].button = binding->xPos;

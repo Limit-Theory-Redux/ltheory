@@ -171,7 +171,7 @@ pub unsafe extern "C" fn StrMap_Remove(this: &mut StrMap, key: *const libc::c_ch
         prev = &mut (*node).next;
         node = (*node).next;
     }
-    Fatal!(
+    panic!(
         "StrMap_Remove: Map does not contain key <{:?}>",
         CStr::from_ptr(key)
     );

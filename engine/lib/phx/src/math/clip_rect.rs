@@ -73,7 +73,7 @@ pub unsafe extern "C" fn ClipRect_Activate(this: Option<&mut ClipRect>) {
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Push(x: f32, y: f32, sx: f32, sy: f32) {
     if rectIndex + 1 >= MAX_STACK_DEPTH {
-        Fatal!("ClipRect_Push: Maximum stack depth exceeded");
+        panic!("ClipRect_Push: Maximum stack depth exceeded");
     }
     rectIndex += 1;
     let curr: *mut ClipRect = rect.as_mut_ptr().offset(rectIndex as isize);
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn ClipRect_PushCombined(x: f32, y: f32, sx: f32, sy: f32)
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushDisabled() {
     if rectIndex + 1 >= MAX_STACK_DEPTH {
-        Fatal!("ClipRect_Push: Maximum stack depth exceeded");
+        panic!("ClipRect_Push: Maximum stack depth exceeded");
     }
 
     rectIndex += 1;
@@ -120,7 +120,7 @@ pub unsafe extern "C" fn ClipRect_PushDisabled() {
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PushTransform(tx: f32, ty: f32, sx: f32, sy: f32) {
     if transformIndex + 1 >= MAX_STACK_DEPTH {
-        Fatal!("ClipRect_PushTransform: Maximum stack depth exceeded");
+        panic!("ClipRect_PushTransform: Maximum stack depth exceeded");
     }
     transformIndex += 1;
     let curr: *mut ClipRectTransform = transform.as_mut_ptr().offset(transformIndex as isize);
@@ -136,7 +136,7 @@ pub unsafe extern "C" fn ClipRect_PushTransform(tx: f32, ty: f32, sx: f32, sy: f
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_Pop() {
     if rectIndex < 0 {
-        Fatal!("ClipRect_Pop: Attempting to pop an empty stack");
+        panic!("ClipRect_Pop: Attempting to pop an empty stack");
     }
     rectIndex -= 1;
     ClipRect_Activate(if rectIndex >= 0 {
@@ -149,7 +149,7 @@ pub unsafe extern "C" fn ClipRect_Pop() {
 #[no_mangle]
 pub unsafe extern "C" fn ClipRect_PopTransform() {
     if transformIndex < 0 {
-        Fatal!("ClipRect_PopTransform: Attempting to pop an empty stack");
+        panic!("ClipRect_PopTransform: Attempting to pop an empty stack");
     }
     transformIndex -= 1;
     if rectIndex >= 0 {

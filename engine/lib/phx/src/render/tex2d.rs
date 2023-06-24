@@ -26,7 +26,7 @@ unsafe extern "C" fn Tex2D_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Create(sx: i32, sy: i32, format: TexFormat) -> *mut Tex2D {
     if !TexFormat_IsValid(format) {
-        Fatal!("Tex2D_Create: Invalid texture format requested");
+        panic!("Tex2D_Create: Invalid texture format requested");
     }
     let this = MemNew!(Tex2D);
     (*this)._refCount = 1;

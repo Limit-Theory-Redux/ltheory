@@ -23,7 +23,7 @@ unsafe extern "C" fn Tex1D_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Create(size: i32, format: TexFormat) -> *mut Tex1D {
     if !TexFormat_IsValid(format) {
-        Fatal!("Tex1D_Create: Invalid texture format requested");
+        panic!("Tex1D_Create: Invalid texture format requested");
     }
     let this = MemNew!(Tex1D);
     (*this)._refCount = 1;

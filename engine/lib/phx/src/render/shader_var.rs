@@ -36,7 +36,7 @@ unsafe extern "C" fn ShaderVar_GetStack(
         StrMap_Set(&mut *varMap, var, this as *mut _);
     }
     if type_0 != ShaderVarType::UNKNOWN && (*this).type_0 != type_0 {
-        Fatal!("ShaderVar_GetStack: Attempting to get stack of type <{:?}> for shader variable <{:?}> when existing stack has type <{:?}>",
+        panic!("ShaderVar_GetStack: Attempting to get stack of type <{:?}> for shader variable <{:?}> when existing stack has type <{:?}>",
             ShaderVarType::get_name(type_0),
             CStr::from_ptr(var),
             ShaderVarType::get_name((*this).type_0),
@@ -88,7 +88,7 @@ pub unsafe extern "C" fn ShaderVar_Get(
     }
 
     if type_0 != ShaderVarType::UNKNOWN && (*this).type_0 != type_0 {
-        Fatal!("ShaderVar_Get: Attempting to get variable <{:?}> with type <{:?}:{}> when existing stack has type <{:?}:{}>",
+        panic!("ShaderVar_Get: Attempting to get variable <{:?}> with type <{:?}:{}> when existing stack has type <{:?}:{}>",
         CStr::from_ptr(name),
             ShaderVarType::get_name(type_0),
             type_0,
@@ -165,13 +165,13 @@ pub unsafe extern "C" fn ShaderVar_PushTexCube(name: *const libc::c_char, x: *mu
 pub unsafe extern "C" fn ShaderVar_Pop(name: *const libc::c_char) {
     let this: *mut VarStack = ShaderVar_GetStack(name, ShaderVarType::UNKNOWN);
     if this.is_null() {
-        Fatal!(
+        panic!(
             "ShaderVar_Pop: Attempting to pop nonexistent stack <{:?}>",
             CStr::from_ptr(name),
         );
     }
     if (*this).size == 0 {
-        Fatal!(
+        panic!(
             "ShaderVar_Pop: Attempting to pop empty stack <{:?}>",
             CStr::from_ptr(name)
         );

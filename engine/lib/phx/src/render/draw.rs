@@ -15,7 +15,7 @@ static mut color: Vec4 = Vec4::ONE;
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
     if alphaIndex + 1 >= 16 {
-        Fatal!("Draw_PushAlpha: Maximum alpha stack depth exceeded");
+        panic!("Draw_PushAlpha: Maximum alpha stack depth exceeded");
     }
 
     let prevAlpha: f32 = if alphaIndex >= 0 {
@@ -32,7 +32,7 @@ pub unsafe extern "C" fn Draw_PushAlpha(a: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn Draw_PopAlpha() {
     if alphaIndex < 0 {
-        Fatal!("Draw_PopAlpha Attempting to pop an empty alpha stack");
+        panic!("Draw_PopAlpha Attempting to pop an empty alpha stack");
     }
 
     alphaIndex -= 1;

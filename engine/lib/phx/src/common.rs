@@ -4,13 +4,3 @@ macro_rules! c_str {
     }};
 }
 pub(crate) use c_str;
-
-macro_rules! Fatal {
-    ($fmt:expr) => (
-        panic!($fmt)
-    );
-    ($fmt:expr, $($args:expr),* $(,)?) => (
-        panic!($fmt, $($args),*)
-    );
-}
-pub(crate) use Fatal;

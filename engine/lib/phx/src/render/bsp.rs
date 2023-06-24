@@ -1310,7 +1310,7 @@ pub unsafe extern "C" fn BSPDebug_GetNode(
             newNode = (*node).child[FrontIndex as usize];
         }
     } else {
-        Fatal!("BSPDebug_GetNode: Unhandled case: {}", relationship as i32,)
+        panic!("BSPDebug_GetNode: Unhandled case: {}", relationship as i32,)
     }
 
     if newNode.index != 0 {

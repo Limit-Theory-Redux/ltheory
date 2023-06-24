@@ -114,7 +114,7 @@ pub unsafe extern "C" fn Signal_RemoveHandler(sig: Signal, handler: SignalHandle
     if let Some(pos) = handlers.iter().position(|f| *f == handler) {
         handlers.remove(pos);
     } else {
-        Fatal!(
+        panic!(
             "Signal_RemoveHandler: No such handler installed for signal {}",
             signal_to_string(sig)
         );
