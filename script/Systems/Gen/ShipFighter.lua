@@ -669,17 +669,18 @@ function ShipFighter.WingsTie(rng)
     end
 
     -- make wide, flat shape
-    local r, split, dist
+    local wingLength, wingDist, isWingSplit
     if Settings.get('genship.override') then
-        r = Settings.get('genship.standard.wingLength')
-        dist = Settings.get('genship.standard.wingDist')
-        split = Settings.get('genship.standard.doubleTieWing')
+        wingLength = Settings.get('genship.standard.wingLength')
+        wingDist = Settings.get('genship.standard.wingDist')
+        isWingSplit = Settings.get('genship.standard.doubleTieWing')
     else
-        r = rng:getUniformRange(0.5, 3.0)
-        dist = rng:getExp() * 0.25 + 1.5
         split = type == 5 -- by default, only split triangle shape
+        wingLength = rng:getUniformRange(0.5, 3.0)
+        wingDist = rng:getExp() * 0.25 + 1.5
+        isWingSplit = type == 5 -- by default, only split triangle shape
     end
-    wing:scale(r, 0.1, r)
+    wing:scale(wingLength, 0.1, wingLength)
 
     -- decoration
     if Settings.get('genship.override') == false or
@@ -704,10 +705,10 @@ function ShipFighter.WingsTie(rng)
     end
 
     -- double wing
-    if split then
+    if isWingSplit then
         local wingHalf = wing:clone()
         wingHalf:mirror(false, false, true)
-        local gap = r * 0.5 + rng:getUniformRange(0.1, 0.5)
+        local gap = wingLength * 0.5 + rng:getUniformRange(0.1, 0.5)
         wingHalf:translate(0, 0, -gap)
         wing:add(wingHalf)
         -- add connector between the two wings
@@ -720,7 +721,7 @@ function ShipFighter.WingsTie(rng)
     -- rotate
     wing:rotate(math.pi * 0.5, 0, math.pi * 0.5)
     -- place
-    wing:translate(dist, 0, 0)
+    wing:translate(wingDist, 0, 0)
 
     -- add connection
     local connector = BasicShapes.Prism(2, 6)
@@ -728,7 +729,7 @@ function ShipFighter.WingsTie(rng)
     local cr = 1.0
     connector:scale(0.1, cr, cr)
     local pi = connector:getPolyWithNormal(Vec3d(1, 0, 0))
-    connector:extrudePoly(pi, dist, Vec3d(1, 0.5, 0.5))
+    connector:extrudePoly(pi, wingDist, Vec3d(1, 0.5, 0.5))
     wing:add(connector)
 
     -- wing decoration
@@ -796,7 +797,7 @@ function ShipFighter.Standard(rng, hull)
     if wingType == 2 then
         shape:add(ShipFighter.WingsStandard(rng, bodyAABB))
     elseif wingType == 3 then
-        shape:add(ShipFighter.WingsTie(rng, bodyAABB))
+        shape:add(ShipFighter.WingsTie(rng))
     end
 
     -- other parts
