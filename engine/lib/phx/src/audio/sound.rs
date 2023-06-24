@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Duration;
 
 use crate::internal::*;
@@ -19,7 +21,7 @@ pub struct Sound {
     path: String,
     sound_data: StaticSoundData,
     emitter: Option<EmitterHandle>,
-    sound_handle: Option<StaticSoundHandle>,
+    sound_handle: Option<Rc<RefCell<StaticSoundHandle>>>,
 }
 
 impl Sound {
@@ -37,7 +39,7 @@ impl Sound {
         self.emitter = Some(emitter);
     }
 
-    pub fn set_sound_handle(&mut self, sound_handle: StaticSoundHandle) {
+    pub fn set_sound_handle(&mut self, sound_handle: Rc<RefCell<StaticSoundHandle>>) {
         self.sound_handle = Some(sound_handle);
     }
 }
@@ -77,7 +79,7 @@ impl Sound {
 
     pub fn is_playing(&self) -> bool {
         if let Some(sound_handle) = &self.sound_handle {
-            sound_handle.state() == PlaybackState::Playing
+            sound_handle.borrow().state() == PlaybackState::Playing
         } else {
             false
         }
@@ -85,7 +87,7 @@ impl Sound {
 
     pub fn is_paused(&self) -> bool {
         if let Some(sound_handle) = &self.sound_handle {
-            sound_handle.state() == PlaybackState::Paused
+            sound_handle.borrow().state() == PlaybackState::Paused
         } else {
             false
         }
@@ -93,7 +95,7 @@ impl Sound {
 
     pub fn is_stopped(&self) -> bool {
         if let Some(sound_handle) = &self.sound_handle {
-            sound_handle.state() == PlaybackState::Stopped
+            sound_handle.borrow().state() == PlaybackState::Stopped
         } else {
             false
         }
@@ -106,6 +108,7 @@ impl Sound {
     pub fn pause(&mut self, fade_millis: u64) {
         if let Some(sound_handle) = &mut self.sound_handle {
             sound_handle
+                .borrow_mut()
                 .pause(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
@@ -118,6 +121,7 @@ impl Sound {
     pub fn resume(&mut self, fade_millis: u64) {
         if let Some(sound_handle) = &mut self.sound_handle {
             sound_handle
+                .borrow_mut()
                 .resume(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
@@ -130,6 +134,7 @@ impl Sound {
     pub fn stop(&mut self, fade_millis: u64) {
         if let Some(sound_handle) = &mut self.sound_handle {
             sound_handle
+                .borrow_mut()
                 .stop(Tween {
                     start_time: StartTime::Immediate,
                     duration: Duration::from_millis(fade_millis),
@@ -142,6 +147,7 @@ impl Sound {
     pub fn set_play_pos(&mut self, position: f64) {
         if let Some(sound_handle) = &mut self.sound_handle {
             sound_handle
+                .borrow_mut()
                 .seek_to(position)
                 .expect("Cannot set sound position");
         }
@@ -150,6 +156,7 @@ impl Sound {
     pub fn move_play_pos(&mut self, offset: f64) {
         if let Some(sound_handle) = &mut self.sound_handle {
             sound_handle
+                .borrow_mut()
                 .seek_by(offset)
                 .expect("Cannot set sound position");
         }
