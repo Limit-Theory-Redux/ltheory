@@ -13,7 +13,7 @@ function LTheoryRedux:onInit()
     DebugControl.ltheory = self
 
     -- Read user-defined values and update game variables
---    InitFiles:readUserInits()
+    InitFiles:readUserInits()
 
     if Config.audio.pulseFire then Config.audio.pulseFire:setVolume(Config.audio.soundMax) end
 
@@ -27,11 +27,6 @@ function LTheoryRedux:onInit()
     self.window:setSize(GameState.render.resX, GameState.render.resY)
     Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
     self:SetFullscreen(GameState.render.fullscreen)
-
-    GameState.ui.hudStyle = Enums.HudStyles.Wide
-    GameState.ui.sensorsDisplayed = true
-    GameState.ui.showTrackers = true
-    GameState.audio.musicVolume = 0
 
     -- Set the default game control cursor
     self:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
