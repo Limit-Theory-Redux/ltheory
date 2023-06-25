@@ -675,9 +675,9 @@ function ShipFighter.WingsTie(rng)
         dist = Settings.get('genship.standard.wingDist')
         split = Settings.get('genship.standard.doubleTieWing')
     else
-        split = type == 5 -- by default, only split triangle shape
         r = rng:getUniformRange(0.5, 3.0)
         dist = rng:getExp() * 0.25 + 1.5
+        split = type == 5 -- by default, only split triangle shape
     end
     wing:scale(r, 0.1, r)
 
