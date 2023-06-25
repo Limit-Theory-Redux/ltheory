@@ -669,18 +669,17 @@ function ShipFighter.WingsTie(rng)
     end
 
     -- make wide, flat shape
-    local wingLength, wingDist, isWingSplit
+    local r, dist, split
     if Settings.get('genship.override') then
-        wingLength = Settings.get('genship.standard.wingLength')
-        wingDist = Settings.get('genship.standard.wingDist')
-        isWingSplit = Settings.get('genship.standard.doubleTieWing')
+        r = Settings.get('genship.standard.wingLength')
+        dist = Settings.get('genship.standard.wingDist')
+        split = Settings.get('genship.standard.doubleTieWing')
     else
         split = type == 5 -- by default, only split triangle shape
-        wingLength = rng:getUniformRange(0.5, 3.0)
-        wingDist = rng:getExp() * 0.25 + 1.5
-        isWingSplit = type == 5 -- by default, only split triangle shape
+        r = rng:getUniformRange(0.5, 3.0)
+        dist = rng:getExp() * 0.25 + 1.5
     end
-    wing:scale(wingLength, 0.1, wingLength)
+    wing:scale(r, 0.1, r)
 
     -- decoration
     if Settings.get('genship.override') == false or
@@ -705,10 +704,10 @@ function ShipFighter.WingsTie(rng)
     end
 
     -- double wing
-    if isWingSplit then
+    if split then
         local wingHalf = wing:clone()
         wingHalf:mirror(false, false, true)
-        local gap = wingLength * 0.5 + rng:getUniformRange(0.1, 0.5)
+        local gap = r * 0.5 + rng:getUniformRange(0.1, 0.5)
         wingHalf:translate(0, 0, -gap)
         wing:add(wingHalf)
         -- add connector between the two wings
@@ -721,7 +720,7 @@ function ShipFighter.WingsTie(rng)
     -- rotate
     wing:rotate(math.pi * 0.5, 0, math.pi * 0.5)
     -- place
-    wing:translate(wingDist, 0, 0)
+    wing:translate(dist, 0, 0)
 
     -- add connection
     local connector = BasicShapes.Prism(2, 6)
@@ -729,7 +728,7 @@ function ShipFighter.WingsTie(rng)
     local cr = 1.0
     connector:scale(0.1, cr, cr)
     local pi = connector:getPolyWithNormal(Vec3d(1, 0, 0))
-    connector:extrudePoly(pi, wingDist, Vec3d(1, 0.5, 0.5))
+    connector:extrudePoly(pi, dist, Vec3d(1, 0.5, 0.5))
     wing:add(connector)
 
     -- wing decoration
