@@ -3,7 +3,6 @@ use crate::physics::*;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
-use std::mem::replace;
 use std::rc::Rc;
 
 pub struct Collision {
@@ -25,42 +24,43 @@ pub struct ShapeCastResult {
 }
 
 pub trait NalgebraVec3Interop {
-    fn toNA(&self) -> na::Vector3<f32>;
-    fn toNAPoint(&self) -> na::Point3<f32>;
-    fn fromNA(_: &na::Vector3<f32>) -> Self;
-    fn fromNAPoint(_: &na::Point3<f32>) -> Self;
+    fn to_na(&self) -> na::Vector3<f32>;
+    fn to_na_point(&self) -> na::Point3<f32>;
+    fn from_na(_: &na::Vector3<f32>) -> Self;
+    fn from_na_point(_: &na::Point3<f32>) -> Self;
 }
 
 impl NalgebraVec3Interop for Vec3 {
-    fn toNA(&self) -> na::Vector3<f32> {
+    fn to_na(&self) -> na::Vector3<f32> {
         na::Vector3::new(self.x, self.y, self.z)
     }
-    fn toNAPoint(&self) -> na::Point3<f32> {
+    fn to_na_point(&self) -> na::Point3<f32> {
         na::Point3::new(self.x, self.y, self.z)
     }
-    fn fromNA(v: &na::Vector3<f32>) -> Vec3 {
+    fn from_na(v: &na::Vector3<f32>) -> Vec3 {
         Vec3::new(v.x, v.y, v.z)
     }
-    fn fromNAPoint(v: &na::Point3<f32>) -> Vec3 {
+    fn from_na_point(v: &na::Point3<f32>) -> Vec3 {
         Vec3::new(v.x, v.y, v.z)
     }
 }
 
 pub trait NalgebraQuatInterop {
-    fn toNA(&self) -> na::UnitQuaternion<f32>;
-    fn fromNA(_: &na::UnitQuaternion<f32>) -> Self;
+    fn to_na(&self) -> na::UnitQuaternion<f32>;
+    fn from_na(_: &na::UnitQuaternion<f32>) -> Self;
 }
 
 impl NalgebraQuatInterop for Quat {
-    fn toNA(&self) -> na::UnitQuaternion<f32> {
+    fn to_na(&self) -> na::UnitQuaternion<f32> {
         na::UnitQuaternion::from_quaternion(na::Quaternion::new(self.w, self.x, self.y, self.z))
     }
-    fn fromNA(v: &na::UnitQuaternion<f32>) -> Quat {
+    fn from_na(v: &na::UnitQuaternion<f32>) -> Quat {
         Quat_Create(v.i, v.j, v.k, v.w)
     }
 }
 
 pub(crate) struct PhysicsWorld {
+    pub(crate) island_manager: rp::IslandManager,
     pub(crate) rigid_body_set: rp::RigidBodySet,
     pub(crate) collider_set: rp::ColliderSet,
 }
@@ -71,7 +71,6 @@ pub struct Physics {
     integration_parameters: rp::IntegrationParameters,
     physics_pipeline: rp::PhysicsPipeline,
     query_pipeline: rp::QueryPipeline,
-    island_manager: rp::IslandManager,
     broadphase: rp::BroadPhase,
     narrowphase: rp::NarrowPhase,
     impulse_joint_set: rp::ImpulseJointSet,
@@ -85,13 +84,13 @@ impl Physics {
     pub fn new() -> Physics {
         Physics {
             world: Rc::new(RefCell::new(PhysicsWorld {
+                island_manager: rp::IslandManager::new(),
                 rigid_body_set: rp::RigidBodySet::new(),
                 collider_set: rp::ColliderSet::new(),
             })),
             integration_parameters: rp::IntegrationParameters::default(),
             physics_pipeline: rp::PhysicsPipeline::new(),
             query_pipeline: rp::QueryPipeline::new(),
-            island_manager: rp::IslandManager::new(),
             broadphase: rp::BroadPhase::new(),
             narrowphase: rp::NarrowPhase::new(),
             impulse_joint_set: rp::ImpulseJointSet::new(),
@@ -103,17 +102,12 @@ impl Physics {
 
     /// Adds this rigid body to this physics world.
     pub fn add(&mut self, rigid_body: &mut RigidBody) {
-        rigid_body.state =
-            replace(&mut rigid_body.state, RigidBodyState::None).add_to_world(&self.world);
+        rigid_body.add_to_world(&self.world);
     }
 
     /// Removes this rigid body from this physics world.
     pub fn remove(&mut self, rigid_body: &mut RigidBody) {
-        rigid_body.state = replace(&mut rigid_body.state, RigidBodyState::None).remove_from_world(
-            &mut self.island_manager,
-            &mut self.impulse_joint_set,
-            &mut self.multibody_joint_set,
-        );
+        rigid_body.remove_from_world(&mut self.impulse_joint_set, &mut self.multibody_joint_set);
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -121,7 +115,7 @@ impl Physics {
             Trigger_Update(trigger);
         }
 
-        let gravity = Vec3::ZERO.toNA();
+        let gravity = Vec3::ZERO.to_na();
         let physics_hooks = ();
         let event_handler = ();
 
@@ -131,7 +125,7 @@ impl Physics {
         self.physics_pipeline.step(
             &gravity,
             &integration_parameters,
-            &mut self.island_manager,
+            &mut world.island_manager,
             &mut self.broadphase,
             &mut self.narrowphase,
             &mut world.rigid_body_set,
@@ -191,12 +185,12 @@ pub unsafe extern "C" fn Physics_RayCast(
     let from = {
         let mut data = Vec3::ZERO;
         Ray_GetPoint(ray, ray.tMin, &mut data);
-        data.toNAPoint()
+        data.to_na_point()
     };
     let to = {
         let mut data = Vec3::ZERO;
         Ray_GetPoint(ray, ray.tMax, &mut data);
-        data.toNAPoint()
+        data.to_na_point()
     };
     let dir = to - from;
     let length = dir.norm();
