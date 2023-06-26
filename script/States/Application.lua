@@ -143,7 +143,7 @@ function Application:run()
             if Input.GetPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
                 if GameState.paused then
                     GameState.paused = false
-                    if not GameState.panelActive then
+                    if not GameState.panelActive and not GameState.debug.instantJobs then
                         Input.SetMouseVisible(false)
                     end
                 else
