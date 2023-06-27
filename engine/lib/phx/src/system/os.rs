@@ -1,27 +1,8 @@
-use std::ffi::CStr;
+pub struct Os;
 
-use crate::common::*;
-
-use sdl2_sys::*;
-
-#[no_mangle]
-pub unsafe extern "C" fn OS_GetClipboard() -> *const libc::c_char {
-    SDL_GetClipboardText() as *const libc::c_char
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn OS_GetCPUCount() -> i32 {
-    SDL_GetCPUCount()
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn OS_GetVideoDriver() -> *const libc::c_char {
-    SDL_GetCurrentVideoDriver()
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn OS_SetClipboard(text: *const libc::c_char) {
-    if SDL_SetClipboardText(text) != 0 {
-        panic!("OS_SetClipboard: {:?}", CStr::from_ptr(SDL_GetError()));
+#[luajit_ffi_gen::luajit_ffi(name = "OS")]
+impl Os {
+    pub fn get_cpu_count() -> u32 {
+        num_cpus::get() as u32
     }
 }
