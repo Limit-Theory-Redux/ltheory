@@ -54,7 +54,7 @@ end
 
 function Trader:addAskOffer(bidder)
     local item = bidder.job.item
-    local count = bidder:mgrInventoryGetFreeMax(item:getMass())
+    local count = bidder:mgrInventoryGetFreeMax(item:getMass()) / item:getMass()
     --  local count = bidder.job.jcount
     local data = self:getData(item)
     local askOffersAdded = 0
@@ -68,9 +68,10 @@ function Trader:addAskOffer(bidder)
     end
 
     if askOffersAdded > 0 then
-        printf("TRADER: Added %d ask offers from %s to obtain %d units of %s from %s | asks = %d, offers = %d",
-            askOffersAdded, bidder:getName(), count, item:getName(), self.parent:getName(), data.totalAsk,
-            #data.askOffers)
+        printf(
+            "TRADER: Added %d ask offers from asset %s (cap: %s, free: %d) to obtain %s (mass = %s) from trader %s | asks = %d, offers = %d",
+            askOffersAdded, bidder:getName(), bidder:mgrInventoryGetCapacity(), count, item:getName(),
+            item:getMass(), self.parent:getName(), data.totalAsk, #data.askOffers)
     else
         printf(
             "TRADER ***: Couldn't add any ask offers from %s to obtain %d units of %s from %s | asks = %d, offers = %d",
@@ -93,25 +94,25 @@ end
 
 function Trader:addBidOffer(bidder)
     local item = bidder.job.item
-    local count = bidder:mgrInventoryGetFreeMax(item:getMass())
+    local count = bidder:mgrInventoryGetFreeMax(item:getMass()) / item:getMass()
     --  local count = bidder.job.jcount
     local data = self:getData(item)
-    local offersAdded = 0
+    local bidOffersAdded = 0
 
     -- TODO: Check to confirm bidder's owning player has enough money to cover each bid
     for i = 1, count do
         if #data.bidOffers < data.totalBid then
             insert(data.bidOffers, bidder)
-            offersAdded = offersAdded + 1
+            bidOffersAdded = bidOffersAdded + 1
         else
             break
         end
     end
 
-    if offersAdded > 0 then
+    if bidOffersAdded > 0 then
         printf(
-            "TRADER: Added %d bid offers from %s (cap: %s) to supply %d units of %s (mass = %s) to %s | bids = %d, offers = %d",
-            offersAdded, bidder:getName(), bidder:mgrInventoryGetFreeMax(item:getMass()), count, item:getName(),
+            "TRADER: Added %d bid offers from asset %s (cap: %s, free: %s) to supply %s (mass = %s) to trader %s | bids = %d, offers = %d",
+            bidOffersAdded, bidder:getName(), bidder:mgrInventoryGetCapacity(), count, item:getName(),
             item:getMass(), self.parent:getName(), data.totalBid, #data.bidOffers)
     else
         printf(
@@ -120,12 +121,12 @@ function Trader:addBidOffer(bidder)
             #data.bidOffers)
     end
 
-    return offersAdded
+    return bidOffersAdded
 end
 
--- Return the maximum profitable volume and corresponding total profit from
---     buying item here and selling at destination
 function Trader:computeTrade(item, maxCount, dst, asset)
+    -- Return the maximum profitable volume and corresponding total profit from
+    --     buying item here and selling at destination
     local src = self
     local srcData = src:getData(item)
     local dstData = dst:getData(item)
@@ -362,6 +363,7 @@ function Trader:buy(asset, item)
         local price = data.bids[1]
 
         if self.parent:hasCredits(price) then
+            -- Make sure there's room for at least one unit of this item at its given mass
             if self.parent:mgrInventoryGetFreeMax(item:getMass()) >= item:getMass() then
                 if asset:mgrInventoryRemoveItem(item, 1) then
                     self.parent:mgrInventoryAddItem(item, 1)
@@ -403,6 +405,7 @@ function Trader:sell(asset, item)
 
         local price = data.asks[1]
         if price > 0 and player:hasCredits(price) then
+            -- Make sure there's room for at least one unit of this item at its given mass
             if asset:mgrInventoryGetFreeMax(item:getMass()) >= item:getMass() then
                 -- Note that we don't have to remove the item from the trader's owner's inventory; that was
                 --     done when the ask was made and the escrow count was incremented

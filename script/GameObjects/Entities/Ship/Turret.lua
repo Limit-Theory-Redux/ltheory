@@ -99,7 +99,7 @@ function Turret:aimAtTarget(target, fallback)
 end
 
 function Turret:canFire()
-    return not Config.game.gamePaused and self.cooldown <= 0 and
+    return not GameState.paused and self.cooldown <= 0 and
         self:getParent():mgrCapacitorGetCharge() >= Config.gen.compTurretPulseStats.charge
 end
 

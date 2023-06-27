@@ -17,7 +17,7 @@ end
 function Mine:getFlows(e)
     local item = self.item
     local mass = item:getMass()
-    local capacity = e:mgrInventoryGetFreeMax(mass)
+    local capacity = e:mgrInventoryGetFreeMax(mass) -- NOTE: inventory units? or count of free slots for mass = x?
     local duration = self:getTravelTime(e, self.src, self.dst) -- TODO : + miningTime (from miningTime() function)
     local rate = floor(capacity / mass) / duration
     return { Flow(item, rate, self.dst) }
@@ -139,27 +139,27 @@ function Mine:onUpdateActive(e, dt)
             local item = self.item
             local mass = item:getMass()
             local capacity = e:mgrInventoryGetFreeMax(mass)
-            local ccount = floor(capacity / mass)
+            local capCount = floor(capacity / mass)
             local itemBidVol = self.dst:getTrader():getBidVolumeForAsset(item, e)
 
-            if ccount == 0 or itemBidVol == 0 then
+            if capCount == 0 or itemBidVol == 0 then
                 printf(
                     "*** MINE 1 FAIL *** [e:%s (%s)] %d x %s from %s (travel: %d) -> %s (travel: %d), %d bid (dt = %f)",
-                    e:getName(), e:getOwner():getName(), ccount, item:getName(),
+                    e:getName(), e:getOwner():getName(), capCount, item:getName(),
                     self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(),
                     self:getTravelTime(e, self.src, self.dst),
                     itemBidVol, dt)
             end
 
-            local mcount = math.min(itemBidVol, ccount)
+            local mcount = math.min(itemBidVol, capCount)
             if mcount == 0 then
                 -- Can't do this Mine job! End this job (owning player should seek a new sale for existing inventory)
-                printf("[MINE 1 FAIL] *** %s: itemBidVol = %d, ccount = %d; terminating mining job", e:getName(),
-                    itemBidVol, ccount)
+                printf("[MINE 1 FAIL] *** %s: itemBidVol = %d, capCount = %d; terminating mining job", e:getName(),
+                    itemBidVol, capCount)
                 e:popAction()
                 e.jobState = nil
             else
-                self.jcount = mcount
+                self.jcount = mcount -- only in case jcount is needed by Trader, which I think it doesn't anymore
                 --printf("MINE 1: jcount = %d", self.jcount)
 
                 local profit = self.dst:getTrader():getSellToPriceForAsset(item, self.jcount, e)
@@ -195,14 +195,14 @@ function Mine:onUpdateActive(e, dt)
         elseif e.jobState == Enums.JobStateMine.SellingItems then
             if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
                 local item = self.item
-                --printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
-                --e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
+                printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
+                    e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
                 local sold = 0
                 while e:mgrInventoryGetItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
                     sold = sold + 1
                 end
-                printf("[MINE 4] %s sold %d units of %s to Trader %s",
-                    e:getName(), sold, item:getName(), self.dst:getName())
+                printf("[MINE 4] %s sold %d units of %s to Trader %s; %d units remaining in inventory",
+                    e:getName(), sold, item:getName(), self.dst:getName(), e:mgrInventoryGetItemCount(item))
             else
                 -- Destination station no longer exists, so terminate this entire job
                 printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
@@ -219,13 +219,8 @@ function Mine:onUpdateActive(e, dt)
             -- TODO : This is just a quick hack to force AI to re-evaluate job
             --        decisions. In reality, AI should 'pre-empt' the job, which
             --        should otherwise loop indefinitely by default
-            if self.jcount <= 0 then
-                e:popAction()
-                e.jobState = nil
-            else
-                -- Repeat until job is done
-                e.jobState = Enums.JobStateMine.None
-            end
+            e:popAction()
+            e.jobState = nil
         end
         Profiler.End()
     end

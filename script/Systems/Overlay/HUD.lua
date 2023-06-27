@@ -853,141 +853,17 @@ function HUD:drawSensors(a)
         UI.DrawEx.Panel(xleft, ytop, xlength, ylength, Config.ui.color.meterBarLight, 0.3)
         UI.DrawEx.Rect(xleft, ybottom, xlength, 4, Config.ui.color.meterBarDark)
 
-        -- Draw sensor bars
+        -- Draw sensor bars if game is not paused
         -- TODO: Convert "active" sensor dropoff ranges into passive emission strengths
-        local player = self.player
-        local playerShip = player:getControlling()
-        local playerTarget = playerShip:getTarget()
-        if playerTarget then
-            -- Draw sensor bars for currently targeted object that isn't destroyed
-            if not playerTarget:isDestroyed() then
-                local emType = Enums.Emitters.None
-                local targetType = playerTarget:getType()
-                if     targetType == Config:getObjectTypeByName("object_types", "Star")    then
-                    emType = Enums.Emitters.Star
-                elseif targetType == Config:getObjectTypeByName("object_types", "Planet")  then
-                    emType = Enums.Emitters.Planet
-                elseif targetType == Config:getObjectTypeByName("object_types", "Station") then
-                    emType = Enums.Emitters.Station
-                elseif targetType == Config:getObjectTypeByName("object_types", "Ship")    then
-                    emType = Enums.Emitters.Ship
-                end
-
-                if emType ~= Enums.Emitters.None then
-                    local rng = RNG.FromTime()
-                    local dropoffDist = Config.gen.objectEmissionsDropoff[emType]
-
-                    -- Get the distance from the player's ship to the object
-                    local distance = playerShip:getDistance(playerTarget)
-
-                    -- Get a number from 0 - 1 describing how directly the player's ship is looking at an object
-                    local align = max(0, (playerTarget:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
-
-                    -- Calculate signal dropoff as it reaches the player's ship's sensors
-                    -- Reduce the strength of the signal itself based on distance (no need to go inverse-square for unnecessary "realism" here)
-                    -- Reduce the strength of the received signal based on alignment of the sensor cone with the object
-                    -- TODO: Modify strength & accuracy of received signal based on number & quality of ship's Sensor components
-                    local dropoff = align * align * (1 - min(dropoffDist, distance) / dropoffDist)
-
-                    local barTweakVals = false
-                    deltaSensorsTimer = deltaSensorsTimer + deltaTime
-                    if deltaSensorsTimer > updateSensorsInterval then
-                        -- Update jitter
-                        barTweakVals = true
-                        deltaSensorsTimer = 0
-                    end
-
-                    for i = 1, barCount do
-                        if barTweakVals then
-                            -- Add some jitter to the sensor bars
-                            barTweak = rng:getUniformRange(-5, 5)
-                        end
-
-                        local barHeightUp   = min(barBase,    floor(Config.gen.objectEmissions[i][emType] * (barBase    + barTweak) * dropoff / 100))
-                        local barHeightDown = min(barReflect, floor(Config.gen.objectEmissions[i][emType] * (barReflect + barTweak) * dropoff / 100))
-
-                        UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
-                                       ybottom - barHeightUp,
-                                       barWidth,
-                                       barHeightUp,
-                                       Config.ui.color.meterBarBright)
-                        UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
-                                       ybottom,
-                                       barWidth,
-                                       barHeightDown,
-                                       Config.ui.color.meterBarDark)
-                    end
-                end
-            end
-        else
-            -- Draw sensor bars for all objects in "cone" projected
-            local rng = RNG.FromTime()
-            local system = playerShip.parent
-            if not playerShip:isShipDocked() and system then -- no displaying Sensor readings while docked at a space station!
-                local stars    = system:getStars()
-                local planets  = system:getPlanets()
-                local stations = system:getStations()
-                local ships    = system:getShips()
-                local objects       = {}
-                local barHeightUp   = {}
-                local barHeightDown = {}
-
-                for _, star in ipairs(stars) do
-                    if playerShip:getDistance(star) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Star] then
-                        local align = max(0, (star:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
-                        if align * align >= 0.3 then
-                            insert(objects, star)
-                        end
-                    end
-                end
-                for _, planet in ipairs(planets) do
-                    if playerShip:getDistance(planet) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Planet] then
-                        local align = max(0, (planet:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
-                        if align * align >= 0.3 then
-                            insert(objects, planet)
-                        end
-                    end
-                end
-                for _, station in ipairs(stations) do
-                    if not station:isDestroyed() and playerShip:getDistance(station) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Station] then
-                        local align = max(0, (station:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
-                        if align * align >= 0.3 then
-                            insert(objects, station)
-                        end
-                    end
-                end
-                for _, ship in ipairs(ships) do
-                    if ship ~= playerShip and
-                      not ship:isDestroyed() and
-                      playerShip:getDistance(ship) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Ship] then
-                        local align = max(0, (ship:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
-                        if align * align >= 0.3 then
-                            insert(objects, ship)
-                        end
-                    end
-                end
-
-                -- Check to see if we should update visual jitter this pass
-                local barTweakVals = false
-                deltaSensorsTimer = deltaSensorsTimer + deltaTime
-                if deltaSensorsTimer > updateSensorsInterval then
-                    -- Yes, update jitter this pass
-                    barTweakVals = true
-                    deltaSensorsTimer = 0
-                end
-
-                -- Initialize sensor bar values for this pass
-                for i = 1, barCount do
-                    barHeightUp[i]   = 0
-                    barHeightDown[i] = 0
-                end
-
-                -- Loop through all object close enough and in the sensor cone
-                -- Sum up all their values in each frequency band modified by distance and by dropoff from the cone's center
-                -- Multiply these values by the max onscreen size of the up/down bars to get each bar's height in pixels
-                for _, object in ipairs(objects) do
+        if not GameState.paused then
+            local player = self.player
+            local playerShip = player:getControlling()
+            local playerTarget = playerShip:getTarget()
+            if playerTarget then
+                -- Draw sensor bars for currently targeted object that isn't destroyed
+                if not playerTarget:isDestroyed() then
                     local emType = Enums.Emitters.None
-                    local targetType = object:getType()
+                    local targetType = playerTarget:getType()
                     if     targetType == Config:getObjectTypeByName("object_types", "Star")    then
                         emType = Enums.Emitters.Star
                     elseif targetType == Config:getObjectTypeByName("object_types", "Planet")  then
@@ -998,48 +874,174 @@ function HUD:drawSensors(a)
                         emType = Enums.Emitters.Ship
                     end
 
-                    local dropoffDist = Config.gen.objectEmissionsDropoff[emType]
+                    if emType ~= Enums.Emitters.None then
+                        local rng = RNG.FromTime()
+                        local dropoffDist = Config.gen.objectEmissionsDropoff[emType]
 
-                    -- Get the distance from the player's ship to the object
-                    local distance = playerShip:getDistance(object)
+                        -- Get the distance from the player's ship to the object
+                        local distance = playerShip:getDistance(playerTarget)
 
-                    -- Get a number from 0 - 1 describing how directly the player's ship is looking at an object
-                    local align = max(0, (object:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                        -- Get a number from 0 - 1 describing how directly the player's ship is looking at an object
+                        local align = max(0, (playerTarget:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
 
-                    -- Calculate signal dropoff as it reaches the player's ship's sensors
-                    -- Reduce the strength of the signal itself based on distance (no need to go inverse-square for unnecessary "realism" here)
-                    -- Reduce the strength of the received signal based on alignment of the sensor cone with the object
-                    -- TODO: Modify strength & accuracy of received signal based on number & quality of ship's Sensor components
-                    local dropoff = align * align * (1 - min(dropoffDist, distance) / dropoffDist)
+                        -- Calculate signal dropoff as it reaches the player's ship's sensors
+                        -- Reduce the strength of the signal itself based on distance (no need to go inverse-square for unnecessary "realism" here)
+                        -- Reduce the strength of the received signal based on alignment of the sensor cone with the object
+                        -- TODO: Modify strength & accuracy of received signal based on number & quality of ship's Sensor components
+                        local dropoff = align * align * (1 - min(dropoffDist, distance) / dropoffDist)
 
-                    for i = 1, barCount do
-                        barHeightUp[i]   = barHeightUp[i]   + Config.gen.objectEmissions[i][emType] * barBase    * dropoff / 100
-                        barHeightDown[i] = barHeightDown[i] + Config.gen.objectEmissions[i][emType] * barReflect * dropoff / 100
+                        local barTweakVals = false
+                        deltaSensorsTimer = deltaSensorsTimer + deltaTime
+                        if deltaSensorsTimer > updateSensorsInterval then
+                            -- Update jitter
+                            barTweakVals = true
+                            deltaSensorsTimer = 0
+                        end
+
+                        for i = 1, barCount do
+                            if barTweakVals then
+                                -- Add some jitter to the sensor bars
+                                barTweak = rng:getUniformRange(-5, 5)
+                            end
+
+                            local barHeightUp   = min(barBase,    floor(Config.gen.objectEmissions[i][emType] * (barBase    + barTweak) * dropoff / 100))
+                            local barHeightDown = min(barReflect, floor(Config.gen.objectEmissions[i][emType] * (barReflect + barTweak) * dropoff / 100))
+
+                            UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
+                                           ybottom - barHeightUp,
+                                           barWidth,
+                                           barHeightUp,
+                                           Config.ui.color.meterBarBright)
+                            UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
+                                           ybottom,
+                                           barWidth,
+                                           barHeightDown,
+                                           Config.ui.color.meterBarDark)
+                        end
                     end
                 end
+            else
+                -- Draw sensor bars for all objects in "cone" projected
+                local rng = RNG.FromTime()
+                local system = playerShip.parent
+                if not playerShip:isShipDocked() and system then -- no displaying Sensor readings while docked at a space station!
+                    local stars    = system:getStars()
+                    local planets  = system:getPlanets()
+                    local stations = system:getStations()
+                    local ships    = system:getShips()
+                    local objects       = {}
+                    local barHeightUp   = {}
+                    local barHeightDown = {}
 
-                -- Display each sensor frequency bar
-                for i = 1, barCount do
-                    if barTweakVals then
-                        -- Add some jitter to the sensor bars
-                        barTweak = rng:getUniformRange(-5, 5)
+                    for _, star in ipairs(stars) do
+                        if playerShip:getDistance(star) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Star] then
+                            local align = max(0, (star:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                            if align * align >= 0.3 then
+                                insert(objects, star)
+                            end
+                        end
+                    end
+                    for _, planet in ipairs(planets) do
+                        if playerShip:getDistance(planet) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Planet] then
+                            local align = max(0, (planet:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                            if align * align >= 0.3 then
+                                insert(objects, planet)
+                            end
+                        end
+                    end
+                    for _, station in ipairs(stations) do
+                        if not station:isDestroyed() and playerShip:getDistance(station) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Station] then
+                            local align = max(0, (station:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                            if align * align >= 0.3 then
+                                insert(objects, station)
+                            end
+                        end
+                    end
+                    for _, ship in ipairs(ships) do
+                        if ship ~= playerShip and
+                          not ship:isDestroyed() and
+                          playerShip:getDistance(ship) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Ship] then
+                            local align = max(0, (ship:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                            if align * align >= 0.3 then
+                                insert(objects, ship)
+                            end
+                        end
                     end
 
-                    -- Add jitter constrained by the max height of the up and down (reflection) bars
-                    local barHeightU = min(barBase,    barHeightUp[i]   + barTweak)
-                    local barHeightD = min(barReflect, barHeightDown[i] + barTweak)
+                    -- Check to see if we should update visual jitter this pass
+                    local barTweakVals = false
+                    deltaSensorsTimer = deltaSensorsTimer + deltaTime
+                    if deltaSensorsTimer > updateSensorsInterval then
+                        -- Yes, update jitter this pass
+                        barTweakVals = true
+                        deltaSensorsTimer = 0
+                    end
 
-                    -- Finally, actually display all the sensor frequency bars
-                    UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
-                                   ybottom - barHeightU,
-                                   barWidth,
-                                   barHeightU,
-                                   Config.ui.color.meterBarBright)
-                    UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
-                                   ybottom,
-                                   barWidth,
-                                   barHeightD,
-                                   Config.ui.color.meterBarDark)
+                    -- Initialize sensor bar values for this pass
+                    for i = 1, barCount do
+                        barHeightUp[i]   = 0
+                        barHeightDown[i] = 0
+                    end
+
+                    -- Loop through all object close enough and in the sensor cone
+                    -- Sum up all their values in each frequency band modified by distance and by dropoff from the cone's center
+                    -- Multiply these values by the max onscreen size of the up/down bars to get each bar's height in pixels
+                    for _, object in ipairs(objects) do
+                        local emType = Enums.Emitters.None
+                        local targetType = object:getType()
+                        if     targetType == Config:getObjectTypeByName("object_types", "Star")    then
+                            emType = Enums.Emitters.Star
+                        elseif targetType == Config:getObjectTypeByName("object_types", "Planet")  then
+                            emType = Enums.Emitters.Planet
+                        elseif targetType == Config:getObjectTypeByName("object_types", "Station") then
+                            emType = Enums.Emitters.Station
+                        elseif targetType == Config:getObjectTypeByName("object_types", "Ship")    then
+                            emType = Enums.Emitters.Ship
+                        end
+
+                        local dropoffDist = Config.gen.objectEmissionsDropoff[emType]
+
+                        -- Get the distance from the player's ship to the object
+                        local distance = playerShip:getDistance(object)
+
+                        -- Get a number from 0 - 1 describing how directly the player's ship is looking at an object
+                        local align = max(0, (object:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+
+                        -- Calculate signal dropoff as it reaches the player's ship's sensors
+                        -- Reduce the strength of the signal itself based on distance (no need to go inverse-square for unnecessary "realism" here)
+                        -- Reduce the strength of the received signal based on alignment of the sensor cone with the object
+                        -- TODO: Modify strength & accuracy of received signal based on number & quality of ship's Sensor components
+                        local dropoff = align * align * (1 - min(dropoffDist, distance) / dropoffDist)
+
+                        for i = 1, barCount do
+                            barHeightUp[i]   = barHeightUp[i]   + Config.gen.objectEmissions[i][emType] * barBase    * dropoff / 100
+                            barHeightDown[i] = barHeightDown[i] + Config.gen.objectEmissions[i][emType] * barReflect * dropoff / 100
+                        end
+                    end
+
+                    -- Display each sensor frequency bar
+                    for i = 1, barCount do
+                        if barTweakVals then
+                            -- Add some jitter to the sensor bars
+                            barTweak = rng:getUniformRange(-5, 5)
+                        end
+
+                        -- Add jitter constrained by the max height of the up and down (reflection) bars
+                        local barHeightU = min(barBase,    barHeightUp[i]   + barTweak)
+                        local barHeightD = min(barReflect, barHeightDown[i] + barTweak)
+
+                        -- Finally, actually display all the sensor frequency bars
+                        UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
+                                       ybottom - barHeightU,
+                                       barWidth,
+                                       barHeightU,
+                                       Config.ui.color.meterBarBright)
+                        UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
+                                       ybottom,
+                                       barWidth,
+                                       barHeightD,
+                                       Config.ui.color.meterBarDark)
+                    end
                 end
             end
         end
