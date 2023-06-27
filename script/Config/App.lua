@@ -28,10 +28,9 @@ Config.audio = {
     soundEnabled         = true,
     supportedFormats     = { ".ogg" },
     mainMenuMusicEnabled = true,
-    bSoundOn             = false,
     soundMin             = 0,
     soundMax             = 1,   -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
-    musicVolume          = 0.0, -- current volume
+    musicVolume          = 0.75, -- current volume
     mainMenu             = "LTR_Main_Menu.ogg",
 
     pulseFireName        = "",
@@ -87,11 +86,11 @@ Config.gen = {
 
     origin                           = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
 
-    nFields                          = 10,
+    nFields                          = 1,
     nFieldSize                       = function(rng) return 200 * (rng:getExp() + 1.0) end,
     nAsteroids                       = 150, -- asteroids per asteroid field (smaller = less CPU hit)
     nPlanets                         = 1,
-    nStations                        = 20,
+    nStations                        = 1,
     nBeltSize                        = function(rng) return 0 end, -- asteroids per planetary belt
 
     nDustFlecks                      = 256,
@@ -477,7 +476,7 @@ Config.gen = {
     randomizeAIPlayers  = false,
     nEconNPCs           = 0,   -- # of ships to be given Economic actions (managed by AI players)
     randomizeEconNPCs   = false,
-    nEscortNPCs         = 20,  -- # of ships to be given the Escort action
+    nEscortNPCs         = 0,  -- # of ships to be given the Escort action
     randomizeEscortNPCs = false,
 
     zNearBack           = 0.1,

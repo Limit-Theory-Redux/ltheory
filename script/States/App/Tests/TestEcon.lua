@@ -10,7 +10,7 @@ local SystemMap = require('Systems.CommandView.SystemMap')
 local rng = RNG.FromTime()
 --local rng = RNG.Create(10) -- for when the same seed is needed
 
--- Manage system and NPC numbers locally, rather than through App.lua or Local.lua
+-- Manage system and NPC numbers locally, rather than through App.lua or GameState.lua
 local kFields = 10
 local kFieldCount = 200
 local kStations = 30

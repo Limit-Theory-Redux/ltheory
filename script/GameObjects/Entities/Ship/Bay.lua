@@ -99,7 +99,7 @@ function Bay:aimAtTarget(target, fallback)
 end
 
 function Bay:canFire()
-    return not Config.game.gamePaused and self.cooldown <= 0 and
+    return not GameState.paused and self.cooldown <= 0 and
         self:getParent():mgrCapacitorGetCharge() >= Config.gen.compBayPulseStats.charge
 end
 

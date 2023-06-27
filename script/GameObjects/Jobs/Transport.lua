@@ -29,7 +29,7 @@ end
 
 function Transport:getFlows(e)
     local mass = self.item:getMass()
-    local capacity = e:mgrInventoryGetFreeMax(mass)
+    local capacity = e:mgrInventoryGetFreeMax(mass) -- NOTE: inventory units? or count of free slots for mass = x?
     local duration = self:getTravelTime(e)
     local count = floor(capacity / mass)
     return {
@@ -111,7 +111,7 @@ function Transport:onUpdateActive(e, dt)
             local count, profit = self.src:getTrader():computeTrade(self.item, capCount, self.dst:getTrader(), e)
             printf("[TRANSPORT 1] %s to move %d x %s from %s -> %s, expect %d profit (oldCount = %d)",
                 e:getName(), count, self.item:getName(), self.src:getName(), self.dst:getName(), profit, self.jcount)
-            self.jcount = count
+            self.jcount = count -- only in case jcount is needed by Trader, which I think it doesn't anymore
             --printf("3 TRANSPORT: jcount = %s", self.jcount)
             e.count = count
             if count > 0 then
@@ -147,8 +147,13 @@ function Transport:onUpdateActive(e, dt)
                     e:popAction()
                     e.jobState = nil
                 else
-                    printf("[TRANSPORT 2] %s bought %d units of %s from Trader %s", e:getName(), bought,
-                        self.item:getName(), self.src:getName())
+                    if bought == e.count then
+                        printf("[TRANSPORT 2] %s bought all %d units of %s from Trader %s",
+                            e:getName(), bought, self.item:getName(), self.src:getName())
+                    else
+                        printf("[TRANSPORT 2] *** %s bought %d units of %s (%d desired) from Trader %s",
+                            e:getName(), bought, self.item:getName(), e.count, self.src:getName())
+                    end
                 end
             else
                 -- Source station no longer exists, so terminate this entire job
@@ -177,14 +182,15 @@ function Transport:onUpdateActive(e, dt)
             end
         elseif e.jobState == Enums.JobStateTransport.SellingItems then
             if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
-                printf("[TRANSPORT 5] %s offers to sell %d units of %s to Trader %s", e:getName(), e.count,
-                    self.item:getName(), self.dst:getName())
+                local item = self.item
+                printf("[TRANSPORT 5] %s offers to sell %d units of %s to Trader %s",
+                    e:getName(), e.count, item:getName(), self.dst:getName())
                 local sold = 0
-                while self.dst:getTrader():buy(e, self.item) do
+                while e:mgrInventoryGetItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
                     sold = sold + 1
                 end
-                printf("[TRANSPORT 5] %s sold %d units of %s to Trader %s", e:getName(), sold, self.item:getName(),
-                    self.dst:getName())
+                printf("[TRANSPORT 5] %s sold %d units of %s to Trader %s; %d units remaining in inventory",
+                    e:getName(), sold, item:getName(), self.dst:getName(), e:mgrInventoryGetItemCount(item))
             else
                 -- Destination station no longer exists, so terminate this entire job
                 printf(
@@ -198,13 +204,11 @@ function Transport:onUpdateActive(e, dt)
                 e:pushAction(Actions.Undock())
             end
         elseif e.jobState == Enums.JobStateTransport.JobFinished then
-            if self.jcount <= 0 then
-                e:popAction()
-                e.jobState = nil
-            else
-                -- Repeat until job is done
-                e.jobState = Enums.JobStateMine.None
-            end
+            -- TODO : This is just a quick hack to force AI to re-evaluate job
+            --        decisions. In reality, AI should 'pre-empt' the job, which
+            --        should otherwise loop indefinitely by default
+            e:popAction()
+            e.jobState = nil
         end
         Profiler.End()
     end

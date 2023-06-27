@@ -143,7 +143,7 @@ function Application:run()
             if Input.GetPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
                 if GameState.paused then
                     GameState.paused = false
-                    if not GameState.panelActive then
+                    if not GameState.panelActive and not GameState.debug.instantJobs then
                         Input.SetMouseVisible(false)
                     end
                 else
@@ -155,7 +155,7 @@ function Application:run()
             -- Preserving this in case we need to be able to automatically pause on window exit again
             -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
             --      if Input.GetPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
-            --        Config.game.gamePaused = true
+            --        GameState.paused = true
             --      end
 
             if GameState.paused then

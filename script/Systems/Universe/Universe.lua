@@ -26,7 +26,7 @@ function Universe:CreateStarSystem(seed)
     do
         -- Flight Mode
         -- Reset variables used between star systems
-        GameState.gamePaused          = false
+        GameState.paused              = false
         GameState.panelActive         = false
         GameState.player.playerMoving = false
         GameState.player.weaponGroup  = 1
