@@ -106,7 +106,7 @@ end
 
 -- *** INVENTORY FUNCTIONS ***
 function Entity:mgrInventoryGetCapacity()
-    -- Return maximum # of units (NOT count) of space
+    -- Return maximum # of units (NOT count of any item) of inventory space
     local inventory = self.components.inventory
     if not inventory then return 0 end
 
