@@ -95,8 +95,6 @@ do -- Opaque Structs
     typedef struct Tex2D        {} Tex2D;
     typedef struct Tex3D        {} Tex3D;
     typedef struct TexCube      {} TexCube;
-    typedef struct Thread       {} Thread;
-    typedef struct ThreadPool   {} ThreadPool;
     typedef struct Timer        {} Timer;
     typedef struct Trigger      {} Trigger;
     typedef struct Window       {} Window;
@@ -136,8 +134,6 @@ do -- Opaque Structs
         'Tex2D',
         'Tex3D',
         'TexCube',
-        'Thread',
-        'ThreadPool',
         'Timer',
         'Trigger',
         'Window',
