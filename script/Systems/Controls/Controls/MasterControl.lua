@@ -81,14 +81,14 @@ function MasterControl:onInput(state)
             --print("----------------------")
             self.panel:toggleEnabled()
             if self.panel:isEnabled() then
-                --printf("Panel enabled")
+                -- printf("Panel enabled")
                 GameState.panelActive = true -- TODO: find where MasterControl handle is exposed and use mc:isEnabled()
                 Input.SetMouseVisible(true)
             else
-                --printf("Panel disabled")
+                -- printf("Panel disabled")
                 GameState.panelActive = false
-                -- Switch back to active Flight Mode with HUD control
-                if self.activeControlSet.predicate(self) then
+                -- Switch back to active Flight Mode with HUD control if was enabled prior to panel enable.
+                if self.activateControlSet and self.activeControlSet.predicate(self) then
                     GameState.player.currentControl = Enums.ControlModes.Ship -- enable flight mode
                     for i = 1, #self.activeControlSet.controls do
                         local control = self.activeControlSet.controls[i]

@@ -31,8 +31,6 @@ function LTheoryRedux:onInit()
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()
 
-    if Config.audio.pulseFire then Config.audio.pulseFire:setVolume(Config.audio.soundMax) end
-
     -- Initialize Universe
     Universe:Init()
 
@@ -50,6 +48,7 @@ function LTheoryRedux:onInit()
 
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player
+
     self:generate()
 end
 
@@ -71,7 +70,7 @@ end
 
 function LTheoryRedux:SoundOn()
     GameState.audio.soundEnabled = true
-    --printf("LTheoryRedux:SoundOn: volume set to 1")
+    --printf("LTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
     MusicPlayer:SetVolume(GameState.audio.musicVolume)
 end
 
