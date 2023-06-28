@@ -15,7 +15,7 @@ function MusicPlayer:Init()
     self:LoadMusic()
 end
 
--- add block queing
+-- add block queueing
 
 function MusicPlayer:SetVolume(volume)
     if volume == self.volume then

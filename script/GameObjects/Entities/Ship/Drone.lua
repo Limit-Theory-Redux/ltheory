@@ -102,7 +102,7 @@ function Drone:aimAtTarget(target, fallback)
 end
 
 function Drone:canFire()
-    return not Config.game.gamePaused and self.cooldown <= 0
+    return not GameState.paused and self.cooldown <= 0
 end
 
 function Drone:fire()
