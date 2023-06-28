@@ -5,16 +5,16 @@ local Time
 
 do -- C Definitions
     ffi.cdef [[
-    Time Time_GetLocal ();
-    Time Time_GetUTC   ();
-    uint Time_GetRaw   ();
-  ]]
+        Time*  Time_GetLocal ();
+        Time*  Time_GetUtc   ();
+        uint32 Time_GetRaw   ();
+    ]]
 end
 
 do -- Global Symbol Table
     Time = {
         GetLocal = libphx.Time_GetLocal,
-        GetUTC   = libphx.Time_GetUTC,
+        GetUtc   = libphx.Time_GetUtc,
         GetRaw   = libphx.Time_GetRaw,
     }
 

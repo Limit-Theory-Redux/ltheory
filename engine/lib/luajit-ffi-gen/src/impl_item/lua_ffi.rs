@@ -40,6 +40,7 @@ impl ImplInfo {
         // Generate metatype section only if there is at least one method with `self` parameter
         // or managed parameter is set
         let gen_metatype = attr_args.is_managed()
+            || attr_args.is_clone()
             || self
                 .methods
                 .iter()
@@ -58,7 +59,7 @@ impl ImplInfo {
         writeln!(&mut file, "local {module_name}\n").unwrap();
 
         // C Definitions
-        let max_method_name_len =
+        let (max_method_name_len, max_self_method_name_len) =
             self.write_c_defs(&mut file, &module_name, attr_args.is_managed());
 
         // Global Symbol Table
@@ -113,7 +114,7 @@ impl ImplInfo {
 
             writeln!(&mut file, "{IDENT}{IDENT}__index = {{").unwrap();
 
-            self.write_metatype(&mut file, &module_name, max_method_name_len, attr_args);
+            self.write_metatype(&mut file, &module_name, max_self_method_name_len, attr_args);
 
             writeln!(&mut file, "{IDENT}{IDENT}}},").unwrap();
             writeln!(&mut file, "{IDENT}}}\n").unwrap();
@@ -130,12 +131,13 @@ impl ImplInfo {
         writeln!(&mut file, "return {module_name}").unwrap();
     }
 
-    fn write_c_defs(&self, mut file: &File, module_name: &str, is_managed: bool) -> usize {
+    fn write_c_defs(&self, mut file: &File, module_name: &str, is_managed: bool) -> (usize, usize) {
         writeln!(&mut file, "do -- C Definitions").unwrap();
         writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
 
         // Tof managed we add 'void Free' method
         let mut max_method_name_len = if is_managed { "void".len() } else { 0 };
+        let mut max_self_method_name_len = max_method_name_len;
         let mut max_ret_len = if is_managed { "Free".len() } else { 0 };
 
         // Calculate max len of method return parameters and method names to use them in formatting
@@ -159,6 +161,11 @@ impl ImplInfo {
                 max_ret_len = std::cmp::max(max_ret_len, len);
                 max_method_name_len =
                     std::cmp::max(max_method_name_len, method.as_ffi_name().len());
+
+                if method.self_param.is_some() {
+                    max_self_method_name_len =
+                        std::cmp::max(max_self_method_name_len, method.as_ffi_name().len());
+                }
             });
 
         if is_managed {
@@ -219,8 +226,8 @@ impl ImplInfo {
         writeln!(&mut file, "{IDENT}]]").unwrap();
         writeln!(&mut file, "end\n").unwrap();
 
-        // Return max len of the method names to avoid recalculation in the next step
-        max_method_name_len
+        // Return max len of the method names (all and self only) to avoid recalculation in the next step
+        (max_method_name_len, max_self_method_name_len)
     }
 
     fn write_global_sym_table(
@@ -262,15 +269,15 @@ impl ImplInfo {
         &self,
         file: &mut File,
         module_name: &str,
-        max_method_name_len: usize,
+        max_self_method_name_len: usize,
         attr_args: &ImplAttrArgs,
     ) {
         let max_method_name_len = if attr_args.is_managed() {
-            std::cmp::max(max_method_name_len, "managed".len())
+            std::cmp::max(max_self_method_name_len, "managed".len())
         } else if attr_args.is_clone() {
-            std::cmp::max(max_method_name_len, "clone".len())
+            std::cmp::max(max_self_method_name_len, "clone".len())
         } else {
-            max_method_name_len
+            max_self_method_name_len
         };
 
         // Add clone method if requested
