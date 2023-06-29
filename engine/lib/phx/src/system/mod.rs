@@ -11,8 +11,6 @@ mod mem_pool;
 mod mem_stack;
 mod memory;
 mod metric;
-// FIXME: temporarily disable because Lua cannot link to OS_GetCpuCount function for some reason
-// mod os;
 mod profiler;
 mod resource;
 mod resource_type;
@@ -38,7 +36,6 @@ pub use mem_pool::*;
 pub use mem_stack::*;
 pub use memory::*;
 pub use metric::*;
-// pub use os::*;
 pub use profiler::*;
 pub use resource::*;
 pub use resource_type::*;
