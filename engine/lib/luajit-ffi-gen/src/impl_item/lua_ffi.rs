@@ -37,8 +37,8 @@ impl ImplInfo {
             std::env::current_dir()
         ));
 
-        // Generate metatype section only if there is at least one method with `self` parameter
-        // or managed parameter is set
+        // Generate metatype section only if there is at least one method with `self` parameter,
+        // or managed or clone parameter is set
         let gen_metatype = attr_args.is_managed()
             || attr_args.is_clone()
             || self
