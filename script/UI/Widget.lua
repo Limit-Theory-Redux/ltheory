@@ -90,7 +90,7 @@ function Widget:dragBegin(state)
     state.dragBeginY    = state.mousePosY
     state.dragOffsetX   = (self.originX + self.x) - state.dragBeginX
     state.dragOffsetY   = (self.originY + self.y) - state.dragBeginY
-    state.dragBeginTime = TimeStamp.Get()
+    state.dragBeginTime = TimeStamp.Now()
 
     self:onDragBegin(state)
 end
@@ -101,7 +101,7 @@ end
 function Widget:drag(state)
     state.dragDeltaX   = state.mousePosX - state.dragBeginX
     state.dragDeltaY   = state.mousePosY - state.dragBeginY
-    state.dragDuration = TimeStamp.GetDifference(state.dragBeginTime, TimeStamp.Get())
+    state.dragDuration = state.dragBeginTime:getElapsed()
     self:onDrag(state)
 end
 
@@ -112,8 +112,8 @@ function Widget:onDrag(state)
 end
 
 function Widget:dragEnd(state)
-    state.dragEndTime  = TimeStamp.Get()
-    state.dragDuration = TimeStamp.GetDifference(state.dragBeginTime, state.dragEndTime)
+    state.dragEndTime  = TimeStamp.Now()
+    state.dragDuration = state.dragBeginTime:getDifference(state.dragEndTime)
 
     self:onDragEnd(state)
 

@@ -635,7 +635,7 @@ end
 -- WARNING: fan triangulates the mesh
 -- TODO : Don't triangulate
 function Shape:intersectRay(rayOrigin, rayDir)
-    -- local tBegin = TimeStamp.Get()
+    -- local tBegin = TimeStamp.Now()
     -- triangulate
     self:triangulateFan()
 
@@ -653,7 +653,7 @@ function Shape:intersectRay(rayOrigin, rayDir)
         end
     end
 
-    -- printf('Raycast took %.2f ms', TimeStamp.GetElapsedMs(tBegin))
+    -- printf('Raycast took %.2f ms', tBegin:getElapsedMs())
     return intersection
 end
 

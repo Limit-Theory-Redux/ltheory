@@ -57,7 +57,7 @@ unsafe fn Joystick_UpdateSingle(this: &mut Joystick) {
     }
 
     if changed {
-        this.lastUsed = TimeStamp_Get();
+        this.lastUsed = TimeStamp::now();
     }
 }
 
@@ -94,7 +94,7 @@ pub unsafe extern "C" fn Joystick_Open(index: i32) -> *mut Joystick {
         (std::mem::size_of::<bool>()).wrapping_mul((*this).axes as usize),
     );
     (*this).axisStates = MemNewArray!(f64, (*this).axes);
-    (*this).lastUsed = TimeStamp_Get();
+    (*this).lastUsed = TimeStamp::now();
     Joystick_UpdateSingle(&mut *this);
     this
 }
@@ -158,7 +158,7 @@ pub extern "C" fn Joystick_GetHatCount(this: &mut Joystick) -> i32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn Joystick_GetIdleTime(this: &mut Joystick) -> f64 {
-    TimeStamp_GetElapsed(this.lastUsed)
+    this.lastUsed.get_elapsed()
 }
 
 #[no_mangle]

@@ -91,7 +91,7 @@ pub unsafe extern "C" fn RNG_FromStr(s: *const libc::c_char) -> Box<Rng> {
 
 #[no_mangle]
 pub unsafe extern "C" fn RNG_FromTime() -> Box<Rng> {
-    RNG_Create(TimeStamp_Get())
+    RNG_Create(TimeStamp::now().to_seconds())
 }
 
 #[no_mangle]

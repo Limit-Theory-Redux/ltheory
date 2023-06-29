@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use crate::internal::*;
 use crate::*;
 
@@ -6,43 +8,33 @@ use sdl2_sys::*;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Timer {
-    pub value: u64,
+    pub value: SystemTime,
 }
 
-static mut frequency: f64 = 0.0;
-
-#[no_mangle]
-pub unsafe extern "C" fn Timer_Create() -> *mut Timer {
-    static mut init: bool = false;
-    if !init {
-        init = true;
-        frequency = SDL_GetPerformanceFrequency() as f64;
+#[luajit_ffi_gen::luajit_ffi(managed = true)]
+impl Timer {
+    #[bind(name = "Create")]
+    pub fn new() -> Self {
+        Self {
+            value: SystemTime::now(),
+        }
     }
-    let this = MemNew!(Timer);
-    (*this).value = SDL_GetPerformanceCounter();
-    this
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn Timer_Free(this: *mut Timer) {
-    MemFree(this as *const _);
-}
+    pub fn get_and_reset(&mut self) -> f64 {
+        let elapsed = self.value.elapsed().expect("Cannot get elapsed time");
 
-#[no_mangle]
-pub unsafe extern "C" fn Timer_GetAndReset(this: &mut Timer) -> f64 {
-    let now: u64 = SDL_GetPerformanceCounter();
-    let elapsed: f64 = now.wrapping_sub(this.value) as f64 / frequency;
-    this.value = now;
-    elapsed
-}
+        self.value += elapsed;
 
-#[no_mangle]
-pub unsafe extern "C" fn Timer_GetElapsed(this: &mut Timer) -> f64 {
-    let now: u64 = SDL_GetPerformanceCounter();
-    now.wrapping_sub(this.value) as f64 / frequency
-}
+        elapsed.as_secs_f64()
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn Timer_Reset(this: &mut Timer) {
-    this.value = SDL_GetPerformanceCounter();
+    pub fn get_elapsed(&self) -> f64 {
+        let elapsed = self.value.elapsed().expect("Cannot get elapsed time");
+
+        elapsed.as_secs_f64()
+    }
+
+    pub fn reset(&mut self) {
+        self.value = SystemTime::now();
+    }
 }

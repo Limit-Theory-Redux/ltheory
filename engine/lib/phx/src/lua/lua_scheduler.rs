@@ -14,9 +14,6 @@ extern "C" {
     fn Lua_Call(_: *mut Lua, args: i32, rets: i32, errorHandler: i32);
     fn Lua_PushNumber(_: *mut Lua, _: f64);
     fn Lua_SetFn(_: *mut Lua, name: *const libc::c_char, _: LuaFn);
-    fn TimeStamp_Get() -> TimeStamp;
-    fn TimeStamp_GetDifference(start: TimeStamp, end: TimeStamp) -> f64;
-    fn TimeStamp_GetRelative(start: TimeStamp, seconds: f64) -> TimeStamp;
 }
 
 pub type LuaNumber = f64;
@@ -46,21 +43,19 @@ pub struct SchedulerElem {
 static mut this: Scheduler = Scheduler {
     elems: Vec::new(),
     addQueue: Vec::new(),
-    now: 0,
+    now: TimeStamp::zero(),
     locked: false,
 };
 
 unsafe extern "C" fn LuaScheduler_Add(L: *mut Lua) -> i32 {
+    let timeToWake: f64 = lua_tonumber(L, lua_gettop(L));
     let mut elem: SchedulerElem = SchedulerElem {
         fn_0: 0,
         arg: 0,
-        tCreated: 0,
-        tWake: 0,
+        tCreated: this.now,
+        tWake: this.now.get_relative(timeToWake),
     };
 
-    let timeToWake: f64 = lua_tonumber(L, lua_gettop(L));
-    elem.tCreated = this.now;
-    elem.tWake = TimeStamp_GetRelative(this.now, timeToWake);
     lua_settop(L, -1 - 1);
 
     elem.arg = Lua_GetRef(L);
@@ -91,7 +86,7 @@ unsafe extern "C" fn LuaScheduler_Update(L: *mut Lua) -> i32 {
 
     this.elems
         .sort_by(|a: &SchedulerElem, b: &SchedulerElem| a.tWake.cmp(&b.tWake));
-    this.now = TimeStamp_Get();
+    this.now = TimeStamp::now();
 
     lua_getfield(L, -10002, c_str!("__error_handler__"));
     let handler: i32 = lua_gettop(L);
@@ -102,7 +97,7 @@ unsafe extern "C" fn LuaScheduler_Update(L: *mut Lua) -> i32 {
             break;
         }
 
-        let dt: f64 = TimeStamp_GetDifference((*elem).tCreated, this.now);
+        let dt: f64 = (*elem).tCreated.get_difference(&this.now);
 
         Lua_PushRef(L, (*elem).fn_0);
         Lua_PushNumber(L, dt);
@@ -128,7 +123,7 @@ unsafe extern "C" fn LuaScheduler_Update(L: *mut Lua) -> i32 {
 pub unsafe extern "C" fn LuaScheduler_Init(_L: *mut Lua) {
     this.elems = Vec::new();
     this.addQueue = Vec::new();
-    this.now = TimeStamp_Get();
+    this.now = TimeStamp::now();
     this.locked = false;
 }
 

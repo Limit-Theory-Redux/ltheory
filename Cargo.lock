@@ -1209,6 +1209,7 @@ dependencies = [
  "luajit-ffi-gen",
  "memoffset",
  "mlua",
+ "num_cpus",
  "regex",
  "rodio",
  "sdl2-sys",
