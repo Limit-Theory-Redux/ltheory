@@ -17,7 +17,7 @@ impl ImplInfo {
         let method_tokens: Vec<_> = self
             .methods
             .iter()
-            .map(|method| self.wrap_methods(&attr_args, method))
+            .map(|method| self.wrap_methods(method))
             .collect();
         // Additional Free C API wrapper if requested
         let free_method_token = if attr_args.is_managed() {
@@ -45,8 +45,7 @@ impl ImplInfo {
         }
     }
 
-    fn wrap_methods(&self, attr_args: &ImplAttrArgs, method: &MethodInfo) -> TokenStream {
-        let module_name = attr_args.name().unwrap_or(self.name.clone());
+    fn wrap_methods(&self, method: &MethodInfo) -> TokenStream {
         let method_name = method.as_ffi_name();
         let func_name = format!("{}_{}", self.name, method_name);
         let func_ident = format_ident!("{func_name}");
@@ -65,11 +64,11 @@ impl ImplInfo {
         let param_tokens: Vec<_> = method
             .params
             .iter()
-            .map(|param| wrap_param(&module_name, param))
+            .map(|param| wrap_param(&self.name, param))
             .collect();
 
         let ret_token = if let Some(ty) = &method.ret {
-            let ty_token = wrap_type(&module_name, &ty, true);
+            let ty_token = wrap_type(&self.name, &ty, true);
 
             quote! { -> #ty_token }
         } else {
@@ -90,14 +89,14 @@ impl ImplInfo {
     }
 }
 
-fn wrap_param(module_name: &str, param: &ParamInfo) -> TokenStream {
+fn wrap_param(self_name: &str, param: &ParamInfo) -> TokenStream {
     let param_name_ident = format_ident!("{}", param.name);
-    let param_type_token = wrap_type(module_name, &param.ty, false);
+    let param_type_token = wrap_type(self_name, &param.ty, false);
 
     quote! { #param_name_ident: #param_type_token }
 }
 
-fn wrap_type(module_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
+fn wrap_type(self_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
     let opt_item = if ty.is_option {
         quote! { *mut }
     } else {
@@ -119,7 +118,7 @@ fn wrap_type(module_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
             } else if ret {
                 // We always send unregistered return type boxed
                 if ty.is_self() {
-                    let ty_ident = format_ident!("{module_name}");
+                    let ty_ident = format_ident!("{self_name}");
 
                     quote! { Box<#opt_item #ty_ident> }
                 } else {
