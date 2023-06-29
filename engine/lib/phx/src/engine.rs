@@ -101,20 +101,20 @@ impl Engine {
                         "  Version (Linked)   : {}.{}.{}",
                         linked.major, linked.minor, linked.patch,
                     );
-                    Fatal!("Engine_Init: Terminating.");
+                    panic!("Engine_Init: Terminating.");
                 }
 
                 if SDL_Init(0) != 0 {
-                    Fatal!("Engine_Init: Failed to initialize SDL");
+                    panic!("Engine_Init: Failed to initialize SDL");
                 }
                 if !Directory_Create(c_str!("log")) {
-                    Fatal!("Engine_Init: Failed to create log directory.");
+                    panic!("Engine_Init: Failed to create log directory.");
                 }
                 atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
             }
 
             if SDL_InitSubSystem(subsystems) != 0 {
-                Fatal!("Engine_Init: Failed to initialize SDL's subsystems");
+                panic!("Engine_Init: Failed to initialize SDL's subsystems");
             }
 
             SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, gl_version_major);

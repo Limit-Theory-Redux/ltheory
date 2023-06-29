@@ -26,10 +26,10 @@ unsafe extern "C" fn Tex3D_Init() {
 #[no_mangle]
 pub unsafe extern "C" fn Tex3D_Create(sx: i32, sy: i32, sz: i32, format: TexFormat) -> *mut Tex3D {
     if !TexFormat_IsValid(format) {
-        Fatal!("Tex3D_Create: Invalid texture format requested");
+        panic!("Tex3D_Create: Invalid texture format requested");
     }
     if TexFormat_IsDepth(format) {
-        Fatal!("Tex3D_Create: Cannot create 3D texture with depth format");
+        panic!("Tex3D_Create: Cannot create 3D texture with depth format");
     }
     let this = MemNew!(Tex3D);
     (*this)._refCount = 1;

@@ -1,4 +1,6 @@
-use crate::{args::BindArgs, type_info::TypeInfo, util::as_camel_case};
+use crate::{args::BindArgs, util::as_camel_case};
+
+use super::TypeInfo;
 
 /// `Impl` method information
 pub struct MethodInfo {

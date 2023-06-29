@@ -48,7 +48,7 @@ impl Window {
             );
             let context = SDL_GL_CreateContext(handle);
             if context.is_null() {
-                Fatal!("Failed to create OpenGL context for window");
+                panic!("Failed to create OpenGL context for window");
             }
             OpenGL_Init();
 
@@ -149,13 +149,13 @@ impl Window {
                 pixelFormat as u32,
             );
             if surface.is_null() {
-                Fatal!("Failed to create custom cursor surface for window");
+                panic!("Failed to create custom cursor surface for window");
             }
 
             self.cursor = SDL_CreateColorCursor(surface, hotx, hoty);
             if self.cursor.is_null() {
                 SDL_FreeSurface(surface);
-                Fatal!("Failed to create custom cursor for window");
+                panic!("Failed to create custom cursor for window");
             }
 
             SDL_FreeSurface(surface);

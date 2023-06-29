@@ -2,92 +2,90 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
-use crate::args::AttrArgs;
-use crate::lua_ffi::generate_ffi;
-use crate::method_info::*;
-use crate::parse::*;
-use crate::type_info::TypeInfo;
-use crate::type_info::TypeVariant;
+use crate::args::ImplAttrArgs;
 
-/// Generate C API and Lua FFI.
-pub fn generate(item: Item, attr_args: AttrArgs) -> TokenStream {
-    match item {
-        Item::Impl(impl_info) => {
-            // Original impl source code (with removed `bind` attributes)
-            let source = &impl_info.source;
-            // C API wrapper functions
-            let method_tokens: Vec<_> = impl_info
-                .methods
-                .iter()
-                .map(|method| wrap_methods(&attr_args, &impl_info.name, method))
-                .collect();
-            // Additional Free C API wrapper if requested
-            let free_method_token = if attr_args.is_managed() {
-                let module_name = attr_args.name().unwrap_or(impl_info.name.clone());
-                let free_method_ident = format_ident!("{module_name}_Free");
-                let module_ident = format_ident!("{}", impl_info.name);
+use super::method_info::*;
+use super::type_info::*;
+use super::ImplInfo;
 
-                quote! {
-                    #[no_mangle]
-                    pub extern "C" fn #free_method_ident(_: Box<#module_ident>) {}
-                }
-            } else {
-                quote! {}
-            };
-
-            if attr_args.gen_lua_ffi() {
-                generate_ffi(&attr_args, &impl_info);
-            }
+impl ImplInfo {
+    /// Generate C API and Lua FFI.
+    pub fn generate(&self, attr_args: ImplAttrArgs) -> TokenStream {
+        // Original impl source code (with removed `bind` attributes)
+        let source = &self.source;
+        // C API wrapper functions
+        let method_tokens: Vec<_> = self
+            .methods
+            .iter()
+            .map(|method| self.wrap_methods(&attr_args, method))
+            .collect();
+        // Additional Free C API wrapper if requested
+        let free_method_token = if attr_args.is_managed() {
+            let module_name = attr_args.name().unwrap_or(self.name.clone());
+            let free_method_ident = format_ident!("{module_name}_Free");
+            let module_ident = format_ident!("{}", self.name);
 
             quote! {
-                #source
-
-                #free_method_token
-                #(#method_tokens)*
+                #[no_mangle]
+                pub extern "C" fn #free_method_ident(_: Box<#module_ident>) {}
             }
+        } else {
+            quote! {}
+        };
+
+        if attr_args.gen_lua_ffi() {
+            self.generate_ffi(&attr_args);
+        }
+
+        quote! {
+            #source
+
+            #free_method_token
+            #(#method_tokens)*
         }
     }
-}
 
-fn wrap_methods(attr_args: &AttrArgs, self_name: &str, method: &MethodInfo) -> TokenStream {
-    let module_name = attr_args.name().unwrap_or(self_name.into());
-    let method_name = method.as_ffi_name();
-    let func_name = format!("{self_name}_{}", method_name);
-    let func_ident = format_ident!("{func_name}");
-    let self_ident = format_ident!("{self_name}");
+    fn wrap_methods(&self, attr_args: &ImplAttrArgs, method: &MethodInfo) -> TokenStream {
+        let module_name = attr_args.name().unwrap_or(self.name.clone());
+        let method_name = method.as_ffi_name();
+        let func_name = format!("{}_{}", self.name, method_name);
+        let func_ident = format_ident!("{func_name}");
+        let self_ident = format_ident!("{}", self.name);
 
-    let self_token = if let Some(self_param) = &method.self_param {
-        if self_param.is_mutable {
-            quote! { this: &mut #self_ident, }
+        let self_token = if let Some(self_param) = &method.self_param {
+            if self_param.is_mutable {
+                quote! { this: &mut #self_ident, }
+            } else {
+                quote! { this: &#self_ident, }
+            }
         } else {
-            quote! { this: &#self_ident, }
-        }
-    } else {
-        quote! {}
-    };
+            quote! {}
+        };
 
-    let param_tokens: Vec<_> = method
-        .params
-        .iter()
-        .map(|param| wrap_param(&module_name, param))
-        .collect();
+        let param_tokens: Vec<_> = method
+            .params
+            .iter()
+            .map(|param| wrap_param(&module_name, param))
+            .collect();
 
-    let ret_token = if let Some(ty) = &method.ret {
-        let ty_token = wrap_type(&module_name, &ty, true);
+        let ret_token = if let Some(ty) = &method.ret {
+            let ty_token = wrap_type(&module_name, &ty, true);
 
-        quote! { -> #ty_token }
-    } else {
-        quote! {}
-    };
+            quote! { -> #ty_token }
+        } else {
+            quote! {}
+        };
 
-    let func_ident_str = format!("{func_ident}");
-    let func_body = gen_func_body(&self_ident, method);
+        let func_ident_str = format!("{func_ident}");
+        let func_body = gen_func_body(&self_ident, method);
 
-    quote! {
-        #[no_mangle]
-        pub extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
-            tracing::trace!("Calling: {}", #func_ident_str);
-            #func_body
+        quote! {
+            #[no_mangle]
+            pub extern "C" fn #func_ident(#self_token #(#param_tokens),*) #ret_token {
+                tracing::trace!("Calling: {}", #func_ident_str);
+
+                #func_body
+            }
         }
     }
 }

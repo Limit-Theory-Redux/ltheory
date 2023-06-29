@@ -1,13 +1,13 @@
 use super::*;
 use crate::common::*;
 use crate::internal::*;
+use crate::logging::warn;
 use crate::math::IVec2;
 use crate::*;
 
 use crate::system::*;
 
 use sdl2_sys::*;
-use tracing::warn;
 
 const Threshold_Pressed: f32 = 0.5f32;
 const Threshold_Released: f32 = 0.4f32;
@@ -643,7 +643,7 @@ pub unsafe extern "C" fn Input_LoadGamepadDatabase(name: *const libc::c_char) {
     let path: *const libc::c_char = Resource_GetPath(ResourceType_Other, name);
     let result: i32 = SDL_GameControllerAddMappingsFromRW(SDL_RWFromFile(path, c_str!("rb")), 1);
     if result == -1 {
-        Fatal!("Input_Init: Failed to add gamepad mappings");
+        panic!("Input_Init: Failed to add gamepad mappings");
     }
 }
 

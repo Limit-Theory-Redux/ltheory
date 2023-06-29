@@ -1,4 +1,8 @@
+mod utils;
+
 use luajit_ffi_gen::luajit_ffi;
+
+use crate::utils::*;
 
 #[derive(Default, Clone)]
 pub struct Data {
@@ -9,7 +13,7 @@ pub struct Data {
 pub struct MyStruct {
     val_u32: u32,
     val_f32: f32,
-    // val_str: String,
+    val_str: String,
     val_data: Data,
 }
 
@@ -38,13 +42,13 @@ impl MyStruct {
         self.val_f32
     }
 
-    // pub fn set_str(&mut self, val: &str) {
-    //     self.val_str = val.into();
-    // }
+    pub fn set_str(&mut self, val: &str) {
+        self.val_str = val.into();
+    }
 
-    // pub fn get_str(&self) -> &str {
-    //     &self.val_str
-    // }
+    pub fn get_str(&self) -> &str {
+        &self.val_str
+    }
 
     pub fn set_data(&mut self, val: &Data) {
         self.val_data = val.clone();
@@ -84,7 +88,7 @@ impl MyStruct {
 }
 
 #[test]
-fn basic_test() {
+fn test_impl() {
     let ms = MyStruct::default();
     let mut ms2 = MyStruct::default();
 
@@ -111,6 +115,6 @@ fn basic_test() {
 
 #[test]
 #[should_panic]
-fn test_return_error() {
+fn test_impl_return_error() {
     MyStruct_RetResErr();
 }

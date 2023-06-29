@@ -5,41 +5,40 @@ use syn::{Lit, Token};
 use super::arg::Arg;
 
 /// Arguments of the `luajit_ffi` attribute.
-pub struct AttrArgs {
+pub struct EnumAttrArgs {
     name: Option<String>,
-    managed: bool,
-    clone: bool,
-
+    repr: Option<String>,
+    start_index: Option<u64>,
     lua_ffi: bool,
 }
 
-impl Default for AttrArgs {
+impl Default for EnumAttrArgs {
     fn default() -> Self {
         Self {
             name: None,
-            managed: false,
-            clone: false,
+            repr: None,
+            start_index: None,
             lua_ffi: true,
         }
     }
 }
 
-impl AttrArgs {
+impl EnumAttrArgs {
     /// If exists returns the name of the module used in C Api and Lua FFI,
     /// otherwise Rust type name is used.
     pub fn name(&self) -> Option<String> {
         self.name.clone()
     }
 
-    /// If true then Lua will be responsible for cleaning object memory.
-    /// <module-name>_Free C Api function and Lua FFI 'managed' binding will be generated.
-    pub fn is_managed(&self) -> bool {
-        self.managed
+    /// Specify what type will be used in `#[repr(...)]` attribute that will be added to the enum definition.
+    /// If not set then type will be deducted from the maximal discriminant: u8, u16, u32 or u64.
+    pub fn repr(&self) -> Option<String> {
+        self.repr.clone()
     }
 
-    /// If true then adds `__call` method to Global Symbol Table section and `clone` method to metatype section.
-    pub fn is_clone(&self) -> bool {
-        self.clone
+    /// Set starting index for discriminant values. Ignored if enum already has discriminants. Default: 0.
+    pub fn start_index(&self) -> u64 {
+        self.start_index.unwrap_or(0)
     }
 
     /// Specify if Lua FFI file should be generated or only C API.
@@ -48,7 +47,7 @@ impl AttrArgs {
     }
 }
 
-impl Parse for AttrArgs {
+impl Parse for EnumAttrArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         let params = input.parse_terminated(Arg::parse, Token![,])?;
         let mut res = Self::default();
@@ -65,23 +64,23 @@ impl Parse for AttrArgs {
                         ));
                     }
                 }
-                "managed" => {
-                    if let Lit::Bool(val) = &param.value.lit {
-                        res.managed = val.value();
+                "repr" => {
+                    if let Lit::Str(val) = &param.value.lit {
+                        res.repr = Some(val.value());
                     } else {
                         return Err(Error::new(
                             param.value.span(),
-                            "expected 'managed' attribute parameter as bool literal",
+                            "expected 'repr' attribute parameter as string literal",
                         ));
                     }
                 }
-                "clone" => {
-                    if let Lit::Bool(val) = &param.value.lit {
-                        res.clone = val.value();
+                "start_index" => {
+                    if let Lit::Int(val) = &param.value.lit {
+                        res.start_index = Some(val.base10_parse()?);
                     } else {
                         return Err(Error::new(
                             param.value.span(),
-                            "expected 'clone' attribute parameter as bool literal",
+                            "expected 'start_index' attribute parameter as integer literal",
                         ));
                     }
                 }
@@ -99,7 +98,7 @@ impl Parse for AttrArgs {
                     return Err(Error::new(
                         param.name.span(),
                         format!(
-                            "expected attribute parameter value: name, managed, clone, lua_ffi"
+                            "expected attribute parameter value: name, repr, start_index, lua_ffi"
                         ),
                     ));
                 }

@@ -2,7 +2,7 @@
 
 This crate provides an attribute macro for generation of C/Lua API bindings.
 
-It should be applied to the `impl` block.
+## Usage with the impl blocks
 
 Example:
 ```rust
@@ -79,14 +79,92 @@ In all other cases types are following these rules:
 
 By default all generated Lua code created in the **phx/script/ffi** folder. User can manually set this folder via **LUAJIT_FFI_GEN_DIR** environment variable. Path should be either absolute or relative to the **luajit_ffi_gen** folder.
 
+## Usage with the enums
+
+Attribute can be applied to the enum types (see ./tests/test_enum.rs for examples):
+
+```rust
+#[luajit_ffi_gen::luajit_ffi(name = "My_Enum1", start_index = 3, lua_ffi = false)]
+#[derive(Debug)]
+pub enum MyEnum1 {
+    Var1,
+    Var2,
+}
+
+#[luajit_ffi_gen::luajit_ffi(repr = "u32", lua_ffi = false)]
+#[derive(Debug)]
+pub enum MyEnum2 {
+    Var1 = 1,
+    Var2 = 3,
+}
+```
+
+This will generate following C API wrappers:
+```rust
+#[no_mangle]
+pub const MyEnum1_Var1: u8 = MyEnum1::Var1.value();
+
+#[no_mangle]
+pub const MyEnum1_Var2: u8 = MyEnum1::Var2.value();
+
+#[no_mangle]
+pub extern "C" fn MyEnum1_ToString(this: MyEnum1) -> *const libc::c_char {
+    // ...
+}
+```
+
+and **My_Enum1.lua**:
+```lua
+-- My_Enum1 --------------------------------------------------------------------
+local ffi = require('ffi')
+local libphx = require('ffi.libphx').lib
+local My_Enum1
+
+do -- C Definitions
+    ffi.cdef [[
+        My_Enum1 My_Enum1_Var1;
+        My_Enum1 My_Enum1_Var2;
+        cstr     My_Enum1_ToString(My_Enum1);
+    ]]
+end
+
+do -- Global Symbol Table
+    My_Enum1 = {
+        Var1     = libphx.My_Enum1_Var1,
+        Var2     = libphx.My_Enum1_Var2,
+        ToString = libphx.My_Enum1_ToString,
+    }
+
+    if onDef_My_Enum1 then onDef_My_Enum1(My_Enum1, mt) end
+    My_Enum1 = setmetatable(My_Enum1, mt)
+end
+
+return My_Enum1
+```
+
+Under the hood `ToString` trait is implemented for the enum so it should derive `Debug` to support that.
+
+Only unit variants of the enum are supported. Also they should be all either with values or without (see example enums `MyEnum1` and `MyEnum2` above).
+
+For the variants without values starting index can be set, otherwise it starts from 0. See attribute parameters description below.
+
+If `repr` parameter is set then `#[repr(...)]` attribute will be added with the specified type, otherwise type will be deducted from the maximal variant value: u8, u16, u32 or u64.
+
 ## Attribute parameters
 
-### luajit_ffi
+### luajit_ffi for `impl` block
 
-- **name** [string, default = None] - set user defined name of the module
-- **managed** [bool, default = false] - generate **Free** C API function and add **managed** and **free** metatype bindings
-- **clone** [bool, default = false] - adds **__call** method to Global Symbol Table section and **clone** method to metatype section
-- **lua_ffi** [bool, default = true] - specify if Lua FFI file should be generated or only C API
+- **name** \[string, default = None]: set user defined name of the module
+- **managed** \[bool, default = false]: generate **Free** C API function and add **managed** and **free** metatype bindings
+- **clone** \[bool, default = false]: adds **__call** method to Global Symbol Table section and **clone** method to metatype section
+- **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API
+
+### luajit_ffi for `enum` block
+
+- **name** \[string, default = None]: optional object name. If not specified then name is taken from the `impl` definition.
+- **repr** \[string, default = None]: specify what type will be used in `#[repr(...)]` attribute that will be added to the enum definition. If not set then type will be deducted from the maximal discriminant: u8, u16, u32 or u64.
+- **start_index** \[int, default = None]: set starting index for discriminant values. Ignored if enum already has discriminants. Default: 0.
+- **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API. Default: true.
 
 ### bind
 - **name** [string] - set user defined name of the function
@@ -108,7 +186,7 @@ cargo expand -p phx system::window
 
 for test:
 ```bash
-cargo expand -p luajit-ffi-gen --test basic_test
+cargo expand -p luajit-ffi-gen --test test_impl
 ```
 
 ## Supported types
@@ -117,15 +195,15 @@ cargo expand -p luajit-ffi-gen --test basic_test
 
 Following table shows representation of Rust types in the generated code.
 
-| Rust type                            | extern "C" interface         | C type |
-| ------------------------------------ | ------------------- | ---------- |
-| Immutable reference (&T)             | &T                  | T const*   |
-| Mutable reference (&mut T)           | &mut T              | T *        |
-| Self (in return position)            | Box\<T>             | T *        |
-| Basic and copy types (T)             | T                   | T          |
-| String, str                          | *const libc::c_char | cstr       |
-| Option\<T>                           | *mut T              | T *        |
-| Result\<T, E> (only return position) | T, panic on error   | T          |
+| Rust type                            | extern "C" interface | C type   |
+| ------------------------------------ | -------------------- | -------- |
+| Immutable reference (&T)             | &T                   | T const* |
+| Mutable reference (&mut T)           | &mut T               | T *      |
+| Self (in return position)            | Box\<T>              | T *      |
+| Basic and copy types (T)             | T                    | T        |
+| String, str                          | *const libc::c_char  | cstr     |
+| Option\<T>                           | *mut T               | T *      |
+| Result\<T, E> (only return position) | T, panic on error    | T        |
 
 ### (Mutable) references
 
@@ -170,11 +248,11 @@ This way it will be much easier to spot the place of the problem.
 
 ## Optimization ideas
 
-If compilation time significantly increases after utilising the **luajit_ffi_gen** attribute, code generation can be optimized in 2 stages:
+If compilation time significantly increases after utilizing the **luajit_ffi_gen** attribute, code generation can be optimized in 2 stages:
 
 ### Stage 1. Regenerate Lua FFI only if Rust code changes
 
-To avoid unnecessary Lua FFI files regeneration we can calculate the hash of the [ImplInfo] structure and store it in a file. So before generating the Lua FFI code, we can check to see if it's hash changed first before regenerating.
+To avoid unnecessary Lua FFI files regeneration we can calculate the hash of the [ImplInfo] and [EnumInfo] structures and store it in a file. So before generating the Lua FFI code, we can check to see if it's hash changed first before regenerating.
 
 The hash file can be stored either in a subfolder of the **target** directory, or in git. In the former case, improvement will be visible only during an incremental build, but the latter will help during CI as well.
 
@@ -182,6 +260,6 @@ The hash file can be stored either in a subfolder of the **target** directory, o
 
 If the optimization steps from the stage 1 is not enough, a similar approach can be applied to the generated C API code.
 
-In this case it should be placed in a different location to the hash of the Lua FFI code. 
+In this case it should be placed in a different location to the hash of the Lua FFI code.
 
-Here we also do regeneration of the C API file only if the hash of the [ImplInfo] structure was changed.
+Here we also do regeneration of the C API file only if the hash of the [ImplInfo] and [EnumInfo] structures were changed.

@@ -22,10 +22,10 @@ pub fn tex2d_load_raw(
     components: &mut i32,
 ) -> *mut libc::c_uchar {
     let reader = ImageReader::open(path)
-        .unwrap_or_else(|_| Fatal!("Failed to load image from '{path}', unable to open file"));
+        .unwrap_or_else(|_| panic!("Failed to load image from '{path}', unable to open file"));
     let img = reader
         .decode()
-        .unwrap_or_else(|_| Fatal!("Failed to load image from '{path}', decode failed"));
+        .unwrap_or_else(|_| panic!("Failed to load image from '{path}', decode failed"));
     let (width, height) = img.dimensions();
 
     *sx = width as i32;
@@ -40,7 +40,7 @@ pub fn tex2d_load_raw(
             *components = 3;
             buf.into_raw()
         }
-        _ => Fatal!("Failed to load image from '{path}', unsupported image format"),
+        _ => panic!("Failed to load image from '{path}', unsupported image format"),
     };
 
     // Copy the data to a malloc allocated buffer.
