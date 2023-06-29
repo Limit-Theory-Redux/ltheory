@@ -22,7 +22,7 @@ pub static subsystems: u32 = SDL_INIT_EVENTS
     | SDL_INIT_JOYSTICK
     | SDL_INIT_GAMECONTROLLER;
 
-static mut initTime: TimeStamp = 0;
+static mut initTime: TimeStamp = TimeStamp::zero();
 
 pub struct Engine;
 
@@ -137,7 +137,7 @@ impl Engine {
             Resource_Init();
             ShaderVar_Init();
 
-            initTime = TimeStamp_Get();
+            initTime = TimeStamp::now();
         }
     }
 
@@ -163,7 +163,7 @@ impl Engine {
     }
 
     pub fn get_time() -> f64 {
-        unsafe { TimeStamp_GetElapsed(initTime) }
+        unsafe { initTime.get_elapsed() }
     }
 
     pub fn get_version() -> &'static str {
@@ -172,7 +172,7 @@ impl Engine {
     }
 
     pub fn is_initialized() -> bool {
-        unsafe { initTime != 0 }
+        unsafe { initTime != TimeStamp::zero() }
     }
 
     pub fn terminate() {

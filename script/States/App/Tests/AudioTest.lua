@@ -108,7 +108,7 @@ function AudioTest:onInput()
     end
 
     if Input.GetDown(Button.Mouse.Left) then
-        -- if TimeStamp.GetElapsed(self.lastFireTime) > 0.12 then
+        -- if self.lastFireTime:getElapsed() > 0.12 then
         --   self.lastFireTime = self.lastUpdate
         --   local sound = Sound.Load(SFX.Gun, false, true)
         --   sound:setFreeOnFinish(true)

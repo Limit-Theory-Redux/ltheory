@@ -23,7 +23,7 @@ pub struct Gamepad {
 static mut gamepadList: *mut Gamepad = std::ptr::null_mut();
 
 unsafe extern "C" fn Gamepad_UpdateState(this: &mut Gamepad) {
-    let now: TimeStamp = TimeStamp_Get();
+    let now = TimeStamp::now();
     for i in (GamepadAxis_BEGIN as usize)..=(GamepadAxis_END as usize) {
         let state: f64 = Gamepad_GetAxis(this, std::mem::transmute(i as u32));
         if this.axisState[i] != state {
@@ -56,7 +56,7 @@ pub unsafe extern "C" fn Gamepad_Open(index: i32) -> *mut Gamepad {
     }
     let this = MemNewZero!(Gamepad);
     (*this).handle = handle;
-    (*this).lastActive = TimeStamp_Get();
+    (*this).lastActive = TimeStamp::now();
     (*this).gamepadList_prev = &mut gamepadList;
     (*this).gamepadList_next = gamepadList;
     if !gamepadList.is_null() {
@@ -126,7 +126,7 @@ pub extern "C" fn Gamepad_GetButtonReleased(this: &mut Gamepad, button: GamepadB
 
 #[no_mangle]
 pub unsafe extern "C" fn Gamepad_GetIdleTime(this: &mut Gamepad) -> f64 {
-    TimeStamp_GetElapsed(this.lastActive)
+    this.lastActive.get_elapsed()
 }
 
 #[no_mangle]

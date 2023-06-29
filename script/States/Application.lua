@@ -64,7 +64,7 @@ function Application:run()
     self:onResize(self.resX, self.resY)
 
     local font = Font.Load('NovaMono', 10)
-    self.lastUpdate = TimeStamp.GetFuture(-1.0 / 60.0)
+    self.lastUpdate = TimeStamp.Now() -- TODO: was TimeStamp.GetFuture(-1.0 / 60.0)
 
     if Config.jit.dumpasm then Jit.StartDump() end
     if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
@@ -183,8 +183,8 @@ function Application:run()
         do
             Profiler.SetValue('gcmem', GC.GetMemory())
             Profiler.Begin('App.onUpdate')
-            local now = TimeStamp.Get()
-            self.dt = TimeStamp.GetDifference(self.lastUpdate, now)
+            local now = TimeStamp.Now()
+            self.dt = self.lastUpdate:getDifference(now)
             self.lastUpdate = now
             self:onUpdate(timeScale * self.dt)
             Profiler.End()

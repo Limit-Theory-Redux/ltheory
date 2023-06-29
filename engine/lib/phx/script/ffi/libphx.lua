@@ -39,7 +39,6 @@ do -- Basic Typedefs
     typedef int32          TexFilter;
     typedef int32          TexFormat;
     typedef int32          TexWrapMode;
-    typedef uint64         TimeStamp;
     typedef uint32         WindowMode;
     typedef int            WindowPos;
     typedef int32          GamepadAxis;
@@ -96,6 +95,7 @@ do -- Opaque Structs
     typedef struct Tex3D        {} Tex3D;
     typedef struct TexCube      {} TexCube;
     typedef struct Timer        {} Timer;
+    typedef struct TimeStamp    {} TimeStamp;
     typedef struct Trigger      {} Trigger;
     typedef struct Window       {} Window;
   ]]
@@ -135,6 +135,7 @@ do -- Opaque Structs
         'Tex3D',
         'TexCube',
         'Timer',
+        'TimeStamp',
         'Trigger',
         'Window',
     }

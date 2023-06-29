@@ -350,14 +350,14 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
         let mut j: i32 = 1;
         let mut jobSize: i32 = 1;
         while j <= size {
-            let time: TimeStamp = TimeStamp_Get();
+            let time: TimeStamp = TimeStamp::now();
             ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, jobSize as f32);
             Draw_Rect(0.0f32, 0.0f32, fSize, fSize);
             Draw_Flush();
             ClipRect_Pop();
 
             j += jobSize;
-            let elapsed: f64 = TimeStamp_GetElapsed(time);
+            let elapsed = time.get_elapsed();
             jobSize = f64::max(
                 1.0,
                 f64::floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
