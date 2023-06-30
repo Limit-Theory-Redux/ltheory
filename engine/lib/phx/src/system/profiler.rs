@@ -125,6 +125,9 @@ pub unsafe extern "C" fn Profiler_Disable() {
 
     info!("-- PHX PROFILER -------------------------------------");
     info!("-- Measured timespan: {total}ms");
+    info!("");
+    info!(" Scope |  Cumul |    Scope |    Min |    Max |   Mean |   Var | Var/Mean | Name");
+    info!("-------|--------|----------|--------|--------|--------|-------|----------|---------------------------");
 
     let mut cumulative = 0.0;
     let mut i = 0;
@@ -136,23 +139,15 @@ pub unsafe extern "C" fn Profiler_Disable() {
 
         if scopeTotal / total > 0.01 || (*scope).max > 0.01 {
             info!(
-                "{0:1$.1}% {2:3$.0}% {4:5$.0}ms  [{6:7$.2}, {8:9$.2}] {10:11$.2}  / {12:13$.2}  ({14:15$.0}%)  |  {16:?}",
-                100.0f64 * (scopeTotal / total),
-                5,
-                100.0f64 * (cumulative / total),
-                4,
-                1000.0f64 * scopeTotal,
-                6,
-                1000.0f64 * (*scope).min,
-                6,
-                1000.0f64 * (*scope).max,
-                6,
-                1000.0f64 * (*scope).mean,
-                6,
-                1000.0f64 * (*scope).var,
-                5,
-                100.0f64 * ((*scope).var / (*scope).mean),
-                4,
+                "{:5.1}% | {:5.0}% | {:6.0}ms | {:6.2} | {:6.2} | {:6.2} | {:5.2} | {:7.0}% | {:?}",
+                100.0 * (scopeTotal / total),
+                100.0 * (cumulative / total),
+                1000.0 * scopeTotal,
+                1000.0 * (*scope).min,
+                1000.0 * (*scope).max,
+                1000.0 * (*scope).mean,
+                1000.0 * (*scope).var,
+                100.0 * ((*scope).var / (*scope).mean),
                 CStr::from_ptr((*scope).name),
             );
         }
@@ -160,7 +155,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         i += 1;
     }
 
-    info!("-----------------------------------------------------");
+    info!("-----------------------------------------------------------------------------------------------------");
 
     for scope in this.scopeList.iter() {
         Scope_Free(*scope);
