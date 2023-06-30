@@ -5,21 +5,21 @@ local Directory
 
 do -- C Definitions
     ffi.cdef [[
-    Directory* Directory_Open         (cstr path);
-    void       Directory_Close        (Directory*);
-    cstr       Directory_GetNext      (Directory*);
-    bool       Directory_Change       (cstr cwd);
-    bool       Directory_Create       (cstr path);
-    cstr       Directory_GetCurrent   ();
-    cstr       Directory_GetPrefPath  (cstr orgStr, cstr appStr);
-    bool       Directory_Remove       (cstr path);
-  ]]
+        void       Directory_Free        (Directory*);
+        Directory* Directory_Open        (cstr path);
+        cstr       Directory_GetNext     (Directory*);
+        bool       Directory_Change      (cstr cwd);
+        bool       Directory_Create      (cstr path);
+        cstr       Directory_GetCurrent  ();
+        cstr       Directory_GetPrefPath (cstr org, cstr app);
+        bool       Directory_Remove      (cstr path);
+    ]]
 end
 
 do -- Global Symbol Table
     Directory = {
+        Free        = libphx.Directory_Free,
         Open        = libphx.Directory_Open,
-        Close       = libphx.Directory_Close,
         GetNext     = libphx.Directory_GetNext,
         Change      = libphx.Directory_Change,
         Create      = libphx.Directory_Create,
@@ -36,7 +36,8 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Directory')
     local mt = {
         __index = {
-            close   = libphx.Directory_Close,
+            managed = function(self) return ffi.gc(self, libphx.Directory_Free) end,
+            free    = libphx.Directory_Free,
             getNext = libphx.Directory_GetNext,
         },
     }

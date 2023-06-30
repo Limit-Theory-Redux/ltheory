@@ -279,11 +279,18 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
     }
 }
 
-fn parse_ret_ty(ty: &ReturnType) -> Result<Option<TypeInfo>> {
-    match ty {
+fn parse_ret_ty(ret_ty: &ReturnType) -> Result<Option<TypeInfo>> {
+    match ret_ty {
         ReturnType::Default => Ok(None),
         ReturnType::Type(_, ty) => {
             let type_info = parse_type(&ty)?;
+
+            if type_info.is_reference && !type_info.variant.is_str() {
+                return Err(Error::new(
+                    ty.span(),
+                    format!("reference types are not supported in the return position except &str. Type: {:?}", type_info.variant),
+                ));
+            }
 
             Ok(Some(type_info))
         }

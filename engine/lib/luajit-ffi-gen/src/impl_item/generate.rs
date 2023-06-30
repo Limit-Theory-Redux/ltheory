@@ -68,7 +68,7 @@ impl ImplInfo {
             .collect();
 
         let ret_token = if let Some(ty) = &method.ret {
-            let ty_token = wrap_type(&self.name, &ty, true);
+            let ty_token = wrap_ret_type(&self.name, &ty);
 
             quote! { -> #ty_token }
         } else {
@@ -91,53 +91,95 @@ impl ImplInfo {
 
 fn wrap_param(self_name: &str, param: &ParamInfo) -> TokenStream {
     let param_name_ident = format_ident!("{}", param.name);
-    let param_type_token = wrap_type(self_name, &param.ty, false);
+    let param_type_token = wrap_type(self_name, &param.ty);
 
     quote! { #param_name_ident: #param_type_token }
 }
 
-fn wrap_type(self_name: &str, ty: &TypeInfo, ret: bool) -> TokenStream {
-    let opt_item = if ty.is_option {
-        quote! { *mut }
-    } else {
-        quote! {}
-    };
-
+fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
     match &ty.variant {
         TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
-            quote! { #opt_item *const libc::c_char }
+            if ty.is_mutable {
+                quote! { *mut libc::c_char }
+            } else {
+                quote! { *const libc::c_char }
+            }
         }
         TypeVariant::Custom(ty_name) => {
-            let ty_ident = format_ident!("{ty_name}");
+            let ty_ident = if ty.is_self() {
+                format_ident!("{self_name}")
+            } else {
+                format_ident!("{ty_name}")
+            };
 
-            if ty.is_mutable {
-                // Mutable is always with reference
-                quote! { #opt_item &mut #ty_ident }
-            } else if TypeInfo::is_copyable(&ty_name) && !ty.is_reference {
-                quote! { #opt_item #ty_ident }
-            } else if ret {
-                // We always send unregistered return type boxed
-                if ty.is_self() {
-                    let ty_ident = format_ident!("{self_name}");
-
-                    quote! { Box<#opt_item #ty_ident> }
+            if ty.is_option {
+                if ty.is_mutable {
+                    quote! { *mut #ty_ident }
                 } else {
-                    quote! { Box<#opt_item #ty_ident> }
+                    quote! { *const #ty_ident }
                 }
             } else {
-                // We always send unregistered type by reference
-                quote! { #opt_item &#ty_ident }
+                if ty.is_mutable {
+                    // Mutable is always with reference
+                    quote! { &mut #ty_ident }
+                } else if TypeInfo::is_copyable(&ty_name) {
+                    // Ignore immutable reference of the copyable type
+                    quote! { #ty_ident }
+                } else if ty.is_reference {
+                    quote! { &#ty_ident }
+                } else {
+                    quote! { Box<#ty_ident> }
+                }
             }
         }
         _ => {
             let ty_ident = format_ident!("{}", ty.variant.as_string());
 
-            if ty.is_mutable {
+            if ty.is_option {
+                // All options are sent by pointer
+                if ty.is_mutable {
+                    quote! { *mut #ty_ident }
+                } else {
+                    quote! { *const #ty_ident }
+                }
+            } else if ty.is_mutable {
                 // Mutable is always with reference
-                quote! { #opt_item &mut #ty_ident }
+                quote! { &mut #ty_ident }
             } else {
                 // We don't care if there is reference on the numeric type - just accept it by value
-                quote! { #opt_item #ty_ident }
+                quote! { #ty_ident }
+            }
+        }
+    }
+}
+
+fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
+    match &ty.variant {
+        TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
+            quote! { *const libc::c_char }
+        }
+        TypeVariant::Custom(ty_name) => {
+            let ty_ident = if ty.is_self() {
+                format_ident!("{self_name}")
+            } else {
+                format_ident!("{ty_name}")
+            };
+
+            if ty.is_option {
+                quote! { *const #ty_ident }
+            } else if TypeInfo::is_copyable(&ty_name) {
+                quote! { #ty_ident }
+            } else {
+                quote! { Box<#ty_ident> }
+            }
+        }
+        _ => {
+            let ty_ident = format_ident!("{}", ty.variant.as_string());
+
+            if ty.is_option {
+                quote! { *const #ty_ident }
+            } else {
+                quote! { #ty_ident }
             }
         }
     }
@@ -162,14 +204,27 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 quote! { #name_ident }
             };
 
-            let param_item = match param.ty.variant {
+            let param_item = match &param.ty.variant {
                 TypeVariant::Str => quote! { #name_accessor.as_str() },
                 TypeVariant::String => quote! { #name_accessor.as_string() },
                 TypeVariant::CString => quote! { #name_accessor.as_cstring() },
-                TypeVariant::Custom(_) => quote! { #name_accessor },
+                TypeVariant::Custom(custom_ty) => {
+                    if TypeInfo::is_copyable(&custom_ty) {
+                        if param.ty.is_reference && !param.ty.is_mutable {
+                            quote! { &#name_accessor }
+                        } else {
+                            quote! { #name_accessor }
+                        }
+                    } else if param.ty.is_reference{
+                        quote! { #name_accessor }
+                    } else {
+                        // FIXME: Boxed type. into_inner is nightly only. Alternative Option::unwrap
+                        quote! { #name_accessor.into_inner() }
+                    }
+                },
                 _ => {
                     if param.ty.is_mutable {
-                        quote! { #name_accessor }
+                        quote! { &mut #name_accessor }
                     } else if param.ty.is_reference {
                         quote! { &#name_accessor }
                     } else {
@@ -191,32 +246,75 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             let method_call_str = format!("{}::{}", self_ident, method.name);
 
             quote! {
-                match #accessor_token(#(#param_tokens),*) {
+                let __res__ = match #accessor_token(#(#param_tokens),*) {
                     Ok(res) => res,
                     Err(err) => {
                         panic!("Error on calling method '{}': {}", #method_call_str, err);
                     }
-                }
+                };
             }
         } else {
-            quote! { #accessor_token(#(#param_tokens),*) }
+            quote! { let __res__ = #accessor_token(#(#param_tokens),*); }
         };
 
-        match &ty.variant {
-            TypeVariant::Str | TypeVariant::String => {
-                quote! { let res = #method_call; static_string!(res) }
+        let method_call = if ty.is_option {
+            quote! {
+                #method_call
+                let Some(__res__) = __res__ else { return std::ptr::null(); };
             }
-            TypeVariant::CString => quote! { let res = #method_call; static_cstring!(res) },
-            TypeVariant::Custom(custom_ty)
-                if ty.is_self() || !TypeInfo::is_copyable(&custom_ty) =>
-            {
-                quote! { let res = #method_call; res.into() }
+        } else {
+            method_call
+        };
+
+        let return_item = match &ty.variant {
+            TypeVariant::Str | TypeVariant::String => quote! { static_string!(__res__) },
+            TypeVariant::CString => quote! { static_cstring!(__res__) },
+            TypeVariant::Custom(custom_ty) => {
+                if ty.is_option {
+                    let type_ident = if ty.is_self() {
+                        self_ident.clone()
+                    } else {
+                        format_ident!("{custom_ty}")
+                    };
+
+                    gen_buffered_ret(&type_ident)
+                } else if ty.is_self() || !TypeInfo::is_copyable(&custom_ty) {
+                    // Do boxing
+                    quote! { __res__.into() }
+                } else {
+                    quote! { __res__ }
+                }
             }
-            _ => quote! { #method_call },
+            _ => {
+                if ty.is_option {
+                    let type_ident = format_ident!("{}", ty.variant.as_string());
+
+                    gen_buffered_ret(&type_ident)
+                } else {
+                    quote! { __res__ }
+                }
+            }
+        };
+
+        quote! {
+            #method_call
+            #return_item
         }
     } else {
         quote! {
             #accessor_token(#(#param_tokens),*);
+        }
+    }
+}
+
+fn gen_buffered_ret(type_ident: &Ident) -> TokenStream {
+    quote! {
+        unsafe {
+            static mut __BUFFER__: Option<#type_ident> = Option::None;
+
+            __BUFFER__ = Some(__res__);
+
+            __BUFFER__.as_ref().unwrap()  as *const #type_ident
         }
     }
 }

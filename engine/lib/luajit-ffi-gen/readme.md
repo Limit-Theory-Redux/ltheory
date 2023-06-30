@@ -195,15 +195,46 @@ cargo expand -p luajit-ffi-gen --test test_impl
 
 Following table shows representation of Rust types in the generated code.
 
-| Rust type                            | extern "C" interface | C type   |
-| ------------------------------------ | -------------------- | -------- |
-| Immutable reference (&T)             | &T                   | T const* |
-| Mutable reference (&mut T)           | &mut T               | T *      |
-| Self (in return position)            | Box\<T>              | T *      |
-| Basic and copy types (T)             | T                    | T        |
-| String, str                          | *const libc::c_char  | cstr     |
-| Option\<T>                           | *mut T               | T *      |
-| Result\<T, E> (only return position) | T, panic on error    | T        |
+Glossary:
+1. **CT** - copyable type.
+2. **NT** - non-copyable type.
+3. **T** - any type.
+
+###  Input position
+
+List of allowed types in the input parameter position.
+
+| Rust type                    | extern "C" interface     | C type    |
+| ---------------------------- | ------------------------ | --------- |
+| By value (NT) (not working!) | Box\<NT>                 | NT*       |
+| By value (CT)                | CT                       | CT        |
+| Immutable reference (&NT)    | &NT                      | NT const* |
+| Immutable reference (&CT)    | CT                       | CT        |
+| Mutable reference (&mut T)   | &mut T                   | T*        |
+| String, &str                 | \*const/mut libc::c_char | cstr      |
+| Option\<T>                   | \*const/mut T            | T*        |
+| Option\<String, str>         | \*const/mut libc::c_char | cstr      |
+
+###  Return position
+
+List of allowed types in the return parameter position.
+
+| Rust type                | extern "C" interface | C type   | Buffered |
+| ------------------------ | -------------------- | -------- | -------- |
+| By value (CT)            | CT                   | CT       |          |
+| By value (NT)            | Box\<NT>             | NT*      |          |
+| String, &str             | \*const libc::c_char | cstr     | yes      |
+| Option\<T>               | \*const T            | T const* | yes      |
+| Option\<String, &str>    | \*const libc::c_char | cstr     | yes      |
+| Result\<..., E>          | [1], panic on error  | [1]      | [1]      |
+| Result\<Option\<...>, E> | [2], panic on error  | [2]      | [2]      |
+
+[1] - same as for standalone by value variants.
+[2] - same as for standalone Option variants.
+
+References are not allowed in the return position (except **&str**).
+
+For the buffered types static buffer is created in the `extern "C"` wrapper function.
 
 ### (Mutable) references
 
