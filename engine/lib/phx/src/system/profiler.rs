@@ -6,6 +6,7 @@ use crate::internal::*;
 use crate::math::*;
 use crate::*;
 
+use std::cmp::Ordering;
 use std::io::{self, Write};
 
 pub type Signal = i32;
@@ -16,8 +17,8 @@ pub type Signal = i32;
 pub struct Scope {
     pub name: *const libc::c_char,
     pub last: TimeStamp,
-    pub frame: u64,
-    pub total: u64,
+    pub frame: f64,
+    pub total: f64,
     pub count: f64,
     pub mean: f64,
     pub var: f64,
@@ -49,8 +50,8 @@ unsafe extern "C" fn Scope_Create(name: *const libc::c_char) -> *mut Scope {
     let scope = MemNew!(Scope);
     (*scope).name = StrDup(name);
     (*scope).last = TimeStamp::zero();
-    (*scope).frame = 0;
-    (*scope).total = 0;
+    (*scope).frame = 0.0;
+    (*scope).total = 0.0;
     (*scope).count = 0.0f64;
     (*scope).mean = 0.0f64;
     (*scope).var = 0.0f64;
@@ -103,29 +104,37 @@ pub unsafe extern "C" fn Profiler_Disable() {
     }
     Profiler_End();
 
-    let total: f64 = this.start.get_elapsed();
-    let mut i: i32 = 0;
-    while i < this.scopeList.len() as i32 {
-        let scope: &mut Scope = &mut *this.scopeList[i as usize];
+    let total = this.start.get_elapsed();
+    let mut i = 0;
+    while i < this.scopeList.len() {
+        let scope: &mut Scope = &mut *this.scopeList[i];
         (*scope).var /= (*scope).count - 1.0f64;
         (*scope).var = f64::sqrt((*scope).var);
         i += 1;
     }
+
     this.scopeList.sort_by(|pa: &*mut Scope, pb: &*mut Scope| {
         let (a, b) = (&**pa, &**pb);
-        b.total.cmp(&a.total)
+
+        if b.total < a.total {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
     });
 
     info!("-- PHX PROFILER -------------------------------------");
     info!("-- Measured timespan: {total}ms");
 
-    let mut cumulative: f64 = 0.0;
-    let mut i_0: i32 = 0;
-    while i_0 < this.scopeList.len() as i32 {
-        let scope: &mut Scope = &mut *this.scopeList[i_0 as usize];
+    let mut cumulative = 0.0;
+    let mut i = 0;
+    while i < this.scopeList.len() {
+        let scope = &mut *this.scopeList[i];
         let scopeTotal = (*scope).total as f64;
+
         cumulative += scopeTotal;
-        if !(scopeTotal / total < 0.01f64 && (*scope).max < 0.01f64) {
+
+        if scopeTotal / total > 0.01 || (*scope).max > 0.01 {
             info!(
                 "{0:1$.1}% {2:3$.0}% {4:5$.0}ms  [{6:7$.2}, {8:9$.2}] {10:11$.2}  / {12:13$.2}  ({14:15$.0}%)  |  {16:?}",
                 100.0f64 * (scopeTotal / total),
@@ -147,8 +156,10 @@ pub unsafe extern "C" fn Profiler_Disable() {
                 CStr::from_ptr((*scope).name),
             );
         }
-        i_0 += 1;
+
+        i += 1;
     }
+
     info!("-----------------------------------------------------");
 
     for scope in this.scopeList.iter() {
@@ -171,7 +182,7 @@ pub unsafe extern "C" fn Profiler_Begin(name: *const libc::c_char) {
     let now = TimeStamp::now();
     if this.stackIndex >= 0 {
         let prev: *mut Scope = this.stack[this.stackIndex as usize];
-        (*prev).frame = (*prev).frame.wrapping_add((*prev).last.get_duration(now));
+        (*prev).frame += (*prev).last.get_difference(&now);
         (*prev).last = now;
     }
     this.stackIndex += 1;
@@ -191,7 +202,7 @@ pub unsafe extern "C" fn Profiler_End() {
     }
     let now = TimeStamp::now();
     let prev: *mut Scope = this.stack[this.stackIndex as usize];
-    (*prev).frame = (*prev).frame.wrapping_add((*prev).last.get_duration(now));
+    (*prev).frame += (*prev).last.get_difference(&now);
     this.stackIndex -= 1;
     if this.stackIndex >= 0 {
         let curr: *mut Scope = this.stack[this.stackIndex as usize];
@@ -211,7 +222,7 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
     while i < this.scopeList.len() as i32 {
         let scope: &mut Scope = &mut *this.scopeList[i as usize];
         if (*scope).frame as f64 > 0.0f64 {
-            (*scope).total = (*scope).total.wrapping_add((*scope).frame);
+            (*scope).total = (*scope).total + (*scope).frame;
             let frame: f64 = (*scope).frame as f64;
             (*scope).min = f64::min((*scope).min, frame);
             (*scope).max = f64::max((*scope).max, frame);
@@ -220,7 +231,7 @@ pub unsafe extern "C" fn Profiler_LoopMarker() {
             (*scope).mean += d1 / (*scope).count;
             let d2: f64 = frame - (*scope).mean;
             (*scope).var += d1 * d2;
-            (*scope).frame = 0;
+            (*scope).frame = 0.0;
         }
         i += 1;
     }

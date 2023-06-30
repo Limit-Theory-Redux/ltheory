@@ -10,15 +10,6 @@ impl TimeStamp {
     pub const fn zero() -> Self {
         Self { value: UNIX_EPOCH }
     }
-
-    pub fn get_duration(&self, end: TimeStamp) -> u64 {
-        let difference = end
-            .value
-            .duration_since(self.value)
-            .expect("Cannot get timestamp difference");
-
-        difference.as_millis() as u64 // TODO: is this conversion always correct or should we change return type to u128?
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi(managed = true)]
@@ -48,6 +39,7 @@ impl TimeStamp {
         difference.as_secs_f64()
     }
 
+    /// Number of seconds elapsed since this timestamp.
     pub fn get_elapsed(&self) -> f64 {
         let elapsed = self.value.elapsed().expect("Cannot get elapsed time");
 
