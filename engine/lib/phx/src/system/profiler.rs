@@ -126,8 +126,8 @@ pub unsafe extern "C" fn Profiler_Disable() {
     info!("-- PHX PROFILER -------------------------------------");
     info!("-- Measured timespan: {total}ms");
     info!("");
-    info!(" Scope |  Cumul |    Scope |    Min |    Max |   Mean |   Var | Var/Mean | Name");
-    info!("-------|--------|----------|--------|--------|--------|-------|----------|---------------------------");
+    info!(" Scope |  Cumul |    Scope |    Min |      Max |   Mean |   Var | Var/Mean | Name");
+    info!("-------|--------|----------|--------|----------|--------|-------|----------|---------------------------");
 
     let mut cumulative = 0.0;
     let mut i = 0;
@@ -139,7 +139,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
 
         if scopeTotal / total > 0.01 || (*scope).max > 0.01 {
             info!(
-                "{:5.1}% | {:5.0}% | {:6.0}ms | {:6.2} | {:6.2} | {:6.2} | {:5.2} | {:7.0}% | {:?}",
+                "{:5.1}% | {:5.0}% | {:6.0}ms | {:6.2} | {:8.2} | {:6.2} | {:5.2} | {:7.0}% | {:?}",
                 100.0 * (scopeTotal / total),
                 100.0 * (cumulative / total),
                 1000.0 * scopeTotal,
@@ -155,7 +155,7 @@ pub unsafe extern "C" fn Profiler_Disable() {
         i += 1;
     }
 
-    info!("-----------------------------------------------------------------------------------------------------");
+    info!("-------------------------------------------------------------------------------------------------------");
 
     for scope in this.scopeList.iter() {
         Scope_Free(*scope);
