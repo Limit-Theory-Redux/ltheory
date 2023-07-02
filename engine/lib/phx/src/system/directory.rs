@@ -76,8 +76,17 @@ impl Directory {
         if let Some(proj_dirs) = ProjectDirs::from("", org, app) {
             let path = proj_dirs.data_dir();
 
-            path.to_str().map(|p| format!("{p}/"))
+            if let Err(err) = std::fs::create_dir_all(&path) {
+                error!("Cannot create project dir: {path:?}. error: {err}");
+                None
+            } else if let Some(path_str) = path.to_str() {
+                Some(format!("{path_str}/"))
+            } else {
+                error!("Cannot get path string: {path:?}");
+                None
+            }
         } else {
+            error!("Cannot get project directory.");
             None
         }
     }
