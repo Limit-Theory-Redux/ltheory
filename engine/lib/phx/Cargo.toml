@@ -15,6 +15,7 @@ luajit-ffi-gen.workspace = true
 
 # release crates
 chrono = "0.4.24"
+directories = "5.0.1"
 flate2 = "1.0.25"
 freetype-sys = "0.17.0"
 glam = { version = "0.24.0", features = ["scalar-math"] }

@@ -41,7 +41,11 @@ impl TypeInfo {
         } else {
             ffi_ty
         };
-        let opt = if self.is_option { "*" } else { "" };
+        let opt = if self.is_option && !self.variant.is_string() {
+            "*"
+        } else {
+            ""
+        };
 
         if self.is_reference && self.variant != TypeVariant::Str {
             if self.is_mutable {
@@ -55,7 +59,7 @@ impl TypeInfo {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum TypeVariant {
     Bool,
     I8,
@@ -77,6 +81,17 @@ pub enum TypeVariant {
 impl TypeVariant {
     pub fn is_custom(&self) -> bool {
         matches!(self, Self::Custom(_))
+    }
+
+    pub fn is_str(&self) -> bool {
+        matches!(self, Self::Str)
+    }
+
+    pub fn is_string(&self) -> bool {
+        match self {
+            Self::Str | Self::String | Self::CString => true,
+            _ => false,
+        }
     }
 
     pub fn from_str(type_name: &str) -> Option<Self> {

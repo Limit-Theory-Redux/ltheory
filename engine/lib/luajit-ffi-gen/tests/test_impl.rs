@@ -65,6 +65,18 @@ impl MyStruct {
         }
     }
 
+    pub fn get_opt_u32(&self) -> Option<u32> {
+        if self.val_u32 > 0 {
+            Some(self.val_u32)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_opt_data(&self) -> Option<Data> {
+        Some(self.val_data.clone())
+    }
+
     pub fn set_opt_ref(&mut self, val: Option<&u32>) {
         if let Some(val) = val {
             self.val_u32 = *val;
@@ -84,6 +96,10 @@ impl MyStruct {
 
     pub fn ret_res_err() -> Result<u8, u8> {
         Err(13)
+    }
+
+    pub fn ret_res_opt_val() -> Result<Option<u8>, u8> {
+        Ok(Some(42))
     }
 }
 

@@ -180,13 +180,16 @@ function InitFiles:readUserInits()
             categoryTable.vars = findValuesForCategory(categoryTable)
             -- do whatever with vars if needed
         end
-        printf("Loaded configuration from %s", configPath)
+
+        printf("Loaded configuration from: %s", configPath)
 
         if GameState.debug.printConfig then
             print("---------- Configuration File ----------")
             for _, line in pairs(lines) do if not string.match(line, "#") then print(line) end end
             print("----------------------------------------")
         end
+    else
+        Log.Warning("Cannot open config file: %s", configPath)
     end
 end
 
@@ -195,7 +198,14 @@ function InitFiles:writeUserInits()
     -- TODO: Encase io.xxx functions in local wrappers for security/safety
     local filename = Config.userInitFilename
     local filepath = Config.paths.files
-    local openedFile = io.open(filepath .. filename, "w")
+    local configPath = filepath .. filename
+    local openedFile = io.open(configPath, "w")
+
+    if openedFile == nil then
+        Log.Warning("Cannot open configuration file for writing: %s", configPath)
+    else
+        printf("Saving configuration to: %s", configPath)
+    end
 
     local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
     local hudType = string.lower(Enums.HudStyleNames[GameState.ui.hudStyle])
@@ -304,8 +314,11 @@ function InitFiles:writeUserInits()
             writeSubCat(cacheSubCat, cacheSubCatVar, cacheSubCatVal)
         end
     end
-    -- Closes the open file
-    io.close(openedFile)
+
+    if openedFile ~= nil then
+        -- Closes the open file
+        io.close(openedFile)
+    end
 end
 
 return InitFiles

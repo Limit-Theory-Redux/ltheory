@@ -3,8 +3,6 @@ use std::time::SystemTime;
 use crate::internal::*;
 use crate::*;
 
-use sdl2_sys::*;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Timer {
