@@ -19,9 +19,6 @@ mod str_map;
 mod time;
 mod time_stamp;
 mod timer;
-mod window;
-mod window_mode;
-mod window_pos;
 
 pub use bytes::*;
 pub use directory::*;
@@ -44,6 +41,3 @@ pub use str_map::*;
 pub use time::*;
 pub use time_stamp::*;
 pub use timer::*;
-pub use window::*;
-pub use window_mode::*;
-pub use window_pos::*;

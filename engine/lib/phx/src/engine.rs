@@ -26,49 +26,8 @@ static mut initTime: TimeStamp = TimeStamp::zero();
 
 pub struct Engine;
 
-#[luajit_ffi_gen::luajit_ffi]
 impl Engine {
-    #[bind(lua_ffi = false)]
-    pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
-        // Keep log till the end of the execution
-        let _log = init_log(console_log, log_dir);
-
-        Engine::init(2, 1);
-
-        let entry_point_path = PathBuf::new().join(entry_point);
-
-        if !entry_point_path.exists() {
-            // TODO: do we really need this magic?
-            std::env::set_current_dir("../").expect("Cannot change folder to parent");
-
-            if !entry_point_path.exists() {
-                panic!("Can't find script entrypoint: {entry_point}");
-            }
-        }
-
-        unsafe {
-            let lua = Lua_Create();
-
-            Lua_SetBool(lua, c_str!("__debug__"), cfg!(debug_assertions));
-            Lua_SetBool(lua, c_str!("__embedded__"), true);
-            Lua_SetNumber(lua, c_str!("__checklevel__"), 0 as f64);
-
-            if !app_name.is_empty() {
-                let an = static_string!(app_name);
-
-                Lua_SetStr(lua, c_str!("__app__"), an);
-            }
-
-            let script_file = static_string!(entry_point);
-
-            Lua_DoFile(lua, script_file);
-            Lua_Free(lua);
-        }
-
-        Engine::free();
-    }
-
-    pub fn init(gl_version_major: i32, gl_version_minor: i32) {
+    fn init(gl_version_major: i32, gl_version_minor: i32) {
         unsafe {
             static mut firstTime: bool = true;
             Signal_Init();
@@ -139,6 +98,49 @@ impl Engine {
 
             initTime = TimeStamp::now();
         }
+    }
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+impl Engine {
+    #[bind(lua_ffi = false)]
+    pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
+        // Keep log till the end of the execution
+        let _log = init_log(console_log, log_dir);
+
+        Engine::init(2, 1);
+
+        let entry_point_path = PathBuf::new().join(entry_point);
+
+        if !entry_point_path.exists() {
+            // TODO: do we really need this magic?
+            std::env::set_current_dir("../").expect("Cannot change folder to parent");
+
+            if !entry_point_path.exists() {
+                panic!("Can't find script entrypoint: {entry_point}");
+            }
+        }
+
+        unsafe {
+            let lua = Lua_Create();
+
+            Lua_SetBool(lua, c_str!("__debug__"), cfg!(debug_assertions));
+            Lua_SetBool(lua, c_str!("__embedded__"), true);
+            Lua_SetNumber(lua, c_str!("__checklevel__"), 0 as f64);
+
+            if !app_name.is_empty() {
+                let an = static_string!(app_name);
+
+                Lua_SetStr(lua, c_str!("__app__"), an);
+            }
+
+            let script_file = static_string!(entry_point);
+
+            Lua_DoFile(lua, script_file);
+            Lua_Free(lua);
+        }
+
+        Engine::free();
     }
 
     pub fn free() {

@@ -1,8 +1,15 @@
+mod window_mode;
+mod window_pos;
+
+pub use window_mode::*;
+pub use window_pos::*;
+
 use super::*;
 use crate::common::*;
 use crate::internal::*;
 use crate::math::IVec2;
 use crate::render::*;
+use crate::system::*;
 
 use sdl2_sys::*;
 

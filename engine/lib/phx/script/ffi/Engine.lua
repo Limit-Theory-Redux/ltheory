@@ -5,7 +5,6 @@ local Engine
 
 do -- C Definitions
     ffi.cdef [[
-        void   Engine_Init          (int glVersionMajor, int glVersionMinor);
         void   Engine_Free          ();
         void   Engine_Abort         ();
         int    Engine_GetBits       ();
@@ -19,7 +18,6 @@ end
 
 do -- Global Symbol Table
     Engine = {
-        Init          = libphx.Engine_Init,
         Free          = libphx.Engine_Free,
         Abort         = libphx.Engine_Abort,
         GetBits       = libphx.Engine_GetBits,
