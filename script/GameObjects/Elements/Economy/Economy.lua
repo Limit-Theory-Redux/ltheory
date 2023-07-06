@@ -1,6 +1,7 @@
 local Entity = require('GameObjects.Entity')
 local Jobs = requireAll('GameObjects.Jobs')
 local Mine = require('GameObjects.Jobs.Mine')
+local Item = require('Systems.Economy.Item')
 
 --------------------------------------------------------------------------------
 
@@ -22,52 +23,101 @@ end)
 function Economy:update(dt)
     if not GameState.paused then
         --    Profiler.Begin('Economy.Update')
+
         Profiler.Begin('Economy.Update.tableclear')
         table.clear(self.factories)
         table.clear(self.flows)
         table.clear(self.markets)
         table.clear(self.jobs)
         table.clear(self.traders)
-        table.clear(self.yields)
+--        table.clear(self.yields)
         Profiler.End()
 
         Profiler.Begin('Economy.Update.POI')
         do -- Cache points-of-interest
             for _, e in self.parent:iterChildren() do
-                if e:hasFactory() then insert(self.factories, e) end
-                if e:hasFlows() then insert(self.flows, e) end
-                if e:hasMarket() then insert(self.markets, e) end
-                if e:hasTrader() then insert(self.traders, e) end
-                if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
+                if e:hasFactory() and not e:isDestroyed() then insert(self.factories, e) end
+                if e:hasFlows() and not e:isDestroyed() then insert(self.flows, e) end
+                if e:hasMarket() and not e:isDestroyed() then insert(self.markets, e) end
+                if e:hasTrader() and not e:isDestroyed() then insert(self.traders, e) end
+--                if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
             end
         end
         Profiler.End()
 
         -- Cache profitable mining jobs
         Profiler.Begin('Economy.Update.Mining')
-        -- TODO: This section is an enormous CPU hog due to the number of station - asteroid combinations
-        local allJobCount = 0
-        local realJobCount = 0
+        local jobCount = 0
         do -- Cache mining jobs
-            for _, src in ipairs(self.yields) do
-                local item = src:getYield().item
-                for _, dst in ipairs(self.markets) do
-                    -- Create a Mine job only if the destination trader has a bid for the source item
-                    if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
-                        allJobCount = allJobCount + 1
-                        local itemBidVol = dst:getTrader():getBidVolume(item)
-                        if itemBidVol > 0 then
-                            --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
-                            --    src:getName(), dst:getName(), item:getName(), itemBidVol)
-                            realJobCount = realJobCount + 1
-                            insert(self.jobs, Jobs.Mine(src, dst, item))
+            -- Iterate through all factories at functional space stations in this star system
+            for _, station in ipairs(self.factories) do
+                local factory = station:getFactory()
+                local prodLines = factory:getProds()
+                -- Iterate through all production lines in the factory
+                for _, prodLine in ipairs(prodLines) do
+                    -- Iterate through all Inputs for this production line
+                    for _, input in prodLine.type:iterInputs() do
+                        local item = input.item
+                        if item:hasItem(Item.T2, item) then -- is Input item a minable resource?
+                            local itemBidVol = station:getTrader():getBidVolume(item)
+                            -- Does the Trader at the same station as this Factory have any bids for the minable Item?
+                            if itemBidVol > 0 then
+                                -- Get no more than [considerCount] of the asteroids in the zone of this station
+                                --     whose current Yield is at least the number of the trader's bids for this Input Item
+                                local considerCount = 50
+                                local baseYield = itemBidVol * 3
+
+                                table.clear(self.yields)
+                                for i, asteroid in station.zone:iterChildren() do
+                                    if asteroid:hasYield() and asteroid:getYieldSize() > baseYield then
+                                        insert(self.yields, asteroid)
+                                    end
+                                    if i > considerCount then break end
+                                end
+--printf("ECONOMY: Mine job test: station = %s, prod = %s, item = %s, #asteroids = %d",
+--    station:getName(), prodLine.type.name, item:getName(), #self.yields)
+
+                                for i, asteroid in ipairs(self.yields) do
+                                    --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
+                                    --    src:getName(), dst:getName(), item:getName(), itemBidVol)
+                                    jobCount = jobCount + 1
+                                    insert(self.jobs, Jobs.Mine(asteroid, station, item))
+                                    if i == considerCount then break end
+                                end
+                            end
                         end
                     end
                 end
             end
         end
         Profiler.End()
-        --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
+--        printf("ECONOMY: Mine job test: jobCount = %d", jobCount)
+
+--        -- Cache profitable mining jobs    -- INACTIVE (old style mining job generator)
+--        Profiler.Begin('Economy.Update.Mining')
+--        -- TODO: This section is an enormous CPU hog due to the number of station - asteroid combinations
+--        local allJobCount = 0
+--        local realJobCount = 0
+--        do -- Cache mining jobs
+--            for _, src in ipairs(self.yields) do
+--                local item = src:getYield().item
+--                for _, dst in ipairs(self.markets) do
+--                    -- Create a Mine job only if the destination trader has a bid for the source item
+--                    if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
+--                        allJobCount = allJobCount + 1
+--                        local itemBidVol = dst:getTrader():getBidVolume(item)
+--                        if itemBidVol > 0 then
+--                            --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
+--                            --    src:getName(), dst:getName(), item:getName(), itemBidVol)
+--                            realJobCount = realJobCount + 1
+--                            insert(self.jobs, Jobs.Mine(src, dst, item))
+--                        end
+--                    end
+--                end
+--            end
+--        end
+--        Profiler.End()
+--        --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
         --    if false then  -- INACTIVE (Josh code - preserve this for when we switch back to Flow model)
         --      do -- Cache trade jobs from positive to negative flow

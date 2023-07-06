@@ -856,6 +856,7 @@ function HUD:drawSensors(a)
         -- Draw sensor bars if game is not paused
         -- TODO: Convert "active" sensor dropoff ranges into passive emission strengths
         if not GameState.paused then
+            local maxBarRatio = 0
             local player = self.player
             local playerShip = player:getControlling()
             local playerTarget = playerShip:getTarget()
@@ -904,9 +905,15 @@ function HUD:drawSensors(a)
                                 barTweak = rng:getUniformRange(-5, 5)
                             end
 
+                            -- Add jitter constrained by the max height of the up and down (reflection) bars
                             local barHeightUp   = min(barBase,    floor(Config.gen.objectEmissions[i][emType] * (barBase    + barTweak) * dropoff / 100))
                             local barHeightDown = min(barReflect, floor(Config.gen.objectEmissions[i][emType] * (barReflect + barTweak) * dropoff / 100))
 
+                            -- Get the highest bar ratio (greatest frequency bar value divided by the maximum possible bar height)
+                            local barRatio = barHeightUp / barBase
+                            if barRatio > maxBarRatio then maxBarRatio = barRatio end
+
+                            -- Finally, actually display all the sensor frequency bars
                             UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
                                            ybottom - barHeightUp,
                                            barWidth,
@@ -1030,6 +1037,10 @@ function HUD:drawSensors(a)
                         local barHeightU = min(barBase,    barHeightUp[i]   + barTweak)
                         local barHeightD = min(barReflect, barHeightDown[i] + barTweak)
 
+                        -- Get the highest bar ratio (greatest frequency bar value divided by the maximum possible bar height)
+                        local barRatio = barHeightU / barBase
+                        if barRatio > maxBarRatio then maxBarRatio = barRatio end
+
                         -- Finally, actually display all the sensor frequency bars
                         UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
                                        ybottom - barHeightU,
@@ -1044,6 +1055,21 @@ function HUD:drawSensors(a)
                     end
                 end
             end
+
+            -- *** TEMP: Audio FX test START ***
+            if Config.audio.fxSensors then
+                if not Config.audio.fxSensors:IsPlaying() then
+--                    Config.audio.fxSensors:Play(1)
+                    Config.audio.fxSensors.sound:setVolume(maxBarRatio)
+                    LTheoryRedux.audiofx:play(Config.audio.fxSensors.sound)
+                else
+--                    Config.audio.fxSensors:Pause()
+                    Config.audio.fxSensors.sound:setVolume(maxBarRatio)
+--                    Config.audio.fxSensors:Resume()
+                end
+            end
+            -- *** TEMP: Audio FX test END ***
+
         end
     end
 end
@@ -1697,6 +1723,24 @@ function HUD:onUpdate(state)
             end
         end
         self.dockPromptAlpha = Math.Lerp(self.dockPromptAlpha, alphaT, f)
+    end
+
+    if Config.audio.fxSensors then
+        if GameState.paused then
+            if Config.audio.fxSensors:IsPlaying() then
+                Config.audio.fxSensors:Pause()
+            end
+        else
+            if GameState.ui.sensorsDisplayed then
+                if Config.audio.fxSensors:IsPaused() then
+                    Config.audio.fxSensors:Resume()
+                end
+            else
+                if Config.audio.fxSensors:IsPlaying() then
+                    Config.audio.fxSensors:Pause()
+                end
+            end
+        end
     end
 end
 

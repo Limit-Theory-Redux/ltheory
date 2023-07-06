@@ -10,11 +10,12 @@ function Entity:addLight(r, g, b)
 end
 
 function Entity:deleteLight(lightRef)
-    assert(GameState.world.currentSystem.lightList)
+    local llist = GameState.world.currentSystem.lightList
+    assert(llist)
     --printf("LIGHT: trying to delete light on %s", lightRef:getName())
-    for i, light in ipairs(GameState.world.currentSystem.lightList) do
+    for i, light in ipairs(llist) do
         if light == lightRef then
-            remove(GameState.world.currentSystem.lightList, i)
+            remove(llist, i)
             break
         end
     end
