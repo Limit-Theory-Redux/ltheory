@@ -15,7 +15,7 @@ Config.timeToResetToSplashscreen = 60
 
 Config.render = {
     defaultResX    = 2400,
-    defaultResY    = 1350,
+    defaultResY    = 1080,
     fullscreen     = false,
     vsync          = true,
     zNear          = 0.1, -- default: 0.1
@@ -30,7 +30,7 @@ Config.audio = {
     mainMenuMusicEnabled = true,
     soundMin             = 0,
     soundMax             = 1,   -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
-    musicVolume          = 0.0, -- current volume
+    musicVolume          = 0.75, -- current volume
     mainMenu             = "LTR_Main_Menu.ogg",
 
     pulseFireName        = "pulse5.wav",
