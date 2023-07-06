@@ -65,6 +65,22 @@ impl Matrix {
         )
     }
 
+    pub fn product(&self, other: &Matrix) -> Matrix {
+        let mut result: Matrix = Matrix::ZERO;
+        let mut index = 0;
+        for i in 0..4 {
+            for j in 0..4 {
+                let mut sum: f32 = 0.0f32;
+                for k in 0..4 {
+                    sum += self.m[(4 * i + k) as usize] * other.m[(4 * k + j) as usize];
+                }
+                result.m[index] = sum;
+                index += 1;
+            }
+        }
+        result
+    }
+
     pub fn scale(&mut self, scale: f32) {
         let m: *mut f32 = (self.m).as_mut_ptr();
         unsafe {
@@ -367,28 +383,7 @@ pub extern "C" fn Matrix_Perspective(degreesFovy: f32, aspect: f32, N: f32, F: f
 
 #[no_mangle]
 pub extern "C" fn Matrix_Product(a: &Matrix, b: &Matrix) -> Box<Matrix> {
-    let mut result: Matrix = Matrix::ZERO;
-    let mut pResult: *mut f32 = (result.m).as_mut_ptr();
-    let mut i: i32 = 0;
-    while i < 4 {
-        let mut j: i32 = 0;
-        while j < 4 {
-            let mut sum: f32 = 0.0f32;
-            let mut k: i32 = 0;
-            while k < 4 {
-                sum += (*a).m[(4 * i + k) as usize] * (*b).m[(4 * k + j) as usize];
-                k += 1;
-            }
-            unsafe {
-                let fresh0 = pResult;
-                pResult = pResult.offset(1);
-                *fresh0 = sum;
-            }
-            j += 1;
-        }
-        i += 1;
-    }
-    Box::new(result)
+    Box::new(a.product(b))
 }
 
 #[no_mangle]

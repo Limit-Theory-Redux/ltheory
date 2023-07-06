@@ -1,17 +1,13 @@
-// TODO: https://users.rust-lang.org/t/question-how-to-dllexport-nvoptimusenablement-symbol-to-auto-select-dedicated-nvidia-gpu/8617/3
-// /* On Windows, request usage of the dedicated GPU if the machine switches
-//  * between on-board and dedicated GPUs dynamically. Only works when exported
-//  * by the exe, not when exported by a dll. */
-//  #if WINDOWS
-//  extern "C" {
-//    __declspec(dllexport) ulong NvOptimusEnablement = 0x00000001;
-//    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
-//  }
-// #endif
-
 use std::ffi::CString;
-
 use clap::Parser;
+
+#[cfg(target_os="windows")]
+#[no_mangle]
+pub static NvOptimusEnablement: std::os::raw::c_ulong = 0x00000001;
+
+#[cfg(target_os="windows")]
+#[no_mangle]
+pub static AmdPowerXpressRequestHighPerformance : std::os::raw::c_int = 1;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

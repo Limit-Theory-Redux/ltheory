@@ -327,13 +327,19 @@ impl RigidBody {
     }
 
     pub fn get_to_local_matrix(&self) -> Matrix {
-        let scale = self.get_scale();
-        self.with_rigid_body(|rb| matrix_from_transform(rb.position(), scale).inverted())
+        self.get_to_world_matrix().inverted()
     }
 
     pub fn get_to_world_matrix(&self) -> Matrix {
         let scale = self.get_scale();
-        self.with_rigid_body(|rb| matrix_from_transform(rb.position(), scale))
+        if let WorldState::AttachedToCompound { parent, .. } = &self.state {
+            let child_transform = self.with_collider(|c| matrix_from_transform(c.position_wrt_parent().unwrap()));
+            unsafe { &**parent }.with_rigid_body(|rb| 
+                matrix_from_transform(rb.position()).scaled(scale).product(&child_transform)
+            )
+        } else {
+            self.with_rigid_body(|rb| matrix_from_transform(rb.position()).scaled(scale))
+        }
     }
 
     pub fn get_velocity(&self) -> Vec3 {
@@ -568,9 +574,9 @@ impl RigidBody {
     }
 }
 
-fn matrix_from_transform(transform: &rp::Isometry<f32>, scale: f32) -> Matrix {
-    let rp_matrix = transform.to_matrix();
-    Matrix::from_slice(rp_matrix.as_slice()).scaled(scale)
+fn matrix_from_transform(transform: &rp::Isometry<f32>) -> Matrix {
+    let rp_matrix = transform.to_matrix().transpose();
+    Matrix::from_slice(rp_matrix.as_slice())
 }
 
 pub fn RigidBody_Create(shape: Box<CollisionShape>) -> Box<RigidBody> {
