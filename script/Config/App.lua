@@ -14,7 +14,7 @@ Config.userInitFilename = "user.ini"
 Config.timeToResetToSplashscreen = 60
 
 Config.render = {
-    defaultResX    = 2400,
+    defaultResX    = 1920,
     defaultResY    = 1080,
     fullscreen     = false,
     vsync          = true,
