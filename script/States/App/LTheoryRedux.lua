@@ -330,13 +330,14 @@ function LTheoryRedux:createStarSystem()
         end
 
         -- Add an asteroid field
-        -- Must add BEFORE space stations
+        -- NOTE: Must always add asteroid field (a zone) BEFORE space stations
         for i = 1, rng:getInt(0, 1) do                         -- 50/50 chance of having asteroids
-            self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
-        end
+            -- Spawn an asteroid field (a zone)
+            self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 parameter is a special case meaning background
 
-        -- Add a space station
-        self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
+            -- Add a space station
+            self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
+        end
     else
         GameState:SetState(Enums.GameStates.InGame)
         Universe:CreateStarSystem(self.seed)

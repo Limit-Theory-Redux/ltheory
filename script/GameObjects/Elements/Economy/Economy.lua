@@ -36,7 +36,7 @@ function Economy:update(dt)
         Profiler.Begin('Economy.Update.POI')
         do -- Cache points-of-interest
             for _, e in self.parent:iterChildren() do
-                if e:hasFactory() and not e:isDestroyed() then insert(self.factories, e) end
+                if e:hasFactory() and not e:isDestroyed() and e.zone then insert(self.factories, e) end
                 if e:hasFlows() and not e:isDestroyed() then insert(self.flows, e) end
                 if e:hasMarket() and not e:isDestroyed() then insert(self.markets, e) end
                 if e:hasTrader() and not e:isDestroyed() then insert(self.traders, e) end
