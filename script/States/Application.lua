@@ -47,7 +47,8 @@ function Application:run()
         self.resY,
         self:getWindowMode())
 
-    self.audio = Audio.Create()
+    self.audio   = Audio.Create()
+    self.audiofx = Audio.Create()
 
     GameState.render.gameWindow = self.window
 
@@ -220,7 +221,8 @@ function Application:run()
             end
 
             if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
-                --TODO: replace this with a general "is alive" game state here and in LTR, the whole process needs to be improved
+                --TODO: replace this with a general "is alive" game state here and in LTR,
+                --      the whole process needs to be improved
                 if MainMenu and not MainMenu.dialogDisplayed and
                     not MainMenu.seedDialogDisplayed and
                     not MainMenu.settingsScreenDisplayed then
@@ -240,16 +242,16 @@ function Application:run()
 
         -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
         if doScreenshot then
-            --        Settings.set('render.superSample', 2) -- turn on mild supersampling
+            -- Settings.set('render.superSample', 2) -- turn on mild supersampling
             ScreenCap()
             if self.prevSS then
-                --        Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
+                -- Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
                 self.prevSS = nil
             end
         end
 
         do                                         -- Metrics display
-            if GameState.debug.metricsEnabled then -- Metrics Display
+            if GameState.debug.metricsEnabled then
                 local s = string.format(
                     '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
                     1000.0 * self.dt,
@@ -279,6 +281,7 @@ function Application:run()
             self.window:endDraw()
             Profiler.End()
         end
+
         Profiler.End()
         Profiler.LoopMarker()
     end

@@ -1,6 +1,7 @@
 local MusicPlayer = class(function(self) end)
 
 local MusicObject = require("Types.MusicObject")
+local SFXObject = require("Types.SFXObject")
 
 function MusicPlayer:Init()
     self.trackList = {}
@@ -13,9 +14,30 @@ function MusicPlayer:Init()
         self.volume = 0
     end
     self:LoadMusic()
+
+    MusicPlayer:LoadEffects()
 end
 
 -- add block queueing
+
+function MusicPlayer:LoadEffects()
+    -- *** TEMP: Audio FX test START ***
+    Config.audio.pulseFire = SFXObject:Create {
+        name = Config.audio.pulseFireName,
+        path = Config.paths.soundEffects .. Config.audio.pulseFireName,
+        volume = 0.0,
+        isLooping = false
+    }
+
+    Config.audio.fxSensors = SFXObject:Create {
+        name = Config.audio.fxSensorsName,
+        path = Config.paths.soundEffects .. Config.audio.fxSensorsName,
+        volume = 0.0,
+        isLooping = true
+    }
+
+    -- *** TEMP: Audio FX test END ***
+end
 
 function MusicPlayer:SetVolume(volume)
     if volume == self.volume then

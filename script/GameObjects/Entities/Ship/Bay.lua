@@ -41,7 +41,7 @@ local Bay = subclass(Entity, function(self)
     self:addVisibleMesh(shared.mesh, material)
 
     -- TODO : Tracking Component
-
+    -- TODO: Extend to effects other than Pulse Bay
     self.name       = Config.gen.compBayPulseStats.name
     self.healthCurr = Config.gen.compBayPulseStats.healthCurr
     self.healthMax  = Config.gen.compBayPulseStats.healthMax
@@ -115,7 +115,8 @@ function Bay:fire()
     Config.game.pulseColorBodyG = Config.gen.compBayPulseStats.colorBodyG
     Config.game.pulseColorBodyB = Config.gen.compBayPulseStats.colorBodyB
 
-    local projectile, effect = self:getRoot():addProjectile(self:getParent())
+    local projectile = self:getRoot():addProjectile(self:getParent())
+    local effect = projectile:getEffect()
     local dir = (self:getForward() + rng:getDir3():scale(self.projSpread * rng:getExp())):normalize()
     effect.pos = self:toWorld(Vec3f(0, 0, 0))
     effect.vel = dir:scale(self.projSpeed) + self:getParent():getVelocity()
@@ -125,16 +126,7 @@ function Bay:fire()
     effect.life = effect.lifeMax
 
     -- Discharge capacitor if bay holds an energy weapon
-    -- TODO: extend to different weapon types
     self:getParent():mgrCapacitorDischarge(Config.gen.compBayPulseStats.charge)
-
-    if projectile then
-        projectile.pos  = effect.pos
-        projectile.vel  = effect.vel
-        projectile.dir  = effect.dir
-        projectile.dist = 0
-        --printf("BAY: %s pos %s", projectile:getName(), projectile.pos)
-    end
 
     -- NOTE : In the future, it may be beneficial to store the actual bay
     --        rather than the parent. It would allow, for example, data-driven

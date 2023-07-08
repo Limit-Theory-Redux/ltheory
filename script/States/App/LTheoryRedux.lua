@@ -344,6 +344,8 @@ function LTheoryRedux:createStarSystem()
 
     -- Insert the game view into the application canvas to make it visible
     self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
+    GameState.render.gameView = self.gameView
+
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView

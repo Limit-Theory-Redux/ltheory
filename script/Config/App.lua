@@ -14,8 +14,8 @@ Config.userInitFilename = "user.ini"
 Config.timeToResetToSplashscreen = 60
 
 Config.render = {
-    defaultResX    = 1600,
-    defaultResY    = 900,
+    defaultResX    = 1920,
+    defaultResY    = 1080,
     fullscreen     = false,
     vsync          = true,
     zNear          = 0.1, -- default: 0.1
@@ -33,7 +33,7 @@ Config.audio = {
     musicVolume          = 0.75, -- current volume
     mainMenu             = "LTR_Main_Menu.ogg",
 
-    pulseFireName        = "",
+    pulseFireName        = "pulse5.wav",
     pulseFire            = nil,
     pulseHitName         = "",
     pulseHit             = nil,
@@ -41,6 +41,9 @@ Config.audio = {
     explodeShip          = nil,
     explodeStationName   = "",
     explodeStation       = nil,
+
+    fxSensorsName        = "sensors.wav",
+    fxSensors            = nil,
 }
 
 Config.paths = {
@@ -92,6 +95,13 @@ Config.gen = {
     nPlanets                         = 1,
     nStations                        = 1,
     nBeltSize                        = function(rng) return 0 end, -- asteroids per planetary belt
+
+    nAIPlayers                       = 0,   -- # of AI players (who manage Economic assets)
+    randomizeAIPlayers               = false,
+    nEconNPCs                        = 0,   -- # of ships to be given Economic actions (managed by AI players)
+    randomizeEconNPCs                = false,
+    nEscortNPCs                      = 0,  -- # of ships to be given the Escort action
+    randomizeEscortNPCs              = false,
 
     nDustFlecks                      = 256,
     nDustClouds                      = 8,
@@ -268,13 +278,13 @@ Config.gen = {
         healthCurr  = 100,
         healthMax   = 100,
         autoTarget  = false,
-        rateOfFire  = 10,
+        rateOfFire  = 1.5,
         damageType  = 1,
         damage      = 2,
         size        = 64,
         spread      = 0.01,
-        range       = 1000,
-        speed       = 1000,
+        range       = 2000,
+        speed       = 800,
         charge      = 1.0,
         colorBodyR  = 0.3,
         colorBodyG  = 0.8,
@@ -333,15 +343,15 @@ Config.gen = {
         healthCurr  = 100,
         healthMax   = 100,
         autoTarget  = false,
-        rateOfFire  = 10,
+        rateOfFire  = 0.5,
         heat        = 1,
         cooldown    = 1,
         damageType  = 1,
         damage      = 15,
         size        = 128,
         spread      = 0.02,
-        range       = 1200,
-        speed       = 800,
+        range       = 2400,
+        speed       = 600,
         charge      = 8.0,
         colorBodyR  = 1.5,
         colorBodyG  = 0.8,
@@ -471,13 +481,6 @@ Config.gen = {
     },
 
     nebulaRes           = 2048,
-
-    nAIPlayers          = 0,   -- # of AI players (who manage Economic assets)
-    randomizeAIPlayers  = false,
-    nEconNPCs           = 0,   -- # of ships to be given Economic actions (managed by AI players)
-    randomizeEconNPCs   = false,
-    nEscortNPCs         = 0,  -- # of ships to be given the Escort action
-    randomizeEscortNPCs = false,
 
     zNearBack           = 0.1,
     zNearReal           = 0.1, -- 0.1
