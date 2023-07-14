@@ -1,43 +1,89 @@
-use sdl2_sys::*;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-pub type TimeStamp = u64;
-
-#[no_mangle]
-pub unsafe extern "C" fn TimeStamp_Get() -> TimeStamp {
-    SDL_GetPerformanceCounter()
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(C)]
+pub struct TimeStamp {
+    pub value: SystemTime,
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn TimeStamp_GetDifference(start: TimeStamp, end: TimeStamp) -> f64 {
-    let freq: f64 = SDL_GetPerformanceFrequency() as f64;
-    end.wrapping_sub(start) as f64 / freq
+impl TimeStamp {
+    pub const fn zero() -> Self {
+        Self { value: UNIX_EPOCH }
+    }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn TimeStamp_GetElapsed(then: TimeStamp) -> f64 {
-    let freq: f64 = SDL_GetPerformanceFrequency() as f64;
-    (SDL_GetPerformanceCounter()).wrapping_sub(then) as f64 / freq
+#[luajit_ffi_gen::luajit_ffi(managed = true)]
+impl TimeStamp {
+    pub fn now() -> Self {
+        Self {
+            value: SystemTime::now(),
+        }
+    }
+
+    pub fn get_future(seconds: f64) -> Self {
+        let d = Duration::from_secs_f64(seconds);
+
+        Self {
+            value: SystemTime::now()
+                .checked_add(d)
+                .expect("Cannot get future timestamp"),
+        }
+    }
+
+    pub fn get_difference(&self, end: &TimeStamp) -> f64 {
+        let difference = end
+            .value
+            .duration_since(self.value)
+            .expect("Cannot get timestamp difference");
+
+        difference.as_secs_f64()
+    }
+
+    /// Number of seconds elapsed since this timestamp.
+    pub fn get_elapsed(&self) -> f64 {
+        let elapsed = self.value.elapsed().expect("Cannot get elapsed time");
+
+        elapsed.as_secs_f64()
+    }
+
+    pub fn get_elapsed_ms(&self) -> f64 {
+        let elapsed = self.value.elapsed().expect("Cannot get elapsed time");
+
+        elapsed.as_secs_f64() * 1000.0
+    }
+
+    pub fn get_relative(&self, seconds: f64) -> Self {
+        let d = Duration::from_secs_f64(seconds);
+
+        Self {
+            value: self
+                .value
+                .checked_add(d)
+                .expect("Cannot get relative timestamp"),
+        }
+    }
+
+    pub fn to_double(&self) -> f64 {
+        let difference = self
+            .value
+            .duration_since(UNIX_EPOCH)
+            .expect("Cannot convert timestamp to double");
+
+        difference.as_secs_f64()
+    }
+
+    pub fn to_seconds(&self) -> u64 {
+        let difference = self
+            .value
+            .duration_since(UNIX_EPOCH)
+            .expect("Cannot convert timestamp to seconds");
+
+        difference.as_secs()
+    }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn TimeStamp_GetElapsedMs(then: TimeStamp) -> f64 {
-    let freq: f64 = SDL_GetPerformanceFrequency() as f64;
-    1000_u64.wrapping_mul((SDL_GetPerformanceCounter()).wrapping_sub(then)) as f64 / freq
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn TimeStamp_GetFuture(seconds: f64) -> TimeStamp {
-    let freq: f64 = SDL_GetPerformanceFrequency() as f64;
-    (SDL_GetPerformanceCounter()).wrapping_add((freq * seconds) as TimeStamp)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn TimeStamp_GetRelative(start: TimeStamp, seconds: f64) -> TimeStamp {
-    let freq: f64 = SDL_GetPerformanceFrequency() as f64;
-    start.wrapping_add((freq * seconds) as TimeStamp)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn TimeStamp_ToDouble(this: TimeStamp) -> f64 {
-    this as f64 / SDL_GetPerformanceFrequency() as f64
+impl From<SystemTime> for TimeStamp {
+    fn from(value: SystemTime) -> Self {
+        Self { value }
+    }
 }

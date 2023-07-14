@@ -229,10 +229,10 @@ impl RigidBody {
         match &mut self.state {
             WorldState::None => {}
             WorldState::AttachedToCompound { .. } => {
-                Fatal!("Recursive attachment is not supported. Parent is already attached to something.");
+                panic!("Recursive attachment is not supported. Parent is already attached to something.");
             }
             WorldState::Removed { .. } => {
-                Fatal!("Parent has been removed from physics.");
+                panic!("Parent has been removed from physics.");
             }
             WorldState::Added {
                 rb_handle: parent_handle,
@@ -241,13 +241,13 @@ impl RigidBody {
             } => {
                 child.state = match child.state.clone() {
                     WorldState::None => {
-                        Fatal!("Child is not initialised");
+                        panic!("Child is not initialised");
                     }
                     WorldState::Added { .. } => {
-                        Fatal!("Child has not been removed from physics.");
+                        panic!("Child has not been removed from physics.");
                     }
                     WorldState::AttachedToCompound { .. } => {
-                        Fatal!("Child is already part of a compound.");
+                        panic!("Child is already part of a compound.");
                     }
                     WorldState::Removed { mut collider, .. } => {
                         let world_rc = world.upgrade().expect("physics world was freed");

@@ -6,16 +6,23 @@ local MainMenu = require('Systems.Menus.MainMenu')
 
 local LTheoryRedux = require('States.App.LTheoryRedux')
 
+-- Loads the user directly into spaceflight, skipping the main menu.
 function LTheoryRedux:onInit()
     --* Value initializations *--
     self.logo = Tex2D.Load("./res/images/LTR_logo2.png") -- load the LTR logo
 
     DebugControl.ltheory = self
 
-    -- Read user-defined values and update game variables
---    InitFiles:readUserInits()
+    --[[
+    User-defined values are ignored to enable quicker debug changes,
+    without impacting user settings for the main game.
+    -- InitFiles:readUserInits()
+    ]]
 
-    if Config.audio.pulseFire then Config.audio.pulseFire:setVolume(Config.audio.soundMax) end
+    GameState.ui.hudStyle = Enums.HudStyles.Wide
+    GameState.ui.sensorsDisplayed = true
+    GameState.ui.showTrackers = true
+    GameState.audio.musicVolume = 0
 
     -- Initialize Universe
     Universe:Init()
@@ -27,14 +34,11 @@ function LTheoryRedux:onInit()
     self.window:setSize(GameState.render.resX, GameState.render.resY)
     Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
     self:SetFullscreen(GameState.render.fullscreen)
-
-    GameState.ui.hudStyle = Enums.HudStyles.Wide
-    GameState.ui.sensorsDisplayed = true
-    GameState.ui.showTrackers = true
-    GameState.audio.musicVolume = 0
-
     -- Set the default game control cursor
-    self:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
+    self:setCursor(
+        Enums.CursorFilenames[GameState.ui.cursorStyle],
+        GameState.ui.cursorX,
+        GameState.ui.cursorY)
 
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player

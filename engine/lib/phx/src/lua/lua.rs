@@ -3,11 +3,11 @@
 use super::*;
 use crate::common::*;
 use crate::internal::*;
+use crate::logging::warn;
 use crate::system::*;
 use crate::*;
 
 use libc;
-use tracing::warn;
 
 extern "C" {
     pub type lua_State;
@@ -124,17 +124,17 @@ unsafe extern "C" fn Lua_PCall(this: *mut Lua, args: i32, rets: i32, errorHandle
     let result: i32 = lua_pcall(this, args, rets, errorHandler);
     if result != 0 {
         if result == 4 {
-            Fatal!("Lua_PCall: Lua returned a memory allocation error");
+            panic!("Lua_PCall: Lua returned a memory allocation error");
         } else if result == 5 {
-            Fatal!("Lua_PCall: Lua errored while attempting to run the error handler");
+            panic!("Lua_PCall: Lua errored while attempting to run the error handler");
         } else if result == 2 {
             let error = lua_tolstring(this, -1, std::ptr::null_mut());
-            Fatal!(
+            panic!(
                 "Lua_PCall: Lua returned error message: {:?}",
                 CStr::from_ptr(error)
             );
         } else {
-            Fatal!("Lua_PCall: Lua returned an invalid error code (corruption?)");
+            panic!("Lua_PCall: Lua returned an invalid error code (corruption?)");
         }
     }
     activeInstance = prev;
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn Lua_Create() -> *mut Lua {
     luaL_openlibs(this);
     Lua_InitExtensions(this);
     if luaL_loadstring(this, kErrorHandler) != 0 || lua_pcall(this, 0, -1, 0) != 0 {
-        Fatal!("Lua_Create: failed to load error handler");
+        panic!("Lua_Create: failed to load error handler");
     }
     this
 }
@@ -202,7 +202,7 @@ pub unsafe extern "C" fn Lua_DoString(this: *mut Lua, code: *const libc::c_char)
 pub unsafe extern "C" fn Lua_LoadFile(this: *mut Lua, name: *const libc::c_char) {
     let path = Resource_GetPath(ResourceType_Script, name);
     if luaL_loadfile(this, path) != 0 {
-        Fatal!(
+        panic!(
             "Lua_LoadFile: failed to load <{:?}>:\n{:?}",
             CStr::from_ptr(path),
             CStr::from_ptr(lua_tolstring(this, -1, std::ptr::null_mut())),
@@ -213,7 +213,7 @@ pub unsafe extern "C" fn Lua_LoadFile(this: *mut Lua, name: *const libc::c_char)
 #[no_mangle]
 pub unsafe extern "C" fn Lua_LoadString(this: *mut Lua, code: *const libc::c_char) {
     if luaL_loadstring(this, code) != 0 {
-        Fatal!(
+        panic!(
             "Lua_LoadString: failed to load string:\n{:?}",
             CStr::from_ptr(lua_tolstring(this, -1, std::ptr::null_mut())),
         );
@@ -229,7 +229,7 @@ pub unsafe extern "C" fn Lua_Call(this: *mut Lua, args: i32, rets: i32, errorHan
 pub unsafe extern "C" fn Lua_PushGlobal(this: *mut Lua, name: *const libc::c_char) {
     lua_getfield(this, -10002, name);
     if lua_type(this, lua_gettop(this)) == 0 {
-        Fatal!(
+        panic!(
             "Lua_PushGlobal: failed to find global key <{:?}>",
             CStr::from_ptr(name)
         );
@@ -403,7 +403,7 @@ unsafe fn lua_to_string(this: *mut Lua, name: &str) -> String {
                 str_value = format!("{:p}", lua_topointer(this, -1));
                 current_block_14 = 11584701595673473500;
             }
-            _ => Fatal!("Lua_ToString: Unexpected type {type_0}"),
+            _ => panic!("Lua_ToString: Unexpected type {type_0}"),
         }
         match current_block_14 {
             12136430868992966025 => {
@@ -439,7 +439,7 @@ unsafe fn lua_to_string(this: *mut Lua, name: &str) -> String {
 //         &mut ar,
 //     );
 //     if result == 0 {
-//         CFatal!("Lua_GetStack: lua_getinfo failed.");
+//         Cpanic!("Lua_GetStack: lua_getinfo failed.");
 //     }
 // }
 
@@ -477,7 +477,7 @@ pub unsafe extern "C" fn Lua_Backtrace() {
         result = lua_getinfo(this, c_str!("nSluf"), &mut ar);
 
         if result == 0 {
-            Fatal!("Lua_GetStack: lua_getinfo failed.");
+            panic!("Lua_GetStack: lua_getinfo failed.");
         }
 
         let mut variablesPrinted: i32 = 0;

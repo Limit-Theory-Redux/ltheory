@@ -1,7 +1,7 @@
 use crate::internal::*;
 use crate::*;
 
-use sdl2_sys::SDL_GetPrefPath;
+use directories::ProjectDirs;
 use tracing::error;
 
 use std::io::ErrorKind;
@@ -12,77 +12,92 @@ pub struct Directory {
     pub iterator: fs::ReadDir,
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn Directory_Open(path: *const libc::c_char) -> *mut Directory {
-    match fs::read_dir(path.as_str()) {
-        Ok(dir) => {
-            let this = MemNew!(Directory);
-            (*this).iterator = dir;
-            this
+#[luajit_ffi_gen::luajit_ffi(managed = true)]
+impl Directory {
+    pub fn open(path: &str) -> Option<Self> {
+        match fs::read_dir(path) {
+            Ok(dir) => Some(Self { iterator: dir }),
+            Err(err) => {
+                error!("Cannot open directory: {path}. Error: {err}");
+
+                None
+            }
         }
-        Err(_) => std::ptr::null_mut(),
     }
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn Directory_Close(this: *mut Directory) {
-    MemDelete!(this);
-}
-
-#[no_mangle]
-pub extern "C" fn Directory_GetNext(this: &mut Directory) -> *const libc::c_char {
-    match this.iterator.next() {
-        Some(Ok(dir)) => dir
-            .file_name()
-            .to_str()
-            .map(|s| s.to_string())
-            .map(|s| static_string!(s))
-            .unwrap_or(std::ptr::null()),
-        _ => std::ptr::null(),
+    pub fn get_next(&mut self) -> Option<String> {
+        match self.iterator.next() {
+            Some(Ok(dir)) => dir.file_name().to_str().map(|s| s.to_string()),
+            Some(Err(err)) => {
+                error!("Cannot get next item in the folder. Error: {err}");
+                None
+            }
+            None => None,
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn Directory_Change(cwd: *const libc::c_char) -> bool {
-    env::set_current_dir(cwd.as_str()).is_ok()
-}
-
-// This will create the directory if it doesn't exist, or do nothing if it exists already.
-#[no_mangle]
-pub extern "C" fn Directory_Create(path: *const libc::c_char) -> bool {
-    match fs::create_dir(path.as_str()) {
-        Ok(()) => true,
-        Err(err) => match err.kind() {
-            ErrorKind::AlreadyExists => true,
-            _ => {
-                error!("Directory_Create: Failed to create directory: {err}");
-
+    pub fn change(cwd: &str) -> bool {
+        match env::set_current_dir(cwd) {
+            Ok(_) => true,
+            Err(err) => {
+                error!("Cannot change current directory. Error: {err}");
                 false
             }
-        },
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn Directory_GetCurrent() -> *const libc::c_char {
-    match env::current_dir() {
-        Ok(path) => match path.to_str() {
-            Some(path_str) => static_string!(path_str),
-            None => std::ptr::null(),
-        },
-        Err(_) => std::ptr::null(),
+    pub fn create(path: &str) -> bool {
+        match fs::create_dir(path) {
+            Ok(_) => true,
+            Err(err) => match err.kind() {
+                ErrorKind::AlreadyExists => true,
+                _ => {
+                    error!("Failed to create directory. Error: {err}");
+                    false
+                }
+            },
+        }
     }
-}
 
-#[no_mangle]
-pub extern "C" fn Directory_GetPrefPath(
-    org: *const libc::c_char,
-    app: *const libc::c_char,
-) -> *const libc::c_char {
-    unsafe { SDL_GetPrefPath(org, app) }
-}
+    pub fn get_current() -> Option<String> {
+        match env::current_dir() {
+            Ok(path) => match path.to_str() {
+                Some(path_str) => Some(path_str.into()),
+                None => None,
+            },
+            Err(err) => {
+                error!("Cannot get current directory. Error: {err}");
+                None
+            }
+        }
+    }
 
-#[no_mangle]
-pub extern "C" fn Directory_Remove(path: *const libc::c_char) -> bool {
-    fs::remove_dir(path.as_str()).is_ok()
+    pub fn get_pref_path(org: &str, app: &str) -> Option<String> {
+        if let Some(proj_dirs) = ProjectDirs::from("", org, app) {
+            let path = proj_dirs.data_dir();
+
+            if let Err(err) = std::fs::create_dir_all(&path) {
+                error!("Cannot create project dir: {path:?}. error: {err}");
+                None
+            } else if let Some(path_str) = path.to_str() {
+                Some(format!("{path_str}/"))
+            } else {
+                error!("Cannot get path string: {path:?}");
+                None
+            }
+        } else {
+            error!("Cannot get project directory.");
+            None
+        }
+    }
+
+    pub fn remove(path: &str) -> bool {
+        match fs::remove_dir(path) {
+            Ok(_) => true,
+            Err(err) => {
+                error!("Cannot remove directory. Error: {err}");
+                false
+            }
+        }
+    }
 }

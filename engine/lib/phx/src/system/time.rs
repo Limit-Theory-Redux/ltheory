@@ -15,36 +15,38 @@ pub struct Time {
     pub year: i32,
 }
 
-pub fn TimeFromChrono<T: TimeZone>(dt: DateTime<T>) -> Time {
-    let time = dt.time();
-    let date = dt.date_naive();
-    Time {
-        second: time.second() as i32,
-        minute: time.minute() as i32,
-        hour: time.hour() as i32,
-        dayOfWeek: date.weekday().num_days_from_sunday() as i32,
-        dayOfMonth: date.day() as i32,
-        dayOfYear: date.ordinal() as i32,
-        month: date.month() as i32,
-        year: date.year() as i32,
+impl Time {
+    fn from_chrono<T: TimeZone>(dt: DateTime<T>) -> Self {
+        let time = dt.time();
+        let date = dt.date_naive();
+
+        Self {
+            second: time.second() as i32,
+            minute: time.minute() as i32,
+            hour: time.hour() as i32,
+            dayOfWeek: date.weekday().num_days_from_sunday() as i32,
+            dayOfMonth: date.day() as i32,
+            dayOfYear: date.ordinal() as i32,
+            month: date.month() as i32,
+            year: date.year() as i32,
+        }
     }
 }
 
-#[no_mangle]
-pub extern "C" fn Time_GetLocal() -> Time {
-    TimeFromChrono(Local::now())
-}
+#[luajit_ffi_gen::luajit_ffi(clone = true)]
+impl Time {
+    pub fn get_local() -> Self {
+        Time::from_chrono(Local::now())
+    }
 
-#[no_mangle]
-pub extern "C" fn Time_GetUTC() -> Time {
-    TimeFromChrono(Utc::now())
-}
+    pub fn get_utc() -> Self {
+        Time::from_chrono(Utc::now())
+    }
 
-// Seconds since epoch.
-#[no_mangle]
-pub extern "C" fn Time_GetRaw() -> u32 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as u32
+    pub fn get_raw() -> u32 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as u32
+    }
 }

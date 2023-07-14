@@ -31,8 +31,6 @@ function LTheoryRedux:onInit()
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()
 
-    if Config.audio.pulseFire then Config.audio.pulseFire:setVolume(Config.audio.soundMax) end
-
     -- Initialize Universe
     Universe:Init()
 
@@ -50,6 +48,7 @@ function LTheoryRedux:onInit()
 
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player
+
     self:generate()
 end
 
@@ -71,7 +70,7 @@ end
 
 function LTheoryRedux:SoundOn()
     GameState.audio.soundEnabled = true
-    --printf("LTheoryRedux:SoundOn: volume set to 1")
+    --printf("LTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
     MusicPlayer:SetVolume(GameState.audio.musicVolume)
 end
 
@@ -331,13 +330,14 @@ function LTheoryRedux:createStarSystem()
         end
 
         -- Add an asteroid field
-        -- Must add BEFORE space stations
+        -- NOTE: Must always add asteroid field (a zone) BEFORE space stations
         for i = 1, rng:getInt(0, 1) do                         -- 50/50 chance of having asteroids
-            self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 is a special case meaning background
-        end
+            -- Spawn an asteroid field (a zone)
+            self.backgroundSystem:spawnAsteroidField(-1, true) -- -1 parameter is a special case meaning background
 
-        -- Add a space station
-        self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
+            -- Add a space station
+            self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
+        end
     else
         GameState:SetState(Enums.GameStates.InGame)
         Universe:CreateStarSystem(self.seed)
@@ -345,6 +345,8 @@ function LTheoryRedux:createStarSystem()
 
     -- Insert the game view into the application canvas to make it visible
     self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
+    GameState.render.gameView = self.gameView
+
     self.canvas = UI.Canvas()
     self.canvas
         :add(self.gameView

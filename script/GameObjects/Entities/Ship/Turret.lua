@@ -41,7 +41,7 @@ local Turret = subclass(Entity, function(self)
     self:addVisibleMesh(shared.mesh, material)
 
     -- TODO : Tracking Component
-
+    -- TODO: Extend to effects other than Pulse Turret
     self.name       = Config.gen.compTurretPulseStats.name
     self.healthCurr = Config.gen.compTurretPulseStats.healthCurr
     self.healthMax  = Config.gen.compTurretPulseStats.healthMax
@@ -99,7 +99,7 @@ function Turret:aimAtTarget(target, fallback)
 end
 
 function Turret:canFire()
-    return not Config.game.gamePaused and self.cooldown <= 0 and
+    return not GameState.paused and self.cooldown <= 0 and
         self:getParent():mgrCapacitorGetCharge() >= Config.gen.compTurretPulseStats.charge
 end
 
@@ -115,7 +115,8 @@ function Turret:fire()
     Config.game.pulseColorBodyG = Config.gen.compTurretPulseStats.colorBodyG
     Config.game.pulseColorBodyB = Config.gen.compTurretPulseStats.colorBodyB
 
-    local projectile, effect = self:getRoot():addProjectile(self:getParent())
+    local projectile = self:getRoot():addProjectile(self:getParent())
+    local effect = projectile:getEffect()
     local dir = (self:getForward() + rng:getDir3():scale(self.projSpread * rng:getExp())):normalize()
     effect.pos = self:toWorld(Vec3f(0, 0, 0))
     effect.vel = dir:scale(self.projSpeed) + self:getParent():getVelocity()
@@ -127,14 +128,6 @@ function Turret:fire()
     -- Discharge capacitor if turret holds an energy weapon
     -- TODO: extend to different weapon types
     self:getParent():mgrCapacitorDischarge(Config.gen.compTurretPulseStats.charge)
-
-    if projectile then
-        projectile.pos  = effect.pos
-        projectile.vel  = effect.vel
-        projectile.dir  = effect.dir
-        projectile.dist = 0
-        --printf("TURRET: %s pos %s", projectile:getName(), projectile.pos)
-    end
 
     -- NOTE : In the future, it may be beneficial to store the actual turret
     --        rather than the parent. It would allow, for example, data-driven

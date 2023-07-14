@@ -68,7 +68,7 @@ pub extern "C" fn Bytes_Load(path: *const libc::c_char) -> *mut Bytes {
     let this: *mut Bytes = File_ReadBytes(path);
     if this.is_null() {
         unsafe {
-            Fatal!(
+            panic!(
                 "Bytes_Load: Failed to read file '{:?}'",
                 CStr::from_ptr(path)
             );
@@ -98,7 +98,7 @@ pub extern "C" fn Bytes_Compress(bytes: &mut Bytes) -> *mut Bytes {
 
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     if let Err(e) = encoder.write_all(input) {
-        Fatal!("Bytes_Compress: Encoding failed: {e}");
+        panic!("Bytes_Compress: Encoding failed: {e}");
     }
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
@@ -112,7 +112,7 @@ pub extern "C" fn Bytes_Decompress(bytes: &mut Bytes) -> *mut Bytes {
 
     let mut decoder = ZlibDecoder::new(Vec::new());
     if let Err(e) = decoder.write_all(input) {
-        Fatal!("Bytes_Decompress: Decoding failed: {e}");
+        panic!("Bytes_Decompress: Decoding failed: {e}");
     }
 
     /* @OPTIMIZE: This is an entire buffer copy that could be avoided. */
@@ -358,7 +358,7 @@ pub unsafe extern "C" fn Bytes_Print(this: &Bytes) {
 #[no_mangle]
 pub extern "C" fn Bytes_Save(this: &Bytes, path: *const libc::c_char) {
     let mut file = File_Create(path).unwrap_or_else(|| unsafe {
-        Fatal!(
+        panic!(
             "Bytes_Save: Failed to open file '{:?}' for writing",
             CStr::from_ptr(path)
         )

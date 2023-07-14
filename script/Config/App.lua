@@ -14,8 +14,8 @@ Config.userInitFilename = "user.ini"
 Config.timeToResetToSplashscreen = 60
 
 Config.render = {
-    defaultResX    = 1600,
-    defaultResY    = 900,
+    defaultResX    = 1920,
+    defaultResY    = 1080,
     fullscreen     = false,
     vsync          = true,
     zNear          = 0.1, -- default: 0.1
@@ -28,13 +28,12 @@ Config.audio = {
     soundEnabled         = true,
     supportedFormats     = { ".ogg" },
     mainMenuMusicEnabled = true,
-    bSoundOn             = false,
     soundMin             = 0,
     soundMax             = 1,   -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
-    musicVolume          = 0.0, -- current volume
+    musicVolume          = 0.75, -- current volume
     mainMenu             = "LTR_Main_Menu.ogg",
 
-    pulseFireName        = "",
+    pulseFireName        = "pulse5.wav",
     pulseFire            = nil,
     pulseHitName         = "",
     pulseHit             = nil,
@@ -42,6 +41,9 @@ Config.audio = {
     explodeShip          = nil,
     explodeStationName   = "",
     explodeStation       = nil,
+
+    fxSensorsName        = "sensors.wav",
+    fxSensors            = nil,
 }
 
 Config.paths = {
@@ -87,12 +89,19 @@ Config.gen = {
 
     origin                           = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
 
-    nFields                          = 10,
+    nFields                          = 1,
     nFieldSize                       = function(rng) return 200 * (rng:getExp() + 1.0) end,
     nAsteroids                       = 150, -- asteroids per asteroid field (smaller = less CPU hit)
     nPlanets                         = 1,
-    nStations                        = 20,
+    nStations                        = 1,
     nBeltSize                        = function(rng) return 0 end, -- asteroids per planetary belt
+
+    nAIPlayers                       = 0,   -- # of AI players (who manage Economic assets)
+    randomizeAIPlayers               = false,
+    nEconNPCs                        = 0,   -- # of ships to be given Economic actions (managed by AI players)
+    randomizeEconNPCs                = false,
+    nEscortNPCs                      = 0,  -- # of ships to be given the Escort action
+    randomizeEscortNPCs              = false,
 
     nDustFlecks                      = 256,
     nDustClouds                      = 8,
@@ -269,13 +278,13 @@ Config.gen = {
         healthCurr  = 100,
         healthMax   = 100,
         autoTarget  = false,
-        rateOfFire  = 10,
+        rateOfFire  = 1.5,
         damageType  = 1,
         damage      = 2,
         size        = 64,
         spread      = 0.01,
-        range       = 1000,
-        speed       = 1000,
+        range       = 2000,
+        speed       = 800,
         charge      = 1.0,
         colorBodyR  = 0.3,
         colorBodyG  = 0.8,
@@ -334,15 +343,15 @@ Config.gen = {
         healthCurr  = 100,
         healthMax   = 100,
         autoTarget  = false,
-        rateOfFire  = 10,
+        rateOfFire  = 0.5,
         heat        = 1,
         cooldown    = 1,
         damageType  = 1,
         damage      = 15,
         size        = 128,
         spread      = 0.02,
-        range       = 1200,
-        speed       = 800,
+        range       = 2400,
+        speed       = 600,
         charge      = 8.0,
         colorBodyR  = 1.5,
         colorBodyG  = 0.8,
@@ -414,6 +423,11 @@ Config.gen = {
         range        = 20000,
     },
 
+    objectEmissionsDropoff = {1e8,   -- star
+                              1e6,   -- planet
+                              20000, -- station
+                              5000,  -- ship
+                             },
     objectEmissions = {
     -- STAR  PLANET  STATION  SHIP  THRUSTER PULSE  BEAM  JUMP  CLOAK
     {     5,     21,      10,   16,       0,     0,    0,    9,    -5},    --              |   1  Hz
@@ -445,7 +459,7 @@ Config.gen = {
     {    57,     68,      61,   15,       5,     0,    8,   14,    -5},    --             ||  10 THz > Bio-imaging  > Infrared
     {    66,     28,      46,   22,      12,    10,   17,   26,   -10},    --             ||  50 THz > Bio-imaging  > Infrared
     {    78,     20,      33,   51,      51,    72,   54,   70,   -30},    --             || 100 THz                > Infrared
-    {   100,     12,      29,   20,      90,    82,   89,   79,   -10},    --             || 500 THz > Visible light
+    {   100,     12,      29,   25,      90,    82,   89,   79,   -15},    --             || 500 THz > Visible light
     {    81,      3,      29,   32,      72,    41,   37,    8,   -15},    --             ||   1 PHz > Ultraviolet
     {    66,      6,      35,   19,      59,    90,    6,    0,    -5},    --             ||   5 PHz > Ultraviolet
     {    41,      1,      24,    6,      21,    21,    8,    0,     0},    --             ||  10 PHz > Ultraviolet
@@ -466,14 +480,7 @@ Config.gen = {
     {     0,      0,       0,    0,       0,     0,    0,    1,     0},    --            ||| 500 ZHz
     },
 
-    nebulaRes           = 1024, -- 2048 sometimes creates nebulae with stright-line edges
-
-    nAIPlayers          = 0,   -- # of AI players (who manage Economic assets)
-    randomizeAIPlayers  = false,
-    nEconNPCs           = 0,   -- # of ships to be given Economic actions (managed by AI players)
-    randomizeEconNPCs   = false,
-    nEscortNPCs         = 20,  -- # of ships to be given the Escort action
-    randomizeEscortNPCs = false,
+    nebulaRes           = 2048,
 
     zNearBack           = 0.1,
     zNearReal           = 0.1, -- 0.1

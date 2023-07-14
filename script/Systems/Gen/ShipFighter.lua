@@ -669,7 +669,7 @@ function ShipFighter.WingsTie(rng)
     end
 
     -- make wide, flat shape
-    local r, split, dist
+    local r, dist, split
     if Settings.get('genship.override') then
         r = Settings.get('genship.standard.wingLength')
         dist = Settings.get('genship.standard.wingDist')
@@ -796,7 +796,7 @@ function ShipFighter.Standard(rng, hull)
     if wingType == 2 then
         shape:add(ShipFighter.WingsStandard(rng, bodyAABB))
     elseif wingType == 3 then
-        shape:add(ShipFighter.WingsTie(rng, bodyAABB))
+        shape:add(ShipFighter.WingsTie(rng))
     end
 
     -- other parts

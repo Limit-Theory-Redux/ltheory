@@ -38,18 +38,21 @@ function Factory:addProduction(type)
     end
 end
 
--- Is the factory stalled due to a lack of inputs or excess of outputs at the
--- moment?
 function Factory:isBlocked()
+    -- Is the factory stalled due to a lack of inputs or excess of outputs at the moment?
     for _, prod in ipairs(self.prods) do
         if prod.blocked then return true end
     end
     return false
 end
 
--- Get the fraction of time that this factory has been active (i.e., not
--- blocked)
+function Factory:getProds()
+    -- Return the list of production lines installed in this factory
+    return self.prods
+end
+
 function Factory:getUptime()
+    -- Return the fraction of time that this factory has been active (i.e., not blocked)
     return self.timeOnline / self.time
 end
 

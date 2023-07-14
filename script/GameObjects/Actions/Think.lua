@@ -117,8 +117,8 @@ function Think:manageAsset(asset)
             -- Wake up asset if it was sleeping and make sure it undocks
             local station = asset:isShipDocked()
             if station then
-                --printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-                --asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
+                printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
+                asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
                 --for i, v in ipairs(asset.actions) do
                 --  printf("  Actions %d : %s", i, v:getName(asset))
                 --end
@@ -140,7 +140,6 @@ function Think:manageAsset(asset)
         -- No more jobs available; send asset to nearest station to sleep
         -- TODO: Make sure this is only done at the AI player's direction for ECONOMIC ships (miners and transports)!
         local system = asset.parent
-
         local stations = system:getStationsByDistance(asset)
         if #stations > 0 and stations[1] ~= nil then
             local station = stations[1].stationRef

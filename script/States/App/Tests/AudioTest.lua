@@ -4,8 +4,8 @@ local Bindings = require('States.ApplicationBindings')
 local AudioTest = require('States.Application')
 
 local Music = {
-    MainTheme = './res/sound/system/audio/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade',
-    AltTheme  = './res/sound/system/audio/LTR_Parallax_Universe_loop'
+    MainTheme = './res/sound/system/audio/music/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade',
+    AltTheme  = './res/sound/system/audio/music/LTR_Parallax_Universe_loop'
 }
 
 local SFX = {
@@ -108,7 +108,7 @@ function AudioTest:onInput()
     end
 
     if Input.GetDown(Button.Mouse.Left) then
-        -- if TimeStamp.GetElapsed(self.lastFireTime) > 0.12 then
+        -- if self.lastFireTime:getElapsed() > 0.12 then
         --   self.lastFireTime = self.lastUpdate
         --   local sound = Sound.Load(SFX.Gun, false, true)
         --   sound:setFreeOnFinish(true)

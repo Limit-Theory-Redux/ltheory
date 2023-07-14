@@ -102,12 +102,12 @@ function Renderer:bloom(radius)
     end
 end
 
-function Renderer:blur(dst, src, dx, dy, radius)
+function Renderer:blur(dst, src, dx, dy, radius, variance)
     local shader = Cache.Shader('ui', 'filter/blur')
     local size = src:getSize()
     dst:push()
     shader:start()
-    Shader.SetFloat('variance', 0.2 * radius)
+    Shader.SetFloat('variance', variance)
     Shader.SetFloat2('dir', dx, dy)
     Shader.SetFloat2('size', size.x, size.y)
     Shader.SetInt('radius', radius)

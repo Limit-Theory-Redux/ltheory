@@ -84,10 +84,10 @@ unsafe extern "C" fn TexCube_InitParameters() {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut TexCube {
     if !TexFormat_IsValid(format) {
-        Fatal!("TexCube_Create: Invalid texture format requested");
+        panic!("TexCube_Create: Invalid texture format requested");
     }
     if TexFormat_IsDepth(format) {
-        Fatal!("TexCube_Create: Cannot create cubemap with depth format");
+        panic!("TexCube_Create: Cannot create cubemap with depth format");
     }
 
     let this = MemNew!(TexCube);
@@ -212,20 +212,20 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
             tex2d_load_raw(&face_path, &mut sx, &mut sy, &mut lcomponents);
 
         if data.is_null() {
-            Fatal!("TexCube_Load failed to load cubemap face from '{face_path}'",);
+            panic!("TexCube_Load failed to load cubemap face from '{face_path}'",);
         }
 
         if sx != sy {
-            Fatal!("TexCube_Load loaded cubemap face is not square");
+            panic!("TexCube_Load loaded cubemap face is not square");
         }
 
         if i != 0 {
             if sx != (*this).size || sy != (*this).size {
-                Fatal!("TexCube_Load loaded cubemap faces have different resolutions");
+                panic!("TexCube_Load loaded cubemap faces have different resolutions");
             }
 
             if lcomponents != components {
-                Fatal!("TexCube_Load loaded cubemap faces have different number of components");
+                panic!("TexCube_Load loaded cubemap faces have different number of components");
             }
         } else {
             components = lcomponents;
@@ -350,14 +350,14 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
         let mut j: i32 = 1;
         let mut jobSize: i32 = 1;
         while j <= size {
-            let time: TimeStamp = TimeStamp_Get();
+            let time: TimeStamp = TimeStamp::now();
             ClipRect_Push(0.0f32, (j - 1) as f32, size as f32, jobSize as f32);
             Draw_Rect(0.0f32, 0.0f32, fSize, fSize);
             Draw_Flush();
             ClipRect_Pop();
 
             j += jobSize;
-            let elapsed: f64 = TimeStamp_GetElapsed(time);
+            let elapsed = time.get_elapsed();
             jobSize = f64::max(
                 1.0,
                 f64::floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,

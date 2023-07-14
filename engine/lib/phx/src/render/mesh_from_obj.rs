@@ -35,7 +35,7 @@ fn Obj_Fatal(message: &str, s: *mut ParseState) {
         MemCpy(line as *mut _, (*s).lineStart as *const _, len as usize);
         *line.offset(len as isize) = 0 as libc::c_char;
 
-        Fatal!(
+        panic!(
             "{message}. Line {}\n{:?}",
             (*s).lineNumber,
             CStr::from_ptr(line)

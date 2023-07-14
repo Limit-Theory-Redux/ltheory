@@ -47,7 +47,8 @@ function Application:run()
         self.resY,
         self:getWindowMode())
 
-    self.audio = Audio.Create()
+    self.audio   = Audio.Create()
+    self.audiofx = Audio.Create()
 
     GameState.render.gameWindow = self.window
 
@@ -64,7 +65,7 @@ function Application:run()
     self:onResize(self.resX, self.resY)
 
     local font = Font.Load('NovaMono', 10)
-    self.lastUpdate = TimeStamp.GetFuture(-1.0 / 60.0)
+    self.lastUpdate = TimeStamp.Now() -- TODO: was TimeStamp.GetFuture(-1.0 / 60.0)
 
     if Config.jit.dumpasm then Jit.StartDump() end
     if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
@@ -143,7 +144,7 @@ function Application:run()
             if Input.GetPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
                 if GameState.paused then
                     GameState.paused = false
-                    if not GameState.panelActive then
+                    if not GameState.panelActive and not GameState.debug.instantJobs then
                         Input.SetMouseVisible(false)
                     end
                 else
@@ -155,7 +156,7 @@ function Application:run()
             -- Preserving this in case we need to be able to automatically pause on window exit again
             -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
             --      if Input.GetPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
-            --        Config.game.gamePaused = true
+            --        GameState.paused = true
             --      end
 
             if GameState.paused then
@@ -183,8 +184,8 @@ function Application:run()
         do
             Profiler.SetValue('gcmem', GC.GetMemory())
             Profiler.Begin('App.onUpdate')
-            local now = TimeStamp.Get()
-            self.dt = TimeStamp.GetDifference(self.lastUpdate, now)
+            local now = TimeStamp.Now()
+            self.dt = self.lastUpdate:getDifference(now)
             self.lastUpdate = now
             self:onUpdate(timeScale * self.dt)
             Profiler.End()
@@ -220,7 +221,8 @@ function Application:run()
             end
 
             if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
-                --TODO: replace this with a general "is alive" game state here and in LTR, the whole process needs to be improved
+                --TODO: replace this with a general "is alive" game state here and in LTR,
+                --      the whole process needs to be improved
                 if MainMenu and not MainMenu.dialogDisplayed and
                     not MainMenu.seedDialogDisplayed and
                     not MainMenu.settingsScreenDisplayed then
@@ -240,16 +242,16 @@ function Application:run()
 
         -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
         if doScreenshot then
-            --        Settings.set('render.superSample', 2) -- turn on mild supersampling
+            -- Settings.set('render.superSample', 2) -- turn on mild supersampling
             ScreenCap()
             if self.prevSS then
-                --        Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
+                -- Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
                 self.prevSS = nil
             end
         end
 
         do                                         -- Metrics display
-            if GameState.debug.metricsEnabled then -- Metrics Display
+            if GameState.debug.metricsEnabled then
                 local s = string.format(
                     '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
                     1000.0 * self.dt,
@@ -279,6 +281,7 @@ function Application:run()
             self.window:endDraw()
             Profiler.End()
         end
+
         Profiler.End()
         Profiler.LoopMarker()
     end

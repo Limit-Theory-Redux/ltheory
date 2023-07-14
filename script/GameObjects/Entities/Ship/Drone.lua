@@ -102,14 +102,15 @@ function Drone:aimAtTarget(target, fallback)
 end
 
 function Drone:canFire()
-    return not Config.game.gamePaused and self.cooldown <= 0
+    return not GameState.paused and self.cooldown <= 0
 end
 
 function Drone:fire()
     if not self:canFire() then return end
     printf("%s launching drone!", self:getParent():getName())
 
-    local projectile, effect = self:getRoot():addProjectile(self:getParent())
+    local projectile = self:getRoot():addProjectile(self:getParent())
+    local effect = projectile:getEffect()
     local dir = (self:getForward() + rng:getDir3():scale(self.projSpread * rng:getExp())):normalize()
     effect.pos = self:toWorld(Vec3f(0, 0, 0))
     effect.vel = dir:scale(self.projSpeed) + self:getParent():getVelocity()
@@ -117,14 +118,6 @@ function Drone:fire()
     assert(effect.dir:length() >= 0.9)
     effect.lifeMax = self.projLife
     effect.life = effect.lifeMax
-
-    if projectile then
-        projectile.pos  = effect.pos
-        projectile.vel  = effect.vel
-        projectile.dir  = effect.dir
-        projectile.dist = 0
-        --printf("DRONE: %s pos %s", projectile:getName(), projectile.pos)
-    end
 
     -- NOTE : In the future, it may be beneficial to store the actual drone
     --        rather than the parent. It would allow, for example, data-driven

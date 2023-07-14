@@ -16,10 +16,10 @@ function onDef_Profiler(t, mt)
 
     t.TimeGPU = function(name, fn)
         Draw.Flush()
-        local begin = TimeStamp.Get()
+        local begin = TimeStamp.Now()
         fn()
         Draw.Flush()
-        local duration = TimeStamp.GetElapsedMs(begin)
+        local duration = begin:getElapsedMs()
         printf('%s : %.2f ms', name, duration)
     end
 end

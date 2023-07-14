@@ -22,7 +22,7 @@ pub static subsystems: u32 = SDL_INIT_EVENTS
     | SDL_INIT_JOYSTICK
     | SDL_INIT_GAMECONTROLLER;
 
-static mut initTime: TimeStamp = 0;
+static mut initTime: TimeStamp = TimeStamp::zero();
 
 pub struct Engine;
 
@@ -101,20 +101,20 @@ impl Engine {
                         "  Version (Linked)   : {}.{}.{}",
                         linked.major, linked.minor, linked.patch,
                     );
-                    Fatal!("Engine_Init: Terminating.");
+                    panic!("Engine_Init: Terminating.");
                 }
 
                 if SDL_Init(0) != 0 {
-                    Fatal!("Engine_Init: Failed to initialize SDL");
+                    panic!("Engine_Init: Failed to initialize SDL");
                 }
                 if !Directory_Create(c_str!("log")) {
-                    Fatal!("Engine_Init: Failed to create log directory.");
+                    panic!("Engine_Init: Failed to create log directory.");
                 }
                 atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
             }
 
             if SDL_InitSubSystem(subsystems) != 0 {
-                Fatal!("Engine_Init: Failed to initialize SDL's subsystems");
+                panic!("Engine_Init: Failed to initialize SDL's subsystems");
             }
 
             SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, gl_version_major);
@@ -137,7 +137,7 @@ impl Engine {
             Resource_Init();
             ShaderVar_Init();
 
-            initTime = TimeStamp_Get();
+            initTime = TimeStamp::now();
         }
     }
 
@@ -163,7 +163,7 @@ impl Engine {
     }
 
     pub fn get_time() -> f64 {
-        unsafe { TimeStamp_GetElapsed(initTime) }
+        unsafe { initTime.get_elapsed() }
     }
 
     pub fn get_version() -> &'static str {
@@ -172,7 +172,7 @@ impl Engine {
     }
 
     pub fn is_initialized() -> bool {
-        unsafe { initTime != 0 }
+        unsafe { initTime != TimeStamp::zero() }
     }
 
     pub fn terminate() {

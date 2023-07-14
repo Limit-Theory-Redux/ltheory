@@ -793,13 +793,13 @@ pub unsafe extern "C" fn ImGui_End() {
     ImGui_PopLayout();
 
     if !(this.layer).is_null() {
-        Fatal!("ImGui_End: layer stack not empty");
+        panic!("ImGui_End: layer stack not empty");
     }
     if !(this.widget).is_null() {
-        Fatal!("ImGui_End: widget stack not empty");
+        panic!("ImGui_End: widget stack not empty");
     }
     if !(this.layout).is_null() {
-        Fatal!("ImGui_End: layout stack not empty");
+        panic!("ImGui_End: layout stack not empty");
     }
 }
 
@@ -1064,7 +1064,7 @@ pub unsafe extern "C" fn ImGui_PushStyleTextColor(r: f32, g: f32, b: f32, a: f32
 #[no_mangle]
 pub unsafe extern "C" fn ImGui_PopStyle() {
     if ((*this.style).prev).is_null() {
-        Fatal!("ImGui_PopStyle: Attempting to pop an empty stack");
+        panic!("ImGui_PopStyle: Attempting to pop an empty stack");
     }
     let style: *mut ImGuiStyle = this.style;
     this.style = (*style).prev;

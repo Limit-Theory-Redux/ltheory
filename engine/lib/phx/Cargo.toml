@@ -15,6 +15,7 @@ luajit-ffi-gen.workspace = true
 
 # release crates
 chrono = "0.4.24"
+directories = "5.0.1"
 flate2 = "1.0.25"
 freetype-sys = "0.17.0"
 glam = { version = "0.24.0", features = ["scalar-math"] }
@@ -23,8 +24,8 @@ kira = "0.8"
 libc = "0.2.146"
 memoffset = "0.9.0"
 mlua = { version = "0.8.9", features = ["luajit52", "vendored"] }
-printf-compat = "0.1.1"
 rapier3d = { version = "0.17.2", features = [ "simd-stable" ] }
+num_cpus = "1.15.0"
 regex = "1.8.4"
 rodio = "0.17.0"
 sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "master", features = [

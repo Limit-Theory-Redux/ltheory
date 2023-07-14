@@ -5,18 +5,18 @@ local Timer
 
 do -- C Definitions
     ffi.cdef [[
-    Timer* Timer_Create      ();
-    void   Timer_Free        (Timer*);
-    double Timer_GetAndReset (Timer*);
-    double Timer_GetElapsed  (Timer*);
-    void   Timer_Reset       (Timer*);
-  ]]
+        void   Timer_Free        (Timer*);
+        Timer* Timer_Create      ();
+        double Timer_GetAndReset (Timer*);
+        double Timer_GetElapsed  (Timer const*);
+        void   Timer_Reset       (Timer*);
+    ]]
 end
 
 do -- Global Symbol Table
     Timer = {
-        Create      = libphx.Timer_Create,
         Free        = libphx.Timer_Free,
+        Create      = libphx.Timer_Create,
         GetAndReset = libphx.Timer_GetAndReset,
         GetElapsed  = libphx.Timer_GetElapsed,
         Reset       = libphx.Timer_Reset,

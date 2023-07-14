@@ -1,4 +1,9 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use kira::manager::{AudioManager, AudioManagerSettings};
+use kira::sound::static_sound::StaticSoundHandle;
+use kira::sound::PlaybackState;
 use kira::spatial::emitter::{EmitterHandle, EmitterSettings};
 use kira::spatial::listener::{ListenerHandle, ListenerSettings};
 use kira::spatial::scene::{SpatialSceneHandle, SpatialSceneSettings};
@@ -12,6 +17,7 @@ pub struct Audio {
     audio_manager: AudioManager,
     spatial_scene: SpatialSceneHandle,
     listener: ListenerHandle,
+    sounds: Vec<Rc<RefCell<StaticSoundHandle>>>,
 }
 
 #[luajit_ffi_gen::luajit_ffi(managed = true)]
@@ -36,6 +42,7 @@ impl Audio {
             audio_manager,
             spatial_scene,
             listener,
+            sounds: vec![],
         }
     }
 
@@ -56,6 +63,10 @@ impl Audio {
                 .play(sound.sound_data().clone())
                 .expect("Cannot play sound");
 
+            let sound_handle = Rc::new(RefCell::new(sound_handle));
+
+            self.sounds.push(sound_handle.clone());
+
             sound.set_sound_handle(sound_handle);
         }
     }
@@ -74,7 +85,10 @@ impl Audio {
     }
 
     pub fn get_playing_count(&self) -> u64 {
-        0 // FIXME
+        self.sounds
+            .iter()
+            .filter(|sound| sound.borrow().state() == PlaybackState::Playing)
+            .count() as u64
     }
 
     pub fn get_total_count(&self) -> u64 {

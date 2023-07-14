@@ -20,6 +20,7 @@ GameState.debug = {
 GameState.render = {
     fullscreen      = Config.render.fullscreen,
     gameWindow      = nil,
+    gameView        = nil,
     resX            = Config.render.defaultResX,
     resY            = Config.render.defaultResY,
     vsync           = Config.render.vsync,
@@ -89,7 +90,7 @@ GameState.world = {
 }
 
 GameState.gen = {
-    nFields               = Config.gen.nStations,
+    nFields               = Config.gen.nFields,
     nAsteroids            = Config.gen.nAsteroids,
     nPlanets              = Config.gen.nPlanets,
     nStations             = Config.gen.nStations,

@@ -147,7 +147,7 @@ pub unsafe extern "C" fn Font_Load(name: *const libc::c_char, size: i32) -> *mut
     (*this)._refCount = 1;
 
     if FT_New_Face(ft, path, 0 as FT_Long, &mut (*this).handle) != 0 {
-        Fatal!(
+        panic!(
             "Font_Load: Failed to load font <{:?}> at <{:?}>",
             CStr::from_ptr(name),
             CStr::from_ptr(path),

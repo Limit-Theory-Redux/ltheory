@@ -41,6 +41,8 @@ local System = subclass(Entity, function(self, seed)
 
     self.players    = {}
     self.aiPlayers  = nil
+    self.stars      = {}
+    self.planets    = {}
     self.zones      = {}
     self.stations   = {}
     self.ships      = {}
@@ -57,59 +59,20 @@ local System = subclass(Entity, function(self, seed)
     end
 end)
 
-function System:addExtraFactories(system, planetCount, aiPlayer)
-    -- Based on what factories were added randomly to stations, a system may need some
-    --    additional factories to provide the necessary Input items
-    if Config.gen.nEconNPCs > 0 then
-        local newStation = nil
-        local prodTypeCount = 0
+function System:addStar(star)
+    insert(self.stars, star)
+end
 
-        prodTypeCount = prodTypeCount + system:countProdType(Production.Silver)
-        prodTypeCount = prodTypeCount + system:countProdType(Production.Gold)
-        prodTypeCount = prodTypeCount + system:countProdType(Production.Platinum)
-        for i = 1, prodTypeCount do
-            -- Add a Copper Refinery station (to create Item.AnodeSludge)
-            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Copper)
-            system:place(newStation)
-        end
+function System:getStars()
+    return self.stars
+end
 
-        prodTypeCount = system:countProdType(Production.EnergyNuclear)
-        for i = 1, prodTypeCount do
-            -- Add an Isotope Factory station (to create Item.Isotopes)
-            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Isotopes)
-            system:place(newStation)
-        end
+function System:addPlanet(planet)
+    insert(self.planets, planet)
+end
 
-        prodTypeCount = system:countProdType(Production.Isotopes)
-        for i = 1, prodTypeCount do
-            -- Add a Thorium Refinery station (to create Item.Thorium)
-            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Thorium)
-            system:place(newStation)
-        end
-
-        prodTypeCount = system:countProdType(Production.EnergyFusion)
-        for i = 1, prodTypeCount do
-            -- Add 2 Water Melter stations (to create Item.WaterLiquid)
-            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
-            system:place(newStation)
-            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
-            system:place(newStation)
-        end
-
-        for i = 1, planetCount do
-            -- Add a Petroleum Refinery station
-            -- TODO: only add refineries for each planet that has a Trader
-            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Petroleum)
-            system:place(newStation)
-        end
-
-        prodTypeCount = system:countProdType(Production.Petroleum)
-        for i = 1, prodTypeCount do
-            -- Add a Plastics Factory station (to create Item.Plastic)
-            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
-            system:place(newStation)
-        end
-    end
+function System:getPlanets()
+    return self.planets
 end
 
 function System:addZone(zone)
@@ -147,6 +110,18 @@ function System:getStationsByDistance(ship)
     return stationList
 end
 
+function System:sampleStations(rng)
+    return rng:choose(self.stations)
+end
+
+function System:addShip(ship)
+    insert(self.ships, ship)
+end
+
+function System:getShips()
+    return self.ships
+end
+
 function System:hasProdType(prodtype)
     -- Scan the production types of all factories in this system to see if one has the specified production type
     local hasProdType = false
@@ -176,8 +151,59 @@ function System:countProdType(prodtype)
     return numProdType
 end
 
-function System:sampleStations(rng)
-    return rng:choose(self.stations)
+function System:addExtraFactories(system, planetCount, aiPlayer)
+    -- Based on what factories were added randomly to stations, a system may need some
+    --    additional factories to provide the necessary Input items
+    if Config.gen.nEconNPCs > 0 then
+        local newStation = nil
+        local prodTypeCount = 0
+
+        prodTypeCount = prodTypeCount + system:countProdType(Production.Silver)
+        prodTypeCount = prodTypeCount + system:countProdType(Production.Gold)
+        prodTypeCount = prodTypeCount + system:countProdType(Production.Platinum)
+        for i = 1, prodTypeCount do
+            -- Add a Copper Refinery station (to create Item.AnodeSludge)
+            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Copper)
+            newStation.zone = system:place(newStation)
+        end
+
+        prodTypeCount = system:countProdType(Production.EnergyNuclear)
+        for i = 1, prodTypeCount do
+            -- Add an Isotope Factory station (to create Item.Isotopes)
+            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Isotopes)
+            newStation.zone = system:place(newStation)
+        end
+
+        prodTypeCount = system:countProdType(Production.Isotopes)
+        for i = 1, prodTypeCount do
+            -- Add a Thorium Refinery station (to create Item.Thorium)
+            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Thorium)
+            newStation.zone = system:place(newStation)
+        end
+
+        prodTypeCount = system:countProdType(Production.EnergyFusion)
+        for i = 1, prodTypeCount do
+            -- Add 2 Water Melter stations (to create Item.WaterLiquid)
+            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
+            newStation.zone = system:place(newStation)
+            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
+            newStation.zone = system:place(newStation)
+        end
+
+        for i = 1, planetCount do
+            -- Add a Petroleum Refinery station
+            -- TODO: only add refineries for each planet that has a Trader
+            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Petroleum)
+            newStation.zone = system:place(newStation)
+        end
+
+        prodTypeCount = system:countProdType(Production.Petroleum)
+        for i = 1, prodTypeCount do
+            -- Add a Plastics Factory station (to create Item.Plastic)
+            newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
+            newStation.zone = system:place(newStation)
+        end
+    end
 end
 
 function System:place(object)
@@ -248,7 +274,8 @@ function System:place(object)
     end
     object:setPos(pos)
 
-    return pos
+    -- Return the Asteroid Field zone in which the object is being placed
+    return field
 end
 
 function System:beginRender()
@@ -454,6 +481,8 @@ function System:spawnPlanet(bAddBelt)
         end
     end
 
+    self:addPlanet(planet)
+
     local typeName = Config:getObjectInfo("object_types", planet:getType())
     local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
     printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
@@ -530,7 +559,7 @@ function System:spawnAsteroidField(count, reduced)
 
         -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
         -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
-        zone:add(asteroid)
+        zone:addChild(asteroid)
         self:addChild(asteroid)
     end
 
@@ -592,7 +621,7 @@ function System:spawnStation(hullSize, player, prodType)
     station:setName(Words.getCoolName(rng))
 
     -- Set station location within the extent of a randomly selected asteroid field
-    self:place(station)
+    station.zone = self:place(station)
 
     -- Assign the station to an owner
     station:setOwner(player)
@@ -731,7 +760,7 @@ function System:spawnStation(hullSize, player, prodType)
         if rint > 80 then
             prod = rng:choose(Production.P0) -- small chance for a powerplant
         elseif rint > 25 then
-            prod = rng:choose(Production.P1) -- good chance for a powerplant
+            prod = rng:choose(Production.P1) -- good chance for a refinery
         else
             prod = rng:choose(Production.P2) -- good chance for a factory
         end
@@ -967,7 +996,7 @@ function System:spawnShip(hullSize, player)
     ship.projColorB = self.rng:getUniformRange(0.1, 1.2)
 
     -- Add ship to list of ships active in this star system
-    insert(self.ships, ship)
+    self:addShip(ship)
 
     --local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
     --printf("SYSTEM(ship) - Added %s '%s'", subtypeName, ship:getName())
