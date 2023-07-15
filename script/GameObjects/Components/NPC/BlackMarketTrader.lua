@@ -90,7 +90,9 @@ end
 
 function BlackMarketTrader:addBidOffer (bidder)
   local count = bidder.job.jcount
-  local item = bidder.job.item
+  -- first item for now .. Sketchy stuff in the following line :D
+  local item = nil
+  for a,v in pairs(self.elems) do if a~=nil then item = a break end end
   local data = self:getData(item)
   local offersAdded = 0
 
@@ -446,7 +448,7 @@ function BlackMarketTrader:update ()
       --    self:addBid(v, 100)
       --  end
       --end
-      self:addBid(Item.Energy, 10000)
+      self:addBid(Item.Energy, 10000000)
       bid = true
     end
 
