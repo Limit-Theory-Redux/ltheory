@@ -1,7 +1,6 @@
 local UniverseEconomy = require('Systems.Universe.UniverseEconomy')
 local System = require('GameObjects.Entities.Test.System')
 local Actions = requireAll('GameObjects.Actions')
-local Words = require('Systems.Gen.Words')
 local Jobs = requireAll('GameObjects.Jobs')
 
 local rng = RNG.FromTime()

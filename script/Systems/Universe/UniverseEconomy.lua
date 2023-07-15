@@ -1,6 +1,7 @@
 local Production = require('Systems.Economy.Production')
 local Item = require('Systems.Economy.Item')
 local Actions = requireAll('GameObjects.Actions')
+local Words = require('Systems.Gen.Words')
 local rng = RNG.FromTime()
 
 local UniverseEconomy = class(function(self) end)

@@ -13,6 +13,9 @@ local Economy = class(function(self, parent)
     self.jobs = {}
     self.markets = {}
     self.traders = {}
+    self.blackMarketTraders = {}
+    self.blackMarkets = {}
+    self.blackMarketJobs = {}
     self.yields = {}
 end)
 
@@ -30,6 +33,7 @@ function Economy:update(dt)
         table.clear(self.markets)
         table.clear(self.jobs)
         table.clear(self.traders)
+        table.clear(self.yields)
 --        table.clear(self.yields)
         Profiler.End()
 
@@ -169,6 +173,29 @@ function Economy:update(dt)
         end
         Profiler.End()
         --printf("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
+
+        -- Cache profitable trade jobs
+        Profiler.Begin('Economy.Update.Marauding')
+        local allJobCount = 0
+        local realJobCount = 0
+        for _, src in ipairs(self.blackMarketTraders) do
+            if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
+                for item, data in pairs(src:getBlackMarketTrader().elems) do
+                    if src:getBlackMarketTrader():getAskVolume(item) > 0 then
+                        local buyPrice = src:getBlackMarketTrader():getBuyFromPrice(item, 1)
+                        --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
+                        if buyPrice > 0 then
+                            allJobCount = allJobCount + 1
+                            --printf("Marauding job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
+                            --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
+                            realJobCount = realJobCount + 1
+                            insert(self.jobs, Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems. 
+                        end
+                    end
+                end
+            end
+        end
+        Profiler.End()
 
         Profiler.Begin('Economy.Update.Flows')
         do -- Compute net flow of entire economy
