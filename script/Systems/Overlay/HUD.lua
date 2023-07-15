@@ -966,11 +966,13 @@ function HUD:drawSensors(a)
                     end
                     for _, ship in ipairs(ships) do
                         if ship ~= playerShip and
-                          not ship:isDestroyed() and
-                          playerShip:getDistance(ship) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Ship] then
-                            local align = max(0, (ship:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
-                            if align * align >= 0.3 then
-                                insert(objects, ship)
+                            not ship:isDestroyed() and
+                            playerShip:getDistance(ship) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Ship] then
+                            do
+                                local align = max(0, (ship:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                                if align * align >= 0.3 then
+                                    insert(objects, ship)
+                                end
                             end
                         end
                     end
