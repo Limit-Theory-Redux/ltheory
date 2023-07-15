@@ -317,16 +317,6 @@ function SystemMap.Create(system)
         GameState.player.mapSystemPos = Vec3f(0, 0, 0)
     end
 
-    -- Initialize system map zoom and pan levels only if not already initialized
-    kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
-    --printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
-    if GameState.player.mapSystemZoom == nil then
-        GameState.player.mapSystemZoom = 0.0001
-    end
-    if GameState.player.mapSystemPan == nil then
-        GameState.player.mapSystemPan = kPanSpeed
-    end
-
     return self
 end
 
