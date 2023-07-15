@@ -38,7 +38,11 @@ function Transport:getFlows(e)
     }
 end
 
-function Transport:getName(actor)
+function Transport:getType()
+    return Enums.Jobs.Transport
+end
+
+function Transport:getName()
     if self.jcount == 0 then
         self.jcount = self.bids
     end
