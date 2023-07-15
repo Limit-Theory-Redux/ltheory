@@ -49,16 +49,17 @@ GameState.ui = {
     sensorsDisplayed                 = Config.ui.sensorsDisplayed,
 
     -- Trackers
-    showTrackers                     = Config.ui.showTrackers,
-    maxTrackingRange                 = Config.ui.maxTrackingRange,
+    showTrackers            = Config.ui.showTrackers,
+    maxTrackingRange        = Config.ui.maxTrackingRange,
     trackerBracketingRenderDistances = {
-        Planet   = Config.ui.trackerBracketingRenderDistances.Planet,
-        Asteroid = Config.ui.trackerBracketingRenderDistances.Asteroid,
-        Jumpgate = Config.ui.trackerBracketingRenderDistances.Jumpgate,
-        Station  = Config.ui.trackerBracketingRenderDistances.Station,
-        Ship     = Config.ui.trackerBracketingRenderDistances.Ship,
-        Colony   = Config.ui.trackerBracketingRenderDistances.Colony,
-    }
+        Planet                = Config.ui.trackerBracketingRenderDistances.Planet,
+        Asteroid              = Config.ui.trackerBracketingRenderDistances.Asteroid,
+        Jumpgate              = Config.ui.trackerBracketingRenderDistances.Jumpgate,
+        Station               = Config.ui.trackerBracketingRenderDistances.Station,
+        Ship                  = Config.ui.trackerBracketingRenderDistances.Ship,
+        Colony                = Config.ui.trackerBracketingRenderDistances.Colony,
+    },
+    trackerObjectOcclusion  = Config.ui.trackerObjectOcclusion
 }
 
 GameState.player = {

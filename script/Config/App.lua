@@ -625,13 +625,14 @@ Config.ui = {
     showTrackers     = true,
     maxTrackingRange = 500000,
     trackerBracketingRenderDistances = {
-        Planet   = 500000,
-        Asteroid = 25000,
-        Jumpgate = 50000,
-        Station  = 50000,
-        Ship     = 25000,
-        Colony   = 200000,
-    }
+        Planet    = math.huge,
+        Asteroid  = 25000,
+        Jumpgate  = 50000,
+        Station   = math.huge,
+        Ship      = 25000,
+        Colony    = 200000,
+    },
+    trackerObjectOcclusion  = 0.1
 }
 
 Config.ui.color = {

@@ -1105,11 +1105,12 @@ local function getPosObject(def)
     return object
 end
 
-function HUD:drawTargets(a)
-    deltaTimer = deltaTimer + deltaTime
-    if deltaTimer > lastTargetsUpdate + updateTargetsInterval then
-        if not GameState.ui.showTrackers then return end
-        local camera = self.gameView.camera
+function HUD:drawTargets (a)
+
+  deltaTimer = deltaTimer + deltaTime
+  if deltaTimer > lastTargetsUpdate + updateTargetsInterval then
+    if not GameState.ui.showTrackers then return end
+    local camera = self.gameView.camera
 
         local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
         local cLock = Color(1.0, 0.5, 0.1, 1.0 * a)
@@ -1134,14 +1135,29 @@ function HUD:drawTargets(a)
                 if target:getTrackable() then
                     local pos = target:getPos()
                     local ndc = camera:worldToNDC(pos)
+                    local ray = camera:ndcToRay(ndc, targetDistance)
+                    ndc = camera:worldToNDC(pos)
                     local ndcMax = max(abs(ndc.x), abs(ndc.y))
+
+                    local system = player:getRoot()
+                    local hit = system.physics:rayCast(ray).body
+                    local alphaOverwrite = nil
+
+                    if hit ~= nil then
+                      while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
+                      local hitEnt = Entity.fromRigidBody(hit)
+--          
+                        if hitEnt ~= target then
+                            alphaOverwrite = math.max(0, math.min(GameState.ui.trackerObjectOcclusion, 1.0))
+                        end
+                    end
 
                     -- local disp = target:getOwnerDisposition(player) -- might need to switch back to this version
                     local disp = Config.game.dispoNeutral -- disposition to neutral by default
                     if target:hasAttackable() and target:isAttackable() then disp = target:getDisposition(playerShip) end
                     -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
                     local c = Disposition.GetColor(disp)
-                    c.a = 1 - (targetDistance / GameState.ui.maxTrackingRange)
+                    c.a = alphaOverwrite or (1 - ( targetDistance / GameState.ui.maxTrackingRange ))
 
                     if ndcMax <= 1.0 and ndc.z > 0 then
                         do
@@ -1375,7 +1391,8 @@ function HUD:drawTargets(a)
                     end
                 end
             end
-        end
+        ::skipTarget::
+    end
         lastTargetsUpdate = deltaTimer
         self.target = closest
     end
