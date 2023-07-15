@@ -70,6 +70,7 @@ local Ship = subclass(Entity, function(self, proto, hull)
     -- Events
     self:register(Event.Damaged, self.wasDamaged)
     self:register(Event.FiredTurret, self.turretFired)
+    self:register(Event.Collision, self.onCollision)
 end)
 
 function Ship:wasDamaged (event)
@@ -92,6 +93,10 @@ function Ship:turretFired (event)
     end
 end
 
+function Ship:onCollision(event)
+
+end
+
 -- TODO : Calculate true top speed based on max thrust & drag factor
 function Ship:getTopSpeed()
     return 100
@@ -105,6 +110,11 @@ function Ship:attackedBy(target)
         -- Ignore hits on ships that have already been destroyed
         --printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:mgrHullGetHullPercent(), target:getName())
         self:modDisposition(target, -0.2)
+        local zone = self:getZone()
+        if zone then
+            zone:adjustThreat(0.1)
+        end
+
         if self ~= GameState.player.currentShip and self:isHostileTo(target) then
             -- If this non-player-controlled ship is not currently attacking its attacker,
             --    add an action to Attack its attacker

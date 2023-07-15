@@ -44,7 +44,7 @@ end
 
 function MaraudAt:onUpdateActive(e, dt)
 
-  if e:getInventoryFree() < 1 or self.searchAttempts >= 64 then
+  if e:getInventoryFree() < 1 or self.searchAttempts >= 24 then
     e:popAction()
   end
 

@@ -55,6 +55,7 @@ end
 function Think:manageAsset(asset)
     local root = asset:getRoot()
     local bestPayout = 0
+    local lowestThreatLevel = math.huge
     local bestJob = nil
     local jobAssigned = false
 
@@ -72,6 +73,7 @@ function Think:manageAsset(asset)
         -- TODO : KnowsAbout check (information economy + AI load reduction)
         local jobType = self.rng:choose(root:getEconomy().jobs)
         local job
+        local threatLevel = 0
 
         if jobType then
             for _ = 1, math.min(Config.econ.jobIterations, #jobType * 2) do
@@ -85,9 +87,11 @@ function Think:manageAsset(asset)
                 end
 
                 local payout = job:getPayout(asset)
-                if payout > bestPayout then
+                -- TODO needs better evaluation of risk versus reward
+                if payout >= bestPayout and threatLevel <= lowestThreatLevel then
                     if job.jcount > 0 then
                         bestPayout = payout
+                        lowestThreatLevel = threatLevel
                         bestJob = job
                     else
                         printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
@@ -149,9 +153,13 @@ function Think:manageAsset(asset)
                     --end
                 end
             end
+        elseif string.find(asset.job:getName(), "Patrolling") and not asset.job.src:isDestroyed() then
+            asset:pushAction(bestJob)
+            jobAssigned = true
+            asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Patrol"))
         else
             -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
-            printf("THINK: canceling job '%s' for asset %s", asset.job:getName(asset), asset:getName())
+            printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())
             asset.job = nil
         end
     end
