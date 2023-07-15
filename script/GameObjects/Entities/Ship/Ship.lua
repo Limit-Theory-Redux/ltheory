@@ -95,6 +95,7 @@ function Ship:attackedBy(target)
                 else
                     self:pushAction(Actions.Attack(target))
                 end
+                self:distressCall(target, 15000)
             else
                 self:pushAction(Actions.Attack(target))
             end
@@ -102,7 +103,21 @@ function Ship:attackedBy(target)
     end
 end
 
-function Ship:setShipDocked(entity)
+function Ship:distressCall (target, range)
+    local owner = self:getOwner()
+    for asset in  owner:iterAssets() do
+        if asset:getType() == Config:getObjectTypeByName("object_types", "Ship") and self:getDistance(asset) < range then
+            local currentAction = asset:getCurrentAction()
+
+            if currentAction and not string.find(currentAction:getName(),"Attack") then
+                asset:pushAction(Actions.Attack(target))
+                print(asset:getName() .. " answering distress call of " .. self:getName())
+            end
+        end
+    end
+end
+
+function Ship:setShipDocked (entity)
     self.shipDockedAt = entity -- mark 'entity' (just ships for now) as docked
 
     -- If the player was targeting a ship that just docked, remove the target lock
