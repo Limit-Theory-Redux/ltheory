@@ -906,6 +906,7 @@ Config.objectInfo = {
             { 36, "Sloop" },
             { 37, "Yacht" },
             { 38, "Liner" },
+            { 39, "Pirate" }
         }
     },
     {
