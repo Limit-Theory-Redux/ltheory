@@ -65,7 +65,29 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self.usesBoost = false -- default ships fly at only the normal speed
     self.travelDriveActive = false
     local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
+
+    -- Events
+    self:register(Event.Damaged, self.wasDamaged)
+    self:register(Event.FiredTurret, self.turretFired)
 end)
+
+function Ship:wasDamaged (event)
+    if event.amount and event.amount > 0 then
+        -- disable travel mode on damage, this should later be dependant on some kind of value e.g.
+        -- only after shield is down on dmg to hull cancel travel drive
+        if self.travelDriveActive then
+            self.travelDriveActive = false
+        end
+    end
+end
+
+function Ship:turretFired (event)
+    if event.turret then
+        if self.travelDriveActive then
+            self.travelDriveActive = false
+        end
+    end
+end
 
 -- TODO : Calculate true top speed based on max thrust & drag factor
 function Ship:getTopSpeed()

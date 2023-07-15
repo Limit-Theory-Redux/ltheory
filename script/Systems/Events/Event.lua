@@ -36,7 +36,16 @@ function Event.Damaged(amount, source)
     }
 end
 
-function Event.Debug(context)
+function Event.FiredTurret (turret, projectile, effect)
+    return {
+        type = Event.FiredTurret,
+        turret = turret,
+        projectile = projectile,
+        effect = effect,
+    }
+end
+
+function Event.Debug (context)
     return {
         type = Event.Debug,
         context = context,
