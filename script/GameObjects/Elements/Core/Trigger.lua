@@ -57,3 +57,47 @@ function Entity:triggerSetPosLocal(pos)
     assert(self.trigger)
     self.trigger:setPosLocal(pos)
 end
+
+--Returns all objects of given type within the zone
+function Entity:getObjectsInTrigger()
+    --Gets rigidbody count inside the zone's trigger
+    local contentsCount = self:getContentsCount()
+    local objects = {}
+
+    --Loops through the trigger's objects for every found object and gets the rigidbody from libphx
+    --To get the rigidbody we need to provide the rigidbody's index
+    for i = 1, contentsCount do
+        local rb = self:getContents(i - 1)
+        if not rb then goto skip end
+        local e = Entity.fromRigidBody(rb)
+
+        if not e then goto skip end
+        table.insert(objects, e)
+        ::skip::
+    end
+    return objects
+end
+
+--Returns all objects of given type within the zone
+function Entity:getObjectsInTriggerByType(type)
+    --Gets rigidbody count inside the zone's trigger
+    local contentsCount = self:getContentsCount()
+    local objects = {}
+
+    --Loops through the trigger's objects for every found object and gets the rigidbody from libphx
+    --To get the rigidbody we need to provide the rigidbody's index
+    for i = 1, contentsCount do
+        local rb = self:getContents(i - 1)
+
+        if not rb then goto skip end
+        local e = Entity.fromRigidBody(rb)
+
+        if not e then goto skip end
+
+        if e:getType() == Config:getObjectTypeByName("object_types", type) then
+        table.insert(objects, e)
+        end
+        ::skip::
+    end
+    return objects
+end
