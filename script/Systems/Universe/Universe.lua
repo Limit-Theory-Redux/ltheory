@@ -1,4 +1,4 @@
-##local UniverseEconomy = require('Systems.Universe.UniverseEconomy')
+local UniverseEconomy = require('Systems.Universe.UniverseEconomy')
 local System = require('GameObjects.Entities.Test.System')
 local Actions = requireAll('GameObjects.Actions')
 
@@ -110,8 +110,8 @@ function Universe:CreateStarSystem(seed)
             irate:pushAction(Actions.Patrol(nil, nil))
             irate
 
-          -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
-          --       These will be dogfighting challenges!
+            -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
+            --       These will be dogfighting challenges!
             if rng:getInt(0, 100) < 20 then
                 pirate:setHealth(100, 100, 0.2)
                 pirate.usesBoost = true
