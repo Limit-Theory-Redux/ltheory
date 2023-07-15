@@ -7,6 +7,7 @@ local Patrol = subclass(Action, function(self, target, radius)
   self.system = nil
   self.patrolZone = nil
   self.attackTarget = nil
+  self.wasAttacking = nil
 end)
 
 function Patrol:clone()
@@ -17,7 +18,7 @@ function Patrol:getName()
   return 'Patrol'
 end
 
-function Patrol:FindClosestTarget (e, radius)
+local function findClosestTarget (self, e, radius)
   local closestDistance = math.huge
   local closestShip = nil
   for index, ship in ipairs(self.system.ships) do
@@ -31,8 +32,14 @@ function Patrol:FindClosestTarget (e, radius)
   return closestShip
 end
 
-function Patrol:onUpdateActive (e, dt)
+local function checkForViableTarget(self, e)
+  local attackTarget = findClosestTarget(self, e, 15000)
+  if attackTarget and attackTarget:isAlive() and not attackTarget:isDestroyed() then
+    return attackTarget
+  end
+end
 
+function Patrol:onUpdateActive (e, dt)
   if not self.system then
     self.system = GameState.world.currentSystem
   end
@@ -41,20 +48,25 @@ function Patrol:onUpdateActive (e, dt)
     self.patrolZone = self.system:sampleZones(self.system.rng)
   end
 
-  if self.patrolZone and not self.targetPosition then
+  if self.targetPosition then
+    if e:getPos():distance(self.targetPosition) < 2000 or self.wasAttacking then
+      self.attackTarget = checkForViableTarget(self, e)
+
+      if self.attackTarget then
+        e:pushAction(Actions.Attack(self.attackTarget))
+        print(e:getName() .. " is attacking: " .. self.attackTarget:getName())
+        self.wasAttacking = true
+      else
+        -- reset
+        self.targetPosition = nil
+        self.wasAttacking = false
+      end
+    else
+      self:flyToward(e, self.targetPosition, e:getForward(), e:getUp())
+    end
+  elseif not self.targetPosition and self.patrolZone then
     self.targetPosition = self.patrolZone:getRandomPos(self.system.rng)
   end
-
-  self:flyToward(e, self.targetPosition, e:getForward(), e:getUp())
-  if e:getPos():distance(self.targetPosition) < 2000 then
-    self.attackTarget = self:FindClosestTarget(e, 15000)
-    if self.attackTarget and self.attackTarget:isAlive() and not self.attackTarget:isDestroyed() then
-      e:pushAction(Actions.Attack(self.attackTarget))
-      print(e:getName() .. " is attacking: " .. self.attackTarget:getName())
-    end
-    self.targetPosition = nil
-  end
-
 end
 
 return Patrol

@@ -144,11 +144,25 @@ function Think:manageAsset(asset)
         if #stations > 0 and stations[1] ~= nil then
             local station = stations[1].stationRef
 
-            printf(
-                "THINK ---: Asset %s (owner %s) with total capacity %d has no more jobs available; docking at Station %s",
-                asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(), station:getName())
-            asset:clearActions()
-            asset:pushAction(Actions.DockAt(station))
+        local stations = system:getStationsByDistance(asset)
+            
+        if #stations > 0 then
+            local i = 1
+            -- don´t dock at hostile stations
+            while stations[i] and stations[i].stationRef:getOwner() ~= asset:getOwner() do
+              i = i + 1
+            end
+
+            if stations[i] then
+                local station = stations[i].stationRef
+                printf("THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
+                asset:getName(), asset:getOwner():getName(), asset:getInventoryFree(), station:getName())
+                asset:clearActions()
+                asset:pushAction(Actions.DockAt(station))
+            else
+                -- do nothing
+                asset:clearActions()
+            end
         end
     end
 
