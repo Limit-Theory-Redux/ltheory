@@ -103,12 +103,12 @@ function Universe:CreateStarSystem(seed)
         local pirateShips = {}
         local piratePlayer = Entities.Player("Pirate")
         local pirateStation = system:spawnPirateStation(piratePlayer)
+        
         for i = 1, 16 do
-            ocal pirate = system:spawnShip(piratePlayer)
-            ocal offset = system.rng:getSphere():scale(5000)
-            irate:setPos(pirateStation:getPos() + offset)
-            irate:pushAction(Actions.Patrol(nil, nil))
-            irate
+            local pirate = system:spawnShip(piratePlayer)
+            local offset = system.rng:getSphere():scale(5000)
+            pirate:setPos(pirateStation:getPos() + offset)
+            pirate:pushAction(Actions.Patrol(nil, nil))
 
             -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
             --       These will be dogfighting challenges!
