@@ -246,7 +246,8 @@ Config.gen = {
         name                = "Drone Rack",
         healthCurr          = 100,
         healthMax           = 100,
-        rateOfFire          = 10,
+        weaponRPM           = 100,
+        weaponRPMDeviation  = 0.02,
         droneType           = 1, -- 1 = mining (1 beam turret), 2 = combat (1 pulse turret)
         dronesCurr          = 2,
         dronesActive        = 0,
