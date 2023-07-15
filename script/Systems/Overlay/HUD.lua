@@ -400,13 +400,13 @@ function HUD:drawTargetSpeed(a)
             if not playerTarget:isDestroyed() then
                 -- Draw target speed
                 local text = format("Speed: %s m/s", floor(playerTarget:getSpeed()))
-                HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+                HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
             end
         elseif targetType == Config:getObjectTypeByName("object_types", "Asteroid") then
             -- Draw asteroid yield size
             if playerTarget:hasYield() then
                 local text = format("Yield: %d", playerTarget:getYieldSize())
-                HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+                HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
             end
         end
     end
