@@ -7,9 +7,6 @@ local SystemMap = {}
 SystemMap.__index = SystemMap
 setmetatable(SystemMap, UI.Container)
 
-local kPanSpeed = 20 -- NOTE: may be dependent on player's CPU, needs testing
-local kZoomSpeed = 0.1
-
 SystemMap.scrollable = true
 SystemMap.focusable = true
 SystemMap:setPadUniform(0)
@@ -62,54 +59,57 @@ function SystemMap:onDraw(state)
             y = self.y + y * GameState.player.mapSystemZoom + hy
             Draw.PointSize(3.0)
 
-      if e:hasActions() then
---printf("Action: %s", e:getName())
-        if GameState.player.currentShip == e then
-          Draw.PointSize(5.0)
-          Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
-          if playerTarget then
-            local tp = playerTarget:getPos()
-            local tx = tp.x - dx
-            local ty = tp.z - dy
-            tx = self.x + tx * GameState.player.mapSystemZoom + hx
-            ty = self.y + ty * GameState.player.mapSystemZoom + hy
-            UI.DrawEx.Line(x, y, tx, ty, { r = 0.9, g = 0.8, b = 1.0, a = 1.0 }, true)
-          end
-        else
-          local entAction = e:getCurrentAction()
-          if entAction ~= nil then
---printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
-            if string.match(Config:getObjectInfo("object_types", e:getType()), "Ship") and e.usesBoost then
-              -- Draw the dot for ships that are aces larger than regular ships
-              Draw.PointSize(5.0)
-            end
-            if string.find(entAction:getName(), "Attack") and entAction.target == GameState.player.currentShip then
-              -- TODO: draw in color based on Disposition toward player
-              Draw.Color(1.0, 0.3, 0.3, 1.0) -- other object, hostile (has a current action of "Attack player's ship")
+            if e:hasActions() then
+                --printf("Action: %s", e:getName())
+                if GameState.player.currentShip == e then
+                    Draw.PointSize(5.0)
+                    Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
+                    if playerTarget then
+                        local tp = playerTarget:getPos()
+                        local tx = tp.x - dx
+                        local ty = tp.z - dy
+                        tx = self.x + tx * GameState.player.currentMapSystemZoom + hx
+                        ty = self.y + ty * GameState.player.currentMapSystemZoom + hy
+                        UI.DrawEx.Line(x, y, tx, ty, { r = 0.9, g = 0.8, b = 1.0, a = 1.0 }, true)
+                    end
+                else
+                    local entAction = e:getCurrentAction()
+                    if entAction ~= nil then
+                        --printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
+                        if string.match(Config:getObjectInfo("object_types", e:getType()), "Ship") and e.usesBoost then
+                            -- Draw the dot for ships that are aces larger than regular ships
+                            Draw.PointSize(5.0)
+                        end
+                        if string.find(entAction:getName(), "Attack") and entAction.target == GameState.player.currentShip then
+                            -- TODO: draw in color based on Disposition toward player
+                            Draw.Color(1.0, 0.3, 0.3, 1.0) -- other object, hostile (has a current action of "Attack player's ship")
+                        else
+                            Draw.Color(0.2, 0.6, 1.0, 1.0) -- other object, non-hostile
+                        end
+                        local focusedTarget = e:getTarget()
+                        if focusedTarget then
+                            local ftp = focusedTarget:getPos()
+                            local ftx = ftp.x - dx
+                            local fty = ftp.z - dy
+                            ftx = self.x + ftx * GameState.player.currentMapSystemZoom + hx
+                            fty = self.y + fty * GameState.player.currentMapSystemZoom + hy
+
+                            if e == playerTarget then
+                                if string.find(entAction:getName(), "Attack") then
+                                    UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, false)
+                                else
+                                    UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 0.5 }, false)
+                                end
+                            end
+                        end
+                    else
+                        Draw.Color(1.0, 1.0, 1.0, 1.0) -- some other object that suddenly has no actions
+                    end
+                end
             else
-              Draw.Color(0.2, 0.6, 1.0, 1.0) -- other object, non-hostile
+                Draw.Color(0.4, 0.4, 0.4, 1.0) -- planet, asteroid, station
             end
-            local focusedTarget = e:getTarget()
-            if focusedTarget then
-              local ftp = focusedTarget:getPos()
-              local ftx = ftp.x - dx
-              local fty = ftp.z - dy
-              ftx = self.x + ftx * GameState.player.mapSystemZoom + hx
-              fty = self.y + fty * GameState.player.mapSystemZoom + hy
-              if string.find(entAction:getName(), "Attack") then
-                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, true)
-              else
-                UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, true)
-              end
-            end
-          else
-            Draw.Color(1.0, 1.0, 1.0, 1.0) -- some other object that suddenly has no actions
-          end
-        end
-      else
-        Draw.Color(0.4, 0.4, 0.4, 1.0) -- planet, asteroid, station
-      end
-      Draw.Point(x, y)
+            Draw.Point(x, y)
 
             if e:hasFlows() and not e:isDestroyed() then
                 --printf("Flow: %s", e:getName())
@@ -205,7 +205,7 @@ function SystemMap:onDraw(state)
                 if string.match(objtype, "Station") and self.focus:hasDockable() then
                     local docked = self.focus:getDocked()
                     if docked and #docked > 0 then
-                        table.sort(docked, function(a, b) return a:getName() < b:getName() end)
+                        table.sort(docked, function (a, b) return a:getName() < b:getName() end)
                         dbg:indent()
                         dbg:text("Docked here:")
                         dbg:indent()
@@ -276,32 +276,32 @@ function SystemMap:onInput(state)
     -- NOTE: Keyboard pan and zoom previously used (e.g.) "kPanSpeed * state.dt"
     --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
     --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
-    --       Meanwhile, the Minus and Equals keys will slow down and speed up zooming, respectively
-    if Input.GetValue(Button.Keyboard.Minus) == 1 then
-        GameState.player.mapSystemPan = GameState.player.mapSystemPan / 1.2
-        if GameState.player.mapSystemPan < 1 then
-            GameState.player.mapSystemPan = 1
-        end
-        --printf("mapSystemPan - = %s", GameState.player.mapSystemPan)
-    end
-    if Input.GetValue(Button.Keyboard.Equals) == 1 then
-        GameState.player.mapSystemPan = GameState.player.mapSystemPan * 1.2
-        if GameState.player.mapSystemPan > 150 then
-            GameState.player.mapSystemPan = 150
-        end
-        --printf("mapSystemPan + = %s", GameState.player.mapSystemPan)
+    if state.dt and state.dt ~= 0 then
+        self.lastDt = state.dt
     end
 
-    GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
-    GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
-        exp(kZoomSpeed * (Input.GetValue(Button.Keyboard.RBracket) - Input.GetValue(Button.Keyboard.LBracket)))
+    if state.dt > 0 then
+        GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * state.dt
+    else
+        GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed *
+        self.lastDt                                                                         -- temp fix for -> see NOTE above
+    end
 
-    GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x +
-        (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-            Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
-    GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y +
-        (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-            Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+    if Input.GetValue(Button.Keyboard.LShift) == 1 then
+        GameState.player.currentMapSystemPan = GameState.player.currentMapSystemPan * 2
+    end
+
+    GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
+    exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
+    GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
+        exp(GameState.ui.mapSystemZoomSpeed * (Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+
+    GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x +
+    GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
+        Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
+    GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y +
+    GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
+        Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
 end
 
 function SystemMap.Create(system)
