@@ -523,9 +523,214 @@ function HUD:drawPlayerShieldsHullArmor(a)
     local cx, cy = self.sx / 2, self.sy / 2
     local text = ""
 
+<<<<<<< HEAD
     local sensorsHeight = 0
     if GameState.ui.sensorsDisplayed then
         sensorsHeight = floor(self.sy / 9)
+=======
+  local sensorsHeight = 0
+  if GameState.ui.sensorsDisplayed then
+    sensorsHeight = floor(self.sy / 9)
+  end
+
+  local hudXs = 0
+  local hudXh = 0
+  local hudXa = 0
+  local hudY  = 0
+  local hudFsize = hudFontSize
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
+    hudXs = cx - 100
+    hudXh = cx
+    hudXa = cx + 100
+    hudY  = self.sy - 160 - sensorsHeight - 74
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
+    hudXs = cx - 100
+    hudXh = cx
+    hudXa = cx + 100
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 74
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
+    hudXs = cx - 100
+    hudXh = cx
+    hudXa = cx + 100
+    hudY  = cy + 26
+    hudFsize = hudFontSize
+  end
+
+  -- Draw player ship shields info
+  text = format("Shields")
+  HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
+  local playerShieldsPct = 0 -- TODO: get current _integer_ shield power of player's ship
+  text = format("%d%%", playerShieldsPct)
+  HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
+
+  -- Draw player ship hull info
+  text = format("Hull")
+  HUD:drawHudTextDouble(hudXh, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
+  local playerHealthPct = floor(playerShip:getHealthPercent() + 0.5)
+  text = format("%d%%", playerHealthPct)
+  HUD:drawHudTextDouble(hudXh, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
+
+  -- Draw player ship hull armor info
+  text = format("Armor")
+  HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBar, hudFontSize, 0.5, text)
+  local playerArmorPct = 0 -- TODO: get current _integer_ armor value
+  text = format("%d%%", playerArmorPct)
+  HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBar, hudFsize, 0.5, text)
+end
+
+function HUD:drawMissilesLeft (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+
+  local cx, cy = self.sx / 2, self.sy / 2
+
+  local sensorsHeight = 0
+  if GameState.ui.sensorsDisplayed then
+    sensorsHeight = floor(self.sy / 9)
+  end
+
+  local hudX = 0
+  local hudY = 0
+  local hudFsize = hudFontSize
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
+    hudX = cx - 150
+    hudY = self.sy - 160 - sensorsHeight - 24
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
+    hudX = cx - 150
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
+    hudX = cx - 150
+    hudY = cy + 70
+    hudFsize = hudFontSize
+  end
+
+  -- Draw player missiles remaining
+  local missileCount = 0 -- TODO: get current count of missiles aboard player's ship
+  local text = format("Missiles: %d", missileCount)
+  HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+end
+
+function HUD:drawPlayerSpeed (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+
+  local cx, cy = self.sx / 2, self.sy / 2
+
+  local sensorsHeight = 0
+  if GameState.ui.sensorsDisplayed then
+    sensorsHeight = floor(self.sy / 9)
+  end
+
+  local hudX = 0
+  local hudY = 0
+  local hudFsize = hudFontSize
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
+    hudX = cx
+    hudY = self.sy - 160 - sensorsHeight - 24
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
+    hudX = cx
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
+    hudX = cx
+    hudY = cy + 68
+    hudFsize = hudFontSize
+  end
+
+  -- Draw player ship speed
+  local text = format("Speed: %d m/s", floor(playerShip:getSpeed()))
+  HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+end
+
+function HUD:drawChaffLeft (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+
+  local cx, cy = self.sx / 2, self.sy / 2
+
+  local sensorsHeight = 0
+  if GameState.ui.sensorsDisplayed then
+    sensorsHeight = floor(self.sy / 9)
+  end
+
+  local hudX = 0
+  local hudY = 0
+  local hudFsize = hudFontSize
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
+    hudX = cx + 150
+    hudY = self.sy - 160 - sensorsHeight - 24
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
+    hudX = cx + 150
+    hudY  = self.sy - 160 - floor(self.sy / 9) - 24
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
+    hudX = cx + 150
+    hudY = cy + 70
+    hudFsize = hudFontSize
+  end
+
+  -- Draw player chaff remaining
+  local chaffCount = 0 -- TODO: get current count of chaff aboard player's ship
+  local text = format("Chaff: %d", chaffCount)
+  HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+end
+
+function HUD:drawLockWarning (a)
+  local player = self.player
+  local playerShip = player:getControlling()
+
+  local cx, cy = self.sx / 2, self.sy / 2
+  local c = Color(1.0, 0.1, 0.1, a)
+
+  local hudX = 0
+  local hudY = 0
+  local hudFsize = hudFontSize
+  if GameState.ui.hudStyle == Enums.HudStyles.Wide then
+    hudX = cx
+    hudY = cy + 40
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
+    hudX = cx
+    hudY = cy + 40
+    hudFsize = hudFontSize
+  elseif GameState.ui.hudStyle == Enums.HudStyles.Tight then
+    hudX = cx
+    hudY = cy + 120
+    hudFsize = hudFontSize
+  end
+
+  -- Draw incoming missile lock on player's ship
+  for _, ship in ipairs(GameState.world.currentSystem.ships) do
+    -- TEMP: Rather than missile lock, check to see whether player's ship is currently targeted by any other ship
+    -- TODO: Change to missile lock only if a missile is locked onto the player's ship
+    if ship:getTarget() == playerShip then
+      if floor((lockTimer * 10) % 3) == 0 then
+        -- TODO: Flash missile lock graphic ~3 times per second
+        -- TODO: round those triangle corners!
+        UI.DrawEx.Line(hudX     , hudY - 10, hudX + 28, hudY + 30, c, false)
+        UI.DrawEx.Line(hudX - 28, hudY + 30, hudX + 28, hudY + 30, c, false)
+        UI.DrawEx.Line(hudX - 28, hudY + 30, hudX     , hudY - 10, c, false)
+
+        UI.DrawEx.Line(hudX, hudY - 2, hudX, hudY + 26, c, true)
+        UI.DrawEx.Point(hudX, hudY + 22, 100, c)
+
+        UI.DrawEx.TextAdditive(
+          "UbuntuBold",
+          "LOCK DETECTED",
+          hudFontSize - 5,
+          hudX - 50, hudY + 34, 100, hudFontSize,
+          1.0, 0.2, 0.0, a,
+          0.5, 0.5
+        )
+        break
+      end
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     end
 
     local hudXs    = 0
@@ -1108,7 +1313,6 @@ local function getPosObject(def)
 end
 
 function HUD:drawTargets (a)
-
   deltaTimer = deltaTimer + deltaTime
   if deltaTimer > lastTargetsUpdate + updateTargetsInterval then
     if not GameState.ui.showTrackers then return end
@@ -1130,6 +1334,7 @@ function HUD:drawTargets (a)
             local target = self.targets.tracked[i]
             local targetDistance = target:getDistance(playerShip)
 
+<<<<<<< HEAD
             if target and targetDistance and target ~= playerShip then
                 -- if target is out of trackingRange
                 if targetDistance > GameState.ui.maxTrackingRange then break end
@@ -1144,6 +1349,38 @@ function HUD:drawTargets (a)
                     local system = player:getRoot()
                     local hit = system.physics:rayCast(ray).body
                     local alphaOverwrite = nil
+=======
+      if target and targetDistance and target ~= playerShip then
+        -- if target is out of trackingRange
+        if targetDistance > GameState.ui.maxTrackingRange then goto skipTarget end
+
+        if target:getTrackable() then
+          local pos = target:getPos()
+          local ndc = camera:worldToNDC(pos)
+          local ray = camera:ndcToRay(ndc, targetDistance)
+          ndc = camera:worldToNDC(pos)
+          local ndcMax = max(abs(ndc.x), abs(ndc.y))
+
+          local system = player:getRoot()
+          local hit = system.physics:rayCast(ray).body
+          local alphaOverwrite = nil
+
+          if hit ~= nil then
+            while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
+            local hitEnt = Entity.fromRigidBody(hit)
+--
+            if hitEnt ~= target and target ~= playerTarget then
+              alphaOverwrite = math.max(0, math.min(GameState.ui.trackerObjectOcclusion, 1.0))
+            end
+          end
+
+  --        local disp = target:getOwnerDisposition(player) -- might need to switch back to this version
+          local disp = Config.game.dispoNeutral -- disposition to neutral by default
+          if target:hasAttackable() and target:isAttackable() then disp = target:getDisposition(playerShip) end
+  --        local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+          local c = Disposition.GetColor(disp)
+          c.a = alphaOverwrite or (1 - ( targetDistance / GameState.ui.maxTrackingRange ))
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 
                     if hit ~= nil then
                       while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
@@ -1426,6 +1663,11 @@ function HUD:drawTargets (a)
             UI.DrawEx.Wedge(targetHud.bx, targetHud.by, targetHud.size1, targetHud.size2, targetHud.offset,
                 targetHud.curve, targetHud.c, targetHud.a)
         end
+<<<<<<< HEAD
+=======
+      end
+      ::skipTarget::
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     end
 end
 

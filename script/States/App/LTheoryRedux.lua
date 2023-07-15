@@ -147,6 +147,7 @@ function LTheoryRedux:onUpdate(dt)
     -- TODO: Confirm whether this is still needed
     local playerShip = GameState.player.humanPlayer
     if playerShip ~= nil then
+<<<<<<< HEAD
         playerShip = GameState.player.currentShip
     end
 
@@ -155,6 +156,17 @@ function LTheoryRedux:onUpdate(dt)
         if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
             MainMenu:SetBackgroundMode(false)
             MainMenu:SetMenuMode(Enums.MenuMode.MainMenu) -- show Main Menu
+=======
+      local target = playerShip:getTarget()
+      if target == nil then target = self.focus end
+      if not playerShip:isDestroyed() and playerShip:isShipDocked() == nil and target ~= nil and target ~= playerShip then
+        if playerShip:getCurrentAction() == nil or not string.find(playerShip:getCurrentAction():getName(),"MoveTo") then
+          -- Move undestroyed, undocked player ship to area of selected target
+          local autodistance = Config.game.autonavRanges[target:getType()]
+          GameState.player.autonavTimestamp = Config.getCurrentTimestamp()
+          GameState.player.playerMoving = true -- must be set to true before pushing the MoveTo action
+          playerShip:pushAction(Actions.MoveTo(target, autodistance, true))
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
         end
         MainMenu:ActionRegistered()
     end

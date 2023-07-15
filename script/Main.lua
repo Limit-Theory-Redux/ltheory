@@ -42,6 +42,7 @@ Core.Call(function()
         format('maxmcode=%d', Config.jit.tune.maxMCode)
     )
 
+<<<<<<< HEAD
     --local logG = io.open("_g.log", "w+")
     --io.output(logG)
     --io.write(Inspect(_G))
@@ -50,4 +51,14 @@ Core.Call(function()
     local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
     if foundState then state:run() elseif foundTest then test:run() end
     GlobalRestrict.Off()
+=======
+  --local logG = io.open("_g.log", "w+")
+  --io.output(logG)
+  --io.write(Inspect(_G))
+  --io.close(logG)
+  local foundState, state = pcall(require, 'States.App.' .. app)
+  local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
+  if foundState then state:run() elseif foundTest then test:run() end
+  GlobalRestrict.Off()
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 end)

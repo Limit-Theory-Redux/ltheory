@@ -39,6 +39,7 @@ local System = subclass(Entity, function(self, seed)
     self.nebula     = Nebula(self.rng:get64(), self.starDir)
     self.dust       = Dust()
 
+<<<<<<< HEAD
     self.players    = {}
     self.aiPlayers  = nil
     self.stars      = {}
@@ -57,6 +58,25 @@ local System = subclass(Entity, function(self, seed)
             prod:getName()
         }
     end
+=======
+  self.players   = {}
+  self.aiPlayers = nil
+  self.zones     = {}
+  self.stations  = {}
+  self.ships     = {}
+  self.lightList = {}
+
+  -- When creating a new system, initialize station subtype options from all production types
+  local prodType = Config:getObjectTypeIndex("station_subtypes")
+  local subTypesTable = Config.objectInfo[prodType]["elems"]
+
+  for i, prod in ipairs(Production.All()) do
+    subTypesTable[#subTypesTable + 1] = {
+      #subTypesTable + 1,
+      prod:getName()
+    }
+  end
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 end)
 
 function System:addStar(star)
@@ -122,6 +142,7 @@ function System:getShips()
     return self.ships
 end
 
+<<<<<<< HEAD
 function System:hasProdType(prodtype)
     -- Scan the production types of all factories in this system to see if one has the specified production type
     local hasProdType = false
@@ -130,6 +151,88 @@ function System:hasProdType(prodtype)
             if station:getFactory():hasProductionType(prodtype) then
                 hasProdType = true
                 break
+=======
+function System:addStation (station)
+  insert(self.stations, station)
+end
+
+function System:getStations ()
+  return self.stations
+end
+
+function System:getStationsByDistance (ship)
+  -- Return a table of stations sorted by nearest first
+  local stationList = {}
+  for _, station in ipairs(self.stations) do
+    local stationStruct = {stationRef = station, stationDist = ship:getDistance(station)}
+    if station:hasDockable() and station:isDockable() and not station:isBanned(ship) then
+      insert(stationList, stationStruct)
+    end
+  end
+
+  table.sort(stationList, function (a, b) return a.stationDist < b.stationDist end)
+
+  return stationList
+end
+
+function System:hasProdType (prodtype)
+  -- Scan the production types of all factories in this system to see if one has the specified production type
+  local hasProdType = false
+  for _, station in ipairs(self.stations) do
+    if station:hasFactory() then
+      if station:getFactory():hasProductionType(prodtype) then
+        hasProdType = true
+        break
+      end
+    end
+  end
+
+  return hasProdType
+end
+
+function System:countProdType (prodtype)
+  -- Scan the production types of all factories in this system to see how many of the specified production type exist
+  local numProdType = 0
+  for _, station in ipairs(self.stations) do
+    if station:hasFactory() then
+      if station:getFactory():hasProductionType(prodtype) then
+        numProdType = numProdType + 1
+      end
+    end
+  end
+
+  return numProdType
+end
+
+function System:sampleStations (rng)
+  return rng:choose(self.stations)
+end
+
+function System:place (object, spawnOutOfAsteroidZone)
+  -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
+  -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
+  local typeName = Config:getObjectInfo("object_types", object:getType())
+
+  local pos = Config.gen.origin
+  local field = self:sampleZones(self.rng)
+  local counter = 1
+
+  if field and not spawnOutOfAsteroidZone then
+    pos = field:getRandomPos(self.rng) -- place new object within a random field
+    -- Stations
+    if typeName == "Station" then
+      -- TODO: inefficient way of doing this. replace later.
+      local validSpawn = false
+      while not validSpawn do
+        local stations = self.stations
+
+        local function checkDistanceToAllStations(pos)
+          for _, station in ipairs(stations) do
+            if pos:distance(station:getPos()) < Config.gen.stationMinimumDistance then
+              print("New Station closer than " .. Config.gen.stationMinimumDistance .. " (".. math.floor(pos:distance(station:getPos())) ..
+                  ") to station: '" .. station:getName() .. "'. Finding New Position.")
+              return false
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
             end
         end
     end
@@ -275,9 +378,21 @@ function System:place (object, spawnOutOfAsteroidZone)
     else
         pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
     end
+<<<<<<< HEAD
     object:setPos(pos)
     -- Return the Asteroid Field zone in which the object is being placed
     return field
+=======
+  elseif spawnOutOfAsteroidZone then
+    local minPirateStationSpawnPositionScale = math.floor(Config.gen.scaleSystem * 0.9)
+    pos = Vec3f(self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem), 0, self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem)) -- place new object _near_ the origin
+  else
+    pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
+  end
+  object:setPos(pos)
+
+  return pos
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 end
 
 function System:beginRender()
@@ -336,6 +451,37 @@ function System:update(dt)
         self:send(Event.Broadcast(event))
         self:send(event)
     end
+<<<<<<< HEAD
+=======
+    for _, player in ipairs(self.players) do player:send(event) end
+    Profiler.End()
+
+--    self:send(event) -- unnecessary extra event?
+    Profiler.Begin('Broadcast Update')
+    self:send(Event.Broadcast(event))
+    Profiler.End()
+
+    Profiler.Begin('Physics Update')
+    self.physics:update(dt)
+    local collision = Collision()
+    while (self.physics:getNextCollision(collision)) do
+      local entity1 = Entity.fromRigidBody(collision.body0)
+      local entity2 = Entity.fromRigidBody(collision.body1)
+
+      if entity1 and entity2 then
+        entity1:send(Event.Collision(collision, entity2))
+        entity2:send(Event.Collision(collision, entity1))
+      end
+      --print('', collision.index, collision.body0, collision.body1)
+    end
+    Profiler.End()
+
+    -- post-physics update
+    event = Event.UpdatePost(dt)
+    self:send(Event.Broadcast(event))
+    self:send(event)
+  end
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 end
 
 ---------------------
@@ -572,11 +718,14 @@ function System:spawnAsteroidField(count, reduced)
 
     -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
     -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
-    zone:add(asteroid)
+    zone:addChild(asteroid)
+    asteroid.zone = zone
     self:addChild(asteroid)
   end
 
   self:addZone(zone)
+  -- TODO: Event update should be sent to zones and their children aswell instead of only the system
+  self:addChild(zone)
 
     local typeName = Config:getObjectInfo("object_types", zone:getType())
     local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())
@@ -585,6 +734,7 @@ function System:spawnAsteroidField(count, reduced)
     return zone
 end
 
+<<<<<<< HEAD
 function System:getAsteroidName(self, rng)
     local aNum = ""
     local namernd = rng:getInt(0, 100)
@@ -592,6 +742,87 @@ function System:getAsteroidName(self, rng)
         aNum = tostring(rng:getInt(11, 99)) .. " "
     elseif namernd < 85 then
         aNum = tostring(rng:getInt(101, 999)) .. " "
+=======
+function System:getAsteroidName (self, rng)
+  local aNum = ""
+  local namernd = rng:getInt(0, 100)
+  if namernd < 60 then
+    aNum = tostring(rng:getInt(11, 99)) .. " "
+  elseif namernd < 85 then
+    aNum = tostring(rng:getInt(101, 999)) .. " "
+  else
+    aNum = tostring(rng:getInt(1001, 9999)) .. " "
+  end
+
+  return (aNum .. Words.getCoolName(self.rng))
+end
+
+function System:setAsteroidYield (rng, asteroid)
+  -- TODO: Replace with actual system for generating minable materials in asteroids
+  -- Start with a 70% chance that an asteroid will have any yield at all
+  if rng:getInt(0, 100) < 70 then
+    local amass = math.floor(asteroid:getMass())
+    local itemT2 = Item.T2
+    table.sort(itemT2, function (a, b) return a.distribution < b.distribution end)
+    local itemType = nil
+    local ichance = 0.0
+    local uval = rng:getUniformRange(0.00, 1.00)
+    for i, item in ipairs(itemT2) do
+      ichance = ichance + item.distribution
+      if uval < ichance then -- pick a minable material based on distribution %
+        itemType = item
+        break
+      end
+    end
+    if itemType == nil then
+      itemType = Item.Silicates
+    end
+    asteroid:addYield(itemType, math.max(1, math.floor(rng:getUniformRange(amass * 0.001, amass * 0.002))))
+  end
+end
+
+function System:spawnStation (player, prodType)
+  local rng = self.rng
+
+  -- Spawn a new space station
+  local station = Objects.Station(self.rng:get31())
+  station:setType(Config:getObjectTypeByName("object_types", "Station"))
+
+  -- Give the station a name
+  station:setName(Words.getCoolName(rng))
+
+  -- Set station location within the extent of a randomly selected asteroid field
+  self:place(station)
+
+  -- Set station scale
+  station:setScale(Config.gen.scaleStation)
+
+  -- Stations have market capacity
+  station:addMarket()
+  for _, v in pairs(Item.T2) do
+    -- TODO: generate better bid price; this is just for testing the flow-based "payout" model in Think.lua
+    local flowval = self.rng:getUniformRange(-1000, 0)
+    station:setFlow(v, flowval) -- TEMP
+--printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
+  end
+
+  -- Stations have trading capacity
+  station:addTrader()
+
+  -- Stations have manufacturing capacity for one randomly-chosen production type
+  -- TODO: Assign a station's production type based on system needs (e.g., insure there's
+  --       always at least one energy-generating station in each system)
+  station:addFactory()
+  local prod = prodType
+  if not prodType then
+    -- No specific production type provided, so pick one randomly
+--      prod = rng:choose(Production.All()) -- if no production type is provided, choose anything randomly
+    local rint = rng:getInt(0, 100)
+    if rint > 80 then
+      prod = rng:choose(Production.P0) -- small chance for a powerplant
+    elseif rint > 25 then
+      prod = rng:choose(Production.P1) -- good chance for a powerplant
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     else
         aNum = tostring(rng:getInt(1001, 9999)) .. " "
     end
@@ -599,6 +830,7 @@ function System:getAsteroidName(self, rng)
     return (aNum .. Words.getCoolName(self.rng))
 end
 
+<<<<<<< HEAD
 function System:setAsteroidYield(rng, asteroid)
     -- TODO: Replace with actual system for generating minable materials in asteroids
     -- Start with a 70% chance that an asteroid will have any yield at all
@@ -620,6 +852,46 @@ function System:setAsteroidYield(rng, asteroid)
             itemType = Item.Silicates
         end
         asteroid:addYield(itemType, math.max(1, math.floor(rng:getUniformRange(amass / 2, amass))))
+=======
+function System:spawnPirateStation (player)
+  local rng = self.rng
+  -- Spawn a new space station
+  local station = Objects.Station(self.rng:get31())
+  station:setType(Config:getObjectTypeByName("object_types", "Station"))
+  station:setSubType(5)
+
+  -- Give the station a name
+  station:setName(Words.getCoolName(rng) .. " Pirates")
+
+  -- Set station location outside the astroid field
+  self:place(station, true)
+
+  -- Set station scale
+  station:setScale(Config.gen.scaleStation)
+
+  -- Assign the station to an owner
+  station:setOwner(player)
+
+  -- Add the black market
+  station:addBlackMarket()
+  station:addBlackMarketTrader()
+
+  -- Add the station to this star system
+  self:addChild(station)
+
+  self:addStation(station)
+
+  return station
+end
+
+function System:spawnAI (shipCount, action, player)
+  -- Spawn a number of independent AI-controlled ships
+  for i = 1, shipCount do
+    local ship = self:spawnShip(player)
+    ship:setOwner(player)
+    if action then
+      ship:pushAction(action)
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     end
 end
 

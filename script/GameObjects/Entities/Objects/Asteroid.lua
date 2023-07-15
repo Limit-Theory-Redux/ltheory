@@ -11,6 +11,7 @@ local function getMesh(seed)
     return cache[seed]
 end
 
+<<<<<<< HEAD
 local Asteroid = subclass(Entity, function(self, seed, scale)
     local mesh = getMesh(seed)
     self:addRigidBody(true, mesh:get(0))
@@ -19,6 +20,16 @@ local Asteroid = subclass(Entity, function(self, seed, scale)
     self:addMinable(true)
     self:addClaimable()
     self.zone = nil
+=======
+local Asteroid = subclass(Entity, function (self, seed, scale)
+  local mesh = getMesh(seed)
+  self:addRigidBody(true, mesh:get(0))
+  self:addVisibleLodMesh(mesh, Material.Rock())
+  self:addTrackable(true)
+  self:addMinable(true)
+  self:addClaimable()
+  self.zone = nil
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 
     -- NOTE: scale must be set before the radius will be reported correctly
     -- may be updated by the caller

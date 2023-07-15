@@ -88,6 +88,7 @@ function Application:run()
         Profiler.Begin('Frame')
         Engine.Update()
 
+<<<<<<< HEAD
         do
             Profiler.SetValue('gcmem', GC.GetMemory())
             Profiler.Begin('App.onResize')
@@ -103,6 +104,25 @@ function Application:run()
                 self:onResize(self.resX, self.resY)
             end
             Profiler.End()
+=======
+    do
+      Profiler.SetValue('gcmem', GC.GetMemory())
+      Profiler.Begin('App.onInput')
+
+      -- Immediately quit game without saving
+      if Input.GetKeyboardAlt() and Input.GetPressed(Button.Keyboard.F4) then self:quit() end
+      if Input.GetKeyboardAlt()  and Input.GetPressed(Button.Keyboard.Q) then self:quit() end
+      if Input.GetPressed(Bindings.Exit) then self:quit() end
+
+      if Input.GetPressed(Bindings.ToggleProfiler) then
+        toggleProfiler = true
+      end
+
+      if Input.GetPressed(Bindings.Screenshot) then
+        doScreenshot = true
+        if Settings.exists('render.superSample') then
+          self.prevSS = Settings.get('render.superSample')
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
         end
 
         local timeScale = 1.0
@@ -181,6 +201,7 @@ function Application:run()
             Profiler.End()
         end
 
+<<<<<<< HEAD
         do
             Profiler.SetValue('gcmem', GC.GetMemory())
             Profiler.Begin('App.onUpdate')
@@ -190,6 +211,13 @@ function Application:run()
             self:onUpdate(timeScale * self.dt)
             Profiler.End()
         end
+=======
+      -- Preserving this in case we need to be able to automatically pause on window exit again
+      -- TODO: Re-enable this and connect it to a Settings option s who want this mode
+--      if Input.GetPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+--        Config.game.gamePaused = true
+--      end
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 
         do
             Profiler.SetValue('gcmem', GC.GetMemory())

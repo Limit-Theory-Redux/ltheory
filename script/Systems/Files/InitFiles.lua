@@ -262,10 +262,40 @@ function InitFiles:writeUserInits()
         "Discord: " .. Config.orgInfo.discord
     }
 
+<<<<<<< HEAD
     for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
         -- this is dirty for now, but its the only category without anything we need to save
         if l_Category ~= "world" then
             io.write(format("[%s]", tostring(l_Category)), "\n")
+=======
+  comment{
+    "Hello World! This is the Limit Theory Redux Configuration File",
+    "Support the LTR project by discussing, contributing or silent participation:",
+    "GitHub: " .. Config.orgInfo.repository,
+    "Discord: " .. Config.orgInfo.discord
+  }
+
+  for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
+    -- this is dirty for now, but its the only category without anything we need to save
+    if l_Category ~= "world" then
+      io.write(format("[%s]", tostring(l_Category)), "\n")
+    end
+
+    local cacheSubCat
+    local cacheSubCatVar
+    local cacheSubCatVal
+
+    for l_Variable, l_Value in pairsByKeys(l_CategoryTable) do
+      local pass = true
+      -- excluded
+      if string.match(l_Variable, "current")
+      or string.match(l_Variable, "lastCamera")
+      or string.match(l_Variable, "playerMoving")
+      or string.match(l_Variable, "weaponGroup")
+      or string.match(l_Variable, "autonavTimestamp") then
+        do
+          pass = false
+>>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
         end
 
         local cacheSubCat
