@@ -41,7 +41,7 @@ function Patrol:onUpdateActive (e, dt)
     self.patrolZone = self.system:sampleZones(self.system.rng)
   end
 
-  if not self.targetPosition then
+  if self.patrolZone and not self.targetPosition then
     self.targetPosition = self.patrolZone:getRandomPos(self.system.rng)
   end
 
