@@ -60,14 +60,14 @@ function Mine:getPayout(e)
         end
     end
 
-    --local item = self.item
-    --local capacity = e:mgrInventoryGetFreeMax(item:getMass())
-    --local pstr1 = "Mine PAYOUT-ADJU [%s (%s)]: count = %d, item = %s, src = %s, dest = %s, "
-    --local pstr2 = "base payout = %d, adjusted payout = %d"
-    --local pstr  = pstr1 .. pstr2
-    --printf(pstr,
-    --e:getName(), e:getOwner():getName(), self.jcount, item:getName(), self.src:getName(), self.dst:getName(),
-    --basePayout, payout)
+--local capacity = e:getInventoryFree()
+--local item = self.item
+--local pstr1 = "Mine PAYOUT-ADJU [%s (%s)]: count = %d, item = %s, src = %s, dest = %s, "
+--local pstr2 = "base payout = %d, adjusted payout = %d"
+--local pstr  = pstr1 .. pstr2
+--printf(pstr,
+--e:getName(), e:getOwner():getName(), self.jcount, item:getName(), self.src:getName(), self.dst:getName(),
+--basePayout, payout)
 
     return payout
 end
@@ -124,9 +124,9 @@ function Mine:getShipTravelTime(e, dst)
     return e:getDistance(dst) / e:getTopSpeed()
 end
 
-function Mine:getTravelTime(e, src, dst)
-    -- Return the two-way travel time between two non-ship targets depending on ship's top speed
-    return 2.0 * src:getDistance(dst) / e:getTopSpeed()
+function Mine:getTravelTime (e, src, dst)
+  -- Return the two-way travel time between two non-ship targets depending on ship's top speed
+  return 2.0 * src:getDistance(dst) / e:getTopSpeed()
 end
 
 function Mine:onUpdateActive(e, dt)

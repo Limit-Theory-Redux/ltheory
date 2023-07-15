@@ -48,8 +48,8 @@ local Ship = subclass(Entity, function(self, proto, hull)
         end
     end
 
+    self:addCredits(1000)
     self:addThrustController()
-
     self:setDrag(0.75, 4.0)
     --  self:setScale(Config.gen.shipHullScale[hull])
     --  if hull ~= Enums.ShipHulls.VeryLarge then

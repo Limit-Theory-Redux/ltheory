@@ -814,24 +814,34 @@ function System:spawnStation(hullSize, player, prodType)
 end
 
 function System:spawnPirateStation(player)
-  local rng = self.rng
-  -- Spawn a new space station
-  local station = Objects.Station(self.rng:get31())
-  station:setType(Config:getObjectTypeByName("object_types", "Station"))
-  station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate"))
+    local rng = self.rng
+    -- Spawn a new space station
+    local station = Objects.Station(self.rng:get31())
+    station:setType(Config:getObjectTypeByName("object_types", "Station"))
+    station:setSubType(5)
 
-  -- Give the station a name
-  station:setName(Words.getCoolName(rng) .. " Pirate Station")
+    -- Give the station a name
+    station:setName(Words.getCoolName(rng) .. " Pirates")
 
-  -- Set station location outside the astroid field
-  self:place(station, true)
+    -- Set station location outside the astroid field
+    self:place(station, true)
 
-  -- Set station scale
-  station:setScale(Config.gen.scaleStation)
+    -- Set station scale
+    station:setScale(Config.gen.scaleStation)
 
-  self:addStation(station)
+    -- Assign the station to an owner
+    station:setOwner(player)
 
-  return station
+    -- Add the black market
+    station:addBlackMarket()
+    station:addBlackMarketTrader()
+
+    -- Add the station to this star system
+    self:addChild(station)
+
+    self:addStation(station)
+
+    return station
 end
 
 function System:spawnAI(shipCount, action, player)

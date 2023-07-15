@@ -19,3 +19,15 @@ Enums.JobStateMine = {
     UndockingFromDst = 5,
     JobFinished      = 6,
 }
+
+Enums.JobStateMarauding = {
+  None             = 0,
+  SelectArea       = 1,
+  MovingToArea     = 2,
+  Marauding        = 3,
+  FindBlackMarket  = 4,
+  DockingAtStation = 5,
+  SellingItems     = 6,
+  Undocking        = 7,
+  JobFinished      = 8,
+}

@@ -1,6 +1,7 @@
 local UniverseEconomy = require('Systems.Universe.UniverseEconomy')
 local System = require('GameObjects.Entities.Test.System')
 local Actions = requireAll('GameObjects.Actions')
+local Words = require('Systems.Gen.Words')
 
 local rng = RNG.FromTime()
 
@@ -130,9 +131,10 @@ function Universe:CreateStarSystem(seed)
 
     --Adds pirate ships
     local pirateShips = {}
-    local piratePlayer = Entities.Player("Pirate")
+    local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
     local pirateStation = system:spawnPirateStation(piratePlayer)
-    for i = 1, 50 do
+    piratePlayer:addCredits(Config.econ.eStartCredits * 100)
+    for i = 1, 48 do
       local pirate = system:spawnShip(piratePlayer)
       local offset = system.rng:getSphere():scale(5000)
       pirate:setPos(pirateStation:getPos() + offset)
