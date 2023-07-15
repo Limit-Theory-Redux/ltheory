@@ -62,7 +62,8 @@ local Ship = subclass(Entity, function(self, proto, hull)
     printf("@@@ Entities:Ship - final radius = %s, mass = %s", self:getRadius(), self:getMass())
 
     self.explosionSize = 64  -- ships get the default explosion size
-    self.usesBoost = false   -- default ships fly at only the normal speed
+    self.usesBoost = false -- default ships fly at only the normal speed
+    self.travelDriveActive = false
     local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
 end)
 

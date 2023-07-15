@@ -395,21 +395,21 @@ function HUD:drawTargetSpeed(a)
             hudFsize = hudFontSize
         end
 
-        if targetType == Config:getObjectTypeByName("object_types", "Ship") or
-            targetType == Config:getObjectTypeByName("object_types", "Station") then
-            if not playerTarget:isDestroyed() then
-                -- Draw target speed
-                local text = format("Speed: %s kph", floor(playerTarget:getSpeed() + 0.5))
-                HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
-            end
-        elseif targetType == Config:getObjectTypeByName("object_types", "Asteroid") then
-            -- Draw asteroid yield size
-            if playerTarget:hasYield() then
-                local text = format("Yield: %d", playerTarget:getYieldSize())
-                HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
-            end
-        end
+    if targetType == Config:getObjectTypeByName("object_types", "Ship") or
+       targetType == Config:getObjectTypeByName("object_types", "Station") then
+      if not playerTarget:isDestroyed() then
+        -- Draw target speed
+        local text = format("Speed: %s m/s", playerTarget:getSpeed())
+        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+      end
+    elseif targetType == Config:getObjectTypeByName("object_types", "Asteroid") then
+      -- Draw asteroid yield size
+      if playerTarget:hasYield() then
+        local text = format("Yield: %d", playerTarget:getYieldSize())
+        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+      end
     end
+  end
 end
 
 function HUD:drawTargetMission(a)
@@ -637,9 +637,9 @@ function HUD:drawPlayerSpeed(a)
         hudFsize = hudFontSize
     end
 
-    -- Draw player ship speed
-    local text = format("Speed: %d kph", floor(playerShip:getSpeed() + 0.5))
-    HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
+  -- Draw player ship speed
+  local text = format("Speed: %d m/s", playerShip:getSpeed())
+  HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
 end
 
 function HUD:drawChaffLeft(a)
