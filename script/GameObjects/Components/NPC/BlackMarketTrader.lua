@@ -442,7 +442,9 @@ function BlackMarketTrader:update ()
 
     if not bid then
       for _, v in ipairs(Item.All()) do
-        self:addBid(v, 100)
+        for i=1, 99999 do
+          self:addBid(v, 100)
+        end
       end
       bid = true
     end

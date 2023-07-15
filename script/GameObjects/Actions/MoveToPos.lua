@@ -13,13 +13,12 @@ function MoveToPos:clone ()
 end
 
 function MoveToPos:getName ()
-  local typename = Config:getObjectInfo("object_types", self.target:getType())
-  return format("MoveTo %s '%s'", typename, self.target:getName())
+  return format("MoveTo '%s'", tostring(self.targetPos))
 end
 
 
 function MoveToPos:onUpdateActive (e, dt)
-    if e:getPos():distance(self.targetPosition) < self.radius then
+    if e:getPos():distance(self.targetPos) < self.radius then
         e:popAction()
     else
         self:flyToward(e, self.targetPos, e:getForward(), e:getUp())

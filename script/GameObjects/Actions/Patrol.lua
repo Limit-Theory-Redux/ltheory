@@ -42,7 +42,7 @@ end
 
 function Patrol:onUpdateActive(e, dt)
   if not self.system then
-    self.system = GameState.world.currentSystem
+    self.system = e:getRoot() or GameState.world.currentSystem
   end
 
   if not self.patrolZone then
