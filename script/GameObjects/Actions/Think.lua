@@ -70,7 +70,6 @@ function Think:manageAsset(asset)
 
     -- Consider changing to a new job
     for _ = 1, math.min(Config.econ.jobIterations, #root:getEconomy().jobs * 2) do
-<<<<<<< HEAD
         -- TODO : KnowsAbout check (information economy + AI load reduction)
         local jobType = self.rng:choose(root:getEconomy().jobs)
         local job
@@ -104,67 +103,12 @@ function Think:manageAsset(asset)
             end
         end
         ::skipJob::
-=======
-      -- TODO : KnowsAbout check (information economy + AI load reduction)
-      local jobType = self.rng:choose(root:getEconomy().jobs)
-      local job
-      local threatLevel = 0
-
-      if jobType then
-        for _ = 1, math.min(Config.econ.jobIterations, #jobType * 2) do
-          job = self.rng:choose(jobType)
-          if not job then break end
-
-          if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
-            threatLevel = job:getThreatLevel()
-          end
-          if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
-            goto skipJob
-          end
-
-          local payout = job:getPayout(asset)
-          
-          -- TODO needs better evaluation of risk versus reward
-          if payout >= bestPayout and threatLevel <= lowestThreatLevel then
-            if job.jcount > 0 then
-              bestPayout = payout
-              lowestThreatLevel = threatLevel
-              bestJob = job
-            else
-              -- printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-              -- asset:  getName(), job:getName(), payout)
-            end
-          end
-        end
-      end
-      ::skipJob::
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     end
 
     -- Maybe assign a new or reassign an old job
     if bestJob and bestPayout > 0 then -- if asset has no capacity left, bestPayout should be 0
-<<<<<<< HEAD
         -- Don't assign an old job if it can no longer be completed because a required station was destroyed
         asset.job = bestJob
-=======
-      -- Don't assign an old job if it can no longer be completed because a required station was destroyed
-      asset.job = bestJob
-
-      if asset.job.workers and #asset.job.workers < asset.job.maxWorkers then -- temporary allow only one worker, this should depend on the job later (e.g. asteroid suze --> max workers)
-        asset.job:addWorker(asset)
-      end
-
-      if asset.job.workers and not asset.job:isWorker(asset) then
-        return
-      end
-
-      if (asset.job.dst and asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
-          (not string.find(asset.job:getName(), "Transport") or
-          (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) and not string.find(asset.job:getName(), "Patrolling") then
-printf("THINK: pushing job '%s' to %s with bestPayout = %d", asset.job:getName(), asset:getName(), bestPayout)
-        asset:pushAction(bestJob)
-        jobAssigned = true
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 
         if asset.job.workers and #asset.job.workers < asset.job.maxWorkers then -- temporary allow only one worker, this should depend on the job later (e.g. asteroid suze --> max workers)
             asset.job:addWorker(asset)
@@ -227,25 +171,6 @@ printf("THINK: pushing job '%s' to %s with bestPayout = %d", asset.job:getName()
             printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())
             asset.job = nil
         end
-<<<<<<< HEAD
-=======
-      elseif string.find(asset.job:getName(), "Patrolling") and not asset.job.src:isDestroyed() then
-        asset:pushAction(bestJob)
-        jobAssigned = true
-        asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Patrol"))
-
-        local station = asset:isShipDocked()
-        if station then
-printf("THINK +++: Asset %s (owner %s) wakes up at Station %s",
-asset:getName(), asset:getOwner():getName(), station:getName())
-          asset:pushAction(Actions.Undock())
-        end
-      else
-        -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
-printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())
-        asset.job = nil
-      end
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     end
 
     if asset:isIdle() and asset:isShipDocked() == nil then
@@ -256,7 +181,6 @@ printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getN
         if #stations > 0 and stations[1] ~= nil then
             local stations = system:getStationsByDistance(asset)
 
-<<<<<<< HEAD
             if #stations > 0 then
                 local i = 1
                 -- don´t dock at hostile stations
@@ -276,28 +200,6 @@ printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getN
                 end
             end
         end
-=======
-      local stations = system:getStationsByDistance(asset)
-      
-      if #stations > 0 then
-        local i = 1
-        -- don´t dock at hostile stations
-        while stations[i] and stations[i].stationRef:getOwner() ~= asset:getOwner() do
-          i = i + 1
-        end
-
-        if stations[i] then
-          local station = stations[i].stationRef
-          printf("THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
-          asset:getName(), asset:getOwner():getName(), asset:getInventoryFree(), station:getName())
-          asset:clearActions()
-          asset:pushAction(Actions.DockAt(station))
-        else
-          -- do nothing
-          asset:clearActions()
-        end
-      end
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     end
 
     if not jobAssigned then
@@ -306,7 +208,6 @@ printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getN
     end
 end
 
-<<<<<<< HEAD
 function Think:onUpdateActive(e, dt)
     if not GameState.paused then
         Profiler.Begin('Action.Think')
@@ -317,16 +218,6 @@ function Think:onUpdateActive(e, dt)
                     self:manageAsset(asset)
                 end
             end
-=======
-function Think:onUpdateActive (e, dt)
-  if not GameState.paused then
-    Profiler.Begin('Action.Think')
-    do -- manage assets
-      -- TODO: route planning for efficiency (but avoid TSP!)
-      for asset in e:iterAssets() do
-        if asset:getRoot():hasEconomy() and asset:isIdle() and asset:getType() ~= Config:getObjectTypeByName("object_types", "Station") then
-          self:manageAsset(asset)
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
         end
 
         -- Increment elapsed time in seconds (a float value) since game start

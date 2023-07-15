@@ -35,36 +35,17 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self.countShield      = proto.countShield
     self.countArmor       = proto.countArmor
 
-<<<<<<< HEAD
     self:addComponents()
-=======
-  self.usesBoost = false -- default ships fly at only the normal speed
-  self.travelDriveActive = false
-  self.travelDriveTimer = 0
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 
     -- Add all sockets to parent
     -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
     --        better for ShipType etc.
     self:addSockets()
 
-<<<<<<< HEAD
     for type, elems in pairs(proto.sockets) do
         for i, pos in ipairs(elems) do
             self:addSocket(type, pos, true)
         end
-=======
-  self:addSockets()
-  self:addVisibleMesh(proto.mesh, Material.Metal())
-  self:addThrustController()
-  self:addCredits(1000)
-
-  -- TODO : Suggestive that JS-style prototype objects + 'clone' would work
-  --        better for ShipType etc.
-  for type, elems in pairs(proto.sockets) do
-    for i, pos in ipairs(elems) do
-      self:addSocket(type, pos, true)
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     end
 
     self:addCredits(1000)
@@ -80,7 +61,6 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self:setMass(Config.gen.shipHullMass[hull]) -- lower mass is related to the ship "wobble" problem
     printf("@@@ Entities:Ship - final radius = %s, mass = %s", self:getRadius(), self:getMass())
 
-<<<<<<< HEAD
     self.explosionSize = 64  -- ships get the default explosion size
     self.usesBoost = false -- default ships fly at only the normal speed
     self.travelDriveActive = false
@@ -170,80 +150,6 @@ function Ship:distressCall (target, range)
                 print(asset:getName() .. " answering distress call of " .. self:getName())
             end
         end
-=======
-  local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
-
-  -- Events
-  self:register(Event.Damaged, self.wasDamaged)
-  self:register(Event.FiredTurret, self.turretFired)
-  self:register(Event.Collision, self.onCollision)
-end)
-
-function Ship:wasDamaged (event)
-  if event.amount and event.amount > 0 then
-    -- disable travel mode on damage, this should later be dependant on some kind of value e.g.
-    -- only after shield is down on dmg to hull cancel travel drive
-    if self.travelDriveActive then
-      self.travelDriveTimer = 0
-      self.travelDriveActive = false
-    end
-  end
-end
-
-function Ship:turretFired (event)
-  if event.turret then
-    if self.travelDriveActive then
-      self.travelDriveTimer = 0
-      self.travelDriveActive = false
-    end
-  end
-end
-
-function Ship:onCollision(event)
-
-end
-
--- TODO : Calculate true top speed based on max thrust & drag factor
-function Ship:getTopSpeed ()
-  return 100
-end
-
-function Ship:attackedBy (target)
-  -- This ship has been attacked (self.health reduced below self.healthMax by damage)
-  -- TODO: Allow a number of "grace" hits that decay over time
-  -- TODO: Improve smarts so that this ship can decide which of multiple attackers to target
-  if not self:isDestroyed() then
-    -- Ignore hits on ships that have already been destroyed
---printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:getHealthPercent(), target:getName())
-    self:modDisposition(target, -0.2)
-    local zone = self:getZone()
-    if zone then
-      zone:adjustThreat(0.1)
-    end
-    if self ~= GameState.player.currentShip and self:isHostileTo(target) then
-      -- If this non-player-controlled ship is not currently attacking its attacker,
-      --    add an action to Attack its attacker
-      if self:hasActions() then
-        local actionName = format("Attack %s", target:getName()) -- must match namegen in Attack.lua
-        local attackAction = self:findAction(actionName)
-        if attackAction then
-          if attackAction ~= self:getCurrentAction() then
-            -- If the action to attack the attacker exists in this entity's Actions queue but isn't the current
-            --     action, delete the old Attack action and push a new instance to the top of the Actions queue
-            self:deleteAction(actionName)
-            self:pushAction(Actions.Attack(target))
-          end
-        else
-          self:pushAction(Actions.Attack(target))
-        end
-
-        if self:getOwner() ~= target:getOwner() then
-          self:distressCall(target, 12500)
-        end
-      else
-        self:pushAction(Actions.Attack(target))
-      end
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     end
 end
 

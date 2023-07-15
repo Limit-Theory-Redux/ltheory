@@ -1,20 +1,11 @@
 local Entity = require('GameObjects.Entity')
 local Pulse = require('GameObjects.Entities.Effects.Pulse')
 
-<<<<<<< HEAD
 local Projectile = subclass(Entity, function(self, pR, pG, pB)
     self.pColorR = pR
     self.pColorG = pG
     self.pColorB = pB
     self.effect = nil
-=======
-local rng = RNG.FromTime()
-
-local Projectile = subclass(Entity, function (self, pR, pG, pB)
-  self.pColorR = pR
-  self.pColorG = pG
-  self.pColorB = pB
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 end)
 
 function Projectile:getEffect()
@@ -26,7 +17,6 @@ function Projectile:getPos()
     return self.effect.pos
 end
 
-<<<<<<< HEAD
 function Entity:addProjectiles()
     assert(not self.projectiles)
     self.projectiles = {}
@@ -38,11 +28,6 @@ end
 
 function Entity:addProjectile(source)
     assert(self.projectiles)
-=======
-  -- TODO: Extend projectile types to non-pulse effects
-  local e = Pulse:new()
-  e.source = IncRef(source)
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 
     -- TODO: Extend projectile types to non-pulse effects
 

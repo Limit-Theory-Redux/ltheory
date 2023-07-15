@@ -49,7 +49,6 @@ function Universe:CreateStarSystem(seed)
             printf("Added %s asteroids to %s", GameState.gen.nAsteroids, afield:getName())
         end
 
-<<<<<<< HEAD
         local shipObject = {
             owner = GameState.player.humanPlayer,
             shipName = GameState.player.humanPlayerShipName,
@@ -128,23 +127,6 @@ function Universe:CreateStarSystem(seed)
         printf("Added System: " .. system:getName() .. " to the Universe.")
     end
     self:AddSystemEconomy(system)
-=======
-        escort:setDisposition(playerShip, Config.game.dispoMax)
-
-        insert(escortShips, escort)
-      end
-      -- TESTING: MAKE SHIPS CHASE EACH OTHER!
-      --for i = 1, #escortShips - 1 do
-      --  escortShips[i]:pushAction(Actions.Attack(escortShips[i+1]))
-      --end
-      printf("Added %d escort ships", GameState.gen.nEscortNPCs)
-    end
-    -- Add System to the Universe
-    table.insert(self.systems, system)
-    printf("Added System: " .. system:getName() .. " to the Universe.")
-  end
-  self:AddSystemEconomy(system)
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 end
 
 function Universe:CreateShip(system, pos, shipObject)

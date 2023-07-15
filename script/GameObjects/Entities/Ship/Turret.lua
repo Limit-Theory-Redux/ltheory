@@ -103,15 +103,9 @@ function Turret:canFire()
         self:getParent():mgrCapacitorGetCharge() >= Config.gen.compTurretPulseStats.charge
 end
 
-<<<<<<< HEAD
 function Turret:fire()
     if not self:canFire() then return end
     --printf("%s firing!", self:getParent():getName())
-=======
-function Turret:fire (dt)
-  if not self:canFire() then return end
---printf("%s firing!", self:getParent():getName())
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 
     self:getParent().projColorR = Config.gen.compTurretPulseStats.colorBodyR
     self:getParent().projColorG = Config.gen.compTurretPulseStats.colorBodyG
@@ -131,7 +125,6 @@ function Turret:fire (dt)
     effect.lifeMax = self.projLife
     effect.life = effect.lifeMax
 
-<<<<<<< HEAD
     -- Discharge capacitor if turret holds an energy weapon
     -- TODO: extend to different weapon types
     self:getParent():mgrCapacitorDischarge(Config.gen.compTurretPulseStats.charge)
@@ -147,19 +140,6 @@ function Turret:fire (dt)
 
     -- Event to parent
     self:getParent():send(Event.FiredTurret(self, projectile, effect))
-=======
-  -- NOTE : In the future, it may be beneficial to store the actual turret
-  --        rather than the parent. It would allow, for example, data-driven
-  --        AI threat analysis by keeping track of which weapons have caused
-  --        the most real damage to it, allowing for optimal sub-system
-  --        targetting.
-  local rpmDeviation = Config.game.weaponRPM - Config.game.weaponRPM * rng:getUniformRange(Config.game.weaponRPMDeviation, 0)
-  self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
-  self.heat = self.heat + 1
-
-  -- Event to parent
-  self:getParent():send(Event.FiredTurret(self, projectile, effect))
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 end
 
 function Turret:render(state)
@@ -179,7 +159,6 @@ function Turret:render(state)
     end
 end
 
-<<<<<<< HEAD
 function Turret:updateTurret(state)
     --printf("name = %s", self.name)
     local decay = exp(-16.0 * state.dt)
@@ -190,17 +169,6 @@ function Turret:updateTurret(state)
     end
     self.cooldown = max(0, self.cooldown - state.dt)
     self.heat = self.heat * decay
-=======
-function Turret:updateTurret (state)
-  local decay = exp(-16.0 * state.dt)
-  self:setRotLocal(self:getParent():getRot():inverse() * self.aim)
-  if self.firing > 0 then
-    self.firing = 0
-    if self.cooldown <= 0 then self:fire(state.dt) end
-  end
-  self.cooldown = max(0, self.cooldown - state.dt)
-  self.heat = self.heat * decay
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
 end
 
 return Turret

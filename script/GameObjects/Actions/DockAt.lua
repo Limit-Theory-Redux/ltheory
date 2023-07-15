@@ -30,7 +30,6 @@ function DockAt:onUpdateActive(e, dt)
     -- Move to within docking range of the dockable target object
     local tp = getTargetPos(e, self.target)
 
-<<<<<<< HEAD
     -- Within range of the target object?
     if (e:getPos() - tp):length() <= kDockRange then
         if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
@@ -38,27 +37,6 @@ function DockAt:onUpdateActive(e, dt)
             self.target:addDocked(e)
         end
         e:popAction()
-=======
-  -- Within range of the target object?
-  if (e:getPos() - tp):length() <= kDockRange then
-    if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
-      e:getThrustController():clear()
-      self.target:addDocked(e)
-    end
-    e:popAction()
-  else
-    -- Use the "target" metaphor to store where this ship is moving to
-    if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
-      e:setTarget(self.target)
-
-      if GameState.debug.instantJobs then
-        local p = e:getPos()
-        local dp = tp - p
-        e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * GameState.debug.jobSpeed)))
-      else
-        e:pushAction(Actions.MoveTo(self.target, 500, true))
-      end
->>>>>>> 1b58bb0278295d31845972084d1313877cd21e29
     else
         -- Use the "target" metaphor to store where this ship is moving to
         if self.target:hasDockable() and self.target:isDockable() and not self.target:isBanned(e) then
