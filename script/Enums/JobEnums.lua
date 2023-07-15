@@ -1,4 +1,9 @@
--- Enumerations for job states
+Enums.Jobs = {
+  Mining = 0,
+  Transport = 1,
+  Marauding = 2
+}
+
 Enums.JobStateTransport = {
     None             = 0,
     DockingAtSrc     = 1,

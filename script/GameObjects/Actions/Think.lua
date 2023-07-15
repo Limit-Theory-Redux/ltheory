@@ -70,7 +70,13 @@ function Think:manageAsset(asset)
     -- Consider changing to a new job
     for i = 1, math.min(Config.econ.jobIterations, #root:getEconomy().jobs * 2) do
         -- TODO : KnowsAbout check (information economy + AI load reduction)
-        local job = self.rng:choose(root:getEconomy().jobs)
+        local jobType = self.rng:choose(root:getEconomy().jobs)
+        local job
+
+        if jobType then
+            job = self.rng:choose(jobType)
+        end
+
         if not job then break end
 
         local payout = job:getPayout(asset)
@@ -79,8 +85,7 @@ function Think:manageAsset(asset)
                 bestPayout = payout
                 bestJob = job
             else
-                printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-                    asset:getName(), job:getName(asset), payout)
+                printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!", asset:  getName(), job:getName(asset), payout)
             end
         end
     end
@@ -145,12 +150,12 @@ function Think:manageAsset(asset)
             local station = stations[1].stationRef
 
         local stations = system:getStationsByDistance(asset)
-            
+
         if #stations > 0 then
             local i = 1
             -- don´t dock at hostile stations
             while stations[i] and stations[i].stationRef:getOwner() ~= asset:getOwner() do
-              i = i + 1
+                i = i + 1
             end
 
             if stations[i] then

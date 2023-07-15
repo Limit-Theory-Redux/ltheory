@@ -40,7 +40,13 @@ function CriminalThink:manageAsset (asset)
   -- Consider changing to a new job
   for i = 1, math.min(Config.econ.jobIterations, #root:getEconomy().blackMarketJobs * 2) do
     -- TODO : KnowsAbout check (information economy + AI load reduction)
-    local job = self.rng:choose(root:getEconomy().blackMarketJobs)
+    local jobType = self.rng:choose(root:getEconomy().blackMarketJobs)
+    local job
+
+    if jobType then
+      job = self.rng:choose(jobType)
+    end
+
     if not job then break end
 
     local payout = job:getPayout(asset)
