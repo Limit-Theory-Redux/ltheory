@@ -1,29 +1,34 @@
-use sdl2_sys::*;
+use crate::window::static_string;
 
-pub type WindowMode = u32;
-
-#[no_mangle]
-pub static WindowMode_AlwaysOnTop: WindowMode =
-    SDL_WindowFlags::SDL_WINDOW_ALWAYS_ON_TOP as WindowMode;
-
-#[no_mangle]
-pub static WindowMode_Borderless: WindowMode = SDL_WindowFlags::SDL_WINDOW_BORDERLESS as WindowMode;
-
-#[no_mangle]
-pub static WindowMode_Fullscreen: WindowMode =
-    SDL_WindowFlags::SDL_WINDOW_FULLSCREEN_DESKTOP as WindowMode;
-
-#[no_mangle]
-pub static WindowMode_Hidden: WindowMode = SDL_WindowFlags::SDL_WINDOW_HIDDEN as WindowMode;
-
-#[no_mangle]
-pub static WindowMode_Maximized: WindowMode = SDL_WindowFlags::SDL_WINDOW_MAXIMIZED as WindowMode;
-
-#[no_mangle]
-pub static WindowMode_Minimized: WindowMode = SDL_WindowFlags::SDL_WINDOW_MINIMIZED as WindowMode;
-
-#[no_mangle]
-pub static WindowMode_Resizable: WindowMode = SDL_WindowFlags::SDL_WINDOW_RESIZABLE as WindowMode;
-
-#[no_mangle]
-pub static WindowMode_Shown: WindowMode = SDL_WindowFlags::SDL_WINDOW_SHOWN as WindowMode;
+/// Defines the way a [`Window`] is displayed.
+#[luajit_ffi_gen::luajit_ffi(repr = "u32")]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WindowMode {
+    /// The window should take a portion of the screen, using the window resolution size.
+    #[default]
+    Windowed,
+    /// The window should appear fullscreen by being borderless and using the full
+    /// size of the screen.
+    ///
+    /// When setting this, the window's physical size will be modified to match the size
+    /// of the current monitor resolution, and the logical size will follow based
+    /// on the scale factor, see [`WindowResolution`].
+    BorderlessFullscreen,
+    /// The window should be in "true"/"legacy" Fullscreen mode.
+    ///
+    /// When setting this, the operating system will be requested to use the
+    /// **closest** resolution available for the current monitor to match as
+    /// closely as possible the window's physical size.
+    /// After that, the window's physical size will be modified to match
+    /// that monitor resolution, and the logical size will follow based on the
+    /// scale factor, see [`WindowResolution`].
+    SizedFullscreen,
+    /// The window should be in "true"/"legacy" Fullscreen mode.
+    ///
+    /// When setting this, the operating system will be requested to use the
+    /// **biggest** resolution available for the current monitor.
+    /// After that, the window's physical size will be modified to match
+    /// that monitor resolution, and the logical size will follow based on the
+    /// scale factor, see [`WindowResolution`].
+    Fullscreen,
+}

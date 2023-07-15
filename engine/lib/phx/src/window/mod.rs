@@ -1,214 +1,305 @@
+mod composite_alpha_mode;
+mod cursor;
+mod monitor_selection;
+mod present_mode;
+mod window_level;
 mod window_mode;
-mod window_pos;
+mod window_position;
+mod window_resize_constraints;
+mod window_resolution;
+mod winit_windows;
 
+pub use composite_alpha_mode::*;
+pub use cursor::*;
+pub use monitor_selection::*;
+pub use present_mode::*;
+pub use window_level::*;
 pub use window_mode::*;
-pub use window_pos::*;
+pub use window_position::*;
+pub use window_resize_constraints::*;
+pub use window_resolution::*;
 
 use super::*;
 use crate::common::*;
 use crate::internal::*;
-use crate::math::IVec2;
+use crate::math::*;
 use crate::render::*;
 use crate::system::*;
 
-use sdl2_sys::*;
-
+/// The defining [`Component`] for window entities,
+/// storing information about how it should appear and behave.
+///
+/// Each window corresponds to an entity, and is uniquely identified by the value of their [`Entity`].
+/// When the [`Window`] component is added to an entity, a new window will be opened.
+/// When it is removed or the entity is despawned, the window will close.
+///
+/// This component is synchronized with `winit` through `bevy_winit`:
+/// it will reflect the current state of the window and can be modified to change this state.
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Window {
-    pub handle: *mut SDL_Window,
-    pub context: SDL_GLContext,
+    /// The cursor of this window.
+    pub cursor: Cursor,
+    /// What presentation mode to give the window.
+    pub present_mode: PresentMode,
+    /// Which fullscreen or windowing mode should be used.
     pub mode: WindowMode,
-    pub cursor: *mut SDL_Cursor,
+    /// Where the window should be placed.
+    pub position: WindowPosition,
+    /// What resolution the window should have.
+    pub resolution: WindowResolution,
+    /// Stores the title of the window.
+    pub title: String,
+    /// How the alpha channel of textures should be handled while compositing.
+    pub composite_alpha_mode: CompositeAlphaMode,
+    /// The limits of the window's logical size
+    /// (found in its [`resolution`](WindowResolution)) when resizing.
+    pub resize_constraints: WindowResizeConstraints,
+    /// Should the window be resizable?
+    ///
+    /// Note: This does not stop the program from fullscreening/setting
+    /// the size programmatically.
+    pub resizable: bool,
+    /// Should the window have decorations enabled?
+    ///
+    /// (Decorations are the minimize, maximize, and close buttons on desktop apps)
+    ///
+    //  ## Platform-specific
+    //
+    //  **`iOS`**, **`Android`**, and the **`Web`** do not have decorations.
+    pub decorations: bool,
+    /// Should the window be transparent?
+    ///
+    /// Defines whether the background of the window should be transparent.
+    ///
+    /// ## Platform-specific
+    /// - iOS / Android / Web: Unsupported.
+    /// - macOS X: Not working as expected.
+    ///
+    /// macOS X transparent works with winit out of the box, so this issue might be related to: <https://github.com/gfx-rs/wgpu/issues/687>.
+    /// You should also set the window `composite_alpha_mode` to `CompositeAlphaMode::PostMultiplied`.
+    pub transparent: bool,
+    /// Get/set whether the window is focused.
+    pub focused: bool,
+    /// Where should the window appear relative to other overlapping window.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - iOS / Android / Web / Wayland: Unsupported.
+    pub window_level: WindowLevel,
+    /// The "html canvas" element selector.
+    ///
+    /// If set, this selector will be used to find a matching html canvas element,
+    /// rather than creating a new one.
+    /// Uses the [CSS selector format](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector).
+    ///
+    /// This value has no effect on non-web platforms.
+    pub canvas: Option<String>,
+    /// Whether or not to fit the canvas element's size to its parent element's size.
+    ///
+    /// **Warning**: this will not behave as expected for parents that set their size according to the size of their
+    /// children. This creates a "feedback loop" that will result in the canvas growing on each resize. When using this
+    /// feature, ensure the parent's size is not affected by its children.
+    ///
+    /// This value has no effect on non-web platforms.
+    pub fit_canvas_to_parent: bool,
+    /// Whether or not to stop events from propagating out of the canvas element
+    ///
+    ///  When `true`, this will prevent common browser hotkeys like F5, F12, Ctrl+R, tab, etc.
+    /// from performing their default behavior while the bevy app has focus.
+    ///
+    /// This value has no effect on non-web platforms.
+    pub prevent_default_event_handling: bool,
+    /// Stores internal state that isn't directly accessible.
+    pub internal: InternalWindowState,
+    /// Should the window use Input Method Editor?
+    ///
+    /// If enabled, the window will receive [`Ime`](crate::Ime) events instead of
+    /// [`ReceivedCharacter`](crate::ReceivedCharacter) or
+    /// [`KeyboardInput`](bevy_input::keyboard::KeyboardInput).
+    ///
+    /// IME should be enabled during text input, but not when you expect to get the exact key pressed.
+    ///
+    ///  ## Platform-specific
+    ///
+    /// - iOS / Android / Web: Unsupported.
+    pub ime_enabled: bool,
+    /// Sets location of IME candidate box in client area coordinates relative to the top left.
+    ///
+    ///  ## Platform-specific
+    ///
+    /// - iOS / Android / Web: Unsupported.
+    pub ime_position: Vec2,
+    /// Sets a specific theme for the window.
+    ///
+    /// If `None` is provided, the window will use the system theme.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - iOS / Android / Web: Unsupported.
+    pub window_theme: Option<WindowTheme>,
 }
 
-impl Drop for Window {
-    fn drop(&mut self) {
-        unsafe {
-            SDL_FreeCursor(self.cursor); // Can take null.
-            SDL_GL_DeleteContext(self.context);
-            SDL_DestroyWindow(self.handle);
+impl Default for Window {
+    fn default() -> Self {
+        Self {
+            title: "Limit Theory Redux".to_owned(),
+            cursor: Default::default(),
+            present_mode: Default::default(),
+            mode: Default::default(),
+            position: Default::default(),
+            resolution: Default::default(),
+            internal: Default::default(),
+            composite_alpha_mode: Default::default(),
+            resize_constraints: Default::default(),
+            ime_enabled: Default::default(),
+            ime_position: Default::default(),
+            resizable: true,
+            decorations: true,
+            transparent: false,
+            focused: true,
+            window_level: Default::default(),
+            fit_canvas_to_parent: false,
+            prevent_default_event_handling: true,
+            canvas: None,
+            window_theme: None,
         }
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
 impl Window {
-    #[bind(name = "Create")]
-    pub fn new(
-        title: &str,
-        x: WindowPos,
-        y: WindowPos,
-        sx: i32,
-        sy: i32,
-        mode: WindowMode,
-    ) -> Self {
-        unsafe {
-            let modeComplete = mode | SDL_WindowFlags::SDL_WINDOW_OPENGL as WindowMode;
-            // | SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as WindowMode;
-            let handle = SDL_CreateWindow(
-                title.as_ptr() as *const libc::c_char,
-                x,
-                y,
-                sx,
-                sy,
-                modeComplete,
-            );
-            let context = SDL_GL_CreateContext(handle);
-            if context.is_null() {
-                panic!("Failed to create OpenGL context for window");
-            }
-            OpenGL_Init();
-
-            Self {
-                handle,
-                context,
-                mode: modeComplete,
-                cursor: std::ptr::null_mut(),
-            }
-        }
+    /// Setting this to true will attempt to maximize the window.
+    ///
+    /// Setting it to false will attempt to un-maximize the window.
+    pub fn set_maximized(&mut self, maximized: bool) {
+        self.internal.maximize_request = Some(maximized);
     }
 
-    pub fn begin_draw(&self) {
-        unsafe {
-            let mut size: IVec2 = IVec2::ZERO;
-
-            SDL_GL_MakeCurrent(self.handle, self.context);
-            self.get_size(&mut size);
-            Viewport_Push(0, 0, size.x, size.y, true);
-        }
+    /// Setting this to true will attempt to minimize the window.
+    ///
+    /// Setting it to false will attempt to un-minimize the window.
+    pub fn set_minimized(&mut self, minimized: bool) {
+        self.internal.minimize_request = Some(minimized);
     }
 
-    pub fn end_draw(&self) {
-        unsafe {
-            Viewport_Pop();
-            SDL_GL_SwapWindow(self.handle);
-        }
+    /// The window's client area width in logical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn width(&self) -> f32 {
+        self.resolution.width()
     }
 
-    pub fn get_position(&self, out: &mut IVec2) {
-        unsafe {
-            SDL_GetWindowPosition(self.handle, &mut out.x, &mut out.y);
-        }
+    /// The window's client area height in logical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn height(&self) -> f32 {
+        self.resolution.height()
     }
 
-    pub fn get_size(&self, out: &mut IVec2) {
-        unsafe {
-            SDL_GetWindowSize(self.handle, &mut out.x, &mut out.y);
-        }
+    /// The window's client area width in physical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn physical_width(&self) -> u32 {
+        self.resolution.physical_width()
     }
 
-    pub fn get_title(&self) -> String {
-        unsafe { SDL_GetWindowTitle(self.handle) }.as_string()
+    /// The window's client area height in physical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn physical_height(&self) -> u32 {
+        self.resolution.physical_height()
     }
 
-    pub fn set_fullscreen(&self, fs: bool) {
-        unsafe {
-            SDL_SetWindowFullscreen(self.handle, if fs { WindowMode_Fullscreen } else { 0 });
-        }
+    /// The window's scale factor.
+    ///
+    /// Ratio of physical size to logical size, see [`WindowResolution`].
+    #[inline]
+    pub fn scale_factor(&self) -> f64 {
+        self.resolution.scale_factor()
     }
 
-    pub fn set_position(&self, x: WindowPos, y: WindowPos) {
-        unsafe {
-            SDL_SetWindowPosition(self.handle, x, y);
-        }
+    /// The cursor position in this window in logical pixels.
+    ///
+    /// Returns `None` if the cursor is outside the window area.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn cursor_position(&self) -> Option<Vec2> {
+        self.internal
+            .physical_cursor_position
+            .map(|position| (position / self.scale_factor()).as_vec2())
     }
 
-    pub fn set_size(&self, sx: i32, sy: i32) {
-        unsafe {
-            SDL_SetWindowSize(self.handle, sx, sy);
-        }
+    /// The cursor position in this window in physical pixels.
+    ///
+    /// Returns `None` if the cursor is outside the window area.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn physical_cursor_position(&self) -> Option<Vec2> {
+        self.internal
+            .physical_cursor_position
+            .map(|position| position.as_vec2())
     }
 
-    pub fn set_title(&self, title: &str) {
-        unsafe {
-            SDL_SetWindowTitle(self.handle, title.as_ptr() as *const libc::c_char);
-        }
+    /// Set the cursor position in this window in logical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    pub fn set_cursor_position(&mut self, position: Option<Vec2>) {
+        self.internal.physical_cursor_position =
+            position.map(|p| p.as_dvec2() * self.scale_factor());
     }
 
-    pub fn set_vsync(&self, vsync: bool) {
-        unsafe {
-            SDL_GL_SetSwapInterval(if vsync { 1 } else { 0 });
-        }
+    /// Set the cursor position in this window in physical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    pub fn set_physical_cursor_position(&mut self, position: Option<DVec2>) {
+        self.internal.physical_cursor_position = position;
+    }
+}
+
+/// Stores internal [`Window`] state that isn't directly accessible.
+#[derive(Default, Debug, Copy, Clone, PartialEq)]
+pub struct InternalWindowState {
+    /// If this is true then next frame we will ask to minimize the window.
+    minimize_request: Option<bool>,
+    /// If this is true then next frame we will ask to maximize/un-maximize the window depending on `maximized`.
+    maximize_request: Option<bool>,
+    /// Unscaled cursor position.
+    physical_cursor_position: Option<DVec2>,
+}
+
+impl InternalWindowState {
+    /// Consumes the current maximize request, if it exists. This should only be called by window backends.
+    pub fn take_maximize_request(&mut self) -> Option<bool> {
+        self.maximize_request.take()
     }
 
-    pub fn set_cursor(&mut self, name: &str, hotx: i32, hoty: i32) {
-        unsafe {
-            SDL_FreeCursor(self.cursor); // Can take null.
-
-            let path = Resource_GetPath(ResourceType_Tex2D, name.as_ptr() as *const libc::c_char);
-
-            let mut width: i32 = 0;
-            let mut height: i32 = 0;
-            let mut components: i32 = 0;
-            let data = Tex2D_LoadRaw(path, &mut width, &mut height, &mut components);
-
-            let pixelFormat = if components == 3 {
-                SDL_PixelFormatEnum::SDL_PIXELFORMAT_RGB24
-            } else {
-                SDL_PixelFormatEnum::SDL_PIXELFORMAT_ABGR8888
-            };
-            let surface = SDL_CreateRGBSurfaceWithFormatFrom(
-                data as *mut _,
-                width,
-                height,
-                components * 8,
-                width * components,
-                pixelFormat as u32,
-            );
-            if surface.is_null() {
-                panic!("Failed to create custom cursor surface for window");
-            }
-
-            self.cursor = SDL_CreateColorCursor(surface, hotx, hoty);
-            if self.cursor.is_null() {
-                SDL_FreeSurface(surface);
-                panic!("Failed to create custom cursor for window");
-            }
-
-            SDL_FreeSurface(surface);
-            SDL_SetCursor(self.cursor);
-        }
+    /// Consumes the current minimize request, if it exists. This should only be called by window backends.
+    pub fn take_minimize_request(&mut self) -> Option<bool> {
+        self.minimize_request.take()
     }
+}
 
-    pub fn set_mouse_position(&self, position: &IVec2) {
-        unsafe {
-            SDL_WarpMouseInWindow(self.handle, position.x, position.y);
-        }
-    }
+/// The [`Window`] theme variant to use.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WindowTheme {
+    /// Use the light variant.
+    Light,
 
-    pub fn set_window_grab(&self, grabbed: bool) {
-        unsafe {
-            SDL_SetWindowGrab(
-                self.handle,
-                if grabbed {
-                    SDL_bool::SDL_TRUE
-                } else {
-                    SDL_bool::SDL_FALSE
-                },
-            );
-        }
-    }
+    /// Use the dark variant.
+    Dark,
+}
 
-    pub fn toggle_fullscreen(&mut self) {
-        unsafe {
-            if self.mode & WindowMode_Fullscreen != 0 {
-                SDL_SetWindowFullscreen(self.handle, 0);
-            } else {
-                SDL_SetWindowFullscreen(self.handle, WindowMode_Fullscreen);
-            }
-            self.mode ^= WindowMode_Fullscreen;
-        }
-    }
-
-    pub fn hide(&self) {
-        unsafe {
-            SDL_HideWindow(self.handle);
-        }
-    }
-
-    pub fn show(&self) {
-        unsafe {
-            SDL_ShowWindow(self.handle);
+impl From<WindowTheme> for winit::window::Theme {
+    fn from(value: WindowTheme) -> Self {
+        match value {
+            WindowTheme::Light => Self::Light,
+            WindowTheme::Dark => Self::Dark,
         }
     }
 }
