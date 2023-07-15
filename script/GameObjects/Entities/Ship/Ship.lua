@@ -64,6 +64,7 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self.explosionSize = 64  -- ships get the default explosion size
     self.usesBoost = false -- default ships fly at only the normal speed
     self.travelDriveActive = false
+    self.travelDriveTimer = 0
     local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
 
     -- Events
@@ -76,6 +77,7 @@ function Ship:wasDamaged (event)
         -- disable travel mode on damage, this should later be dependant on some kind of value e.g.
         -- only after shield is down on dmg to hull cancel travel drive
         if self.travelDriveActive then
+            self.travelDriveTimer = 0
             self.travelDriveActive = false
         end
     end
@@ -84,6 +86,7 @@ end
 function Ship:turretFired (event)
     if event.turret then
         if self.travelDriveActive then
+            self.travelDriveTimer = 0
             self.travelDriveActive = false
         end
     end
