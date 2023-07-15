@@ -64,7 +64,7 @@ function MaraudAt:onUpdateActive(e, dt)
         self.wasAttacking = false
       end
     else
-      e:pushAction(Actions.MoveToPos(self.targetPosition, 2000))
+      e:pushAction(Actions.MoveToPos(self.targetPosition, 2000, true))
     end
   elseif not self.targetPosition and self.patrolZone then
     self.targetPosition = self.patrolZone:getRandomPos(self.system.rng)

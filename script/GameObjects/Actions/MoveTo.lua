@@ -2,10 +2,13 @@ local Action = require('GameObjects.Action')
 --local Bindings = require('States.ApplicationBindings')
 
 local rng = RNG.FromTime()
+local timeUntilTravelDrive = 20 -- temporary local setting
 
-local MoveTo = subclass(Action, function(self, target, range)
+local MoveTo = subclass(Action, function(self, target, range, useTravelDrive)
     self.target = target
     self.range = range
+    self.useTravelDrive = useTravelDrive
+    self.travelDriveTimer = 0
 end)
 
 function MoveTo:clone()
@@ -32,8 +35,9 @@ function MoveTo:onUpdateActive(e, dt)
     -- Within range of the target object?
     if (e:getPos() - tp):length() <= self.range or (e == GameState.player.currentShip and not GameState.player.playerMoving) then
         -- MoveTo is complete, remove movement action from entity's Action queue
-        --printf("-> %s ended", e:getCurrentAction():getName())
         e:popAction()
+        e.travelDriveActive = false
+        self.travelDriveTimer = 0
 
         if e == GameState.player.currentShip and GameState.player.playerMoving then
             GameState.player.playerMoving = false
@@ -50,6 +54,14 @@ function MoveTo:onUpdateActive(e, dt)
         local dp = tp - p
         e:setPos(p + dp:normalize():scale(rng:getUniform() * min(dp:length(), dt * GameState.debug.jobSpeed)))
     else
+        if self.useTravelDrive then
+            if not e.travelDriveActive and self.travelDriveTimer >= timeUntilTravelDrive then
+                e.travelDriveActive = true
+            else
+                self.travelDriveTimer = self.travelDriveTimer + dt
+            end
+        end
+
         local tf = self.target:getForward()
         local tu = self.target:getUp()
         self:flyToward(e, tp, -tf, tu)
