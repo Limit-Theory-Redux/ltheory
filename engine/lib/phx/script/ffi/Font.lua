@@ -36,7 +36,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Font')
     local mt = {
         __index = {
-            managed       = function(self) return ffi.gc(self, libphx.Font_Free) end,
+            managed       = function (self) return ffi.gc(self, libphx.Font_Free) end,
             acquire       = libphx.Font_Acquire,
             free          = libphx.Font_Free,
             draw          = libphx.Font_Draw,

@@ -38,7 +38,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('StrMap')
     local mt = {
         __index = {
-            managed = function(self) return ffi.gc(self, libphx.StrMap_Free) end,
+            managed = function (self) return ffi.gc(self, libphx.StrMap_Free) end,
             free    = libphx.StrMap_Free,
             freeEx  = libphx.StrMap_FreeEx,
             get     = libphx.StrMap_Get,

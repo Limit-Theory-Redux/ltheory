@@ -76,7 +76,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('RNG')
     local mt = {
         __index = {
-            managed         = function(self) return ffi.gc(self, libphx.RNG_Free) end,
+            managed         = function (self) return ffi.gc(self, libphx.RNG_Free) end,
             free            = libphx.RNG_Free,
             rewind          = libphx.RNG_Rewind,
             chance          = libphx.RNG_Chance,

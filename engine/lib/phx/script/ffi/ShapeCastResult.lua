@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return ShapeCastResult_t(...) end,
+        __call = function (t, ...) return ShapeCastResult_t(...) end,
     }
 
     if onDef_ShapeCastResult then onDef_ShapeCastResult(ShapeCastResult, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('ShapeCastResult')
     local mt = {
         __index = {
-            clone = function(x) return ShapeCastResult_t(x) end,
+            clone = function (x) return ShapeCastResult_t(x) end,
         },
     }
 

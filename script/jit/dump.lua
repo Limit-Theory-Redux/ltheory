@@ -111,7 +111,7 @@ local function fillsymtab(tr, nexit)
             end
         end
     end
-    if nexitsym == 1000000 then -- Per-trace exit stubs.
+    if nexitsym == 1000000 then  -- Per-trace exit stubs.
         fillsymtab_tr(tr, nexit)
     elseif nexit > nexitsym then -- Shared exit stubs.
         for i = nexitsym, nexit - 1 do
@@ -223,7 +223,7 @@ end
 
 local irtype_ansi = setmetatable({},
     {
-        __index = function(tab, t)
+        __index = function (tab, t)
             local s = colorize_ansi(irtype_text[t], t); tab[t] = s; return s;
         end
     })
@@ -237,7 +237,7 @@ end
 
 local irtype_html = setmetatable({},
     {
-        __index = function(tab, t)
+        __index = function (tab, t)
             local s = colorize_html(irtype_text[t], t); tab[t] = s; return s;
         end
     })
@@ -267,7 +267,7 @@ local colorize, irtype
 
 -- Lookup tables to convert some literals into names.
 local litname = {
-    ["SLOAD "] = setmetatable({}, { __index = function(t, mode)
+    ["SLOAD "] = setmetatable({}, { __index = function (t, mode)
         local s = ""
         if band(mode, 1) ~= 0 then s = s .. "P" end
         if band(mode, 2) ~= 0 then s = s .. "F" end
@@ -279,7 +279,7 @@ local litname = {
         return s
     end }),
     ["XLOAD "] = { [0] = "", "R", "V", "RV", "U", "RU", "VU", "RVU", },
-    ["CONV  "] = setmetatable({}, { __index = function(t, mode)
+    ["CONV  "] = setmetatable({}, { __index = function (t, mode)
         local s = irtype[band(mode, 31)]
         s = irtype[band(shr(mode, 5), 31)] .. "." .. s
         if band(mode, 0x800) ~= 0 then s = s .. " sext" end
@@ -349,9 +349,9 @@ local function formatk(tr, idx, sn)
         s = sub(tostring(k), 1, -3)
         if sub(s, 1, 1) ~= "-" then s = "+" .. s end
     elseif sn == 0x1057fff then -- SNAP(1, SNAP_FRAME | SNAP_NORESTORE, REF_NIL)
-        return "----"         -- Special case for LJ_FR2 slot 1.
+        return "----"           -- Special case for LJ_FR2 slot 1.
     else
-        s = tostring(k)       -- For primitives.
+        s = tostring(k)         -- For primitives.
     end
     s = colorize(format("%-4s", s), t)
     if slot then
@@ -512,7 +512,7 @@ local function dump_ir(tr, dumpsnap, dumpreg)
                 else
                     out:write(format(m1 == 0 and "%04d" or "#%-3d", op1))
                 end
-                if m2 ~= 3 * 4 then -- op2 != IRMnone
+                if m2 ~= 3 * 4 then     -- op2 != IRMnone
                     if m2 == 1 * 4 then -- op2 == IRMlit
                         local litn = litname[op]
                         if litn and litn[op2] then
@@ -614,7 +614,7 @@ local function dump_record(tr, func, pc, depth, callee)
         out:write(line)
     end
     if pc >= 0 and band(funcbc(func, pc), 0xff) < 16 then -- ORDER BC
-        out:write(bcline(func, pc + 1, recprefix))      -- Write JMP for cond.
+        out:write(bcline(func, pc + 1, recprefix))        -- Write JMP for cond.
     end
 end
 
@@ -671,7 +671,7 @@ local function dumpon(opt, outfile)
     local term = os.getenv("TERM")
     local colormode = (term and term:match("color") or os.getenv("COLORTERM")) and "A" or "T"
     if opt then
-        opt = gsub(opt, "[TAH]", function(mode)
+        opt = gsub(opt, "[TAH]", function (mode)
             colormode = mode; return "";
         end)
     end

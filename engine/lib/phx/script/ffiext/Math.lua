@@ -14,35 +14,35 @@ function onDef_Math(t, mt)
     t.ToRadians     = rad
     t.ToDegrees     = deg
 
-    t.Approx        = function(a, b)
+    t.Approx        = function (a, b)
         return abs(a - b) < 1e-4
     end
 
-    t.Avg           = function(a, b)
+    t.Avg           = function (a, b)
         return (a + b) / 2.0
     end
 
-    t.DivAndMod     = function(x, divisor)
+    t.DivAndMod     = function (x, divisor)
         local div = floor(x / divisor)
         local mod = x - div * divisor
         return div, mod
     end
 
     -- Exponential moving average
-    t.EMA           = function(last, current, dt, period)
+    t.EMA           = function (last, current, dt, period)
         local factor = exp(-dt / period)
         return factor * last + (1.0 - factor) * current
     end
 
-    t.GeomAvg       = function(a, b)
+    t.GeomAvg       = function (a, b)
         return (sqrt(a * b))
     end
 
-    t.Lerp          = function(a, b, t)
+    t.Lerp          = function (a, b, t)
         return a + (b - a) * t
     end
 
-    t.LerpSnap      = function(a, b, t)
+    t.LerpSnap      = function (a, b, t)
         local r = a + (b - a) * t
         if abs(a - r) < 1e-3 then r = a end
         if abs(b - r) < 1e-3 then r = b end
@@ -53,7 +53,7 @@ function onDef_Math(t, mt)
     -- source / destination + closing speed of projectile. Assumes projectile
     -- inherits the velocity of source (in addition to the closing speed).
     -- Returns impact_time, impact_point or nil if no solution exists
-    t.Impact        = function(pSrc, pDst, vSrc, vDst, speed)
+    t.Impact        = function (pSrc, pDst, vSrc, vDst, speed)
         local dp = pDst - pSrc
         local dv = vDst - vSrc
         local a = dv:lengthSquared() - speed * speed
@@ -66,11 +66,11 @@ function onDef_Math(t, mt)
         return t, pDst + dv:scale(t)
     end
 
-    t.InverseLerp   = function(a, b, v)
+    t.InverseLerp   = function (a, b, v)
         return (v - a) / (b - a)
     end
 
-    t.OrthoVector   = function(e1)
+    t.OrthoVector   = function (e1)
         local absY = abs(e1.y)
         if absY < 0.5 then
             return Vec3f(e1.z, 0, -e1.x):normalize()
@@ -79,69 +79,69 @@ function onDef_Math(t, mt)
         end
     end
 
-    t.OrthoBasis    = function(e1)
+    t.OrthoBasis    = function (e1)
         local e2 = Math.OrthoVector(e1)
         local e3 = e1:cross(e2):normalize()
         return e2, e3
     end
 
-    t.IsInfinite    = function(x)
+    t.IsInfinite    = function (x)
         return x == math.huge or x == -math.huge
     end
 
-    t.IsNaN         = function(x)
+    t.IsNaN         = function (x)
         return x ~= x
     end
 
-    t.IsOk          = function(x)
+    t.IsOk          = function (x)
         return not Math.IsInfinite(x) and not Math.IsNaN(x)
     end
 
-    t.AbsMax        = function(a, b)
+    t.AbsMax        = function (a, b)
         return abs(b) > abs(a) and b or a
     end
 
     -- Smoothstep 3rd order ('Smoothstep')
     -- 3x^2 - 2x^3
-    t.SmoothStep3   = function(x)
+    t.SmoothStep3   = function (x)
         return x * x * (3 - 2 * x)
     end
 
     -- Smoothstep 5th order ('Smootherstep')
     -- 6x^5 - 15x^4 + 10x^3
-    t.SmoothStep5   = function(x)
+    t.SmoothStep5   = function (x)
         return x * x * x * (10 + x * (-15 + 6 * x))
     end
 
     -- Smoothstep 7th order ('Smootheststep')
     -- -20x^7 + 70x^6 - 84x^5 + 35x^4
-    t.SmoothStep7   = function(x)
+    t.SmoothStep7   = function (x)
         return x * x * x * x * (35 + x * (-84 + x * (70 - 20 * x)))
     end
 
-    t.Round         = function(x)
+    t.Round         = function (x)
         return floor(x + 0.5)
     end
 
-    t.Saturate      = function(x)
+    t.Saturate      = function (x)
         return max(0.0, min(1.0, x))
     end
 
-    t.Sign          = function(x)
+    t.Sign          = function (x)
         return (x >= 0 and 1) or -1
     end
 
-    t.Sign0         = function(x)
+    t.Sign0         = function (x)
         return (x > 0 and 1) or (x < 0 and -1) or 0
     end
 
-    t.Snap          = function(x, a, b, epsilon)
+    t.Snap          = function (x, a, b, epsilon)
         if abs(x - a) < epsilon then return a end
         if abs(x - b) < epsilon then return b end
         return x
     end
 
-    t.Spherical     = function(radius, pitch, yaw)
+    t.Spherical     = function (radius, pitch, yaw)
         return (Vec3f(
             radius * cos(pitch) * cos(yaw),
             radius * sin(pitch),
@@ -149,7 +149,7 @@ function onDef_Math(t, mt)
     end
 
     -- WARNING : Integers only! Floats will wrap incorrectly.
-    t.Wrap          = function(x, min, max)
+    t.Wrap          = function (x, min, max)
         -- NOTE : Lua's integer mod function wraps negative back to positive,
         --        hence the following simple formula works:
         --           wrapped = offset % range + min

@@ -1,4 +1,4 @@
-local Flow = class(function(self, item, rate, location)
+local Flow = class(function (self, item, rate, location)
     self.item = item
     self.rate = rate
     self.location = location

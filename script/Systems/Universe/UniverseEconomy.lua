@@ -4,7 +4,7 @@ local Actions = requireAll('GameObjects.Actions')
 local Words = require('Systems.Gen.Words')
 local rng = RNG.FromTime()
 
-local UniverseEconomy = class(function(self) end)
+local UniverseEconomy = class(function (self) end)
 
 function UniverseEconomy:Init()
     self.systems = {
@@ -59,7 +59,7 @@ local function addMarket(system)
         aiPlayerCount = GameState.gen.nAIPlayers
     end
 
-    for i=1, aiPlayerCount do
+    for i = 1, aiPlayerCount do
         -- temp name until we have rnd names
         local aiPlayer = Entities.Player("AI Trade Player " .. i)
         aiPlayer:addCredits(Config.econ.eStartCredits)

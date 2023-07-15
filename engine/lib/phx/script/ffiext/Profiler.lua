@@ -2,19 +2,19 @@ local libphx = require('ffi.libphx').lib
 local memory
 
 function onDef_Profiler(t, mt)
-    t.BeginMemoryProfile = function()
+    t.BeginMemoryProfile = function ()
         GC.Collect()
         GC.Stop()
         memory = GC.GetMemory()
     end
 
-    t.EndMemoryProfile = function()
+    t.EndMemoryProfile = function ()
         local dMemory = GC.GetMemory() - memory
         GC.Start()
         return dMemory
     end
 
-    t.TimeGPU = function(name, fn)
+    t.TimeGPU = function (name, fn)
         Draw.Flush()
         local begin = TimeStamp.Now()
         fn()

@@ -2,7 +2,7 @@ local Entity = require('GameObjects.Entity')
 local Material = require('GameObjects.Material')
 local Components = requireAll('GameObjects.Elements.Components')
 
-local Ship = subclass(Entity, function(self, proto, hull)
+local Ship = subclass(Entity, function (self, proto, hull)
     printf("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
     -- TODO : This will create a duplicate BSP because proto & RigidBody do not
     --        share the same BSP cache. Need unified cache.
@@ -61,8 +61,8 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self:setMass(Config.gen.shipHullMass[hull]) -- lower mass is related to the ship "wobble" problem
     printf("@@@ Entities:Ship - final radius = %s, mass = %s", self:getRadius(), self:getMass())
 
-    self.explosionSize = 64  -- ships get the default explosion size
-    self.usesBoost = false -- default ships fly at only the normal speed
+    self.explosionSize = 64 -- ships get the default explosion size
+    self.usesBoost = false  -- default ships fly at only the normal speed
     self.travelDriveActive = false
     self.travelDriveTimer = 0
     local shipDockedAt = nil -- create a variable to store where the ship is docked, if it's docked
@@ -73,7 +73,7 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self:register(Event.Collision, self.onCollision)
 end)
 
-function Ship:wasDamaged (event)
+function Ship:wasDamaged(event)
     if event.amount and event.amount > 0 then
         -- disable travel mode on damage, this should later be dependant on some kind of value e.g.
         -- only after shield is down on dmg to hull cancel travel drive
@@ -84,7 +84,7 @@ function Ship:wasDamaged (event)
     end
 end
 
-function Ship:turretFired (event)
+function Ship:turretFired(event)
     if event.turret then
         if self.travelDriveActive then
             self.travelDriveTimer = 0
@@ -139,13 +139,13 @@ function Ship:attackedBy(target)
     end
 end
 
-function Ship:distressCall (target, range)
+function Ship:distressCall(target, range)
     local owner = self:getOwner()
-    for asset in  owner:iterAssets() do
+    for asset in owner:iterAssets() do
         if asset:getType() == Config:getObjectTypeByName("object_types", "Ship") and self:getDistance(asset) < range then
             local currentAction = asset:getCurrentAction()
 
-            if currentAction and not string.find(currentAction:getName(),"Attack") then
+            if currentAction and not string.find(currentAction:getName(), "Attack") then
                 asset:pushAction(Actions.Attack(target))
                 print(asset:getName() .. " answering distress call of " .. self:getName())
             end
@@ -153,21 +153,21 @@ function Ship:distressCall (target, range)
     end
 end
 
-function Ship:distressCall (target, range)
-  local owner = self:getOwner()
-  for asset in owner:iterAssets() do
-    if asset:getType() == Config:getObjectTypeByName("object_types", "Ship") and self:isHostileTo(target) and self:getDistance(asset) < range then
-      local currentAction = asset:getCurrentAction()
+function Ship:distressCall(target, range)
+    local owner = self:getOwner()
+    for asset in owner:iterAssets() do
+        if asset:getType() == Config:getObjectTypeByName("object_types", "Ship") and self:isHostileTo(target) and self:getDistance(asset) < range then
+            local currentAction = asset:getCurrentAction()
 
-      if (currentAction and not string.find(currentAction:getName(),"Attack")) or not currentAction then
-        asset:pushAction(Actions.Attack(target))
-        --print(asset:getName() .. " answering distress call of " .. self:getName())
-      end
+            if (currentAction and not string.find(currentAction:getName(), "Attack")) or not currentAction then
+                asset:pushAction(Actions.Attack(target))
+                --print(asset:getName() .. " answering distress call of " .. self:getName())
+            end
+        end
     end
-  end
 end
 
-function Ship:setShipDocked (entity)
+function Ship:setShipDocked(entity)
     self.shipDockedAt = entity -- mark 'entity' (just ships for now) as docked
 
     -- If the player was targeting a ship that just docked, remove the target lock

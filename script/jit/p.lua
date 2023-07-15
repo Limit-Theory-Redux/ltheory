@@ -81,7 +81,7 @@ local function prof_cb(th, samples, vmmode)
     end
     if prof_fmt then
         key_stack = profile.dumpstack(th, prof_fmt, prof_depth)
-        key_stack = key_stack:gsub("%[builtin#(%d+)%]", function(x)
+        key_stack = key_stack:gsub("%[builtin#(%d+)%]", function (x)
             return vmdef.ffnames[tonumber(x)]
         end)
         if prof_split == 2 then
@@ -126,7 +126,7 @@ local function prof_top(count1, count2, samples, indent)
         n = n + 1
         t[n] = k
     end
-    sort(t, function(a, b) return count1[a] > count1[b] end)
+    sort(t, function (a, b) return count1[a] > count1[b] end)
     for i = 1, n do
         local k = t[i]
         local v = count1[k]
@@ -257,15 +257,15 @@ end
 -- Start profiling.
 local function prof_start(mode)
     local interval = ""
-    mode = mode:gsub("i%d*", function(s)
+    mode = mode:gsub("i%d*", function (s)
         interval = s; return ""
     end)
     prof_min = 3
-    mode = mode:gsub("m(%d+)", function(s)
+    mode = mode:gsub("m(%d+)", function (s)
         prof_min = tonumber(s); return ""
     end)
     prof_depth = 1
-    mode = mode:gsub("%-?%d+", function(s)
+    mode = mode:gsub("%-?%d+", function (s)
         prof_depth = tonumber(s); return ""
     end)
     local m = {}

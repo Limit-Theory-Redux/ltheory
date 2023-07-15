@@ -15,7 +15,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return InputEvent_t(...) end,
+        __call = function (t, ...) return InputEvent_t(...) end,
     }
 
     if onDef_InputEvent then onDef_InputEvent(InputEvent, mt) end
@@ -25,9 +25,9 @@ end
 do -- Metatype for class instances
     local t  = ffi.typeof('InputEvent')
     local mt = {
-        __tostring = function(self) return ffi.string(libphx.InputEvent_ToString(self)) end,
+        __tostring = function (self) return ffi.string(libphx.InputEvent_ToString(self)) end,
         __index = {
-            clone    = function(x) return InputEvent_t(x) end,
+            clone    = function (x) return InputEvent_t(x) end,
             toString = libphx.InputEvent_ToString,
         },
     }

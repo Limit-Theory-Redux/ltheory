@@ -16,7 +16,7 @@ Style.__index = Style
 --   favoredWarps: list of Shape member function*s for warps
 --   rng: cached RNG
 setmetatable(Style, {
-    __call = function(T)
+    __call = function (T)
         return setmetatable({
             favoredShapes         = {},
             favoredWarps          = {},
@@ -136,12 +136,12 @@ function Style:randomWarp()
 
     if warpType == 1 then
         local ex = self.rng:getExp() * 0.5
-        return function(shape) return shape:extrude(ex) end
+        return function (shape) return shape:extrude(ex) end
     end
 
     if warpType == 2 then
         local s = self.rng:getExp() * 0.5
-        return function(shape) return shape:stellate(s) end
+        return function (shape) return shape:stellate(s) end
     end
 end
 

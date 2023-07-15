@@ -1,19 +1,19 @@
-Config.org = 'LTheoryRedux'
-Config.app = 'LTheoryRedux'
+Config.org                       = 'LTheoryRedux'
+Config.app                       = 'LTheoryRedux'
 
-Config.orgInfo = {
+Config.orgInfo                   = {
     repository = "https://github.com/Limit-Theory-Redux/ltheory",
     discord = "https://discord.gg/MrfRR5ytJF",
 }
 
-Config.gameTitle   = "Limit Theory Redux"
-Config.gameVersion = "v0.008"
+Config.gameTitle                 = "Limit Theory Redux"
+Config.gameVersion               = "v0.008"
 
-Config.userInitFilename = "user.ini"
+Config.userInitFilename          = "user.ini"
 
 Config.timeToResetToSplashscreen = 60
 
-Config.render = {
+Config.render                    = {
     defaultResX    = 1920,
     defaultResY    = 1080,
     fullscreen     = false,
@@ -24,12 +24,12 @@ Config.render = {
     pulseLights    = false,
 }
 
-Config.audio = {
+Config.audio                     = {
     soundEnabled         = true,
     supportedFormats     = { ".ogg" },
     mainMenuMusicEnabled = true,
     soundMin             = 0,
-    soundMax             = 1,   -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
+    soundMax             = 1,    -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
     musicVolume          = 0.75, -- current volume
     mainMenu             = "LTR_Main_Menu.ogg",
 
@@ -46,7 +46,7 @@ Config.audio = {
     fxSensors            = nil,
 }
 
-Config.paths = {
+Config.paths                     = {
     files         = Directory.GetPrefPath(Config.org, Config.app), -- base directory using environment-agnostic path
     soundAmbiance = "./res/sound/system/audio/music/",
     soundEffects  = "./res/sound/system/audio/fx/",
@@ -54,7 +54,7 @@ Config.paths = {
     types         = "./script/Types/"
 }
 
-Config.debug = {
+Config.debug                     = {
     metricsEnabled  = false,
     window          = true, -- Debug window visible by default at launch?
     windowSection   = nil,  -- Set to the name of a debug window section to
@@ -68,13 +68,13 @@ Config.debug = {
     printConfig     = false
 }
 
-Config.debug.physics = {
+Config.debug.physics             = {
     drawWireframes         = false,
     drawBoundingBoxesLocal = false,
     drawBoundingBoxesworld = false,
 }
 
-local goodSeeds = {
+local goodSeeds                  = {
     14589938814258111262ULL,
     15297218883250103974ULL,
     1842258441393851360ULL,
@@ -83,29 +83,29 @@ local goodSeeds = {
     638780708004697442ULL,
 }
 
-Config.gen = {
+Config.gen                       = {
     seedGlobal                       = nil,            -- Set to force deterministic global RNG
     seedSystem                       = nil,            -- Set to force deterministic system generation
 
     origin                           = Vec3f(0, 0, 0), -- Set far from zero to test engine precision
 
     nFields                          = 1,
-    nFieldSize                       = function(rng) return 200 * (rng:getExp() + 1.0) end,
+    nFieldSize                       = function (rng) return 200 * (rng:getExp() + 1.0) end,
     nAsteroids                       = 150, -- asteroids per asteroid field (smaller = less CPU hit)
     nPlanets                         = 1,
     nStations                        = 1,
-    nBeltSize                        = function(rng) return 0 end, -- asteroids per planetary belt
+    nBeltSize                        = function (rng) return 0 end, -- asteroids per planetary belt
 
-    nAIPlayers                       = 0,   -- # of AI players (who manage Economic assets)
+    nAIPlayers                       = 0,                          -- # of AI players (who manage Economic assets)
     randomizeAIPlayers               = false,
-    nEconNPCs                        = 0,   -- # of ships to be given Economic actions (managed by AI players)
+    nEconNPCs                        = 0,                          -- # of ships to be given Economic actions (managed by AI players)
     randomizeEconNPCs                = false,
-    nEscortNPCs                      = 0,  -- # of ships to be given the Escort action
+    nEscortNPCs                      = 0,                          -- # of ships to be given the Escort action
     randomizeEscortNPCs              = false,
 
     nDustFlecks                      = 256,
     nDustClouds                      = 8,
-    nStars                           = function(rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
+    nStars                           = function (rng) return 30000 * (1.0 + 0.5 * rng:getExp()) end,
     nebulaBrightnessScale            = 4.0,
 
     uniqueShips                      = true,
@@ -154,12 +154,12 @@ Config.gen = {
         { 0, 1, 2, 5, 8,  12 },          -- shield generators
         { 0, 0, 1, 3, 5,  8 },           -- armor plates
     },
-    shipInventorySize    = 10,
-    stationInventorySize = 100,
-    planetInventorySize  = 10000,
-    stationHullMass      = { 112000,
-                             242000,
-                             575000 },
+    shipInventorySize                = 10,
+    stationInventorySize             = 100,
+    planetInventorySize              = 10000,
+    stationHullMass                  = { 112000,
+        242000,
+        575000 },
     stationComponents                = { -- trade ---   --- mil ----   -- Sockets available for (ComponentEnums.lua):
         { 30, 80, 130, 45, 100, 250 },   -- hull integrity
         { 12, 16, 24,  20, 32,  48 },    -- computers
@@ -175,409 +175,409 @@ Config.gen = {
         { 8,  16, 32,  24, 48,  96 },    -- armor plates
     },
 
-    planetComponents = {
-         --  S      M      L     -- Sockets available for (ComponentEnums.lua):
-        {    0,     0,     0 },  -- hull integrity
-        { 1000,  8000, 20000 },  -- computers
-        {   50,   120,   500 },  -- sensors
-        {    0,     0,     0 },  -- life support
-        {    0,     0,     0 },  -- capacitors
-        {    0,     0,     0 },  -- thrusters (none on stations)
-        {    0,     0,     0 },  -- turret weapons
-        {    0,     0,     0 },  -- bay weapons
-        { 1000,  7500, 48000 },  -- cargo pods (* planetInventorySize inventory each)
-        {    0,     0,     0 },  -- drone racks (* 2 drones each)
-        {  500,  1200, 10000 },  -- shield generators
-        {    0,     0,     0 },  -- armor plates
+    planetComponents                 = {
+        --  S      M      L     -- Sockets available for (ComponentEnums.lua):
+        { 0,    0,    0 },      -- hull integrity
+        { 1000, 8000, 20000 },  -- computers
+        { 50,   120,  500 },    -- sensors
+        { 0,    0,    0 },      -- life support
+        { 0,    0,    0 },      -- capacitors
+        { 0,    0,    0 },      -- thrusters (none on stations)
+        { 0,    0,    0 },      -- turret weapons
+        { 0,    0,    0 },      -- bay weapons
+        { 1000, 7500, 48000 },  -- cargo pods (* planetInventorySize inventory each)
+        { 0,    0,    0 },      -- drone racks (* 2 drones each)
+        { 500,  1200, 10000 },  -- shield generators
+        { 0,    0,    0 },      -- armor plates
     },
 
     compHullStats                    = {
-        name                = "Hull Structure",
-        healthCurr          = 100,
-        healthMax           = 100,
+        name       = "Hull Structure",
+        healthCurr = 100,
+        healthMax  = 100,
     },
     compComputerStats                = {
-        name                = "Computer",
-        healthCurr          = 100,
-        healthMax           = 100,
-        cpuCount            = 1,
-        mappingSpeed        = 1,
-        lockCount           = 1,
-        lockStrength        = 1,
+        name         = "Computer",
+        healthCurr   = 100,
+        healthMax    = 100,
+        cpuCount     = 1,
+        mappingSpeed = 1,
+        lockCount    = 1,
+        lockStrength = 1,
     },
     compSensorStats                  = {
-        name                = "Sensor",
-        healthCurr          = 100,
-        healthMax           = 100,
-        mappingRange        = 2000,
-        scanSpeed           = 10,
-        scanDetail          = 1,
-        lockBreaking        = 1,
+        name         = "Sensor",
+        healthCurr   = 100,
+        healthMax    = 100,
+        mappingRange = 2000,
+        scanSpeed    = 10,
+        scanDetail   = 1,
+        lockBreaking = 1,
     },
     compLifeSupportStats             = {
-        name                = "Life Support",
-        healthCurr          = 100,
-        healthMax           = 100,
-        pods                = 2, -- number of cargo pods given life support
+        name       = "Life Support",
+        healthCurr = 100,
+        healthMax  = 100,
+        pods       = 2,          -- number of cargo pods given life support
     },
     compCapacitorStats               = {
-        name                = "Capacitor",
-        healthCurr          = 100,
-        healthMax           = 100,
-        chargeCurr          = 200,
-        chargeMax           = 200,
-        chargeRate          = 12,
+        name       = "Capacitor",
+        healthCurr = 100,
+        healthMax  = 100,
+        chargeCurr = 200,
+        chargeMax  = 200,
+        chargeRate = 12,
     },
     compThrusterStats                = {
-        name                = "Thruster",
-        healthCurr          = 100,
-        healthMax           = 100,
-        speedMax            = 1000,
-        maneuverMax         = 100,
+        name        = "Thruster",
+        healthCurr  = 100,
+        healthMax   = 100,
+        speedMax    = 1000,
+        maneuverMax = 100,
     },
     compInventoryStats               = {
-        name                = "Transport Pod",
-        healthCurr          = 100,
-        healthMax           = 100,
-        capacity            = 10,
-        stateroom           = false,
+        name       = "Transport Pod",
+        healthCurr = 100,
+        healthMax  = 100,
+        capacity   = 10,
+        stateroom  = false,
     },
     compDroneStats                   = {
-        name                = "Drone Rack",
-        healthCurr          = 100,
-        healthMax           = 100,
-        weaponRPM           = 100,
-        weaponRPMDeviation  = 0.02,
-        droneType           = 1, -- 1 = mining (1 beam turret), 2 = combat (1 pulse turret)
-        dronesCurr          = 2,
-        dronesActive        = 0,
-        dronesMax           = 2,
-        droneRange          = 8000,
-        droneSpeed          = 40,
-        reloadTime          = 5,
+        name               = "Drone Rack",
+        healthCurr         = 100,
+        healthMax          = 100,
+        weaponRPM          = 100,
+        weaponRPMDeviation = 0.02,
+        droneType          = 1,  -- 1 = mining (1 beam turret), 2 = combat (1 pulse turret)
+        dronesCurr         = 2,
+        dronesActive       = 0,
+        dronesMax          = 2,
+        droneRange         = 8000,
+        droneSpeed         = 40,
+        reloadTime         = 5,
     },
     compShieldStats                  = {
-        name                = "Shield Generator",
-        healthCurr          = 100,
-        healthMax           = 100,
-        strengthCurr        = 100,
-        strengthMax         = 100,
-        reviveRate          = 2,
-        resistances         = { 85, 10, 5, 15 }, -- Energy, Kinetic, Explosive, Radiation (percentage scale)
-        colorR              = 0.3,
-        colorG              = 0.8,
-        colorB              = 2.0,
+        name         = "Shield Generator",
+        healthCurr   = 100,
+        healthMax    = 100,
+        strengthCurr = 100,
+        strengthMax  = 100,
+        reviveRate   = 2,
+        resistances  = { 85, 10, 5, 15 },        -- Energy, Kinetic, Explosive, Radiation (percentage scale)
+        colorR       = 0.3,
+        colorG       = 0.8,
+        colorB       = 2.0,
     },
     compArmorStats                   = {
-        name                = "Armor Plating",
-        healthCurr          = 1000,
-        healthMax           = 1000,
+        name       = "Armor Plating",
+        healthCurr = 1000,
+        healthMax  = 1000,
     },
 
     compTurretPulseStats             = {
-        name                = "Pulse Turret",
-        healthCurr          = 100,
-        healthMax           = 100,
-        autoTarget          = false,
-        weaponRPM           = 450,
-        weaponRPMDeviation  = 0.02,
-        damageType          = 1,
-        damage              = 2,
-        size                = 64,
-        spread              = 0.01,
-        range               = 2000,
-        speed               = 800,
-        charge              = 1.0,
-        colorBodyR          = 0.3,
-        colorBodyG          = 0.8,
-        colorBodyB          = 2.0,
-        colorLightR         = 0.3,
-        colorLightG         = 0.9,
-        colorLightB         = 3.0,
+        name               = "Pulse Turret",
+        healthCurr         = 100,
+        healthMax          = 100,
+        autoTarget         = false,
+        weaponRPM          = 450,
+        weaponRPMDeviation = 0.02,
+        damageType         = 1,
+        damage             = 2,
+        size               = 64,
+        spread             = 0.01,
+        range              = 2000,
+        speed              = 800,
+        charge             = 1.0,
+        colorBodyR         = 0.3,
+        colorBodyG         = 0.8,
+        colorBodyB         = 2.0,
+        colorLightR        = 0.3,
+        colorLightG        = 0.9,
+        colorLightB        = 3.0,
     },
     compTurretBeamStats              = {
-        name                = "Beam Turret",
-        healthCurr          = 100,
-        healthMax           = 100,
-        autoTarget          = false,
-        weaponRPM           = 10000,
-        weaponRPMDeviation  = 0,
-        heat                = 1,
-        cooldown            = 1,
-        damageType          = 1,
-        damage              = 2,
-        size                = 64,
-        range               = 800,
-        charge              = 1.0,
-        colorR              = 0.3,
-        colorG              = 0.8,
-        colorB              = 2.0,
+        name               = "Beam Turret",
+        healthCurr         = 100,
+        healthMax          = 100,
+        autoTarget         = false,
+        weaponRPM          = 10000,
+        weaponRPMDeviation = 0,
+        heat               = 1,
+        cooldown           = 1,
+        damageType         = 1,
+        damage             = 2,
+        size               = 64,
+        range              = 800,
+        charge             = 1.0,
+        colorR             = 0.3,
+        colorG             = 0.8,
+        colorB             = 2.0,
     },
     compTurretRailStats              = {
-        name                = "Railgun Turret",
-        healthCurr          = 100,
-        healthMax           = 100,
-        autoTarget          = false,
-        weaponRPM           = 4,
-        weaponRPMDeviation  = 5,
-        heat                = 1,
-        cooldown            = 1,
-        damageType          = 2,
-        damage              = 4,
-        size                = 64,
-        range               = 1000,
-        colorR              = 2.0,
-        colorG              = 2.0,
-        colorB              = 2.0,
+        name               = "Railgun Turret",
+        healthCurr         = 100,
+        healthMax          = 100,
+        autoTarget         = false,
+        weaponRPM          = 4,
+        weaponRPMDeviation = 5,
+        heat               = 1,
+        cooldown           = 1,
+        damageType         = 2,
+        damage             = 4,
+        size               = 64,
+        range              = 1000,
+        colorR             = 2.0,
+        colorG             = 2.0,
+        colorB             = 2.0,
     },
     compTurretProjStats              = {
-        name                = "Launcher Turret",
-        healthCurr          = 100,
-        healthMax           = 100,
-        weaponRPM           = 50,
-        weaponRPMDeviation  = 1,
-        type                = 1, -- 1 = missile only
-        guidanceType        = 1,
-        damageType          = 3,
-        damage              = 10,
-        speed               = 100,
-        range               = 20000,
+        name               = "Launcher Turret",
+        healthCurr         = 100,
+        healthMax          = 100,
+        weaponRPM          = 50,
+        weaponRPMDeviation = 1,
+        type               = 1,  -- 1 = missile only
+        guidanceType       = 1,
+        damageType         = 3,
+        damage             = 10,
+        speed              = 100,
+        range              = 20000,
     },
     compBayPulseStats                = {
-        name                = "Pulse Bay",
-        healthCurr          = 100,
-        healthMax           = 100,
-        autoTarget          = false,
-        weaponRPM           = 700,
-        weaponRPMDeviation  = 0.2,
-        heat                = 1,
-        cooldown            = 1,
-        damageType          = 1,
-        damage              = 15,
-        size                = 128,
-        spread              = 0.02,
-        range               = 2400,
-        speed               = 600,
-        charge              = 8.0,
-        colorBodyR          = 1.5,
-        colorBodyG          = 0.8,
-        colorBodyB          = 0.4,
-        colorLightR         = 2.0,
-        colorLightG         = 0.9,
-        colorLightB         = 0.6,
+        name               = "Pulse Bay",
+        healthCurr         = 100,
+        healthMax          = 100,
+        autoTarget         = false,
+        weaponRPM          = 700,
+        weaponRPMDeviation = 0.2,
+        heat               = 1,
+        cooldown           = 1,
+        damageType         = 1,
+        damage             = 15,
+        size               = 128,
+        spread             = 0.02,
+        range              = 2400,
+        speed              = 600,
+        charge             = 8.0,
+        colorBodyR         = 1.5,
+        colorBodyG         = 0.8,
+        colorBodyB         = 0.4,
+        colorLightR        = 2.0,
+        colorLightG        = 0.9,
+        colorLightB        = 0.6,
     },
     compBayBeamStats                 = {
-        name                = "Beam Bay",
-        healthCurr          = 100,
-        healthMax           = 100,
-        autoTarget          = false,
-        weaponRPM           = 10000,
-        weaponRPMDeviation  = 0,
-        heat                = 1,
-        cooldown            = 1,
-        damageType          = 1,
-        damage              = 2,
-        size                = 64,
-        range               = 1000,
-        charge              = 1.0,
-        colorR              = 0.3,
-        colorG              = 0.8,
-        colorB              = 2.0,
+        name               = "Beam Bay",
+        healthCurr         = 100,
+        healthMax          = 100,
+        autoTarget         = false,
+        weaponRPM          = 10000,
+        weaponRPMDeviation = 0,
+        heat               = 1,
+        cooldown           = 1,
+        damageType         = 1,
+        damage             = 2,
+        size               = 64,
+        range              = 1000,
+        charge             = 1.0,
+        colorR             = 0.3,
+        colorG             = 0.8,
+        colorB             = 2.0,
     },
     compBayRailStats                 = {
-        name                = "Railgun Bay",
-        healthCurr          = 100,
-        healthMax           = 100,
-        autoTarget          = false,
-        weaponRPM           = 4,
-        weaponRPMDeviation  = 5,
-        heat                = 1,
-        cooldown            = 1,
-        damageType          = 2,
-        damage              = 4,
-        size                = 64,
-        range               = 4000,
-        colorR              = 2.0,
-        colorG              = 2.0,
-        colorB              = 2.0,
+        name               = "Railgun Bay",
+        healthCurr         = 100,
+        healthMax          = 100,
+        autoTarget         = false,
+        weaponRPM          = 4,
+        weaponRPMDeviation = 5,
+        heat               = 1,
+        cooldown           = 1,
+        damageType         = 2,
+        damage             = 4,
+        size               = 64,
+        range              = 4000,
+        colorR             = 2.0,
+        colorG             = 2.0,
+        colorB             = 2.0,
     },
     compBayCannonStats               = {
-        name                = "Cannon Bay",
-        healthCurr          = 100,
-        healthMax           = 100,
-        autoTarget          = false,
-        weaponRPM           = 250,
-        weaponRPMDeviation  = 0.5,
-        heat                = 1,
-        cooldown            = 1,
-        damageType          = 1,
-        damage              = 50,
-        size                = 64,
-        range               = 500,
-        charge              = 50.0,
-        colorR              = 0.3,
-        colorG              = 0.8,
-        colorB              = 2.0,
+        name               = "Cannon Bay",
+        healthCurr         = 100,
+        healthMax          = 100,
+        autoTarget         = false,
+        weaponRPM          = 250,
+        weaponRPMDeviation = 0.5,
+        heat               = 1,
+        cooldown           = 1,
+        damageType         = 1,
+        damage             = 50,
+        size               = 64,
+        range              = 500,
+        charge             = 50.0,
+        colorR             = 0.3,
+        colorG             = 0.8,
+        colorB             = 2.0,
     },
     compBayProjStats                 = {
-        name                = "Launcher Bay",
-        healthCurr          = 100,
-        healthMax           = 100,
-        weaponRPM           = 50,
-        weaponRPMDeviation  = 1,
-        type                = 1, -- 1 = missile, 2 = torpedo
-        guidanceType        = 1,
-        damageType          = 3,
-        damage              = 55,
-        speed               = 100,
-        range               = 20000,
+        name               = "Launcher Bay",
+        healthCurr         = 100,
+        healthMax          = 100,
+        weaponRPM          = 50,
+        weaponRPMDeviation = 1,
+        type               = 1,  -- 1 = missile, 2 = torpedo
+        guidanceType       = 1,
+        damageType         = 3,
+        damage             = 55,
+        speed              = 100,
+        range              = 20000,
     },
-    objectEmissionsDropoff = {
+    objectEmissionsDropoff           = {
         1e8,   -- star
         1e6,   -- planet
         20000, -- station
         5000,  -- ship
     },
-    objectEmissions = {
-    -- STAR  PLANET  STATION  SHIP  THRUSTER PULSE  BEAM  JUMP  CLOAK
-    {     5,     21,      10,   16,       0,     0,    0,    9,    -5},    --              |   1  Hz
-    {    10,     13,      27,   10,       0,     0,    0,   37,    -5},    --              |   5  Hz
-    {    13,      7,      30,    8,       0,     0,    4,   11,     0},    --              |  10  Hz > Audio
-    {    36,      1,      11,    3,       6,     0,   22,    1,     0},    --              |  50  Hz > Audio
-    {    11,      0,      24,    7,      17,     0,   67,    0,     0},    --              | 100  Hz > Audio
-    {     8,      0,      11,   15,       4,     3,   19,    0,   -10},    --              | 500  Hz > Audio
-    {     3,      0,      19,   28,       1,    17,    2,    0,   -10},    --              |   1 kHz > Audio
-    {    14,      0,      25,   35,       0,    61,    0,    0,   -20},    --  Low-band    |   5 kHz > Audio
-    {     3,      0,      32,   43,       0,    11,    0,    0,   -30},    --              |  10 kHz > Audio
-    {    18,      5,      45,   50,       0,     0,    0,    0,   -40},    --              |  50 kHz
-    {    19,     32,      54,   62,       0,     0,    0,    0,   -40},    --              | 100 khz
-    {    26,     73,      71,   21,       0,     0,    0,    0,   -10},    --              | 500 khz > AM radio
-    {    20,     84,      59,    5,       0,     0,    0,    0,     0},    --              |   1 MHz > AM radio     > Ultrasound
-    {    11,     60,      46,   18,       0,     0,    0,    0,    -5},    --              |   5 MHz > AM radio     > Ultrasound
-    {     9,     31,      30,   27,       0,     0,    0,    2,   -10},    --              |  10 MHz                > Ultrasound
-    {     3,     57,      18,   22,       0,     0,    0,   13,   -10},    --             ||  50 Mhz > TV
-    {    12,     22,       6,   10,       4,     0,    0,   41,    -5},    --             || 100 Mhz > TV           > FM radio
-    {     5,     36,      18,   13,      23,     0,    0,    7,    -5},    --             || 500 Mhz > Microwaves
-    {     9,     39,      32,   16,      13,     0,    0,    0,   -10},    --             ||   1 GHz > Microwaves   > Mobile phones
-    {    19,     47,      37,   21,       2,     0,    0,    0,   -15},    --             ||   5 GHz > Microwaves   > WiFi
-    {     7,     51,      43,   33,       0,     0,    0,    0,   -20},    --             ||  10 GHz > Microwaves   > Radar
-    {     1,     42,      40,   17,       0,     0,    0,    0,   -10},    --             ||  50 GHz > Microwaves   > Radar
-    {     4,     26,      21,   16,       0,     0,    0,    0,   -10},    --             || 100 GHz > Microwaves   > Radar
-    {     9,     54,      31,   35,       0,     0,    0,    0,   -20},    --  Mid-band   || 500 GHz > Bio-imaging
-    {    19,     71,      70,   12,       0,     0,    0,    0,   -10},    --             ||   1 THz > Bio-imaging  > Infrared
-    {    29,     79,      87,    8,       1,     0,    0,    3,    -5},    --             ||   5 THz > Bio-imaging  > Infrared
-    {    57,     68,      61,   15,       5,     0,    8,   14,    -5},    --             ||  10 THz > Bio-imaging  > Infrared
-    {    66,     28,      46,   22,      12,    10,   17,   26,   -10},    --             ||  50 THz > Bio-imaging  > Infrared
-    {    78,     20,      33,   51,      51,    72,   54,   70,   -30},    --             || 100 THz                > Infrared
-    {   100,     12,      29,   25,      90,    82,   89,   79,   -15},    --             || 500 THz > Visible light
-    {    81,      3,      29,   32,      72,    41,   37,    8,   -15},    --             ||   1 PHz > Ultraviolet
-    {    66,      6,      35,   19,      59,    90,    6,    0,    -5},    --             ||   5 PHz > Ultraviolet
-    {    41,      1,      24,    6,      21,    21,    8,    0,     0},    --             ||  10 PHz > Ultraviolet
-    {    51,      0,       8,    1,       5,     3,   26,    0,     0},    --            |||  50 PHz > Soft X-ray
-    {    45,      0,       0,    0,       0,     0,   74,    0,     0},    --            ||| 100 PHz > Soft X-ray
-    {    36,      0,       0,    0,       2,     0,   61,    0,     0},    --            ||| 500 PHz > Soft X-ray
-    {    28,      0,       0,    0,       8,     0,   14,    0,     0},    --            |||   1 EHz > Soft X-ray
-    {    23,      0,       1,    0,      17,     0,    2,    0,     0},    --            |||   5 EHz > Soft X-ray
-    {    17,      1,       3,    0,      31,     0,    0,    0,     0},    --            |||  10 EHz > Soft X-ray
-    {    25,      0,       3,    0,      11,     0,    0,    0,     0},    --  High-band |||  50 EHz > Hard X-ray
-    {    18,      0,       2,    0,       3,     0,    0,    0,     0},    --            ||| 100 EHz > Hard X-ray
-    {    16,      0,       1,    0,       1,     0,    0,    0,     0},    --            ||| 500 EHz > Gamma
-    {    24,      0,       0,    0,       0,     0,    0,    0,     0},    --            |||   1 ZHz > Gamma
-    {    17,      1,       0,    0,       0,     0,    0,    0,     0},    --            |||   5 ZHz > Gamma
-    {     9,      7,       2,    0,       0,     0,    0,    0,     0},    --            |||  10 ZHz
-    {     2,      2,       1,    0,       0,     0,    0,    7,     0},    --            |||  50 ZHz
-    {     1,      0,       0,    0,       0,     0,    0,   88,     0},    --            ||| 100 ZHz # Jump wave
-    {     0,      0,       0,    0,       0,     0,    0,    1,     0},    --            ||| 500 ZHz
+    objectEmissions                  = {
+        -- STAR  PLANET  STATION  SHIP  THRUSTER PULSE  BEAM  JUMP  CLOAK
+        { 5,   21, 10, 16, 0,  0,  0,  9,  -5 },                        --              |   1  Hz
+        { 10,  13, 27, 10, 0,  0,  0,  37, -5 },                        --              |   5  Hz
+        { 13,  7,  30, 8,  0,  0,  4,  11, 0 },                         --              |  10  Hz > Audio
+        { 36,  1,  11, 3,  6,  0,  22, 1,  0 },                         --              |  50  Hz > Audio
+        { 11,  0,  24, 7,  17, 0,  67, 0,  0 },                         --              | 100  Hz > Audio
+        { 8,   0,  11, 15, 4,  3,  19, 0,  -10 },                       --              | 500  Hz > Audio
+        { 3,   0,  19, 28, 1,  17, 2,  0,  -10 },                       --              |   1 kHz > Audio
+        { 14,  0,  25, 35, 0,  61, 0,  0,  -20 },                       --  Low-band    |   5 kHz > Audio
+        { 3,   0,  32, 43, 0,  11, 0,  0,  -30 },                       --              |  10 kHz > Audio
+        { 18,  5,  45, 50, 0,  0,  0,  0,  -40 },                       --              |  50 kHz
+        { 19,  32, 54, 62, 0,  0,  0,  0,  -40 },                       --              | 100 khz
+        { 26,  73, 71, 21, 0,  0,  0,  0,  -10 },                       --              | 500 khz > AM radio
+        { 20,  84, 59, 5,  0,  0,  0,  0,  0 },                         --              |   1 MHz > AM radio     > Ultrasound
+        { 11,  60, 46, 18, 0,  0,  0,  0,  -5 },                        --              |   5 MHz > AM radio     > Ultrasound
+        { 9,   31, 30, 27, 0,  0,  0,  2,  -10 },                       --              |  10 MHz                > Ultrasound
+        { 3,   57, 18, 22, 0,  0,  0,  13, -10 },                       --             ||  50 Mhz > TV
+        { 12,  22, 6,  10, 4,  0,  0,  41, -5 },                        --             || 100 Mhz > TV           > FM radio
+        { 5,   36, 18, 13, 23, 0,  0,  7,  -5 },                        --             || 500 Mhz > Microwaves
+        { 9,   39, 32, 16, 13, 0,  0,  0,  -10 },                       --             ||   1 GHz > Microwaves   > Mobile phones
+        { 19,  47, 37, 21, 2,  0,  0,  0,  -15 },                       --             ||   5 GHz > Microwaves   > WiFi
+        { 7,   51, 43, 33, 0,  0,  0,  0,  -20 },                       --             ||  10 GHz > Microwaves   > Radar
+        { 1,   42, 40, 17, 0,  0,  0,  0,  -10 },                       --             ||  50 GHz > Microwaves   > Radar
+        { 4,   26, 21, 16, 0,  0,  0,  0,  -10 },                       --             || 100 GHz > Microwaves   > Radar
+        { 9,   54, 31, 35, 0,  0,  0,  0,  -20 },                       --  Mid-band   || 500 GHz > Bio-imaging
+        { 19,  71, 70, 12, 0,  0,  0,  0,  -10 },                       --             ||   1 THz > Bio-imaging  > Infrared
+        { 29,  79, 87, 8,  1,  0,  0,  3,  -5 },                        --             ||   5 THz > Bio-imaging  > Infrared
+        { 57,  68, 61, 15, 5,  0,  8,  14, -5 },                        --             ||  10 THz > Bio-imaging  > Infrared
+        { 66,  28, 46, 22, 12, 10, 17, 26, -10 },                       --             ||  50 THz > Bio-imaging  > Infrared
+        { 78,  20, 33, 51, 51, 72, 54, 70, -30 },                       --             || 100 THz                > Infrared
+        { 100, 12, 29, 25, 90, 82, 89, 79, -15 },                       --             || 500 THz > Visible light
+        { 81,  3,  29, 32, 72, 41, 37, 8,  -15 },                       --             ||   1 PHz > Ultraviolet
+        { 66,  6,  35, 19, 59, 90, 6,  0,  -5 },                        --             ||   5 PHz > Ultraviolet
+        { 41,  1,  24, 6,  21, 21, 8,  0,  0 },                         --             ||  10 PHz > Ultraviolet
+        { 51,  0,  8,  1,  5,  3,  26, 0,  0 },                         --            |||  50 PHz > Soft X-ray
+        { 45,  0,  0,  0,  0,  0,  74, 0,  0 },                         --            ||| 100 PHz > Soft X-ray
+        { 36,  0,  0,  0,  2,  0,  61, 0,  0 },                         --            ||| 500 PHz > Soft X-ray
+        { 28,  0,  0,  0,  8,  0,  14, 0,  0 },                         --            |||   1 EHz > Soft X-ray
+        { 23,  0,  1,  0,  17, 0,  2,  0,  0 },                         --            |||   5 EHz > Soft X-ray
+        { 17,  1,  3,  0,  31, 0,  0,  0,  0 },                         --            |||  10 EHz > Soft X-ray
+        { 25,  0,  3,  0,  11, 0,  0,  0,  0 },                         --  High-band |||  50 EHz > Hard X-ray
+        { 18,  0,  2,  0,  3,  0,  0,  0,  0 },                         --            ||| 100 EHz > Hard X-ray
+        { 16,  0,  1,  0,  1,  0,  0,  0,  0 },                         --            ||| 500 EHz > Gamma
+        { 24,  0,  0,  0,  0,  0,  0,  0,  0 },                         --            |||   1 ZHz > Gamma
+        { 17,  1,  0,  0,  0,  0,  0,  0,  0 },                         --            |||   5 ZHz > Gamma
+        { 9,   7,  2,  0,  0,  0,  0,  0,  0 },                         --            |||  10 ZHz
+        { 2,   2,  1,  0,  0,  0,  0,  7,  0 },                         --            |||  50 ZHz
+        { 1,   0,  0,  0,  0,  0,  0,  88, 0 },                         --            ||| 100 ZHz # Jump wave
+        { 0,   0,  0,  0,  0,  0,  0,  1,  0 },                         --            ||| 500 ZHz
     },
 
-    nebulaRes           = 2048,
+    nebulaRes                        = 2048,
 
-    zNearBack           = 0.1,
-    zNearReal           = 0.1, -- 0.1
-    zFarBack            = 1e6,
-    zFarReal            = 1e4, -- 1e6
+    zNearBack                        = 0.1,
+    zNearReal                        = 0.1, -- 0.1
+    zFarBack                         = 1e6,
+    zFarReal                         = 1e4, -- 1e6
 
-    scaleSystemBack     = 2e5,
-    scaleSystemReal     = 2e4,  -- 2e9 maximum, but anything bigger than 5e4 currently introduces a horrible "wobble"
-    scalePlanetBack     = 120000,
-    scalePlanetReal     = 8000, -- 15000
-    scalePlanetModBack  = 7e4,
-    scalePlanetModReal  = 1,    -- 4e5
+    scaleSystemBack                  = 2e5,
+    scaleSystemReal                  = 2e4, -- 2e9 maximum, but anything bigger than 5e4 currently introduces a horrible "wobble"
+    scalePlanetBack                  = 120000,
+    scalePlanetReal                  = 8000, -- 15000
+    scalePlanetModBack               = 7e4,
+    scalePlanetModReal               = 1, -- 4e5
 
-    scaleSystem         = 1e6,  -- this needs to be extended massively; see also zFar and zNear
-    scaleStar           = 1e6,
-    scalePlanet         = 5e3,
-    scalePlanetMod      = 7e4, -- 7e4
-    scaleFieldAsteroid  = 40000,
-    scaleAsteroid       = 7.0,
-    scaleStation        = 70,
+    scaleSystem                      = 1e6, -- this needs to be extended massively; see also zFar and zNear
+    scaleStar                        = 1e6,
+    scalePlanet                      = 5e3,
+    scalePlanetMod                   = 7e4, -- 7e4
+    scaleFieldAsteroid               = 40000,
+    scaleAsteroid                    = 7.0,
+    scaleStation                     = 70,
 
-    sizePlanet          = 2,         -- 1 = small, 2 = medium, 3 = large
+    sizePlanet                       = 2,    -- 1 = small, 2 = medium, 3 = large
 
-    radiusStarTrue      = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
-    radiusPlanetTrue    = 6371000,   -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
-    radiusAsteroidTrue  = 50000,     -- 0.005 km to 450 km
-    massStarTrue        = 2e30,      -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
-    massPlanetTrue      = 6e24,      -- 5.97e24 is Earth's mass in kg (1e10 as a test value)
-    massAsteroidTrue    = 5e18,      -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
+    radiusStarTrue                   = 695700000, -- nominal radius of Sun is 695,700 km; VY Canis Majoris is ~1,420 x Solar radius
+    radiusPlanetTrue                 = 6371000, -- average radius of Earth is 6,371 km; Ceres = 470 km; Jupiter = 70,000 km
+    radiusAsteroidTrue               = 50000, -- 0.005 km to 450 km
+    massStarTrue                     = 2e30, -- 1.98 x 10^30 is the Sun's mass in kg; Westerhout 49-2 is ~250 x Solar mass
+    massPlanetTrue                   = 6e24, -- 5.97e24 is Earth's mass in kg (1e10 as a test value)
+    massAsteroidTrue                 = 5e18, -- typical mass for a 50 km asteroid; 50m = ~1,000,000,000 kg
 
-    massAsteroidExp     = { 4.1,     -- Carbonaceous
-                            5.9,     -- Metallic
-                            3.2 },   -- Silicaceous
+    massAsteroidExp                  = { 4.1, -- Carbonaceous
+        5.9,                                 -- Metallic
+        3.2 },                               -- Silicaceous
 
     stationMinimumDistance           = 2000, -- minimum distance between stations
     minimumDistancePlacementMaxTries = 100
 }
 
-Config.game = {
-    boostCost           = 20,
+Config.game                      = {
+    boostCost              = 20,
 
-    explosionSize       = 64,
+    explosionSize          = 64,
 
-    autoTarget          = false,
+    autoTarget             = false,
 
-    pulseColorBodyR     = 0.3,
-    pulseColorBodyG     = 0.8,
-    pulseColorBodyB     = 2.0,
-    pulseColorLightR    = 0.3,
-    pulseColorLightG    = 0.9,
-    pulseColorLightB    = 3.0,
+    pulseColorBodyR        = 0.3,
+    pulseColorBodyG        = 0.8,
+    pulseColorBodyB        = 2.0,
+    pulseColorLightR       = 0.3,
+    pulseColorLightG       = 0.9,
+    pulseColorLightB       = 3.0,
 
-    droneType   = 1, -- 1 = mining drone, 2 = combat drone
-    droneDamage = 10,
-    droneTarget = nil,
-    droneSize   = 75,
-    droneSpeed  = 50,
-    droneRange  = 5000,
+    droneType              = 1, -- 1 = mining drone, 2 = combat drone
+    droneDamage            = 10,
+    droneTarget            = nil,
+    droneSize              = 75,
+    droneSpeed             = 50,
+    droneRange             = 5000,
 
-    missileDamage = 80,
-    missileTarget = nil,
-    missileSize   = 100,
-    missileSpeed  = 100,
-    missileRange  = 10000,
+    missileDamage          = 80,
+    missileTarget          = nil,
+    missileSize            = 100,
+    missileSpeed           = 100,
+    missileRange           = 10000,
 
-    torpedoDamage = 250,
-    torpedoTarget = nil,
-    torpedoSize   = 64,
-    torpedoSpeed  = 30,
-    torpedoRange  = 14000,
+    torpedoDamage          = 250,
+    torpedoTarget          = nil,
+    torpedoSize            = 64,
+    torpedoSpeed           = 30,
+    torpedoRange           = 14000,
 
-    weaponGroup = 1,
+    weaponGroup            = 1,
 
-    shieldColor = Color(0.2, 0.5, 1.0, 1.0),
+    shieldColor            = Color(0.2, 0.5, 1.0, 1.0),
 
-    enemies          = 0,
-    friendlies       = 0,
-    squadSizeEnemy   = 8,
-    squadSizeFriendly= 8,
+    enemies                = 0,
+    friendlies             = 0,
+    squadSizeEnemy         = 8,
+    squadSizeFriendly      = 8,
 
-    spawnDistance       = 2000,
-    friendlySpawnCount  = 10,
-    timeScaleShipEditor = 0.0,
+    spawnDistance          = 2000,
+    friendlySpawnCount     = 10,
+    timeScaleShipEditor    = 0.0,
 
-    aiFire              = function(dt, rng) return rng:getExp() ^ 2 < dt end,
+    aiFire                 = function (dt, rng) return rng:getExp() ^ 2 < dt end,
 
-    autonavRanges = { 200, -- Unknown
+    autonavRanges          = { 200, -- Unknown
         0,                 -- Reserved
         0,                 -- Star Sector
         0,                 -- Star System
@@ -601,52 +601,52 @@ Config.game = {
         "friendly" },
 }
 
-Config.econ = {
-    pStartCredits = 10000,   -- player starting credits
-    eStartCredits = 1000000, -- NPC player starting credits
+Config.econ                      = {
+    pStartCredits          = 10000, -- player starting credits
+    eStartCredits          = 1000000, -- NPC player starting credits
 
-    eInventory = 100,     -- starting number of inventory slots
+    eInventory             = 100, -- starting number of inventory slots
 
-    jobIterations = 4000,    -- how many randomly-chosen jobs an asset will consider before picking
+    jobIterations          = 4000, -- how many randomly-chosen jobs an asset will consider before picking
 
-    inputBacklog = 1,       -- multiplier of number of units a factory can bid for on each input
+    inputBacklog           = 1, -- multiplier of number of units a factory can bid for on each input
 
-    pickupDistWeightMine = 1.0,     -- importance of pickup distance for a Mine job (smaller = more important)
-    pickupDistWeightTran = 3.0,     -- importance of pickup distance for a Transport job (smaller = more important)
-    markup               = 1.2,     -- change to base value when calculating ask price for selling an item
-    markdown             = 0.8,     -- change to base value when calculating bid price for buying an item
+    pickupDistWeightMine   = 1.0, -- importance of pickup distance for a Mine job (smaller = more important)
+    pickupDistWeightTran   = 3.0, -- importance of pickup distance for a Transport job (smaller = more important)
+    markup                 = 1.2, -- change to base value when calculating ask price for selling an item
+    markdown               = 0.8, -- change to base value when calculating bid price for buying an item
 
     lowAttentionUpdateRate = 5,
 }
 
-Config.ui = {
-    defaultControl   = "Background",
-    controlBarHeight = 48,
-    hudStyle         = 1,
-    sensorsDisplayed = false,
-    cursorSmooth     = "cursor/cursor1-small",
-    cursorSimple     = "cursor/simple_cursor",
-    cursor           = "cursor/simple_cursor",
-    cursorStyle      = 1,
-    cursorX          = 1,
-    cursorY          = 1,
+Config.ui                        = {
+    defaultControl                   = "Background",
+    controlBarHeight                 = 48,
+    hudStyle                         = 1,
+    sensorsDisplayed                 = false,
+    cursorSmooth                     = "cursor/cursor1-small",
+    cursorSimple                     = "cursor/simple_cursor",
+    cursor                           = "cursor/simple_cursor",
+    cursorStyle                      = 1,
+    cursorX                          = 1,
+    cursorY                          = 1,
 
     -- Trackers
-    showTrackers     = true,
-    maxTrackingRange = 500000,
+    showTrackers                     = true,
+    maxTrackingRange                 = 500000,
     trackerBracketingRenderDistances = {
-        Planet    = math.huge,
-        Asteroid  = 25000,
-        Jumpgate  = 50000,
-        Station   = math.huge,
-        Ship      = 25000,
-        Colony    = 200000,
+        Planet   = math.huge,
+        Asteroid = 25000,
+        Jumpgate = 50000,
+        Station  = math.huge,
+        Ship     = 25000,
+        Colony   = 200000,
     },
-    trackerObjectOcclusion  = 0.1
+    trackerObjectOcclusion           = 0.1
 }
 
-Config.ui.color = {
-                        --     R     G     B     A
+Config.ui.color                  = {
+    --     R     G     B     A
     accent            = Color(1.00, 0.00, 0.30, 1.0),
     focused           = Color(1.00, 0.00, 0.30, 1.0),
     active            = Color(0.70, 0.00, 0.21, 1.0),
@@ -737,7 +737,7 @@ Config.ui.color = {
     },
 }
 
-Config.ui.font = {
+Config.ui.font                   = {
     normal     = Cache.Font('Share', 14),
     normalSize = 14,
     title      = Cache.Font('Exo2Bold', 10),
@@ -745,7 +745,7 @@ Config.ui.font = {
 }
 
 -- Static object type names and data
-Config.objectInfo = {
+Config.objectInfo                = {
     {
         ID = "object_types",
         name = "Object Types",

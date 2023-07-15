@@ -935,7 +935,7 @@ local map_sz2prefix = {
     X = "xword",
     Y = "yword",
     F = "dword",
-    G = "qword",            -- No need for sizes/register names for these two.
+    G = "qword", -- No need for sizes/register names for these two.
 }
 
 ------------------------------------------------------------------------------
@@ -1057,7 +1057,9 @@ local function putpat(ctx, name, pat)
         elseif p == "T" then
             if ctx.rexw then
                 sz = "Q"; ctx.rexw = false
-            else sz = "D" end
+            else
+                sz = "D"
+            end
             regs = map_regs[sz]
         elseif p == "B" then
             sz = "B"
@@ -1322,7 +1324,7 @@ end
 -- Map for action codes. The key is the first char after the name.
 map_act = {
     -- Simple opcodes without operands.
-    [""] = function(ctx, name, pat)
+    [""] = function (ctx, name, pat)
         return putop(ctx, name)
     end,
 
@@ -1342,24 +1344,24 @@ map_act = {
     Y = putpat,
 
     -- Collect prefixes.
-    [":"] = function(ctx, name, pat)
+    [":"] = function (ctx, name, pat)
         ctx[pat == ":" and name or sub(pat, 2)] = name
         if ctx.pos - ctx.start > 5 then return unknown(ctx) end -- Limit #prefixes.
     end,
 
     -- Chain to special handler specified by name.
-    ["*"] = function(ctx, name, pat)
+    ["*"] = function (ctx, name, pat)
         return map_act[name](ctx, name, sub(pat, 2))
     end,
 
     -- Use named subtable for opcode group.
-    ["!"] = function(ctx, name, pat)
+    ["!"] = function (ctx, name, pat)
         local mrm = getmrm(ctx); if not mrm then return incomplete(ctx) end
         return dispatch(ctx, map_opcgroup[name][((mrm - (mrm % 8)) / 8) % 8 + 1], sub(pat, 2))
     end,
 
     -- o16,o32[,o64] variants.
-    sz = function(ctx, name, pat)
+    sz = function (ctx, name, pat)
         if ctx.o16 then
             ctx.o16 = false
         else
@@ -1376,22 +1378,22 @@ map_act = {
     end,
 
     -- Two-byte opcode dispatch.
-    opc2 = function(ctx, name, pat)
+    opc2 = function (ctx, name, pat)
         return dispatchmap(ctx, map_opc2)
     end,
 
     -- Three-byte opcode dispatch.
-    opc3 = function(ctx, name, pat)
+    opc3 = function (ctx, name, pat)
         return dispatchmap(ctx, map_opc3[pat])
     end,
 
     -- VMX/SVM dispatch.
-    vm = function(ctx, name, pat)
+    vm = function (ctx, name, pat)
         return dispatch(ctx, map_opcvm[ctx.mrm])
     end,
 
     -- Floating point opcode dispatch.
-    fp = function(ctx, name, pat)
+    fp = function (ctx, name, pat)
         local mrm = getmrm(ctx); if not mrm then return incomplete(ctx) end
         local rm = mrm % 8
         local idx = pat * 8 + ((mrm - rm) / 8) % 8
@@ -1402,14 +1404,14 @@ map_act = {
     end,
 
     -- REX prefix.
-    rex = function(ctx, name, pat)
+    rex = function (ctx, name, pat)
         if ctx.rex then return unknown(ctx) end -- Only 1 REX or VEX prefix allowed.
         for p in gmatch(pat, ".") do ctx["rex" .. p] = true end
         ctx.rex = "rex"
     end,
 
     -- VEX prefix.
-    vex = function(ctx, name, pat)
+    vex = function (ctx, name, pat)
         if ctx.rex then return unknown(ctx) end -- Only 1 REX or VEX prefix allowed.
         ctx.rex = "vex"
         local pos = ctx.pos
@@ -1459,12 +1461,12 @@ map_act = {
     end,
 
     -- Special case for nop with REX prefix.
-    nop = function(ctx, name, pat)
+    nop = function (ctx, name, pat)
         return dispatch(ctx, ctx.rex and pat or "nop")
     end,
 
     -- Special case for 0F 77.
-    emms = function(ctx, name, pat)
+    emms = function (ctx, name, pat)
         if ctx.rex ~= "vex" then
             return putop(ctx, "emms")
         elseif ctx.vexl then

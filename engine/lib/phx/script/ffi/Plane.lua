@@ -23,7 +23,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return Plane_t(...) end,
+        __call = function (t, ...) return Plane_t(...) end,
     }
 
     if onDef_Plane then onDef_Plane(Plane, mt) end
@@ -34,7 +34,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Plane')
     local mt = {
         __index = {
-            clone           = function(x) return Plane_t(x) end,
+            clone           = function (x) return Plane_t(x) end,
             classifyPoint   = libphx.Plane_ClassifyPoint,
             classifyPolygon = libphx.Plane_ClassifyPolygon,
             validate        = libphx.Plane_Validate,

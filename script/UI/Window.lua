@@ -7,7 +7,7 @@ local Widget   = require('UI.Widget')
 
 local Window   = {}
 Window.__index = Window
-Window.__call  = function(t, ...) return t.Create(...) end
+Window.__call  = function (t, ...) return t.Create(...) end
 setmetatable(Window, Panel)
 
 local defaultTitle = 'Window Title'
@@ -84,7 +84,7 @@ end
 function Window:setCloseButton(enabled)
     if enabled then
         if not self.closeBtn then
-            self.closeBtn = Button('x', function(button) self:cancel() end)
+            self.closeBtn = Button('x', function (button) self:cancel() end)
             self:add(self.closeBtn)
         end
     else

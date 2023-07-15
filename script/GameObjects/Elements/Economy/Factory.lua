@@ -3,7 +3,7 @@ local Item = require('Systems.Economy.Item')
 
 --------------------------------------------------------------------------------
 
-local Factory = class(function(self, parent)
+local Factory = class(function (self, parent)
     self.parent = parent
     self.prods = {}
     self.time = 0

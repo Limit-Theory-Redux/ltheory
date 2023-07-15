@@ -31,7 +31,7 @@ local ControlSets = {
         --       to be activated. That's currently where the code lives for switching the
         --       active game view back to the ship (and returning the ship to flight mode).
         -- NOTE2: Some of the above text is being overtaken by changes. Updates to text to follow.
-        predicate = function(self) return not self.player:getControlling():getCurrentAction() end,
+        predicate = function (self) return not self.player:getControlling():getCurrentAction() end,
         container = nil,
         controls  = List(
             {
@@ -62,7 +62,7 @@ local ControlSets = {
     },
     -- Docked
     {
-        predicate = function(self) return isPlayerDocked(self) end,
+        predicate = function (self) return isPlayerDocked(self) end,
         container = nil,
         controls  = List(
             {
@@ -220,7 +220,7 @@ function MasterControl.Create(gameView, player)
         for j = 1, #set.controls do
             local controlDef = set.controls[j]
 
-            controlDef.iconButton = UI.IconButton(controlDef.panel.icon, function(button)
+            controlDef.iconButton = UI.IconButton(controlDef.panel.icon, function (button)
                 if not GameState.paused then
                     self:activateControl(controlDef)
                     if controlDef.name == Enums.ControlModes.Undock then
@@ -237,7 +237,7 @@ function MasterControl.Create(gameView, player)
     end
 
     self.panel = UI.Panel('Control Selector', true):setAlign(0.5, 0.0):setStretch(0, 0)
-        :setOnCancel(function(panel) panel:disable() end)
+        :setOnCancel(function (panel) panel:disable() end)
         :add(navGroup)
     self:add(self.panel, false)
 

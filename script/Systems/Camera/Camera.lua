@@ -1,4 +1,4 @@
-local Camera = class(function(self)
+local Camera = class(function (self)
     self.x         = 0
     self.y         = 0
     self.sx        = 1

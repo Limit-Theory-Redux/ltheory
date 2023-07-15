@@ -1,4 +1,4 @@
-local MusicPlayer = class(function(self) end)
+local MusicPlayer = class(function (self) end)
 
 local MusicObject = require("Types.MusicObject")
 local SFXObject = require("Types.SFXObject")

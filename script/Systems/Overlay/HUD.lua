@@ -395,21 +395,21 @@ function HUD:drawTargetSpeed(a)
             hudFsize = hudFontSize
         end
 
-    if targetType == Config:getObjectTypeByName("object_types", "Ship") or
-       targetType == Config:getObjectTypeByName("object_types", "Station") then
-      if not playerTarget:isDestroyed() then
-        -- Draw target speed
-        local text = format("Speed: %s m/s", floor(playerTarget:getSpeed()))
-        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
-      end
-    elseif targetType == Config:getObjectTypeByName("object_types", "Asteroid") then
-      -- Draw asteroid yield size
-      if playerTarget:hasYield() then
-        local text = format("Yield: %d", playerTarget:getYieldSize())
-        HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
-      end
+        if targetType == Config:getObjectTypeByName("object_types", "Ship") or
+            targetType == Config:getObjectTypeByName("object_types", "Station") then
+            if not playerTarget:isDestroyed() then
+                -- Draw target speed
+                local text = format("Speed: %s m/s", floor(playerTarget:getSpeed()))
+                HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+            end
+        elseif targetType == Config:getObjectTypeByName("object_types", "Asteroid") then
+            -- Draw asteroid yield size
+            if playerTarget:hasYield() then
+                local text = format("Yield: %d", playerTarget:getYieldSize())
+                HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+            end
+        end
     end
-  end
 end
 
 function HUD:drawTargetMission(a)
@@ -756,9 +756,11 @@ function HUD:drawWeaponGroups(a)
         HUD:drawHudTextDouble(cx - 220, self.sy - 140, Config.ui.color.meterBarLight, hudFontSize, 0.5, "Weapon Groups A")
         HUD:drawHudTextDouble(cx + 220, self.sy - 140, Config.ui.color.meterBarLight, hudFontSize, 0.5, "Weapon Groups B")
     elseif GameState.ui.hudStyle == Enums.HudStyles.Balanced then
-        HUD:drawHudTextDouble(cx - 340, self.sy - 160 - floor(self.sy / 9) - 66, Config.ui.color.meterBarLight, hudFontSize,
+        HUD:drawHudTextDouble(cx - 340, self.sy - 160 - floor(self.sy / 9) - 66, Config.ui.color.meterBarLight,
+            hudFontSize,
             0.5, "Weapon Groups A")
-        HUD:drawHudTextDouble(cx + 340, self.sy - 160 - floor(self.sy / 9) - 66, Config.ui.color.meterBarLight, hudFontSize,
+        HUD:drawHudTextDouble(cx + 340, self.sy - 160 - floor(self.sy / 9) - 66, Config.ui.color.meterBarLight,
+            hudFontSize,
             0.5, "Weapon Groups B")
     end
 
@@ -830,8 +832,10 @@ function HUD:drawPowerDistro(a)
 
     UI.DrawEx.Meter(hudXLm, hudYAm, 32, 8, Config.ui.color.meterBarLight, 10, 4, 4, true, Config.ui.color.meterBarOver, 1)
     UI.DrawEx.Meter(hudXLm, hudYBm, 32, 8, Config.ui.color.meterBarLight, 10, 4, 1, true, Config.ui.color.meterBarOver, 1)
-    UI.DrawEx.Meter(hudXRm, hudYAm, 32, 8, Config.ui.color.meterBarLight, 10, 4, 4, true, Config.ui.color.meterBarOver, -1)
-    UI.DrawEx.Meter(hudXRm, hudYBm, 32, 8, Config.ui.color.meterBarLight, 10, 4, 3, true, Config.ui.color.meterBarOver, -1)
+    UI.DrawEx.Meter(hudXRm, hudYAm, 32, 8, Config.ui.color.meterBarLight, 10, 4, 4, true, Config.ui.color.meterBarOver,
+        -1)
+    UI.DrawEx.Meter(hudXRm, hudYBm, 32, 8, Config.ui.color.meterBarLight, 10, 4, 3, true, Config.ui.color.meterBarOver,
+        -1)
 end
 
 function HUD:drawSensors(a)
@@ -865,13 +869,13 @@ function HUD:drawSensors(a)
                 if not playerTarget:isDestroyed() then
                     local emType = Enums.Emitters.None
                     local targetType = playerTarget:getType()
-                    if     targetType == Config:getObjectTypeByName("object_types", "Star")    then
+                    if targetType == Config:getObjectTypeByName("object_types", "Star") then
                         emType = Enums.Emitters.Star
-                    elseif targetType == Config:getObjectTypeByName("object_types", "Planet")  then
+                    elseif targetType == Config:getObjectTypeByName("object_types", "Planet") then
                         emType = Enums.Emitters.Planet
                     elseif targetType == Config:getObjectTypeByName("object_types", "Station") then
                         emType = Enums.Emitters.Station
-                    elseif targetType == Config:getObjectTypeByName("object_types", "Ship")    then
+                    elseif targetType == Config:getObjectTypeByName("object_types", "Ship") then
                         emType = Enums.Emitters.Ship
                     end
 
@@ -883,7 +887,8 @@ function HUD:drawSensors(a)
                         local distance = playerShip:getDistance(playerTarget)
 
                         -- Get a number from 0 - 1 describing how directly the player's ship is looking at an object
-                        local align = max(0, (playerTarget:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                        local align = max(0,
+                            (playerTarget:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
 
                         -- Calculate signal dropoff as it reaches the player's ship's sensors
                         -- Reduce the strength of the signal itself based on distance (no need to go inverse-square for unnecessary "realism" here)
@@ -906,24 +911,26 @@ function HUD:drawSensors(a)
                             end
 
                             -- Add jitter constrained by the max height of the up and down (reflection) bars
-                            local barHeightUp   = min(barBase,    floor(Config.gen.objectEmissions[i][emType] * (barBase    + barTweak) * dropoff / 100))
-                            local barHeightDown = min(barReflect, floor(Config.gen.objectEmissions[i][emType] * (barReflect + barTweak) * dropoff / 100))
+                            local barHeightUp   = min(barBase,
+                                floor(Config.gen.objectEmissions[i][emType] * (barBase + barTweak) * dropoff / 100))
+                            local barHeightDown = min(barReflect,
+                                floor(Config.gen.objectEmissions[i][emType] * (barReflect + barTweak) * dropoff / 100))
 
                             -- Get the highest bar ratio (greatest frequency bar value divided by the maximum possible bar height)
-                            local barRatio = barHeightUp / barBase
+                            local barRatio      = barHeightUp / barBase
                             if barRatio > maxBarRatio then maxBarRatio = barRatio end
 
                             -- Finally, actually display all the sensor frequency bars
                             UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
-                                           ybottom - barHeightUp,
-                                           barWidth,
-                                           barHeightUp,
-                                           Config.ui.color.meterBarBright)
+                                ybottom - barHeightUp,
+                                barWidth,
+                                barHeightUp,
+                                Config.ui.color.meterBarBright)
                             UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
-                                           ybottom,
-                                           barWidth,
-                                           barHeightDown,
-                                           Config.ui.color.meterBarDark)
+                                ybottom,
+                                barWidth,
+                                barHeightDown,
+                                Config.ui.color.meterBarDark)
                         end
                     end
                 end
@@ -932,17 +939,18 @@ function HUD:drawSensors(a)
                 local rng = RNG.FromTime()
                 local system = playerShip.parent
                 if not playerShip:isShipDocked() and system then -- no displaying Sensor readings while docked at a space station!
-                    local stars    = system:getStars()
-                    local planets  = system:getPlanets()
-                    local stations = system:getStations()
-                    local ships    = system:getShips()
+                    local stars         = system:getStars()
+                    local planets       = system:getPlanets()
+                    local stations      = system:getStations()
+                    local ships         = system:getShips()
                     local objects       = {}
                     local barHeightUp   = {}
                     local barHeightDown = {}
 
                     for _, star in ipairs(stars) do
                         if playerShip:getDistance(star) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Star] then
-                            local align = max(0, (star:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                            local align = max(0,
+                                (star:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
                             if align * align >= 0.3 then
                                 insert(objects, star)
                             end
@@ -950,7 +958,8 @@ function HUD:drawSensors(a)
                     end
                     for _, planet in ipairs(planets) do
                         if playerShip:getDistance(planet) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Planet] then
-                            local align = max(0, (planet:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                            local align = max(0,
+                                (planet:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
                             if align * align >= 0.3 then
                                 insert(objects, planet)
                             end
@@ -958,7 +967,8 @@ function HUD:drawSensors(a)
                     end
                     for _, station in ipairs(stations) do
                         if not station:isDestroyed() and playerShip:getDistance(station) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Station] then
-                            local align = max(0, (station:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                            local align = max(0,
+                                (station:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
                             if align * align >= 0.3 then
                                 insert(objects, station)
                             end
@@ -969,7 +979,8 @@ function HUD:drawSensors(a)
                             not ship:isDestroyed() and
                             playerShip:getDistance(ship) <= Config.gen.objectEmissionsDropoff[Enums.Emitters.Ship] then
                             do
-                                local align = max(0, (ship:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                                local align = max(0,
+                                    (ship:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
                                 if align * align >= 0.3 then
                                     insert(objects, ship)
                                 end
@@ -998,13 +1009,13 @@ function HUD:drawSensors(a)
                     for _, object in ipairs(objects) do
                         local emType = Enums.Emitters.None
                         local targetType = object:getType()
-                        if     targetType == Config:getObjectTypeByName("object_types", "Star")    then
+                        if targetType == Config:getObjectTypeByName("object_types", "Star") then
                             emType = Enums.Emitters.Star
-                        elseif targetType == Config:getObjectTypeByName("object_types", "Planet")  then
+                        elseif targetType == Config:getObjectTypeByName("object_types", "Planet") then
                             emType = Enums.Emitters.Planet
                         elseif targetType == Config:getObjectTypeByName("object_types", "Station") then
                             emType = Enums.Emitters.Station
-                        elseif targetType == Config:getObjectTypeByName("object_types", "Ship")    then
+                        elseif targetType == Config:getObjectTypeByName("object_types", "Ship") then
                             emType = Enums.Emitters.Ship
                         end
 
@@ -1014,7 +1025,8 @@ function HUD:drawSensors(a)
                         local distance = playerShip:getDistance(object)
 
                         -- Get a number from 0 - 1 describing how directly the player's ship is looking at an object
-                        local align = max(0, (object:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
+                        local align = max(0,
+                            (object:getPos() - playerShip:getPos()):normalize():dot(playerShip:getForward()))
 
                         -- Calculate signal dropoff as it reaches the player's ship's sensors
                         -- Reduce the strength of the signal itself based on distance (no need to go inverse-square for unnecessary "realism" here)
@@ -1023,8 +1035,10 @@ function HUD:drawSensors(a)
                         local dropoff = align * align * (1 - min(dropoffDist, distance) / dropoffDist)
 
                         for i = 1, barCount do
-                            barHeightUp[i]   = barHeightUp[i]   + Config.gen.objectEmissions[i][emType] * barBase    * dropoff / 100
-                            barHeightDown[i] = barHeightDown[i] + Config.gen.objectEmissions[i][emType] * barReflect * dropoff / 100
+                            barHeightUp[i]   = barHeightUp[i] +
+                            Config.gen.objectEmissions[i][emType] * barBase * dropoff / 100
+                            barHeightDown[i] = barHeightDown[i] +
+                            Config.gen.objectEmissions[i][emType] * barReflect * dropoff / 100
                         end
                     end
 
@@ -1036,7 +1050,7 @@ function HUD:drawSensors(a)
                         end
 
                         -- Add jitter constrained by the max height of the up and down (reflection) bars
-                        local barHeightU = min(barBase,    barHeightUp[i]   + barTweak)
+                        local barHeightU = min(barBase, barHeightUp[i] + barTweak)
                         local barHeightD = min(barReflect, barHeightDown[i] + barTweak)
 
                         -- Get the highest bar ratio (greatest frequency bar value divided by the maximum possible bar height)
@@ -1045,15 +1059,15 @@ function HUD:drawSensors(a)
 
                         -- Finally, actually display all the sensor frequency bars
                         UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
-                                       ybottom - barHeightU,
-                                       barWidth,
-                                       barHeightU,
-                                       Config.ui.color.meterBarBright)
+                            ybottom - barHeightU,
+                            barWidth,
+                            barHeightU,
+                            Config.ui.color.meterBarBright)
                         UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
-                                       ybottom,
-                                       barWidth,
-                                       barHeightD,
-                                       Config.ui.color.meterBarDark)
+                            ybottom,
+                            barWidth,
+                            barHeightD,
+                            Config.ui.color.meterBarDark)
                     end
                 end
             end
@@ -1061,17 +1075,16 @@ function HUD:drawSensors(a)
             -- *** TEMP: Audio FX test START ***
             if Config.audio.fxSensors then
                 if not Config.audio.fxSensors:IsPlaying() then
---                    Config.audio.fxSensors:Play(1)
+                    --                    Config.audio.fxSensors:Play(1)
                     Config.audio.fxSensors.sound:setVolume(maxBarRatio)
                     LTheoryRedux.audiofx:play(Config.audio.fxSensors.sound)
                 else
---                    Config.audio.fxSensors:Pause()
+                    --                    Config.audio.fxSensors:Pause()
                     Config.audio.fxSensors.sound:setVolume(maxBarRatio)
---                    Config.audio.fxSensors:Resume()
+                    --                    Config.audio.fxSensors:Resume()
                 end
             end
             -- *** TEMP: Audio FX test END ***
-
         end
     end
 end
@@ -1107,11 +1120,11 @@ local function getPosObject(def)
     return object
 end
 
-function HUD:drawTargets (a)
-  deltaTimer = deltaTimer + deltaTime
-  if deltaTimer > lastTargetsUpdate + updateTargetsInterval then
-    if not GameState.ui.showTrackers then return end
-    local camera = self.gameView.camera
+function HUD:drawTargets(a)
+    deltaTimer = deltaTimer + deltaTime
+    if deltaTimer > lastTargetsUpdate + updateTargetsInterval then
+        if not GameState.ui.showTrackers then return end
+        local camera = self.gameView.camera
 
         local cTarget = Color(0.5, 1.0, 0.1, 1.0 * a)
         local cLock = Color(1.0, 0.5, 0.1, 1.0 * a)
@@ -1145,9 +1158,9 @@ function HUD:drawTargets (a)
                     local alphaOverwrite = nil
 
                     if hit ~= nil then
-                      while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
-                      local hitEnt = Entity.fromRigidBody(hit)
---          
+                        while hit:getParentBody() ~= nil do hit = hit:getParentBody() end
+                        local hitEnt = Entity.fromRigidBody(hit)
+                        --
                         if hitEnt ~= target then
                             alphaOverwrite = math.max(0, math.min(GameState.ui.trackerObjectOcclusion, 1.0))
                         end
@@ -1158,7 +1171,7 @@ function HUD:drawTargets (a)
                     if target:hasAttackable() and target:isAttackable() then disp = target:getDisposition(playerShip) end
                     -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
                     local c = Disposition.GetColor(disp)
-                    c.a = alphaOverwrite or (1 - ( targetDistance / GameState.ui.maxTrackingRange ))
+                    c.a = alphaOverwrite or (1 - (targetDistance / GameState.ui.maxTrackingRange))
 
                     if ndcMax <= 1.0 and ndc.z > 0 then
                         do
@@ -1298,13 +1311,13 @@ function HUD:drawTargets (a)
                             local type = Config:getObjectInfo("object_types", target:getType())
                             local renderDistance = GameState.ui.trackerBracketingRenderDistances[type] or 25000
 
-              -- Draw rounded box corners
-              if targetDistance <= renderDistance or playerTarget == target then
-                if target:hasAttackable() and target:isAttackable() then
-                    -- Innermost box shows trackable object's disposition to player
-                    --     (red = enemy, blue = neutral, green = friendly)
-                    drawAttackable()
-                end
+                            -- Draw rounded box corners
+                            if targetDistance <= renderDistance or playerTarget == target then
+                                if target:hasAttackable() and target:isAttackable() then
+                                    -- Innermost box shows trackable object's disposition to player
+                                    --     (red = enemy, blue = neutral, green = friendly)
+                                    drawAttackable()
+                                end
 
                                 if playerTarget == target then
                                     drawPlayerTarget()
@@ -1392,8 +1405,8 @@ function HUD:drawTargets (a)
                     end
                 end
             end
-        ::skipTarget::
-    end
+            ::skipTarget::
+        end
         lastTargetsUpdate = deltaTimer
         self.target = closest
     end
@@ -1486,7 +1499,7 @@ end
 
 function HUD:drawReticle(a)
     local cx, cy = self.sx / 2, self.sy / 2
-    do -- Reticle
+    do     -- Reticle
         do -- Central crosshair
             local c = Config.ui.color.reticle
             local r1 = 24
@@ -1550,9 +1563,11 @@ function HUD:drawPlayerHullInteg(a)
 
     -- Draw player ship data as meters
     UI.DrawEx.RectOutline(66, sy - 96, 202, 22, Config.ui.color.borderBright)
-    UI.DrawEx.Meter(72, sy - 90, 10, 10, Config.ui.color.shieldStrength, 10, 10, floor(playerShieldPct / 10), false, nil, 1)
+    UI.DrawEx.Meter(72, sy - 90, 10, 10, Config.ui.color.shieldStrength, 10, 10, floor(playerShieldPct / 10), false, nil,
+        1)
     UI.DrawEx.RectOutline(66, sy - 66, 202, 22, Config.ui.color.borderBright)
-    UI.DrawEx.Meter(72, sy - 60, 10, 10, Config.ui.color.armorIntegrity, 10, 10, floor(playerArmorPct / 10), false, nil, 1)
+    UI.DrawEx.Meter(72, sy - 60, 10, 10, Config.ui.color.armorIntegrity, 10, 10, floor(playerArmorPct / 10), false, nil,
+        1)
     UI.DrawEx.RectOutline(66, sy - 36, 202, 22, Config.ui.color.borderBright)
     UI.DrawEx.Meter(72, sy - 30, 10, 10, hc, 10, 10, floor(playerHealthPct / 10), false, nil, 1)
 
@@ -2018,7 +2033,7 @@ function HUD.Create(gameView, player)
         children        = List(),
     }, HUD)
 
-    self.icon:setOnDraw(function(ib, focus, active)
+    self.icon:setOnDraw(function (ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
 

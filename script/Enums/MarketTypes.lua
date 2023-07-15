@@ -1,4 +1,4 @@
 Enums.MarketTypes = {
-  Market = 1,
-  BlackMarket = 2
+    Market = 1,
+    BlackMarket = 2
 }

@@ -52,7 +52,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Tex1D')
     local mt = {
         __index = {
-            managed      = function(self) return ffi.gc(self, libphx.Tex1D_Free) end,
+            managed      = function (self) return ffi.gc(self, libphx.Tex1D_Free) end,
             acquire      = libphx.Tex1D_Acquire,
             free         = libphx.Tex1D_Free,
             draw         = libphx.Tex1D_Draw,

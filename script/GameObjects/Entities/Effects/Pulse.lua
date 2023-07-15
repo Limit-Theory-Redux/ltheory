@@ -19,7 +19,7 @@ local shaderHead
 local shaderTail
 local onAddedToParent
 
-Preload.Add(function()
+Preload.Add(function ()
     meshHead = Gen.Primitive.Billboard(-1, -1, 1, 1)
     meshTail = Gen.Primitive.Billboard(-1, -1, 1, 0)
     shaderHead = Cache.Shader('billboard/quad', 'effect/pulsehead')
@@ -28,19 +28,19 @@ Preload.Add(function()
     cacheTail = ShaderVarCache(shaderTail, { 'alpha', 'size', 'axis', 'mWorld' })
 end)
 
-Pulse:setInitializer(function(self)
+Pulse:setInitializer(function (self)
     self.matrix = Matrix.Identity()
     self:register(Event.AddedToParent, onAddedToParent)
 end)
 
-Pulse:addOnDestruct(function(self)
+Pulse:addOnDestruct(function (self)
     self.matrix:free()
     DecRef(self.source)
 end)
 
 Pulse:define()
 
-onAddedToParent = function(self, parent)
+onAddedToParent = function (self, parent)
     self:refreshMatrix()
 end
 
@@ -61,12 +61,12 @@ function Pulse.Render(projectiles, state)
                 local pulse = proj.effect
                 if proj then
                     Shader.SetFloat3('color', proj.pColorR,
-                                              proj.pColorG,
-                                              proj.pColorB)
+                        proj.pColorG,
+                        proj.pColorB)
                 else
                     Shader.SetFloat3('color', Config.game.pulseColorBodyR,
-                                              Config.game.pulseColorBodyG,
-                                              Config.game.pulseColorBodyB)
+                        Config.game.pulseColorBodyG,
+                        Config.game.pulseColorBodyB)
                 end
                 Shader.ISetFloat(cacheHead.size, 16)
                 Shader.ISetFloat(cacheHead.alpha, pulse.life / pulse.lifeMax)
@@ -114,7 +114,7 @@ function Pulse.UpdatePrePhysics(system, projectiles, dt)
     for i = #projectiles, 1, -1 do
         local proj  = projectiles[i]
         local pulse = proj.effect
-        pulse.life = pulse.life - dt
+        pulse.life  = pulse.life - dt
         if pulse.life <= 0 then
             --printf("PULSE: projectile delete on expiration = %s", projectiles[i]:getName())
             if proj then

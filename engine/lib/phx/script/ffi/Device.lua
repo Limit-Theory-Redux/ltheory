@@ -17,7 +17,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return Device_t(...) end,
+        __call = function (t, ...) return Device_t(...) end,
     }
 
     if onDef_Device then onDef_Device(Device, mt) end
@@ -27,9 +27,9 @@ end
 do -- Metatype for class instances
     local t  = ffi.typeof('Device')
     local mt = {
-        __tostring = function(self) return ffi.string(libphx.Device_ToString(self)) end,
+        __tostring = function (self) return ffi.string(libphx.Device_ToString(self)) end,
         __index = {
-            clone    = function(x) return Device_t(x) end,
+            clone    = function (x) return Device_t(x) end,
             equal    = libphx.Device_Equal,
             toString = libphx.Device_ToString,
         },

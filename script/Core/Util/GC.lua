@@ -6,7 +6,7 @@ local proxyMT   = {}
 
 local function createProxy()
     if not proxyMT.__gc then
-        proxyMT.__gc = function()
+        proxyMT.__gc = function ()
             passes = passes + 1
             for i = 1, #callbacks do callbacks[i]() end
             createProxy()

@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return Vec3d_t(...) end,
+        __call = function (t, ...) return Vec3d_t(...) end,
     }
 
     if onDef_Vec3d then onDef_Vec3d(Vec3d, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Vec3d')
     local mt = {
         __index = {
-            clone = function(x) return Vec3d_t(x) end,
+            clone = function (x) return Vec3d_t(x) end,
         },
     }
 

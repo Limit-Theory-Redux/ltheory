@@ -38,7 +38,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('TimeStamp')
     local mt = {
         __index = {
-            managed       = function(self) return ffi.gc(self, libphx.TimeStamp_Free) end,
+            managed       = function (self) return ffi.gc(self, libphx.TimeStamp_Free) end,
             free          = libphx.TimeStamp_Free,
             getDifference = libphx.TimeStamp_GetDifference,
             getElapsed    = libphx.TimeStamp_GetElapsed,

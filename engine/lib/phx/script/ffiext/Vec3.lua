@@ -346,15 +346,15 @@ onDef_Vec3i = defineVec3
 onDef_Vec3f = defineVec3
 onDef_Vec3d = defineVec3
 
-onDef_Vec3i_t = function(t, mt)
+onDef_Vec3i_t = function (t, mt)
     defineVec3_t(t, mt)
     defineVec3i_t(t, mt)
 end
-onDef_Vec3f_t = function(t, mt)
+onDef_Vec3f_t = function (t, mt)
     defineVec3_t(t, mt)
     defineVec3f_t(t, mt)
 end
-onDef_Vec3d_t = function(t, mt)
+onDef_Vec3d_t = function (t, mt)
     defineVec3_t(t, mt)
     defineVec3d_t(t, mt)
 end

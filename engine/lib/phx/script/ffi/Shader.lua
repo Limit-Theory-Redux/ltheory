@@ -86,7 +86,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Shader')
     local mt = {
         __index = {
-            managed       = function(self) return ffi.gc(self, libphx.Shader_Free) end,
+            managed       = function (self) return ffi.gc(self, libphx.Shader_Free) end,
             acquire       = libphx.Shader_Acquire,
             free          = libphx.Shader_Free,
             toShaderState = libphx.Shader_ToShaderState,

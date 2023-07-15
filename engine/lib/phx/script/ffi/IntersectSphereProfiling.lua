@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return IntersectSphereProfiling_t(...) end,
+        __call = function (t, ...) return IntersectSphereProfiling_t(...) end,
     }
 
     if onDef_IntersectSphereProfiling then onDef_IntersectSphereProfiling(IntersectSphereProfiling, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('IntersectSphereProfiling')
     local mt = {
         __index = {
-            clone = function(x) return IntersectSphereProfiling_t(x) end,
+            clone = function (x) return IntersectSphereProfiling_t(x) end,
         },
     }
 

@@ -1,7 +1,7 @@
 local Entity = require('GameObjects.Entity')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
-local genColor = function(rng)
+local genColor = function (rng)
     local h = rng:getUniformRange(0, 0.5)
     local l = Math.Saturate(rng:getUniformRange(0.2, 0.3) + 0.05 * rng:getExp())
     local s = rng:getUniformRange(0.1, 0.3)
@@ -9,7 +9,7 @@ local genColor = function(rng)
     return Vec3f(c.r, c.g, c.b)
 end
 
-local Planet = subclass(Entity, function(self, seed)
+local Planet = subclass(Entity, function (self, seed)
     local rng = RNG.Create(seed):managed()
 
     -- TODO: Improve planet size generation

@@ -12,7 +12,7 @@ local Nebula = require('GameObjects.Entities.Objects.Nebula')
 local Words = require('Systems.Gen.Words')
 local HUD = require('Systems.Overlay.HUD')
 
-local System = subclass(Entity, function(self, seed)
+local System = subclass(Entity, function (self, seed)
     self.rng = RNG.Create(seed):managed()
 
     self:setName(Words.getCoolName(self.rng))
@@ -105,7 +105,7 @@ function System:getStationsByDistance(ship)
         end
     end
 
-    table.sort(stationList, function(a, b) return a.stationDist < b.stationDist end)
+    table.sort(stationList, function (a, b) return a.stationDist < b.stationDist end)
 
     return stationList
 end
@@ -206,7 +206,7 @@ function System:addExtraFactories(system, planetCount, aiPlayer)
     end
 end
 
-function System:place (object, spawnOutOfAsteroidZone)
+function System:place(object, spawnOutOfAsteroidZone)
     -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
     -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
     local typeName = Config:getObjectInfo("object_types", object:getType())
@@ -271,9 +271,10 @@ function System:place (object, spawnOutOfAsteroidZone)
         end
     elseif spawnOutOfAsteroidZone then
         local minPirateStationSpawnPositionScale = math.floor(Config.gen.scaleSystem * 0.9)
-        pos = Vec3f(self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem), 0, self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem)) -- place new object _near_ the origin
+        pos = Vec3f(self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem), 0,
+            self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem))                                                                                         -- place new object _near_ the origin
     else
-        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
+        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000))                                                                                                 -- place new object _near_ the origin
     end
     object:setPos(pos)
     -- Return the Asteroid Field zone in which the object is being placed
@@ -322,7 +323,7 @@ function System:update(dt)
         while (self.physics:getNextCollision(collision)) do
             local entity1 = Entity.fromRigidBody(collision.body0)
             local entity2 = Entity.fromRigidBody(collision.body1)
-            
+
             if entity1 and entity2 then
                 entity1:send(Event.Collision(collision, entity2))
                 entity2:send(Event.Collision(collision, entity1))
@@ -570,16 +571,16 @@ function System:spawnAsteroidField(count, reduced)
         -- TODO: Replace with actual system for generating minable materials in asteroids
         System:setAsteroidYield(rng, asteroid)
 
-    -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
-    -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
-    zone:addChild(asteroid)
-    asteroid.zone = zone
-    self:addChild(asteroid)
-  end
+        -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
+        -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
+        zone:addChild(asteroid)
+        asteroid.zone = zone
+        self:addChild(asteroid)
+    end
 
-  self:addZone(zone)
-  -- TODO: Event update should be sent to zones and their children aswell instead of only the system
-  self:addChild(zone)
+    self:addZone(zone)
+    -- TODO: Event update should be sent to zones and their children aswell instead of only the system
+    self:addChild(zone)
 
     local typeName = Config:getObjectInfo("object_types", zone:getType())
     local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())
@@ -608,7 +609,7 @@ function System:setAsteroidYield(rng, asteroid)
     if rng:getInt(0, 100) < 70 then
         local amass = math.floor(asteroid:getMass() / 1000)
         local itemT2 = Item.T2
-        table.sort(itemT2, function(a, b) return a.distribution < b.distribution end)
+        table.sort(itemT2, function (a, b) return a.distribution < b.distribution end)
         local itemType = nil
         local ichance = 0.0
         local uval = rng:getUniformRange(0.00, 1.00)

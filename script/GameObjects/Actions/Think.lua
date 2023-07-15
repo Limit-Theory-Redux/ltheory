@@ -1,7 +1,7 @@
 local Action = require('GameObjects.Action')
 local Player = require('GameObjects.Entities.Player')
 
-local Think = subclass(Action, function(self)
+local Think = subclass(Action, function (self)
     self.timer = 0
     self.rng = RNG.FromTime()
 end)
@@ -96,8 +96,8 @@ function Think:manageAsset(asset)
                         lowestThreatLevel = threatLevel
                         bestJob = job
                     else
-                        printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-                        asset:  getName(), job:getName(), payout)
+                        printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+                            asset:getName(), job:getName(), payout)
                     end
                 end
             end
@@ -120,7 +120,7 @@ function Think:manageAsset(asset)
 
         if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
             (not string.find(asset.job:getName(), "Transport") or
-            (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
+                (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
             do
                 -- Push job to asset's Action queue
                 printf("THINK: pushing job %s '%s' to %s with jcount = %d, bids = %d, bestPayout = %d",
@@ -143,7 +143,8 @@ function Think:manageAsset(asset)
                 local station = asset:isShipDocked()
                 if station then
                     printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-                    asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
+                        asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount,
+                        asset.job.bids)
                     --for i, v in ipairs(asset.actions) do
                     --  printf("  Actions %d : %s", i, v:getName(asset))
                     --end
@@ -163,7 +164,7 @@ function Think:manageAsset(asset)
             local station = asset:isShipDocked()
             if station then
                 printf("THINK +++: Asset %s (owner %s) wakes up at Station %s",
-                asset:getName(), asset:getOwner():getName(), station:getName())
+                    asset:getName(), asset:getOwner():getName(), station:getName())
                 asset:pushAction(Actions.Undock())
             end
         else
@@ -190,8 +191,10 @@ function Think:manageAsset(asset)
 
                 if stations[i] then
                     local station = stations[i].stationRef
-                    printf("THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
-                    asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal()(), station:getName())
+                    printf(
+                        "THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
+                        asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal()(),
+                        station:getName())
                     asset:clearActions()
                     asset:pushAction(Actions.DockAt(station))
                 else

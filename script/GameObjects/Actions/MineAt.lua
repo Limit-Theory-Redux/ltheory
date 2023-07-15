@@ -12,7 +12,7 @@ local MineAt = subclass(Action, function (self, source, target, miningTimePerIte
     self.currentTime = RNG.FromTime():getInt(1, orbitTime)
     self.orbitTime = orbitTime
     self.orbitRadius = source:getRadius() * 1.1 --TODO: replace with mining laser range later
-    self.rAxis = RNG.FromTime():getInt(1,2)
+    self.rAxis = RNG.FromTime():getInt(1, 2)
     --printf("MineAt %s from %s to %s", self.source:getYield().item:getName(), self.source:getName(), self.target:getName())
 end)
 
@@ -35,14 +35,14 @@ function MineAt:onUpdateActive(e, dt)
     local orbitTarget = self.source
 
     local vector = Vec3f()
-        -- define 2 axis orbits
+    -- define 2 axis orbits
     if self.rAxis == 1 then
-        vector.x = (math.cos(2*math.pi*self.currentTime / self.orbitTime) * self.orbitRadius)
+        vector.x = (math.cos(2 * math.pi * self.currentTime / self.orbitTime) * self.orbitRadius)
         vector.y = 0
-        vector.z = (math.sin(2*math.pi*self.currentTime / self.orbitTime) * self.orbitRadius)
+        vector.z = (math.sin(2 * math.pi * self.currentTime / self.orbitTime) * self.orbitRadius)
     elseif self.rAxis == 2 then
-        vector.x = (math.cos(2*math.pi*self.currentTime / self.orbitTime) * self.orbitRadius)
-        vector.y = (math.sin(2*math.pi*self.currentTime / self.orbitTime) * self.orbitRadius)
+        vector.x = (math.cos(2 * math.pi * self.currentTime / self.orbitTime) * self.orbitRadius)
+        vector.y = (math.sin(2 * math.pi * self.currentTime / self.orbitTime) * self.orbitRadius)
         vector.z = 0
     end
 

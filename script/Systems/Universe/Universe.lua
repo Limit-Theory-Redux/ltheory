@@ -5,7 +5,7 @@ local Jobs = requireAll('GameObjects.Jobs')
 
 local rng = RNG.FromTime()
 
-local Universe = class(function(self) end)
+local Universe = class(function (self) end)
 
 function Universe:Init()
     self.systems = {}

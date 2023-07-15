@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return Sphere_t(...) end,
+        __call = function (t, ...) return Sphere_t(...) end,
     }
 
     if onDef_Sphere then onDef_Sphere(Sphere, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Sphere')
     local mt = {
         __index = {
-            clone = function(x) return Sphere_t(x) end,
+            clone = function (x) return Sphere_t(x) end,
         },
     }
 

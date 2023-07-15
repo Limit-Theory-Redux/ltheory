@@ -31,10 +31,10 @@ function onDef_Directory(t, mt)
     -- Collects all files in a directory tree for which the given filter function
     -- returns true. The filter is called with arguments filterFn(root, filename,
     -- fullpath). Note that files are returned as full (relative) paths.
-    t.Filter = function(path, filterFn, recurse)
+    t.Filter = function (path, filterFn, recurse)
         local recurse = recurse or true
         local elems = List()
-        t.Foreach(path, function(root, filename, fullpath)
+        t.Foreach(path, function (root, filename, fullpath)
             if filterFn(root, filename, fullpath) then elems:add(fullpath) end
         end, recurse)
         return elems
@@ -42,14 +42,14 @@ function onDef_Directory(t, mt)
 
     -- Visit each file in the directory tree, calling fn(root, filename, fullpath)
     -- for each file found
-    t.ForEach = function(path, fn, recurse)
+    t.ForEach = function (path, fn, recurse)
         local recurse = recurse or true
         if path:sub(#path, #path) == '/' then path = path:sub(1, #path - 1) end
         walkDirectory(path, '', fn, recurse)
     end
 
     -- Return a List of all elements in the given directory
-    t.List = function(path)
+    t.List = function (path)
         local dir = t.Open(path)
         if dir == nil then error('Failed to open directory at ' .. path) end
         local elems = List()
@@ -62,7 +62,7 @@ function onDef_Directory(t, mt)
         return elems
     end
 
-    t.GetPrefPath = function(org, app)
+    t.GetPrefPath = function (org, app)
         local path = libphx.Directory_GetPrefPath(org, app)
         return tostring(path):gsub('"', '')
     end

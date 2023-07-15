@@ -30,7 +30,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Timer')
     local mt = {
         __index = {
-            managed     = function(self) return ffi.gc(self, libphx.Timer_Free) end,
+            managed     = function (self) return ffi.gc(self, libphx.Timer_Free) end,
             free        = libphx.Timer_Free,
             getAndReset = libphx.Timer_GetAndReset,
             getElapsed  = libphx.Timer_GetElapsed,

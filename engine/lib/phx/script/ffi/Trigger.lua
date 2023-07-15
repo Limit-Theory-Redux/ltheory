@@ -40,7 +40,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Trigger')
     local mt = {
         __index = {
-            managed          = function(self) return ffi.gc(self, libphx.Trigger_Free) end,
+            managed          = function (self) return ffi.gc(self, libphx.Trigger_Free) end,
             free             = libphx.Trigger_Free,
             attach           = libphx.Trigger_Attach,
             detach           = libphx.Trigger_Detach,

@@ -14,7 +14,7 @@ local updateRates = {
     [3] = 2  -- Marauding
 }
 
-local Economy = class(function(self, parent)
+local Economy = class(function (self, parent)
     self.parent = parent
     self.factories = {}
     self.flows = {}
@@ -28,9 +28,9 @@ local Economy = class(function(self, parent)
     self.yields = {}
 
     self.nextUpdates = {
-        [1] = 0,  -- Mining
-        [2] = 0,  -- Transport
-        [3] = 0   -- Marauding
+        [1] = 0, -- Mining
+        [2] = 0, -- Transport
+        [3] = 0  -- Marauding
     }
 
     self.timer = 0
@@ -52,7 +52,7 @@ function Economy:update(dt)
         table.clear(self.jobs)
         table.clear(self.traders)
         table.clear(self.yields)
---        table.clear(self.yields)
+        --        table.clear(self.yields)
         Profiler.End()
 
         Profiler.Begin('Economy.Update.POI')
@@ -62,7 +62,7 @@ function Economy:update(dt)
                 if e:hasFlows() and not e:isDestroyed() then insert(self.flows, e) end
                 if e:hasMarket() and not e:isDestroyed() then insert(self.markets, e) end
                 if e:hasTrader() and not e:isDestroyed() then insert(self.traders, e) end
---                if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
+                --                if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
             end
         end
         Profiler.End()
@@ -97,8 +97,8 @@ function Economy:update(dt)
                                         end
                                         if i > considerCount then break end
                                     end
---printf    ("ECONOMY: Mine job test: station = %s, prod = %s, item = %s, #asteroids = %d",
---    st    ation:getName(), prodLine.type.name, item:getName(), #self.yields)
+                                    --printf    ("ECONOMY: Mine job test: station = %s, prod = %s, item = %s, #asteroids = %d",
+                                    --    st    ation:getName(), prodLine.type.name, item:getName(), #self.yields)
 
                                     for i, asteroid in ipairs(self.yields) do
                                         --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
@@ -117,33 +117,33 @@ function Economy:update(dt)
             self.nextUpdates[1] = self.timer + updateRates[1] + rng:getUniformRange(0, maxUpdateRateDeviation)
             Profiler.End()
         end
---        printf("ECONOMY: Mine job test: jobCount = %d", jobCount)
+        --        printf("ECONOMY: Mine job test: jobCount = %d", jobCount)
 
---        -- Cache profitable mining jobs    -- INACTIVE (old style mining job generator)
---        Profiler.Begin('Economy.Update.Mining')
---        -- TODO: This section is an enormous CPU hog due to the number of station - asteroid combinations
---        local allJobCount = 0
---        local realJobCount = 0
---        do -- Cache mining jobs
---            for _, src in ipairs(self.yields) do
---                local item = src:getYield().item
---                for _, dst in ipairs(self.markets) do
---                    -- Create a Mine job only if the destination trader has a bid for the source item
---                    if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
---                        allJobCount = allJobCount + 1
---                        local itemBidVol = dst:getTrader():getBidVolume(item)
---                        if itemBidVol > 0 then
---                            --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
---                            --    src:getName(), dst:getName(), item:getName(), itemBidVol)
---                            realJobCount = realJobCount + 1
---                            insert(self.jobs, Jobs.Mine(src, dst, item))
---                        end
---                    end
---                end
---            end
---        end
---        Profiler.End()
---        --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
+        --        -- Cache profitable mining jobs    -- INACTIVE (old style mining job generator)
+        --        Profiler.Begin('Economy.Update.Mining')
+        --        -- TODO: This section is an enormous CPU hog due to the number of station - asteroid combinations
+        --        local allJobCount = 0
+        --        local realJobCount = 0
+        --        do -- Cache mining jobs
+        --            for _, src in ipairs(self.yields) do
+        --                local item = src:getYield().item
+        --                for _, dst in ipairs(self.markets) do
+        --                    -- Create a Mine job only if the destination trader has a bid for the source item
+        --                    if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
+        --                        allJobCount = allJobCount + 1
+        --                        local itemBidVol = dst:getTrader():getBidVolume(item)
+        --                        if itemBidVol > 0 then
+        --                            --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
+        --                            --    src:getName(), dst:getName(), item:getName(), itemBidVol)
+        --                            realJobCount = realJobCount + 1
+        --                            insert(self.jobs, Jobs.Mine(src, dst, item))
+        --                        end
+        --                    end
+        --                end
+        --            end
+        --        end
+        --        Profiler.End()
+        --        --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
         --    if false then  -- INACTIVE (Josh code - preserve this for when we switch back to Flow model)
         --      do -- Cache trade jobs from positive to negative flow
@@ -216,7 +216,7 @@ function Economy:update(dt)
                                 --printf("Marauding job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
                                 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                                 realJobCount = realJobCount + 1
-                                insert(self.jobs, Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems. 
+                                insert(self.jobs, Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems.
                             end
                         end
                     end

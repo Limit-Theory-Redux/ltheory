@@ -5,7 +5,7 @@ local SocketType  = require('GameObjects.Entities.Ship.SocketType')
 local shared
 local rng         = RNG.FromTime()
 
-local LifeSupport = subclass(Entity, function(self)
+local LifeSupport = subclass(Entity, function (self)
     -- All of this crap is completely worthless, but updateLifeSupport() will not be called without it
     if not shared then
         shared = {}

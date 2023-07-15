@@ -1,21 +1,21 @@
 Enums.Jobs = {
-  Mining = 1,
-  Transport = 2,
-  Patrolling = 3
+    Mining = 1,
+    Transport = 2,
+    Patrolling = 3
 }
 
 Enums.JobNames = {
-  [1] = "Mining",
-  [2] = "Transport",
-  [3] = "Patrol"
+    [1] = "Mining",
+    [2] = "Transport",
+    [3] = "Patrol"
 }
 
 Enums.BlackMarketJobs = {
-  Marauding = 1
+    Marauding = 1
 }
 
 Enums.BlackMarketJobNames = {
-  [1] = "Marauding"
+    [1] = "Marauding"
 }
 
 Enums.JobStateTransport = {
@@ -40,20 +40,19 @@ Enums.JobStateMine = {
 }
 
 Enums.JobStateMarauding = {
-  None             = 0,
-  SelectArea       = 1,
-  MovingToArea     = 2,
-  Marauding        = 3,
-  FindBlackMarket  = 4,
-  DockingAtStation = 5,
-  SellingItems     = 6,
-  Undocking        = 7,
-  JobFinished      = 8,
+    None             = 0,
+    SelectArea       = 1,
+    MovingToArea     = 2,
+    Marauding        = 3,
+    FindBlackMarket  = 4,
+    DockingAtStation = 5,
+    SellingItems     = 6,
+    Undocking        = 7,
+    JobFinished      = 8,
 }
 
 Enums.JobStatePatrolling = {
-  None             = 0,
-  Patrolling       = 1,
-  JobFinished      = 2,
+    None        = 0,
+    Patrolling  = 1,
+    JobFinished = 2,
 }
-

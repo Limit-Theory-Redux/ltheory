@@ -3,7 +3,7 @@ local Entity = require('GameObjects.Entity')
 -- NOTE : The 'size' of an entity's yield serves as a rate limiter. No more
 --        than 'size' (energy-normalized) units of item may be extracted per
 --        unit time from the Entity.
-local Yield = class(function(self, item, size)
+local Yield = class(function (self, item, size)
     self.item     = item
     self.size     = size
     self.maxSize  = size

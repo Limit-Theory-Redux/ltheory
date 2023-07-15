@@ -104,7 +104,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('RigidBody')
     local mt = {
         __index = {
-            managed                     = function(self) return ffi.gc(self, libphx.RigidBody_Free) end,
+            managed                     = function (self) return ffi.gc(self, libphx.RigidBody_Free) end,
             free                        = libphx.RigidBody_Free,
             applyForce                  = libphx.RigidBody_ApplyForce,
             applyTorque                 = libphx.RigidBody_ApplyTorque,

@@ -1,7 +1,7 @@
 local libphx = require('ffi.libphx').lib
 
 function onDef_BSP(t, mt)
-    t.Create = function(...)
+    t.Create = function (...)
         local e = libphx.Mesh_Validate(...)
         if e ~= 0 then
             print('BSP Incoming Mesh Error:')

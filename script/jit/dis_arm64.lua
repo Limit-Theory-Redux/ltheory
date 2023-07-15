@@ -27,7 +27,7 @@ local ror = bit.ror
 ------------------------------------------------------------------------------
 
 local map_adr = {
-                  -- PC-relative addressing.
+    -- PC-relative addressing.
     shift = 31,
     mask = 1,
     [0] = "adrDBx",
@@ -35,7 +35,7 @@ local map_adr = {
 }
 
 local map_addsubi = {
-                      -- Add/subtract immediate.
+    -- Add/subtract immediate.
     shift = 29,
     mask = 3,
     [0] = "add|movDNIg",
@@ -45,7 +45,7 @@ local map_addsubi = {
 }
 
 local map_logi = {
-                   -- Logical immediate.
+    -- Logical immediate.
     shift = 31,
     mask = 1,
     [0] = {
@@ -67,7 +67,7 @@ local map_logi = {
 }
 
 local map_movwi = {
-                    -- Move wide immediate.
+    -- Move wide immediate.
     shift = 31,
     mask = 1,
     [0] = {
@@ -88,7 +88,7 @@ local map_movwi = {
 }
 
 local map_bitf = {
-                   -- Bitfield.
+    -- Bitfield.
     shift = 31,
     mask = 1,
     [0] = {
@@ -114,7 +114,7 @@ local map_bitf = {
 }
 
 local map_datai = {
-                    -- Data processing - immediate.
+    -- Data processing - immediate.
     shift = 23,
     mask = 7,
     [0] = map_adr,
@@ -134,7 +134,7 @@ local map_datai = {
 }
 
 local map_logsr = {
-                    -- Logical, shifted register.
+    -- Logical, shifted register.
     shift = 31,
     mask = 1,
     [0] = {
@@ -305,7 +305,7 @@ local map_assh = {
 }
 
 local map_addsubsh = {
-                       -- Add/subtract, shifted register.
+    -- Add/subtract, shifted register.
     shift = 22,
     mask = 3,
     [0] = map_assh,
@@ -314,7 +314,7 @@ local map_addsubsh = {
 }
 
 local map_addsubex = {
-                       -- Add/subtract, extended register.
+    -- Add/subtract, extended register.
     shift = 22,
     mask = 3,
     [0] = {
@@ -324,7 +324,7 @@ local map_addsubex = {
 }
 
 local map_addsubc = {
-                      -- Add/subtract, with carry.
+    -- Add/subtract, with carry.
     shift = 10,
     mask = 63,
     [0] = {
@@ -350,7 +350,7 @@ local map_ccomp = {
 }
 
 local map_csel = {
-                   -- Conditional select.
+    -- Conditional select.
     shift = 11,
     mask = 1,
     [0] = {
@@ -371,7 +371,7 @@ local map_csel = {
 }
 
 local map_data1s = {
-                     -- Data processing, 1 source.
+    -- Data processing, 1 source.
     shift = 29,
     mask = 1,
     [0] = {
@@ -394,7 +394,7 @@ local map_data1s = {
 }
 
 local map_data2s = {
-                     -- Data processing, 2 sources.
+    -- Data processing, 2 sources.
     shift = 29,
     mask = 1,
     [0] = {
@@ -405,7 +405,7 @@ local map_data2s = {
 }
 
 local map_data3s = {
-                     -- Data processing, 3 sources.
+    -- Data processing, 3 sources.
     shift = 29,
     mask = 7,
     [0] = {
@@ -440,7 +440,7 @@ local map_data3s = {
 }
 
 local map_datar = {
-                    -- Data processing, register.
+    -- Data processing, register.
     shift = 28,
     mask = 1,
     [0] = {
@@ -481,7 +481,7 @@ local map_datar = {
 }
 
 local map_lrl = {
-                  -- Load register, literal.
+    -- Load register, literal.
     shift = 26,
     mask = 1,
     [0] = {
@@ -497,7 +497,7 @@ local map_lrl = {
 }
 
 local map_lsriind = {
-                      -- Load/store register, immediate pre/post-indexed.
+    -- Load/store register, immediate pre/post-indexed.
     shift = 30,
     mask = 3,
     [0] = {
@@ -548,7 +548,7 @@ local map_lsriind = {
 local map_lsriro = {
     shift = 21,
     mask = 1,
-    [0] = { -- Load/store register immediate.
+    [0] = {     -- Load/store register immediate.
         shift = 10, mask = 3,
         [0] = { -- Unscaled immediate.
             shift = 26, mask = 1,
@@ -580,7 +580,7 @@ local map_lsriro = {
         }, map_lsriind, false, map_lsriind
     },
     {
-    -- Load/store register, register offset.
+        -- Load/store register, register offset.
         shift = 10,
         mask = 3,
         [2] = {
@@ -630,7 +630,7 @@ local map_lsriro = {
 }
 
 local map_lsp = {
-                  -- Load/store register pair, offset.
+    -- Load/store register pair, offset.
     shift = 22,
     mask = 1,
     [0] = {
@@ -672,7 +672,7 @@ local map_lsp = {
 }
 
 local map_ls = {
-                 -- Loads and stores.
+    -- Loads and stores.
     shift = 24,
     mask = 0x31,
     [0x10] = map_lrl,
@@ -728,11 +728,11 @@ local map_ls = {
 }
 
 local map_datafp = {
-                     -- Data processing, SIMD and FP.
+    -- Data processing, SIMD and FP.
     shift = 28,
     mask = 7,
     {
-                     -- 001
+        -- 001
         shift = 24,
         mask = 1,
         [0] = {
@@ -799,7 +799,7 @@ local map_datafp = {
                                 }
                             },
                             {
-                            -- FP data-processing, 1 source.
+                                -- FP data-processing, 1 source.
                                 shift = 31,
                                 mask = 1,
                                 [0] = {
@@ -835,7 +835,7 @@ local map_datafp = {
                             }
                         },
                         {
-                        -- FP compare.
+                            -- FP compare.
                             shift = 31,
                             mask = 1,
                             [0] = {
@@ -852,7 +852,7 @@ local map_datafp = {
                         }
                     },
                     {
-                    -- FP immediate.
+                        -- FP immediate.
                         shift = 31,
                         mask = 1,
                         [0] = {
@@ -865,7 +865,7 @@ local map_datafp = {
                     }
                 },
                 {
-                -- FP conditional compare.
+                    -- FP conditional compare.
                     shift = 31,
                     mask = 1,
                     [0] = {
@@ -877,7 +877,7 @@ local map_datafp = {
                     }
                 },
                 {
-                -- FP data-processing, 2 sources.
+                    -- FP data-processing, 2 sources.
                     shift = 31,
                     mask = 1,
                     [0] = {
@@ -891,7 +891,7 @@ local map_datafp = {
                     }
                 },
                 {
-                -- FP conditional select.
+                    -- FP conditional select.
                     shift = 31,
                     mask = 1,
                     [0] = {
@@ -902,7 +902,7 @@ local map_datafp = {
             }
         },
         {
-        -- FP data-processing, 3 sources.
+            -- FP data-processing, 3 sources.
             shift = 31,
             mask = 1,
             [0] = {
@@ -923,12 +923,12 @@ local map_datafp = {
 }
 
 local map_br = {
-                 -- Branches, exception generating and system instructions.
+    -- Branches, exception generating and system instructions.
     shift = 29,
     mask = 7,
     [0] = "bB",
     {
-    -- Compare & branch, immediate.
+        -- Compare & branch, immediate.
         shift = 24,
         mask = 3,
         [0] = "cbzDBg",
@@ -937,7 +937,7 @@ local map_br = {
         "tbnzDTBw"
     },
     {
-    -- Conditional branch, immediate.
+        -- Conditional branch, immediate.
         shift = 24,
         mask = 3,
         [0] = {
@@ -952,7 +952,7 @@ local map_br = {
     false,
     "blB",
     {
-    -- Compare & branch, immediate.
+        -- Compare & branch, immediate.
         shift = 24,
         mask = 3,
         [0] = "cbzDBg",
@@ -968,13 +968,13 @@ local map_br = {
             [0x200000] = "brkW"
         },
         {
-        -- System instructions.
+            -- System instructions.
             shift = 0,
             mask = 0x3fffff,
             [0x03201f] = "nop"
         },
         {
-        -- Unconditional branch, register.
+            -- Unconditional branch, register.
             shift = 0,
             mask = 0xfffc1f,
             [0x1f0000] = "brNx",

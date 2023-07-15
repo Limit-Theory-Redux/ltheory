@@ -10,7 +10,7 @@ Button.focusable = true
 Button:setPadUniform(6)
 
 local defaultText = ' '
-local defaultOnClick = function(self, state) end
+local defaultOnClick = function (self, state) end
 
 function Button:onDraw(focus, active)
     self:applyColor(focus, active, Config.ui.color.border)

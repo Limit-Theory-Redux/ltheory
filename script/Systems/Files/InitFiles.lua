@@ -228,7 +228,7 @@ function InitFiles:writeUserInits()
         for n in pairs(t) do table.insert(a, n) end
         table.sort(a, f)
         local i = 0             -- iterator variable
-        local iter = function() -- iterator function
+        local iter = function () -- iterator function
             i = i + 1
             if a[i] == nil then
                 return nil

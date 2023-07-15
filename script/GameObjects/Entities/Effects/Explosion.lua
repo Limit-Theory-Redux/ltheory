@@ -2,7 +2,7 @@ local Entity = require('GameObjects.Entity')
 
 local rng = RNG.Create(50123)
 
-local Explosion = subclass(Entity, function(self, pos, age)
+local Explosion = subclass(Entity, function (self, pos, age)
     self.age = 0
     self.pos = pos
     self.seed = rng:getUniform()
@@ -16,7 +16,7 @@ local mesh
 local rng
 local shader
 
-Preload.Add(function()
+Preload.Add(function ()
     mesh = Gen.Primitive.Billboard(-1, -1, 1, 1)
     rng = RNG.FromTime()
     shader = Cache.Shader('billboard/quadpos', 'effect/explosion')

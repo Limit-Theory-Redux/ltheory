@@ -1,6 +1,6 @@
 local Entity = require('GameObjects.Entity')
 
-local Zone = subclass(Entity, function(self, name)
+local Zone = subclass(Entity, function (self, name)
     self.name = name
     self.threatLevel = 0
     self.lastThreatTime = 0
@@ -34,7 +34,7 @@ end
 function Zone:setExtent(extent)
     -- "extent" is a scalar radius for a spherical volume
     self.extent = extent
-    self.trigger = Entities.Trigger(Vec3f(extent/2, extent/2, extent/2))
+    self.trigger = Entities.Trigger(Vec3f(extent / 2, extent / 2, extent / 2))
     self.trigger:triggerSetPos(self:getPos())
     GameState.world.currentSystem:addChild(self.trigger)
 end
@@ -59,14 +59,14 @@ function Zone:updateZone(state)
 end
 
 function Zone:updateZone(state)
-  if self.dt > self.lastThreatTime + self.threatReductionUpdateTime then
-    if self.threatLevel > 0 then
-      self:adjustThreat(-self.threatReductionPerUpdate)
+    if self.dt > self.lastThreatTime + self.threatReductionUpdateTime then
+        if self.threatLevel > 0 then
+            self:adjustThreat(-self.threatReductionPerUpdate)
+        end
+        self.lastThreatTime = self.dt
     end
-    self.lastThreatTime = self.dt
-  end
 
-  self.dt = self.dt + state.dt
+    self.dt = self.dt + state.dt
 end
 
 return Zone

@@ -30,7 +30,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('KDTree')
     local mt = {
         __index = {
-            managed      = function(self) return ffi.gc(self, libphx.KDTree_Free) end,
+            managed      = function (self) return ffi.gc(self, libphx.KDTree_Free) end,
             free         = libphx.KDTree_Free,
             draw         = libphx.KDTree_Draw,
             getMemory    = libphx.KDTree_GetMemory,

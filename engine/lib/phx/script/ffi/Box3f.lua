@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return Box3f_t(...) end,
+        __call = function (t, ...) return Box3f_t(...) end,
     }
 
     if onDef_Box3f then onDef_Box3f(Box3f, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Box3f')
     local mt = {
         __index = {
-            clone = function(x) return Box3f_t(x) end,
+            clone = function (x) return Box3f_t(x) end,
         },
     }
 

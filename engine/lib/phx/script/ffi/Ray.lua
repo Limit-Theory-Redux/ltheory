@@ -27,7 +27,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return Ray_t(...) end,
+        __call = function (t, ...) return Ray_t(...) end,
     }
 
     if onDef_Ray then onDef_Ray(Ray, mt) end
@@ -38,7 +38,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Ray')
     local mt = {
         __index = {
-            clone                         = function(x) return Ray_t(x) end,
+            clone                         = function (x) return Ray_t(x) end,
             getPoint                      = libphx.Ray_GetPoint,
             intersectPlane                = libphx.Ray_IntersectPlane,
             intersectTriangle_Barycentric = libphx.Ray_IntersectTriangle_Barycentric,

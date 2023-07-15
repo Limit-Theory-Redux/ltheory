@@ -19,7 +19,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function(t, ...) return Time_t(...) end,
+        __call = function (t, ...) return Time_t(...) end,
     }
 
     if onDef_Time then onDef_Time(Time, mt) end
@@ -30,7 +30,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Time')
     local mt = {
         __index = {
-            clone = function(x) return Time_t(x) end,
+            clone = function (x) return Time_t(x) end,
         },
     }
 

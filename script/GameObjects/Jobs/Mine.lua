@@ -2,7 +2,7 @@ local Job = require('GameObjects.Job')
 local Flow = require('Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
-local Mine = subclass(Job, function(self, src, dst, item)
+local Mine = subclass(Job, function (self, src, dst, item)
     self.src = src
     self.dst = dst
     self.item = item
@@ -52,7 +52,7 @@ end
 function Mine:getFlows(e)
     local item = self.item
     local mass = item:getMass()
-    local capacity = e:mgrInventoryGetFreeMax(mass) -- NOTE: inventory units? or count of free slots for mass = x?
+    local capacity = e:mgrInventoryGetFreeMax(mass)            -- NOTE: inventory units? or count of free slots for mass = x?
     local duration = self:getTravelTime(e, self.src, self.dst) -- TODO : + miningTime (from miningTime() function)
     local rate = floor(capacity / mass) / duration
     return { Flow(item, rate, self.dst) }
@@ -99,14 +99,14 @@ function Mine:getPayout(e)
         end
     end
 
-  --local capacity = e:getInventoryFree()
-  --local item = self.item
-  --local pstr1 = "Mine PAYOUT-ADJU [%s (%s)]: count = %d, item = %s, src = %s, dest = %s, "
-  --local pstr2 = "base payout = %d, adjusted payout = %d"
-  --local pstr  = pstr1 .. pstr2
-  --printf(pstr,
-  --e:getName(), e:getOwner():getName(), self.jcount, item:getName(), self.src:getName(), self.dst:getName(),
-  --basePayout, payout)
+    --local capacity = e:getInventoryFree()
+    --local item = self.item
+    --local pstr1 = "Mine PAYOUT-ADJU [%s (%s)]: count = %d, item = %s, src = %s, dest = %s, "
+    --local pstr2 = "base payout = %d, adjusted payout = %d"
+    --local pstr  = pstr1 .. pstr2
+    --printf(pstr,
+    --e:getName(), e:getOwner():getName(), self.jcount, item:getName(), self.src:getName(), self.dst:getName(),
+    --basePayout, payout)
 
     return payout
 end
@@ -239,32 +239,33 @@ function Mine:onUpdateActive(e, dt)
             end
             -- temp claims by traders
             self.src:removeClaim(self.dst:getTrader())
-            elseif e.jobState == Enums.JobStateMine.SellingItems then
-                if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
-                    local item = self.item
-                    --printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
-                    --e:getName(), e:getItemCount(item), item:getName(), self.dst:getName())
-                    local sold = 0
-                    while e:getItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
+        elseif e.jobState == Enums.JobStateMine.SellingItems then
+            if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
+                local item = self.item
+                --printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
+                --e:getName(), e:getItemCount(item), item:getName(), self.dst:getName())
+                local sold = 0
+                while e:getItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
                     sold = sold + 1
-                    end
-                    printf("[MINE 4] %s sold %d units of %s to Trader %s", e:getName(), sold, item:getName(), self.dst:getName())
-                else
-                    -- Destination station no longer exists, so terminate this entire job
-                    printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
+                end
+                printf("[MINE 4] %s sold %d units of %s to Trader %s", e:getName(), sold, item:getName(),
+                    self.dst:getName())
+            else
+                -- Destination station no longer exists, so terminate this entire job
+                printf("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
                     self.dst:getName(), e:getName())
-                    self:cancelJob(e)
-                end
-            elseif e.jobState == Enums.JobStateMine.UndockingFromDst then
-                if e:isShipDocked() then
-                    e:pushAction(Actions.Undock())
-                end
-            elseif e.jobState == Enums.JobStateMine.JobFinished then
-                -- TODO : This is just a quick hack to force AI to re-evaluate job
-                --        decisions. In reality, AI should 'pre-empt' the job, which
-                --        should otherwise loop indefinitely by default
                 self:cancelJob(e)
             end
+        elseif e.jobState == Enums.JobStateMine.UndockingFromDst then
+            if e:isShipDocked() then
+                e:pushAction(Actions.Undock())
+            end
+        elseif e.jobState == Enums.JobStateMine.JobFinished then
+            -- TODO : This is just a quick hack to force AI to re-evaluate job
+            --        decisions. In reality, AI should 'pre-empt' the job, which
+            --        should otherwise loop indefinitely by default
+            self:cancelJob(e)
+        end
         Profiler.End()
     end
 end

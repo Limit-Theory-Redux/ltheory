@@ -93,7 +93,6 @@ function LTheory:onInit()
 
     self.window:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
     MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
-
 end
 
 function LTheory:onInput()

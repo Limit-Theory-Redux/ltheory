@@ -3,7 +3,7 @@ local Material = require('GameObjects.Material')
 local Components = requireAll('GameObjects.Elements.Components')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
-local function damaged (self, event)
+local function damaged(self, event)
     local shipEntry = self:findInDamageList(event.source)
     if shipEntry ~= nil then
         shipEntry.damage = shipEntry.damage + event.amount
@@ -34,7 +34,7 @@ local function damaged (self, event)
     end
 end
 
-local Station = subclass(Entity, function(self, seed, hull)
+local Station = subclass(Entity, function (self, seed, hull)
     local rng = RNG.Create(seed)
     local mesh = Gen.StationOld(seed):managed()
     local bsp = BSP.Create(mesh):managed()
@@ -243,26 +243,25 @@ function Entity:updateStation(state)
 end
 
 function Station:undockAndAttack(target)
-  --for key, ship in pairs(self:getDocked(self)) do
-  --  self:removeDocked(ship)
-  --  ship:pushAction(Actions.Attack(target))
-  --end
+    --for key, ship in pairs(self:getDocked(self)) do
+    --  self:removeDocked(ship)
+    --  ship:pushAction(Actions.Attack(target))
+    --end
 end
 
-function Station:attackedBy (target)
-  -- This station has been attacked, probably by a band of ragtag rebel scum who pose no threat
-  -- TODO: Allow a number of "grace" hits that decay over time
-  -- TODO: If and when stations are armed, modify this method to let the station shoot back
+function Station:attackedBy(target)
+    -- This station has been attacked, probably by a band of ragtag rebel scum who pose no threat
+    -- TODO: Allow a number of "grace" hits that decay over time
+    -- TODO: If and when stations are armed, modify this method to let the station shoot back
 end
 
 function Entity:updateStation(state)
+    if self.timer > self.lastClearDamageTime + 30 then
+        self.shipDamageList = {}
+        self.lastClearDamageTime = self.timer
+    end
 
-  if self.timer > self.lastClearDamageTime + 30 then
-    self.shipDamageList = {}
-    self.lastClearDamageTime = self.timer
-  end
-
-  self.timer = self.timer + state.dt
+    self.timer = self.timer + state.dt
 end
 
 return Station

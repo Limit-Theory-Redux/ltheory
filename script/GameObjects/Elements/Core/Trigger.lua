@@ -95,7 +95,7 @@ function Entity:getObjectsInTriggerByType(type)
         if not e then goto skip end
 
         if e:getType() == Config:getObjectTypeByName("object_types", type) then
-        table.insert(objects, e)
+            table.insert(objects, e)
         end
         ::skip::
     end

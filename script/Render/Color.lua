@@ -1,4 +1,4 @@
-local Color = class(function(self, r, g, b, a)
+local Color = class(function (self, r, g, b, a)
     self.r = r
     self.g = g
     self.b = b

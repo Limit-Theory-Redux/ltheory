@@ -30,7 +30,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('StrMapIter')
     local mt = {
         __index = {
-            managed  = function(self) return ffi.gc(self, libphx.StrMapIter_Free) end,
+            managed  = function (self) return ffi.gc(self, libphx.StrMapIter_Free) end,
             advance  = libphx.StrMapIter_Advance,
             free     = libphx.StrMapIter_Free,
             hasMore  = libphx.StrMapIter_HasMore,

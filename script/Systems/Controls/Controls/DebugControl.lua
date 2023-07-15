@@ -110,7 +110,7 @@ function DebugControl:createWidgetInspector(widget)
             local child = w.children[i]
             childGrid:add(UI.Label(i):setMinWidth(16))
             childGrid:add(UI.Button(child.name)
-                :setOnClick(function(button, state) self:createWidgetInspector(child) end)
+                :setOnClick(function (button, state) self:createWidgetInspector(child) end)
             )
         end
     end
@@ -119,69 +119,69 @@ function DebugControl:createWidgetInspector(widget)
     newInspector
         :add(UI.NavGroup():setPadUniform(2)
             :add(UI.Grid():setCols(1)
-                :add(UI.Button('Refresh'):setOnClick(function(button, state) self:createWidgetInspector(w) end))
+                :add(UI.Button('Refresh'):setOnClick(function (button, state) self:createWidgetInspector(w) end))
                 :add(UI.Grid():setPadCellX(8)
                     :add(UI.Label('Name'))
-                    :add(UI.Label():setPollFn(function() return w.name end))
+                    :add(UI.Label():setPollFn(function () return w.name end))
                     :add(UI.Label('Rect'))
-                    :add(UI.Label():setPollFn(function()
+                    :add(UI.Label():setPollFn(function ()
                         return string.format('%.1f, %.1f, %.1f, %.1f', w.x, w.y, w.sx,
                             w.sy)
                     end))
                     :add(UI.Label('Origin X'))
-                    :add(UI.Label():setPollFn(function() return w.originX end))
+                    :add(UI.Label():setPollFn(function () return w.originX end))
                     :add(UI.Label('Origin Y'))
-                    :add(UI.Label():setPollFn(function() return w.originY end))
+                    :add(UI.Label():setPollFn(function () return w.originY end))
                     :add(UI.Label('Focusable'))
-                    :add(UI.Label():setPollFn(function() return w.focusable end))
+                    :add(UI.Label():setPollFn(function () return w.focusable end))
                     :add(UI.Label('Draggable'))
-                    :add(UI.Label():setPollFn(function() return w.draggable end))
+                    :add(UI.Label():setPollFn(function () return w.draggable end))
                     :add(UI.Label('Auto-align'))
-                    :add(UI.Label():setPollFn(function() return w.align end))
+                    :add(UI.Label():setPollFn(function () return w.align end))
                     :add(UI.Label('Padding'))
-                    :add(UI.Label():setPollFn(function()
+                    :add(UI.Label():setPollFn(function ()
                         return string.format('Min: %.1f, %.1f; Max: %.1f, %.1f',
                             w.padMinX, w.padMinY, w.padMaxX, w.padMaxX)
                     end))
                     :add(UI.Label('Desired Size'))
-                    :add(UI.Label():setPollFn(function() return string.format('%.1f, %.1f', w.desiredSX, w.desiredSY) end))
+                    :add(UI.Label():setPollFn(function () return string.format('%.1f, %.1f', w.desiredSX, w.desiredSY) end))
                     :add(UI.Label('Min Size'))
-                    :add(UI.Label():setPollFn(function() return string.format('%.1f, %.1f', w.minSX, w.minSY) end))
+                    :add(UI.Label():setPollFn(function () return string.format('%.1f, %.1f', w.minSX, w.minSY) end))
                     :add(UI.Label('Max Size'))
-                    :add(UI.Label():setPollFn(function() return string.format('%.1f, %.1f', w.maxSX, w.maxSY) end))
+                    :add(UI.Label():setPollFn(function () return string.format('%.1f, %.1f', w.maxSX, w.maxSY) end))
                     :add(UI.Label('Fixed Size'))
-                    :add(UI.Label():setPollFn(function()
+                    :add(UI.Label():setPollFn(function ()
                         return string.format('%.1f, %.1f', w.fixedSX or 0,
                             w.fixedSY or 0)
                     end))
                     :add(UI.Label('Align X'))
                     :add(UI.Slider(
-                        function() return w.alignX end,
-                        function(value) w:setAlignX(value) end))
+                        function () return w.alignX end,
+                        function (value) w:setAlignX(value) end))
                     :add(UI.Label('Align Y'))
                     :add(UI.Slider(
-                        function() return w.alignY end,
-                        function(value) w:setAlignY(value) end))
+                        function () return w.alignY end,
+                        function (value) w:setAlignY(value) end))
                     :add(UI.Label('Stretch X'))
                     :add(UI.Slider(
-                        function() return w.stretchX end,
-                        function(value) w:setStretchX(value) end))
+                        function () return w.stretchX end,
+                        function (value) w:setStretchX(value) end))
                     :add(UI.Label('Stretch Y'))
                     :add(UI.Slider(
-                        function() return w.stretchY end,
-                        function(value) w:setStretchY(value) end))
+                        function () return w.stretchY end,
+                        function (value) w:setStretchY(value) end))
                     :add(UI.Label('Max Width'))
                     :add(UI.Slider(
-                        function() return w.maxSX or 0 end,
-                        function(value) w:setMaxWidth(value) end,
+                        function () return w.maxSX or 0 end,
+                        function (value) w:setMaxWidth(value) end,
                         200, 600))
                     :add(UI.Label('Max Height'))
                     :add(UI.Slider(
-                        function() return w.maxSY or 0 end,
-                        function(value) w:setMaxHeight(value) end,
+                        function () return w.maxSY or 0 end,
+                        function (value) w:setMaxHeight(value) end,
                         200, 600))
                     :add(UI.Label('Parent'))
-                    :add(UI.Button(w.parent and w.parent.name or 'nil', function(button, state)
+                    :add(UI.Button(w.parent and w.parent.name or 'nil', function (button, state)
                         if w.parent then self:createWidgetInspector(w.parent) end
                     end))
                 )
@@ -217,7 +217,7 @@ function DebugControl.Create(gameView, player)
     }, DebugControl)
 
     self:add(self.debugWindow:setStretch(0, 1), Config.debug.window)
-    self.icon:setOnDraw(function(ib, focus, active)
+    self.icon:setOnDraw(function (ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
     return self

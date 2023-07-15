@@ -2,7 +2,7 @@ local Cache = require('Render.Cache')
 
 -- TODO JP : Refactor all of this monolithic nonsense into RenderPass objects.
 
-local Renderer = class(function(self)
+local Renderer = class(function (self)
     self.ds = 4
 end)
 

@@ -4,7 +4,7 @@ local SocketType = require('GameObjects.Entities.Ship.SocketType')
 -- temp settings
 local outOfRangeCancel = 30
 
-local Attack = subclass(Action, function(self, target)
+local Attack = subclass(Action, function (self, target)
     self.target = target
 end)
 
@@ -14,7 +14,7 @@ function Attack:getName()
     return format("Attack %s", self.target:getName())
 end
 
-function Attack:onStart (e)
+function Attack:onStart(e)
     self.radiusMin = 2.0 * self.target:getRadius() + e:getRadius()
     self.radiusMax = e.socketRangeMin
     self.timer = 0

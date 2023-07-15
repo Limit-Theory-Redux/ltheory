@@ -38,8 +38,8 @@ end
 -- Application Template --------------------------------------------------------
 
 function Application:run()
-    self.resX, self.resY = self:getDefaultSize()
-    self.window = Window.Create(
+    self.resX, self.resY        = self:getDefaultSize()
+    self.window                 = Window.Create(
         self:getTitle(),
         WindowPos.Default,
         WindowPos.Default,
@@ -47,12 +47,12 @@ function Application:run()
         self.resY,
         self:getWindowMode())
 
-    self.audio   = Audio.Create()
-    self.audiofx = Audio.Create()
+    self.audio                  = Audio.Create()
+    self.audiofx                = Audio.Create()
 
     GameState.render.gameWindow = self.window
 
-    self.exit = false
+    self.exit                   = false
 
     self.window:setVsync(GameState.render.vsync)
 
@@ -250,7 +250,7 @@ function Application:run()
             end
         end
 
-        do                                         -- Metrics display
+        do -- Metrics display
             if GameState.debug.metricsEnabled then
                 local s = string.format(
                     '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',

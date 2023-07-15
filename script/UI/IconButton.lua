@@ -8,7 +8,7 @@ setmetatable(IconButton, Widget)
 IconButton.name      = 'IconButton'
 IconButton.focusable = true
 
-local defaultOnClick = function(self, state) end
+local defaultOnClick = function (self, state) end
 local defaultIcon    = Icon()
 
 function IconButton:onDraw(focus, active)

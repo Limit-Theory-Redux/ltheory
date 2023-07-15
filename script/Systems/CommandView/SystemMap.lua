@@ -283,7 +283,8 @@ function SystemMap:onInput(state)
     if state.dt > 0 then
         GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * state.dt
     else
-        GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * self.lastDt -- temp fix for -> see NOTE above
+        GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed *
+        self.lastDt                                                                         -- temp fix for -> see NOTE above
     end
 
     if Input.GetValue(Button.Keyboard.LShift) == 1 then
@@ -291,16 +292,16 @@ function SystemMap:onInput(state)
     end
 
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
-    exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
+        exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
         exp(GameState.ui.mapSystemZoomSpeed * (Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
 
     GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x +
-    GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-        Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
+        GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
+            Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
     GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y +
-    GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-        Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+        GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
+            Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
 end
 
 function SystemMap.Create(system)

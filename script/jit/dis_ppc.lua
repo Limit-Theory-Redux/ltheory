@@ -45,7 +45,7 @@ local map_rlwinm = setmetatable({
         shift = 0, mask = -1,
     },
     {
-        __index = function(t, x)
+        __index = function (t, x)
             local rot = band(rshift(x, 11), 31)
             local mb = band(rshift(x, 6), 31)
             local me = band(rshift(x, 1), 31)
@@ -244,7 +244,7 @@ local map_ext = setmetatable({
         [539] = "srdRR~R.",
     },
     {
-        __index = function(t, x)
+        __index = function (t, x)
             if band(x, 31) == 15 then return "iselRRRC" end
         end
     })
