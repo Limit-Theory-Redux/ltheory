@@ -38,27 +38,35 @@ function CriminalThink:manageAsset (asset)
   end
 
   -- Consider changing to a new job
-  for i = 1, math.min(Config.econ.jobIterations, #root:getEconomy().blackMarketJobs * 2) do
+  for _ = 1, math.min(Config.econ.jobIterations, #root:getEconomy().blackMarketJobs * 2) do
     -- TODO : KnowsAbout check (information economy + AI load reduction)
     local jobType = self.rng:choose(root:getEconomy().blackMarketJobs)
     local job
 
     if jobType then
-      job = self.rng:choose(jobType)
-    end
+      for _ = 1, math.min(Config.econ.jobIterations, #jobType * 2) do
+        job = self.rng:choose(jobType)
+        if not job then break end
 
-    if not job then break end
+        --if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
+        --  if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here
+        --    goto skipJob
+        --  end
+        --end
 
-    local payout = job:getPayout(asset)
-    if payout > bestPayout then
-      if job.jcount > 0 then
-        bestPayout = payout
-        bestJob = job
-      else
-        printf("CriminalThink ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-        asset:getName(), job:getName(), payout)
+        local payout = job:getPayout(asset)
+        if payout > bestPayout then
+          if job.jcount > 0 then
+            bestPayout = payout
+            bestJob = job
+          else
+            printf  ("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+            asset:  getName(), job:getName(), payout)
+          end
+        end
       end
     end
+    ::skipJob::
   end
 
   -- Maybe assign a new or reassign an old job
