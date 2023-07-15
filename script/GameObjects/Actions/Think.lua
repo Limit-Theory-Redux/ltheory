@@ -80,10 +80,12 @@ function Think:manageAsset(asset)
                 job = self.rng:choose(jobType)
                 if not job then break end
 
-                if job:getType() == Enums.Jobs.Mining then -- temp preventing all ships to mine at the same asteroid
-                    if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here 
-                        goto skipJob
-                    end
+                if job:getType() == Enums.Jobs.Mining then
+                    threatLevel = job:getThreatLevel()
+                end
+
+                if job.workers and #job.workers >= job.maxWorkers then -- should do checks here if ship is allowed to mine here
+                    goto skipJob
                 end
 
                 local payout = job:getPayout(asset)
@@ -157,6 +159,13 @@ function Think:manageAsset(asset)
             asset:pushAction(bestJob)
             jobAssigned = true
             asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Patrol"))
+
+            local station = asset:isShipDocked()
+            if station then
+                printf("THINK +++: Asset %s (owner %s) wakes up at Station %s",
+                asset:getName(), asset:getOwner():getName(), station:getName())
+                asset:pushAction(Actions.Undock())
+            end
         else
             -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
             printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())

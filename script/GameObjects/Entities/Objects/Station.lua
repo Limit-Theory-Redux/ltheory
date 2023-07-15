@@ -183,6 +183,7 @@ local Station = subclass(Entity, function(self, seed, hull)
     self.shipDamageList = {}
     self.lastClearDamageTime = 0
     self.timer = 0
+    self.stationPatrolJobs = 0
     self:register(Event.Update, Entity.updateStation)
     self:register(Event.Damaged, damaged)
 end)
