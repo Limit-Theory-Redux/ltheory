@@ -637,9 +637,9 @@ function HUD:drawPlayerSpeed(a)
         hudFsize = hudFontSize
     end
 
-  -- Draw player ship speed
-  local text = format("Speed: %d m/s", floor(playerShip:getSpeed()))
-  HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBar, hudFsize, 0.5, text)
+    -- Draw player ship speed
+    local text = format("Speed: %d m/s", floor(playerShip:getSpeed()))
+    HUD:drawHudTextDouble(hudX, hudY, Config.ui.color.meterBarBright, hudFsize, 0.5, text)
 end
 
 function HUD:drawChaffLeft(a)

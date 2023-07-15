@@ -110,7 +110,8 @@ local function addBlackMarket(system)
         asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
         GameState.player.humanPlayer:getControlling():setDisposition(asset, Config.game.dispoMin)
         if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
-            asset:setHealth(100, 100, 0.2)
+            local pirateHullInteg = asset:mgrHullGetHullMax()
+            asset:mgrHullSetHull(pirateHullInteg, pirateHullInteg)
             asset.usesBoost = true
             print("Set ship health!")
         end

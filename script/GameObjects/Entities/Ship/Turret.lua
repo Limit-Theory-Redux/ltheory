@@ -167,7 +167,7 @@ function Turret:updateTurret(state)
         self.firing = 0
         if self.cooldown <= 0 then self:fire() end
     end
-    self.cooldown = max(0, self.cooldown - state.dt * Config.gen.compTurretPulseStats.rateOfFire)
+    self.cooldown = max(0, self.cooldown - state.dt)
     self.heat = self.heat * decay
 end
 

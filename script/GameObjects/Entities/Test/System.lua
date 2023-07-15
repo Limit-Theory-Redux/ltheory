@@ -827,7 +827,7 @@ end
 function System:spawnPirateStation(player)
     local rng = self.rng
     -- Spawn a new space station
-    local station = Objects.Station(self.rng:get31())
+    local station = Objects.Station(self.rng:get31(), Enums.StationHulls.Large)
     station:setType(Config:getObjectTypeByName("object_types", "Station"))
     station:setSubType(5)
 

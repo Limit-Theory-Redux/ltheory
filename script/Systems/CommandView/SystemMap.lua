@@ -1,7 +1,7 @@
 local DebugContext = require('Systems.CommandView.DebugContext')
 local Bindings = require('States.ApplicationBindings')
 local Player = require('GameObjects.Entities.Player')
-local Disposition = require('GameObjects.Components.NPC.Dispositions')
+local Disposition = require('GameObjects.Elements.NPC.Dispositions')
 
 local SystemMap = {}
 SystemMap.__index = SystemMap

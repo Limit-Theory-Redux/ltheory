@@ -133,7 +133,8 @@ function Bay:fire()
     --        AI threat analysis by keeping track of which weapons have caused
     --        the most real damage to it, allowing for optimal sub-system
     --        targetting.
-    self.cooldown = 1.0
+    local rpmDeviation = self:getParent().weaponRPM - self:getParent().weaponRPM * rng:getUniformRange(self:getParent().weaponRPMDeviation, 0)
+    self.cooldown = 60 / rpmDeviation -- 60 seconds / fire rate per minute
     self.heat = self.heat + 1
 end
 
@@ -162,7 +163,7 @@ function Bay:updateBay(state)
         self.firing = 0
         if self.cooldown <= 0 then self:fire() end
     end
-    self.cooldown = max(0, self.cooldown - state.dt * Config.gen.compBayPulseStats.rateOfFire)
+    self.cooldown = max(0, self.cooldown - state.dt)
     self.heat = self.heat * decay
 end
 
