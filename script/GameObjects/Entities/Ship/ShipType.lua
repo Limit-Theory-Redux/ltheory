@@ -19,18 +19,18 @@ local ShipType = class(function(self, seed, generator, hull)
     self.scale            = scale
 
     -- Get the maximum number of components of each type for the provided hull size
-    self.countHull        = Config.gen.shipComponents[Enums.ShipComponents.Hull][hull]
-    self.countComputer    = Config.gen.shipComponents[Enums.ShipComponents.Computer][hull]
-    self.countSensor      = Config.gen.shipComponents[Enums.ShipComponents.Sensor][hull]
-    self.countLifeSupport = Config.gen.shipComponents[Enums.ShipComponents.LifeSupport][hull]
-    self.countCapacitor   = Config.gen.shipComponents[Enums.ShipComponents.Capacitor][hull]
-    self.countThruster    = Config.gen.shipComponents[Enums.ShipComponents.Thruster][hull]
-    self.countTurret      = Config.gen.shipComponents[Enums.ShipComponents.Turret][hull]
-    self.countBay         = Config.gen.shipComponents[Enums.ShipComponents.Bay][hull]
-    self.countInventory   = Config.gen.shipComponents[Enums.ShipComponents.Inventory][hull]
-    self.countDrone       = Config.gen.shipComponents[Enums.ShipComponents.Drone][hull]
-    self.countShield      = Config.gen.shipComponents[Enums.ShipComponents.Shield][hull]
-    self.countArmor       = Config.gen.shipComponents[Enums.ShipComponents.Armor][hull]
+    self.countHull      = Config.gen.shipComponents[Enums.ShipComponents.Hull][hull]
+    self.countComputer  = Config.gen.shipComponents[Enums.ShipComponents.Computer][hull]
+    self.countSensor    = Config.gen.shipComponents[Enums.ShipComponents.Sensor][hull]
+    self.countCapacitor = Config.gen.shipComponents[Enums.ShipComponents.Capacitor][hull]
+    self.countThruster  = Config.gen.shipComponents[Enums.ShipComponents.Thruster][hull]
+    self.countTurret    = Config.gen.shipComponents[Enums.ShipComponents.Turret][hull]
+    self.countBay       = Config.gen.shipComponents[Enums.ShipComponents.Bay][hull]
+    self.countInventory = Config.gen.shipComponents[Enums.ShipComponents.Inventory][hull]
+    self.countDrone     = Config.gen.shipComponents[Enums.ShipComponents.Drone][hull]
+    self.countShield    = Config.gen.shipComponents[Enums.ShipComponents.Shield][hull]
+    self.countArmor     = Config.gen.shipComponents[Enums.ShipComponents.Armor][hull]
+    self.countCloak     = Config.gen.shipComponents[Enums.ShipComponents.Cloak][hull]
 
     printf(
         "@@@ ShipType:(create) - ship = %s, hull = %d, scale = %s, countThruster = %d, countTurret = %d, countInventory = %d",
@@ -38,18 +38,18 @@ local ShipType = class(function(self, seed, generator, hull)
 
     -- Add all the _positions_ for socketable components (the components are added later)
     self.sockets = {
-        [SocketType.Hull]        = {},
-        [SocketType.Computer]    = {},
-        [SocketType.Sensor]      = {},
-        [SocketType.LifeSupport] = {},
-        [SocketType.Capacitor]   = {},
-        [SocketType.Thruster]    = {},
-        [SocketType.Turret]      = {},
-        [SocketType.Bay]         = {},
-        [SocketType.Inventory]   = {},
-        [SocketType.Drone]       = {},
-        [SocketType.Shield]      = {},
-        [SocketType.Armor]       = {},
+        [SocketType.Hull]      = {},
+        [SocketType.Computer]  = {},
+        [SocketType.Sensor]    = {},
+        [SocketType.Capacitor] = {},
+        [SocketType.Thruster]  = {},
+        [SocketType.Turret]    = {},
+        [SocketType.Bay]       = {},
+        [SocketType.Inventory] = {},
+        [SocketType.Drone]     = {},
+        [SocketType.Shield]    = {},
+        [SocketType.Armor]     = {},
+        [SocketType.Cloak]     = {},
     }
 
     -- Hull sockets
@@ -63,11 +63,6 @@ local ShipType = class(function(self, seed, generator, hull)
     -- Sensor sockets
     for i = 1, self.countSensor do
         insert(self.sockets[SocketType.Sensor], Vec3f(1, 1, 1))
-    end
-
-    -- Life Support sockets
-    for i = 1, self.countLifeSupport do
-        insert(self.sockets[SocketType.LifeSupport], Vec3f(1, 1, 1))
     end
 
     -- Capacitor sockets
@@ -124,6 +119,11 @@ local ShipType = class(function(self, seed, generator, hull)
     -- Armor sockets
     for i = 1, self.countArmor do
         insert(self.sockets[SocketType.Armor], Vec3f(1, 1, 1))
+    end
+
+    -- Cloak sockets
+    for i = 1, self.countCloak do
+        insert(self.sockets[SocketType.Cloak], Vec3f(1, 1, 1))
     end
 
     rng:free()

@@ -86,24 +86,24 @@ function Shield:setHealth(value, max)
     self.healthMax = floor(max)
 end
 
-function Shield:getShield()
-    return self.strengthCurr or 0.0
-end
-
-function Shield:getShieldMax()
-    return self.strengthMax or 0.0
-end
-
 function Shield:getReviveRate()
     return self.reviveRate or 0
 end
 
-function Shield:getShieldPercent()
+function Shield:getStrength()
+    return self.strengthCurr or 0.0
+end
+
+function Shield:getStrengthMax()
+    return self.strengthMax or 0.0
+end
+
+function Shield:getStrengthPercent()
     if self.strengthMax < 1e-6 then return 0.0 end
     return 100.0 * self.strengthCurr / self.strengthMax
 end
 
-function Shield:reduceShield(value)
+function Shield:reduceStrength(value)
     -- TODO: Modify shield reduction by its resistance versus incoming damage type
     local reducedValue = value
 
@@ -118,7 +118,7 @@ function Shield:reduceShield(value)
     UI.DrawEx.Ring(200, 200, 50, Config.ui.color.shieldStrength, true)
 end
 
-function Shield:setShield(value, max, rate)
+function Shield:setStrength(value, max, rate)
     self.strengthCurr = value
     self.strengthMax = floor(max)
     self.reviveRate = rate

@@ -1,17 +1,17 @@
-local SocketType       = {}
+local SocketType = {}
 
-SocketType.Generator   = "Generator"
-SocketType.Hull        = "Hull Integrity"
-SocketType.Computer    = "Computer"
-SocketType.Sensor      = "Sensor"
-SocketType.LifeSupport = "Life Support"
-SocketType.Capacitor   = "Capacitor"
-SocketType.Thruster    = "Thruster"
-SocketType.Turret      = "Weapon Turret"
-SocketType.Bay         = "Weapon Bay"
-SocketType.Inventory   = "Transport Pod"
-SocketType.Drone       = "Drone Rack"
-SocketType.Shield      = "Shield Generator"
-SocketType.Armor       = "Armor Plating"
+SocketType.Generator = "Generator"
+SocketType.Armor     = "Armor Plating"
+SocketType.Bay       = "Weapon Bay"
+SocketType.Capacitor = "Capacitor"
+SocketType.Cloak     = "Cloak"
+SocketType.Computer  = "Computer"
+SocketType.Drone     = "Drone Rack"
+SocketType.Hull      = "Hull Integrity"
+SocketType.Inventory = "Transport Pod"
+SocketType.Sensor    = "Sensor"
+SocketType.Shield    = "Shield Generator"
+SocketType.Thruster  = "Thruster"
+SocketType.Turret    = "Weapon Turret"
 
 return SocketType
