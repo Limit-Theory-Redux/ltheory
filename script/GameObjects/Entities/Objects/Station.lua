@@ -3,6 +3,37 @@ local Material = require('GameObjects.Material')
 local Components = requireAll('GameObjects.Elements.Components')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
+local function damaged (self, event)
+    local shipEntry = self:findInDamageList(event.source)
+    if shipEntry ~= nil then
+        shipEntry.damage = shipEntry.damage + event.amount
+        print("Damage done: " .. shipEntry.damage)
+    else
+        shipEntry = {
+            ship = event.source,
+            damage = event.amount
+        }
+        table.insert(self.shipDamageList, shipEntry)
+    end
+
+    if shipEntry.damage > 100 then
+        if not self:isDestroyed() and self:getOwner() ~= shipEntry.ship then
+            -- Nobody enjoys getting shot
+            self:modDisposition(shipEntry.ship, -0.2)
+
+            -- Possibly make this station undockable to its attacker
+            if self:hasDockable() and self:isDockable() then
+                if self:isHostileTo(shipEntry.ship) and not self:isBanned(shipEntry.ship) then
+                    self:distressCall(shipEntry.ship, 15000)
+                    self:undockAndAttack(shipEntry.ship)
+                    self:addBannedShip(shipEntry.ship)
+                    printf("Station %s bans attacker %s", self:getName(), shipEntry.ship:getName())
+                end
+            end
+        end
+    end
+end
+
 local Station = subclass(Entity, function(self, seed, hull)
     local rng = RNG.Create(seed)
     local mesh = Gen.StationOld(seed):managed()
@@ -149,6 +180,11 @@ local Station = subclass(Entity, function(self, seed, hull)
     self:setMass(Config.gen.stationHullMass[hull])
 
     self.explosionSize = 512 -- destroyed stations have visually larger explosions than ships
+    self.shipDamageList = {}
+    self.lastClearDamageTime = 0
+    self.timer = 0
+    self:register(Event.Update, Entity.updateStation)
+    self:register(Event.Damaged, damaged)
 end)
 
 function Station:attackedBy(target)
@@ -188,6 +224,21 @@ function Station:attackedBy(target)
             end
         end
     end
+end
+
+function Station:undockAndAttack(target)
+    for key, ship in pairs(self:getDocked(self)) do
+        self:removeDocked(ship)
+        ship:pushAction(Actions.Attack(target))
+    end
+end
+
+function Entity:updateStation(state)
+    if self.timer > self.lastClearDamageTime + 30 then
+        self.shipDamageList = {}
+        self.lastClearDamageTime = self.timer
+    end
+    self.timer = self.timer + state.dt
 end
 
 return Station

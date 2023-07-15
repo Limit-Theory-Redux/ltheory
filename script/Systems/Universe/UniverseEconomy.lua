@@ -109,8 +109,11 @@ local function addBlackMarket(system)
     for asset in piratePlayer:iterAssets() do
         asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
         GameState.player.humanPlayer:getControlling():setDisposition(asset, Config.game.dispoMin)
-        asset:setHealth(100, 100, 0.2)
-        asset.usesBoost = true
+        if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
+            asset:setHealth(100, 100, 0.2)
+            asset.usesBoost = true
+            print("Set ship health!")
+        end
         system:place(asset)
     end
     piratePlayer:pushAction(Actions.CriminalThink())

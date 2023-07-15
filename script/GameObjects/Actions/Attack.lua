@@ -18,6 +18,7 @@ function Attack:onStart (e)
     self.radiusMin = 2.0 * self.target:getRadius() + e:getRadius()
     self.radiusMax = e.socketRangeMin
     self.timer = 0
+    self.cancelTimer = 0
     self.dist = 0
 end
 
