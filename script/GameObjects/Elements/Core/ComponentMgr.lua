@@ -15,6 +15,7 @@ function Entity:addComponents()
         bay         = {},
         capacitor   = {},
         cloak       = {},
+        commo       = {},
         computer    = {},
         drone       = {},
         hull        = {},
@@ -318,6 +319,50 @@ function Entity:mgrComputerGetRating()
     local rating = 0
     for _, computer in ipairs(computers) do
         rating = rating + computer:getRating()
+    end
+
+    return rating
+end
+
+-- *** COMMUNICATOR FUNCTIONS ***
+function Entity:mgrCommunicatorDamageHealth(value)
+    local commos = self.components.commo
+    if not commos or #commos == 0 then return end
+
+    -- Spread communicator damage amount evenly across all installed communicators that have health remaining
+    local commoCount = 0
+    for _, commo in ipairs(commos) do
+        if commo:getHealth() > 0 then commoCount = commoCount + 1 end
+    end
+
+    local spreadValue = value / commoCount
+    for _, commo in ipairs(commos) do
+        if commo:getHealth() > 0 then
+            commo:damageHealth(spreadValue)
+            --printf("damaging %s by %s to %s (max %s)", commo:getName(), spreadValue, commo:getHealth(), commo:getHealthMax())
+        end
+    end
+end
+
+function Entity:mgrCommunicatorGetHealth()
+    local commos = self.components.commo
+    if not commos or #commos == 0 then return 0 end
+
+    local health = 0
+    for _, commo in ipairs(commos) do
+        health = health + commo:getHealth()
+    end
+
+    return health
+end
+
+function Entity:mgrCommunicatorGetRating()
+    local commos = self.components.commo
+    if not commos or #commos == 0 then return 0 end
+
+    local rating = 0
+    for _, commo in ipairs(commos) do
+        rating = rating + commo:getRating()
     end
 
     return rating

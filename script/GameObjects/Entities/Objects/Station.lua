@@ -26,6 +26,7 @@ local Station = subclass(Entity, function(self, seed, hull)
     self.countBay       = Config.gen.stationComponents[Enums.StationComponents.Bay][hull]
     self.countCapacitor = Config.gen.stationComponents[Enums.StationComponents.Capacitor][hull]
     self.countCloak     = 0
+    self.countCommo     = Config.gen.stationComponents[Enums.StationComponents.Commo][hull]
     self.countComputer  = Config.gen.stationComponents[Enums.StationComponents.Computer][hull]
     self.countDrone     = Config.gen.stationComponents[Enums.StationComponents.Drone][hull]
     self.countHull      = Config.gen.stationComponents[Enums.StationComponents.Hull][hull]
@@ -43,6 +44,7 @@ local Station = subclass(Entity, function(self, seed, hull)
         [SocketType.Bay]       = {},
         [SocketType.Capacitor] = {},
         [SocketType.Cloak]     = {}, -- not used
+        [SocketType.Commo]     = {},
         [SocketType.Computer]  = {},
         [SocketType.Drone]     = {},
         [SocketType.Hull]      = {},
@@ -53,6 +55,8 @@ local Station = subclass(Entity, function(self, seed, hull)
         [SocketType.Turret]    = {},
     }
 
+    local p = nil
+
     -- Armor sockets
     for i = 1, self.countArmor do
         insert(self.positions[SocketType.Armor], Vec3f(1, 1, 1))
@@ -60,7 +64,7 @@ local Station = subclass(Entity, function(self, seed, hull)
 
     -- Bay sockets
     for i = 1, self.countBay do
-        local p = Gen.GenUtil.FindMountPoint(mesh, bsp, rng, Vec3f(0, 1, 0), Vec3f(0, 0, 1), 1000)
+        p = Gen.GenUtil.FindMountPoint(mesh, bsp, rng, Vec3f(0, 1, 0), Vec3f(0, 0, 1), 1000)
         if p then
             insert(self.positions[SocketType.Bay], Vec3f(0, 1, 1)) -- TODO: Replace with visible mount position for a Bay weapon
         else
@@ -71,6 +75,11 @@ local Station = subclass(Entity, function(self, seed, hull)
     -- Capacitor sockets
     for i = 1, self.countCapacitor do
         insert(self.positions[SocketType.Capacitor], Vec3f(1, 1, 1))
+    end
+
+    -- Communicator sockets
+    for i = 1, self.countCommo do
+        insert(self.positions[SocketType.Commo], Vec3f(1, 1, 1))
     end
 
     -- Computer sockets
@@ -120,7 +129,7 @@ local Station = subclass(Entity, function(self, seed, hull)
             normal = Vec3f(1, 1, 0)
             facing = Vec3f(1, 1, 0)
         end
-        local p = Gen.GenUtil.FindMountPoint(mesh, bsp, rng, normal, facing, 1000)
+        p = Gen.GenUtil.FindMountPoint(mesh, bsp, rng, normal, facing, 1000)
         if p then
             insert(self.positions[SocketType.Turret], p * Vec3f(1, 1, 1))
         else

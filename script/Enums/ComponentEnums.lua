@@ -6,14 +6,15 @@ Enums.ShipComponents = {
     Bay         =  2,
     Capacitor   =  3,
     Cloak       =  4,
-    Computer    =  5,
-    Drone       =  6,
-    Hull        =  7,
-    Inventory   =  8,
-    Sensor      =  9,
-    Shield      = 10,
-    Thruster    = 11,
-    Turret      = 12,
+    Commo       =  5,
+    Computer    =  6,
+    Drone       =  7,
+    Hull        =  8,
+    Inventory   =  9,
+    Sensor      = 10,
+    Shield      = 11,
+    Thruster    = 12,
+    Turret      = 13,
 }
 
 -- Indexes into Config.gen.stationComponents[]
@@ -22,14 +23,15 @@ Enums.StationComponents = {
     Bay         =  2,
     Capacitor   =  3,
     Cloak       =  4, -- not used
-    Computer    =  5,
-    Drone       =  6,
-    Hull        =  7,
-    Inventory   =  8,
-    Sensor      =  9,
-    Shield      = 10,
-    Thruster    = 11, -- not used
-    Turret      = 12,
+    Commo       =  5,
+    Computer    =  6,
+    Drone       =  7,
+    Hull        =  8,
+    Inventory   =  9,
+    Sensor      = 10,
+    Shield      = 11,
+    Thruster    = 12, -- not used
+    Turret      = 13,
 }
 
 -- Indexes into Config.gen.PlanetComponents[]
@@ -38,12 +40,13 @@ Enums.PlanetComponents = {
     Bay         =  2, -- not used
     Capacitor   =  3, -- not used
     Cloak       =  4, -- not used
-    Computer    =  5,
-    Drone       =  6, -- not used
-    Hull        =  7, -- not used
-    Inventory   =  8,
-    Sensor      =  9,
-    Shield      = 10,
-    Thruster    = 11, -- not used
-    Turret      = 12, -- not used
+    Commo       =  5,
+    Computer    =  6,
+    Drone       =  7, -- not used
+    Hull        =  8, -- not used
+    Inventory   =  9,
+    Sensor      = 10,
+    Shield      = 11,
+    Thruster    = 12, -- not used
+    Turret      = 13, -- not used
 }

@@ -359,6 +359,14 @@ function System:spawnPlanet(bAddBelt)
     --       2) loaded components (for planets recreated when the player loads a saved game)
     -- NOTE: Components must be instantiated AFTER their parent is added as a child to the star system!
 
+    -- Add as many communicators as there are communicator plugs for
+    for i = 1, planet.countCommo do
+        local commo = Components.Communicator()
+        commo:setName(planet:getName() .. ": " .. "Morse's " .. commo:getName() .. " " .. tostring(i))
+        insert(planet.components.commo, commo)
+        planet:plug(commo)
+    end
+
     -- Add as many computers as there are computer plugs for
     for i = 1, planet.countComputer do
         local computer = Components.Computer()
@@ -662,6 +670,14 @@ function System:spawnStation(hullSize, player, prodType)
         station:plug(capacitor)
     end
 
+    -- Add as many communicators as there are communicator plugs for
+    for i = 1, station.countCommo do
+        local commo = Components.Communicator()
+        commo:setName(station:getName() .. ": " .. "Morse's " .. commo:getName() .. " " .. tostring(i))
+        insert(station.components.commo, commo)
+        station:plug(commo)
+    end
+
     -- Add as many computers as there are computer plugs for
     for i = 1, station.countComputer do
         local computer = Components.Computer()
@@ -899,6 +915,14 @@ function System:spawnShip(hullSize, player)
         cloak:setName(ship:getName() .. ": " .. "Valeria's " .. cloak:getName() .. " " .. tostring(i))
         insert(ship.components.cloak, cloak)
         --    ship:plug(cloak)
+    end
+
+    -- Add as many communicators as there are communicator plugs for
+    for i = 1, ship.countCommo do
+        local commo = Components.Communicator()
+        commo:setName(ship:getName() .. ": " .. "Morse's " .. commo:getName() .. " " .. tostring(i))
+        insert(ship.components.commo, commo)
+        ship:plug(commo)
     end
 
     -- Add as many computers as there are computer plugs for

@@ -26,6 +26,7 @@ local Ship = subclass(Entity, function(self, proto, hull)
     self.countBay       = proto.countBay
     self.countCapacitor = proto.countCapacitor
     self.countCloak     = proto.countCloak
+    self.countCommo     = proto.countCommo
     self.countComputer  = proto.countComputer
     self.countDrone     = proto.countDrone
     self.countHull      = proto.countHull

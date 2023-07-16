@@ -147,6 +147,7 @@ Config.gen = {
         { 0, 0, 0, 1,  2,  4 }, -- bay weapons
         { 1, 2, 3, 4,  6,  8 }, -- capacitors
         { 0, 0, 0, 0,  0,  0 }, -- cloak
+        { 1, 1, 2, 3,  5,  8 }, -- communicators
         { 1, 2, 2, 3,  4,  6 }, -- computers
         { 1, 2, 4, 7, 12, 20 }, -- drone racks (* 2 drones each)
         { 1, 2, 4, 6, 10, 20 }, -- hull integrity
@@ -167,6 +168,7 @@ Config.gen = {
         {  4,   8,  16,  12,  32,  64 }, -- bay weapons
         {  8,  16,  24,  16,  24,  36 }, -- capacitors
         {  0,   0,   0,   0,   0,   0 }, -- cloak
+        { 16,  24,  32,  12,  24,  40 }, -- communicators
         { 12,  16,  24,  20,  32,  48 }, -- computers
         {  0,   0,   0,  24,  48,  64 }, -- drone racks (* 2 drones each)
         { 30,  80, 130,  45, 100, 250 }, -- hull integrity
@@ -179,27 +181,28 @@ Config.gen = {
 
     planetInventorySize = 10000,
     planetComponents = {
-         --  S      M      L    -- Sockets available for (ComponentEnums.lua):
-        {    0,     0,     0 }, -- armor plates
-        {    0,     0,     0 }, -- bay weapons
-        {    0,     0,     0 }, -- capacitors
-        {    0,     0,     0 }, -- cloak
-        { 1000,  8000, 20000 }, -- computers
-        {    0,     0,     0 }, -- drone racks (* 2 drones each)
-        {    0,     0,     0 }, -- hull integrity
-        { 1000,  7500, 48000 }, -- cargo pods (* planetInventorySize inventory each)
-        {   50,   120,   500 }, -- sensors
-        {  500,  1200, 10000 }, -- shield generators
-        {    0,     0,     0 }, -- thrusters (none on stations)
-        {    0,     0,     0 }, -- turret weapons
+        --  S    M    L    -- Sockets available for (ComponentEnums.lua):
+        {   0,   0,   0 }, -- armor plates
+        {   0,   0,   0 }, -- bay weapons
+        {   0,   0,   0 }, -- capacitors
+        {   0,   0,   0 }, -- cloak
+        { 100, 160, 350 }, -- communicators
+        { 100, 280, 400 }, -- computers
+        {   0,   0,   0 }, -- drone racks (* 2 drones each)
+        {   0,   0,   0 }, -- hull integrity
+        { 240, 400, 800 }, -- cargo pods (* planetInventorySize inventory each)
+        {  50, 120, 500 }, -- sensors
+        { 100, 200, 400 }, -- shield generators
+        {   0,   0,   0 }, -- thrusters (none on stations)
+        {   0,   0,   0 }, -- turret weapons
     },
 
-    compArmorStats                   = {
+    compArmorStats = {
         name       = "Armor Plating",
         healthCurr = 1000,
         healthMax  = 1000,
     },
-    compCapacitorStats               = {
+    compCapacitorStats = {
         name       = "Capacitor",
         healthCurr = 100,
         healthMax  = 100,
@@ -207,14 +210,14 @@ Config.gen = {
         chargeMax  = 200,
         chargeRate = 12,
     },
-    compCloakStats                   = {
+    compCloakStats = {
         name       = "Cloak",
         healthCurr = 100,
         healthMax  = 100,
         rating     = 1,
         draw       = 0.05,
     },
-    compComputerStats                = {
+    compComputerStats = {
         name         = "Computer",
         healthCurr   = 100,
         healthMax    = 100,
@@ -223,7 +226,13 @@ Config.gen = {
         lockStrength = 1,
         mappingSpeed = 1,
     },
-    compDroneStats                   = {
+    compCommunicatorStats = {
+        name         = "Communicator",
+        healthCurr   = 100,
+        healthMax    = 100,
+        rating       = 1,
+    },
+    compDroneStats = {
         name         = "Drone Rack",
         healthCurr   = 100,
         healthMax    = 100,
@@ -236,19 +245,19 @@ Config.gen = {
         droneSpeed   = 40,
         reloadTime   = 5,
     },
-    compHullStats                    = {
+    compHullStats = {
         name       = "Hull Structure",
         healthCurr = 100,
         healthMax  = 100,
     },
-    compInventoryStats               = {
+    compInventoryStats = {
         name       = "Transport Pod",
         healthCurr = 100,
         healthMax  = 100,
         capacity   = 10,
         stateroom  = false,
     },
-    compSensorStats                  = {
+    compSensorStats = {
         name         = "Sensor",
         healthCurr   = 100,
         healthMax    = 100,
@@ -258,7 +267,7 @@ Config.gen = {
         scanDetail   = 1,
         scanSpeed    = 10,
     },
-    compShieldStats                  = {
+    compShieldStats = {
         name         = "Shield Generator",
         healthCurr   = 100,
         healthMax    = 100,
@@ -270,7 +279,7 @@ Config.gen = {
         colorG       = 0.8,
         colorB       = 2.0,
     },
-    compThrusterStats                = {
+    compThrusterStats = {
         name        = "Thruster",
         healthCurr  = 100,
         healthMax   = 100,
@@ -278,7 +287,7 @@ Config.gen = {
         maneuverMax = 100,
     },
 
-    compTurretPulseStats             = {
+    compTurretPulseStats = {
         name        = "Pulse Turret",
         healthCurr  = 100,
         healthMax   = 100,
@@ -298,7 +307,7 @@ Config.gen = {
         colorLightG = 0.9,
         colorLightB = 3.0,
     },
-    compTurretBeamStats              = {
+    compTurretBeamStats = {
         name       = "Beam Turret",
         healthCurr = 100,
         healthMax  = 100,
@@ -315,7 +324,7 @@ Config.gen = {
         colorG     = 0.8,
         colorB     = 2.0,
     },
-    compTurretRailStats              = {
+    compTurretRailStats = {
         name       = "Railgun Turret",
         healthCurr = 100,
         healthMax  = 100,
@@ -331,7 +340,7 @@ Config.gen = {
         colorG     = 2.0,
         colorB     = 2.0,
     },
-    compTurretProjStats              = {
+    compTurretProjStats = {
         name         = "Launcher Turret",
         healthCurr   = 100,
         healthMax    = 100,
@@ -343,7 +352,7 @@ Config.gen = {
         speed        = 100,
         range        = 20000,
     },
-    compBayPulseStats                = {
+    compBayPulseStats = {
         name        = "Pulse Bay",
         healthCurr  = 100,
         healthMax   = 100,
@@ -365,7 +374,7 @@ Config.gen = {
         colorLightG = 0.9,
         colorLightB = 0.6,
     },
-    compBayBeamStats                 = {
+    compBayBeamStats = {
         name       = "Beam Bay",
         healthCurr = 100,
         healthMax  = 100,
@@ -382,7 +391,7 @@ Config.gen = {
         colorG     = 0.8,
         colorB     = 2.0,
     },
-    compBayRailStats                 = {
+    compBayRailStats = {
         name       = "Railgun Bay",
         healthCurr = 100,
         healthMax  = 100,
@@ -398,7 +407,7 @@ Config.gen = {
         colorG     = 2.0,
         colorB     = 2.0,
     },
-    compBayCannonStats               = {
+    compBayCannonStats = {
         name       = "Cannon Bay",
         healthCurr = 100,
         healthMax  = 100,
@@ -415,7 +424,7 @@ Config.gen = {
         colorG     = 0.8,
         colorB     = 2.0,
     },
-    compBayProjStats                 = {
+    compBayProjStats = {
         name         = "Launcher Bay",
         healthCurr   = 100,
         healthMax    = 100,
