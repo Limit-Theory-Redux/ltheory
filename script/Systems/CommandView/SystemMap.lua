@@ -18,7 +18,7 @@ function SystemMap:onDraw(state)
 
     Draw.Color(0, 1, 0, 1)
     local hx, hy = sx / 2, sy / 2
-    local dx, dy = GameState.player.mapSystemPos.x + hx, GameState.player.mapSystemPos.y + hy
+    local dx, dy = GameState.player.currentMapSystemPos.x + hx, GameState.player.currentMapSystemPos.y + hy
 
     local c = {
         r = 0.1,
@@ -55,8 +55,8 @@ function SystemMap:onDraw(state)
             local p = e:getPos()
             local x = p.x - dx
             local y = p.z - dy
-            x = self.x + x * GameState.player.mapSystemZoom + hx
-            y = self.y + y * GameState.player.mapSystemZoom + hy
+            x = self.x + x * GameState.player.currentMapSystemZoom + hx
+            y = self.y + y * GameState.player.currentMapSystemZoom + hy
             Draw.PointSize(3.0)
 
             if e:hasActions() then
@@ -113,13 +113,13 @@ function SystemMap:onDraw(state)
 
             if e:hasFlows() and not e:isDestroyed() then
                 --printf("Flow: %s", e:getName())
-                UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale() * 10,
+                UI.DrawEx.Ring(x, y, GameState.player.currentMapSystemZoom * e:getScale() * 10,
                     { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
             end
 
             if e:hasYield() then
                 --printf("Yield: %s", e:getName())
-                UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale(),
+                UI.DrawEx.Ring(x, y, GameState.player.currentMapSystemZoom * e:getScale(),
                     { r = 1.0, g = 0.5, b = 0.1, a = 0.5 }, true)
             end
 
