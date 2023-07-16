@@ -627,25 +627,7 @@ function System:setAsteroidYield(rng, asteroid)
     end
 end
 
-function System:spawnStation(hullSize, player, prodType)
-    local rng = self.rng
-
-    -- Spawn a new space station
-    local station = Objects.Station(self.rng:get31(), hullSize)
-    station:setType(Config:getObjectTypeByName("object_types", "Station"))
-
-    -- Give the station a name
-    station:setName(Words.getCoolName(rng))
-
-    -- Set station location within the extent of a randomly selected asteroid field
-    station.zone = self:place(station)
-
-    -- Assign the station to an owner
-    station:setOwner(player)
-
-    -- Add the station to this star system
-    self:addChild(station)
-
+local function addStationComponents(station, hullSize)
     -- Add all components to this station
     -- TODO: For now, every socket gets one of the appropriate components. Later, this must be replaced by:
     --       1) default components (for stations magically spawned when a new star system is generated)
@@ -752,6 +734,23 @@ function System:spawnStation(hullSize, player, prodType)
         insert(station.components.armor, armor)
         --    station:plug(armor)
     end
+end
+
+function System:spawnStation(hullSize, player, prodType)
+    local rng = self.rng
+
+    -- Spawn a new space station
+    local station = Objects.Station(self.rng:get31(), hullSize)
+    station:setType(Config:getObjectTypeByName("object_types", "Station"))
+
+    -- Give the station a name
+    station:setName(Words.getCoolName(rng))
+
+    -- Set station location within the extent of a randomly selected asteroid field
+    station.zone = self:place(station)
+
+    -- Assign the station to an owner
+    station:setOwner(player)
 
     -- Stations have market capacity
     station:addMarket()
@@ -823,26 +822,29 @@ function System:spawnStation(hullSize, player, prodType)
     printf("SYSTEM(station) - Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(),
         prod:getName())
 
+    -- Add the station to this star system
+    self:addChild(station)
     self:addStation(station)
+
+    -- Add station components
+    --! NEED TO BE ADDED AFTER ADDING IT TO THE SYSTEM AS CHILD
+    addStationComponents(station, hullSize)
 
     return station
 end
 
-function System:spawnPirateStation(player)
+function System:spawnPirateStation(hullSize, player)
     local rng = self.rng
     -- Spawn a new space station
-    local station = Objects.Station(self.rng:get31(), Enums.StationHulls.Large)
+    local station = Objects.Station(self.rng:get31(), hullSize)
     station:setType(Config:getObjectTypeByName("object_types", "Station"))
-    station:setSubType(5)
+    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate Station")) -- pirate station
 
     -- Give the station a name
     station:setName(Words.getCoolName(rng) .. " Pirates")
 
-    -- Set station location outside the astroid field
-    self:place(station, true)
-
-    -- Set station scale
-    station:setScale(Config.gen.scaleStation)
+    -- Set station location within the extent of a randomly selected asteroid field
+    station.zone = self:place(station)
 
     -- Assign the station to an owner
     station:setOwner(player)
@@ -853,11 +855,14 @@ function System:spawnPirateStation(player)
 
     -- Add the station to this star system
     self:addChild(station)
-
     self:addStation(station)
 
+    -- Add station components !NEED TO BE ADDED AFTER ADDING IT TO THE SYSTEM AS CHILD
+    --! NEED TO BE ADDED AFTER ADDING IT TO THE SYSTEM AS CHILD
+    addStationComponents(station, hullSize)
+
     return station
-end
+end 
 
 function System:spawnAI(shipCount, action, player)
     -- Spawn a number of independent AI-controlled ships

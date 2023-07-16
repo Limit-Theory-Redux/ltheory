@@ -24,6 +24,9 @@ function LTheoryRedux:onInit()
     GameState.ui.showTrackers = true
     GameState.audio.musicVolume = 0
 
+    -- Read user-defined values and update game variables
+    InitFiles:readUserInits()
+
     -- Initialize Universe
     Universe:Init()
 

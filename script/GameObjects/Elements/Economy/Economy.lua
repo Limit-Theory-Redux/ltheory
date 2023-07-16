@@ -1,6 +1,5 @@
 local Entity = require('GameObjects.Entity')
 local Jobs = requireAll('GameObjects.Jobs')
-local Mine = require('GameObjects.Jobs.Mine')
 local Item = require('Systems.Economy.Item')
 
 --------------------------------------------------------------------------------

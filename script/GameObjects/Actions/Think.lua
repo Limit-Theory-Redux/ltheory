@@ -53,6 +53,8 @@ end
 
 -- Use payout, not flow
 function Think:manageAsset(asset)
+    if Config:getObjectInfo("object_types", asset:getType()) ~= "Ship" then return end
+
     local root = asset:getRoot()
     local bestPayout = 0
     local lowestThreatLevel = math.huge
@@ -193,7 +195,7 @@ function Think:manageAsset(asset)
                     local station = stations[i].stationRef
                     printf(
                         "THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
-                        asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal()(),
+                        asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(),
                         station:getName())
                     asset:clearActions()
                     asset:pushAction(Actions.DockAt(station))

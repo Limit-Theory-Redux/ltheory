@@ -87,7 +87,7 @@ local function addMarket(system)
         -- Spawn space stations (start count at *2* for inhabited star systems -- see above)
         for i = 2, GameState.gen.nStations do
             -- Create Stations within randomly selected AsteroidField Zones
-            system:spawnStation(aiPlayer, nil)
+            system:spawnStation(Enums.StationHulls.Small, aiPlayer)
         end
         print("Spawned %d Stations for AI Player %s", GameState.gen.nStations, aiPlayer:getName())
         -- Add AI Player to the system
@@ -99,7 +99,7 @@ local function addBlackMarket(system)
     local piratesCount = 12
     local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
     piratePlayer:addCredits(Config.econ.eStartCredits)
-    system.pirateStation = system:spawnPirateStation(piratePlayer)
+    system.pirateStation = system:spawnPirateStation(Enums.StationHulls.Small, piratePlayer)
     system.pirateStation:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
     GameState.player.humanPlayer:getControlling():setDisposition(system.pirateStation, Config.game.dispoMin)
 
