@@ -27,6 +27,7 @@ function Station.GenerateStation(seed)
 
     local shape
     if true then
+        -- Creates a wee little Borg cube
         shape = BasicShapes.Box()
         shape:greeble(rng, 2, 0.01, 0.05, 1.0, 1.0)
     else
@@ -80,12 +81,12 @@ function Station.GenerateStation(seed)
         local r = rng:getUniformRange(0.1, 0.8)
         local gunScale = Vec3d(r, r, 1.2)
         gun1:scale(gunScale.x, gunScale.y, gunScale.z)
-        gun1:translate(bodyAABB[1].x, 0, 0)
+--        gun1:translate(bodyAABB[1].x, 0, 0) -- causes an error
 
         local gun2 = BasicShapes.Prism(2, res)
         gun2:rotate(0, math.pi / 2, 0)
         gun2:scale(gunScale.x, gunScale.y, gunScale.z)
-        gun2:translate(bodyAABB[2].x, 0, 0)
+--        gun2:translate(bodyAABB[2].x, 0, 0) -- causes an error
 
         shape:add(gun1)
         shape:add(gun2)

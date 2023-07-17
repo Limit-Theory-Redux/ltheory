@@ -46,10 +46,6 @@ function Capacitor:getName()
     return self.name
 end
 
-function Capacitor:setName(newName)
-    self.name = newName
-end
-
 function Capacitor:damageHealth(amount)
     if self.healthCurr - amount < 1e-6 then
         self.healthCurr = 0.0
@@ -63,24 +59,6 @@ function Capacitor:damageHealth(amount)
     local maxCharge = self.chargeMax * (self.health / self.healthMax)
     if self.chargeCurr > maxCharge then self.chargeCurr = maxCharge end
     Capacitor:setCharge(self.chargeCurr, maxCharge, self.chargeRate)
-end
-
-function Capacitor:getHealth()
-    return self.healthCurr or 0.0
-end
-
-function Capacitor:getHealthMax()
-    return self.healthMax or 0.0
-end
-
-function Capacitor:getHealthPercent()
-    if self.healthMax < 1e-6 then return 0.0 end
-    return 100.0 * self.healthCurr / self.healthMax
-end
-
-function Capacitor:setHealth(value, max)
-    self.healthCurr = value
-    self.healthMax = floor(max)
 end
 
 function Capacitor:discharge(value)
@@ -99,6 +77,24 @@ function Capacitor:discharge(value)
     --printf("Entity %s discharges %s, %s charge remaining, %s undischarged",
     --self:getName(), value, self.chargeCurr, undischargedAmount)
     return undischargedAmount
+end
+
+function Capacitor:getHealth()
+    return self.healthCurr or 0.0
+end
+
+function Capacitor:getHealthMax()
+    return self.healthMax or 0.0
+end
+
+function Capacitor:getHealthPercent()
+    if self.healthMax < 1e-6 then return 0.0 end
+    return 100.0 * self.healthCurr / self.healthMax
+end
+
+function Capacitor:setHealth(value, max)
+    self.healthCurr = value
+    self.healthMax = floor(max)
 end
 
 function Capacitor:getCharge()
@@ -121,6 +117,10 @@ function Capacitor:setCharge(value, max, rate)
     self.chargeCurr = value
     self.chargeMax = max
     self.chargeRate = rate
+end
+
+function Capacitor:setName(newName)
+    self.name = newName
 end
 
 function Capacitor:updateCapacitor(state)

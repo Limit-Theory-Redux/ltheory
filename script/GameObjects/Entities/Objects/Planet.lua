@@ -55,20 +55,27 @@ local Planet = subclass(Entity, function(self, seed)
     self.color4         = genColor(rng)
 
     -- TEMP: give each planet the maximum number of every applicable component
-    self.countComputer  = Config.gen.stationComponents[Enums.PlanetComponents.Computer][planetSizeType]
-    self.countSensor    = Config.gen.stationComponents[Enums.PlanetComponents.Sensor][planetSizeType]
-    self.countInventory = Config.gen.stationComponents[Enums.PlanetComponents.Inventory][planetSizeType]
-    self.countShield    = Config.gen.stationComponents[Enums.PlanetComponents.Shield][planetSizeType]
+    self.countCommo     = Config.gen.planetComponents[Enums.PlanetComponents.Commo][planetSizeType]
+    self.countComputer  = Config.gen.planetComponents[Enums.PlanetComponents.Computer][planetSizeType]
+    self.countSensor    = Config.gen.planetComponents[Enums.PlanetComponents.Sensor][planetSizeType]
+    self.countInventory = Config.gen.planetComponents[Enums.PlanetComponents.Inventory][planetSizeType]
+    self.countShield    = Config.gen.planetComponents[Enums.PlanetComponents.Shield][planetSizeType]
 
     self:addComponents()
 
     -- Add all the _positions_ for socketable components (the components are added later)
     self.positions = {
+        [SocketType.Commo]     = {},
         [SocketType.Computer]  = {},
         [SocketType.Sensor]    = {},
         [SocketType.Inventory] = {},
         [SocketType.Shield]    = {},
     }
+
+    -- Communicator sockets
+    for i = 1, self.countCommo do
+        insert(self.positions[SocketType.Commo], Vec3f(1, 1, 1))
+    end
 
     -- Computer sockets
     for i = 1, self.countComputer do
