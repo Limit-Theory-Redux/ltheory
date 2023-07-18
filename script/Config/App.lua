@@ -110,117 +110,99 @@ Config.gen = {
 
     uniqueShips                      = true,
     shipRes                          = 8,
-    shipHullScale                    = { 4, -- Solo
-        7,                                  -- Small
-        10,                                 -- Compact
-        14,                                 -- Medium
-        19,                                 -- Large
-        24 },                               -- Very Large
-    shipHullRadius                   = { 12,
-        15,
-        19,
-        24,
-        30,
-        38 },
-    shipHullMass                     = { 12000,
-        18000,
-        23000,
-        30000,
-        42000,
-        70000 },
-    shipHullTranM                    = { 0.8, -- left/right/up/down translation speed based on hull size
-        0.2,
-        0.1,
-        0.06,
-        0.03,
-        0.0 },
-    shipHullManuM                    = { 0.8, -- pitch/roll/yaw speed based on hull size
-        0.5,
-        0.35,
-        0.25,
-        0.16,
-        4.0 },                           -- radius is already slowing maneuvering
-    shipComponents                   = { -- Sockets available for (ComponentEnums.lua):
-        { 1, 2, 4, 6, 10, 20 },          -- hull integrity
-        { 1, 2, 2, 3, 4,  6 },           -- computers
-        { 1, 2, 3, 4, 5,  6 },           -- sensors
-        { 1, 1, 2, 3, 3,  5 },           -- life support
-        { 1, 2, 3, 4, 6,  8 },           -- capacitors
-        { 1, 2, 4, 5, 6,  8 },           -- thrusters * 2 (bilateral)
-        { 2, 4, 6, 8, 10, 16 },          -- turret weapons * 2 (bilateral)
-        { 0, 0, 0, 1, 2,  4 },           -- bay weapons
-        { 1, 2, 3, 5, 7,  10 },          -- cargo pods (* shipInventorySize inventory each)
-        { 1, 2, 4, 7, 12, 20 },          -- drone racks (* 2 drones each)
-        { 0, 1, 2, 5, 8,  12 },          -- shield generators
-        { 0, 0, 1, 3, 5,  8 },           -- armor plates
+    shipInventorySize = 10,
+    shipHullScale = {  4,   -- Solo
+                       7,   -- Small
+                      10,   -- Compact
+                      14,   -- Medium
+                      19,   -- Large
+                      24 }, -- Very Large
+    shipHullRadius = { 12,
+                       15,
+                       19,
+                       24,
+                       30,
+                       38 },
+    shipHullMass = { 12000,
+                     18000,
+                     23000,
+                     30000,
+                     42000,
+                     70000 },
+    shipHullTranM = { 0.8, -- left/right/up/down translation speed based on hull size
+                      0.2,
+                      0.1,
+                      0.06,
+                      0.03,
+                      0.0 },
+    shipHullManuM = { 0.8, -- pitch/roll/yaw speed based on hull size
+                      0.5,
+                      0.35,
+                      0.25,
+                      0.16,
+                      4.0 }, -- radius is already slowing maneuvering
+
+    shipComponents = {          -- Sockets available for (ComponentEnums.lua):
+        { 0, 0, 1, 3,  5,  8 }, -- armor plates
+        { 0, 0, 0, 1,  2,  4 }, -- bay weapons
+        { 1, 2, 3, 4,  6,  8 }, -- capacitors
+        { 0, 0, 0, 0,  0,  0 }, -- cloak
+        { 1, 1, 2, 3,  5,  8 }, -- communicators
+        { 1, 2, 2, 3,  4,  6 }, -- computers
+        { 1, 2, 4, 7, 12, 20 }, -- drone racks (* 2 drones each)
+        { 1, 2, 4, 6, 10, 20 }, -- hull integrity
+        { 1, 2, 3, 5, 7,  10 }, -- cargo pods (* shipInventorySize inventory each)
+        { 1, 2, 3, 4,  5,  6 }, -- sensors
+        { 0, 1, 2, 5,  8, 12 }, -- shield generators
+        { 1, 2, 4, 5,  6,  8 }, -- thrusters * 2 (bilateral)
+        { 2, 4, 6, 8, 10, 16 }, -- turret weapons * 2 (bilateral)
     },
-    shipInventorySize    = 10,
+
+    stationHullMass = { 112000,
+                        242000,
+                        575000 },
     stationInventorySize = 100,
-    planetInventorySize  = 10000,
-    stationHullMass      = { 112000,
-                             242000,
-                             575000 },
-    stationComponents                = { -- trade ---   --- mil ----   -- Sockets available for (ComponentEnums.lua):
-        { 30, 80, 130, 45, 100, 250 },   -- hull integrity
-        { 12, 16, 24,  20, 32,  48 },    -- computers
-        { 8,  10, 16,  12, 16,  24 },    -- sensors
-        { 8,  12, 16,  12, 16,  20 },    -- life support
-        { 8,  16, 24,  16, 24,  36 },    -- capacitors
-        { 0,  0,  0,   0,  0,   0 },     -- thrusters (none on stations)
-        { 16, 24, 32,  64, 128, 256 },   -- turret weapons
-        { 4,  8,  16,  12, 32,  64 },    -- bay weapons
-        { 24, 50, 100, 4,  10,  16 },    -- cargo pods (* stationInventorySize inventory each)
-        { 0,  0,  0,   24, 48,  64 },    -- drone racks (* 2 drones each)
-        { 16, 24, 32,  24, 40,  64 },    -- shield generators
-        { 8,  16, 32,  24, 48,  96 },    -- armor plates
+    stationComponents = {
+           -- trade --   --- mil ----    -- Sockets available for (ComponentEnums.lua):
+        {  8,  16,  32,  24,  48,  96 }, -- armor plates
+        {  4,   8,  16,  12,  32,  64 }, -- bay weapons
+        {  8,  16,  24,  16,  24,  36 }, -- capacitors
+        {  0,   0,   0,   0,   0,   0 }, -- cloak
+        { 16,  24,  32,  12,  24,  40 }, -- communicators
+        { 12,  16,  24,  20,  32,  48 }, -- computers
+        {  0,   0,   0,  24,  48,  64 }, -- drone racks (* 2 drones each)
+        { 30,  80, 130,  45, 100, 250 }, -- hull integrity
+        { 24,  50, 100,   4,  10,  16 }, -- cargo pods (* stationInventorySize inventory each)
+        {  8,  10,  16,  12,  16,  24 }, -- sensors
+        { 16,  24,  32,  24,  40,  64 }, -- shield generators
+        {  0,   0,   0,   0,   0,   0 }, -- thrusters (none on stations)
+        { 16,  24,  32,  64, 128, 256 }, -- turret weapons
     },
 
+    planetInventorySize = 10000,
     planetComponents = {
-         --  S      M      L     -- Sockets available for (ComponentEnums.lua):
-        {    0,     0,     0 },  -- hull integrity
-        { 1000,  8000, 20000 },  -- computers
-        {   50,   120,   500 },  -- sensors
-        {    0,     0,     0 },  -- life support
-        {    0,     0,     0 },  -- capacitors
-        {    0,     0,     0 },  -- thrusters (none on stations)
-        {    0,     0,     0 },  -- turret weapons
-        {    0,     0,     0 },  -- bay weapons
-        { 1000,  7500, 48000 },  -- cargo pods (* planetInventorySize inventory each)
-        {    0,     0,     0 },  -- drone racks (* 2 drones each)
-        {  500,  1200, 10000 },  -- shield generators
-        {    0,     0,     0 },  -- armor plates
+        --  S    M    L    -- Sockets available for (ComponentEnums.lua):
+        {   0,   0,   0 }, -- armor plates
+        {   0,   0,   0 }, -- bay weapons
+        {   0,   0,   0 }, -- capacitors
+        {   0,   0,   0 }, -- cloak
+        { 100, 160, 350 }, -- communicators
+        { 100, 280, 400 }, -- computers
+        {   0,   0,   0 }, -- drone racks (* 2 drones each)
+        {   0,   0,   0 }, -- hull integrity
+        { 240, 400, 800 }, -- cargo pods (* planetInventorySize inventory each)
+        {  50, 120, 500 }, -- sensors
+        { 100, 200, 400 }, -- shield generators
+        {   0,   0,   0 }, -- thrusters (none on stations)
+        {   0,   0,   0 }, -- turret weapons
     },
 
-    compHullStats                    = {
-        name       = "Hull Structure",
-        healthCurr = 100,
-        healthMax  = 100,
+    compArmorStats = {
+        name       = "Armor Plating",
+        healthCurr = 1000,
+        healthMax  = 1000,
     },
-    compComputerStats                = {
-        name         = "Computer",
-        healthCurr   = 100,
-        healthMax    = 100,
-        cpuCount     = 1,
-        mappingSpeed = 1,
-        lockCount    = 1,
-        lockStrength = 1,
-    },
-    compSensorStats                  = {
-        name         = "Sensor",
-        healthCurr   = 100,
-        healthMax    = 100,
-        mappingRange = 2000,
-        scanSpeed    = 10,
-        scanDetail   = 1,
-        lockBreaking = 1,
-    },
-    compLifeSupportStats             = {
-        name       = "Life Support",
-        healthCurr = 100,
-        healthMax  = 100,
-        pods       = 2, -- number of cargo pods given life support
-    },
-    compCapacitorStats               = {
+    compCapacitorStats = {
         name       = "Capacitor",
         healthCurr = 100,
         healthMax  = 100,
@@ -228,21 +210,29 @@ Config.gen = {
         chargeMax  = 200,
         chargeRate = 12,
     },
-    compThrusterStats                = {
-        name        = "Thruster",
-        healthCurr  = 100,
-        healthMax   = 100,
-        speedMax    = 1000,
-        maneuverMax = 100,
-    },
-    compInventoryStats               = {
-        name       = "Transport Pod",
+    compCloakStats = {
+        name       = "Cloak",
         healthCurr = 100,
         healthMax  = 100,
-        capacity   = 10,
-        stateroom  = false,
+        rating     = 1,
+        draw       = 0.05,
     },
-    compDroneStats                   = {
+    compComputerStats = {
+        name         = "Computer",
+        healthCurr   = 100,
+        healthMax    = 100,
+        rating       = 1,
+        lockCount    = 1,
+        lockStrength = 1,
+        mappingSpeed = 1,
+    },
+    compCommunicatorStats = {
+        name         = "Communicator",
+        healthCurr   = 100,
+        healthMax    = 100,
+        rating       = 1,
+    },
+    compDroneStats = {
         name         = "Drone Rack",
         healthCurr   = 100,
         healthMax    = 100,
@@ -255,7 +245,29 @@ Config.gen = {
         droneSpeed   = 40,
         reloadTime   = 5,
     },
-    compShieldStats                  = {
+    compHullStats = {
+        name       = "Hull Structure",
+        healthCurr = 100,
+        healthMax  = 100,
+    },
+    compInventoryStats = {
+        name       = "Transport Pod",
+        healthCurr = 100,
+        healthMax  = 100,
+        capacity   = 10,
+        stateroom  = false,
+    },
+    compSensorStats = {
+        name         = "Sensor",
+        healthCurr   = 100,
+        healthMax    = 100,
+        rating       = 1,
+        lockBreaking = 1,
+        mappingRange = 2000,
+        scanDetail   = 1,
+        scanSpeed    = 10,
+    },
+    compShieldStats = {
         name         = "Shield Generator",
         healthCurr   = 100,
         healthMax    = 100,
@@ -267,13 +279,15 @@ Config.gen = {
         colorG       = 0.8,
         colorB       = 2.0,
     },
-    compArmorStats                   = {
-        name       = "Armor Plating",
-        healthCurr = 1000,
-        healthMax  = 1000,
+    compThrusterStats = {
+        name        = "Thruster",
+        healthCurr  = 100,
+        healthMax   = 100,
+        speedMax    = 1000,
+        maneuverMax = 100,
     },
 
-    compTurretPulseStats             = {
+    compTurretPulseStats = {
         name        = "Pulse Turret",
         healthCurr  = 100,
         healthMax   = 100,
@@ -293,7 +307,7 @@ Config.gen = {
         colorLightG = 0.9,
         colorLightB = 3.0,
     },
-    compTurretBeamStats              = {
+    compTurretBeamStats = {
         name       = "Beam Turret",
         healthCurr = 100,
         healthMax  = 100,
@@ -310,7 +324,7 @@ Config.gen = {
         colorG     = 0.8,
         colorB     = 2.0,
     },
-    compTurretRailStats              = {
+    compTurretRailStats = {
         name       = "Railgun Turret",
         healthCurr = 100,
         healthMax  = 100,
@@ -326,7 +340,7 @@ Config.gen = {
         colorG     = 2.0,
         colorB     = 2.0,
     },
-    compTurretProjStats              = {
+    compTurretProjStats = {
         name         = "Launcher Turret",
         healthCurr   = 100,
         healthMax    = 100,
@@ -338,7 +352,7 @@ Config.gen = {
         speed        = 100,
         range        = 20000,
     },
-    compBayPulseStats                = {
+    compBayPulseStats = {
         name        = "Pulse Bay",
         healthCurr  = 100,
         healthMax   = 100,
@@ -360,7 +374,7 @@ Config.gen = {
         colorLightG = 0.9,
         colorLightB = 0.6,
     },
-    compBayBeamStats                 = {
+    compBayBeamStats = {
         name       = "Beam Bay",
         healthCurr = 100,
         healthMax  = 100,
@@ -377,7 +391,7 @@ Config.gen = {
         colorG     = 0.8,
         colorB     = 2.0,
     },
-    compBayRailStats                 = {
+    compBayRailStats = {
         name       = "Railgun Bay",
         healthCurr = 100,
         healthMax  = 100,
@@ -393,7 +407,7 @@ Config.gen = {
         colorG     = 2.0,
         colorB     = 2.0,
     },
-    compBayCannonStats               = {
+    compBayCannonStats = {
         name       = "Cannon Bay",
         healthCurr = 100,
         healthMax  = 100,
@@ -410,7 +424,7 @@ Config.gen = {
         colorG     = 0.8,
         colorB     = 2.0,
     },
-    compBayProjStats                 = {
+    compBayProjStats = {
         name         = "Launcher Bay",
         healthCurr   = 100,
         healthMax    = 100,
