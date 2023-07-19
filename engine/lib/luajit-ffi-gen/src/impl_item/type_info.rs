@@ -1,5 +1,11 @@
-const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 2] = [("IVec2", "Vec2i"), ("Vec3", "Vec3f")];
-const COPY_TYPES: [&str; 3] = ["IVec2", "WindowPos", "WindowMode"];
+const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 5] = [
+    ("IVec2", "Vec2i"),
+    ("UVec2", "Vec2u"),
+    ("DVec2", "Vec2d"),
+    ("Vec2", "Vec2f"),
+    ("Vec3", "Vec3f"),
+];
+const COPY_TYPES: [&str; 6] = ["IVec2", "UVec2", "DVec2", "Vec2", "WindowPos", "WindowMode"];
 
 pub struct TypeInfo {
     /// Result type. Can be used only in the return position

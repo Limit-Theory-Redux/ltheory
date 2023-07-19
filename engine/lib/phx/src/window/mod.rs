@@ -176,7 +176,18 @@ impl Default for Window {
     }
 }
 
+#[luajit_ffi_gen::luajit_ffi]
 impl Window {
+    /// The window title.
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    /// Set the window title.
+    pub fn set_title(&mut self, title: &str) {
+        self.title = title.into();
+    }
+
     /// Setting this to true will attempt to maximize the window.
     ///
     /// Setting it to false will attempt to un-maximize the window.
@@ -189,6 +200,27 @@ impl Window {
     /// Setting it to false will attempt to un-minimize the window.
     pub fn set_minimized(&mut self, minimized: bool) {
         self.internal.minimize_request = Some(minimized);
+    }
+
+    /// The window's client position in physical pixels.
+    ///
+    /// See [`WindowPosition`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn position(&self) -> IVec2 {
+        // TODO: fix Automatic and Centered cases
+        match self.position {
+            WindowPosition::Automatic => IVec2::default(),
+            WindowPosition::Centered(_) => IVec2::default(),
+            WindowPosition::At(pos) => pos,
+        }
+    }
+
+    /// Set the window's client position in physical pixels.
+    ///
+    /// See [`WindowPosition`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn set_position(&mut self, x: i32, y: i32) {
+        self.position = WindowPosition::At(IVec2 { x, y });
     }
 
     /// The window's client area width in logical pixels.
@@ -207,6 +239,22 @@ impl Window {
         self.resolution.height()
     }
 
+    /// The window's client area size in logical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn size(&self) -> Vec2 {
+        Vec2::new(self.resolution.width(), self.resolution.height())
+    }
+
+    /// Set the window's client area size in logical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn set_size(&mut self, width: f32, height: f32) {
+        self.resolution.set(width, height);
+    }
+
     /// The window's client area width in physical pixels.
     ///
     /// See [`WindowResolution`] for an explanation about logical/physical sizes.
@@ -221,6 +269,79 @@ impl Window {
     #[inline]
     pub fn physical_height(&self) -> u32 {
         self.resolution.physical_height()
+    }
+
+    /// The window's client area size in physical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn get_physical_size(&self) -> IVec2 {
+        IVec2::new(
+            self.resolution.physical_width() as i32, // TODO: introduce UVec2/Vec2u types instead of casting
+            self.resolution.physical_height() as i32,
+        )
+    }
+
+    /// Set the window's client area size in physical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    #[inline]
+    pub fn set_physical_size(&mut self, width: i32, height: i32) {
+        // TODO: introduce UVec2/Vec2u types instead of casting
+        self.resolution
+            .set_physical_resolution(width as u32, height as u32);
+    }
+
+    /// Is the window resizable?
+    pub fn is_resizable(&self) -> bool {
+        self.resizable
+    }
+
+    /// Should the window be resizable?
+    pub fn set_resizable(&mut self, resizable: bool) {
+        self.resizable = resizable;
+    }
+
+    /// Has the window decorations?
+    pub fn has_decorations(&self) -> bool {
+        self.decorations
+    }
+
+    /// Should the window have decorations?
+    pub fn set_decorations(&mut self, decorations: bool) {
+        self.decorations = decorations;
+    }
+
+    /// Is the window transparent?
+    pub fn is_transparent(&self) -> bool {
+        self.transparent
+    }
+
+    /// Should the window be transparent?
+    pub fn set_transparent(&mut self, transparent: bool) {
+        self.transparent = transparent;
+    }
+
+    /// Is the window focused?
+    pub fn is_focused(&self) -> bool {
+        self.focused
+    }
+
+    /// Should the window be focused?
+    pub fn set_focused(&mut self, focused: bool) {
+        self.focused = focused;
+    }
+
+    pub fn set_fullscreen(&mut self, fs: bool) {
+        self.mode = WindowMode::Fullscreen;
+    }
+
+    pub fn toggle_fullscreen(&mut self) {
+        if self.mode == WindowMode::Fullscreen {
+            self.mode = WindowMode::Windowed;
+        } else {
+            self.mode = WindowMode::Fullscreen;
+        }
     }
 
     /// The window's scale factor.
@@ -243,6 +364,14 @@ impl Window {
             .map(|position| (position / self.scale_factor()).as_vec2())
     }
 
+    /// Set the cursor position in this window in logical pixels.
+    ///
+    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
+    pub fn set_cursor_position(&mut self, position: Option<Vec2>) {
+        self.internal.physical_cursor_position =
+            position.map(|p| p.as_dvec2() * self.scale_factor());
+    }
+
     /// The cursor position in this window in physical pixels.
     ///
     /// Returns `None` if the cursor is outside the window area.
@@ -253,14 +382,6 @@ impl Window {
         self.internal
             .physical_cursor_position
             .map(|position| position.as_vec2())
-    }
-
-    /// Set the cursor position in this window in logical pixels.
-    ///
-    /// See [`WindowResolution`] for an explanation about logical/physical sizes.
-    pub fn set_cursor_position(&mut self, position: Option<Vec2>) {
-        self.internal.physical_cursor_position =
-            position.map(|p| p.as_dvec2() * self.scale_factor());
     }
 
     /// Set the cursor position in this window in physical pixels.
