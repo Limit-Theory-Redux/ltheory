@@ -7,6 +7,7 @@ mod window_mode;
 mod window_position;
 mod window_resize_constraints;
 mod window_resolution;
+mod winit_converters;
 mod winit_windows;
 
 pub use composite_alpha_mode::*;
@@ -18,6 +19,8 @@ pub use window_mode::*;
 pub use window_position::*;
 pub use window_resize_constraints::*;
 pub use window_resolution::*;
+pub use winit_converters::*;
+pub use winit_windows::*;
 
 use super::*;
 use crate::common::*;
@@ -25,6 +28,12 @@ use crate::internal::*;
 use crate::math::*;
 use crate::render::*;
 use crate::system::*;
+
+/// The cached state of the window so we can check which properties were changed from within the app.
+#[derive(Debug, Clone)]
+pub struct CachedWindow {
+    pub window: Window,
+}
 
 /// The defining [`Component`] for window entities,
 /// storing information about how it should appear and behave.

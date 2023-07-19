@@ -28,7 +28,7 @@ impl WinitWindows {
         &mut self,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         window: &Window,
-    ) -> &winit::window::Window {
+    ) -> winit::window::WindowId {
         let mut winit_window_builder = winit::window::WindowBuilder::new();
 
         // Due to a UIA limitation, winit windows need to be invisible for the
@@ -167,10 +167,11 @@ impl WinitWindows {
             }
         }
 
-        self.windows
-            .entry(winit_window.id())
-            .insert(winit_window)
-            .into_mut()
+        let id = winit_window.id();
+
+        self.windows.insert(id, winit_window);
+
+        id
     }
 
     /// Get the winit window by id.

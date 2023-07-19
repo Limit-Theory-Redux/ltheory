@@ -2,6 +2,8 @@ mod frame_state;
 
 pub(crate) use frame_state::*;
 use glam::ivec2;
+use tracing::error;
+use winit::dpi::*;
 
 use std::path::PathBuf;
 use std::time::Instant;
@@ -13,10 +15,10 @@ use crate::logging::init_log;
 use crate::lua::*;
 use crate::render::*;
 use crate::system::*;
-use crate::window::Window;
+use crate::window::*;
 
 use glam::DVec2;
-use sdl2_sys::*;
+// use sdl2_sys::*;
 use tracing::info;
 use tracing::warn;
 use tracing_appender::non_blocking::WorkerGuard;
@@ -29,18 +31,22 @@ use winit::event::StartCause;
 use winit::event::WindowEvent;
 use winit::event_loop::*;
 
-#[no_mangle]
-pub static subsystems: u32 = SDL_INIT_EVENTS
-    | SDL_INIT_VIDEO
-    | SDL_INIT_TIMER
-    | SDL_INIT_HAPTIC
-    | SDL_INIT_JOYSTICK
-    | SDL_INIT_GAMECONTROLLER;
+// #[no_mangle]
+// pub static subsystems: u32 = SDL_INIT_EVENTS
+//     | SDL_INIT_VIDEO
+//     | SDL_INIT_TIMER
+//     | SDL_INIT_HAPTIC
+//     | SDL_INIT_JOYSTICK
+//     | SDL_INIT_GAMECONTROLLER;
 
 pub struct Engine {
     init_time: TimeStamp,
     window: Window,
+    cache: CachedWindow,
+    winit_windows: WinitWindows,
+    winit_window_id: Option<winit::window::WindowId>,
     frame_state: FrameState,
+    exit_app: bool,
 }
 
 impl Engine {
@@ -54,57 +60,58 @@ impl Engine {
             if firstTime {
                 firstTime = false;
 
-                /* Check SDL version compatibility. */
-                let compiled: SDL_version = SDL_version {
-                    major: SDL_MAJOR_VERSION as u8,
-                    minor: SDL_MINOR_VERSION as u8,
-                    patch: SDL_PATCHLEVEL as u8,
-                };
-                let mut linked: SDL_version = SDL_version {
-                    major: 0,
-                    minor: 0,
-                    patch: 0,
-                };
-
-                SDL_GetVersion(&mut linked);
-                if compiled.major != linked.major {
-                    info!("Engine_Init: Detected SDL major version mismatch:");
-                    info!(
-                        "  Version (Compiled) : {}.{}.{}",
-                        compiled.major, compiled.minor, compiled.patch,
-                    );
-                    info!(
-                        "  Version (Linked)   : {}.{}.{}",
-                        linked.major, linked.minor, linked.patch,
-                    );
-                    panic!("Engine_Init: Terminating.");
-                }
-
-                if SDL_Init(0) != 0 {
-                    panic!("Engine_Init: Failed to initialize SDL");
-                }
                 if !Directory_Create(c_str!("log")) {
                     panic!("Engine_Init: Failed to create log directory.");
                 }
-                atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
+
+                // /* Check SDL version compatibility. */
+                // let compiled: SDL_version = SDL_version {
+                //     major: SDL_MAJOR_VERSION as u8,
+                //     minor: SDL_MINOR_VERSION as u8,
+                //     patch: SDL_PATCHLEVEL as u8,
+                // };
+                // let mut linked: SDL_version = SDL_version {
+                //     major: 0,
+                //     minor: 0,
+                //     patch: 0,
+                // };
+
+                // SDL_GetVersion(&mut linked);
+                // if compiled.major != linked.major {
+                //     info!("Engine_Init: Detected SDL major version mismatch:");
+                //     info!(
+                //         "  Version (Compiled) : {}.{}.{}",
+                //         compiled.major, compiled.minor, compiled.patch,
+                //     );
+                //     info!(
+                //         "  Version (Linked)   : {}.{}.{}",
+                //         linked.major, linked.minor, linked.patch,
+                //     );
+                //     panic!("Engine_Init: Terminating.");
+                // }
+
+                // if SDL_Init(0) != 0 {
+                //     panic!("Engine_Init: Failed to initialize SDL");
+                // }
+                // atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
             }
 
-            if SDL_InitSubSystem(subsystems) != 0 {
-                panic!("Engine_Init: Failed to initialize SDL's subsystems");
-            }
+            // if SDL_InitSubSystem(subsystems) != 0 {
+            //     panic!("Engine_Init: Failed to initialize SDL's subsystems");
+            // }
 
-            SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, gl_version_major);
-            SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MINOR_VERSION, gl_version_minor);
-            SDL_GL_SetAttribute(
-                SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK,
-                SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_COMPATIBILITY as i32,
-            );
-            SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_ACCELERATED_VISUAL, 1);
-            SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_RED_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_GREEN_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_BLUE_SIZE, 8);
-            SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DOUBLEBUFFER, 1);
-            SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DEPTH_SIZE, 24);
+            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, gl_version_major);
+            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MINOR_VERSION, gl_version_minor);
+            // SDL_GL_SetAttribute(
+            //     SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK,
+            //     SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_COMPATIBILITY as i32,
+            // );
+            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_ACCELERATED_VISUAL, 1);
+            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_RED_SIZE, 8);
+            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_GREEN_SIZE, 8);
+            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_BLUE_SIZE, 8);
+            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DOUBLEBUFFER, 1);
+            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DEPTH_SIZE, 24);
 
             Keyboard_Init();
             Metric_Reset();
@@ -114,11 +121,198 @@ impl Engine {
             ShaderVar_Init();
         }
 
+        let window = Window::default();
+        let cache = CachedWindow {
+            window: window.clone(),
+        };
+
         Self {
             init_time: TimeStamp::now(),
-            window: Default::default(),
+            window,
+            cache,
+            winit_windows: Default::default(),
+            winit_window_id: Option::None, // TODO: remove `Option::`
             frame_state: Default::default(),
+            exit_app: false,
         }
+    }
+
+    fn init_winit_window(&mut self, event_loop: &EventLoop<()>) {
+        let winit_window_id = self.winit_windows.create_window(event_loop, &self.window);
+
+        self.winit_window_id = Some(winit_window_id);
+    }
+
+    // Detect changes to the window and update the winit window accordingly.
+    //
+    // Notes:
+    // - [`Window::present_mode`] and [`Window::composite_alpha_mode`] updating should be handled in the bevy render crate.
+    // - [`Window::transparent`] currently cannot be updated after startup for winit.
+    // - [`Window::canvas`] currently cannot be updated after startup, not entirely sure if it would work well with the
+    //   event channel stuff.
+    fn changed_window(&mut self) {
+        let Some(winit_window) = self.winit_window_id.map(|winit_window_id| self.winit_windows.get_window(winit_window_id)).flatten()
+        else { return; };
+
+        if self.window.title != self.cache.window.title {
+            winit_window.set_title(self.window.title.as_str());
+        }
+
+        if self.window.mode != self.cache.window.mode {
+            let new_mode = match self.window.mode {
+                WindowMode::BorderlessFullscreen => {
+                    Some(winit::window::Fullscreen::Borderless(Option::None))
+                }
+                WindowMode::Fullscreen => Some(winit::window::Fullscreen::Exclusive(
+                    get_best_videomode(&winit_window.current_monitor().unwrap()),
+                )),
+                WindowMode::SizedFullscreen => {
+                    Some(winit::window::Fullscreen::Exclusive(get_fitting_videomode(
+                        &winit_window.current_monitor().unwrap(),
+                        self.window.width() as u32,
+                        self.window.height() as u32,
+                    )))
+                }
+                WindowMode::Windowed => Option::None,
+            };
+
+            if winit_window.fullscreen() != new_mode {
+                winit_window.set_fullscreen(new_mode);
+            }
+        }
+        if self.window.resolution != self.cache.window.resolution {
+            let physical_size = PhysicalSize::new(
+                self.window.resolution.physical_width(),
+                self.window.resolution.physical_height(),
+            );
+
+            winit_window.set_inner_size(physical_size);
+        }
+
+        if self.window.physical_cursor_position() != self.cache.window.physical_cursor_position() {
+            if let Some(physical_position) = self.window.physical_cursor_position() {
+                let inner_size = winit_window.inner_size();
+
+                let position = PhysicalPosition::new(
+                    physical_position.x,
+                    // Flip the coordinate space back to winit's context.
+                    inner_size.height as f32 - physical_position.y,
+                );
+
+                if let Err(err) = winit_window.set_cursor_position(position) {
+                    error!("could not set cursor position: {:?}", err);
+                }
+            }
+        }
+
+        if self.window.cursor.icon != self.cache.window.cursor.icon {
+            winit_window.set_cursor_icon(convert_cursor_icon(self.window.cursor.icon));
+        }
+
+        if self.window.cursor.grab_mode != self.cache.window.cursor.grab_mode {
+            attempt_grab(&winit_window, self.window.cursor.grab_mode);
+        }
+
+        if self.window.cursor.visible != self.cache.window.cursor.visible {
+            winit_window.set_cursor_visible(self.window.cursor.visible);
+        }
+
+        if self.window.cursor.hit_test != self.cache.window.cursor.hit_test {
+            if let Err(err) = winit_window.set_cursor_hittest(self.window.cursor.hit_test) {
+                self.window.cursor.hit_test = self.cache.window.cursor.hit_test;
+                warn!(
+                    "Could not set cursor hit test for window {:?}: {:?}",
+                    self.window.title, err
+                );
+            }
+        }
+
+        if self.window.decorations != self.cache.window.decorations
+            && self.window.decorations != winit_window.is_decorated()
+        {
+            winit_window.set_decorations(self.window.decorations);
+        }
+
+        if self.window.resizable != self.cache.window.resizable
+            && self.window.resizable != winit_window.is_resizable()
+        {
+            winit_window.set_resizable(self.window.resizable);
+        }
+
+        if self.window.resize_constraints != self.cache.window.resize_constraints {
+            let constraints = self.window.resize_constraints.check_constraints();
+            let min_inner_size = LogicalSize {
+                width: constraints.min_width,
+                height: constraints.min_height,
+            };
+            let max_inner_size = LogicalSize {
+                width: constraints.max_width,
+                height: constraints.max_height,
+            };
+
+            winit_window.set_min_inner_size(Some(min_inner_size));
+            if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
+                winit_window.set_max_inner_size(Some(max_inner_size));
+            }
+        }
+
+        if self.window.position != self.cache.window.position {
+            if let Some(position) = winit_window_position(
+                &self.window.position,
+                &self.window.resolution,
+                winit_window.available_monitors(),
+                winit_window.primary_monitor(),
+                winit_window.current_monitor(),
+            ) {
+                let should_set = match winit_window.outer_position() {
+                    Ok(current_position) => current_position != position,
+                    _ => true,
+                };
+
+                if should_set {
+                    winit_window.set_outer_position(position);
+                }
+            }
+        }
+
+        if let Some(maximized) = self.window.internal.take_maximize_request() {
+            winit_window.set_maximized(maximized);
+        }
+
+        if let Some(minimized) = self.window.internal.take_minimize_request() {
+            winit_window.set_minimized(minimized);
+        }
+
+        if self.window.focused != self.cache.window.focused && self.window.focused {
+            winit_window.focus_window();
+        }
+
+        if self.window.window_level != self.cache.window.window_level {
+            winit_window.set_window_level(convert_window_level(self.window.window_level));
+        }
+
+        // Currently unsupported changes
+        if self.window.transparent != self.cache.window.transparent {
+            self.window.transparent = self.cache.window.transparent;
+            warn!("Winit does not currently support updating transparency after window creation.");
+        }
+
+        if self.window.ime_enabled != self.cache.window.ime_enabled {
+            winit_window.set_ime_allowed(self.window.ime_enabled);
+        }
+
+        if self.window.ime_position != self.cache.window.ime_position {
+            winit_window.set_ime_position(LogicalPosition::new(
+                self.window.ime_position.x,
+                self.window.ime_position.y,
+            ));
+        }
+
+        if self.window.window_theme != self.cache.window.window_theme {
+            winit_window.set_theme(self.window.window_theme.map(convert_window_theme));
+        }
+
+        self.cache.window = self.window.clone();
     }
 }
 
@@ -159,16 +353,23 @@ impl Engine {
 
             Lua_DoFile(lua, script_file);
             // Lua_Free(lua);
+
+            // TODO: call AppInit(engine)
         }
 
         // Engine::free();
 
         let event_loop = EventLoop::new();
 
-        let mut finished_and_setup_done = false;
+        engine.init_winit_window(&event_loop);
+
+        // Apply window changes made by a script
+        engine.changed_window();
+
+        let finished_and_setup_done = false;
 
         let event_handler = move |event: Event<()>,
-                                  event_loop: &EventLoopWindowTarget<()>,
+                                  _event_loop: &EventLoopWindowTarget<()>,
                                   control_flow: &mut ControlFlow| {
             #[cfg(feature = "trace")]
             let _span = bevy_utils::tracing::info_span!("winit event_handler").entered();
@@ -184,15 +385,13 @@ impl Engine {
             //     }
             // }
 
-            // if let Some(app_exit_events) = app.world.get_resource::<Events<AppExit>>() {
-            //     if app_exit_event_reader.iter(app_exit_events).last().is_some() {
-            //         *control_flow = ControlFlow::Exit;
-            //         return;
-            //     }
-            // }
+            if engine.exit_app {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
 
             match event {
-                event::Event::NewEvents(start) => {
+                event::Event::NewEvents(_start) => {
                     // let (winit_config, window_focused_query) = focused_window_state.get(&app.world);
 
                     // let app_focused = window_focused_query.iter().any(|window| window.focused);
@@ -217,7 +416,7 @@ impl Engine {
                 }
                 event::Event::WindowEvent {
                     event,
-                    window_id: winit_window_id,
+                    window_id: _winit_window_id,
                     ..
                 } => {
                     // // Fetch and prepare details from the world
@@ -515,9 +714,12 @@ impl Engine {
                 event::Event::MainEventsCleared => {
                     if finished_and_setup_done {
                         engine.frame_state.last_update = Instant::now();
-                        // app.update();
+
                         // TODO: call Lua AppFrame() function
-                        // TODO: clear all events
+                        // TODO: clear all events?
+
+                        // Apply window changes made by a script
+                        engine.changed_window();
                     }
                 }
                 Event::RedrawEventsCleared => {
@@ -606,6 +808,7 @@ impl Engine {
             // }
         };
 
+        // Start event loop and never exit
         event_loop.run(event_handler);
     }
 
@@ -616,7 +819,7 @@ impl Engine {
             Mouse_Free();
             Input_Free();
             Signal_Free();
-            SDL_QuitSubSystem(subsystems);
+            // SDL_QuitSubSystem(subsystems);
         }
     }
 
