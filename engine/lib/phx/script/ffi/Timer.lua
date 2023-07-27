@@ -5,6 +5,8 @@ local Timer
 
 do -- C Definitions
     ffi.cdef [[
+        typedef struct Timer {} Timer;
+
         void   Timer_Free        (Timer*);
         Timer* Timer_Create      ();
         double Timer_GetAndReset (Timer*);

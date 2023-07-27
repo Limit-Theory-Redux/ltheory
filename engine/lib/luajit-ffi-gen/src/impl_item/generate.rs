@@ -17,7 +17,7 @@ impl ImplInfo {
         let method_tokens: Vec<_> = self
             .methods
             .iter()
-            .map(|method| self.wrap_methods(method))
+            .map(|method| self.wrap_method(method))
             .collect();
         // Additional Free C API wrapper if requested
         let free_method_token = if attr_args.is_managed() {
@@ -45,7 +45,7 @@ impl ImplInfo {
         }
     }
 
-    fn wrap_methods(&self, method: &MethodInfo) -> TokenStream {
+    fn wrap_method(&self, method: &MethodInfo) -> TokenStream {
         let method_name = method.as_ffi_name();
         let func_name = format!("{}_{}", self.name, method_name);
         let func_ident = format_ident!("{func_name}");

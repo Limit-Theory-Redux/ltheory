@@ -33,7 +33,7 @@ impl Time {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(clone = true)]
+#[luajit_ffi_gen::luajit_ffi(clone = true, opaque = false)]
 impl Time {
     pub fn get_local() -> Self {
         Time::from_chrono(Local::now())

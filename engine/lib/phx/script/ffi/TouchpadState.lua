@@ -5,6 +5,8 @@ local TouchpadState
 
 do -- C Definitions
     ffi.cdef [[
+        typedef struct TouchpadState {} TouchpadState;
+
         float TouchpadState_GetValue (TouchpadState const*, TouchpadControl control);
     ]]
 end

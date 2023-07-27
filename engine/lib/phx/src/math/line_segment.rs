@@ -8,7 +8,7 @@ pub struct LineSegment {
     pub p1: Vec3,
 }
 
-#[luajit_ffi_gen::luajit_ffi(clone = true)]
+#[luajit_ffi_gen::luajit_ffi(clone = true, opaque = false)]
 impl LineSegment {
     pub fn to_ray(&self, out: &mut Ray) {
         out.p = self.p0;

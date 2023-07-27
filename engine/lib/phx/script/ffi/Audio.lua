@@ -5,6 +5,8 @@ local Audio
 
 do -- C Definitions
     ffi.cdef [[
+        typedef struct Audio {} Audio;
+
         void   Audio_Free            (Audio*);
         Audio* Audio_Create          ();
         void   Audio_Play            (Audio*, Sound* sound);

@@ -5,6 +5,8 @@ local KeyboardState
 
 do -- C Definitions
     ffi.cdef [[
+        typedef struct KeyboardState {} KeyboardState;
+
         float KeyboardState_GetValue (KeyboardState const*, KeyboardButton button);
     ]]
 end

@@ -5,6 +5,8 @@ local CursorState
 
 do -- C Definitions
     ffi.cdef [[
+        typedef struct CursorState {} CursorState;
+
         float CursorState_GetValue (CursorState const*, CursorControl control);
     ]]
 end

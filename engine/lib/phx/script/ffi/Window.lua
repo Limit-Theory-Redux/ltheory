@@ -5,6 +5,8 @@ local Window
 
 do -- C Definitions
     ffi.cdef [[
+        typedef struct Window {} Window;
+
         cstr   Window_Title                     (Window const*);
         void   Window_SetTitle                  (Window*, cstr title);
         void   Window_SetMaximized              (Window*, bool maximized);

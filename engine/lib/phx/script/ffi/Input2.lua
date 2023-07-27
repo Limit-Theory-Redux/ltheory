@@ -5,6 +5,8 @@ local Input2
 
 do -- C Definitions
     ffi.cdef [[
+        typedef struct Input2 {} Input2;
+
         CursorState const*   Input2_Cursor   (Input2 const*);
         KeyboardState const* Input2_Keyboard (Input2 const*);
         MouseState const*    Input2_Mouse    (Input2 const*);

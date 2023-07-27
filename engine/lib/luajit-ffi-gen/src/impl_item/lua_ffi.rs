@@ -59,8 +59,12 @@ impl ImplInfo {
         writeln!(&mut file, "local {module_name}\n").unwrap();
 
         // C Definitions
-        let (max_method_name_len, max_self_method_name_len) =
-            self.write_c_defs(&mut file, &module_name, attr_args.is_managed());
+        let (max_method_name_len, max_self_method_name_len) = self.write_c_defs(
+            &mut file,
+            &module_name,
+            attr_args.is_managed(),
+            attr_args.is_opaque() && gen_metatype,
+        );
 
         // Global Symbol Table
         self.write_global_sym_table(
@@ -131,9 +135,23 @@ impl ImplInfo {
         writeln!(&mut file, "return {module_name}").unwrap();
     }
 
-    fn write_c_defs(&self, mut file: &File, module_name: &str, is_managed: bool) -> (usize, usize) {
+    fn write_c_defs(
+        &self,
+        mut file: &File,
+        module_name: &str,
+        is_managed: bool,
+        is_opaque: bool,
+    ) -> (usize, usize) {
         writeln!(&mut file, "do -- C Definitions").unwrap();
         writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
+
+        if is_opaque {
+            writeln!(
+                &mut file,
+                "{IDENT}{IDENT}typedef struct {module_name} {{}} {module_name};\n"
+            )
+            .unwrap();
+        }
 
         // Tof managed we add 'void Free' method
         let mut max_method_name_len = if is_managed { "void".len() } else { 0 };

@@ -5,6 +5,8 @@ local MouseState
 
 do -- C Definitions
     ffi.cdef [[
+        typedef struct MouseState {} MouseState;
+
         float MouseState_GetValue (MouseState const*, MouseControl control);
     ]]
 end
