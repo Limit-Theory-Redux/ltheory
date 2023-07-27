@@ -169,6 +169,13 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 quote! { *const #ty_ident }
             } else if TypeInfo::is_copyable(&ty_name) {
                 quote! { #ty_ident }
+            } else if ty.is_reference {
+                // TODO: copyable reference
+                if ty.is_mutable {
+                    quote! { *#ty_ident }
+                } else {
+                    quote! { *const #ty_ident }
+                }
             } else {
                 quote! { Box<#ty_ident> }
             }
@@ -234,7 +241,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             };
 
             if param.ty.is_option {
-                quote! {if #name_ident != std::ptr::null_mut() { unsafe { Some(#param_item) } } else { Option::None }}
+                quote! {if #name_ident != std::ptr::null_mut() { unsafe { Some(#param_item) } } else { None }}
             } else {
                 param_item
             }
@@ -270,14 +277,20 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             TypeVariant::Str | TypeVariant::String => quote! { static_string!(__res__) },
             TypeVariant::CString => quote! { static_cstring!(__res__) },
             TypeVariant::Custom(custom_ty) => {
-                if ty.is_option {
-                    let type_ident = if ty.is_self() {
-                        self_ident.clone()
-                    } else {
-                        format_ident!("{custom_ty}")
-                    };
+                let type_ident = if ty.is_self() {
+                    self_ident.clone()
+                } else {
+                    format_ident!("{custom_ty}")
+                };
 
+                if ty.is_option {
                     gen_buffered_ret(&type_ident)
+                } else if ty.is_reference {
+                    if ty.is_mutable {
+                        quote! { __res__ as * #type_ident }
+                    } else {
+                        quote! { __res__ as *const #type_ident }
+                    }
                 } else if ty.is_self() || !TypeInfo::is_copyable(&custom_ty) {
                     // Do boxing
                     quote! { __res__.into() }
@@ -310,7 +323,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
 fn gen_buffered_ret(type_ident: &Ident) -> TokenStream {
     quote! {
         unsafe {
-            static mut __BUFFER__: Option<#type_ident> = Option::None;
+            static mut __BUFFER__: Option<#type_ident> = None;
 
             __BUFFER__ = Some(__res__);
 

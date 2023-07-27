@@ -7,7 +7,7 @@ use super::arg::Arg;
 /// Arguments of the `luajit_ffi` attribute.
 pub struct EnumAttrArgs {
     name: Option<String>,
-    repr: Option<String>,
+    repr: Option<String>, // TODO: extract this value from #[repr(...)] instead
     start_index: Option<u64>,
     lua_ffi: bool,
 }

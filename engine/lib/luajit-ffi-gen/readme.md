@@ -223,6 +223,8 @@ List of allowed types in the return parameter position.
 | ------------------------ | -------------------- | -------- | -------- |
 | By value (CT)            | CT                   | CT       |          |
 | By value (NT)            | Box\<NT>             | NT*      |          |
+| &T                       | \*const T            | T const* |          |
+| &mut T                   | \*T                  | T*       |          |
 | String, &str             | \*const libc::c_char | cstr     | yes      |
 | Option\<T>               | \*const T            | T const* | yes      |
 | Option\<String, &str>    | \*const libc::c_char | cstr     | yes      |
@@ -231,8 +233,6 @@ List of allowed types in the return parameter position.
 
 [1] - same as for standalone by value variants.
 [2] - same as for standalone Option variants.
-
-References are not allowed in the return position (except **&str**).
 
 For the buffered types static buffer is created in the `extern "C"` wrapper function.
 

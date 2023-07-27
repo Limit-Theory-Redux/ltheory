@@ -1,4 +1,4 @@
-use crate::{args::BindArgs, util::as_camel_case};
+use crate::{args::BindArgs, util::snake_to_camel_case};
 
 use super::TypeInfo;
 
@@ -20,7 +20,7 @@ impl MethodInfo {
     pub fn as_ffi_name(&self) -> String {
         self.bind_args
             .name()
-            .unwrap_or_else(|| as_camel_case(&self.name, true))
+            .unwrap_or_else(|| snake_to_camel_case(&self.name, true))
     }
 
     pub fn as_ffi_var(&self) -> String {
@@ -34,7 +34,7 @@ impl MethodInfo {
                     name
                 }
             })
-            .unwrap_or_else(|| as_camel_case(&self.name, false))
+            .unwrap_or_else(|| snake_to_camel_case(&self.name, false))
     }
 }
 
@@ -51,6 +51,6 @@ pub struct ParamInfo {
 
 impl ParamInfo {
     pub fn as_ffi_name(&self) -> String {
-        as_camel_case(&self.name, false)
+        snake_to_camel_case(&self.name, false)
     }
 }

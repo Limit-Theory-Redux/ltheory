@@ -5,7 +5,19 @@ const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 5] = [
     ("Vec2", "Vec2f"),
     ("Vec3", "Vec3f"),
 ];
-const COPY_TYPES: [&str; 6] = ["IVec2", "UVec2", "DVec2", "Vec2", "WindowPos", "WindowMode"];
+// TODO: find out different way to mark types as copyable
+const COPY_TYPES: [&str; 10] = [
+    "IVec2",
+    "UVec2",
+    "DVec2",
+    "Vec2",
+    "WindowPos",
+    "WindowMode",
+    "MouseControl",
+    "KeyboardButton",
+    "CursorControl",
+    "TouchpadControl",
+];
 
 pub struct TypeInfo {
     /// Result type. Can be used only in the return position

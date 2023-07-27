@@ -2,14 +2,22 @@ mod frame_state;
 
 pub(crate) use frame_state::*;
 use glam::ivec2;
+use tracing::debug;
 use tracing::error;
+use tracing::trace;
 use winit::dpi::*;
+use winit::event::TouchPhase;
 
 use std::path::PathBuf;
 use std::time::Instant;
 
 use crate::common::*;
 use crate::input::*;
+use crate::input2::CursorControl;
+use crate::input2::Input2;
+use crate::input2::MouseControl;
+use crate::input2::MouseControlFull;
+use crate::input2::TouchpadControl;
 use crate::internal::*;
 use crate::logging::init_log;
 use crate::lua::*;
@@ -45,6 +53,7 @@ pub struct Engine {
     cache: CachedWindow,
     winit_windows: WinitWindows,
     winit_window_id: Option<winit::window::WindowId>,
+    input: Input2,
     frame_state: FrameState,
     exit_app: bool,
 }
@@ -131,7 +140,8 @@ impl Engine {
             window,
             cache,
             winit_windows: Default::default(),
-            winit_window_id: Option::None, // TODO: remove `Option::`
+            winit_window_id: None,
+            input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
         }
@@ -161,7 +171,7 @@ impl Engine {
         if self.window.mode != self.cache.window.mode {
             let new_mode = match self.window.mode {
                 WindowMode::BorderlessFullscreen => {
-                    Some(winit::window::Fullscreen::Borderless(Option::None))
+                    Some(winit::window::Fullscreen::Borderless(None))
                 }
                 WindowMode::Fullscreen => Some(winit::window::Fullscreen::Exclusive(
                     get_best_videomode(&winit_window.current_monitor().unwrap()),
@@ -173,7 +183,7 @@ impl Engine {
                         self.window.height() as u32,
                     )))
                 }
-                WindowMode::Windowed => Option::None,
+                WindowMode::Windowed => None,
             };
 
             if winit_window.fullscreen() != new_mode {
@@ -483,9 +493,13 @@ impl Engine {
                             //     });
                         }
                         WindowEvent::KeyboardInput { ref input, .. } => {
-                            // input_events
-                            //     .keyboard_input
-                            //     .send(converters::convert_keyboard_input(input, window_entity));
+                            // TODO: scancode?
+                            if let Some(virtual_keycode) = input.virtual_keycode {
+                                engine.input.keyboard_state.update(
+                                    convert_virtual_key_code(virtual_keycode),
+                                    convert_element_state(input.state),
+                                );
+                            }
                         }
                         WindowEvent::CursorMoved { position, .. } => {
                             let physical_position = DVec2::new(position.x, position.y);
@@ -494,67 +508,84 @@ impl Engine {
                                 .window
                                 .set_physical_cursor_position(Some(physical_position));
 
-                            // cursor_events.cursor_moved.send(CursorMoved {
-                            //     window: window_entity,
-                            //     position: (physical_position / window.resolution.scale_factor())
-                            //         .as_vec2(),
-                            // });
+                            engine
+                                .input
+                                .cursor_state
+                                .update(CursorControl::X, position.x as f32);
+                            engine
+                                .input
+                                .cursor_state
+                                .update(CursorControl::Y, position.y as f32);
                         }
                         WindowEvent::CursorEntered { .. } => {
-                            // cursor_events.cursor_entered.send(CursorEntered {
-                            //     window: window_entity,
-                            // });
+                            engine
+                                .input
+                                .cursor_state
+                                .update(CursorControl::InWindow, 1.0);
                         }
                         WindowEvent::CursorLeft { .. } => {
-                            engine.window.set_physical_cursor_position(Option::None);
+                            engine.window.set_physical_cursor_position(None);
 
-                            // cursor_events.cursor_left.send(CursorLeft {
-                            //     window: window_entity,
-                            // });
+                            engine
+                                .input
+                                .cursor_state
+                                .update(CursorControl::InWindow, 0.0);
                         }
                         WindowEvent::MouseInput { state, button, .. } => {
-                            // input_events.mouse_button_input.send(MouseButtonInput {
-                            //     button: converters::convert_mouse_button(button),
-                            //     state: converters::convert_element_state(state),
-                            //     window: window_entity,
-                            // });
-                        }
-                        WindowEvent::TouchpadMagnify { delta, .. } => {
-                            // input_events
-                            //     .touchpad_magnify_input
-                            //     .send(TouchpadMagnify(delta as f32));
-                        }
-                        WindowEvent::TouchpadRotate { delta, .. } => {
-                            // input_events
-                            //     .touchpad_rotate_input
-                            //     .send(TouchpadRotate(delta));
+                            engine
+                                .input
+                                .mouse_state
+                                .update(convert_mouse_button(button), convert_element_state(state));
                         }
                         WindowEvent::MouseWheel { delta, .. } => match delta {
                             event::MouseScrollDelta::LineDelta(x, y) => {
-                                // input_events.mouse_wheel_input.send(MouseWheel {
-                                //     unit: MouseScrollUnit::Line,
-                                //     x,
-                                //     y,
-                                //     window: window_entity,
-                                // });
+                                engine.input.mouse_state.update(
+                                    MouseControlFull::MouseControl(MouseControl::ScrollLineX),
+                                    x,
+                                );
+                                engine.input.mouse_state.update(
+                                    MouseControlFull::MouseControl(MouseControl::ScrollLineY),
+                                    y,
+                                );
                             }
                             event::MouseScrollDelta::PixelDelta(p) => {
-                                // input_events.mouse_wheel_input.send(MouseWheel {
-                                //     unit: MouseScrollUnit::Pixel,
-                                //     x: p.x as f32,
-                                //     y: p.y as f32,
-                                //     window: window_entity,
-                                // });
+                                engine.input.mouse_state.update(
+                                    MouseControlFull::MouseControl(MouseControl::ScrollPixelX),
+                                    p.x as f32,
+                                );
+                                engine.input.mouse_state.update(
+                                    MouseControlFull::MouseControl(MouseControl::ScrollPixelY),
+                                    p.y as f32,
+                                );
                             }
                         },
+                        WindowEvent::TouchpadMagnify { delta, .. } => {
+                            engine
+                                .input
+                                .touchpad_state
+                                .update(TouchpadControl::MagnifyDelta, delta as f32);
+                        }
+                        WindowEvent::TouchpadRotate { delta, .. } => {
+                            engine
+                                .input
+                                .touchpad_state
+                                .update(TouchpadControl::RotateDelta, delta);
+                        }
                         WindowEvent::Touch(touch) => {
-                            // let location =
-                            //     touch.location.to_logical(window.resolution.scale_factor());
+                            // TODO: expose more info from touch
+                            let location = touch
+                                .location
+                                .to_logical(engine.window.resolution.scale_factor());
+                            let (x, y) = if touch.phase == TouchPhase::Started
+                                || touch.phase == TouchPhase::Moved
+                            {
+                                (location.x, location.x)
+                            } else {
+                                (-1.0, -1.0) // TODO: special value for no touch?
+                            };
 
-                            // // Event
-                            // input_events
-                            //     .touch_input
-                            //     .send(converters::convert_touch_input(touch, location));
+                            engine.input.touchpad_state.update(TouchpadControl::X, x);
+                            engine.input.touchpad_state.update(TouchpadControl::Y, y);
                         }
                         WindowEvent::ReceivedCharacter(c) => {
                             // input_events.character_input.send(ReceivedCharacter {
@@ -615,7 +646,6 @@ impl Engine {
                             // );
                         }
                         WindowEvent::Focused(focused) => {
-                            // Component
                             engine.window.focused = focused;
 
                             // window_events.window_focused.send(WindowFocused {
@@ -686,7 +716,9 @@ impl Engine {
                             //     window: window_entity,
                             // });
                         }
-                        _ => {}
+                        _ => {
+                            trace!("Unprocessed window event: {event:?}");
+                        }
                     }
 
                     // if engine.window.is_changed() {
@@ -697,13 +729,14 @@ impl Engine {
                     event: DeviceEvent::MouseMotion { delta: (x, y) },
                     ..
                 } => {
-                    // let mut system_state: SystemState<EventWriter<MouseMotion>> =
-                    //     SystemState::new(&mut app.world);
-                    // let mut mouse_motion = system_state.get_mut(&mut app.world);
-
-                    // mouse_motion.send(MouseMotion {
-                    //     delta: Vec2::new(x as f32, y as f32),
-                    // });
+                    engine.input.mouse_state.update(
+                        MouseControlFull::MouseControl(MouseControl::DeltaX),
+                        x as f32,
+                    );
+                    engine.input.mouse_state.update(
+                        MouseControlFull::MouseControl(MouseControl::DeltaY),
+                        y as f32,
+                    );
                 }
                 event::Event::Suspended => {
                     engine.frame_state.active = false;
@@ -716,10 +749,10 @@ impl Engine {
                         engine.frame_state.last_update = Instant::now();
 
                         // TODO: call Lua AppFrame() function
-                        // TODO: clear all events?
 
                         // Apply window changes made by a script
                         engine.changed_window();
+                        engine.input.reset();
                     }
                 }
                 Event::RedrawEventsCleared => {
@@ -763,7 +796,9 @@ impl Engine {
                     // engine.frame_state.redraw_request_sent = redraw;
                 }
 
-                _ => (),
+                _ => {
+                    trace!("Unprocessed event: {event:?}");
+                }
             }
 
             // if engine.frame_state.active {
@@ -810,6 +845,14 @@ impl Engine {
 
         // Start event loop and never exit
         event_loop.run(event_handler);
+    }
+
+    pub fn window(&self) -> &Window {
+        &self.window
+    }
+
+    pub fn input(&self) -> &Input2 {
+        &self.input
     }
 
     pub fn free() {

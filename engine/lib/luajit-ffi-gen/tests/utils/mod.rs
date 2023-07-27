@@ -28,7 +28,7 @@ impl ConvertIntoString for *const libc::c_char {
 macro_rules! static_string {
     ($str:expr) => {
         unsafe {
-            static mut STRING_BUF: Option<std::ffi::CString> = Option::None;
+            static mut STRING_BUF: Option<std::ffi::CString> = None;
 
             STRING_BUF = Some(std::ffi::CString::new($str).unwrap());
 

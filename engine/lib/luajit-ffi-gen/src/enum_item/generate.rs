@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-use crate::args::EnumAttrArgs;
+use crate::{args::EnumAttrArgs, util::camel_to_snake_case};
 
 use super::EnumInfo;
 
@@ -44,6 +44,8 @@ impl EnumInfo {
                 }
             })
             .collect();
+        let enum_size_ident = format_ident!("{}_COUNT", camel_to_snake_case(&self.name, true));
+        let enum_size = variant_pairs.len();
         let value_items: Vec<_> = variant_pairs
             .iter()
             .map(|(name, d)| {
@@ -61,6 +63,7 @@ impl EnumInfo {
             self.generate_ffi(&attr_args);
         }
 
+        // TODO: generate repr type binding for Lua
         quote! {
             #[repr(#repr_type_ident)]
             #source
@@ -80,6 +83,8 @@ impl EnumInfo {
             }
 
             #(#constant_items)*
+
+            pub const #enum_size_ident: usize = #enum_size;
 
             #[no_mangle]
             pub extern "C" fn #to_string_c_ident(this: #self_ident) -> *const libc::c_char {

@@ -5,18 +5,22 @@ local Engine
 
 do -- C Definitions
     ffi.cdef [[
-        void   Engine_Free       ();
-        void   Engine_Abort      ();
-        int    Engine_GetBits    ();
-        double Engine_GetTime    (Engine const*);
-        cstr   Engine_GetVersion ();
-        void   Engine_Terminate  ();
-        void   Engine_Update     ();
+        Window const* Engine_Window     (Engine const*);
+        Input2 const* Engine_Input      (Engine const*);
+        void          Engine_Free       ();
+        void          Engine_Abort      ();
+        int           Engine_GetBits    ();
+        double        Engine_GetTime    (Engine const*);
+        cstr          Engine_GetVersion ();
+        void          Engine_Terminate  ();
+        void          Engine_Update     ();
     ]]
 end
 
 do -- Global Symbol Table
     Engine = {
+        Window     = libphx.Engine_Window,
+        Input      = libphx.Engine_Input,
         Free       = libphx.Engine_Free,
         Abort      = libphx.Engine_Abort,
         GetBits    = libphx.Engine_GetBits,
@@ -34,6 +38,8 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Engine')
     local mt = {
         __index = {
+            window  = libphx.Engine_Window,
+            input   = libphx.Engine_Input,
             getTime = libphx.Engine_GetTime,
         },
     }
