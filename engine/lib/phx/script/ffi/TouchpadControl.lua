@@ -5,6 +5,8 @@ local TouchpadControl
 
 do -- C Definitions
     ffi.cdef [[
+        typedef uint8 TouchpadControl;
+
         TouchpadControl TouchpadControl_X;
         TouchpadControl TouchpadControl_Y;
         TouchpadControl TouchpadControl_MagnifyDelta;

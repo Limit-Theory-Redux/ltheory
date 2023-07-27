@@ -1,13 +1,14 @@
 use std::io::Write;
 use std::{env::VarError, fs::File, path::PathBuf};
 
+use crate::impl_item::TypeVariant;
 use crate::{args::EnumAttrArgs, IDENT, LUAJIT_FFI_GEN_DIR, LUAJIT_FFI_GEN_DIR_ENV};
 
 use super::EnumInfo;
 
 impl EnumInfo {
     /// Generate Lua FFI file
-    pub fn generate_ffi(&self, attr_args: &EnumAttrArgs) {
+    pub fn generate_ffi(&self, attr_args: &EnumAttrArgs, repr_type: &str) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
         let luajit_ffi_gen_dir = match std::env::var(LUAJIT_FFI_GEN_DIR_ENV) {
             Ok(var) => {
@@ -54,6 +55,15 @@ impl EnumInfo {
         // C Definitions
         writeln!(&mut file, "do -- C Definitions").unwrap();
         writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
+
+        let enum_repr_ty = TypeVariant::from_str(repr_type).unwrap_or(TypeVariant::U32);
+
+        writeln!(
+            &mut file,
+            "{IDENT}{IDENT}typedef {} {module_name};\n",
+            enum_repr_ty.as_ffi_string()
+        )
+        .unwrap();
 
         let max_ret_len = std::cmp::max("cstr".len(), module_name.len());
 

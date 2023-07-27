@@ -5,6 +5,8 @@ local KeyboardButton
 
 do -- C Definitions
     ffi.cdef [[
+        typedef uint8 KeyboardButton;
+
         KeyboardButton KeyboardButton_Key1;
         KeyboardButton KeyboardButton_Key2;
         KeyboardButton KeyboardButton_Key3;

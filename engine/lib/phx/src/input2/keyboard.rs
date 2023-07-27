@@ -1,6 +1,6 @@
 use crate::internal::static_string;
 
-#[luajit_ffi_gen::luajit_ffi(repr = "u16")]
+#[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyboardButton {
     /// The `1` key over the letters.

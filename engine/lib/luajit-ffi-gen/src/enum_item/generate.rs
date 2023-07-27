@@ -60,7 +60,7 @@ impl EnumInfo {
         let to_string_c_ident = format_ident!("{}_ToString", self.name);
 
         if attr_args.gen_lua_ffi() {
-            self.generate_ffi(&attr_args);
+            self.generate_ffi(&attr_args, &repr_type);
         }
 
         // TODO: generate repr type binding for Lua

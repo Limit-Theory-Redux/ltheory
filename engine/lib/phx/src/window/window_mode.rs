@@ -1,7 +1,7 @@
 use crate::window::static_string;
 
 /// Defines the way a [`Window`] is displayed.
-#[luajit_ffi_gen::luajit_ffi(repr = "u32")]
+#[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowMode {
     /// The window should take a portion of the screen, using the window resolution size.

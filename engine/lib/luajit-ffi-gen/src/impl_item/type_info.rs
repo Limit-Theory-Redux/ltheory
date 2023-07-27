@@ -155,7 +155,7 @@ impl TypeVariant {
         .into()
     }
 
-    fn as_ffi_string(&self) -> String {
+    pub fn as_ffi_string(&self) -> String {
         match self {
             Self::Bool => "bool",
             Self::I8 => "int8",
