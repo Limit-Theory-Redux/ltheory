@@ -139,6 +139,10 @@ impl Physics {
         );
         self.query_pipeline
             .update(&world.rigid_body_set, &world.collider_set);
+        for (_, rb) in world.rigid_body_set.iter_mut() {
+            rb.reset_forces(false);
+            rb.reset_torques(false);
+        }
     }
 }
 
