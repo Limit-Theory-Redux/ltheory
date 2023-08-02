@@ -26,26 +26,11 @@ use crate::system::*;
 use crate::window::*;
 
 use glam::DVec2;
-// use sdl2_sys::*;
-use tracing::info;
-use tracing::warn;
+use tracing::{info, warn};
 use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use tracing_subscriber::EnvFilter;
-use winit::event;
-use winit::event::DeviceEvent;
-use winit::event::Event;
-use winit::event::StartCause;
-use winit::event::WindowEvent;
+use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
+use winit::event::{self, *};
 use winit::event_loop::*;
-
-// #[no_mangle]
-// pub static subsystems: u32 = SDL_INIT_EVENTS
-//     | SDL_INIT_VIDEO
-//     | SDL_INIT_TIMER
-//     | SDL_INIT_HAPTIC
-//     | SDL_INIT_JOYSTICK
-//     | SDL_INIT_GAMECONTROLLER;
 
 pub struct Engine {
     init_time: TimeStamp,
@@ -587,15 +572,15 @@ impl Engine {
                             engine.input.touchpad_state.update(TouchpadControl::X, x);
                             engine.input.touchpad_state.update(TouchpadControl::Y, y);
                         }
-                        WindowEvent::ReceivedCharacter(c) => {
+                        WindowEvent::ReceivedCharacter(_c) => {
                             // input_events.character_input.send(ReceivedCharacter {
                             //     window: window_entity,
                             //     char: c,
                             // });
                         }
                         WindowEvent::ScaleFactorChanged {
-                            scale_factor,
-                            new_inner_size,
+                            scale_factor: _,
+                            new_inner_size: _,
                         } => {
                             // window_events.window_backend_scale_factor_changed.send(
                             //     WindowBackendScaleFactorChanged {
@@ -653,22 +638,14 @@ impl Engine {
                             //     focused,
                             // });
                         }
-                        WindowEvent::DroppedFile(path_buf) => {
-                            // file_drag_and_drop_events.send(FileDragAndDrop::DroppedFile {
-                            //     window: window_entity,
-                            //     path_buf,
-                            // });
+                        WindowEvent::DroppedFile(file) => {
+                            engine.input.drag_and_drop_state.update_dropped(file);
                         }
-                        WindowEvent::HoveredFile(path_buf) => {
-                            // file_drag_and_drop_events.send(FileDragAndDrop::HoveredFile {
-                            //     window: window_entity,
-                            //     path_buf,
-                            // });
+                        WindowEvent::HoveredFile(file) => {
+                            engine.input.drag_and_drop_state.update_hovered(file);
                         }
                         WindowEvent::HoveredFileCancelled => {
-                            // file_drag_and_drop_events.send(FileDragAndDrop::HoveredFileCanceled {
-                            //     window: window_entity,
-                            // });
+                            engine.input.drag_and_drop_state.update_cancelled();
                         }
                         WindowEvent::Moved(position) => {
                             let position = ivec2(position.x, position.y);
@@ -681,14 +658,14 @@ impl Engine {
                             // });
                         }
                         WindowEvent::Ime(event) => match event {
-                            event::Ime::Preedit(value, cursor) => {
+                            event::Ime::Preedit(_value, _cursor) => {
                                 // input_events.ime_input.send(Ime::Preedit {
                                 //     window: window_entity,
                                 //     value,
                                 //     cursor,
                                 // });
                             }
-                            event::Ime::Commit(value) => {
+                            event::Ime::Commit(_value) => {
                                 // input_events.ime_input.send(Ime::Commit {
                                 //                             window: window_entity,
                                 //                             value,
@@ -705,7 +682,7 @@ impl Engine {
                                 //                         })
                             }
                         },
-                        WindowEvent::ThemeChanged(theme) => {
+                        WindowEvent::ThemeChanged(_theme) => {
                             // window_events.window_theme_changed.send(WindowThemeChanged {
                             //     window: window_entity,
                             //     theme: convert_winit_theme(theme),
@@ -722,7 +699,7 @@ impl Engine {
                     }
 
                     // if engine.window.is_changed() {
-                    //     cache.window = window.clone();
+                    //     engine.cache.window = engine.window.clone();
                     // }
                 }
                 event::Event::DeviceEvent {

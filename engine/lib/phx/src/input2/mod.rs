@@ -1,12 +1,14 @@
 use self::mouse::MouseState;
 
 mod cursor;
+mod drag_and_drop;
 mod gamepad;
 mod keyboard;
 mod mouse;
 mod touchpad;
 
 pub use cursor::*;
+pub use drag_and_drop::*;
 pub use gamepad::*;
 pub use keyboard::*;
 pub use mouse::*;
@@ -19,6 +21,7 @@ pub struct Input2 {
     pub mouse_state: MouseState,
     pub touchpad_state: TouchpadState,
     pub gamepad_state: GamepadState,
+    pub drag_and_drop_state: DragAndDropState,
 }
 
 impl Input2 {
@@ -26,6 +29,7 @@ impl Input2 {
         self.mouse_state.reset();
         self.touchpad_state.reset();
         self.gamepad_state.reset();
+        self.drag_and_drop_state.reset();
     }
 
     pub fn gamepad_mut(&mut self) -> &mut GamepadState {
@@ -53,5 +57,9 @@ impl Input2 {
 
     pub fn gamepad(&self) -> &GamepadState {
         &self.gamepad_state
+    }
+
+    pub fn drag_and_drop(&self) -> &DragAndDropState {
+        &self.drag_and_drop_state
     }
 }

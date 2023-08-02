@@ -333,7 +333,11 @@ impl Window {
     }
 
     pub fn set_fullscreen(&mut self, fs: bool) {
-        self.mode = WindowMode::Fullscreen;
+        self.mode = if fs {
+            WindowMode::Fullscreen
+        } else {
+            WindowMode::Windowed
+        };
     }
 
     pub fn toggle_fullscreen(&mut self) {

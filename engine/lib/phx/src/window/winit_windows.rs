@@ -124,7 +124,7 @@ impl WinitWindows {
         }
 
         let winit_window = winit_window_builder.build(event_loop).unwrap();
-        let name = window.title.clone();
+        // let name = window.title.clone();
 
         // let mut root_builder = NodeBuilder::new(Role::Window);
         // root_builder.set_name(name.into_boxed_str());
