@@ -9,6 +9,7 @@ do -- C Definitions
 
         uint64     GamepadState_GetGamepadsCount (GamepadState const*);
         GamepadId* GamepadState_GetGamepadId     (GamepadState const*, uint64 index);
+        cstr       GamepadState_GetGamepadName   (GamepadState const*, GamepadId gamepadId);
         float      GamepadState_GetButtonValue   (GamepadState const*, GamepadId gamepadId, GamepadButton button);
         float      GamepadState_GetAxisValue     (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
     ]]
@@ -18,6 +19,7 @@ do -- Global Symbol Table
     GamepadState = {
         GetGamepadsCount = libphx.GamepadState_GetGamepadsCount,
         GetGamepadId     = libphx.GamepadState_GetGamepadId,
+        GetGamepadName   = libphx.GamepadState_GetGamepadName,
         GetButtonValue   = libphx.GamepadState_GetButtonValue,
         GetAxisValue     = libphx.GamepadState_GetAxisValue,
     }
@@ -32,6 +34,7 @@ do -- Metatype for class instances
         __index = {
             getGamepadsCount = libphx.GamepadState_GetGamepadsCount,
             getGamepadId     = libphx.GamepadState_GetGamepadId,
+            getGamepadName   = libphx.GamepadState_GetGamepadName,
             getButtonValue   = libphx.GamepadState_GetButtonValue,
             getAxisValue     = libphx.GamepadState_GetAxisValue,
         },

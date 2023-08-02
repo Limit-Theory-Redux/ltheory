@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use gilrs::{ev::filter::axis_dpad_to_button, EventType, Filter, Gilrs, GilrsBuilder};
 
 use super::*;
+use crate::internal::static_string;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GamepadId {
@@ -15,10 +16,20 @@ impl GamepadId {
     }
 }
 
-#[derive(Default)]
 pub struct GamepadDeviceState {
+    name: String,
     buttons: [f32; GAMEPAD_BUTTON_COUNT],
     axes: [f32; GAMEPAD_AXIS_COUNT],
+}
+
+impl GamepadDeviceState {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.into(),
+            buttons: Default::default(),
+            axes: Default::default(),
+        }
+    }
 }
 
 pub struct GamepadState {
@@ -62,16 +73,19 @@ impl GamepadState {
             let gamepad_id = GamepadId::new(gilrs_event.id.into());
             match gilrs_event.event {
                 EventType::Connected => {
-                    self.device_state.insert(gamepad_id, Default::default());
+                    let pad = self.gilrs.gamepad(gilrs_event.id);
+                    let device_state = GamepadDeviceState::new(pad.name());
+
+                    self.device_state.insert(gamepad_id, device_state);
                 }
                 EventType::Disconnected => {
                     self.device_state.remove(&gamepad_id);
                 }
                 EventType::ButtonChanged(gilrs_button, raw_value, _) => {
                     if let Some(button) = convert_button(gilrs_button) {
-                        let mut states = self.device_state.entry(gamepad_id).or_default();
-
-                        states.buttons[button as usize] = raw_value;
+                        if let Some(state) = self.device_state.get_mut(&gamepad_id) {
+                            state.buttons[button as usize] = raw_value;
+                        }
 
                         // TODO: threshold check?
                         // let button = GamepadButton::new(gamepad_id, button_type);
@@ -93,9 +107,9 @@ impl GamepadState {
                 }
                 EventType::AxisChanged(gilrs_axis, raw_value, _) => {
                     if let Some(axis) = convert_axis(gilrs_axis) {
-                        let mut states = self.device_state.entry(gamepad_id).or_default();
-
-                        states.axes[axis as usize] = raw_value;
+                        if let Some(state) = self.device_state.get_mut(&gamepad_id) {
+                            state.axes[axis as usize] = raw_value;
+                        }
 
                         // TODO: threshold check?
                         // let axis = GamepadAxis::new(gamepad_id, axis_type);
@@ -131,6 +145,12 @@ impl GamepadState {
         device_ids.sort(); // TODO: do we really need this?
 
         device_ids.get(index).map(|id| **id)
+    }
+
+    pub fn get_gamepad_name(&self, gamepad_id: GamepadId) -> Option<String> {
+        self.device_state
+            .get(&gamepad_id)
+            .map(|state| state.name.clone())
     }
 
     pub fn get_button_value(&self, gamepad_id: GamepadId, button: GamepadButton) -> f32 {
