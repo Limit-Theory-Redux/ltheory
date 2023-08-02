@@ -30,10 +30,9 @@ impl TouchpadState {
 #[luajit_ffi_gen::luajit_ffi]
 impl TouchpadState {
     pub fn get_value(&self, control: TouchpadControl) -> f32 {
-        if let Some(val) = self.controls.get(control as usize) {
-            *val
-        } else {
-            0.0 // TODO: return an error?
-        }
+        self.controls
+            .get(control as usize)
+            .map(|val| *val)
+            .unwrap_or_default() // TODO: return an error?
     }
 }

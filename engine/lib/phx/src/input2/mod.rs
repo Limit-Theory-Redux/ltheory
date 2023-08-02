@@ -1,11 +1,13 @@
 use self::mouse::MouseState;
 
 mod cursor;
+mod gamepad;
 mod keyboard;
 mod mouse;
 mod touchpad;
 
 pub use cursor::*;
+pub use gamepad::*;
 pub use keyboard::*;
 pub use mouse::*;
 pub use touchpad::*;
@@ -16,12 +18,18 @@ pub struct Input2 {
     pub keyboard_state: KeyboardState,
     pub mouse_state: MouseState,
     pub touchpad_state: TouchpadState,
+    pub gamepad_state: GamepadState,
 }
 
 impl Input2 {
     pub fn reset(&mut self) {
         self.mouse_state.reset();
         self.touchpad_state.reset();
+        self.gamepad_state.reset();
+    }
+
+    pub fn gamepad_mut(&mut self) -> &mut GamepadState {
+        &mut self.gamepad_state
     }
 }
 
@@ -41,5 +49,9 @@ impl Input2 {
 
     pub fn touchpad(&self) -> &TouchpadState {
         &self.touchpad_state
+    }
+
+    pub fn gamepad(&self) -> &GamepadState {
+        &self.gamepad_state
     }
 }

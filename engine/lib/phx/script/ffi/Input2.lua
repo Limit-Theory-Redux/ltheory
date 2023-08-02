@@ -11,6 +11,7 @@ do -- C Definitions
         KeyboardState const* Input2_Keyboard (Input2 const*);
         MouseState const*    Input2_Mouse    (Input2 const*);
         TouchpadState const* Input2_Touchpad (Input2 const*);
+        GamepadState const*  Input2_Gamepad  (Input2 const*);
     ]]
 end
 
@@ -20,6 +21,7 @@ do -- Global Symbol Table
         Keyboard = libphx.Input2_Keyboard,
         Mouse    = libphx.Input2_Mouse,
         Touchpad = libphx.Input2_Touchpad,
+        Gamepad  = libphx.Input2_Gamepad,
     }
 
     if onDef_Input2 then onDef_Input2(Input2, mt) end
@@ -34,6 +36,7 @@ do -- Metatype for class instances
             keyboard = libphx.Input2_Keyboard,
             mouse    = libphx.Input2_Mouse,
             touchpad = libphx.Input2_Touchpad,
+            gamepad  = libphx.Input2_Gamepad,
         },
     }
 

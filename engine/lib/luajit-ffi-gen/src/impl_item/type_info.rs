@@ -5,8 +5,9 @@ const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 5] = [
     ("Vec2", "Vec2f"),
     ("Vec3", "Vec3f"),
 ];
+
 // TODO: find out different way to mark types as copyable
-const COPY_TYPES: [&str; 10] = [
+const COPY_TYPES: [&str; 13] = [
     "IVec2",
     "UVec2",
     "DVec2",
@@ -17,6 +18,9 @@ const COPY_TYPES: [&str; 10] = [
     "KeyboardButton",
     "CursorControl",
     "TouchpadControl",
+    "GamepadId",
+    "GamepadButton",
+    "GamepadAxis",
 ];
 
 pub struct TypeInfo {
@@ -88,6 +92,8 @@ pub enum TypeVariant {
     U32,
     I64,
     U64,
+    ISize,
+    USize,
     F32,
     F64,
     Str,
@@ -101,6 +107,7 @@ impl TypeVariant {
         matches!(self, Self::Custom(_))
     }
 
+    #[allow(dead_code)]
     pub fn is_str(&self) -> bool {
         matches!(self, Self::Str)
     }
@@ -123,6 +130,8 @@ impl TypeVariant {
             "u32" => Self::U32,
             "i64" => Self::I64,
             "u64" => Self::U64,
+            "isize" => Self::ISize,
+            "usize" => Self::USize,
             "f32" => Self::F32,
             "f64" => Self::F64,
             "str" => Self::Str,
@@ -145,6 +154,8 @@ impl TypeVariant {
             Self::U32 => "u32",
             Self::I64 => "i64",
             Self::U64 => "u64",
+            Self::ISize => "isize",
+            Self::USize => "usize",
             Self::F32 => "f32",
             Self::F64 => "f64",
             Self::Str => "str",
@@ -166,6 +177,8 @@ impl TypeVariant {
             Self::U32 => "uint32",
             Self::I64 => "int64",
             Self::U64 => "uint64",
+            Self::ISize => "int64",
+            Self::USize => "uint64",
             Self::F32 => "float",
             Self::F64 => "double",
             Self::Str | Self::String | Self::CString => "cstr",

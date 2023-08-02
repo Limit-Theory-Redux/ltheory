@@ -24,10 +24,9 @@ impl CursorState {
 #[luajit_ffi_gen::luajit_ffi]
 impl CursorState {
     pub fn get_value(&self, control: CursorControl) -> f32 {
-        if let Some(val) = self.controls.get(control as usize) {
-            *val
-        } else {
-            0.0 // TODO: return an error?
-        }
+        self.controls
+            .get(control as usize)
+            .map(|val| *val)
+            .unwrap_or_default() // TODO: return an error?
     }
 }

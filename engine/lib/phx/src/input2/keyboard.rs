@@ -378,10 +378,9 @@ impl KeyboardState {
 #[luajit_ffi_gen::luajit_ffi]
 impl KeyboardState {
     pub fn get_value(&self, button: KeyboardButton) -> f32 {
-        if let Some(val) = self.buttons.get(button as usize) {
-            *val
-        } else {
-            0.0 // TODO: return an error?
-        }
+        self.buttons
+            .get(button as usize)
+            .map(|val| *val)
+            .unwrap_or_default() // TODO: return an error?
     }
 }

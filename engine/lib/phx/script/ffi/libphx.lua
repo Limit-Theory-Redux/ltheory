@@ -41,6 +41,7 @@ do -- Basic Typedefs
     typedef int32          TexWrapMode;
     typedef uint32         WindowMode;
     typedef int            WindowPos;
+    typedef uint64         GamepadId;
     typedef int32          GamepadAxis;
     typedef int32          GamepadButton;
     typedef int32          HatDir;

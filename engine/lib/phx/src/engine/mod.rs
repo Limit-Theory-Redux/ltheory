@@ -748,6 +748,9 @@ impl Engine {
                     if finished_and_setup_done {
                         engine.frame_state.last_update = Instant::now();
 
+                        // Load all gamepad events
+                        engine.input.gamepad_mut().update();
+
                         // TODO: call Lua AppFrame() function
 
                         // Apply window changes made by a script
