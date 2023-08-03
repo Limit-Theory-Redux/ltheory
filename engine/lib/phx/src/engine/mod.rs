@@ -12,12 +12,8 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use crate::common::*;
-use crate::input::*;
-use crate::input2::CursorControl;
-use crate::input2::Input2;
-use crate::input2::MouseControl;
-use crate::input2::MouseControlFull;
-use crate::input2::TouchpadControl;
+// use crate::input::*;
+use crate::input2::*;
 use crate::internal::*;
 use crate::logging::init_log;
 use crate::lua::*;
@@ -107,10 +103,10 @@ impl Engine {
             // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DOUBLEBUFFER, 1);
             // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DEPTH_SIZE, 24);
 
-            Keyboard_Init();
+            // Keyboard_Init();
             Metric_Reset();
-            Mouse_Init();
-            Input_Init();
+            // Mouse_Init();
+            // Input_Init();
             Resource_Init();
             ShaderVar_Init();
         }
@@ -517,31 +513,35 @@ impl Engine {
                                 .update(CursorControl::InWindow, 0.0);
                         }
                         WindowEvent::MouseInput { state, button, .. } => {
-                            engine
-                                .input
-                                .mouse_state
-                                .update(convert_mouse_button(button), convert_element_state(state));
+                            let control = convert_mouse_button(button);
+
+                            if let Some(control) = control {
+                                engine
+                                    .input
+                                    .mouse_state
+                                    .update(control, convert_element_state(state));
+                            }
                         }
                         WindowEvent::MouseWheel { delta, .. } => match delta {
                             event::MouseScrollDelta::LineDelta(x, y) => {
-                                engine.input.mouse_state.update(
-                                    MouseControlFull::MouseControl(MouseControl::ScrollLineX),
-                                    x,
-                                );
-                                engine.input.mouse_state.update(
-                                    MouseControlFull::MouseControl(MouseControl::ScrollLineY),
-                                    y,
-                                );
+                                engine
+                                    .input
+                                    .mouse_state
+                                    .update(MouseControl::ScrollLineX, x);
+                                engine
+                                    .input
+                                    .mouse_state
+                                    .update(MouseControl::ScrollLineY, y);
                             }
                             event::MouseScrollDelta::PixelDelta(p) => {
-                                engine.input.mouse_state.update(
-                                    MouseControlFull::MouseControl(MouseControl::ScrollPixelX),
-                                    p.x as f32,
-                                );
-                                engine.input.mouse_state.update(
-                                    MouseControlFull::MouseControl(MouseControl::ScrollPixelY),
-                                    p.y as f32,
-                                );
+                                engine
+                                    .input
+                                    .mouse_state
+                                    .update(MouseControl::ScrollPixelX, p.x as f32);
+                                engine
+                                    .input
+                                    .mouse_state
+                                    .update(MouseControl::ScrollPixelY, p.y as f32);
                             }
                         },
                         WindowEvent::TouchpadMagnify { delta, .. } => {
@@ -706,14 +706,14 @@ impl Engine {
                     event: DeviceEvent::MouseMotion { delta: (x, y) },
                     ..
                 } => {
-                    engine.input.mouse_state.update(
-                        MouseControlFull::MouseControl(MouseControl::DeltaX),
-                        x as f32,
-                    );
-                    engine.input.mouse_state.update(
-                        MouseControlFull::MouseControl(MouseControl::DeltaY),
-                        y as f32,
-                    );
+                    engine
+                        .input
+                        .mouse_state
+                        .update(MouseControl::DeltaX, x as f32);
+                    engine
+                        .input
+                        .mouse_state
+                        .update(MouseControl::DeltaY, y as f32);
                 }
                 event::Event::Suspended => {
                     engine.frame_state.active = false;
@@ -838,9 +838,9 @@ impl Engine {
     pub fn free() {
         unsafe {
             ShaderVar_Free();
-            Keyboard_Free();
-            Mouse_Free();
-            Input_Free();
+            // Keyboard_Free();
+            // Mouse_Free();
+            // Input_Free();
             Signal_Free();
             // SDL_QuitSubSystem(subsystems);
         }
@@ -871,12 +871,12 @@ impl Engine {
         unsafe {
             Profiler_Begin(c_str!("Engine_Update"));
             Metric_Reset();
-            Keyboard_UpdatePre();
-            Mouse_Update();
-            Joystick_Update();
-            Gamepad_Update();
-            Input_Update();
-            Keyboard_UpdatePost();
+            // Keyboard_UpdatePre();
+            // Mouse_Update();
+            // Joystick_Update();
+            // Gamepad_Update();
+            // Input_Update();
+            // Keyboard_UpdatePost();
             Profiler_End();
         }
     }

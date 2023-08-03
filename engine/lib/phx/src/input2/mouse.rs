@@ -18,50 +18,74 @@ pub enum MouseControl {
     ScrollLineY,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MouseControlFull {
-    MouseControl(MouseControl),
-    Other(u16), // TODO: can we expose this somehow to the Lua code?
-}
-
 #[derive(Default)]
 pub struct MouseState {
-    controls: [f32; MOUSE_CONTROL_COUNT],
-    controls_other: HashMap<u16, f32>,
+    transitions: [u32; MOUSE_CONTROL_COUNT],
+    buttons: [bool; MOUSE_CONTROL_COUNT],
+    axes: [f32; MOUSE_CONTROL_COUNT],
 }
 
 impl MouseState {
     pub fn reset(&mut self) {
+        self.transitions.fill(0);
+
         // Reset non-button controls only
-        self.controls[MouseControl::X1 as usize] = 0.0;
-        self.controls[MouseControl::X2 as usize] = 0.0;
-        self.controls[MouseControl::DeltaX as usize] = 0.0;
-        self.controls[MouseControl::DeltaY as usize] = 0.0;
-        self.controls[MouseControl::ScrollPixelX as usize] = 0.0;
-        self.controls[MouseControl::ScrollPixelY as usize] = 0.0;
-        self.controls[MouseControl::ScrollLineX as usize] = 0.0;
-        self.controls[MouseControl::ScrollLineY as usize] = 0.0;
+        self.axes[MouseControl::DeltaX as usize] = 0.0;
+        self.axes[MouseControl::DeltaY as usize] = 0.0;
+        self.axes[MouseControl::ScrollPixelX as usize] = 0.0;
+        self.axes[MouseControl::ScrollPixelY as usize] = 0.0;
+        self.axes[MouseControl::ScrollLineX as usize] = 0.0;
+        self.axes[MouseControl::ScrollLineY as usize] = 0.0;
     }
 
-    pub fn update(&mut self, control: MouseControlFull, val: f32) {
-        match control {
-            MouseControlFull::MouseControl(control) => self.controls[control as usize] = val,
-            MouseControlFull::Other(id) => {
-                let _ = self.controls_other.insert(id, val);
-            }
-        }
+    pub fn pressed(&mut self, control: MouseControl) {
+        self.buttons[control as usize] = true;
+        self.transitions[control as usize] += 1;
+    }
+
+    pub fn released(&mut self, control: MouseControl) {
+        self.buttons[control as usize] = false;
+        self.transitions[control as usize] += 1;
+    }
+
+    pub fn update(&mut self, control: MouseControl, val: f32) {
+        self.axes[control as usize] = val;
     }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl MouseState {
     pub fn get_value(&self, control: MouseControl) -> f32 {
-        if let Some(val) = self.controls.get(control as usize) {
-            *val
-        } else if let Some(val) = self.controls_other.get(&(control as u16)) {
+        if let Some(val) = self.axes.get(control as usize) {
             *val
         } else {
             0.0 // TODO: return an error?
+        }
+    }
+
+    pub fn is_pressed(&self, control: MouseControl) -> bool {
+        let index = control as usize;
+
+        self.buttons[index] || self.transitions[index] > 0
+    }
+
+    pub fn is_down(&self, control: MouseControl) -> bool {
+        let index = control as usize;
+
+        if self.buttons[index] {
+            self.transitions[index] > 0
+        } else {
+            self.transitions[index] > 1
+        }
+    }
+
+    pub fn is_released(&self, control: MouseControl) -> bool {
+        let index = control as usize;
+
+        if self.buttons[index] {
+            self.transitions[index] > 1
+        } else {
+            self.transitions[index] > 0
         }
     }
 }

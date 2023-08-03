@@ -1,4 +1,4 @@
-use crate::input2::{KeyboardButton, MouseControl, MouseControlFull};
+use crate::input2::{KeyboardButton, MouseControl};
 
 use super::{CursorIcon, WindowLevel, WindowTheme};
 
@@ -239,15 +239,15 @@ pub fn convert_element_state(element_state: winit::event::ElementState) -> f32 {
     }
 }
 
-pub fn convert_mouse_button(mouse_button: winit::event::MouseButton) -> MouseControlFull {
+pub fn convert_mouse_button(mouse_button: winit::event::MouseButton) -> Option<MouseControl> {
     match mouse_button {
-        winit::event::MouseButton::Left => MouseControlFull::MouseControl(MouseControl::Left),
-        winit::event::MouseButton::Right => MouseControlFull::MouseControl(MouseControl::Right),
-        winit::event::MouseButton::Middle => MouseControlFull::MouseControl(MouseControl::Middle),
+        winit::event::MouseButton::Left => Some(MouseControl::Left),
+        winit::event::MouseButton::Right => Some(MouseControl::Right),
+        winit::event::MouseButton::Middle => Some(MouseControl::Middle),
         winit::event::MouseButton::Other(val) => match val {
-            4 => MouseControlFull::MouseControl(MouseControl::X1), // TODO: test these ids are correct on all platforms
-            5 => MouseControlFull::MouseControl(MouseControl::X2),
-            _ => MouseControlFull::Other(val),
+            4 => Some(MouseControl::X1), // TODO: test these ids are correct on all platforms
+            5 => Some(MouseControl::X2),
+            _ => None,
         },
     }
 }
