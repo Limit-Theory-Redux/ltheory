@@ -11,6 +11,7 @@ do -- C Definitions
         TouchpadControl TouchpadControl_Y;
         TouchpadControl TouchpadControl_MagnifyDelta;
         TouchpadControl TouchpadControl_RotateDelta;
+
         cstr            TouchpadControl_ToString(TouchpadControl);
     ]]
 end
@@ -21,7 +22,8 @@ do -- Global Symbol Table
         Y            = libphx.TouchpadControl_Y,
         MagnifyDelta = libphx.TouchpadControl_MagnifyDelta,
         RotateDelta  = libphx.TouchpadControl_RotateDelta,
-        ToString = libphx.TouchpadControl_ToString,
+
+        ToString     = libphx.TouchpadControl_ToString,
     }
 
     if onDef_TouchpadControl then onDef_TouchpadControl(TouchpadControl, mt) end

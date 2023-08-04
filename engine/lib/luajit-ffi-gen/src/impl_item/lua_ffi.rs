@@ -1,6 +1,8 @@
 use std::{env::VarError, fs::File, io::Write, path::PathBuf};
 
-use crate::{args::ImplAttrArgs, IDENT, LUAJIT_FFI_GEN_DIR, LUAJIT_FFI_GEN_DIR_ENV};
+use crate::{
+    args::ImplAttrArgs, ffi_data::FfiData, IDENT, LUAJIT_FFI_GEN_DIR, LUAJIT_FFI_GEN_DIR_ENV,
+};
 
 use super::ImplInfo;
 
@@ -8,6 +10,8 @@ impl ImplInfo {
     /// Generate Lua FFI file
     pub fn generate_ffi(&self, attr_args: &ImplAttrArgs) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
+        let ffi_data = FfiData::load(&module_name);
+
         let luajit_ffi_gen_dir = match std::env::var(LUAJIT_FFI_GEN_DIR_ENV) {
             Ok(var) => {
                 if !var.is_empty() {
@@ -59,11 +63,18 @@ impl ImplInfo {
         writeln!(&mut file, "local {module_name}\n").unwrap();
 
         // C Definitions
+        let is_opaque = !ffi_data
+            .as_ref()
+            .map(|data| data.has_typedef)
+            .unwrap_or_default()
+            && attr_args.is_opaque()
+            && gen_metatype;
         let (max_method_name_len, max_self_method_name_len) = self.write_c_defs(
             &mut file,
             &module_name,
             attr_args.is_managed(),
-            attr_args.is_opaque() && gen_metatype,
+            is_opaque,
+            ffi_data.as_ref().map(|data| data.c_definitions.as_ref()),
         );
 
         // Global Symbol Table
@@ -72,6 +83,9 @@ impl ImplInfo {
             &module_name,
             max_method_name_len,
             attr_args.is_managed(),
+            ffi_data
+                .as_ref()
+                .map(|data| data.global_symbol_table.as_ref()),
         );
 
         if gen_metatype && attr_args.is_clone() {
@@ -141,6 +155,7 @@ impl ImplInfo {
         module_name: &str,
         is_managed: bool,
         is_opaque: bool,
+        c_definitions: Option<&[String]>,
     ) -> (usize, usize) {
         writeln!(&mut file, "do -- C Definitions").unwrap();
         writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
@@ -151,6 +166,14 @@ impl ImplInfo {
                 "{IDENT}{IDENT}typedef struct {module_name} {{}} {module_name};\n"
             )
             .unwrap();
+        }
+
+        if let Some(c_definitions) = c_definitions {
+            c_definitions
+                .iter()
+                .for_each(|def| writeln!(&mut file, "{def}").unwrap());
+
+            writeln!(&mut file, "").unwrap();
         }
 
         // Tof managed we add 'void Free' method
@@ -254,9 +277,18 @@ impl ImplInfo {
         module_name: &str,
         max_method_name_len: usize,
         is_managed: bool,
+        global_symbol_table: Option<&[String]>,
     ) {
         writeln!(&mut file, "do -- Global Symbol Table").unwrap();
         writeln!(&mut file, "{IDENT}{module_name} = {{").unwrap();
+
+        if let Some(global_symbol_table) = global_symbol_table {
+            global_symbol_table
+                .iter()
+                .for_each(|def| writeln!(&mut file, "{def}").unwrap());
+
+            writeln!(&mut file, "").unwrap();
+        }
 
         if is_managed {
             writeln!(

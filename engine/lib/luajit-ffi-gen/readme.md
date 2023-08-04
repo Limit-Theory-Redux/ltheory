@@ -102,13 +102,24 @@ pub enum MyEnum2 {
 This will generate following C API wrappers:
 ```rust
 #[no_mangle]
-pub const MyEnum1_Var1: u8 = MyEnum1::Var1.value();
+pub const My_Enum1_Var1: u8 = MyEnum1::Var1.value();
 
 #[no_mangle]
-pub const MyEnum1_Var2: u8 = MyEnum1::Var2.value();
+pub const My_Enum1_Var2: u8 = MyEnum1::Var2.value();
 
 #[no_mangle]
 pub extern "C" fn MyEnum1_ToString(this: MyEnum1) -> *const libc::c_char {
+    // ...
+}
+
+#[no_mangle]
+pub const MyEnum2_Var1: u8 = MyEnum2::Var1.value();
+
+#[no_mangle]
+pub const MyEnum2_Var2: u8 = MyEnum2::Var2.value();
+
+#[no_mangle]
+pub extern "C" fn MyEnum2_ToString(this: MyEnum2) -> *const libc::c_char {
     // ...
 }
 ```
@@ -122,8 +133,11 @@ local My_Enum1
 
 do -- C Definitions
     ffi.cdef [[
+        typedef uint8 My_Enum1;
+
         My_Enum1 My_Enum1_Var1;
         My_Enum1 My_Enum1_Var2;
+
         cstr     My_Enum1_ToString(My_Enum1);
     ]]
 end
@@ -132,6 +146,7 @@ do -- Global Symbol Table
     My_Enum1 = {
         Var1     = libphx.My_Enum1_Var1,
         Var2     = libphx.My_Enum1_Var2,
+
         ToString = libphx.My_Enum1_ToString,
     }
 
@@ -150,6 +165,86 @@ For the variants without values starting index can be set, otherwise it starts f
 
 If `repr` parameter is set then `#[repr(...)]` attribute will be added with the specified type, otherwise type will be deducted from the maximal variant value: u8, u16, u32 or u64.
 
+## Joining enum and impl blocks
+
+If it's required to expose both `enum` and its `impl` block then `with_impl` attribute should be used:
+
+```rust
+#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
+#[derive(Debug)]
+pub enum MyEnum1 {
+    Var1,
+    Var2,
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+impl MyEnum1 {
+    pub fn is_var1(&self) -> bool {
+        *self == Self::Var1
+    }
+}
+```
+
+This will generate following C API wrappers:
+```rust
+#[no_mangle]
+pub const MyEnum1_Var1: u8 = MyEnum1::Var1.value();
+
+#[no_mangle]
+pub const MyEnum1_Var2: u8 = MyEnum1::Var2.value();
+
+#[no_mangle]
+pub extern "C" fn MyEnum1_ToString(this: MyEnum1) -> *const libc::c_char {
+    // ...
+}
+
+#[no_mangle]
+pub extern "C" fn MyEnum1_IsVar1(this: &MyEnum1) -> bool {
+    this.is_var1()
+}
+```
+
+and **MyEnum1.lua**:
+```lua
+-- My_Enum1 --------------------------------------------------------------------
+local ffi = require('ffi')
+local libphx = require('ffi.libphx').lib
+local MyEnum1
+
+do -- C Definitions
+    ffi.cdef [[
+        typedef uint8 MyEnum1;
+
+        MyEnum1 MyEnum1_Var1;
+        MyEnum1 MyEnum1_Var2;
+
+        cstr     MyEnum1_ToString(MyEnum1);
+
+        bool MyEnum1_IsVar1(MyEnum1);
+    ]]
+end
+
+do -- Global Symbol Table
+    MyEnum1 = {
+        Var1     = libphx.MyEnum1_Var1,
+        Var2     = libphx.MyEnum1_Var2,
+
+        ToString = libphx.MyEnum1_ToString,
+
+        IsVar1 = libphx.MyEnum1_IsVar1,
+    }
+
+    if onDef_MyEnum1 then onDef_MyEnum1(MyEnum1, mt) end
+    MyEnum1 = setmetatable(MyEnum1, mt)
+end
+
+return MyEnum1
+```
+
+Take in account that `enum` block should be defined before `impl` otherwise `enum` data will be lost. Also `opaque` parameter doesn't have any influence in this case.
+
+Under the hood proc macro on the `enum` block instead of generating ***.lua** script saves all necessary information in JSON file in **target/ffi** folder. Thi information is merged later by proc macro on `impl` block.
+
 ## Attribute parameters
 
 ### luajit_ffi for `impl` block
@@ -165,13 +260,14 @@ If `repr` parameter is set then `#[repr(...)]` attribute will be added with the 
 - **name** \[string, default = None]: optional object name. If not specified then name is taken from the `impl` definition.
 - **repr** \[string, default = None]: specify what type will be used in `#[repr(...)]` attribute that will be added to the enum definition. If not set then type will be deducted from the maximal discriminant: u8, u16, u32 or u64.
 - **start_index** \[int, default = None]: set starting index for discriminant values. Ignored if enum already has discriminants. Default: 0.
-- **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API. Default: true.
+- **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API.
+- **with_impl** \[bool, default = false]: specify if enum has connected implementation block.
 
 ### bind
 - **name** [string] - set user defined name of the function
 - **role** [enum: constructor, to_string] - set function role.
-  - **constructor** - function won't appear in the metatype section
-  - **to_string** - will generate a binding in the metatype section
+- **constructor** - function won't appear in the metatype section
+- **to_string** - will generate a binding in the metatype section
 
 ## Macro expansion
 

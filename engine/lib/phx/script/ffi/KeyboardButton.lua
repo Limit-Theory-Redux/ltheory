@@ -170,6 +170,7 @@ do -- C Definitions
         KeyboardButton KeyboardButton_Copy;
         KeyboardButton KeyboardButton_Paste;
         KeyboardButton KeyboardButton_Cut;
+
         cstr           KeyboardButton_ToString(KeyboardButton);
     ]]
 end
@@ -339,7 +340,8 @@ do -- Global Symbol Table
         Copy             = libphx.KeyboardButton_Copy,
         Paste            = libphx.KeyboardButton_Paste,
         Cut              = libphx.KeyboardButton_Cut,
-        ToString = libphx.KeyboardButton_ToString,
+
+        ToString         = libphx.KeyboardButton_ToString,
     }
 
     if onDef_KeyboardButton then onDef_KeyboardButton(KeyboardButton, mt) end

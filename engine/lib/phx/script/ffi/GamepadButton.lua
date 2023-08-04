@@ -26,6 +26,7 @@ do -- C Definitions
         GamepadButton GamepadButton_DPadDown;
         GamepadButton GamepadButton_DPadLeft;
         GamepadButton GamepadButton_DPadRight;
+
         cstr          GamepadButton_ToString(GamepadButton);
     ]]
 end
@@ -51,7 +52,8 @@ do -- Global Symbol Table
         DPadDown      = libphx.GamepadButton_DPadDown,
         DPadLeft      = libphx.GamepadButton_DPadLeft,
         DPadRight     = libphx.GamepadButton_DPadRight,
-        ToString = libphx.GamepadButton_ToString,
+
+        ToString      = libphx.GamepadButton_ToString,
     }
 
     if onDef_GamepadButton then onDef_GamepadButton(GamepadButton, mt) end

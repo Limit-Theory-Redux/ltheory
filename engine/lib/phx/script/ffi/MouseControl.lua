@@ -18,6 +18,7 @@ do -- C Definitions
         MouseControl MouseControl_ScrollPixelY;
         MouseControl MouseControl_ScrollLineX;
         MouseControl MouseControl_ScrollLineY;
+
         cstr         MouseControl_ToString(MouseControl);
     ]]
 end
@@ -35,7 +36,8 @@ do -- Global Symbol Table
         ScrollPixelY = libphx.MouseControl_ScrollPixelY,
         ScrollLineX  = libphx.MouseControl_ScrollLineX,
         ScrollLineY  = libphx.MouseControl_ScrollLineY,
-        ToString = libphx.MouseControl_ToString,
+
+        ToString     = libphx.MouseControl_ToString,
     }
 
     if onDef_MouseControl then onDef_MouseControl(MouseControl, mt) end

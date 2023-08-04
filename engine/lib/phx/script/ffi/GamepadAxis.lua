@@ -13,6 +13,7 @@ do -- C Definitions
         GamepadAxis GamepadAxis_RightStickX;
         GamepadAxis GamepadAxis_RightStickY;
         GamepadAxis GamepadAxis_RightZ;
+
         cstr        GamepadAxis_ToString(GamepadAxis);
     ]]
 end
@@ -25,7 +26,8 @@ do -- Global Symbol Table
         RightStickX = libphx.GamepadAxis_RightStickX,
         RightStickY = libphx.GamepadAxis_RightStickY,
         RightZ      = libphx.GamepadAxis_RightZ,
-        ToString = libphx.GamepadAxis_ToString,
+
+        ToString    = libphx.GamepadAxis_ToString,
     }
 
     if onDef_GamepadAxis then onDef_GamepadAxis(GamepadAxis, mt) end

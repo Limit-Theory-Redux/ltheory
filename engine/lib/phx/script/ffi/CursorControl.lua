@@ -10,6 +10,7 @@ do -- C Definitions
         CursorControl CursorControl_X;
         CursorControl CursorControl_Y;
         CursorControl CursorControl_InWindow;
+
         cstr          CursorControl_ToString(CursorControl);
     ]]
 end
@@ -19,6 +20,7 @@ do -- Global Symbol Table
         X        = libphx.CursorControl_X,
         Y        = libphx.CursorControl_Y,
         InWindow = libphx.CursorControl_InWindow,
+
         ToString = libphx.CursorControl_ToString,
     }
 

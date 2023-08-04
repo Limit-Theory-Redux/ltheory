@@ -11,6 +11,7 @@ do -- C Definitions
         WindowMode WindowMode_BorderlessFullscreen;
         WindowMode WindowMode_SizedFullscreen;
         WindowMode WindowMode_Fullscreen;
+
         cstr       WindowMode_ToString(WindowMode);
     ]]
 end
@@ -21,7 +22,8 @@ do -- Global Symbol Table
         BorderlessFullscreen = libphx.WindowMode_BorderlessFullscreen,
         SizedFullscreen      = libphx.WindowMode_SizedFullscreen,
         Fullscreen           = libphx.WindowMode_Fullscreen,
-        ToString = libphx.WindowMode_ToString,
+
+        ToString             = libphx.WindowMode_ToString,
     }
 
     if onDef_WindowMode then onDef_WindowMode(WindowMode, mt) end
