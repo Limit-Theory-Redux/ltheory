@@ -478,7 +478,7 @@ impl Engine {
                             if let Some(virtual_keycode) = input.virtual_keycode {
                                 engine.input.keyboard_state.update(
                                     convert_virtual_key_code(virtual_keycode),
-                                    convert_element_state(input.state),
+                                    input.state == ElementState::Pressed,
                                 );
                             }
                         }
@@ -492,25 +492,15 @@ impl Engine {
                             engine
                                 .input
                                 .cursor_state
-                                .update(CursorControl::X, position.x as f32);
-                            engine
-                                .input
-                                .cursor_state
-                                .update(CursorControl::Y, position.y as f32);
+                                .update_position(position.x as f32, position.y as f32);
                         }
                         WindowEvent::CursorEntered { .. } => {
-                            engine
-                                .input
-                                .cursor_state
-                                .update(CursorControl::InWindow, 1.0);
+                            engine.input.cursor_state.update_in_window(true);
                         }
                         WindowEvent::CursorLeft { .. } => {
                             engine.window.set_physical_cursor_position(None);
 
-                            engine
-                                .input
-                                .cursor_state
-                                .update(CursorControl::InWindow, 0.0);
+                            engine.input.cursor_state.update_in_window(false);
                         }
                         WindowEvent::MouseInput { state, button, .. } => {
                             let control = convert_mouse_button(button);
@@ -519,7 +509,7 @@ impl Engine {
                                 engine
                                     .input
                                     .mouse_state
-                                    .update(control, convert_element_state(state));
+                                    .update_button(control, state == ElementState::Pressed);
                             }
                         }
                         WindowEvent::MouseWheel { delta, .. } => match delta {
@@ -527,34 +517,34 @@ impl Engine {
                                 engine
                                     .input
                                     .mouse_state
-                                    .update(MouseControl::ScrollLineX, x);
+                                    .update_axis(MouseControl::ScrollLineX, x);
                                 engine
                                     .input
                                     .mouse_state
-                                    .update(MouseControl::ScrollLineY, y);
+                                    .update_axis(MouseControl::ScrollLineY, y);
                             }
                             event::MouseScrollDelta::PixelDelta(p) => {
                                 engine
                                     .input
                                     .mouse_state
-                                    .update(MouseControl::ScrollPixelX, p.x as f32);
+                                    .update_axis(MouseControl::ScrollPixelX, p.x as f32);
                                 engine
                                     .input
                                     .mouse_state
-                                    .update(MouseControl::ScrollPixelY, p.y as f32);
+                                    .update_axis(MouseControl::ScrollPixelY, p.y as f32);
                             }
                         },
                         WindowEvent::TouchpadMagnify { delta, .. } => {
                             engine
                                 .input
                                 .touchpad_state
-                                .update(TouchpadControl::MagnifyDelta, delta as f32);
+                                .update(TouchpadAxis::MagnifyDelta, delta as f32);
                         }
                         WindowEvent::TouchpadRotate { delta, .. } => {
                             engine
                                 .input
                                 .touchpad_state
-                                .update(TouchpadControl::RotateDelta, delta);
+                                .update(TouchpadAxis::RotateDelta, delta);
                         }
                         WindowEvent::Touch(touch) => {
                             // TODO: expose more info from touch
@@ -569,8 +559,8 @@ impl Engine {
                                 (-1.0, -1.0) // TODO: special value for no touch?
                             };
 
-                            engine.input.touchpad_state.update(TouchpadControl::X, x);
-                            engine.input.touchpad_state.update(TouchpadControl::Y, y);
+                            engine.input.touchpad_state.update(TouchpadAxis::X, x);
+                            engine.input.touchpad_state.update(TouchpadAxis::Y, y);
                         }
                         WindowEvent::ReceivedCharacter(_c) => {
                             // input_events.character_input.send(ReceivedCharacter {
@@ -709,11 +699,11 @@ impl Engine {
                     engine
                         .input
                         .mouse_state
-                        .update(MouseControl::DeltaX, x as f32);
+                        .update_axis(MouseControl::DeltaX, x as f32);
                     engine
                         .input
                         .mouse_state
-                        .update(MouseControl::DeltaY, y as f32);
+                        .update_axis(MouseControl::DeltaY, y as f32);
                 }
                 event::Event::Suspended => {
                     engine.frame_state.active = false;

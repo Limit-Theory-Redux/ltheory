@@ -69,6 +69,8 @@ impl EnumInfo {
             #source
 
             impl #self_ident {
+                pub const SIZE: usize = #enum_size;
+
                 pub const fn value(&self) -> #repr_type_ident {
                     match self {
                         #(#value_items)*

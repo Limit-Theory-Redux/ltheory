@@ -7,21 +7,25 @@ do -- C Definitions
     ffi.cdef [[
         typedef struct GamepadState {} GamepadState;
 
-        uint64     GamepadState_GetGamepadsCount (GamepadState const*);
-        GamepadId* GamepadState_GetGamepadId     (GamepadState const*, uint64 index);
-        cstr       GamepadState_GetGamepadName   (GamepadState const*, GamepadId gamepadId);
-        float      GamepadState_GetButtonValue   (GamepadState const*, GamepadId gamepadId, GamepadButton button);
-        float      GamepadState_GetAxisValue     (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
+        uint64     GamepadState_GamepadsCount (GamepadState const*);
+        GamepadId* GamepadState_GamepadId     (GamepadState const*, uint64 index);
+        cstr       GamepadState_GamepadName   (GamepadState const*, GamepadId gamepadId);
+        float      GamepadState_Value         (GamepadState const*, GamepadId gamepadId, GamepadAxis axis);
+        bool       GamepadState_IsPressed     (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+        bool       GamepadState_IsDown        (GamepadState const*, GamepadId gamepadId, GamepadButton button);
+        bool       GamepadState_IsReleased    (GamepadState const*, GamepadId gamepadId, GamepadButton button);
     ]]
 end
 
 do -- Global Symbol Table
     GamepadState = {
-        GetGamepadsCount = libphx.GamepadState_GetGamepadsCount,
-        GetGamepadId     = libphx.GamepadState_GetGamepadId,
-        GetGamepadName   = libphx.GamepadState_GetGamepadName,
-        GetButtonValue   = libphx.GamepadState_GetButtonValue,
-        GetAxisValue     = libphx.GamepadState_GetAxisValue,
+        GamepadsCount = libphx.GamepadState_GamepadsCount,
+        GamepadId     = libphx.GamepadState_GamepadId,
+        GamepadName   = libphx.GamepadState_GamepadName,
+        Value         = libphx.GamepadState_Value,
+        IsPressed     = libphx.GamepadState_IsPressed,
+        IsDown        = libphx.GamepadState_IsDown,
+        IsReleased    = libphx.GamepadState_IsReleased,
     }
 
     if onDef_GamepadState then onDef_GamepadState(GamepadState, mt) end
@@ -32,11 +36,13 @@ do -- Metatype for class instances
     local t  = ffi.typeof('GamepadState')
     local mt = {
         __index = {
-            getGamepadsCount = libphx.GamepadState_GetGamepadsCount,
-            getGamepadId     = libphx.GamepadState_GetGamepadId,
-            getGamepadName   = libphx.GamepadState_GetGamepadName,
-            getButtonValue   = libphx.GamepadState_GetButtonValue,
-            getAxisValue     = libphx.GamepadState_GetAxisValue,
+            gamepadsCount = libphx.GamepadState_GamepadsCount,
+            gamepadId     = libphx.GamepadState_GamepadId,
+            gamepadName   = libphx.GamepadState_GamepadName,
+            value         = libphx.GamepadState_Value,
+            isPressed     = libphx.GamepadState_IsPressed,
+            isDown        = libphx.GamepadState_IsDown,
+            isReleased    = libphx.GamepadState_IsReleased,
         },
     }
 

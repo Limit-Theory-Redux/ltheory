@@ -7,13 +7,19 @@ do -- C Definitions
     ffi.cdef [[
         typedef struct TouchpadState {} TouchpadState;
 
-        float TouchpadState_GetValue (TouchpadState const*, TouchpadControl control);
+        float TouchpadState_Value        (TouchpadState const*, TouchpadAxis axis);
+        Vec2f TouchpadState_Position     (TouchpadState const*);
+        float TouchpadState_MagnifyDelta (TouchpadState const*);
+        float TouchpadState_RotateDelta  (TouchpadState const*);
     ]]
 end
 
 do -- Global Symbol Table
     TouchpadState = {
-        GetValue = libphx.TouchpadState_GetValue,
+        Value        = libphx.TouchpadState_Value,
+        Position     = libphx.TouchpadState_Position,
+        MagnifyDelta = libphx.TouchpadState_MagnifyDelta,
+        RotateDelta  = libphx.TouchpadState_RotateDelta,
     }
 
     if onDef_TouchpadState then onDef_TouchpadState(TouchpadState, mt) end
@@ -24,7 +30,10 @@ do -- Metatype for class instances
     local t  = ffi.typeof('TouchpadState')
     local mt = {
         __index = {
-            getValue = libphx.TouchpadState_GetValue,
+            value        = libphx.TouchpadState_Value,
+            position     = libphx.TouchpadState_Position,
+            magnifyDelta = libphx.TouchpadState_MagnifyDelta,
+            rotateDelta  = libphx.TouchpadState_RotateDelta,
         },
     }
 

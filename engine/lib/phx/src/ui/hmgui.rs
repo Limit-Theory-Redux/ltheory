@@ -692,7 +692,7 @@ pub unsafe extern "C" fn HmGui_EndScroll(input: Input2) {
     let data = HmGui_GetData(this.group);
 
     if HmGui_GroupHasFocus(1) {
-        let scroll_y = input.mouse().get_value(MouseControl::ScrollPixelY);
+        let scroll_y = input.mouse().value(MouseControl::ScrollPixelY);
 
         (*data).offset.y -= 10.0f32 * scroll_y as f32;
     }
@@ -740,8 +740,8 @@ pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char, input: I
     let mouse = input.mouse();
 
     if HmGui_GroupHasFocus(0) && mouse.is_down(MouseControl::Left) {
-        (*data).offset.x += mouse.get_value(MouseControl::DeltaX);
-        (*data).offset.y += mouse.get_value(MouseControl::DeltaY);
+        (*data).offset.x += mouse.value(MouseControl::DeltaX);
+        (*data).offset.y += mouse.value(MouseControl::DeltaY);
     }
 
     (*this.group).widget.pos.x += (*data).offset.x;

@@ -7,13 +7,17 @@ do -- C Definitions
     ffi.cdef [[
         typedef struct CursorState {} CursorState;
 
-        float CursorState_GetValue (CursorState const*, CursorControl control);
+        float CursorState_Value    (CursorState const*, CursorControl control);
+        Vec2f CursorState_Position (CursorState const*);
+        bool  CursorState_InWindow (CursorState const*);
     ]]
 end
 
 do -- Global Symbol Table
     CursorState = {
-        GetValue = libphx.CursorState_GetValue,
+        Value    = libphx.CursorState_Value,
+        Position = libphx.CursorState_Position,
+        InWindow = libphx.CursorState_InWindow,
     }
 
     if onDef_CursorState then onDef_CursorState(CursorState, mt) end
@@ -24,7 +28,9 @@ do -- Metatype for class instances
     local t  = ffi.typeof('CursorState')
     local mt = {
         __index = {
-            getValue = libphx.CursorState_GetValue,
+            value    = libphx.CursorState_Value,
+            position = libphx.CursorState_Position,
+            inWindow = libphx.CursorState_InWindow,
         },
     }
 

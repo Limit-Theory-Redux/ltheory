@@ -1,18 +1,12 @@
-use self::mouse::MouseState;
-
-mod cursor;
+mod axis_state;
+mod button_state;
+mod devices;
 mod drag_and_drop;
-mod gamepad;
-mod keyboard;
-mod mouse;
-mod touchpad;
 
-pub use cursor::*;
+pub use axis_state::*;
+pub use button_state::*;
+pub use devices::*;
 pub use drag_and_drop::*;
-pub use gamepad::*;
-pub use keyboard::*;
-pub use mouse::*;
-pub use touchpad::*;
 
 #[derive(Default)]
 pub struct Input2 {
@@ -26,6 +20,7 @@ pub struct Input2 {
 
 impl Input2 {
     pub fn reset(&mut self) {
+        self.keyboard_state.reset();
         self.mouse_state.reset();
         self.touchpad_state.reset();
         self.gamepad_state.reset();

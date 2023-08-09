@@ -1,4 +1,4 @@
-use crate::internal::static_string;
+use crate::{input2::ButtonState, internal::static_string};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -357,30 +357,40 @@ pub enum KeyboardButton {
     Cut,
 }
 
+#[derive(Default)]
 pub struct KeyboardState {
-    buttons: [f32; KEYBOARD_BUTTON_COUNT],
-}
-
-impl Default for KeyboardState {
-    fn default() -> Self {
-        Self {
-            buttons: [0.0; KEYBOARD_BUTTON_COUNT],
-        }
-    }
+    button_state: ButtonState<{ KeyboardButton::SIZE }>,
 }
 
 impl KeyboardState {
-    pub fn update(&mut self, button: KeyboardButton, val: f32) {
-        self.buttons[button as usize] = val;
+    pub fn reset(&mut self) {
+        self.button_state.reset();
+    }
+
+    pub fn update(&mut self, button: KeyboardButton, pressed: bool) {
+        self.button_state.update(button as usize, pressed);
     }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
 impl KeyboardState {
-    pub fn get_value(&self, button: KeyboardButton) -> f32 {
-        self.buttons
-            .get(button as usize)
-            .map(|val| *val)
-            .unwrap_or_default() // TODO: return an error?
+    pub fn is_pressed(&self, button: KeyboardButton) -> bool {
+        self.button_state.is_pressed(button as usize)
+    }
+
+    pub fn is_down(&self, button: KeyboardButton) -> bool {
+        self.button_state.is_down(button as usize)
+    }
+
+    pub fn is_released(&self, button: KeyboardButton) -> bool {
+        self.button_state.is_released(button as usize)
+    }
+
+    pub fn value(&self, button: KeyboardButton) -> f32 {
+        if self.button_state.is_released(button as usize) {
+            1.0
+        } else {
+            0.0
+        }
     }
 }

@@ -4,7 +4,7 @@ use crate::{
     args::ImplAttrArgs, ffi_data::FfiData, IDENT, LUAJIT_FFI_GEN_DIR, LUAJIT_FFI_GEN_DIR_ENV,
 };
 
-use super::ImplInfo;
+use super::{ImplInfo, TypeInfo};
 
 impl ImplInfo {
     /// Generate Lua FFI file
@@ -229,7 +229,11 @@ impl ImplInfo {
                     .as_ref()
                     .map(|ret| {
                         if ret.is_self() {
-                            format!("{module_name}*")
+                            if TypeInfo::is_copyable(module_name) {
+                                format!("{module_name}")
+                            }else {
+                                format!("{module_name}*")
+                            }
                         } else {
                             ret.as_ffi_string()
                         }

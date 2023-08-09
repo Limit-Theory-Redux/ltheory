@@ -7,7 +7,7 @@ do -- C Definitions
     ffi.cdef [[
         typedef struct MouseState {} MouseState;
 
-        float MouseState_GetValue   (MouseState const*, MouseControl control);
+        float MouseState_Value      (MouseState const*, MouseControl control);
         bool  MouseState_IsPressed  (MouseState const*, MouseControl control);
         bool  MouseState_IsDown     (MouseState const*, MouseControl control);
         bool  MouseState_IsReleased (MouseState const*, MouseControl control);
@@ -16,7 +16,7 @@ end
 
 do -- Global Symbol Table
     MouseState = {
-        GetValue   = libphx.MouseState_GetValue,
+        Value      = libphx.MouseState_Value,
         IsPressed  = libphx.MouseState_IsPressed,
         IsDown     = libphx.MouseState_IsDown,
         IsReleased = libphx.MouseState_IsReleased,
@@ -30,7 +30,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('MouseState')
     local mt = {
         __index = {
-            getValue   = libphx.MouseState_GetValue,
+            value      = libphx.MouseState_Value,
             isPressed  = libphx.MouseState_IsPressed,
             isDown     = libphx.MouseState_IsDown,
             isReleased = libphx.MouseState_IsReleased,

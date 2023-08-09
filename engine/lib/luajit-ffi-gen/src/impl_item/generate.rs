@@ -164,13 +164,13 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
             } else {
                 format_ident!("{ty_name}")
             };
+            let is_copyable = TypeInfo::is_copyable(&ty_name) || TypeInfo::is_copyable(self_name);
 
             if ty.is_option {
                 quote! { *const #ty_ident }
-            } else if TypeInfo::is_copyable(&ty_name) {
+            } else if is_copyable {
                 quote! { #ty_ident }
             } else if ty.is_reference {
-                // TODO: copyable reference
                 if ty.is_mutable {
                     quote! { *#ty_ident }
                 } else {
@@ -282,20 +282,26 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 } else {
                     format_ident!("{custom_ty}")
                 };
+                let is_copyable = TypeInfo::is_copyable(&custom_ty)
+                    || TypeInfo::is_copyable(&self_ident.to_string());
 
                 if ty.is_option {
                     gen_buffered_ret(&type_ident)
+                } else if is_copyable {
+                    if ty.is_reference {
+                        quote! { *__res__ }
+                    } else {
+                        quote! { __res__ }
+                    }
                 } else if ty.is_reference {
                     if ty.is_mutable {
-                        quote! { __res__ as * #type_ident }
+                        quote! { __res__ as *#type_ident }
                     } else {
                         quote! { __res__ as *const #type_ident }
                     }
-                } else if ty.is_self() || !TypeInfo::is_copyable(&custom_ty) {
+                } else {
                     // Do boxing
                     quote! { __res__.into() }
-                } else {
-                    quote! { __res__ }
                 }
             }
             _ => {
