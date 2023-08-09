@@ -629,8 +629,8 @@ pub unsafe extern "C" fn HmGui_End(input: &Input2) {
     let cursor = input.cursor();
 
     this.focusPos = Vec2::new(
-        cursor.get_value(CursorControl::X),
-        cursor.get_value(CursorControl::Y),
+        cursor.value(CursorControl::X),
+        cursor.value(CursorControl::Y),
     );
 
     HmGui_CheckFocus(this.root);
