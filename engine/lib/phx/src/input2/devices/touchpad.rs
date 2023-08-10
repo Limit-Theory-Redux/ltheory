@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use glam::Vec2;
 
-use crate::{input2::AxisState, internal::static_string};
+use crate::{input2::*, internal::static_string, system::TimeStamp};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,16 +15,39 @@ pub enum TouchpadAxis {
 
 #[derive(Default)]
 pub struct TouchpadState {
+    control_state: ControlState,
     axis_state: AxisState<{ TouchpadAxis::SIZE }>,
 }
 
 impl TouchpadState {
+    pub fn control_state(&self) -> &ControlState {
+        &self.control_state
+    }
+
+    pub fn control_state_mut(&mut self) -> &mut ControlState {
+        &mut self.control_state
+    }
+
     pub fn reset(&mut self) {
         self.axis_state.reset();
     }
 
-    pub fn update(&mut self, axis: TouchpadAxis, value: f32) -> bool {
-        self.axis_state.update(axis as usize, value)
+    pub fn update_position(&mut self, x: f32, y: f32) -> bool {
+        self.axis_state.update(TouchpadAxis::X as usize, x)
+            && self.axis_state.update(TouchpadAxis::Y as usize, y)
+            && self.control_state.update()
+    }
+
+    pub fn update_magnify_delta(&mut self, value: f32) -> bool {
+        self.axis_state
+            .update(TouchpadAxis::MagnifyDelta as usize, value)
+            && self.control_state.update()
+    }
+
+    pub fn update_rotate_delta(&mut self, value: f32) -> bool {
+        self.axis_state
+            .update(TouchpadAxis::RotateDelta as usize, value)
+            && self.control_state.update()
     }
 }
 

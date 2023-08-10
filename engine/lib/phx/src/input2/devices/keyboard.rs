@@ -1,4 +1,4 @@
-use crate::{input2::ButtonState, internal::static_string};
+use crate::{input2::*, internal::static_string, system::TimeStamp};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -359,16 +359,25 @@ pub enum KeyboardButton {
 
 #[derive(Default)]
 pub struct KeyboardState {
+    control_state: ControlState,
     button_state: ButtonState<{ KeyboardButton::SIZE }>,
 }
 
 impl KeyboardState {
+    pub fn control_state(&self) -> &ControlState {
+        &self.control_state
+    }
+
+    pub fn control_state_mut(&mut self) -> &mut ControlState {
+        &mut self.control_state
+    }
+
     pub fn reset(&mut self) {
         self.button_state.reset();
     }
 
-    pub fn update(&mut self, button: KeyboardButton, pressed: bool) {
-        self.button_state.update(button as usize, pressed);
+    pub fn update(&mut self, button: KeyboardButton, pressed: bool) -> bool {
+        self.button_state.update(button as usize, pressed) && self.control_state.update()
     }
 }
 

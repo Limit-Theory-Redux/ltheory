@@ -18,7 +18,7 @@ impl<const N: usize> AxisState<N> {
             self.axes[index] = value;
             true
         } else {
-            false
+            false // TODO: wrong index. Return an error/panic?
         }
     }
 

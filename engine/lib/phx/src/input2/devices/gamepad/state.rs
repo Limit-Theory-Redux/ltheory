@@ -1,27 +1,15 @@
 use std::collections::HashMap;
 
-use gilrs::{ev::filter::axis_dpad_to_button, EventType, Filter, Gilrs, GilrsBuilder};
+use gilrs::{ev::filter::axis_dpad_to_button, EventType, Filter, GamepadId, Gilrs, GilrsBuilder};
 use indexmap::IndexMap;
 
 use super::*;
-use crate::{
-    input2::{AxisState, ButtonState},
-    internal::static_string,
-};
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct GamepadId {
-    pub id: usize,
-}
-
-impl GamepadId {
-    pub fn new(id: usize) -> Self {
-        Self { id }
-    }
-}
+use crate::{input2::*, internal::static_string, system::TimeStamp};
 
 pub struct GamepadDeviceState {
     name: String,
+
+    control_state: ControlState,
     button_state: ButtonState<{ GamepadButton::SIZE }>,
     axis_state: AxisState<{ GamepadAxis::SIZE }>,
 }
@@ -30,9 +18,18 @@ impl GamepadDeviceState {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.into(),
+            control_state: Default::default(),
             button_state: Default::default(),
             axis_state: Default::default(),
         }
+    }
+
+    pub fn control_state(&self) -> &ControlState {
+        &self.control_state
+    }
+
+    pub fn control_state_mut(&mut self) -> &mut ControlState {
+        &mut self.control_state
     }
 
     pub fn reset(&mut self) {
@@ -71,7 +68,9 @@ impl GamepadState {
             .for_each(|(_, state)| state.reset());
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self) -> Option<GamepadId> {
+        let mut res = None;
+
         while let Some(gilrs_event) = self
             .gilrs
             .next_event()
@@ -79,22 +78,36 @@ impl GamepadState {
         {
             self.gilrs.update(&gilrs_event);
 
-            let gamepad_id = GamepadId::new(gilrs_event.id.into());
+            let gamepad_id = gilrs_event.id;
+
             match gilrs_event.event {
                 EventType::Connected => {
-                    let pad = self.gilrs.gamepad(gilrs_event.id);
-                    let device_state = GamepadDeviceState::new(pad.name());
+                    if let Some(state) = self.device_state.get_mut(&gamepad_id) {
+                        state.reset();
+                        state.control_state_mut().connect();
+                    } else {
+                        let pad = self.gilrs.gamepad(gilrs_event.id);
+                        let device_state = GamepadDeviceState::new(pad.name());
 
-                    self.device_state.insert(gamepad_id, device_state);
+                        self.device_state.insert(gamepad_id, device_state);
+                    }
                 }
                 EventType::Disconnected => {
-                    self.device_state.remove(&gamepad_id);
+                    if let Some(state) = self.device_state.get_mut(&gamepad_id) {
+                        state.control_state_mut().disconnect();
+                    } else {
+                        // TODO: warning?
+                    }
                 }
                 EventType::ButtonChanged(gilrs_button, raw_value, _) => {
                     if let Some(button) = convert_button(gilrs_button) {
                         if let Some(state) = self.device_state.get_mut(&gamepad_id) {
-                            state.button_state.update(button as usize, raw_value != 0.0);
-                            state.axis_state.update(button as usize, raw_value);
+                            state.button_state.update(button as _, raw_value != 0.0);
+                            state.axis_state.update(button as _, raw_value);
+
+                            if state.control_state.update() {
+                                res = Some(gamepad_id);
+                            }
                         }
 
                         // TODO: threshold check?
@@ -118,7 +131,11 @@ impl GamepadState {
                 EventType::AxisChanged(gilrs_axis, raw_value, _) => {
                     if let Some(axis) = convert_axis(gilrs_axis) {
                         if let Some(state) = self.device_state.get_mut(&gamepad_id) {
-                            state.axis_state.update(axis as usize, raw_value);
+                            state.axis_state.update(axis as _, raw_value);
+
+                            if state.control_state.update() {
+                                res = Some(gamepad_id);
+                            }
                         }
 
                         // TODO: threshold check?
@@ -140,6 +157,8 @@ impl GamepadState {
         }
 
         self.gilrs.inc();
+
+        res
     }
 }
 
@@ -150,9 +169,7 @@ impl GamepadState {
     }
 
     pub fn gamepad_id(&self, index: usize) -> Option<GamepadId> {
-        let mut device_ids: Vec<_> = self.device_state.keys().collect();
-
-        device_ids.sort(); // TODO: do we really need this?
+        let device_ids: Vec<_> = self.device_state.keys().collect();
 
         device_ids.get(index).map(|id| **id)
     }
@@ -163,31 +180,79 @@ impl GamepadState {
             .map(|state| state.name.clone())
     }
 
-    pub fn value(&self, gamepad_id: GamepadId, axis: GamepadAxis) -> f32 {
+    pub fn value(&self, axis: GamepadAxis) -> f32 {
         self.device_state
-            .get(&gamepad_id)
-            .map(|state| state.axis_state.value(axis as usize))
+            .iter()
+            .find_map(|(_, state)| {
+                state
+                    .control_state
+                    .is_connected()
+                    .then(|| state.axis_state.value(axis as _))
+            })
             .unwrap_or_default() // TODO: return an error?
     }
 
-    pub fn is_pressed(&self, gamepad_id: GamepadId, button: GamepadButton) -> bool {
+    pub fn is_pressed(&self, button: GamepadButton) -> bool {
         self.device_state
-            .get(&gamepad_id)
-            .map(|state| state.button_state.is_pressed(button as usize))
+            .iter()
+            .find_map(|(_, state)| {
+                state
+                    .control_state
+                    .is_connected()
+                    .then(|| state.button_state.is_pressed(button as _))
+            })
             .unwrap_or_default() // TODO: return an error?
     }
 
-    pub fn is_down(&self, gamepad_id: GamepadId, button: GamepadButton) -> bool {
+    pub fn is_down(&self, button: GamepadButton) -> bool {
         self.device_state
-            .get(&gamepad_id)
-            .map(|state| state.button_state.is_down(button as usize))
+            .iter()
+            .find_map(|(_, state)| {
+                state
+                    .control_state
+                    .is_connected()
+                    .then(|| state.button_state.is_down(button as _))
+            })
             .unwrap_or_default() // TODO: return an error?
     }
 
-    pub fn is_released(&self, gamepad_id: GamepadId, button: GamepadButton) -> bool {
+    pub fn is_released(&self, button: GamepadButton) -> bool {
+        self.device_state
+            .iter()
+            .find_map(|(_, state)| {
+                state
+                    .control_state
+                    .is_connected()
+                    .then(|| state.button_state.is_released(button as _))
+            })
+            .unwrap_or_default() // TODO: return an error?
+    }
+
+    pub fn value_by_id(&self, gamepad_id: GamepadId, axis: GamepadAxis) -> f32 {
         self.device_state
             .get(&gamepad_id)
-            .map(|state| state.button_state.is_released(button as usize))
+            .map(|state| state.axis_state.value(axis as _))
+            .unwrap_or_default() // TODO: return an error?
+    }
+
+    pub fn is_pressed_by_id(&self, gamepad_id: GamepadId, button: GamepadButton) -> bool {
+        self.device_state
+            .get(&gamepad_id)
+            .map(|state| state.button_state.is_pressed(button as _))
+            .unwrap_or_default() // TODO: return an error?
+    }
+
+    pub fn is_down_by_id(&self, gamepad_id: GamepadId, button: GamepadButton) -> bool {
+        self.device_state
+            .get(&gamepad_id)
+            .map(|state| state.button_state.is_down(button as _))
+            .unwrap_or_default() // TODO: return an error?
+    }
+
+    pub fn is_released_by_id(&self, gamepad_id: GamepadId, button: GamepadButton) -> bool {
+        self.device_state
+            .get(&gamepad_id)
+            .map(|state| state.button_state.is_released(button as _))
             .unwrap_or_default() // TODO: return an error?
     }
 }

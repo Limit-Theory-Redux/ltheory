@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use glam::Vec2;
 
-use crate::internal::static_string;
+use crate::{input2::ControlState, internal::static_string, system::TimeStamp};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,19 +14,33 @@ pub enum CursorControl {
 
 #[derive(Default)]
 pub struct CursorState {
+    control_state: ControlState,
+
     x: f32,
     y: f32,
     in_window: bool,
 }
 
 impl CursorState {
-    pub fn update_position(&mut self, x: f32, y: f32) {
-        self.x = x;
-        self.y = y;
+    pub fn control_state(&self) -> &ControlState {
+        &self.control_state
     }
 
-    pub fn update_in_window(&mut self, in_window: bool) {
+    pub fn control_state_mut(&mut self) -> &mut ControlState {
+        &mut self.control_state
+    }
+
+    pub fn update_position(&mut self, x: f32, y: f32) -> bool {
+        self.x = x;
+        self.y = y;
+
+        self.control_state.update()
+    }
+
+    pub fn update_in_window(&mut self, in_window: bool) -> bool {
         self.in_window = in_window;
+
+        self.control_state.update()
     }
 }
 

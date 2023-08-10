@@ -11,6 +11,9 @@ do -- C Definitions
         bool  MouseState_IsPressed  (MouseState const*, MouseControl control);
         bool  MouseState_IsDown     (MouseState const*, MouseControl control);
         bool  MouseState_IsReleased (MouseState const*, MouseControl control);
+        Vec2f MouseState_Delta      (MouseState const*);
+        Vec2f MouseState_Scroll     (MouseState const*);
+        Vec2f MouseState_ScrollLine (MouseState const*);
     ]]
 end
 
@@ -20,6 +23,9 @@ do -- Global Symbol Table
         IsPressed  = libphx.MouseState_IsPressed,
         IsDown     = libphx.MouseState_IsDown,
         IsReleased = libphx.MouseState_IsReleased,
+        Delta      = libphx.MouseState_Delta,
+        Scroll     = libphx.MouseState_Scroll,
+        ScrollLine = libphx.MouseState_ScrollLine,
     }
 
     if onDef_MouseState then onDef_MouseState(MouseState, mt) end
@@ -34,6 +40,9 @@ do -- Metatype for class instances
             isPressed  = libphx.MouseState_IsPressed,
             isDown     = libphx.MouseState_IsDown,
             isReleased = libphx.MouseState_IsReleased,
+            delta      = libphx.MouseState_Delta,
+            scroll     = libphx.MouseState_Scroll,
+            scrollLine = libphx.MouseState_ScrollLine,
         },
     }
 

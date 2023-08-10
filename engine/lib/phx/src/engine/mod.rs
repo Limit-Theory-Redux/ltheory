@@ -2,6 +2,7 @@ mod frame_state;
 
 pub(crate) use frame_state::*;
 use glam::ivec2;
+use glam::Vec2;
 use tracing::debug;
 use tracing::error;
 use tracing::trace;
@@ -134,7 +135,7 @@ impl Engine {
         self.winit_window_id = Some(winit_window_id);
     }
 
-    // Detect changes to the window and update the winit window accordingly.
+    // Apply user changes, and then detect changes to the window and update the winit window accordingly.
     //
     // Notes:
     // - [`Window::present_mode`] and [`Window::composite_alpha_mode`] updating should be handled in the bevy render crate.
@@ -142,6 +143,15 @@ impl Engine {
     // - [`Window::canvas`] currently cannot be updated after startup, not entirely sure if it would work well with the
     //   event channel stuff.
     fn changed_window(&mut self) {
+        for user_change in self.input.user_changes() {
+            match user_change {
+                UserChange::CursorVisible(visible) => self.window.cursor.visible = *visible,
+                UserChange::CursorPosition(x, y) => {
+                    self.window.set_cursor_position(Some(Vec2::new(*x, *y)))
+                }
+            }
+        }
+
         let Some(winit_window) = self.winit_window_id.map(|winit_window_id| self.winit_windows.get_window(winit_window_id)).flatten()
         else { return; };
 
@@ -473,78 +483,90 @@ impl Engine {
                             //         window: window_entity,
                             //     });
                         }
-                        WindowEvent::KeyboardInput { ref input, .. } => {
+                        WindowEvent::KeyboardInput {
+                            device_id,
+                            ref input,
+                            ..
+                        } => {
                             // TODO: scancode?
                             if let Some(virtual_keycode) = input.virtual_keycode {
-                                engine.input.keyboard_state.update(
-                                    convert_virtual_key_code(virtual_keycode),
-                                    input.state == ElementState::Pressed,
-                                );
+                                engine.input.update_keyboard(device_id, |state| {
+                                    state.update(
+                                        convert_virtual_key_code(virtual_keycode),
+                                        input.state == ElementState::Pressed,
+                                    )
+                                });
                             }
                         }
-                        WindowEvent::CursorMoved { position, .. } => {
+                        WindowEvent::CursorMoved {
+                            device_id,
+                            position,
+                            ..
+                        } => {
                             let physical_position = DVec2::new(position.x, position.y);
 
                             engine
                                 .window
                                 .set_physical_cursor_position(Some(physical_position));
 
+                            engine.input.update_cursor(device_id, |state| {
+                                state.update_position(position.x as f32, position.y as f32)
+                            });
+                        }
+                        WindowEvent::CursorEntered { device_id } => {
                             engine
                                 .input
-                                .cursor_state
-                                .update_position(position.x as f32, position.y as f32);
+                                .update_cursor(device_id, |state| state.update_in_window(true));
                         }
-                        WindowEvent::CursorEntered { .. } => {
-                            engine.input.cursor_state.update_in_window(true);
-                        }
-                        WindowEvent::CursorLeft { .. } => {
+                        WindowEvent::CursorLeft { device_id } => {
                             engine.window.set_physical_cursor_position(None);
 
-                            engine.input.cursor_state.update_in_window(false);
+                            engine.input.update_cursor(device_id, |state| {
+                                state.update_in_window(false);
+                                true
+                            });
                         }
-                        WindowEvent::MouseInput { state, button, .. } => {
+                        WindowEvent::MouseInput {
+                            device_id,
+                            state: elm_state,
+                            button,
+                            ..
+                        } => {
                             let control = convert_mouse_button(button);
 
                             if let Some(control) = control {
-                                engine
-                                    .input
-                                    .mouse_state
-                                    .update_button(control, state == ElementState::Pressed);
+                                engine.input.update_mouse(device_id, |state| {
+                                    state.update_button(control, elm_state == ElementState::Pressed)
+                                });
                             }
                         }
-                        WindowEvent::MouseWheel { delta, .. } => match delta {
+                        WindowEvent::MouseWheel {
+                            device_id, delta, ..
+                        } => match delta {
                             event::MouseScrollDelta::LineDelta(x, y) => {
-                                engine
-                                    .input
-                                    .mouse_state
-                                    .update_axis(MouseControl::ScrollLineX, x);
-                                engine
-                                    .input
-                                    .mouse_state
-                                    .update_axis(MouseControl::ScrollLineY, y);
+                                engine.input.update_mouse(device_id, |state| {
+                                    state.update_scroll_line(x, y)
+                                });
                             }
                             event::MouseScrollDelta::PixelDelta(p) => {
-                                engine
-                                    .input
-                                    .mouse_state
-                                    .update_axis(MouseControl::ScrollPixelX, p.x as f32);
-                                engine
-                                    .input
-                                    .mouse_state
-                                    .update_axis(MouseControl::ScrollPixelY, p.y as f32);
+                                engine.input.update_mouse(device_id, |state| {
+                                    state.update_scroll_pixel(p.x as f32, p.y as f32)
+                                });
                             }
                         },
-                        WindowEvent::TouchpadMagnify { delta, .. } => {
-                            engine
-                                .input
-                                .touchpad_state
-                                .update(TouchpadAxis::MagnifyDelta, delta as f32);
+                        WindowEvent::TouchpadMagnify {
+                            device_id, delta, ..
+                        } => {
+                            engine.input.update_touchpad(device_id, |state| {
+                                state.update_magnify_delta(delta as f32)
+                            });
                         }
-                        WindowEvent::TouchpadRotate { delta, .. } => {
-                            engine
-                                .input
-                                .touchpad_state
-                                .update(TouchpadAxis::RotateDelta, delta);
+                        WindowEvent::TouchpadRotate {
+                            device_id, delta, ..
+                        } => {
+                            engine.input.update_touchpad(device_id, |state| {
+                                state.update_rotate_delta(delta)
+                            });
                         }
                         WindowEvent::Touch(touch) => {
                             // TODO: expose more info from touch
@@ -559,8 +581,9 @@ impl Engine {
                                 (-1.0, -1.0) // TODO: special value for no touch?
                             };
 
-                            engine.input.touchpad_state.update(TouchpadAxis::X, x);
-                            engine.input.touchpad_state.update(TouchpadAxis::Y, y);
+                            engine.input.update_touchpad(touch.device_id, |state| {
+                                state.update_position(x, y)
+                            });
                         }
                         WindowEvent::ReceivedCharacter(_c) => {
                             // input_events.character_input.send(ReceivedCharacter {
@@ -629,13 +652,19 @@ impl Engine {
                             // });
                         }
                         WindowEvent::DroppedFile(file) => {
-                            engine.input.drag_and_drop_state.update_dropped(file);
+                            engine
+                                .input
+                                .update_drag_and_drop(|state| state.update_dropped(&file));
                         }
                         WindowEvent::HoveredFile(file) => {
-                            engine.input.drag_and_drop_state.update_hovered(file);
+                            engine
+                                .input
+                                .update_drag_and_drop(|state| state.update_hovered(&file));
                         }
                         WindowEvent::HoveredFileCancelled => {
-                            engine.input.drag_and_drop_state.update_cancelled();
+                            engine
+                                .input
+                                .update_drag_and_drop(|state| state.update_cancelled());
                         }
                         WindowEvent::Moved(position) => {
                             let position = ivec2(position.x, position.y);
@@ -693,17 +722,13 @@ impl Engine {
                     // }
                 }
                 event::Event::DeviceEvent {
+                    device_id,
                     event: DeviceEvent::MouseMotion { delta: (x, y) },
                     ..
                 } => {
-                    engine
-                        .input
-                        .mouse_state
-                        .update_axis(MouseControl::DeltaX, x as f32);
-                    engine
-                        .input
-                        .mouse_state
-                        .update_axis(MouseControl::DeltaY, y as f32);
+                    engine.input.update_mouse(device_id, |state| {
+                        state.update_position_delta(x as f32, y as f32)
+                    });
                 }
                 event::Event::Suspended => {
                     engine.frame_state.active = false;
@@ -716,7 +741,7 @@ impl Engine {
                         engine.frame_state.last_update = Instant::now();
 
                         // Load all gamepad events
-                        engine.input.gamepad_mut().update();
+                        engine.input.update_gamepad(|state| state.update());
 
                         // TODO: call Lua AppFrame() function
 

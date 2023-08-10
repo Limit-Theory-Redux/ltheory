@@ -285,8 +285,12 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                 let is_copyable = TypeInfo::is_copyable(&custom_ty)
                     || TypeInfo::is_copyable(&self_ident.to_string());
 
-                if ty.is_option {
-                    gen_buffered_ret(&type_ident)
+                if ty.is_option && !ty.is_reference {
+                    if is_copyable {
+                        quote! { &__res__ }
+                    } else {
+                        gen_buffered_ret(&type_ident)
+                    }
                 } else if is_copyable {
                     if ty.is_reference {
                         quote! { *__res__ }

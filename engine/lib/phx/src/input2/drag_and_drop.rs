@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::internal::static_string;
 
@@ -24,16 +24,19 @@ impl DragAndDropState {
         self.hovered_file_cancelled = false;
     }
 
-    pub fn update_dropped(&mut self, file: PathBuf) {
-        self.dropped_file = Some(file);
+    pub fn update_dropped(&mut self, file: &Path) -> bool {
+        self.dropped_file = Some(file.into());
+        true
     }
 
-    pub fn update_hovered(&mut self, file: PathBuf) {
-        self.hovered_file = Some(file);
+    pub fn update_hovered(&mut self, file: &Path) -> bool {
+        self.hovered_file = Some(file.into());
+        true
     }
 
-    pub fn update_cancelled(&mut self) {
+    pub fn update_cancelled(&mut self) -> bool {
         self.hovered_file_cancelled = true;
+        true
     }
 }
 
