@@ -1,11 +1,10 @@
 mod frame_state;
 
 pub(crate) use frame_state::*;
-use glam::ivec2;
-use glam::Vec2;
-use tracing::debug;
-use tracing::error;
-use tracing::trace;
+
+use glam::*;
+use mlua::{Function, Lua};
+use tracing::{debug, error, trace};
 use winit::dpi::*;
 use winit::event::TouchPhase;
 
@@ -17,7 +16,7 @@ use crate::common::*;
 use crate::input2::*;
 use crate::internal::*;
 use crate::logging::init_log;
-use crate::lua::*;
+// use crate::lua::*;
 use crate::render::*;
 use crate::system::*;
 use crate::window::*;
@@ -38,6 +37,7 @@ pub struct Engine {
     input: Input2,
     frame_state: FrameState,
     exit_app: bool,
+    lua: Lua,
 }
 
 impl Engine {
@@ -126,6 +126,7 @@ impl Engine {
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
+            lua: Lua::new(),
         }
     }
 
@@ -321,6 +322,7 @@ impl Engine {
 impl Engine {
     #[bind(lua_ffi = false)]
     pub fn entry(entry_point: &str, app_name: &str, console_log: bool, log_dir: &str) {
+        let app_name = app_name.to_string();
         // Keep log till the end of the execution
         let _log = init_log(console_log, log_dir);
 
@@ -336,29 +338,6 @@ impl Engine {
                 panic!("Can't find script entrypoint: {entry_point}");
             }
         }
-
-        unsafe {
-            let lua = Lua_Create();
-
-            Lua_SetBool(lua, c_str!("__debug__"), cfg!(debug_assertions));
-            Lua_SetBool(lua, c_str!("__embedded__"), true);
-            Lua_SetNumber(lua, c_str!("__checklevel__"), 0 as f64);
-
-            if !app_name.is_empty() {
-                let an = static_string!(app_name);
-
-                Lua_SetStr(lua, c_str!("__app__"), an);
-            }
-
-            let script_file = static_string!(entry_point);
-
-            Lua_DoFile(lua, script_file);
-            // Lua_Free(lua);
-
-            // TODO: call AppInit(engine)
-        }
-
-        // Engine::free();
 
         let event_loop = EventLoop::new();
 
@@ -392,7 +371,27 @@ impl Engine {
             }
 
             match event {
-                event::Event::NewEvents(_start) => {
+                event::Event::NewEvents(start_cause) => {
+                    if start_cause == StartCause::Init {
+                        let globals = engine.lua.globals();
+
+                        globals.set("__debug__", cfg!(debug_assertions)).unwrap();
+                        globals.set("__embedded__", true).unwrap();
+                        globals.set("__checklevel__", 0 as u64).unwrap();
+
+                        if !app_name.is_empty() {
+                            globals.set("__app__", app_name.clone()).unwrap();
+                        }
+
+                        engine.lua.load(&entry_point_path).exec().unwrap();
+
+                        let app_init_func: Function = globals.get("AppInit").unwrap();
+
+                        app_init_func
+                            .call::<_, ()>(&engine as *const Engine as usize) // TODO: is this a correct way to send pointer to object?
+                            .unwrap();
+                    }
+
                     // let (winit_config, window_focused_query) = focused_window_state.get(&app.world);
 
                     // let app_focused = window_focused_query.iter().any(|window| window.focused);
@@ -743,7 +742,13 @@ impl Engine {
                         // Load all gamepad events
                         engine.input.update_gamepad(|state| state.update());
 
-                        // TODO: call Lua AppFrame() function
+                        // Let Lua script perform frame operations
+                        {
+                            let globals = engine.lua.globals();
+                            let app_frame_func: Function = globals.get("AppFrame").unwrap();
+
+                            app_frame_func.call::<_, ()>(()).unwrap();
+                        }
 
                         // Apply window changes made by a script
                         engine.changed_window();
