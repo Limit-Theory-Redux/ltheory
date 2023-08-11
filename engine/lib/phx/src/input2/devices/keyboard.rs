@@ -395,6 +395,19 @@ impl KeyboardState {
         self.button_state.is_released(button as usize)
     }
 
+    pub fn alt_pressed(&self) -> bool {
+        self.is_pressed(KeyboardButton::AltLeft) || self.is_pressed(KeyboardButton::AltRight)
+    }
+
+    pub fn ctrl_pressed(&self) -> bool {
+        self.is_pressed(KeyboardButton::ControlLeft)
+            || self.is_pressed(KeyboardButton::ControlRight)
+    }
+
+    pub fn shift_pressed(&self) -> bool {
+        self.is_pressed(KeyboardButton::ShiftLeft) || self.is_pressed(KeyboardButton::ShiftRight)
+    }
+
     pub fn value(&self, button: KeyboardButton) -> f32 {
         if self.button_state.is_released(button as usize) {
             1.0

@@ -206,6 +206,7 @@ impl Input2 {
             self.mouse_state.is_pressed(mouse_control)
         } else if let Some(gamepad_button) = button.as_gamepad_button() {
             self.gamepad_state.is_pressed(gamepad_button)
+        // TODO: should this be enabled?
         // } else if let Some(gamepad_axis) = button.as_gamepad_axis() {
         //     self.gamepad_state.value(gamepad_axis) != 0.0
         // } else if let Some(touchpad_axis) = button.as_touchpad_axis() {
@@ -222,6 +223,7 @@ impl Input2 {
             self.mouse_state.is_down(mouse_control)
         } else if let Some(gamepad_button) = button.as_gamepad_button() {
             self.gamepad_state.is_down(gamepad_button)
+        // TODO: should this be enabled?
         // } else if let Some(gamepad_axis) = button.as_gamepad_axis() {
         //     self.gamepad_state.value(gamepad_axis) != 0.0
         // } else if let Some(touchpad_axis) = button.as_touchpad_axis() {
@@ -238,6 +240,7 @@ impl Input2 {
             self.mouse_state.is_released(mouse_control)
         } else if let Some(gamepad_button) = button.as_gamepad_button() {
             self.gamepad_state.is_released(gamepad_button)
+        // TODO: should this be enabled?
         // } else if let Some(gamepad_axis) = button.as_gamepad_axis() {
         //     self.gamepad_state.value(gamepad_axis) == 0.0
         // } else if let Some(touchpad_axis) = button.as_touchpad_axis() {

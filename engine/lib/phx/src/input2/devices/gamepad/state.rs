@@ -189,7 +189,7 @@ impl GamepadState {
                     .is_connected()
                     .then(|| state.axis_state.value(axis as _))
             })
-            .unwrap_or_default() // TODO: return an error?
+            .unwrap_or_default()
     }
 
     pub fn is_pressed(&self, button: GamepadButton) -> bool {
@@ -201,7 +201,7 @@ impl GamepadState {
                     .is_connected()
                     .then(|| state.button_state.is_pressed(button as _))
             })
-            .unwrap_or_default() // TODO: return an error?
+            .unwrap_or_default()
     }
 
     pub fn is_down(&self, button: GamepadButton) -> bool {
@@ -213,7 +213,7 @@ impl GamepadState {
                     .is_connected()
                     .then(|| state.button_state.is_down(button as _))
             })
-            .unwrap_or_default() // TODO: return an error?
+            .unwrap_or_default()
     }
 
     pub fn is_released(&self, button: GamepadButton) -> bool {
@@ -225,7 +225,7 @@ impl GamepadState {
                     .is_connected()
                     .then(|| state.button_state.is_released(button as _))
             })
-            .unwrap_or_default() // TODO: return an error?
+            .unwrap_or_default()
     }
 
     pub fn value_by_id(&self, gamepad_id: GamepadId, axis: GamepadAxis) -> f32 {
