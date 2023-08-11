@@ -14,6 +14,7 @@ do -- C Definitions
         int           Engine_GetBits    ();
         double        Engine_GetTime    (Engine const*);
         cstr          Engine_GetVersion ();
+        void          Engine_Exit       (Engine*);
         void          Engine_Terminate  ();
         void          Engine_Update     ();
     ]]
@@ -28,6 +29,7 @@ do -- Global Symbol Table
         GetBits    = libphx.Engine_GetBits,
         GetTime    = libphx.Engine_GetTime,
         GetVersion = libphx.Engine_GetVersion,
+        Exit       = libphx.Engine_Exit,
         Terminate  = libphx.Engine_Terminate,
         Update     = libphx.Engine_Update,
     }
@@ -43,6 +45,7 @@ do -- Metatype for class instances
             window  = libphx.Engine_Window,
             input   = libphx.Engine_Input,
             getTime = libphx.Engine_GetTime,
+            exit    = libphx.Engine_Exit,
         },
     }
 

@@ -132,6 +132,10 @@ Namespace.Inline(Render, 'Render')
 
 -- Call Function for Running main with errorHandler
 function Core.Call(fn)
-    local _, err = xpcall(fn, ErrorHandler)
-    if err then print(err) end
+    local res, err = xpcall(fn, ErrorHandler)
+    if err then
+        print(err)
+        os.exit()
+    end
+    return res
 end

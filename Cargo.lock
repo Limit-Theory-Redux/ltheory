@@ -1717,7 +1717,6 @@ dependencies = [
  "num_cpus",
  "regex",
  "rodio",
- "sdl2-sys",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
@@ -1975,17 +1974,6 @@ dependencies = [
  "memmap2",
  "smithay-client-toolkit",
  "tiny-skia",
-]
-
-[[package]]
-name = "sdl2-sys"
-version = "0.35.2"
-source = "git+https://github.com/Rust-SDL2/rust-sdl2.git?branch=master#27cd1fd67c811e06b9d997a77bb6089a1b65070d"
-dependencies = [
- "cfg-if",
- "cmake",
- "libc",
- "version-compare",
 ]
 
 [[package]]
@@ -2497,12 +2485,6 @@ name = "vec_map"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
-
-[[package]]
-name = "version-compare"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "579a42fc0b8e0c63b76519a339be31bed574929511fa53c1a3acae26eb258f29"
 
 [[package]]
 name = "version_check"

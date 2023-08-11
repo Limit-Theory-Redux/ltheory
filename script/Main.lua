@@ -5,7 +5,7 @@ package.path = package.path .. ';./script/?.ffi.lua'
 
 require('Init')
 
-Core.Call(function()
+AppState = Core.Call(function()
     local app = __app__ or 'LTheoryRedux'
     GlobalRestrict.On()
 
@@ -48,6 +48,32 @@ Core.Call(function()
     --io.close(logG)
     local foundState, state = pcall(require, 'States.App.' .. app)
     local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
-    if foundState then state:run() elseif foundTest then test:run() end
-    GlobalRestrict.Off()
+
+    local appState = nil
+
+    if foundState then
+        appState = state
+    elseif foundTest then
+        appState = test
+    else
+        error("Application was not specified")
+    end
+
+    appState:prepare()
+
+    return appState
 end)
+
+function AppInit(engine)
+    Core.Call(AppState:setEngine(engine))
+end
+
+function AppFrame()
+    Core.Call(AppState:onFrame())
+end
+
+function AppClose()
+    Core.Call(AppState:doExit())
+    GlobalRestrict.Off()
+end
+

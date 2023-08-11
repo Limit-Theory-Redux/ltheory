@@ -117,6 +117,9 @@ impl Engine {
             window: window.clone(),
         };
 
+        // Unsafe is required for FFI and JIT libs
+        let lua = unsafe { Lua::unsafe_new() };
+
         Self {
             init_time: TimeStamp::now(),
             window,
@@ -126,7 +129,7 @@ impl Engine {
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
-            lua: Lua::new(),
+            lua,
         }
     }
 
@@ -881,6 +884,10 @@ impl Engine {
     pub fn get_version() -> &'static str {
         // TODO: think about string conversion to C string without pinning if necessary
         env!("PHX_VERSION")
+    }
+
+    pub fn exit(&mut self) {
+        self.exit_app = true;
     }
 
     pub fn terminate() {
