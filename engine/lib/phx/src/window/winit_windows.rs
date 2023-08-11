@@ -1,12 +1,16 @@
 #![warn(missing_docs)]
 use std::sync::atomic::Ordering;
 
+use glutin::{config::ConfigTemplateBuilder, prelude::GlConfig};
+use glutin_winit::DisplayBuilder;
 use hashbrown::HashMap;
 use tracing::{error, warn};
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
     monitor::MonitorHandle,
 };
+
+use crate::render::OpenGL_Init;
 
 use super::{CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution};
 
@@ -123,8 +127,35 @@ impl WinitWindows {
                 winit_window_builder.with_prevent_default(window.prevent_default_event_handling)
         }
 
-        let winit_window = winit_window_builder.build(event_loop).unwrap();
-        // let name = window.title.clone();
+        let template = ConfigTemplateBuilder::new()
+            .with_alpha_size(8)
+            .with_transparency(cfg!(cgl_backend));
+        let display_builder = DisplayBuilder::new().with_window_builder(Some(winit_window_builder));
+        let (winit_window, gl_config) = display_builder
+            .build(&event_loop, template, |configs| {
+                // Find the config with the maximum number of samples, so our triangle will
+                // be smooth.
+                configs
+                    .reduce(|accum, config| {
+                        let transparency_check = config.supports_transparency().unwrap_or(false)
+                            & !accum.supports_transparency().unwrap_or(false);
+
+                        if transparency_check || config.num_samples() > accum.num_samples() {
+                            config
+                        } else {
+                            accum
+                        }
+                    })
+                    .unwrap()
+            })
+            .unwrap();
+
+        unsafe {
+            OpenGL_Init(gl_config);
+        }
+
+        let winit_window = winit_window.unwrap(); // winit_window_builder.build(event_loop).unwrap();
+                                                  // let name = window.title.clone();
 
         // let mut root_builder = NodeBuilder::new(Role::Window);
         // root_builder.set_name(name.into_boxed_str());

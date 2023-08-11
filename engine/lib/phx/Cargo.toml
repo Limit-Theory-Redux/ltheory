@@ -18,8 +18,10 @@ chrono = "0.4.24"
 directories = "5.0.1"
 flate2 = "1.0.25"
 freetype-sys = "0.17.0"
-glam = { version = "0.24.0", features = ["scalar-math"] }
 gilrs = "0.10.2"
+glam = { version = "0.24.0", features = ["scalar-math"] }
+glutin = "0.30.10"
+glutin-winit = "0.3.0"
 hashbrown = { version = "0.14.0", features = ["serde"] }
 image = "0.24.6"
 indexmap = "2.0.0"

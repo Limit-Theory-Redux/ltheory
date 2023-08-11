@@ -1,17 +1,18 @@
 use super::*;
 use crate::common::*;
 
-use sdl2_sys::*;
 use std::ffi::{CStr, CString};
 
+use glutin::{display::GetGlDisplay, prelude::GlDisplay};
+
 #[no_mangle]
-pub unsafe extern "C" fn OpenGL_Init() {
+pub unsafe extern "C" fn OpenGL_Init(gl_config: glutin::config::Config) {
     static mut init: bool = false;
     if !init {
         init = true;
         gl::load_with(|s| {
             let cs = CString::new(s.as_bytes()).unwrap();
-            SDL_GL_GetProcAddress(cs.as_ptr())
+            gl_config.display().get_proc_address(cs.as_c_str())
         });
     }
 
