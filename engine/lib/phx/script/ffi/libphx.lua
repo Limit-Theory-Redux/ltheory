@@ -3,7 +3,7 @@ local jit = require('jit')
 
 local libphx = {}
 do -- Basic Typedefs
-    ffi.cdef [[
+  ffi.cdef [[
     typedef unsigned long  ulong;
     typedef unsigned int   uint;
     typedef unsigned short ushort;
@@ -20,35 +20,42 @@ do -- Basic Typedefs
     typedef int32          BlendMode;
     typedef uint8          BSPNodeRel;
     typedef int32          Button;
+    typedef uint8          Button2;
     typedef int32          CollisionGroup;
     typedef int32          CollisionMask;
     typedef int32          CubeFace;
     typedef int32          CullFace;
+    typedef uint8          CursorControl;
     typedef int32          DataFormat;
     typedef int32          DeviceType;
+    typedef uint8          DragAndDropEvent;
     typedef uint32         Error;
+    typedef uint8          GamepadAxis;
+    typedef uint8          GamepadButton;
+    typedef uint64         GamepadId;
+    typedef int32          HatDir;
+    typedef uint8          InputDeviceType;
+    typedef uchar          Key;
+    typedef uint8          KeyboardButton;
     typedef int32          Metric;
     typedef int32          Modifier;
+    typedef int32          MouseButton;
+    typedef uint8          MouseControl;
+    typedef uint8          PhysicsType;
     typedef int32          PixelFormat;
     typedef uint8          PointClassification;
     typedef uint8          PolygonClassification;
     typedef int32          ResourceType;
     typedef int32          ShaderVarType;
     typedef int32          SocketType;
+    typedef uint8          SoundState;
     typedef int32          State;
     typedef int32          TexFilter;
     typedef int32          TexFormat;
     typedef int32          TexWrapMode;
+    typedef uint8          TouchpadAxis;
     typedef uint32         WindowMode;
     typedef int            WindowPos;
-    typedef uint64         GamepadId;
-    typedef int32          GamepadAxis;
-    typedef int32          GamepadButton;
-    typedef int32          HatDir;
-    typedef uchar          Key;
-    typedef int32          MouseButton;
-    typedef uint8          PhysicsType;
-    typedef uint8          SoundState;
   ]]
 end
 
@@ -62,38 +69,54 @@ end
 
 do -- Opaque Structs
     ffi.cdef [[
-    typedef struct BSP          {} BSP;
-    typedef struct BoxMesh      {} BoxMesh;
-    typedef struct BoxTree      {} BoxTree;
-    typedef struct Bytes        {} Bytes;
-    typedef struct File         {} File;
-    typedef struct Font         {} Font;
-    typedef struct HashGrid     {} HashGrid;
-    typedef struct HashGridElem {} HashGridElem;
-    typedef struct InputBinding {} InputBinding;
-    typedef struct KDTree       {} KDTree;
-    typedef struct LodMesh      {} LodMesh;
-    typedef struct MemPool      {} MemPool;
-    typedef struct MemStack     {} MemStack;
-    typedef struct Mesh         {} Mesh;
-    typedef struct Octree       {} Octree;
-    typedef struct Physics      {} Physics;
-    typedef struct RNG          {} RNG;
-    typedef struct RigidBody    {} RigidBody;
-    typedef struct RmGui        {} RmGui;
-    typedef struct SDF          {} SDF;
-    typedef struct Shader       {} Shader;
-    typedef struct ShaderState  {} ShaderState;
-    typedef struct Socket       {} Socket;
-    typedef struct SoundDesc    {} SoundDesc;
-    typedef struct StrMap       {} StrMap;
-    typedef struct StrMapIter   {} StrMapIter;
-    typedef struct Tex1D        {} Tex1D;
-    typedef struct Tex2D        {} Tex2D;
-    typedef struct Tex3D        {} Tex3D;
-    typedef struct TexCube      {} TexCube;
-    typedef struct Trigger      {} Trigger;
-  ]]
+      typedef struct Audio        {} Audio;
+      typedef struct BSP          {} BSP;
+      typedef struct BoxMesh      {} BoxMesh;
+      typedef struct BoxTree      {} BoxTree;
+      typedef struct Bytes        {} Bytes;
+      typedef struct CursorState  {} CursorState;
+      typedef struct Directory    {} Directory;
+      typedef struct DragAndDropState {} DragAndDropState;
+      typedef struct Engine       {} Engine;
+      typedef struct File         {} File;
+      typedef struct Font         {} Font;
+      typedef struct GamepadState {} GamepadState;
+      typedef struct HashGrid     {} HashGrid;
+      typedef struct HashGridElem {} HashGridElem;
+      typedef struct Input2       {} Input2;
+      typedef struct InputBinding {} InputBinding;
+      typedef struct InputDevice  {} InputDevice;
+      typedef struct InputDeviceId {} InputDeviceId;
+      typedef struct KDTree       {} KDTree;
+      typedef struct KeyboardState {} KeyboardState;
+      typedef struct LodMesh      {} LodMesh;
+      typedef struct MemPool      {} MemPool;
+      typedef struct MemStack     {} MemStack;
+      typedef struct Mesh         {} Mesh;
+      typedef struct MouseState   {} MouseState;
+      typedef struct Octree       {} Octree;
+      typedef struct Physics      {} Physics;
+      typedef struct RNG          {} RNG;
+      typedef struct RigidBody    {} RigidBody;
+      typedef struct RmGui        {} RmGui;
+      typedef struct SDF          {} SDF;
+      typedef struct Shader       {} Shader;
+      typedef struct ShaderState  {} ShaderState;
+      typedef struct Socket       {} Socket;
+      typedef struct Sound        {} Sound;
+      typedef struct SoundDesc    {} SoundDesc;
+      typedef struct StrMap       {} StrMap;
+      typedef struct StrMapIter   {} StrMapIter;
+      typedef struct Tex1D        {} Tex1D;
+      typedef struct Tex2D        {} Tex2D;
+      typedef struct Tex3D        {} Tex3D;
+      typedef struct TexCube      {} TexCube;
+      typedef struct Timer        {} Timer;
+      typedef struct TimeStamp    {} TimeStamp;
+      typedef struct TouchpadState {} TouchpadState;
+      typedef struct Trigger      {} Trigger;
+      typedef struct Window       {} Window;
+      ]]
 
     libphx.Opaques = {
         'Audio',
@@ -102,16 +125,24 @@ do -- Opaque Structs
         'BoxTree',
         'Bytes',
         'Directory',
+        'DragAndDropState',
+        'Engine',
         'File',
         'Font',
+        'GamepadState',
         'HashGrid',
         'HashGridElem',
+        'Input2',
         'InputBinding',
+        'InputDevice',
+        'InputDeviceId',
         'KDTree',
+        'KeyboardState',
         'LodMesh',
         'MemPool',
         'MemStack',
         'Mesh',
+        'MouseState',
         'Octree',
         'Physics',
         'RNG',
@@ -131,6 +162,7 @@ do -- Opaque Structs
         'TexCube',
         'Timer',
         'TimeStamp',
+        'TouchpadState',
         'Trigger',
         'Window',
     }

@@ -5,8 +5,6 @@ local InputDeviceType
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 InputDeviceType;
-
         InputDeviceType InputDeviceType_Cursor;
         InputDeviceType InputDeviceType_Gamepad;
         InputDeviceType InputDeviceType_Keyboard;

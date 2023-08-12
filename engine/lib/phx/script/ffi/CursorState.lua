@@ -5,8 +5,6 @@ local CursorState
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct CursorState {} CursorState;
-
         float CursorState_Value    (CursorState const*, CursorControl control);
         Vec2f CursorState_Position (CursorState const*);
         bool  CursorState_InWindow (CursorState const*);

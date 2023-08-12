@@ -5,8 +5,6 @@ local Sound
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct Sound {} Sound;
-
         void   Sound_Free          (Sound*);
         Sound* Sound_Load          (cstr path, bool isLooping);
         float  Sound_GetDuration   (Sound const*);

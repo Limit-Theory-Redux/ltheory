@@ -5,8 +5,6 @@ local CursorControl
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 CursorControl;
-
         CursorControl CursorControl_X;
         CursorControl CursorControl_Y;
         CursorControl CursorControl_InWindow;

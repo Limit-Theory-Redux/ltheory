@@ -5,8 +5,6 @@ local TouchpadAxis
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 TouchpadAxis;
-
         TouchpadAxis TouchpadAxis_X;
         TouchpadAxis TouchpadAxis_Y;
         TouchpadAxis TouchpadAxis_MagnifyDelta;

@@ -5,8 +5,6 @@ local TimeStamp
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct TimeStamp {} TimeStamp;
-
         void       TimeStamp_Free          (TimeStamp*);
         TimeStamp* TimeStamp_Now           ();
         TimeStamp* TimeStamp_GetFuture     (double seconds);

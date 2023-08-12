@@ -113,10 +113,11 @@ fn gen_c_definitions(
 ) -> Vec<String> {
     let mut res = vec![];
 
-    res.push(format!(
-        "{IDENT}{IDENT}typedef {} {module_name};\n",
-        enum_repr_ty.as_ffi_string()
-    ));
+    // TODO: refactor the way generated FFI is processed so typedef is registered before all other FFI parts to prevent a problem with unknown types
+    // res.push(format!(
+    //     "{IDENT}{IDENT}typedef {} {module_name};\n",
+    //     enum_repr_ty.as_ffi_string()
+    // ));
 
     let max_ret_len = std::cmp::max("cstr".len(), module_name.len());
 

@@ -5,8 +5,6 @@ local WindowMode
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 WindowMode;
-
         WindowMode WindowMode_Windowed;
         WindowMode WindowMode_BorderlessFullscreen;
         WindowMode WindowMode_SizedFullscreen;

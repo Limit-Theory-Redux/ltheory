@@ -5,8 +5,6 @@ local InputDeviceId
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct InputDeviceId {} InputDeviceId;
-
         cstr InputDeviceId_ToString (InputDeviceId const*);
     ]]
 end

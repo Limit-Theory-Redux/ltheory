@@ -5,8 +5,6 @@ local MouseControl
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 MouseControl;
-
         MouseControl MouseControl_Left;
         MouseControl MouseControl_Middle;
         MouseControl MouseControl_Right;

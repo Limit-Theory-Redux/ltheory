@@ -5,8 +5,6 @@ local GamepadButton
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 GamepadButton;
-
         GamepadButton GamepadButton_South;
         GamepadButton GamepadButton_East;
         GamepadButton GamepadButton_North;

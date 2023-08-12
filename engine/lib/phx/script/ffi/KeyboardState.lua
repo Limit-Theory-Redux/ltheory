@@ -5,8 +5,6 @@ local KeyboardState
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct KeyboardState {} KeyboardState;
-
         bool  KeyboardState_IsPressed    (KeyboardState const*, KeyboardButton button);
         bool  KeyboardState_IsDown       (KeyboardState const*, KeyboardButton button);
         bool  KeyboardState_IsReleased   (KeyboardState const*, KeyboardButton button);

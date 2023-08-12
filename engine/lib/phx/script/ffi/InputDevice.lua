@@ -5,8 +5,6 @@ local InputDevice
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct InputDevice {} InputDevice;
-
         bool InputDevice_Equal    (InputDevice const*, InputDevice const* other);
         cstr InputDevice_ToString (InputDevice const*);
     ]]

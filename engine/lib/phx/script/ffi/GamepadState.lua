@@ -5,8 +5,6 @@ local GamepadState
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct GamepadState {} GamepadState;
-
         uint64           GamepadState_GamepadsCount  (GamepadState const*);
         GamepadId const* GamepadState_GamepadId      (GamepadState const*, uint64 index);
         cstr             GamepadState_GamepadName    (GamepadState const*, GamepadId gamepadId);

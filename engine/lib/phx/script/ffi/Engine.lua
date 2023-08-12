@@ -5,8 +5,6 @@ local Engine
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct Engine {} Engine;
-
         Window const* Engine_Window     (Engine const*);
         Input2 const* Engine_Input      (Engine const*);
         void          Engine_Free       ();

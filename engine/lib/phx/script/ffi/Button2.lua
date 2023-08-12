@@ -5,8 +5,6 @@ local Button2
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 Button2;
-
         Button2 Button2_KeyboardKey1;
         Button2 Button2_KeyboardKey2;
         Button2 Button2_KeyboardKey3;

@@ -5,8 +5,6 @@ local GamepadAxis
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 GamepadAxis;
-
         GamepadAxis GamepadAxis_LeftStickX;
         GamepadAxis GamepadAxis_LeftStickY;
         GamepadAxis GamepadAxis_LeftZ;

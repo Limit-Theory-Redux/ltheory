@@ -5,8 +5,6 @@ local DragAndDropEvent
 
 do -- C Definitions
     ffi.cdef [[
-        typedef uint8 DragAndDropEvent;
-
         DragAndDropEvent DragAndDropEvent_DroppedFile;
         DragAndDropEvent DragAndDropEvent_HoveredFile;
         DragAndDropEvent DragAndDropEvent_HoveredFileCancelled;

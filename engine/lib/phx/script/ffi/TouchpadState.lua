@@ -5,8 +5,6 @@ local TouchpadState
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct TouchpadState {} TouchpadState;
-
         float TouchpadState_Value        (TouchpadState const*, TouchpadAxis axis);
         Vec2f TouchpadState_Position     (TouchpadState const*);
         float TouchpadState_MagnifyDelta (TouchpadState const*);

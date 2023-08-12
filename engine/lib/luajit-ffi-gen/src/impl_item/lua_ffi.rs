@@ -160,13 +160,14 @@ impl ImplInfo {
         writeln!(&mut file, "do -- C Definitions").unwrap();
         writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
 
-        if is_opaque {
-            writeln!(
-                &mut file,
-                "{IDENT}{IDENT}typedef struct {module_name} {{}} {module_name};\n"
-            )
-            .unwrap();
-        }
+        // TODO: refactor the way generated FFI is processed so typedef is registered before all other FFI parts to prevent a problem with unknown types
+        // if is_opaque {
+        //     writeln!(
+        //         &mut file,
+        //         "{IDENT}{IDENT}typedef struct {module_name} {{}} {module_name};\n"
+        //     )
+        //     .unwrap();
+        // }
 
         if let Some(c_definitions) = c_definitions {
             c_definitions

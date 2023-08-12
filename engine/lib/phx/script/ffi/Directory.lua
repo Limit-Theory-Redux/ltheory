@@ -5,8 +5,6 @@ local Directory
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct Directory {} Directory;
-
         void       Directory_Free        (Directory*);
         Directory* Directory_Open        (cstr path);
         cstr       Directory_GetNext     (Directory*);

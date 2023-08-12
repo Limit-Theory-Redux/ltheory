@@ -40,7 +40,7 @@ impl EnumInfo {
 
                 quote! {
                     #[no_mangle]
-                    pub const #const_ident: #repr_type_ident = #self_ident::#variant_ident.value();
+                    pub static #const_ident: #repr_type_ident = #self_ident::#variant_ident.value();
                 }
             })
             .collect();

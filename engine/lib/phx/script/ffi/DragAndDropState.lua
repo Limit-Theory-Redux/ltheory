@@ -5,8 +5,6 @@ local DragAndDropState
 
 do -- C Definitions
     ffi.cdef [[
-        typedef struct DragAndDropState {} DragAndDropState;
-
         cstr DragAndDropState_GetDroppedFile         (DragAndDropState const*);
         cstr DragAndDropState_GetHoveredFile         (DragAndDropState const*);
         bool DragAndDropState_IfHoveredFileCancelled (DragAndDropState const*);
