@@ -99,7 +99,7 @@ function AudioTest:onInput()
         self:quit()
     end
 
-    if Input.GetPressed(Button.Mouse.Left) then
+    if Input.GetPressed(Button.MouseLeft) then
         -- Fade out currently playing music
         self.music[self.musicToggle]:fadeOut(5.0)
         -- Fade in alternate music
@@ -107,7 +107,7 @@ function AudioTest:onInput()
         self.music[self.musicToggle]:fadeIn(5.0)
     end
 
-    if Input.GetDown(Button.Mouse.Left) then
+    if Input.GetDown(Button.MouseLeft) then
         -- if self.lastFireTime:getElapsed() > 0.12 then
         --   self.lastFireTime = self.lastUpdate
         --   local sound = Sound.Load(SFX.Gun, false, true)
@@ -118,7 +118,7 @@ function AudioTest:onInput()
         -- end
     end
 
-    if Input.GetDown(Button.Mouse.Right) then
+    if Input.GetDown(Button.MouseRight) then
         local is = Input.GetMousePosition()
         self.pos.x = is.mousePosition.x
         self.pos.z = is.mousePosition.y

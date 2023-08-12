@@ -55,7 +55,9 @@ AppState = Core.Call(function()
         appState = state
     elseif foundTest then
         appState = test
-    else
+    end
+
+    if appState == nil then
         error("Application was not specified")
     end
 

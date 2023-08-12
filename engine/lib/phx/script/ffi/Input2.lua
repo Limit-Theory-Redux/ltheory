@@ -17,10 +17,10 @@ do -- C Definitions
         void                    Input2_SetCursorVisible     (Input2*, bool visible);
         void                    Input2_SetCursorVisibleAuto (Input2*);
         void                    Input2_SetCursorPosition    (Input2*, float x, float y);
-        bool                    Input2_GetPressed           (Input2 const*, Button2 button);
-        bool                    Input2_GetDown              (Input2 const*, Button2 button);
-        bool                    Input2_GetReleased          (Input2 const*, Button2 button);
-        float                   Input2_GetValue             (Input2 const*, Button2 button);
+        bool                    Input2_GetPressed           (Input2 const*, Button button);
+        bool                    Input2_GetDown              (Input2 const*, Button button);
+        bool                    Input2_GetReleased          (Input2 const*, Button button);
+        float                   Input2_GetValue             (Input2 const*, Button button);
     ]]
 end
 

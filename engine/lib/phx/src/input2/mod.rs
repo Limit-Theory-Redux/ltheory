@@ -199,7 +199,7 @@ impl Input2 {
         self.user_changes.push(UserChange::CursorPosition(x, y));
     }
 
-    pub fn get_pressed(&self, button: Button2) -> bool {
+    pub fn get_pressed(&self, button: Button) -> bool {
         if let Some(keyboard_button) = button.as_keyboard_button() {
             self.keyboard_state.is_pressed(keyboard_button)
         } else if let Some(mouse_control) = button.as_mouse_control() {
@@ -216,7 +216,7 @@ impl Input2 {
         }
     }
 
-    pub fn get_down(&self, button: Button2) -> bool {
+    pub fn get_down(&self, button: Button) -> bool {
         if let Some(keyboard_button) = button.as_keyboard_button() {
             self.keyboard_state.is_down(keyboard_button)
         } else if let Some(mouse_control) = button.as_mouse_control() {
@@ -233,7 +233,7 @@ impl Input2 {
         }
     }
 
-    pub fn get_released(&self, button: Button2) -> bool {
+    pub fn get_released(&self, button: Button) -> bool {
         if let Some(keyboard_button) = button.as_keyboard_button() {
             self.keyboard_state.is_released(keyboard_button)
         } else if let Some(mouse_control) = button.as_mouse_control() {
@@ -250,7 +250,7 @@ impl Input2 {
         }
     }
 
-    pub fn get_value(&self, button: Button2) -> f32 {
+    pub fn get_value(&self, button: Button) -> f32 {
         if let Some(keyboard_button) = button.as_keyboard_button() {
             self.keyboard_state.value(keyboard_button)
         } else if let Some(mouse_control) = button.as_mouse_control() {

@@ -151,7 +151,7 @@ function SystemMap:onDraw(state)
     Draw.SmoothPoints(false)
     BlendMode.Pop()
 
-    if Input.GetDown(Button.Mouse.Left) then
+    if Input.GetDown(Button.MouseLeft) then
         self.focus = best
         -- Set focused-on object in the System Map as the player ship's current target
         if GameState.player.currentShip ~= nil and GameState.player.currentShip ~= self.focus then
@@ -276,14 +276,14 @@ function SystemMap:onInput(state)
     --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
     --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
     --       Meanwhile, the Minus and Equals keys will slow down and speed up zooming, respectively
-    if Input.GetValue(Button.Keyboard.Minus) == 1 then
+    if Input.GetValue(Button.KeyboardMinus) == 1 then
         GameState.player.mapSystemPan = GameState.player.mapSystemPan / 1.2
         if GameState.player.mapSystemPan < 1 then
             GameState.player.mapSystemPan = 1
         end
         --printf("mapSystemPan - = %s", GameState.player.mapSystemPan)
     end
-    if Input.GetValue(Button.Keyboard.Equals) == 1 then
+    if Input.GetValue(Button.KeyboardEquals) == 1 then
         GameState.player.mapSystemPan = GameState.player.mapSystemPan * 1.2
         if GameState.player.mapSystemPan > 150 then
             GameState.player.mapSystemPan = 150
@@ -293,14 +293,14 @@ function SystemMap:onInput(state)
 
     GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * Input.GetMouseScroll().y)
     GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
-        exp(kZoomSpeed * (Input.GetValue(Button.Keyboard.RBracket) - Input.GetValue(Button.Keyboard.LBracket)))
+        exp(kZoomSpeed * (Input.GetValue(Button.KeyboardBracketRight) - Input.GetValue(Button.KeyboardBracketLeft)))
 
     GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x +
         (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-            Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
+            Input.GetValue(Button.KeyboardD) - Input.GetValue(Button.KeyboardA))
     GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y +
         (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-            Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+            Input.GetValue(Button.KeyboardS) - Input.GetValue(Button.KeyboardW))
 end
 
 function SystemMap.Create(system)

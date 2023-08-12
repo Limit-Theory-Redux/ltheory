@@ -1617,21 +1617,21 @@ function HUD:onInput(state)
         -- camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
         -- Select a weapon group
-        if Input.GetPressed(Button.Keyboard.N1) and GameState.player.weaponGroup ~= 1 then
+        if Input.GetPressed(Button.KeyboardKey1) and GameState.player.weaponGroup ~= 1 then
             GameState.player.weaponGroup = 1
-        elseif Input.GetPressed(Button.Keyboard.N2) and GameState.player.weaponGroup ~= 2 then
+        elseif Input.GetPressed(Button.KeyboardKey2) and GameState.player.weaponGroup ~= 2 then
             GameState.player.weaponGroup = 2
-        elseif Input.GetPressed(Button.Keyboard.N3) and GameState.player.weaponGroup ~= 3 then
+        elseif Input.GetPressed(Button.KeyboardKey3) and GameState.player.weaponGroup ~= 3 then
             GameState.player.weaponGroup = 3
-        elseif Input.GetPressed(Button.Keyboard.N4) and GameState.player.weaponGroup ~= 4 then
+        elseif Input.GetPressed(Button.KeyboardKey4) and GameState.player.weaponGroup ~= 4 then
             GameState.player.weaponGroup = 4
-        elseif Input.GetPressed(Button.Keyboard.N5) and GameState.player.weaponGroup ~= 5 then
+        elseif Input.GetPressed(Button.KeyboardKey5) and GameState.player.weaponGroup ~= 5 then
             GameState.player.weaponGroup = 5
-        elseif Input.GetPressed(Button.Keyboard.N6) and GameState.player.weaponGroup ~= 6 then
+        elseif Input.GetPressed(Button.KeyboardKey6) and GameState.player.weaponGroup ~= 6 then
             GameState.player.weaponGroup = 6
-        elseif Input.GetPressed(Button.Keyboard.N7) and GameState.player.weaponGroup ~= 7 then
+        elseif Input.GetPressed(Button.KeyboardKey7) and GameState.player.weaponGroup ~= 7 then
             GameState.player.weaponGroup = 7
-        elseif Input.GetPressed(Button.Keyboard.N8) and GameState.player.weaponGroup ~= 8 then
+        elseif Input.GetPressed(Button.KeyboardKey8) and GameState.player.weaponGroup ~= 8 then
             GameState.player.weaponGroup = 8
         end
 

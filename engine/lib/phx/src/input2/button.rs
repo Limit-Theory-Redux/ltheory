@@ -6,7 +6,7 @@ macro_rules! buttons {
     ($($device_name:ident($as_func:ident): [$($(#[doc = $doc:expr])*($button_item:ident, $device_item:ident),)+])+) => {
         #[luajit_ffi_gen::luajit_ffi]
         #[derive(Debug)]
-        pub enum Button2 {
+        pub enum Button {
             $(
                 $(
                     $(#[doc = $doc])*
@@ -15,7 +15,7 @@ macro_rules! buttons {
             )+
         }
 
-        impl Button2 {
+        impl Button {
             $(
                 pub fn $as_func(&self) -> Option<$device_name> {
                     match self {
@@ -27,7 +27,7 @@ macro_rules! buttons {
         }
 
         $(
-            impl From<$device_name> for Button2 {
+            impl From<$device_name> for Button {
                 fn from(value: $device_name) -> Self {
                     match value {
                         $($device_name::$device_item => Self::$button_item,)+
@@ -402,8 +402,8 @@ buttons! {
         // Axes
         (MouseDeltaX, DeltaX),
         (MouseDeltaY, DeltaY),
-        (MouseScrollPixelX, ScrollPixelX),
-        (MouseScrollPixelY, ScrollPixelY),
+        (MouseScrollX, ScrollX),
+        (MouseScrollY, ScrollY),
         (MouseScrollLineX, ScrollLineX),
         (MouseScrollLineY, ScrollLineY),
     ]

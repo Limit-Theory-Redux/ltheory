@@ -72,7 +72,7 @@ function DebugControl:onDraw(focus, active)
         local ray = camera:mouseToRay(1e7)
         local hit, t = world:raycast(ray)
         self.hit = hit
-        if Input.GetPressed(Button.Mouse.Left) then
+        if Input.GetPressed(Button.MouseLeft) then
             self.target = self.hit
         end
     end

@@ -692,7 +692,7 @@ pub unsafe extern "C" fn HmGui_EndScroll(input: Input2) {
     let data = HmGui_GetData(this.group);
 
     if HmGui_GroupHasFocus(1) {
-        let scroll_y = input.mouse().value(MouseControl::ScrollPixelY);
+        let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
         (*data).offset.y -= 10.0f32 * scroll_y as f32;
     }

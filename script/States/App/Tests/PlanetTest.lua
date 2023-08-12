@@ -50,9 +50,9 @@ end
 function PlanetTest:onInput()
     self.canvas:input()
 
-    if Input.GetKeyboardShift() and Input.GetPressed(Button.Keyboard.B) then
+    if Input.GetKeyboardShift() and Input.GetPressed(Button.KeyboardB) then
         self:newSystem()
-    elseif Input.GetPressed(Button.Keyboard.B) then
+    elseif Input.GetPressed(Button.KeyboardB) then
         self:spawnPlanet()
     end
 end
