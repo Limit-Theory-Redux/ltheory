@@ -24,10 +24,6 @@ function LTheoryRedux:onInit()
     GameState.ui.showTrackers = true
     GameState.audio.musicVolume = 0
 
-    if Config.audio.pulseFire then
-        Config.audio.pulseFire:setVolume(Config.audio.soundMax)
-    end
-
     -- Initialize Universe
     Universe:Init()
 

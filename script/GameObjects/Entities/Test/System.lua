@@ -164,44 +164,44 @@ function System:addExtraFactories(system, planetCount, aiPlayer)
         for i = 1, prodTypeCount do
             -- Add a Copper Refinery station (to create Item.AnodeSludge)
             newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Copper)
-            system:place(newStation)
+            newStation.zone = system:place(newStation)
         end
 
         prodTypeCount = system:countProdType(Production.EnergyNuclear)
         for i = 1, prodTypeCount do
             -- Add an Isotope Factory station (to create Item.Isotopes)
             newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Isotopes)
-            system:place(newStation)
+            newStation.zone = system:place(newStation)
         end
 
         prodTypeCount = system:countProdType(Production.Isotopes)
         for i = 1, prodTypeCount do
             -- Add a Thorium Refinery station (to create Item.Thorium)
             newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Thorium)
-            system:place(newStation)
+            newStation.zone = system:place(newStation)
         end
 
         prodTypeCount = system:countProdType(Production.EnergyFusion)
         for i = 1, prodTypeCount do
             -- Add 2 Water Melter stations (to create Item.WaterLiquid)
             newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
-            system:place(newStation)
+            newStation.zone = system:place(newStation)
             newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
-            system:place(newStation)
+            newStation.zone = system:place(newStation)
         end
 
         for i = 1, planetCount do
             -- Add a Petroleum Refinery station
             -- TODO: only add refineries for each planet that has a Trader
             newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.Petroleum)
-            system:place(newStation)
+            newStation.zone = system:place(newStation)
         end
 
         prodTypeCount = system:countProdType(Production.Petroleum)
         for i = 1, prodTypeCount do
             -- Add a Plastics Factory station (to create Item.Plastic)
             newStation = system:spawnStation(Enums.StationHulls.Small, aiPlayer, Production.WaterMelter)
-            system:place(newStation)
+            newStation.zone = system:place(newStation)
         end
     end
 end
@@ -274,7 +274,8 @@ function System:place(object)
     end
     object:setPos(pos)
 
-    return pos
+    -- Return the Asteroid Field zone in which the object is being placed
+    return field
 end
 
 function System:beginRender()
@@ -358,6 +359,14 @@ function System:spawnPlanet(bAddBelt)
     --       2) loaded components (for planets recreated when the player loads a saved game)
     -- NOTE: Components must be instantiated AFTER their parent is added as a child to the star system!
 
+    -- Add as many communicators as there are communicator plugs for
+    for i = 1, planet.countCommo do
+        local commo = Components.Communicator()
+        commo:setName(planet:getName() .. ": " .. "Morse's " .. commo:getName() .. " " .. tostring(i))
+        insert(planet.components.commo, commo)
+        planet:plug(commo)
+    end
+
     -- Add as many computers as there are computer plugs for
     for i = 1, planet.countComputer do
         local computer = Components.Computer()
@@ -388,8 +397,8 @@ function System:spawnPlanet(bAddBelt)
     for i = 1, planet.countShield do
         local shield = Components.Shield()
         shield:setName(planet:getName() .. ": " .. "Magma " .. shield:getName() .. " " .. tostring(i))
-        local shieldStrength = shield:getShieldMax() * 20 -- planetary shields are stronger than station shields
-        shield:setShield(shieldStrength, shieldStrength, shield:getReviveRate() * 2)
+        local shieldStrength = shield:getStrengthMax() * 20 -- planetary shields are stronger than station shields
+        shield:setStrength(shieldStrength, shieldStrength, shield:getReviveRate() * 2)
         insert(planet.components.shield, shield)
         planet:plug(shield)
     end
@@ -558,7 +567,7 @@ function System:spawnAsteroidField(count, reduced)
 
         -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
         -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
-        zone:add(asteroid)
+        zone:addChild(asteroid)
         self:addChild(asteroid)
     end
 
@@ -620,7 +629,7 @@ function System:spawnStation(hullSize, player, prodType)
     station:setName(Words.getCoolName(rng))
 
     -- Set station location within the extent of a randomly selected asteroid field
-    self:place(station)
+    station.zone = self:place(station)
 
     -- Assign the station to an owner
     station:setOwner(player)
@@ -635,54 +644,13 @@ function System:spawnStation(hullSize, player, prodType)
     --       3) loaded components (for stations recreated when the player loads a saved game)
     -- NOTE: Components must be instantiated AFTER their parent is added as a child to the star system!
 
-    -- Add a Hull component as a unitary object
-    local hull = Components.Hull()
-    hull:setName(station:getName() .. ": " .. "Superdense " .. hull:getName())
-    local hullHealth = hull:getHealth() * Config.gen.stationComponents[Enums.StationComponents.Hull][hullSize]
-    hull:setHealth(hullHealth, hullHealth)
-    insert(station.components.hull, hull)
-    --  station:plug(hull)
-
-    -- Add as many computers as there are computer plugs for
-    for i = 1, station.countComputer do
-        local computer = Components.Computer()
-        computer:setName(station:getName() .. ": " .. "Babbage's " .. computer:getName() .. " " .. tostring(i))
-        insert(station.components.computer, computer)
-        station:plug(computer)
-    end
-
-    -- Add as many sensors as there are sensor plugs for
-    for i = 1, station.countSensor do
-        local sensor = Components.Sensor()
-        sensor:setName(station:getName() .. ": " .. "April's " .. sensor:getName() .. " " .. tostring(i))
-        insert(station.components.sensor, sensor)
-        --    station:plug(sensor)
-    end
-
-    -- Add as many life support units as there are plugs for
-    for i = 1, station.countLifeSupport do
-        local lifeSupport = Components.LifeSupport()
-        lifeSupport:setName(station:getName() .. ": " .. "Hoff's " .. lifeSupport:getName() .. " " .. tostring(i))
-        insert(station.components.lifeSupport, lifeSupport)
-        --    station:plug(lifeSupport)
-    end
-
-    -- Add as many capacitors as there are capacitor plugs for
-    for i = 1, station.countCapacitor do
-        local capacitor = Components.Capacitor()
-        capacitor:setName(station:getName() .. ": " .. "Cauchy's " .. capacitor:getName() .. " " .. tostring(i))
-        insert(station.components.capacitor, capacitor)
-        station:plug(capacitor)
-    end
-
-    -- Add as many turrets as there are turret plugs for
-    for i = 1, station.countTurret do
-        local turret = Ship.Turret()
-        turret.name = station:getName() .. ": " .. turret.name .. " " .. tostring(i)
-        turret:setScale(0.6 * station:getScale())
-        insert(station.components.turret, turret)
-        -- TODO : Does this leak a Turret/RigidBody?
-        station:plug(turret)
+    -- Add as many armor plates as there are armor plugs for
+    --  station:addArmor(Config.gen.compArmorStats.healthMax * station.countArmor) -- TEMP
+    for i = 1, station.countArmor do
+        local armor = Components.Armor()
+        armor:setName(station:getName() .. ": " .. "Glassiron " .. armor:getName() .. " " .. tostring(i))
+        insert(station.components.armor, armor)
+        --    station:plug(armor)
     end
 
     -- Add as many bays as there are bay plugs for
@@ -693,6 +661,46 @@ function System:spawnStation(hullSize, player, prodType)
         -- TODO : Does this leak a Bay/RigidBody?
         station:plug(bay)
     end
+
+    -- Add as many capacitors as there are capacitor plugs for
+    for i = 1, station.countCapacitor do
+        local capacitor = Components.Capacitor()
+        capacitor:setName(station:getName() .. ": " .. "Cauchy's " .. capacitor:getName() .. " " .. tostring(i))
+        insert(station.components.capacitor, capacitor)
+        station:plug(capacitor)
+    end
+
+    -- Add as many communicators as there are communicator plugs for
+    for i = 1, station.countCommo do
+        local commo = Components.Communicator()
+        commo:setName(station:getName() .. ": " .. "Morse's " .. commo:getName() .. " " .. tostring(i))
+        insert(station.components.commo, commo)
+        station:plug(commo)
+    end
+
+    -- Add as many computers as there are computer plugs for
+    for i = 1, station.countComputer do
+        local computer = Components.Computer()
+        computer:setName(station:getName() .. ": " .. "Babbage's " .. computer:getName() .. " " .. tostring(i))
+        insert(station.components.computer, computer)
+        station:plug(computer)
+    end
+
+    -- Add as many drone racks as there are drone plugs for
+    for i = 1, station.countDrone do
+        local drone = Ship.Drone()
+        drone:setName(station:getName() .. ": " .. "Wilson's " .. drone:getName() .. " " .. tostring(i))
+        insert(station.components.drone, drone)
+        --    station:plug(drone)
+    end
+
+    -- Add a Hull component as a unitary object
+    local hull = Components.Hull()
+    hull:setName(station:getName() .. ": " .. "Superdense " .. hull:getName())
+    local hullHealth = hull:getHealth() * Config.gen.stationComponents[Enums.StationComponents.Hull][hullSize]
+    hull:setHealth(hullHealth, hullHealth)
+    insert(station.components.hull, hull)
+    --  station:plug(hull)
 
     -- Add transport pods to every inventory plug
     for i = 1, station.countInventory do
@@ -708,31 +716,32 @@ function System:spawnStation(hullSize, player, prodType)
         station:register(Event.Debug, Entity.mgrInventoryDebug)
     end
 
-    -- Add as many drone racks as there are drone plugs for
-    for i = 1, station.countDrone do
-        local drone = Ship.Drone()
-        drone:setName(station:getName() .. ": " .. "Wilson's " .. drone:getName() .. " " .. tostring(i))
-        insert(station.components.drone, drone)
-        --    station:plug(drone)
+    -- Add as many sensors as there are sensor plugs for
+    for i = 1, station.countSensor do
+        local sensor = Components.Sensor()
+        sensor:setName(station:getName() .. ": " .. "April's " .. sensor:getName() .. " " .. tostring(i))
+        insert(station.components.sensor, sensor)
+        --    station:plug(sensor)
     end
 
     -- Add as many shield generators as there are shield plugs for
     for i = 1, station.countShield do
         local shield = Components.Shield()
         shield:setName(station:getName() .. ": " .. "Magma " .. shield:getName() .. " " .. tostring(i))
-        local shieldStrength = shield:getShieldMax() * 2 -- station shields are stronger than ship shields
-        shield:setShield(shieldStrength, shieldStrength, shield:getReviveRate() * 2)
+        local shieldStrength = shield:getStrengthMax() * 2 -- station shields are stronger than ship shields
+        shield:setStrength(shieldStrength, shieldStrength, shield:getReviveRate() * 2)
         insert(station.components.shield, shield)
         station:plug(shield)
     end
 
-    -- Add as many armor plates as there are armor plugs for
-    --  station:addArmor(Config.gen.compArmorStats.healthMax * station.countArmor) -- TEMP
-    for i = 1, station.countArmor do
-        local armor = Components.Armor()
-        armor:setName(station:getName() .. ": " .. "Glassiron " .. armor:getName() .. " " .. tostring(i))
-        insert(station.components.armor, armor)
-        --    station:plug(armor)
+    -- Add as many turrets as there are turret plugs for
+    for i = 1, station.countTurret do
+        local turret = Ship.Turret()
+        turret.name = station:getName() .. ": " .. turret.name .. " " .. tostring(i)
+        turret:setScale(0.6 * station:getScale())
+        insert(station.components.turret, turret)
+        -- TODO : Does this leak a Turret/RigidBody?
+        station:plug(turret)
     end
 
     -- Stations have market capacity
@@ -759,7 +768,7 @@ function System:spawnStation(hullSize, player, prodType)
         if rint > 80 then
             prod = rng:choose(Production.P0) -- small chance for a powerplant
         elseif rint > 25 then
-            prod = rng:choose(Production.P1) -- good chance for a powerplant
+            prod = rng:choose(Production.P1) -- good chance for a refinery
         else
             prod = rng:choose(Production.P2) -- good chance for a factory
         end
@@ -874,6 +883,56 @@ function System:spawnShip(hullSize, player)
     --       3) loaded components (for ships recreated when the player loads a saved game)
     -- NOTE: Components must be instantiated AFTER their parent is added as a child to the star system!
 
+    -- Add as many armor plates as there are armor plugs for
+    --  ship:addArmor(Config.gen.compArmorStats.healthMax * ship.countArmor) -- TEMP
+    for i = 1, ship.countArmor do
+        local armor = Components.Armor()
+        armor:setName(ship:getName() .. ": " .. "Glassiron " .. armor:getName() .. " " .. tostring(i))
+        insert(ship.components.armor, armor)
+        --    ship:plug(armor)
+    end
+
+    -- Add as many bays as there are bay plugs for
+    for i = 1, ship.countBay do
+        local bay = Ship.Bay()
+        bay.name = ship:getName() .. ": " .. bay:getName() .. " " .. tostring(i)
+        insert(ship.components.bay, bay)
+        -- TODO : Does this leak a Bay/RigidBody?
+        ship:plug(bay)
+    end
+
+    -- Add as many capacitors as there are capacitor plugs for
+    for i = 1, ship.countCapacitor do
+        local capacitor = Components.Capacitor()
+        capacitor:setName(ship:getName() .. ": " .. "Cauchy's " .. capacitor:getName() .. " " .. tostring(i))
+        insert(ship.components.capacitor, capacitor)
+        ship:plug(capacitor)
+    end
+
+    -- Add as many cloaks as there are plugs for
+    for i = 1, ship.countCloak do
+        local cloak = Components.Cloak()
+        cloak:setName(ship:getName() .. ": " .. "Valeria's " .. cloak:getName() .. " " .. tostring(i))
+        insert(ship.components.cloak, cloak)
+        --    ship:plug(cloak)
+    end
+
+    -- Add as many communicators as there are communicator plugs for
+    for i = 1, ship.countCommo do
+        local commo = Components.Communicator()
+        commo:setName(ship:getName() .. ": " .. "Morse's " .. commo:getName() .. " " .. tostring(i))
+        insert(ship.components.commo, commo)
+        ship:plug(commo)
+    end
+
+    -- Add as many computers as there are computer plugs for
+    for i = 1, ship.countComputer do
+        local computer = Components.Computer()
+        computer:setName(ship:getName() .. ": " .. "Babbage's " .. computer:getName() .. " " .. tostring(i))
+        insert(ship.components.computer, computer)
+        ship:plug(computer)
+    end
+
     -- Add a Hull component as a unitary object
     local hull = Components.Hull()
     hull:setName(ship:getName() .. ": " .. "Bonded " .. hull:getName())
@@ -882,12 +941,26 @@ function System:spawnShip(hullSize, player)
     insert(ship.components.hull, hull)
     --  ship:plug(hull)
 
-    -- Add as many computers as there are computer plugs for
-    for i = 1, ship.countComputer do
-        local computer = Components.Computer()
-        computer:setName(ship:getName() .. ": " .. "Babbage's " .. computer:getName() .. " " .. tostring(i))
-        insert(ship.components.computer, computer)
-        ship:plug(computer)
+    -- Add as many drone racks as there are drone plugs for
+    for i = 1, ship.countDrone do
+        local drone = Ship.Drone()
+        drone:setName(ship:getName() .. ": " .. "Wilson's " .. drone:getName() .. " " .. tostring(i))
+        insert(ship.components.drone, drone)
+        --    ship:plug(drone)
+    end
+
+    -- Add transport pods to every inventory plug
+    for i = 1, ship.countInventory do
+        local inventory = Components.Inventory()
+        inventory:setName(ship:getName() ..
+            ": " .. inventory:getName() .. "(" .. Config.gen.shipInventorySize .. ") " .. tostring(i))
+        inventory:setInventoryCapacity(Config.gen.shipInventorySize)
+        insert(ship.components.inventory, inventory)
+        ship:plug(inventory)
+    end
+    if ship.countInventory > 0 then
+        --printf("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
+        ship:register(Event.Debug, Entity.mgrInventoryDebug)
     end
 
     -- Add as many sensors as there are sensor plugs for
@@ -898,20 +971,12 @@ function System:spawnShip(hullSize, player)
         --    ship:plug(sensor)
     end
 
-    -- Add as many life support units as there are plugs for
-    for i = 1, ship.countLifeSupport do
-        local lifeSupport = Components.LifeSupport()
-        lifeSupport:setName(ship:getName() .. ": " .. "Hoff's " .. lifeSupport:getName() .. " " .. tostring(i))
-        insert(ship.components.lifeSupport, lifeSupport)
-        --    ship:plug(lifeSupport)
-    end
-
-    -- Add as many capacitors as there are capacitor plugs for
-    for i = 1, ship.countCapacitor do
-        local capacitor = Components.Capacitor()
-        capacitor:setName(ship:getName() .. ": " .. "Cauchy's " .. capacitor:getName() .. " " .. tostring(i))
-        insert(ship.components.capacitor, capacitor)
-        ship:plug(capacitor)
+    -- Add as many shield generators as there are shield plugs for
+    for i = 1, ship.countShield do
+        local shield = Components.Shield()
+        shield:setName(ship:getName() .. ": " .. "Magma " .. shield:getName() .. " " .. tostring(i))
+        insert(ship.components.shield, shield)
+        ship:plug(shield)
     end
 
     -- Add as many thrusters as there are thruster plugs for
@@ -935,54 +1000,6 @@ function System:spawnShip(hullSize, player)
         insert(ship.components.turret, turret)
         -- TODO : Does this leak a Turret/RigidBody?
         ship:plug(turret)
-    end
-
-    -- Add as many bays as there are bay plugs for
-    for i = 1, ship.countBay do
-        local bay = Ship.Bay()
-        bay.name = ship:getName() .. ": " .. bay:getName() .. " " .. tostring(i)
-        insert(ship.components.bay, bay)
-        -- TODO : Does this leak a Bay/RigidBody?
-        ship:plug(bay)
-    end
-
-    -- Add transport pods to every inventory plug
-    for i = 1, ship.countInventory do
-        local inventory = Components.Inventory()
-        inventory:setName(ship:getName() ..
-            ": " .. inventory:getName() .. "(" .. Config.gen.shipInventorySize .. ") " .. tostring(i))
-        inventory:setInventoryCapacity(Config.gen.shipInventorySize)
-        insert(ship.components.inventory, inventory)
-        ship:plug(inventory)
-    end
-    if ship.countInventory > 0 then
-        --printf("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
-        ship:register(Event.Debug, Entity.mgrInventoryDebug)
-    end
-
-    -- Add as many drone racks as there are drone plugs for
-    for i = 1, ship.countDrone do
-        local drone = Ship.Drone()
-        drone:setName(ship:getName() .. ": " .. "Wilson's " .. drone:getName() .. " " .. tostring(i))
-        insert(ship.components.drone, drone)
-        --    ship:plug(drone)
-    end
-
-    -- Add as many shield generators as there are shield plugs for
-    for i = 1, ship.countShield do
-        local shield = Components.Shield()
-        shield:setName(ship:getName() .. ": " .. "Magma " .. shield:getName() .. " " .. tostring(i))
-        insert(ship.components.shield, shield)
-        ship:plug(shield)
-    end
-
-    -- Add as many armor plates as there are armor plugs for
-    --  ship:addArmor(Config.gen.compArmorStats.healthMax * ship.countArmor) -- TEMP
-    for i = 1, ship.countArmor do
-        local armor = Components.Armor()
-        armor:setName(ship:getName() .. ": " .. "Glassiron " .. armor:getName() .. " " .. tostring(i))
-        insert(ship.components.armor, armor)
-        --    ship:plug(armor)
     end
 
     -- The ship's thruster gets its own color(s)

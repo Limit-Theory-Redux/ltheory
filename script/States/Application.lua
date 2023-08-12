@@ -6,7 +6,6 @@ local Application = class(function (self) end)
 -- Virtual ---------------------------------------------------------------------
 
 function Application:getDefaultSize()
-    --  return 1600, 900
     return Config.render.defaultResX, Config.render.defaultResY
 end
 
@@ -47,7 +46,8 @@ function Application:prepare()
         self.resY,
         self:getWindowMode())
 
-    self.audio = Audio.Create()
+    self.audio   = Audio.Create()
+    self.audiofx = Audio.Create()
 
     GameState.render.gameWindow = self.window
 
@@ -225,37 +225,38 @@ function Application:onFrame()
             )
         end
 
-        if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
-            --TODO: replace this with a general "is alive" game state here and in LTR, the whole process needs to be improved
-            if MainMenu and not MainMenu.dialogDisplayed and
-                not MainMenu.seedDialogDisplayed and
-                not MainMenu.settingsScreenDisplayed then
-                do
-                    UI.DrawEx.TextAdditive(
-                        'NovaRound',
-                        "[GAME OVER]",
-                        32,
-                        0, 0, self.resX, self.resY,
-                        1, 1, 1, 1,
-                        0.5, 0.5
-                    )
+            if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
+                --TODO: replace this with a general "is alive" game state here and in LTR,
+                --      the whole process needs to be improved
+                if MainMenu and not MainMenu.dialogDisplayed and
+                    not MainMenu.seedDialogDisplayed and
+                    not MainMenu.settingsScreenDisplayed then
+                    do
+                        UI.DrawEx.TextAdditive(
+                            'NovaRound',
+                            "[GAME OVER]",
+                            32,
+                            0, 0, self.resX, self.resY,
+                            1, 1, 1, 1,
+                            0.5, 0.5
+                        )
+                    end
                 end
             end
         end
-    end
 
-    -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
-    if doScreenshot then
-        --        Settings.set('render.superSample', 2) -- turn on mild supersampling
-        ScreenCap()
-        if self.prevSS then
-            --        Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
-            self.prevSS = nil
+        -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
+        if doScreenshot then
+            -- Settings.set('render.superSample', 2) -- turn on mild supersampling
+            ScreenCap()
+            if self.prevSS then
+                -- Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
+                self.prevSS = nil
+            end
         end
-    end
 
     do                                         -- Metrics display
-        if GameState.debug.metricsEnabled then -- Metrics Display
+        if GameState.debug.metricsEnabled then
             local s = string.format(
                 '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
                 1000.0 * self.dt,
@@ -279,17 +280,16 @@ function Application:onFrame()
         end
     end
 
-    do -- End Draw
-        Profiler.SetValue('gcmem', GC.GetMemory())
-        Profiler.Begin('App.SwapBuffers')
-        self.window:endDraw()
-        Profiler.End()
-    end
-    Profiler.End()
-    Profiler.LoopMarker()
+        do -- End Draw
+            Profiler.SetValue('gcmem', GC.GetMemory())
+            Profiler.Begin('App.SwapBuffers')
+            self.window:endDraw()
+            Profiler.End()
+        end
 
-    if self.exit then self.engine:exit() end
-end
+        Profiler.End()
+        Profiler.LoopMarker()
+    end
 
 function Application:doExit()
     if self.profiling then Profiler.Disable() end

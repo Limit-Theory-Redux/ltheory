@@ -132,7 +132,7 @@ function HUD:drawArmorIntegrity(a)
 
     local player = self.player
     local playerShip = player:getControlling()
-    local playerArmorDecPct = floor((playerShip:mgrArmorGetArmorPercent() + 0.5) / 10)
+    local playerArmorDecPct = floor((playerShip:mgrArmorGetHealthPercent() + 0.5) / 10)
 
     UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
     UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.armorIntegrity, mvSpacing, mvLevels,
@@ -171,7 +171,7 @@ function HUD:drawHullIntegrity(a)
 
     local player = self.player
     local playerShip = player:getControlling()
-    local playerHealthDecPct = floor((playerShip:mgrHullGetHullPercent() + 0.5) / 10)
+    local playerHealthDecPct = floor((playerShip:mgrHullGetHealthPercent() + 0.5) / 10)
 
     UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
     UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.hullIntegrity, mvSpacing, mvLevels,
@@ -248,7 +248,7 @@ function HUD:drawShieldStrength(a)
 
     local player = self.player
     local playerShip = player:getControlling()
-    local shieldDecPct = floor((playerShip:mgrShieldGetShieldPercent() + 0.5) / 10)
+    local shieldDecPct = floor((playerShip:mgrShieldGetStrengthPercent() + 0.5) / 10)
 
     UI.DrawEx.RectOutline(hudX - 6, hudY - mvYtot + mvHeight + 4, mvWidth + 12, mvYtot, Config.ui.color.borderOverlay)
     UI.DrawEx.MeterV(hudX, hudY, mvWidth, mvHeight, Config.ui.color.shieldStrength, mvSpacing, mvLevels, shieldDecPct)
@@ -494,21 +494,21 @@ function HUD:drawTargetShieldsHullArmor(a)
                 -- Draw target shields info
                 text = format("Shields")
                 HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
-                local targetShieldsPct = floor(playerTarget:mgrShieldGetShieldPercent() + 0.5)
+                local targetShieldsPct = floor(playerTarget:mgrShieldGetStrengthPercent() + 0.5)
                 text = format("%d%%", targetShieldsPct)
                 HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
 
                 -- Draw target hull info
                 text = format("Hull")
                 HUD:drawHudTextDouble(hudXh, hudY, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
-                local targetHealthPct = floor(playerTarget:mgrHullGetHullPercent() + 0.5)
+                local targetHealthPct = floor(playerTarget:mgrHullGetHealthPercent() + 0.5)
                 text = format("%d%%", targetHealthPct)
                 HUD:drawHudTextDouble(hudXh, hudY + 24, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
 
                 -- Draw target hull armor info
                 text = format("Armor")
                 HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
-                local targetArmorPct = floor(playerTarget:mgrArmorGetArmorPercent() + 0.5)
+                local targetArmorPct = floor(playerTarget:mgrArmorGetHealthPercent() + 0.5)
                 text = format("%d%%", targetArmorPct)
                 HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
             end
@@ -556,21 +556,21 @@ function HUD:drawPlayerShieldsHullArmor(a)
     -- Draw player ship shields info
     text = format("Shields")
     HUD:drawHudTextDouble(hudXs, hudY, Config.ui.color.meterBarLight, hudFontSize, 0.5, text)
-    local playerShieldsPct = floor(playerShip:mgrShieldGetShieldPercent() + 0.5)
+    local playerShieldsPct = floor(playerShip:mgrShieldGetStrengthPercent() + 0.5)
     text = format("%d%%", playerShieldsPct)
     HUD:drawHudTextDouble(hudXs + 10, hudY + 24, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
 
     -- Draw player ship hull info
     text = format("Hull")
     HUD:drawHudTextDouble(hudXh, hudY, Config.ui.color.meterBarLight, hudFontSize, 0.5, text)
-    local playerHealthPct = floor(playerShip:mgrHullGetHullPercent() + 0.5)
+    local playerHealthPct = floor(playerShip:mgrHullGetHealthPercent() + 0.5)
     text = format("%d%%", playerHealthPct)
     HUD:drawHudTextDouble(hudXh, hudY + 24, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
 
     -- Draw player ship hull armor info
     text = format("Armor")
     HUD:drawHudTextDouble(hudXa, hudY, Config.ui.color.meterBarLight, hudFontSize, 0.5, text)
-    local playerArmorPct = floor(playerShip:mgrArmorGetArmorPercent() + 0.5)
+    local playerArmorPct = floor(playerShip:mgrArmorGetHealthPercent() + 0.5)
     text = format("%d%%", playerArmorPct)
     HUD:drawHudTextDouble(hudXa + 10, hudY + 24, Config.ui.color.meterBarLight, hudFsize, 0.5, text)
 end
@@ -856,6 +856,7 @@ function HUD:drawSensors(a)
         -- Draw sensor bars if game is not paused
         -- TODO: Convert "active" sensor dropoff ranges into passive emission strengths
         if not GameState.paused then
+            local maxBarRatio = 0
             local player = self.player
             local playerShip = player:getControlling()
             local playerTarget = playerShip:getTarget()
@@ -904,9 +905,15 @@ function HUD:drawSensors(a)
                                 barTweak = rng:getUniformRange(-5, 5)
                             end
 
+                            -- Add jitter constrained by the max height of the up and down (reflection) bars
                             local barHeightUp   = min(barBase,    floor(Config.gen.objectEmissions[i][emType] * (barBase    + barTweak) * dropoff / 100))
                             local barHeightDown = min(barReflect, floor(Config.gen.objectEmissions[i][emType] * (barReflect + barTweak) * dropoff / 100))
 
+                            -- Get the highest bar ratio (greatest frequency bar value divided by the maximum possible bar height)
+                            local barRatio = barHeightUp / barBase
+                            if barRatio > maxBarRatio then maxBarRatio = barRatio end
+
+                            -- Finally, actually display all the sensor frequency bars
                             UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
                                            ybottom - barHeightUp,
                                            barWidth,
@@ -1030,6 +1037,10 @@ function HUD:drawSensors(a)
                         local barHeightU = min(barBase,    barHeightUp[i]   + barTweak)
                         local barHeightD = min(barReflect, barHeightDown[i] + barTweak)
 
+                        -- Get the highest bar ratio (greatest frequency bar value divided by the maximum possible bar height)
+                        local barRatio = barHeightU / barBase
+                        if barRatio > maxBarRatio then maxBarRatio = barRatio end
+
                         -- Finally, actually display all the sensor frequency bars
                         UI.DrawEx.Rect(xleft + ((i - 1) * (barWidth + 1)),
                                        ybottom - barHeightU,
@@ -1044,6 +1055,21 @@ function HUD:drawSensors(a)
                     end
                 end
             end
+
+            -- *** TEMP: Audio FX test START ***
+            if Config.audio.fxSensors then
+                if not Config.audio.fxSensors:IsPlaying() then
+--                    Config.audio.fxSensors:Play(1)
+                    Config.audio.fxSensors.sound:setVolume(maxBarRatio)
+                    LTheoryRedux.audiofx:play(Config.audio.fxSensors.sound)
+                else
+--                    Config.audio.fxSensors:Pause()
+                    Config.audio.fxSensors.sound:setVolume(maxBarRatio)
+--                    Config.audio.fxSensors:Resume()
+                end
+            end
+            -- *** TEMP: Audio FX test END ***
+
         end
     end
 end
@@ -1323,7 +1349,7 @@ function HUD:drawTargets(a)
 
                         -- TEMP: Draw target health bar
                         -- if playerTarget == target and target:isAlive() and not target:isDestroyed() then
-                        --     local targetHealthPct = target:mgrHullGetHullPercent()
+                        --     local targetHealthPct = target:mgrHullGetHealthPercent()
                         --     if targetHealthPct > 0.0 then
                         --         local targetHealthCI = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
                         --         UI.DrawEx.RectOutline(bx1 + 2, by2 - 3, (bx2 - bx1) - 6, 8, Config.ui.color.borderBright)
@@ -1477,9 +1503,9 @@ function HUD:drawPlayerHullInteg(a)
     local cx, cy          = sx / 2, sy / 2
     local playerShip      = self.player:getControlling()
     local playerZoom      = playerShip:getRadius() / (playerShip:getScale() / 4)
-    local playerShieldPct = playerShip:mgrShieldGetShieldPercent()
-    local playerArmorPct  = playerShip:mgrArmorGetArmorPercent()
-    local playerHealthPct = playerShip:mgrHullGetHullPercent()
+    local playerShieldPct = playerShip:mgrShieldGetStrengthPercent()
+    local playerArmorPct  = playerShip:mgrArmorGetHealthPercent()
+    local playerHealthPct = playerShip:mgrHullGetHealthPercent()
     local playerHealthCI  = math.min(50, math.floor((playerHealthPct / 2.0) + 0.5) + 1)
 
     local hc              = Color(1, 1, 1, 1)
@@ -1530,10 +1556,10 @@ function HUD:drawTargetHullInteg(a)
             targetRangeText = format("Range: %d m", floor(playerShip:getDistance(target) + 0.5))
         end
         local targetName = target:getName()
-        local targetHealthPct = target:mgrHullGetHullPercent()
+        local targetHealthPct = target:mgrHullGetHealthPercent()
         if targetHealthPct > 0.0 then
-            local targetShieldPct = target:mgrShieldGetShieldPercent()
-            local targetArmorPct  = target:mgrArmorGetArmorPercent()
+            local targetShieldPct = target:mgrShieldGetStrengthPercent()
+            local targetArmorPct  = target:mgrArmorGetHealthPercent()
             local targetHealthCI  = math.min(50, math.floor((targetHealthPct / 2.0) + 0.5) + 1)
             local targetZoom      = target:getRadius() / (target:getScale() / 4)
             local targetZoomAdj   = targetZoom
@@ -1697,6 +1723,24 @@ function HUD:onUpdate(state)
             end
         end
         self.dockPromptAlpha = Math.Lerp(self.dockPromptAlpha, alphaT, f)
+    end
+
+    if Config.audio.fxSensors then
+        if GameState.paused then
+            if Config.audio.fxSensors:IsPlaying() then
+                Config.audio.fxSensors:Pause()
+            end
+        else
+            if GameState.ui.sensorsDisplayed then
+                if Config.audio.fxSensors:IsPaused() then
+                    Config.audio.fxSensors:Resume()
+                end
+            else
+                if Config.audio.fxSensors:IsPlaying() then
+                    Config.audio.fxSensors:Pause()
+                end
+            end
+        end
     end
 end
 

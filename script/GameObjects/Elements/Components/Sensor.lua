@@ -20,10 +20,11 @@ local Sensor      = subclass(Entity, function(self)
     self.name         = Config.gen.compSensorStats.name
     self.healthCurr   = Config.gen.compSensorStats.healthCurr
     self.healthMax    = Config.gen.compSensorStats.healthMax
-    self.mappingRange = Config.gen.compSensorStats.mappingRange
-    self.scanSpeed    = Config.gen.compSensorStats.scanSpeed
-    self.scanDetail   = Config.gen.compSensorStats.scanDetail
+    self.rating       = Config.gen.compSensorStats.rating
     self.lockBreaking = Config.gen.compSensorStats.lockBreaking
+    self.mappingRange = Config.gen.compSensorStats.mappingRange
+    self.scanDetail   = Config.gen.compSensorStats.scanDetail
+    self.scanSpeed    = Config.gen.compSensorStats.scanSpeed
     --printf("Register: Sensor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateSensor)
     self:register(Event.Update, self.updateSensor)
 end)
@@ -54,8 +55,28 @@ function Sensor:getHealthPercent()
     return 100.0 * self.healthCurr / self.healthMax
 end
 
+function Sensor:getLockBreaking()
+    return self.lockBreaking
+end
+
+function Sensor:getMappingRange()
+    return self.mappingRange
+end
+
 function Sensor:getName()
     return self.name
+end
+
+function Sensor:getRating()
+    return self.rating
+end
+
+function Sensor:getScanDetail()
+    return self.scanDetail
+end
+
+function Sensor:getScanSpeed()
+    return self.scanSpeed
 end
 
 function Sensor:setHealth(value, max)
