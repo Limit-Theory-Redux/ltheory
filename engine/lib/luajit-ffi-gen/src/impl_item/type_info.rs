@@ -29,6 +29,7 @@ const COPY_TYPES: [&str; 19] = [
     "InputDeviceType",
 ];
 
+#[derive(Debug)]
 pub struct TypeInfo {
     /// Result type. Can be used only in the return position
     pub is_result: bool,

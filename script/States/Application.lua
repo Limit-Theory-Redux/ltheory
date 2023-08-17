@@ -36,8 +36,16 @@ end
 
 -- Application Template --------------------------------------------------------
 
-function Application:prepare()
+function Application:setEngine(engine)
+    self.engine = ffi.cast('Engine*', engine) -- TODO: cast to LuaJit Engine class
+
     self.resX, self.resY = self:getDefaultSize()
+
+    self.window = self.engine:window()
+
+    self.window:setTitle(self:getTitle())
+
+    // TODO: replace this
     self.window = Window.Create(
         self:getTitle(),
         WindowPos.Default,
@@ -76,10 +84,6 @@ function Application:prepare()
 
     self.profiling = false
     self.toggleProfiler = false
-end
-
-function Application:setEngine(engine)
-    self.engine = engine -- TODO: cast to LuaJit Engine class
 end
 
 function Application:onFrame()

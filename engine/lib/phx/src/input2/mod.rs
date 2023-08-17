@@ -7,6 +7,7 @@ mod device_id;
 mod device_type;
 mod devices;
 mod drag_and_drop;
+mod system_event;
 mod user_change;
 
 pub use axis_state::*;
@@ -18,6 +19,7 @@ pub use device_id::*;
 pub use device_type::*;
 pub use devices::*;
 pub use drag_and_drop::*;
+pub use system_event::*;
 pub use user_change::*;
 
 use gilrs::GamepadId;
@@ -26,7 +28,7 @@ use winit::event::DeviceId;
 use crate::system::TimeStamp;
 
 #[derive(Default)]
-pub struct Input2 {
+pub struct Input {
     active_device: Option<InputDevice>,
     last_timestamp: TimeStamp,
     last_event_timestamp: TimeStamp,
@@ -43,7 +45,7 @@ pub struct Input2 {
     drag_and_drop_state: DragAndDropState,
 }
 
-impl Input2 {
+impl Input {
     pub fn user_changes(&self) -> &[UserChange] {
         self.user_changes.as_ref()
     }
@@ -145,7 +147,7 @@ impl Input2 {
 }
 
 #[luajit_ffi_gen::luajit_ffi]
-impl Input2 {
+impl Input {
     pub fn cursor(&self) -> &CursorState {
         &self.cursor_state
     }

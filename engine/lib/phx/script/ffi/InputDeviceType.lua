@@ -10,6 +10,7 @@ do -- C Definitions
         InputDeviceType InputDeviceType_Keyboard;
         InputDeviceType InputDeviceType_Mouse;
         InputDeviceType InputDeviceType_Touchpad;
+        InputDeviceType InputDeviceType_SystemEvent;
 
         cstr            InputDeviceType_ToString(InputDeviceType);
     ]]
@@ -17,13 +18,14 @@ end
 
 do -- Global Symbol Table
     InputDeviceType = {
-        Cursor   = libphx.InputDeviceType_Cursor,
-        Gamepad  = libphx.InputDeviceType_Gamepad,
-        Keyboard = libphx.InputDeviceType_Keyboard,
-        Mouse    = libphx.InputDeviceType_Mouse,
-        Touchpad = libphx.InputDeviceType_Touchpad,
+        Cursor      = libphx.InputDeviceType_Cursor,
+        Gamepad     = libphx.InputDeviceType_Gamepad,
+        Keyboard    = libphx.InputDeviceType_Keyboard,
+        Mouse       = libphx.InputDeviceType_Mouse,
+        Touchpad    = libphx.InputDeviceType_Touchpad,
+        SystemEvent = libphx.InputDeviceType_SystemEvent,
 
-        ToString = libphx.InputDeviceType_ToString,
+        ToString    = libphx.InputDeviceType_ToString,
     }
 
     if onDef_InputDeviceType then onDef_InputDeviceType(InputDeviceType, mt) end

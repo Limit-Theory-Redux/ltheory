@@ -50,6 +50,7 @@ do -- Basic Typedefs
     typedef int32          SocketType;
     typedef uint8          SoundState;
     typedef int32          State;
+    typedef uint8          SystemEvent;
     typedef int32          TexFilter;
     typedef int32          TexFormat;
     typedef int32          TexWrapMode;
@@ -83,7 +84,7 @@ do -- Opaque Structs
       typedef struct GamepadState {} GamepadState;
       typedef struct HashGrid     {} HashGrid;
       typedef struct HashGridElem {} HashGridElem;
-      typedef struct Input2       {} Input2;
+      typedef struct Input        {} Input;
       typedef struct InputBinding {} InputBinding;
       typedef struct InputDevice  {} InputDevice;
       typedef struct InputDeviceId {} InputDeviceId;
@@ -107,6 +108,7 @@ do -- Opaque Structs
       typedef struct SoundDesc    {} SoundDesc;
       typedef struct StrMap       {} StrMap;
       typedef struct StrMapIter   {} StrMapIter;
+      typedef struct SystemEventState {} SystemEventState;
       typedef struct Tex1D        {} Tex1D;
       typedef struct Tex2D        {} Tex2D;
       typedef struct Tex3D        {} Tex3D;
@@ -132,7 +134,7 @@ do -- Opaque Structs
         'GamepadState',
         'HashGrid',
         'HashGridElem',
-        'Input2',
+        'Input',
         'InputBinding',
         'InputDevice',
         'InputDeviceId',
@@ -156,6 +158,7 @@ do -- Opaque Structs
         'SoundDesc',
         'StrMap',
         'StrMapIter',
+        'SystemEventState',
         'Tex1D',
         'Tex2D',
         'Tex3D',

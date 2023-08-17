@@ -84,7 +84,7 @@ end
 
 Control.Delta = subclass(ControlT, function(self, control)
     self.control = control
-    self.last = control:get()
+    self.last = 0.0 -- control:get() TODO: fix this
 end)
 
 function Control.Delta:getIconPath()

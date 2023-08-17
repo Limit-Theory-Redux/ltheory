@@ -167,7 +167,11 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
             let is_copyable = TypeInfo::is_copyable(&ty_name) || TypeInfo::is_copyable(self_name);
 
             if ty.is_option {
-                quote! { *const #ty_ident }
+                if ty.is_mutable {
+                    quote! { *#ty_ident }
+                } else {
+                    quote! { *const #ty_ident }
+                }
             } else if is_copyable {
                 quote! { #ty_ident }
             } else if ty.is_reference {

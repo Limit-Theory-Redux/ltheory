@@ -34,7 +34,7 @@ pub struct Engine {
     cache: CachedWindow,
     winit_windows: WinitWindows,
     winit_window_id: Option<winit::window::WindowId>,
-    input: Input2,
+    input: Input,
     frame_state: FrameState,
     exit_app: bool,
     lua: Lua,
@@ -386,7 +386,11 @@ impl Engine {
                             globals.set("__app__", app_name.clone()).unwrap();
                         }
 
-                        engine.lua.load(&entry_point_path).exec().unwrap();
+                        engine
+                            .lua
+                            .load(&entry_point_path)
+                            .exec()
+                            .expect("Cannot execute entry point script");
 
                         let app_init_func: Function = globals.get("AppInit").unwrap();
 
@@ -854,7 +858,7 @@ impl Engine {
         &self.window
     }
 
-    pub fn input(&self) -> &Input2 {
+    pub fn input(&self) -> &Input {
         &self.input
     }
 

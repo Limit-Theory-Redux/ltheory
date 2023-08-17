@@ -22,7 +22,7 @@ local self = {
     CameraFirstPerson = Button.KeyboardF1,
     CameraChase       = Button.KeyboardF2,
     CameraOrbit       = Button.KeyboardF3,
-    Exit              = Button.System.Exit, -- Modifier.Ctrl + Button.W or Modifier.Alt + Button.Q
+    Exit              = Button.SystemExit, -- Modifier.Ctrl + Button.W or Modifier.Alt + Button.Q
 
     All               = Control.Or(
             Control.Key(Button.KeyboardA),

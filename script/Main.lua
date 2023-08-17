@@ -61,21 +61,5 @@ AppState = Core.Call(function()
         error("Application was not specified")
     end
 
-    appState:prepare()
-
     return appState
 end)
-
-function AppInit(engine)
-    Core.Call(AppState:setEngine(engine))
-end
-
-function AppFrame()
-    Core.Call(AppState:onFrame())
-end
-
-function AppClose()
-    Core.Call(AppState:doExit())
-    GlobalRestrict.Off()
-end
-

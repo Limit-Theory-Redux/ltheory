@@ -208,6 +208,7 @@ do -- C Definitions
         Button Button_TouchpadY;
         Button Button_TouchpadMagnifyDelta;
         Button Button_TouchpadRotateDelta;
+        Button Button_SystemExit;
 
         cstr   Button_ToString(Button);
     ]]
@@ -418,6 +419,7 @@ do -- Global Symbol Table
         TouchpadY                = libphx.Button_TouchpadY,
         TouchpadMagnifyDelta     = libphx.Button_TouchpadMagnifyDelta,
         TouchpadRotateDelta      = libphx.Button_TouchpadRotateDelta,
+        SystemExit               = libphx.Button_SystemExit,
 
         ToString                 = libphx.Button_ToString,
     }

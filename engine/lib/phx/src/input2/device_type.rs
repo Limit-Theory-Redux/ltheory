@@ -8,4 +8,5 @@ pub enum InputDeviceType {
     Keyboard,
     Mouse,
     Touchpad,
+    SystemEvent,
 }

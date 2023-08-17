@@ -2,7 +2,7 @@ use super::*;
 use crate::common::*;
 // use crate::input::*;
 use crate::input2::CursorControl;
-use crate::input2::Input2;
+use crate::input2::Input;
 use crate::input2::MouseControl;
 use crate::internal::*;
 use crate::math::*;
@@ -577,7 +577,7 @@ unsafe extern "C" fn HmGui_DrawGroup(g: *mut HmGuiGroup) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input2) {
+pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
     if !init_hmgui {
         init_hmgui = true;
         this.group = std::ptr::null_mut();
@@ -616,7 +616,7 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input2) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_End(input: &Input2) {
+pub unsafe extern "C" fn HmGui_End(input: &Input) {
     Profiler_Begin(c_str!("HmGui_End"));
     HmGui_EndGroup();
     HmGui_ComputeSize(this.root);
@@ -688,7 +688,7 @@ pub unsafe extern "C" fn HmGui_BeginScroll(maxSize: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_EndScroll(input: Input2) {
+pub unsafe extern "C" fn HmGui_EndScroll(input: Input) {
     let data = HmGui_GetData(this.group);
 
     if HmGui_GroupHasFocus(1) {
@@ -729,7 +729,7 @@ pub unsafe extern "C" fn HmGui_EndScroll(input: Input2) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char, input: Input2) {
+pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char, input: Input) {
     HmGui_BeginGroupStack();
     HmGui_SetStretch(0.0f32, 0.0f32);
 

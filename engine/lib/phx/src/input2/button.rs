@@ -1,4 +1,4 @@
-use super::{GamepadAxis, GamepadButton, KeyboardButton, MouseControl, TouchpadAxis};
+use super::{GamepadAxis, GamepadButton, KeyboardButton, MouseControl, SystemEvent, TouchpadAxis};
 
 use crate::internal::static_string;
 
@@ -474,5 +474,8 @@ buttons! {
         (TouchpadY, Y),
         (TouchpadMagnifyDelta, MagnifyDelta),
         (TouchpadRotateDelta, RotateDelta),
+    ]
+    SystemEvent(as_system_event): [
+        (SystemExit, Exit),
     ]
 }

@@ -6,7 +6,7 @@ local Engine
 do -- C Definitions
     ffi.cdef [[
         Window const* Engine_Window     (Engine const*);
-        Input2 const* Engine_Input      (Engine const*);
+        Input const*  Engine_Input      (Engine const*);
         void          Engine_Free       ();
         void          Engine_Abort      ();
         int           Engine_GetBits    ();
