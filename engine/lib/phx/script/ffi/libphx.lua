@@ -17,15 +17,17 @@ do -- Basic Typedefs
     typedef uint16_t       uint16;
     typedef uint32_t       uint32;
     typedef uint64_t       uint64;
+
     typedef int32          BlendMode;
     typedef uint8          BSPNodeRel;
-    typedef int32          Button;
-    typedef uint8          Button2;
+    typedef int8           Button;
     typedef int32          CollisionGroup;
     typedef int32          CollisionMask;
     typedef int32          CubeFace;
     typedef int32          CullFace;
     typedef uint8          CursorControl;
+    typedef uint8          CursorGrabMode;
+    typedef uint8          CursorIcon;
     typedef int32          DataFormat;
     typedef int32          DeviceType;
     typedef uint8          DragAndDropEvent;
@@ -45,6 +47,7 @@ do -- Basic Typedefs
     typedef int32          PixelFormat;
     typedef uint8          PointClassification;
     typedef uint8          PolygonClassification;
+    typedef uint8          PresentMode;
     typedef int32          ResourceType;
     typedef int32          ShaderVarType;
     typedef int32          SocketType;
@@ -75,6 +78,7 @@ do -- Opaque Structs
       typedef struct BoxMesh      {} BoxMesh;
       typedef struct BoxTree      {} BoxTree;
       typedef struct Bytes        {} Bytes;
+      typedef struct Cursor       {} Cursor;
       typedef struct CursorState  {} CursorState;
       typedef struct Directory    {} Directory;
       typedef struct DragAndDropState {} DragAndDropState;
@@ -126,6 +130,8 @@ do -- Opaque Structs
         'BoxMesh',
         'BoxTree',
         'Bytes',
+        'Cursor',
+        'CursorState',
         'Directory',
         'DragAndDropState',
         'Engine',

@@ -1,3 +1,5 @@
+use crate::window::static_string;
+
 /// Presentation mode for a [`Window`].
 ///
 /// The presentation mode specifies when a frame is presented to the window. The [`Fifo`]
@@ -17,7 +19,7 @@
 /// [`AutoVsync`]: PresentMode::AutoVsync
 /// [`AutoNoVsync`]: PresentMode::AutoNoVsync
 ///
-#[repr(C)]
+#[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[doc(alias = "vsync")]
 pub enum PresentMode {

@@ -168,18 +168,16 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
 
             if ty.is_option {
                 if ty.is_mutable {
-                    quote! { *#ty_ident }
+                    quote! { *mut #ty_ident }
                 } else {
                     quote! { *const #ty_ident }
                 }
             } else if is_copyable {
                 quote! { #ty_ident }
+            } else if ty.is_mutable {
+                quote! { *mut #ty_ident }
             } else if ty.is_reference {
-                if ty.is_mutable {
-                    quote! { *#ty_ident }
-                } else {
-                    quote! { *const #ty_ident }
-                }
+                quote! { *const #ty_ident }
             } else {
                 quote! { Box<#ty_ident> }
             }
@@ -301,12 +299,10 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     } else {
                         quote! { __res__ }
                     }
+                } else if ty.is_mutable {
+                    quote! { __res__ as *mut #type_ident }
                 } else if ty.is_reference {
-                    if ty.is_mutable {
-                        quote! { __res__ as *#type_ident }
-                    } else {
-                        quote! { __res__ as *const #type_ident }
-                    }
+                    quote! { __res__ as *const #type_ident }
                 } else {
                     // Do boxing
                     quote! { __res__.into() }
@@ -338,10 +334,8 @@ fn gen_buffered_ret(type_ident: &Ident) -> TokenStream {
     quote! {
         unsafe {
             static mut __BUFFER__: Option<#type_ident> = None;
-
             __BUFFER__ = Some(__res__);
-
-            __BUFFER__.as_ref().unwrap()  as *const #type_ident
+            __BUFFER__.as_ref().unwrap() as *const #type_ident
         }
     }
 }

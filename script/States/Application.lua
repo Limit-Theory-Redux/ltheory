@@ -22,7 +22,7 @@ function Application:onInit() end
 
 function Application:onDraw() end
 
-function Application:onResize(sx, sy) self.window:setMousePosition(self.resX / 2, self.resY / 2) end
+function Application:onResize(sx, sy) self.window:setCursorPosition(Vec2i(self.resX / 2, self.resY / 2)) end
 
 function Application:onUpdate(dt) end
 
@@ -37,22 +37,24 @@ end
 -- Application Template --------------------------------------------------------
 
 function Application:setEngine(engine)
-    self.engine = ffi.cast('Engine*', engine) -- TODO: cast to LuaJit Engine class
+    self.engine = ffi.cast('Engine*', engine)
 
     self.resX, self.resY = self:getDefaultSize()
 
     self.window = self.engine:window()
 
     self.window:setTitle(self:getTitle())
+    -- self.window:setPosition(x, y)
+    self.window:setSize(self.resX, self.resY)
 
-    // TODO: replace this
-    self.window = Window.Create(
-        self:getTitle(),
-        WindowPos.Default,
-        WindowPos.Default,
-        self.resX,
-        self.resY,
-        self:getWindowMode())
+    -- TODO: replace this
+    -- self.window = Window.Create(
+    --     self:getTitle(),
+    --     WindowPos.Default,
+    --     WindowPos.Default,
+    --     self.resX,
+    --     self.resY,
+    --     self:getWindowMode())
 
     self.audio   = Audio.Create()
     self.audiofx = Audio.Create()
@@ -61,7 +63,8 @@ function Application:setEngine(engine)
 
     self.exit = false
 
-    self.window:setVsync(GameState.render.vsync)
+    -- self.window:setVsync(GameState.render.vsync)
+    -- TODO: self.window:setPresentMode(self.presentMode)
 
     if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -78,9 +81,9 @@ function Application:setEngine(engine)
     if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
     if Config.jit.verbose then Jit.StartVerbose() end
 
-    self.window:setWindowGrab(true)
-    self.window:setMousePosition(self.resX / 2, self.resY / 2)
-    self.window:setWindowGrab(false)
+    self.window:cursor():setGrabMode(CursorGrabMode.Confined)
+    self.window:setCursorPosition(Vec2i(self.resX / 2, self.resY / 2))
+    self.window:cursor():setGrabMode(CursorGrabMode.None)
 
     self.profiling = false
     self.toggleProfiler = false
@@ -100,8 +103,8 @@ function Application:onFrame()
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onResize')
-        local size = self.window:getSize()
-        self.window:setWindowGrab(false)
+        local size = self.window:size()
+        self.window:cursor():setGrabMode(CursorGrabMode.None)
         if size.x ~= self.resX or size.y ~= self.resY then
             self.resX = size.x
             self.resY = size.y
@@ -203,7 +206,7 @@ function Application:onFrame()
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onDraw')
-        self.window:beginDraw()
+        -- self.window:beginDraw()
         self:onDraw()
         Profiler.End()
     end
@@ -287,7 +290,7 @@ function Application:onFrame()
         do -- End Draw
             Profiler.SetValue('gcmem', GC.GetMemory())
             Profiler.Begin('App.SwapBuffers')
-            self.window:endDraw()
+            -- self.window:endDraw()
             Profiler.End()
         end
 
@@ -304,7 +307,7 @@ function Application:doExit()
 
     do -- Exit
         self:onExit()
-        self.window:free()
+        -- self.window:free()
     end
 end
 

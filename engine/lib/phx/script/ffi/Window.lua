@@ -7,6 +7,9 @@ do -- C Definitions
     ffi.cdef [[
         cstr         Window_Title                     (Window const*);
         void         Window_SetTitle                  (Window*, cstr title);
+        Cursor*      Window_Cursor                    (Window*);
+        PresentMode  Window_PresentMode               (Window const*);
+        void         Window_SetPresentMode            (Window*, PresentMode presentMode);
         void         Window_SetMaximized              (Window*, bool maximized);
         void         Window_SetMinimized              (Window*, bool minimized);
         Vec2i        Window_Position                  (Window const*);
@@ -17,7 +20,7 @@ do -- C Definitions
         void         Window_SetSize                   (Window*, float width, float height);
         uint32       Window_PhysicalWidth             (Window const*);
         uint32       Window_PhysicalHeight            (Window const*);
-        Vec2i        Window_GetPhysicalSize           (Window const*);
+        Vec2i        Window_PhysicalSize              (Window const*);
         void         Window_SetPhysicalSize           (Window*, int width, int height);
         bool         Window_IsResizable               (Window const*);
         void         Window_SetResizable              (Window*, bool resizable);
@@ -41,6 +44,9 @@ do -- Global Symbol Table
     Window = {
         Title                     = libphx.Window_Title,
         SetTitle                  = libphx.Window_SetTitle,
+        Cursor                    = libphx.Window_Cursor,
+        PresentMode               = libphx.Window_PresentMode,
+        SetPresentMode            = libphx.Window_SetPresentMode,
         SetMaximized              = libphx.Window_SetMaximized,
         SetMinimized              = libphx.Window_SetMinimized,
         Position                  = libphx.Window_Position,
@@ -51,7 +57,7 @@ do -- Global Symbol Table
         SetSize                   = libphx.Window_SetSize,
         PhysicalWidth             = libphx.Window_PhysicalWidth,
         PhysicalHeight            = libphx.Window_PhysicalHeight,
-        GetPhysicalSize           = libphx.Window_GetPhysicalSize,
+        PhysicalSize              = libphx.Window_PhysicalSize,
         SetPhysicalSize           = libphx.Window_SetPhysicalSize,
         IsResizable               = libphx.Window_IsResizable,
         SetResizable              = libphx.Window_SetResizable,
@@ -80,6 +86,9 @@ do -- Metatype for class instances
         __index = {
             title                     = libphx.Window_Title,
             setTitle                  = libphx.Window_SetTitle,
+            cursor                    = libphx.Window_Cursor,
+            presentMode               = libphx.Window_PresentMode,
+            setPresentMode            = libphx.Window_SetPresentMode,
             setMaximized              = libphx.Window_SetMaximized,
             setMinimized              = libphx.Window_SetMinimized,
             position                  = libphx.Window_Position,
@@ -90,7 +99,7 @@ do -- Metatype for class instances
             setSize                   = libphx.Window_SetSize,
             physicalWidth             = libphx.Window_PhysicalWidth,
             physicalHeight            = libphx.Window_PhysicalHeight,
-            getPhysicalSize           = libphx.Window_GetPhysicalSize,
+            physicalSize              = libphx.Window_PhysicalSize,
             setPhysicalSize           = libphx.Window_SetPhysicalSize,
             isResizable               = libphx.Window_IsResizable,
             setResizable              = libphx.Window_SetResizable,

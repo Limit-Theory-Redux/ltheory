@@ -63,10 +63,9 @@ impl MyStruct {
         &self.val_data
     }
 
-    // TODO: why it generates const here?
-    // pub fn get_data_mut(&mut self) -> &mut Data {
-    //     &mut self.val_data
-    // }
+    pub fn get_data_mut(&mut self) -> &mut Data {
+        &mut self.val_data
+    }
 
     pub fn set_opt(&mut self, val: Option<u32>) {
         if let Some(val) = val {

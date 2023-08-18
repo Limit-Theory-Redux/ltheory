@@ -1,3 +1,5 @@
+use crate::window::static_string;
+
 /// Cursor data for a [`Window`].
 #[derive(Debug, Copy, Clone)]
 #[repr(C)]
@@ -45,11 +47,47 @@ impl Default for Cursor {
     }
 }
 
+#[luajit_ffi_gen::luajit_ffi]
+impl Cursor {
+    pub fn icon(&self) -> CursorIcon {
+        self.icon
+    }
+
+    pub fn set_icon(&mut self, icon: CursorIcon) {
+        self.icon = icon;
+    }
+
+    pub fn is_visible(&self) -> bool {
+        self.visible
+    }
+
+    pub fn set_visible(&mut self, visible: bool) {
+        self.visible = visible;
+    }
+
+    pub fn grab_mode(&self) -> CursorGrabMode {
+        self.grab_mode
+    }
+
+    pub fn set_grab_mode(&mut self, grab_mode: CursorGrabMode) {
+        self.grab_mode = grab_mode;
+    }
+
+    pub fn is_hit_test(&self) -> bool {
+        self.hit_test
+    }
+
+    pub fn set_hit_test(&mut self, hit_test: bool) {
+        self.hit_test = hit_test;
+    }
+}
+
 /// The icon to display for a [`Window`](crate::window::Window)'s [`Cursor`](crate::window::Cursor).
 ///
 /// Examples of all of these cursors can be found [here](https://www.w3schools.com/cssref/playit.php?filename=playcss_cursor&preval=crosshair).
 /// This `enum` is simply a copy of a similar `enum` found in [`winit`](https://docs.rs/winit/latest/winit/window/enum.CursorIcon.html).
 /// `winit`, in turn, mostly copied cursor types available in the browser.
+#[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum CursorIcon {
     /// The platform-dependent default cursor.
@@ -137,6 +175,7 @@ pub enum CursorIcon {
 /// - **`iOS/Android`** don't have cursors.
 ///
 /// Since `Windows` and `macOS` have different [`CursorGrabMode`] support, we first try to set the grab mode that was asked for. If it doesn't work then use the alternate grab mode.
+#[luajit_ffi_gen::luajit_ffi]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CursorGrabMode {
     /// The cursor can freely leave the window.

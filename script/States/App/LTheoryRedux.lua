@@ -54,7 +54,8 @@ end
 
 function LTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
     -- Set the game control cursor
-    self.window:setCursor(cursorStyle, cursorX, cursorY)
+    -- TODO: self.window:cursor().setIcon(cursorStyle)
+    self.window:setCursorPosition(cursorX, cursorY)
 end
 
 function LTheoryRedux:toggleSound()

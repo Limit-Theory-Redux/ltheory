@@ -30,21 +30,11 @@ Enums = {}
 GameState = {}
 
 -- Application
-AppState = {}
+AppInit = {}
+AppFrame = {}
+AppClose = {}
+
 LTheoryRedux = {}
-
-function AppInit(engine)
-    Core.Call(AppState:setEngine(engine))
-end
-
-function AppFrame()
-    Core.Call(AppState:onFrame())
-end
-
-function AppClose()
-    Core.Call(AppState:doExit())
-    GlobalRestrict.Off()
-end
 
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
 require('Config.Aliases')
@@ -145,10 +135,10 @@ Render = requireAll('Render')
 Namespace.Inline(Render, 'Render')
 
 -- Call Function for Running main with errorHandler
-function Core.Call(fn)
-    local status, ret = xpcall(fn, ErrorHandler)
+function Core.Call(fn, ...)
+    local status, ret = xpcall(fn, ErrorHandler, ...)
     if not status then
-        print('Error: ', ret)
+        printf('Error calling: %s(%s). Ret: %s', fn, ..., ret)
         os.exit()
     end
     return ret

@@ -47,6 +47,8 @@ pub struct CachedWindow {
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Window {
+    /// Stores the title of the window.
+    pub title: String,
     /// The cursor of this window.
     pub cursor: Cursor,
     /// What presentation mode to give the window.
@@ -57,8 +59,6 @@ pub struct Window {
     pub position: WindowPosition,
     /// What resolution the window should have.
     pub resolution: WindowResolution,
-    /// Stores the title of the window.
-    pub title: String,
     /// How the alpha channel of textures should be handled while compositing.
     pub composite_alpha_mode: CompositeAlphaMode,
     /// The limits of the window's logical size
@@ -188,6 +188,21 @@ impl Window {
         self.title = title.into();
     }
 
+    /// The window cursor.
+    pub fn cursor(&mut self) -> &mut Cursor {
+        &mut self.cursor
+    }
+
+    /// The window present mode.
+    pub fn present_mode(&self) -> PresentMode {
+        self.present_mode
+    }
+
+    /// Set window present mode.
+    pub fn set_present_mode(&mut self, present_mode: PresentMode) {
+        self.present_mode = present_mode
+    }
+
     /// Setting this to true will attempt to maximize the window.
     ///
     /// Setting it to false will attempt to un-maximize the window.
@@ -275,7 +290,7 @@ impl Window {
     ///
     /// See [`WindowResolution`] for an explanation about logical/physical sizes.
     #[inline]
-    pub fn get_physical_size(&self) -> IVec2 {
+    pub fn physical_size(&self) -> IVec2 {
         IVec2::new(
             self.resolution.physical_width() as i32, // TODO: introduce UVec2/Vec2u types instead of casting
             self.resolution.physical_height() as i32,

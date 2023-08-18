@@ -7,7 +7,7 @@ const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 5] = [
 ];
 
 // TODO: find out different way to mark types as copyable
-const COPY_TYPES: [&str; 19] = [
+const COPY_TYPES: [&str; 22] = [
     "IVec2",
     "UVec2",
     "DVec2",
@@ -27,6 +27,9 @@ const COPY_TYPES: [&str; 19] = [
     "GamepadButton",
     "GamepadAxis",
     "InputDeviceType",
+    "PresentMode",
+    "CursorIcon",
+    "CursorGrabMode",
 ];
 
 #[derive(Debug)]

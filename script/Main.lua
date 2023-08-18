@@ -5,7 +5,7 @@ package.path = package.path .. ';./script/?.ffi.lua'
 
 require('Init')
 
-AppState = Core.Call(function()
+Core.Call(function()
     local app = __app__ or 'LTheoryRedux'
     GlobalRestrict.On()
 
@@ -61,5 +61,17 @@ AppState = Core.Call(function()
         error("Application was not specified")
     end
 
-    return appState
+    AppInit = function(engine)
+        printf('Application(%s).setEngine(%s)', appState, engine)
+        Core.Call(function() appState.setEngine(engine) end)
+    end
+
+    AppFrame = function()
+        Core.Call(function() appState.onFrame() end)
+    end
+
+    AppClose = function()
+        Core.Call(function() appState.doExit() end)
+        GlobalRestrict.Off()
+    end
 end)

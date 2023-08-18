@@ -854,8 +854,8 @@ impl Engine {
         event_loop.run(event_handler);
     }
 
-    pub fn window(&self) -> &Window {
-        &self.window
+    pub fn window(&mut self) -> &mut Window {
+        &mut self.window
     }
 
     pub fn input(&self) -> &Input {
