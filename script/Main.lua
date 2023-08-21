@@ -64,15 +64,15 @@ Core.Call(function()
     AppInit = function(engine)
         printf('Application(%s).setEngine(0x%x)', appState, engine)
         -- appState.setEngine(engine)
-        Core.Call(function(engine) appState.setEngine(engine) end, engine)
+        Core.Call(appState.setEngine, appState, engine)
     end
 
     AppFrame = function()
-        Core.Call(function() appState.onFrame() end)
+        Core.Call(appState.onFrame, appState)
     end
 
     AppClose = function()
-        Core.Call(function() appState.doExit() end)
+        Core.Call(appState.doExit, appState)
         GlobalRestrict.Off()
     end
 end)
