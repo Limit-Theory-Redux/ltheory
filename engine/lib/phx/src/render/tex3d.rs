@@ -1,6 +1,7 @@
+use internal::*;
+
 use super::*;
 use crate::common::*;
-use crate::internal::*;
 use crate::math::*;
 use crate::system::*;
 use crate::*;

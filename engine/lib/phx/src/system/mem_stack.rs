@@ -1,5 +1,6 @@
+use internal::*;
+
 use crate::common::*;
-use crate::internal::*;
 use crate::*;
 
 #[derive(Copy, Clone)]

@@ -1,4 +1,4 @@
-use crate::window::static_string;
+use internal::ConvertIntoString;
 
 /// Presentation mode for a [`Window`].
 ///

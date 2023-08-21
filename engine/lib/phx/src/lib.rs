@@ -4,8 +4,6 @@
 #![allow(unused_unsafe)]
 #![feature(extern_types)]
 
-pub mod internal;
-
 pub mod audio;
 pub mod common;
 pub mod engine;

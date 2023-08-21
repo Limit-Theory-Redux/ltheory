@@ -1,4 +1,4 @@
-use crate::window::static_string;
+use internal::ConvertIntoString;
 
 /// Defines the way a [`Window`] is displayed.
 #[luajit_ffi_gen::luajit_ffi]

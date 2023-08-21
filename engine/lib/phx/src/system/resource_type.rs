@@ -1,4 +1,6 @@
-use crate::{common::*, internal::static_string};
+use internal::static_string;
+
+use crate::common::*;
 
 pub type ResourceType = i32;
 

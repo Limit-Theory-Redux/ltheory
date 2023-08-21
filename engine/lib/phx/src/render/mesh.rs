@@ -1,7 +1,7 @@
 use memoffset::offset_of;
 
 use super::*;
-use crate::internal::*;
+use crate::error::Error;
 use crate::math::*;
 use crate::system::*;
 use crate::*;

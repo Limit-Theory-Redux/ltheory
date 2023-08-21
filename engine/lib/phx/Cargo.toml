@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # workspace crates
+internal.workspace = true
 luajit-ffi-gen.workspace = true
 
 # release crates

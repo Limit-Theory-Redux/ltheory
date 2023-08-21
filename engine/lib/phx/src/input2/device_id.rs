@@ -1,8 +1,6 @@
 use gilrs::GamepadId;
 use winit::event::DeviceId;
 
-use crate::internal::static_string;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InputDeviceId {
     Winit(DeviceId),

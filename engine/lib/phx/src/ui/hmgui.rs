@@ -1,10 +1,9 @@
+use internal::*;
+
 use super::*;
 use crate::common::*;
 // use crate::input::*;
-use crate::input2::CursorControl;
-use crate::input2::Input;
-use crate::input2::MouseControl;
-use crate::internal::*;
+use crate::input2::*;
 use crate::math::*;
 use crate::render::*;
 use crate::system::*;

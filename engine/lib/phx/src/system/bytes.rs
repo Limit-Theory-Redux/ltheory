@@ -1,14 +1,14 @@
+use std::ffi::{CStr, CString};
+use std::io::Write;
+
 use super::*;
 use crate::common::*;
-use crate::internal::*;
 use crate::*;
 
 use flate2::write::{ZlibDecoder, ZlibEncoder};
 use flate2::Compression;
+use internal::*;
 use tracing::info;
-
-use std::ffi::CString;
-use std::io::Write;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

@@ -37,6 +37,7 @@ end
 -- Application Template --------------------------------------------------------
 
 function Application:setEngine(engine)
+    printf('engine: %s', engine)
     self.engine = ffi.cast('Engine*', engine)
 
     self.resX, self.resY = self:getDefaultSize()

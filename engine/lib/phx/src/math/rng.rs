@@ -1,5 +1,6 @@
+use internal::ConvertIntoString;
+
 use super::*;
-use crate::internal::*;
 use crate::system::*;
 use crate::*;
 

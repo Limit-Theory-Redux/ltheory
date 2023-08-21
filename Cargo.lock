@@ -1036,6 +1036,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "internal"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "io-kit-sys"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1255,6 +1262,7 @@ dependencies = [
 name = "luajit-ffi-gen"
 version = "0.1.0"
 dependencies = [
+ "internal",
  "libc",
  "proc-macro2",
  "quote",
@@ -1709,6 +1717,7 @@ dependencies = [
  "hashbrown 0.14.0",
  "image",
  "indexmap 2.0.0",
+ "internal",
  "kira",
  "libc",
  "luajit-ffi-gen",

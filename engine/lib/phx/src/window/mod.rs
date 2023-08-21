@@ -22,9 +22,10 @@ pub use window_resolution::*;
 pub use winit_converters::*;
 pub use winit_windows::*;
 
+use internal::ConvertIntoString;
+
 use super::*;
 use crate::common::*;
-use crate::internal::*;
 use crate::math::*;
 use crate::render::*;
 use crate::system::*;

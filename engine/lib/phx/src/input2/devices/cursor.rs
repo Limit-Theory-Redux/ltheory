@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use glam::Vec2;
 
-use crate::{input2::ControlState, internal::static_string, system::TimeStamp};
+use crate::{input2::ControlState, system::TimeStamp};
 
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

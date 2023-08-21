@@ -1,4 +1,4 @@
-use crate::internal::*;
+use crate::error::Error;
 use crate::math::*;
 use crate::*;
 
@@ -337,7 +337,7 @@ pub extern "C" fn Quat_ISlerp(q: &mut Quat, p: &Quat, t: f32) {
 
 #[no_mangle]
 pub extern "C" fn Quat_ToString(q: &Quat) -> *const libc::c_char {
-    static_string!(q.to_string())
+    internal::static_string!(q.to_string())
 }
 
 #[no_mangle]

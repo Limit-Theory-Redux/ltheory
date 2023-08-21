@@ -92,7 +92,7 @@ impl EnumInfo {
             pub extern "C" fn #to_string_c_ident(this: #self_ident) -> *const libc::c_char {
                 let res = this.to_string();
 
-                static_string!(res)
+                internal::static_string!(res)
             }
         }
     }

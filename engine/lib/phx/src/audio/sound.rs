@@ -2,7 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use crate::internal::*;
+use internal::ConvertIntoString;
+
 use crate::math::*;
 
 use kira::sound::PlaybackState;

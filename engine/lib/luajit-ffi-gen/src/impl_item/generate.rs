@@ -276,7 +276,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         };
 
         let return_item = match &ty.variant {
-            TypeVariant::Str | TypeVariant::String => quote! { static_string!(__res__) },
+            TypeVariant::Str | TypeVariant::String => quote! { internal::static_string!(__res__) },
             TypeVariant::CString => quote! { static_cstring!(__res__) },
             TypeVariant::Custom(custom_ty) => {
                 let type_ident = if ty.is_self() {

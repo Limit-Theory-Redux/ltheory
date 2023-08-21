@@ -1,5 +1,3 @@
-use crate::window::static_string;
-
 /// Cursor data for a [`Window`].
 #[derive(Debug, Copy, Clone)]
 #[repr(C)]

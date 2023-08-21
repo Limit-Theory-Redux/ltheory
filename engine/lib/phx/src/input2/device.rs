@@ -3,8 +3,6 @@ use std::{collections::hash_map::DefaultHasher, hash::Hash};
 
 use super::{InputDeviceId, InputDeviceType};
 
-use crate::internal::static_string;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputDevice {
     pub ty: InputDeviceType,

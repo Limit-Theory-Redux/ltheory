@@ -62,8 +62,9 @@ Core.Call(function()
     end
 
     AppInit = function(engine)
-        printf('Application(%s).setEngine(%s)', appState, engine)
-        Core.Call(function() appState.setEngine(engine) end)
+        printf('Application(%s).setEngine(0x%x)', appState, engine)
+        -- appState.setEngine(engine)
+        Core.Call(function(engine) appState.setEngine(engine) end, engine)
     end
 
     AppFrame = function()

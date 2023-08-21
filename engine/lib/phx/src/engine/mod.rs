@@ -1,32 +1,30 @@
 mod frame_state;
 
+use std::path::PathBuf;
+use std::time::Instant;
+
 pub(crate) use frame_state::*;
 
 use glam::*;
 use mlua::{Function, Lua};
-use tracing::{debug, error, trace};
+use tracing::*;
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
 use winit::dpi::*;
-use winit::event::TouchPhase;
+use winit::event::Event;
+use winit::event::{self, *};
+use winit::event_loop::*;
 
-use std::path::PathBuf;
-use std::time::Instant;
+use internal::ConvertIntoString;
 
 use crate::common::*;
 // use crate::input::*;
 use crate::input2::*;
-use crate::internal::*;
 use crate::logging::init_log;
 // use crate::lua::*;
 use crate::render::*;
 use crate::system::*;
 use crate::window::*;
-
-use glam::DVec2;
-use tracing::{info, warn};
-use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
-use winit::event::{self, *};
-use winit::event_loop::*;
 
 pub struct Engine {
     init_time: TimeStamp,

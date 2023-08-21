@@ -1,4 +1,6 @@
-use crate::internal::*;
+use std::ffi::CString;
+
+use crate::ConvertIntoString;
 
 impl ConvertIntoString for *const libc::c_char {
     fn as_str(&self) -> &str {

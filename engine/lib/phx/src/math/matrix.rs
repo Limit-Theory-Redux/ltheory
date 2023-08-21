@@ -1,7 +1,6 @@
 use tracing::info;
 
 use crate::common::*;
-use crate::internal::*;
 use crate::math::*;
 
 #[derive(Copy, Clone)]
@@ -709,5 +708,5 @@ pub extern "C" fn Matrix_Print(this: &Matrix) {
 
 #[no_mangle]
 pub extern "C" fn Matrix_ToString(this: &Matrix) -> *const libc::c_char {
-    static_string!(this.to_string())
+    internal::static_string!(this.to_string())
 }
