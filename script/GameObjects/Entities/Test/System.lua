@@ -861,6 +861,28 @@ function System:spawnPirateStation(hullSize, player)
     station:addBlackMarket()
     station:addBlackMarketTrader()
 
+    station:addFactory()
+    local prod = Production.Piracy
+    station:addProduction(prod)
+
+    -- Station starts with some credits and some energy (energy Item must exist before bid is offered!)
+    station:addCredits(Config.econ.eStartCredits * 100)
+
+    -- The station sets asks for selling items its facility produces as outputs,
+    --     and sets bids for buying items its facility wants as inputs
+    -- Ask prices (for selling) are calculated as the item's base price times a markup value
+    -- Bid prices (for buying) are calculated as the item's base price times a markdown value
+    for _, input in prod:iterInputs() do
+        for i = 1, input.count * 3 do -- multiply initial bids to stimulate early star system production
+            -- TODO: Change magic number 33 for "I want..." bids to a multiplier connected to this system's flows
+            if input.item == Item.Energy then
+                station.blackMarketTrader:addBid(input.item, 100 + rng:getInt(25, 100)) -- make sure Energy-requiring factories bid well
+            else
+                station.blackMarketTrader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33)))
+            end
+        end
+    end
+
     -- Add the station to this star system
     self:addChild(station)
     self:addStation(station)
@@ -870,7 +892,7 @@ function System:spawnPirateStation(hullSize, player)
     addStationComponents(station, hullSize)
 
     return station
-end 
+end
 
 function System:spawnAI(shipCount, action, player)
     -- Spawn a number of independent AI-controlled ships

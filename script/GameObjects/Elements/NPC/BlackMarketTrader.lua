@@ -358,7 +358,7 @@ function BlackMarketTrader:buy(asset, item)
         local price = data.bids[1]
 
         if self.parent:hasCredits(price) then
-            if self.parent:getInventoryFree() >= item:getMass() then
+            if self.parent:mgrInventoryGetFree() >= item:getMass() then
                 if asset:removeItem(item, 1) then
                     self.parent:addItem(item, 1)
 

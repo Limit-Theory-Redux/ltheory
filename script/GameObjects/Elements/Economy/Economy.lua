@@ -215,14 +215,15 @@ function Economy:update(dt)
             for _, src in ipairs(self.blackMarketTraders) do
                 if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
                     for item, data in pairs(src:getBlackMarketTrader().elems) do
-                        if src:getBlackMarketTrader():getAskVolume(item) > 0 then
-                            local buyPrice = src:getBlackMarketTrader():getBuyFromPrice(item, 1)
+                        if src:getBlackMarketTrader():getBidVolume(item) > 0 then
+                            local sellPrice = src:getBlackMarketTrader():getSellToPrice(item, 1)
                             --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
-                            if buyPrice > 0 then
+                            if sellPrice > 0 then
                                 allJobCount = allJobCount + 1
                                 --printf("Marauding job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
                                 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                                 realJobCount = realJobCount + 1
+                                print("Added black market job")
                                 insert(self.blackMarketJobs[Enums.BlackMarketJobs.Marauding], Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems.
                             end
                         end
