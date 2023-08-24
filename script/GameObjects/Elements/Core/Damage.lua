@@ -2,8 +2,8 @@ local Entity = require('GameObjects.Entity')
 
 function Entity:applyDamage(amount, source)
     local damageRemaining   = amount
-    local shieldRemaining   = self:mgrShieldGetShield()
-    local armorRemaining    = self:mgrArmorGetArmor()
+    local shieldRemaining   = self:mgrShieldGetStrength()
+    local armorRemaining    = self:mgrArmorGetHealth()
 
     -- TEMP: Modify the names of NPC ships to indicate their higher threat level
     -- TODO: Assign and display "Ace" status in a more formally managed way
@@ -23,21 +23,21 @@ function Entity:applyDamage(amount, source)
     -- Apply damage first to shields (if any), then armor (if any), then hull
     if shieldRemaining > 0 then
         -- Reduce this ship's shield protection (doesn't actually damage the shield generator)
-        self:mgrShieldReduceShield(amount)
+        self:mgrShieldReduceStrength(amount)
         damageRemaining = amount - shieldRemaining
     end
     if damageRemaining > 0 then
         if armorRemaining > 0 then
             -- Some damage made it through the shields, so damage any armor plating installed
-            self:mgrArmorReduceArmor(damageRemaining)
+            self:mgrArmorDamageHealth(damageRemaining)
             damageRemaining = damageRemaining - armorRemaining
         end
     end
     if damageRemaining > 0 then
         -- Some damage made it through the armor, so damage the hull
-        self:mgrHullReduceHull(damageRemaining)
+        self:mgrHullDamageHealth(damageRemaining)
 
-        if self:mgrHullGetHull() > 0 then
+        if self:mgrHullGetHealth() > 0 then
             -- Randomly damage some internal components, too
         end
     end

@@ -6,7 +6,6 @@ local Application = class(function (self) end)
 -- Virtual ---------------------------------------------------------------------
 
 function Application:getDefaultSize()
-    --  return 1600, 900
     return Config.render.defaultResX, Config.render.defaultResY
 end
 

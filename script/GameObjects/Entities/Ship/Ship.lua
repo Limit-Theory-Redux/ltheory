@@ -22,18 +22,19 @@ local Ship = subclass(Entity, function (self, proto, hull)
     --       a) default loadout for ships never encountered
     --       b) defined loadout from ships in a save file (including the player's ship)
     --       c) nothing loaded for a ship newly built in a factory or in a trader's inventory
-    self.countHull        = proto.countHull
-    self.countComputer    = proto.countComputer
-    self.countSensor      = proto.countSensor
-    self.countLifeSupport = proto.countLifeSupport
-    self.countCapacitor   = proto.countCapacitor
-    self.countThruster    = proto.countThruster
-    self.countTurret      = proto.countTurret
-    self.countBay         = proto.countBay
-    self.countInventory   = proto.countInventory
-    self.countDrone       = proto.countDrone
-    self.countShield      = proto.countShield
-    self.countArmor       = proto.countArmor
+    self.countArmor     = proto.countArmor
+    self.countBay       = proto.countBay
+    self.countCapacitor = proto.countCapacitor
+    self.countCloak     = proto.countCloak
+    self.countCommo     = proto.countCommo
+    self.countComputer  = proto.countComputer
+    self.countDrone     = proto.countDrone
+    self.countHull      = proto.countHull
+    self.countInventory = proto.countInventory
+    self.countSensor    = proto.countSensor
+    self.countShield    = proto.countShield
+    self.countThruster  = proto.countThruster
+    self.countTurret    = proto.countTurret
 
     self:addComponents()
 
@@ -108,7 +109,7 @@ function Ship:attackedBy(target)
     -- TODO: Improve smarts so that this ship can decide which of multiple attackers to target
     if not self:isDestroyed() then
         -- Ignore hits on ships that have already been destroyed
-        --printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:mgrHullGetHullPercent(), target:getName())
+        --printf("%s (health at %3.2f%%) attacked by %s!", self:getName(), self:mgrHullGetHealthPercent(), target:getName())
         self:modDisposition(target, -0.2)
         local zone = self:getZone()
         if zone then

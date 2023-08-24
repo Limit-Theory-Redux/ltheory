@@ -82,8 +82,8 @@ function Universe:CreateStarSystem(seed)
                 -- TEMP: a few NPC escort ships get to be "aces" with extra health and maneuverability
                 --       These will be dogfighting challenges!
                 if rng:getInt(0, 100) < 20 then
-                    local escortHullInteg = escort:mgrHullGetHullMax()
-                    escort:mgrHullSetHull(floor(escortHullInteg * 1.5), floor(escortHullInteg * 1.5))
+                    local escortHullInteg = escort:mgrHullGetHealthMax()
+                    escort:mgrHullSetHealth(floor(escortHullInteg * 1.5), floor(escortHullInteg * 1.5))
                     escort.usesBoost = true
                 end
 

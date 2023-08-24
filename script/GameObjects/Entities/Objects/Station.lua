@@ -53,42 +53,82 @@ local Station = subclass(Entity, function (self, seed, hull)
     self:addFlows()
 
     -- TEMP: give each station the maximum number of every applicable component
-    self.countHull        = Config.gen.stationComponents[Enums.StationComponents.Hull][hull]
-    self.countComputer    = Config.gen.stationComponents[Enums.StationComponents.Computer][hull]
-    self.countSensor      = Config.gen.stationComponents[Enums.StationComponents.Sensor][hull]
-    self.countLifeSupport = Config.gen.stationComponents[Enums.StationComponents.LifeSupport][hull]
-    self.countCapacitor   = Config.gen.stationComponents[Enums.StationComponents.Capacitor][hull]
-    self.countTurret      = Config.gen.stationComponents[Enums.StationComponents.Turret][hull]
-    self.countBay         = Config.gen.stationComponents[Enums.StationComponents.Bay][hull]
-    self.countInventory   = Config.gen.stationComponents[Enums.StationComponents.Inventory][hull]
-    self.countDrone       = Config.gen.stationComponents[Enums.StationComponents.Drone][hull]
-    self.countShield      = Config.gen.stationComponents[Enums.StationComponents.Shield][hull]
-    self.countArmor       = Config.gen.stationComponents[Enums.StationComponents.Armor][hull]
+    self.countArmor     = Config.gen.stationComponents[Enums.StationComponents.Armor][hull]
+    self.countBay       = Config.gen.stationComponents[Enums.StationComponents.Bay][hull]
+    self.countCapacitor = Config.gen.stationComponents[Enums.StationComponents.Capacitor][hull]
+    self.countCloak     = 0
+    self.countCommo     = Config.gen.stationComponents[Enums.StationComponents.Commo][hull]
+    self.countComputer  = Config.gen.stationComponents[Enums.StationComponents.Computer][hull]
+    self.countDrone     = Config.gen.stationComponents[Enums.StationComponents.Drone][hull]
+    self.countHull      = Config.gen.stationComponents[Enums.StationComponents.Hull][hull]
+    self.countInventory = Config.gen.stationComponents[Enums.StationComponents.Inventory][hull]
+    self.countSensor    = Config.gen.stationComponents[Enums.StationComponents.Sensor][hull]
+    self.countShield    = Config.gen.stationComponents[Enums.StationComponents.Shield][hull]
+    self.countThruster  = 0
+    self.countTurret    = Config.gen.stationComponents[Enums.StationComponents.Turret][hull]
 
     self:addComponents()
 
     -- Add all the _positions_ for socketable components (the components are added later)
     self.positions = {
-        [SocketType.Hull]        = {},
-        [SocketType.Computer]    = {},
-        [SocketType.Sensor]      = {},
-        [SocketType.LifeSupport] = {},
-        [SocketType.Capacitor]   = {},
-        [SocketType.Thruster]    = {},
-        [SocketType.Turret]      = {},
-        [SocketType.Bay]         = {},
-        [SocketType.Inventory]   = {},
-        [SocketType.Drone]       = {},
-        [SocketType.Shield]      = {},
-        [SocketType.Armor]       = {},
+        [SocketType.Armor]     = {},
+        [SocketType.Bay]       = {},
+        [SocketType.Capacitor] = {},
+        [SocketType.Cloak]     = {}, -- not used
+        [SocketType.Commo]     = {},
+        [SocketType.Computer]  = {},
+        [SocketType.Drone]     = {},
+        [SocketType.Hull]      = {},
+        [SocketType.Inventory] = {},
+        [SocketType.Sensor]    = {},
+        [SocketType.Shield]    = {},
+        [SocketType.Thruster]  = {}, -- not used
+        [SocketType.Turret]    = {},
     }
 
-    -- Hull sockets
-    insert(self.positions[SocketType.Hull], Vec3f(1, 1, 1))
+    local p = nil
+
+    -- Armor sockets
+    for i = 1, self.countArmor do
+        insert(self.positions[SocketType.Armor], Vec3f(1, 1, 1))
+    end
+
+    -- Bay sockets
+    for i = 1, self.countBay do
+        p = Gen.GenUtil.FindMountPoint(mesh, bsp, rng, Vec3f(0, 1, 0), Vec3f(0, 0, 1), 1000)
+        if p then
+            insert(self.positions[SocketType.Bay], Vec3f(0, 1, 1)) -- TODO: Replace with visible mount position for a Bay weapon
+        else
+            printf("No mount point found for bay %d being mounted on Station %s", i, self:getName())
+        end
+    end
+
+    -- Capacitor sockets
+    for i = 1, self.countCapacitor do
+        insert(self.positions[SocketType.Capacitor], Vec3f(1, 1, 1))
+    end
+
+    -- Communicator sockets
+    for i = 1, self.countCommo do
+        insert(self.positions[SocketType.Commo], Vec3f(1, 1, 1))
+    end
 
     -- Computer sockets
     for i = 1, self.countComputer do
         insert(self.positions[SocketType.Computer], Vec3f(1, 1, 1))
+    end
+
+    -- Drone sockets
+    for i = 1, self.countDrone do
+        insert(self.positions[SocketType.Drone], Vec3f(1, 1, 1)) -- TODO: Replace with visible mount position for a Drone rack
+    end
+
+    -- Hull sockets
+    insert(self.positions[SocketType.Hull], Vec3f(1, 1, 1))
+
+    -- Inventory sockets
+    for i = 1, self.countInventory do
+        insert(self.positions[SocketType.Inventory], Vec3f(1, 1, 1))
     end
 
     -- Sensor sockets
@@ -96,14 +136,9 @@ local Station = subclass(Entity, function (self, seed, hull)
         insert(self.positions[SocketType.Sensor], Vec3f(1, 1, 1))
     end
 
-    -- Life Support sockets
-    for i = 1, self.countLifeSupport do
-        insert(self.positions[SocketType.LifeSupport], Vec3f(1, 1, 1))
-    end
-
-    -- Capacitor sockets
-    for i = 1, self.countCapacitor do
-        insert(self.positions[SocketType.Capacitor], Vec3f(1, 1, 1))
+    -- Shield sockets
+    for i = 1, self.countShield do
+        insert(self.positions[SocketType.Shield], Vec3f(1, 1, 1))
     end
 
     -- Turret sockets
@@ -125,42 +160,12 @@ local Station = subclass(Entity, function (self, seed, hull)
             normal = Vec3f(1, 1, 0)
             facing = Vec3f(1, 1, 0)
         end
-        local p = Gen.GenUtil.FindMountPoint(mesh, bsp, rng, normal, facing, 1000)
+        p = Gen.GenUtil.FindMountPoint(mesh, bsp, rng, normal, facing, 1000)
         if p then
             insert(self.positions[SocketType.Turret], p * Vec3f(1, 1, 1))
         else
             printf("No mount point found for turret %d being mounted on Station %s", i, self:getName())
         end
-    end
-
-    -- Bay sockets
-    for i = 1, self.countBay do
-        local p = Gen.GenUtil.FindMountPoint(mesh, bsp, rng, Vec3f(0, 1, 0), Vec3f(0, 0, 1), 1000)
-        if p then
-            insert(self.positions[SocketType.Bay], Vec3f(0, 1, 1)) -- TODO: Replace with visible mount position for a Bay weapon
-        else
-            printf("No mount point found for bay %d being mounted on Station %s", i, self:getName())
-        end
-    end
-
-    -- Inventory sockets
-    for i = 1, self.countInventory do
-        insert(self.positions[SocketType.Inventory], Vec3f(1, 1, 1))
-    end
-
-    -- Drone sockets
-    for i = 1, self.countDrone do
-        insert(self.positions[SocketType.Drone], Vec3f(1, 1, 1)) -- TODO: Replace with visible mount position for a Drone rack
-    end
-
-    -- Shield sockets
-    for i = 1, self.countShield do
-        insert(self.positions[SocketType.Shield], Vec3f(1, 1, 1))
-    end
-
-    -- Armor sockets
-    for i = 1, self.countArmor do
-        insert(self.positions[SocketType.Armor], Vec3f(1, 1, 1))
     end
 
     -- Add all sockets to parent
@@ -192,7 +197,7 @@ function Station:attackedBy(target)
     -- This station has been attacked, probably by a band of ragtag rebel scum who pose no threat
     -- TODO: Allow a number of "grace" hits that decay over time
     if not self:isDestroyed() then
-        --printf("Station %s (health at %3.2f%%) attacked by %s", self:getName(), self:mgrHullGetHullPercent(), target:getName())
+        --printf("Station %s (health at %3.2f%%) attacked by %s", self:getName(), self:mgrHullGetHealthPercent(), target:getName())
         -- Stations currently have no turrets, so pushing an Attack() action generates an error
 
         -- Nobody enjoys getting shot
