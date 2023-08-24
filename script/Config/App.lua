@@ -102,6 +102,8 @@ Config.gen                       = {
     randomizeEconNPCs                = false,
     nEscortNPCs                      = 0,                          -- # of ships to be given the Escort action
     randomizeEscortNPCs              = false,
+    nPirateNPCs                      = 0,
+    randomizePirateNPCs              = false,
 
     nDustFlecks                      = 256,
     nDustClouds                      = 8,

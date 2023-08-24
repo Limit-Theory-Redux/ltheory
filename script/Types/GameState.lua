@@ -104,6 +104,8 @@ GameState.gen = {
     randomizeEconNPCs     = Config.gen.randomizeEconNPCs,
     nEscortNPCs           = Config.gen.nEscortNPCs,
     randomizeEscortNPCs   = Config.gen.randomizeEscortNPCs,
+    nPirateNPCs           = Config.gen.nPirateNPCs,
+    randomizePirateNPCs   = Config.gen.randomizePirateNPCs,
     uniqueShips           = Config.gen.uniqueShips,
     nebulaBrightnessScale = Config.gen.nebulaBrightnessScale
 }

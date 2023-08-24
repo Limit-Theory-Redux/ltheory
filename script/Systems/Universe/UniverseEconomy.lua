@@ -99,15 +99,26 @@ local function addMarket(system)
 end
 
 local function addBlackMarket(system)
-    local piratesCount = 12
+    local aiPirateCount
+
+    if GameState.gen.randomizePirateNPCs then
+        if GameState.gen.nPirateNPCs <= 0 then
+            aiPirateCount = 0
+        else
+            aiPirateCount = rng:getInt(1, GameState.gen.nPirateNPCs)
+        end
+    else
+        aiPirateCount = GameState.gen.nPirateNPCs
+    end
+
     local piratePlayer = Entities.Player("Captain " .. Words.getCoolName(rng))
     piratePlayer:addCredits(Config.econ.eStartCredits)
     system.pirateStation = system:spawnPirateStation(Enums.StationHulls.Small, piratePlayer)
     system.pirateStation:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
     GameState.player.humanPlayer:getControlling():setDisposition(system.pirateStation, Config.game.dispoMin)
 
-    system:spawnAI(piratesCount, Actions.Wait(1), piratePlayer)
-    printf("%d assets added to %s", piratesCount, piratePlayer:getName())
+    system:spawnAI(aiPirateCount, Actions.Wait(1), piratePlayer)
+    printf("%d assets added to %s", aiPirateCount, piratePlayer:getName())
     -- Configure assets
     for asset in piratePlayer:iterAssets() do
         asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
