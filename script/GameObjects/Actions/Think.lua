@@ -80,6 +80,7 @@ function Think:manageAsset(asset)
         if jobType then
             for _ = 1, math.min(Config.econ.jobIterations, #jobType * 2) do
                 job = self.rng:choose(jobType)
+
                 if not job then break end
 
                 if job:getType() == Enums.Jobs.Mining then

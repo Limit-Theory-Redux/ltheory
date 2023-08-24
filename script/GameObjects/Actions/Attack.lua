@@ -62,7 +62,7 @@ function Attack:onUpdateActive(e, dt)
         if target == GameState.player.humanPlayer:getControlling() then
             local distance = e:getDistance(target)
             -- Cancel action if out of range
-            if distance > Config.game.pulseRange * 3 then
+            if distance > Config.gen.compTurretPulseStats.range * 3 then
                 self.cancelTimer = self.cancelTimer + dt
             else
                 self.cancelTimer = 0

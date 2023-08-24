@@ -30,6 +30,9 @@ local function addSystemGenerics(system)
     -- TODO: Don't do this step for star systems that are not inhabited
     system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.EnergySolar)
 
+    -- Every inhabited star system gets one "free" silicon refinery
+    system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.Silicon)
+
     -- Add a free Waste Recycler station
     system:spawnStation(Enums.StationHulls.Small, tradeAi, Production.Recycler)
 
@@ -110,8 +113,8 @@ local function addBlackMarket(system)
         asset:setDisposition(GameState.player.humanPlayer:getControlling(), Config.game.dispoMin)
         GameState.player.humanPlayer:getControlling():setDisposition(asset, Config.game.dispoMin)
         if Config:getObjectInfo("object_types", asset:getType()) == "Ship" then
-            local pirateHullInteg = asset:mgrHullGetHullMax()
-            asset:mgrHullSetHull(pirateHullInteg, pirateHullInteg)
+            local pirateHullInteg = asset:mgrHullGetHealthMax()
+            asset:mgrHullSetHealth(pirateHullInteg, pirateHullInteg)
             asset.usesBoost = true
             print("Set ship health!")
         end

@@ -60,7 +60,7 @@ function CriminalThink:manageAsset(asset)
                         bestPayout = payout
                         bestJob = job
                     else
-                        printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+                        printf("CRIMINAL THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
                             asset:getName(), job:getName(), payout)
                     end
                 end

@@ -56,7 +56,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Window')
     local mt = {
         __index = {
-            managed          = function (self) return ffi.gc(self, libphx.Window_Free) end,
+            managed          = function(self) return ffi.gc(self, libphx.Window_Free) end,
             free             = libphx.Window_Free,
             beginDraw        = libphx.Window_BeginDraw,
             endDraw          = libphx.Window_EndDraw,

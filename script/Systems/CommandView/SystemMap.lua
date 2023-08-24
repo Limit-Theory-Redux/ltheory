@@ -201,6 +201,11 @@ function SystemMap:onDraw(state)
             if not self.focus:isDestroyed() then
                 if self.focus:isAlive() then
                     dbg:text("Hull Integrity: %d%%", self.focus:mgrHullGetHealthPercent())
+
+                    if string.match(objtype, "Ship") then
+                        dbg:text("Travel Drive Activated: %s", self.focus.travelDriveActive)
+                        dbg:text("Speed: %s m/s", floor(self.focus:getSpeed()))
+                    end
                 end
                 if string.match(objtype, "Station") and self.focus:hasDockable() then
                     local docked = self.focus:getDocked()

@@ -3,11 +3,11 @@ local Material = require('GameObjects.Material')
 local Components = requireAll('GameObjects.Elements.Components')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
-local function damaged(self, event)
+local function wasDamaged(self, event)
     local shipEntry = self:findInDamageList(event.source)
     if shipEntry ~= nil then
         shipEntry.damage = shipEntry.damage + event.amount
-        print("Damage done: " .. shipEntry.damage)
+        --print("Damage done: " .. shipEntry.damage)
     else
         shipEntry = {
             ship = event.source,
@@ -20,6 +20,23 @@ local function damaged(self, event)
         if not self:isDestroyed() and self:getOwner() ~= shipEntry.ship then
             -- Nobody enjoys getting shot
             self:modDisposition(shipEntry.ship, -0.2)
+
+            if self:hasActions() then
+                local actionName = format("Attack %s", shipEntry.ship:getName()) -- must match namegen in Attack.lua
+                local attackAction = self:findAction(actionName)
+                if attackAction then
+                    if attackAction ~= self:getCurrentAction(actionName) then
+                        -- If the action to attack the attacker exists in this entity's Actions queue but isn't the current
+                        --     action, delete the old Attack action and push a new instance to the top of the Actions queue
+                        self:deleteAction(actionName)
+                        self:pushAction(Actions.Attack(shipEntry.ship))
+                    end
+                else
+                    self:pushAction(Actions.Attack(shipEntry.ship))
+                end
+            else
+                self:pushAction(Actions.Attack(shipEntry.ship))
+            end
 
             -- Possibly make this station undockable to its attacker
             if self:hasDockable() and self:isDockable() then
@@ -190,74 +207,37 @@ local Station = subclass(Entity, function (self, seed, hull)
     self.timer = 0
     self.stationPatrolJobs = 0
     self:register(Event.Update, Entity.updateStation)
-    self:register(Event.Damaged, damaged)
+    self:register(Event.Damaged, wasDamaged)
 end)
-
-function Station:attackedBy(target)
-    -- This station has been attacked, probably by a band of ragtag rebel scum who pose no threat
-    -- TODO: Allow a number of "grace" hits that decay over time
-    if not self:isDestroyed() then
-        --printf("Station %s (health at %3.2f%%) attacked by %s", self:getName(), self:mgrHullGetHealthPercent(), target:getName())
-        -- Stations currently have no turrets, so pushing an Attack() action generates an error
-
-        -- Nobody enjoys getting shot
-        self:modDisposition(target, -0.2)
-
-        -- Possibly make this station undockable to its attacker
-        if self:hasDockable() and self:isDockable() then
-            if self:isHostileTo(target) and not self:isBanned(target) then
-                self:addBannedShip(target)
-                printf("Station %s bans attacker %s", self:getName(), target:getName())
-
-                -- If this station is not currently attacking its attacker,
-                --    add an action to Attack its attacker
-                if self:hasActions() then
-                    local actionName = format("Attack %s", target:getName()) -- must match namegen in Attack.lua
-                    local attackAction = self:findAction(actionName)
-                    if attackAction then
-                        if attackAction ~= self:getCurrentAction(actionName) then
-                            -- If the action to attack the attacker exists in this entity's Actions queue but isn't the current
-                            --     action, delete the old Attack action and push a new instance to the top of the Actions queue
-                            self:deleteAction(actionName)
-                            self:pushAction(Actions.Attack(target))
-                        end
-                    else
-                        self:pushAction(Actions.Attack(target))
-                    end
-                else
-                    self:pushAction(Actions.Attack(target))
-                end
-            end
-        end
-    end
-end
 
 function Station:undockAndAttack(target)
     for key, ship in pairs(self:getDocked(self)) do
         self:removeDocked(ship)
         ship:pushAction(Actions.Attack(target))
+        printf("Ship %s defends Station %s", ship:getName(), self:getName())
     end
 end
 
-function Entity:updateStation(state)
-    if self.timer > self.lastClearDamageTime + 30 then
-        self.shipDamageList = {}
-        self.lastClearDamageTime = self.timer
+function Station:findInDamageList(entity)
+    for _, shipEntry in ipairs(self.shipDamageList) do
+        if shipEntry.ship == entity then
+            return shipEntry
+        end
     end
-    self.timer = self.timer + state.dt
 end
 
-function Station:undockAndAttack(target)
-    --for key, ship in pairs(self:getDocked(self)) do
-    --  self:removeDocked(ship)
-    --  ship:pushAction(Actions.Attack(target))
-    --end
-end
+function Station:distressCall(target, range)
+    local owner = self:getOwner()
+    for asset in owner:iterAssets() do
+        if asset:getType() == Config:getObjectTypeByName("object_types", "Ship") and self:getDistance(asset) < range then
+            local currentAction = asset:getCurrentAction()
 
-function Station:attackedBy(target)
-    -- This station has been attacked, probably by a band of ragtag rebel scum who pose no threat
-    -- TODO: Allow a number of "grace" hits that decay over time
-    -- TODO: If and when stations are armed, modify this method to let the station shoot back
+            if currentAction and not string.find(currentAction:getName(), "Attack") then
+                asset:pushAction(Actions.Attack(target))
+                print(asset:getName() .. " answering distress call of " .. self:getName())
+            end
+        end
+    end
 end
 
 function Entity:updateStation(state)

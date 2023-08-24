@@ -50,6 +50,9 @@ function Economy:update(dt)
         table.clear(self.markets)
         table.clear(self.jobs)
         table.clear(self.traders)
+        table.clear(self.blackMarkets)
+        table.clear(self.blackMarketJobs)
+        table.clear(self.blackMarketTraders)
         table.clear(self.yields)
         --        table.clear(self.yields)
         Profiler.End()
@@ -61,6 +64,8 @@ function Economy:update(dt)
                 if e:hasFlows() and not e:isDestroyed() then insert(self.flows, e) end
                 if e:hasMarket() and not e:isDestroyed() then insert(self.markets, e) end
                 if e:hasTrader() and not e:isDestroyed() then insert(self.traders, e) end
+                if e:hasBlackMarket() and not e:isDestroyed() then insert(self.blackMarkets, e) end
+                if e:hasBlackMarketTrader() and not e:isDestroyed() then insert(self.blackMarketTraders, e) end
                 --                if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
             end
         end
@@ -72,6 +77,7 @@ function Economy:update(dt)
             local jobCount = 0
             do -- Cache mining jobs
                 -- Iterate through all factories at functional space stations in this star system
+                self.jobs[Enums.Jobs.Mining] = {}
                 for _, station in ipairs(self.factories) do
                     local factory = station:getFactory()
                     local prodLines = factory:getProds()
@@ -103,7 +109,7 @@ function Economy:update(dt)
                                         --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
                                         --    src:getName(), dst:getName(), item:getName(), itemBidVol)
                                         jobCount = jobCount + 1
-                                        insert(self.jobs, Jobs.Mine(asteroid, station, item))
+                                        insert(self.jobs[Enums.Jobs.Mining], Jobs.Mine(asteroid, station, item))
                                         if i == considerCount then break end
                                     end
                                 end
@@ -165,6 +171,7 @@ function Economy:update(dt)
             Profiler.Begin('Economy.Update.Transport')
             local allJobCount = 0
             local realJobCount = 0
+            self.jobs[Enums.Jobs.Transport] = {}
             for _, src in ipairs(self.traders) do
                 if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
                     for item, data in pairs(src:getTrader().elems) do
@@ -183,7 +190,7 @@ function Economy:update(dt)
                                                 --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
                                                 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                                                 realJobCount = realJobCount + 1
-                                                insert(self.jobs, Jobs.Transport(src, dst, item))
+                                                insert(self.jobs[Enums.Jobs.Transport], Jobs.Transport(src, dst, item))
                                             end
                                         end
                                     end
@@ -204,6 +211,7 @@ function Economy:update(dt)
             Profiler.Begin('Economy.Update.Marauding')
             local allJobCount = 0
             local realJobCount = 0
+            self.blackMarketJobs[Enums.BlackMarketJobs.Marauding] = {}
             for _, src in ipairs(self.blackMarketTraders) do
                 if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
                     for item, data in pairs(src:getBlackMarketTrader().elems) do
@@ -215,7 +223,7 @@ function Economy:update(dt)
                                 --printf("Marauding job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
                                 --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                                 realJobCount = realJobCount + 1
-                                insert(self.jobs, Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems.
+                                insert(self.blackMarketJobs[Enums.BlackMarketJobs.Marauding], Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems.
                             end
                         end
                     end

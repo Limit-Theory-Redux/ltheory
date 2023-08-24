@@ -48,7 +48,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Sound')
     local mt = {
         __index = {
-            managed       = function (self) return ffi.gc(self, libphx.Sound_Free) end,
+            managed       = function(self) return ffi.gc(self, libphx.Sound_Free) end,
             free          = libphx.Sound_Free,
             getDuration   = libphx.Sound_GetDuration,
             getPath       = libphx.Sound_GetPath,

@@ -165,11 +165,6 @@ function Pulse.UpdatePostPhysics(system, projectiles, dt)
                 if hitEnt ~= source then
                     -- Do damage if the collidee has health
                     if hitEnt:isAlive() then
-                        if not source:isDestroyed() then
-                            -- If attacked, this entity stops what it's doing and attacks that ship
-                            -- TODO: Improve response logic when attacked
-                            hitEnt:attackedBy(source)
-                        end
                         -- TODO: Get damage type and amount from the pulse
                         hitEnt:applyDamage(Config.gen.compTurretPulseStats.damage, source)
                     end

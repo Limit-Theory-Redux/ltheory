@@ -58,15 +58,8 @@ function Zone:updateZone(state)
     self.dt = self.dt + state.dt
 end
 
-function Zone:updateZone(state)
-    if self.dt > self.lastThreatTime + self.threatReductionUpdateTime then
-        if self.threatLevel > 0 then
-            self:adjustThreat(-self.threatReductionPerUpdate)
-        end
-        self.lastThreatTime = self.dt
-    end
-
-    self.dt = self.dt + state.dt
+function Zone:adjustThreat(value)
+    self.threatLevel = math.max(0, self.threatLevel + value)
 end
 
 return Zone
