@@ -132,6 +132,8 @@ impl Engine {
     }
 
     fn init_winit_window(&mut self, event_loop: &EventLoop<()>) {
+        debug!("Engine.init_winit_window");
+
         let winit_window_id = self.winit_windows.create_window(event_loop, &self.window);
 
         self.winit_window_id = Some(winit_window_id);
@@ -154,8 +156,19 @@ impl Engine {
             }
         }
 
-        let Some(winit_window) = self.winit_window_id.map(|winit_window_id| self.winit_windows.get_window(winit_window_id)).flatten()
+        let Some(winit_window_wrapper) = self.winit_window_id.map(|winit_window_id| self.winit_windows.get_window_mut(winit_window_id)).flatten()
         else { return; };
+
+        if let Some(state) = self.window.state {
+            match state {
+                WindowState::Suspended => winit_window_wrapper.suspend(),
+                WindowState::Resumed => winit_window_wrapper.resume(),
+            }
+
+            self.window.state = None;
+        }
+
+        let winit_window = winit_window_wrapper.window();
 
         if self.window.title != self.cache.window.title {
             winit_window.set_title(self.window.title.as_str());
@@ -183,13 +196,14 @@ impl Engine {
                 winit_window.set_fullscreen(new_mode);
             }
         }
+
         if self.window.resolution != self.cache.window.resolution {
-            let physical_size = PhysicalSize::new(
-                self.window.resolution.physical_width(),
-                self.window.resolution.physical_height(),
-            );
+            let width = self.window.resolution.physical_width();
+            let height = self.window.resolution.physical_height();
+            let physical_size = PhysicalSize::new(width, height);
 
             winit_window.set_inner_size(physical_size);
+            winit_window_wrapper.resize(width, height);
         }
 
         if self.window.physical_cursor_position() != self.cache.window.physical_cursor_position() {
@@ -315,6 +329,8 @@ impl Engine {
             winit_window.set_theme(self.window.window_theme.map(convert_window_theme));
         }
 
+        winit_window_wrapper.redraw();
+
         self.cache.window = self.window.clone();
     }
 }
@@ -347,7 +363,7 @@ impl Engine {
         // Apply window changes made by a script
         engine.changed_window();
 
-        let finished_and_setup_done = false;
+        let finished_and_setup_done = true;
 
         let event_handler = move |event: Event<()>,
                                   _event_loop: &EventLoopWindowTarget<()>,
@@ -736,9 +752,11 @@ impl Engine {
                 }
                 event::Event::Suspended => {
                     engine.frame_state.active = false;
+                    engine.window.state = Some(WindowState::Suspended);
                 }
                 event::Event::Resumed => {
                     engine.frame_state.active = true;
+                    engine.window.state = Some(WindowState::Resumed);
                 }
                 event::Event::MainEventsCleared => {
                     if finished_and_setup_done {
@@ -760,47 +778,46 @@ impl Engine {
                         engine.input.reset();
                     }
                 }
-                Event::RedrawEventsCleared => {
-                    *control_flow = ControlFlow::Poll;
-                    engine.frame_state.redraw_request_sent = true;
-                    // {
-                    //     // Fetch from world
-                    //     let (winit_config, window_focused_query) =
-                    //         focused_window_state.get(&app.world);
+                // event::Event::RedrawEventsCleared => {
+                //     *control_flow = ControlFlow::Poll;
+                //     engine.frame_state.redraw_request_sent = true;
+                //     {
+                //         // Fetch from world
+                //         let (winit_config, window_focused_query) =
+                //             focused_window_state.get(&app.world);
 
-                    //     // True if _any_ windows are currently being focused
-                    //     let app_focused = window_focused_query.iter().any(|window| window.focused);
+                //         // True if _any_ windows are currently being focused
+                //         let app_focused = window_focused_query.iter().any(|window| window.focused);
 
-                    //     let now = Instant::now();
-                    //     use UpdateMode::*;
-                    //     *control_flow = match winit_config.update_mode(app_focused) {
-                    //         Continuous => ControlFlow::Poll,
-                    //         Reactive { max_wait } | ReactiveLowPower { max_wait } => {
-                    //             if let Some(instant) = now.checked_add(*max_wait) {
-                    //                 ControlFlow::WaitUntil(instant)
-                    //             } else {
-                    //                 ControlFlow::Wait
-                    //             }
-                    //         }
-                    //     };
-                    // }
+                //         let now = Instant::now();
+                //         use UpdateMode::*;
+                //         *control_flow = match winit_config.update_mode(app_focused) {
+                //             Continuous => ControlFlow::Poll,
+                //             Reactive { max_wait } | ReactiveLowPower { max_wait } => {
+                //                 if let Some(instant) = now.checked_add(*max_wait) {
+                //                     ControlFlow::WaitUntil(instant)
+                //                 } else {
+                //                     ControlFlow::Wait
+                //                 }
+                //             }
+                //         };
+                //     }
 
-                    // // This block needs to run after `app.update()` in `MainEventsCleared`. Otherwise,
-                    // // we won't be able to see redraw requests until the next event, defeating the
-                    // // purpose of a redraw request!
-                    // let mut redraw = false;
-                    // if let Some(app_redraw_events) =
-                    //     app.world.get_resource::<Events<RequestRedraw>>()
-                    // {
-                    //     if redraw_event_reader.iter(app_redraw_events).last().is_some() {
-                    //         *control_flow = ControlFlow::Poll;
-                    //         redraw = true;
-                    //     }
-                    // }
+                //     // This block needs to run after `app.update()` in `MainEventsCleared`. Otherwise,
+                //     // we won't be able to see redraw requests until the next event, defeating the
+                //     // purpose of a redraw request!
+                //     let mut redraw = false;
+                //     if let Some(app_redraw_events) =
+                //         app.world.get_resource::<Events<RequestRedraw>>()
+                //     {
+                //         if redraw_event_reader.iter(app_redraw_events).last().is_some() {
+                //             *control_flow = ControlFlow::Poll;
+                //             redraw = true;
+                //         }
+                //     }
 
-                    // engine.frame_state.redraw_request_sent = redraw;
-                }
-
+                //     engine.frame_state.redraw_request_sent = redraw;
+                // }
                 _ => {
                     trace!("Unprocessed event: {event:?}");
                 }

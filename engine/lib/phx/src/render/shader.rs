@@ -46,7 +46,7 @@ unsafe extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const lib
 }
 
 unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
-    let this: u32 = gl::CreateShader(type_0);
+    let this = gl::CreateShader(type_0);
     let c_src = CString::new(src).unwrap();
 
     let mut srcs: [*const libc::c_char; 2] = [versionString, c_src.as_ptr()];
@@ -60,11 +60,11 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
     gl::CompileShader(this);
 
     /* Check for compile errors. */
-    let mut status: i32 = 0;
+    let mut status = 0;
     gl::GetShaderiv(this, gl::COMPILE_STATUS, &mut status);
 
     if status == 0 {
-        let mut length: i32 = 0;
+        let mut length = 0;
         gl::GetShaderiv(this, gl::INFO_LOG_LENGTH, &mut length);
 
         let infoLog = MemAllocZero((length + 1) as usize) as *mut libc::c_char;

@@ -34,6 +34,7 @@ function Cache.Font(name, size)
 end
 
 function Cache.Shader(vs, fs)
+    printf('Loading shaders. Vertex: %s. Fragment: %s', vs, fs)
     local key = vs .. fs
     local self = shaders[key]
     if self then return self end

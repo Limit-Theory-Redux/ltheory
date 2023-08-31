@@ -1,5 +1,6 @@
 mod composite_alpha_mode;
 mod cursor;
+mod glutin_render;
 mod monitor_selection;
 mod present_mode;
 mod window_level;
@@ -8,10 +9,12 @@ mod window_position;
 mod window_resize_constraints;
 mod window_resolution;
 mod winit_converters;
+mod winit_window;
 mod winit_windows;
 
 pub use composite_alpha_mode::*;
 pub use cursor::*;
+pub use glutin_render::*;
 pub use monitor_selection::*;
 pub use present_mode::*;
 pub use window_level::*;
@@ -20,6 +23,7 @@ pub use window_position::*;
 pub use window_resize_constraints::*;
 pub use window_resolution::*;
 pub use winit_converters::*;
+pub use winit_window::*;
 pub use winit_windows::*;
 
 use internal::ConvertIntoString;
@@ -34,6 +38,12 @@ use crate::system::*;
 #[derive(Debug, Clone)]
 pub struct CachedWindow {
     pub window: Window,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum WindowState {
+    Suspended,
+    Resumed,
 }
 
 /// The defining [`Component`] for window entities,
@@ -56,6 +66,8 @@ pub struct Window {
     pub present_mode: PresentMode,
     /// Which fullscreen or windowing mode should be used.
     pub mode: WindowMode,
+    /// Contains window suspended or resumed state if it was set,
+    pub state: Option<WindowState>,
     /// Where the window should be placed.
     pub position: WindowPosition,
     /// What resolution the window should have.
@@ -157,6 +169,7 @@ impl Default for Window {
             cursor: Default::default(),
             present_mode: Default::default(),
             mode: Default::default(),
+            state: None,
             position: Default::default(),
             resolution: Default::default(),
             internal: Default::default(),

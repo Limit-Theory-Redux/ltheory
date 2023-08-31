@@ -1,24 +1,28 @@
 #![warn(missing_docs)]
 use std::sync::atomic::Ordering;
 
-use glutin::{config::ConfigTemplateBuilder, prelude::GlConfig};
+use glutin::config::ConfigTemplateBuilder;
+use glutin::context::{ContextApi, ContextAttributesBuilder, Version};
+use glutin::display::GetGlDisplay;
+use glutin::prelude::{GlConfig, GlDisplay};
 use glutin_winit::DisplayBuilder;
 use hashbrown::HashMap;
+use raw_window_handle::HasRawWindowHandle;
 use tracing::{error, warn};
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
     monitor::MonitorHandle,
 };
 
-use crate::render::OpenGL_Init;
+// use crate::render::OpenGL;
 
-use super::{CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution};
+use super::{CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution, WinitWindow};
 
 /// A resource which contains [`winit`] library windows.
 #[derive(Debug, Default)]
 pub struct WinitWindows {
     /// Stores [`winit`] windows by window identifier.
-    pub windows: HashMap<winit::window::WindowId, winit::window::Window>,
+    pub windows: HashMap<winit::window::WindowId, WinitWindow>,
 
     // Some winit functions, such as `set_window_icon` can only be used from the main thread. If
     // they are used in another thread, the app will hang. This marker ensures `WinitWindows` is
@@ -150,9 +154,48 @@ impl WinitWindows {
             })
             .unwrap();
 
-        unsafe {
-            OpenGL_Init(gl_config);
-        }
+        println!("Picked a config with {} samples", gl_config.num_samples());
+
+        let raw_window_handle = winit_window
+            .as_ref()
+            .map(|window| window.raw_window_handle());
+
+        // XXX The display could be obtained from the any object created by it, so we
+        // can query it from the config.
+        let gl_display = gl_config.display();
+
+        // The context creation part. It can be created before surface and that's how
+        // it's expected in multithreaded + multiwindow operation mode, since you
+        // can send NotCurrentContext, but not Surface.
+        let context_attributes = ContextAttributesBuilder::new().build(raw_window_handle);
+
+        // Since glutin by default tries to create OpenGL core context, which may not be
+        // present we should try gles.
+        let fallback_context_attributes = ContextAttributesBuilder::new()
+            .with_context_api(ContextApi::Gles(None))
+            .build(raw_window_handle);
+
+        // There are also some old devices that support neither modern OpenGL nor GLES.
+        // To support these we can try and create a 2.1 context.
+        let legacy_context_attributes = ContextAttributesBuilder::new()
+            .with_context_api(ContextApi::OpenGl(Some(Version::new(2, 1))))
+            .build(raw_window_handle);
+
+        let gl_context = unsafe {
+            gl_display
+                .create_context(&gl_config, &context_attributes)
+                .unwrap_or_else(|_| {
+                    gl_display
+                        .create_context(&gl_config, &fallback_context_attributes)
+                        .unwrap_or_else(|_| {
+                            gl_display
+                                .create_context(&gl_config, &legacy_context_attributes)
+                                .expect("failed to create context")
+                        })
+                })
+        };
+
+        // OpenGL::init(gl_config);
 
         let winit_window = winit_window.unwrap(); // winit_window_builder.build(event_loop).unwrap();
                                                   // let name = window.title.clone();
@@ -200,23 +243,29 @@ impl WinitWindows {
 
         let id = winit_window.id();
 
-        self.windows.insert(id, winit_window);
+        self.windows
+            .insert(id, WinitWindow::new(winit_window, gl_config, gl_context));
 
         id
     }
 
     /// Get the winit window by id.
-    pub fn get_window(&self, winit_id: winit::window::WindowId) -> Option<&winit::window::Window> {
+    pub fn get_window(&self, winit_id: winit::window::WindowId) -> Option<&WinitWindow> {
         self.windows.get(&winit_id)
+    }
+
+    /// Get mutable winit window by id.
+    pub fn get_window_mut(
+        &mut self,
+        winit_id: winit::window::WindowId,
+    ) -> Option<&mut WinitWindow> {
+        self.windows.get_mut(&winit_id)
     }
 
     /// Remove a window from winit.
     ///
     /// This should mostly just be called when the window is closing.
-    pub fn remove_window(
-        &mut self,
-        winit_id: winit::window::WindowId,
-    ) -> Option<winit::window::Window> {
+    pub fn remove_window(&mut self, winit_id: winit::window::WindowId) -> Option<WinitWindow> {
         self.windows.remove(&winit_id)
     }
 }
