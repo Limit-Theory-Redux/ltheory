@@ -51,6 +51,8 @@ impl Input {
     }
 
     pub fn reset(&mut self) {
+        // self.active_device = None;
+
         self.user_changes.clear();
 
         self.keyboard_state.reset();
@@ -201,7 +203,7 @@ impl Input {
         self.user_changes.push(UserChange::CursorPosition(x, y));
     }
 
-    pub fn get_pressed(&self, button: Button) -> bool {
+    pub fn is_pressed(&self, button: Button) -> bool {
         if let Some(keyboard_button) = button.as_keyboard_button() {
             self.keyboard_state.is_pressed(keyboard_button)
         } else if let Some(mouse_control) = button.as_mouse_control() {
@@ -218,7 +220,7 @@ impl Input {
         }
     }
 
-    pub fn get_down(&self, button: Button) -> bool {
+    pub fn is_down(&self, button: Button) -> bool {
         if let Some(keyboard_button) = button.as_keyboard_button() {
             self.keyboard_state.is_down(keyboard_button)
         } else if let Some(mouse_control) = button.as_mouse_control() {
@@ -235,7 +237,7 @@ impl Input {
         }
     }
 
-    pub fn get_released(&self, button: Button) -> bool {
+    pub fn is_released(&self, button: Button) -> bool {
         if let Some(keyboard_button) = button.as_keyboard_button() {
             self.keyboard_state.is_released(keyboard_button)
         } else if let Some(mouse_control) = button.as_mouse_control() {
@@ -269,5 +271,26 @@ impl Input {
         } else {
             0.0
         }
+    }
+
+    pub fn is_keyboard_alt_pressed(&self) -> bool {
+        let keyboard = self.keyboard();
+
+        keyboard.is_pressed(KeyboardButton::AltLeft)
+            || keyboard.is_pressed(KeyboardButton::AltRight)
+    }
+
+    pub fn is_keyboard_ctrl_pressed(&self) -> bool {
+        let keyboard = self.keyboard();
+
+        keyboard.is_pressed(KeyboardButton::ControlLeft)
+            || keyboard.is_pressed(KeyboardButton::ControlRight)
+    }
+
+    pub fn is_keyboard_shift_pressed(&self) -> bool {
+        let keyboard = self.keyboard();
+
+        keyboard.is_pressed(KeyboardButton::ShiftLeft)
+            || keyboard.is_pressed(KeyboardButton::ShiftRight)
     }
 }

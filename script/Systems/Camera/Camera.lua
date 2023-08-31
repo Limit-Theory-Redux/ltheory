@@ -160,7 +160,7 @@ function Camera:ndcToRay(ndc, length)
 end
 
 function Camera:mouseToRay(length)
-    local mp  = Input.GetMousePosition()
+    local mp  = Input:cursor():position()()
     local ss  = self:windowToScreen(mp)
     local ndc = self:screenToNDC(ss)
     local ray = self:ndcToRay(ndc, length)

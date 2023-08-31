@@ -93,7 +93,7 @@ function Cloak:updateCloak(state)
             if GameState.paused then
                 timeScale = 0.0
             end
-            if Input.GetDown(Bindings.TimeAccel) then
+            if Input:isDown(Bindings.TimeAccel) then
                 timeScale = GameState.debug.timeAccelFactor
             end
 

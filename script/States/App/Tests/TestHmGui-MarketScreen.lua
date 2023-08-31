@@ -876,7 +876,7 @@ end
 
 function Test:onUpdate(dt)
     Profiler.Begin('HmGui.Update')
-    if Input.GetPressed(Button.KeyboardEscape) then
+    if Input:isPressed(Button.KeyboardEscape) then
         drawExitMenu = not drawExitMenu
     end
     HmGui.Begin(self.resX, self.resY)

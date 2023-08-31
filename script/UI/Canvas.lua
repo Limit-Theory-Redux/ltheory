@@ -36,7 +36,7 @@ function Canvas:input()
 
     Profiler.Begin('Canvas.Focus')
     -- Mouse Focus
-    local md = Input.GetMouseDelta()
+    local md = Input:mouse():delta()
     local mouseMoved = md.x ~= 0 or md.y ~= 0
 
     if mouseMoved then
@@ -106,7 +106,7 @@ end
 function Canvas:update(dt)
     Profiler.Begin('Canvas.Update')
     local s = self.state
-    local mp = Input.GetMousePosition()
+    local mp = Input:cursor():position()
     s.dt = dt
     s.mousePosX = mp.x
     s.mousePosY = mp.y

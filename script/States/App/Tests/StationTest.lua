@@ -55,9 +55,9 @@ end
 function StationTest:onInput()
     self.canvas:input()
 
-    if Input.GetKeyboardShift() and Input.GetPressed(Button.KeyboardB) then
+    if Input:isKeyboardShiftPressed() and Input:isPressed(Button.KeyboardB) then
         self:newSystem()
-    elseif Input.GetPressed(Button.KeyboardB) then
+    elseif Input:isPressed(Button.KeyboardB) then
         self:spawnStation()
     end
 end

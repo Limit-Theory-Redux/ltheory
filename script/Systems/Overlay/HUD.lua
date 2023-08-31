@@ -1643,21 +1643,21 @@ function HUD:onInput(state)
         -- camera:modPitch(0.005 * CameraBindings.Pitch:get()) -- only works when cameraOrbit is the current camera
 
         -- Select a weapon group
-        if Input.GetPressed(Button.KeyboardKey1) and GameState.player.weaponGroup ~= 1 then
+        if Input:isPressed(Button.KeyboardKey1) and GameState.player.weaponGroup ~= 1 then
             GameState.player.weaponGroup = 1
-        elseif Input.GetPressed(Button.KeyboardKey2) and GameState.player.weaponGroup ~= 2 then
+        elseif Input:isPressed(Button.KeyboardKey2) and GameState.player.weaponGroup ~= 2 then
             GameState.player.weaponGroup = 2
-        elseif Input.GetPressed(Button.KeyboardKey3) and GameState.player.weaponGroup ~= 3 then
+        elseif Input:isPressed(Button.KeyboardKey3) and GameState.player.weaponGroup ~= 3 then
             GameState.player.weaponGroup = 3
-        elseif Input.GetPressed(Button.KeyboardKey4) and GameState.player.weaponGroup ~= 4 then
+        elseif Input:isPressed(Button.KeyboardKey4) and GameState.player.weaponGroup ~= 4 then
             GameState.player.weaponGroup = 4
-        elseif Input.GetPressed(Button.KeyboardKey5) and GameState.player.weaponGroup ~= 5 then
+        elseif Input:isPressed(Button.KeyboardKey5) and GameState.player.weaponGroup ~= 5 then
             GameState.player.weaponGroup = 5
-        elseif Input.GetPressed(Button.KeyboardKey6) and GameState.player.weaponGroup ~= 6 then
+        elseif Input:isPressed(Button.KeyboardKey6) and GameState.player.weaponGroup ~= 6 then
             GameState.player.weaponGroup = 6
-        elseif Input.GetPressed(Button.KeyboardKey7) and GameState.player.weaponGroup ~= 7 then
+        elseif Input:isPressed(Button.KeyboardKey7) and GameState.player.weaponGroup ~= 7 then
             GameState.player.weaponGroup = 7
-        elseif Input.GetPressed(Button.KeyboardKey8) and GameState.player.weaponGroup ~= 8 then
+        elseif Input:isPressed(Button.KeyboardKey8) and GameState.player.weaponGroup ~= 8 then
             GameState.player.weaponGroup = 8
         end
 
@@ -1686,14 +1686,14 @@ end
 
 function HUD:onUpdate(state)
     if not GameState.paused then
-        if Input.GetPressed(Bindings.ToggleHUD) then
+        if Input:isPressed(Bindings.ToggleHUD) then
             GameState.ui.hudStyle = GameState.ui.hudStyle + 1
             if GameState.ui.hudStyle > Enums.HudStyles.Tight then
                 GameState.ui.hudStyle = Enums.HudStyles.None
             end
         end
 
-        if Input.GetPressed(Bindings.ToggleSensors) then
+        if Input:isPressed(Bindings.ToggleSensors) then
             GameState.ui.sensorsDisplayed = not GameState.ui.sensorsDisplayed
         end
 
@@ -1843,7 +1843,7 @@ function HUD:onEnable()
     -- Set the mouse position when the Flight mode HUD is activated to the center of the game window
     GameState.render.gameWindow:setWindowGrab(true)
     local size = GameState.render.gameWindow:getSize()
-    Input.SetMousePosition(size.x / 2, size.y / 2)
+    Input:setCursorPosition(size.x / 2, size.y / 2)
     GameState.render.gameWindow:setWindowGrab(false)
 end
 

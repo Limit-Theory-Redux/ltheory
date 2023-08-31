@@ -83,7 +83,7 @@ function MasterControl:onInput(state)
             if self.panel:isEnabled() then
                 -- printf("Panel enabled")
                 GameState.panelActive = true -- TODO: find where MasterControl handle is exposed and use mc:isEnabled()
-                Input.SetMouseVisible(true)
+                Input:setCursorVisible(true)
             else
                 -- printf("Panel disabled")
                 GameState.panelActive = false
@@ -94,7 +94,7 @@ function MasterControl:onInput(state)
                         local control = self.activeControlSet.controls[i]
                         if control.name == GameState.player.currentControl then
                             self:activateControl(control)
-                            Input.SetMouseVisible(false)
+                            Input:setCursorVisible(false)
                             break
                         end
                     end
@@ -136,7 +136,7 @@ function MasterControl:activateControl(controlDef)
         if controlDef.name == Enums.ControlModes.Ship then
             self.panel:disable()
             GameState.panelActive = false
-            Input.SetMouseVisible(false)
+            Input:setCursorVisible(false)
         end
         return
     end
@@ -154,7 +154,7 @@ function MasterControl:activateControl(controlDef)
         if self.activeControlDef.name == Enums.ControlModes.Ship then
             self.panel:disable()
             GameState.panelActive = false
-            Input.SetMouseVisible(false)
+            Input:setCursorVisible(false)
             printf("*** Switching to Flight mode")
         elseif self.activeControlDef.name == Enums.ControlModes.Background then
             printf("*** Switching to Background mode")
@@ -165,7 +165,7 @@ function MasterControl:activateControl(controlDef)
         elseif self.activeControlDef.name == Enums.ControlModes.Undock then
             self.panel:enable()
             GameState.panelActive = true
-            Input.SetMouseVisible(true)
+            Input:setCursorVisible(true)
             printf("*** Docking (manual)!")
         end
 
@@ -227,7 +227,7 @@ function MasterControl.Create(gameView, player)
                         printf("*** Undocking (icon)!")
                         GameState.player.currentShip:getParent():removeDocked(GameState.player.currentShip)
                         self.gameView:setCameraMode(GameState.player.lastCamera)
-                        Input.SetMouseVisible(false)
+                        Input:setCursorVisible(false)
                     end
                 end
             end):setSize(barHeight, barHeight):setAlignX(0.5)
