@@ -40,11 +40,12 @@ function LTheoryRedux:onInit()
 
     --* Game initializations *--
     self.window:setSize(GameState.render.resX, GameState.render.resY)
-    Window.SetPosition(self.window, WindowPos.Centered, WindowPos.Centered)
+    -- self.window:setPosition(WindowPos.Centered, WindowPos.Centered)
     LTheoryRedux:SetFullscreen(GameState.render.fullscreen)
 
     -- Set the default game control cursor
-    LTheoryRedux:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
+    -- TODO: self.window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    self.window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
 
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player
@@ -55,7 +56,7 @@ end
 function LTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
     -- Set the game control cursor
     -- TODO: self.window:cursor().setIcon(cursorStyle)
-    self.window:setCursorPosition(cursorX, cursorY)
+    self.window:setCursorPosition(Vec2f(cursorX, cursorY))
 end
 
 function LTheoryRedux:toggleSound()

@@ -63,18 +63,20 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
     let mut status = 0;
     gl::GetShaderiv(this, gl::COMPILE_STATUS, &mut status);
 
-    if status == 0 {
-        let mut length = 0;
-        gl::GetShaderiv(this, gl::INFO_LOG_LENGTH, &mut length);
+    // if status == 0 {
+    //     let mut length = 0;
+    //     gl::GetShaderiv(this, gl::INFO_LOG_LENGTH, &mut length);
 
-        let infoLog = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
-        gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
+    //     let infoLog = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
+    //     gl::GetShaderInfoLog(this, length, std::ptr::null_mut(), infoLog);
 
-        panic!(
-            "CreateGLShader: Failed to compile shader:\n{:?}",
-            CStr::from_ptr(infoLog)
-        );
-    }
+    //     // window::check_error(file!(), line!());
+
+    //     panic!(
+    //         "CreateGLShader: Failed to compile shader:\n{:?}",
+    //         CStr::from_ptr(infoLog)
+    //     );
+    // }
     this
 }
 
@@ -93,16 +95,16 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
     /* Check for link errors. */
     let mut status: i32 = 0;
     gl::GetProgramiv(this, gl::LINK_STATUS, &mut status);
-    if status == 0 {
-        let mut length: i32 = 0;
-        gl::GetProgramiv(this, gl::INFO_LOG_LENGTH, &mut length);
-        let infoLog: *mut libc::c_char = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
-        gl::GetProgramInfoLog(this, length, std::ptr::null_mut(), infoLog);
-        panic!(
-            "CreateGLProgram: Failed to link program:\n{:?}",
-            CStr::from_ptr(infoLog)
-        );
-    }
+    // if status == 0 {
+    //     let mut length: i32 = 0;
+    //     gl::GetProgramiv(this, gl::INFO_LOG_LENGTH, &mut length);
+    //     let infoLog: *mut libc::c_char = MemAllocZero((length + 1) as usize) as *mut libc::c_char;
+    //     gl::GetProgramInfoLog(this, length, std::ptr::null_mut(), infoLog);
+    //     panic!(
+    //         "CreateGLProgram: Failed to link program:\n{:?}",
+    //         CStr::from_ptr(infoLog)
+    //     );
+    // }
     this
 }
 

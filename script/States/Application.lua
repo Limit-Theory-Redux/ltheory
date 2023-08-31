@@ -22,7 +22,7 @@ function Application:onInit() end
 
 function Application:onDraw() end
 
-function Application:onResize(sx, sy) self.window:setCursorPosition(Vec2i(self.resX / 2, self.resY / 2)) end
+function Application:onResize(sx, sy) self.window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2)) end
 
 function Application:onUpdate(dt) end
 
@@ -82,7 +82,7 @@ function Application:setEngine(engine)
     if Config.jit.verbose then Jit.StartVerbose() end
 
     self.window:cursor():setGrabMode(CursorGrabMode.Confined)
-    self.window:setCursorPosition(Vec2i(self.resX / 2, self.resY / 2))
+    self.window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
     self.window:cursor():setGrabMode(CursorGrabMode.None)
 
     self.profiling = false

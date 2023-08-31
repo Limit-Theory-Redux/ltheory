@@ -1,11 +1,9 @@
 use std::num::NonZeroU32;
 
-use glutin::{
-    context::{NotCurrentContext, PossiblyCurrentContext},
-    display::GetGlDisplay,
-    prelude::{GlDisplay, NotCurrentGlContextSurfaceAccessor, PossiblyCurrentGlContext},
-    surface::{GlSurface, Surface, SwapInterval, WindowSurface},
-};
+use glutin::context::{NotCurrentContext, PossiblyCurrentContext};
+use glutin::display::GetGlDisplay;
+use glutin::prelude::{GlDisplay, NotCurrentGlContextSurfaceAccessor, PossiblyCurrentGlContext};
+use glutin::surface::{GlSurface, Surface, SwapInterval, WindowSurface};
 use glutin_winit::GlWindow;
 use tracing::{error, warn};
 
