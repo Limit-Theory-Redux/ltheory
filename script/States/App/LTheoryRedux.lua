@@ -39,13 +39,13 @@ function LTheoryRedux:onInit()
     MainMenu:Open()
 
     --* Game initializations *--
-    Window:setSize(GameState.render.resX, GameState.render.resY)
-    -- Window:setPosition(WindowPos.Centered, WindowPos.Centered)
+    WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
+    -- WindowInstance:setPosition(WindowPos.Centered, WindowPos.Centered)
     LTheoryRedux:SetFullscreen(GameState.render.fullscreen)
 
     -- Set the default game control cursor
-    -- TODO: Window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
-    Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+    -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
 
     self.player = Entities.Player(GameState.player.humanPlayerName)
     GameState.player.humanPlayer = self.player
@@ -55,8 +55,8 @@ end
 
 function LTheoryRedux:setCursor(cursorStyle, cursorX, cursorY)
     -- Set the game control cursor
-    -- TODO: Window:cursor().setIcon(cursorStyle)
-    Window:setCursorPosition(Vec2f(cursorX, cursorY))
+    -- TODO: WindowInstance:cursor().setIcon(cursorStyle)
+    WindowInstance:setCursorPosition(Vec2f(cursorX, cursorY))
 end
 
 function LTheoryRedux:toggleSound()
@@ -84,12 +84,12 @@ end
 
 function LTheoryRedux:ToggleFullscreen()
     GameState.render.fullscreen = not GameState.render.fullscreen
-    Window:setFullscreen(GameState.render.fullscreen)
+    WindowInstance:setFullscreen(GameState.render.fullscreen)
 end
 
 function LTheoryRedux:SetFullscreen(fullscreen)
     GameState.render.fullscreen = fullscreen
-    Window:setFullscreen(fullscreen)
+    WindowInstance:setFullscreen(fullscreen)
 end
 
 function LTheoryRedux:onInput()

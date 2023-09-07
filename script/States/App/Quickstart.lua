@@ -31,8 +31,8 @@ function LTheoryRedux:onInit()
     MusicPlayer:Init()
 
     --* Game initializations *--
-    Window:setSize(GameState.render.resX, GameState.render.resY)
-    Window:setPosition(self.window, WindowPos.Centered, WindowPos.Centered)
+    WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
+    WindowInstance:setPosition(WindowPos.Centered, WindowPos.Centered)
     self:SetFullscreen(GameState.render.fullscreen)
     -- Set the default game control cursor
     self:setCursor(
