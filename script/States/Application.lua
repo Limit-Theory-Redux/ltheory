@@ -22,7 +22,9 @@ function Application:onInit() end
 
 function Application:onDraw() end
 
-function Application:onResize(sx, sy) self.window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2)) end
+function Application:onResize(sx, sy)
+    WindowInstance:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
+end
 
 function Application:onUpdate(dt) end
 
@@ -36,22 +38,15 @@ end
 
 -- Application Template --------------------------------------------------------
 
-function Application:setEngine(engine)
-    self.engine = ffi.cast('Engine*', engine)
-
-    Input = self.engine:input()
-    Window = self.engine:window()
-
+function Application:appInit()
     self.resX, self.resY = self:getDefaultSize()
 
-    self.window = self.engine:window()
-
-    self.window:setTitle(self:getTitle())
-    -- self.window:setPosition(x, y)
-    self.window:setSize(self.resX, self.resY)
+    WindowInstance:setTitle(self:getTitle())
+    -- WindowInstance:setPosition(x, y)
+    WindowInstance:setSize(self.resX, self.resY)
 
     -- TODO: replace this
-    -- self.window = Window.Create(
+    -- Window = Window.Create(
     --     self:getTitle(),
     --     WindowPos.Default,
     --     WindowPos.Default,
@@ -62,12 +57,12 @@ function Application:setEngine(engine)
     self.audio   = Audio.Create()
     self.audiofx = Audio.Create()
 
-    GameState.render.gameWindow = self.window
+    GameState.render.gameWindow = Window
 
     self.exit = false
 
-    -- self.window:setVsync(GameState.render.vsync)
-    -- TODO: self.window:setPresentMode(self.presentMode)
+    -- WindowInstance:setVsync(GameState.render.vsync)
+    -- TODO: WindowInstance:setPresentMode(self.presentMode)
 
     if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
@@ -84,9 +79,9 @@ function Application:setEngine(engine)
     if Config.jit.profile and not Config.jit.profileInit then Jit.StartProfile() end
     if Config.jit.verbose then Jit.StartVerbose() end
 
-    self.window:cursor():setGrabMode(CursorGrabMode.Confined)
-    self.window:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
-    self.window:cursor():setGrabMode(CursorGrabMode.None)
+    WindowInstance:cursor():setGrabMode(CursorGrabMode.Confined)
+    WindowInstance:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
+    WindowInstance:cursor():setGrabMode(CursorGrabMode.None)
 
     self.profiling = false
     self.toggleProfiler = false
@@ -106,8 +101,8 @@ function Application:onFrame()
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onResize')
-        local size = self.window:size()
-        self.window:cursor():setGrabMode(CursorGrabMode.None)
+        local size = WindowInstance:size()
+        WindowInstance:cursor():setGrabMode(CursorGrabMode.None)
         if size.x ~= self.resX or size.y ~= self.resY then
             self.resX = size.x
             self.resY = size.y
@@ -128,27 +123,27 @@ function Application:onFrame()
         Profiler.Begin('App.onInput')
 
         -- Immediately quit game without saving
-        if Input:isKeyboardCtrlPressed() and Input:isPressed(Button.KeyboardW) then self:quit() end
-        if Input:isKeyboardAltPressed() and Input:isPressed(Button.KeyboardQ) then self:quit() end
-        if Input:isPressed(Bindings.Exit) then self:quit() end
+        if InputInstance:isKeyboardCtrlPressed() and InputInstance:isPressed(Button.KeyboardW) then self:quit() end
+        if InputInstance:isKeyboardAltPressed() and InputInstance:isPressed(Button.KeyboardQ) then self:quit() end
+        if InputInstance:isPressed(Bindings.Exit) then self:quit() end
 
-        if Input:isPressed(Bindings.ToggleProfiler) then
+        if InputInstance:isPressed(Bindings.ToggleProfiler) then
             self.toggleProfiler = true
         end
 
-        if Input:isPressed(Bindings.Screenshot) then
+        if InputInstance:isPressed(Bindings.Screenshot) then
             doScreenshot = true
             if Settings.exists('render.superSample') then
                 self.prevSS = Settings.get('render.superSample')
             end
         end
 
-        if Input:isPressed(Bindings.ToggleFullscreen) then
+        if InputInstance:isPressed(Bindings.ToggleFullscreen) then
             GameState.render.fullscreen = not GameState.render.fullscreen
-            self.window:setFullscreen(GameState.render.fullscreen)
+            WindowInstance:setFullscreen(GameState.render.fullscreen)
         end
 
-        if Input:isPressed(Bindings.Reload) then
+        if InputInstance:isPressed(Bindings.Reload) then
             Profiler.Begin('Engine.Reload')
             Cache.Clear()
             SendEvent('Engine.Reload')
@@ -156,21 +151,21 @@ function Application:onFrame()
             Profiler.End()
         end
 
-        if Input:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
+        if InputInstance:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
             if GameState.paused then
                 GameState.paused = false
                 if not GameState.panelActive and not GameState.debug.instantJobs then
-                    Input:setCursorVisible(false)
+                    InputInstance:setCursorVisible(false)
                 end
             else
                 GameState.paused = true
-                Input:setCursorVisible(true)
+                InputInstance:setCursorVisible(true)
             end
         end
 
         -- Preserving this in case we need to be able to automatically pause on window exit again
         -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
-        --      if Input:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+        --      if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
         --        GameState.paused = true
         --      end
 
@@ -180,15 +175,15 @@ function Application:onFrame()
             timeScale = 1.0
         end
 
-        if Input:isDown(Bindings.TimeAccel) then
+        if InputInstance:isDown(Bindings.TimeAccel) then
             timeScale = GameState.debug.timeAccelFactor
         end
 
-        if Input:isPressed(Bindings.ToggleWireframe) then
+        if InputInstance:isPressed(Bindings.ToggleWireframe) then
             Settings.set('render.wireframe', not Settings.get('render.wireframe'))
         end
 
-        if Input:isPressed(Bindings.ToggleMetrics) then
+        if InputInstance:isPressed(Bindings.ToggleMetrics) then
             GameState.debug.metricsEnabled = not GameState.debug.metricsEnabled
         end
 
@@ -209,7 +204,7 @@ function Application:onFrame()
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onDraw')
-        -- self.window:beginDraw()
+        -- WindowInstance:beginDraw()
         self:onDraw()
         Profiler.End()
     end
@@ -293,7 +288,7 @@ function Application:onFrame()
         do -- End Draw
             Profiler.SetValue('gcmem', GC.GetMemory())
             Profiler.Begin('App.SwapBuffers')
-            -- self.window:endDraw()
+            -- WindowInstance:endDraw()
             Profiler.End()
         end
 
@@ -310,7 +305,7 @@ function Application:doExit()
 
     do -- Exit
         self:onExit()
-        -- self.window:free()
+        -- WindowInstance:free()
     end
 end
 

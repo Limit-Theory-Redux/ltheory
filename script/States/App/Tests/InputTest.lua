@@ -8,8 +8,8 @@ end
 function InputTest:onUpdate(dt)
     --[[ NOTE : Low Level API Usage Style 1 - Direct State Queries
   for i = 1, 512 do
-    if Input:isPressed(i)  then printf('Pressed  - %s', ffi.string(libphx.Button_ToString(i))) end
-    if Input:isReleased(i) then printf('Released - %s', ffi.string(libphx.Button_ToString(i))) end
+    if InputInstance:isPressed(i)  then printf('Pressed  - %s', ffi.string(libphx.Button_ToString(i))) end
+    if InputInstance:isReleased(i) then printf('Released - %s', ffi.string(libphx.Button_ToString(i))) end
   end
   --]]
 

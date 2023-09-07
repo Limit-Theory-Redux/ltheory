@@ -273,7 +273,7 @@ function MainMenu:ShowSeedDialogInner()
 
         self:SetMenuMode(Enums.MenuMode.Dialog)
         GameState:Unpause()
-        Input:setCursorVisible(false)
+        InputInstance:setCursorVisible(false)
         LTheoryRedux:createStarSystem()
     end
 
@@ -289,7 +289,7 @@ function MainMenu:ShowSeedDialogInner()
         self:SetMenuMode(Enums.MenuMode.Dialog)
         GameState:Unpause()
         GameState.player.currentControl = Enums.ControlModes.Ship
-        Input:setCursorVisible(false)
+        InputInstance:setCursorVisible(false)
         LTheoryRedux:createStarSystem()
     end
 
@@ -704,7 +704,7 @@ function MainMenu:ShowSettingsScreenInner()
 
         if MainMenu.currentMode == Enums.MenuMode.Dialog then
             LTheoryRedux:freezeTurrets()
-            Input:setCursorVisible(true)
+            InputInstance:setCursorVisible(true)
         end
     end
 
@@ -739,7 +739,7 @@ function MainMenu:ShowSettingsScreenInner()
 
         if MainMenu.currentMode == Enums.MenuMode.Dialog then
             LTheoryRedux:freezeTurrets()
-            Input:setCursorVisible(true)
+            InputInstance:setCursorVisible(true)
         end
 
         -- Write player-specific game variables to preserve them across gameplay sessions
@@ -780,7 +780,7 @@ function MainMenu:ShowFlightDialogInner()
             self.dialogDisplayed = false
 
             if GameState.player.currentControl == Enums.ControlModes.Ship then
-                Input:setCursorVisible(false)
+                InputInstance:setCursorVisible(false)
             end
         end
     end
@@ -793,7 +793,7 @@ function MainMenu:ShowFlightDialogInner()
             LTheoryRedux:freezeTurrets()
             GameState:Unpause()
             GameState.panelActive = false
-            Input:setCursorVisible(false)
+            InputInstance:setCursorVisible(false)
         end
     end
     HmGui.SetSpacing(8)
@@ -809,7 +809,7 @@ function MainMenu:ShowFlightDialogInner()
         -- Show Game Settings menu
         self:ShowSettingsScreen()
         GameState:Pause()
-        Input:setCursorVisible(true)
+        InputInstance:setCursorVisible(true)
     end
     HmGui.SetSpacing(8)
 

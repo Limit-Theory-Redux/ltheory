@@ -54,9 +54,9 @@ end
 function ShipTest:onInput()
     self.canvas:input()
 
-    if Input:isKeyboardShiftPressed() and Input:isPressed(Button.KeyboardB) then
+    if InputInstance:isKeyboardShiftPressed() and InputInstance:isPressed(Button.KeyboardB) then
         self:newSystem()
-    elseif Input:isPressed(Button.KeyboardB) then
+    elseif InputInstance:isPressed(Button.KeyboardB) then
         self:spawnShip()
     end
 end

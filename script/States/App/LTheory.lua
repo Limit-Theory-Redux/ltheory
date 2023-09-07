@@ -105,7 +105,7 @@ end
 function LTheory:onUpdate(dt)
     -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
     -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
-    if Input:isPressed(Bindings.ToggleLights) then
+    if InputInstance:isPressed(Bindings.ToggleLights) then
         GameState.render.pulseLights = not GameState.render.pulseLights
     end
 

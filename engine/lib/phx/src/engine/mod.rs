@@ -406,11 +406,17 @@ impl Engine {
                             .exec()
                             .expect("Cannot execute entry point script");
 
-                        let app_init_func: Function = globals.get("AppInit").unwrap();
+                        let set_engine_func: Function = globals.get("SetEngine").unwrap();
 
-                        app_init_func
-                            .call::<_, ()>(&engine as *const Engine as usize) // TODO: is this a correct way to send pointer to object?
+                        set_engine_func
+                            .call::<_, ()>(&engine as *const Engine as usize)
                             .unwrap();
+
+                        let init_system_func: Function = globals.get("InitSystem").unwrap();
+                        init_system_func.call::<_, ()>(()).unwrap();
+
+                        let app_init_func: Function = globals.get("AppInit").unwrap();
+                        app_init_func.call::<_, ()>(()).unwrap();
                     }
 
                     // let (winit_config, window_focused_query) = focused_window_state.get(&app.world);

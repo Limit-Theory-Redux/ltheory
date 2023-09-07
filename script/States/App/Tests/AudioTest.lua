@@ -95,11 +95,11 @@ function AudioTest:onInit()
 end
 
 function AudioTest:onInput()
-    if Input:isPressed(Bindings.Exit) then
+    if InputInstance:isPressed(Bindings.Exit) then
         self:quit()
     end
 
-    if Input:isPressed(Button.MouseLeft) then
+    if InputInstance:isPressed(Button.MouseLeft) then
         -- Fade out currently playing music
         self.music[self.musicToggle]:fadeOut(5.0)
         -- Fade in alternate music
@@ -107,7 +107,7 @@ function AudioTest:onInput()
         self.music[self.musicToggle]:fadeIn(5.0)
     end
 
-    if Input:isDown(Button.MouseLeft) then
+    if InputInstance:isDown(Button.MouseLeft) then
         -- if self.lastFireTime:getElapsed() > 0.12 then
         --   self.lastFireTime = self.lastUpdate
         --   local sound = Sound.Load(SFX.Gun, false, true)
@@ -118,18 +118,18 @@ function AudioTest:onInput()
         -- end
     end
 
-    if Input:isDown(Button.MouseRight) then
-        local is = Input:cursor():position()
+    if InputInstance:isDown(Button.MouseRight) then
+        local is = InputInstance:cursor():position()
         self.pos.x = is.mousePosition.x
         self.pos.z = is.mousePosition.y
     end
 
     -- for k, v in pairs(self.onKeyDown) do
-    --   if Input:isDown(k) then v() end
+    --   if InputInstance:isDown(k) then v() end
     -- end
 
     -- for k, v in pairs(self.onKeyPress) do
-    --   if Input:isPressed(k) then v() end
+    --   if InputInstance:isPressed(k) then v() end
     -- end
 end
 

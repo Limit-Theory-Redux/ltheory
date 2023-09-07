@@ -35,8 +35,6 @@ AppFrame = {}
 AppClose = {}
 
 LTheoryRedux = {}
-Input = {}
-Window = {}
 
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
 require('Config.Aliases')

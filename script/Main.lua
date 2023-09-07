@@ -3,76 +3,93 @@ package.path = package.path .. ';./script/?.lua'
 package.path = package.path .. ';./script/?.ext.lua'
 package.path = package.path .. ';./script/?.ffi.lua'
 
+EngineInstance = {}
+InputInstance = {}
+WindowInstance = {}
+
 require('Init')
 
-Core.Call(function()
-    local app = __app__ or 'LTheoryRedux'
-    GlobalRestrict.On()
+function SetEngine(engine)
+    print("SetEngine")
 
-    dofile('./script/Config/App.lua')
+    EngineInstance = ffi.cast('Engine*', engine)
 
-    -- Load Enums
-    for _, fname in ipairs(io.listdirex(Config.paths.enums)) do
-        dofile(Config.paths.enums .. fname)
-    end
+    InputInstance = EngineInstance:input()
+    WindowInstance = EngineInstance:window()
+end
 
-    -- Load Types
-    for _, fname in ipairs(io.listdirex(Config.paths.types)) do
-        dofile(Config.paths.types .. fname)
-    end
+function InitSystem()
+    print("InitSystem")
 
-    Namespace.Load('UI')
-    Namespace.LoadInline('Systems')
-    Namespace.LoadInline('GameObjects')
+    Core.Call(function()
+        local app = __app__ or 'LTheoryRedux'
+        GlobalRestrict.On()
 
-    jit.opt.start(
-        format('maxtrace=%d', Config.jit.tune.maxTrace),
-        format('maxrecord=%d', Config.jit.tune.maxRecord),
-        format('maxirconst=%d', Config.jit.tune.maxConst),
-        format('maxside=%d', Config.jit.tune.maxSide),
-        format('maxsnap=%d', Config.jit.tune.maxSnap),
-        format('hotloop=%d', Config.jit.tune.hotLoop),
-        format('hotexit=%d', Config.jit.tune.hotExit),
-        format('tryside=%d', Config.jit.tune.trySide),
-        format('instunroll=%d', Config.jit.tune.instUnroll),
-        format('loopunroll=%d', Config.jit.tune.loopUnroll),
-        format('callunroll=%d', Config.jit.tune.callUnroll),
-        format('recunroll=%d', Config.jit.tune.recUnroll),
-        format('sizemcode=%d', Config.jit.tune.sizeMCode),
-        format('maxmcode=%d', Config.jit.tune.maxMCode)
-    )
+        dofile('./script/Config/App.lua')
 
-    --local logG = io.open("_g.log", "w+")
-    --io.output(logG)
-    --io.write(Inspect(_G))
-    --io.close(logG)
-    local foundState, state = pcall(require, 'States.App.' .. app)
-    local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
+        -- Load Enums
+        for _, fname in ipairs(io.listdirex(Config.paths.enums)) do
+            dofile(Config.paths.enums .. fname)
+        end
 
-    local appState = nil
+        -- Load Types
+        for _, fname in ipairs(io.listdirex(Config.paths.types)) do
+            dofile(Config.paths.types .. fname)
+        end
 
-    if foundState then
-        appState = state
-    elseif foundTest then
-        appState = test
-    end
+        Namespace.Load('UI')
+        Namespace.LoadInline('Systems')
+        Namespace.LoadInline('GameObjects')
 
-    if appState == nil then
-        error("Application was not specified")
-    end
+        jit.opt.start(
+            format('maxtrace=%d', Config.jit.tune.maxTrace),
+            format('maxrecord=%d', Config.jit.tune.maxRecord),
+            format('maxirconst=%d', Config.jit.tune.maxConst),
+            format('maxside=%d', Config.jit.tune.maxSide),
+            format('maxsnap=%d', Config.jit.tune.maxSnap),
+            format('hotloop=%d', Config.jit.tune.hotLoop),
+            format('hotexit=%d', Config.jit.tune.hotExit),
+            format('tryside=%d', Config.jit.tune.trySide),
+            format('instunroll=%d', Config.jit.tune.instUnroll),
+            format('loopunroll=%d', Config.jit.tune.loopUnroll),
+            format('callunroll=%d', Config.jit.tune.callUnroll),
+            format('recunroll=%d', Config.jit.tune.recUnroll),
+            format('sizemcode=%d', Config.jit.tune.sizeMCode),
+            format('maxmcode=%d', Config.jit.tune.maxMCode)
+        )
 
-    AppInit = function(engine)
-        printf('Application(%s).setEngine(0x%x)', appState, engine)
-        -- appState.setEngine(engine)
-        Core.Call(appState.setEngine, appState, engine)
-    end
+        --local logG = io.open("_g.log", "w+")
+        --io.output(logG)
+        --io.write(Inspect(_G))
+        --io.close(logG)
+        local foundState, state = pcall(require, 'States.App.' .. app)
+        local foundTest, test = pcall(require, 'States.App.Tests.' .. app)
 
-    AppFrame = function()
-        Core.Call(appState.onFrame, appState)
-    end
+        local appState = nil
 
-    AppClose = function()
-        Core.Call(appState.doExit, appState)
-        GlobalRestrict.Off()
-    end
-end)
+        if foundState then
+            appState = state
+        elseif foundTest then
+            appState = test
+        end
+
+        if appState == nil then
+            error("Application was not specified")
+        end
+
+        AppInit = function()
+            printf('Application(%s).appInit()', appState)
+            -- appState.appInit()
+            Core.Call(appState.appInit, appState)
+        end
+
+        AppFrame = function()
+            Core.Call(appState.onFrame, appState)
+        end
+
+        AppClose = function()
+            Core.Call(appState.doExit, appState)
+            GlobalRestrict.Off()
+        end
+    end)
+end

@@ -31,7 +31,7 @@ function SystemMap:onDraw(state)
 
     local best = nil
     local bestDist = math.huge
-    local mp = Input:cursor():position()
+    local mp = InputInstance:cursor():position()
 
     -- If an object is target locked in flight view (via HUD), give it focus in the System Map
     local playerShip = GameState.player.currentShip
@@ -151,7 +151,7 @@ function SystemMap:onDraw(state)
     Draw.SmoothPoints(false)
     BlendMode.Pop()
 
-    if Input:isDown(Button.MouseLeft) then
+    if InputInstance:isDown(Button.MouseLeft) then
         self.focus = best
         -- Set focused-on object in the System Map as the player ship's current target
         if GameState.player.currentShip ~= nil and GameState.player.currentShip ~= self.focus then
@@ -276,14 +276,14 @@ function SystemMap:onInput(state)
     --       Removing that allows panning and zooming with keyboard to work when the game is Paused, but
     --       they may need to be reconnected to clock ticks if pan/zoom speeds are too dependent on local CPU
     --       Meanwhile, the Minus and Equals keys will slow down and speed up zooming, respectively
-    if Input:getValue(Button.KeyboardMinus) == 1 then
+    if InputInstance:getValue(Button.KeyboardMinus) == 1 then
         GameState.player.mapSystemPan = GameState.player.mapSystemPan / 1.2
         if GameState.player.mapSystemPan < 1 then
             GameState.player.mapSystemPan = 1
         end
         --printf("mapSystemPan - = %s", GameState.player.mapSystemPan)
     end
-    if Input:getValue(Button.KeyboardEquals) == 1 then
+    if InputInstance:getValue(Button.KeyboardEquals) == 1 then
         GameState.player.mapSystemPan = GameState.player.mapSystemPan * 1.2
         if GameState.player.mapSystemPan > 150 then
             GameState.player.mapSystemPan = 150
@@ -291,16 +291,16 @@ function SystemMap:onInput(state)
         --printf("mapSystemPan + = %s", GameState.player.mapSystemPan)
     end
 
-    GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * Input:mouse():scroll().y)
+    GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * InputInstance:mouse():scroll().y)
     GameState.player.mapSystemZoom = GameState.player.mapSystemZoom *
-        exp(kZoomSpeed * (Input:getValue(Button.KeyboardBracketRight) - Input:getValue(Button.KeyboardBracketLeft)))
+        exp(kZoomSpeed * (InputInstance:getValue(Button.KeyboardBracketRight) - InputInstance:getValue(Button.KeyboardBracketLeft)))
 
     GameState.player.mapSystemPos.x = GameState.player.mapSystemPos.x +
         (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-            Input:getValue(Button.KeyboardD) - Input:getValue(Button.KeyboardA))
+            InputInstance:getValue(Button.KeyboardD) - InputInstance:getValue(Button.KeyboardA))
     GameState.player.mapSystemPos.y = GameState.player.mapSystemPos.y +
         (GameState.player.mapSystemPan / GameState.player.mapSystemZoom) * (
-            Input:getValue(Button.KeyboardS) - Input:getValue(Button.KeyboardW))
+            InputInstance:getValue(Button.KeyboardS) - InputInstance:getValue(Button.KeyboardW))
 end
 
 function SystemMap.Create(system)

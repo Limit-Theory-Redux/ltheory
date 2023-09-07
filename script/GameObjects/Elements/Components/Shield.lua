@@ -132,7 +132,7 @@ function Shield:updateShield(state)
             if GameState.paused then
                 timeScale = 0.0
             end
-            if Input:isDown(Bindings.TimeAccel) then
+            if InputInstance:isDown(Bindings.TimeAccel) then
                 timeScale = GameState.debug.timeAccelFactor
             end
 

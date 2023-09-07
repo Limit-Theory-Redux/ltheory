@@ -27,7 +27,7 @@ function DockControl:onInput(state)
         printf("*** Undocking (manual)!")
         self.player:getControlling():pushAction(Actions.Undock())
         self.gameView:setCameraMode(GameState.player.lastCamera)
-        Input:setCursorVisible(false)
+        InputInstance:setCursorVisible(false)
     end
 
     self.camera:push()
