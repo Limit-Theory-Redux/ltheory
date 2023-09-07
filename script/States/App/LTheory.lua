@@ -91,8 +91,8 @@ function LTheory:onInit()
         :add(self.gameView
             :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
 
-    -- TODO: self.window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
-    self.window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+    -- TODO: Window:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    Window:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
 
     MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
 

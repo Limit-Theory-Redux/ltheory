@@ -56,7 +56,7 @@ local self = {
         :delta(),
 
     NearestTarget     = Control.Or(
-            Control.Key(Button.KeyboardKey),
+            Control.Key(Button.KeyboardN),
             Control.GamepadButton(Button.GamepadWest))
         :delta(),
 

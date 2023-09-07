@@ -208,11 +208,7 @@ Control.MouseButton = subclass(ControlT, function(self, button)
 end)
 
 function Control.MouseButton:getRaw()
-    if Input.getValue then
-        return InputInstance:getValue(self.button)
-    else
-        return 0.0
-    end
+    return InputInstance:getValue(self.button)
 end
 
 Control.MouseWheel = subclass(ControlT, function(self) end)
@@ -247,8 +243,6 @@ function Control.Or:getRaw()
     local value = 0.0
     for i = 1, #self.controls do
         local v = self.controls[i]:get()
- 
-        if not self.key and not self.controls and not self.button then return value end -- !remove or modify after bug fixed
 
         if v == nil then -- !remove after bug fixed
             v = 0.0
