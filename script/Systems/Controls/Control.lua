@@ -38,6 +38,8 @@ function ControlT:delta()
 end
 
 function ControlT:get()
+    if not self.key and not self.controls and not self.button then return end -- !remove after bug fixed
+
     local v = self:getRaw()
     return self.mult * Math.Sign(v) * pow(
         max(0.0, (abs(v) - self.bias) / (1.0 - self.bias)),
@@ -73,6 +75,7 @@ end
 --        inactive devices from consideration in And/Or.
 
 Control.And = subclass(ControlT, function(self, ...)
+    if not ... then error() end
     self.controls = { ... }
 end)
 
@@ -119,6 +122,7 @@ function Control.GamepadAxis:getRaw()
 end
 
 Control.GamepadButton = subclass(ControlT, function(self, button)
+    if not button then error() end
     self.button = button
 end)
 
@@ -131,6 +135,7 @@ function Control.GamepadButton:getRaw()
 end
 
 Control.GamepadButtonPressed = subclass(ControlT, function(self, button)
+    if not button then error() end
     self.button = button
 end)
 
@@ -143,6 +148,7 @@ function Control.GamepadButtonPressed:getRaw()
 end
 
 Control.GamepadButtonReleased = subclass(ControlT, function(self, button)
+    if not button then error() end
     self.button = button
 end)
 
@@ -155,6 +161,7 @@ function Control.GamepadButtonReleased:getRaw()
 end
 
 Control.Key = subclass(ControlT, function(self, key)
+    if not key then error() end
     self.key = key
 end)
 
@@ -240,6 +247,18 @@ function Control.Or:getRaw()
     local value = 0.0
     for i = 1, #self.controls do
         local v = self.controls[i]:get()
+ 
+        if not self.key and not self.controls and not self.button then return value end -- !remove or modify after bug fixed
+
+        if v == nil then -- !remove after bug fixed
+            v = 0.0
+            print("--Start New Control--")
+            print("This shouldnt happen")
+
+            for i2,v2 in pairs(self.controls[i]) do
+                print(i2, v2)
+            end
+        end
         if abs(v) > abs(value) then value = v end
     end
     return value
