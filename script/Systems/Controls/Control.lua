@@ -84,7 +84,7 @@ end
 
 Control.Delta = subclass(ControlT, function(self, control)
     self.control = control
-    self.last = 0.0 -- control:get() TODO: fix this
+    self.last = control:get() -- TODO: fix this
 end)
 
 function Control.Delta:getIconPath()
@@ -187,12 +187,12 @@ Control.MouseDX = subclass(ControlT, function(self) end)
 Control.MouseDY = subclass(ControlT, function(self) end)
 
 function Control.MouseDX:getRaw()
-    local md = Input:mouse():delta()()
+    local md = Input:mouse():delta()
     return md.x
 end
 
 function Control.MouseDY:getRaw()
-    local md = Input:mouse():delta()()
+    local md = Input:mouse():delta()
     return md.y
 end
 

@@ -170,7 +170,7 @@ function GenTex2D:onUpdate(dt)
     if Input:isDown(Button.KeyboardControlLeft) and Input:isPressed(Button.KeyboardW) then self:quit() end
     if Input:isPressed(Button.KeyboardSpace) then self:onGenerate() end
     if Input:isDown(Button.MouseLeft) then
-        local dp = Input:mouse():delta()()
+        local dp = Input:mouse():delta()
         self.panX = self.panX + dp.x / self.zoom
         self.panY = self.panY + dp.y / self.zoom
     end

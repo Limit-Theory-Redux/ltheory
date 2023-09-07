@@ -39,10 +39,10 @@ end
 function Application:setEngine(engine)
     self.engine = ffi.cast('Engine*', engine)
 
-    self.resX, self.resY = self:getDefaultSize()
-
     Input = self.engine:input()
     Window = self.engine:window()
+
+    self.resX, self.resY = self:getDefaultSize()
 
     self.window = self.engine:window()
 

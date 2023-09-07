@@ -310,7 +310,7 @@ end
 
 function CoordTest:onUpdate(dt)
     if Input:isDown(Button.MouseLeft) then
-        local mouseDelta = Input:mouse():delta()()
+        local mouseDelta = Input:mouse():delta()
         self.theta = self.theta + 0.005 * mouseDelta.x
 
         local epsilon = 0.0001

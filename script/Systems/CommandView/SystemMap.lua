@@ -31,7 +31,7 @@ function SystemMap:onDraw(state)
 
     local best = nil
     local bestDist = math.huge
-    local mp = Input:cursor():position()()
+    local mp = Input:cursor():position()
 
     -- If an object is target locked in flight view (via HUD), give it focus in the System Map
     local playerShip = GameState.player.currentShip

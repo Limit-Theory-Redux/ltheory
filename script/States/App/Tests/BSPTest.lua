@@ -303,7 +303,7 @@ function BSPTest:onUpdate(dt)
         if Input:isPressed(Button.KeyboardF4) then gen.viewMode = List.getNext(viewModes, gen.viewMode) end
 
         if Input:isDown(Button.MouseLeft) then
-            local mouseDelta = Input:mouse():delta()()
+            local mouseDelta = Input:mouse():delta()
             gen.cameraP.y = gen.cameraP.y + 0.005 * mouseDelta.x
 
             local epsilon = 0.0001
