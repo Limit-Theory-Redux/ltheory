@@ -256,7 +256,7 @@ function LTheoryRedux:onUpdate(dt)
             MainMenu:ShowSettingsScreen()
         end
     end
-    HmGui.End()
+    HmGui.End(InputInstance)
 
     -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
     if InputInstance:isPressed(Bindings.NewBackground) and MainMenu.currentMode == Enums.MenuMode.MainMenu then

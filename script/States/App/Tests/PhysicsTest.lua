@@ -238,7 +238,7 @@ function LTheory:onUpdate(dt)
     end
 
     HmGui.Begin(self.resX, self.resY, InputInstance)
-    HmGui.End()
+    HmGui.End(InputInstance)
 end
 
 function LTheory:onDraw()

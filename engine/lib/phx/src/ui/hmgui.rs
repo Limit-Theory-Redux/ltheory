@@ -687,7 +687,7 @@ pub unsafe extern "C" fn HmGui_BeginScroll(maxSize: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_EndScroll(input: Input) {
+pub unsafe extern "C" fn HmGui_EndScroll(input: &Input) {
     let data = HmGui_GetData(this.group);
 
     if HmGui_GroupHasFocus(1) {
@@ -728,7 +728,7 @@ pub unsafe extern "C" fn HmGui_EndScroll(input: Input) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char, input: Input) {
+pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char, input: &Input) {
     HmGui_BeginGroupStack();
     HmGui_SetStretch(0.0f32, 0.0f32);
 

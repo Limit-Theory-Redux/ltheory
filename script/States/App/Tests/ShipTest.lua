@@ -65,7 +65,7 @@ function ShipTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
     HmGui.Begin(self.resX, self.resY, InputInstance)
-    HmGui.End()
+    HmGui.End(InputInstance)
 end
 
 function ShipTest:onDraw()
