@@ -879,7 +879,7 @@ function Test:onUpdate(dt)
     if InputInstance:isPressed(Button.KeyboardEscape) then
         drawExitMenu = not drawExitMenu
     end
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
     if drawExitMenu then
         HmGui.BeginGroupStack()
         self:showCtrlMenu()

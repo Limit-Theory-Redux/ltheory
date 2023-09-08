@@ -63,7 +63,7 @@ function Test:showTodo()
 end
 
 function Test:onUpdate(dt)
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
     HmGui.Image(self.bg)
     self:showTodo()
     HmGui.End()

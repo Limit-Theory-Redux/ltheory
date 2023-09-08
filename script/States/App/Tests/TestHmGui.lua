@@ -221,7 +221,7 @@ end
 
 function Test:onUpdate(dt)
     Profiler.Begin('HmGui.Update')
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
     -- HmGui.Image(self.bg)
     self:showSimple()
     -- self:showMetrics()

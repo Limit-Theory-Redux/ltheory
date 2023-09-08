@@ -112,7 +112,7 @@ function LTheory:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
 
-    HmGui.Begin(self.resX, self.resY) -- required for HmGui.Draw() to work without crashing
+    HmGui.Begin(self.resX, self.resY, InputInstance) -- required for HmGui.Draw() to work without crashing
     HmGui.End()
 end
 

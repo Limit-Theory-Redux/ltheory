@@ -5,7 +5,7 @@ local HmGui
 
 do -- C Definitions
     ffi.cdef [[
-    void  HmGui_Begin            (float sx, float sy);
+    void  HmGui_Begin            (float sx, float sy, const Input* input);
     void  HmGui_End              ();
     void  HmGui_Draw             ();
     void  HmGui_BeginGroupX      ();

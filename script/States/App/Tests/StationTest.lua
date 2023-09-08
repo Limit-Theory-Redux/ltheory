@@ -65,7 +65,7 @@ end
 function StationTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
     HmGui.End()
 end
 

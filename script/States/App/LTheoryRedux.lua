@@ -233,7 +233,7 @@ function LTheoryRedux:onUpdate(dt)
     end
 
     -- Decide which game controls screens (if any) to display on top of the canvas
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
 
     if MainMenu.currentMode == Enums.MenuMode.Splashscreen then
         LTheoryRedux:showGameLogo()
