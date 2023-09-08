@@ -192,6 +192,20 @@ impl Default for Window {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Window {
+    pub fn begin_draw(&self) {
+        let size = self.size();
+
+        unsafe {
+            Viewport_Push(0, 0, size.x as i32, size.y as i32, true);
+        }
+    }
+
+    pub fn end_draw(&self) {
+        unsafe {
+            Viewport_Pop();
+        }
+    }
+
     /// The window title.
     pub fn title(&self) -> &str {
         &self.title

@@ -5,6 +5,8 @@ local Window
 
 do -- C Definitions
     ffi.cdef [[
+        void         Window_BeginDraw                 (Window const*);
+        void         Window_EndDraw                   (Window const*);
         cstr         Window_Title                     (Window const*);
         void         Window_SetTitle                  (Window*, cstr title);
         Cursor*      Window_Cursor                    (Window*);
@@ -42,6 +44,8 @@ end
 
 do -- Global Symbol Table
     Window = {
+        BeginDraw                 = libphx.Window_BeginDraw,
+        EndDraw                   = libphx.Window_EndDraw,
         Title                     = libphx.Window_Title,
         SetTitle                  = libphx.Window_SetTitle,
         Cursor                    = libphx.Window_Cursor,
@@ -84,6 +88,8 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Window')
     local mt = {
         __index = {
+            beginDraw                 = libphx.Window_BeginDraw,
+            endDraw                   = libphx.Window_EndDraw,
             title                     = libphx.Window_Title,
             setTitle                  = libphx.Window_SetTitle,
             cursor                    = libphx.Window_Cursor,

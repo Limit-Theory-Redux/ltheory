@@ -204,7 +204,7 @@ function Application:onFrame()
     do
         Profiler.SetValue('gcmem', GC.GetMemory())
         Profiler.Begin('App.onDraw')
-        -- WindowInstance:beginDraw()
+        WindowInstance:beginDraw()
         self:onDraw()
         Profiler.End()
     end
@@ -288,7 +288,7 @@ function Application:onFrame()
         do -- End Draw
             Profiler.SetValue('gcmem', GC.GetMemory())
             Profiler.Begin('App.SwapBuffers')
-            -- WindowInstance:endDraw()
+            WindowInstance:endDraw()
             Profiler.End()
         end
 
