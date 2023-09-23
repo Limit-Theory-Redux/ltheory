@@ -1,4 +1,5 @@
 use super::gl;
+use super::*;
 use crate::common::*;
 use crate::logging::warn;
 use crate::math::*;
@@ -56,7 +57,7 @@ pub unsafe extern "C" fn Draw_Axes(
     let left: Vec3 = *pos + (*x) * scale;
     let up: Vec3 = *pos + (*y) * scale;
     let forward: Vec3 = *pos + (*z) * scale;
-    gl::Begin(gl::LINES);
+    gl_begin(gl::LINES);
     gl::Color4f(1.0f32, 0.25f32, 0.25f32, _alpha);
     gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
     gl::Vertex3f(left.x, left.y, left.z);
@@ -66,12 +67,12 @@ pub unsafe extern "C" fn Draw_Axes(
     gl::Color4f(0.25f32, 0.25f32, 1.0f32, _alpha);
     gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
     gl::Vertex3f(forward.x, forward.y, forward.z);
-    gl::End();
+    gl_end();
 
-    gl::Begin(gl::POINTS);
+    gl_begin(gl::POINTS);
     gl::Color4f(1.0f32, 1.0f32, 1.0f32, _alpha);
     gl::Vertex3f((*pos).x, (*pos).y, (*pos).z);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
@@ -85,7 +86,7 @@ pub unsafe extern "C" fn Draw_Border(s: f32, x: f32, y: f32, w: f32, h: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Box3(this: &Box3) {
     Metric_AddDrawImm(6, 12, 24);
-    gl::Begin(gl::QUADS);
+    gl_begin(gl::QUADS);
     /* Left. */
     gl::Vertex3f(this.lower.x, this.lower.y, this.lower.z);
     gl::Vertex3f(this.lower.x, this.lower.y, this.upper.z);
@@ -121,27 +122,27 @@ pub unsafe extern "C" fn Draw_Box3(this: &Box3) {
     gl::Vertex3f(this.upper.x, this.lower.y, this.lower.z);
     gl::Vertex3f(this.upper.x, this.lower.y, this.upper.z);
     gl::Vertex3f(this.lower.x, this.lower.y, this.upper.z);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Clear(r: f32, g: f32, b: f32, a: f32) {
-    let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
+    let status = gl_check_framebuffer_status(gl::FRAMEBUFFER);
     if status != gl::FRAMEBUFFER_COMPLETE {
         warn!(
-            "Framebuffer is incomplete, skipping clear: {}",
-            status as i32
+            "Framebuffer is incomplete, skipping clear. Status[{status}]: {}",
+            framebuffer_status_to_str(status)
         );
     } else {
         gl::ClearColor(r, g, b, a);
-        gl::Clear(gl::COLOR_BUFFER_BIT);
+        gl_clear(gl::COLOR_BUFFER_BIT);
     };
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_ClearDepth(d: f32) {
     gl::ClearDepth(d as f64);
-    gl::Clear(gl::DEPTH_BUFFER_BIT);
+    gl_clear(gl::DEPTH_BUFFER_BIT);
 }
 
 #[no_mangle]
@@ -163,18 +164,18 @@ pub unsafe extern "C" fn Draw_Flush() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Line(x1: f32, y1: f32, x2: f32, y2: f32) {
-    gl::Begin(gl::LINES);
+    gl_begin(gl::LINES);
     gl::Vertex2f(x1, y1);
     gl::Vertex2f(x2, y2);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Line3(p1: *const Vec3, p2: *const Vec3) {
-    gl::Begin(gl::LINES);
+    gl_begin(gl::LINES);
     gl::Vertex3f((*p1).x, (*p1).y, (*p1).z);
     gl::Vertex3f((*p2).x, (*p2).y, (*p2).z);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
@@ -198,26 +199,26 @@ pub unsafe extern "C" fn Draw_Plane(p: &Vec3, n: &Vec3, scale: f32) {
     let p3: Vec3 = *p + (e1 * -scale) + (e2 * scale);
 
     Metric_AddDrawImm(1, 2, 4);
-    gl::Begin(gl::QUADS);
+    gl_begin(gl::QUADS);
     gl::Vertex3f(p0.x, p0.y, p0.z);
     gl::Vertex3f(p1.x, p1.y, p1.z);
     gl::Vertex3f(p2.x, p2.y, p2.z);
     gl::Vertex3f(p3.x, p3.y, p3.z);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Point(x: f32, y: f32) {
-    gl::Begin(gl::POINTS);
+    gl_begin(gl::POINTS);
     gl::Vertex2f(x, y);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Point3(x: f32, y: f32, z: f32) {
-    gl::Begin(gl::POINTS);
+    gl_begin(gl::POINTS);
     gl::Vertex3f(x, y, z);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
@@ -228,17 +229,17 @@ pub unsafe extern "C" fn Draw_PointSize(size: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Poly(points: *const Vec2, count: i32) {
     Metric_AddDrawImm(1, count - 2, count);
-    gl::Begin(gl::POLYGON);
+    gl_begin(gl::POLYGON);
     for i in 0..(count as isize) {
         gl::Vertex2f((*points.offset(i)).x, (*points.offset(i)).y);
     }
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Poly3(points: *const Vec3, count: i32) {
     Metric_AddDrawImm(1, count - 2, count);
-    gl::Begin(gl::POLYGON);
+    gl_begin(gl::POLYGON);
     for i in 0..(count as isize) {
         gl::Vertex3f(
             (*points.offset(i)).x,
@@ -246,7 +247,7 @@ pub unsafe extern "C" fn Draw_Poly3(points: *const Vec3, count: i32) {
             (*points.offset(i)).z,
         );
     }
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
@@ -257,7 +258,7 @@ pub unsafe extern "C" fn Draw_Quad(
     p4: *const Vec2,
 ) {
     Metric_AddDrawImm(1, 2, 4);
-    gl::Begin(gl::QUADS);
+    gl_begin(gl::QUADS);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex2f((*p1).x, (*p1).y);
     gl::TexCoord2f(0.0f32, 1.0f32);
@@ -266,7 +267,7 @@ pub unsafe extern "C" fn Draw_Quad(
     gl::Vertex2f((*p3).x, (*p3).y);
     gl::TexCoord2f(1.0f32, 0.0f32);
     gl::Vertex2f((*p4).x, (*p4).y);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
@@ -277,7 +278,7 @@ pub unsafe extern "C" fn Draw_Quad3(
     p4: *const Vec3,
 ) {
     Metric_AddDrawImm(1, 2, 4);
-    gl::Begin(gl::QUADS);
+    gl_begin(gl::QUADS);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex3f((*p1).x, (*p1).y, (*p1).z);
     gl::TexCoord2f(0.0f32, 1.0f32);
@@ -286,7 +287,7 @@ pub unsafe extern "C" fn Draw_Quad3(
     gl::Vertex3f((*p3).x, (*p3).y, (*p3).z);
     gl::TexCoord2f(1.0f32, 0.0f32);
     gl::Vertex3f((*p4).x, (*p4).y, (*p4).z);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
@@ -294,7 +295,7 @@ pub unsafe extern "C" fn Draw_Rect(x1: f32, y1: f32, xs: f32, ys: f32) {
     let x2: f32 = x1 + xs;
     let y2: f32 = y1 + ys;
     Metric_AddDrawImm(1, 2, 4);
-    gl::Begin(gl::QUADS);
+    gl_begin(gl::QUADS);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex2f(x1, y1);
     gl::TexCoord2f(0.0f32, 1.0f32);
@@ -303,28 +304,28 @@ pub unsafe extern "C" fn Draw_Rect(x1: f32, y1: f32, xs: f32, ys: f32) {
     gl::Vertex2f(x2, y2);
     gl::TexCoord2f(1.0f32, 0.0f32);
     gl::Vertex2f(x2, y1);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_SmoothLines(enabled: bool) {
+pub extern "C" fn Draw_SmoothLines(enabled: bool) {
     if enabled {
-        gl::Enable(gl::LINE_SMOOTH);
-        gl::Hint(gl::LINE_SMOOTH_HINT, gl::NICEST);
+        gl_enable(gl::LINE_SMOOTH);
+        gl_hint(gl::LINE_SMOOTH_HINT, gl::NICEST);
     } else {
-        gl::Disable(gl::LINE_SMOOTH);
-        gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
+        gl_disable(gl::LINE_SMOOTH);
+        gl_hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
     };
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Draw_SmoothPoints(enabled: bool) {
+pub extern "C" fn Draw_SmoothPoints(enabled: bool) {
     if enabled {
-        gl::Enable(gl::POINT_SMOOTH);
-        gl::Hint(gl::POINT_SMOOTH_HINT, gl::NICEST);
+        gl_enable(gl::POINT_SMOOTH);
+        gl_hint(gl::POINT_SMOOTH_HINT, gl::NICEST);
     } else {
-        gl::Disable(gl::POINT_SMOOTH);
-        gl::Hint(gl::POINT_SMOOTH_HINT, gl::FASTEST);
+        gl_disable(gl::POINT_SMOOTH);
+        gl_hint(gl::POINT_SMOOTH_HINT, gl::FASTEST);
     };
 }
 
@@ -345,7 +346,7 @@ pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
 
     // First Row
     Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32);
-    gl::Begin(gl::TRIANGLES);
+    gl_begin(gl::TRIANGLES);
     let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
     let phi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
     let tc: Vec3 = *p + Spherical(r, 0.0f32, 0.0f32);
@@ -358,7 +359,7 @@ pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
         gl::Vertex3f(bl.x, bl.y, bl.z);
         lastTheta = theta;
     }
-    gl::End();
+    gl_end();
 
     // Middle Rows
     Metric_AddDrawImm(
@@ -366,7 +367,7 @@ pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
         2_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
         4_usize.wrapping_mul(res.wrapping_sub(2)) as i32,
     );
-    gl::Begin(gl::QUADS);
+    gl_begin(gl::QUADS);
     let mut lastPhi: f32 = 1.0f32 / fRes * std::f32::consts::PI;
     let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
 
@@ -386,11 +387,11 @@ pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
         }
         lastPhi = phi;
     }
-    gl::End();
+    gl_end();
 
     // Bottom Row
     Metric_AddDrawImm(res as i32, res as i32, res.wrapping_mul(3) as i32);
-    gl::Begin(gl::TRIANGLES);
+    gl_begin(gl::TRIANGLES);
     let mut lastTheta: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::TAU;
     let phi: f32 = res.wrapping_sub(1) as f32 / fRes * std::f32::consts::PI;
     let bc: Vec3 = *p + Spherical(r, 0.0f32, std::f32::consts::PI);
@@ -404,31 +405,46 @@ pub unsafe extern "C" fn Draw_Sphere(p: *const Vec3, r: f32) {
         gl::Vertex3f(bc.x, bc.y, bc.z);
         lastTheta = theta;
     }
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Tri(v1: *const Vec2, v2: *const Vec2, v3: *const Vec2) {
     Metric_AddDrawImm(1, 1, 3);
-    gl::Begin(gl::TRIANGLES);
+    gl_begin(gl::TRIANGLES);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex2f((*v1).x, (*v1).y);
     gl::TexCoord2f(0.0f32, 1.0f32);
     gl::Vertex2f((*v2).x, (*v2).y);
     gl::TexCoord2f(1.0f32, 1.0f32);
     gl::Vertex2f((*v3).x, (*v3).y);
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Draw_Tri3(v1: *const Vec3, v2: *const Vec3, v3: *const Vec3) {
     Metric_AddDrawImm(1, 1, 3);
-    gl::Begin(gl::TRIANGLES);
+    gl_begin(gl::TRIANGLES);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex3f((*v1).x, (*v1).y, (*v1).z);
     gl::TexCoord2f(0.0f32, 1.0f32);
     gl::Vertex3f((*v2).x, (*v2).y, (*v2).z);
     gl::TexCoord2f(1.0f32, 1.0f32);
     gl::Vertex3f((*v3).x, (*v3).y, (*v3).z);
-    gl::End();
+    gl_end();
+}
+
+fn framebuffer_status_to_str(status: gl::types::GLenum) -> &'static str {
+    match status {
+        gl::FRAMEBUFFER_COMPLETE => "framebuffer is complete",
+        gl::FRAMEBUFFER_UNDEFINED => "the specified framebuffer is the default read or draw framebuffer, but the default framebuffer does not exist",
+        gl::FRAMEBUFFER_INCOMPLETE_ATTACHMENT => "any of the framebuffer attachment points are framebuffer incomplete",
+        gl::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT => "the framebuffer does not have at least one image attached to it",
+        gl::FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER => "the value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for any color attachment point(s) named by GL_DRAW_BUFFERi",
+        gl::FRAMEBUFFER_INCOMPLETE_READ_BUFFER => "GL_READ_BUFFER is not GL_NONE and the value of GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE is GL_NONE for the color attachment point named by GL_READ_BUFFER",
+        gl::FRAMEBUFFER_UNSUPPORTED => "the combination of internal formats of the attached images violates an implementation-dependent set of restrictions",
+        gl::FRAMEBUFFER_INCOMPLETE_MULTISAMPLE => "the value of GL_RENDERBUFFER_SAMPLES is not the same for all attached renderbuffers; if the value of GL_TEXTURE_SAMPLES is the not same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_RENDERBUFFER_SAMPLES does not match the value of GL_TEXTURE_SAMPLES. Also returned if the value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not the same for all attached textures; or, if the attached images are a mix of renderbuffers and textures, the value of GL_TEXTURE_FIXED_SAMPLE_LOCATIONS is not GL_TRUE for all attached textures",
+        // gl::FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS => "any framebuffer attachment is layered, and any populated attachment is not layered, or if all populated color attachments are not from textures of the same target",
+        _ => "Unknown",
+    }
 }

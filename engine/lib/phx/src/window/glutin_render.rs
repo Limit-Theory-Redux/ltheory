@@ -3,7 +3,7 @@ use std::ffi::{CStr, CString};
 use glutin::prelude::GlDisplay;
 use tracing::debug;
 
-use crate::render::{gl, RenderState_PushAllDefaults};
+use crate::render::*;
 
 pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
     debug!("Init renderer");
@@ -25,27 +25,27 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
             println!("Shaders version on {}", shaders_version.to_string_lossy());
         }
 
-        gl::Disable(gl::MULTISAMPLE);
-        gl::Disable(gl::CULL_FACE);
-        gl::CullFace(gl::BACK);
+        gl_disable(gl::MULTISAMPLE);
+        gl_disable(gl::CULL_FACE);
+        gl_cull_face(gl::BACK);
 
-        gl::PixelStorei(gl::PACK_ALIGNMENT, 1);
-        gl::PixelStorei(gl::UNPACK_ALIGNMENT, 1);
-        gl::DepthFunc(gl::LEQUAL);
+        gl_pixel_storei(gl::PACK_ALIGNMENT, 1);
+        gl_pixel_storei(gl::UNPACK_ALIGNMENT, 1);
+        gl_depth_func(gl::LEQUAL);
 
-        gl::Enable(gl::BLEND);
-        gl::BlendFunc(gl::ONE, gl::ZERO);
+        gl_enable(gl::BLEND);
+        gl_blend_func(gl::ONE, gl::ZERO);
 
-        gl::Enable(gl::TEXTURE_CUBE_MAP_SEAMLESS);
-        gl::Disable(gl::POINT_SMOOTH);
-        gl::Disable(gl::LINE_SMOOTH);
-        gl::Hint(gl::POINT_SMOOTH_HINT, gl::FASTEST);
-        gl::Hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
+        gl_enable(gl::TEXTURE_CUBE_MAP_SEAMLESS);
+        gl_disable(gl::POINT_SMOOTH);
+        gl_disable(gl::LINE_SMOOTH);
+        gl_hint(gl::POINT_SMOOTH_HINT, gl::FASTEST);
+        gl_hint(gl::LINE_SMOOTH_HINT, gl::FASTEST);
         gl::LineWidth(2.0f32);
 
-        gl::MatrixMode(gl::PROJECTION);
+        gl_matrix_mode(gl::PROJECTION);
         gl::LoadIdentity();
-        gl::MatrixMode(gl::MODELVIEW);
+        gl_matrix_mode(gl::MODELVIEW);
         gl::LoadIdentity();
 
         RenderState_PushAllDefaults();
@@ -56,25 +56,6 @@ pub fn resize(width: i32, height: i32) {
     unsafe {
         gl::Viewport(0, 0, width, height);
     }
-}
-
-pub fn check_error(file: &str, line: u32) {
-    let errorID: gl::types::GLenum = unsafe { gl::GetError() };
-    let error = match errorID {
-        0 => return,
-        1280 => "GL_INVALID_ENUM",
-        1281 => "GL_INVALID_VALUE",
-        1282 => "GL_INVALID_OPERATION",
-        1286 => "GL_INVALID_FRAMEBUFFER_OPERATION",
-        1285 => "GL_OUT_OF_MEMORY",
-        _ => {
-            panic!(
-                "OpenGL_CheckError: gl::GetError returned illegal error code {errorID} at {file}:{line}"
-            );
-        }
-    };
-
-    panic!("OpenGL_CheckError: {error} at {file}:{line}");
 }
 
 fn get_gl_string(variant: gl::types::GLenum) -> Option<&'static CStr> {

@@ -35,13 +35,13 @@ pub unsafe extern "C" fn GLMatrix_LookAt(eye: *const DVec3, at: *const DVec3, up
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_ModeP() {
-    gl::MatrixMode(gl::PROJECTION);
+pub extern "C" fn GLMatrix_ModeP() {
+    gl_matrix_mode(gl::PROJECTION);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_ModeWV() {
-    gl::MatrixMode(gl::MODELVIEW);
+pub extern "C" fn GLMatrix_ModeWV() {
+    gl_matrix_mode(gl::MODELVIEW);
 }
 
 #[no_mangle]
@@ -98,9 +98,9 @@ pub unsafe extern "C" fn GLMatrix_PushClear() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn GLMatrix_Get() -> Option<Box<Matrix>> {
+pub extern "C" fn GLMatrix_Get() -> Option<Box<Matrix>> {
     let mut matrixMode: gl::types::GLint = 0;
-    gl::GetIntegerv(gl::MATRIX_MODE, &mut matrixMode);
+    gl_get_integerv(gl::MATRIX_MODE, &mut matrixMode);
 
     match matrixMode as u32 {
         gl::MODELVIEW => {
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn GLMatrix_Get() -> Option<Box<Matrix>> {
     }
 
     let mut matrix: Box<Matrix> = Matrix_Identity();
-    gl::GetFloatv(matrixMode as gl::types::GLenum, matrix.m.as_mut_ptr());
+    gl_get_floatv(matrixMode as gl::types::GLenum, matrix.m.as_mut_ptr());
     Some(matrix)
 }
 

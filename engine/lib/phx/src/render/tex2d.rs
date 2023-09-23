@@ -17,11 +17,11 @@ pub struct Tex2D {
 }
 
 #[inline]
-unsafe extern "C" fn Tex2D_Init() {
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+extern "C" fn Tex2D_Init() {
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
 }
 
 #[no_mangle]
@@ -34,8 +34,8 @@ pub unsafe extern "C" fn Tex2D_Create(sx: i32, sy: i32, format: TexFormat) -> *m
     (*this).size = IVec2::new(sx, sy);
     (*this).format = format;
     gl::GenTextures(1, &mut (*this).handle);
-    gl::ActiveTexture(gl::TEXTURE0);
-    gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
+    gl_active_texture(gl::TEXTURE0);
+    gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
     gl::TexImage2D(
         gl::TEXTURE_2D,
         0,
@@ -52,7 +52,7 @@ pub unsafe extern "C" fn Tex2D_Create(sx: i32, sy: i32, format: TexFormat) -> *m
         std::ptr::null(),
     );
     Tex2D_Init();
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
     this
 }
 
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
         }
         y += 1;
     }
-    gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
+    gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
     gl::TexImage2D(
         gl::TEXTURE_2D,
         0,
@@ -108,7 +108,7 @@ pub unsafe extern "C" fn Tex2D_ScreenCapture() -> *mut Tex2D {
         gl::UNSIGNED_BYTE,
         buf as *const _,
     );
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
     this
 }
 
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn Tex2D_Clear(this: &mut Tex2D, r: f32, g: f32, b: f32, a
 pub unsafe extern "C" fn Tex2D_Clone(this: &mut Tex2D) -> *mut Tex2D {
     let clone: *mut Tex2D = Tex2D_Create(this.size.x, this.size.y, this.format);
     RenderTarget_PushTex2D(this);
-    gl::BindTexture(gl::TEXTURE_2D, (*clone).handle);
+    gl_bind_texture(gl::TEXTURE_2D, (*clone).handle);
     gl::CopyTexImage2D(
         gl::TEXTURE_2D,
         0,
@@ -165,7 +165,7 @@ pub unsafe extern "C" fn Tex2D_Clone(this: &mut Tex2D) -> *mut Tex2D {
         this.size.y,
         0,
     );
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
     RenderTarget_Pop();
     clone
 }
@@ -173,9 +173,9 @@ pub unsafe extern "C" fn Tex2D_Clone(this: &mut Tex2D) -> *mut Tex2D {
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Draw(this: &mut Tex2D, x: f32, y: f32, sx: f32, sy: f32) {
     Metric_AddDrawImm(1, 2, 4);
-    gl::Enable(gl::TEXTURE_2D);
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
-    gl::Begin(gl::QUADS);
+    gl_enable(gl::TEXTURE_2D);
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    gl_begin(gl::QUADS);
     gl::TexCoord2f(0.0f32, 0.0f32);
     gl::Vertex2f(x, y);
     gl::TexCoord2f(0.0f32, 1.0f32);
@@ -184,8 +184,8 @@ pub unsafe extern "C" fn Tex2D_Draw(this: &mut Tex2D, x: f32, y: f32, sx: f32, s
     gl::Vertex2f(x + sx, y + sy);
     gl::TexCoord2f(1.0f32, 0.0f32);
     gl::Vertex2f(x + sx, y);
-    gl::End();
-    gl::Disable(gl::TEXTURE_2D);
+    gl_end();
+    gl_disable(gl::TEXTURE_2D);
 }
 
 #[no_mangle]
@@ -201,9 +201,9 @@ pub unsafe extern "C" fn Tex2D_DrawEx(
     v1: f32,
 ) {
     Metric_AddDrawImm(1, 2, 4);
-    gl::Enable(gl::TEXTURE_2D);
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
-    gl::Begin(gl::QUADS);
+    gl_enable(gl::TEXTURE_2D);
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    gl_begin(gl::QUADS);
     gl::TexCoord2f(u0, v0);
     gl::Vertex2f(x0, y0);
     gl::TexCoord2f(u0, v1);
@@ -212,15 +212,15 @@ pub unsafe extern "C" fn Tex2D_DrawEx(
     gl::Vertex2f(x1, y1);
     gl::TexCoord2f(u1, v0);
     gl::Vertex2f(x1, y0);
-    gl::End();
-    gl::Disable(gl::TEXTURE_2D);
+    gl_end();
+    gl_disable(gl::TEXTURE_2D);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_GenMipmap(this: &mut Tex2D) {
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
-    gl::GenerateMipmap(gl::TEXTURE_2D);
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+pub extern "C" fn Tex2D_GenMipmap(this: &mut Tex2D) {
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    gl_generate_mipmap(gl::TEXTURE_2D);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
@@ -231,7 +231,7 @@ pub unsafe extern "C" fn Tex2D_GetData(
     df: DataFormat,
 ) {
     Metric_Inc(0x6);
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
     gl::GetTexImage(
         gl::TEXTURE_2D,
         0,
@@ -239,7 +239,7 @@ pub unsafe extern "C" fn Tex2D_GetData(
         df as gl::types::GLenum,
         data,
     );
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
@@ -302,8 +302,8 @@ pub unsafe extern "C" fn Tex2D_Load(name: *const libc::c_char) -> *mut Tex2D {
         gl::RED
     };
 
-    gl::ActiveTexture(gl::TEXTURE0);
-    gl::BindTexture(gl::TEXTURE_2D, (*this).handle);
+    gl_active_texture(gl::TEXTURE0);
+    gl_bind_texture(gl::TEXTURE_2D, (*this).handle);
     gl::TexImage2D(
         gl::TEXTURE_2D,
         0,
@@ -316,17 +316,17 @@ pub unsafe extern "C" fn Tex2D_Load(name: *const libc::c_char) -> *mut Tex2D {
         data as *const _,
     );
     Tex2D_Init();
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 
     MemFree(data as *const _);
     this
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetAnisotropy(this: &mut Tex2D, factor: f32) {
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
-    gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+pub extern "C" fn Tex2D_SetAnisotropy(this: &mut Tex2D, factor: f32) {
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    gl_tex_parameterf(gl::TEXTURE_2D, gl::TEXTURE_MAX_ANISOTROPY_EXT, factor);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
@@ -336,7 +336,7 @@ pub unsafe extern "C" fn Tex2D_SetData(
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
     gl::TexImage2D(
         gl::TEXTURE_2D,
         0,
@@ -348,7 +348,7 @@ pub unsafe extern "C" fn Tex2D_SetData(
         df as gl::types::GLenum,
         data,
     );
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
@@ -362,17 +362,17 @@ pub unsafe extern "C" fn Tex2D_SetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetMagFilter(this: &mut Tex2D, filter: TexFilter) {
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+pub extern "C" fn Tex2D_SetMagFilter(this: &mut Tex2D, filter: TexFilter) {
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, filter);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetMinFilter(this: &mut Tex2D, filter: TexFilter) {
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+pub extern "C" fn Tex2D_SetMinFilter(this: &mut Tex2D, filter: TexFilter) {
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, filter);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 /* NOTE : In general, using BASE_LEVEL, MAX_LEVEL, and MIN/MAX_LOD params is
@@ -385,13 +385,13 @@ pub unsafe extern "C" fn Tex2D_SetMinFilter(this: &mut Tex2D, filter: TexFilter)
  *        strongly advised to use this function only to constrain sampling to
  *        a single mip level. */
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetMipRange(this: &mut Tex2D, minLevel: i32, maxLevel: i32) {
+pub extern "C" fn Tex2D_SetMipRange(this: &mut Tex2D, minLevel: i32, maxLevel: i32) {
     if minLevel != maxLevel {
         warn!("Tex2D_SetMipRange: Setting mip range with min != max; this may fail on old drivers with mip-handling bugs.");
     }
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, minLevel);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, maxLevel);
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_BASE_LEVEL, minLevel);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAX_LEVEL, maxLevel);
 }
 
 #[no_mangle]
@@ -405,7 +405,7 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
     a: f32,
 ) {
     let mut rgba: [f32; 4] = [r, g, b, a];
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
     gl::TexSubImage2D(
         gl::TEXTURE_2D,
         0,
@@ -417,21 +417,21 @@ pub unsafe extern "C" fn Tex2D_SetTexel(
         gl::FLOAT,
         rgba.as_mut_ptr() as *const _,
     );
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex2D_SetWrapMode(this: &mut Tex2D, mode: TexWrapMode) {
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode);
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+pub extern "C" fn Tex2D_SetWrapMode(this: &mut Tex2D, mode: TexWrapMode) {
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, mode);
+    gl_tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, mode);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex2D_Save(this: &mut Tex2D, path: *const libc::c_char) {
     Metric_Inc(0x6);
-    gl::BindTexture(gl::TEXTURE_2D, this.handle);
+    gl_bind_texture(gl::TEXTURE_2D, this.handle);
     let buffer: *mut libc::c_uchar =
         MemAlloc((4 * this.size.x * this.size.y) as usize) as *mut libc::c_uchar;
     gl::GetTexImage(
@@ -443,5 +443,5 @@ pub unsafe extern "C" fn Tex2D_Save(this: &mut Tex2D, path: *const libc::c_char)
     );
     Tex2D_Save_Png(path, this.size.x, this.size.y, 4, buffer);
     MemFree(buffer as *const _);
-    gl::BindTexture(gl::TEXTURE_2D, 0);
+    gl_bind_texture(gl::TEXTURE_2D, 0);
 }

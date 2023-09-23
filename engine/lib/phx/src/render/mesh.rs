@@ -235,8 +235,8 @@ pub unsafe extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
     if this.vbo == 0 {
         gl::GenBuffers(1, &mut this.vbo);
         gl::GenBuffers(1, &mut this.ibo);
-        gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
+        gl_bind_buffer(gl::ARRAY_BUFFER, this.vbo);
+        gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
             (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
@@ -260,8 +260,8 @@ pub unsafe extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
         this.versionBuffers = this.version;
     }
 
-    gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo);
-    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
+    gl_bind_buffer(gl::ARRAY_BUFFER, this.vbo);
+    gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
 
     gl::EnableVertexAttribArray(0);
     gl::EnableVertexAttribArray(1);
@@ -313,8 +313,8 @@ pub unsafe extern "C" fn Mesh_DrawUnbind(_this: &mut Mesh) {
     gl::DisableVertexAttribArray(0);
     gl::DisableVertexAttribArray(1);
     gl::DisableVertexAttribArray(2);
-    gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
+    gl_bind_buffer(gl::ARRAY_BUFFER, 0);
+    gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, 0);
 }
 
 #[no_mangle]
@@ -326,7 +326,7 @@ pub unsafe extern "C" fn Mesh_Draw(this: &mut Mesh) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
-    gl::Begin(gl::LINES);
+    gl_begin(gl::LINES);
     for v in this.vertex.iter() {
         gl::Vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
         gl::Vertex3f(
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
             (*v).p.z + scale * (*v).n.z,
         );
     }
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]

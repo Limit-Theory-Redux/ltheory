@@ -15,10 +15,10 @@ pub struct Tex1D {
 }
 
 #[inline]
-unsafe extern "C" fn Tex1D_Init() {
-    gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-    gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-    gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+extern "C" fn Tex1D_Init() {
+    gl_tex_parameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+    gl_tex_parameteri(gl::TEXTURE_1D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+    gl_tex_parameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
 }
 
 #[no_mangle]
@@ -31,8 +31,8 @@ pub unsafe extern "C" fn Tex1D_Create(size: i32, format: TexFormat) -> *mut Tex1
     (*this).size = size;
     (*this).format = format;
     gl::GenTextures(1, &mut (*this).handle);
-    gl::ActiveTexture(gl::TEXTURE0);
-    gl::BindTexture(gl::TEXTURE_1D, (*this).handle);
+    gl_active_texture(gl::TEXTURE0);
+    gl_bind_texture(gl::TEXTURE_1D, (*this).handle);
     gl::TexImage1D(
         gl::TEXTURE_1D,
         0,
@@ -48,7 +48,7 @@ pub unsafe extern "C" fn Tex1D_Create(size: i32, format: TexFormat) -> *mut Tex1
         std::ptr::null(),
     );
     Tex1D_Init();
-    gl::BindTexture(gl::TEXTURE_1D, 0);
+    gl_bind_texture(gl::TEXTURE_1D, 0);
     this
 }
 
@@ -70,24 +70,24 @@ pub unsafe extern "C" fn Tex1D_Free(this: *mut Tex1D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_Draw(this: &mut Tex1D, x: f32, y: f32, xs: f32, ys: f32) {
-    gl::Enable(gl::TEXTURE_1D);
-    gl::BindTexture(gl::TEXTURE_1D, this.handle);
-    gl::Begin(gl::QUADS);
+    gl_enable(gl::TEXTURE_1D);
+    gl_bind_texture(gl::TEXTURE_1D, this.handle);
+    gl_begin(gl::QUADS);
     gl::TexCoord1f(0.0f32);
     gl::Vertex2f(x, y);
     gl::Vertex2f(x, y + ys);
     gl::TexCoord1f(1.0f32);
     gl::Vertex2f(x + xs, y + ys);
     gl::Vertex2f(x + xs, y);
-    gl::End();
-    gl::Disable(gl::TEXTURE_1D);
+    gl_end();
+    gl_disable(gl::TEXTURE_1D);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GenMipmap(this: &mut Tex1D) {
-    gl::BindTexture(gl::TEXTURE_1D, this.handle);
-    gl::GenerateMipmap(gl::TEXTURE_1D);
-    gl::BindTexture(gl::TEXTURE_1D, 0);
+pub extern "C" fn Tex1D_GenMipmap(this: &mut Tex1D) {
+    gl_bind_texture(gl::TEXTURE_1D, this.handle);
+    gl_generate_mipmap(gl::TEXTURE_1D);
+    gl_bind_texture(gl::TEXTURE_1D, 0);
 }
 
 #[no_mangle]
@@ -102,7 +102,7 @@ pub unsafe extern "C" fn Tex1D_GetData(
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl::BindTexture(gl::TEXTURE_1D, this.handle);
+    gl_bind_texture(gl::TEXTURE_1D, this.handle);
     gl::GetTexImage(
         gl::TEXTURE_1D,
         0,
@@ -110,7 +110,7 @@ pub unsafe extern "C" fn Tex1D_GetData(
         df as gl::types::GLenum,
         data,
     );
-    gl::BindTexture(gl::TEXTURE_1D, 0);
+    gl_bind_texture(gl::TEXTURE_1D, 0);
 }
 
 #[no_mangle]
@@ -143,7 +143,7 @@ pub unsafe extern "C" fn Tex1D_SetData(
     pf: PixelFormat,
     df: DataFormat,
 ) {
-    gl::BindTexture(gl::TEXTURE_1D, this.handle);
+    gl_bind_texture(gl::TEXTURE_1D, this.handle);
     gl::TexImage1D(
         gl::TEXTURE_1D,
         0,
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn Tex1D_SetData(
         df as gl::types::GLenum,
         data,
     );
-    gl::BindTexture(gl::TEXTURE_1D, 0);
+    gl_bind_texture(gl::TEXTURE_1D, 0);
 }
 
 #[no_mangle]
@@ -168,23 +168,23 @@ pub unsafe extern "C" fn Tex1D_SetDataBytes(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_SetMagFilter(this: &mut Tex1D, filter: TexFilter) {
-    gl::BindTexture(gl::TEXTURE_1D, this.handle);
-    gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, filter);
-    gl::BindTexture(gl::TEXTURE_1D, 0);
+pub extern "C" fn Tex1D_SetMagFilter(this: &mut Tex1D, filter: TexFilter) {
+    gl_bind_texture(gl::TEXTURE_1D, this.handle);
+    gl_tex_parameteri(gl::TEXTURE_1D, gl::TEXTURE_MAG_FILTER, filter);
+    gl_bind_texture(gl::TEXTURE_1D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_SetMinFilter(this: &mut Tex1D, filter: TexFilter) {
-    gl::BindTexture(gl::TEXTURE_1D, this.handle);
-    gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_MIN_FILTER, filter);
-    gl::BindTexture(gl::TEXTURE_1D, 0);
+pub extern "C" fn Tex1D_SetMinFilter(this: &mut Tex1D, filter: TexFilter) {
+    gl_bind_texture(gl::TEXTURE_1D, this.handle);
+    gl_tex_parameteri(gl::TEXTURE_1D, gl::TEXTURE_MIN_FILTER, filter);
+    gl_bind_texture(gl::TEXTURE_1D, 0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Tex1D_SetTexel(this: &mut Tex1D, x: i32, r: f32, g: f32, b: f32, a: f32) {
     let mut rgba: [f32; 4] = [r, g, b, a];
-    gl::BindTexture(gl::TEXTURE_1D, this.handle);
+    gl_bind_texture(gl::TEXTURE_1D, this.handle);
     gl::TexSubImage1D(
         gl::TEXTURE_1D,
         0,
@@ -194,12 +194,12 @@ pub unsafe extern "C" fn Tex1D_SetTexel(this: &mut Tex1D, x: i32, r: f32, g: f32
         gl::FLOAT,
         rgba.as_mut_ptr() as *const _,
     );
-    gl::BindTexture(gl::TEXTURE_1D, 0);
+    gl_bind_texture(gl::TEXTURE_1D, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_SetWrapMode(this: &mut Tex1D, mode: TexWrapMode) {
-    gl::BindTexture(gl::TEXTURE_1D, this.handle);
-    gl::TexParameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, mode);
-    gl::BindTexture(gl::TEXTURE_1D, 0);
+pub extern "C" fn Tex1D_SetWrapMode(this: &mut Tex1D, mode: TexWrapMode) {
+    gl_bind_texture(gl::TEXTURE_1D, this.handle);
+    gl_tex_parameteri(gl::TEXTURE_1D, gl::TEXTURE_WRAP_S, mode);
+    gl_bind_texture(gl::TEXTURE_1D, 0);
 }

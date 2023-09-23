@@ -1,4 +1,4 @@
-use super::gl;
+use super::{gl, gl_matrix_mode};
 use crate::common::*;
 use crate::math::IVec2;
 
@@ -26,7 +26,7 @@ static mut vp: [VP; 16] = [VP {
 
 unsafe extern "C" fn Viewport_Set(this: &VP) {
     gl::Viewport(this.x, this.y, this.sx, this.sy);
-    gl::MatrixMode(gl::PROJECTION);
+    gl_matrix_mode(gl::PROJECTION);
     gl::LoadIdentity();
     if this.isWindow {
         gl::Translatef(-1.0f32, 1.0f32, 0.0f32);
