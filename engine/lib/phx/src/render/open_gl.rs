@@ -5,38 +5,37 @@ use gl::types::*;
 use std::ffi::{CStr, CString};
 
 use glutin::{display::GetGlDisplay, prelude::GlDisplay};
-use tracing::debug;
+use tracing::{debug, error};
 
 pub fn check_error(file: &str, line: u32, msg: &str) {
     let msg_str = if !msg.is_empty() {
-        format!("\nMessage: {msg}")
+        format!(", Message: {msg}")
     } else {
         String::new()
     };
 
     let errorID = unsafe { gl::GetError() };
     let error = match errorID {
-        0 => return,
-        gl::INVALID_ENUM => "GL_INVALID_ENUM",
-        gl::INVALID_VALUE => "GL_INVALID_VALUE",
-        gl::INVALID_OPERATION => "GL_INVALID_OPERATION",
-        gl::INVALID_FRAMEBUFFER_OPERATION => "GL_INVALID_FRAMEBUFFER_OPERATION",
-        gl::OUT_OF_MEMORY => "GL_OUT_OF_MEMORY",
-        _ => {
-            panic!(
-                "OpenGL_CheckError: gl::GetError returned unknown error code {errorID} at {file}:{line}{msg_str}"
-            );
-        }
+        gl::NO_ERROR => return,
+        gl::INVALID_ENUM => "GL_INVALID_ENUM".into(),
+        gl::INVALID_VALUE => "GL_INVALID_VALUE".into(),
+        gl::INVALID_OPERATION => "GL_INVALID_OPERATION".into(),
+        gl::INVALID_FRAMEBUFFER_OPERATION => "GL_INVALID_FRAMEBUFFER_OPERATION".into(),
+        gl::OUT_OF_MEMORY => "GL_OUT_OF_MEMORY".into(),
+        gl::STACK_UNDERFLOW => "GL_STACK_UNDERFLOW".into(),
+        gl::STACK_OVERFLOW => "GL_STACK_OVERFLOW".into(),
+        _ => format!("gl::GetError returned unknown error code {errorID}"),
     };
 
-    panic!("OpenGL_CheckError: {error} at {file}:{line}{msg_str}");
+    error!("OpenGL_CheckError: {error} at {file}:{line}{msg_str}");
 }
 
 macro_rules! gl_error_check {
-    ($msg:expr) => {
-        // NOTE: uncomment next 2 lines to catch OpenGl errors
+    ($name:ident, $msg:expr) => {
+        // NOTE: uncomment next 3 lines to catch OpenGl errors (for debugging purposes only - heavily impacts performance)
         // let caller_location = std::panic::Location::caller();
-        // check_error(caller_location.file(), caller_location.line(), $msg);
+        // let msg_str = format!("{}({})", stringify!($name), $msg);
+        // check_error(caller_location.file(), caller_location.line(), &msg_str);
     };
 }
 
@@ -47,7 +46,7 @@ macro_rules! gl_func {
         pub fn $name($($param_name: $param_ty),*) -> $ret {
             let res = unsafe { gl::$gl_name($($param_name),*) };
 
-            gl_error_check!($msg);
+            gl_error_check!($name, $msg);
 
             res
         }
@@ -63,8 +62,20 @@ macro_rules! gl_func {
     };
 }
 
+#[inline]
+#[track_caller]
+pub fn gl_get_string(name: GLenum) -> Option<String> {
+    unsafe {
+        let s = gl::GetString(name);
+
+        gl_error_check!(gl_get_string, "");
+
+        (!s.is_null()).then(|| CStr::from_ptr(s.cast()).to_string_lossy().to_string())
+    }
+}
+
 gl_func!(Enable, gl_enable(cap: GLenum));
-gl_func!(Disable, gl_disable(cap: GLenum));
+gl_func!(Disable, gl_disable(cap: GLenum), &format!("cap = {cap}"));
 gl_func!(Begin, gl_begin(mode: GLenum));
 gl_func!(End, gl_end());
 gl_func!(CheckFramebufferStatus, gl_check_framebuffer_status(target: GLenum) -> GLenum);
@@ -139,3 +150,21 @@ gl_func!(
 gl_func!(GenerateMipmap, gl_generate_mipmap(target: GLenum));
 gl_func!(PixelStorei, gl_pixel_storei(pname: GLenum, param: GLint));
 gl_func!(DepthFunc, gl_depth_func(func: GLenum));
+gl_func!(
+    GetShaderInfoLog,
+    gl_get_shader_info_log(
+        shader: GLuint,
+        buf_size: GLsizei,
+        length: *mut GLsizei,
+        info_log: *mut GLchar
+    )
+);
+gl_func!(
+    GetProgramInfoLog,
+    gl_get_program_info_log(
+        program: GLuint,
+        buf_size: GLsizei,
+        length: *mut GLsizei,
+        info_log: *mut GLchar
+    )
+);

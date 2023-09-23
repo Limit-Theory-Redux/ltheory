@@ -8,7 +8,7 @@ use glutin::prelude::{GlConfig, GlDisplay};
 use glutin_winit::DisplayBuilder;
 use hashbrown::HashMap;
 use raw_window_handle::HasRawWindowHandle;
-use tracing::{error, warn};
+use tracing::{debug, error, info, warn};
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
     monitor::MonitorHandle,
@@ -37,6 +37,8 @@ impl WinitWindows {
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         window: &Window,
     ) -> winit::window::WindowId {
+        info!("Create new window: {}", window.title);
+
         let mut winit_window_builder = winit::window::WindowBuilder::new();
 
         // Due to a UIA limitation, winit windows need to be invisible for the
@@ -154,7 +156,7 @@ impl WinitWindows {
             })
             .unwrap();
 
-        println!("Picked a config with {} samples", gl_config.num_samples());
+        debug!("Picked a config with {} samples", gl_config.num_samples());
 
         let raw_window_handle = winit_window
             .as_ref()
@@ -243,8 +245,11 @@ impl WinitWindows {
 
         let id = winit_window.id();
 
-        self.windows
-            .insert(id, WinitWindow::new(winit_window, gl_config, gl_context));
+        let mut winit_window_wrapper = WinitWindow::new(winit_window, gl_config, gl_context);
+
+        winit_window_wrapper.resume();
+
+        self.windows.insert(id, winit_window_wrapper);
 
         id
     }

@@ -5,10 +5,11 @@ use glutin::display::GetGlDisplay;
 use glutin::prelude::{GlDisplay, NotCurrentGlContextSurfaceAccessor, PossiblyCurrentGlContext};
 use glutin::surface::{GlSurface, Surface, SwapInterval, WindowSurface};
 use glutin_winit::GlWindow;
-use tracing::{error, warn};
+use tracing::{debug, error, warn};
 
 use crate::window::glutin_render;
 
+// TODO: Add GlStateManager with state: Option<GlState> field to avoid std::mem::replace
 #[derive(Debug)]
 enum GlState {
     Current {
@@ -23,57 +24,51 @@ enum GlState {
 
 impl GlState {
     fn make_current(&mut self, surface: Surface<WindowSurface>) -> bool {
-        let old_self = std::mem::replace(self, Self::Undefined);
+        if matches!(self, Self::NotCurrent { .. }) {
+            let old_self = std::mem::replace(self, Self::Undefined);
+            let Self::NotCurrent { context } = old_self else { unreachable!() };
 
-        match old_self {
-            Self::Current { .. } => {
-                warn!("Context is already current");
+            let context = context
+                .make_current(&surface)
+                .expect("Cannot make context current");
 
-                *self = old_self;
-
-                false
+            // Try setting vsync.
+            if let Err(res) =
+                surface.set_swap_interval(&context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
+            {
+                warn!("Error setting vsync: {res:?}");
             }
-            Self::NotCurrent { context } => {
-                let context = context
-                    .make_current(&surface)
-                    .expect("Cannot make context current");
 
-                // Try setting vsync.
-                if let Err(res) = surface
-                    .set_swap_interval(&context, SwapInterval::Wait(NonZeroU32::new(1).unwrap()))
-                {
-                    warn!("Error setting vsync: {res:?}");
-                }
+            *self = Self::Current { context, surface };
 
-                *self = Self::Current { context, surface };
+            true
+        } else if matches!(self, Self::Current { .. }) {
+            warn!("Context is already current");
 
-                true
-            }
-            Self::Undefined => panic!("Context is undefined"),
+            false
+        } else {
+            panic!("Context is undefined");
         }
     }
 
     fn make_not_current(&mut self) -> bool {
-        let old_self = std::mem::replace(self, Self::Undefined);
+        if matches!(self, Self::NotCurrent { .. }) {
+            warn!("Context is already not current");
 
-        match old_self {
-            Self::Current { context, .. } => {
-                let context = context
-                    .make_not_current()
-                    .expect("Cannot make context not current");
+            false
+        } else if matches!(self, Self::Current { .. }) {
+            let old_self = std::mem::replace(self, Self::Undefined);
+            let Self::Current { context, .. } = old_self else { unreachable!() };
 
-                *self = Self::NotCurrent { context };
+            let context = context
+                .make_not_current()
+                .expect("Cannot make context not current");
 
-                true
-            }
-            Self::NotCurrent { .. } => {
-                warn!("Context is already not current");
+            *self = Self::NotCurrent { context };
 
-                *self = old_self;
-
-                false
-            }
-            Self::Undefined => panic!("Context is undefined"),
+            true
+        } else {
+            panic!("Context is undefined");
         }
     }
 }
@@ -91,8 +86,6 @@ impl WinitWindow {
         gl_config: glutin::config::Config,
         context: NotCurrentContext,
     ) -> Self {
-        glutin_render::init_renderer(&gl_config.display());
-
         Self {
             window,
             gl_config,
@@ -105,6 +98,8 @@ impl WinitWindow {
     }
 
     pub fn resume(&mut self) {
+        debug!("WinitWindow::resume");
+
         let attrs = self.window.build_surface_attributes(<_>::default());
         let gl_surface = unsafe {
             self.gl_config
@@ -122,6 +117,8 @@ impl WinitWindow {
     }
 
     pub fn suspend(&mut self) {
+        debug!("WinitWindow::suspend");
+
         self.gl_state.make_not_current();
     }
 

@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 
 use glutin::prelude::GlDisplay;
-use tracing::debug;
+use tracing::{debug, info, warn};
 
 use crate::render::*;
 
@@ -14,15 +14,28 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
             gl_display.get_proc_address(symbol.as_c_str()).cast()
         });
 
-        if let Some(renderer) = get_gl_string(gl::RENDERER) {
-            println!("Running on {}", renderer.to_string_lossy());
-        }
-        if let Some(version) = get_gl_string(gl::VERSION) {
-            println!("OpenGL Version {}", version.to_string_lossy());
+        if let Some(vendor) = gl_get_string(gl::VENDOR) {
+            info!("OpenGL Vendor: {vendor}");
+        } else {
+            warn!("No OpenGL vendor info");
         }
 
-        if let Some(shaders_version) = get_gl_string(gl::SHADING_LANGUAGE_VERSION) {
-            println!("Shaders version on {}", shaders_version.to_string_lossy());
+        if let Some(renderer) = gl_get_string(gl::RENDERER) {
+            info!("Running on {renderer}");
+        } else {
+            warn!("No renderer info");
+        }
+
+        if let Some(version) = gl_get_string(gl::VERSION) {
+            info!("OpenGL Version {version}");
+        } else {
+            warn!("No OpenGL Version info");
+        }
+
+        if let Some(shaders_version) = gl_get_string(gl::SHADING_LANGUAGE_VERSION) {
+            info!("Shaders version on {shaders_version}");
+        } else {
+            warn!("No Shaders version info");
         }
 
         gl_disable(gl::MULTISAMPLE);
@@ -53,14 +66,5 @@ pub fn init_renderer<D: GlDisplay>(gl_display: &D) {
 }
 
 pub fn resize(width: i32, height: i32) {
-    unsafe {
-        gl::Viewport(0, 0, width, height);
-    }
-}
-
-fn get_gl_string(variant: gl::types::GLenum) -> Option<&'static CStr> {
-    unsafe {
-        let s = gl::GetString(variant);
-        (!s.is_null()).then(|| CStr::from_ptr(s.cast()))
-    }
+    unsafe { gl::Viewport(0, 0, width, height) };
 }

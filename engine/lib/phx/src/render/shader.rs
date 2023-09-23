@@ -63,23 +63,23 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
     let mut status = 0;
     gl_get_shaderiv(this, gl::COMPILE_STATUS, &mut status);
 
-    // if status == 0 {
-    //     let mut length = 0;
-    //     gl_get_shaderiv(this, gl::INFO_LOG_LENGTH, &mut length);
+    if status != gl::TRUE as i32 {
+        let mut length = 0;
+        gl_get_shaderiv(this, gl::INFO_LOG_LENGTH, &mut length);
 
-    //     let mut info_log = vec![0; length as usize + 1];
-    //     gl::GetShaderInfoLog(
-    //         this,
-    //         length,
-    //         std::ptr::null_mut(),
-    //         info_log.as_mut_ptr() as *mut i8,
-    //     );
+        let mut info_log = vec![0; length as usize + 1];
+        gl_get_shader_info_log(
+            this,
+            length,
+            std::ptr::null_mut(),
+            info_log.as_mut_ptr() as *mut i8,
+        );
 
-    //     panic!(
-    //         "CreateGLShader: Failed to compile shader:\n{:?}",
-    //         CStr::from_bytes_with_nul(info_log.as_slice())
-    //     );
-    // }
+        panic!(
+            "CreateGLShader: Failed to compile shader[{length}]:\n{:?}",
+            CStr::from_bytes_with_nul(info_log.as_slice())
+        );
+    }
 
     this
 }
@@ -100,23 +100,23 @@ unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
     let mut status: i32 = 0;
     gl_get_programiv(this, gl::LINK_STATUS, &mut status);
 
-    // if status == 0 {
-    //     let mut length: i32 = 0;
-    //     gl_get_programiv(this, gl::INFO_LOG_LENGTH, &mut length);
+    if status != gl::TRUE as i32 {
+        let mut length: i32 = 0;
+        gl_get_programiv(this, gl::INFO_LOG_LENGTH, &mut length);
 
-    //     let mut info_log = vec![0; length as usize + 1];
-    //     gl::GetProgramInfoLog(
-    //         this,
-    //         length,
-    //         std::ptr::null_mut(),
-    //         info_log.as_mut_ptr() as *mut i8,
-    //     );
+        let mut info_log = vec![0; length as usize + 1];
+        gl_get_program_info_log(
+            this,
+            length,
+            std::ptr::null_mut(),
+            info_log.as_mut_ptr() as *mut i8,
+        );
 
-    //     panic!(
-    //         "CreateGLProgram: Failed to link program:\n{:?}",
-    //         CStr::from_bytes_with_nul(info_log.as_slice())
-    //     );
-    // }
+        panic!(
+            "CreateGLProgram: Failed to link program[{length}]:\n{:?}",
+            CStr::from_bytes_with_nul(info_log.as_slice())
+        );
+    }
 
     this
 }
