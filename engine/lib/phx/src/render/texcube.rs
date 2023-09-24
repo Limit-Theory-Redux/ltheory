@@ -93,11 +93,14 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
 
     let this = MemNew!(TexCube);
     (*this)._refCount = 1;
-    gl::GenTextures(1, &mut (*this).handle);
+
+    gl_gen_textures(1, &mut (*this).handle);
+
     (*this).size = size;
     (*this).format = format;
+
     gl_bind_texture(gl::TEXTURE_CUBE_MAP, (*this).handle);
-    gl::TexImage2D(
+    gl_tex_image2d(
         gl::TEXTURE_CUBE_MAP_POSITIVE_X,
         0,
         format,
@@ -108,7 +111,7 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
         gl::BYTE,
         std::ptr::null(),
     );
-    gl::TexImage2D(
+    gl_tex_image2d(
         gl::TEXTURE_CUBE_MAP_POSITIVE_Y,
         0,
         format,
@@ -119,7 +122,7 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
         gl::BYTE,
         std::ptr::null(),
     );
-    gl::TexImage2D(
+    gl_tex_image2d(
         gl::TEXTURE_CUBE_MAP_POSITIVE_Z,
         0,
         format,
@@ -130,7 +133,7 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
         gl::BYTE,
         std::ptr::null(),
     );
-    gl::TexImage2D(
+    gl_tex_image2d(
         gl::TEXTURE_CUBE_MAP_NEGATIVE_X,
         0,
         format,
@@ -141,7 +144,7 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
         gl::BYTE,
         std::ptr::null(),
     );
-    gl::TexImage2D(
+    gl_tex_image2d(
         gl::TEXTURE_CUBE_MAP_NEGATIVE_Y,
         0,
         format,
@@ -152,7 +155,7 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
         gl::BYTE,
         std::ptr::null(),
     );
-    gl::TexImage2D(
+    gl_tex_image2d(
         gl::TEXTURE_CUBE_MAP_NEGATIVE_Z,
         0,
         format,
@@ -165,6 +168,7 @@ pub unsafe extern "C" fn TexCube_Create(size: i32, format: TexFormat) -> *mut Te
     );
     TexCube_InitParameters();
     gl_bind_texture(gl::TEXTURE_CUBE_MAP, 0);
+
     this
 }
 
@@ -177,6 +181,7 @@ pub extern "C" fn TexCube_Acquire(this: &mut TexCube) {
 pub unsafe extern "C" fn TexCube_Clear(this: &mut TexCube, r: f32, g: f32, b: f32, a: f32) {
     for i in 0..6 {
         let face: Face = kFaces[i as usize];
+
         RenderTarget_Push((*this).size, (*this).size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(r, g, b, a);
@@ -190,7 +195,7 @@ pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        gl::DeleteTextures(1, &mut (*this).handle);
+        gl_delete_textures(1, &mut (*this).handle);
         MemFree(this as *const _);
     }
 }
@@ -198,7 +203,7 @@ pub unsafe extern "C" fn TexCube_Free(this: *mut TexCube) {
 #[no_mangle]
 pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube {
     let this = MemNew!(TexCube);
-    gl::GenTextures(1, &mut (*this).handle);
+    gl_gen_textures(1, &mut (*this).handle);
     gl_bind_texture(gl::TEXTURE_CUBE_MAP, (*this).handle);
 
     let mut components: i32 = 0;
@@ -252,7 +257,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
             } as i32;
         }
 
-        gl::TexImage2D(
+        gl_tex_image2d(
             kFaces[i as usize].face as gl::types::GLenum,
             0,
             (*this).format,
@@ -275,7 +280,7 @@ pub unsafe extern "C" fn TexCube_Load(path: *const libc::c_char) -> *mut TexCube
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_GetData(
+pub extern "C" fn TexCube_GetData(
     this: &mut TexCube,
     data: *mut libc::c_void,
     face: CubeFace,
@@ -284,7 +289,7 @@ pub unsafe extern "C" fn TexCube_GetData(
     df: DataFormat,
 ) {
     gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
-    gl::GetTexImage(
+    gl_get_tex_image(
         face as gl::types::GLenum,
         level,
         pf as gl::types::GLenum,
@@ -305,9 +310,11 @@ pub unsafe extern "C" fn TexCube_GetDataBytes(
     let mut size: i32 = this.size * this.size;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
+
     let data: *mut Bytes = Bytes_Create(size as u32);
     TexCube_GetData(this, Bytes_GetData(&mut *data), face, level, pf, df);
     Bytes_Rewind(&mut *data);
+
     data
 }
 
@@ -341,6 +348,7 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
         let face: Face = kFaces[i as usize];
         let size: i32 = this.size;
         let fSize: f32 = this.size as f32;
+
         RenderTarget_Push(size, size);
         RenderTarget_BindTexCube(this, face.face);
         Draw_Clear(0.0f32, 0.0f32, 0.0f32, 1.0f32);
@@ -359,6 +367,7 @@ pub unsafe extern "C" fn TexCube_Generate(this: &mut TexCube, state: &mut Shader
 
             j += jobSize;
             let elapsed = time.get_elapsed();
+
             jobSize = f64::max(
                 1.0,
                 f64::floor(0.25f64 * jobSize as f64 / elapsed + 0.5f64) as i32 as f64,
@@ -385,7 +394,7 @@ pub extern "C" fn TexCube_GenMipmap(this: &mut TexCube) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn TexCube_SetData(
+pub extern "C" fn TexCube_SetData(
     this: &mut TexCube,
     data: *const libc::c_void,
     face: CubeFace,
@@ -394,7 +403,7 @@ pub unsafe extern "C" fn TexCube_SetData(
     df: DataFormat,
 ) {
     gl_bind_texture(gl::TEXTURE_CUBE_MAP, this.handle);
-    gl::TexImage2D(
+    gl_tex_image2d(
         face as gl::types::GLenum,
         level,
         this.format,
@@ -457,7 +466,7 @@ pub unsafe extern "C" fn TexCube_SaveLevel(
         let face: CubeFace = kFaces[i as usize].face;
         let face_path = format!("{}{}.png", path.as_str(), K_FACE_EXT[i as usize]);
 
-        gl::GetTexImage(
+        gl_get_tex_image(
             face as gl::types::GLenum,
             level,
             gl::RGBA,

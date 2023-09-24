@@ -37,27 +37,27 @@ static mut current: *mut Shader = std::ptr::null_mut();
 
 static mut cache: *mut StrMap = std::ptr::null_mut();
 
-unsafe extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_char) -> i32 {
+extern "C" fn GetUniformIndex(this: Option<&mut Shader>, name: *const libc::c_char) -> i32 {
     if this.is_none() {
         panic!("GetUniformIndex: No shader is bound");
     }
-    let index: i32 = gl::GetUniformLocation(this.unwrap().program, name);
+    let index: i32 = gl_get_uniform_location(this.unwrap().program, name);
     index
 }
 
 unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
-    let this = gl::CreateShader(type_0);
+    let this = gl_create_shader(type_0);
     let c_src = CString::new(src).unwrap();
 
     let mut srcs: [*const libc::c_char; 2] = [versionString, c_src.as_ptr()];
 
-    gl::ShaderSource(
+    gl_shader_source(
         this,
         2,
         srcs.as_mut_ptr() as *const *const gl::types::GLchar,
         std::ptr::null(),
     );
-    gl::CompileShader(this);
+    gl_compile_shader(this);
 
     /* Check for compile errors. */
     let mut status = 0;
@@ -84,17 +84,17 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
     this
 }
 
-unsafe extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
-    let this: u32 = gl::CreateProgram();
-    gl::AttachShader(this, vs);
-    gl::AttachShader(this, fs);
+extern "C" fn CreateGLProgram(vs: u32, fs: u32) -> u32 {
+    let this: u32 = gl_create_program();
+    gl_attach_shader(this, vs);
+    gl_attach_shader(this, fs);
 
     /* TODO : Replace with custom directives. */
-    gl::BindAttribLocation(this, 0, c_str!("vertex_position"));
-    gl::BindAttribLocation(this, 1, c_str!("vertex_normal"));
-    gl::BindAttribLocation(this, 2, c_str!("vertex_uv"));
+    gl_bind_attrib_location(this, 0, c_str!("vertex_position"));
+    gl_bind_attrib_location(this, 1, c_str!("vertex_normal"));
+    gl_bind_attrib_location(this, 2, c_str!("vertex_uv"));
 
-    gl::LinkProgram(this);
+    gl_link_program(this);
 
     /* Check for link errors. */
     let mut status: i32 = 0;
@@ -195,14 +195,14 @@ fn parse_autovar(val: &str, this: &mut Shader) {
     }
 }
 
-unsafe extern "C" fn Shader_BindVariables(this: &mut Shader) {
+extern "C" fn Shader_BindVariables(this: &mut Shader) {
     let mut i: i32 = 0;
 
     while i < this.vars.len() as i32 {
         let var = &mut this.vars[i as usize];
         let c_name = static_string!((*var).name.as_str());
 
-        (*var).index = gl::GetUniformLocation(this.program, c_name);
+        (*var).index = gl_get_uniform_location(this.program, c_name);
 
         if (*var).index < 0 {
             warn!("Shader_BindVariables: Automatic shader variable <{}> does not exist in shader <{}>",
@@ -278,15 +278,15 @@ pub unsafe extern "C" fn Shader_Free(this: *mut Shader) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        gl::DeleteShader((*this).vs);
-        gl::DeleteShader((*this).fs);
-        gl::DeleteProgram((*this).program);
+        gl_delete_shader((*this).vs);
+        gl_delete_shader((*this).fs);
+        gl_delete_program((*this).program);
         drop(Box::from_raw(this));
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ToShaderState(this: &mut Shader) -> Box<ShaderState> {
+pub extern "C" fn Shader_ToShaderState(this: &mut Shader) -> Box<ShaderState> {
     ShaderState_Create(this)
 }
 
@@ -294,7 +294,7 @@ pub unsafe extern "C" fn Shader_ToShaderState(this: &mut Shader) -> Box<ShaderSt
 pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
     Profiler_Begin(c_str!("Shader_Start"));
 
-    gl::UseProgram(this.program);
+    gl_use_program(this.program);
 
     current = this;
     this.texIndex = 1;
@@ -319,35 +319,35 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
             match (*var).type_0.value() {
                 1 => {
                     let value: f32 = *(pValue as *mut f32);
-                    gl::Uniform1f((*var).index, value);
+                    gl_uniform1f((*var).index, value);
                 }
                 2 => {
                     let value_0 = *(pValue as *mut Vec2);
-                    gl::Uniform2f((*var).index, value_0.x, value_0.y);
+                    gl_uniform2f((*var).index, value_0.x, value_0.y);
                 }
                 3 => {
                     let value_1: Vec3 = *(pValue as *mut Vec3);
-                    gl::Uniform3f((*var).index, value_1.x, value_1.y, value_1.z);
+                    gl_uniform3f((*var).index, value_1.x, value_1.y, value_1.z);
                 }
                 4 => {
                     let value_2: Vec4 = *(pValue as *mut Vec4);
-                    gl::Uniform4f((*var).index, value_2.x, value_2.y, value_2.z, value_2.w);
+                    gl_uniform4f((*var).index, value_2.x, value_2.y, value_2.z, value_2.w);
                 }
                 5 => {
                     let value_3: i32 = *(pValue as *mut i32);
-                    gl::Uniform1i((*var).index, value_3);
+                    gl_uniform1i((*var).index, value_3);
                 }
                 6 => {
                     let value_4: IVec2 = *(pValue as *mut IVec2);
-                    gl::Uniform2i((*var).index, value_4.x, value_4.y);
+                    gl_uniform2i((*var).index, value_4.x, value_4.y);
                 }
                 7 => {
                     let value_5: IVec3 = *(pValue as *mut IVec3);
-                    gl::Uniform3i((*var).index, value_5.x, value_5.y, value_5.z);
+                    gl_uniform3i((*var).index, value_5.x, value_5.y, value_5.z);
                 }
                 8 => {
                     let value_6: IVec4 = *(pValue as *mut IVec4);
-                    gl::Uniform4i((*var).index, value_6.x, value_6.y, value_6.z, value_6.w);
+                    gl_uniform4i((*var).index, value_6.x, value_6.y, value_6.z, value_6.w);
                 }
                 9 => {
                     Shader_ISetMatrix((*var).index, &mut **(pValue as *mut *mut Matrix));
@@ -375,7 +375,7 @@ pub unsafe extern "C" fn Shader_Start(this: &mut Shader) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_Stop(_s: *mut Shader) {
-    gl::UseProgram(0);
+    gl_use_program(0);
     current = std::ptr::null_mut();
 }
 
@@ -403,8 +403,8 @@ pub extern "C" fn Shader_GetHandle(this: &mut Shader) -> u32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_GetVariable(this: &mut Shader, name: *const libc::c_char) -> i32 {
-    let index: i32 = gl::GetUniformLocation(this.program, name);
+pub extern "C" fn Shader_GetVariable(this: &mut Shader, name: *const libc::c_char) -> i32 {
+    let index: i32 = gl_get_uniform_location(this.program, name);
     if index == -1 {
         panic!(
             "Shader_GetVariable: Shader <{}> has no variable <{}>",
@@ -416,8 +416,8 @@ pub unsafe extern "C" fn Shader_GetVariable(this: &mut Shader, name: *const libc
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_HasVariable(this: &mut Shader, name: *const libc::c_char) -> bool {
-    gl::GetUniformLocation(this.program, name) > -1
+pub extern "C" fn Shader_HasVariable(this: &mut Shader, name: *const libc::c_char) -> bool {
+    gl_get_uniform_location(this.program, name) > -1
 }
 
 #[no_mangle]
@@ -427,32 +427,32 @@ pub unsafe extern "C" fn Shader_ResetTexIndex() {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetFloat(name: *const libc::c_char, value: f32) {
-    gl::Uniform1f(GetUniformIndex(current.as_mut(), name), value);
+    gl_uniform1f(GetUniformIndex(current.as_mut(), name), value);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ISetFloat(index: i32, value: f32) {
-    gl::Uniform1f(index, value);
+pub extern "C" fn Shader_ISetFloat(index: i32, value: f32) {
+    gl_uniform1f(index, value);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetFloat2(name: *const libc::c_char, x: f32, y: f32) {
-    gl::Uniform2f(GetUniformIndex(current.as_mut(), name), x, y);
+    gl_uniform2f(GetUniformIndex(current.as_mut(), name), x, y);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ISetFloat2(index: i32, x: f32, y: f32) {
-    gl::Uniform2f(index, x, y);
+pub extern "C" fn Shader_ISetFloat2(index: i32, x: f32, y: f32) {
+    gl_uniform2f(index, x, y);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetFloat3(name: *const libc::c_char, x: f32, y: f32, z: f32) {
-    gl::Uniform3f(GetUniformIndex(current.as_mut(), name), x, y, z);
+    gl_uniform3f(GetUniformIndex(current.as_mut(), name), x, y, z);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ISetFloat3(index: i32, x: f32, y: f32, z: f32) {
-    gl::Uniform3f(index, x, y, z);
+pub extern "C" fn Shader_ISetFloat3(index: i32, x: f32, y: f32, z: f32) {
+    gl_uniform3f(index, x, y, z);
 }
 
 #[no_mangle]
@@ -463,28 +463,28 @@ pub unsafe extern "C" fn Shader_SetFloat4(
     z: f32,
     w: f32,
 ) {
-    gl::Uniform4f(GetUniformIndex(current.as_mut(), name), x, y, z, w);
+    gl_uniform4f(GetUniformIndex(current.as_mut(), name), x, y, z, w);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ISetFloat4(index: i32, x: f32, y: f32, z: f32, w: f32) {
-    gl::Uniform4f(index, x, y, z, w);
+pub extern "C" fn Shader_ISetFloat4(index: i32, x: f32, y: f32, z: f32, w: f32) {
+    gl_uniform4f(index, x, y, z, w);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetInt(name: *const libc::c_char, value: i32) {
-    gl::Uniform1i(GetUniformIndex(current.as_mut(), name), value);
+    gl_uniform1i(GetUniformIndex(current.as_mut(), name), value);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ISetInt(index: i32, value: i32) {
-    gl::Uniform1i(index, value);
+pub extern "C" fn Shader_ISetInt(index: i32, value: i32) {
+    gl_uniform1i(index, value);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_SetMatrix(name: *const libc::c_char, value: &mut Matrix) {
-    gl::UniformMatrix4fv(
-        GetUniformIndex(current.as_mut(), name),
+pub extern "C" fn Shader_SetMatrix(name: *const libc::c_char, value: &mut Matrix) {
+    gl_uniform_matrix4fv(
+        unsafe { GetUniformIndex(current.as_mut(), name) },
         1,
         gl::TRUE,
         value as *mut Matrix as *mut f32,
@@ -492,9 +492,9 @@ pub unsafe extern "C" fn Shader_SetMatrix(name: *const libc::c_char, value: &mut
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_SetMatrixT(name: *const libc::c_char, value: &mut Matrix) {
-    gl::UniformMatrix4fv(
-        GetUniformIndex(current.as_mut(), name),
+pub extern "C" fn Shader_SetMatrixT(name: *const libc::c_char, value: &mut Matrix) {
+    gl_uniform_matrix4fv(
+        unsafe { GetUniformIndex(current.as_mut(), name) },
         1,
         gl::FALSE,
         value as *mut Matrix as *mut f32,
@@ -502,23 +502,25 @@ pub unsafe extern "C" fn Shader_SetMatrixT(name: *const libc::c_char, value: &mu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ISetMatrix(index: i32, value: &mut Matrix) {
-    gl::UniformMatrix4fv(index, 1, gl::TRUE, value as *mut Matrix as *mut f32);
+pub extern "C" fn Shader_ISetMatrix(index: i32, value: &mut Matrix) {
+    gl_uniform_matrix4fv(index, 1, gl::TRUE, value as *mut Matrix as *mut f32);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Shader_ISetMatrixT(index: i32, value: &mut Matrix) {
-    gl::UniformMatrix4fv(index, 1, gl::FALSE, value as *mut Matrix as *mut f32);
+pub extern "C" fn Shader_ISetMatrixT(index: i32, value: &mut Matrix) {
+    gl_uniform_matrix4fv(index, 1, gl::FALSE, value as *mut Matrix as *mut f32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetTex1D(name: *const libc::c_char, value: &mut Tex1D) {
-    gl::Uniform1i(
+    gl_uniform1i(
         GetUniformIndex(current.as_mut(), name),
         (*current).texIndex as i32,
     );
+
     let fresh14 = (*current).texIndex;
     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+
     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh14));
     gl_bind_texture(gl::TEXTURE_1D, Tex1D_GetHandle(value));
     gl_active_texture(gl::TEXTURE0);
@@ -526,9 +528,11 @@ pub unsafe extern "C" fn Shader_SetTex1D(name: *const libc::c_char, value: &mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ISetTex1D(index: i32, value: &mut Tex1D) {
-    gl::Uniform1i(index, (*current).texIndex as i32);
+    gl_uniform1i(index, (*current).texIndex as i32);
+
     let fresh15 = (*current).texIndex;
     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+
     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh15));
     gl_bind_texture(gl::TEXTURE_1D, Tex1D_GetHandle(value));
     gl_active_texture(gl::TEXTURE0);
@@ -536,12 +540,14 @@ pub unsafe extern "C" fn Shader_ISetTex1D(index: i32, value: &mut Tex1D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetTex2D(name: *const libc::c_char, value: &mut Tex2D) {
-    gl::Uniform1i(
+    gl_uniform1i(
         GetUniformIndex(current.as_mut(), name),
         (*current).texIndex as i32,
     );
+
     let fresh16 = (*current).texIndex;
     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+
     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh16));
     gl_bind_texture(gl::TEXTURE_2D, Tex2D_GetHandle(value));
     gl_active_texture(gl::TEXTURE0);
@@ -549,9 +555,11 @@ pub unsafe extern "C" fn Shader_SetTex2D(name: *const libc::c_char, value: &mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ISetTex2D(index: i32, value: &mut Tex2D) {
-    gl::Uniform1i(index, (*current).texIndex as i32);
+    gl_uniform1i(index, (*current).texIndex as i32);
+
     let fresh17 = (*current).texIndex;
     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+
     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh17));
     gl_bind_texture(gl::TEXTURE_2D, Tex2D_GetHandle(value));
     gl_active_texture(gl::TEXTURE0);
@@ -559,12 +567,14 @@ pub unsafe extern "C" fn Shader_ISetTex2D(index: i32, value: &mut Tex2D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetTex3D(name: *const libc::c_char, value: &mut Tex3D) {
-    gl::Uniform1i(
+    gl_uniform1i(
         GetUniformIndex(current.as_mut(), name),
         (*current).texIndex as i32,
     );
+
     let fresh18 = (*current).texIndex;
     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+
     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh18));
     gl_bind_texture(gl::TEXTURE_3D, Tex3D_GetHandle(value));
     gl_active_texture(gl::TEXTURE0);
@@ -572,9 +582,11 @@ pub unsafe extern "C" fn Shader_SetTex3D(name: *const libc::c_char, value: &mut 
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ISetTex3D(index: i32, value: &mut Tex3D) {
-    gl::Uniform1i(index, (*current).texIndex as i32);
+    gl_uniform1i(index, (*current).texIndex as i32);
+
     let fresh19 = (*current).texIndex;
     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+
     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh19));
     gl_bind_texture(gl::TEXTURE_3D, Tex3D_GetHandle(value));
     gl_active_texture(gl::TEXTURE0);
@@ -582,12 +594,14 @@ pub unsafe extern "C" fn Shader_ISetTex3D(index: i32, value: &mut Tex3D) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_SetTexCube(name: *const libc::c_char, value: &mut TexCube) {
-    gl::Uniform1i(
+    gl_uniform1i(
         GetUniformIndex(current.as_mut(), name),
         (*current).texIndex as i32,
     );
+
     let fresh20 = (*current).texIndex;
     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+
     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh20));
     gl_bind_texture(gl::TEXTURE_CUBE_MAP, TexCube_GetHandle(value));
     gl_active_texture(gl::TEXTURE0);
@@ -595,9 +609,11 @@ pub unsafe extern "C" fn Shader_SetTexCube(name: *const libc::c_char, value: &mu
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ISetTexCube(index: i32, value: &mut TexCube) {
-    gl::Uniform1i(index, (*current).texIndex as i32);
+    gl_uniform1i(index, (*current).texIndex as i32);
+
     let fresh21 = (*current).texIndex;
     (*current).texIndex = ((*current).texIndex).wrapping_add(1);
+
     gl_active_texture((gl::TEXTURE0).wrapping_add(fresh21));
     gl_bind_texture(gl::TEXTURE_CUBE_MAP, TexCube_GetHandle(value));
     gl_active_texture(gl::TEXTURE0);

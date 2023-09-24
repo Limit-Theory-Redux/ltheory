@@ -26,14 +26,16 @@ pub unsafe extern "C" fn Tex1D_Create(size: i32, format: TexFormat) -> *mut Tex1
     if !TexFormat_IsValid(format) {
         panic!("Tex1D_Create: Invalid texture format requested");
     }
+
     let this = MemNew!(Tex1D);
     (*this)._refCount = 1;
     (*this).size = size;
     (*this).format = format;
-    gl::GenTextures(1, &mut (*this).handle);
+
+    gl_gen_textures(1, &mut (*this).handle);
     gl_active_texture(gl::TEXTURE0);
     gl_bind_texture(gl::TEXTURE_1D, (*this).handle);
-    gl::TexImage1D(
+    gl_tex_image1d(
         gl::TEXTURE_1D,
         0,
         (*this).format,
@@ -47,8 +49,11 @@ pub unsafe extern "C" fn Tex1D_Create(size: i32, format: TexFormat) -> *mut Tex1
         gl::UNSIGNED_BYTE,
         std::ptr::null(),
     );
+
     Tex1D_Init();
+
     gl_bind_texture(gl::TEXTURE_1D, 0);
+
     this
 }
 
@@ -63,23 +68,25 @@ pub unsafe extern "C" fn Tex1D_Free(this: *mut Tex1D) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        gl::DeleteTextures(1, &mut (*this).handle);
+        gl_delete_textures(1, &mut (*this).handle);
         MemFree(this as *const _);
     }
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_Draw(this: &mut Tex1D, x: f32, y: f32, xs: f32, ys: f32) {
+pub extern "C" fn Tex1D_Draw(this: &mut Tex1D, x: f32, y: f32, xs: f32, ys: f32) {
     gl_enable(gl::TEXTURE_1D);
     gl_bind_texture(gl::TEXTURE_1D, this.handle);
+
     gl_begin(gl::QUADS);
-    gl::TexCoord1f(0.0f32);
-    gl::Vertex2f(x, y);
-    gl::Vertex2f(x, y + ys);
-    gl::TexCoord1f(1.0f32);
-    gl::Vertex2f(x + xs, y + ys);
-    gl::Vertex2f(x + xs, y);
+    gl_tex_coord1f(0.0f32);
+    gl_vertex2f(x, y);
+    gl_vertex2f(x, y + ys);
+    gl_tex_coord1f(1.0f32);
+    gl_vertex2f(x + xs, y + ys);
+    gl_vertex2f(x + xs, y);
     gl_end();
+
     gl_disable(gl::TEXTURE_1D);
 }
 
@@ -96,14 +103,14 @@ pub extern "C" fn Tex1D_GetFormat(this: &mut Tex1D) -> TexFormat {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_GetData(
+pub extern "C" fn Tex1D_GetData(
     this: &mut Tex1D,
     data: *mut libc::c_void,
     pf: PixelFormat,
     df: DataFormat,
 ) {
     gl_bind_texture(gl::TEXTURE_1D, this.handle);
-    gl::GetTexImage(
+    gl_get_tex_image(
         gl::TEXTURE_1D,
         0,
         pf as gl::types::GLenum,
@@ -137,14 +144,14 @@ pub extern "C" fn Tex1D_GetSize(this: &mut Tex1D) -> u32 {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_SetData(
+pub extern "C" fn Tex1D_SetData(
     this: &mut Tex1D,
     data: *const libc::c_void,
     pf: PixelFormat,
     df: DataFormat,
 ) {
     gl_bind_texture(gl::TEXTURE_1D, this.handle);
-    gl::TexImage1D(
+    gl_tex_image1d(
         gl::TEXTURE_1D,
         0,
         this.format,
@@ -182,10 +189,11 @@ pub extern "C" fn Tex1D_SetMinFilter(this: &mut Tex1D, filter: TexFilter) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex1D_SetTexel(this: &mut Tex1D, x: i32, r: f32, g: f32, b: f32, a: f32) {
+pub extern "C" fn Tex1D_SetTexel(this: &mut Tex1D, x: i32, r: f32, g: f32, b: f32, a: f32) {
     let mut rgba: [f32; 4] = [r, g, b, a];
+
     gl_bind_texture(gl::TEXTURE_1D, this.handle);
-    gl::TexSubImage1D(
+    gl_tex_sub_image1d(
         gl::TEXTURE_1D,
         0,
         x,

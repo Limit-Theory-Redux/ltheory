@@ -29,17 +29,20 @@ pub unsafe extern "C" fn Tex3D_Create(sx: i32, sy: i32, sz: i32, format: TexForm
     if !TexFormat_IsValid(format) {
         panic!("Tex3D_Create: Invalid texture format requested");
     }
+
     if TexFormat_IsDepth(format) {
         panic!("Tex3D_Create: Cannot create 3D texture with depth format");
     }
+
     let this = MemNew!(Tex3D);
     (*this)._refCount = 1;
     (*this).size = IVec3::new(sx, sy, sz);
     (*this).format = format;
-    gl::GenTextures(1, &mut (*this).handle);
+
+    gl_gen_textures(1, &mut (*this).handle);
     gl_active_texture(gl::TEXTURE0);
     gl_bind_texture(gl::TEXTURE_3D, (*this).handle);
-    gl::TexImage3D(
+    gl_tex_image3d(
         gl::TEXTURE_3D,
         0,
         (*this).format,
@@ -53,6 +56,7 @@ pub unsafe extern "C" fn Tex3D_Create(sx: i32, sy: i32, sz: i32, format: TexForm
     );
     Tex3D_Init();
     gl_bind_texture(gl::TEXTURE_3D, 0);
+
     this
 }
 
@@ -67,7 +71,7 @@ pub unsafe extern "C" fn Tex3D_Free(this: *mut Tex3D) {
         (*this)._refCount = ((*this)._refCount).wrapping_sub(1);
         (*this)._refCount <= 0
     } {
-        gl::DeleteTextures(1, &mut (*this).handle);
+        gl_delete_textures(1, &mut (*this).handle);
         MemFree(this as *const _);
     }
 }
@@ -88,27 +92,23 @@ pub unsafe extern "C" fn Tex3D_PushLevel(this: &mut Tex3D, layer: i32, level: i3
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_Draw(
-    this: &mut Tex3D,
-    layer: i32,
-    x: f32,
-    y: f32,
-    xs: f32,
-    ys: f32,
-) {
+pub extern "C" fn Tex3D_Draw(this: &mut Tex3D, layer: i32, x: f32, y: f32, xs: f32, ys: f32) {
     let r: f32 = (layer + 1) as f32 / (this.size.z + 1) as f32;
+
     gl_enable(gl::TEXTURE_3D);
     gl_bind_texture(gl::TEXTURE_3D, this.handle);
+
     gl_begin(gl::QUADS);
-    gl::TexCoord3f(0.0f32, 0.0f32, r);
-    gl::Vertex2f(x, y);
-    gl::TexCoord3f(0.0f32, 1.0f32, r);
-    gl::Vertex2f(x, y + ys);
-    gl::TexCoord3f(1.0f32, 1.0f32, r);
-    gl::Vertex2f(x + xs, y + ys);
-    gl::TexCoord3f(1.0f32, 0.0f32, r);
-    gl::Vertex2f(x + xs, y);
+    gl_tex_coord3f(0.0f32, 0.0f32, r);
+    gl_vertex2f(x, y);
+    gl_tex_coord3f(0.0f32, 1.0f32, r);
+    gl_vertex2f(x, y + ys);
+    gl_tex_coord3f(1.0f32, 1.0f32, r);
+    gl_vertex2f(x + xs, y + ys);
+    gl_tex_coord3f(1.0f32, 0.0f32, r);
+    gl_vertex2f(x + xs, y);
     gl_end();
+
     gl_disable(gl::TEXTURE_3D);
 }
 
@@ -120,14 +120,14 @@ pub extern "C" fn Tex3D_GenMipmap(this: &mut Tex3D) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_GetData(
+pub extern "C" fn Tex3D_GetData(
     this: &mut Tex3D,
     data: *mut libc::c_void,
     pf: PixelFormat,
     df: DataFormat,
 ) {
     gl_bind_texture(gl::TEXTURE_3D, this.handle);
-    gl::GetTexImage(
+    gl_get_tex_image(
         gl::TEXTURE_3D,
         0,
         pf as gl::types::GLenum,
@@ -146,9 +146,11 @@ pub unsafe extern "C" fn Tex3D_GetDataBytes(
     let mut size: i32 = this.size.x * this.size.y * this.size.z;
     size *= DataFormat_GetSize(df);
     size *= PixelFormat_Components(pf);
+
     let data: *mut Bytes = Bytes_Create(size as u32);
     Tex3D_GetData(this, Bytes_GetData(&mut *data), pf, df);
     Bytes_Rewind(&mut *data);
+
     data
 }
 
@@ -180,14 +182,14 @@ pub extern "C" fn Tex3D_GetSizeLevel(this: &mut Tex3D, out: &mut IVec3, level: i
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Tex3D_SetData(
+pub extern "C" fn Tex3D_SetData(
     this: &mut Tex3D,
     data: *const libc::c_void,
     pf: PixelFormat,
     df: DataFormat,
 ) {
     gl_bind_texture(gl::TEXTURE_3D, this.handle);
-    gl::TexImage3D(
+    gl_tex_image3d(
         gl::TEXTURE_3D,
         0,
         this.format,
