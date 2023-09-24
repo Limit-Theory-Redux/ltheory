@@ -1,13 +1,13 @@
-use std::ffi::CString;
 use clap::Parser;
+use std::ffi::CString;
 
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 #[no_mangle]
 pub static NvOptimusEnablement: std::os::raw::c_ulong = 0x00000001;
 
-#[cfg(target_os="windows")]
+#[cfg(target_os = "windows")]
 #[no_mangle]
-pub static AmdPowerXpressRequestHighPerformance : std::os::raw::c_int = 1;
+pub static AmdPowerXpressRequestHighPerformance: std::os::raw::c_int = 1;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

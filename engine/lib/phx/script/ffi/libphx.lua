@@ -261,9 +261,6 @@ do -- Transparent Structs
     } RayCastResult;
 
     typedef struct ShapeCastResult {
-      int32       hits_size;
-      int32       hits_capacity;
-      RigidBody** hits_data;
     } ShapeCastResult;
 
     typedef struct Sphere {

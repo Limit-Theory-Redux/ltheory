@@ -5,8 +5,8 @@ use crate::render::*;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
-use std::rc::{Rc, Weak};
 use std::mem::replace;
+use std::rc::{Rc, Weak};
 
 pub enum PhysicsType {
     Null,
@@ -87,7 +87,10 @@ pub struct RigidBody {
 
 // Functions to add and remove the rigid body from physics.
 impl RigidBody {
-    pub(crate) fn add_to_world(&mut self, world: &Rc<RefCell<PhysicsWorld>>) {
+    pub(crate) fn add_to_world(
+        &mut self,
+        world: &Rc<RefCell<PhysicsWorld>>,
+    ) -> Option<(rp::ColliderHandle, rp::RigidBodyHandle)> {
         // It only makes sense to add to the world if we're removed.
         if let WorldState::Removed { rb, collider } = replace(&mut self.state, WorldState::None) {
             let w = &mut *world.borrow_mut();
@@ -99,13 +102,18 @@ impl RigidBody {
                 rb_handle,
                 collider_handle,
                 world: Rc::downgrade(world),
-            }
+            };
+            Some((collider_handle, rb_handle))
+        } else {
+            None
         }
     }
 
-    pub(crate) fn remove_from_world(&mut self,
+    pub(crate) fn remove_from_world(
+        &mut self,
         impulse_joint_set: &mut rp::ImpulseJointSet,
-        multibody_joint_set: &mut rp::MultibodyJointSet) {
+        multibody_joint_set: &mut rp::MultibodyJointSet,
+    ) -> Option<(rp::ColliderHandle, rp::RigidBodyHandle)> {
         if let WorldState::Added {
             rb_handle,
             collider_handle,
@@ -137,7 +145,10 @@ impl RigidBody {
             self.state = WorldState::Removed {
                 rb: rigid_body,
                 collider,
-            }
+            };
+            Some((collider_handle, rb_handle))
+        } else {
+            None
         }
     }
 }
@@ -333,10 +344,13 @@ impl RigidBody {
     pub fn get_to_world_matrix(&self) -> Matrix {
         let scale = self.get_scale();
         if let WorldState::AttachedToCompound { parent, .. } = &self.state {
-            let child_transform = self.with_collider(|c| matrix_from_transform(c.position_wrt_parent().unwrap()));
-            unsafe { &**parent }.with_rigid_body(|rb| 
-                matrix_from_transform(rb.position()).scaled(scale).product(&child_transform)
-            )
+            let child_transform =
+                self.with_collider(|c| matrix_from_transform(c.position_wrt_parent().unwrap()));
+            unsafe { &**parent }.with_rigid_body(|rb| {
+                matrix_from_transform(rb.position())
+                    .scaled(scale)
+                    .product(&child_transform)
+            })
         } else {
             self.with_rigid_body(|rb| matrix_from_transform(rb.position()).scaled(scale))
         }

@@ -3,24 +3,25 @@ use crate::physics::*;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 pub struct Collision {
     index: i32,
     count: i32,
-    body0: RigidBody,
-    body1: RigidBody,
+    body0: *mut RigidBody,
+    body1: *mut RigidBody,
 }
 
 pub struct RayCastResult {
-    body: RigidBody,
+    body: *mut RigidBody,
     norm: Vec3,
     pos: Vec3,
     t: f32,
 }
 
 pub struct ShapeCastResult {
-    hits: Vec<RigidBody>,
+    hits: Vec<*mut RigidBody>,
 }
 
 pub trait NalgebraVec3Interop {
@@ -78,6 +79,8 @@ pub struct Physics {
     ccd_solver: rp::CCDSolver,
 
     triggers: Vec<Trigger>,
+
+    rigid_body_map: HashMap<rp::RigidBodyHandle, *mut RigidBody>,
 }
 
 impl Physics {
@@ -97,17 +100,25 @@ impl Physics {
             multibody_joint_set: rp::MultibodyJointSet::new(),
             ccd_solver: rp::CCDSolver::new(),
             triggers: Vec::new(),
+            rigid_body_map: HashMap::new(),
         }
     }
 
-    /// Adds this rigid body to this physics world.
+    /// Adds this rigid body to this physics world if it doesn't exist, otherwise do nothing.
     pub fn add(&mut self, rigid_body: &mut RigidBody) {
-        rigid_body.add_to_world(&self.world);
+        if let Some((_, rb_handle)) = rigid_body.add_to_world(&self.world) {
+            self.rigid_body_map
+                .insert(rb_handle, rigid_body as *mut RigidBody);
+        }
     }
 
-    /// Removes this rigid body from this physics world.
+    /// Removes this rigid body from this physics world if it's added, otherwise do nothing.
     pub fn remove(&mut self, rigid_body: &mut RigidBody) {
-        rigid_body.remove_from_world(&mut self.impulse_joint_set, &mut self.multibody_joint_set);
+        if let Some((_, rb_handle)) =
+            rigid_body.remove_from_world(&mut self.impulse_joint_set, &mut self.multibody_joint_set)
+        {
+            self.rigid_body_map.remove(&rb_handle);
+        }
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -121,7 +132,7 @@ impl Physics {
 
         let mut integration_parameters = self.integration_parameters;
         integration_parameters.dt = dt;
-        let mut world = &mut *self.world.borrow_mut();
+        let world = &mut *self.world.borrow_mut();
         self.physics_pipeline.step(
             &gravity,
             &integration_parameters,
@@ -209,8 +220,13 @@ pub unsafe extern "C" fn Physics_RayCast(
         true,
         filter,
     ) {
-        // TODO: Fill out RayCastResult data structure.
-        // result.body;
+        if let Some(collider) = this.world.borrow().collider_set.get(handle) {
+            let rigid_body_handle = collider.parent().unwrap();
+            result.body = *this
+                .rigid_body_map
+                .get(&rigid_body_handle)
+                .unwrap_or(&std::ptr::null_mut());
+        }
     }
 }
 
