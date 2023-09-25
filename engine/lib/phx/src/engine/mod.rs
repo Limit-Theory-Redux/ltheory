@@ -387,6 +387,8 @@ impl Engine {
                 return;
             }
 
+            // debug!("===> Event: {event:?}");
+
             match event {
                 event::Event::NewEvents(start_cause) => {
                     if start_cause == StartCause::Init {

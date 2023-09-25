@@ -3,7 +3,7 @@ use std::num::NonZeroU32;
 use glutin::context::{NotCurrentContext, PossiblyCurrentContext};
 use glutin::display::GetGlDisplay;
 use glutin::prelude::{GlDisplay, NotCurrentGlContextSurfaceAccessor, PossiblyCurrentGlContext};
-use glutin::surface::{GlSurface, Surface, SwapInterval, WindowSurface};
+use glutin::surface::{GlSurface, Surface, SurfaceAttributes, SwapInterval, WindowSurface};
 use glutin_winit::GlWindow;
 use tracing::{debug, error, warn};
 
@@ -23,10 +23,21 @@ enum GlState {
 }
 
 impl GlState {
-    fn make_current(&mut self, surface: Surface<WindowSurface>) -> bool {
+    fn make_current(
+        &mut self,
+        config: &glutin::config::Config,
+        attrs: &SurfaceAttributes<WindowSurface>,
+    ) -> bool {
         if matches!(self, Self::NotCurrent { .. }) {
             let old_self = std::mem::replace(self, Self::Undefined);
             let Self::NotCurrent { context } = old_self else { unreachable!() };
+
+            let surface = unsafe {
+                config
+                    .display()
+                    .create_window_surface(config, &attrs)
+                    .unwrap()
+            };
 
             let context = context
                 .make_current(&surface)
@@ -101,14 +112,8 @@ impl WinitWindow {
         debug!("WinitWindow::resume");
 
         let attrs = self.window.build_surface_attributes(<_>::default());
-        let gl_surface = unsafe {
-            self.gl_config
-                .display()
-                .create_window_surface(&self.gl_config, &attrs)
-                .unwrap()
-        };
 
-        if self.gl_state.make_current(gl_surface) {
+        if self.gl_state.make_current(&self.gl_config, &attrs) {
             // The context needs to be current for the Renderer to set up shaders and
             // buffers. It also performs function loading, which needs a current context on
             // WGL.
