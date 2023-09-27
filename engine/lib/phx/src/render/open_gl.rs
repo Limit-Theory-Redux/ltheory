@@ -35,13 +35,13 @@ static mut gl_begin_count: u32 = 0;
 macro_rules! gl_error_check {
     ($name:ident, $msg:expr) => {
         // NOTE: uncomment next 7 lines to catch OpenGl errors (for debugging purposes only - heavily impacts performance)
-        unsafe{
-            if gl_begin_count == 0 {
-                let caller_location = std::panic::Location::caller();
-                let msg_str = format!("{}({})", stringify!($name), $msg);
-                check_error(caller_location.file(), caller_location.line(), &msg_str);
-            }
-        }
+        // unsafe{
+        //     if gl_begin_count == 0 {
+        //         let caller_location = std::panic::Location::caller();
+        //         let msg_str = format!("{}({})", stringify!($name), $msg);
+        //         check_error(caller_location.file(), caller_location.line(), &msg_str);
+        //     }
+        // }
     };
 }
 
