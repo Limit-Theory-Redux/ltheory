@@ -43,17 +43,17 @@ function SystemMap:onDraw(state)
         playerTarget = playerShip:getTarget()
     end
     if playerTarget ~= nil then
-        --printf("Targeting a %s", Config:getObjectInfo("object_types", playerTarget:getType()))
+        --Log.Debug("Targeting a %s", Config:getObjectInfo("object_types", playerTarget:getType()))
         self.focus = playerTarget
     end
 
     BlendMode.PushAlpha()
     Draw.SmoothPoints(true)
-    --printf("------------------------------")
+    --Log.Debug("------------------------------")
     for _, e in self.system:iterChildren() do
         -- Check to make sure this is an actual object with a body
         if e.body ~= nil then
-            --printf("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            --Log.Debug("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
             local p = e:getPos()
             local x = p.x - dx
             local y = p.z - dy
@@ -62,7 +62,7 @@ function SystemMap:onDraw(state)
             Draw.PointSize(3.0)
 
             if e:hasActions() then
-                --printf("Action: %s", e:getName())
+                --Log.Debug("Action: %s", e:getName())
                 if GameState.player.currentShip == e then
                     Draw.PointSize(5.0)
                     Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
@@ -77,7 +77,7 @@ function SystemMap:onDraw(state)
                 else
                     local entAction = e:getCurrentAction()
                     if entAction ~= nil then
-                        --printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
+                        --Log.Debug("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
                         if string.match(Config:getObjectInfo("object_types", e:getType()), "Ship") and e.usesBoost then
                             -- Draw the dot for ships that are aces larger than regular ships
                             Draw.PointSize(5.0)
@@ -111,19 +111,19 @@ function SystemMap:onDraw(state)
             Draw.Point(x, y)
 
             if e:hasFlows() and not e:isDestroyed() then
-                --printf("Flow: %s", e:getName())
+                --Log.Debug("Flow: %s", e:getName())
                 UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale() * 10,
                     { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
             end
 
             if e:hasYield() then
-                --printf("Yield: %s", e:getName())
+                --Log.Debug("Yield: %s", e:getName())
                 UI.DrawEx.Ring(x, y, GameState.player.mapSystemZoom * e:getScale(),
                     { r = 1.0, g = 0.5, b = 0.1, a = 0.5 }, true)
             end
 
             if self.focus == e then
-                --printf("Focus: %s", e:getName())
+                --Log.Debug("Focus: %s", e:getName())
                 UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 }, true)
             end
 
@@ -135,7 +135,7 @@ function SystemMap:onDraw(state)
             end
             --    else
             --      -- Non-object entities (e.g., zones)
-            --printf("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            --Log.Debug("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
             --      local p = e:getPos()
             --      local x = p.x - dx
             --      local y = p.z - dy
@@ -281,14 +281,14 @@ function SystemMap:onInput(state)
         if GameState.player.mapSystemPan < 1 then
             GameState.player.mapSystemPan = 1
         end
-        --printf("mapSystemPan - = %s", GameState.player.mapSystemPan)
+        --Log.Debug("mapSystemPan - = %s", GameState.player.mapSystemPan)
     end
     if InputInstance:getValue(Button.KeyboardEquals) == 1 then
         GameState.player.mapSystemPan = GameState.player.mapSystemPan * 1.2
         if GameState.player.mapSystemPan > 150 then
             GameState.player.mapSystemPan = 150
         end
-        --printf("mapSystemPan + = %s", GameState.player.mapSystemPan)
+        --Log.Debug("mapSystemPan + = %s", GameState.player.mapSystemPan)
     end
 
     GameState.player.mapSystemZoom = GameState.player.mapSystemZoom * exp(kZoomSpeed * InputInstance:mouse():scroll().y)
@@ -319,7 +319,7 @@ function SystemMap.Create(system)
 
     -- Initialize system map zoom and pan levels only if not already initialized
     kPanSpeed = max(10, Config.gen.scaleSystem / 2e4)
-    --printf("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
+    --Log.Debug("SystemMap: scaleSystem = %f, kPanSpeed = %f", Config.gen.scaleSystem, kPanSpeed)
     if GameState.player.mapSystemZoom == nil then
         GameState.player.mapSystemZoom = 0.0001
     end

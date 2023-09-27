@@ -45,7 +45,7 @@ function Universe:CreateStarSystem(seed)
         -- Must add BEFORE space stations
         for i = 1, GameState.gen.nFields do
             afield = system:spawnAsteroidField(GameState.gen.nAsteroids, false)
-            printf("Added %s asteroids to %s", GameState.gen.nAsteroids, afield:getName())
+            Log.Debug("Added %s asteroids to %s", GameState.gen.nAsteroids, afield:getName())
         end
 
         local shipObject = {
@@ -62,7 +62,7 @@ function Universe:CreateStarSystem(seed)
 
         GameState.player.currentShip = playerShip
 
-        printf("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
+        Log.Debug("Added our ship, the '%s', at pos %s", playerShip:getName(), playerShip:getPos())
 
         -- Escort ships for testing
         local escortShips = {}
@@ -92,12 +92,12 @@ function Universe:CreateStarSystem(seed)
             for i = 1, #escortShips - 1 do
                 escortShips[i]:pushAction(Actions.Attack(escortShips[i + 1]))
             end
-            printf("Added %d escort ships", GameState.gen.nEscortNPCs)
+            Log.Debug("Added %d escort ships", GameState.gen.nEscortNPCs)
         end
 
         -- Add System to the Universe
         table.insert(self.systems, system)
-        printf("Added System: " .. system:getName() .. " to the Universe.")
+        Log.Debug("Added System: " .. system:getName() .. " to the Universe.")
     end
 
     self:AddSystemEconomy(system)

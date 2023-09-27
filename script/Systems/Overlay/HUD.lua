@@ -1518,9 +1518,9 @@ function HUD:drawPlayerHullInteg(a)
     -- if not GameState.paused then
     --     local radius, mass = playerShip:getRadius(), playerShip:getMass()
     --     local yaw, pitch = ShipBindings.Yaw:get(), ShipBindings.Pitch:get()
-    --     printf("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
-    --     printf("mass = %s, radius = %3.2f, yaw = %3.2f, pitch = %3.2f", mass, radius, yaw, pitch)
-    --     printf("mass = %s, radius = %3.2f, radius / 1.7 = %3.2f", mass, radius, radius / 1.7)
+    --     Log.Debug("x = %d, y = %d, sx = %d, sy = %d", x, y, sx, sy)
+    --     Log.Debug("mass = %s, radius = %3.2f, yaw = %3.2f, pitch = %3.2f", mass, radius, yaw, pitch)
+    --     Log.Debug("mass = %s, radius = %3.2f, radius / 1.7 = %3.2f", mass, radius, radius / 1.7)
     -- end
 
     -- Draw text of player ship name
@@ -1671,7 +1671,7 @@ function HUD:onInput(state)
         camera:pop()
 
         if self.dockable then
-            -- printf("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()),
+            -- Log.Debug("%s %s is dockable = %s", Config:getObjectInfo("object_types", self.dockable:getType()),
             --     self.dockable:getName(), self.dockable:isDockable())
             if self.dockable:isDockable() and not self.dockable:isBanned(e) then
                 if ShipBindings.Dock:get() > 0 then
@@ -1869,7 +1869,7 @@ function HUD:controlThrust(e)
         ShipBindings.Boost:get())
     self.aimX = c.yaw
     self.aimY = c.pitch
-    -- printf("yaw = %f, pitch = %f", c.yaw, c.pitch)
+    -- Log.Debug("yaw = %f, pitch = %f", c.yaw, c.pitch)
 end
 
 function HUD:controlTurrets(e)

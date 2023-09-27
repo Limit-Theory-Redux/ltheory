@@ -116,7 +116,7 @@ function Pulse.UpdatePrePhysics(system, projectiles, dt)
         local pulse = proj.effect
         pulse.life = pulse.life - dt
         if pulse.life <= 0 then
-            --printf("PULSE: projectile delete on expiration = %s", projectiles[i]:getName())
+            --Log.Debug("PULSE: projectile delete on expiration = %s", projectiles[i]:getName())
             if proj then
                 proj:deleteLight(proj)
             end
@@ -175,7 +175,7 @@ function Pulse.UpdatePostPhysics(system, projectiles, dt)
                     end
 
                     -- Remove projectile
-                    --printf("PULSE: projectile delete on hit = %s", projectiles[i]:getName())
+                    --Log.Debug("PULSE: projectile delete on hit = %s", projectiles[i]:getName())
                     if projectiles[i] then
                         projectiles[i]:deleteLight(projectiles[i])
                     end

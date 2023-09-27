@@ -32,7 +32,7 @@ function MoveTo:onUpdateActive(e, dt)
     -- Within range of the target object?
     if (e:getPos() - tp):length() <= self.range or (e == GameState.player.currentShip and not GameState.player.playerMoving) then
         -- MoveTo is complete, remove movement action from entity's Action queue
-        --printf("-> %s ended", e:getCurrentAction():getName())
+        --Log.Debug("-> %s ended", e:getCurrentAction():getName())
         e:popAction()
 
         if e == GameState.player.currentShip and GameState.player.playerMoving then

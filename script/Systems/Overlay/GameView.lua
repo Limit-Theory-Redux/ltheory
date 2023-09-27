@@ -36,10 +36,10 @@ function GameView:draw(focus, active)
         -- Note: Scan only objects with lights attached
         local lights = {}
         if #system.lightList > 0 then
-            --print("---------")
+            --Log.Debug("---------")
             for _, v in ipairs(system.lightList) do
                 insert(lights, { pos = v:getPos(), color = v:getLight() })
-                --printf("light '%s' @ %s, %s", v:getName(), v:getPos(), v:getLight())
+                --Log.Debug("light '%s' @ %s, %s", v:getName(), v:getPos(), v:getLight())
             end
         end
 

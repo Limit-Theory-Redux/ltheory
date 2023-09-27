@@ -10,7 +10,7 @@ WindowInstance = {}
 require('Init')
 
 function SetEngine(engine)
-    print("SetEngine")
+    Log.Debug("SetEngine")
 
     EngineInstance = ffi.cast('Engine*', engine)
 
@@ -19,7 +19,7 @@ function SetEngine(engine)
 end
 
 function InitSystem()
-    print("InitSystem")
+    Log.Debug("InitSystem")
 
     Core.Call(function()
         local app = __app__ or 'LTheoryRedux'
@@ -74,12 +74,10 @@ function InitSystem()
         end
 
         if appState == nil then
-            error("Application was not specified")
+            Log.Error("Application was not specified")
         end
 
         AppInit = function()
-            printf('Application(%s).appInit()', appState)
-            -- appState.appInit()
             Core.Call(appState.appInit, appState)
         end
 

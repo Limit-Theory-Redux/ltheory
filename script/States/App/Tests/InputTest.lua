@@ -8,8 +8,8 @@ end
 function InputTest:onUpdate(dt)
     --[[ NOTE : Low Level API Usage Style 1 - Direct State Queries
   for i = 1, 512 do
-    if InputInstance:isPressed(i)  then printf('Pressed  - %s', ffi.string(libphx.Button_ToString(i))) end
-    if InputInstance:isReleased(i) then printf('Released - %s', ffi.string(libphx.Button_ToString(i))) end
+    if InputInstance:isPressed(i)  then Log.Debug('Pressed  - %s', ffi.string(libphx.Button_ToString(i))) end
+    if InputInstance:isReleased(i) then Log.Debug('Released - %s', ffi.string(libphx.Button_ToString(i))) end
   end
   --]]
 
@@ -23,7 +23,7 @@ function InputTest:onUpdate(dt)
             (Bit.Has32(event.state, State.Pressed) or
                 Bit.Has32(event.state, State.Released))
         then
-            print(event)
+            Log.Debug(event)
         end
     end
     --]]

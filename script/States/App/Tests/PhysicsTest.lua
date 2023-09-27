@@ -59,7 +59,7 @@ function LTheory:generate()
         rng = RNG.Create(Config.gen.seedGlobal)
     end
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Debug('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = Entities.Test.System(self.seed)
@@ -217,13 +217,13 @@ function LTheory:onUpdate(dt)
 
     local collision = Collision()
     while (self.system.physics:getNextCollision(collision)) do
-        --print('', collision.index, collision.body0, collision.body1)
+        --Log.Debug('', collision.index, collision.body0, collision.body1)
     end
-    print('Collision Count:', collision.count)
+    Log.Debug('Collision Count:', collision.count)
 
     if worldTriggerTest then
         local triggerCount = self.trigger1:getContentsCount()
-        print('World Trigger Count:', triggerCount)
+        Log.Debug('World Trigger Count:', triggerCount)
         for i = 1, triggerCount do
             self.trigger1:getContents(i - 1)
         end
@@ -231,7 +231,7 @@ function LTheory:onUpdate(dt)
 
     if attachedTriggerTest then
         local triggerCount = self.trigger2:getContentsCount()
-        print('Attached Trigger Count:', triggerCount)
+        Log.Debug('Attached Trigger Count:', triggerCount)
         for i = 1, triggerCount do
             self.trigger2:getContents(i - 1)
         end

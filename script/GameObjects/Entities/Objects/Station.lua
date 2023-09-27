@@ -68,7 +68,7 @@ local Station = subclass(Entity, function(self, seed, hull)
         if p then
             insert(self.positions[SocketType.Bay], Vec3f(0, 1, 1)) -- TODO: Replace with visible mount position for a Bay weapon
         else
-            printf("No mount point found for bay %d being mounted on Station %s", i, self:getName())
+            Log.Debug("No mount point found for bay %d being mounted on Station %s", i, self:getName())
         end
     end
 
@@ -133,7 +133,7 @@ local Station = subclass(Entity, function(self, seed, hull)
         if p then
             insert(self.positions[SocketType.Turret], p * Vec3f(1, 1, 1))
         else
-            printf("No mount point found for turret %d being mounted on Station %s", i, self:getName())
+            Log.Debug("No mount point found for turret %d being mounted on Station %s", i, self:getName())
         end
     end
 
@@ -160,7 +160,7 @@ function Station:attackedBy(target)
     -- This station has been attacked, probably by a band of ragtag rebel scum who pose no threat
     -- TODO: Allow a number of "grace" hits that decay over time
     if not self:isDestroyed() then
-        --printf("Station %s (health at %3.2f%%) attacked by %s", self:getName(), self:mgrHullGetHealthPercent(), target:getName())
+        --Log.Debug("Station %s (health at %3.2f%%) attacked by %s", self:getName(), self:mgrHullGetHealthPercent(), target:getName())
         -- Stations currently have no turrets, so pushing an Attack() action generates an error
 
         -- Nobody enjoys getting shot
@@ -170,7 +170,7 @@ function Station:attackedBy(target)
         if self:hasDockable() and self:isDockable() then
             if self:isHostileTo(target) and not self:isBanned(target) then
                 self:addBannedShip(target)
-                printf("Station %s bans attacker %s", self:getName(), target:getName())
+                Log.Debug("Station %s bans attacker %s", self:getName(), target:getName())
 
                 -- If this station is not currently attacking its attacker,
                 --    add an action to Attack its attacker

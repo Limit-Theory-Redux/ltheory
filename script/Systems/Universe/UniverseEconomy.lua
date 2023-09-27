@@ -37,7 +37,7 @@ local function AddSystemGenerics(system)
         -- Create Stations within randomly selected AsteroidField Zones
         system:spawnStation(Enums.StationHulls.Small, tradeAi, nil)
     end
-    printf("Spawned %d Stations for AI Player '%s'", GameState.gen.nStations, tradeAi:getName())
+    Log.Debug("Spawned %d Stations for AI Player '%s'", GameState.gen.nStations, tradeAi:getName())
 
     -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
     system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
@@ -80,7 +80,7 @@ function UniverseEconomy:OnUpdate(dt)
                     aiAssetCount = GameState.gen.nEconNPCs
                 end
                 system:spawnAI(aiAssetCount, Actions.Wait(1), aiPlayer)
-                printf("%d assets added to %s", aiAssetCount, aiPlayer:getName())
+                Log.Debug("%d assets added to %s", aiAssetCount, aiPlayer:getName())
                 -- Configure assets
                 for asset in aiPlayer:iterAssets() do
                     system:place(asset)
@@ -92,7 +92,7 @@ function UniverseEconomy:OnUpdate(dt)
                 -- Add AI Player to the system
                 table.insert(system.aiPlayers, aiPlayer)
             end
-            print("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
+            Log.Debug("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
         end
         -- Handle High Attention Systems
         self:HandleHighAttention(system)
@@ -109,7 +109,7 @@ function UniverseEconomy:OnUpdate(dt)
 end
 
 function UniverseEconomy:AddSystem(system)
-    print("Adding a new system to universe economy: " .. system:getName())
+    Log.Debug("Adding a new system to universe economy: " .. system:getName())
 
     -- Add star system's AI Director and space stations only once per system
     AddSystemGenerics(system)

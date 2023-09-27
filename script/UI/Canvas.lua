@@ -154,13 +154,13 @@ function Canvas:draw(sx, sy)
 
     do -- Debug
         if self.printFocus then
-            print('focus      ', s.focus and s.focus.name)
-            print('active     ', s.active and s.active.name)
-            print('scrollFocus', s.scrollFocus and s.scrollFocus.name)
-            print('navFocus   ', s.navFocus and s.navFocus.name)
-            print('panelFocus ', s.panelFocus and s.panelFocus.name)
-            print('modalFocus ', s.modalFocus and s.modalFocus.name)
-            print()
+            Log.Info('focus      ', s.focus and s.focus.name)
+            Log.Info('active     ', s.active and s.active.name)
+            Log.Info('scrollFocus', s.scrollFocus and s.scrollFocus.name)
+            Log.Info('navFocus   ', s.navFocus and s.navFocus.name)
+            Log.Info('panelFocus ', s.panelFocus and s.panelFocus.name)
+            Log.Info('modalFocus ', s.modalFocus and s.modalFocus.name)
+            Log.Info()
         end
     end
 

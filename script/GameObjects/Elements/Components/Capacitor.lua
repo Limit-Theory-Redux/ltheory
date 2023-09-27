@@ -34,7 +34,7 @@ local Capacitor   = subclass(Entity, function(self)
     self.chargeCurr = Config.gen.compCapacitorStats.chargeCurr
     self.chargeMax  = Config.gen.compCapacitorStats.chargeMax
     self.chargeRate = Config.gen.compCapacitorStats.chargeRate
-    --printf("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCapacitor)
+    --Log.Debug("Register: Capacitor name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCapacitor)
     self:register(Event.Update, self.updateCapacitor)
 end)
 
@@ -52,7 +52,7 @@ function Capacitor:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s capacitor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s capacitor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 
     -- Reduce maximum possible charge due to damage
     -- We could also reduce the charge rate, but let's be nice for now
@@ -74,7 +74,7 @@ function Capacitor:discharge(value)
     end
 
     self.chargeCurr = newCharge
-    --printf("Entity %s discharges %s, %s charge remaining, %s undischarged",
+    --Log.Debug("Entity %s discharges %s, %s charge remaining, %s undischarged",
     --self:getName(), value, self.chargeCurr, undischargedAmount)
     return undischargedAmount
 end
@@ -135,7 +135,7 @@ function Capacitor:updateCapacitor(state)
             end
 
             self.chargeCurr = min(self.chargeMax, self.chargeCurr + (timeScale * state.dt) * self.chargeRate)
-            --printf("CAPACITOR: %s - curr = %s, max = %s, rate = %s", self:getName(), self.chargeCurr, self.chargeMax, self.chargeRate)
+            --Log.Debug("CAPACITOR: %s - curr = %s, max = %s, rate = %s", self:getName(), self.chargeCurr, self.chargeMax, self.chargeRate)
         end
     end
 end

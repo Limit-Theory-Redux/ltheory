@@ -22,7 +22,7 @@ end
 
 function ShipTest:newSystem()
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Debug('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)

@@ -7,7 +7,7 @@ local Ship        = {}
 -- TODO : These function names are confusing as hell. require('Gen.ShipFighter') ~= Gen.ShipFighter
 
 function Ship.ShipFighter(seed, hull, res)
-    printf("@@@ Ship.ShipFighter:(create) - hull = %s, res = %s", hull, res)
+    Log.Debug("@@@ Ship.ShipFighter:(create) - hull = %s, res = %s", hull, res)
     local rng = RNG.Create(seed)
 
     local type = rng:choose({ 1, 2 })
@@ -31,7 +31,7 @@ function Ship.ShipFighter(seed, hull, res)
 end
 
 function Ship.ShipCapital(seed, hull, res)
-    printf("@@@ Ship.ShipCapital:(create) - hull = %s, res = %s", hull, res)
+    Log.Debug("@@@ Ship.ShipCapital:(create) - hull = %s, res = %s", hull, res)
     local rng = RNG.Create(seed)
     Profiler.Begin('Gen.ShipCapital')
     local result = ShipCapital.Sausage(rng, hull)
@@ -40,7 +40,7 @@ function Ship.ShipCapital(seed, hull, res)
 end
 
 function Ship.ShipBasic(seed, hull, res)
-    printf("@@@ Ship.ShipBasic:(create) - hull = %s, res = %s", hull, res)
+    Log.Debug("@@@ Ship.ShipBasic:(create) - hull = %s, res = %s", hull, res)
     local rng = RNG.Create(seed)
     Profiler.Begin('Gen.ShipBasic')
     local result = ShipBasic.Tube(rng, hull)

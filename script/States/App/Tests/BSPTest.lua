@@ -231,7 +231,7 @@ function BSPTest:onInit()
 
     -- Perf test
     if false then
-        --printf('Ray\n')
+        --Log.Debug('Ray\n')
         local rng = RNG.Create(2092)
 
         local timer = Timer.Create()
@@ -258,7 +258,7 @@ function BSPTest:onInit()
     end
 
     if false then
-        --printf('Sphere\n')
+        --Log.Debug('Sphere\n')
         local rng = RNG.Create(2092)
 
         local timer = Timer.Create()

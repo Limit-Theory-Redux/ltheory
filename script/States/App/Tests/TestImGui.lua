@@ -99,7 +99,7 @@ function Test:showScrollWindow()
     ImGui.TextColored("SHIPS", 0.1, 0.5, 1.0, 1.0)
     ImGui.Indent()
     for _, v in ipairs(list1) do
-        if ImGui.Selectable(v) then printf(v) end
+        if ImGui.Selectable(v) then Log.Debug(v) end
     end
     ImGui.Undent()
 

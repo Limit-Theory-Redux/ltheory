@@ -30,7 +30,7 @@ end
 -- TODO: Function interfaces for drone racks
 
 function Entity:isAlive()
-    --printf("isAlive() self = %s", self:getName())
+    --Log.Debug("isAlive() self = %s", self:getName())
     if self.components and self.components.hull and #self.components.hull > 0 then
         local hull = self.components.hull[1]
         if not hull then
@@ -44,7 +44,7 @@ function Entity:isAlive()
 end
 
 function Entity:isDestroyed()
-    --printf("isDestroyed() self = %s", self:getName())
+    --Log.Debug("isDestroyed() self = %s", self:getName())
     if self.components and self.components.hull and #self.components.hull > 0 then
         local hull = self.components.hull[1]
         if not hull then
@@ -72,7 +72,7 @@ function Entity:mgrArmorDamageHealth(value)
     for _, armor in ipairs(armors) do
         if armor:getHealth() > 0 then
             armor:damageHealth(spreadValue)
-            --printf("damaging %s by %s to %s (max %s)", armor:getName(), spreadValue, armor:getHealth(), armor:getHealthMax())
+            --Log.Debug("damaging %s by %s to %s (max %s)", armor:getName(), spreadValue, armor:getHealth(), armor:getHealthMax())
         end
     end
 end
@@ -125,7 +125,7 @@ function Entity:mgrCapacitorDamageHealth(value)
     for _, cap in ipairs(capacitors) do
         if cap:getHealth() > 0 then
             cap:damageHealth(spreadValue)
-            --printf("damaging %s by %s to %s (max %s)", cap:getName(), spreadValue, cap:getHealth(), cap:getHealthMax())
+            --Log.Debug("damaging %s by %s to %s (max %s)", cap:getName(), spreadValue, cap:getHealth(), cap:getHealthMax())
         end
     end
 end
@@ -202,7 +202,7 @@ function Entity:mgrCloakDamageHealth(value)
     for _, cloak in ipairs(cloaks) do
         if cloak:getHealth() > 0 then
             cloak:damageHealth(spreadValue)
-            --printf("damaging %s by %s to %s (max %s)", cloak:getName(), spreadValue, cloak:getHealth(), cloak:getHealthMax())
+            --Log.Debug("damaging %s by %s to %s (max %s)", cloak:getName(), spreadValue, cloak:getHealth(), cloak:getHealthMax())
         end
     end
 end
@@ -259,7 +259,7 @@ function Entity:mgrComputerDamageHealth(value)
     for _, computer in ipairs(computers) do
         if computer:getHealth() > 0 then
             computer:damageHealth(spreadValue)
-            --printf("damaging %s by %s to %s (max %s)", computer:getName(), spreadValue, computer:getHealth(), computer:getHealthMax())
+            --Log.Debug("damaging %s by %s to %s (max %s)", computer:getName(), spreadValue, computer:getHealth(), computer:getHealthMax())
         end
     end
 end
@@ -339,7 +339,7 @@ function Entity:mgrCommunicatorDamageHealth(value)
     for _, commo in ipairs(commos) do
         if commo:getHealth() > 0 then
             commo:damageHealth(spreadValue)
-            --printf("damaging %s by %s to %s (max %s)", commo:getName(), spreadValue, commo:getHealth(), commo:getHealthMax())
+            --Log.Debug("damaging %s by %s to %s (max %s)", commo:getName(), spreadValue, commo:getHealth(), commo:getHealthMax())
         end
     end
 end
@@ -372,7 +372,7 @@ end
 function Entity:mgrHullDamageHealth(amount)
     local hull = self.components.hull[1]
     assert(hull)
-    --printf("reducing %s by %s to %s (max %s)", hull:getName(), amount, hull:getHealth(), hull:getHealthMax())
+    --Log.Debug("reducing %s by %s to %s (max %s)", hull:getName(), amount, hull:getHealth(), hull:getHealthMax())
     return hull:damageHealth(amount)
 end
 
@@ -470,7 +470,7 @@ function Entity:mgrInventoryAddItem(item, count)
                 end
                 if itemsAddedCount == count then break end
             end
-            --printf("COMPONENTMGR:mgrInventoryAddItem - added %d units of %s to %s", itemsAddedCount, item:getName(), self:getName())
+            --Log.Debug("COMPONENTMGR:mgrInventoryAddItem - added %d units of %s to %s", itemsAddedCount, item:getName(), self:getName())
 
             if itemsAddedCount == count then itemsAdded = true end
         end
@@ -524,7 +524,7 @@ function Entity:mgrInventoryRemoveItem(item, count)
                     end
                     if itemsRemovedCount == count then break end
                 end
-                --printf("COMPONENTMGR:mgrInventoryRemoveItem - removed %d units of %s from %s", itemsRemovedCount, item:getName(), self:getName())
+                --Log.Debug("COMPONENTMGR:mgrInventoryRemoveItem - removed %d units of %s from %s", itemsRemovedCount, item:getName(), self:getName())
 
                 if itemsRemovedCount == count then itemsRemoved = true end
             end
@@ -563,7 +563,7 @@ function Entity:mgrSensorDamageHealth(value)
     for _, sensor in ipairs(sensors) do
         if sensor:getHealth() > 0 then
             sensor:damageHealth(spreadValue)
-            --printf("damaging %s by %s to %s (max %s)", sensor:getName(), spreadValue, sensor:getHealth(), sensor:getHealthMax())
+            --Log.Debug("damaging %s by %s to %s (max %s)", sensor:getName(), spreadValue, sensor:getHealth(), sensor:getHealthMax())
         end
     end
 end
@@ -655,7 +655,7 @@ function Entity:mgrShieldDamageHealth(value)
     for _, shield in ipairs(shields) do
         if shield:getHealth() > 0 then
             shield:damageHealth(spreadValue)
-            --printf("damaging %s by %s to %s (max %s)", shield:getName(), spreadValue, shield:getHealth(), shield:getHealthMax())
+            --Log.Debug("damaging %s by %s to %s (max %s)", shield:getName(), spreadValue, shield:getHealth(), shield:getHealthMax())
         end
     end
 end
@@ -719,7 +719,7 @@ function Entity:mgrShieldReduceStrength(value)
     for _, shield in ipairs(shields) do
         if shield:getStrength() > 0 then
             shield:reduceStrength(spreadValue)
-            --printf("reducing %s by %s to %s (max %s)", shield:getName(), spreadValue, shield:getStrength(), shield:getStrengthMax())
+            --Log.Debug("reducing %s by %s to %s (max %s)", shield:getName(), spreadValue, shield:getStrength(), shield:getStrengthMax())
         end
     end
 end

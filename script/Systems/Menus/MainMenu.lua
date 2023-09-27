@@ -68,7 +68,7 @@ function MainMenu:OnInit()
     else
         GameState:SetState(Enums.GameStates.MainMenu)
     end
-    printf("Initialize MainMenu")
+    Log.Info("Initialize MainMenu")
 end
 
 function MainMenu:ActionRegistered()
@@ -91,10 +91,10 @@ function MainMenu:OnUpdate(dt)
             self.returnToSplashDelta = 0
         end
 
-        --printf("dt:".. self.dt)
-        --printf("lastAction: " .. self.lastActionDelta)
-        --printf("returnToSplashDelta: " .. self.returnToSplashDelta)
-        --printf(Config.timeToResetToSplashscreen)
+        --Log.Debug("dt:".. self.dt)
+        --Log.Debug("lastAction: " .. self.lastActionDelta)
+        --Log.Debug("returnToSplashDelta: " .. self.returnToSplashDelta)
+        --Log.Debug(Config.timeToResetToSplashscreen)
     else
         self.lastActionDelta = 0
         self.returnToSplashDelta = 0
@@ -106,10 +106,10 @@ function MainMenu:Open()
         self:OnInit()
     end
 
-    printf("MainMenu:Open: QueueTrack(true)")
+    Log.Debug("MainMenu:Open: QueueTrack(true)")
     mainMenuMusic = MusicPlayer:QueueTrack(Config.audio.mainMenu, true)
 
-    printf("Opening Main Menu.")
+    Log.Debug("Opening Main Menu.")
 end
 
 function MainMenu:Close(keepState)
@@ -118,16 +118,16 @@ function MainMenu:Close(keepState)
 
     MusicPlayer:StopTrack(mainMenuMusic)
 
-    printf("Closing Main Menu.")
+    Log.Debug("Closing Main Menu.")
 end
 
 function MainMenu:SetBackgroundMode(enabled)
-    printf("Set Background Mode to: " .. tostring(enabled))
+    Log.Debug("Set Background Mode to: " .. tostring(enabled))
     self.inBackgroundMode = enabled
 end
 
 function MainMenu:SetMenuMode(mode)
-    printf("Set Menu Mode to: " .. mode)
+    Log.Debug("Set Menu Mode to: " .. mode)
     self.currentMode = mode
 
     -- TODO: this can be improved

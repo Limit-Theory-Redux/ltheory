@@ -74,11 +74,11 @@ function Economy:update(dt)
                                     end
                                     if i > considerCount then break end
                                 end
---printf("ECONOMY: Mine job test: station = %s, prod = %s, item = %s, #asteroids = %d",
+--Log.Debug("ECONOMY: Mine job test: station = %s, prod = %s, item = %s, #asteroids = %d",
 --    station:getName(), prodLine.type.name, item:getName(), #self.yields)
 
                                 for i, asteroid in ipairs(self.yields) do
-                                    --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
+                                    --Log.Debug("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
                                     --    src:getName(), dst:getName(), item:getName(), itemBidVol)
                                     jobCount = jobCount + 1
                                     insert(self.jobs, Jobs.Mine(asteroid, station, item))
@@ -91,7 +91,7 @@ function Economy:update(dt)
             end
         end
         Profiler.End()
---        printf("ECONOMY: Mine job test: jobCount = %d", jobCount)
+--        Log.Debug("ECONOMY: Mine job test: jobCount = %d", jobCount)
 
 --        -- Cache profitable mining jobs    -- INACTIVE (old style mining job generator)
 --        Profiler.Begin('Economy.Update.Mining')
@@ -107,7 +107,7 @@ function Economy:update(dt)
 --                        allJobCount = allJobCount + 1
 --                        local itemBidVol = dst:getTrader():getBidVolume(item)
 --                        if itemBidVol > 0 then
---                            --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
+--                            --Log.Debug("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
 --                            --    src:getName(), dst:getName(), item:getName(), itemBidVol)
 --                            realJobCount = realJobCount + 1
 --                            insert(self.jobs, Jobs.Mine(src, dst, item))
@@ -117,7 +117,7 @@ function Economy:update(dt)
 --            end
 --        end
 --        Profiler.End()
---        --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
+--        --Log.Debug("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
         --    if false then  -- INACTIVE (Josh code - preserve this for when we switch back to Flow model)
         --      do -- Cache trade jobs from positive to negative flow
@@ -144,17 +144,17 @@ function Economy:update(dt)
                 for item, data in pairs(src:getTrader().elems) do
                     if src:getTrader():getAskVolume(item) > 0 then
                         local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
-                        --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
+                        --Log.Debug("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
                         if buyPrice > 0 then
                             for _, dst in ipairs(self.traders) do
                                 if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
                                     if src ~= dst then
                                         allJobCount = allJobCount + 1
                                         local sellPrice = dst:getTrader():getSellToPrice(item, 1)
-                                        --printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
+                                        --Log.Debug("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
                                         --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                                         if buyPrice < sellPrice then
-                                            --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
+                                            --Log.Debug("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
                                             --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
                                             realJobCount = realJobCount + 1
                                             insert(self.jobs, Jobs.Transport(src, dst, item))
@@ -168,7 +168,7 @@ function Economy:update(dt)
             end
         end
         Profiler.End()
-        --printf("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
+        --Log.Debug("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
 
         Profiler.Begin('Economy.Update.Flows')
         do -- Compute net flow of entire economy

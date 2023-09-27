@@ -65,20 +65,20 @@ function LTheoryRedux:toggleSound()
     if GameState.audio.soundEnabled then
         MusicPlayer:SetVolume(GameState.audio.musicVolume)
     else
-        --printf("LTheoryRedux:toggleSound: volume set to 0")
+        --Log.Debug("LTheoryRedux:toggleSound: volume set to 0")
         MusicPlayer:SetVolume(0)
     end
 end
 
 function LTheoryRedux:SoundOn()
     GameState.audio.soundEnabled = true
-    --printf("LTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
+    --Log.Debug("LTheoryRedux:SoundOn: volume set to %s", GameState.audio.musicVolume)
     MusicPlayer:SetVolume(GameState.audio.musicVolume)
 end
 
 function LTheoryRedux:SoundOff()
     GameState.audio.soundEnabled = false
-    --printf("LTheoryRedux:SoundOff: volume set to 0")
+    --Log.Debug("LTheoryRedux:SoundOff: volume set to 0")
     MusicPlayer:SetVolume(0)
 end
 
@@ -120,7 +120,7 @@ function LTheoryRedux:onDraw()
             self.canvas:add(smap)
             bSMapAdded = true
             InputInstance:setCursorVisible(true)
-            print("Draw System View")
+            Log.Debug("Draw System View")
         end
     else
         if smap ~= nil then
@@ -129,7 +129,7 @@ function LTheoryRedux:onDraw()
             bSMapAdded = false
             smap = nil
             InputInstance:setCursorVisible(false)
-            print("Draw Game View")
+            Log.Debug("Draw Game View")
         end
     end
 
@@ -295,7 +295,7 @@ end
 function LTheoryRedux:createStarSystem()
     if self.backgroundSystem then self.backgroundSystem:delete() end
 
-    print("------------------------")
+    Log.Debug("------------------------")
     if GameState:GetCurrentState() == Enums.GameStates.MainMenu then
         -- Use custom system generation sizes for a nice background star system
         Config.gen.scaleSystem    = Config.gen.scaleSystemBack
@@ -357,7 +357,7 @@ function LTheoryRedux:createStarSystem()
 
     if GameState:GetCurrentState() == Enums.GameStates.InGame then
         -- TODO: replace with gamestate event system
-        printf("LTheoryRedux: PlayAmbient")
+        Log.Debug("LTheoryRedux: PlayAmbient")
         MusicPlayer:PlayAmbient()
 
         self.gameView:setCameraMode(GameState.player.startupCamera)

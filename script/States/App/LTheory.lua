@@ -13,7 +13,7 @@ local escortShips = 20
 
 function LTheory:generate()
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Info('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)

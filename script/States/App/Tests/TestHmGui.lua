@@ -145,7 +145,7 @@ function Test:showSimple()
 
     HmGui.BeginGroupY()
     HmGui.SetPadding(4, 4)
-    if HmGui.Button("-- OPT 1 --") then print("Opt 1!") end
+    if HmGui.Button("-- OPT 1 --") then Log.Debug("Opt 1!") end
     HmGui.Button("-- OPT 2 --")
     HmGui.Checkbox("Yas", true)
     HmGui.Checkbox("Nope", false)

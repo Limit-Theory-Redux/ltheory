@@ -38,7 +38,7 @@ local Shield      = subclass(Entity, function(self)
     self.colorR       = Config.gen.compShieldStats.colorR
     self.colorG       = Config.gen.compShieldStats.colorG
     self.colorB       = Config.gen.compShieldStats.colorB
-    --printf("Register: Shield type = %s, handler = %s", Event.Update, self.updateShield)
+    --Log.Debug("Register: Shield type = %s, handler = %s", Event.Update, self.updateShield)
     self:register(Event.Update, self.updateShield)
 end)
 
@@ -60,7 +60,7 @@ function Shield:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s shield takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s shield takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 
     -- Reduce maximum possible shield strength due to damage
     local maxStrength = self.strengthMax * (self.healthCurr / self.healthMax)
@@ -112,7 +112,7 @@ function Shield:reduceStrength(value)
     else
         self.strengthCurr = self.strengthCurr - reducedValue
     end
-    --printf("Vessel %s shield reduced by %s, %s remaining", self:getName(), reducedValue, self.strengthCurr)
+    --Log.Debug("Vessel %s shield reduced by %s, %s remaining", self:getName(), reducedValue, self.strengthCurr)
 
     -- TODO: Visual effect for shield activation
     UI.DrawEx.Ring(200, 200, 50, Config.ui.color.shieldStrength, true)
@@ -143,7 +143,7 @@ function Shield:updateShield(state)
             local undischarged = self:getParent():mgrCapacitorDischarge(diffStrength)
 
             self.strengthCurr = newStrength - undischarged
-            --printf("SHIELD: %s - curr = %s, max = %s, rate = %s, diff = %s, undischarged = %s",
+            --Log.Debug("SHIELD: %s - curr = %s, max = %s, rate = %s, diff = %s, undischarged = %s",
             --self:getName(), self.strengthCurr, self.strengthMax, self.reviveRate, diffStrength, undischarged)
         end
     end

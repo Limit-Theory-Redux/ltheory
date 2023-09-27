@@ -17,7 +17,7 @@ function Armor:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s armor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s armor takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
 function Armor:getHealth()

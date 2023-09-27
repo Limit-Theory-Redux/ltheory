@@ -45,12 +45,12 @@ end
 
 local function printResult(name, result, expected, actual)
     if result then
-        printf('%s Passed', name)
+        Log.Info('%s Passed', name)
     else
-        printf('%s FAILED!', name)
-        printf('\tExpected: %s', expected)
-        printf('\tActual:   %s', actual)
-        print()
+        Log.Info('%s FAILED!', name)
+        Log.Info('\tExpected: %s', expected)
+        Log.Info('\tActual:   %s', actual)
+        Log.Info()
     end
 end
 

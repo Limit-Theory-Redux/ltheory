@@ -201,8 +201,8 @@ function AudioTest:onUpdate(dt)
     --[[
   for i = 1, #self.emitters do
     local s = self.emitters[i].sound
-    --printf("%20s\t%.2f\t%s\t%s", tostring(s:getName()), s:getDuration(), s:isPlaying(), s:isFinished())
-    printf("%20s\t%.2f\t%s", tostring(s:getName()), s:getDuration(), s:isFinished())
+    --Log.Debug("%20s\t%.2f\t%s\t%s", tostring(s:getName()), s:getDuration(), s:isPlaying(), s:isFinished())
+    Log.Debug("%20s\t%.2f\t%s", tostring(s:getName()), s:getDuration(), s:isFinished())
   end
 --]]
 end

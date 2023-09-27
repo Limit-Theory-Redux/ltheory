@@ -21,7 +21,7 @@ local Communicator = subclass(Entity, function(self)
     self.healthCurr   = Config.gen.compCommunicatorStats.healthCurr
     self.healthMax    = Config.gen.compCommunicatorStats.healthMax
     self.rating       = Config.gen.compCommunicatorStats.rating
-    --printf("Register: Communicator name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCommunicator)
+    --Log.Debug("Register: Communicator name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCommunicator)
     self:register(Event.Update, self.updateCommunicator)
 end)
 
@@ -35,7 +35,7 @@ function Communicator:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s communicator takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s communicator takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
 function Communicator:getHealth()
@@ -70,7 +70,7 @@ end
 
 function Communicator:updateCommunicator(state)
     if not self:getParent():isDestroyed() then
-        --printf("COMMUNICATOR: %s", self:getName())
+        --Log.Debug("COMMUNICATOR: %s", self:getName())
     end
 end
 

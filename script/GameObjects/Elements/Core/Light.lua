@@ -2,7 +2,7 @@ local Entity = require('GameObjects.Entity')
 
 function Entity:addLight(r, g, b)
     if self.light then
-        printf("%s has a light already!", self:getName())
+        Log.Debug("%s has a light already!", self:getName())
     end
     assert(not self.light)
     self.light = Vec3f(r, g, b)
@@ -12,7 +12,7 @@ end
 function Entity:deleteLight(lightRef)
     local lightList = GameState.world.currentSystem.lightList
     assert(lightList)
-    --printf("LIGHT: trying to delete light on %s", lightRef:getName())
+    --Log.Debug("LIGHT: trying to delete light on %s", lightRef:getName())
     for i, light in ipairs(lightList) do
         if light == lightRef then
             remove(lightList, i)

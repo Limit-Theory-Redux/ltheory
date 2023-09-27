@@ -43,7 +43,7 @@ function Entity:setDisposition(target, value)
         local oldDispo = self:getDisposition(target)
         if oldDispo ~= value then
             self.dispositions[target] = value
-            --printf("Disposition of %s to %s was %f, is now %f", self:getName(), target:getName(), oldDispo, self.dispositions[target])
+            --Log.Debug("Disposition of %s to %s was %f, is now %f", self:getName(), target:getName(), oldDispo, self.dispositions[target])
 
             -- Generate an integer array index: -1.0 to -0.33332 -> 1, -0.33333 to 0.33332 -> 2, 0.33333 to 1.0 -> 3
             -- NOTE: This section is just debugging, but it's being left here as a "how to" for disposition descriptors
@@ -63,7 +63,7 @@ function Entity:setDisposition(target, value)
             --        if dispoNameIndex == 1 or dispoNameIndex == 3 then
             --          surprise = "!"
             --        end
-            --        printf("%s is now %s to %s%s", self:getName(), Config.game.dispoName[dispoNameIndex], target:getName(), surprise)
+            --        Log.Debug("%s is now %s to %s%s", self:getName(), Config.game.dispoName[dispoNameIndex], target:getName(), surprise)
             --      end
         end
     end

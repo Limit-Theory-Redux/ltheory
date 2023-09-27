@@ -33,7 +33,7 @@ end
 --    if pressure < bestPressure then
 --      bestPressure = pressure
 --      bestJob = job
-----printf("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
+----Log.Debug("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
 --    end
 --  end
 --
@@ -79,7 +79,7 @@ function Think:manageAsset(asset)
                 bestPayout = payout
                 bestJob = job
             else
-                printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+                Log.Debug("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
                     asset:getName(), job:getName(asset), payout)
             end
         end
@@ -98,7 +98,7 @@ function Think:manageAsset(asset)
             asset.job.bids = asset.job.jcount -- terrible hack for when jcount is mysteriously set to 0
 
             -- Push job to asset's Action queue
-            printf("THINK: pushing job %s '%s' to %s with jcount = %d, bids = %d, bestPayout = %d",
+            Log.Debug("THINK: pushing job %s '%s' to %s with jcount = %d, bids = %d, bestPayout = %d",
                 asset.job, asset.job:getName(asset), asset:getName(), asset.job.jcount, asset.job.bids, bestPayout)
             asset:pushAction(bestJob)
             jobAssigned = true
@@ -117,21 +117,21 @@ function Think:manageAsset(asset)
             -- Wake up asset if it was sleeping and make sure it undocks
             local station = asset:isShipDocked()
             if station then
-                printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
+                Log.Debug("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
                 asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
                 --for i, v in ipairs(asset.actions) do
-                --  printf("  Actions %d : %s", i, v:getName(asset))
+                --  Log.Debug("  Actions %d : %s", i, v:getName(asset))
                 --end
                 asset:pushAction(Actions.Undock())
-                --printf("THINK +++ 2: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
+                --Log.Debug("THINK +++ 2: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
                 --asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount, asset.job.bids)
                 --for i, v in ipairs(asset.actions) do
-                --  printf("  Actions %d : %s", i, v:getName(asset))
+                --  Log.Debug("  Actions %d : %s", i, v:getName(asset))
                 --end
             end
         else
             -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
-            printf("THINK: canceling job '%s' for asset %s", asset.job:getName(asset), asset:getName())
+            Log.Debug("THINK: canceling job '%s' for asset %s", asset.job:getName(asset), asset:getName())
             asset.job = nil
         end
     end
@@ -144,7 +144,7 @@ function Think:manageAsset(asset)
         if #stations > 0 and stations[1] ~= nil then
             local station = stations[1].stationRef
 
-            printf(
+            Log.Debug(
                 "THINK ---: Asset %s (owner %s) with total capacity %d has no more jobs available; docking at Station %s",
                 asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(), station:getName())
             asset:clearActions()
@@ -175,7 +175,7 @@ function Think:onUpdateActive(e, dt)
         -- TODO: Correct the self.timer tests below to trigger on their _intervals_,
         --       not on elapsed time (which never resets)
         self.timer = self.timer + dt
-        --printf("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
+        --Log.Debug("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
 
         do -- TODO: capital expenditure AI
             if self.timer > 30 then
