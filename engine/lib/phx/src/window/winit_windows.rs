@@ -2,7 +2,7 @@
 use std::sync::atomic::Ordering;
 
 use glutin::config::ConfigTemplateBuilder;
-use glutin::context::{ContextApi, ContextAttributesBuilder, Version};
+use glutin::context::{ContextApi, ContextAttributesBuilder, GlProfile, Version};
 use glutin::display::GetGlDisplay;
 use glutin::prelude::{GlConfig, GlDisplay};
 use glutin_winit::DisplayBuilder;
@@ -19,8 +19,11 @@ use winit::{
 use super::{CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution, WinitWindow};
 
 /// A resource which contains [`winit`] library windows.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct WinitWindows {
+    gl_version_major: u8,
+    gl_version_minor: u8,
+
     /// Stores [`winit`] windows by window identifier.
     pub windows: HashMap<winit::window::WindowId, WinitWindow>,
 
@@ -31,6 +34,16 @@ pub struct WinitWindows {
 }
 
 impl WinitWindows {
+    /// Create WinitWindows manager for specified GL version
+    pub fn new(gl_version_major: u8, gl_version_minor: u8) -> Self {
+        Self {
+            gl_version_major,
+            gl_version_minor,
+            windows: Default::default(),
+            _not_send_sync: Default::default(),
+        }
+    }
+
     /// Creates a `winit` window and associates it with our entity.
     pub fn create_window(
         &mut self,
@@ -166,38 +179,19 @@ impl WinitWindows {
         // can query it from the config.
         let gl_display = gl_config.display();
 
-        // The context creation part. It can be created before surface and that's how
-        // it's expected in multithreaded + multiwindow operation mode, since you
-        // can send NotCurrentContext, but not Surface.
-        let context_attributes = ContextAttributesBuilder::new().build(raw_window_handle);
-
-        // Since glutin by default tries to create OpenGL core context, which may not be
-        // present we should try gles.
-        let fallback_context_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::Gles(None))
-            .build(raw_window_handle);
-
-        // There are also some old devices that support neither modern OpenGL nor GLES.
-        // To support these we can try and create a 2.1 context.
-        let legacy_context_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::OpenGl(Some(Version::new(2, 1))))
+        let context_attributes = ContextAttributesBuilder::new()
+            .with_context_api(ContextApi::Gles(Some(Version::new(
+                self.gl_version_major,
+                self.gl_version_minor,
+            ))))
+            .with_profile(GlProfile::Compatibility)
             .build(raw_window_handle);
 
         let gl_context = unsafe {
             gl_display
                 .create_context(&gl_config, &context_attributes)
-                .unwrap_or_else(|_| {
-                    gl_display
-                        .create_context(&gl_config, &fallback_context_attributes)
-                        .unwrap_or_else(|_| {
-                            gl_display
-                                .create_context(&gl_config, &legacy_context_attributes)
-                                .expect("failed to create context")
-                        })
-                })
+                .expect("failed to create context")
         };
-
-        // OpenGL::init(gl_config);
 
         let winit_window = winit_window.unwrap(); // winit_window_builder.build(event_loop).unwrap();
                                                   // let name = window.title.clone();

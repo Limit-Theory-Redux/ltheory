@@ -39,7 +39,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    fn new(gl_version_major: i32, gl_version_minor: i32) -> Self {
+    fn new(gl_version_major: u8, gl_version_minor: u8) -> Self {
         unsafe {
             static mut firstTime: bool = true;
             Signal_Init();
@@ -122,7 +122,7 @@ impl Engine {
             init_time: TimeStamp::now(),
             window,
             cache,
-            winit_windows: Default::default(),
+            winit_windows: WinitWindows::new(gl_version_major, gl_version_minor),
             winit_window_id: None,
             input: Default::default(),
             frame_state: Default::default(),
