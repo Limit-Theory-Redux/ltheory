@@ -180,7 +180,7 @@ impl WinitWindows {
         let gl_display = gl_config.display();
 
         let context_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::Gles(Some(Version::new(
+            .with_context_api(ContextApi::OpenGl(Some(Version::new(
                 self.gl_version_major,
                 self.gl_version_minor,
             ))))
