@@ -5,6 +5,8 @@ format = string.format
 join = table.concat
 
 -- Slightly more indepth function aliases. Including Debug Functions for Trace.
+function printf(...) Log.Info(...) end
+
 function trace() print(debug.traceback()) end
 
 function traceFn()
