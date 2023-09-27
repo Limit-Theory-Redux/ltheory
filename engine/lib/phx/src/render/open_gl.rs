@@ -30,12 +30,18 @@ pub fn check_error(file: &str, line: u32, msg: &str) {
     error!("OpenGL_CheckError: {error} at {file}:{line}{msg_str}");
 }
 
+static mut gl_begin_count: u32 = 0;
+
 macro_rules! gl_error_check {
     ($name:ident, $msg:expr) => {
-        // NOTE: uncomment next 3 lines to catch OpenGl errors (for debugging purposes only - heavily impacts performance)
-        // let caller_location = std::panic::Location::caller();
-        // let msg_str = format!("{}({})", stringify!($name), $msg);
-        // check_error(caller_location.file(), caller_location.line(), &msg_str);
+        // NOTE: uncomment next 7 lines to catch OpenGl errors (for debugging purposes only - heavily impacts performance)
+        unsafe{
+            if gl_begin_count == 0 {
+                let caller_location = std::panic::Location::caller();
+                let msg_str = format!("{}({})", stringify!($name), $msg);
+                check_error(caller_location.file(), caller_location.line(), &msg_str);
+            }
+        }
     };
 }
 
@@ -75,10 +81,31 @@ pub fn gl_get_string(name: GLenum) -> Option<String> {
     }
 }
 
+// Use marker to prevent calling glGetError between glBegin/glEnd
+#[inline]
+#[track_caller]
+pub fn gl_begin(mode: GLenum) {
+    unsafe {
+        gl::Begin(mode);
+
+        gl_begin_count += 1;
+    }
+}
+
+#[inline]
+#[track_caller]
+pub fn gl_end() {
+    unsafe {
+        gl_begin_count -= 1;
+
+        gl::End();
+
+        gl_error_check!(gl_end, "");
+    }
+}
+
 gl_func!(Enable, gl_enable(cap: GLenum), &format!("cap = {cap}"));
 gl_func!(Disable, gl_disable(cap: GLenum), &format!("cap = {cap}"));
-gl_func!(Begin, gl_begin(mode: GLenum));
-gl_func!(End, gl_end());
 gl_func!(Hint, gl_hint(target: GLenum, mode: GLenum));
 gl_func!(BlendFunc, gl_blend_func(sfactor: GLenum, dfactor: GLenum));
 gl_func!(CullFace, gl_cull_face(mode: GLenum));
