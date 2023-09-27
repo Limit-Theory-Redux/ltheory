@@ -12,6 +12,45 @@ pub struct Quat {
 }
 
 impl Quat {
+    /// All zeroes.
+    pub const ZERO: Self = Quat {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        w: 0.0,
+    };
+
+    pub fn from_basis(x: &Vec3, y: &Vec3, z: &Vec3) -> Quat {
+        let mut out = Quat::ZERO;
+        let r: f32 = x.x + y.y + z.z;
+        if r > 0.0f32 {
+            out.w = (f64::sqrt((r + 1.0f32) as f64) * 0.5f64) as f32;
+            let w4: f32 = 1.0f32 / (4.0f32 * out.w);
+            out.x = (y.z - z.y) * w4;
+            out.y = (z.x - x.z) * w4;
+            out.z = (x.y - y.x) * w4;
+        } else if x.x > y.y && x.x > z.z {
+            out.x = (f64::sqrt((1.0f32 + x.x - y.y - z.z) as f64) * 0.5f64) as f32;
+            let x4: f32 = 1.0f32 / (4.0f32 * out.x);
+            out.y = (y.x + x.y) * x4;
+            out.z = (z.x + x.z) * x4;
+            out.w = (y.z - z.y) * x4;
+        } else if y.y > z.z {
+            out.y = (f64::sqrt((1.0f32 + y.y - x.x - z.z) as f64) * 0.5f64) as f32;
+            let y4: f32 = 1.0f32 / (4.0f32 * out.y);
+            out.x = (y.x + x.y) * y4;
+            out.z = (z.y + y.z) * y4;
+            out.w = (z.x - x.z) * y4;
+        } else {
+            out.z = (f64::sqrt((1.0f32 + z.z - x.x - y.y) as f64) * 0.5f64) as f32;
+            let z4: f32 = 1.0f32 / (4.0f32 * out.z);
+            out.x = (z.x + x.z) * z4;
+            out.y = (z.y + y.z) * z4;
+            out.w = (x.y - y.x) * z4;
+        }
+        out
+    }
+
     pub fn to_string(&self) -> String {
         format!(
             "({:.4}, {:.4}, {:.4}, {:.4})",
@@ -361,32 +400,7 @@ pub extern "C" fn Quat_FromAxisAngle(axis: &Vec3, radians: f32, out: &mut Quat) 
 
 #[no_mangle]
 pub extern "C" fn Quat_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3, out: &mut Quat) {
-    let r: f32 = x.x + y.y + z.z;
-    if r > 0.0f32 {
-        out.w = (f64::sqrt((r + 1.0f32) as f64) * 0.5f64) as f32;
-        let w4: f32 = 1.0f32 / (4.0f32 * out.w);
-        out.x = (y.z - z.y) * w4;
-        out.y = (z.x - x.z) * w4;
-        out.z = (x.y - y.x) * w4;
-    } else if x.x > y.y && x.x > z.z {
-        out.x = (f64::sqrt((1.0f32 + x.x - y.y - z.z) as f64) * 0.5f64) as f32;
-        let x4: f32 = 1.0f32 / (4.0f32 * out.x);
-        out.y = (y.x + x.y) * x4;
-        out.z = (z.x + x.z) * x4;
-        out.w = (y.z - z.y) * x4;
-    } else if y.y > z.z {
-        out.y = (f64::sqrt((1.0f32 + y.y - x.x - z.z) as f64) * 0.5f64) as f32;
-        let y4: f32 = 1.0f32 / (4.0f32 * out.y);
-        out.x = (y.x + x.y) * y4;
-        out.z = (z.y + y.z) * y4;
-        out.w = (z.x - x.z) * y4;
-    } else {
-        out.z = (f64::sqrt((1.0f32 + z.z - x.x - y.y) as f64) * 0.5f64) as f32;
-        let z4: f32 = 1.0f32 / (4.0f32 * out.z);
-        out.x = (z.x + x.z) * z4;
-        out.y = (z.y + y.z) * z4;
-        out.w = (x.y - y.x) * z4;
-    };
+    *out = Quat::from_basis(x, y, z)
 }
 
 #[no_mangle]

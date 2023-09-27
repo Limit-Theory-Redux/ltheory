@@ -337,10 +337,12 @@ impl RigidBody {
         self.with_rigid_body(|rb| rb.linvel().norm())
     }
 
+    /// Returns the world -> local matrix for this rigid body.
     pub fn get_to_local_matrix(&self) -> Matrix {
         self.get_to_world_matrix().inverted()
     }
 
+    /// Returns the local -> world matrix for this rigid body.
     pub fn get_to_world_matrix(&self) -> Matrix {
         let scale = self.get_scale();
         if let WorldState::AttachedToCompound { parent, .. } = &self.state {
@@ -435,7 +437,7 @@ impl RigidBody {
     }
 
     pub fn get_position(&self) -> Vec3 {
-        self.with_rigid_body(|rb| Vec3::from_na(rb.translation()))
+        self.get_to_world_matrix().get_pos()
     }
 
     pub fn get_position_local(&self) -> Vec3 {
@@ -449,7 +451,8 @@ impl RigidBody {
     pub fn set_position_local(&mut self, pos: &Vec3) {}
 
     pub fn get_rotation(&self) -> Quat {
-        self.with_rigid_body(|rb| Quat::from_na(rb.rotation()))
+        // self.with_rigid_body(|rb| Quat::from_na(rb.rotation()))
+        self.get_to_world_matrix().to_quat()
     }
 
     pub fn get_rotation_local(&mut self) -> Quat {
@@ -588,6 +591,9 @@ impl RigidBody {
     }
 }
 
+/// Convert an nalgebra Isometry to a Matrix.
+///
+/// Note: nalgebra's Matrix struct stores matrices in column-major format, so we need to convert to row-major by transposing.
 fn matrix_from_transform(transform: &rp::Isometry<f32>) -> Matrix {
     let rp_matrix = transform.to_matrix().transpose();
     Matrix::from_slice(rp_matrix.as_slice())

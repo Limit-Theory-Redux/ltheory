@@ -4,6 +4,7 @@ use crate::common::*;
 use crate::internal::*;
 use crate::math::*;
 
+/// A row-major matrix.
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Matrix {
@@ -40,6 +41,13 @@ impl Matrix {
         }
     }
 
+    pub fn to_quat(&self) -> Quat {
+        let x: Vec3 = Vec3::new(self.m[0], self.m[4], self.m[8]);
+        let y: Vec3 = Vec3::new(self.m[1], self.m[5], self.m[9]);
+        let z: Vec3 = Vec3::new(self.m[2], self.m[6], self.m[1]);
+        Quat::from_basis(&x, &y, &z)
+    }
+
     pub fn to_string(&self) -> String {
         format!(
             "[{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\
@@ -63,6 +71,22 @@ impl Matrix {
             self.m[14],
             self.m[15],
         )
+    }
+
+    pub fn get_forward(self) -> Vec3 {
+        Vec3::new(-self.m[2], -self.m[6], -self.m[10])
+    }
+
+    pub fn get_right(self) -> Vec3 {
+        Vec3::new(self.m[0], self.m[4], self.m[8])
+    }
+
+    pub fn get_up(self) -> Vec3 {
+        Vec3::new(self.m[1], self.m[5], self.m[9])
+    }
+
+    pub fn get_pos(self) -> Vec3 {
+        Vec3::new(self.m[3], self.m[7], self.m[11])
     }
 
     pub fn product(&self, other: &Matrix) -> Matrix {
@@ -594,30 +618,22 @@ pub extern "C" fn Matrix_MulVec(this: &Matrix, out: &mut Vec4, x: f32, y: f32, z
 
 #[no_mangle]
 pub extern "C" fn Matrix_GetForward(this: &Matrix, out: &mut Vec3) {
-    out.x = -this.m[2];
-    out.y = -this.m[6];
-    out.z = -this.m[10];
+    *out = this.get_forward();
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_GetRight(this: &Matrix, out: &mut Vec3) {
-    out.x = this.m[0];
-    out.y = this.m[4];
-    out.z = this.m[8];
+    *out = this.get_right();
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_GetUp(this: &Matrix, out: &mut Vec3) {
-    out.x = this.m[1];
-    out.y = this.m[5];
-    out.z = this.m[9];
+    *out = this.get_up();
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_GetPos(this: &Matrix, out: &mut Vec3) {
-    out.x = this.m[3];
-    out.y = this.m[7];
-    out.z = this.m[11];
+    *out = this.get_pos();
 }
 
 #[no_mangle]
