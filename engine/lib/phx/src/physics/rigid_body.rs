@@ -337,13 +337,8 @@ impl RigidBody {
         self.with_rigid_body(|rb| rb.linvel().norm())
     }
 
-    /// Returns the world -> local matrix for this rigid body.
-    pub fn get_to_local_matrix(&self) -> Matrix {
-        self.get_to_world_matrix().inverted()
-    }
-
-    /// Returns the local -> world matrix for this rigid body.
-    pub fn get_to_world_matrix(&self) -> Matrix {
+    /// Returns the unscaled world matrix of this rigid body.
+    fn get_world_matrix_unscaled(&self) -> Matrix {
         if let WorldState::AttachedToCompound { parent, .. } = &self.state {
             let transform =
                 self.with_collider(|c| matrix_from_transform(c.position_wrt_parent().unwrap()));
@@ -354,6 +349,16 @@ impl RigidBody {
         } else {
             self.with_rigid_body(|rb| matrix_from_transform(rb.position()))
         }
+    }
+
+    /// Returns the world -> local matrix for this rigid body.
+    pub fn get_to_local_matrix(&self) -> Matrix {
+        self.get_to_world_matrix().inverted()
+    }
+
+    /// Returns the local -> world matrix for this rigid body.
+    pub fn get_to_world_matrix(&self) -> Matrix {
+        self.get_world_matrix_unscaled().scaled(self.get_scale())
     }
 
     pub fn get_velocity(&self) -> Vec3 {
@@ -435,7 +440,7 @@ impl RigidBody {
     }
 
     pub fn get_position(&self) -> Vec3 {
-        self.get_to_world_matrix().get_pos()
+        self.get_world_matrix_unscaled().get_pos()
     }
 
     pub fn get_position_local(&self) -> Vec3 {
@@ -460,7 +465,7 @@ impl RigidBody {
     }
 
     pub fn get_rotation(&self) -> Quat {
-        self.get_to_world_matrix().to_quat()
+        self.get_world_matrix_unscaled().to_quat()
     }
 
     pub fn get_rotation_local(&mut self) -> Quat {

@@ -41,6 +41,7 @@ impl Matrix {
         }
     }
 
+    /// Note: This assumes that this matrix is not scaled.
     pub fn to_quat(&self) -> Quat {
         let x: Vec3 = Vec3::new(self.m[0], self.m[4], self.m[8]);
         let y: Vec3 = Vec3::new(self.m[1], self.m[5], self.m[9]);
