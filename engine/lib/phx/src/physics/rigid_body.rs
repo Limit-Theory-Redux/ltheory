@@ -451,7 +451,13 @@ impl RigidBody {
         self.with_rigid_body_mut(|rb| rb.set_translation(pos.to_na(), true));
     }
 
-    pub fn set_position_local(&mut self, pos: &Vec3) {}
+    pub fn set_position_local(&mut self, pos: &Vec3) {
+        if let WorldState::AttachedToCompound { .. } = &self.state {
+            let mut isometry = self.with_collider(|c| c.position_wrt_parent().unwrap().clone());
+            isometry.translation.vector = Vec3::to_na(pos);
+            self.with_collider_mut(|c| c.set_position_wrt_parent(isometry));
+        }
+    }
 
     pub fn get_rotation(&self) -> Quat {
         self.get_to_world_matrix().to_quat()
@@ -470,7 +476,13 @@ impl RigidBody {
         self.with_rigid_body_mut(|rb| rb.set_rotation(rot.to_na(), true));
     }
 
-    pub fn set_rotation_local(&mut self, rot: &Quat) {}
+    pub fn set_rotation_local(&mut self, rot: &Quat) {
+        if let WorldState::AttachedToCompound { .. } = &self.state {
+            let mut isometry = self.with_collider(|c| c.position_wrt_parent().unwrap().clone());
+            isometry.rotation = Quat::to_na(rot);
+            self.with_collider_mut(|c| c.set_position_wrt_parent(isometry));
+        }
+    }
 
     pub fn get_scale(&self) -> f32 {
         self.shape_scale
