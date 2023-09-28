@@ -344,17 +344,15 @@ impl RigidBody {
 
     /// Returns the local -> world matrix for this rigid body.
     pub fn get_to_world_matrix(&self) -> Matrix {
-        let scale = self.get_scale();
         if let WorldState::AttachedToCompound { parent, .. } = &self.state {
-            let child_transform =
+            let transform =
                 self.with_collider(|c| matrix_from_transform(c.position_wrt_parent().unwrap()));
-            unsafe { &**parent }.with_rigid_body(|rb| {
+            let parent_transform = unsafe { &**parent }.with_rigid_body(|rb| {
                 matrix_from_transform(rb.position())
-                    .scaled(scale)
-                    .product(&child_transform)
-            })
+            });
+            parent_transform.product(&transform)
         } else {
-            self.with_rigid_body(|rb| matrix_from_transform(rb.position()).scaled(scale))
+            self.with_rigid_body(|rb| matrix_from_transform(rb.position()))
         }
     }
 
@@ -441,7 +439,12 @@ impl RigidBody {
     }
 
     pub fn get_position_local(&self) -> Vec3 {
-        Vec3::ZERO
+        if let WorldState::AttachedToCompound { .. } = &self.state {
+            let translation = self.with_collider(|c| c.position_wrt_parent().unwrap().translation.vector);
+            Vec3::from_na(&translation)
+        } else {
+            Vec3::ZERO
+        }
     }
 
     pub fn set_position(&mut self, pos: &Vec3) {
@@ -451,13 +454,16 @@ impl RigidBody {
     pub fn set_position_local(&mut self, pos: &Vec3) {}
 
     pub fn get_rotation(&self) -> Quat {
-        // self.with_rigid_body(|rb| Quat::from_na(rb.rotation()))
         self.get_to_world_matrix().to_quat()
     }
 
     pub fn get_rotation_local(&mut self) -> Quat {
-        // TODO
-        self.with_rigid_body(|rb| Quat::from_na(rb.rotation()))
+        if let WorldState::AttachedToCompound { .. } = &self.state {
+            let rotation = self.with_collider(|c| c.position_wrt_parent().unwrap().rotation);
+            Quat::from_na(&rotation)
+        } else {
+            Quat::IDENTITY
+        }
     }
 
     pub fn set_rotation(&mut self, rot: &mut Quat) {

@@ -18,8 +18,8 @@ impl Matrix {
     /// Identity.
     pub const IDENTITY: Self = Matrix {
         m: [
-            1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
-            0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32,
+            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+            0.0, 0.0, 0.0, 0.0, 1.0,
         ],
     };
 
@@ -35,8 +35,8 @@ impl Matrix {
         let y: Vec3 = Vec3::cross(z, x);
         Matrix {
             m: [
-                x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
-                0.0f32, 1.0f32,
+                x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0,
+                0.0, 1.0,
             ],
         }
     }
@@ -44,7 +44,7 @@ impl Matrix {
     pub fn to_quat(&self) -> Quat {
         let x: Vec3 = Vec3::new(self.m[0], self.m[4], self.m[8]);
         let y: Vec3 = Vec3::new(self.m[1], self.m[5], self.m[9]);
-        let z: Vec3 = Vec3::new(self.m[2], self.m[6], self.m[1]);
+        let z: Vec3 = Vec3::new(self.m[2], self.m[6], self.m[10]);
         Quat::from_basis(&x, &y, &z)
     }
 
@@ -94,7 +94,7 @@ impl Matrix {
         let mut index = 0;
         for i in 0..4 {
             for j in 0..4 {
-                let mut sum: f32 = 0.0f32;
+                let mut sum: f32 = 0.0;
                 for k in 0..4 {
                     sum += self.m[(4 * i + k) as usize] * other.m[(4 * k + j) as usize];
                 }
@@ -227,7 +227,7 @@ impl Matrix {
                 + *src.offset(4) * *src.offset(2) * *src.offset(9)
                 + *src.offset(8) * *src.offset(1) * *src.offset(6)
                 - *src.offset(8) * *src.offset(2) * *src.offset(5);
-            let det: f32 = 1.0f32
+            let det: f32 = 1.0
                 / (*src.offset(0) * *dst.offset(0)
                     + *src.offset(1) * *dst.offset(4)
                     + *src.offset(2) * *dst.offset(8)
@@ -357,8 +357,8 @@ pub extern "C" fn Matrix_LookAt(pos: &Vec3, at: &Vec3, up: &Vec3) -> Box<Matrix>
     let y: Vec3 = Vec3::cross(z, x);
     let result: Matrix = Matrix {
         m: [
-            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
-            0.0f32, 1.0f32,
+            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0,
+            0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -366,13 +366,13 @@ pub extern "C" fn Matrix_LookAt(pos: &Vec3, at: &Vec3, up: &Vec3) -> Box<Matrix>
 
 #[no_mangle]
 pub extern "C" fn Matrix_LookUp(pos: &Vec3, look: &Vec3, up: &Vec3) -> Box<Matrix> {
-    let z: Vec3 = (*look * -1.0f32).normalize();
+    let z: Vec3 = (*look * -1.0).normalize();
     let x: Vec3 = Vec3::cross(*up, z).normalize();
     let y: Vec3 = Vec3::cross(z, x);
     let result: Matrix = Matrix {
         m: [
-            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
-            0.0f32, 1.0f32,
+            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0,
+            0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -385,21 +385,21 @@ pub extern "C" fn Matrix_Perspective(degreesFovy: f32, aspect: f32, N: f32, F: f
     let result: Matrix = Matrix {
         m: [
             (cot / aspect as f64) as f32,
-            0.0f32,
-            0.0f32,
-            0.0f32,
-            0.0f32,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             cot as f32,
-            0.0f32,
-            0.0f32,
-            0.0f32,
-            0.0f32,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
             (N + F) / (N - F),
             (2.0f64 * (F * N) as f64 / (N - F) as f64) as f32,
-            0.0f32,
-            0.0f32,
-            -1.0f32,
-            0.0f32,
+            0.0,
+            0.0,
+            -1.0,
+            0.0,
         ],
     };
     Box::new(result)
@@ -416,8 +416,8 @@ pub extern "C" fn Matrix_RotationX(rads: f32) -> Box<Matrix> {
     let s: f32 = f64::sin(rads as f64) as f32;
     let result: Matrix = Matrix {
         m: [
-            1.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32, c, -s, 0.0f32, 0.0f32, s, c, 0.0f32, 0.0f32,
-            0.0f32, 0.0f32, 1.0f32,
+            1.0, 0.0, 0.0, 0.0, 0.0, c, -s, 0.0, 0.0, s, c, 0.0, 0.0,
+            0.0, 0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -429,8 +429,8 @@ pub extern "C" fn Matrix_RotationY(rads: f32) -> Box<Matrix> {
     let s: f32 = f64::sin(rads as f64) as f32;
     let result: Matrix = Matrix {
         m: [
-            c, 0.0f32, s, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32, -s, 0.0f32, c, 0.0f32, 0.0f32,
-            0.0f32, 0.0f32, 1.0f32,
+            c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0,
+            0.0, 0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -442,8 +442,8 @@ pub extern "C" fn Matrix_RotationZ(rads: f32) -> Box<Matrix> {
     let s: f32 = f64::sin(rads as f64) as f32;
     let result: Matrix = Matrix {
         m: [
-            c, -s, 0.0f32, 0.0f32, s, c, 0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32, 0.0f32,
-            0.0f32, 0.0f32, 1.0f32,
+            c, -s, 0.0, 0.0, s, c, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -453,8 +453,8 @@ pub extern "C" fn Matrix_RotationZ(rads: f32) -> Box<Matrix> {
 pub extern "C" fn Matrix_Scaling(sx: f32, sy: f32, sz: f32) -> Box<Matrix> {
     let result: Matrix = Matrix {
         m: [
-            sx, 0.0f32, 0.0f32, 0.0f32, 0.0f32, sy, 0.0f32, 0.0f32, 0.0f32, 0.0f32, sz, 0.0f32,
-            0.0f32, 0.0f32, 0.0f32, 1.0f32,
+            sx, 0.0, 0.0, 0.0, 0.0, sy, 0.0, 0.0, 0.0, 0.0, sz, 0.0,
+            0.0, 0.0, 0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -484,8 +484,8 @@ pub extern "C" fn Matrix_SRT(
 pub extern "C" fn Matrix_Translation(tx: f32, ty: f32, tz: f32) -> Box<Matrix> {
     let result: Matrix = Matrix {
         m: [
-            1.0f32, 0.0f32, 0.0f32, tx, 0.0f32, 1.0f32, 0.0f32, ty, 0.0f32, 0.0f32, 1.0f32, tz,
-            0.0f32, 0.0f32, 0.0f32, 1.0f32,
+            1.0, 0.0, 0.0, tx, 0.0, 1.0, 0.0, ty, 0.0, 0.0, 1.0, tz,
+            0.0, 0.0, 0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -504,19 +504,19 @@ pub extern "C" fn Matrix_YawPitchRoll(yaw: f32, pitch: f32, roll: f32) -> Box<Ma
             ca * cb,
             ca * sb * sy - sa * cy,
             ca * sb * cy + sa * sy,
-            0.0f32,
+            0.0,
             sa * cb,
             sa * sb * sy + ca * cy,
             sa * sb * cy - ca * sy,
-            0.0f32,
+            0.0,
             -sb,
             cb * sy,
             cb * cy,
-            0.0f32,
-            0.0f32,
-            0.0f32,
-            0.0f32,
-            1.0f32,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
         ],
     };
     Box::new(result)
@@ -648,8 +648,8 @@ pub extern "C" fn Matrix_GetRow(this: &Matrix, out: &mut Vec4, row: i32) {
 pub extern "C" fn Matrix_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3) -> Box<Matrix> {
     let result: Matrix = Matrix {
         m: [
-            x.x, y.x, z.x, 0.0f32, x.y, y.y, z.y, 0.0f32, x.z, y.z, z.z, 0.0f32, 0.0f32, 0.0f32,
-            0.0f32, 1.0f32,
+            x.x, y.x, z.x, 0.0, x.y, y.y, z.y, 0.0, x.z, y.z, z.z, 0.0, 0.0, 0.0,
+            0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -665,8 +665,8 @@ pub extern "C" fn Matrix_FromPosRot(pos: &Vec3, rot: &Quat) -> Box<Matrix> {
     Quat_GetAxisZ(rot, &mut z);
     let result: Matrix = Matrix {
         m: [
-            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
-            0.0f32, 1.0f32,
+            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0,
+            0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -694,10 +694,10 @@ pub extern "C" fn Matrix_FromPosRotScale(pos: &Vec3, rot: &Quat, scale: f32) -> 
             scale * y.z,
             scale * z.z,
             pos.z,
-            0.0f32,
-            0.0f32,
-            0.0f32,
-            1.0f32,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
         ],
     };
     Box::new(result)
@@ -707,8 +707,8 @@ pub extern "C" fn Matrix_FromPosRotScale(pos: &Vec3, rot: &Quat, scale: f32) -> 
 pub extern "C" fn Matrix_FromPosBasis(pos: &Vec3, x: &Vec3, y: &Vec3, z: &Vec3) -> Box<Matrix> {
     let result: Matrix = Matrix {
         m: [
-            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0f32, 0.0f32,
-            0.0f32, 1.0f32,
+            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0,
+            0.0, 1.0,
         ],
     };
     Box::new(result)
@@ -724,8 +724,8 @@ pub extern "C" fn Matrix_FromQuat(q: &Quat) -> Box<Matrix> {
     Quat_GetAxisZ(q, &mut z);
     let result: Matrix = Matrix {
         m: [
-            x.x, y.x, z.x, 0.0f32, x.y, y.y, z.y, 0.0f32, x.z, y.z, z.z, 0.0f32, 0.0f32, 0.0f32,
-            0.0f32, 1.0f32,
+            x.x, y.x, z.x, 0.0, x.y, y.y, z.y, 0.0, x.z, y.z, z.z, 0.0, 0.0, 0.0,
+            0.0, 1.0,
         ],
     };
     Box::new(result)
