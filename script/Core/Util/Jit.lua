@@ -2,7 +2,7 @@ local Config = require('Config.JIT')
 
 local jp     = require('jit.p')
 local jv     = require('jit.v')
-local jd     = require('jit.dump2')
+local jd     = require('jit.dump')
 local bc     = require('jit.bc')
 
 local Jit    = {}
