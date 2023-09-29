@@ -258,8 +258,6 @@ end
 
 function Entity:setDrag(linear, angular)
     assert(self.body)
-    linear  = 1 - exp(-linear);
-    angular = 1 - exp(-angular);
     self.body:setDrag(linear, angular)
 end
 

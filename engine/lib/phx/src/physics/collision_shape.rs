@@ -44,7 +44,7 @@ impl CollisionShape {
         CollisionShape {
             scale: scale,
             shape: shape,
-            collider: builder.build(),
+            collider: builder.restitution(0.4).build(),
         }
     }
 
