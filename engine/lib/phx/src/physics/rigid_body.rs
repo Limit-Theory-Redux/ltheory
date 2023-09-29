@@ -342,9 +342,8 @@ impl RigidBody {
         if let WorldState::AttachedToCompound { parent, .. } = &self.state {
             let transform =
                 self.with_collider(|c| matrix_from_transform(c.position_wrt_parent().unwrap()));
-            let parent_transform = unsafe { &**parent }.with_rigid_body(|rb| {
-                matrix_from_transform(rb.position())
-            });
+            let parent_transform =
+                unsafe { &**parent }.with_rigid_body(|rb| matrix_from_transform(rb.position()));
             parent_transform.product(&transform)
         } else {
             self.with_rigid_body(|rb| matrix_from_transform(rb.position()))
@@ -445,7 +444,8 @@ impl RigidBody {
 
     pub fn get_position_local(&self) -> Vec3 {
         if let WorldState::AttachedToCompound { .. } = &self.state {
-            let translation = self.with_collider(|c| c.position_wrt_parent().unwrap().translation.vector);
+            let translation =
+                self.with_collider(|c| c.position_wrt_parent().unwrap().translation.vector);
             Vec3::from_na(&translation)
         } else {
             Vec3::ZERO

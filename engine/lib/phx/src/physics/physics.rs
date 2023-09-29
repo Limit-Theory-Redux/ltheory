@@ -1,5 +1,6 @@
 use crate::math::*;
 use crate::physics::*;
+use rapier3d::parry::query::RayCast;
 use rapier3d::prelude as rp;
 use rapier3d::prelude::nalgebra as na;
 use std::cell::RefCell;
@@ -155,6 +156,51 @@ impl Physics {
             rb.reset_torques(false);
         }
     }
+
+    pub fn rayCast(&self, ray: &Ray) -> RayCastResult {
+        let from = {
+            let mut data = Vec3::ZERO;
+            Ray_GetPoint(ray, ray.tMin, &mut data);
+            data.to_na_point()
+        };
+        let to = {
+            let mut data = Vec3::ZERO;
+            Ray_GetPoint(ray, ray.tMax, &mut data);
+            data.to_na_point()
+        };
+        let dir = to - from;
+        let length = dir.norm();
+
+        let ray = rp::Ray::new(from, dir / length);
+        let filter = rp::QueryFilter::default();
+
+        let mut result = RayCastResult {
+            body: std::ptr::null_mut(),
+            norm: Vec3::ZERO,
+            pos: Vec3::ZERO,
+            t: 0.0,
+        };
+        if let Some((handle, intersection)) = self.query_pipeline.cast_ray_and_get_normal(
+            &self.world.borrow().rigid_body_set,
+            &self.world.borrow().collider_set,
+            &ray,
+            length,
+            true,
+            filter,
+        ) {
+            if let Some(collider) = self.world.borrow().collider_set.get(handle) {
+                let rigid_body_handle = collider.parent().unwrap();
+                result.body = *self
+                    .rigid_body_map
+                    .get(&rigid_body_handle)
+                    .unwrap_or(&std::ptr::null_mut());
+                result.pos = Vec3::from_na_point(&ray.point_at(intersection.toi));
+                result.norm = Vec3::from_na(&intersection.normal);
+                result.t = intersection.toi;
+            }
+        }
+        result
+    }
 }
 
 #[no_mangle]
@@ -194,71 +240,43 @@ pub unsafe extern "C" fn Physics_Update(this: &mut Physics, dt: f32) {
 #[no_mangle]
 pub unsafe extern "C" fn Physics_RayCast(
     this: &mut Physics,
-    ray: &mut Ray,
+    ray: &Ray,
     result: &mut RayCastResult,
 ) {
-    let from = {
-        let mut data = Vec3::ZERO;
-        Ray_GetPoint(ray, ray.tMin, &mut data);
-        data.to_na_point()
-    };
-    let to = {
-        let mut data = Vec3::ZERO;
-        Ray_GetPoint(ray, ray.tMax, &mut data);
-        data.to_na_point()
-    };
-    let dir = to - from;
-    let length = dir.norm();
-
-    let ray = rp::Ray::new(from, dir / length);
-    let filter = rp::QueryFilter::default();
-    if let Some((handle, toi)) = this.query_pipeline.cast_ray(
-        &this.world.borrow().rigid_body_set,
-        &this.world.borrow().collider_set,
-        &ray,
-        length,
-        true,
-        filter,
-    ) {
-        if let Some(collider) = this.world.borrow().collider_set.get(handle) {
-            let rigid_body_handle = collider.parent().unwrap();
-            result.body = *this
-                .rigid_body_map
-                .get(&rigid_body_handle)
-                .unwrap_or(&std::ptr::null_mut());
-        }
-    }
+    *result = this.rayCast(ray);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_SphereCast(
     this: &mut Physics,
-    sphere: *mut Sphere,
-    result: *mut ShapeCastResult,
+    sphere: &Sphere,
+    result: &mut ShapeCastResult,
 ) {
+    // *result = this.sphereCast(sphere);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_BoxCast(
     this: &mut Physics,
-    pos: *mut Vec3,
-    rot: *mut Quat,
-    halfExtents: *mut Vec3,
-    result: *mut ShapeCastResult,
+    pos: &Vec3,
+    rot: &Quat,
+    halfExtents: &Vec3,
+    result: &mut ShapeCastResult,
 ) {
+    // *result = this.boxCast(pos, rot, halfExtents);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Physics_SphereOverlap(this: &mut Physics, sphere: *mut Sphere) -> bool {
+pub unsafe extern "C" fn Physics_SphereOverlap(this: &mut Physics, sphere: &Sphere) -> bool {
     false
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Physics_BoxOverlap(
     this: &mut Physics,
-    pos: *mut Vec3,
-    rot: *mut Quat,
-    halfExtents: *mut Vec3,
+    pos: &Vec3,
+    rot: &Quat,
+    halfExtents: &Vec3,
 ) -> bool {
     false
 }
