@@ -147,14 +147,17 @@ function UniverseEconomy:OnUpdate(dt)
             print("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
         end
 
-        if self.econDelta > self.nextUpdate then
-            -- Low Attention
-            for _, system in ipairs(self.systems.lowAttention) do
-                -- Handle Low Attention Systems
-                self:HandleLowAttention(system)
-            end
-            self.nextUpdate = self.econDelta + Config.econ.lowAttentionUpdateRate
+        -- Handle High Attention Systems
+        self:HandleHighAttention(system)
+    end
+
+    if self.econDelta > self.nextUpdate then
+        -- Low Attention
+        for _, system in ipairs(self.systems.lowAttention) do
+            -- Handle Low Attention Systems
+            self:HandleLowAttention(system)
         end
+        self.nextUpdate = self.econDelta + Config.econ.lowAttentionUpdateRate
     end
 end
 
