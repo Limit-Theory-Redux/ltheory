@@ -7,7 +7,7 @@ Config.orgInfo                   = {
 }
 
 Config.gameTitle                 = "Limit Theory Redux"
-Config.gameVersion               = "v0.008"
+Config.gameVersion               = "0.0.0"
 
 Config.userInitFilename          = "user.ini"
 
