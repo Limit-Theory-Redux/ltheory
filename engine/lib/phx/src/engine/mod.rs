@@ -542,19 +542,19 @@ impl Engine {
                                 .window
                                 .set_physical_cursor_position(Some(physical_position));
 
-                            engine.input.update_cursor(device_id, |state| {
+                            engine.input.update_mouse(device_id, |state| {
                                 state.update_position(position.x as f32, position.y as f32)
                             });
                         }
                         WindowEvent::CursorEntered { device_id } => {
                             engine
                                 .input
-                                .update_cursor(device_id, |state| state.update_in_window(true));
+                                .update_mouse(device_id, |state| state.update_in_window(true));
                         }
                         WindowEvent::CursorLeft { device_id } => {
                             engine.window.set_physical_cursor_position(None);
 
-                            engine.input.update_cursor(device_id, |state| {
+                            engine.input.update_mouse(device_id, |state| {
                                 state.update_in_window(false);
                                 true
                             });
@@ -755,13 +755,11 @@ impl Engine {
                     // }
                 }
                 event::Event::DeviceEvent {
-                    device_id,
-                    event: DeviceEvent::MouseMotion { delta: (x, y) },
+                    // device_id,
+                    // event: DeviceEvent::MouseMotion { delta: (x, y) },
                     ..
                 } => {
-                    engine.input.update_mouse(device_id, |state| {
-                        state.update_position_delta(x as f32, y as f32)
-                    });
+                    // This shows only direction: 1, -1, 0
                 }
                 event::Event::Suspended => {
                     engine.frame_state.active = false;

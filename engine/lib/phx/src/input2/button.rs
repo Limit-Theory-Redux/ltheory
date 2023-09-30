@@ -393,6 +393,9 @@ buttons! {
         (KeyboardCut, Cut),
     ]
     MouseControl(as_mouse_control): [
+        // Position
+        (MouseX, X),
+        (MouseY, Y),
         // Buttons
         (MouseLeft, Left),
         (MouseMiddle, Middle),

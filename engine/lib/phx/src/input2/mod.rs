@@ -36,7 +36,6 @@ pub struct Input {
     user_changes: Vec<UserChange>,
 
     // TODO: add support for multiple devices per type (like with gamepad)
-    cursor_state: CursorState,
     keyboard_state: KeyboardState,
     mouse_state: MouseState,
     touchpad_state: TouchpadState,
@@ -62,19 +61,6 @@ impl Input {
         self.drag_and_drop_state.reset();
 
         self.last_timestamp = TimeStamp::now();
-    }
-
-    pub fn update_cursor(
-        &mut self,
-        device_id: DeviceId,
-        mut f: impl FnMut(&mut CursorState) -> bool,
-    ) -> bool {
-        if f(&mut self.cursor_state) {
-            self.set_active_device(InputDeviceType::Cursor, device_id);
-            true
-        } else {
-            false
-        }
     }
 
     pub fn update_keyboard(
@@ -150,10 +136,6 @@ impl Input {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl Input {
-    pub fn cursor(&self) -> &CursorState {
-        &self.cursor_state
-    }
-
     pub fn keyboard(&self) -> &KeyboardState {
         &self.keyboard_state
     }

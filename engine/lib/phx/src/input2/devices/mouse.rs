@@ -7,6 +7,9 @@ use crate::{input2::*, system::TimeStamp};
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MouseControl {
+    X,
+    Y,
+
     Left,
     Middle,
     Right,
@@ -25,6 +28,8 @@ pub struct MouseState {
     control_state: ControlState,
     button_state: ButtonState<{ MouseControl::SIZE }>,
     axis_state: AxisState<{ MouseControl::SIZE }>,
+
+    in_window: bool,
 }
 
 impl MouseState {
@@ -49,12 +54,6 @@ impl MouseState {
             && self.control_state.update()
     }
 
-    pub fn update_position_delta(&mut self, x: f32, y: f32) -> bool {
-        self.axis_state.update(MouseControl::DeltaX as _, x)
-            && self.axis_state.update(MouseControl::DeltaY as _, y)
-            && self.control_state.update()
-    }
-
     pub fn update_scroll_pixel(&mut self, x: f32, y: f32) -> bool {
         self.axis_state.update(MouseControl::ScrollX as _, x)
             && self.axis_state.update(MouseControl::ScrollY as _, y)
@@ -65,6 +64,27 @@ impl MouseState {
         self.axis_state.update(MouseControl::ScrollLineX as _, x)
             && self.axis_state.update(MouseControl::ScrollLineY as _, y)
             && self.control_state.update()
+    }
+
+    pub fn update_position(&mut self, x: f32, y: f32) -> bool {
+        let prev_x = self.axis_state.value(MouseControl::X as _);
+        let prev_y = self.axis_state.value(MouseControl::Y as _);
+
+        self.axis_state.update(MouseControl::X as _, x)
+            && self.axis_state.update(MouseControl::Y as _, y)
+            && self
+                .axis_state
+                .update(MouseControl::DeltaX as _, x - prev_x)
+            && self
+                .axis_state
+                .update(MouseControl::DeltaY as _, y - prev_y)
+            && self.control_state.update()
+    }
+
+    pub fn update_in_window(&mut self, in_window: bool) -> bool {
+        self.in_window = in_window;
+
+        self.control_state.update()
     }
 }
 
@@ -105,5 +125,16 @@ impl MouseState {
         let y = self.axis_state.value(MouseControl::ScrollLineY as _);
 
         Vec2::new(x, y)
+    }
+
+    pub fn position(&self) -> Vec2 {
+        let x = self.axis_state.value(MouseControl::X as _);
+        let y = self.axis_state.value(MouseControl::Y as _);
+
+        Vec2::new(x, y)
+    }
+
+    pub fn in_window(&self) -> bool {
+        self.in_window
     }
 }

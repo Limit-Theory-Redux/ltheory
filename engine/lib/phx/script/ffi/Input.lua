@@ -5,7 +5,6 @@ local Input
 
 do -- C Definitions
     ffi.cdef [[
-        CursorState const*      Input_Cursor                 (Input const*);
         KeyboardState const*    Input_Keyboard               (Input const*);
         MouseState const*       Input_Mouse                  (Input const*);
         TouchpadState const*    Input_Touchpad               (Input const*);
@@ -29,7 +28,6 @@ end
 
 do -- Global Symbol Table
     Input = {
-        Cursor                 = libphx.Input_Cursor,
         Keyboard               = libphx.Input_Keyboard,
         Mouse                  = libphx.Input_Mouse,
         Touchpad               = libphx.Input_Touchpad,
@@ -58,7 +56,6 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Input')
     local mt = {
         __index = {
-            cursor                 = libphx.Input_Cursor,
             keyboard               = libphx.Input_Keyboard,
             mouse                  = libphx.Input_Mouse,
             touchpad               = libphx.Input_Touchpad,

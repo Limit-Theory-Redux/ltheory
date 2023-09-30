@@ -625,12 +625,9 @@ pub unsafe extern "C" fn HmGui_End(input: &Input) {
         this.focus[i as usize] = 0;
     }
 
-    let cursor = input.cursor();
+    let mouse = input.mouse();
 
-    this.focusPos = Vec2::new(
-        cursor.value(CursorControl::X),
-        cursor.value(CursorControl::Y),
-    );
+    this.focusPos = Vec2::new(mouse.value(MouseControl::X), mouse.value(MouseControl::Y));
 
     HmGui_CheckFocus(this.root);
     Profiler_End();

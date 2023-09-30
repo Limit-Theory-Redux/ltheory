@@ -106,7 +106,7 @@ end
 function Canvas:update(dt)
     Profiler.Begin('Canvas.Update')
     local s = self.state
-    local mp = InputInstance:cursor():position()
+    local mp = InputInstance:mouse():position()
     s.dt = dt
     s.mousePosX = mp.x
     s.mousePosY = mp.y

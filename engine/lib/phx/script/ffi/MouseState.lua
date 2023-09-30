@@ -12,6 +12,8 @@ do -- C Definitions
         Vec2f MouseState_Delta      (MouseState const*);
         Vec2f MouseState_Scroll     (MouseState const*);
         Vec2f MouseState_ScrollLine (MouseState const*);
+        Vec2f MouseState_Position   (MouseState const*);
+        bool  MouseState_InWindow   (MouseState const*);
     ]]
 end
 
@@ -24,6 +26,8 @@ do -- Global Symbol Table
         Delta      = libphx.MouseState_Delta,
         Scroll     = libphx.MouseState_Scroll,
         ScrollLine = libphx.MouseState_ScrollLine,
+        Position   = libphx.MouseState_Position,
+        InWindow   = libphx.MouseState_InWindow,
     }
 
     if onDef_MouseState then onDef_MouseState(MouseState, mt) end
@@ -41,6 +45,8 @@ do -- Metatype for class instances
             delta      = libphx.MouseState_Delta,
             scroll     = libphx.MouseState_Scroll,
             scrollLine = libphx.MouseState_ScrollLine,
+            position   = libphx.MouseState_Position,
+            inWindow   = libphx.MouseState_InWindow,
         },
     }
 

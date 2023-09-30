@@ -119,7 +119,7 @@ function AudioTest:onInput()
     end
 
     if InputInstance:isDown(Button.MouseRight) then
-        local is = InputInstance:cursor():position()
+        local is = InputInstance:mouse():position()
         self.pos.x = is.mousePosition.x
         self.pos.z = is.mousePosition.y
     end
