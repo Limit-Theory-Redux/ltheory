@@ -536,11 +536,11 @@ impl Engine {
                             position,
                             ..
                         } => {
-                            let physical_position = DVec2::new(position.x, position.y);
+                            // let physical_position = DVec2::new(position.x, position.y);
 
-                            engine
-                                .window
-                                .set_physical_cursor_position(Some(physical_position));
+                            // engine
+                            //     .window
+                            //     .set_physical_cursor_position(Some(physical_position));
 
                             engine.input.update_mouse(device_id, |state| {
                                 state.update_position(position.x as f32, position.y as f32)
@@ -552,7 +552,7 @@ impl Engine {
                                 .update_mouse(device_id, |state| state.update_in_window(true));
                         }
                         WindowEvent::CursorLeft { device_id } => {
-                            engine.window.set_physical_cursor_position(None);
+                            // engine.window.set_physical_cursor_position(None);
 
                             engine.input.update_mouse(device_id, |state| {
                                 state.update_in_window(false);
