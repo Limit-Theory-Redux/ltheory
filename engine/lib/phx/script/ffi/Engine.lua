@@ -5,16 +5,16 @@ local Engine
 
 do -- C Definitions
     ffi.cdef [[
-        Window*      Engine_Window     (Engine*);
-        Input const* Engine_Input      (Engine const*);
-        void         Engine_Free       ();
-        void         Engine_Abort      ();
-        int          Engine_GetBits    ();
-        double       Engine_GetTime    (Engine const*);
-        cstr         Engine_GetVersion ();
-        void         Engine_Exit       (Engine*);
-        void         Engine_Terminate  ();
-        void         Engine_Update     ();
+        Window* Engine_Window     (Engine*);
+        Input*  Engine_Input      (Engine*);
+        void    Engine_Free       ();
+        void    Engine_Abort      ();
+        int     Engine_GetBits    ();
+        double  Engine_GetTime    (Engine const*);
+        cstr    Engine_GetVersion ();
+        void    Engine_Exit       (Engine*);
+        void    Engine_Terminate  ();
+        void    Engine_Update     ();
     ]]
 end
 

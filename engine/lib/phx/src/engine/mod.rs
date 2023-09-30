@@ -879,8 +879,8 @@ impl Engine {
         &mut self.window
     }
 
-    pub fn input(&self) -> &Input {
-        &self.input
+    pub fn input(&mut self) -> &mut Input {
+        &mut self.input
     }
 
     pub fn free() {

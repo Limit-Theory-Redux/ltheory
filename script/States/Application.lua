@@ -57,7 +57,7 @@ function Application:appInit()
     self.audio   = Audio.Create()
     self.audiofx = Audio.Create()
 
-    GameState.render.gameWindow = Window
+    GameState.render.gameWindow = WindowInstance
 
     self.exit = false
 
@@ -96,7 +96,7 @@ function Application:onFrame()
 
     Profiler.SetValue('gcmem', GC.GetMemory())
     Profiler.Begin('Frame')
-    Engine.Update()
+    -- Engine.Update()
 
     do
         Profiler.SetValue('gcmem', GC.GetMemory())

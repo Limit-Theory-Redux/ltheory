@@ -19,7 +19,7 @@ function InputTest:onUpdate(dt)
     for i = 1, Input.GetEventCount() do
         local event = InputEvent()
         Input.GetNextEvent(event)
-        if event.deviceType == DeviceType.Gamepad and
+        if event.deviceType == InputDeviceType.Gamepad and
             (Bit.Has32(event.state, State.Pressed) or
                 Bit.Has32(event.state, State.Released))
         then
