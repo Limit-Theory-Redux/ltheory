@@ -388,7 +388,9 @@ impl Engine {
             // }
 
             if engine.exit_app {
-                *control_flow = ControlFlow::Exit;
+                call_lua_func(&engine, "AppClose");
+
+                control_flow.set_exit();
                 return;
             }
 
@@ -510,11 +512,9 @@ impl Engine {
                             // });
                         }
                         WindowEvent::CloseRequested => {
-                            // window_events
-                            //     .window_close_requested
-                            //     .send(WindowCloseRequested {
-                            //         window: window_entity,
-                            //     });
+                            call_lua_func(&engine, "AppClose");
+
+                            control_flow.set_exit();
                         }
                         WindowEvent::KeyboardInput {
                             device_id,
@@ -779,12 +779,7 @@ impl Engine {
                         engine.input.update_gamepad(|state| state.update());
 
                         // Let Lua script perform frame operations
-                        {
-                            let globals = engine.lua.globals();
-                            let app_frame_func: Function = globals.get("AppFrame").unwrap();
-
-                            app_frame_func.call::<_, ()>(()).unwrap();
-                        }
+                        call_lua_func(&engine, "AppFrame");
 
                         // Apply window changes made by a script
                         engine.changed_window();
@@ -939,4 +934,11 @@ impl Engine {
             Profiler_End();
         }
     }
+}
+
+fn call_lua_func(engine: &Engine, func_name: &str) {
+    let globals = engine.lua.globals();
+    let app_frame_func: Function = globals.get(func_name).unwrap();
+
+    app_frame_func.call::<_, ()>(()).unwrap();
 }
