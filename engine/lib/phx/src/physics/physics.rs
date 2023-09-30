@@ -25,17 +25,15 @@ PHX_API void      _cppPhysics_DrawWireframes          (Physics*);
 
  */
 
+use super::*;
 use crate::math::*;
 
 extern "C" {
     pub type Physics;
-    pub type RigidBody;
-    pub type Trigger;
     pub type Collision;
     pub type Sphere;
     pub type RayCastResult;
     pub type ShapeCastResult;
-    pub type Quat;
     fn _cppPhysics_Create() -> *mut Physics;
     fn _cppPhysics_Free(_: *mut Physics);
     fn _cppPhysics_AddRigidBody(_: *mut Physics, _: *mut RigidBody);

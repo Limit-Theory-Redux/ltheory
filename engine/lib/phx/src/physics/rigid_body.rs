@@ -50,19 +50,17 @@ PHX_API void        _cppRigidBody_SetScale                     (RigidBody*, floa
 
 */
 
-use crate::math::Vec3;
+use crate::math::*;
+use crate::render::*;
 
 extern "C" {
     pub type RigidBody;
-    pub type Mesh;
-    pub type Quat;
-    pub type Box3;
-    pub type Matrix;
+    pub type _Mesh; // Opaque mesh type to squash the warnings, as mesh::Mesh is not FFI safe, but it doesn't matter.
     fn _cppRigidBody_CreateBox() -> *mut RigidBody;
-    fn _cppRigidBody_CreateBoxFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
+    fn _cppRigidBody_CreateBoxFromMesh(mesh: *mut _Mesh) -> *mut RigidBody;
     fn _cppRigidBody_CreateSphere() -> *mut RigidBody;
-    fn _cppRigidBody_CreateSphereFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
-    fn _cppRigidBody_CreateHullFromMesh(mesh: *mut Mesh) -> *mut RigidBody;
+    fn _cppRigidBody_CreateSphereFromMesh(mesh: *mut _Mesh) -> *mut RigidBody;
+    fn _cppRigidBody_CreateHullFromMesh(mesh: *mut _Mesh) -> *mut RigidBody;
     fn _cppRigidBody_Free(this: &mut RigidBody);
     fn _cppRigidBody_ApplyForce(this: &mut RigidBody, force: *mut Vec3);
     fn _cppRigidBody_ApplyTorque(this: &mut RigidBody, torque: *mut Vec3);
@@ -113,7 +111,7 @@ pub unsafe extern "C" fn RigidBody_CreateBox() -> *mut RigidBody {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_CreateBoxFromMesh(mesh: *mut Mesh) -> *mut RigidBody {
+pub unsafe extern "C" fn RigidBody_CreateBoxFromMesh(mesh: *mut _Mesh) -> *mut RigidBody {
     _cppRigidBody_CreateBoxFromMesh(mesh)
 }
 
@@ -123,12 +121,12 @@ pub unsafe extern "C" fn RigidBody_CreateSphere() -> *mut RigidBody {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_CreateSphereFromMesh(mesh: *mut Mesh) -> *mut RigidBody {
+pub unsafe extern "C" fn RigidBody_CreateSphereFromMesh(mesh: *mut _Mesh) -> *mut RigidBody {
     _cppRigidBody_CreateSphereFromMesh(mesh)
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn RigidBody_CreateHullFromMesh(mesh: *mut Mesh) -> *mut RigidBody {
+pub unsafe extern "C" fn RigidBody_CreateHullFromMesh(mesh: *mut _Mesh) -> *mut RigidBody {
     _cppRigidBody_CreateHullFromMesh(mesh)
 }
 

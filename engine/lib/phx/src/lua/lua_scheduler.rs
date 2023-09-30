@@ -16,12 +16,6 @@ extern "C" {
     fn Lua_SetFn(_: *mut Lua, name: *const libc::c_char, _: LuaFn);
 }
 
-pub type LuaNumber = f64;
-pub type LuaInteger = libc::ptrdiff_t;
-pub type Lua = lua_State;
-pub type LuaFn = Option<unsafe extern "C" fn(*mut Lua) -> i32>;
-pub type LuaRef = LuaInteger;
-
 #[derive(Clone)]
 #[repr(C)]
 pub struct Scheduler {
