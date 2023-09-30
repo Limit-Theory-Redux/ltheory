@@ -17,30 +17,7 @@ internal = { path = "engine/lib/internal" }
 phx = { path = "engine/lib/phx" }
 luajit-ffi-gen = { path = "engine/lib/luajit-ffi-gen" }
 
-# Speed up sound files loading in dev mode. See: https://docs.rs/kira/0.8.3/kira/#performance-using-the-dev-profile
-[profile.dev.package.kira]
-opt-level = 3
-
-[profile.dev.package.cpal]
-opt-level = 3
-
-[profile.dev.package.symphonia]
-opt-level = 3
-
-[profile.dev.package.symphonia-bundle-mp3]
-opt-level = 3
-
-[profile.dev.package.symphonia-format-ogg]
-opt-level = 3
-
-[profile.dev.package.symphonia-codec-vorbis]
-opt-level = 3
-
-[profile.dev.package.symphonia-bundle-flac]
-opt-level = 3
-
-[profile.dev.package.symphonia-format-wav]
-opt-level = 3
-
-[profile.dev.package.symphonia-codec-pcm]
+# Ensure that all non-workspace members are compiled with full optimizations
+# enabled when using the default dev profile.
+[profile.dev.package."*"]
 opt-level = 3

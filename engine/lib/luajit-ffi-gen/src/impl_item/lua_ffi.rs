@@ -154,7 +154,7 @@ impl ImplInfo {
         mut file: &File,
         module_name: &str,
         is_managed: bool,
-        is_opaque: bool,
+        _is_opaque: bool,
         c_definitions: Option<&[String]>,
     ) -> (usize, usize) {
         writeln!(&mut file, "do -- C Definitions").unwrap();

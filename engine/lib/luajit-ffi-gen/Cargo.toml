@@ -19,5 +19,5 @@ serde_json = "1.0"
 syn = { version = "2.0", features = ["full"] }
 
 [dev-dependencies]
-libc = "0.2.146"
-tracing = "0.1.37"
+libc = "0.2"
+tracing = "0.1"

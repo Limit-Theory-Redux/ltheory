@@ -156,8 +156,13 @@ impl Engine {
             }
         }
 
-        let Some(winit_window_wrapper) = self.winit_window_id.map(|winit_window_id| self.winit_windows.get_window_mut(winit_window_id)).flatten()
-        else { return; };
+        let Some(winit_window_wrapper) = self
+            .winit_window_id
+            .map(|winit_window_id| self.winit_windows.get_window_mut(winit_window_id))
+            .flatten()
+        else {
+            return;
+        };
 
         if let Some(state) = self.window.state {
             match state {
@@ -404,7 +409,7 @@ impl Engine {
 
                         engine
                             .lua
-                            .load(&entry_point_path)
+                            .load(&*entry_point_path)
                             .exec()
                             .expect("Cannot execute entry point script");
 

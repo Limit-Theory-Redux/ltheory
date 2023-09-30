@@ -108,7 +108,7 @@ impl EnumInfo {
 
 fn gen_c_definitions(
     module_name: &str,
-    enum_repr_ty: &TypeVariant,
+    _enum_repr_ty: &TypeVariant,
     variant_names: &[&str],
 ) -> Vec<String> {
     let mut res = vec![];

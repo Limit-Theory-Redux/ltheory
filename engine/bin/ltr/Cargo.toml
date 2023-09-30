@@ -11,8 +11,8 @@ edition.workspace = true
 phx.workspace = true
 
 # release crates
-clap = { version = "4.3.4", features = ["derive"] }
-libc = "0.2.146"
+clap = { version = "4.4", features = ["derive"] }
+libc = "0.2"
 
 [build-dependencies]
-winres = "0.1.12"
+winres = "0.1"

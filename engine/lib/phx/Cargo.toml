@@ -15,35 +15,39 @@ internal.workspace = true
 luajit-ffi-gen.workspace = true
 
 # release crates
-chrono = "0.4.24"
-directories = "5.0.1"
-flate2 = "1.0.25"
-freetype-sys = "0.17.0"
-gilrs = "0.10.2"
-glam = { version = "0.24.0", features = ["scalar-math"] }
-glutin = "0.30.10"
-glutin-winit = "0.3.0"
-hashbrown = { version = "0.14.0", features = ["serde"] }
-image = "0.24.6"
-indexmap = "2.0.0"
+chrono = "0.4"
+directories = "5.0"
+flate2 = "1.0"
+freetype-sys = "0.18"
+gilrs = "0.10"
+glam = { version = "0.24", features = ["scalar-math"] }
+glutin = "0.30"
+glutin-winit = "0.3"
+hashbrown = { version = "0.14", features = ["serde"] }
+image = "0.24"
+indexmap = "2.0"
 kira = "0.8"
-libc = "0.2.146"
-memoffset = "0.9.0"
-mlua = { version = "0.8.9", features = ["luajit52", "vendored"] }
-num_cpus = "1.15.0"
-raw-window-handle = "0.5.0"
-regex = "1.8.4"
-rodio = "0.17.0"
+libc = "0.2"
+memoffset = "0.9"
+# TODO: we can switch to the first version released that includes this commit, most likely 0.9.2
+mlua = { git = "https://github.com/khvzak/mlua.git", rev = "54c14cc5b8390785ffd0f1c4c96d2dd4a928cc3c", features = [
+    "luajit52",
+    "vendored",
+] }
+num_cpus = "1.15"
+raw-window-handle = "0.5"
+regex = "1.8"
+rodio = "0.17"
 # sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "master", features = [
 #     "bundled",
 #     "static-link",
 # ] }
-tracing = "0.1.37"
-tracing-appender = "0.2.2"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 winit = "0.28"
 
 [build-dependencies]
-cmake = "0.1.50"
-cc = { version = "1.0.79", features = ["parallel"] }
-gl_generator = "0.14.0"
+cmake = "0.1"
+cc = { version = "1.0", features = ["parallel"] }
+gl_generator = "0.14"
