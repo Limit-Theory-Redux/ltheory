@@ -55,7 +55,7 @@ local System = subclass(Entity, function (self, seed)
     for i, prod in ipairs(Production.All()) do
         Config.objectInfo[prodType]["elems"][i + originalLength] =
         {
-            i + 2,
+            i + originalLength,
             prod:getName()
         }
     end
