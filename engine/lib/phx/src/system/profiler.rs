@@ -9,9 +9,6 @@ use crate::*;
 use std::cmp::Ordering;
 use std::io::{self, Write};
 
-pub type Signal = i32;
-// pub type SignalHandler = Option<extern "C" fn(Signal) -> ()>;
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Scope {
