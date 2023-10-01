@@ -12,7 +12,7 @@ local Nebula = require('GameObjects.Entities.Objects.Nebula')
 local Words = require('Systems.Gen.Words')
 local HUD = require('Systems.Overlay.HUD')
 
-local System = subclass(Entity, function (self, seed)
+local System = subclass(Entity, function(self, seed)
     self.rng = RNG.Create(seed):managed()
 
     self:setName(Words.getCoolName(self.rng))
@@ -33,23 +33,23 @@ local System = subclass(Entity, function (self, seed)
     self:addFlows()
 
     -- TODO : Will physics be freed correctly?
-    self.physics    = Physics.Create():managed()
-    local starAngle = self.rng:getDir2()
-    self.starDir    = Vec3f(starAngle.x, 0, starAngle.y)
-    self.nebula     = Nebula(self.rng:get64(), self.starDir)
-    self.dust       = Dust()
+    self.physics         = Physics.Create():managed()
+    local starAngle      = self.rng:getDir2()
+    self.starDir         = Vec3f(starAngle.x, 0, starAngle.y)
+    self.nebula          = Nebula(self.rng:get64(), self.starDir)
+    self.dust            = Dust()
 
-    self.players    = {}
-    self.aiPlayers  = nil
-    self.stars      = {}
-    self.planets    = {}
-    self.zones      = {}
-    self.stations   = {}
-    self.ships      = {}
-    self.lightList  = {}
+    self.players         = {}
+    self.aiPlayers       = nil
+    self.stars           = {}
+    self.planets         = {}
+    self.zones           = {}
+    self.stations        = {}
+    self.ships           = {}
+    self.lightList       = {}
 
     -- When creating a new system, initialize station subtype options from all production types
-    local prodType  = Config:getObjectTypeIndex("station_subtypes")
+    local prodType       = Config:getObjectTypeIndex("station_subtypes")
     local originalLength = #Config.objectInfo[prodType]["elems"]
 
     for i, prod in ipairs(Production.All()) do
@@ -107,7 +107,7 @@ function System:getStationsByDistance(ship)
         end
     end
 
-    table.sort(stationList, function (a, b) return a.stationDist < b.stationDist end)
+    table.sort(stationList, function(a, b) return a.stationDist < b.stationDist end)
 
     return stationList
 end
@@ -274,9 +274,9 @@ function System:place(object, spawnOutOfAsteroidZone)
     elseif spawnOutOfAsteroidZone then
         local minPirateStationSpawnPositionScale = math.floor(Config.gen.scaleSystem * 0.9)
         pos = Vec3f(self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem), 0,
-            self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem))                                                                                         -- place new object _near_ the origin
+            self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem)) -- place new object _near_ the origin
     else
-        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000))                                                                                                 -- place new object _near_ the origin
+        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000))         -- place new object _near_ the origin
     end
     object:setPos(pos)
     -- Return the Asteroid Field zone in which the object is being placed
@@ -619,7 +619,7 @@ function System:setAsteroidYield(rng, asteroid)
     if rng:getInt(0, 100) < 70 then
         local amass = math.floor(asteroid:getMass() / 1000)
         local itemT2 = Item.T2
-        table.sort(itemT2, function (a, b) return a.distribution < b.distribution end)
+        table.sort(itemT2, function(a, b) return a.distribution < b.distribution end)
         local itemType = nil
         local ichance = 0.0
         local uval = rng:getUniformRange(0.00, 1.00)
@@ -880,7 +880,8 @@ function System:spawnPirateStation(hullSize, player)
             if input.item == Item.Energy then
                 station.blackMarketTrader:addBid(input.item, 100 + rng:getInt(25, 100)) -- make sure Energy-requiring factories bid well
             else
-                station.blackMarketTrader:addBid(input.item, math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33)))
+                station.blackMarketTrader:addBid(input.item,
+                    math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33)))
             end
         end
     end

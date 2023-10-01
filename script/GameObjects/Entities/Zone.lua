@@ -1,6 +1,6 @@
 local Entity = require('GameObjects.Entity')
 
-local Zone = subclass(Entity, function (self, name)
+local Zone = subclass(Entity, function(self, name)
     self.name = name
     self.threatLevel = 0
     self.lastThreatTime = 0

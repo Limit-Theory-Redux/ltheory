@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return BSPNodeRef_t(...) end,
+        __call = function(t, ...) return BSPNodeRef_t(...) end,
     }
 
     if onDef_BSPNodeRef then onDef_BSPNodeRef(BSPNodeRef, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('BSPNodeRef')
     local mt = {
         __index = {
-            clone = function (x) return BSPNodeRef_t(x) end,
+            clone = function(x) return BSPNodeRef_t(x) end,
         },
     }
 

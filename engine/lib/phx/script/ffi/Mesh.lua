@@ -120,7 +120,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Mesh')
     local mt = {
         __index = {
-            managed           = function (self) return ffi.gc(self, libphx.Mesh_Free) end,
+            managed           = function(self) return ffi.gc(self, libphx.Mesh_Free) end,
             acquire           = libphx.Mesh_Acquire,
             free              = libphx.Mesh_Free,
             clone             = libphx.Mesh_Clone,

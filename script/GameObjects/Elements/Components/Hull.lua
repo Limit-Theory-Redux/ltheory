@@ -1,7 +1,7 @@
 local Entity = require('GameObjects.Entity')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
-local Hull = subclass(Entity, function (self)
+local Hull = subclass(Entity, function(self)
     self.name       = Config.gen.compHullStats.name
     self.healthCurr = Config.gen.compHullStats.healthCurr
     self.healthMax  = Config.gen.compHullStats.healthMax

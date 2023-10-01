@@ -11,19 +11,19 @@ local Entity = require('GameObjects.Entity')
 function Entity:addComponents()
     assert(not self.components)
     self.components = {
-        armor       = {},
-        bay         = {},
-        capacitor   = {},
-        cloak       = {},
-        commo       = {},
-        computer    = {},
-        drone       = {},
-        hull        = {},
-        inventory   = {},
-        sensor      = {},
-        shield      = {},
-        thruster    = {},
-        turret      = {},
+        armor     = {},
+        bay       = {},
+        capacitor = {},
+        cloak     = {},
+        commo     = {},
+        computer  = {},
+        drone     = {},
+        hull      = {},
+        inventory = {},
+        sensor    = {},
+        shield    = {},
+        thruster  = {},
+        turret    = {},
     }
 end
 

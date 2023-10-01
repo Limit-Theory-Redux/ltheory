@@ -93,7 +93,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return Matrix_t(...) end,
+        __call = function(t, ...) return Matrix_t(...) end,
     }
 
     if onDef_Matrix then onDef_Matrix(Matrix, mt) end
@@ -103,10 +103,10 @@ end
 do -- Metatype for class instances
     local t  = ffi.typeof('Matrix')
     local mt = {
-        __tostring = function (self) return ffi.string(libphx.Matrix_ToString(self)) end,
+        __tostring = function(self) return ffi.string(libphx.Matrix_ToString(self)) end,
         __index = {
-            clone              = function (x) return Matrix_t(x) end,
-            managed            = function (self) return ffi.gc(self, libphx.Matrix_Free) end,
+            clone              = function(x) return Matrix_t(x) end,
+            managed            = function(self) return ffi.gc(self, libphx.Matrix_Free) end,
             clone              = libphx.Matrix_Clone,
             free               = libphx.Matrix_Free,
             equal              = libphx.Matrix_Equal,

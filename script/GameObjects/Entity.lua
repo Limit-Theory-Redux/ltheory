@@ -1,6 +1,6 @@
 local id = 1
 
-local Entity = class(function (self)
+local Entity = class(function(self)
     self.id = id
     self.handlers = {}
     self.visibleMesh = nil

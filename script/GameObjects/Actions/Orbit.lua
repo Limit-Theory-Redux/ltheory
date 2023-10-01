@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local Orbit = subclass(Action, function (self, target, radius, orbitTime)
+local Orbit = subclass(Action, function(self, target, radius, orbitTime)
     self.target = target
     self.orbitRadius = radius
     self.orbitTime = orbitTime

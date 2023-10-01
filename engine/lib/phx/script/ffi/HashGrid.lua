@@ -38,7 +38,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('HashGrid')
     local mt = {
         __index = {
-            managed    = function (self) return ffi.gc(self, libphx.HashGrid_Free) end,
+            managed    = function(self) return ffi.gc(self, libphx.HashGrid_Free) end,
             free       = libphx.HashGrid_Free,
             add        = libphx.HashGrid_Add,
             clear      = libphx.HashGrid_Clear,

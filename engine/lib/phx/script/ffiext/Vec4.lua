@@ -232,15 +232,15 @@ local function defineVec4d_t(t, mt)
     end
 end
 
-onDef_Vec4i_t = function (t, mt)
+onDef_Vec4i_t = function(t, mt)
     defineVec4_t(t, mt)
     defineVec4i_t(t, mt)
 end
-onDef_Vec4f_t = function (t, mt)
+onDef_Vec4f_t = function(t, mt)
     defineVec4_t(t, mt)
     defineVec4f_t(t, mt)
 end
-onDef_Vec4d_t = function (t, mt)
+onDef_Vec4d_t = function(t, mt)
     defineVec4_t(t, mt)
     defineVec4d_t(t, mt)
 end

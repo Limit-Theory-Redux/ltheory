@@ -58,7 +58,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('TexCube')
     local mt = {
         __index = {
-            managed      = function (self) return ffi.gc(self, libphx.TexCube_Free) end,
+            managed      = function(self) return ffi.gc(self, libphx.TexCube_Free) end,
             acquire      = libphx.TexCube_Acquire,
             free         = libphx.TexCube_Free,
             clear        = libphx.TexCube_Clear,

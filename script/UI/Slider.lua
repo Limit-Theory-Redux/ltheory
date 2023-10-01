@@ -8,8 +8,8 @@ setmetatable(Slider, Widget)
 Slider.value     = 0
 Slider.minValue  = 0.0
 Slider.maxValue  = 1.0
-Slider.getFn     = function () return 0.0 end
-Slider.setFn     = function (value) Log.Warning('Slider - setFn has not been assigned') end
+Slider.getFn     = function() return 0.0 end
+Slider.setFn     = function(value) Log.Warning('Slider - setFn has not been assigned') end
 Slider.thumbSX   = 4
 Slider.thumbSY   = 12
 

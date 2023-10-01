@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return Vertex_t(...) end,
+        __call = function(t, ...) return Vertex_t(...) end,
     }
 
     if onDef_Vertex then onDef_Vertex(Vertex, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Vertex')
     local mt = {
         __index = {
-            clone = function (x) return Vertex_t(x) end,
+            clone = function(x) return Vertex_t(x) end,
         },
     }
 

@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return Vec4f_t(...) end,
+        __call = function(t, ...) return Vec4f_t(...) end,
     }
 
     if onDef_Vec4f then onDef_Vec4f(Vec4f, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Vec4f')
     local mt = {
         __index = {
-            clone = function (x) return Vec4f_t(x) end,
+            clone = function(x) return Vec4f_t(x) end,
         },
     }
 

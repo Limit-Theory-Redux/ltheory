@@ -26,7 +26,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return Polygon_t(...) end,
+        __call = function(t, ...) return Polygon_t(...) end,
     }
 
     if onDef_Polygon then onDef_Polygon(Polygon, mt) end
@@ -37,7 +37,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Polygon')
     local mt = {
         __index = {
-            clone       = function (x) return Polygon_t(x) end,
+            clone       = function(x) return Polygon_t(x) end,
             toPlane     = libphx.Polygon_ToPlane,
             toPlaneFast = libphx.Polygon_ToPlaneFast,
             split       = libphx.Polygon_Split,

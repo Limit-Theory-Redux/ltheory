@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return RayCastResult_t(...) end,
+        __call = function(t, ...) return RayCastResult_t(...) end,
     }
 
     if onDef_RayCastResult then onDef_RayCastResult(RayCastResult, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('RayCastResult')
     local mt = {
         __index = {
-            clone = function (x) return RayCastResult_t(x) end,
+            clone = function(x) return RayCastResult_t(x) end,
         },
     }
 

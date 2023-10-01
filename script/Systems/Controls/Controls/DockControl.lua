@@ -90,7 +90,7 @@ function DockControl.Create(gameView, player)
         children = List(),
     }, DockControl)
 
-    self.icon:setOnDraw(function (ib, focus, active)
+    self.icon:setOnDraw(function(ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
 

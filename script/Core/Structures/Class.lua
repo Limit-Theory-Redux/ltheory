@@ -28,7 +28,7 @@ function class(ctor)
     local cls = {}
     cls.__index = cls
     setmetatable(cls, {
-        __call = function (T, ...)
+        __call = function(T, ...)
             local self = {}
             setmetatable(self, cls)
             if ctor then ctor(self, ...) end
@@ -42,7 +42,7 @@ function subclass(base, ctor)
     local cls = {}
     cls.__index = cls
     setmetatable(cls, {
-        __call = function (T, ...)
+        __call = function(T, ...)
             local self = base()
             setmetatable(self, cls)
             if ctor then ctor(self, ...) end

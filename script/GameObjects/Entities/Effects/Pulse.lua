@@ -19,7 +19,7 @@ local shaderHead
 local shaderTail
 local onAddedToParent
 
-Preload.Add(function ()
+Preload.Add(function()
     meshHead = Gen.Primitive.Billboard(-1, -1, 1, 1)
     meshTail = Gen.Primitive.Billboard(-1, -1, 1, 0)
     shaderHead = Cache.Shader('billboard/quad', 'effect/pulsehead')
@@ -28,19 +28,19 @@ Preload.Add(function ()
     cacheTail = ShaderVarCache(shaderTail, { 'alpha', 'size', 'axis', 'mWorld' })
 end)
 
-Pulse:setInitializer(function (self)
+Pulse:setInitializer(function(self)
     self.matrix = Matrix.Identity()
     self:register(Event.AddedToParent, onAddedToParent)
 end)
 
-Pulse:addOnDestruct(function (self)
+Pulse:addOnDestruct(function(self)
     self.matrix:free()
     DecRef(self.source)
 end)
 
 Pulse:define()
 
-onAddedToParent = function (self, parent)
+onAddedToParent = function(self, parent)
     self:refreshMatrix()
 end
 

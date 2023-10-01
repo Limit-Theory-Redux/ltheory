@@ -32,7 +32,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('LodMesh')
     local mt = {
         __index = {
-            managed = function (self) return ffi.gc(self, libphx.LodMesh_Free) end,
+            managed = function(self) return ffi.gc(self, libphx.LodMesh_Free) end,
             acquire = libphx.LodMesh_Acquire,
             free    = libphx.LodMesh_Free,
             add     = libphx.LodMesh_Add,

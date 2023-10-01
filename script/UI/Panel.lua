@@ -3,7 +3,7 @@ local Container = require('UI.Container')
 
 local Panel     = {}
 Panel.__index   = Panel
-Panel.__call    = function (t, ...) return t.Create(...) end
+Panel.__call    = function(t, ...) return t.Create(...) end
 setmetatable(Panel, Container)
 
 Panel.isPanel   = true
@@ -31,7 +31,7 @@ function Panel:onInput(state)
             state:setFocus(root)
         else
             local navGroups = self:findAllInHierarchy(
-                function (w) return w.isNavGroup end
+                function(w) return w.isNavGroup end
             )
             if #navGroups > 0 then
                 local navGroup

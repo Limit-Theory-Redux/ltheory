@@ -12,7 +12,7 @@ CommandControl.focusable = true
 CommandControl.draggable = true
 CommandControl:setPadUniform(8)
 
-local selectionPredicate = function (unit) return unit:isAlive() end
+local selectionPredicate = function(unit) return unit:isAlive() end
 
 local SelectionMode = {
     Replace = 1,
@@ -24,37 +24,37 @@ local SelectionMode = {
 local ContextEntries = {
     -- Move To
     {
-        GetContextEntry = function ()
+        GetContextEntry = function()
             return UI.Button('Move To')
         end,
-        GetActionArgs = function ()
+        GetActionArgs = function()
             return { range = 100 }
         end,
-        GetDetailsEntry = function (args)
+        GetDetailsEntry = function(args)
             return UI.Grid():setCols(2)
                 :add(UI.Label('Range'))
                 :add(UI.Slider(
-                    function () return args.range end,
-                    function (value) args.range = value end,
+                    function() return args.range end,
+                    function(value) args.range = value end,
                     0, 1000
                 ))
         end,
-        GetAction = function (target, args)
+        GetAction = function(target, args)
             return Actions.MoveTo(target, args.range)
         end,
     },
     -- Attack
     {
-        GetContextEntry = function ()
+        GetContextEntry = function()
             return UI.Button('Attack')
         end,
-        GetActionArgs = function ()
+        GetActionArgs = function()
             return nil
         end,
-        GetDetailsEntry = function (args)
+        GetDetailsEntry = function(args)
             return nil
         end,
-        GetAction = function (target, args)
+        GetAction = function(target, args)
             return Actions.Attack(target)
         end,
     },
@@ -130,7 +130,7 @@ function CommandControl:focusGroupPanel(state, get)
     --friendliesButton:completeFade()
 
     for i = 1, #self.unitGroups do
-        self.unitGroups[i].widget:setOnClick(function (button)
+        self.unitGroups[i].widget:setOnClick(function(button)
             if get then
                 self:setSelection(state, self.unitGroups[i].list)
             else
@@ -160,7 +160,7 @@ function CommandControl:setActionMenu(state, enabled)
 
                     local button = entry.GetContextEntry()
                     if button then
-                        button:setOnClick(function (button)
+                        button:setOnClick(function(button)
                             self.actionMenu:disable()
                             self:setActionDetails(state, true, entry)
                         end)
@@ -190,7 +190,7 @@ function CommandControl:setActionDetails(state, enabled, entry)
             self.actionDetails
                 :add(UI.Grid():setCols(1)
                     :add(details)
-                    :add(UI.Button('Apply', function (button)
+                    :add(UI.Button('Apply', function(button)
                         self:sendAction(state, entry, args)
                     end))
                 )
@@ -334,7 +334,7 @@ function CommandControl:onUpdate(state)
     end
 
     self.units:update()
-    local friendlyUnits = self.units.tracked:matchAll(function (u)
+    local friendlyUnits = self.units.tracked:matchAll(function(u)
         return selectionPredicate(u) and u:getOwnerDisposition(self.player) > 0
     end)
     self.unitGroups[1].list = friendlyUnits
@@ -501,7 +501,7 @@ function CommandControl:buildGroupPanel()
     end
 
     self.groupPanel = UI.Panel('Group Panel', false):setAlign(1.0, 0.5):setStretch(0, 0)
-        :setOnCancel(function (panel)
+        :setOnCancel(function(panel)
             panel:setModal(false)
         end)
         :add(UI.NavGroup()
@@ -512,7 +512,7 @@ end
 
 function CommandControl:buildDetailsPanel()
     self.detailsPanel = UI.Window('Details', true):setAlign(0.0, 0.5):setStretch(0, 0)
-        :setOnCancel(function (panel) panel:disable() end)
+        :setOnCancel(function(panel) panel:disable() end)
         :add(UI.Grid():setCols(1)
             -- Formation
             :add(UI.NavGroup()
@@ -539,7 +539,7 @@ end
 
 function CommandControl:buildActionMenu()
     self.actionMenu = UI.Window('Action Menu'):setModal(true)
-        :setOnCancel(function (panel)
+        :setOnCancel(function(panel)
             local state = panel:getState()
             self:setActionMenu(state, false)
         end)
@@ -548,7 +548,7 @@ end
 
 function CommandControl:buildActionDetails()
     self.actionDetails = UI.Window('Action Details'):setModal(true)
-        :setOnCancel(function (panel)
+        :setOnCancel(function(panel)
             local state = panel:getState()
             self:setActionDetails(state, false)
         end)
@@ -593,7 +593,7 @@ function CommandControl.Create(gameView, player)
         children      = List(),
     }, CommandControl)
 
-    self.icon:setOnDraw(function (ib, focus, active)
+    self.icon:setOnDraw(function(ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
 

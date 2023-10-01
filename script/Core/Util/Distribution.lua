@@ -8,7 +8,7 @@
   TODO : Implement Alias Method for O(1) sampling. Sampling is currently O(n).
 ----------------------------------------------------------------------------]]
 
-local Distribution = class(function (self)
+local Distribution = class(function(self)
     self.values = {}
     self.weights = {}
 end)

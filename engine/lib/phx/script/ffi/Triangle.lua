@@ -21,7 +21,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return Triangle_t(...) end,
+        __call = function(t, ...) return Triangle_t(...) end,
     }
 
     if onDef_Triangle then onDef_Triangle(Triangle, mt) end
@@ -32,7 +32,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Triangle')
     local mt = {
         __index = {
-            clone       = function (x) return Triangle_t(x) end,
+            clone       = function(x) return Triangle_t(x) end,
             toPlane     = libphx.Triangle_ToPlane,
             toPlaneFast = libphx.Triangle_ToPlaneFast,
             getArea     = libphx.Triangle_GetArea,

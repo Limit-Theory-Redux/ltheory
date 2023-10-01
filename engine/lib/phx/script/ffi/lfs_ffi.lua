@@ -9,7 +9,7 @@ local ffi_str = ffi.string
 local concat = table.concat
 local has_table_new, new_tab = pcall(require, "table.new")
 if not has_table_new or type(new_tab) ~= "function" then
-    new_tab = function () return {} end
+    new_tab = function() return {} end
 end
 
 
@@ -416,15 +416,15 @@ if OS == "Windows" then
             int _findclose(intptr_t handle);
         ]])
         local ok
-        ok, findfirst = pcall(function () return lib._findfirst32 end)
+        ok, findfirst = pcall(function() return lib._findfirst32 end)
         if not ok then findfirst = lib._findfirst end
-        ok, findnext = pcall(function () return lib._findnext32 end)
+        ok, findnext = pcall(function() return lib._findnext32 end)
         if not ok then findnext = lib._findnext end
-        ok, wfindfirst = pcall(function () return lib._wfindfirst end)
-        if not ok then ok, wfindfirst = pcall(function () return lib._wfindfirst32 end) end
+        ok, wfindfirst = pcall(function() return lib._wfindfirst end)
+        if not ok then ok, wfindfirst = pcall(function() return lib._wfindfirst32 end) end
         if not ok then HAVE_WFINDFIRST = false end
-        ok, wfindnext = pcall(function () return lib._wfindnext end)
-        if not ok then ok, wfindnext = pcall(function () return lib._wfindnext32 end) end
+        ok, wfindnext = pcall(function() return lib._wfindnext end)
+        if not ok then ok, wfindnext = pcall(function() return lib._wfindnext32 end) end
     end
 
     local function findclose(dentry)
@@ -1101,15 +1101,15 @@ if OS == 'Linux' then
     end
 
     if stat_syscall_num then
-        stat_func = function (filepath, buf)
+        stat_func = function(filepath, buf)
             return lib.syscall(stat_syscall_num, filepath, buf)
         end
-        lstat_func = function (filepath, buf)
+        lstat_func = function(filepath, buf)
             return lib.syscall(lstat_syscall_num, filepath, buf)
         end
     else
         ffi.cdef('typedef struct {} lfs_stat;')
-        stat_func = function () error("TODO support other Linux architectures") end
+        stat_func = function() error("TODO support other Linux architectures") end
         lstat_func = stat_func
     end
 elseif OS == 'Windows' then
@@ -1132,7 +1132,7 @@ elseif OS == 'Windows' then
         int _wstat64(const wchar_t *path, lfs_stat *buffer);
     ]])
 
-    stat_func = function (filepath, buf)
+    stat_func = function(filepath, buf)
         if _M.unicode then
             local szfp = win_utf8_to_unicode(filepath);
             return lib._wstat64(szfp, buf)
@@ -1204,7 +1204,7 @@ elseif OS == 'BSD' then
     lstat_func = lib.lstat
 else
     ffi.cdef('typedef struct {} lfs_stat;')
-    stat_func = function () error('TODO: support other posix system') end
+    stat_func = function() error('TODO: support other posix system') end
     lstat_func = stat_func
 end
 
@@ -1258,23 +1258,23 @@ local function time_or_timespec(time, timespec)
 end
 
 local attr_handlers = {
-    access = function (st) return time_or_timespec(st.st_atime, st.st_atimespec) end,
-    blksize = function (st) return tonumber(st.st_blksize) end,
-    blocks = function (st) return tonumber(st.st_blocks) end,
-    change = function (st) return time_or_timespec(st.st_ctime, st.st_ctimespec) end,
-    dev = function (st) return tonumber(st.st_dev) end,
-    gid = function (st) return tonumber(st.st_gid) end,
-    ino = function (st) return tonumber(st.st_ino) end,
-    mode = function (st) return mode_to_ftype(st.st_mode) end,
-    modification = function (st) return time_or_timespec(st.st_mtime, st.st_mtimespec) end,
-    nlink = function (st) return tonumber(st.st_nlink) end,
-    permissions = function (st) return mode_to_perm(st.st_mode) end,
-    rdev = function (st) return tonumber(st.st_rdev) end,
-    size = function (st) return tonumber(st.st_size) end,
-    uid = function (st) return tonumber(st.st_uid) end,
+    access = function(st) return time_or_timespec(st.st_atime, st.st_atimespec) end,
+    blksize = function(st) return tonumber(st.st_blksize) end,
+    blocks = function(st) return tonumber(st.st_blocks) end,
+    change = function(st) return time_or_timespec(st.st_ctime, st.st_ctimespec) end,
+    dev = function(st) return tonumber(st.st_dev) end,
+    gid = function(st) return tonumber(st.st_gid) end,
+    ino = function(st) return tonumber(st.st_ino) end,
+    mode = function(st) return mode_to_ftype(st.st_mode) end,
+    modification = function(st) return time_or_timespec(st.st_mtime, st.st_mtimespec) end,
+    nlink = function(st) return tonumber(st.st_nlink) end,
+    permissions = function(st) return mode_to_perm(st.st_mode) end,
+    rdev = function(st) return tonumber(st.st_rdev) end,
+    size = function(st) return tonumber(st.st_size) end,
+    uid = function(st) return tonumber(st.st_uid) end,
 }
 local mt = {
-    __index = function (self, attr_name)
+    __index = function(self, attr_name)
         local func = attr_handlers[attr_name]
         return func and func(self)
     end

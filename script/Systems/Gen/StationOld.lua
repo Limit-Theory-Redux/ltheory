@@ -62,7 +62,7 @@ function GenMesh:finalize(res)
 end
 
 local function pointAttractor(center, radius)
-    return function (p)
+    return function(p)
         local dp = center - p
         return dp:scale(exp(-dp:length() / radius))
     end

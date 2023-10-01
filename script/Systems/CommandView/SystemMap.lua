@@ -220,7 +220,7 @@ function SystemMap:onDraw(state)
                 if string.match(objtype, "Station") and self.focus:hasDockable() then
                     local docked = self.focus:getDocked()
                     if docked and #docked > 0 then
-                        table.sort(docked, function (a, b) return a:getName() < b:getName() end)
+                        table.sort(docked, function(a, b) return a:getName() < b:getName() end)
                         dbg:indent()
                         dbg:text("Docked here:")
                         dbg:indent()
@@ -299,7 +299,7 @@ function SystemMap:onInput(state)
         GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed * state.dt
     else
         GameState.player.currentMapSystemPan = GameState.ui.mapSystemPanSpeed *
-        self.lastDt                                                                         -- temp fix for -> see NOTE above
+            self.lastDt -- temp fix for -> see NOTE above
     end
 
     if Input.GetValue(Button.Keyboard.LShift) == 1 then

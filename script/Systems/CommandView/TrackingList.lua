@@ -22,8 +22,8 @@ function TrackingList:update()
     local root = self.context:getRoot()
     if root ~= self.root then
         self.root = root
-        self.root:register(Event.ChildAdded, function (...) self:onChildAdded(...) end)
-        self.root:register(Event.ChildRemoved, function (...) self:onChildRemoved(...) end)
+        self.root:register(Event.ChildAdded, function(...) self:onChildAdded(...) end)
+        self.root:register(Event.ChildRemoved, function(...) self:onChildRemoved(...) end)
 
         self.tracked:clear()
         for i, e in self.root:iterChildren() do

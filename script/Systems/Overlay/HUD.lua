@@ -1036,9 +1036,9 @@ function HUD:drawSensors(a)
 
                         for i = 1, barCount do
                             barHeightUp[i]   = barHeightUp[i] +
-                            Config.gen.objectEmissions[i][emType] * barBase * dropoff / 100
+                                Config.gen.objectEmissions[i][emType] * barBase * dropoff / 100
                             barHeightDown[i] = barHeightDown[i] +
-                            Config.gen.objectEmissions[i][emType] * barReflect * dropoff / 100
+                                Config.gen.objectEmissions[i][emType] * barReflect * dropoff / 100
                         end
                     end
 
@@ -2033,7 +2033,7 @@ function HUD.Create(gameView, player)
         children        = List(),
     }, HUD)
 
-    self.icon:setOnDraw(function (ib, focus, active)
+    self.icon:setOnDraw(function(ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
 

@@ -5,7 +5,7 @@ package.path = package.path .. ';./script/?.ffi.lua'
 
 require('Init')
 
-Core.Call(function ()
+Core.Call(function()
     local app = __app__ or 'LTheoryRedux'
     GlobalRestrict.On()
 

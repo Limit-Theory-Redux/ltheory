@@ -3,7 +3,7 @@ local Action = require('GameObjects.Action')
 local kLeadTime = 1.0
 local orbitTime = 30
 
-local MineAt = subclass(Action, function (self, source, target, miningTimePerItem)
+local MineAt = subclass(Action, function(self, source, target, miningTimePerItem)
     assert(source:hasYield())
     self.source = source
     self.target = target

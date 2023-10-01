@@ -66,11 +66,11 @@ local function CreateCReference(ElemT)
         end
     end
 
-    T:addOnDestruct(function (self)
+    T:addOnDestruct(function(self)
         self:set(nil)
     end)
 
-    T:setInitializer(function (self, elem)
+    T:setInitializer(function(self, elem)
         self:set(elem)
     end)
 

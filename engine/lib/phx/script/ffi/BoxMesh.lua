@@ -16,7 +16,7 @@ do -- Global Symbol Table
     BoxMesh = {
         Create  = libphx.BoxMesh_Create,
         Free    = libphx.BoxMesh_Free,
-        Add     = function (self, px, py, pz, sz, sy, sz, rx, ry, rz, bx, by, bz)
+        Add     = function(self, px, py, pz, sz, sy, sz, rx, ry, rz, bx, by, bz)
             return libphx.BoxMesh_Add(self, Vec3f(px, py, pz), Vec3f(sx, sy, sz), Vec3f(rx, ry, rz), Vec3f(bx, by, bz))
         end,
         GetMesh = libphx.BoxMesh_GetMesh,
@@ -30,9 +30,9 @@ do -- Metatype for class instances
     local t  = ffi.typeof('BoxMesh')
     local mt = {
         __index = {
-            managed = function (self) return ffi.gc(self, libphx.BoxMesh_Free) end,
+            managed = function(self) return ffi.gc(self, libphx.BoxMesh_Free) end,
             free    = libphx.BoxMesh_Free,
-            add     = function (self, px, py, pz, sx, sy, sz, rx, ry, rz, bx, by, bz)
+            add     = function(self, px, py, pz, sx, sy, sz, rx, ry, rz, bx, by, bz)
                 return libphx.BoxMesh_Add(self, Vec3f(px, py, pz), Vec3f(sx, sy, sz), Vec3f(rx, ry, rz),
                     Vec3f(bx, by, bz))
             end,

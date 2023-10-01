@@ -56,7 +56,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Physics')
     local mt = {
         __index = {
-            managed                = function (self) return ffi.gc(self, libphx.Physics_Free) end,
+            managed                = function(self) return ffi.gc(self, libphx.Physics_Free) end,
             free                   = libphx.Physics_Free,
             addRigidBody           = libphx.Physics_AddRigidBody,
             removeRigidBody        = libphx.Physics_RemoveRigidBody,

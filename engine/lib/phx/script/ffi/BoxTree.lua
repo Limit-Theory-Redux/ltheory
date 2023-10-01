@@ -34,7 +34,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('BoxTree')
     local mt = {
         __index = {
-            managed      = function (self) return ffi.gc(self, libphx.BoxTree_Free) end,
+            managed      = function(self) return ffi.gc(self, libphx.BoxTree_Free) end,
             free         = libphx.BoxTree_Free,
             add          = libphx.BoxTree_Add,
             draw         = libphx.BoxTree_Draw,

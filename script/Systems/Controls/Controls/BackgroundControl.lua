@@ -65,7 +65,7 @@ function BackgroundControl.Create(gameView, player)
 
     self.gameView:setCameraMode(Enums.CameraMode.Chase)
 
-    self.icon:setOnDraw(function (ib, focus, active)
+    self.icon:setOnDraw(function(ib, focus, active)
         self:onDrawIcon(ib, focus, active)
     end)
 

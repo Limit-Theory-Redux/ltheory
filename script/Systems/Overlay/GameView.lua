@@ -182,12 +182,12 @@ function GameView:draw(focus, active)
         if Settings.get('postfx.bloom.enable') then self.renderer:bloom(Settings.get('postfx.bloom.radius')) end
         if Settings.get('postfx.tonemap.enable') then self.renderer:tonemap() end
         if Settings.get('postfx.aberration.enable') then
-            self.renderer:applyFilter('aberration', function ()
+            self.renderer:applyFilter('aberration', function()
                 Shader.SetFloat('strength', Settings.get('postfx.aberration.strength'))
             end)
         end
         if Settings.get('postfx.radialblur.enable') then
-            self.renderer:applyFilter('radialblur', function ()
+            self.renderer:applyFilter('radialblur', function()
                 Shader.SetFloat('strength', Settings.get('postfx.radialblur.strength'))
             end)
         end

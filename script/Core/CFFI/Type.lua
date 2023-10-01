@@ -22,7 +22,7 @@ function TypeT:appendMethod(name, fn)
     assert(not self.defined, "Attempting to wrap method in already-defined type")
     local prev = self.methods[name]
     if prev then
-        self.methods[name] = function (...)
+        self.methods[name] = function(...)
             prev(...)
             fn(...)
         end
@@ -56,12 +56,12 @@ function TypeT:ensureMeta()
     if not self.metatype then
         self.metatable = {}
         self.metatable.__index = {
-            getType = function () return self end,
-            hasField = function (e, name) return self.fieldTable[name] ~= nil end,
-            hasMethod = function (e, name) return self.methods[name] ~= nil end,
+            getType = function() return self end,
+            hasField = function(e, name) return self.fieldTable[name] ~= nil end,
+            hasMethod = function(e, name) return self.methods[name] ~= nil end,
         }
 
-        self.metatable.__pairs = function (table)
+        self.metatable.__pairs = function(table)
             local i = 0
             local function iterator(data)
                 i = i + 1
@@ -74,7 +74,7 @@ function TypeT:ensureMeta()
             return iterator, table, nil
         end
 
-        self.metatable.__ipairs = function (table)
+        self.metatable.__ipairs = function(table)
             local function iterator(data, i)
                 i = i + 1
                 local fields = data:getType().fields
@@ -137,12 +137,12 @@ function TypeT:new()
     -- Block size is chosen such that each block is one page of memory
     local blockSize = max(1, floor(0x1000 / self:getSize()))
     self.pool = MemPool.Create(self:getSize(), blockSize)
-    self.new = function ()
+    self.new = function()
         local instance = ffi.cast(self.ptrName, MemPool.Alloc(self.pool))
         for i = 1, #self.onConstruct do self.onConstruct[i](instance) end
         return instance
     end
-    self.delete = function (instance)
+    self.delete = function(instance)
         for i = 1, #self.onDestruct do self.onDestruct[i](instance) end
         MemPool.Dealloc(self.pool, instance)
     end

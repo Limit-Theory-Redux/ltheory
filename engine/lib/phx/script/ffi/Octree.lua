@@ -38,7 +38,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Octree')
     local mt = {
         __index = {
-            managed      = function (self) return ffi.gc(self, libphx.Octree_Free) end,
+            managed      = function(self) return ffi.gc(self, libphx.Octree_Free) end,
             free         = libphx.Octree_Free,
             add          = libphx.Octree_Add,
             draw         = libphx.Octree_Draw,

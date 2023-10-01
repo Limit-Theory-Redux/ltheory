@@ -92,7 +92,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('Bytes')
     local mt = {
         __index = {
-            managed    = function (self) return ffi.gc(self, libphx.Bytes_Free) end,
+            managed    = function(self) return ffi.gc(self, libphx.Bytes_Free) end,
             free       = libphx.Bytes_Free,
             getData    = libphx.Bytes_GetData,
             getSize    = libphx.Bytes_GetSize,

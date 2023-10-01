@@ -1,7 +1,7 @@
 local Action = require('GameObjects.Action')
 local Player = require('GameObjects.Entities.Player')
 
-local Think = subclass(Action, function (self)
+local Think = subclass(Action, function(self)
     self.timer = 0
     self.rng = RNG.FromTime()
 end)

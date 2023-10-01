@@ -30,7 +30,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('BSP')
     local mt = {
         __index = {
-            managed              = function (self) return ffi.gc(self, libphx.BSP_Free) end,
+            managed              = function(self) return ffi.gc(self, libphx.BSP_Free) end,
             free                 = libphx.BSP_Free,
             intersectRay         = libphx.BSP_IntersectRay,
             intersectLineSegment = libphx.BSP_IntersectLineSegment,

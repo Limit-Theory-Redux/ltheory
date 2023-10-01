@@ -18,7 +18,7 @@ Shape.__index  = Shape
 --   verts: list of Vec3d
 --   polys: list of int indicies, of variable size
 setmetatable(Shape, {
-    __call = function (T)
+    __call = function(T)
         return setmetatable({
             verts = {},
             polys = {}

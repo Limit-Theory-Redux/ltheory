@@ -5,7 +5,7 @@ local function style(...)
     local args = { ... }
     for i = 1, #args do args[i] = tostring(args[i]) end
     local style = table.concat(args, ';')
-    return function (s)
+    return function(s)
         printf(
             '\x1B[41m \x1B[0m \x1B[%sm%s\x1B[0m',
             style,

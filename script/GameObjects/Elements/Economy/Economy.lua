@@ -7,11 +7,11 @@ local maxUpdateRateDeviation = 0.2
 local updateRates = {
     [1] = 2, -- Mining
     [2] = 2, -- Transport
-    [3] = 2,  -- Marauding
+    [3] = 2, -- Marauding
     [4] = 2  -- Patrolling
 }
 
-local Economy = class(function (self, parent)
+local Economy = class(function(self, parent)
     self.parent = parent
     self.factories = {}
     self.flows = {}

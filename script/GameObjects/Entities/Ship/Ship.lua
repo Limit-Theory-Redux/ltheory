@@ -13,7 +13,7 @@ local function wasDamaged(self, event)
 
         local target = event.source
 
-            -- This ship has been attacked (self.health reduced below self.healthMax by damage)
+        -- This ship has been attacked (self.health reduced below self.healthMax by damage)
         -- TODO: Allow a number of "grace" hits that decay over time
         -- TODO: Improve smarts so that this ship can decide which of multiple attackers to target
         if target and not self:isDestroyed() then
@@ -50,7 +50,7 @@ local function wasDamaged(self, event)
     end
 end
 
-local Ship = subclass(Entity, function (self, proto, hull)
+local Ship = subclass(Entity, function(self, proto, hull)
     printf("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
     -- TODO : This will create a duplicate BSP because proto & RigidBody do not
     --        share the same BSP cache. Need unified cache.

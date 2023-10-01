@@ -8,7 +8,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return TriangleTest_t(...) end,
+        __call = function(t, ...) return TriangleTest_t(...) end,
     }
 
     if onDef_TriangleTest then onDef_TriangleTest(TriangleTest, mt) end
@@ -19,7 +19,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('TriangleTest')
     local mt = {
         __index = {
-            clone = function (x) return TriangleTest_t(x) end,
+            clone = function(x) return TriangleTest_t(x) end,
         },
     }
 

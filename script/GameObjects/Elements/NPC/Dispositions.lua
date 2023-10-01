@@ -80,7 +80,7 @@ end
 --end
 
 return {
-    GetColor = function (disp)
+    GetColor = function(disp)
         local x = 0.5 * disp + 0.5
         return Color(
             Math.Bezier3(x, 1.00, 0.10, 0.30),

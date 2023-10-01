@@ -36,7 +36,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('SDF')
     local mt = {
         __index = {
-            managed        = function (self) return ffi.gc(self, libphx.SDF_Free) end,
+            managed        = function(self) return ffi.gc(self, libphx.SDF_Free) end,
             free           = libphx.SDF_Free,
             toMesh         = libphx.SDF_ToMesh,
             clear          = libphx.SDF_Clear,

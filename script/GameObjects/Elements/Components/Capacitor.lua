@@ -16,7 +16,7 @@ local Bindings    = require('States.ApplicationBindings')
 local shared
 local rng         = RNG.FromTime()
 
-local Capacitor   = subclass(Entity, function (self)
+local Capacitor   = subclass(Entity, function(self)
     -- All of this crap is completely worthless, but updateCapacitor() will not be called without it
     if not shared then
         shared = {}

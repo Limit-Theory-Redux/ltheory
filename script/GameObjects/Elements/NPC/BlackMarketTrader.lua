@@ -7,7 +7,7 @@ local Item = require('Systems.Economy.Item')
 -- NOTE: All the evaluations below are made from the perspective of what is most
 --       advantageous to _this trader_ (self).
 
-local BlackMarketTrader = class(function (self, parent)
+local BlackMarketTrader = class(function(self, parent)
     self.parent = parent
     self.elems = {}
 end)
@@ -94,10 +94,12 @@ function BlackMarketTrader:addBidOffer(bidder)
     local count = bidder.job.jcount
     -- first item for now .. Sketchy stuff in the following line :D
     local item = nil
-    for a, v in pairs(self.elems) do if a ~= nil then
+    for a, v in pairs(self.elems) do
+        if a ~= nil then
             item = a
             break
-        end end
+        end
+    end
     local data = self:getData(item)
     local offersAdded = 0
 

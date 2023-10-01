@@ -36,7 +36,7 @@ do -- Metatype for class instances
     local t  = ffi.typeof('MemPool')
     local mt = {
         __index = {
-            managed     = function (self) return ffi.gc(self, libphx.MemPool_Free) end,
+            managed     = function(self) return ffi.gc(self, libphx.MemPool_Free) end,
             free        = libphx.MemPool_Free,
             alloc       = libphx.MemPool_Alloc,
             clear       = libphx.MemPool_Clear,

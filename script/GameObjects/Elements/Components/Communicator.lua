@@ -1,9 +1,9 @@
-local Entity      = require('GameObjects.Entity')
-local BasicShapes = require('Systems.Gen.ShapeLib.BasicShapes')
-local SocketType  = require('GameObjects.Entities.Ship.SocketType')
+local Entity       = require('GameObjects.Entity')
+local BasicShapes  = require('Systems.Gen.ShapeLib.BasicShapes')
+local SocketType   = require('GameObjects.Entities.Ship.SocketType')
 
 local shared
-local rng = RNG.FromTime()
+local rng          = RNG.FromTime()
 
 local Communicator = subclass(Entity, function(self)
     -- All of this crap is completely worthless, but updateCommunicator() will not be called without it
@@ -17,10 +17,10 @@ local Communicator = subclass(Entity, function(self)
     self:addVisibleMesh(shared.mesh, Material.Debug())
 
     -- OK, back now to what Communicator actually requires
-    self.name         = Config.gen.compCommunicatorStats.name
-    self.healthCurr   = Config.gen.compCommunicatorStats.healthCurr
-    self.healthMax    = Config.gen.compCommunicatorStats.healthMax
-    self.rating       = Config.gen.compCommunicatorStats.rating
+    self.name       = Config.gen.compCommunicatorStats.name
+    self.healthCurr = Config.gen.compCommunicatorStats.healthCurr
+    self.healthMax  = Config.gen.compCommunicatorStats.healthMax
+    self.rating     = Config.gen.compCommunicatorStats.rating
     --printf("Register: Communicator name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCommunicator)
     self:register(Event.Update, self.updateCommunicator)
 end)

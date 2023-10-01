@@ -77,7 +77,7 @@ do -- Global Symbol Table
     }
 
     local mt = {
-        __call = function (t, ...) return Quat_t(...) end,
+        __call = function(t, ...) return Quat_t(...) end,
     }
 
     if onDef_Quat then onDef_Quat(Quat, mt) end
@@ -87,9 +87,9 @@ end
 do -- Metatype for class instances
     local t  = ffi.typeof('Quat')
     local mt = {
-        __tostring = function (self) return ffi.string(libphx.Quat_ToString(self)) end,
+        __tostring = function(self) return ffi.string(libphx.Quat_ToString(self)) end,
         __index = {
-            clone              = function (x) return Quat_t(x) end,
+            clone              = function(x) return Quat_t(x) end,
             getAxisX           = libphx.Quat_GetAxisX,
             getAxisY           = libphx.Quat_GetAxisY,
             getAxisZ           = libphx.Quat_GetAxisZ,

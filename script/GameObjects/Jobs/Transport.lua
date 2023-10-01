@@ -15,7 +15,7 @@
 local Flow = require('Systems.Economy.Flow')
 local Job = require('GameObjects.Job')
 
-local Transport = subclass(Job, function (self, src, dst, item)
+local Transport = subclass(Job, function(self, src, dst, item)
     self.src = src
     self.dst = dst
     self.item = item

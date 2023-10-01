@@ -1,6 +1,6 @@
 local Camera = require('Systems.Camera.Camera')
 
-local CameraFirstPerson = subclass(Camera, function (self)
+local CameraFirstPerson = subclass(Camera, function(self)
     self.posRel    = Vec3f(0, 0, 3)
     self.lookAtRel = Vec3f(0, 0, 1000)
     self.target    = nil

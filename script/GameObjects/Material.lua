@@ -5,11 +5,11 @@
 --        is a specific 'type' of metal
 --           NOTE : Really they're just nested ShaderStates.
 
-local Material = class(function (self) end)
+local Material = class(function(self) end)
 
 local allMaterials = {}
 
-OnEvent('Engine.Reload', function ()
+OnEvent('Engine.Reload', function()
     for i = 1, #allMaterials do
         allMaterials[i]:reload()
     end

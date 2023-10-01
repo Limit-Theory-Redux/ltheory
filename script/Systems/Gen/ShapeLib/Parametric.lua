@@ -6,14 +6,14 @@ end
 
 function Parametric.Ellipse(sx, sy)
     local sx, sy = sx or 1, sy or 2
-    return function (t)
+    return function(t)
         return Vec2d(sx * cos(t), sy * sin(t))
     end
 end
 
 function Parametric.Shroom(sx)
     local sx = sx or 3
-    return function (t)
+    return function(t)
         return Vec2d((sx + cos(t)) * cos(t),
             (sx + sin(t)) * sin(t))
     end
@@ -28,7 +28,7 @@ end
 function Parametric.Hypocycloid(a)
     local a = a or 5
     a = a - 1
-    return function (t)
+    return function(t)
         return Vec2d(
             (a * cos(t) + cos(a * t)) / a,
             (a * sin(t) - sin(a * t)) / a
@@ -38,14 +38,14 @@ end
 
 function Parametric.Parabola(sx, sy)
     local sx, sy = sx or 1, sy or 1
-    return function (t)
+    return function(t)
         return Vec2d(sx * cos(2 * t), sy * sin(t))
     end
 end
 
 function Parametric.Rectangle(sx, sy)
     local sx, sy = sx or 1, sy or 1
-    return function (t)
+    return function(t)
         local c, s = cos(t), sin(t)
         return Vec2d(
             sx * (abs(c) * c - abs(s) * s),

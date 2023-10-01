@@ -409,7 +409,7 @@ function ShipFighter.HullSurreal(rng, hull, res)
     if rng:chance(0.5) then
         local yAmt = rng:getUniformRange(0.2, 2.0)
         shape:warp(
-            function (v)
+            function(v)
                 v.y = v.y + v.y * v.y * yAmt
             end
         )
@@ -742,7 +742,7 @@ function ShipFighter.WingsTie(rng)
         local dir = rng:choose({ 1, -1 })
         local amt = rng:getUniformRange(0.1, 0.5)
         wing:warp(
-            function (v)
+            function(v)
                 local y = (v.y - yMin) / (yMax - yMin)
                 y = Math.Lerp(0, math.pi, y)
                 v.x = v.x + math.sin(y) * dir * amt

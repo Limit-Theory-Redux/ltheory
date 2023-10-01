@@ -2,7 +2,7 @@ local Job = require('GameObjects.Job')
 local Flow = require('Systems.Economy.Flow')
 local Actions = requireAll('GameObjects.Actions')
 
-local Mine = subclass(Job, function (self, src, dst, item)
+local Mine = subclass(Job, function(self, src, dst, item)
     self.src = src
     self.dst = dst
     self.item = item

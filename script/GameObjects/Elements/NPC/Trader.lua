@@ -6,7 +6,7 @@ local Credit = require('Systems.Economy.Item').Credit
 -- NOTE: All the evaluations below are made from the perspective of what is most
 --       advantageous to _this trader_ (self).
 
-local Trader = class(function (self, parent)
+local Trader = class(function(self, parent)
     self.parent = parent
     self.elems = {}
 end)

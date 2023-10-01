@@ -7,7 +7,7 @@ local EventManagerT   = {}
 EventManagerT.__index = {}
 
 local function makeDispatch(id)
-    local fn = function (self, id, data)
+    local fn = function(self, id, data)
         local listeners = self.listeners[id]
         for i = 1, #listeners do
             data = listeners[i](data) or data

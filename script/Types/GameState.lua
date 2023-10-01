@@ -61,8 +61,8 @@ GameState.ui = {
     },
     trackerObjectOcclusion           = Config.ui.trackerObjectOcclusion,
 
-    mapSystemPanSpeed = 0.5,
-    mapSystemZoomSpeed = 0.1,
+    mapSystemPanSpeed                = 0.5,
+    mapSystemZoomSpeed               = 0.1,
 }
 
 GameState.player = {

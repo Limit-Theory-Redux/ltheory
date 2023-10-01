@@ -244,15 +244,15 @@ local function defineVec2d_t(t, mt)
     end
 end
 
-onDef_Vec2i_t = function (t, mt)
+onDef_Vec2i_t = function(t, mt)
     defineVec2_t(t, mt)
     defineVec2i_t(t, mt)
 end
-onDef_Vec2f_t = function (t, mt)
+onDef_Vec2f_t = function(t, mt)
     defineVec2_t(t, mt)
     defineVec2f_t(t, mt)
 end
-onDef_Vec2d_t = function (t, mt)
+onDef_Vec2d_t = function(t, mt)
     defineVec2_t(t, mt)
     defineVec2d_t(t, mt)
 end

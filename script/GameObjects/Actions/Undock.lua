@@ -1,6 +1,6 @@
 local Action = require('GameObjects.Action')
 
-local Undock = subclass(Action, function (self) end)
+local Undock = subclass(Action, function(self) end)
 
 function Undock:clone()
     return Undock()

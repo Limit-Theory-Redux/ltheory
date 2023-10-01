@@ -1,7 +1,7 @@
 local Entity = require('GameObjects.Entity')
 local Pulse = require('GameObjects.Entities.Effects.Pulse')
 
-local Projectile = subclass(Entity, function (self, pR, pG, pB)
+local Projectile = subclass(Entity, function(self, pR, pG, pB)
     self.pColorR = pR
     self.pColorG = pG
     self.pColorB = pB
