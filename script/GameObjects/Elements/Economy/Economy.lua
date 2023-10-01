@@ -7,7 +7,8 @@ local maxUpdateRateDeviation = 0.2
 local updateRates = {
     [1] = 2, -- Mining
     [2] = 2, -- Transport
-    [3] = 2  -- Marauding
+    [3] = 2,  -- Marauding
+    [4] = 2  -- Patrolling
 }
 
 local Economy = class(function (self, parent)
@@ -26,7 +27,8 @@ local Economy = class(function (self, parent)
     self.nextUpdates = {
         [1] = 0, -- Mining
         [2] = 0, -- Transport
-        [3] = 0  -- Marauding
+        [3] = 0, -- Marauding
+        [4] = 0, -- Patrolling
     }
 
     self.timer = 0
@@ -98,6 +100,17 @@ function Economy:update(dt)
 
             Profiler.End()
         end
+
+        if self.timer >= self.nextUpdates[4] then
+            -- Cache profitable trade jobs
+            Profiler.Begin('Economy.Update.Patrolling')
+
+            fn.cachePatrollingJobs(self)
+
+            self.nextUpdates[4] = self.timer + updateRates[4] + rng:getUniformRange(0, maxUpdateRateDeviation)
+            Profiler.End()
+        end
+
 
         Profiler.Begin('Economy.Update.Flows')
         do -- Compute net flow of entire economy

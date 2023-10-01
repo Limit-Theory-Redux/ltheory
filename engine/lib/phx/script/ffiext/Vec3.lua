@@ -219,7 +219,9 @@ local function defineVec3_t(t, mt)
 
     function mt.__index.inormalize(v)
         local l = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
-        assert(l > 1e-12, 'Attempting to normalize vector with near-zero length')
+        if l < 1e-12 then
+            l = 0
+        end
         v.x = v.x / l
         v.y = v.y / l
         v.z = v.z / l
@@ -227,13 +229,17 @@ local function defineVec3_t(t, mt)
 
     function mt.__index.normalize(v)
         local l = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
-        assert(l > 1e-12, 'Attempting to normalize vector with near-zero length')
+        if l < 1e-12 then
+            l = 0
+        end
         return (Vec3(v.x / l, v.y / l, v.z / l))
     end
 
     function mt.__index.pNormalize(v, p)
         local l = (math.abs(v.x) ^ p + math.abs(v.y) ^ p + math.abs(v.z) ^ p) ^ (1.0 / p)
-        assert(l > 1e-12, 'Attempting to normalize vector with near-zero length')
+        if l < 1e-12 then
+            l = 0
+        end
         return (Vec3(v.x / l, v.y / l, v.z / l))
     end
 

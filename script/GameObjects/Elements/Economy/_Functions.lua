@@ -100,11 +100,30 @@ local function cacheMaraudingJobs(self)
     end
 end
 
+local function cachePatrollingJobs(self)
+    self.jobs[Enums.Jobs.Patrolling] = {}
+
+    for _, src in ipairs(self.traders) do
+        if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
+            local system = src:getRoot()
+            local zone = src:getZone()
+            if zone and zone.threatLevel > 5 then
+                local patrolPoints = {}
+                for i = 1, 10, 1 do
+                    table.insert(patrolPoints, zone:getRandomPos(system.rng))
+                end
+                insert(self.jobs[Enums.Jobs.Patrolling], Jobs.Patrolling(src, system, patrolPoints))
+            end
+        end
+    end
+end
+
 -- Spread economy functions for cleaner code
 local returnTable = {
     cacheMiningJobs = cacheMiningJobs,
     cacheTransportJobs = cacheTransportJobs,
-    cacheMaraudingJobs = cacheMaraudingJobs
+    cacheMaraudingJobs = cacheMaraudingJobs,
+    cachePatrollingJobs = cachePatrollingJobs
 }
 
 return returnTable

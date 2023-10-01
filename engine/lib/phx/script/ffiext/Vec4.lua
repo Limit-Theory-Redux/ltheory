@@ -159,7 +159,9 @@ local function defineVec4_t(t, mt)
 
     function mt.__index.normalize(v)
         local l = sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w)
-        assert(l > 1e-12, 'Attempting to normalize vector with near-zero length')
+        if l < 1e-12 then
+            l = 0
+        end
         return (Vec4(v.x / l, v.y / l, v.z / l, v.w / l))
     end
 end

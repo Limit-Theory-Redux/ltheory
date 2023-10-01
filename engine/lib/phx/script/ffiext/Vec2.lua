@@ -153,14 +153,18 @@ local function defineVec2_t(t, mt)
 
     function mt.__index.inormalize(v)
         local l = sqrt(v.x * v.x + v.y * v.y)
-        assert(l > 1e-12, 'Attempting to normalize vector with near-zero length')
+        if l < 1e-12 then
+            l = 0
+        end
         v.x = v.x / l
         v.y = v.y / l
     end
 
     function mt.__index.normalize(v)
         local l = sqrt(v.x * v.x + v.y * v.y)
-        assert(l > 1e-12, 'Attempting to normalize vector with near-zero length')
+        if l < 1e-12 then
+            l = 0
+        end
         return (Vec2(v.x / l, v.y / l))
     end
 

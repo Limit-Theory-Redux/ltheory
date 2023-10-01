@@ -78,6 +78,8 @@ function Attack:onUpdateActive(e, dt)
 end
 
 function Attack:onUpdatePassive(e, dt)
+    if not e or not self.target then return end
+
     local distance = e:getDistance(self.target)
     local align = (self.target:getPos() - e:getPos()):normalize():dot(e:getForward())
     if align < 0.25 then return end

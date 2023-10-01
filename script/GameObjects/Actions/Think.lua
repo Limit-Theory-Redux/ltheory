@@ -95,12 +95,12 @@ function Think:manageAsset(asset)
                 -- TODO needs better evaluation of risk versus reward
                 if payout >= bestPayout and threatLevel <= lowestThreatLevel then
                     --if job.jcount > 0 then
-                        bestPayout = payout
-                        lowestThreatLevel = threatLevel
-                        bestJob = job
+                    bestPayout = payout
+                    lowestThreatLevel = threatLevel
+                    bestJob = job
                     --else
-                        --printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-                        --    asset:getName(), job:getName(), payout)
+                    --printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+                    --    asset:getName(), job:getName(), payout)
                     --end
                     --! we really need to replace this jcount stuff, it´s confusing and error prone
                 end
@@ -118,14 +118,13 @@ function Think:manageAsset(asset)
             if asset.job.workers and #asset.job.workers < asset.job.maxWorkers then -- temporary allow only one worker, this should depend on the job later (e.g. asteroid suze --> max workers)
                 asset.job:addWorker(asset)
             end
-    
+
             if asset.job.workers and not asset.job:isWorker(asset) then
                 return
             end
         end
-    
 
-        if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
+        if asset.job.dst and (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
             (not string.find(asset.job:getName(), "Transport") or
                 (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
             do
