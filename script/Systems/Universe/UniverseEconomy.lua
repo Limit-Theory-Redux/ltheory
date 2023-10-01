@@ -127,7 +127,6 @@ local function addBlackMarket(system)
             local pirateHullInteg = asset:mgrHullGetHealthMax()
             asset:mgrHullSetHealth(pirateHullInteg, pirateHullInteg)
             asset.usesBoost = true
-            print("Set ship health!")
         end
         system:place(asset)
     end

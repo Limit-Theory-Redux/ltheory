@@ -50,8 +50,10 @@ local System = subclass(Entity, function (self, seed)
 
     -- When creating a new system, initialize station subtype options from all production types
     local prodType  = Config:getObjectTypeIndex("station_subtypes")
+    local originalLength = #Config.objectInfo[prodType]["elems"]
+
     for i, prod in ipairs(Production.All()) do
-        Config.objectInfo[prodType]["elems"][i + 2] =
+        Config.objectInfo[prodType]["elems"][i + originalLength] =
         {
             i + 2,
             prod:getName()
@@ -846,10 +848,10 @@ function System:spawnPirateStation(hullSize, player)
     -- Spawn a new space station
     local station = Objects.Station(self.rng:get31(), hullSize)
     station:setType(Config:getObjectTypeByName("object_types", "Station"))
-    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate Station")) -- pirate station
+    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate")) -- pirate station
 
     -- Give the station a name
-    station:setName(Words.getCoolName(rng) .. " Pirates")
+    station:setName(Words.getCoolName(rng) .. " Marauders")
 
     -- Set station location within the extent of a randomly selected asteroid field
     station.zone = self:place(station)

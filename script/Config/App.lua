@@ -870,7 +870,7 @@ Config.objectInfo                = {
             { 2, "Reserved" },
             { 3, "Solar Energy Array" },
             { 4, "Nuclear Reactor" },
-            { 5, "Pirate Station" },
+            { 5, "Pirate" },
         }
     },
     {
@@ -932,7 +932,7 @@ Config.objectInfo                = {
             { 36, "Sloop" },
             { 37, "Yacht" },
             { 38, "Liner" },
-            { 39, "Pirate" }
+            { 39, "Marauder" }
         }
     },
     {
