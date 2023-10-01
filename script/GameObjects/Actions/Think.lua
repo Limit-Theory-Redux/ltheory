@@ -99,8 +99,8 @@ function Think:manageAsset(asset)
                         lowestThreatLevel = threatLevel
                         bestJob = job
                     --else
-                        printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
-                            asset:getName(), job:getName(), payout)
+                        --printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
+                        --    asset:getName(), job:getName(), payout)
                     --end
                     --! we really need to replace this jcount stuff, it´s confusing and error prone
                 end
