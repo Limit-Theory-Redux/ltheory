@@ -115,9 +115,16 @@ function SystemMap:onDraw(state)
             Draw.Point(x, y)
 
             if e:hasFlows() and not e:isDestroyed() then
+                -- from HUD.lua
+                -- set color by dispo
+                local disp = Config.game.dispoNeutral -- disposition to neutral by default
+                if e:hasAttackable() and e:isAttackable() then disp = e:getDisposition(playerShip) end
+                -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+                local c = Disposition.GetColor(disp)
+
                 --printf("Flow: %s", e:getName())
                 UI.DrawEx.Ring(x, y, GameState.player.currentMapSystemZoom * e:getScale() * 10,
-                    { r = 0.1, g = 0.5, b = 1.0, a = 1.0 }, true)
+                    { r = c.r, g = c.g, b = c.b, a = c.a }, true)
             end
 
             if e:hasYield() then
