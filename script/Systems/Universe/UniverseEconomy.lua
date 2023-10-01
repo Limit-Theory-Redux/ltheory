@@ -148,14 +148,14 @@ function UniverseEconomy:OnUpdate(dt)
         end
 
         -- Handle High Attention Systems
-        self:HandleHighAttention(system)
+        self:HandleHighAttention(dt, system)
     end
 
     if self.econDelta > self.nextUpdate then
         -- Low Attention
         for _, system in ipairs(self.systems.lowAttention) do
             -- Handle Low Attention Systems
-            self:HandleLowAttention(system)
+            self:HandleLowAttention(dt, system)
         end
         self.nextUpdate = self.econDelta + Config.econ.lowAttentionUpdateRate
     end
@@ -166,11 +166,11 @@ function UniverseEconomy:AddSystem(system)
     table.insert(self.systems.highAttention, system)
 end
 
-function UniverseEconomy:HandleHighAttention(system)
-
+function UniverseEconomy:HandleHighAttention(dt, system)
+    system:updateEconomy(dt) --> script\GameObjects\Elements\Economy\Economy.lua
 end
 
-function UniverseEconomy:HandleLowAttention(system)
+function UniverseEconomy:HandleLowAttention(dt, system)
 
 end
 

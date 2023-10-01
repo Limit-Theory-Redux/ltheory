@@ -1,8 +1,5 @@
 local Entity = require('GameObjects.Entity')
-local Jobs = requireAll('GameObjects.Jobs')
-local Item = require('Systems.Economy.Item')
-
---------------------------------------------------------------------------------
+local fn = require('GameObjects.Elements.Economy._Functions')
 
 -- TEMP
 local rng = RNG.FromTime()
@@ -35,15 +32,12 @@ local Economy = class(function (self, parent)
     self.timer = 0
 end)
 
--- TODO : Economy cache should be updated infrequently and the update should be
---        spread over many frames.
--- NOTE : In particular, the evaluation of Mining jobs becomes very expensive as
---        asteroid count (Yield) and station/planet count (Market) increase.
+
+
 function Economy:update(dt)
     self.timer = self.timer + dt
     if not GameState.paused then
         --    Profiler.Begin('Economy.Update')
-
         Profiler.Begin('Economy.Update.tableclear')
         table.clear(self.factories)
         table.clear(self.flows)
@@ -66,7 +60,7 @@ function Economy:update(dt)
                 if e:hasTrader() and not e:isDestroyed() then insert(self.traders, e) end
                 if e:hasBlackMarket() and not e:isDestroyed() then insert(self.blackMarkets, e) end
                 if e:hasBlackMarketTrader() and not e:isDestroyed() then insert(self.blackMarketTraders, e) end
-                --                if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
+                if e:hasYield() and e:getYieldSize() > 0 then insert(self.yields, e) end
             end
         end
         Profiler.End()
@@ -74,134 +68,22 @@ function Economy:update(dt)
         if self.timer >= self.nextUpdates[1] then
             -- Cache profitable mining jobs
             Profiler.Begin('Economy.Update.Mining')
-            local jobCount = 0
-            do -- Cache mining jobs
-                -- Iterate through all factories at functional space stations in this star system
-                self.jobs[Enums.Jobs.Mining] = {}
-                for _, station in ipairs(self.factories) do
-                    local factory = station:getFactory()
-                    local prodLines = factory:getProds()
-                    -- Iterate through all production lines in the factory
-                    for _, prodLine in ipairs(prodLines) do
-                        -- Iterate through all Inputs for this production line
-                        for _, input in prodLine.type:iterInputs() do
-                            local item = input.item
-                            if item:hasItem(Item.T2, item) then -- is Input item a minable resource?
-                                local itemBidVol = station:getTrader():getBidVolume(item)
-                                -- Does the Trader at the same station as this Factory have any bids for the minable Item?
-                                if itemBidVol > 0 then
-                                    -- Get no more than [considerCount] of the asteroids in the zone of this station
-                                    --     whose current Yield is at least the number of the trader's bids for this Input Item
-                                    local considerCount = 50
-                                    local baseYield = itemBidVol * 3
 
-                                    table.clear(self.yields)
-                                    for i, asteroid in station.zone:iterChildren() do
-                                        if asteroid:hasYield() and asteroid:getYieldSize() > baseYield then
-                                            insert(self.yields, asteroid)
-                                        end
-                                        if i > considerCount then break end
-                                    end
-                                    --printf    ("ECONOMY: Mine job test: station = %s, prod = %s, item = %s, #asteroids = %d",
-                                    --    st    ation:getName(), prodLine.type.name, item:getName(), #self.yields)
-
-                                    for i, asteroid in ipairs(self.yields) do
-                                        --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
-                                        --    src:getName(), dst:getName(), item:getName(), itemBidVol)
-                                        jobCount = jobCount + 1
-                                        insert(self.jobs[Enums.Jobs.Mining], Jobs.Mine(asteroid, station, item))
-                                        if i == considerCount then break end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
+            fn.cacheMiningJobs(self)
             -- get next update
             self.nextUpdates[1] = self.timer + updateRates[1] + rng:getUniformRange(0, maxUpdateRateDeviation)
+
             Profiler.End()
         end
-        --        printf("ECONOMY: Mine job test: jobCount = %d", jobCount)
-
-        --        -- Cache profitable mining jobs    -- INACTIVE (old style mining job generator)
-        --        Profiler.Begin('Economy.Update.Mining')
-        --        -- TODO: This section is an enormous CPU hog due to the number of station - asteroid combinations
-        --        local allJobCount = 0
-        --        local realJobCount = 0
-        --        do -- Cache mining jobs
-        --            for _, src in ipairs(self.yields) do
-        --                local item = src:getYield().item
-        --                for _, dst in ipairs(self.markets) do
-        --                    -- Create a Mine job only if the destination trader has a bid for the source item
-        --                    if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
-        --                        allJobCount = allJobCount + 1
-        --                        local itemBidVol = dst:getTrader():getBidVolume(item)
-        --                        if itemBidVol > 0 then
-        --                            --printf("ECONOMY: src = %s, dst = %s, item = %s, itemBidVol = %d",
-        --                            --    src:getName(), dst:getName(), item:getName(), itemBidVol)
-        --                            realJobCount = realJobCount + 1
-        --                            insert(self.jobs, Jobs.Mine(src, dst, item))
-        --                        end
-        --                    end
-        --                end
-        --            end
-        --        end
-        --        Profiler.End()
-        --        --printf("ECONOMY: Mine job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
-
-        --    if false then  -- INACTIVE (Josh code - preserve this for when we switch back to Flow model)
-        --      do -- Cache trade jobs from positive to negative flow
-        --        for _, src in ipairs(self.markets) do
-        --          for item, srcFlow in pairs(src:getFlows()) do
-        --            if srcFlow > 0 then
-        --              for _, dst in ipairs(self.markets) do
-        --                if dst:getFlow(item) < 0 then
-        --                  insert(self.jobs, Jobs.Transport(src, dst, item))
-        --                end
-        --              end
-        --            end
-        --          end
-        --        end
-        --      end
-        --    end
 
         if self.timer >= self.nextUpdates[2] then
             -- Cache profitable trade jobs
             Profiler.Begin('Economy.Update.Transport')
-            local allJobCount = 0
-            local realJobCount = 0
-            self.jobs[Enums.Jobs.Transport] = {}
-            for _, src in ipairs(self.traders) do
-                if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
-                    for item, data in pairs(src:getTrader().elems) do
-                        if src:getTrader():getAskVolume(item) > 0 then
-                            local buyPrice = src:getTrader():getBuyFromPrice(item, 1)
-                            --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
-                            if buyPrice > 0 then
-                                for _, dst in ipairs(self.traders) do
-                                    if dst:hasDockable() and dst:isDockable() and not dst:isDestroyed() then
-                                        if src ~= dst then
-                                            allJobCount = allJobCount + 1
-                                            local sellPrice = dst:getTrader():getSellToPrice(item, 1)
-                                            --printf("Transport test: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
-                                            --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-                                            if buyPrice < sellPrice then
-                                                --printf("Transport job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
-                                                --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-                                                realJobCount = realJobCount + 1
-                                                insert(self.jobs[Enums.Jobs.Transport], Jobs.Transport(src, dst, item))
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
+
+            fn.cacheTransportJobs(self)
             -- get next update
             self.nextUpdates[2] = self.timer + updateRates[2] + rng:getUniformRange(0, maxUpdateRateDeviation)
+
             Profiler.End()
         end
         --printf("ECONOMY: Trade job test: allJobCount = %d, realJobCount = %d", allJobCount, realJobCount)
@@ -209,29 +91,11 @@ function Economy:update(dt)
         if self.timer >= self.nextUpdates[3] then
             -- Cache profitable trade jobs
             Profiler.Begin('Economy.Update.Marauding')
-            local allJobCount = 0
-            local realJobCount = 0
-            self.blackMarketJobs[Enums.BlackMarketJobs.Marauding] = {}
-            for _, src in ipairs(self.blackMarketTraders) do
-                if src:hasDockable() and src:isDockable() and not src:isDestroyed() then
-                    for item, data in pairs(src:getBlackMarketTrader().elems) do
-                        if src:getBlackMarketTrader():getBidVolume(item) > 0 then
-                            local sellPrice = src:getBlackMarketTrader():getSellToPrice(item, 1)
-                            --printf("Buy? item %s from %s, buyPrice = %d", item:getName(), src:getName(), buyPrice)
-                            if sellPrice > 0 then
-                                allJobCount = allJobCount + 1
-                                --printf("Marauding job insert: item %s from %s @ buyPrice = %d to %s @ sellPrice = %d",
-                                --    item:getName(), src:getName(), buyPrice, dst:getName(), sellPrice)
-                                realJobCount = realJobCount + 1
-                                print("Added black market job")
-                                insert(self.blackMarketJobs[Enums.BlackMarketJobs.Marauding], Jobs.Marauding(src, src:getRoot())) --TODO: should also be able to extent to other systems.
-                            end
-                        end
-                    end
-                end
-            end
+
+            fn.cacheMaraudingJobs(self)
             -- get next update
             self.nextUpdates[3] = self.timer + updateRates[3] + rng:getUniformRange(0, maxUpdateRateDeviation)
+
             Profiler.End()
         end
 
@@ -278,7 +142,7 @@ function Entity:addEconomy()
     assert(not self.economy)
     self.economy = Economy(self)
     self:register(Event.Debug, Entity.debugEconomy)
-    self:register(Event.Update, Entity.updateEconomy)
+    --self:register(Event.Update, Entity.updateEconomy)
 end
 
 function Entity:debugEconomy(state)
@@ -294,8 +158,9 @@ function Entity:hasEconomy()
     return self.economy ~= nil
 end
 
-function Entity:updateEconomy(state)
-    self.economy:update(state.dt)
+-- from script\Systems\Universe\UniverseEconomy.lua
+function Entity:updateEconomy(dt)
+    self.economy:update(dt)
 end
 
 --------------------------------------------------------------------------------
