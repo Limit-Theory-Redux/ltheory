@@ -232,9 +232,11 @@ function GameView:onUpdate(state)
         self.eyeLast:setv(eye)
     end
 
-    LTheoryRedux.audio:setListenerPos(
-        self.camera.pos,
-        self.camera.rot)
+    if LTheoryRedux.audio ~= nil then
+        LTheoryRedux.audio:setListenerPos(
+            self.camera.pos,
+            self.camera.rot)
+    end
 
     self.camera:pop()
 end

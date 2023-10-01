@@ -467,7 +467,7 @@ pub unsafe extern "C" fn Shader_SetMatrix(name: *const libc::c_char, value: &mut
     gl::UniformMatrix4fv(
         GetUniformIndex(current.as_mut(), name),
         1,
-        gl::TRUE,
+        gl::FALSE,
         value as *mut Matrix as *mut f32,
     );
 }
@@ -477,19 +477,19 @@ pub unsafe extern "C" fn Shader_SetMatrixT(name: *const libc::c_char, value: &mu
     gl::UniformMatrix4fv(
         GetUniformIndex(current.as_mut(), name),
         1,
-        gl::FALSE,
+        gl::TRUE,
         value as *mut Matrix as *mut f32,
     );
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ISetMatrix(index: i32, value: &mut Matrix) {
-    gl::UniformMatrix4fv(index, 1, gl::TRUE, value as *mut Matrix as *mut f32);
+    gl::UniformMatrix4fv(index, 1, gl::FALSE, value as *mut Matrix as *mut f32);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Shader_ISetMatrixT(index: i32, value: &mut Matrix) {
-    gl::UniformMatrix4fv(index, 1, gl::FALSE, value as *mut Matrix as *mut f32);
+    gl::UniformMatrix4fv(index, 1, gl::TRUE, value as *mut Matrix as *mut f32);
 }
 
 #[no_mangle]
