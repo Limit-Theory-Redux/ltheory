@@ -219,7 +219,7 @@ function Mine:onUpdateActive(e, dt)
                 e:pushAction(Actions.MoveTo(self.src, 150, true)) -- TODO: convert static arrival range to dynamic based on target scale
             end
         elseif e.jobState == Enums.JobStateMine.MiningAsteroid then
-            local miningTimePerItem = 5 -- TODO: create a miningTime() function based on item's rarity
+            local miningTimePerItem = 15 -- TODO: create a miningTime() function based on item's rarity
             e:pushAction(Actions.MineAt(self.src, self.dst, miningTimePerItem))
         elseif e.jobState == Enums.JobStateMine.DockingAtDst then
             if e:mgrInventoryGetItemCount(self.item) == 0 then
@@ -243,9 +243,9 @@ function Mine:onUpdateActive(e, dt)
             if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
                 local item = self.item
                 --printf("[MINE 4] %s offers to sell %d units of %s to Trader %s",
-                --e:getName(), e:getItemCount(item), item:getName(), self.dst:getName())
+                --e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
                 local sold = 0
-                while e:getItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
+                while e:mgrInventoryGetItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
                     sold = sold + 1
                 end
                 printf("[MINE 4] %s sold %d units of %s to Trader %s", e:getName(), sold, item:getName(),

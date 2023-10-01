@@ -94,14 +94,15 @@ function Think:manageAsset(asset)
                 local payout = job:getPayout(asset)
                 -- TODO needs better evaluation of risk versus reward
                 if payout >= bestPayout and threatLevel <= lowestThreatLevel then
-                    if job.jcount > 0 then
+                    --if job.jcount > 0 then
                         bestPayout = payout
                         lowestThreatLevel = threatLevel
                         bestJob = job
-                    else
+                    --else
                         printf("THINK ***: %s tried to pick job '%s' with payout = %d but jcount = 0!",
                             asset:getName(), job:getName(), payout)
-                    end
+                    --end
+                    --! we really need to replace this jcount stuff, it´s confusing and error prone
                 end
             end
         end
@@ -113,21 +114,31 @@ function Think:manageAsset(asset)
         -- Don't assign an old job if it can no longer be completed because a required station was destroyed
         asset.job = bestJob
 
-        if asset.job.workers and #asset.job.workers < asset.job.maxWorkers then -- temporary allow only one worker, this should depend on the job later (e.g. asteroid suze --> max workers)
-            asset.job:addWorker(asset)
+        local function handleWorker()
+            if asset.job.workers and #asset.job.workers < asset.job.maxWorkers then -- temporary allow only one worker, this should depend on the job later (e.g. asteroid suze --> max workers)
+                asset.job:addWorker(asset)
+            end
+    
+            if asset.job.workers and not asset.job:isWorker(asset) then
+                return
+            end
         end
-
-        if asset.job.workers and not asset.job:isWorker(asset) then
-            return
-        end
+    
 
         if (asset.job.dst:hasDockable() and asset.job.dst:isDockable() and not asset.job.dst:isDestroyed()) and
             (not string.find(asset.job:getName(), "Transport") or
                 (asset.job.src:hasDockable() and asset.job.src:isDockable() and not asset.job.src:isDestroyed())) then
             do
+                -- Place offer for the best job's bids to reserve them
+                -- Note that this also sets the job's count of items to be moved
+                asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
+                asset.job.bids = asset.job.jcount -- terrible hack for when jcount is mysteriously set to 0
+
+
                 -- Push job to asset's Action queue
-                printf("THINK: pushing job %s '%s' to %s with jcount = %d, bids = %d, bestPayout = %d",
-                    asset.job, asset.job:getName(asset), asset:getName(), asset.job.jcount, asset.job.bids, bestPayout)
+                printf("THINK: pushing job %s '%s' to %s, bids = %d, bestPayout = %d",
+                    asset.job, asset.job:getName(asset), asset:getName(), asset.job.bids, bestPayout)
+
                 asset:pushAction(bestJob)
                 jobAssigned = true
 
@@ -145,9 +156,9 @@ function Think:manageAsset(asset)
                 -- Wake up asset if it was sleeping and make sure it undocks
                 local station = asset:isShipDocked()
                 if station then
-                    printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
-                        asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount,
-                        asset.job.bids)
+                    --printf("THINK +++ 1: Asset %s (owner %s) wakes up at Station %s with job %s, jcount = %d, bids = %d",
+                    --    asset:getName(), asset:getOwner():getName(), station:getName(), asset.job, asset.job.jcount,
+                    --    asset.job.bids)
                     --for i, v in ipairs(asset.actions) do
                     --  printf("  Actions %d : %s", i, v:getName(asset))
                     --end
@@ -174,6 +185,11 @@ function Think:manageAsset(asset)
             -- TODO: canceling old job, so release any asks or bids held by this ship with a source or destination trader
             printf("THINK: canceling job '%s' for asset %s", asset.job:getName(), asset:getName())
             asset.job = nil
+        end
+
+
+        if asset.job then
+            handleWorker()
         end
     end
 
@@ -211,6 +227,8 @@ function Think:manageAsset(asset)
     if not jobAssigned then
         -- Asset has no job, so revert to default role and store in ship subtype
         asset:setSubType(Config:getObjectTypeByName("ship_subtypes", "Fighter"))
+
+        -- TODO: ROAM JOB
     end
 end
 
