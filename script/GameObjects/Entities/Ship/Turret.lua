@@ -134,7 +134,7 @@ function Turret:fire()
     --        AI threat analysis by keeping track of which weapons have caused
     --        the most real damage to it, allowing for optimal sub-system
     --        targetting.
-    print(self:getParent().name)
+    --print(self:getParent().name)
 
     local rpmDeviation = Config.gen.compTurretPulseStats.weaponRPM - Config.gen.compTurretPulseStats.weaponRPM *
         rng:getUniformRange(Config.gen.compTurretPulseStats.weaponRPMDeviation, 0)

@@ -80,12 +80,15 @@ function SystemMap:onDraw(state)
                             -- Draw the dot for ships that are aces larger than regular ships
                             Draw.PointSize(5.0)
                         end
-                        if string.find(entAction:getName(), "Attack") and entAction.target == GameState.player.currentShip then
-                            -- TODO: draw in color based on Disposition toward player
-                            Draw.Color(1.0, 0.3, 0.3, 1.0) -- other object, hostile (has a current action of "Attack player's ship")
-                        else
-                            Draw.Color(0.2, 0.6, 1.0, 1.0) -- other object, non-hostile
-                        end
+
+                        -- from HUD.lua
+                        -- set color by dispo
+                        local disp = Config.game.dispoNeutral -- disposition to neutral by default
+                        if e:hasAttackable() and e:isAttackable() then disp = e:getDisposition(playerShip) end
+                        -- local c = target:getDispositionColor(disp) -- this version is preserved for future changes (esp. faction)
+                        local c = Disposition.GetColor(disp)
+                        Draw.Color(c.r, c.g, c.b, c.a) -- some other object that suddenly has no actions
+
                         local focusedTarget = e:getTarget()
                         if focusedTarget then
                             local ftp = focusedTarget:getPos()
