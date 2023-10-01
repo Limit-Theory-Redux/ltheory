@@ -129,7 +129,7 @@ function Patrolling:onUpdateActive(e, dt)
         elseif self.jobState == Enums.JobStatePatrolling.JobFinished then
             self:getPayout()
             self:cancelJob(e)
-            printf("[PATROL 2] *** %s has finished it's patrol job for station %s",
+            printf("[PATROL 2] *** %s has finished its patrol job for station %s",
                 e:getName(), self.src:getName())
         end
 
