@@ -205,12 +205,16 @@ pub unsafe extern "C" fn RigidBody_GetSpeed(this: &mut RigidBody) -> f32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn RigidBody_GetToLocalMatrix(this: &mut RigidBody) -> *mut Matrix {
-    _cppRigidBody_GetToLocalMatrix(this)
+    let result = _cppRigidBody_GetToLocalMatrix(this);
+    Matrix_ITranspose(&mut *result);
+    result
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn RigidBody_GetToWorldMatrix(this: &mut RigidBody) -> *mut Matrix {
-    _cppRigidBody_GetToWorldMatrix(this)
+    let result = _cppRigidBody_GetToWorldMatrix(this);
+    Matrix_ITranspose(&mut *result);
+    result
 }
 
 #[no_mangle]
