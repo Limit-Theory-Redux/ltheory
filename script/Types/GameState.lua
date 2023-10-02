@@ -10,11 +10,12 @@ GameState.input = {
 }
 
 GameState.debug = {
-    metricsEnabled  = Config.debug.metricsEnabled,
-    instantJobs     = Config.debug.instantJobs,
-    jobSpeed        = Config.debug.jobSpeed,
-    timeAccelFactor = Config.debug.timeAccelFactor,
-    printConfig     = Config.debug.printConfig
+    metricsEnabled     = Config.debug.metricsEnabled,
+    instantJobs        = Config.debug.instantJobs,
+    jobSpeed           = Config.debug.jobSpeed,
+    timeAccelFactor    = Config.debug.timeAccelFactor,
+    printConfig        = Config.debug.printConfig,
+    showMapActionLines = Config.debug.showMapActionLines
 }
 
 GameState.render = {

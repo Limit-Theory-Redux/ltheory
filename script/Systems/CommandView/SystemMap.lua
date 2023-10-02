@@ -97,7 +97,7 @@ function SystemMap:onDraw(state)
                             ftx = self.x + ftx * GameState.player.currentMapSystemZoom + hx
                             fty = self.y + fty * GameState.player.currentMapSystemZoom + hy
 
-                            if e == playerTarget then
+                            if e == playerTarget or GameState.debug.showMapActionLines then
                                 if string.find(entAction:getName(), "Attack") then
                                     UI.DrawEx.Line(x, y, ftx, fty, { r = 1.0, g = 0.4, b = 0.3, a = 1.0 }, false)
                                 else
