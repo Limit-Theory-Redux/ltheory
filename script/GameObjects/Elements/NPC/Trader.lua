@@ -369,7 +369,7 @@ function Trader:buy(asset, item)
                     self.parent:mgrInventoryAddItem(item, 1)
 
                     self.parent:removeCredits(price)
-                    player:addCredits(price)
+                    asset.job.src:addCredits(price)
 
                     --printf("BUY: Trader parent %s buys 1 unit of item %s from Asset %s (Owner %s) at price %d",
                     --self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
@@ -404,6 +404,7 @@ function Trader:sell(asset, item)
         assert(data.escrow > 0)
 
         local price = data.asks[1]
+        local tax = price * self.parent:getTax()
         if price > 0 and player:hasCredits(price) then
             -- Make sure there's room for at least one unit of this item at its given mass
             if asset:mgrInventoryGetFreeMax(item:getMass()) >= item:getMass() then
@@ -416,8 +417,12 @@ function Trader:sell(asset, item)
                 --printf("Trader %s now has %d units of item %s",
                 --    self.parent:getName(), self.parent:mgrInventoryGetItemCount(item), item:getName())
 
-                player:removeCredits(price)
-                self.parent:addCredits(price)
+                asset.job.src:removeCredits(price)
+                if self.parent:hasTax() then
+                    print("[TAX] Taxing trade from " .. self.parent:getName() .. " by " .. tax .. "$")
+                end
+                self.parent:getOwner():addCredits(tax)
+                self.parent:addCredits(price - tax)
 
                 data.totalAsk = data.totalAsk - 1
                 if data.totalAsk < 0 then data.totalAsk = 0 end

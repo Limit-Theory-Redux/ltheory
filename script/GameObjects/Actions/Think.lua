@@ -1,9 +1,21 @@
 local Action = require('GameObjects.Action')
 local Player = require('GameObjects.Entities.Player')
 
+local updateRates = {
+    [1] = 30,  -- capital expenditure AI
+    [2] = 60,  -- fleet management AI
+    [3] = 300, -- strategic goal-planning AI
+}
+
 local Think = subclass(Action, function (self)
     self.timer = 0
     self.rng = RNG.FromTime()
+
+    self.nextUpdates = {
+        [1] = 0, -- capital expenditure AI
+        [2] = 0, -- fleet management AI
+        [3] = 0, -- strategic goal-planning AI
+    }
 end)
 
 function Think:clone()
@@ -251,23 +263,43 @@ function Think:onUpdateActive(e, dt)
         --printf("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
 
         do -- TODO: capital expenditure AI
-            if self.timer > 30 then
-                --
+            if self.timer >= self.nextUpdates[1] then
+                self:manageTaxes(e)
+
+                self.nextUpdates[1] = self.timer + updateRates[1]
             end
         end
 
         do -- TODO: fleet management AI
-            if self.timer > 60 then
+            if self.timer >= self.nextUpdates[2] then
                 --
+
+                self.nextUpdates[2] = self.timer + updateRates[2]
             end
         end
 
         do -- TODO: strategic goal-planning AI
-            if self.timer > 300 then
+            if self.timer >= self.nextUpdates[3] then
                 --
+
+                self.nextUpdates[3] = self.timer + updateRates[3]
             end
         end
         Profiler.End()
+    end
+end
+
+function Think:manageTaxes(e)
+    for asset in e:iterAssets() do
+        --print("[TAX] Attempting tax for " .. asset:getName())
+        if Config:getObjectInfo("object_types", asset:getType()) ~= "Station" then goto skip end
+
+        if not asset:hasTax() then
+            asset:addTax(0.21)
+            print("\033[31m[TAX] Added taxes to " .. asset:getName() .. "\033[0m")
+        end
+
+        ::skip::
     end
 end
 
