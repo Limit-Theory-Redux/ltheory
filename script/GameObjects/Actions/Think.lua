@@ -133,7 +133,6 @@ function Think:manageAsset(asset)
                 asset.job.jcount = asset.job.dst:getTrader():addBidOffer(asset)
                 asset.job.bids = asset.job.jcount -- terrible hack for when jcount is mysteriously set to 0
 
-
                 -- Push job to asset's Action queue
                 printf("THINK: pushing job %s '%s' to %s, bids = %d, bestPayout = %d",
                     asset.job, asset.job:getName(asset), asset:getName(), asset.job.bids, bestPayout)
@@ -192,34 +191,22 @@ function Think:manageAsset(asset)
         end
     end
 
-    if asset:isIdle() and asset:isShipDocked() == nil then
+    if asset:isIdle() and not asset:isShipDocked() then
         -- No more jobs available; send asset to nearest station to sleep
         -- TODO: Make sure this is only done at the AI player's direction for ECONOMIC ships (miners and transports)!
         local system = asset.parent
+        -- TODO: this currently results in ships also docking at pirate stations as their ship ban is not in effect
+        -- TODO: this will be fixed later on, see: https://github.com/Limit-Theory-Redux/ltheory/pull/142#issuecomment-1742217935
         local stations = system:getStationsByDistance(asset)
         if #stations > 0 and stations[1] ~= nil then
-            local stations = system:getStationsByDistance(asset)
+            local station = stations[1].stationRef
 
-            if #stations > 0 then
-                local i = 1
-                -- don´t dock at hostile stations
-                while stations[i] and stations[i].stationRef:getOwner() ~= asset:getOwner() do
-                    i = i + 1
-                end
-
-                if stations[i] then
-                    local station = stations[i].stationRef
-                    printf(
-                        "THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
-                        asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(),
-                        station:getName())
-                    asset:clearActions()
-                    asset:pushAction(Actions.DockAt(station))
-                else
-                    -- do nothing
-                    asset:clearActions()
-                end
-            end
+            printf(
+                "THINK ---: Asset %s (owner %s) with capacity %d has no more jobs available; docking at Station %s",
+                asset:getName(), asset:getOwner():getName(), asset:mgrInventoryGetFreeTotal(),
+                station:getName())
+            asset:clearActions()
+            asset:pushAction(Actions.DockAt(station))
         end
     end
 
