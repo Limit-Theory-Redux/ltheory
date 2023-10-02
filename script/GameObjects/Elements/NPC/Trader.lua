@@ -418,9 +418,11 @@ function Trader:sell(asset, item)
                 --    self.parent:getName(), self.parent:mgrInventoryGetItemCount(item), item:getName())
 
                 asset.job.src:removeCredits(price)
+
                 if self.parent:hasTax() then
                     print("[TAX] Taxing trade from " .. self.parent:getName() .. " by " .. tax .. "$")
                 end
+
                 self.parent:getOwner():addCredits(tax)
                 self.parent:addCredits(price - tax)
 

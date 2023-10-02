@@ -1,5 +1,6 @@
 local Action = require('GameObjects.Action')
 local Player = require('GameObjects.Entities.Player')
+local Production = require('Systems.Economy.Production')
 
 local updateRates = {
     [1] = 30,  -- capital expenditure AI
@@ -10,6 +11,7 @@ local updateRates = {
 local Think = subclass(Action, function (self)
     self.timer = 0
     self.rng = RNG.FromTime()
+    self.fabricationGoal = Production.Station
 
     self.nextUpdates = {
         [1] = 0, -- capital expenditure AI
@@ -265,7 +267,6 @@ function Think:onUpdateActive(e, dt)
         do -- TODO: capital expenditure AI
             if self.timer >= self.nextUpdates[1] then
                 self:manageTaxes(e)
-
                 self.nextUpdates[1] = self.timer + updateRates[1]
             end
         end
@@ -274,6 +275,13 @@ function Think:onUpdateActive(e, dt)
             if self.timer >= self.nextUpdates[2] then
                 --
 
+                --Temporary for testing economic goals
+                --if Enums.StrategicGoal.EconomyFocus then
+                    print(e:getName() .. " AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+                    Think:setFabricationGoal(e)
+                    Think:buildFabricationStation(e)
+                --end
+
                 self.nextUpdates[2] = self.timer + updateRates[2]
             end
         end
@@ -281,12 +289,58 @@ function Think:onUpdateActive(e, dt)
         do -- TODO: strategic goal-planning AI
             if self.timer >= self.nextUpdates[3] then
                 --
+                self.fabricationGoal = Production.Station
 
                 self.nextUpdates[3] = self.timer + updateRates[3]
             end
         end
         Profiler.End()
     end
+end
+
+function Think:setFabricationGoal(e)
+    --TEMPORARY: Setting the goal to a station fabrication to see if AI will contruct nessecary fabricators
+    local ownedProductions = {}
+
+    for asset in e:iterAssets() do
+        if Config:getObjectInfo("object_types", asset:getType()) ~= "Station" then goto skip end
+        print("Here1")
+        if not asset:hasFactory() then goto skip end
+        print("Here2")
+        local factory = asset:getFactory()
+        for prod in ipairs(factory.prods) do
+            if prod then
+                table.insert(ownedProductions, prod)
+            end
+        end
+
+        ::skip::
+    end
+
+    if self.fabricationGoal == nil then
+        self.fabricationGoal = Production.Station
+    end
+
+    local productionGoalInputs = self.fabricationGoal:getInputs()
+    for _, prodInput in self.fabricationGoal:iterInputs() do
+        for _, prod in ipairs(ownedProductions) do
+            print("Prod Input: " .. tostring(prodInput.item:getName()) .. "Prod: " .. tostring(prod))
+            if prodInput == prod then
+                table.remove(productionGoalInputs, prodInput)
+            elseif prod ~= nil then
+                self.fabricationGoal = prodInput
+            end
+        end
+    end
+end
+
+function Think:buildFabricationStation(e)
+
+    if e:getCredits() > 50000 then
+        GameState.world.currentSystem:spawnStation(Enums.StationHulls.Small, e, self.fabricationGoal)
+        e:removeCredits(50000)
+    end
+
 end
 
 function Think:manageTaxes(e)
@@ -296,7 +350,7 @@ function Think:manageTaxes(e)
 
         if not asset:hasTax() then
             asset:addTax(0.21)
-            print("\033[31m[TAX] Added taxes to " .. asset:getName() .. "\033[0m")
+            print("[TAX] Added taxes to " .. asset:getName())
         end
 
         ::skip::
