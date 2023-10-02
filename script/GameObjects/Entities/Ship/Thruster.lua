@@ -54,6 +54,9 @@ function Thruster:render(state)
     if state.mode == BlendMode.Additive then
         local a = math.abs(self.activation)
         if a < 1e-3 then return end
+        if self.parent:getOwner():getControlling() == GameState.player.currentShip and GameState.player.currentCamera == Enums.CameraMode.FirstPerson then
+            return
+        end
         local shader = Cache.Shader('billboard/axis', 'effect/thruster')
         shader:start()
         Shader.SetFloat('alpha', a)
