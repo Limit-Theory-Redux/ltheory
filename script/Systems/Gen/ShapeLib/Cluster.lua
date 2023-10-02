@@ -24,10 +24,10 @@ function Cluster.GenerateLinear(style, numShapes, spacing, shape, joint)
 
     local field = JointField()
     field:generateFromFunction(
-        function(i) return Vec3d(0, 0, i * spacing) end, -- pos
-        function(i) return Vec3d(0, 0, 1) end,           -- dir
-        function(i) return Vec3d(0, 1, 0) end,           -- up
-        function(i) return Vec3d(1, 1, 1) end,           -- scale
+        function(i) return Vec3d(0, 0, i * spacing) end,  -- pos
+        function(i) return Vec3d(0, 0, 1) end,            -- dir
+        function(i) return Vec3d(0, 1, 0) end,            -- up
+        function(i) return Vec3d(1, 1, 1) end,            -- scale
         numShapes, 1
     )
 
@@ -59,10 +59,10 @@ function Cluster.GenerateParametric(style, r, fn, shape, joint)
     local step = (2 * math.pi) / numShapes
     local field = JointField()
     field:generateFromFunction(
-        function(t) return Vec3d(fn(t).x * r, fn(t).y * r, 0) end, -- pos
-        function(t) return Vec3d(fn(t).x * r, fn(t).y * r, 0) end, -- dir
-        function(t) return Vec3d(0, 0, 1) end,                     -- up
-        function(t) return Vec3d(scale, scale, scale) end,         -- scale
+        function(t) return Vec3d(fn(t).x * r, fn(t).y * r, 0) end,  -- pos
+        function(t) return Vec3d(fn(t).x * r, fn(t).y * r, 0) end,  -- dir
+        function(t) return Vec3d(0, 0, 1) end,                      -- up
+        function(t) return Vec3d(scale, scale, scale) end,          -- scale
         numShapes, step
     )
 
@@ -105,10 +105,10 @@ function Cluster.GenerateCurve(style, length, shape)
     local step = 1.0 / numShapes
     local field = JointField()
     field:generateFromFunction(
-        fnbez,                                             -- pos
-        fnbez,                                             -- dir
-        function(i) return Vec3d(0, 1, 0) end,             -- up
-        function(i) return Vec3d(scale, scale, scale) end, -- scale
+        fnbez,                                              -- pos
+        fnbez,                                              -- dir
+        function(i) return Vec3d(0, 1, 0) end,              -- up
+        function(i) return Vec3d(scale, scale, scale) end,  -- scale
         numShapes, step
     )
 
