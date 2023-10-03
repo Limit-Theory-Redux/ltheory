@@ -15,6 +15,7 @@ do -- C Definitions
         void         Window_SetMaximized              (Window*, bool maximized);
         void         Window_SetMinimized              (Window*, bool minimized);
         Vec2i        Window_Position                  (Window const*);
+        void         Window_SetCenteredPosition       (Window*);
         void         Window_SetPosition               (Window*, int x, int y);
         float        Window_Width                     (Window const*);
         float        Window_Height                    (Window const*);
@@ -54,6 +55,7 @@ do -- Global Symbol Table
         SetMaximized              = libphx.Window_SetMaximized,
         SetMinimized              = libphx.Window_SetMinimized,
         Position                  = libphx.Window_Position,
+        SetCenteredPosition       = libphx.Window_SetCenteredPosition,
         SetPosition               = libphx.Window_SetPosition,
         Width                     = libphx.Window_Width,
         Height                    = libphx.Window_Height,
@@ -98,6 +100,7 @@ do -- Metatype for class instances
             setMaximized              = libphx.Window_SetMaximized,
             setMinimized              = libphx.Window_SetMinimized,
             position                  = libphx.Window_Position,
+            setCenteredPosition       = libphx.Window_SetCenteredPosition,
             setPosition               = libphx.Window_SetPosition,
             width                     = libphx.Window_Width,
             height                    = libphx.Window_Height,

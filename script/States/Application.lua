@@ -42,17 +42,8 @@ function Application:appInit()
     self.resX, self.resY = self:getDefaultSize()
 
     WindowInstance:setTitle(self:getTitle())
-    -- WindowInstance:setPosition(x, y)
+    WindowInstance:setCenteredPosition()
     WindowInstance:setSize(self.resX, self.resY)
-
-    -- TODO: replace this
-    -- Window = Window.Create(
-    --     self:getTitle(),
-    --     WindowPos.Default,
-    --     WindowPos.Default,
-    --     self.resX,
-    --     self.resY,
-    --     self:getWindowMode())
 
     self.audio                  = Audio.Create()
     self.audiofx                = Audio.Create()
@@ -61,14 +52,13 @@ function Application:appInit()
 
     self.exit                   = false
 
-    -- WindowInstance:setVsync(GameState.render.vsync)
-    -- TODO: WindowInstance:setPresentMode(self.presentMode)
+    WindowInstance:setPresentMode(GameState.render.presentMode)
 
     if Config.jit.profile and Config.jit.profileInit then Jit.StartProfile() end
 
     Preload.Run()
 
-    -- InputInstance:loadGamepadDatabase('gamecontrollerdb_205.txt');
+    -- TODO: InputInstance:loadGamepadDatabase('gamecontrollerdb_205.txt');
     self:onInit()
     self:onResize(self.resX, self.resY)
 

@@ -40,7 +40,7 @@ function LTheoryRedux:onInit()
 
     --* Game initializations *--
     WindowInstance:setSize(GameState.render.resX, GameState.render.resY)
-    -- WindowInstance:setPosition(WindowPos.Centered, WindowPos.Centered)
+    WindowInstance:setCenteredPosition()
     LTheoryRedux:SetFullscreen(GameState.render.fullscreen)
 
     -- Set the default game control cursor

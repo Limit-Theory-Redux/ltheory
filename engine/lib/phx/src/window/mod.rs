@@ -258,6 +258,12 @@ impl Window {
         }
     }
 
+    /// Set the window's client position in the center of the current monitor.
+    #[inline]
+    pub fn set_centered_position(&mut self) {
+        self.position = WindowPosition::Centered(MonitorSelection::Current);
+    }
+
     /// Set the window's client position in physical pixels.
     ///
     /// See [`WindowPosition`] for an explanation about logical/physical sizes.
