@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'ltheory/engine/**'
 
 env:
   BUILD_TYPE: RelWithDebInfo
