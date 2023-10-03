@@ -33,6 +33,7 @@ function Application:onInput() end
 
 function Application:quit()
     self.exit = true
+    EngineInstance:exit()
 end
 
 -- Application Template --------------------------------------------------------
