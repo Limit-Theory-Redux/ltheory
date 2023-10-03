@@ -19,7 +19,7 @@ end
 local function allipairs(t, start)
     start = start or 1
     local maxn = table.maxn(t)
-    return function(t, k) -- luacheck: ignore t
+    return function(t, k)  -- luacheck: ignore t
         repeat
             k = k + 1
         until t[k] ~= nil or k > maxn
@@ -147,7 +147,7 @@ local function fillsymtab(tr, nexit)
             end
         end
     end
-    if nexitsym == 1000000 then -- Per-trace exit stubs.
+    if nexitsym == 1000000 then  -- Per-trace exit stubs.
         fillsymtab_tr(tr, nexit)
     elseif nexit > nexitsym then -- Shared exit stubs.
         for i = nexitsym, nexit - 1 do
@@ -346,7 +346,7 @@ local function dumpcallfunc(o, tr, ins)
     local ctype
     if ins > 0 then
         local m, ot, op1, op2 = jutil.traceir(tr, ins) -- luacheck: ignore m
-        if band(ot, 31) == 0 then                -- nil type means CARG(func, ctype).
+        if band(ot, 31) == 0 then                      -- nil type means CARG(func, ctype).
             ins = op1
             ctype = formatk(tr, op2)
         end
@@ -449,7 +449,7 @@ local function dump_ir(tr)
                 else
                     pushf(o, m1 == 0 and "%04d" or "#%-3d", op1)
                 end
-                if m2 ~= 3 * 4 then -- op2 != IRMnone
+                if m2 ~= 3 * 4 then     -- op2 != IRMnone
                     if m2 == 1 * 4 then -- op2 == IRMlit
                         local litn = litname[op]
                         if litn and litn[op2] then
@@ -561,7 +561,7 @@ do
     local traces_data, seen_funcs = {}, {}
     local prevtraces = {}
     local prevexp_t = {
-        trace = function(what, tr, func, pc, otr, oex) -- luacheck: ignore func pc
+        trace = function(what, tr, func, pc, otr, oex)      -- luacheck: ignore func pc
             if what == 'start' then
                 local mcode, addr, loop = jutil.tracemc(tr) -- luacheck: ignore mcode loop
                 if addr ~= nil then
@@ -603,21 +603,21 @@ do
     end
 
     local exp_trace_t = {
-        start = function(tr, func, pc, otr, oex) -- luacheck: ignore func pc
+        start = function(tr, func, pc, otr, oex)  -- luacheck: ignore func pc
             local t = gettrace(tr)
             t.parent = t.parent or otr
             t.p_exit = t.p_exit or oex
         end,
 
-        stop = function(tr, func, pc, otr, oex) -- luacheck: ignore tr func pc otr oex
+        stop = function(tr, func, pc, otr, oex)  -- luacheck: ignore tr func pc otr oex
         end,
 
-        abort = function(tr, func, pc, otr, oex) -- luacheck: ignore func pc
+        abort = function(tr, func, pc, otr, oex)  -- luacheck: ignore func pc
             local t = gettrace(tr)
             t.err = t.err or fmterr(otr, oex)
         end,
 
-        flush = function(tr, func, pc, otr, oex) -- luacheck: ignore tr func pc otr oex
+        flush = function(tr, func, pc, otr, oex)  -- luacheck: ignore tr func pc otr oex
             symtab, nexitsym = {}, 0
         end,
     }
@@ -808,7 +808,7 @@ local function annotated(funcs, traces)
 
     for i, tr in allipairs(traces) do
         for j, rec in ipairs(tr.rec) do
-            local f, pc, bcl = unpack(rec) -- luacheck: ignore bcl
+            local f, pc, bcl = unpack(rec)   -- luacheck: ignore bcl
             for srcname, osrc in pairs(o) do -- luacheck: ignore srcname
                 for _, ol in ipairs(osrc) do
                     if ol.func == f and ol.pc == pc and #ol.bc > 0 then

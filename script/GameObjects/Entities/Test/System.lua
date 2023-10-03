@@ -33,27 +33,29 @@ local System = subclass(Entity, function(self, seed)
     self:addFlows()
 
     -- TODO : Will physics be freed correctly?
-    self.physics    = Physics.Create():managed()
-    local starAngle = self.rng:getDir2()
-    self.starDir    = Vec3f(starAngle.x, 0, starAngle.y)
-    self.nebula     = Nebula(self.rng:get64(), self.starDir)
-    self.dust       = Dust()
+    self.physics         = Physics.Create():managed()
+    local starAngle      = self.rng:getDir2()
+    self.starDir         = Vec3f(starAngle.x, 0, starAngle.y)
+    self.nebula          = Nebula(self.rng:get64(), self.starDir)
+    self.dust            = Dust()
 
-    self.players    = {}
-    self.aiPlayers  = nil
-    self.stars      = {}
-    self.planets    = {}
-    self.zones      = {}
-    self.stations   = {}
-    self.ships      = {}
-    self.lightList  = {}
+    self.players         = {}
+    self.aiPlayers       = nil
+    self.stars           = {}
+    self.planets         = {}
+    self.zones           = {}
+    self.stations        = {}
+    self.ships           = {}
+    self.lightList       = {}
 
     -- When creating a new system, initialize station subtype options from all production types
-    local prodType  = Config:getObjectTypeIndex("station_subtypes")
+    local prodType       = Config:getObjectTypeIndex("station_subtypes")
+    local originalLength = #Config.objectInfo[prodType]["elems"]
+
     for i, prod in ipairs(Production.All()) do
-        Config.objectInfo[prodType]["elems"][i + 2] =
+        Config.objectInfo[prodType]["elems"][i + originalLength] =
         {
-            i + 2,
+            i + originalLength,
             prod:getName()
         }
     end
@@ -206,7 +208,7 @@ function System:addExtraFactories(system, planetCount, aiPlayer)
     end
 end
 
-function System:place(object)
+function System:place(object, spawnOutOfAsteroidZone)
     -- Set the position of an object to a random location within the extent of a randomly-selected Asteroid Field
     -- TODO: extend this to accept any kind of field, and make this function specific to Asteroid Fields for System
     local typeName = Config:getObjectInfo("object_types", object:getType())
@@ -215,7 +217,7 @@ function System:place(object)
     local field = self:sampleZones(self.rng)
     local counter = 1
 
-    if field then
+    if field and not spawnOutOfAsteroidZone then
         pos = field:getRandomPos(self.rng) -- place new object within a random field
         -- Stations
         if typeName == "Station" then
@@ -269,11 +271,14 @@ function System:place(object)
         if typeName == "Ship" then
 
         end
+    elseif spawnOutOfAsteroidZone then
+        local minPirateStationSpawnPositionScale = math.floor(Config.gen.scaleSystem * 0.9)
+        pos = Vec3f(self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem), 0,
+            self.rng:getInt(minPirateStationSpawnPositionScale, Config.gen.scaleSystem)) -- place new object _near_ the origin
     else
-        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000)) -- place new object _near_ the origin
+        pos = Vec3f(self.rng:getInt(5000, 8000), 0, self.rng:getInt(5000, 8000))         -- place new object _near_ the origin
     end
     object:setPos(pos)
-
     -- Return the Asteroid Field zone in which the object is being placed
     return field
 end
@@ -316,6 +321,17 @@ function System:update(dt)
 
         Profiler.Begin('Physics Update')
         self.physics:update(dt)
+        local collision = Collision()
+        while (self.physics:getNextCollision(collision)) do
+            local entity1 = Entity.fromRigidBody(collision.body0)
+            local entity2 = Entity.fromRigidBody(collision.body1)
+
+            if entity1 and entity2 then
+                entity1:send(Event.Collision(collision, entity2))
+                entity2:send(Event.Collision(collision, entity1))
+            end
+            --print('', collision.index, collision.body0, collision.body1)
+        end
         Profiler.End()
 
         -- post-physics update
@@ -568,10 +584,13 @@ function System:spawnAsteroidField(count, reduced)
         -- Asteroids are added both to this new AsteroidField (Zone) and as a child of this System
         -- TODO: add asteroids only to Zones, and let Systems iterate through zones for child objects to render
         zone:addChild(asteroid)
+        asteroid.zone = zone
         self:addChild(asteroid)
     end
 
     self:addZone(zone)
+    -- TODO: Event update should be sent to zones and their children aswell instead of only the system
+    self:addChild(zone)
 
     local typeName = Config:getObjectInfo("object_types", zone:getType())
     local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())
@@ -618,25 +637,7 @@ function System:setAsteroidYield(rng, asteroid)
     end
 end
 
-function System:spawnStation(hullSize, player, prodType)
-    local rng = self.rng
-
-    -- Spawn a new space station
-    local station = Objects.Station(self.rng:get31(), hullSize)
-    station:setType(Config:getObjectTypeByName("object_types", "Station"))
-
-    -- Give the station a name
-    station:setName(Words.getCoolName(rng))
-
-    -- Set station location within the extent of a randomly selected asteroid field
-    station.zone = self:place(station)
-
-    -- Assign the station to an owner
-    station:setOwner(player)
-
-    -- Add the station to this star system
-    self:addChild(station)
-
+local function addStationComponents(station, hullSize)
     -- Add all components to this station
     -- TODO: For now, every socket gets one of the appropriate components. Later, this must be replaced by:
     --       1) default components (for stations magically spawned when a new star system is generated)
@@ -743,6 +744,23 @@ function System:spawnStation(hullSize, player, prodType)
         -- TODO : Does this leak a Turret/RigidBody?
         station:plug(turret)
     end
+end
+
+function System:spawnStation(hullSize, player, prodType)
+    local rng = self.rng
+
+    -- Spawn a new space station
+    local station = Objects.Station(self.rng:get31(), hullSize)
+    station:setType(Config:getObjectTypeByName("object_types", "Station"))
+
+    -- Give the station a name
+    station:setName(Words.getCoolName(rng))
+
+    -- Set station location within the extent of a randomly selected asteroid field
+    station.zone = self:place(station)
+
+    -- Assign the station to an owner
+    station:setOwner(player)
 
     -- Stations have market capacity
     station:addMarket()
@@ -814,7 +832,67 @@ function System:spawnStation(hullSize, player, prodType)
     printf("SYSTEM(station) - Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(),
         prod:getName())
 
+    -- Add the station to this star system
+    self:addChild(station)
     self:addStation(station)
+
+    -- Add station components
+    --! NEED TO BE ADDED AFTER ADDING IT TO THE SYSTEM AS CHILD
+    addStationComponents(station, hullSize)
+
+    return station
+end
+
+function System:spawnPirateStation(hullSize, player)
+    local rng = self.rng
+    -- Spawn a new space station
+    local station = Objects.Station(self.rng:get31(), hullSize)
+    station:setType(Config:getObjectTypeByName("object_types", "Station"))
+    station:setSubType(Config:getObjectTypeByName("station_subtypes", "Pirate")) -- pirate station
+
+    -- Give the station a name
+    station:setName(Words.getCoolName(rng) .. " Marauders")
+
+    -- Set station location within the extent of a randomly selected asteroid field
+    station.zone = self:place(station)
+
+    -- Assign the station to an owner
+    station:setOwner(player)
+
+    -- Add the black market
+    station:addBlackMarket()
+    station:addBlackMarketTrader()
+
+    station:addFactory()
+    local prod = Production.Piracy
+    station:addProduction(prod)
+
+    -- Station starts with some credits and some energy (energy Item must exist before bid is offered!)
+    station:addCredits(Config.econ.eStartCredits * 100)
+
+    -- The station sets asks for selling items its facility produces as outputs,
+    --     and sets bids for buying items its facility wants as inputs
+    -- Ask prices (for selling) are calculated as the item's base price times a markup value
+    -- Bid prices (for buying) are calculated as the item's base price times a markdown value
+    for _, input in prod:iterInputs() do
+        for i = 1, input.count * 3 do -- multiply initial bids to stimulate early star system production
+            -- TODO: Change magic number 33 for "I want..." bids to a multiplier connected to this system's flows
+            if input.item == Item.Energy then
+                station.blackMarketTrader:addBid(input.item, 100 + rng:getInt(25, 100)) -- make sure Energy-requiring factories bid well
+            else
+                station.blackMarketTrader:addBid(input.item,
+                    math.max(1, math.floor(input.item.energy * Config.econ.markdown * 33)))
+            end
+        end
+    end
+
+    -- Add the station to this star system
+    self:addChild(station)
+    self:addStation(station)
+
+    -- Add station components !NEED TO BE ADDED AFTER ADDING IT TO THE SYSTEM AS CHILD
+    --! NEED TO BE ADDED AFTER ADDING IT TO THE SYSTEM AS CHILD
+    addStationComponents(station, hullSize)
 
     return station
 end

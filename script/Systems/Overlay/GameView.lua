@@ -232,9 +232,14 @@ function GameView:onUpdate(state)
         self.eyeLast:setv(eye)
     end
 
-    LTheoryRedux.audio:setListenerPos(
-        self.camera.pos,
-        self.camera.rot)
+    if LTheoryRedux.audio then
+        LTheoryRedux.audio:setListenerPos(
+            self.camera.pos,
+            self.camera.rot)
+    else
+        LTheoryRedux.audio = Audio.Create()
+        Log.Warning("[GameView.lua Update] Audio not initialized at this point. This should not happen.")
+    end
 
     self.camera:pop()
 end

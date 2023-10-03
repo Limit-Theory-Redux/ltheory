@@ -202,7 +202,7 @@ void _cppPhysics_RayCast (Physics* self, Ray* ray, RayCastResult* result) {
   callback.result                 = result;
   callback.m_flags                = Flags::kF_FilterBackfaces | Flags::kF_UseSubSimplexConvexCastRaytest;
   callback.m_collisionFilterGroup = CollisionGroup_Default;
-  callback.m_collisionFilterMask  = CollisionMask_All;
+  callback.m_collisionFilterMask  = CollisionMask_NoTriggers;
   self->dynamicsWorld->rayTest(btFrom, btTo, callback);
 }
 
@@ -218,7 +218,7 @@ inline static void _cppPhysics_ShapeCast (Physics* self, btConvexShape* shape, V
   callback.castShape              = proxy;
   callback.result                 = result;
   callback.m_collisionFilterGroup = CollisionGroup_Default;
-  callback.m_collisionFilterMask  = CollisionMask_All;
+  callback.m_collisionFilterMask  = CollisionMask_NoTriggers;
   self->dynamicsWorld->contactTest(proxy, callback);
 }
 
@@ -243,7 +243,7 @@ inline static bool _cppPhysics_ShapeOverlap (Physics* self, btConvexShape* shape
   ShapeOverlapCallback callback = {};
   callback.castShape              = proxy;
   callback.m_collisionFilterGroup = CollisionGroup_Default;
-  callback.m_collisionFilterMask  = CollisionMask_All;
+  callback.m_collisionFilterMask  = CollisionMask_NoTriggers;
   self->dynamicsWorld->contactTest(proxy, callback);
   return callback.foundHit;
 }

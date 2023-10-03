@@ -3,7 +3,7 @@ local Widget      = require('UI.Widget')
 
 local Container   = {}
 Container.__index = Container
-Container.__call  = function (t, ...) return t.Create(...) end
+Container.__call  = function(t, ...) return t.Create(...) end
 setmetatable(Container, Widget)
 
 Container.EState      = {

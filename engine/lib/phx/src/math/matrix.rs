@@ -4,272 +4,34 @@ use crate::common::*;
 use crate::internal::*;
 use crate::math::*;
 
-/// A row-major matrix.
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Matrix {
-    pub m: [f32; 16],
+pub use glam::{Mat3, Mat4};
+
+// glam::Mat4 is a column-major matrix.
+pub type Matrix = Mat4;
+
+pub trait MatrixExtensions {
+    fn get_forward(&self) -> Vec3;
+    fn get_right(&self) -> Vec3;
+    fn get_up(&self) -> Vec3;
+    fn get_translation(&self) -> Vec3;
 }
 
-impl Matrix {
-    /// All zeroes.
-    pub const ZERO: Self = Matrix { m: [0.; 16] };
-
-    /// Identity.
-    pub const IDENTITY: Self = Matrix {
-        m: [
-            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-
-    pub fn from_slice(slice: &[f32]) -> Matrix {
-        Matrix {
-            m: slice.try_into().expect("slice with incorrect length"),
-        }
+impl MatrixExtensions for Matrix {
+    fn get_forward(&self) -> Vec3 {
+        -self.z_axis.truncate()
     }
 
-    pub fn look_at(pos: &Vec3, at: &Vec3, up: &Vec3) -> Matrix {
-        let z: Vec3 = (*pos - *at).normalize();
-        let x: Vec3 = Vec3::cross(*up, z).normalize();
-        let y: Vec3 = Vec3::cross(z, x);
-        Matrix {
-            m: [
-                x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0, 0.0,
-                1.0,
-            ],
-        }
+    fn get_right(&self) -> Vec3 {
+        self.x_axis.truncate()
     }
 
-    /// Note: This assumes that this matrix is not scaled.
-    pub fn to_quat(&self) -> Quat {
-        let x: Vec3 = Vec3::new(self.m[0], self.m[4], self.m[8]);
-        let y: Vec3 = Vec3::new(self.m[1], self.m[5], self.m[9]);
-        let z: Vec3 = Vec3::new(self.m[2], self.m[6], self.m[10]);
-        Quat::from_basis(&x, &y, &z)
+    fn get_up(&self) -> Vec3 {
+        self.y_axis.truncate()
     }
 
-    pub fn to_string(&self) -> String {
-        format!(
-            "[{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\
-                [{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\
-                [{:+.2}, {:+.2}, {:+.2}, {:+.2}]\n\
-                [{:+.2}, {:+.2}, {:+.2}, {:+.2}]",
-            self.m[0],
-            self.m[1],
-            self.m[2],
-            self.m[3],
-            self.m[4],
-            self.m[5],
-            self.m[6],
-            self.m[7],
-            self.m[8],
-            self.m[9],
-            self.m[10],
-            self.m[11],
-            self.m[12],
-            self.m[13],
-            self.m[14],
-            self.m[15],
-        )
+    fn get_translation(&self) -> Vec3 {
+        self.w_axis.truncate()
     }
-
-    pub fn get_forward(self) -> Vec3 {
-        Vec3::new(-self.m[2], -self.m[6], -self.m[10])
-    }
-
-    pub fn get_right(self) -> Vec3 {
-        Vec3::new(self.m[0], self.m[4], self.m[8])
-    }
-
-    pub fn get_up(self) -> Vec3 {
-        Vec3::new(self.m[1], self.m[5], self.m[9])
-    }
-
-    pub fn get_pos(self) -> Vec3 {
-        Vec3::new(self.m[3], self.m[7], self.m[11])
-    }
-
-    pub fn product(&self, other: &Matrix) -> Matrix {
-        let mut result: Matrix = Matrix::ZERO;
-        let mut index = 0;
-        for i in 0..4 {
-            for j in 0..4 {
-                let mut sum: f32 = 0.0;
-                for k in 0..4 {
-                    sum += self.m[(4 * i + k) as usize] * other.m[(4 * k + j) as usize];
-                }
-                result.m[index] = sum;
-                index += 1;
-            }
-        }
-        result
-    }
-
-    pub fn scale(&mut self, scale: f32) {
-        let m: *mut f32 = (self.m).as_mut_ptr();
-        unsafe {
-            *m.offset(0) *= scale;
-            *m.offset(1) *= scale;
-            *m.offset(2) *= scale;
-            *m.offset(4) *= scale;
-            *m.offset(5) *= scale;
-            *m.offset(6) *= scale;
-            *m.offset(8) *= scale;
-            *m.offset(9) *= scale;
-            *m.offset(10) *= scale;
-        }
-    }
-
-    pub fn scaled(&self, scale: f32) -> Matrix {
-        let mut matrix = self.clone();
-        matrix.scale(scale);
-        matrix
-    }
-
-    pub fn inverted(&self) -> Matrix {
-        let mut out = Matrix::ZERO;
-        let src: *const f32 = self.m.as_ptr();
-        let dst: *mut f32 = out.m.as_mut_ptr();
-        unsafe {
-            *dst.offset(0) = *src.offset(5) * *src.offset(10) * *src.offset(15)
-                - *src.offset(5) * *src.offset(11) * *src.offset(14)
-                - *src.offset(9) * *src.offset(6) * *src.offset(15)
-                + *src.offset(9) * *src.offset(7) * *src.offset(14)
-                + *src.offset(13) * *src.offset(6) * *src.offset(11)
-                - *src.offset(13) * *src.offset(7) * *src.offset(10);
-            *dst.offset(4) = -*src.offset(4) * *src.offset(10) * *src.offset(15)
-                + *src.offset(4) * *src.offset(11) * *src.offset(14)
-                + *src.offset(8) * *src.offset(6) * *src.offset(15)
-                - *src.offset(8) * *src.offset(7) * *src.offset(14)
-                - *src.offset(12) * *src.offset(6) * *src.offset(11)
-                + *src.offset(12) * *src.offset(7) * *src.offset(10);
-            *dst.offset(8) = *src.offset(4) * *src.offset(9) * *src.offset(15)
-                - *src.offset(4) * *src.offset(11) * *src.offset(13)
-                - *src.offset(8) * *src.offset(5) * *src.offset(15)
-                + *src.offset(8) * *src.offset(7) * *src.offset(13)
-                + *src.offset(12) * *src.offset(5) * *src.offset(11)
-                - *src.offset(12) * *src.offset(7) * *src.offset(9);
-            *dst.offset(12) = -*src.offset(4) * *src.offset(9) * *src.offset(14)
-                + *src.offset(4) * *src.offset(10) * *src.offset(13)
-                + *src.offset(8) * *src.offset(5) * *src.offset(14)
-                - *src.offset(8) * *src.offset(6) * *src.offset(13)
-                - *src.offset(12) * *src.offset(5) * *src.offset(10)
-                + *src.offset(12) * *src.offset(6) * *src.offset(9);
-            *dst.offset(1) = -*src.offset(1) * *src.offset(10) * *src.offset(15)
-                + *src.offset(1) * *src.offset(11) * *src.offset(14)
-                + *src.offset(9) * *src.offset(2) * *src.offset(15)
-                - *src.offset(9) * *src.offset(3) * *src.offset(14)
-                - *src.offset(13) * *src.offset(2) * *src.offset(11)
-                + *src.offset(13) * *src.offset(3) * *src.offset(10);
-            *dst.offset(5) = *src.offset(0) * *src.offset(10) * *src.offset(15)
-                - *src.offset(0) * *src.offset(11) * *src.offset(14)
-                - *src.offset(8) * *src.offset(2) * *src.offset(15)
-                + *src.offset(8) * *src.offset(3) * *src.offset(14)
-                + *src.offset(12) * *src.offset(2) * *src.offset(11)
-                - *src.offset(12) * *src.offset(3) * *src.offset(10);
-            *dst.offset(9) = -*src.offset(0) * *src.offset(9) * *src.offset(15)
-                + *src.offset(0) * *src.offset(11) * *src.offset(13)
-                + *src.offset(8) * *src.offset(1) * *src.offset(15)
-                - *src.offset(8) * *src.offset(3) * *src.offset(13)
-                - *src.offset(12) * *src.offset(1) * *src.offset(11)
-                + *src.offset(12) * *src.offset(3) * *src.offset(9);
-            *dst.offset(13) = *src.offset(0) * *src.offset(9) * *src.offset(14)
-                - *src.offset(0) * *src.offset(10) * *src.offset(13)
-                - *src.offset(8) * *src.offset(1) * *src.offset(14)
-                + *src.offset(8) * *src.offset(2) * *src.offset(13)
-                + *src.offset(12) * *src.offset(1) * *src.offset(10)
-                - *src.offset(12) * *src.offset(2) * *src.offset(9);
-            *dst.offset(2) = *src.offset(1) * *src.offset(6) * *src.offset(15)
-                - *src.offset(1) * *src.offset(7) * *src.offset(14)
-                - *src.offset(5) * *src.offset(2) * *src.offset(15)
-                + *src.offset(5) * *src.offset(3) * *src.offset(14)
-                + *src.offset(13) * *src.offset(2) * *src.offset(7)
-                - *src.offset(13) * *src.offset(3) * *src.offset(6);
-            *dst.offset(6) = -*src.offset(0) * *src.offset(6) * *src.offset(15)
-                + *src.offset(0) * *src.offset(7) * *src.offset(14)
-                + *src.offset(4) * *src.offset(2) * *src.offset(15)
-                - *src.offset(4) * *src.offset(3) * *src.offset(14)
-                - *src.offset(12) * *src.offset(2) * *src.offset(7)
-                + *src.offset(12) * *src.offset(3) * *src.offset(6);
-            *dst.offset(10) = *src.offset(0) * *src.offset(5) * *src.offset(15)
-                - *src.offset(0) * *src.offset(7) * *src.offset(13)
-                - *src.offset(4) * *src.offset(1) * *src.offset(15)
-                + *src.offset(4) * *src.offset(3) * *src.offset(13)
-                + *src.offset(12) * *src.offset(1) * *src.offset(7)
-                - *src.offset(12) * *src.offset(3) * *src.offset(5);
-            *dst.offset(14) = -*src.offset(0) * *src.offset(5) * *src.offset(14)
-                + *src.offset(0) * *src.offset(6) * *src.offset(13)
-                + *src.offset(4) * *src.offset(1) * *src.offset(14)
-                - *src.offset(4) * *src.offset(2) * *src.offset(13)
-                - *src.offset(12) * *src.offset(1) * *src.offset(6)
-                + *src.offset(12) * *src.offset(2) * *src.offset(5);
-            *dst.offset(3) = -*src.offset(1) * *src.offset(6) * *src.offset(11)
-                + *src.offset(1) * *src.offset(7) * *src.offset(10)
-                + *src.offset(5) * *src.offset(2) * *src.offset(11)
-                - *src.offset(5) * *src.offset(3) * *src.offset(10)
-                - *src.offset(9) * *src.offset(2) * *src.offset(7)
-                + *src.offset(9) * *src.offset(3) * *src.offset(6);
-            *dst.offset(7) = *src.offset(0) * *src.offset(6) * *src.offset(11)
-                - *src.offset(0) * *src.offset(7) * *src.offset(10)
-                - *src.offset(4) * *src.offset(2) * *src.offset(11)
-                + *src.offset(4) * *src.offset(3) * *src.offset(10)
-                + *src.offset(8) * *src.offset(2) * *src.offset(7)
-                - *src.offset(8) * *src.offset(3) * *src.offset(6);
-            *dst.offset(11) = -*src.offset(0) * *src.offset(5) * *src.offset(11)
-                + *src.offset(0) * *src.offset(7) * *src.offset(9)
-                + *src.offset(4) * *src.offset(1) * *src.offset(11)
-                - *src.offset(4) * *src.offset(3) * *src.offset(9)
-                - *src.offset(8) * *src.offset(1) * *src.offset(7)
-                + *src.offset(8) * *src.offset(3) * *src.offset(5);
-            *dst.offset(15) = *src.offset(0) * *src.offset(5) * *src.offset(10)
-                - *src.offset(0) * *src.offset(6) * *src.offset(9)
-                - *src.offset(4) * *src.offset(1) * *src.offset(10)
-                + *src.offset(4) * *src.offset(2) * *src.offset(9)
-                + *src.offset(8) * *src.offset(1) * *src.offset(6)
-                - *src.offset(8) * *src.offset(2) * *src.offset(5);
-            let det: f32 = 1.0
-                / (*src.offset(0) * *dst.offset(0)
-                    + *src.offset(1) * *dst.offset(4)
-                    + *src.offset(2) * *dst.offset(8)
-                    + *src.offset(3) * *dst.offset(12));
-            let mut i: i32 = 0;
-            while i < 16 {
-                *dst.offset(i as isize) *= det;
-                i += 1;
-            }
-        }
-        out
-    }
-
-    pub fn transposed(&self) -> Matrix {
-        let mut out = Matrix::ZERO;
-        let src: *const f32 = self.m.as_ptr();
-        let dst: *mut f32 = out.m.as_mut_ptr();
-        unsafe {
-            *dst.offset(0) = *src.offset(0);
-            *dst.offset(1) = *src.offset(4);
-            *dst.offset(2) = *src.offset(8);
-            *dst.offset(3) = *src.offset(12);
-            *dst.offset(4) = *src.offset(1);
-            *dst.offset(5) = *src.offset(5);
-            *dst.offset(6) = *src.offset(9);
-            *dst.offset(7) = *src.offset(13);
-            *dst.offset(8) = *src.offset(2);
-            *dst.offset(9) = *src.offset(6);
-            *dst.offset(10) = *src.offset(10);
-            *dst.offset(11) = *src.offset(14);
-            *dst.offset(12) = *src.offset(3);
-            *dst.offset(13) = *src.offset(7);
-            *dst.offset(14) = *src.offset(11);
-            *dst.offset(15) = *src.offset(15);
-        }
-        out
-    }
-}
-
-#[inline]
-extern "C" fn Float_ApproximatelyEqual(x: f64, y: f64) -> bool {
-    f64::abs(x - y) < 1e-3f64
 }
 
 #[no_mangle]
@@ -282,67 +44,54 @@ pub extern "C" fn Matrix_Free(_: Option<Box<Matrix>>) {}
 
 #[no_mangle]
 pub extern "C" fn Matrix_Equal(a: &Matrix, b: &Matrix) -> bool {
-    let mut i: i32 = 0;
-    while i < 16 {
-        if (*a).m[i as usize] != (*b).m[i as usize] {
-            return false;
-        }
-        i += 1;
-    }
-    true
+    *a == *b
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_ApproximatelyEqual(a: &Matrix, b: &Matrix) -> bool {
-    let mut i: i32 = 0;
-    while i < 16 {
-        if !Float_ApproximatelyEqual((*a).m[i as usize] as f64, (*b).m[i as usize] as f64) {
-            return false;
+    for row in 0..3 {
+        for col in 0..3 {
+            if !Float_ApproximatelyEqualf(a.col(col)[row], b.col(col)[row]) {
+                return false;
+            }
         }
-        i += 1;
     }
     true
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Inverse(this: &Matrix) -> Box<Matrix> {
-    Box::new(this.inverted())
+    Box::new(this.inverse())
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_InverseTranspose(this: &Matrix) -> Box<Matrix> {
-    Box::new(this.inverted().transposed())
+    Box::new(this.inverse().transpose())
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Sum(a: &Matrix, b: &Matrix) -> Box<Matrix> {
-    let mut result: Matrix = Matrix::ZERO;
-    let mut i: i32 = 0;
-    while i < 16 {
-        result.m[i as usize] = (*a).m[i as usize] + (*b).m[i as usize];
-        i += 1;
-    }
-    Box::new(result)
+    Box::new(*a + *b)
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Transpose(this: &Matrix) -> Box<Matrix> {
-    Box::new(this.transposed())
+    Box::new(this.transpose())
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_IInverse(this: &mut Matrix) {
-    *this = this.inverted();
+    *this = this.inverse();
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_IScale(this: &mut Matrix, scale: f32) {
-    this.scale(scale)
+    *this *= Mat4::from_scale(Vec3::splat(scale))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_ITranspose(this: &mut Matrix) {
-    *this = this.transposed();
+    *this = this.transpose();
 }
 
 #[no_mangle]
@@ -352,106 +101,59 @@ pub extern "C" fn Matrix_Identity() -> Box<Matrix> {
 
 #[no_mangle]
 pub extern "C" fn Matrix_LookAt(pos: &Vec3, at: &Vec3, up: &Vec3) -> Box<Matrix> {
-    let z: Vec3 = (*pos - *at).normalize();
-    let x: Vec3 = Vec3::cross(*up, z).normalize();
-    let y: Vec3 = Vec3::cross(z, x);
-    let result: Matrix = Matrix {
-        m: [
-            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::look_at_rh(*pos, *at, *up))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_LookUp(pos: &Vec3, look: &Vec3, up: &Vec3) -> Box<Matrix> {
-    let z: Vec3 = (*look * -1.0).normalize();
-    let x: Vec3 = Vec3::cross(*up, z).normalize();
-    let y: Vec3 = Vec3::cross(z, x);
-    let result: Matrix = Matrix {
-        m: [
-            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    // The equvalent function in glam would be:
+    // Matrix::look_to_rh(*pos, *look, *up).inverse()
+    //
+    // but as inversing a matrix is expensive, compute the "look to" camera matrix directly.
+    let f: Vec3 = look.normalize();
+    let s: Vec3 = Vec3::cross(f, *up).normalize();
+    let u: Vec3 = Vec3::cross(s, f);
+    Box::new(Matrix::from_cols(
+        s.extend(0.0),
+        u.extend(0.0),
+        -f.extend(0.0),
+        pos.extend(1.0),
+    ))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Perspective(degreesFovy: f32, aspect: f32, N: f32, F: f32) -> Box<Matrix> {
-    let rads: f64 = (std::f32::consts::PI * degreesFovy) as f64 / 360.0f64;
-    let cot: f64 = 1.0f64 / f64::tan(rads);
-    let result: Matrix = Matrix {
-        m: [
-            (cot / aspect as f64) as f32,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            cot as f32,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            (N + F) / (N - F),
-            (2.0f64 * (F * N) as f64 / (N - F) as f64) as f32,
-            0.0,
-            0.0,
-            -1.0,
-            0.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::perspective_rh_gl(
+        f32::to_radians(degreesFovy),
+        aspect,
+        N,
+        F,
+    ))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Product(a: &Matrix, b: &Matrix) -> Box<Matrix> {
-    Box::new(a.product(b))
+    Box::new(a.mul_mat4(b))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_RotationX(rads: f32) -> Box<Matrix> {
-    let c: f32 = f64::cos(rads as f64) as f32;
-    let s: f32 = f64::sin(rads as f64) as f32;
-    let result: Matrix = Matrix {
-        m: [
-            1.0, 0.0, 0.0, 0.0, 0.0, c, -s, 0.0, 0.0, s, c, 0.0, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_rotation_x(rads))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_RotationY(rads: f32) -> Box<Matrix> {
-    let c: f32 = f64::cos(rads as f64) as f32;
-    let s: f32 = f64::sin(rads as f64) as f32;
-    let result: Matrix = Matrix {
-        m: [
-            c, 0.0, s, 0.0, 0.0, 1.0, 0.0, 0.0, -s, 0.0, c, 0.0, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_rotation_y(rads))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_RotationZ(rads: f32) -> Box<Matrix> {
-    let c: f32 = f64::cos(rads as f64) as f32;
-    let s: f32 = f64::sin(rads as f64) as f32;
-    let result: Matrix = Matrix {
-        m: [
-            c, -s, 0.0, 0.0, s, c, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_rotation_z(rads))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Scaling(sx: f32, sy: f32, sz: f32) -> Box<Matrix> {
-    let result: Matrix = Matrix {
-        m: [
-            sx, 0.0, 0.0, 0.0, 0.0, sy, 0.0, 0.0, 0.0, 0.0, sz, 0.0, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_scale(Vec3::new(sx, sy, sz)))
 }
 
 #[no_mangle]
@@ -466,147 +168,63 @@ pub extern "C" fn Matrix_SRT(
     ty: f32,
     tz: f32,
 ) -> Box<Matrix> {
-    let S: Box<Matrix> = Matrix_Scaling(sx, sy, sz);
-    let R: Box<Matrix> = Matrix_YawPitchRoll(ry, rp, rr);
-    let T: Box<Matrix> = Matrix_Translation(tx, ty, tz);
-    let TR: Box<Matrix> = Matrix_Product(T.as_ref(), R.as_ref());
-    let TRS: Box<Matrix> = Matrix_Product(TR.as_ref(), S.as_ref());
-    TRS
+    Box::new(Matrix::from_scale_rotation_translation(
+        Vec3::new(sx, sy, sz),
+        Quat::from_euler(glam::EulerRot::ZYX, rr, ry, rp),
+        Vec3::new(tx, ty, tz),
+    ))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Translation(tx: f32, ty: f32, tz: f32) -> Box<Matrix> {
-    let result: Matrix = Matrix {
-        m: [
-            1.0, 0.0, 0.0, tx, 0.0, 1.0, 0.0, ty, 0.0, 0.0, 1.0, tz, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_translation(Vec3::new(tx, ty, tz)))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_YawPitchRoll(yaw: f32, pitch: f32, roll: f32) -> Box<Matrix> {
-    let ca: f32 = f64::cos(roll as f64) as f32;
-    let sa: f32 = f64::sin(roll as f64) as f32;
-    let cb: f32 = f64::cos(yaw as f64) as f32;
-    let sb: f32 = f64::sin(yaw as f64) as f32;
-    let cy: f32 = f64::cos(pitch as f64) as f32;
-    let sy: f32 = f64::sin(pitch as f64) as f32;
-    let result: Matrix = Matrix {
-        m: [
-            ca * cb,
-            ca * sb * sy - sa * cy,
-            ca * sb * cy + sa * sy,
-            0.0,
-            sa * cb,
-            sa * sb * sy + ca * cy,
-            sa * sb * cy - ca * sy,
-            0.0,
-            -sb,
-            cb * sy,
-            cb * cy,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_quat(Quat::from_euler(
+        glam::EulerRot::ZYX,
+        roll,
+        yaw,
+        pitch,
+    )))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_MulBox(this: &Matrix, out: &mut Box3, in_0: &Box3) {
     let corners: [Vec3; 8] = [
-        Vec3 {
-            x: in_0.lower.x,
-            y: in_0.lower.y,
-            z: in_0.lower.z,
-        },
-        Vec3 {
-            x: in_0.upper.x,
-            y: in_0.lower.y,
-            z: in_0.lower.z,
-        },
-        Vec3 {
-            x: in_0.lower.x,
-            y: in_0.upper.y,
-            z: in_0.lower.z,
-        },
-        Vec3 {
-            x: in_0.upper.x,
-            y: in_0.upper.y,
-            z: in_0.lower.z,
-        },
-        Vec3 {
-            x: in_0.lower.x,
-            y: in_0.lower.y,
-            z: in_0.upper.z,
-        },
-        Vec3 {
-            x: in_0.upper.x,
-            y: in_0.lower.y,
-            z: in_0.upper.z,
-        },
-        Vec3 {
-            x: in_0.lower.x,
-            y: in_0.upper.y,
-            z: in_0.upper.z,
-        },
-        Vec3 {
-            x: in_0.upper.x,
-            y: in_0.upper.y,
-            z: in_0.upper.z,
-        },
+        Vec3::new(in_0.lower.x, in_0.lower.y, in_0.lower.z),
+        Vec3::new(in_0.upper.x, in_0.lower.y, in_0.lower.z),
+        Vec3::new(in_0.lower.x, in_0.upper.y, in_0.lower.z),
+        Vec3::new(in_0.upper.x, in_0.upper.y, in_0.lower.z),
+        Vec3::new(in_0.lower.x, in_0.lower.y, in_0.upper.z),
+        Vec3::new(in_0.upper.x, in_0.lower.y, in_0.upper.z),
+        Vec3::new(in_0.lower.x, in_0.upper.y, in_0.upper.z),
+        Vec3::new(in_0.upper.x, in_0.upper.y, in_0.upper.z),
     ];
-    let mut result = Vec3::ZERO;
-    Matrix_MulPoint(this, &mut result, corners[0].x, corners[0].y, corners[0].z);
-    out.lower = result;
-    out.upper = result;
-    let mut i: i32 = 1;
-    while i < 8 {
-        Matrix_MulPoint(
-            this,
-            &mut result,
-            corners[i as usize].x,
-            corners[i as usize].y,
-            corners[i as usize].z,
-        );
+
+    out.lower = this.transform_point3(corners[0]);
+    out.upper = out.lower;
+    for i in 1..8 {
+        let result = this.transform_point3(corners[i]);
         out.lower = Vec3::min(out.lower, result);
         out.upper = Vec3::max(out.upper, result);
-        i += 1;
     }
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_MulDir(this: &Matrix, out: &mut Vec3, x: f32, y: f32, z: f32) {
-    let m: *const f32 = (this.m).as_ptr();
-    unsafe {
-        out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z;
-        out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z;
-        out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z;
-    }
+    *out = this.transform_vector3(Vec3::new(x, y, z));
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_MulPoint(this: &Matrix, out: &mut Vec3, x: f32, y: f32, z: f32) {
-    let m: *const f32 = (this.m).as_ptr();
-    unsafe {
-        out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z + *m.offset(3);
-        out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z + *m.offset(7);
-        out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z + *m.offset(11);
-    }
+    *out = this.transform_point3(Vec3::new(x, y, z));
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_MulVec(this: &Matrix, out: &mut Vec4, x: f32, y: f32, z: f32, w: f32) {
-    let m: *const f32 = (this.m).as_ptr();
-    unsafe {
-        out.x = *m.offset(0) * x + *m.offset(1) * y + *m.offset(2) * z + *m.offset(3) * w;
-        out.y = *m.offset(4) * x + *m.offset(5) * y + *m.offset(6) * z + *m.offset(7) * w;
-        out.z = *m.offset(8) * x + *m.offset(9) * y + *m.offset(10) * z + *m.offset(11) * w;
-        out.w = *m.offset(12) * x + *m.offset(13) * y + *m.offset(14) * z + *m.offset(15) * w;
-    }
+    *out = this.mul_vec4(Vec4::new(x, y, z, w));
 }
 
 #[no_mangle]
@@ -626,117 +244,57 @@ pub extern "C" fn Matrix_GetUp(this: &Matrix, out: &mut Vec3) {
 
 #[no_mangle]
 pub extern "C" fn Matrix_GetPos(this: &Matrix, out: &mut Vec3) {
-    *out = this.get_pos();
+    *out = this.get_translation();
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_GetRow(this: &Matrix, out: &mut Vec4, row: i32) {
-    out.x = this.m[(4 * row + 0) as usize];
-    out.y = this.m[(4 * row + 1) as usize];
-    out.z = this.m[(4 * row + 2) as usize];
-    out.w = this.m[(4 * row + 3) as usize];
+    *out = this.row(row as usize);
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_FromBasis(x: &Vec3, y: &Vec3, z: &Vec3) -> Box<Matrix> {
-    let result: Matrix = Matrix {
-        m: [
-            x.x, y.x, z.x, 0.0, x.y, y.y, z.y, 0.0, x.z, y.z, z.z, 0.0, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_mat3(Mat3::from_cols(*x, *y, *z)))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_FromPosRot(pos: &Vec3, rot: &Quat) -> Box<Matrix> {
-    let mut x = Vec3::ZERO;
-    Quat_GetAxisX(rot, &mut x);
-    let mut y = Vec3::ZERO;
-    Quat_GetAxisY(rot, &mut y);
-    let mut z = Vec3::ZERO;
-    Quat_GetAxisZ(rot, &mut z);
-    let result: Matrix = Matrix {
-        m: [
-            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_rotation_translation(*rot, *pos))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_FromPosRotScale(pos: &Vec3, rot: &Quat, scale: f32) -> Box<Matrix> {
-    let mut x = Vec3::ZERO;
-    Quat_GetAxisX(rot, &mut x);
-    let mut y = Vec3::ZERO;
-    Quat_GetAxisY(rot, &mut y);
-    let mut z = Vec3::ZERO;
-    Quat_GetAxisZ(rot, &mut z);
-    let result: Matrix = Matrix {
-        m: [
-            scale * x.x,
-            scale * y.x,
-            scale * z.x,
-            pos.x,
-            scale * x.y,
-            scale * y.y,
-            scale * z.y,
-            pos.y,
-            scale * x.z,
-            scale * y.z,
-            scale * z.z,
-            pos.z,
-            0.0,
-            0.0,
-            0.0,
-            1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_scale_rotation_translation(
+        Vec3::splat(scale),
+        *rot,
+        *pos,
+    ))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_FromPosBasis(pos: &Vec3, x: &Vec3, y: &Vec3, z: &Vec3) -> Box<Matrix> {
-    let result: Matrix = Matrix {
-        m: [
-            x.x, y.x, z.x, pos.x, x.y, y.y, z.y, pos.y, x.z, y.z, z.z, pos.z, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    let mut mat_from_basis = Box::new(Matrix::from_mat3(Mat3::from_cols(*x, *y, *z)));
+    mat_from_basis.w_axis.x = pos.x;
+    mat_from_basis.w_axis.y = pos.y;
+    mat_from_basis.w_axis.z = pos.z;
+    mat_from_basis
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_FromQuat(q: &Quat) -> Box<Matrix> {
-    let mut x = Vec3::ZERO;
-    Quat_GetAxisX(q, &mut x);
-    let mut y = Vec3::ZERO;
-    Quat_GetAxisY(q, &mut y);
-    let mut z = Vec3::ZERO;
-    Quat_GetAxisZ(q, &mut z);
-    let result: Matrix = Matrix {
-        m: [
-            x.x, y.x, z.x, 0.0, x.y, y.y, z.y, 0.0, x.z, y.z, z.z, 0.0, 0.0, 0.0, 0.0, 1.0,
-        ],
-    };
-    Box::new(result)
+    Box::new(Matrix::from_quat(*q))
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_ToQuat(this: &Matrix, q: &mut Quat) {
-    let m: *const f32 = this as *const Matrix as *const f32;
-    unsafe {
-        let mut x: Vec3 = Vec3::new(*m.offset(0), *m.offset(4), *m.offset(8));
-        let mut y: Vec3 = Vec3::new(*m.offset(1), *m.offset(5), *m.offset(9));
-        let mut z: Vec3 = Vec3::new(*m.offset(2), *m.offset(6), *m.offset(10));
-        Quat_FromBasis(&mut x, &mut y, &mut z, q);
-    }
+    *q = Quat::from_mat4(this);
 }
 
 #[no_mangle]
 pub extern "C" fn Matrix_Print(this: &Matrix) {
-    for i in 0..4 {
-        let v = &this.m[i * 4..(i + 1) * 4];
-        let s: Vec<_> = v.iter().map(|v| format!("{v}")).collect();
-
+    for r in 0..4 {
+        let row = this.row(r);
+        let s = row.as_ref().map(|elem| format!("{elem}"));
         info!("{}", s.join(" "));
     }
 }

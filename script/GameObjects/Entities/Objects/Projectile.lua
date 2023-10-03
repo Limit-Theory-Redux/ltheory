@@ -35,8 +35,8 @@ function Entity:addProjectile(source)
     if Config.audio.pulseFire then
         local distance = GameState.player.currentShip:getDistance(source)
         local volDist = max(0, 1.0 - (min(5000, distance) / 5000))
---        Config.audio.pulseFire.sound:setVolume(volDist)
---        LTheoryRedux.audiofx:play(Config.audio.pulseFire.sound)
+        --        Config.audio.pulseFire.sound:setVolume(volDist)
+        --        LTheoryRedux.audiofx:play(Config.audio.pulseFire.sound)
     end
     -- *** TEMP: Audio FX test END ***
 
@@ -51,8 +51,8 @@ function Entity:addProjectile(source)
 
     if GameState.render.pulseLights then
         newProjectile:addLight(newProjectile.pColorR * 3,
-                               newProjectile.pColorG * 3,
-                               newProjectile.pColorB * 3)
+            newProjectile.pColorG * 3,
+            newProjectile.pColorB * 3)
     end
 
     self.pcount = self.pcount + 1

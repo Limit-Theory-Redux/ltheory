@@ -69,7 +69,6 @@ pub struct AggregateButton {
     pub onDown: LuaRef,
     pub onReleased: LuaRef,
 }
-pub type State = i32;
 
 #[derive(Copy, Clone)]
 #[repr(C)]

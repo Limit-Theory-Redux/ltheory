@@ -344,20 +344,21 @@ impl RigidBody {
                 self.with_collider(|c| matrix_from_transform(c.position_wrt_parent().unwrap()));
             let parent_transform =
                 unsafe { &**parent }.with_rigid_body(|rb| matrix_from_transform(rb.position()));
-            parent_transform.product(&transform)
+            // transform.mul_mat4(&parent_transform)
+            parent_transform
         } else {
             self.with_rigid_body(|rb| matrix_from_transform(rb.position()))
         }
     }
 
-    /// Returns the world -> local matrix for this rigid body.
-    pub fn get_to_local_matrix(&self) -> Matrix {
-        self.get_to_world_matrix().inverted()
-    }
-
     /// Returns the local -> world matrix for this rigid body.
     pub fn get_to_world_matrix(&self) -> Matrix {
-        self.get_world_matrix_unscaled().scaled(self.get_scale())
+        self.get_world_matrix_unscaled() * Matrix::from_scale(Vec3::splat(self.get_scale()))
+    }
+
+    /// Returns the world -> local matrix for this rigid body.
+    pub fn get_to_local_matrix(&self) -> Matrix {
+        self.get_to_world_matrix().inverse()
     }
 
     pub fn get_velocity(&self) -> Vec3 {
@@ -439,7 +440,7 @@ impl RigidBody {
     }
 
     pub fn get_position(&self) -> Vec3 {
-        self.get_world_matrix_unscaled().get_pos()
+        self.get_world_matrix_unscaled().get_translation()
     }
 
     pub fn get_position_local(&self) -> Vec3 {
@@ -465,7 +466,7 @@ impl RigidBody {
     }
 
     pub fn get_rotation(&self) -> Quat {
-        self.get_world_matrix_unscaled().to_quat()
+        Quat::from_mat4(&self.get_world_matrix_unscaled())
     }
 
     pub fn get_rotation_local(&mut self) -> Quat {
@@ -615,11 +616,8 @@ impl RigidBody {
 }
 
 /// Convert an nalgebra Isometry to a Matrix.
-///
-/// Note: nalgebra's Matrix struct stores matrices in column-major format, so we need to convert to row-major by transposing.
 fn matrix_from_transform(transform: &rp::Isometry<f32>) -> Matrix {
-    let rp_matrix = transform.to_matrix().transpose();
-    Matrix::from_slice(rp_matrix.as_slice())
+    Matrix::from_cols_slice(transform.to_matrix().as_slice())
 }
 
 pub fn RigidBody_Create(shape: Box<CollisionShape>) -> Box<RigidBody> {
