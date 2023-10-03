@@ -21,9 +21,7 @@ function Application:onInit() end
 
 function Application:onDraw() end
 
-function Application:onResize(sx, sy)
-    WindowInstance:setCursorPosition(Vec2f(self.resX / 2, self.resY / 2))
-end
+function Application:onResize(sx, sy) end
 
 function Application:onUpdate(dt) end
 
