@@ -9,6 +9,8 @@ local rng = RNG.FromTime()
 function ShipTest:spawnShip()
     local ship
     do -- Player Ship
+        local currentShip = self.currentShip or self.player:getControlling()
+        if currentShip then currentShip:delete() end
         ship = self.system:spawnShip(Enums.ShipHulls.Solo, self.player)
         ship:setPos(Config.gen.origin)
         ship:setFriction(0)

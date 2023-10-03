@@ -11,15 +11,6 @@ pub struct Rng {
     pub state: [u64; 2],
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Quat {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    pub w: f32,
-}
-
 #[inline]
 unsafe extern "C" fn Random_SplitMix64(state: *mut u64) -> u64 {
     *state = (*state as u64).wrapping_add(0x9e3779b97f4a7c15);

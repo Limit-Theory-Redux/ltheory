@@ -64,7 +64,7 @@ do -- Basic Typedefs
 end
 
 do -- Function Pointer Typedefs
-    ffi.cdef [[
+  ffi.cdef [[
     typedef void (*ValueForeach) (void* value, void* userData);
     typedef int  (*ThreadFn    ) (void* data);
     typedef int  (*ThreadPoolFn) (int threadIndex, int threadCount, void* data);
@@ -72,113 +72,113 @@ do -- Function Pointer Typedefs
 end
 
 do -- Opaque Structs
-    ffi.cdef [[
-      typedef struct Audio        {} Audio;
-      typedef struct BSP          {} BSP;
-      typedef struct BoxMesh      {} BoxMesh;
-      typedef struct BoxTree      {} BoxTree;
-      typedef struct Bytes        {} Bytes;
-      typedef struct Cursor       {} Cursor;
-      typedef struct CursorState  {} CursorState;
-      typedef struct Directory    {} Directory;
-      typedef struct DragAndDropState {} DragAndDropState;
-      typedef struct Engine       {} Engine;
-      typedef struct File         {} File;
-      typedef struct Font         {} Font;
-      typedef struct GamepadState {} GamepadState;
-      typedef struct HashGrid     {} HashGrid;
-      typedef struct HashGridElem {} HashGridElem;
-      typedef struct Input        {} Input;
-      typedef struct InputBinding {} InputBinding;
-      typedef struct InputDevice  {} InputDevice;
-      typedef struct InputDeviceId {} InputDeviceId;
-      typedef struct KDTree       {} KDTree;
-      typedef struct KeyboardState {} KeyboardState;
-      typedef struct LodMesh      {} LodMesh;
-      typedef struct MemPool      {} MemPool;
-      typedef struct MemStack     {} MemStack;
-      typedef struct Mesh         {} Mesh;
-      typedef struct MouseState   {} MouseState;
-      typedef struct Octree       {} Octree;
-      typedef struct Physics      {} Physics;
-      typedef struct RNG          {} RNG;
-      typedef struct RigidBody    {} RigidBody;
-      typedef struct RmGui        {} RmGui;
-      typedef struct SDF          {} SDF;
-      typedef struct Shader       {} Shader;
-      typedef struct ShaderState  {} ShaderState;
-      typedef struct Socket       {} Socket;
-      typedef struct Sound        {} Sound;
-      typedef struct SoundDesc    {} SoundDesc;
-      typedef struct StrMap       {} StrMap;
-      typedef struct StrMapIter   {} StrMapIter;
-      typedef struct SystemEventState {} SystemEventState;
-      typedef struct Tex1D        {} Tex1D;
-      typedef struct Tex2D        {} Tex2D;
-      typedef struct Tex3D        {} Tex3D;
-      typedef struct TexCube      {} TexCube;
-      typedef struct Timer        {} Timer;
-      typedef struct TimeStamp    {} TimeStamp;
-      typedef struct TouchpadState {} TouchpadState;
-      typedef struct Trigger      {} Trigger;
-      typedef struct Window       {} Window;
-      ]]
+  ffi.cdef [[
+    typedef struct Audio        {} Audio;
+    typedef struct BSP          {} BSP;
+    typedef struct BoxMesh      {} BoxMesh;
+    typedef struct BoxTree      {} BoxTree;
+    typedef struct Bytes        {} Bytes;
+    typedef struct Cursor       {} Cursor;
+    typedef struct CursorState  {} CursorState;
+    typedef struct Directory    {} Directory;
+    typedef struct DragAndDropState {} DragAndDropState;
+    typedef struct Engine       {} Engine;
+    typedef struct File         {} File;
+    typedef struct Font         {} Font;
+    typedef struct GamepadState {} GamepadState;
+    typedef struct HashGrid     {} HashGrid;
+    typedef struct HashGridElem {} HashGridElem;
+    typedef struct Input        {} Input;
+    typedef struct InputBinding {} InputBinding;
+    typedef struct InputDevice  {} InputDevice;
+    typedef struct InputDeviceId {} InputDeviceId;
+    typedef struct KDTree       {} KDTree;
+    typedef struct KeyboardState {} KeyboardState;
+    typedef struct LodMesh      {} LodMesh;
+    typedef struct MemPool      {} MemPool;
+    typedef struct MemStack     {} MemStack;
+    typedef struct Mesh         {} Mesh;
+    typedef struct MouseState   {} MouseState;
+    typedef struct Octree       {} Octree;
+    typedef struct Physics      {} Physics;
+    typedef struct RNG          {} RNG;
+    typedef struct RigidBody    {} RigidBody;
+    typedef struct RmGui        {} RmGui;
+    typedef struct SDF          {} SDF;
+    typedef struct Shader       {} Shader;
+    typedef struct ShaderState  {} ShaderState;
+    typedef struct Socket       {} Socket;
+    typedef struct Sound        {} Sound;
+    typedef struct SoundDesc    {} SoundDesc;
+    typedef struct StrMap       {} StrMap;
+    typedef struct StrMapIter   {} StrMapIter;
+    typedef struct SystemEventState {} SystemEventState;
+    typedef struct Tex1D        {} Tex1D;
+    typedef struct Tex2D        {} Tex2D;
+    typedef struct Tex3D        {} Tex3D;
+    typedef struct TexCube      {} TexCube;
+    typedef struct Timer        {} Timer;
+    typedef struct TimeStamp    {} TimeStamp;
+    typedef struct TouchpadState {} TouchpadState;
+    typedef struct Trigger      {} Trigger;
+    typedef struct Window       {} Window;
+  ]]
 
-    libphx.Opaques = {
-        'Audio',
-        'BSP',
-        'BoxMesh',
-        'BoxTree',
-        'Bytes',
-        'Cursor',
-        'CursorState',
-        'Directory',
-        'DragAndDropState',
-        'Engine',
-        'File',
-        'Font',
-        'GamepadState',
-        'HashGrid',
-        'HashGridElem',
-        'Input',
-        'InputBinding',
-        'InputDevice',
-        'InputDeviceId',
-        'KDTree',
-        'KeyboardState',
-        'LodMesh',
-        'MemPool',
-        'MemStack',
-        'Mesh',
-        'MouseState',
-        'Octree',
-        'Physics',
-        'RNG',
-        'RigidBody',
-        'RmGui',
-        'SDF',
-        'Shader',
-        'ShaderState',
-        'Socket',
-        'Sound',
-        'SoundDesc',
-        'StrMap',
-        'StrMapIter',
-        'SystemEventState',
-        'Tex1D',
-        'Tex2D',
-        'Tex3D',
-        'TexCube',
-        'Timer',
-        'TimeStamp',
-        'TouchpadState',
-        'Trigger',
-        'Window',
-    }
+  libphx.Opaques = {
+    'Audio',
+    'BSP',
+    'BoxMesh',
+    'BoxTree',
+    'Bytes',
+    'Cursor',
+    'CursorState',
+    'Directory',
+    'DragAndDropState',
+    'Engine',
+    'File',
+    'Font',
+    'GamepadState',
+    'HashGrid',
+    'HashGridElem',
+    'Input',
+    'InputBinding',
+    'InputDevice',
+    'InputDeviceId',
+    'KDTree',
+    'KeyboardState',
+    'LodMesh',
+    'MemPool',
+    'MemStack',
+    'Mesh',
+    'MouseState',
+    'Octree',
+    'Physics',
+    'RNG',
+    'RigidBody',
+    'RmGui',
+    'SDF',
+    'Shader',
+    'ShaderState',
+    'Socket',
+    'Sound',
+    'SoundDesc',
+    'StrMap',
+    'StrMapIter',
+    'SystemEventState',
+    'Tex1D',
+    'Tex2D',
+    'Tex3D',
+    'TexCube',
+    'Timer',
+    'TimeStamp',
+    'TouchpadState',
+    'Trigger',
+    'Window',
+  }
 end
 
 do -- Transparent Structs
-    ffi.cdef [[
+  ffi.cdef [[
     typedef struct BSPNodeRef {
       int32 index;
       uint8 triangleCount;
@@ -395,46 +395,46 @@ do -- Transparent Structs
     } Vertex;
   ]]
 
-    libphx.Structs = {
-        'BSPNodeRef',
-        'Box3d',
-        'Box3f',
-        'Box3i',
-        'Collision',
-        'Device',
-        'InputEvent',
-        'IntersectSphereProfiling',
-        'LineSegment',
-        'Matrix',
-        'Plane',
-        'Polygon',
-        'Quat',
-        'Ray',
-        'RayCastResult',
-        'ShapeCastResult',
-        'Sphere',
-        'Time',
-        'Vec3f',
-        'Triangle',
-        'TriangleTest',
-        'Vec2d',
-        'Vec2f',
-        'Vec2i',
-        'Vec3d',
-        'Vec3i',
-        'Vec4d',
-        'Vec4f',
-        'Vec4i',
-        'Vertex',
-    }
+  libphx.Structs = {
+    'BSPNodeRef',
+    'Box3d',
+    'Box3f',
+    'Box3i',
+    'Collision',
+    'Device',
+    'InputEvent',
+    'IntersectSphereProfiling',
+    'LineSegment',
+    'Matrix',
+    'Plane',
+    'Polygon',
+    'Quat',
+    'Ray',
+    'RayCastResult',
+    'ShapeCastResult',
+    'Sphere',
+    'Time',
+    'Vec3f',
+    'Triangle',
+    'TriangleTest',
+    'Vec2d',
+    'Vec2f',
+    'Vec2i',
+    'Vec3d',
+    'Vec3i',
+    'Vec4d',
+    'Vec4f',
+    'Vec4i',
+    'Vertex',
+  }
 end
 
 do -- Load Library
-    libphx.lib = ffi.C
-    -- local debug = __debug__ and 'd' or ''
-    -- local path = string.format('phx%s', debug)
-    -- libphx.lib = ffi.load(path, false)
-    -- assert(libphx.lib, 'Failed to load %s', path)
+  libphx.lib = ffi.C
+  -- local debug = __debug__ and 'd' or ''
+  -- local path = string.format('phx%s', debug)
+  -- libphx.lib = ffi.load(path, false)
+  -- assert(libphx.lib, 'Failed to load %s', path)
 end
 
 return libphx

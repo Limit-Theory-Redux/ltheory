@@ -11,7 +11,7 @@ function StationTest:spawnStation()
     do -- Player Ship
         local currentStation = self.currentStation or self.player:getControlling()
         if currentStation then currentStation:delete() end
-        station = self.system:spawnStation(self.player)
+        station = self.system:spawnStation(Enums.StationHulls.Small, self.player)
         station:setPos(Config.gen.origin)
         station:setFriction(0)
         station:setSleepThreshold(0, 0)

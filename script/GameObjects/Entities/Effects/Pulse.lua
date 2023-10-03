@@ -61,12 +61,12 @@ function Pulse.Render(projectiles, state)
                 local pulse = proj.effect
                 if proj then
                     Shader.SetFloat3('color', proj.pColorR,
-                                              proj.pColorG,
-                                              proj.pColorB)
+                        proj.pColorG,
+                        proj.pColorB)
                 else
                     Shader.SetFloat3('color', Config.game.pulseColorBodyR,
-                                              Config.game.pulseColorBodyG,
-                                              Config.game.pulseColorBodyB)
+                        Config.game.pulseColorBodyG,
+                        Config.game.pulseColorBodyB)
                 end
                 Shader.ISetFloat(cacheHead.size, 16)
                 Shader.ISetFloat(cacheHead.alpha, pulse.life / pulse.lifeMax)
@@ -114,7 +114,7 @@ function Pulse.UpdatePrePhysics(system, projectiles, dt)
     for i = #projectiles, 1, -1 do
         local proj  = projectiles[i]
         local pulse = proj.effect
-        pulse.life = pulse.life - dt
+        pulse.life  = pulse.life - dt
         if pulse.life <= 0 then
             --Log.Debug("PULSE: projectile delete on expiration = %s", projectiles[i]:getName())
             if proj then
@@ -165,11 +165,6 @@ function Pulse.UpdatePostPhysics(system, projectiles, dt)
                 if hitEnt ~= source then
                     -- Do damage if the collidee has health
                     if hitEnt:isAlive() then
-                        if not source:isDestroyed() then
-                            -- If attacked, this entity stops what it's doing and attacks that ship
-                            -- TODO: Improve response logic when attacked
-                            hitEnt:attackedBy(source)
-                        end
                         -- TODO: Get damage type and amount from the pulse
                         hitEnt:applyDamage(Config.gen.compTurretPulseStats.damage, source)
                     end

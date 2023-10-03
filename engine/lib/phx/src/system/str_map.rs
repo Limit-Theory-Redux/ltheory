@@ -13,14 +13,14 @@ use crate::*;
 pub struct StrMap {
     pub capacity: u32,
     pub size: u32,
-    pub data: *mut Node,
+    pub data: *mut StrMapNode,
 }
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct Node {
+pub struct StrMapNode {
     pub key: *const libc::c_char,
-    pub next: *mut Node,
+    pub next: *mut StrMapNode,
     pub value: *mut libc::c_void,
 }
 
@@ -28,7 +28,7 @@ pub struct Node {
 #[repr(C)]
 pub struct StrMapIter {
     pub map: *mut StrMap,
-    pub node: *mut Node,
+    pub node: *mut StrMapNode,
     pub slot: u32,
 }
 
@@ -38,7 +38,10 @@ unsafe extern "C" fn Hash(key: *const libc::c_char) -> u64 {
 }
 
 #[inline]
-unsafe extern "C" fn StrMap_GetBucket(this: &mut StrMap, key: *const libc::c_char) -> *mut Node {
+unsafe extern "C" fn StrMap_GetBucket(
+    this: &mut StrMap,
+    key: *const libc::c_char,
+) -> *mut StrMapNode {
     (this.data).offset((Hash(key)).wrapping_rem(this.capacity as u64) as isize)
 }
 
@@ -48,16 +51,16 @@ unsafe extern "C" fn StrMap_Grow(this: &mut StrMap) {
         size: 0,
         data: std::ptr::null_mut(),
     };
-    newMap.data = MemNewArrayZero!(Node, newMap.capacity);
+    newMap.data = MemNewArrayZero!(StrMapNode, newMap.capacity);
     let mut i: u32 = 0;
     while i < this.capacity {
-        let mut node: *mut Node = (this.data).offset(i as isize);
+        let mut node: *mut StrMapNode = (this.data).offset(i as isize);
         if !((*node).key).is_null() {
             StrMap_Set(&mut newMap, (*node).key, (*node).value);
             StrFree((*node).key);
             node = (*node).next;
             while !node.is_null() {
-                let next: *mut Node = (*node).next;
+                let next: *mut StrMapNode = (*node).next;
                 StrMap_Set(&mut newMap, (*node).key, (*node).value);
                 StrFree((*node).key);
                 MemFree(node as *const _);
@@ -74,7 +77,7 @@ unsafe extern "C" fn StrMap_Grow(this: &mut StrMap) {
 pub unsafe extern "C" fn StrMap_Create(capacity: u32) -> *mut StrMap {
     let this = MemNewZero!(StrMap);
     (*this).capacity = capacity;
-    (*this).data = MemNewArrayZero!(Node, capacity);
+    (*this).data = MemNewArrayZero!(StrMapNode, capacity);
     this
 }
 
@@ -82,12 +85,12 @@ pub unsafe extern "C" fn StrMap_Create(capacity: u32) -> *mut StrMap {
 pub unsafe extern "C" fn StrMap_Free(this: *mut StrMap) {
     let mut i: u32 = 0;
     while i < (*this).capacity {
-        let mut node: *mut Node = ((*this).data).offset(i as isize);
+        let mut node: *mut StrMapNode = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
             StrFree((*node).key);
             node = (*node).next;
             while !node.is_null() {
-                let next: *mut Node = (*node).next;
+                let next: *mut StrMapNode = (*node).next;
                 StrFree((*node).key);
                 MemFree(node as *const _);
                 node = next;
@@ -106,13 +109,13 @@ pub unsafe extern "C" fn StrMap_FreeEx(
 ) {
     let mut i: u32 = 0;
     while i < (*this).capacity {
-        let mut node: *mut Node = ((*this).data).offset(i as isize);
+        let mut node: *mut StrMapNode = ((*this).data).offset(i as isize);
         if !((*node).key).is_null() {
             freeFn.expect("non-null function pointer")((*node).key, (*node).value);
             StrFree((*node).key);
             node = (*node).next;
             while !node.is_null() {
-                let next: *mut Node = (*node).next;
+                let next: *mut StrMapNode = (*node).next;
                 freeFn.expect("non-null function pointer")((*node).key, (*node).value);
                 StrFree((*node).key);
                 MemFree(node as *const _);
@@ -130,7 +133,7 @@ pub unsafe extern "C" fn StrMap_Get(
     this: &mut StrMap,
     key: *const libc::c_char,
 ) -> *mut libc::c_void {
-    let mut node: *mut Node = StrMap_GetBucket(this, key);
+    let mut node: *mut StrMapNode = StrMap_GetBucket(this, key);
     if ((*node).key).is_null() {
         return std::ptr::null_mut();
     }
@@ -150,12 +153,12 @@ pub extern "C" fn StrMap_GetSize(this: &mut StrMap) -> u32 {
 
 #[no_mangle]
 pub unsafe extern "C" fn StrMap_Remove(this: &mut StrMap, key: *const libc::c_char) {
-    let mut prev: *mut *mut Node = std::ptr::null_mut();
-    let mut node: *mut Node = StrMap_GetBucket(this, key);
+    let mut prev: *mut *mut StrMapNode = std::ptr::null_mut();
+    let mut node: *mut StrMapNode = StrMap_GetBucket(this, key);
     while !node.is_null() && !((*node).key).is_null() {
         if (*node).key.as_str() == key.as_str() {
             StrFree((*node).key);
-            let next: *mut Node = (*node).next;
+            let next: *mut StrMapNode = (*node).next;
             if !next.is_null() {
                 (*node).key = (*next).key;
                 (*node).next = (*next).next;
@@ -189,13 +192,13 @@ pub unsafe extern "C" fn StrMap_Set(
     if (3_u32).wrapping_mul(this.capacity) < (4_u32).wrapping_mul(this.size) {
         StrMap_Grow(this);
     }
-    let mut node: *mut Node = StrMap_GetBucket(this, key);
+    let mut node: *mut StrMapNode = StrMap_GetBucket(this, key);
     if ((*node).key).is_null() {
         (*node).key = StrDup(key);
         (*node).value = value;
         return;
     }
-    let mut prev: *mut *mut Node = std::ptr::null_mut();
+    let mut prev: *mut *mut StrMapNode = std::ptr::null_mut();
     while !node.is_null() {
         if (*node).key.as_str() == key.as_str() {
             (*node).value = value;
@@ -204,7 +207,7 @@ pub unsafe extern "C" fn StrMap_Set(
         prev = &mut (*node).next;
         node = (*node).next;
     }
-    node = MemNew!(Node);
+    node = MemNew!(StrMapNode);
     (*node).key = StrDup(key);
     (*node).value = value;
     (*node).next = std::ptr::null_mut();
@@ -224,7 +227,7 @@ pub unsafe extern "C" fn StrMap_Dump(this: &mut StrMap) {
 
     let mut i: u32 = 0;
     while i < this.capacity {
-        let mut node: *mut Node = (this.data).offset(i as isize);
+        let mut node: *mut StrMapNode = (this.data).offset(i as isize);
         if !((*node).key).is_null() {
             info!("  [{i:03}]:");
             while !node.is_null() {
@@ -249,7 +252,7 @@ pub unsafe extern "C" fn StrMap_Iterate(this: &mut StrMap) -> *mut StrMapIter {
     (*it).node = std::ptr::null_mut();
     let mut i: u32 = 0;
     while i < this.capacity {
-        let node: *mut Node = (this.data).offset(i as isize);
+        let node: *mut StrMapNode = (this.data).offset(i as isize);
         if ((*node).key).is_null() {
             i = i.wrapping_add(1);
         } else {
@@ -276,7 +279,7 @@ pub unsafe extern "C" fn StrMapIter_Advance(it: *mut StrMapIter) {
     (*it).slot = ((*it).slot).wrapping_add(1);
     let mut i: u32 = (*it).slot;
     while i < (*this).capacity {
-        let node: *mut Node = ((*this).data).offset(i as isize);
+        let node: *mut StrMapNode = ((*this).data).offset(i as isize);
         if ((*node).key).is_null() {
             i = i.wrapping_add(1);
         } else {

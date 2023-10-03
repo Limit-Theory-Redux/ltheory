@@ -49,7 +49,9 @@ impl BindArgs {
     /// If true then the function return string representation of the object.
     /// 'tostring' binding will be added to the metatype section of the Lua FFI file.
     pub fn is_to_string(&self) -> bool {
-        let Some(ty) = self.role else { return false; };
+        let Some(ty) = self.role else {
+            return false;
+        };
 
         ty == BindMethodRole::ToString
     }

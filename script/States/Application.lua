@@ -1,7 +1,7 @@
 local Bindings = require('States.ApplicationBindings')
 local MainMenu = require('Systems.Menus.MainMenu')
 
-local Application = class(function (self) end)
+local Application = class(function(self) end)
 
 -- Virtual ---------------------------------------------------------------------
 
@@ -10,8 +10,7 @@ function Application:getDefaultSize()
 end
 
 function Application:getTitle()
-    return
-        Config.gameTitle
+    return Config.gameTitle
 end
 
 function Application:getWindowMode()
@@ -54,12 +53,12 @@ function Application:appInit()
     --     self.resY,
     --     self:getWindowMode())
 
-    self.audio   = Audio.Create()
-    self.audiofx = Audio.Create()
+    self.audio                  = Audio.Create()
+    self.audiofx                = Audio.Create()
 
     GameState.render.gameWindow = WindowInstance
 
-    self.exit = false
+    self.exit                   = false
 
     -- WindowInstance:setVsync(GameState.render.vsync)
     -- TODO: WindowInstance:setPresentMode(self.presentMode)
@@ -68,7 +67,7 @@ function Application:appInit()
 
     Preload.Run()
 
-    -- Input.LoadGamepadDatabase('gamecontrollerdb_205.txt');
+    -- InputInstance:loadGamepadDatabase('gamecontrollerdb_205.txt');
     self:onInit()
     self:onResize(self.resX, self.resY)
 
@@ -151,7 +150,59 @@ function Application:onFrame()
             Profiler.End()
         end
 
-        if InputInstance:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
+        local timeScale = 1.0
+        local doScreenshot = false
+
+        do
+            Profiler.SetValue('gcmem', GC.GetMemory())
+            Profiler.Begin('App.onInput')
+
+            -- Immediately quit game without saving
+            if InputInstance:isKeyboardAltPressed() and InputInstance:isPressed(Button.KeyboardQ) then self:quit() end
+            if InputInstance:isPressed(Bindings.Exit) then self:quit() end
+
+            if InputInstance:isPressed(Bindings.ToggleProfiler) then
+                toggleProfiler = true
+            end
+
+            if InputInstance:isPressed(Bindings.Screenshot) then
+                doScreenshot = true
+                if Settings.exists('render.superSample') then
+                    self.prevSS = Settings.get('render.superSample')
+                end
+            end
+
+            if InputInstance:isPressed(Bindings.ToggleFullscreen) then
+                GameState.render.fullscreen = not GameState.render.fullscreen
+                self.window:setFullscreen(GameState.render.fullscreen)
+            end
+
+            if InputInstance:isPressed(Bindings.Reload) then
+                Profiler.Begin('Engine.Reload')
+                Cache.Clear()
+                SendEvent('Engine.Reload')
+                Preload.Run()
+                Profiler.End()
+            end
+
+            if InputInstance:isPressed(Bindings.Pause) and GameState:GetCurrentState() == Enums.GameStates.InGame then
+                if GameState.paused then
+                    GameState.paused = false
+                    if not GameState.panelActive and not GameState.debug.instantJobs then
+                        InputInstance:setCursorVisible(false)
+                    end
+                else
+                    GameState.paused = true
+                    InputInstance:setCursorVisible(true)
+                end
+            end
+
+            -- Preserving this in case we need to be able to automatically pause on window exit again
+            -- TODO: Re-enable this and connect it to a Settings option for players who want this mode
+            --      if InputInstance:isPressed(Button.System.WindowLeave) and Config.getGameMode() ~= 1 then
+            --        GameState.paused = true
+            --      end
+
             if GameState.paused then
                 GameState.paused = false
                 if not GameState.panelActive and not GameState.debug.instantJobs then
@@ -230,37 +281,37 @@ function Application:onFrame()
             )
         end
 
-            if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
-                --TODO: replace this with a general "is alive" game state here and in LTR,
-                --      the whole process needs to be improved
-                if MainMenu and not MainMenu.dialogDisplayed and
-                    not MainMenu.seedDialogDisplayed and
-                    not MainMenu.settingsScreenDisplayed then
-                    do
-                        UI.DrawEx.TextAdditive(
-                            'NovaRound',
-                            "[GAME OVER]",
-                            32,
-                            0, 0, self.resX, self.resY,
-                            1, 1, 1, 1,
-                            0.5, 0.5
-                        )
-                    end
+        if GameState.player.currentShip and GameState.player.currentShip:isDestroyed() then
+            --TODO: replace this with a general "is alive" game state here and in LTR,
+            --      the whole process needs to be improved
+            if MainMenu and not MainMenu.dialogDisplayed and
+                not MainMenu.seedDialogDisplayed and
+                not MainMenu.settingsScreenDisplayed then
+                do
+                    UI.DrawEx.TextAdditive(
+                        'NovaRound',
+                        "[GAME OVER]",
+                        32,
+                        0, 0, self.resX, self.resY,
+                        1, 1, 1, 1,
+                        0.5, 0.5
+                    )
                 end
             end
         end
+    end
 
-        -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
-        if doScreenshot then
-            -- Settings.set('render.superSample', 2) -- turn on mild supersampling
-            ScreenCap()
-            if self.prevSS then
-                -- Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
-                self.prevSS = nil
-            end
+    -- Take screenshot AFTER on-screen text is shown but BEFORE metrics are displayed
+    if doScreenshot then
+        -- Settings.set('render.superSample', 2) -- turn on mild supersampling
+        ScreenCap()
+        if self.prevSS then
+            -- Settings.set('render.superSample', self.prevSS) -- restore previous supersampling setting
+            self.prevSS = nil
         end
+    end
 
-    do                                         -- Metrics display
+    do -- Metrics display
         if GameState.debug.metricsEnabled then
             local s = string.format(
                 '%.2f ms / %.0f fps / %.2f MB / %.1f K tris / %d draws / %d imms / %d swaps',
@@ -285,16 +336,16 @@ function Application:onFrame()
         end
     end
 
-        do -- End Draw
-            Profiler.SetValue('gcmem', GC.GetMemory())
-            Profiler.Begin('App.SwapBuffers')
-            WindowInstance:endDraw()
-            Profiler.End()
-        end
-
+    do -- End Draw
+        Profiler.SetValue('gcmem', GC.GetMemory())
+        Profiler.Begin('App.SwapBuffers')
+        WindowInstance:endDraw()
         Profiler.End()
-        Profiler.LoopMarker()
     end
+
+    Profiler.End()
+    Profiler.LoopMarker()
+end
 
 function Application:doExit()
     if self.profiling then Profiler.Disable() end

@@ -15,10 +15,10 @@ function InputTest:onUpdate(dt)
 
     ---[[ NOTE : Low Level API Usage Style 2 - Event Queue
     local self = InputTest
-    self.eventCount = Input.GetEventCount()
-    for i = 1, Input.GetEventCount() do
+    self.eventCount = InputInstance:getEventCount()
+    for i = 1, InputInstance:getEventCount() do
         local event = InputEvent()
-        Input.GetNextEvent(event)
+        InputInstance:getNextEvent(event)
         if event.deviceType == InputDeviceType.Gamepad and
             (Bit.Has32(event.state, State.Pressed) or
                 Bit.Has32(event.state, State.Released))

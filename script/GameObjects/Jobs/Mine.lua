@@ -7,23 +7,62 @@ local Mine = subclass(Job, function(self, src, dst, item)
     self.dst = dst
     self.item = item
     self.jcount = 0
-    self.bids = 0
+    self.workers = {}
+    self.maxWorkers = 2 -- should depend on asteroid size etc.
 end)
+
+function Mine:cancelJob(e)
+    self:removeWorker(e)
+    e:popAction()
+    e.jobState = nil
+end
 
 function Mine:clone()
     return Mine(self.src, self.dst, self.item, self.jcount)
 end
 
+function Mine:isWorker(asset)
+    assert(asset)
+    for _, worker in ipairs(self.workers) do
+        if worker == asset then
+            return true
+        end
+    end
+    return false
+end
+
+function Mine:addWorker(asset)
+    assert(asset)
+    self.src:addClaim(asset)
+    table.insert(self.workers, asset)
+    return false
+end
+
+function Mine:removeWorker(asset)
+    assert(asset)
+    for i, worker in ipairs(self.workers) do
+        if worker == asset then
+            table.remove(self.workers, i)
+        end
+    end
+    self.src:removeClaim(asset)
+    return false
+end
+
 function Mine:getFlows(e)
     local item = self.item
     local mass = item:getMass()
-    local capacity = e:mgrInventoryGetFreeMax(mass) -- NOTE: inventory units? or count of free slots for mass = x?
+    local capacity = e:mgrInventoryGetFreeMax(mass)            -- NOTE: inventory units? or count of free slots for mass = x?
     local duration = self:getTravelTime(e, self.src, self.dst) -- TODO : + miningTime (from miningTime() function)
     local rate = floor(capacity / mass) / duration
     return { Flow(item, rate, self.dst) }
 end
 
-function Mine:getName(actor)
+function Mine:getType()
+    return Enums.Jobs.Mining
+end
+
+function Mine:getName()
     if self.jcount == 0 then
         -- This "bids" hack exists because something -- in between Think() waking up a sleeping ship to add
         --     the Undock() action to its queue, and the Undock() function being performed -- is causing
@@ -60,8 +99,8 @@ function Mine:getPayout(e)
         end
     end
 
+    --local capacity = e:getInventoryFree()
     --local item = self.item
-    --local capacity = e:mgrInventoryGetFreeMax(item:getMass())
     --local pstr1 = "Mine PAYOUT-ADJU [%s (%s)]: count = %d, item = %s, src = %s, dest = %s, "
     --local pstr2 = "base payout = %d, adjusted payout = %d"
     --local pstr  = pstr1 .. pstr2
@@ -129,6 +168,15 @@ function Mine:getTravelTime(e, src, dst)
     return 2.0 * src:getDistance(dst) / e:getTopSpeed()
 end
 
+function Mine:getThreatLevel()
+    local zone = self.src:getZone()
+    if zone then
+        return zone.threatLevel
+    else
+        return 0
+    end
+end
+
 function Mine:onUpdateActive(e, dt)
     if not GameState.paused then
         Profiler.Begin('Actions.Mine.onUpdateActive')
@@ -156,8 +204,7 @@ function Mine:onUpdateActive(e, dt)
                 -- Can't do this Mine job! End this job (owning player should seek a new sale for existing inventory)
                 Log.Debug("[MINE 1 FAIL] *** %s: itemBidVol = %d, capCount = %d; terminating mining job", e:getName(),
                     itemBidVol, capCount)
-                e:popAction()
-                e.jobState = nil
+                self:cancelJob(e)
             else
                 self.jcount = mcount -- only in case jcount is needed by Trader, which I think it doesn't anymore
                 --Log.Debug("MINE 1: jcount = %d", self.jcount)
@@ -169,18 +216,17 @@ function Mine:onUpdateActive(e, dt)
                     self.src:getName(), self:getShipTravelTime(e, self.dst), self.dst:getName(),
                     self:getTravelTime(e, self.src, self.dst),
                     itemBidVol, profit, dt)
-                e:pushAction(Actions.MoveTo(self.src, 150)) -- TODO: convert static arrival range to dynamic based on target scale
+                e:pushAction(Actions.MoveTo(self.src, 150, true)) -- TODO: convert static arrival range to dynamic based on target scale
             end
         elseif e.jobState == Enums.JobStateMine.MiningAsteroid then
-            local miningTimePerItem = 5 -- TODO: create a miningTime() function based on item's rarity
+            local miningTimePerItem = 15 -- TODO: create a miningTime() function based on item's rarity
             e:pushAction(Actions.MineAt(self.src, self.dst, miningTimePerItem))
         elseif e.jobState == Enums.JobStateMine.DockingAtDst then
             if e:mgrInventoryGetItemCount(self.item) == 0 then
                 Log.Debug(
                     "[MINE 3] *** NO SALE *** %s was unable to mine any units of %s for Trader %s, ending MINE action",
                     e:getName(), self.item:getName(), self.dst:getName())
-                e:popAction()
-                e.jobState = nil
+                self:cancelJob(e)
             else
                 if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
                     e:pushAction(Actions.DockAt(self.dst))
@@ -188,39 +234,37 @@ function Mine:onUpdateActive(e, dt)
                     -- Destination station no longer exists, so terminate this entire job
                     Log.Debug("[MINE 3] *** Destination station %s no longer exists for %s DockAt; terminating mining job",
                         self.dst:getName(), e:getName())
-                    e:popAction()
-                    e.jobState = nil
+                    self:cancelJob(e)
                 end
             end
+            -- temp claims by traders
+            self.src:removeClaim(self.dst:getTrader())
         elseif e.jobState == Enums.JobStateMine.SellingItems then
             if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
                 local item = self.item
-                Log.Debug("[MINE 4] %s offers to sell %d units of %s to Trader %s",
-                    e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
+                -- Log.Debug("[MINE 4] %s offers to sell %d units of %s to Trader %s",
+                --     e:getName(), e:mgrInventoryGetItemCount(item), item:getName(), self.dst:getName())
                 local sold = 0
                 while e:mgrInventoryGetItemCount(item) > 0 and self.dst:getTrader():buy(e, item) do
                     sold = sold + 1
                 end
-                Log.Debug("[MINE 4] %s sold %d units of %s to Trader %s; %d units remaining in inventory",
-                    e:getName(), sold, item:getName(), self.dst:getName(), e:mgrInventoryGetItemCount(item))
+                -- Log.Debug("[MINE 4] %s sold %d units of %s to Trader %s; %d units remaining in inventory",
+                --     e:getName(), sold, item:getName(), self.dst:getName(), e:mgrInventoryGetItemCount(item))
             else
                 -- Destination station no longer exists, so terminate this entire job
                 Log.Debug("[MINE 4] *** Destination station %s no longer exists for %s item sale; terminating mining job",
                     self.dst:getName(), e:getName())
-                e:popAction()
-                e.jobState = nil
+                self:cancelJob(e)
             end
         elseif e.jobState == Enums.JobStateMine.UndockingFromDst then
             if e:isShipDocked() then
-                Log.Debug("[MINE 5] %s pushing action Undock", e:getName())
                 e:pushAction(Actions.Undock())
             end
         elseif e.jobState == Enums.JobStateMine.JobFinished then
             -- TODO : This is just a quick hack to force AI to re-evaluate job
             --        decisions. In reality, AI should 'pre-empt' the job, which
             --        should otherwise loop indefinitely by default
-            e:popAction()
-            e.jobState = nil
+            self:cancelJob(e)
         end
         Profiler.End()
     end

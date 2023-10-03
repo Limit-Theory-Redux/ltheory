@@ -27,6 +27,11 @@ function Transport:clone()
     return Transport(self.src, self.dst, self.item, self.jcount)
 end
 
+function Transport:cancelJob(e)
+    e:popAction()
+    e.jobState = nil
+end
+
 function Transport:getFlows(e)
     local mass = self.item:getMass()
     local capacity = e:mgrInventoryGetFreeMax(mass) -- NOTE: inventory units? or count of free slots for mass = x?
@@ -38,7 +43,11 @@ function Transport:getFlows(e)
     }
 end
 
-function Transport:getName(actor)
+function Transport:getType()
+    return Enums.Jobs.Transport
+end
+
+function Transport:getName()
     if self.jcount == 0 then
         self.jcount = self.bids
     end
@@ -98,6 +107,15 @@ function Transport:getTravelTime(e)
     return 2.0 * self.src:getDistance(self.dst) / e:getTopSpeed()
 end
 
+function Transport:getThreatLevel()
+    local zone = self.src:getZone()
+    if zone then
+        return zone.threatLevel
+    else
+        return 0
+    end
+end
+
 function Transport:onUpdateActive(e, dt)
     if not GameState.paused then
         Profiler.Begin('Actions.Transport.onUpdateActive')
@@ -122,14 +140,12 @@ function Transport:onUpdateActive(e, dt)
                     Log.Debug(
                         "[TRANSPORT 1] *** Source station %s no longer exists for %s DockAt; terminating transport job",
                         self.src:getName(), e:getName())
-                    e:popAction()
-                    e.jobState = nil
+                    self:cancelJob(e)
                 end
             else
                 Log.Debug("[TRANSPORT OFFER FAIL ***] No trade of 0 %s from %s -> %s", self.item:getName(),
                     self.src:getName(), self.dst:getName())
-                e:popAction()
-                e.jobState = nil
+                self:cancelJob(e)
             end
         elseif e.jobState == Enums.JobStateTransport.BuyingItems then
             if self.src:hasDockable() and self.src:isDockable() and not self.src:isBanned(e) then
@@ -144,8 +160,7 @@ function Transport:onUpdateActive(e, dt)
                 if bought == 0 then
                     Log.Debug("[TRANSPORT 2 BUY FAIL ***] %s bought 0 %s from %s!", e:getName(), self.item:getName(),
                         self.src:getName())
-                    e:popAction()
-                    e.jobState = nil
+                    self:cancelJob(e)
                 else
                     if bought == e.count then
                         Log.Debug("[TRANSPORT 2] %s bought all %d units of %s from Trader %s",
@@ -160,8 +175,7 @@ function Transport:onUpdateActive(e, dt)
                 Log.Debug(
                     "[TRANSPORT 2] *** Source station %s no longer exists for %s item purchase; terminating transport job",
                     self.src:getName(), e:getName())
-                e:popAction()
-                e.jobState = nil
+                self:cancelJob(e)
             end
         elseif e.jobState == Enums.JobStateTransport.UndockingFromSrc then
             if e:isShipDocked() then
@@ -177,8 +191,7 @@ function Transport:onUpdateActive(e, dt)
                 Log.Debug(
                     "[TRANSPORT 4] *** Destination station %s no longer exists for %s DockAt; terminating transport job",
                     self.dst:getName(), e:getName())
-                e:popAction()
-                e.jobState = nil
+                self:cancelJob(e)
             end
         elseif e.jobState == Enums.JobStateTransport.SellingItems then
             if self.dst:hasDockable() and self.dst:isDockable() and not self.dst:isBanned(e) then
@@ -196,8 +209,7 @@ function Transport:onUpdateActive(e, dt)
                 Log.Debug(
                     "[TRANSPORT 5] *** Destination station %s no longer exists for %s item sale; terminating transport job",
                     self.dst:getName(), e:getName())
-                e:popAction()
-                e.jobState = nil
+                self:cancelJob(e)
             end
         elseif e.jobState == Enums.JobStateTransport.UndockingFromDst then
             if e:isShipDocked() then
@@ -207,8 +219,7 @@ function Transport:onUpdateActive(e, dt)
             -- TODO : This is just a quick hack to force AI to re-evaluate job
             --        decisions. In reality, AI should 'pre-empt' the job, which
             --        should otherwise loop indefinitely by default
-            e:popAction()
-            e.jobState = nil
+            self:cancelJob(e)
         end
         Profiler.End()
     end

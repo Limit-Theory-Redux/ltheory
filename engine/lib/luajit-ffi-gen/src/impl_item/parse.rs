@@ -53,10 +53,7 @@ fn get_path_last_name(path: &Path) -> Result<String> {
 
 fn get_path_last_name_with_generics(path: &Path) -> Result<(String, Vec<Type>)> {
     let Some(last_seg) = path.segments.last() else {
-        return Err(Error::new(
-            path.span(),
-            "expected a type identifier",
-        ));
+        return Err(Error::new(path.span(), "expected a type identifier"));
     };
 
     let generic_types = if let PathArguments::AngleBracketed(generic_args) = &last_seg.arguments {

@@ -10,13 +10,13 @@ local Ship = require('GameObjects.Entities.Ship.Ship')
 local SocketType = require('GameObjects.Entities.Ship.SocketType')
 
 local ShipType = class(function(self, seed, generator, hull)
-    local scale           = 4 -- TODO: determine scale based on hull type
+    local scale         = 4   -- TODO: determine scale based on hull type
 
-    local rng             = RNG.Create(seed)
-    self.seed             = seed
-    self.mesh             = generator(seed, hull, Config.gen.shipRes):managed()
-    self.bsp              = BSP.Create(self.mesh):managed()
-    self.scale            = scale
+    local rng           = RNG.Create(seed)
+    self.seed           = seed
+    self.mesh           = generator(seed, hull, Config.gen.shipRes):managed()
+    self.bsp            = BSP.Create(self.mesh):managed()
+    self.scale          = scale
 
     -- Get the maximum number of components of each type for the provided hull size
     self.countArmor     = Config.gen.shipComponents[Enums.ShipComponents.Armor][hull]

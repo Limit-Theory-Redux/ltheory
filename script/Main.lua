@@ -23,6 +23,9 @@ function InitSystem()
 
     Core.Call(function()
         local app = __app__ or 'LTheoryRedux'
+
+        Log.Debug("Application name: %s", app)
+
         GlobalRestrict.On()
 
         dofile('./script/Config/App.lua')

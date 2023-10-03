@@ -212,7 +212,7 @@ function LTheoryRedux:onUpdate(dt)
                     local autodistance = Config.game.autonavRanges[target:getType()]
                     GameState.player.autonavTimestamp = Config.getCurrentTimestamp()
                     GameState.player.playerMoving = true -- must be set to true before pushing the MoveTo action
-                    playerShip:pushAction(Actions.MoveTo(target, autodistance))
+                    playerShip:pushAction(Actions.MoveTo(target, autodistance, true))
                 end
             end
         end

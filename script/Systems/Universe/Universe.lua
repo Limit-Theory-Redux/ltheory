@@ -1,6 +1,7 @@
 local UniverseEconomy = require('Systems.Universe.UniverseEconomy')
 local System = require('GameObjects.Entities.Test.System')
 local Actions = requireAll('GameObjects.Actions')
+local Jobs = requireAll('GameObjects.Jobs')
 
 local rng = RNG.FromTime()
 
@@ -99,7 +100,6 @@ function Universe:CreateStarSystem(seed)
         table.insert(self.systems, system)
         Log.Debug("Added System: " .. system:getName() .. " to the Universe.")
     end
-
     self:AddSystemEconomy(system)
 end
 
@@ -119,7 +119,6 @@ function Universe:CreateShip(system, pos, shipObject)
     ship:setFriction(shipObject.friction)
     ship:setSleepThreshold(shipObject.sleepThreshold[1], shipObject.sleepThreshold[2])
     ship:setOwner(shipObject.owner)
-    system:addChild(ship)
     shipObject.owner:setControlling(ship)
 
     return ship

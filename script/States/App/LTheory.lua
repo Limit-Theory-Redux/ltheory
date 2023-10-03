@@ -95,7 +95,6 @@ function LTheory:onInit()
     WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
 
     MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
-
 end
 
 function LTheory:onInput()
