@@ -7,9 +7,6 @@ use crate::{input2::*, system::TimeStamp};
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MouseControl {
-    X,
-    Y,
-
     Left,
     Middle,
     Right,
@@ -29,6 +26,7 @@ pub struct MouseState {
     button_state: ButtonState<{ MouseControl::SIZE }>,
     axis_state: AxisState<{ MouseControl::SIZE }>,
 
+    position: Vec2,
     in_window: bool,
 }
 
@@ -67,17 +65,15 @@ impl MouseState {
     }
 
     pub fn update_position(&mut self, x: f32, y: f32) -> bool {
-        let prev_x = self.axis_state.value(MouseControl::X as _);
-        let prev_y = self.axis_state.value(MouseControl::Y as _);
+        let prev_pos = self.position;
 
-        self.axis_state.update(MouseControl::X as _, x)
-            && self.axis_state.update(MouseControl::Y as _, y)
+        self.position = Vec2::new(x, y);
+
+        self.axis_state
+            .update(MouseControl::DeltaX as _, x - prev_pos.x)
             && self
                 .axis_state
-                .update(MouseControl::DeltaX as _, x - prev_x)
-            && self
-                .axis_state
-                .update(MouseControl::DeltaY as _, y - prev_y)
+                .update(MouseControl::DeltaY as _, y - prev_pos.y)
             && self.control_state.update()
     }
 
@@ -128,10 +124,7 @@ impl MouseState {
     }
 
     pub fn position(&self) -> Vec2 {
-        let x = self.axis_state.value(MouseControl::X as _);
-        let y = self.axis_state.value(MouseControl::Y as _);
-
-        Vec2::new(x, y)
+        self.position
     }
 
     pub fn in_window(&self) -> bool {

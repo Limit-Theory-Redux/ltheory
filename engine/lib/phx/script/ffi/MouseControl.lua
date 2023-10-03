@@ -5,8 +5,6 @@ local MouseControl
 
 do -- C Definitions
     ffi.cdef [[
-        MouseControl MouseControl_X;
-        MouseControl MouseControl_Y;
         MouseControl MouseControl_Left;
         MouseControl MouseControl_Middle;
         MouseControl MouseControl_Right;
@@ -25,8 +23,6 @@ end
 
 do -- Global Symbol Table
     MouseControl = {
-        X           = libphx.MouseControl_X,
-        Y           = libphx.MouseControl_Y,
         Left        = libphx.MouseControl_Left,
         Middle      = libphx.MouseControl_Middle,
         Right       = libphx.MouseControl_Right,

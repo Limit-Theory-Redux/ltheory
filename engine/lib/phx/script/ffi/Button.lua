@@ -168,8 +168,6 @@ do -- C Definitions
         Button Button_KeyboardCopy;
         Button Button_KeyboardPaste;
         Button Button_KeyboardCut;
-        Button Button_MouseX;
-        Button Button_MouseY;
         Button Button_MouseLeft;
         Button Button_MouseMiddle;
         Button Button_MouseRight;
@@ -381,8 +379,6 @@ do -- Global Symbol Table
         KeyboardCopy             = libphx.Button_KeyboardCopy,
         KeyboardPaste            = libphx.Button_KeyboardPaste,
         KeyboardCut              = libphx.Button_KeyboardCut,
-        MouseX                   = libphx.Button_MouseX,
-        MouseY                   = libphx.Button_MouseY,
         MouseLeft                = libphx.Button_MouseLeft,
         MouseMiddle              = libphx.Button_MouseMiddle,
         MouseRight               = libphx.Button_MouseRight,

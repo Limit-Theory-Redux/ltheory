@@ -176,13 +176,13 @@ Control.MouseY = subclass(ControlT, function(self) end)
 
 function Control.MouseX:getRaw()
     local c = Camera.get()
-    local m = InputInstance:getValue(Button.MouseX)
+    local m = InputInstance:mouse():position().x
     return Math.Clamp(2.0 * (m - c.x) / c.sx - 1.0, -1.0, 1.0)
 end
 
 function Control.MouseY:getRaw()
     local c = Camera.get()
-    local m = InputInstance:getValue(Button.MouseY)
+    local m = InputInstance:mouse():position().y
     return Math.Clamp(2.0 * (m - c.y) / c.sy - 1.0, -1.0, 1.0)
 end
 
