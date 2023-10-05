@@ -151,7 +151,7 @@ function Application:onFrame()
             if InputInstance:isPressed(Bindings.Exit) then self:quit() end
 
             if InputInstance:isPressed(Bindings.ToggleProfiler) then
-                toggleProfiler = true
+                self.toggleProfiler = true
             end
 
             if InputInstance:isPressed(Bindings.Screenshot) then
@@ -163,7 +163,7 @@ function Application:onFrame()
 
             if InputInstance:isPressed(Bindings.ToggleFullscreen) then
                 GameState.render.fullscreen = not GameState.render.fullscreen
-                self.window:setFullscreen(GameState.render.fullscreen)
+                WindowInstance:setFullscreen(GameState.render.fullscreen)
             end
 
             if InputInstance:isPressed(Bindings.Reload) then

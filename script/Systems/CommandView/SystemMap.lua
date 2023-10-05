@@ -302,21 +302,21 @@ function SystemMap:onInput(state)
             self.lastDt -- temp fix for -> see NOTE above
     end
 
-    if InputInstance:getValue(Button.Keyboard.LShift) == 1 then
+    if InputInstance:getValue(Button.KeyboardShiftLeft) == 1 then
         GameState.player.currentMapSystemPan = GameState.player.currentMapSystemPan * 2
     end
 
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
         exp(GameState.ui.mapSystemZoomSpeed * InputInstance:mouse():scroll().y)
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
-        exp(GameState.ui.mapSystemZoomSpeed * (InputInstance:getValue(Button.Keyboard.P) - InputInstance:getValue(Button.KeyboardO)))
+        exp(GameState.ui.mapSystemZoomSpeed * (InputInstance:getValue(Button.KeyboardP) - InputInstance:getValue(Button.KeyboardO)))
 
     GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-            InputInstance:getValue(Button.Keyboard.D) - InputInstance:getValue(Button.Keyboard.A))
+            InputInstance:getValue(Button.KeyboardD) - InputInstance:getValue(Button.KeyboardA))
     GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-            InputInstance:getValue(Button.Keyboard.S) - InputInstance:getValue(Button.Keyboard.W))
+            InputInstance:getValue(Button.KeyboardS) - InputInstance:getValue(Button.KeyboardW))
 end
 
 function SystemMap.Create(system)
