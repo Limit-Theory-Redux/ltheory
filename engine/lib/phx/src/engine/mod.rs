@@ -18,10 +18,8 @@ use winit::event_loop::*;
 use internal::ConvertIntoString;
 
 use crate::common::*;
-// use crate::input::*;
 use crate::input::*;
 use crate::logging::init_log;
-// use crate::lua::*;
 use crate::render::*;
 use crate::system::*;
 use crate::window::*;
@@ -52,60 +50,9 @@ impl Engine {
                 if !Directory_Create(c_str!("log")) {
                     panic!("Engine_Init: Failed to create log directory.");
                 }
-
-                // /* Check SDL version compatibility. */
-                // let compiled: SDL_version = SDL_version {
-                //     major: SDL_MAJOR_VERSION as u8,
-                //     minor: SDL_MINOR_VERSION as u8,
-                //     patch: SDL_PATCHLEVEL as u8,
-                // };
-                // let mut linked: SDL_version = SDL_version {
-                //     major: 0,
-                //     minor: 0,
-                //     patch: 0,
-                // };
-
-                // SDL_GetVersion(&mut linked);
-                // if compiled.major != linked.major {
-                //     info!("Engine_Init: Detected SDL major version mismatch:");
-                //     info!(
-                //         "  Version (Compiled) : {}.{}.{}",
-                //         compiled.major, compiled.minor, compiled.patch,
-                //     );
-                //     info!(
-                //         "  Version (Linked)   : {}.{}.{}",
-                //         linked.major, linked.minor, linked.patch,
-                //     );
-                //     panic!("Engine_Init: Terminating.");
-                // }
-
-                // if SDL_Init(0) != 0 {
-                //     panic!("Engine_Init: Failed to initialize SDL");
-                // }
-                // atexit(Some(SDL_Quit as unsafe extern "C" fn() -> ()));
             }
 
-            // if SDL_InitSubSystem(subsystems) != 0 {
-            //     panic!("Engine_Init: Failed to initialize SDL's subsystems");
-            // }
-
-            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MAJOR_VERSION, gl_version_major);
-            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_MINOR_VERSION, gl_version_minor);
-            // SDL_GL_SetAttribute(
-            //     SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK,
-            //     SDL_GLprofile::SDL_GL_CONTEXT_PROFILE_COMPATIBILITY as i32,
-            // );
-            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_ACCELERATED_VISUAL, 1);
-            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_RED_SIZE, 8);
-            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_GREEN_SIZE, 8);
-            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_BLUE_SIZE, 8);
-            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DOUBLEBUFFER, 1);
-            // SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_DEPTH_SIZE, 24);
-
-            // Keyboard_Init();
             Metric_Reset();
-            // Mouse_Init();
-            // Input_Init();
             Resource_Init();
             ShaderVar_Init();
         }
@@ -373,28 +320,12 @@ impl Engine {
         let event_handler = move |event: Event<()>,
                                   _event_loop: &EventLoopWindowTarget<()>,
                                   control_flow: &mut ControlFlow| {
-            #[cfg(feature = "trace")]
-            let _span = bevy_utils::tracing::info_span!("winit event_handler").entered();
-
-            // if !finished_and_setup_done {
-            //     if !app.ready() {
-            //         #[cfg(not(target_arch = "wasm32"))]
-            //         tick_global_task_pools_on_main_thread();
-            //     } else {
-            //         app.finish();
-            //         app.cleanup();
-            //         finished_and_setup_done = true;
-            //     }
-            // }
-
             if engine.exit_app {
                 call_lua_func(&engine, "AppClose");
 
                 control_flow.set_exit();
                 return;
             }
-
-            // debug!("===> Event: {event:?}");
 
             match event {
                 event::Event::NewEvents(start_cause) => {
@@ -428,25 +359,7 @@ impl Engine {
                         app_init_func.call::<_, ()>(()).unwrap();
                     }
 
-                    // let (winit_config, window_focused_query) = focused_window_state.get(&app.world);
-
-                    // let app_focused = window_focused_query.iter().any(|window| window.focused);
-
-                    // // Check if either the `WaitUntil` timeout was triggered by winit, or that same
-                    // // amount of time has elapsed since the last app update. This manual check is needed
-                    // // because we don't know if the criteria for an app update were met until the end of
-                    // // the frame.
-                    // let auto_timeout_reached =
-                    //     matches!(start, StartCause::ResumeTimeReached { .. });
-                    // let now = Instant::now();
-                    // let manual_timeout_reached = match winit_config.update_mode(app_focused) {
-                    //     UpdateMode::Continuous => false,
-                    //     UpdateMode::Reactive { max_wait }
-                    //     | UpdateMode::ReactiveLowPower { max_wait } => {
-                    //         now.duration_since(engine.frame_state.last_update) >= *max_wait
-                    //     }
-                    // };
-                    // // The low_power_event state and timeout must be reset at the start of every frame.
+                    // The low_power_event state and timeout must be reset at the start of every frame.
                     engine.frame_state.low_power_event = false;
                     engine.frame_state.timeout_reached = false; //auto_timeout_reached || manual_timeout_reached;
                 }
@@ -455,47 +368,6 @@ impl Engine {
                     window_id: _winit_window_id,
                     ..
                 } => {
-                    // // Fetch and prepare details from the world
-                    // let mut system_state: SystemState<(
-                    //     NonSend<WinitWindows>,
-                    //     Query<(&mut Window, &mut CachedWindow)>,
-                    //     WindowEvents,
-                    //     InputEvents,
-                    //     CursorEvents,
-                    //     EventWriter<FileDragAndDrop>,
-                    // )> = SystemState::new(&mut app.world);
-                    // let (
-                    //     winit_windows,
-                    //     mut window_query,
-                    //     mut window_events,
-                    //     mut input_events,
-                    //     mut cursor_events,
-                    //     mut file_drag_and_drop_events,
-                    // ) = system_state.get_mut(&mut app.world);
-
-                    // // Entity of this window
-                    // let window_entity =
-                    //     if let Some(entity) = winit_windows.get_window_entity(winit_window_id) {
-                    //         entity
-                    //     } else {
-                    //         warn!(
-                    //             "Skipped event {:?} for unknown winit Window Id {:?}",
-                    //             event, winit_window_id
-                    //         );
-                    //         return;
-                    //     };
-
-                    // let (mut window, mut cache) =
-                    //     if let Ok((window, info)) = window_query.get_mut(window_entity) {
-                    //         (window, info)
-                    //     } else {
-                    //         warn!(
-                    //             "Window {:?} is missing `Window` component, skipping event {:?}",
-                    //             window_entity, event
-                    //         );
-                    //         return;
-                    //     };
-
                     engine.frame_state.low_power_event = true;
 
                     match event {
@@ -504,12 +376,6 @@ impl Engine {
                                 .window
                                 .resolution
                                 .set_physical_resolution(size.width, size.height);
-
-                            // window_events.window_resized.send(WindowResized {
-                            //     window: window_entity,
-                            //     width: window.width(),
-                            //     height: window.height(),
-                            // });
                         }
                         WindowEvent::CloseRequested => {
                             call_lua_func(&engine, "AppClose");
@@ -536,12 +402,6 @@ impl Engine {
                             position,
                             ..
                         } => {
-                            // let physical_position = DVec2::new(position.x, position.y);
-
-                            // engine
-                            //     .window
-                            //     .set_physical_cursor_position(Some(physical_position));
-
                             engine.input.update_mouse(device_id, |state| {
                                 state.update_position(position.x as f32, position.y as f32)
                             });
@@ -552,8 +412,6 @@ impl Engine {
                                 .update_mouse(device_id, |state| state.update_in_window(true));
                         }
                         WindowEvent::CursorLeft { device_id } => {
-                            // engine.window.set_physical_cursor_position(None);
-
                             engine.input.update_mouse(device_id, |state| {
                                 state.update_in_window(false);
                                 true
@@ -619,70 +477,16 @@ impl Engine {
                             });
                         }
                         WindowEvent::ReceivedCharacter(_c) => {
-                            // input_events.character_input.send(ReceivedCharacter {
-                            //     window: window_entity,
-                            //     char: c,
-                            // });
+                            // TODO: typing in the GUI?
                         }
                         WindowEvent::ScaleFactorChanged {
                             scale_factor: _,
                             new_inner_size: _,
                         } => {
-                            // window_events.window_backend_scale_factor_changed.send(
-                            //     WindowBackendScaleFactorChanged {
-                            //         window: window_entity,
-                            //         scale_factor,
-                            //     },
-                            // );
-
-                            // let prior_factor = window.resolution.scale_factor();
-                            // window.resolution.set_scale_factor(scale_factor);
-                            // let new_factor = window.resolution.scale_factor();
-
-                            // if let Some(forced_factor) = window.resolution.scale_factor_override() {
-                            //     // If there is a scale factor override, then force that to be used
-                            //     // Otherwise, use the OS suggested size
-                            //     // We have already told the OS about our resize constraints, so
-                            //     // the new_inner_size should take those into account
-                            //     *new_inner_size =
-                            //         winit::dpi::LogicalSize::new(window.width(), window.height())
-                            //             .to_physical::<u32>(forced_factor);
-                            //     // TODO: Should this not trigger a WindowsScaleFactorChanged?
-                            // } else if approx::relative_ne!(new_factor, prior_factor) {
-                            //     // Trigger a change event if they are approximately different
-                            //     window_events.window_scale_factor_changed.send(
-                            //         WindowScaleFactorChanged {
-                            //             window: window_entity,
-                            //             scale_factor,
-                            //         },
-                            //     );
-                            // }
-
-                            // let new_logical_width =
-                            //     (new_inner_size.width as f64 / new_factor) as f32;
-                            // let new_logical_height =
-                            //     (new_inner_size.height as f64 / new_factor) as f32;
-                            // if approx::relative_ne!(window.width(), new_logical_width)
-                            //     || approx::relative_ne!(window.height(), new_logical_height)
-                            // {
-                            //     window_events.window_resized.send(WindowResized {
-                            //         window: window_entity,
-                            //         width: new_logical_width,
-                            //         height: new_logical_height,
-                            //     });
-                            // }
-                            // window.resolution.set_physical_resolution(
-                            //     new_inner_size.width,
-                            //     new_inner_size.height,
-                            // );
+                            // TODO: implement
                         }
                         WindowEvent::Focused(focused) => {
                             engine.window.focused = focused;
-
-                            // window_events.window_focused.send(WindowFocused {
-                            //     window: window_entity,
-                            //     focused,
-                            // });
                         }
                         WindowEvent::DroppedFile(file) => {
                             engine
@@ -703,63 +507,31 @@ impl Engine {
                             let position = ivec2(position.x, position.y);
 
                             engine.window.position.set(position);
-
-                            // window_events.window_moved.send(WindowMoved {
-                            //     entity: window_entity,
-                            //     position,
-                            // });
                         }
                         WindowEvent::Ime(event) => match event {
                             event::Ime::Preedit(_value, _cursor) => {
-                                // input_events.ime_input.send(Ime::Preedit {
-                                //     window: window_entity,
-                                //     value,
-                                //     cursor,
-                                // });
+                                // TODO: implement
                             }
                             event::Ime::Commit(_value) => {
-                                // input_events.ime_input.send(Ime::Commit {
-                                //                             window: window_entity,
-                                //                             value,
-                                //                         })
+                                // TODO: implement
                             }
                             event::Ime::Enabled => {
-                                // input_events.ime_input.send(Ime::Enabled {
-                                //                             window: window_entity,
-                                //                         })
+                                // TODO: implement
                             }
                             event::Ime::Disabled => {
-                                // input_events.ime_input.send(Ime::Disabled {
-                                //                             window: window_entity,
-                                //                         })
+                                // TODO: implement
                             }
                         },
                         WindowEvent::ThemeChanged(_theme) => {
-                            // window_events.window_theme_changed.send(WindowThemeChanged {
-                            //     window: window_entity,
-                            //     theme: convert_winit_theme(theme),
-                            // });
+                            // TODO: implement
                         }
                         WindowEvent::Destroyed => {
-                            // window_events.window_destroyed.send(WindowDestroyed {
-                            //     window: window_entity,
-                            // });
+                            // TODO: implement?
                         }
                         _ => {
                             trace!("Unprocessed window event: {event:?}");
                         }
                     }
-
-                    // if engine.window.is_changed() {
-                    //     engine.cache.window = engine.window.clone();
-                    // }
-                }
-                event::Event::DeviceEvent {
-                    // device_id,
-                    // event: DeviceEvent::MouseMotion { delta: (x, y) },
-                    ..
-                } => {
-                    // This shows only direction: 1, -1, 0
                 }
                 event::Event::Suspended => {
                     engine.frame_state.active = false;
@@ -784,91 +556,10 @@ impl Engine {
                         engine.input.reset();
                     }
                 }
-                // event::Event::RedrawEventsCleared => {
-                //     *control_flow = ControlFlow::Poll;
-                //     engine.frame_state.redraw_request_sent = true;
-                //     {
-                //         // Fetch from world
-                //         let (winit_config, window_focused_query) =
-                //             focused_window_state.get(&app.world);
-
-                //         // True if _any_ windows are currently being focused
-                //         let app_focused = window_focused_query.iter().any(|window| window.focused);
-
-                //         let now = Instant::now();
-                //         use UpdateMode::*;
-                //         *control_flow = match winit_config.update_mode(app_focused) {
-                //             Continuous => ControlFlow::Poll,
-                //             Reactive { max_wait } | ReactiveLowPower { max_wait } => {
-                //                 if let Some(instant) = now.checked_add(*max_wait) {
-                //                     ControlFlow::WaitUntil(instant)
-                //                 } else {
-                //                     ControlFlow::Wait
-                //                 }
-                //             }
-                //         };
-                //     }
-
-                //     // This block needs to run after `app.update()` in `MainEventsCleared`. Otherwise,
-                //     // we won't be able to see redraw requests until the next event, defeating the
-                //     // purpose of a redraw request!
-                //     let mut redraw = false;
-                //     if let Some(app_redraw_events) =
-                //         app.world.get_resource::<Events<RequestRedraw>>()
-                //     {
-                //         if redraw_event_reader.iter(app_redraw_events).last().is_some() {
-                //             *control_flow = ControlFlow::Poll;
-                //             redraw = true;
-                //         }
-                //     }
-
-                //     engine.frame_state.redraw_request_sent = redraw;
-                // }
                 _ => {
                     trace!("Unprocessed event: {event:?}");
                 }
             }
-
-            // if engine.frame_state.active {
-            //     #[cfg(not(target_arch = "wasm32"))]
-            //     let (
-            //         commands,
-            //         mut new_windows,
-            //         created_window_writer,
-            //         winit_windows,
-            //         adapters,
-            //         handlers,
-            //         accessibility_requested,
-            //     ) = create_window_system_state.get_mut(&mut app.world);
-
-            //     #[cfg(target_arch = "wasm32")]
-            //     let (
-            //         commands,
-            //         mut new_windows,
-            //         created_window_writer,
-            //         winit_windows,
-            //         adapters,
-            //         handlers,
-            //         accessibility_requested,
-            //         canvas_parent_resize_channel,
-            //     ) = create_window_system_state.get_mut(&mut app.world);
-
-            //     // Responsible for creating new windows
-            //     create_window(
-            //         commands,
-            //         event_loop,
-            //         new_windows.iter_mut(),
-            //         created_window_writer,
-            //         winit_windows,
-            //         adapters,
-            //         handlers,
-            //         accessibility_requested,
-            //         #[cfg(target_arch = "wasm32")]
-            //         canvas_parent_resize_channel,
-            //     );
-
-            //     create_window_system_state.apply(&mut app.world);
-            // }
         };
 
         // Start event loop and never exit
@@ -886,11 +577,7 @@ impl Engine {
     pub fn free() {
         unsafe {
             ShaderVar_Free();
-            // Keyboard_Free();
-            // Mouse_Free();
-            // Input_Free();
             Signal_Free();
-            // SDL_QuitSubSystem(subsystems);
         }
     }
 
@@ -907,7 +594,6 @@ impl Engine {
     }
 
     pub fn get_version() -> &'static str {
-        // TODO: think about string conversion to C string without pinning if necessary
         env!("PHX_VERSION")
     }
 
@@ -923,12 +609,6 @@ impl Engine {
         unsafe {
             Profiler_Begin(c_str!("Engine_Update"));
             Metric_Reset();
-            // Keyboard_UpdatePre();
-            // Mouse_Update();
-            // Joystick_Update();
-            // Gamepad_Update();
-            // Input_Update();
-            // Keyboard_UpdatePost();
             Profiler_End();
         }
     }
