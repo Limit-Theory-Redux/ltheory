@@ -53,8 +53,7 @@ pub enum WindowState {
 /// When the [`Window`] component is added to an entity, a new window will be opened.
 /// When it is removed or the entity is despawned, the window will close.
 ///
-/// This component is synchronized with `winit` through `bevy_winit`:
-/// it will reflect the current state of the window and can be modified to change this state.
+/// This component will reflect the current state of the window and can be modified to change this state.
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct Window {
@@ -128,7 +127,7 @@ pub struct Window {
     /// Whether or not to stop events from propagating out of the canvas element
     ///
     ///  When `true`, this will prevent common browser hotkeys like F5, F12, Ctrl+R, tab, etc.
-    /// from performing their default behavior while the bevy app has focus.
+    /// from performing their default behavior while the LTR app has focus.
     ///
     /// This value has no effect on non-web platforms.
     pub prevent_default_event_handling: bool,
@@ -138,7 +137,7 @@ pub struct Window {
     ///
     /// If enabled, the window will receive [`Ime`](crate::Ime) events instead of
     /// [`ReceivedCharacter`](crate::ReceivedCharacter) or
-    /// [`KeyboardInput`](bevy_input::keyboard::KeyboardInput).
+    /// [`KeyboardInput`](crate::KeyboardInput).
     ///
     /// IME should be enabled during text input, but not when you expect to get the exact key pressed.
     ///

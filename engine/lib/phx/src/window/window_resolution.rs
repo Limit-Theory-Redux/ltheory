@@ -21,7 +21,7 @@ use glam::{DVec2, Vec2};
 /// is to account for the cases where:
 /// - several monitors have different pixel densities,
 /// - the user has set up a pixel density preference in its operating system,
-/// - the Bevy `App` has specified a specific scale factor between both.
+/// - the LTR `App` has specified a specific scale factor between both.
 ///
 /// The factor between physical size and logical size can be retrieved with
 /// [`WindowResolution::scale_factor`].

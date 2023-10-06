@@ -89,7 +89,6 @@ impl Engine {
     // Apply user changes, and then detect changes to the window and update the winit window accordingly.
     //
     // Notes:
-    // - [`Window::present_mode`] and [`Window::composite_alpha_mode`] updating should be handled in the bevy render crate.
     // - [`Window::transparent`] currently cannot be updated after startup for winit.
     // - [`Window::canvas`] currently cannot be updated after startup, not entirely sure if it would work well with the
     //   event channel stuff.

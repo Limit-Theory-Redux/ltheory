@@ -6,7 +6,7 @@ use super::MonitorSelection;
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum WindowPosition {
     /// Position will be set by the window manager.
-    /// Bevy will delegate this decision to the window manager and no guarantees can be made about where the window will be placed.
+    /// LTR will delegate this decision to the window manager and no guarantees can be made about where the window will be placed.
     ///
     /// Used at creation but will be changed to [`At`](WindowPosition::At).
     #[default]

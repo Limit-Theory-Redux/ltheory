@@ -29,7 +29,7 @@ pub struct WinitWindows {
 
     // Some winit functions, such as `set_window_icon` can only be used from the main thread. If
     // they are used in another thread, the app will hang. This marker ensures `WinitWindows` is
-    // only ever accessed with bevy's non-send functions and in NonSend systems.
+    // only ever accessed with LTR's non-send functions.
     _not_send_sync: core::marker::PhantomData<*const ()>,
 }
 
@@ -123,29 +123,6 @@ impl WinitWindows {
         #[allow(unused_mut)]
         let mut winit_window_builder = winit_window_builder.with_title(window.title.as_str());
 
-        #[cfg(target_arch = "wasm32")]
-        {
-            use wasm_bindgen::JsCast;
-            use winit::platform::web::WindowBuilderExtWebSys;
-
-            if let Some(selector) = &window.canvas {
-                let window = web_sys::window().unwrap();
-                let document = window.document().unwrap();
-                let canvas = document
-                    .query_selector(&selector)
-                    .expect("Cannot query for canvas element.");
-                if let Some(canvas) = canvas {
-                    let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().ok();
-                    winit_window_builder = winit_window_builder.with_canvas(canvas);
-                } else {
-                    panic!("Cannot find element: {}.", selector);
-                }
-            }
-
-            winit_window_builder =
-                winit_window_builder.with_prevent_default(window.prevent_default_event_handling)
-        }
-
         let template = ConfigTemplateBuilder::new()
             .with_alpha_size(8)
             .with_transparency(cfg!(cgl_backend));
@@ -193,30 +170,8 @@ impl WinitWindows {
                 .expect("failed to create context")
         };
 
-        let winit_window = winit_window.unwrap(); // winit_window_builder.build(event_loop).unwrap();
-                                                  // let name = window.title.clone();
+        let winit_window = winit_window.unwrap();
 
-        // let mut root_builder = NodeBuilder::new(Role::Window);
-        // root_builder.set_name(name.into_boxed_str());
-        // let root = root_builder.build(&mut NodeClassSet::lock_global());
-
-        // let accesskit_window_id = entity.to_node_id();
-        // let handler = WinitActionHandler::default();
-        // let accessibility_requested = (*accessibility_requested).clone();
-        // let adapter = Adapter::with_action_handler(
-        //     &winit_window,
-        //     move || {
-        //         accessibility_requested.store(true, Ordering::SeqCst);
-        //         TreeUpdate {
-        //             nodes: vec![(accesskit_window_id, root)],
-        //             tree: Some(Tree::new(accesskit_window_id)),
-        //             focus: None,
-        //         }
-        //     },
-        //     Box::new(handler.clone()),
-        // );
-        // adapters.insert(entity, adapter);
-        // handlers.insert(entity, handler);
         winit_window.set_visible(true);
 
         // Do not set the grab mode on window creation if it's none, this can fail on mobile

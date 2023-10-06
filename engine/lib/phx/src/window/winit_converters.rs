@@ -245,7 +245,7 @@ pub fn convert_mouse_button(mouse_button: winit::event::MouseButton) -> Option<M
         winit::event::MouseButton::Right => Some(MouseControl::Right),
         winit::event::MouseButton::Middle => Some(MouseControl::Middle),
         winit::event::MouseButton::Other(val) => match val {
-            4 => Some(MouseControl::X1), // TODO: test these ids are correct on all platforms
+            4 => Some(MouseControl::X1),
             5 => Some(MouseControl::X2),
             _ => None,
         },
