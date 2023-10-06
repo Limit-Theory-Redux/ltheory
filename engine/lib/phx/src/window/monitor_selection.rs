@@ -1,6 +1,7 @@
 /// References a screen monitor.
 ///
 /// Used when centering a [`Window`] on a monitor.
+// TODO: expose to FFI?
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MonitorSelection {
     /// Uses the current monitor of the window.

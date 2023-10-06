@@ -1,4 +1,3 @@
-#![warn(missing_docs)]
 use std::sync::atomic::Ordering;
 
 use glutin::config::ConfigTemplateBuilder;
@@ -13,8 +12,6 @@ use winit::{
     dpi::{LogicalSize, PhysicalPosition},
     monitor::MonitorHandle,
 };
-
-// use crate::render::OpenGL;
 
 use super::{CursorGrabMode, Window, WindowMode, WindowPosition, WindowResolution, WinitWindow};
 

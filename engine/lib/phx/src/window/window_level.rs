@@ -8,6 +8,7 @@
 /// ## Platform-specific
 ///
 /// - **iOS / Android / Web / Wayland:** Unsupported.
+// TODO: expose to FFI?
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowLevel {
     /// The window will always be below [`WindowLevel::Normal`] and [`WindowLevel::AlwaysOnTop`] windows.
