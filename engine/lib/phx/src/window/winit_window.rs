@@ -30,7 +30,9 @@ impl GlState {
     ) -> bool {
         if matches!(self, Self::NotCurrent { .. }) {
             let old_self = std::mem::replace(self, Self::Undefined);
-            let Self::NotCurrent { context } = old_self else { unreachable!() };
+            let Self::NotCurrent { context } = old_self else {
+                unreachable!()
+            };
 
             let surface = unsafe {
                 config
@@ -69,7 +71,9 @@ impl GlState {
             false
         } else if matches!(self, Self::Current { .. }) {
             let old_self = std::mem::replace(self, Self::Undefined);
-            let Self::Current { context, .. } = old_self else { unreachable!() };
+            let Self::Current { context, .. } = old_self else {
+                unreachable!()
+            };
 
             let context = context
                 .make_not_current()
