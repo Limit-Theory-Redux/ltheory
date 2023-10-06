@@ -7,5 +7,5 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
-# Release crates
+# external crates
 libc = "0.2.146"

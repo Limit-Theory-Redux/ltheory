@@ -4,7 +4,7 @@ use gilrs::{ev::filter::axis_dpad_to_button, EventType, Filter, GamepadId, Gilrs
 use indexmap::IndexMap;
 
 use super::*;
-use crate::{input2::*, system::TimeStamp};
+use crate::{input::*, system::TimeStamp};
 
 pub struct GamepadDeviceState {
     name: String,

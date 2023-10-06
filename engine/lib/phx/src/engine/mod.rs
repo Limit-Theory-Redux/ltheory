@@ -19,7 +19,7 @@ use internal::ConvertIntoString;
 
 use crate::common::*;
 // use crate::input::*;
-use crate::input2::*;
+use crate::input::*;
 use crate::logging::init_log;
 // use crate::lua::*;
 use crate::render::*;

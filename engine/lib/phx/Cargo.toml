@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 internal.workspace = true
 luajit-ffi-gen.workspace = true
 
-# release crates
+# external crates
 chrono = "0.4"
 directories = "5.0"
 flate2 = "1.0"
@@ -38,10 +38,6 @@ num_cpus = "1.15"
 raw-window-handle = "0.5"
 regex = "1.8"
 rodio = "0.17"
-# sdl2-sys = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", branch = "master", features = [
-#     "bundled",
-#     "static-link",
-# ] }
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

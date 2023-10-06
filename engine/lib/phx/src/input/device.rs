@@ -1,25 +1,26 @@
-use super::*;
-use crate::internal::*;
+use std::hash::Hasher;
+use std::{collections::hash_map::DefaultHasher, hash::Hash};
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Device {
-    pub ty: DeviceType,
-    pub id: u32,
+use super::{InputDeviceId, InputDeviceType};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InputDevice {
+    pub ty: InputDeviceType,
+    pub id: InputDeviceId,
 }
 
-impl Device {
-    pub fn to_string(&self) -> String {
-        format!("{} ({})", device_type_to_string(self.ty), self.id)
+#[luajit_ffi_gen::luajit_ffi(clone = true)]
+impl InputDevice {
+    pub fn equal(&self, other: &InputDevice) -> bool {
+        self.ty == other.ty && self.id == other.id
     }
-}
 
-#[no_mangle]
-pub extern "C" fn Device_Equal(a: &Device, b: &Device) -> bool {
-    a.ty == b.ty && a.id == b.id
-}
+    #[bind(role = "to_string")]
+    pub fn to_string(&self) -> String {
+        let mut hasher = DefaultHasher::new();
 
-#[no_mangle]
-pub extern "C" fn Device_ToString(this: &Device) -> *const libc::c_char {
-    static_string!(this.to_string())
+        self.id.hash(&mut hasher);
+
+        format!("{} ({:?})", self.ty.to_string(), hasher.finish())
+    }
 }

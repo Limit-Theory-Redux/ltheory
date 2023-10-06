@@ -1,4 +1,4 @@
-use crate::input2::{KeyboardButton, MouseControl};
+use crate::input::{KeyboardButton, MouseControl};
 
 use super::{CursorIcon, WindowLevel, WindowTheme};
 

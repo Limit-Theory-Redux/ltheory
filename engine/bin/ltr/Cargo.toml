@@ -10,7 +10,7 @@ edition.workspace = true
 # workspace crates
 phx.workspace = true
 
-# release crates
+# external crates
 clap = { version = "4.4", features = ["derive"] }
 libc = "0.2"
 

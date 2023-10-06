@@ -34,7 +34,7 @@ static mut gl_begin_count: u32 = 0;
 
 macro_rules! gl_error_check {
     ($name:ident, $msg:expr) => {
-        // NOTE: uncomment next 7 lines to catch OpenGl errors (for debugging purposes only - heavily impacts performance)
+        // NOTE: uncomment lines below to catch OpenGl errors (for debugging purposes only - heavily impacts performance)
         // unsafe{
         //     if gl_begin_count == 0 {
         //         let caller_location = std::panic::Location::caller();

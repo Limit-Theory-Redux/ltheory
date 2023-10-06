@@ -3,7 +3,7 @@ use internal::*;
 use super::*;
 use crate::common::*;
 // use crate::input::*;
-use crate::input2::*;
+use crate::input::*;
 use crate::math::*;
 use crate::render::*;
 use crate::system::*;
