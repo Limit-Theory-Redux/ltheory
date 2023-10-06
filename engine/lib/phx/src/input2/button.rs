@@ -404,8 +404,8 @@ buttons! {
         (MouseDeltaY, DeltaY),
         (MouseScrollX, ScrollX),
         (MouseScrollY, ScrollY),
-        (MouseScrollLineX, ScrollLineX),
-        (MouseScrollLineY, ScrollLineY),
+        (MouseScrollPixelX, ScrollPixelX),
+        (MouseScrollPixelY, ScrollPixelY),
     ]
     GamepadButton(as_gamepad_button): [
         // Buttons

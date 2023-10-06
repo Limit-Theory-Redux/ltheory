@@ -16,8 +16,8 @@ pub enum MouseControl {
     DeltaY,
     ScrollX,
     ScrollY,
-    ScrollLineX,
-    ScrollLineY,
+    ScrollPixelX,
+    ScrollPixelY,
 }
 
 #[derive(Default)]
@@ -53,14 +53,14 @@ impl MouseState {
     }
 
     pub fn update_scroll_pixel(&mut self, x: f32, y: f32) -> bool {
-        self.axis_state.update(MouseControl::ScrollX as _, x)
-            && self.axis_state.update(MouseControl::ScrollY as _, y)
+        self.axis_state.update(MouseControl::ScrollPixelX as _, x)
+            && self.axis_state.update(MouseControl::ScrollPixelY as _, y)
             && self.control_state.update()
     }
 
     pub fn update_scroll_line(&mut self, x: f32, y: f32) -> bool {
-        self.axis_state.update(MouseControl::ScrollLineX as _, x)
-            && self.axis_state.update(MouseControl::ScrollLineY as _, y)
+        self.axis_state.update(MouseControl::ScrollX as _, x)
+            && self.axis_state.update(MouseControl::ScrollY as _, y)
             && self.control_state.update()
     }
 
@@ -116,9 +116,9 @@ impl MouseState {
         Vec2::new(x, y)
     }
 
-    pub fn scroll_line(&self) -> Vec2 {
-        let x = self.axis_state.value(MouseControl::ScrollLineX as _);
-        let y = self.axis_state.value(MouseControl::ScrollLineY as _);
+    pub fn scroll_pixel(&self) -> Vec2 {
+        let x = self.axis_state.value(MouseControl::ScrollPixelX as _);
+        let y = self.axis_state.value(MouseControl::ScrollPixelY as _);
 
         Vec2::new(x, y)
     }

@@ -77,7 +77,7 @@ unsafe fn create_gl_shader(src: &str, type_0: gl::types::GLenum) -> u32 {
 
         panic!(
             "CreateGLShader: Failed to compile shader[{length}]:\n{:?}",
-            CStr::from_bytes_with_nul(info_log.as_slice())
+            String::from_utf8(info_log).unwrap()
         );
     }
 

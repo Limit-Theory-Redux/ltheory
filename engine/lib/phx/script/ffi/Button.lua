@@ -177,8 +177,8 @@ do -- C Definitions
         Button Button_MouseDeltaY;
         Button Button_MouseScrollX;
         Button Button_MouseScrollY;
-        Button Button_MouseScrollLineX;
-        Button Button_MouseScrollLineY;
+        Button Button_MouseScrollPixelX;
+        Button Button_MouseScrollPixelY;
         Button Button_GamepadSouth;
         Button Button_GamepadEast;
         Button Button_GamepadNorth;
@@ -388,8 +388,8 @@ do -- Global Symbol Table
         MouseDeltaY              = libphx.Button_MouseDeltaY,
         MouseScrollX             = libphx.Button_MouseScrollX,
         MouseScrollY             = libphx.Button_MouseScrollY,
-        MouseScrollLineX         = libphx.Button_MouseScrollLineX,
-        MouseScrollLineY         = libphx.Button_MouseScrollLineY,
+        MouseScrollPixelX        = libphx.Button_MouseScrollPixelX,
+        MouseScrollPixelY        = libphx.Button_MouseScrollPixelY,
         GamepadSouth             = libphx.Button_GamepadSouth,
         GamepadEast              = libphx.Button_GamepadEast,
         GamepadNorth             = libphx.Button_GamepadNorth,
