@@ -20,6 +20,27 @@ pub enum MouseControl {
     ScrollPixelY,
 }
 
+impl MouseControl {
+    pub fn is_button(&self) -> bool {
+        match self {
+            Self::Left | Self::Middle | Self::Right | Self::X1 | Self::X2 => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_axis(&self) -> bool {
+        match self {
+            Self::DeltaX
+            | Self::DeltaY
+            | Self::ScrollX
+            | Self::ScrollY
+            | Self::ScrollPixelX
+            | Self::ScrollPixelY => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct MouseState {
     control_state: ControlState,
@@ -87,7 +108,14 @@ impl MouseState {
 #[luajit_ffi_gen::luajit_ffi]
 impl MouseState {
     pub fn value(&self, control: MouseControl) -> f32 {
-        self.axis_state.value(control as _)
+        // TODO: should MouseControl be splitted to MouseButton and MouseAxis? This will require changes in Lua scripts
+        if control.is_axis() {
+            self.axis_state.value(control as _)
+        } else if self.button_state.is_down(control as _) {
+            1.0
+        } else {
+            0.0
+        }
     }
 
     pub fn is_pressed(&self, control: MouseControl) -> bool {

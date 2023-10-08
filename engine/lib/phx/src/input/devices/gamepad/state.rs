@@ -187,7 +187,7 @@ impl GamepadState {
                 state
                     .control_state
                     .is_connected()
-                    .then(|| state.axis_state.value(axis as _))
+                    .then(|| state.axis_state.value(axis as _)) // TODO: button value
             })
             .unwrap_or_default()
     }
