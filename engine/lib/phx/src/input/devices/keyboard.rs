@@ -409,7 +409,7 @@ impl KeyboardState {
     }
 
     pub fn value(&self, button: KeyboardButton) -> f32 {
-        if self.button_state.is_released(button as usize) {
+        if self.button_state.is_down(button as usize) {
             1.0
         } else {
             0.0
