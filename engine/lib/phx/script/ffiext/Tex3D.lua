@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_Tex3D_t(t, mt)
     mt.__index.getSize      = function(self)

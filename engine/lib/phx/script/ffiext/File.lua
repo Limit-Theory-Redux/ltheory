@@ -1,5 +1,5 @@
 -- TODO : Ensure mt exists in genffi
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_File(t, mt)
     t.Read = function(path)

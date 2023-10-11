@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_Quat(t, mt)
     function t.FromAxisAngle(axis, angle)

@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_Ray_t(t, mt)
     mt.__index.getPoint     = function(self, t)

@@ -10,7 +10,7 @@ if __embedded__ == nil then __embedded__ = false end
 ]]
 ffi = require('ffi')
 jit = require('jit')
-lfs = require('ffi.lfs_ffi')
+lfs = require('lfs_ffi')
 
 --[[
     Importing all math functions (presumably from ffi and jit? Need Confirmation)
@@ -62,7 +62,7 @@ Namespace.Inline(Core.Events, 'Systems.Events')
 -- His Reasoning for using requireAll, Inline, Inject. Is unclear.
 Core.FFI = {}
 Core.FFI.Ext = requireAll('ffiext')
-Core.FFI.Lib = require('ffi.libphx')
+Core.FFI.Lib = require('libphx')
 
 Core.FFI.Base = requireAll('ffi')
 Namespace.Inline(Core.FFI.Base, 'Core.FFI.Base')

@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_RNG_t(t, mt)
     mt.__index.choose    = function(self, table) return table[libphx.RNG_GetInt(self, 1, #table)] end

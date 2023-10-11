@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_Math(t, mt)
     t.Tau           = 6.283185307179586232

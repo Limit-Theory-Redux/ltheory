@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_Matrix_t(t, mt)
     function mt.__add(a, b)

@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 local function defineBox3(box3, mt)
     function mt.__tostring(b)

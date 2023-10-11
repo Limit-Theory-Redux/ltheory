@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_Physics_t(t, mt)
     mt.__index.rayCast    = function(self, ray)

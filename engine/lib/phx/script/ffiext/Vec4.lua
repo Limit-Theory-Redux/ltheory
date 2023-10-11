@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 local function defineVec4_t(t, mt)
     local Vec4 = t

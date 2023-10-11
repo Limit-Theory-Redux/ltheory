@@ -1,4 +1,4 @@
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 
 function onDef_Directory(t, mt)
     local function walkDirectory(path, root, fn, recurse)

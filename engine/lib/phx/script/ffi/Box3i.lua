@@ -1,6 +1,6 @@
 -- Box3i -----------------------------------------------------------------------
 local ffi = require('ffi')
-local libphx = require('ffi.libphx').lib
+local libphx = require('libphx').lib
 local Box3i
 
 do -- Global Symbol Table
