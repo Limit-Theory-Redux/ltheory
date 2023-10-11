@@ -243,7 +243,7 @@ return MyEnum1
 
 Take in account that `enum` block should be defined before `impl` otherwise `enum` data will be lost. Also `opaque` parameter doesn't have any influence in this case.
 
-Under the hood proc macro on the `enum` block instead of generating ***.lua** script saves all necessary information in JSON file in **target/ffi** folder. Thi information is merged later by proc macro on `impl` block.
+Under the hood proc macro on the `enum` block instead of generating ***.lua** script saves all necessary information in JSON file in **target/ffi** folder. This information is merged later by proc macro on `impl` block.
 
 ## Attribute parameters
 
