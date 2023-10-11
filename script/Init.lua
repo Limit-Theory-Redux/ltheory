@@ -61,10 +61,10 @@ Namespace.Inline(Core.Events, 'Systems.Events')
 -- Please note. All of this will need double checking. This is near 1-1 to Josh's.
 -- His Reasoning for using requireAll, Inline, Inject. Is unclear.
 Core.FFI = {}
-Core.FFI.Ext = requireAll('ffiext')
+Core.FFI.Ext = requireAll('ffi_ext')
 Core.FFI.Lib = require('libphx')
 
-Core.FFI.Base = requireAll('ffi')
+Core.FFI.Base = requireAll('ffi_common')
 Namespace.Inline(Core.FFI.Base, 'Core.FFI.Base')
 Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Base, 'Core.FFI.Base')
 
