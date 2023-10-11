@@ -47,12 +47,8 @@ impl Default for GamepadState {
     fn default() -> Self {
         let gilrs = GilrsBuilder::new()
             .add_included_mappings(true) // Load the latest mappings from GitHub
-            // .add_mappings(include_str!(concat!(
-            //     env!("CARGO_MANIFEST_DIR"),
-            //     "/../../../res/gamecontrollerdb_2016.txt" // TODO: is there more convenient way to point to this file (workspace path)?
-            // )))
             .build()
-            .expect("Cannot create Gilrs"); // TODO: return Result
+            .expect("Cannot create Gilrs");
 
         Self {
             gilrs,

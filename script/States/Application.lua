@@ -56,7 +56,6 @@ function Application:appInit()
 
     Preload.Run()
 
-    -- TODO: InputInstance:loadGamepadDatabase('gamecontrollerdb_205.txt');
     self:onInit()
     self:onResize(self.resX, self.resY)
 
