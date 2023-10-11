@@ -4,8 +4,8 @@ local Bindings = require('States.ApplicationBindings')
 local AudioTest = require('States.Application')
 
 local Music = {
-    MainTheme = './res/sound/system/audio/music/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade',
-    AltTheme  = './res/sound/system/audio/music/LTR_Parallax_Universe_loop'
+    MainTheme = './res/sound/system/audio/music/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg',
+    AltTheme  = './res/sound/system/audio/music/LTR_Parallax_Universe.ogg'
 }
 
 local SFX = {
@@ -55,7 +55,8 @@ function AudioTest:onInit()
     self.music = {}
     self.music[0] = Sound.Load(Music.MainTheme, true)
     self.music[1] = Sound.Load(Music.AltTheme, true)
-    self.music[self.musicToggle]:play()
+
+    self.audio:play(self.music[self.musicToggle])
 
     for i = 1, #self.emitters do
         local e = self.emitters[i]
@@ -67,7 +68,7 @@ function AudioTest:onInit()
         e.sound = Sound.Load(e.file, true)
         e.sound:set3DPos(Vec3f(e.x, 0, e.y), Vec3f(0, 0, 0))
         --e.sound:setPlayPos(e.sound:getDuration() - 10*i)
-        e.sound:play()
+        self.audio:play(e.sound)
     end
 
     self.lastFireTime = 0
