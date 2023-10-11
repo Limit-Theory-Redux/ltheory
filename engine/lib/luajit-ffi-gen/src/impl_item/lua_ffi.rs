@@ -59,7 +59,7 @@ impl ImplInfo {
         )
         .unwrap();
         writeln!(&mut file, "local ffi = require('ffi')").unwrap();
-        writeln!(&mut file, "local libphx = require('ffi.libphx').lib").unwrap();
+        writeln!(&mut file, "local libphx = require('libphx').lib").unwrap();
         writeln!(&mut file, "local {module_name}\n").unwrap();
 
         // C Definitions

@@ -14,7 +14,7 @@ use quote::quote;
 use syn::parse_macro_input;
 
 pub(crate) const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
-pub(crate) const LUAJIT_FFI_GEN_DIR: &str = "../phx/script/ffi";
+pub(crate) const LUAJIT_FFI_GEN_DIR: &str = "../phx/script/ffi_gen";
 pub(crate) const IDENT: &str = "    ";
 
 /// Proc macro attribute for generating Lua FFI bindings.

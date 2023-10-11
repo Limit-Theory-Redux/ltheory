@@ -68,6 +68,10 @@ Core.FFI.Base = requireAll('ffi_common')
 Namespace.Inline(Core.FFI.Base, 'Core.FFI.Base')
 Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Base, 'Core.FFI.Base')
 
+Core.FFI.Gen = requireAll('ffi_gen')
+Namespace.Inline(Core.FFI.Gen, 'Core.FFI.Gen')
+Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Gen, 'Core.FFI.Gen')
+
 Core.FFI.CFFI = requireAll('Core.CFFI')
 Namespace.Inline(Core.FFI.CFFI, 'Core.FFI.CFFI')
 
