@@ -3,6 +3,10 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Bit
 
+function declareType()
+    return 0, 'Bit'
+end
+
 do -- C Definitions
     ffi.cdef [[
         uint32 Bit_And32 (uint32 x, uint32 y);

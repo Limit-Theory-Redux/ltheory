@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local MouseState
 
+function declareType()
+    ffi.cdef [[
+        typedef struct MouseState {} MouseState;
+    ]]
+
+    return 1, 'MouseState'
+end
+
 do -- C Definitions
     ffi.cdef [[
         float MouseState_Value       (MouseState const*, MouseControl control);

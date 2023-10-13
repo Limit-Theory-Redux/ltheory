@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Timer
 
+function declareType()
+    ffi.cdef [[
+        typedef struct Timer {} Timer;
+    ]]
+
+    return 1, 'Timer'
+end
+
 do -- C Definitions
     ffi.cdef [[
         void   Timer_Free        (Timer*);

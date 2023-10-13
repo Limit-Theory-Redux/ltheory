@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local InputDeviceType
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 InputDeviceType;
+    ]]
+
+    return 2, 'InputDeviceType'
+end
+
 do -- C Definitions
     ffi.cdef [[
         InputDeviceType InputDeviceType_Cursor;

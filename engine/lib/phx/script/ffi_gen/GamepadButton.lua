@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local GamepadButton
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 GamepadButton;
+    ]]
+
+    return 2, 'GamepadButton'
+end
+
 do -- C Definitions
     ffi.cdef [[
         GamepadButton GamepadButton_South;

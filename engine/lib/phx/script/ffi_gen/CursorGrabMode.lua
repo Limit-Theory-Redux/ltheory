@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local CursorGrabMode
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 CursorGrabMode;
+    ]]
+
+    return 2, 'CursorGrabMode'
+end
+
 do -- C Definitions
     ffi.cdef [[
         CursorGrabMode CursorGrabMode_None;

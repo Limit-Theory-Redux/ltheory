@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local GamepadState
 
+function declareType()
+    ffi.cdef [[
+        typedef struct GamepadState {} GamepadState;
+    ]]
+
+    return 1, 'GamepadState'
+end
+
 do -- C Definitions
     ffi.cdef [[
         uint64           GamepadState_GamepadsCount  (GamepadState const*);

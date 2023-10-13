@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local CursorIcon
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 CursorIcon;
+    ]]
+
+    return 2, 'CursorIcon'
+end
+
 do -- C Definitions
     ffi.cdef [[
         CursorIcon CursorIcon_Default;

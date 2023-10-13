@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Directory
 
+function declareType()
+    ffi.cdef [[
+        typedef struct Directory {} Directory;
+    ]]
+
+    return 1, 'Directory'
+end
+
 do -- C Definitions
     ffi.cdef [[
         void       Directory_Free        (Directory*);

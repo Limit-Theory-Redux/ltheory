@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local KeyboardButton
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 KeyboardButton;
+    ]]
+
+    return 2, 'KeyboardButton'
+end
+
 do -- C Definitions
     ffi.cdef [[
         KeyboardButton KeyboardButton_Key1;

@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local TimeStamp
 
+function declareType()
+    ffi.cdef [[
+        typedef struct TimeStamp {} TimeStamp;
+    ]]
+
+    return 1, 'TimeStamp'
+end
+
 do -- C Definitions
     ffi.cdef [[
         void       TimeStamp_Free          (TimeStamp*);

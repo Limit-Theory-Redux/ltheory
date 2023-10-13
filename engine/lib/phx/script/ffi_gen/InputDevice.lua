@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local InputDevice
 
+function declareType()
+    ffi.cdef [[
+        typedef struct InputDevice {} InputDevice;
+    ]]
+
+    return 1, 'InputDevice'
+end
+
 do -- C Definitions
     ffi.cdef [[
         bool InputDevice_Equal    (InputDevice const*, InputDevice const* other);

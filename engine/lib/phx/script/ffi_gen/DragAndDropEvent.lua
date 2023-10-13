@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local DragAndDropEvent
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 DragAndDropEvent;
+    ]]
+
+    return 2, 'DragAndDropEvent'
+end
+
 do -- C Definitions
     ffi.cdef [[
         DragAndDropEvent DragAndDropEvent_DroppedFile;

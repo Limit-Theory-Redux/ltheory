@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local SystemEventState
 
+function declareType()
+    ffi.cdef [[
+        typedef struct SystemEventState {} SystemEventState;
+    ]]
+
+    return 1, 'SystemEventState'
+end
+
 do -- C Definitions
     ffi.cdef [[
         bool SystemEventState_IsExit (SystemEventState const*);

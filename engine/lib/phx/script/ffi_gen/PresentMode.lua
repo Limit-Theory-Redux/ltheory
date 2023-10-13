@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local PresentMode
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 PresentMode;
+    ]]
+
+    return 2, 'PresentMode'
+end
+
 do -- C Definitions
     ffi.cdef [[
         PresentMode PresentMode_AutoVsync;

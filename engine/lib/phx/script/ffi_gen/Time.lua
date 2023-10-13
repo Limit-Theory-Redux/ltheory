@@ -3,6 +3,10 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Time
 
+function declareType()
+    return 0, 'Time'
+end
+
 do -- C Definitions
     ffi.cdef [[
         Time*  Time_GetLocal ();

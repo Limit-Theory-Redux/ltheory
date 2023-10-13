@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Cursor
 
+function declareType()
+    ffi.cdef [[
+        typedef struct Cursor {} Cursor;
+    ]]
+
+    return 1, 'Cursor'
+end
+
 do -- C Definitions
     ffi.cdef [[
         CursorIcon     Cursor_Icon        (Cursor const*);

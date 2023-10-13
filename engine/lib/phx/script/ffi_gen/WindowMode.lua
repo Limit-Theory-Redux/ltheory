@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local WindowMode
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 WindowMode;
+    ]]
+
+    return 2, 'WindowMode'
+end
+
 do -- C Definitions
     ffi.cdef [[
         WindowMode WindowMode_Windowed;

@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local DragAndDropState
 
+function declareType()
+    ffi.cdef [[
+        typedef struct DragAndDropState {} DragAndDropState;
+    ]]
+
+    return 1, 'DragAndDropState'
+end
+
 do -- C Definitions
     ffi.cdef [[
         cstr DragAndDropState_GetDroppedFile         (DragAndDropState const*);

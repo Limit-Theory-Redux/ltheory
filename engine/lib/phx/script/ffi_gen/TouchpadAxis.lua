@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local TouchpadAxis
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 TouchpadAxis;
+    ]]
+
+    return 2, 'TouchpadAxis'
+end
+
 do -- C Definitions
     ffi.cdef [[
         TouchpadAxis TouchpadAxis_X;

@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local InputDeviceId
 
+function declareType()
+    ffi.cdef [[
+        typedef struct InputDeviceId {} InputDeviceId;
+    ]]
+
+    return 1, 'InputDeviceId'
+end
+
 do -- C Definitions
     ffi.cdef [[
         cstr InputDeviceId_ToString (InputDeviceId const*);

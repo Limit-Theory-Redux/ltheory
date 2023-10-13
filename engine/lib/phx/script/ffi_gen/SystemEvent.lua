@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local SystemEvent
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 SystemEvent;
+    ]]
+
+    return 2, 'SystemEvent'
+end
+
 do -- C Definitions
     ffi.cdef [[
         SystemEvent SystemEvent_Exit;

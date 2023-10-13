@@ -3,6 +3,10 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Logger
 
+function declareType()
+    return 0, 'Logger'
+end
+
 do -- C Definitions
     ffi.cdef [[
         void Logger_Trace (cstr msg);

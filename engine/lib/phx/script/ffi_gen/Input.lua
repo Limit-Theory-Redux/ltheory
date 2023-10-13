@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Input
 
+function declareType()
+    ffi.cdef [[
+        typedef struct Input {} Input;
+    ]]
+
+    return 1, 'Input'
+end
+
 do -- C Definitions
     ffi.cdef [[
         KeyboardState const*    Input_Keyboard               (Input const*);

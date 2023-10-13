@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local KeyboardState
 
+function declareType()
+    ffi.cdef [[
+        typedef struct KeyboardState {} KeyboardState;
+    ]]
+
+    return 1, 'KeyboardState'
+end
+
 do -- C Definitions
     ffi.cdef [[
         bool  KeyboardState_IsPressed    (KeyboardState const*, KeyboardButton button);

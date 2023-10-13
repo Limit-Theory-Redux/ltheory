@@ -3,6 +3,10 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local LineSegment
 
+function declareType()
+    return 0, 'LineSegment'
+end
+
 do -- C Definitions
     ffi.cdef [[
         void LineSegment_ToRay    (LineSegment const*, Ray* out);

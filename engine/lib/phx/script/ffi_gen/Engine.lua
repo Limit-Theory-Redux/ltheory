@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Engine
 
+function declareType()
+    ffi.cdef [[
+        typedef struct Engine {} Engine;
+    ]]
+
+    return 1, 'Engine'
+end
+
 do -- C Definitions
     ffi.cdef [[
         Window* Engine_Window     (Engine*);

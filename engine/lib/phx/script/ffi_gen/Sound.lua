@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Sound
 
+function declareType()
+    ffi.cdef [[
+        typedef struct Sound {} Sound;
+    ]]
+
+    return 1, 'Sound'
+end
+
 do -- C Definitions
     ffi.cdef [[
         void   Sound_Free          (Sound*);

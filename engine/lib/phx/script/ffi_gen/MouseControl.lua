@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local MouseControl
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 MouseControl;
+    ]]
+
+    return 2, 'MouseControl'
+end
+
 do -- C Definitions
     ffi.cdef [[
         MouseControl MouseControl_Left;

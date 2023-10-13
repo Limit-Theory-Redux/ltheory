@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local Window
 
+function declareType()
+    ffi.cdef [[
+        typedef struct Window {} Window;
+    ]]
+
+    return 1, 'Window'
+end
+
 do -- C Definitions
     ffi.cdef [[
         void         Window_BeginDraw                 (Window const*);

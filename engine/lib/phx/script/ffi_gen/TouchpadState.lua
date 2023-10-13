@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local TouchpadState
 
+function declareType()
+    ffi.cdef [[
+        typedef struct TouchpadState {} TouchpadState;
+    ]]
+
+    return 1, 'TouchpadState'
+end
+
 do -- C Definitions
     ffi.cdef [[
         float TouchpadState_Value        (TouchpadState const*, TouchpadAxis axis);

@@ -3,6 +3,14 @@ local ffi = require('ffi')
 local libphx = require('libphx').lib
 local GamepadAxis
 
+function declareType()
+    ffi.cdef [[
+        typedef uint8 GamepadAxis;
+    ]]
+
+    return 2, 'GamepadAxis'
+end
+
 do -- C Definitions
     ffi.cdef [[
         GamepadAxis GamepadAxis_LeftStickX;
