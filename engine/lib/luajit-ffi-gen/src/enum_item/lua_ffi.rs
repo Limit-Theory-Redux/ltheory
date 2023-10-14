@@ -33,13 +33,15 @@ fn gen_c_definitions(ffi_gen: &mut FfiGenerator, module_name: &str, variant_name
 
     variant_names.iter().for_each(|v| {
         ffi_gen.add_c_definition(format!(
-            "{IDENT}{IDENT}{module_name:<0$} {module_name}_{v};",
+            "{IDENT}{IDENT}{IDENT}{module_name:<0$} {module_name}_{v};",
             max_ret_len
         ));
     });
 
+    ffi_gen.add_c_definition("");
+
     ffi_gen.add_c_definition(format!(
-        "\n{IDENT}{IDENT}{0:<1$} {module_name}_ToString({module_name});",
+        "{IDENT}{IDENT}{IDENT}{0:<1$} {module_name}_ToString({module_name});",
         "cstr", max_ret_len
     ));
 }
@@ -54,13 +56,15 @@ fn gen_global_symbol_table(ffi_gen: &mut FfiGenerator, module_name: &str, varian
 
     variant_names.iter().for_each(|v| {
         ffi_gen.add_global_symbol(format!(
-            "{IDENT}{IDENT}{v:<0$} = libphx.{module_name}_{v},",
+            "{IDENT}{IDENT}{IDENT}{v:<0$} = libphx.{module_name}_{v},",
             max_variant_len
         ));
     });
 
+    ffi_gen.add_global_symbol("");
+
     ffi_gen.add_global_symbol(format!(
-        "\n{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_ToString,",
+        "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_ToString,",
         "ToString", max_variant_len
     ));
 }

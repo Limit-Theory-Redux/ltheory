@@ -107,7 +107,7 @@ impl ImplInfo {
 
         if is_managed {
             ffi_gen.add_c_definition(format!(
-                "{IDENT}{IDENT}{:<2$} {module_name}_{:<3$} ({module_name}*);",
+                "{IDENT}{IDENT}{IDENT}{:<2$} {module_name}_{:<3$} ({module_name}*);",
                 "void", "Free", max_ret_len, max_method_name_len
             ));
         }
@@ -153,7 +153,7 @@ impl ImplInfo {
                 };
 
                 ffi_gen.add_c_definition(format!(
-                    "{IDENT}{IDENT}{ret_ty_str:<1$} {module_name}_{method_name:<2$} ({self_str}{});",
+                    "{IDENT}{IDENT}{IDENT}{ret_ty_str:<1$} {module_name}_{method_name:<2$} ({self_str}{});",
                     params_str.join(", "),
                     max_ret_len,
                     max_method_name_len
@@ -178,7 +178,7 @@ impl ImplInfo {
 
         if is_managed {
             ffi_gen.add_global_symbol(format!(
-                "{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
+                "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
                 "Free", max_method_name_len
             ));
         }
@@ -188,7 +188,7 @@ impl ImplInfo {
             .filter(|method| method.bind_args.gen_lua_ffi())
             .for_each(|method| {
                 ffi_gen.add_global_symbol(format!(
-                    "{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
+                    "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_{0},",
                     method.as_ffi_name(),
                     max_method_name_len
                 ));
@@ -213,7 +213,7 @@ impl ImplInfo {
         // Add clone method if requested
         if attr_args.is_clone() {
             ffi_gen.add_metatype(format!(
-                "{IDENT}{IDENT}{IDENT}{0:<1$} = function(x) return {module_name}_t(x) end,",
+                "{IDENT}{IDENT}{IDENT}{IDENT}{0:<1$} = function(x) return {module_name}_t(x) end,",
                 "clone", max_method_name_len
             ));
         }
@@ -221,13 +221,13 @@ impl ImplInfo {
         // Add managed method if requested
         if attr_args.is_managed() {
             ffi_gen.add_metatype(format!(
-                "{IDENT}{IDENT}{IDENT}{0:<1$} = function(self) return ffi.gc(self, libphx.{module_name}_Free) end,",
+                "{IDENT}{IDENT}{IDENT}{IDENT}{0:<1$} = function(self) return ffi.gc(self, libphx.{module_name}_Free) end,",
                 "managed", max_method_name_len
             )
             );
 
             ffi_gen.add_metatype(format!(
-                "{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_Free,",
+                "{IDENT}{IDENT}{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_Free,",
                 "free", max_method_name_len
             ));
         }
@@ -237,7 +237,7 @@ impl ImplInfo {
             .filter(|method| method.bind_args.gen_lua_ffi() && method.self_param.is_some())
             .for_each(|method| {
                 ffi_gen.add_metatype(format!(
-                    "{IDENT}{IDENT}{IDENT}{:<2$} = libphx.{module_name}_{},",
+                    "{IDENT}{IDENT}{IDENT}{IDENT}{:<2$} = libphx.{module_name}_{},",
                     method.as_ffi_var(),
                     method.as_ffi_name(),
                     max_method_name_len

@@ -176,15 +176,12 @@ impl FfiGenerator {
         // Header
         writeln!(
             &mut file,
-            "-- {} {:-<2$}",
+            "-- {} {:-<2$}\n",
             self.module_name,
             "-",
             80 - 4 - self.module_name.len()
         )
         .unwrap();
-        writeln!(&mut file, "local ffi = require('ffi')").unwrap();
-        writeln!(&mut file, "local libphx = require('libphx').lib").unwrap();
-        writeln!(&mut file, "local {}\n", self.module_name).unwrap();
 
         // Type declaration
         writeln!(&mut file, "function declareType()").unwrap();
@@ -222,96 +219,105 @@ impl FfiGenerator {
 
         writeln!(&mut file, "end\n").unwrap();
 
+        // Type definition
+        writeln!(&mut file, "function defineType()").unwrap();
+
+        writeln!(&mut file, "{IDENT}local ffi = require('ffi')").unwrap();
+        writeln!(&mut file, "{IDENT}local libphx = require('libphx').lib").unwrap();
+        writeln!(&mut file, "{IDENT}local {}\n", self.module_name).unwrap();
+
         // C Definitions
-        writeln!(&mut file, "do -- C Definitions").unwrap();
-        writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
+        writeln!(&mut file, "{IDENT}do -- C Definitions").unwrap();
+        writeln!(&mut file, "{IDENT}{IDENT}ffi.cdef [[").unwrap();
 
         self.c_definitions
             .iter()
             .for_each(|def| writeln!(&mut file, "{def}").unwrap());
 
-        writeln!(&mut file, "{IDENT}]]").unwrap();
-        writeln!(&mut file, "end\n").unwrap();
+        writeln!(&mut file, "{IDENT}{IDENT}]]").unwrap();
+        writeln!(&mut file, "{IDENT}end\n").unwrap();
 
         // Global Symbol Table
-        writeln!(&mut file, "do -- Global Symbol Table").unwrap();
-        writeln!(&mut file, "{IDENT}{} = {{", self.module_name).unwrap();
+        writeln!(&mut file, "{IDENT}do -- Global Symbol Table").unwrap();
+        writeln!(&mut file, "{IDENT}{IDENT}{} = {{", self.module_name).unwrap();
 
         self.global_symbol_table
             .iter()
             .for_each(|def| writeln!(&mut file, "{def}").unwrap());
 
-        writeln!(&mut file, "{IDENT}}}\n").unwrap();
+        writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
 
         if self.is_mt_clone {
-            writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
+            writeln!(&mut file, "{IDENT}{IDENT}local mt = {{").unwrap();
             writeln!(
                 &mut file,
-                "{IDENT}{IDENT}__call = function(t, ...) return {}_t(...) end,",
+                "{IDENT}{IDENT}{IDENT}__call = function(t, ...) return {}_t(...) end,",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "{IDENT}}}\n").unwrap();
+            writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
         }
 
         writeln!(
             &mut file,
-            "{IDENT}if onDef_{0} then onDef_{0}({0}, mt) end",
+            "{IDENT}{IDENT}if onDef_{0} then onDef_{0}({0}, mt) end",
             self.module_name
         )
         .unwrap();
         writeln!(
             &mut file,
-            "{IDENT}{0} = setmetatable({0}, mt)",
+            "{IDENT}{IDENT}{0} = setmetatable({0}, mt)",
             self.module_name
         )
         .unwrap();
-        writeln!(&mut file, "end\n").unwrap();
+        writeln!(&mut file, "{IDENT}end\n").unwrap();
 
         // Metatype for class instances
         if self.to_string_method.is_some() || !self.metatype.is_empty() {
-            writeln!(&mut file, "do -- Metatype for class instances").unwrap();
+            writeln!(&mut file, "{IDENT}do -- Metatype for class instances").unwrap();
             writeln!(
                 &mut file,
-                "{IDENT}local t  = ffi.typeof('{}')",
+                "{IDENT}{IDENT}local t  = ffi.typeof('{}')",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "{IDENT}local mt = {{").unwrap();
+            writeln!(&mut file, "{IDENT}{IDENT}local mt = {{").unwrap();
 
             if let Some(method) = &self.to_string_method {
                 writeln!(
                     &mut file,
-                    "{IDENT}{IDENT}__tostring = function(self) return ffi.string(libphx.{}_{method}(self)) end,",
+                    "{IDENT}{IDENT}{IDENT}__tostring = function(self) return ffi.string(libphx.{}_{method}(self)) end,",
                     self.module_name,
                 )
                 .unwrap();
             }
 
-            writeln!(&mut file, "{IDENT}{IDENT}__index = {{").unwrap();
+            writeln!(&mut file, "{IDENT}{IDENT}{IDENT}__index = {{").unwrap();
 
             self.metatype
                 .iter()
                 .for_each(|mt| writeln!(&mut file, "{mt}").unwrap());
 
-            writeln!(&mut file, "{IDENT}{IDENT}}},").unwrap();
-            writeln!(&mut file, "{IDENT}}}\n").unwrap();
+            writeln!(&mut file, "{IDENT}{IDENT}{IDENT}}},").unwrap();
+            writeln!(&mut file, "{IDENT}{IDENT}}}\n").unwrap();
 
             writeln!(
                 &mut file,
-                "{IDENT}if onDef_{0}_t then onDef_{0}_t(t, mt) end",
+                "{IDENT}{IDENT}if onDef_{0}_t then onDef_{0}_t(t, mt) end",
                 self.module_name
             )
             .unwrap();
             writeln!(
                 &mut file,
-                "{IDENT}{}_t = ffi.metatype(t, mt)",
+                "{IDENT}{IDENT}{}_t = ffi.metatype(t, mt)",
                 self.module_name
             )
             .unwrap();
-            writeln!(&mut file, "end\n").unwrap();
+            writeln!(&mut file, "{IDENT}end\n").unwrap();
         }
 
-        writeln!(&mut file, "return {}", self.module_name).unwrap();
+        writeln!(&mut file, "{IDENT}return {}", self.module_name).unwrap();
+
+        writeln!(&mut file, "end\n").unwrap();
     }
 }
