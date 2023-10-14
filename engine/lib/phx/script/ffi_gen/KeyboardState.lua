@@ -1,6 +1,7 @@
 -- KeyboardState ---------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct KeyboardState {} KeyboardState;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'KeyboardState'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local KeyboardState
@@ -61,3 +62,4 @@ function defineType()
     return KeyboardState
 end
 
+return Loader

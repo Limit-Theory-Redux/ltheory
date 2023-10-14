@@ -1,6 +1,7 @@
 -- Engine ----------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct Engine {} Engine;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'Engine'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Engine
@@ -64,3 +65,4 @@ function defineType()
     return Engine
 end
 
+return Loader

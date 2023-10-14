@@ -1,6 +1,7 @@
 -- TouchpadState ---------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct TouchpadState {} TouchpadState;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'TouchpadState'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local TouchpadState
@@ -52,3 +53,4 @@ function defineType()
     return TouchpadState
 end
 
+return Loader

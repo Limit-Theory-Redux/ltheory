@@ -1,6 +1,7 @@
 -- InputDeviceType -------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 InputDeviceType;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'InputDeviceType'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local InputDeviceType
@@ -45,3 +46,4 @@ function defineType()
     return InputDeviceType
 end
 
+return Loader

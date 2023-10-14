@@ -1,6 +1,7 @@
 -- InputDevice -----------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct InputDevice {} InputDevice;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'InputDevice'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local InputDevice
@@ -52,3 +53,4 @@ function defineType()
     return InputDevice
 end
 
+return Loader

@@ -1,6 +1,7 @@
 -- GamepadAxis -----------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 GamepadAxis;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'GamepadAxis'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local GamepadAxis
@@ -45,3 +46,4 @@ function defineType()
     return GamepadAxis
 end
 
+return Loader

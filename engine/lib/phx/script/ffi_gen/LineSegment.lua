@@ -1,10 +1,11 @@
 -- LineSegment -----------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     return 0, 'LineSegment'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local LineSegment
@@ -50,3 +51,4 @@ function defineType()
     return LineSegment
 end
 
+return Loader

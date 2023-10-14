@@ -1,6 +1,7 @@
 -- PresentMode -----------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 PresentMode;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'PresentMode'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local PresentMode
@@ -43,3 +44,4 @@ function defineType()
     return PresentMode
 end
 
+return Loader

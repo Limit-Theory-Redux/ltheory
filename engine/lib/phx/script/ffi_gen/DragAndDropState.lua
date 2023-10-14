@@ -1,6 +1,7 @@
 -- DragAndDropState ------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct DragAndDropState {} DragAndDropState;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'DragAndDropState'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local DragAndDropState
@@ -49,3 +50,4 @@ function defineType()
     return DragAndDropState
 end
 
+return Loader

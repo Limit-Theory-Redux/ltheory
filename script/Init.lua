@@ -60,6 +60,27 @@ Namespace.Inline(Core.Events, 'Systems.Events')
 ---- Load in FFI
 -- Please note. All of this will need double checking. This is near 1-1 to Josh's.
 -- His Reasoning for using requireAll, Inline, Inject. Is unclear.
+do -- Basic Typedefs
+    ffi.cdef [[
+        typedef unsigned long  ulong;
+        typedef unsigned int   uint;
+        typedef unsigned short ushort;
+        typedef unsigned char  uchar;
+        typedef char const*    cstr;
+        typedef int8_t         int8;
+        typedef int16_t        int16;
+        typedef int32_t        int32;
+        typedef int64_t        int64;
+        typedef uint8_t        uint8;
+        typedef uint16_t       uint16;
+        typedef uint32_t       uint32;
+        typedef uint64_t       uint64;
+    ]]
+end
+
+
+local genObjects, genFiles, genOpaques, genStructs = requireAllGenerated('ffi_gen')
+
 Core.FFI = {}
 Core.FFI.Ext = requireAll('ffi_ext')
 Core.FFI.Lib = require('libphx')
@@ -68,9 +89,24 @@ Core.FFI.Base = requireAll('ffi_common')
 Namespace.Inline(Core.FFI.Base, 'Core.FFI.Base')
 Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Base, 'Core.FFI.Base')
 
-Core.FFI.Gen = requireAll('ffi_gen')
+-- Load type definitions
+for k, v in pairs(genFiles) do
+    local obj = v.defineType()
+
+    genObjects[k] = obj
+end
+
+Core.FFI.Gen = genObjects
 Namespace.Inline(Core.FFI.Gen, 'Core.FFI.Gen')
 Namespace.Inject(Core.FFI, 'Core.FFI', Core.FFI.Gen, 'Core.FFI.Gen')
+
+for _, v in ipairs(genOpaques) do
+    table.insert(Core.FFI.Lib.Opaques, v)
+end
+
+for _, v in ipairs(genStructs) do
+    table.insert(Core.FFI.Lib.Structs, v)
+end
 
 Core.FFI.CFFI = requireAll('Core.CFFI')
 Namespace.Inline(Core.FFI.CFFI, 'Core.FFI.CFFI')

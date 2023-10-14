@@ -1,6 +1,7 @@
 -- CursorGrabMode --------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 CursorGrabMode;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'CursorGrabMode'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local CursorGrabMode
@@ -39,3 +40,4 @@ function defineType()
     return CursorGrabMode
 end
 
+return Loader

@@ -1,6 +1,7 @@
 -- Window ----------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct Window {} Window;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'Window'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Window
@@ -145,3 +146,4 @@ function defineType()
     return Window
 end
 
+return Loader

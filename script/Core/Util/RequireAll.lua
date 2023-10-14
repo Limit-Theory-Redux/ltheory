@@ -7,6 +7,44 @@ local requireAllCache = {}
 function requireAll(path)
     -- NOTE : It may be more idiomatic to use package.searchers to handle this
     if requireAllCache[path] then return requireAllCache[path] end
+
+    return collectAllLuaFiles(path,
+        function(fileName, filePath) return require(filePath) end,
+        function(p, r) requireAllCache[p] = r end)
+end
+
+function requireAllGenerated(path)
+    -- NOTE : It may be more idiomatic to use package.searchers to handle this
+    if requireAllCache[path] then return requireAllCache[path] end
+
+    local genFiles = {}
+    local opaques = {}
+    local structs = {}
+
+    local results = collectAllLuaFiles(path,
+        function(fileName, filePath)
+            local loader = require(filePath)
+
+            -- Load type declarations
+            local typeId, typeName = loader.declareType()
+
+            if typeId == 1 then
+                table.insert(opaques, typeName)
+            elseif typeId == 2 then
+                table.insert(structs, typeName)
+            end
+
+            genFiles[fileName] = loader
+
+            return loader
+        end,
+        function(p, r) requireAllCache[p] = r end)
+
+    return results, genFiles, opaques, structs
+end
+
+
+function collectAllLuaFiles(path, processFile, processResults)
     local pathWithSlashes = path:gsub('%.', '/')
 
     local dir
@@ -29,7 +67,7 @@ function requireAll(path)
     local files, dirs = io.listdirex(dir)
     for i = 1, #dirs do
         local dirName = dirs[i]
-        results[dirName] = requireAll(path .. '.' .. dirName)
+        results[dirName] = collectAllLuaFiles(path .. '.' .. dirName, processFile, processResults)
     end
 
     for i = 1, #files do
@@ -37,11 +75,11 @@ function requireAll(path)
         if fileName:sub(-4) == ".lua" then
             fileName = fileName:gsub('%..*$', '')
             if fileName:len() > 0 then
-                results[fileName] = require(path .. '.' .. fileName)
+                results[fileName] = processFile(fileName, path .. '.' .. fileName)
             end
         end
     end
 
-    requireAllCache[path] = results
+    processResults(path, results)
     return results
 end

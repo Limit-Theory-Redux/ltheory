@@ -1,10 +1,11 @@
 -- Logger ----------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     return 0, 'Logger'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Logger
@@ -35,3 +36,4 @@ function defineType()
     return Logger
 end
 
+return Loader

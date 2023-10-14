@@ -1,6 +1,7 @@
 -- Audio -----------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct Audio {} Audio;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'Audio'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Audio
@@ -61,3 +62,4 @@ function defineType()
     return Audio
 end
 
+return Loader

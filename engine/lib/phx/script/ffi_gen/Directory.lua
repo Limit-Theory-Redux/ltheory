@@ -1,6 +1,7 @@
 -- Directory -------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct Directory {} Directory;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'Directory'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Directory
@@ -59,3 +60,4 @@ function defineType()
     return Directory
 end
 
+return Loader

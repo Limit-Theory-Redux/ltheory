@@ -1,6 +1,7 @@
 -- Cursor ----------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct Cursor {} Cursor;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'Cursor'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Cursor
@@ -64,3 +65,4 @@ function defineType()
     return Cursor
 end
 
+return Loader

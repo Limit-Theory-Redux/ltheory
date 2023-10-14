@@ -1,10 +1,11 @@
 -- Bit -------------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     return 0, 'Bit'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Bit
@@ -41,3 +42,4 @@ function defineType()
     return Bit
 end
 
+return Loader

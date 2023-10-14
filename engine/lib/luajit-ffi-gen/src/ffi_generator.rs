@@ -13,7 +13,7 @@ pub enum TypeDecl {
     #[default]
     NoDecl,
     Opaque,
-    Transparent(String),
+    Struct(String),
 }
 
 impl TypeDecl {
@@ -21,7 +21,7 @@ impl TypeDecl {
         match self {
             TypeDecl::NoDecl => 0,
             TypeDecl::Opaque => 1,
-            TypeDecl::Transparent(_) => 2,
+            TypeDecl::Struct(_) => 2,
         }
     }
 }
@@ -55,8 +55,8 @@ impl FfiGenerator {
         self.type_decl = TypeDecl::Opaque;
     }
 
-    pub fn set_type_decl_transparent(&mut self, ty: impl Into<String>) {
-        self.type_decl = TypeDecl::Transparent(ty.into());
+    pub fn set_type_decl_struct(&mut self, ty: impl Into<String>) {
+        self.type_decl = TypeDecl::Struct(ty.into());
     }
 
     pub fn has_type_decl(&self) -> bool {
@@ -176,15 +176,16 @@ impl FfiGenerator {
         // Header
         writeln!(
             &mut file,
-            "-- {} {:-<2$}\n",
+            "-- {} {:-<2$}",
             self.module_name,
             "-",
             80 - 4 - self.module_name.len()
         )
         .unwrap();
+        writeln!(&mut file, "local Loader = {{}}\n").unwrap();
 
         // Type declaration
-        writeln!(&mut file, "function declareType()").unwrap();
+        writeln!(&mut file, "function Loader.declareType()").unwrap();
 
         match &self.type_decl {
             TypeDecl::NoDecl => {}
@@ -198,7 +199,7 @@ impl FfiGenerator {
                 .unwrap();
                 writeln!(&mut file, "{IDENT}]]\n").unwrap();
             }
-            TypeDecl::Transparent(ty) => {
+            TypeDecl::Struct(ty) => {
                 writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
                 writeln!(
                     &mut file,
@@ -220,7 +221,7 @@ impl FfiGenerator {
         writeln!(&mut file, "end\n").unwrap();
 
         // Type definition
-        writeln!(&mut file, "function defineType()").unwrap();
+        writeln!(&mut file, "function Loader.defineType()").unwrap();
 
         writeln!(&mut file, "{IDENT}local ffi = require('ffi')").unwrap();
         writeln!(&mut file, "{IDENT}local libphx = require('libphx').lib").unwrap();
@@ -319,5 +320,6 @@ impl FfiGenerator {
         writeln!(&mut file, "{IDENT}return {}", self.module_name).unwrap();
 
         writeln!(&mut file, "end\n").unwrap();
+        writeln!(&mut file, "return Loader").unwrap();
     }
 }

@@ -1,6 +1,7 @@
 -- KeyboardButton --------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 KeyboardButton;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'KeyboardButton'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local KeyboardButton
@@ -359,3 +360,4 @@ function defineType()
     return KeyboardButton
 end
 
+return Loader

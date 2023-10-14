@@ -1,6 +1,7 @@
 -- WindowMode ------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 WindowMode;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'WindowMode'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local WindowMode
@@ -41,3 +42,4 @@ function defineType()
     return WindowMode
 end
 
+return Loader

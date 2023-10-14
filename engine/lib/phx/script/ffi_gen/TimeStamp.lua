@@ -1,6 +1,7 @@
 -- TimeStamp -------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct TimeStamp {} TimeStamp;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'TimeStamp'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local TimeStamp
@@ -66,3 +67,4 @@ function defineType()
     return TimeStamp
 end
 
+return Loader

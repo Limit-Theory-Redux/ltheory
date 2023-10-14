@@ -1,10 +1,11 @@
 -- Time ------------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     return 0, 'Time'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Time
@@ -47,3 +48,4 @@ function defineType()
     return Time
 end
 
+return Loader

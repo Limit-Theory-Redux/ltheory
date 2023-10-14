@@ -1,6 +1,7 @@
 -- DragAndDropEvent ------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 DragAndDropEvent;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'DragAndDropEvent'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local DragAndDropEvent
@@ -39,3 +40,4 @@ function defineType()
     return DragAndDropEvent
 end
 
+return Loader

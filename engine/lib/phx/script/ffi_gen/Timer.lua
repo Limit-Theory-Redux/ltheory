@@ -1,6 +1,7 @@
 -- Timer -----------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef struct Timer {} Timer;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 1, 'Timer'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local Timer
@@ -55,3 +56,4 @@ function defineType()
     return Timer
 end
 
+return Loader

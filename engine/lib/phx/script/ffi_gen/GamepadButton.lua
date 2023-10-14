@@ -1,6 +1,7 @@
 -- GamepadButton ---------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 GamepadButton;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'GamepadButton'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local GamepadButton
@@ -71,3 +72,4 @@ function defineType()
     return GamepadButton
 end
 
+return Loader

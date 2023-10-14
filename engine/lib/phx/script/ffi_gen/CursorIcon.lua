@@ -1,6 +1,7 @@
 -- CursorIcon ------------------------------------------------------------------
+local Loader = {}
 
-function declareType()
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 CursorIcon;
     ]]
@@ -8,7 +9,7 @@ function declareType()
     return 2, 'CursorIcon'
 end
 
-function defineType()
+function Loader.defineType()
     local ffi = require('ffi')
     local libphx = require('libphx').lib
     local CursorIcon
@@ -103,3 +104,4 @@ function defineType()
     return CursorIcon
 end
 
+return Loader
