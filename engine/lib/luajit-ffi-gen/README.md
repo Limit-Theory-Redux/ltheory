@@ -54,20 +54,20 @@ function Loader.defineType()
     local My_Struct
 
     do -- C Definitions
-    ffi.cdef [[
-        void   My_Struct_SetU32 (My_Struct*, uint32 val);
-        uint32 My_Struct_FUNC3  (My_Struct*);
-    ]]
+        ffi.cdef [[
+            void   My_Struct_SetU32 (My_Struct*, uint32 val);
+            uint32 My_Struct_FUNC3  (My_Struct*);
+        ]]
     end
 
     do -- Global Symbol Table
-    My_Struct = {
-        SetU32 = libphx.My_Struct_SetU32,
-        FUNC3  = libphx.My_Struct_FUNC3,
-    }
+        My_Struct = {
+            SetU32 = libphx.My_Struct_SetU32,
+            FUNC3  = libphx.My_Struct_FUNC3,
+        }
 
-    if onDef_My_Struct then onDef_My_Struct(My_Struct, mt) end
-    My_Struct = setmetatable(My_Struct, mt)
+        if onDef_My_Struct then onDef_My_Struct(My_Struct, mt) end
+        My_Struct = setmetatable(My_Struct, mt)
     end
 
     return My_Struct
