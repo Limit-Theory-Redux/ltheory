@@ -26,13 +26,13 @@ use crate::render::*;
 use crate::system::*;
 use crate::*;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct HmGui {
     pub group: *mut HmGuiGroup,
     pub root: *mut HmGuiGroup,
     pub last: *mut HmGuiWidget,
-    pub style: *mut HmGuiStyle,
+    pub styles: Vec<HmGuiStyle>,
     pub data: *mut HashMap,
     pub focus: [u64; 2],
     pub focusPos: Vec2,
@@ -43,7 +43,7 @@ static mut this: HmGui = HmGui {
     group: std::ptr::null_mut(),
     root: std::ptr::null_mut(),
     last: std::ptr::null_mut(),
-    style: std::ptr::null_mut(),
+    styles: vec![],
     data: std::ptr::null_mut(),
     focus: [0; 2],
     focusPos: Vec2::ZERO,
@@ -92,6 +92,8 @@ unsafe extern "C" fn HmGui_InitWidget(e: *mut HmGuiWidget, ty: WidgetType) {
 }
 
 unsafe extern "C" fn HmGui_BeginGroup(layout: LayoutType) {
+    let style = this.styles.last().expect("Style was not set");
+
     let e = MemNew!(HmGuiGroup);
     HmGui_InitWidget(&mut (*e).widget, WidgetType::Group);
     (*e).head = std::ptr::null_mut();
@@ -103,7 +105,7 @@ unsafe extern "C" fn HmGui_BeginGroup(layout: LayoutType) {
     (*e).paddingUpper = Vec2::ZERO;
     (*e).offset = Vec2::ZERO;
     (*e).maxSize = Vec2::new(1e30f32, 1e30f32);
-    (*e).spacing = (*this.style).spacing;
+    (*e).spacing = style.spacing;
     (*e).frameOpacity = 0.0f32;
     (*e).clip = false;
     (*e).expand = true;
@@ -170,14 +172,15 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
         this.group = std::ptr::null_mut();
         this.root = std::ptr::null_mut();
 
-        this.style = MemNew!(HmGuiStyle);
-        (*this.style).prev = std::ptr::null_mut();
-        (*this.style).font = Font_Load(c_str!("Rajdhani"), 14);
-        (*this.style).spacing = 6.0f32;
+        let style = HmGuiStyle {
+            font: Font_Load(c_str!("Rajdhani"), 14),
+            spacing: 6.0f32,
+            colorPrimary: Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32),
+            colorFrame: Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32),
+            colorText: Vec4::ONE,
+        };
 
-        (*this.style).colorPrimary = Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32);
-        (*this.style).colorFrame = Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32);
-        (*this.style).colorText = Vec4::ONE;
+        this.styles.push(style);
 
         this.data = HashMap_Create(0, 128);
 
@@ -284,6 +287,7 @@ pub unsafe extern "C" fn HmGui_EndScroll(input: &Input) {
     HmGui_BeginGroupY();
     HmGui_SetStretch(0.0f32, 1.0f32);
     HmGui_SetSpacing(0.0f32);
+
     if maxScroll > 0.0f32 {
         let handleSize: f32 = (*data).size.y * ((*data).size.y / (*data).minSize.y);
         let handlePos: f32 = Lerp(
@@ -291,14 +295,16 @@ pub unsafe extern "C" fn HmGui_EndScroll(input: &Input) {
             ((*data).size.y - handleSize) as f64,
             ((*data).offset.y / maxScroll) as f64,
         ) as f32;
+        let style = this.styles.last().expect("Style was not set");
+
         HmGui_Rect(4.0f32, handlePos, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
         HmGui_Rect(
             4.0f32,
             handleSize,
-            (*this.style).colorFrame.x,
-            (*this.style).colorFrame.y,
-            (*this.style).colorFrame.z,
-            (*this.style).colorFrame.w,
+            style.colorFrame.x,
+            style.colorFrame.y,
+            style.colorFrame.z,
+            style.colorFrame.w,
         );
     } else {
         HmGui_Rect(4.0f32, 16.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
@@ -355,11 +361,16 @@ pub unsafe extern "C" fn HmGui_Button(label: *const libc::c_char) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Checkbox(label: *const libc::c_char, mut value: bool) -> bool {
+    let style = this.styles.last().expect("Style was not set");
+
     HmGui_BeginGroupX();
+
     (*this.group).focusStyle = FocusStyle::Underline;
+
     if HmGui_GroupHasFocus(FocusType::Mouse) as i32 != 0 && this.activate as i32 != 0 {
         value = !value;
     }
+
     HmGui_SetPadding(4.0f32, 4.0f32);
     HmGui_SetSpacing(8.0f32);
     HmGui_SetStretch(1.0f32, 0.0f32);
@@ -372,25 +383,28 @@ pub unsafe extern "C" fn HmGui_Checkbox(label: *const libc::c_char, mut value: b
     HmGui_Rect(
         16.0f32,
         16.0f32,
-        (*this.style).colorFrame.x,
-        (*this.style).colorFrame.y,
-        (*this.style).colorFrame.z,
-        (*this.style).colorFrame.w,
+        style.colorFrame.x,
+        style.colorFrame.y,
+        style.colorFrame.z,
+        style.colorFrame.w,
     );
+
     if value {
         HmGui_Rect(
             10.0f32,
             10.0f32,
-            (*this.style).colorPrimary.x,
-            (*this.style).colorPrimary.y,
-            (*this.style).colorPrimary.z,
-            (*this.style).colorPrimary.w,
+            style.colorPrimary.x,
+            style.colorPrimary.y,
+            style.colorPrimary.z,
+            style.colorPrimary.w,
         );
         HmGui_SetAlign(0.5f32, 0.5f32);
     }
+
     HmGui_EndGroup();
     HmGui_SetStretch(0.0f32, 0.0f32);
     HmGui_EndGroup();
+
     value
 }
 
@@ -422,13 +436,15 @@ pub unsafe extern "C" fn HmGui_Rect(sx: f32, sy: f32, r: f32, g: f32, b: f32, a:
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Text(text: *const libc::c_char) {
+    let style = this.styles.last().expect("Style was not set");
+
     HmGui_TextEx(
-        (*this.style).font,
+        style.font,
         text,
-        (*this.style).colorText.x,
-        (*this.style).colorText.y,
-        (*this.style).colorText.z,
-        (*this.style).colorText.w,
+        style.colorText.x,
+        style.colorText.y,
+        style.colorText.z,
+        style.colorText.w,
     );
 }
 
@@ -440,7 +456,9 @@ pub unsafe extern "C" fn HmGui_TextColored(
     b: f32,
     a: f32,
 ) {
-    HmGui_TextEx((*this.style).font, text, r, g, b, a);
+    let style = this.styles.last().expect("Style was not set");
+
+    HmGui_TextEx(style.font, text, r, g, b, a);
 }
 
 #[no_mangle]
@@ -524,29 +542,30 @@ pub unsafe extern "C" fn HmGui_GroupHasFocus(ty: FocusType) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushStyle() {
-    let style = MemNew!(HmGuiStyle);
-    *style = *this.style;
-    (*style).prev = this.style;
-    this.style = style;
+    this.styles.push(Default::default());
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushFont(font: *mut Font) {
     HmGui_PushStyle();
-    (*this.style).font = font;
+
+    let style = this.styles.last_mut().expect("Style was not set");
+
+    style.font = font;
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PushTextColor(r: f32, g: f32, b: f32, a: f32) {
     HmGui_PushStyle();
-    (*this.style).colorText = Vec4::new(r, g, b, a);
+
+    let style = this.styles.last_mut().expect("Style was not set");
+
+    style.colorText = Vec4::new(r, g, b, a);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_PopStyle(depth: i32) {
-    for _ in 0..depth {
-        let style: *mut HmGuiStyle = this.style;
-        this.style = (*style).prev;
-        MemFree(style as *const _);
-    }
+    assert!(this.styles.len() >= depth as usize);
+
+    this.styles.truncate(this.styles.len() - depth as usize);
 }
