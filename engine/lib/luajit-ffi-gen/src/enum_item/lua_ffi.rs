@@ -19,7 +19,7 @@ impl EnumInfo {
         gen_global_symbol_table(&mut ffi_gen, &module_name, &variant_names);
 
         if attr_args.with_impl() {
-            ffi_gen.save(&module_name);
+            ffi_gen.save();
 
             return;
         }

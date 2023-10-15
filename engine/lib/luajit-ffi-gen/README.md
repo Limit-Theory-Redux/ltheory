@@ -38,28 +38,42 @@ pub extern "C" fn MyStruct_FUNC3(this: &MyStruct) -> u32 {
 and **My_Struct.lua**:
 ```lua
 -- My_Struct -------------------------------------------------------------------
-local ffi = require('ffi')
-local libphx = require('ffi.libphx').lib
-local My_Struct
+local Loader = {}
 
-do -- C Definitions
-  ffi.cdef [[
-    void   My_Struct_SetU32 (My_Struct*, uint32 val);
-    uint32 My_Struct_FUNC3  (My_Struct*);
-  ]]
+function Loader.declareType()
+    ffi.cdef [[
+        typedef struct My_Struct {} My_Struct;
+    ]]
+
+    return 1, 'My_Struct'
 end
 
-do -- Global Symbol Table
-  My_Struct = {
-    SetU32 = libphx.My_Struct_SetU32,
-    FUNC3  = libphx.My_Struct_FUNC3,
-  }
+function Loader.defineType()
+    local ffi = require('ffi')
+    local libphx = require('ffi.libphx').lib
+    local My_Struct
 
-  if onDef_My_Struct then onDef_My_Struct(My_Struct, mt) end
-  My_Struct = setmetatable(My_Struct, mt)
+    do -- C Definitions
+    ffi.cdef [[
+        void   My_Struct_SetU32 (My_Struct*, uint32 val);
+        uint32 My_Struct_FUNC3  (My_Struct*);
+    ]]
+    end
+
+    do -- Global Symbol Table
+    My_Struct = {
+        SetU32 = libphx.My_Struct_SetU32,
+        FUNC3  = libphx.My_Struct_FUNC3,
+    }
+
+    if onDef_My_Struct then onDef_My_Struct(My_Struct, mt) end
+    My_Struct = setmetatable(My_Struct, mt)
+    end
+
+    return My_Struct
 end
 
-return My_Struct
+return Loader
 ```
 
 By default function names are converted to camel case but it is possible to set a user defined names. See **Attribute parameters** section below for details.
@@ -77,11 +91,11 @@ In all other cases types are following these rules:
 - **&str**/**String** is converted to **\*const libc::c_char**
 - all other types are accepted either as **&** or **&mut** into the C wrapper, and are boxed (**Box\<T\>**) as outer
 
-By default all generated Lua code created in the **phx/script/ffi** folder. User can manually set this folder via **LUAJIT_FFI_GEN_DIR** environment variable. Path should be either absolute or relative to the **luajit_ffi_gen** folder.
+By default all generated Lua code created in the **phx/script/ffi_gen** folder. User can manually set this folder via **LUAJIT_FFI_GEN_DIR** environment variable. Path should be either absolute or relative to the **luajit_ffi_gen** folder.
 
 ## Usage with the enums
 
-Attribute can be applied to the enum types (see ./tests/test_enum.rs for examples):
+Attribute can be applied to the enum types (see **./tests/test_enum.rs** for examples):
 
 ```rust
 #[luajit_ffi_gen::luajit_ffi(name = "My_Enum1", start_index = 3, lua_ffi = false)]
@@ -127,34 +141,46 @@ pub extern "C" fn MyEnum2_ToString(this: MyEnum2) -> *const libc::c_char {
 and **My_Enum1.lua**:
 ```lua
 -- My_Enum1 --------------------------------------------------------------------
-local ffi = require('ffi')
-local libphx = require('ffi.libphx').lib
-local My_Enum1
+local Loader = {}
 
-do -- C Definitions
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 My_Enum1;
-
-        My_Enum1 My_Enum1_Var1;
-        My_Enum1 My_Enum1_Var2;
-
-        cstr     My_Enum1_ToString(My_Enum1);
     ]]
+
+    return 2, 'My_Enum1'
 end
 
-do -- Global Symbol Table
-    My_Enum1 = {
-        Var1     = libphx.My_Enum1_Var1,
-        Var2     = libphx.My_Enum1_Var2,
+function Loader.defineType()
+    local ffi = require('ffi')
+    local libphx = require('ffi.libphx').lib
+    local My_Enum1
 
-        ToString = libphx.My_Enum1_ToString,
-    }
+    do -- C Definitions
+        ffi.cdef [[
+            My_Enum1 My_Enum1_Var1;
+            My_Enum1 My_Enum1_Var2;
 
-    if onDef_My_Enum1 then onDef_My_Enum1(My_Enum1, mt) end
-    My_Enum1 = setmetatable(My_Enum1, mt)
+            cstr     My_Enum1_ToString(My_Enum1);
+        ]]
+    end
+
+    do -- Global Symbol Table
+        My_Enum1 = {
+            Var1     = libphx.My_Enum1_Var1,
+            Var2     = libphx.My_Enum1_Var2,
+
+            ToString = libphx.My_Enum1_ToString,
+        }
+
+        if onDef_My_Enum1 then onDef_My_Enum1(My_Enum1, mt) end
+        My_Enum1 = setmetatable(My_Enum1, mt)
+    end
+
+    return My_Enum1
 end
 
-return My_Enum1
+return Loader
 ```
 
 Under the hood `ToString` trait is implemented for the enum so it should derive `Debug` to support that.
@@ -163,7 +189,7 @@ Only unit variants of the enum are supported. Also they should be all either wit
 
 For the variants without values starting index can be set, otherwise it starts from 0. See attribute parameters description below.
 
-If `repr` parameter is set then `#[repr(...)]` attribute will be added with the specified type, otherwise type will be deducted from the maximal variant value: u8, u16, u32 or u64.
+If `repr` parameter is set then `#[repr(...)]` attribute will be added with the specified type, otherwise type will be deducted from the variants count: `u8` or `u16`.
 
 ## Joining enum and impl blocks
 
@@ -207,43 +233,55 @@ pub extern "C" fn MyEnum1_IsVar1(this: &MyEnum1) -> bool {
 and **MyEnum1.lua**:
 ```lua
 -- My_Enum1 --------------------------------------------------------------------
-local ffi = require('ffi')
-local libphx = require('ffi.libphx').lib
-local MyEnum1
+local Loader = {}
 
-do -- C Definitions
+function Loader.declareType()
     ffi.cdef [[
         typedef uint8 MyEnum1;
-
-        MyEnum1 MyEnum1_Var1;
-        MyEnum1 MyEnum1_Var2;
-
-        cstr     MyEnum1_ToString(MyEnum1);
-
-        bool MyEnum1_IsVar1(MyEnum1);
     ]]
+
+    return 2, 'MyEnum1'
 end
 
-do -- Global Symbol Table
-    MyEnum1 = {
-        Var1     = libphx.MyEnum1_Var1,
-        Var2     = libphx.MyEnum1_Var2,
+function Loader.defineType()
+    local ffi = require('ffi')
+    local libphx = require('ffi.libphx').lib
+    local MyEnum1
 
-        ToString = libphx.MyEnum1_ToString,
+    do -- C Definitions
+        ffi.cdef [[
+            MyEnum1 MyEnum1_Var1;
+            MyEnum1 MyEnum1_Var2;
 
-        IsVar1 = libphx.MyEnum1_IsVar1,
-    }
+            cstr     MyEnum1_ToString(MyEnum1);
 
-    if onDef_MyEnum1 then onDef_MyEnum1(MyEnum1, mt) end
-    MyEnum1 = setmetatable(MyEnum1, mt)
+            bool MyEnum1_IsVar1(MyEnum1);
+        ]]
+    end
+
+    do -- Global Symbol Table
+        MyEnum1 = {
+            Var1     = libphx.MyEnum1_Var1,
+            Var2     = libphx.MyEnum1_Var2,
+
+            ToString = libphx.MyEnum1_ToString,
+
+            IsVar1 = libphx.MyEnum1_IsVar1,
+        }
+
+        if onDef_MyEnum1 then onDef_MyEnum1(MyEnum1, mt) end
+        MyEnum1 = setmetatable(MyEnum1, mt)
+    end
+
+    return MyEnum1
 end
 
-return MyEnum1
+return Loader
 ```
 
-Take in account that `enum` block should be defined before `impl` otherwise `enum` data will be lost. Also `opaque` parameter doesn't have any influence in this case.
+Take in account that `enum` block should be defined before `impl` otherwise `enum` data will be lost. Also `opaque` parameter doesn't have any effect in this case.
 
-Under the hood proc macro on the `enum` block instead of generating ***.lua** script saves all necessary information in JSON file in **target/ffi** folder. Thi information is merged later by proc macro on `impl` block.
+Under the hood proc macro on the `enum` block instead of generating ***.lua** script saves all necessary information in JSON file in **target/ffi** folder. This information is merged later by proc macro on `impl` block.
 
 ## Attribute parameters
 
