@@ -3,7 +3,6 @@ use glam::Vec4;
 use crate::render::Font;
 
 #[derive(Clone)]
-#[repr(C)]
 pub struct HmGuiStyle {
     pub font: *mut Font,
     pub spacing: f32,

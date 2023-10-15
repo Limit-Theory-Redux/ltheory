@@ -7,6 +7,8 @@ mod style;
 mod text;
 mod widget;
 
+use std::collections::HashMap;
+
 use internal::*;
 
 use self::data::*;
@@ -23,7 +25,7 @@ use crate::common::*;
 use crate::input::*;
 use crate::math::*;
 use crate::render::*;
-use crate::system::*;
+use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Profiler_End};
 use crate::*;
 
 #[derive(Clone)]
@@ -33,7 +35,7 @@ pub struct HmGui {
     pub root: *mut HmGuiGroup,
     pub last: *mut HmGuiWidget,
     pub styles: Vec<HmGuiStyle>,
-    pub data: *mut HashMap,
+    pub data: HashMap<u64, HmGuiData>,
     pub focus: [u64; 2],
     pub focusPos: Vec2,
     pub activate: bool,
@@ -44,7 +46,7 @@ static mut this: HmGui = HmGui {
     root: std::ptr::null_mut(),
     last: std::ptr::null_mut(),
     styles: vec![],
-    data: std::ptr::null_mut(),
+    data: Default::default(),
     focus: [0; 2],
     focusPos: Vec2::ZERO,
     activate: false,
@@ -128,15 +130,11 @@ unsafe extern "C" fn HmGui_BeginGroup(layout: LayoutType) {
 }
 
 pub unsafe extern "C" fn HmGui_GetData(g: *const HmGuiGroup) -> *mut HmGuiData {
-    let mut data: *mut HmGuiData = HashMap_GetRaw(this.data, (*g).widget.hash) as *mut HmGuiData;
-    if data.is_null() {
-        data = MemNew!(HmGuiData);
-        (*data).offset = Vec2::ZERO;
-        (*data).minSize = Vec2::ZERO;
-        (*data).size = Vec2::ZERO;
-        HashMap_SetRaw(this.data, (*g).widget.hash, data as *mut _);
-    }
-    data
+    this.data.entry((*g).widget.hash).or_insert(HmGuiData {
+        offset: Vec2::ZERO,
+        minSize: Vec2::ZERO,
+        size: Vec2::ZERO,
+    })
 }
 
 unsafe extern "C" fn HmGui_CheckFocus(g: *mut HmGuiGroup) {
@@ -182,7 +180,7 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
 
         this.styles.push(style);
 
-        this.data = HashMap_Create(0, 128);
+        this.data.reserve(128);
 
         this.focus.fill(0);
         this.activate = false;

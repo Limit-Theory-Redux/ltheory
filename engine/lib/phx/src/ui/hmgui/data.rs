@@ -1,7 +1,6 @@
 use glam::Vec2;
 
-#[derive(Copy, Clone)]
-#[repr(C)]
+#[derive(Clone, Default)]
 pub struct HmGuiData {
     pub offset: Vec2,
     pub minSize: Vec2,
