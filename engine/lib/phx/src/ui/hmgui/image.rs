@@ -9,12 +9,16 @@ pub struct HmGuiImage {
     pub image: *mut Tex2D,
 }
 
-pub unsafe extern "C" fn HmGui_DrawImage(e: *mut HmGuiImage) {
-    UIRenderer_Image(
-        (*e).image,
-        (*e).widget.pos.x,
-        (*e).widget.pos.y,
-        (*e).widget.size.x,
-        (*e).widget.size.y,
-    );
+impl HmGuiImage {
+    pub fn draw(&self) {
+        unsafe {
+            UIRenderer_Image(
+                self.image,
+                self.widget.pos.x,
+                self.widget.pos.y,
+                self.widget.size.x,
+                self.widget.size.y,
+            );
+        }
+    }
 }

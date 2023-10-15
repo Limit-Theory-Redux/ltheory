@@ -135,7 +135,7 @@ unsafe extern "C" fn HmGui_BeginGroup(layout: LayoutType) {
     };
 }
 
-pub unsafe extern "C" fn HmGui_GetData(g: *mut HmGuiGroup) -> *mut HmGuiData {
+pub unsafe extern "C" fn HmGui_GetData(g: *const HmGuiGroup) -> *mut HmGuiData {
     let mut data: *mut HmGuiData = HashMap_GetRaw(this.data, (*g).widget.hash) as *mut HmGuiData;
     if data.is_null() {
         data = MemNew!(HmGuiData);
@@ -148,7 +148,7 @@ pub unsafe extern "C" fn HmGui_GetData(g: *mut HmGuiGroup) -> *mut HmGuiData {
 }
 
 unsafe extern "C" fn HmGui_CheckFocus(g: *mut HmGuiGroup) {
-    if (*g).clip as i32 != 0 && IsClipped(g, this.focusPos) as i32 != 0 {
+    if (*g).clip as i32 != 0 && (*g).is_clipped(this.focusPos) as i32 != 0 {
         return;
     }
 
@@ -214,8 +214,8 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
 pub unsafe extern "C" fn HmGui_End(input: &Input) {
     Profiler_Begin(c_str!("HmGui_End"));
     HmGui_EndGroup();
-    HmGui_ComputeSize(this.root);
-    HmGui_LayoutGroup(this.root);
+    (*this.root).compute_size();
+    (*this.root).layout();
 
     this.focus.fill(0);
 
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn HmGui_Draw() {
     Profiler_Begin(c_str!("HmGui_Draw"));
     RenderState_PushBlendMode(1);
     UIRenderer_Begin();
-    HmGui_DrawGroup(this.root, this.focus[FocusType::Mouse as usize]);
+    (*this.root).draw(this.focus[FocusType::Mouse as usize]);
     UIRenderer_End();
     RenderState_PopBlendMode();
     UIRenderer_Draw();

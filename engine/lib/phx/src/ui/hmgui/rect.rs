@@ -11,16 +11,20 @@ pub struct HmGuiRect {
     pub color: Vec4,
 }
 
-pub unsafe extern "C" fn HmGui_DrawRect(e: *mut HmGuiRect) {
-    UIRenderer_Rect(
-        (*e).widget.pos.x,
-        (*e).widget.pos.y,
-        (*e).widget.size.x,
-        (*e).widget.size.y,
-        (*e).color.x,
-        (*e).color.y,
-        (*e).color.z,
-        (*e).color.w,
-        false,
-    );
+impl HmGuiRect {
+    pub fn draw(&self) {
+        unsafe {
+            UIRenderer_Rect(
+                self.widget.pos.x,
+                self.widget.pos.y,
+                self.widget.size.x,
+                self.widget.size.y,
+                self.color.x,
+                self.color.y,
+                self.color.z,
+                self.color.w,
+                false,
+            );
+        }
+    }
 }

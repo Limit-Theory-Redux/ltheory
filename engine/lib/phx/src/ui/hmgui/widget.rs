@@ -33,11 +33,13 @@ pub struct HmGuiWidget {
     pub stretch: Vec2,
 }
 
-pub unsafe extern "C" fn HmGui_LayoutWidget(e: *mut HmGuiWidget, pos: Vec2, sx: f32, sy: f32) {
-    (*e).pos = pos;
-    (*e).size = (*e).minSize;
-    (*e).size.x += (*e).stretch.x * (sx - (*e).minSize.x);
-    (*e).size.y += (*e).stretch.y * (sy - (*e).minSize.y);
-    (*e).pos.x += (*e).align.x * (sx - (*e).size.x);
-    (*e).pos.y += (*e).align.y * (sy - (*e).size.y);
+impl HmGuiWidget {
+    pub fn layout(&mut self, pos: Vec2, sx: f32, sy: f32) {
+        self.pos = pos;
+        self.size = self.minSize;
+        self.size.x += self.stretch.x * (sx - self.minSize.x);
+        self.size.y += self.stretch.y * (sy - self.minSize.y);
+        self.pos.x += self.align.x * (sx - self.size.x);
+        self.pos.y += self.align.y * (sy - self.size.y);
+    }
 }

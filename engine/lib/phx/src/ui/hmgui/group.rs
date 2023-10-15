@@ -56,243 +56,257 @@ pub unsafe extern "C" fn HmGui_FreeGroup(g: *mut HmGuiGroup) {
     MemFree(g as *const _);
 }
 
-#[inline]
-pub unsafe extern "C" fn IsClipped(g: *mut HmGuiGroup, p: Vec2) -> bool {
-    p.x < (*g).widget.pos.x
-        || p.y < (*g).widget.pos.y
-        || (*g).widget.pos.x + (*g).widget.size.x < p.x
-        || (*g).widget.pos.y + (*g).widget.size.y < p.y
-}
-
-pub unsafe extern "C" fn HmGui_ComputeSize(g: *mut HmGuiGroup) {
-    let mut e: *mut HmGuiWidget = (*g).head;
-    while !e.is_null() {
-        if (*e).ty == WidgetType::Group {
-            HmGui_ComputeSize(e as *mut HmGuiGroup);
-        }
-        e = (*e).next;
+impl HmGuiGroup {
+    #[inline]
+    pub fn is_clipped(&self, p: Vec2) -> bool {
+        p.x < self.widget.pos.x
+            || p.y < self.widget.pos.y
+            || self.widget.pos.x + self.widget.size.x < p.x
+            || self.widget.pos.y + self.widget.size.y < p.y
     }
 
-    (*g).widget.minSize = Vec2::ZERO;
-
-    let mut e: *mut HmGuiWidget = (*g).head;
-    while !e.is_null() {
-        match (*g).layout {
-            LayoutType::Stack => {
-                (*g).widget.minSize.x = f32::max((*g).widget.minSize.x, (*e).minSize.x);
-                (*g).widget.minSize.y = f32::max((*g).widget.minSize.y, (*e).minSize.y);
-            }
-            LayoutType::Vertical => {
-                (*g).widget.minSize.x = f32::max((*g).widget.minSize.x, (*e).minSize.x);
-                (*g).widget.minSize.y += (*e).minSize.y;
-                if e != (*g).head {
-                    (*g).widget.minSize.y += (*g).spacing;
-                }
-            }
-            LayoutType::Horizontal => {
-                (*g).widget.minSize.x += (*e).minSize.x;
-                (*g).widget.minSize.y = f32::max((*g).widget.minSize.y, (*e).minSize.y);
-                if e != (*g).head {
-                    (*g).widget.minSize.x += (*g).spacing;
-                }
-            }
-            _ => {}
-        }
-        e = (*e).next;
-    }
-
-    (*g).widget.minSize.x += (*g).paddingLower.x + (*g).paddingUpper.x;
-    (*g).widget.minSize.y += (*g).paddingLower.y + (*g).paddingUpper.y;
-
-    if (*g).storeSize {
-        let data: *mut HmGuiData = HmGui_GetData(g);
-        (*data).minSize = (*g).widget.minSize;
-    }
-
-    (*g).widget.minSize.x = f32::min((*g).widget.minSize.x, (*g).maxSize.x);
-    (*g).widget.minSize.y = f32::min((*g).widget.minSize.y, (*g).maxSize.y);
-}
-
-pub unsafe extern "C" fn HmGui_LayoutGroup(g: *mut HmGuiGroup) {
-    let mut pos = (*g).widget.pos;
-    let mut size = (*g).widget.size;
-    let mut extra: f32 = 0.0f32;
-    let mut totalStretch: f32 = 0.0f32;
-
-    pos.x += (*g).paddingLower.x + (*g).offset.x;
-    pos.y += (*g).paddingLower.y + (*g).offset.y;
-    size.x -= (*g).paddingLower.x + (*g).paddingUpper.x;
-    size.y -= (*g).paddingLower.y + (*g).paddingUpper.y;
-
-    if (*g).expand {
-        if (*g).layout == LayoutType::Vertical {
-            extra = (*g).widget.size.y - (*g).widget.minSize.y;
-            let mut e: *mut HmGuiWidget = (*g).head;
+    pub fn compute_size(&mut self) {
+        unsafe {
+            let mut e = self.head;
             while !e.is_null() {
-                totalStretch += (*e).stretch.y;
+                if (*e).ty == WidgetType::Group {
+                    (*(e as *mut HmGuiGroup)).compute_size();
+                }
                 e = (*e).next;
             }
-        } else if (*g).layout == LayoutType::Horizontal {
-            extra = (*g).widget.size.x - (*g).widget.minSize.x;
-            let mut e: *mut HmGuiWidget = (*g).head;
+
+            self.widget.minSize = Vec2::ZERO;
+
+            let mut e = self.head;
             while !e.is_null() {
-                totalStretch += (*e).stretch.x;
+                match self.layout {
+                    LayoutType::Stack => {
+                        self.widget.minSize.x = f32::max(self.widget.minSize.x, (*e).minSize.x);
+                        self.widget.minSize.y = f32::max(self.widget.minSize.y, (*e).minSize.y);
+                    }
+                    LayoutType::Vertical => {
+                        self.widget.minSize.x = f32::max(self.widget.minSize.x, (*e).minSize.x);
+                        self.widget.minSize.y += (*e).minSize.y;
+                        if e != self.head {
+                            self.widget.minSize.y += self.spacing;
+                        }
+                    }
+                    LayoutType::Horizontal => {
+                        self.widget.minSize.x += (*e).minSize.x;
+                        self.widget.minSize.y = f32::max(self.widget.minSize.y, (*e).minSize.y);
+                        if e != self.head {
+                            self.widget.minSize.x += self.spacing;
+                        }
+                    }
+                    _ => {}
+                }
                 e = (*e).next;
             }
+
+            self.widget.minSize.x += self.paddingLower.x + self.paddingUpper.x;
+            self.widget.minSize.y += self.paddingLower.y + self.paddingUpper.y;
+
+            if self.storeSize {
+                let data: *mut HmGuiData = HmGui_GetData(self as *const _);
+                (*data).minSize = self.widget.minSize;
+            }
         }
 
-        if totalStretch > 0.0f32 {
-            extra /= totalStretch;
-        }
+        self.widget.minSize.x = f32::min(self.widget.minSize.x, self.maxSize.x);
+        self.widget.minSize.y = f32::min(self.widget.minSize.y, self.maxSize.y);
     }
 
-    let mut e: *mut HmGuiWidget = (*g).head;
-    while !e.is_null() {
-        match (*g).layout {
-            LayoutType::None => {
-                HmGui_LayoutWidget(e, (*e).pos, size.x, size.y);
-            }
-            LayoutType::Stack => {
-                HmGui_LayoutWidget(e, pos, size.x, size.y);
-            }
-            LayoutType::Vertical => {
-                let mut s = (*e).minSize.y;
-                if extra > 0.0f32 {
-                    s += (*e).stretch.y * extra;
+    pub fn layout(&self) {
+        let mut pos = self.widget.pos;
+        let mut size = self.widget.size;
+        let mut extra: f32 = 0.0f32;
+        let mut totalStretch: f32 = 0.0f32;
+
+        pos.x += self.paddingLower.x + self.offset.x;
+        pos.y += self.paddingLower.y + self.offset.y;
+        size.x -= self.paddingLower.x + self.paddingUpper.x;
+        size.y -= self.paddingLower.y + self.paddingUpper.y;
+
+        unsafe {
+            if self.expand {
+                if self.layout == LayoutType::Vertical {
+                    extra = self.widget.size.y - self.widget.minSize.y;
+                    let mut e = self.head;
+                    while !e.is_null() {
+                        totalStretch += (*e).stretch.y;
+                        e = (*e).next;
+                    }
+                } else if self.layout == LayoutType::Horizontal {
+                    extra = self.widget.size.x - self.widget.minSize.x;
+                    let mut e = self.head;
+                    while !e.is_null() {
+                        totalStretch += (*e).stretch.x;
+                        e = (*e).next;
+                    }
                 }
-                HmGui_LayoutWidget(e, pos, size.x, s);
-                pos.y += (*e).size.y + (*g).spacing;
-            }
-            LayoutType::Horizontal => {
-                let mut s = (*e).minSize.x;
-                if extra > 0.0f32 {
-                    s += (*e).stretch.x * extra;
+
+                if totalStretch > 0.0f32 {
+                    extra /= totalStretch;
                 }
-                HmGui_LayoutWidget(e, pos, s, size.y);
-                pos.x += (*e).size.x + (*g).spacing;
+            }
+
+            let mut e = self.head;
+            while !e.is_null() {
+                match self.layout {
+                    LayoutType::None => {
+                        (*e).layout((*e).pos, size.x, size.y);
+                    }
+                    LayoutType::Stack => {
+                        (*e).layout(pos, size.x, size.y);
+                    }
+                    LayoutType::Vertical => {
+                        let mut s = (*e).minSize.y;
+                        if extra > 0.0f32 {
+                            s += (*e).stretch.y * extra;
+                        }
+                        (*e).layout(pos, size.x, s);
+                        pos.y += (*e).size.y + self.spacing;
+                    }
+                    LayoutType::Horizontal => {
+                        let mut s = (*e).minSize.x;
+                        if extra > 0.0f32 {
+                            s += (*e).stretch.x * extra;
+                        }
+                        (*e).layout(pos, s, size.y);
+                        pos.x += (*e).size.x + self.spacing;
+                    }
+                }
+
+                if (*e).ty == WidgetType::Group {
+                    (*(e as *mut HmGuiGroup)).layout();
+                }
+
+                e = (*e).next;
+            }
+
+            if self.storeSize {
+                let data = HmGui_GetData(self as *const _);
+                (*data).size = self.widget.size;
             }
         }
-
-        if (*e).ty == WidgetType::Group {
-            HmGui_LayoutGroup(e as *mut HmGuiGroup);
-        }
-
-        e = (*e).next;
     }
 
-    if (*g).storeSize {
-        let data: *mut HmGuiData = HmGui_GetData(g);
-        (*data).size = (*g).widget.size;
-    }
-}
+    pub fn draw(&self, hmgui_focus: u64) {
+        // #if HMGUI_DRAW_GROUP_FRAMES
+        //   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
+        //   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
+        // #endif
 
-pub unsafe extern "C" fn HmGui_DrawGroup(g: *mut HmGuiGroup, hmgui_focus: u64) {
-    // #if HMGUI_DRAW_GROUP_FRAMES
-    //   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
-    //   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
-    // #endif
-
-    UIRenderer_BeginLayer(
-        (*g).widget.pos.x,
-        (*g).widget.pos.y,
-        (*g).widget.size.x,
-        (*g).widget.size.y,
-        (*g).clip,
-    );
-
-    let mut e: *mut HmGuiWidget = (*g).tail;
-    while !e.is_null() {
-        match (*e).ty {
-            WidgetType::Group => {
-                HmGui_DrawGroup(e as *mut HmGuiGroup, hmgui_focus);
-            }
-            WidgetType::Text => {
-                HmGui_DrawText(e as *mut HmGuiText);
-            }
-            WidgetType::Rect => {
-                HmGui_DrawRect(e as *mut HmGuiRect);
-            }
-            WidgetType::Image => {
-                HmGui_DrawImage(e as *mut HmGuiImage);
-            }
-        }
-        e = (*e).prev;
-    }
-
-    if (*g).focusable[FocusType::Mouse as usize] {
-        let focus: bool = hmgui_focus == (*g).widget.hash;
-        if (*g).focusStyle == FocusStyle::None {
-            UIRenderer_Panel(
-                (*g).widget.pos.x,
-                (*g).widget.pos.y,
-                (*g).widget.size.x,
-                (*g).widget.size.y,
-                0.1f32,
-                0.12f32,
-                0.13f32,
-                1.0f32,
-                8.0f32,
-                (*g).frameOpacity,
+        unsafe {
+            UIRenderer_BeginLayer(
+                self.widget.pos.x,
+                self.widget.pos.y,
+                self.widget.size.x,
+                self.widget.size.y,
+                self.clip,
             );
-        } else if (*g).focusStyle == FocusStyle::Fill {
-            if focus {
-                UIRenderer_Panel(
-                    (*g).widget.pos.x,
-                    (*g).widget.pos.y,
-                    (*g).widget.size.x,
-                    (*g).widget.size.y,
-                    0.1f32,
-                    0.5f32,
-                    1.0f32,
-                    1.0f32,
-                    0.0f32,
-                    1.0f32,
-                );
-            } else {
-                UIRenderer_Panel(
-                    (*g).widget.pos.x,
-                    (*g).widget.pos.y,
-                    (*g).widget.size.x,
-                    (*g).widget.size.y,
-                    0.15f32,
-                    0.15f32,
-                    0.15f32,
-                    0.8f32,
-                    0.0f32,
-                    (*g).frameOpacity,
-                );
+
+            let mut e = self.tail;
+            while !e.is_null() {
+                match (*e).ty {
+                    WidgetType::Group => {
+                        (*(e as *mut HmGuiGroup)).draw(hmgui_focus);
+                    }
+                    WidgetType::Text => {
+                        (*(e as *mut HmGuiText)).draw();
+                    }
+                    WidgetType::Rect => {
+                        (*(e as *mut HmGuiRect)).draw();
+                    }
+                    WidgetType::Image => {
+                        (*(e as *mut HmGuiImage)).draw();
+                    }
+                }
+                e = (*e).prev;
             }
-        } else if (*g).focusStyle == FocusStyle::Outline {
-            if focus {
-                UIRenderer_Rect(
-                    (*g).widget.pos.x,
-                    (*g).widget.pos.y,
-                    (*g).widget.size.x,
-                    (*g).widget.size.y,
-                    0.1f32,
-                    0.5f32,
-                    1.0f32,
-                    1.0f32,
-                    true,
-                );
+
+            if self.focusable[FocusType::Mouse as usize] {
+                let focus: bool = hmgui_focus == self.widget.hash;
+
+                match self.focusStyle {
+                    FocusStyle::None => {
+                        UIRenderer_Panel(
+                            self.widget.pos.x,
+                            self.widget.pos.y,
+                            self.widget.size.x,
+                            self.widget.size.y,
+                            0.1f32,
+                            0.12f32,
+                            0.13f32,
+                            1.0f32,
+                            8.0f32,
+                            self.frameOpacity,
+                        );
+                    }
+                    FocusStyle::Fill => {
+                        if focus {
+                            UIRenderer_Panel(
+                                self.widget.pos.x,
+                                self.widget.pos.y,
+                                self.widget.size.x,
+                                self.widget.size.y,
+                                0.1f32,
+                                0.5f32,
+                                1.0f32,
+                                1.0f32,
+                                0.0f32,
+                                1.0f32,
+                            );
+                        } else {
+                            UIRenderer_Panel(
+                                self.widget.pos.x,
+                                self.widget.pos.y,
+                                self.widget.size.x,
+                                self.widget.size.y,
+                                0.15f32,
+                                0.15f32,
+                                0.15f32,
+                                0.8f32,
+                                0.0f32,
+                                self.frameOpacity,
+                            );
+                        }
+                    }
+                    FocusStyle::Outline => {
+                        if focus {
+                            UIRenderer_Rect(
+                                self.widget.pos.x,
+                                self.widget.pos.y,
+                                self.widget.size.x,
+                                self.widget.size.y,
+                                0.1f32,
+                                0.5f32,
+                                1.0f32,
+                                1.0f32,
+                                true,
+                            );
+                        }
+                    }
+                    FocusStyle::Underline => {
+                        UIRenderer_Rect(
+                            self.widget.pos.x,
+                            self.widget.pos.y,
+                            self.widget.size.x,
+                            self.widget.size.y,
+                            0.3f32,
+                            0.3f32,
+                            0.3f32,
+                            if focus as i32 != 0 {
+                                0.5f32
+                            } else {
+                                self.frameOpacity
+                            },
+                            false,
+                        );
+                    }
+                }
             }
-        } else if (*g).focusStyle == FocusStyle::Underline {
-            UIRenderer_Rect(
-                (*g).widget.pos.x,
-                (*g).widget.pos.y,
-                (*g).widget.size.x,
-                (*g).widget.size.y,
-                0.3f32,
-                0.3f32,
-                0.3f32,
-                if focus as i32 != 0 {
-                    0.5f32
-                } else {
-                    (*g).frameOpacity
-                },
-                false,
-            );
+            UIRenderer_EndLayer();
         }
     }
-    UIRenderer_EndLayer();
 }

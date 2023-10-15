@@ -19,20 +19,24 @@ pub unsafe extern "C" fn HmGui_FreeText(e: *mut HmGuiText) {
     MemFree(e as *const _);
 }
 
-pub unsafe extern "C" fn HmGui_DrawText(e: *mut HmGuiText) {
-    // #if HMGUI_DRAW_GROUP_FRAMES
-    //   Draw_Color(0.5f, 0.2f, 0.2f, 0.5f);
-    //   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
-    //#endif
+impl HmGuiText {
+    pub fn draw(&self) {
+        // #if HMGUI_DRAW_GROUP_FRAMES
+        //   Draw_Color(0.5f, 0.2f, 0.2f, 0.5f);
+        //   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
+        //#endif
 
-    UIRenderer_Text(
-        (*e).font,
-        (*e).text,
-        (*e).widget.pos.x,
-        (*e).widget.pos.y + (*e).widget.minSize.y,
-        (*e).color.x,
-        (*e).color.y,
-        (*e).color.z,
-        (*e).color.w,
-    );
+        unsafe {
+            UIRenderer_Text(
+                self.font,
+                self.text,
+                self.widget.pos.x,
+                self.widget.pos.y + self.widget.minSize.y,
+                self.color.x,
+                self.color.y,
+                self.color.z,
+                self.color.w,
+            );
+        }
+    }
 }
