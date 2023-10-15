@@ -33,19 +33,10 @@ pub struct HmGui {
     pub root: *mut HmGuiGroup,
     pub last: *mut HmGuiWidget,
     pub style: *mut HmGuiStyle,
-    pub clipRect: *mut HmGuiClipRect,
     pub data: *mut HashMap,
     pub focus: [u64; 2],
     pub focusPos: Vec2,
     pub activate: bool,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HmGuiClipRect {
-    pub prev: *mut HmGuiClipRect,
-    pub lower: Vec2,
-    pub upper: Vec2,
 }
 
 static mut this: HmGui = HmGui {
@@ -53,7 +44,6 @@ static mut this: HmGui = HmGui {
     root: std::ptr::null_mut(),
     last: std::ptr::null_mut(),
     style: std::ptr::null_mut(),
-    clipRect: std::ptr::null_mut(),
     data: std::ptr::null_mut(),
     focus: [0; 2],
     focusPos: Vec2::ZERO,
@@ -189,7 +179,6 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
         (*this.style).colorFrame = Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32);
         (*this.style).colorText = Vec4::ONE;
 
-        this.clipRect = std::ptr::null_mut();
         this.data = HashMap_Create(0, 128);
 
         this.focus.fill(0);
