@@ -1,69 +1,30 @@
+mod data;
+mod focus;
+mod group;
+mod image;
+mod rect;
+mod style;
+mod text;
+mod widget;
+
 use internal::*;
+
+use self::data::*;
+use self::focus::*;
+use self::group::*;
+use self::image::*;
+use self::rect::*;
+use self::style::*;
+use self::text::*;
+use self::widget::*;
 
 use super::*;
 use crate::common::*;
-// use crate::input::*;
 use crate::input::*;
 use crate::math::*;
 use crate::render::*;
 use crate::system::*;
 use crate::*;
-
-pub const Layout_None: u32 = 0;
-pub const Layout_Stack: u32 = 1;
-pub const Layout_Vertical: u32 = 2;
-pub const Layout_Horizontal: u32 = 3;
-
-pub const Widget_Group: u32 = 0;
-pub const Widget_Text: u32 = 1;
-pub const Widget_Rect: u32 = 2;
-pub const Widget_Image: u32 = 3;
-
-pub const FocusStyle_None: u32 = 0;
-pub const FocusStyle_Fill: u32 = 1;
-pub const FocusStyle_Outline: u32 = 2;
-pub const FocusStyle_Underline: u32 = 3;
-
-pub const FocusType_Mouse: i32 = 0;
-pub const FocusType_Scroll: i32 = 1;
-pub const FocusType_SIZE: i32 = 2;
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HmGuiGroup {
-    pub widget: HmGuiWidget,
-    pub head: *mut HmGuiWidget,
-    pub tail: *mut HmGuiWidget,
-    pub layout: u32,
-    pub children: u32,
-    pub focusStyle: u32,
-    pub paddingLower: Vec2,
-    pub paddingUpper: Vec2,
-    pub offset: Vec2,
-    pub maxSize: Vec2,
-    pub totalStretch: Vec2,
-    pub spacing: f32,
-    pub frameOpacity: f32,
-    pub clip: bool,
-    pub expand: bool,
-    pub focusable: [bool; 2],
-    pub storeSize: bool,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HmGuiWidget {
-    pub parent: *mut HmGuiGroup,
-    pub next: *mut HmGuiWidget,
-    pub prev: *mut HmGuiWidget,
-    pub hash: u64,
-    pub ty: u32,
-    pub pos: Vec2,
-    pub size: Vec2,
-    pub minSize: Vec2,
-    pub align: Vec2,
-    pub stretch: Vec2,
-}
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -87,48 +48,6 @@ pub struct HmGuiClipRect {
     pub upper: Vec2,
 }
 
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HmGuiStyle {
-    pub prev: *mut HmGuiStyle,
-    pub font: *mut Font,
-    pub spacing: f32,
-    pub colorPrimary: Vec4,
-    pub colorFrame: Vec4,
-    pub colorText: Vec4,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HmGuiText {
-    pub widget: HmGuiWidget,
-    pub font: *mut Font,
-    pub text: *const libc::c_char,
-    pub color: Vec4,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HmGuiData {
-    pub offset: Vec2,
-    pub minSize: Vec2,
-    pub size: Vec2,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HmGuiImage {
-    pub widget: HmGuiWidget,
-    pub image: *mut Tex2D,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct HmGuiRect {
-    pub widget: HmGuiWidget,
-    pub color: Vec4,
-}
-
 static mut this: HmGui = HmGui {
     group: std::ptr::null_mut(),
     root: std::ptr::null_mut(),
@@ -142,7 +61,7 @@ static mut this: HmGui = HmGui {
 };
 static mut init_hmgui: bool = false;
 
-unsafe extern "C" fn HmGui_InitWidget(e: *mut HmGuiWidget, ty: u32) {
+unsafe extern "C" fn HmGui_InitWidget(e: *mut HmGuiWidget, ty: WidgetType) {
     (*e).parent = this.group;
     (*e).next = std::ptr::null_mut();
     (*e).prev = if !(this.group).is_null() {
@@ -182,14 +101,14 @@ unsafe extern "C" fn HmGui_InitWidget(e: *mut HmGuiWidget, ty: u32) {
     this.last = e;
 }
 
-unsafe extern "C" fn HmGui_BeginGroup(layout: u32) {
+unsafe extern "C" fn HmGui_BeginGroup(layout: LayoutType) {
     let e = MemNew!(HmGuiGroup);
-    HmGui_InitWidget(&mut (*e).widget, 0);
+    HmGui_InitWidget(&mut (*e).widget, WidgetType::Group);
     (*e).head = std::ptr::null_mut();
     (*e).tail = std::ptr::null_mut();
     (*e).layout = layout;
     (*e).children = 0;
-    (*e).focusStyle = FocusStyle_None;
+    (*e).focusStyle = FocusStyle::None;
     (*e).paddingLower = Vec2::ZERO;
     (*e).paddingUpper = Vec2::ZERO;
     (*e).offset = Vec2::ZERO;
@@ -198,52 +117,25 @@ unsafe extern "C" fn HmGui_BeginGroup(layout: u32) {
     (*e).frameOpacity = 0.0f32;
     (*e).clip = false;
     (*e).expand = true;
-    for i in 0..FocusType_SIZE {
-        (*e).focusable[i as usize] = false;
-    }
+    (*e).focusable.fill(false);
     (*e).storeSize = false;
     this.group = e;
 
     match layout {
-        Layout_Stack => {
+        LayoutType::Stack => {
             (*e).widget.stretch = Vec2::ONE;
         }
-        Layout_Vertical => {
+        LayoutType::Vertical => {
             (*e).widget.stretch = Vec2::X;
         }
-        Layout_Horizontal => {
+        LayoutType::Horizontal => {
             (*e).widget.stretch = Vec2::Y;
         }
         _ => {}
     };
 }
 
-unsafe extern "C" fn HmGui_FreeText(e: *mut HmGuiText) {
-    StrFree((*e).text);
-    MemFree(e as *const _);
-}
-
-unsafe extern "C" fn HmGui_FreeGroup(g: *mut HmGuiGroup) {
-    let mut e: *mut HmGuiWidget = (*g).head;
-    while !e.is_null() {
-        let next: *mut HmGuiWidget = (*e).next;
-        match (*e).ty {
-            Widget_Group => {
-                HmGui_FreeGroup(e as *mut HmGuiGroup);
-            }
-            Widget_Text => {
-                HmGui_FreeText(e as *mut HmGuiText);
-            }
-            _ => {
-                MemFree(e as *const _);
-            }
-        }
-        e = next;
-    }
-    MemFree(g as *const _);
-}
-
-unsafe extern "C" fn HmGui_GetData(g: *mut HmGuiGroup) -> *mut HmGuiData {
+pub unsafe extern "C" fn HmGui_GetData(g: *mut HmGuiGroup) -> *mut HmGuiData {
     let mut data: *mut HmGuiData = HashMap_GetRaw(this.data, (*g).widget.hash) as *mut HmGuiData;
     if data.is_null() {
         data = MemNew!(HmGuiData);
@@ -255,146 +147,6 @@ unsafe extern "C" fn HmGui_GetData(g: *mut HmGuiGroup) -> *mut HmGuiData {
     data
 }
 
-unsafe extern "C" fn HmGui_ComputeSize(g: *mut HmGuiGroup) {
-    let mut e: *mut HmGuiWidget = (*g).head;
-    while !e.is_null() {
-        if (*e).ty == Widget_Group {
-            HmGui_ComputeSize(e as *mut HmGuiGroup);
-        }
-        e = (*e).next;
-    }
-
-    (*g).widget.minSize = Vec2::ZERO;
-
-    let mut e: *mut HmGuiWidget = (*g).head;
-    while !e.is_null() {
-        match (*g).layout {
-            Layout_Stack => {
-                (*g).widget.minSize.x = f32::max((*g).widget.minSize.x, (*e).minSize.x);
-                (*g).widget.minSize.y = f32::max((*g).widget.minSize.y, (*e).minSize.y);
-            }
-            Layout_Vertical => {
-                (*g).widget.minSize.x = f32::max((*g).widget.minSize.x, (*e).minSize.x);
-                (*g).widget.minSize.y += (*e).minSize.y;
-                if e != (*g).head {
-                    (*g).widget.minSize.y += (*g).spacing;
-                }
-            }
-            Layout_Horizontal => {
-                (*g).widget.minSize.x += (*e).minSize.x;
-                (*g).widget.minSize.y = f32::max((*g).widget.minSize.y, (*e).minSize.y);
-                if e != (*g).head {
-                    (*g).widget.minSize.x += (*g).spacing;
-                }
-            }
-            _ => {}
-        }
-        e = (*e).next;
-    }
-
-    (*g).widget.minSize.x += (*g).paddingLower.x + (*g).paddingUpper.x;
-    (*g).widget.minSize.y += (*g).paddingLower.y + (*g).paddingUpper.y;
-
-    if (*g).storeSize {
-        let data: *mut HmGuiData = HmGui_GetData(g);
-        (*data).minSize = (*g).widget.minSize;
-    }
-
-    (*g).widget.minSize.x = f32::min((*g).widget.minSize.x, (*g).maxSize.x);
-    (*g).widget.minSize.y = f32::min((*g).widget.minSize.y, (*g).maxSize.y);
-}
-
-unsafe extern "C" fn HmGui_LayoutWidget(e: *mut HmGuiWidget, pos: Vec2, sx: f32, sy: f32) {
-    (*e).pos = pos;
-    (*e).size = (*e).minSize;
-    (*e).size.x += (*e).stretch.x * (sx - (*e).minSize.x);
-    (*e).size.y += (*e).stretch.y * (sy - (*e).minSize.y);
-    (*e).pos.x += (*e).align.x * (sx - (*e).size.x);
-    (*e).pos.y += (*e).align.y * (sy - (*e).size.y);
-}
-
-unsafe extern "C" fn HmGui_LayoutGroup(g: *mut HmGuiGroup) {
-    let mut pos = (*g).widget.pos;
-    let mut size = (*g).widget.size;
-    let mut extra: f32 = 0.0f32;
-    let mut totalStretch: f32 = 0.0f32;
-
-    pos.x += (*g).paddingLower.x + (*g).offset.x;
-    pos.y += (*g).paddingLower.y + (*g).offset.y;
-    size.x -= (*g).paddingLower.x + (*g).paddingUpper.x;
-    size.y -= (*g).paddingLower.y + (*g).paddingUpper.y;
-
-    if (*g).expand {
-        if (*g).layout == Layout_Vertical {
-            extra = (*g).widget.size.y - (*g).widget.minSize.y;
-            let mut e: *mut HmGuiWidget = (*g).head;
-            while !e.is_null() {
-                totalStretch += (*e).stretch.y;
-                e = (*e).next;
-            }
-        } else if (*g).layout == 3 {
-            extra = (*g).widget.size.x - (*g).widget.minSize.x;
-            let mut e: *mut HmGuiWidget = (*g).head;
-            while !e.is_null() {
-                totalStretch += (*e).stretch.x;
-                e = (*e).next;
-            }
-        }
-
-        if totalStretch > 0.0f32 {
-            extra /= totalStretch;
-        }
-    }
-
-    let mut e: *mut HmGuiWidget = (*g).head;
-    while !e.is_null() {
-        match (*g).layout {
-            Layout_None => {
-                HmGui_LayoutWidget(e, (*e).pos, size.x, size.y);
-            }
-            Layout_Stack => {
-                HmGui_LayoutWidget(e, pos, size.x, size.y);
-            }
-            Layout_Vertical => {
-                let mut s = (*e).minSize.y;
-                if extra > 0.0f32 {
-                    s += (*e).stretch.y * extra;
-                }
-                HmGui_LayoutWidget(e, pos, size.x, s);
-                pos.y += (*e).size.y + (*g).spacing;
-            }
-            Layout_Horizontal => {
-                let mut s = (*e).minSize.x;
-                if extra > 0.0f32 {
-                    s += (*e).stretch.x * extra;
-                }
-                HmGui_LayoutWidget(e, pos, s, size.y);
-                pos.x += (*e).size.x + (*g).spacing;
-            }
-            _ => {}
-        }
-
-        if (*e).ty == Widget_Group {
-            HmGui_LayoutGroup(e as *mut HmGuiGroup);
-        }
-
-        e = (*e).next;
-    }
-
-    if (*g).storeSize {
-        let data: *mut HmGuiData = HmGui_GetData(g);
-        (*data).size = (*g).widget.size;
-    }
-}
-
-#[inline]
-unsafe extern "C" fn IsClipped(g: *mut HmGuiGroup, p: Vec2) -> bool {
-    p.x < (*g).widget.pos.x
-        || p.y < (*g).widget.pos.y
-        || (*g).widget.pos.x + (*g).widget.size.x < p.x
-        || (*g).widget.pos.y + (*g).widget.size.y < p.y
-}
-
 unsafe extern "C" fn HmGui_CheckFocus(g: *mut HmGuiGroup) {
     if (*g).clip as i32 != 0 && IsClipped(g, this.focusPos) as i32 != 0 {
         return;
@@ -402,13 +154,13 @@ unsafe extern "C" fn HmGui_CheckFocus(g: *mut HmGuiGroup) {
 
     let mut e: *mut HmGuiWidget = (*g).tail;
     while !e.is_null() {
-        if (*e).ty == Widget_Group {
+        if (*e).ty == WidgetType::Group {
             HmGui_CheckFocus(e as *mut HmGuiGroup);
         }
         e = (*e).prev;
     }
 
-    for i in 0..FocusType_SIZE {
+    for i in 0..this.focus.len() {
         if this.focus[i as usize] == 0
             && (*g).focusable[i as usize] as i32 != 0
             && (*g).widget.pos.x <= this.focusPos.x
@@ -419,160 +171,6 @@ unsafe extern "C" fn HmGui_CheckFocus(g: *mut HmGuiGroup) {
             this.focus[i as usize] = (*g).widget.hash;
         }
     }
-}
-
-unsafe extern "C" fn HmGui_DrawText(e: *mut HmGuiText) {
-    // #if HMGUI_DRAW_GROUP_FRAMES
-    //   Draw_Color(0.5f, 0.2f, 0.2f, 0.5f);
-    //   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
-    //#endif
-
-    UIRenderer_Text(
-        (*e).font,
-        (*e).text,
-        (*e).widget.pos.x,
-        (*e).widget.pos.y + (*e).widget.minSize.y,
-        (*e).color.x,
-        (*e).color.y,
-        (*e).color.z,
-        (*e).color.w,
-    );
-}
-
-unsafe extern "C" fn HmGui_DrawRect(e: *mut HmGuiRect) {
-    UIRenderer_Rect(
-        (*e).widget.pos.x,
-        (*e).widget.pos.y,
-        (*e).widget.size.x,
-        (*e).widget.size.y,
-        (*e).color.x,
-        (*e).color.y,
-        (*e).color.z,
-        (*e).color.w,
-        false,
-    );
-}
-
-unsafe extern "C" fn HmGui_DrawImage(e: *mut HmGuiImage) {
-    UIRenderer_Image(
-        (*e).image,
-        (*e).widget.pos.x,
-        (*e).widget.pos.y,
-        (*e).widget.size.x,
-        (*e).widget.size.y,
-    );
-}
-
-unsafe extern "C" fn HmGui_DrawGroup(g: *mut HmGuiGroup) {
-    // #if HMGUI_DRAW_GROUP_FRAMES
-    //   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
-    //   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
-    // #endif
-
-    UIRenderer_BeginLayer(
-        (*g).widget.pos.x,
-        (*g).widget.pos.y,
-        (*g).widget.size.x,
-        (*g).widget.size.y,
-        (*g).clip,
-    );
-
-    let mut e: *mut HmGuiWidget = (*g).tail;
-    while !e.is_null() {
-        match (*e).ty {
-            Widget_Group => {
-                HmGui_DrawGroup(e as *mut HmGuiGroup);
-            }
-            Widget_Text => {
-                HmGui_DrawText(e as *mut HmGuiText);
-            }
-            Widget_Rect => {
-                HmGui_DrawRect(e as *mut HmGuiRect);
-            }
-            Widget_Image => {
-                HmGui_DrawImage(e as *mut HmGuiImage);
-            }
-            _ => {}
-        }
-        e = (*e).prev;
-    }
-
-    if (*g).focusable[FocusType_Mouse as usize] {
-        let focus: bool = this.focus[FocusType_Mouse as usize] == (*g).widget.hash;
-        if (*g).focusStyle == FocusStyle_None {
-            UIRenderer_Panel(
-                (*g).widget.pos.x,
-                (*g).widget.pos.y,
-                (*g).widget.size.x,
-                (*g).widget.size.y,
-                0.1f32,
-                0.12f32,
-                0.13f32,
-                1.0f32,
-                8.0f32,
-                (*g).frameOpacity,
-            );
-        } else if (*g).focusStyle == FocusStyle_Fill {
-            if focus {
-                UIRenderer_Panel(
-                    (*g).widget.pos.x,
-                    (*g).widget.pos.y,
-                    (*g).widget.size.x,
-                    (*g).widget.size.y,
-                    0.1f32,
-                    0.5f32,
-                    1.0f32,
-                    1.0f32,
-                    0.0f32,
-                    1.0f32,
-                );
-            } else {
-                UIRenderer_Panel(
-                    (*g).widget.pos.x,
-                    (*g).widget.pos.y,
-                    (*g).widget.size.x,
-                    (*g).widget.size.y,
-                    0.15f32,
-                    0.15f32,
-                    0.15f32,
-                    0.8f32,
-                    0.0f32,
-                    (*g).frameOpacity,
-                );
-            }
-        } else if (*g).focusStyle == FocusStyle_Outline {
-            if focus {
-                UIRenderer_Rect(
-                    (*g).widget.pos.x,
-                    (*g).widget.pos.y,
-                    (*g).widget.size.x,
-                    (*g).widget.size.y,
-                    0.1f32,
-                    0.5f32,
-                    1.0f32,
-                    1.0f32,
-                    true,
-                );
-            }
-        } else if (*g).focusStyle == FocusStyle_Underline {
-            UIRenderer_Rect(
-                (*g).widget.pos.x,
-                (*g).widget.pos.y,
-                (*g).widget.size.x,
-                (*g).widget.size.y,
-                0.3f32,
-                0.3f32,
-                0.3f32,
-                if focus as i32 != 0 {
-                    0.5f32
-                } else {
-                    (*g).frameOpacity
-                },
-                false,
-            );
-        }
-    }
-    UIRenderer_EndLayer();
 }
 
 #[no_mangle]
@@ -594,9 +192,7 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
         this.clipRect = std::ptr::null_mut();
         this.data = HashMap_Create(0, 128);
 
-        for i in 0..FocusType_SIZE {
-            this.focus[i as usize] = 0;
-        }
+        this.focus.fill(0);
         this.activate = false;
     }
 
@@ -607,7 +203,7 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
     this.last = std::ptr::null_mut();
     this.activate = input.mouse().is_pressed(MouseControl::Left);
 
-    HmGui_BeginGroup(0);
+    HmGui_BeginGroup(LayoutType::None);
     (*this.group).clip = true;
     (*this.group).widget.pos = Vec2::ZERO;
     (*this.group).widget.size = Vec2::new(sx, sy);
@@ -621,9 +217,7 @@ pub unsafe extern "C" fn HmGui_End(input: &Input) {
     HmGui_ComputeSize(this.root);
     HmGui_LayoutGroup(this.root);
 
-    for i in 0..FocusType_SIZE {
-        this.focus[i as usize] = 0;
-    }
+    this.focus.fill(0);
 
     let mouse = input.mouse();
 
@@ -638,7 +232,7 @@ pub unsafe extern "C" fn HmGui_Draw() {
     Profiler_Begin(c_str!("HmGui_Draw"));
     RenderState_PushBlendMode(1);
     UIRenderer_Begin();
-    HmGui_DrawGroup(this.root);
+    HmGui_DrawGroup(this.root, this.focus[FocusType::Mouse as usize]);
     UIRenderer_End();
     RenderState_PopBlendMode();
     UIRenderer_Draw();
@@ -647,17 +241,17 @@ pub unsafe extern "C" fn HmGui_Draw() {
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_BeginGroupX() {
-    HmGui_BeginGroup(Layout_Horizontal);
+    HmGui_BeginGroup(LayoutType::Horizontal);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_BeginGroupY() {
-    HmGui_BeginGroup(Layout_Vertical);
+    HmGui_BeginGroup(LayoutType::Vertical);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_BeginGroupStack() {
-    HmGui_BeginGroup(Layout_Stack);
+    HmGui_BeginGroup(LayoutType::Stack);
 }
 
 #[no_mangle]
@@ -687,7 +281,7 @@ pub unsafe extern "C" fn HmGui_BeginScroll(maxSize: f32) {
 pub unsafe extern "C" fn HmGui_EndScroll(input: &Input) {
     let data = HmGui_GetData(this.group);
 
-    if HmGui_GroupHasFocus(1) {
+    if HmGui_GroupHasFocus(FocusType::Scroll) {
         let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
         (*data).offset.y -= 10.0f32 * scroll_y as f32;
@@ -729,13 +323,13 @@ pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char, input: &
     HmGui_BeginGroupStack();
     HmGui_SetStretch(0.0f32, 0.0f32);
 
-    (*this.group).focusStyle = FocusStyle_None;
+    (*this.group).focusStyle = FocusStyle::None;
     (*this.group).frameOpacity = 0.95f32;
 
     let data = HmGui_GetData(this.group);
     let mouse = input.mouse();
 
-    if HmGui_GroupHasFocus(0) && mouse.is_down(MouseControl::Left) {
+    if HmGui_GroupHasFocus(FocusType::Mouse) && mouse.is_down(MouseControl::Left) {
         (*data).offset.x += mouse.value(MouseControl::DeltaX);
         (*data).offset.y += mouse.value(MouseControl::DeltaY);
     }
@@ -760,9 +354,9 @@ pub unsafe extern "C" fn HmGui_EndWindow() {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Button(label: *const libc::c_char) -> bool {
     HmGui_BeginGroupStack();
-    (*this.group).focusStyle = FocusStyle_Fill;
+    (*this.group).focusStyle = FocusStyle::Fill;
     (*this.group).frameOpacity = 0.5f32;
-    let focus: bool = HmGui_GroupHasFocus(FocusType_Mouse);
+    let focus: bool = HmGui_GroupHasFocus(FocusType::Mouse);
     HmGui_SetPadding(8.0f32, 8.0f32);
     HmGui_Text(label);
     HmGui_SetAlign(0.5f32, 0.5f32);
@@ -773,8 +367,8 @@ pub unsafe extern "C" fn HmGui_Button(label: *const libc::c_char) -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Checkbox(label: *const libc::c_char, mut value: bool) -> bool {
     HmGui_BeginGroupX();
-    (*this.group).focusStyle = FocusStyle_Underline;
-    if HmGui_GroupHasFocus(FocusType_Mouse) as i32 != 0 && this.activate as i32 != 0 {
+    (*this.group).focusStyle = FocusStyle::Underline;
+    if HmGui_GroupHasFocus(FocusType::Mouse) as i32 != 0 && this.activate as i32 != 0 {
         value = !value;
     }
     HmGui_SetPadding(4.0f32, 4.0f32);
@@ -824,7 +418,7 @@ pub unsafe extern "C" fn HmGui_Slider(_lower: f32, _upper: f32, _value: f32) -> 
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Image(image: *mut Tex2D) {
     let e = MemNew!(HmGuiImage);
-    HmGui_InitWidget(&mut (*e).widget, Widget_Image);
+    HmGui_InitWidget(&mut (*e).widget, WidgetType::Image);
     (*e).image = image;
     (*e).widget.stretch = Vec2::ONE;
 }
@@ -832,7 +426,7 @@ pub unsafe extern "C" fn HmGui_Image(image: *mut Tex2D) {
 #[no_mangle]
 pub unsafe extern "C" fn HmGui_Rect(sx: f32, sy: f32, r: f32, g: f32, b: f32, a: f32) {
     let e = MemNew!(HmGuiRect);
-    HmGui_InitWidget(&mut (*e).widget, Widget_Rect);
+    HmGui_InitWidget(&mut (*e).widget, WidgetType::Rect);
     (*e).color = Vec4::new(r, g, b, a);
     (*e).widget.minSize = Vec2::new(sx, sy);
 }
@@ -871,7 +465,7 @@ pub unsafe extern "C" fn HmGui_TextEx(
 ) {
     let e = MemNew!(HmGuiText);
 
-    HmGui_InitWidget(&mut (*e).widget, Widget_Text);
+    HmGui_InitWidget(&mut (*e).widget, WidgetType::Text);
 
     (*e).font = font;
     (*e).text = StrDup(text);
@@ -934,7 +528,7 @@ pub unsafe extern "C" fn HmGui_SetStretch(x: f32, y: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_GroupHasFocus(ty: i32) -> bool {
+pub unsafe extern "C" fn HmGui_GroupHasFocus(ty: FocusType) -> bool {
     (*this.group).focusable[ty as usize] = true;
     this.focus[ty as usize] == (*this.group).widget.hash
 }
