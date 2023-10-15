@@ -12,7 +12,7 @@ function requireAll(path)
 
     return collectAllLuaFiles(path,
         function(fileName, filePath) return require(filePath) end,
-        function(p, r) requireAllCache[p] = r end)
+        function(path, results) requireAllCache[path] = results end)
 end
 
 -- Loads generated Lua modules from the path recursively. Calls `declareType` function of each module loader.
@@ -57,7 +57,7 @@ end
 -- @processFile(fileName, filePath) - function to apply to each found Lua file
 -- @processResults(path, results) - function to apply to each folder results
 -- Returns:
--- @results - folder's hierarchical loaders
+-- @results - folder's hierarchical results
 function collectAllLuaFiles(path, processFile, processResults)
     local pathWithSlashes = path:gsub('%.', '/')
 
