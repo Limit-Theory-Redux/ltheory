@@ -12,14 +12,14 @@ function Todo:add(child)
 end
 
 function Todo:show()
-    self.done = HmGui.Checkbox(self.name, self.done)
+    self.done = HmGuiInstance:checkbox(self.name, self.done)
     if #self.children > 0 then
-        HmGui.BeginGroupY()
-        HmGui.SetPaddingLeft(12)
+        HmGuiInstance:beginGroupY()
+        HmGuiInstance:setPaddingLeft(12)
         for i = 1, #self.children do
             self.children[i]:show()
         end
-        HmGui.EndGroup()
+        HmGuiInstance:endGroup()
     end
 end
 
@@ -54,19 +54,19 @@ function Test:onInit()
 end
 
 function Test:showTodo()
-    HmGui.BeginWindow("HmGui Todo List", InputInstance)
-    HmGui.BeginScroll(512)
+    HmGuiInstance:beginWindow("HmGui Todo List", InputInstance)
+    HmGuiInstance:beginScroll(512)
     todo:show()
-    HmGui.EndScroll(InputInstance)
-    HmGui.EndWindow()
-    HmGui.SetAlign(0.5, 0.5)
+    HmGuiInstance:endScroll(InputInstance)
+    HmGuiInstance:endWindow()
+    HmGuiInstance:setAlign(0.5, 0.5)
 end
 
 function Test:onUpdate(dt)
-    HmGui.Begin(self.resX, self.resY, InputInstance)
-    HmGui.Image(self.bg)
+    HmGuiInstance:beginGui(self.resX, self.resY, InputInstance)
+    HmGuiInstance:image(self.bg)
     self:showTodo()
-    HmGui.End(InputInstance)
+    HmGuiInstance:endGui(InputInstance)
 end
 
 function Test:onDraw()
@@ -74,7 +74,7 @@ function Test:onDraw()
     self.renderer:stop()
     self.renderer:startUI()
     Viewport.Push(0, 0, self.resX, self.resY, true)
-    HmGui.Draw()
+    HmGuiInstance:draw()
     Viewport.Pop()
     self.renderer:stopUI()
     self.renderer:present(0, 0, self.resX, self.resY)

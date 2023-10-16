@@ -6,7 +6,8 @@ pub enum FocusStyle {
     Underline,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[luajit_ffi_gen::luajit_ffi]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum FocusType {
     Mouse,
     Scroll,

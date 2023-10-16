@@ -111,13 +111,13 @@ function LTheory:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
 
-    HmGui.Begin(self.resX, self.resY, InputInstance) -- required for HmGui.Draw() to work without crashing
-    HmGui.End(InputInstance)
+    HmGuiInstance:beginGui(self.resX, self.resY, InputInstance) -- required for HmGuiInstance:draw() to work without crashing
+    HmGuiInstance:endGui(InputInstance)
 end
 
 function LTheory:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw() -- post-Rust, required for game universe to be displayed
+    HmGuiInstance:draw() -- post-Rust, required for game universe to be displayed
 end
 
 return LTheory

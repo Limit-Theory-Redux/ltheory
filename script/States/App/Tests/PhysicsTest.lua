@@ -237,13 +237,13 @@ function LTheory:onUpdate(dt)
         end
     end
 
-    HmGui.Begin(self.resX, self.resY, InputInstance)
-    HmGui.End(InputInstance)
+    HmGuiInstance:beginGui(self.resX, self.resY, InputInstance)
+    HmGuiInstance:endGui(InputInstance)
 end
 
 function LTheory:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw()
+    HmGuiInstance:draw()
 end
 
 return LTheory

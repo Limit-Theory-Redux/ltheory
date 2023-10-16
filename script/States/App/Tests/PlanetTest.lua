@@ -60,13 +60,13 @@ end
 function PlanetTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
-    HmGui.Begin(self.resX, self.resY, InputInstance)
-    HmGui.End(InputInstance)
+    HmGuiInstance:beginGui(self.resX, self.resY, InputInstance)
+    HmGuiInstance:endGui(InputInstance)
 end
 
 function PlanetTest:onDraw()
     self.canvas:draw(self.resX, self.resY)
-    HmGui.Draw()
+    HmGuiInstance:draw()
 end
 
 return PlanetTest

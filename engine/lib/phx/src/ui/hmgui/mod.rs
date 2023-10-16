@@ -184,9 +184,9 @@ impl HmGui {
     }
 }
 
-#[luajit_ffi_gen::luajit_ffi(name = "HmGuiFfi")]
+#[luajit_ffi_gen::luajit_ffi]
 impl HmGui {
-    pub fn begin(&mut self, sx: f32, sy: f32, input: &Input) {
+    pub fn begin_gui(&mut self, sx: f32, sy: f32, input: &Input) {
         unsafe {
             if !(self.root).is_null() {
                 HmGui_FreeGroup(self.root);
@@ -205,7 +205,7 @@ impl HmGui {
         }
     }
 
-    pub fn end(&mut self, input: &Input) {
+    pub fn end_gui(&mut self, input: &Input) {
         unsafe {
             Profiler_Begin(c_str!("HmGui_End"));
 
