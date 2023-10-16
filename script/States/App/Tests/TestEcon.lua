@@ -33,6 +33,7 @@ end
 
 function TestEcon:onUpdate(dt)
     self.system:update(dt)
+    self.system:updateEconomy(dt)
     self.canvas:update(dt)
 end
 
