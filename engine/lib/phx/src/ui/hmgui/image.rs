@@ -2,7 +2,7 @@ use crate::render::{Tex2D, UIRenderer_Image};
 
 use super::widget::HmGuiWidget;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HmGuiImage {
     pub widget: HmGuiWidget,
     pub image: *mut Tex2D,

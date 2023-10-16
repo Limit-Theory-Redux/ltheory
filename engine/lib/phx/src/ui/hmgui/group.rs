@@ -14,7 +14,7 @@ use super::text::*;
 use super::widget::*;
 use super::HmGui;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HmGuiGroup {
     pub widget: HmGuiWidget,
     pub head: *mut HmGuiWidget,

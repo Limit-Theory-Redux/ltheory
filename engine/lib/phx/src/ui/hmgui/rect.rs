@@ -4,7 +4,7 @@ use crate::render::UIRenderer_Rect;
 
 use super::widget::HmGuiWidget;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HmGuiRect {
     pub widget: HmGuiWidget,
     pub color: Vec4,

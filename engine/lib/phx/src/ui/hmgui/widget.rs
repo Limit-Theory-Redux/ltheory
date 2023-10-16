@@ -18,7 +18,7 @@ pub enum LayoutType {
     Horizontal,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HmGuiWidget {
     pub parent: *mut HmGuiGroup,
     pub next: *mut HmGuiWidget,
