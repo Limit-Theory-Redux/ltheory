@@ -105,23 +105,6 @@ impl GamepadState {
                                 res = Some(gamepad_id);
                             }
                         }
-
-                        // TODO: threshold check?
-                        // let button = GamepadButton::new(gamepad_id, button_type);
-                        // let old_value = gamepad_buttons.get(button);
-                        // let button_settings = gamepad_settings.get_button_axis_settings(button);
-
-                        // // Only send events that pass the user-defined change threshold
-                        // if let Some(filtered_value) = button_settings.filter(raw_value, old_value) {
-                        //     events.send(
-                        //         GamepadButtonChangedEvent::new(
-                        //             gamepad_id,
-                        //             button_type,
-                        //             filtered_value,
-                        //         )
-                        //         .into(),
-                        //     );
-                        // }
                     }
                 }
                 EventType::AxisChanged(gilrs_axis, raw_value, _) => {
@@ -133,19 +116,6 @@ impl GamepadState {
                                 res = Some(gamepad_id);
                             }
                         }
-
-                        // TODO: threshold check?
-                        // let axis = GamepadAxis::new(gamepad_id, axis_type);
-                        // let old_value = gamepad_axis.get(axis);
-                        // let axis_settings = gamepad_settings.get_axis_settings(axis);
-
-                        // // Only send events that pass the user-defined change threshold
-                        // if let Some(filtered_value) = axis_settings.filter(raw_value, old_value) {
-                        //     events.send(
-                        //         GamepadAxisChangedEvent::new(gamepad_id, axis_type, filtered_value)
-                        //             .into(),
-                        //     );
-                        // }
                     }
                 }
                 _ => (),
@@ -183,7 +153,7 @@ impl GamepadState {
                 state
                     .control_state
                     .is_connected()
-                    .then(|| state.axis_state.value(axis as _)) // TODO: button value
+                    .then(|| state.axis_state.value(axis as _))
             })
             .unwrap_or_default()
     }
