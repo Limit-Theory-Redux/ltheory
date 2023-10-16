@@ -15,7 +15,6 @@ use super::widget::*;
 use super::HmGui;
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HmGuiGroup {
     pub widget: HmGuiWidget,
     pub head: *mut HmGuiWidget,

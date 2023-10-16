@@ -30,7 +30,6 @@ use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Pro
 use crate::*;
 
 #[derive(Clone)]
-#[repr(C)]
 pub struct HmGui {
     pub group: *mut HmGuiGroup,
     pub root: *mut HmGuiGroup,
