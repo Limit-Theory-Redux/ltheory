@@ -8,6 +8,7 @@ mod text;
 mod widget;
 
 use std::collections::HashMap;
+use std::ffi::CString;
 
 use internal::*;
 
@@ -41,529 +42,559 @@ pub struct HmGui {
     pub activate: bool,
 }
 
-static mut this: HmGui = HmGui {
-    group: std::ptr::null_mut(),
-    root: std::ptr::null_mut(),
-    last: std::ptr::null_mut(),
-    styles: vec![],
-    data: Default::default(),
-    focus: [0; 2],
-    focusPos: Vec2::ZERO,
-    activate: false,
-};
-static mut init_hmgui: bool = false;
-
-unsafe extern "C" fn HmGui_InitWidget(e: *mut HmGuiWidget, ty: WidgetType) {
-    (*e).parent = this.group;
-    (*e).next = std::ptr::null_mut();
-    (*e).prev = if !(this.group).is_null() {
-        (*this.group).tail
-    } else {
-        std::ptr::null_mut()
-    };
-
-    if !((*e).parent).is_null() {
-        (*(*e).parent).children = ((*(*e).parent).children).wrapping_add(1);
-        (*e).hash = Hash_FNV64_Incremental(
-            (*(*e).parent).widget.hash,
-            &mut (*(*e).parent).children as *mut u32 as *const _,
-            std::mem::size_of::<u32>() as i32,
-        );
-        if !((*e).next).is_null() {
-            (*(*e).next).prev = e;
-        } else {
-            (*(*e).parent).tail = e;
-        }
-        if !((*e).prev).is_null() {
-            (*(*e).prev).next = e;
-        } else {
-            (*(*e).parent).head = e;
-        }
-    } else {
-        (*e).hash = Hash_FNV64_Init();
-    }
-
-    (*e).ty = ty;
-    (*e).pos = Vec2::ZERO;
-    (*e).size = Vec2::ZERO;
-    (*e).minSize = Vec2::ZERO;
-    (*e).align = Vec2::ZERO;
-    (*e).stretch = Vec2::ZERO;
-
-    this.last = e;
-}
-
-unsafe extern "C" fn HmGui_BeginGroup(layout: LayoutType) {
-    let style = this.styles.last().expect("Style was not set");
-
-    let e = MemNew!(HmGuiGroup);
-    HmGui_InitWidget(&mut (*e).widget, WidgetType::Group);
-    (*e).head = std::ptr::null_mut();
-    (*e).tail = std::ptr::null_mut();
-    (*e).layout = layout;
-    (*e).children = 0;
-    (*e).focusStyle = FocusStyle::None;
-    (*e).paddingLower = Vec2::ZERO;
-    (*e).paddingUpper = Vec2::ZERO;
-    (*e).offset = Vec2::ZERO;
-    (*e).maxSize = Vec2::new(1e30f32, 1e30f32);
-    (*e).spacing = style.spacing;
-    (*e).frameOpacity = 0.0f32;
-    (*e).clip = false;
-    (*e).expand = true;
-    (*e).focusable.fill(false);
-    (*e).storeSize = false;
-    this.group = e;
-
-    match layout {
-        LayoutType::Stack => {
-            (*e).widget.stretch = Vec2::ONE;
-        }
-        LayoutType::Vertical => {
-            (*e).widget.stretch = Vec2::X;
-        }
-        LayoutType::Horizontal => {
-            (*e).widget.stretch = Vec2::Y;
-        }
-        _ => {}
-    };
-}
-
-pub unsafe extern "C" fn HmGui_GetData(g: *const HmGuiGroup) -> *mut HmGuiData {
-    this.data.entry((*g).widget.hash).or_insert(HmGuiData {
-        offset: Vec2::ZERO,
-        minSize: Vec2::ZERO,
-        size: Vec2::ZERO,
-    })
-}
-
-unsafe extern "C" fn HmGui_CheckFocus(g: *mut HmGuiGroup) {
-    if (*g).clip as i32 != 0 && (*g).is_clipped(this.focusPos) as i32 != 0 {
-        return;
-    }
-
-    let mut e: *mut HmGuiWidget = (*g).tail;
-    while !e.is_null() {
-        if (*e).ty == WidgetType::Group {
-            HmGui_CheckFocus(e as *mut HmGuiGroup);
-        }
-        e = (*e).prev;
-    }
-
-    for i in 0..this.focus.len() {
-        if this.focus[i as usize] == 0
-            && (*g).focusable[i as usize] as i32 != 0
-            && (*g).widget.pos.x <= this.focusPos.x
-            && (*g).widget.pos.y <= this.focusPos.y
-            && this.focusPos.x <= (*g).widget.pos.x + (*g).widget.size.x
-            && this.focusPos.y <= (*g).widget.pos.y + (*g).widget.size.y
-        {
-            this.focus[i as usize] = (*g).widget.hash;
-        }
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
-    if !init_hmgui {
-        init_hmgui = true;
-        this.group = std::ptr::null_mut();
-        this.root = std::ptr::null_mut();
-
+impl HmGui {
+    pub fn new() -> Self {
         let style = HmGuiStyle {
-            font: Font_Load(c_str!("Rajdhani"), 14),
+            font: unsafe { Font_Load(c_str!("Rajdhani"), 14) },
             spacing: 6.0f32,
             colorPrimary: Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32),
             colorFrame: Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32),
             colorText: Vec4::ONE,
         };
 
-        this.styles.push(style);
-
-        this.data.reserve(128);
-
-        this.focus.fill(0);
-        this.activate = false;
+        Self {
+            group: std::ptr::null_mut(),
+            root: std::ptr::null_mut(),
+            last: std::ptr::null_mut(),
+            styles: vec![style],
+            data: HashMap::with_capacity(128),
+            focus: [0; 2],
+            focusPos: Vec2::ZERO,
+            activate: false,
+        }
     }
 
-    if !(this.root).is_null() {
-        HmGui_FreeGroup(this.root);
-        this.root = std::ptr::null_mut();
-    }
-    this.last = std::ptr::null_mut();
-    this.activate = input.mouse().is_pressed(MouseControl::Left);
+    fn init_widget(&mut self, e: *mut HmGuiWidget, ty: WidgetType) {
+        unsafe {
+            (*e).parent = self.group;
+            (*e).next = std::ptr::null_mut();
+            (*e).prev = if !(self.group).is_null() {
+                (*self.group).tail
+            } else {
+                std::ptr::null_mut()
+            };
 
-    HmGui_BeginGroup(LayoutType::None);
-    (*this.group).clip = true;
-    (*this.group).widget.pos = Vec2::ZERO;
-    (*this.group).widget.size = Vec2::new(sx, sy);
-    this.root = this.group;
-}
+            if !((*e).parent).is_null() {
+                (*(*e).parent).children = ((*(*e).parent).children).wrapping_add(1);
+                (*e).hash = Hash_FNV64_Incremental(
+                    (*(*e).parent).widget.hash,
+                    &mut (*(*e).parent).children as *mut u32 as *const _,
+                    std::mem::size_of::<u32>() as i32,
+                );
+                if !((*e).next).is_null() {
+                    (*(*e).next).prev = e;
+                } else {
+                    (*(*e).parent).tail = e;
+                }
+                if !((*e).prev).is_null() {
+                    (*(*e).prev).next = e;
+                } else {
+                    (*(*e).parent).head = e;
+                }
+            } else {
+                (*e).hash = Hash_FNV64_Init();
+            }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_End(input: &Input) {
-    Profiler_Begin(c_str!("HmGui_End"));
-    HmGui_EndGroup();
-    (*this.root).compute_size();
-    (*this.root).layout();
+            (*e).ty = ty;
+            (*e).pos = Vec2::ZERO;
+            (*e).size = Vec2::ZERO;
+            (*e).minSize = Vec2::ZERO;
+            (*e).align = Vec2::ZERO;
+            (*e).stretch = Vec2::ZERO;
+        }
 
-    this.focus.fill(0);
-
-    let mouse = input.mouse();
-
-    this.focusPos = mouse.position();
-
-    HmGui_CheckFocus(this.root);
-    Profiler_End();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_Draw() {
-    Profiler_Begin(c_str!("HmGui_Draw"));
-    RenderState_PushBlendMode(1);
-    UIRenderer_Begin();
-    (*this.root).draw(this.focus[FocusType::Mouse as usize]);
-    UIRenderer_End();
-    RenderState_PopBlendMode();
-    UIRenderer_Draw();
-    Profiler_End();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginGroupX() {
-    HmGui_BeginGroup(LayoutType::Horizontal);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginGroupY() {
-    HmGui_BeginGroup(LayoutType::Vertical);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginGroupStack() {
-    HmGui_BeginGroup(LayoutType::Stack);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_EndGroup() {
-    this.last = &mut (*this.group).widget;
-    this.group = (*this.group).widget.parent;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginScroll(maxSize: f32) {
-    HmGui_BeginGroupX();
-    HmGui_SetStretch(1.0f32, 1.0f32);
-    (*this.group).clip = true;
-    HmGui_SetSpacing(2.0f32);
-    HmGui_BeginGroupY();
-    HmGui_SetPadding(6.0f32, 6.0f32);
-    HmGui_SetStretch(1.0f32, 1.0f32);
-    (*this.group).expand = false;
-    (*this.group).storeSize = true;
-    (*this.group).maxSize.y = maxSize;
-
-    let data: *mut HmGuiData = HmGui_GetData(this.group);
-    (*this.group).offset.y = -(*data).offset.y;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_EndScroll(input: &Input) {
-    let data = HmGui_GetData(this.group);
-
-    if HmGui_GroupHasFocus(FocusType::Scroll) {
-        let scroll_y = input.mouse().value(MouseControl::ScrollY);
-
-        (*data).offset.y -= 10.0f32 * scroll_y as f32;
+        self.last = e;
     }
 
-    let maxScroll: f32 = f32::max(0.0f32, (*data).minSize.y - (*data).size.y);
-    (*data).offset.y = f32::clamp((*data).offset.y, 0.0f32, maxScroll);
+    fn begin_group(&mut self, layout: LayoutType) {
+        let spacing = self.styles.last().expect("Style was not set").spacing;
 
-    HmGui_EndGroup();
+        unsafe {
+            let e = MemNew!(HmGuiGroup);
 
-    HmGui_BeginGroupY();
-    HmGui_SetStretch(0.0f32, 1.0f32);
-    HmGui_SetSpacing(0.0f32);
+            self.init_widget(&mut (*e).widget, WidgetType::Group);
 
-    if maxScroll > 0.0f32 {
-        let handleSize: f32 = (*data).size.y * ((*data).size.y / (*data).minSize.y);
-        let handlePos: f32 = Lerp(
-            0.0f64,
-            ((*data).size.y - handleSize) as f64,
-            ((*data).offset.y / maxScroll) as f64,
-        ) as f32;
-        let style = this.styles.last().expect("Style was not set");
+            (*e).head = std::ptr::null_mut();
+            (*e).tail = std::ptr::null_mut();
+            (*e).layout = layout;
+            (*e).children = 0;
+            (*e).focusStyle = FocusStyle::None;
+            (*e).paddingLower = Vec2::ZERO;
+            (*e).paddingUpper = Vec2::ZERO;
+            (*e).offset = Vec2::ZERO;
+            (*e).maxSize = Vec2::new(1e30f32, 1e30f32);
+            (*e).spacing = spacing;
+            (*e).frameOpacity = 0.0f32;
+            (*e).clip = false;
+            (*e).expand = true;
+            (*e).focusable.fill(false);
+            (*e).storeSize = false;
+            self.group = e;
 
-        HmGui_Rect(4.0f32, handlePos, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
-        HmGui_Rect(
-            4.0f32,
-            handleSize,
-            style.colorFrame.x,
-            style.colorFrame.y,
-            style.colorFrame.z,
-            style.colorFrame.w,
+            match layout {
+                LayoutType::Stack => {
+                    (*e).widget.stretch = Vec2::ONE;
+                }
+                LayoutType::Vertical => {
+                    (*e).widget.stretch = Vec2::X;
+                }
+                LayoutType::Horizontal => {
+                    (*e).widget.stretch = Vec2::Y;
+                }
+                _ => {}
+            };
+        }
+    }
+
+    pub fn get_data(&mut self, g: *const HmGuiGroup) -> *mut HmGuiData {
+        unsafe {
+            self.data.entry((*g).widget.hash).or_insert(HmGuiData {
+                offset: Vec2::ZERO,
+                minSize: Vec2::ZERO,
+                size: Vec2::ZERO,
+            })
+        }
+    }
+
+    fn check_focus(&mut self, g: *mut HmGuiGroup) {
+        unsafe {
+            if (*g).clip as i32 != 0 && (*g).is_clipped(self.focusPos) as i32 != 0 {
+                return;
+            }
+
+            let mut e: *mut HmGuiWidget = (*g).tail;
+            while !e.is_null() {
+                if (*e).ty == WidgetType::Group {
+                    self.check_focus(e as *mut HmGuiGroup);
+                }
+                e = (*e).prev;
+            }
+
+            for i in 0..self.focus.len() {
+                if self.focus[i as usize] == 0
+                    && (*g).focusable[i as usize] as i32 != 0
+                    && (*g).widget.pos.x <= self.focusPos.x
+                    && (*g).widget.pos.y <= self.focusPos.y
+                    && self.focusPos.x <= (*g).widget.pos.x + (*g).widget.size.x
+                    && self.focusPos.y <= (*g).widget.pos.y + (*g).widget.size.y
+                {
+                    self.focus[i as usize] = (*g).widget.hash;
+                }
+            }
+        }
+    }
+}
+
+#[luajit_ffi_gen::luajit_ffi(name = "HmGuiFfi")]
+impl HmGui {
+    pub fn begin(&mut self, sx: f32, sy: f32, input: &Input) {
+        unsafe {
+            if !(self.root).is_null() {
+                HmGui_FreeGroup(self.root);
+                self.root = std::ptr::null_mut();
+            }
+            self.last = std::ptr::null_mut();
+            self.activate = input.mouse().is_pressed(MouseControl::Left);
+
+            self.begin_group(LayoutType::None);
+
+            (*self.group).clip = true;
+            (*self.group).widget.pos = Vec2::ZERO;
+            (*self.group).widget.size = Vec2::new(sx, sy);
+
+            self.root = self.group;
+        }
+    }
+
+    pub fn end(&mut self, input: &Input) {
+        unsafe {
+            Profiler_Begin(c_str!("HmGui_End"));
+
+            self.end_group();
+
+            (*self.root).compute_size(self);
+            (*self.root).layout(self);
+
+            self.focus.fill(0);
+
+            let mouse = input.mouse();
+
+            self.focusPos = mouse.position();
+
+            self.check_focus(self.root);
+
+            Profiler_End();
+        }
+    }
+
+    pub fn draw(&mut self) {
+        unsafe {
+            Profiler_Begin(c_str!("HmGui_Draw"));
+
+            RenderState_PushBlendMode(1);
+            UIRenderer_Begin();
+
+            (*self.root).draw(self.focus[FocusType::Mouse as usize]);
+
+            UIRenderer_End();
+            RenderState_PopBlendMode();
+
+            UIRenderer_Draw();
+
+            Profiler_End();
+        }
+    }
+
+    pub fn begin_group_x(&mut self) {
+        self.begin_group(LayoutType::Horizontal);
+    }
+
+    pub fn begin_group_y(&mut self) {
+        self.begin_group(LayoutType::Vertical);
+    }
+
+    pub fn begin_group_stack(&mut self) {
+        self.begin_group(LayoutType::Stack);
+    }
+
+    pub fn end_group(&mut self) {
+        unsafe {
+            self.last = &mut (*self.group).widget;
+            self.group = (*self.group).widget.parent;
+        }
+    }
+
+    pub fn begin_scroll(&mut self, maxSize: f32) {
+        unsafe {
+            self.begin_group_x();
+            self.set_stretch(1.0f32, 1.0f32);
+            (*self.group).clip = true;
+            self.set_spacing(2.0f32);
+
+            self.begin_group_y();
+            self.set_padding(6.0f32, 6.0f32);
+            self.set_stretch(1.0f32, 1.0f32);
+
+            (*self.group).expand = false;
+            (*self.group).storeSize = true;
+            (*self.group).maxSize.y = maxSize;
+
+            let data = self.get_data(self.group);
+            (*self.group).offset.y = -(*data).offset.y;
+        }
+    }
+
+    pub fn end_scroll(&mut self, input: &Input) {
+        let data = self.get_data(self.group);
+
+        unsafe {
+            if self.group_has_focus(FocusType::Scroll) {
+                let scroll_y = input.mouse().value(MouseControl::ScrollY);
+
+                (*data).offset.y -= 10.0f32 * scroll_y as f32;
+            }
+
+            let maxScroll: f32 = f32::max(0.0f32, (*data).minSize.y - (*data).size.y);
+            (*data).offset.y = f32::clamp((*data).offset.y, 0.0f32, maxScroll);
+
+            self.end_group();
+
+            self.begin_group_y();
+            self.set_stretch(0.0f32, 1.0f32);
+            self.set_spacing(0.0f32);
+
+            if maxScroll > 0.0f32 {
+                let handleSize: f32 = (*data).size.y * ((*data).size.y / (*data).minSize.y);
+                let handlePos: f32 = Lerp(
+                    0.0f64,
+                    ((*data).size.y - handleSize) as f64,
+                    ((*data).offset.y / maxScroll) as f64,
+                ) as f32;
+                let colorFrame = self.styles.last().expect("Style was not set").colorFrame;
+
+                self.rect(4.0f32, handlePos, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
+                self.rect(
+                    4.0f32,
+                    handleSize,
+                    colorFrame.x,
+                    colorFrame.y,
+                    colorFrame.z,
+                    colorFrame.w,
+                );
+            } else {
+                self.rect(4.0f32, 16.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
+            }
+
+            self.end_group();
+            self.end_group();
+        }
+    }
+
+    pub fn begin_window(&mut self, _title: &str, input: &Input) {
+        unsafe {
+            self.begin_group_stack();
+            self.set_stretch(0.0f32, 0.0f32);
+
+            (*self.group).focusStyle = FocusStyle::None;
+            (*self.group).frameOpacity = 0.95f32;
+
+            let data = self.get_data(self.group);
+            let mouse = input.mouse();
+
+            if self.group_has_focus(FocusType::Mouse) && mouse.is_down(MouseControl::Left) {
+                (*data).offset.x += mouse.value(MouseControl::DeltaX);
+                (*data).offset.y += mouse.value(MouseControl::DeltaY);
+            }
+
+            (*self.group).widget.pos.x += (*data).offset.x;
+            (*self.group).widget.pos.y += (*data).offset.y;
+
+            self.begin_group_y();
+            (*self.group).clip = true;
+            self.set_padding(8.0f32, 8.0f32);
+            self.set_stretch(1.0f32, 1.0f32);
+            // HmGui_TextColored(title, 1.0f, 1.0f, 1.0f, 0.3f);
+            // self.set_align(0.5f, 0.0f);
+        }
+    }
+
+    pub fn end_window(&mut self) {
+        self.end_group();
+        self.end_group();
+    }
+
+    pub fn button(&mut self, label: &str) -> bool {
+        self.begin_group_stack();
+
+        unsafe {
+            (*self.group).focusStyle = FocusStyle::Fill;
+            (*self.group).frameOpacity = 0.5f32;
+        }
+
+        let focus: bool = self.group_has_focus(FocusType::Mouse);
+
+        self.set_padding(8.0f32, 8.0f32);
+        self.text(label);
+        self.set_align(0.5f32, 0.5f32);
+
+        self.end_group();
+
+        focus as i32 != 0 && self.activate as i32 != 0
+    }
+
+    pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
+        self.begin_group_x();
+
+        unsafe {
+            (*self.group).focusStyle = FocusStyle::Underline;
+        }
+
+        if self.group_has_focus(FocusType::Mouse) as i32 != 0 && self.activate as i32 != 0 {
+            value = !value;
+        }
+
+        self.set_padding(4.0f32, 4.0f32);
+        self.set_spacing(8.0f32);
+        self.set_stretch(1.0f32, 0.0f32);
+
+        self.text(label);
+        self.set_align(0.0f32, 0.5f32);
+        self.set_stretch(1.0f32, 0.0f32);
+
+        self.begin_group_stack();
+
+        let (colorFrame, colorPrimary) = {
+            let style = self.styles.last().expect("Style was not set");
+
+            (style.colorFrame, style.colorPrimary)
+        };
+
+        self.rect(
+            16.0f32,
+            16.0f32,
+            colorFrame.x,
+            colorFrame.y,
+            colorFrame.z,
+            colorFrame.w,
         );
-    } else {
-        HmGui_Rect(4.0f32, 16.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
-    }
-    HmGui_EndGroup();
-    HmGui_EndGroup();
-}
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char, input: &Input) {
-    HmGui_BeginGroupStack();
-    HmGui_SetStretch(0.0f32, 0.0f32);
+        if value {
+            self.rect(
+                10.0f32,
+                10.0f32,
+                colorPrimary.x,
+                colorPrimary.y,
+                colorPrimary.z,
+                colorPrimary.w,
+            );
+            self.set_align(0.5f32, 0.5f32);
+        }
 
-    (*this.group).focusStyle = FocusStyle::None;
-    (*this.group).frameOpacity = 0.95f32;
+        self.end_group();
+        self.set_stretch(0.0f32, 0.0f32);
+        self.end_group();
 
-    let data = HmGui_GetData(this.group);
-    let mouse = input.mouse();
-
-    if HmGui_GroupHasFocus(FocusType::Mouse) && mouse.is_down(MouseControl::Left) {
-        (*data).offset.x += mouse.value(MouseControl::DeltaX);
-        (*data).offset.y += mouse.value(MouseControl::DeltaY);
+        value
     }
 
-    (*this.group).widget.pos.x += (*data).offset.x;
-    (*this.group).widget.pos.y += (*data).offset.y;
+    pub fn slider(&mut self, _lower: f32, _upper: f32, _value: f32) -> f32 {
+        self.begin_group_stack();
+        self.rect(0.0f32, 2.0f32, 0.5f32, 0.5f32, 0.5f32, 1.0f32);
+        self.set_align(0.5f32, 0.5f32);
+        self.set_stretch(1.0f32, 0.0f32);
+        self.end_group();
 
-    HmGui_BeginGroupY();
-    (*this.group).clip = true;
-    HmGui_SetPadding(8.0f32, 8.0f32);
-    HmGui_SetStretch(1.0f32, 1.0f32);
-    // HmGui_TextColored(title, 1.0f, 1.0f, 1.0f, 0.3f);
-    // HmGui_SetAlign(0.5f, 0.0f);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_EndWindow() {
-    HmGui_EndGroup();
-    HmGui_EndGroup();
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_Button(label: *const libc::c_char) -> bool {
-    HmGui_BeginGroupStack();
-    (*this.group).focusStyle = FocusStyle::Fill;
-    (*this.group).frameOpacity = 0.5f32;
-    let focus: bool = HmGui_GroupHasFocus(FocusType::Mouse);
-    HmGui_SetPadding(8.0f32, 8.0f32);
-    HmGui_Text(label);
-    HmGui_SetAlign(0.5f32, 0.5f32);
-    HmGui_EndGroup();
-    focus as i32 != 0 && this.activate as i32 != 0
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_Checkbox(label: *const libc::c_char, mut value: bool) -> bool {
-    let style = this.styles.last().expect("Style was not set");
-
-    HmGui_BeginGroupX();
-
-    (*this.group).focusStyle = FocusStyle::Underline;
-
-    if HmGui_GroupHasFocus(FocusType::Mouse) as i32 != 0 && this.activate as i32 != 0 {
-        value = !value;
+        0.0
     }
 
-    HmGui_SetPadding(4.0f32, 4.0f32);
-    HmGui_SetSpacing(8.0f32);
-    HmGui_SetStretch(1.0f32, 0.0f32);
+    pub fn image(&mut self, image: &mut Tex2D) {
+        unsafe {
+            let e = MemNew!(HmGuiImage);
 
-    HmGui_Text(label);
-    HmGui_SetAlign(0.0f32, 0.5f32);
-    HmGui_SetStretch(1.0f32, 0.0f32);
+            self.init_widget(&mut (*e).widget, WidgetType::Image);
 
-    HmGui_BeginGroupStack();
-    HmGui_Rect(
-        16.0f32,
-        16.0f32,
-        style.colorFrame.x,
-        style.colorFrame.y,
-        style.colorFrame.z,
-        style.colorFrame.w,
-    );
+            (*e).image = image;
+            (*e).widget.stretch = Vec2::ONE;
+        }
+    }
 
-    if value {
-        HmGui_Rect(
-            10.0f32,
-            10.0f32,
-            style.colorPrimary.x,
-            style.colorPrimary.y,
-            style.colorPrimary.z,
-            style.colorPrimary.w,
+    pub fn rect(&mut self, sx: f32, sy: f32, r: f32, g: f32, b: f32, a: f32) {
+        unsafe {
+            let e = MemNew!(HmGuiRect);
+
+            self.init_widget(&mut (*e).widget, WidgetType::Rect);
+
+            (*e).color = Vec4::new(r, g, b, a);
+            (*e).widget.minSize = Vec2::new(sx, sy);
+        }
+    }
+
+    pub fn text(&mut self, text: &str) {
+        let style = self.styles.last().expect("Style was not set");
+
+        self.text_ex(
+            unsafe { &mut *style.font },
+            text,
+            style.colorText.x,
+            style.colorText.y,
+            style.colorText.z,
+            style.colorText.w,
         );
-        HmGui_SetAlign(0.5f32, 0.5f32);
     }
 
-    HmGui_EndGroup();
-    HmGui_SetStretch(0.0f32, 0.0f32);
-    HmGui_EndGroup();
+    pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
+        let style = self.styles.last().expect("Style was not set");
 
-    value
-}
+        self.text_ex(unsafe { &mut *style.font }, text, r, g, b, a);
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_Slider(_lower: f32, _upper: f32, _value: f32) -> f32 {
-    HmGui_BeginGroupStack();
-    HmGui_Rect(0.0f32, 2.0f32, 0.5f32, 0.5f32, 0.5f32, 1.0f32);
-    HmGui_SetAlign(0.5f32, 0.5f32);
-    HmGui_SetStretch(1.0f32, 0.0f32);
-    HmGui_EndGroup();
-    0.0f32
-}
+    pub fn text_ex(&mut self, font: &mut Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
+        unsafe {
+            let e = MemNew!(HmGuiText);
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_Image(image: *mut Tex2D) {
-    let e = MemNew!(HmGuiImage);
-    HmGui_InitWidget(&mut (*e).widget, WidgetType::Image);
-    (*e).image = image;
-    (*e).widget.stretch = Vec2::ONE;
-}
+            self.init_widget(&mut (*e).widget, WidgetType::Text);
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_Rect(sx: f32, sy: f32, r: f32, g: f32, b: f32, a: f32) {
-    let e = MemNew!(HmGuiRect);
-    HmGui_InitWidget(&mut (*e).widget, WidgetType::Rect);
-    (*e).color = Vec4::new(r, g, b, a);
-    (*e).widget.minSize = Vec2::new(sx, sy);
-}
+            (*e).font = font;
+            (*e).text = text.into();
+            (*e).color = Vec4::new(r, g, b, a);
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_Text(text: *const libc::c_char) {
-    let style = this.styles.last().expect("Style was not set");
+            let mut size = IVec2::ZERO;
 
-    HmGui_TextEx(
-        style.font,
-        text,
-        style.colorText.x,
-        style.colorText.y,
-        style.colorText.z,
-        style.colorText.w,
-    );
-}
+            let ctext = CString::new(text).expect("Cannot convert text");
+            Font_GetSize2(&mut *(*e).font, &mut size, ctext.as_ptr());
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_TextColored(
-    text: *const libc::c_char,
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
-) {
-    let style = this.styles.last().expect("Style was not set");
+            (*e).widget.minSize = Vec2::new(size.x as f32, size.y as f32);
 
-    HmGui_TextEx(style.font, text, r, g, b, a);
-}
+            self.set_align(0.0f32, 1.0f32);
+        }
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_TextEx(
-    font: *mut Font,
-    text: *const libc::c_char,
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32,
-) {
-    let e = MemNew!(HmGuiText);
+    pub fn set_align(&mut self, ax: f32, ay: f32) {
+        unsafe {
+            (*self.last).align = Vec2::new(ax, ay);
+        }
+    }
 
-    HmGui_InitWidget(&mut (*e).widget, WidgetType::Text);
+    pub fn set_padding(&mut self, px: f32, py: f32) {
+        unsafe {
+            (*self.group).paddingLower = Vec2::new(px, py);
+            (*self.group).paddingUpper = Vec2::new(px, py);
+        }
+    }
 
-    (*e).font = font;
-    (*e).text = StrDup(text);
-    (*e).color = Vec4::new(r, g, b, a);
+    pub fn set_padding_ex(&mut self, left: f32, top: f32, right: f32, bottom: f32) {
+        unsafe {
+            (*self.group).paddingLower = Vec2::new(left, top);
+            (*self.group).paddingUpper = Vec2::new(right, bottom);
+        }
+    }
 
-    let mut size = IVec2::ZERO;
+    pub fn set_padding_left(&mut self, padding: f32) {
+        unsafe {
+            (*self.group).paddingLower.x = padding;
+        }
+    }
 
-    Font_GetSize2(&mut *(*e).font, &mut size, (*e).text);
+    pub fn set_padding_top(&mut self, padding: f32) {
+        unsafe {
+            (*self.group).paddingLower.y = padding;
+        }
+    }
 
-    (*e).widget.minSize = Vec2::new(size.x as f32, size.y as f32);
+    pub fn set_padding_right(&mut self, padding: f32) {
+        unsafe {
+            (*self.group).paddingUpper.x = padding;
+        }
+    }
 
-    HmGui_SetAlign(0.0f32, 1.0f32);
-}
+    pub fn set_padding_bottom(&mut self, padding: f32) {
+        unsafe {
+            (*self.group).paddingUpper.y = padding;
+        }
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetAlign(ax: f32, ay: f32) {
-    (*this.last).align = Vec2::new(ax, ay);
-}
+    pub fn set_spacing(&mut self, spacing: f32) {
+        unsafe {
+            (*self.group).spacing = spacing;
+        }
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPadding(px: f32, py: f32) {
-    (*this.group).paddingLower = Vec2::new(px, py);
-    (*this.group).paddingUpper = Vec2::new(px, py);
-}
+    pub fn set_stretch(&mut self, x: f32, y: f32) {
+        unsafe {
+            (*self.last).stretch = Vec2::new(x, y);
+        }
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingEx(left: f32, top: f32, right: f32, bottom: f32) {
-    (*this.group).paddingLower = Vec2::new(left, top);
-    (*this.group).paddingUpper = Vec2::new(right, bottom);
-}
+    pub fn group_has_focus(&mut self, ty: FocusType) -> bool {
+        unsafe {
+            (*self.group).focusable[ty as usize] = true;
+            self.focus[ty as usize] == (*self.group).widget.hash
+        }
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingLeft(padding: f32) {
-    (*this.group).paddingLower.x = padding;
-}
+    pub fn push_style(&mut self) {
+        self.styles.push(Default::default());
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingTop(padding: f32) {
-    (*this.group).paddingLower.y = padding;
-}
+    pub fn push_font(&mut self, font: &mut Font) {
+        self.push_style();
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingRight(padding: f32) {
-    (*this.group).paddingUpper.x = padding;
-}
+        let style = self.styles.last_mut().expect("Style was not set");
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetPaddingBottom(padding: f32) {
-    (*this.group).paddingUpper.y = padding;
-}
+        style.font = font;
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetSpacing(spacing: f32) {
-    (*this.group).spacing = spacing;
-}
+    pub fn push_text_color(&mut self, r: f32, g: f32, b: f32, a: f32) {
+        self.push_style();
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_SetStretch(x: f32, y: f32) {
-    (*this.last).stretch = Vec2::new(x, y);
-}
+        let style = self.styles.last_mut().expect("Style was not set");
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_GroupHasFocus(ty: FocusType) -> bool {
-    (*this.group).focusable[ty as usize] = true;
-    this.focus[ty as usize] == (*this.group).widget.hash
-}
+        style.colorText = Vec4::new(r, g, b, a);
+    }
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_PushStyle() {
-    this.styles.push(Default::default());
-}
+    pub fn pop_style(&mut self, depth: i32) {
+        assert!(self.styles.len() >= depth as usize);
 
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_PushFont(font: *mut Font) {
-    HmGui_PushStyle();
-
-    let style = this.styles.last_mut().expect("Style was not set");
-
-    style.font = font;
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_PushTextColor(r: f32, g: f32, b: f32, a: f32) {
-    HmGui_PushStyle();
-
-    let style = this.styles.last_mut().expect("Style was not set");
-
-    style.colorText = Vec4::new(r, g, b, a);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn HmGui_PopStyle(depth: i32) {
-    assert!(this.styles.len() >= depth as usize);
-
-    this.styles.truncate(this.styles.len() - depth as usize);
+        self.styles.truncate(self.styles.len() - depth as usize);
+    }
 }

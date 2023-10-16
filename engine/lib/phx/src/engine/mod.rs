@@ -22,6 +22,7 @@ use crate::input::*;
 use crate::logging::init_log;
 use crate::render::*;
 use crate::system::*;
+use crate::ui::hmgui::HmGui;
 use crate::window::*;
 
 pub struct Engine {
@@ -30,6 +31,7 @@ pub struct Engine {
     cache: CachedWindow,
     winit_windows: WinitWindows,
     winit_window_id: Option<winit::window::WindowId>,
+    hmgui: HmGui,
     input: Input,
     frame_state: FrameState,
     exit_app: bool,
@@ -71,6 +73,7 @@ impl Engine {
             cache,
             winit_windows: WinitWindows::new(gl_version_major, gl_version_minor),
             winit_window_id: None,
+            hmgui: HmGui::new(),
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
@@ -571,6 +574,10 @@ impl Engine {
 
     pub fn input(&mut self) -> &mut Input {
         &mut self.input
+    }
+
+    pub fn hmgui(&mut self) -> &mut HmGui {
+        &mut self.hmgui
     }
 
     pub fn free() {

@@ -12,7 +12,7 @@ use super::image::*;
 use super::rect::*;
 use super::text::*;
 use super::widget::*;
-use super::HmGui_GetData;
+use super::HmGui;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -65,12 +65,12 @@ impl HmGuiGroup {
             || self.widget.pos.y + self.widget.size.y < p.y
     }
 
-    pub fn compute_size(&mut self) {
+    pub fn compute_size(&mut self, hmgui: &mut HmGui) {
         unsafe {
             let mut e = self.head;
             while !e.is_null() {
                 if (*e).ty == WidgetType::Group {
-                    (*(e as *mut HmGuiGroup)).compute_size();
+                    (*(e as *mut HmGuiGroup)).compute_size(hmgui);
                 }
                 e = (*e).next;
             }
@@ -107,7 +107,7 @@ impl HmGuiGroup {
             self.widget.minSize.y += self.paddingLower.y + self.paddingUpper.y;
 
             if self.storeSize {
-                let data: *mut HmGuiData = HmGui_GetData(self as *const _);
+                let data = hmgui.get_data(self as *const _);
                 (*data).minSize = self.widget.minSize;
             }
         }
@@ -116,7 +116,7 @@ impl HmGuiGroup {
         self.widget.minSize.y = f32::min(self.widget.minSize.y, self.maxSize.y);
     }
 
-    pub fn layout(&self) {
+    pub fn layout(&self, hmgui: &mut HmGui) {
         let mut pos = self.widget.pos;
         let mut size = self.widget.size;
         let mut extra: f32 = 0.0f32;
@@ -178,14 +178,14 @@ impl HmGuiGroup {
                 }
 
                 if (*e).ty == WidgetType::Group {
-                    (*(e as *mut HmGuiGroup)).layout();
+                    (*(e as *mut HmGuiGroup)).layout(hmgui);
                 }
 
                 e = (*e).next;
             }
 
             if self.storeSize {
-                let data = HmGui_GetData(self as *const _);
+                let data = hmgui.get_data(self as *const _);
                 (*data).size = self.widget.size;
             }
         }

@@ -18,6 +18,7 @@ function Loader.defineType()
         ffi.cdef [[
             Window* Engine_Window     (Engine*);
             Input*  Engine_Input      (Engine*);
+            HmGui*  Engine_Hmgui      (Engine*);
             void    Engine_Free       ();
             void    Engine_Abort      ();
             int     Engine_GetBits    ();
@@ -33,6 +34,7 @@ function Loader.defineType()
         Engine = {
             Window     = libphx.Engine_Window,
             Input      = libphx.Engine_Input,
+            Hmgui      = libphx.Engine_Hmgui,
             Free       = libphx.Engine_Free,
             Abort      = libphx.Engine_Abort,
             GetBits    = libphx.Engine_GetBits,
@@ -53,6 +55,7 @@ function Loader.defineType()
             __index = {
                 window  = libphx.Engine_Window,
                 input   = libphx.Engine_Input,
+                hmgui   = libphx.Engine_Hmgui,
                 getTime = libphx.Engine_GetTime,
                 exit    = libphx.Engine_Exit,
             },

@@ -19,7 +19,6 @@ pub enum LayoutType {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HmGuiWidget {
     pub parent: *mut HmGuiGroup,
     pub next: *mut HmGuiWidget,

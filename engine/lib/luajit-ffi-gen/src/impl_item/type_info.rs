@@ -29,6 +29,7 @@ const COPY_TYPES: &[&str] = &[
     "PresentMode",
     "CursorIcon",
     "CursorGrabMode",
+    "FocusType",
 ];
 
 #[derive(Debug)]
