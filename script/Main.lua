@@ -6,7 +6,7 @@ package.path = package.path .. ';./script/?.ffi.lua'
 EngineInstance = {}
 InputInstance = {}
 WindowInstance = {}
-HmGuiInstance = {}
+Gui = {}
 
 require('Init')
 
@@ -17,7 +17,7 @@ function SetEngine(engine)
 
     InputInstance = EngineInstance:input()
     WindowInstance = EngineInstance:window()
-    HmGuiInstance = EngineInstance:hmgui()
+    Gui = EngineInstance:hmgui()
 end
 
 function InitSystem()
