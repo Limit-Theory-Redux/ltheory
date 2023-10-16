@@ -153,7 +153,7 @@ impl FfiGenerator {
 /// Generation
 impl FfiGenerator {
     /// Generates Lua FFI file.
-    /// It contains Loader object with 2 functions: `declareType` and `defineType()`.
+    /// It contains the Loader object with 2 functions: `declareType()` and `defineType()`.
     /// Former registers type C declaration, either opaque or transparent, and returns type's id (0 - manual type, 1 - opaque, 2 -transparent)
     /// and type name.
     /// Latter does overall type registration: c function declarations, symbol table registration, etc.
