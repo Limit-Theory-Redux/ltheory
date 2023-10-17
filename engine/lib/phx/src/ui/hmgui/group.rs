@@ -1,10 +1,9 @@
 use glam::Vec2;
 use internal::*;
 
-use crate::render::UIRenderer_BeginLayer;
-use crate::render::UIRenderer_EndLayer;
-use crate::render::UIRenderer_Panel;
-use crate::render::UIRenderer_Rect;
+use crate::render::{
+    UIRenderer_BeginLayer, UIRenderer_EndLayer, UIRenderer_Panel, UIRenderer_Rect,
+};
 
 use super::data::*;
 use super::focus::*;
@@ -13,12 +12,14 @@ use super::rect::*;
 use super::text::*;
 use super::widget::*;
 use super::HmGui;
+use super::HmGuiWidgetId;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct HmGuiGroup {
-    pub widget: HmGuiWidget,
-    pub head: *mut HmGuiWidget,
-    pub tail: *mut HmGuiWidget,
+    pub widget_id: HmGuiWidgetId,
+    pub head_id: Option<HmGuiWidgetId>,
+    pub tail_id: Option<HmGuiWidgetId>,
+
     pub layout: LayoutType,
     pub children: u32,
     pub focusStyle: FocusStyle,
@@ -35,89 +36,74 @@ pub struct HmGuiGroup {
     pub storeSize: bool,
 }
 
-pub unsafe extern "C" fn HmGui_FreeGroup(g: *mut HmGuiGroup) {
-    let mut e: *mut HmGuiWidget = (*g).head;
-    while !e.is_null() {
-        let next: *mut HmGuiWidget = (*e).next;
-        match (*e).ty {
-            WidgetType::Group => {
-                HmGui_FreeGroup(e as *mut HmGuiGroup);
-            }
-            WidgetType::Text => {
-                HmGui_FreeText(e as *mut HmGuiText);
-            }
-            _ => {
-                MemFree(e as *const _);
-            }
-        }
-        e = next;
-    }
-    MemFree(g as *const _);
-}
-
 impl HmGuiGroup {
-    #[inline]
-    pub fn is_clipped(&self, p: Vec2) -> bool {
-        p.x < self.widget.pos.x
-            || p.y < self.widget.pos.y
-            || self.widget.pos.x + self.widget.size.x < p.x
-            || self.widget.pos.y + self.widget.size.y < p.y
-    }
-
     pub fn compute_size(&mut self, hmgui: &mut HmGui) {
-        unsafe {
-            let mut e = self.head;
-            while !e.is_null() {
-                if (*e).ty == WidgetType::Group {
-                    (*(e as *mut HmGuiGroup)).compute_size(hmgui);
-                }
-                e = (*e).next;
+        let mut head_id = self.head_id;
+        while let Some(id) = head_id {
+            let head = hmgui.get_widget_mut(id);
+            let next_id = head.next_id;
+
+            if let WidgetItem::Group(id) = head.item {
+                let group = hmgui.get_group_mut(id);
+
+                group.compute_size(hmgui);
             }
 
-            self.widget.minSize = Vec2::ZERO;
-
-            let mut e = self.head;
-            while !e.is_null() {
-                match self.layout {
-                    LayoutType::Stack => {
-                        self.widget.minSize.x = f32::max(self.widget.minSize.x, (*e).minSize.x);
-                        self.widget.minSize.y = f32::max(self.widget.minSize.y, (*e).minSize.y);
-                    }
-                    LayoutType::Vertical => {
-                        self.widget.minSize.x = f32::max(self.widget.minSize.x, (*e).minSize.x);
-                        self.widget.minSize.y += (*e).minSize.y;
-                        if e != self.head {
-                            self.widget.minSize.y += self.spacing;
-                        }
-                    }
-                    LayoutType::Horizontal => {
-                        self.widget.minSize.x += (*e).minSize.x;
-                        self.widget.minSize.y = f32::max(self.widget.minSize.y, (*e).minSize.y);
-                        if e != self.head {
-                            self.widget.minSize.x += self.spacing;
-                        }
-                    }
-                    _ => {}
-                }
-                e = (*e).next;
-            }
-
-            self.widget.minSize.x += self.paddingLower.x + self.paddingUpper.x;
-            self.widget.minSize.y += self.paddingLower.y + self.paddingUpper.y;
-
-            if self.storeSize {
-                let data = hmgui.get_data(self as *const _);
-                (*data).minSize = self.widget.minSize;
-            }
+            head_id = next_id;
         }
 
-        self.widget.minSize.x = f32::min(self.widget.minSize.x, self.maxSize.x);
-        self.widget.minSize.y = f32::min(self.widget.minSize.y, self.maxSize.y);
+        let widget = hmgui.get_widget_mut(self.widget_id);
+
+        widget.minSize = Vec2::ZERO;
+
+        let mut head_id = self.head_id;
+        while let Some(id) = head_id {
+            let head = hmgui.get_widget_mut(id);
+
+            match self.layout {
+                LayoutType::None => {}
+                LayoutType::Stack => {
+                    widget.minSize.x = f32::max(widget.minSize.x, head.minSize.x);
+                    widget.minSize.y = f32::max(widget.minSize.y, head.minSize.y);
+                }
+                LayoutType::Vertical => {
+                    widget.minSize.x = f32::max(widget.minSize.x, head.minSize.x);
+                    widget.minSize.y += head.minSize.y;
+
+                    if head_id != self.head_id {
+                        widget.minSize.y += self.spacing;
+                    }
+                }
+                LayoutType::Horizontal => {
+                    widget.minSize.x += head.minSize.x;
+                    widget.minSize.y = f32::max(widget.minSize.y, head.minSize.y);
+
+                    if head_id != self.head_id {
+                        widget.minSize.x += self.spacing;
+                    }
+                }
+            }
+            head_id = head.next_id;
+        }
+
+        widget.minSize.x += self.paddingLower.x + self.paddingUpper.x;
+        widget.minSize.y += self.paddingLower.y + self.paddingUpper.y;
+
+        if self.storeSize {
+            let data = hmgui.get_data(self);
+
+            data.minSize = widget.minSize;
+        }
+
+        widget.minSize.x = f32::min(widget.minSize.x, self.maxSize.x);
+        widget.minSize.y = f32::min(widget.minSize.y, self.maxSize.y);
     }
 
     pub fn layout(&self, hmgui: &mut HmGui) {
-        let mut pos = self.widget.pos;
-        let mut size = self.widget.size;
+        let widget = hmgui.get_widget_mut(self.widget_id);
+
+        let mut pos = widget.pos;
+        let mut size = widget.size;
         let mut extra: f32 = 0.0f32;
         let mut totalStretch: f32 = 0.0f32;
 
@@ -129,18 +115,24 @@ impl HmGuiGroup {
         unsafe {
             if self.expand {
                 if self.layout == LayoutType::Vertical {
-                    extra = self.widget.size.y - self.widget.minSize.y;
-                    let mut e = self.head;
-                    while !e.is_null() {
-                        totalStretch += (*e).stretch.y;
-                        e = (*e).next;
+                    extra = widget.size.y - widget.minSize.y;
+
+                    let mut head_id = self.head_id;
+                    while let Some(id) = head_id {
+                        let head = hmgui.get_widget_mut(id);
+
+                        totalStretch += head.stretch.y;
+                        head_id = head.next_id;
                     }
                 } else if self.layout == LayoutType::Horizontal {
-                    extra = self.widget.size.x - self.widget.minSize.x;
-                    let mut e = self.head;
-                    while !e.is_null() {
-                        totalStretch += (*e).stretch.x;
-                        e = (*e).next;
+                    extra = widget.size.x - widget.minSize.x;
+
+                    let mut head_id = self.head_id;
+                    while let Some(id) = head_id {
+                        let head = hmgui.get_widget_mut(id);
+
+                        totalStretch += head.stretch.x;
+                        head_id = head.next_id;
                     }
                 }
 
@@ -149,48 +141,55 @@ impl HmGuiGroup {
                 }
             }
 
-            let mut e = self.head;
-            while !e.is_null() {
+            let mut head_id = self.head_id;
+            while let Some(id) = head_id {
+                let head = hmgui.get_widget_mut(id);
+
                 match self.layout {
                     LayoutType::None => {
-                        (*e).layout((*e).pos, size.x, size.y);
+                        head.layout(head.pos, size.x, size.y);
                     }
                     LayoutType::Stack => {
-                        (*e).layout(pos, size.x, size.y);
+                        head.layout(pos, size.x, size.y);
                     }
                     LayoutType::Vertical => {
-                        let mut s = (*e).minSize.y;
+                        let mut s = head.minSize.y;
                         if extra > 0.0f32 {
-                            s += (*e).stretch.y * extra;
+                            s += head.stretch.y * extra;
                         }
-                        (*e).layout(pos, size.x, s);
-                        pos.y += (*e).size.y + self.spacing;
+                        head.layout(pos, size.x, s);
+                        pos.y += head.size.y + self.spacing;
                     }
                     LayoutType::Horizontal => {
-                        let mut s = (*e).minSize.x;
+                        let mut s = head.minSize.x;
                         if extra > 0.0f32 {
-                            s += (*e).stretch.x * extra;
+                            s += head.stretch.x * extra;
                         }
-                        (*e).layout(pos, s, size.y);
-                        pos.x += (*e).size.x + self.spacing;
+                        head.layout(pos, s, size.y);
+                        pos.x += head.size.x + self.spacing;
                     }
                 }
 
-                if (*e).ty == WidgetType::Group {
-                    (*(e as *mut HmGuiGroup)).layout(hmgui);
+                if let WidgetItem::Group(id) = head.item {
+                    let group = hmgui.get_group_mut(id);
+
+                    group.layout(hmgui);
                 }
 
-                e = (*e).next;
+                head_id = head.next_id;
             }
 
             if self.storeSize {
-                let data = hmgui.get_data(self as *const _);
-                (*data).size = self.widget.size;
+                let data = hmgui.get_data(self);
+
+                data.size = widget.size;
             }
         }
     }
 
-    pub fn draw(&self, hmgui_focus: u64) {
+    pub fn draw(&self, hmgui: &mut HmGui, hmgui_focus: u64) {
+        let widget = hmgui.get_widget_mut(self.widget_id);
+
         // #if HMGUI_DRAW_GROUP_FRAMES
         //   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
         //   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
@@ -198,42 +197,47 @@ impl HmGuiGroup {
 
         unsafe {
             UIRenderer_BeginLayer(
-                self.widget.pos.x,
-                self.widget.pos.y,
-                self.widget.size.x,
-                self.widget.size.y,
+                widget.pos.x,
+                widget.pos.y,
+                widget.size.x,
+                widget.size.y,
                 self.clip,
             );
 
-            let mut e = self.tail;
-            while !e.is_null() {
-                match (*e).ty {
-                    WidgetType::Group => {
-                        (*(e as *mut HmGuiGroup)).draw(hmgui_focus);
+            let mut tail_id = self.tail_id;
+            while let Some(id) = tail_id {
+                let tail = hmgui.get_widget_mut(id);
+
+                match &mut tail.item {
+                    WidgetItem::Group(id) => {
+                        let group = hmgui.get_group_mut(*id);
+
+                        group.draw(hmgui, hmgui_focus);
                     }
-                    WidgetType::Text => {
-                        (*(e as *mut HmGuiText)).draw();
+                    WidgetItem::Text(item) => {
+                        item.draw(hmgui);
                     }
-                    WidgetType::Rect => {
-                        (*(e as *mut HmGuiRect)).draw();
+                    WidgetItem::Rect(item) => {
+                        item.draw(hmgui);
                     }
-                    WidgetType::Image => {
-                        (*(e as *mut HmGuiImage)).draw();
+                    WidgetItem::Image(item) => {
+                        item.draw(hmgui);
                     }
                 }
-                e = (*e).prev;
+
+                tail_id = tail.prev_id;
             }
 
             if self.focusable[FocusType::Mouse as usize] {
-                let focus: bool = hmgui_focus == self.widget.hash;
+                let focus: bool = hmgui_focus == widget.hash;
 
                 match self.focusStyle {
                     FocusStyle::None => {
                         UIRenderer_Panel(
-                            self.widget.pos.x,
-                            self.widget.pos.y,
-                            self.widget.size.x,
-                            self.widget.size.y,
+                            widget.pos.x,
+                            widget.pos.y,
+                            widget.size.x,
+                            widget.size.y,
                             0.1f32,
                             0.12f32,
                             0.13f32,
@@ -245,10 +249,10 @@ impl HmGuiGroup {
                     FocusStyle::Fill => {
                         if focus {
                             UIRenderer_Panel(
-                                self.widget.pos.x,
-                                self.widget.pos.y,
-                                self.widget.size.x,
-                                self.widget.size.y,
+                                widget.pos.x,
+                                widget.pos.y,
+                                widget.size.x,
+                                widget.size.y,
                                 0.1f32,
                                 0.5f32,
                                 1.0f32,
@@ -258,10 +262,10 @@ impl HmGuiGroup {
                             );
                         } else {
                             UIRenderer_Panel(
-                                self.widget.pos.x,
-                                self.widget.pos.y,
-                                self.widget.size.x,
-                                self.widget.size.y,
+                                widget.pos.x,
+                                widget.pos.y,
+                                widget.size.x,
+                                widget.size.y,
                                 0.15f32,
                                 0.15f32,
                                 0.15f32,
@@ -274,10 +278,10 @@ impl HmGuiGroup {
                     FocusStyle::Outline => {
                         if focus {
                             UIRenderer_Rect(
-                                self.widget.pos.x,
-                                self.widget.pos.y,
-                                self.widget.size.x,
-                                self.widget.size.y,
+                                widget.pos.x,
+                                widget.pos.y,
+                                widget.size.x,
+                                widget.size.y,
                                 0.1f32,
                                 0.5f32,
                                 1.0f32,
@@ -288,10 +292,10 @@ impl HmGuiGroup {
                     }
                     FocusStyle::Underline => {
                         UIRenderer_Rect(
-                            self.widget.pos.x,
-                            self.widget.pos.y,
-                            self.widget.size.x,
-                            self.widget.size.y,
+                            widget.pos.x,
+                            widget.pos.y,
+                            widget.size.x,
+                            widget.size.y,
                             0.3f32,
                             0.3f32,
                             0.3f32,

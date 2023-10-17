@@ -2,22 +2,24 @@ use glam::Vec4;
 
 use crate::render::UIRenderer_Rect;
 
-use super::widget::HmGuiWidget;
+use super::{HmGui, HmGuiWidgetId};
 
 #[derive(Clone)]
 pub struct HmGuiRect {
-    pub widget: HmGuiWidget,
+    pub widget_id: HmGuiWidgetId,
     pub color: Vec4,
 }
 
 impl HmGuiRect {
-    pub fn draw(&self) {
+    pub fn draw(&self, hmgui: &HmGui) {
+        let widget = hmgui.get_widget(self.widget_id);
+
         unsafe {
             UIRenderer_Rect(
-                self.widget.pos.x,
-                self.widget.pos.y,
-                self.widget.size.x,
-                self.widget.size.y,
+                widget.pos.x,
+                widget.pos.y,
+                widget.size.x,
+                widget.size.y,
                 self.color.x,
                 self.color.y,
                 self.color.z,

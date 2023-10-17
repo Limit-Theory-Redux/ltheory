@@ -1,17 +1,22 @@
 use glam::Vec2;
 
 use super::group::HmGuiGroup;
+use super::image::HmGuiImage;
+use super::rect::HmGuiRect;
+use super::text::HmGuiText;
+use super::{HmGuiGroupId, HmGuiWidgetId};
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub enum WidgetType {
-    Group,
-    Text,
-    Rect,
-    Image,
+#[derive(Clone)]
+pub enum WidgetItem {
+    Group(HmGuiGroupId),
+    Text(HmGuiText),
+    Rect(HmGuiRect),
+    Image(HmGuiImage),
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub enum LayoutType {
+    #[default]
     None,
     Stack,
     Vertical,
@@ -20,11 +25,12 @@ pub enum LayoutType {
 
 #[derive(Clone)]
 pub struct HmGuiWidget {
-    pub parent: *mut HmGuiGroup,
-    pub next: *mut HmGuiWidget,
-    pub prev: *mut HmGuiWidget,
+    pub parent_id: Option<HmGuiGroupId>,
+    pub next_id: Option<HmGuiWidgetId>,
+    pub prev_id: Option<HmGuiWidgetId>,
+
     pub hash: u64,
-    pub ty: WidgetType,
+    pub item: WidgetItem,
     pub pos: Vec2,
     pub size: Vec2,
     pub minSize: Vec2,

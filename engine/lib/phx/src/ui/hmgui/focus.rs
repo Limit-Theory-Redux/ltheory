@@ -1,5 +1,6 @@
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub enum FocusStyle {
+    #[default]
     None,
     Fill,
     Outline,
