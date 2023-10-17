@@ -17,7 +17,7 @@ impl ImplInfo {
         let method_tokens: Vec<_> = self
             .methods
             .iter()
-            .map(|method| self.wrap_methods(method))
+            .map(|method| self.wrap_method(method))
             .collect();
         // Additional Free C API wrapper if requested
         let free_method_token = if attr_args.is_managed() {
@@ -45,7 +45,7 @@ impl ImplInfo {
         }
     }
 
-    fn wrap_methods(&self, method: &MethodInfo) -> TokenStream {
+    fn wrap_method(&self, method: &MethodInfo) -> TokenStream {
         let method_name = method.as_ffi_name();
         let func_name = format!("{}_{}", self.name, method_name);
         let func_ident = format_ident!("{func_name}");
@@ -164,11 +164,20 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
             } else {
                 format_ident!("{ty_name}")
             };
+            let is_copyable = TypeInfo::is_copyable(&ty_name) || TypeInfo::is_copyable(self_name);
 
             if ty.is_option {
-                quote! { *const #ty_ident }
-            } else if TypeInfo::is_copyable(&ty_name) {
+                if ty.is_mutable {
+                    quote! { *mut #ty_ident }
+                } else {
+                    quote! { *const #ty_ident }
+                }
+            } else if is_copyable {
                 quote! { #ty_ident }
+            } else if ty.is_mutable {
+                quote! { *mut #ty_ident }
+            } else if ty.is_reference {
+                quote! { *const #ty_ident }
             } else {
                 quote! { Box<#ty_ident> }
             }
@@ -234,7 +243,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             };
 
             if param.ty.is_option {
-                quote! {if #name_ident != std::ptr::null_mut() { unsafe { Some(#param_item) } } else { Option::None }}
+                quote! {if #name_ident != std::ptr::null_mut() { unsafe { Some(#param_item) } } else { None }}
             } else {
                 param_item
             }
@@ -267,22 +276,36 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         };
 
         let return_item = match &ty.variant {
-            TypeVariant::Str | TypeVariant::String => quote! { static_string!(__res__) },
+            TypeVariant::Str | TypeVariant::String => quote! { internal::static_string!(__res__) },
             TypeVariant::CString => quote! { static_cstring!(__res__) },
             TypeVariant::Custom(custom_ty) => {
-                if ty.is_option {
-                    let type_ident = if ty.is_self() {
-                        self_ident.clone()
-                    } else {
-                        format_ident!("{custom_ty}")
-                    };
+                let type_ident = if ty.is_self() {
+                    self_ident.clone()
+                } else {
+                    format_ident!("{custom_ty}")
+                };
+                let is_copyable = TypeInfo::is_copyable(&custom_ty)
+                    || TypeInfo::is_copyable(&self_ident.to_string());
 
-                    gen_buffered_ret(&type_ident)
-                } else if ty.is_self() || !TypeInfo::is_copyable(&custom_ty) {
+                if ty.is_option && !ty.is_reference {
+                    if is_copyable {
+                        quote! { &__res__ }
+                    } else {
+                        gen_buffered_ret(&type_ident)
+                    }
+                } else if is_copyable {
+                    if ty.is_reference {
+                        quote! { *__res__ }
+                    } else {
+                        quote! { __res__ }
+                    }
+                } else if ty.is_mutable {
+                    quote! { __res__ as *mut #type_ident }
+                } else if ty.is_reference {
+                    quote! { __res__ as *const #type_ident }
+                } else {
                     // Do boxing
                     quote! { __res__.into() }
-                } else {
-                    quote! { __res__ }
                 }
             }
             _ => {
@@ -310,11 +333,9 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
 fn gen_buffered_ret(type_ident: &Ident) -> TokenStream {
     quote! {
         unsafe {
-            static mut __BUFFER__: Option<#type_ident> = Option::None;
-
+            static mut __BUFFER__: Option<#type_ident> = None;
             __BUFFER__ = Some(__res__);
-
-            __BUFFER__.as_ref().unwrap()  as *const #type_ident
+            __BUFFER__.as_ref().unwrap() as *const #type_ident
         }
     }
 }

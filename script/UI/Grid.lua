@@ -57,7 +57,7 @@ function Grid:onLayoutSizeChildren()
     else
         if not self.didLayoutWarning then
             self.didLayoutWarning = true
-            Log.Warning('Grid has neither rows nor columns set. Ya broke it.')
+            Log.Warn('Grid has neither rows nor columns set. Ya broke it.')
         end
         return
     end

@@ -38,28 +38,42 @@ pub extern "C" fn MyStruct_FUNC3(this: &MyStruct) -> u32 {
 and **My_Struct.lua**:
 ```lua
 -- My_Struct -------------------------------------------------------------------
-local ffi = require('ffi')
-local libphx = require('ffi.libphx').lib
-local My_Struct
+local Loader = {}
 
-do -- C Definitions
-  ffi.cdef [[
-    void   My_Struct_SetU32 (My_Struct*, uint32 val);
-    uint32 My_Struct_FUNC3  (My_Struct*);
-  ]]
+function Loader.declareType()
+    ffi.cdef [[
+        typedef struct My_Struct {} My_Struct;
+    ]]
+
+    return 1, 'My_Struct'
 end
 
-do -- Global Symbol Table
-  My_Struct = {
-    SetU32 = libphx.My_Struct_SetU32,
-    FUNC3  = libphx.My_Struct_FUNC3,
-  }
+function Loader.defineType()
+    local ffi = require('ffi')
+    local libphx = require('ffi.libphx').lib
+    local My_Struct
 
-  if onDef_My_Struct then onDef_My_Struct(My_Struct, mt) end
-  My_Struct = setmetatable(My_Struct, mt)
+    do -- C Definitions
+        ffi.cdef [[
+            void   My_Struct_SetU32 (My_Struct*, uint32 val);
+            uint32 My_Struct_FUNC3  (My_Struct*);
+        ]]
+    end
+
+    do -- Global Symbol Table
+        My_Struct = {
+            SetU32 = libphx.My_Struct_SetU32,
+            FUNC3  = libphx.My_Struct_FUNC3,
+        }
+
+        if onDef_My_Struct then onDef_My_Struct(My_Struct, mt) end
+        My_Struct = setmetatable(My_Struct, mt)
+    end
+
+    return My_Struct
 end
 
-return My_Struct
+return Loader
 ```
 
 By default function names are converted to camel case but it is possible to set a user defined names. See **Attribute parameters** section below for details.
@@ -77,11 +91,11 @@ In all other cases types are following these rules:
 - **&str**/**String** is converted to **\*const libc::c_char**
 - all other types are accepted either as **&** or **&mut** into the C wrapper, and are boxed (**Box\<T\>**) as outer
 
-By default all generated Lua code created in the **phx/script/ffi** folder. User can manually set this folder via **LUAJIT_FFI_GEN_DIR** environment variable. Path should be either absolute or relative to the **luajit_ffi_gen** folder.
+By default all generated Lua code created in the **phx/script/ffi_gen** folder. User can manually set this folder via **LUAJIT_FFI_GEN_DIR** environment variable. Path should be either absolute or relative to the **luajit_ffi_gen** folder.
 
 ## Usage with the enums
 
-Attribute can be applied to the enum types (see ./tests/test_enum.rs for examples):
+Attribute can be applied to the enum types (see **./tests/test_enum.rs** for examples):
 
 ```rust
 #[luajit_ffi_gen::luajit_ffi(name = "My_Enum1", start_index = 3, lua_ffi = false)]
@@ -102,6 +116,104 @@ pub enum MyEnum2 {
 This will generate following C API wrappers:
 ```rust
 #[no_mangle]
+pub const My_Enum1_Var1: u8 = MyEnum1::Var1.value();
+
+#[no_mangle]
+pub const My_Enum1_Var2: u8 = MyEnum1::Var2.value();
+
+#[no_mangle]
+pub extern "C" fn MyEnum1_ToString(this: MyEnum1) -> *const libc::c_char {
+    // ...
+}
+
+#[no_mangle]
+pub const MyEnum2_Var1: u8 = MyEnum2::Var1.value();
+
+#[no_mangle]
+pub const MyEnum2_Var2: u8 = MyEnum2::Var2.value();
+
+#[no_mangle]
+pub extern "C" fn MyEnum2_ToString(this: MyEnum2) -> *const libc::c_char {
+    // ...
+}
+```
+
+and **My_Enum1.lua**:
+```lua
+-- My_Enum1 --------------------------------------------------------------------
+local Loader = {}
+
+function Loader.declareType()
+    ffi.cdef [[
+        typedef uint8 My_Enum1;
+    ]]
+
+    return 2, 'My_Enum1'
+end
+
+function Loader.defineType()
+    local ffi = require('ffi')
+    local libphx = require('ffi.libphx').lib
+    local My_Enum1
+
+    do -- C Definitions
+        ffi.cdef [[
+            My_Enum1 My_Enum1_Var1;
+            My_Enum1 My_Enum1_Var2;
+
+            cstr     My_Enum1_ToString(My_Enum1);
+        ]]
+    end
+
+    do -- Global Symbol Table
+        My_Enum1 = {
+            Var1     = libphx.My_Enum1_Var1,
+            Var2     = libphx.My_Enum1_Var2,
+
+            ToString = libphx.My_Enum1_ToString,
+        }
+
+        if onDef_My_Enum1 then onDef_My_Enum1(My_Enum1, mt) end
+        My_Enum1 = setmetatable(My_Enum1, mt)
+    end
+
+    return My_Enum1
+end
+
+return Loader
+```
+
+Under the hood `ToString` trait is implemented for the enum so it should derive `Debug` to support that.
+
+Only unit variants of the enum are supported. Also they should be all either with values or without (see example enums `MyEnum1` and `MyEnum2` above).
+
+For the variants without values starting index can be set, otherwise it starts from 0. See attribute parameters description below.
+
+If `repr` parameter is set then `#[repr(...)]` attribute will be added with the specified type, otherwise type will be deducted from the variants count: `u8` or `u16`.
+
+## Joining enum and impl blocks
+
+If it's required to expose both `enum` and its `impl` block then `with_impl` attribute should be used:
+
+```rust
+#[luajit_ffi_gen::luajit_ffi(with_impl = true)]
+#[derive(Debug)]
+pub enum MyEnum1 {
+    Var1,
+    Var2,
+}
+
+#[luajit_ffi_gen::luajit_ffi]
+impl MyEnum1 {
+    pub fn is_var1(&self) -> bool {
+        *self == Self::Var1
+    }
+}
+```
+
+This will generate following C API wrappers:
+```rust
+#[no_mangle]
 pub const MyEnum1_Var1: u8 = MyEnum1::Var1.value();
 
 #[no_mangle]
@@ -111,50 +223,72 @@ pub const MyEnum1_Var2: u8 = MyEnum1::Var2.value();
 pub extern "C" fn MyEnum1_ToString(this: MyEnum1) -> *const libc::c_char {
     // ...
 }
+
+#[no_mangle]
+pub extern "C" fn MyEnum1_IsVar1(this: &MyEnum1) -> bool {
+    this.is_var1()
+}
 ```
 
-and **My_Enum1.lua**:
+and **MyEnum1.lua**:
 ```lua
 -- My_Enum1 --------------------------------------------------------------------
-local ffi = require('ffi')
-local libphx = require('ffi.libphx').lib
-local My_Enum1
+local Loader = {}
 
-do -- C Definitions
+function Loader.declareType()
     ffi.cdef [[
-        My_Enum1 My_Enum1_Var1;
-        My_Enum1 My_Enum1_Var2;
-        cstr     My_Enum1_ToString(My_Enum1);
+        typedef uint8 MyEnum1;
     ]]
+
+    return 2, 'MyEnum1'
 end
 
-do -- Global Symbol Table
-    My_Enum1 = {
-        Var1     = libphx.My_Enum1_Var1,
-        Var2     = libphx.My_Enum1_Var2,
-        ToString = libphx.My_Enum1_ToString,
-    }
+function Loader.defineType()
+    local ffi = require('ffi')
+    local libphx = require('ffi.libphx').lib
+    local MyEnum1
 
-    if onDef_My_Enum1 then onDef_My_Enum1(My_Enum1, mt) end
-    My_Enum1 = setmetatable(My_Enum1, mt)
+    do -- C Definitions
+        ffi.cdef [[
+            MyEnum1 MyEnum1_Var1;
+            MyEnum1 MyEnum1_Var2;
+
+            cstr     MyEnum1_ToString(MyEnum1);
+
+            bool MyEnum1_IsVar1(MyEnum1);
+        ]]
+    end
+
+    do -- Global Symbol Table
+        MyEnum1 = {
+            Var1     = libphx.MyEnum1_Var1,
+            Var2     = libphx.MyEnum1_Var2,
+
+            ToString = libphx.MyEnum1_ToString,
+
+            IsVar1 = libphx.MyEnum1_IsVar1,
+        }
+
+        if onDef_MyEnum1 then onDef_MyEnum1(MyEnum1, mt) end
+        MyEnum1 = setmetatable(MyEnum1, mt)
+    end
+
+    return MyEnum1
 end
 
-return My_Enum1
+return Loader
 ```
 
-Under the hood `ToString` trait is implemented for the enum so it should derive `Debug` to support that.
+Take in account that `enum` block should be defined before `impl` otherwise `enum` data will be lost. Also `opaque` parameter doesn't have any effect in this case.
 
-Only unit variants of the enum are supported. Also they should be all either with values or without (see example enums `MyEnum1` and `MyEnum2` above).
-
-For the variants without values starting index can be set, otherwise it starts from 0. See attribute parameters description below.
-
-If `repr` parameter is set then `#[repr(...)]` attribute will be added with the specified type, otherwise type will be deducted from the maximal variant value: u8, u16, u32 or u64.
+Under the hood proc macro on the `enum` block instead of generating ***.lua** script saves all necessary information in JSON file in **target/ffi** folder. This information is merged later by proc macro on `impl` block.
 
 ## Attribute parameters
 
 ### luajit_ffi for `impl` block
 
 - **name** \[string, default = None]: set user defined name of the module
+- **opaque** \[bool, default = true]: generate **typedef** C API module structure definition
 - **managed** \[bool, default = false]: generate **Free** C API function and add **managed** and **free** metatype bindings
 - **clone** \[bool, default = false]: adds **__call** method to Global Symbol Table section and **clone** method to metatype section
 - **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API
@@ -164,13 +298,14 @@ If `repr` parameter is set then `#[repr(...)]` attribute will be added with the 
 - **name** \[string, default = None]: optional object name. If not specified then name is taken from the `impl` definition.
 - **repr** \[string, default = None]: specify what type will be used in `#[repr(...)]` attribute that will be added to the enum definition. If not set then type will be deducted from the maximal discriminant: u8, u16, u32 or u64.
 - **start_index** \[int, default = None]: set starting index for discriminant values. Ignored if enum already has discriminants. Default: 0.
-- **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API. Default: true.
+- **lua_ffi** \[bool, default = true]: specify if Lua FFI file should be generated or only C API.
+- **with_impl** \[bool, default = false]: specify if enum has connected implementation block.
 
 ### bind
 - **name** [string] - set user defined name of the function
 - **role** [enum: constructor, to_string] - set function role.
-  - **constructor** - function won't appear in the metatype section
-  - **to_string** - will generate a binding in the metatype section
+- **constructor** - function won't appear in the metatype section
+- **to_string** - will generate a binding in the metatype section
 
 ## Macro expansion
 
@@ -223,6 +358,8 @@ List of allowed types in the return parameter position.
 | ------------------------ | -------------------- | -------- | -------- |
 | By value (CT)            | CT                   | CT       |          |
 | By value (NT)            | Box\<NT>             | NT*      |          |
+| &T                       | \*const T            | T const* |          |
+| &mut T                   | \*T                  | T*       |          |
 | String, &str             | \*const libc::c_char | cstr     | yes      |
 | Option\<T>               | \*const T            | T const* | yes      |
 | Option\<String, &str>    | \*const libc::c_char | cstr     | yes      |
@@ -231,8 +368,6 @@ List of allowed types in the return parameter position.
 
 [1] - same as for standalone by value variants.
 [2] - same as for standalone Option variants.
-
-References are not allowed in the return position (except **&str**).
 
 For the buffered types static buffer is created in the `extern "C"` wrapper function.
 

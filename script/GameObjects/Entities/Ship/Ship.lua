@@ -51,7 +51,7 @@ local function wasDamaged(self, event)
 end
 
 local Ship = subclass(Entity, function(self, proto, hull)
-    printf("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
+    Log.Debug("@@@ Entities:Ship - proto.scale = %s, hull = %s", proto.scale, hull)
     -- TODO : This will create a duplicate BSP because proto & RigidBody do not
     --        share the same BSP cache. Need unified cache.
     self:addRigidBody(true, proto.mesh) -- required
@@ -108,7 +108,7 @@ local Ship = subclass(Entity, function(self, proto, hull)
     -- TODO: Use mass values from the ship hull class _and_ installed components
     -- NOTE: a fully loaded F-15 ~= 20,000 kg
     self:setMass(Config.gen.shipHullMass[hull]) -- lower mass is related to the ship "wobble" problem
-    printf("@@@ Entities:Ship - final radius = %s, mass = %s", self:getRadius(), self:getMass())
+    Log.Debug("@@@ Entities:Ship - final radius = %s, mass = %s", self:getRadius(), self:getMass())
 
     self.explosionSize = 64 -- ships get the default explosion size
     self.usesBoost = false  -- default ships fly at only the normal speed
@@ -164,9 +164,9 @@ function Ship:setShipDocked(entity)
     end
 
     --if self.shipDockedAt then
-    --  printf("%s docked at Station %s", self:getName(), self.shipDockedAt:getName())
+    --  Log.Debug("%s docked at Station %s", self:getName(), self.shipDockedAt:getName())
     --else
-    --  printf("%s undocked from Station %s", self:getName(), self.shipDockedAt:getName())
+    --  Log.Debug("%s undocked from Station %s", self:getName(), self.shipDockedAt:getName())
     --end
 end
 

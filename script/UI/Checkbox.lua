@@ -6,7 +6,7 @@ setmetatable(Checkbox, Widget)
 
 Checkbox.checked   = false
 Checkbox.getFn     = function() return false end
-Checkbox.setFn     = function(enabled) Log.Warning('Checkbox - setFn has not been assigned') end
+Checkbox.setFn     = function(enabled) Log.Warn('Checkbox - setFn has not been assigned') end
 Checkbox.dimBox    = 14
 Checkbox.dimFill   = 6
 

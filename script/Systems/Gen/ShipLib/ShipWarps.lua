@@ -31,8 +31,8 @@ function ShipWarps.CurveWarps(rng, shape)
         if rng:chance(0.5) then curveZ = rng:getUniformRange(-1.0, 1.0) end
     end
 
-    --print("curveY: ", curveY)
-    --print("curveZ: ", curveZ)
+    --Log.Debug("curveY: ", curveY)
+    --Log.Debug("curveZ: ", curveZ)
 
     -- Curve z along x
     shape:warp(function(v)

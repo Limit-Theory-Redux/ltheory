@@ -1,6 +1,5 @@
 local Gamepads = {}
 
-local init = false
 local active = nil
 local connected = { map = {} }
 
@@ -47,10 +46,6 @@ end
 
 function Gamepads.Update()
     Profiler.Begin('Gamepads.Update')
-    if not init then
-        init = true
-        Gamepad.AddMappings('./res/gamecontrollerdb_205.txt')
-    end
 
     do -- Remove any gamepads that have been disconnected
         for i = #connected, 1, -1 do

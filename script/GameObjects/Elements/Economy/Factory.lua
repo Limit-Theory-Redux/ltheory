@@ -102,11 +102,11 @@ function Factory:updateProduction(prod, dt)
                 --        for which the output inventory has insufficient capacity?
                 if self.parent:mgrInventoryAddItem(output.item, output.count) then
                     if output.item ~= Item.Energy then
-                        printf("FACTORY %s produced %d units of %s", self.parent:getName(), output.count,
+                        Log.Debug("FACTORY %s produced %d units of %s", self.parent:getName(), output.count,
                             output.item:getName())
                     end
                 else
-                    printf("FACTORY %s produced %d units of %s but could not store them all",
+                    Log.Debug("FACTORY %s produced %d units of %s but could not store them all",
                         self.parent:getName(), output.count, output.item:getName())
                 end
             end

@@ -16,13 +16,13 @@ function State:setFocus(focus)
         end
 
         -- NOTE : Focus is 'sticky' on active widgets when not using the mouse
-        if Input.GetActiveDeviceType() ~= DeviceType.Mouse then
+        if InputInstance:activeDeviceType() ~= InputDeviceType.Mouse then
             if self.active then self.focus = self.active end
         end
     end
 
     if self.focus then
-        if Input.GetActiveDeviceType() ~= DeviceType.Mouse then
+        if InputInstance:activeDeviceType() ~= InputDeviceType.Mouse then
             if self.scrollFocus then self.scrollFocus:keepFocusVisible(self) end
         end
     end
@@ -94,7 +94,7 @@ function State:clearFocus()
 end
 
 function State:refreshFocus()
-    if Input.GetActiveDeviceType() == DeviceType.Mouse then
+    if InputInstance:activeDeviceType() == InputDeviceType.Mouse then
         self.canvas:findMouseFocus()
     else
         --[[ NOTE : There is a 'hierarchy' to focus. panelFocus, navFocus, and

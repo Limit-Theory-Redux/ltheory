@@ -1,6 +1,5 @@
 use std::time::SystemTime;
 
-use crate::internal::*;
 use crate::*;
 
 #[derive(Copy, Clone)]

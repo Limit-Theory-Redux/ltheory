@@ -1,6 +1,7 @@
+use internal::*;
+
 use super::*;
 use crate::common::*;
-use crate::internal::*;
 use crate::logging::warn;
 use crate::math::*;
 use crate::*;
@@ -262,7 +263,7 @@ pub type BSPNodeRel = u8;
 
 #[repr(C)]
 pub struct BSPBuild {
-    pub rootNode: *mut BSPBuild_Node,
+    pub rootNode: *mut BSPBuildNode,
     pub rng: Box<Rng>,
     pub nodeCount: i32,
     pub leafCount: i32,
@@ -276,9 +277,9 @@ pub struct BSPBuild {
 
 #[derive(Clone)]
 #[repr(C)]
-pub struct BSPBuild_Node {
+pub struct BSPBuildNode {
     pub plane: Plane,
-    pub child: [*mut BSPBuild_Node; 2],
+    pub child: [*mut BSPBuildNode; 2],
     pub polygons: Vec<PolygonEx>,
     // CHECK2 (
     //     int32 id;
@@ -297,7 +298,7 @@ pub type PolygonFlag = u8;
 
 #[derive(Clone)]
 #[repr(C)]
-pub struct BSPBuild_NodeData {
+pub struct BSPBuildNodeData {
     pub polygons: Vec<PolygonEx>,
     pub validPolygonCount: i32,
     pub triangleCount: i32,
@@ -585,7 +586,7 @@ pub static PolygonFlag_InvalidDecompose: PolygonFlag = (1 << 1) as PolygonFlag;
 pub static PolygonFlag_InvalidEdgeSplit: PolygonFlag = (1 << 2) as PolygonFlag;
 
 unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
-    nodeData: *mut BSPBuild_NodeData,
+    nodeData: *mut BSPBuildNodeData,
     plane: Plane,
     k: f32,
 ) -> f32 {
@@ -620,7 +621,7 @@ unsafe extern "C" fn BSPBuild_ScoreSplitPlane(
 
 unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
     bsp: *mut BSPBuild,
-    nodeData: *mut BSPBuild_NodeData,
+    nodeData: *mut BSPBuildNodeData,
     splitPlane: *mut Plane,
 ) -> bool {
     /* See Realtime Collision Detection pp361-363 */
@@ -906,7 +907,7 @@ unsafe extern "C" fn BSPBuild_ChooseSplitPlane(
 
 #[inline]
 unsafe extern "C" fn BSPBuild_AppendPolygon(
-    nodeData: *mut BSPBuild_NodeData,
+    nodeData: *mut BSPBuildNodeData,
     polygon: *const PolygonEx,
 ) {
     //if (nodeData->triangleCount == 0) {
@@ -926,8 +927,8 @@ unsafe extern "C" fn BSPBuild_AppendPolygon(
 
 unsafe extern "C" fn BSPBuild_CreateNode(
     bsp: *mut BSPBuild,
-    nodeData: *mut BSPBuild_NodeData,
-) -> *mut BSPBuild_Node {
+    nodeData: *mut BSPBuildNodeData,
+) -> *mut BSPBuildNode {
     /* NOTE: This will free the polygons being passed in! This is to prevent all
      *        the temporary allocations from overlapping. */
 
@@ -938,7 +939,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
 
     // Assert(nodeData->depth < 1 << 8*sizeof(nodeData->depth));
 
-    let node = MemNewZero!(BSPBuild_Node);
+    let node = MemNewZero!(BSPBuildNode);
     // CHECK2(node->id = bsp->nextNodeID++;)
 
     let mut splitPlane: Plane = Plane {
@@ -964,7 +965,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
 
     let polygonsLen = (*nodeData).polygons.len();
 
-    let mut backNodeData: BSPBuild_NodeData = BSPBuild_NodeData {
+    let mut backNodeData: BSPBuildNodeData = BSPBuildNodeData {
         polygons: Vec::new(),
         validPolygonCount: 0,
         triangleCount: 0,
@@ -973,7 +974,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
     backNodeData.polygons.reserve(polygonsLen);
     backNodeData.depth = ((*nodeData).depth as i32 + 1) as u16;
 
-    let mut frontNodeData: BSPBuild_NodeData = BSPBuild_NodeData {
+    let mut frontNodeData: BSPBuildNodeData = BSPBuildNodeData {
         polygons: Vec::new(),
         validPolygonCount: 0,
         triangleCount: 0,
@@ -1041,7 +1042,7 @@ unsafe extern "C" fn BSPBuild_CreateNode(
 
 unsafe extern "C" fn BSPBuild_OptimizeTree(
     this: &mut BSP,
-    buildNode: *mut BSPBuild_Node,
+    buildNode: *mut BSPBuildNode,
 ) -> BSPNodeRef {
     if !((*buildNode).child[BackIndex as usize]).is_null()
         || !((*buildNode).child[FrontIndex as usize]).is_null()
@@ -1099,7 +1100,7 @@ unsafe extern "C" fn BSPBuild_OptimizeTree(
     }
 }
 
-unsafe extern "C" fn BSPBuild_FreeNode(node: *mut BSPBuild_Node) {
+unsafe extern "C" fn BSPBuild_FreeNode(node: *mut BSPBuildNode) {
     if !((*node).child[BackIndex as usize]).is_null()
         || !((*node).child[FrontIndex as usize]).is_null()
     {
@@ -1185,7 +1186,7 @@ pub unsafe extern "C" fn BSP_Create(mesh: &mut Mesh) -> *mut BSP {
     //     if (Mesh_Validate(mesh) != Error_None) return 0;
     // )
 
-    let mut nodeData: BSPBuild_NodeData = BSPBuild_NodeData {
+    let mut nodeData: BSPBuildNodeData = BSPBuildNodeData {
         polygons: Vec::new(),
         validPolygonCount: 0,
         triangleCount: 0,

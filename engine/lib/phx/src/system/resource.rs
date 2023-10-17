@@ -1,6 +1,9 @@
+use std::ffi::CStr;
+
+use internal::*;
+
 use super::*;
 use crate::common::*;
-use crate::internal::*;
 
 static mut paths: [Vec<fn(String) -> String>; ResourceType_COUNT] = [
     Vec::new(),

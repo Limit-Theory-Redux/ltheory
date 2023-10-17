@@ -15,7 +15,7 @@ function Job:getName()
 end
 
 function Job:getPayout(e)
-    printf("??? JOB:payout = nil")
+    Log.Warn("??? JOB:payout = nil")
     assert(false, 'NYI @ Job.getPayout')
 end
 

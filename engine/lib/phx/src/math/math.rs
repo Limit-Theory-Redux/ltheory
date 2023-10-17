@@ -1,5 +1,5 @@
 use crate::common::*;
-use crate::internal::*;
+use crate::error::Error;
 use crate::*;
 
 // Re-export glam types.

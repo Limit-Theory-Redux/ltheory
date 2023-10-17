@@ -59,6 +59,14 @@ impl MyStruct {
         self.val_data.clone()
     }
 
+    pub fn get_data_ref(&self) -> &Data {
+        &self.val_data
+    }
+
+    pub fn get_data_mut(&mut self) -> &mut Data {
+        &mut self.val_data
+    }
+
     pub fn set_opt(&mut self, val: Option<u32>) {
         if let Some(val) = val {
             self.val_u32 = val;

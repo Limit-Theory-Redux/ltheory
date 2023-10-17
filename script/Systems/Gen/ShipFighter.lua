@@ -516,11 +516,11 @@ function ShipFighter.WingsSurreal(rng, bodyAABB, ship)
         local posShip = ship.verts[ship:getRandomPoly(rng)[1]]
         local posWing = wing1.verts[wing1:getRandomPoly(rng)[1]]
         if posWing == nil then
-            print("ShipFighter.WingsSurreal: bad poly on wing")
+            Log.Debug("ShipFighter.WingsSurreal: bad poly on wing")
             posWing = Vec3d(0, 0, 0)
         end
         if posShip == nil then
-            print("ShipFighter.WingsSurreal: bad poly on ship")
+            Log.Debug("ShipFighter.WingsSurreal: bad poly on ship")
             posShip = Vec3d(0, 0, 0)
         end
         local x = posShip.x - posWing.x

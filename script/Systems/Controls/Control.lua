@@ -8,29 +8,29 @@ local ControlT = class(function(self)
 end)
 
 local gamepadAxisIcon = {
-    [Button.Gamepad.LStickX]  = 'icon/lstick',
-    [Button.Gamepad.LStickY]  = 'icon/lstick',
-    [Button.Gamepad.RStickX]  = 'icon/rstick',
-    [Button.Gamepad.RStickY]  = 'icon/rstick',
-    [Button.Gamepad.LTrigger] = 'icon/ltrigger',
-    [Button.Gamepad.RTrigger] = 'icon/rtrigger',
+    [Button.GamepadLeftStickX]  = 'icon/lstick',
+    [Button.GamepadLeftStickY]  = 'icon/lstick',
+    [Button.GamepadRightStickX]  = 'icon/rstick',
+    [Button.GamepadRightStickY]  = 'icon/rstick',
+    [Button.GamepadLeftTrigger] = 'icon/ltrigger',
+    [Button.GamepadRightTrigger] = 'icon/rtrigger',
 }
 
 local gamepadButtonIcon = {
-    [Button.Gamepad.A]       = 'icon/a',
-    [Button.Gamepad.B]       = 'icon/b',
-    [Button.Gamepad.X]       = 'icon/x',
-    [Button.Gamepad.Y]       = 'icon/y',
-    [Button.Gamepad.Back]    = 'icon/snap',
-    [Button.Gamepad.Start]   = 'icon/menu',
-    [Button.Gamepad.LStick]  = 'icon/lstick',
-    [Button.Gamepad.RStick]  = 'icon/rstick',
-    [Button.Gamepad.LBumper] = 'icon/lbumper',
-    [Button.Gamepad.RBumper] = 'icon/rbumper',
-    [Button.Gamepad.Up]      = 'icon/dpad_up',
-    [Button.Gamepad.Down]    = 'icon/dpad_down',
-    [Button.Gamepad.Left]    = 'icon/dpad_left',
-    [Button.Gamepad.Right]   = 'icon/dpad_right',
+    [Button.GamepadSouth]       = 'icon/a',
+    [Button.GamepadEast]       = 'icon/b',
+    [Button.GamepadWest]       = 'icon/x',
+    [Button.GamepadNorth]       = 'icon/y',
+    [Button.GamepadSelect]    = 'icon/snap',
+    [Button.GamepadStart]   = 'icon/menu',
+    [Button.GamepadLeftThumb]  = 'icon/lstick',
+    [Button.GamepadRightThumb]  = 'icon/rstick',
+    [Button.GamepadLeftTrigger2] = 'icon/lbumper',
+    [Button.GamepadRightTrigger2] = 'icon/rbumper',
+    [Button.GamepadDPadUp]      = 'icon/dpad_up',
+    [Button.GamepadDPadDown]    = 'icon/dpad_down',
+    [Button.GamepadDPadLeft]    = 'icon/dpad_left',
+    [Button.GamepadDPadRight]   = 'icon/dpad_right',
 }
 
 function ControlT:delta()
@@ -73,6 +73,7 @@ end
 --        inactive devices from consideration in And/Or.
 
 Control.And = subclass(ControlT, function(self, ...)
+    if not ... then error() end
     self.controls = { ... }
 end)
 
@@ -115,10 +116,11 @@ function Control.GamepadAxis:getIconPath()
 end
 
 function Control.GamepadAxis:getRaw()
-    return Input.GetValue(self.axis)
+    return InputInstance:getValue(self.axis)
 end
 
 Control.GamepadButton = subclass(ControlT, function(self, button)
+    if not button then error() end
     self.button = button
 end)
 
@@ -127,10 +129,11 @@ function Control.GamepadButton:getIconPath()
 end
 
 function Control.GamepadButton:getRaw()
-    return Input.GetValue(self.button)
+    return InputInstance:getValue(self.button)
 end
 
 Control.GamepadButtonPressed = subclass(ControlT, function(self, button)
+    if not button then error() end
     self.button = button
 end)
 
@@ -139,10 +142,11 @@ function Control.GamepadButtonPressed:getIconPath()
 end
 
 function Control.GamepadButtonPressed:getRaw()
-    return Input.GetPressed(self.button) and 1.0 or 0.0
+    return InputInstance:isPressed(self.button) and 1.0 or 0.0
 end
 
 Control.GamepadButtonReleased = subclass(ControlT, function(self, button)
+    if not button then error() end
     self.button = button
 end)
 
@@ -151,33 +155,34 @@ function Control.GamepadButtonReleased:getIconPath()
 end
 
 function Control.GamepadButtonReleased:getRaw()
-    return Input.GetReleased(self.button) and 1.0 or 0.0
+    return InputInstance:isReleased(self.button) and 1.0 or 0.0
 end
 
 Control.Key = subclass(ControlT, function(self, key)
+    if not key then error() end
     self.key = key
 end)
 
 function Control.Key:getRaw()
-    return Input.GetValue(self.key)
+    return InputInstance:getValue(self.key)
 end
 
-Control.Alt    = function() return Control.Or(Control.Key(Button.Keyboard.LAlt), Control.Key(Button.Keyboard.RAlt)) end
-Control.Ctrl   = function() return Control.Or(Control.Key(Button.Keyboard.LCtrl), Control.Key(Button.Keyboard.RCtrl)) end
-Control.Shift  = function() return Control.Or(Control.Key(Button.Keyboard.LShift), Control.Key(Button.Keyboard.RShift)) end
+Control.Alt    = function() return Control.Or(Control.Key(Button.KeyboardAltLeft), Control.Key(Button.KeyboardAltRight)) end
+Control.Ctrl   = function() return Control.Or(Control.Key(Button.KeyboardControlLeft), Control.Key(Button.KeyboardControlRight)) end
+Control.Shift  = function() return Control.Or(Control.Key(Button.KeyboardShiftLeft), Control.Key(Button.KeyboardShiftRight)) end
 
 Control.MouseX = subclass(ControlT, function(self) end)
 Control.MouseY = subclass(ControlT, function(self) end)
 
 function Control.MouseX:getRaw()
     local c = Camera.get()
-    local m = Input.GetValue(Button.Mouse.X)
+    local m = InputInstance:mouse():position().x
     return Math.Clamp(2.0 * (m - c.x) / c.sx - 1.0, -1.0, 1.0)
 end
 
 function Control.MouseY:getRaw()
     local c = Camera.get()
-    local m = Input.GetValue(Button.Mouse.Y)
+    local m = InputInstance:mouse():position().y
     return Math.Clamp(2.0 * (m - c.y) / c.sy - 1.0, -1.0, 1.0)
 end
 
@@ -187,12 +192,12 @@ Control.MouseDX = subclass(ControlT, function(self) end)
 Control.MouseDY = subclass(ControlT, function(self) end)
 
 function Control.MouseDX:getRaw()
-    local md = Input.GetMouseDelta()
+    local md = InputInstance:mouse():delta()
     return md.x
 end
 
 function Control.MouseDY:getRaw()
-    local md = Input.GetMouseDelta()
+    local md = InputInstance:mouse():delta()
     return md.y
 end
 
@@ -201,7 +206,7 @@ Control.MouseButton = subclass(ControlT, function(self, button)
 end)
 
 function Control.MouseButton:getRaw()
-    return Input.GetValue(self.button)
+    return InputInstance:getValue(self.button)
 end
 
 Control.MouseWheel = subclass(ControlT, function(self) end)
@@ -210,7 +215,7 @@ Control.MouseWheel = subclass(ControlT, function(self) end)
 -- NOTE : In reality, this is a delta.
 -- NOTE : Yes, this has already caused problems in the form of dt-dependence
 function Control.MouseWheel:getRaw()
-    return Input.GetValue(Button.Mouse.ScrollY)
+    return InputInstance:getValue(Button.MouseScrollY)
 end
 
 Control.Null = subclass(ControlT, function(self) end)

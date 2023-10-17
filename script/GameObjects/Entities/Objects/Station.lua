@@ -116,7 +116,7 @@ local Station = subclass(Entity, function(self, seed, hull)
         if p then
             insert(self.positions[SocketType.Bay], Vec3f(0, 1, 1)) -- TODO: Replace with visible mount position for a Bay weapon
         else
-            printf("No mount point found for bay %d being mounted on Station %s", i, self:getName())
+            Log.Debug("No mount point found for bay %d being mounted on Station %s", i, self:getName())
         end
     end
 
@@ -181,7 +181,7 @@ local Station = subclass(Entity, function(self, seed, hull)
         if p then
             insert(self.positions[SocketType.Turret], p * Vec3f(1, 1, 1))
         else
-            printf("No mount point found for turret %d being mounted on Station %s", i, self:getName())
+            Log.Debug("No mount point found for turret %d being mounted on Station %s", i, self:getName())
         end
     end
 

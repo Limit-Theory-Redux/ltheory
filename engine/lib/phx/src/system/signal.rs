@@ -1,9 +1,11 @@
+use internal::static_string;
+
 use crate::common::*;
-use crate::internal::*;
 use crate::logging::warn;
 use crate::*;
 
 use std::collections::HashMap;
+use std::ffi::CStr;
 
 pub type Signal = i32;
 pub type SignalHandler = extern "C" fn(Signal) -> ();

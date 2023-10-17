@@ -1,6 +1,5 @@
 use super::*;
-use crate::internal::*;
-use crate::*;
+use crate::{error::Error, *};
 
 #[derive(Clone)]
 #[repr(C)]

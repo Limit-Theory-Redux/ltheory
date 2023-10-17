@@ -18,7 +18,7 @@ local System = subclass(Entity, function(self, seed)
     self:setName(Words.getCoolName(self.rng))
     self:setType(Config:getObjectTypeByName("object_types", "Star System"))
 
-    printf("Spawning new star system '%s' using seed = %s", self:getName(), seed)
+    Log.Debug("Spawning new star system '%s' using seed = %s", self:getName(), seed)
 
     self:addChildren()
 
@@ -229,7 +229,7 @@ function System:place(object, spawnOutOfAsteroidZone)
                 local function checkDistanceToAllStations(pos)
                     for _, station in ipairs(stations) do
                         if pos:distance(station:getPos()) < Config.gen.stationMinimumDistance then
-                            print("New Station closer than " ..
+                            Log.Debug("New Station closer than " ..
                                 Config.gen.stationMinimumDistance .. " (" ..
                                 math.floor(pos:distance(station:getPos())) ..
                                 ") to station: '" .. station:getName() .. "'. Finding New Position.")
@@ -244,7 +244,7 @@ function System:place(object, spawnOutOfAsteroidZone)
                         local distanceFromOrigin = pos:distance(Config.gen.origin)
                         -- TODO: replace later with actual system size
                         if distanceFromOrigin > 200000 then
-                            print("New Station too far away from system core: " ..
+                            Log.Debug("New Station too far away from system core: " ..
                                 math.floor(distanceFromOrigin) .. ". Finding New Position.")
                             return false
                         end
@@ -254,13 +254,13 @@ function System:place(object, spawnOutOfAsteroidZone)
 
                 do
                     if counter >= Config.gen.minimumDistancePlacementMaxTries then
-                        printf("Exceeded max placement tries, placing at last random position: %s", pos)
+                        Log.Debug("Exceeded max placement tries, placing at last random position: %s", pos)
                         validSpawn = true
                     elseif not checkIfInSystem(pos) or not checkDistanceToAllStations(pos) then
                         pos = field:getRandomPos(self.rng)
                         counter = counter + 1
                     else
-                        printf("Found Position to Spawn: %s", pos)
+                        Log.Debug("Found Position to Spawn: %s", pos)
                         validSpawn = true
                     end
                 end
@@ -365,7 +365,7 @@ function System:spawnPlanet(bAddBelt)
     local psmod = math.floor(Config.gen.scalePlanetMod * math.abs(rng:getGaussian())) -- or rng:getErlang(2)
     local scale = psbase + psmod
     planet:setScale(scale)
-    --printf("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
+    --Log.Debug("planet base size = %d, psmod = %d, scale = %d", psbase, psmod, scale)
 
     self:addChild(planet)
 
@@ -509,7 +509,7 @@ function System:spawnPlanet(bAddBelt)
 
     local typeName = Config:getObjectInfo("object_types", planet:getType())
     local subtypeName = Config:getObjectSubInfo("object_types", planet:getType(), planet:getSubType())
-    printf("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
+    Log.Debug("Added %s (%s) '%s'", typeName, subtypeName, planet:getName())
 
     return planet
 end
@@ -554,7 +554,7 @@ function System:spawnAsteroidField(count, reduced)
         -- Give the individual asteroid a name
         local asteroidName = System:getAsteroidName(self, rng)
         asteroid:setName(format("%s", asteroidName))
-        --printf("Added %s '%s'", Config.objectInfo[1]["elems"][asteroid:getType()][2], asteroid:getName())
+        --Log.Debug("Added %s '%s'", Config.objectInfo[1]["elems"][asteroid:getType()][2], asteroid:getName())
 
         -- Actually set the scale of the new asteroid
         asteroid:setScale(scale)
@@ -594,7 +594,7 @@ function System:spawnAsteroidField(count, reduced)
 
     local typeName = Config:getObjectInfo("object_types", zone:getType())
     local subtypeName = Config:getObjectInfo("zone_subtypes", zone:getSubType())
-    printf("Added %s - %s '%s'", typeName, subtypeName, zone:getName())
+    Log.Debug("Added %s - %s '%s'", typeName, subtypeName, zone:getName())
 
     return zone
 end
@@ -713,7 +713,7 @@ local function addStationComponents(station, hullSize)
         station:plug(inventory)
     end
     if station.countInventory > 0 then
-        --printf("SYSTEM(station): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
+        --Log.Debug("SYSTEM(station): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
         station:register(Event.Debug, Entity.mgrInventoryDebug)
     end
 
@@ -768,7 +768,7 @@ function System:spawnStation(hullSize, player, prodType)
         -- TODO: generate better bid price; this is just for testing the flow-based "payout" model in Think.lua
         local flowval = self.rng:getUniformRange(-1000, 0)
         station:setFlow(v, flowval) -- TEMP
-        --printf("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
+        --Log.Debug("Station %s: adding flow for item %s at value %d", station:getName(), v:getName(), flowval)
     end
 
     -- Stations have trading capacity
@@ -829,7 +829,7 @@ function System:spawnStation(hullSize, player, prodType)
 
     local typeName = Config:getObjectInfo("object_types", station:getType())
     local subtypeName = Config:getObjectInfo("station_subtypes", station:getSubType())
-    printf("SYSTEM(station) - Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(),
+    Log.Debug("SYSTEM(station) - Added %s %s '%s' (production = %s)", subtypeName, typeName, station:getName(),
         prod:getName())
 
     -- Add the station to this star system
@@ -1037,7 +1037,7 @@ function System:spawnShip(hullSize, player)
         ship:plug(inventory)
     end
     if ship.countInventory > 0 then
-        --printf("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
+        --Log.Debug("SYSTEM(ship): registering Inventory Event.Debug, handler = %s", Entity.mgrInventoryDebug)
         ship:register(Event.Debug, Entity.mgrInventoryDebug)
     end
 
@@ -1093,7 +1093,7 @@ function System:spawnShip(hullSize, player)
     self:addShip(ship)
 
     --local subtypeName = Config:getObjectInfo("ship_subtypes", ship:getSubType())
-    --printf("SYSTEM(ship) - Added %s '%s'", subtypeName, ship:getName())
+    --Log.Debug("SYSTEM(ship) - Added %s '%s'", subtypeName, ship:getName())
 
     return ship
 end

@@ -1,10 +1,11 @@
-use crate::internal::*;
+use std::cmp::Ordering;
+use std::slice;
+
+use internal::*;
+
 use crate::math::*;
 use crate::render::*;
 use crate::*;
-
-use std::cmp::Ordering;
-use std::slice;
 
 const kMaxLeafSize: i32 = 64;
 

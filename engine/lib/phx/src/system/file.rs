@@ -1,8 +1,9 @@
-use super::*;
-use crate::internal::*;
-
 use std::fs;
 use std::io::{Read, Write};
+
+use internal::{static_string, ConvertIntoString};
+
+use super::*;
 
 #[repr(C)]
 pub struct File {

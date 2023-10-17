@@ -45,7 +45,7 @@ function Trader:addAsk(item, price)
         data.totalAskPrice = data.totalAskPrice + price
 
         insert(data.asksQueue, price)
-        --printf("Added ask to sell item %s at station %s for price %d", item:getName(), self.parent:getName(), price)
+        --Log.Debug("Added ask to sell item %s at station %s for price %d", item:getName(), self.parent:getName(), price)
         askAdded = true
     end
 
@@ -68,12 +68,12 @@ function Trader:addAskOffer(bidder)
     end
 
     if askOffersAdded > 0 then
-        printf(
+        Log.Debug(
             "TRADER: Added %d ask offers from asset %s (cap: %s, free: %d) to obtain %s (mass = %s) from trader %s | asks = %d, offers = %d",
             askOffersAdded, bidder:getName(), bidder:mgrInventoryGetCapacity(), count, item:getName(),
             item:getMass(), self.parent:getName(), data.totalAsk, #data.askOffers)
     else
-        printf(
+        Log.Debug(
             "TRADER ***: Couldn't add any ask offers from %s to obtain %d units of %s from %s | asks = %d, offers = %d",
             bidder:getName(), count, item:getName(), self.parent:getName(), data.totalAsk, #data.askOffers)
     end
@@ -88,7 +88,7 @@ function Trader:addBid(item, price)
     data.totalBidPrice = data.totalBidPrice + price
 
     insert(data.bidsQueue, price)
-    --printf("Added bid to buy item %s at station %s for price %d", item:getName(), self.parent:getName(), price)
+    --Log.Debug("Added bid to buy item %s at station %s for price %d", item:getName(), self.parent:getName(), price)
     return true
 end
 
@@ -110,12 +110,12 @@ function Trader:addBidOffer(bidder)
     end
 
     if bidOffersAdded > 0 then
-        printf(
+        Log.Debug(
             "TRADER: Added %d bid offers from asset %s (cap: %s, free: %s) to supply %s (mass = %s) to trader %s | bids = %d, offers = %d",
             bidOffersAdded, bidder:getName(), bidder:mgrInventoryGetCapacity(), count, item:getName(),
             item:getMass(), self.parent:getName(), data.totalBid, #data.bidOffers)
     else
-        printf(
+        Log.Debug(
             "TRADER ***: Couldn't add any bid offers from %s to supply %d units of %s (mass = %s) to %s | bids = %d, offers = %d",
             bidder:getName(), count, item:getName(), item:getMass(), self.parent:getName(), data.totalBid,
             #data.bidOffers)
@@ -151,7 +151,7 @@ function Trader:computeTrade(item, maxCount, dst, asset)
 
     --local aname = "-"
     --if asset then aname = asset:getName() end
-    --printf("computeTrade %s: item %s from station %s (asks %d) -> station %s (bids %d); " ..
+    --Log.Debug("computeTrade %s: item %s from station %s (asks %d) -> station %s (bids %d); " ..
     --       "maxCount %d, assetBids %d, otherBids %d, bidsFree %d",
     --       aname, item:getName(), src.parent:getName(), #asks, dst.parent:getName(), #bids,
     --       maxCount, assetBids, otherBids, bidsFree)
@@ -207,7 +207,7 @@ end
 local function removeAskOffer(data, asset)
     local askOfferIndex = findAskOffer(data, asset)
     if askOfferIndex ~= -1 then
-        --printf("TRADER: removing 1 ask offer from %s", asset:getName())
+        --Log.Debug("TRADER: removing 1 ask offer from %s", asset:getName())
         remove(data.askOffers, askOfferIndex)
     end
 end
@@ -250,7 +250,7 @@ end
 local function removeBidOffer(data, asset)
     local bidOfferIndex = findBidOffer(data, asset)
     if bidOfferIndex ~= -1 then
-        --printf("TRADER: removing 1 bid offer from %s", asset:getName())
+        --Log.Debug("TRADER: removing 1 bid offer from %s", asset:getName())
         remove(data.bidOffers, bidOfferIndex)
     end
 end
@@ -271,7 +271,7 @@ function Trader:getBuyFromPrice(item, count)
         price = math.max(1, price)
     end
 
-    --printf("TRADER %s - BuyFromPrice (%s): #data.asks = %d, data.escrow = %d, data.askOffers = %d, " ..
+    --Log.Debug("TRADER %s - BuyFromPrice (%s): #data.asks = %d, data.escrow = %d, data.askOffers = %d, " ..
     --       "count = %d, maxCount = %d, price = %d",
     --       self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
 
@@ -297,7 +297,7 @@ function Trader:getBuyFromPriceForAsset(item, count, asset)
         price = math.max(1, price)
     end
 
-    --printf("TRADER %s - BuyFromPriceForAsset (%s): #data.asks = %d, data.escrow = %d, data.askOffers = %d, " ..
+    --Log.Debug("TRADER %s - BuyFromPriceForAsset (%s): #data.asks = %d, data.escrow = %d, data.askOffers = %d, " ..
     --       "count = %d, maxCount = %d, price = %d",
     --       self.parent:getName(), item:getName(), #data.asks, data.escrow, data.askOffers, count, maxCount, price)
 
@@ -320,7 +320,7 @@ function Trader:getSellToPrice(item, count)
         price = math.max(1, price)
     end
 
-    --printf("TRADER %s - SellToPrice (%s): #data.bids = %d, data.bidOffers = %d, count = %d, maxCount = %d, price = %d",
+    --Log.Debug("TRADER %s - SellToPrice (%s): #data.bids = %d, data.bidOffers = %d, count = %d, maxCount = %d, price = %d",
     --self.parent:getName(), item:getName(), #data.bids, #data.bidOffers, count, maxCount, price)
 
     return price
@@ -345,7 +345,7 @@ function Trader:getSellToPriceForAsset(item, count, asset)
         price = math.max(1, price)
     end
 
-    --printf("TRADER %s - SellToPriceForAsset (%s): #data.bids = %d, data.bidOffers = %d, count = %d, maxCount = %d, price = %d",
+    --Log.Debug("TRADER %s - SellToPriceForAsset (%s): #data.bids = %d, data.bidOffers = %d, count = %d, maxCount = %d, price = %d",
     --self.parent:getName(), item:getName(), #data.bids, #data.bidOffers, count, maxCount, price)
 
     return price
@@ -371,7 +371,7 @@ function Trader:buy(asset, item)
                     self.parent:removeCredits(price)
                     player:addCredits(price)
 
-                    --printf("BUY: Trader parent %s buys 1 unit of item %s from Asset %s (Owner %s) at price %d",
+                    --Log.Debug("BUY: Trader parent %s buys 1 unit of item %s from Asset %s (Owner %s) at price %d",
                     --self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
 
                     data.totalBid = data.totalBid - 1
@@ -410,10 +410,10 @@ function Trader:sell(asset, item)
                 -- Note that we don't have to remove the item from the trader's owner's inventory; that was
                 --     done when the ask was made and the escrow count was incremented
                 asset:mgrInventoryAddItem(item, 1)
-                --printf("SELL: Trader parent %s sells 1 unit of item %s to Asset %s (Owner %s) at price %d",
+                --Log.Debug("SELL: Trader parent %s sells 1 unit of item %s to Asset %s (Owner %s) at price %d",
                 --    self.parent:getName(), item:getName(), asset:getName(), player:getName(), price)
 
-                --printf("Trader %s now has %d units of item %s",
+                --Log.Debug("Trader %s now has %d units of item %s",
                 --    self.parent:getName(), self.parent:mgrInventoryGetItemCount(item), item:getName())
 
                 player:removeCredits(price)
@@ -458,7 +458,7 @@ function Trader:update()
                 table.clear(data.asksQueue)
                 table.sort(data.asks, sortAsks)
                 --for i = 1, #data.asks do
-                --  printf("ask[%d] = %d", i, data.asks[i])
+                --  Log.Debug("ask[%d] = %d", i, data.asks[i])
                 --end
             end
 
@@ -468,7 +468,7 @@ function Trader:update()
                 table.clear(data.bidsQueue)
                 table.sort(data.bids, sortBids)
                 --for i = 1, #data.bids do
-                --  printf("bid[%d] = %d", i, data.bids[i])
+                --  Log.Debug("bid[%d] = %d", i, data.bids[i])
                 --end
             end
 
@@ -529,7 +529,7 @@ function Entity:debugTrader(state)
                     ctx:text("[ASK] Vol: %s (%s)  Lo: %s", #data.asks, #data.askOffers, data.asks[1])
                 else
                     ctx:text("[ASK ***] 0 asks, %d ask offers!!!", #data.askOffers)
-                    printf("TRADER **** - bad alignment; trader %s has 0 asks, %d ask offers", self:getName(),
+                    Log.Debug("TRADER **** - bad alignment; trader %s has 0 asks, %d ask offers", self:getName(),
                         #data.askOffers)
                 end
             end

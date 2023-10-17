@@ -45,12 +45,12 @@ end
 
 local function printResult(name, result, expected, actual)
     if result then
-        printf('%s Passed', name)
+        Log.Info('%s Passed', name)
     else
-        printf('%s FAILED!', name)
-        printf('\tExpected: %s', expected)
-        printf('\tActual:   %s', actual)
-        print()
+        Log.Info('%s FAILED!', name)
+        Log.Info('\tExpected: %s', expected)
+        Log.Info('\tActual:   %s', actual)
+        Log.Info()
     end
 end
 
@@ -309,8 +309,8 @@ function CoordTest:onInit()
 end
 
 function CoordTest:onUpdate(dt)
-    if Input.GetDown(Button.Mouse.Left) then
-        local mouseDelta = Input.GetMouseDelta()
+    if InputInstance:isDown(Button.MouseLeft) then
+        local mouseDelta = InputInstance:mouse():delta()
         self.theta = self.theta + 0.005 * mouseDelta.x
 
         local epsilon = 0.0001
@@ -318,7 +318,7 @@ function CoordTest:onUpdate(dt)
         self.phi = Math.Clamp(self.phi, epsilon, Math.Pi - epsilon)
     end
 
-    self.radius = self.radius * (1 - .05 * Input.GetValue(Button.Mouse.ScrollY))
+    self.radius = self.radius * (1 - .05 * InputInstance:getValue(Button.MouseScrollY))
     self.radius = Math.Clamp(self.radius, 0.2, 2000.0)
 
     self.pos.x  = self.radius * sin(self.phi) * cos(self.theta)

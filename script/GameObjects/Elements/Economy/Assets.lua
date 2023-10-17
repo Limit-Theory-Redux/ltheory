@@ -6,7 +6,7 @@ local function iterateAssets(s)
 end
 
 function Entity:addAsset(asset)
-    --printf("adding new asset = %s (%s) to %s", asset, asset:getName(), self:getName())
+    --Log.Debug("adding new asset = %s (%s) to %s", asset, asset:getName(), self:getName())
     assert(self.assets)
     assert(asset.owner == nil)
     insert(self.assets, asset)
@@ -34,7 +34,7 @@ function Entity:iterAssets()
 end
 
 function Entity:removeAsset(asset)
-    --printf("removing asset = %s (%s) from %s", asset, asset:getName(), self:getName())
+    --Log.Debug("removing asset = %s (%s) from %s", asset, asset:getName(), self:getName())
     assert(self.assets)
     assert(asset.owner == self)
     asset.owner = nil

@@ -1,7 +1,7 @@
 use memoffset::offset_of;
 
 use super::*;
-use crate::internal::*;
+use crate::error::Error;
 use crate::math::*;
 use crate::system::*;
 use crate::*;
@@ -102,12 +102,12 @@ pub extern "C" fn Mesh_Acquire(this: &mut Mesh) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
+pub extern "C" fn Mesh_Free(mut this: Box<Mesh>) {
     this._refCount = (this._refCount).wrapping_sub(1);
 
     if this._refCount <= 0 && this.vbo != 0 {
-        gl::DeleteBuffers(1, &mut this.vbo);
-        gl::DeleteBuffers(1, &mut this.ibo);
+        gl_delete_buffers(1, &mut this.vbo);
+        gl_delete_buffers(1, &mut this.ibo);
     }
 }
 
@@ -141,8 +141,10 @@ pub unsafe extern "C" fn Mesh_FromBytes(buf: &mut Bytes) -> Box<Mesh> {
     let mut this = Mesh_Create();
     let vertexCount: i32 = Bytes_ReadI32(buf);
     let indexCount: i32 = Bytes_ReadI32(buf);
+
     Mesh_ReserveVertexData(this.as_mut(), vertexCount);
     Mesh_ReserveIndexData(this.as_mut(), indexCount);
+
     (*this)
         .vertex
         .resize(vertexCount as usize, Vertex::default());
@@ -157,6 +159,7 @@ pub unsafe extern "C" fn Mesh_FromBytes(buf: &mut Bytes) -> Box<Mesh> {
         (*this).index.as_mut_ptr() as *mut _,
         (indexCount as usize).wrapping_mul(std::mem::size_of::<i32>()) as u32,
     );
+
     this
 }
 
@@ -222,22 +225,22 @@ pub unsafe extern "C" fn Mesh_AddVertexRaw(this: &mut Mesh, vertex: *const Verte
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
+pub extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
     /* Release cached GL buffers if the mesh has changed since we built them. */
     if this.vbo != 0 && this.version != this.versionBuffers {
-        gl::DeleteBuffers(1, &mut this.vbo);
-        gl::DeleteBuffers(1, &mut this.ibo);
+        gl_delete_buffers(1, &mut this.vbo);
+        gl_delete_buffers(1, &mut this.ibo);
         this.vbo = 0;
         this.ibo = 0;
     }
 
     /* Generate cached GL buffers for fast drawing. */
     if this.vbo == 0 {
-        gl::GenBuffers(1, &mut this.vbo);
-        gl::GenBuffers(1, &mut this.ibo);
-        gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo);
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
-        gl::BufferData(
+        gl_gen_buffers(1, &mut this.vbo);
+        gl_gen_buffers(1, &mut this.ibo);
+        gl_bind_buffer(gl::ARRAY_BUFFER, this.vbo);
+        gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
+        gl_buffer_data(
             gl::ARRAY_BUFFER,
             (this.vertex.len() as i32 as usize).wrapping_mul(std::mem::size_of::<Vertex>())
                 as gl::types::GLsizeiptr,
@@ -249,7 +252,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
         /* TODO : Check if 8-bit indices are supported by hardware. IIRC they
          *        weren't last time I checked. */
 
-        gl::BufferData(
+        gl_buffer_data(
             gl::ELEMENT_ARRAY_BUFFER,
             (this.index.len() as i32 as usize).wrapping_mul(std::mem::size_of::<i32>())
                 as gl::types::GLsizeiptr,
@@ -260,14 +263,14 @@ pub unsafe extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
         this.versionBuffers = this.version;
     }
 
-    gl::BindBuffer(gl::ARRAY_BUFFER, this.vbo);
-    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
+    gl_bind_buffer(gl::ARRAY_BUFFER, this.vbo);
+    gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, this.ibo);
 
-    gl::EnableVertexAttribArray(0);
-    gl::EnableVertexAttribArray(1);
-    gl::EnableVertexAttribArray(2);
+    gl_enable_vertex_attrib_array(0);
+    gl_enable_vertex_attrib_array(1);
+    gl_enable_vertex_attrib_array(2);
 
-    gl::VertexAttribPointer(
+    gl_vertex_attrib_pointer(
         0,
         3,
         gl::FLOAT,
@@ -275,7 +278,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
         std::mem::size_of::<Vertex>() as gl::types::GLsizei,
         offset_of!(Vertex, p) as *const _,
     );
-    gl::VertexAttribPointer(
+    gl_vertex_attrib_pointer(
         1,
         3,
         gl::FLOAT,
@@ -283,7 +286,7 @@ pub unsafe extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
         std::mem::size_of::<Vertex>() as gl::types::GLsizei,
         offset_of!(Vertex, n) as *const _,
     );
-    gl::VertexAttribPointer(
+    gl_vertex_attrib_pointer(
         2,
         2,
         gl::FLOAT,
@@ -294,13 +297,16 @@ pub unsafe extern "C" fn Mesh_DrawBind(this: &mut Mesh) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_DrawBound(this: &mut Mesh) {
-    Metric_AddDraw(
-        this.index.len() as i32 / 3,
-        this.index.len() as i32 / 3,
-        this.vertex.len() as i32,
-    );
-    gl::DrawElements(
+pub extern "C" fn Mesh_DrawBound(this: &mut Mesh) {
+    unsafe {
+        Metric_AddDraw(
+            this.index.len() as i32 / 3,
+            this.index.len() as i32 / 3,
+            this.vertex.len() as i32,
+        )
+    };
+
+    gl_draw_elements(
         gl::TRIANGLES,
         this.index.len() as i32,
         gl::UNSIGNED_INT,
@@ -309,43 +315,43 @@ pub unsafe extern "C" fn Mesh_DrawBound(this: &mut Mesh) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_DrawUnbind(_this: &mut Mesh) {
-    gl::DisableVertexAttribArray(0);
-    gl::DisableVertexAttribArray(1);
-    gl::DisableVertexAttribArray(2);
-    gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
+pub extern "C" fn Mesh_DrawUnbind(_this: &mut Mesh) {
+    gl_disable_vertex_attrib_array(0);
+    gl_disable_vertex_attrib_array(1);
+    gl_disable_vertex_attrib_array(2);
+    gl_bind_buffer(gl::ARRAY_BUFFER, 0);
+    gl_bind_buffer(gl::ELEMENT_ARRAY_BUFFER, 0);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_Draw(this: &mut Mesh) {
+pub extern "C" fn Mesh_Draw(this: &mut Mesh) {
     Mesh_DrawBind(this);
     Mesh_DrawBound(this);
     Mesh_DrawUnbind(this);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
-    gl::Begin(gl::LINES);
+pub extern "C" fn Mesh_DrawNormals(this: &mut Mesh, scale: f32) {
+    gl_begin(gl::LINES);
     for v in this.vertex.iter() {
-        gl::Vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
-        gl::Vertex3f(
+        gl_vertex3f((*v).p.x, (*v).p.y, (*v).p.z);
+        gl_vertex3f(
             (*v).p.x + scale * (*v).n.x,
             (*v).p.y + scale * (*v).n.y,
             (*v).p.z + scale * (*v).n.z,
         );
     }
-    gl::End();
+    gl_end();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_GetBound(this: &mut Mesh, out: &mut Box3) {
+pub extern "C" fn Mesh_GetBound(this: &mut Mesh, out: &mut Box3) {
     Mesh_UpdateInfo(this);
     *out = this.info.bound;
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_GetCenter(this: &mut Mesh, out: &mut Vec3) {
+pub extern "C" fn Mesh_GetCenter(this: &mut Mesh, out: &mut Vec3) {
     Mesh_UpdateInfo(this);
     *out = this.info.bound.center();
 }
@@ -381,9 +387,11 @@ pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
     let indexLen: i32 = Mesh_GetIndexCount(this);
     let indexData: *mut i32 = Mesh_GetIndexData(this);
     let vertexData: *mut Vertex = Mesh_GetVertexData(this);
+
     if indexLen % 3 != 0 {
         return (0x100000 | 0x80) as Error;
     }
+
     let mut i: i32 = 0;
     while i < indexLen {
         let i0: i32 = *indexData.offset((i + 0) as isize);
@@ -401,6 +409,7 @@ pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
         }
         i += 3;
     }
+
     for v in this.vertex.iter() {
         let mut e_0 = Vec3_Validate((*v).p);
         if e_0 != 0 {
@@ -415,6 +424,7 @@ pub unsafe extern "C" fn Mesh_Validate(this: &mut Mesh) -> Error {
             return 0x1000000 | e_0;
         }
     }
+
     0 as Error
 }
 
@@ -444,10 +454,12 @@ pub extern "C" fn Mesh_ReserveVertexData(this: &mut Mesh, capacity: i32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Mesh_Center(this: &mut Mesh) -> &mut Mesh {
+pub extern "C" fn Mesh_Center(this: &mut Mesh) -> &mut Mesh {
     let mut c = Vec3::ZERO;
+
     Mesh_GetCenter(this, &mut c);
     Mesh_Translate(this, -c.x, -c.y, -c.z);
+
     this
 }
 
@@ -457,13 +469,16 @@ pub extern "C" fn Mesh_Invert(this: &mut Mesh) -> &mut Mesh {
         this.index.swap(i + 1, i + 2);
     }
     this.version += 1;
+
     this
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn Mesh_RotateX(this: &mut Mesh, rads: f32) -> &mut Mesh {
     let matrix = Matrix_RotationX(rads);
+
     Mesh_Transform(this, matrix.as_ref());
+
     this
 }
 
@@ -536,6 +551,7 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(this: &mut Mesh) {
     for v in this.vertex.iter_mut() {
         v.n = Vec3::ZERO;
     }
+
     for i in (0..this.index.len()).step_by(3) {
         let v1 = &mut this.vertex[this.index[i + 0] as usize] as *mut Vertex;
         let v2 = &mut this.vertex[this.index[i + 1] as usize] as *mut Vertex;
@@ -543,13 +559,16 @@ pub unsafe extern "C" fn Mesh_ComputeNormals(this: &mut Mesh) {
         let e1: Vec3 = (*v2).p - (*v1).p;
         let e2: Vec3 = (*v3).p - (*v2).p;
         let en: Vec3 = Vec3::cross(e1, e2);
+
         (*v1).n += en;
         (*v2).n += en;
         (*v3).n += en;
     }
+
     for v in this.vertex.iter_mut() {
         (*v).n = (*v).n.normalize();
     }
+
     this.version += 1;
 }
 
@@ -558,6 +577,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(this: &mut Mesh, minDot: f32) {
     for v in this.vertex.iter_mut() {
         (*v).n = Vec3::ZERO;
     }
+
     for i in (0..this.index.len()).step_by(3) {
         let index: [*mut i32; 3] = [
             &mut this.index[i + 0] as *mut i32,
@@ -570,6 +590,7 @@ pub unsafe extern "C" fn Mesh_SplitNormals(this: &mut Mesh, minDot: f32) {
             &mut this.vertex[*index[2] as usize] as *mut Vertex,
         ];
         let face: Vec3 = Vec3::cross((*v[1]).p - (*v[0]).p, (*v[2]).p - (*v[0]).p);
+
         for j in 0..3 {
             let cn: &mut Vec3 = &mut this.vertex[*index[j as usize] as usize].n;
             if (*cn).length_squared() > 0.0f32 {

@@ -6,7 +6,7 @@ local function style(...)
     for i = 1, #args do args[i] = tostring(args[i]) end
     local style = table.concat(args, ';')
     return function(s)
-        printf(
+        Log.Info(
             '\x1B[41m \x1B[0m \x1B[%sm%s\x1B[0m',
             style,
             format('%-78s', s))

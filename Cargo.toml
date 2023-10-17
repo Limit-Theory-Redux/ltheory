@@ -13,6 +13,7 @@ license = "MIT/Apache-2.0"
 ltr = { path = "engine/bin/ltr" }
 
 # workspace lib crates
+internal = { path = "engine/lib/internal" }
 phx = { path = "engine/lib/phx" }
 luajit-ffi-gen = { path = "engine/lib/luajit-ffi-gen" }
 

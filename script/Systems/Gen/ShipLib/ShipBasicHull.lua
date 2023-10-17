@@ -61,7 +61,7 @@ function ShipBasicHull.Hull(rng, hull)
     --      1.0
     --    )
     --    local extrusionAngle = rng:getUniformRange(minT, maxT)
-    --printf("@@@ ShipBasicHull.Tube - dir = %s, exLength = %s, exAngle = %s", dir, extrusionLength, extrusionAngle)
+    --Log.Debug("@@@ ShipBasicHull.Tube - dir = %s, exLength = %s, exAngle = %s", dir, extrusionLength, extrusionAngle)
     --    shape:extrudePoly(pi, extrusionLength, extrusionSize, Vec3d(0, sin(extrusionAngle), -dir*cos(extrusionAngle)))
     --  end
 

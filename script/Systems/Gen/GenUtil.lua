@@ -7,7 +7,7 @@ local GenUtil = {}
 function GenUtil.FindMountPoint(mesh, bsp, rng, normal, facing, maxTries)
     local radius = mesh:getRadius()
     local center = mesh:getCenter()
-    --printf("@@@ GenUtil.FindMountPoint - radius = %s, center = %s", radius, center)
+    --Log.Debug("@@@ GenUtil.FindMountPoint - radius = %s, center = %s", radius, center)
     local e2, e3 = Math.OrthoBasis(normal)
     local t = ffi.new('float[1]')
     for i = 1, maxTries do

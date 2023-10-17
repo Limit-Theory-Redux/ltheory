@@ -60,7 +60,7 @@ local Drone = subclass(Entity, function(self)
     self.cooldown     = 0
     self.heat         = 0
 
-    --printf("Register: Drone name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateDrone)
+    --Log.Debug("Register: Drone name = %s, type = %s, handler = %s", self.name, Event.Update, self.updateDrone)
     self:register(Event.Update, self.updateDrone)
 end)
 
@@ -107,7 +107,7 @@ end
 
 function Drone:fire()
     if not self:canFire() then return end
-    printf("%s launching drone!", self:getParent():getName())
+    Log.Debug("%s launching drone!", self:getParent():getName())
 
     local projectile = self:getRoot():addProjectile(self:getParent())
     local effect = projectile:getEffect()
@@ -146,7 +146,7 @@ function Drone:render(state)
 end
 
 function Drone:updateDrone(state)
-    --printf("name = %s", self.name)
+    --Log.Debug("name = %s", self.name)
     local decay = exp(-16.0 * state.dt)
     self:setRotLocal(self:getParent():getRot():inverse() * self.aim)
     if self.firing > 0 then

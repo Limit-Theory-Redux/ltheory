@@ -1,7 +1,7 @@
 use crate::common::*;
-use crate::internal::*;
 
 use image::{DynamicImage, ImageBuffer};
+use internal::ConvertIntoString;
 
 #[no_mangle]
 pub extern "C" fn Tex2D_Save_Png(

@@ -23,7 +23,7 @@ local Cloak       = subclass(Entity, function(self)
     self.rating     = Config.gen.compCloakStats.rating
     self.draw       = Config.gen.compCloakStats.draw
     self.active     = false
-    --printf("Register: Cloak name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCloak)
+    --Log.Debug("Register: Cloak name = '%s', type = %s, handler = %s", self.name, Event.Update, self.updateCloak)
     self:register(Event.Update, self.updateCloak)
 end)
 
@@ -47,7 +47,7 @@ function Cloak:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s cloak takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s cloak takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
 function Cloak:getHealth()
@@ -93,7 +93,7 @@ function Cloak:updateCloak(state)
             if GameState.paused then
                 timeScale = 0.0
             end
-            if Input.GetDown(Bindings.TimeAccel) then
+            if InputInstance:isDown(Bindings.TimeAccel) then
                 timeScale = GameState.debug.timeAccelFactor
             end
 
@@ -107,7 +107,7 @@ function Cloak:updateCloak(state)
                 self.active = false
             end
 
-            --printf("CLOAK: '%s' active = %s", self:getName(), self.active)
+            --Log.Debug("CLOAK: '%s' active = %s", self:getName(), self.active)
         end
     end
 end

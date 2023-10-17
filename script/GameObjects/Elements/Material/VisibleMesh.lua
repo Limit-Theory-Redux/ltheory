@@ -49,7 +49,7 @@ function Entity:handleMeshCulling()
 
         -- Cull Entities (temp: without subtypes until that works properly)
         if objectType then
-            --printf("%s: %s, %s", self.visibleMesh, distanceToEntity, self:getName())
+            --Log.Debug("%s: %s, %s", self.visibleMesh, distanceToEntity, self:getName())
             local renderDistance = GameState.render.renderDistances[objectType]
 
             if renderDistance then
@@ -65,7 +65,7 @@ end
 
 function Entity:renderVisibleMesh(state)
     if state.mode == BlendMode.Disabled then
-        --printf("Entity:renderVisibleMesh() - self = %s", self:getName())
+        --Log.Debug("Entity:renderVisibleMesh() - self = %s", self:getName())
         self.material:start()
         self.material:setState(self)
         self.mesh:draw()

@@ -35,7 +35,7 @@ function Communicator:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s communicator takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s communicator takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
 end
 
 function Communicator:getHealth()
@@ -70,7 +70,7 @@ end
 
 function Communicator:updateCommunicator(state)
     if not self:getParent():isDestroyed() then
-        --printf("COMMUNICATOR: %s", self:getName())
+        --Log.Debug("COMMUNICATOR: %s", self:getName())
     end
 end
 

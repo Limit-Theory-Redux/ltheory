@@ -1,4 +1,4 @@
-use super::gl;
+use super::{gl, *};
 use crate::common::*;
 use crate::math::IVec2;
 
@@ -24,16 +24,17 @@ static mut vp: [VP; 16] = [VP {
     isWindow: false,
 }; 16];
 
-unsafe extern "C" fn Viewport_Set(this: &VP) {
-    gl::Viewport(this.x, this.y, this.sx, this.sy);
-    gl::MatrixMode(gl::PROJECTION);
-    gl::LoadIdentity();
+extern "C" fn Viewport_Set(this: &VP) {
+    gl_viewport(this.x, this.y, this.sx, this.sy);
+    gl_matrix_mode(gl::PROJECTION);
+    gl_load_identity();
+
     if this.isWindow {
-        gl::Translatef(-1.0f32, 1.0f32, 0.0f32);
-        gl::Scalef(2.0f32 / this.sx as f32, -2.0f32 / this.sy as f32, 1.0f32);
+        gl_translatef(-1.0f32, 1.0f32, 0.0f32);
+        gl_scalef(2.0f32 / this.sx as f32, -2.0f32 / this.sy as f32, 1.0f32);
     } else {
-        gl::Translatef(-1.0f32, -1.0f32, 0.0f32);
-        gl::Scalef(2.0f32 / this.sx as f32, 2.0f32 / this.sy as f32, 1.0f32);
+        gl_translatef(-1.0f32, -1.0f32, 0.0f32);
+        gl_scalef(2.0f32 / this.sx as f32, 2.0f32 / this.sy as f32, 1.0f32);
     };
 }
 

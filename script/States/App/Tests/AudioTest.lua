@@ -4,8 +4,8 @@ local Bindings = require('States.ApplicationBindings')
 local AudioTest = require('States.Application')
 
 local Music = {
-    MainTheme = './res/sound/system/audio/music/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade',
-    AltTheme  = './res/sound/system/audio/music/LTR_Parallax_Universe_loop'
+    MainTheme = './res/sound/system/audio/music/LTR_Surpassing_The_Limit_Redux_Ambient_Long_Fade.ogg',
+    AltTheme  = './res/sound/system/audio/music/LTR_Parallax_Universe.ogg'
 }
 
 local SFX = {
@@ -55,7 +55,8 @@ function AudioTest:onInit()
     self.music = {}
     self.music[0] = Sound.Load(Music.MainTheme, true)
     self.music[1] = Sound.Load(Music.AltTheme, true)
-    self.music[self.musicToggle]:play()
+
+    self.audio:play(self.music[self.musicToggle])
 
     for i = 1, #self.emitters do
         local e = self.emitters[i]
@@ -67,7 +68,7 @@ function AudioTest:onInit()
         e.sound = Sound.Load(e.file, true)
         e.sound:set3DPos(Vec3f(e.x, 0, e.y), Vec3f(0, 0, 0))
         --e.sound:setPlayPos(e.sound:getDuration() - 10*i)
-        e.sound:play()
+        self.audio:play(e.sound)
     end
 
     self.lastFireTime = 0
@@ -95,11 +96,11 @@ function AudioTest:onInit()
 end
 
 function AudioTest:onInput()
-    if Input.GetPressed(Bindings.Exit) then
+    if InputInstance:isPressed(Bindings.Exit) then
         self:quit()
     end
 
-    if Input.GetPressed(Button.Mouse.Left) then
+    if InputInstance:isPressed(Button.MouseLeft) then
         -- Fade out currently playing music
         self.music[self.musicToggle]:fadeOut(5.0)
         -- Fade in alternate music
@@ -107,7 +108,7 @@ function AudioTest:onInput()
         self.music[self.musicToggle]:fadeIn(5.0)
     end
 
-    if Input.GetDown(Button.Mouse.Left) then
+    if InputInstance:isDown(Button.MouseLeft) then
         -- if self.lastFireTime:getElapsed() > 0.12 then
         --   self.lastFireTime = self.lastUpdate
         --   local sound = Sound.Load(SFX.Gun, false, true)
@@ -118,18 +119,18 @@ function AudioTest:onInput()
         -- end
     end
 
-    if Input.GetDown(Button.Mouse.Right) then
-        local is = Input.GetMousePosition()
+    if InputInstance:isDown(Button.MouseRight) then
+        local is = InputInstance:mouse():position()
         self.pos.x = is.mousePosition.x
         self.pos.z = is.mousePosition.y
     end
 
     -- for k, v in pairs(self.onKeyDown) do
-    --   if Input.GetDown(k) then v() end
+    --   if InputInstance:isDown(k) then v() end
     -- end
 
     -- for k, v in pairs(self.onKeyPress) do
-    --   if Input.GetPressed(k) then v() end
+    --   if InputInstance:isPressed(k) then v() end
     -- end
 end
 
@@ -201,8 +202,8 @@ function AudioTest:onUpdate(dt)
     --[[
   for i = 1, #self.emitters do
     local s = self.emitters[i].sound
-    --printf("%20s\t%.2f\t%s\t%s", tostring(s:getName()), s:getDuration(), s:isPlaying(), s:isFinished())
-    printf("%20s\t%.2f\t%s", tostring(s:getName()), s:getDuration(), s:isFinished())
+    --Log.Debug("%20s\t%.2f\t%s\t%s", tostring(s:getName()), s:getDuration(), s:isPlaying(), s:isFinished())
+    Log.Debug("%20s\t%.2f\t%s", tostring(s:getName()), s:getDuration(), s:isFinished())
   end
 --]]
 end

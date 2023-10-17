@@ -6,6 +6,12 @@ pub struct TimeStamp {
     pub value: SystemTime,
 }
 
+impl Default for TimeStamp {
+    fn default() -> Self {
+        Self::zero()
+    }
+}
+
 impl TimeStamp {
     pub const fn zero() -> Self {
         Self { value: UNIX_EPOCH }
