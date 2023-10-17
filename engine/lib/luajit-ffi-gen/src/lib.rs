@@ -1,6 +1,6 @@
 mod args;
 mod enum_item;
-mod ffi_data;
+mod ffi_generator;
 mod impl_item;
 mod parse;
 mod util;
@@ -13,8 +13,6 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
 
-pub(crate) const LUAJIT_FFI_GEN_DIR_ENV: &str = "LUAJIT_FFI_GEN_DIR";
-pub(crate) const LUAJIT_FFI_GEN_DIR: &str = "../phx/script/ffi";
 pub(crate) const IDENT: &str = "    ";
 
 /// Proc macro attribute for generating Lua FFI bindings.
