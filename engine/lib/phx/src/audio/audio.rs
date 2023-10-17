@@ -1,7 +1,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use kira::manager::{AudioManager, AudioManagerSettings};
+use kira::manager::backend::cpal::CpalBackend;
+use kira::manager::{AudioManager, AudioManagerSettings, Capacities};
 use kira::sound::static_sound::StaticSoundHandle;
 use kira::sound::PlaybackState;
 use kira::spatial::emitter::{EmitterHandle, EmitterSettings};
@@ -11,7 +12,9 @@ use kira::tween::Tween;
 
 use crate::math::*;
 
-use super::Sound;
+use super::{process_command_error, Sound};
+
+const DEFAULT_COMMAND_CAPACITY: usize = 1024;
 
 pub struct Audio {
     audio_manager: AudioManager,
@@ -24,7 +27,13 @@ pub struct Audio {
 impl Audio {
     #[bind(name = "Create")]
     pub fn new() -> Self {
-        let settings = AudioManagerSettings::default();
+        let settings = AudioManagerSettings {
+            capacities: Capacities {
+                command_capacity: DEFAULT_COMMAND_CAPACITY,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
         let mut audio_manager = AudioManager::new(settings).expect("Cannot create audio manager");
 
         let mut spatial_scene = audio_manager
@@ -54,7 +63,7 @@ impl Audio {
             let emitter = self
                 .spatial_scene
                 .add_emitter([0.0, 0.0, 0.0], EmitterSettings::default())
-                .unwrap();
+                .expect("Cannot add an emitter");
 
             sound.set_emitter(emitter);
 
@@ -72,12 +81,15 @@ impl Audio {
     }
 
     pub fn set_listener_pos(&mut self, pos: &Vec3, rot: &Quat) {
-        self.listener
-            .set_position(*pos, Tween::default())
-            .expect("Cannot set listener position");
-        self.listener
-            .set_orientation([rot.x, rot.y, rot.z, rot.w], Tween::default())
-            .expect("Cannot set listener position");
+        process_command_error(
+            self.listener.set_position(*pos, Tween::default()),
+            "Cannot set listener position",
+        );
+        process_command_error(
+            self.listener
+                .set_orientation([rot.x, rot.y, rot.z, rot.w], Tween::default()),
+            "Cannot set listener position",
+        );
     }
 
     pub fn get_loaded_count(&self) -> u64 {
