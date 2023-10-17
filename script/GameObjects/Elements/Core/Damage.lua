@@ -16,7 +16,7 @@ function Entity:applyDamage(amount, source)
         attackingShipName = attackingShipName .. " [Ace]"
     end
 
-    --printf("hit on '%s' from '%s' for %s damage", thisShipName, attackingShipName, amount)
+    --Log.Debug("hit on '%s' from '%s' for %s damage", thisShipName, attackingShipName, amount)
 
     self:send(Event.Damaged(amount, source))
 
@@ -47,7 +47,7 @@ function Entity:applyDamage(amount, source)
         -- Vessel has been damaged to the point of destruction (0 hull integrity)
         self:clearActions()
 
-        printf("%s destroyed by %s!", thisShipName, attackingShipName)
+        Log.Debug("%s destroyed by %s!", thisShipName, attackingShipName)
 
         -- Unregister debug events for the destroyed entity
         self:unregister(Event.Debug, Entity.mgrInventoryDebug)
@@ -105,7 +105,7 @@ function Entity:applyDamage(amount, source)
         if self == GameState.player.currentShip then
             -- TODO: Do any unloading/savegame/etc actions required upon player ship destruction
             -- NOTE: The "Game Over" message is displayed in Application.lua
-            printf("Player ship %s has been destroyed, game over!", self:getName())
+            Log.Debug("Player ship %s has been destroyed, game over!", self:getName())
         end
     end
 end

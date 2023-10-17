@@ -97,7 +97,7 @@ static void MemPool_Grow (MemPool* self) {
 ]]
 
 function Test:showSimple()
-    HmGui.BeginWindow('HmGui Test')
+    HmGui.BeginWindow('HmGui Test', InputInstance)
     HmGui.BeginGroupX()
     HmGui.Button(" < ")
     HmGui.SetStretch(0, 1)
@@ -145,7 +145,7 @@ function Test:showSimple()
 
     HmGui.BeginGroupY()
     HmGui.SetPadding(4, 4)
-    if HmGui.Button("-- OPT 1 --") then print("Opt 1!") end
+    if HmGui.Button("-- OPT 1 --") then Log.Debug("Opt 1!") end
     HmGui.Button("-- OPT 2 --")
     HmGui.Checkbox("Yas", true)
     HmGui.Checkbox("Nope", false)
@@ -181,7 +181,7 @@ function Test:showSimple()
             HmGui.Text(line)
         end
         HmGui.PopStyle(2)
-        HmGui.EndScroll()
+        HmGui.EndScroll(InputInstance)
     end
     HmGui.EndGroup()
     HmGui.EndWindow()
@@ -201,11 +201,11 @@ function Test:showTodoInner()
         end
         HmGui.EndGroup()
     end
-    HmGui.EndScroll()
+    HmGui.EndScroll(InputInstance)
 end
 
 function Test:showTodo()
-    HmGui.BeginWindow("HmGui Todo List")
+    HmGui.BeginWindow("HmGui Todo List", InputInstance)
     HmGui.TextEx(Cache.Font('Iceland', 20), 'HmGui Todo List', 0.3, 0.4, 0.5, 0.5)
     HmGui.SetAlign(0.5, 0.5)
     self:showTodoInner()
@@ -214,19 +214,19 @@ function Test:showTodo()
 end
 
 function Test:showMetrics()
-    HmGui.BeginWindow("Metrics")
+    HmGui.BeginWindow("Metrics", InputInstance)
     HmGui.Text(format("fps: %.2f", 1.0 / self.dt))
     HmGui.EndWindow()
 end
 
 function Test:onUpdate(dt)
     Profiler.Begin('HmGui.Update')
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
     -- HmGui.Image(self.bg)
     self:showSimple()
     -- self:showMetrics()
     self:showTodo()
-    HmGui.End()
+    HmGui.End(InputInstance)
     Profiler.End()
 end
 

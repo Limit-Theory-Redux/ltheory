@@ -13,7 +13,7 @@ local escortShips = 20
 
 function LTheory:generate()
     self.seed = rng:get64()
-    printf('Seed: %s', self.seed)
+    Log.Info('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)
@@ -91,7 +91,9 @@ function LTheory:onInit()
         :add(self.gameView
             :add(Systems.Controls.Controls.MasterControl(self.gameView, self.player)))
 
-    self.window:setCursor(Enums.CursorFilenames[GameState.ui.cursorStyle], GameState.ui.cursorX, GameState.ui.cursorY)
+    -- TODO: WindowInstance:cursor().setIcon(Enums.CursorFilenames[GameState.ui.cursorStyle])
+    WindowInstance:setCursorPosition(Vec2f(GameState.ui.cursorX, GameState.ui.cursorY))
+
     MainMenu:SetMenuMode(Enums.MenuMode.Dialog)
 end
 
@@ -102,15 +104,15 @@ end
 function LTheory:onUpdate(dt)
     -- If player pressed the "ToggleLights" key in Flight Mode, toggle dynamic lighting on/off
     -- NOTE: Performance is OK for just the player's ship, but adding many lit ships & pulses tanks performance
-    if Input.GetPressed(Bindings.ToggleLights) then
+    if InputInstance:isPressed(Bindings.ToggleLights) then
         GameState.render.pulseLights = not GameState.render.pulseLights
     end
 
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
 
-    HmGui.Begin(self.resX, self.resY) -- required for HmGui.Draw() to work without crashing
-    HmGui.End()
+    HmGui.Begin(self.resX, self.resY, InputInstance) -- required for HmGui.Draw() to work without crashing
+    HmGui.End(InputInstance)
 end
 
 function LTheory:onDraw()

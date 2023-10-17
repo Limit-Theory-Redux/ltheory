@@ -33,7 +33,7 @@ end
 --    if pressure < bestPressure then
 --      bestPressure = pressure
 --      bestJob = job
-----printf("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
+----Log.Debug("[asset:%s] pressure = %s, job = %s", asset:getName(), pressure, job:getName(asset))
 --    end
 --  end
 --
@@ -235,7 +235,7 @@ function Think:onUpdateActive(e, dt)
         -- TODO: Correct the self.timer tests below to trigger on their _intervals_,
         --       not on elapsed time (which never resets)
         self.timer = self.timer + dt
-        --printf("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
+        --Log.Debug("THINK [%s]: dt = %f, self.timer = %f", e:getName(), dt, self.timer)
 
         do -- TODO: capital expenditure AI
             if self.timer > 30 then

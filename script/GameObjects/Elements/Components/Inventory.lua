@@ -40,7 +40,7 @@ function Inventory:damageHealth(amount)
     else
         self.healthCurr = self.healthCurr - amount
     end
-    --printf("Vessel %s inventory takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
+    --Log.Debug("Vessel %s inventory takes %s damage, %s remaining", self:getName(), amount, self.healthCurr)
     -- TODO: Add a chance to damage or remove inventory items in the transport pod that was damaged
 end
 
@@ -120,7 +120,7 @@ function Inventory:addItem(item, count)
     self.inventoryFree = self.inventoryFree - mass
     self.inventory[item] = self:getItemCount(item) + count
 
-    --printf("Inventory:addItem() - Added %d units of item %s to inventory of object %s, count now = %d",
+    --Log.Debug("Inventory:addItem() - Added %d units of item %s to inventory of object %s, count now = %d",
     --count, item:getName(), self:getName(), self.inventory[item])
 
     return true
@@ -147,7 +147,7 @@ function Inventory:removeItem(item, count)
     self.inventoryFree = self.inventoryFree + mass
     self.inventory[item] = self:getItemCount(item) - count
 
-    --printf("Removed %d units of item %s to inventory of object %s, count now = %d",
+    --Log.Debug("Removed %d units of item %s to inventory of object %s, count now = %d",
     --      count, item:getName(), self:getName(), self.inventory[item])
 
     if self.inventory[item] == 0 then

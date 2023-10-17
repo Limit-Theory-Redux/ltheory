@@ -1,7 +1,9 @@
+use internal::*;
+
 use super::*;
 use crate::common::*;
+// use crate::input::*;
 use crate::input::*;
-use crate::internal::*;
 use crate::math::*;
 use crate::render::*;
 use crate::system::*;
@@ -574,7 +576,7 @@ unsafe extern "C" fn HmGui_DrawGroup(g: *mut HmGuiGroup) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32) {
+pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32, input: &Input) {
     if !init_hmgui {
         init_hmgui = true;
         this.group = std::ptr::null_mut();
@@ -603,7 +605,7 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32) {
         this.root = std::ptr::null_mut();
     }
     this.last = std::ptr::null_mut();
-    this.activate = Input_GetPressed(Button_Mouse_Left);
+    this.activate = input.mouse().is_pressed(MouseControl::Left);
 
     HmGui_BeginGroup(0);
     (*this.group).clip = true;
@@ -613,7 +615,7 @@ pub unsafe extern "C" fn HmGui_Begin(sx: f32, sy: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_End() {
+pub unsafe extern "C" fn HmGui_End(input: &Input) {
     Profiler_Begin(c_str!("HmGui_End"));
     HmGui_EndGroup();
     HmGui_ComputeSize(this.root);
@@ -622,9 +624,11 @@ pub unsafe extern "C" fn HmGui_End() {
     for i in 0..FocusType_SIZE {
         this.focus[i as usize] = 0;
     }
-    let mut mouse = IVec2::ZERO;
-    Input_GetMousePosition(&mut mouse);
-    this.focusPos = Vec2::new(mouse.x as f32, mouse.y as f32);
+
+    let mouse = input.mouse();
+
+    this.focusPos = mouse.position();
+
     HmGui_CheckFocus(this.root);
     Profiler_End();
 }
@@ -680,12 +684,13 @@ pub unsafe extern "C" fn HmGui_BeginScroll(maxSize: f32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_EndScroll() {
-    let data: *mut HmGuiData = HmGui_GetData(this.group);
+pub unsafe extern "C" fn HmGui_EndScroll(input: &Input) {
+    let data = HmGui_GetData(this.group);
+
     if HmGui_GroupHasFocus(1) {
-        let mut scroll = IVec2::ZERO;
-        Input_GetMouseScroll(&mut scroll);
-        (*data).offset.y -= 10.0f32 * scroll.y as f32;
+        let scroll_y = input.mouse().value(MouseControl::ScrollY);
+
+        (*data).offset.y -= 10.0f32 * scroll_y as f32;
     }
 
     let maxScroll: f32 = f32::max(0.0f32, (*data).minSize.y - (*data).size.y);
@@ -720,20 +725,19 @@ pub unsafe extern "C" fn HmGui_EndScroll() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char) {
+pub unsafe extern "C" fn HmGui_BeginWindow(_title: *const libc::c_char, input: &Input) {
     HmGui_BeginGroupStack();
     HmGui_SetStretch(0.0f32, 0.0f32);
 
     (*this.group).focusStyle = FocusStyle_None;
     (*this.group).frameOpacity = 0.95f32;
 
-    let data: *mut HmGuiData = HmGui_GetData(this.group);
+    let data = HmGui_GetData(this.group);
+    let mouse = input.mouse();
 
-    if HmGui_GroupHasFocus(0) && Input_GetDown(Button_Mouse_Left) {
-        let mut md = IVec2::ZERO;
-        Input_GetMouseDelta(&mut md);
-        (*data).offset.x += md.x as f32;
-        (*data).offset.y += md.y as f32;
+    if HmGui_GroupHasFocus(0) && mouse.is_down(MouseControl::Left) {
+        (*data).offset.x += mouse.value(MouseControl::DeltaX);
+        (*data).offset.y += mouse.value(MouseControl::DeltaY);
     }
 
     (*this.group).widget.pos.x += (*data).offset.x;

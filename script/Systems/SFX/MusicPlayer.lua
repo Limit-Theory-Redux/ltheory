@@ -47,7 +47,7 @@ function MusicPlayer:SetVolume(volume)
     self.volume = volume
 
     for _, soundObject in ipairs(self.trackList) do
-        printf("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
+        Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
         soundObject.sound:setVolume(volume)
     end
 end
@@ -62,7 +62,7 @@ function MusicPlayer:OnUpdate(dt)
         local trackNum = rng:getInt(1, #self.queue)
         local track = self.queue[trackNum]
         self.currentlyPlaying = track -- randomly pick one of the queued tracks
-        printf("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
+        Log.Debug("*** MusicPlayer:OnUpdate: playing tracknum %d '%s' with volume %s", trackNum, track.name, self.volume)
         self.currentlyPlaying:Play()
         track:SetVolume(self.volume)
     end
@@ -76,7 +76,7 @@ function MusicPlayer:PlayAmbient()
         if not string.match(soundObject.name, Config.audio.mainMenu) then
             -- ignore main menu
             -- replace this with music types later
-            printf("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
+            Log.Debug("MusicPlayer:PlayAmbient: QueueTrack(false) for '%s'", soundObject.name)
             MusicPlayer:QueueTrack(soundObject, false)
         end
     end
@@ -92,7 +92,7 @@ function MusicPlayer:QueueTrack(query, clearQueue)
     local track = self:FindTrack(query)
 
     if not track then
-        printf("No track found for query")
+        Log.Debug("No track found for query")
         return
     end
 
@@ -102,13 +102,13 @@ function MusicPlayer:QueueTrack(query, clearQueue)
 
     table.insert(self.queue, track)
 
-    --  printf("Queuing Track: " .. track.name)
+    --  Log.Debug("Queuing Track: " .. track.name)
     return track
 end
 
 function MusicPlayer:ClearQueue()
     if #self.queue > 0 then
-        --printf("MusicPlayer:ClearQueue: clearing entire queue")
+        --Log.Debug("MusicPlayer:ClearQueue: clearing entire queue")
         self.queue = {}
         if self.currentlyPlaying then
             self.currentlyPlaying:Pause()
@@ -127,7 +127,7 @@ function MusicPlayer:ClearQueueTrack(query)
         end
         for i, track in ipairs(self.queue) do
             if track == query then
-                printf("MusicPlayer:ClearQueueTrack: clearing queued track '%s'", query.name)
+                Log.Debug("MusicPlayer:ClearQueueTrack: clearing queued track '%s'", query.name)
                 table.remove(self.queue, i)
                 break
             end
@@ -138,7 +138,7 @@ end
 function MusicPlayer:StartTrack(query)
     local track = self:FindTrack(query)
     if self.currentlyPlaying ~= track then
-        printf("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
+        Log.Debug("MusicPlayer:StartTrack: playing track '%s' with volume %s", track.name, self.volume)
         track:Rewind()
         track:Play()
         track:SetVolume(self.volume)
@@ -149,7 +149,7 @@ end
 function MusicPlayer:StopTrack(query)
     local track = self:FindTrack(query)
     if track and self.currentlyPlaying == track then
-        printf("MusicPlayer:StopTrack: stopping track '%s'", track.name)
+        Log.Debug("MusicPlayer:StopTrack: stopping track '%s'", track.name)
         track:Pause()
         track:Rewind()
         self.currentlyPlaying = nil
@@ -166,7 +166,7 @@ function MusicPlayer:FindTrack(query)
             return soundObject
         end
     end
-    printf("Couldn't find track")
+    Log.Warn("Couldn't find track")
     return nil
 end
 
@@ -193,16 +193,16 @@ function MusicPlayer:LoadMusic()
                 isLooping = true -- temporary
             }
 
-            --printf("VOLUME: " .. self.volume)
+            --Log.Debug("VOLUME: " .. self.volume)
             if newSoundObject then
                 table.insert(self.trackList, newSoundObject)
             end
         end
     end
 
-    printf("Load Music: ")
+    Log.Info("Load Music: ")
     for index, soundObject in ipairs(self.trackList) do
-        printf("[" .. index .. "] " .. soundObject.name .. " (path: " ..
+        Log.Info("[" .. index .. "] " .. soundObject.name .. " (path: " ..
             tostring(soundObject.sound:getPath()) .. ")")
     end
 end

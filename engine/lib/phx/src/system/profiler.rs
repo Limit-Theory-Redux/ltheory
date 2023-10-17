@@ -1,13 +1,14 @@
-use tracing::info;
+use std::cmp::Ordering;
+use std::ffi::CStr;
+use std::io::{self, Write};
+
+use internal::*;
+use tracing::{info, warn};
 
 use super::*;
 use crate::common::*;
-use crate::internal::*;
 use crate::math::*;
 use crate::*;
-
-use std::cmp::Ordering;
-use std::io::{self, Write};
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -169,7 +170,8 @@ pub unsafe extern "C" fn Profiler_Begin(name: *const libc::c_char) {
     }
     if this.stackIndex + 1 >= 128 {
         Profiler_Backtrace();
-        panic!("Profiler_Begin: Maximum stack depth exceeded");
+        warn!("Profiler_Begin: Maximum stack depth exceeded");
+        return;
     }
     let now = TimeStamp::now();
     if this.stackIndex >= 0 {

@@ -1,11 +1,13 @@
+use std::ffi::CStr;
+
 use super::*;
 use crate::common::*;
-use crate::internal::*;
 use crate::math::*;
 use crate::system::*;
 use crate::*;
 
 use freetype_sys::*;
+use internal::*;
 
 /* TODO : Re-implement UTF-8 support */
 /* TODO : Atlas instead of individual textures. */

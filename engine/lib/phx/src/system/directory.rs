@@ -1,11 +1,11 @@
-use crate::internal::*;
+use std::io::ErrorKind;
+use std::{env, fs};
+
 use crate::*;
 
 use directories::ProjectDirs;
+use internal::ConvertIntoString;
 use tracing::error;
-
-use std::io::ErrorKind;
-use std::{env, fs};
 
 #[repr(C)]
 pub struct Directory {
@@ -77,7 +77,7 @@ impl Directory {
             let path = proj_dirs.data_dir();
 
             if let Err(err) = std::fs::create_dir_all(&path) {
-                error!("Cannot create project dir: {path:?}. error: {err}");
+                error!("Cannot create project dir: {path:?}. Error: {err}");
                 None
             } else if let Some(path_str) = path.to_str() {
                 Some(format!("{path_str}/"))

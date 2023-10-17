@@ -31,7 +31,7 @@ local function screenshot()
     end
     self:save(path)
     self:free()
-    printf('Screenshot saved to <%s>', path)
+    Log.Info('Screenshot saved to <%s>', path)
 end
 
 return screenshot

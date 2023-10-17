@@ -1,14 +1,33 @@
 use std::io::Write;
 use std::{env::VarError, fs::File, path::PathBuf};
 
+use crate::ffi_data::FfiData;
+use crate::impl_item::TypeVariant;
 use crate::{args::EnumAttrArgs, IDENT, LUAJIT_FFI_GEN_DIR, LUAJIT_FFI_GEN_DIR_ENV};
 
 use super::EnumInfo;
 
 impl EnumInfo {
     /// Generate Lua FFI file
-    pub fn generate_ffi(&self, attr_args: &EnumAttrArgs) {
+    pub fn generate_ffi(&self, attr_args: &EnumAttrArgs, repr_type: &str) {
         let module_name = attr_args.name().unwrap_or(self.name.clone());
+        let enum_repr_ty = TypeVariant::from_str(repr_type).unwrap_or(TypeVariant::U32);
+        let variant_names = self.variants.get_names();
+        let c_definitions = gen_c_definitions(&module_name, &enum_repr_ty, &variant_names);
+        let global_symbol_table = gen_global_symbol_table(&module_name, &variant_names);
+
+        if attr_args.with_impl() {
+            let ffi_data = FfiData {
+                has_typedef: true,
+                c_definitions,
+                global_symbol_table,
+            };
+
+            ffi_data.save(&module_name);
+
+            return;
+        }
+
         let luajit_ffi_gen_dir = match std::env::var(LUAJIT_FFI_GEN_DIR_ENV) {
             Ok(var) => {
                 if !var.is_empty() {
@@ -37,7 +56,6 @@ impl EnumInfo {
             "Cannot create file: {luajit_ffi_module_path:?}\nCurrent folder: {:?}",
             std::env::current_dir()
         ));
-        let variant_names = self.variants.get_names();
 
         // Header
         writeln!(
@@ -55,22 +73,9 @@ impl EnumInfo {
         writeln!(&mut file, "do -- C Definitions").unwrap();
         writeln!(&mut file, "{IDENT}ffi.cdef [[").unwrap();
 
-        let max_ret_len = std::cmp::max("cstr".len(), module_name.len());
-
-        variant_names.iter().for_each(|v| {
-            writeln!(
-                &mut file,
-                "{IDENT}{IDENT}{module_name:<0$} {module_name}_{v};",
-                max_ret_len
-            )
-            .unwrap();
-        });
-        writeln!(
-            &mut file,
-            "{IDENT}{IDENT}{0:<1$} {module_name}_ToString({module_name});",
-            "cstr", max_ret_len
-        )
-        .unwrap();
+        c_definitions
+            .iter()
+            .for_each(|def| writeln!(&mut file, "{def}").unwrap());
 
         writeln!(&mut file, "{IDENT}]]").unwrap();
         writeln!(&mut file, "end\n").unwrap();
@@ -79,26 +84,9 @@ impl EnumInfo {
         writeln!(&mut file, "do -- Global Symbol Table").unwrap();
         writeln!(&mut file, "{IDENT}{module_name} = {{").unwrap();
 
-        let max_variant_len = variant_names
+        global_symbol_table
             .iter()
-            .map(|name| name.len())
-            .max()
-            .unwrap_or(0);
-        let max_variant_len = std::cmp::max(max_variant_len, "ToString".len());
-
-        variant_names.iter().for_each(|v| {
-            writeln!(
-                &mut file,
-                "{IDENT}{IDENT}{v:<0$} = libphx.{module_name}_{v},",
-                max_variant_len
-            )
-            .unwrap();
-        });
-        writeln!(
-            &mut file,
-            "{IDENT}{IDENT}ToString = libphx.{module_name}_ToString,"
-        )
-        .unwrap();
+            .for_each(|def| writeln!(&mut file, "{def}").unwrap());
 
         writeln!(&mut file, "{IDENT}}}\n").unwrap();
 
@@ -116,4 +104,63 @@ impl EnumInfo {
 
         writeln!(&mut file, "return {module_name}").unwrap();
     }
+}
+
+fn gen_c_definitions(
+    module_name: &str,
+    _enum_repr_ty: &TypeVariant,
+    variant_names: &[&str],
+) -> Vec<String> {
+    let mut res = vec![];
+
+    // TODO: refactor the way generated FFI is processed so typedef is registered before all other FFI parts to prevent a problem with unknown types
+    // res.push(format!(
+    //     "{IDENT}{IDENT}typedef {} {module_name};\n",
+    //     enum_repr_ty.as_ffi_string()
+    // ));
+
+    let max_ret_len = std::cmp::max("cstr".len(), module_name.len());
+
+    variant_names.iter().for_each(|v| {
+        res.push(format!(
+            "{IDENT}{IDENT}{module_name:<0$} {module_name}_{v};",
+            max_ret_len
+        ));
+    });
+
+    res.push("".into());
+
+    res.push(format!(
+        "{IDENT}{IDENT}{0:<1$} {module_name}_ToString({module_name});",
+        "cstr", max_ret_len
+    ));
+
+    res
+}
+
+fn gen_global_symbol_table(module_name: &str, variant_names: &[&str]) -> Vec<String> {
+    let mut res = vec![];
+
+    let max_variant_len = variant_names
+        .iter()
+        .map(|name| name.len())
+        .max()
+        .unwrap_or(0);
+    let max_variant_len = std::cmp::max(max_variant_len, "ToString".len());
+
+    variant_names.iter().for_each(|v| {
+        res.push(format!(
+            "{IDENT}{IDENT}{v:<0$} = libphx.{module_name}_{v},",
+            max_variant_len
+        ));
+    });
+
+    res.push("".into());
+
+    res.push(format!(
+        "{IDENT}{IDENT}{0:<1$} = libphx.{module_name}_ToString,",
+        "ToString", max_variant_len
+    ));
+
+    res
 }

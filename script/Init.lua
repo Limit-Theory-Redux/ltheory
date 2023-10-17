@@ -30,6 +30,10 @@ Enums = {}
 GameState = {}
 
 -- Application
+AppInit = {}
+AppFrame = {}
+AppClose = {}
+
 LTheoryRedux = {}
 
 ---- Aliases Required for ToString. (Should I require them inside ToString?)
@@ -131,7 +135,11 @@ Render = requireAll('Render')
 Namespace.Inline(Render, 'Render')
 
 -- Call Function for Running main with errorHandler
-function Core.Call(fn)
-    local _, err = xpcall(fn, ErrorHandler)
-    if err then print(err) end
+function Core.Call(fn, ...)
+    local status, ret = xpcall(fn, ErrorHandler, ...)
+    if not status then
+        Log.Error('Error calling: %s(%s). Ret: %s', fn, ..., ret)
+        os.exit()
+    end
+    return ret
 end

@@ -1,8 +1,8 @@
 use super::*;
-use crate::internal::*;
 use crate::math::*;
 use crate::*;
 
+use internal::*;
 use libc;
 
 #[derive(Copy, Clone)]

@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-use crate::args::EnumAttrArgs;
+use crate::{args::EnumAttrArgs, util::camel_to_snake_case};
 
 use super::EnumInfo;
 
@@ -40,10 +40,12 @@ impl EnumInfo {
 
                 quote! {
                     #[no_mangle]
-                    pub const #const_ident: #repr_type_ident = #self_ident::#variant_ident.value();
+                    pub static #const_ident: #repr_type_ident = #self_ident::#variant_ident.value();
                 }
             })
             .collect();
+        let enum_size_ident = format_ident!("{}_COUNT", camel_to_snake_case(&self.name, true));
+        let enum_size = variant_pairs.len();
         let value_items: Vec<_> = variant_pairs
             .iter()
             .map(|(name, d)| {
@@ -58,14 +60,17 @@ impl EnumInfo {
         let to_string_c_ident = format_ident!("{}_ToString", self.name);
 
         if attr_args.gen_lua_ffi() {
-            self.generate_ffi(&attr_args);
+            self.generate_ffi(&attr_args, &repr_type);
         }
 
+        // TODO: generate repr type binding for Lua
         quote! {
             #[repr(#repr_type_ident)]
             #source
 
             impl #self_ident {
+                pub const SIZE: usize = #enum_size;
+
                 pub const fn value(&self) -> #repr_type_ident {
                     match self {
                         #(#value_items)*
@@ -81,11 +86,13 @@ impl EnumInfo {
 
             #(#constant_items)*
 
+            pub const #enum_size_ident: usize = #enum_size;
+
             #[no_mangle]
             pub extern "C" fn #to_string_c_ident(this: #self_ident) -> *const libc::c_char {
                 let res = this.to_string();
 
-                static_string!(res)
+                internal::static_string!(res)
             }
         }
     }

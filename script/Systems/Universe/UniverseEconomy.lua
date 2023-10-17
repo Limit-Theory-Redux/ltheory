@@ -41,7 +41,7 @@ local function addSystemGenerics(system)
         -- Create Stations within randomly selected AsteroidField Zones
         system:spawnStation(Enums.StationHulls.Small, tradeAi, nil)
     end
-    printf("Spawned %d Stations for AI Player '%s'", GameState.gen.nStations, tradeAi:getName())
+    Log.Debug("Spawned %d Stations for AI Player '%s'", GameState.gen.nStations, tradeAi:getName())
 
     -- Possibly add some additional factory stations based on which ones were randomly created and their inputs
     system:addExtraFactories(system, GameState.gen.nPlanets, tradeAi)
@@ -143,7 +143,7 @@ function UniverseEconomy:OnUpdate(dt)
             addMarket(system)
             addBlackMarket(system)
             addSystemGenerics(system)
-            print("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
+            Log.Debug("System: " .. system:getName() .. " has " .. #system.ships .. " ships.")
         end
 
         -- Handle High Attention Systems
@@ -161,7 +161,8 @@ function UniverseEconomy:OnUpdate(dt)
 end
 
 function UniverseEconomy:AddSystem(system)
-    print("Adding a new system to universe economy: " .. system:getName())
+    Log.Debug("Adding a new system to universe economy: " .. system:getName())
+
     table.insert(self.systems.highAttention, system)
 end
 

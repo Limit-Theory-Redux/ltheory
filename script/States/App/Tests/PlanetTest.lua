@@ -19,7 +19,7 @@ end
 function PlanetTest:newSystem()
     self.seed = rng:get64()
     self.currentPlanet = nil
-    printf('Seed: %s', self.seed)
+    Log.Debug('Seed: %s', self.seed)
 
     if self.system then self.system:delete() end
     self.system = System(self.seed)
@@ -50,9 +50,9 @@ end
 function PlanetTest:onInput()
     self.canvas:input()
 
-    if Input.GetKeyboardShift() and Input.GetPressed(Button.Keyboard.B) then
+    if InputInstance:isKeyboardShiftPressed() and InputInstance:isPressed(Button.KeyboardB) then
         self:newSystem()
-    elseif Input.GetPressed(Button.Keyboard.B) then
+    elseif InputInstance:isPressed(Button.KeyboardB) then
         self:spawnPlanet()
     end
 end
@@ -60,8 +60,8 @@ end
 function PlanetTest:onUpdate(dt)
     self.player:getRoot():update(dt)
     self.canvas:update(dt)
-    HmGui.Begin(self.resX, self.resY)
-    HmGui.End()
+    HmGui.Begin(self.resX, self.resY, InputInstance)
+    HmGui.End(InputInstance)
 end
 
 function PlanetTest:onDraw()

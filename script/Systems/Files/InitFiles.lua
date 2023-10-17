@@ -71,7 +71,7 @@ function InitFiles:readUserInits()
                     }
                     table.insert(categories, categoryTable)
                 else
-                    Log.Warning("Could not find game state for config category: " .. categoryName)
+                    Log.Warn("Could not find game state for config category: " .. categoryName)
                 end
             end
             ::skip::
@@ -122,7 +122,7 @@ function InitFiles:readUserInits()
                 elseif categoryTable.gameState[upper] ~= nil then
                     categoryTable.gameState[upper] = val
                 else
-                    Log.Warning("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var,
+                    Log.Warn("Can't find key in gamestate cat %s for var: %s with value %s", categoryTable.name, var,
                         val)
                 end
             end
@@ -141,8 +141,8 @@ function InitFiles:readUserInits()
 
                 -- parse vars
                 local eIndex = string.find(currentLine, "=")
-                --printf("Line %s: %s", iterator, currentLine)
-                --printf("Current eIndex: %s", eIndex)
+                --Log.Debug("Line %s: %s", iterator, currentLine)
+                --Log.Debug("Current eIndex: %s", eIndex)
                 local var = string.sub(currentLine, 1, eIndex - 1)
                 local val = string.sub(currentLine, eIndex + 1)
                 val = string.gsub(val, "^%s*(.-)%s*$", "%1")
@@ -170,7 +170,7 @@ function InitFiles:readUserInits()
 
                 iterator = iterator + 1
                 currentLine = lines[iterator]
-                --printf("Setting var to gamestate: %s with value: %s", var, val)
+                --Log.Debug("Setting var to gamestate: %s with value: %s", var, val)
                 ::skipLine::
             end
             return vars
@@ -181,15 +181,15 @@ function InitFiles:readUserInits()
             -- do whatever with vars if needed
         end
 
-        printf("Loaded configuration from: %s", configPath)
+        Log.Info("Loaded configuration from: %s", configPath)
 
         if GameState.debug.printConfig then
-            print("---------- Configuration File ----------")
-            for _, line in pairs(lines) do if not string.match(line, "#") then print(line) end end
-            print("----------------------------------------")
+            Log.Info("---------- Configuration File ----------")
+            for _, line in pairs(lines) do if not string.match(line, "#") then Log.Info(line) end end
+            Log.Info("----------------------------------------")
         end
     else
-        Log.Warning("Cannot open config file: %s", configPath)
+        Log.Warn("Cannot open config file: %s", configPath)
     end
 end
 
@@ -202,9 +202,9 @@ function InitFiles:writeUserInits()
     local openedFile = io.open(configPath, "w")
 
     if openedFile == nil then
-        Log.Warning("Cannot open configuration file for writing: %s", configPath)
+        Log.Warn("Cannot open configuration file for writing: %s", configPath)
     else
-        printf("Saving configuration to: %s", configPath)
+        Log.Debug("Saving configuration to: %s", configPath)
     end
 
     local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
@@ -300,7 +300,7 @@ function InitFiles:writeUserInits()
                         l_Value = startupCameraMode
                         writeOptions("startupCamera", Enums.CameraModeNames, "The camera mode the game starts up with.")
                     end
-                    --printf("writing %s: %s", l_Variable, l_Value)
+                    --Log.Debug("writing %s: %s", l_Variable, l_Value)
                     io.write(format("%s=%s", tostring(l_Variable), tostring(l_Value)), "\n")
                 end
             elseif pass and type(l_Value) == "table" and not string.match(l_Variable, "humanPlayer") then

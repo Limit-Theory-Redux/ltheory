@@ -5,16 +5,16 @@ local HmGui
 
 do -- C Definitions
     ffi.cdef [[
-    void  HmGui_Begin            (float sx, float sy);
-    void  HmGui_End              ();
+    void  HmGui_Begin            (float sx, float sy, const Input* input);
+    void  HmGui_End              (const Input* input);
     void  HmGui_Draw             ();
     void  HmGui_BeginGroupX      ();
     void  HmGui_BeginGroupY      ();
     void  HmGui_BeginGroupStack  ();
     void  HmGui_EndGroup         ();
     void  HmGui_BeginScroll      (float maxSize);
-    void  HmGui_EndScroll        ();
-    void  HmGui_BeginWindow      (cstr title);
+    void  HmGui_EndScroll        (const Input* input);
+    void  HmGui_BeginWindow      (cstr title, const Input* input);
     void  HmGui_EndWindow        ();
     bool  HmGui_Button           (cstr);
     bool  HmGui_Checkbox         (cstr label, bool value);

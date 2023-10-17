@@ -20,6 +20,6 @@ function onDef_Profiler(t, mt)
         fn()
         Draw.Flush()
         local duration = begin:getElapsedMs()
-        printf('%s : %.2f ms', name, duration)
+        Log.Info('%s : %.2f ms', name, duration)
     end
 end

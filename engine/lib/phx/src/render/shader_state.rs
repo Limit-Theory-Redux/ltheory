@@ -281,16 +281,17 @@ pub unsafe extern "C" fn ShaderState_SetTexCube(
 #[no_mangle]
 pub unsafe extern "C" fn ShaderState_Start(this: &mut ShaderState) {
     Shader_Start(&mut *this.shader);
+
     for e in this.elems.iter() {
         match (*e).type_0 {
             1 => {
-                gl::Uniform1f((*e).index, (*e).data.asFloat);
+                gl_uniform1f((*e).index, (*e).data.asFloat);
             }
             2 => {
-                gl::Uniform2f((*e).index, (*e).data.asFloat2.x, (*e).data.asFloat2.y);
+                gl_uniform2f((*e).index, (*e).data.asFloat2.x, (*e).data.asFloat2.y);
             }
             3 => {
-                gl::Uniform3f(
+                gl_uniform3f(
                     (*e).index,
                     (*e).data.asFloat3.x,
                     (*e).data.asFloat3.y,
@@ -298,7 +299,7 @@ pub unsafe extern "C" fn ShaderState_Start(this: &mut ShaderState) {
                 );
             }
             4 => {
-                gl::Uniform4f(
+                gl_uniform4f(
                     (*e).index,
                     (*e).data.asFloat4.x,
                     (*e).data.asFloat4.y,
@@ -307,7 +308,7 @@ pub unsafe extern "C" fn ShaderState_Start(this: &mut ShaderState) {
                 );
             }
             5 => {
-                gl::Uniform1i((*e).index, (*e).data.asInt);
+                gl_uniform1i((*e).index, (*e).data.asInt);
             }
             6 => {
                 Shader_ISetMatrix((*e).index, &mut *(*e).data.asMatrix);

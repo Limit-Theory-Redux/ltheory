@@ -57,7 +57,7 @@ function Entity:addProjectile(source)
 
     self.pcount = self.pcount + 1
     newProjectile:setName(format("Projectile: Pulse %d", self.pcount))
-    --printf("Added projectile '%s' at %s", newProjectile:getName(), newProjectile.effect.pos)
+    --Log.Debug("Added projectile '%s' at %s", newProjectile:getName(), newProjectile.effect.pos)
     insert(self.projectiles, newProjectile)
 
     return newProjectile

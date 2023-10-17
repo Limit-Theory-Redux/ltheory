@@ -29,7 +29,7 @@ function SystemMap:onDraw(state)
 
     local best = nil
     local bestDist = math.huge
-    local mp = Input.GetMousePosition()
+    local mp = InputInstance:mouse():position()
 
     -- If an object is target locked in flight view (via HUD), give it focus in the System Map
     local playerShip = GameState.player.currentShip
@@ -41,17 +41,17 @@ function SystemMap:onDraw(state)
         playerTarget = playerShip:getTarget()
     end
     if playerTarget ~= nil then
-        --printf("Targeting a %s", Config:getObjectInfo("object_types", playerTarget:getType()))
+        --Log.Debug("Targeting a %s", Config:getObjectInfo("object_types", playerTarget:getType()))
         self.focus = playerTarget
     end
 
     BlendMode.PushAlpha()
     Draw.SmoothPoints(true)
-    --printf("------------------------------")
+    --Log.Debug("------------------------------")
     for _, e in self.system:iterChildren() do
         -- Check to make sure this is an actual object with a body
         if e.body ~= nil then
-            --printf("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            --Log.Debug("Drawing %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
             local p = e:getPos()
             local x = p.x - dx
             local y = p.z - dy
@@ -60,7 +60,7 @@ function SystemMap:onDraw(state)
             Draw.PointSize(3.0)
 
             if e:hasActions() then
-                --printf("Action: %s", e:getName())
+                --Log.Debug("Action: %s", e:getName())
                 if GameState.player.currentShip == e then
                     Draw.PointSize(5.0)
                     Draw.Color(0.9, 0.5, 1.0, 1.0) -- player ship
@@ -75,7 +75,7 @@ function SystemMap:onDraw(state)
                 else
                     local entAction = e:getCurrentAction()
                     if entAction ~= nil then
-                        --printf("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
+                        --Log.Debug("Action is '%s', target is '%s'", entAction:getName(), entAction.target:getName())
                         if string.match(Config:getObjectInfo("object_types", e:getType()), "Ship") and e.usesBoost then
                             -- Draw the dot for ships that are aces larger than regular ships
                             Draw.PointSize(5.0)
@@ -134,7 +134,7 @@ function SystemMap:onDraw(state)
             end
 
             if self.focus == e then
-                --printf("Focus: %s", e:getName())
+                --Log.Debug("Focus: %s", e:getName())
                 UI.DrawEx.Ring(x, y, 8, { r = 1.0, g = 0.0, b = 0.3, a = 1.0 }, true)
             end
 
@@ -146,7 +146,7 @@ function SystemMap:onDraw(state)
             end
             --    else
             --      -- Non-object entities (e.g., zones)
-            --printf("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
+            --Log.Debug("Found %s '%s'", Config.objectInfo[1]["elems"][e:getType()][2], e:getName())
             --      local p = e:getPos()
             --      local x = p.x - dx
             --      local y = p.z - dy
@@ -162,7 +162,7 @@ function SystemMap:onDraw(state)
     Draw.SmoothPoints(false)
     BlendMode.Pop()
 
-    if Input.GetDown(Button.Mouse.Left) then
+    if InputInstance:isDown(Button.MouseLeft) then
         self.focus = best
         -- Set focused-on object in the System Map as the player ship's current target
         if GameState.player.currentShip ~= nil and GameState.player.currentShip ~= self.focus then
@@ -302,21 +302,21 @@ function SystemMap:onInput(state)
             self.lastDt -- temp fix for -> see NOTE above
     end
 
-    if Input.GetValue(Button.Keyboard.LShift) == 1 then
+    if InputInstance:getValue(Button.KeyboardShiftLeft) == 1 then
         GameState.player.currentMapSystemPan = GameState.player.currentMapSystemPan * 2
     end
 
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
-        exp(GameState.ui.mapSystemZoomSpeed * Input.GetMouseScroll().y)
+        exp(GameState.ui.mapSystemZoomSpeed * InputInstance:mouse():scroll().y)
     GameState.player.currentMapSystemZoom = GameState.player.currentMapSystemZoom *
-        exp(GameState.ui.mapSystemZoomSpeed * (Input.GetValue(Button.Keyboard.P) - Input.GetValue(Button.Keyboard.O)))
+        exp(GameState.ui.mapSystemZoomSpeed * (InputInstance:getValue(Button.KeyboardP) - InputInstance:getValue(Button.KeyboardO)))
 
     GameState.player.currentMapSystemPos.x = GameState.player.currentMapSystemPos.x +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-            Input.GetValue(Button.Keyboard.D) - Input.GetValue(Button.Keyboard.A))
+            InputInstance:getValue(Button.KeyboardD) - InputInstance:getValue(Button.KeyboardA))
     GameState.player.currentMapSystemPos.y = GameState.player.currentMapSystemPos.y +
         GameState.player.currentMapSystemPan / (GameState.player.currentMapSystemZoom / 100) * (
-            Input.GetValue(Button.Keyboard.S) - Input.GetValue(Button.Keyboard.W))
+            InputInstance:getValue(Button.KeyboardS) - InputInstance:getValue(Button.KeyboardW))
 end
 
 function SystemMap.Create(system)

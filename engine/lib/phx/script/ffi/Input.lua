@@ -5,85 +5,80 @@ local Input
 
 do -- C Definitions
     ffi.cdef [[
-    void       Input_LoadGamepadDatabase     (cstr filepath);
-    bool       Input_GetPressed              (Button);
-    bool       Input_GetDown                 (Button);
-    bool       Input_GetReleased             (Button);
-    float      Input_GetValue                (Button);
-    float      Input_GetIdleTime             ();
-    void       Input_GetActiveDevice         (Device*);
-    DeviceType Input_GetActiveDeviceType     ();
-    uint32     Input_GetActiveDeviceID       ();
-    float      Input_GetActiveDeviceIdleTime ();
-    bool       Input_GetDevicePressed        (Device*, Button);
-    bool       Input_GetDeviceDown           (Device*, Button);
-    bool       Input_GetDeviceReleased       (Device*, Button);
-    float      Input_GetDeviceValue          (Device*, Button);
-    float      Input_GetDeviceIdleTime       (Device*);
-    void       Input_GetMouseDelta           (Vec2i*);
-    float      Input_GetMouseIdleTime        ();
-    void       Input_GetMousePosition        (Vec2i*);
-    void       Input_GetMouseScroll          (Vec2i*);
-    void       Input_SetMousePosition        (Vec2i*);
-    void       Input_SetMouseScroll          (Vec2i*);
-    void       Input_SetMouseVisible         (bool);
-    void       Input_SetMouseVisibleAuto     ();
-    float      Input_GetKeyboardIdleTime     ();
-    bool       Input_GetKeyboardMod          (Modifier);
-    bool       Input_GetKeyboardAlt          ();
-    bool       Input_GetKeyboardCtrl         ();
-    bool       Input_GetKeyboardShift        ();
-    float      Input_GetGamepadIdleTime      (uint32 id);
-    bool       Input_GetGamepadPressed       (uint32 id, Button);
-    bool       Input_GetGamepadDown          (uint32 id, Button);
-    bool       Input_GetGamepadReleased      (uint32 id, Button);
-    float      Input_GetGamepadValue         (uint32 id, Button);
-    int32      Input_GetEventCount           ();
-    bool       Input_GetNextEvent            (InputEvent*);
-  ]]
+        KeyboardState const*    Input_Keyboard               (Input const*);
+        MouseState const*       Input_Mouse                  (Input const*);
+        TouchpadState const*    Input_Touchpad               (Input const*);
+        GamepadState const*     Input_Gamepad                (Input const*);
+        DragAndDropState const* Input_DragAndDrop            (Input const*);
+        InputDevice const*      Input_ActiveDevice           (Input const*);
+        InputDeviceType const*  Input_ActiveDeviceType       (Input const*);
+        InputDeviceId const*    Input_ActiveDeviceId         (Input const*);
+        void                    Input_SetCursorVisible       (Input*, bool visible);
+        void                    Input_SetCursorVisibleAuto   (Input*);
+        void                    Input_SetCursorPosition      (Input*, float x, float y);
+        bool                    Input_IsPressed              (Input const*, Button button);
+        bool                    Input_IsDown                 (Input const*, Button button);
+        bool                    Input_IsReleased             (Input const*, Button button);
+        float                   Input_GetValue               (Input const*, Button button);
+        bool                    Input_IsKeyboardAltPressed   (Input const*);
+        bool                    Input_IsKeyboardCtrlPressed  (Input const*);
+        bool                    Input_IsKeyboardShiftPressed (Input const*);
+    ]]
 end
 
 do -- Global Symbol Table
     Input = {
-        LoadGamepadDatabase     = libphx.Input_LoadGamepadDatabase,
-        GetPressed              = libphx.Input_GetPressed,
-        GetDown                 = libphx.Input_GetDown,
-        GetReleased             = libphx.Input_GetReleased,
-        GetValue                = libphx.Input_GetValue,
-        GetIdleTime             = libphx.Input_GetIdleTime,
-        GetActiveDevice         = libphx.Input_GetActiveDevice,
-        GetActiveDeviceType     = libphx.Input_GetActiveDeviceType,
-        GetActiveDeviceID       = libphx.Input_GetActiveDeviceID,
-        GetActiveDeviceIdleTime = libphx.Input_GetActiveDeviceIdleTime,
-        GetDevicePressed        = libphx.Input_GetDevicePressed,
-        GetDeviceDown           = libphx.Input_GetDeviceDown,
-        GetDeviceReleased       = libphx.Input_GetDeviceReleased,
-        GetDeviceValue          = libphx.Input_GetDeviceValue,
-        GetDeviceIdleTime       = libphx.Input_GetDeviceIdleTime,
-        GetMouseDelta           = libphx.Input_GetMouseDelta,
-        GetMouseIdleTime        = libphx.Input_GetMouseIdleTime,
-        GetMousePosition        = libphx.Input_GetMousePosition,
-        GetMouseScroll          = libphx.Input_GetMouseScroll,
-        SetMousePosition        = libphx.Input_SetMousePosition,
-        SetMouseScroll          = libphx.Input_SetMouseScroll,
-        SetMouseVisible         = libphx.Input_SetMouseVisible,
-        SetMouseVisibleAuto     = libphx.Input_SetMouseVisibleAuto,
-        GetKeyboardIdleTime     = libphx.Input_GetKeyboardIdleTime,
-        GetKeyboardMod          = libphx.Input_GetKeyboardMod,
-        GetKeyboardAlt          = libphx.Input_GetKeyboardAlt,
-        GetKeyboardCtrl         = libphx.Input_GetKeyboardCtrl,
-        GetKeyboardShift        = libphx.Input_GetKeyboardShift,
-        GetGamepadIdleTime      = libphx.Input_GetGamepadIdleTime,
-        GetGamepadPressed       = libphx.Input_GetGamepadPressed,
-        GetGamepadDown          = libphx.Input_GetGamepadDown,
-        GetGamepadReleased      = libphx.Input_GetGamepadReleased,
-        GetGamepadValue         = libphx.Input_GetGamepadValue,
-        GetEventCount           = libphx.Input_GetEventCount,
-        GetNextEvent            = libphx.Input_GetNextEvent,
+        Keyboard               = libphx.Input_Keyboard,
+        Mouse                  = libphx.Input_Mouse,
+        Touchpad               = libphx.Input_Touchpad,
+        Gamepad                = libphx.Input_Gamepad,
+        DragAndDrop            = libphx.Input_DragAndDrop,
+        ActiveDevice           = libphx.Input_ActiveDevice,
+        ActiveDeviceType       = libphx.Input_ActiveDeviceType,
+        ActiveDeviceId         = libphx.Input_ActiveDeviceId,
+        SetCursorVisible       = libphx.Input_SetCursorVisible,
+        SetCursorVisibleAuto   = libphx.Input_SetCursorVisibleAuto,
+        SetCursorPosition      = libphx.Input_SetCursorPosition,
+        IsPressed              = libphx.Input_IsPressed,
+        IsDown                 = libphx.Input_IsDown,
+        IsReleased             = libphx.Input_IsReleased,
+        GetValue               = libphx.Input_GetValue,
+        IsKeyboardAltPressed   = libphx.Input_IsKeyboardAltPressed,
+        IsKeyboardCtrlPressed  = libphx.Input_IsKeyboardCtrlPressed,
+        IsKeyboardShiftPressed = libphx.Input_IsKeyboardShiftPressed,
     }
 
     if onDef_Input then onDef_Input(Input, mt) end
     Input = setmetatable(Input, mt)
+end
+
+do -- Metatype for class instances
+    local t  = ffi.typeof('Input')
+    local mt = {
+        __index = {
+            keyboard               = libphx.Input_Keyboard,
+            mouse                  = libphx.Input_Mouse,
+            touchpad               = libphx.Input_Touchpad,
+            gamepad                = libphx.Input_Gamepad,
+            dragAndDrop            = libphx.Input_DragAndDrop,
+            activeDevice           = libphx.Input_ActiveDevice,
+            activeDeviceType       = libphx.Input_ActiveDeviceType,
+            activeDeviceId         = libphx.Input_ActiveDeviceId,
+            setCursorVisible       = libphx.Input_SetCursorVisible,
+            setCursorVisibleAuto   = libphx.Input_SetCursorVisibleAuto,
+            setCursorPosition      = libphx.Input_SetCursorPosition,
+            isPressed              = libphx.Input_IsPressed,
+            isDown                 = libphx.Input_IsDown,
+            isReleased             = libphx.Input_IsReleased,
+            getValue               = libphx.Input_GetValue,
+            isKeyboardAltPressed   = libphx.Input_IsKeyboardAltPressed,
+            isKeyboardCtrlPressed  = libphx.Input_IsKeyboardCtrlPressed,
+            isKeyboardShiftPressed = libphx.Input_IsKeyboardShiftPressed,
+        },
+    }
+
+    if onDef_Input_t then onDef_Input_t(t, mt) end
+    Input_t = ffi.metatype(t, mt)
 end
 
 return Input

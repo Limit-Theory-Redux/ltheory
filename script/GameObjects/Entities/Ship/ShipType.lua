@@ -33,7 +33,7 @@ local ShipType = class(function(self, seed, generator, hull)
     self.countThruster  = Config.gen.shipComponents[Enums.ShipComponents.Thruster][hull]
     self.countTurret    = Config.gen.shipComponents[Enums.ShipComponents.Turret][hull]
 
-    printf(
+    Log.Debug(
         "@@@ ShipType:(create) - ship = %s, hull = %d, scale = %s, countThruster = %d, countTurret = %d, countInventory = %d",
         self, hull, scale, self.countThruster, self.countTurret, self.countInventory)
 
@@ -139,7 +139,7 @@ end)
 
 -- TODO: change how this works and create a generalized code structure for creating ships as this is b***shit
 function ShipType:instantiate(hull)
-    printf("@@@ ShipType:instantiate - hull = %s", hull)
+    Log.Debug("@@@ ShipType:instantiate - hull = %s", hull)
     return Ship(self, hull)
 end
 

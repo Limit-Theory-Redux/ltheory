@@ -1,9 +1,9 @@
 use crate::common::*;
-use crate::internal::*;
 use crate::*;
 
 use image::io::Reader as ImageReader;
 use image::{DynamicImage, GenericImageView};
+use internal::*;
 
 #[no_mangle]
 pub extern "C" fn Tex2D_LoadRaw(
