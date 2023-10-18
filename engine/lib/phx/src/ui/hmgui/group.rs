@@ -5,6 +5,9 @@ use crate::render::{
     UIRenderer_BeginLayer, UIRenderer_EndLayer, UIRenderer_Panel, UIRenderer_Rect,
 };
 
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
+
 use super::data::*;
 use super::focus::*;
 use super::image::*;
@@ -37,23 +40,23 @@ pub struct HmGuiGroup {
 }
 
 impl HmGuiGroup {
-    pub fn compute_size(&mut self, hmgui: &mut HmGui) {
+    pub fn compute_size(&mut self, hmgui: &HmGui) {
         let mut head_id = self.head_id;
         while let Some(id) = head_id {
             let head = hmgui.get_widget_mut(id);
-            let next_id = head.next_id;
+            let next_id = head.borrow().next_id;
 
             if let WidgetItem::Group(id) = head.item {
-                let group = hmgui.get_group_mut(id);
+                let mut group = hmgui.get_group_mut(id);
 
-                group.compute_size(hmgui);
+                group.borrow_mut().compute_size(hmgui);
             }
 
             head_id = next_id;
         }
 
-        let widget = hmgui.get_widget_mut(self.widget_id);
-
+        let mut widget = hmgui.get_widget_mut(self.widget_id);
+        let widget = widget.borrow_mut();
         widget.minSize = Vec2::ZERO;
 
         let mut head_id = self.head_id;
