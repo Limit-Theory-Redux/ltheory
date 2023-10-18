@@ -1,20 +1,18 @@
 use glam::Vec2;
 
-use super::group::HmGuiGroup;
-use super::image::HmGuiImage;
-use super::rect::HmGuiRect;
-use super::text::HmGuiText;
-use super::{HmGuiGroupId, HmGuiWidgetId};
+use super::{HmGuiGroup, HmGuiImage, HmGuiRect, HmGuiText, Rf};
 
-#[derive(Clone)]
+#[derive(Clone, Default, PartialEq)]
 pub enum WidgetItem {
-    Group(HmGuiGroupId),
+    #[default]
+    Undefined,
+    Group(Rf<HmGuiGroup>),
     Text(HmGuiText),
     Rect(HmGuiRect),
     Image(HmGuiImage),
 }
 
-#[derive(Copy, Clone, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, PartialEq)]
 pub enum LayoutType {
     #[default]
     None,
@@ -23,11 +21,11 @@ pub enum LayoutType {
     Horizontal,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default, PartialEq)]
 pub struct HmGuiWidget {
-    pub parent_id: Option<HmGuiGroupId>,
-    pub next_id: Option<HmGuiWidgetId>,
-    pub prev_id: Option<HmGuiWidgetId>,
+    pub parent: Option<Rf<HmGuiGroup>>,
+    pub next: Option<Rf<HmGuiWidget>>,
+    pub prev: Option<Rf<HmGuiWidget>>,
 
     pub hash: u64,
     pub item: WidgetItem,

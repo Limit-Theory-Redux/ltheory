@@ -3,28 +3,27 @@ mod focus;
 mod group;
 mod image;
 mod rect;
+mod rf;
 mod style;
 mod text;
 mod widget;
 
+use std::borrow::{Borrow, BorrowMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::ffi::CString;
-use std::cell::RefCell;
-use std::cell::RefMut;
-use std::cell::Ref;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 
 use internal::*;
 
-use self::data::*;
-use self::focus::*;
-use self::group::*;
-use self::image::*;
-use self::rect::*;
-use self::style::*;
-use self::text::*;
-use self::widget::*;
+pub(crate) use self::data::*;
+pub(crate) use self::focus::*;
+pub(crate) use self::group::*;
+pub(crate) use self::image::*;
+pub(crate) use self::rect::*;
+pub(crate) use self::rf::*;
+pub(crate) use self::style::*;
+pub(crate) use self::text::*;
+pub(crate) use self::widget::*;
 
 use super::*;
 use crate::common::*;
@@ -34,23 +33,13 @@ use crate::render::*;
 use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Profiler_End};
 use crate::*;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct HmGuiGroupId(usize);
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct HmGuiWidgetId(usize);
-
-#[derive(Clone)]
 pub struct HmGui {
-    groups: Vec<RefCell<HmGuiGroup>>,
-    widgets: Vec<RefCell<HmGuiWidget>>,
-
     /// Current active group
-    pub group_id: Option<HmGuiGroupId>,
+    pub group: Option<Rf<HmGuiGroup>>,
     /// Top level group object. Used for recalculating sizes, layouts and drawing of the whole gui
-    pub root_id: Option<HmGuiGroupId>,
+    pub root: Option<Rf<HmGuiGroup>>,
     /// Either last created/initialized widget (group, image, text, rect) or the last widget of the ended group
-    pub last_id: Option<HmGuiWidgetId>,
+    pub last: Option<Rf<HmGuiWidget>>,
 
     pub styles: Vec<HmGuiStyle>,
     pub data: HashMap<u64, HmGuiData>,
@@ -70,11 +59,9 @@ impl HmGui {
         };
 
         Self {
-            groups: vec![],
-            widgets: vec![],
-            group_id: None,
-            root_id: None,
-            last_id: None,
+            group: None,
+            root: None,
+            last: None,
             styles: vec![style],
             data: HashMap::with_capacity(128),
             focus: [0; 2],
@@ -83,45 +70,14 @@ impl HmGui {
         }
     }
 
-    fn add_group(&mut self, group: HmGuiGroup) -> (HmGuiGroupId, RefMut<HmGuiGroup>) {
-        let id = self.groups.len();
-
-        self.groups.push(RefCell::new(group));
-
-        (HmGuiGroupId(id), self.groups[id].borrow_mut())
-    }
-
-    fn get_group(&self, id: HmGuiGroupId) -> Ref<HmGuiGroup> {
-        self.groups[id.0].borrow()
-    }
-
-    fn get_group_mut(&self, id: HmGuiGroupId) -> RefMut<HmGuiGroup> {
-        self.groups[id.0].borrow_mut()
-    }
-
-    fn add_widget(&mut self, widget: HmGuiWidget) -> (HmGuiWidgetId, RefMut<HmGuiWidget>) {
-        let id = self.widgets.len();
-
-        self.widgets.push(RefCell::new(widget));
-
-        (HmGuiWidgetId(id), self.widgets[id].borrow_mut())
-    }
-
-    fn get_widget(&self, id: HmGuiWidgetId) -> Ref<HmGuiWidget> {
-        self.widgets[id.0].borrow()
-    }
-
-    fn get_widget_mut(&self, id: HmGuiWidgetId) -> RefMut<HmGuiWidget> {
-        self.widgets[id.0].borrow_mut()
-    }
-
-    fn init_widget(&mut self, item: WidgetItem) -> RefMut<HmGuiWidget> {
+    fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
         let widget = HmGuiWidget {
-            parent_id: self.group_id,
-            next_id: None,
-            prev_id: self
-                .group_id
-                .map(|group_id| self.get_group(group_id).tail_id)
+            parent: self.group.clone(),
+            next: None,
+            prev: self
+                .group
+                .as_ref()
+                .map(|group_rf| group_rf.as_ref().tail.clone())
                 .flatten(),
             hash: 0,
             item,
@@ -131,53 +87,53 @@ impl HmGui {
             align: Default::default(),
             stretch: Default::default(),
         };
-        let (widget_id, mut widget) = self.add_widget(widget);
+        let widget_rf = Rf::new(widget);
 
-        // Set item's widget id to this one
-        {
-            let widget = widget.borrow_mut();
-            match &mut widget.item {
-                WidgetItem::Group(id) => {
-                    let group = self.get_group_mut(*id);
-                    group.widget_id = widget_id;
-                }
-                WidgetItem::Text(item) => item.widget_id = widget_id,
-                WidgetItem::Rect(item) => item.widget_id = widget_id,
-                WidgetItem::Image(item) => item.widget_id = widget_id,
-            }
+        let mut widget = widget_rf.as_mut();
+        // match &mut widget.item {
+        //     WidgetItem::Group(group_rf) => {
+        //         let mut group = group_rf.as_mut();
+        //         group.widget = widget_rf.clone();
+        //     }
+        //     WidgetItem::Text(item) => item.widget = widget_rf.clone(),
+        //     WidgetItem::Rect(item) => item.widget = widget_rf.clone(),
+        //     WidgetItem::Image(item) => item.widget = widget_rf.clone(),
+        // }
 
-            if let Some(parent_id) = widget.parent_id {
-                let parent_group = self.get_group_mut(parent_id);
+        if let Some(parent_rf) = widget.parent.clone() {
+            let mut parent_group = parent_rf.as_mut();
 
-                parent_group.children = (parent_group.children).wrapping_add(1);
+            parent_group.children = (parent_group.children).wrapping_add(1);
 
-                widget.hash = unsafe {
-                    Hash_FNV64_Incremental(
-                        self.get_widget(parent_group.widget_id).hash,
-                        &mut parent_group.children as *mut u32 as *const _,
-                        std::mem::size_of::<u32>() as i32,
-                    )
-                };
+            let hash = parent_group.widget.as_ref().hash;
+            widget.hash = unsafe {
+                Hash_FNV64_Incremental(
+                    hash,
+                    &mut parent_group.children as *mut u32 as *const _,
+                    std::mem::size_of::<u32>() as i32,
+                )
+            };
 
-                if let Some(next_id) = widget.next_id {
-                    self.get_widget_mut(next_id).prev_id = Some(widget_id);
-                } else {
-                    parent_group.tail_id = Some(widget_id);
-                }
-
-                if let Some(prev_id) = widget.prev_id {
-                    self.get_widget_mut(prev_id).next_id = Some(widget_id);
-                } else {
-                    parent_group.head_id = Some(widget_id);
-                }
+            if let Some(next_rf) = &widget.next {
+                let mut next = next_rf.as_mut();
+                next.prev = Some(widget_rf.clone());
             } else {
-                widget.hash = Hash_FNV64_Init();
+                parent_group.tail = Some(widget_rf.clone());
             }
 
-            self.last_id = Some(widget_id);
+            if let Some(prev_rf) = &widget.prev {
+                let mut prev = prev_rf.as_mut();
+                prev.next = Some(widget_rf.clone());
+            } else {
+                parent_group.head = Some(widget_rf.clone());
+            }
+        } else {
+            widget.hash = Hash_FNV64_Init();
         }
 
-        widget
+        self.last = Some(widget_rf.clone());
+
+        widget_rf.clone()
     }
 
     fn begin_group(&mut self, layout: LayoutType) {
@@ -189,10 +145,10 @@ impl HmGui {
             maxSize: Vec2::new(1e30f32, 1e30f32),
             ..Default::default()
         };
+        let group_rf = Rf::new(group);
 
-        let (group_id, _) = self.add_group(group);
-
-        let widget = self.init_widget(WidgetItem::Group(group_id));
+        let widget_rf = self.init_widget(WidgetItem::Group(group_rf.clone()));
+        let mut widget = widget_rf.as_mut();
 
         match layout {
             LayoutType::None => {}
@@ -207,7 +163,7 @@ impl HmGui {
             }
         };
 
-        self.group_id = Some(group_id);
+        self.group = Some(group_rf);
     }
 
     pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
@@ -220,7 +176,7 @@ impl HmGui {
 
     #[inline]
     fn is_clipped(&self, group: &HmGuiGroup, p: Vec2) -> bool {
-        let widget = self.get_widget(group.widget_id);
+        let widget = group.widget.as_ref();
 
         p.x < widget.pos.x
             || p.y < widget.pos.y
@@ -228,25 +184,25 @@ impl HmGui {
             || widget.pos.y + widget.size.y < p.y
     }
 
-    fn check_focus(&mut self, group_id: HmGuiGroupId) {
-        let group = self.get_group(group_id);
+    fn check_focus(&mut self, group_rf: Rf<HmGuiGroup>) {
+        let group = group_rf.as_ref();
 
-        if group.clip && self.is_clipped(group.borrow(), self.focusPos) {
+        if group.clip && self.is_clipped(&*group, self.focusPos) {
             return;
         }
 
-        let mut widget_id = group.tail_id;
-        while let Some(id) = widget_id {
-            let widget = self.get_widget(id);
+        let mut widget_opt = group.tail.clone();
+        while let Some(widget_rf) = widget_opt {
+            let widget = widget_rf.as_ref();
 
-            if let WidgetItem::Group(group_id) = widget.item {
-                self.check_focus(group_id);
+            if let WidgetItem::Group(group_rf) = &widget.item {
+                self.check_focus(group_rf.clone());
             }
 
-            widget_id = widget.prev_id;
+            widget_opt = widget.prev.clone();
         }
 
-        let widget = self.get_widget(group.widget_id);
+        let widget = group.widget.as_ref();
         for i in 0..self.focus.len() {
             if self.focus[i] == 0
                 && group.focusable[i] as i32 != 0
@@ -264,28 +220,25 @@ impl HmGui {
 #[luajit_ffi_gen::luajit_ffi]
 impl HmGui {
     pub fn begin_gui(&mut self, sx: f32, sy: f32, input: &Input) {
-        if self.root_id.is_some() {
-            self.groups.clear();
-            self.widgets.clear();
-            self.root_id = None;
-        }
-        self.last_id = None;
+        self.group = None;
+        self.root = None;
+        self.last = None;
         self.activate = input.mouse().is_pressed(MouseControl::Left);
 
         self.begin_group(LayoutType::None);
 
-        if let Some(group_id) = self.group_id {
-            let group = self.get_group_mut(group_id);
-            let widget = self.get_widget_mut(group.widget_id);
-
+        if let Some(group_rf) = &self.group {
+            let mut group = group_rf.as_mut();
             group.clip = true;
+
+            let mut widget = group.widget.as_mut();
             widget.pos = Vec2::ZERO;
             widget.size = Vec2::new(sx, sy);
         } else {
             unreachable!();
         }
 
-        self.root_id = self.group_id;
+        self.root = self.group.clone();
     }
 
     pub fn end_gui(&mut self, input: &Input) {
@@ -293,8 +246,8 @@ impl HmGui {
 
         self.end_group();
 
-        if let Some(root_id) = self.root_id {
-            let root = self.get_group_mut(root_id);
+        if let Some(root_rf) = self.root.clone() {
+            let mut root = root_rf.as_mut();
 
             root.compute_size(self);
             root.layout(self);
@@ -305,7 +258,7 @@ impl HmGui {
 
             self.focusPos = mouse.position();
 
-            self.check_focus(root_id);
+            self.check_focus(root_rf.clone());
         } else {
             unreachable!();
         }
@@ -314,15 +267,15 @@ impl HmGui {
     }
 
     pub fn draw(&mut self) {
-        if let Some(root_id) = self.root_id {
+        if let Some(root_rf) = self.root.clone() {
             unsafe {
                 Profiler_Begin(c_str!("HmGui_Draw"));
 
-                let hmgui_focus = self.focus[FocusType::Mouse as usize];
-                let root = self.get_group_mut(root_id);
-
                 RenderState_PushBlendMode(1);
                 UIRenderer_Begin();
+
+                let hmgui_focus = self.focus[FocusType::Mouse as usize];
+                let root = root_rf.as_mut();
 
                 root.draw(self, hmgui_focus);
 
@@ -351,56 +304,68 @@ impl HmGui {
     }
 
     pub fn end_group(&mut self) {
-        if let Some(group_id) = self.group_id {
-            let group = self.get_group_mut(group_id);
-            let widget = self.get_widget_mut(group.widget_id);
+        if let Some(group_rf) = self.group.clone() {
+            let group = group_rf.as_ref();
+            let widget = group.widget.as_ref();
 
-            self.last_id = Some(group.widget_id);
-            self.group_id = widget.parent_id;
+            self.last = Some(group.widget.clone());
+            self.group = widget.parent.clone();
         } else {
             unreachable!();
         }
     }
 
     pub fn begin_scroll(&mut self, maxSize: f32) {
-        if let Some(group_id) = self.group_id {
-            let group = self.get_group_mut(group_id);
-            let widget = self.get_widget(group.widget_id);
-
+        if let Some(group_rf) = self.group.clone() {
             self.begin_group_x();
             self.set_stretch(1.0f32, 1.0f32);
-            group.clip = true;
+            group_rf.as_mut().clip = true;
             self.set_spacing(2.0f32);
 
             self.begin_group_y();
             self.set_padding(6.0f32, 6.0f32);
             self.set_stretch(1.0f32, 1.0f32);
 
-            group.expand = false;
-            group.storeSize = true;
-            group.maxSize.y = maxSize;
+            let widget_hash = {
+                let mut group = group_rf.as_mut();
 
-            let data = self.get_data(widget.hash);
-            group.offset.y = -data.offset.y;
+                group.expand = false;
+                group.storeSize = true;
+                group.maxSize.y = maxSize;
+
+                let widget = group.widget.as_ref();
+
+                widget.hash
+            };
+
+            let data = self.get_data(widget_hash);
+
+            group_rf.as_mut().offset.y = -data.offset.y;
         } else {
             unreachable!();
         }
     }
 
     pub fn end_scroll(&mut self, input: &Input) {
-        if let Some(group_id) = self.group_id {
-            let group = self.get_group_mut(group_id);
-            let widget = self.get_widget(group.widget_id);
-            let data = self.get_data(widget.hash);
+        if let Some(group_rf) = self.group.clone() {
+            let group = group_rf.as_ref();
+            let widget = group.widget.as_ref();
+            let has_focus = self.group_has_focus(FocusType::Scroll);
 
-            if self.group_has_focus(FocusType::Scroll) {
-                let scroll_y = input.mouse().value(MouseControl::ScrollY);
+            let maxScroll = {
+                let data = self.get_data(widget.hash);
 
-                data.offset.y -= 10.0f32 * scroll_y as f32;
-            }
+                if has_focus {
+                    let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
-            let maxScroll: f32 = f32::max(0.0f32, data.minSize.y - data.size.y);
-            data.offset.y = f32::clamp(data.offset.y, 0.0f32, maxScroll);
+                    data.offset.y -= 10.0f32 * scroll_y as f32;
+                }
+
+                let maxScroll = f32::max(0.0f32, data.minSize.y - data.size.y);
+                data.offset.y = f32::clamp(data.offset.y, 0.0f32, maxScroll);
+
+                maxScroll
+            };
 
             self.end_group();
 
@@ -409,6 +374,7 @@ impl HmGui {
             self.set_spacing(0.0f32);
 
             if maxScroll > 0.0f32 {
+                let data = self.get_data(widget.hash);
                 let handleSize: f32 = data.size.y * (data.size.y / data.minSize.y);
                 let handlePos: f32 = Lerp(
                     0.0f64,
@@ -438,9 +404,8 @@ impl HmGui {
     }
 
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
-        if let Some(group_id) = self.group_id {
-            let group = self.get_group_mut(group_id);
-            let widget = self.get_widget_mut(group.widget_id);
+        if let Some(group_rf) = self.group.clone() {
+            let mut group = group_rf.as_mut();
 
             self.begin_group_stack();
             self.set_stretch(0.0f32, 0.0f32);
@@ -448,16 +413,21 @@ impl HmGui {
             group.focusStyle = FocusStyle::None;
             group.frameOpacity = 0.95f32;
 
-            let data = self.get_data(widget.hash);
             let mouse = input.mouse();
+            let has_focus = self.group_has_focus(FocusType::Mouse);
 
-            if self.group_has_focus(FocusType::Mouse) && mouse.is_down(MouseControl::Left) {
-                data.offset.x += mouse.value(MouseControl::DeltaX);
-                data.offset.y += mouse.value(MouseControl::DeltaY);
+            {
+                let mut widget = group.widget.as_mut();
+                let data = self.get_data(widget.hash);
+
+                if has_focus && mouse.is_down(MouseControl::Left) {
+                    data.offset.x += mouse.value(MouseControl::DeltaX);
+                    data.offset.y += mouse.value(MouseControl::DeltaY);
+                }
+
+                widget.pos.x += data.offset.x;
+                widget.pos.y += data.offset.y;
             }
-
-            widget.pos.x += data.offset.x;
-            widget.pos.y += data.offset.y;
 
             self.begin_group_y();
             group.clip = true;
@@ -476,8 +446,8 @@ impl HmGui {
     }
 
     pub fn button(&mut self, label: &str) -> bool {
-        if let Some(group_id) = self.group_id {
-            let group = self.get_group_mut(group_id);
+        if let Some(group_rf) = self.group.clone() {
+            let mut group = group_rf.as_mut();
 
             self.begin_group_stack();
 
@@ -499,8 +469,8 @@ impl HmGui {
     }
 
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
-        if let Some(group_id) = self.group_id {
-            let group = self.get_group_mut(group_id);
+        if let Some(group_rf) = self.group.clone() {
+            let mut group = group_rf.as_mut();
 
             self.begin_group_x();
 
@@ -569,22 +539,24 @@ impl HmGui {
 
     pub fn image(&mut self, image: &mut Tex2D) {
         let image_item = HmGuiImage {
-            widget_id: Default::default(),
+            widget: Default::default(),
             image,
         };
 
-        let widget = self.init_widget(WidgetItem::Image(image_item));
+        let widget_rf = self.init_widget(WidgetItem::Image(image_item));
+        let mut widget = widget_rf.as_mut();
 
         widget.stretch = Vec2::ONE;
     }
 
     pub fn rect(&mut self, sx: f32, sy: f32, r: f32, g: f32, b: f32, a: f32) {
         let rect_item = HmGuiRect {
-            widget_id: Default::default(),
+            widget: Default::default(),
             color: Vec4::new(r, g, b, a),
         };
 
-        let widget = self.init_widget(WidgetItem::Rect(rect_item));
+        let widget_rf = self.init_widget(WidgetItem::Rect(rect_item));
+        let mut widget = widget_rf.as_mut();
 
         widget.minSize = Vec2::new(sx, sy);
     }
@@ -610,13 +582,14 @@ impl HmGui {
 
     pub fn text_ex(&mut self, font: &mut Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
         let item = HmGuiText {
-            widget_id: Default::default(),
+            widget: Default::default(),
             font,
             text: text.into(),
             color: Vec4::new(r, g, b, a),
         };
 
-        let widget = self.init_widget(WidgetItem::Text(item));
+        let widget_rf = self.init_widget(WidgetItem::Text(item));
+        let mut widget = widget_rf.as_mut();
 
         let mut size = IVec2::ZERO;
 
@@ -630,8 +603,8 @@ impl HmGui {
     }
 
     pub fn set_align(&mut self, ax: f32, ay: f32) {
-        if let Some(id) = self.last_id {
-            let widget = self.get_widget_mut(id);
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
 
             widget.align = Vec2::new(ax, ay);
         } else {
@@ -640,9 +613,8 @@ impl HmGui {
     }
 
     pub fn set_padding(&self, px: f32, py: f32) {
-        if let Some(group_id) = self.group_id {
-            let mut group = self.get_group_mut(group_id);
-            let group = group.borrow_mut();
+        if let Some(group_rf) = &self.group {
+            let mut group = group_rf.as_mut();
 
             group.paddingLower = Vec2::new(px, py);
             group.paddingUpper = Vec2::new(px, py);
@@ -652,9 +624,8 @@ impl HmGui {
     }
 
     pub fn set_padding_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
-        if let Some(group_id) = self.group_id {
-            let mut group = self.get_group_mut(group_id);
-            let group = group.borrow_mut();
+        if let Some(group_rf) = &self.group {
+            let mut group = group_rf.as_mut();
 
             group.paddingLower = Vec2::new(left, top);
             group.paddingUpper = Vec2::new(right, bottom);
@@ -664,9 +635,8 @@ impl HmGui {
     }
 
     pub fn set_padding_left(&self, padding: f32) {
-        if let Some(group_id) = self.group_id {
-            let mut group = self.get_group_mut(group_id);
-            let group = group.borrow_mut();
+        if let Some(group_rf) = &self.group {
+            let mut group = group_rf.as_mut();
 
             group.paddingLower.x = padding;
         } else {
@@ -675,9 +645,8 @@ impl HmGui {
     }
 
     pub fn set_padding_top(&self, padding: f32) {
-        if let Some(group_id) = self.group_id {
-            let mut group = self.get_group_mut(group_id);
-            let group = group.borrow_mut();
+        if let Some(group_rf) = &self.group {
+            let mut group = group_rf.as_mut();
 
             group.paddingLower.y = padding;
         } else {
@@ -686,9 +655,8 @@ impl HmGui {
     }
 
     pub fn set_padding_right(&self, padding: f32) {
-        if let Some(group_id) = self.group_id {
-            let mut group = self.get_group_mut(group_id);
-            let group = group.borrow_mut();
+        if let Some(group_rf) = &self.group {
+            let mut group = group_rf.as_mut();
 
             group.paddingUpper.x = padding;
         } else {
@@ -697,9 +665,8 @@ impl HmGui {
     }
 
     pub fn set_padding_bottom(&self, padding: f32) {
-        if let Some(group_id) = self.group_id {
-            let mut group = self.get_group_mut(group_id);
-            let group = group.borrow_mut();
+        if let Some(group_rf) = &self.group {
+            let mut group = group_rf.as_mut();
 
             group.paddingUpper.y = padding;
         } else {
@@ -708,9 +675,8 @@ impl HmGui {
     }
 
     pub fn set_spacing(&self, spacing: f32) {
-        if let Some(group_id) = self.group_id {
-            let mut group = self.get_group_mut(group_id);
-            let group = group.borrow_mut();
+        if let Some(group_rf) = &self.group {
+            let mut group = group_rf.as_mut();
 
             group.spacing = spacing;
         } else {
@@ -719,9 +685,8 @@ impl HmGui {
     }
 
     pub fn set_stretch(&self, x: f32, y: f32) {
-        if let Some(id) = self.last_id {
-            let mut widget = self.get_widget_mut(id);
-            let widget = widget.borrow_mut();
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
 
             widget.stretch = Vec2::new(x, y);
         } else {
@@ -730,12 +695,12 @@ impl HmGui {
     }
 
     pub fn group_has_focus(&self, ty: FocusType) -> bool {
-        if let Some(group_id) = self.group_id {
-            let mut group = self.get_group_mut(group_id);
-            let widget = self.get_widget(group.widget_id);
+        if let Some(group_rf) = self.group.clone() {
+            let mut group = group_rf.as_mut();
+            group.focusable[ty as usize] = true;
 
-            group.borrow_mut().focusable[ty as usize] = true;
-            self.focus[ty as usize] == widget.borrow().hash
+            let widget = group.widget.as_ref();
+            self.focus[ty as usize] == widget.hash
         } else {
             unreachable!();
         }

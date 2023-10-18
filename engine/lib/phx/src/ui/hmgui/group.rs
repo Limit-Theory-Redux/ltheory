@@ -1,3 +1,5 @@
+use std::borrow::{Borrow, BorrowMut};
+
 use glam::Vec2;
 use internal::*;
 
@@ -5,23 +7,13 @@ use crate::render::{
     UIRenderer_BeginLayer, UIRenderer_EndLayer, UIRenderer_Panel, UIRenderer_Rect,
 };
 
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
+use super::*;
 
-use super::data::*;
-use super::focus::*;
-use super::image::*;
-use super::rect::*;
-use super::text::*;
-use super::widget::*;
-use super::HmGui;
-use super::HmGuiWidgetId;
-
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
 pub struct HmGuiGroup {
-    pub widget_id: HmGuiWidgetId,
-    pub head_id: Option<HmGuiWidgetId>,
-    pub tail_id: Option<HmGuiWidgetId>,
+    pub widget: Rf<HmGuiWidget>,
+    pub head: Option<Rf<HmGuiWidget>>,
+    pub tail: Option<Rf<HmGuiWidget>>,
 
     pub layout: LayoutType,
     pub children: u32,
@@ -40,28 +32,22 @@ pub struct HmGuiGroup {
 }
 
 impl HmGuiGroup {
-    pub fn compute_size(&mut self, hmgui: &HmGui) {
-        let mut head_id = self.head_id;
-        while let Some(id) = head_id {
-            let head = hmgui.get_widget_mut(id);
-            let next_id = head.borrow().next_id;
-
-            if let WidgetItem::Group(id) = head.item {
-                let mut group = hmgui.get_group_mut(id);
-
-                group.borrow_mut().compute_size(hmgui);
+    pub fn compute_size(&mut self, hmgui: &mut HmGui) {
+        let mut head_opt = self.head.clone();
+        while let Some(head_widget) = head_opt {
+            if let WidgetItem::Group(group) = &head_widget.as_ref().item {
+                group.as_mut().compute_size(hmgui);
             }
 
-            head_id = next_id;
+            head_opt = head_widget.as_ref().next.clone();
         }
 
-        let mut widget = hmgui.get_widget_mut(self.widget_id);
-        let widget = widget.borrow_mut();
+        let mut widget = self.widget.as_mut();
         widget.minSize = Vec2::ZERO;
 
-        let mut head_id = self.head_id;
-        while let Some(id) = head_id {
-            let head = hmgui.get_widget_mut(id);
+        let mut head_opt = self.head.clone();
+        while let Some(head_widget) = head_opt.clone() {
+            let head = head_widget.as_mut();
 
             match self.layout {
                 LayoutType::None => {}
@@ -73,7 +59,7 @@ impl HmGuiGroup {
                     widget.minSize.x = f32::max(widget.minSize.x, head.minSize.x);
                     widget.minSize.y += head.minSize.y;
 
-                    if head_id != self.head_id {
+                    if head_opt != self.head {
                         widget.minSize.y += self.spacing;
                     }
                 }
@@ -81,29 +67,30 @@ impl HmGuiGroup {
                     widget.minSize.x += head.minSize.x;
                     widget.minSize.y = f32::max(widget.minSize.y, head.minSize.y);
 
-                    if head_id != self.head_id {
+                    if head_opt != self.head {
                         widget.minSize.x += self.spacing;
                     }
                 }
             }
-            head_id = head.next_id;
+
+            head_opt = head.next.clone();
         }
 
         widget.minSize.x += self.paddingLower.x + self.paddingUpper.x;
         widget.minSize.y += self.paddingLower.y + self.paddingUpper.y;
+
+        widget.minSize.x = f32::min(widget.minSize.x, self.maxSize.x);
+        widget.minSize.y = f32::min(widget.minSize.y, self.maxSize.y);
 
         if self.storeSize {
             let data = hmgui.get_data(widget.hash);
 
             data.minSize = widget.minSize;
         }
-
-        widget.minSize.x = f32::min(widget.minSize.x, self.maxSize.x);
-        widget.minSize.y = f32::min(widget.minSize.y, self.maxSize.y);
     }
 
     pub fn layout(&self, hmgui: &mut HmGui) {
-        let widget = hmgui.get_widget_mut(self.widget_id);
+        let widget = self.widget.as_mut();
 
         let mut pos = widget.pos;
         let mut size = widget.size;
@@ -115,83 +102,82 @@ impl HmGuiGroup {
         size.x -= self.paddingLower.x + self.paddingUpper.x;
         size.y -= self.paddingLower.y + self.paddingUpper.y;
 
-        unsafe {
-            if self.expand {
-                if self.layout == LayoutType::Vertical {
-                    extra = widget.size.y - widget.minSize.y;
+        if self.expand {
+            if self.layout == LayoutType::Vertical {
+                extra = widget.size.y - widget.minSize.y;
 
-                    let mut head_id = self.head_id;
-                    while let Some(id) = head_id {
-                        let head = hmgui.get_widget_mut(id);
+                let mut head_opt = self.head.clone();
+                while let Some(head_rf) = head_opt {
+                    let head = head_rf.as_ref();
 
-                        totalStretch += head.stretch.y;
-                        head_id = head.next_id;
-                    }
-                } else if self.layout == LayoutType::Horizontal {
-                    extra = widget.size.x - widget.minSize.x;
-
-                    let mut head_id = self.head_id;
-                    while let Some(id) = head_id {
-                        let head = hmgui.get_widget_mut(id);
-
-                        totalStretch += head.stretch.x;
-                        head_id = head.next_id;
-                    }
+                    totalStretch += head.stretch.y;
+                    head_opt = head.next.clone();
                 }
+            } else if self.layout == LayoutType::Horizontal {
+                extra = widget.size.x - widget.minSize.x;
 
-                if totalStretch > 0.0f32 {
-                    extra /= totalStretch;
+                let mut head_opt = self.head.clone();
+                while let Some(head_rf) = head_opt {
+                    let head = head_rf.as_ref();
+
+                    totalStretch += head.stretch.x;
+                    head_opt = head.next.clone();
                 }
             }
 
-            let mut head_id = self.head_id;
-            while let Some(id) = head_id {
-                let head = hmgui.get_widget_mut(id);
+            if totalStretch > 0.0f32 {
+                extra /= totalStretch;
+            }
+        }
 
-                match self.layout {
-                    LayoutType::None => {
-                        head.layout(head.pos, size.x, size.y);
-                    }
-                    LayoutType::Stack => {
-                        head.layout(pos, size.x, size.y);
-                    }
-                    LayoutType::Vertical => {
-                        let mut s = head.minSize.y;
-                        if extra > 0.0f32 {
-                            s += head.stretch.y * extra;
-                        }
-                        head.layout(pos, size.x, s);
-                        pos.y += head.size.y + self.spacing;
-                    }
-                    LayoutType::Horizontal => {
-                        let mut s = head.minSize.x;
-                        if extra > 0.0f32 {
-                            s += head.stretch.x * extra;
-                        }
-                        head.layout(pos, s, size.y);
-                        pos.x += head.size.x + self.spacing;
-                    }
+        let mut head_opt = self.head.clone();
+        while let Some(head_rf) = head_opt {
+            let mut head = head_rf.as_mut();
+
+            match self.layout {
+                LayoutType::None => {
+                    let pos = head.pos;
+                    head.layout(pos, size.x, size.y);
                 }
-
-                if let WidgetItem::Group(id) = head.item {
-                    let group = hmgui.get_group_mut(id);
-
-                    group.layout(hmgui);
+                LayoutType::Stack => {
+                    head.layout(pos, size.x, size.y);
                 }
-
-                head_id = head.next_id;
+                LayoutType::Vertical => {
+                    let mut s = head.minSize.y;
+                    if extra > 0.0f32 {
+                        s += head.stretch.y * extra;
+                    }
+                    head.layout(pos, size.x, s);
+                    pos.y += head.size.y + self.spacing;
+                }
+                LayoutType::Horizontal => {
+                    let mut s = head.minSize.x;
+                    if extra > 0.0f32 {
+                        s += head.stretch.x * extra;
+                    }
+                    head.layout(pos, s, size.y);
+                    pos.x += head.size.x + self.spacing;
+                }
             }
 
-            if self.storeSize {
-                let data = hmgui.get_data(widget.hash);
+            if let WidgetItem::Group(group_rf) = &head.item {
+                let group = group_rf.as_ref();
 
-                data.size = widget.size;
+                group.layout(hmgui);
             }
+
+            head_opt = head.next.clone();
+        }
+
+        if self.storeSize {
+            let data = hmgui.get_data(widget.hash);
+
+            data.size = widget.size;
         }
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, hmgui_focus: u64) {
-        let widget = hmgui.get_widget_mut(self.widget_id);
+        let widget = self.widget.as_mut();
 
         // #if HMGUI_DRAW_GROUP_FRAMES
         //   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
@@ -207,28 +193,29 @@ impl HmGuiGroup {
                 self.clip,
             );
 
-            let mut tail_id = self.tail_id;
-            while let Some(id) = tail_id {
-                let tail = hmgui.get_widget_mut(id);
+            let mut tail_opt = self.tail.clone();
+            while let Some(tail_rf) = tail_opt {
+                let mut tail = tail_rf.as_mut();
 
                 match &mut tail.item {
-                    WidgetItem::Group(id) => {
-                        let group = hmgui.get_group_mut(*id);
+                    WidgetItem::Undefined => {}
+                    WidgetItem::Group(group_rf) => {
+                        let group = group_rf.as_mut();
 
                         group.draw(hmgui, hmgui_focus);
                     }
                     WidgetItem::Text(item) => {
-                        item.draw(hmgui);
+                        item.draw();
                     }
                     WidgetItem::Rect(item) => {
-                        item.draw(hmgui);
+                        item.draw();
                     }
                     WidgetItem::Image(item) => {
-                        item.draw(hmgui);
+                        item.draw();
                     }
                 }
 
-                tail_id = tail.prev_id;
+                tail_opt = tail.prev.clone();
             }
 
             if self.focusable[FocusType::Mouse as usize] {

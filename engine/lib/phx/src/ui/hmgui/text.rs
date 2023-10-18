@@ -5,24 +5,24 @@ use internal::*;
 
 use crate::render::{Font, UIRenderer_Text};
 
-use super::{HmGui, HmGuiWidgetId};
+use super::{HmGuiWidget, Rf};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct HmGuiText {
-    pub widget_id: HmGuiWidgetId,
+    pub widget: Rf<HmGuiWidget>,
     pub font: *mut Font,
     pub text: String,
     pub color: Vec4,
 }
 
 impl HmGuiText {
-    pub fn draw(&self, hmgui: &HmGui) {
+    pub fn draw(&self) {
         // #if HMGUI_DRAW_GROUP_FRAMES
         //   Draw_Color(0.5f, 0.2f, 0.2f, 0.5f);
         //   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
         //#endif
 
-        let widget = hmgui.get_widget(self.widget_id);
+        let widget = self.widget.as_ref();
         let text = CString::new(self.text.as_str()).expect("Cannot convert text");
 
         unsafe {

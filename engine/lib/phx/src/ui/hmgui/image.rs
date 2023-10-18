@@ -1,16 +1,16 @@
 use crate::render::{Tex2D, UIRenderer_Image};
 
-use super::{widget::HmGuiWidget, HmGui, HmGuiWidgetId};
+use super::{HmGui, HmGuiWidget, Rf};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct HmGuiImage {
-    pub widget_id: HmGuiWidgetId,
+    pub widget: Rf<HmGuiWidget>,
     pub image: *mut Tex2D,
 }
 
 impl HmGuiImage {
-    pub fn draw(&self, hmgui: &HmGui) {
-        let widget = hmgui.get_widget(self.widget_id);
+    pub fn draw(&self) {
+        let widget = self.widget.as_ref();
 
         unsafe {
             UIRenderer_Image(
