@@ -177,11 +177,12 @@ impl HmGui {
 
         let group = HmGuiGroup {
             layout,
+            spacing,
             maxSize: Vec2::new(1e30f32, 1e30f32),
             ..Default::default()
         };
 
-        let (group_id, group) = self.add_group(group);
+        let (group_id, _) = self.add_group(group);
 
         let widget = self.init_widget(WidgetItem::Group(group_id));
 
@@ -201,10 +202,8 @@ impl HmGui {
         self.group_id = Some(group_id);
     }
 
-    pub fn get_data(&mut self, g: &HmGuiGroup) -> &HmGuiData {
-        let widget = self.get_widget(g.widget_id);
-
-        self.data.entry(widget.hash).or_insert(HmGuiData {
+    pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
+        self.data.entry(widget_hash).or_insert(HmGuiData {
             offset: Vec2::ZERO,
             minSize: Vec2::ZERO,
             size: Vec2::ZERO,
@@ -311,12 +310,13 @@ impl HmGui {
             unsafe {
                 Profiler_Begin(c_str!("HmGui_Draw"));
 
+                let hmgui_focus = self.focus[FocusType::Mouse as usize];
                 let root = self.get_group_mut(root_id);
 
                 RenderState_PushBlendMode(1);
                 UIRenderer_Begin();
 
-                root.draw(self, self.focus[FocusType::Mouse as usize]);
+                root.draw(self, hmgui_focus);
 
                 UIRenderer_End();
                 RenderState_PopBlendMode();
@@ -357,6 +357,7 @@ impl HmGui {
     pub fn begin_scroll(&mut self, maxSize: f32) {
         if let Some(group_id) = self.group_id {
             let group = self.get_group_mut(group_id);
+            let widget = self.get_widget(group.widget_id);
 
             self.begin_group_x();
             self.set_stretch(1.0f32, 1.0f32);
@@ -371,7 +372,7 @@ impl HmGui {
             group.storeSize = true;
             group.maxSize.y = maxSize;
 
-            let data = self.get_data(group);
+            let data = self.get_data(widget.hash);
             group.offset.y = -data.offset.y;
         } else {
             unreachable!();
@@ -381,7 +382,8 @@ impl HmGui {
     pub fn end_scroll(&mut self, input: &Input) {
         if let Some(group_id) = self.group_id {
             let group = self.get_group_mut(group_id);
-            let data = self.get_data(group);
+            let widget = self.get_widget(group.widget_id);
+            let data = self.get_data(widget.hash);
 
             if self.group_has_focus(FocusType::Scroll) {
                 let scroll_y = input.mouse().value(MouseControl::ScrollY);
@@ -438,16 +440,16 @@ impl HmGui {
             group.focusStyle = FocusStyle::None;
             group.frameOpacity = 0.95f32;
 
-            let data = self.get_data(group);
+            let data = self.get_data(widget.hash);
             let mouse = input.mouse();
 
             if self.group_has_focus(FocusType::Mouse) && mouse.is_down(MouseControl::Left) {
-                (*data).offset.x += mouse.value(MouseControl::DeltaX);
-                (*data).offset.y += mouse.value(MouseControl::DeltaY);
+                data.offset.x += mouse.value(MouseControl::DeltaX);
+                data.offset.y += mouse.value(MouseControl::DeltaY);
             }
 
-            widget.pos.x += (*data).offset.x;
-            widget.pos.y += (*data).offset.y;
+            widget.pos.x += data.offset.x;
+            widget.pos.y += data.offset.y;
 
             self.begin_group_y();
             group.clip = true;

@@ -90,7 +90,7 @@ impl HmGuiGroup {
         widget.minSize.y += self.paddingLower.y + self.paddingUpper.y;
 
         if self.storeSize {
-            let data = hmgui.get_data(self);
+            let data = hmgui.get_data(widget.hash);
 
             data.minSize = widget.minSize;
         }
@@ -180,7 +180,7 @@ impl HmGuiGroup {
             }
 
             if self.storeSize {
-                let data = hmgui.get_data(self);
+                let data = hmgui.get_data(widget.hash);
 
                 data.size = widget.size;
             }
