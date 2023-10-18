@@ -247,18 +247,22 @@ impl HmGui {
         self.end_group();
 
         if let Some(root_rf) = self.root.clone() {
-            let mut root = root_rf.as_mut();
+            let group_rf = {
+                let mut root = root_rf.as_mut();
 
-            root.compute_size(self);
-            root.layout(self);
+                root.compute_size(self);
+                root.layout(self);
 
-            self.focus.fill(0);
+                self.focus.fill(0);
 
-            let mouse = input.mouse();
+                let mouse = input.mouse();
 
-            self.focusPos = mouse.position();
+                self.focusPos = mouse.position();
 
-            self.check_focus(root_rf.clone());
+                root_rf.clone()
+            };
+
+            self.check_focus(group_rf);
         } else {
             unreachable!();
         }
@@ -447,12 +451,13 @@ impl HmGui {
 
     pub fn button(&mut self, label: &str) -> bool {
         if let Some(group_rf) = self.group.clone() {
-            let mut group = group_rf.as_mut();
-
             self.begin_group_stack();
 
-            group.focusStyle = FocusStyle::Fill;
-            group.frameOpacity = 0.5f32;
+            {
+                let mut group = group_rf.as_mut();
+                group.focusStyle = FocusStyle::Fill;
+                group.frameOpacity = 0.5f32;
+            }
 
             let focus: bool = self.group_has_focus(FocusType::Mouse);
 
@@ -581,23 +586,25 @@ impl HmGui {
     }
 
     pub fn text_ex(&mut self, font: &mut Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
-        let item = HmGuiText {
-            widget: Default::default(),
-            font,
-            text: text.into(),
-            color: Vec4::new(r, g, b, a),
-        };
+        {
+            let item = HmGuiText {
+                widget: Default::default(),
+                font,
+                text: text.into(),
+                color: Vec4::new(r, g, b, a),
+            };
 
-        let widget_rf = self.init_widget(WidgetItem::Text(item));
-        let mut widget = widget_rf.as_mut();
+            let widget_rf = self.init_widget(WidgetItem::Text(item));
+            let mut widget = widget_rf.as_mut();
 
-        let mut size = IVec2::ZERO;
+            let mut size = IVec2::ZERO;
 
-        let ctext = CString::new(text).expect("Cannot convert text");
+            let ctext = CString::new(text).expect("Cannot convert text");
 
-        unsafe { Font_GetSize2(font, &mut size, ctext.as_ptr()) };
+            unsafe { Font_GetSize2(font, &mut size, ctext.as_ptr()) };
 
-        widget.minSize = Vec2::new(size.x as f32, size.y as f32);
+            widget.minSize = Vec2::new(size.x as f32, size.y as f32);
+        }
 
         self.set_align(0.0f32, 1.0f32);
     }
