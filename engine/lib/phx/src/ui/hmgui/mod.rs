@@ -277,12 +277,14 @@ impl HmGui {
 
                 RenderState_PushBlendMode(1);
                 UIRenderer_Begin();
+            }
 
-                let hmgui_focus = self.focus[FocusType::Mouse as usize];
-                let root = root_rf.as_mut();
+            let hmgui_focus = self.focus[FocusType::Mouse as usize];
+            let root = root_rf.as_mut();
 
-                root.draw(self, hmgui_focus);
+            root.draw(self, hmgui_focus);
 
+            unsafe {
                 UIRenderer_End();
                 RenderState_PopBlendMode();
 
