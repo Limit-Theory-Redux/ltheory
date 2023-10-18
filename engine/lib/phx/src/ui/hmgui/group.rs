@@ -191,36 +191,38 @@ impl HmGuiGroup {
                 widget.size.x,
                 widget.size.y,
                 self.clip,
-            );
+            )
+        };
 
-            let mut tail_opt = self.tail.clone();
-            while let Some(tail_rf) = tail_opt {
-                let mut tail = tail_rf.as_mut();
+        let mut tail_opt = self.tail.clone();
+        while let Some(tail_rf) = tail_opt {
+            let mut tail = tail_rf.as_mut();
 
-                match &mut tail.item {
-                    WidgetItem::Undefined => {}
-                    WidgetItem::Group(group_rf) => {
-                        let group = group_rf.as_mut();
+            match &mut tail.item {
+                WidgetItem::Undefined => {}
+                WidgetItem::Group(group_rf) => {
+                    let group = group_rf.as_mut();
 
-                        group.draw(hmgui, hmgui_focus);
-                    }
-                    WidgetItem::Text(item) => {
-                        item.draw();
-                    }
-                    WidgetItem::Rect(item) => {
-                        item.draw();
-                    }
-                    WidgetItem::Image(item) => {
-                        item.draw();
-                    }
+                    group.draw(hmgui, hmgui_focus);
                 }
-
-                tail_opt = tail.prev.clone();
+                WidgetItem::Text(item) => {
+                    item.draw();
+                }
+                WidgetItem::Rect(item) => {
+                    item.draw();
+                }
+                WidgetItem::Image(item) => {
+                    item.draw();
+                }
             }
 
-            if self.focusable[FocusType::Mouse as usize] {
-                let focus: bool = hmgui_focus == widget.hash;
+            tail_opt = tail.prev.clone();
+        }
 
+        if self.focusable[FocusType::Mouse as usize] {
+            let focus: bool = hmgui_focus == widget.hash;
+
+            unsafe {
                 match self.focusStyle {
                     FocusStyle::None => {
                         UIRenderer_Panel(
@@ -299,7 +301,8 @@ impl HmGuiGroup {
                     }
                 }
             }
-            UIRenderer_EndLayer();
         }
+
+        unsafe { UIRenderer_EndLayer() };
     }
 }
