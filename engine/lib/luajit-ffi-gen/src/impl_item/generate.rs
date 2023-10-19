@@ -61,14 +61,21 @@ impl ImplInfo {
             quote! {}
         };
 
-        let param_tokens: Vec<_> = method
+        let mut param_tokens: Vec<_> = method
             .params
             .iter()
             .map(|param| wrap_param(&self.name, param))
             .collect();
 
-        let ret_token = if let Some(ty) = &method.ret {
-            let ty_token = wrap_ret_type(&self.name, &ty);
+        if method.bind_args.gen_out_param() && method.ret.is_some() {
+            let return_ty_token = wrap_ret_type(&self.name, method.ret.as_ref().unwrap(), true);
+            param_tokens.push(quote! { out: &mut #return_ty_token })
+        }
+
+        let ret_token = if method.bind_args.gen_out_param() {
+            quote! {}
+        } else if let Some(ty) = &method.ret {
+            let ty_token = wrap_ret_type(&self.name, &ty, false);
 
             quote! { -> #ty_token }
         } else {
@@ -153,7 +160,7 @@ fn wrap_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
     }
 }
 
-fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
+fn wrap_ret_type(self_name: &str, ty: &TypeInfo, never_box: bool) -> TokenStream {
     match &ty.variant {
         TypeVariant::Str | TypeVariant::String | TypeVariant::CString => {
             quote! { *const libc::c_char }
@@ -172,7 +179,7 @@ fn wrap_ret_type(self_name: &str, ty: &TypeInfo) -> TokenStream {
                 } else {
                     quote! { *const #ty_ident }
                 }
-            } else if is_copyable {
+            } else if is_copyable || never_box {
                 quote! { #ty_ident }
             } else if ty.is_mutable {
                 quote! { *mut #ty_ident }
@@ -267,9 +274,16 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
         };
 
         let method_call = if ty.is_option {
-            quote! {
-                #method_call
-                let Some(__res__) = __res__ else { return std::ptr::null(); };
+            if ty.is_mutable {
+                quote! {
+                    #method_call
+                    let Some(__res__) = __res__ else { return std::ptr::null_mut(); };
+                }
+            } else {
+                quote! {
+                    #method_call
+                    let Some(__res__) = __res__ else { return std::ptr::null(); };
+                }
             }
         } else {
             method_call
@@ -293,7 +307,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     } else {
                         gen_buffered_ret(&type_ident)
                     }
-                } else if is_copyable {
+                } else if is_copyable || method.bind_args.gen_out_param() {
                     if ty.is_reference {
                         quote! { *__res__ }
                     } else {
@@ -319,9 +333,16 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
             }
         };
 
-        quote! {
-            #method_call
-            #return_item
+        if method.bind_args.gen_out_param() {
+            quote! {
+                #method_call
+                *out = #return_item;
+            }
+        } else {
+            quote! {
+                #method_call
+                #return_item
+            }
         }
     } else {
         quote! {
