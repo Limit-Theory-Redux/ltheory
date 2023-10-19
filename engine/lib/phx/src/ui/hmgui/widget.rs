@@ -1,18 +1,16 @@
 use glam::Vec2;
 
-use super::{HmGuiGroup, HmGuiImage, HmGuiRect, HmGuiText, Rf};
+use super::{HmGui, HmGuiGroup, HmGuiImage, HmGuiRect, HmGuiText, Rf};
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum WidgetItem {
-    #[default]
-    Undefined,
-    Group(Rf<HmGuiGroup>),
+    Group(HmGuiGroup),
     Text(HmGuiText),
     Rect(HmGuiRect),
     Image(HmGuiImage),
 }
 
-#[derive(Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub enum LayoutType {
     #[default]
     None,
@@ -21,9 +19,9 @@ pub enum LayoutType {
     Horizontal,
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct HmGuiWidget {
-    pub parent: Option<Rf<HmGuiGroup>>,
+    pub parent: Option<Rf<HmGuiWidget>>,
     pub next: Option<Rf<HmGuiWidget>>,
     pub prev: Option<Rf<HmGuiWidget>>,
 
@@ -37,7 +35,58 @@ pub struct HmGuiWidget {
 }
 
 impl HmGuiWidget {
-    pub fn layout(&mut self, pos: Vec2, sx: f32, sy: f32) {
+    pub fn compute_size(&mut self, hmgui: &mut HmGui) {
+        match &self.item {
+            WidgetItem::Group(group) => {
+                self.minSize = Vec2::ZERO;
+
+                group.compute_size(hmgui, &mut self.minSize);
+
+                if group.storeSize {
+                    let data = hmgui.get_data(self.hash);
+
+                    data.minSize = self.minSize;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn layout(&self, hmgui: &mut HmGui) {
+        match &self.item {
+            WidgetItem::Group(group) => {
+                group.layout(hmgui, self.pos, self.size, self.size - self.minSize);
+
+                if group.storeSize {
+                    let data = hmgui.get_data(self.hash);
+
+                    data.size = self.size;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn draw(&self, hmgui: &mut HmGui) {
+        match &self.item {
+            WidgetItem::Group(group) => {
+                let hmgui_focus = hmgui.mouse_focus_hash();
+
+                group.draw(hmgui, self.pos, self.size, hmgui_focus == self.hash);
+            }
+            WidgetItem::Text(item) => {
+                item.draw(self.pos.x, self.pos.y + self.minSize.y);
+            }
+            WidgetItem::Rect(item) => {
+                item.draw(self.pos, self.size);
+            }
+            WidgetItem::Image(item) => {
+                item.draw(self.pos, self.size);
+            }
+        }
+    }
+
+    pub fn layout_item(&mut self, pos: Vec2, sx: f32, sy: f32) {
         self.pos = pos;
         self.size = self.minSize;
         self.size.x += self.stretch.x * (sx - self.minSize.x);

@@ -1,4 +1,4 @@
-use glam::Vec4;
+use glam::{Vec2, Vec4};
 
 use crate::render::UIRenderer_Rect;
 
@@ -6,20 +6,17 @@ use super::{HmGui, HmGuiWidget, Rf};
 
 #[derive(Clone, PartialEq)]
 pub struct HmGuiRect {
-    pub widget: Rf<HmGuiWidget>,
     pub color: Vec4,
 }
 
 impl HmGuiRect {
-    pub fn draw(&self) {
-        let widget = self.widget.as_ref();
-
+    pub fn draw(&self, pos: Vec2, size: Vec2) {
         unsafe {
             UIRenderer_Rect(
-                widget.pos.x,
-                widget.pos.y,
-                widget.size.x,
-                widget.size.y,
+                pos.x,
+                pos.y,
+                size.x,
+                size.y,
                 self.color.x,
                 self.color.y,
                 self.color.z,

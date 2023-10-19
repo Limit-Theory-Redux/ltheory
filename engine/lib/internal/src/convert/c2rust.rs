@@ -4,6 +4,11 @@ use crate::ConvertIntoString;
 
 impl ConvertIntoString for *const libc::c_char {
     fn as_str(&self) -> &str {
+        // TODO: this should not happen. Crashes atm in HmGui::begin_window
+        if *self == std::ptr::null() {
+            return "<null>";
+        }
+
         unsafe { std::str::from_utf8_unchecked(std::ffi::CStr::from_ptr(*self).to_bytes()) }
     }
 

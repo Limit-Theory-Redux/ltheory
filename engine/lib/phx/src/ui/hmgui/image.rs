@@ -1,25 +1,18 @@
+use glam::Vec2;
+
 use crate::render::{Tex2D, UIRenderer_Image};
 
 use super::{HmGui, HmGuiWidget, Rf};
 
 #[derive(Clone, PartialEq)]
 pub struct HmGuiImage {
-    pub widget: Rf<HmGuiWidget>,
     pub image: *mut Tex2D,
 }
 
 impl HmGuiImage {
-    pub fn draw(&self) {
-        let widget = self.widget.as_ref();
-
+    pub fn draw(&self, pos: Vec2, size: Vec2) {
         unsafe {
-            UIRenderer_Image(
-                self.image,
-                widget.pos.x,
-                widget.pos.y,
-                widget.size.x,
-                widget.size.y,
-            );
+            UIRenderer_Image(self.image, pos.x, pos.y, size.x, size.y);
         }
     }
 }

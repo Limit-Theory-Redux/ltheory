@@ -11,7 +11,6 @@ use super::*;
 
 #[derive(Clone, Default, PartialEq)]
 pub struct HmGuiGroup {
-    pub widget: Rf<HmGuiWidget>,
     pub head: Option<Rf<HmGuiWidget>>,
     pub tail: Option<Rf<HmGuiWidget>>,
 
@@ -32,69 +31,58 @@ pub struct HmGuiGroup {
 }
 
 impl HmGuiGroup {
-    pub fn compute_size(&mut self, hmgui: &mut HmGui) {
+    pub fn compute_size(&self, hmgui: &mut HmGui, minSize: &mut Vec2) {
         let mut head_opt = self.head.clone();
-        while let Some(head_widget) = head_opt {
-            if let WidgetItem::Group(group) = &head_widget.as_ref().item {
-                group.as_mut().compute_size(hmgui);
-            }
+        while let Some(head_rf) = head_opt {
+            let mut head = head_rf.as_mut();
 
-            head_opt = head_widget.as_ref().next.clone();
+            head.compute_size(hmgui);
+
+            head_opt = head.next.clone();
         }
 
-        let mut widget = self.widget.as_mut();
-        widget.minSize = Vec2::ZERO;
-
         let mut head_opt = self.head.clone();
+        let mut not_head = false;
         while let Some(head_widget) = head_opt.clone() {
-            let head = head_widget.as_mut();
+            let head = head_widget.as_ref();
 
             match self.layout {
                 LayoutType::None => {}
                 LayoutType::Stack => {
-                    widget.minSize.x = f32::max(widget.minSize.x, head.minSize.x);
-                    widget.minSize.y = f32::max(widget.minSize.y, head.minSize.y);
+                    minSize.x = f32::max(minSize.x, head.minSize.x);
+                    minSize.y = f32::max(minSize.y, head.minSize.y);
                 }
                 LayoutType::Vertical => {
-                    widget.minSize.x = f32::max(widget.minSize.x, head.minSize.x);
-                    widget.minSize.y += head.minSize.y;
+                    minSize.x = f32::max(minSize.x, head.minSize.x);
+                    minSize.y += head.minSize.y;
 
-                    if head_opt != self.head {
-                        widget.minSize.y += self.spacing;
+                    if not_head {
+                        minSize.y += self.spacing;
                     }
                 }
                 LayoutType::Horizontal => {
-                    widget.minSize.x += head.minSize.x;
-                    widget.minSize.y = f32::max(widget.minSize.y, head.minSize.y);
+                    minSize.x += head.minSize.x;
+                    minSize.y = f32::max(minSize.y, head.minSize.y);
 
-                    if head_opt != self.head {
-                        widget.minSize.x += self.spacing;
+                    if not_head {
+                        minSize.x += self.spacing;
                     }
                 }
             }
 
             head_opt = head.next.clone();
+            not_head = true;
         }
 
-        widget.minSize.x += self.paddingLower.x + self.paddingUpper.x;
-        widget.minSize.y += self.paddingLower.y + self.paddingUpper.y;
+        minSize.x += self.paddingLower.x + self.paddingUpper.x;
+        minSize.y += self.paddingLower.y + self.paddingUpper.y;
 
-        widget.minSize.x = f32::min(widget.minSize.x, self.maxSize.x);
-        widget.minSize.y = f32::min(widget.minSize.y, self.maxSize.y);
-
-        if self.storeSize {
-            let data = hmgui.get_data(widget.hash);
-
-            data.minSize = widget.minSize;
-        }
+        minSize.x = f32::min(minSize.x, self.maxSize.x);
+        minSize.y = f32::min(minSize.y, self.maxSize.y);
     }
 
-    pub fn layout(&self, hmgui: &mut HmGui) {
-        let widget = self.widget.as_mut();
-
-        let mut pos = widget.pos;
-        let mut size = widget.size;
-        let mut extra: f32 = 0.0f32;
+    pub fn layout(&self, hmgui: &mut HmGui, mut pos: Vec2, mut size: Vec2, extra: Vec2) {
+        let mut extra_dim: f32 = 0.0f32;
         let mut totalStretch: f32 = 0.0f32;
 
         pos.x += self.paddingLower.x + self.offset.x;
@@ -104,7 +92,7 @@ impl HmGuiGroup {
 
         if self.expand {
             if self.layout == LayoutType::Vertical {
-                extra = widget.size.y - widget.minSize.y;
+                extra_dim = extra.y; // widget.size.y - minSize.y;
 
                 let mut head_opt = self.head.clone();
                 while let Some(head_rf) = head_opt {
@@ -114,7 +102,7 @@ impl HmGuiGroup {
                     head_opt = head.next.clone();
                 }
             } else if self.layout == LayoutType::Horizontal {
-                extra = widget.size.x - widget.minSize.x;
+                extra_dim = extra.x; // widget.size.x - minSize.x;
 
                 let mut head_opt = self.head.clone();
                 while let Some(head_rf) = head_opt {
@@ -126,7 +114,7 @@ impl HmGuiGroup {
             }
 
             if totalStretch > 0.0f32 {
-                extra /= totalStretch;
+                extra_dim /= totalStretch;
             }
         }
 
@@ -137,99 +125,61 @@ impl HmGuiGroup {
             match self.layout {
                 LayoutType::None => {
                     let pos = head.pos;
-                    head.layout(pos, size.x, size.y);
+                    head.layout_item(pos, size.x, size.y);
                 }
                 LayoutType::Stack => {
-                    head.layout(pos, size.x, size.y);
+                    head.layout_item(pos, size.x, size.y);
                 }
                 LayoutType::Vertical => {
                     let mut s = head.minSize.y;
-                    if extra > 0.0f32 {
-                        s += head.stretch.y * extra;
+                    if extra_dim > 0.0f32 {
+                        s += head.stretch.y * extra_dim;
                     }
-                    head.layout(pos, size.x, s);
+                    head.layout_item(pos, size.x, s);
                     pos.y += head.size.y + self.spacing;
                 }
                 LayoutType::Horizontal => {
                     let mut s = head.minSize.x;
-                    if extra > 0.0f32 {
-                        s += head.stretch.x * extra;
+                    if extra_dim > 0.0f32 {
+                        s += head.stretch.x * extra_dim;
                     }
-                    head.layout(pos, s, size.y);
+                    head.layout_item(pos, s, size.y);
                     pos.x += head.size.x + self.spacing;
                 }
             }
 
-            if let WidgetItem::Group(group_rf) = &head.item {
-                let group = group_rf.as_ref();
-
-                group.layout(hmgui);
-            }
+            head.layout(hmgui);
 
             head_opt = head.next.clone();
         }
-
-        if self.storeSize {
-            let data = hmgui.get_data(widget.hash);
-
-            data.size = widget.size;
-        }
     }
 
-    pub fn draw(&self, hmgui: &mut HmGui, hmgui_focus: u64) {
-        let widget = self.widget.as_mut();
-
+    pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, focus: bool) {
         // #if HMGUI_DRAW_GROUP_FRAMES
         //   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
         //   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
         // #endif
 
-        unsafe {
-            UIRenderer_BeginLayer(
-                widget.pos.x,
-                widget.pos.y,
-                widget.size.x,
-                widget.size.y,
-                self.clip,
-            )
-        };
+        unsafe { UIRenderer_BeginLayer(pos.x, pos.y, size.x, size.y, self.clip) };
 
         let mut tail_opt = self.tail.clone();
         while let Some(tail_rf) = tail_opt {
-            let mut tail = tail_rf.as_mut();
+            let tail = tail_rf.as_ref();
 
-            match &mut tail.item {
-                WidgetItem::Undefined => {}
-                WidgetItem::Group(group_rf) => {
-                    let group = group_rf.as_mut();
-
-                    group.draw(hmgui, hmgui_focus);
-                }
-                WidgetItem::Text(item) => {
-                    item.draw();
-                }
-                WidgetItem::Rect(item) => {
-                    item.draw();
-                }
-                WidgetItem::Image(item) => {
-                    item.draw();
-                }
-            }
+            tail.draw(hmgui);
 
             tail_opt = tail.prev.clone();
         }
 
         if self.focusable[FocusType::Mouse as usize] {
-            let focus: bool = hmgui_focus == widget.hash;
-
             unsafe {
                 match self.focusStyle {
                     FocusStyle::None => {
                         UIRenderer_Panel(
-                            widget.pos.x,
-                            widget.pos.y,
-                            widget.size.x,
-                            widget.size.y,
+                            pos.x,
+                            pos.y,
+                            size.x,
+                            size.y,
                             0.1f32,
                             0.12f32,
                             0.13f32,
@@ -241,23 +191,15 @@ impl HmGuiGroup {
                     FocusStyle::Fill => {
                         if focus {
                             UIRenderer_Panel(
-                                widget.pos.x,
-                                widget.pos.y,
-                                widget.size.x,
-                                widget.size.y,
-                                0.1f32,
-                                0.5f32,
-                                1.0f32,
-                                1.0f32,
-                                0.0f32,
-                                1.0f32,
+                                pos.x, pos.y, size.x, size.y, 0.1f32, 0.5f32, 1.0f32, 1.0f32,
+                                0.0f32, 1.0f32,
                             );
                         } else {
                             UIRenderer_Panel(
-                                widget.pos.x,
-                                widget.pos.y,
-                                widget.size.x,
-                                widget.size.y,
+                                pos.x,
+                                pos.y,
+                                size.x,
+                                size.y,
                                 0.15f32,
                                 0.15f32,
                                 0.15f32,
@@ -270,24 +212,16 @@ impl HmGuiGroup {
                     FocusStyle::Outline => {
                         if focus {
                             UIRenderer_Rect(
-                                widget.pos.x,
-                                widget.pos.y,
-                                widget.size.x,
-                                widget.size.y,
-                                0.1f32,
-                                0.5f32,
-                                1.0f32,
-                                1.0f32,
-                                true,
+                                pos.x, pos.y, size.x, size.y, 0.1f32, 0.5f32, 1.0f32, 1.0f32, true,
                             );
                         }
                     }
                     FocusStyle::Underline => {
                         UIRenderer_Rect(
-                            widget.pos.x,
-                            widget.pos.y,
-                            widget.size.x,
-                            widget.size.y,
+                            pos.x,
+                            pos.y,
+                            size.x,
+                            size.y,
                             0.3f32,
                             0.3f32,
                             0.3f32,
