@@ -234,8 +234,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     } else if param.ty.is_reference{
                         quote! { #name_accessor }
                     } else {
-                        // FIXME: Boxed type. into_inner is nightly only. Alternative Option::unwrap
-                        quote! { #name_accessor.into_inner() }
+                        quote! { *#name_accessor }
                     }
                 },
                 _ => {

@@ -60,6 +60,10 @@ impl MyStruct {
         self.val_data = val.clone();
     }
 
+    pub fn take_data(&mut self, val: Data) {
+        self.val_data = val;
+    }
+
     pub fn get_data(&self) -> Data {
         self.val_data.clone()
     }
@@ -143,7 +147,7 @@ fn test_impl() {
     MyStruct_SetData(&mut ms2, &Data::new(2));
     assert_eq!(MyStruct_GetData(&ms2).val, 2);
 
-    MyStruct_SetData(&mut ms2, &Data::new(4));
+    MyStruct_TakeData(&mut ms2, Box::new(Data::new(4)));
     let mut returned_data = Data::new(0);
     MyStruct_GetDataViaOutParam(&ms2, &mut returned_data);
     assert_eq!(returned_data.val, 4);

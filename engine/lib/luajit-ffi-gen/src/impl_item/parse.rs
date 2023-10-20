@@ -161,15 +161,6 @@ fn parse_params<'a>(
                     ));
                 }
 
-                if let TypeVariant::Custom(ty_name) = &ty.variant {
-                    if !ty.is_reference && !TypeInfo::is_copyable(&ty_name) {
-                        return Err(Error::new(
-                            pat_type.ty.span(),
-                            "by value non-copyable parameters are not supported",
-                        ));
-                    }
-                }
-
                 let param_info = ParamInfo { name, ty };
 
                 params_info.push(param_info);
