@@ -84,7 +84,7 @@ impl HmGui {
             .as_ref()
             .map(|group_rf| {
                 if let WidgetItem::Group(group) = &group_rf.as_ref().item {
-                    group.tail.clone()
+                    group.children.last().cloned()
                 } else {
                     unreachable!();
                 }
@@ -112,12 +112,12 @@ impl HmGui {
                 unreachable!();
             };
 
-            parent_group.children = (parent_group.children).wrapping_add(1);
+            parent_group.children_hash = (parent_group.children_hash).wrapping_add(1);
 
             widget.hash = unsafe {
                 Hash_FNV64_Incremental(
                     parent_hash,
-                    &mut parent_group.children as *mut u32 as *const _,
+                    &mut parent_group.children_hash as *mut u32 as *const _,
                     std::mem::size_of::<u32>() as i32,
                 )
             };
@@ -126,14 +126,14 @@ impl HmGui {
                 let mut next = next_rf.as_mut();
                 next.prev = Some(widget_rf.clone());
             } else {
-                parent_group.tail = Some(widget_rf.clone());
+                parent_group.children.push(widget_rf.clone());
             }
 
             if let Some(prev_rf) = &widget.prev {
                 let mut prev = prev_rf.as_mut();
                 prev.next = Some(widget_rf.clone());
             } else {
-                parent_group.head = Some(widget_rf.clone());
+                parent_group.children.insert(0, widget_rf.clone());
             }
         } else {
             widget.hash = Hash_FNV64_Init();
@@ -196,7 +196,7 @@ impl HmGui {
             return;
         }
 
-        let mut widget_opt = group.tail.clone();
+        let mut widget_opt = group.children.last().cloned();
         while let Some(widget_rf) = widget_opt {
             self.check_focus(widget_rf.clone());
 

@@ -11,12 +11,10 @@ use super::*;
 
 #[derive(Clone, Default, PartialEq)]
 pub struct HmGuiGroup {
-    // TODO: head/tail -> Vec<>
-    pub head: Option<Rf<HmGuiWidget>>,
-    pub tail: Option<Rf<HmGuiWidget>>,
+    pub children: Vec<Rf<HmGuiWidget>>,
 
     pub layout: LayoutType,
-    pub children: u32,
+    pub children_hash: u32,
     pub focusStyle: FocusStyle,
     pub paddingLower: Vec2,
     pub paddingUpper: Vec2,
@@ -33,7 +31,7 @@ pub struct HmGuiGroup {
 
 impl HmGuiGroup {
     pub fn compute_size(&self, hmgui: &mut HmGui, minSize: &mut Vec2) {
-        let mut head_opt = self.head.clone();
+        let mut head_opt = self.children.first().cloned();
         while let Some(head_rf) = head_opt {
             let mut head = head_rf.as_mut();
 
@@ -42,10 +40,10 @@ impl HmGuiGroup {
             head_opt = head.next.clone();
         }
 
-        let mut head_opt = self.head.clone();
+        let mut head_opt = self.children.first().cloned();
         let mut not_head = false;
-        while let Some(head_widget) = head_opt.clone() {
-            let head = head_widget.as_ref();
+        while let Some(head_rf) = head_opt.clone() {
+            let head = head_rf.as_ref();
 
             match self.layout {
                 LayoutType::None => {}
@@ -95,7 +93,7 @@ impl HmGuiGroup {
             if self.layout == LayoutType::Vertical {
                 extra_dim = extra.y; // widget.size.y - minSize.y;
 
-                let mut head_opt = self.head.clone();
+                let mut head_opt = self.children.first().cloned();
                 while let Some(head_rf) = head_opt {
                     let head = head_rf.as_ref();
 
@@ -105,7 +103,7 @@ impl HmGuiGroup {
             } else if self.layout == LayoutType::Horizontal {
                 extra_dim = extra.x; // widget.size.x - minSize.x;
 
-                let mut head_opt = self.head.clone();
+                let mut head_opt = self.children.first().cloned();
                 while let Some(head_rf) = head_opt {
                     let head = head_rf.as_ref();
 
@@ -119,7 +117,7 @@ impl HmGuiGroup {
             }
         }
 
-        let mut head_opt = self.head.clone();
+        let mut head_opt = self.children.first().cloned();
         while let Some(head_rf) = head_opt {
             let mut head = head_rf.as_mut();
 
@@ -163,7 +161,7 @@ impl HmGuiGroup {
 
         unsafe { UIRenderer_BeginLayer(pos.x, pos.y, size.x, size.y, self.clip) };
 
-        let mut tail_opt = self.tail.clone();
+        let mut tail_opt = self.children.last().cloned();
         while let Some(tail_rf) = tail_opt {
             let tail = tail_rf.as_ref();
 
@@ -247,7 +245,7 @@ impl HmGuiGroup {
         let ident_str = format!("{}", IDENT.repeat(ident));
 
         println!("{ident_str}- layout:        {:?}", self.layout);
-        println!("{ident_str}- children:      {}", self.children);
+        println!("{ident_str}- children_hash: {}", self.children_hash);
         println!("{ident_str}- focus_style:   {:?}", self.focusStyle);
         println!("{ident_str}- padding_lower: {:?}", self.paddingLower);
         println!("{ident_str}- padding_upper: {:?}", self.paddingUpper);
@@ -261,13 +259,8 @@ impl HmGuiGroup {
         println!("{ident_str}- store_size:    {:?}", self.storeSize);
         println!("{ident_str}- content:");
 
-        let mut head_opt = self.head.clone();
-        while let Some(head_rf) = head_opt {
-            let head = head_rf.as_ref();
-
-            head.dump(ident + 1, file);
-
-            head_opt = head.next.clone();
+        for head_rf in &self.children {
+            head_rf.as_ref().dump(ident + 1, file);
         }
     }
 }
