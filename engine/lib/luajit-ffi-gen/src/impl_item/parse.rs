@@ -207,7 +207,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                 type_info.is_result = true;
 
                 return Ok(type_info);
-            } else if type_name == "Option" {
+            } else if type_name == "Option" || type_name == "Box" {
                 if generics.len() != 1 {
                     return Err(Error::new(
                         type_path.span(),
@@ -220,21 +220,28 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
 
                 let mut type_info = parse_type(&generics[0])?;
 
+                let mut counter = 0;
                 if type_info.is_option {
-                    return Err(Error::new(
-                        type_path.span(),
-                        format!("nested option is not supported"),
-                    ));
+                    counter += 1;
                 }
-
                 if type_info.is_result {
+                    counter += 1;
+                }
+                if type_info.is_boxed {
+                    counter += 1;
+                }
+                if counter > 1 {
                     return Err(Error::new(
                         type_path.span(),
-                        format!("result nested in option is not supported"),
+                        format!("a type can't be nested within more than one of: Box, Option, Result."),
                     ));
                 }
 
-                type_info.is_option = true;
+                if type_name == "Option" {
+                    type_info.is_option = true;
+                } else {
+                    type_info.is_boxed = true;
+                }
 
                 return Ok(type_info);
             }
@@ -246,6 +253,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                     is_option: false,
                     is_reference: false,
                     is_mutable: false,
+                    is_boxed: false,
                     variant,
                 }
             } else {
@@ -254,6 +262,7 @@ fn parse_type(ty: &Type) -> Result<TypeInfo> {
                     is_option: false,
                     is_reference: false,
                     is_mutable: false,
+                    is_boxed: false,
                     // TODO: are we going to support full path to type? I.e. std::path::PathBuf
                     variant: TypeVariant::Custom(type_name),
                 }

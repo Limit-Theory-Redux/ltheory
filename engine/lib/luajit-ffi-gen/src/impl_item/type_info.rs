@@ -49,6 +49,8 @@ pub struct TypeInfo {
     pub is_option: bool,
     /// Reference type: &T
     pub is_reference: bool,
+    /// Boxed type: Box<T>
+    pub is_boxed: bool,
     /// Mutable reference type: &mut T
     pub is_mutable: bool,
     pub variant: TypeVariant,

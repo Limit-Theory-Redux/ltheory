@@ -231,7 +231,7 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                         } else {
                             quote! { #name_accessor }
                         }
-                    } else if param.ty.is_reference{
+                    } else if param.ty.is_reference || param.ty.is_boxed {
                         quote! { #name_accessor }
                     } else {
                         quote! { *#name_accessor }
@@ -316,9 +316,10 @@ fn gen_func_body(self_ident: &Ident, method: &MethodInfo) -> TokenStream {
                     quote! { __res__ as *mut #type_ident }
                 } else if ty.is_reference {
                     quote! { __res__ as *const #type_ident }
-                } else {
-                    // Do boxing
+                } else if !ty.is_boxed {
                     quote! { __res__.into() }
+                } else {
+                    quote! { __res__ }
                 }
             }
             _ => {

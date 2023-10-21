@@ -64,6 +64,10 @@ impl MyStruct {
         self.val_data = val;
     }
 
+    pub fn take_boxed_data(&mut self, val: Box<Data>) {
+        self.val_data = *val;
+    }
+
     pub fn get_data(&self) -> Data {
         self.val_data.clone()
     }
@@ -75,6 +79,10 @@ impl MyStruct {
 
     pub fn get_data_ref(&self) -> &Data {
         &self.val_data
+    }
+
+    pub fn get_boxed_data(&self) -> Box<Data> {
+        Box::new(self.val_data.clone())
     }
 
     pub fn get_data_mut(&mut self) -> &mut Data {
@@ -151,6 +159,9 @@ fn test_impl() {
     let mut returned_data = Data::new(0);
     MyStruct_GetDataViaOutParam(&ms2, &mut returned_data);
     assert_eq!(returned_data.val, 4);
+
+    MyStruct_TakeBoxedData(&mut ms2, Box::new(Data::new(6)));
+    assert_eq!(MyStruct_GetBoxedData(&ms2).val, 6);
 
     let val = MyStruct_RetResVal();
     assert_eq!(val, 42)
