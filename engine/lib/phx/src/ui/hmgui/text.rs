@@ -36,4 +36,14 @@ impl HmGuiText {
             );
         }
     }
+
+    // For testing.
+    #[allow(dead_code)]
+    pub(crate) fn dump(&self, ident: usize) {
+        let ident_str = format!("{}", crate::ui::hmgui::IDENT.repeat(ident));
+
+        println!("{ident_str}- text:  {}", self.text);
+        println!("{ident_str}- color: {:?}", self.color);
+        println!("{ident_str}- font:  {:?}", self.font);
+    }
 }

@@ -11,6 +11,7 @@ use super::*;
 
 #[derive(Clone, Default, PartialEq)]
 pub struct HmGuiGroup {
+    // TODO: head/tail -> Vec<>
     pub head: Option<Rf<HmGuiWidget>>,
     pub tail: Option<Rf<HmGuiWidget>>,
 
@@ -238,5 +239,35 @@ impl HmGuiGroup {
         }
 
         unsafe { UIRenderer_EndLayer() };
+    }
+
+    // For testing.
+    #[allow(dead_code)]
+    pub(crate) fn dump(&self, ident: usize, file: &mut File) {
+        let ident_str = format!("{}", IDENT.repeat(ident));
+
+        println!("{ident_str}- layout:        {:?}", self.layout);
+        println!("{ident_str}- children:      {}", self.children);
+        println!("{ident_str}- focus_style:   {:?}", self.focusStyle);
+        println!("{ident_str}- padding_lower: {:?}", self.paddingLower);
+        println!("{ident_str}- padding_upper: {:?}", self.paddingUpper);
+        println!("{ident_str}- max_size:      {:?}", self.maxSize);
+        println!("{ident_str}- total_stretch: {:?}", self.totalStretch);
+        println!("{ident_str}- spacing:       {}", self.spacing);
+        println!("{ident_str}- frame_opacity: {}", self.frameOpacity);
+        println!("{ident_str}- clip:          {}", self.clip);
+        println!("{ident_str}- expand:        {:?}", self.expand);
+        println!("{ident_str}- focusable:     {:?}", self.focusable);
+        println!("{ident_str}- store_size:    {:?}", self.storeSize);
+        println!("{ident_str}- content:");
+
+        let mut head_opt = self.head.clone();
+        while let Some(head_rf) = head_opt {
+            let head = head_rf.as_ref();
+
+            head.dump(ident + 1, file);
+
+            head_opt = head.next.clone();
+        }
     }
 }

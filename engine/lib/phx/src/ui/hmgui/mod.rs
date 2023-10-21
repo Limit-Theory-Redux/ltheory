@@ -12,6 +12,8 @@ use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::fs::File;
+use std::path::PathBuf;
 
 use internal::*;
 
@@ -33,6 +35,8 @@ use crate::render::*;
 use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Profiler_End};
 use crate::*;
 
+pub(crate) const IDENT: &str = "  ";
+
 pub struct HmGui {
     /// Current active group
     pub group: Option<Rf<HmGuiWidget>>,
@@ -49,9 +53,9 @@ pub struct HmGui {
 }
 
 impl HmGui {
-    pub fn new() -> Self {
+    pub fn new(default_font: *mut Font) -> Self {
         let style = HmGuiStyle {
-            font: unsafe { Font_Load(c_str!("Rajdhani"), 14) },
+            font: default_font,
             spacing: 6.0f32,
             colorPrimary: Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32),
             colorFrame: Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32),
@@ -210,6 +214,28 @@ impl HmGui {
             {
                 self.focus[i] = widget.hash;
             }
+        }
+    }
+
+    // For testing.
+    #[allow(dead_code)]
+    pub(crate) fn dump_widgets(&self) {
+        let file_path = PathBuf::new().join("widgets.txt");
+
+        if file_path.exists() {
+            return;
+        }
+
+        let mut file = File::create(file_path).expect("Cannot create widgets.txt");
+
+        println!("Widgets:");
+
+        if let Some(group_opt) = &self.root {
+            let group = group_opt.as_ref();
+
+            group.dump(1, &mut file);
+        } else {
+            println!("{IDENT}No widgets");
         }
     }
 }
@@ -590,16 +616,15 @@ impl HmGui {
 
         let widget_rf = self.init_widget(WidgetItem::Text(item));
 
+        let mut size = IVec2::ZERO;
+
+        let ctext = CString::new(text).expect("Cannot convert text");
+
+        unsafe { Font_GetSize2(font, &mut size, ctext.as_ptr()) };
+
         // NOTE: This scope is needed to prevent widget be mut borrowed twice here and in set_align below
         {
             let mut widget = widget_rf.as_mut();
-
-            let mut size = IVec2::ZERO;
-
-            let ctext = CString::new(text).expect("Cannot convert text");
-
-            unsafe { Font_GetSize2(font, &mut size, ctext.as_ptr()) };
-
             widget.minSize = Vec2::new(size.x as f32, size.y as f32);
         }
 
@@ -758,5 +783,111 @@ impl HmGui {
         assert!(self.styles.len() >= depth as usize);
 
         self.styles.truncate(self.styles.len() - depth as usize);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{input::Input, render::Font};
+
+    use super::HmGui;
+
+    #[test]
+    fn test_hmgui_rect() {
+        let input = Input::default();
+        let mut gui = HmGui::new(std::ptr::null_mut());
+
+        gui.begin_gui(640.0, 480.0, &input);
+        gui.rect(100.0, 50.0, 1.0, 0.0, 0.0, 0.0);
+        gui.end_gui(&input);
+
+        // gui.dump_widgets();
+    }
+
+    #[test]
+    #[ignore]
+    fn test_hmgui_main_menu() {
+        let input = Input::default();
+        let mut gui = HmGui::new(std::ptr::null_mut());
+
+        let res_x = 640.0;
+        let res_y = 480.0;
+
+        gui.begin_gui(res_x, res_y, &input);
+
+        // let scalefactor = (res_x / 22.0) / 72.0;
+        // let scalefactorMenuX = 352.8 / res_x;
+        // let scalefactorMenuY = 549.0 / res_y;
+
+        // let mut glyphsAscii = [std::ptr::null_mut(); 256];
+        // let mut font = Font {
+        //     _refCount: 0,
+        //     handle: std::ptr::null_mut(),
+        //     glyphs: std::ptr::null_mut(),
+        //     glyphsAscii,
+        // };
+
+        gui.begin_group_stack();
+        // gui.text_ex(&mut font, "LIMIT THEORY", 0.2, 0.2, 0.2, 1.0);
+        // gui.set_align(0.031, 0.042);
+        // gui.text_ex(&mut font, "LIMIT THEORY", 0.9, 0.9, 0.9, 1.0);
+        // gui.set_align(0.03, 0.04);
+        // gui.text_ex(&mut font, "REDUX", 0.2, 0.2, 0.2, 1.0);
+        // gui.set_align(0.181, 0.132);
+        // gui.text_ex(&mut font, "REDUX", 0.9, 0.9, 0.9, 1.0);
+        // gui.set_align(0.18, 0.13);
+
+        // gui.text_ex(&mut font, Config.gameVersion, 0.2, 0.2, 0.2, 1.0);
+        // gui.set_align(0.012, 0.971);
+        // gui.text_ex(&mut font, Config.gameVersion, 0.9, 0.9, 0.9, 1.0);
+        // gui.set_align(0.011, 0.970);
+
+        // gui.text_ex(&mut font,
+        //     "Resolution = " .. res_X .. " x " .. res_Y, 0.2, 0.2, 0.2, 1.0);
+        // gui.set_align(0.221, 0.971);
+        // gui.text_ex(&mut font,
+        //     "Resolution = " .. res_X .. " x " .. res_Y, 0.9, 0.9, 0.9, 1.0);
+        // gui.set_align(0.220, 0.970);
+
+        // let scalefactor = (res_x / 24.0) / 72.0;
+
+        gui.begin_group_y();
+        gui.push_text_color(0.9, 0.9, 0.9, 1.0);
+        // gui.push_font(&mut font, 36 * scalefactor));
+
+        if gui.button("NEW GAME") {
+            println!("NEW GAME");
+        }
+
+        if gui.button("LOAD GAME") {
+            println!("LOAD GAME");
+        }
+
+        if gui.button("SETTINGS") {
+            println!("SETTINGS");
+        }
+
+        if gui.button("CREDITS") {
+            println!("CREDITS");
+        }
+
+        if gui.button("BACKGROUND") {
+            println!("BACKGROUND");
+        }
+
+        if gui.button("EXIT GAME") {
+            println!("EXIT GAME");
+        }
+
+        // gui.pop_style(2);
+        gui.end_group();
+
+        gui.set_stretch(0.18, 0.5);
+        gui.set_align(0.0065, 0.8);
+        gui.end_group();
+
+        gui.end_gui(&input);
+
+        gui.dump_widgets();
     }
 }

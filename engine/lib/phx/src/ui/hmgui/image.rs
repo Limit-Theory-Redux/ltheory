@@ -15,4 +15,12 @@ impl HmGuiImage {
             UIRenderer_Image(self.image, pos.x, pos.y, size.x, size.y);
         }
     }
+
+    // For testing.
+    #[allow(dead_code)]
+    pub(crate) fn dump(&self, ident: usize) {
+        let ident_str = format!("{}", crate::ui::hmgui::IDENT.repeat(ident));
+
+        println!("{ident_str}- image: {:?}", self.image);
+    }
 }

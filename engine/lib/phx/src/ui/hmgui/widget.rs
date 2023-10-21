@@ -1,6 +1,8 @@
+use std::{fs::File, io::Write};
+
 use glam::Vec2;
 
-use super::{HmGui, HmGuiGroup, HmGuiImage, HmGuiRect, HmGuiText, Rf};
+use super::{HmGui, HmGuiGroup, HmGuiImage, HmGuiRect, HmGuiText, Rf, IDENT};
 
 #[derive(Clone, PartialEq)]
 pub enum WidgetItem {
@@ -8,6 +10,17 @@ pub enum WidgetItem {
     Text(HmGuiText),
     Rect(HmGuiRect),
     Image(HmGuiImage),
+}
+
+impl WidgetItem {
+    fn name(&self) -> &str {
+        match self {
+            WidgetItem::Group(_) => "Group",
+            WidgetItem::Text(_) => "Text",
+            WidgetItem::Rect(_) => "Rect",
+            WidgetItem::Image(_) => "Image",
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
@@ -74,14 +87,14 @@ impl HmGuiWidget {
 
                 group.draw(hmgui, self.pos, self.size, hmgui_focus == self.hash);
             }
-            WidgetItem::Text(item) => {
-                item.draw(self.pos.x, self.pos.y + self.minSize.y);
+            WidgetItem::Text(text) => {
+                text.draw(self.pos.x, self.pos.y + self.minSize.y);
             }
-            WidgetItem::Rect(item) => {
-                item.draw(self.pos, self.size);
+            WidgetItem::Rect(rect) => {
+                rect.draw(self.pos, self.size);
             }
-            WidgetItem::Image(item) => {
-                item.draw(self.pos, self.size);
+            WidgetItem::Image(image) => {
+                image.draw(self.pos, self.size);
             }
         }
     }
@@ -93,5 +106,38 @@ impl HmGuiWidget {
         self.size.y += self.stretch.y * (sy - self.minSize.y);
         self.pos.x += self.align.x * (sx - self.size.x);
         self.pos.y += self.align.y * (sy - self.size.y);
+    }
+
+    // For testing.
+    #[allow(dead_code)]
+    pub(crate) fn dump(&self, ident: usize, file: &mut File) {
+        writeln!(
+            file,
+            "{} {} {} {} {}",
+            self.item.name(),
+            self.pos.x,
+            self.pos.y,
+            self.size.x,
+            self.size.y
+        )
+        .expect("Cannot write line");
+
+        let ident_str = format!("{}", IDENT.repeat(ident));
+
+        println!("{ident_str}{}:", self.item.name());
+        println!("{ident_str}{IDENT}- pos:      {:?}", self.pos);
+        println!("{ident_str}{IDENT}- size:     {:?}", self.size);
+        println!("{ident_str}{IDENT}- min_size: {:?}", self.minSize);
+        println!("{ident_str}{IDENT}- align:    {:?}", self.align);
+        println!("{ident_str}{IDENT}- stretch:  {:?}", self.stretch);
+        println!("{ident_str}{IDENT}- hash:     0x{:X?}", self.hash);
+        println!("{ident_str}{IDENT}# item: {}", self.item.name());
+
+        match &self.item {
+            WidgetItem::Group(item) => item.dump(ident + 1, file),
+            WidgetItem::Text(item) => item.dump(ident + 1),
+            WidgetItem::Rect(item) => item.dump(ident + 1),
+            WidgetItem::Image(item) => item.dump(ident + 1),
+        }
     }
 }
