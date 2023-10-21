@@ -16,12 +16,22 @@ pub const CollisionMask_Null: CollisionMask = 0 << 0;
 pub const CollisionMask_All: CollisionMask = !CollisionGroup_Null;
 pub const CollisionMask_NoTriggers: CollisionMask = !CollisionGroup_Trigger;
 
-#[derive(Clone)]
 pub enum CollisionShapeType {
     Box { halfExtents: Vec3 },
     Sphere { radius: f32 },
-    Hull { mesh: Weak<Mesh> },
+    Hull { mesh: Box<Mesh> },
     Compound(),
+}
+
+impl CollisionShapeType {
+    pub fn clone(&mut self) -> CollisionShapeType {
+        match self {
+            CollisionShapeType::Box { halfExtents } => CollisionShapeType::Box { halfExtents: *halfExtents },
+            CollisionShapeType::Sphere { radius } => CollisionShapeType::Sphere { radius: *radius },
+            CollisionShapeType::Hull { mesh } => CollisionShapeType::Hull { mesh: unsafe { Mesh_Clone(&mut **mesh) } },
+            CollisionShapeType::Compound() => CollisionShapeType::Compound()
+        }
+    }
 }
 
 pub struct CollisionShape {
@@ -85,11 +95,11 @@ impl CollisionShape {
         )
     }
 
-    pub fn new_hull_from_mesh(mesh: Rc<Mesh>) -> CollisionShape {
+    pub fn new_hull_from_mesh(mut mesh: Box<Mesh>) -> CollisionShape {
         Self::new(
             1.0,
             CollisionShapeType::Hull {
-                mesh: Rc::downgrade(&mesh),
+                mesh,
             },
         )
     }
