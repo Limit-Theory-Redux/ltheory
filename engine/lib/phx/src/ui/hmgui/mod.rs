@@ -216,28 +216,6 @@ impl HmGui {
             }
         }
     }
-
-    // For testing.
-    #[allow(dead_code)]
-    pub(crate) fn dump_widgets(&self) {
-        let file_path = PathBuf::new().join("widgets.txt");
-
-        if file_path.exists() {
-            return;
-        }
-
-        let mut file = File::create(file_path).expect("Cannot create widgets.txt");
-
-        println!("Widgets:");
-
-        if let Some(group_opt) = &self.root {
-            let group = group_opt.as_ref();
-
-            group.dump(1, &mut file);
-        } else {
-            println!("{IDENT}No widgets");
-        }
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -784,6 +762,26 @@ impl HmGui {
 
         self.styles.truncate(self.styles.len() - depth as usize);
     }
+
+    pub fn dump_widgets(&self, file_name: &str) {
+        let file_path = PathBuf::new().join(file_name);
+
+        if file_path.exists() {
+            return;
+        }
+
+        let mut file = File::create(file_path).expect(&format!("Cannot create {file_name}"));
+
+        println!("Widgets:");
+
+        if let Some(group_opt) = &self.root {
+            let group = group_opt.as_ref();
+
+            group.dump(1, &mut file);
+        } else {
+            println!("{IDENT}No widgets");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -801,7 +799,7 @@ mod tests {
         gui.rect(100.0, 50.0, 1.0, 0.0, 0.0, 0.0);
         gui.end_gui(&input);
 
-        // gui.dump_widgets();
+        // gui.dump_widgets("test_rect_widgets.txt");
     }
 
     #[test]
@@ -888,6 +886,6 @@ mod tests {
 
         gui.end_gui(&input);
 
-        gui.dump_widgets();
+        // gui.dump_widgets("test_main_menu_widgets.txt");
     }
 }
