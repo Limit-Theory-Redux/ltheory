@@ -20,7 +20,7 @@ function Loader.defineType()
             Trigger          Trigger_CreateBox        (Vec3f const* halfExtents);
             void             Trigger_Attach           (Trigger*, RigidBody* rb, Vec3f const* offset);
             void             Trigger_Detach           (Trigger*, RigidBody* rb);
-            Box3             Trigger_GetBoundingBox   (Trigger const*);
+            void             Trigger_GetBoundingBox   (Trigger const*, Box3* out);
             int              Trigger_GetContentsCount (Trigger const*);
             RigidBody*       Trigger_GetContents      (Trigger const*, int i);
             void             Trigger_SetCollisionMask (Trigger*, int i);

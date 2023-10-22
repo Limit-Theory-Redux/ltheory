@@ -74,7 +74,7 @@ impl TypeInfo {
     pub fn as_ffi_string(&self) -> String {
         let ffi_ty = self.variant.as_ffi_string();
 
-        let res = if self.variant.is_custom() {
+        let res: String = if self.variant.is_custom() {
             RUST_TO_LUA_TYPE_MAP
                 .iter()
                 .find(|(r_ty, _)| *r_ty == ffi_ty)
@@ -89,7 +89,10 @@ impl TypeInfo {
             ""
         };
 
-        if self.is_reference && self.variant != TypeVariant::Str {
+        if self.is_boxed {
+            // Boxed values transfer ownership across the boundary, so are never const.
+            format!("{res}*{opt}")
+        } else if self.is_reference && self.variant != TypeVariant::Str {
             if self.is_mutable {
                 format!("{res}*{opt}")
             } else {

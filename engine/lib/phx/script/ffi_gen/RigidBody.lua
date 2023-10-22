@@ -17,12 +17,12 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void       RigidBody_Free                        (RigidBody*);
-            RigidBody  RigidBody_Create                      (CollisionShape shape);
-            RigidBody  RigidBody_CreateBox                   ();
-            RigidBody  RigidBody_CreateBoxFromMesh           (Mesh* mesh);
-            RigidBody  RigidBody_CreateSphere                ();
-            RigidBody  RigidBody_CreateSphereFromMesh        (Mesh* mesh);
-            RigidBody  RigidBody_CreateHullFromMesh          (Mesh mesh);
+            RigidBody* RigidBody_Create                      (CollisionShape shape);
+            RigidBody* RigidBody_CreateBox                   ();
+            RigidBody* RigidBody_CreateBoxFromMesh           (Mesh* mesh);
+            RigidBody* RigidBody_CreateSphere                ();
+            RigidBody* RigidBody_CreateSphereFromMesh        (Mesh* mesh);
+            RigidBody* RigidBody_CreateHullFromMesh          (Mesh* mesh);
             bool       RigidBody_IsInCompound                (RigidBody const*);
             bool       RigidBody_IsChild                     (RigidBody const*);
             bool       RigidBody_IsRootInCompound            (RigidBody const*);
@@ -53,12 +53,12 @@ function Loader.defineType()
             void       RigidBody_SetSleepThreshold           (RigidBody*, float linear, float angular);
             float      RigidBody_GetMass                     (RigidBody const*);
             void       RigidBody_SetMass                     (RigidBody*, float mass);
-            Vec3f      RigidBody_GetPos                      (RigidBody const*);
-            Vec3f      RigidBody_GetPosLocal                 (RigidBody const*);
+            void       RigidBody_GetPos                      (RigidBody const*, Vec3f* out);
+            void       RigidBody_GetPosLocal                 (RigidBody const*, Vec3f* out);
             void       RigidBody_SetPos                      (RigidBody*, Vec3f const* pos);
             void       RigidBody_SetPosLocal                 (RigidBody*, Vec3f const* pos);
-            Quat       RigidBody_GetRot                      (RigidBody const*);
-            Quat       RigidBody_GetRotLocal                 (RigidBody*);
+            void       RigidBody_GetRot                      (RigidBody const*, Quat* out);
+            void       RigidBody_GetRotLocal                 (RigidBody*, Quat* out);
             void       RigidBody_SetRot                      (RigidBody*, Quat* rot);
             void       RigidBody_SetRotLocal                 (RigidBody*, Quat const* rot);
             float      RigidBody_GetScale                    (RigidBody const*);

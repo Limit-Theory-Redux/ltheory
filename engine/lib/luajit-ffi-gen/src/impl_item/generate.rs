@@ -72,14 +72,13 @@ impl ImplInfo {
             param_tokens.push(quote! { out: &mut #return_ty_token })
         }
 
-        let ret_token = if method.bind_args.gen_out_param() {
+        let ret_token = if method.bind_args.gen_out_param() || method.ret.is_none() {
             quote! {}
-        } else if let Some(ty) = &method.ret {
-            let ty_token = wrap_ret_type(&self.name, &ty, false);
+        } else  {
+            let ret = method.ret.as_ref().unwrap();
+            let ty_token = wrap_ret_type(&self.name, &ret, false);
 
             quote! { -> #ty_token }
-        } else {
-            quote! {}
         };
 
         let func_ident_str = format!("{func_ident}");
