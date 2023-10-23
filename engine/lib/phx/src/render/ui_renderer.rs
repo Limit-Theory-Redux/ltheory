@@ -22,7 +22,7 @@ pub struct UIRendererLayer {
 #[repr(C)]
 pub struct UIRendererText {
     pub next: *mut UIRendererText,
-    pub font: *mut Font,
+    pub font: *const Font,
     pub text: String,
     pub pos: Vec2,
     pub color: Vec4,
@@ -192,7 +192,7 @@ unsafe extern "C" fn UIRenderer_DrawLayer(self_1: *const UIRendererLayer) {
     }
     let mut e_2: *const UIRendererText = (*self_1).textList;
     while !e_2.is_null() {
-        (&mut *(*e_2).font).draw(
+        (&*(*e_2).font).draw(
             &(*e_2).text,
             (*e_2).pos.x,
             (*e_2).pos.y,
@@ -301,7 +301,7 @@ pub unsafe extern "C" fn UIRenderer_Rect(
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Text(
-    font: &mut Font,
+    font: &Font,
     text: &str,
     x: f32,
     y: f32,

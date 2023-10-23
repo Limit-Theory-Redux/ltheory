@@ -18,11 +18,11 @@ function Loader.defineType()
         ffi.cdef [[
             void  Font_Free          (Font*);
             Font* Font_Load          (cstr name, uint32 size);
-            void  Font_Draw          (Font*, cstr text, float x, float y, float r, float g, float b, float a);
-            void  Font_DrawShaded    (Font*, cstr text, float x, float y);
+            void  Font_Draw          (Font const*, cstr text, float x, float y, float r, float g, float b, float a);
+            void  Font_DrawShaded    (Font const*, cstr text, float x, float y);
             int   Font_GetLineHeight (Font const*);
-            Vec4i Font_GetSize       (Font*, cstr text);
-            Vec2i Font_GetSize2      (Font*, cstr text);
+            Vec4i Font_GetSize       (Font const*, cstr text);
+            Vec2i Font_GetSize2      (Font const*, cstr text);
         ]]
     end
 

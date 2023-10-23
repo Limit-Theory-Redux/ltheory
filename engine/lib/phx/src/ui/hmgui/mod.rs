@@ -575,7 +575,7 @@ impl HmGui {
             text: text.into(),
             color: style.colorText,
         };
-        let size = item.font.as_mut().get_size2(text);
+        let size = item.font.get_size2(text);
 
         // NOTE: This scope is needed to prevent widget be mut borrowed twice here and in set_align below
         {
@@ -597,7 +597,7 @@ impl HmGui {
             text: text.into(),
             color: Vec4::new(r, g, b, a),
         };
-        let size = item.font.as_mut().get_size2(text);
+        let size = item.font.get_size2(text);
 
         // NOTE: This scope is needed to prevent widget be mut borrowed twice here and in set_align below
         {
@@ -616,7 +616,7 @@ impl HmGui {
             text: text.into(),
             color: Vec4::new(r, g, b, a),
         };
-        let size = item.font.as_mut().get_size2(text);
+        let size = item.font.get_size2(text);
 
         // NOTE: This scope is needed to prevent widget be mut borrowed twice here and in set_align below
         {

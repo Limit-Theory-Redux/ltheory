@@ -9,14 +9,14 @@ use super::{HmGuiWidget, Rf};
 
 #[derive(Clone)]
 pub struct HmGuiText {
-    pub font: Rf<Font>,
+    pub font: Font,
     pub text: String,
     pub color: Vec4,
 }
 
 impl PartialEq for HmGuiText {
     fn eq(&self, other: &Self) -> bool {
-        self.font.as_ref().name() == other.font.as_ref().name()
+        self.font.name() == other.font.name()
             && self.text == other.text
             && self.color == other.color
     }
@@ -31,7 +31,7 @@ impl HmGuiText {
 
         unsafe {
             UIRenderer_Text(
-                &mut self.font.as_mut(),
+                &self.font,
                 &self.text,
                 pos_x,
                 pos_y,
@@ -50,6 +50,6 @@ impl HmGuiText {
 
         println!("{ident_str}- text:  {}", self.text);
         println!("{ident_str}- color: {:?}", self.color);
-        println!("{ident_str}- font:  {:?}", self.font.as_ref().name());
+        println!("{ident_str}- font:  {:?}", self.font.name());
     }
 }

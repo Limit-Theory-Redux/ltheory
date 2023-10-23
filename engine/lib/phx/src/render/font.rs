@@ -188,7 +188,7 @@ impl Font {
         )
     }
 
-    pub fn draw(&mut self, text: &str, mut x: f32, mut y: f32, r: f32, g: f32, b: f32, a: f32) {
+    pub fn draw(&self, text: &str, mut x: f32, mut y: f32, r: f32, g: f32, b: f32, a: f32) {
         unsafe { Profiler_Begin(c_str!("Font_Draw")) };
 
         let mut glyph_last: i32 = 0;
@@ -247,7 +247,7 @@ impl Font {
         }
     }
 
-    pub fn draw_shaded(&mut self, text: &str, mut x: f32, mut y: f32) {
+    pub fn draw_shaded(&self, text: &str, mut x: f32, mut y: f32) {
         unsafe { Profiler_Begin(c_str!("Font_DrawShaded")) };
 
         let mut glyph_last: i32 = 0;
@@ -307,7 +307,7 @@ impl Font {
         unsafe { ((*(*font_data.handle).size).metrics.height >> 6) as _ }
     }
 
-    pub fn get_size(&mut self, text: &str) -> IVec4 {
+    pub fn get_size(&self, text: &str) -> IVec4 {
         unsafe { Profiler_Begin(c_str!("Font_GetSize")) };
 
         let mut x: i32 = 0;
@@ -363,7 +363,7 @@ impl Font {
      *           pos.y - (size.y + bound.y) / 2
      */
 
-    pub fn get_size2(&mut self, text: &str) -> IVec2 {
+    pub fn get_size2(&self, text: &str) -> IVec2 {
         unsafe { Profiler_Begin(c_str!("Font_GetSize2")) };
 
         let mut res = IVec2::ZERO;
