@@ -30,3 +30,9 @@ impl<T> Rf<T> {
         self.0.borrow_mut()
     }
 }
+
+impl<T> From<T> for Rf<T> {
+    fn from(value: T) -> Self {
+        Self::new(value)
+    }
+}

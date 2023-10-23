@@ -1,0 +1,65 @@
+-- Font ------------------------------------------------------------------------
+local Loader = {}
+
+function Loader.declareType()
+    ffi.cdef [[
+        typedef struct Font {} Font;
+    ]]
+
+    return 1, 'Font'
+end
+
+function Loader.defineType()
+    local ffi = require('ffi')
+    local libphx = require('libphx').lib
+    local Font
+
+    do -- C Definitions
+        ffi.cdef [[
+            void  Font_Free          (Font*);
+            Font* Font_Load          (cstr name, uint32 size);
+            void  Font_Draw          (Font*, cstr text, float x, float y, float r, float g, float b, float a);
+            void  Font_DrawShaded    (Font*, cstr text, float x, float y);
+            int   Font_GetLineHeight (Font const*);
+            Vec4i Font_GetSize       (Font*, cstr text);
+            Vec2i Font_GetSize2      (Font*, cstr text);
+        ]]
+    end
+
+    do -- Global Symbol Table
+        Font = {
+            Free          = libphx.Font_Free,
+            Load          = libphx.Font_Load,
+            Draw          = libphx.Font_Draw,
+            DrawShaded    = libphx.Font_DrawShaded,
+            GetLineHeight = libphx.Font_GetLineHeight,
+            GetSize       = libphx.Font_GetSize,
+            GetSize2      = libphx.Font_GetSize2,
+        }
+
+        if onDef_Font then onDef_Font(Font, mt) end
+        Font = setmetatable(Font, mt)
+    end
+
+    do -- Metatype for class instances
+        local t  = ffi.typeof('Font')
+        local mt = {
+            __index = {
+                managed       = function(self) return ffi.gc(self, libphx.Font_Free) end,
+                free          = libphx.Font_Free,
+                draw          = libphx.Font_Draw,
+                drawShaded    = libphx.Font_DrawShaded,
+                getLineHeight = libphx.Font_GetLineHeight,
+                getSize       = libphx.Font_GetSize,
+                getSize2      = libphx.Font_GetSize2,
+            },
+        }
+
+        if onDef_Font_t then onDef_Font_t(t, mt) end
+        Font_t = ffi.metatype(t, mt)
+    end
+
+    return Font
+end
+
+return Loader

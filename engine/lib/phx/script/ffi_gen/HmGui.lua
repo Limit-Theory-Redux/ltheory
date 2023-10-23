@@ -34,8 +34,8 @@ function Loader.defineType()
             void  HmGui_Rect             (HmGui*, float sx, float sy, float r, float g, float b, float a);
             void  HmGui_Text             (HmGui*, cstr text);
             void  HmGui_TextColored      (HmGui*, cstr text, float r, float g, float b, float a);
-            void  HmGui_TextEx           (HmGui*, Font* font, cstr text, float r, float g, float b, float a);
-            void  HmGui_SetAlign         (HmGui*, float ax, float ay);
+            void  HmGui_TextEx           (HmGui*, Font const* font, cstr text, float r, float g, float b, float a);
+            void  HmGui_SetAlign         (HmGui const*, float ax, float ay);
             void  HmGui_SetPadding       (HmGui const*, float px, float py);
             void  HmGui_SetPaddingEx     (HmGui const*, float left, float top, float right, float bottom);
             void  HmGui_SetPaddingLeft   (HmGui const*, float padding);
@@ -46,7 +46,7 @@ function Loader.defineType()
             void  HmGui_SetStretch       (HmGui const*, float x, float y);
             bool  HmGui_GroupHasFocus    (HmGui const*, FocusType ty);
             void  HmGui_PushStyle        (HmGui*);
-            void  HmGui_PushFont         (HmGui*, Font* font);
+            void  HmGui_PushFont         (HmGui*, Font const* font);
             void  HmGui_PushTextColor    (HmGui*, float r, float g, float b, float a);
             void  HmGui_PopStyle         (HmGui*, int depth);
             void  HmGui_DumpWidgets      (HmGui const*, cstr fileName);

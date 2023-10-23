@@ -73,7 +73,7 @@ impl Engine {
             cache,
             winit_windows: WinitWindows::new(gl_version_major, gl_version_minor),
             winit_window_id: None,
-            hmgui: HmGui::new(unsafe { Font_Load(c_str!("Rajdhani"), 14) }),
+            hmgui: HmGui::new(Font::load("Rajdhani", 14)),
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,

@@ -3,7 +3,7 @@ use crate::common::*;
 use crate::math::*;
 use crate::system::*;
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct UIRendererLayer {
     pub parent: *mut UIRendererLayer,
@@ -18,17 +18,17 @@ pub struct UIRendererLayer {
     pub clip: bool,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct UIRendererText {
     pub next: *mut UIRendererText,
     pub font: *mut Font,
-    pub text: *const libc::c_char,
+    pub text: String,
     pub pos: Vec2,
     pub color: Vec4,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct UIRendererRect {
     pub next: *mut UIRendererRect,
@@ -38,7 +38,7 @@ pub struct UIRendererRect {
     pub outline: bool,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct UIRendererPanel {
     pub next: *mut UIRendererPanel,
@@ -49,7 +49,7 @@ pub struct UIRendererPanel {
     pub innerAlpha: f32,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct UIRendererImage {
     pub next: *mut UIRendererImage,
@@ -58,7 +58,7 @@ pub struct UIRendererImage {
     pub size: Vec2,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct UIRenderer {
     pub root: *mut UIRendererLayer,
@@ -192,9 +192,8 @@ unsafe extern "C" fn UIRenderer_DrawLayer(self_1: *const UIRendererLayer) {
     }
     let mut e_2: *const UIRendererText = (*self_1).textList;
     while !e_2.is_null() {
-        Font_Draw(
-            &mut *(*e_2).font,
-            (*e_2).text,
+        (&mut *(*e_2).font).draw(
+            &(*e_2).text,
             (*e_2).pos.x,
             (*e_2).pos.y,
             (*e_2).color.x,
@@ -302,8 +301,8 @@ pub unsafe extern "C" fn UIRenderer_Rect(
 
 #[no_mangle]
 pub unsafe extern "C" fn UIRenderer_Text(
-    font: *mut Font,
-    text: *const libc::c_char,
+    font: &mut Font,
+    text: &str,
     x: f32,
     y: f32,
     r: f32,
@@ -312,9 +311,10 @@ pub unsafe extern "C" fn UIRenderer_Text(
     a: f32,
 ) {
     let e: *mut UIRendererText = MemPool_Alloc(&mut *this.textPool) as *mut UIRendererText;
+
     (*e).next = (*this.layer).textList;
-    (*e).font = font;
-    (*e).text = text;
+    (*e).font = font as _;
+    (*e).text = text.into();
     (*e).pos = Vec2::new(x, y);
     (*e).color = Vec4::new(r, g, b, a);
     (*this.layer).textList = e;

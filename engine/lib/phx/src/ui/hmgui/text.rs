@@ -7,11 +7,19 @@ use crate::render::{Font, UIRenderer_Text};
 
 use super::{HmGuiWidget, Rf};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct HmGuiText {
-    pub font: *mut Font,
+    pub font: Rf<Font>,
     pub text: String,
     pub color: Vec4,
+}
+
+impl PartialEq for HmGuiText {
+    fn eq(&self, other: &Self) -> bool {
+        self.font.as_ref().name() == other.font.as_ref().name()
+            && self.text == other.text
+            && self.color == other.color
+    }
 }
 
 impl HmGuiText {
@@ -21,12 +29,10 @@ impl HmGuiText {
         //   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
         //#endif
 
-        let text = CString::new(self.text.as_str()).expect("Cannot convert text");
-
         unsafe {
             UIRenderer_Text(
-                self.font,
-                text.as_ptr(),
+                &mut self.font.as_mut(),
+                &self.text,
                 pos_x,
                 pos_y,
                 self.color.x,
@@ -44,6 +50,6 @@ impl HmGuiText {
 
         println!("{ident_str}- text:  {}", self.text);
         println!("{ident_str}- color: {:?}", self.color);
-        println!("{ident_str}- font:  {:?}", self.font);
+        println!("{ident_str}- font:  {:?}", self.font.as_ref().name());
     }
 }

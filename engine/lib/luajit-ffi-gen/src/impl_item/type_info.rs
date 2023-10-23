@@ -1,5 +1,6 @@
-const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 5] = [
+const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
     ("IVec2", "Vec2i"),
+    ("IVec4", "Vec4i"),
     ("UVec2", "Vec2u"),
     ("DVec2", "Vec2d"),
     ("Vec2", "Vec2f"),
