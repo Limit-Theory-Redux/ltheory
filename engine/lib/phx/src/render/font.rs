@@ -7,7 +7,6 @@ use crate::common::*;
 use crate::math::*;
 use crate::system::{Profiler_Begin, Profiler_End, ResourceType_Font, Resource_GetPath};
 use crate::ui::hmgui::Rf;
-use crate::*;
 
 use freetype_sys::*;
 use internal::*;
@@ -16,8 +15,8 @@ use internal::*;
 /* TODO : Atlas instead of individual textures. */
 
 /* NOTE : Gamma of 1.8 recommended by FreeType */
-const kGamma: f32 = 1.8;
-const kRcpGamma: f32 = 1.0 / kGamma;
+const K_GAMMA: f32 = 1.8;
+const K_RCP_GAMMA: f32 = 1.0 / K_GAMMA;
 
 #[derive(Clone, Default)]
 pub struct Font(Rf<FontData>);
@@ -52,7 +51,7 @@ pub struct Glyph {
     pub advance: i32,
 }
 
-static mut ft: FT_Library = std::ptr::null_mut();
+static mut FT: FT_Library = std::ptr::null_mut();
 
 impl Font {
     pub fn name(&self) -> String {
@@ -110,7 +109,7 @@ impl Font {
             for _dy in 0..(*bitmap).rows {
                 for dx in 0..(*bitmap).width {
                     let value = unsafe { (*p_bitmap.offset(dx as isize) as f32 / 255.0) as f64 };
-                    let a = value.powf(kRcpGamma as f64) as f32;
+                    let a = value.powf(K_RCP_GAMMA as f64) as f32;
 
                     buffer.push(Vec4::new(1.0, 1.0, 1.0, a));
                 }
@@ -155,15 +154,15 @@ impl Font {
 impl Font {
     pub fn load(name: &str, size: u32) -> Self {
         let handle = unsafe {
-            if ft.is_null() {
-                FT_Init_FreeType(&mut ft);
+            if FT.is_null() {
+                FT_Init_FreeType(&mut FT);
             }
 
             let name_cstr = CString::new(name).expect("Cannot convert string to C string");
             let path = Resource_GetPath(ResourceType_Font, name_cstr.as_ptr());
             let mut handle = std::ptr::null_mut();
 
-            if FT_New_Face(ft, path, 0 as FT_Long, &mut handle) != 0 {
+            if FT_New_Face(FT, path, 0 as FT_Long, &mut handle) != 0 {
                 panic!(
                     "Font_Load: Failed to load font <{name}> at <{:?}>",
                     CStr::from_ptr(path),
@@ -364,7 +363,7 @@ impl Font {
         unsafe { Profiler_Begin(c_str!("Font_GetSize2")) };
 
         let mut res = IVec2::ZERO;
-        let mut glyphLast: i32 = 0;
+        let mut glyph_last: i32 = 0;
 
         for c in text.chars() {
             let code_point = c as u32;
@@ -375,16 +374,16 @@ impl Font {
             let glyph = font_data.glyphs.get_mut(&code_point);
 
             if let Some(glyph) = glyph {
-                if glyphLast != 0 {
-                    res.x += self.get_kerning(face, glyphLast, glyph.index);
+                if glyph_last != 0 {
+                    res.x += self.get_kerning(face, glyph_last, glyph.index);
                 }
 
                 res.x += glyph.advance;
                 res.y = i32::max(res.y, -glyph.y0 + 1);
 
-                glyphLast = glyph.index;
+                glyph_last = glyph.index;
             } else {
-                glyphLast = 0;
+                glyph_last = 0;
             }
         }
 

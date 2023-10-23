@@ -1,7 +1,4 @@
-use std::borrow::{Borrow, BorrowMut};
-
 use glam::Vec2;
-use internal::*;
 
 use crate::render::{
     UIRenderer_BeginLayer, UIRenderer_EndLayer, UIRenderer_Panel, UIRenderer_Rect,
@@ -15,22 +12,22 @@ pub struct HmGuiGroup {
 
     pub layout: LayoutType,
     pub children_hash: u32,
-    pub focusStyle: FocusStyle,
-    pub paddingLower: Vec2,
-    pub paddingUpper: Vec2,
+    pub focus_style: FocusStyle,
+    pub padding_lower: Vec2,
+    pub padding_upper: Vec2,
     pub offset: Vec2,
-    pub maxSize: Vec2,
-    pub totalStretch: Vec2,
+    pub max_size: Vec2,
+    pub total_stretch: Vec2,
     pub spacing: f32,
-    pub frameOpacity: f32,
+    pub frame_opacity: f32,
     pub clip: bool,
     pub expand: bool,
     pub focusable: [bool; 2],
-    pub storeSize: bool,
+    pub store_size: bool,
 }
 
 impl HmGuiGroup {
-    pub fn compute_size(&self, hmgui: &mut HmGui, minSize: &mut Vec2) {
+    pub fn compute_size(&self, hmgui: &mut HmGui, min_size: &mut Vec2) {
         let mut head_opt = self.children.first().cloned();
         while let Some(head_rf) = head_opt {
             let mut head = head_rf.as_mut();
@@ -48,23 +45,23 @@ impl HmGuiGroup {
             match self.layout {
                 LayoutType::None => {}
                 LayoutType::Stack => {
-                    minSize.x = f32::max(minSize.x, head.minSize.x);
-                    minSize.y = f32::max(minSize.y, head.minSize.y);
+                    min_size.x = f32::max(min_size.x, head.min_size.x);
+                    min_size.y = f32::max(min_size.y, head.min_size.y);
                 }
                 LayoutType::Vertical => {
-                    minSize.x = f32::max(minSize.x, head.minSize.x);
-                    minSize.y += head.minSize.y;
+                    min_size.x = f32::max(min_size.x, head.min_size.x);
+                    min_size.y += head.min_size.y;
 
                     if not_head {
-                        minSize.y += self.spacing;
+                        min_size.y += self.spacing;
                     }
                 }
                 LayoutType::Horizontal => {
-                    minSize.x += head.minSize.x;
-                    minSize.y = f32::max(minSize.y, head.minSize.y);
+                    min_size.x += head.min_size.x;
+                    min_size.y = f32::max(min_size.y, head.min_size.y);
 
                     if not_head {
-                        minSize.x += self.spacing;
+                        min_size.x += self.spacing;
                     }
                 }
             }
@@ -73,21 +70,21 @@ impl HmGuiGroup {
             not_head = true;
         }
 
-        minSize.x += self.paddingLower.x + self.paddingUpper.x;
-        minSize.y += self.paddingLower.y + self.paddingUpper.y;
+        min_size.x += self.padding_lower.x + self.padding_upper.x;
+        min_size.y += self.padding_lower.y + self.padding_upper.y;
 
-        minSize.x = f32::min(minSize.x, self.maxSize.x);
-        minSize.y = f32::min(minSize.y, self.maxSize.y);
+        min_size.x = f32::min(min_size.x, self.max_size.x);
+        min_size.y = f32::min(min_size.y, self.max_size.y);
     }
 
     pub fn layout(&self, hmgui: &mut HmGui, mut pos: Vec2, mut size: Vec2, extra: Vec2) {
         let mut extra_dim: f32 = 0.0f32;
-        let mut totalStretch: f32 = 0.0f32;
+        let mut total_stretch: f32 = 0.0f32;
 
-        pos.x += self.paddingLower.x + self.offset.x;
-        pos.y += self.paddingLower.y + self.offset.y;
-        size.x -= self.paddingLower.x + self.paddingUpper.x;
-        size.y -= self.paddingLower.y + self.paddingUpper.y;
+        pos.x += self.padding_lower.x + self.offset.x;
+        pos.y += self.padding_lower.y + self.offset.y;
+        size.x -= self.padding_lower.x + self.padding_upper.x;
+        size.y -= self.padding_lower.y + self.padding_upper.y;
 
         if self.expand {
             if self.layout == LayoutType::Vertical {
@@ -97,7 +94,7 @@ impl HmGuiGroup {
                 while let Some(head_rf) = head_opt {
                     let head = head_rf.as_ref();
 
-                    totalStretch += head.stretch.y;
+                    total_stretch += head.stretch.y;
                     head_opt = head.next.clone();
                 }
             } else if self.layout == LayoutType::Horizontal {
@@ -107,13 +104,13 @@ impl HmGuiGroup {
                 while let Some(head_rf) = head_opt {
                     let head = head_rf.as_ref();
 
-                    totalStretch += head.stretch.x;
+                    total_stretch += head.stretch.x;
                     head_opt = head.next.clone();
                 }
             }
 
-            if totalStretch > 0.0f32 {
-                extra_dim /= totalStretch;
+            if total_stretch > 0.0f32 {
+                extra_dim /= total_stretch;
             }
         }
 
@@ -130,7 +127,7 @@ impl HmGuiGroup {
                     head.layout_item(pos, size.x, size.y);
                 }
                 LayoutType::Vertical => {
-                    let mut s = head.minSize.y;
+                    let mut s = head.min_size.y;
                     if extra_dim > 0.0f32 {
                         s += head.stretch.y * extra_dim;
                     }
@@ -138,7 +135,7 @@ impl HmGuiGroup {
                     pos.y += head.size.y + self.spacing;
                 }
                 LayoutType::Horizontal => {
-                    let mut s = head.minSize.x;
+                    let mut s = head.min_size.x;
                     if extra_dim > 0.0f32 {
                         s += head.stretch.x * extra_dim;
                     }
@@ -172,7 +169,7 @@ impl HmGuiGroup {
 
         if self.focusable[FocusType::Mouse as usize] {
             unsafe {
-                match self.focusStyle {
+                match self.focus_style {
                     FocusStyle::None => {
                         UIRenderer_Panel(
                             pos.x,
@@ -184,7 +181,7 @@ impl HmGuiGroup {
                             0.13f32,
                             1.0f32,
                             8.0f32,
-                            self.frameOpacity,
+                            self.frame_opacity,
                         );
                     }
                     FocusStyle::Fill => {
@@ -204,7 +201,7 @@ impl HmGuiGroup {
                                 0.15f32,
                                 0.8f32,
                                 0.0f32,
-                                self.frameOpacity,
+                                self.frame_opacity,
                             );
                         }
                     }
@@ -227,7 +224,7 @@ impl HmGuiGroup {
                             if focus as i32 != 0 {
                                 0.5f32
                             } else {
-                                self.frameOpacity
+                                self.frame_opacity
                             },
                             false,
                         );
@@ -246,17 +243,17 @@ impl HmGuiGroup {
 
         println!("{ident_str}- layout:        {:?}", self.layout);
         println!("{ident_str}- children_hash: {}", self.children_hash);
-        println!("{ident_str}- focus_style:   {:?}", self.focusStyle);
-        println!("{ident_str}- padding_lower: {:?}", self.paddingLower);
-        println!("{ident_str}- padding_upper: {:?}", self.paddingUpper);
-        println!("{ident_str}- max_size:      {:?}", self.maxSize);
-        println!("{ident_str}- total_stretch: {:?}", self.totalStretch);
+        println!("{ident_str}- focus_style:   {:?}", self.focus_style);
+        println!("{ident_str}- padding_lower: {:?}", self.padding_lower);
+        println!("{ident_str}- padding_upper: {:?}", self.padding_upper);
+        println!("{ident_str}- max_size:      {:?}", self.max_size);
+        println!("{ident_str}- total_stretch: {:?}", self.total_stretch);
         println!("{ident_str}- spacing:       {}", self.spacing);
-        println!("{ident_str}- frame_opacity: {}", self.frameOpacity);
+        println!("{ident_str}- frame_opacity: {}", self.frame_opacity);
         println!("{ident_str}- clip:          {}", self.clip);
         println!("{ident_str}- expand:        {:?}", self.expand);
         println!("{ident_str}- focusable:     {:?}", self.focusable);
-        println!("{ident_str}- store_size:    {:?}", self.storeSize);
+        println!("{ident_str}- store_size:    {:?}", self.store_size);
         println!("{ident_str}- content:");
 
         for head_rf in &self.children {

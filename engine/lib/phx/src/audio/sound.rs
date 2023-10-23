@@ -6,7 +6,6 @@ use internal::ConvertIntoString;
 
 use crate::math::*;
 
-use kira::modulator::lfo::LfoHandle;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle, StaticSoundSettings};
 use kira::sound::PlaybackState;
 use kira::sound::{EndPosition, PlaybackPosition, Region};

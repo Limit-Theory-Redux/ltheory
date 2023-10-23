@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use glutin::config::ConfigTemplateBuilder;
 use glutin::context::{ContextApi, ContextAttributesBuilder, GlProfile, Version};
 use glutin::display::GetGlDisplay;

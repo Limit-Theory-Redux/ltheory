@@ -6,7 +6,7 @@ use crate::render::Font;
 pub struct HmGuiStyle {
     pub font: Font,
     pub spacing: f32,
-    pub colorPrimary: Vec4,
-    pub colorFrame: Vec4,
-    pub colorText: Vec4,
+    pub color_primary: Vec4,
+    pub color_frame: Vec4,
+    pub color_text: Vec4,
 }

@@ -1,11 +1,6 @@
-use std::ffi::CString;
-
-use glam::{Vec2, Vec4};
-use internal::*;
+use glam::Vec4;
 
 use crate::render::{Font, UIRenderer_Text};
-
-use super::{HmGuiWidget, Rf};
 
 #[derive(Clone)]
 pub struct HmGuiText {

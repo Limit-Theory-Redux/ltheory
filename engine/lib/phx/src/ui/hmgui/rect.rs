@@ -2,8 +2,6 @@ use glam::{Vec2, Vec4};
 
 use crate::render::UIRenderer_Rect;
 
-use super::{HmGui, HmGuiWidget, Rf};
-
 #[derive(Clone, PartialEq)]
 pub struct HmGuiRect {
     pub color: Vec4,

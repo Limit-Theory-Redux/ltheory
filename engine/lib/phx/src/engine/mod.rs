@@ -8,8 +8,6 @@ pub(crate) use frame_state::*;
 use glam::*;
 use mlua::{Function, Lua};
 use tracing::*;
-use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, EnvFilter};
 use winit::dpi::*;
 use winit::event::Event;
 use winit::event::{self, *};
@@ -41,13 +39,13 @@ pub struct Engine {
 impl Engine {
     fn new(gl_version_major: u8, gl_version_minor: u8) -> Self {
         unsafe {
-            static mut firstTime: bool = true;
+            static mut FIRST_TIME: bool = true;
             Signal_Init();
 
             info!("Engine_Init: Requesting GL {gl_version_major}.{gl_version_minor}");
 
-            if firstTime {
-                firstTime = false;
+            if FIRST_TIME {
+                FIRST_TIME = false;
 
                 if !Directory_Create(c_str!("log")) {
                     panic!("Engine_Init: Failed to create log directory.");

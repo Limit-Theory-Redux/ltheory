@@ -1,5 +1,3 @@
-use internal::ConvertIntoString;
-
 /// Presentation mode for a [`Window`].
 ///
 /// The presentation mode specifies when a frame is presented to the window. The [`Fifo`]

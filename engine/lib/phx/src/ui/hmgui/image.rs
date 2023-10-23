@@ -2,8 +2,6 @@ use glam::Vec2;
 
 use crate::render::{Tex2D, UIRenderer_Image};
 
-use super::{HmGui, HmGuiWidget, Rf};
-
 #[derive(Clone, PartialEq)]
 pub struct HmGuiImage {
     pub image: *mut Tex2D,

@@ -42,7 +42,7 @@ pub struct HmGuiWidget {
     pub item: WidgetItem,
     pub pos: Vec2,
     pub size: Vec2,
-    pub minSize: Vec2,
+    pub min_size: Vec2,
     pub align: Vec2,
     pub stretch: Vec2,
 }
@@ -51,14 +51,14 @@ impl HmGuiWidget {
     pub fn compute_size(&mut self, hmgui: &mut HmGui) {
         match &self.item {
             WidgetItem::Group(group) => {
-                self.minSize = Vec2::ZERO;
+                self.min_size = Vec2::ZERO;
 
-                group.compute_size(hmgui, &mut self.minSize);
+                group.compute_size(hmgui, &mut self.min_size);
 
-                if group.storeSize {
+                if group.store_size {
                     let data = hmgui.get_data(self.hash);
 
-                    data.minSize = self.minSize;
+                    data.min_size = self.min_size;
                 }
             }
             _ => {}
@@ -68,9 +68,9 @@ impl HmGuiWidget {
     pub fn layout(&self, hmgui: &mut HmGui) {
         match &self.item {
             WidgetItem::Group(group) => {
-                group.layout(hmgui, self.pos, self.size, self.size - self.minSize);
+                group.layout(hmgui, self.pos, self.size, self.size - self.min_size);
 
-                if group.storeSize {
+                if group.store_size {
                     let data = hmgui.get_data(self.hash);
 
                     data.size = self.size;
@@ -88,7 +88,7 @@ impl HmGuiWidget {
                 group.draw(hmgui, self.pos, self.size, hmgui_focus == self.hash);
             }
             WidgetItem::Text(text) => {
-                text.draw(self.pos.x, self.pos.y + self.minSize.y);
+                text.draw(self.pos.x, self.pos.y + self.min_size.y);
             }
             WidgetItem::Rect(rect) => {
                 rect.draw(self.pos, self.size);
@@ -101,9 +101,9 @@ impl HmGuiWidget {
 
     pub fn layout_item(&mut self, pos: Vec2, sx: f32, sy: f32) {
         self.pos = pos;
-        self.size = self.minSize;
-        self.size.x += self.stretch.x * (sx - self.minSize.x);
-        self.size.y += self.stretch.y * (sy - self.minSize.y);
+        self.size = self.min_size;
+        self.size.x += self.stretch.x * (sx - self.min_size.x);
+        self.size.y += self.stretch.y * (sy - self.min_size.y);
         self.pos.x += self.align.x * (sx - self.size.x);
         self.pos.y += self.align.y * (sy - self.size.y);
     }
@@ -127,7 +127,7 @@ impl HmGuiWidget {
         println!("{ident_str}{}:", self.item.name());
         println!("{ident_str}{IDENT}- pos:      {:?}", self.pos);
         println!("{ident_str}{IDENT}- size:     {:?}", self.size);
-        println!("{ident_str}{IDENT}- min_size: {:?}", self.minSize);
+        println!("{ident_str}{IDENT}- min_size: {:?}", self.min_size);
         println!("{ident_str}{IDENT}- align:    {:?}", self.align);
         println!("{ident_str}{IDENT}- stretch:  {:?}", self.stretch);
         println!("{ident_str}{IDENT}- hash:     0x{:X?}", self.hash);

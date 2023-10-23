@@ -8,10 +8,7 @@ mod style;
 mod text;
 mod widget;
 
-use std::borrow::{Borrow, BorrowMut};
-use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
-use std::ffi::CString;
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -27,13 +24,11 @@ pub(crate) use self::style::*;
 pub(crate) use self::text::*;
 pub(crate) use self::widget::*;
 
-use super::*;
 use crate::common::*;
 use crate::input::*;
 use crate::math::*;
 use crate::render::*;
 use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Profiler_End};
-use crate::*;
 
 pub(crate) const IDENT: &str = "  ";
 
@@ -48,7 +43,7 @@ pub struct HmGui {
     pub styles: Vec<HmGuiStyle>,
     pub data: HashMap<u64, HmGuiData>,
     pub focus: [u64; 2],
-    pub focusPos: Vec2,
+    pub focus_pos: Vec2,
     pub activate: bool,
 }
 
@@ -57,9 +52,9 @@ impl HmGui {
         let style = HmGuiStyle {
             font: default_font.into(),
             spacing: 6.0f32,
-            colorPrimary: Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32),
-            colorFrame: Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32),
-            colorText: Vec4::ONE,
+            color_primary: Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32),
+            color_frame: Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32),
+            color_text: Vec4::ONE,
         };
 
         Self {
@@ -69,7 +64,7 @@ impl HmGui {
             styles: vec![style],
             data: HashMap::with_capacity(128),
             focus: [0; 2],
-            focusPos: Vec2::ZERO,
+            focus_pos: Vec2::ZERO,
             activate: false,
         }
     }
@@ -98,7 +93,7 @@ impl HmGui {
             item,
             pos: Default::default(),
             size: Default::default(),
-            minSize: Default::default(),
+            min_size: Default::default(),
             align: Default::default(),
             stretch: Default::default(),
         };
@@ -150,7 +145,7 @@ impl HmGui {
         let group = HmGuiGroup {
             layout,
             spacing,
-            maxSize: Vec2::new(1e30f32, 1e30f32),
+            max_size: Vec2::new(1e30f32, 1e30f32),
             ..Default::default()
         };
 
@@ -176,7 +171,7 @@ impl HmGui {
     pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
         self.data.entry(widget_hash).or_insert(HmGuiData {
             offset: Vec2::ZERO,
-            minSize: Vec2::ZERO,
+            min_size: Vec2::ZERO,
             size: Vec2::ZERO,
         })
     }
@@ -192,7 +187,7 @@ impl HmGui {
             return;
         };
 
-        if group.clip && self.is_clipped(widget.pos, widget.size, self.focusPos) {
+        if group.clip && self.is_clipped(widget.pos, widget.size, self.focus_pos) {
             return;
         }
 
@@ -207,10 +202,10 @@ impl HmGui {
         for i in 0..self.focus.len() {
             if self.focus[i] == 0
                 && group.focusable[i] as i32 != 0
-                && widget.pos.x <= self.focusPos.x
-                && widget.pos.y <= self.focusPos.y
-                && self.focusPos.x <= widget.pos.x + widget.size.x
-                && self.focusPos.y <= widget.pos.y + widget.size.y
+                && widget.pos.x <= self.focus_pos.x
+                && widget.pos.y <= self.focus_pos.y
+                && self.focus_pos.x <= widget.pos.x + widget.size.x
+                && self.focus_pos.y <= widget.pos.y + widget.size.y
             {
                 self.focus[i] = widget.hash;
             }
@@ -261,7 +256,7 @@ impl HmGui {
 
                 let mouse = input.mouse();
 
-                self.focusPos = mouse.position();
+                self.focus_pos = mouse.position();
 
                 root_rf.clone()
             };
@@ -321,7 +316,7 @@ impl HmGui {
         }
     }
 
-    pub fn begin_scroll(&mut self, maxSize: f32) {
+    pub fn begin_scroll(&mut self, max_size: f32) {
         if let Some(widget_rf) = self.group.clone() {
             let mut widget = widget_rf.as_mut();
             let widget_hash = widget.hash;
@@ -339,8 +334,8 @@ impl HmGui {
             self.set_stretch(1.0f32, 1.0f32);
 
             group.expand = false;
-            group.storeSize = true;
-            group.maxSize.y = maxSize;
+            group.store_size = true;
+            group.max_size.y = max_size;
 
             let data = self.get_data(widget_hash);
 
@@ -363,8 +358,8 @@ impl HmGui {
                 data.offset.y -= 10.0f32 * scroll_y as f32;
             }
 
-            let maxScroll = f32::max(0.0f32, data.minSize.y - data.size.y);
-            data.offset.y = f32::clamp(data.offset.y, 0.0f32, maxScroll);
+            let max_scroll = f32::max(0.0f32, data.min_size.y - data.size.y);
+            data.offset.y = f32::clamp(data.offset.y, 0.0f32, max_scroll);
 
             self.end_group();
 
@@ -372,24 +367,24 @@ impl HmGui {
             self.set_stretch(0.0f32, 1.0f32);
             self.set_spacing(0.0f32);
 
-            if maxScroll > 0.0f32 {
+            if max_scroll > 0.0f32 {
                 let data = self.get_data(widget.hash);
-                let handleSize: f32 = data.size.y * (data.size.y / data.minSize.y);
-                let handlePos: f32 = Lerp(
+                let handle_size: f32 = data.size.y * (data.size.y / data.min_size.y);
+                let handle_pos: f32 = Lerp(
                     0.0f64,
-                    (data.size.y - handleSize) as f64,
-                    (data.offset.y / maxScroll) as f64,
+                    (data.size.y - handle_size) as f64,
+                    (data.offset.y / max_scroll) as f64,
                 ) as f32;
-                let colorFrame = self.styles.last().expect("Style was not set").colorFrame;
+                let color_frame = self.styles.last().expect("Style was not set").color_frame;
 
-                self.rect(4.0f32, handlePos, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
+                self.rect(4.0f32, handle_pos, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
                 self.rect(
                     4.0f32,
-                    handleSize,
-                    colorFrame.x,
-                    colorFrame.y,
-                    colorFrame.z,
-                    colorFrame.w,
+                    handle_size,
+                    color_frame.x,
+                    color_frame.y,
+                    color_frame.z,
+                    color_frame.w,
                 );
             } else {
                 self.rect(4.0f32, 16.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
@@ -425,8 +420,8 @@ impl HmGui {
                 let WidgetItem::Group(group) = &mut widget.item else {
                     unreachable!()
                 };
-                group.focusStyle = FocusStyle::None;
-                group.frameOpacity = 0.95f32;
+                group.focus_style = FocusStyle::None;
+                group.frame_opacity = 0.95f32;
                 group.clip = true;
             }
 
@@ -455,8 +450,8 @@ impl HmGui {
                     unreachable!()
                 };
 
-                group.focusStyle = FocusStyle::Fill;
-                group.frameOpacity = 0.5f32;
+                group.focus_style = FocusStyle::Fill;
+                group.frame_opacity = 0.5f32;
             }
 
             let focus: bool = self.group_has_focus(FocusType::Mouse);
@@ -483,7 +478,7 @@ impl HmGui {
                     unreachable!()
                 };
 
-                group.focusStyle = FocusStyle::Underline;
+                group.focus_style = FocusStyle::Underline;
             }
 
             if self.group_has_focus(FocusType::Mouse) as i32 != 0 && self.activate as i32 != 0 {
@@ -500,28 +495,28 @@ impl HmGui {
 
             self.begin_group_stack();
 
-            let (colorFrame, colorPrimary) = {
+            let (color_frame, color_primary) = {
                 let style = self.styles.last().expect("Style was not set");
-                (style.colorFrame, style.colorPrimary)
+                (style.color_frame, style.color_primary)
             };
 
             self.rect(
                 16.0f32,
                 16.0f32,
-                colorFrame.x,
-                colorFrame.y,
-                colorFrame.z,
-                colorFrame.w,
+                color_frame.x,
+                color_frame.y,
+                color_frame.z,
+                color_frame.w,
             );
 
             if value {
                 self.rect(
                     10.0f32,
                     10.0f32,
-                    colorPrimary.x,
-                    colorPrimary.y,
-                    colorPrimary.z,
-                    colorPrimary.w,
+                    color_primary.x,
+                    color_primary.y,
+                    color_primary.z,
+                    color_primary.w,
                 );
                 self.set_align(0.5f32, 0.5f32);
             }
@@ -563,7 +558,7 @@ impl HmGui {
         let widget_rf = self.init_widget(WidgetItem::Rect(rect_item));
         let mut widget = widget_rf.as_mut();
 
-        widget.minSize = Vec2::new(sx, sy);
+        widget.min_size = Vec2::new(sx, sy);
     }
 
     pub fn text(&mut self, text: &str) {
@@ -573,7 +568,7 @@ impl HmGui {
         let item = HmGuiText {
             font: style.font.clone().into(),
             text: text.into(),
-            color: style.colorText,
+            color: style.color_text,
         };
         let size = item.font.get_size2(text);
 
@@ -582,7 +577,7 @@ impl HmGui {
             let widget_rf = self.init_widget(WidgetItem::Text(item));
             let mut widget = widget_rf.as_mut();
 
-            widget.minSize = Vec2::new(size.x as f32, size.y as f32);
+            widget.min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
         self.set_align(0.0f32, 1.0f32);
@@ -604,7 +599,7 @@ impl HmGui {
             let widget_rf = self.init_widget(WidgetItem::Text(item));
             let mut widget = widget_rf.as_mut();
 
-            widget.minSize = Vec2::new(size.x as f32, size.y as f32);
+            widget.min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
         self.set_align(0.0f32, 1.0f32);
@@ -623,7 +618,7 @@ impl HmGui {
             let widget_rf = self.init_widget(WidgetItem::Text(item));
             let mut widget = widget_rf.as_mut();
 
-            widget.minSize = Vec2::new(size.x as f32, size.y as f32);
+            widget.min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
         self.set_align(0.0f32, 1.0f32);
@@ -646,8 +641,8 @@ impl HmGui {
                 unreachable!()
             };
 
-            group.paddingLower = Vec2::new(px, py);
-            group.paddingUpper = Vec2::new(px, py);
+            group.padding_lower = Vec2::new(px, py);
+            group.padding_upper = Vec2::new(px, py);
         } else {
             unreachable!();
         }
@@ -660,8 +655,8 @@ impl HmGui {
                 unreachable!()
             };
 
-            group.paddingLower = Vec2::new(left, top);
-            group.paddingUpper = Vec2::new(right, bottom);
+            group.padding_lower = Vec2::new(left, top);
+            group.padding_upper = Vec2::new(right, bottom);
         } else {
             unreachable!();
         }
@@ -674,7 +669,7 @@ impl HmGui {
                 unreachable!()
             };
 
-            group.paddingLower.x = padding;
+            group.padding_lower.x = padding;
         } else {
             unreachable!();
         }
@@ -687,7 +682,7 @@ impl HmGui {
                 unreachable!()
             };
 
-            group.paddingLower.y = padding;
+            group.padding_lower.y = padding;
         } else {
             unreachable!();
         }
@@ -700,7 +695,7 @@ impl HmGui {
                 unreachable!()
             };
 
-            group.paddingUpper.x = padding;
+            group.padding_upper.x = padding;
         } else {
             unreachable!();
         }
@@ -713,7 +708,7 @@ impl HmGui {
                 unreachable!()
             };
 
-            group.paddingUpper.y = padding;
+            group.padding_upper.y = padding;
         } else {
             unreachable!();
         }
@@ -776,7 +771,7 @@ impl HmGui {
 
         let style = self.styles.last_mut().expect("Style was not set");
 
-        style.colorText = Vec4::new(r, g, b, a);
+        style.color_text = Vec4::new(r, g, b, a);
     }
 
     pub fn pop_style(&mut self, depth: i32) {
