@@ -758,7 +758,9 @@ impl HmGui {
     }
 
     pub fn push_style(&mut self) {
-        self.styles.push(Default::default());
+        let style = self.styles.last().cloned().unwrap_or_default();
+
+        self.styles.push(style);
     }
 
     pub fn push_font(&mut self, font: &Font) {
