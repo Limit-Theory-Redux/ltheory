@@ -91,7 +91,7 @@ impl HmGuiGroup {
 
         if self.expand {
             if self.layout == LayoutType::Vertical {
-                extra_dim = extra.y; // widget.size.y - minSize.y;
+                extra_dim = extra.y;
 
                 let mut head_opt = self.children.first().cloned();
                 while let Some(head_rf) = head_opt {
@@ -101,7 +101,7 @@ impl HmGuiGroup {
                     head_opt = head.next.clone();
                 }
             } else if self.layout == LayoutType::Horizontal {
-                extra_dim = extra.x; // widget.size.x - minSize.x;
+                extra_dim = extra.x;
 
                 let mut head_opt = self.children.first().cloned();
                 while let Some(head_rf) = head_opt {

@@ -2,13 +2,14 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::ops::Deref;
 use std::rc::Rc;
 
-// Note. Run with:
-//
-//    cargo +nightly r --target=x86_64-unknown-linux-gnu -Zbuild-std -Zbuild-std-features=core/debug_refcell
-//
-// to see original borrowing place on panic.
-// Change target if you are not on Linux.
-
+/// Rc/RefCell wrapper.
+///
+/// Note. Run with:
+///
+///    cargo +nightly r --target=x86_64-unknown-linux-gnu -Zbuild-std -Zbuild-std-features=core/debug_refcell
+///
+/// to see original borrowing place on panic.
+/// Change target if you are not on Linux.
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Rf<T>(Rc<RefCell<T>>);
 

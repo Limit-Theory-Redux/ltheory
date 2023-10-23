@@ -25,7 +25,6 @@ pub struct Font(Rf<FontData>);
 #[derive(Clone)]
 struct FontData {
     name: String,
-    _refCount: u32,
     handle: FT_Face,
     glyphs: HashMap<u32, Glyph>,
 }
@@ -34,7 +33,6 @@ impl Default for FontData {
     fn default() -> Self {
         Self {
             name: Default::default(),
-            _refCount: Default::default(),
             handle: std::ptr::null_mut(),
             glyphs: Default::default(),
         }
@@ -180,7 +178,6 @@ impl Font {
         Self(
             FontData {
                 name: name.into(),
-                _refCount: 1,
                 handle,
                 glyphs: Default::default(),
             }
