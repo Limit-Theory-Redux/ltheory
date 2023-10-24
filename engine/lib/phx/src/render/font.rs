@@ -303,7 +303,7 @@ impl Font {
         unsafe { ((*(*font_data.handle).size).metrics.height >> 6) as _ }
     }
 
-    pub fn get_size(&self, text: &str) -> IVec4 {
+    pub fn get_size(&self, text: &str, out: &mut IVec4) {
         unsafe { Profiler_Begin(c_str!("Font_GetSize")) };
 
         let mut x: i32 = 0;
@@ -314,7 +314,8 @@ impl Font {
         let mut glyph_last: i32 = 0;
 
         if text.is_empty() {
-            return IVec4::ZERO;
+            *out = IVec4::ZERO;
+            return;
         }
 
         for c in text.chars() {
@@ -343,9 +344,9 @@ impl Font {
             }
         }
 
-        unsafe { Profiler_End() };
+        *out = IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y);
 
-        IVec4::new(lower.x, lower.y, upper.x - lower.x, upper.y - lower.y)
+        unsafe { Profiler_End() };
     }
 
     /* NOTE : The height returned here is the maximal *ascender* height for the
