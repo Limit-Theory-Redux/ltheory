@@ -1,6 +1,6 @@
 use glam::{Vec2, Vec4};
 
-use crate::render::UIRenderer_Rect;
+use crate::render::UIRenderer;
 
 #[derive(Clone, PartialEq)]
 pub struct HmGuiRect {
@@ -8,20 +8,8 @@ pub struct HmGuiRect {
 }
 
 impl HmGuiRect {
-    pub fn draw(&self, pos: Vec2, size: Vec2) {
-        unsafe {
-            UIRenderer_Rect(
-                pos.x,
-                pos.y,
-                size.x,
-                size.y,
-                self.color.x,
-                self.color.y,
-                self.color.z,
-                self.color.w,
-                false,
-            );
-        }
+    pub fn draw(&self, renderer: &UIRenderer, pos: Vec2, size: Vec2) {
+        renderer.rect(pos, size, self.color, false);
     }
 
     // For testing.

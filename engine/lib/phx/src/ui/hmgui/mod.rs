@@ -33,18 +33,20 @@ use crate::system::{Hash_FNV64_Incremental, Hash_FNV64_Init, Profiler_Begin, Pro
 pub(crate) const IDENT: &str = "  ";
 
 pub struct HmGui {
-    /// Current active group
-    pub group: Option<Rf<HmGuiWidget>>,
-    /// Top level group object. Used for recalculating sizes, layouts and drawing of the whole gui
-    pub root: Option<Rf<HmGuiWidget>>,
-    /// Either last created/initialized widget (group, image, text, rect) or the last widget of the ended group
-    pub last: Option<Rf<HmGuiWidget>>,
+    pub(super) renderer: UIRenderer,
 
-    pub styles: Vec<HmGuiStyle>,
-    pub data: HashMap<u64, HmGuiData>,
-    pub focus: [u64; 2],
-    pub focus_pos: Vec2,
-    pub activate: bool,
+    /// Current active group
+    group: Option<Rf<HmGuiWidget>>,
+    /// Top level group object. Used for recalculating sizes, layouts and drawing of the whole gui
+    root: Option<Rf<HmGuiWidget>>,
+    /// Either last created/initialized widget (group, image, text, rect) or the last widget of the ended group
+    last: Option<Rf<HmGuiWidget>>,
+
+    styles: Vec<HmGuiStyle>,
+    data: HashMap<u64, HmGuiData>,
+    focus: [u64; 2],
+    focus_pos: Vec2,
+    activate: bool,
 }
 
 impl HmGui {
@@ -58,6 +60,7 @@ impl HmGui {
         };
 
         Self {
+            renderer: Default::default(),
             group: None,
             root: None,
             last: None,
@@ -275,16 +278,18 @@ impl HmGui {
                 Profiler_Begin(c_str!("HmGui_Draw"));
 
                 RenderState_PushBlendMode(1);
-                UIRenderer_Begin();
             }
+
+            self.renderer.begin();
 
             root_rf.as_ref().draw(self);
 
+            self.renderer.end();
+
             unsafe {
-                UIRenderer_End();
                 RenderState_PopBlendMode();
 
-                UIRenderer_Draw();
+                self.renderer.draw();
 
                 Profiler_End();
             }

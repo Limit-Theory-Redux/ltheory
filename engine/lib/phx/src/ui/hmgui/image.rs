@@ -1,6 +1,6 @@
 use glam::Vec2;
 
-use crate::render::{Tex2D, UIRenderer_Image};
+use crate::render::{Tex2D, UIRenderer};
 
 #[derive(Clone, PartialEq)]
 pub struct HmGuiImage {
@@ -8,10 +8,8 @@ pub struct HmGuiImage {
 }
 
 impl HmGuiImage {
-    pub fn draw(&self, pos: Vec2, size: Vec2) {
-        unsafe {
-            UIRenderer_Image(self.image, pos.x, pos.y, size.x, size.y);
-        }
+    pub fn draw(&self, renderer: &UIRenderer, pos: Vec2, size: Vec2) {
+        renderer.image(self.image, pos, size);
     }
 
     // For testing.

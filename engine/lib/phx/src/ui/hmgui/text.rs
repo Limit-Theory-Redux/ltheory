@@ -1,6 +1,6 @@
-use glam::Vec4;
+use glam::{Vec2, Vec4};
 
-use crate::render::{Font, UIRenderer_Text};
+use crate::render::{Font, UIRenderer};
 
 #[derive(Clone)]
 pub struct HmGuiText {
@@ -18,24 +18,13 @@ impl PartialEq for HmGuiText {
 }
 
 impl HmGuiText {
-    pub fn draw(&self, pos_x: f32, pos_y: f32) {
+    pub fn draw(&self, renderer: &UIRenderer, pos: Vec2) {
         // #if HMGUI_DRAW_GROUP_FRAMES
         //   Draw_Color(0.5f, 0.2f, 0.2f, 0.5f);
         //   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);
         //#endif
 
-        unsafe {
-            UIRenderer_Text(
-                &self.font,
-                &self.text,
-                pos_x,
-                pos_y,
-                self.color.x,
-                self.color.y,
-                self.color.z,
-                self.color.w,
-            );
-        }
+        renderer.text(&self.font, &self.text, pos, self.color);
     }
 
     // For testing.

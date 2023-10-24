@@ -88,13 +88,16 @@ impl HmGuiWidget {
                 group.draw(hmgui, self.pos, self.size, hmgui_focus == self.hash);
             }
             WidgetItem::Text(text) => {
-                text.draw(self.pos.x, self.pos.y + self.min_size.y);
+                text.draw(
+                    &hmgui.renderer,
+                    Vec2::new(self.pos.x, self.pos.y + self.min_size.y),
+                );
             }
             WidgetItem::Rect(rect) => {
-                rect.draw(self.pos, self.size);
+                rect.draw(&hmgui.renderer, self.pos, self.size);
             }
             WidgetItem::Image(image) => {
-                image.draw(self.pos, self.size);
+                image.draw(&hmgui.renderer, self.pos, self.size);
             }
         }
     }

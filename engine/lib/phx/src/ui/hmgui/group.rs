@@ -1,9 +1,5 @@
 use glam::Vec2;
 
-use crate::render::{
-    UIRenderer_BeginLayer, UIRenderer_EndLayer, UIRenderer_Panel, UIRenderer_Rect,
-};
-
 use super::*;
 
 #[derive(Clone, Default, PartialEq)]
@@ -156,7 +152,7 @@ impl HmGuiGroup {
         //   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
         // #endif
 
-        unsafe { UIRenderer_BeginLayer(pos.x, pos.y, size.x, size.y, self.clip) };
+        hmgui.renderer.begin_layer(pos, size, self.clip);
 
         let mut tail_opt = self.children.last().cloned();
         while let Some(tail_rf) = tail_opt {
@@ -168,72 +164,52 @@ impl HmGuiGroup {
         }
 
         if self.focusable[FocusType::Mouse as usize] {
-            unsafe {
-                match self.focus_style {
-                    FocusStyle::None => {
-                        UIRenderer_Panel(
-                            pos.x,
-                            pos.y,
-                            size.x,
-                            size.y,
-                            0.1f32,
-                            0.12f32,
-                            0.13f32,
-                            1.0f32,
-                            8.0f32,
-                            self.frame_opacity,
-                        );
+            match self.focus_style {
+                FocusStyle::None => {
+                    let color = Vec4::new(0.1f32, 0.12f32, 0.13f32, 1.0f32);
+
+                    hmgui
+                        .renderer
+                        .panel(pos, size, color, 8.0f32, self.frame_opacity);
+                }
+                FocusStyle::Fill => {
+                    if focus {
+                        let color = Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32);
+
+                        hmgui.renderer.panel(pos, size, color, 0.0f32, 1.0f32);
+                    } else {
+                        let color = Vec4::new(0.15f32, 0.15f32, 0.15f32, 0.8f32);
+
+                        hmgui
+                            .renderer
+                            .panel(pos, size, color, 0.0f32, self.frame_opacity);
                     }
-                    FocusStyle::Fill => {
-                        if focus {
-                            UIRenderer_Panel(
-                                pos.x, pos.y, size.x, size.y, 0.1f32, 0.5f32, 1.0f32, 1.0f32,
-                                0.0f32, 1.0f32,
-                            );
+                }
+                FocusStyle::Outline => {
+                    if focus {
+                        let color = Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32);
+
+                        hmgui.renderer.rect(pos, size, color, true);
+                    }
+                }
+                FocusStyle::Underline => {
+                    let color = Vec4::new(
+                        0.3f32,
+                        0.3f32,
+                        0.3f32,
+                        if focus as i32 != 0 {
+                            0.5f32
                         } else {
-                            UIRenderer_Panel(
-                                pos.x,
-                                pos.y,
-                                size.x,
-                                size.y,
-                                0.15f32,
-                                0.15f32,
-                                0.15f32,
-                                0.8f32,
-                                0.0f32,
-                                self.frame_opacity,
-                            );
-                        }
-                    }
-                    FocusStyle::Outline => {
-                        if focus {
-                            UIRenderer_Rect(
-                                pos.x, pos.y, size.x, size.y, 0.1f32, 0.5f32, 1.0f32, 1.0f32, true,
-                            );
-                        }
-                    }
-                    FocusStyle::Underline => {
-                        UIRenderer_Rect(
-                            pos.x,
-                            pos.y,
-                            size.x,
-                            size.y,
-                            0.3f32,
-                            0.3f32,
-                            0.3f32,
-                            if focus as i32 != 0 {
-                                0.5f32
-                            } else {
-                                self.frame_opacity
-                            },
-                            false,
-                        );
-                    }
+                            self.frame_opacity
+                        },
+                    );
+
+                    hmgui.renderer.rect(pos, size, color, false);
                 }
             }
         }
 
-        unsafe { UIRenderer_EndLayer() };
+        hmgui.renderer.end_layer();
     }
 
     // For testing.
