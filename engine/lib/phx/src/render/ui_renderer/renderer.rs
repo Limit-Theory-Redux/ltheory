@@ -1,5 +1,4 @@
 use super::*;
-use crate::common::*;
 use crate::math::*;
 use crate::render::*;
 use crate::system::*;
@@ -108,7 +107,7 @@ impl UIRenderer {
         }
     }
 
-    pub fn panel(&self, pos: Vec2, size: Vec2, color: Vec4, bevel: f32, innerAlpha: f32) {
+    pub fn panel(&self, pos: Vec2, size: Vec2, color: Vec4, bevel: f32, inner_alpha: f32) {
         unsafe {
             let e = MemPool_Alloc(&mut *self.panel_pool) as *mut UIRendererPanel;
             (*e).next = (*self.layer).panel_list;
@@ -116,7 +115,7 @@ impl UIRenderer {
             (*e).size = size;
             (*e).color = color;
             (*e).bevel = bevel;
-            (*e).inner_alpha = innerAlpha;
+            (*e).inner_alpha = inner_alpha;
 
             (*self.layer).panel_list = e;
         }

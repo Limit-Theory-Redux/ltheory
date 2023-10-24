@@ -31,16 +31,16 @@ impl UIRendererLayer {
             }
             if !(self.panel_list).is_null() {
                 // TODO: Store the shader in the UI renderer and use a Box to manage its memory.
-                static mut shader: *mut Shader = std::ptr::null_mut();
+                static mut SHADER: *mut Shader = std::ptr::null_mut();
 
-                if shader.is_null() {
-                    shader = Box::into_raw(Shader_Load(
+                if SHADER.is_null() {
+                    SHADER = Box::into_raw(Shader_Load(
                         c_str!("vertex/ui"),
                         c_str!("fragment/ui/panel"),
                     ));
                 }
 
-                Shader_Start(&mut *shader);
+                Shader_Start(&mut *SHADER);
 
                 let pad: f32 = 64.0;
                 Shader_SetFloat(c_str!("padding"), pad);
@@ -68,7 +68,7 @@ impl UIRendererLayer {
                     e = (*e).next;
                 }
 
-                Shader_Stop(shader);
+                Shader_Stop(SHADER);
             }
 
             let mut e_0 = self.image_list;
