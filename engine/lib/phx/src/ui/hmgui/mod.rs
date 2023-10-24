@@ -53,9 +53,9 @@ impl HmGui {
     pub fn new(default_font: Font) -> Self {
         let style = HmGuiStyle {
             font: default_font.into(),
-            spacing: 6.0f32,
-            color_primary: Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32),
-            color_frame: Vec4::new(0.1f32, 0.1f32, 0.1f32, 0.5f32),
+            spacing: 6.0,
+            color_primary: Vec4::new(0.1, 0.5, 1.0, 1.0),
+            color_frame: Vec4::new(0.1, 0.1, 0.1, 0.5),
             color_text: Vec4::ONE,
         };
 
@@ -148,7 +148,7 @@ impl HmGui {
         let group = HmGuiGroup {
             layout,
             spacing,
-            max_size: Vec2::new(1e30f32, 1e30f32),
+            max_size: Vec2::new(1e30, 1e30),
             ..Default::default()
         };
 
@@ -330,13 +330,13 @@ impl HmGui {
             };
 
             self.begin_group_x();
-            self.set_stretch(1.0f32, 1.0f32);
+            self.set_stretch(1.0, 1.0);
             group.clip = true;
-            self.set_spacing(2.0f32);
+            self.set_spacing(2.0);
 
             self.begin_group_y();
-            self.set_padding(6.0f32, 6.0f32);
-            self.set_stretch(1.0f32, 1.0f32);
+            self.set_padding(6.0, 6.0);
+            self.set_stretch(1.0, 1.0);
 
             group.expand = false;
             group.store_size = true;
@@ -360,31 +360,31 @@ impl HmGui {
             if has_focus {
                 let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
-                data.offset.y -= 10.0f32 * scroll_y as f32;
+                data.offset.y -= 10.0 * scroll_y as f32;
             }
 
-            let max_scroll = f32::max(0.0f32, data.min_size.y - data.size.y);
-            data.offset.y = f32::clamp(data.offset.y, 0.0f32, max_scroll);
+            let max_scroll = f32::max(0.0, data.min_size.y - data.size.y);
+            data.offset.y = f32::clamp(data.offset.y, 0.0, max_scroll);
 
             self.end_group();
 
             self.begin_group_y();
-            self.set_stretch(0.0f32, 1.0f32);
-            self.set_spacing(0.0f32);
+            self.set_stretch(0.0, 1.0);
+            self.set_spacing(0.0);
 
-            if max_scroll > 0.0f32 {
+            if max_scroll > 0.0 {
                 let data = self.get_data(widget.hash);
-                let handle_size: f32 = data.size.y * (data.size.y / data.min_size.y);
-                let handle_pos: f32 = Lerp(
+                let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                let handle_pos = Lerp(
                     0.0f64,
                     (data.size.y - handle_size) as f64,
                     (data.offset.y / max_scroll) as f64,
                 ) as f32;
                 let color_frame = self.styles.last().expect("Style was not set").color_frame;
 
-                self.rect(4.0f32, handle_pos, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
+                self.rect(4.0, handle_pos, 0.0, 0.0, 0.0, 0.0);
                 self.rect(
-                    4.0f32,
+                    4.0,
                     handle_size,
                     color_frame.x,
                     color_frame.y,
@@ -392,7 +392,7 @@ impl HmGui {
                     color_frame.w,
                 );
             } else {
-                self.rect(4.0f32, 16.0f32, 0.0f32, 0.0f32, 0.0f32, 0.0f32);
+                self.rect(4.0, 16.0, 0.0, 0.0, 0.0, 0.0);
             }
 
             self.end_group();
@@ -405,7 +405,7 @@ impl HmGui {
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
         if let Some(widget_rf) = self.group.clone() {
             self.begin_group_stack();
-            self.set_stretch(0.0f32, 0.0f32);
+            self.set_stretch(0.0, 0.0);
 
             let mouse = input.mouse();
             let has_focus = self.group_has_focus(FocusType::Mouse);
@@ -426,13 +426,13 @@ impl HmGui {
                     unreachable!()
                 };
                 group.focus_style = FocusStyle::None;
-                group.frame_opacity = 0.95f32;
+                group.frame_opacity = 0.95;
                 group.clip = true;
             }
 
             self.begin_group_y();
-            self.set_padding(8.0f32, 8.0f32);
-            self.set_stretch(1.0f32, 1.0f32);
+            self.set_padding(8.0, 8.0);
+            self.set_stretch(1.0, 1.0);
             // self.text_colored(title, 1.0f, 1.0f, 1.0f, 0.3f);
             // self.set_align(0.5f, 0.0f);
         } else {
@@ -456,14 +456,14 @@ impl HmGui {
                 };
 
                 group.focus_style = FocusStyle::Fill;
-                group.frame_opacity = 0.5f32;
+                group.frame_opacity = 0.5;
             }
 
             let focus: bool = self.group_has_focus(FocusType::Mouse);
 
-            self.set_padding(8.0f32, 8.0f32);
+            self.set_padding(8.0, 8.0);
             self.text(label);
-            self.set_align(0.5f32, 0.5f32);
+            self.set_align(0.5, 0.5);
 
             self.end_group();
 
@@ -490,13 +490,13 @@ impl HmGui {
                 value = !value;
             }
 
-            self.set_padding(4.0f32, 4.0f32);
-            self.set_spacing(8.0f32);
-            self.set_stretch(1.0f32, 0.0f32);
+            self.set_padding(4.0, 4.0);
+            self.set_spacing(8.0);
+            self.set_stretch(1.0, 0.0);
 
             self.text(label);
-            self.set_align(0.0f32, 0.5f32);
-            self.set_stretch(1.0f32, 0.0f32);
+            self.set_align(0.0, 0.5);
+            self.set_stretch(1.0, 0.0);
 
             self.begin_group_stack();
 
@@ -506,8 +506,8 @@ impl HmGui {
             };
 
             self.rect(
-                16.0f32,
-                16.0f32,
+                16.0,
+                16.0,
                 color_frame.x,
                 color_frame.y,
                 color_frame.z,
@@ -516,18 +516,18 @@ impl HmGui {
 
             if value {
                 self.rect(
-                    10.0f32,
-                    10.0f32,
+                    10.0,
+                    10.0,
                     color_primary.x,
                     color_primary.y,
                     color_primary.z,
                     color_primary.w,
                 );
-                self.set_align(0.5f32, 0.5f32);
+                self.set_align(0.5, 0.5);
             }
 
             self.end_group();
-            self.set_stretch(0.0f32, 0.0f32);
+            self.set_stretch(0.0, 0.0);
             self.end_group();
 
             value
@@ -538,9 +538,9 @@ impl HmGui {
 
     pub fn slider(&mut self, _lower: f32, _upper: f32, _value: f32) -> f32 {
         self.begin_group_stack();
-        self.rect(0.0f32, 2.0f32, 0.5f32, 0.5f32, 0.5f32, 1.0f32);
-        self.set_align(0.5f32, 0.5f32);
-        self.set_stretch(1.0f32, 0.0f32);
+        self.rect(0.0, 2.0, 0.5, 0.5, 0.5, 1.0);
+        self.set_align(0.5, 0.5);
+        self.set_stretch(1.0, 0.0);
         self.end_group();
 
         0.0
@@ -585,7 +585,7 @@ impl HmGui {
             widget.min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
-        self.set_align(0.0f32, 1.0f32);
+        self.set_align(0.0, 1.0);
     }
 
     pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
@@ -607,7 +607,7 @@ impl HmGui {
             widget.min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
-        self.set_align(0.0f32, 1.0f32);
+        self.set_align(0.0, 1.0);
     }
 
     pub fn text_ex(&mut self, font: &Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
@@ -626,7 +626,7 @@ impl HmGui {
             widget.min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
-        self.set_align(0.0f32, 1.0f32);
+        self.set_align(0.0, 1.0);
     }
 
     pub fn set_align(&self, ax: f32, ay: f32) {

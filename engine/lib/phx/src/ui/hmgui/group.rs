@@ -74,8 +74,8 @@ impl HmGuiGroup {
     }
 
     pub fn layout(&self, hmgui: &mut HmGui, mut pos: Vec2, mut size: Vec2, extra: Vec2) {
-        let mut extra_dim: f32 = 0.0f32;
-        let mut total_stretch: f32 = 0.0f32;
+        let mut extra_dim = 0.0;
+        let mut total_stretch = 0.0;
 
         pos.x += self.padding_lower.x + self.offset.x;
         pos.y += self.padding_lower.y + self.offset.y;
@@ -105,7 +105,7 @@ impl HmGuiGroup {
                 }
             }
 
-            if total_stretch > 0.0f32 {
+            if total_stretch > 0.0 {
                 extra_dim /= total_stretch;
             }
         }
@@ -124,7 +124,7 @@ impl HmGuiGroup {
                 }
                 LayoutType::Vertical => {
                     let mut s = head.min_size.y;
-                    if extra_dim > 0.0f32 {
+                    if extra_dim > 0.0 {
                         s += head.stretch.y * extra_dim;
                     }
                     head.layout_item(pos, size.x, s);
@@ -132,7 +132,7 @@ impl HmGuiGroup {
                 }
                 LayoutType::Horizontal => {
                     let mut s = head.min_size.x;
-                    if extra_dim > 0.0f32 {
+                    if extra_dim > 0.0 {
                         s += head.stretch.x * extra_dim;
                     }
                     head.layout_item(pos, s, size.y);
@@ -166,39 +166,39 @@ impl HmGuiGroup {
         if self.focusable[FocusType::Mouse as usize] {
             match self.focus_style {
                 FocusStyle::None => {
-                    let color = Vec4::new(0.1f32, 0.12f32, 0.13f32, 1.0f32);
+                    let color = Vec4::new(0.1, 0.12, 0.13, 1.0);
 
                     hmgui
                         .renderer
-                        .panel(pos, size, color, 8.0f32, self.frame_opacity);
+                        .panel(pos, size, color, 8.0, self.frame_opacity);
                 }
                 FocusStyle::Fill => {
                     if focus {
-                        let color = Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32);
+                        let color = Vec4::new(0.1, 0.5, 1.0, 1.0);
 
-                        hmgui.renderer.panel(pos, size, color, 0.0f32, 1.0f32);
+                        hmgui.renderer.panel(pos, size, color, 0.0, 1.0);
                     } else {
-                        let color = Vec4::new(0.15f32, 0.15f32, 0.15f32, 0.8f32);
+                        let color = Vec4::new(0.15, 0.15, 0.15, 0.8);
 
                         hmgui
                             .renderer
-                            .panel(pos, size, color, 0.0f32, self.frame_opacity);
+                            .panel(pos, size, color, 0.0, self.frame_opacity);
                     }
                 }
                 FocusStyle::Outline => {
                     if focus {
-                        let color = Vec4::new(0.1f32, 0.5f32, 1.0f32, 1.0f32);
+                        let color = Vec4::new(0.1, 0.5, 1.0, 1.0);
 
                         hmgui.renderer.rect(pos, size, color, true);
                     }
                 }
                 FocusStyle::Underline => {
                     let color = Vec4::new(
-                        0.3f32,
-                        0.3f32,
-                        0.3f32,
+                        0.3,
+                        0.3,
+                        0.3,
                         if focus as i32 != 0 {
-                            0.5f32
+                            0.5
                         } else {
                             self.frame_opacity
                         },
