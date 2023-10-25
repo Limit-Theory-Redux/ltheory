@@ -18,7 +18,7 @@ luajit-ffi-gen.workspace = true
 chrono = "0.4"
 directories = "5.0"
 flate2 = "1.0"
-freetype-sys = "0.18"
+freetype-rs = "0.34"
 gilrs = "0.10"
 glam = { version = "0.24", features = ["scalar-math"] }
 glutin = "0.30"

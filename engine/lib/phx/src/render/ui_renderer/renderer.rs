@@ -137,7 +137,7 @@ impl UIRenderer {
             let item = UIRendererText {
                 next,
                 pos,
-                font: font as _,
+                font: font.clone(),
                 text: text.into(),
                 color,
             };

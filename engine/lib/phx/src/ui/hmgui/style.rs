@@ -2,7 +2,7 @@ use glam::Vec4;
 
 use crate::render::Font;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct HmGuiStyle {
     pub font: Font,
     pub spacing: f32,

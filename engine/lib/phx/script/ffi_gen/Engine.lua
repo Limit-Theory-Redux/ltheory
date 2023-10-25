@@ -26,6 +26,7 @@ function Loader.defineType()
             cstr    Engine_GetVersion ();
             void    Engine_Exit       (Engine*);
             void    Engine_Terminate  ();
+            Font    Engine_LoadFont   (Engine*, cstr name, uint32 size);
             void    Engine_Update     ();
         ]]
     end
@@ -42,6 +43,7 @@ function Loader.defineType()
             GetVersion = libphx.Engine_GetVersion,
             Exit       = libphx.Engine_Exit,
             Terminate  = libphx.Engine_Terminate,
+            LoadFont   = libphx.Engine_LoadFont,
             Update     = libphx.Engine_Update,
         }
 
@@ -53,11 +55,12 @@ function Loader.defineType()
         local t  = ffi.typeof('Engine')
         local mt = {
             __index = {
-                window  = libphx.Engine_Window,
-                input   = libphx.Engine_Input,
-                hmgui   = libphx.Engine_Hmgui,
-                getTime = libphx.Engine_GetTime,
-                exit    = libphx.Engine_Exit,
+                window   = libphx.Engine_Window,
+                input    = libphx.Engine_Input,
+                hmgui    = libphx.Engine_Hmgui,
+                getTime  = libphx.Engine_GetTime,
+                exit     = libphx.Engine_Exit,
+                loadFont = libphx.Engine_LoadFont,
             },
         }
 

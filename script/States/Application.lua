@@ -60,7 +60,7 @@ function Application:appInit()
     self:onInit()
     self:onResize(self.resX, self.resY)
 
-    self.profilerFont = Font.Load('NovaMono', 10)
+    self.profilerFont = EngineInstance:loadFont('NovaMono', 10)
     self.lastUpdate = TimeStamp.Now() -- TODO: was TimeStamp.GetFuture(-1.0 / 60.0)
 
     if Config.jit.dumpasm then Jit.StartDump() end

@@ -747,10 +747,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
-name = "freetype-sys"
-version = "0.18.0"
+name = "freetype-rs"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98d8acf5669d9c048e9c096a3049264b381baf76988aaaf7f2f5f1fe848e482b"
+checksum = "85dd515a397fb7f83712c1cf6dce76e3986c2907605c0aeef595afb6936e3152"
+dependencies = [
+ "bitflags 2.4.0",
+ "freetype-sys",
+ "libc",
+]
+
+[[package]]
+name = "freetype-sys"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66ee28c39a43d89fbed8b4798fb4ba56722cfd2b5af81f9326c27614ba88ecd5"
 dependencies = [
  "cc",
  "libc",
@@ -1661,7 +1672,7 @@ dependencies = [
  "cmake",
  "directories",
  "flate2",
- "freetype-sys",
+ "freetype-rs",
  "gilrs",
  "gl_generator",
  "glam",
