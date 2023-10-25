@@ -13,7 +13,6 @@ pub struct UIRenderer {
     pub(super) texts: Vec<UIRendererText>,
 }
 
-// #[luajit_ffi_gen::luajit_ffi]
 impl UIRenderer {
     pub fn begin(&mut self) {
         self.current_layer_id = Default::default();

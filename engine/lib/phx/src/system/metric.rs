@@ -5,7 +5,7 @@ use crate::*;
 
 pub type Metric = i32;
 
-// TODO: figure out why we get integer overflow in Metric_AddDraw for verts
+// TODO: figure out why we get an integer overflow in Metric_AddDraw for verts
 static mut valueCurr: [i64; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
 
 #[no_mangle]

@@ -260,13 +260,11 @@ impl HmGui {
 
             self.renderer.end();
 
-            unsafe {
-                RenderState_PopBlendMode();
+            unsafe { RenderState_PopBlendMode() };
 
-                self.renderer.draw();
+            self.renderer.draw();
 
-                Profiler_End();
-            }
+            unsafe { Profiler_End() };
         } else {
             unreachable!();
         }
@@ -592,7 +590,7 @@ impl HmGui {
         };
         let size = item.font.get_size2(text);
 
-        // NOTE: This scope is needed to prevent widget be mut borrowed twice here and in set_align below
+        // NOTE: This scope is needed to prevent widget to be mut borrowed twice here and in set_align below
         {
             let widget_rf = self.init_widget(WidgetItem::Text(item));
             let mut widget = widget_rf.as_mut();
