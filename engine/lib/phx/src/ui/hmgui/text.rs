@@ -18,7 +18,7 @@ impl PartialEq for HmGuiText {
 }
 
 impl HmGuiText {
-    pub fn draw(&self, renderer: &UIRenderer, pos: Vec2) {
+    pub fn draw(&self, renderer: &mut UIRenderer, pos: Vec2) {
         // #if HMGUI_DRAW_GROUP_FRAMES
         //   Draw_Color(0.5f, 0.2f, 0.2f, 0.5f);
         //   Draw_Border(1.0f, e->pos.x, e->pos.y, e->size.x, e->size.y);

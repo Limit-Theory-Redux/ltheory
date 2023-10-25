@@ -8,7 +8,7 @@ pub struct HmGuiImage {
 }
 
 impl HmGuiImage {
-    pub fn draw(&self, renderer: &UIRenderer, pos: Vec2, size: Vec2) {
+    pub fn draw(&self, renderer: &mut UIRenderer, pos: Vec2, size: Vec2) {
         renderer.image(self.image, pos, size);
     }
 

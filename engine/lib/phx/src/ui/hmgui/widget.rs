@@ -89,15 +89,15 @@ impl HmGuiWidget {
             }
             WidgetItem::Text(text) => {
                 text.draw(
-                    &hmgui.renderer,
+                    &mut hmgui.renderer,
                     Vec2::new(self.pos.x, self.pos.y + self.min_size.y),
                 );
             }
             WidgetItem::Rect(rect) => {
-                rect.draw(&hmgui.renderer, self.pos, self.size);
+                rect.draw(&mut hmgui.renderer, self.pos, self.size);
             }
             WidgetItem::Image(image) => {
-                image.draw(&hmgui.renderer, self.pos, self.size);
+                image.draw(&mut hmgui.renderer, self.pos, self.size);
             }
         }
     }

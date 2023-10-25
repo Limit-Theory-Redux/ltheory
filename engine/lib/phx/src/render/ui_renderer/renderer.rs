@@ -1,55 +1,33 @@
 use super::*;
 use crate::math::*;
 use crate::render::*;
-use crate::system::*;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct UIRenderer {
-    root: *mut UIRendererLayer,
-    layer: *mut UIRendererLayer,
-    layer_pool: *mut MemPool,
-    image_pool: *mut MemPool,
-    panel_pool: *mut MemPool,
-    rect_pool: *mut MemPool,
-    text_pool: *mut MemPool,
-}
+    current_layer_id: Option<UIRendererLayerId>,
+    pub(super) layers: Vec<UIRendererLayer>,
 
-impl Default for UIRenderer {
-    fn default() -> Self {
-        unsafe {
-            Self {
-                root: std::ptr::null_mut(),
-                layer: std::ptr::null_mut(),
-                layer_pool: MemPool_CreateAuto(std::mem::size_of::<UIRendererLayer>() as u32),
-                image_pool: MemPool_CreateAuto(std::mem::size_of::<UIRendererImage>() as u32),
-                panel_pool: MemPool_CreateAuto(std::mem::size_of::<UIRendererPanel>() as u32),
-                rect_pool: MemPool_CreateAuto(std::mem::size_of::<UIRendererRect>() as u32),
-                text_pool: MemPool_CreateAuto(std::mem::size_of::<UIRendererText>() as u32),
-            }
-        }
-    }
+    pub(super) images: Vec<UIRendererImage>,
+    pub(super) panels: Vec<UIRendererPanel>,
+    pub(super) rects: Vec<UIRendererRect>,
+    pub(super) texts: Vec<UIRendererText>,
 }
 
 // #[luajit_ffi_gen::luajit_ffi]
 impl UIRenderer {
     pub fn begin(&mut self) {
-        unsafe {
-            self.root = std::ptr::null_mut();
-            self.layer = std::ptr::null_mut();
+        self.current_layer_id = Default::default();
 
-            MemPool_Clear(&mut *self.layer_pool);
-            MemPool_Clear(&mut *self.image_pool);
-            MemPool_Clear(&mut *self.panel_pool);
-            MemPool_Clear(&mut *self.rect_pool);
-            MemPool_Clear(&mut *self.text_pool);
+        self.layers.clear();
+        self.images.clear();
+        self.panels.clear();
+        self.rects.clear();
+        self.texts.clear();
 
-            let mut vp = IVec2::ZERO;
-            Viewport_GetSize(&mut vp);
+        let mut vp = IVec2::ZERO;
+        unsafe { Viewport_GetSize(&mut vp) };
 
-            self.begin_layer(Vec2::ZERO, Vec2::new(vp.x as f32, vp.y as f32), true);
-
-            self.root = self.layer;
-        }
+        self.begin_layer(Vec2::ZERO, Vec2::new(vp.x as f32, vp.y as f32), true);
     }
 
     pub fn end(&mut self) {
@@ -57,93 +35,117 @@ impl UIRenderer {
     }
 
     pub fn draw(&self) {
-        unsafe {
-            RenderState_PushBlendMode(1);
+        unsafe { RenderState_PushBlendMode(1) };
 
-            (&*self.root).draw();
-
-            RenderState_PopBlendMode();
+        if let Some(root) = self.layers.first() {
+            root.draw(self);
+        } else {
+            unreachable!("No layers defined");
         }
+
+        unsafe { RenderState_PopBlendMode() };
     }
 
     pub fn begin_layer(&mut self, pos: Vec2, size: Vec2, clip: bool) {
-        unsafe {
-            let layer = MemPool_Alloc(&mut *self.layer_pool) as *mut UIRendererLayer;
+        let layer = UIRendererLayer {
+            parent: self.current_layer_id,
+            pos,
+            size,
+            clip,
+            ..Default::default()
+        };
 
-            (*layer).parent = self.layer;
-            (*layer).next = std::ptr::null_mut();
-            (*layer).children = std::ptr::null_mut();
-            (*layer).pos = pos;
-            (*layer).size = size;
-            (*layer).clip = clip;
-            (*layer).image_list = std::ptr::null_mut();
-            (*layer).panel_list = std::ptr::null_mut();
-            (*layer).rect_list = std::ptr::null_mut();
-            (*layer).text_list = std::ptr::null_mut();
+        let next_layer_id = self.layers.len();
 
-            self.layer = layer;
-        }
+        self.layers.push(layer);
+
+        self.current_layer_id = Some(next_layer_id.into());
     }
 
     pub fn end_layer(&mut self) {
-        unsafe {
-            if !((*self.layer).parent).is_null() {
-                (*self.layer).next = (*(*self.layer).parent).children;
-                (*(*self.layer).parent).children = self.layer;
+        if let Some(current_layer_id) = self.current_layer_id {
+            let parent_id = self.layers[*current_layer_id].parent;
+
+            if let Some(parent_id) = parent_id {
+                self.layers[*current_layer_id].next = self.layers[*parent_id].children;
+                self.layers[*parent_id].children = self.current_layer_id;
             }
-            self.layer = (*self.layer).parent;
+
+            self.current_layer_id = self.layers[*current_layer_id].parent;
+        } else {
+            unreachable!();
         }
     }
 
-    pub fn image(&self, image: *mut Tex2D, pos: Vec2, size: Vec2) {
-        unsafe {
-            let e = MemPool_Alloc(&mut *self.image_pool) as *mut UIRendererImage;
-            (*e).next = (*self.layer).image_list;
-            (*e).image = image;
-            (*e).pos = pos;
-            (*e).size = size;
+    pub fn image(&mut self, image: *mut Tex2D, pos: Vec2, size: Vec2) {
+        if let Some(current_layer_id) = self.current_layer_id {
+            let next = self.layers[*current_layer_id].image_id;
+            let item = UIRendererImage {
+                next,
+                pos,
+                size,
+                image,
+            };
 
-            (*self.layer).image_list = e;
+            self.layers[*current_layer_id].image_id = Some(self.images.len().into());
+            self.images.push(item);
+        } else {
+            unreachable!();
         }
     }
 
-    pub fn panel(&self, pos: Vec2, size: Vec2, color: Vec4, bevel: f32, inner_alpha: f32) {
-        unsafe {
-            let e = MemPool_Alloc(&mut *self.panel_pool) as *mut UIRendererPanel;
-            (*e).next = (*self.layer).panel_list;
-            (*e).pos = pos;
-            (*e).size = size;
-            (*e).color = color;
-            (*e).bevel = bevel;
-            (*e).inner_alpha = inner_alpha;
+    pub fn panel(&mut self, pos: Vec2, size: Vec2, color: Vec4, bevel: f32, inner_alpha: f32) {
+        if let Some(current_layer_id) = self.current_layer_id {
+            let next = self.layers[*current_layer_id].panel_id;
+            let item = UIRendererPanel {
+                next,
+                pos,
+                size,
+                color,
+                bevel,
+                inner_alpha,
+            };
 
-            (*self.layer).panel_list = e;
+            self.layers[*current_layer_id].panel_id = Some(self.panels.len().into());
+            self.panels.push(item);
+        } else {
+            unreachable!();
         }
     }
 
-    pub fn rect(&self, pos: Vec2, size: Vec2, color: Vec4, outline: bool) {
-        unsafe {
-            let e = MemPool_Alloc(&mut *self.rect_pool) as *mut UIRendererRect;
-            (*e).next = (*self.layer).rect_list;
-            (*e).pos = pos;
-            (*e).size = size;
-            (*e).color = color;
-            (*e).outline = outline;
+    pub fn rect(&mut self, pos: Vec2, size: Vec2, color: Vec4, outline: bool) {
+        if let Some(current_layer_id) = self.current_layer_id {
+            let next = self.layers[*current_layer_id].rect_id;
+            let item = UIRendererRect {
+                next,
+                pos,
+                size,
+                color,
+                outline,
+            };
 
-            (*self.layer).rect_list = e;
+            self.layers[*current_layer_id].rect_id = Some(self.rects.len().into());
+            self.rects.push(item);
+        } else {
+            unreachable!();
         }
     }
 
-    pub fn text(&self, font: &Font, text: &str, pos: Vec2, color: Vec4) {
-        unsafe {
-            let e = MemPool_Alloc(&mut *self.text_pool) as *mut UIRendererText;
-            (*e).next = (*self.layer).text_list;
-            (*e).font = font as _;
-            (*e).text = text.into();
-            (*e).pos = pos;
-            (*e).color = color;
+    pub fn text(&mut self, font: &Font, text: &str, pos: Vec2, color: Vec4) {
+        if let Some(current_layer_id) = self.current_layer_id {
+            let next = self.layers[*current_layer_id].text_id;
+            let item = UIRendererText {
+                next,
+                pos,
+                font: font as _,
+                text: text.into(),
+                color,
+            };
 
-            (*self.layer).text_list = e;
+            self.layers[*current_layer_id].text_id = Some(self.texts.len().into());
+            self.texts.push(item);
+        } else {
+            unreachable!();
         }
     }
 }

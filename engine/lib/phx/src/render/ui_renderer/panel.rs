@@ -1,8 +1,10 @@
 use glam::{Vec2, Vec4};
 
+use super::UIRendererPanelId;
+
 #[derive(Clone)]
 pub struct UIRendererPanel {
-    pub next: *mut UIRendererPanel,
+    pub next: Option<UIRendererPanelId>,
     pub pos: Vec2,
     pub size: Vec2,
     pub color: Vec4,
