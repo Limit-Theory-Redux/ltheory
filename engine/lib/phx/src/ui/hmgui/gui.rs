@@ -94,19 +94,14 @@ impl HmGui {
                 )
             };
 
-            if let Some(next_rf) = &widget.next {
-                let mut next = next_rf.as_mut();
-                next.prev = Some(widget_rf.clone());
-            } else {
-                parent_group.children.push(widget_rf.clone());
-            }
-
+            // This condition is always true except for the first child of the top level widget group.
+            // If true then adds this new widget as the next element of the last child widget of the group.
             if let Some(prev_rf) = &widget.prev {
                 let mut prev = prev_rf.as_mut();
                 prev.next = Some(widget_rf.clone());
-            } else {
-                parent_group.children.insert(0, widget_rf.clone());
             }
+
+            parent_group.children.push(widget_rf.clone());
         } else {
             widget.hash = Hash_FNV64_Init();
         }
@@ -217,6 +212,7 @@ impl HmGui {
         self.root = self.group.clone();
     }
 
+    // TODO: do not calculate layout for the widgets that go out of the screen. If possible.
     pub fn end_gui(&mut self, input: &Input) {
         unsafe { Profiler_Begin(c_str!("HmGui_End")) };
 
@@ -246,6 +242,7 @@ impl HmGui {
         unsafe { Profiler_End() };
     }
 
+    // TODO: optimize - clip by window screen - do not draw anything that goes out of the screen
     pub fn draw(&mut self) {
         if let Some(root_rf) = self.root.clone() {
             unsafe {
