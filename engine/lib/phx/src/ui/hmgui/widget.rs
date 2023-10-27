@@ -35,8 +35,6 @@ pub enum LayoutType {
 #[derive(Clone, PartialEq)]
 pub struct HmGuiWidget {
     pub parent: Option<Rf<HmGuiWidget>>,
-    pub next: Option<Rf<HmGuiWidget>>,
-    pub prev: Option<Rf<HmGuiWidget>>,
 
     pub hash: u64,
     pub item: WidgetItem,

@@ -51,21 +51,8 @@ impl HmGui {
     }
 
     fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
-        let prev = self
-            .group
-            .as_ref()
-            .map(|group_rf| {
-                if let WidgetItem::Group(group) = &group_rf.as_ref().item {
-                    group.children.last().cloned()
-                } else {
-                    unreachable!();
-                }
-            })
-            .flatten();
         let widget = HmGuiWidget {
             parent: self.group.clone(),
-            next: None,
-            prev,
             hash: 0,
             item,
             pos: Default::default(),
@@ -93,13 +80,6 @@ impl HmGui {
                     std::mem::size_of::<u32>() as i32,
                 )
             };
-
-            // This condition is always true except for the first child of the top level widget group.
-            // If true then adds this new widget as the next element of the last child widget of the group.
-            if let Some(prev_rf) = &widget.prev {
-                let mut prev = prev_rf.as_mut();
-                prev.next = Some(widget_rf.clone());
-            }
 
             parent_group.children.push(widget_rf.clone());
         } else {
@@ -163,12 +143,8 @@ impl HmGui {
             return;
         }
 
-        let mut widget_opt = group.children.last().cloned();
-        while let Some(widget_rf) = widget_opt {
+        for widget_rf in group.children.iter().rev() {
             self.check_focus(widget_rf.clone());
-
-            let widget = widget_rf.as_ref();
-            widget_opt = widget.prev.clone();
         }
 
         for i in 0..self.focus.len() {
