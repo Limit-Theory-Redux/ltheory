@@ -1,9 +1,11 @@
-const RUST_TO_LUA_TYPE_MAP: [(&str, &str); 5] = [
+const RUST_TO_LUA_TYPE_MAP: &[(&str, &str)] = &[
     ("IVec2", "Vec2i"),
     ("UVec2", "Vec2u"),
     ("DVec2", "Vec2d"),
     ("Vec2", "Vec2f"),
     ("Vec3", "Vec3f"),
+    ("Vec4", "Vec4f"),
+    ("Box3", "Box3f"),
 ];
 
 // TODO: find out different way to mark types as copyable

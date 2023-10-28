@@ -266,7 +266,7 @@ impl RigidBody {
                 .unwrap()),
         }
     }
-    
+
     pub fn new(shape: CollisionShape) -> Box<RigidBody> {
         let rigidBody = rp::RigidBodyBuilder::dynamic().build();
         Box::new(RigidBody {

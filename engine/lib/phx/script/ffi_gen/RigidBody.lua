@@ -30,10 +30,10 @@ function Loader.defineType()
             void       RigidBody_ApplyTorque                 (RigidBody*, Vec3f const* torque);
             void       RigidBody_Attach                      (RigidBody*, RigidBody* child, Vec3f pos, Quat rot);
             void       RigidBody_Detach                      (RigidBody*, RigidBody* child);
-            void       RigidBody_GetBoundingBox              (RigidBody const*, Box3* out);
-            void       RigidBody_GetBoundingBoxCompound      (RigidBody const*, Box3* out);
-            void       RigidBody_GetBoundingBoxLocal         (RigidBody const*, Box3* out);
-            void       RigidBody_GetBoundingBoxLocalCompound (RigidBody const*, Box3* out);
+            void       RigidBody_GetBoundingBox              (RigidBody const*, Box3f* out);
+            void       RigidBody_GetBoundingBoxCompound      (RigidBody const*, Box3f* out);
+            void       RigidBody_GetBoundingBoxLocal         (RigidBody const*, Box3f* out);
+            void       RigidBody_GetBoundingBoxLocalCompound (RigidBody const*, Box3f* out);
             float      RigidBody_GetBoundingRadius           (RigidBody const*);
             float      RigidBody_GetBoundingRadiusCompound   (RigidBody const*);
             float      RigidBody_GetSpeed                    (RigidBody const*);
