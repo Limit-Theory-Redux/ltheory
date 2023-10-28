@@ -266,11 +266,7 @@ impl RigidBody {
                 .unwrap()),
         }
     }
-}
-
-#[luajit_ffi_gen::luajit_ffi(managed = true)]
-impl RigidBody {
-    #[bind(name = "Create")]
+    
     pub fn new(shape: CollisionShape) -> Box<RigidBody> {
         let rigidBody = rp::RigidBodyBuilder::dynamic().build();
         Box::new(RigidBody {
@@ -286,7 +282,10 @@ impl RigidBody {
             mass: 1.0,
         })
     }
+}
 
+#[luajit_ffi_gen::luajit_ffi(managed = true)]
+impl RigidBody {
     #[bind(name = "CreateBox")]
     pub fn new_box() -> Box<RigidBody> {
         Self::new(CollisionShape::new_box(&Vec3::ONE))

@@ -17,7 +17,6 @@ function Loader.defineType()
     do -- C Definitions
         ffi.cdef [[
             void       RigidBody_Free                        (RigidBody*);
-            RigidBody* RigidBody_Create                      (CollisionShape shape);
             RigidBody* RigidBody_CreateBox                   ();
             RigidBody* RigidBody_CreateBoxFromMesh           (Mesh* mesh);
             RigidBody* RigidBody_CreateSphere                ();
@@ -69,7 +68,6 @@ function Loader.defineType()
     do -- Global Symbol Table
         RigidBody = {
             Free                        = libphx.RigidBody_Free,
-            Create                      = libphx.RigidBody_Create,
             CreateBox                   = libphx.RigidBody_CreateBox,
             CreateBoxFromMesh           = libphx.RigidBody_CreateBoxFromMesh,
             CreateSphere                = libphx.RigidBody_CreateSphere,

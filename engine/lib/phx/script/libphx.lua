@@ -59,7 +59,6 @@ do -- Opaque Structs
     typedef struct Octree       {} Octree;
     typedef struct Physics      {} Physics;
     typedef struct RNG          {} RNG;
-    typedef struct RigidBody    {} RigidBody;
     typedef struct RmGui        {} RmGui;
     typedef struct SDF          {} SDF;
     typedef struct Shader       {} Shader;
@@ -71,7 +70,6 @@ do -- Opaque Structs
     typedef struct Tex2D        {} Tex2D;
     typedef struct Tex3D        {} Tex3D;
     typedef struct TexCube      {} TexCube;
-    typedef struct Trigger      {} Trigger;
   ]]
 
   libphx.Opaques = {
@@ -91,7 +89,6 @@ do -- Opaque Structs
     'Octree',
     'Physics',
     'RNG',
-    'RigidBody',
     'RmGui',
     'SDF',
     'Shader',
@@ -103,7 +100,6 @@ do -- Opaque Structs
     'Tex2D',
     'Tex3D',
     'TexCube',
-    'Trigger',
   }
 end
 
