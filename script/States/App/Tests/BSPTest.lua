@@ -76,7 +76,7 @@ function BSPTest:onInit()
     local obj = State.obj
     local bsp = State.bsp
 
-    gen.font  = Font.Load('DejaVuSans', 22)
+    gen.font  = EngineInstance:loadFont('DejaVuSans', 22)
     Assert(gen.font)
 
     obj.binary = false

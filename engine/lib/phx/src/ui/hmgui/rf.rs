@@ -1,4 +1,4 @@
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
 use std::rc::Rc;
 
 /// Rc/RefCell wrapper.
@@ -28,6 +28,18 @@ impl<T> Rf<T> {
     #[inline]
     pub fn as_mut(&self) -> RefMut<T> {
         self.0.borrow_mut()
+    }
+
+    #[track_caller]
+    #[inline]
+    pub fn try_as_ref(&self) -> Result<Ref<T>, BorrowError> {
+        self.0.try_borrow()
+    }
+
+    #[track_caller]
+    #[inline]
+    pub fn try_as_mut(&self) -> Result<RefMut<T>, BorrowMutError> {
+        self.0.try_borrow_mut()
     }
 }
 

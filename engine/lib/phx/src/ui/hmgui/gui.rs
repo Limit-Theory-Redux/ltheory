@@ -703,7 +703,11 @@ impl HmGui {
     }
 
     pub fn push_style(&mut self) {
-        let style = self.styles.last().cloned().unwrap_or_default();
+        let style = self
+            .styles
+            .last()
+            .cloned()
+            .expect("Styles stack is empty".into());
 
         self.styles.push(style);
     }

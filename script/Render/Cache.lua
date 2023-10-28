@@ -28,7 +28,7 @@ function Cache.Font(name, size)
     local key = name .. size
     local self = fonts[key]
     if self then return self end
-    self = Font.Load(name, size)
+    self = EngineInstance:loadFont(name, size)
     fonts[key] = self
     return self
 end

@@ -1,5 +1,6 @@
 mod frame_state;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -29,6 +30,8 @@ pub struct Engine {
     cache: CachedWindow,
     winit_windows: WinitWindows,
     winit_window_id: Option<winit::window::WindowId>,
+    freetype_lib: freetype::Library,
+    font_cache: HashMap<String, Font>,
     hmgui: HmGui,
     input: Input,
     frame_state: FrameState,
@@ -39,17 +42,12 @@ pub struct Engine {
 impl Engine {
     fn new(gl_version_major: u8, gl_version_minor: u8) -> Self {
         unsafe {
-            static mut FIRST_TIME: bool = true;
             Signal_Init();
 
             info!("Engine_Init: Requesting GL {gl_version_major}.{gl_version_minor}");
 
-            if FIRST_TIME {
-                FIRST_TIME = false;
-
-                if !Directory_Create(c_str!("log")) {
-                    panic!("Engine_Init: Failed to create log directory.");
-                }
+            if !Directory_Create(c_str!("log")) {
+                panic!("Engine_Init: Failed to create log directory.");
             }
 
             Metric_Reset();
@@ -65,13 +63,23 @@ impl Engine {
         // Unsafe is required for FFI and JIT libs
         let lua = unsafe { Lua::unsafe_new() };
 
+        let freetype_lib = freetype::Library::init().expect("Cannot initialize Freetype library");
+        let default_font = load_font_intern(&freetype_lib, "Rajdhani", 14);
+
+        let mut font_cache = HashMap::new();
+        font_cache.insert("Rajdhani".into(), default_font.clone());
+
+        let hmgui = HmGui::new(default_font);
+
         Self {
             init_time: TimeStamp::now(),
             window,
             cache,
             winit_windows: WinitWindows::new(gl_version_major, gl_version_minor),
             winit_window_id: None,
-            hmgui: HmGui::new(Font::load("Rajdhani", 14)),
+            freetype_lib,
+            font_cache,
+            hmgui,
             input: Default::default(),
             frame_state: Default::default(),
             exit_app: false,
@@ -609,6 +617,18 @@ impl Engine {
         std::process::exit(0);
     }
 
+    pub fn load_font(&mut self, name: &str, size: u32) -> Font {
+        if let Some(font) = self.font_cache.get(name) {
+            font.clone()
+        } else {
+            let font = load_font_intern(&self.freetype_lib, name, size);
+
+            self.font_cache.insert(name.into(), font.clone());
+
+            font
+        }
+    }
+
     pub fn update() {
         unsafe {
             Profiler_Begin(c_str!("Engine_Update"));
@@ -616,6 +636,26 @@ impl Engine {
             Profiler_End();
         }
     }
+}
+
+fn load_font_intern(freetype_lib: &freetype::Library, name: &str, size: u32) -> Font {
+    let path =
+        resource_get_path(ResourceType_Font, name).expect(&format!("Cannot load font: {name}"));
+
+    let face = freetype_lib
+        .new_face(path, 0)
+        .expect(&format!("Cannot load face for the font: {name}"));
+
+    face.set_pixel_sizes(0, size)
+        .expect(&format!("Cannot set face pixel sizes for the font: {name}"));
+
+    debug!("Loaded font: {name}");
+
+    let font = Font::new(name, face);
+
+    // let _ = font.get_size("Test");
+
+    font
 }
 
 fn call_lua_func(engine: &Engine, func_name: &str) {

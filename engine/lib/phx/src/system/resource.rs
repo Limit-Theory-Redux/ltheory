@@ -70,6 +70,10 @@ pub unsafe extern "C" fn Resource_GetPath(
     Resource_Resolve(ty, name, true)
 }
 
+pub fn resource_get_path(ty: ResourceType, name: &str) -> Option<String> {
+    unsafe { resource_resolve(ty, name, true) }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn Resource_LoadBytes(
     ty: ResourceType,
