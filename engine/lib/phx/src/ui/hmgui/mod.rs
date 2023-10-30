@@ -1,6 +1,6 @@
+mod container;
 mod data;
 mod focus;
-mod group;
 mod gui;
 mod image;
 mod rect;
@@ -15,9 +15,9 @@ use std::path::PathBuf;
 
 use internal::*;
 
+pub use container::*;
 pub(self) use data::*;
 pub use focus::*;
-pub use group::*;
 pub use gui::*;
 pub use image::*;
 pub use rect::*;

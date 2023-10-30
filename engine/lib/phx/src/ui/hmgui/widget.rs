@@ -2,11 +2,11 @@ use std::{fs::File, io::Write};
 
 use glam::Vec2;
 
-use super::{HmGui, HmGuiGroup, HmGuiImage, HmGuiRect, HmGuiText, Rf, IDENT};
+use super::{HmGui, HmGuiContainer, HmGuiImage, HmGuiRect, HmGuiText, Rf, IDENT};
 
 #[derive(Clone, PartialEq)]
 pub enum WidgetItem {
-    Group(HmGuiGroup),
+    Container(HmGuiContainer),
     Text(HmGuiText),
     Rect(HmGuiRect),
     Image(HmGuiImage),
@@ -15,7 +15,7 @@ pub enum WidgetItem {
 impl WidgetItem {
     fn name(&self) -> &str {
         match self {
-            WidgetItem::Group(_) => "Group",
+            WidgetItem::Container(_) => "Container",
             WidgetItem::Text(_) => "Text",
             WidgetItem::Rect(_) => "Rect",
             WidgetItem::Image(_) => "Image",
@@ -48,12 +48,12 @@ pub struct HmGuiWidget {
 impl HmGuiWidget {
     pub fn compute_size(&mut self, hmgui: &mut HmGui) {
         match &self.item {
-            WidgetItem::Group(group) => {
+            WidgetItem::Container(container) => {
                 self.min_size = Vec2::ZERO;
 
-                group.compute_size(hmgui, &mut self.min_size);
+                container.compute_size(hmgui, &mut self.min_size);
 
-                if group.store_size {
+                if container.store_size {
                     let data = hmgui.get_data(self.hash);
 
                     data.min_size = self.min_size;
@@ -65,10 +65,10 @@ impl HmGuiWidget {
 
     pub fn layout(&self, hmgui: &mut HmGui) {
         match &self.item {
-            WidgetItem::Group(group) => {
-                group.layout(hmgui, self.pos, self.size, self.size - self.min_size);
+            WidgetItem::Container(container) => {
+                container.layout(hmgui, self.pos, self.size, self.size - self.min_size);
 
-                if group.store_size {
+                if container.store_size {
                     let data = hmgui.get_data(self.hash);
 
                     data.size = self.size;
@@ -80,10 +80,10 @@ impl HmGuiWidget {
 
     pub fn draw(&self, hmgui: &mut HmGui) {
         match &self.item {
-            WidgetItem::Group(group) => {
+            WidgetItem::Container(container) => {
                 let hmgui_focus = hmgui.mouse_focus_hash();
 
-                group.draw(hmgui, self.pos, self.size, hmgui_focus == self.hash);
+                container.draw(hmgui, self.pos, self.size, hmgui_focus == self.hash);
             }
             WidgetItem::Text(text) => {
                 text.draw(
@@ -135,7 +135,7 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}# item: {}", self.item.name());
 
         match &self.item {
-            WidgetItem::Group(item) => item.dump(ident + 1, file),
+            WidgetItem::Container(item) => item.dump(ident + 1, file),
             WidgetItem::Text(item) => item.dump(ident + 1),
             WidgetItem::Rect(item) => item.dump(ident + 1),
             WidgetItem::Image(item) => item.dump(ident + 1),

@@ -3,7 +3,7 @@ use glam::{Vec2, Vec4};
 use super::*;
 
 #[derive(Clone, Default, PartialEq)]
-pub struct HmGuiGroup {
+pub struct HmGuiContainer {
     pub children: Vec<Rf<HmGuiWidget>>,
 
     pub layout: LayoutType,
@@ -22,7 +22,7 @@ pub struct HmGuiGroup {
     pub store_size: bool,
 }
 
-impl HmGuiGroup {
+impl HmGuiContainer {
     pub fn compute_size(&self, hmgui: &mut HmGui, min_size: &mut Vec2) {
         for widget_rf in self.children.iter() {
             widget_rf.as_mut().compute_size(hmgui);
