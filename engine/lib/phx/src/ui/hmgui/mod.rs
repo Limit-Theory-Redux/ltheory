@@ -105,8 +105,13 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
-        gui.rect(30.0, 20.0, 0.0, 1.0, 0.0, 1.0);
-        gui.rect(20.0, 30.0, 0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(30.0, 20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
         gui.end_container();
         gui.end_gui(&input);
 
@@ -138,8 +143,13 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
-        gui.rect(30.0, 20.0, 0.0, 1.0, 0.0, 1.0);
-        gui.rect(20.0, 30.0, 0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(30.0, 20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
         gui.end_container();
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
@@ -173,8 +183,13 @@ mod tests {
 
         gui.begin_gui(300.0, 200.0, &input);
         gui.begin_stack_container();
-        gui.rect(30.0, 20.0, 0.0, 1.0, 0.0, 1.0);
-        gui.rect(20.0, 30.0, 0.0, 1.0, 0.0, 1.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(30.0, 20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
         gui.end_container();
         gui.set_fixed_size(50.0, 50.0);
         gui.set_docking(DOCKING_STRETCH_ALL);

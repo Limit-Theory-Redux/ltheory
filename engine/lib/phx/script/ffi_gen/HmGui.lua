@@ -31,7 +31,7 @@ function Loader.defineType()
             bool  HmGui_Checkbox                 (HmGui*, cstr label, bool value);
             float HmGui_Slider                   (HmGui*, float lower, float upper, float value);
             void  HmGui_Image                    (HmGui*, Tex2D* image);
-            void  HmGui_Rect                     (HmGui*, float sx, float sy, float r, float g, float b, float a);
+            void  HmGui_Rect                     (HmGui*, float r, float g, float b, float a);
             void  HmGui_Text                     (HmGui*, cstr text);
             void  HmGui_TextColored              (HmGui*, cstr text, float r, float g, float b, float a);
             void  HmGui_TextEx                   (HmGui*, Font const* font, cstr text, float r, float g, float b, float a);

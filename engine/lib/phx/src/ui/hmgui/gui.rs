@@ -371,17 +371,13 @@ impl HmGui {
                 ) as f32;
                 let color_frame = self.styles.last().expect("Style was not set").color_frame;
 
-                self.rect(4.0, handle_pos, 0.0, 0.0, 0.0, 0.0);
-                self.rect(
-                    4.0,
-                    handle_size,
-                    color_frame.x,
-                    color_frame.y,
-                    color_frame.z,
-                    color_frame.w,
-                );
+                self.rect(0.0, 0.0, 0.0, 0.0);
+                self.set_fixed_size(4.0, handle_pos);
+                self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+                self.set_fixed_size(4.0, handle_size);
             } else {
-                self.rect(4.0, 16.0, 0.0, 0.0, 0.0, 0.0);
+                self.rect(0.0, 0.0, 0.0, 0.0);
+                self.set_fixed_size(4.0, 16.0);
             }
 
             self.end_container();
@@ -494,24 +490,17 @@ impl HmGui {
                 (style.color_frame, style.color_primary)
             };
 
-            self.rect(
-                16.0,
-                16.0,
-                color_frame.x,
-                color_frame.y,
-                color_frame.z,
-                color_frame.w,
-            );
+            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+            self.set_fixed_size(16.0, 16.0);
 
             if value {
                 self.rect(
-                    10.0,
-                    10.0,
                     color_primary.x,
                     color_primary.y,
                     color_primary.z,
                     color_primary.w,
                 );
+                self.set_fixed_size(10.0, 10.0);
                 self.set_align(0.5, 0.5);
             }
 
@@ -527,7 +516,8 @@ impl HmGui {
 
     pub fn slider(&mut self, _lower: f32, _upper: f32, _value: f32) -> f32 {
         self.begin_stack_container();
-        self.rect(0.0, 2.0, 0.5, 0.5, 0.5, 1.0);
+        self.rect(0.5, 0.5, 0.5, 1.0);
+        self.set_fixed_size(0.0, 2.0);
         self.set_align(0.5, 0.5);
         self.set_stretch(1.0, 0.0);
         self.end_container();
@@ -544,17 +534,12 @@ impl HmGui {
         widget.stretch = Vec2::ONE;
     }
 
-    pub fn rect(&mut self, sx: f32, sy: f32, r: f32, g: f32, b: f32, a: f32) {
+    pub fn rect(&mut self, r: f32, g: f32, b: f32, a: f32) {
         let rect_item = HmGuiRect {
             color: Vec4::new(r, g, b, a),
         };
 
-        let widget_rf = self.init_widget(WidgetItem::Rect(rect_item));
-        let mut widget = widget_rf.as_mut();
-
-        widget.min_size = Vec2::new(sx, sy);
-        widget.fixed_width = Some(sx);
-        widget.fixed_height = Some(sy);
+        self.init_widget(WidgetItem::Rect(rect_item));
     }
 
     pub fn text(&mut self, text: &str) {
@@ -634,6 +619,7 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
+            widget.min_size.x = width;
             widget.fixed_width = Some(width);
         } else {
             unreachable!();
@@ -644,6 +630,7 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
+            widget.min_size.y = height;
             widget.fixed_height = Some(height);
         } else {
             unreachable!();
@@ -654,6 +641,7 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
+            widget.min_size = Vec2::new(width, height);
             widget.fixed_width = Some(width);
             widget.fixed_height = Some(height);
         } else {
