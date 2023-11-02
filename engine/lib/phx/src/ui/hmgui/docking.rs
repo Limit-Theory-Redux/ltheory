@@ -1,22 +1,24 @@
 #[luajit_ffi_gen::luajit_ffi]
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum DockingFlag {
+pub enum Docking {
     None = 0,
     Left = 1,
     Right = 2,
     Top = 4,
     Bottom = 8,
+    StretchHorizontal = 3,
+    StretchVertical = 12,
+    StretchAll = 15,
 }
 
-pub const DOCKING_NONE: u8 = DockingFlag::None.value();
-pub const DOCKING_LEFT: u8 = DockingFlag::Left.value();
-pub const DOCKING_RIGHT: u8 = DockingFlag::Right.value();
-pub const DOCKING_TOP: u8 = DockingFlag::Top.value();
-pub const DOCKING_BOTTOM: u8 = DockingFlag::Bottom.value();
-
-pub const DOCKING_STRETCH_HORIZONTAL: u8 = DOCKING_LEFT | DOCKING_RIGHT;
-pub const DOCKING_STRETCH_VERTICAL: u8 = DOCKING_TOP | DOCKING_BOTTOM;
-pub const DOCKING_STRETCH_ALL: u8 = DOCKING_LEFT | DOCKING_RIGHT | DOCKING_TOP | DOCKING_BOTTOM;
+pub const DOCKING_NONE: u8 = Docking::None.value();
+pub const DOCKING_LEFT: u8 = Docking::Left.value();
+pub const DOCKING_RIGHT: u8 = Docking::Right.value();
+pub const DOCKING_TOP: u8 = Docking::Top.value();
+pub const DOCKING_BOTTOM: u8 = Docking::Bottom.value();
+pub const DOCKING_STRETCH_HORIZONTAL: u8 = Docking::StretchHorizontal.value();
+pub const DOCKING_STRETCH_VERTICAL: u8 = Docking::StretchVertical.value();
+pub const DOCKING_STRETCH_ALL: u8 = Docking::StretchAll.value();
 
 const DOCKING_FLAGS_MASK: u8 = DOCKING_LEFT | DOCKING_RIGHT | DOCKING_TOP | DOCKING_BOTTOM;
 
@@ -45,19 +47,19 @@ impl DockingType {
     }
 
     pub fn is_dock_left(&self) -> bool {
-        self.0 & DockingFlag::Left.value() != 0
+        self.0 & Docking::Left.value() != 0
     }
 
     pub fn is_dock_right(&self) -> bool {
-        self.0 & DockingFlag::Right.value() != 0
+        self.0 & Docking::Right.value() != 0
     }
 
     pub fn is_dock_top(&self) -> bool {
-        self.0 & DockingFlag::Top.value() != 0
+        self.0 & Docking::Top.value() != 0
     }
 
     pub fn is_dock_bottom(&self) -> bool {
-        self.0 & DockingFlag::Bottom.value() != 0
+        self.0 & Docking::Bottom.value() != 0
     }
 }
 

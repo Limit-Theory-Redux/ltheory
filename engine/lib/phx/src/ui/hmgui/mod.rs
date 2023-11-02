@@ -28,16 +28,18 @@ pub(self) const IDENT: &str = "  ";
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Ref;
+
     use glam::Vec2;
     use tracing::Level;
     use tracing_subscriber::FmtSubscriber;
 
     use crate::{
         input::Input,
-        ui::hmgui::{DockingFlag, DOCKING_STRETCH_ALL},
+        ui::hmgui::{Docking, DOCKING_STRETCH_ALL},
     };
 
-    use super::HmGui;
+    use super::{HmGui, HmGuiContainer, HmGuiWidget};
 
     fn init_test() -> (HmGui, Input) {
         // let subscriber = FmtSubscriber::builder()
@@ -48,6 +50,33 @@ mod tests {
         // let _ = tracing::subscriber::set_global_default(subscriber);
 
         (HmGui::new(Default::default()), Default::default())
+    }
+
+    fn check_pos_size(
+        widget: &Ref<'_, HmGuiWidget>,
+        pos: (f32, f32),
+        size: (f32, f32),
+        name: &str,
+    ) {
+        assert_eq!(widget.pos, Vec2::new(pos.0, pos.1), "Root widget position");
+        assert_eq!(widget.size, Vec2::new(size.0, size.1), "{name} widget size");
+    }
+
+    fn check_children<'a>(
+        widget: &'a Ref<'_, HmGuiWidget>,
+        count: usize,
+        name: &str,
+    ) -> &'a HmGuiContainer {
+        let container = widget
+            .get_container_item()
+            .expect(&format!("Cannot get {name} container"));
+        assert_eq!(
+            container.children.len(),
+            count,
+            "Children count {name} container"
+        );
+
+        container
     }
 
     #[test]
@@ -67,43 +96,19 @@ mod tests {
 
         let root_widget_rf = gui.root().expect("Cannot get gui root widget");
         let root_widget = root_widget_rf.as_ref();
-        assert_eq!(root_widget.pos, Vec2::new(0.0, 0.0), "Root widget position");
-        assert_eq!(
-            root_widget.size,
-            Vec2::new(300.0, 200.0),
-            "Root widget size"
-        );
 
-        let root_container = root_widget
-            .get_container_item()
-            .expect("Cannot get root container");
-        assert_eq!(
-            root_container.children.len(),
-            1,
-            "Root container children count"
-        );
+        // Root widget should always keep it's position and size
+        check_pos_size(&root_widget, (0.0, 0.0), (300.0, 200.0), "Root");
+
+        let root_container = check_children(&root_widget, 1, "root");
 
         let stack_widget_rf = root_container.children[0].clone();
         let stack_widget = stack_widget_rf.as_ref();
-        assert_eq!(
-            stack_widget.pos,
-            Vec2::new(0.0, 0.0),
-            "Stack widget position"
-        );
-        assert_eq!(
-            stack_widget.size,
-            Vec2::new(300.0, 200.0),
-            "Stack widget size"
-        );
 
-        let stack_container = stack_widget
-            .get_container_item()
-            .expect("Cannot get stack container");
-        assert_eq!(
-            stack_container.children.len(),
-            2,
-            "Stack container children count"
-        );
+        // Stack container expanded so has the same position and size as root one
+        check_pos_size(&stack_widget, (0.0, 0.0), (300.0, 200.0), "Stack");
+
+        let _stack_container = check_children(&stack_widget, 2, "stack");
     }
 
     // Test cases:
