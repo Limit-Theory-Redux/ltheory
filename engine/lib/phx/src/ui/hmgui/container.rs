@@ -39,6 +39,10 @@ impl HmGuiContainer {
             widget_rf.as_mut().compute_size(hmgui);
         }
 
+        println!("    - layout:        {:?}", self.layout);
+        println!("    - padding_upper: {:?}", self.padding_upper);
+        println!("    - padding_lower: {:?}", self.padding_lower);
+        println!("    - spacing:       {}", self.spacing);
         println!("    - children[{}]:", self.children.len());
 
         let mut min_size = Vec2::ZERO;
@@ -55,7 +59,7 @@ impl HmGuiContainer {
                     min_size = min_size.max(widget_min_size);
                 }
                 LayoutType::Vertical => {
-                    min_size.x = f32::max(min_size.x, widget_min_size.x);
+                    min_size.x = min_size.x.max(widget_min_size.x);
                     min_size.y += widget_min_size.y;
 
                     if not_head {
@@ -64,7 +68,7 @@ impl HmGuiContainer {
                 }
                 LayoutType::Horizontal => {
                     min_size.x += widget_min_size.x;
-                    min_size.y = f32::max(min_size.y, widget_min_size.y);
+                    min_size.y = min_size.y.max(widget_min_size.y);
 
                     if not_head {
                         min_size.x += self.spacing;
@@ -77,9 +81,12 @@ impl HmGuiContainer {
 
         min_size += self.padding_lower + self.padding_upper;
 
-        println!("  Container::compute_size({:?}): end", self.layout);
+        println!(
+            "  Container::compute_size({:?}): end, min_size={min_size}",
+            self.layout
+        );
 
-        min_size.min(self.max_size)
+        min_size //.min(self.max_size)
     }
 
     /// Go from the top to the bottom of the widget's hierarchy tree to calculate widget's pos and size.
@@ -117,12 +124,14 @@ impl HmGuiContainer {
         let mut extra_size = vec![0.0; self.children.len()];
 
         if self.layout == LayoutType::Vertical {
-            let offset_pos = if extra.y > 0.0 && self.children_docking.has_vertical_stretch() {
+            let offset_pos = if extra.y > 0.0 {
+                //&& self.children_docking.has_vertical_stretch() {
                 let mut total_weight = 0.0;
 
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let widget = widget_rf.as_ref();
 
+                    println!("        {i}: {:?}", widget.docking);
                     if widget.docking.has_vertical_stretch() {
                         let weight = 100.0; // TODO: use percent height if set
 
@@ -130,6 +139,7 @@ impl HmGuiContainer {
                         extra_size[i] = extra.y * weight;
                     }
                 }
+                println!("      total_weight: {total_weight}");
 
                 if total_weight > 0.0 {
                     extra_size.iter_mut().for_each(|d| *d /= total_weight);
@@ -152,7 +162,8 @@ impl HmGuiContainer {
                 }
             }
         } else if self.layout == LayoutType::Horizontal {
-            let offset_pos = if extra.x > 0.0 && self.children_docking.has_horizontal_stretch() {
+            let offset_pos = if extra.x > 0.0 {
+                //&& self.children_docking.has_horizontal_stretch() {
                 let mut total_weight = 0.0;
 
                 for (i, widget_rf) in self.children.iter().enumerate() {
@@ -199,9 +210,43 @@ impl HmGuiContainer {
                 widget.min_size, widget.docking
             );
 
+            if self.layout == LayoutType::Vertical {
+                widget.pos.y = pos.y;
+                widget.size.y = widget.min_size.y + extra_size[i];
+                pos.y += widget.size.y + self.spacing;
+            } else {
+                if widget.docking.has_vertical_stretch()
+                    || self.children_docking.has_vertical_stretch()
+                {
+                    // Stretch widget and center it in the parent one
+                    // Widget can go out of parent scope
+                    widget.pos.y = pos.y;
+                    widget.size.y = size.y;
+                } else if widget.docking.is_dock_bottom() || self.children_docking.is_dock_bottom()
+                {
+                    // Stick to bottom, size == min_size
+                    widget.pos.y = pos.y + size.y - widget.min_size.y;
+                    widget.size.y = widget.min_size.y;
+                } else if !(widget.docking.is_dock_top() || self.children_docking.is_dock_top()) {
+                    // Center widget, size == min_size
+                    widget.pos.y = pos.y + (size.y - widget.min_size.y) / 2.0;
+                    widget.size.y = widget.min_size.y;
+                } else {
+                    // Otherwise stick to the top
+                    widget.pos.y = pos.y;
+                    widget.size.y = widget.min_size.y;
+                }
+            }
+
+            println!(
+                "        - pos_y: {}, size_y: {}",
+                widget.pos.y, widget.size.y
+            );
+
             if self.layout == LayoutType::Horizontal {
+                widget.pos.x = pos.x;
                 widget.size.x = widget.min_size.x + extra_size[i];
-                widget.pos.x = pos.x + widget.size.x + self.spacing;
+                pos.x += widget.size.x + self.spacing;
             } else {
                 if widget.docking.has_horizontal_stretch()
                     || self.children_docking.has_horizontal_stretch()
@@ -244,38 +289,6 @@ impl HmGuiContainer {
             println!(
                 "        - pos_x: {}, size_x: {}",
                 widget.pos.x, widget.size.x
-            );
-
-            if self.layout == LayoutType::Vertical {
-                widget.size.y = widget.min_size.y + extra_size[i];
-                widget.pos.y = pos.y + widget.size.y + self.spacing;
-            } else {
-                if widget.docking.has_vertical_stretch()
-                    || self.children_docking.has_vertical_stretch()
-                {
-                    // Stretch widget and center it in the parent one
-                    // Widget can go out of parent scope
-                    widget.pos.y = pos.y;
-                    widget.size.y = size.y;
-                } else if widget.docking.is_dock_bottom() || self.children_docking.is_dock_bottom()
-                {
-                    // Stick to bottom, size == min_size
-                    widget.pos.y = pos.y + size.y - widget.min_size.y;
-                    widget.size.y = widget.min_size.y;
-                } else if !(widget.docking.is_dock_top() || self.children_docking.is_dock_top()) {
-                    // Center widget, size == min_size
-                    widget.pos.y = pos.y + (size.y - widget.min_size.y) / 2.0;
-                    widget.size.y = widget.min_size.y;
-                } else {
-                    // Otherwise stick to the top
-                    widget.pos.y = pos.y;
-                    widget.size.y = widget.min_size.y;
-                }
-            }
-
-            println!(
-                "        - pos_y: {}, size_y: {}",
-                widget.pos.y, widget.size.y
             );
 
             widget.calculate_inner_pos_size();

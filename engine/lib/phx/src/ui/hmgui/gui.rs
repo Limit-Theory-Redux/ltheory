@@ -808,6 +808,8 @@ impl HmGui {
                 unreachable!()
             };
 
+            println!("Gui::set_spacing({spacing}): layout={:?}", container.layout);
+
             container.spacing = spacing;
         } else {
             unreachable!();
