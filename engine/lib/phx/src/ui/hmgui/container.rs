@@ -206,20 +206,19 @@ impl HmGuiContainer {
                 widget.size.x += extra_size[i];
                 pos.x += widget.size.x + self.spacing;
             } else {
-                // TODO: widget docking has priority over fixed size
-                if widget.fixed_width.is_some()
-                    || widget.docking.no_horizontal_stretch()
-                        && self.children_docking.no_horizontal_stretch()
-                {
-                    // Center widget, size == min_size
-                    widget.pos.x += (size.x - widget.min_size.x) / 2.0;
-                } else if widget.docking.has_horizontal_stretch()
+                if widget.docking.has_horizontal_stretch()
                     || self.children_docking.has_horizontal_stretch()
                 {
                     // Stretch widget and center it in the parent one
                     // Widget can go out of parent scope
                     widget.pos.x = pos.x.min(pos.x + (size.x - widget.min_size.x) / 2.0);
                     widget.size.x = widget.min_size.x.max(size.x);
+                } else if widget.fixed_width.is_some()
+                    || widget.docking.no_horizontal_stretch()
+                        && self.children_docking.no_horizontal_stretch()
+                {
+                    // Center widget, size == min_size
+                    widget.pos.x += (size.x - widget.min_size.x) / 2.0;
                 } else if widget.docking.is_dock_right() || self.children_docking.is_dock_right() {
                     // Stick to right, size == min_size
                     widget.pos.x += size.x - widget.min_size.x;
@@ -236,20 +235,19 @@ impl HmGuiContainer {
                 widget.size.y += extra_size[i];
                 pos.y += widget.size.y + self.spacing;
             } else {
-                // TODO: widget docking has priority over fixed size
-                if widget.fixed_height.is_some()
-                    || widget.docking.no_vertical_stretch()
-                        && self.children_docking.no_vertical_stretch()
-                {
-                    // Center widget, size == min_size
-                    widget.pos.y += (size.y - widget.min_size.y) / 2.0;
-                } else if widget.docking.has_vertical_stretch()
+                if widget.docking.has_vertical_stretch()
                     || self.children_docking.has_vertical_stretch()
                 {
                     // Stretch widget and center it in the parent one
                     // Widget can go out of parent scope
                     widget.pos.y = pos.y.min(pos.y + (size.y - widget.min_size.y) / 2.0);
                     widget.size.y = widget.min_size.y.max(size.y);
+                } else if widget.fixed_height.is_some()
+                    || widget.docking.no_vertical_stretch()
+                        && self.children_docking.no_vertical_stretch()
+                {
+                    // Center widget, size == min_size
+                    widget.pos.y += (size.y - widget.min_size.y) / 2.0;
                 } else if widget.docking.is_dock_bottom() || self.children_docking.is_dock_bottom()
                 {
                     // Stick to bottom, size == min_size

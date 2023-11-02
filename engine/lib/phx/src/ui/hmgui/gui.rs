@@ -630,6 +630,109 @@ impl HmGui {
         }
     }
 
+    pub fn set_fixed_width(&self, width: f32) {
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
+
+            widget.fixed_width = Some(width);
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_fixed_height(&self, height: f32) {
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
+
+            widget.fixed_height = Some(height);
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_fixed_size(&self, width: f32, height: f32) {
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
+
+            widget.fixed_width = Some(width);
+            widget.fixed_height = Some(height);
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_margin(&self, px: f32, py: f32) {
+        if let Some(widget_rf) = self.container.clone() {
+            let mut widget = widget_rf.as_mut();
+
+            widget.margin_lower = Vec2::new(px, py);
+            widget.margin_upper = Vec2::new(px, py);
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_margin_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
+        if let Some(widget_rf) = self.container.clone() {
+            let mut widget = widget_rf.as_mut();
+
+            widget.margin_lower = Vec2::new(left, top);
+            widget.margin_upper = Vec2::new(right, bottom);
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_margin_left(&self, margin: f32) {
+        if let Some(widget_rf) = self.container.clone() {
+            let mut widget = widget_rf.as_mut();
+
+            widget.margin_lower.x = margin;
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_margin_top(&self, margin: f32) {
+        if let Some(widget_rf) = self.container.clone() {
+            let mut widget = widget_rf.as_mut();
+
+            widget.margin_lower.y = margin;
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_margin_right(&self, margin: f32) {
+        if let Some(widget_rf) = self.container.clone() {
+            let mut widget = widget_rf.as_mut();
+
+            widget.margin_upper.x = margin;
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_margin_bottom(&self, margin: f32) {
+        if let Some(widget_rf) = self.container.clone() {
+            let mut widget = widget_rf.as_mut();
+
+            widget.margin_upper.y = margin;
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_border_width(&self, width: f32) {
+        if let Some(widget_rf) = self.container.clone() {
+            let mut widget = widget_rf.as_mut();
+
+            widget.border_width = width;
+        } else {
+            unreachable!();
+        }
+    }
+
     pub fn set_padding(&self, px: f32, py: f32) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
@@ -753,6 +856,19 @@ impl HmGui {
             container.focusable[ty as usize] = true;
 
             self.focus[ty as usize] == widget.hash
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_children_docking(&self, docking: u8) {
+        if let Some(widget_rf) = self.container.clone() {
+            let mut widget = widget_rf.as_mut();
+            let WidgetItem::Container(container) = &mut widget.item else {
+                unreachable!()
+            };
+
+            container.children_docking = docking.into();
         } else {
             unreachable!();
         }
