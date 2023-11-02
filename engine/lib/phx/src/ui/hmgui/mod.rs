@@ -340,8 +340,8 @@ mod tests {
                 (300.0, 200.0), // Root widget should always keep it's position and size
                 Some(vec![WidgetCheck(
                     "Stack",
-                    (-100.0, -100.0), // TODO: is this correct?
-                    (500.0, 400.0), // Stack container expanded so has the same position and size as root one
+                    (0.0, 0.0),
+                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
                     Some(vec![
                         WidgetCheck("Rect1", (-100.0, 90.0), (500.0, 20.0), None), // Vertical oversize
                         WidgetCheck("Rect2", (140.0, -100.0), (20.0, 400.0), None), // Horizontal oversize
