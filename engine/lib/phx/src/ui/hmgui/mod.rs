@@ -39,7 +39,7 @@ mod tests {
         ui::hmgui::{Docking, DOCKING_STRETCH_ALL},
     };
 
-    use super::{HmGui, HmGuiContainer, HmGuiWidget};
+    use super::*;
 
     struct WidgetCheck(
         &'static str,
@@ -217,13 +217,145 @@ mod tests {
         );
     }
 
+    // Test horizontal and vertical stretching in combination with the fixed size
+    #[test]
+    fn test_hmgui_stack_layout_partial_stretch() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_stack_container();
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(30.0);
+        gui.set_docking(DOCKING_STRETCH_VERTICAL);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_height(30.0);
+        gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (0.0, 0.0),
+                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one. Ignoring fixed size
+                    Some(vec![
+                        WidgetCheck("Rect1", (135.0, 0.0), (30.0, 200.0), None), // Stretched vertically
+                        WidgetCheck("Rect2", (0.0, 85.0), (300.0, 30.0), None), // Stretched horizontally
+                    ]),
+                )]),
+            ),
+        );
+    }
+
+    // Sticking to the sides.
+    #[test]
+    fn test_hmgui_stack_layout_stick_to_sides() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_stack_container();
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(30.0, 20.0);
+        gui.set_docking(DOCKING_LEFT);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+        gui.set_docking(DOCKING_RIGHT);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(30.0, 20.0);
+        gui.set_docking(DOCKING_TOP);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+        gui.set_docking(DOCKING_BOTTOM);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (0.0, 0.0),
+                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    Some(vec![
+                        WidgetCheck("RectLeft", (0.0, 90.0), (30.0, 20.0), None), // Stick to the left
+                        WidgetCheck("RectRight", (280.0, 85.0), (20.0, 30.0), None), // Stick to the right
+                        WidgetCheck("RectTop", (135.0, 0.0), (30.0, 20.0), None), // Stick to the top
+                        WidgetCheck("RectBottom", (140.0, 170.0), (20.0, 30.0), None), // Stick to the bottom
+                    ]),
+                )]),
+            ),
+        );
+    }
+
+    // Oversize parent widget/container.
+    #[test]
+    fn test_hmgui_stack_layout_oversize() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_stack_container();
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(500.0, 20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 400.0);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (-100.0, -100.0), // TODO: is this correct?
+                    (500.0, 400.0), // Stack container expanded so has the same position and size as root one
+                    Some(vec![
+                        WidgetCheck("Rect1", (-100.0, 90.0), (500.0, 20.0), None), // Vertical oversize
+                        WidgetCheck("Rect2", (140.0, -100.0), (20.0, 400.0), None), // Horizontal oversize
+                    ]),
+                )]),
+            ),
+        );
+    }
+
     // Test cases:
     // 2. Vertical and horizontal containers:
     //    - priority of the container's children docking for the container main dimension over widget's one
     //    - priority of the widget's docking for the container secondary dimension over container's one
-    // 3. Sticking to the sides.
     // 4. Min size when not stretched.
-    // 5. Oversize parent widget/container.
     // 6. Margin, border, padding, spacing.
     // 7. Text auto expand. (manual only)
 }
