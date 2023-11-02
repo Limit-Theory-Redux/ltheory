@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+use std::fs::File;
+use std::path::PathBuf;
+
 use crate::common::*;
 use crate::input::*;
 use crate::math::*;
@@ -53,11 +57,26 @@ impl HmGui {
     fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
         let widget = HmGuiWidget {
             parent: self.container.clone(),
+
             hash: 0,
             item,
             pos: Default::default(),
             size: Default::default(),
+            inner_pos: Default::default(),
+            inner_size: Default::default(),
+
+            fixed_width: Default::default(),
+            fixed_height: Default::default(),
+            docking: Default::default(),
+            margin_upper: Default::default(),
+            margin_lower: Default::default(),
+            bg_color: Default::default(),
+            border_width: Default::default(),
+            border_color: Default::default(),
+
             min_size: Default::default(),
+            inner_min_size: Default::default(),
+
             align: Default::default(),
             stretch: Default::default(),
         };
@@ -159,6 +178,30 @@ impl HmGui {
             }
         }
     }
+
+    pub fn root(&self) -> Option<Rf<HmGuiWidget>> {
+        self.root.clone()
+    }
+
+    pub fn dump_widgets(&self, file_name: Option<&str>) {
+        let mut file: Option<File> = file_name
+            .filter(|file_name| PathBuf::new().join(file_name).exists())
+            .map(|file_name| {
+                let file_path = PathBuf::new().join(file_name);
+
+                File::create(file_path).expect(&format!("Cannot create {file_name}"))
+            });
+
+        println!("Widgets:");
+
+        if let Some(container_opt) = &self.root {
+            let container = container_opt.as_ref();
+
+            container.dump(1, &mut file);
+        } else {
+            println!("{IDENT}No widgets");
+        }
+    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -179,8 +222,10 @@ impl HmGui {
 
             container.clip = true;
 
-            widget.pos = Vec2::ZERO;
-            widget.size = Vec2::new(sx, sy);
+            widget.inner_pos = Vec2::ZERO;
+            widget.pos = widget.inner_pos;
+            widget.inner_size = Vec2::new(sx, sy);
+            widget.size = widget.inner_size;
         } else {
             unreachable!();
         }
@@ -243,15 +288,15 @@ impl HmGui {
         }
     }
 
-    pub fn begin_container_x(&mut self) {
+    pub fn begin_horizontal_container(&mut self) {
         self.begin_container(LayoutType::Horizontal);
     }
 
-    pub fn begin_container_y(&mut self) {
+    pub fn begin_vertical_container(&mut self) {
         self.begin_container(LayoutType::Vertical);
     }
 
-    pub fn begin_container_stack(&mut self) {
+    pub fn begin_stack_container(&mut self) {
         self.begin_container(LayoutType::Stack);
     }
 
@@ -274,16 +319,15 @@ impl HmGui {
                 unreachable!()
             };
 
-            self.begin_container_x();
+            self.begin_horizontal_container();
             self.set_stretch(1.0, 1.0);
             container.clip = true;
             self.set_spacing(2.0);
 
-            self.begin_container_y();
+            self.begin_vertical_container();
             self.set_padding(6.0, 6.0);
             self.set_stretch(1.0, 1.0);
 
-            container.expand = false;
             container.store_size = true;
             container.max_size.y = max_size;
 
@@ -313,7 +357,7 @@ impl HmGui {
 
             self.end_container();
 
-            self.begin_container_y();
+            self.begin_vertical_container();
             self.set_stretch(0.0, 1.0);
             self.set_spacing(0.0);
 
@@ -349,7 +393,7 @@ impl HmGui {
 
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
         if let Some(widget_rf) = self.container.clone() {
-            self.begin_container_stack();
+            self.begin_stack_container();
             self.set_stretch(0.0, 0.0);
 
             let mouse = input.mouse();
@@ -375,7 +419,7 @@ impl HmGui {
                 container.clip = true;
             }
 
-            self.begin_container_y();
+            self.begin_vertical_container();
             self.set_padding(8.0, 8.0);
             self.set_stretch(1.0, 1.0);
             // self.text_colored(title, 1.0f, 1.0f, 1.0f, 0.3f);
@@ -392,7 +436,7 @@ impl HmGui {
 
     pub fn button(&mut self, label: &str) -> bool {
         if let Some(widget_rf) = self.container.clone() {
-            self.begin_container_stack();
+            self.begin_stack_container();
 
             {
                 let mut widget = widget_rf.as_mut();
@@ -420,7 +464,7 @@ impl HmGui {
 
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
         if let Some(widget_rf) = self.container.clone() {
-            self.begin_container_x();
+            self.begin_horizontal_container();
 
             {
                 let mut widget = widget_rf.as_mut();
@@ -443,7 +487,7 @@ impl HmGui {
             self.set_align(0.0, 0.5);
             self.set_stretch(1.0, 0.0);
 
-            self.begin_container_stack();
+            self.begin_stack_container();
 
             let (color_frame, color_primary) = {
                 let style = self.styles.last().expect("Style was not set");
@@ -482,7 +526,7 @@ impl HmGui {
     }
 
     pub fn slider(&mut self, _lower: f32, _upper: f32, _value: f32) -> f32 {
-        self.begin_container_stack();
+        self.begin_stack_container();
         self.rect(0.0, 2.0, 0.5, 0.5, 0.5, 1.0);
         self.set_align(0.5, 0.5);
         self.set_stretch(1.0, 0.0);
@@ -509,6 +553,8 @@ impl HmGui {
         let mut widget = widget_rf.as_mut();
 
         widget.min_size = Vec2::new(sx, sy);
+        widget.fixed_width = Some(sx);
+        widget.fixed_height = Some(sy);
     }
 
     pub fn text(&mut self, text: &str) {
@@ -687,6 +733,16 @@ impl HmGui {
         }
     }
 
+    pub fn set_docking(&self, docking: u8) {
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
+
+            widget.docking = docking.into();
+        } else {
+            unreachable!();
+        }
+    }
+
     pub fn container_has_focus(&self, ty: FocusType) -> bool {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
@@ -728,25 +784,5 @@ impl HmGui {
         assert!(self.styles.len() >= depth as usize);
 
         self.styles.truncate(self.styles.len() - depth as usize);
-    }
-
-    pub fn dump_widgets(&self, file_name: &str) {
-        let file_path = PathBuf::new().join(file_name);
-
-        if file_path.exists() {
-            return;
-        }
-
-        let mut file = File::create(file_path).expect(&format!("Cannot create {file_name}"));
-
-        println!("Widgets:");
-
-        if let Some(container_opt) = &self.root {
-            let container = container_opt.as_ref();
-
-            container.dump(1, &mut file);
-        } else {
-            println!("{IDENT}No widgets");
-        }
     }
 }
