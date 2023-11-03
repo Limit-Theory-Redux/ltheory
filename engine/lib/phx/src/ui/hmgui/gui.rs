@@ -558,7 +558,7 @@ impl HmGui {
             let widget_rf = self.init_widget(WidgetItem::Text(item));
             let mut widget = widget_rf.as_mut();
 
-            widget.min_size = Vec2::new(size.x as f32, size.y as f32);
+            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
         self.set_align(0.0, 1.0);
@@ -580,7 +580,7 @@ impl HmGui {
             let widget_rf = self.init_widget(WidgetItem::Text(item));
             let mut widget = widget_rf.as_mut();
 
-            widget.min_size = Vec2::new(size.x as f32, size.y as f32);
+            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
         self.set_align(0.0, 1.0);
@@ -599,7 +599,7 @@ impl HmGui {
             let widget_rf = self.init_widget(WidgetItem::Text(item));
             let mut widget = widget_rf.as_mut();
 
-            widget.min_size = Vec2::new(size.x as f32, size.y as f32);
+            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
         self.set_align(0.0, 1.0);
@@ -619,7 +619,7 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.min_size.x = width;
+            widget.inner_min_size.x = width;
             widget.fixed_width = Some(width);
         } else {
             unreachable!();
@@ -630,7 +630,7 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.min_size.y = height;
+            widget.inner_min_size.y = height;
             widget.fixed_height = Some(height);
         } else {
             unreachable!();
@@ -641,7 +641,7 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.min_size = Vec2::new(width, height);
+            widget.inner_min_size = Vec2::new(width, height);
             widget.fixed_width = Some(width);
             widget.fixed_height = Some(height);
         } else {

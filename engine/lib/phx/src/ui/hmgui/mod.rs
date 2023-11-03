@@ -704,6 +704,8 @@ mod tests {
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
+        gui.set_margin(13.0, 13.0);
+        gui.set_border_width(2.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_docking(DOCKING_STRETCH_ALL);
@@ -729,8 +731,8 @@ mod tests {
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
                     Some(vec![
                         WidgetCheck("Rect1", (135.0, 30.0), (30.0, 20.0), None), // Fixed size
-                        WidgetCheck("Rect2", (140.0, 60.0), (20.0, 30.0), None), // Fixed size
-                        WidgetCheck("Rect3", (30.0, 100.0), (240.0, 70.0), None), // Stretch all
+                        WidgetCheck("Rect2", (125.0, 60.0), (50.0, 60.0), None), // Fixed size
+                        WidgetCheck("Rect3", (30.0, 130.0), (240.0, 40.0), None), // Stretch all
                     ]),
                 )]),
             ),
@@ -752,6 +754,8 @@ mod tests {
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_fixed_size(20.0, 30.0);
+        gui.set_margin(13.0, 13.0);
+        gui.set_border_width(2.0);
 
         gui.rect(0.0, 1.0, 0.0, 1.0);
         gui.set_docking(DOCKING_STRETCH_ALL);
@@ -777,8 +781,8 @@ mod tests {
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
                     Some(vec![
                         WidgetCheck("Rect1", (30.0, 90.0), (30.0, 20.0), None), // Fixed size
-                        WidgetCheck("Rect2", (70.0, 85.0), (20.0, 30.0), None), // Fixed size
-                        WidgetCheck("Rect3", (100.0, 30.0), (170.0, 140.0), None), // Stretch all
+                        WidgetCheck("Rect2", (70.0, 70.0), (50.0, 60.0), None), // Fixed size
+                        WidgetCheck("Rect3", (130.0, 30.0), (140.0, 140.0), None), // Stretch all
                     ]),
                 )]),
             ),

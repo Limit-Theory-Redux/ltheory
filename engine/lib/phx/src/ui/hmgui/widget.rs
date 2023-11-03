@@ -79,40 +79,21 @@ impl HmGuiWidget {
     /// Calculate outer min size that includes margin and border.
     /// Do not add margins if min size and border width are both 0.
     fn calculate_min_size(&self) -> Vec2 {
-        let mut inner_min_size = self.inner_min_size;
+        let inner_min_width =
+            self.fixed_width.unwrap_or(self.inner_min_size.x) + self.border_width * 2.0;
+        let inner_min_height =
+            self.fixed_height.unwrap_or(self.inner_min_size.y) + self.border_width * 2.0;
 
-        println!("    inner_min[1]={inner_min_size:?}");
-
-        if !self.docking.is_dock_left() && !self.docking.is_dock_right() {
-            if let Some(fixed_width) = self.fixed_width {
-                inner_min_size.x = fixed_width;
-            }
-        }
-        if !self.docking.is_dock_top() && !self.docking.is_dock_bottom() {
-            if let Some(fixed_height) = self.fixed_height {
-                inner_min_size.y = fixed_height;
-            }
-        }
-
-        println!("    inner_min[2]={inner_min_size:?}");
-        println!(
-            "    margin={:?} - {:?}",
-            self.margin_upper, self.margin_lower
-        );
-        println!("    border={}", self.border_width);
-
-        let x = if inner_min_size.x > 0.0 || self.border_width > 0.0 {
-            inner_min_size.x + self.border_width * 2.0 + self.margin_upper.x + self.margin_lower.x
+        let x = if inner_min_width > 0.0 {
+            inner_min_width + self.margin_upper.x + self.margin_lower.x
         } else {
             0.0
         };
-        let y = if inner_min_size.y > 0.0 || self.border_width > 0.0 {
-            inner_min_size.y + self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y
+        let y = if inner_min_height > 0.0 {
+            inner_min_height + self.margin_upper.y + self.margin_lower.y
         } else {
             0.0
         };
-
-        println!("    min=[{x}, {y}]");
 
         Vec2 { x, y }
     }
@@ -160,7 +141,7 @@ impl HmGuiWidget {
                 }
             }
             _ => {
-                // self.min_size = self.calculate_min_size();
+                self.min_size = self.calculate_min_size();
             }
         }
     }
