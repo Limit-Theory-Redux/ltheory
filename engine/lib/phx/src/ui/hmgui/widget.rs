@@ -81,6 +81,8 @@ impl HmGuiWidget {
     fn calculate_min_size(&self) -> Vec2 {
         let mut inner_min_size = self.inner_min_size;
 
+        println!("    inner_min[1]={inner_min_size:?}");
+
         if !self.docking.is_dock_left() && !self.docking.is_dock_right() {
             if let Some(fixed_width) = self.fixed_width {
                 inner_min_size.x = fixed_width;
@@ -91,6 +93,13 @@ impl HmGuiWidget {
                 inner_min_size.y = fixed_height;
             }
         }
+
+        println!("    inner_min[2]={inner_min_size:?}");
+        println!(
+            "    margin={:?} - {:?}",
+            self.margin_upper, self.margin_lower
+        );
+        println!("    border={}", self.border_width);
 
         let x = if inner_min_size.x > 0.0 || self.border_width > 0.0 {
             inner_min_size.x + self.border_width * 2.0 + self.margin_upper.x + self.margin_lower.x
@@ -103,11 +112,13 @@ impl HmGuiWidget {
             0.0
         };
 
+        println!("    min=[{x}, {y}]");
+
         Vec2 { x, y }
     }
 
     /// Calculate inner pos and size from outer by subtracting margins and border.
-    /// Do not subtract of outer width/height is 0.
+    /// Do not subtract if outer width/height is 0.
     pub fn calculate_inner_pos_size(&mut self) {
         if self.size.x > 0.0 {
             self.inner_pos.x = self.pos.x + self.border_width + self.margin_upper.x;
@@ -148,7 +159,9 @@ impl HmGuiWidget {
                     data.min_size = self.min_size;
                 }
             }
-            _ => {}
+            _ => {
+                // self.min_size = self.calculate_min_size();
+            }
         }
     }
 

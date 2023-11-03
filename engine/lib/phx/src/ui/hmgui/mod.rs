@@ -42,10 +42,10 @@ mod tests {
     use super::*;
 
     struct WidgetCheck(
-        &'static str,
-        (f32, f32),
-        (f32, f32),
-        Option<Vec<WidgetCheck>>,
+        &'static str,             // Widget name
+        (f32, f32),               // Widget position
+        (f32, f32),               // Widget outer size
+        Option<Vec<WidgetCheck>>, // Container widget children. None for non-container widget
     );
 
     fn init_test() -> (HmGui, Input) {
@@ -689,7 +689,102 @@ mod tests {
         );
     }
 
+    // Vertical: Margin, border, padding, spacing.
+    #[test]
+    fn test_hmgui_vertical_layout_margin_border_padding_spacing() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_vertical_container();
+        gui.set_padding(20.0, 20.0);
+        gui.set_spacing(10.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(30.0, 20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        gui.end_container();
+        gui.set_margin(5.0, 5.0);
+        gui.set_border_width(5.0);
+        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (0.0, 0.0),
+                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    Some(vec![
+                        WidgetCheck("Rect1", (135.0, 30.0), (30.0, 20.0), None), // Fixed size
+                        WidgetCheck("Rect2", (140.0, 60.0), (20.0, 30.0), None), // Fixed size
+                        WidgetCheck("Rect3", (30.0, 100.0), (240.0, 70.0), None), // Stretch all
+                    ]),
+                )]),
+            ),
+        );
+    }
+
+    // Horizontal: Margin, border, padding, spacing.
+    #[test]
+    fn test_hmgui_horizontal_layout_margin_border_padding_spacing() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+        gui.begin_horizontal_container();
+        gui.set_padding(20.0, 20.0);
+        gui.set_spacing(10.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(30.0, 20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        gui.end_container();
+        gui.set_margin(5.0, 5.0);
+        gui.set_border_width(5.0);
+        gui.set_docking(DOCKING_STRETCH_ALL);
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (0.0, 0.0),
+                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    Some(vec![
+                        WidgetCheck("Rect1", (30.0, 90.0), (30.0, 20.0), None), // Fixed size
+                        WidgetCheck("Rect2", (70.0, 85.0), (20.0, 30.0), None), // Fixed size
+                        WidgetCheck("Rect3", (100.0, 30.0), (170.0, 140.0), None), // Stretch all
+                    ]),
+                )]),
+            ),
+        );
+    }
+
     // Test cases:
-    // 6. Margin, border, padding, spacing.
-    // 7. Text auto expand. (manual only)
+    // - Text auto expand. (manual only)
 }

@@ -650,7 +650,7 @@ impl HmGui {
     }
 
     pub fn set_margin(&self, px: f32, py: f32) {
-        if let Some(widget_rf) = self.container.clone() {
+        if let Some(widget_rf) = self.last.clone() {
             let mut widget = widget_rf.as_mut();
 
             widget.margin_lower = Vec2::new(px, py);
@@ -661,7 +661,7 @@ impl HmGui {
     }
 
     pub fn set_margin_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
-        if let Some(widget_rf) = self.container.clone() {
+        if let Some(widget_rf) = self.last.clone() {
             let mut widget = widget_rf.as_mut();
 
             widget.margin_lower = Vec2::new(left, top);
@@ -672,7 +672,7 @@ impl HmGui {
     }
 
     pub fn set_margin_left(&self, margin: f32) {
-        if let Some(widget_rf) = self.container.clone() {
+        if let Some(widget_rf) = self.last.clone() {
             let mut widget = widget_rf.as_mut();
 
             widget.margin_lower.x = margin;
@@ -682,7 +682,7 @@ impl HmGui {
     }
 
     pub fn set_margin_top(&self, margin: f32) {
-        if let Some(widget_rf) = self.container.clone() {
+        if let Some(widget_rf) = self.last.clone() {
             let mut widget = widget_rf.as_mut();
 
             widget.margin_lower.y = margin;
@@ -692,7 +692,7 @@ impl HmGui {
     }
 
     pub fn set_margin_right(&self, margin: f32) {
-        if let Some(widget_rf) = self.container.clone() {
+        if let Some(widget_rf) = self.last.clone() {
             let mut widget = widget_rf.as_mut();
 
             widget.margin_upper.x = margin;
@@ -702,7 +702,7 @@ impl HmGui {
     }
 
     pub fn set_margin_bottom(&self, margin: f32) {
-        if let Some(widget_rf) = self.container.clone() {
+        if let Some(widget_rf) = self.last.clone() {
             let mut widget = widget_rf.as_mut();
 
             widget.margin_upper.y = margin;
@@ -712,7 +712,7 @@ impl HmGui {
     }
 
     pub fn set_border_width(&self, width: f32) {
-        if let Some(widget_rf) = self.container.clone() {
+        if let Some(widget_rf) = self.last.clone() {
             let mut widget = widget_rf.as_mut();
 
             widget.border_width = width;
