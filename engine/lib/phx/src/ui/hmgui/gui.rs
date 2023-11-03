@@ -619,7 +619,6 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.inner_min_size.x = width;
             widget.fixed_width = Some(width);
         } else {
             unreachable!();
@@ -630,7 +629,6 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.inner_min_size.y = height;
             widget.fixed_height = Some(height);
         } else {
             unreachable!();
@@ -641,7 +639,6 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.inner_min_size = Vec2::new(width, height);
             widget.fixed_width = Some(width);
             widget.fixed_height = Some(height);
         } else {

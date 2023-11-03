@@ -45,6 +45,7 @@ mod tests {
         &'static str,             // Widget name
         (f32, f32),               // Widget position
         (f32, f32),               // Widget outer size
+        (f32, f32),               // Widget inner size
         Option<Vec<WidgetCheck>>, // Container widget children. None for non-container widget
     );
 
@@ -69,11 +70,17 @@ mod tests {
         assert_eq!(
             widget.size,
             Vec2::new(expected.2 .0, expected.2 .1),
-            "{} widget size",
+            "{} widget outer size",
+            expected.0
+        );
+        assert_eq!(
+            widget.inner_size,
+            Vec2::new(expected.3 .0, expected.3 .1),
+            "{} widget inner size",
             expected.0
         );
 
-        if let Some(expected_children) = &expected.3 {
+        if let Some(expected_children) = &expected.4 {
             let container = widget
                 .get_container_item()
                 .expect(&format!("Cannot get {} container", expected.0));
@@ -124,13 +131,15 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (135.0, 85.0),
                     (30.0, 30.0),
+                    (30.0, 30.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (135.0, 90.0), (30.0, 20.0), None),
-                        WidgetCheck("Rect2", (140.0, 85.0), (20.0, 30.0), None),
+                        WidgetCheck("Rect1", (135.0, 90.0), (30.0, 20.0), (30.0, 20.0), None),
+                        WidgetCheck("Rect2", (140.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
                     ]),
                 )]),
             ),
@@ -163,13 +172,15 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
                     Some(vec![
-                        WidgetCheck("Rect1", (135.0, 90.0), (30.0, 20.0), None),
-                        WidgetCheck("Rect2", (140.0, 85.0), (20.0, 30.0), None),
+                        WidgetCheck("Rect1", (135.0, 90.0), (30.0, 20.0), (30.0, 20.0), None),
+                        WidgetCheck("Rect2", (140.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
                     ]),
                 )]),
             ),
@@ -204,13 +215,15 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one. Ignoring fixed size
+                    (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (135.0, 90.0), (30.0, 20.0), None),
-                        WidgetCheck("Rect2", (140.0, 85.0), (20.0, 30.0), None),
+                        WidgetCheck("Rect1", (135.0, 90.0), (30.0, 20.0), (30.0, 20.0), None),
+                        WidgetCheck("Rect2", (140.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
                     ]),
                 )]),
             ),
@@ -246,13 +259,15 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one. Ignoring fixed size
+                    (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (135.0, 0.0), (30.0, 200.0), None), // Stretched vertically
-                        WidgetCheck("Rect2", (0.0, 85.0), (300.0, 30.0), None), // Stretched horizontally
+                        WidgetCheck("Rect1", (135.0, 0.0), (30.0, 200.0), (30.0, 200.0), None), // Stretched vertically
+                        WidgetCheck("Rect2", (0.0, 85.0), (300.0, 30.0), (300.0, 30.0), None), // Stretched horizontally
                     ]),
                 )]),
             ),
@@ -296,15 +311,17 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("RectLeft", (0.0, 90.0), (30.0, 20.0), None), // Stick to the left
-                        WidgetCheck("RectRight", (280.0, 85.0), (20.0, 30.0), None), // Stick to the right
-                        WidgetCheck("RectTop", (135.0, 0.0), (30.0, 20.0), None), // Stick to the top
-                        WidgetCheck("RectBottom", (140.0, 170.0), (20.0, 30.0), None), // Stick to the bottom
+                        WidgetCheck("Rect1", (0.0, 90.0), (30.0, 20.0), (30.0, 20.0), None), // Stick to the left
+                        WidgetCheck("Rect2", (280.0, 85.0), (20.0, 30.0), (20.0, 30.0), None), // Stick to the right
+                        WidgetCheck("Rect3", (135.0, 0.0), (30.0, 20.0), (30.0, 20.0), None), // Stick to the top
+                        WidgetCheck("Rect4", (140.0, 170.0), (20.0, 30.0), (20.0, 30.0), None), // Stick to the bottom
                     ]),
                 )]),
             ),
@@ -338,13 +355,15 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (-100.0, 90.0), (500.0, 20.0), None), // Vertical oversize
-                        WidgetCheck("Rect2", (140.0, -100.0), (20.0, 400.0), None), // Horizontal oversize
+                        WidgetCheck("Rect1", (-100.0, 90.0), (500.0, 20.0), (500.0, 20.0), None), // Vertical oversize
+                        WidgetCheck("Rect2", (140.0, -100.0), (20.0, 400.0), (20.0, 400.0), None), // Horizontal oversize
                     ]),
                 )]),
             ),
@@ -390,16 +409,18 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (135.0, 0.0), (30.0, 20.0), None), // Fixed size
-                        WidgetCheck("Rect2", (0.0, 20.0), (300.0, 20.0), None), // Fixed height, stretch horizontal
-                        WidgetCheck("Rect3", (140.0, 40.0), (20.0, 65.0), None), // Fixed width, stretch vertical
-                        WidgetCheck("Rect4", (140.0, 105.0), (20.0, 30.0), None), // Fixed size
-                        WidgetCheck("Rect5", (0.0, 135.0), (300.0, 65.0), None), // Stretch all
+                        WidgetCheck("Rect1", (135.0, 0.0), (30.0, 20.0), (30.0, 20.0), None), // Fixed size
+                        WidgetCheck("Rect2", (0.0, 20.0), (300.0, 20.0), (300.0, 20.0), None), // Fixed height, stretch horizontal
+                        WidgetCheck("Rect3", (140.0, 40.0), (20.0, 65.0), (20.0, 65.0), None), // Fixed width, stretch vertical
+                        WidgetCheck("Rect4", (140.0, 105.0), (20.0, 30.0), (20.0, 30.0), None), // Fixed size
+                        WidgetCheck("Rect5", (0.0, 135.0), (300.0, 65.0), (300.0, 65.0), None), // Stretch all
                     ]),
                 )]),
             ),
@@ -437,14 +458,16 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (0.0, 0.0), (300.0, 20.0), None), // Fixed size
-                        WidgetCheck("Rect2", (0.0, 20.0), (300.0, 30.0), None), // Fixed size
-                        WidgetCheck("Rect3", (0.0, 50.0), (300.0, 150.0), None), // Stretch all
+                        WidgetCheck("Rect1", (0.0, 0.0), (300.0, 20.0), (300.0, 20.0), None), // Fixed size
+                        WidgetCheck("Rect2", (0.0, 20.0), (300.0, 30.0), (300.0, 30.0), None), // Fixed size
+                        WidgetCheck("Rect3", (0.0, 50.0), (300.0, 150.0), (300.0, 150.0), None), // Stretch all
                     ]),
                 )]),
             ),
@@ -496,23 +519,26 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![
                     WidgetCheck(
                         "Stack1",
                         (0.0, 0.0),
                         (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (135.0, 0.0), (30.0, 20.0), None),
-                            WidgetCheck("Rect2", (140.0, 20.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect1", (135.0, 0.0), (30.0, 20.0), (30.0, 20.0), None),
+                            WidgetCheck("Rect2", (140.0, 20.0), (20.0, 30.0), (20.0, 30.0), None),
                         ]),
                     ),
                     WidgetCheck(
                         "Stack2",
                         (0.0, 0.0),
                         (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (135.0, 150.0), (30.0, 20.0), None),
-                            WidgetCheck("Rect2", (140.0, 170.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect1", (135.0, 150.0), (30.0, 20.0), (30.0, 20.0), None),
+                            WidgetCheck("Rect2", (140.0, 170.0), (20.0, 30.0), (20.0, 30.0), None),
                         ]),
                     ),
                 ]),
@@ -559,16 +585,18 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (0.0, 90.0), (30.0, 20.0), None), // Fixed size
-                        WidgetCheck("Rect2", (30.0, 0.0), (20.0, 200.0), None), // Fixed width, stretch vertical
-                        WidgetCheck("Rect3", (50.0, 90.0), (115.0, 20.0), None), // Fixed height, stretch horizontal
-                        WidgetCheck("Rect4", (165.0, 85.0), (20.0, 30.0), None), // Fixed size
-                        WidgetCheck("Rect5", (185.0, 0.0), (115.0, 200.0), None), // Stretch all
+                        WidgetCheck("Rect1", (0.0, 90.0), (30.0, 20.0), (30.0, 20.0), None), // Fixed size
+                        WidgetCheck("Rect2", (30.0, 0.0), (20.0, 200.0), (20.0, 200.0), None), // Fixed width, stretch vertical
+                        WidgetCheck("Rect3", (50.0, 90.0), (115.0, 20.0), (115.0, 20.0), None), // Fixed height, stretch horizontal
+                        WidgetCheck("Rect4", (165.0, 85.0), (20.0, 30.0), (20.0, 30.0), None), // Fixed size
+                        WidgetCheck("Rect5", (185.0, 0.0), (115.0, 200.0), (115.0, 200.0), None), // Stretch all
                     ]),
                 )]),
             ),
@@ -606,14 +634,16 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (0.0, 0.0), (30.0, 200.0), None), // Fixed size
-                        WidgetCheck("Rect2", (30.0, 0.0), (20.0, 200.0), None), // Fixed size
-                        WidgetCheck("Rect3", (50.0, 0.0), (250.0, 200.0), None), // Stretch all
+                        WidgetCheck("Rect1", (0.0, 0.0), (30.0, 200.0), (30.0, 200.0), None), // Fixed size
+                        WidgetCheck("Rect2", (30.0, 0.0), (20.0, 200.0), (20.0, 200.0), None), // Fixed size
+                        WidgetCheck("Rect3", (50.0, 0.0), (250.0, 200.0), (250.0, 200.0), None), // Stretch all
                     ]),
                 )]),
             ),
@@ -665,23 +695,26 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![
                     WidgetCheck(
                         "Stack1",
                         (0.0, 0.0),
                         (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (0.0, 90.0), (30.0, 20.0), None),
-                            WidgetCheck("Rect2", (30.0, 85.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect1", (0.0, 90.0), (30.0, 20.0), (30.0, 20.0), None),
+                            WidgetCheck("Rect2", (30.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
                         ]),
                     ),
                     WidgetCheck(
                         "Stack2",
                         (0.0, 0.0),
                         (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0),
                         Some(vec![
-                            WidgetCheck("Rect1", (250.0, 90.0), (30.0, 20.0), None),
-                            WidgetCheck("Rect2", (280.0, 85.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect1", (250.0, 90.0), (30.0, 20.0), (30.0, 20.0), None),
+                            WidgetCheck("Rect2", (280.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
                         ]),
                     ),
                 ]),
@@ -725,14 +758,16 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (280.0, 180.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (135.0, 30.0), (30.0, 20.0), None), // Fixed size
-                        WidgetCheck("Rect2", (125.0, 60.0), (50.0, 60.0), None), // Fixed size
-                        WidgetCheck("Rect3", (30.0, 130.0), (240.0, 40.0), None), // Stretch all
+                        WidgetCheck("Rect1", (135.0, 30.0), (30.0, 20.0), (30.0, 20.0), None), // Fixed size
+                        WidgetCheck("Rect2", (125.0, 60.0), (50.0, 60.0), (20.0, 30.0), None), // Fixed size
+                        WidgetCheck("Rect3", (30.0, 130.0), (240.0, 40.0), (240.0, 40.0), None), // Stretch all
                     ]),
                 )]),
             ),
@@ -775,20 +810,19 @@ mod tests {
                 "Root",
                 (0.0, 0.0),
                 (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
                 Some(vec![WidgetCheck(
                     "Stack",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (280.0, 180.0),
                     Some(vec![
-                        WidgetCheck("Rect1", (30.0, 90.0), (30.0, 20.0), None), // Fixed size
-                        WidgetCheck("Rect2", (70.0, 70.0), (50.0, 60.0), None), // Fixed size
-                        WidgetCheck("Rect3", (130.0, 30.0), (140.0, 140.0), None), // Stretch all
+                        WidgetCheck("Rect1", (30.0, 90.0), (30.0, 20.0), (30.0, 20.0), None), // Fixed size
+                        WidgetCheck("Rect2", (70.0, 70.0), (50.0, 60.0), (20.0, 30.0), None), // Fixed size
+                        WidgetCheck("Rect3", (130.0, 30.0), (140.0, 140.0), (140.0, 140.0), None), // Stretch all
                     ]),
                 )]),
             ),
         );
     }
-
-    // Test cases:
-    // - Text auto expand. (manual only)
 }
