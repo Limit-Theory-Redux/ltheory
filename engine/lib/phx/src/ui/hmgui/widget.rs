@@ -28,8 +28,8 @@ pub enum LayoutType {
     #[default]
     None,
     Stack,
-    Vertical,
     Horizontal,
+    Vertical,
 }
 
 #[derive(Clone, PartialEq)]
@@ -77,23 +77,15 @@ impl HmGuiWidget {
     }
 
     /// Calculate outer min size that includes margin and border.
-    /// Do not add margins if min size and border width are both 0.
     fn calculate_min_size(&self) -> Vec2 {
-        let inner_min_width =
-            self.fixed_width.unwrap_or(self.inner_min_size.x) + self.border_width * 2.0;
-        let inner_min_height =
-            self.fixed_height.unwrap_or(self.inner_min_size.y) + self.border_width * 2.0;
-
-        let x = if inner_min_width > 0.0 {
-            inner_min_width + self.margin_upper.x + self.margin_lower.x
-        } else {
-            0.0
-        };
-        let y = if inner_min_height > 0.0 {
-            inner_min_height + self.margin_upper.y + self.margin_lower.y
-        } else {
-            0.0
-        };
+        let x = self.fixed_width.unwrap_or(self.inner_min_size.x)
+            + self.border_width * 2.0
+            + self.margin_upper.x
+            + self.margin_lower.x;
+        let y = self.fixed_height.unwrap_or(self.inner_min_size.y)
+            + self.border_width * 2.0
+            + self.margin_upper.y
+            + self.margin_lower.y;
 
         Vec2 { x, y }
     }
@@ -149,27 +141,25 @@ impl HmGuiWidget {
     pub fn layout(&self, hmgui: &mut HmGui) {
         println!("Widget::layout({}): begin", self.item.name());
 
-        // Do not process zero square widget
-        if self.min_size.x > 0.0 && self.min_size.y > 0.0 {
-            match &self.item {
-                WidgetItem::Container(container) => {
-                    container.layout(
-                        hmgui,
-                        self.inner_pos,
-                        self.inner_size,
-                        self.inner_size - self.inner_min_size,
-                    );
+        // TODO: do not process widgets with min size, margin and border all 0
+        match &self.item {
+            WidgetItem::Container(container) => {
+                container.layout(
+                    hmgui,
+                    self.inner_pos,
+                    self.inner_size,
+                    self.inner_size - self.inner_min_size,
+                );
 
-                    println!("  - inner={:?}, outer={:?}", self.inner_size, self.size);
+                println!("  - inner={:?}, outer={:?}", self.inner_size, self.size);
 
-                    if container.store_size {
-                        let data = hmgui.get_data(self.hash);
+                if container.store_size {
+                    let data = hmgui.get_data(self.hash);
 
-                        data.size = self.size;
-                    }
+                    data.size = self.size;
                 }
-                _ => {}
             }
+            _ => {}
         }
     }
 

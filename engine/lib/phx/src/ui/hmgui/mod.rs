@@ -722,6 +722,90 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_hmgui_evenly_stretching() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+
+        // Horizontal
+        gui.begin_horizontal_container();
+        gui.set_spacing(0.0);
+        gui.set_children_docking(DOCKING_STRETCH_HORIZONTAL);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_height(20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_height(30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_height(40.0);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        // Horizontal
+        gui.begin_vertical_container();
+        gui.set_spacing(0.0);
+        gui.set_children_docking(DOCKING_STRETCH_VERTICAL);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(40.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(50.0);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "Stack1",
+                        (0.0, 0.0),
+                        (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0),
+                        Some(vec![
+                            WidgetCheck("Rect1", (0.0, 90.0), (100.0, 20.0), (100.0, 20.0), None),
+                            WidgetCheck("Rect2", (100.0, 85.0), (100.0, 30.0), (100.0, 30.0), None),
+                            WidgetCheck("Rect3", (200.0, 80.0), (100.0, 40.0), (100.0, 40.0), None),
+                        ]),
+                    ),
+                    WidgetCheck(
+                        "Stack2",
+                        (0.0, 0.0),
+                        (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0),
+                        Some(vec![
+                            WidgetCheck("Rect1", (140.0, 0.0), (20.0, 50.0), (20.0, 50.0), None),
+                            WidgetCheck("Rect2", (135.0, 50.0), (30.0, 50.0), (30.0, 50.0), None),
+                            WidgetCheck("Rect3", (130.0, 100.0), (40.0, 50.0), (40.0, 50.0), None),
+                            WidgetCheck("Rect4", (125.0, 150.0), (50.0, 50.0), (50.0, 50.0), None),
+                        ]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
     // Vertical: Margin, border, padding, spacing.
     #[test]
     fn test_hmgui_vertical_layout_margin_border_padding_spacing() {
