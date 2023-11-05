@@ -45,7 +45,7 @@ function MusicPlayer:SetVolume(volume)
         return
     end
 
-    self.volume = volume
+    GameState.audio.musicVolume = volume
 
     for _, soundObject in ipairs(self.trackList) do
         Log.Debug("MusicPlayer:SetVolume: volume for '%s' set to %s", soundObject.name, self.volume)
