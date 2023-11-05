@@ -4,6 +4,7 @@ Config.app                       = 'LTheoryRedux'
 Config.orgInfo                   = {
     repository = "https://github.com/Limit-Theory-Redux/ltheory",
     discord = "https://discord.gg/MrfRR5ytJF",
+    wiki = "https://wiki.ltredux.org"
 }
 
 Config.gameTitle                 = "Limit Theory Redux"

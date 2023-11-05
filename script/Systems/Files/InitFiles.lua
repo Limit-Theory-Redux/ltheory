@@ -274,7 +274,8 @@ function InitFiles:writeUserInits()
         "Hello World! This is the Limit Theory Redux Configuration File",
         "Support the LTR project by discussing, contributing or silent participation:",
         "GitHub: " .. Config.orgInfo.repository,
-        "Discord: " .. Config.orgInfo.discord
+        "Discord: " .. Config.orgInfo.discord,
+        "Wiki: " .. Config.orgInfo.wiki
     }
 
     for l_Category, l_CategoryTable in pairsByKeys(noFunctions) do
