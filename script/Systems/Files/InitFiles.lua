@@ -105,6 +105,16 @@ function InitFiles:readUserInits()
                 return nil
             end
 
+            local function checkIfSoundtrack(val)
+                for soundtrackId = 1, Enums.SoundtrackCount do
+                    local soundtrackName = string.lower(string.gsub(Enums.SoundtrackNames[soundtrackId], "(%..-)$", ""))
+                    if string.match(string.lower(val), soundtrackName) then
+                        return Enums.SoundtrackNames[soundtrackId]
+                    end
+                end
+                return nil
+            end
+
             local function firstToLower(string)
                 return (string:gsub("^%L", string.lower))
             end
@@ -164,6 +174,10 @@ function InitFiles:readUserInits()
                     local mode = checkIfCameraMode(val)
                     setValue(var, mode)
                     val = tostring(mode)
+                elseif checkIfSoundtrack(val) then
+                    local soundtrack = checkIfSoundtrack(val)
+                    setValue(var, soundtrack)
+                    val = tostring(soundtrack)
                 else
                     setValue(var, val)
                 end
@@ -210,6 +224,7 @@ function InitFiles:writeUserInits()
     local cursorType = string.lower(Enums.CursorStyleNames[GameState.ui.cursorStyle])
     local hudType = string.lower(Enums.HudStyleNames[GameState.ui.hudStyle])
     local startupCameraMode = string.lower(Enums.CameraModeNames[GameState.player.currentCamera])
+    local menuTheme = string.lower(GameState.audio.menuTheme):gsub("(%..-)$", "")
 
     -- Sets the input file for writing
     io.output(openedFile)
@@ -227,8 +242,8 @@ function InitFiles:writeUserInits()
         local a = {}
         for n in pairs(t) do table.insert(a, n) end
         table.sort(a, f)
-        local i = 0              -- iterator variable
-        local iter = function()  -- iterator function
+        local i = 0             -- iterator variable
+        local iter = function() -- iterator function
             i = i + 1
             if a[i] == nil then
                 return nil
@@ -299,6 +314,15 @@ function InitFiles:writeUserInits()
                     elseif l_Variable == "startupCamera" then
                         l_Value = startupCameraMode
                         writeOptions("startupCamera", Enums.CameraModeNames, "The camera mode the game starts up with.")
+                    elseif l_Variable == "menuTheme" then
+                        l_Value = menuTheme
+                        local cleanSoundtrackNames = {}
+
+                        for _, name in ipairs(Enums.SoundtrackNames) do
+                            local cleanName = name:gsub("(%..-)$", "")
+                            table.insert(cleanSoundtrackNames, cleanName)
+                        end
+                        writeOptions("mainMenuTheme", cleanSoundtrackNames, "The soundtrack used in the main menu.")
                     end
                     --Log.Debug("writing %s: %s", l_Variable, l_Value)
                     io.write(format("%s=%s", tostring(l_Variable), tostring(l_Value)), "\n")

@@ -186,7 +186,7 @@ function MusicPlayer:LoadMusic()
         end
 
         if not fileUnsupported then
-            local newSoundObject = MusicObject:Create {
+            local newMusicObject = MusicObject:Create {
                 name = fname,
                 path = path,
                 volume = self.volume,
@@ -194,8 +194,15 @@ function MusicPlayer:LoadMusic()
             }
 
             --Log.Debug("VOLUME: " .. self.volume)
-            if newSoundObject then
-                table.insert(self.trackList, newSoundObject)
+            if newMusicObject then
+                table.insert(self.trackList, newMusicObject)
+
+                -- Generate Enums
+                if not Enums.SoundtrackNames then Enums.SoundtrackNames = {} end
+                table.insert(Enums.SoundtrackNames, newMusicObject.name)
+
+                if not Enums.SoundtrackCount then Enums.SoundtrackCount = 0 end
+                Enums.SoundtrackCount = Enums.SoundtrackCount + 1
             end
         end
     end
