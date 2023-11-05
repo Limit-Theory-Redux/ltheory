@@ -2,6 +2,7 @@ local MusicPlayer = class(function(self) end)
 
 local MusicObject = require("Types.MusicObject")
 local SFXObject = require("Types.SFXObject")
+local rng = RNG.FromTime()
 
 function MusicPlayer:Init()
     self.trackList = {}
@@ -53,7 +54,10 @@ function MusicPlayer:SetVolume(volume)
 end
 
 function MusicPlayer:OnUpdate(dt)
-    local rng = RNG.FromTime()
+    if GameState.audio.musicVolume ~= self.volume then
+        self.volume = GameState.audio.musicVolume
+    end
+
     if self.currentlyPlaying then
         if not self.currentlyPlaying:IsPlaying() then
             self.currentlyPlaying = nil
