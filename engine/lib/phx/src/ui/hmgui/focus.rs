@@ -3,7 +3,6 @@ pub enum FocusStyle {
     #[default]
     None,
     Fill,
-    #[allow(dead_code)]
     Outline,
     Underline,
 }

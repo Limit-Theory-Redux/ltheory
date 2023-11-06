@@ -574,6 +574,7 @@ impl Engine {
         &mut self.input
     }
 
+    #[bind(name = "HmGui")]
     pub fn hmgui(&mut self) -> &mut HmGui {
         &mut self.hmgui
     }
