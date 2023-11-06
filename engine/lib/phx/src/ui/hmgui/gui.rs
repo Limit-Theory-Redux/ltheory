@@ -329,10 +329,11 @@ impl HmGui {
             self.set_stretch(1.0, 1.0);
 
             container.store_size = true;
-            container.max_size.y = max_size;
+            container.max_size.y = max_size; // TODO: still needed?
 
             let data = self.get_data(widget_hash);
 
+            container.offset.x = -data.offset.x;
             container.offset.y = -data.offset.y;
         } else {
             unreachable!();
@@ -347,13 +348,18 @@ impl HmGui {
             let data = self.get_data(widget.hash);
 
             if has_focus {
+                let scroll_x = input.mouse().value(MouseControl::ScrollX);
                 let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
+                data.offset.x -= 10.0 * scroll_x as f32;
                 data.offset.y -= 10.0 * scroll_y as f32;
             }
 
-            let max_scroll = f32::max(0.0, data.min_size.y - data.size.y);
-            data.offset.y = f32::clamp(data.offset.y, 0.0, max_scroll);
+            let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
+            let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
+
+            data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
+            data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
 
             self.end_container();
 
@@ -361,18 +367,49 @@ impl HmGui {
             self.set_stretch(0.0, 1.0);
             self.set_spacing(0.0);
 
-            if max_scroll > 0.0 {
-                let data = self.get_data(widget.hash);
-                let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                let handle_pos = Lerp(
-                    0.0f64,
-                    (data.size.y - handle_size) as f64,
-                    (data.offset.y / max_scroll) as f64,
-                ) as f32;
+            if max_scroll_x > 0.0 {
+                let (handle_size, handle_pos) = {
+                    let data = self.get_data(widget.hash);
+                    let handle_size = data.size.x * (data.size.x / data.min_size.x);
+                    let handle_pos = Lerp(
+                        0.0f64,
+                        (data.size.x - handle_size) as f64,
+                        (data.offset.x / max_scroll_x) as f64,
+                    ) as f32;
+
+                    (handle_size, handle_pos)
+                };
+
+                self.rect(0.0, 0.0, 0.0, 0.0);
+                self.set_fixed_size(handle_pos, 4.0);
+
                 let color_frame = self.styles.last().expect("Style was not set").color_frame;
+
+                self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+                self.set_fixed_size(handle_size, 4.0);
+            } else {
+                self.rect(0.0, 0.0, 0.0, 0.0);
+                self.set_fixed_size(16.0, 4.0);
+            }
+
+            if max_scroll_y > 0.0 {
+                let (handle_size, handle_pos) = {
+                    let data = self.get_data(widget.hash);
+                    let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                    let handle_pos = Lerp(
+                        0.0f64,
+                        (data.size.y - handle_size) as f64,
+                        (data.offset.y / max_scroll_y) as f64,
+                    ) as f32;
+
+                    (handle_size, handle_pos)
+                };
 
                 self.rect(0.0, 0.0, 0.0, 0.0);
                 self.set_fixed_size(4.0, handle_pos);
+
+                let color_frame = self.styles.last().expect("Style was not set").color_frame;
+
                 self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
                 self.set_fixed_size(4.0, handle_size);
             } else {
