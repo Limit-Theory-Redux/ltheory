@@ -59,9 +59,6 @@ pub struct HmGuiWidget {
     pub min_size: Vec2,
     /// Widget min size after compute_size() excluding margin and border
     pub inner_min_size: Vec2,
-
-    pub align: Vec2,
-    pub stretch: Vec2,
 }
 
 impl HmGuiWidget {

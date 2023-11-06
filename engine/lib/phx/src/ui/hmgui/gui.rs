@@ -76,9 +76,6 @@ impl HmGui {
 
             min_size: Default::default(),
             inner_min_size: Default::default(),
-
-            align: Default::default(),
-            stretch: Default::default(),
         };
         let widget_rf = Rf::new(widget);
         let mut widget = widget_rf.as_mut();
@@ -121,30 +118,12 @@ impl HmGui {
         };
 
         let widget_rf = self.init_widget(WidgetItem::Container(container));
-        let mut widget = widget_rf.as_mut();
-
-        match layout {
-            LayoutType::None => {}
-            LayoutType::Stack => {
-                widget.stretch = Vec2::ONE;
-            }
-            LayoutType::Vertical => {
-                widget.stretch = Vec2::X;
-            }
-            LayoutType::Horizontal => {
-                widget.stretch = Vec2::Y;
-            }
-        };
 
         self.container = Some(widget_rf.clone());
     }
 
     pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
-        self.data.entry(widget_hash).or_insert(HmGuiData {
-            offset: Vec2::ZERO,
-            min_size: Vec2::ZERO,
-            size: Vec2::ZERO,
-        })
+        self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
 
     #[inline]
@@ -320,13 +299,11 @@ impl HmGui {
             };
 
             self.begin_horizontal_container();
-            self.set_stretch(1.0, 1.0);
             container.clip = true;
             self.set_spacing(2.0);
 
             self.begin_vertical_container();
             self.set_padding(6.0, 6.0);
-            self.set_stretch(1.0, 1.0);
 
             container.store_size = true;
             container.max_size.y = max_size; // TODO: still needed?
@@ -362,9 +339,9 @@ impl HmGui {
             data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
 
             self.end_container();
+            self.set_docking(DOCKING_STRETCH_ALL);
 
             self.begin_vertical_container();
-            self.set_stretch(0.0, 1.0);
             self.set_spacing(0.0);
 
             if max_scroll_x > 0.0 {
@@ -418,7 +395,10 @@ impl HmGui {
             }
 
             self.end_container();
+            self.set_docking(DOCKING_STRETCH_VERTICAL);
+
             self.end_container();
+            self.set_docking(DOCKING_STRETCH_ALL);
         } else {
             unreachable!();
         }
@@ -427,7 +407,6 @@ impl HmGui {
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
         if let Some(widget_rf) = self.container.clone() {
             self.begin_stack_container();
-            self.set_stretch(0.0, 0.0);
 
             let mouse = input.mouse();
             let has_focus = self.container_has_focus(FocusType::Mouse);
@@ -454,7 +433,6 @@ impl HmGui {
 
             self.begin_vertical_container();
             self.set_padding(8.0, 8.0);
-            self.set_stretch(1.0, 1.0);
             // self.text_colored(title, 1.0f, 1.0f, 1.0f, 0.3f);
             // self.set_align(0.5f, 0.0f);
         } else {
@@ -464,6 +442,7 @@ impl HmGui {
 
     pub fn end_window(&mut self) {
         self.end_container();
+        self.set_docking(DOCKING_STRETCH_ALL);
         self.end_container();
     }
 
@@ -485,7 +464,7 @@ impl HmGui {
 
             self.set_padding(8.0, 8.0);
             self.text(label);
-            self.set_align(0.5, 0.5);
+            // self.set_align(0.5, 0.5);
 
             self.end_container();
 
@@ -514,11 +493,10 @@ impl HmGui {
 
             self.set_padding(4.0, 4.0);
             self.set_spacing(8.0);
-            self.set_stretch(1.0, 0.0);
 
             self.text(label);
-            self.set_align(0.0, 0.5);
-            self.set_stretch(1.0, 0.0);
+            // self.set_align(0.0, 0.5);
+            self.set_docking(DOCKING_STRETCH_HORIZONTAL);
 
             self.begin_stack_container();
 
@@ -538,12 +516,12 @@ impl HmGui {
                     color_primary.w,
                 );
                 self.set_fixed_size(10.0, 10.0);
-                self.set_align(0.5, 0.5);
+                // self.set_align(0.5, 0.5);
             }
 
             self.end_container();
-            self.set_stretch(0.0, 0.0);
             self.end_container();
+            self.set_docking(DOCKING_STRETCH_HORIZONTAL);
 
             value
         } else {
@@ -555,9 +533,9 @@ impl HmGui {
         self.begin_stack_container();
         self.rect(0.5, 0.5, 0.5, 1.0);
         self.set_fixed_size(0.0, 2.0);
-        self.set_align(0.5, 0.5);
-        self.set_stretch(1.0, 0.0);
+        // self.set_align(0.5, 0.5);
         self.end_container();
+        self.set_docking(DOCKING_STRETCH_HORIZONTAL);
 
         0.0
     }
@@ -565,10 +543,7 @@ impl HmGui {
     pub fn image(&mut self, image: &mut Tex2D) {
         let image_item = HmGuiImage { image };
 
-        let widget_rf = self.init_widget(WidgetItem::Image(image_item));
-        let mut widget = widget_rf.as_mut();
-
-        widget.stretch = Vec2::ONE;
+        let _widget_rf = self.init_widget(WidgetItem::Image(image_item));
     }
 
     pub fn rect(&mut self, r: f32, g: f32, b: f32, a: f32) {
@@ -598,7 +573,7 @@ impl HmGui {
             widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
-        self.set_align(0.0, 1.0);
+        // self.set_align(0.0, 1.0);
     }
 
     pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
@@ -620,7 +595,7 @@ impl HmGui {
             widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
-        self.set_align(0.0, 1.0);
+        // self.set_align(0.0, 1.0);
     }
 
     pub fn text_ex(&mut self, font: &Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
@@ -639,17 +614,7 @@ impl HmGui {
             widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
         }
 
-        self.set_align(0.0, 1.0);
-    }
-
-    pub fn set_align(&self, ax: f32, ay: f32) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
-
-            widget.align = Vec2::new(ax, ay);
-        } else {
-            unreachable!();
-        }
+        // self.set_align(0.0, 1.0);
     }
 
     pub fn set_fixed_width(&self, width: f32) {
@@ -874,16 +839,6 @@ impl HmGui {
             };
 
             container.spacing = spacing;
-        } else {
-            unreachable!();
-        }
-    }
-
-    pub fn set_stretch(&self, x: f32, y: f32) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
-
-            widget.stretch = Vec2::new(x, y);
         } else {
             unreachable!();
         }
