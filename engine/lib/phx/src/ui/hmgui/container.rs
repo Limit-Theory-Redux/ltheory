@@ -4,6 +4,15 @@ use glam::{Vec2, Vec4};
 
 use super::*;
 
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
+pub enum LayoutType {
+    #[default]
+    None,
+    Stack,
+    Horizontal,
+    Vertical,
+}
+
 #[derive(Clone, Default, PartialEq)]
 pub struct HmGuiContainer {
     pub children: Vec<Rf<HmGuiWidget>>,
@@ -90,7 +99,7 @@ impl HmGuiContainer {
     }
 
     /// Go from the top to the bottom of the widget's hierarchy tree to calculate widget's pos and size.
-    pub fn layout(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, extra: Vec2) {
+    pub fn layout(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, mut extra: Vec2) {
         println!(
             "  Container::layout({:?}, pos={pos:?}, size={size:?}, extra={extra:?}, docking={:?}): begin",
             self.layout, self.children_docking
@@ -119,6 +128,64 @@ impl HmGuiContainer {
         //      TODO: take in account percent height length
         // 4. Horizontal layout
         //    - same as for the vertical
+
+        // calculate percentage size of the children
+        for (i, widget_rf) in self.children.iter().enumerate() {
+            let mut widget = widget_rf.as_mut();
+
+            println!(
+                "      widget min size[{i}]: {:?}/{:?}",
+                widget.min_size, widget.inner_min_size
+            );
+
+            // Docking stretch has priority over fixed/percentage size
+            if !widget.docking.has_horizontal_stretch()
+                && !self.children_docking.has_horizontal_stretch()
+            {
+                if let Some(Length::Percent(percent_width)) = widget.default_width {
+                    let widget_width = size.x * percent_width / 100.0;
+
+                    widget.inner_min_size.x = widget_width;
+                    widget.min_size.x = widget_width
+                        + widget.border_width * 2.0
+                        + widget.margin_upper.x
+                        + widget.margin_lower.x;
+
+                    if self.layout == LayoutType::Horizontal {
+                        extra.x -= widget_width;
+                    }
+
+                    println!("      percent width [{i}]: {widget_width}");
+                }
+            }
+
+            // Docking stretch has priority over fixed/percentage size
+            if !widget.docking.has_vertical_stretch()
+                && !self.children_docking.has_vertical_stretch()
+            {
+                if let Some(Length::Percent(percent_height)) = widget.default_height {
+                    let widget_height = size.y * percent_height / 100.0;
+
+                    widget.inner_min_size.y = widget_height;
+                    widget.min_size.y = widget_height
+                        + widget.border_width * 2.0
+                        + widget.margin_upper.y
+                        + widget.margin_lower.y;
+
+                    if self.layout == LayoutType::Vertical {
+                        extra.y -= widget_height;
+                    }
+
+                    println!("      percent height[{i}]: {widget_height}");
+                }
+            }
+
+            println!(
+                "      widget min size[{i}]: {:?}/{:?}",
+                widget.min_size, widget.inner_min_size
+            );
+        }
+        println!("    - extra: {extra:?}");
 
         // per child extra space distribution
         let mut extra_size = vec![0.0; self.children.len()];

@@ -411,9 +411,9 @@ mod tests {
                 (300.0, 200.0), // Root widget should always keep it's position and size
                 (300.0, 200.0),
                 Some(vec![WidgetCheck(
-                    "Stack",
+                    "Vertical",
                     (0.0, 0.0),
-                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0), // Vertical container expanded so has the same position and size as root one
                     (300.0, 200.0),
                     Some(vec![
                         WidgetCheck("Rect1", (135.0, 0.0), (30.0, 20.0), (30.0, 20.0), None), // Fixed size
@@ -460,9 +460,9 @@ mod tests {
                 (300.0, 200.0), // Root widget should always keep it's position and size
                 (300.0, 200.0),
                 Some(vec![WidgetCheck(
-                    "Stack",
+                    "Vertical",
                     (0.0, 0.0),
-                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0), // Vertical container expanded so has the same position and size as root one
                     (300.0, 200.0),
                     Some(vec![
                         WidgetCheck("Rect1", (0.0, 0.0), (300.0, 20.0), (300.0, 20.0), None), // Fixed size
@@ -522,9 +522,9 @@ mod tests {
                 (300.0, 200.0),
                 Some(vec![
                     WidgetCheck(
-                        "Stack1",
+                        "Vertical1",
                         (0.0, 0.0),
-                        (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0), // Vertical container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (135.0, 0.0), (30.0, 20.0), (30.0, 20.0), None),
@@ -532,9 +532,9 @@ mod tests {
                         ]),
                     ),
                     WidgetCheck(
-                        "Stack2",
+                        "Vertical2",
                         (0.0, 0.0),
-                        (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0), // Vertical container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (135.0, 150.0), (30.0, 20.0), (30.0, 20.0), None),
@@ -587,9 +587,9 @@ mod tests {
                 (300.0, 200.0), // Root widget should always keep it's position and size
                 (300.0, 200.0),
                 Some(vec![WidgetCheck(
-                    "Stack",
+                    "Horizontal",
                     (0.0, 0.0),
-                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                     (300.0, 200.0),
                     Some(vec![
                         WidgetCheck("Rect1", (0.0, 90.0), (30.0, 20.0), (30.0, 20.0), None), // Fixed size
@@ -636,7 +636,7 @@ mod tests {
                 (300.0, 200.0), // Root widget should always keep it's position and size
                 (300.0, 200.0),
                 Some(vec![WidgetCheck(
-                    "Stack",
+                    "Horizontal",
                     (0.0, 0.0),
                     (300.0, 200.0), // Stack container expanded so has the same position and size as root one
                     (300.0, 200.0),
@@ -698,9 +698,9 @@ mod tests {
                 (300.0, 200.0),
                 Some(vec![
                     WidgetCheck(
-                        "Stack1",
+                        "Horizontal1",
                         (0.0, 0.0),
-                        (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (0.0, 90.0), (30.0, 20.0), (30.0, 20.0), None),
@@ -708,9 +708,9 @@ mod tests {
                         ]),
                     ),
                     WidgetCheck(
-                        "Stack2",
+                        "Horizontal2",
                         (0.0, 0.0),
-                        (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (250.0, 90.0), (30.0, 20.0), (30.0, 20.0), None),
@@ -745,7 +745,7 @@ mod tests {
         gui.end_container();
         gui.set_docking(DOCKING_STRETCH_ALL);
 
-        // Horizontal
+        // Vertical
         gui.begin_vertical_container();
         gui.set_spacing(0.0);
         gui.set_children_docking(DOCKING_STRETCH_VERTICAL);
@@ -779,9 +779,9 @@ mod tests {
                 (300.0, 200.0),
                 Some(vec![
                     WidgetCheck(
-                        "Stack1",
+                        "Horizontal",
                         (0.0, 0.0),
-                        (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (0.0, 90.0), (100.0, 20.0), (100.0, 20.0), None),
@@ -790,9 +790,9 @@ mod tests {
                         ]),
                     ),
                     WidgetCheck(
-                        "Stack2",
+                        "Vertical",
                         (0.0, 0.0),
-                        (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                        (300.0, 200.0), // Vertical container expanded so has the same position and size as root one
                         (300.0, 200.0),
                         Some(vec![
                             WidgetCheck("Rect1", (140.0, 0.0), (20.0, 50.0), (20.0, 50.0), None),
@@ -844,9 +844,9 @@ mod tests {
                 (300.0, 200.0), // Root widget should always keep it's position and size
                 (300.0, 200.0),
                 Some(vec![WidgetCheck(
-                    "Stack",
+                    "Vertical",
                     (0.0, 0.0),
-                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0), // Vertical container expanded so has the same position and size as root one
                     (280.0, 180.0),
                     Some(vec![
                         WidgetCheck("Rect1", (135.0, 30.0), (30.0, 20.0), (30.0, 20.0), None), // Fixed size
@@ -896,9 +896,9 @@ mod tests {
                 (300.0, 200.0), // Root widget should always keep it's position and size
                 (300.0, 200.0),
                 Some(vec![WidgetCheck(
-                    "Stack",
+                    "Horizontal",
                     (0.0, 0.0),
-                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
                     (280.0, 180.0),
                     Some(vec![
                         WidgetCheck("Rect1", (30.0, 90.0), (30.0, 20.0), (30.0, 20.0), None), // Fixed size
@@ -906,6 +906,228 @@ mod tests {
                         WidgetCheck("Rect3", (130.0, 30.0), (140.0, 140.0), (140.0, 140.0), None), // Stretch all
                     ]),
                 )]),
+            ),
+        );
+    }
+
+    #[test]
+    fn test_hmgui_stack_percentage_size() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+
+        // Stack
+        gui.begin_stack_container();
+
+        // Inside container
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_percent_width(70.0);
+        gui.set_fixed_height(20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(30.0);
+        gui.set_percent_height(60.0);
+
+        // Outside container
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_percent_width(120.0);
+        gui.set_fixed_height(20.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(30.0);
+        gui.set_percent_height(130.0);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
+                Some(vec![WidgetCheck(
+                    "Stack",
+                    (0.0, 0.0),
+                    (300.0, 200.0), // Stack container expanded so has the same position and size as root one
+                    (300.0, 200.0),
+                    Some(vec![
+                        WidgetCheck("Rect1", (45.0, 90.0), (210.0, 20.0), (210.0, 20.0), None),
+                        WidgetCheck("Rect2", (135.0, 40.0), (30.0, 120.0), (30.0, 120.0), None),
+                        WidgetCheck("Rect3", (-30.0, 90.0), (360.0, 20.0), (360.0, 20.0), None),
+                        WidgetCheck("Rect4", (135.0, -30.0), (30.0, 260.0), (30.0, 260.0), None),
+                    ]),
+                )]),
+            ),
+        );
+    }
+
+    #[test]
+    fn test_hmgui_horizontal_percentage_size() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+
+        // Horizontal: first widget - fixed size - 20, second - 50% = 150, last - expands to non remaining width - 130
+        gui.begin_horizontal_container();
+        gui.set_spacing(0.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_percent_width(50.0);
+        gui.set_fixed_height(30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_height(40.0);
+        gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        // Horizontal: first widget - fixed size - 20, second - 120% = 360, last widget shrinks to 0 width
+        gui.begin_horizontal_container();
+        gui.set_spacing(0.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_percent_width(120.0);
+        gui.set_fixed_height(30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_height(40.0);
+        gui.set_docking(DOCKING_STRETCH_HORIZONTAL);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "Horizontal1",
+                        (0.0, 0.0),
+                        (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
+                        (300.0, 200.0),
+                        Some(vec![
+                            WidgetCheck("Rect1", (0.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect2", (20.0, 85.0), (150.0, 30.0), (150.0, 30.0), None),
+                            WidgetCheck("Rect3", (170.0, 80.0), (130.0, 40.0), (130.0, 40.0), None),
+                        ]),
+                    ),
+                    WidgetCheck(
+                        "Horizontal2",
+                        (0.0, 0.0),
+                        (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
+                        (300.0, 200.0),
+                        Some(vec![
+                            WidgetCheck("Rect1", (-40.0, 85.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect2", (-20.0, 85.0), (360.0, 30.0), (360.0, 30.0), None),
+                            WidgetCheck("Rect3", (340.0, 80.0), (0.0, 40.0), (0.0, 40.0), None),
+                        ]),
+                    ),
+                ]),
+            ),
+        );
+    }
+
+    #[test]
+    fn test_hmgui_vertical_percentage_size() {
+        let (mut gui, input) = init_test();
+
+        gui.begin_gui(300.0, 200.0, &input);
+
+        // Vertical: first widget - fixed size - 30, second - 50% = 100, last - expands to non remaining width - 70
+        gui.begin_vertical_container();
+        gui.set_spacing(0.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(30.0);
+        gui.set_percent_height(50.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(40.0);
+        gui.set_docking(DOCKING_STRETCH_VERTICAL);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        // Vertical: first widget - fixed size - 30, second - 120% = 240, last widget shrinks to 0 width
+        gui.begin_vertical_container();
+        gui.set_spacing(0.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_size(20.0, 30.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(30.0);
+        gui.set_percent_height(120.0);
+
+        gui.rect(0.0, 1.0, 0.0, 1.0);
+        gui.set_fixed_width(40.0);
+        gui.set_docking(DOCKING_STRETCH_VERTICAL);
+
+        gui.end_container();
+        gui.set_docking(DOCKING_STRETCH_ALL);
+
+        gui.end_gui(&input);
+
+        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget = root_widget_rf.as_ref();
+
+        check_widget(
+            &root_widget,
+            &WidgetCheck(
+                "Root",
+                (0.0, 0.0),
+                (300.0, 200.0), // Root widget should always keep it's position and size
+                (300.0, 200.0),
+                Some(vec![
+                    WidgetCheck(
+                        "Horizontal1",
+                        (0.0, 0.0),
+                        (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
+                        (300.0, 200.0),
+                        Some(vec![
+                            WidgetCheck("Rect1", (140.0, 0.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect2", (135.0, 30.0), (30.0, 100.0), (30.0, 100.0), None),
+                            WidgetCheck("Rect3", (130.0, 130.0), (40.0, 70.0), (40.0, 70.0), None),
+                        ]),
+                    ),
+                    WidgetCheck(
+                        "Horizontal2",
+                        (0.0, 0.0),
+                        (300.0, 200.0), // Horizontal container expanded so has the same position and size as root one
+                        (300.0, 200.0),
+                        Some(vec![
+                            WidgetCheck("Rect1", (140.0, -35.0), (20.0, 30.0), (20.0, 30.0), None),
+                            WidgetCheck("Rect2", (135.0, -5.0), (30.0, 240.0), (30.0, 240.0), None),
+                            WidgetCheck("Rect3", (130.0, 235.0), (40.0, 0.0), (40.0, 0.0), None),
+                        ]),
+                    ),
+                ]),
             ),
         );
     }

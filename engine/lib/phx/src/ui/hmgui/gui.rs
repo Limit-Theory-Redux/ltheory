@@ -65,8 +65,8 @@ impl HmGui {
             inner_pos: Default::default(),
             inner_size: Default::default(),
 
-            fixed_width: Default::default(),
-            fixed_height: Default::default(),
+            default_width: Default::default(),
+            default_height: Default::default(),
             docking: Default::default(),
             margin_upper: Default::default(),
             margin_lower: Default::default(),
@@ -619,7 +619,7 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.fixed_width = Some(width);
+            widget.default_width = Some(Length::Fixed(width));
         } else {
             unreachable!();
         }
@@ -629,7 +629,7 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.fixed_height = Some(height);
+            widget.default_height = Some(Length::Fixed(height));
         } else {
             unreachable!();
         }
@@ -639,8 +639,39 @@ impl HmGui {
         if let Some(widget_rf) = &self.last {
             let mut widget = widget_rf.as_mut();
 
-            widget.fixed_width = Some(width);
-            widget.fixed_height = Some(height);
+            widget.default_width = Some(Length::Fixed(width));
+            widget.default_height = Some(Length::Fixed(height));
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_percent_width(&self, width: f32) {
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
+
+            widget.default_width = Some(Length::Percent(width));
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_percent_height(&self, height: f32) {
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
+
+            widget.default_height = Some(Length::Percent(height));
+        } else {
+            unreachable!();
+        }
+    }
+
+    pub fn set_percent_size(&self, width: f32, height: f32) {
+        if let Some(widget_rf) = &self.last {
+            let mut widget = widget_rf.as_mut();
+
+            widget.default_width = Some(Length::Percent(width));
+            widget.default_height = Some(Length::Percent(height));
         } else {
             unreachable!();
         }

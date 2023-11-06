@@ -23,13 +23,10 @@ impl WidgetItem {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
-pub enum LayoutType {
-    #[default]
-    None,
-    Stack,
-    Horizontal,
-    Vertical,
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Length {
+    Fixed(f32),
+    Percent(f32),
 }
 
 #[derive(Clone, PartialEq)]
@@ -49,8 +46,8 @@ pub struct HmGuiWidget {
     pub inner_size: Vec2,
 
     // Layout
-    pub fixed_width: Option<f32>,
-    pub fixed_height: Option<f32>,
+    pub default_width: Option<Length>,
+    pub default_height: Option<Length>,
     pub docking: DockingType,
     pub margin_upper: Vec2,
     pub margin_lower: Vec2,
@@ -78,14 +75,24 @@ impl HmGuiWidget {
 
     /// Calculate outer min size that includes margin and border.
     fn calculate_min_size(&self) -> Vec2 {
-        let x = self.fixed_width.unwrap_or(self.inner_min_size.x)
-            + self.border_width * 2.0
-            + self.margin_upper.x
-            + self.margin_lower.x;
-        let y = self.fixed_height.unwrap_or(self.inner_min_size.y)
-            + self.border_width * 2.0
-            + self.margin_upper.y
-            + self.margin_lower.y;
+        let mut inner_min_width = self.inner_min_size.x;
+        if let Some(default_width) = self.default_width {
+            if let Length::Fixed(fixed_width) = default_width {
+                inner_min_width = fixed_width;
+            }
+        }
+
+        let mut inner_min_height = self.inner_min_size.y;
+        if let Some(default_height) = self.default_height {
+            if let Length::Fixed(fixed_height) = default_height {
+                inner_min_height = fixed_height;
+            }
+        }
+
+        let x =
+            inner_min_width + self.border_width * 2.0 + self.margin_upper.x + self.margin_lower.x;
+        let y =
+            inner_min_height + self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y;
 
         Vec2 { x, y }
     }
@@ -214,8 +221,8 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}- size:           {:?}", self.size);
         println!("{ident_str}{IDENT}- inner_pos:      {:?}", self.inner_pos);
         println!("{ident_str}{IDENT}- inner_size:     {:?}", self.inner_size);
-        println!("{ident_str}{IDENT}- fixed_width:    {:?}", self.fixed_width);
-        println!("{ident_str}{IDENT}- fixed_height:   {:?}", self.fixed_height);
+        println!("{ident_str}{IDENT}- default_width:  {:?}", self.default_width);
+        println!("{ident_str}{IDENT}- default_height: {:?}", self.default_height);
         println!("{ident_str}{IDENT}- docking:        {:?}", self.docking);
         println!("{ident_str}{IDENT}- margin_upper:   {:?}", self.margin_upper);
         println!("{ident_str}{IDENT}- margin_lower:   {:?}", self.margin_lower);

@@ -39,6 +39,9 @@ function Loader.defineType()
             void  HmGui_SetFixedWidth            (HmGui const*, float width);
             void  HmGui_SetFixedHeight           (HmGui const*, float height);
             void  HmGui_SetFixedSize             (HmGui const*, float width, float height);
+            void  HmGui_SetPercentWidth          (HmGui const*, float width);
+            void  HmGui_SetPercentHeight         (HmGui const*, float height);
+            void  HmGui_SetPercentSize           (HmGui const*, float width, float height);
             void  HmGui_SetMargin                (HmGui const*, float px, float py);
             void  HmGui_SetMarginEx              (HmGui const*, float left, float top, float right, float bottom);
             void  HmGui_SetMarginLeft            (HmGui const*, float margin);
@@ -89,6 +92,9 @@ function Loader.defineType()
             SetFixedWidth            = libphx.HmGui_SetFixedWidth,
             SetFixedHeight           = libphx.HmGui_SetFixedHeight,
             SetFixedSize             = libphx.HmGui_SetFixedSize,
+            SetPercentWidth          = libphx.HmGui_SetPercentWidth,
+            SetPercentHeight         = libphx.HmGui_SetPercentHeight,
+            SetPercentSize           = libphx.HmGui_SetPercentSize,
             SetMargin                = libphx.HmGui_SetMargin,
             SetMarginEx              = libphx.HmGui_SetMarginEx,
             SetMarginLeft            = libphx.HmGui_SetMarginLeft,
@@ -144,6 +150,9 @@ function Loader.defineType()
                 setFixedWidth            = libphx.HmGui_SetFixedWidth,
                 setFixedHeight           = libphx.HmGui_SetFixedHeight,
                 setFixedSize             = libphx.HmGui_SetFixedSize,
+                setPercentWidth          = libphx.HmGui_SetPercentWidth,
+                setPercentHeight         = libphx.HmGui_SetPercentHeight,
+                setPercentSize           = libphx.HmGui_SetPercentSize,
                 setMargin                = libphx.HmGui_SetMargin,
                 setMarginEx              = libphx.HmGui_SetMarginEx,
                 setMarginLeft            = libphx.HmGui_SetMarginLeft,
