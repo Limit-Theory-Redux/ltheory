@@ -50,13 +50,6 @@ mod tests {
     );
 
     fn init_test() -> (HmGui, Input) {
-        // let subscriber = FmtSubscriber::builder()
-        //     .with_max_level(Level::DEBUG)
-        //     .with_target(false)
-        //     .with_ansi(true)
-        //     .finish();
-        // let _ = tracing::subscriber::set_global_default(subscriber);
-
         (HmGui::new(Default::default()), Default::default())
     }
 

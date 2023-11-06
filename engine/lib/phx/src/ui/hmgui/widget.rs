@@ -120,18 +120,11 @@ impl HmGuiWidget {
     }
 
     pub fn compute_size(&mut self, hmgui: &mut HmGui) {
-        println!("Widget::compute_size({}):", self.item.name());
-
         match &self.item {
             WidgetItem::Container(container) => {
                 self.inner_min_size = container.compute_size(hmgui);
 
                 self.min_size = self.calculate_min_size();
-
-                println!(
-                    "Widget::compute_size(Container/{:?}): inner_min={:?}, outer_min={:?}",
-                    container.layout, self.inner_min_size, self.min_size
-                );
 
                 if container.store_size {
                     let data = hmgui.get_data(self.hash);
@@ -146,8 +139,6 @@ impl HmGuiWidget {
     }
 
     pub fn layout(&self, hmgui: &mut HmGui) {
-        println!("Widget::layout({}): begin", self.item.name());
-
         // TODO: do not process widgets with min size, margin and border all 0
         match &self.item {
             WidgetItem::Container(container) => {
@@ -157,8 +148,6 @@ impl HmGuiWidget {
                     self.inner_size,
                     self.inner_size - self.inner_min_size,
                 );
-
-                println!("  - inner={:?}, outer={:?}", self.inner_size, self.size);
 
                 if container.store_size {
                     let data = hmgui.get_data(self.hash);

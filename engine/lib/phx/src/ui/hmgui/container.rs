@@ -40,28 +40,16 @@ impl HmGuiContainer {
     ///
     /// Go from the bottom to the top of widget's hierarchy tree to calculate widget min sizes.
     pub fn compute_size(&self, hmgui: &mut HmGui) -> Vec2 {
-        println!(
-            "  Container::compute_size({:?}, docking={:?}): begin",
-            self.layout, self.children_docking
-        );
-        for widget_rf in self.children.iter() {
+        for widget_rf in &self.children {
             widget_rf.as_mut().compute_size(hmgui);
         }
-
-        println!("    - layout:        {:?}", self.layout);
-        println!("    - padding_upper: {:?}", self.padding_upper);
-        println!("    - padding_lower: {:?}", self.padding_lower);
-        println!("    - spacing:       {}", self.spacing);
-        println!("    - children[{}]:", self.children.len());
 
         let mut min_size = Vec2::ZERO;
 
         let mut not_head = false;
-        for (i, widget_rf) in self.children.iter().enumerate() {
+        for widget_rf in &self.children {
             let widget = widget_rf.as_ref();
             let widget_min_size = widget.min_size;
-
-            println!("      {i}: min_size={widget_min_size:?}");
 
             match self.layout {
                 LayoutType::None | LayoutType::Stack => {
@@ -90,20 +78,11 @@ impl HmGuiContainer {
 
         min_size += self.padding_lower + self.padding_upper;
 
-        println!(
-            "  Container::compute_size({:?}): end, min_size={min_size}",
-            self.layout
-        );
-
         min_size //.min(self.max_size)
     }
 
     /// Go from the top to the bottom of the widget's hierarchy tree to calculate widget's pos and size.
     pub fn layout(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, mut extra: Vec2) {
-        println!(
-            "  Container::layout({:?}, pos={pos:?}, size={size:?}, extra={extra:?}, docking={:?}): begin",
-            self.layout, self.children_docking
-        );
         let mut pos = pos + self.padding_lower + self.offset;
         let size = size - self.padding_lower - self.padding_upper;
 
@@ -130,13 +109,8 @@ impl HmGuiContainer {
         //    - same as for the vertical
 
         // calculate percentage size of the children
-        for (i, widget_rf) in self.children.iter().enumerate() {
+        for widget_rf in &self.children {
             let mut widget = widget_rf.as_mut();
-
-            println!(
-                "      widget min size[{i}]: {:?}/{:?}",
-                widget.min_size, widget.inner_min_size
-            );
 
             // Docking stretch has priority over fixed/percentage size
             if !widget.docking.has_horizontal_stretch()
@@ -154,8 +128,6 @@ impl HmGuiContainer {
                     if self.layout == LayoutType::Horizontal {
                         extra.x -= widget_width;
                     }
-
-                    println!("      percent width [{i}]: {widget_width}");
                 }
             }
 
@@ -175,17 +147,9 @@ impl HmGuiContainer {
                     if self.layout == LayoutType::Vertical {
                         extra.y -= widget_height;
                     }
-
-                    println!("      percent height[{i}]: {widget_height}");
                 }
             }
-
-            println!(
-                "      widget min size[{i}]: {:?}/{:?}",
-                widget.min_size, widget.inner_min_size
-            );
         }
-        println!("    - extra: {extra:?}");
 
         // per child extra space distribution
         let mut extra_size = vec![0.0; self.children.len()];
@@ -206,7 +170,6 @@ impl HmGuiContainer {
                         extra_size[i] = extra.x * weight;
                     }
                 }
-                println!("      total_weight: {total_weight}");
 
                 if total_weight > 0.0 {
                     extra_size.iter_mut().for_each(|d| *d /= total_weight);
@@ -235,7 +198,6 @@ impl HmGuiContainer {
                 for (i, widget_rf) in self.children.iter().enumerate() {
                     let widget = widget_rf.as_ref();
 
-                    println!("        {i}: {:?}", widget.docking);
                     if widget.docking.has_vertical_stretch()
                         || self.children_docking.has_vertical_stretch()
                     {
@@ -245,7 +207,6 @@ impl HmGuiContainer {
                         extra_size[i] = extra.y * weight;
                     }
                 }
-                println!("      total_weight: {total_weight}");
 
                 if total_weight > 0.0 {
                     extra_size.iter_mut().for_each(|d| *d /= total_weight);
@@ -269,16 +230,8 @@ impl HmGuiContainer {
             }
         }
 
-        println!("    - extra_size: {extra_size:?}");
-        println!("    - children[{}]:", self.children.len());
-
         for (i, widget_rf) in self.children.iter().enumerate() {
             let mut widget = widget_rf.as_mut();
-
-            println!(
-                "      {i}: min_size={:?}, docking={:?}",
-                widget.min_size, widget.docking
-            );
 
             if self.layout == LayoutType::Horizontal {
                 widget.pos.x = pos.x;
@@ -292,41 +245,20 @@ impl HmGuiContainer {
                     // Widget can go out of parent scope
                     widget.pos.x = pos.x;
                     widget.size.x = size.x;
-                    println!(
-                        "        x: stretch pos={:?}, size={:?}",
-                        widget.pos.x, widget.size.x
-                    );
                 } else if widget.docking.is_dock_right() || self.children_docking.is_dock_right() {
                     // Stick to right, size == min_size
                     widget.pos.x = pos.x + size.x - widget.min_size.x;
                     widget.size.x = widget.min_size.x;
-                    println!(
-                        "        x: right pos={:?}, size={:?}",
-                        widget.pos.x, widget.size.x
-                    );
                 } else if !(widget.docking.is_dock_left() || self.children_docking.is_dock_left()) {
                     // Center widget, size == min_size
                     widget.pos.x = pos.x + (size.x - widget.min_size.x) / 2.0;
                     widget.size.x = widget.min_size.x;
-                    println!(
-                        "        x: center pos={:?}, size={:?}",
-                        widget.pos.x, widget.size.x
-                    );
                 } else {
                     // Otherwise stick to the left
                     widget.pos.x = pos.x;
                     widget.size.x = widget.min_size.x;
-                    println!(
-                        "        x: left pos={:?}, size={:?}",
-                        widget.pos.x, widget.size.x
-                    );
                 }
             }
-
-            println!(
-                "        - pos_x: {}, size_x: {}",
-                widget.pos.x, widget.size.x
-            );
 
             if self.layout == LayoutType::Vertical {
                 widget.pos.y = pos.y;
@@ -356,17 +288,10 @@ impl HmGuiContainer {
                 }
             }
 
-            println!(
-                "        - pos_y: {}, size_y: {}",
-                widget.pos.y, widget.size.y
-            );
-
             widget.calculate_inner_pos_size();
 
             widget.layout(hmgui);
         }
-
-        println!("  Container::compute_size({:?}): end", self.layout);
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, focus: bool) {
