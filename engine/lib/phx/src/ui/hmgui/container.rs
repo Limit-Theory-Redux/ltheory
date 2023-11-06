@@ -87,6 +87,11 @@ impl HmGuiContainer {
         let size = size - self.padding_lower - self.padding_upper;
 
         // Algorithm:
+        // 1. Calculate percentage size of the children. Calculate for the widgets without horizontal/vertical stretching.
+        // 2. Calculate extra space distribution. If there is extra space, distribute it between widgets with horizontal/vertical stretching.
+        // 3. Recalculate widgets position and size.
+        //
+        // Layout logic per layout type:
         // 1. None layout (top level widget)
         //    - preserve left/top position
         //    - behavior is the same as for Stack layout
@@ -108,7 +113,7 @@ impl HmGuiContainer {
         // 4. Horizontal layout
         //    - same as for the vertical
 
-        // calculate percentage size of the children
+        // 1. Calculate percentage size of the children
         for widget_rf in &self.children {
             let mut widget = widget_rf.as_mut();
 
@@ -151,7 +156,7 @@ impl HmGuiContainer {
             }
         }
 
-        // per child extra space distribution
+        // 2. Calculate per child extra space distribution
         let mut extra_size = vec![0.0; self.children.len()];
 
         if self.layout == LayoutType::Horizontal {
@@ -230,6 +235,7 @@ impl HmGuiContainer {
             }
         }
 
+        // 3. Recalculate widgets position and size
         for (i, widget_rf) in self.children.iter().enumerate() {
             let mut widget = widget_rf.as_mut();
 
