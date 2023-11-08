@@ -250,17 +250,24 @@ function MainMenu:ShowSeedDialog()
     self.seedDialogDisplayed = true
 
     Gui:beginWindow(guiElements.name, InputInstance)
-    Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
-    Gui:setAlign(0.5, 0.5)
     Gui:setSpacing(16)
+
+    -- TODO: this should be window title parameter
+    Gui:textEx(Cache.Font('Iceland', 42), 'Choose Seed', 0.3, 0.6, 1.0, 1.0)
+    Gui:setDocking(Docking.Top)
+
     self:ShowSeedDialogInner()
+
     Gui:endWindow()
-    Gui:setAlign(0.5, 0.5)
+    -- Gui:setPercentHeight(95.0)
 end
 
 function MainMenu:ShowSeedDialogInner()
     -- Add new star system seed selection dialog menu items
     Gui:beginVerticalContainer()
+    Gui:setChildrenDocking(Docking.StretchHorizontal)
+    Gui:setSpacing(8)
+
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2', 26))
 
@@ -281,11 +288,16 @@ function MainMenu:ShowSeedDialogInner()
             -- Save the star system seed associated with it
             LTheoryRedux.seed = guiElements[1]["elems"][i][2]
         end
-        Gui:setSpacing(8)
     end
+
+    Gui:popStyle(2)
+    Gui:endContainer()
+    Gui:setDocking(Docking.StretchHorizontal)
+
+    -- Buttons: Cancel, Random Seed, Use Seed
+    Gui:beginHorizontalContainer()
     Gui:setSpacing(16)
 
-    Gui:beginHorizontalContainer()
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2Bold', 28))
 
@@ -295,8 +307,6 @@ function MainMenu:ShowSeedDialogInner()
         end
         self.seedDialogDisplayed = false
     end
-
-    Gui:setSpacing(16)
 
     if Gui:button("Random Seed") then
         LTheoryRedux:generateNewSeed()
@@ -311,8 +321,6 @@ function MainMenu:ShowSeedDialogInner()
         InputInstance:setCursorVisible(false)
         LTheoryRedux:createStarSystem()
     end
-
-    Gui:setSpacing(16)
 
     if Gui:button("Use Seed") then
         self.seedDialogDisplayed = false
@@ -330,9 +338,7 @@ function MainMenu:ShowSeedDialogInner()
 
     Gui:popStyle(2)
     Gui:endContainer()
-    Gui:setAlign(0.5, 0.5)
-    Gui:popStyle(2)
-    Gui:endContainer()
+    Gui:setDocking(Docking.StretchHorizontal)
 end
 
 function MainMenu:ShowSettingsScreen()

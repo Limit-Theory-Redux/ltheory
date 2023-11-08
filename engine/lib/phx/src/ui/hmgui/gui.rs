@@ -398,6 +398,7 @@ impl HmGui {
         }
     }
 
+    // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
         if let Some(widget_rf) = self.container.clone() {
             self.begin_stack_container();
@@ -405,23 +406,21 @@ impl HmGui {
             let mouse = input.mouse();
             let has_focus = self.container_has_focus(FocusType::Mouse);
 
-            {
-                let mut widget = widget_rf.as_mut();
-                let data = self.get_data(widget.hash);
+            let mut widget = widget_rf.as_mut();
+            let data = self.get_data(widget.hash);
 
-                if has_focus && mouse.is_down(MouseControl::Left) {
-                    data.offset.x += mouse.value(MouseControl::DeltaX);
-                    data.offset.y += mouse.value(MouseControl::DeltaY);
-                }
-
-                widget.pos.x += data.offset.x;
-                widget.pos.y += data.offset.y;
-
-                let container = widget.get_container_item_mut();
-                container.focus_style = FocusStyle::None;
-                container.frame_opacity = 0.95;
-                container.clip = true;
+            if has_focus && mouse.is_down(MouseControl::Left) {
+                data.offset.x += mouse.value(MouseControl::DeltaX);
+                data.offset.y += mouse.value(MouseControl::DeltaY);
             }
+
+            widget.pos.x += data.offset.x;
+            widget.pos.y += data.offset.y;
+
+            let container = widget.get_container_item_mut();
+            container.focus_style = FocusStyle::None;
+            container.frame_opacity = 0.95;
+            container.clip = true;
 
             self.begin_vertical_container();
             self.set_padding(8.0, 8.0);
@@ -433,9 +432,9 @@ impl HmGui {
     }
 
     pub fn end_window(&mut self) {
-        self.end_container();
+        self.end_container(); // Vertical container
         self.set_docking(DOCKING_STRETCH_ALL);
-        self.end_container();
+        self.end_container(); // Stack container
     }
 
     pub fn button(&mut self, label: &str) -> bool {
