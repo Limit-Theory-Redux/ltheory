@@ -28,6 +28,9 @@ function LTheoryRedux:onInit()
 
     DebugControl.ltheory = self
 
+    -- Load Soundtracks before config
+    MusicPlayer:Init()
+
     -- Read user-defined values and update game variables
     InitFiles:readUserInits()
 
@@ -35,7 +38,6 @@ function LTheoryRedux:onInit()
     Universe:Init()
 
     -- Open Main Menu
-    MusicPlayer:Init()
     MainMenu:Open()
 
     --* Game initializations *--

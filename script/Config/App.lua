@@ -4,6 +4,7 @@ Config.app                       = 'LTheoryRedux'
 Config.orgInfo                   = {
     repository = "https://github.com/Limit-Theory-Redux/ltheory",
     discord = "https://discord.gg/MrfRR5ytJF",
+    wiki = "https://wiki.ltredux.org"
 }
 
 Config.gameTitle                 = "Limit Theory Redux"
@@ -30,7 +31,7 @@ Config.audio                     = {
     mainMenuMusicEnabled = true,
     soundMin             = 0,
     soundMax             = 1,    -- SetVolume range seems to go from 0 (min) to about 2 or 3 (max)
-    musicVolume          = 0.75, -- current volume
+    musicVolume          = 0.5, -- current volume
     mainMenu             = "LTR_Explorer.ogg",
 
     pulseFireName        = "pulse5.wav",
