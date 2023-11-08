@@ -437,6 +437,13 @@ impl HmGui {
         self.end_container(); // Stack container
     }
 
+    /// Invisible element that stretches in all directions.
+    /// Use for pushing neighbor elements to the sides.
+    pub fn spacer(&mut self) {
+        self.rect(0.0, 0.0, 0.0, 0.0);
+        self.set_docking(DOCKING_STRETCH_ALL);
+    }
+
     pub fn button(&mut self, label: &str) -> bool {
         if let Some(widget_rf) = self.container.clone() {
             self.begin_stack_container();
@@ -466,6 +473,8 @@ impl HmGui {
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
         if let Some(widget_rf) = self.container.clone() {
             self.begin_horizontal_container();
+            self.set_padding(4.0, 4.0);
+            self.set_spacing(8.0);
 
             {
                 let mut widget = widget_rf.as_mut();
@@ -478,12 +487,9 @@ impl HmGui {
                 value = !value;
             }
 
-            self.set_padding(4.0, 4.0);
-            self.set_spacing(8.0);
-
             self.text(label);
-            // self.set_align(0.0, 0.5);
-            self.set_docking(DOCKING_STRETCH_HORIZONTAL);
+
+            self.spacer();
 
             self.begin_stack_container();
 
@@ -508,7 +514,6 @@ impl HmGui {
 
             self.end_container();
             self.end_container();
-            self.set_docking(DOCKING_STRETCH_HORIZONTAL);
 
             value
         } else {

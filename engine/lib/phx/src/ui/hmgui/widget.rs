@@ -170,10 +170,10 @@ impl HmGuiWidget {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui) {
-        let size = self.size - (self.border_width * 2.0 + self.margin_upper + self.margin_lower);
+        let size = self.inner_size;
 
         if size.x > 0.0 && size.y > 0.0 {
-            let pos = self.pos + self.border_width + self.margin_upper;
+            let pos = self.inner_pos;
 
             match &self.item {
                 WidgetItem::Container(container) => {
@@ -182,9 +182,11 @@ impl HmGuiWidget {
                     container.draw(hmgui, pos, size, hmgui_focus == self.hash);
                 }
                 WidgetItem::Text(text) => {
-                    let min_size_y = self.min_size.y
+                    let x = pos.x + (size.x - self.inner_min_size.x) / 2.0; // center text
+                    let y = pos.y + self.min_size.y
                         - (self.border_width * 2.0 + self.margin_upper.y + self.margin_lower.y);
-                    text.draw(&mut hmgui.renderer, Vec2::new(pos.x, pos.y + min_size_y));
+
+                    text.draw(&mut hmgui.renderer, Vec2::new(x, y));
                 }
                 WidgetItem::Rect(rect) => {
                     rect.draw(&mut hmgui.renderer, pos, size);

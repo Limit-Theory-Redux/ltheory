@@ -27,6 +27,7 @@ function Loader.defineType()
             void  HmGui_EndScroll                (HmGui*, Input const* input);
             void  HmGui_BeginWindow              (HmGui*, cstr title, Input const* input);
             void  HmGui_EndWindow                (HmGui*);
+            void  HmGui_Spacer                   (HmGui*);
             bool  HmGui_Button                   (HmGui*, cstr label);
             bool  HmGui_Checkbox                 (HmGui*, cstr label, bool value);
             float HmGui_Slider                   (HmGui*, float lower, float upper, float value);
@@ -78,6 +79,7 @@ function Loader.defineType()
             EndScroll                = libphx.HmGui_EndScroll,
             BeginWindow              = libphx.HmGui_BeginWindow,
             EndWindow                = libphx.HmGui_EndWindow,
+            Spacer                   = libphx.HmGui_Spacer,
             Button                   = libphx.HmGui_Button,
             Checkbox                 = libphx.HmGui_Checkbox,
             Slider                   = libphx.HmGui_Slider,
@@ -134,6 +136,7 @@ function Loader.defineType()
                 endScroll                = libphx.HmGui_EndScroll,
                 beginWindow              = libphx.HmGui_BeginWindow,
                 endWindow                = libphx.HmGui_EndWindow,
+                spacer                   = libphx.HmGui_Spacer,
                 button                   = libphx.HmGui_Button,
                 checkbox                 = libphx.HmGui_Checkbox,
                 slider                   = libphx.HmGui_Slider,
