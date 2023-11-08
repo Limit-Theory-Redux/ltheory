@@ -259,7 +259,6 @@ function MainMenu:ShowSeedDialog()
     self:ShowSeedDialogInner()
 
     Gui:endWindow()
-    -- Gui:setPercentHeight(95.0)
 end
 
 function MainMenu:ShowSeedDialogInner()
@@ -349,12 +348,16 @@ function MainMenu:ShowSettingsScreen()
     self.settingsScreenDisplayed = true
 
     Gui:beginWindow(guiElements.name, InputInstance)
+
     Gui:textEx(Cache.Font('Iceland', 42), 'Settings', 0.3, 0.6, 1.0, 1.0)
     Gui:setAlign(0.5, 0.5)
+
     Gui:rect(1.0, 1.0, 0.3, 0.6, 1.0, 1.0)
     Gui:setStretch(1.0, 0.5)
     Gui:setSpacing(16)
+
     self:ShowSettingsScreenInner()
+
     Gui:endWindow()
     Gui:setAlign(0.5, 0.5)
 end
@@ -798,17 +801,23 @@ end
 function MainMenu:ShowFlightDialog()
     -- Add Flight Mode dialog menu
     Gui:beginWindow("Flight Mode", InputInstance)
-    Gui:textEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
-    Gui:setAlign(0.5, 0.5)
     Gui:setSpacing(16)
+
+    -- TODO: this should be window title parameter
+    Gui:textEx(Cache.Font('Iceland', 36), 'Flight Mode Controls', 0.3, 0.6, 1.0, 1.0)
+    Gui:setDocking(Docking.Top)
+
     self:ShowFlightDialogInner()
+
     Gui:endWindow()
-    Gui:setAlign(0.5, 0.5)
 end
 
 function MainMenu:ShowFlightDialogInner()
     -- Add Flight Mode dialog menu items
     Gui:beginVerticalContainer()
+    Gui:setChildrenDocking(Docking.StretchHorizontal)
+    Gui:setSpacing(8)
+
     Gui:pushTextColor(1.0, 1.0, 1.0, 1.0)
     Gui:pushFont(Cache.Font('Exo2Bold', 26))
 
@@ -827,8 +836,6 @@ function MainMenu:ShowFlightDialogInner()
     end
 
     if GameState.player.currentShip ~= nil and not GameState.player.currentShip:isDestroyed() then
-        Gui:setSpacing(8)
-
         if Gui:button("Save Game") then
             -- TODO: Save game state here
             LTheoryRedux:freezeTurrets()
@@ -837,14 +844,12 @@ function MainMenu:ShowFlightDialogInner()
             InputInstance:setCursorVisible(false)
         end
     end
-    Gui:setSpacing(8)
 
     if Gui:button("Load Game") then
         -- TODO: Show Load Game menu once that's been implemented
         -- NOTE: For now, just pop up a Seed Menu dialog for creating a new star system
         self:ShowSeedDialog()
     end
-    Gui:setSpacing(8)
 
     if Gui:button("Game Settings") then
         -- Show Game Settings menu
@@ -852,20 +857,20 @@ function MainMenu:ShowFlightDialogInner()
         GameState:Pause()
         InputInstance:setCursorVisible(true)
     end
-    Gui:setSpacing(8)
 
     if Gui:button("Exit to Main Menu") then
         GameState:SetState(Enums.GameStates.MainMenu)        -- switch to Startup Mode
         LTheoryRedux:seedStarsystem(Enums.MenuMode.MainMenu) -- use random seed for new background star system and display it in Main Menu mode
         GameState:Unpause()
     end
-    Gui:setSpacing(8)
 
     if Gui:button("Exit Game") then
         LTheoryRedux:exitGame()
     end
+
     Gui:popStyle(2)
     Gui:endContainer()
+    Gui:setDocking(Docking.StretchHorizontal)
 end
 
 function MainMenu:utf8(decimal)
