@@ -98,7 +98,7 @@ static void MemPool_Grow (MemPool* self) {
 
 function Test:showSimple()
     Gui:beginWindow('HmGui Test', InputInstance)
-    Gui:beginGroupX()
+    Gui:beginHorizontalContainer()
     Gui:button(" < ")
     Gui:setStretch(0, 1)
     Gui:button("Tab1")
@@ -106,11 +106,11 @@ function Test:showSimple()
     Gui:button("Tab3")
     Gui:button(" > ")
     Gui:setStretch(0, 1)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1, 1)
 
-    Gui:beginGroupX()
-    Gui:beginGroupY()
+    Gui:beginHorizontalContainer()
+    Gui:beginVerticalContainer()
     Gui:setPadding(4, 4)
     Gui:text("Welcome to...")
     Gui:setAlign(0.5, 0.5)
@@ -128,22 +128,22 @@ function Test:showSimple()
     Gui:button("Stretchy")
     Gui:setStretch(1, 1)
 
-    Gui:beginGroupX()
+    Gui:beginHorizontalContainer()
     for i = 1, 3 do
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         for j = 1, 3 do
             Gui:button(":)")
         end
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setStretch(1, 1)
     end
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1, 1)
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setAlign(0, 0.0)
     Gui:setStretch(1, 1)
 
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
     Gui:setPadding(4, 4)
     if Gui:button("-- OPT 1 --") then Log.Debug("Opt 1!") end
     Gui:button("-- OPT 2 --")
@@ -151,27 +151,27 @@ function Test:showSimple()
     Gui:checkbox("Nope", false)
     Gui:checkbox("Possibly?", false)
     Gui:button("DONE")
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setAlign(0, 1.0)
     Gui:setStretch(1, 1)
 
-    Gui:beginGroupY()
+    Gui:beginVerticalContainer()
     Gui:setPadding(4, 4)
     for i = 1, 9 do
-        Gui:beginGroupX()
+        Gui:beginHorizontalContainer()
         for j = 1, i do
             Gui:button(format("%d.%d", i, j))
         end
-        Gui:endGroup()
+        Gui:endContainer()
         Gui:setAlign(0.5, 0.5)
     end
-    Gui:endGroup()
+    Gui:endContainer()
     self:showTodoInner()
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:setStretch(1, 0)
 
     Gui:text("Behold, the codez! \\o/")
-    Gui:beginGroupX()
+    Gui:beginHorizontalContainer()
     for i = 1, 2 do
         Gui:beginScroll(200)
         Gui:pushTextColor(0.1, 0.5, 1.0, 1.0)
@@ -183,7 +183,7 @@ function Test:showSimple()
         Gui:popStyle(2)
         Gui:endScroll(InputInstance)
     end
-    Gui:endGroup()
+    Gui:endContainer()
     Gui:endWindow()
     Gui:setAlign(0.5, 0.5)
 end
@@ -193,13 +193,13 @@ function Test:showTodoInner()
     Gui:setSpacing(8)
     for _, group in ipairs(todo) do
         Gui:textEx(Cache.Font('Rajdhani', 18), group.name, 1, 1, 1, 1)
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         Gui:setSpacing(2)
         Gui:setPaddingLeft(12)
         for _, v in ipairs(group.elems) do
             v[2] = Gui:checkbox(v[1], v[2])
         end
-        Gui:endGroup()
+        Gui:endContainer()
     end
     Gui:endScroll(InputInstance)
 end

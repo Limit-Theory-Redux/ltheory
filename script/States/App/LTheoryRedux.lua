@@ -371,9 +371,9 @@ function LTheoryRedux:showGameLogo()
     local scaleFactor = ((self.resX * self.resY) / (1600 * 900)) ^ 0.5
     local scaleFactorX = self.resX / 1600
     local scaleFactorY = self.resY / 900
+
     Gui:image(self.logo)                                                                  -- draw the LTR logo on top of the canvas
-    Gui:setStretch(0.76 * scaleFactor / scaleFactorX, 0.243 * scaleFactor / scaleFactorY) -- scale logo (width, height)
-    Gui:setAlign(0.5, 0.5)                                                                -- align logo
+    Gui:setPercentSize(76.0 * scaleFactor / scaleFactorX, 24.3 * scaleFactor / scaleFactorY)
 end
 
 function LTheoryRedux:exitGame()

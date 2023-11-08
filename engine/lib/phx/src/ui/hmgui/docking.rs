@@ -82,9 +82,7 @@ impl std::fmt::Debug for DockingType {
             dockings.push("None");
         }
 
-        f.debug_tuple("DockingType")
-            .field(&dockings.join(" | "))
-            .finish()
+        f.debug_tuple(&format!("{}", dockings.join("|"))).finish()
     }
 }
 

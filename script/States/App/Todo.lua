@@ -14,12 +14,12 @@ end
 function Todo:show()
     self.done = Gui:checkbox(self.name, self.done)
     if #self.children > 0 then
-        Gui:beginGroupY()
+        Gui:beginVerticalContainer()
         Gui:setPaddingLeft(12)
         for i = 1, #self.children do
             self.children[i]:show()
         end
-        Gui:endGroup()
+        Gui:endContainer()
     end
 end
 

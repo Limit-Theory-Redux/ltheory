@@ -13,13 +13,17 @@ pub enum WidgetItem {
 }
 
 impl WidgetItem {
-    fn name(&self) -> &str {
+    pub fn name(&self) -> String {
         match self {
-            WidgetItem::Container(_) => "Container",
-            WidgetItem::Text(_) => "Text",
-            WidgetItem::Rect(_) => "Rect",
-            WidgetItem::Image(_) => "Image",
+            WidgetItem::Container(item) => format!("Container/{:?}", item.layout),
+            WidgetItem::Text(_) => "Text".into(),
+            WidgetItem::Rect(_) => "Rect".into(),
+            WidgetItem::Image(_) => "Image".into(),
         }
+    }
+
+    pub fn is_container(&self) -> bool {
+        matches!(self, Self::Container(_))
     }
 }
 
@@ -62,12 +66,21 @@ pub struct HmGuiWidget {
 }
 
 impl HmGuiWidget {
-    pub fn get_container_item(&self) -> Option<&HmGuiContainer> {
-        if let WidgetItem::Container(item) = &self.item {
-            Some(item)
-        } else {
-            None
-        }
+    pub fn get_container_item(&self) -> &HmGuiContainer {
+        let WidgetItem::Container(item) = &self.item else {
+            panic!("Expected container but was: {}", self.item.name())
+        };
+
+        item
+    }
+
+    pub fn get_container_item_mut(&mut self) -> &mut HmGuiContainer {
+        let item_name = self.item.name().to_string();
+        let WidgetItem::Container(item) = &mut self.item else {
+            panic!("Expected container but was: {}", item_name)
+        };
+
+        item
     }
 
     /// Calculate outer min size that includes margin and border.

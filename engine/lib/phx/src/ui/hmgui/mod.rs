@@ -55,28 +55,18 @@ mod tests {
 
     fn check_widget(widget: &Ref<'_, HmGuiWidget>, expected: &WidgetCheck) {
         assert_eq!(
-            widget.pos,
-            Vec2::new(expected.1 .0, expected.1 .1),
-            "{} widget position",
-            expected.0
-        );
-        assert_eq!(
-            widget.size,
-            Vec2::new(expected.2 .0, expected.2 .1),
-            "{} widget outer size",
-            expected.0
-        );
-        assert_eq!(
-            widget.inner_size,
-            Vec2::new(expected.3 .0, expected.3 .1),
-            "{} widget inner size",
+            (widget.pos, widget.size, widget.inner_size),
+            (
+                Vec2::new(expected.1 .0, expected.1 .1),
+                Vec2::new(expected.2 .0, expected.2 .1),
+                Vec2::new(expected.3 .0, expected.3 .1)
+            ),
+            "{} widget position, outer and inner sizes",
             expected.0
         );
 
         if let Some(expected_children) = &expected.4 {
-            let container = widget
-                .get_container_item()
-                .expect(&format!("Cannot get {} container", expected.0));
+            let container = widget.get_container_item();
             assert_eq!(
                 container.children.len(),
                 expected_children.len(),
@@ -92,7 +82,7 @@ mod tests {
             }
         } else {
             assert!(
-                widget.get_container_item().is_none(),
+                !matches!(widget.item, WidgetItem::Container(_)),
                 "Expected non-container item for: {}",
                 expected.0
             );

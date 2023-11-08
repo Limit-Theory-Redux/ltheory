@@ -83,9 +83,7 @@ impl HmGui {
         if let Some(parent_rf) = widget.parent.clone() {
             let mut parent = parent_rf.as_mut();
             let parent_hash = parent.hash;
-            let WidgetItem::Container(parent_container) = &mut parent.item else {
-                unreachable!();
-            };
+            let parent_container = parent.get_container_item_mut();
 
             parent_container.children_hash = (parent_container.children_hash).wrapping_add(1);
 
@@ -195,9 +193,7 @@ impl HmGui {
 
         if let Some(widget_rf) = &self.container {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.clip = true;
 
@@ -294,9 +290,7 @@ impl HmGui {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
             let widget_hash = widget.hash;
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             self.begin_horizontal_container();
             container.clip = true;
@@ -423,9 +417,7 @@ impl HmGui {
                 widget.pos.x += data.offset.x;
                 widget.pos.y += data.offset.y;
 
-                let WidgetItem::Container(container) = &mut widget.item else {
-                    unreachable!()
-                };
+                let container = widget.get_container_item_mut();
                 container.focus_style = FocusStyle::None;
                 container.frame_opacity = 0.95;
                 container.clip = true;
@@ -452,9 +444,7 @@ impl HmGui {
 
             {
                 let mut widget = widget_rf.as_mut();
-                let WidgetItem::Container(container) = &mut widget.item else {
-                    unreachable!()
-                };
+                let container = widget.get_container_item_mut();
 
                 container.focus_style = FocusStyle::Fill;
                 container.frame_opacity = 0.5;
@@ -480,9 +470,7 @@ impl HmGui {
 
             {
                 let mut widget = widget_rf.as_mut();
-                let WidgetItem::Container(container) = &mut widget.item else {
-                    unreachable!()
-                };
+                let container = widget.get_container_item_mut();
 
                 container.focus_style = FocusStyle::Underline;
             }
@@ -754,9 +742,7 @@ impl HmGui {
     pub fn set_padding(&self, px: f32, py: f32) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.padding_lower = Vec2::new(px, py);
             container.padding_upper = Vec2::new(px, py);
@@ -768,9 +754,7 @@ impl HmGui {
     pub fn set_padding_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.padding_lower = Vec2::new(left, top);
             container.padding_upper = Vec2::new(right, bottom);
@@ -782,9 +766,7 @@ impl HmGui {
     pub fn set_padding_left(&self, padding: f32) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.padding_lower.x = padding;
         } else {
@@ -795,9 +777,7 @@ impl HmGui {
     pub fn set_padding_top(&self, padding: f32) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.padding_lower.y = padding;
         } else {
@@ -808,9 +788,7 @@ impl HmGui {
     pub fn set_padding_right(&self, padding: f32) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.padding_upper.x = padding;
         } else {
@@ -821,9 +799,7 @@ impl HmGui {
     pub fn set_padding_bottom(&self, padding: f32) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.padding_upper.y = padding;
         } else {
@@ -834,9 +810,7 @@ impl HmGui {
     pub fn set_spacing(&self, spacing: f32) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.spacing = spacing;
         } else {
@@ -857,9 +831,7 @@ impl HmGui {
     pub fn container_has_focus(&self, ty: FocusType) -> bool {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.focusable[ty as usize] = true;
 
@@ -872,9 +844,7 @@ impl HmGui {
     pub fn set_children_docking(&self, docking: u8) {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
-            let WidgetItem::Container(container) = &mut widget.item else {
-                unreachable!()
-            };
+            let container = widget.get_container_item_mut();
 
             container.children_docking = docking.into();
         } else {
