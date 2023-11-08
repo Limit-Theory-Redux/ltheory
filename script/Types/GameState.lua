@@ -39,6 +39,7 @@ GameState.audio = {
     soundEnabled = Config.audio.soundEnabled,
     fxVolume     = Config.audio.fxVolume,
     musicVolume  = Config.audio.musicVolume,
+    menuTheme    = Config.audio.mainMenu
 }
 
 GameState.ui = {
