@@ -28,7 +28,7 @@ function Loader.defineType()
             RigidBody* RigidBody_GetParent                   (RigidBody const*);
             void       RigidBody_ApplyForce                  (RigidBody*, Vec3f const* force);
             void       RigidBody_ApplyTorque                 (RigidBody*, Vec3f const* torque);
-            void       RigidBody_Attach                      (RigidBody*, RigidBody* child, Vec3f pos, Quat rot);
+            void       RigidBody_Attach                      (RigidBody*, RigidBody* child, Vec3f const* pos, Quat const* rot);
             void       RigidBody_Detach                      (RigidBody*, RigidBody* child);
             void       RigidBody_GetBoundingBox              (RigidBody const*, Box3f* out);
             void       RigidBody_GetBoundingBoxCompound      (RigidBody const*, Box3f* out);
@@ -40,8 +40,8 @@ function Loader.defineType()
             Matrix     RigidBody_GetWorldMatrixUnscaled      (RigidBody const*);
             Matrix     RigidBody_GetToWorldMatrix            (RigidBody const*);
             Matrix     RigidBody_GetToLocalMatrix            (RigidBody const*);
-            Vec3f      RigidBody_GetVelocity                 (RigidBody const*);
-            Vec3f      RigidBody_GetAngularVelocity          (RigidBody const*);
+            void       RigidBody_GetVelocity                 (RigidBody const*, Vec3f* out);
+            void       RigidBody_GetVelocityA                (RigidBody const*, Vec3f* out);
             void       RigidBody_SetCollidable               (RigidBody*, bool collidable);
             void       RigidBody_SetCollisionGroup           (RigidBody*, uint32 group);
             void       RigidBody_SetCollisionMask            (RigidBody*, uint32 mask);
@@ -92,7 +92,7 @@ function Loader.defineType()
             GetToWorldMatrix            = libphx.RigidBody_GetToWorldMatrix,
             GetToLocalMatrix            = libphx.RigidBody_GetToLocalMatrix,
             GetVelocity                 = libphx.RigidBody_GetVelocity,
-            GetAngularVelocity          = libphx.RigidBody_GetAngularVelocity,
+            GetVelocityA                = libphx.RigidBody_GetVelocityA,
             SetCollidable               = libphx.RigidBody_SetCollidable,
             SetCollisionGroup           = libphx.RigidBody_SetCollisionGroup,
             SetCollisionMask            = libphx.RigidBody_SetCollisionMask,
@@ -144,7 +144,7 @@ function Loader.defineType()
                 getToWorldMatrix            = libphx.RigidBody_GetToWorldMatrix,
                 getToLocalMatrix            = libphx.RigidBody_GetToLocalMatrix,
                 getVelocity                 = libphx.RigidBody_GetVelocity,
-                getAngularVelocity          = libphx.RigidBody_GetAngularVelocity,
+                getVelocityA                = libphx.RigidBody_GetVelocityA,
                 setCollidable               = libphx.RigidBody_SetCollidable,
                 setCollisionGroup           = libphx.RigidBody_SetCollisionGroup,
                 setCollisionMask            = libphx.RigidBody_SetCollisionMask,

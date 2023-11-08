@@ -356,7 +356,7 @@ impl RigidBody {
     /// Adds another rigid body as a child of this rigid body. This means that the child's position will be controlled by `self`.
     ///
     /// This function assumes that `self` is not already a child.
-    pub fn attach(&mut self, child: &mut RigidBody, pos: Vec3, rot: Quat) {
+    pub fn attach(&mut self, child: &mut RigidBody, pos: &Vec3, rot: &Quat) {
         let parent_ptr = self as *mut _;
         match &mut self.state {
             WorldState::None => {}
@@ -482,10 +482,12 @@ impl RigidBody {
         self.get_to_world_matrix().inverse()
     }
 
+    #[bind(out_param = true)]
     pub fn get_velocity(&self) -> Vec3 {
         self.with_rigid_body(|rb| Vec3::from_na(rb.linvel()))
     }
 
+    #[bind(name = "GetVelocityA", out_param = true)]
     pub fn get_angular_velocity(&self) -> Vec3 {
         self.with_rigid_body(|rb| Vec3::from_na(rb.angvel()))
     }
