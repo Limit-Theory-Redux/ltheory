@@ -160,6 +160,7 @@ function MainMenu:ShowGui()
     Gui:beginVerticalContainer()
     Gui:setChildrenDocking(Docking.StretchHorizontal)
 
+    -- Header
     Gui:beginVerticalContainer()
     self:ShadowText('LIMIT THEORY', 'RajdhaniSemiBold', 72 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setDocking(Docking.Right)
@@ -177,11 +178,20 @@ function MainMenu:ShowGui()
 
     self:ShowMainMenuInner()
 
+    -- Footer
     Gui:beginHorizontalContainer()
+
     self:ShadowText(Config.gameVersion, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setDocking(Docking.Left)
+
+    -- Horizontal filler
+    Gui:beginStackContainer()
+    Gui:endContainer()
+    Gui:setDocking(Docking.StretchHorizontal)
+
     self:ShadowText('Resolution = ' .. LTheoryRedux.resX .. ' x ' .. LTheoryRedux.resY, 'RajdhaniSemiBold', 12 * scalefactor, 2.0, 0.9, 0.9, 0.9, 1.0)
     Gui:setDocking(Docking.Right)
+
     Gui:endContainer()
     Gui:setMarginEx(5.0, 10.0, 5.0, 10.0)
 
