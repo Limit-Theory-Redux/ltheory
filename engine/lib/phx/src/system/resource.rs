@@ -1,6 +1,7 @@
 use std::ffi::CStr;
 
 use internal::*;
+use tracing::debug;
 
 use super::*;
 use crate::common::*;
@@ -34,8 +35,12 @@ unsafe fn resource_resolve(ty: ResourceType, name: &str, fail_hard: bool) -> Opt
         let path = formatter(name.into());
 
         if file_exists(&path) {
+            debug!("Resource file for <{name}>: {path}");
+
             return Some(path);
         }
+
+        debug!("Resource file doesn't exist for <{name}>: {path}");
     }
 
     if !name.is_empty() && file_exists(name) as i32 != 0 {
@@ -44,9 +49,9 @@ unsafe fn resource_resolve(ty: ResourceType, name: &str, fail_hard: bool) -> Opt
 
     if fail_hard {
         panic!(
-            "Resource_Resolve: Failed to find {:?}:{} <{name}>",
+            "Resource_Resolve: Failed to find {:?}:{ty} <{name}>. Current directory: {:?}",
             resource_type_to_string(ty),
-            ty,
+            std::env::current_dir(),
         );
     }
 
