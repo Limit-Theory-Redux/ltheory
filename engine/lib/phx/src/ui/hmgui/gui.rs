@@ -160,6 +160,17 @@ impl HmGui {
         self.root.clone()
     }
 
+    fn container_has_focus_intern(
+        &self,
+        container: &mut HmGuiContainer,
+        ty: FocusType,
+        hash: u64,
+    ) -> bool {
+        container.focusable[ty as usize] = true;
+
+        self.focus[ty as usize] == hash
+    }
+
     pub fn dump_widgets(&self, file_name: Option<&str>) {
         let mut file: Option<File> = file_name
             .filter(|file_name| PathBuf::new().join(file_name).exists())
@@ -445,29 +456,31 @@ impl HmGui {
     }
 
     pub fn button(&mut self, label: &str) -> bool {
-        if let Some(widget_rf) = self.container.clone() {
-            self.begin_stack_container();
+        self.begin_stack_container();
+        self.set_padding(8.0, 8.0);
 
-            {
+        let pressed = if let Some(widget_rf) = self.container.clone() {
+            let focus = {
                 let mut widget = widget_rf.as_mut();
+                let hash = widget.hash;
                 let container = widget.get_container_item_mut();
 
                 container.focus_style = FocusStyle::Fill;
                 container.frame_opacity = 0.5;
-            }
 
-            let focus: bool = self.container_has_focus(FocusType::Mouse);
+                self.container_has_focus_intern(container, FocusType::Mouse, hash)
+            };
 
-            self.set_padding(8.0, 8.0);
             self.text(label);
-            // self.set_align(0.5, 0.5);
-
-            self.end_container();
 
             focus && self.activate
         } else {
             unreachable!();
-        }
+        };
+
+        self.end_container();
+
+        pressed
     }
 
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
@@ -835,11 +848,10 @@ impl HmGui {
     pub fn container_has_focus(&self, ty: FocusType) -> bool {
         if let Some(widget_rf) = self.container.clone() {
             let mut widget = widget_rf.as_mut();
+            let hash = widget.hash;
             let container = widget.get_container_item_mut();
 
-            container.focusable[ty as usize] = true;
-
-            self.focus[ty as usize] == widget.hash
+            self.container_has_focus_intern(container, ty, hash)
         } else {
             unreachable!();
         }
