@@ -35,12 +35,8 @@ unsafe fn resource_resolve(ty: ResourceType, name: &str, fail_hard: bool) -> Opt
         let path = formatter(name.into());
 
         if file_exists(&path) {
-            debug!("Resource file for <{name}>: {path}");
-
             return Some(path);
         }
-
-        debug!("Resource file doesn't exist for <{name}>: {path}");
     }
 
     if !name.is_empty() && file_exists(name) as i32 != 0 {
