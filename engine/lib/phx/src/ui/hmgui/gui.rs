@@ -411,27 +411,30 @@ impl HmGui {
 
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
+        self.begin_stack_container();
+
         if let Some(widget_rf) = self.container.clone() {
-            self.begin_stack_container();
+            // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
+            {
+                let mouse = input.mouse();
+                let has_focus = self.container_has_focus(FocusType::Mouse);
 
-            let mouse = input.mouse();
-            let has_focus = self.container_has_focus(FocusType::Mouse);
+                let mut widget = widget_rf.as_mut();
+                let data = self.get_data(widget.hash);
 
-            let mut widget = widget_rf.as_mut();
-            let data = self.get_data(widget.hash);
+                if has_focus && mouse.is_down(MouseControl::Left) {
+                    data.offset.x += mouse.value(MouseControl::DeltaX);
+                    data.offset.y += mouse.value(MouseControl::DeltaY);
+                }
 
-            if has_focus && mouse.is_down(MouseControl::Left) {
-                data.offset.x += mouse.value(MouseControl::DeltaX);
-                data.offset.y += mouse.value(MouseControl::DeltaY);
+                widget.pos.x += data.offset.x;
+                widget.pos.y += data.offset.y;
+
+                let container = widget.get_container_item_mut();
+                container.focus_style = FocusStyle::None;
+                container.frame_opacity = 0.95;
+                container.clip = true;
             }
-
-            widget.pos.x += data.offset.x;
-            widget.pos.y += data.offset.y;
-
-            let container = widget.get_container_item_mut();
-            container.focus_style = FocusStyle::None;
-            container.frame_opacity = 0.95;
-            container.clip = true;
 
             self.begin_vertical_container();
             self.set_padding(8.0, 8.0);
