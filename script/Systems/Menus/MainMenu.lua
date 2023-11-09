@@ -502,26 +502,30 @@ function MainMenu:ShowAudioSettingsBlock()
     end
 end
 
--- TODO: can/should this be reimplemented in HmGui?
+-- TODO: should this be reimplemented in HmGui?
 -- TODO: disable (make grey) -/+ button if operation is not possible
-function MainMenu:GuiSpinner(title, getValue, action)
+function MainMenu:GuiSpinner(title, valueText)
     Gui:beginHorizontalContainer()
 
     Gui:textEx(Cache.Font('Exo2', 24), title, 1.0, 1.0, 1.0, 1.0)
 
     Gui:spacer()
 
+    local value = 0
+
     if Gui:button("-") then
-        action(false)
+        value = -1
     end
 
-    Gui:textEx(Cache.Font("Ubuntu", 20), getValue(), 0.3, 1.0, 0.4, 1.0)
+    Gui:textEx(Cache.Font("Ubuntu", 20), valueText, 0.3, 1.0, 0.4, 1.0)
 
     if Gui:button("+") then
-        action(true)
+        value = value + 1
     end
 
     Gui:endContainer()
+
+    return value
 end
 
 function MainMenu:ShowGraphicsSettingsBlock()
@@ -545,46 +549,30 @@ function MainMenu:ShowGraphicsSettingsBlock()
     end
 
     -- Supersampling
+    local spinnerValue = self:GuiSpinner(guiSettings[3][3], Settings.getEnumValName('render.superSample', guiSettings[3][1]))
     if guiSettings[3][2] == nil then
         guiSettings[3][1] = Settings.get('render.superSample')
         guiSettings[3][2] = Settings.get('render.superSample')
     end
-    self:GuiSpinner(
-        guiSettings[3][3],
-        function()
-            return Settings.getEnumValName('render.superSample', guiSettings[3][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[3][1] < 3 then
-                    guiSettings[3][1] = guiSettings[3][1] + 1
-                    Settings.set('render.superSample', guiSettings[3][1])
-                end
-            elseif guiSettings[3][1] > 1 then
-                guiSettings[3][1] = guiSettings[3][1] - 1
-                Settings.set('render.superSample', guiSettings[3][1])
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[3][1] > 1 then
+        guiSettings[3][1] = guiSettings[3][1] - 1
+        Settings.set('render.superSample', guiSettings[3][1])
+    elseif spinnerValue > 0 and guiSettings[3][1] < 3 then
+        guiSettings[3][1] = guiSettings[3][1] + 1
+        Settings.set('render.superSample', guiSettings[3][1])
+    end
 
     -- Nebula Brightness
+    local spinnerValue = self:GuiSpinner(guiSettings[4][3], tostring(guiSettings[4][1]))
     if guiSettings[4][2] == nil then
         guiSettings[4][1] = GameState.gen.nebulaBrightnessScale
         guiSettings[4][2] = GameState.gen.nebulaBrightnessScale
     end
-    self:GuiSpinner(
-        guiSettings[4][3],
-        function()
-            return tostring(guiSettings[4][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[4][1] < 10 then
-                    guiSettings[4][1] = guiSettings[4][1] + 0.25
-                end
-            elseif guiSettings[4][1] > 0.25 then
-                guiSettings[4][1] = guiSettings[4][1] - 0.25
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[4][1] > 0.25 then
+        guiSettings[4][1] = guiSettings[4][1] - 0.25
+    elseif spinnerValue > 0 and guiSettings[4][1] < 10 then
+        guiSettings[4][1] = guiSettings[4][1] + 0.25
+    end
 end
 
 function MainMenu:ShowInterfaceSettingsBlock()
@@ -592,46 +580,30 @@ function MainMenu:ShowInterfaceSettingsBlock()
     Gui:setMargin(0, 5)
 
     -- Cursor Style
+    local spinnerValue = self:GuiSpinner(guiSettings[5][3], Enums.CursorStyleNames[guiSettings[5][1]])
     if guiSettings[5][2] == nil then
         guiSettings[5][1] = GameState.ui.cursorStyle
         guiSettings[5][2] = GameState.ui.cursorStyle
     end
-    self:GuiSpinner(
-        guiSettings[5][3],
-        function()
-            return Enums.CursorStyleNames[guiSettings[5][1]]
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[5][1] < Enums.CursorStyleCount then
-                    guiSettings[5][1] = guiSettings[5][1] + 1
-                    LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
-                end
-            elseif guiSettings[5][1] > 1 then
-                guiSettings[5][1] = guiSettings[5][1] - 1
-                LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[5][1] > 1 then
+        guiSettings[5][1] = guiSettings[5][1] - 1
+        LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
+    elseif spinnerValue > 0 and guiSettings[5][1] < Enums.CursorStyleCount then
+        guiSettings[5][1] = guiSettings[5][1] + 1
+        LTheoryRedux:setCursor(Enums.CursorFilenames[guiSettings[5][1]], GameState.ui.cursorX, GameState.ui.cursorY)
+    end
 
     -- HUD Style
+    local spinnerValue = self:GuiSpinner(guiSettings[6][3], Enums.HudStyleNames[guiSettings[6][1]])
     if guiSettings[6][2] == nil then
         guiSettings[6][1] = GameState.ui.hudStyle
         guiSettings[6][2] = GameState.ui.hudStyle
     end
-    self:GuiSpinner(
-        guiSettings[6][3],
-        function()
-            return Enums.HudStyleNames[guiSettings[6][1]]
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[6][1] < Enums.HudStyleCount then
-                    guiSettings[6][1] = guiSettings[6][1] + 1
-                end
-            elseif guiSettings[6][1] > 1 then
-                guiSettings[6][1] = guiSettings[6][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[6][1] > 1 then
+        guiSettings[6][1] = guiSettings[6][1] - 1
+    elseif spinnerValue > 0 and guiSettings[6][1] < Enums.HudStyleCount then
+        guiSettings[6][1] = guiSettings[6][1] + 1
+    end
 end
 
 function MainMenu:ShowGenerationSettingsBlock()
@@ -658,164 +630,100 @@ function MainMenu:ShowGenerationSettingsBlock()
     --       the things we can tweak in Settings *will* change. This section of code should not be prematurely optimized.
 
     -- Asteroid Fields
+    local spinnerValue = self:GuiSpinner(guiSettings[8][3], tostring(guiSettings[8][1]))
     if guiSettings[8][2] == nil then
         guiSettings[8][1] = GameState.gen.nFields
         guiSettings[8][2] = GameState.gen.nFields
     end
-    self:GuiSpinner(
-        guiSettings[8][3],
-        function()
-            return tostring(guiSettings[8][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[8][1] < 20 then
-                    guiSettings[8][1] = guiSettings[8][1] + 1
-                end
-            elseif guiSettings[8][1] > 0 then
-                guiSettings[8][1] = guiSettings[8][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[8][1] > 0 then
+        guiSettings[8][1] = guiSettings[8][1] - 1
+    elseif spinnerValue > 0 and guiSettings[8][1] < 20 then
+        guiSettings[8][1] = guiSettings[8][1] + 1
+    end
 
     -- Asteroids per Field
+    local spinnerValue = self:GuiSpinner(guiSettings[9][3], tostring(guiSettings[9][1]))
     if guiSettings[9][2] == nil then
         guiSettings[9][1] = GameState.gen.nAsteroids
         guiSettings[9][2] = GameState.gen.nAsteroids
     end
-    self:GuiSpinner(
-        guiSettings[9][3],
-        function()
-            return tostring(guiSettings[9][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[9][1] < 200 then
-                    guiSettings[9][1] = guiSettings[9][1] + 1
-                end
-            elseif guiSettings[9][1] > 1 then
-                guiSettings[9][1] = guiSettings[9][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[9][1] > 1 then
+        guiSettings[9][1] = guiSettings[9][1] - 1
+    elseif spinnerValue > 0 and guiSettings[9][1] < 200 then
+        guiSettings[9][1] = guiSettings[9][1] + 1
+    end
 
     -- Planets
+    local spinnerValue = self:GuiSpinner(guiSettings[10][3], tostring(guiSettings[10][1]))
     if guiSettings[10][2] == nil then
         guiSettings[10][1] = GameState.gen.nPlanets
         guiSettings[10][2] = GameState.gen.nPlanets
     end
-    self:GuiSpinner(
-        guiSettings[10][3],
-        function()
-            return tostring(guiSettings[10][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[10][1] < 1 then
-                    guiSettings[10][1] = guiSettings[10][1] + 1
-                end
-            elseif guiSettings[10][1] > 0 then
-                guiSettings[10][1] = guiSettings[10][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[10][1] > 0 then
+        guiSettings[10][1] = guiSettings[10][1] - 1
+    elseif spinnerValue > 0 and guiSettings[10][1] < 1 then
+        guiSettings[10][1] = guiSettings[10][1] + 1
+    end
 
     -- Stations
+    local spinnerValue = self:GuiSpinner(guiSettings[11][3], tostring(guiSettings[11][1]))
     if guiSettings[11][2] == nil then
         guiSettings[11][1] = GameState.gen.nStations
         guiSettings[11][2] = GameState.gen.nStations
     end
-    self:GuiSpinner(
-        guiSettings[11][3],
-        function()
-            return tostring(guiSettings[11][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[11][1] < 50 then
-                    guiSettings[11][1] = guiSettings[11][1] + 1
-                end
-            elseif guiSettings[11][1] > 0 then
-                guiSettings[11][1] = guiSettings[11][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[11][1] > 0 then
+        guiSettings[11][1] = guiSettings[11][1] - 1
+    elseif spinnerValue > 0 and guiSettings[11][1] < 50 then
+        guiSettings[11][1] = guiSettings[11][1] + 1
+    end
 
     -- AI Players
+    local spinnerValue = self:GuiSpinner(guiSettings[12][3], tostring(guiSettings[12][1]))
     if guiSettings[12][2] == nil then
         guiSettings[12][1] = GameState.gen.nAIPlayers
         guiSettings[12][2] = GameState.gen.nAIPlayers
     end
-    self:GuiSpinner(
-        guiSettings[12][3],
-        function()
-            return tostring(guiSettings[12][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[12][1] < 20 then
-                    guiSettings[12][1] = guiSettings[12][1] + 1
-                end
-            elseif guiSettings[12][1] > 0 then
-                guiSettings[12][1] = guiSettings[12][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[12][1] > 0 then
+        guiSettings[12][1] = guiSettings[12][1] - 1
+    elseif spinnerValue > 0 and guiSettings[12][1] < 20 then
+        guiSettings[12][1] = guiSettings[12][1] + 1
+    end
 
     -- Econ NPCs
+    local spinnerValue = self:GuiSpinner(guiSettings[13][3], tostring(guiSettings[13][1]))
     if guiSettings[13][2] == nil then
         guiSettings[13][1] = GameState.gen.nEconNPCs
         guiSettings[13][2] = GameState.gen.nEconNPCs
     end
-    self:GuiSpinner(
-        guiSettings[13][3],
-        function()
-            return tostring(guiSettings[13][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[13][1] < 100 then
-                    guiSettings[13][1] = guiSettings[13][1] + 1
-                end
-            elseif guiSettings[13][1] > 0 then
-                guiSettings[13][1] = guiSettings[13][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[13][1] > 0 then
+        guiSettings[13][1] = guiSettings[13][1] - 1
+    elseif spinnerValue > 0 and guiSettings[13][1] < 100 then
+        guiSettings[13][1] = guiSettings[13][1] + 1
+    end
 
     -- Escort NPCs
+    local spinnerValue = self:GuiSpinner(guiSettings[14][3], tostring(guiSettings[14][1]))
     if guiSettings[14][2] == nil then
         guiSettings[14][1] = GameState.gen.nEscortNPCs
         guiSettings[14][2] = GameState.gen.nEscortNPCs
     end
-    self:GuiSpinner(
-        guiSettings[14][3],
-        function()
-            return tostring(guiSettings[14][1])
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[14][1] < 50 then
-                    guiSettings[14][1] = guiSettings[14][1] + 1
-                end
-            elseif guiSettings[14][1] > 0 then
-                guiSettings[14][1] = guiSettings[14][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[14][1] > 0 then
+        guiSettings[14][1] = guiSettings[14][1] - 1
+    elseif spinnerValue > 0 and guiSettings[14][1] < 50 then
+        guiSettings[14][1] = guiSettings[14][1] + 1
+    end
 
     -- Ship Size
+    local spinnerValue = self:GuiSpinner(guiSettings[15][3], Config:getObjectInfo("ship_subtypes", 3 + (guiSettings[15][1] - 1)))
     if guiSettings[15][2] == nil then
         guiSettings[15][1] = GameState.player.shipHull
         guiSettings[15][2] = GameState.player.shipHull
     end
-    self:GuiSpinner(
-        guiSettings[15][3],
-        function()
-            return Config:getObjectInfo("ship_subtypes", 3 + (guiSettings[15][1] - 1))
-        end,
-        function(inc)
-            if inc then
-                if guiSettings[15][1] < Enums.ShipHulls.VeryLarge then
-                    guiSettings[15][1] = guiSettings[15][1] + 1
-                end
-            elseif guiSettings[15][1] > Enums.ShipHulls.Solo then
-                guiSettings[15][1] = guiSettings[15][1] - 1
-            end
-        end)
+    if spinnerValue < 0 and guiSettings[15][1] > Enums.ShipHulls.Solo then
+        guiSettings[15][1] = guiSettings[15][1] - 1
+    elseif spinnerValue > 0 and guiSettings[15][1] < Enums.ShipHulls.VeryLarge then
+        guiSettings[15][1] = guiSettings[15][1] + 1
+    end
 end
 
 function MainMenu:ShowFlightDialog()
