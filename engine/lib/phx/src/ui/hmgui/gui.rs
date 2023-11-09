@@ -460,6 +460,7 @@ impl HmGui {
         self.set_padding(8.0, 8.0);
 
         let pressed = if let Some(widget_rf) = self.container.clone() {
+            // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
             let focus = {
                 let mut widget = widget_rf.as_mut();
                 let hash = widget.hash;
@@ -484,26 +485,31 @@ impl HmGui {
     }
 
     pub fn checkbox(&mut self, label: &str, mut value: bool) -> bool {
-        if let Some(widget_rf) = self.container.clone() {
-            self.begin_horizontal_container();
-            self.set_padding(4.0, 4.0);
-            self.set_spacing(8.0);
+        self.begin_horizontal_container();
+        self.set_padding(4.0, 4.0);
+        self.set_spacing(8.0);
 
+        if let Some(widget_rf) = self.container.clone() {
+            // A separate scope to prevent runtime borrow conflict with self.text() below
             {
                 let mut widget = widget_rf.as_mut();
+                let hash = widget.hash;
                 let container = widget.get_container_item_mut();
 
                 container.focus_style = FocusStyle::Underline;
-            }
 
-            if self.container_has_focus(FocusType::Mouse) as i32 != 0 && self.activate as i32 != 0 {
-                value = !value;
+                let focus = self.container_has_focus_intern(container, FocusType::Mouse, hash);
+
+                if focus && self.activate {
+                    value = !value;
+                }
             }
 
             self.text(label);
 
             self.spacer();
 
+            // TODO: replace with rect with border
             self.begin_stack_container();
 
             let (color_frame, color_primary) = {
@@ -522,16 +528,16 @@ impl HmGui {
                     color_primary.w,
                 );
                 self.set_fixed_size(10.0, 10.0);
-                // self.set_align(0.5, 0.5);
             }
 
             self.end_container();
-            self.end_container();
-
-            value
         } else {
             unreachable!();
         }
+
+        self.end_container();
+
+        value
     }
 
     pub fn slider(&mut self, _lower: f32, _upper: f32, _value: f32) -> f32 {
