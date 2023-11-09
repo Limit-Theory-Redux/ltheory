@@ -170,26 +170,6 @@ impl HmGui {
 
         self.focus[ty as usize] == hash
     }
-
-    pub fn dump_widgets(&self, file_name: Option<&str>) {
-        let mut file: Option<File> = file_name
-            .filter(|file_name| PathBuf::new().join(file_name).exists())
-            .map(|file_name| {
-                let file_path = PathBuf::new().join(file_name);
-
-                File::create(file_path).expect(&format!("Cannot create {file_name}"))
-            });
-
-        println!("Widgets:");
-
-        if let Some(container_opt) = &self.root {
-            let container = container_opt.as_ref();
-
-            container.dump(1, &mut file);
-        } else {
-            println!("{IDENT}No widgets");
-        }
-    }
 }
 
 #[luajit_ffi_gen::luajit_ffi]
@@ -903,5 +883,18 @@ impl HmGui {
         assert!(self.styles.len() >= depth as usize);
 
         self.styles.truncate(self.styles.len() - depth as usize);
+    }
+
+    /// Prints widgets hierarchy to the console.
+    pub fn dump_widgets(&self) {
+        println!("Widgets:");
+
+        if let Some(container_opt) = &self.root {
+            let container = container_opt.as_ref();
+
+            container.dump(1);
+        } else {
+            println!("{IDENT}No widgets");
+        }
     }
 }

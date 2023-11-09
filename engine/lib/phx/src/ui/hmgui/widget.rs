@@ -201,20 +201,7 @@ impl HmGuiWidget {
     // For testing.
     #[allow(dead_code)]
     #[rustfmt::skip]
-    pub(crate) fn dump(&self, ident: usize, file: &mut Option<File>) {
-        if let Some(file) = file {
-            writeln!(
-                file,
-                "{} {} {} {} {}",
-                self.item.name(),
-                self.pos.x,
-                self.pos.y,
-                self.size.x,
-                self.size.y
-            )
-            .expect("Cannot write line");
-        }
-
+    pub(crate) fn dump(&self, ident: usize) {
         let ident_str = format!("{}", IDENT.repeat(ident));
 
         println!("{ident_str}{}:", self.item.name());
@@ -236,7 +223,7 @@ impl HmGuiWidget {
         println!("{ident_str}{IDENT}# item: {}", self.item.name());
 
         match &self.item {
-            WidgetItem::Container(item) => item.dump(ident + 1, file),
+            WidgetItem::Container(item) => item.dump(ident + 1),
             WidgetItem::Text(item) => item.dump(ident + 1),
             WidgetItem::Rect(item) => item.dump(ident + 1),
             WidgetItem::Image(item) => item.dump(ident + 1),

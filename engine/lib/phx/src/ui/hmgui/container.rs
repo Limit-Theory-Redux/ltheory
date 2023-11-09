@@ -363,7 +363,7 @@ impl HmGuiContainer {
 
     // For testing.
     #[allow(dead_code)]
-    pub(crate) fn dump(&self, ident: usize, file: &mut Option<File>) {
+    pub(crate) fn dump(&self, ident: usize) {
         let ident_str = format!("{}", IDENT.repeat(ident));
 
         println!("{ident_str}- layout:           {:?}", self.layout);
@@ -382,7 +382,7 @@ impl HmGuiContainer {
         println!("{ident_str}- children[{}]:", self.children.len());
 
         for head_rf in &self.children {
-            head_rf.as_ref().dump(ident + 1, file);
+            head_rf.as_ref().dump(ident + 1);
         }
     }
 }

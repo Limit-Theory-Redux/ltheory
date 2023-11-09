@@ -63,6 +63,7 @@ function Loader.defineType()
             void  HmGui_PushFont                 (HmGui*, Font const* font);
             void  HmGui_PushTextColor            (HmGui*, float r, float g, float b, float a);
             void  HmGui_PopStyle                 (HmGui*, int depth);
+            void  HmGui_DumpWidgets              (HmGui const*);
         ]]
     end
 
@@ -115,6 +116,7 @@ function Loader.defineType()
             PushFont                 = libphx.HmGui_PushFont,
             PushTextColor            = libphx.HmGui_PushTextColor,
             PopStyle                 = libphx.HmGui_PopStyle,
+            DumpWidgets              = libphx.HmGui_DumpWidgets,
         }
 
         if onDef_HmGui then onDef_HmGui(HmGui, mt) end
@@ -172,6 +174,7 @@ function Loader.defineType()
                 pushFont                 = libphx.HmGui_PushFont,
                 pushTextColor            = libphx.HmGui_PushTextColor,
                 popStyle                 = libphx.HmGui_PopStyle,
+                dumpWidgets              = libphx.HmGui_DumpWidgets,
             },
         }
 
