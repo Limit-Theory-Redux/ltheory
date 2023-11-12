@@ -111,6 +111,40 @@ function LTheoryRedux:onInput()
             --  self.gameView:setCameraMode(Enums.CameraMode.Orbit)
             --end
         end
+    elseif GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
+        --! i see all of this as a temporary feature addition - this should all be handled by a proper system later. ~ Jack
+        if InputInstance:isPressed(Button.KeyboardB) then
+            if GameState.player.currentShip then
+                GameState.player.currentShip:delete()
+            end
+
+            local shipObject = {
+                owner = GameState.player.humanPlayer,
+                shipName = GameState.player.humanPlayerShipName,
+                friction = 0,
+                sleepThreshold = {
+                    [1] = 0,
+                    [2] = 0
+                }
+            }
+
+            GameState.player.currentShip = Universe:CreateShip(GameState.world.currentSystem, nil, shipObject)
+        end
+
+        if InputInstance:isPressed(Button.KeyboardF) then
+            GameState:SetState(Enums.GameStates.InGame)
+
+            -- Insert the game view into the application canvas to make it visible
+            self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
+            GameState.render.gameView = self.gameView
+
+            self.canvas = UI.Canvas()
+            self.canvas
+                :add(self.gameView
+                    :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
+                )
+            self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
+        end
     end
 end
 
@@ -258,6 +292,11 @@ function LTheoryRedux:onUpdate(dt)
             MainMenu:ShowSettingsScreen()
         end
     end
+
+    --! temp hacking this in here
+    if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
+        LTheoryRedux:showShipCreationHint()
+    end
     HmGui.End(InputInstance)
 
     -- If player pressed the "new background" key and we're in startup mode, generate a new star system for a background
@@ -343,27 +382,34 @@ function LTheoryRedux:createStarSystem()
             self.backgroundSystem:spawnStation(Enums.StationHulls.Small, GameState.player.humanPlayer, nil)
         end
     else
-        GameState:SetState(Enums.GameStates.InGame)
+        GameState:SetState(Enums.GameStates.ShipCreation)
         Universe:CreateStarSystem(self.seed)
     end
 
-    -- Insert the game view into the application canvas to make it visible
-    self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
-    GameState.render.gameView = self.gameView
-
-    self.canvas = UI.Canvas()
-    self.canvas
-        :add(self.gameView
-            :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
-        )
-
-    if GameState:GetCurrentState() == Enums.GameStates.InGame then
+    if GameState:GetCurrentState() == Enums.GameStates.ShipCreation then
         -- TODO: replace with gamestate event system
         Log.Debug("LTheoryRedux: PlayAmbient")
         MusicPlayer:PlayAmbient()
 
-        self.gameView:setCameraMode(GameState.player.startupCamera)
+        DebugControl.ltheory = self
+        self.gameView = Systems.Overlay.GameView(self.player)
+        GameState.render.gameView = self.gameView
+        self.canvas = UI.Canvas()
+        self.canvas
+            :add(self.gameView
+                :add(Systems.Controls.Controls.GenTestControl(self.gameView, GameState.player.humanPlayer)))
+
+        InputInstance:setCursorVisible(true)
     else
+        -- Insert the game view into the application canvas to make it visible
+        self.gameView = Systems.Overlay.GameView(GameState.player.humanPlayer)
+        GameState.render.gameView = self.gameView
+
+        self.canvas = UI.Canvas()
+        self.canvas
+            :add(self.gameView
+                :add(Systems.Controls.Controls.MasterControl(self.gameView, GameState.player.humanPlayer))
+            )
         self.gameView:setCameraMode(Enums.CameraMode.FirstPerson)
     end
 end
@@ -376,6 +422,11 @@ function LTheoryRedux:showGameLogo()
     HmGui.Image(self.logo)                                                                  -- draw the LTR logo on top of the canvas
     HmGui.SetStretch(0.76 * scaleFactor / scaleFactorX, 0.243 * scaleFactor / scaleFactorY) -- scale logo (width, height)
     HmGui.SetAlign(0.5, 0.5)                                                                -- align logo
+end
+
+function LTheoryRedux:showShipCreationHint()
+    HmGui.TextEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
+    HmGui.SetAlign(0.5, 0.85)
 end
 
 function LTheoryRedux:exitGame()
