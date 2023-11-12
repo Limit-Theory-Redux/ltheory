@@ -169,6 +169,41 @@ function LTheoryRedux:onDraw()
         end
     end
 
+    if MainMenu.inBackgroundMode then
+        UI.DrawEx.TextAdditive(
+            'NovaRound',
+            "[B] Generate new star system",
+            20,
+            self.resX / 2, self.resY - 150, 40, 20,
+            1, 1, 1, 1,
+            0.5, 0.5
+        )
+        UI.DrawEx.TextAdditive(
+            'NovaRound',
+            "[H] Speed up time",
+            20,
+            self.resX / 2, self.resY - 125, 40, 20,
+            1, 1, 1, 1,
+            0.5, 1
+        )
+        UI.DrawEx.TextAdditive(
+            'NovaRound',
+            "[K] Metrics display",
+            20,
+            self.resX / 2, self.resY - 100, 40, 20,
+            1, 1, 1, 1,
+            0.5, 1
+        )
+        UI.DrawEx.TextAdditive(
+            'NovaRound',
+            "[J] Toggle hints",
+            20,
+            self.resX / 2, self.resY - 75, 40, 20,
+            1, 1, 1, 1,
+            0.5, 1
+        )
+    end
+
     self.canvas:draw(self.resX, self.resY)
 
     HmGui.Draw() -- draw controls
@@ -425,7 +460,7 @@ function LTheoryRedux:showGameLogo()
 end
 
 function LTheoryRedux:showShipCreationHint()
-    HmGui.TextEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0)
+    HmGui.TextEx(Cache.Font('Exo2', 32), '[B]: Random Ship | [F]: Spawn', 1.0, 1.0, 1.0, 1.0) --TODO: Need a getNameFromBinding() function
     HmGui.SetAlign(0.5, 0.85)
 end
 
