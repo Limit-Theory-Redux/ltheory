@@ -5,8 +5,8 @@ We discuss all features, fixes etc. to be contributed on Discord.
 Discussions regarding game design are held in the ltheory-crafting channel:
 
 <a href="https://discord.com/channels/695088786702336000/1021252323663691826" style="text-align: left; display: block;">
-  Open on:
-  <img style="height: 1.5rem; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
+  Open on: <br>
+  <img style="height: 36px; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
 </a>
 
 
@@ -14,14 +14,12 @@ Discussions regarding game design are held in the ltheory-crafting channel:
 Discussions regarding game systems / programming are held in the programming-discussion channel:
 
 <a href="https://discord.com/channels/695088786702336000/1021816893629272174" style="text-align: left; display: block;">
-  Open on:
-  <img style="height: 1.5rem; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
+  Open on: <br>
+  <img style="height: 36px; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
 </a>
 
 ## Documentation
 It´s highly recommended you document what you are doing in code. For more generalized documentation & design we use a seperately hosted [Wiki.js Instance](https://wiki.ltredux.org). For wiki editoral access contact @IllustrisJack . A backup repository of the wiki exists [here](https://github.com/Limit-Theory-Redux/wiki).
-
-<br>
 
 # Getting Started
 In this file we´ll go over the whole process of getting started & the the workflow of Limit Theory Redux development.
