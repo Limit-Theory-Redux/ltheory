@@ -4,8 +4,10 @@ We discuss all features, fixes etc. to be contributed on Discord.
 ## Discussing Gamedesign
 Discussions regarding game design are held in the ltheory-crafting channel:
 
-<a href="https://discord.com/channels/695088786702336000/1021252323663691826" style="text-align: left; display: block;">
-  Open on: <br>
+**Open on:**
+\
+\
+<a href="https://discord.com/channels/695088786702336000/1021252323663691826" style="display: block;">
   <img style="height: 36px; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
 </a>
 
@@ -13,8 +15,10 @@ Discussions regarding game design are held in the ltheory-crafting channel:
 ## Discussing Gamesystems
 Discussions regarding game systems / programming are held in the programming-discussion channel:
 
-<a href="https://discord.com/channels/695088786702336000/1021816893629272174" style="text-align: left; display: block;">
-  Open on: <br>
+**Open on:**
+\
+\
+<a href="https://discord.com/channels/695088786702336000/1021816893629272174" style="display: block;">
   <img style="height: 36px; display: block;" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b5061df29d55a92d945_full_logo_blurple_RGB.svg"/>
 </a>
 
