@@ -106,9 +106,6 @@ local createWindowContainer = function ()
 end
 
 function Test:onInit()
-    --* Audio initializations *--
-    Audio.Init()
-    Audio.Set3DSettings(0.0, 10, 2);
     self.renderer = Renderer()
 
     self.page = {}
@@ -132,7 +129,7 @@ function Test:onUpdate(dt)
         time = time + dt
     end
 
-    HmGui.Begin(self.resX, self.resY)
+    HmGui.Begin(self.resX, self.resY, InputInstance)
     for guid, window in pairs(self.page) do
         if window.close then
             self.page[guid] = nil
@@ -142,7 +139,7 @@ function Test:onUpdate(dt)
         window.render()
         ::skip::
     end
-    HmGui.End()
+    HmGui.End(InputInstance)
 end
 
 function Test:onDraw()

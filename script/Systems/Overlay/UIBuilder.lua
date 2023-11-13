@@ -24,7 +24,7 @@ function UIBuilder:buildWindow(args)
     newWindow.containers = args.containers
 
     newWindow.render = function()
-        HmGui.BeginWindow(newWindow.title)
+        HmGui.BeginWindow(newWindow.title, InputInstance)
         HmGui.PushFont(Cache.Font("Exo2Bold", 12))
         HmGui.TextColored(newWindow.title, 1, 1, 1, 0.25)
 
