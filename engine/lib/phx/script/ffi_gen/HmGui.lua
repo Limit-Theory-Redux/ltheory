@@ -49,6 +49,7 @@ function Loader.defineType()
             void  HmGui_SetMarginRight           (HmGui const*, float margin);
             void  HmGui_SetMarginBottom          (HmGui const*, float margin);
             void  HmGui_SetBorderWidth           (HmGui const*, float width);
+            void  HmGui_SetDocking               (HmGui const*, uint8 docking);
             void  HmGui_SetPadding               (HmGui const*, float px, float py);
             void  HmGui_SetPaddingEx             (HmGui const*, float left, float top, float right, float bottom);
             void  HmGui_SetPaddingLeft           (HmGui const*, float padding);
@@ -56,7 +57,6 @@ function Loader.defineType()
             void  HmGui_SetPaddingRight          (HmGui const*, float padding);
             void  HmGui_SetPaddingBottom         (HmGui const*, float padding);
             void  HmGui_SetSpacing               (HmGui const*, float spacing);
-            void  HmGui_SetDocking               (HmGui const*, uint8 docking);
             bool  HmGui_ContainerHasFocus        (HmGui const*, FocusType ty);
             void  HmGui_SetChildrenDocking       (HmGui const*, uint8 docking);
             void  HmGui_PushStyle                (HmGui*);
@@ -102,6 +102,7 @@ function Loader.defineType()
             SetMarginRight           = libphx.HmGui_SetMarginRight,
             SetMarginBottom          = libphx.HmGui_SetMarginBottom,
             SetBorderWidth           = libphx.HmGui_SetBorderWidth,
+            SetDocking               = libphx.HmGui_SetDocking,
             SetPadding               = libphx.HmGui_SetPadding,
             SetPaddingEx             = libphx.HmGui_SetPaddingEx,
             SetPaddingLeft           = libphx.HmGui_SetPaddingLeft,
@@ -109,7 +110,6 @@ function Loader.defineType()
             SetPaddingRight          = libphx.HmGui_SetPaddingRight,
             SetPaddingBottom         = libphx.HmGui_SetPaddingBottom,
             SetSpacing               = libphx.HmGui_SetSpacing,
-            SetDocking               = libphx.HmGui_SetDocking,
             ContainerHasFocus        = libphx.HmGui_ContainerHasFocus,
             SetChildrenDocking       = libphx.HmGui_SetChildrenDocking,
             PushStyle                = libphx.HmGui_PushStyle,
@@ -160,6 +160,7 @@ function Loader.defineType()
                 setMarginRight           = libphx.HmGui_SetMarginRight,
                 setMarginBottom          = libphx.HmGui_SetMarginBottom,
                 setBorderWidth           = libphx.HmGui_SetBorderWidth,
+                setDocking               = libphx.HmGui_SetDocking,
                 setPadding               = libphx.HmGui_SetPadding,
                 setPaddingEx             = libphx.HmGui_SetPaddingEx,
                 setPaddingLeft           = libphx.HmGui_SetPaddingLeft,
@@ -167,7 +168,6 @@ function Loader.defineType()
                 setPaddingRight          = libphx.HmGui_SetPaddingRight,
                 setPaddingBottom         = libphx.HmGui_SetPaddingBottom,
                 setSpacing               = libphx.HmGui_SetSpacing,
-                setDocking               = libphx.HmGui_SetDocking,
                 containerHasFocus        = libphx.HmGui_ContainerHasFocus,
                 setChildrenDocking       = libphx.HmGui_SetChildrenDocking,
                 pushStyle                = libphx.HmGui_PushStyle,

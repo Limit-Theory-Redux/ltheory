@@ -13,6 +13,7 @@ use super::*;
 pub struct HmGui {
     pub(super) renderer: UIRenderer,
 
+    // TODO: get rid of Option in container, root and last parameters if possible
     /// Current active container
     container: Option<Rf<HmGuiWidget>>,
     /// Top level container object. Used for recalculating sizes, layouts and drawing of the whole gui
@@ -54,29 +55,31 @@ impl HmGui {
         self.focus[FocusType::Mouse as usize]
     }
 
-    fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
-        let widget = HmGuiWidget {
-            parent: self.container.clone(),
-
-            hash: 0,
-            item,
-            pos: Default::default(),
-            size: Default::default(),
-            inner_pos: Default::default(),
-            inner_size: Default::default(),
-
-            default_width: Default::default(),
-            default_height: Default::default(),
-            docking: Default::default(),
-            margin_upper: Default::default(),
-            margin_lower: Default::default(),
-            bg_color: Default::default(),
-            border_width: Default::default(),
-            border_color: Default::default(),
-
-            min_size: Default::default(),
-            inner_min_size: Default::default(),
+    fn container(&self) -> Rf<HmGuiWidget> {
+        let Some(widget_rf) = self.container.clone() else {
+            unreachable!()
         };
+        widget_rf
+    }
+
+    /// Get top level widget - container with None layout.
+    pub fn root(&self) -> Rf<HmGuiWidget> {
+        let Some(widget_rf) = self.root.clone() else {
+            unreachable!()
+        };
+        widget_rf
+    }
+
+    fn last(&self) -> Rf<HmGuiWidget> {
+        let Some(widget_rf) = self.last.clone() else {
+            unreachable!()
+        };
+        widget_rf
+    }
+
+    /// Add a new widget into the current container.
+    fn init_widget(&mut self, item: WidgetItem) -> Rf<HmGuiWidget> {
+        let widget = HmGuiWidget::new(self.container.clone(), item);
         let widget_rf = Rf::new(widget);
         let mut widget = widget_rf.as_mut();
 
@@ -105,6 +108,7 @@ impl HmGui {
         widget_rf.clone()
     }
 
+    /// Start a new container with specified layout.
     fn begin_container(&mut self, layout: LayoutType) {
         let spacing = self.styles.last().expect("Style was not set").spacing;
 
@@ -120,6 +124,7 @@ impl HmGui {
         self.container = Some(widget_rf.clone());
     }
 
+    /// Get persistent data of the widget by its hash.
     pub fn get_data(&mut self, widget_hash: u64) -> &mut HmGuiData {
         self.data.entry(widget_hash).or_insert(HmGuiData::default())
     }
@@ -129,6 +134,7 @@ impl HmGui {
         p.x < pos.x || p.y < pos.y || pos.x + size.x < p.x || pos.y + size.y < p.y
     }
 
+    /// Recursively iterate over container widgets and calculate if they are in a focus (mouse is over the container).
     fn check_focus(&mut self, widget_rf: Rf<HmGuiWidget>) {
         let widget = widget_rf.as_ref();
         let WidgetItem::Container(container) = &widget.item else {
@@ -145,7 +151,7 @@ impl HmGui {
 
         for i in 0..self.focus.len() {
             if self.focus[i] == 0
-                && container.focusable[i] as i32 != 0
+                && container.focusable[i]
                 && widget.pos.x <= self.focus_pos.x
                 && widget.pos.y <= self.focus_pos.y
                 && self.focus_pos.x <= widget.pos.x + widget.size.x
@@ -156,10 +162,7 @@ impl HmGui {
         }
     }
 
-    pub fn root(&self) -> Option<Rf<HmGuiWidget>> {
-        self.root.clone()
-    }
-
+    /// Sets container `focusable` flag to true and returns if it's currently in focus.
     fn container_has_focus_intern(
         &self,
         container: &mut HmGuiContainer,
@@ -174,6 +177,7 @@ impl HmGui {
 
 #[luajit_ffi_gen::luajit_ffi]
 impl HmGui {
+    /// Begin GUI declaration. Region is limited by [0, 0] - [sx, sy] rectangle.
     pub fn begin_gui(&mut self, sx: f32, sy: f32, input: &Input) {
         self.container = None;
         self.root = None;
@@ -182,76 +186,70 @@ impl HmGui {
 
         self.begin_container(LayoutType::None);
 
-        if let Some(widget_rf) = &self.container {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
 
-            container.clip = true;
+        container.clip = true;
 
-            widget.inner_pos = Vec2::ZERO;
-            widget.pos = widget.inner_pos;
-            widget.inner_size = Vec2::new(sx, sy);
-            widget.size = widget.inner_size;
-        } else {
-            unreachable!();
-        }
+        widget.inner_pos = Vec2::ZERO;
+        widget.pos = widget.inner_pos;
+        widget.inner_size = Vec2::new(sx, sy);
+        widget.size = widget.inner_size;
 
         self.root = self.container.clone();
     }
 
+    /// Finish GUI declaration, calculate hierarchy widgets sizes and layout.
     // TODO: do not calculate layout for the widgets that go out of the screen. If possible.
     pub fn end_gui(&mut self, input: &Input) {
         unsafe { Profiler_Begin(c_str!("HmGui_End")) };
 
         self.end_container();
 
-        if let Some(root_rf) = self.root.clone() {
-            let container_rf = {
-                let mut root = root_rf.as_mut();
+        let root_rf = self.root();
+        let container_rf = {
+            let mut root = root_rf.as_mut();
 
-                root.compute_size(self);
-                root.layout(self);
+            root.compute_size(self);
+            root.layout(self);
 
-                self.focus.fill(0);
+            self.focus.fill(0);
 
-                let mouse = input.mouse();
+            let mouse = input.mouse();
 
-                self.focus_pos = mouse.position();
+            self.focus_pos = mouse.position();
 
-                root_rf.clone()
-            };
+            root_rf.clone()
+        };
 
-            self.check_focus(container_rf);
-        } else {
-            unreachable!();
-        }
+        self.check_focus(container_rf);
 
         unsafe { Profiler_End() };
     }
 
-    // TODO: optimize - clip by window screen - do not draw anything that goes out of the screen
+    /// Pass information about widgets to the renderer and draw them.
+    // TODO: optimize - do not pass to the renderer widgets that are outside of the rendering region
     pub fn draw(&mut self) {
-        if let Some(root_rf) = self.root.clone() {
-            unsafe {
-                Profiler_Begin(c_str!("HmGui_Draw"));
+        let root_rf = self.root();
 
-                RenderState_PushBlendMode(1);
-            }
+        unsafe {
+            Profiler_Begin(c_str!("HmGui_Draw"));
 
-            self.renderer.begin();
-
-            root_rf.as_ref().draw(self);
-
-            self.renderer.end();
-
-            unsafe { RenderState_PopBlendMode() };
-
-            self.renderer.draw();
-
-            unsafe { Profiler_End() };
-        } else {
-            unreachable!();
+            RenderState_PushBlendMode(1);
         }
+
+        self.renderer.begin();
+
+        root_rf.as_ref().draw(self);
+
+        self.renderer.end();
+
+        unsafe { RenderState_PopBlendMode() };
+
+        self.renderer.draw();
+
+        unsafe { Profiler_End() };
     }
 
     pub fn begin_horizontal_container(&mut self) {
@@ -267,164 +265,152 @@ impl HmGui {
     }
 
     pub fn end_container(&mut self) {
-        if let Some(widget_rf) = self.container.clone() {
-            let widget = widget_rf.as_ref();
+        let widget_rf = self.container();
+        let widget = widget_rf.as_ref();
 
-            self.last = Some(widget_rf.clone());
-            self.container = widget.parent.clone();
-        } else {
-            unreachable!();
-        }
+        self.last = Some(widget_rf.clone());
+        self.container = widget.parent.clone();
     }
 
     pub fn begin_scroll(&mut self, max_size: f32) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let widget_hash = widget.hash;
-            let container = widget.get_container_item_mut();
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let widget_hash = widget.hash;
+        let container = widget.get_container_item_mut();
 
-            self.begin_horizontal_container();
-            container.clip = true;
-            self.set_spacing(2.0);
+        self.begin_horizontal_container();
+        container.clip = true;
+        self.set_spacing(2.0);
 
-            self.begin_vertical_container();
-            self.set_padding(6.0, 6.0);
+        self.begin_vertical_container();
+        self.set_padding(6.0, 6.0);
 
-            container.store_size = true;
-            container.max_size.y = max_size; // TODO: still needed?
+        container.store_size = true;
+        container.max_size.y = max_size; // TODO: still needed?
 
-            let data = self.get_data(widget_hash);
+        let data = self.get_data(widget_hash);
 
-            container.offset.x = -data.offset.x;
-            container.offset.y = -data.offset.y;
-        } else {
-            unreachable!();
-        }
+        container.offset.x = -data.offset.x;
+        container.offset.y = -data.offset.y;
     }
 
     pub fn end_scroll(&mut self, input: &Input) {
-        if let Some(widget_rf) = self.container.clone() {
-            let widget = widget_rf.as_ref();
-            let has_focus = self.container_has_focus(FocusType::Scroll);
+        let widget_rf = self.container();
+        let widget = widget_rf.as_ref();
+        let has_focus = self.container_has_focus(FocusType::Scroll);
 
-            let data = self.get_data(widget.hash);
+        let data = self.get_data(widget.hash);
 
-            if has_focus {
-                let scroll_x = input.mouse().value(MouseControl::ScrollX);
-                let scroll_y = input.mouse().value(MouseControl::ScrollY);
+        if has_focus {
+            let scroll_x = input.mouse().value(MouseControl::ScrollX);
+            let scroll_y = input.mouse().value(MouseControl::ScrollY);
 
-                data.offset.x -= 10.0 * scroll_x as f32;
-                data.offset.y -= 10.0 * scroll_y as f32;
-            }
-
-            let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
-            let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
-
-            data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
-            data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
-
-            self.end_container();
-            self.set_docking(DOCKING_STRETCH_ALL);
-
-            self.begin_vertical_container();
-            self.set_spacing(0.0);
-
-            if max_scroll_x > 0.0 {
-                let (handle_size, handle_pos) = {
-                    let data = self.get_data(widget.hash);
-                    let handle_size = data.size.x * (data.size.x / data.min_size.x);
-                    let handle_pos = Lerp(
-                        0.0f64,
-                        (data.size.x - handle_size) as f64,
-                        (data.offset.x / max_scroll_x) as f64,
-                    ) as f32;
-
-                    (handle_size, handle_pos)
-                };
-
-                self.rect(0.0, 0.0, 0.0, 0.0);
-                self.set_fixed_size(handle_pos, 4.0);
-
-                let color_frame = self.styles.last().expect("Style was not set").color_frame;
-
-                self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
-                self.set_fixed_size(handle_size, 4.0);
-            } else {
-                self.rect(0.0, 0.0, 0.0, 0.0);
-                self.set_fixed_size(16.0, 4.0);
-            }
-
-            if max_scroll_y > 0.0 {
-                let (handle_size, handle_pos) = {
-                    let data = self.get_data(widget.hash);
-                    let handle_size = data.size.y * (data.size.y / data.min_size.y);
-                    let handle_pos = Lerp(
-                        0.0f64,
-                        (data.size.y - handle_size) as f64,
-                        (data.offset.y / max_scroll_y) as f64,
-                    ) as f32;
-
-                    (handle_size, handle_pos)
-                };
-
-                self.rect(0.0, 0.0, 0.0, 0.0);
-                self.set_fixed_size(4.0, handle_pos);
-
-                let color_frame = self.styles.last().expect("Style was not set").color_frame;
-
-                self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
-                self.set_fixed_size(4.0, handle_size);
-            } else {
-                self.rect(0.0, 0.0, 0.0, 0.0);
-                self.set_fixed_size(4.0, 16.0);
-            }
-
-            self.end_container();
-            self.set_docking(DOCKING_STRETCH_VERTICAL);
-
-            self.end_container();
-            self.set_docking(DOCKING_STRETCH_ALL);
-        } else {
-            unreachable!();
+            data.offset.x -= 10.0 * scroll_x as f32;
+            data.offset.y -= 10.0 * scroll_y as f32;
         }
+
+        let max_scroll_x = f32::max(0.0, data.min_size.x - data.size.x);
+        let max_scroll_y = f32::max(0.0, data.min_size.y - data.size.y);
+
+        data.offset.x = data.offset.x.clamp(0.0, max_scroll_x);
+        data.offset.y = data.offset.y.clamp(0.0, max_scroll_y);
+
+        self.end_container();
+        self.set_docking(DOCKING_STRETCH_ALL);
+
+        self.begin_vertical_container();
+        self.set_spacing(0.0);
+
+        if max_scroll_x > 0.0 {
+            let (handle_size, handle_pos) = {
+                let data = self.get_data(widget.hash);
+                let handle_size = data.size.x * (data.size.x / data.min_size.x);
+                let handle_pos = Lerp(
+                    0.0f64,
+                    (data.size.x - handle_size) as f64,
+                    (data.offset.x / max_scroll_x) as f64,
+                ) as f32;
+
+                (handle_size, handle_pos)
+            };
+
+            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.set_fixed_size(handle_pos, 4.0);
+
+            let color_frame = self.styles.last().expect("Style was not set").color_frame;
+
+            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+            self.set_fixed_size(handle_size, 4.0);
+        } else {
+            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.set_fixed_size(16.0, 4.0);
+        }
+
+        if max_scroll_y > 0.0 {
+            let (handle_size, handle_pos) = {
+                let data = self.get_data(widget.hash);
+                let handle_size = data.size.y * (data.size.y / data.min_size.y);
+                let handle_pos = Lerp(
+                    0.0f64,
+                    (data.size.y - handle_size) as f64,
+                    (data.offset.y / max_scroll_y) as f64,
+                ) as f32;
+
+                (handle_size, handle_pos)
+            };
+
+            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.set_fixed_size(4.0, handle_pos);
+
+            let color_frame = self.styles.last().expect("Style was not set").color_frame;
+
+            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+            self.set_fixed_size(4.0, handle_size);
+        } else {
+            self.rect(0.0, 0.0, 0.0, 0.0);
+            self.set_fixed_size(4.0, 16.0);
+        }
+
+        self.end_container();
+        self.set_docking(DOCKING_STRETCH_VERTICAL);
+
+        self.end_container();
+        self.set_docking(DOCKING_STRETCH_ALL);
     }
 
+    /// Begins window element.
     // TODO: refactor to draw title properly
     pub fn begin_window(&mut self, _title: &str, input: &Input) {
         self.begin_stack_container();
 
-        if let Some(widget_rf) = self.container.clone() {
-            // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
-            {
-                let mouse = input.mouse();
-                let has_focus = self.container_has_focus(FocusType::Mouse);
+        let widget_rf = self.container();
+        // A separate scope to prevent runtime borrow conflict with self.begin_vertical_container() below
+        {
+            let mouse = input.mouse();
+            let has_focus = self.container_has_focus(FocusType::Mouse);
 
-                let mut widget = widget_rf.as_mut();
-                let data = self.get_data(widget.hash);
+            let mut widget = widget_rf.as_mut();
+            let data = self.get_data(widget.hash);
 
-                if has_focus && mouse.is_down(MouseControl::Left) {
-                    data.offset.x += mouse.value(MouseControl::DeltaX);
-                    data.offset.y += mouse.value(MouseControl::DeltaY);
-                }
-
-                widget.pos.x += data.offset.x;
-                widget.pos.y += data.offset.y;
-
-                let container = widget.get_container_item_mut();
-                container.focus_style = FocusStyle::None;
-                container.frame_opacity = 0.95;
-                container.clip = true;
+            if has_focus && mouse.is_down(MouseControl::Left) {
+                data.offset.x += mouse.value(MouseControl::DeltaX);
+                data.offset.y += mouse.value(MouseControl::DeltaY);
             }
 
-            self.begin_vertical_container();
-            self.set_padding(8.0, 8.0);
-            // self.text_colored(title, 1.0f, 1.0f, 1.0f, 0.3f);
-            // self.set_align(0.5f, 0.0f);
-        } else {
-            unreachable!();
+            widget.pos.x += data.offset.x;
+            widget.pos.y += data.offset.y;
+
+            let container = widget.get_container_item_mut();
+            container.focus_style = FocusStyle::None;
+            container.frame_opacity = 0.95;
+            container.clip = true;
         }
+
+        self.begin_vertical_container();
+        self.set_padding(8.0, 8.0);
     }
 
+    /// Ends window element.
     pub fn end_window(&mut self) {
         self.end_container(); // Vertical container
         self.set_docking(DOCKING_STRETCH_ALL);
@@ -432,7 +418,7 @@ impl HmGui {
     }
 
     /// Invisible element that stretches in all directions.
-    /// Use for pushing neighbor elements to the sides.
+    /// Use for pushing neighbor elements to the sides. See [`Self::checkbox`] for example.
     pub fn spacer(&mut self) {
         self.rect(0.0, 0.0, 0.0, 0.0);
         self.set_docking(DOCKING_STRETCH_ALL);
@@ -442,25 +428,22 @@ impl HmGui {
         self.begin_stack_container();
         self.set_padding(8.0, 8.0);
 
-        let pressed = if let Some(widget_rf) = self.container.clone() {
-            // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
-            let focus = {
-                let mut widget = widget_rf.as_mut();
-                let hash = widget.hash;
-                let container = widget.get_container_item_mut();
+        let widget_rf = self.container();
+        // A separate scope to prevent runtime borrow panics - widget borrowing conflicts with self.text() below
+        let focus = {
+            let mut widget = widget_rf.as_mut();
+            let hash = widget.hash;
+            let container = widget.get_container_item_mut();
 
-                container.focus_style = FocusStyle::Fill;
-                container.frame_opacity = 0.5;
+            container.focus_style = FocusStyle::Fill;
+            container.frame_opacity = 0.5;
 
-                self.container_has_focus_intern(container, FocusType::Mouse, hash)
-            };
-
-            self.text(label);
-
-            focus && self.activate
-        } else {
-            unreachable!();
+            self.container_has_focus_intern(container, FocusType::Mouse, hash)
         };
+
+        self.text(label);
+
+        let pressed = focus && self.activate;
 
         self.end_container();
 
@@ -472,52 +455,49 @@ impl HmGui {
         self.set_padding(4.0, 4.0);
         self.set_spacing(8.0);
 
-        if let Some(widget_rf) = self.container.clone() {
-            // A separate scope to prevent runtime borrow conflict with self.text() below
-            {
-                let mut widget = widget_rf.as_mut();
-                let hash = widget.hash;
-                let container = widget.get_container_item_mut();
+        let widget_rf = self.container();
+        // A separate scope to prevent runtime borrow conflict with self.text() below
+        {
+            let mut widget = widget_rf.as_mut();
+            let hash = widget.hash;
+            let container = widget.get_container_item_mut();
 
-                container.focus_style = FocusStyle::Underline;
+            container.focus_style = FocusStyle::Underline;
 
-                let focus = self.container_has_focus_intern(container, FocusType::Mouse, hash);
+            let focus = self.container_has_focus_intern(container, FocusType::Mouse, hash);
 
-                if focus && self.activate {
-                    value = !value;
-                }
+            if focus && self.activate {
+                value = !value;
             }
-
-            self.text(label);
-
-            self.spacer();
-
-            // TODO: replace with rect with border
-            self.begin_stack_container();
-
-            let (color_frame, color_primary) = {
-                let style = self.styles.last().expect("Style was not set");
-                (style.color_frame, style.color_primary)
-            };
-
-            self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
-            self.set_fixed_size(16.0, 16.0);
-
-            if value {
-                self.rect(
-                    color_primary.x,
-                    color_primary.y,
-                    color_primary.z,
-                    color_primary.w,
-                );
-                self.set_fixed_size(10.0, 10.0);
-            }
-
-            self.end_container();
-        } else {
-            unreachable!();
         }
 
+        self.text(label);
+
+        // Push text and rect to the sides if outer container has horizontal stretch
+        self.spacer();
+
+        // TODO: replace with rect with border
+        self.begin_stack_container();
+
+        let (color_frame, color_primary) = {
+            let style = self.styles.last().expect("Style was not set");
+            (style.color_frame, style.color_primary)
+        };
+
+        self.rect(color_frame.x, color_frame.y, color_frame.z, color_frame.w);
+        self.set_fixed_size(16.0, 16.0);
+
+        if value {
+            self.rect(
+                color_primary.x,
+                color_primary.y,
+                color_primary.z,
+                color_primary.w,
+            );
+            self.set_fixed_size(10.0, 10.0);
+        }
+
+        self.end_container();
         self.end_container();
 
         value
@@ -558,16 +538,10 @@ impl HmGui {
             color: style.color_text,
         };
         let size = item.font.get_size2(text);
+        let widget_rf = self.init_widget(WidgetItem::Text(item));
+        let mut widget = widget_rf.as_mut();
 
-        // NOTE: This scope is needed to prevent widget be mut borrowed twice here and in set_align below
-        {
-            let widget_rf = self.init_widget(WidgetItem::Text(item));
-            let mut widget = widget_rf.as_mut();
-
-            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
-        }
-
-        // self.set_align(0.0, 1.0);
+        widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
     pub fn text_colored(&mut self, text: &str, r: f32, g: f32, b: f32, a: f32) {
@@ -580,16 +554,10 @@ impl HmGui {
             color: Vec4::new(r, g, b, a),
         };
         let size = item.font.get_size2(text);
+        let widget_rf = self.init_widget(WidgetItem::Text(item));
+        let mut widget = widget_rf.as_mut();
 
-        // NOTE: This scope is needed to prevent widget be mut borrowed twice here and in set_align below
-        {
-            let widget_rf = self.init_widget(WidgetItem::Text(item));
-            let mut widget = widget_rf.as_mut();
-
-            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
-        }
-
-        // self.set_align(0.0, 1.0);
+        widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
     pub fn text_ex(&mut self, font: &Font, text: &str, r: f32, g: f32, b: f32, a: f32) {
@@ -599,262 +567,188 @@ impl HmGui {
             color: Vec4::new(r, g, b, a),
         };
         let size = item.font.get_size2(text);
+        let widget_rf = self.init_widget(WidgetItem::Text(item));
+        let mut widget = widget_rf.as_mut();
 
-        // NOTE: This scope is needed to prevent widget to be mut borrowed twice here and in set_align below
-        {
-            let widget_rf = self.init_widget(WidgetItem::Text(item));
-            let mut widget = widget_rf.as_mut();
-
-            widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
-        }
-
-        // self.set_align(0.0, 1.0);
+        widget.inner_min_size = Vec2::new(size.x as f32, size.y as f32);
     }
 
     pub fn set_fixed_width(&self, width: f32) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.default_width = Some(Length::Fixed(width));
-        } else {
-            unreachable!();
-        }
+        widget.default_width = Some(Length::Fixed(width));
     }
 
     pub fn set_fixed_height(&self, height: f32) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.default_height = Some(Length::Fixed(height));
-        } else {
-            unreachable!();
-        }
+        widget.default_height = Some(Length::Fixed(height));
     }
 
     pub fn set_fixed_size(&self, width: f32, height: f32) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.default_width = Some(Length::Fixed(width));
-            widget.default_height = Some(Length::Fixed(height));
-        } else {
-            unreachable!();
-        }
+        widget.default_width = Some(Length::Fixed(width));
+        widget.default_height = Some(Length::Fixed(height));
     }
 
     pub fn set_percent_width(&self, width: f32) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.default_width = Some(Length::Percent(width));
-        } else {
-            unreachable!();
-        }
+        widget.default_width = Some(Length::Percent(width));
     }
 
     pub fn set_percent_height(&self, height: f32) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.default_height = Some(Length::Percent(height));
-        } else {
-            unreachable!();
-        }
+        widget.default_height = Some(Length::Percent(height));
     }
 
     pub fn set_percent_size(&self, width: f32, height: f32) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.default_width = Some(Length::Percent(width));
-            widget.default_height = Some(Length::Percent(height));
-        } else {
-            unreachable!();
-        }
+        widget.default_width = Some(Length::Percent(width));
+        widget.default_height = Some(Length::Percent(height));
     }
 
     pub fn set_margin(&self, px: f32, py: f32) {
-        if let Some(widget_rf) = self.last.clone() {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.margin_lower = Vec2::new(px, py);
-            widget.margin_upper = Vec2::new(px, py);
-        } else {
-            unreachable!();
-        }
+        widget.margin_lower = Vec2::new(px, py);
+        widget.margin_upper = Vec2::new(px, py);
     }
 
     pub fn set_margin_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
-        if let Some(widget_rf) = self.last.clone() {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.margin_lower = Vec2::new(left, top);
-            widget.margin_upper = Vec2::new(right, bottom);
-        } else {
-            unreachable!();
-        }
+        widget.margin_lower = Vec2::new(left, top);
+        widget.margin_upper = Vec2::new(right, bottom);
     }
 
     pub fn set_margin_left(&self, margin: f32) {
-        if let Some(widget_rf) = self.last.clone() {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.margin_lower.x = margin;
-        } else {
-            unreachable!();
-        }
+        widget.margin_lower.x = margin;
     }
 
     pub fn set_margin_top(&self, margin: f32) {
-        if let Some(widget_rf) = self.last.clone() {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.margin_lower.y = margin;
-        } else {
-            unreachable!();
-        }
+        widget.margin_lower.y = margin;
     }
 
     pub fn set_margin_right(&self, margin: f32) {
-        if let Some(widget_rf) = self.last.clone() {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.margin_upper.x = margin;
-        } else {
-            unreachable!();
-        }
+        widget.margin_upper.x = margin;
     }
 
     pub fn set_margin_bottom(&self, margin: f32) {
-        if let Some(widget_rf) = self.last.clone() {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.margin_upper.y = margin;
-        } else {
-            unreachable!();
-        }
+        widget.margin_upper.y = margin;
     }
 
     pub fn set_border_width(&self, width: f32) {
-        if let Some(widget_rf) = self.last.clone() {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.border_width = width;
-        } else {
-            unreachable!();
-        }
-    }
-
-    pub fn set_padding(&self, px: f32, py: f32) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
-
-            container.padding_lower = Vec2::new(px, py);
-            container.padding_upper = Vec2::new(px, py);
-        } else {
-            unreachable!();
-        }
-    }
-
-    pub fn set_padding_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
-
-            container.padding_lower = Vec2::new(left, top);
-            container.padding_upper = Vec2::new(right, bottom);
-        } else {
-            unreachable!();
-        }
-    }
-
-    pub fn set_padding_left(&self, padding: f32) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
-
-            container.padding_lower.x = padding;
-        } else {
-            unreachable!();
-        }
-    }
-
-    pub fn set_padding_top(&self, padding: f32) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
-
-            container.padding_lower.y = padding;
-        } else {
-            unreachable!();
-        }
-    }
-
-    pub fn set_padding_right(&self, padding: f32) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
-
-            container.padding_upper.x = padding;
-        } else {
-            unreachable!();
-        }
-    }
-
-    pub fn set_padding_bottom(&self, padding: f32) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
-
-            container.padding_upper.y = padding;
-        } else {
-            unreachable!();
-        }
-    }
-
-    pub fn set_spacing(&self, spacing: f32) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
-
-            container.spacing = spacing;
-        } else {
-            unreachable!();
-        }
+        widget.border_width = width;
     }
 
     pub fn set_docking(&self, docking: u8) {
-        if let Some(widget_rf) = &self.last {
-            let mut widget = widget_rf.as_mut();
+        let widget_rf = self.last();
+        let mut widget = widget_rf.as_mut();
 
-            widget.docking = docking.into();
-        } else {
-            unreachable!();
-        }
+        widget.docking = docking.into();
     }
 
-    pub fn container_has_focus(&self, ty: FocusType) -> bool {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let hash = widget.hash;
-            let container = widget.get_container_item_mut();
+    pub fn set_padding(&self, px: f32, py: f32) {
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
 
-            self.container_has_focus_intern(container, ty, hash)
-        } else {
-            unreachable!();
-        }
+        container.padding_lower = Vec2::new(px, py);
+        container.padding_upper = Vec2::new(px, py);
+    }
+
+    pub fn set_padding_ex(&self, left: f32, top: f32, right: f32, bottom: f32) {
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.padding_lower = Vec2::new(left, top);
+        container.padding_upper = Vec2::new(right, bottom);
+    }
+
+    pub fn set_padding_left(&self, padding: f32) {
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.padding_lower.x = padding;
+    }
+
+    pub fn set_padding_top(&self, padding: f32) {
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.padding_lower.y = padding;
+    }
+
+    pub fn set_padding_right(&self, padding: f32) {
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.padding_upper.x = padding;
+    }
+
+    pub fn set_padding_bottom(&self, padding: f32) {
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.padding_upper.y = padding;
+    }
+
+    pub fn set_spacing(&self, spacing: f32) {
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
+
+        container.spacing = spacing;
+    }
+
+    /// Makes current container `focusable` and returns if it's currently in focus.
+    pub fn container_has_focus(&self, ty: FocusType) -> bool {
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let hash = widget.hash;
+        let container = widget.get_container_item_mut();
+
+        self.container_has_focus_intern(container, ty, hash)
     }
 
     pub fn set_children_docking(&self, docking: u8) {
-        if let Some(widget_rf) = self.container.clone() {
-            let mut widget = widget_rf.as_mut();
-            let container = widget.get_container_item_mut();
+        let widget_rf = self.container();
+        let mut widget = widget_rf.as_mut();
+        let container = widget.get_container_item_mut();
 
-            container.children_docking = docking.into();
-        } else {
-            unreachable!();
-        }
+        container.children_docking = docking.into();
     }
 
     pub fn push_style(&mut self) {
@@ -885,7 +779,7 @@ impl HmGui {
         self.styles.truncate(self.styles.len() - depth as usize);
     }
 
-    /// Prints widgets hierarchy to the console.
+    /// Prints widgets hierarchy to the console. For testing.
     pub fn dump_widgets(&self) {
         println!("Widgets:");
 

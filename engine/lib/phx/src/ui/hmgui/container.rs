@@ -78,46 +78,19 @@ impl HmGuiContainer {
 
         min_size += self.padding_lower + self.padding_upper;
 
-        min_size //.min(self.max_size)
+        min_size
     }
 
-    /// Go from the top to the bottom of the widget's hierarchy tree to calculate widget's pos and size.
+    /// Go from the top to the bottom of the widgets hierarchy tree to calculate their pos and size.
     pub fn layout(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, mut extra: Vec2) {
         let mut pos = pos + self.padding_lower + self.offset;
         let size = size - self.padding_lower - self.padding_upper;
-
-        // Algorithm:
-        // 1. Calculate percentage size of the children. Calculate for the widgets without horizontal/vertical stretching.
-        // 2. Calculate extra space distribution. If there is extra space, distribute it between widgets with horizontal/vertical stretching.
-        // 3. Recalculate widgets position and size.
-        //
-        // Layout logic per layout type:
-        // 1. None layout (top level widget)
-        //    - preserve left/top position
-        //    - behavior is the same as for Stack layout
-        // 2. Stack layout
-        //    - if child widget has horizontal docking (left and/or right) then it's used in calculation
-        //      otherwise container children horizontal docking is used (if defined).
-        //      If neither widget nor container children dockings are set then widget is centered horizontally.
-        //      If both, left and right, dockings are set then widget is stretched horizontally, otherwise min size is used.
-        //    - same for vertical
-        // 3. Vertical layout
-        //    - horizontal layout is the same as horizontal layout for Stack
-        //    - if no vertical docking set then all children are centered with min size each
-        //    - if children docking has only top set then all children are moved to the top with min size each
-        //    - same when only bottom docking set
-        //    - if both, top and bottom, dockings are set then if there is extra vertical space and there are children without fixed height,
-        //      then extra space is proportionally divided between them (subtracting widget margins and container spacing).
-        //      If there is no extra space then widgets just centered vertically with min height (can go out of container's rect)
-        //      TODO: take in account percent height length
-        // 4. Horizontal layout
-        //    - same as for the vertical
 
         // 1. Calculate percentage size of the children
         for widget_rf in &self.children {
             let mut widget = widget_rf.as_mut();
 
-            // Docking stretch has priority over fixed/percentage size
+            // Horizontal. Docking stretch has priority over fixed/percentage size
             if !widget.docking.has_horizontal_stretch()
                 && !self.children_docking.has_horizontal_stretch()
             {
@@ -136,7 +109,7 @@ impl HmGuiContainer {
                 }
             }
 
-            // Docking stretch has priority over fixed/percentage size
+            // Vertical. Docking stretch has priority over fixed/percentage size
             if !widget.docking.has_vertical_stretch()
                 && !self.children_docking.has_vertical_stretch()
             {
@@ -169,7 +142,7 @@ impl HmGuiContainer {
                     if widget.docking.has_horizontal_stretch()
                         || self.children_docking.has_horizontal_stretch()
                     {
-                        let weight = 100.0; // TODO: use percent width if set
+                        let weight = 100.0; // weight per expandable widget
 
                         total_weight += weight;
                         extra_size[i] = extra.x * weight;
@@ -206,7 +179,7 @@ impl HmGuiContainer {
                     if widget.docking.has_vertical_stretch()
                         || self.children_docking.has_vertical_stretch()
                     {
-                        let weight = 100.0; // TODO: use percent height if set
+                        let weight = 100.0; // weight per expandable widget
 
                         total_weight += weight;
                         extra_size[i] = extra.y * weight;
@@ -242,13 +215,13 @@ impl HmGuiContainer {
             if self.layout == LayoutType::Horizontal {
                 widget.pos.x = pos.x;
                 widget.size.x = widget.min_size.x + extra_size[i];
-                pos.x += widget.size.x + self.spacing;
+                pos.x += widget.size.x + self.spacing; // Calculate position of the next widget
             } else {
                 if widget.docking.has_horizontal_stretch()
                     || self.children_docking.has_horizontal_stretch()
                 {
                     // Stretch widget and center it in the parent one
-                    // Widget can go out of parent scope
+                    // Widget can go out of parent's scope
                     widget.pos.x = pos.x;
                     widget.size.x = size.x;
                 } else if widget.docking.is_dock_right() || self.children_docking.is_dock_right() {
@@ -269,13 +242,13 @@ impl HmGuiContainer {
             if self.layout == LayoutType::Vertical {
                 widget.pos.y = pos.y;
                 widget.size.y = widget.min_size.y + extra_size[i];
-                pos.y += widget.size.y + self.spacing;
+                pos.y += widget.size.y + self.spacing; // Calculate position of the next widget
             } else {
                 if widget.docking.has_vertical_stretch()
                     || self.children_docking.has_vertical_stretch()
                 {
                     // Stretch widget and center it in the parent one
-                    // Widget can go out of parent scope
+                    // Widget can go out of parent's scope
                     widget.pos.y = pos.y;
                     widget.size.y = size.y;
                 } else if widget.docking.is_dock_bottom() || self.children_docking.is_dock_bottom()
@@ -301,11 +274,6 @@ impl HmGuiContainer {
     }
 
     pub fn draw(&self, hmgui: &mut HmGui, pos: Vec2, size: Vec2, focus: bool) {
-        // #if HMGUI_DRAW_GROUP_FRAMES
-        //   Draw_Color(0.2f, 0.2f, 0.2f, 0.5f);
-        //   Draw_Border(2.0f, g->pos.x, g->pos.y, g->size.x, g->size.y);
-        // #endif
-
         hmgui.renderer.begin_layer(pos, size, self.clip);
 
         for widget_rf in self.children.iter().rev() {

@@ -66,6 +66,32 @@ pub struct HmGuiWidget {
 }
 
 impl HmGuiWidget {
+    pub fn new(parent: Option<Rf<HmGuiWidget>>, item: WidgetItem) -> Self {
+        Self {
+            parent,
+
+            hash: 0,
+            item,
+
+            pos: Default::default(),
+            size: Default::default(),
+            inner_pos: Default::default(),
+            inner_size: Default::default(),
+
+            default_width: Default::default(),
+            default_height: Default::default(),
+            docking: Default::default(),
+            margin_upper: Default::default(),
+            margin_lower: Default::default(),
+            bg_color: Default::default(),
+            border_width: Default::default(),
+            border_color: Default::default(),
+
+            min_size: Default::default(),
+            inner_min_size: Default::default(),
+        }
+    }
+
     pub fn get_container_item(&self) -> &HmGuiContainer {
         let WidgetItem::Container(item) = &self.item else {
             panic!("Expected container but was: {}", self.item.name())
@@ -107,8 +133,8 @@ impl HmGuiWidget {
         Vec2 { x, y }
     }
 
-    /// Calculate inner pos and size from outer by subtracting margins and border.
-    /// Do not subtract if outer width/height is 0.
+    /// Calculate inner pos and size from outer ones by subtracting margins and border.
+    /// Do not subtract if outer width and/or height is 0.
     pub fn calculate_inner_pos_size(&mut self) {
         if self.size.x > 0.0 {
             self.inner_pos.x = self.pos.x + self.border_width + self.margin_upper.x;

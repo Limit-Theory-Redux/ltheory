@@ -105,7 +105,7 @@ mod tests {
         gui.end_container();
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -146,7 +146,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -189,7 +189,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -233,7 +233,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -285,7 +285,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -329,7 +329,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -383,7 +383,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -432,7 +432,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -493,7 +493,7 @@ mod tests {
 
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -559,7 +559,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -608,7 +608,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -669,7 +669,7 @@ mod tests {
 
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -750,7 +750,7 @@ mod tests {
 
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -816,7 +816,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -868,7 +868,7 @@ mod tests {
         gui.set_docking(DOCKING_STRETCH_ALL);
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -925,7 +925,7 @@ mod tests {
 
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -995,7 +995,7 @@ mod tests {
 
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
@@ -1077,7 +1077,7 @@ mod tests {
 
         gui.end_gui(&input);
 
-        let root_widget_rf = gui.root().expect("Cannot get gui root widget");
+        let root_widget_rf = gui.root();
         let root_widget = root_widget_rf.as_ref();
 
         check_widget(
