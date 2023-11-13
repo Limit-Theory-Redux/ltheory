@@ -2,6 +2,8 @@ local Settings = {}
 local varMap   = {}
 local varList  = {}
 
+--! We need to think about this, seems to me this is obsolete
+
 function Settings.addBool(key, name, default)
     local self = {
         key = key,
